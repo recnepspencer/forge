@@ -9,6 +9,8 @@
 //!
 //! DEPENDENCIES: `handles` (NodeId)
 
+use serde::{Deserialize, Serialize};
+
 use crate::handles::NodeId;
 
 /// Three-state invalidation for a signal node.
@@ -17,10 +19,10 @@ use crate::handles::NodeId;
 /// - `Clean`: value is current, no recomputation needed
 /// - `MaybeStale`: a transitive dependency changed — check before using
 /// - `Dirty`: a direct dependency changed — must recompute
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum NodeState {
     /// Value is current at the given version.
-    Clean(u64),
+    Clean,
     /// A dependency's dependency changed. May or may not affect this node.
     /// Requires walking upstream to determine if recomputation is needed.
     MaybeStale,
@@ -33,7 +35,7 @@ pub enum NodeState {
 /// This enables the topology change firewall: a geometry-only change
 /// (e.g., dragging an extrude depth) won't trigger re-evaluation of
 /// nodes that only subscribe to the topology aspect.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum Aspect {
     /// Subscribes to topology changes (connectivity, face count, etc.).
     Topology,
@@ -46,7 +48,7 @@ pub enum Aspect {
 /// When a feature evaluates, it reports new aspect versions.
 /// Downstream nodes compare these against their cached versions
 /// to determine if they actually need to recompute.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AspectVersion {
     topology: u64,
     geometry: u64,
@@ -110,7 +112,7 @@ impl AspectVersion {
 }
 
 /// A dependency edge recording which upstream node and aspect a downstream reads.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DependencyEdge {
     source: NodeId,
     aspect: Aspect,
@@ -137,7 +139,7 @@ impl DependencyEdge {
 ///
 /// Used by the pull phase to determine if a `MaybeStale` node can revert
 /// to `Clean`: if all upstream versions match the snapshot, no recomputation needed.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DependencySnapshot {
     entries: Vec<(NodeId, Aspect, u64)>,
 }
@@ -162,7 +164,7 @@ impl DependencySnapshot {
 }
 
 /// Internal storage for a single signal node.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NodeEntry {
     state: NodeState,
     aspect_version: AspectVersion,

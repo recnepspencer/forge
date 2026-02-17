@@ -178,9 +178,6 @@ fn insert_all(visited: &mut HashSet<NodeId>, nodes: &[NodeId]) {
     }
 }
 
-// =========================================================================
-// Pull Phase
-// =========================================================================
 
 /// Evaluate a node, recomputing only if necessary.
 ///
@@ -191,7 +188,7 @@ fn insert_all(visited: &mut HashSet<NodeId>, nodes: &[NodeId]) {
 /// 3. `Dirty` → call `compute` closure, record new versions and snapshot.
 ///
 /// Uses an explicit stack to avoid stack overflow on deep graphs.
-/// Tracks visited nodes to detect evaluation cycles.
+/// Tracks active nodes to detect evaluation cycles.
 pub fn evaluate<F>(
     graph: &mut SignalGraph,
     node: NodeId,
@@ -201,14 +198,20 @@ where
     F: FnMut(NodeId, &SignalGraph) -> Result<AspectVersion, KernelError>,
 {
     let mut eval_stack: Vec<EvalTask> = vec![EvalTask::Evaluate(node)];
-    let mut eval_visited = HashSet::<NodeId>::new();
+
+    let mut active_path = HashSet::<NodeId>::new();
+
+    let mut visited = HashSet::<NodeId>::new();
 
     while let Some(task) = eval_stack.pop() {
         match task {
             EvalTask::Evaluate(current) => {
-                process_evaluate_task(graph, current, &mut eval_stack, &mut eval_visited)?;
+                process_evaluate_task(graph, current, &mut eval_stack, &mut active_path, &mut visited)?;
             }
             EvalTask::Recompute(current) => {
+                active_path.remove(&current);
+                visited.insert(current);
+
                 process_recompute_task(graph, current, compute)?;
             }
         }
@@ -227,31 +230,45 @@ fn process_evaluate_task(
     graph: &mut SignalGraph,
     current: NodeId,
     eval_stack: &mut Vec<EvalTask>,
-    eval_visited: &mut HashSet<NodeId>,
+    active_path: &mut HashSet<NodeId>,
+    visited: &mut HashSet<NodeId>,
 ) -> Result<(), KernelError> {
     if !graph.is_alive(current) {
         return Ok(());
     }
+    
+    if visited.contains(&current) {
+        return Ok(());
+    }
 
-    if eval_visited.contains(&current) {
+    if active_path.contains(&current) {
         return Err(circular_reference_error(current));
     }
-    eval_visited.insert(current);
-
+    
     let state = *graph.get_entry(current)?.get_state();
 
     match state {
-        NodeState::Clean(_) => Ok(()),
+        NodeState::Clean => {
+            visited.insert(current);
+            Ok(())
+        },
 
         NodeState::MaybeStale => {
             let upstream_unchanged = check_upstream_unchanged(graph, current)?;
             if upstream_unchanged {
-                return revert_to_clean(graph, current);
+                revert_to_clean(graph, current)?;
+                visited.insert(current);
+                Ok(())
+            } else {
+                active_path.insert(current);
+                push_deps_then_recompute(graph, current, eval_stack)
             }
-            push_deps_then_recompute(graph, current, eval_stack)
         }
 
-        NodeState::Dirty => push_deps_then_recompute(graph, current, eval_stack),
+        NodeState::Dirty => {
+            active_path.insert(current);
+            push_deps_then_recompute(graph, current, eval_stack)
+        },
     }
 }
 
@@ -272,7 +289,7 @@ where
 
     let state = *graph.get_entry(current)?.get_state();
 
-    if matches!(state, NodeState::Clean(_)) {
+    if matches!(state, NodeState::Clean) {
         return Ok(());
     }
 
@@ -312,7 +329,7 @@ fn revert_to_clean(graph: &mut SignalGraph, node: NodeId) -> Result<(), KernelEr
     let clean_version = ver.topology() + ver.geometry();
     graph
         .get_entry_mut(node)?
-        .set_state(NodeState::Clean(clean_version));
+        .set_state(NodeState::Clean);
     Ok(())
 }
 
@@ -355,7 +372,7 @@ where
     let entry = graph.get_entry_mut(node)?;
     entry.set_aspect_version(new_version);
     entry.set_dep_snapshot(snapshot);
-    entry.set_state(NodeState::Clean(new_version.topology() + new_version.geometry()));
+    entry.set_state(NodeState::Clean);
 
     Ok(())
 }

@@ -9,6 +9,8 @@
 //!
 //! DEPENDENCIES: None
 
+use serde::{Deserialize, Serialize};
+
 /// A typed, generational handle for a signal graph node.
 ///
 /// - `index`: slot position in the graph's node arena
@@ -36,6 +38,48 @@ impl NodeId {
     /// The generation counter (for stale-handle detection).
     pub fn generation(self) -> u32 {
         self.generation
+    }
+}
+
+impl Serialize for NodeId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let s = format!("{}:{}", self.index, self.generation);
+        serializer.serialize_str(&s)
+    }
+}
+
+impl<'de> Deserialize<'de> for NodeId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct NodeIdVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for NodeIdVisitor {
+            type Value = NodeId;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a string formatted as 'index:generation'")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                let parts: Vec<&str> = value.split(':').collect();
+                if parts.len() != 2 {
+                    return Err(E::custom("invalid format, expected 'index:generation'"));
+                }
+                let index = parts[0].parse().map_err(E::custom)?;
+                let generation = parts[1].parse().map_err(E::custom)?;
+                Ok(NodeId { index, generation })
+            }
+        }
+
+        deserializer.deserialize_str(NodeIdVisitor)
     }
 }
 

@@ -8,6 +8,7 @@ description = "Reactive signal graph for the Forge geometry kernel"
 [dependencies]
 forge-core.workspace = true
 tracing.workspace = true
+serde = { workspace = true, features = ["derive"] }
 
 [lints]
 workspace = true

@@ -11,11 +11,13 @@
 
 use forge_core::KernelError;
 
+use serde::{Deserialize, Serialize};
+
 use crate::handles::NodeId;
 use crate::schema::{Aspect, DependencyEdge, NodeEntry, NodeState};
 
 /// A slot in the node arena that may be occupied or vacant.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Slot {
     /// The node data, if occupied.
     data: Option<NodeEntry>,
@@ -55,6 +57,7 @@ impl Slot {
 /// An arena of `NodeEntry` values with dependency edges.
 /// Nodes are allocated with generational handles (`NodeId`) for
 /// safe, stale-proof access.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SignalGraph {
     /// Arena slots (generational).
     nodes: Vec<Slot>,
