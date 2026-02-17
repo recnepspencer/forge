@@ -198,7 +198,10 @@ fn bit_length_of(n: &BigInt) -> u32 {
     if digits.is_empty() {
         return 0;
     }
-    let most_significant_digit = *digits.last().expect("non-empty digit array");
+    let most_significant_digit = match digits.last() {
+        Some(&d) => d,
+        None => return 0,
+    };
     let leading_bits = 64 - most_significant_digit.leading_zeros();
     ((digits.len() - 1) as u32) * 64 + leading_bits
 }

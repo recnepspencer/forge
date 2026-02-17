@@ -3,8 +3,8 @@
 //! Validates that intentionally exceeding the bit-length budget produces
 //! a structured `EscalationEvent` with correct fields, deterministically.
 
-use forge_math::precision::PrecisionBudget;
-use forge_math::rational::Rational;
+use forge_math::arithmetic::precision::PrecisionBudget;
+use forge_math::arithmetic::rational::Rational;
 use forge_math::sign::TriSign;
 
 #[test]

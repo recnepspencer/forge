@@ -3,6 +3,9 @@
 use crate::bsp::{build_convex_polyhedron, BspConfig, ConvexCell};
 use crate::plane::Plane;
 
+const TEST_TOLERANCE: f64 = 1e-8;
+const TEST_DEGENERACY: f64 = 1e-14;
+
 /// Helper: count only the faces corresponding to user-supplied planes
 /// (not the bounding-box planes, which are indices 0..5).
 fn count_user_faces(cell: &ConvexCell, bbox_plane_count: usize) -> usize {
@@ -23,7 +26,7 @@ fn assert_euler(cell: &ConvexCell) {
 
 /// Helper: verify all vertices satisfy all planes (signed_distance ≤ eps).
 fn assert_vertices_inside_planes(cell: &ConvexCell) {
-    let eps = 1e-8;
+    let eps = TEST_TOLERANCE;
     let planes = cell.planes();
     for v in cell.vertices() {
         for (i, plane) in planes.iter().enumerate() {
@@ -81,7 +84,7 @@ fn cube_from_six_planes() {
         let p = v.position();
         for coord in p {
             assert!(
-                (*coord - 1.0).abs() < 1e-8 || (*coord + 1.0).abs() < 1e-8,
+                (*coord - 1.0).abs() < TEST_TOLERANCE || (*coord + 1.0).abs() < TEST_TOLERANCE,
                 "Cube vertex coord {coord} should be ±1"
             );
         }
@@ -121,7 +124,7 @@ fn hexagonal_prism_from_eight_planes() {
 #[test]
 fn kv18_near_degenerate_planes() {
     let config = BspConfig::default();
-    let eps = 1e-14;
+    let eps = TEST_DEGENERACY;
     let planes = vec![
         Plane::from_point_normal([1.0, 0.0, 0.0], [1.0, 0.0, 0.0]).unwrap(),
         Plane::from_point_normal([-1.0, 0.0, 0.0], [-1.0, 0.0, 0.0]).unwrap(),

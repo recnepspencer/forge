@@ -10,7 +10,7 @@
 //! exact *sign*. This module enforces a bit-length ceiling and provides
 //! a "pressure valve" that rounds while preserving sign.
 
-use crate::rational::Rational;
+use crate::arithmetic::rational::Rational;
 
 /// Tracks bit-length across a chain of exact operations.
 ///

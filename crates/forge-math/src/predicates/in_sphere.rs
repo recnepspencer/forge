@@ -1,7 +1,7 @@
 //! Insphere predicate.
 
-use crate::filter::FilteredEval;
-use crate::rational::Rational;
+use crate::arithmetic::filter::FilteredEval;
+use crate::arithmetic::rational::Rational;
 use crate::sign::{CertifiedTriSign, TriSign};
 use super::IN_SPHERE_ERR_BOUND_A;
 

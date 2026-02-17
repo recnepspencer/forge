@@ -1,8 +1,8 @@
 //! 3D orientation predicate.
 
-use crate::double::Double;
-use crate::filter::FilteredEval;
-use crate::rational::Rational;
+use crate::arithmetic::double::Double;
+use crate::arithmetic::filter::FilteredEval;
+use crate::arithmetic::rational::Rational;
 use crate::sign::{CertifiedTriSign, TriSign};
 use super::ORIENT3D_ERR_BOUND_A;
 

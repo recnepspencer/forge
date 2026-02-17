@@ -3,8 +3,8 @@
 //! Validates that applying `PrecisionBudget::enforce` after each operation
 //! prevents runaway bit-growth while preserving signs.
 
-use forge_math::precision::PrecisionBudget;
-use forge_math::rational::Rational;
+use forge_math::arithmetic::precision::PrecisionBudget;
+use forge_math::arithmetic::rational::Rational;
 
 #[test]
 fn kv06_multiplications_stay_bounded() {

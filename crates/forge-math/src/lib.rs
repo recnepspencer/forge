@@ -19,15 +19,12 @@ pub use error::MathError;
 
 pub mod sign;
 pub mod error;
-pub mod rational;
-pub mod double;
-pub mod filter;
-pub mod predicates;
+pub mod arithmetic;
 pub mod coincidence;
-pub mod precision;
 pub mod env;
 pub mod deterministic_rng;
 pub mod linalg;
+pub mod predicates;
 
 #[cfg(feature = "strict_env")]
 pub use env::init_fpu;

@@ -5,7 +5,7 @@
 //! geometry stays in `forge-geom`; topology only consumes results.
 
 use forge_core::KernelError;
-use forge_math::sign::TriSign;
+
 
 /// Compute the intersection point of a ray with a plane defined by
 /// three vertices using parametric interpolation.

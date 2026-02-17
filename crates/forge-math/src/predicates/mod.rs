@@ -1,6 +1,6 @@
 //! Geometric predicates with filtered evaluation.
 //!
-//! Each predicate uses the three-stage [`FilteredEval`](crate::filter::FilteredEval) pipeline to determine
+//! Each predicate uses the three-stage [`FilteredEval`](crate::arithmetic::filter::FilteredEval) pipeline to determine
 //! the sign of a geometric determinant. Stage 1 (f64 with Shewchuk error bounds)
 //! resolves >95% of random inputs. Stage 2 (double-double) resolves >99% of
 //! the remainder. Stage 3 (exact rational) resolves everything.

@@ -7,6 +7,7 @@ mod tests {
 
     /// Default degeneracy threshold for tests.
     const TEST_DEGENERACY: f64 = 1e-15;
+    const TEST_TOLERANCE: f64 = 1e-10;
 
     #[test]
     fn construct_valid_plane() {
@@ -42,7 +43,7 @@ mod tests {
     fn from_point_normal_constructs_correctly() {
         let plane = Plane::from_point_normal([0.0, 0.0, 5.0], [0.0, 0.0, 1.0]).unwrap();
         let dist = signed_distance(&plane, &[0.0, 0.0, 5.0]);
-        assert!(dist.abs() < 1e-10);
+        assert!(dist.abs() < TEST_TOLERANCE);
     }
 
     #[test]
@@ -70,14 +71,14 @@ mod tests {
     fn signed_distance_positive_above() {
         let plane = Plane::try_new([0.0, 0.0, 1.0], 0.0).unwrap();
         let dist = signed_distance(&plane, &[0.0, 0.0, 3.0]);
-        assert!((dist - 3.0).abs() < 1e-10);
+        assert!((dist - 3.0).abs() < TEST_TOLERANCE);
     }
 
     #[test]
     fn signed_distance_negative_below() {
         let plane = Plane::try_new([0.0, 0.0, 1.0], 0.0).unwrap();
         let dist = signed_distance(&plane, &[0.0, 0.0, -2.0]);
-        assert!((dist + 2.0).abs() < 1e-10);
+        assert!((dist + 2.0).abs() < TEST_TOLERANCE);
     }
 
     #[test]
@@ -87,9 +88,9 @@ mod tests {
         let pz = Plane::try_new([0.0, 0.0, 1.0], 0.0).unwrap();
 
         let point = intersect_three_planes(&px, &py, &pz, TEST_DEGENERACY).unwrap();
-        assert!((point[0]).abs() < 1e-10);
-        assert!((point[1]).abs() < 1e-10);
-        assert!((point[2]).abs() < 1e-10);
+        assert!((point[0]).abs() < TEST_TOLERANCE);
+        assert!((point[1]).abs() < TEST_TOLERANCE);
+        assert!((point[2]).abs() < TEST_TOLERANCE);
     }
 
     #[test]
@@ -99,9 +100,9 @@ mod tests {
         let pz = Plane::try_new([0.0, 0.0, 1.0], -5.0).unwrap();
 
         let point = intersect_three_planes(&px, &py, &pz, TEST_DEGENERACY).unwrap();
-        assert!((point[0] - 3.0).abs() < 1e-10);
-        assert!((point[1] - 4.0).abs() < 1e-10);
-        assert!((point[2] - 5.0).abs() < 1e-10);
+        assert!((point[0] - 3.0).abs() < TEST_TOLERANCE);
+        assert!((point[1] - 4.0).abs() < TEST_TOLERANCE);
+        assert!((point[2] - 5.0).abs() < TEST_TOLERANCE);
     }
 
     #[test]
@@ -146,14 +147,14 @@ mod tests {
         let plane = Plane::try_new([3.0, 4.0, 0.0], 10.0).unwrap();
         let n = plane.normal();
         let len = (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]).sqrt();
-        assert!((len - 1.0).abs() < 1e-10);
+        assert!((len - 1.0).abs() < TEST_TOLERANCE);
     }
 
     #[test]
     fn raw_normal_preserves_original() {
         let plane = Plane::try_new([3.0, 4.0, 0.0], 10.0).unwrap();
         let raw = plane.raw_normal();
-        assert!((raw[0] - 3.0).abs() < 1e-15);
-        assert!((raw[1] - 4.0).abs() < 1e-15);
+        assert!((raw[0] - 3.0).abs() < TEST_DEGENERACY);
+        assert!((raw[1] - 4.0).abs() < TEST_DEGENERACY);
     }
 }
