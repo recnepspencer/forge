@@ -1,5 +1,7 @@
 //! Data definitions for the ImplicitVertex primitive.
 
+use serde::{Deserialize, Serialize};
+
 /// An implicit vertex defined by the intersection of 3 or more planes.
 ///
 /// The vertex position is not stored — it is derived on demand by
@@ -10,7 +12,7 @@
 ///
 /// When 4+ planes define a vertex (e.g., a pyramid apex), the solver
 /// selects the best-conditioned triple and verifies against all others.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImplicitVertex {
     /// Indices into the plane table. Must contain at least 3 entries.
     defining_planes: Vec<PlaneRef>,
@@ -20,7 +22,7 @@ pub struct ImplicitVertex {
 ///
 /// This is a simple index — typed for clarity, not to be confused
 /// with topology handles from `forge-topo`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct PlaneRef {
     /// Index into the plane table.
     index: usize,

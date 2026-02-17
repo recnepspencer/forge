@@ -2,6 +2,8 @@
 
 use forge_core::KernelError;
 
+use serde::{Deserialize, Serialize};
+
 /// A plane in 3D space defined by the equation `n·p + d = 0`.
 ///
 /// The normal vector `[a, b, c]` and offset `d` are stored as `f64`.
@@ -12,7 +14,7 @@ use forge_core::KernelError;
 ///
 /// Use [`Plane::try_new`] which validates that the normal is non-zero.
 /// This ensures the plane is always geometrically meaningful.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Plane {
     /// Unit normal vector `[a, b, c]` (normalized at construction).
     normal: [f64; 3],

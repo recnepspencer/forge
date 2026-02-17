@@ -1,9 +1,11 @@
 //! Data shapes for BSP convex cell construction.
 
+use serde::{Deserialize, Serialize};
+
 use crate::plane::Plane;
 
 /// A vertex of a convex cell, defined by the intersection of three planes.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CellVertex {
     /// Index of the first defining plane.
     plane_a: usize,
@@ -38,7 +40,7 @@ impl CellVertex {
 }
 
 /// A face of a convex cell — a convex polygon lying on one plane.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CellFace {
     /// Index of the plane this face lies on.
     plane_idx: usize,
@@ -67,7 +69,7 @@ impl CellFace {
 ///
 /// Built by repeatedly clipping a large bounding cell with input planes.
 /// Each vertex is the intersection of exactly three planes.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConvexCell {
     /// All planes (input + bounding box).
     planes: Vec<Plane>,

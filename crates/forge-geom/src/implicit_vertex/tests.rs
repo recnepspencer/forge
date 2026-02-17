@@ -35,7 +35,7 @@ mod tests {
             PlaneRef::new(0), PlaneRef::new(2), PlaneRef::new(4),
         ]).unwrap();
 
-        let pos = resolve_position(&vertex, &PlaneSet(planes), TEST_RESIDUAL, TEST_DEGENERACY).unwrap();
+        let pos = resolve_position(&vertex, &PlaneSet::new(planes), TEST_RESIDUAL, TEST_DEGENERACY).unwrap();
         assert!((pos[0]).abs() < 1e-10);
         assert!((pos[1]).abs() < 1e-10);
         assert!((pos[2]).abs() < 1e-10);
@@ -48,7 +48,7 @@ mod tests {
             PlaneRef::new(1), PlaneRef::new(3), PlaneRef::new(5),
         ]).unwrap();
 
-        let pos = resolve_position(&vertex, &PlaneSet(planes), TEST_RESIDUAL, TEST_DEGENERACY).unwrap();
+        let pos = resolve_position(&vertex, &PlaneSet::new(planes), TEST_RESIDUAL, TEST_DEGENERACY).unwrap();
         assert!((pos[0] - 1.0).abs() < 1e-10);
         assert!((pos[1] - 1.0).abs() < 1e-10);
         assert!((pos[2] - 1.0).abs() < 1e-10);
@@ -66,7 +66,7 @@ mod tests {
             let vertex = ImplicitVertex::try_new(vec![
                 PlaneRef::new(a), PlaneRef::new(b), PlaneRef::new(c),
             ]).unwrap();
-            let pos = resolve_position(&vertex, &PlaneSet(planes.clone()), TEST_RESIDUAL, TEST_DEGENERACY);
+            let pos = resolve_position(&vertex, &PlaneSet::new(planes.clone()), TEST_RESIDUAL, TEST_DEGENERACY);
             assert!(pos.is_ok(), "Failed to resolve vertex ({}, {}, {})", a, b, c);
         }
     }
@@ -86,7 +86,7 @@ mod tests {
 
         assert!(vertex.is_overconstrained());
 
-        let pos = resolve_position(&vertex, &PlaneSet(planes), TEST_RESIDUAL, TEST_DEGENERACY).unwrap();
+        let pos = resolve_position(&vertex, &PlaneSet::new(planes), TEST_RESIDUAL, TEST_DEGENERACY).unwrap();
         assert!((pos[0]).abs() < 1e-10);
         assert!((pos[1]).abs() < 1e-10);
         assert!((pos[2]).abs() < 1e-10);
@@ -105,7 +105,7 @@ mod tests {
             PlaneRef::new(0), PlaneRef::new(1), PlaneRef::new(2), PlaneRef::new(3),
         ]).unwrap();
 
-        let result = resolve_position(&vertex, &PlaneSet(planes), TEST_RESIDUAL, TEST_DEGENERACY);
+        let result = resolve_position(&vertex, &PlaneSet::new(planes), TEST_RESIDUAL, TEST_DEGENERACY);
         assert!(result.is_err());
     }
 
@@ -119,7 +119,7 @@ mod tests {
         ];
 
         let refs: Vec<PlaneRef> = (0..4).map(PlaneRef::new).collect();
-        let (i, j, k) = select_best_triple(&refs, &PlaneSet(planes)).unwrap();
+        let (i, j, k) = select_best_triple(&refs, &PlaneSet::new(planes)).unwrap();
 
         assert!(i < j);
         assert!(j < k);
@@ -146,7 +146,7 @@ mod tests {
             PlaneRef::new(0), PlaneRef::new(1), PlaneRef::new(99),
         ]).unwrap();
 
-        let result = resolve_position(&vertex, &PlaneSet(planes), TEST_RESIDUAL, TEST_DEGENERACY);
+        let result = resolve_position(&vertex, &PlaneSet::new(planes), TEST_RESIDUAL, TEST_DEGENERACY);
         assert!(result.is_err());
     }
 }

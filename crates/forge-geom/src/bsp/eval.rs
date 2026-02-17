@@ -6,6 +6,12 @@ use forge_core::KernelError;
 use crate::plane::{Plane, signed_distance, intersect_three_planes};
 use super::schema::{ConvexCell, CellFace, CellVertex};
 
+/// Threshold for triggering coordinate centering (to avoid numerical issues).
+const CENTERING_THRESHOLD: f64 = 1e4;
+
+/// Safety margin added to bounding extent.
+const EXTENT_SAFETY_MARGIN: f64 = 10.0;
+
 /// Configuration for BSP construction thresholds.
 ///
 /// All numeric thresholds are explicit parameters — forge-geom
@@ -39,16 +45,38 @@ impl Default for BspConfig {
 /// # Errors
 /// Returns error if the intersection is empty or degenerate.
 pub fn build_convex_polyhedron(input_planes: &[Plane], config: &BspConfig) -> Result<ConvexCell, KernelError> {
-    let bbox_planes = create_bounding_box(config.bounding_extent)?;
+    let center = estimate_centroid(input_planes);
+    let needs_centering = center[0].abs() > CENTERING_THRESHOLD 
+        || center[1].abs() > CENTERING_THRESHOLD 
+        || center[2].abs() > CENTERING_THRESHOLD;
+
+    let centered_planes: Vec<Plane> = if needs_centering {
+        input_planes.iter().map(|p| translate_plane(p, &center)).collect::<Result<_, _>>()?
+    } else {
+        input_planes.to_vec()
+    };
+
+    let extent = compute_required_extent(&centered_planes, config.bounding_extent);
+    let bbox_planes = create_bounding_box(extent)?;
 
     let mut all_planes: Vec<Plane> = bbox_planes;
 
-    let mut cell = build_initial_cube(&all_planes, config)?;
+    let adjusted_config = if extent > config.bounding_extent {
+        BspConfig {
+            bounding_extent: extent,
+            on_plane_eps: config.on_plane_eps * (extent / config.bounding_extent),
+            ..config.clone()
+        }
+    } else {
+        config.clone()
+    };
 
-    for plane in input_planes {
+    let mut cell = build_initial_cube(&all_planes, &adjusted_config)?;
+
+    for plane in &centered_planes {
         all_planes.push(plane.clone());
         let new_plane_idx = all_planes.len() - 1;
-        cell = clip_cell_by_plane(&all_planes, &cell, new_plane_idx, config)?;
+        cell = clip_cell_by_plane(&all_planes, &cell, new_plane_idx, &adjusted_config)?;
 
         if cell.vertices().is_empty() {
             return Err(KernelError::InvalidInput {
@@ -58,7 +86,73 @@ pub fn build_convex_polyhedron(input_planes: &[Plane], config: &BspConfig) -> Re
         }
     }
 
-    Ok(ConvexCell::new(all_planes, cell.vertices().to_vec(), cell.faces().to_vec()))
+    if needs_centering {
+        let shifted_verts: Vec<CellVertex> = cell.vertices().iter().map(|v| {
+            let pos = v.position();
+            let shifted_pos = [pos[0] + center[0], pos[1] + center[1], pos[2] + center[2]];
+            CellVertex::new(v.plane_indices()[0], v.plane_indices()[1], v.plane_indices()[2], shifted_pos)
+        }).collect();
+
+        let original_and_bbox: Vec<Plane> = {
+            let mut ps = Vec::with_capacity(all_planes.len());
+            for i in 0..6 {
+                ps.push(all_planes[i].clone());
+            }
+            for p in input_planes {
+                ps.push(p.clone());
+            }
+            ps
+        };
+
+        Ok(ConvexCell::new(original_and_bbox, shifted_verts, cell.faces().to_vec()))
+    } else {
+        Ok(ConvexCell::new(all_planes, cell.vertices().to_vec(), cell.faces().to_vec()))
+    }
+}
+
+/// Estimate the centroid of geometry defined by input planes.
+/// Uses the mean of plane-origin projection points (closest point on each plane to origin).
+fn estimate_centroid(planes: &[Plane]) -> [f64; 3] {
+    if planes.is_empty() {
+        return [0.0, 0.0, 0.0];
+    }
+
+    let mut cx = 0.0;
+    let mut cy = 0.0;
+    let mut cz = 0.0;
+
+    for p in planes {
+        let n = p.normal();
+        let d = p.offset();
+        cx += -n[0] * d;
+        cy += -n[1] * d;
+        cz += -n[2] * d;
+    }
+
+    let n = planes.len() as f64;
+    [cx / n, cy / n, cz / n]
+}
+
+/// Translate a plane by subtracting `center` from its reference frame.
+/// plane `n · x + d = 0` becomes `n · (x' + center) + d = 0` → `n · x' + (d + n · center) = 0`
+fn translate_plane(plane: &Plane, center: &[f64; 3]) -> Result<Plane, KernelError> {
+    let n = plane.raw_normal();
+    let d = plane.raw_offset();
+    let new_offset = d + n[0] * center[0] + n[1] * center[1] + n[2] * center[2];
+    Plane::try_new(n, new_offset)
+}
+
+/// Compute the minimum bounding extent needed to contain the geometry.
+/// Returns the larger of `2 * max_offset + 10` and `default_extent`.
+fn compute_required_extent(input_planes: &[Plane], default_extent: f64) -> f64 {
+    let mut max_dist = 0.0_f64;
+    for plane in input_planes {
+        let offset_magnitude = plane.offset().abs();
+        max_dist = max_dist.max(offset_magnitude);
+    }
+
+    let required = max_dist * 2.0 + EXTENT_SAFETY_MARGIN;
+    required.max(default_extent)
 }
 
 /// Clip a convex cell by a new plane, keeping the negative half-space.

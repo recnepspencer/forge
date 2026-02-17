@@ -12,4 +12,4 @@ pub(crate) mod eval;
 mod tests;
 
 pub use schema::{Plane, PlaneRelation};
-pub use eval::{classify_point, signed_distance, intersect_three_planes, to_plane_relation};
+pub use eval::{classify_point, signed_distance, intersect_three_planes, to_plane_relation, is_coplanar};

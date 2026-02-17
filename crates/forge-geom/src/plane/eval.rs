@@ -125,3 +125,36 @@ fn compute_reference_points(plane: &Plane) -> [[f64; 3]; 3] {
 
     [origin, p1, p2]
 }
+
+/// Check if two planes are coplanar within the given tolerances.
+///
+/// * `angle_epsilon`: Tolerance for parallelism (squared magnitude of cross product).
+/// * `offset_epsilon`: Tolerance for offset difference.
+///
+/// Returns true if planes have same or opposite orientation and matching offsets.
+pub fn is_coplanar(a: &Plane, b: &Plane, angle_epsilon: f64, offset_epsilon: f64) -> bool {
+    let na = a.normal();
+    let nb = b.normal();
+    
+    // Check parallelism using cross product magnitude
+    let cx = na[1] * nb[2] - na[2] * nb[1];
+    let cy = na[2] * nb[0] - na[0] * nb[2];
+    let cz = na[0] * nb[1] - na[1] * nb[0];
+    let cross_sq = cx * cx + cy * cy + cz * cz;
+
+    if cross_sq > angle_epsilon {
+        return false;
+    }
+
+    let dot = na[0] * nb[0] + na[1] * nb[1] + na[2] * nb[2];
+    let da = a.raw_offset();
+    let db = b.raw_offset();
+
+    if dot > 0.0 {
+        // Same orientation
+        (da - db).abs() < offset_epsilon
+    } else {
+        // Opposite orientation
+        (da + db).abs() < offset_epsilon
+    }
+}

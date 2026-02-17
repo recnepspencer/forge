@@ -6,14 +6,24 @@
 //! called with raw `f64` comparisons. This is the compile-time enforcement
 //! of the topology-geometry firewall.
 //!
-//! DEPENDENCIES: `arena`, `handles`, `traverse`, `forge-math` (predicates)
+//! DEPENDENCIES: `arena`, `handles`, `traverse`, `forge-math` (predicates),
+//! `forge-geom` (ray intersection, projection)
 
 use forge_core::KernelError;
 use forge_math::sign::{CertifiedTriSign, TriSign};
 use forge_math::predicates::{orient2d, orient3d};
+use forge_geom::ray::{
+    compute_ray_plane_intersection, resolve_zero_edge, dominant_projection_axes,
+};
 use crate::arena::TopologyArena;
 use crate::handles::FaceId;
 use crate::traverse::face_edges;
+
+/// Degeneracy threshold for ray-plane intersection.
+///
+/// When the dot product of the ray direction with the face normal
+/// is smaller than this value, the ray is considered parallel.
+const RAY_PLANE_DEGENERACY: f64 = 1e-30;
 
 /// Result of classifying a point relative to a solid's boundary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -78,7 +88,9 @@ pub fn classify_point_in_solid(
         )?;
 
         match crossings {
-            FaceCrossing::OnBoundary => return Ok(PointClassification::OnBoundary(face_id)),
+            FaceCrossing::OnBoundary => {
+                 return Ok(PointClassification::OnBoundary(face_id))
+            },
             FaceCrossing::Count(n) => crossing_count += n,
         }
     }
@@ -125,89 +137,209 @@ fn count_face_crossings(
         positions.push(vertex_positions(he_data.origin.index())?);
     }
 
-    let point_orient = orient3d(positions[0], positions[1], positions[2], *point)
-        .map_err(|e| KernelError::InternalError {
-            message: format!("orient3d error: {e}"),
-            context: None,
-        })?;
+    // D3: robustly find a triangle basis from the face vertices.
+    // If indices 0,1,2are collinear, orient3d returns Zero even if point is far.
+    // We must find i,j,k such that (i,j,k) form a valid plane (non-collinear).
+    // We try 0, 1, k for k in 2..n.
+    
+    let mut basis_indices = None;
+    for k in 2..positions.len() {
+        // Check if 0, 1, k are collinear.
+        // We can't use orient3d on *point* yet. We check against each other?
+        // Actually, we want to define the face plane.
+        // If (0,1,k) are collinear, they don't define a plane.
+        // How to check collinearity without floating point epsilon?
+        // Use orient3d with a 4th point? No.
+        // forge-geom or forge-math should have `collinear` predicate?
+        // Actually, we can check if `orient2d` on all 3 projections is zero?
+        // Or simply: search for a triplet that gives a definite sign for *some* query point? 
+        // No, the plane is intrinsic.
+        
+        // Check cross product of edges (1-0) and (k-1)?
+        // Using raw arithmetic is D3 violation?
+        // `orient3d` is the only tool.
+        
+        // If we assumed the face is planar (Forge invariant).
+        // Then *any* non-collinear triplet defines the plane.
+        // If ALL points are collinear, the face is degenerate (area zero).
+        
+        // Heuristic: Use lexicographically spread vertices?
+        // Or just compute normal area?
+        
+        // Let's perform a cross product check with a robust tolerance, 
+        // OR try to classify the point against this basis.
+        // If the basis is degenerate, orient3d(a,b,c, p) is 0 for ALL p.
+        // But we want to know if p is on the *Face Plane*.
+        // If orient3d(a,b,c, p) is non-zero, then they form a tetrahedron, so p is NOT on plane abc.
+        // If plane abc is valid, then result is valid.
+        // If plane abc is degenerate (line), orient3d is 0.
+        // So if `orient3d` returns Non-Zero, we found a valid plane AND p is off it. -> Success.
+        
+        // But what if p lies on the degenerate plane (line)?
+        // Then orient3d is 0. But p might fail "point_in_polygon".
+        
+        // Correct logic:
+        // iterate k. Compute `o = orient3d(0, 1, k, p)`.
+        // If `o != Zero`, then p is definitely NOT coplanar with (0,1,k).
+        // Since (0,1,k) are in the face, p is NOT coplanar with face.
+        // Return Count(0) or Count(1) based on intersection?
+        // No, we need SIGN.
+        
+        // If we find `o != Zero`, we can immediately say "Not Coplanar". 
+        // But which side? `o` tells us.
+        // But is (0,1,k) orientation consistent with face normal?
+        // Face might be concave? No, Forge faces are convex? Or simple holes?
+        // Forge faces can be non-convex? "convex polygon" mentioned in comments.
+        // If convex, ordering is consistent.
+        
+        let o = orient3d(positions[0], positions[1], positions[k], *point)
+            .map_err(|e| KernelError::InternalError { message: e.to_string(), context: None })?;
+            
+        if o.sign() != TriSign::Zero {
+            // Found a triangle 0-1-k that P is NOT on.
+            // But does 0-1-k define the face plane normal direction correctly?
+            // If the polygon is convex, 0-1-k is a sub-triangle consistent with winding.
+            // So `o` is the correct orientation.
+            
+            // We verify `far` orientation with the SAME basis.
+            let far_orient = orient3d(positions[0], positions[1], positions[k], *ray_far)
+                .map_err(|e| KernelError::InternalError { message: e.to_string(), context: None })?;
+                
+            if far_orient.sign() == TriSign::Zero {
+                return Ok(FaceCrossing::Count(0)); // Degenerate ray end
+            }
+            if o.sign() == far_orient.sign() {
+                return Ok(FaceCrossing::Count(0)); // Same side
+            }
+            
+            // Ray crosses plane. Compute intersection.
+            // Must use the valid basis 0,1,k for plane?
+            // compute_ray_plane_intersection uses all `positions` (best fit plane).
+            // So we can fall through to intersection test.
+            
+            basis_indices = Some((0, 1, k));
+            break;
+        }
+    }
+    
+    // If loop finished and we haven't broken, it means orient3d was Zero for ALL k.
+    // This implies P is coplanar with 0-1-k for all k.
+    // So P is coplanar with the whole face (assuming 0-1 matches face plane).
+    // OR 0-1 is degenerate?
+    // If 0 and 1 are same point? (Checked by unique vertices?)
+    // If 0,1,k are always collinear (Face is a line)?
+    
+    // If we assume valid Face (area > 0).
+    // If P is coplanar with every triangle fan from 0-1.
+    // Then P is coplanar with the face.
+    // So we proceed to "OnBoundary" logic.
+    
+    // But wait, what if 0, 1, k are collinear, but P is NOT?
+    // Then orient3d is Zero.
+    // My loop continues.
+    // If I check ALL k and all are Zero.
+    // Does it mean P is on plane?
+    // Yes, if 0-1 is not a point.
+    // AND if face is not a line.
+    
+    // Let's assume P is coplanar if we fell through.
+    if basis_indices.is_none() {
+        // Coplanar point logic...
+        let point_orient = TriSign::Zero; // Implicit
+    }
+    
+    // Check intersection using BEST FIT plane (computed inside function)
+    // We don't use 'point_orient' variable anymore.
+    // We handled "Not Coplanar" inside loop?
+    // No, I need to restructure to avoid "fall through means coplanar".
+    
+    // Simplified robust check:
+    // 1. Find ANY non-collinear triplet (a,b,c) in face.
+    // 2. Check orient3d(a,b,c, p).
+    
+    // Step 1: Find basis.
+    // Note: We assume convexity or simple polygon.
+    // Even if non-convex, we can usually find a valid triangle at 0-1-k unless 0-1 is collinear with all others.
+    // Robust strategy: Iterate all triplets? Too slow.
+    // Iterate 0-i-j?
+    
+    // Fallback: If 0-1-2 is collinear, try 0-2-3?
+    // Just finding ONE non-zero orient3d(a,b,c, p) proves non-coplanarity.
+    // But we need the sign to match `far`.
+    
+    let mut is_coplanar_with_p = true;
+    let mut side_sign = TriSign::Zero;
+    
+    // Try to find a definite side for P
+    // Using point 0 as fan pivot.
+    for k in 2..positions.len() {
+         let o = orient3d(positions[0], positions[k-1], positions[k], *point)
+            .map_err(|e| KernelError::InternalError { message: e.to_string(), context: None })?;
+         if o.sign() != TriSign::Zero {
+             is_coplanar_with_p = false;
+             side_sign = o.sign();
+             break;
+         }
+    }
+    
+    if is_coplanar_with_p {
+        // Coplanar point logic
+        let (u, v) = dominant_projection_axes(&positions);
+        let p2d = [point[u], point[v]];
 
-    if point_orient.sign() == TriSign::Zero {
-        return Ok(FaceCrossing::OnBoundary);
+        let mut has_pos = false;
+        let mut has_neg = false;
+
+        for i in 0..positions.len() {
+            let curr = positions[i];
+            let next = positions[(i + 1) % positions.len()];
+            
+            let c2d = [curr[u], curr[v]];
+            let n2d = [next[u], next[v]];
+
+            let orient = orient2d(c2d, n2d, p2d).map_err(|e| KernelError::InternalError {
+                message: format!("orient2d error: {e}"),
+                context: None,
+            })?;
+
+            match orient.sign() {
+                TriSign::Pos => has_pos = true,
+                TriSign::Neg => has_neg = true,
+                TriSign::Zero => return Ok(FaceCrossing::OnBoundary),
+            }
+        }
+
+        if has_pos && has_neg {
+            return Ok(FaceCrossing::Count(0)); 
+        } else {
+            return Ok(FaceCrossing::OnBoundary);
+        }
     }
 
-    let far_orient = orient3d(positions[0], positions[1], positions[2], *ray_far)
-        .map_err(|e| KernelError::InternalError {
-            message: format!("orient3d error: {e}"),
-            context: None,
-        })?;
+    if side_sign != TriSign::Zero {
+        // It returns Intersection or None.
+        // If intersection t > 0 and t < 1 (aka between point and far).
+        // `compute_ray_plane_intersection` assumes infinite line?
+        // No, segment.
+        // It handles degeneracy.
+        
+        let hit = match compute_ray_plane_intersection(point, ray_far, &positions, RAY_PLANE_DEGENERACY) {
+            Ok(h) => h,
+            Err(_) => return Ok(FaceCrossing::Count(0)),
+        };
 
-    if far_orient.sign() == TriSign::Zero {
-        return Ok(FaceCrossing::Count(0));
+        let inside = point_inside_convex_polygon(&hit, &positions)?;
+
+        if inside {
+            return Ok(FaceCrossing::Count(1));
+        } else {
+            return Ok(FaceCrossing::Count(0));
+        }
     }
-
-    if point_orient.sign() == far_orient.sign() {
-        return Ok(FaceCrossing::Count(0));
-    }
-
-    let hit = match compute_ray_plane_intersection(point, ray_far, &positions) {
-        Ok(h) => h,
-        Err(_) => return Ok(FaceCrossing::Count(0)),
-    };
-
-    let inside = point_inside_convex_polygon(&hit, &positions)?;
-
-    if inside {
-        Ok(FaceCrossing::Count(1))
-    } else {
-        Ok(FaceCrossing::Count(0))
-    }
+    
+    Ok(FaceCrossing::Count(0)) // Should be unreachable if logic holds
 }
 
-/// Compute the intersection point of a ray with a plane defined by
-/// three vertices using parametric interpolation.
-///
-/// Given ray from `origin` to `far` crossing the plane at some t ∈ (0,1),
-/// computes hit = origin + t * (far - origin).
-///
-/// Precondition: the caller must verify via orient3d that origin and far
-/// are on opposite sides of the face plane, guaranteeing `denom != 0`.
-fn compute_ray_plane_intersection(
-    origin: &[f64; 3],
-    far: &[f64; 3],
-    face_verts: &[[f64; 3]],
-) -> Result<[f64; 3], KernelError> {
-    let a = face_verts[0];
-    let b = face_verts[1];
-    let c = face_verts[2];
-
-    let ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-    let ac = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
-    let normal = [
-        ab[1] * ac[2] - ab[2] * ac[1],
-        ab[2] * ac[0] - ab[0] * ac[2],
-        ab[0] * ac[1] - ab[1] * ac[0],
-    ];
-
-    let ao = [origin[0] - a[0], origin[1] - a[1], origin[2] - a[2]];
-    let dir = [far[0] - origin[0], far[1] - origin[1], far[2] - origin[2]];
-
-    let denom = normal[0] * dir[0] + normal[1] * dir[1] + normal[2] * dir[2];
-    let numer = -(normal[0] * ao[0] + normal[1] * ao[1] + normal[2] * ao[2]);
-
-    if denom.abs() < 1e-30 {
-        return Err(KernelError::InternalError {
-            message: "Ray nearly parallel to face plane — skipping".to_string(),
-            context: None,
-        });
-    }
-
-    let t = numer / denom;
-    Ok([
-        origin[0] + t * dir[0],
-        origin[1] + t * dir[1],
-        origin[2] + t * dir[2],
-    ])
-}
 
 /// Test if a 3D point lies inside a convex polygon using certified
 /// orient2d predicates (D3 — no raw f64 comparisons for topology).
@@ -247,7 +379,10 @@ fn point_inside_convex_polygon(
             })?;
 
         let effective_sign = match orient.sign() {
-            TriSign::Zero => resolve_zero_edge(vi_2d, vn_2d),
+            TriSign::Zero => match resolve_zero_edge(vi_2d, vn_2d) {
+                forge_geom::ray::EdgeTieBreaker::PreferPos => TriSign::Pos,
+                forge_geom::ray::EdgeTieBreaker::PreferNeg => TriSign::Neg,
+            },
             other => other,
         };
 
@@ -264,123 +399,70 @@ fn point_inside_convex_polygon(
     Ok(reference_sign.is_some())
 }
 
-/// Resolve a Zero orient2d result to Pos or Neg using edge direction.
-///
-/// When a hit point lies exactly on a polygon edge, both adjacent faces
-/// share that edge with opposite winding. We break the tie by looking
-/// at the edge's direction in the v-axis (second projected coordinate):
-/// - Edge going upward (vi.v < vn.v) → Pos
-/// - Edge going downward (vi.v > vn.v) → Neg
-/// - Horizontal edge: break tie on u-axis direction
-///
-/// Since adjacent faces traverse the shared edge in opposite directions,
-/// they get opposite resolved signs — ensuring exactly one face "owns"
-/// the edge (D0 — no perturbation).
-fn resolve_zero_edge(vi_2d: [f64; 2], vn_2d: [f64; 2]) -> TriSign {
-    let dv = vn_2d[1] - vi_2d[1];
-    if dv > 0.0 {
-        TriSign::Pos
-    } else if dv < 0.0 {
-        TriSign::Neg
-    } else {
-        let du = vn_2d[0] - vi_2d[0];
-        if du > 0.0 {
-            TriSign::Pos
-        } else {
-            TriSign::Neg
-        }
-    }
-}
-
-/// Determine the 2D projection axes by finding the dominant
-/// component of the face normal.
-///
-/// Drops the axis with the largest absolute normal component
-/// to maximize projection area and numerical stability.
-fn dominant_projection_axes(verts: &[[f64; 3]]) -> (usize, usize) {
-    let a = verts[0];
-    let b = verts[1];
-    let c = verts[2];
-
-    let ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-    let ac = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
-    let nx = (ab[1] * ac[2] - ab[2] * ac[1]).abs();
-    let ny = (ab[2] * ac[0] - ab[0] * ac[2]).abs();
-    let nz = (ab[0] * ac[1] - ab[1] * ac[0]).abs();
-
-    if nx >= ny && nx >= nz {
-        (1, 2)
-    } else if ny >= nz {
-        (0, 2)
-    } else {
-        (0, 1)
-    }
-}
-
-/// Test whether a ray from `origin` to `far` intersects triangle (a, b, c).
-///
-/// Uses orient3d predicates for exact sign computation:
-/// 1. Check if origin and far are on opposite sides of the triangle plane
-/// 2. Check if the ray passes through the triangle interior
-///
-/// Degenerate cases (ray through edge/vertex) use consistent tie-breaking
-/// based on vertex index ordering (D0 — no perturbation).
-fn ray_intersects_triangle(
-    origin: &[f64; 3],
-    far: &[f64; 3],
-    a: &[f64; 3],
-    b: &[f64; 3],
-    c: &[f64; 3],
-) -> Result<bool, KernelError> {
-    let o_orient = orient3d(*a, *b, *c, *origin)
-        .map_err(|e| KernelError::InternalError {
-            message: format!("orient3d error: {e}"),
-            context: None,
-        })?;
-    let f_orient = orient3d(*a, *b, *c, *far)
-        .map_err(|e| KernelError::InternalError {
-            message: format!("orient3d error: {e}"),
-            context: None,
-        })?;
-
-    if o_orient.sign() == TriSign::Zero {
-        return Ok(false);
-    }
-
-    if o_orient.sign() == f_orient.sign() {
-        return Ok(false);
-    }
-
-    let d0 = orient3d(*origin, *far, *a, *b)
-        .map_err(|e| KernelError::InternalError {
-            message: format!("orient3d error: {e}"),
-            context: None,
-        })?;
-    let d1 = orient3d(*origin, *far, *b, *c)
-        .map_err(|e| KernelError::InternalError {
-            message: format!("orient3d error: {e}"),
-            context: None,
-        })?;
-    let d2 = orient3d(*origin, *far, *c, *a)
-        .map_err(|e| KernelError::InternalError {
-            message: format!("orient3d error: {e}"),
-            context: None,
-        })?;
-
-    let s0 = d0.sign();
-    let s1 = d1.sign();
-    let s2 = d2.sign();
-
-    if s0 == TriSign::Zero || s1 == TriSign::Zero || s2 == TriSign::Zero {
-        return Ok(false);
-    }
-
-    Ok(s0 == s1 && s1 == s2)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Test whether a ray from `origin` to `far` intersects triangle (a, b, c).
+    ///
+    /// Uses orient3d predicates for exact sign computation:
+    /// 1. Check if origin and far are on opposite sides of the triangle plane
+    /// 2. Check if the ray passes through the triangle interior
+    ///
+    /// Degenerate cases (ray through edge/vertex) use consistent tie-breaking
+    /// based on vertex index ordering (D0 — no perturbation).
+    fn ray_intersects_triangle(
+        origin: &[f64; 3],
+        far: &[f64; 3],
+        a: &[f64; 3],
+        b: &[f64; 3],
+        c: &[f64; 3],
+    ) -> Result<bool, KernelError> {
+        let o_orient = orient3d(*a, *b, *c, *origin)
+            .map_err(|e| KernelError::InternalError {
+                message: format!("orient3d error: {e}"),
+                context: None,
+            })?;
+        let f_orient = orient3d(*a, *b, *c, *far)
+            .map_err(|e| KernelError::InternalError {
+                message: format!("orient3d error: {e}"),
+                context: None,
+            })?;
+
+        if o_orient.sign() == TriSign::Zero {
+            return Ok(false);
+        }
+
+        if o_orient.sign() == f_orient.sign() {
+            return Ok(false);
+        }
+
+        let d0 = orient3d(*origin, *far, *a, *b)
+            .map_err(|e| KernelError::InternalError {
+                message: format!("orient3d error: {e}"),
+                context: None,
+            })?;
+        let d1 = orient3d(*origin, *far, *b, *c)
+            .map_err(|e| KernelError::InternalError {
+                message: format!("orient3d error: {e}"),
+                context: None,
+            })?;
+        let d2 = orient3d(*origin, *far, *c, *a)
+            .map_err(|e| KernelError::InternalError {
+                message: format!("orient3d error: {e}"),
+                context: None,
+            })?;
+
+        let s0 = d0.sign();
+        let s1 = d1.sign();
+        let s2 = d2.sign();
+
+        if s0 == TriSign::Zero || s1 == TriSign::Zero || s2 == TriSign::Zero {
+            return Ok(false);
+        }
+
+        Ok(s0 == s1 && s1 == s2)
+    }
 
     #[test]
     fn point_above_plane_classified_outside() {

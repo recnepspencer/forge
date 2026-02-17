@@ -11,6 +11,8 @@
 pub mod plane;
 pub mod implicit_vertex;
 pub mod bsp;
+pub mod ray;
+pub mod polygon;
 
 use forge_core::{GeometrySource, KernelError};
 use crate::plane::Plane;
@@ -19,11 +21,23 @@ use crate::plane::Plane;
 pub const GRID_SCALE: f64 = 1e6;
 
 /// A collection of planes that implements `GeometrySource`.
-pub struct PlaneSet(pub Vec<Plane>);
+pub struct PlaneSet(Vec<Plane>);
+
+impl PlaneSet {
+    /// Create a new plane set from a vector of planes.
+    pub fn new(planes: Vec<Plane>) -> Self {
+        Self(planes)
+    }
+
+    /// The planes in this set.
+    pub fn planes(&self) -> &[Plane] {
+        &self.0
+    }
+}
 
 impl GeometrySource for PlaneSet {
     fn get_plane(&self, index: usize) -> Result<[f64; 4], KernelError> {
-        let p = self.0.get(index).ok_or_else(|| {
+        let p = self.planes().get(index).ok_or_else(|| {
             KernelError::InvalidInput {
                 message: format!("Plane index {} out of bounds", index),
                 context: None,
