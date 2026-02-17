@@ -1,6 +1,8 @@
 //! Data shapes for the geometry store.
 
 use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+
 use forge_core::{GeometrySource, KernelError};
 use forge_geom::plane::Plane;
 use forge_topo::handles::{FaceId, VertexId};
@@ -10,7 +12,7 @@ use forge_topo::handles::{FaceId, VertexId};
 /// The topology arena (Architecture Rule 2.3) stores only structural
 /// connectivity. This store holds the geometric meaning: which plane
 /// each face lies on, and where each vertex sits in 3D space.
-#[derive(Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GeometryStore {
     /// Map from face handle to the plane the face lies on.
     face_planes: HashMap<u64, Plane>,

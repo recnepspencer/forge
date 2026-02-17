@@ -264,3 +264,42 @@ fn stitch_twins(
     }
     Ok(())
 }
+/// Create a cube centered at `center` with side length `size`.
+pub fn make_cube(
+    center: [f64; 3],
+    size: f64,
+) -> Result<MeshBuildResult, KernelError> {
+    let half_size = size / 2.0;
+
+    let planes = vec![
+        forge_geom::plane::Plane::from_point_normal(
+            [center[0] + half_size, center[1], center[2]],
+            [1.0, 0.0, 0.0],
+        )?,
+        forge_geom::plane::Plane::from_point_normal(
+            [center[0] - half_size, center[1], center[2]],
+            [-1.0, 0.0, 0.0],
+        )?,
+        forge_geom::plane::Plane::from_point_normal(
+            [center[0], center[1] + half_size, center[2]],
+            [0.0, 1.0, 0.0],
+        )?,
+        forge_geom::plane::Plane::from_point_normal(
+            [center[0], center[1] - half_size, center[2]],
+            [0.0, -1.0, 0.0],
+        )?,
+        forge_geom::plane::Plane::from_point_normal(
+            [center[0], center[1], center[2] + half_size],
+            [0.0, 0.0, 1.0],
+        )?,
+        forge_geom::plane::Plane::from_point_normal(
+            [center[0], center[1], center[2] - half_size],
+            [0.0, 0.0, -1.0],
+        )?,
+    ];
+
+    let cell = forge_geom::bsp::build_convex_polyhedron(&planes, &forge_geom::bsp::BspConfig::default())?;
+    let mut ctx = ModelingContext::new();
+
+    build_halfedge_mesh(&cell, &mut ctx)
+}

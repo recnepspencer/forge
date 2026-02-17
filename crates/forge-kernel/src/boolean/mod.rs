@@ -16,14 +16,26 @@
 //!               `geometry_store` (GeometryStore), `mesh_builder` (mesh construction)
 
 mod schema;
+mod eval;
 mod split;
 mod classify;
-mod assemble;
+mod postprocess;
+pub mod assemble;
+#[cfg(test)]
+mod test_helpers;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
 mod debug_tests;
+#[cfg(test)]
+mod edge_case_tests;
+#[cfg(test)]
+mod diag_tests;
+#[cfg(test)]
+#[cfg(test)]
+mod introspection_tests;
+#[cfg(test)]
+mod brutality;
 
 pub use schema::{BooleanInput, BooleanOp, BooleanResult};
-pub use split::split_all_faces;
 pub use assemble::execute_boolean;

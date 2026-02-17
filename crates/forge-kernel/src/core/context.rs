@@ -17,6 +17,7 @@
 //! but the policies won't be actively used until Phase 3 (curved surfaces).
 
 use forge_core::{ToleranceDecision, DecisionKind, DecisionId, DecisionLog};
+use serde::{Deserialize, Serialize};
 
 /// The modeling context that governs all policy decisions.
 ///
@@ -386,18 +387,52 @@ const DEFAULT_BIT_LENGTH_THRESHOLD: u32 = 512;
 /// parameters (plane intersection degeneracy, overconstrained residual, etc.).
 /// Defaults are suitable for unit-scale CAD (meters). Adjust for different
 /// model scales or import pipeline tolerance.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToleranceConfig {
     /// Maximum acceptable residual for overconstrained vertex verification.
     residual: f64,
     /// Minimum acceptable |det| for 3-plane intersection degeneracy check.
     degeneracy: f64,
+    /// Inward offset from face centroid along normal for point-in-solid sampling.
+    sample_inward_offset: f64,
+    /// Ray extent for point-in-solid classification.
+    ray_extent: f64,
+    /// Tolerance for coplanar plane normal parallelism (squared cross product magnitude).
+    coplanar_angle_epsilon: f64,
+    /// Tolerance for coplanar plane offset difference.
+    coplanar_offset_epsilon: f64,
+    /// Minimum denominator for edge-plane intersection (to avoid numeric instability).
+    edge_split_degeneracy: f64,
+    /// Minimum edge length to be considered non-degenerate.
+    min_edge_length: f64,
+    /// Tolerance for vertex collinearity check (dot product deviation from -1.0).
+    collinearity_dot_tolerance: f64,
 }
 
 impl ToleranceConfig {
     /// Create a tolerance config with explicit values.
-    pub fn new(residual: f64, degeneracy: f64) -> Self {
-        Self { residual, degeneracy }
+    pub fn new(
+        residual: f64,
+        degeneracy: f64,
+        sample_inward_offset: f64,
+        ray_extent: f64,
+        coplanar_angle_epsilon: f64,
+        coplanar_offset_epsilon: f64,
+        edge_split_degeneracy: f64,
+        min_edge_length: f64,
+        collinearity_dot_tolerance: f64,
+    ) -> Self {
+        Self {
+            residual,
+            degeneracy,
+            sample_inward_offset,
+            ray_extent,
+            coplanar_angle_epsilon,
+            coplanar_offset_epsilon,
+            edge_split_degeneracy,
+            min_edge_length,
+            collinearity_dot_tolerance,
+        }
     }
 
     /// The residual tolerance for overconstrained verification.
@@ -419,6 +454,76 @@ impl ToleranceConfig {
     pub fn set_degeneracy(&mut self, value: f64) {
         self.degeneracy = value;
     }
+
+    /// Inward offset from face centroid along normal for sampling.
+    pub fn get_sample_inward_offset(&self) -> f64 {
+        self.sample_inward_offset
+    }
+
+    /// Set the sample inward offset.
+    pub fn set_sample_inward_offset(&mut self, value: f64) {
+        self.sample_inward_offset = value;
+    }
+
+    /// Ray extent for point-in-solid classification.
+    pub fn get_ray_extent(&self) -> f64 {
+        self.ray_extent
+    }
+
+    /// Set the ray extent.
+    pub fn set_ray_extent(&mut self, value: f64) {
+        self.ray_extent = value;
+    }
+
+    /// Tolerance for coplanar plane normal parallelism.
+    pub fn get_coplanar_angle_epsilon(&self) -> f64 {
+        self.coplanar_angle_epsilon
+    }
+
+    /// Set tolerance for coplanar plane normal parallelism.
+    pub fn set_coplanar_angle_epsilon(&mut self, value: f64) {
+        self.coplanar_angle_epsilon = value;
+    }
+
+    /// Tolerance for coplanar plane offset difference.
+    pub fn get_coplanar_offset_epsilon(&self) -> f64 {
+        self.coplanar_offset_epsilon
+    }
+
+    /// Set tolerance for coplanar plane offset difference.
+    pub fn set_coplanar_offset_epsilon(&mut self, value: f64) {
+        self.coplanar_offset_epsilon = value;
+    }
+
+    /// Minimum denominator for edge-plane intersection.
+    pub fn get_edge_split_degeneracy(&self) -> f64 {
+        self.edge_split_degeneracy
+    }
+
+    /// Set edge split degeneracy threshold.
+    pub fn set_edge_split_degeneracy(&mut self, value: f64) {
+        self.edge_split_degeneracy = value;
+    }
+
+    /// Minimum edge length.
+    pub fn get_min_edge_length(&self) -> f64 {
+        self.min_edge_length
+    }
+
+    /// Set minimum edge length.
+    pub fn set_min_edge_length(&mut self, value: f64) {
+        self.min_edge_length = value;
+    }
+
+    /// Tolerance for collinearity (dot product).
+    pub fn get_collinearity_dot_tolerance(&self) -> f64 {
+        self.collinearity_dot_tolerance
+    }
+
+    /// Set collinearity tolerance.
+    pub fn set_collinearity_dot_tolerance(&mut self, value: f64) {
+        self.collinearity_dot_tolerance = value;
+    }
 }
 
 impl Default for ToleranceConfig {
@@ -426,6 +531,13 @@ impl Default for ToleranceConfig {
         Self {
             residual: DEFAULT_RESIDUAL_TOLERANCE,
             degeneracy: DEFAULT_DEGENERACY_THRESHOLD,
+            sample_inward_offset: DEFAULT_SAMPLE_INWARD_OFFSET,
+            ray_extent: DEFAULT_RAY_EXTENT,
+            coplanar_angle_epsilon: DEFAULT_COPLANAR_ANGLE_EPSILON,
+            coplanar_offset_epsilon: DEFAULT_COPLANAR_OFFSET_EPSILON,
+            edge_split_degeneracy: DEFAULT_EDGE_SPLIT_DEGENERACY,
+            min_edge_length: DEFAULT_MIN_EDGE_LENGTH,
+            collinearity_dot_tolerance: DEFAULT_COLLINEARITY_DOT_TOLERANCE,
         }
     }
 }
@@ -434,6 +546,20 @@ impl Default for ToleranceConfig {
 const DEFAULT_RESIDUAL_TOLERANCE: f64 = 1e-8;
 /// Default degeneracy threshold for plane intersection determinants.
 const DEFAULT_DEGENERACY_THRESHOLD: f64 = 1e-12;
+/// Default inward offset for face centroid sampling (1 micron).
+const DEFAULT_SAMPLE_INWARD_OFFSET: f64 = 1e-6;
+/// Default ray extent for point-in-solid classification.
+const DEFAULT_RAY_EXTENT: f64 = 1e6;
+/// Default tolerance for coplanar angle (parallelism).
+const DEFAULT_COPLANAR_ANGLE_EPSILON: f64 = 1e-20;
+/// Default tolerance for coplanar offset.
+const DEFAULT_COPLANAR_OFFSET_EPSILON: f64 = 1e-12;
+/// Default denominator threshold for edge splitting (1e-30).
+const DEFAULT_EDGE_SPLIT_DEGENERACY: f64 = 1e-30;
+/// Default minimum edge length (1e-9).
+const DEFAULT_MIN_EDGE_LENGTH: f64 = 1e-9;
+/// Default collinearity dot product tolerance (1e-8).
+const DEFAULT_COLLINEARITY_DOT_TOLERANCE: f64 = 1e-8;
 
 
 

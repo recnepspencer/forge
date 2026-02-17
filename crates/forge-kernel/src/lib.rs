@@ -27,6 +27,7 @@ pub mod features;
 pub mod geometry_store;
 pub mod mesh_builder;
 pub mod boolean;
+pub mod analysis;
 
 #[cfg(test)]
 mod tests {

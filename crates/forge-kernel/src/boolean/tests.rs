@@ -1,50 +1,11 @@
 //! Tests for Boolean operations.
 
-use forge_geom::bsp::{build_convex_polyhedron, BspConfig};
-use forge_geom::plane::Plane;
-use crate::core::ModelingContext;
-use crate::mesh_builder::build_halfedge_mesh;
-use super::schema::{BooleanInput, BooleanOp};
+use super::test_helpers::build_cube;
+use super::schema::{BooleanInput, BooleanOp, FaceOrigin, FaceClassification};
 use super::classify::classify_faces;
-use super::schema::FaceOrigin;
 use super::assemble::execute_boolean;
 use super::split::split_all_faces;
-
-/// Build a mesh from 6 axis-aligned planes forming a cube.
-fn build_cube(
-    center: [f64; 3],
-    half_size: f64,
-) -> (forge_topo::state::TopologyState, crate::geometry_store::GeometryStore) {
-    let planes = vec![
-        Plane::from_point_normal(
-            [center[0] + half_size, center[1], center[2]],
-            [1.0, 0.0, 0.0],
-        ).unwrap(),
-        Plane::from_point_normal(
-            [center[0] - half_size, center[1], center[2]],
-            [-1.0, 0.0, 0.0],
-        ).unwrap(),
-        Plane::from_point_normal(
-            [center[0], center[1] + half_size, center[2]],
-            [0.0, 1.0, 0.0],
-        ).unwrap(),
-        Plane::from_point_normal(
-            [center[0], center[1] - half_size, center[2]],
-            [0.0, -1.0, 0.0],
-        ).unwrap(),
-        Plane::from_point_normal(
-            [center[0], center[1], center[2] + half_size],
-            [0.0, 0.0, 1.0],
-        ).unwrap(),
-        Plane::from_point_normal(
-            [center[0], center[1], center[2] - half_size],
-            [0.0, 0.0, -1.0],
-        ).unwrap(),
-    ];
-    let cell = build_convex_polyhedron(&planes, &BspConfig::default()).unwrap();
-    let mut ctx = ModelingContext::new();
-    build_halfedge_mesh(&cell, &mut ctx).unwrap().into_parts()
-}
+use crate::core::ToleranceConfig;
 
 #[test]
 fn boolean_input_construction() {
@@ -70,6 +31,7 @@ fn classify_disjoint_cubes() {
         topo_b.arena(),
         &geom_b,
         FaceOrigin::Target,
+        &ToleranceConfig::default(),
     );
 
     assert!(classified.is_ok());
@@ -77,10 +39,7 @@ fn classify_disjoint_cubes() {
     assert!(!faces.is_empty());
 
     for face in &faces {
-        assert_eq!(
-            face.classification(),
-            super::schema::FaceClassification::Outside,
-        );
+        assert_eq!(face.classification(), FaceClassification::Outside);
     }
 }
 
@@ -95,13 +54,14 @@ fn classify_overlapping_cubes_has_inside_faces() {
         topo_b.arena(),
         &geom_b,
         FaceOrigin::Target,
+        &ToleranceConfig::default(),
     );
 
     assert!(classified.is_ok());
     let faces = classified.unwrap();
 
     let inside_count = faces.iter()
-        .filter(|f| f.classification() == super::schema::FaceClassification::Inside)
+        .filter(|f| f.classification() == FaceClassification::Inside)
         .count();
 
     assert!(inside_count > 0, "Expected some faces to be classified as Inside");
@@ -190,7 +150,7 @@ fn debug_split_counts_concentric() {
         topo_a.arena().face_count(), topo_b.arena().face_count());
 
     let result = split_all_faces(topo_a, geom_a, topo_b, geom_b).unwrap();
-    let (t_topo, t_geom, l_topo, l_geom) = result.into_parts();
+    let (t_topo, t_geom, l_topo, l_geom, _shared) = result.into_parts();
 
     eprintln!("After split: target faces={}, tool faces={}",
         t_topo.arena().face_count(), l_topo.arena().face_count());
@@ -203,18 +163,20 @@ fn debug_split_counts_concentric() {
         l_topo.arena().half_edge_count() / 2,
         l_topo.arena().face_count());
 
+    let config = ToleranceConfig::default();
     let target_classified = classify_faces(
         t_topo.arena(), &t_geom,
         l_topo.arena(), &l_geom,
         FaceOrigin::Target,
+        &config,
     ).unwrap();
     let tool_classified = classify_faces(
         l_topo.arena(), &l_geom,
         t_topo.arena(), &t_geom,
         FaceOrigin::Tool,
+        &config,
     ).unwrap();
 
-    use super::schema::FaceClassification;
     let target_inside = target_classified.iter()
         .filter(|f| f.classification() == FaceClassification::Inside)
         .count();
@@ -238,19 +200,15 @@ fn debug_split_counts_concentric() {
     eprintln!("Tool: inside={}, outside={}, boundary={}", tool_inside, tool_outside, tool_boundary);
 
     for (fid, _) in t_topo.arena().iter_faces() {
-        let face_data = t_topo.arena().get_face(fid).unwrap();
-        let loop_data = t_topo.arena().get_loop(face_data.outer_loop).unwrap();
-        let start = loop_data.half_edge;
-        let mut cur = start;
-        let mut verts = Vec::new();
-        for _ in 0..100 {
-            let he = t_topo.arena().get_half_edge(cur).unwrap();
-            let pos = t_geom.get_vertex_position(he.origin);
-            verts.push((he.origin, pos.cloned()));
-            cur = he.next;
-            if cur == start { break; }
-        }
-        eprintln!("Target face {}: {} verts: {:?}", fid, verts.len(),
-            verts.iter().map(|(vid, p)| format!("{}: {:?}", vid, p)).collect::<Vec<_>>());
+        let verts: Vec<_> = forge_topo::traverse::face_edges(t_topo.arena(), fid)
+            .unwrap()
+            .iter()
+            .map(|he_id| {
+                let he = t_topo.arena().get_half_edge(*he_id).unwrap();
+                let pos = t_geom.get_vertex_position(he.origin);
+                format!("{}: {:?}", he.origin, pos.cloned())
+            })
+            .collect();
+        eprintln!("Target face {}: {} verts: {:?}", fid, verts.len(), verts);
     }
 }

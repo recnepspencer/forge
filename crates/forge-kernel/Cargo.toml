@@ -10,6 +10,11 @@ forge-math.workspace = true
 forge-core.workspace = true
 forge-topo.workspace = true
 forge-geom.workspace = true
+forge-signal.workspace = true
+serde = { workspace = true, features = ["derive"] }
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true

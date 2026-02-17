@@ -1,11 +1,12 @@
 //! Data shapes for Boolean operations.
 
+use serde::{Deserialize, Serialize};
 use forge_topo::state::TopologyState;
 use forge_topo::handles::FaceId;
 use crate::geometry_store::GeometryStore;
 
 /// A Boolean operation type.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BooleanOp {
     /// Material addition (A ∪ B).
     Union,
@@ -84,19 +85,21 @@ impl BooleanInput {
     }
 }
 
-/// Classification of a face relative to the other solid.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Classification of a face relative to another solid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum FaceClassification {
-    /// Face is inside the other solid.
+    /// Face is strictly inside the other solid.
     Inside,
-    /// Face is outside the other solid.
+    /// Face is strictly outside the other solid.
     Outside,
-    /// Face is on the boundary (coplanar with a face of the other solid).
+    /// Face is on the boundary (coplanar) with same normal alignment.
     OnBoundary,
+    /// Face is on the boundary (coplanar) with opposite normal alignment.
+    OppositeBoundary,
 }
 
 /// Which input solid a face originated from.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FaceOrigin {
     /// Face came from the target solid.
     Target,
@@ -105,19 +108,18 @@ pub enum FaceOrigin {
 }
 
 /// A classified face with its origin and classification.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClassifiedFace {
     /// The face handle.
     face: FaceId,
-    /// Which solid the face comes from.
-    origin: FaceOrigin,
     /// Classification relative to the other solid.
     classification: FaceClassification,
 }
 
 impl ClassifiedFace {
     /// Create a new classified face.
-    pub fn new(face: FaceId, origin: FaceOrigin, classification: FaceClassification) -> Self {
-        Self { face, origin, classification }
+    pub fn new(face: FaceId, classification: FaceClassification) -> Self {
+        Self { face, classification }
     }
 
     /// The face handle.
@@ -125,14 +127,49 @@ impl ClassifiedFace {
         self.face
     }
 
-    /// Which solid the face comes from.
-    pub fn origin(&self) -> FaceOrigin {
-        self.origin
-    }
-
     /// Classification relative to the other solid.
     pub fn classification(&self) -> FaceClassification {
         self.classification
+    }
+}
+
+/// Structured introspection data for Boolean operations (Milestone 2.6).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct BooleanIntrospection {
+    /// Number of split events (edges/faces split).
+    pub split_count: usize,
+    /// Classification counts for the target solid.
+    pub target_classification: std::collections::HashMap<FaceClassification, usize>,
+    /// Classification counts for the tool solid.
+    pub tool_classification: std::collections::HashMap<FaceClassification, usize>,
+    /// Time taken for the operation in microseconds.
+    pub duration_micros: u64,
+}
+
+impl BooleanIntrospection {
+    /// Create a new introspection record.
+    pub fn new(
+        split_count: usize,
+        target_classified: &[ClassifiedFace],
+        tool_classified: &[ClassifiedFace],
+        duration: std::time::Duration,
+    ) -> Self {
+        let mut target_map = std::collections::HashMap::new();
+        for f in target_classified {
+            *target_map.entry(f.classification()).or_insert(0) += 1;
+        }
+
+        let mut tool_map = std::collections::HashMap::new();
+        for f in tool_classified {
+            *tool_map.entry(f.classification()).or_insert(0) += 1;
+        }
+
+        Self {
+            split_count,
+            target_classification: target_map,
+            tool_classification: tool_map,
+            duration_micros: duration.as_micros() as u64,
+        }
     }
 }
 
@@ -146,6 +183,8 @@ pub struct BooleanResult {
     target_faces_kept: usize,
     /// Number of faces from the tool that were kept.
     tool_faces_kept: usize,
+    /// Introspection data.
+    introspection: BooleanIntrospection,
 }
 
 impl BooleanResult {
@@ -155,12 +194,14 @@ impl BooleanResult {
         geometry: GeometryStore,
         target_faces_kept: usize,
         tool_faces_kept: usize,
+        introspection: BooleanIntrospection,
     ) -> Self {
         Self {
             topology,
             geometry,
             target_faces_kept,
             tool_faces_kept,
+            introspection,
         }
     }
 
@@ -182,6 +223,16 @@ impl BooleanResult {
     /// Number of tool faces kept.
     pub fn tool_faces_kept(&self) -> usize {
         self.tool_faces_kept
+    }
+
+    /// Introspection data.
+    pub fn introspection(&self) -> &BooleanIntrospection {
+        &self.introspection
+    }
+
+    /// Update the duration metric.
+    pub fn update_duration(&mut self, duration: std::time::Duration) {
+        self.introspection.duration_micros = duration.as_micros() as u64;
     }
 
     /// Consume and return owned parts.
