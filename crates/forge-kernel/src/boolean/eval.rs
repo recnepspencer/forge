@@ -1,87 +1,78 @@
-//! Pure evaluation helpers for Boolean operations.
+//! Evaluation logic for Boolean operations.
 //!
-//! Shared utilities used by split, classify, and assemble phases.
-//! All functions are stateless and side-effect-free.
+//! Includes vertex match key computation for robust deduplication.
+//! Every vertex is matched by exactly 3 sorted plane IDs —
+//! the 3 planes whose intersection defines the point in 3D space.
+//! This key is TRANSIENT (used only during the boolean phase).
+//! The vertex's permanent identity remains its `VertexId` + `Lineage`.
 
-use forge_core::KernelError;
 use forge_geom::plane::Plane;
-use forge_math::linalg::{cross, norm_sq};
-use forge_topo::arena::TopologyArena;
-use forge_topo::handles::FaceId;
-use forge_topo::traverse::face_edges;
 
-use crate::geometry_store::GeometryStore;
-
-/// Nanometer quantization scale for exact position-based deduplication.
+/// Transient geometric match key for cross-solid vertex deduplication.
 ///
-/// Converts meters to integer nanometers (1e-9 m resolution).
-/// Vertices computed from the same intersection formula quantize identically.
-const QUANTIZE_SCALE: f64 = 1e9;
-
-/// Squared cross-product threshold for parallel-plane detection.
+/// A point in 3D is defined by the intersection of exactly 3 non-parallel
+/// planes. This struct stores those 3 plane indices (from the global
+/// `PlaneTable`) in sorted order, forming a canonical hash key.
 ///
-/// Two planes are considered parallel when the squared magnitude of the
-/// cross product of their normals falls below this value.
-/// For unit normals, 1e-20 corresponds to an angle of ~1e-10 radians.
-const PARALLEL_CROSS_SQ_THRESHOLD: f64 = 1e-20;
-
-/// Quantize a 3D position to integer units for exact HashMap keys.
-///
-/// Adapts the scale factor to the coordinate magnitude to prevent i64
-/// overflow. Uses nanometer resolution (1e9) for typical coordinates,
-/// but coarsens when coordinates exceed ~9e9 (i64::MAX / 1e9).
-pub fn quantize_position(pos: &[f64; 3]) -> [i64; 3] {
-    let max_abs = pos[0].abs().max(pos[1].abs()).max(pos[2].abs());
-    let safe_limit = (i64::MAX as f64) * 0.5;
-    let scale = if max_abs * QUANTIZE_SCALE > safe_limit {
-        safe_limit / max_abs
-    } else {
-        QUANTIZE_SCALE
-    };
-    [
-        (pos[0] * scale).round() as i64,
-        (pos[1] * scale).round() as i64,
-        (pos[2] * scale).round() as i64,
-    ]
+/// This is NOT the vertex's permanent identity — that remains the
+/// `VertexId` and its `Lineage`. This key is used strictly during
+/// the boolean assembly phase to find geometrically coincident vertices
+/// across target and tool solids. When a match is found, lineages are
+/// merged (D1 compliance) rather than silently dropped.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct VertexMatchKey {
+    /// Always sorted: planes[0] < planes[1] < planes[2].
+    planes: [usize; 3],
 }
 
-/// Check if two planes are parallel (cross product of normals near zero).
-///
-/// Uses `forge_math::linalg::cross` and `norm_sq` rather than
-/// inline arithmetic, and a named threshold constant.
-pub fn planes_are_parallel(a: &Plane, b: &Plane) -> bool {
-    let c = cross(a.normal(), b.normal());
-    norm_sq(c) < PARALLEL_CROSS_SQ_THRESHOLD
-}
-
-/// Compute the centroid of a face by averaging its vertex positions.
-///
-/// Uses `forge_topo::traverse::face_edges` for loop traversal rather
-/// than manual loop walking.
-pub fn compute_face_centroid(
-    arena: &TopologyArena,
-    geometry: &GeometryStore,
-    face: FaceId,
-) -> Result<[f64; 3], KernelError> {
-    let edges = face_edges(arena, face)?;
-
-    let mut sum = [0.0_f64; 3];
-    let count = edges.len() as f64;
-
-    for he_id in &edges {
-        let he_data = arena.get_half_edge(*he_id)?;
-        let pos = geometry.get_vertex_position(he_data.origin).ok_or_else(|| {
-            KernelError::InvalidInput {
-                message: format!("No position for vertex {} during centroid computation", he_data.origin),
-                context: None,
-            }
-        })?;
-
-        sum[0] += pos[0];
-        sum[1] += pos[1];
-        sum[2] += pos[2];
+impl VertexMatchKey {
+    /// Create a match key from exactly 3 plane indices.
+    ///
+    /// The indices are sorted to ensure canonical representation:
+    /// `VertexMatchKey::from_planes(a, b, c) == VertexMatchKey::from_planes(c, a, b)`.
+    pub fn from_planes(p0: usize, p1: usize, p2: usize) -> Self {
+        let mut planes = [p0, p1, p2];
+        planes.sort_unstable();
+        Self { planes }
     }
 
-    let inv = 1.0 / count;
-    Ok([sum[0] * inv, sum[1] * inv, sum[2] * inv])
+    /// Access the sorted plane indices.
+    pub fn planes(&self) -> &[usize; 3] {
+        &self.planes
+    }
+}
+
+/// Check if two planes are parallel (or anti-parallel).
+///
+/// Uses a strict dot-product check.
+pub fn planes_are_parallel(a: &Plane, b: &Plane) -> bool {
+    let n1 = a.raw_normal();
+    let n2 = b.raw_normal();
+    let dot = n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2];
+    dot.abs() > 0.9999999999
+}
+
+/// Compute the centroid of a face.
+///
+/// Used for heuristic classification (e.g. containment check).
+pub fn compute_face_centroid(
+    arena: &forge_topo::arena::TopologyArena,
+    geom: &crate::geometry_store::GeometryStore,
+    face: forge_topo::handles::FaceId,
+) -> Result<[f64; 3], forge_core::KernelError> {
+    let mut vertices = Vec::new();
+    let edges = forge_topo::traverse::face_edges(arena, face)?;
+    for he in edges {
+        let v = arena.get_half_edge(he)?.origin;
+        if let Some(pos) = geom.get_vertex_position(v) {
+            vertices.push(*pos);
+        }
+    }
+    
+    forge_geom::polygon::compute_polygon_centroid(&vertices).ok_or_else(|| {
+        forge_core::KernelError::InvalidInput {
+            message: format!("Face {:?} has degenerate geometry (no vertices/area)", face),
+            context: None,
+        }
+    })
 }

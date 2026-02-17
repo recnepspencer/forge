@@ -13,6 +13,7 @@
 pub mod fixtures;
 pub mod generators;
 pub mod harness;
+pub mod logging;
 
 #[cfg(test)]
 mod feature_tests;

@@ -225,6 +225,12 @@ impl BooleanResult {
         self.tool_faces_kept
     }
 
+    /// Override face counts (used when the assembly order differs from target/tool order).
+    pub fn set_face_counts(&mut self, target: usize, tool: usize) {
+        self.target_faces_kept = target;
+        self.tool_faces_kept = tool;
+    }
+
     /// Introspection data.
     pub fn introspection(&self) -> &BooleanIntrospection {
         &self.introspection

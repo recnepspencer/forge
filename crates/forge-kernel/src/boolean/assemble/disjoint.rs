@@ -1,6 +1,9 @@
 //! Handling for disjoint and contained solids (zero-split fast path).
 
 use forge_core::KernelError;
+use forge_core::result::{
+    TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionLog,
+};
 use forge_topo::state::TopologyState;
 use forge_topo::handles::{FaceId, HalfEdgeId};
 use forge_topo::classify::classify_point_in_solid;
@@ -25,8 +28,9 @@ pub fn execute_zero_split(
     tool_topo: &TopologyState,
     tool_geom: &GeometryStore,
     operation: BooleanOp,
-) -> Result<Option<BooleanResult>, KernelError> {
+) -> Result<(Option<BooleanResult>, DecisionLog), KernelError> {
     let config = crate::core::ToleranceConfig::default();
+    let mut log = DecisionLog::new();
 
     let has_containment = check_containment(
         target_topo, target_geom,
@@ -34,30 +38,52 @@ pub fn execute_zero_split(
         &config,
     )?;
 
+    log.record(TracedDecision::new(
+        DecisionId(1),
+        DecisionKind::Exact,
+        1.0,
+        DecisionContext::Degeneracy {
+            description: format!(
+                "Zero-split containment: {:?} (op={:?})",
+                match &has_containment {
+                    Containment::ToolInsideTarget => "ToolInsideTarget",
+                    Containment::TargetInsideTool => "TargetInsideTool",
+                    Containment::Disjoint => "Disjoint",
+                    Containment::Touching => "Touching",
+                },
+                operation,
+            ),
+        },
+    ));
+
     match has_containment {
         Containment::ToolInsideTarget => {
             execute_contained_boolean(
                 target_topo, target_geom,
                 tool_topo, tool_geom,
                 operation, true,
-            ).map(Some)
+            ).map(|r| (Some(r), log))
         }
         Containment::TargetInsideTool => {
             execute_contained_boolean(
                 target_topo, target_geom,
                 tool_topo, tool_geom,
                 operation, false,
-            ).map(Some)
+            ).map(|r| (Some(r), log))
         }
         Containment::Disjoint => {
             execute_disjoint_boolean(
                 target_topo, target_geom,
                 tool_topo, tool_geom,
                 operation,
-            ).map(Some)
+            ).map(|r| (Some(r), log))
         }
         Containment::Touching => {
-            Ok(None)
+            execute_disjoint_boolean(
+                target_topo, target_geom,
+                tool_topo, tool_geom,
+                operation,
+            ).map(|r| (Some(r), log))
         }
     }
 }
@@ -183,6 +209,9 @@ fn sample_interior_point(
 }
 
 /// Handle Booleans where tool is contained inside target (or vice versa).
+///
+/// Face counts in the result must reflect which solid contributed the faces:
+/// target faces vs tool faces, not just "primary" vs "secondary".
 fn execute_contained_boolean(
     target_topo: &TopologyState,
     target_geom: &GeometryStore,
@@ -191,43 +220,58 @@ fn execute_contained_boolean(
     operation: BooleanOp,
     tool_inside_target: bool,
 ) -> Result<BooleanResult, KernelError> {
+    let target_fc = target_topo.arena().face_count();
+    let tool_fc = tool_topo.arena().face_count();
+
     match (operation, tool_inside_target) {
+        // Union with tool inside target: keep outer shell only
         (BooleanOp::Union, true) => {
-            assemble_complete_shells(
-                target_topo, target_geom,
-                None, false,
-            )
+            let mut r = assemble_complete_shells(
+                target_topo, target_geom, None, false,
+            )?;
+            r.set_face_counts(target_fc, 0);
+            Ok(r)
         }
+        // Union with target inside tool: keep outer shell only
         (BooleanOp::Union, false) => {
-            assemble_complete_shells(
-                tool_topo, tool_geom,
-                None, false,
-            )
+            let mut r = assemble_complete_shells(
+                tool_topo, tool_geom, None, false,
+            )?;
+            r.set_face_counts(0, tool_fc);
+            Ok(r)
         }
+        // Intersection with tool inside target: keep inner (tool)
         (BooleanOp::Intersection, true) => {
-            assemble_complete_shells(
-                tool_topo, tool_geom,
-                None, false,
-            )
+            let mut r = assemble_complete_shells(
+                tool_topo, tool_geom, None, false,
+            )?;
+            r.set_face_counts(0, tool_fc);
+            Ok(r)
         }
+        // Intersection with target inside tool: keep inner (target)
         (BooleanOp::Intersection, false) => {
-            assemble_complete_shells(
-                target_topo, target_geom,
-                None, false,
-            )
+            let mut r = assemble_complete_shells(
+                target_topo, target_geom, None, false,
+            )?;
+            r.set_face_counts(target_fc, 0);
+            Ok(r)
         }
+        // Subtraction with tool inside target: keep both (tool reversed)
         (BooleanOp::Subtraction, true) => {
             if are_solids_coincident(target_topo, target_geom, tool_topo, tool_geom)? {
                 let empty_topo = TopologyState::empty();
                 let empty_geom = GeometryStore::new();
                 return Ok(BooleanResult::new(empty_topo, empty_geom, 0, 0, crate::boolean::schema::BooleanIntrospection::default()));
             }
-            assemble_complete_shells(
+            let mut r = assemble_complete_shells(
                 target_topo, target_geom,
                 Some((tool_topo, tool_geom)),
                 true,
-            )
+            )?;
+            r.set_face_counts(target_fc, tool_fc);
+            Ok(r)
         }
+        // Subtraction with target inside tool: empty result
         (BooleanOp::Subtraction, false) => {
             let empty_topo = TopologyState::empty();
             let empty_geom = GeometryStore::new();
@@ -280,6 +324,9 @@ fn assemble_complete_shells(
     let state = TopologyState::empty();
     let mut draft = state.begin_mutation();
     let mut result_geom = GeometryStore::new();
+    
+    // Disjoint assembly doesn't need global gluing, but we satisfy signature
+    let mut global_vertex_map: std::collections::HashMap<crate::boolean::eval::VertexMatchKey, forge_topo::handles::VertexId> = std::collections::HashMap::new();
 
     let primary_faces: Vec<FaceId> = primary_topo.arena().iter_faces()
         .map(|(fid, _)| fid)
@@ -292,8 +339,10 @@ fn assemble_complete_shells(
     copy_faces(
         &mut draft, &mut result_geom, &mut primary_dedup,
         &mut primary_he,
+        &mut global_vertex_map,
         primary_topo.arena(), primary_geom, &primary_faces,
         false,
+        None, // No provenance tracking for disjoint copy
     )?;
 
     stitch_twins(&mut draft, &primary_he)?;
@@ -311,8 +360,10 @@ fn assemble_complete_shells(
         copy_faces(
             &mut draft, &mut result_geom, &mut sec_dedup,
             &mut sec_he,
+            &mut global_vertex_map,
             sec_topo.arena(), sec_geom, &sec_faces,
             reverse_secondary,
+            None, // No provenance tracking for disjoint copy
         )?;
 
         stitch_twins(&mut draft, &sec_he)?;
@@ -323,8 +374,9 @@ fn assemble_complete_shells(
 }
 
 /// Check whether any face centroid from one solid lies on the boundary
-/// of the other solid. This detects flush face contact (e.g. two cubes
-/// sharing a face) that isn't caught by centroid-based containment checks.
+/// of the other solid, or if any face planes are coplanar between the two solids.
+/// This detects flush face contact (e.g. two cubes sharing a face or vertex-on-face
+/// partial overlap) that isn't caught by centroid-based containment checks.
 fn has_overlapping_coplanar_faces(
     target_topo: &TopologyState,
     target_geom: &GeometryStore,
@@ -332,6 +384,25 @@ fn has_overlapping_coplanar_faces(
     tool_geom: &GeometryStore,
     config: &crate::core::ToleranceConfig,
 ) -> Result<bool, KernelError> {
+    let coplanar_angle_eps = config.get_coplanar_angle_epsilon();
+    let coplanar_offset_eps = config.get_coplanar_offset_epsilon();
+
+    for (face_a, _) in target_topo.arena().iter_faces() {
+        let Some(plane_a) = target_geom.get_face_plane(face_a) else { continue };
+
+        for (face_b, _) in tool_topo.arena().iter_faces() {
+            let Some(plane_b) = tool_geom.get_face_plane(face_b) else { continue };
+
+            if forge_geom::plane::is_coplanar(
+                plane_a, plane_b,
+                coplanar_angle_eps,
+                coplanar_offset_eps,
+            ) {
+                return Ok(true);
+            }
+        }
+    }
+
     let vertex_lookup_tool = |index: u32| -> Result<[f64; 3], KernelError> {
         let gen = tool_topo.arena().vertex_generation(index as usize).ok_or_else(|| {
             KernelError::InvalidInput {

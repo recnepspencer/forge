@@ -27,7 +27,7 @@ fn mvf_creates_single_vertex_and_face() {
     let state = TopologyState::empty();
     let mut draft = state.begin_mutation();
 
-    let out = apply_op(&mut draft, MakeVertexFace { feature_id: 0 }).unwrap().into_value();
+    let out = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
 
     assert_eq!(draft.arena().vertex_count(), 1);
     assert_eq!(draft.arena().face_count(), 1);
@@ -50,15 +50,15 @@ fn mvf_stamps_lineage_on_all_entities() {
     let state = TopologyState::empty();
     let mut draft = state.begin_mutation();
 
-    let out = apply_op(&mut draft, MakeVertexFace { feature_id: 42 }).unwrap().into_value();
+    let out = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
 
     let v_lineage = draft.arena().get_vertex(out.vertex).unwrap().lineage.as_ref().unwrap();
     let f_lineage = draft.arena().get_face(out.face).unwrap().lineage.as_ref().unwrap();
     let he_lineage = draft.arena().get_half_edge(out.half_edge).unwrap().lineage.as_ref().unwrap();
 
-    assert_eq!(v_lineage.get_origin_feature(), 42);
-    assert_eq!(f_lineage.get_origin_feature(), 42);
-    assert_eq!(he_lineage.get_origin_feature(), 42);
+    assert_eq!(v_lineage.get_creation_op().get_name(), "make_vertex_face");
+    assert_eq!(f_lineage.get_creation_op().get_name(), "make_vertex_face");
+    assert_eq!(he_lineage.get_creation_op().get_name(), "make_vertex_face");
 
     assert_eq!(v_lineage.get_ancestry_hash(), f_lineage.get_ancestry_hash());
     assert_eq!(f_lineage.get_ancestry_hash(), he_lineage.get_ancestry_hash());
@@ -69,8 +69,8 @@ fn split_degenerate_creates_proper_edge() {
     let state = TopologyState::empty();
     let mut draft = state.begin_mutation();
 
-    let mvf = apply_op(&mut draft, MakeVertexFace { feature_id: 0 }).unwrap().into_value();
-    let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
+    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+    let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
 
     assert_eq!(draft.arena().vertex_count(), 2);
     assert_eq!(draft.arena().half_edge_count(), 2);
@@ -91,8 +91,8 @@ fn mef_splits_face_creating_two_faces() {
     let state = TopologyState::empty();
     let mut draft = state.begin_mutation();
 
-    let mvf = apply_op(&mut draft, MakeVertexFace { feature_id: 0 }).unwrap().into_value();
-    let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
+    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+    let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
 
     let mef = apply_op(&mut draft, MakeEdgeFace {
         vertex_a: mvf.vertex,
@@ -113,8 +113,8 @@ fn split_normal_edge_adds_vertex() {
     let state = TopologyState::empty();
     let mut draft = state.begin_mutation();
 
-    let mvf = apply_op(&mut draft, MakeVertexFace { feature_id: 0 }).unwrap().into_value();
-    let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
+    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+    let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
 
     let mef = apply_op(&mut draft, MakeEdgeFace {
         vertex_a: mvf.vertex,
@@ -124,7 +124,7 @@ fn split_normal_edge_adds_vertex() {
 
     assert_eq!(draft.arena().half_edge_count(), 4);
 
-    let se2 = apply_op(&mut draft, SplitEdge { edge: mef.half_edge_ab }).unwrap().into_value();
+    let se2 = apply_op(&mut draft, SplitEdge { edge: mef.half_edge_ab, parameter: 0.5 }).unwrap().into_value();
 
     assert_eq!(draft.arena().vertex_count(), 3);
     assert_eq!(draft.arena().half_edge_count(), 6);
@@ -140,8 +140,8 @@ fn join_faces_merges_two_adjacent_faces() {
     let state = TopologyState::empty();
     let mut draft = state.begin_mutation();
 
-    let mvf = apply_op(&mut draft, MakeVertexFace { feature_id: 0 }).unwrap().into_value();
-    let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
+    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+    let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
 
     let mef = apply_op(&mut draft, MakeEdgeFace {
         vertex_a: mvf.vertex,
@@ -151,10 +151,10 @@ fn join_faces_merges_two_adjacent_faces() {
 
     assert_eq!(draft.arena().face_count(), 2);
 
-    let surviving = apply_op(&mut draft, JoinFaces { edge: mef.half_edge_ab }).unwrap().into_value();
+    let jf = apply_op(&mut draft, JoinFaces { edge: mef.half_edge_ab }).unwrap().into_value();
 
     assert_eq!(draft.arena().face_count(), 1);
-    assert!(draft.arena().get_face(surviving).is_ok());
+    assert!(draft.arena().get_face(jf.surviving_face).is_ok());
 }
 
 /// KEV test: add a third vertex via split, then remove it back.
@@ -163,8 +163,8 @@ fn kill_edge_vertex_collapses_vertex() {
     let state = TopologyState::empty();
     let mut draft = state.begin_mutation();
 
-    let mvf = apply_op(&mut draft, MakeVertexFace { feature_id: 0 }).unwrap().into_value();
-    let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
+    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+    let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
 
     let mef = apply_op(&mut draft, MakeEdgeFace {
         vertex_a: mvf.vertex,
@@ -172,7 +172,7 @@ fn kill_edge_vertex_collapses_vertex() {
         face: mvf.face,
     }).unwrap().into_value();
 
-    let se2 = apply_op(&mut draft, SplitEdge { edge: mef.half_edge_ab }).unwrap().into_value();
+    let se2 = apply_op(&mut draft, SplitEdge { edge: mef.half_edge_ab, parameter: 0.5 }).unwrap().into_value();
 
     assert_eq!(draft.arena().vertex_count(), 3);
 
@@ -188,10 +188,10 @@ fn build_tetrahedron_via_euler_operators() {
     let state = TopologyState::empty();
     let mut draft = state.begin_mutation();
 
-    let mvf = apply_op(&mut draft, MakeVertexFace { feature_id: 0 }).unwrap().into_value();
+    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
     let v0 = mvf.vertex;
 
-    let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
+    let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
     let v1 = se1.new_vertex;
 
     let mef1 = apply_op(&mut draft, MakeEdgeFace {
@@ -200,7 +200,7 @@ fn build_tetrahedron_via_euler_operators() {
         face: mvf.face,
     }).unwrap().into_value();
 
-    let se2 = apply_op(&mut draft, SplitEdge { edge: mef1.half_edge_ab }).unwrap().into_value();
+    let se2 = apply_op(&mut draft, SplitEdge { edge: mef1.half_edge_ab, parameter: 0.5 }).unwrap().into_value();
     let v2 = se2.new_vertex;
 
     let _mef2 = apply_op(&mut draft, MakeEdgeFace {
@@ -229,7 +229,7 @@ fn build_tetrahedron_via_euler_operators() {
     };
 
     if let Some(edge_v0_in_face1) = se3_face {
-        let se3 = apply_op(&mut draft, SplitEdge { edge: edge_v0_in_face1 }).unwrap().into_value();
+        let se3 = apply_op(&mut draft, SplitEdge { edge: edge_v0_in_face1, parameter: 0.5 }).unwrap().into_value();
         let v3 = se3.new_vertex;
 
         let _mef4 = apply_op(&mut draft, MakeEdgeFace {
@@ -254,8 +254,8 @@ fn kv15_validation_catches_broken_twins() {
     let state = TopologyState::empty();
     let mut draft = state.begin_mutation();
 
-    let mvf = apply_op(&mut draft, MakeVertexFace { feature_id: 0 }).unwrap().into_value();
-    let _se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
+    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+    let _se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
 
     draft.arena_mut().get_half_edge_mut(mvf.half_edge).unwrap().twin =
         crate::handles::HalfEdgeId::new(u32::MAX, 0);
@@ -270,10 +270,10 @@ fn traversal_face_edges_counts_correctly() {
     let state = TopologyState::empty();
     let mut draft = state.begin_mutation();
 
-    let mvf = apply_op(&mut draft, MakeVertexFace { feature_id: 0 }).unwrap().into_value();
+    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
     assert_eq!(face_edge_count(draft.arena(), mvf.face).unwrap(), 1);
 
-    let _se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
+    let _se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
     assert_eq!(face_edge_count(draft.arena(), mvf.face).unwrap(), 2);
 }
 
@@ -282,7 +282,7 @@ fn traversal_vertex_ring_for_seed() {
     let state = TopologyState::empty();
     let mut draft = state.begin_mutation();
 
-    let mvf = apply_op(&mut draft, MakeVertexFace { feature_id: 0 }).unwrap().into_value();
+    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
     let ring = vertex_ring(draft.arena(), mvf.vertex).unwrap();
     assert_eq!(ring.len(), 1);
     assert_eq!(ring[0], mvf.half_edge);
@@ -295,8 +295,8 @@ fn kv16_identical_sequence_produces_identical_lineage() {
         let state = TopologyState::empty();
         let mut draft = state.begin_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace { feature_id: 1 }).unwrap().into_value();
-        let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
+        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+        let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
 
         let mef = apply_op(&mut draft, MakeEdgeFace {
             vertex_a: mvf.vertex,
@@ -328,12 +328,12 @@ fn kv17_split_edge_children_carry_parent_ancestry() {
     let state = TopologyState::empty();
     let mut draft = state.begin_mutation();
 
-    let mvf = apply_op(&mut draft, MakeVertexFace { feature_id: 1 }).unwrap().into_value();
+    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
 
     let parent_hash = draft.arena().get_half_edge(mvf.half_edge).unwrap()
         .lineage.as_ref().unwrap().get_ancestry_hash();
 
-    let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
+    let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
 
     let child_vertex_lineage = draft.arena().get_vertex(se.new_vertex).unwrap()
         .lineage.as_ref().unwrap();
@@ -344,7 +344,6 @@ fn kv17_split_edge_children_carry_parent_ancestry() {
     assert_eq!(child_vertex_lineage.get_ancestry_hash(), child_he_lineage.get_ancestry_hash());
 
     assert_eq!(child_vertex_lineage.get_creation_op().get_name(), "split_edge");
-    assert_eq!(child_vertex_lineage.get_origin_feature(), 1);
 }
 
 /// Join faces produces deterministic merged lineage.
@@ -353,8 +352,8 @@ fn join_faces_updates_surviving_lineage() {
     let state = TopologyState::empty();
     let mut draft = state.begin_mutation();
 
-    let mvf = apply_op(&mut draft, MakeVertexFace { feature_id: 0 }).unwrap().into_value();
-    let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
+    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+    let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
 
     let mef = apply_op(&mut draft, MakeEdgeFace {
         vertex_a: mvf.vertex,
@@ -362,9 +361,168 @@ fn join_faces_updates_surviving_lineage() {
         face: mvf.face,
     }).unwrap().into_value();
 
-    let surviving = apply_op(&mut draft, JoinFaces { edge: mef.half_edge_ab }).unwrap().into_value();
+    let jf = apply_op(&mut draft, JoinFaces { edge: mef.half_edge_ab }).unwrap().into_value();
 
-    let lineage = draft.arena().get_face(surviving).unwrap()
+    let lineage = draft.arena().get_face(jf.surviving_face).unwrap()
         .lineage.as_ref().unwrap();
     assert_eq!(lineage.get_creation_op().get_name(), "join_faces");
+}
+
+// ══════════════════════════════════════════════════════════════
+// BRUTAL DOMAIN-SPECIFIC STRESS TESTS
+// ══════════════════════════════════════════════════════════════
+
+/// Bio-mesh stress test: high-valence pole with 15,000 edges.
+///
+/// Bio-medical implants produce "poles" (vertices with thousands of
+/// converging edges). This test ensures traverse guards (MAX_ITER)
+/// hold, the Euler invariant is maintained under massive load, and
+/// the diff engine can capture a 15k-op delta.
+#[test]
+fn brutal_bio_mesh_high_valence_pole_and_megaloop() {
+    let state = TopologyState::empty();
+    let mut draft = state.begin_mutation();
+
+    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+    let center_vertex = mvf.vertex;
+    let mut current_edge = mvf.half_edge;
+
+    let edge_count = 15_000;
+
+    for _ in 0..edge_count {
+        let se = apply_op(&mut draft, SplitEdge {
+            edge: current_edge,
+            parameter: 0.5,
+        }).unwrap().into_value();
+
+        let face_id = draft.arena().get_half_edge(current_edge).unwrap().face;
+        let mef = apply_op(&mut draft, MakeEdgeFace {
+            vertex_a: center_vertex,
+            vertex_b: se.new_vertex,
+            face: face_id,
+        }).unwrap().into_value();
+
+        current_edge = mef.half_edge_ab;
+    }
+
+    let megamesh_state = draft.commit().unwrap();
+    let arena = megamesh_state.arena();
+
+    assert_eq!(arena.vertex_count(), edge_count + 1);
+
+    let diff = crate::diff::compute_diff(state.arena(), arena, 0, megamesh_state.epoch());
+    assert!(!diff.is_empty());
+    assert_eq!(
+        diff.total_added(),
+        arena.face_count() + arena.half_edge_count() + arena.vertex_count()
+    );
+}
+
+/// Aerospace sliver churn: generational handle integrity under rapid
+/// create/destroy cycles.
+///
+/// Boolean operations on wing ribs generate microscopic sliver faces
+/// that are immediately healed. This hammers 500 cycles of
+/// SplitEdge+MakeEdgeFace → JoinFaces+KillEdgeVertex to verify that
+/// generational slots correctly detect stale handles after removal.
+#[test]
+fn brutal_aerospace_sliver_churn_generational_integrity() {
+    let state = TopologyState::empty();
+    let mut draft = state.begin_mutation();
+
+    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+
+    for _ in 0..500 {
+        let boundary_edge = draft.arena().get_vertex(mvf.vertex).unwrap().outgoing;
+
+        let se = apply_op(&mut draft, SplitEdge {
+            edge: boundary_edge,
+            parameter: 0.1,
+        }).unwrap().into_value();
+
+        let face_id = draft.arena().get_half_edge(boundary_edge).unwrap().face;
+        let mef = apply_op(&mut draft, MakeEdgeFace {
+            vertex_a: mvf.vertex,
+            vertex_b: se.new_vertex,
+            face: face_id,
+        }).unwrap().into_value();
+
+        let doomed_face = mef.new_face;
+        let doomed_vertex = se.new_vertex;
+
+        let _jf = apply_op(&mut draft, JoinFaces { edge: mef.half_edge_ab }).unwrap().into_value();
+        let _kev = apply_op(&mut draft, KillEdgeVertex { edge: se.he_am }).unwrap().into_value();
+
+        assert!(
+            draft.arena().get_face(doomed_face).is_err(),
+            "Stale face handle must be rejected after removal"
+        );
+        assert!(
+            draft.arena().get_vertex(doomed_vertex).is_err(),
+            "Stale vertex handle must be rejected after removal"
+        );
+    }
+
+    let final_state = draft.commit().expect("Generational churn caused silent topology corruption");
+
+    assert_eq!(final_state.arena().vertex_count(), 1);
+    assert_eq!(final_state.arena().face_count(), 1);
+}
+
+/// Merkle-DAG determinism: operation-order independence.
+///
+/// If engineer A splits edge X then Y, and engineer B splits Y then X,
+/// the resulting topology is identical. This test proves that the
+/// solid hash normalises different DAG paths to the same value.
+#[test]
+fn brutal_dag_determinism_path_independence() {
+    let path_a_hash = {
+        let state = TopologyState::empty();
+        let mut draft = state.begin_mutation();
+        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+
+        let se1 = apply_op(&mut draft, SplitEdge {
+            edge: mvf.half_edge, parameter: 0.5,
+        }).unwrap().into_value();
+        let mef1 = apply_op(&mut draft, MakeEdgeFace {
+            vertex_a: mvf.vertex, vertex_b: se1.new_vertex, face: mvf.face,
+        }).unwrap().into_value();
+
+        let _se_top = apply_op(&mut draft, SplitEdge {
+            edge: mef1.half_edge_ab, parameter: 0.5,
+        }).unwrap().into_value();
+        let _se_bottom = apply_op(&mut draft, SplitEdge {
+            edge: mef1.half_edge_ba, parameter: 0.5,
+        }).unwrap().into_value();
+
+        draft.commit().unwrap().topology_hash()
+    };
+
+    let path_b_hash = {
+        let state = TopologyState::empty();
+        let mut draft = state.begin_mutation();
+        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+
+        let se1 = apply_op(&mut draft, SplitEdge {
+            edge: mvf.half_edge, parameter: 0.5,
+        }).unwrap().into_value();
+        let mef1 = apply_op(&mut draft, MakeEdgeFace {
+            vertex_a: mvf.vertex, vertex_b: se1.new_vertex, face: mvf.face,
+        }).unwrap().into_value();
+
+        let _se_bottom = apply_op(&mut draft, SplitEdge {
+            edge: mef1.half_edge_ba, parameter: 0.5,
+        }).unwrap().into_value();
+        let _se_top = apply_op(&mut draft, SplitEdge {
+            edge: mef1.half_edge_ab, parameter: 0.5,
+        }).unwrap().into_value();
+
+        draft.commit().unwrap().topology_hash()
+    };
+
+    assert_eq!(
+        path_a_hash,
+        path_b_hash,
+        "DAG determinism failed: operation order altered the aggregate structural hash."
+    );
 }

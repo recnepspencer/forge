@@ -8,6 +8,8 @@
 
 #![forbid(unsafe_code)]
 
+pub mod aabb;
+pub mod bvh;
 pub mod plane;
 pub mod implicit_vertex;
 pub mod bsp;

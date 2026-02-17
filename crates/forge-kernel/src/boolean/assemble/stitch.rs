@@ -4,7 +4,6 @@ use std::collections::{HashMap, HashSet};
 use forge_core::KernelError;
 use forge_topo::handles::{HalfEdgeId, VertexId};
 use forge_topo::state::MutableDraft;
-use forge_topo::arena::HalfEdgeData;
 
 /// Stitch twin pointers by matching directed edges across all halfedges.
 ///
@@ -15,7 +14,7 @@ pub fn stitch_twins(
     draft: &mut MutableDraft,
     all_he_ids: &[HalfEdgeId],
 ) -> Result<(), KernelError> {
-    let placeholder = HalfEdgeId::new(u32::MAX, 0);
+    let _placeholder = HalfEdgeId::new(u32::MAX, 0);
 
     let mut forward_map: HashMap<(u32, u32), Vec<HalfEdgeId>> = HashMap::new();
 
@@ -66,7 +65,6 @@ pub fn stitch_twins(
             let next_he = he_data.next;
             let dest = draft.arena().get_half_edge(next_he)?.origin;
             unpaired.push((he_id, origin, dest));
-            // eprintln!("Unpaired edge: {} ({} -> {})", he_id, origin, dest);
         }
     }
 
@@ -74,31 +72,67 @@ pub fn stitch_twins(
         return Ok(());
     }
 
-    let mut boundary_he_by_origin: HashMap<u32, HalfEdgeId> = HashMap::new();
-
-    for &(he_in, _origin, dest) in &unpaired {
-        let boundary_face = draft.arena().get_half_edge(he_in)?.face;
-
-        let he_out = draft.arena_mut().insert_half_edge(HalfEdgeData {
-            twin: he_in,
-            next: placeholder,
-            prev: placeholder,
-            face: boundary_face,
-            origin: dest,
-            lineage: None,
-        });
-
-        draft.arena_mut().get_half_edge_mut(he_in)?.twin = he_out;
-        boundary_he_by_origin.insert(dest.index(), he_out);
+    let mut unpaired_map: HashMap<(u32, u32), Vec<HalfEdgeId>> = HashMap::new();
+    for &(he_id, origin, dest) in &unpaired {
+        unpaired_map
+            .entry((origin.index(), dest.index()))
+            .or_default()
+            .push(he_id);
     }
 
-    for &(_he_in, origin, dest) in &unpaired {
-        if let Some(&he_out) = boundary_he_by_origin.get(&dest.index()) {
-            if let Some(&he_next) = boundary_he_by_origin.get(&origin.index()) {
-                draft.arena_mut().get_half_edge_mut(he_out)?.next = he_next;
-                draft.arena_mut().get_half_edge_mut(he_next)?.prev = he_out;
+    let mut paired_unpaired: HashSet<u32> = HashSet::new();
+    for &(he_id, origin, dest) in &unpaired {
+        if paired_unpaired.contains(&he_id.index()) {
+            continue;
+        }
+        let reverse_key = (dest.index(), origin.index());
+        if let Some(candidates) = unpaired_map.get(&reverse_key) {
+            for &cand in candidates {
+                if cand != he_id && !paired_unpaired.contains(&cand.index()) {
+                    draft.arena_mut().get_half_edge_mut(he_id)?.twin = cand;
+                    draft.arena_mut().get_half_edge_mut(cand)?.twin = he_id;
+                    paired_unpaired.insert(he_id.index());
+                    paired_unpaired.insert(cand.index());
+                    break;
+                }
             }
         }
+    }
+
+    let still_unpaired: Vec<HalfEdgeId> = all_he_ids.iter()
+        .filter(|he_id| {
+            !paired.contains(&he_id.index()) && !paired_unpaired.contains(&he_id.index())
+        })
+        .copied()
+        .collect();
+
+    if !still_unpaired.is_empty() {
+        eprintln!("=== STITCH FAILURE: {} unpaired halfedges ===", still_unpaired.len());
+        for &he_id in &still_unpaired {
+            let he_data = draft.arena().get_half_edge(he_id)?;
+            let origin = he_data.origin;
+            let next_he = he_data.next;
+            let dest = draft.arena().get_half_edge(next_he)?.origin;
+            eprintln!("  he={} : {} -> {} (face={})", he_id, origin, dest, he_data.face);
+        }
+        eprintln!("=== All directed edges in forward_map ===");
+        for ((o, d), hes) in &forward_map {
+            eprintln!("  ({},{}) -> {:?}", o, d, hes);
+        }
+        return Err(KernelError::TopologyViolation {
+            err: forge_core::TopologyError::MissingTwin {
+                halfedge_index: still_unpaired[0].index(),
+            },
+            context: Some(forge_core::ErrorContext {
+                scope: forge_core::ErrorScope::Global,
+                suggested_fixes: Vec::new(),
+                detail: format!(
+                    "{} halfedges remain unpaired after stitching (first: {})",
+                    still_unpaired.len(),
+                    still_unpaired[0],
+                ),
+            }),
+        });
     }
 
     Ok(())

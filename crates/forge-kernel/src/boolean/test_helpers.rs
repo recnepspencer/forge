@@ -2,6 +2,7 @@
 //!
 //! Centralizes `build_cube` and `face_centroid` so every test module
 //! uses the same construction logic without duplication.
+//! After each boolean, logs the `DecisionLog` via `forge_test::logging`.
 
 use forge_geom::bsp::{build_convex_polyhedron, BspConfig};
 use forge_geom::plane::Plane;
@@ -60,6 +61,9 @@ pub fn face_centroid(
 }
 
 /// Execute a boolean and return the result, panicking with context on failure.
+///
+/// Logs a compact `DecisionLog` to stderr by default.
+/// Set `FORGE_LOG=full` to include Euler operator decisions.
 pub fn run_boolean(
     center_a: [f64; 3],
     half_a: f64,
@@ -71,12 +75,17 @@ pub fn run_boolean(
     let (topo_b, geom_b) = build_cube(center_b, half_b);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, op);
-    execute_boolean(input).unwrap_or_else(|e| {
+    let envelope = execute_boolean(input).unwrap_or_else(|e| {
         panic!("Boolean {:?} failed: {:?}", op, e);
-    })
+    });
+
+    forge_core::result::log_result(&format!("{:?}", op), &envelope);
+    envelope.into_value()
 }
 
 /// Attempt a boolean, returning the Result for tests that expect errors.
+///
+/// On success, logs the `DecisionLog` to stderr for diagnostic visibility.
 pub fn try_boolean(
     center_a: [f64; 3],
     half_a: f64,
@@ -88,5 +97,21 @@ pub fn try_boolean(
     let (topo_b, geom_b) = build_cube(center_b, half_b);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, op);
-    execute_boolean(input)
+    let envelope = execute_boolean(input)?;
+
+    forge_core::result::log_result(&format!("{:?}", op), &envelope);
+    Ok(envelope.into_value())
+}
+
+/// Execute a boolean from a pre-built `BooleanInput`, logging decisions.
+///
+/// Use this in tests that construct custom inputs (non-cube geometry,
+/// chained booleans, etc.) instead of calling `execute_boolean` directly.
+pub fn execute_boolean_logged(
+    input: BooleanInput,
+) -> Result<forge_core::result::OperationResult<BooleanResult>, forge_core::KernelError> {
+    let op = input.operation();
+    let envelope = execute_boolean(input)?;
+    forge_core::result::log_result(&format!("{:?}", op), &envelope);
+    Ok(envelope)
 }

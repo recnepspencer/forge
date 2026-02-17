@@ -55,7 +55,10 @@ pub fn run_single_case(input: BooleanInput) -> FuzzOutcome {
     let result = execute_boolean(input);
 
     let bool_result = match result {
-        Ok(r) => r,
+        Ok(r) => {
+            forge_core::result::log_result(&format!("{:?}", op), &r);
+            r.into_value()
+        }
         Err(e) => return FuzzOutcome::BooleanError(e),
     };
 

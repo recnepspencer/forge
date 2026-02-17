@@ -96,7 +96,7 @@ impl Feature for BooleanFeature {
             self.op,
         );
 
-        let result = execute_boolean(input)?;
+        let result = execute_boolean(input)?.into_value();
         let (topo, geom) = result.into_parts();
 
         Ok(FeatureOutput {

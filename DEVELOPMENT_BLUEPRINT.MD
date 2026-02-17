@@ -183,7 +183,7 @@ kv.rs            → KV suite runner
 Development proceeds in a **single linear sequence.** Reactive engine milestones are woven into the phase where they naturally belong — no separate track to remember.
 
 ```
-Phase 0 → 0.5 → 1 → 1B → 1C → 2 → 3 → 4 → 5 → 6A → 6B → 7 → 8
+Phase 0 → 0.5 → 1 → 1B → 1C → 2 → 2B → 2C → 3 → 4 → 5 → 6A → 6B → 7 → 8
 ```
 
 **Phase 1C (Reactive Substrate)** introduces the signal graph core and topology firewall. All subsequent features are built as signal nodes, ensuring reactivity is foundational rather than retrofitted.
@@ -805,11 +805,380 @@ KV-64: Evaluate 5 independent branches of a feature tree in parallel. The result
 
 ---
 
+## Phase 2B: Operation Observability & Traceability
+**Duration target:** 1–2 weeks
+**Goal:** Enforce D9 (AI-Observability) as a hard architectural invariant. Every kernel operation — from Euler operators to Booleans to feature evaluations — returns a universal envelope that captures what happened, what was decided, what was ambiguous, and what assumptions were made. An AI agent must be able to reconstruct the full state transition from the envelope alone.
+**Crate:** `forge-core` + `forge-topo` + `forge-kernel`
+**Depends on:** Phase 2
+**Unlocks:** Phase 2C (representations need observable operations to trace recomputation)
+
+**Execution model for ambiguity:** The kernel never pauses mid-operation — that would violate D6 (Atomic Transactionality). Instead, every decision is resolved using the `ModelingContext`'s configured policies. If no policy is configured, a safe default is applied. Everything is logged. After the operation completes, the caller (human or agent) can query the decision log, review margins, and override specific decisions — triggering a targeted re-evaluation. This "complete-then-review" model guarantees atomicity while providing full transparency.
+
+---
+
+### Milestone 2B.1 — Unified Operation Envelope 🟡
+**What:** Redesign `OperationResult<T>` as the universal return type for every kernel function.
+
+**Implementation:**
+```rust
+pub struct OperationResult<T> {
+    pub value: T,
+    pub decision_log: DecisionLog,
+    pub warnings: Vec<KernelWarning>,
+    pub metrics: OperationMetrics,
+    pub lineage_delta: LineageDelta,
+    pub state_hash_before: u128,
+    pub state_hash_after: u128,
+}
+
+pub struct OperationMetrics {
+    pub wall_time: Duration,
+    pub entities_created: u32,
+    pub entities_destroyed: u32,
+    pub exact_predicate_calls: u64,
+    pub policy_decisions_made: u32,
+}
+```
+- `OperationResult` is generic: every kernel function from `split_edge` to `execute_boolean` to `Feature::evaluate()` returns through this wrapper.
+- `state_hash_before/after` enables cheap diff detection without full topology comparison.
+
+**Acceptance:**
+- The type compiles and is importable from `forge-core`.
+- Unit test: construct an envelope, serialize it, deserialize it, verify all fields roundtrip.
+
+---
+
+### Milestone 2B.2 — Decision Classification Taxonomy 🟡
+**What:** Every decision the kernel makes carries a structured, machine-actionable classification.
+
+**Implementation:**
+```rust
+pub struct TracedDecision {
+    pub id: DecisionId,
+    pub kind: DecisionKind,
+    pub margin: f64,
+    pub feature_scope: Option<FeatureId>,
+    pub entity_scope: Option<EntityRef>,
+    pub overridable: bool,
+    pub context: DecisionContext,
+}
+
+pub enum DecisionKind {
+    /// Predicate resolved exactly — zero ambiguity.
+    Exact,
+    /// Ambiguity detected, resolved by configured ModelingContext policy.
+    PolicyApplied { policy: PolicyKind, default_used: bool },
+    /// Near a threshold but resolved with confidence.
+    /// Logged for transparency even though no policy was needed.
+    NearBoundary { threshold: f64 },
+    /// Could not be resolved by policy — safe default applied, flagged for review.
+    Ambiguous { fallback_applied: String },
+    /// Hard constraint forced a specific outcome (e.g., manifoldness requirement).
+    Forced { reason: String },
+}
+
+pub enum DecisionContext {
+    Classification { point: [f64; 3], result: String },
+    Coincidence { entity_a: EntityRef, entity_b: EntityRef },
+    Tolerance { measured: f64, threshold: f64 },
+    Degeneracy { description: String },
+}
+```
+- No unstructured strings in the hot path. `DecisionKind` is an enum, not a string.
+- `margin` quantifies "how close to the threshold" — enables sorting by risk.
+- `overridable` tells the agent whether this decision can be changed without a full rebuild.
+
+**Acceptance:**
+- All existing `ToleranceDecision` usages migrated to `TracedDecision`.
+- KV-50 (updated): Every decision in a Boolean operation has a valid `DecisionKind` and non-negative `margin`.
+
+---
+
+### Milestone 2B.3 — Decision Log as First-Class Artifact 🟡
+**What:** The `DecisionLog` is a queryable, serializable, diffable artifact — not just a `Vec`.
+
+**Implementation:**
+```rust
+pub struct DecisionLog {
+    decisions: Vec<TracedDecision>,
+}
+
+impl DecisionLog {
+    pub fn by_feature(&self, id: FeatureId) -> Vec<&TracedDecision>;
+    pub fn by_kind(&self, kind: DecisionKind) -> Vec<&TracedDecision>;
+    pub fn by_margin_ascending(&self) -> Vec<&TracedDecision>;
+    pub fn ambiguous_only(&self) -> Vec<&TracedDecision>;
+    pub fn overridable_only(&self) -> Vec<&TracedDecision>;
+    pub fn is_clean(&self) -> bool; // true if zero Ambiguous decisions
+    pub fn summary(&self) -> DecisionSummary;
+}
+
+pub struct DecisionSummary {
+    pub total: usize,
+    pub exact: usize,
+    pub policy_applied: usize,
+    pub near_boundary: usize,
+    pub ambiguous: usize,
+    pub forced: usize,
+    pub min_margin: f64,
+}
+```
+- Serializable via serde alongside the feature tree.
+- Diffable: compare two `DecisionLog`s to see what changed between parameter edits.
+- `is_clean()` is the quick check: "did this operation make any assumptions I should review?"
+
+**Acceptance:**
+- KV-51 (updated): Query API returns correct results for Boolean operations with known decision patterns.
+- Serialize → deserialize roundtrip preserves all decision fields.
+
+---
+
+### Milestone 2B.4 — Envelope Wiring: Euler & Topology Layer 🟡
+**What:** Retrofit the topology layer so every Euler operator flows through the envelope.
+
+**Implementation:**
+- The `apply_op` runner in `forge-topo/src/operator.rs` wraps every operator's output in `OperationResult`.
+- Euler operators that detect degenerate cases (e.g., `split_edge` on a zero-length edge) log a `TracedDecision` rather than silently handling or returning a raw error.
+- Topology traversal functions that use safety limits (e.g., `MAX_TRAVERSAL_ITERATIONS` in `traverse.rs`) log a `TracedDecision::Forced` if the limit is hit.
+- `MutableDraft::commit()` computes `state_hash_after` and populates `lineage_delta`.
+
+**Acceptance:**
+- All Euler operators return `OperationResult`.
+- `lineage_delta` accurately reflects entities created, destroyed, and modified.
+
+---
+
+### Milestone 2B.5 — Envelope Wiring: Boolean & Feature Layer 🟡
+**What:** Boolean operations and feature evaluations return the unified envelope.
+
+**Implementation:**
+- `execute_boolean` returns `OperationResult<BooleanResult>` instead of `Result<BooleanResult, KernelError>`.
+- `BooleanIntrospection` fields (face counts, split counts, coplanar merges) merged into `OperationMetrics` rather than existing as a separate struct. One envelope, one place to look.
+- `Feature::evaluate()` returns `OperationResult<FeatureOutput>`. The feature tree aggregates decision logs from child features into the parent's log.
+- The `ModelingContext` provides the configured policies; the envelope records which policies were applied.
+
+**Acceptance:**
+- KV-53 (updated): Every Boolean result contains a non-empty `DecisionLog` with classification summary and split counts.
+- Feature tree evaluation produces an aggregated `DecisionLog` that includes decisions from all child features.
+
+---
+
+### Milestone 2B.6 — Agent Readiness Gate 🟡
+**What:** Validation suite proving the envelope system is sufficient for AI agent workflows.
+
+**Implementation:**
+- **Token budget test:** TC-01 (flat bracket) expressed as `forge-schema` JSON payload < 200 tokens. Execute, verify correct topology.
+- **Roundtrip fidelity test:** Serialize `OperationResult` → deserialize → verify identical `DecisionLog` and topology hash.
+- **Reconstruction test:** Given only the `OperationResult` (no access to intermediate state), an agent can determine: what entities were created, what decisions were made, whether any ambiguity exists, and what the margin of closest decision was.
+- **Override test:** Take a Boolean result with a `PolicyApplied` decision, override it, re-evaluate, verify the decision log reflects the override and the topology changes appropriately.
+
+**Acceptance:**
+- All four tests pass.
+- This is the gate: if an agent can't understand what happened from the envelope alone, Phase 2B is not complete.
+
+---
+
+## Phase 2C: Representation Architecture
+**Duration target:** 2–3 weeks
+**Goal:** Define the foundational abstractions that enable three concurrent model representations — SDF for real-time preview, topological complex for feature operations, and eventually B-rep for manufacturing export — to coexist as lazy, signal-driven projections of a single specification graph. Validate with planar geometry before curved surfaces add complexity.
+**Crate:** `forge-core` (traits) + `forge-view` (SDF evaluator) + `forge-kernel` (integration)
+**Depends on:** Phase 2B (representations need observable operations for traced recomputation)
+**Unlocks:** Phase 3 (curved geometry must follow representation patterns from day one)
+
+**Design principle:** Features declare *mathematical intent*, not geometric output. A cube feature doesn't produce a mesh — it produces a specification (6 half-space inequalities) that can be *projected* into any representation on demand. The projection is lazy, cached, and wired into the signal graph. This means adding a new representation (e.g., point cloud for LiDAR comparison) requires implementing one trait — not modifying every feature.
+
+---
+
+### Milestone 2C.1 — GeometricIntent Trait 🔴
+**What:** The universal abstraction that separates what a feature computes from how it's represented. This is the most architecturally critical trait in the kernel after `GeometrySource`.
+
+**Implementation:**
+```rust
+// In forge-core — available to all crates without upward dependencies.
+
+/// A feature's mathematical specification, independent of representation.
+/// Features implement this to declare what they ARE, not how to render them.
+pub trait GeometricIntent: Send + Sync {
+    /// Half-space inequalities defining the solid region.
+    /// Used by SDF evaluators and point-in-solid classifiers.
+    fn half_spaces(&self) -> &[HalfSpace];
+
+    /// Plane set for exact topological construction.
+    /// Used by BSP builder and Boolean engine.
+    fn plane_set(&self) -> PlaneSet;
+
+    /// Bounding box for spatial acceleration.
+    fn bounds(&self) -> BoundingBox;
+
+    /// Intent kind for representation dispatch.
+    fn intent_kind(&self) -> IntentKind;
+}
+
+pub enum IntentKind {
+    /// Defined entirely by planar half-spaces (Phase 2).
+    Planar,
+    /// Defined by analytic surfaces — cylinder, sphere, cone, torus (Phase 3+).
+    Analytic,
+    /// Defined by NURBS surfaces (Phase 6+).
+    Freeform,
+}
+
+pub struct HalfSpace {
+    pub normal: [f64; 3],
+    pub offset: f64,
+}
+```
+- `GeometricIntent` lives in `forge-core` (the adapter rule — lower layers define traits, upper layers implement them).
+- `IntentKind` enables representation providers to dispatch efficiently: a planar SDF evaluator doesn't need to handle NURBS cases.
+- The trait is extensible: Phase 3 adds `fn analytic_surfaces(&self)`, Phase 6 adds `fn nurbs_surfaces(&self)`. Existing implementations don't break.
+
+**Why this matters:** Without this abstraction, every new representation would require modifying every feature. With it, a feature declares intent once, and N representation providers consume it independently. This is the difference between O(features × representations) code and O(features + representations) code.
+
+**Acceptance:**
+- `MakeCubeFeature` implements `GeometricIntent` with 6 half-spaces.
+- `BooleanFeature` implements `GeometricIntent` by composing child intents.
+- The trait compiles at the `forge-core` layer without pulling in topology or kernel types.
+
+---
+
+### Milestone 2C.2 — RepresentationAspect System 🟡
+**What:** Extend the signal graph's aspect model to support arbitrary representation targets.
+
+**Implementation:**
+```rust
+// In forge-signal — the reactive engine.
+
+pub enum Aspect {
+    /// Topological structure (face/edge/vertex connectivity).
+    Topology,
+    /// Geometric embedding (vertex positions, surface equations).
+    Geometry,
+    /// Real-time preview representation (SDF, approximate mesh).
+    Preview,
+    /// Manufacturing-quality export (NURBS B-rep, STEP).
+    Export,
+}
+```
+- Each aspect has an independent version counter in the signal graph.
+- A downstream signal declares which aspects it reads. The signal graph routes dirty notifications only along matching aspect edges.
+- **Preview aspect** subscribes to `Geometry` changes only (topology changes don't affect SDF evaluation of existing features). This is the generalization of the topology change firewall to all representations.
+- **Export aspect** subscribes to both `Topology` and `Geometry` (B-rep must reflect full model state).
+- Adding a future aspect (e.g., `Simulation` for FEA mesh) requires adding one enum variant and implementing the corresponding provider — zero changes to existing features or signals.
+
+**Acceptance:**
+- Signal graph correctly routes aspect-specific dirty notifications.
+- A geometry-only change marks `Preview` as `MaybeStale` but does not mark `Topology` as dirty.
+
+---
+
+### Milestone 2C.3 — RepresentationProvider Trait 🟡
+**What:** The pluggable pattern for converting `GeometricIntent` into concrete representation outputs.
+
+**Implementation:**
+```rust
+// In forge-core — the trait definition.
+
+/// Converts a GeometricIntent into a concrete representation for a specific Aspect.
+pub trait RepresentationProvider: Send + Sync {
+    /// Which aspect this provider serves.
+    fn aspect(&self) -> Aspect;
+
+    /// Can this provider handle the given intent kind?
+    fn supports(&self, kind: IntentKind) -> bool;
+}
+
+// In forge-view — the SDF implementation.
+
+pub trait SdfProvider: RepresentationProvider {
+    /// Evaluate the signed distance field at a point.
+    /// Negative = inside, zero = on boundary, positive = outside.
+    fn evaluate_sdf(&self, intent: &dyn GeometricIntent, point: &[f64; 3]) -> f64;
+
+    /// Evaluate SDF over a grid for visualization.
+    fn evaluate_grid(
+        &self,
+        intent: &dyn GeometricIntent,
+        bounds: &BoundingBox,
+        resolution: [u32; 3],
+    ) -> Vec<f64>;
+}
+```
+- Providers are composable: `BooleanSdfProvider` computes `min(sdf_a, sdf_b)` for union, `max(sdf_a, sdf_b)` for intersection, `max(sdf_a, -sdf_b)` for subtraction.
+- Providers are registered in the `ModelingContext`, making them globally accessible and swappable (e.g., swap a fast approximate SDF for a precise but slower one).
+- The pattern is designed for extensibility: adding NURBS B-rep export in Phase 6A means implementing `BrepProvider` — not modifying every feature.
+
+**Acceptance:**
+- Provider trait compiles at the `forge-core` layer.
+- A test provider can be registered and retrieved from `ModelingContext`.
+
+---
+
+### Milestone 2C.4 — Planar SDF Evaluator 🟡
+**What:** The first concrete representation provider. Proves the architecture works with trivial geometry before curved surfaces arrive.
+
+**Implementation:**
+- Implement `SdfProvider` for `IntentKind::Planar` in `forge-view`.
+- SDF for a convex solid defined by half-spaces: `max(signed_distance_to_each_half_space)`.
+- SDF for Boolean compositions:
+  - Union: `min(sdf_a, sdf_b)`
+  - Intersection: `max(sdf_a, sdf_b)`
+  - Subtraction: `max(sdf_a, -sdf_b)`
+- Wire the SDF evaluator as a signal node with `Preview` aspect dependency.
+- The signal node reads `GeometricIntent` from upstream features and caches the SDF grid.
+- On geometry change: SDF grid recomputed. On topology-only change: SDF grid untouched (firewall).
+
+**Acceptance:**
+- SDF evaluation of a unit cube at 10 test points matches analytical signed distance.
+- SDF evaluation of `union(cube_A, cube_B)` produces correct inside/outside classification for 100 grid points.
+- SDF grid recomputation takes < 1ms for a single cube at 32³ resolution.
+
+---
+
+### Milestone 2C.5 — Firewall Proof Suite 🟡
+**What:** The critical integration test that validates the entire three-representation architecture.
+
+**Implementation:**
+Test case: parametric cube → Boolean union → change cube width.
+
+1. **SDF signal recomputes** ✓ (geometry changed → `Preview` aspect dirty → SDF grid regenerated).
+2. **Topology hash unchanged** ✓ (cube still has 6 faces, 12 edges, 8 vertices — connectivity didn't change).
+3. **Feature selectors skip re-evaluation** ✓ (topology version didn't increment → `MaybeStale` reverts to `Clean`).
+4. **OperationResult envelope** ✓ (the rebuild's decision log shows zero ambiguous decisions for this geometry change).
+
+Second test: add a Boolean cut that changes topology.
+
+1. **SDF signal recomputes** ✓ (new half-spaces added).
+2. **Topology hash changes** ✓ (new faces/edges created).
+3. **Feature selectors re-evaluate** ✓ (topology version incremented → selectors query new topology).
+4. **OperationResult envelope** ✓ (decision log shows the new split events and face classifications).
+
+**Acceptance:**
+- KV-60 (brought forward): Both test cases pass with correct signal propagation behavior verified programmatically (not just by output correctness, but by asserting which signals were and were not recomputed).
+
+---
+
+### Milestone 2C.6 — Representation Architecture Documentation 🟡
+**What:** Written contract that all Phase 3+ features must follow.
+
+**Implementation:**
+- Create `docs/representation-model.md` explaining:
+  - The `GeometricIntent → RepresentationProvider → Aspect` pipeline.
+  - How to add a new feature (implement `GeometricIntent`).
+  - How to add a new representation (implement `RepresentationProvider`).
+  - The signal graph wiring pattern for representation nodes.
+  - Performance expectations: SDF evaluation budget, caching strategy, invalidation rules.
+- Reference from crate-level documentation in `forge-core`, `forge-view`, and `forge-kernel`.
+
+**Acceptance:**
+- An AI agent can read `docs/representation-model.md` and correctly implement a new feature that works with existing representations, without reading any other documentation.
+
+---
+
 ## Phase 3: Curved Geometry (Analytic Surfaces)
 **Duration target:** 5–6 weeks (this is the hardest phase before NURBS)
 **Goal:** Introduce analytic surfaces, certified classification for curved geometry, and the tolerance policy infrastructure. Fillets require this — which is why fillets are Phase 4, not Phase 3.
 **Crate:** `forge-geom` + `forge-kernel`
-**Depends on:** Phase 2
+**Depends on:** Phase 2C
 **Unlocks:** Phase 4, TC-10, TC-14, TC-17
 
 ---
@@ -1729,6 +2098,12 @@ Phase 0 ──→ Phase 0.5 ──→ Phase 1 ──→ Phase 1B ──→ Phase
                                                    Phase 2 (Booleans + Feature Tree + Serialization)
                                                         │
                                                         ▼
+                                                   Phase 2B (Operation Observability)
+                                                        │
+                                                        ▼
+                                                   Phase 2C (Representation Architecture)
+                                                        │
+                                                        ▼
                                                    Phase 3 (curved geometry)
                                                         │
                                                         ▼
@@ -1760,6 +2135,8 @@ Phase 0 ──→ Phase 0.5 ──→ Phase 1 ──→ Phase 1B ──→ Phase
 | 1B — AI Affordances | 1B.1–1B.5 (5) | — | 🟡 | ~2,000 |
 | 1C — Reactive Substrate | 1C.1–1C.2 (2) | — | 🟡 | ~3,000 |
 | 2 — Planar Booleans | 2.0–2.8 (9) | TC-01..TC-05 | 🟡 | ~11,000 |
+| 2B — Operation Observability | 2B.1–2B.6 (6) | — | 🟡 | ~3,000 |
+| 2C — Representation Architecture | 2C.1–2C.6 (6) | KV-60 | 🔴 | ~4,000 |
 | 3 — Curved Geometry | 3.0–3.8, 3.0.1, 3.2.5, 3.3.1, 3.4.5 (15) | TC-10,14,17,19 | 🔴 | ~11,000 |
 | 4 — Fillets/Chamfers | 4.1–4.6, 4.2.1 (7) | TC-06..TC-09 | 🔴 | ~5,500 |
 | 5 — Sweep, Pattern & Selectors | 5.1–5.6, 5.2.1 (7) | TC-11..13, TC-16 | 🔴 | ~7,500 |
@@ -1767,7 +2144,7 @@ Phase 0 ──→ Phase 0.5 ──→ Phase 1 ──→ Phase 1B ──→ Phase
 | 6B — NURBS Booleans | 6B.1–6B.6 (6) | TC-20 | 🧪🔴 | ~8,500 |
 | 7 — Manufacturing | 7.1–7.3 (3) | TC-15,18,19 | 🟡 | ~4,000 |
 | 8 — I/O, Validation & Agent API | 8.1–8.7, 8.2.1, 8.2.5, 8.2.6 (10) | all exportable + parametric | 🔴 | ~10,000 |
-| **Total** | **83 milestones** | **20 test cases** | | **~80,000** |
+| **Total** | **95 milestones** | **20 test cases** | | **~87,000** |
 
 ## Performance Gates
 
@@ -1845,6 +2222,8 @@ Phase 0 ──→ Phase 0.5 ──→ Phase 1 ──→ Phase 1B ──→ Phase
 | KV-57 | NURBS Continuity Audit | 6B.6 | NIRBS Boolean results contain full quality audit |
 | KV-58 | Healing Metadata | 8.2.6 | Healing plan identifies all topological mutations |
 | KV-59 | Estimation Accuracy | 9.8 | Estimation API returns conservative recompute bounds |
+| KV-60 | Representation Firewall | 2C.5 | Geometry-only change recomputes SDF but not topology; topology change recomputes both |
+| KV-61 | Envelope Reconstruction | 2B.6 | Agent reconstructs full state transition from OperationResult alone |
 
 ## NURBS Robustness Position (Canonical)
 

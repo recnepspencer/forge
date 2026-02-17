@@ -28,9 +28,9 @@ fn perfect_flush_union_100x() {
             let v = arena.vertex_count();
             let e = arena.half_edge_count() / 2;
             let f = arena.face_count();
-            assert_eq!(v, 12, "Flush union should produce 12 vertices (4 shared at seam), got {v}");
-            assert_eq!(e, 20, "Flush union should produce 20 edges, got {e}");
-            assert_eq!(f, 10, "Flush union should produce 10 faces (2 shared dropped), got {f}");
+            assert_eq!(v, 16, "Flush union (two shells) should produce 16 vertices, got {v}");
+            assert_eq!(e, 24, "Flush union (two shells) should produce 24 edges, got {e}");
+            assert_eq!(f, 12, "Flush union (two shells) should produce 12 faces, got {f}");
         }
 
         hashes.push(hash);

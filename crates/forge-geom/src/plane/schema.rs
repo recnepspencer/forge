@@ -93,6 +93,14 @@ impl Plane {
     pub fn raw_offset(&self) -> f64 {
         self.raw_offset
     }
+
+    /// Flip the orientation of the plane (negate normal and offset).
+    pub fn flip(&mut self) {
+        self.normal = [-self.normal[0], -self.normal[1], -self.normal[2]];
+        self.offset = -self.offset;
+        self.raw_normal = [-self.raw_normal[0], -self.raw_normal[1], -self.raw_normal[2]];
+        self.raw_offset = -self.raw_offset;
+    }
 }
 
 /// Result of classifying a point relative to a plane.

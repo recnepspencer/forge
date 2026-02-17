@@ -34,6 +34,7 @@ pub mod attributes;
 pub mod euler;
 pub mod traverse;
 pub mod diff;
+pub mod brutality;
 
 #[cfg(test)]
 mod tests {

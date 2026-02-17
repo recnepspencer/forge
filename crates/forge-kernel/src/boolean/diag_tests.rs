@@ -15,21 +15,21 @@ fn diagnose_half_overlap_pipeline() {
         topo_a.arena().face_count(), topo_b.arena().face_count());
 
     let result = split_all_faces(topo_a, geom_a, topo_b, geom_b).unwrap();
-    let (t_topo, t_geom, l_topo, l_geom, _shared) = result.into_parts();
+    let (t_topo, t_geom, l_topo, l_geom, _target_prov, _tool_prov) = result.into_parts();
 
     eprintln!("AFTER SPLIT: target_faces={}, tool_faces={}",
         t_topo.arena().face_count(), l_topo.arena().face_count());
 
     let config = ToleranceConfig::default();
 
-    let target_classified = classify_faces(
+    let (target_classified, _target_log) = classify_faces(
         t_topo.arena(), &t_geom,
         l_topo.arena(), &l_geom,
         FaceOrigin::Target,
         &config,
     ).unwrap();
 
-    let tool_classified = classify_faces(
+    let (tool_classified, _tool_log) = classify_faces(
         l_topo.arena(), &l_geom,
         t_topo.arena(), &t_geom,
         FaceOrigin::Tool,

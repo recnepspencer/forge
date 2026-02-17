@@ -82,6 +82,7 @@ define_handle!(VertexId);
 define_handle!(LoopId);
 define_handle!(SolidId);
 
+
 #[cfg(test)]
 mod tests {
     use super::*;

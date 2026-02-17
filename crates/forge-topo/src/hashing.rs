@@ -7,7 +7,7 @@
 //! - Geometry-only changes do NOT alter the topology hash
 //! - Entity hashes are order-independent (sorted before aggregation)
 //!
-//! DEPENDENCIES: `arena` (entity data), `lineage` (provenance)
+//! DEPENDENCIES: `arena` (entity data), `lineage` (inline provenance)
 
 use crate::arena::TopologyArena;
 use crate::lineage::{EntityKind, Lineage};
@@ -64,30 +64,30 @@ pub fn compute_solid_hash(entity_hashes: &[u64]) -> u128 {
 /// Compute the aggregate topology hash from an arena.
 ///
 /// Walks all active entities, computes per-entity hashes based on
-/// connectivity and lineage, and aggregates into a solid-level hash.
+/// connectivity and inline lineage, and aggregates into a solid-level hash.
 ///
 /// This is the foundation of the signal engine's change firewall:
 /// if this hash doesn't change, topology-dependent signals stay `Clean`.
 pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
     let mut entity_hashes = Vec::new();
 
-    for (face_id, face) in arena.iter_faces() {
-        let edge_count = count_face_edges(arena, face_id) as u64;
-        let connectivity = [edge_count];
+    for (face_id, face_data) in arena.iter_faces() {
+        let connectivity = canonical_face_loop(arena, face_id);
         let hash = compute_entity_hash(
             EntityKind::Face,
             &connectivity,
-            face.lineage.as_ref(),
+            face_data.lineage.as_ref(),
         );
         entity_hashes.push(hash);
     }
 
-    for (_id, he) in arena.iter_half_edges() {
-        let origin_degree = count_vertex_degree(arena, he.origin) as u64;
-        let face_valence = count_face_edges(arena, he.face) as u64;
+    for (_he_id, he) in arena.iter_half_edges() {
         let connectivity = [
-            origin_degree,
-            face_valence,
+            he.origin.index() as u64,
+            he.twin.index() as u64,
+            he.next.index() as u64,
+            he.prev.index() as u64,
+            he.face.index() as u64,
         ];
         let hash = compute_entity_hash(
             EntityKind::HalfEdge,
@@ -97,13 +97,12 @@ pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
         entity_hashes.push(hash);
     }
 
-    for (_id, vtx) in arena.iter_vertices() {
-        let degree = count_vertex_degree(arena, _id) as u64;
-        let connectivity = [degree];
+    for (vtx_id, vtx_data) in arena.iter_vertices() {
+        let connectivity = canonical_vertex_ring(arena, vtx_id);
         let hash = compute_entity_hash(
             EntityKind::Vertex,
             &connectivity,
-            vtx.lineage.as_ref(),
+            vtx_data.lineage.as_ref(),
         );
         entity_hashes.push(hash);
     }
@@ -111,19 +110,58 @@ pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
     compute_solid_hash(&entity_hashes)
 }
 
-/// Count the number of edges in a face loop.
-fn count_face_edges(arena: &TopologyArena, face_id: crate::handles::FaceId) -> usize {
-    match crate::traverse::face_edges(arena, face_id) {
-        Ok(edges) => edges.len(),
-        Err(_) => 0,
+/// Extract the canonical loop of halfedge indices for a face.
+/// 
+/// Traverses the face loop, finds the halfedge with the minimum index,
+/// and returns the sequence starting from there. This ensures that
+/// the hash is independent of which halfedge is the "first" in the list.
+fn canonical_face_loop(arena: &TopologyArena, face_id: crate::handles::FaceId) -> Vec<u64> {
+     match crate::traverse::face_edges(arena, face_id) {
+        Ok(edges) => {
+            if edges.is_empty() {
+                return Vec::new();
+            }
+            // Find the index of the halfedge with the minimum ID
+            let (min_pos, _) = edges.iter()
+                .enumerate()
+                .min_by_key(|(_, he)| he.index())
+                .unwrap(); // edges is not empty
+            
+            // Reorder: elements from min_pos to end, then 0 to min_pos
+            let mut canonical = Vec::with_capacity(edges.len());
+            for i in 0..edges.len() {
+                canonical.push(edges[(min_pos + i) % edges.len()].index() as u64);
+            }
+            canonical
+        },
+        Err(_) => Vec::new(),
     }
 }
 
-/// Count the degree of a vertex (number of outgoing halfedges).
-fn count_vertex_degree(arena: &TopologyArena, vertex_id: crate::handles::VertexId) -> usize {
-    match crate::traverse::vertex_ring(arena, vertex_id) {
-        Ok(edges) => edges.len(),
-        Err(_) => 0,
+/// Extract the canonical ring of outgoing halfedges for a vertex.
+/// 
+/// Traverses the vertex star, finds the halfedge with the minimum index,
+/// and returns the sequence starting from there.
+fn canonical_vertex_ring(arena: &TopologyArena, vertex_id: crate::handles::VertexId) -> Vec<u64> {
+     match crate::traverse::vertex_ring(arena, vertex_id) {
+        Ok(edges) => {
+            if edges.is_empty() {
+                return Vec::new();
+            }
+             // Find the index of the halfedge with the minimum ID
+             let (min_pos, _) = edges.iter()
+             .enumerate()
+             .min_by_key(|(_, he)| he.index())
+             .unwrap(); // edges is not empty
+         
+             // Reorder: elements from min_pos to end, then 0 to min_pos
+             let mut canonical = Vec::with_capacity(edges.len());
+             for i in 0..edges.len() {
+                 canonical.push(edges[(min_pos + i) % edges.len()].index() as u64);
+             }
+             canonical
+        },
+        Err(_) => Vec::new(),
     }
 }
 
@@ -140,7 +178,6 @@ fn entity_kind_discriminant(kind: EntityKind) -> u64 {
         EntityKind::Face => 1,
         EntityKind::HalfEdge => 2,
         EntityKind::Vertex => 3,
-        EntityKind::Loop => 4,
         EntityKind::Solid => 5,
     }
 }

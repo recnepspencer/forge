@@ -1,117 +1,88 @@
-//! JF — Join Faces.
+//! JoinFaces — merge two faces by removing a shared edge.
 //!
-//! DOMAIN: Merges two adjacent faces by removing the shared edge between them.
+//! DOMAIN: Given a halfedge whose two sides border different faces,
+//! remove the edge and merge the two faces into one.
 //!
-//! The surviving face absorbs the halfedges from the removed face.
-//! The shared edge's halfedge pair and the removed face's loop are deleted.
+//! INVARIANTS:
+//! - The two faces must be distinct
+//! - Removes 2 halfedges, 1 face, 1 loop
+//! - Euler formula: E-1, F-1 (net: same V-E+F)
 //!
-//! Lineage: The surviving face's lineage is updated to reflect the merge,
-//! derived from the smaller-ID face (deterministic dominant parent).
+//! DEPENDENCIES: `arena` (entity storage), `lineage` (provenance)
 
 use forge_core::KernelError;
-use crate::handles::{FaceId, HalfEdgeId};
+
+use crate::handles::HalfEdgeId;
 use crate::lineage::{Lineage, OpSignature};
 use crate::operator::EulerOperator;
 use crate::state::MutableDraft;
 
-/// Maximum loop iterations for reassigning face ownership.
-const MAX_LOOP_REASSIGN_ITERATIONS: usize = 10_000;
-
-/// Merge two faces by removing the shared edge.
+/// Merge two faces by removing a shared edge.
 ///
-/// Given the halfedge `edge` that lies on the boundary between two faces,
-/// this operator removes `edge` and its twin, merging the two faces into one.
-/// The face on the `edge` side survives; the face on the twin side is deleted.
-///
-/// # Preconditions
-/// - `edge` and its twin must border different faces
-/// - Both faces must have more than one edge (can't remove the last edge)
+/// `edge` is a halfedge on the shared edge. Its face and
+/// `edge.twin`'s face must be distinct. The twin's face is removed;
+/// the edge's face survives with merged lineage.
 #[derive(Debug)]
 pub struct JoinFaces {
-    /// The halfedge on the shared boundary. Its face survives.
+    /// A halfedge on the edge to remove. This halfedge's face survives.
     pub edge: HalfEdgeId,
 }
 
+/// Output of the JoinFaces operator.
+pub struct JfOutput {
+    /// The surviving face.
+    pub surviving_face: crate::handles::FaceId,
+}
+
 impl EulerOperator for JoinFaces {
-    type Output = FaceId;
+    type Output = JfOutput;
 
     fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<Self::Output, KernelError> {
         let he = self.edge;
-        let he_data = draft.arena().get_half_edge(he)?.clone();
-        let twin = he_data.twin;
-        let twin_data = draft.arena().get_half_edge(twin)?.clone();
+        let he_data = draft.arena().get_half_edge(he)?;
+        let he_twin = he_data.twin;
+        let he_next = he_data.next;
+        let he_prev = he_data.prev;
+        let face_survive = he_data.face;
 
-        let surviving_face = he_data.face;
-        let removed_face = twin_data.face;
+        let twin_data = draft.arena().get_half_edge(he_twin)?;
+        let twin_next = twin_data.next;
+        let twin_prev = twin_data.prev;
+        let face_remove = twin_data.face;
 
-        if surviving_face == removed_face {
+        if face_survive == face_remove {
             return Err(KernelError::InvalidInput {
-                message: "JoinFaces: edge and twin are on the same face".to_string(),
+                message: "JoinFaces: both sides of edge belong to the same face".to_string(),
                 context: None,
             });
         }
 
-        let surviving_lineage = draft.arena().get_face(surviving_face)?.lineage.clone();
-        let removed_lineage = draft.arena().get_face(removed_face)?.lineage.clone();
-        let merged_lineage = merge_lineage(&surviving_lineage, &removed_lineage, sig);
-
-        let he_prev = he_data.prev;
-        let he_next = he_data.next;
-        let twin_prev = twin_data.prev;
-        let twin_next = twin_data.next;
+        let survive_lineage = draft.arena().get_face(face_survive)?.lineage.clone();
+        let remove_lineage = draft.arena().get_face(face_remove)?.lineage.clone();
+        let merged_lineage = Lineage::merge(&survive_lineage, &remove_lineage, sig);
 
         let arena = draft.arena_mut();
-
         arena.get_half_edge_mut(he_prev)?.next = twin_next;
         arena.get_half_edge_mut(twin_next)?.prev = he_prev;
-
         arena.get_half_edge_mut(twin_prev)?.next = he_next;
         arena.get_half_edge_mut(he_next)?.prev = twin_prev;
 
-        reassign_face(arena, twin_next, surviving_face, twin)?;
+        reassign_face(draft, twin_next, face_survive, he)?;
 
-        arena.get_face_mut(surviving_face)?.lineage = Some(merged_lineage);
+        let arena = draft.arena_mut();
+        let loop_id = arena.get_face(face_survive)?.outer_loop;
+        arena.get_loop_mut(loop_id)?.half_edge = he_next;
+        arena.get_face_mut(face_survive)?.lineage = Some(merged_lineage);
 
-        let surviving_loop = arena.get_face(surviving_face)?.outer_loop;
-        arena.get_loop_mut(surviving_loop)?.half_edge = he_next;
+        let remove_loop = draft.arena().get_face(face_remove)?.outer_loop;
+        draft.arena_mut().remove_half_edge(he)?;
+        draft.arena_mut().remove_half_edge(he_twin)?;
+        draft.arena_mut().remove_loop(remove_loop)?;
+        draft.arena_mut().remove_face(face_remove)?;
 
-        let removed_loop = arena.get_face(removed_face)?.outer_loop;
-        arena.remove_loop(removed_loop)?;
-        arena.remove_face(removed_face)?;
-
-        // Update vertex pointers if they pointed to the removed edges
-        let va = arena.get_vertex_mut(he_data.origin)?;
-        if va.outgoing == he {
-            va.outgoing = twin_next;
-        }
-        
-        // Need to re-borrow for second vertex to avoid double mutable borrow conflict if distinct?
-        // Actually origin of twin is B. origin of he is A.
-        // If A != B (guaranteed by check line 47? No, check says faces are distinct).
-        // Can vertices be same? (Monogon?). If A==B, we have a loop edge.
-        // If A==B, we hold mutable borrow on A.
-        // Splitting into two calls to handle aliasing safely requires drop or index-based update.
-        // We can just use indices.
-        
-        let vb_id = twin_data.origin;
-        if vb_id == he_data.origin {
-             // Same vertex (loop). We already updated it essentially.
-             // But if outgoing was 'twin', it needs update too.
-             let va = arena.get_vertex_mut(vb_id)?;
-             if va.outgoing == twin {
-                 va.outgoing = he_next;
-             }
-        } else {
-             let vb = arena.get_vertex_mut(vb_id)?;
-             if vb.outgoing == twin {
-                 vb.outgoing = he_next;
-             }
-        }
-
-        arena.remove_half_edge(he)?;
-        arena.remove_half_edge(twin)?;
-
-        Ok(surviving_face)
+        Ok(JfOutput {
+            surviving_face: face_survive,
+        })
     }
 
     fn signature(&self) -> OpSignature {
@@ -119,41 +90,23 @@ impl EulerOperator for JoinFaces {
     }
 }
 
-/// Merge lineage from two faces, using the deterministic dominant parent
-/// (the one with the smaller ancestry_hash, for D1 determinism).
-fn merge_lineage(a: &Option<Lineage>, b: &Option<Lineage>, sig: &OpSignature) -> Lineage {
-    let dominant = match (a, b) {
-        (Some(la), Some(lb)) => {
-            if la.get_ancestry_hash() <= lb.get_ancestry_hash() { la } else { lb }
-        }
-        (Some(la), None) => la,
-        (None, Some(lb)) => lb,
-        (None, None) => return Lineage::root(0, sig.clone()),
-    };
-    Lineage::derive(dominant, sig.clone())
-}
-
-/// Walk the loop starting from `start_he` and set all halfedges' face to `face`.
-/// Stops when we return to `start_he` or encounter `stop_he` (the removed edge).
+/// Reassign all halfedges starting from `start` to `new_face`, stopping
+/// when we reach `stop` (exclusive).
 fn reassign_face(
-    arena: &mut crate::arena::TopologyArena,
-    start_he: HalfEdgeId,
-    face: FaceId,
-    stop_he: HalfEdgeId,
+    draft: &mut MutableDraft,
+    start: HalfEdgeId,
+    new_face: crate::handles::FaceId,
+    stop: HalfEdgeId,
 ) -> Result<(), KernelError> {
-    let mut current = start_he;
-
-    for _ in 0..MAX_LOOP_REASSIGN_ITERATIONS {
-        arena.get_half_edge_mut(current)?.face = face;
+    let mut current = start;
+    loop {
+        let arena = draft.arena_mut();
+        arena.get_half_edge_mut(current)?.face = new_face;
         let next = arena.get_half_edge(current)?.next;
-        if next == start_he || next == stop_he {
-            return Ok(());
-        }
         current = next;
+        if current == start || current == stop {
+            break;
+        }
     }
-
-    Err(KernelError::InternalError {
-        message: "Loop limit exceeded in reassign_face".to_string(),
-        context: None,
-    })
+    Ok(())
 }

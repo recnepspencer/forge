@@ -50,7 +50,7 @@ impl MeshBuildResult {
 /// correct face loops and twin stitching for arbitrary convex polyhedra.
 ///
 /// Spatially-coincident vertices (within `ModelingContext.tolerance.spatial_tolerance`)
-/// are deduplicated and logged as `DecisionKind::MergedVertices` (D2).
+/// are deduplicated and logged as `DecisionKind::NearBoundary` (D2).
 ///
 /// # Algorithm
 ///
@@ -125,7 +125,7 @@ fn insert_vertices(
         let existing = find_coincident_vertex(&inserted, &pos, tolerance);
 
         if let Some((existing_vid, dist)) = existing {
-            check_tolerance!(ctx, tolerance, dist, pos, DecisionKind::MergedVertices);
+            check_tolerance!(ctx, tolerance, dist, pos, DecisionKind::NearBoundary { threshold: tolerance });
             vertex_ids.push(existing_vid);
         } else {
             let vid = draft.arena_mut().insert_vertex(VertexData {

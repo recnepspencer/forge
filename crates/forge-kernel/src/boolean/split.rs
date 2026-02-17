@@ -1,18 +1,18 @@
 //! Face splitting along plane-plane intersections (corefinement).
 //!
-//! For two planar solids, computes the intersection line between each
-//! pair of non-parallel face planes, clips the line to both face
-//! boundaries, and inserts split edges using Euler operators.
+//! Uses a Bounding Volume Hierarchy (BVH) to find spatially overlapping
+//! face pairs, then computes intersection lines and splits faces.
 //!
-//! During splitting, all newly created vertex positions are recorded
-//! into a `SharedVertexMap` so the assembly phase can deduplicate
-//! vertices across arenas by position.
-//!
-//! All crossing decisions use `classify_point` → `CertifiedTriSign` (D3).
+//! Every vertex (original or intersection) is identified by exactly 3
+//! sorted plane indices — its canonical 3-plane provenance. This ensures
+//! cross-solid vertex identity is automatic and tolerance-free.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use forge_core::KernelError;
+use forge_core::result::DecisionLog;
+use forge_geom::aabb::Aabb;
+use forge_geom::bvh::{BvhNode, query_overlapping_pairs};
 use forge_geom::plane::{Plane, classify_point, signed_distance};
 use forge_math::sign::TriSign;
 use forge_topo::arena::TopologyArena;
@@ -24,335 +24,447 @@ use forge_topo::euler::split_edge::SplitEdge;
 use forge_topo::euler::make_edge_face::MakeEdgeFace;
 
 use crate::geometry_store::GeometryStore;
-use super::eval::{quantize_position, planes_are_parallel};
+use crate::boolean::eval::{VertexMatchKey, planes_are_parallel};
 
-/// Maps quantized 3D positions to vertex IDs from each arena.
-///
-/// After splitting both solids, this map records which vertices in the
-/// target arena and tool arena correspond to the same spatial point.
-/// The assembly phase uses this to merge cross-arena vertices.
-pub struct SharedVertexMap {
-    /// Quantized position → target VertexId.
-    target_vertices: HashMap<[i64; 3], VertexId>,
-    /// Quantized position → tool VertexId.
-    tool_vertices: HashMap<[i64; 3], VertexId>,
+/// A centralized table of unique planes in the operation.
+/// Used to assign stable IDs to planes for provenance tracking.
+pub struct PlaneTable {
+    planes: Vec<Plane>,
 }
 
-impl SharedVertexMap {
-    /// Create an empty map.
+impl PlaneTable {
     fn new() -> Self {
-        Self {
-            target_vertices: HashMap::new(),
-            tool_vertices: HashMap::new(),
-        }
+        Self { planes: Vec::new() }
     }
 
-    /// Record all vertex positions from a topology + geometry pair.
-    fn record_all_vertices(
-        &mut self,
-        arena: &TopologyArena,
-        geometry: &GeometryStore,
-        is_target: bool,
-    ) {
-        for (vid, _) in arena.iter_vertices() {
-            if let Some(pos) = geometry.get_vertex_position(vid) {
-                let qpos = quantize_position(pos);
-                if is_target {
-                    self.target_vertices.insert(qpos, vid);
+    /// Intern a plane, returning its index.
+    /// Planes that are approximately equal get the same index.
+    fn intern(&mut self, plane: &Plane) -> usize {
+        for (i, p) in self.planes.iter().enumerate() {
+            let n1 = p.raw_normal();
+            let n2 = plane.raw_normal();
+            let d1 = p.raw_offset();
+            let d2 = plane.raw_offset();
+            
+            let dot = n1[0]*n2[0] + n1[1]*n2[1] + n1[2]*n2[2];
+            let parallel = dot.abs() > 0.9999999999;
+            
+            if parallel {
+                let sign = dot.signum();
+                let dist_diff = if sign > 0.0 {
+                    (d1 - d2).abs()
                 } else {
-                    self.tool_vertices.insert(qpos, vid);
+                    (d1 + d2).abs()
+                };
+                
+                if dist_diff < 1e-9 {
+                    return i;
                 }
             }
         }
+        
+        let idx = self.planes.len();
+        self.planes.push(plane.clone());
+        idx
     }
-
-
+    
+    fn get(&self, index: usize) -> &Plane {
+        &self.planes[index]
+    }
 }
 
-/// Result of the entire split phase across both solids.
 pub struct SplitPhaseResult {
-    /// Updated target topology (faces may have been split).
-    target_topology: TopologyState,
-    /// Updated target geometry.
-    target_geometry: GeometryStore,
-    /// Updated tool topology (faces may have been split).
-    tool_topology: TopologyState,
-    /// Updated tool geometry.
-    tool_geometry: GeometryStore,
-    /// Total face splits performed.
-    split_count: usize,
-    /// Vertex correspondence map across both arenas.
-    shared_vertices: SharedVertexMap,
+    pub target_topology: TopologyState,
+    pub target_geometry: GeometryStore,
+    pub tool_topology: TopologyState,
+    pub tool_geometry: GeometryStore,
+    pub split_count: usize,
+    pub target_provenance: HashMap<VertexId, VertexMatchKey>,
+    pub tool_provenance: HashMap<VertexId, VertexMatchKey>,
+    pub decision_log: DecisionLog,
 }
 
 impl SplitPhaseResult {
-    /// Number of face splits performed across both solids.
-    pub fn split_count(&self) -> usize {
-        self.split_count
-    }
-
-    /// Consume and return owned parts including the shared vertex map.
-    pub fn into_parts(self) -> (TopologyState, GeometryStore, TopologyState, GeometryStore, SharedVertexMap) {
+    pub fn split_count(&self) -> usize { self.split_count }
+    pub fn take_decision_log(&mut self) -> DecisionLog { std::mem::take(&mut self.decision_log) }
+    pub fn into_parts(self) -> (TopologyState, GeometryStore, TopologyState, GeometryStore, HashMap<VertexId, VertexMatchKey>, HashMap<VertexId, VertexMatchKey>) {
         (
-            self.target_topology,
-            self.target_geometry,
-            self.tool_topology,
-            self.tool_geometry,
-            self.shared_vertices,
+            self.target_topology, 
+            self.target_geometry, 
+            self.tool_topology, 
+            self.tool_geometry, 
+            self.target_provenance,
+            self.tool_provenance
         )
     }
 }
 
-/// Split all faces of both solids along their mutual intersections.
-///
-/// Both solids are split by the union of ALL planes from both operands.
-/// This ensures edge-compatible face decompositions: every boundary
-/// edge in one solid's selection has a matching edge in the other.
-///
-/// After splitting, builds a SharedVertexMap by recording all vertex
-/// positions from both results. Vertices at the same spatial point
-/// (created by splitting at the same intersection) will be linked.
+/// Maps an undirected edge (sorted vertex index pair) to the cut plane
+/// index that created it. Used to resolve provenance for edges between
+/// coplanar sub-faces (where face_plane == twin_plane).
+type EdgeCutMap = HashMap<(u32, u32), usize>;
+
+/// Create a canonical (sorted) edge key from two vertex IDs.
+fn make_edge_key(v1: VertexId, v2: VertexId) -> (u32, u32) {
+    let a = v1.index();
+    let b = v2.index();
+    if a <= b { (a, b) } else { (b, a) }
+}
+
+/// Deduplication map for a single solid's vertices.
+struct LocalVertexDedup {
+    /// VertexId → MatchKey (for all vertices in the solid)
+    provenance: HashMap<VertexId, VertexMatchKey>,
+    /// MatchKey → VertexId (reverse lookup for finding existing vertices)
+    lookup: HashMap<VertexMatchKey, VertexId>,
+}
+
+impl LocalVertexDedup {
+    fn new() -> Self {
+        Self {
+            provenance: HashMap::new(),
+            lookup: HashMap::new(),
+        }
+    }
+    
+    fn insert(&mut self, vid: VertexId, prov: VertexMatchKey) {
+        self.provenance.insert(vid, prov.clone());
+        self.lookup.insert(prov, vid);
+    }
+    
+    fn find_by_provenance(&self, prov: &VertexMatchKey) -> Option<VertexId> {
+        self.lookup.get(prov).copied()
+    }
+}
+
 pub fn split_all_faces(
     target_topo: TopologyState,
     target_geom: GeometryStore,
     tool_topo: TopologyState,
     tool_geom: GeometryStore,
 ) -> Result<SplitPhaseResult, KernelError> {
-    // Use default config for now, until passed in
+    
+    let log = DecisionLog::new();
     let config = crate::core::ToleranceConfig::default();
-    split_all_faces_with_config(target_topo, target_geom, tool_topo, tool_geom, &config)
-}
-
-/// Internal implementation of split_all_faces with explicit config.
-pub fn split_all_faces_with_config(
-    target_topo: TopologyState,
-    target_geom: GeometryStore,
-    tool_topo: TopologyState,
-    tool_geom: GeometryStore,
-    config: &crate::core::ToleranceConfig,
-) -> Result<SplitPhaseResult, KernelError> {
-    let mut total_splits = 0usize;
-
-    let target_planes = collect_face_planes(target_topo.arena(), &target_geom)?;
-    let tool_planes = collect_face_planes(tool_topo.arena(), &tool_geom)?;
-
-    let mut all_planes: Vec<Plane> = Vec::with_capacity(target_planes.len() + tool_planes.len());
-    all_planes.extend(tool_planes.iter().cloned());
-    all_planes.extend(target_planes.iter().cloned());
     
-    eprintln!("Splitting with {} planes (Target: {}, Tool: {})", all_planes.len(), target_planes.len(), tool_planes.len());
-
-    let (split_target_topo, split_target_geom, target_splits) =
-        split_solid_by_planes(target_topo, target_geom, &all_planes, config)?;
-    total_splits += target_splits;
+    // 1. Build Global Plane Table
+    let mut plane_table = PlaneTable::new();
     
-    eprintln!("Target splits: {}. Faces: {}", target_splits, split_target_topo.arena().face_count());
+    let mut target_face_planes = HashMap::new();
+    let mut tool_face_planes = HashMap::new();
+    
+    for (fid, _) in target_topo.arena().iter_faces() {
+         if let Some(p) = target_geom.get_face_plane(fid) {
+             let idx = plane_table.intern(p);
+             target_face_planes.insert(fid, idx);
+         }
+    }
+    for (fid, _) in tool_topo.arena().iter_faces() {
+         if let Some(p) = tool_geom.get_face_plane(fid) {
+             let idx = plane_table.intern(p);
+             tool_face_planes.insert(fid, idx);
+         }
+    }
+    
+    // 2. Compute AABBs
+    let target_aabbs_full = compute_face_aabbs(target_topo.arena(), &target_geom)?;
+    let tool_aabbs_full = compute_face_aabbs(tool_topo.arena(), &tool_geom)?;
+    
+    let target_aabbs_indexed: Vec<(usize, Aabb)> = target_aabbs_full.iter().enumerate().map(|(i, (_, aabb))| (i, aabb.clone())).collect();
+    let tool_aabbs_indexed: Vec<(usize, Aabb)> = tool_aabbs_full.iter().enumerate().map(|(i, (_, aabb))| (i, aabb.clone())).collect();
+    
+    // 3. Build BVH & Query
+    let target_bvh = BvhNode::build(target_aabbs_indexed);
+    let tool_bvh = BvhNode::build(tool_aabbs_indexed);
+    
+    let mut potential_pairs = Vec::new();
+    if let (Some(root_a), Some(root_b)) = (target_bvh, tool_bvh) {
+        potential_pairs = query_overlapping_pairs(&root_a, &root_b);
+    }
+    
+    // 4. Collect cuts per face
+    let mut target_cuts: HashMap<FaceId, Vec<usize>> = HashMap::new();
+    let mut tool_cuts: HashMap<FaceId, Vec<usize>> = HashMap::new();
+    
+    for (idx_a_raw, idx_b_raw) in potential_pairs {
+        let face_a = target_aabbs_full[idx_a_raw].0;
+        let face_b = tool_aabbs_full[idx_b_raw].0;
+        
+        if let Some(&plane_idx_b) = tool_face_planes.get(&face_b) {
+            if let Some(plane_idx_a) = target_face_planes.get(&face_a) {
+                let plane_a = plane_table.get(*plane_idx_a);
+                let plane_b = plane_table.get(plane_idx_b);
+                if !planes_are_parallel(plane_a, plane_b) {
+                    target_cuts.entry(face_a).or_default().push(plane_idx_b);
+                }
+            }
+        }
+        
+        if let Some(&plane_idx_a) = target_face_planes.get(&face_a) {
+             if let Some(plane_idx_b) = tool_face_planes.get(&face_b) {
+                 let plane_a = plane_table.get(plane_idx_a);
+                 let plane_b = plane_table.get(*plane_idx_b);
+                 if !planes_are_parallel(plane_b, plane_a) {
+                    tool_cuts.entry(face_b).or_default().push(plane_idx_a);
+                 }
+             }
+        }
+    }
+    
+    for cuts in target_cuts.values_mut() { cuts.sort_unstable(); cuts.dedup(); }
+    for cuts in tool_cuts.values_mut() { cuts.sort_unstable(); cuts.dedup(); }
 
-    let (split_tool_topo, split_tool_geom, tool_splits) =
-        split_solid_by_planes(tool_topo, tool_geom, &all_planes, config)?;
-    total_splits += tool_splits;
-
-    eprintln!("Tool splits: {}. Faces: {}", tool_splits, split_tool_topo.arena().face_count());
-
-    let mut shared_vertices = SharedVertexMap::new();
-    shared_vertices.record_all_vertices(split_target_topo.arena(), &split_target_geom, true);
-    shared_vertices.record_all_vertices(split_tool_topo.arena(), &split_tool_geom, false);
+    // 5. Perform Splits
+    let (target_res_topo, target_res_geom, target_splits, target_dedup) = split_solid(
+        target_topo, target_geom, target_cuts, &target_face_planes, &mut plane_table, &config
+    )?;
+    
+    let (tool_res_topo, tool_res_geom, tool_splits, tool_dedup) = split_solid(
+        tool_topo, tool_geom, tool_cuts, &tool_face_planes, &mut plane_table, &config
+    )?;
 
     Ok(SplitPhaseResult {
-        target_topology: split_target_topo,
-        target_geometry: split_target_geom,
-        tool_topology: split_tool_topo,
-        tool_geometry: split_tool_geom,
-        split_count: total_splits,
-        shared_vertices,
+        target_topology: target_res_topo,
+        target_geometry: target_res_geom,
+        tool_topology: tool_res_topo,
+        tool_geometry: tool_res_geom,
+        split_count: target_splits + tool_splits,
+        target_provenance: target_dedup.provenance,
+        tool_provenance: tool_dedup.provenance,
+        decision_log: log,
     })
 }
 
-/// Collect all face planes from a solid.
-fn collect_face_planes(
-    arena: &TopologyArena,
-    geometry: &GeometryStore,
-) -> Result<Vec<Plane>, KernelError> {
-    let mut planes = Vec::new();
-    for (face_id, _) in arena.iter_faces() {
-        let plane = geometry.get_face_plane(face_id).ok_or_else(|| {
-            KernelError::InvalidInput {
-                message: format!("Face {} has no associated plane", face_id),
-                context: None,
-            }
-        })?;
-        planes.push(plane.clone());
-    }
-    Ok(planes)
-}
-
-/// Split all faces of a solid against a set of cutting planes.
-///
-/// Iterates cutting planes and for each one, attempts to split every
-/// face of the solid. New faces produced by splits are also checked
-/// against remaining cutting planes.
-fn split_solid_by_planes(
-    topo: TopologyState,
-    geom: GeometryStore,
-    cutting_planes: &[Plane],
+fn split_solid(
+    topo: TopologyState, 
+    mut geom: GeometryStore, 
+    cuts_map: HashMap<FaceId, Vec<usize>>,
+    initial_face_planes: &HashMap<FaceId, usize>,
+    plane_table: &mut PlaneTable,
     config: &crate::core::ToleranceConfig,
-) -> Result<(TopologyState, GeometryStore, usize), KernelError> {
-    let mut current_topo = topo;
-    let mut current_geom = geom;
-    let mut total_splits = 0usize;
-
-    for cut_plane in cutting_planes {
-        let (new_topo, new_geom, splits) =
-            split_solid_by_single_plane(current_topo, current_geom, cut_plane, config)?;
-        current_topo = new_topo;
-        current_geom = new_geom;
-        total_splits += splits;
-    }
-
-    Ok((current_topo, current_geom, total_splits))
-}
-
-/// Vertex dedup map used during a single split pass.
-///
-/// Tracks quantized 3D positions → existing VertexIds within the draft.
-/// When two cutting planes would create a vertex at the same corner point,
-/// the second split reuses the existing vertex instead of creating a duplicate.
-struct SplitVertexDedup {
-    by_position: HashMap<[i64; 3], VertexId>,
-}
-
-impl SplitVertexDedup {
-    /// Create an empty dedup map.
-    fn new() -> Self {
-        Self {
-            by_position: HashMap::new(),
-        }
-    }
-
-    /// Look up an existing vertex at this quantized position.
-    fn find(&self, pos: &[f64; 3]) -> Option<VertexId> {
-        self.by_position.get(&quantize_position(pos)).copied()
-    }
-
-    /// Record a vertex at a quantized position.
-    fn insert(&mut self, pos: &[f64; 3], vid: VertexId) {
-        self.by_position.insert(quantize_position(pos), vid);
-    }
-}
-
-/// Split all faces of a solid against one cutting plane.
-///
-/// Collects the face IDs up front, then attempts to split each one.
-/// Newly created faces from a split inherit the parent's plane and
-/// will be checked in subsequent cutting-plane passes.
-fn split_solid_by_single_plane(
-    topo: TopologyState,
-    mut geom: GeometryStore,
-    cut_plane: &Plane,
-    config: &crate::core::ToleranceConfig,
-) -> Result<(TopologyState, GeometryStore, usize), KernelError> {
-    let face_ids: Vec<FaceId> = topo.arena().iter_faces()
-        .map(|(fid, _)| fid)
-        .collect();
-
+) -> Result<(TopologyState, GeometryStore, usize, LocalVertexDedup), KernelError> {
+    
     let mut draft = topo.begin_mutation();
-    let mut splits = 0usize;
-    let mut vertex_dedup = SplitVertexDedup::new();
+    let mut splits = 0;
+    let mut dedup = LocalVertexDedup::new();
+    let mut edge_cut_map: EdgeCutMap = HashMap::new();
+    
+    // Assign 3-plane provenance to EVERY original vertex.
+    // Each vertex is at the intersection of the face planes of its adjacent faces.
+    assign_original_vertex_provenance(draft.arena(), initial_face_planes, &mut dedup)?;
 
-    for (vid, _) in draft.arena().iter_vertices() {
-        if let Some(pos) = geom.get_vertex_position(vid) {
-            vertex_dedup.insert(pos, vid);
-        }
+    let mut queue: Vec<(FaceId, Vec<usize>)> = Vec::new();
+    for (fid, cuts) in cuts_map {
+        queue.push((fid, cuts));
     }
+    
+    let mut current_face_planes = initial_face_planes.clone();
 
-    for face_id in face_ids {
-        let face_plane = geom.get_face_plane(face_id).cloned();
-        let Some(face_plane) = face_plane else { continue };
-
-        if planes_are_parallel(&face_plane, cut_plane) {
-            continue;
-        }
-
-        let did_split = split_face_by_plane(
-            &mut draft, &mut geom, &mut vertex_dedup, face_id, &face_plane, cut_plane, config,
+    while let Some((fid, cuts)) = queue.pop() {
+        if cuts.is_empty() { continue; }
+        
+        let cut_idx = cuts[0];
+        let remaining_cuts = cuts[1..].to_vec();
+        
+        let cut_plane = plane_table.get(cut_idx);
+        let face_plane_idx = *current_face_planes.get(&fid).ok_or(KernelError::InternalError { message: "Missing plane for face".into(), context: None })?;
+        let face_plane = plane_table.get(face_plane_idx);
+        
+        let new_face_opt = split_face_by_plane(
+            &mut draft, 
+            &mut geom, 
+            &mut dedup, 
+            &mut edge_cut_map,
+            fid, 
+            face_plane, 
+            face_plane_idx,
+            cut_plane, 
+            cut_idx,
+            config,
+            plane_table,
+            &current_face_planes
         )?;
-
-        if did_split {
+        
+        if let Some(new_face) = new_face_opt {
             splits += 1;
+            current_face_planes.insert(new_face, face_plane_idx);
+            
+            if !remaining_cuts.is_empty() {
+                queue.push((fid, remaining_cuts.clone()));
+                queue.push((new_face, remaining_cuts));
+            }
+        } else {
+            if !remaining_cuts.is_empty() {
+                queue.push((fid, remaining_cuts));
+            }
         }
     }
-
-    let committed = draft.commit()?;
-    Ok((committed, geom, splits))
+    
+    Ok((draft.commit()?, geom, splits, dedup))
 }
 
-
-/// A point where a cutting plane intersects a face's boundary.
+/// Assign 3-plane provenance to every original vertex.
 ///
-/// This enum encodes the binary truth from `classify_point`:
-/// - `Zero` → the plane passes through an existing vertex (reuse it)
-/// - `Pos/Neg` opposite signs → the plane slices an edge interior (insert new vertex)
-enum CutPoint {
-    /// The plane passes exactly through an existing vertex (`TriSign::Zero`).
-    Existing(VertexId),
-    /// The plane cleanly slices the interior of a halfedge (`Pos → Neg` or `Neg → Pos`).
-    NewOnEdge(HalfEdgeId),
+/// Each vertex of a planar B-Rep sits at the intersection of exactly 3
+/// (or more, for non-generic geometry) face planes. We collect the unique
+/// face-plane indices of all faces adjacent to a vertex. If exactly 3,
+/// that's the canonical provenance. If more (e.g. 4 faces meet at a vertex
+/// of a degenerate configuration), we pick the 3 smallest indices to form
+/// a canonical key.
+fn assign_original_vertex_provenance(
+    arena: &TopologyArena,
+    face_plane_map: &HashMap<FaceId, usize>,
+    dedup: &mut LocalVertexDedup,
+) -> Result<(), KernelError> {
+    for (vid, _) in arena.iter_vertices() {
+        let adjacent_planes = collect_vertex_plane_indices(arena, vid, face_plane_map)?;
+        
+        if adjacent_planes.len() >= 3 {
+            let prov = VertexMatchKey::from_planes(
+                adjacent_planes[0],
+                adjacent_planes[1],
+                adjacent_planes[2],
+            );
+            dedup.insert(vid, prov);
+        }
+        // If < 3 adjacent planes, vertex is degenerate — skip provenance.
+        // It won't participate in cross-solid matching.
+    }
+    Ok(())
 }
 
-/// Split a single face along the intersection with a cutting plane.
+/// Collect the unique, sorted face-plane indices adjacent to a vertex.
 ///
-/// Uses `classify_point` (→ `CertifiedTriSign`) for D3-compliant
-/// crossing detection. Only splits when the plane genuinely divides
-/// the face: vertices must exist on both sides (Pos AND Neg).
+/// Walks the fan of halfedges around `vertex` via the twin→next orbit.
+fn collect_vertex_plane_indices(
+    arena: &TopologyArena,
+    vertex: VertexId,
+    face_plane_map: &HashMap<FaceId, usize>,
+) -> Result<Vec<usize>, KernelError> {
+    let mut plane_set = HashSet::new();
+    let start_he = arena.get_vertex(vertex)?.outgoing;
+    let mut current = start_he;
+    let max_iter = 100;
+    
+    for _ in 0..max_iter {
+        let he_data = arena.get_half_edge(current)?;
+        if let Some(&plane_idx) = face_plane_map.get(&he_data.face) {
+            plane_set.insert(plane_idx);
+        }
+        
+        let twin = he_data.twin;
+        let twin_data = arena.get_half_edge(twin)?;
+        current = twin_data.next;
+        
+        if current == start_he {
+            break;
+        }
+    }
+    
+    let mut result: Vec<usize> = plane_set.into_iter().collect();
+    result.sort_unstable();
+    Ok(result)
+}
+
+fn compute_face_aabbs(arena: &TopologyArena, geom: &GeometryStore) -> Result<Vec<(FaceId, Aabb)>, KernelError> {
+    let mut list = Vec::new();
+    for (fid, _) in arena.iter_faces() {
+         let edges = face_edges(arena, fid)?;
+         let mut points = Vec::new();
+         for he in edges {
+              let v = arena.get_half_edge(he)?.origin;
+              if let Some(p) = geom.get_vertex_position(v) {
+                  points.push(*p);
+              }
+         }
+         if let Some(aabb) = Aabb::from_points(&points) {
+              list.push((fid, aabb));
+         }
+    }
+    Ok(list)
+}
+
 fn split_face_by_plane(
     draft: &mut MutableDraft,
     geometry: &mut GeometryStore,
-    vertex_dedup: &mut SplitVertexDedup,
+    dedup: &mut LocalVertexDedup,
+    edge_cut_map: &mut EdgeCutMap,
     face: FaceId,
     face_plane: &Plane,
+    _face_plane_idx: usize,
     cut_plane: &Plane,
-    config: &crate::core::ToleranceConfig,
-) -> Result<bool, KernelError> {
-    if !has_vertices_on_both_sides(draft.arena(), geometry, face, cut_plane)? {
-        return Ok(false);
+    cut_plane_idx: usize,
+    _config: &crate::core::ToleranceConfig,
+    _plane_table: &PlaneTable,
+    face_plane_map: &HashMap<FaceId, usize>,
+) -> Result<Option<FaceId>, KernelError> {
+    
+    let both_sides = has_vertices_on_both_sides(draft.arena(), geometry, face, cut_plane)?;
+    eprintln!("  split_face_by_plane: face={}, cut_plane_idx={}, both_sides={}", face, cut_plane_idx, both_sides);
+    if !both_sides {
+        return Ok(None);
     }
 
-    let cut_points = find_cut_points_certified(draft.arena(), geometry, face, cut_plane, vertex_dedup, config)?;
+    let cut_points = find_cut_points_provenance(
+        draft.arena(), geometry, face, cut_plane, cut_plane_idx, 
+        dedup, face_plane_map, edge_cut_map
+    )?;
 
-    if cut_points.len() < 2 {
-        return Ok(false);
+    eprintln!("    cut_points.len()={}", cut_points.len());
+    for (i, cp) in cut_points.iter().enumerate() {
+        match cp {
+            CutPoint::Existing(v) => eprintln!("    cp[{}] = Existing({})", i, v),
+            CutPoint::NewOnEdge { half_edge, position, .. } =>
+                eprintln!("    cp[{}] = NewOnEdge(he={}, pos={:?})", i, half_edge, position),
+        }
     }
 
-    let vertex_a = match resolve_cut_point(&cut_points[0], draft, geometry, vertex_dedup, cut_plane) {
-        Ok(v) => v,
-        Err(_) => return Ok(false),
+    if cut_points.len() < 2 { return Ok(None); }
+
+    let v_a = resolve_cut_point(&cut_points[0], draft, geometry, dedup)?;
+    let v_b = resolve_cut_point(&cut_points[1], draft, geometry, dedup)?;
+
+    if v_a == v_b { return Ok(None); }
+
+    // Check if an edge already exists between v_a and v_b (prevents double-split).
+    // This happens when coplanar tool faces (e.g., adjacent faces on the same flat
+    // side of a cube) both try to cut the same target edge.
+    let mut edge_already_exists = false;
+    let edges = face_edges(draft.arena(), face)?;
+    for he in edges {
+        let origin = draft.arena().get_half_edge(he)?.origin;
+        let next_he = draft.arena().get_half_edge(he)?.next;
+        let dest = draft.arena().get_half_edge(next_he)?.origin;
+        
+        if (origin == v_a && dest == v_b) || (origin == v_b && dest == v_a) {
+            edge_already_exists = true;
+            break;
+        }
+    }
+
+    if edge_already_exists {
+        eprintln!("    -> ABORT: Edge between {} and {} already exists. Skipping split.", v_a, v_b);
+        return Ok(None);
+    }
+
+    let op = MakeEdgeFace { vertex_a: v_a, vertex_b: v_b, face };
+    
+    let res = match apply_op(draft, op) {
+        Ok(r) => r,
+        Err(_) => return Ok(None),
     };
-    let vertex_b = match resolve_cut_point(&cut_points[1], draft, geometry, vertex_dedup, cut_plane) {
-        Ok(v) => v,
-        Err(_) => return Ok(false),
-    };
-
-    if vertex_a == vertex_b {
-        return Ok(false);
-    }
-
-    let mef_result = apply_op(draft, MakeEdgeFace {
-        vertex_a,
-        vertex_b,
-        face,
-    })?;
-
-    let new_face = mef_result.get_value().new_face;
+    
+    // Record the provenance: this new edge was created by this cut plane.
+    let edge_key = make_edge_key(v_a, v_b);
+    edge_cut_map.insert(edge_key, cut_plane_idx);
+    
+    let new_face = res.get_value().new_face;
     geometry.set_face_plane(new_face, face_plane.clone());
-
-    Ok(true)
+    eprintln!("    -> split succeeded, new_face={}", new_face);
+    
+    Ok(Some(new_face))
 }
 
-/// Check whether a face has vertices on strictly both sides of a cutting plane.
-///
-/// Returns `true` only if at least one vertex classifies as `Pos` AND
-/// at least one classifies as `Neg`. Faces where all vertices are
-/// on one side (or all Zero) are not intersected by the plane.
 fn has_vertices_on_both_sides(
     arena: &TopologyArena,
     geometry: &GeometryStore,
@@ -362,239 +474,109 @@ fn has_vertices_on_both_sides(
     let edges = face_edges(arena, face)?;
     let mut has_pos = false;
     let mut has_neg = false;
-
-    for he_id in &edges {
-        let he_data = arena.get_half_edge(*he_id)?;
-        let pos = geometry.get_vertex_position(he_data.origin).ok_or_else(|| {
-            KernelError::InvalidInput {
-                message: format!("No position for vertex {}", he_data.origin),
-                context: None,
-            }
-        })?;
-
-        let sign = classify_point(cut_plane, pos)
-            .map_err(|e| KernelError::InternalError {
-                message: format!("classify_point failed: {}", e),
-                context: None,
-            })?
-            .sign();
-
+    for he in edges {
+        let v = arena.get_half_edge(he)?.origin;
+        let pos = geometry.get_vertex_position(v).unwrap();
+        let sign = classify_point(cut_plane, pos).unwrap().sign();
         match sign {
             TriSign::Pos => has_pos = true,
             TriSign::Neg => has_neg = true,
-            TriSign::Zero => {}
+            _ => {}
         }
-
-        if has_pos && has_neg {
-            return Ok(true);
-        }
+        if has_pos && has_neg { return Ok(true); }
     }
-
     Ok(false)
 }
 
-/// Resolve a `CutPoint` into a `VertexId`.
-///
-/// `Existing` vertices are returned directly.
-/// `NewOnEdge` vertices are created via `SplitEdge` + interpolation,
-/// unless a vertex already exists at the same quantized position
-/// (detected via `SplitVertexDedup`).
-fn resolve_cut_point(
-    cut_point: &CutPoint,
-    draft: &mut MutableDraft,
-    geometry: &mut GeometryStore,
-    vertex_dedup: &mut SplitVertexDedup,
-    cut_plane: &Plane,
-) -> Result<VertexId, KernelError> {
-    match cut_point {
-        CutPoint::Existing(vid) => Ok(*vid),
-        CutPoint::NewOnEdge(he_id) => {
-            let (new_vertex, _) = insert_new_vertex_on_edge(draft, geometry, vertex_dedup, *he_id, cut_plane)?;
-            Ok(new_vertex)
-        }
+enum CutPoint {
+    Existing(VertexId),
+    NewOnEdge {
+        half_edge: HalfEdgeId,
+        provenance: VertexMatchKey,
+        position: [f64; 3],
     }
 }
 
-/// Find where the cutting plane intersects a face's boundary.
-///
-/// Uses `face_edges` for loop traversal and classifies each vertex
-/// via `classify_point`.
-/// - `TriSign::Zero` → the cutting plane passes through this vertex exactly
-/// - Strict `Pos → Neg` or `Neg → Pos` transition → the plane slices the edge
-///
-/// When an edge-crossing would produce a vertex at a quantized position
-/// that already exists in `vertex_dedup` (from a prior cutting-plane pass),
-/// locates the existing vertex on the face boundary and emits `Existing`
-/// instead of `NewOnEdge` to prevent degenerate zero-length edges.
-fn find_cut_points_certified(
+fn find_cut_points_provenance(
     arena: &TopologyArena,
     geometry: &GeometryStore,
     face: FaceId,
     cut_plane: &Plane,
-    vertex_dedup: &SplitVertexDedup,
-    config: &crate::core::ToleranceConfig,
+    cut_plane_idx: usize,
+    dedup: &LocalVertexDedup,
+    face_plane_map: &HashMap<FaceId, usize>,
+    edge_cut_map: &EdgeCutMap,
 ) -> Result<Vec<CutPoint>, KernelError> {
+    
     let edges = face_edges(arena, face)?;
-    let mut cut_points = Vec::new();
-
-    for he_id in &edges {
-        let he_data = arena.get_half_edge(*he_id)?;
+    let mut points = Vec::new();
+    
+    for he in edges {
+        let he_data = arena.get_half_edge(he)?;
         let origin = he_data.origin;
-        let next_he = he_data.next;
-        let dest = arena.get_half_edge(next_he)?.origin;
-
-        let pos_origin = geometry.get_vertex_position(origin).ok_or_else(|| {
-            KernelError::InvalidInput {
-                message: format!("No position for vertex {}", origin),
-                context: None,
-            }
-        })?;
-        let pos_dest = geometry.get_vertex_position(dest).ok_or_else(|| {
-            KernelError::InvalidInput {
-                message: format!("No position for vertex {}", dest),
-                context: None,
-            }
-        })?;
-
-        let o_sign = classify_point(cut_plane, pos_origin)
-            .map_err(|e| KernelError::InternalError {
-                message: format!("classify_point failed for origin: {}", e),
-                context: None,
-            })?
-            .sign();
-        let d_sign = classify_point(cut_plane, pos_dest)
-            .map_err(|e| KernelError::InternalError {
-                message: format!("classify_point failed for dest: {}", e),
-                context: None,
-            })?
-            .sign();
-
-        if o_sign == TriSign::Zero {
-            cut_points.push(CutPoint::Existing(origin));
-        } else if (o_sign == TriSign::Pos && d_sign == TriSign::Neg)
-            || (o_sign == TriSign::Neg && d_sign == TriSign::Pos)
-        {
-            let intersection_pos = compute_edge_plane_intersection(pos_origin, pos_dest, cut_plane, config.get_edge_split_degeneracy());
-            let Some(intersection_pos) = intersection_pos else {
-                continue;
+        let next_data = arena.get_half_edge(he_data.next)?;
+        let dest = next_data.origin;
+        
+        let p_o = geometry.get_vertex_position(origin).unwrap();
+        let p_d = geometry.get_vertex_position(dest).unwrap();
+        
+        let s_o = classify_point(cut_plane, p_o).unwrap().sign();
+        let s_d = classify_point(cut_plane, p_d).unwrap().sign();
+        
+        if s_o == TriSign::Zero {
+            points.push(CutPoint::Existing(origin));
+        } else if (s_o == TriSign::Pos && s_d == TriSign::Neg) || (s_o == TriSign::Neg && s_d == TriSign::Pos) {
+            let twin = he_data.twin;
+            let twin_face = arena.get_half_edge(twin)?.face;
+            
+            let p_face_idx = *face_plane_map.get(&face).unwrap();
+            let p_twin_idx = *face_plane_map.get(&twin_face).unwrap_or(&p_face_idx);
+            
+            let provenance = if p_face_idx != p_twin_idx {
+                VertexMatchKey::from_planes(p_face_idx, p_twin_idx, cut_plane_idx)
+            } else {
+                // Degenerate edge: face and twin share the same plane.
+                // This edge was created by a previous cut — look up
+                // the prior cut plane from the EdgeCutMap.
+                let edge_key = make_edge_key(origin, dest);
+                let prior_cut_idx = edge_cut_map.get(&edge_key).copied()
+                    .unwrap_or(p_face_idx);
+                VertexMatchKey::from_planes(p_face_idx, prior_cut_idx, cut_plane_idx)
             };
-            if let Some(existing_vid) = vertex_dedup.find(&intersection_pos) {
-                if is_vertex_on_face(arena, face, existing_vid)? {
-                    cut_points.push(CutPoint::Existing(existing_vid));
-                    continue;
-                }
+            
+            let dist_o = signed_distance(cut_plane, p_o);
+            let dist_d = signed_distance(cut_plane, p_d);
+            let t = dist_o / (dist_o - dist_d);
+            let pos = [
+                p_o[0] + t*(p_d[0]-p_o[0]),
+                p_o[1] + t*(p_d[1]-p_o[1]),
+                p_o[2] + t*(p_d[2]-p_o[2]),
+            ];
+            
+            if let Some(vid) = dedup.find_by_provenance(&provenance) {
+                points.push(CutPoint::Existing(vid));
+            } else {
+                points.push(CutPoint::NewOnEdge { half_edge: he, provenance, position: pos });
             }
-            cut_points.push(CutPoint::NewOnEdge(*he_id));
         }
     }
-
-    Ok(cut_points)
+    Ok(points)
 }
 
-/// Compute the intersection position of an edge with a cutting plane.
-///
-/// Uses signed distance interpolation. Only called for strict
-/// `Pos → Neg` transitions, so the denominator is structurally non-zero.
-fn compute_edge_plane_intersection(
-    origin_pos: &[f64; 3],
-    dest_pos: &[f64; 3],
-    cut_plane: &Plane,
-    degeneracy_threshold: f64,
-) -> Option<[f64; 3]> {
-    let dist_origin = signed_distance(cut_plane, origin_pos);
-    let dist_dest = signed_distance(cut_plane, dest_pos);
-    let denom = dist_origin - dist_dest;
-    if denom.abs() < degeneracy_threshold {
-        return None;
-    }
-    let t = dist_origin / denom;
-    let pos = [
-        origin_pos[0] + t * (dest_pos[0] - origin_pos[0]),
-        origin_pos[1] + t * (dest_pos[1] - origin_pos[1]),
-        origin_pos[2] + t * (dest_pos[2] - origin_pos[2]),
-    ];
-    if !pos[0].is_finite() || !pos[1].is_finite() || !pos[2].is_finite() {
-        return None;
-    }
-    Some(pos)
-}
-
-/// Check whether a vertex is on a face's boundary loop.
-fn is_vertex_on_face(
-    arena: &TopologyArena,
-    face: FaceId,
-    vertex: VertexId,
-) -> Result<bool, KernelError> {
-    let edges = face_edges(arena, face)?;
-    for he_id in &edges {
-        let he_data = arena.get_half_edge(*he_id)?;
-        if he_data.origin == vertex {
-            return Ok(true);
-        }
-    }
-    Ok(false)
-}
-
-/// Insert a new vertex at the intersection of a halfedge with the cutting plane.
-///
-/// Uses `signed_distance` for interpolation position (geometry-only,
-/// not topology) after the topology decision is already certified.
-/// This function is only called for strict `Pos → Neg` transitions,
-/// so the denominator is structurally non-zero.
-///
-/// If a vertex already exists at the computed quantized position
-/// (from a prior split by a different cutting plane), the edge is
-/// still topologically split, but the new vertex is merged with the
-/// existing one to avoid degenerate zero-length edges.
-fn insert_new_vertex_on_edge(
+fn resolve_cut_point(
+    cp: &CutPoint,
     draft: &mut MutableDraft,
-    geometry: &mut GeometryStore,
-    vertex_dedup: &mut SplitVertexDedup,
-    half_edge: HalfEdgeId,
-    cut_plane: &Plane,
-) -> Result<(VertexId, HalfEdgeId), KernelError> {
-    let he_data = draft.arena().get_half_edge(half_edge)?;
-    let origin = he_data.origin;
-    let next_he = he_data.next;
-    let dest = draft.arena().get_half_edge(next_he)?.origin;
-
-    let origin_pos = geometry.get_vertex_position(origin)
-        .copied()
-        .ok_or_else(|| KernelError::InvalidInput {
-            message: "Missing origin position for edge split".to_string(),
-            context: None,
-        })?;
-    let dest_pos = geometry.get_vertex_position(dest)
-        .copied()
-        .ok_or_else(|| KernelError::InvalidInput {
-            message: "Missing dest position for edge split".to_string(),
-            context: None,
-        })?;
-
-    let dist_origin = signed_distance(cut_plane, &origin_pos);
-    let dist_dest = signed_distance(cut_plane, &dest_pos);
-    let denom = dist_origin - dist_dest;
-
-    let t = dist_origin / denom;
-    let intersection_pos = [
-        origin_pos[0] + t * (dest_pos[0] - origin_pos[0]),
-        origin_pos[1] + t * (dest_pos[1] - origin_pos[1]),
-        origin_pos[2] + t * (dest_pos[2] - origin_pos[2]),
-    ];
-
-    if !intersection_pos[0].is_finite() || !intersection_pos[1].is_finite() || !intersection_pos[2].is_finite() {
-        return Err(KernelError::InternalError {
-            message: "Edge-plane intersection produced non-finite position".to_string(),
-            context: None,
-        });
+    geom: &mut GeometryStore,
+    dedup: &mut LocalVertexDedup,
+) -> Result<VertexId, KernelError> {
+    match cp {
+        CutPoint::Existing(v) => Ok(*v),
+        CutPoint::NewOnEdge { half_edge, provenance, position } => {
+            let res = apply_op(draft, SplitEdge { edge: *half_edge, parameter: 0.5 })?;
+            let v = res.get_value().new_vertex;
+            geom.set_vertex_position(v, *position);
+            dedup.insert(v, provenance.clone());
+            Ok(v)
+        }
     }
-
-    let se_result = apply_op(draft, SplitEdge { edge: half_edge })?;
-    let new_vertex = se_result.get_value().new_vertex;
-    let new_he = se_result.get_value().he_mb;
-
-    geometry.set_vertex_position(new_vertex, intersection_pos);
-    vertex_dedup.insert(&intersection_pos, new_vertex);
-
-    Ok((new_vertex, new_he))
 }

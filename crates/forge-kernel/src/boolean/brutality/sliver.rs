@@ -1,6 +1,5 @@
-use super::super::test_helpers::{build_cube};
+use super::super::test_helpers::{build_cube, execute_boolean_logged};
 use super::super::schema::{BooleanInput, BooleanOp};
-use super::super::assemble::execute_boolean;
 use forge_geom::bsp::{build_convex_polyhedron, BspConfig};
 use forge_geom::plane::Plane;
 use crate::core::ModelingContext;
@@ -41,8 +40,8 @@ fn shallow_angle_intersection() {
             let input = BooleanInput::new(
                 topo_a, geom_a, topo_b, geom_b, BooleanOp::Intersection,
             );
-            let result = execute_boolean(input);
-            let r = result.expect("Shallow-angle boolean must not fail");
+            let result = execute_boolean_logged(input);
+            let r = result.expect("Shallow-angle boolean must not fail").into_value();
             let arena = r.topology().arena();
             let v = arena.vertex_count() as isize;
             let e = (arena.half_edge_count() / 2) as isize;

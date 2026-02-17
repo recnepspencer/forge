@@ -20,10 +20,20 @@ use crate::handles::{FaceId, HalfEdgeId, VertexId};
 pub enum EntityKey {
     /// A face entity.
     Face(FaceId),
-    /// A halfedge (edge) entity.
-    Edge(HalfEdgeId),
+    /// A canonical undirected edge (min index of the twin pair).
+    Edge(u32),
     /// A vertex entity.
     Vertex(VertexId),
+}
+
+impl EntityKey {
+    /// Create a canonical edge key from a halfedge pair.
+    /// 
+    /// Enforces that attributes are attached to the undirected physical edge
+    /// by using the minimum index of the twin pair.
+    pub fn canonical_edge(a: HalfEdgeId, b: HalfEdgeId) -> Self {
+        EntityKey::Edge(a.index().min(b.index()))
+    }
 }
 
 /// A single attribute value attached to an entity.

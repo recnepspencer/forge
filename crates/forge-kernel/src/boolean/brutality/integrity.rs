@@ -1,6 +1,5 @@
-use super::super::test_helpers::{build_cube, run_boolean};
+use super::super::test_helpers::{build_cube, run_boolean, execute_boolean_logged};
 use super::super::schema::{BooleanInput, BooleanOp};
-use super::super::assemble::execute_boolean;
 
 // ══════════════════════════════════════════════════════════════
 // §4  TOPOLOGY INTEGRITY TORTURE
@@ -59,10 +58,11 @@ fn chained_booleans_preserve_euler() {
     let (topo_c, geom_c) = build_cube([0.5, 0.5, 0.0], 1.0);
 
     let input = BooleanInput::new(topo_ab, geom_ab, topo_c, geom_c, BooleanOp::Intersection);
-    let result = execute_boolean(input);
+    let result = execute_boolean_logged(input);
 
     match result {
         Ok(r) => {
+            let r = r.into_value();
             let arena = r.topology().arena();
             let v = arena.vertex_count() as isize;
             let e = (arena.half_edge_count() / 2) as isize;
@@ -95,7 +95,7 @@ fn random_edge_split_storm() {
         .collect();
 
     for &he_id in half_edges.iter().take(24) {
-        let op = SplitEdge { edge: he_id };
+        let op = SplitEdge { edge: he_id, parameter: 0.5 };
         let result = op.execute(&mut draft, &sig);
         if result.is_ok() {
             split_count += 1;
@@ -130,7 +130,7 @@ fn operation_permutation_counts() {
     let (topo_c, geom_c) = build_cube([1.0, 0.0, 0.0], 1.0);
 
     let input_abc = BooleanInput::new(topo_ab, geom_ab, topo_c, geom_c, BooleanOp::Union);
-    let result_abc = execute_boolean(input_abc).expect("(A∪B)∪C must not fail");
+    let result_abc = execute_boolean_logged(input_abc).expect("(A∪B)∪C must not fail").into_value();
 
     let result_bc = run_boolean(
         [0.5, 0.0, 0.0], 1.0,
@@ -141,7 +141,7 @@ fn operation_permutation_counts() {
     let (topo_a2, geom_a2) = build_cube([0.0, 0.0, 0.0], 1.0);
 
     let input_a_bc = BooleanInput::new(topo_a2, geom_a2, topo_bc, geom_bc, BooleanOp::Union);
-    let result_a_bc = execute_boolean(input_a_bc).expect("A∪(B∪C) must not fail");
+    let result_a_bc = execute_boolean_logged(input_a_bc).expect("A∪(B∪C) must not fail").into_value();
 
     assert_eq!(
         result_abc.topology().arena().face_count(),

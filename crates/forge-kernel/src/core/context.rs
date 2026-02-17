@@ -5,7 +5,7 @@
 //! The `ModelingContext` carries all policy configuration and records every
 //! tolerance-driven decision. When the kernel encounters ambiguity in curved
 //! geometry (Phase 3+), it either:
-//! - Applies the configured policy and logs a `ToleranceDecision`, or
+//! - Applies the configured policy and logs a `TracedDecision`, or
 //! - Returns `KernelError::PolicyRequired` for the caller to decide
 //!
 //! Silent heuristic decisions are forbidden. Every judgment call is traceable.
@@ -16,7 +16,9 @@
 //! tolerance decisions. This module exists now to establish the API shape,
 //! but the policies won't be actively used until Phase 3 (curved surfaces).
 
-use forge_core::{ToleranceDecision, DecisionKind, DecisionId, DecisionLog};
+use forge_core::{
+    TracedDecision, DecisionKind, DecisionContext, DecisionId, DecisionLog,
+};
 use serde::{Deserialize, Serialize};
 
 /// The modeling context that governs all policy decisions.
@@ -39,7 +41,7 @@ pub struct ModelingContext {
     gap_closure: GapClosurePolicy,
     precision: PrecisionEscalationPolicy,
     tolerance_config: ToleranceConfig,
-    decisions: Vec<ToleranceDecision>,
+    decision_log: DecisionLog,
     decision_counter: u64,
 }
 
@@ -109,52 +111,42 @@ impl ModelingContext {
         self.tolerance_config = config;
     }
 
-    /// Record a tolerance decision, auto-assigning a unique DecisionId.
-    pub fn log_decision(&mut self, kind: DecisionKind, location: [f64; 3], margin: f64, threshold: f64) {
+    /// Record a tolerance decision as a `TracedDecision`, auto-assigning a unique ID.
+    pub fn log_decision(
+        &mut self,
+        kind: DecisionKind,
+        _location: [f64; 3],
+        margin: f64,
+        threshold: f64,
+    ) {
         self.decision_counter += 1;
-        let decision = ToleranceDecision::new(
+        let decision = TracedDecision::new(
             DecisionId(self.decision_counter),
             kind,
-            location,
             margin,
-            threshold,
+            DecisionContext::Tolerance { measured: margin, threshold },
         );
-        self.decisions.push(decision);
+        self.decision_log.record(decision);
     }
 
     /// Clear the decision log (for starting a fresh operation).
     pub fn clear_decisions(&mut self) {
-        self.decisions.clear();
+        self.decision_log = DecisionLog::new();
     }
 
     /// Returns the number of tolerance decisions made.
     pub fn get_decision_count(&self) -> usize {
-        self.decisions.len()
-    }
-}
-
-impl DecisionLog for ModelingContext {
-    fn get_decisions(&self) -> &[ToleranceDecision] {
-        &self.decisions
+        self.decision_log.len()
     }
 
-    fn get_decision(&self, id: DecisionId) -> Option<&ToleranceDecision> {
-        self.decisions.iter().find(|d| d.get_id() == id)
+    /// Get the decision log.
+    pub fn get_decision_log(&self) -> &DecisionLog {
+        &self.decision_log
     }
 
-    fn get_decisions_by_kind(&self, kind: &DecisionKind) -> Vec<&ToleranceDecision> {
-        self.decisions.iter().filter(|d| d.get_kind() == kind).collect()
-    }
-
-    fn get_most_marginal(&self, n: usize) -> Vec<&ToleranceDecision> {
-        let mut refs: Vec<&ToleranceDecision> = self.decisions.iter().collect();
-        refs.sort_by(|a, b| {
-            let ratio_a = a.get_margin() / a.get_threshold();
-            let ratio_b = b.get_margin() / b.get_threshold();
-            ratio_a.partial_cmp(&ratio_b).unwrap_or(std::cmp::Ordering::Equal)
-        });
-        refs.truncate(n);
-        refs
+    /// Take ownership of the decision log, replacing it with an empty one.
+    pub fn take_decision_log(&mut self) -> DecisionLog {
+        std::mem::take(&mut self.decision_log)
     }
 }
 
@@ -570,8 +562,7 @@ const DEFAULT_COLLINEARITY_DOT_TOLERANCE: f64 = 1e-8;
 ///
 /// # Usage
 /// ```ignore
-/// if check_tolerance!(ctx, spatial_tolerance, distance, DecisionKind::MergedVertices) {
-///     // The value was within tolerance — handle accordingly
+/// if check_tolerance!(ctx, spatial_tolerance, distance, DecisionKind::NearBoundary { threshold: spatial_tolerance }) {
 ///     return Ok(TriSign::Zero);
 /// }
 /// ```
@@ -606,14 +597,14 @@ mod tests {
     fn decisions_are_recorded() {
         let mut ctx = ModelingContext::new();
         ctx.log_decision(
-            DecisionKind::MergedVertices,
+            DecisionKind::NearBoundary { threshold: 1e-6 },
             [1.0, 2.0, 3.0],
             1e-8,
             1e-6,
         );
         assert_eq!(ctx.get_decision_count(), 1);
-        assert_eq!(*ctx.get_decisions()[0].get_kind(), DecisionKind::MergedVertices);
-        assert_eq!(ctx.get_decisions()[0].get_id(), DecisionId(1));
+        let decisions = ctx.get_decision_log().get_all();
+        assert_eq!(decisions[0].get_id(), DecisionId(1));
     }
 
     #[test]
@@ -623,7 +614,7 @@ mod tests {
         let threshold = 1e-6;
         let location = [0.0, 0.0, 0.0];
 
-        let within = check_tolerance!(ctx, threshold, distance, location, DecisionKind::MergedVertices);
+        let within = check_tolerance!(ctx, threshold, distance, location, DecisionKind::NearBoundary { threshold });
 
         assert!(within);
         assert_eq!(ctx.get_decision_count(), 1);
@@ -636,9 +627,25 @@ mod tests {
         let threshold = 1e-6;
         let location = [0.0, 0.0, 0.0];
 
-        let within = check_tolerance!(ctx, threshold, distance, location, DecisionKind::MergedVertices);
+        let within = check_tolerance!(ctx, threshold, distance, location, DecisionKind::NearBoundary { threshold });
 
         assert!(!within);
+        assert_eq!(ctx.get_decision_count(), 0);
+    }
+
+    #[test]
+    fn take_decision_log_drains() {
+        let mut ctx = ModelingContext::new();
+        ctx.log_decision(
+            DecisionKind::Exact,
+            [0.0, 0.0, 0.0],
+            0.0,
+            1e-6,
+        );
+        assert_eq!(ctx.get_decision_count(), 1);
+
+        let log = ctx.take_decision_log();
+        assert_eq!(log.len(), 1);
         assert_eq!(ctx.get_decision_count(), 0);
     }
 }

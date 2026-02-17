@@ -1,6 +1,5 @@
-use super::super::test_helpers::{run_boolean};
+use super::super::test_helpers::{run_boolean, execute_boolean_logged};
 use super::super::schema::{BooleanInput, BooleanOp};
-use super::super::assemble::execute_boolean;
 use forge_geom::bsp::{build_convex_polyhedron, BspConfig};
 use forge_geom::plane::Plane;
 use forge_math::predicates::orient3d::orient3d;
@@ -133,8 +132,9 @@ fn run_large_coordinate_boolean(offset: f64, label: &str) {
     match (solid_a, solid_b) {
         (Ok((topo_a, geom_a)), Ok((topo_b, geom_b))) => {
             let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
-            match execute_boolean(input) {
-                Ok(r) => {
+            match execute_boolean_logged(input) {
+                Ok(envelope) => {
+                    let r = envelope.into_value();
                     let face_count = r.topology().arena().face_count();
                     assert!(
                         face_count >= 6,

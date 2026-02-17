@@ -1,9 +1,17 @@
 //! Face selection logic.
+//!
+//! Every selection decision is recorded as a `TracedDecision` in the
+//! returned `DecisionLog`, providing full traceability of which faces
+//! were kept or dropped and why.
 
 use forge_topo::handles::FaceId;
+use forge_core::result::{DecisionLog, TracedDecision, DecisionId, DecisionKind, DecisionContext, EntityRef};
 use crate::boolean::schema::{BooleanOp, FaceOrigin, FaceClassification, ClassifiedFace};
 
 /// Select faces to keep based on the Boolean operation type.
+///
+/// Returns the selected face IDs and a `DecisionLog` recording why
+/// each face was kept or dropped.
 ///
 /// | Operation     | Origin | Classification   | Action | Reason |
 /// |---------------|--------|------------------|--------|--------|
@@ -29,10 +37,16 @@ pub fn select_faces(
     classified: &[ClassifiedFace],
     origin: FaceOrigin,
     operation: BooleanOp,
-) -> Vec<FaceId> {
-    classified
-        .iter()
-        .filter(|f| match (origin, operation, f.classification()) {
+) -> (Vec<FaceId>, DecisionLog) {
+    let mut selected = Vec::new();
+    let mut log = DecisionLog::new();
+    let origin_label = match origin {
+        FaceOrigin::Target => "Target",
+        FaceOrigin::Tool => "Tool",
+    };
+
+    for f in classified {
+        let keep = match (origin, operation, f.classification()) {
             // UNION
             (FaceOrigin::Target, BooleanOp::Union, FaceClassification::Outside) => true,
             (FaceOrigin::Target, BooleanOp::Union, FaceClassification::OnBoundary) => true,
@@ -48,9 +62,28 @@ pub fn select_faces(
             (FaceOrigin::Target, BooleanOp::Subtraction, FaceClassification::OppositeBoundary) => true,
             (FaceOrigin::Tool,   BooleanOp::Subtraction, FaceClassification::Inside) => true,
             
-            // All other cases (Inside for Union, Outside for Intersection, etc.) -> Drop
             _ => false,
-        })
-        .map(|f| f.face())
-        .collect()
+        };
+
+        let action = if keep { "Keep" } else { "Drop" };
+        let mut decision = TracedDecision::new(
+            DecisionId(1000 + f.face().index() as u64),
+            DecisionKind::Exact,
+            1.0,
+            DecisionContext::Classification {
+                point: [0.0; 3],
+                result: format!("Select {}:Face#{} {:?} for {:?} → {}",
+                    origin_label, f.face().index(), f.classification(), operation, action),
+            },
+        );
+        decision.set_entity_scope(EntityRef::new("Face", f.face().index()));
+        log.record(decision);
+
+        if keep {
+            selected.push(f.face());
+        }
+    }
+
+    (selected, log)
 }
+

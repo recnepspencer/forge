@@ -105,6 +105,7 @@ fn run_merge_pass(
                 touched_faces.insert(face_a);
                 touched_faces.insert(face_b);
                 merged += 1;
+                break;
             }
             Err(_) => {
                 // Ignore failures (topology might have changed effectively)
@@ -252,9 +253,10 @@ fn run_vertex_cleanup_pass(
             Ok(_) => {
                 touched_verts.insert(vid);
                 removed += 1;
+                break;
             }
             Err(_) => {
-                // Ignore failures
+                // Ignore failures — handle may already be stale
             }
         }
     }

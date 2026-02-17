@@ -1,6 +1,5 @@
-use super::super::test_helpers::{build_cube, try_boolean};
+use super::super::test_helpers::{build_cube, try_boolean, execute_boolean_logged};
 use super::super::schema::{BooleanInput, BooleanOp};
-use super::super::assemble::execute_boolean;
 use forge_topo::hashing::compute_arena_topology_hash;
 
 // ══════════════════════════════════════════════════════════════
@@ -30,8 +29,8 @@ fn hash_stability_ab_vs_ba() {
         BooleanOp::Union,
     );
 
-    let result_ab = execute_boolean(input_ab).unwrap();
-    let result_ba = execute_boolean(input_ba).unwrap();
+    let result_ab = execute_boolean_logged(input_ab).unwrap().into_value();
+    let result_ba = execute_boolean_logged(input_ba).unwrap().into_value();
 
     assert_eq!(
         result_ab.topology().arena().face_count(),

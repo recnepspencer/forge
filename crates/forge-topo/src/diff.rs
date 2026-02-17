@@ -22,17 +22,19 @@ pub enum EntityDelta {
     Removed {
         index: usize,
     },
-    /// Entity was modified (exists in both, generation changed).
+    /// Entity was modified (exists in both, generation changed OR version changed).
     Modified {
         index: usize,
         old_generation: u32,
         new_generation: u32,
+        old_version: u32,
+        new_version: u32,
     },
 }
 
 /// Structured diff between two topology arena snapshots.
 ///
-/// Captures entity-level changes across all four entity kinds.
+/// Captures entity-level changes across three entity kinds.
 /// Produced by `compute_diff` to support undo/redo visualization,
 /// change tracking, and AI-agent introspection.
 #[derive(Debug, Clone)]
@@ -43,8 +45,6 @@ pub struct TopologyDiff {
     pub half_edges: Vec<EntityDelta>,
     /// Changes to vertex entities.
     pub vertices: Vec<EntityDelta>,
-    /// Changes to loop entities.
-    pub loops: Vec<EntityDelta>,
     /// Epoch of the "before" state.
     pub epoch_before: u64,
     /// Epoch of the "after" state.
@@ -54,7 +54,7 @@ pub struct TopologyDiff {
 impl TopologyDiff {
     /// Total number of entity deltas across all kinds.
     pub fn total_changes(&self) -> usize {
-        self.faces.len() + self.half_edges.len() + self.vertices.len() + self.loops.len()
+        self.faces.len() + self.half_edges.len() + self.vertices.len()
     }
 
     /// Whether the diff is empty (no changes).
@@ -82,37 +82,42 @@ impl TopologyDiff {
         self.faces.iter().filter(|d| predicate(d)).count()
             + self.half_edges.iter().filter(|d| predicate(d)).count()
             + self.vertices.iter().filter(|d| predicate(d)).count()
-            + self.loops.iter().filter(|d| predicate(d)).count()
     }
 }
 
 /// Compare two arenas slot-by-slot to produce entity deltas for one entity kind.
+/// 
+/// The accessors `before_occupied` and `after_occupied` return `Option<(generation, version)>`.
 fn diff_slots(
     before_count: usize,
     after_count: usize,
-    before_occupied: impl Fn(usize) -> Option<u32>,
-    after_occupied: impl Fn(usize) -> Option<u32>,
+    before_occupied: impl Fn(usize) -> Option<(u32, u32)>,
+    after_occupied: impl Fn(usize) -> Option<(u32, u32)>,
 ) -> Vec<EntityDelta> {
     let max_slots = before_count.max(after_count);
     let mut deltas = Vec::new();
 
     for index in 0..max_slots {
-        let before_gen = before_occupied(index);
-        let after_gen = after_occupied(index);
+        let before_info = before_occupied(index);
+        let after_info = after_occupied(index);
 
-        match (before_gen, after_gen) {
+        match (before_info, after_info) {
             (None, Some(_)) => {
                 deltas.push(EntityDelta::Added { index });
             }
             (Some(_), None) => {
                 deltas.push(EntityDelta::Removed { index });
             }
-            (Some(old_gen), Some(new_gen)) if old_gen != new_gen => {
-                deltas.push(EntityDelta::Modified {
-                    index,
-                    old_generation: old_gen,
-                    new_generation: new_gen,
-                });
+            (Some((old_gen, old_ver)), Some((new_gen, new_ver))) => {
+                if old_gen != new_gen || old_ver != new_ver {
+                     deltas.push(EntityDelta::Modified {
+                        index,
+                        old_generation: old_gen,
+                        new_generation: new_gen,
+                        old_version: old_ver,
+                        new_version: new_ver,
+                    });
+                }
             }
             _ => {}
         }
@@ -135,36 +140,28 @@ pub fn compute_diff(
     let faces = diff_slots(
         before.face_slot_count(),
         after.face_slot_count(),
-        |i| before.face_generation(i),
-        |i| after.face_generation(i),
+        |i| before.face_generation(i).map(|g| (g, before.face_version(i).unwrap_or(0))),
+        |i| after.face_generation(i).map(|g| (g, after.face_version(i).unwrap_or(0))),
     );
 
     let half_edges = diff_slots(
         before.half_edge_slot_count(),
         after.half_edge_slot_count(),
-        |i| before.half_edge_generation(i),
-        |i| after.half_edge_generation(i),
+        |i| before.half_edge_generation(i).map(|g| (g, before.half_edge_version(i).unwrap_or(0))),
+        |i| after.half_edge_generation(i).map(|g| (g, after.half_edge_version(i).unwrap_or(0))),
     );
 
     let vertices = diff_slots(
         before.vertex_slot_count(),
         after.vertex_slot_count(),
-        |i| before.vertex_generation(i),
-        |i| after.vertex_generation(i),
-    );
-
-    let loops = diff_slots(
-        before.loop_slot_count(),
-        after.loop_slot_count(),
-        |i| before.loop_generation(i),
-        |i| after.loop_generation(i),
+        |i| before.vertex_generation(i).map(|g| (g, before.vertex_version(i).unwrap_or(0))),
+        |i| after.vertex_generation(i).map(|g| (g, after.vertex_version(i).unwrap_or(0))),
     );
 
     TopologyDiff {
         faces,
         half_edges,
         vertices,
-        loops,
         epoch_before,
         epoch_after,
     }
@@ -192,7 +189,7 @@ mod tests {
         let before_arena = state.arena().clone();
 
         let mut draft = state.begin_mutation();
-        let _mvf = apply_op(&mut draft, MakeVertexFace { feature_id: 0 }).unwrap().into_value();
+        let _mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
         let after_state = draft.commit().unwrap();
 
         let diff = compute_diff(&before_arena, after_state.arena(), 0, 1);
@@ -208,13 +205,13 @@ mod tests {
     fn diff_detects_growth_after_split() {
         let state = TopologyState::empty();
         let mut draft = state.begin_mutation();
-        let mvf = apply_op(&mut draft, MakeVertexFace { feature_id: 0 }).unwrap().into_value();
+        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
         let state_1 = draft.commit().unwrap();
 
         let before_arena = state_1.arena().clone();
 
         let mut draft2 = state_1.begin_mutation();
-        let _se = apply_op(&mut draft2, SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
+        let _se = apply_op(&mut draft2, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
         let state_2 = draft2.commit().unwrap();
 
         let diff = compute_diff(&before_arena, state_2.arena(), 1, 2);

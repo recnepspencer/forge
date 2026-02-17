@@ -5,6 +5,7 @@
 pub mod stitch;
 pub mod select;
 pub mod copy;
+pub mod cleanup;
 pub mod disjoint;
 pub mod merge;
 

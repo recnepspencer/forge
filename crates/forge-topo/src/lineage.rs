@@ -102,6 +102,16 @@ impl Lineage {
         }
     }
 
+    /// Derive a child lineage from an optional parent.
+    ///
+    /// If parent is `None`, creates a root lineage at feature 0.
+    pub fn derive_from(parent: &Option<Lineage>, op: OpSignature) -> Lineage {
+        match parent {
+            Some(p) => Lineage::derive(p, op),
+            None => Lineage::root(0, op),
+        }
+    }
+
     /// The originating feature ID.
     pub fn get_origin_feature(&self) -> u64 {
         self.origin_feature
@@ -129,6 +139,36 @@ impl Lineage {
             h
         };
         parent_hash.wrapping_mul(0x100000001b3) ^ op_hash
+    }
+
+    /// Merge two lineages using Merkle DAG hash mixing.
+    ///
+    /// Combines the ancestry hashes of both parents via FNV mixing,
+    /// preserving traceability from both lineage chains. This is
+    /// superior to dominant-parent selection because downstream
+    /// selectors can detect entities descended from the union of
+    /// two features (e.g., in boolean vertex merging).
+    pub fn merge(a: &Option<Lineage>, b: &Option<Lineage>, sig: &OpSignature) -> Lineage {
+        match (a, b) {
+            (Some(la), Some(lb)) => {
+                let combined = Self::fnv_mix_128(la.ancestry_hash, lb.ancestry_hash);
+                let ancestry_hash = Self::compute_hash(combined, sig);
+                Lineage {
+                    origin_feature: la.origin_feature.min(lb.origin_feature),
+                    creation_op: sig.clone(),
+                    ancestry_hash,
+                }
+            }
+            (Some(la), None) => Lineage::derive(la, sig.clone()),
+            (None, Some(lb)) => Lineage::derive(lb, sig.clone()),
+            (None, None) => Lineage::root(0, sig.clone()),
+        }
+    }
+
+    /// FNV-1a style mixing of two 128-bit hashes.
+    fn fnv_mix_128(a: u128, b: u128) -> u128 {
+        let mixed = a.wrapping_mul(0x100000001b3) ^ b;
+        mixed.wrapping_mul(0x100000001b3) ^ (a.rotate_left(17))
     }
 }
 
@@ -162,7 +202,6 @@ pub enum EntityKind {
     Face,
     HalfEdge,
     Vertex,
-    Loop,
     Solid,
 }
 
@@ -172,7 +211,6 @@ impl std::fmt::Display for EntityKind {
             EntityKind::Face => write!(f, "Face"),
             EntityKind::HalfEdge => write!(f, "HalfEdge"),
             EntityKind::Vertex => write!(f, "Vertex"),
-            EntityKind::Loop => write!(f, "Loop"),
             EntityKind::Solid => write!(f, "Solid"),
         }
     }

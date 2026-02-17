@@ -6,11 +6,15 @@
 
 use std::fmt;
 
+use serde::{Deserialize, Serialize};
+
 pub mod result;
 
 pub use result::{
-    DecisionKind, DecisionId, ToleranceDecision, DecisionLog,
+    DecisionKind, DecisionId, TracedDecision, DecisionLog,
+    DecisionSummary, DecisionContext, EntityRef,
     KernelWarning, OperationMetrics, LineageDelta, OperationResult,
+    LogLevel, log_level, log_result, log_decision_log,
 };
 
 // =========================================================================
@@ -344,7 +348,7 @@ pub struct DiagnosticPayload {
 // =========================================================================
 
 /// Categories of policy decisions the kernel may request.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PolicyKind {
     /// Two geometric entities are within tolerance of coincident
     CoincidentGeometry,

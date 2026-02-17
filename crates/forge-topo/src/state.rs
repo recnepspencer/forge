@@ -157,6 +157,11 @@ pub struct MutableDraft {
 }
 
 impl MutableDraft {
+    /// The current topology hash of this draft.
+    pub fn topology_hash(&self) -> u128 {
+        self.topology_hash
+    }
+
     /// Record a lineage event during mutation.
     pub fn log_lineage_event(&mut self, event: LineageEvent) {
         self.lineage_log.push(event);
@@ -205,6 +210,16 @@ impl MutableDraft {
         &self.replay_log
     }
 
+    /// Mutable access to the replay log.
+    pub fn replay_log_mut(&mut self) -> &mut ReplayLog {
+        &mut self.replay_log
+    }
+
+    /// Set the current topology hash.
+    pub(crate) fn set_topology_hash(&mut self, hash: u128) {
+        self.topology_hash = hash;
+    }
+
     /// Read-only access to the draft's arena.
     pub fn arena(&self) -> &TopologyArena {
         &self.arena
@@ -242,7 +257,7 @@ impl MutableDraft {
     }
 
     /// Compute the structural topology hash from the arena.
-    fn compute_topology_hash(&self) -> u128 {
+    pub(crate) fn compute_topology_hash(&self) -> u128 {
         compute_arena_topology_hash(&self.arena)
     }
 }

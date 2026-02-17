@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// When 4+ planes define a vertex (e.g., a pyramid apex), the solver
 /// selects the best-conditioned triple and verifies against all others.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ImplicitVertex {
     /// Indices into the plane table. Must contain at least 3 entries.
     defining_planes: Vec<PlaneRef>,

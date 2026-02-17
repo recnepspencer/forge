@@ -1,9 +1,8 @@
 //! Tests for Boolean operations.
 
-use super::test_helpers::build_cube;
+use super::test_helpers::{build_cube, execute_boolean_logged};
 use super::schema::{BooleanInput, BooleanOp, FaceOrigin, FaceClassification};
 use super::classify::classify_faces;
-use super::assemble::execute_boolean;
 use super::split::split_all_faces;
 use crate::core::ToleranceConfig;
 
@@ -35,7 +34,7 @@ fn classify_disjoint_cubes() {
     );
 
     assert!(classified.is_ok());
-    let faces = classified.unwrap();
+    let (faces, _log) = classified.unwrap();
     assert!(!faces.is_empty());
 
     for face in &faces {
@@ -58,7 +57,7 @@ fn classify_overlapping_cubes_has_inside_faces() {
     );
 
     assert!(classified.is_ok());
-    let faces = classified.unwrap();
+    let (faces, _log) = classified.unwrap();
 
     let inside_count = faces.iter()
         .filter(|f| f.classification() == FaceClassification::Inside)
@@ -78,10 +77,10 @@ fn union_of_disjoint_cubes() {
         BooleanOp::Union,
     );
 
-    let result = execute_boolean(input);
+    let result = execute_boolean_logged(input);
     assert!(result.is_ok(), "Union failed: {:?}", result.err());
 
-    let bool_result = result.unwrap();
+    let bool_result = result.unwrap().into_value();
     assert_eq!(bool_result.target_faces_kept(), 6);
     assert_eq!(bool_result.tool_faces_kept(), 6);
 }
@@ -97,10 +96,10 @@ fn intersection_of_concentric_cubes() {
         BooleanOp::Intersection,
     );
 
-    let result = execute_boolean(input);
+    let result = execute_boolean_logged(input);
     assert!(result.is_ok(), "Intersection failed: {:?}", result.err());
 
-    let bool_result = result.unwrap();
+    let bool_result = result.unwrap().into_value();
     assert_eq!(bool_result.target_faces_kept(), 0, "Outer faces should all be outside inner");
     assert_eq!(bool_result.tool_faces_kept(), 6, "Inner faces should all be inside outer");
 }
@@ -116,12 +115,13 @@ fn subtraction_of_concentric_cubes() {
         BooleanOp::Subtraction,
     );
 
-    let result = execute_boolean(input);
+    let result = execute_boolean_logged(input);
     assert!(result.is_ok(), "Subtraction failed: {:?}", result.err());
 
-    let bool_result = result.unwrap();
-    assert_eq!(bool_result.target_faces_kept(), 54, "Outer cube splits into 54 faces by inner planes, all outside inner");
-    assert_eq!(bool_result.tool_faces_kept(), 6, "Inner faces should all be inside outer");
+    let bool_result = result.unwrap().into_value();
+    // Zero-split containment path: target outer shell (6 faces) + tool inner shell reversed (6 faces)
+    assert_eq!(bool_result.target_faces_kept(), 6, "Outer cube kept as-is (zero-split containment)");
+    assert_eq!(bool_result.tool_faces_kept(), 6, "Inner faces reversed to form hole (zero-split containment)");
 }
 
 #[test]
@@ -135,7 +135,7 @@ fn boolean_result_has_topology() {
         BooleanOp::Union,
     );
 
-    let result = execute_boolean(input).unwrap();
+    let result = execute_boolean_logged(input).unwrap().into_value();
     assert_eq!(result.topology().arena().vertex_count(), 16);
     assert_eq!(result.topology().arena().face_count(), 12);
     assert!(result.geometry().vertex_position_count() > 0);
@@ -150,7 +150,7 @@ fn debug_split_counts_concentric() {
         topo_a.arena().face_count(), topo_b.arena().face_count());
 
     let result = split_all_faces(topo_a, geom_a, topo_b, geom_b).unwrap();
-    let (t_topo, t_geom, l_topo, l_geom, _shared) = result.into_parts();
+    let (t_topo, t_geom, l_topo, l_geom, _target_prov, _tool_prov) = result.into_parts();
 
     eprintln!("After split: target faces={}, tool faces={}",
         t_topo.arena().face_count(), l_topo.arena().face_count());
@@ -169,13 +169,13 @@ fn debug_split_counts_concentric() {
         l_topo.arena(), &l_geom,
         FaceOrigin::Target,
         &config,
-    ).unwrap();
+    ).unwrap().0;
     let tool_classified = classify_faces(
         l_topo.arena(), &l_geom,
         t_topo.arena(), &t_geom,
         FaceOrigin::Tool,
         &config,
-    ).unwrap();
+    ).unwrap().0;
 
     let target_inside = target_classified.iter()
         .filter(|f| f.classification() == FaceClassification::Inside)

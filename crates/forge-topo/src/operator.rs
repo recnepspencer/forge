@@ -24,6 +24,9 @@
 
 use std::time::Instant;
 use forge_core::{KernelError, OperationResult, OperationMetrics, LineageDelta};
+use forge_core::result::{
+    TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionLog,
+};
 use crate::state::MutableDraft;
 use crate::lineage::OpSignature;
 
@@ -83,6 +86,7 @@ pub trait EulerOperator: std::fmt::Debug {
 /// 1. **Logging**: Records the operation start for replay (D1)
 /// 2. **Execution**: Calls the operator's `execute()` method
 /// 3. **Lineage**: Updates ancestry tracking for affected entities
+/// 4. **Tracing**: Records a `TracedDecision` for every execution
 ///
 /// # Errors
 ///
@@ -102,15 +106,17 @@ pub fn apply_op<O: EulerOperator>(
     op: O,
 ) -> Result<OperationResult<O::Output>, KernelError> {
     let start = Instant::now();
+    let state_hash_before = draft.topology_hash();
 
     let face_count_before = draft.arena().face_count();
     let vertex_count_before = draft.arena().vertex_count();
     let halfedge_count_before = draft.arena().half_edge_count();
-    let loop_count_before = draft.arena().loop_count();
 
     let invocation_id = draft.next_op_id();
     let mut signature = op.signature();
     signature.set_invocation_id(invocation_id);
+
+    let op_name = signature.get_name().to_string();
 
     tracing::debug!(
         op = ?op,
@@ -123,25 +129,36 @@ pub fn apply_op<O: EulerOperator>(
 
     draft.apply_lineage(&signature);
 
-    draft.bump_topology_version();
+    // Compute new hash immediately to see if anything structurally changed
+    let state_hash_after = draft.compute_topology_hash();
+    
+    // Finalize the replay log entry
+    draft.replay_log_mut().finalize_last(state_hash_after);
+    draft.set_topology_hash(state_hash_after);
+
+    // D4: Smart Version Bumping
+    // Only invalidate the DAG (bump version) if the structural hash actually changed.
+    if state_hash_before != state_hash_after {
+        draft.bump_topology_version();
+    }
 
     let face_count_after = draft.arena().face_count();
     let vertex_count_after = draft.arena().vertex_count();
     let halfedge_count_after = draft.arena().half_edge_count();
-    let loop_count_after = draft.arena().loop_count();
 
     let faces_created = face_count_after.saturating_sub(face_count_before) as u32;
     let vertices_created = vertex_count_after.saturating_sub(vertex_count_before) as u32;
     let half_edges_created = halfedge_count_after.saturating_sub(halfedge_count_before) as u32;
-    let loops_created = loop_count_after.saturating_sub(loop_count_before) as u32;
 
-    let entities_created = faces_created + vertices_created + half_edges_created + loops_created;
+    let entities_created = faces_created + vertices_created + half_edges_created;
 
     let metrics = OperationMetrics {
         duration: start.elapsed(),
         entities_created,
         entities_deleted: 0,
         entities_modified: 0,
+        exact_predicate_calls: 0,
+        policy_decisions_made: 0,
     };
 
     let lineage_delta = LineageDelta {
@@ -151,13 +168,31 @@ pub fn apply_op<O: EulerOperator>(
         half_edges_deleted: 0,
         vertices_created,
         vertices_deleted: 0,
-        loops_created,
-        loops_deleted: 0,
     };
+
+    let mut decision = TracedDecision::new(
+        DecisionId(invocation_id as u64),
+        DecisionKind::Exact,
+        1.0,
+        DecisionContext::Degeneracy {
+            description: format!(
+                "EulerOp({}) #{}: +{}F +{}V +{}HE in {:.0?}",
+                op_name, invocation_id,
+                faces_created, vertices_created, half_edges_created,
+                start.elapsed(),
+            ),
+        },
+    );
+    decision.set_feature_scope(u64::MAX);
+    let mut log = DecisionLog::new();
+    log.record(decision);
 
     let mut op_result = OperationResult::new(result);
     op_result.set_metrics(metrics);
     op_result.set_lineage_delta(lineage_delta);
+    op_result.set_state_hash_before(state_hash_before);
+    op_result.set_state_hash_after(state_hash_after);
+    op_result.set_decision_log(log);
 
     Ok(op_result)
 }
