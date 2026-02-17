@@ -1,0 +1,13 @@
+[package]
+name = "forge-geom"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Analytic surfaces, NURBS, and curves for the Forge geometry kernel"
+
+[dependencies]
+forge-math.workspace = true
+forge-core.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,14 @@
+[package]
+name = "forge-io"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "STEP, IGES, STL, and native JSON serialization for the Forge geometry kernel"
+
+[dependencies]
+forge-math.workspace = true
+forge-topo.workspace = true
+forge-geom.workspace = true
+
+[lints]
+workspace = true

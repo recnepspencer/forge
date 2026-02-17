@@ -1,0 +1,11 @@
+[package]
+name = "forge-view"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Representation traits (SDF, tessellation) for the Forge geometry kernel"
+
+[dependencies]
+
+[lints]
+workspace = true

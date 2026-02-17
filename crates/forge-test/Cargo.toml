@@ -1,0 +1,17 @@
+[package]
+name = "forge-test"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Differential test harness, fuzzer generators, and KV suites for the Forge geometry kernel"
+
+[dependencies]
+forge-core.workspace = true
+forge-math.workspace = true
+forge-topo.workspace = true
+forge-geom.workspace = true
+forge-kernel.workspace = true
+forge-io.workspace = true
+
+[lints]
+workspace = true

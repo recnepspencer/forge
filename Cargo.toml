@@ -1,0 +1,56 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/forge-math",
+    "crates/forge-core",
+    "crates/forge-topo",
+    "crates/forge-geom",
+    "crates/forge-kernel",
+    "crates/forge-io",
+    "crates/forge-test",
+    "crates/forge-view",
+    "crates/forge-schema",
+    "crates/forge-signal",
+]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+# Internal crates
+forge-math = { path = "crates/forge-math" }
+forge-core = { path = "crates/forge-core" }
+forge-topo = { path = "crates/forge-topo" }
+forge-geom = { path = "crates/forge-geom" }
+forge-kernel = { path = "crates/forge-kernel" }
+forge-io = { path = "crates/forge-io" }
+forge-test = { path = "crates/forge-test" }
+forge-view = { path = "crates/forge-view" }
+forge-schema = { path = "crates/forge-schema" }
+forge-signal = { path = "crates/forge-signal" }
+
+# Benchmarking
+criterion = { version = "0.5", features = ["html_reports"] }
+
+# Testing
+trybuild = "1.0"
+
+# Observability
+tracing = "0.1"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# ---- Workspace-wide lint policy ----
+# These apply to every crate that declares `lints.workspace = true`.
+# Warnings fail the build automatically — no need to remember `-D warnings`.
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+result_large_err = "allow"
+

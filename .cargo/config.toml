@@ -1,0 +1,13 @@
+# Environment Isolation (Doctrine D8)
+#
+# These flags ensure deterministic builds:
+# - overflow-checks: catch integer overflow (panic instead of wrapping)
+#
+# Note: target-cpu is omitted for Apple Silicon compatibility.
+# The blueprint specifies x86-64-v3, but we're on aarch64.
+# unsafe_code is forbidden per-crate via #![forbid(unsafe_code)] in lib.rs.
+
+[build]
+rustflags = [
+    "-C", "overflow-checks=on",
+]

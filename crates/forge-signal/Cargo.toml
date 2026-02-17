@@ -1,0 +1,13 @@
+[package]
+name = "forge-signal"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Reactive signal graph for the Forge geometry kernel"
+
+[dependencies]
+forge-core.workspace = true
+tracing.workspace = true
+
+[lints]
+workspace = true

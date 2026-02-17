@@ -1,0 +1,39 @@
+# Forge
+
+> A from-scratch B-Rep geometry kernel in Rust, built for correctness, determinism, and AI-assisted development.
+
+## Project Overview
+
+- [Development Blueprint](DEVELOPMENT_BLUEPRINT.MD): Full engineering specification — 10 phases, 58 milestones, 9 global doctrines.
+- [Product Pitch](PRODUCT_PITCH.md): Vision and market positioning.
+
+## Documentation
+
+- [Architecture](docs/architecture.md): Crate dependency graph and doctrine summary.
+- [Exactness Contract](docs/exactness-contract.md): Precision guarantee model (planar = exact, curved = certified bounds).
+- [Tolerance Policy](docs/tolerance-policy.md): ModelingContext tolerance infrastructure.
+- [File Naming Dictionary](docs/FILE_NAMING.md): Deterministic naming conventions for source files.
+
+## Agent Rules (always-on)
+
+- [Conventions](/.agent/rules/CONVENTIONS.md): Canonical source of truth — all rules in one place.
+- [Architecture](/.agent/rules/architecture.md): Bento Box feature-sliced layout.
+- [Control Flow](/.agent/rules/control-flow.md): Linear execution, early returns, pure functions.
+- [Doctrines](/.agent/rules/doctrines.md): D0–D8 kernel invariants.
+- [Documentation](/.agent/rules/docs.md): Doc comment standards.
+- [Naming](/.agent/rules/naming.md): Verbs for functions, nouns for variables.
+- [Testing](/.agent/rules/testing.md): Linear tests, no conditionals.
+
+## Agent Workflows
+
+- [Add Feature](/.agent/workflows/add-feature.md): Workflow for adding a new feature or milestone.
+- [New Module](/.agent/workflows/new-module.md): Create a new module following the Bento Box pattern.
+
+## Crate Map
+
+- `forge-math`: Exact arithmetic, predicates, filtered evaluation (no internal deps).
+- `forge-topo`: Halfedge mesh, Euler operators, topology state (depends on forge-math).
+- `forge-geom`: Analytic surfaces, NURBS, curves (depends on forge-math, forge-topo).
+- `forge-kernel`: Features, booleans, fillets (depends on all above).
+- `forge-io`: STEP, IGES, STL, JSON serialization (depends on all above).
+- `forge-test`: Differential harness, fuzzer generators, KV suites (test-only).
