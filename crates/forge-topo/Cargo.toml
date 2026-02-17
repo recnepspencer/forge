@@ -10,6 +10,7 @@ forge-math.workspace = true
 forge-core.workspace = true
 forge-geom.workspace = true
 tracing.workspace = true
+serde = { workspace = true, features = ["derive"] }
 
 [lints]
 workspace = true

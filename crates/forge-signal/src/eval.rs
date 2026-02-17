@@ -326,7 +326,7 @@ fn push_deps_then_recompute(
 /// Revert a node to `Clean` using its current aspect version.
 fn revert_to_clean(graph: &mut SignalGraph, node: NodeId) -> Result<(), KernelError> {
     let ver = graph.get_entry(node)?.get_aspect_version();
-    let clean_version = ver.topology() + ver.geometry();
+    let _clean_version = ver.topology() + ver.geometry();
     graph
         .get_entry_mut(node)?
         .set_state(NodeState::Clean);

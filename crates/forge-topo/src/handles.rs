@@ -17,6 +17,8 @@
 //! You cannot accidentally pass a `VertexId` where a `FaceId` is expected —
 //! the compiler catches it.
 
+use serde::{Deserialize, Serialize};
+
 /// Generates a strongly-typed generational handle.
 ///
 /// Each handle is a `(index, generation)` pair. The index identifies the
@@ -33,6 +35,8 @@
 /// ```
 macro_rules! define_handle {
     ($name:ident) => {
+
+
         /// A typed, generational handle for a topology entity.
         ///
         /// - `index`: slot position in the arena
@@ -40,7 +44,7 @@ macro_rules! define_handle {
         ///
         /// Handles are `Copy` (cheap to pass around) and safe (stale handles
         /// are detected by generation mismatch).
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
         pub struct $name {
             index: u32,
             generation: u32,

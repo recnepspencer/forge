@@ -15,6 +15,9 @@ pub mod generators;
 pub mod harness;
 
 #[cfg(test)]
+mod feature_tests;
+
+#[cfg(test)]
 mod tests {
     #[test]
     fn it_compiles() {

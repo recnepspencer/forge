@@ -23,9 +23,9 @@ pub fn face_edges(arena: &TopologyArena, face_id: FaceId) -> Result<Vec<HalfEdge
 
     let mut edges = Vec::new();
     let mut current = start;
-    let max_iterations: usize = 10000;
+    const MAX_TRAVERSAL_ITERATIONS: usize = 10000;
 
-    for _ in 0..max_iterations {
+    for _ in 0..MAX_TRAVERSAL_ITERATIONS {
         edges.push(current);
         let next = arena.get_half_edge(current)?.next;
         current = next;
@@ -51,9 +51,9 @@ pub fn vertex_ring(
     let start = arena.get_vertex(vertex_id)?.outgoing;
     let mut ring = Vec::new();
     let mut current = start;
-    let max_iterations: usize = 10000;
+    const MAX_TRAVERSAL_ITERATIONS: usize = 10000;
 
-    for _ in 0..max_iterations {
+    for _ in 0..MAX_TRAVERSAL_ITERATIONS {
         ring.push(current);
         let twin = arena.get_half_edge(current)?.twin;
         let next = arena.get_half_edge(twin)?.next;

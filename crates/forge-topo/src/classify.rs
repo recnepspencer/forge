@@ -23,7 +23,7 @@ use crate::traverse::face_edges;
 ///
 /// When the dot product of the ray direction with the face normal
 /// is smaller than this value, the ray is considered parallel.
-const RAY_PLANE_DEGENERACY: f64 = 1e-30;
+
 
 /// Result of classifying a point relative to a solid's boundary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -73,6 +73,7 @@ pub fn classify_point_in_solid(
     vertex_positions: &dyn Fn(u32) -> Result<[f64; 3], KernelError>,
     point: &[f64; 3],
     ray_extent: f64,
+    tolerance: f64,
 ) -> Result<PointClassification, KernelError> {
     let ray_far = [point[0] + ray_extent, point[1], point[2]];
 
@@ -85,6 +86,7 @@ pub fn classify_point_in_solid(
             point,
             &ray_far,
             face_id,
+            tolerance,
         )?;
 
         match crossings {
@@ -125,6 +127,7 @@ fn count_face_crossings(
     point: &[f64; 3],
     ray_far: &[f64; 3],
     face_id: FaceId,
+    tolerance: f64,
 ) -> Result<FaceCrossing, KernelError> {
     let edges = face_edges(arena, face_id)?;
     if edges.len() < 3 {
@@ -245,7 +248,7 @@ fn count_face_crossings(
     // Let's assume P is coplanar if we fell through.
     if basis_indices.is_none() {
         // Coplanar point logic...
-        let point_orient = TriSign::Zero; // Implicit
+        let _point_orient = TriSign::Zero; // Implicit
     }
     
     // Check intersection using BEST FIT plane (computed inside function)
@@ -323,7 +326,7 @@ fn count_face_crossings(
         // No, segment.
         // It handles degeneracy.
         
-        let hit = match compute_ray_plane_intersection(point, ray_far, &positions, RAY_PLANE_DEGENERACY) {
+        let hit = match compute_ray_plane_intersection(point, ray_far, &positions, tolerance) {
             Ok(h) => h,
             Err(_) => return Ok(FaceCrossing::Count(0)),
         };
@@ -590,6 +593,7 @@ mod tests {
             },
             &[1.0, 0.5, 0.0],
             ray_extent,
+            1e-30, // Test tolerance
         ).unwrap();
 
         assert!(

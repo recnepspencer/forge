@@ -56,12 +56,12 @@ fn mvf_stamps_lineage_on_all_entities() {
     let f_lineage = draft.arena().get_face(out.face).unwrap().lineage.as_ref().unwrap();
     let he_lineage = draft.arena().get_half_edge(out.half_edge).unwrap().lineage.as_ref().unwrap();
 
-    assert_eq!(v_lineage.origin_feature, 42);
-    assert_eq!(f_lineage.origin_feature, 42);
-    assert_eq!(he_lineage.origin_feature, 42);
+    assert_eq!(v_lineage.get_origin_feature(), 42);
+    assert_eq!(f_lineage.get_origin_feature(), 42);
+    assert_eq!(he_lineage.get_origin_feature(), 42);
 
-    assert_eq!(v_lineage.ancestry_hash, f_lineage.ancestry_hash);
-    assert_eq!(f_lineage.ancestry_hash, he_lineage.ancestry_hash);
+    assert_eq!(v_lineage.get_ancestry_hash(), f_lineage.get_ancestry_hash());
+    assert_eq!(f_lineage.get_ancestry_hash(), he_lineage.get_ancestry_hash());
 }
 
 #[test]
@@ -305,11 +305,11 @@ fn kv16_identical_sequence_produces_identical_lineage() {
         }).unwrap().into_value();
 
         let vertex_hash = draft.arena().get_vertex(mvf.vertex).unwrap()
-            .lineage.as_ref().unwrap().ancestry_hash;
+            .lineage.as_ref().unwrap().get_ancestry_hash();
         let face_hash = draft.arena().get_face(mef.new_face).unwrap()
-            .lineage.as_ref().unwrap().ancestry_hash;
+            .lineage.as_ref().unwrap().get_ancestry_hash();
         let he_hash = draft.arena().get_half_edge(mef.half_edge_ab).unwrap()
-            .lineage.as_ref().unwrap().ancestry_hash;
+            .lineage.as_ref().unwrap().get_ancestry_hash();
 
         (vertex_hash, face_hash, he_hash)
     };
@@ -331,7 +331,7 @@ fn kv17_split_edge_children_carry_parent_ancestry() {
     let mvf = apply_op(&mut draft, MakeVertexFace { feature_id: 1 }).unwrap().into_value();
 
     let parent_hash = draft.arena().get_half_edge(mvf.half_edge).unwrap()
-        .lineage.as_ref().unwrap().ancestry_hash;
+        .lineage.as_ref().unwrap().get_ancestry_hash();
 
     let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
 
@@ -340,11 +340,11 @@ fn kv17_split_edge_children_carry_parent_ancestry() {
     let child_he_lineage = draft.arena().get_half_edge(se.he_mb).unwrap()
         .lineage.as_ref().unwrap();
 
-    assert_ne!(child_vertex_lineage.ancestry_hash, parent_hash);
-    assert_eq!(child_vertex_lineage.ancestry_hash, child_he_lineage.ancestry_hash);
+    assert_ne!(child_vertex_lineage.get_ancestry_hash(), parent_hash);
+    assert_eq!(child_vertex_lineage.get_ancestry_hash(), child_he_lineage.get_ancestry_hash());
 
-    assert_eq!(child_vertex_lineage.creation_op.name, "split_edge");
-    assert_eq!(child_vertex_lineage.origin_feature, 1);
+    assert_eq!(child_vertex_lineage.get_creation_op().get_name(), "split_edge");
+    assert_eq!(child_vertex_lineage.get_origin_feature(), 1);
 }
 
 /// Join faces produces deterministic merged lineage.
@@ -366,5 +366,5 @@ fn join_faces_updates_surviving_lineage() {
 
     let lineage = draft.arena().get_face(surviving).unwrap()
         .lineage.as_ref().unwrap();
-    assert_eq!(lineage.creation_op.name, "join_faces");
+    assert_eq!(lineage.get_creation_op().get_name(), "join_faces");
 }

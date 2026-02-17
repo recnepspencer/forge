@@ -19,6 +19,8 @@
 
 use std::sync::Arc;
 
+use serde::{Deserialize, Serialize};
+
 use forge_core::KernelError;
 use crate::arena::TopologyArena;
 use crate::hashing::compute_arena_topology_hash;
@@ -33,7 +35,7 @@ use crate::validate;
 /// - **Undo/redo**: keep previous states as `Arc` references
 /// - **Determinism** (D1): same input state + same ops = same output state
 /// - **Transactionality** (D6): if an op fails, the old state is untouched
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TopologyState {
     /// Monotonically increasing epoch counter
     epoch: u64,

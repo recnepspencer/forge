@@ -9,6 +9,12 @@ description = "STEP, IGES, STL, and native JSON serialization for the Forge geom
 forge-math.workspace = true
 forge-topo.workspace = true
 forge-geom.workspace = true
+forge-kernel.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile = "3"
 
 [lints]
 workspace = true

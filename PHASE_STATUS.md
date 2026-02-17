@@ -31,9 +31,9 @@
 | | 2.2 Face Classification & Assembly | ✅ | `forge-kernel/src/boolean/classify.rs`, `forge-topo/src/classify.rs`, `forge-kernel/src/boolean/assemble.rs` |
 | | 2.3 Sketch→Extrude→Cut | ✅ | `forge-kernel/src/features/intent.rs` |
 | | 2.4 Corpus Fuzzing | ✅ | `forge-test/src/generators.rs`, `forge-test/src/harness.rs` |
-| | 2.5 Planar Edge-Case Battery | 🔴 | — |
-| | 2.6 Boolean Introspection | 🔴 | — |
-| | 2.7 Feature Tree | 🔴 | — |
+| | 2.5 Planar Edge-Case Battery | ✅ | `forge-kernel/src/boolean/edge_case_tests.rs` |
+| | 2.6 Boolean Introspection | ✅ | `forge-kernel/src/boolean/schema.rs`, `forge-kernel/src/boolean/introspection_tests.rs` |
+| | 2.7 Feature Tree | 🟢 | — |
 | | 2.8 Native Serialization | 🔴 | — |
 | **3 — Curved Geometry** | 3.0 Modeling Context | ✅ | `forge-kernel/src/core/context.rs` |
 | | 3.0.1 Exactness Contract | 🔴 | — |

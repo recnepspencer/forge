@@ -11,10 +11,12 @@
 
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
+
 use crate::handles::{FaceId, HalfEdgeId, VertexId};
 
 /// The key into the attribute store — identifies which entity owns a tag set.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum EntityKey {
     /// A face entity.
     Face(FaceId),
@@ -25,7 +27,7 @@ pub enum EntityKey {
 }
 
 /// A single attribute value attached to an entity.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TagValue {
     /// Free-form text (e.g., "AL_6061", "fine").
     Text(String),
@@ -46,7 +48,7 @@ pub type SemanticTag = HashMap<String, TagValue>;
 /// map of semantic tags. This is where manufacturing metadata lives
 /// (material, tolerance class, surface finish, bolt pattern, etc.)
 /// without polluting the topological connectivity data.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AttributeStore {
     tags: HashMap<EntityKey, SemanticTag>,
 }

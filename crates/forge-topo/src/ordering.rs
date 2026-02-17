@@ -8,7 +8,7 @@
 //! This ensures that enumeration order is identical across runs
 //! given the same input.
 
-use forge_math::linalg::compute_spatial_hash;
+
 
 /// A composite ordering key for deterministic entity sorting (D1).
 ///

@@ -50,6 +50,7 @@ pub fn classify_faces(
             &vertex_lookup,
             &sample,
             config.get_ray_extent(),
+            config.get_edge_split_degeneracy(),
         )?;
 
         let face_class = match classification {

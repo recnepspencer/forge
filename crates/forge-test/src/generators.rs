@@ -86,8 +86,34 @@ pub fn random_convex_solid(
     Ok(result.into_parts())
 }
 
+/// Build a cube at a specific position with a given half-size.
+pub fn build_cube_at(
+    center: [f64; 3],
+    half: f64,
+) -> Result<(TopologyState, GeometryStore), KernelError> {
+    let planes = vec![
+        Plane::from_point_normal([center[0] + half, center[1], center[2]], [1.0, 0.0, 0.0])
+            .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
+        Plane::from_point_normal([center[0] - half, center[1], center[2]], [-1.0, 0.0, 0.0])
+            .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
+        Plane::from_point_normal([center[0], center[1] + half, center[2]], [0.0, 1.0, 0.0])
+            .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
+        Plane::from_point_normal([center[0], center[1] - half, center[2]], [0.0, -1.0, 0.0])
+            .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
+        Plane::from_point_normal([center[0], center[1], center[2] + half], [0.0, 0.0, 1.0])
+            .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
+        Plane::from_point_normal([center[0], center[1], center[2] - half], [0.0, 0.0, -1.0])
+            .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
+    ];
+
+    let cell = build_convex_polyhedron(&planes, &BspConfig::default())?;
+    let mut ctx = ModelingContext::new();
+    let result = build_halfedge_mesh(&cell, &mut ctx)?;
+    Ok(result.into_parts())
+}
+
 /// Build a cube at a random position with random half-size.
-fn random_cube(
+pub fn random_cube(
     rng: &mut Xorshift64,
 ) -> Result<(TopologyState, GeometryStore), KernelError> {
     let cx = rng.next_f64_range(-5.0, 5.0);

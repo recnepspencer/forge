@@ -79,6 +79,35 @@ impl EulerOperator for JoinFaces {
         arena.remove_loop(removed_loop)?;
         arena.remove_face(removed_face)?;
 
+        // Update vertex pointers if they pointed to the removed edges
+        let va = arena.get_vertex_mut(he_data.origin)?;
+        if va.outgoing == he {
+            va.outgoing = twin_next;
+        }
+        
+        // Need to re-borrow for second vertex to avoid double mutable borrow conflict if distinct?
+        // Actually origin of twin is B. origin of he is A.
+        // If A != B (guaranteed by check line 47? No, check says faces are distinct).
+        // Can vertices be same? (Monogon?). If A==B, we have a loop edge.
+        // If A==B, we hold mutable borrow on A.
+        // Splitting into two calls to handle aliasing safely requires drop or index-based update.
+        // We can just use indices.
+        
+        let vb_id = twin_data.origin;
+        if vb_id == he_data.origin {
+             // Same vertex (loop). We already updated it essentially.
+             // But if outgoing was 'twin', it needs update too.
+             let va = arena.get_vertex_mut(vb_id)?;
+             if va.outgoing == twin {
+                 va.outgoing = he_next;
+             }
+        } else {
+             let vb = arena.get_vertex_mut(vb_id)?;
+             if vb.outgoing == twin {
+                 vb.outgoing = he_next;
+             }
+        }
+
         arena.remove_half_edge(he)?;
         arena.remove_half_edge(twin)?;
 
@@ -95,7 +124,7 @@ impl EulerOperator for JoinFaces {
 fn merge_lineage(a: &Option<Lineage>, b: &Option<Lineage>, sig: &OpSignature) -> Lineage {
     let dominant = match (a, b) {
         (Some(la), Some(lb)) => {
-            if la.ancestry_hash <= lb.ancestry_hash { la } else { lb }
+            if la.get_ancestry_hash() <= lb.get_ancestry_hash() { la } else { lb }
         }
         (Some(la), None) => la,
         (None, Some(lb)) => lb,

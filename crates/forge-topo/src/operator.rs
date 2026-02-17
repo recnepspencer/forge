@@ -110,7 +110,7 @@ pub fn apply_op<O: EulerOperator>(
 
     let invocation_id = draft.next_op_id();
     let mut signature = op.signature();
-    signature.invocation_id = invocation_id;
+    signature.set_invocation_id(invocation_id);
 
     tracing::debug!(
         op = ?op,

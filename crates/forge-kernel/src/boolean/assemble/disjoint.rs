@@ -106,6 +106,7 @@ fn check_containment(
         &vertex_lookup_target,
         &tool_sample,
         config.get_ray_extent(),
+            config.get_edge_split_degeneracy(),
     )?;
 
     if matches!(tool_in_target, forge_topo::classify::PointClassification::Inside) {
@@ -135,6 +136,7 @@ fn check_containment(
         &vertex_lookup_tool,
         &target_sample,
         config.get_ray_extent(),
+            config.get_edge_split_degeneracy(),
     )?;
 
     if matches!(target_in_tool, forge_topo::classify::PointClassification::Inside) {
@@ -356,6 +358,7 @@ fn has_overlapping_coplanar_faces(
             &vertex_lookup_tool,
             &centroid,
             config.get_ray_extent(),
+                config.get_edge_split_degeneracy(),
         )?;
 
         if matches!(class, forge_topo::classify::PointClassification::OnBoundary(_)) {
@@ -406,6 +409,7 @@ fn are_solids_coincident(
             &vertex_lookup_target,
             &centroid,
             config.get_ray_extent(),
+                config.get_edge_split_degeneracy(),
         )?;
 
         if !matches!(class, forge_topo::classify::PointClassification::OnBoundary(_)) {

@@ -9,6 +9,8 @@
 //!
 //! DEPENDENCIES: `handles` (typed IDs), `lineage` (provenance)
 
+use serde::{Deserialize, Serialize};
+
 use forge_core::{KernelError, TopologyError, ErrorContext, ErrorScope};
 use crate::attributes::AttributeStore;
 use crate::handles::{FaceId, HalfEdgeId, VertexId, LoopId};
@@ -19,7 +21,7 @@ use crate::lineage::Lineage;
 /// Holds faces, halfedges, and vertices in arena-allocated vectors.
 /// Each slot tracks its generation counter for stale-handle detection.
 /// This struct is `Clone`-able and lives inside `Arc` for structural sharing.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TopologyArena {
     /// Arena-allocated face entities with generational handles.
     face_slots: Vec<Slot<FaceData>>,
@@ -34,7 +36,7 @@ pub struct TopologyArena {
 }
 
 /// A slot in the arena that may be occupied or vacant.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Slot<T: Clone> {
     /// The current generation of this slot.
     generation: u32,
@@ -59,7 +61,7 @@ impl<T: Clone> Slot<T> {
 }
 
 /// Data stored for each face.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FaceData {
     /// The outer loop of this face.
     pub outer_loop: LoopId,
@@ -68,7 +70,7 @@ pub struct FaceData {
 }
 
 /// Data stored for each halfedge.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HalfEdgeData {
     /// The twin (opposite) halfedge.
     pub twin: HalfEdgeId,
@@ -85,7 +87,7 @@ pub struct HalfEdgeData {
 }
 
 /// Data stored for each vertex.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VertexData {
     /// One outgoing halfedge (for traversal entry).
     pub outgoing: HalfEdgeId,
@@ -94,7 +96,7 @@ pub struct VertexData {
 }
 
 /// Data stored for each loop.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoopData {
     /// One halfedge in this loop (entry point for traversal).
     pub half_edge: HalfEdgeId,

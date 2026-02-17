@@ -8,8 +8,7 @@ mod tests {
 
     /// Default residual tolerance for tests.
     const TEST_RESIDUAL: f64 = 1e-8;
-    /// Default residual tolerance for tests.
-    const TEST_RESIDUAL: f64 = 1e-8;
+
     /// Default degeneracy threshold for tests.
     const TEST_DEGENERACY: f64 = 1e-15;
     const TEST_TOLERANCE: f64 = 1e-10;

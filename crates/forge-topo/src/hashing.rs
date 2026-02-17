@@ -34,8 +34,8 @@ pub fn compute_entity_hash(
 
     match lineage {
         Some(lin) => {
-            let with_lo = fnv_mix(connectivity_hash, lin.ancestry_hash as u64);
-            fnv_mix(with_lo, (lin.ancestry_hash >> 64) as u64)
+            let with_lo = fnv_mix(connectivity_hash, lin.get_ancestry_hash() as u64);
+            fnv_mix(with_lo, (lin.get_ancestry_hash() >> 64) as u64)
         }
         None => connectivity_hash,
     }
@@ -71,8 +71,9 @@ pub fn compute_solid_hash(entity_hashes: &[u64]) -> u128 {
 pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
     let mut entity_hashes = Vec::new();
 
-    for (_id, face) in arena.iter_faces() {
-        let connectivity = [face.outer_loop.index() as u64];
+    for (face_id, face) in arena.iter_faces() {
+        let edge_count = count_face_edges(arena, face_id) as u64;
+        let connectivity = [edge_count];
         let hash = compute_entity_hash(
             EntityKind::Face,
             &connectivity,
@@ -82,12 +83,11 @@ pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
     }
 
     for (_id, he) in arena.iter_half_edges() {
+        let origin_degree = count_vertex_degree(arena, he.origin) as u64;
+        let face_valence = count_face_edges(arena, he.face) as u64;
         let connectivity = [
-            he.twin.index() as u64,
-            he.next.index() as u64,
-            he.prev.index() as u64,
-            he.face.index() as u64,
-            he.origin.index() as u64,
+            origin_degree,
+            face_valence,
         ];
         let hash = compute_entity_hash(
             EntityKind::HalfEdge,
@@ -98,7 +98,8 @@ pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
     }
 
     for (_id, vtx) in arena.iter_vertices() {
-        let connectivity = [vtx.outgoing.index() as u64];
+        let degree = count_vertex_degree(arena, _id) as u64;
+        let connectivity = [degree];
         let hash = compute_entity_hash(
             EntityKind::Vertex,
             &connectivity,
@@ -108,6 +109,22 @@ pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
     }
 
     compute_solid_hash(&entity_hashes)
+}
+
+/// Count the number of edges in a face loop.
+fn count_face_edges(arena: &TopologyArena, face_id: crate::handles::FaceId) -> usize {
+    match crate::traverse::face_edges(arena, face_id) {
+        Ok(edges) => edges.len(),
+        Err(_) => 0,
+    }
+}
+
+/// Count the degree of a vertex (number of outgoing halfedges).
+fn count_vertex_degree(arena: &TopologyArena, vertex_id: crate::handles::VertexId) -> usize {
+    match crate::traverse::vertex_ring(arena, vertex_id) {
+        Ok(edges) => edges.len(),
+        Err(_) => 0,
+    }
 }
 
 /// FNV-1a mixing step.

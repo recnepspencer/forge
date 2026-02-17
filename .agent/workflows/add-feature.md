@@ -2,13 +2,12 @@
 description: Formalized workflow for adding a new feature or milestone to the Forge geometry kernel
 ---
 
----
-description: Advanced workflow for adding a feature to the Forge kernel (v2)
----
-
 # Add Feature Workflow (v2)
 
 Use this workflow to implement any milestone from `DEVELOPMENT_BLUEPRINT.MD`.
+
+> **Before writing any code**, read `CRATE_MAP.md` to know which crate owns
+> which abstractions. Most violations come from putting code in the wrong crate.
 
 ## Step 1: Component Analysis
 
@@ -51,9 +50,42 @@ Every feature evaluation must follow the **Escalation Pattern**:
 2.  **Attributes**: Register the feature's output entities in the `AttributeStore`. 
     - *Example*: Tag the inner cylinder of a hole as `"type": "bore"`.
 
-## Step 5: Verification Checklist
+## Step 5: Architecture Compliance Checklist
 
+Before considering a feature complete, verify **every** item:
+
+### Layering & Dependencies
+- [ ] No upward dependencies (e.g., forge-geom does NOT import forge-topo types)
+- [ ] All shared types (`KernelError`, `GeometrySource`, `PolicyResult`) come from `forge-core`
+- [ ] `forge-math` only uses `MathError`, never `KernelError`
+
+### Geometry Firewall (D3)
+- [ ] **Zero** raw f64 comparisons in `forge-topo` (no `dist < EPS`, no `denom.abs() < 1e-30`)
+- [ ] All floating-point geometry lives in `forge-geom` functions
+- [ ] Topology decisions driven by `CertifiedTriSign` or imported geometry results
+
+### Tolerance & Policy (D2)
+- [ ] **Zero** hardcoded `const EPS` or magic numbers in `forge-geom` or `forge-topo`
+- [ ] All thresholds flow from `ToleranceConfig` (owned by `forge-kernel`)
+- [ ] Ambiguous results return `PolicyResult::Ambiguous`, never silently rounded
+
+### Safety (D6, Rule 5.1)
+- [ ] **Zero** `unwrap()` / `expect()` / `panic!()` outside `#[cfg(test)]`
+- [ ] All mutations go through `MutableDraft` — no direct arena mutation
+- [ ] All fallible functions return `Result<T, KernelError>` (or `MathError` in forge-math)
+
+### Conventions (CONVENTIONS.md)
+- [ ] All struct fields are private with `get_*` / `set_*` accessors
+- [ ] No raw `u32`/`usize` for IDs — use `FaceId`, `VertexId`, etc.
+- [ ] No inline `//` comments — use `///` doc comments or better variable names
+- [ ] Functions named as verbs, structs named as nouns
+- [ ] `mod.rs` is purely a table of contents (zero business logic)
+- [ ] No file exceeds ~400 lines
+
+### Verification
 - [ ] **D1 (Determinism)**: Run test 100x. Is the topology hash bit-identical?
 - [ ] **D2 (Policy)**: Is there a hardcoded `1e-8` in the code? If yes, move it to `ToleranceConfig`.
 - [ ] **D3 (Firewall)**: Does `forge-geom` know about `FaceId`? If yes, refactor to use a value-based trait.
-- [ ] **Performance**: Does a clean rebuild take < 50ms?
+- [ ] `cargo build --workspace` clean (no errors)
+- [ ] `cargo test --workspace` passes (no regressions)
+- [ ] `cargo clippy --workspace -- -D warnings` clean
