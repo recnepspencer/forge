@@ -552,6 +552,32 @@ impl TopologyArena {
         self.vertex_slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.version))
     }
 
+    /// Bump the version of a face slot without requiring mutable data access.
+    ///
+    /// Used by operators to mark a face as "dirty" when its boundary
+    /// half-edges are rewired. This enables the diff engine to detect
+    /// transitive face modifications even when `FaceData` fields are unchanged.
+    pub fn bump_face_version(&mut self, id: FaceId) -> Result<(), KernelError> {
+        let slot = self.face_slots.get_mut(id.index() as usize).ok_or_else(|| {
+            KernelError::TopologyViolation {
+                err: TopologyError::StaleHandle {
+                    entity_kind: "Face",
+                    index: id.index(),
+                    expected_generation: id.generation(),
+                    actual_generation: 0,
+                },
+                context: Some(ErrorContext {
+                    scope: ErrorScope::Entity { entity_kind: "Face", index: id.index() },
+                    suggested_fixes: Vec::new(),
+                    detail: format!("Face index {} out of bounds", id.index()),
+                }),
+            }
+        })?;
+        validate_generation(slot.generation, id.generation(), "Face", id.index())?;
+        slot.version += 1;
+        Ok(())
+    }
+
     /// Read-only access to the attribute store.
     pub fn get_attribute_store(&self) -> &AttributeStore {
         &self.attribute_store

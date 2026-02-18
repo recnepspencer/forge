@@ -6,8 +6,12 @@
 //! - Same topology → same hash (D1 determinism)
 //! - Geometry-only changes do NOT alter the topology hash
 //! - Entity hashes are order-independent (sorted before aggregation)
+//! - Hashes are **index-independent**: isomorphic topologies with different
+//!   arena slot assignments produce the same hash (permutation invariance)
 //!
 //! DEPENDENCIES: `arena` (entity data), `lineage` (inline provenance)
+
+use std::collections::HashMap;
 
 use crate::arena::TopologyArena;
 use crate::lineage::{EntityKind, Lineage};
@@ -61,49 +65,110 @@ pub fn compute_solid_hash(entity_hashes: &[u64]) -> u128 {
     ((hash_hi as u128) << 64) | (hash_lo as u128)
 }
 
-/// Compute the aggregate topology hash from an arena.
-///
-/// Walks all active entities, computes per-entity hashes based on
-/// connectivity and inline lineage, and aggregates into a solid-level hash.
+/// Compute the aggregate topology hash from an arena using **structural
+/// descriptors** rather than raw slot indices.
 ///
 /// This is the foundation of the signal engine's change firewall:
 /// if this hash doesn't change, topology-dependent signals stay `Clean`.
+///
+/// # Permutation invariance
+///
+/// Instead of hashing raw entity indices (which differ when the same
+/// operations are applied in different orders), we hash *structural
+/// neighbourhood descriptors*: vertex degree, face size, and the
+/// multisets of those values around each entity.  Two isomorphic
+/// topologies therefore produce the same hash regardless of arena
+/// slot assignment (D1).
+///
+/// Lineage is intentionally **excluded** from the structural hash
+/// because it encodes *provenance*, not *connectivity*.  Two meshes
+/// with identical wiring but different operation histories must hash
+/// identically for the change firewall to work.
 pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
-    let mut entity_hashes = Vec::new();
+    // ── Step 1: Precompute structural descriptors ───────────────
+    //
+    // vertex_degree[v] = number of halfedges originating from v
+    // face_size[f]     = number of halfedges belonging to f
+    //
+    // Both are topological invariants independent of slot indices.
 
-    for (face_id, face_data) in arena.iter_faces() {
-        let connectivity = canonical_face_loop(arena, face_id);
-        let hash = compute_entity_hash(
-            EntityKind::Face,
-            &connectivity,
-            face_data.lineage.as_ref(),
-        );
-        entity_hashes.push(hash);
-    }
+    let mut vertex_degree: HashMap<u32, u64> = HashMap::new();
+    let mut face_size: HashMap<u32, u64> = HashMap::new();
+    let mut face_he_origins: HashMap<u32, Vec<u32>> = HashMap::new();
+    let mut vertex_he_faces: HashMap<u32, Vec<u32>> = HashMap::new();
 
     for (_he_id, he) in arena.iter_half_edges() {
-        let connectivity = [
-            he.origin.index() as u64,
-            he.twin.index() as u64,
-            he.next.index() as u64,
-            he.prev.index() as u64,
-            he.face.index() as u64,
-        ];
-        let hash = compute_entity_hash(
-            EntityKind::HalfEdge,
-            &connectivity,
-            he.lineage.as_ref(),
-        );
+        *vertex_degree.entry(he.origin.index()).or_insert(0) += 1;
+        *face_size.entry(he.face.index()).or_insert(0) += 1;
+        face_he_origins
+            .entry(he.face.index())
+            .or_default()
+            .push(he.origin.index());
+        vertex_he_faces
+            .entry(he.origin.index())
+            .or_default()
+            .push(he.face.index());
+    }
+
+    let mut entity_hashes = Vec::new();
+
+    // ── Step 2: Face hashes ─────────────────────────────────────
+    //
+    // Signature = sorted multiset of vertex degrees around the face.
+    // e.g. a triangle with one degree-4 and two degree-3 vertices → [3, 3, 4]
+
+    for (face_id, _) in arena.iter_faces() {
+        let mut sig: Vec<u64> = face_he_origins
+            .get(&face_id.index())
+            .map(|origins| {
+                origins
+                    .iter()
+                    .map(|v| *vertex_degree.get(v).unwrap_or(&0))
+                    .collect()
+            })
+            .unwrap_or_default();
+        sig.sort_unstable();
+        let hash = compute_entity_hash(EntityKind::Face, &sig, None);
         entity_hashes.push(hash);
     }
 
-    for (vtx_id, vtx_data) in arena.iter_vertices() {
-        let connectivity = canonical_vertex_ring(arena, vtx_id);
-        let hash = compute_entity_hash(
-            EntityKind::Vertex,
-            &connectivity,
-            vtx_data.lineage.as_ref(),
-        );
+    // ── Step 3: Halfedge hashes ─────────────────────────────────
+    //
+    // Signature = (origin_degree, twin_origin_degree, face_size, twin_face_size).
+    // All four values are index-free structural properties.
+
+    for (_he_id, he) in arena.iter_half_edges() {
+        let origin_deg = *vertex_degree.get(&he.origin.index()).unwrap_or(&0);
+        let my_face_sz = *face_size.get(&he.face.index()).unwrap_or(&0);
+        let (twin_origin_deg, twin_face_sz) = match arena.get_half_edge(he.twin) {
+            Ok(twin) => (
+                *vertex_degree.get(&twin.origin.index()).unwrap_or(&0),
+                *face_size.get(&twin.face.index()).unwrap_or(&0),
+            ),
+            Err(_) => (0, 0),
+        };
+        let connectivity = [origin_deg, twin_origin_deg, my_face_sz, twin_face_sz];
+        let hash = compute_entity_hash(EntityKind::HalfEdge, &connectivity, None);
+        entity_hashes.push(hash);
+    }
+
+    // ── Step 4: Vertex hashes ───────────────────────────────────
+    //
+    // Signature = sorted multiset of incident face sizes.
+    // e.g. a vertex touching a triangle and a quad → [3, 4]
+
+    for (vtx_id, _) in arena.iter_vertices() {
+        let mut sig: Vec<u64> = vertex_he_faces
+            .get(&vtx_id.index())
+            .map(|faces| {
+                faces
+                    .iter()
+                    .map(|f| *face_size.get(f).unwrap_or(&0))
+                    .collect()
+            })
+            .unwrap_or_default();
+        sig.sort_unstable();
+        let hash = compute_entity_hash(EntityKind::Vertex, &sig, None);
         entity_hashes.push(hash);
     }
 
@@ -115,6 +180,7 @@ pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
 /// Traverses the face loop, finds the halfedge with the minimum index,
 /// and returns the sequence starting from there. This ensures that
 /// the hash is independent of which halfedge is the "first" in the list.
+#[allow(dead_code)]
 fn canonical_face_loop(arena: &TopologyArena, face_id: crate::handles::FaceId) -> Vec<u64> {
      match crate::traverse::face_edges(arena, face_id) {
         Ok(edges) => {
@@ -142,6 +208,7 @@ fn canonical_face_loop(arena: &TopologyArena, face_id: crate::handles::FaceId) -
 /// 
 /// Traverses the vertex star, finds the halfedge with the minimum index,
 /// and returns the sequence starting from there.
+#[allow(dead_code)]
 fn canonical_vertex_ring(arena: &TopologyArena, vertex_id: crate::handles::VertexId) -> Vec<u64> {
      match crate::traverse::vertex_ring(arena, vertex_id) {
         Ok(edges) => {

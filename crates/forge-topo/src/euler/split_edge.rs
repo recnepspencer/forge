@@ -56,12 +56,10 @@ impl EulerOperator for SplitEdge {
         let ab_data = draft.arena().get_half_edge(he_ab)?;
 
         let he_twin = ab_data.twin;
-        let ab_next = ab_data.next;
         let ab_face = ab_data.face;
         let ab_lineage = ab_data.lineage.clone();
 
         let twin_data = draft.arena().get_half_edge(he_twin)?;
-        let twin_prev = twin_data.prev;
         let twin_face = twin_data.face;
         let vertex_b = twin_data.origin;
         let twin_lineage = twin_data.lineage.clone();
@@ -77,8 +75,6 @@ impl EulerOperator for SplitEdge {
         });
 
         // ── Self-loop early return ──────────────────────────────────
-        // A self-loop (twin == self) splits into exactly 2 halfedges
-        // forming a proper edge: he_ab (A→M) ↔ he_mb (M→A).
         if is_self_loop {
             let he_mb = draft.arena_mut().insert_half_edge(HalfEdgeData {
                 twin: he_ab,
@@ -98,6 +94,8 @@ impl EulerOperator for SplitEdge {
             let loop_id = arena.get_face(ab_face)?.outer_loop;
             arena.get_loop_mut(loop_id)?.half_edge = he_ab;
 
+            arena.bump_face_version(ab_face)?;
+
             return Ok(SplitEdgeOutput {
                 he_am: he_ab,
                 he_mb,
@@ -110,19 +108,20 @@ impl EulerOperator for SplitEdge {
         // ── Normal (non-self-loop) case ─────────────────────────────
         let he_bm_lineage = Lineage::derive_from(&twin_lineage, sig.clone());
 
+        // Create the new edge pair with dummy connectivity
         let (he_mb, he_bm) = draft.arena_mut().insert_half_edge_pair(
             HalfEdgeData {
                 twin: HalfEdgeId::new(u32::MAX, 0),
-                next: ab_next,
-                prev: he_ab,
+                next: HalfEdgeId::new(u32::MAX, 0),
+                prev: HalfEdgeId::new(u32::MAX, 0),
                 face: ab_face,
                 origin: new_vertex,
                 lineage: Some(he_mb_lineage),
             },
             HalfEdgeData {
                 twin: HalfEdgeId::new(u32::MAX, 0),
-                next: he_twin,
-                prev: twin_prev,
+                next: HalfEdgeId::new(u32::MAX, 0),
+                prev: HalfEdgeId::new(u32::MAX, 0),
                 face: twin_face,
                 origin: vertex_b,
                 lineage: Some(he_bm_lineage),
@@ -131,18 +130,38 @@ impl EulerOperator for SplitEdge {
 
         let arena = draft.arena_mut();
 
-        arena.get_half_edge_mut(he_ab)?.next = he_mb;
+        // The original twin (now M->A) updates its origin to M
         arena.get_half_edge_mut(he_twin)?.origin = new_vertex;
+
+        // SEQUENTIAL BYPASS 1: Insert he_mb immediately AFTER he_ab
+        let am_old_next = arena.get_half_edge(he_ab)?.next;
+        arena.get_half_edge_mut(he_ab)?.next = he_mb;
+        arena.get_half_edge_mut(he_mb)?.prev = he_ab;
+        arena.get_half_edge_mut(he_mb)?.next = am_old_next;
+        arena.get_half_edge_mut(am_old_next)?.prev = he_mb;
+
+        // SEQUENTIAL BYPASS 2: Insert he_bm immediately BEFORE he_twin
+        // (Because we read the prev pointer *now*, it gracefully handles topological spurs automatically)
+        let ma_old_prev = arena.get_half_edge(he_twin)?.prev;
+        arena.get_half_edge_mut(ma_old_prev)?.next = he_bm;
+        arena.get_half_edge_mut(he_bm)?.prev = ma_old_prev;
+        arena.get_half_edge_mut(he_bm)?.next = he_twin;
         arena.get_half_edge_mut(he_twin)?.prev = he_bm;
 
-        if ab_next != he_ab && ab_next != he_twin {
-            arena.get_half_edge_mut(ab_next)?.prev = he_mb;
-        }
-        if twin_prev != he_twin && twin_prev != he_ab {
-            arena.get_half_edge_mut(twin_prev)?.next = he_bm;
+        arena.get_vertex_mut(new_vertex)?.outgoing = he_mb;
+
+        // If vertex_b's outgoing was the old twin (now M→A instead of B→A),
+        // update it to he_bm (B→M), which correctly originates from vertex_b.
+        let vb_outgoing = arena.get_vertex(vertex_b)?.outgoing;
+        if vb_outgoing == he_twin {
+            arena.get_vertex_mut(vertex_b)?.outgoing = he_bm;
         }
 
-        arena.get_vertex_mut(new_vertex)?.outgoing = he_mb;
+        // Mark incident faces as dirty so the diff engine detects boundary changes
+        arena.bump_face_version(ab_face)?;
+        if twin_face != ab_face {
+            arena.bump_face_version(twin_face)?;
+        }
 
         Ok(SplitEdgeOutput {
             he_am: he_ab,

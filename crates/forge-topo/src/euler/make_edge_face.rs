@@ -50,8 +50,10 @@ impl EulerOperator for MakeEdgeFace {
     type Output = MefOutput;
 
     fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<Self::Output, KernelError> {
-        let he_from_a = find_halfedge_from_vertex(draft, self.face, self.vertex_a)?;
-        let he_from_b = find_halfedge_from_vertex(draft, self.face, self.vertex_b)?;
+        let candidates_a = find_all_halfedges_from_vertex(draft, self.face, self.vertex_a)?;
+        let candidates_b = find_all_halfedges_from_vertex(draft, self.face, self.vertex_b)?;
+
+        let (he_from_a, he_from_b) = find_valid_split_pair(draft, &candidates_a, &candidates_b)?;
 
         let prev_a = draft.arena().get_half_edge(he_from_a)?.prev;
         let prev_b = draft.arena().get_half_edge(he_from_b)?.prev;
@@ -120,30 +122,83 @@ impl EulerOperator for MakeEdgeFace {
     }
 }
 
-/// Find the halfedge originating from `vertex` on `face`.
-fn find_halfedge_from_vertex(
+/// Collect all halfedges originating from `vertex` on `face`.
+fn find_all_halfedges_from_vertex(
     draft: &MutableDraft,
     face: FaceId,
     vertex: VertexId,
-) -> Result<HalfEdgeId, KernelError> {
+) -> Result<Vec<HalfEdgeId>, KernelError> {
     let face_data = draft.arena().get_face(face)?;
     let loop_data = draft.arena().get_loop(face_data.outer_loop)?;
     let start = loop_data.half_edge;
     let mut current = start;
+    let mut result = Vec::new();
 
     loop {
         let he_data = draft.arena().get_half_edge(current)?;
         if he_data.origin == vertex {
-            return Ok(current);
+            result.push(current);
         }
         current = he_data.next;
         if current == start {
-            return Err(KernelError::InvalidInput {
-                message: format!("Vertex {} not found on face {}", vertex, face),
-                context: None,
-            });
+            break;
         }
     }
+
+    if result.is_empty() {
+        return Err(KernelError::InvalidInput {
+            message: format!("Vertex {} not found on face {}", vertex, face),
+            context: None,
+        });
+    }
+
+    Ok(result)
+}
+
+/// Validate that splitting a loop at `(he_a, he_b)` produces two
+/// well-formed sub-loops. Walks `he_a → next → ... → he_b` and checks
+/// that the path reaches `he_b` without revisiting `he_a`.
+fn validate_split_pair(
+    draft: &MutableDraft,
+    he_a: HalfEdgeId,
+    he_b: HalfEdgeId,
+) -> Result<bool, KernelError> {
+    if he_a == he_b {
+        return Ok(false);
+    }
+    let mut current = draft.arena().get_half_edge(he_a)?.next;
+    let mut steps = 0usize;
+    let max_steps = 100_000;
+
+    while current != he_b {
+        if current == he_a || steps >= max_steps {
+            return Ok(false);
+        }
+        current = draft.arena().get_half_edge(current)?.next;
+        steps += 1;
+    }
+
+    Ok(true)
+}
+
+/// Find a valid `(he_from_a, he_from_b)` pair that splits the face loop
+/// into two well-formed sub-loops. Tries all candidate combinations.
+fn find_valid_split_pair(
+    draft: &MutableDraft,
+    candidates_a: &[HalfEdgeId],
+    candidates_b: &[HalfEdgeId],
+) -> Result<(HalfEdgeId, HalfEdgeId), KernelError> {
+    for &he_a in candidates_a {
+        for &he_b in candidates_b {
+            if validate_split_pair(draft, he_a, he_b)? {
+                return Ok((he_a, he_b));
+            }
+        }
+    }
+    Err(KernelError::InvalidInput {
+        message: "No valid split pair found: vertices may be adjacent or on the same sub-path".to_string(),
+        context: None,
+    })
 }
 
 /// Reassign all halfedges in a loop (starting from `start`) to `new_face`.

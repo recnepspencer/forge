@@ -12,7 +12,7 @@
 //! - KV-16: deterministic lineage hashes
 //! - KV-17: split_edge children carry parent ancestry
 
-use forge_core::KernelError;
+use forge_core::{KernelError, result::{log_result, OperationResult}};
 use crate::state::TopologyState;
 use crate::operator::apply_op;
 use crate::euler::make_vertex_face::MakeVertexFace;
@@ -22,12 +22,26 @@ use crate::euler::join_faces::JoinFaces;
 use crate::euler::kill_edge_vertex::KillEdgeVertex;
 use crate::traverse::{face_edges, face_edge_count, vertex_ring, edge_faces};
 
+/// Helper to log and unwrap operation results for debugging.
+fn logged_op<T>(label: &str, result: Result<OperationResult<T>, KernelError>) -> Result<T, KernelError> {
+    match result {
+        Ok(op_result) => {
+            log_result(label, &op_result);
+            Ok(op_result.into_value())
+        }
+        Err(e) => {
+            eprintln!("[{}] ERROR: {:?}", label, e);
+            Err(e)
+        }
+    }
+}
+
 #[test]
 fn mvf_creates_single_vertex_and_face() {
     let state = TopologyState::empty();
     let mut draft = state.begin_mutation();
 
-    let out = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+    let out = logged_op("MVF", apply_op(&mut draft, MakeVertexFace)).unwrap();
 
     assert_eq!(draft.arena().vertex_count(), 1);
     assert_eq!(draft.arena().face_count(), 1);
@@ -69,8 +83,8 @@ fn split_degenerate_creates_proper_edge() {
     let state = TopologyState::empty();
     let mut draft = state.begin_mutation();
 
-    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-    let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
+    let mvf = logged_op("MVF", apply_op(&mut draft, MakeVertexFace)).unwrap();
+    let se = logged_op("SplitEdge", apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 })).unwrap();
 
     assert_eq!(draft.arena().vertex_count(), 2);
     assert_eq!(draft.arena().half_edge_count(), 2);
@@ -430,28 +444,28 @@ fn brutal_aerospace_sliver_churn_generational_integrity() {
     let state = TopologyState::empty();
     let mut draft = state.begin_mutation();
 
-    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+    let mvf = logged_op("MVF", apply_op(&mut draft, MakeVertexFace)).unwrap();
 
-    for _ in 0..500 {
+    for i in 0..500 {
         let boundary_edge = draft.arena().get_vertex(mvf.vertex).unwrap().outgoing;
 
-        let se = apply_op(&mut draft, SplitEdge {
+        let se = logged_op(&format!("SplitEdge[{}]", i), apply_op(&mut draft, SplitEdge {
             edge: boundary_edge,
             parameter: 0.1,
-        }).unwrap().into_value();
+        })).unwrap();
 
         let face_id = draft.arena().get_half_edge(boundary_edge).unwrap().face;
-        let mef = apply_op(&mut draft, MakeEdgeFace {
+        let mef = logged_op(&format!("MakeEdgeFace[{}]", i), apply_op(&mut draft, MakeEdgeFace {
             vertex_a: mvf.vertex,
             vertex_b: se.new_vertex,
             face: face_id,
-        }).unwrap().into_value();
+        })).unwrap();
 
         let doomed_face = mef.new_face;
         let doomed_vertex = se.new_vertex;
 
-        let _jf = apply_op(&mut draft, JoinFaces { edge: mef.half_edge_ab }).unwrap().into_value();
-        let _kev = apply_op(&mut draft, KillEdgeVertex { edge: se.he_am }).unwrap().into_value();
+        let _jf = logged_op(&format!("JoinFaces[{}]", i), apply_op(&mut draft, JoinFaces { edge: mef.half_edge_ab })).unwrap();
+        let _kev = logged_op(&format!("KillEdgeVertex[{}]", i), apply_op(&mut draft, KillEdgeVertex { edge: se.he_am })).unwrap();
 
         assert!(
             draft.arena().get_face(doomed_face).is_err(),

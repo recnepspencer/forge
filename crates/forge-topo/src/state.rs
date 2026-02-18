@@ -179,7 +179,7 @@ impl MutableDraft {
             signature.clone(),
             String::new(),
             0,
-            self.topology_hash,
+            0,
         );
         self.replay_log.record(entry);
     }

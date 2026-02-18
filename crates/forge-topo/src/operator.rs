@@ -106,7 +106,6 @@ pub fn apply_op<O: EulerOperator>(
     op: O,
 ) -> Result<OperationResult<O::Output>, KernelError> {
     let start = Instant::now();
-    let state_hash_before = draft.topology_hash();
 
     let face_count_before = draft.arena().face_count();
     let vertex_count_before = draft.arena().vertex_count();
@@ -129,18 +128,9 @@ pub fn apply_op<O: EulerOperator>(
 
     draft.apply_lineage(&signature);
 
-    // Compute new hash immediately to see if anything structurally changed
-    let state_hash_after = draft.compute_topology_hash();
-    
-    // Finalize the replay log entry
-    draft.replay_log_mut().finalize_last(state_hash_after);
-    draft.set_topology_hash(state_hash_after);
-
-    // D4: Smart Version Bumping
-    // Only invalidate the DAG (bump version) if the structural hash actually changed.
-    if state_hash_before != state_hash_after {
-        draft.bump_topology_version();
-    }
+    // D4: Always bump topology version — the structural hash is deferred to
+    // commit() for O(1) per-op cost instead of O(N log N).
+    draft.bump_topology_version();
 
     let face_count_after = draft.arena().face_count();
     let vertex_count_after = draft.arena().vertex_count();
@@ -190,8 +180,6 @@ pub fn apply_op<O: EulerOperator>(
     let mut op_result = OperationResult::new(result);
     op_result.set_metrics(metrics);
     op_result.set_lineage_delta(lineage_delta);
-    op_result.set_state_hash_before(state_hash_before);
-    op_result.set_state_hash_after(state_hash_after);
     op_result.set_decision_log(log);
 
     Ok(op_result)
