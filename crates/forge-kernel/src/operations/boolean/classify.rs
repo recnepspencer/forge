@@ -40,11 +40,14 @@ pub fn classify_faces(
     origin: FaceOrigin,
     ctx: &mut ModelingContext,
 ) -> Result<Vec<ClassifiedFace>, KernelError> {
-    let _config = ctx.get_tolerance_config().clone();
+    let mut config = ctx.get_tolerance_config().clone();
     let origin_label = match origin {
         FaceOrigin::Target => "Target",
         FaceOrigin::Tool => "Tool",
     };
+
+    let scale_aware_ray_extent = compute_ray_extent_from_bbox(other_arena, other_geometry, config.get_ray_extent());
+    config.set_ray_extent(scale_aware_ray_extent);
 
     let accelerator_data = build_spatial_index(other_arena, other_geometry);
     let accelerator = accelerator_data.as_deref()
@@ -61,7 +64,7 @@ pub fn classify_faces(
             source_arena, source_geometry,
             other_arena, other_geometry,
             accelerator,
-            seed_face, ctx,
+            seed_face, &config, ctx,
         )?;
 
         let decision_id = DecisionId(seed_face.index() as u64);
@@ -105,7 +108,7 @@ pub fn classify_faces(
                 source_arena, source_geometry,
                 other_arena, other_geometry,
                 accelerator,
-                face_id, ctx,
+                face_id, &config, ctx,
             )?;
 
             let prop_decision_id = DecisionId(face_id.index() as u64);
@@ -228,9 +231,9 @@ fn classify_single_face(
     other_geometry: &GeometryStore,
     accelerator: Option<&dyn forge_topo::classify::SpatialAccelerator>,
     face_id: FaceId,
+    config: &crate::core::ToleranceConfig,
     ctx: &mut ModelingContext,
 ) -> Result<FaceClassification, KernelError> {
-    let config = ctx.get_tolerance_config().clone();
     let sample = compute_face_centroid(source_arena, source_geometry, face_id)?;
 
     let vertex_lookup = |index: u32| -> Result<[f64; 3], KernelError> {
@@ -339,4 +342,34 @@ fn classification_label(class: &FaceClassification) -> &'static str {
         FaceClassification::OnBoundary => "OnBoundary(aligned)",
         FaceClassification::OppositeBoundary => "OppositeBoundary(opposed)",
     }
+}
+
+/// Compute a scale-aware ray extent from the bounding box of a solid.
+///
+/// The ray extent must be longer than the diagonal of the solid to
+/// guarantee that a ray from any interior point exits the solid.
+/// Returns `max(10 * diagonal, default_extent)`.
+fn compute_ray_extent_from_bbox(
+    arena: &TopologyArena,
+    geometry: &GeometryStore,
+    default_extent: f64,
+) -> f64 {
+    let mut min_pos = [f64::INFINITY; 3];
+    let mut max_pos = [f64::NEG_INFINITY; 3];
+
+    for (vid, _) in arena.iter_vertices() {
+        if let Some(pos) = geometry.get_vertex_position(vid) {
+            for i in 0..3 {
+                min_pos[i] = min_pos[i].min(pos[i]);
+                max_pos[i] = max_pos[i].max(pos[i]);
+            }
+        }
+    }
+
+    let dx = max_pos[0] - min_pos[0];
+    let dy = max_pos[1] - min_pos[1];
+    let dz = max_pos[2] - min_pos[2];
+    let diagonal = (dx * dx + dy * dy + dz * dz).sqrt();
+
+    (diagonal * 10.0).max(default_extent)
 }

@@ -26,6 +26,7 @@ pub fn stitch_twins(
     draft: &mut MutableDraft,
     all_he_ids: &[HalfEdgeId],
     geom: &GeometryStore,
+    weld_tolerance_sq: f64,
     ctx: &mut ModelingContext,
 ) -> Result<(), KernelError> {
     let mut forward_map: HashMap<(u32, u32), Vec<HalfEdgeId>> = HashMap::new();
@@ -180,7 +181,7 @@ pub fn stitch_twins(
             })
             .collect();
 
-        let tol_sq: f64 = 1e-12;
+        let tol_sq: f64 = weld_tolerance_sq;
 
         for i in 0..edge_positions.len() {
             let (he_a, o_a, d_a) = edge_positions[i];

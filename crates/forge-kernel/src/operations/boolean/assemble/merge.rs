@@ -329,12 +329,16 @@ fn assemble_result(
     reverse_tool: bool,
     ctx: &mut ModelingContext,
 ) -> Result<(TopologyState, GeometryStore), KernelError> {
+    let characteristic_scale = compute_characteristic_scale(
+        target_arena, target_geom, tool_arena, tool_geom,
+    );
+
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
     let mut result_geom = GeometryStore::new();
     
     let mut global_vertex_map: HashMap<VertexMatchKey, VertexId> = HashMap::new();
-    let mut spatial_index = super::copy::SpatialVertexIndex::new();
+    let mut spatial_index = super::copy::SpatialVertexIndex::new(characteristic_scale);
 
     let mut all_new_he_ids: Vec<HalfEdgeId> = Vec::new();
 
@@ -371,7 +375,7 @@ fn assemble_result(
         .copied()
         .collect();
 
-    match stitch_twins(&mut draft, &active_he_ids, &result_geom, ctx) {
+    match stitch_twins(&mut draft, &active_he_ids, &result_geom, spatial_index.weld_tolerance_sq(), ctx) {
         Ok(()) => {}
         Err(e) => {
             let stitch_diag = diagnose_arena(draft.arena(), PipelineStage::PostStitch);
@@ -382,7 +386,7 @@ fn assemble_result(
                 let remaining_he: Vec<HalfEdgeId> = draft.arena().iter_half_edges()
                     .map(|(id, _)| id)
                     .collect();
-                stitch_twins(&mut draft, &remaining_he, &result_geom, ctx)?;
+                stitch_twins(&mut draft, &remaining_he, &result_geom, spatial_index.weld_tolerance_sq(), ctx)?;
             } else {
                 return Err(e);
             }
@@ -391,4 +395,42 @@ fn assemble_result(
 
     let topo = draft.commit()?;
     Ok((topo, result_geom))
+}
+
+/// Compute the characteristic scale of two input solids for adaptive tolerances.
+///
+/// Returns the maximum bounding box diagonal of vertices across both arenas.
+/// Floored at 1e-15 to prevent division-by-zero for degenerate geometry.
+fn compute_characteristic_scale(
+    target_arena: &forge_topo::arena::TopologyArena,
+    target_geom: &GeometryStore,
+    tool_arena: &forge_topo::arena::TopologyArena,
+    tool_geom: &GeometryStore,
+) -> f64 {
+    let mut min_pos = [f64::INFINITY; 3];
+    let mut max_pos = [f64::NEG_INFINITY; 3];
+
+    for (vid, _) in target_arena.iter_vertices() {
+        if let Some(pos) = target_geom.get_vertex_position(vid) {
+            for i in 0..3 {
+                min_pos[i] = min_pos[i].min(pos[i]);
+                max_pos[i] = max_pos[i].max(pos[i]);
+            }
+        }
+    }
+    for (vid, _) in tool_arena.iter_vertices() {
+        if let Some(pos) = tool_geom.get_vertex_position(vid) {
+            for i in 0..3 {
+                min_pos[i] = min_pos[i].min(pos[i]);
+                max_pos[i] = max_pos[i].max(pos[i]);
+            }
+        }
+    }
+
+    let dx = max_pos[0] - min_pos[0];
+    let dy = max_pos[1] - min_pos[1];
+    let dz = max_pos[2] - min_pos[2];
+    let diagonal = (dx * dx + dy * dy + dz * dz).sqrt();
+
+    diagonal.max(1e-15)
 }

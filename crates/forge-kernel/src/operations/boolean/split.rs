@@ -53,7 +53,7 @@ impl PlaneTable {
             // Opposite-normal planes (same geometric plane, flipped orientation)
             // must stay separate because split_face_by_plane uses the stored
             // normal direction for vertex classification.
-            if dot > 0.9999999999 && (d1 - d2).abs() < 1e-9 {
+            if dot > 0.9999999999 && (d1 - d2).abs() < 1e-9 * d1.abs().max(d2.abs()).max(1.0) {
                 return i;
             }
         }

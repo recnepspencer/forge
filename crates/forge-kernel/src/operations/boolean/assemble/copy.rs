@@ -46,41 +46,44 @@ impl VertexDedup {
 
 /// Vertex position index with fuzzy nearest-neighbor search.
 ///
-/// Replaces the old `PositionKey` grid which suffered from boundary
-/// straddling. Uses squared Euclidean distance with a fixed tolerance,
-/// guaranteeing that geometrically coincident vertices always unify
-/// regardless of floating-point noise from the split computation.
-const SPATIAL_GRID_CELL_SIZE: f64 = 1e-5;
-
+/// Grid cell size and weld tolerance are proportional to the
+/// characteristic scale of the input geometry. This ensures correct
+/// vertex deduplication at any scale — from nanometer to kilometer.
 pub struct SpatialVertexIndex {
     grid: std::collections::HashMap<[i64; 3], Vec<(VertexId, [f64; 3])>>,
+    cell_size: f64,
+    weld_tolerance_sq: f64,
 }
 
-/// Squared distance tolerance for vertex matching (1e-6 linear ≈ 1e-12 squared).
-///
-/// This must be loose enough to unify vertices that went through
-/// floating-point arithmetic in prior boolean operations (where
-/// sub-nanometer positional noise accumulates), but tight enough
-/// to never merge geometrically distinct vertices.
-const VERTEX_WELD_TOLERANCE_SQ: f64 = 1e-12;
-
 impl SpatialVertexIndex {
-    pub fn new() -> Self {
-        Self { grid: std::collections::HashMap::new() }
+    /// Create a new index scaled to the input geometry.
+    ///
+    /// `characteristic_scale` is the bounding box diagonal of the input.
+    /// Grid cell size = scale * 1e-3 (3 orders below geometry).
+    /// Weld tolerance = scale * 1e-8 (8 orders below, catches float noise).
+    pub fn new(characteristic_scale: f64) -> Self {
+        let scale = characteristic_scale.max(1e-15);
+        let cell_size = scale * 1e-3;
+        let linear_tol = scale * 1e-8;
+        Self {
+            grid: std::collections::HashMap::new(),
+            cell_size,
+            weld_tolerance_sq: linear_tol * linear_tol,
+        }
     }
 
-    fn cell_coords(pos: &[f64; 3]) -> [i64; 3] {
+    fn cell_coords(&self, pos: &[f64; 3]) -> [i64; 3] {
         [
-            (pos[0] / SPATIAL_GRID_CELL_SIZE).floor() as i64,
-            (pos[1] / SPATIAL_GRID_CELL_SIZE).floor() as i64,
-            (pos[2] / SPATIAL_GRID_CELL_SIZE).floor() as i64,
+            (pos[0] / self.cell_size).floor() as i64,
+            (pos[1] / self.cell_size).floor() as i64,
+            (pos[2] / self.cell_size).floor() as i64,
         ]
     }
 
     /// Find the nearest vertex within tolerance. Returns `None` if
     /// no existing vertex is close enough.
     pub fn find_nearest(&self, pos: &[f64; 3]) -> Option<VertexId> {
-        let center_cell = Self::cell_coords(pos);
+        let center_cell = self.cell_coords(pos);
         let mut best: Option<(VertexId, f64)> = None;
 
         for dx in -1..=1 {
@@ -93,7 +96,7 @@ impl SpatialVertexIndex {
                             let diff_y = pos[1] - p[1];
                             let diff_z = pos[2] - p[2];
                             let dist_sq = diff_x * diff_x + diff_y * diff_y + diff_z * diff_z;
-                            if dist_sq <= VERTEX_WELD_TOLERANCE_SQ {
+                            if dist_sq <= self.weld_tolerance_sq {
                                 match best {
                                     None => best = Some((vid, dist_sq)),
                                     Some((_, best_d)) if dist_sq < best_d => best = Some((vid, dist_sq)),
@@ -108,9 +111,14 @@ impl SpatialVertexIndex {
         best.map(|(vid, _)| vid)
     }
 
+    /// The scale-proportional squared distance tolerance.
+    pub fn weld_tolerance_sq(&self) -> f64 {
+        self.weld_tolerance_sq
+    }
+
     /// Register a vertex position for future lookups.
     pub fn insert(&mut self, vid: VertexId, pos: [f64; 3]) {
-        let cell = Self::cell_coords(&pos);
+        let cell = self.cell_coords(&pos);
         self.grid.entry(cell).or_insert_with(Vec::new).push((vid, pos));
     }
 }

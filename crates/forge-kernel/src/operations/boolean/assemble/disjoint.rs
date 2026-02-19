@@ -363,7 +363,9 @@ fn assemble_complete_shells(
     let mut primary_he: Vec<HalfEdgeId> = Vec::new();
     let mut primary_dedup = VertexDedup::new();
     let mut primary_vertex_map: std::collections::HashMap<crate::operations::boolean::eval::VertexMatchKey, forge_topo::handles::VertexId> = std::collections::HashMap::new();
-    let mut primary_spatial: super::copy::SpatialVertexIndex = super::copy::SpatialVertexIndex::new();
+    let mut primary_spatial: super::copy::SpatialVertexIndex = super::copy::SpatialVertexIndex::new(
+        compute_disjoint_scale(primary_topo.arena(), primary_geom, secondary.map(|(t, g)| (t.arena(), g))),
+    );
 
     copy_faces(
         &mut draft, &mut result_geom, &mut primary_dedup,
@@ -375,7 +377,7 @@ fn assemble_complete_shells(
         None,
     )?;
 
-    stitch_twins(&mut draft, &primary_he, &result_geom, ctx)?;
+    stitch_twins(&mut draft, &primary_he, &result_geom, primary_spatial.weld_tolerance_sq(), ctx)?;
 
     let mut secondary_count = 0usize;
     if let Some((sec_topo, sec_geom)) = secondary {
@@ -387,7 +389,9 @@ fn assemble_complete_shells(
         let mut sec_he: Vec<HalfEdgeId> = Vec::new();
         let mut sec_dedup = VertexDedup::new();
         let mut sec_vertex_map: std::collections::HashMap<crate::operations::boolean::eval::VertexMatchKey, forge_topo::handles::VertexId> = std::collections::HashMap::new();
-        let mut sec_spatial: super::copy::SpatialVertexIndex = super::copy::SpatialVertexIndex::new();
+        let mut sec_spatial: super::copy::SpatialVertexIndex = super::copy::SpatialVertexIndex::new(
+            compute_disjoint_scale(sec_topo.arena(), sec_geom, None),
+        );
 
         copy_faces(
             &mut draft, &mut result_geom, &mut sec_dedup,
@@ -399,7 +403,7 @@ fn assemble_complete_shells(
             None,
         )?;
 
-        stitch_twins(&mut draft, &sec_he, &result_geom, ctx)?;
+        stitch_twins(&mut draft, &sec_he, &result_geom, sec_spatial.weld_tolerance_sq(), ctx)?;
     }
 
     let topo = draft.commit()?;
@@ -530,4 +534,44 @@ fn are_solids_coincident(
     }
 
     Ok(true)
+}
+
+/// Compute the characteristic scale for the disjoint assembly path.
+///
+/// Takes the primary arena and optionally a secondary arena, returns the
+/// bounding box diagonal (floored at 1e-15).
+fn compute_disjoint_scale(
+    primary_arena: &forge_topo::arena::TopologyArena,
+    primary_geom: &GeometryStore,
+    secondary: Option<(&forge_topo::arena::TopologyArena, &GeometryStore)>,
+) -> f64 {
+    let mut min_pos = [f64::INFINITY; 3];
+    let mut max_pos = [f64::NEG_INFINITY; 3];
+
+    for (vid, _) in primary_arena.iter_vertices() {
+        if let Some(pos) = primary_geom.get_vertex_position(vid) {
+            for i in 0..3 {
+                min_pos[i] = min_pos[i].min(pos[i]);
+                max_pos[i] = max_pos[i].max(pos[i]);
+            }
+        }
+    }
+
+    if let Some((sec_arena, sec_geom)) = secondary {
+        for (vid, _) in sec_arena.iter_vertices() {
+            if let Some(pos) = sec_geom.get_vertex_position(vid) {
+                for i in 0..3 {
+                    min_pos[i] = min_pos[i].min(pos[i]);
+                    max_pos[i] = max_pos[i].max(pos[i]);
+                }
+            }
+        }
+    }
+
+    let dx = max_pos[0] - min_pos[0];
+    let dy = max_pos[1] - min_pos[1];
+    let dz = max_pos[2] - min_pos[2];
+    let diagonal = (dx * dx + dy * dy + dz * dz).sqrt();
+
+    diagonal.max(1e-15)
 }
