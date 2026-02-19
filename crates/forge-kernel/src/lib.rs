@@ -8,8 +8,15 @@
 //! ```text
 //! forge-kernel/src/
 //! ├── lib.rs         ← this file (Table of Contents only)
+//! ├── prelude.rs     ← convenient imports
 //! ├── core/          ← shared infrastructure (ModelingContext, policies)
-//! └── features/      ← feature-sliced domain modules (Bento Box)
+//! ├── features/      ← feature-sliced domain modules (Bento Box)
+//! ├── geometry_store/ ← data adapter
+//! ├── mesh_builder/  ← construction service
+//! ├── analysis/      ← queries & diagnostics
+//! ├── operations/    ← all modeling operations
+//! │   └── boolean/   ← Boolean operations
+//! └── brep/          ← future B-rep abstractions
 //! ```
 //!
 //! See `CONVENTIONS.md` for coding rules and `docs/FILE_NAMING.md` for naming.
@@ -22,12 +29,18 @@
 
 #![forbid(unsafe_code)]
 
+pub mod prelude;
 pub mod core;
 pub mod features;
 pub mod geometry_store;
 pub mod mesh_builder;
-pub mod boolean;
+pub mod operations;
 pub mod analysis;
+pub mod brep;
+
+// Re-exports for backward compatibility
+pub use operations::boolean;
+pub use operations::boolean::{BooleanInput, BooleanOp, BooleanResult, execute_boolean};
 
 #[cfg(test)]
 mod tests {

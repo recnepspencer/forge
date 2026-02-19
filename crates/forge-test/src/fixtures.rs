@@ -24,7 +24,7 @@ pub fn build_empty_state() -> TopologyState {
 /// Useful when tests need a non-zero epoch as a starting point.
 pub fn build_epoch_one_state() -> TopologyState {
     let state = TopologyState::empty();
-    let draft = state.begin_mutation();
+    let draft = state.into_mutation();
     draft.commit().expect("empty commit should not fail")
 }
 

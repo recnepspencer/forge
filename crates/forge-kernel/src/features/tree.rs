@@ -110,8 +110,8 @@ impl FeatureTree {
 
         self.features.insert(node_id, feature);
 
-        forge_signal::eval::mark_dirty(&mut self.graph, node_id, Aspect::Topology)?;
-        forge_signal::eval::mark_dirty(&mut self.graph, node_id, Aspect::Geometry)?;
+        forge_signal::evaluation::mark_dirty(&mut self.graph, node_id, Aspect::Topology)?;
+        forge_signal::evaluation::mark_dirty(&mut self.graph, node_id, Aspect::Geometry)?;
 
         Ok(node_id)
     }
@@ -148,17 +148,25 @@ impl FeatureTree {
              self.graph.add_dependency(node_id, dep_id, Aspect::Geometry)?;
         }
 
-        forge_signal::eval::mark_dirty(&mut self.graph, node_id, Aspect::Topology)?;
-        forge_signal::eval::mark_dirty(&mut self.graph, node_id, Aspect::Geometry)?;
+        forge_signal::evaluation::mark_dirty(&mut self.graph, node_id, Aspect::Topology)?;
+        forge_signal::evaluation::mark_dirty(&mut self.graph, node_id, Aspect::Geometry)?;
 
         Ok(())
     }
 
     /// Evaluate a specific feature (and its dependencies) to get the latest output.
+    ///
+    /// Implements a two-phase trace flush:
+    /// 1. During evaluation, each node's `DecisionLog` is converted to a
+    ///    `TraceSummary` and collected in a side-channel map.
+    /// 2. After evaluation completes, summaries are flushed to the signal
+    ///    graph's `NodeEntry` records for subsequent diffing.
     pub fn evaluate_feature(&mut self, node_id: NodeId) -> Result<FeatureOutput, KernelError> {
         let graph = &mut self.graph;
         let features = &self.features;
         let outputs = &mut self.outputs;
+
+        let mut pending_traces: HashMap<NodeId, forge_core::TraceSummary> = HashMap::new();
 
         let mut compute = |id: NodeId, _graph_ref: &SignalGraph| -> Result<AspectVersion, KernelError> {
             let feature = features.get(&id).ok_or_else(|| KernelError::InvalidInput {
@@ -179,12 +187,25 @@ impl FeatureTree {
             }
 
             let output = feature.evaluate(&inputs)?;
+
+            let state_hash = forge_topo::hashing::compute_arena_topology_hash(
+                output.topology.arena(),
+            );
+            let summary = output.decision_log.to_summary(state_hash);
+            pending_traces.insert(id, summary);
+
             outputs.insert(id, output);
 
             Ok(AspectVersion::new(1, 1))
         };
 
-        forge_signal::eval::evaluate(graph, node_id, &mut compute)?;
+        forge_signal::evaluation::evaluate(graph, node_id, &mut compute)?;
+
+        for (id, summary) in pending_traces {
+            if let Ok(entry) = graph.get_entry_mut(id) {
+                entry.set_trace_summary(Some(summary));
+            }
+        }
 
         outputs.get(&node_id).cloned().ok_or_else(|| KernelError::InternalError {
             message: "Evaluation finished but output missing".to_string(),
@@ -195,5 +216,10 @@ impl FeatureTree {
     /// Get a feature ID by name.
     pub fn get_node_by_name(&self, name: &str) -> Option<NodeId> {
         self.names.get(name).copied()
+    }
+
+    /// Read-only access to the signal graph (for trace inspection).
+    pub fn get_graph(&self) -> &SignalGraph {
+        &self.graph
     }
 }

@@ -11,6 +11,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use forge_core::TraceSummary;
+
 use crate::handles::NodeId;
 
 /// Three-state invalidation for a signal node.
@@ -176,6 +178,9 @@ pub struct NodeEntry {
     dep_snapshot: DependencySnapshot,
     /// Whether this node has been tombstoned (deleted but not yet GC'd).
     tombstoned: bool,
+    /// Last evaluation trace summary (for diff-on-re-eval).
+    #[serde(default)]
+    trace_summary: Option<TraceSummary>,
 }
 
 impl Default for NodeEntry {
@@ -194,6 +199,7 @@ impl NodeEntry {
             subscribers: Vec::new(),
             dep_snapshot: DependencySnapshot::empty(),
             tombstoned: false,
+            trace_summary: None,
         }
     }
 
@@ -270,5 +276,15 @@ impl NodeEntry {
     /// Mark this node as tombstoned.
     pub fn set_tombstoned(&mut self, tombstoned: bool) {
         self.tombstoned = tombstoned;
+    }
+
+    /// The last evaluation trace summary.
+    pub fn get_trace_summary(&self) -> Option<&TraceSummary> {
+        self.trace_summary.as_ref()
+    }
+
+    /// Set or clear the trace summary.
+    pub fn set_trace_summary(&mut self, summary: Option<TraceSummary>) {
+        self.trace_summary = summary;
     }
 }

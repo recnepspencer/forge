@@ -16,6 +16,10 @@
 
 #![forbid(unsafe_code)]
 
+pub mod trace_store;
+pub mod server;
+pub mod viewer;
+
 /// A triangle mesh produced by tessellation.
 ///
 /// Stores vertices, normals, and triangle indices suitable for

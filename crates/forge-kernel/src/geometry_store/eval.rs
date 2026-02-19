@@ -24,7 +24,7 @@ pub fn build_position_lookup<'a>(
                 context: None,
             }
         })?;
-        let vertex_id = VertexId::new(index, gen);
+        let vertex_id = VertexId::from_raw_parts(index, gen);
         store.get_vertex_position(vertex_id).copied().ok_or_else(|| {
             KernelError::InvalidInput {
                 message: format!("No position found for vertex index {}", index),

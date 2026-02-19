@@ -15,44 +15,10 @@ pub use result::{
     DecisionSummary, DecisionContext, EntityRef,
     KernelWarning, OperationMetrics, LineageDelta, OperationResult,
     LogLevel, log_level, log_result, log_decision_log,
+    SpanId, DecisionTier, TraceEvent, TraceSummary, TraceDiff, SpanSummaryEntry,
 };
 
-// =========================================================================
-// GEOMETRY SOURCE TRAIT (Rule 3.1)
-// =========================================================================
 
-/// Trait for providers of geometric data.
-///
-/// Allows lower layers (like `forge-geom`) to request data from higher layers
-/// (like `forge-kernel` or `forge-topo`) without depending on them.
-pub trait GeometrySource {
-    /// Retrieve a plane by its handle/index.
-    ///
-    /// The specific index type is up to the implementation, but typically
-    /// maps to `forge_topo::PlaneId` or similar. To keep this trait generic
-    /// and avoid circular deps, we can use `usize` or a generic index,
-    /// but for now, let's assume specific methods as needed by `implicit_vertex`.
-    ///
-    /// In the `implicit_vertex` case, we need 3 planes.
-    /// 
-    /// To be truly decoupled, the arguments here should be generic or simple types.
-    /// `forge_geom` currently likely uses `PlaneRef` or `usize`.
-    ///
-    /// Let's define a method that returns a `Plane` (equation) given an index.
-    /// Since we can't import `Plane` from `forge-geom` (circular), 
-    /// we might need to define a simple Plane struct here or use [f64; 4].
-    ///
-    /// However, `forge-math` defines `Plane`. If `forge-core` depends upon `forge-math`,
-    /// then `forge-math` cannot depend on `forge-core` for `KernelError`.
-    /// This is the dependency cycle concern.
-    ///
-    /// **Resolution**: `forge-math` should be bottom-most. `forge-core` depends on `forge-math`.
-    /// `KernelError` (in `forge-core`) cannot be used in `forge-math`.
-    /// `forge-math` must return `MathError` (or similar).
-    ///
-    /// So `GeometrySource` can use types from `forge-math`.
-    fn get_plane(&self, index: usize) -> Result<[f64; 4], KernelError>;
-}
 
 
 // =========================================================================
@@ -60,7 +26,7 @@ pub trait GeometrySource {
 // =========================================================================
 
 /// Identifies where an error originated in the kernel.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ErrorScope {
     /// Global kernel error not tied to a specific operation or entity.
     Global,
@@ -68,28 +34,28 @@ pub enum ErrorScope {
     Feature { feature_id: u64 },
     /// Error occurred on a specific topological entity.
     Entity {
-        entity_kind: &'static str,
+        entity_kind: String,
         index: u32,
     },
     /// Error occurred during a specific Euler operation.
     Operation {
-        op_name: &'static str,
+        op_name: String,
         invocation_id: u64,
     },
 }
 
 /// Machine-actionable remediation hints for an error.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum SuggestedFix {
     /// Increase a tolerance threshold.
     IncreaseThreshold {
-        parameter: &'static str,
+        parameter: String,
         current: f64,
         suggested: f64,
     },
     /// Reduce a geometric parameter value.
     ReduceValue {
-        parameter: &'static str,
+        parameter: String,
         current: f64,
         max_allowed: f64,
     },
@@ -102,7 +68,7 @@ pub enum SuggestedFix {
 }
 
 /// Structured diagnostic context for AI agents and UI.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ErrorContext {
     /// Where the error happened.
     pub scope: ErrorScope,
@@ -118,7 +84,7 @@ pub struct ErrorContext {
 // =========================================================================
 
 /// The primary error type used across all Forge crates.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum KernelError {
     /// A topology invariant was violated (e.g., non-manifold edge, broken loop).
     TopologyViolation {
@@ -238,12 +204,24 @@ impl From<forge_math::MathError> for KernelError {
                 message: msg, 
                 context: None 
             },
+            forge_math::MathError::Ambiguous {
+                location,
+                residual,
+                context,
+            } => KernelError::AmbiguousResult {
+                result: AmbiguousResult {
+                    location,
+                    residual,
+                    context,
+                },
+                context: None,
+            },
         }
     }
 }
 
 /// Specific topology invariant violations.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TopologyError {
     /// A halfedge is missing its twin (non-manifold or broken mesh)
     MissingTwin {
@@ -272,7 +250,7 @@ pub enum TopologyError {
     },
     /// An entity was referenced by a stale or invalid handle
     StaleHandle {
-        entity_kind: &'static str,
+        entity_kind: String,
         index: u32,
         expected_generation: u32,
         actual_generation: u32,
@@ -319,18 +297,18 @@ impl fmt::Display for TopologyError {
 ///
 /// This carries ONLY geometric data. No policy categories or modeling
 /// concepts are allowed in the math/geom layers (Rule 2.1).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AmbiguousResult {
-    /// 3D location where the ambiguity occurred
+    /// 3D location where the ambiguity occurred.
     pub location: [f64; 3],
-    /// Geometric metric of ambiguity (e.g. residual, distance)
+    /// Geometric metric of ambiguity (e.g. residual, distance).
     pub residual: f64,
-    /// Human-readable context describing the ambiguity
+    /// Human-readable context describing the ambiguity.
     pub context: String,
 }
 
 /// Structured diagnostic context for replay and debugging.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiagnosticPayload {
     /// The operation that was executing when the failure occurred.
     pub operation: String,

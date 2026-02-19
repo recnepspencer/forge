@@ -87,3 +87,16 @@ Typed IDs: Never use raw usize or u32 for IDs. Use the typed generational handle
 Angular Logic: Keep components thin; place all state and mutation logic in Headless Managers/VMs (e.g., crud-manager.ts).
 
 Zero Variable Reuse: Never reassign a variable to a different concept.
+
+7. Observability & Tracing
+Universal Envelope: Every kernel operation must return `OperationResult<T>`, which wraps the value + `DecisionLog` + timing + state hashes.
+
+Automatic Trace Persistence: `OperationResult::into_value()` auto-persists the `DecisionLog` to disk when `FORGE_TRACE_DIR` is set. Agents must NOT manually call `persist_trace` — the envelope handles it.
+
+Environment Variables:
+
+`FORGE_TRACE_DIR`: Absolute path to trace output directory. Set for test runs that should produce traces.
+
+`FORGE_LOG`: Controls stderr output (`off`, `compact`, `full`).
+
+Trace Inspection: Use the `/trace-drill-down` workflow for the standard test-and-inspect flow. Start with `issues`, then `show`, then `decisions`.

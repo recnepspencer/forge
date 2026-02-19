@@ -7,10 +7,10 @@
 //! INVARIANTS:
 //! - Every face in the topology should have a corresponding plane entry
 //! - Every vertex in the topology should have a corresponding position entry
-//! - Implements `GeometrySource` for use by `forge-geom` solvers
+//! - Implements `GeometrySource` (from `forge-math`) for use by `forge-geom` solvers
 //!
-//! DEPENDENCIES: `forge-core` (GeometrySource, KernelError), `forge-topo` (handles),
-//!               `forge-geom` (Plane)
+//! DEPENDENCIES: `forge-math` (GeometrySource), `forge-core` (KernelError),
+//!               `forge-topo` (handles), `forge-geom` (Plane)
 
 mod schema;
 mod eval;

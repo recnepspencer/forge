@@ -74,8 +74,8 @@ pub fn analyze_slivers(
     let mut sliver_count = 0;
 
     for (face_id, face_data) in arena.iter_faces() {
-        let vertices = collect_loop_positions(topo, geom, face_data.outer_loop)?;
-        let area = forge_geom::polygon::compute_polygon_area(&vertices);
+        let vertices = collect_loop_positions(topo, geom, face_data.outer_loop())?;
+        let area = forge_geom::primitives::polygon::compute_polygon_area(&vertices);
 
         if area < min_face_area {
             sliver_count += 1;
@@ -102,18 +102,18 @@ fn collect_loop_positions(
 ) -> Result<Vec<[f64; 3]>, KernelError> {
     let arena = topo.arena();
     let loop_data = arena.get_loop(loop_id)?;
-    let start_he = loop_data.half_edge;
+    let start_he = loop_data.half_edge();
     let mut positions = Vec::new();
     let mut current_he = start_he;
 
     loop {
         let he_data = arena.get_half_edge(current_he)?;
 
-        if let Some(pos) = geom.get_vertex_position(he_data.origin) {
+        if let Some(pos) = geom.get_vertex_position(he_data.origin()) {
             positions.push(*pos);
         }
 
-        current_he = he_data.next;
+        current_he = he_data.next();
         if current_he == start_he {
             break;
         }
@@ -147,7 +147,7 @@ mod tests {
             [1.0, 1.0, 0.0],
             [0.0, 1.0, 0.0],
         ];
-        let area = forge_geom::polygon::compute_polygon_area(&verts);
+        let area = forge_geom::primitives::polygon::compute_polygon_area(&verts);
         assert!((area - 1.0).abs() < 1e-10, "Expected 1.0, got {area}");
     }
 
@@ -158,7 +158,7 @@ mod tests {
             [2.0, 0.0, 0.0],
             [0.0, 3.0, 0.0],
         ];
-        let area = forge_geom::polygon::compute_polygon_area(&verts);
+        let area = forge_geom::primitives::polygon::compute_polygon_area(&verts);
         assert!((area - 3.0).abs() < 1e-10, "Expected 3.0, got {area}");
     }
 
@@ -168,7 +168,7 @@ mod tests {
             [0.0, 0.0, 0.0],
             [1.0, 0.0, 0.0],
         ];
-        let area = forge_geom::polygon::compute_polygon_area(&verts);
+        let area = forge_geom::primitives::polygon::compute_polygon_area(&verts);
         assert!(area < 1e-15, "Expected 0, got {area}");
     }
 
@@ -180,7 +180,7 @@ mod tests {
             [1.0, 1e-12, 0.0],
             [0.0, 1e-12, 0.0],
         ];
-        let area = forge_geom::polygon::compute_polygon_area(&verts);
+        let area = forge_geom::primitives::polygon::compute_polygon_area(&verts);
         assert!(area < 1e-10, "Sliver area {area} should be tiny");
         assert!(area > 0.0, "Sliver area should be positive");
     }

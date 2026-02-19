@@ -10,7 +10,7 @@
 use std::collections::HashMap;
 
 use forge_core::{KernelError, DecisionKind};
-use forge_geom::bsp::ConvexCell;
+use forge_geom::spatial::bsp::ConvexCell;
 use forge_topo::arena::{FaceData, HalfEdgeData, VertexData, LoopData};
 use forge_topo::handles::{HalfEdgeId, VertexId, LoopId};
 use forge_topo::state::{TopologyState, MutableDraft};
@@ -64,7 +64,7 @@ pub fn build_halfedge_mesh(cell: &ConvexCell, ctx: &mut ModelingContext) -> Resu
     let tolerance = ctx.get_tolerance().get_spatial_tolerance();
 
     let state = TopologyState::empty();
-    let mut draft = state.begin_mutation();
+    let mut draft = state.into_mutation();
     let mut geometry = GeometryStore::new();
 
     let vertex_ids = insert_vertices(&mut draft, &mut geometry, cell, tolerance, ctx)?;
@@ -115,7 +115,7 @@ fn insert_vertices(
     tolerance: f64,
     ctx: &mut ModelingContext,
 ) -> Result<Vec<VertexId>, KernelError> {
-    let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
+    let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
     let mut vertex_ids = Vec::with_capacity(cell.vertex_count());
     let mut inserted: Vec<(VertexId, [f64; 3])> = Vec::with_capacity(cell.vertex_count());
 
@@ -128,10 +128,9 @@ fn insert_vertices(
             check_tolerance!(ctx, tolerance, dist, pos, DecisionKind::NearBoundary { threshold: tolerance });
             vertex_ids.push(existing_vid);
         } else {
-            let vid = draft.arena_mut().insert_vertex(VertexData {
-                outgoing: placeholder_he,
-                lineage: None,
-            });
+            let vid = draft.arena_mut().insert_vertex(VertexData::new(
+                placeholder_he,
+            ));
             geometry.set_vertex_position(vid, pos);
             inserted.push((vid, pos));
             vertex_ids.push(vid);
@@ -173,8 +172,8 @@ fn insert_faces_and_loops(
     cell: &ConvexCell,
     vertex_ids: &[VertexId],
 ) -> Result<HashMap<(usize, usize), HalfEdgeId>, KernelError> {
-    let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
-    let placeholder_loop = LoopId::new(u32::MAX, 0);
+    let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
+    let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
     let cell_planes = cell.planes();
 
     let mut edge_map: HashMap<(usize, usize), HalfEdgeId> = HashMap::new();
@@ -185,15 +184,14 @@ fn insert_faces_and_loops(
             continue;
         }
 
-        let face_id = draft.arena_mut().insert_face(FaceData {
-            outer_loop: placeholder_loop,
-            lineage: None,
-        });
+        let face_id = draft.arena_mut().insert_face(FaceData::new(
+            placeholder_loop,
+        ));
 
-        let loop_id = draft.arena_mut().insert_loop(LoopData {
-            half_edge: placeholder_he,
-            face: face_id,
-        });
+        let loop_id = draft.arena_mut().insert_loop(LoopData::new(
+            placeholder_he,
+            face_id,
+        ));
 
         let plane_idx = cell_face.plane_idx();
         if plane_idx < cell_planes.len() {
@@ -205,14 +203,13 @@ fn insert_faces_and_loops(
 
         for &cell_vert_idx in face_verts {
             let origin = vertex_ids[cell_vert_idx];
-            let he_id = draft.arena_mut().insert_half_edge(HalfEdgeData {
-                twin: placeholder_he,
-                next: placeholder_he,
-                prev: placeholder_he,
-                face: face_id,
+            let he_id = draft.arena_mut().insert_half_edge(HalfEdgeData::new(
+                placeholder_he,
+                placeholder_he,
+                placeholder_he,
+                face_id,
                 origin,
-                lineage: None,
-            });
+            ));
             he_ids.push(he_id);
         }
 
@@ -221,8 +218,8 @@ fn insert_faces_and_loops(
             let prev_i = if i == 0 { vert_count - 1 } else { i - 1 };
 
             let arena = draft.arena_mut();
-            arena.get_half_edge_mut(he_ids[i])?.next = he_ids[next_i];
-            arena.get_half_edge_mut(he_ids[i])?.prev = he_ids[prev_i];
+            arena.get_half_edge_mut(he_ids[i])?.set_next(he_ids[next_i]);
+            arena.get_half_edge_mut(he_ids[i])?.set_prev(he_ids[prev_i]);
 
             edge_map.insert(
                 (face_verts[i], face_verts[next_i]),
@@ -230,12 +227,12 @@ fn insert_faces_and_loops(
             );
         }
 
-        draft.arena_mut().get_face_mut(face_id)?.outer_loop = loop_id;
-        draft.arena_mut().get_loop_mut(loop_id)?.half_edge = he_ids[0];
+        draft.arena_mut().get_face_mut(face_id)?.set_outer_loop(loop_id);
+        draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(he_ids[0]);
 
         for &he_id in &he_ids {
-            let origin = draft.arena().get_half_edge(he_id)?.origin;
-            draft.arena_mut().get_vertex_mut(origin)?.outgoing = he_id;
+            let origin = draft.arena().get_half_edge(he_id)?.origin();
+            draft.arena_mut().get_vertex_mut(origin)?.set_outgoing(he_id);
         }
     }
 
@@ -251,7 +248,7 @@ fn stitch_twins(
 ) -> Result<(), KernelError> {
     for (&(a, b), &he_id) in edge_map {
         if let Some(&twin_id) = edge_map.get(&(b, a)) {
-            draft.arena_mut().get_half_edge_mut(he_id)?.twin = twin_id;
+            draft.arena_mut().get_half_edge_mut(he_id)?.set_twin(twin_id);
         } else {
             return Err(KernelError::InternalError {
                 message: format!(
@@ -272,33 +269,33 @@ pub fn make_cube(
     let half_size = size / 2.0;
 
     let planes = vec![
-        forge_geom::plane::Plane::from_point_normal(
+        forge_geom::Plane::from_point_normal(
             [center[0] + half_size, center[1], center[2]],
             [1.0, 0.0, 0.0],
         )?,
-        forge_geom::plane::Plane::from_point_normal(
+        forge_geom::Plane::from_point_normal(
             [center[0] - half_size, center[1], center[2]],
             [-1.0, 0.0, 0.0],
         )?,
-        forge_geom::plane::Plane::from_point_normal(
+        forge_geom::Plane::from_point_normal(
             [center[0], center[1] + half_size, center[2]],
             [0.0, 1.0, 0.0],
         )?,
-        forge_geom::plane::Plane::from_point_normal(
+        forge_geom::Plane::from_point_normal(
             [center[0], center[1] - half_size, center[2]],
             [0.0, -1.0, 0.0],
         )?,
-        forge_geom::plane::Plane::from_point_normal(
+        forge_geom::Plane::from_point_normal(
             [center[0], center[1], center[2] + half_size],
             [0.0, 0.0, 1.0],
         )?,
-        forge_geom::plane::Plane::from_point_normal(
+        forge_geom::Plane::from_point_normal(
             [center[0], center[1], center[2] - half_size],
             [0.0, 0.0, -1.0],
         )?,
     ];
 
-    let cell = forge_geom::bsp::build_convex_polyhedron(&planes, &forge_geom::bsp::BspConfig::default())?;
+    let cell = forge_geom::spatial::bsp::build_convex_polyhedron(&planes, &forge_geom::spatial::bsp::BspConfig::default())?;
     let mut ctx = ModelingContext::new();
 
     build_halfedge_mesh(&cell, &mut ctx)

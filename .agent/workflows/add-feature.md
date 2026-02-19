@@ -18,7 +18,7 @@ Use this workflow to implement any milestone from `DEVELOPMENT_BLUEPRINT.MD`.
 
 ## Step 2: Create the Bento Box (Expanded)
 
-Create `crates/forge-kernel/src/features/<feature_name>/`:
+Create `crates/forge-kernel/src/operations/<feature_name>/` (for modeling operations) or `crates/forge-kernel/src/features/<feature_name>/` (for feature tree entries):
 - `intent.rs` — **Primary Source of Truth.** Serializable parameters and SDF logic.
 - `schema.rs` — Internal Rust types and helper enums.
 - `eval.rs` — The Bridge. Implements `GeometrySource` and handles `PolicyResult` escalation.
@@ -89,3 +89,8 @@ Before considering a feature complete, verify **every** item:
 - [ ] `cargo build --workspace` clean (no errors)
 - [ ] `cargo test --workspace` passes (no regressions)
 - [ ] `cargo clippy --workspace -- -D warnings` clean
+
+### Trace Verification
+- [ ] Run `/trace-drill-down` workflow to inspect kernel decisions
+- [ ] `forge-trace-cli issues` reports zero interesting decisions (all "deterministic")
+- [ ] If non-deterministic decisions exist, drill down with `forge-trace-cli show` and `decisions` to verify they are expected

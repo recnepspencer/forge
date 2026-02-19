@@ -14,6 +14,8 @@
 //! DEPENDENCIES: serde (serialization), std::time (metrics)
 
 use std::fmt;
+use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
@@ -66,9 +68,90 @@ impl fmt::Display for EntityRef {
 
 /// Sentinel `feature_scope` value for low-level Euler operator decisions.
 ///
-/// Decisions tagged with this scope are filtered out by `DecisionLog::display_compact()`
+/// Decisions tagged with this scope are filtered out in compact display
 /// and only shown in verbose/full display mode.
 pub const EULER_OP_FEATURE_SCOPE: u64 = u64::MAX;
+
+// =========================================================================
+// SPAN ID
+// =========================================================================
+
+/// Unique identifier for a trace span within a `DecisionLog`.
+///
+/// Monotonically increasing within a single log instance.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct SpanId(pub u64);
+
+impl fmt::Display for SpanId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "span-{}", self.0)
+    }
+}
+
+// =========================================================================
+// DECISION TIER (significance classification)
+// =========================================================================
+
+/// Significance tier for a kernel decision.
+///
+/// Set at record-time by the caller, not inferred by the view layer.
+/// `Ord` is derived so `tier_at_least()` uses simple comparison.
+/// Deterministic < Resolved < NearBoundary < PolicyApplied < Escalated.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum DecisionTier {
+    /// Tier 0: Predicate resolved exactly. Zero agent value.
+    Deterministic,
+    /// Tier 1: Unambiguous but involved a tolerance comparison. Auditable.
+    Resolved,
+    /// Tier 2: Result correct but margin is small. Brittle.
+    NearBoundary,
+    /// Tier 3: Kernel applied a fallback policy. Agent can override.
+    PolicyApplied,
+    /// Tier 4: Kernel could not proceed. Agent must act.
+    Escalated,
+}
+
+impl fmt::Display for DecisionTier {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DecisionTier::Deterministic => write!(f, "deterministic"),
+            DecisionTier::Resolved => write!(f, "resolved"),
+            DecisionTier::NearBoundary => write!(f, "near-boundary"),
+            DecisionTier::PolicyApplied => write!(f, "policy-applied"),
+            DecisionTier::Escalated => write!(f, "escalated"),
+        }
+    }
+}
+
+// =========================================================================
+// TRACE EVENT (protocol event for span-based tracing)
+// =========================================================================
+
+/// A single event in the trace protocol.
+///
+/// The `DecisionLog` stores a flat `Vec<TraceEvent>`. Tree structure is
+/// reconstructed on read by matching `StartSpan`/`EndSpan` pairs.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum TraceEvent {
+    /// An atomic kernel decision.
+    Decision(TracedDecision),
+    /// Start of a named scope (logical phase).
+    StartSpan {
+        /// Unique span identifier.
+        id: SpanId,
+        /// Parent span, if nested.
+        parent_id: Option<SpanId>,
+        /// Human-readable phase name.
+        name: String,
+    },
+    /// End of a named scope, with computed duration.
+    EndSpan {
+        /// Must match a previous `StartSpan.id`.
+        id: SpanId,
+        /// Wall-clock duration in microseconds.
+        duration_micros: u64,
+    },
+}
 
 // =========================================================================
 // DECISION KIND (how a decision was resolved)
@@ -191,7 +274,7 @@ impl fmt::Display for DecisionContext {
 // =========================================================================
 
 /// Unique identifier for a traced decision.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct DecisionId(pub u64);
 
 impl fmt::Display for DecisionId {
@@ -215,34 +298,42 @@ pub struct TracedDecision {
     id: DecisionId,
     /// How the decision was resolved.
     kind: DecisionKind,
-    /// How close to the threshold (lower = more marginal). Non-negative.
+    /// Significance tier (set at record-time).
+    tier: DecisionTier,
+    /// How close to the threshold (lower = more marginal).
     margin: f64,
-    /// Which feature this decision belongs to (if scoped).
+    /// Feature that produced this decision (if any).
     feature_scope: Option<u64>,
-    /// Which topological entity this decision applies to (if scoped).
+    /// Entity this decision applies to (if any).
     entity_scope: Option<EntityRef>,
-    /// Whether an agent/user can override this decision without a full rebuild.
+    /// Whether the caller can override this decision.
     overridable: bool,
-    /// Structured context describing what prompted this decision.
+    /// Structured context for what triggered this decision.
     context: DecisionContext,
+    /// The span this decision was recorded in (stamped automatically).
+    #[serde(default)]
+    span_id: Option<SpanId>,
 }
 
 impl TracedDecision {
-    /// Create a new traced decision.
+    /// Create a new traced decision with explicit tier.
     pub fn new(
         id: DecisionId,
         kind: DecisionKind,
+        tier: DecisionTier,
         margin: f64,
         context: DecisionContext,
     ) -> Self {
         Self {
             id,
             kind,
+            tier,
             margin,
             feature_scope: None,
             entity_scope: None,
             overridable: true,
             context,
+            span_id: None,
         }
     }
 
@@ -254,6 +345,11 @@ impl TracedDecision {
     /// How the decision was resolved.
     pub fn get_kind(&self) -> &DecisionKind {
         &self.kind
+    }
+
+    /// The significance tier.
+    pub fn get_tier(&self) -> DecisionTier {
+        self.tier
     }
 
     /// How close to the threshold (lower = more marginal).
@@ -295,11 +391,24 @@ impl TracedDecision {
     pub fn get_context(&self) -> &DecisionContext {
         &self.context
     }
+
+    /// The span this decision was recorded in.
+    pub fn get_span_id(&self) -> Option<SpanId> {
+        self.span_id
+    }
+
+    /// Set the span this decision belongs to (called by DecisionLog::record).
+    pub fn set_span_id(&mut self, span_id: SpanId) {
+        self.span_id = Some(span_id);
+    }
 }
 
 impl fmt::Display for TracedDecision {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[{}] {} margin={:.2e}", self.id, self.kind, self.margin)?;
+        write!(f, "[{}] [{}] {} margin={:.2e}", self.id, self.tier, self.kind, self.margin)?;
+        if let Some(span) = self.span_id {
+            write!(f, " {}", span)?;
+        }
         if let Some(ref entity) = self.entity_scope {
             write!(f, " entity={}", entity)?;
         }
@@ -314,49 +423,159 @@ impl fmt::Display for TracedDecision {
 // DECISION LOG (queryable, serializable, diffable)
 // =========================================================================
 
-/// A queryable, serializable collection of traced decisions.
+/// Span-aware, queryable collection of trace events.
 ///
-/// Every kernel operation populates a `DecisionLog`. After completion,
-/// the caller can query it to understand what happened, what was ambiguous,
-/// and what can be overridden.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+/// Stores a flat `Vec<TraceEvent>` for performance. Tree structure is
+/// reconstructed on read by matching `StartSpan`/`EndSpan` pairs.
+/// An ephemeral span stack tracks the current active span during recording.
+#[derive(Debug, Clone, Serialize)]
 pub struct DecisionLog {
-    /// All decisions recorded during the operation.
-    decisions: Vec<TracedDecision>,
+    /// All events: decisions + span start/end markers.
+    events: Vec<TraceEvent>,
+    /// Ephemeral span stack (not serialized).
+    #[serde(skip)]
+    span_stack: Vec<SpanId>,
+    /// Monotonic span counter (not serialized).
+    #[serde(skip)]
+    span_counter: u64,
+    /// Cached count of decisions (excludes span events).
+    #[serde(skip)]
+    decision_count: usize,
+    /// O(1) span ID → name lookup.
+    #[serde(skip)]
+    span_names: std::collections::HashMap<SpanId, String>,
+    /// O(1) decision ID → event index lookup.
+    #[serde(skip)]
+    decision_index: std::collections::HashMap<DecisionId, usize>,
+    /// Running summary, updated incrementally on each `record()` call.
+    #[serde(skip)]
+    running_summary: DecisionSummary,
+}
+
+impl<'de> Deserialize<'de> for DecisionLog {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        /// Minimal struct for deserialization (only the serialized field).
+        #[derive(Deserialize)]
+        struct RawLog {
+            events: Vec<TraceEvent>,
+        }
+
+        let raw = RawLog::deserialize(deserializer)?;
+        let mut log = DecisionLog {
+            events: raw.events,
+            span_stack: Vec::new(),
+            span_counter: 0,
+            decision_count: 0,
+            span_names: std::collections::HashMap::new(),
+            decision_index: std::collections::HashMap::new(),
+            running_summary: DecisionSummary::empty(),
+        };
+        log.rebuild_indexes();
+        Ok(log)
+    }
+}
+
+impl Default for DecisionLog {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl DecisionLog {
     /// Create an empty decision log.
     pub fn new() -> Self {
-        Self { decisions: Vec::new() }
+        Self {
+            events: Vec::new(),
+            span_stack: Vec::new(),
+            span_counter: 0,
+            decision_count: 0,
+            span_names: std::collections::HashMap::new(),
+            decision_index: std::collections::HashMap::new(),
+            running_summary: DecisionSummary::empty(),
+        }
     }
 
-    /// Record a decision.
-    pub fn record(&mut self, decision: TracedDecision) {
-        self.decisions.push(decision);
+    /// Start a named span. Returns the `SpanId` for the caller to close.
+    pub fn start_span(&mut self, name: &str) -> SpanId {
+        self.span_counter += 1;
+        let id = SpanId(self.span_counter);
+        let parent_id = self.span_stack.last().copied();
+        self.span_names.insert(id, name.to_string());
+        self.events.push(TraceEvent::StartSpan {
+            id,
+            parent_id,
+            name: name.to_string(),
+        });
+        self.span_stack.push(id);
+        id
     }
 
-    /// All recorded decisions.
-    pub fn get_all(&self) -> &[TracedDecision] {
-        &self.decisions
+    /// End a span, recording its wall-clock duration.
+    ///
+    /// Handles mismatched closes: if `id` is not the top of the stack,
+    /// truncates to (and removes) the matching span entry.
+    pub fn end_span(&mut self, id: SpanId, duration_micros: u64) {
+        self.events.push(TraceEvent::EndSpan { id, duration_micros });
+        if let Some(pos) = self.span_stack.iter().rposition(|s| *s == id) {
+            self.span_stack.truncate(pos);
+        }
     }
 
-    /// Look up a decision by ID.
+    /// The currently active span, if any.
+    pub fn active_span(&self) -> Option<SpanId> {
+        self.span_stack.last().copied()
+    }
+
+    /// Record a decision, stamping it with the active span.
+    pub fn record(&mut self, mut decision: TracedDecision) {
+        if let Some(span_id) = self.active_span() {
+            decision.set_span_id(span_id);
+        }
+        let event_idx = self.events.len();
+        self.decision_index.insert(decision.get_id(), event_idx);
+        self.running_summary.incorporate(&decision);
+        self.decision_count += 1;
+        self.events.push(TraceEvent::Decision(decision));
+    }
+
+    /// All trace events (decisions + spans).
+    pub fn get_events(&self) -> &[TraceEvent] {
+        &self.events
+    }
+
+    /// Iterator over only the decisions (skipping span events).
+    pub fn decisions(&self) -> impl Iterator<Item = &TracedDecision> {
+        self.events.iter().filter_map(|e| match e {
+            TraceEvent::Decision(d) => Some(d),
+            _ => None,
+        })
+    }
+
+    /// Decisions at or above a given tier.
+    pub fn tier_at_least(&self, min_tier: DecisionTier) -> Vec<&TracedDecision> {
+        self.decisions().filter(|d| d.get_tier() >= min_tier).collect()
+    }
+
+    /// Decisions at Tier 2 (NearBoundary) or above.
+    pub fn interesting_only(&self) -> Vec<&TracedDecision> {
+        self.tier_at_least(DecisionTier::NearBoundary)
+    }
+
+    /// Look up a decision by ID (O(1) via index).
     pub fn get_by_id(&self, id: DecisionId) -> Option<&TracedDecision> {
-        self.decisions.iter().find(|d| d.get_id() == id)
-    }
-
-    /// Filter decisions that match a given kind discriminant.
-    pub fn by_kind_discriminant(&self, discriminant: &str) -> Vec<&TracedDecision> {
-        self.decisions.iter().filter(|d| {
-            let kind_str = format!("{}", d.get_kind());
-            kind_str.starts_with(discriminant)
-        }).collect()
+        let &idx = self.decision_index.get(&id)?;
+        match self.events.get(idx) {
+            Some(TraceEvent::Decision(d)) => Some(d),
+            _ => None,
+        }
     }
 
     /// Decisions sorted by margin ascending (most marginal first).
     pub fn by_margin_ascending(&self) -> Vec<&TracedDecision> {
-        let mut refs: Vec<&TracedDecision> = self.decisions.iter().collect();
+        let mut refs: Vec<&TracedDecision> = self.decisions().collect();
         refs.sort_by(|a, b| {
             a.get_margin().partial_cmp(&b.get_margin())
                 .unwrap_or(std::cmp::Ordering::Equal)
@@ -366,88 +585,165 @@ impl DecisionLog {
 
     /// Only decisions with `DecisionKind::Ambiguous`.
     pub fn ambiguous_only(&self) -> Vec<&TracedDecision> {
-        self.decisions.iter().filter(|d| {
+        self.decisions().filter(|d| {
             matches!(d.get_kind(), DecisionKind::Ambiguous { .. })
         }).collect()
     }
 
     /// Only decisions that are overridable.
     pub fn overridable_only(&self) -> Vec<&TracedDecision> {
-        self.decisions.iter().filter(|d| d.is_overridable()).collect()
+        self.decisions().filter(|d| d.is_overridable()).collect()
     }
 
     /// Returns `true` if there are zero `Ambiguous` decisions.
     pub fn is_clean(&self) -> bool {
-        !self.decisions.iter().any(|d| {
+        !self.decisions().any(|d| {
             matches!(d.get_kind(), DecisionKind::Ambiguous { .. })
         })
     }
 
-    /// Produce a summary of the decision log.
+    /// Produce a summary counting decisions by kind (O(1) via cached running summary).
     pub fn summary(&self) -> DecisionSummary {
-        let mut summary = DecisionSummary {
-            total: self.decisions.len(),
-            exact: 0,
-            policy_applied: 0,
-            near_boundary: 0,
-            ambiguous: 0,
-            forced: 0,
-            min_margin: f64::INFINITY,
-        };
-
-        for d in &self.decisions {
-            match d.get_kind() {
-                DecisionKind::Exact => summary.exact += 1,
-                DecisionKind::PolicyApplied { .. } => summary.policy_applied += 1,
-                DecisionKind::NearBoundary { .. } => summary.near_boundary += 1,
-                DecisionKind::Ambiguous { .. } => summary.ambiguous += 1,
-                DecisionKind::Forced { .. } => summary.forced += 1,
-            }
-            if d.get_margin() < summary.min_margin {
-                summary.min_margin = d.get_margin();
-            }
-        }
-
-        if summary.total == 0 {
-            summary.min_margin = 0.0;
-        }
-
-        summary
+        self.running_summary.clone()
     }
 
     /// Merge another log into this one (for aggregation across sub-operations).
     pub fn merge(&mut self, other: DecisionLog) {
-        self.decisions.extend(other.decisions);
+        self.events.extend(other.events);
+        self.rebuild_indexes();
     }
 
-    /// Number of decisions recorded.
+    /// Number of decisions recorded (O(1) via cached count).
     pub fn len(&self) -> usize {
-        self.decisions.len()
+        self.decision_count
     }
 
-    /// Whether the log is empty.
+    /// Whether the log contains zero decisions (O(1)).
     pub fn is_empty(&self) -> bool {
-        self.decisions.is_empty()
+        self.decision_count == 0
     }
 
-    /// Format the log without low-level Euler operator decisions.
-    ///
-    /// Returns a string showing only high-level decisions (classify, select,
-    /// split summary, disjoint containment). Euler ops tagged with
-    /// `feature_scope == EULER_OP_FEATURE_SCOPE` are excluded.
-    pub fn display_compact(&self) -> String {
-        use std::fmt::Write;
-        let high_level: Vec<&TracedDecision> = self.decisions.iter()
-            .filter(|d| d.get_feature_scope() != Some(EULER_OP_FEATURE_SCOPE))
+    /// Extract a `TraceSummary` for diffing across evaluations.
+    pub fn to_summary(&self, state_hash: u128) -> TraceSummary {
+        let interesting: Vec<TracedDecision> = self.decisions()
+            .filter(|d| d.get_tier() >= DecisionTier::NearBoundary)
+            .cloned()
             .collect();
-        let mut out = String::new();
-        let _ = writeln!(out, "{} decisions ({} high-level, {} euler ops)",
-            self.decisions.len(), high_level.len(),
-            self.decisions.len() - high_level.len());
-        for d in &high_level {
-            let _ = writeln!(out, "  {}", d);
+
+        let span_summaries = self.compute_span_summaries();
+
+        TraceSummary {
+            state_hash,
+            interesting,
+            span_summaries,
         }
+    }
+
+    /// Display using the Inverted Noise Rule: show only spans that contain
+    /// Tier 2+ decisions. Boring spans are collapsed to a one-liner.
+    pub fn display_interesting(&self) -> String {
+        use std::fmt::Write;
+        let mut out = String::new();
+        let total = self.len();
+        let interesting = self.interesting_only();
+        let _ = writeln!(out, "{} decisions ({} interesting)", total, interesting.len());
+
+        let span_summaries = self.compute_span_summaries();
+        for ss in &span_summaries {
+            if ss.max_tier >= DecisionTier::NearBoundary {
+                let _ = writeln!(out, "  ▸ {} ({} decisions, max={}, {}µs)",
+                    ss.name, ss.total_decisions, ss.max_tier, ss.duration_micros);
+                for d in self.decisions() {
+                    if d.get_span_id().map(|s| self.span_name(s).as_deref() == Some(ss.name.as_str())).unwrap_or(false)
+                        && d.get_tier() >= DecisionTier::NearBoundary
+                    {
+                        let _ = writeln!(out, "    {}", d);
+                    }
+                }
+            } else {
+                let _ = writeln!(out, "  ▹ {} ({} decisions, clean)", ss.name, ss.total_decisions);
+            }
+        }
+
+        for d in &interesting {
+            if d.get_span_id().is_none() {
+                let _ = writeln!(out, "  {}", d);
+            }
+        }
+
         out
+    }
+
+    /// Resolve a span ID to its name (O(1) via cached index).
+    fn span_name(&self, id: SpanId) -> Option<String> {
+        self.span_names.get(&id).cloned()
+    }
+
+    /// Compute per-span aggregate statistics (uses cached span_names for O(1) name lookup).
+    fn compute_span_summaries(&self) -> Vec<SpanSummaryEntry> {
+        let mut spans: Vec<SpanSummaryEntry> = Vec::new();
+        let mut span_idx: std::collections::HashMap<SpanId, usize> = std::collections::HashMap::new();
+
+        for event in &self.events {
+            if let TraceEvent::StartSpan { id, name, .. } = event {
+                span_idx.insert(*id, spans.len());
+                spans.push(SpanSummaryEntry {
+                    span_id: *id,
+                    name: name.clone(),
+                    total_decisions: 0,
+                    max_tier: DecisionTier::Deterministic,
+                    duration_micros: 0,
+                });
+            }
+        }
+
+        for d in self.decisions() {
+            if let Some(sid) = d.get_span_id() {
+                if let Some(&idx) = span_idx.get(&sid) {
+                    spans[idx].total_decisions += 1;
+                    if d.get_tier() > spans[idx].max_tier {
+                        spans[idx].max_tier = d.get_tier();
+                    }
+                }
+            }
+        }
+
+        for event in &self.events {
+            if let TraceEvent::EndSpan { id, duration_micros } = event {
+                if let Some(&idx) = span_idx.get(id) {
+                    spans[idx].duration_micros = *duration_micros;
+                }
+            }
+        }
+
+        spans
+    }
+
+    /// Rebuild all skip-serialization cached indexes from the events vec.
+    ///
+    /// Called after deserialization and after `merge()`.
+    pub fn rebuild_indexes(&mut self) {
+        self.decision_count = 0;
+        self.span_names.clear();
+        self.decision_index.clear();
+        self.running_summary = DecisionSummary::empty();
+
+        for (idx, event) in self.events.iter().enumerate() {
+            match event {
+                TraceEvent::Decision(d) => {
+                    self.decision_count += 1;
+                    self.decision_index.insert(d.get_id(), idx);
+                    self.running_summary.incorporate(d);
+                }
+                TraceEvent::StartSpan { id, name, .. } => {
+                    self.span_names.insert(*id, name.clone());
+                    if id.0 >= self.span_counter {
+                        self.span_counter = id.0 + 1;
+                    }
+                }
+                TraceEvent::EndSpan { .. } => {}
+            }
+        }
     }
 }
 
@@ -455,7 +751,7 @@ impl fmt::Display for DecisionLog {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let summary = self.summary();
         writeln!(f, "{}", summary)?;
-        for d in &self.decisions {
+        for d in self.decisions() {
             writeln!(f, "  {}", d)?;
         }
         Ok(())
@@ -470,7 +766,7 @@ impl fmt::Display for DecisionLog {
 ///
 /// The quick check: if `ambiguous == 0`, the operation made no assumptions
 /// that need review.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct DecisionSummary {
     /// Total number of decisions.
     pub total: usize,
@@ -488,11 +784,158 @@ pub struct DecisionSummary {
     pub min_margin: f64,
 }
 
+impl DecisionSummary {
+    /// Create a zero-valued summary.
+    pub fn empty() -> Self {
+        Self {
+            total: 0,
+            exact: 0,
+            policy_applied: 0,
+            near_boundary: 0,
+            ambiguous: 0,
+            forced: 0,
+            min_margin: 0.0,
+        }
+    }
+
+    /// Incrementally update this summary with a new decision.
+    pub fn incorporate(&mut self, d: &TracedDecision) {
+        self.total += 1;
+        match d.get_kind() {
+            DecisionKind::Exact => self.exact += 1,
+            DecisionKind::PolicyApplied { .. } => self.policy_applied += 1,
+            DecisionKind::NearBoundary { .. } => self.near_boundary += 1,
+            DecisionKind::Ambiguous { .. } => self.ambiguous += 1,
+            DecisionKind::Forced { .. } => self.forced += 1,
+        }
+        if self.total == 1 || d.get_margin() < self.min_margin {
+            self.min_margin = d.get_margin();
+        }
+    }
+}
+
 impl fmt::Display for DecisionSummary {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} decisions ({} exact, {} policy, {} near-boundary, {} ambiguous, {} forced, min_margin={:.2e})",
             self.total, self.exact, self.policy_applied, self.near_boundary,
             self.ambiguous, self.forced, self.min_margin)
+    }
+}
+
+// =========================================================================
+// SPAN SUMMARY ENTRY
+// =========================================================================
+
+/// Per-span aggregate statistics for trace summaries.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SpanSummaryEntry {
+    /// The span this entry describes.
+    pub span_id: SpanId,
+    /// Human-readable span name.
+    pub name: String,
+    /// Number of decisions in this span.
+    pub total_decisions: usize,
+    /// Highest tier decision in this span.
+    pub max_tier: DecisionTier,
+    /// Wall-clock duration in microseconds.
+    pub duration_micros: u64,
+}
+
+// =========================================================================
+// TRACE SUMMARY (diffable snapshot)
+// =========================================================================
+
+/// Lightweight snapshot for diffing across evaluations.
+///
+/// Contains only Tier 2+ decisions and per-span stats.
+/// Produced by `DecisionLog::to_summary()`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TraceSummary {
+    /// Topology hash of the result (for O(1) equality check).
+    state_hash: u128,
+    /// Only Tier 2+ decisions (the "interesting" subset).
+    interesting: Vec<TracedDecision>,
+    /// Per-span aggregate stats.
+    span_summaries: Vec<SpanSummaryEntry>,
+}
+
+impl TraceSummary {
+    /// The topology state hash.
+    pub fn get_state_hash(&self) -> u128 {
+        self.state_hash
+    }
+
+    /// The interesting (Tier 2+) decisions.
+    pub fn get_interesting(&self) -> &[TracedDecision] {
+        &self.interesting
+    }
+
+    /// Per-span summaries.
+    pub fn get_span_summaries(&self) -> &[SpanSummaryEntry] {
+        &self.span_summaries
+    }
+
+    /// Diff this summary against another (typically the previous evaluation).
+    pub fn diff(&self, other: &TraceSummary) -> TraceDiff {
+        use std::collections::BTreeMap;
+        let state_hash_changed = self.state_hash != other.state_hash;
+
+        let old_by_id: BTreeMap<DecisionId, &TracedDecision> =
+            other.interesting.iter().map(|d| (d.get_id(), d)).collect();
+        let new_by_id: BTreeMap<DecisionId, &TracedDecision> =
+            self.interesting.iter().map(|d| (d.get_id(), d)).collect();
+
+        let mut added = Vec::new();
+        let mut removed = Vec::new();
+        let mut changed = Vec::new();
+
+        for (id, new_d) in &new_by_id {
+            match old_by_id.get(id) {
+                None => added.push((*new_d).clone()),
+                Some(old_d) => {
+                    if old_d.get_tier() != new_d.get_tier()
+                        || std::mem::discriminant(old_d.get_kind()) != std::mem::discriminant(new_d.get_kind())
+                    {
+                        changed.push(((*old_d).clone(), (*new_d).clone()));
+                    }
+                }
+            }
+        }
+
+        for (id, old_d) in &old_by_id {
+            if !new_by_id.contains_key(id) {
+                removed.push((*old_d).clone());
+            }
+        }
+
+        TraceDiff { added, removed, changed, state_hash_changed }
+    }
+}
+
+// =========================================================================
+// TRACE DIFF
+// =========================================================================
+
+/// Diff between two trace summaries.
+///
+/// Produced by `TraceSummary::diff()`. Shows what changed between
+/// two evaluations of the same operation.
+#[derive(Debug, Clone)]
+pub struct TraceDiff {
+    /// Decisions present in new but not old.
+    pub added: Vec<TracedDecision>,
+    /// Decisions present in old but not new.
+    pub removed: Vec<TracedDecision>,
+    /// Decisions where the tier or kind changed (old, new).
+    pub changed: Vec<(TracedDecision, TracedDecision)>,
+    /// Whether the state hash changed.
+    pub state_hash_changed: bool,
+}
+
+impl TraceDiff {
+    /// Whether the diff is empty (no changes in interesting decisions).
+    pub fn is_empty(&self) -> bool {
+        self.added.is_empty() && self.removed.is_empty() && self.changed.is_empty()
     }
 }
 
@@ -657,7 +1100,13 @@ impl<T> OperationResult<T> {
     }
 
     /// Consume the result and return the inner value.
+    ///
+    /// If `FORGE_TRACE_DIR` is set, automatically persists the decision
+    /// log as a JSON trace file before returning. This is the universal
+    /// hook — every kernel operation that produces an `OperationResult`
+    /// gets traced with zero wiring.
     pub fn into_value(self) -> T {
+        self.maybe_persist_trace();
         self.value
     }
 
@@ -731,6 +1180,11 @@ impl<T> OperationResult<T> {
         self.decision_log = log;
     }
 
+    /// Take ownership of the decision log, replacing it with an empty one.
+    pub fn take_decision_log(&mut self) -> DecisionLog {
+        std::mem::take(&mut self.decision_log)
+    }
+
     /// Add a warning.
     pub fn add_warning(&mut self, warning: KernelWarning) {
         self.warnings.push(warning);
@@ -748,7 +1202,100 @@ impl<T> OperationResult<T> {
             state_hash_after: self.state_hash_after,
         }
     }
+
+    /// Persist the trace to disk if `FORGE_TRACE_DIR` is set.
+    ///
+    /// Uses `OnceLock` to check the env var exactly once per process.
+    /// When the dir is set, writes a JSON file compatible with
+    /// `forge_view::trace_store::TraceFile`.
+    ///
+    /// In debug/test builds, falls back to `workspace_root/traces/`
+    /// (relative to this crate's compile-time `CARGO_MANIFEST_DIR`).
+    fn maybe_persist_trace(&self) {
+        let dir = match resolve_trace_dir() {
+            Some(d) => d,
+            None => return,
+        };
+
+        if self.decision_log.is_empty() {
+            return;
+        }
+
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            write_trace_file(&dir, &self.decision_log, self.state_hash_after, "ok");
+        }));
+    }
 }
+
+/// Resolve the trace output directory (cached, checked once per process).
+///
+/// Priority:
+/// 1. `FORGE_TRACE_DIR` env var (explicit override)
+/// 2. In debug builds: `{workspace_root}/traces` (auto-detected from crate location)
+/// 3. `None` in release builds without the env var
+pub fn resolve_trace_dir() -> Option<PathBuf> {
+    static TRACE_DIR: OnceLock<Option<PathBuf>> = OnceLock::new();
+
+    TRACE_DIR.get_or_init(|| {
+        if let Ok(dir) = std::env::var("FORGE_TRACE_DIR") {
+            return Some(PathBuf::from(dir));
+        }
+
+        #[cfg(debug_assertions)]
+        {
+            let workspace_traces = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../traces");
+            if workspace_traces.exists() || std::fs::create_dir_all(&workspace_traces).is_ok() {
+                return workspace_traces.canonicalize().ok();
+            }
+        }
+
+        None
+    }).clone()
+}
+
+/// Write a trace JSON file to disk (infallible — silently drops errors).
+pub fn write_trace_file(dir: &Path, log: &DecisionLog, state_hash: u128, status: &str) {
+    if std::fs::create_dir_all(dir).is_err() {
+        return;
+    }
+
+    let test_name = std::thread::current()
+        .name()
+        .unwrap_or("unknown")
+        .replace("::", "_");
+
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+
+    let filename = format!("{}_{}.json", test_name, timestamp);
+    let path = dir.join(&filename);
+
+    #[derive(Serialize)]
+    struct TraceFilePayload<'a> {
+        name: &'a str,
+        timestamp: String,
+        state_hash: u128,
+        status: &'a str,
+        log: &'a DecisionLog,
+    }
+
+    let payload = TraceFilePayload {
+        name: &test_name,
+        timestamp: format!("{}", timestamp),
+        state_hash,
+        status,
+        log,
+    };
+
+    if let Ok(json) = serde_json::to_string_pretty(&payload) {
+        let _ = std::fs::write(&path, json);
+    }
+}
+
+
 
 // =========================================================================
 // TEST LOGGING (Universal verbosity-controlled output)
@@ -795,7 +1342,7 @@ pub fn log_result<T>(label: &str, result: &OperationResult<T>) {
 pub fn log_decision_log(label: &str, log: &DecisionLog) {
     match log_level() {
         LogLevel::Off => {}
-        LogLevel::Compact => eprint!("[{}] {}", label, log.display_compact()),
+        LogLevel::Compact => eprint!("[{}] {}", label, log.display_interesting()),
         LogLevel::Full => eprint!("[{}] {}", label, log),
     }
 }
@@ -841,6 +1388,7 @@ mod tests {
         let decision = TracedDecision::new(
             DecisionId(1),
             DecisionKind::Exact,
+            DecisionTier::Deterministic,
             0.5,
             DecisionContext::Tolerance { measured: 1e-8, threshold: 1e-6 },
         );
@@ -863,18 +1411,21 @@ mod tests {
         log.record(TracedDecision::new(
             DecisionId(1),
             DecisionKind::Exact,
+            DecisionTier::Deterministic,
             1.0,
             DecisionContext::Tolerance { measured: 0.0, threshold: 1e-6 },
         ));
         log.record(TracedDecision::new(
             DecisionId(2),
             DecisionKind::Ambiguous { fallback_applied: "snap_to_edge".to_string() },
+            DecisionTier::Escalated,
             0.001,
             DecisionContext::Tolerance { measured: 9e-7, threshold: 1e-6 },
         ));
         log.record(TracedDecision::new(
             DecisionId(3),
             DecisionKind::NearBoundary { threshold: 1e-6 },
+            DecisionTier::NearBoundary,
             0.1,
             DecisionContext::Tolerance { measured: 8e-7, threshold: 1e-6 },
         ));
@@ -884,6 +1435,7 @@ mod tests {
                 policy: PolicyKind::CoincidentGeometry,
                 default_used: true,
             },
+            DecisionTier::PolicyApplied,
             0.05,
             DecisionContext::Coincidence {
                 entity_a: EntityRef::new("Vertex", 0),
@@ -916,6 +1468,7 @@ mod tests {
         log.record(TracedDecision::new(
             DecisionId(1),
             DecisionKind::Exact,
+            DecisionTier::Deterministic,
             1.0,
             DecisionContext::Tolerance { measured: 0.0, threshold: 1e-6 },
         ));
@@ -926,13 +1479,13 @@ mod tests {
     fn decision_log_merge() {
         let mut log_a = DecisionLog::new();
         log_a.record(TracedDecision::new(
-            DecisionId(1), DecisionKind::Exact, 1.0,
+            DecisionId(1), DecisionKind::Exact, DecisionTier::Deterministic, 1.0,
             DecisionContext::Tolerance { measured: 0.0, threshold: 1e-6 },
         ));
 
         let mut log_b = DecisionLog::new();
         log_b.record(TracedDecision::new(
-            DecisionId(2), DecisionKind::Exact, 0.5,
+            DecisionId(2), DecisionKind::Exact, DecisionTier::Deterministic, 0.5,
             DecisionContext::Tolerance { measured: 0.0, threshold: 1e-6 },
         ));
 
@@ -970,6 +1523,7 @@ mod tests {
                 policy: PolicyKind::CoincidentGeometry,
                 default_used: false,
             },
+            DecisionTier::PolicyApplied,
             0.42,
             DecisionContext::Coincidence {
                 entity_a: EntityRef::new("Vertex", 10),
@@ -979,6 +1533,7 @@ mod tests {
         log.record(TracedDecision::new(
             DecisionId(2),
             DecisionKind::Ambiguous { fallback_applied: "merge".to_string() },
+            DecisionTier::Escalated,
             0.001,
             DecisionContext::Tolerance { measured: 9.5e-7, threshold: 1e-6 },
         ));
@@ -1005,8 +1560,9 @@ mod tests {
 
         assert_eq!(*restored.get_value(), 42);
         assert_eq!(restored.get_decision_log().len(), 2);
-        assert_eq!(restored.get_decision_log().get_all()[0].get_id(), DecisionId(1));
-        assert_eq!(restored.get_decision_log().get_all()[1].get_id(), DecisionId(2));
+        let decisions: Vec<_> = restored.get_decision_log().decisions().collect();
+        assert_eq!(decisions[0].get_id(), DecisionId(1));
+        assert_eq!(decisions[1].get_id(), DecisionId(2));
         assert!(!restored.get_decision_log().is_clean());
         assert_eq!(restored.get_warnings().len(), 1);
         assert_eq!(restored.get_metrics().exact_predicate_calls, 100);
@@ -1032,5 +1588,232 @@ mod tests {
         assert_eq!(mapped.get_state_hash_before(), 0xAA);
         assert_eq!(mapped.get_state_hash_after(), 0xBB);
         assert!(mapped.has_warnings());
+    }
+
+    // =====================================================================
+    // Phase C: Span-Based Tracing Verification Tests
+    // =====================================================================
+
+    fn make_decision(id: u64, tier: DecisionTier, kind: DecisionKind) -> TracedDecision {
+        TracedDecision::new(
+            DecisionId(id),
+            kind,
+            tier,
+            0.5,
+            DecisionContext::Tolerance { measured: 1e-8, threshold: 1e-6 },
+        )
+    }
+
+    #[test]
+    fn mismatched_span_close_truncates_stack() {
+        let mut log = DecisionLog::new();
+        let outer = log.start_span("outer");
+        let inner = log.start_span("inner");
+
+        assert_eq!(log.active_span(), Some(inner));
+
+        log.end_span(outer, 100);
+
+        assert_eq!(log.active_span(), None, "Closing outer should truncate inner too");
+    }
+
+    #[test]
+    fn closing_unknown_span_is_harmless() {
+        let mut log = DecisionLog::new();
+        let real = log.start_span("real");
+
+        log.end_span(SpanId(999), 50);
+
+        assert_eq!(log.active_span(), Some(real), "Unknown close should not affect stack");
+
+        log.end_span(real, 100);
+        assert_eq!(log.active_span(), None);
+    }
+
+    #[test]
+    fn nested_spans_record_parent_ids() {
+        let mut log = DecisionLog::new();
+        let outer = log.start_span("outer");
+        let inner = log.start_span("inner");
+        let deepest = log.start_span("deepest");
+
+        log.end_span(deepest, 10);
+        log.end_span(inner, 20);
+        log.end_span(outer, 30);
+
+        let starts: Vec<_> = log.get_events().iter().filter_map(|e| match e {
+            TraceEvent::StartSpan { id, parent_id, .. } => Some((*id, *parent_id)),
+            _ => None,
+        }).collect();
+
+        assert_eq!(starts.len(), 3);
+        assert_eq!(starts[0], (outer, None));
+        assert_eq!(starts[1], (inner, Some(outer)));
+        assert_eq!(starts[2], (deepest, Some(inner)));
+    }
+
+    #[test]
+    fn decisions_stamped_with_active_span() {
+        let mut log = DecisionLog::new();
+        let span_a = log.start_span("phase_a");
+
+        log.record(make_decision(1, DecisionTier::Deterministic, DecisionKind::Exact));
+        log.end_span(span_a, 100);
+
+        log.record(make_decision(2, DecisionTier::Deterministic, DecisionKind::Exact));
+
+        let decisions: Vec<_> = log.decisions().collect();
+        assert_eq!(decisions[0].get_span_id(), Some(span_a));
+        assert_eq!(decisions[1].get_span_id(), None);
+    }
+
+    #[test]
+    fn serde_roundtrip_resets_ephemeral_span_counter() {
+        let mut log = DecisionLog::new();
+        let _span = log.start_span("test");
+        log.record(make_decision(1, DecisionTier::Deterministic, DecisionKind::Exact));
+        log.end_span(_span, 100);
+
+        let json = serde_json::to_string(&log).expect("serialize");
+        let restored: DecisionLog = serde_json::from_str(&json).expect("deserialize");
+
+        assert_eq!(restored.active_span(), None, "span_stack is ephemeral, should be empty");
+
+        assert_eq!(
+            restored.decisions().count(),
+            log.decisions().count(),
+            "Decisions should survive serde roundtrip",
+        );
+
+        let new_span = restored.clone();
+        assert_eq!(new_span.get_events().len(), log.get_events().len());
+    }
+
+    #[test]
+    fn tier_filtering_returns_only_tier_2_plus() {
+        let mut log = DecisionLog::new();
+
+        log.record(make_decision(1, DecisionTier::Deterministic, DecisionKind::Exact));
+        log.record(make_decision(2, DecisionTier::NearBoundary,
+            DecisionKind::NearBoundary { threshold: 1e-6 }));
+        log.record(make_decision(3, DecisionTier::Escalated,
+            DecisionKind::Ambiguous { fallback_applied: "snap".into() }));
+        log.record(make_decision(4, DecisionTier::Deterministic, DecisionKind::Exact));
+
+        let interesting = log.interesting_only();
+        assert_eq!(interesting.len(), 2);
+        assert_eq!(interesting[0].get_id(), DecisionId(2));
+        assert_eq!(interesting[1].get_id(), DecisionId(3));
+    }
+
+    #[test]
+    fn display_interesting_empty_for_boring_spans() {
+        let mut log = DecisionLog::new();
+
+        for i in 0..10 {
+            let span = log.start_span(&format!("boring_{}", i));
+            log.record(make_decision(i, DecisionTier::Deterministic, DecisionKind::Exact));
+            log.end_span(span, 10);
+        }
+
+        let output = log.display_interesting();
+        assert!(
+            !output.contains("NearBoundary"),
+            "All-boring log should have no interesting content in display",
+        );
+    }
+
+    #[test]
+    fn trace_summary_diff_detects_added_decisions() {
+        let mut log_old = DecisionLog::new();
+        log_old.record(make_decision(1, DecisionTier::NearBoundary,
+            DecisionKind::NearBoundary { threshold: 1e-6 }));
+
+        let mut log_new = DecisionLog::new();
+        log_new.record(make_decision(1, DecisionTier::NearBoundary,
+            DecisionKind::NearBoundary { threshold: 1e-6 }));
+        log_new.record(make_decision(2, DecisionTier::Escalated,
+            DecisionKind::Ambiguous { fallback_applied: "snap".into() }));
+
+        let summary_old = log_old.to_summary(0xAAAA);
+        let summary_new = log_new.to_summary(0xBBBB);
+
+        let diff = summary_new.diff(&summary_old);
+
+        assert!(diff.state_hash_changed);
+        assert_eq!(diff.added.len(), 1);
+        assert_eq!(diff.added[0].get_id(), DecisionId(2));
+        assert!(diff.removed.is_empty());
+        assert!(diff.changed.is_empty());
+    }
+
+    #[test]
+    fn trace_summary_diff_detects_removed_decisions() {
+        let mut log_old = DecisionLog::new();
+        log_old.record(make_decision(1, DecisionTier::NearBoundary,
+            DecisionKind::NearBoundary { threshold: 1e-6 }));
+        log_old.record(make_decision(2, DecisionTier::Escalated,
+            DecisionKind::Ambiguous { fallback_applied: "snap".into() }));
+
+        let mut log_new = DecisionLog::new();
+        log_new.record(make_decision(1, DecisionTier::NearBoundary,
+            DecisionKind::NearBoundary { threshold: 1e-6 }));
+
+        let summary_old = log_old.to_summary(0xAAAA);
+        let summary_new = log_new.to_summary(0xAAAA);
+
+        let diff = summary_new.diff(&summary_old);
+
+        assert!(!diff.state_hash_changed);
+        assert!(diff.added.is_empty());
+        assert_eq!(diff.removed.len(), 1);
+        assert_eq!(diff.removed[0].get_id(), DecisionId(2));
+    }
+
+    #[test]
+    fn trace_summary_diff_detects_changed_tier() {
+        let mut log_old = DecisionLog::new();
+        log_old.record(make_decision(1, DecisionTier::NearBoundary,
+            DecisionKind::NearBoundary { threshold: 1e-6 }));
+
+        let mut log_new = DecisionLog::new();
+        log_new.record(make_decision(1, DecisionTier::Escalated,
+            DecisionKind::NearBoundary { threshold: 1e-6 }));
+
+        let summary_old = log_old.to_summary(0xAAAA);
+        let summary_new = log_new.to_summary(0xAAAA);
+
+        let diff = summary_new.diff(&summary_old);
+
+        assert!(diff.added.is_empty());
+        assert!(diff.removed.is_empty());
+        assert_eq!(diff.changed.len(), 1);
+        assert_eq!(diff.changed[0].0.get_tier(), DecisionTier::NearBoundary);
+        assert_eq!(diff.changed[0].1.get_tier(), DecisionTier::Escalated);
+    }
+
+    #[test]
+    fn trace_summary_diff_identical_is_empty() {
+        let mut log = DecisionLog::new();
+        log.record(make_decision(1, DecisionTier::NearBoundary,
+            DecisionKind::NearBoundary { threshold: 1e-6 }));
+        log.record(make_decision(2, DecisionTier::Escalated,
+            DecisionKind::Ambiguous { fallback_applied: "snap".into() }));
+
+        let summary = log.to_summary(0xAAAA);
+
+        let diff = summary.diff(&summary);
+
+        assert!(!diff.state_hash_changed);
+        assert!(diff.is_empty(), "Diffing a summary against itself should be empty");
+    }
+
+    #[test]
+    fn empty_log_to_summary_is_empty() {
+        let log = DecisionLog::new();
+        let summary = log.to_summary(0);
+
+        assert!(summary.get_interesting().is_empty());
+        assert!(summary.get_span_summaries().is_empty());
     }
 }

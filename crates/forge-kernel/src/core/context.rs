@@ -17,7 +17,7 @@
 //! but the policies won't be actively used until Phase 3 (curved surfaces).
 
 use forge_core::{
-    TracedDecision, DecisionKind, DecisionContext, DecisionId, DecisionLog,
+    TracedDecision, DecisionKind, DecisionContext, DecisionId, DecisionLog, DecisionTier,
 };
 use serde::{Deserialize, Serialize};
 
@@ -33,7 +33,7 @@ use serde::{Deserialize, Serialize};
 /// let ctx = ModelingContext::default();
 /// assert_eq!(ctx.get_decision_count(), 0);
 /// ```
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct ModelingContext {
     tolerance: TolerancePolicy,
     tangency: TangencyPolicy,
@@ -43,12 +43,35 @@ pub struct ModelingContext {
     tolerance_config: ToleranceConfig,
     decision_log: DecisionLog,
     decision_counter: u64,
+    /// When true, Drop persists the DecisionLog as an error trace
+    /// if take_decision_log() was never called (i.e. the operation failed).
+    auto_persist: bool,
+    /// Set by take_decision_log() to indicate the success path was taken.
+    log_drained: bool,
 }
 
 impl ModelingContext {
     /// Create a modeling context with default policies.
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            tolerance: TolerancePolicy::default(),
+            tangency: TangencyPolicy::default(),
+            sliver: SliverPolicy::default(),
+            gap_closure: GapClosurePolicy::default(),
+            precision: PrecisionEscalationPolicy::default(),
+            tolerance_config: ToleranceConfig::default(),
+            decision_log: DecisionLog::new(),
+            decision_counter: 0,
+            auto_persist: false,
+            log_drained: false,
+        }
+    }
+
+    /// Enable auto-persist on Drop. Call this on contexts used by
+    /// top-level operations (e.g. `execute_boolean`) so that error
+    /// traces are captured when the operation fails.
+    pub fn enable_auto_persist(&mut self) {
+        self.auto_persist = true;
     }
 
     /// Get the spatial tolerance policy.
@@ -111,10 +134,11 @@ impl ModelingContext {
         self.tolerance_config = config;
     }
 
-    /// Record a tolerance decision as a `TracedDecision`, auto-assigning a unique ID.
+    /// Record a tolerance decision, auto-assigning a unique ID.
     pub fn log_decision(
         &mut self,
         kind: DecisionKind,
+        tier: DecisionTier,
         _location: [f64; 3],
         margin: f64,
         threshold: f64,
@@ -123,10 +147,24 @@ impl ModelingContext {
         let decision = TracedDecision::new(
             DecisionId(self.decision_counter),
             kind,
+            tier,
             margin,
             DecisionContext::Tolerance { measured: margin, threshold },
         );
         self.decision_log.record(decision);
+    }
+
+    /// Execute `f` within a named span, recording start/end events.
+    pub fn scope<F, R>(&mut self, name: &'static str, f: F) -> R
+    where
+        F: FnOnce(&mut Self) -> R,
+    {
+        let span_id = self.decision_log.start_span(name);
+        let start = std::time::Instant::now();
+        let result = f(self);
+        let duration_micros = start.elapsed().as_micros() as u64;
+        self.decision_log.end_span(span_id, duration_micros);
+        result
     }
 
     /// Clear the decision log (for starting a fresh operation).
@@ -144,9 +182,44 @@ impl ModelingContext {
         &self.decision_log
     }
 
+    /// Get mutable access to the decision log.
+    pub fn get_decision_log_mut(&mut self) -> &mut DecisionLog {
+        &mut self.decision_log
+    }
+
     /// Take ownership of the decision log, replacing it with an empty one.
+    ///
+    /// Marks the log as drained so `Drop` knows the success path was taken.
     pub fn take_decision_log(&mut self) -> DecisionLog {
+        self.log_drained = true;
         std::mem::take(&mut self.decision_log)
+    }
+}
+
+impl Drop for ModelingContext {
+    /// Auto-persist the DecisionLog on error or panic.
+    ///
+    /// Only fires when `auto_persist` is enabled (top-level operations)
+    /// AND `take_decision_log()` was never called (the error path).
+    fn drop(&mut self) {
+        if !self.auto_persist || self.log_drained || self.decision_log.is_empty() {
+            return;
+        }
+
+        let dir = match forge_core::result::resolve_trace_dir() {
+            Some(d) => d,
+            None => return,
+        };
+
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            forge_core::result::write_trace_file(&dir, &self.decision_log, 0, "error");
+        }));
+    }
+}
+
+impl Default for ModelingContext {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -572,6 +645,7 @@ macro_rules! check_tolerance {
         if $value < $threshold {
             $ctx.log_decision(
                 $kind,
+                forge_core::DecisionTier::NearBoundary,
                 $location,
                 $value,
                 $threshold,
@@ -598,12 +672,13 @@ mod tests {
         let mut ctx = ModelingContext::new();
         ctx.log_decision(
             DecisionKind::NearBoundary { threshold: 1e-6 },
+            DecisionTier::NearBoundary,
             [1.0, 2.0, 3.0],
             1e-8,
             1e-6,
         );
         assert_eq!(ctx.get_decision_count(), 1);
-        let decisions = ctx.get_decision_log().get_all();
+        let decisions: Vec<_> = ctx.get_decision_log().decisions().collect();
         assert_eq!(decisions[0].get_id(), DecisionId(1));
     }
 
@@ -638,6 +713,7 @@ mod tests {
         let mut ctx = ModelingContext::new();
         ctx.log_decision(
             DecisionKind::Exact,
+            DecisionTier::Deterministic,
             [0.0, 0.0, 0.0],
             0.0,
             1e-6,

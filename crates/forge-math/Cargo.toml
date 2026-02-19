@@ -9,6 +9,7 @@ description = "Exact arithmetic, certified predicates, and filtered evaluation f
 num-bigint = "0.4"
 num-rational = "0.4"
 num-traits = "0.2"
+serde = { workspace = true, features = ["derive"] }
 
 [features]
 strict_env = []

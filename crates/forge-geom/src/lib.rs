@@ -8,47 +8,29 @@
 
 #![forbid(unsafe_code)]
 
-pub mod aabb;
-pub mod bvh;
-pub mod plane;
-pub mod implicit_vertex;
-pub mod bsp;
-pub mod ray;
-pub mod polygon;
+pub mod prelude;
+pub mod traits;
 
-use forge_core::{GeometrySource, KernelError};
-use crate::plane::Plane;
+pub mod primitives;
+pub mod spatial;
+pub mod curve;
+pub mod surface;
+pub mod algorithms;
+
+// Re-exports for cleaner API (optional, but requested "public re-exports only")
+pub use primitives::plane::Plane;
+pub use primitives::aabb::Aabb;
+pub use primitives::ray::{
+    compute_ray_plane_intersection, dominant_projection_axes,
+    resolve_zero_edge, scanline_edge_crossing, EdgeTieBreaker,
+};
+pub use primitives::implicit_vertex::ImplicitVertex;
+pub use spatial::bsp::BspTree;
+pub use spatial::bsp::PlaneSet; // Exposed for tests mostly?
+pub use spatial::bvh::BvhNode;
 
 /// Standard grid scale for spatial hashing (1 unit = 1e6 integers).
 pub const GRID_SCALE: f64 = 1e6;
-
-/// A collection of planes that implements `GeometrySource`.
-pub struct PlaneSet(Vec<Plane>);
-
-impl PlaneSet {
-    /// Create a new plane set from a vector of planes.
-    pub fn new(planes: Vec<Plane>) -> Self {
-        Self(planes)
-    }
-
-    /// The planes in this set.
-    pub fn planes(&self) -> &[Plane] {
-        &self.0
-    }
-}
-
-impl GeometrySource for PlaneSet {
-    fn get_plane(&self, index: usize) -> Result<[f64; 4], KernelError> {
-        let p = self.planes().get(index).ok_or_else(|| {
-            KernelError::InvalidInput {
-                message: format!("Plane index {} out of bounds", index),
-                context: None,
-            }
-        })?;
-        let n = p.raw_normal();
-        Ok([n[0], n[1], n[2], p.raw_offset()])
-    }
-}
 
 #[cfg(test)]
 mod tests {

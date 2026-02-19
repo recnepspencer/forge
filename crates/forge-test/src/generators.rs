@@ -5,9 +5,9 @@
 //! DEPENDENCIES: `forge-geom` (BSP), `forge-kernel` (mesh builder, boolean schema)
 
 use forge_core::KernelError;
-use forge_geom::bsp::{build_convex_polyhedron, BspConfig};
-use forge_geom::plane::Plane;
-use forge_kernel::boolean::{BooleanInput, BooleanOp};
+use forge_geom::spatial::bsp::{build_convex_polyhedron, BspConfig};
+use forge_geom::Plane;
+use forge_kernel::operations::boolean::{BooleanInput, BooleanOp};
 use forge_kernel::core::ModelingContext;
 use forge_kernel::geometry_store::GeometryStore;
 use forge_kernel::mesh_builder::build_halfedge_mesh;

@@ -3,9 +3,33 @@ name = "forge-view"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
-description = "Representation traits (SDF, tessellation) for the Forge geometry kernel"
+description = "Representation traits and trace viewer for the Forge geometry kernel"
+
+[[bin]]
+name = "forge-trace-server"
+path = "src/main.rs"
+
+[[bin]]
+name = "forge-trace-viewer"
+path = "src/viewer_main.rs"
+
+[[bin]]
+name = "forge-trace-cli"
+path = "src/cli_main.rs"
 
 [dependencies]
+forge-core = { path = "../forge-core" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Web server (trace-server binary)
+axum = "0.8"
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.6", features = ["cors", "fs"] }
+
+# Native GUI (trace-viewer binary)
+eframe = { workspace = true }
+notify = { workspace = true }
 
 [lints]
 workspace = true

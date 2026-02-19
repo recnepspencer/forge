@@ -6,7 +6,7 @@
 //! DEPENDENCIES: `forge-kernel` (execute_boolean), `forge-topo` (classify, validate)
 
 use forge_core::KernelError;
-use forge_kernel::boolean::{BooleanInput, BooleanOp, BooleanResult, execute_boolean};
+use forge_kernel::operations::boolean::{BooleanInput, BooleanOp, BooleanResult, execute_boolean};
 use forge_kernel::geometry_store::GeometryStore;
 use forge_topo::classify::{classify_point_in_solid, PointClassification};
 use forge_topo::handles::VertexId;
@@ -139,7 +139,7 @@ fn classify_in_solid(
                 context: None,
             }
         })?;
-        let vid = VertexId::new(index, gen);
+        let vid = VertexId::from_raw_parts(index, gen);
         geom.get_vertex_position(vid).copied().ok_or_else(|| {
             KernelError::InvalidInput {
                 message: format!("No position for vertex {index}"),
@@ -148,7 +148,7 @@ fn classify_in_solid(
         })
     };
 
-    let result = classify_point_in_solid(arena, &vertex_lookup, point, ray_extent, 1e-10);
+    let result = classify_point_in_solid(arena, &vertex_lookup, None, point, ray_extent, 1e-10);
     matches!(result, Ok(PointClassification::Inside | PointClassification::OnBoundary(_)))
 }
 

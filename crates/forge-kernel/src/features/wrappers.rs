@@ -5,9 +5,10 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use forge_core::KernelError;
+use forge_core::result::DecisionLog;
 use forge_signal::handles::NodeId;
-use crate::boolean::{BooleanInput, BooleanOp};
-use crate::boolean::execute_boolean;
+use crate::operations::boolean::{BooleanInput, BooleanOp};
+use crate::operations::boolean::execute_boolean;
 
 use super::traits::{Feature, FeatureOutput};
 
@@ -44,6 +45,7 @@ impl Feature for MakeCubeFeature {
         Ok(FeatureOutput {
             topology: topo,
             geometry: geom,
+            decision_log: DecisionLog::new(),
         })
     }
 
@@ -96,12 +98,15 @@ impl Feature for BooleanFeature {
             self.op,
         );
 
-        let result = execute_boolean(input)?.into_value();
+        let mut envelope = execute_boolean(input)?;
+        let log = envelope.take_decision_log();
+        let result = envelope.into_value();
         let (topo, geom) = result.into_parts();
 
         Ok(FeatureOutput {
             topology: topo,
             geometry: geom,
+            decision_log: log,
         })
     }
 

@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use forge_core::KernelError;
+use forge_core::result::DecisionLog;
 use forge_signal::handles::NodeId;
 use forge_topo::state::TopologyState;
 
@@ -17,6 +18,8 @@ pub struct FeatureOutput {
     pub topology: TopologyState,
     /// The resulting geometry.
     pub geometry: GeometryStore,
+    /// Traced decisions from this evaluation.
+    pub decision_log: DecisionLog,
 }
 
 /// A parametric feature that can be evaluated.

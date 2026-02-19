@@ -9,8 +9,8 @@
 //!
 //! DEPENDENCIES: All forge-signal modules
 
-use crate::context::EvaluationContext;
-use crate::eval::{evaluate, mark_dirty};
+use crate::evaluation::context::EvaluationContext;
+use crate::evaluation::{evaluate, mark_dirty};
 use crate::graph::SignalGraph;
 use crate::schema::{Aspect, AspectVersion, NodeState};
 

@@ -3,8 +3,8 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
-use forge_core::{GeometrySource, KernelError};
-use forge_geom::plane::Plane;
+use forge_math::{MathError, GeometrySource, PlaneCoefficients};
+use forge_geom::Plane;
 use forge_topo::handles::{FaceId, VertexId};
 
 /// Side-car geometry storage mapping topology handles to geometric data.
@@ -70,18 +70,17 @@ impl Default for GeometryStore {
 }
 
 impl GeometrySource for GeometryStore {
-    fn get_plane(&self, index: usize) -> Result<[f64; 4], KernelError> {
+    fn get_plane(&self, index: usize) -> Result<PlaneCoefficients, MathError> {
         for (&key, plane) in &self.face_planes {
             let stored_index = (key & 0xFFFF_FFFF) as usize;
             if stored_index == index {
                 let n = plane.normal();
-                return Ok([n[0], n[1], n[2], plane.offset()]);
+                return PlaneCoefficients::try_new(n[0], n[1], n[2], plane.offset());
             }
         }
-        Err(KernelError::InvalidInput {
-            message: format!("No plane found for face index {}", index),
-            context: None,
-        })
+        Err(MathError::InvalidInput(
+            format!("No plane found for face index {}", index),
+        ))
     }
 }
 

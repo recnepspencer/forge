@@ -15,16 +15,24 @@
 
 #![forbid(unsafe_code)]
 
-pub use error::MathError;
-
-pub mod sign;
 pub mod error;
-pub mod arithmetic;
-pub mod coincidence;
 pub mod env;
-pub mod deterministic_rng;
-pub mod linalg;
+pub mod geometry_source;
+
+pub mod prelude;
+pub mod traits;
+
+pub mod numeric;
+pub mod arithmetic;
 pub mod predicates;
+pub mod linalg;
+pub mod coincidence;
+
+pub use error::MathError;
+pub use geometry_source::{GeometrySource, PlaneCoefficients};
+// Re-exports
+pub use numeric::sign; // Commonly used
+pub use numeric::deterministic_rng; // Commonly used
 
 #[cfg(feature = "strict_env")]
 pub use env::init_fpu;

@@ -1,40 +1,32 @@
-//! # forge-topo
-//!
-//! Halfedge mesh data structure, Euler operators, and epoch-versioned
-//! topology state for the Forge geometry kernel.
-//!
-//! ## Architecture
-//!
-//! This crate owns the topological representation of solids.
-//! Key design principles:
-//!
-//! - **Typed handles** ([`handles`]): `FaceId`, `HalfEdgeId`, `VertexId` are
-//!   distinct types — passing the wrong one is a compile error
-//! - **Immutable state** ([`state`]): `TopologyState` is never mutated in place.
-//!   All changes go through `MutableDraft`, which auto-rolls back on drop (D6)
-//! - **Formalized operators** ([`operator`]): Every topology mutation implements
-//!   `EulerOperator` and is executed via `apply_op()` — the single choke point
-//! - **Provenance tracking** ([`lineage`]): Every entity knows where it came from
-//! - **Auto-validation** ([`validate`]): `draft.commit()` checks invariants automatically
-
 #![forbid(unsafe_code)]
 
-pub mod handles;
-pub mod lineage;
-pub mod state;
 pub mod arena;
-pub mod operator;
-pub mod validate;
-pub mod classify;
-pub mod ordering;
-pub mod replay;
-pub mod hashing;
-pub mod attributes;
+pub mod topology;
+pub mod prelude;
 
-pub mod euler;
-pub mod traverse;
-pub mod diff;
-pub mod brutality;
+// Re-exports to maintain public API compatibility or provide shortcuts
+pub use topology::handles;
+pub use topology::history::lineage;
+pub use topology::state;
+// operator was at root, now at topology::operations::operator
+// but users might expect `forge_topo::operator`.
+// Let's re-export `operator` from `topology::operations::operator` if possible?
+// No, let's align with the new structure.
+
+// Public re-exports from topology
+pub use topology::{
+    TopologyState, 
+    MutableDraft,
+    FaceId, VertexId, HalfEdgeId, LoopId,
+};
+
+pub use topology::operations::operator::EulerOperator;
+pub use topology::operations::operator;
+pub use topology::operations::euler;
+pub use topology::queries::{traverse, classify, ordering};
+pub use topology::history::replay;
+pub use topology::integrity::{diff, validate, hashing};
+pub use topology::attributes;
 
 #[cfg(test)]
 mod tests {

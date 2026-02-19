@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forge Trace Viewer</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface-hover: #1c2333;
+            --border: #30363d;
+            --text: #e6edf3;
+            --text-dim: #8b949e;
+            --accent: #58a6ff;
+            --green: #3fb950;
+            --yellow: #d29922;
+            --red: #f85149;
+            --orange: #db6d28;
+            --radius: 8px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 320px;
+            min-width: 320px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-header h1 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            letter-spacing: 0.5px;
+        }
+
+        .reload-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: inherit;
+        }
+
+        .reload-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        .trace-list {
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .trace-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .trace-item:hover { background: var(--surface-hover); }
+        .trace-item.active { background: var(--surface-hover); border-left: 3px solid var(--accent); }
+
+        .trace-item .name {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .trace-item .stats {
+            font-size: 10px;
+            color: var(--text-dim);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 4px;
+        }
+
+        .badge-green { background: rgba(63, 185, 80, 0.15); color: var(--green); }
+        .badge-yellow { background: rgba(210, 153, 34, 0.15); color: var(--yellow); }
+        .badge-red { background: rgba(248, 81, 73, 0.15); color: var(--red); }
+
+        /* Main panel */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .main-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        .main-header h2 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .meta-row {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-bottom: 2px;
+        }
+
+        .meta-row span { color: var(--text); }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 24px;
+        }
+
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-dim);
+            font-size: 13px;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .empty-state code {
+            color: var(--accent);
+            font-size: 12px;
+        }
+
+        /* Span rows */
+        .span-row {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+
+        .span-header {
+            padding: 10px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: background 0.1s;
+        }
+
+        .span-header:hover { background: var(--surface-hover); }
+
+        .span-chevron {
+            font-size: 10px;
+            color: var(--text-dim);
+            transition: transform 0.15s;
+            width: 12px;
+        }
+
+        .span-chevron.open { transform: rotate(90deg); }
+
+        .span-name {
+            font-size: 13px;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .span-timing {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .span-body {
+            border-top: 1px solid var(--border);
+            display: none;
+        }
+
+        .span-body.open { display: block; }
+
+        .span-loading {
+            padding: 12px 16px;
+            color: var(--text-dim);
+            font-size: 11px;
+        }
+
+        /* Decision rows */
+        .decision-row {
+            padding: 8px 16px 8px 40px;
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+
+        .decision-row:last-child { border-bottom: none; }
+        .decision-row:hover { background: var(--surface-hover); }
+
+        .decision-tier {
+            min-width: 50px;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 9px;
+            padding-top: 2px;
+        }
+
+        .tier-deterministic { color: var(--green); }
+        .tier-near-boundary, .tier-nearboundary { color: var(--yellow); }
+        .tier-ambiguous { color: var(--orange); }
+        .tier-forced { color: var(--red); }
+
+        .decision-text {
+            color: var(--text-dim);
+            flex: 1;
+            line-height: 1.4;
+        }
+
+        .decision-margin {
+            color: var(--text-dim);
+            font-size: 10px;
+            min-width: 70px;
+            text-align: right;
+        }
+
+        .decision-detail {
+            display: none;
+            padding: 8px 16px 12px 40px;
+            background: rgba(88, 166, 255, 0.04);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .decision-detail.open { display: block; }
+
+        .decision-detail pre {
+            font-size: 10px;
+            color: var(--text-dim);
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+
+        /* Timing bar */
+        .timing-bar {
+            height: 4px;
+            background: var(--accent);
+            border-radius: 2px;
+            opacity: 0.4;
+            min-width: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h1>⚒ FORGE TRACES</h1>
+            <button class="reload-btn" onclick="reload()">↻ reload</button>
+        </div>
+        <div class="trace-list" id="trace-list"></div>
+    </div>
+
+    <div class="main">
+        <div id="main-header" class="main-header" style="display:none"></div>
+        <div class="content" id="content">
+            <div class="empty-state">
+                <div>No trace selected</div>
+                <div>Run tests with trace persistence, then click a trace on the left</div>
+                <code>cargo test -p forge-kernel</code>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = '';
+        let maxDuration = 1;
+
+        async function fetchJson(url) {
+            const res = await fetch(API + url);
+            if (!res.ok) return null;
+            return res.json();
+        }
+
+        async function reload() {
+            await fetch(API + '/api/reload', { method: 'POST' });
+            loadTraces();
+        }
+
+        async function loadTraces() {
+            const traces = await fetchJson('/api/traces');
+            const list = document.getElementById('trace-list');
+            if (!traces || traces.length === 0) {
+                list.innerHTML = '<div class="empty-state" style="height:200px"><div>No traces found</div><code>POST /api/reload</code></div>';
+                return;
+            }
+            list.innerHTML = traces.map(t => {
+                const badge = t.interesting_count > 0
+                    ? `<span class="badge badge-yellow">${t.interesting_count} interesting</span>`
+                    : `<span class="badge badge-green">clean</span>`;
+                return `<div class="trace-item" data-id="${t.id}" onclick="selectTrace('${t.id}')">
+                    <div class="name">${t.name}</div>
+                    <div class="stats">${t.total_decisions} decisions ${badge}
+                        · ${t.span_count} spans</div>
+                </div>`;
+            }).join('');
+        }
+
+        async function selectTrace(id) {
+            document.querySelectorAll('.trace-item').forEach(el => el.classList.remove('active'));
+            const item = document.querySelector(`.trace-item[data-id="${id}"]`);
+            if (item) item.classList.add('active');
+
+            const trace = await fetchJson(`/api/traces/${id}`);
+            if (!trace) return;
+
+            const header = document.getElementById('main-header');
+            header.style.display = 'block';
+
+            const hashHex = '0x' + BigInt(trace.meta.state_hash).toString(16).toUpperCase().padStart(32, '0');
+            header.innerHTML = `
+                <h2>${trace.meta.name}</h2>
+                <div class="meta-row">Decisions: <span>${trace.meta.total_decisions}</span>
+                    · Interesting: <span>${trace.meta.interesting_count}</span>
+                    · Spans: <span>${trace.meta.span_count}</span></div>
+                <div class="meta-row">State hash: <span>${hashHex}</span></div>
+                <div class="meta-row">Timestamp: <span>${trace.meta.timestamp}</span></div>
+            `;
+
+            maxDuration = Math.max(1, ...trace.spans.map(s => s.duration_micros));
+
+            const content = document.getElementById('content');
+            if (trace.spans.length === 0) {
+                content.innerHTML = '<div class="empty-state"><div>No spans recorded</div></div>';
+                return;
+            }
+
+            content.innerHTML = trace.spans.map(s => {
+                const tierClass = tierToClass(s.max_tier);
+                const barWidth = Math.max(2, (s.duration_micros / maxDuration) * 100);
+                const decBadge = s.total_decisions > 0
+                    ? `<span class="badge ${s.max_tier !== 'deterministic' ? 'badge-yellow' : 'badge-green'}">${s.total_decisions}</span>`
+                    : '';
+                return `<div class="span-row" data-trace="${id}" data-span="${s.span_id}">
+                    <div class="span-header" onclick="toggleSpan(this, '${id}', ${s.span_id})">
+                        <span class="span-chevron">▶</span>
+                        <span class="span-name">${s.name}</span>
+                        ${decBadge}
+                        <span class="span-timing">${formatDuration(s.duration_micros)}</span>
+                        <div class="timing-bar" style="width:${barWidth}%"></div>
+                    </div>
+                    <div class="span-body" id="span-body-${s.span_id}">
+                        <div class="span-loading">Loading decisions…</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function toggleSpan(headerEl, traceId, spanId) {
+            const chevron = headerEl.querySelector('.span-chevron');
+            const body = document.getElementById(`span-body-${spanId}`);
+
+            if (body.classList.contains('open')) {
+                body.classList.remove('open');
+                chevron.classList.remove('open');
+                return;
+            }
+
+            chevron.classList.add('open');
+            body.classList.add('open');
+
+            if (body.dataset.loaded) return;
+
+            const decisions = await fetchJson(`/api/traces/${traceId}/spans/${spanId}`);
+            body.dataset.loaded = 'true';
+
+            if (!decisions || decisions.length === 0) {
+                body.innerHTML = '<div class="span-loading">No decisions in this span</div>';
+                return;
+            }
+
+            body.innerHTML = decisions.map((d, i) => `
+                <div class="decision-row" onclick="toggleDecisionDetail(this)">
+                    <span class="decision-tier ${tierToClass(d.tier)}">${d.tier}</span>
+                    <span class="decision-text">${escapeHtml(d.display)}</span>
+                    <span class="decision-margin">m=${d.margin.toExponential(1)}</span>
+                </div>
+                <div class="decision-detail" id="decision-detail-${spanId}-${i}">
+                    <pre>${escapeHtml(JSON.stringify(d, null, 2))}</pre>
+                </div>
+            `).join('');
+        }
+
+        function toggleDecisionDetail(rowEl) {
+            const detail = rowEl.nextElementSibling;
+            if (detail) detail.classList.toggle('open');
+        }
+
+        function tierToClass(tier) {
+            const t = tier.toLowerCase().replace(/[^a-z]/g, '');
+            if (t === 'deterministic') return 'tier-deterministic';
+            if (t.includes('near') || t.includes('boundary')) return 'tier-near-boundary';
+            if (t.includes('ambiguous')) return 'tier-ambiguous';
+            if (t.includes('forced')) return 'tier-forced';
+            return 'tier-deterministic';
+        }
+
+        function formatDuration(micros) {
+            if (micros < 1000) return micros + 'µs';
+            if (micros < 1000000) return (micros / 1000).toFixed(1) + 'ms';
+            return (micros / 1000000).toFixed(2) + 's';
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        loadTraces();
+    </script>
+</body>
+</html>
