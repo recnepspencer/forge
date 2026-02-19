@@ -11,6 +11,7 @@
 //! - Extracting minimal reproduction cases
 
 use crate::lineage::OpSignature;
+use forge_core::DecisionDelta;
 
 /// A single entry in the replay log.
 ///
@@ -29,6 +30,8 @@ pub struct ReplayEntry {
     pre_hash: u128,
     /// Topology hash after this operation (0 if not yet committed).
     post_hash: u128,
+    /// Decision delta relative to the previous step (P3.1).
+    decision_delta: Option<DecisionDelta>,
 }
 
 impl ReplayEntry {
@@ -45,6 +48,7 @@ impl ReplayEntry {
             seed,
             pre_hash,
             post_hash: 0,
+            decision_delta: None,
         }
     }
 
@@ -76,6 +80,16 @@ impl ReplayEntry {
     /// The post-operation topology hash.
     pub fn post_hash(&self) -> u128 {
         self.post_hash
+    }
+
+    /// The decision delta relative to the previous step.
+    pub fn get_decision_delta(&self) -> Option<&DecisionDelta> {
+        self.decision_delta.as_ref()
+    }
+
+    /// Set the decision delta for this entry.
+    pub fn set_decision_delta(&mut self, delta: DecisionDelta) {
+        self.decision_delta = Some(delta);
     }
 }
 

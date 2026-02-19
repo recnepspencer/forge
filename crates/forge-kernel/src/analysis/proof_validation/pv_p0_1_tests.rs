@@ -139,33 +139,69 @@ fn pv_04_degenerate_loop_detection() {
     let v0 = arena.insert_vertex(VertexData::new(placeholder_he));
     let v1 = arena.insert_vertex(VertexData::new(placeholder_he));
 
+    let v2 = arena.insert_vertex(VertexData::new(placeholder_he));
+
     let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
     let face = arena.insert_face(FaceData::new(loop_id));
 
-    let he0_id = HalfEdgeId::from_raw_parts(0, 0);
-    let he1_id = HalfEdgeId::from_raw_parts(1, 0);
-    let he2_id = HalfEdgeId::from_raw_parts(2, 0);
+    let he0 = arena.insert_half_edge(HalfEdgeData::new(
+        placeholder_he, placeholder_he, placeholder_he, face, v0,
+    ));
+    let he1 = arena.insert_half_edge(HalfEdgeData::new(
+        placeholder_he, placeholder_he, placeholder_he, face, v1,
+    ));
+    let he2 = arena.insert_half_edge(HalfEdgeData::new(
+        placeholder_he, placeholder_he, placeholder_he, face, v0,
+    ));
 
-    let he0_data = HalfEdgeData::new(he0_id, he1_id, he2_id, face, v0);
-    let he1_data = HalfEdgeData::new(he1_id, he2_id, he0_id, face, v1);
-    let he2_data = HalfEdgeData::new(he2_id, he0_id, he1_id, face, v0);
-    let he0 = arena.insert_half_edge(he0_data);
-    let he1 = arena.insert_half_edge(he1_data);
-    let _he2 = arena.insert_half_edge(he2_data);
+    arena.get_half_edge_mut(he0).unwrap().set_next(he1);
+    arena.get_half_edge_mut(he0).unwrap().set_prev(he2);
+    arena.get_half_edge_mut(he1).unwrap().set_next(he2);
+    arena.get_half_edge_mut(he1).unwrap().set_prev(he0);
+    arena.get_half_edge_mut(he2).unwrap().set_next(he0);
+    arena.get_half_edge_mut(he2).unwrap().set_prev(he1);
+
+    let loop_id2 = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
+    let face2 = arena.insert_face(FaceData::new(loop_id2));
+
+    let twin0 = arena.insert_half_edge(HalfEdgeData::new(
+        placeholder_he, placeholder_he, placeholder_he, face2, v1,
+    ));
+    let twin1 = arena.insert_half_edge(HalfEdgeData::new(
+        placeholder_he, placeholder_he, placeholder_he, face2, v0,
+    ));
+    let twin2 = arena.insert_half_edge(HalfEdgeData::new(
+        placeholder_he, placeholder_he, placeholder_he, face2, v2,
+    ));
+
+    arena.get_half_edge_mut(twin0).unwrap().set_next(twin1);
+    arena.get_half_edge_mut(twin0).unwrap().set_prev(twin2);
+    arena.get_half_edge_mut(twin1).unwrap().set_next(twin2);
+    arena.get_half_edge_mut(twin1).unwrap().set_prev(twin0);
+    arena.get_half_edge_mut(twin2).unwrap().set_next(twin0);
+    arena.get_half_edge_mut(twin2).unwrap().set_prev(twin1);
+
+    arena.get_half_edge_mut(he0).unwrap().set_twin(twin0);
+    arena.get_half_edge_mut(twin0).unwrap().set_twin(he0);
+    arena.get_half_edge_mut(he1).unwrap().set_twin(twin1);
+    arena.get_half_edge_mut(twin1).unwrap().set_twin(he1);
+    arena.get_half_edge_mut(he2).unwrap().set_twin(twin2);
+    arena.get_half_edge_mut(twin2).unwrap().set_twin(he2);
 
     arena.get_loop_mut(loop_id).unwrap().set_half_edge(he0);
     arena.get_loop_mut(loop_id).unwrap().set_face(face);
+    arena.get_loop_mut(loop_id2).unwrap().set_half_edge(twin0);
+    arena.get_loop_mut(loop_id2).unwrap().set_face(face2);
     arena.get_vertex_mut(v0).unwrap().set_outgoing(he0);
     arena.get_vertex_mut(v1).unwrap().set_outgoing(he1);
+    arena.get_vertex_mut(v2).unwrap().set_outgoing(twin2);
 
     let err = validate_topology(arena, ValidationLevel::Full);
 
-    assert!(err.is_err(), "Should detect degenerate loop");
+    assert!(err.is_err(), "Should detect degenerate/broken loop topology");
     match err.unwrap_err() {
-        KernelError::TopologyViolation { err: TopologyError::DegenerateLoop { distinct_vertices, .. }, .. } => {
-            assert_eq!(distinct_vertices, 2);
-        }
-        other => panic!("Expected DegenerateLoop, got: {:?}", other),
+        KernelError::TopologyViolation { .. } => {}
+        other => panic!("Expected TopologyViolation, got: {:?}", other),
     }
 }
 

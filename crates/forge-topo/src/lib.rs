@@ -25,7 +25,7 @@ pub use topology::operations::operator;
 pub use topology::operations::euler;
 pub use topology::queries::{traverse, classify, ordering};
 pub use topology::history::replay;
-pub use topology::integrity::{diff, validate, hashing};
+pub use topology::integrity::{diff, validate, hashing, healing};
 pub use topology::attributes;
 
 #[cfg(test)]

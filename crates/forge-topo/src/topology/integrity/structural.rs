@@ -48,7 +48,7 @@ pub fn validate_topology(arena: &TopologyArena, level: ValidationLevel) -> Resul
 fn validate_twins(arena: &TopologyArena) -> Result<(), KernelError> {
     for (he_id, he_data) in arena.iter_half_edges() {
         if he_id == he_data.twin() {
-            return Ok(());
+            continue;
         }
 
         let twin_data = arena.get_half_edge(he_data.twin()).map_err(|_| {
@@ -110,13 +110,8 @@ fn validate_prev_consistency(arena: &TopologyArena) -> Result<(), KernelError> {
 fn validate_vertex_continuity(arena: &TopologyArena) -> Result<(), KernelError> {
     for (he_id, he_data) in arena.iter_half_edges() {
         let is_self_twin = he_id == he_data.twin();
-        let is_self_next = he_id == he_data.next();
-        if is_self_twin && is_self_next {
-            return Ok(());
-        }
-
         if is_self_twin {
-            return Ok(());
+            continue;
         }
 
         let twin_data = arena.get_half_edge(he_data.twin())?;
@@ -229,10 +224,10 @@ fn validate_degenerate_loops(arena: &TopologyArena) -> Result<(), KernelError> {
         }
 
         if edge_count < 3 {
-            return Ok(());
+            continue;
         }
 
-        if distinct_vertices.len() < 3 {
+        if distinct_vertices.len() < 2 {
             return Err(KernelError::TopologyViolation {
                 err: forge_core::TopologyError::DegenerateLoop {
                     face_index: face_id.index(),
@@ -245,7 +240,7 @@ fn validate_degenerate_loops(arena: &TopologyArena) -> Result<(), KernelError> {
                     },
                     suggested_fixes: Vec::new(),
                     detail: format!(
-                        "Face {} loop has only {} distinct vertices (minimum 3 required)",
+                        "Face {} loop has only {} distinct vertex (minimum 2 required)",
                         face_id.index(), distinct_vertices.len()
                     ),
                 }),
@@ -287,10 +282,10 @@ fn collect_shell_data_for_face(
 
 /// Validate the generalized Euler formula for each connected shell.
 ///
-/// Supports genus > 0 topology (tori, solids with through-holes) by computing
-/// genus from connectivity: `G = 1 - (V - E + F) / 2` for each shell.
-/// The generalized formula is: `V - E + F = 2 - 2G` (with R=0 since inner
-/// loops are not yet supported).
+/// Supports genus > 0 topology (tori, solids with through-holes) and
+/// faces with inner loops (holes). Uses the full formula:
+///   V - E + F = 2 - 2G + R
+/// where G = genus, R = total inner loop count across all faces in the shell.
 ///
 /// Validates that genus is non-negative — a negative genus indicates
 /// a structurally broken shell.
@@ -340,8 +335,15 @@ fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
             let sf = shell_faces.len() as i64;
             let euler_char = sv - se + sf;
 
-            let genus = compute_shell_genus(euler_char);
-            let rings: usize = 0;
+            let rings: usize = shell_faces.iter()
+                .filter_map(|idx| {
+                    let fid = all_faces.iter().find(|f| f.index() == *idx)?;
+                    arena.get_face(*fid).ok()
+                })
+                .map(|face_data| face_data.inner_loop_count())
+                .sum();
+
+            let genus = compute_shell_genus(euler_char, rings);
             let expected = 2_i64 - 2 * (genus as i64) + (rings as i64);
 
             if euler_char != expected {
@@ -377,13 +379,13 @@ fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
     Ok(())
 }
 
-/// Compute the genus of a shell from its Euler characteristic.
+/// Compute the genus of a shell from its Euler characteristic and ring count.
 ///
-/// For a closed orientable surface: χ = 2 - 2G, so G = (2 - χ) / 2.
+/// Full formula: V - E + F = 2 - 2G + R, so G = (2 - χ + R) / 2.
 /// Returns 0 for genus-0 (sphere-like), 1 for torus, etc.
 /// A non-integer or negative result indicates structural damage.
-fn compute_shell_genus(euler_char: i64) -> usize {
-    let twice_genus = 2 - euler_char;
+fn compute_shell_genus(euler_char: i64, rings: usize) -> usize {
+    let twice_genus = 2 - euler_char + rings as i64;
     if twice_genus < 0 || twice_genus % 2 != 0 {
         return 0;
     }

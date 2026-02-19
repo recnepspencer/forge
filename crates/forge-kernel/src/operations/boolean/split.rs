@@ -262,6 +262,11 @@ pub fn split_all_faces(
     // 5. Perform Splits (shared registry ensures each intersection is computed once)
     let mut shared_registry = SharedVertexRegistry::new();
 
+    eprintln!("=== TARGET SPLIT PHASE (cuts: {} faces) ===", target_cuts.len());
+    for (fid, cuts) in &target_cuts {
+        eprintln!("  Target face={} cuts={:?}", fid, cuts);
+    }
+
     let (target_res_topo, target_res_geom, target_splits, target_dedup) = split_solid(
         target_topo, target_geom, target_cuts, &target_face_planes, &mut plane_table, &config, &mut shared_registry, ctx
     )?;
@@ -428,12 +433,14 @@ fn compute_face_aabbs(arena: &TopologyArena, geom: &GeometryStore) -> Result<Vec
     Ok(list)
 }
 
-/// Expand cuts to target faces adjacent to coplanar overlaps.
+/// Expand cuts to coplanar target faces AND their adjacent faces.
 ///
-/// When a target face is coplanar with a tool face, the BVH only finds
-/// that one target face. But adjacent target faces (side walls, etc.)
-/// also need to be split by the tool's boundary planes. Without this,
-/// dropping the coplanar face leaves orphaned edges on adjacent faces.
+/// When a target face is coplanar with a tool face, the BVH overlap
+/// loop skips it (same plane index → no cut proposed). But the coplanar
+/// face may extend beyond the tool's footprint and must be subdivided
+/// by the tool's non-coplanar boundary planes. Adjacent faces (side
+/// walls, etc.) also need these cuts so that dropping the coplanar
+/// region doesn't leave orphaned edges.
 fn expand_coplanar_adjacency(
     arena: &TopologyArena,
     target_face_planes: &HashMap<FaceId, usize>,
@@ -455,6 +462,28 @@ fn expand_coplanar_adjacency(
     }
 
     let mut extra_cuts: Vec<(FaceId, Vec<usize>)> = Vec::new();
+
+    for (target_fid, &target_plane_idx) in target_face_planes {
+        if !coplanar_targets.contains(&target_fid.index()) {
+            continue;
+        }
+
+        let mut applicable_cuts = Vec::new();
+        for &cut_idx in &tool_plane_set {
+            if cut_idx == target_plane_idx {
+                continue;
+            }
+            let target_plane = plane_table.get(target_plane_idx);
+            let cut_plane = plane_table.get(cut_idx);
+            if !planes_are_parallel(target_plane, cut_plane) {
+                applicable_cuts.push(cut_idx);
+            }
+        }
+
+        if !applicable_cuts.is_empty() {
+            extra_cuts.push((*target_fid, applicable_cuts));
+        }
+    }
 
     for (he_id, he_data) in arena.iter_half_edges() {
         let face_a = he_data.face();
@@ -538,41 +567,64 @@ fn split_face_by_plane(
         return Ok(None); 
     }
 
-    let v_a = resolve_cut_point(&cut_points[0], draft, geometry, dedup)?;
-    let v_b = resolve_cut_point(&cut_points[1], draft, geometry, dedup)?;
-
-    let pos_a = geometry.get_vertex_position(v_a).map(|p| format!("[{:.4},{:.4},{:.4}]", p[0], p[1], p[2])).unwrap_or_else(|| "??".into());
-    let pos_b = geometry.get_vertex_position(v_b).map(|p| format!("[{:.4},{:.4},{:.4}]", p[0], p[1], p[2])).unwrap_or_else(|| "??".into());
-    eprintln!("DEBUG: face={} cut_points found v_a={} {} v_b={} {} plane_n={:?}", face, v_a, pos_a, v_b, pos_b, cut_plane.normal());
-
-    if v_a == v_b { 
-        eprintln!("DEBUG: face={} rejected - v_a == v_b", face);
-        for (i, cp) in cut_points.iter().enumerate() {
-            eprintln!("  cut_point[{}]: {:?}", i, cp);
-        }
-        return Ok(None); 
+    // Resolve ALL cut points to vertex IDs first.
+    let mut resolved: Vec<VertexId> = Vec::new();
+    for cp in &cut_points {
+        let vid = resolve_cut_point(cp, draft, geometry, dedup)?;
+        resolved.push(vid);
     }
 
-    // Check if an edge already exists between v_a and v_b (prevents double-split).
-    // This happens when coplanar tool faces (e.g., adjacent faces on the same flat
-    // side of a cube) both try to cut the same target edge.
-    let mut edge_already_exists = false;    // Verify face is convex
-    let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), face)?
+    // Build the set of adjacent vertex pairs on this face's boundary.
+    let face_edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), face)?
         .collect::<Result<Vec<_>, _>>()?;
-    for he in edges {
-        let origin = draft.arena().get_half_edge(he)?.origin();
-        let next_he = draft.arena().get_half_edge(he)?.next();
+    let mut adjacent_pairs: HashSet<(u32, u32)> = HashSet::new();
+    for he in &face_edges {
+        let origin = draft.arena().get_half_edge(*he)?.origin();
+        let next_he = draft.arena().get_half_edge(*he)?.next();
         let dest = draft.arena().get_half_edge(next_he)?.origin();
-        
-        if (origin == v_a && dest == v_b) || (origin == v_b && dest == v_a) {
-            edge_already_exists = true;
+        let key = if origin.index() <= dest.index() {
+            (origin.index(), dest.index())
+        } else {
+            (dest.index(), origin.index())
+        };
+        adjacent_pairs.insert(key);
+    }
+
+    // Find the first pair of non-adjacent, distinct cut-point vertices.
+    let mut best_pair: Option<(VertexId, VertexId)> = None;
+    for i in 0..resolved.len() {
+        for j in (i + 1)..resolved.len() {
+            let va = resolved[i];
+            let vb = resolved[j];
+            if va == vb {
+                continue;
+            }
+            let key = if va.index() <= vb.index() {
+                (va.index(), vb.index())
+            } else {
+                (vb.index(), va.index())
+            };
+            if !adjacent_pairs.contains(&key) {
+                best_pair = Some((va, vb));
+                break;
+            }
+        }
+        if best_pair.is_some() {
             break;
         }
     }
 
-    if edge_already_exists {
-        return Ok(None);
-    }
+    let (v_a, v_b) = match best_pair {
+        Some(pair) => pair,
+        None => {
+            eprintln!("DEBUG: face={} rejected - all {} cut points are adjacent", face, resolved.len());
+            return Ok(None);
+        }
+    };
+
+    let pos_a = geometry.get_vertex_position(v_a).map(|p| format!("[{:.4},{:.4},{:.4}]", p[0], p[1], p[2])).unwrap_or_else(|| "??".into());
+    let pos_b = geometry.get_vertex_position(v_b).map(|p| format!("[{:.4},{:.4},{:.4}]", p[0], p[1], p[2])).unwrap_or_else(|| "??".into());
+    eprintln!("DEBUG: face={} cut pair v_a={} {} v_b={} {} (from {} cut points)", face, v_a, pos_a, v_b, pos_b, resolved.len());
 
     let op = MakeEdgeFace { vertex_a: v_a, vertex_b: v_b, face };
     

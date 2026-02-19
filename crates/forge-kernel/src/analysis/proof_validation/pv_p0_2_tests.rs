@@ -9,7 +9,7 @@ use forge_core::{KernelError, TopologyError};
 use forge_topo::validate::{validate_topology, ValidationLevel};
 use forge_topo::state::{TopologyState, DraftConfig};
 use forge_topo::arena::{FaceData, HalfEdgeData, VertexData, LoopData};
-use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
+use forge_topo::handles::{FaceId, HalfEdgeId, VertexId, LoopId};
 use crate::mesh_builder::make_cube;
 
 /// PV-05: A genus-1 topology passes the generalized Euler formula.
@@ -149,3 +149,202 @@ fn pv_08_removed_edge_fails_euler() {
     let err = validate_topology(arena, ValidationLevel::Full);
     assert!(err.is_err(), "Should fail after edge removal");
 }
+
+/// PV-06: Cube with through-hole passes generalized Euler (R=2, G=1).
+///
+/// Topology: 16 vertices (8 outer + 8 inner), 10 faces (4 outer sides,
+/// 4 inner channel sides, 2 annular caps with inner loops), R=2.
+///
+/// Uses the same directed-edge-map stitching pattern as `make_cube`/
+/// `stitch_twins` — each face inserts halfedges into an edge_map keyed
+/// by (origin_vertex, target_vertex), then twins are paired via
+/// (a,b)↔(b,a) matching. This guarantees correct twin pairing.
+///
+/// Generalized Euler: V-E+F = 2-2G+R = 2-2(1)+2 = 2.
+#[test]
+fn pv_06_through_hole_passes_euler() {
+    use forge_topo::arena::LoopData;
+    use std::collections::BTreeMap;
+
+    let mut config = DraftConfig::default();
+    config.validation_level = ValidationLevel::None;
+
+    let state = TopologyState::empty();
+    let mut draft = state.into_mutation_with(config);
+    let arena = draft.arena_mut();
+
+    let placeholder_he = HalfEdgeId::from_raw_parts(0, 0);
+    let placeholder_face = FaceId::from_raw_parts(0, 0);
+
+    let mut verts: Vec<VertexId> = Vec::new();
+    for _ in 0..16 {
+        verts.push(arena.insert_vertex(VertexData::new(placeholder_he)));
+    }
+
+    let outer_faces: Vec<Vec<usize>> = vec![
+        vec![0, 1, 5, 4],
+        vec![1, 2, 6, 5],
+        vec![2, 3, 7, 6],
+        vec![3, 0, 4, 7],
+    ];
+
+    let inner_faces: Vec<Vec<usize>> = vec![
+        vec![8, 12, 13, 9],
+        vec![9, 13, 14, 10],
+        vec![10, 14, 15, 11],
+        vec![11, 15, 12, 8],
+    ];
+
+    let top_outer: Vec<usize> = vec![3, 2, 1, 0];
+    let top_inner: Vec<usize> = vec![8, 9, 10, 11];
+    let bot_outer: Vec<usize> = vec![4, 5, 6, 7];
+    let bot_inner: Vec<usize> = vec![15, 14, 13, 12];
+
+    let mut edge_map: BTreeMap<(u32, u32), HalfEdgeId> = BTreeMap::new();
+
+    let mut build_face_loop = |arena: &mut forge_topo::arena::TopologyArena,
+                                face_verts: &[usize],
+                                edge_map: &mut BTreeMap<(u32, u32), HalfEdgeId>|
+        -> (FaceId, LoopId)
+    {
+        let n = face_verts.len();
+        let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
+        let face = arena.insert_face(FaceData::new(loop_id));
+
+        let mut he_ids: Vec<HalfEdgeId> = Vec::new();
+        for _ in 0..n {
+            let he = arena.insert_half_edge(HalfEdgeData::new(
+                placeholder_he, placeholder_he, placeholder_he, face, verts[0],
+            ));
+            he_ids.push(he);
+        }
+
+        for k in 0..n {
+            let origin = verts[face_verts[k]];
+            let target = verts[face_verts[(k + 1) % n]];
+            let he_mut = arena.get_half_edge_mut(he_ids[k]).unwrap();
+            he_mut.set_origin(origin);
+            he_mut.set_next(he_ids[(k + 1) % n]);
+            he_mut.set_prev(he_ids[(k + n - 1) % n]);
+            he_mut.set_face(face);
+
+            edge_map.insert(
+                (verts[face_verts[k]].index(), verts[face_verts[(k + 1) % n]].index()),
+                he_ids[k],
+            );
+        }
+
+        arena.get_loop_mut(loop_id).unwrap().set_half_edge(he_ids[0]);
+        arena.get_loop_mut(loop_id).unwrap().set_face(face);
+
+        for k in 0..n {
+            arena.get_vertex_mut(verts[face_verts[k]]).unwrap().set_outgoing(he_ids[k]);
+        }
+
+        (face, loop_id)
+    };
+
+    for face_verts in &outer_faces {
+        build_face_loop(arena, face_verts, &mut edge_map);
+    }
+
+    for face_verts in &inner_faces {
+        build_face_loop(arena, face_verts, &mut edge_map);
+    }
+
+    let (top_face, _top_loop) = build_face_loop(arena, &top_outer, &mut edge_map);
+
+    let top_inner_loop = {
+        let n = top_inner.len();
+        let il_loop_id = arena.insert_loop(LoopData::new(placeholder_he, top_face));
+        let mut il_he_ids: Vec<HalfEdgeId> = Vec::new();
+        for _ in 0..n {
+            let he = arena.insert_half_edge(HalfEdgeData::new(
+                placeholder_he, placeholder_he, placeholder_he, top_face, verts[0],
+            ));
+            il_he_ids.push(he);
+        }
+        for k in 0..n {
+            let origin = verts[top_inner[k]];
+            let target_idx = top_inner[(k + 1) % n];
+            let he_mut = arena.get_half_edge_mut(il_he_ids[k]).unwrap();
+            he_mut.set_origin(origin);
+            he_mut.set_next(il_he_ids[(k + 1) % n]);
+            he_mut.set_prev(il_he_ids[(k + n - 1) % n]);
+            he_mut.set_face(top_face);
+            edge_map.insert(
+                (verts[top_inner[k]].index(), verts[target_idx].index()),
+                il_he_ids[k],
+            );
+        }
+        arena.get_loop_mut(il_loop_id).unwrap().set_half_edge(il_he_ids[0]);
+        arena.get_face_mut(top_face).unwrap().add_inner_loop(il_loop_id);
+        il_loop_id
+    };
+
+    let (bot_face, _bot_loop) = build_face_loop(arena, &bot_outer, &mut edge_map);
+
+    let bot_inner_loop = {
+        let n = bot_inner.len();
+        let il_loop_id = arena.insert_loop(LoopData::new(placeholder_he, bot_face));
+        let mut il_he_ids: Vec<HalfEdgeId> = Vec::new();
+        for _ in 0..n {
+            let he = arena.insert_half_edge(HalfEdgeData::new(
+                placeholder_he, placeholder_he, placeholder_he, bot_face, verts[0],
+            ));
+            il_he_ids.push(he);
+        }
+        for k in 0..n {
+            let origin = verts[bot_inner[k]];
+            let target_idx = bot_inner[(k + 1) % n];
+            let he_mut = arena.get_half_edge_mut(il_he_ids[k]).unwrap();
+            he_mut.set_origin(origin);
+            he_mut.set_next(il_he_ids[(k + 1) % n]);
+            he_mut.set_prev(il_he_ids[(k + n - 1) % n]);
+            he_mut.set_face(bot_face);
+            edge_map.insert(
+                (verts[bot_inner[k]].index(), verts[target_idx].index()),
+                il_he_ids[k],
+            );
+        }
+        arena.get_loop_mut(il_loop_id).unwrap().set_half_edge(il_he_ids[0]);
+        arena.get_face_mut(bot_face).unwrap().add_inner_loop(il_loop_id);
+        il_loop_id
+    };
+
+    for (&(a, b), &he_ab) in &edge_map.clone() {
+        if let Some(&he_ba) = edge_map.get(&(b, a)) {
+            arena.get_half_edge_mut(he_ab).unwrap().set_twin(he_ba);
+            arena.get_half_edge_mut(he_ba).unwrap().set_twin(he_ab);
+        }
+    }
+
+    let mut total_inner_loops: usize = 0;
+    for (_, face_data) in arena.iter_faces() {
+        total_inner_loops += face_data.inner_loop_count();
+    }
+    assert_eq!(total_inner_loops, 2, "Should have 2 inner loops (R=2)");
+
+    let v_count = arena.vertex_count() as i64;
+    let f_count = arena.face_count() as i64;
+
+    let mut edge_set: std::collections::BTreeSet<(u32, u32)> = std::collections::BTreeSet::new();
+    for (id, data) in arena.iter_half_edges() {
+        if id != data.twin() {
+            let lo = id.index().min(data.twin().index());
+            let hi = id.index().max(data.twin().index());
+            edge_set.insert((lo, hi));
+        }
+    }
+    let e_count = edge_set.len() as i64;
+    let euler_char = v_count - e_count + f_count;
+
+    assert_eq!(
+        euler_char, 2,
+        "Through-hole cube: V({v_count})-E({e_count})+F({f_count})={euler_char}, expected 2"
+    );
+
+    let result = validate_topology(arena, ValidationLevel::Full);
+    assert!(result.is_ok(), "Through-hole cube should pass Euler: {:?}", result.err());
+}
+

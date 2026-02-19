@@ -7,6 +7,7 @@ use forge_topo::state::TopologyState;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 
 use crate::analysis::proof_validation::checkpoint::{run_checkpoint, ValidationCheckpoint};
+use crate::analysis::proof_validation::diagnose_pipeline::{diagnose_arena, PipelineStage};
 
 use crate::core::ModelingContext;
 use crate::geometry_store::GeometryStore;
@@ -172,11 +173,13 @@ pub fn execute_boolean(input: BooleanInput) -> Result<OperationResult<BooleanRes
     let mut envelope = wrap_boolean_result(result, start_time);
     envelope.set_decision_log(ctx.take_decision_log());
 
+    let result_geom_ref = envelope.get_value().geometry();
+    let pos_fn = |vid| result_geom_ref.get_vertex_position(vid).copied();
     let validation_result = run_checkpoint(
         envelope.get_value().topology().arena(),
         ctx.get_validation_config(),
         ValidationCheckpoint::PostBoolean,
-        None,
+        Some(&pos_fn),
         1e-10,
         1e-12,
     )?;
@@ -254,6 +257,9 @@ fn assemble_result(
 
     cleanup_degenerate_topology(&mut draft, &result_geom)?;
 
+    let post_copy_diag = diagnose_arena(draft.arena(), PipelineStage::PostCopy);
+    eprintln!("[PIPELINE_DIAG] {post_copy_diag}");
+
     // Filter out any halfedges that cleanup may have deleted
     let active_he_ids: Vec<HalfEdgeId> = all_new_he_ids.iter()
         .filter(|id| draft.arena().get_half_edge(**id).is_ok())
@@ -263,6 +269,9 @@ fn assemble_result(
     match stitch_twins(&mut draft, &active_he_ids, &result_geom, ctx) {
         Ok(()) => {}
         Err(e) => {
+            let stitch_diag = diagnose_arena(draft.arena(), PipelineStage::PostStitch);
+            eprintln!("[PIPELINE_DIAG] {stitch_diag}");
+
             let cleaned = cleanup_degenerate_topology(&mut draft, &result_geom)?;
             if cleaned > 0 {
                 let remaining_he: Vec<HalfEdgeId> = draft.arena().iter_half_edges()

@@ -5,10 +5,15 @@
 //! into `TraceEvent` spans. The log is queryable, serializable, diffable,
 //! and auto-persistable to disk.
 //!
+//! - `checkpoint_diff`: Checkpoint diffing for causal replay (P3.1)
+//! - `delta_debug`: Binary search for minimal failure-inducing step (P3.2)
+//!
 //! DEPENDENCIES: serde, serde_json (persistence)
 
 mod schema;
 mod decision_log;
+pub mod checkpoint_diff;
+pub mod delta_debug;
 mod persistence;
 mod logging;
 
@@ -24,6 +29,10 @@ pub use schema::{
 pub use decision_log::{
     DecisionLog, DecisionSummary, SpanSummaryEntry,
     TraceSummary, TraceDiff,
+};
+
+pub use checkpoint_diff::{
+    DecisionDelta, DecisionChange, CheckpointLog, diff_decision_logs,
 };
 
 pub use persistence::{resolve_trace_dir, write_trace_file};

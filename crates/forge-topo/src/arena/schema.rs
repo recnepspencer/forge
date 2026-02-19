@@ -44,18 +44,19 @@ impl<T: Clone> Slot<T> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FaceData {
     outer_loop: LoopId,
+    inner_loops: Vec<LoopId>,
     lineage: Option<Lineage>,
 }
 
 impl FaceData {
     /// Construct a new face with the given outer loop.
     pub fn new(outer_loop: LoopId) -> Self {
-        Self { outer_loop, lineage: None }
+        Self { outer_loop, inner_loops: Vec::new(), lineage: None }
     }
 
     /// Construct a new face with lineage.
     pub fn with_lineage(outer_loop: LoopId, lineage: Option<Lineage>) -> Self {
-        Self { outer_loop, lineage }
+        Self { outer_loop, inner_loops: Vec::new(), lineage }
     }
 
     /// The outer boundary loop of this face.
@@ -66,6 +67,15 @@ impl FaceData {
 
     /// Set the outer boundary loop.
     pub fn set_outer_loop(&mut self, id: LoopId) { self.outer_loop = id; }
+
+    /// Inner loops (holes) on this face.
+    pub fn inner_loops(&self) -> &[LoopId] { &self.inner_loops }
+
+    /// Add an inner loop (hole boundary) to this face.
+    pub fn add_inner_loop(&mut self, id: LoopId) { self.inner_loops.push(id); }
+
+    /// Number of inner loops (rings) on this face.
+    pub fn inner_loop_count(&self) -> usize { self.inner_loops.len() }
 
     /// Set inline lineage.
     pub fn set_lineage(&mut self, lineage: Option<Lineage>) { self.lineage = lineage; }

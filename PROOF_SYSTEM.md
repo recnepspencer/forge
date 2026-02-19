@@ -548,7 +548,7 @@ MB-N6: Bit-growth budget: 100 chained exact rational operations — bit length s
 **Acceptance:**
 - PV-33: 10-step Boolean chain → diffs correctly identify new decisions at each step
 - PV-34: Identical operation re-run → diff is empty (no spurious changes)
-
+- PV-34.5: 10-step Boolean chain → diff_decision_logs produces exact zero false positives and zero false negatives against a full sequential trace. The union of the diffs exactly reconstructs the final DecisionLog
 ---
 
 ### Milestone P3.2 — Minimal Region Extractor 🔴
@@ -566,7 +566,7 @@ MB-N6: Bit-growth budget: 100 chained exact rational operations — bit length s
 **Acceptance:**
 - PV-35: Extract 3-ring neighborhood of a face → produces valid, serializable sub-mesh
 - PV-36: Delta-debug on a 100-step chain with injected failure at step 73 → finds step 73 automatically
-
+- PV-36.5: Extract 3-ring neighborhood around a failing entity → the serialized sub-mesh must independently reproduce the exact same ProofFailure or DivergenceReport when the failing operation is applied to it in isolation.
 ---
 
 ### Milestone P3.3 — Causal Decision Chain Reconstruction 🔴
@@ -620,6 +620,7 @@ MB-N6: Bit-growth budget: 100 chained exact rational operations — bit length s
 - PV-37: Face created by Boolean → causal chain traces back through split → classification → assembly → origin feature
 - PV-38: Causal chain for a face in a 50-step chain has < 10 relevant steps (not all 50)
 - PV-54: `ChainSummary` for a 50-step entity is < 200 tokens and contains the tightest-margin decision
+- PV-54.5: Causal chain for an entity in a 50-step chain excludes all operations that did not mutate the entity or its direct topological N-ring, but retains 100% of operations that altered its bounding vertices/edges. No missing ancestors.
 
 ---
 
@@ -638,6 +639,7 @@ MB-N6: Bit-growth budget: 100 chained exact rational operations — bit length s
 **Acceptance:**
 - PV-39: Override a NearBoundary decision → counterfactual produces valid alternative topology
 - PV-40: Override a decision that was correct → counterfactual produces broken topology (proving the original was necessary)
+- PV-40.5: Override a NearBoundary decision → counterfactual executes deterministically, completely bypassing the original divergence, and the resulting alternative topology passes Layer 1 (Invariants) and Layer 2 (Dual-Path) checks without returning NonManifold
 
 ---
 

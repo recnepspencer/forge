@@ -12,9 +12,8 @@ forge-topo.workspace = true
 forge-geom.workspace = true
 forge-signal.workspace = true
 serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
 
 [lints]
 workspace = true
 
-[dev-dependencies]
-serde_json.workspace = true

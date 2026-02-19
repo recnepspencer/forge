@@ -340,3 +340,174 @@ fn empty_log_to_summary_is_empty() {
     assert!(summary.get_interesting().is_empty());
     assert!(summary.get_span_summaries().is_empty());
 }
+
+// =====================================================================
+// Phase P3.1: Checkpoint Diffing Tests
+// =====================================================================
+
+use super::checkpoint_diff::{diff_decision_logs, CheckpointLog};
+
+#[test]
+fn diff_decision_logs_detects_added() {
+    let before = DecisionLog::new();
+    let mut after = DecisionLog::new();
+    after.record(make_decision(1, DecisionTier::Deterministic, DecisionKind::Exact));
+    after.record(make_decision(2, DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 }));
+
+    let delta = diff_decision_logs(&before, &after);
+
+    assert_eq!(delta.get_added().len(), 2);
+    assert!(delta.get_removed().is_empty());
+    assert!(delta.get_changed().is_empty());
+    assert!(!delta.is_empty());
+    assert_eq!(delta.total_changes(), 2);
+}
+
+#[test]
+fn diff_decision_logs_detects_removed() {
+    let mut before = DecisionLog::new();
+    before.record(make_decision(1, DecisionTier::Deterministic, DecisionKind::Exact));
+    before.record(make_decision(2, DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 }));
+
+    let after = DecisionLog::new();
+
+    let delta = diff_decision_logs(&before, &after);
+
+    assert!(delta.get_added().is_empty());
+    assert_eq!(delta.get_removed().len(), 2);
+    assert!(delta.get_changed().is_empty());
+}
+
+#[test]
+fn diff_decision_logs_detects_changed_tier() {
+    let mut before = DecisionLog::new();
+    before.record(make_decision(1, DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 }));
+
+    let mut after = DecisionLog::new();
+    after.record(make_decision(1, DecisionTier::Escalated,
+        DecisionKind::NearBoundary { threshold: 1e-6 }));
+
+    let delta = diff_decision_logs(&before, &after);
+
+    assert!(delta.get_added().is_empty());
+    assert!(delta.get_removed().is_empty());
+    assert_eq!(delta.get_changed().len(), 1);
+    assert!(delta.get_changed()[0].is_tier_changed());
+    assert!(!delta.get_changed()[0].is_kind_changed());
+}
+
+#[test]
+fn diff_decision_logs_detects_changed_margin() {
+    let mut before = DecisionLog::new();
+    before.record(TracedDecision::new(
+        DecisionId(1), DecisionKind::Exact, DecisionTier::Deterministic, 0.5,
+        DecisionContext::Tolerance { measured: 1e-8, threshold: 1e-6 },
+    ));
+
+    let mut after = DecisionLog::new();
+    after.record(TracedDecision::new(
+        DecisionId(1), DecisionKind::Exact, DecisionTier::Deterministic, 0.9,
+        DecisionContext::Tolerance { measured: 1e-8, threshold: 1e-6 },
+    ));
+
+    let delta = diff_decision_logs(&before, &after);
+
+    assert_eq!(delta.get_changed().len(), 1);
+    assert!(!delta.get_changed()[0].is_kind_changed());
+    assert!(!delta.get_changed()[0].is_tier_changed());
+    assert!((delta.get_changed()[0].get_margin_delta() - 0.4).abs() < 1e-10);
+}
+
+#[test]
+fn diff_decision_logs_identical_is_empty() {
+    let mut log = DecisionLog::new();
+    log.record(make_decision(1, DecisionTier::Deterministic, DecisionKind::Exact));
+    log.record(make_decision(2, DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 }));
+    log.record(make_decision(3, DecisionTier::Escalated,
+        DecisionKind::Ambiguous { fallback_applied: "snap".into() }));
+
+    let delta = diff_decision_logs(&log, &log);
+
+    assert!(delta.is_empty(), "Diffing a log against itself should be empty");
+    assert_eq!(delta.total_changes(), 0);
+}
+
+#[test]
+fn checkpoint_log_snapshot_and_delta() {
+    let mut checkpoint = CheckpointLog::new();
+
+    let mut log = DecisionLog::new();
+    log.record(make_decision(1, DecisionTier::Deterministic, DecisionKind::Exact));
+    checkpoint.snapshot(&log);
+
+    log.record(make_decision(2, DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 }));
+    checkpoint.snapshot(&log);
+
+    assert_eq!(checkpoint.step_count(), 2);
+    assert!(checkpoint.delta_at(0).is_none(), "Step 0 has no predecessor");
+
+    let delta = checkpoint.delta_at(1).expect("Step 1 should have a delta");
+    assert_eq!(delta.get_added().len(), 1);
+    assert_eq!(delta.get_added()[0].get_id(), DecisionId(2));
+    assert!(delta.get_removed().is_empty());
+}
+
+#[test]
+fn checkpoint_log_temporal_range_query() {
+    let mut checkpoint = CheckpointLog::new();
+
+    let mut log = DecisionLog::new();
+    checkpoint.snapshot(&log);
+
+    log.record(make_decision(1, DecisionTier::Deterministic, DecisionKind::Exact));
+    checkpoint.snapshot(&log);
+
+    log.record(make_decision(2, DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 }));
+    checkpoint.snapshot(&log);
+
+    log.record(make_decision(3, DecisionTier::Escalated,
+        DecisionKind::Ambiguous { fallback_applied: "snap".into() }));
+    checkpoint.snapshot(&log);
+
+    assert_eq!(checkpoint.step_count(), 4);
+
+    let delta_0_to_3 = checkpoint.delta_between(0, 3).expect("Should have delta");
+    assert_eq!(delta_0_to_3.get_added().len(), 3, "All 3 decisions should appear as added");
+
+    let delta_1_to_3 = checkpoint.delta_between(1, 3).expect("Should have delta");
+    assert_eq!(delta_1_to_3.get_added().len(), 2, "Decisions 2 and 3 should appear as added");
+
+    assert!(checkpoint.delta_between(0, 99).is_none(), "Out of bounds should return None");
+}
+
+// =====================================================================
+// Phase P3.2: Delta-Debug Tests
+// =====================================================================
+
+use super::delta_debug::delta_debug;
+
+#[test]
+fn delta_debug_finds_exact_step() {
+    let result = delta_debug(100, |step| Ok(step >= 73)).unwrap();
+    assert_eq!(result.get_failing_step(), 73);
+    assert_eq!(result.get_total_steps(), 100);
+    assert!(result.get_probes_used() <= 10, "Binary search on 100 steps should take ≤ 10 probes");
+}
+
+#[test]
+fn delta_debug_failure_at_first_step() {
+    let result = delta_debug(100, |step| Ok(step >= 0)).unwrap();
+    assert_eq!(result.get_failing_step(), 0);
+}
+
+#[test]
+fn delta_debug_failure_at_last_step() {
+    let result = delta_debug(100, |step| Ok(step >= 99)).unwrap();
+    assert_eq!(result.get_failing_step(), 99);
+}
