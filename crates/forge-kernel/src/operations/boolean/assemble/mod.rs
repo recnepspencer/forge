@@ -10,3 +10,4 @@ pub mod disjoint;
 pub mod merge;
 
 pub use merge::execute_boolean;
+pub use merge::execute_boolean_with_overrides;

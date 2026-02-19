@@ -44,12 +44,18 @@ impl SpatialAccelerator for BvhNode<FaceId> {
 
 
 /// Result of classifying a point relative to a solid's boundary.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum PointClassification {
     /// Point is strictly inside the solid.
-    Inside,
+    Inside {
+        /// Optional precision escalation that occurred during classification.
+        escalation: Option<forge_math::arithmetic::filter::PrecisionEscalation>,
+    },
     /// Point is strictly outside the solid.
-    Outside,
+    Outside {
+        /// Optional precision escalation that occurred during classification.
+        escalation: Option<forge_math::arithmetic::filter::PrecisionEscalation>,
+    },
     /// Point lies exactly on a boundary face.
     OnBoundary(FaceId),
 }
@@ -61,11 +67,12 @@ pub enum PointClassification {
 /// comparison is a compile error — enforcing Doctrine D3.
 pub fn classify_point_against_face(
     orientation: CertifiedTriSign,
+    escalation: Option<forge_math::arithmetic::filter::PrecisionEscalation>,
     face: FaceId,
 ) -> PointClassification {
     match orientation.sign() {
-        TriSign::Pos => PointClassification::Outside,
-        TriSign::Neg => PointClassification::Inside,
+        TriSign::Pos => PointClassification::Outside { escalation },
+        TriSign::Neg => PointClassification::Inside { escalation },
         TriSign::Zero => PointClassification::OnBoundary(face),
     }
 }
@@ -116,6 +123,21 @@ pub fn classify_point_in_solid(
 
     let mut crossing_count: i32 = 0;
 
+    let mut max_escalation: Option<forge_math::arithmetic::filter::PrecisionEscalation> = None;
+
+    let mut update_escalation = |new_esc: Option<forge_math::arithmetic::filter::PrecisionEscalation>| {
+        if let Some(esc) = new_esc {
+            match &mut max_escalation {
+                Some(existing) => {
+                    if esc.resolved_at > existing.resolved_at {
+                        *existing = esc;
+                    }
+                }
+                None => max_escalation = Some(esc),
+            }
+        }
+    };
+
     // Optimization: If spatial index is provided, only check candidate faces.
     // Otherwise, iterate all faces (O(N) fallback).
     if let Some(bvh) = spatial_index {
@@ -134,8 +156,13 @@ pub fn classify_point_in_solid(
     
             match interaction {
                 RayFaceInteraction::OnBoundary => return Ok(PointClassification::OnBoundary(face_id)),
-                RayFaceInteraction::Intersection => crossing_count += 1,
-                RayFaceInteraction::None => {},
+                RayFaceInteraction::Intersection { escalation } => {
+                    update_escalation(escalation);
+                    crossing_count += 1;
+                }
+                RayFaceInteraction::None { escalation } => {
+                    update_escalation(escalation);
+                }
             }
         }
     } else {
@@ -151,16 +178,21 @@ pub fn classify_point_in_solid(
     
             match interaction {
                 RayFaceInteraction::OnBoundary => return Ok(PointClassification::OnBoundary(face_id)),
-                RayFaceInteraction::Intersection => crossing_count += 1,
-                RayFaceInteraction::None => {},
+                RayFaceInteraction::Intersection { escalation } => {
+                    update_escalation(escalation);
+                    crossing_count += 1;
+                }
+                RayFaceInteraction::None { escalation } => {
+                    update_escalation(escalation);
+                }
             }
         }
     }
 
     if crossing_count % 2 == 1 {
-        Ok(PointClassification::Inside)
+        Ok(PointClassification::Inside { escalation: max_escalation })
     } else {
-        Ok(PointClassification::Outside)
+        Ok(PointClassification::Outside { escalation: max_escalation })
     }
 }
 
@@ -169,9 +201,13 @@ enum RayFaceInteraction {
     /// The ray origin lies exactly on the face.
      OnBoundary,
     /// The ray strictly intersects the face interior (or valid edge/vertex crossing).
-    Intersection,
+    Intersection {
+        escalation: Option<forge_math::arithmetic::filter::PrecisionEscalation>,
+    },
     /// The ray does not intersect (or grazes in a non-crossing way).
-    None,
+    None {
+        escalation: Option<forge_math::arithmetic::filter::PrecisionEscalation>,
+    },
 }
 
 /// Determine if a ray intersects a face using certified predicates.
@@ -191,58 +227,81 @@ fn ray_intersects_face_exact(
     }
 
     if positions.len() < 3 {
-        return Ok(RayFaceInteraction::None);
+        return Ok(RayFaceInteraction::None { escalation: None });
     }
 
+    let mut max_escalation: Option<forge_math::arithmetic::filter::PrecisionEscalation> = None;
+    let mut update_escalation = |new_esc: Option<forge_math::arithmetic::filter::PrecisionEscalation>| {
+        if let Some(esc) = new_esc {
+            match &mut max_escalation {
+                Some(existing) => {
+                    if esc.resolved_at > existing.resolved_at {
+                        *existing = esc;
+                    }
+                }
+                None => max_escalation = Some(esc.clone()),
+            }
+        }
+    };
+
     let basis = match find_certified_basis(&positions)? {
-        Some(b) => b,
+        Some((b, esc)) => {
+            update_escalation(esc);
+            b
+        }
         None => {
             // Degenerate face (collinear vertices).
             // It has no area, so it cannot contain a point (unless point is on the line?).
             // For boolean solid classification, zero-area faces are ignored for parity.
-            return Ok(RayFaceInteraction::None);
+            return Ok(RayFaceInteraction::None { escalation: max_escalation });
         }
     };
 
     let (p0, p1, p2) = basis;
-    let orient_origin = orient3d(p0, p1, p2, *origin)
+    let (orient_origin, origin_esc) = orient3d(p0, p1, p2, *origin)
         .map_err(|e| KernelError::InternalError { message: e.to_string(), context: None })?;
+    update_escalation(Some(origin_esc));
     
     let sign_origin = orient_origin.sign();
 
     if sign_origin == TriSign::Zero {
-         if point_in_projected_polygon(origin, &positions)? {
+         let (in_poly, poly_esc) = point_in_projected_polygon(origin, &positions)?;
+         update_escalation(poly_esc);
+         if in_poly {
              return Ok(RayFaceInteraction::OnBoundary);
          } else {
-             return Ok(RayFaceInteraction::None);
+             return Ok(RayFaceInteraction::None { escalation: max_escalation });
          }
     }
 
-    let orient_far = orient3d(p0, p1, p2, *far)
+    let (orient_far, far_esc) = orient3d(p0, p1, p2, *far)
         .map_err(|e| KernelError::InternalError { message: e.to_string(), context: None })?;
+    update_escalation(Some(far_esc));
     
     let sign_far = orient_far.sign();
 
     // If both are on same side, no intersection.
     if sign_origin == sign_far {
-        return Ok(RayFaceInteraction::None);
+        return Ok(RayFaceInteraction::None { escalation: max_escalation });
     }
     
     // If far is on plane, we treat it as no intersection (open interval).
     if sign_far == TriSign::Zero {
-        return Ok(RayFaceInteraction::None);
+        return Ok(RayFaceInteraction::None { escalation: max_escalation });
     }
 
     let hit = match compute_ray_plane_intersection(origin, far, &positions, tolerance) {
         Ok(h) => h,
-        Err(_) => return Ok(RayFaceInteraction::None),
+        Err(_) => return Ok(RayFaceInteraction::None { escalation: max_escalation }),
     };
 
     // Step 3: Check if hit point is inside the polygon.
-    if point_in_projected_polygon(&hit, &positions)? {
-        Ok(RayFaceInteraction::Intersection)
+    let (in_poly, poly_esc) = point_in_projected_polygon(&hit, &positions)?;
+    update_escalation(poly_esc);
+    if in_poly {
+        Ok(RayFaceInteraction::Intersection { escalation: max_escalation })
     } else {
-        Ok(RayFaceInteraction::None)
+        Ok(RayFaceInteraction::None { escalation: max_escalation })
     }
 }
 
@@ -258,16 +317,30 @@ fn ray_intersects_face_exact(
 /// Returns `None` if all vertices are collinear (degenerate face).
 fn find_certified_basis(
     params: &[[f64; 3]],
-) -> Result<Option<([f64; 3], [f64; 3], [f64; 3])>, KernelError> {
+) -> Result<Option<(([f64; 3], [f64; 3], [f64; 3]), Option<forge_math::arithmetic::filter::PrecisionEscalation>)>, KernelError> {
     if params.len() < 3 { return Ok(None); }
 
     let (u_axis, v_axis) = dominant_projection_axes(params);
     let p0 = params[0];
     let p1 = params[1];
 
+    let mut max_escalation: Option<forge_math::arithmetic::filter::PrecisionEscalation> = None;
+    let mut update_escalation = |new_esc: Option<forge_math::arithmetic::filter::PrecisionEscalation>| {
+        if let Some(esc) = new_esc {
+            match &mut max_escalation {
+                Some(existing) => {
+                    if esc.resolved_at > existing.resolved_at {
+                        *existing = esc;
+                    }
+                }
+                None => max_escalation = Some(esc.clone()),
+            }
+        }
+    };
+
     for k in 2..params.len() {
         let pk = params[k];
-        let orient = orient2d(
+        let (orient, esc) = orient2d(
             [p0[u_axis], p0[v_axis]],
             [p1[u_axis], p1[v_axis]],
             [pk[u_axis], pk[v_axis]],
@@ -276,8 +349,10 @@ fn find_certified_basis(
             context: None,
         })?;
 
+        update_escalation(Some(esc));
+
         if orient.sign() != TriSign::Zero {
-            return Ok(Some((p0, p1, pk)));
+            return Ok(Some(((p0, p1, pk), max_escalation)));
         }
     }
 
@@ -288,15 +363,28 @@ fn find_certified_basis(
 fn point_in_projected_polygon(
     hit: &[f64; 3],
     verts: &[[f64; 3]],
-) -> Result<bool, KernelError> {
+) -> Result<(bool, Option<forge_math::arithmetic::filter::PrecisionEscalation>), KernelError> {
     let n = verts.len();
-    if n < 3 { return Ok(false); }
+    if n < 3 { return Ok((false, None)); }
 
     let (u_axis, v_axis) = dominant_projection_axes(verts);
     let hit_u = hit[u_axis];
     let hit_v = hit[v_axis];
 
     let mut winding: i32 = 0;
+    let mut max_escalation: Option<forge_math::arithmetic::filter::PrecisionEscalation> = None;
+    let mut update_escalation = |new_esc: Option<forge_math::arithmetic::filter::PrecisionEscalation>| {
+        if let Some(esc) = new_esc {
+            match &mut max_escalation {
+                Some(existing) => {
+                    if esc.resolved_at > existing.resolved_at {
+                        *existing = esc;
+                    }
+                }
+                None => max_escalation = Some(esc.clone()),
+            }
+        }
+    };
 
     for i in 0..n {
         let j = (i + 1) % n;
@@ -305,7 +393,7 @@ fn point_in_projected_polygon(
         let vj_u = verts[j][u_axis];
         let vj_v = verts[j][v_axis];
 
-        let orient = orient2d(
+        let (orient, esc) = orient2d(
             [vi_u, vi_v],
             [vj_u, vj_v],
             [hit_u, hit_v],
@@ -313,6 +401,8 @@ fn point_in_projected_polygon(
             message: format!("orient2d error: {e}"),
             context: None,
         })?;
+
+        update_escalation(Some(esc));
 
         let sign = match orient.sign() {
             TriSign::Zero => match resolve_zero_edge(
@@ -332,7 +422,7 @@ fn point_in_projected_polygon(
         }
     }
 
-    Ok(winding != 0)
+    Ok((winding != 0, max_escalation))
 }
 
 #[cfg(test)]
@@ -354,12 +444,12 @@ mod tests {
         b: &[f64; 3],
         c: &[f64; 3],
     ) -> Result<bool, KernelError> {
-        let o_orient = orient3d(*a, *b, *c, *origin)
+        let (o_orient, _) = orient3d(*a, *b, *c, *origin)
             .map_err(|e| KernelError::InternalError {
                 message: format!("orient3d error: {e}"),
                 context: None,
             })?;
-        let f_orient = orient3d(*a, *b, *c, *far)
+        let (f_orient, _) = orient3d(*a, *b, *c, *far)
             .map_err(|e| KernelError::InternalError {
                 message: format!("orient3d error: {e}"),
                 context: None,
@@ -373,17 +463,17 @@ mod tests {
             return Ok(false);
         }
 
-        let d0 = orient3d(*origin, *far, *a, *b)
+        let (d0, _) = orient3d(*origin, *far, *a, *b)
             .map_err(|e| KernelError::InternalError {
                 message: format!("orient3d error: {e}"),
                 context: None,
             })?;
-        let d1 = orient3d(*origin, *far, *b, *c)
+        let (d1, _) = orient3d(*origin, *far, *b, *c)
             .map_err(|e| KernelError::InternalError {
                 message: format!("orient3d error: {e}"),
                 context: None,
             })?;
-        let d2 = orient3d(*origin, *far, *c, *a)
+        let (d2, _) = orient3d(*origin, *far, *c, *a)
             .map_err(|e| KernelError::InternalError {
                 message: format!("orient3d error: {e}"),
                 context: None,
@@ -402,40 +492,40 @@ mod tests {
 
     #[test]
     fn point_above_plane_classified_outside() {
-        let orientation = orient3d(
+        let (orientation, _) = orient3d(
             [0.0, 0.0, 0.0],
             [1.0, 0.0, 0.0],
             [0.0, 1.0, 0.0],
             [0.0, 0.0, -1.0],
         ).unwrap();
         let face = FaceId::new(0, 1);
-        let result = classify_point_against_face(orientation, face);
-        assert_eq!(result, PointClassification::Outside);
+        let result = classify_point_against_face(orientation, None, face);
+        assert_eq!(result, PointClassification::Outside { escalation: None });
     }
 
     #[test]
     fn point_below_plane_classified_inside() {
-        let orientation = orient3d(
+        let (orientation, _) = orient3d(
             [0.0, 0.0, 0.0],
             [1.0, 0.0, 0.0],
             [0.0, 1.0, 0.0],
             [0.0, 0.0, 1.0],
         ).unwrap();
         let face = FaceId::new(0, 1);
-        let result = classify_point_against_face(orientation, face);
-        assert_eq!(result, PointClassification::Inside);
+        let result = classify_point_against_face(orientation, None, face);
+        assert_eq!(result, PointClassification::Inside { escalation: None });
     }
 
     #[test]
     fn coplanar_point_classified_on_boundary() {
-        let orientation = orient3d(
+        let (orientation, _) = orient3d(
             [0.0, 0.0, 0.0],
             [1.0, 0.0, 0.0],
             [0.0, 1.0, 0.0],
             [1.0, 1.0, 0.0],
         ).unwrap();
         let face = FaceId::new(0, 1);
-        let result = classify_point_against_face(orientation, face);
+        let result = classify_point_against_face(orientation, None, face);
         assert_eq!(result, PointClassification::OnBoundary(face));
     }
 

@@ -22,12 +22,13 @@ mod classify;
 mod postprocess;
 pub mod assemble;
 #[cfg(test)]
-mod test_helpers;
+pub mod test_helpers;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]
 mod brutality;
 mod debug;
 
-pub use schema::{BooleanInput, BooleanOp, BooleanResult};
+pub use schema::{BooleanInput, BooleanOp, BooleanResult, FaceClassification};
 pub use assemble::execute_boolean;
+pub use assemble::execute_boolean_with_overrides;

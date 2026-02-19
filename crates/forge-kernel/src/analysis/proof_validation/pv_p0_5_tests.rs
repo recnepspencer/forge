@@ -191,7 +191,7 @@ fn pv_14b_entity_limit_config() {
     assert!(!result_failed.is_passed());
     assert_eq!(result_failed.error_detail(), Some("Euler violation"));
 
-    let no_limit_config = ValidationConfig::default();
+    let no_limit_config = ValidationConfig::debug_default();
     assert!(!no_limit_config.should_skip_for_entity_count(999999));
 }
 

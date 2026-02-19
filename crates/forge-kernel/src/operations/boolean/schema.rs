@@ -3,6 +3,8 @@
 use serde::{Deserialize, Serialize};
 use forge_topo::state::TopologyState;
 use forge_topo::handles::FaceId;
+use forge_topo::replay::ReplayLog;
+use forge_topo::lineage::LineageEvent;
 use crate::geometry_store::GeometryStore;
 
 /// A Boolean operation type.
@@ -17,6 +19,7 @@ pub enum BooleanOp {
 }
 
 /// Input to a Boolean operation: two solids with their geometry.
+#[derive(Clone)]
 pub struct BooleanInput {
     /// The target (base) solid topology.
     target_topology: TopologyState,
@@ -247,6 +250,10 @@ pub struct BooleanResult {
     tool_faces_kept: usize,
     /// Introspection data.
     introspection: BooleanIntrospection,
+    /// Replay log recording each pipeline phase.
+    replay_log: ReplayLog,
+    /// Lineage events emitted during the operation.
+    lineage_events: Vec<LineageEvent>,
 }
 
 impl BooleanResult {
@@ -257,6 +264,8 @@ impl BooleanResult {
         target_faces_kept: usize,
         tool_faces_kept: usize,
         introspection: BooleanIntrospection,
+        replay_log: ReplayLog,
+        lineage_events: Vec<LineageEvent>,
     ) -> Self {
         Self {
             topology,
@@ -264,6 +273,8 @@ impl BooleanResult {
             target_faces_kept,
             tool_faces_kept,
             introspection,
+            replay_log,
+            lineage_events,
         }
     }
 
@@ -301,6 +312,16 @@ impl BooleanResult {
     /// Update the duration metric.
     pub fn update_duration(&mut self, duration: std::time::Duration) {
         self.introspection.duration_micros = duration.as_micros() as u64;
+    }
+
+    /// The replay log recording each pipeline phase.
+    pub fn get_replay_log(&self) -> &ReplayLog {
+        &self.replay_log
+    }
+
+    /// The lineage events emitted during the operation.
+    pub fn get_lineage_events(&self) -> &[LineageEvent] {
+        &self.lineage_events
     }
 
     /// Consume and return owned parts.

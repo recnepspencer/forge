@@ -1,7 +1,8 @@
 //! 2D orientation predicate.
 
 use crate::arithmetic::double::Double;
-use crate::arithmetic::filter::FilteredEval;
+use crate::arithmetic::filter::{FilteredEval, PrecisionEscalation};
+use crate::arithmetic::interval::Interval;
 use crate::arithmetic::rational::Rational;
 use crate::sign::{CertifiedTriSign, TriSign};
 use super::ORIENT2D_ERR_BOUND_A;
@@ -44,6 +45,18 @@ impl FilteredEval for Orient2dPredicate {
         }
     }
 
+    fn eval_interval(&self, input: &Self::Input) -> Result<Option<TriSign>, crate::error::MathError> {
+        let (a, b, c) = input;
+
+        let acx = Interval::from_difference(a[0], c[0]);
+        let bcx = Interval::from_difference(b[0], c[0]);
+        let acy = Interval::from_difference(a[1], c[1]);
+        let bcy = Interval::from_difference(b[1], c[1]);
+
+        let det = acx * bcy - acy * bcx;
+        Ok(det.sign())
+    }
+
     fn eval_double(&self, input: &Self::Input) -> Result<Option<TriSign>, crate::error::MathError> {
         let (a, b, c) = input;
 
@@ -71,7 +84,7 @@ impl FilteredEval for Orient2dPredicate {
 
 /// Compute the 2D orientation of three points.
 ///
-/// Returns a [`CertifiedTriSign`]:
+/// Returns a [`CertifiedTriSign`] and [`PrecisionEscalation`] metadata:
 /// - `Pos`: counter-clockwise
 /// - `Neg`: clockwise
 /// - `Zero`: exactly collinear
@@ -85,7 +98,7 @@ pub fn orient2d(
     a: [f64; 2],
     b: [f64; 2],
     c: [f64; 2],
-) -> Result<CertifiedTriSign, crate::error::MathError> {
+) -> Result<(CertifiedTriSign, PrecisionEscalation), crate::error::MathError> {
     Orient2dPredicate.evaluate(&(a, b, c))
 }
 
@@ -96,20 +109,20 @@ mod tests {
 
     #[test]
     fn orient2d_counter_clockwise() {
-        let result = orient2d([0.0, 0.0], [1.0, 0.0], [0.0, 1.0]).unwrap();
+        let (result, _) = orient2d([0.0, 0.0], [1.0, 0.0], [0.0, 1.0]).unwrap();
         assert_eq!(result.sign(), TriSign::Pos);
     }
 
     #[test]
     fn orient2d_clockwise() {
-        let result = orient2d([0.0, 0.0], [0.0, 1.0], [1.0, 0.0]).unwrap();
+        let (result, _) = orient2d([0.0, 0.0], [0.0, 1.0], [1.0, 0.0]).unwrap();
         assert_eq!(result.sign(), TriSign::Neg);
     }
 
     #[test]
     fn orient2d_collinear() {
         assert_eq!(
-            orient2d([0.0, 0.0], [1.0, 1.0], [2.0, 2.0]).unwrap().sign(),
+            orient2d([0.0, 0.0], [1.0, 1.0], [2.0, 2.0]).unwrap().0.sign(),
             TriSign::Zero
         );
     }
@@ -117,7 +130,7 @@ mod tests {
     #[test]
     fn orient2d_collinear_on_x_axis() {
         assert_eq!(
-            orient2d([0.0, 0.0], [1.0, 0.0], [2.0, 0.0]).unwrap().sign(),
+            orient2d([0.0, 0.0], [1.0, 0.0], [2.0, 0.0]).unwrap().0.sign(),
             TriSign::Zero
         );
     }
@@ -125,20 +138,20 @@ mod tests {
     #[test]
     fn orient2d_collinear_on_y_axis() {
         assert_eq!(
-            orient2d([0.0, 0.0], [0.0, 1.0], [0.0, 2.0]).unwrap().sign(),
+            orient2d([0.0, 0.0], [0.0, 1.0], [0.0, 2.0]).unwrap().0.sign(),
             TriSign::Zero
         );
     }
 
     #[test]
     fn orient2d_near_collinear_positive() {
-        let result = orient2d([0.0, 0.0], [1.0, 0.0], [0.5, 1e-15]).unwrap();
+        let (result, _) = orient2d([0.0, 0.0], [1.0, 0.0], [0.5, 1e-15]).unwrap();
         assert_eq!(result.sign(), TriSign::Pos);
     }
 
     #[test]
     fn orient2d_near_collinear_negative() {
-        let result = orient2d([0.0, 0.0], [1.0, 0.0], [0.5, -1e-15]).unwrap();
+        let (result, _) = orient2d([0.0, 0.0], [1.0, 0.0], [0.5, -1e-15]).unwrap();
         assert_eq!(result.sign(), TriSign::Neg);
     }
 
@@ -148,8 +161,8 @@ mod tests {
         let b = [0.3, 0.4];
         let c = [0.5, 0.7];
         assert_eq!(
-            orient2d(a, b, c).unwrap().sign(),
-            orient2d(a, b, c).unwrap().sign()
+            orient2d(a, b, c).unwrap().0.sign(),
+            orient2d(a, b, c).unwrap().0.sign()
         );
     }
 }

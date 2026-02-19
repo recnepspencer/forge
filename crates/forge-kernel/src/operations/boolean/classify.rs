@@ -40,7 +40,7 @@ pub fn classify_faces(
     origin: FaceOrigin,
     ctx: &mut ModelingContext,
 ) -> Result<Vec<ClassifiedFace>, KernelError> {
-    let config = ctx.get_tolerance_config().clone();
+    let _config = ctx.get_tolerance_config().clone();
     let origin_label = match origin {
         FaceOrigin::Target => "Target",
         FaceOrigin::Tool => "Tool",
@@ -57,18 +57,38 @@ pub fn classify_faces(
 
     for patch in &patches {
         let seed_face = patch[0];
-        let seed_class = classify_single_face(
+        let computed_seed_class = classify_single_face(
             source_arena, source_geometry,
             other_arena, other_geometry,
             accelerator,
-            seed_face, &config,
+            seed_face, ctx,
         )?;
 
+        let decision_id = DecisionId(seed_face.index() as u64);
+        let (seed_class, overridden) = match ctx.get_classification_override(decision_id) {
+            Some(forced) => (forced, true),
+            None => (computed_seed_class, false),
+        };
+
         let class_label = classification_label(&seed_class);
+        let (kind, tier) = if overridden {
+            (
+                DecisionKind::Forced {
+                    reason: format!(
+                        "counterfactual override: {} → {}",
+                        classification_label(&computed_seed_class),
+                        class_label,
+                    ),
+                },
+                DecisionTier::Escalated,
+            )
+        } else {
+            (DecisionKind::Exact, DecisionTier::Deterministic)
+        };
         let mut seed_decision = TracedDecision::new(
-            DecisionId(seed_face.index() as u64),
-            DecisionKind::Exact,
-            DecisionTier::Deterministic,
+            decision_id,
+            kind,
+            tier,
             1.0,
             DecisionContext::Classification {
                 point: compute_face_centroid(source_arena, source_geometry, seed_face)
@@ -81,18 +101,38 @@ pub fn classify_faces(
         classified.push(ClassifiedFace::new(seed_face, seed_class));
 
         for &face_id in &patch[1..] {
-            let propagated_class = classify_single_face(
+            let computed_class = classify_single_face(
                 source_arena, source_geometry,
                 other_arena, other_geometry,
                 accelerator,
-                face_id, &config,
+                face_id, ctx,
             )?;
 
+            let prop_decision_id = DecisionId(face_id.index() as u64);
+            let (propagated_class, prop_overridden) = match ctx.get_classification_override(prop_decision_id) {
+                Some(forced) => (forced, true),
+                None => (computed_class, false),
+            };
+
             let prop_label = classification_label(&propagated_class);
+            let (prop_kind, prop_tier) = if prop_overridden {
+                (
+                    DecisionKind::Forced {
+                        reason: format!(
+                            "counterfactual override: {} → {}",
+                            classification_label(&computed_class),
+                            prop_label,
+                        ),
+                    },
+                    DecisionTier::Escalated,
+                )
+            } else {
+                (DecisionKind::Exact, DecisionTier::Resolved)
+            };
             let mut decision = TracedDecision::new(
-                DecisionId(face_id.index() as u64),
-                DecisionKind::Exact,
-                DecisionTier::Resolved,
+                prop_decision_id,
+                prop_kind,
+                prop_tier,
                 1.0,
                 DecisionContext::Classification {
                     point: compute_face_centroid(source_arena, source_geometry, face_id)
@@ -188,8 +228,9 @@ fn classify_single_face(
     other_geometry: &GeometryStore,
     accelerator: Option<&dyn forge_topo::classify::SpatialAccelerator>,
     face_id: FaceId,
-    config: &crate::core::ToleranceConfig,
+    ctx: &mut ModelingContext,
 ) -> Result<FaceClassification, KernelError> {
+    let config = ctx.get_tolerance_config().clone();
     let sample = compute_face_centroid(source_arena, source_geometry, face_id)?;
 
     let vertex_lookup = |index: u32| -> Result<[f64; 3], KernelError> {
@@ -217,21 +258,27 @@ fn classify_single_face(
         config.get_edge_split_degeneracy(),
     )?;
 
-    match classification {
-        forge_topo::classify::PointClassification::Inside => Ok(FaceClassification::Inside),
-        forge_topo::classify::PointClassification::Outside => Ok(FaceClassification::Outside),
+    let (class, esc) = match classification {
+        forge_topo::classify::PointClassification::Inside { escalation } => (FaceClassification::Inside, escalation),
+        forge_topo::classify::PointClassification::Outside { escalation } => (FaceClassification::Outside, escalation),
         forge_topo::classify::PointClassification::OnBoundary(boundary_face_id) => {
             let normals_align = check_normal_alignment(
                 source_geometry, face_id,
                 other_geometry, boundary_face_id,
             );
             if normals_align {
-                Ok(FaceClassification::OnBoundary)
+                (FaceClassification::OnBoundary, None)
             } else {
-                Ok(FaceClassification::OppositeBoundary)
+                (FaceClassification::OppositeBoundary, None)
             }
         }
+    };
+
+    if let Some(escalation) = esc {
+        ctx.log_escalation(escalation);
     }
+
+    Ok(class)
 }
 
 /// Build BVH spatial index for the "other" solid (for accelerated point-in-solid).

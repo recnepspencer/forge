@@ -43,7 +43,7 @@ pub fn cleanup_degenerate_topology(
 /// all halfedges from one vertex to the other.
 fn remove_zero_length_edges(
     draft: &mut MutableDraft,
-    geom: &GeometryStore,
+    _geom: &GeometryStore,
 ) -> Result<usize, KernelError> {
     let mut zero_edges: Vec<HalfEdgeId> = Vec::new();
 
@@ -139,7 +139,7 @@ fn remove_zero_length_edges(
 /// and must be removed to satisfy the Euler formula.
 fn remove_degenerate_faces(
     draft: &mut MutableDraft,
-    geom: &GeometryStore,
+    _geom: &GeometryStore,
 ) -> Result<usize, KernelError> {
     let mut degenerate_faces: Vec<FaceId> = Vec::new();
 

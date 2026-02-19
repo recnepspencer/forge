@@ -119,7 +119,7 @@ impl EulerOperator for MakeEdgeFace {
     }
 }
 
-/// Collect all halfedges originating from `vertex` on `face`.
+/// Collect all halfedges originating from `vertex` that lie on `face`.
 fn find_all_halfedges_from_vertex(
     draft: &MutableDraft,
     face: FaceId,
@@ -144,7 +144,7 @@ fn find_all_halfedges_from_vertex(
 
     if result.is_empty() {
         return Err(KernelError::InvalidInput {
-            message: format!("Vertex {} not found on face {}", vertex, face),
+            message: format!("Vertex {} not found on face {}", vertex.index(), face.index()),
             context: None,
         });
     }

@@ -1,9 +1,15 @@
 //! Geometric predicates with filtered evaluation.
 //!
-//! Each predicate uses the three-stage [`FilteredEval`](crate::arithmetic::filter::FilteredEval) pipeline to determine
-//! the sign of a geometric determinant. Stage 1 (f64 with Shewchuk error bounds)
-//! resolves >95% of random inputs. Stage 2 (double-double) resolves >99% of
-//! the remainder. Stage 3 (exact rational) resolves everything.
+//! Each predicate uses the four-stage [`FilteredEval`](crate::arithmetic::filter::FilteredEval)
+//! pipeline to determine the sign of a geometric determinant:
+//!
+//! 1. **f64** with Shewchuk error bounds — resolves >95% of random inputs
+//! 2. **Interval** with ULP-widened bounds — resolves >99% of remaining
+//! 3. **Double-double** (~106-bit) — resolves >99.9% of remaining
+//! 4. **Exact rational** — resolves everything
+//!
+//! Every evaluation returns [`PrecisionEscalation`](crate::arithmetic::filter::PrecisionEscalation)
+//! metadata recording which stage resolved the result.
 //!
 //! # Reference
 //!

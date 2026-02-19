@@ -1,13 +1,21 @@
 //! 3D orientation predicate.
+//!
+//! DOMAIN: Determine if point `d` is above, on, or below the plane defined by `a, b, c`.
+//! INVARIANTS: Exact arithmetic always resolves. Filtered stages never lie.
+//! DEPENDENCIES: `Double`, `Interval`, `Rational`, `FilteredEval`, `CertifiedTriSign`.
 
 use crate::arithmetic::double::Double;
-use crate::arithmetic::filter::FilteredEval;
+use crate::arithmetic::filter::{FilteredEval, PrecisionEscalation};
+use crate::arithmetic::interval::Interval;
 use crate::arithmetic::rational::Rational;
 use crate::sign::{CertifiedTriSign, TriSign};
 use super::ORIENT3D_ERR_BOUND_A;
 
-/// 3D orientation predicate: is `d` above, below, or on the plane through `a, b, c`?
-struct Orient3dPredicate;
+/// 3D orientation predicate: sign of the 3×3 determinant.
+///
+/// Returns `Pos` if `d` is above the plane `abc` (using the right-hand rule),
+/// `Neg` if below, `Zero` if exactly on the plane.
+pub(crate) struct Orient3dPredicate;
 
 /// Input to [`orient3d`]: four 3D points.
 pub type Orient3dInput = ([f64; 3], [f64; 3], [f64; 3], [f64; 3]);
@@ -32,11 +40,11 @@ impl FilteredEval for Orient3dPredicate {
                 - bdx * (ady * cdz - adz * cdy)
                 + cdx * (ady * bdz - adz * bdy);
 
-        let det_bound = adx.abs() * (bdy.abs() * cdz.abs() + bdz.abs() * cdy.abs())
+        let permanent = (adx.abs() * (bdy.abs() * cdz.abs() + bdz.abs() * cdy.abs())
             + bdx.abs() * (ady.abs() * cdz.abs() + adz.abs() * cdy.abs())
-            + cdx.abs() * (ady.abs() * bdz.abs() + adz.abs() * bdy.abs());
+            + cdx.abs() * (ady.abs() * bdz.abs() + adz.abs() * bdy.abs()));
 
-        let err = ORIENT3D_ERR_BOUND_A * det_bound;
+        let err = ORIENT3D_ERR_BOUND_A * permanent;
 
         if !det.is_finite() {
             return Err(crate::error::MathError::InvalidInput(
@@ -53,6 +61,26 @@ impl FilteredEval for Orient3dPredicate {
         }
     }
 
+    fn eval_interval(&self, input: &Self::Input) -> Result<Option<TriSign>, crate::error::MathError> {
+        let (a, b, c, d) = input;
+
+        let adx = Interval::from_difference(a[0], d[0]);
+        let bdx = Interval::from_difference(b[0], d[0]);
+        let cdx = Interval::from_difference(c[0], d[0]);
+        let ady = Interval::from_difference(a[1], d[1]);
+        let bdy = Interval::from_difference(b[1], d[1]);
+        let cdy = Interval::from_difference(c[1], d[1]);
+        let adz = Interval::from_difference(a[2], d[2]);
+        let bdz = Interval::from_difference(b[2], d[2]);
+        let cdz = Interval::from_difference(c[2], d[2]);
+
+        let det = adx * (bdy * cdz - bdz * cdy)
+                - bdx * (ady * cdz - adz * cdy)
+                + cdx * (ady * bdz - adz * bdy);
+
+        Ok(det.sign())
+    }
+
     fn eval_double(&self, input: &Self::Input) -> Result<Option<TriSign>, crate::error::MathError> {
         let (a, b, c, d) = input;
 
@@ -66,11 +94,10 @@ impl FilteredEval for Orient3dPredicate {
         let bdz = Double::two_sum(b[2], -d[2]);
         let cdz = Double::two_sum(c[2], -d[2]);
 
-        let m1 = bdy * cdz - bdz * cdy;
-        let m2 = ady * cdz - adz * cdy;
-        let m3 = ady * bdz - adz * bdy;
+        let det = adx * (bdy * cdz - bdz * cdy)
+                - bdx * (ady * cdz - adz * cdy)
+                + cdx * (ady * bdz - adz * bdy);
 
-        let det = adx * m1 - bdx * m2 + cdx * m3;
         det.sign()
     }
 
@@ -87,20 +114,20 @@ impl FilteredEval for Orient3dPredicate {
         let bdz = Rational::try_from_f64(b[2])? - Rational::try_from_f64(d[2])?;
         let cdz = Rational::try_from_f64(c[2])? - Rational::try_from_f64(d[2])?;
 
-        let m1 = &bdy * &cdz - &bdz * &cdy;
-        let m2 = &ady * &cdz - &adz * &cdy;
-        let m3 = &ady * &bdz - &adz * &bdy;
+        let det = &adx * &(&bdy * &cdz - &bdz * &cdy)
+                - &bdx * &(&ady * &cdz - &adz * &cdy)
+                + &cdx * &(&ady * &bdz - &adz * &bdy);
 
-        let det = &adx * &m1 - &bdx * &m2 + &cdx * &m3;
         Ok(det.sign())
     }
 }
 
 /// Compute the 3D orientation of four points.
 ///
-/// Returns a [`CertifiedTriSign`]:
-/// - `Pos` / `Neg`: `d` is above / below the oriented plane through `a, b, c`
-/// - `Zero`: `d` is exactly coplanar
+/// Returns a [`CertifiedTriSign`] and [`PrecisionEscalation`] metadata:
+/// - `Pos`: `d` is above the plane defined by `a, b, c` (right-hand rule)
+/// - `Neg`: `d` is below the plane
+/// - `Zero`: `d` is exactly on the plane
 ///
 /// This is the sign of the 3×3 determinant:
 /// ```text
@@ -113,7 +140,7 @@ pub fn orient3d(
     b: [f64; 3],
     c: [f64; 3],
     d: [f64; 3],
-) -> Result<CertifiedTriSign, crate::error::MathError> {
+) -> Result<(CertifiedTriSign, PrecisionEscalation), crate::error::MathError> {
     Orient3dPredicate.evaluate(&(a, b, c, d))
 }
 
@@ -124,7 +151,7 @@ mod tests {
 
     #[test]
     fn orient3d_above_plane() {
-        let result = orient3d(
+        let (result, _) = orient3d(
             [0.0, 0.0, 0.0],
             [1.0, 0.0, 0.0],
             [0.0, 1.0, 0.0],
@@ -135,7 +162,7 @@ mod tests {
 
     #[test]
     fn orient3d_below_plane() {
-        let result = orient3d(
+        let (result, _) = orient3d(
             [0.0, 0.0, 0.0],
             [1.0, 0.0, 0.0],
             [0.0, 1.0, 0.0],
@@ -145,23 +172,23 @@ mod tests {
     }
 
     #[test]
-    fn orient3d_coplanar() {
-        let result = orient3d(
+    fn orient3d_on_plane() {
+        let (result, _) = orient3d(
             [0.0, 0.0, 0.0],
             [1.0, 0.0, 0.0],
             [0.0, 1.0, 0.0],
-            [1.0, 1.0, 0.0],
+            [0.5, 0.5, 0.0],
         ).unwrap();
         assert_eq!(result.sign(), TriSign::Zero);
     }
 
     #[test]
-    fn orient3d_near_coplanar_above() {
-        let result = orient3d(
+    fn orient3d_near_coplanar() {
+        let (result, _) = orient3d(
             [0.0, 0.0, 0.0],
             [1.0, 0.0, 0.0],
             [0.0, 1.0, 0.0],
-            [0.5, 0.5, 1e-15],
+            [0.0, 0.0, 1e-300],
         ).unwrap();
         assert_eq!(result.sign(), TriSign::Neg);
     }
@@ -171,10 +198,10 @@ mod tests {
         let a = [0.1, 0.2, 0.3];
         let b = [0.4, 0.5, 0.6];
         let c = [0.7, 0.8, 1.0];
-        let d = [0.0, 0.0, 0.0];
+        let d = [0.3, 0.6, 0.9];
         assert_eq!(
-            orient3d(a, b, c, d).unwrap().sign(),
-            orient3d(a, b, c, d).unwrap().sign()
+            orient3d(a, b, c, d).unwrap().0.sign(),
+            orient3d(a, b, c, d).unwrap().0.sign()
         );
     }
 }

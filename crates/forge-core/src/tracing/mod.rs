@@ -14,6 +14,7 @@ mod schema;
 mod decision_log;
 pub mod checkpoint_diff;
 pub mod delta_debug;
+pub mod divergence;
 mod persistence;
 mod logging;
 
@@ -33,6 +34,10 @@ pub use decision_log::{
 
 pub use checkpoint_diff::{
     DecisionDelta, DecisionChange, CheckpointLog, diff_decision_logs,
+};
+
+pub use divergence::{
+    DivergenceReport, DivergenceDetail, scan_for_divergences,
 };
 
 pub use persistence::{resolve_trace_dir, write_trace_file};

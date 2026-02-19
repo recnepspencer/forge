@@ -13,6 +13,8 @@
 //! - `pv_p3_1_tests`: Checkpoint diffing acceptance tests (PV-33, PV-33b, PV-34)
 //! - `pv_p3_2_tests`: Region extractor + delta-debug tests (PV-35, PV-35b, PV-36)
 //! - `pv_p3_3_tests`: Causal chain reconstruction tests (PV-37, PV-38, PV-54, PV-54.5)
+//! - `pv_p3_4_tests`: Counterfactual replay tests (PV-39, PV-40, PV-40.5)
+//! - `pv_p3_5_tests`: MetaBoss replay torture suite (MB-R1 through MB-R7)
 
 pub mod checkpoint;
 pub mod diagnose_pipeline;
@@ -35,3 +37,17 @@ mod pv_p3_1_tests;
 mod pv_p3_2_tests;
 #[cfg(test)]
 mod pv_p3_3_tests;
+#[cfg(test)]
+mod pv_p3_4_tests;
+#[cfg(test)]
+mod pv_p3_5_tests;
+#[cfg(test)]
+mod pv_p2_3_tests;
+#[cfg(test)]
+mod pv_p2_4_tests;
+#[cfg(test)]
+mod pv_p2_1_tests;
+#[cfg(test)]
+mod pv_p2_2_tests;
+#[cfg(test)]
+mod pv_p2_5_mb_n_tests;

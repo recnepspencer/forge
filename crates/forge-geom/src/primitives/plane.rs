@@ -143,11 +143,12 @@ use super::{Plane, PlaneRelation};
 /// Returns `MathError::InternalError` if orient3d fails.
 pub fn classify_point(plane: &Plane, point: &[f64; 3]) -> Result<CertifiedTriSign, MathError> {
     let [a, b, c] = compute_reference_points(plane);
-    orient3d(a, b, c, *point).map_err(|e| {
+    let (sign, _escalation) = orient3d(a, b, c, *point).map_err(|e| {
         MathError::InternalError(
             format!("orient3d failed on plane reference points: {}", e),
         )
-    })
+    })?;
+    Ok(sign)
 }
 
 /// Convert a `CertifiedTriSign` to a `PlaneRelation`.

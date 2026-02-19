@@ -231,6 +231,11 @@ pub enum DecisionContext {
         /// Human-readable description of the degeneracy.
         description: String,
     },
+    /// A predicate evaluated near or at zero and escalated to higher precision.
+    PrecisionEscalation {
+        /// Details of the precision escalation.
+        escalation: forge_math::arithmetic::filter::PrecisionEscalation,
+    },
 }
 
 impl fmt::Display for DecisionContext {
@@ -248,6 +253,12 @@ impl fmt::Display for DecisionContext {
             }
             DecisionContext::Degeneracy { description } => {
                 write!(f, "Degeneracy: {}", description)
+            }
+            DecisionContext::PrecisionEscalation { escalation } => {
+                write!(f, "Escalation to {:?}: Δ={:.2e} [{}]", 
+                    escalation.resolved_at, 
+                    escalation.disagreement_magnitude.unwrap_or(0.0),
+                    escalation.target_triple)
             }
         }
     }

@@ -1,6 +1,7 @@
 //! Insphere predicate.
 
-use crate::arithmetic::filter::FilteredEval;
+use crate::arithmetic::filter::{FilteredEval, PrecisionEscalation};
+use crate::arithmetic::interval::Interval;
 use crate::arithmetic::rational::Rational;
 use crate::sign::{CertifiedTriSign, TriSign};
 use super::IN_SPHERE_ERR_BOUND_A;
@@ -93,9 +94,44 @@ impl FilteredEval for InSpherePredicate {
         }
     }
 
+    fn eval_interval(&self, input: &Self::Input) -> Result<Option<TriSign>, crate::error::MathError> {
+        let (a, b, c, d, e) = input;
+
+        let aex = Interval::from_difference(a[0], e[0]);
+        let bex = Interval::from_difference(b[0], e[0]);
+        let cex = Interval::from_difference(c[0], e[0]);
+        let dex = Interval::from_difference(d[0], e[0]);
+        let aey = Interval::from_difference(a[1], e[1]);
+        let bey = Interval::from_difference(b[1], e[1]);
+        let cey = Interval::from_difference(c[1], e[1]);
+        let dey = Interval::from_difference(d[1], e[1]);
+        let aez = Interval::from_difference(a[2], e[2]);
+        let bez = Interval::from_difference(b[2], e[2]);
+        let cez = Interval::from_difference(c[2], e[2]);
+        let dez = Interval::from_difference(d[2], e[2]);
+
+        let ab = aex * bey - bex * aey;
+        let bc = bex * cey - cex * bey;
+        let cd = cex * dey - dex * cey;
+        let da = dex * aey - aex * dey;
+        let ac = aex * cey - cex * aey;
+        let bd = bex * dey - dex * bey;
+
+        let abc = aez * bc - bez * ac + cez * ab;
+        let bcd = bez * cd - cez * bd + dez * bc;
+        let cda = cez * da + dez * ac + aez * cd;
+        let dab = dez * ab + aez * bd + bez * da;
+
+        let alift = aex * aex + aey * aey + aez * aez;
+        let blift = bex * bex + bey * bey + bez * bez;
+        let clift = cex * cex + cey * cey + cez * cez;
+        let dlift = dex * dex + dey * dey + dez * dez;
+
+        let det = (dlift * abc - clift * dab) + (blift * cda - alift * bcd);
+        Ok(det.sign())
+    }
+
     fn eval_double(&self, _input: &Self::Input) -> Result<Option<TriSign>, crate::error::MathError> {
-        // TODO(optimization): implement double-double insphere if profiling
-        // shows Stage 3 is called too often.
         Ok(None)
     }
 
@@ -139,7 +175,7 @@ impl FilteredEval for InSpherePredicate {
 
 /// Compute the insphere test for five 3D points.
 ///
-/// Returns a [`CertifiedTriSign`]:
+/// Returns a [`CertifiedTriSign`] and [`PrecisionEscalation`] metadata:
 /// - `Pos`: `e` is inside the circumsphere (assuming positive orientation of `a,b,c,d`)
 /// - `Neg`: `e` is outside the circumsphere
 /// - `Zero`: `e` is exactly on the circumsphere
@@ -152,7 +188,7 @@ pub fn in_sphere(
     c: [f64; 3],
     d: [f64; 3],
     e: [f64; 3],
-) -> Result<CertifiedTriSign, crate::error::MathError> {
+) -> Result<(CertifiedTriSign, PrecisionEscalation), crate::error::MathError> {
     InSpherePredicate.evaluate(&(a, b, c, d, e))
 }
 
@@ -163,7 +199,7 @@ mod tests {
 
     #[test]
     fn in_sphere_point_inside() {
-        let result = in_sphere(
+        let (result, _) = in_sphere(
             [1.0, 0.0, -0.707],
             [-1.0, 0.0, -0.707],
             [0.0, 1.0, 0.707],
@@ -175,7 +211,7 @@ mod tests {
 
     #[test]
     fn in_sphere_point_on_sphere() {
-        let result = in_sphere(
+        let (result, _) = in_sphere(
             [1.0, 0.0, 0.0],
             [0.0, 1.0, 0.0],
             [0.0, 0.0, 1.0],
@@ -187,7 +223,7 @@ mod tests {
 
     #[test]
     fn in_sphere_point_outside() {
-        let result = in_sphere(
+        let (result, _) = in_sphere(
             [1.0, 0.0, 0.0],
             [0.0, 1.0, 0.0],
             [0.0, 0.0, 1.0],

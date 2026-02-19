@@ -10,6 +10,8 @@
 //! - Verifying determinism (same input → same output)
 //! - Extracting minimal reproduction cases
 
+use serde::{Deserialize, Serialize};
+
 use crate::lineage::OpSignature;
 use forge_core::DecisionDelta;
 
@@ -18,7 +20,7 @@ use forge_core::DecisionDelta;
 /// Captures everything needed to reproduce one step of an operation
 /// sequence: what operation ran, with what parameters, under what
 /// RNG state, and what the topology looked like before and after.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReplayEntry {
     /// The operation that was executed.
     signature: OpSignature,
@@ -97,10 +99,13 @@ impl ReplayEntry {
 ///
 /// Built up during a `MutableDraft` via `record()`, then extracted
 /// on commit for archival or comparison.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ReplayLog {
     /// The recorded entries, in execution order.
     entries: Vec<ReplayEntry>,
+    /// The build target triple this log was recorded on (e.g., "x86_64-unknown-linux-gnu").
+    #[serde(default)]
+    target_triple: Option<String>,
 }
 
 impl ReplayLog {
@@ -108,6 +113,42 @@ impl ReplayLog {
     pub fn new() -> Self {
         Self {
             entries: Vec::new(),
+            target_triple: None,
+        }
+    }
+
+    /// Create a replay log stamped with the current build target triple.
+    pub fn with_current_target() -> Self {
+        let triple = format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS);
+        Self {
+            entries: Vec::new(),
+            target_triple: Some(triple),
+        }
+    }
+
+    /// Set the target triple explicitly.
+    pub fn set_target_triple(&mut self, triple: &str) {
+        self.target_triple = Some(triple.to_string());
+    }
+
+    /// The target triple this log was recorded on.
+    pub fn get_target_triple(&self) -> Option<&str> {
+        self.target_triple.as_deref()
+    }
+
+    /// Verify that this log's target triple matches the current process.
+    ///
+    /// Returns `Ok(())` if triples match or either is `None` (lenient).
+    /// Returns `Err(KernelError)` if triples mismatch.
+    pub fn verify_architecture(&self, current_triple: &str) -> Result<(), forge_core::KernelError> {
+        match &self.target_triple {
+            None => Ok(()),
+            Some(recorded) if recorded == current_triple => Ok(()),
+            Some(recorded) => Err(forge_core::KernelError::ReplayMismatch {
+                expected: recorded.clone(),
+                actual: current_triple.to_string(),
+                context: None,
+            }),
         }
     }
 

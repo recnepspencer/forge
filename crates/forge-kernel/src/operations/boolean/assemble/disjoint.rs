@@ -7,6 +7,8 @@ use forge_core::result::{
 use forge_topo::state::TopologyState;
 use forge_topo::handles::{FaceId, HalfEdgeId};
 use forge_topo::classify::classify_point_in_solid;
+use forge_topo::replay::ReplayLog;
+use forge_topo::lineage::{LineageEvent, EntityKind, Lineage, OpSignature};
 
 use crate::core::ModelingContext;
 use crate::geometry_store::GeometryStore;
@@ -36,7 +38,7 @@ pub fn execute_zero_split(
     let has_containment = check_containment(
         target_topo, target_geom,
         tool_topo, tool_geom,
-        &config,
+        ctx,
     )?;
 
     ctx.get_decision_log_mut().record(TracedDecision::new(
@@ -111,9 +113,10 @@ fn check_containment(
     target_geom: &GeometryStore,
     tool_topo: &TopologyState,
     tool_geom: &GeometryStore,
-    config: &crate::core::ToleranceConfig,
+    ctx: &mut ModelingContext,
 ) -> Result<Containment, KernelError> {
-    let tool_sample = sample_interior_point(tool_topo, tool_geom, config)?;
+    let config = ctx.get_tolerance_config().clone();
+    let tool_sample = sample_interior_point(tool_topo, tool_geom, &config)?;
 
     let vertex_lookup_target = |index: u32| -> Result<[f64; 3], KernelError> {
         let gen = target_topo.arena().vertex_generation(index as usize).ok_or_else(|| {
@@ -137,14 +140,26 @@ fn check_containment(
         None, // spatial_index
         &tool_sample,
         config.get_ray_extent(),
-            config.get_edge_split_degeneracy(),
+        config.get_edge_split_degeneracy(),
     )?;
 
-    if matches!(tool_in_target, forge_topo::classify::PointClassification::Inside) {
+    let extract_esc = |cls: &forge_topo::classify::PointClassification| -> Option<forge_math::arithmetic::filter::PrecisionEscalation> {
+        match cls {
+            forge_topo::classify::PointClassification::Inside { escalation } => escalation.clone(),
+            forge_topo::classify::PointClassification::Outside { escalation } => escalation.clone(),
+            _ => None,
+        }
+    };
+
+    if let Some(escalation) = extract_esc(&tool_in_target) {
+        ctx.log_escalation(escalation);
+    }
+
+    if matches!(tool_in_target, forge_topo::classify::PointClassification::Inside { .. }) {
         return Ok(Containment::ToolInsideTarget);
     }
 
-    let target_sample = sample_interior_point(target_topo, target_geom, config)?;
+    let target_sample = sample_interior_point(target_topo, target_geom, &config)?;
 
     let vertex_lookup_tool = |index: u32| -> Result<[f64; 3], KernelError> {
         let gen = tool_topo.arena().vertex_generation(index as usize).ok_or_else(|| {
@@ -168,10 +183,14 @@ fn check_containment(
         None, // spatial_index
         &target_sample,
         config.get_ray_extent(),
-            config.get_edge_split_degeneracy(),
+        config.get_edge_split_degeneracy(),
     )?;
 
-    if matches!(target_in_tool, forge_topo::classify::PointClassification::Inside) {
+    if let Some(escalation) = extract_esc(&target_in_tool) {
+        ctx.log_escalation(escalation);
+    }
+
+    if matches!(target_in_tool, forge_topo::classify::PointClassification::Inside { .. }) {
         return Ok(Containment::TargetInsideTool);
     }
 
@@ -184,7 +203,7 @@ fn check_containment(
     if has_overlapping_coplanar_faces(
         target_topo, target_geom,
         tool_topo, tool_geom,
-        config,
+        &config,
     )? {
         return Ok(Containment::Touching);
     }
@@ -268,7 +287,7 @@ fn execute_contained_boolean(
             if are_solids_coincident(target_topo, target_geom, tool_topo, tool_geom)? {
                 let empty_topo = TopologyState::empty();
                 let empty_geom = GeometryStore::new();
-                return Ok(BooleanResult::new(empty_topo, empty_geom, 0, 0, crate::operations::boolean::schema::BooleanIntrospection::default()));
+                return Ok(BooleanResult::new(empty_topo, empty_geom, 0, 0, crate::operations::boolean::schema::BooleanIntrospection::default(), ReplayLog::new(), Vec::new()));
             }
             let mut r = assemble_complete_shells(
                 target_topo, target_geom,
@@ -283,7 +302,7 @@ fn execute_contained_boolean(
         (BooleanOp::Subtraction, false) => {
             let empty_topo = TopologyState::empty();
             let empty_geom = GeometryStore::new();
-            Ok(BooleanResult::new(empty_topo, empty_geom, 0, 0, crate::operations::boolean::schema::BooleanIntrospection::default()))
+            Ok(BooleanResult::new(empty_topo, empty_geom, 0, 0, crate::operations::boolean::schema::BooleanIntrospection::default(), ReplayLog::new(), Vec::new()))
         }
     }
 }
@@ -309,7 +328,7 @@ fn execute_disjoint_boolean(
         BooleanOp::Intersection => {
             let empty_topo = TopologyState::empty();
             let empty_geom = GeometryStore::new();
-            Ok(BooleanResult::new(empty_topo, empty_geom, 0, 0, crate::operations::boolean::schema::BooleanIntrospection::default()))
+            Ok(BooleanResult::new(empty_topo, empty_geom, 0, 0, crate::operations::boolean::schema::BooleanIntrospection::default(), ReplayLog::new(), Vec::new()))
         }
         BooleanOp::Subtraction => {
             assemble_complete_shells(
@@ -384,7 +403,13 @@ fn assemble_complete_shells(
     }
 
     let topo = draft.commit()?;
-    Ok(BooleanResult::new(topo, result_geom, primary_count, secondary_count, crate::operations::boolean::schema::BooleanIntrospection::default()))
+    let lineage_events: Vec<LineageEvent> = topo.arena().iter_faces()
+        .map(|(fid, _)| LineageEvent::EntityCreated {
+            entity_kind: EntityKind::Face,
+            lineage: Lineage::root(fid.index() as u64, OpSignature::new("assemble_complete_shells")),
+        })
+        .collect();
+    Ok(BooleanResult::new(topo, result_geom, primary_count, secondary_count, crate::operations::boolean::schema::BooleanIntrospection::default(), ReplayLog::new(), lineage_events))
 }
 
 /// Check whether any face centroid from one solid lies on the boundary

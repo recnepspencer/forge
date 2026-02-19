@@ -28,6 +28,7 @@ pub use primitives::implicit_vertex::ImplicitVertex;
 pub use spatial::bsp::BspTree;
 pub use spatial::bsp::PlaneSet; // Exposed for tests mostly?
 pub use spatial::bvh::BvhNode;
+pub use spatial::local_space::{LocalCoordinateSpace, ScaleAnalysis};
 
 /// Standard grid scale for spatial hashing (1 unit = 1e6 integers).
 pub const GRID_SCALE: f64 = 1e6;

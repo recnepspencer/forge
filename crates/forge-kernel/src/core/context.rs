@@ -14,9 +14,13 @@
 //!
 //! Silent heuristic decisions are forbidden. Every judgment call is traceable.
 
+use std::collections::BTreeMap;
+
 use forge_core::{
     TracedDecision, DecisionKind, DecisionContext, DecisionId, DecisionLog, DecisionTier,
 };
+
+use crate::operations::boolean::FaceClassification;
 
 use crate::analysis::proof_validation::checkpoint::ValidationConfig;
 
@@ -53,6 +57,12 @@ pub struct ModelingContext {
     auto_persist: bool,
     /// Set by take_decision_log() to indicate the success path was taken.
     log_drained: bool,
+    /// Forced classification overrides for counterfactual replay.
+    ///
+    /// Keyed by `DecisionId` raw value (face index). When the classify
+    /// phase encounters a matching decision, it uses the forced
+    /// `FaceClassification` instead of the computed result.
+    classification_overrides: BTreeMap<u64, FaceClassification>,
 }
 
 impl ModelingContext {
@@ -70,6 +80,7 @@ impl ModelingContext {
             decision_counter: 0,
             auto_persist: false,
             log_drained: false,
+            classification_overrides: BTreeMap::new(),
         }
     }
 
@@ -170,6 +181,24 @@ impl ModelingContext {
         self.decision_log.record(decision);
     }
 
+    /// Record a precision escalation decision, auto-assigning a unique ID.
+    pub fn log_escalation(
+        &mut self,
+        escalation: forge_math::arithmetic::filter::PrecisionEscalation,
+    ) {
+        if escalation.resolved_at > forge_math::arithmetic::filter::PrecisionMode::Float64 {
+            self.decision_counter += 1;
+            let decision = TracedDecision::new(
+                DecisionId(self.decision_counter),
+                DecisionKind::Exact,
+                DecisionTier::Escalated,
+                escalation.disagreement_magnitude.unwrap_or(0.0),
+                DecisionContext::PrecisionEscalation { escalation },
+            );
+            self.decision_log.record(decision);
+        }
+    }
+
     /// Execute `f` within a named span, recording start/end events.
     pub fn scope<F, R>(&mut self, name: &'static str, f: F) -> R
     where
@@ -209,6 +238,45 @@ impl ModelingContext {
     pub fn take_decision_log(&mut self) -> DecisionLog {
         self.log_drained = true;
         std::mem::take(&mut self.decision_log)
+    }
+
+    /// Set a forced classification override for counterfactual replay.
+    ///
+    /// When the classify phase encounters a decision with this ID,
+    /// it uses the forced `FaceClassification` instead of computing
+    /// the result from ray-casting. This enables re-executing the
+    /// Boolean pipeline with different classification outcomes.
+    pub fn set_classification_override(
+        &mut self,
+        decision_id: DecisionId,
+        classification: FaceClassification,
+    ) {
+        self.classification_overrides.insert(decision_id.0, classification);
+    }
+
+    /// Check if a classification override exists for a decision ID.
+    ///
+    /// Returns the forced `FaceClassification` if one was set via
+    /// `set_classification_override`, or `None` for normal execution.
+    pub fn get_classification_override(
+        &self,
+        decision_id: DecisionId,
+    ) -> Option<FaceClassification> {
+        self.classification_overrides.get(&decision_id.0).copied()
+    }
+
+    /// Remove all classification overrides.
+    pub fn clear_classification_overrides(&mut self) {
+        self.classification_overrides.clear();
+    }
+
+    /// Generate a divergence report from the current decision log (P2.3).
+    ///
+    /// Scans all decisions for cases where the f64 fast-path disagreed
+    /// with the higher-precision answer. Returns a structured report
+    /// with divergence rate, topology impact, and per-decision details.
+    pub fn generate_divergence_report(&self) -> forge_core::DivergenceReport {
+        forge_core::scan_for_divergences(&self.decision_log)
     }
 }
 

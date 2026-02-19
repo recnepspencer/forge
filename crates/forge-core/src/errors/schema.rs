@@ -121,6 +121,19 @@ pub enum KernelError {
         /// The underlying error that triggered diagnostics.
         source: Box<KernelError>,
     },
+
+    /// Cross-session replay architecture mismatch.
+    ///
+    /// The `ReplayLog` was recorded on a different target triple than
+    /// the current process. FMA and other hardware differences may cause
+    /// non-deterministic results.
+    ReplayMismatch {
+        /// The target triple the log was recorded on.
+        expected: String,
+        /// The target triple of the current process.
+        actual: String,
+        context: Option<ErrorContext>,
+    },
 }
 
 impl fmt::Display for KernelError {
@@ -161,6 +174,13 @@ impl fmt::Display for KernelError {
                     f,
                     "Diagnostic failure in '{}' (hash: {:#x}, seed: {}): {}",
                     payload.operation, payload.state_hash, payload.seed, source
+                )
+            }
+            KernelError::ReplayMismatch { expected, actual, .. } => {
+                write!(
+                    f,
+                    "Replay architecture mismatch: log recorded on '{}', current process is '{}'",
+                    expected, actual
                 )
             }
         }

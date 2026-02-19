@@ -27,7 +27,7 @@ fn near_coplanar_escalation_ladder() {
     for &mag in &magnitudes {
         let d = [0.5, 0.5, mag];
 
-        let first_sign = orient3d(a, b, c, d).unwrap().sign();
+        let first_sign = orient3d(a, b, c, d).unwrap().0.sign();
 
         assert_ne!(
             first_sign,
@@ -36,7 +36,7 @@ fn near_coplanar_escalation_ladder() {
         );
 
         for _ in 0..10 {
-            let sign = orient3d(a, b, c, d).unwrap().sign();
+            let sign = orient3d(a, b, c, d).unwrap().0.sign();
             assert_eq!(
                 sign, first_sign,
                 "Sign flip at magnitude {mag}: got {sign:?}, expected {first_sign:?}"
@@ -54,7 +54,7 @@ fn coplanar_returns_zero() {
     let d = [0.5, 0.5, 0.0];
 
     for _ in 0..100 {
-        let sign = orient3d(a, b, c, d).unwrap().sign();
+        let sign = orient3d(a, b, c, d).unwrap().0.sign();
         assert_eq!(sign, TriSign::Zero, "Coplanar point must always return Zero");
     }
 }

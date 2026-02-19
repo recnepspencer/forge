@@ -25,7 +25,7 @@
 /// assert!(sign.is_positive());
 /// assert!(!sign.is_zero());
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub enum TriSign {
     /// Strictly negative (e.g., point is below a plane)
     Neg,

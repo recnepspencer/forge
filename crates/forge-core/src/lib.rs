@@ -73,6 +73,7 @@ pub use tracing::{
     DecisionSummary, DecisionContext, EntityRef,
     SpanId, DecisionTier, TraceEvent, TraceSummary, TraceDiff, SpanSummaryEntry,
     DecisionDelta, DecisionChange, CheckpointLog, diff_decision_logs,
+    DivergenceReport, DivergenceDetail, scan_for_divergences,
     EULER_OP_FEATURE_SCOPE,
     resolve_trace_dir, write_trace_file,
     LogLevel, log_level, log_result, log_decision_log,

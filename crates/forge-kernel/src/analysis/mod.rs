@@ -10,4 +10,5 @@ pub mod sliver;
 pub mod proof_validation;
 pub mod region_extractor;
 pub mod causal_chain;
+pub mod counterfactual;
 

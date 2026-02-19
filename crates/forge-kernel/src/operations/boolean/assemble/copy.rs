@@ -50,8 +50,10 @@ impl VertexDedup {
 /// straddling. Uses squared Euclidean distance with a fixed tolerance,
 /// guaranteeing that geometrically coincident vertices always unify
 /// regardless of floating-point noise from the split computation.
+const SPATIAL_GRID_CELL_SIZE: f64 = 1e-5;
+
 pub struct SpatialVertexIndex {
-    entries: Vec<(VertexId, [f64; 3])>,
+    grid: std::collections::HashMap<[i64; 3], Vec<(VertexId, [f64; 3])>>,
 }
 
 /// Squared distance tolerance for vertex matching (1e-6 linear ≈ 1e-12 squared).
@@ -64,23 +66,42 @@ const VERTEX_WELD_TOLERANCE_SQ: f64 = 1e-12;
 
 impl SpatialVertexIndex {
     pub fn new() -> Self {
-        Self { entries: Vec::new() }
+        Self { grid: std::collections::HashMap::new() }
+    }
+
+    fn cell_coords(pos: &[f64; 3]) -> [i64; 3] {
+        [
+            (pos[0] / SPATIAL_GRID_CELL_SIZE).floor() as i64,
+            (pos[1] / SPATIAL_GRID_CELL_SIZE).floor() as i64,
+            (pos[2] / SPATIAL_GRID_CELL_SIZE).floor() as i64,
+        ]
     }
 
     /// Find the nearest vertex within tolerance. Returns `None` if
     /// no existing vertex is close enough.
     pub fn find_nearest(&self, pos: &[f64; 3]) -> Option<VertexId> {
+        let center_cell = Self::cell_coords(pos);
         let mut best: Option<(VertexId, f64)> = None;
-        for &(vid, ref p) in &self.entries {
-            let dx = pos[0] - p[0];
-            let dy = pos[1] - p[1];
-            let dz = pos[2] - p[2];
-            let dist_sq = dx * dx + dy * dy + dz * dz;
-            if dist_sq <= VERTEX_WELD_TOLERANCE_SQ {
-                match best {
-                    None => best = Some((vid, dist_sq)),
-                    Some((_, best_d)) if dist_sq < best_d => best = Some((vid, dist_sq)),
-                    _ => {}
+
+        for dx in -1..=1 {
+            for dy in -1..=1 {
+                for dz in -1..=1 {
+                    let cell = [center_cell[0] + dx, center_cell[1] + dy, center_cell[2] + dz];
+                    if let Some(entries) = self.grid.get(&cell) {
+                        for &(vid, ref p) in entries {
+                            let diff_x = pos[0] - p[0];
+                            let diff_y = pos[1] - p[1];
+                            let diff_z = pos[2] - p[2];
+                            let dist_sq = diff_x * diff_x + diff_y * diff_y + diff_z * diff_z;
+                            if dist_sq <= VERTEX_WELD_TOLERANCE_SQ {
+                                match best {
+                                    None => best = Some((vid, dist_sq)),
+                                    Some((_, best_d)) if dist_sq < best_d => best = Some((vid, dist_sq)),
+                                    _ => {}
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -89,7 +110,8 @@ impl SpatialVertexIndex {
 
     /// Register a vertex position for future lookups.
     pub fn insert(&mut self, vid: VertexId, pos: [f64; 3]) {
-        self.entries.push((vid, pos));
+        let cell = Self::cell_coords(&pos);
+        self.grid.entry(cell).or_insert_with(Vec::new).push((vid, pos));
     }
 }
 
@@ -159,7 +181,7 @@ fn copy_single_face(
     let edges: Vec<_> = FaceEdgeIterator::new(source_arena, src_face)?
         .collect::<Result<Vec<_>, _>>()?;
     if edges.is_empty() {
-        let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
+        let _placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
         let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
         let face_id = draft.arena_mut().insert_face(FaceData::new(
             placeholder_loop,
