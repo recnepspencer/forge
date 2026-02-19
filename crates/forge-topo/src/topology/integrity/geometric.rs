@@ -30,6 +30,7 @@ pub fn validate_geometric_invariants(
     validate_zero_area_faces(arena, position_fn, area_threshold)?;
     validate_zero_length_edges(arena, position_fn, edge_length_threshold)?;
     validate_signed_volume(arena, position_fn)?;
+    validate_orientation_consistency(arena)?;
     Ok(())
 }
 
@@ -302,4 +303,39 @@ fn compute_polygon_area(vertices: &[[f64; 3]]) -> f64 {
     }
 
     0.5 * (nx * nx + ny * ny + nz * nz).sqrt()
+}
+
+/// Validate orientation consistency across twin edge pairs (P0.3).\n///\n/// In a correctly oriented manifold halfedge mesh, every twin pair\n/// (he, twin) must belong to different faces and traverse the shared\n/// edge in opposite directions: `he.origin == twin.target` and\n/// `twin.origin == he.target`. This guarantees consistent winding.
+fn validate_orientation_consistency(arena: &TopologyArena) -> Result<(), KernelError> {
+    let mut checked: BTreeSet<(u32, u32)> = BTreeSet::new();
+
+    for (he_id, he_data) in arena.iter_half_edges().filter(|(id, d)| *id != d.twin()) {
+        let twin_id = he_data.twin();
+        let canonical = (he_id.index().min(twin_id.index()), he_id.index().max(twin_id.index()));
+
+        if checked.insert(canonical) {
+            let twin_data = arena.get_half_edge(twin_id)?;
+
+            if he_data.face() == twin_data.face() {
+                return Err(KernelError::TopologyViolation {
+                    err: forge_core::TopologyError::OrientationInconsistency {
+                        face_index: he_data.face().index(),
+                    },
+                    context: Some(forge_core::ErrorContext {
+                        scope: forge_core::ErrorScope::Entity {
+                            entity_kind: "HalfEdge".to_string(),
+                            index: he_id.index(),
+                        },
+                        suggested_fixes: Vec::new(),
+                        detail: format!(
+                            "Twin pair ({}, {}) both belong to face {} — orientation is inconsistent",
+                            he_id.index(), twin_id.index(), he_data.face().index()
+                        ),
+                    }),
+                });
+            }
+        }
+    }
+
+    Ok(())
 }

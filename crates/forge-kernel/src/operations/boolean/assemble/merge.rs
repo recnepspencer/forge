@@ -6,6 +6,8 @@ use forge_core::{KernelError, OperationResult, OperationMetrics};
 use forge_topo::state::TopologyState;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 
+use crate::analysis::proof_validation::checkpoint::{run_checkpoint, ValidationCheckpoint};
+
 use crate::core::ModelingContext;
 use crate::geometry_store::GeometryStore;
 use crate::operations::boolean::schema::{BooleanInput, BooleanOp, BooleanResult, FaceOrigin};
@@ -169,6 +171,17 @@ pub fn execute_boolean(input: BooleanInput) -> Result<OperationResult<BooleanRes
 
     let mut envelope = wrap_boolean_result(result, start_time);
     envelope.set_decision_log(ctx.take_decision_log());
+
+    let validation_result = run_checkpoint(
+        envelope.get_value().topology().arena(),
+        ctx.get_validation_config(),
+        ValidationCheckpoint::PostBoolean,
+        None,
+        1e-10,
+        1e-12,
+    )?;
+    envelope.add_validation_result(format!("{:?}", validation_result));
+
     Ok(envelope)
 }
 

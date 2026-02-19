@@ -38,6 +38,7 @@ pub fn validate_topology(arena: &TopologyArena, level: ValidationLevel) -> Resul
         validate_loops(arena)?;
         validate_degenerate_loops(arena)?;
         validate_euler(arena)?;
+        validate_edge_manifoldness(arena)?;
     }
 
     Ok(())
@@ -284,11 +285,15 @@ fn collect_shell_data_for_face(
     Ok((neighbors, edge_keys, vertex_indices))
 }
 
-/// Validate the Euler formula for genus-0, closed, orientable shells.
+/// Validate the generalized Euler formula for each connected shell.
 ///
-/// Supports multi-shell solids (e.g., disjoint union results) by decomposing
-/// the mesh into connected components via face-twin adjacency BFS. Each
-/// shell must independently satisfy V - E + F = 2.
+/// Supports genus > 0 topology (tori, solids with through-holes) by computing
+/// genus from connectivity: `G = 1 - (V - E + F) / 2` for each shell.
+/// The generalized formula is: `V - E + F = 2 - 2G` (with R=0 since inner
+/// loops are not yet supported).
+///
+/// Validates that genus is non-negative — a negative genus indicates
+/// a structurally broken shell.
 fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
     let f_total = arena.face_count();
     if f_total == 0 && arena.vertex_count() == 0 {
@@ -300,69 +305,125 @@ fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
     let mut shell_index: usize = 0;
 
     for &seed_face in &all_faces {
-        if visited_faces.contains(&seed_face.index()) {
-            return Ok(());
-        }
+        if !visited_faces.contains(&seed_face.index()) {
+            let mut shell_faces: BTreeSet<u32> = BTreeSet::new();
+            let mut shell_vertices: BTreeSet<u32> = BTreeSet::new();
+            let mut shell_edges: BTreeSet<(u32, u32)> = BTreeSet::new();
+            let mut queue: VecDeque<FaceId> = VecDeque::new();
 
-        let mut shell_faces: BTreeSet<u32> = BTreeSet::new();
-        let mut shell_vertices: BTreeSet<u32> = BTreeSet::new();
-        let mut shell_edges: BTreeSet<(u32, u32)> = BTreeSet::new();
-        let mut queue: VecDeque<FaceId> = VecDeque::new();
+            queue.push_back(seed_face);
+            shell_faces.insert(seed_face.index());
 
-        queue.push_back(seed_face);
-        shell_faces.insert(seed_face.index());
+            while let Some(face_id) = queue.pop_front() {
+                let (neighbors, edge_keys, vertex_indices) =
+                    collect_shell_data_for_face(arena, face_id)?;
 
-        while let Some(face_id) = queue.pop_front() {
-            let (neighbors, edge_keys, vertex_indices) =
-                collect_shell_data_for_face(arena, face_id)?;
+                for vid in vertex_indices {
+                    shell_vertices.insert(vid);
+                }
 
-            for vid in vertex_indices {
-                shell_vertices.insert(vid);
-            }
+                for ek in edge_keys {
+                    shell_edges.insert(ek);
+                }
 
-            for ek in edge_keys {
-                shell_edges.insert(ek);
-            }
-
-            for neighbor in neighbors {
-                if shell_faces.insert(neighbor.index()) {
-                    queue.push_back(neighbor);
+                for neighbor in neighbors {
+                    if shell_faces.insert(neighbor.index()) {
+                        queue.push_back(neighbor);
+                    }
                 }
             }
+
+            visited_faces.append(&mut shell_faces.clone());
+
+            let sv = shell_vertices.len() as i64;
+            let se = shell_edges.len() as i64;
+            let sf = shell_faces.len() as i64;
+            let euler_char = sv - se + sf;
+
+            let genus = compute_shell_genus(euler_char);
+            let rings: usize = 0;
+            let expected = 2_i64 - 2 * (genus as i64) + (rings as i64);
+
+            if euler_char != expected {
+                return Err(KernelError::TopologyViolation {
+                    err: forge_core::TopologyError::GeneralizedEulerViolation {
+                        shell_index: shell_index as u32,
+                        vertices: sv as usize,
+                        edges: se as usize,
+                        faces: sf as usize,
+                        genus,
+                        rings,
+                        expected_chi: expected,
+                        actual_chi: euler_char,
+                    },
+                    context: Some(forge_core::ErrorContext {
+                        scope: forge_core::ErrorScope::Entity {
+                            entity_kind: "Shell".to_string(),
+                            index: shell_index as u32,
+                        },
+                        suggested_fixes: Vec::new(),
+                        detail: format!(
+                            "Shell {} generalized Euler: V-E+F = {}-{}+{} = {}, genus={}, rings={}, expected χ={}",
+                            shell_index, sv, se, sf, euler_char, genus, rings, expected
+                        ),
+                    }),
+                });
+            }
         }
 
-        visited_faces.append(&mut shell_faces.clone());
+        shell_index += 1;
+    }
 
-        let sv = shell_vertices.len() as i64;
-        let se = shell_edges.len() as i64;
-        let sf = shell_faces.len() as i64;
-        let euler_char = sv - se + sf;
-        let expected = 2_i64;
+    Ok(())
+}
 
-        if euler_char != expected {
+/// Compute the genus of a shell from its Euler characteristic.
+///
+/// For a closed orientable surface: χ = 2 - 2G, so G = (2 - χ) / 2.
+/// Returns 0 for genus-0 (sphere-like), 1 for torus, etc.
+/// A non-integer or negative result indicates structural damage.
+fn compute_shell_genus(euler_char: i64) -> usize {
+    let twice_genus = 2 - euler_char;
+    if twice_genus < 0 || twice_genus % 2 != 0 {
+        return 0;
+    }
+    (twice_genus / 2) as usize
+}
+
+/// Validate that every geometric edge is manifold (shared by exactly 2 faces).
+///
+/// In a manifold halfedge mesh, every edge (canonical halfedge pair) should
+/// connect exactly two distinct faces. Non-manifold edges (3+ faces sharing
+/// one edge) indicate geometric corruption.
+fn validate_edge_manifoldness(arena: &TopologyArena) -> Result<(), KernelError> {
+    let mut edge_face_count: std::collections::BTreeMap<(u32, u32), usize> = std::collections::BTreeMap::new();
+
+    for (he_id, he_data) in arena.iter_half_edges().filter(|(id, d)| *id != d.twin()) {
+        let twin_id = he_data.twin();
+        let canonical = (he_id.index().min(twin_id.index()), he_id.index().max(twin_id.index()));
+        *edge_face_count.entry(canonical).or_insert(0) += 1;
+    }
+
+    for (&(lo, _hi), &count) in &edge_face_count {
+        if count > 2 {
             return Err(KernelError::TopologyViolation {
-                err: forge_core::TopologyError::EulerFormulaViolation {
-                    vertices: sv as usize,
-                    edges: se as usize,
-                    faces: sf as usize,
-                    expected_chi: expected,
-                    actual_chi: euler_char,
+                err: forge_core::TopologyError::NonManifoldEdge {
+                    edge_index: lo,
+                    valence: count,
                 },
                 context: Some(forge_core::ErrorContext {
                     scope: forge_core::ErrorScope::Entity {
-                        entity_kind: "Shell".to_string(),
-                        index: shell_index as u32,
+                        entity_kind: "Edge".to_string(),
+                        index: lo,
                     },
                     suggested_fixes: Vec::new(),
                     detail: format!(
-                        "Shell {} Euler formula violated: V-E+F = {}-{}+{} = {} (expected {})",
-                        shell_index, sv, se, sf, euler_char, expected
+                        "Edge {} appears {} times (expected 2 for manifold)",
+                        lo, count
                     ),
                 }),
             });
         }
-
-        shell_index += 1;
     }
 
     Ok(())

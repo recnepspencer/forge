@@ -231,6 +231,18 @@ pub enum TopologyError {
     /// A non-manifold edge was detected (more than 2 faces sharing an edge)
     NonManifoldEdge {
         edge_index: u32,
+        valence: usize,
+    },
+    /// Generalized Euler formula violation for genus-aware validation.
+    GeneralizedEulerViolation {
+        shell_index: u32,
+        vertices: usize,
+        edges: usize,
+        faces: usize,
+        genus: usize,
+        rings: usize,
+        expected_chi: i64,
+        actual_chi: i64,
     },
     /// Orientation inconsistency detected (D4 violation)
     OrientationInconsistency {
@@ -289,8 +301,17 @@ impl fmt::Display for TopologyError {
                     vertices, edges, faces, actual_chi, expected_chi
                 )
             }
-            TopologyError::NonManifoldEdge { edge_index } => {
-                write!(f, "Edge index {} is non-manifold", edge_index)
+            TopologyError::NonManifoldEdge { edge_index, valence } => {
+                write!(f, "Edge index {} is non-manifold (valence {})", edge_index, valence)
+            }
+            TopologyError::GeneralizedEulerViolation {
+                shell_index, vertices, edges, faces, genus, rings, expected_chi, actual_chi,
+            } => {
+                write!(
+                    f,
+                    "Generalized Euler violation in shell {}: V={} E={} F={} G={} R={}, χ={} (expected {})",
+                    shell_index, vertices, edges, faces, genus, rings, actual_chi, expected_chi
+                )
             }
             TopologyError::OrientationInconsistency { face_index } => {
                 write!(f, "Face {} has inconsistent orientation", face_index)

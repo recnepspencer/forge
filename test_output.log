@@ -2,7 +2,7 @@
   OPERATION: Intersection (half-overlap cubes)
 ============================================================
 
-Duration: 1.650375ms
+Duration: 1.862ms
 State hash: 0x9A5CBF999B46E0E1957E6FE7B62D0EF9
 Faces in result: 6
 
@@ -29,51 +29,51 @@ Faces in result: 6
 ============================================================
 
 60 decisions (52 exact, 8 policy, 0 near-boundary, 0 ambiguous, 0 forced, min_margin=1.00e0)
-  [decision-4] [deterministic] PolicyApplied(CoincidentGeometry, default=true) margin=1.00e0 span-1 entity=Face#4 | Degeneracy: Split face #4 by plane #7 -> new face #6
+  [decision-3] [deterministic] PolicyApplied(CoincidentGeometry, default=true) margin=1.00e0 span-1 entity=Face#3 | Degeneracy: Split face #3 by plane #7 -> new face #6
   [decision-2] [deterministic] PolicyApplied(CoincidentGeometry, default=true) margin=1.00e0 span-1 entity=Face#2 | Degeneracy: Split face #2 by plane #7 -> new face #7
-  [decision-3] [deterministic] PolicyApplied(CoincidentGeometry, default=true) margin=1.00e0 span-1 entity=Face#3 | Degeneracy: Split face #3 by plane #7 -> new face #8
-  [decision-5] [deterministic] PolicyApplied(CoincidentGeometry, default=true) margin=1.00e0 span-1 entity=Face#5 | Degeneracy: Split face #5 by plane #7 -> new face #9
-  [decision-3] [deterministic] PolicyApplied(CoincidentGeometry, default=true) margin=1.00e0 span-1 entity=Face#3 | Degeneracy: Split face #3 by plane #0 -> new face #6
-  [decision-5] [deterministic] PolicyApplied(CoincidentGeometry, default=true) margin=1.00e0 span-1 entity=Face#5 | Degeneracy: Split face #5 by plane #0 -> new face #7
-  [decision-2] [deterministic] PolicyApplied(CoincidentGeometry, default=true) margin=1.00e0 span-1 entity=Face#2 | Degeneracy: Split face #2 by plane #0 -> new face #8
+  [decision-5] [deterministic] PolicyApplied(CoincidentGeometry, default=true) margin=1.00e0 span-1 entity=Face#5 | Degeneracy: Split face #5 by plane #7 -> new face #8
+  [decision-4] [deterministic] PolicyApplied(CoincidentGeometry, default=true) margin=1.00e0 span-1 entity=Face#4 | Degeneracy: Split face #4 by plane #7 -> new face #9
+  [decision-2] [deterministic] PolicyApplied(CoincidentGeometry, default=true) margin=1.00e0 span-1 entity=Face#2 | Degeneracy: Split face #2 by plane #0 -> new face #6
+  [decision-3] [deterministic] PolicyApplied(CoincidentGeometry, default=true) margin=1.00e0 span-1 entity=Face#3 | Degeneracy: Split face #3 by plane #0 -> new face #7
+  [decision-5] [deterministic] PolicyApplied(CoincidentGeometry, default=true) margin=1.00e0 span-1 entity=Face#5 | Degeneracy: Split face #5 by plane #0 -> new face #8
   [decision-4] [deterministic] PolicyApplied(CoincidentGeometry, default=true) margin=1.00e0 span-1 entity=Face#4 | Degeneracy: Split face #4 by plane #0 -> new face #9
   [decision-0] [deterministic] Exact margin=1.00e0 span-2 entity=Face#0 | Classification [1.0000, 0.0000, 0.0000] → Target:Face#0 → Inside (seed)
-  [decision-8] [resolved] Exact margin=1.00e0 span-2 entity=Face#8 | Classification [0.2500, -1.0000, 0.0000] → Target:Face#8 → OnBoundary(aligned) (patch of seed #0)
+  [decision-6] [resolved] Exact margin=1.00e0 span-2 entity=Face#6 | Classification [0.2500, -1.0000, 0.0000] → Target:Face#6 → OnBoundary(aligned) (patch of seed #0)
   [decision-5] [resolved] Exact margin=1.00e0 span-2 entity=Face#5 | Classification [0.2500, 0.0000, -1.0000] → Target:Face#5 → OnBoundary(aligned) (patch of seed #0)
   [decision-7] [resolved] Exact margin=1.00e0 span-2 entity=Face#7 | Classification [0.2500, 1.0000, 0.0000] → Target:Face#7 → OnBoundary(aligned) (patch of seed #0)
-  [decision-6] [resolved] Exact margin=1.00e0 span-2 entity=Face#6 | Classification [0.2500, 0.0000, 1.0000] → Target:Face#6 → OnBoundary(aligned) (patch of seed #0)
+  [decision-9] [resolved] Exact margin=1.00e0 span-2 entity=Face#9 | Classification [0.2500, 0.0000, 1.0000] → Target:Face#9 → OnBoundary(aligned) (patch of seed #0)
   [decision-3] [resolved] Exact margin=1.00e0 span-2 entity=Face#3 | Classification [-0.7500, -1.0000, 0.0000] → Target:Face#3 → Outside (patch of seed #0)
-  [decision-9] [resolved] Exact margin=1.00e0 span-2 entity=Face#9 | Classification [-0.7500, 0.0000, -1.0000] → Target:Face#9 → Outside (patch of seed #0)
+  [decision-8] [resolved] Exact margin=1.00e0 span-2 entity=Face#8 | Classification [-0.7500, 0.0000, -1.0000] → Target:Face#8 → Outside (patch of seed #0)
   [decision-2] [resolved] Exact margin=1.00e0 span-2 entity=Face#2 | Classification [-0.7500, 1.0000, 0.0000] → Target:Face#2 → Outside (patch of seed #0)
   [decision-4] [resolved] Exact margin=1.00e0 span-2 entity=Face#4 | Classification [-0.7500, 0.0000, 1.0000] → Target:Face#4 → Outside (patch of seed #0)
   [decision-1] [resolved] Exact margin=1.00e0 span-2 entity=Face#1 | Classification [-1.0000, 0.0000, 0.0000] → Target:Face#1 → Outside (patch of seed #0)
   [decision-0] [deterministic] Exact margin=1.00e0 span-2 entity=Face#0 | Classification [1.5000, 0.0000, 0.0000] → Tool:Face#0 → Outside (seed)
-  [decision-6] [resolved] Exact margin=1.00e0 span-2 entity=Face#6 | Classification [1.2500, -1.0000, 0.0000] → Tool:Face#6 → Outside (patch of seed #0)
+  [decision-7] [resolved] Exact margin=1.00e0 span-2 entity=Face#7 | Classification [1.2500, -1.0000, 0.0000] → Tool:Face#7 → Outside (patch of seed #0)
   [decision-5] [resolved] Exact margin=1.00e0 span-2 entity=Face#5 | Classification [1.2500, 0.0000, -1.0000] → Tool:Face#5 → Outside (patch of seed #0)
-  [decision-8] [resolved] Exact margin=1.00e0 span-2 entity=Face#8 | Classification [1.2500, 1.0000, 0.0000] → Tool:Face#8 → Outside (patch of seed #0)
+  [decision-6] [resolved] Exact margin=1.00e0 span-2 entity=Face#6 | Classification [1.2500, 1.0000, 0.0000] → Tool:Face#6 → Outside (patch of seed #0)
   [decision-9] [resolved] Exact margin=1.00e0 span-2 entity=Face#9 | Classification [1.2500, 0.0000, 1.0000] → Tool:Face#9 → Outside (patch of seed #0)
   [decision-3] [resolved] Exact margin=1.00e0 span-2 entity=Face#3 | Classification [0.2500, -1.0000, 0.0000] → Tool:Face#3 → OnBoundary(aligned) (patch of seed #0)
-  [decision-7] [resolved] Exact margin=1.00e0 span-2 entity=Face#7 | Classification [0.2500, 0.0000, -1.0000] → Tool:Face#7 → OnBoundary(aligned) (patch of seed #0)
+  [decision-8] [resolved] Exact margin=1.00e0 span-2 entity=Face#8 | Classification [0.2500, 0.0000, -1.0000] → Tool:Face#8 → OnBoundary(aligned) (patch of seed #0)
   [decision-2] [resolved] Exact margin=1.00e0 span-2 entity=Face#2 | Classification [0.2500, 1.0000, 0.0000] → Tool:Face#2 → OnBoundary(aligned) (patch of seed #0)
   [decision-4] [resolved] Exact margin=1.00e0 span-2 entity=Face#4 | Classification [0.2500, 0.0000, 1.0000] → Tool:Face#4 → OnBoundary(aligned) (patch of seed #0)
   [decision-1] [resolved] Exact margin=1.00e0 span-2 entity=Face#1 | Classification [-0.5000, 0.0000, 0.0000] → Tool:Face#1 → Inside (patch of seed #0)
   [decision-1000] [deterministic] Exact margin=1.00e0 span-3 entity=Face#0 | Classification [0.0000, 0.0000, 0.0000] → Select Target:Face#0 Inside for Intersection → Keep
-  [decision-1008] [deterministic] Exact margin=1.00e0 span-3 entity=Face#8 | Classification [0.0000, 0.0000, 0.0000] → Select Target:Face#8 OnBoundary for Intersection → Keep
+  [decision-1006] [deterministic] Exact margin=1.00e0 span-3 entity=Face#6 | Classification [0.0000, 0.0000, 0.0000] → Select Target:Face#6 OnBoundary for Intersection → Keep
   [decision-1005] [deterministic] Exact margin=1.00e0 span-3 entity=Face#5 | Classification [0.0000, 0.0000, 0.0000] → Select Target:Face#5 OnBoundary for Intersection → Keep
   [decision-1007] [deterministic] Exact margin=1.00e0 span-3 entity=Face#7 | Classification [0.0000, 0.0000, 0.0000] → Select Target:Face#7 OnBoundary for Intersection → Keep
-  [decision-1006] [deterministic] Exact margin=1.00e0 span-3 entity=Face#6 | Classification [0.0000, 0.0000, 0.0000] → Select Target:Face#6 OnBoundary for Intersection → Keep
+  [decision-1009] [deterministic] Exact margin=1.00e0 span-3 entity=Face#9 | Classification [0.0000, 0.0000, 0.0000] → Select Target:Face#9 OnBoundary for Intersection → Keep
   [decision-1003] [deterministic] Exact margin=1.00e0 span-3 entity=Face#3 | Classification [0.0000, 0.0000, 0.0000] → Select Target:Face#3 Outside for Intersection → Drop
-  [decision-1009] [deterministic] Exact margin=1.00e0 span-3 entity=Face#9 | Classification [0.0000, 0.0000, 0.0000] → Select Target:Face#9 Outside for Intersection → Drop
+  [decision-1008] [deterministic] Exact margin=1.00e0 span-3 entity=Face#8 | Classification [0.0000, 0.0000, 0.0000] → Select Target:Face#8 Outside for Intersection → Drop
   [decision-1002] [deterministic] Exact margin=1.00e0 span-3 entity=Face#2 | Classification [0.0000, 0.0000, 0.0000] → Select Target:Face#2 Outside for Intersection → Drop
   [decision-1004] [deterministic] Exact margin=1.00e0 span-3 entity=Face#4 | Classification [0.0000, 0.0000, 0.0000] → Select Target:Face#4 Outside for Intersection → Drop
   [decision-1001] [deterministic] Exact margin=1.00e0 span-3 entity=Face#1 | Classification [0.0000, 0.0000, 0.0000] → Select Target:Face#1 Outside for Intersection → Drop
   [decision-1000] [deterministic] Exact margin=1.00e0 span-3 entity=Face#0 | Classification [0.0000, 0.0000, 0.0000] → Select Tool:Face#0 Outside for Intersection → Drop
-  [decision-1006] [deterministic] Exact margin=1.00e0 span-3 entity=Face#6 | Classification [0.0000, 0.0000, 0.0000] → Select Tool:Face#6 Outside for Intersection → Drop
+  [decision-1007] [deterministic] Exact margin=1.00e0 span-3 entity=Face#7 | Classification [0.0000, 0.0000, 0.0000] → Select Tool:Face#7 Outside for Intersection → Drop
   [decision-1005] [deterministic] Exact margin=1.00e0 span-3 entity=Face#5 | Classification [0.0000, 0.0000, 0.0000] → Select Tool:Face#5 Outside for Intersection → Drop
-  [decision-1008] [deterministic] Exact margin=1.00e0 span-3 entity=Face#8 | Classification [0.0000, 0.0000, 0.0000] → Select Tool:Face#8 Outside for Intersection → Drop
+  [decision-1006] [deterministic] Exact margin=1.00e0 span-3 entity=Face#6 | Classification [0.0000, 0.0000, 0.0000] → Select Tool:Face#6 Outside for Intersection → Drop
   [decision-1009] [deterministic] Exact margin=1.00e0 span-3 entity=Face#9 | Classification [0.0000, 0.0000, 0.0000] → Select Tool:Face#9 Outside for Intersection → Drop
   [decision-1003] [deterministic] Exact margin=1.00e0 span-3 entity=Face#3 | Classification [0.0000, 0.0000, 0.0000] → Select Tool:Face#3 OnBoundary for Intersection → Drop
-  [decision-1007] [deterministic] Exact margin=1.00e0 span-3 entity=Face#7 | Classification [0.0000, 0.0000, 0.0000] → Select Tool:Face#7 OnBoundary for Intersection → Drop
+  [decision-1008] [deterministic] Exact margin=1.00e0 span-3 entity=Face#8 | Classification [0.0000, 0.0000, 0.0000] → Select Tool:Face#8 OnBoundary for Intersection → Drop
   [decision-1002] [deterministic] Exact margin=1.00e0 span-3 entity=Face#2 | Classification [0.0000, 0.0000, 0.0000] → Select Tool:Face#2 OnBoundary for Intersection → Drop
   [decision-1004] [deterministic] Exact margin=1.00e0 span-3 entity=Face#4 | Classification [0.0000, 0.0000, 0.0000] → Select Tool:Face#4 OnBoundary for Intersection → Drop
   [decision-1001] [deterministic] Exact margin=1.00e0 span-3 entity=Face#1 | Classification [0.0000, 0.0000, 0.0000] → Select Tool:Face#1 Inside for Intersection → Keep
@@ -95,11 +95,11 @@ Faces in result: 6
   PER-SPAN STATS (TraceSummary)
 ============================================================
 
-  split — 8 decisions, max_tier=deterministic, 802µs
-  classify — 20 decisions, max_tier=resolved, 335µs
-  select — 20 decisions, max_tier=deterministic, 14µs
-  assemble — 12 decisions, max_tier=deterministic, 227µs
-  postprocess — 0 decisions, max_tier=deterministic, 179µs
+  split — 8 decisions, max_tier=deterministic, 1002µs
+  classify — 20 decisions, max_tier=resolved, 338µs
+  select — 20 decisions, max_tier=deterministic, 16µs
+  assemble — 12 decisions, max_tier=deterministic, 236µs
+  postprocess — 0 decisions, max_tier=deterministic, 171µs
 
 
 ============================================================
@@ -117,7 +117,7 @@ Faces in result: 6
     },
     {
       "Decision": {
-        "id": 4,
+        "id": 3,
         "kind": {
           "PolicyApplied": {
             "policy": "CoincidentGeometry",
@@ -129,12 +129,12 @@ Faces in result: 6
         "feature_scope": null,
         "entity_scope": {
           "kind": "Face",
-          "index": 4
+          "index": 3
         },
         "overridable": true,
         "context": {
           "Degeneracy": {
-            "description": "Split face #4 by plane #7 -> new face #6"
+            "description": "Split face #3 by plane #7 -> new face #6"
           }
         },
         "span_id": 1
@@ -167,31 +167,6 @@ Faces in result: 6
     },
     {
       "Decision": {
-        "id": 3,
-        "kind": {
-          "PolicyApplied": {
-            "policy": "CoincidentGeometry",
-            "default_used": true
-          }
-        },
-        "tier": "Deterministic",
-        "margin": 1.0,
-        "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
-        "overridable": true,
-        "context": {
-          "Degeneracy": {
-            "description": "Split face #3 by plane #7 -> new face #8"
-          }
-        },
-        "span_id": 1
-      }
-    },
-    {
-      "Decision": {
         "id": 5,
         "kind": {
           "PolicyApplied": {
@@ -209,7 +184,7 @@ Faces in result: 6
         "overridable": true,
         "context": {
           "Degeneracy": {
-            "description": "Split face #5 by plane #7 -> new face #9"
+            "description": "Split face #5 by plane #7 -> new face #8"
           }
         },
         "span_id": 1
@@ -217,7 +192,7 @@ Faces in result: 6
     },
     {
       "Decision": {
-        "id": 3,
+        "id": 4,
         "kind": {
           "PolicyApplied": {
             "policy": "CoincidentGeometry",
@@ -229,37 +204,12 @@ Faces in result: 6
         "feature_scope": null,
         "entity_scope": {
           "kind": "Face",
-          "index": 3
+          "index": 4
         },
         "overridable": true,
         "context": {
           "Degeneracy": {
-            "description": "Split face #3 by plane #0 -> new face #6"
-          }
-        },
-        "span_id": 1
-      }
-    },
-    {
-      "Decision": {
-        "id": 5,
-        "kind": {
-          "PolicyApplied": {
-            "policy": "CoincidentGeometry",
-            "default_used": true
-          }
-        },
-        "tier": "Deterministic",
-        "margin": 1.0,
-        "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
-        "overridable": true,
-        "context": {
-          "Degeneracy": {
-            "description": "Split face #5 by plane #0 -> new face #7"
+            "description": "Split face #4 by plane #7 -> new face #9"
           }
         },
         "span_id": 1
@@ -284,7 +234,57 @@ Faces in result: 6
         "overridable": true,
         "context": {
           "Degeneracy": {
-            "description": "Split face #2 by plane #0 -> new face #8"
+            "description": "Split face #2 by plane #0 -> new face #6"
+          }
+        },
+        "span_id": 1
+      }
+    },
+    {
+      "Decision": {
+        "id": 3,
+        "kind": {
+          "PolicyApplied": {
+            "policy": "CoincidentGeometry",
+            "default_used": true
+          }
+        },
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 3
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Split face #3 by plane #0 -> new face #7"
+          }
+        },
+        "span_id": 1
+      }
+    },
+    {
+      "Decision": {
+        "id": 5,
+        "kind": {
+          "PolicyApplied": {
+            "policy": "CoincidentGeometry",
+            "default_used": true
+          }
+        },
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 5
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Split face #5 by plane #0 -> new face #8"
           }
         },
         "span_id": 1
@@ -318,7 +318,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 1,
-        "duration_micros": 802
+        "duration_micros": 1002
       }
     },
     {
@@ -355,14 +355,14 @@ Faces in result: 6
     },
     {
       "Decision": {
-        "id": 8,
+        "id": 6,
         "kind": "Exact",
         "tier": "Resolved",
         "margin": 1.0,
         "feature_scope": null,
         "entity_scope": {
           "kind": "Face",
-          "index": 8
+          "index": 6
         },
         "overridable": true,
         "context": {
@@ -372,7 +372,7 @@ Faces in result: 6
               -1.0,
               0.0
             ],
-            "result": "Target:Face#8 → OnBoundary(aligned) (patch of seed #0)"
+            "result": "Target:Face#6 → OnBoundary(aligned) (patch of seed #0)"
           }
         },
         "span_id": 2
@@ -430,14 +430,14 @@ Faces in result: 6
     },
     {
       "Decision": {
-        "id": 6,
+        "id": 9,
         "kind": "Exact",
         "tier": "Resolved",
         "margin": 1.0,
         "feature_scope": null,
         "entity_scope": {
           "kind": "Face",
-          "index": 6
+          "index": 9
         },
         "overridable": true,
         "context": {
@@ -447,7 +447,7 @@ Faces in result: 6
               0.0,
               1.0
             ],
-            "result": "Target:Face#6 → OnBoundary(aligned) (patch of seed #0)"
+            "result": "Target:Face#9 → OnBoundary(aligned) (patch of seed #0)"
           }
         },
         "span_id": 2
@@ -480,14 +480,14 @@ Faces in result: 6
     },
     {
       "Decision": {
-        "id": 9,
+        "id": 8,
         "kind": "Exact",
         "tier": "Resolved",
         "margin": 1.0,
         "feature_scope": null,
         "entity_scope": {
           "kind": "Face",
-          "index": 9
+          "index": 8
         },
         "overridable": true,
         "context": {
@@ -497,7 +497,7 @@ Faces in result: 6
               0.0,
               -1.0
             ],
-            "result": "Target:Face#9 → Outside (patch of seed #0)"
+            "result": "Target:Face#8 → Outside (patch of seed #0)"
           }
         },
         "span_id": 2
@@ -605,14 +605,14 @@ Faces in result: 6
     },
     {
       "Decision": {
-        "id": 6,
+        "id": 7,
         "kind": "Exact",
         "tier": "Resolved",
         "margin": 1.0,
         "feature_scope": null,
         "entity_scope": {
           "kind": "Face",
-          "index": 6
+          "index": 7
         },
         "overridable": true,
         "context": {
@@ -622,7 +622,7 @@ Faces in result: 6
               -1.0,
               0.0
             ],
-            "result": "Tool:Face#6 → Outside (patch of seed #0)"
+            "result": "Tool:Face#7 → Outside (patch of seed #0)"
           }
         },
         "span_id": 2
@@ -655,14 +655,14 @@ Faces in result: 6
     },
     {
       "Decision": {
-        "id": 8,
+        "id": 6,
         "kind": "Exact",
         "tier": "Resolved",
         "margin": 1.0,
         "feature_scope": null,
         "entity_scope": {
           "kind": "Face",
-          "index": 8
+          "index": 6
         },
         "overridable": true,
         "context": {
@@ -672,7 +672,7 @@ Faces in result: 6
               1.0,
               0.0
             ],
-            "result": "Tool:Face#8 → Outside (patch of seed #0)"
+            "result": "Tool:Face#6 → Outside (patch of seed #0)"
           }
         },
         "span_id": 2
@@ -730,14 +730,14 @@ Faces in result: 6
     },
     {
       "Decision": {
-        "id": 7,
+        "id": 8,
         "kind": "Exact",
         "tier": "Resolved",
         "margin": 1.0,
         "feature_scope": null,
         "entity_scope": {
           "kind": "Face",
-          "index": 7
+          "index": 8
         },
         "overridable": true,
         "context": {
@@ -747,7 +747,7 @@ Faces in result: 6
               0.0,
               -1.0
             ],
-            "result": "Tool:Face#7 → OnBoundary(aligned) (patch of seed #0)"
+            "result": "Tool:Face#8 → OnBoundary(aligned) (patch of seed #0)"
           }
         },
         "span_id": 2
@@ -831,7 +831,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 2,
-        "duration_micros": 335
+        "duration_micros": 338
       }
     },
     {
@@ -868,14 +868,14 @@ Faces in result: 6
     },
     {
       "Decision": {
-        "id": 1008,
+        "id": 1006,
         "kind": "Exact",
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
         "entity_scope": {
           "kind": "Face",
-          "index": 8
+          "index": 6
         },
         "overridable": true,
         "context": {
@@ -885,7 +885,7 @@ Faces in result: 6
               0.0,
               0.0
             ],
-            "result": "Select Target:Face#8 OnBoundary for Intersection → Keep"
+            "result": "Select Target:Face#6 OnBoundary for Intersection → Keep"
           }
         },
         "span_id": 3
@@ -943,14 +943,14 @@ Faces in result: 6
     },
     {
       "Decision": {
-        "id": 1006,
+        "id": 1009,
         "kind": "Exact",
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
         "entity_scope": {
           "kind": "Face",
-          "index": 6
+          "index": 9
         },
         "overridable": true,
         "context": {
@@ -960,7 +960,7 @@ Faces in result: 6
               0.0,
               0.0
             ],
-            "result": "Select Target:Face#6 OnBoundary for Intersection → Keep"
+            "result": "Select Target:Face#9 OnBoundary for Intersection → Keep"
           }
         },
         "span_id": 3
@@ -993,14 +993,14 @@ Faces in result: 6
     },
     {
       "Decision": {
-        "id": 1009,
+        "id": 1008,
         "kind": "Exact",
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
         "entity_scope": {
           "kind": "Face",
-          "index": 9
+          "index": 8
         },
         "overridable": true,
         "context": {
@@ -1010,7 +1010,7 @@ Faces in result: 6
               0.0,
               0.0
             ],
-            "result": "Select Target:Face#9 Outside for Intersection → Drop"
+            "result": "Select Target:Face#8 Outside for Intersection → Drop"
           }
         },
         "span_id": 3
@@ -1118,14 +1118,14 @@ Faces in result: 6
     },
     {
       "Decision": {
-        "id": 1006,
+        "id": 1007,
         "kind": "Exact",
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
         "entity_scope": {
           "kind": "Face",
-          "index": 6
+          "index": 7
         },
         "overridable": true,
         "context": {
@@ -1135,7 +1135,7 @@ Faces in result: 6
               0.0,
               0.0
             ],
-            "result": "Select Tool:Face#6 Outside for Intersection → Drop"
+            "result": "Select Tool:Face#7 Outside for Intersection → Drop"
           }
         },
         "span_id": 3
@@ -1168,14 +1168,14 @@ Faces in result: 6
     },
     {
       "Decision": {
-        "id": 1008,
+        "id": 1006,
         "kind": "Exact",
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
         "entity_scope": {
           "kind": "Face",
-          "index": 8
+          "index": 6
         },
         "overridable": true,
         "context": {
@@ -1185,7 +1185,7 @@ Faces in result: 6
               0.0,
               0.0
             ],
-            "result": "Select Tool:Face#8 Outside for Intersection → Drop"
+            "result": "Select Tool:Face#6 Outside for Intersection → Drop"
           }
         },
         "span_id": 3
@@ -1243,14 +1243,14 @@ Faces in result: 6
     },
     {
       "Decision": {
-        "id": 1007,
+        "id": 1008,
         "kind": "Exact",
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
         "entity_scope": {
           "kind": "Face",
-          "index": 7
+          "index": 8
         },
         "overridable": true,
         "context": {
@@ -1260,7 +1260,7 @@ Faces in result: 6
               0.0,
               0.0
             ],
-            "result": "Select Tool:Face#7 OnBoundary for Intersection → Drop"
+            "result": "Select Tool:Face#8 OnBoundary for Intersection → Drop"
           }
         },
         "span_id": 3
@@ -1344,7 +1344,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 3,
-        "duration_micros": 14
+        "duration_micros": 16
       }
     },
     {
@@ -1597,7 +1597,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 4,
-        "duration_micros": 227
+        "duration_micros": 236
       }
     },
     {
@@ -1610,7 +1610,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 5,
-        "duration_micros": 179
+        "duration_micros": 171
       }
     }
   ]

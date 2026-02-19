@@ -136,6 +136,8 @@ pub struct OperationResult<T> {
     state_hash_before: u128,
     /// Topology hash after the operation.
     state_hash_after: u128,
+    /// Checkpoint validation results logged during this operation.
+    validation_results: Vec<String>,
 }
 
 impl<T> OperationResult<T> {
@@ -149,6 +151,7 @@ impl<T> OperationResult<T> {
             lineage_delta: LineageDelta::default(),
             state_hash_before: 0,
             state_hash_after: 0,
+            validation_results: Vec::new(),
         }
     }
 
@@ -162,7 +165,7 @@ impl<T> OperationResult<T> {
         state_hash_before: u128,
         state_hash_after: u128,
     ) -> Self {
-        Self { value, warnings, decision_log, metrics, lineage_delta, state_hash_before, state_hash_after }
+        Self { value, warnings, decision_log, metrics, lineage_delta, state_hash_before, state_hash_after, validation_results: Vec::new() }
     }
 
     /// The primary return value of the operation.
@@ -271,7 +274,18 @@ impl<T> OperationResult<T> {
             lineage_delta: self.lineage_delta,
             state_hash_before: self.state_hash_before,
             state_hash_after: self.state_hash_after,
+            validation_results: self.validation_results,
         }
+    }
+
+    /// Checkpoint validation results from this operation.
+    pub fn get_validation_results(&self) -> &[String] {
+        &self.validation_results
+    }
+
+    /// Add a validation result summary string.
+    pub fn add_validation_result(&mut self, result: String) {
+        self.validation_results.push(result);
     }
 
     /// Persist the trace to disk if `FORGE_TRACE_DIR` is set.

@@ -18,6 +18,8 @@ use forge_core::{
     TracedDecision, DecisionKind, DecisionContext, DecisionId, DecisionLog, DecisionTier,
 };
 
+use crate::analysis::proof_validation::checkpoint::ValidationConfig;
+
 use super::tolerance::{
     TolerancePolicy, TangencyPolicy, SliverPolicy,
     GapClosurePolicy, PrecisionEscalationPolicy, ToleranceConfig,
@@ -43,6 +45,7 @@ pub struct ModelingContext {
     gap_closure: GapClosurePolicy,
     precision: PrecisionEscalationPolicy,
     tolerance_config: ToleranceConfig,
+    validation_config: ValidationConfig,
     decision_log: DecisionLog,
     decision_counter: u64,
     /// When true, Drop persists the DecisionLog as an error trace
@@ -62,6 +65,7 @@ impl ModelingContext {
             gap_closure: GapClosurePolicy::default(),
             precision: PrecisionEscalationPolicy::default(),
             tolerance_config: ToleranceConfig::default(),
+            validation_config: ValidationConfig::default(),
             decision_log: DecisionLog::new(),
             decision_counter: 0,
             auto_persist: false,
@@ -134,6 +138,16 @@ impl ModelingContext {
     /// Set the geometry-layer tolerance configuration.
     pub fn set_tolerance_config(&mut self, config: ToleranceConfig) {
         self.tolerance_config = config;
+    }
+
+    /// Get the validation checkpoint configuration.
+    pub fn get_validation_config(&self) -> &ValidationConfig {
+        &self.validation_config
+    }
+
+    /// Set the validation checkpoint configuration.
+    pub fn set_validation_config(&mut self, config: ValidationConfig) {
+        self.validation_config = config;
     }
 
     /// Record a tolerance decision, auto-assigning a unique ID.
