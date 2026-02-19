@@ -9,7 +9,7 @@
 //! This avoids context bloat — the agent reads only what it needs.
 
 use std::path::PathBuf;
-use forge_view::trace_store::TraceStore;
+use forge_view::trace::store::TraceStore;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -255,7 +255,7 @@ fn cmd_issues(args: &[String]) {
     }
 }
 
-fn print_decisions(decisions: &[forge_view::trace_store::DecisionView]) {
+fn print_decisions(decisions: &[forge_view::trace::store::DecisionView]) {
     println!("{:<6} {:<20} {:<16} {:>10} {}",
         "ID", "KIND", "TIER", "MARGIN", "ENTITY");
     println!("{}", "-".repeat(66));

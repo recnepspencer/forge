@@ -20,7 +20,7 @@ use axum::{
 };
 use tower_http::cors::CorsLayer;
 
-use crate::trace_store::TraceStore;
+use crate::trace::store::TraceStore;
 
 /// Shared application state.
 pub type AppState = Arc<Mutex<TraceStore>>;
@@ -103,5 +103,5 @@ async fn reload_traces(State(store): State<AppState>) -> impl IntoResponse {
 
 /// `GET /` — serve the embedded web UI.
 async fn serve_ui() -> Html<&'static str> {
-    Html(include_str!("../static/index.html"))
+    Html(include_str!("../../static/index.html"))
 }

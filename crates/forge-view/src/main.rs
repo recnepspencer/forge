@@ -8,8 +8,8 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use forge_view::trace_store::TraceStore;
-use forge_view::server::{build_router, AppState};
+use forge_view::trace::store::TraceStore;
+use forge_view::trace::server::{build_router, AppState};
 
 #[tokio::main]
 async fn main() {

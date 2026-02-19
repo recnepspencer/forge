@@ -1,29 +1,27 @@
-//! Core kernel infrastructure — shared across all features.
+//! # Core — Policy engine and tolerance configuration
 //!
-//! DOMAIN: Kernel-wide modeling context and policy management.
-//! INVARIANTS: None feature-specific — this is pure infrastructure.
-//! DEPENDENCIES: forge-math (error types, sign types)
+//! DOMAIN: Kernel-level orchestration — tolerance policies, geometry-layer
+//! thresholds, and the `check_tolerance!` macro.
+//!
+//! ## Modules
+//!
+//! - `context`   — `ModelingContext` (policy decisions + decision logging)
+//! - `tolerance`  — `ToleranceConfig` + all `*Policy` structs with defaults
+//! - `macros`     — `check_tolerance!` macro for doctrine D2
+//!
+//! INVARIANTS: Every tolerance decision is logged (D2).
+//! DEPENDENCIES: `forge-core` (DecisionLog, TracedDecision)
 
 mod context;
+pub mod tolerance;
+mod macros;
 
 pub use context::ModelingContext;
-pub use context::TolerancePolicy;
-pub use context::TangencyPolicy;
-pub use context::SliverPolicy;
-pub use context::GapClosurePolicy;
-pub use context::PrecisionEscalationPolicy;
-pub use context::ToleranceConfig;
-pub use forge_core::TracedDecision;
-pub use forge_core::DecisionKind;
-pub use forge_core::DecisionId;
-pub use forge_core::DecisionLog;
-pub use forge_core::DecisionSummary;
-pub use forge_core::DecisionContext;
-pub use forge_core::EntityRef;
-pub use forge_core::OperationResult;
-pub use forge_core::KernelWarning;
-pub use forge_core::OperationMetrics;
-pub use forge_core::LineageDelta;
-pub use forge_core::PolicyKind;
-pub use forge_core::PolicyQuery;
-pub use forge_core::PolicyResult;
+pub use tolerance::{
+    TolerancePolicy,
+    TangencyPolicy,
+    SliverPolicy,
+    GapClosurePolicy,
+    PrecisionEscalationPolicy,
+    ToleranceConfig,
+};

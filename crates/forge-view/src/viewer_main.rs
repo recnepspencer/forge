@@ -25,7 +25,7 @@ fn main() -> eframe::Result {
         "Forge Trace Viewer",
         options,
         Box::new(move |cc| {
-            Ok(Box::new(forge_view::viewer::TraceViewerApp::new(cc, trace_dir)))
+            Ok(Box::new(forge_view::trace::viewer::TraceViewerApp::new(cc, trace_dir)))
         }),
     )
 }

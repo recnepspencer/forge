@@ -110,6 +110,10 @@ impl TraceStore {
     }
 
     /// Load all `.json` trace files from the trace directory.
+    ///
+    /// Supports two formats:
+    /// - **Array format** (current): `[{trace1}, {trace2}, ...]` — one file with multiple traces
+    /// - **Single format** (legacy): `{trace}` — one trace per file
     pub fn reload(&mut self) -> usize {
         self.traces.clear();
         let dir = &self.trace_dir;
@@ -127,39 +131,45 @@ impl TraceStore {
         entries.sort_by_key(|e| e.file_name());
 
         for entry in &entries {
-            if let Ok(content) = std::fs::read_to_string(entry.path()) {
-                if let Ok(trace_file) = serde_json::from_str::<TraceFile>(&content) {
-                    let id = entry.path()
-                        .file_stem()
-                        .map(|s| s.to_string_lossy().to_string())
-                        .unwrap_or_default();
+            let Ok(content) = std::fs::read_to_string(entry.path()) else { continue };
 
-                    let interesting_count = trace_file.log.interesting_only().len();
-                    let span_count = trace_file.log.get_events().iter()
-                        .filter(|e| matches!(e, TraceEvent::StartSpan { .. }))
-                        .count();
-                    let total_decisions = trace_file.log.decisions().count();
-
-                    let meta = TraceMeta {
-                        id: id.clone(),
-                        name: trace_file.name,
-                        timestamp: trace_file.timestamp,
-                        total_decisions,
-                        interesting_count,
-                        span_count,
-                        state_hash: trace_file.state_hash,
-                        status: trace_file.status,
-                    };
-
-                    self.traces.insert(id, StoredTrace {
-                        meta,
-                        log: trace_file.log,
-                    });
+            if let Ok(trace_files) = serde_json::from_str::<Vec<TraceFile>>(&content) {
+                for trace_file in trace_files {
+                    self.insert_trace(trace_file);
                 }
+            } else if let Ok(trace_file) = serde_json::from_str::<TraceFile>(&content) {
+                self.insert_trace(trace_file);
             }
         }
 
         self.traces.len()
+    }
+
+    /// Insert a single trace into the store, deriving its ID from the name.
+    fn insert_trace(&mut self, trace_file: TraceFile) {
+        let id = trace_file.name.replace("::", "_");
+
+        let interesting_count = trace_file.log.interesting_only().len();
+        let span_count = trace_file.log.get_events().iter()
+            .filter(|e| matches!(e, TraceEvent::StartSpan { .. }))
+            .count();
+        let total_decisions = trace_file.log.decisions().count();
+
+        let meta = TraceMeta {
+            id: id.clone(),
+            name: trace_file.name,
+            timestamp: trace_file.timestamp,
+            total_decisions,
+            interesting_count,
+            span_count,
+            state_hash: trace_file.state_hash,
+            status: trace_file.status,
+        };
+
+        self.traces.insert(id, StoredTrace {
+            meta,
+            log: trace_file.log,
+        });
     }
 
     /// List all traces (summary only, no decisions).

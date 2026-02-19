@@ -279,7 +279,11 @@ fn resolve_vertex(
             
             let merge_sig = OpSignature::new("boolean_vertex_merge");
             let merged = Lineage::merge(&existing_lineage, &src_lineage, &merge_sig);
-            draft.arena_mut().get_vertex_mut(*global_id)?.set_lineage(Some(merged));
+            let v_mut = draft.arena_mut().get_vertex_mut(*global_id)?;
+            v_mut.set_lineage(Some(merged));
+            if v_mut.provenance().is_none() {
+                v_mut.set_provenance(Some(*key.planes()));
+            }
             
             vertex_dedup.insert(src_vertex, *global_id);
             return Ok(*global_id);
@@ -313,6 +317,16 @@ fn resolve_vertex(
         src_lineage,
     ));
     result_geom.set_vertex_position(vid, *pos);
+    
+    // Carry provenance: prefer the match key from the split phase,
+    // fall back to the source vertex's stored provenance (from prior booleans).
+    if let Some(ref key) = match_key {
+        draft.arena_mut().get_vertex_mut(vid)?.set_provenance(Some(*key.planes()));
+    } else if let Ok(src_v) = source_arena.get_vertex(src_vertex) {
+        if let Some(stored) = src_v.provenance() {
+            draft.arena_mut().get_vertex_mut(vid)?.set_provenance(Some(*stored));
+        }
+    }
     
     vertex_dedup.insert(src_vertex, vid);
     spatial_index.insert(vid, *pos);

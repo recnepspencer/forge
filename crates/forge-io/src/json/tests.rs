@@ -1,0 +1,170 @@
+//! Tests for JSON serialization.
+
+#[cfg(test)]
+mod tests {
+    use std::fs::File;
+    use std::io::{BufReader, BufWriter};
+
+    use crate::json::{save_model, load_model, VersionedModel, SCHEMA_VERSION};
+    use crate::IoError;
+    use forge_kernel::features::tree::{FeatureTree, NativeFeature};
+    use forge_kernel::features::wrappers::{BooleanFeature, MakeCubeFeature};
+    use forge_kernel::boolean::BooleanOp;
+    use tempfile::tempdir;
+
+    #[test]
+    fn round_trip_preserves_structure() {
+        let mut tree = FeatureTree::new();
+
+        let cube = MakeCubeFeature::new("Cube", [0.0, 0.0, 0.0], 10.0);
+        let cube_id = tree.register_feature(NativeFeature::MakeCube(cube)).unwrap();
+
+        let tool = MakeCubeFeature::new("Tool", [5.0, 5.0, 5.0], 5.0);
+        let tool_id = tree.register_feature(NativeFeature::MakeCube(tool)).unwrap();
+
+        let cut = BooleanFeature::new("Cut", BooleanOp::Subtraction, cube_id, tool_id);
+        let _cut_id = tree.register_feature(NativeFeature::Boolean(cut)).unwrap();
+
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("model.json");
+        save_model(&tree, &path).expect("Failed to save model");
+
+        let loaded = load_model(&path).expect("Failed to load model");
+
+        assert!(loaded.get_node_by_name("Cube").is_some());
+        assert!(loaded.get_node_by_name("Tool").is_some());
+        assert!(loaded.get_node_by_name("Cut").is_some());
+    }
+
+    #[test]
+    fn version_header_is_present() {
+        let tree = FeatureTree::new();
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("versioned.json");
+        save_model(&tree, &path).expect("Failed to save");
+
+        let raw: serde_json::Value = serde_json::from_reader(
+            BufReader::new(File::open(&path).unwrap())
+        ).unwrap();
+
+        assert_eq!(raw["version"], SCHEMA_VERSION);
+        assert!(raw["tree"].is_object());
+    }
+
+    #[test]
+    fn future_version_rejected() {
+        let tree = FeatureTree::new();
+        let future_envelope = VersionedModel {
+            version: 999,
+            tree,
+        };
+
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("future.json");
+        let file = File::create(&path).unwrap();
+        serde_json::to_writer_pretty(BufWriter::new(file), &future_envelope).unwrap();
+
+        let result = load_model(&path);
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            IoError::VersionMismatch { found: 999, .. }
+        ));
+    }
+
+    #[test]
+    fn tc01_empty_tree_round_trip() {
+        let tree = FeatureTree::new();
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("tc01.json");
+
+        save_model(&tree, &path).unwrap();
+        let loaded = load_model(&path).unwrap();
+
+        let json_a = serde_json::to_string(&tree).unwrap();
+        let json_b = serde_json::to_string(&loaded).unwrap();
+        assert_eq!(json_a, json_b);
+    }
+
+    #[test]
+    fn tc02_single_cube_round_trip() {
+        let mut tree = FeatureTree::new();
+        let cube = MakeCubeFeature::new("Box1", [1.0, 2.0, 3.0], 4.0);
+        tree.register_feature(NativeFeature::MakeCube(cube)).unwrap();
+
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("tc02.json");
+        save_model(&tree, &path).unwrap();
+        let loaded = load_model(&path).unwrap();
+
+        assert!(loaded.get_node_by_name("Box1").is_some());
+        let json_a = serde_json::to_string(&tree).unwrap();
+        let json_b = serde_json::to_string(&loaded).unwrap();
+        assert_eq!(json_a, json_b);
+    }
+
+    #[test]
+    fn tc03_two_features_round_trip() {
+        let mut tree = FeatureTree::new();
+        let cube = MakeCubeFeature::new("Base", [0.0, 0.0, 0.0], 10.0);
+        tree.register_feature(NativeFeature::MakeCube(cube)).unwrap();
+        let tool = MakeCubeFeature::new("Cutter", [3.0, 3.0, 3.0], 5.0);
+        tree.register_feature(NativeFeature::MakeCube(tool)).unwrap();
+
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("tc03.json");
+        save_model(&tree, &path).unwrap();
+        let loaded = load_model(&path).unwrap();
+
+        assert!(loaded.get_node_by_name("Base").is_some());
+        assert!(loaded.get_node_by_name("Cutter").is_some());
+        let json_a: serde_json::Value = serde_json::to_value(&tree).unwrap();
+        let json_b: serde_json::Value = serde_json::to_value(&loaded).unwrap();
+        assert_eq!(json_a, json_b);
+    }
+
+    #[test]
+    fn tc04_boolean_subtraction_round_trip() {
+        let mut tree = FeatureTree::new();
+        let cube = MakeCubeFeature::new("Body", [0.0, 0.0, 0.0], 10.0);
+        let cube_id = tree.register_feature(NativeFeature::MakeCube(cube)).unwrap();
+        let tool = MakeCubeFeature::new("Hole", [2.0, 2.0, 2.0], 4.0);
+        let tool_id = tree.register_feature(NativeFeature::MakeCube(tool)).unwrap();
+        let cut = BooleanFeature::new("Pocket", BooleanOp::Subtraction, cube_id, tool_id);
+        tree.register_feature(NativeFeature::Boolean(cut)).unwrap();
+
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("tc04.json");
+        save_model(&tree, &path).unwrap();
+        let loaded = load_model(&path).unwrap();
+
+        assert!(loaded.get_node_by_name("Body").is_some());
+        assert!(loaded.get_node_by_name("Hole").is_some());
+        assert!(loaded.get_node_by_name("Pocket").is_some());
+        let json_a: serde_json::Value = serde_json::to_value(&tree).unwrap();
+        let json_b: serde_json::Value = serde_json::to_value(&loaded).unwrap();
+        assert_eq!(json_a, json_b);
+    }
+
+    #[test]
+    fn tc05_diffability_byte_identical() {
+        let mut tree = FeatureTree::new();
+        let cube = MakeCubeFeature::new("Part", [1.0, 2.0, 3.0], 7.0);
+        let cube_id = tree.register_feature(NativeFeature::MakeCube(cube)).unwrap();
+        let tool = MakeCubeFeature::new("Drill", [2.0, 3.0, 4.0], 3.0);
+        let tool_id = tree.register_feature(NativeFeature::MakeCube(tool)).unwrap();
+        let cut = BooleanFeature::new("Op", BooleanOp::Intersection, cube_id, tool_id);
+        tree.register_feature(NativeFeature::Boolean(cut)).unwrap();
+
+        let dir = tempdir().unwrap();
+        let path_a = dir.path().join("diff_a.json");
+        let path_b = dir.path().join("diff_b.json");
+
+        save_model(&tree, &path_a).unwrap();
+        save_model(&tree, &path_b).unwrap();
+
+        let bytes_a = std::fs::read(&path_a).unwrap();
+        let bytes_b = std::fs::read(&path_b).unwrap();
+        assert_eq!(bytes_a, bytes_b, "Two serializations of the same model must be byte-identical");
+    }
+}

@@ -239,3 +239,124 @@ fn chain_identifies_failing_step() {
     }
 
 }
+
+// ══════════════════════════════════════════════════════════════
+// §DC.5  MINIMAL REPRODUCTIONS
+// ══════════════════════════════════════════════════════════════
+
+/// Minimal repro: two overlapping subtracted notches.
+///
+/// This is the exact geometry from chain_subtract_10_steps step 0+1.
+/// Step 0: subtract cube at (-4.0, 0, 4.5) half=0.5 → notch at x∈[-4.5,-3.5]
+/// Step 1: subtract cube at (-3.1, 0, 4.5) half=0.5 → notch at x∈[-3.6,-2.6]
+/// The two notches overlap in x∈[-3.6,-3.5].
+#[test]
+fn minimal_overlapping_notches() {
+    let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
+
+    // Step 0: first notch
+    let (tool0, tool0_g) = build_cube([-4.0, 0.0, 4.5], 0.5);
+    let input0 = BooleanInput::new(topo, geom, tool0, tool0_g, BooleanOp::Subtraction);
+    let r0 = execute_boolean_logged(input0).expect("Step 0 failed");
+    let r0 = r0.into_value();
+    let (v, e, f, chi) = euler_audit(r0.topology().arena());
+    assert_eq!(chi, 2, "Step 0 Euler: V={v} E={e} F={f} χ={chi}");
+    let (topo, geom) = r0.into_parts();
+
+    // Step 1: overlapping notch
+    let (tool1, tool1_g) = build_cube([-3.1, 0.0, 4.5], 0.5);
+    let input1 = BooleanInput::new(topo, geom, tool1, tool1_g, BooleanOp::Subtraction);
+    let r1 = execute_boolean_logged(input1).expect("Step 1 failed (overlapping notch)");
+    let r1 = r1.into_value();
+    let (v, e, f, chi) = euler_audit(r1.topology().arena());
+    assert_eq!(chi, 2, "Step 1 Euler: V={v} E={e} F={f} χ={chi}");
+}
+
+/// Control: two NON-overlapping subtracted notches.
+///
+/// Same as above but notches are spaced far apart (no overlap).
+/// If this passes but overlapping fails, the bug is in how overlapping
+/// geometry is handled (split/classify interaction with prior notch walls).
+#[test]
+fn minimal_nonoverlapping_notches() {
+    let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
+
+    // Step 0: first notch at x=-4
+    let (tool0, tool0_g) = build_cube([-4.0, 0.0, 4.5], 0.5);
+    let input0 = BooleanInput::new(topo, geom, tool0, tool0_g, BooleanOp::Subtraction);
+    let r0 = execute_boolean_logged(input0).expect("Step 0 failed");
+    let r0 = r0.into_value();
+    let (v, e, f, chi) = euler_audit(r0.topology().arena());
+    assert_eq!(chi, 2, "Step 0 Euler: V={v} E={e} F={f} χ={chi}");
+    
+    // DIAGNOSTIC: print all edges that have at least one endpoint at z=5
+    let arena = r0.topology().arena();
+    let geom_ref = r0.geometry();
+    eprintln!("=== STEP 0 RESULT: edges touching z=5 ===");
+    for (he_id, _he) in arena.iter_half_edges() {
+        let he_data = arena.get_half_edge(he_id).unwrap();
+        let origin = he_data.origin();
+        let next_data = arena.get_half_edge(he_data.next()).unwrap();
+        let dest = next_data.origin();
+        let p_o = geom_ref.get_vertex_position(origin).unwrap();
+        let p_d = geom_ref.get_vertex_position(dest).unwrap();
+        if (p_o[2] - 5.0).abs() < 1e-9 || (p_d[2] - 5.0).abs() < 1e-9 {
+            let face = he_data.face();
+            let twin = he_data.twin();
+            let twin_face = arena.get_half_edge(twin).map(|t| t.face()).unwrap_or(face);
+            eprintln!("  HE#{}: {origin}->{dest} [{:.3},{:.3},{:.3}]->[{:.3},{:.3},{:.3}] face={face} twin_face={twin_face}",
+                he_id.index(), p_o[0], p_o[1], p_o[2], p_d[0], p_d[1], p_d[2]);
+        }
+    }
+    eprintln!("=== END STEP 0 z=5 edges ===");
+    
+    let (topo, geom) = r0.into_parts();
+
+    // Step 1: NON-overlapping notch at x=+4 (far away)
+    let (tool1, tool1_g) = build_cube([4.0, 0.0, 4.5], 0.5);
+    let input1 = BooleanInput::new(topo, geom, tool1, tool1_g, BooleanOp::Subtraction);
+    let r1 = execute_boolean_logged(input1).expect("Step 1 failed (non-overlapping)");
+    let r1 = r1.into_value();
+    let (v, e, f, chi) = euler_audit(r1.topology().arena());
+    assert_eq!(chi, 2, "Step 1 Euler: V={v} E={e} F={f} χ={chi}");
+}
+
+/// Simplest case: single subtraction with flush z=5 boundary.
+///
+/// If this fails, the coplanar boundary problem exists even without chains.
+#[test]
+fn minimal_single_flush_subtraction() {
+    let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
+    let (tool, tool_g) = build_cube([0.0, 0.0, 4.5], 0.5);
+    let input = BooleanInput::new(topo, geom, tool, tool_g, BooleanOp::Subtraction);
+    let r = execute_boolean_logged(input).expect("Single flush subtraction failed");
+    let r = r.into_value();
+    let (v, e, f, chi) = euler_audit(r.topology().arena());
+    assert_eq!(chi, 2, "Euler: V={v} E={e} F={f} χ={chi}");
+}
+
+/// Two non-flush subtractions (tool fully inside, no touching boundary).
+///
+/// If this passes, the bug is specifically about flush coplanar boundaries.
+#[test]
+fn minimal_two_interior_subtractions() {
+    let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
+
+    // Step 0: interior subtraction
+    let (tool0, tool0_g) = build_cube([-3.0, 0.0, 0.0], 0.5);
+    let input0 = BooleanInput::new(topo, geom, tool0, tool0_g, BooleanOp::Subtraction);
+    let r0 = execute_boolean_logged(input0).expect("Step 0 failed");
+    let r0 = r0.into_value();
+    // Interior subtraction creates a cavity: V-E+F = 4 (two shells)
+    let (v, e, f, chi) = euler_audit(r0.topology().arena());
+    eprintln!("Step 0: V={v} E={e} F={f} χ={chi}");
+    let (topo, geom) = r0.into_parts();
+
+    // Step 1: another interior subtraction, far away
+    let (tool1, tool1_g) = build_cube([3.0, 0.0, 0.0], 0.5);
+    let input1 = BooleanInput::new(topo, geom, tool1, tool1_g, BooleanOp::Subtraction);
+    let r1 = execute_boolean_logged(input1).expect("Step 1 failed");
+    let r1 = r1.into_value();
+    let (v, e, f, chi) = euler_audit(r1.topology().arena());
+    eprintln!("Step 1: V={v} E={e} F={f} χ={chi}");
+}

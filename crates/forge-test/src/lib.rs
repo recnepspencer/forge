@@ -7,6 +7,7 @@
 //! - [`fixtures`] — Reusable test fixtures and topology builders
 //! - [`generators`] — Random polyhedra and Boolean pair generators
 //! - [`harness`] — Self-consistency harness for corpus fuzzing
+//! - [`logging`] — Universal test logging helpers
 
 #![forbid(unsafe_code)]
 

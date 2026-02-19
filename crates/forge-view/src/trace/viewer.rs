@@ -14,7 +14,7 @@ use std::time::Instant;
 use eframe::egui;
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
-use crate::trace_store::{
+use crate::trace::store::{
     DecisionView, SpanView, TraceMeta, TraceStore,
 };
 

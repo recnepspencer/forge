@@ -146,21 +146,28 @@ impl HalfEdgeData {
 }
 
 /// Data stored for each vertex.
+///
+/// The optional `provenance` field stores 3 sorted plane indices
+/// that define this vertex as a 3-plane intersection. This survives
+/// across chained boolean operations so that cross-solid vertex
+/// welding can identify geometrically coincident vertices without
+/// re-deriving keys from (potentially changed) face adjacency.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VertexData {
     outgoing: HalfEdgeId,
     lineage: Option<Lineage>,
+    provenance: Option<[usize; 3]>,
 }
 
 impl VertexData {
     /// Construct a new vertex with the given outgoing halfedge.
     pub fn new(outgoing: HalfEdgeId) -> Self {
-        Self { outgoing, lineage: None }
+        Self { outgoing, lineage: None, provenance: None }
     }
 
     /// Construct a new vertex with lineage.
     pub fn with_lineage(outgoing: HalfEdgeId, lineage: Option<Lineage>) -> Self {
-        Self { outgoing, lineage }
+        Self { outgoing, lineage, provenance: None }
     }
 
     /// One outgoing halfedge (for traversal entry).
@@ -169,11 +176,17 @@ impl VertexData {
     /// Inline lineage for provenance tracking.
     pub fn lineage(&self) -> Option<&Lineage> { self.lineage.as_ref() }
 
+    /// The 3-plane intersection provenance (sorted plane indices).
+    pub fn provenance(&self) -> Option<&[usize; 3]> { self.provenance.as_ref() }
+
     /// Set the outgoing halfedge.
     pub fn set_outgoing(&mut self, id: HalfEdgeId) { self.outgoing = id; }
 
     /// Set inline lineage.
     pub fn set_lineage(&mut self, lineage: Option<Lineage>) { self.lineage = lineage; }
+
+    /// Set the 3-plane intersection provenance.
+    pub fn set_provenance(&mut self, provenance: Option<[usize; 3]>) { self.provenance = provenance; }
 }
 
 /// Data stored for each loop (boundary of a face).

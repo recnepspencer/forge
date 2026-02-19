@@ -17,7 +17,7 @@
 
 pub mod error;
 pub mod env;
-pub mod geometry_source;
+pub mod data_access;
 
 pub mod prelude;
 pub mod traits;
@@ -29,7 +29,7 @@ pub mod linalg;
 pub mod coincidence;
 
 pub use error::MathError;
-pub use geometry_source::{GeometrySource, PlaneCoefficients};
+pub use data_access::{GeometrySource, PlaneCoefficients};
 // Re-exports
 pub use numeric::sign; // Commonly used
 pub use numeric::deterministic_rng; // Commonly used

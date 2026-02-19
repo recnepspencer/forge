@@ -48,23 +48,18 @@ impl PlaneTable {
             let d2 = plane.raw_offset();
             
             let dot = n1[0]*n2[0] + n1[1]*n2[1] + n1[2]*n2[2];
-            let parallel = dot.abs() > 0.9999999999;
             
-            if parallel {
-                let sign = dot.signum();
-                let dist_diff = if sign > 0.0 {
-                    (d1 - d2).abs()
-                } else {
-                    (d1 + d2).abs()
-                };
-                
-                if dist_diff < 1e-9 {
-                    return i;
-                }
+            // Only merge planes with the SAME normal direction.
+            // Opposite-normal planes (same geometric plane, flipped orientation)
+            // must stay separate because split_face_by_plane uses the stored
+            // normal direction for vertex classification.
+            if dot > 0.9999999999 && (d1 - d2).abs() < 1e-9 {
+                return i;
             }
         }
         
         let idx = self.planes.len();
+        eprintln!("PLANE_INTERN: idx={} n=[{:.6},{:.6},{:.6}] d={:.6}", idx, plane.raw_normal()[0], plane.raw_normal()[1], plane.raw_normal()[2], plane.raw_offset());
         self.planes.push(plane.clone());
         idx
     }
@@ -246,6 +241,21 @@ pub fn split_all_faces(
         }
     }
     
+    // 4b. Coplanar adjacency expansion: when a target face is coplanar with
+    //     a tool face, adjacent target faces also need the tool's non-coplanar
+    //     boundary planes as cuts. Without this, dropping the coplanar face
+    //     leaves orphaned edges on side walls that can't be stitched.
+    let coplanar_tool_cuts = expand_coplanar_adjacency(
+        target_topo.arena(),
+        &target_face_planes,
+        &tool_face_planes,
+        &target_cuts,
+        &plane_table,
+    );
+    for (face_id, cuts) in coplanar_tool_cuts {
+        target_cuts.entry(face_id).or_default().extend(cuts);
+    }
+
     for cuts in target_cuts.values_mut() { cuts.sort_unstable(); cuts.dedup(); }
     for cuts in tool_cuts.values_mut() { cuts.sort_unstable(); cuts.dedup(); }
 
@@ -418,6 +428,79 @@ fn compute_face_aabbs(arena: &TopologyArena, geom: &GeometryStore) -> Result<Vec
     Ok(list)
 }
 
+/// Expand cuts to target faces adjacent to coplanar overlaps.
+///
+/// When a target face is coplanar with a tool face, the BVH only finds
+/// that one target face. But adjacent target faces (side walls, etc.)
+/// also need to be split by the tool's boundary planes. Without this,
+/// dropping the coplanar face leaves orphaned edges on adjacent faces.
+fn expand_coplanar_adjacency(
+    arena: &TopologyArena,
+    target_face_planes: &HashMap<FaceId, usize>,
+    tool_face_planes: &HashMap<FaceId, usize>,
+    _existing_target_cuts: &HashMap<FaceId, Vec<usize>>,
+    plane_table: &PlaneTable,
+) -> Vec<(FaceId, Vec<usize>)> {
+    let tool_plane_set: HashSet<usize> = tool_face_planes.values().copied().collect();
+
+    let mut coplanar_targets: HashSet<u32> = HashSet::new();
+    for (target_fid, &target_plane_idx) in target_face_planes {
+        if tool_plane_set.contains(&target_plane_idx) {
+            coplanar_targets.insert(target_fid.index());
+        }
+    }
+
+    if coplanar_targets.is_empty() {
+        return Vec::new();
+    }
+
+    let mut extra_cuts: Vec<(FaceId, Vec<usize>)> = Vec::new();
+
+    for (he_id, he_data) in arena.iter_half_edges() {
+        let face_a = he_data.face();
+        if !coplanar_targets.contains(&face_a.index()) {
+            continue;
+        }
+
+        let twin_id = he_data.twin();
+        if twin_id == he_id {
+            continue;
+        }
+        let twin_data = match arena.get_half_edge(twin_id) {
+            Ok(d) => d,
+            Err(_) => continue,
+        };
+        let adjacent_face = twin_data.face();
+
+        if adjacent_face == face_a || coplanar_targets.contains(&adjacent_face.index()) {
+            continue;
+        }
+
+        let adj_plane_idx = match target_face_planes.get(&adjacent_face) {
+            Some(&idx) => idx,
+            None => continue,
+        };
+
+        let mut applicable_cuts = Vec::new();
+        for &cut_idx in &tool_plane_set {
+            if cut_idx == adj_plane_idx {
+                continue;
+            }
+            let adj_plane = plane_table.get(adj_plane_idx);
+            let cut_plane = plane_table.get(cut_idx);
+            if !planes_are_parallel(adj_plane, cut_plane) {
+                applicable_cuts.push(cut_idx);
+            }
+        }
+
+        if !applicable_cuts.is_empty() {
+            extra_cuts.push((adjacent_face, applicable_cuts));
+        }
+    }
+
+    extra_cuts
+}
+
 fn split_face_by_plane(
     draft: &mut MutableDraft,
     geometry: &mut GeometryStore,
@@ -458,7 +541,9 @@ fn split_face_by_plane(
     let v_a = resolve_cut_point(&cut_points[0], draft, geometry, dedup)?;
     let v_b = resolve_cut_point(&cut_points[1], draft, geometry, dedup)?;
 
-    eprintln!("DEBUG: face={} cut_points found v_a={} v_b={}", face, v_a, v_b);
+    let pos_a = geometry.get_vertex_position(v_a).map(|p| format!("[{:.4},{:.4},{:.4}]", p[0], p[1], p[2])).unwrap_or_else(|| "??".into());
+    let pos_b = geometry.get_vertex_position(v_b).map(|p| format!("[{:.4},{:.4},{:.4}]", p[0], p[1], p[2])).unwrap_or_else(|| "??".into());
+    eprintln!("DEBUG: face={} cut_points found v_a={} {} v_b={} {} plane_n={:?}", face, v_a, pos_a, v_b, pos_b, cut_plane.normal());
 
     if v_a == v_b { 
         eprintln!("DEBUG: face={} rejected - v_a == v_b", face);
@@ -660,6 +745,7 @@ fn resolve_cut_point(
             let v = res.get_value().new_vertex;
             geom.set_vertex_position(v, *position);
             dedup.insert(v, provenance.clone());
+            draft.arena_mut().get_vertex_mut(v)?.set_provenance(Some(*provenance.planes()));
             Ok(v)
         }
     }
