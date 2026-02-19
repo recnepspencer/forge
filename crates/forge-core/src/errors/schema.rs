@@ -243,6 +243,28 @@ pub enum TopologyError {
         expected_generation: u32,
         actual_generation: u32,
     },
+    /// A face has near-zero area (geometric degeneracy).
+    ZeroAreaFace {
+        face_index: u32,
+        computed_area: f64,
+        threshold: f64,
+    },
+    /// An edge has near-zero length.
+    ZeroLengthEdge {
+        halfedge_index: u32,
+        computed_length: f64,
+        threshold: f64,
+    },
+    /// A shell has the wrong signed volume (normals point inward).
+    NegativeShellVolume {
+        shell_index: u32,
+        signed_volume: f64,
+    },
+    /// A loop has fewer than 3 distinct vertices.
+    DegenerateLoop {
+        face_index: u32,
+        distinct_vertices: usize,
+    },
 }
 
 impl fmt::Display for TopologyError {
@@ -276,6 +298,22 @@ impl fmt::Display for TopologyError {
             TopologyError::StaleHandle { entity_kind, index, expected_generation, actual_generation } => {
                 write!(f, "Stale {} handle at index {} (expected gen {}, got gen {})", 
                     entity_kind, index, expected_generation, actual_generation)
+            }
+            TopologyError::ZeroAreaFace { face_index, computed_area, threshold } => {
+                write!(f, "Face {} has near-zero area {:.2e} (threshold: {:.2e})",
+                    face_index, computed_area, threshold)
+            }
+            TopologyError::ZeroLengthEdge { halfedge_index, computed_length, threshold } => {
+                write!(f, "Edge {} has near-zero length {:.2e} (threshold: {:.2e})",
+                    halfedge_index, computed_length, threshold)
+            }
+            TopologyError::NegativeShellVolume { shell_index, signed_volume } => {
+                write!(f, "Shell {} has negative signed volume {:.6e} (normals point inward)",
+                    shell_index, signed_volume)
+            }
+            TopologyError::DegenerateLoop { face_index, distinct_vertices } => {
+                write!(f, "Face {} has degenerate loop with only {} distinct vertices (need >= 3)",
+                    face_index, distinct_vertices)
             }
         }
     }

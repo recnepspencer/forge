@@ -3,7 +3,7 @@ trigger: always_on
 ---
 
 1. Directory Modularity: The "Bento Box" Pattern
-To minimize context bloat and keep logic findable, the workspace follows a Feature-Sliced Architecture.
+   To minimize context bloat and keep logic findable, the workspace follows a Feature-Sliced Architecture.
 
 One Folder, One Feature: Each complex feature (e.g., extrude, boolean) must have its own directory.
 
@@ -26,7 +26,7 @@ tests.rs: Unit tests for the feature.
 The 400-Line Guideline: If any single file exceeds ~400 lines, it must be reviewed and subdivided to maintain AI attention window efficiency.
 
 2. Function Rules (Verbs)
-Functions are the primary units of action and must prioritize Strong Cohesion.
+   Functions are the primary units of action and must prioritize Strong Cohesion.
 
 Naming: Functions must be named as verbs (e.g., compute_area, split_edge).
 
@@ -40,20 +40,20 @@ Explicit Parameters: Avoid "Mystery Guests." All data required by a function mus
 
 Verb Dictionary:
 
-get_*: Retrieve value.
+get\_\*: Retrieve value.
 
-set_*: Update attribute.
+set\_\*: Update attribute.
 
 insert/remove: Collection membership.
 
-is_*/can_*/has_*: Boolean predicates.
+is*\*/can*_/has\__: Boolean predicates.
 
 3. Class (Struct) Rules (Nouns)
-Rust Structs represent the "Nouns" of the system and must prioritize Data Protection and Fidelity.
+   Rust Structs represent the "Nouns" of the system and must prioritize Data Protection and Fidelity.
 
 Naming: Structs/Enums must be nouns representing concrete concepts (e.g., Face, ModelingContext).
 
-Strict Encapsulation: Domain attributes must be private. Provide public accessors (get_*) and mutators (set_*).
+Strict Encapsulation: Domain attributes must be private. Provide public accessors (get*\*) and mutators (set*\*).
 
 Fidelity: A struct must accurately and completely represent its design concern. Avoid using raw primitives (like u32) for IDs; use Typed Generational Handles.
 
@@ -62,7 +62,7 @@ Safe Instantiation: Constructors (new or build) must validate all input and ensu
 Composition Over Inheritance: Use Traits to define shared behavior. Favor "has-a" relationships over deep trait-bound hierarchies.
 
 4. Operational Doctrines
-Certified Decision Firewall (D3): All topological decisions must flow through CertifiedTriSign. Agents are forbidden from using raw f64 comparisons to drive topology mutations.
+   Certified Decision Firewall (D3): All topological decisions must flow through CertifiedTriSign. Agents are forbidden from using raw f64 comparisons to drive topology mutations.
 
 Atomic Transactionality (D6): All mutations must be performed on a MutableDraft. Topology is only committed to the TopologyState if the entire operation succeeds.
 
@@ -73,7 +73,7 @@ Data-Driven Design: Move all magic numbers, thresholds, and algorithm data into 
 Explicit Coincidence (D0): Never "perturb" away TriSign::Zero. Utilize the CoincidenceGraph to handle flush/coincident geometry according to explicit policy.
 
 5. Documentation & Verification
-Doc Comments Only: Use /// for public items and //! for module headers. Inline // comments are prohibited; name variables better instead.
+   Doc Comments Only: Use /// for public items and //! for module headers. Inline // comments are prohibited; name variables better instead.
 
 Unit Isolation: Test methods must be straight-line code (no loops/conditionals) and must use Doubles (Stubs, Mocks) to isolate the Subject from its Collaborators.
 
@@ -82,14 +82,14 @@ Implementation Sequence: Follow Top-Down Design (specify systems/interfaces firs
 Test Before Refactor: Never refactor working code without an existing suite to catch regressions.
 
 6. Tech-Stack Specifics
-Typed IDs: Never use raw usize or u32 for IDs. Use the typed generational handles from forge_topo::handles.
+   Typed IDs: Never use raw usize or u32 for IDs. Use the typed generational handles from forge_topo::handles.
 
 Angular Logic: Keep components thin; place all state and mutation logic in Headless Managers/VMs (e.g., crud-manager.ts).
 
 Zero Variable Reuse: Never reassign a variable to a different concept.
 
 7. Observability & Tracing
-Universal Envelope: Every kernel operation must return `OperationResult<T>`, which wraps the value + `DecisionLog` + timing + state hashes.
+   Universal Envelope: Every kernel operation must return `OperationResult<T>`, which wraps the value + `DecisionLog` + timing + state hashes.
 
 Automatic Trace Persistence: `OperationResult::into_value()` auto-persists the `DecisionLog` to disk when `FORGE_TRACE_DIR` is set. Agents must NOT manually call `persist_trace` — the envelope handles it.
 
@@ -99,4 +99,4 @@ Environment Variables:
 
 `FORGE_LOG`: Controls stderr output (`off`, `compact`, `full`).
 
-Trace Inspection: Use the `/trace-drill-down` workflow for the standard test-and-inspect flow. Start with `issues`, then `show`, then `decisions`.
+Trace Inspection: Use the `/testing-and-tracing` workflow for the standard test-and-inspect flow. Start with `issues`, then `show`, then `decisions`.

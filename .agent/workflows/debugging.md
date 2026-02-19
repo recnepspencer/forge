@@ -134,7 +134,7 @@ Replace the chain with a hand-built topology that has the same structural charac
 ```rust
 // After split: how many faces on each solid?
 // After classify: which faces classified as what?
-// After select: which faces were kept/dropped?  
+// After select: which faces were kept/dropped?
 // After copy: how many vertices in the result? Any duplicates?
 // After stitch: how many unpaired halfedges?
 ```
@@ -144,10 +144,11 @@ Replace the chain with a hand-built topology that has the same structural charac
 **Write a numbered list of hypotheses. Do NOT write code to fix anything yet.**
 
 ### Format:
+
 ```
 H1: Vertices at position X are not unified because [reason].
     TEST: Print resolve_vertex calls for that position.
-    
+
 H2: Face Y is classified incorrectly because its centroid is on a boundary.
     TEST: Print the centroid and classification of face Y.
 
@@ -156,6 +157,7 @@ H3: The reverse halfedge for edge A→B was never copied because face Z was drop
 ```
 
 ### Rules:
+
 - Each hypothesis must name a **specific entity** (face ID, vertex ID, position)
 - Each hypothesis must have a **concrete test** (not "read more code")
 - Maximum 3 hypotheses at a time — test them, then form new ones
@@ -164,6 +166,7 @@ H3: The reverse halfedge for edge A→B was never copied because face Z was drop
 ## Phase 3: Test One Variable at a Time
 
 ### The Protocol:
+
 1. Pick the most likely hypothesis
 2. Add ONE diagnostic print/assertion to verify it
 3. Run the minimal test
@@ -172,17 +175,20 @@ H3: The reverse halfedge for edge A→B was never copied because face Z was drop
 6. If no → remove the diagnostic, pick the next hypothesis
 
 ### Rules:
+
 - **Change ONE file per iteration.** Never edit split.rs AND copy.rs simultaneously
 - **Use traces** (`FORGE_TRACE_DIR`) instead of adding prints when possible
 
 // turbo
+
 ```bash
 mkdir -p /Users/spenstar/Documents/programming/Forge/traces
 FORGE_TRACE_DIR=/Users/spenstar/Documents/programming/Forge/traces \
   cargo test -p forge-kernel -- my_minimal_repro 2>&1
 ```
 
-// turbo  
+// turbo
+
 ```bash
 cargo run -p forge-view --bin forge-trace-cli -- issues /Users/spenstar/Documents/programming/Forge/traces
 ```
@@ -196,6 +202,7 @@ cargo run -p forge-view --bin forge-trace-cli -- issues /Users/spenstar/Document
 3. Run the full test suite — no regressions
 
 // turbo
+
 ```bash
 cargo test -p forge-kernel 2>&1 | tail -5
 ```
@@ -204,17 +211,17 @@ cargo test -p forge-kernel 2>&1 | tail -5
 
 ## Anti-Patterns (NEVER DO)
 
-| ❌ Don't | ✅ Do Instead |
-|----------|---------------|
-| Read 5+ source files to "understand the pipeline" | Read the error message + 1 file max |
-| Reason about topology for 20+ tool calls | Write a test and run it |
-| Change multiple files in one iteration | Change ONE file, run, observe |
-| Write a fix without a failing test | Write the minimal repro FIRST |
-| Assume downstream is broken | Assume stitch/copy are correct; prove otherwise |
-| Chase "what should happen" through code | Run code and observe what DOES happen |
-| Spend >5 minutes reading without running | If stuck reading, STOP and write a test |
-| Re-read code you've already seen | Use traces and test output as ground truth |
-| Write exact float comparisons (a == b) | Use ToleranceConfig or VERTEX_WELD_TOLERANCE_SQ |
+| ❌ Don't                                                        | ✅ Do Instead                                        |
+| --------------------------------------------------------------- | ---------------------------------------------------- |
+| Read 5+ source files to "understand the pipeline"               | Read the error message + 1 file max                  |
+| Reason about topology for 20+ tool calls                        | Write a test and run it                              |
+| Change multiple files in one iteration                          | Change ONE file, run, observe                        |
+| Write a fix without a failing test                              | Write the minimal repro FIRST                        |
+| Assume downstream is broken                                     | Assume stitch/copy are correct; prove otherwise      |
+| Chase "what should happen" through code                         | Run code and observe what DOES happen                |
+| Spend >5 minutes reading without running                        | If stuck reading, STOP and write a test              |
+| Re-read code you've already seen                                | Use traces and test output as ground truth           |
+| Write exact float comparisons (a == b)                          | Use ToleranceConfig or VERTEX_WELD_TOLERANCE_SQ      |
 | Assume 4-plane intersections yield identical 3-plane signatures | Assume numeric drift; fall back to spatial proximity |
 
 ## Context Diet for AI Agents
@@ -230,10 +237,24 @@ AI agents degrade when holding too many mental models. Follow these strict rules
 
 ## Quick Reference: Common Failure Patterns
 
-| Error | Phase | Likely Cause |
-|-------|-------|-------------|
-| `MissingTwin` | stitch | Kept face borders a dropped face (selection mismatch) OR duplicate vertices (copy didn't unify) |
-| `Euler χ ≠ 2` | post-assemble | Topology inconsistency from bad split or bad copy |
-| `cut_points < 2` | split | Floating-point: vertices classified ON the plane aren't detected |
-| `InvalidInput` | any | Geometry missing from GeometryStore (plane or position) |
-| Chain step N fails | split/classify | Prior result's topology has internal faces that interact with new tool unexpectedly |
+| Error              | Phase          | Likely Cause                                                                                    |
+| ------------------ | -------------- | ----------------------------------------------------------------------------------------------- |
+| `MissingTwin`      | stitch         | Kept face borders a dropped face (selection mismatch) OR duplicate vertices (copy didn't unify) |
+| `Euler χ ≠ 2`      | post-assemble  | Topology inconsistency from bad split or bad copy                                               |
+| `cut_points < 2`   | split          | Floating-point: vertices classified ON the plane aren't detected                                |
+| `InvalidInput`     | any            | Geometry missing from GeometryStore (plane or position)                                         |
+| Chain step N fails | split/classify | Prior result's topology has internal faces that interact with new tool unexpectedly             |
+
+## Debugging Proof Layer Failures
+
+When a proof validation (PV-xx) or MetaBoss (MB-xx) test fails, identify the layer first:
+
+| Failure Symptom                                              | Proof Layer                          | Where to Look                                                                 |
+| ------------------------------------------------------------ | ------------------------------------ | ----------------------------------------------------------------------------- |
+| Euler formula mismatch, broken twins, non-manifold edge      | **Layer 1** (Topological Invariants) | `forge-topo/src/topology/integrity/validate.rs`, P0.x milestones              |
+| Ray-cast and winding-number disagree on point classification | **Layer 2** (Dual-Path)              | `forge-geom` classifiers + `forge-kernel` cross-check wiring, P1.x milestones |
+| Float result differs from interval/rational result           | **Layer 3** (Numerical)              | `forge-math` precision pipeline + `forge-kernel` escalation, P2.x milestones  |
+| Replay produces different topology hash                      | **Layer 4** (Causal Replay)          | `forge-core` DecisionLog + `forge-topo` ReplayLog, P3.x milestones            |
+| Boolean identity law violated (e.g., `(A∪B)−B ≠ A`)          | **Layer 5** (Self-Consistency)       | `forge-test` identity combinators, P4.x milestones                            |
+
+**Key rule**: Proof layers are independent. A Layer 2 failure does NOT mean Layer 1 is broken — it means the geometry is correct but the wrong face was kept. Start by confirming the lower layers pass before investigating the failing layer.

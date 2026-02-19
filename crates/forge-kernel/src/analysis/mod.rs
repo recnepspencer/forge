@@ -6,3 +6,4 @@
 //! DEPENDENCIES: `forge-topo` (arena traversal), `geometry_store` (positions)
 
 pub mod sliver;
+pub mod proof_validation;

@@ -19,6 +19,7 @@ Use this workflow to implement any milestone from `DEVELOPMENT_BLUEPRINT.MD`.
 ## Step 2: Create the Bento Box (Expanded)
 
 Create `crates/forge-kernel/src/operations/<feature_name>/` (for modeling operations) or `crates/forge-kernel/src/features/<feature_name>/` (for feature tree entries):
+
 - `intent.rs` — **Primary Source of Truth.** Serializable parameters and SDF logic.
 - `schema.rs` — Internal Rust types and helper enums.
 - `eval.rs` — The Bridge. Implements `GeometrySource` and handles `PolicyResult` escalation.
@@ -47,34 +48,40 @@ Every feature evaluation must follow the **Escalation Pattern**:
 ## Step 4: Lineage & Attributes
 
 1.  **Lineage**: Ensure the Euler operator hashes the parent lineage with the new `intent` parameters.
-2.  **Attributes**: Register the feature's output entities in the `AttributeStore`. 
-    - *Example*: Tag the inner cylinder of a hole as `"type": "bore"`.
+2.  **Attributes**: Register the feature's output entities in the `AttributeStore`.
+    - _Example_: Tag the inner cylinder of a hole as `"type": "bore"`.
 
 ## Step 5: Architecture Compliance Checklist
 
 Before considering a feature complete, verify **every** item:
 
 ### Layering & Dependencies
+
 - [ ] No upward dependencies (e.g., forge-geom does NOT import forge-topo types)
-- [ ] All shared types (`KernelError`, `GeometrySource`, `PolicyResult`) come from `forge-core`
+- [ ] All shared types (`KernelError`, `PolicyResult`) come from `forge-core`
+- [ ] `GeometrySource` trait comes from `forge-math::data_access`
 - [ ] `forge-math` only uses `MathError`, never `KernelError`
 
 ### Geometry Firewall (D3)
+
 - [ ] **Zero** raw f64 comparisons in `forge-topo` (no `dist < EPS`, no `denom.abs() < 1e-30`)
 - [ ] All floating-point geometry lives in `forge-geom` functions
 - [ ] Topology decisions driven by `CertifiedTriSign` or imported geometry results
 
 ### Tolerance & Policy (D2)
+
 - [ ] **Zero** hardcoded `const EPS` or magic numbers in `forge-geom` or `forge-topo`
 - [ ] All thresholds flow from `ToleranceConfig` (owned by `forge-kernel`)
 - [ ] Ambiguous results return `PolicyResult::Ambiguous`, never silently rounded
 
 ### Safety (D6, Rule 5.1)
+
 - [ ] **Zero** `unwrap()` / `expect()` / `panic!()` outside `#[cfg(test)]`
 - [ ] All mutations go through `MutableDraft` — no direct arena mutation
 - [ ] All fallible functions return `Result<T, KernelError>` (or `MathError` in forge-math)
 
 ### Conventions (CONVENTIONS.md)
+
 - [ ] All struct fields are private with `get_*` / `set_*` accessors
 - [ ] No raw `u32`/`usize` for IDs — use `FaceId`, `VertexId`, etc.
 - [ ] No inline `//` comments — use `///` doc comments or better variable names
@@ -83,6 +90,7 @@ Before considering a feature complete, verify **every** item:
 - [ ] No file exceeds ~400 lines
 
 ### Verification
+
 - [ ] **D1 (Determinism)**: Run test 100x. Is the topology hash bit-identical?
 - [ ] **D2 (Policy)**: Is there a hardcoded `1e-8` in the code? If yes, move it to `ToleranceConfig`.
 - [ ] **D3 (Firewall)**: Does `forge-geom` know about `FaceId`? If yes, refactor to use a value-based trait.
@@ -91,6 +99,7 @@ Before considering a feature complete, verify **every** item:
 - [ ] `cargo clippy --workspace -- -D warnings` clean
 
 ### Trace Verification
-- [ ] Run `/trace-drill-down` workflow to inspect kernel decisions
+
+- [ ] Run `/testing-and-tracing` workflow to inspect kernel decisions
 - [ ] `forge-trace-cli issues` reports zero interesting decisions (all "deterministic")
 - [ ] If non-deterministic decisions exist, drill down with `forge-trace-cli show` and `decisions` to verify they are expected
