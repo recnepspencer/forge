@@ -2,11 +2,11 @@
 //!
 //! Classifies each face of a solid relative to the other solid.
 //!
-//! ALGORITHM: Flood-fill classification
-//! 1. Build face adjacency graph via twin edges
-//! 2. Decompose into connected patches (faces reachable via shared edges)
-//! 3. Ray-cast classify ONE seed face per patch
-//! 4. Propagate classification to all faces in the patch
+//! ALGORITHM: Per-face ray-cast classification
+//! 1. Build BVH spatial index on the "other" solid
+//! 2. For each face, compute centroid and ray-cast into "other" solid
+//! 3. Interpret result: Inside / Outside / OnBoundary / OppositeBoundary
+//! 4. Apply counterfactual overrides if present (P3.3)
 
 mod eval;
 mod coplanar;

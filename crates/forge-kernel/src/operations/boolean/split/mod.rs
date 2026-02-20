@@ -9,13 +9,15 @@
 //! 4. Apply cuts via a queue: split_face_by_plane runs MakeEdgeFace for each segment.
 //!
 //! MODULES:
-//! - schema  — data shapes (PlaneTable, LocalVertexDedup, SharedVertexRegistry, CutPoint)
+//! - schema  — data shapes (PlaneTable, SplitConfig, LocalVertexDedup, SharedVertexRegistry, CutPoint)
+//! - gate    — cut gate logic (compute_face_chord, exact_sign_for_vertex)
 //! - eval    — orchestration (split_all_faces, split_solid)
-//! - cut     — per-face logic (split_face_by_plane, compute_face_chord, resolve_chord_endpoints)
+//! - cut     — per-face application (split_face_by_plane, resolve_cut_point)
 
 mod schema;
+mod gate;
 mod eval;
 mod cut;
 
-pub use schema::SplitPhaseResult;
+pub use schema::{SplitPhaseResult, SplitConfig};
 pub use eval::split_all_faces;

@@ -68,8 +68,7 @@ pub(super) fn assemble_result(
 
     cleanup_degenerate_topology(&mut draft, &result_geom)?;
 
-    let post_copy_diag = diagnose_arena(draft.arena(), PipelineStage::PostCopy);
-    eprintln!("[PIPELINE_DIAG] {post_copy_diag}");
+    let _post_copy_diag = diagnose_arena(draft.arena(), PipelineStage::PostCopy);
 
     let active_he_ids: Vec<HalfEdgeId> = all_new_he_ids.iter()
         .filter(|id| draft.arena().get_half_edge(**id).is_ok())
@@ -79,8 +78,7 @@ pub(super) fn assemble_result(
     match stitch_twins(&mut draft, &active_he_ids, &result_geom, spatial_index.weld_tolerance_sq(), ctx) {
         Ok(()) => {}
         Err(e) => {
-            let stitch_diag = diagnose_arena(draft.arena(), PipelineStage::PostStitch);
-            eprintln!("[PIPELINE_DIAG] {stitch_diag}");
+            let _stitch_diag = diagnose_arena(draft.arena(), PipelineStage::PostStitch);
 
             let cleaned = cleanup_degenerate_topology(&mut draft, &result_geom)?;
             if cleaned > 0 {

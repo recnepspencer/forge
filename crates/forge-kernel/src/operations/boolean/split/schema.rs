@@ -12,7 +12,20 @@ use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::state::TopologyState;
 
 use crate::geometry_store::GeometryStore;
+use crate::core::ToleranceConfig;
 use crate::operations::boolean::eval::VertexMatchKey;
+
+/// Read-only configuration for the split phase.
+///
+/// Groups immutable lookup tables that every split function reads.
+/// Separating from mutable bookkeeping (dedup, edge_cut_map) prevents
+/// borrow conflicts when a function needs `&SplitConfig` while another
+/// holds `&mut LocalVertexDedup`.
+pub struct SplitConfig<'a> {
+    pub plane_table: &'a PlaneTable,
+    pub face_plane_map: &'a BTreeMap<FaceId, usize>,
+    pub tolerance: &'a ToleranceConfig,
+}
 
 /// A centralized table of unique planes in the operation.
 ///

@@ -15,6 +15,8 @@
 mod context;
 pub mod tolerance;
 mod macros;
+mod brep_workspace;
+mod operation_space;
 
 pub use context::ModelingContext;
 pub use tolerance::{
@@ -25,3 +27,5 @@ pub use tolerance::{
     PrecisionEscalationPolicy,
     ToleranceConfig,
 };
+pub use brep_workspace::BRepWorkspace;
+pub use operation_space::OperationSpace;

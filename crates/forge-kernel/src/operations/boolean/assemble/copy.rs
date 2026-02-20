@@ -1,20 +1,19 @@
 //! Copy faces from one arena to another.
 //!
-//! Handles the transfer of topology and geometry, remapping handles,
-//! and deduplicating vertices based on `VertexMatchKey` (3-plane signature)
-//! with a spatial nearest-neighbor fallback for vertices lacking provenance.
+//! DOMAIN: Transfer topology and geometry between arenas, remapping handles
+//! and deduplicating vertices via provenance keys and spatial search.
 //!
-//! When a cross-solid vertex collision is found (same VertexMatchKey or
-//! same geometric position within tolerance), lineages are merged using
-//! `Lineage::merge` to preserve traceability (D1).
+//! DEPENDENCIES: schema (VertexMatchKey), GeometryStore, forge_topo.
 //!
-//! Uses direct arena insertion (same pattern as `mesh_builder/eval.rs`)
-//! rather than Euler operators, giving full control over halfedge wiring.
+//! INVARIANTS:
+//! - Vertex dedup uses 3 layers: local → provenance key → spatial NNS → create new.
+//! - Cross-solid vertex collisions merge lineage using `Lineage::merge` (D1).
+//! - Direct arena insertion (not Euler operators) for full halfedge control.
 
 use std::collections::BTreeMap;
 
 use forge_core::KernelError;
-use forge_topo::arena::{FaceData, HalfEdgeData, LoopData};
+use forge_topo::arena::{FaceData, HalfEdgeData, LoopData, VertexData};
 use forge_topo::handles::{FaceId, VertexId, HalfEdgeId, LoopId};
 use forge_topo::lineage::{Lineage, OpSignature};
 use forge_topo::state::MutableDraft;
@@ -23,22 +22,33 @@ use forge_topo::traverse::FaceEdgeIterator;
 use crate::geometry_store::GeometryStore;
 use crate::operations::boolean::eval::VertexMatchKey;
 
-/// Helper to map vertices from old arena to new arena (local to one solid).
+/// Mutable destination state for the face-copy phase.
+///
+/// Groups the 6 destination-side objects that always travel together.
+/// Source-side `(arena, geom)` stays as separate `&` params.
+pub struct CopyContext<'a> {
+    pub draft: &'a mut MutableDraft,
+    pub geometry: &'a mut GeometryStore,
+    pub vertex_dedup: &'a mut VertexDedup,
+    pub new_edges: &'a mut Vec<HalfEdgeId>,
+    pub global_vertex_map: &'a mut BTreeMap<VertexMatchKey, VertexId>,
+    pub spatial_index: &'a mut SpatialVertexIndex,
+}
+
+/// Local vertex mapping for one solid (old arena → new arena).
 pub struct VertexDedup {
     mapping: BTreeMap<VertexId, VertexId>,
 }
 
 impl VertexDedup {
     pub fn new() -> Self {
-        Self {
-            mapping: BTreeMap::new(),
-        }
+        Self { mapping: BTreeMap::new() }
     }
-    
+
     pub fn insert(&mut self, old: VertexId, new: VertexId) {
         self.mapping.insert(old, new);
     }
-    
+
     pub fn get(&self, old: VertexId) -> Option<VertexId> {
         self.mapping.get(&old).copied()
     }
@@ -47,59 +57,42 @@ impl VertexDedup {
 /// Vertex position index with fuzzy nearest-neighbor search.
 ///
 /// Grid cell size and weld tolerance are proportional to the
-/// characteristic scale of the input geometry. This ensures correct
-/// vertex deduplication at any scale — from nanometer to kilometer.
+/// characteristic scale of the input geometry.
 pub struct SpatialVertexIndex {
-    grid: std::collections::BTreeMap<[i64; 3], Vec<(VertexId, [f64; 3])>>,
+    grid: BTreeMap<[i64; 3], Vec<(VertexId, [f64; 3])>>,
     cell_size: f64,
     weld_tolerance_sq: f64,
 }
 
 impl SpatialVertexIndex {
     /// Create a new index scaled to the input geometry.
-    ///
-    /// `characteristic_scale` is the bounding box diagonal of the input.
-    /// Grid cell size = scale * 1e-3 (3 orders below geometry).
-    /// Weld tolerance = scale * 1e-8 (8 orders below, catches float noise).
     pub fn new(characteristic_scale: f64) -> Self {
         let scale = characteristic_scale.max(1e-15);
         let cell_size = scale * 1e-3;
         let linear_tol = scale * 1e-8;
         Self {
-            grid: std::collections::BTreeMap::new(),
+            grid: BTreeMap::new(),
             cell_size,
             weld_tolerance_sq: linear_tol * linear_tol,
         }
     }
 
-    fn cell_coords(&self, pos: &[f64; 3]) -> [i64; 3] {
-        [
-            (pos[0] / self.cell_size).floor() as i64,
-            (pos[1] / self.cell_size).floor() as i64,
-            (pos[2] / self.cell_size).floor() as i64,
-        ]
-    }
-
-    /// Find the nearest vertex within tolerance. Returns `None` if
-    /// no existing vertex is close enough.
+    /// Find the nearest vertex within tolerance.
     pub fn find_nearest(&self, pos: &[f64; 3]) -> Option<VertexId> {
-        let center_cell = self.cell_coords(pos);
+        let center = self.cell_coords(pos);
         let mut best: Option<(VertexId, f64)> = None;
 
         for dx in -1..=1 {
             for dy in -1..=1 {
                 for dz in -1..=1 {
-                    let cell = [center_cell[0] + dx, center_cell[1] + dy, center_cell[2] + dz];
+                    let cell = [center[0] + dx, center[1] + dy, center[2] + dz];
                     if let Some(entries) = self.grid.get(&cell) {
                         for &(vid, ref p) in entries {
-                            let diff_x = pos[0] - p[0];
-                            let diff_y = pos[1] - p[1];
-                            let diff_z = pos[2] - p[2];
-                            let dist_sq = diff_x * diff_x + diff_y * diff_y + diff_z * diff_z;
+                            let dist_sq = squared_distance(pos, p);
                             if dist_sq <= self.weld_tolerance_sq {
                                 match best {
                                     None => best = Some((vid, dist_sq)),
-                                    Some((_, best_d)) if dist_sq < best_d => best = Some((vid, dist_sq)),
+                                    Some((_, bd)) if dist_sq < bd => best = Some((vid, dist_sq)),
                                     _ => {}
                                 }
                             }
@@ -111,7 +104,7 @@ impl SpatialVertexIndex {
         best.map(|(vid, _)| vid)
     }
 
-    /// The scale-proportional squared distance tolerance.
+    /// The scale-proportional squared weld tolerance.
     pub fn weld_tolerance_sq(&self) -> f64 {
         self.weld_tolerance_sq
     }
@@ -121,13 +114,27 @@ impl SpatialVertexIndex {
         let cell = self.cell_coords(&pos);
         self.grid.entry(cell).or_insert_with(Vec::new).push((vid, pos));
     }
+
+    fn cell_coords(&self, pos: &[f64; 3]) -> [i64; 3] {
+        [
+            (pos[0] / self.cell_size).floor() as i64,
+            (pos[1] / self.cell_size).floor() as i64,
+            (pos[2] / self.cell_size).floor() as i64,
+        ]
+    }
 }
 
+/// Squared Euclidean distance between two 3D points.
+fn squared_distance(a: &[f64; 3], b: &[f64; 3]) -> f64 {
+    let dx = a[0] - b[0];
+    let dy = a[1] - b[1];
+    let dz = a[2] - b[2];
+    dx * dx + dy * dy + dz * dz
+}
+
+// ── Face copying ─────────────────────────────────────────────────────────────
+
 /// Copy a set of faces from a source arena to a destination draft.
-///
-/// - `global_vertex_map`: Map of VertexMatchKey → New VertexId (shared across entire boolean op).
-/// - `spatial_index`: Position-based fallback for vertices without provenance.
-/// - `src_prov`: Optional provenance map (Source VertexId → VertexMatchKey) for cross-solid gluing.
 pub fn copy_faces(
     draft: &mut MutableDraft,
     result_geom: &mut GeometryStore,
@@ -141,7 +148,6 @@ pub fn copy_faces(
     reverse_orientation: bool,
     src_prov: Option<&BTreeMap<VertexId, VertexMatchKey>>,
 ) -> Result<(), KernelError> {
-    
     for &src_face in source_faces {
         copy_single_face(
             draft, result_geom, vertex_dedup, new_edges, global_vertex_map,
@@ -149,18 +155,10 @@ pub fn copy_faces(
             source_arena, source_geom, src_face, reverse_orientation, src_prov,
         )?;
     }
-    
     Ok(())
 }
 
 /// Copy a single face via direct arena insertion.
-///
-/// Algorithm (mirrors `mesh_builder::insert_faces_and_loops`):
-/// 1. Collect source vertices in order (reversed if needed)
-/// 2. Resolve each vertex via local dedup → global match key → spatial NNS → create new
-/// 3. Insert FaceData, LoopData, and one HalfEdgeData per vertex
-/// 4. Wire next/prev pointers in a closed loop
-/// 5. Record all created HalfEdgeIds for later twin stitching
 fn copy_single_face(
     draft: &mut MutableDraft,
     result_geom: &mut GeometryStore,
@@ -174,110 +172,156 @@ fn copy_single_face(
     reverse_orientation: bool,
     src_prov: Option<&BTreeMap<VertexId, VertexMatchKey>>,
 ) -> Result<FaceId, KernelError> {
-    
-    let src_plane = source_geom.get_face_plane(src_face).ok_or(KernelError::InvalidInput {
-        message: format!("Face {} missing plane", src_face),
-        context: None,
-    })?;
-    
-    let mut new_plane = src_plane.clone();
-    if reverse_orientation {
-        new_plane.flip();
-    }
-    
-    // 2. Copy all half-edges for the face
+    let new_plane = prepare_face_plane(source_geom, src_face, reverse_orientation)?;
+
     let edges: Vec<_> = FaceEdgeIterator::new(source_arena, src_face)?
         .collect::<Result<Vec<_>, _>>()?;
+
     if edges.is_empty() {
-        let _placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
-        let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
-        let face_id = draft.arena_mut().insert_face(FaceData::new(
-            placeholder_loop,
-        ));
-        result_geom.set_face_plane(face_id, new_plane);
-        return Ok(face_id);
+        return insert_empty_face(draft, result_geom, new_plane);
     }
-    
-    let iter_order: Vec<HalfEdgeId> = if reverse_orientation {
+
+    let src_verts = collect_source_vertices(source_arena, &edges, reverse_orientation)?;
+
+    let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
+    let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
+
+    let face_id = draft.arena_mut().insert_face(FaceData::new(placeholder_loop));
+    result_geom.set_face_plane(face_id, new_plane);
+
+    let loop_id = draft.arena_mut().insert_loop(LoopData::new(placeholder_he, face_id));
+
+    let resolved_verts = resolve_all_vertices(
+        draft, result_geom, vertex_dedup, global_vertex_map, spatial_index,
+        source_arena, source_geom, &src_verts, src_prov,
+    )?;
+
+    let he_ids = insert_halfedges(draft, &resolved_verts, face_id)?;
+    wire_halfedge_loop(draft, &he_ids)?;
+
+    draft.arena_mut().get_face_mut(face_id)?.set_outer_loop(loop_id);
+    draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(he_ids[0]);
+
+    set_vertex_outgoing_pointers(draft, &he_ids)?;
+
+    new_edges.extend_from_slice(&he_ids);
+    Ok(face_id)
+}
+
+/// Prepare the face plane, flipping if reverse orientation is needed.
+fn prepare_face_plane(
+    source_geom: &GeometryStore,
+    src_face: FaceId,
+    reverse: bool,
+) -> Result<forge_geom::Plane, KernelError> {
+    let src_plane = source_geom.get_face_plane(src_face).ok_or(KernelError::InvalidInput {
+        message: format!("Face {} missing plane", src_face), context: None,
+    })?;
+    let mut plane = src_plane.clone();
+    if reverse { plane.flip(); }
+    Ok(plane)
+}
+
+/// Insert an empty face (no edges) with the given plane.
+fn insert_empty_face(
+    draft: &mut MutableDraft,
+    geom: &mut GeometryStore,
+    plane: forge_geom::Plane,
+) -> Result<FaceId, KernelError> {
+    let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
+    let face_id = draft.arena_mut().insert_face(FaceData::new(placeholder_loop));
+    geom.set_face_plane(face_id, plane);
+    Ok(face_id)
+}
+
+/// Collect source vertex IDs in winding order (reversed if needed).
+fn collect_source_vertices(
+    source_arena: &forge_topo::arena::TopologyArena,
+    edges: &[HalfEdgeId],
+    reverse: bool,
+) -> Result<Vec<VertexId>, KernelError> {
+    let iter_order: Vec<HalfEdgeId> = if reverse {
         edges.iter().rev().copied().collect()
     } else {
         edges.to_vec()
     };
-    
-    let mut src_verts = Vec::with_capacity(iter_order.len());
+
+    let mut verts = Vec::with_capacity(iter_order.len());
     for he in &iter_order {
-        let he_data = source_arena.get_half_edge(*he)?;
-        src_verts.push(he_data.origin());
+        verts.push(source_arena.get_half_edge(*he)?.origin());
     }
-    
-    let num_verts = src_verts.len();
-    
-    let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
-    let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
-    
-    let face_id = draft.arena_mut().insert_face(FaceData::new(
-        placeholder_loop,
-    ));
-    result_geom.set_face_plane(face_id, new_plane);
-    
-    let loop_id = draft.arena_mut().insert_loop(LoopData::new(
-        placeholder_he,
-        face_id,
-    ));
-    
-    let mut resolved_verts = Vec::with_capacity(num_verts);
-    for &sv in &src_verts {
-        let new_v_id = resolve_vertex(
+    Ok(verts)
+}
+
+/// Resolve all source vertices to destination vertices.
+fn resolve_all_vertices(
+    draft: &mut MutableDraft,
+    result_geom: &mut GeometryStore,
+    vertex_dedup: &mut VertexDedup,
+    global_vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
+    spatial_index: &mut SpatialVertexIndex,
+    source_arena: &forge_topo::arena::TopologyArena,
+    source_geom: &GeometryStore,
+    src_verts: &[VertexId],
+    src_prov: Option<&BTreeMap<VertexId, VertexMatchKey>>,
+) -> Result<Vec<VertexId>, KernelError> {
+    let mut resolved = Vec::with_capacity(src_verts.len());
+    for &sv in src_verts {
+        resolved.push(resolve_vertex(
             draft, result_geom, vertex_dedup, global_vertex_map,
-            spatial_index,
-            source_arena, source_geom, sv, src_prov,
-        )?;
-        resolved_verts.push(new_v_id);
+            spatial_index, source_arena, source_geom, sv, src_prov,
+        )?);
     }
-    
-    let mut he_ids = Vec::with_capacity(num_verts);
-    for &origin in &resolved_verts {
+    Ok(resolved)
+}
+
+/// Insert halfedges for each vertex with self-twin placeholders.
+fn insert_halfedges(
+    draft: &mut MutableDraft,
+    verts: &[VertexId],
+    face_id: FaceId,
+) -> Result<Vec<HalfEdgeId>, KernelError> {
+    let placeholder = HalfEdgeId::from_raw_parts(u32::MAX, 0);
+    let mut ids = Vec::with_capacity(verts.len());
+    for &origin in verts {
         let he_id = draft.arena_mut().insert_half_edge(HalfEdgeData::new(
-            placeholder_he,
-            placeholder_he,
-            placeholder_he,
-            face_id,
-            origin,
+            placeholder, placeholder, placeholder, face_id, origin,
         ));
         draft.arena_mut().get_half_edge_mut(he_id).unwrap().set_twin(he_id);
-        he_ids.push(he_id);
+        ids.push(he_id);
     }
-    
-    for i in 0..num_verts {
-        let next_i = (i + 1) % num_verts;
-        let prev_i = if i == 0 { num_verts - 1 } else { i - 1 };
-        
+    Ok(ids)
+}
+
+/// Wire next/prev pointers in a closed loop.
+fn wire_halfedge_loop(draft: &mut MutableDraft, he_ids: &[HalfEdgeId]) -> Result<(), KernelError> {
+    let n = he_ids.len();
+    for i in 0..n {
+        let next_i = (i + 1) % n;
+        let prev_i = if i == 0 { n - 1 } else { i - 1 };
         let arena = draft.arena_mut();
         arena.get_half_edge_mut(he_ids[i])?.set_next(he_ids[next_i]);
         arena.get_half_edge_mut(he_ids[i])?.set_prev(he_ids[prev_i]);
     }
-    
-    draft.arena_mut().get_face_mut(face_id)?.set_outer_loop(loop_id);
-    draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(he_ids[0]);
-    
-    for &he_id in &he_ids {
+    Ok(())
+}
+
+/// Set outgoing pointer on each vertex to its halfedge.
+fn set_vertex_outgoing_pointers(draft: &mut MutableDraft, he_ids: &[HalfEdgeId]) -> Result<(), KernelError> {
+    for &he_id in he_ids {
         let origin = draft.arena().get_half_edge(he_id)?.origin();
         draft.arena_mut().get_vertex_mut(origin)?.set_outgoing(he_id);
     }
-    
-    new_edges.extend_from_slice(&he_ids);
-    
-    Ok(face_id)
+    Ok(())
 }
 
-/// Resolve a source vertex to a destination vertex, using dedup layers:
+// ── Vertex resolution ────────────────────────────────────────────────────────
+
+/// Resolve a source vertex to a destination vertex using 4-layer dedup:
 /// 1. Local dedup (same solid, already copied)
-/// 2. Global VertexMatchKey map (cross-solid vertex gluing via 3-plane provenance)
-/// 3. Spatial nearest-neighbor search (fuzzy position fallback)
+/// 2. Global VertexMatchKey map (cross-solid gluing via 3-plane provenance)
+/// 3. Spatial NNS (fuzzy position fallback)
 /// 4. Create new vertex
-///
-/// When a cross-solid match is found (step 2 or 3), the existing vertex's
-/// lineage is merged with the source vertex's lineage using `Lineage::merge` (D1).
 fn resolve_vertex(
     draft: &mut MutableDraft,
     result_geom: &mut GeometryStore,
@@ -292,68 +336,71 @@ fn resolve_vertex(
     let pos = source_geom.get_vertex_position(src_vertex).ok_or(
         KernelError::InvalidInput { message: "Missing vertex position".into(), context: None }
     )?;
-    
+
     if let Some(mapped) = vertex_dedup.get(src_vertex) {
         return Ok(mapped);
     }
-    
+
     let match_key = src_prov.and_then(|prov| prov.get(&src_vertex).cloned());
-    
+
     if let Some(ref key) = match_key {
-        if let Some(global_id) = global_vertex_map.get(key) {
-            let src_lineage = source_arena.get_vertex(src_vertex)
-                .ok()
-                .and_then(|v| v.lineage().cloned());
-            let existing_lineage = draft.arena().get_vertex(*global_id)
-                .ok()
-                .and_then(|v| v.lineage().cloned());
-            
-            let merge_sig = OpSignature::new("boolean_vertex_merge");
-            let merged = Lineage::merge(&existing_lineage, &src_lineage, &merge_sig);
-            let v_mut = draft.arena_mut().get_vertex_mut(*global_id)?;
-            v_mut.set_lineage(Some(merged));
-            
-            vertex_dedup.insert(src_vertex, *global_id);
-            return Ok(*global_id);
+        if let Some(&global_id) = global_vertex_map.get(key) {
+            merge_vertex_lineage(draft, source_arena, src_vertex, global_id, "boolean_vertex_merge")?;
+            vertex_dedup.insert(src_vertex, global_id);
+            return Ok(global_id);
         }
     }
-    
-    // Fallback: fuzzy nearest-neighbor search for vertices without provenance
+
     if let Some(existing_id) = spatial_index.find_nearest(pos) {
         if draft.arena().get_vertex(existing_id).is_ok() {
-            let src_lineage = source_arena.get_vertex(src_vertex)
-                .ok()
-                .and_then(|v| v.lineage().cloned());
-            let existing_lineage = draft.arena().get_vertex(existing_id)
-                .ok()
-                .and_then(|v| v.lineage().cloned());
-            let merge_sig = OpSignature::new("boolean_vertex_merge_spatial");
-            let merged = Lineage::merge(&existing_lineage, &src_lineage, &merge_sig);
-            draft.arena_mut().get_vertex_mut(existing_id)?.set_lineage(Some(merged));
-            
+            merge_vertex_lineage(draft, source_arena, src_vertex, existing_id, "boolean_vertex_merge_spatial")?;
             vertex_dedup.insert(src_vertex, existing_id);
             return Ok(existing_id);
         }
     }
-    
-    let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
-    let src_lineage = source_arena.get_vertex(src_vertex)
-        .ok()
-        .and_then(|v| v.lineage().cloned());
-    let vid = draft.arena_mut().insert_vertex(forge_topo::arena::VertexData::with_lineage(
-        placeholder_he,
-        src_lineage,
-    ));
-    result_geom.set_vertex_position(vid, *pos);
-    if let Some(exact) = source_geom.get_vertex_position_exact(src_vertex) {
-        result_geom.set_vertex_position_exact(vid, exact.clone());
-    }
-    
+
+    let vid = create_new_vertex(draft, result_geom, source_arena, source_geom, src_vertex, pos)?;
     vertex_dedup.insert(src_vertex, vid);
     spatial_index.insert(vid, *pos);
     if let Some(key) = match_key {
         global_vertex_map.insert(key, vid);
     }
-    
+    Ok(vid)
+}
+
+/// Merge lineage from a source vertex into an existing destination vertex.
+fn merge_vertex_lineage(
+    draft: &mut MutableDraft,
+    source_arena: &forge_topo::arena::TopologyArena,
+    src_vertex: VertexId,
+    dest_vertex: VertexId,
+    op_name: &str,
+) -> Result<(), KernelError> {
+    let src_lineage = source_arena.get_vertex(src_vertex)
+        .ok().and_then(|v| v.lineage().cloned());
+    let existing_lineage = draft.arena().get_vertex(dest_vertex)
+        .ok().and_then(|v| v.lineage().cloned());
+    let merged = Lineage::merge(&existing_lineage, &src_lineage, &OpSignature::new(op_name));
+    draft.arena_mut().get_vertex_mut(dest_vertex)?.set_lineage(Some(merged));
+    Ok(())
+}
+
+/// Create a brand new vertex in the destination arena with geometry.
+fn create_new_vertex(
+    draft: &mut MutableDraft,
+    result_geom: &mut GeometryStore,
+    source_arena: &forge_topo::arena::TopologyArena,
+    source_geom: &GeometryStore,
+    src_vertex: VertexId,
+    pos: &[f64; 3],
+) -> Result<VertexId, KernelError> {
+    let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
+    let src_lineage = source_arena.get_vertex(src_vertex)
+        .ok().and_then(|v| v.lineage().cloned());
+    let vid = draft.arena_mut().insert_vertex(VertexData::with_lineage(placeholder_he, src_lineage));
+    result_geom.set_vertex_position(vid, *pos);
+    if let Some(exact) = source_geom.get_vertex_position_exact(src_vertex) {
+        result_geom.set_vertex_position_exact(vid, exact.clone());
+    }
     Ok(vid)
 }

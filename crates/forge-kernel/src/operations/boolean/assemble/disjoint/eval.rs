@@ -1,11 +1,17 @@
-//! Containment classification and detection logic for zero-split path.
+//! Containment classification and zero-split dispatch.
+//!
+//! DOMAIN: When the split phase produces zero face splits, classify the
+//! spatial relationship between two non-intersecting solids and dispatch
+//! to the appropriate assembly function.
+//!
+//! DEPENDENCIES: classify (point-in-solid), assemble (shell assembly).
+//! INVARIANTS: Always records a TracedDecision for the containment result.
 
 use forge_core::KernelError;
 use forge_core::result::{
     TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier,
 };
 use forge_topo::state::TopologyState;
-use forge_topo::handles::FaceId;
 use forge_topo::classify::classify_point_in_solid;
 
 use crate::core::ModelingContext;
@@ -30,14 +36,6 @@ pub(super) enum Containment {
 }
 
 /// Fast path for non-intersecting solids (zero face splits).
-///
-/// When the split phase produces zero splits, the two solids have no
-/// volumetric intersection. They may be disjoint, touching at a point/edge,
-/// or fully coplanar/identical. Handle each operation type directly:
-///
-/// - **Union**: copy both complete shells into a new arena
-/// - **Intersection**: return empty (no overlap)
-/// - **Subtraction**: copy target shell only (tool doesn't cut into it)
 pub fn execute_zero_split(
     target_topo: &TopologyState,
     target_geom: &GeometryStore,
@@ -46,67 +44,14 @@ pub fn execute_zero_split(
     operation: BooleanOp,
     ctx: &mut ModelingContext,
 ) -> Result<Option<BooleanResult>, KernelError> {
-    let has_containment = check_containment(
-        target_topo, target_geom,
-        tool_topo, tool_geom,
-        ctx,
-    )?;
-
-    ctx.get_decision_log_mut().record(TracedDecision::new(
-        DecisionId(1),
-        DecisionKind::Exact,
-        DecisionTier::Deterministic,
-        1.0,
-        DecisionContext::Degeneracy {
-            description: format!(
-                "Zero-split containment: {:?} (op={:?})",
-                match &has_containment {
-                    Containment::ToolInsideTarget => "ToolInsideTarget",
-                    Containment::TargetInsideTool => "TargetInsideTool",
-                    Containment::Disjoint => "Disjoint",
-                    Containment::Touching => "Touching",
-                },
-                operation,
-            ),
-        },
-    ));
-
-    match has_containment {
-        Containment::ToolInsideTarget => {
-            execute_contained_boolean(
-                target_topo, target_geom,
-                tool_topo, tool_geom,
-                operation, true, ctx
-            ).map(Some)
-        }
-        Containment::TargetInsideTool => {
-            execute_contained_boolean(
-                target_topo, target_geom,
-                tool_topo, tool_geom,
-                operation, false, ctx
-            ).map(Some)
-        }
-        Containment::Disjoint => {
-            execute_disjoint_boolean(
-                target_topo, target_geom,
-                tool_topo, tool_geom,
-                operation,
-                ctx,
-            ).map(Some)
-        }
-        Containment::Touching => {
-            execute_touching_boolean(
-                target_topo, target_geom,
-                tool_topo, tool_geom,
-                operation,
-                ctx,
-            ).map(Some)
-        }
-    }
+    let containment = check_containment(target_topo, target_geom, tool_topo, tool_geom, ctx)?;
+    log_containment(&containment, operation, ctx);
+    dispatch_containment(containment, target_topo, target_geom, tool_topo, tool_geom, operation, ctx)
 }
 
-/// Sample one vertex from each solid and classify against the other
-/// to determine containment.
+// ── Containment classification ───────────────────────────────────────────────
+
+/// Determine the spatial relationship between two solids by sampling.
 pub(super) fn check_containment(
     target_topo: &TopologyState,
     target_geom: &GeometryStore,
@@ -115,127 +60,120 @@ pub(super) fn check_containment(
     ctx: &mut ModelingContext,
 ) -> Result<Containment, KernelError> {
     let config = ctx.get_tolerance_config().clone();
-    let tool_sample = sample_interior_point(tool_topo, tool_geom, &config)?;
 
-    let vertex_lookup_target = |index: u32| -> Result<[f64; 3], KernelError> {
-        let gen = target_topo.arena().vertex_generation(index as usize).ok_or_else(|| {
-            KernelError::InvalidInput {
-                message: format!("No active vertex at slot index {}", index),
-                context: None,
-            }
-        })?;
-        let vid = forge_topo::handles::VertexId::from_raw_parts(index, gen);
-        target_geom.get_vertex_position(vid).copied().ok_or_else(|| {
-            KernelError::InvalidInput {
-                message: format!("No position for vertex {}", index),
-                context: None,
-            }
-        })
-    };
-
-    let tool_in_target = classify_point_in_solid(
-        target_topo.arena(),
-        &vertex_lookup_target,
-        None,
-        &tool_sample,
-        config.get_ray_extent(),
-        config.get_edge_split_degeneracy(),
+    let tool_sample = sample_interior_point(tool_topo, tool_geom)?;
+    let tool_in_target = classify_sample(
+        &tool_sample, target_topo, target_geom, &config, ctx,
     )?;
 
-    let extract_esc = |cls: &forge_topo::classify::PointClassification| -> Option<forge_math::arithmetic::filter::PrecisionEscalation> {
-        match cls {
-            forge_topo::classify::PointClassification::Inside { escalation } => escalation.clone(),
-            forge_topo::classify::PointClassification::Outside { escalation } => escalation.clone(),
-            _ => None,
-        }
-    };
-
-    eprintln!("[CONTAINMENT] tool_sample={:?} tool_in_target={:?}", tool_sample, tool_in_target);
-
-    if let Some(escalation) = extract_esc(&tool_in_target) {
-        ctx.log_escalation(escalation);
-    }
-
-    if matches!(tool_in_target, forge_topo::classify::PointClassification::Inside { .. }) {
+    if is_inside(&tool_in_target) {
         return Ok(Containment::ToolInsideTarget);
     }
 
-    let target_sample = sample_interior_point(target_topo, target_geom, &config)?;
-
-    let vertex_lookup_tool = |index: u32| -> Result<[f64; 3], KernelError> {
-        let gen = tool_topo.arena().vertex_generation(index as usize).ok_or_else(|| {
-            KernelError::InvalidInput {
-                message: format!("No active vertex at slot index {}", index),
-                context: None,
-            }
-        })?;
-        let vid = forge_topo::handles::VertexId::from_raw_parts(index, gen);
-        tool_geom.get_vertex_position(vid).copied().ok_or_else(|| {
-            KernelError::InvalidInput {
-                message: format!("No position for vertex {}", index),
-                context: None,
-            }
-        })
-    };
-
-    let target_in_tool = classify_point_in_solid(
-        tool_topo.arena(),
-        &vertex_lookup_tool,
-        None,
-        &target_sample,
-        config.get_ray_extent(),
-        config.get_edge_split_degeneracy(),
+    let target_sample = sample_interior_point(target_topo, target_geom)?;
+    let target_in_tool = classify_sample(
+        &target_sample, tool_topo, tool_geom, &config, ctx,
     )?;
 
-    if let Some(escalation) = extract_esc(&target_in_tool) {
-        ctx.log_escalation(escalation);
-    }
-
-    if matches!(target_in_tool, forge_topo::classify::PointClassification::Inside { .. }) {
+    if is_inside(&target_in_tool) {
         return Ok(Containment::TargetInsideTool);
     }
 
-    if matches!(tool_in_target, forge_topo::classify::PointClassification::OnBoundary(_))
-        || matches!(target_in_tool, forge_topo::classify::PointClassification::OnBoundary(_))
-    {
+    if is_on_boundary(&tool_in_target) || is_on_boundary(&target_in_tool) {
         return Ok(Containment::Touching);
     }
 
-    if has_overlapping_coplanar_faces(
-        target_topo, target_geom,
-        tool_topo, tool_geom,
-        &config,
-    )? {
+    if has_overlapping_coplanar_faces(target_topo, target_geom, tool_topo, tool_geom, &config)? {
         return Ok(Containment::Touching);
     }
 
     Ok(Containment::Disjoint)
 }
 
-/// Sample a point strictly inside a solid by averaging all vertex positions
-/// (the centroid of a convex solid is always interior).
-fn sample_interior_point(
+/// Classify a sample point against a solid, logging any precision escalation.
+fn classify_sample(
+    point: &[f64; 3],
     topo: &TopologyState,
     geom: &GeometryStore,
-    _config: &crate::core::ToleranceConfig,
-) -> Result<[f64; 3], KernelError> {
-    let mut vertices = Vec::new();
-    for (vid, _) in topo.arena().iter_vertices() {
-        if let Some(pos) = geom.get_vertex_position(vid) {
-            vertices.push(*pos);
-        }
+    config: &crate::core::ToleranceConfig,
+    ctx: &mut ModelingContext,
+) -> Result<forge_topo::classify::PointClassification, KernelError> {
+    let result = classify_point_in_solid(
+        topo.arena(),
+        &|index| lookup_vertex(topo, geom, index),
+        None,
+        point,
+        config.get_ray_extent(),
+        config.get_edge_split_degeneracy(),
+    )?;
+
+    if let Some(esc) = extract_escalation(&result) {
+        ctx.log_escalation(esc);
     }
 
-    forge_geom::primitives::polygon::compute_polygon_centroid(&vertices).ok_or_else(|| {
+    Ok(result)
+}
+
+/// Look up a vertex position by raw slot index.
+fn lookup_vertex(
+    topo: &TopologyState,
+    geom: &GeometryStore,
+    index: u32,
+) -> Result<[f64; 3], KernelError> {
+    let gen = topo.arena().vertex_generation(index as usize).ok_or_else(|| {
         KernelError::InvalidInput {
-            message: "No vertices with positions".to_string(),
-            context: None,
+            message: format!("No active vertex at slot index {}", index), context: None,
+        }
+    })?;
+    let vid = forge_topo::handles::VertexId::from_raw_parts(index, gen);
+    geom.get_vertex_position(vid).copied().ok_or_else(|| {
+        KernelError::InvalidInput {
+            message: format!("No position for vertex {}", index), context: None,
         }
     })
 }
 
-/// Check whether any face centroid from one solid lies on the boundary
-/// of the other solid, or if any face planes are coplanar between the two solids.
+/// Extract a precision escalation from a point classification result.
+fn extract_escalation(
+    cls: &forge_topo::classify::PointClassification,
+) -> Option<forge_math::arithmetic::filter::PrecisionEscalation> {
+    match cls {
+        forge_topo::classify::PointClassification::Inside { escalation } => escalation.clone(),
+        forge_topo::classify::PointClassification::Outside { escalation } => escalation.clone(),
+        _ => None,
+    }
+}
+
+/// Check if a classification result is Inside.
+fn is_inside(cls: &forge_topo::classify::PointClassification) -> bool {
+    matches!(cls, forge_topo::classify::PointClassification::Inside { .. })
+}
+
+/// Check if a classification result is OnBoundary.
+fn is_on_boundary(cls: &forge_topo::classify::PointClassification) -> bool {
+    matches!(cls, forge_topo::classify::PointClassification::OnBoundary(_))
+}
+
+/// Sample a point inside a solid by averaging all vertex positions.
+fn sample_interior_point(
+    topo: &TopologyState,
+    geom: &GeometryStore,
+) -> Result<[f64; 3], KernelError> {
+    let vertices: Vec<[f64; 3]> = topo.arena().iter_vertices()
+        .filter_map(|(vid, _)| geom.get_vertex_position(vid).copied())
+        .collect();
+
+    forge_geom::primitives::polygon::compute_polygon_centroid(&vertices).ok_or_else(|| {
+        KernelError::InvalidInput {
+            message: "No vertices with positions".to_string(), context: None,
+        }
+    })
+}
+
+// ── Coplanar overlap detection ───────────────────────────────────────────────
+
+/// Check whether any faces between the two solids are coplanar or
+/// any face centroid lies on the other solid's boundary.
 fn has_overlapping_coplanar_faces(
     target_topo: &TopologyState,
     target_geom: &GeometryStore,
@@ -243,36 +181,40 @@ fn has_overlapping_coplanar_faces(
     tool_geom: &GeometryStore,
     config: &crate::core::ToleranceConfig,
 ) -> Result<bool, KernelError> {
+    if has_coplanar_plane_pair(target_topo, target_geom, tool_topo, tool_geom) {
+        return Ok(true);
+    }
+
+    has_boundary_centroid(target_topo, target_geom, tool_topo, tool_geom, config)
+}
+
+/// Check if any face plane from target exactly matches any from tool.
+fn has_coplanar_plane_pair(
+    target_topo: &TopologyState,
+    target_geom: &GeometryStore,
+    tool_topo: &TopologyState,
+    tool_geom: &GeometryStore,
+) -> bool {
     for (face_a, _) in target_topo.arena().iter_faces() {
         let Some(plane_a) = target_geom.get_face_plane(face_a) else { continue };
-
         for (face_b, _) in tool_topo.arena().iter_faces() {
             let Some(plane_b) = tool_geom.get_face_plane(face_b) else { continue };
-
-            if forge_geom::primitives::plane::exact_eq(
-                plane_a, plane_b,
-            ) {
-                return Ok(true);
+            if forge_geom::primitives::plane::exact_eq(plane_a, plane_b) {
+                return true;
             }
         }
     }
+    false
+}
 
-    let vertex_lookup_tool = |index: u32| -> Result<[f64; 3], KernelError> {
-        let gen = tool_topo.arena().vertex_generation(index as usize).ok_or_else(|| {
-            KernelError::InvalidInput {
-                message: format!("No active vertex at slot index {}", index),
-                context: None,
-            }
-        })?;
-        let vid = forge_topo::handles::VertexId::from_raw_parts(index, gen);
-        tool_geom.get_vertex_position(vid).copied().ok_or_else(|| {
-            KernelError::InvalidInput {
-                message: format!("No position for vertex {}", index),
-                context: None,
-            }
-        })
-    };
-
+/// Check if any target face centroid lies on the tool's boundary.
+fn has_boundary_centroid(
+    target_topo: &TopologyState,
+    target_geom: &GeometryStore,
+    tool_topo: &TopologyState,
+    tool_geom: &GeometryStore,
+    config: &crate::core::ToleranceConfig,
+) -> Result<bool, KernelError> {
     for (face_id, _) in target_topo.arena().iter_faces() {
         let centroid = crate::operations::boolean::eval::compute_face_centroid(
             target_topo.arena(), target_geom, face_id,
@@ -280,23 +222,68 @@ fn has_overlapping_coplanar_faces(
 
         let class = classify_point_in_solid(
             tool_topo.arena(),
-            &vertex_lookup_tool,
+            &|index| lookup_vertex(tool_topo, tool_geom, index),
             None,
             &centroid,
             config.get_ray_extent(),
-                config.get_edge_split_degeneracy(),
+            config.get_edge_split_degeneracy(),
         )?;
 
-        if matches!(class, forge_topo::classify::PointClassification::OnBoundary(_)) {
+        if is_on_boundary(&class) {
             return Ok(true);
         }
     }
-
     Ok(false)
 }
 
-/// Check whether two solids are coincident (all faces of each are on the
-/// boundary of the other). Used to detect A-A=∅ in subtraction.
+// ── Dispatch and logging ─────────────────────────────────────────────────────
+
+/// Dispatch to the appropriate assembly function based on containment.
+fn dispatch_containment(
+    containment: Containment,
+    target_topo: &TopologyState,
+    target_geom: &GeometryStore,
+    tool_topo: &TopologyState,
+    tool_geom: &GeometryStore,
+    operation: BooleanOp,
+    ctx: &mut ModelingContext,
+) -> Result<Option<BooleanResult>, KernelError> {
+    match containment {
+        Containment::ToolInsideTarget => execute_contained_boolean(
+            target_topo, target_geom, tool_topo, tool_geom, operation, true, ctx,
+        ).map(Some),
+        Containment::TargetInsideTool => execute_contained_boolean(
+            target_topo, target_geom, tool_topo, tool_geom, operation, false, ctx,
+        ).map(Some),
+        Containment::Disjoint => execute_disjoint_boolean(
+            target_topo, target_geom, tool_topo, tool_geom, operation, ctx,
+        ).map(Some),
+        Containment::Touching => execute_touching_boolean(
+            target_topo, target_geom, tool_topo, tool_geom, operation, ctx,
+        ).map(Some),
+    }
+}
+
+/// Record a TracedDecision for the containment classification.
+fn log_containment(containment: &Containment, operation: BooleanOp, ctx: &mut ModelingContext) {
+    let label = match containment {
+        Containment::ToolInsideTarget => "ToolInsideTarget",
+        Containment::TargetInsideTool => "TargetInsideTool",
+        Containment::Disjoint => "Disjoint",
+        Containment::Touching => "Touching",
+    };
+    ctx.get_decision_log_mut().record(TracedDecision::new(
+        DecisionId(1),
+        DecisionKind::Exact,
+        DecisionTier::Deterministic, 1.0,
+        DecisionContext::Degeneracy {
+            description: format!("Zero-split containment: {:?} (op={:?})", label, operation),
+        },
+    ));
+}
+
+/// Check whether two solids are coincident (all tool faces on
+/// the target boundary). Used to detect A−A=∅ in subtraction.
 pub(super) fn are_solids_coincident(
     target_topo: &TopologyState,
     target_geom: &GeometryStore,
@@ -309,22 +296,6 @@ pub(super) fn are_solids_coincident(
 
     let config = crate::core::ToleranceConfig::default();
 
-    let vertex_lookup_target = |index: u32| -> Result<[f64; 3], KernelError> {
-        let gen = target_topo.arena().vertex_generation(index as usize).ok_or_else(|| {
-            KernelError::InvalidInput {
-                message: format!("No active vertex at slot index {}", index),
-                context: None,
-            }
-        })?;
-        let vid = forge_topo::handles::VertexId::from_raw_parts(index, gen);
-        target_geom.get_vertex_position(vid).copied().ok_or_else(|| {
-            KernelError::InvalidInput {
-                message: format!("No position for vertex {}", index),
-                context: None,
-            }
-        })
-    };
-
     for (face_id, _) in tool_topo.arena().iter_faces() {
         let centroid = crate::operations::boolean::eval::compute_face_centroid(
             tool_topo.arena(), tool_geom, face_id,
@@ -332,14 +303,14 @@ pub(super) fn are_solids_coincident(
 
         let class = classify_point_in_solid(
             target_topo.arena(),
-            &vertex_lookup_target,
+            &|index| lookup_vertex(target_topo, target_geom, index),
             None,
             &centroid,
             config.get_ray_extent(),
-                config.get_edge_split_degeneracy(),
+            config.get_edge_split_degeneracy(),
         )?;
 
-        if !matches!(class, forge_topo::classify::PointClassification::OnBoundary(_)) {
+        if !is_on_boundary(&class) {
             return Ok(false);
         }
     }
@@ -348,9 +319,6 @@ pub(super) fn are_solids_coincident(
 }
 
 /// Compute the characteristic scale for the disjoint assembly path.
-///
-/// Takes the primary arena and optionally a secondary arena, returns the
-/// bounding box diagonal (floored at 1e-15).
 pub(super) fn compute_disjoint_scale(
     primary_arena: &forge_topo::arena::TopologyArena,
     primary_geom: &GeometryStore,
@@ -375,7 +343,5 @@ pub(super) fn compute_disjoint_scale(
         }
     }
 
-    let diagonal = forge_math::linalg::norm(forge_math::linalg::sub(max_pos, min_pos));
-
-    diagonal.max(1e-15)
+    forge_math::linalg::norm(forge_math::linalg::sub(max_pos, min_pos)).max(1e-15)
 }
