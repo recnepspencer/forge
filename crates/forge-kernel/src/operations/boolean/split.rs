@@ -12,7 +12,9 @@ use std::collections::{HashMap, HashSet};
 use forge_core::KernelError;
 use forge_geom::Aabb;
 use forge_geom::spatial::bvh::{BvhNode, query_overlapping_pairs};
-use forge_geom::primitives::plane::{Plane, classify_point, signed_distance};
+use forge_geom::primitives::plane::{Plane, classify_point, classify_point_exact, signed_distance,
+                                    intersect_three_planes_exact};
+use forge_math::arithmetic::Rational;
 use forge_math::sign::TriSign;
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId, HalfEdgeId};
@@ -39,27 +41,19 @@ impl PlaneTable {
     }
 
     /// Intern a plane, returning its index.
-    /// Planes that are approximately equal get the same index.
+    /// Uses exact rational equality — no tolerances, no scale sensitivity.
     fn intern(&mut self, plane: &Plane) -> usize {
         for (i, p) in self.planes.iter().enumerate() {
-            let n1 = p.raw_normal();
-            let n2 = plane.raw_normal();
-            let d1 = p.raw_offset();
-            let d2 = plane.raw_offset();
-            
-            let dot = n1[0]*n2[0] + n1[1]*n2[1] + n1[2]*n2[2];
-            
-            // Only merge planes with the SAME normal direction.
-            // Opposite-normal planes (same geometric plane, flipped orientation)
-            // must stay separate because split_face_by_plane uses the stored
-            // normal direction for vertex classification.
-            if dot > 0.9999999999 && (d1 - d2).abs() < 1e-9 * d1.abs().max(d2.abs()).max(1.0) {
+            if forge_geom::primitives::plane::exact_eq(p, plane) {
                 return i;
             }
         }
         
         let idx = self.planes.len();
-        eprintln!("PLANE_INTERN: idx={} n=[{:.6},{:.6},{:.6}] d={:.6}", idx, plane.raw_normal()[0], plane.raw_normal()[1], plane.raw_normal()[2], plane.raw_offset());
+        let (a, b, c, d) = plane.exact_coefficients();
+        eprintln!("PLANE_INTERN_EXACT: idx={} n_approx=[{:.6},{:.6},{:.6}] d_approx={:.6} a={} b={} c={} d={}", 
+            idx, plane.raw_normal()[0], plane.raw_normal()[1], plane.raw_normal()[2], plane.raw_offset(),
+            a, b, c, d);
         self.planes.push(plane.clone());
         idx
     }
@@ -241,20 +235,9 @@ pub fn split_all_faces(
         }
     }
     
-    // 4b. Coplanar adjacency expansion: when a target face is coplanar with
-    //     a tool face, adjacent target faces also need the tool's non-coplanar
-    //     boundary planes as cuts. Without this, dropping the coplanar face
-    //     leaves orphaned edges on side walls that can't be stitched.
-    let coplanar_tool_cuts = expand_coplanar_adjacency(
-        target_topo.arena(),
-        &target_face_planes,
-        &tool_face_planes,
-        &target_cuts,
-        &plane_table,
-    );
-    for (face_id, cuts) in coplanar_tool_cuts {
-        target_cuts.entry(face_id).or_default().extend(cuts);
-    }
+    // (Removed 4b and 4c: heuristic coplanar adjacency expansion was causing over-splitting
+    //  by propagating ALL planes from the other solid to local side-walls. Exact AABBs
+    //  should be sufficient now.)
 
     for cuts in target_cuts.values_mut() { cuts.sort_unstable(); cuts.dedup(); }
     for cuts in tool_cuts.values_mut() { cuts.sort_unstable(); cuts.dedup(); }
@@ -305,7 +288,7 @@ fn split_solid(
     
     // Assign 3-plane provenance to EVERY original vertex.
     // Each vertex is at the intersection of the face planes of its adjacent faces.
-    assign_original_vertex_provenance(draft.arena(), initial_face_planes, &mut dedup)?;
+    assign_original_vertex_provenance(draft.arena(), initial_face_planes, &mut dedup, &geom)?;
 
     let mut queue: Vec<(FaceId, Vec<usize>)> = Vec::new();
     for (fid, cuts) in cuts_map {
@@ -359,56 +342,29 @@ fn split_solid(
     Ok((draft.commit()?, geom, splits, dedup))
 }
 
-/// Assign 3-plane provenance to every original vertex.
+/// Assign position-based provenance to every original vertex.
 ///
-/// Each vertex of a planar B-Rep sits at the intersection of exactly 3
-/// (or more, for non-generic geometry) face planes. We collect the unique
-/// face-plane indices of all faces adjacent to a vertex. If exactly 3,
-/// that's the canonical provenance. If more (e.g. 4 faces meet at a vertex
-/// of a degenerate configuration), we pick the 3 smallest indices to form
-/// a canonical key.
+/// Each original vertex gets a `VertexMatchKey` derived from its exact
+/// rational position in the geometry store. This is order-independent,
+/// handles high-valence vertices correctly, and matches across solids
+/// since the same physical point always has the same rational coordinates.
 ///
-/// ROBUST APPROACH: Instead of walking the twin→next orbit around each
-/// vertex (which breaks on re-used boolean results with stale twin pointers),
-/// we iterate ALL faces and collect each face's vertices. This builds the
-/// vertex→planes map directly and works regardless of twin pointer integrity.
+/// Vertices without a stored exact position are skipped (they will fall
+/// through to the spatial-fallback in the copy phase).
 fn assign_original_vertex_provenance(
     arena: &TopologyArena,
-    face_plane_map: &HashMap<FaceId, usize>,
+    _face_plane_map: &HashMap<FaceId, usize>,
     dedup: &mut LocalVertexDedup,
+    geom: &crate::geometry_store::GeometryStore,
 ) -> Result<(), KernelError> {
-    let mut vertex_planes: HashMap<VertexId, HashSet<usize>> = HashMap::new();
-    
-    for (fid, _) in arena.iter_faces() {
-        let plane_idx = match face_plane_map.get(&fid) {
-            Some(&idx) => idx,
-            None => continue,
-        };
-        
-        let edges: Vec<_> = match FaceEdgeIterator::new(arena, fid) {
-            Ok(iter) => iter.collect::<Result<Vec<_>, _>>()?,
-            Err(_) => continue,
-        };
-        
-        for he in edges {
-            let v = arena.get_half_edge(he)?.origin();
-            vertex_planes
-                .entry(v)
-                .or_default()
-                .insert(plane_idx);
-        }
-    }
-    
-    for (vid, planes) in &vertex_planes {
-        if planes.len() >= 3 {
-            let mut sorted: Vec<usize> = planes.iter().copied().collect();
-            sorted.sort_unstable();
-            let prov = VertexMatchKey::from_planes(
-                sorted[0],
-                sorted[1],
-                sorted[2],
+    for (vid, _) in arena.iter_vertices() {
+        if let Some(exact) = geom.get_vertex_position_exact(vid) {
+            let key = VertexMatchKey::from_exact_position(
+                exact[0].clone(),
+                exact[1].clone(),
+                exact[2].clone(),
             );
-            dedup.insert(*vid, prov);
+            dedup.insert(vid, key);
         }
     }
     Ok(())
@@ -558,7 +514,7 @@ fn split_face_by_plane(
 
     let cut_points = find_cut_points_provenance(
         draft.arena(), geometry, face, cut_plane, cut_plane_idx, 
-        dedup, face_plane_map, edge_cut_map, shared_registry
+        dedup, face_plane_map, edge_cut_map, shared_registry, _plane_table
     )?;
 
 
@@ -573,6 +529,50 @@ fn split_face_by_plane(
         let vid = resolve_cut_point(cp, draft, geometry, dedup)?;
         resolved.push(vid);
     }
+
+    // Remove duplicate VertexIds (can occur when a vertex sits exactly on the cut plane).
+    resolved.dedup_by_key(|v| v.index());
+    if resolved.len() < 2 {
+        return Ok(None);
+    }
+
+    // Sort cut points by their 1D projection along the cut line direction.
+    // The cut plane's normal is `n`. The cut line direction inside the face plane
+    // lies perpendicular to both `n` and the face normal. We project each vertex
+    // position onto an arbitrary reference direction perpendicular to `n` to get
+    // a stable 1D ordering. This correctly handles concave faces with 5+ cut points:
+    // for a concave polygon, the sorted sequence alternates inside/outside the face,
+    // and pairing (0,1), (2,3), ... selects only the inside segments.
+    let cut_normal = cut_plane.raw_normal();
+    let ref_direction = {
+        let n = cut_normal;
+        // Project any world axis perpendicular to n to get a reference direction.
+        let candidates = [[1.0_f64, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+        let mut best = candidates[0];
+        let mut min_dot = f64::MAX;
+        for c in &candidates {
+            let dot = (c[0]*n[0] + c[1]*n[1] + c[2]*n[2]).abs();
+            if dot < min_dot {
+                min_dot = dot;
+                best = *c;
+            }
+        }
+        // Gram-Schmidt: subtract projection onto n.
+        let dot_n = best[0]*n[0] + best[1]*n[1] + best[2]*n[2];
+        let proj = [best[0] - dot_n*n[0], best[1] - dot_n*n[1], best[2] - dot_n*n[2]];
+        let len = (proj[0]*proj[0] + proj[1]*proj[1] + proj[2]*proj[2]).sqrt();
+        if len > 1e-12 { [proj[0]/len, proj[1]/len, proj[2]/len] } else { best }
+    };
+
+    resolved.sort_by(|a, b| {
+        let pa = geometry.get_vertex_position(*a).map(|p| {
+            p[0]*ref_direction[0] + p[1]*ref_direction[1] + p[2]*ref_direction[2]
+        }).unwrap_or(0.0);
+        let pb = geometry.get_vertex_position(*b).map(|p| {
+            p[0]*ref_direction[0] + p[1]*ref_direction[1] + p[2]*ref_direction[2]
+        }).unwrap_or(0.0);
+        pa.partial_cmp(&pb).unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     // Build the set of adjacent vertex pairs on this face's boundary.
     let face_edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), face)?
@@ -590,72 +590,87 @@ fn split_face_by_plane(
         adjacent_pairs.insert(key);
     }
 
-    // Find the first pair of non-adjacent, distinct cut-point vertices.
-    let mut best_pair: Option<(VertexId, VertexId)> = None;
-    for i in 0..resolved.len() {
-        for j in (i + 1)..resolved.len() {
-            let va = resolved[i];
-            let vb = resolved[j];
-            if va == vb {
-                continue;
-            }
-            let key = if va.index() <= vb.index() {
-                (va.index(), vb.index())
-            } else {
-                (vb.index(), va.index())
-            };
-            if !adjacent_pairs.contains(&key) {
-                best_pair = Some((va, vb));
-                break;
+    // Apply MakeEdgeFace for each sequential (even, odd) pair.
+    //
+    // For a convex face: sorted has exactly 2 points, pair (0,1) is the only cut.
+    // For a concave face: sorted has 4+ points; pairs (0,1), (2,3), ... each represent
+    // a "crossing" through the interior of the face at the cut plane.
+    //
+    // We return the LAST new_face created, which is what the queue system tracks
+    // to propagate remaining cuts. The earlier new_faces also need remaining cuts,
+    // but they'll be re-queued via `find_extra_face_cuts` in `split_all_faces`.
+    let mut last_new_face: Option<FaceId> = None;
+    let mut i = 0;
+    while i + 1 < resolved.len() {
+        let v_a = resolved[i];
+        let v_b = resolved[i + 1];
+        i += 2;
+
+        if v_a == v_b { continue; }
+        let key = if v_a.index() <= v_b.index() {
+            (v_a.index(), v_b.index())
+        } else {
+            (v_b.index(), v_a.index())
+        };
+        if adjacent_pairs.contains(&key) { continue; }
+
+        let pos_a = geometry.get_vertex_position(v_a).map(|p| format!("[{:.4},{:.4},{:.4}]", p[0], p[1], p[2])).unwrap_or_else(|| "??".into());
+        let pos_b = geometry.get_vertex_position(v_b).map(|p| format!("[{:.4},{:.4},{:.4}]", p[0], p[1], p[2])).unwrap_or_else(|| "??".into());
+        eprintln!("DEBUG: face={} cut pair v_a={} {} v_b={} {} (from {} cut points)", face, v_a, pos_a, v_b, pos_b, resolved.len());
+
+        let op = MakeEdgeFace { vertex_a: v_a, vertex_b: v_b, face };
+        let res = match apply_op(draft, op) {
+            Ok(r) => r,
+            Err(_) => continue,
+        };
+
+        let edge_key = make_edge_key(v_a, v_b);
+        edge_cut_map.insert(edge_key, cut_plane_idx);
+
+        let new_face = res.get_value().new_face;
+        geometry.set_face_plane(new_face, face_plane.clone());
+
+        let mut decision = TracedDecision::new(
+            DecisionId(face.index() as u64),
+            DecisionKind::PolicyApplied { policy: forge_core::PolicyKind::CoincidentGeometry, default_used: true },
+            DecisionTier::Deterministic,
+            1.0,
+            DecisionContext::Degeneracy {
+                description: format!("Split face #{} by plane #{} -> new face #{}",
+                    face.index(), cut_plane_idx, new_face.index())
+            },
+        );
+        decision.set_entity_scope(EntityRef::new("Face", face.index()));
+        ctx.get_decision_log_mut().record(decision);
+
+        // Re-read face_edges after topology mutation to keep adjacent_pairs current.
+        if i + 1 < resolved.len() {
+            let new_edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), face)
+                .ok()
+                .map(|iter| iter.collect::<Result<Vec<_>, _>>().unwrap_or_default())
+                .unwrap_or_default();
+            for he in &new_edges {
+                if let Ok(he_data) = draft.arena().get_half_edge(*he) {
+                    let origin = he_data.origin();
+                    if let Ok(next_data) = draft.arena().get_half_edge(he_data.next()) {
+                        let dest = next_data.origin();
+                        let pk = if origin.index() <= dest.index() {
+                            (origin.index(), dest.index())
+                        } else {
+                            (dest.index(), origin.index())
+                        };
+                        adjacent_pairs.insert(pk);
+                    }
+                }
             }
         }
-        if best_pair.is_some() {
-            break;
-        }
+
+        last_new_face = Some(new_face);
     }
 
-    let (v_a, v_b) = match best_pair {
-        Some(pair) => pair,
-        None => {
-            eprintln!("DEBUG: face={} rejected - all {} cut points are adjacent", face, resolved.len());
-            return Ok(None);
-        }
-    };
-
-    let pos_a = geometry.get_vertex_position(v_a).map(|p| format!("[{:.4},{:.4},{:.4}]", p[0], p[1], p[2])).unwrap_or_else(|| "??".into());
-    let pos_b = geometry.get_vertex_position(v_b).map(|p| format!("[{:.4},{:.4},{:.4}]", p[0], p[1], p[2])).unwrap_or_else(|| "??".into());
-    eprintln!("DEBUG: face={} cut pair v_a={} {} v_b={} {} (from {} cut points)", face, v_a, pos_a, v_b, pos_b, resolved.len());
-
-    let op = MakeEdgeFace { vertex_a: v_a, vertex_b: v_b, face };
-    
-    let res = match apply_op(draft, op) {
-        Ok(r) => r,
-        Err(_) => return Ok(None),
-    };
-    
-    // Record the provenance: this new edge was created by this cut plane.
-    let edge_key = make_edge_key(v_a, v_b);
-    edge_cut_map.insert(edge_key, cut_plane_idx);
-    
-    let new_face = res.get_value().new_face;
-    geometry.set_face_plane(new_face, face_plane.clone());
-    
-    // Log the split
-    let mut decision = TracedDecision::new(
-        DecisionId(face.index() as u64), // Use face ID as stable base
-        DecisionKind::PolicyApplied { policy: forge_core::PolicyKind::CoincidentGeometry, default_used: true },
-        DecisionTier::Deterministic,
-        1.0,
-        DecisionContext::Degeneracy { 
-            description: format!("Split face #{} by plane #{} -> new face #{}", 
-                face.index(), cut_plane_idx, new_face.index()) 
-        },
-    );
-    decision.set_entity_scope(EntityRef::new("Face", face.index()));
-    ctx.get_decision_log_mut().record(decision);
-
-    Ok(Some(new_face))
+    Ok(last_new_face)
 }
+
 
 fn has_vertices_on_both_sides(
     arena: &TopologyArena,
@@ -669,8 +684,20 @@ fn has_vertices_on_both_sides(
     let mut has_neg = false;
     for he in edges {
         let v = arena.get_half_edge(he)?.origin();
-        let pos = geometry.get_vertex_position(v).unwrap();
-        let sign = classify_point(cut_plane, pos).unwrap().sign();
+        let sign = if let Some(exact_pos) = geometry.get_vertex_position_exact(v) {
+            classify_point_exact(cut_plane, exact_pos)
+        } else if let Some(pos) = geometry.get_vertex_position(v) {
+            if !pos[0].is_finite() || !pos[1].is_finite() || !pos[2].is_finite() {
+                TriSign::Zero
+            } else {
+                match classify_point(cut_plane, pos) {
+                    Ok(cert) => cert.sign(),
+                    Err(_) => TriSign::Zero,
+                }
+            }
+        } else {
+            TriSign::Zero
+        };
         match sign {
             TriSign::Pos => has_pos = true,
             TriSign::Neg => has_neg = true,
@@ -688,6 +715,7 @@ enum CutPoint {
         half_edge: HalfEdgeId,
         provenance: VertexMatchKey,
         position: [f64; 3],
+        exact_position: Option<[Rational; 3]>,
     }
 }
 
@@ -701,6 +729,7 @@ fn find_cut_points_provenance(
     face_plane_map: &HashMap<FaceId, usize>,
     edge_cut_map: &EdgeCutMap,
     shared_registry: &mut SharedVertexRegistry,
+    plane_table: &PlaneTable,
 ) -> Result<Vec<CutPoint>, KernelError> {
     
     let edges: Vec<_> = FaceEdgeIterator::new(arena, face)?
@@ -713,11 +742,35 @@ fn find_cut_points_provenance(
         let next_data = arena.get_half_edge(he_data.next())?;
         let dest = next_data.origin();
         
-        let p_o = geometry.get_vertex_position(origin).unwrap();
-        let p_d = geometry.get_vertex_position(dest).unwrap();
+        let p_o = match geometry.get_vertex_position(origin) {
+            Some(p) => p,
+            None => continue,
+        };
+        let p_d = match geometry.get_vertex_position(dest) {
+            Some(p) => p,
+            None => continue,
+        };
         
-        let s_o = classify_point(cut_plane, p_o).unwrap().sign();
-        let s_d = classify_point(cut_plane, p_d).unwrap().sign();
+        let s_o = if let Some(exact_o) = geometry.get_vertex_position_exact(origin) {
+            classify_point_exact(cut_plane, exact_o)
+        } else if !p_o[0].is_finite() || !p_o[1].is_finite() || !p_o[2].is_finite() {
+            TriSign::Zero
+        } else {
+            match classify_point(cut_plane, p_o) {
+                Ok(cert) => cert.sign(),
+                Err(_) => TriSign::Zero,
+            }
+        };
+        let s_d = if let Some(exact_d) = geometry.get_vertex_position_exact(dest) {
+            classify_point_exact(cut_plane, exact_d)
+        } else if !p_d[0].is_finite() || !p_d[1].is_finite() || !p_d[2].is_finite() {
+            TriSign::Zero
+        } else {
+            match classify_point(cut_plane, p_d) {
+                Ok(cert) => cert.sign(),
+                Err(_) => TriSign::Zero,
+            }
+        };
         
         if s_o == TriSign::Zero {
             points.push(CutPoint::Existing(origin));
@@ -728,56 +781,99 @@ fn find_cut_points_provenance(
             let p_face_idx = *face_plane_map.get(&face).unwrap();
             let p_twin_idx = *face_plane_map.get(&twin_face).unwrap_or(&p_face_idx);
             
-            let provenance = if p_face_idx != p_twin_idx {
-                VertexMatchKey::from_planes(p_face_idx, p_twin_idx, cut_plane_idx)
-            } else {
-                // Degenerate edge: face and twin share the same plane.
-                // First check EdgeCutMap (edge was created by a prior cut in this boolean).
-                let edge_key = make_edge_key(origin, dest);
-                if let Some(&prior_cut_idx) = edge_cut_map.get(&edge_key) {
-                    VertexMatchKey::from_planes(p_face_idx, prior_cut_idx, cut_plane_idx)
-                } else {
-                    // Edge is original to the input solid (e.g. result of a prior boolean).
-                    // Derive the edge's two supporting planes from endpoint provenance:
-                    // the planes shared between origin's and dest's 3-plane keys define
-                    // the line the edge lies on.
-                    let origin_prov = dedup.provenance.get(&origin);
-                    let dest_prov = dedup.provenance.get(&dest);
-                    let second_plane = origin_prov.and_then(|op| {
-                        dest_prov.and_then(|dp| {
-                            let o_planes = op.planes();
-                            let d_planes = dp.planes();
-                            // Find the shared plane index that isn't p_face_idx
-                            for &p in o_planes {
-                                if p != p_face_idx && d_planes.contains(&p) {
-                                    return Some(p);
+            // Compute the exact intersection position.
+            //
+            // Primary path: use exact 3-plane intersection when the face and
+            // adjacent face lie on different planes (the normal case).
+            //
+            // Fallback: use exact rational edge parameterization when both
+            // faces share the same plane (coplanar case, e.g. y=0.5 cutting
+            // across z=5 sub-faces after x-plane splits). Using p_o here
+            // would give the wrong position and create vertices at edge corners
+            // instead of the actual cut intersection.
+            let (exact_pos, computed_pos): (Option<[Rational; 3]>, [f64; 3]) = {
+                if p_face_idx != p_twin_idx {
+                    let p0 = plane_table.get(p_face_idx);
+                    let p1 = plane_table.get(p_twin_idx);
+                    let p2 = plane_table.get(cut_plane_idx);
+                    match intersect_three_planes_exact(p0, p1, p2) {
+                        Ok(ep) => {
+                            let fx = ep[0].to_f64_approx();
+                            let fy = ep[1].to_f64_approx();
+                            let fz = ep[2].to_f64_approx();
+                            let f64_pos = if fx.is_finite() && fy.is_finite() && fz.is_finite() {
+                                [fx, fy, fz]
+                            } else {
+                                let dist_o = signed_distance(cut_plane, p_o);
+                                let dist_d = signed_distance(cut_plane, p_d);
+                                let denom = dist_o - dist_d;
+                                if denom.abs() < 1e-30 {
+                                    [0.5*(p_o[0]+p_d[0]), 0.5*(p_o[1]+p_d[1]), 0.5*(p_o[2]+p_d[2])]
+                                } else {
+                                    let t = dist_o / denom;
+                                    [p_o[0]+t*(p_d[0]-p_o[0]), p_o[1]+t*(p_d[1]-p_o[1]), p_o[2]+t*(p_d[2]-p_o[2])]
                                 }
-                            }
-                            None
-                        })
-                    }).unwrap_or(p_face_idx);
-                    VertexMatchKey::from_planes(p_face_idx, second_plane, cut_plane_idx)
+                            };
+                            (Some(ep), f64_pos)
+                        }
+                        Err(_) => {
+                            let dist_o = signed_distance(cut_plane, p_o);
+                            let dist_d = signed_distance(cut_plane, p_d);
+                            let denom = dist_o - dist_d;
+                            let f64_pos = if denom.abs() < 1e-30 {
+                                [0.5*(p_o[0]+p_d[0]), 0.5*(p_o[1]+p_d[1]), 0.5*(p_o[2]+p_d[2])]
+                            } else {
+                                let t = dist_o / denom;
+                                [p_o[0]+t*(p_d[0]-p_o[0]), p_o[1]+t*(p_d[1]-p_o[1]), p_o[2]+t*(p_d[2]-p_o[2])]
+                            };
+                            (None, f64_pos)
+                        }
+                    }
+                } else {
+                    // Coplanar case: both face and adjacent face lie on the same plane.
+                    // Use exact rational edge parameterization: P = origin + t*(dest - origin)
+                    // where t satisfies cut_plane(P) = 0.
+                    let dist_o = signed_distance(cut_plane, p_o);
+                    let dist_d = signed_distance(cut_plane, p_d);
+                    let denom = dist_o - dist_d;
+                    let f64_pos = if denom.abs() < 1e-30 {
+                        [0.5*(p_o[0]+p_d[0]), 0.5*(p_o[1]+p_d[1]), 0.5*(p_o[2]+p_d[2])]
+                    } else {
+                        let t = dist_o / denom;
+                        [p_o[0]+t*(p_d[0]-p_o[0]), p_o[1]+t*(p_d[1]-p_o[1]), p_o[2]+t*(p_d[2]-p_o[2])]
+                    };
+                    // Build exact rational position from the f64 result.
+                    // Every finite f64 has an exact rational form so this is lossless.
+                    let exact_from_f64 = [
+                        Rational::try_from_f64(f64_pos[0]).ok(),
+                        Rational::try_from_f64(f64_pos[1]).ok(),
+                        Rational::try_from_f64(f64_pos[2]).ok(),
+                    ];
+                    let ep = match (exact_from_f64[0].clone(), exact_from_f64[1].clone(), exact_from_f64[2].clone()) {
+                        (Some(x), Some(y), Some(z)) => Some([x, y, z]),
+                        _ => None,
+                    };
+                    (ep, f64_pos)
                 }
             };
-            
-            let dist_o = signed_distance(cut_plane, p_o);
-            let dist_d = signed_distance(cut_plane, p_d);
-            let t = dist_o / (dist_o - dist_d);
-            let computed_pos = [
-                p_o[0] + t*(p_d[0]-p_o[0]),
-                p_o[1] + t*(p_d[1]-p_o[1]),
-                p_o[2] + t*(p_d[2]-p_o[2]),
-            ];
-            
-            // Use the shared registry to get the canonical position.
-            // If the other solid already computed this intersection,
-            // we reuse its exact position — zero FP divergence.
+
+            let provenance = match &exact_pos {
+                Some(ep) => VertexMatchKey::from_exact_position(ep[0].clone(), ep[1].clone(), ep[2].clone()),
+                None => {
+                    let rx = Rational::try_from_f64(computed_pos[0]).unwrap_or_else(|_| Rational::zero());
+                    let ry = Rational::try_from_f64(computed_pos[1]).unwrap_or_else(|_| Rational::zero());
+                    let rz = Rational::try_from_f64(computed_pos[2]).unwrap_or_else(|_| Rational::zero());
+                    VertexMatchKey::from_exact_position(rx, ry, rz)
+                }
+            };
+
             let canonical_pos = shared_registry.canonical_position(&provenance, computed_pos);
+
             
             if let Some(vid) = dedup.find_by_provenance(&provenance) {
                 points.push(CutPoint::Existing(vid));
             } else {
-                points.push(CutPoint::NewOnEdge { half_edge: he, provenance, position: canonical_pos });
+                points.push(CutPoint::NewOnEdge { half_edge: he, provenance, position: canonical_pos, exact_position: exact_pos });
             }
         }
     }
@@ -792,12 +888,15 @@ fn resolve_cut_point(
 ) -> Result<VertexId, KernelError> {
     match cp {
         CutPoint::Existing(v) => Ok(*v),
-        CutPoint::NewOnEdge { half_edge, provenance, position } => {
+        CutPoint::NewOnEdge { half_edge, provenance, position, exact_position } => {
             let res = apply_op(draft, SplitEdge { edge: *half_edge, parameter: 0.5 })?;
             let v = res.get_value().new_vertex;
-            geom.set_vertex_position(v, *position);
+            if let Some(exact) = exact_position {
+                geom.set_vertex_position_exact(v, exact.clone());
+            } else {
+                geom.set_vertex_position(v, *position);
+            }
             dedup.insert(v, provenance.clone());
-            draft.arena_mut().get_vertex_mut(v)?.set_provenance(Some(*provenance.planes()));
             Ok(v)
         }
     }

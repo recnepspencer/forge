@@ -118,6 +118,7 @@ fn insert_vertices(
     let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
     let mut vertex_ids = Vec::with_capacity(cell.vertex_count());
     let mut inserted: Vec<(VertexId, [f64; 3])> = Vec::with_capacity(cell.vertex_count());
+    let cell_planes = cell.planes();
 
     for vert in cell.vertices() {
         let pos = *vert.position();
@@ -131,7 +132,26 @@ fn insert_vertices(
             let vid = draft.arena_mut().insert_vertex(VertexData::new(
                 placeholder_he,
             ));
-            geometry.set_vertex_position(vid, pos);
+
+            let [pa, pb, pc] = vert.plane_indices();
+            let stored_exact = if pa < cell_planes.len() && pb < cell_planes.len() && pc < cell_planes.len() {
+                match forge_geom::primitives::plane::intersect_three_planes_exact(
+                    &cell_planes[pa], &cell_planes[pb], &cell_planes[pc],
+                ) {
+                    Ok(exact_pos) => {
+                        geometry.set_vertex_position_exact(vid, exact_pos);
+                        true
+                    }
+                    Err(_) => false,
+                }
+            } else {
+                false
+            };
+
+            if !stored_exact {
+                geometry.set_vertex_position(vid, pos);
+            }
+
             inserted.push((vid, pos));
             vertex_ids.push(vid);
         }

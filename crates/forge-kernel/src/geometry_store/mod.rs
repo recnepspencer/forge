@@ -18,4 +18,5 @@ mod eval;
 mod tests;
 
 pub use schema::GeometryStore;
+pub use schema::ExactPosition;
 pub use eval::build_position_lookup;

@@ -30,16 +30,21 @@ pub fn stitch_twins(
     ctx: &mut ModelingContext,
 ) -> Result<(), KernelError> {
     let mut forward_map: HashMap<(u32, u32), Vec<HalfEdgeId>> = HashMap::new();
+    let mut zero_length: HashSet<u32> = HashSet::new();
 
     for &he_id in all_he_ids {
         let he_data = draft.arena().get_half_edge(he_id)?;
         let origin = he_data.origin();
         let next_he = he_data.next();
         let dest = draft.arena().get_half_edge(next_he)?.origin();
-        forward_map
-            .entry((origin.index(), dest.index()))
-            .or_default()
-            .push(he_id);
+        if origin == dest {
+            zero_length.insert(he_id.index());
+        } else {
+            forward_map
+                .entry((origin.index(), dest.index()))
+                .or_default()
+                .push(he_id);
+        }
     }
 
     let mut paired: HashSet<u32> = HashSet::new();
@@ -50,6 +55,7 @@ pub fn stitch_twins(
         }
 
         let he_data = draft.arena().get_half_edge(he_id)?;
+        let he_face = he_data.face();
         let origin = he_data.origin();
         let next_he = he_data.next();
         let dest = draft.arena().get_half_edge(next_he)?.origin();
@@ -58,7 +64,11 @@ pub fn stitch_twins(
 
         if let Some(candidates) = forward_map.get(&reverse_key) {
             let unpaired_candidates: Vec<HalfEdgeId> = candidates.iter()
-                .filter(|&&c| c != he_id && !paired.contains(&c.index()))
+                .filter(|&&c| {
+                    c != he_id
+                        && !paired.contains(&c.index())
+                        && draft.arena().get_half_edge(c).map(|d| d.face() != he_face).unwrap_or(false)
+                })
                 .copied()
                 .collect();
 
@@ -93,13 +103,14 @@ pub fn stitch_twins(
 
     let mut unpaired: Vec<(HalfEdgeId, VertexId, VertexId)> = Vec::new();
     for &he_id in all_he_ids {
-        if !paired.contains(&he_id.index()) {
-            let he_data = draft.arena().get_half_edge(he_id)?;
-            let origin = he_data.origin();
-            let next_he = he_data.next();
-            let dest = draft.arena().get_half_edge(next_he)?.origin();
-            unpaired.push((he_id, origin, dest));
+        if paired.contains(&he_id.index()) || zero_length.contains(&he_id.index()) {
+            continue;
         }
+        let he_data = draft.arena().get_half_edge(he_id)?;
+        let origin = he_data.origin();
+        let next_he = he_data.next();
+        let dest = draft.arena().get_half_edge(next_he)?.origin();
+        unpaired.push((he_id, origin, dest));
     }
 
     if unpaired.is_empty() {
@@ -120,10 +131,15 @@ pub fn stitch_twins(
         if paired_unpaired.contains(&he_id.index()) {
             continue;
         }
+        let he_face = draft.arena().get_half_edge(he_id)?.face();
         let reverse_key = (dest.index(), origin.index());
         if let Some(candidates) = unpaired_map.get(&reverse_key) {
             let unpaired_candidates: Vec<HalfEdgeId> = candidates.iter()
-                .filter(|&&c| c != he_id && !paired_unpaired.contains(&c.index()))
+                .filter(|&&c| {
+                    c != he_id
+                        && !paired_unpaired.contains(&c.index())
+                        && draft.arena().get_half_edge(c).map(|d| d.face() != he_face).unwrap_or(false)
+                })
                 .copied()
                 .collect();
 
@@ -161,7 +177,9 @@ pub fn stitch_twins(
     // from re-used boolean results), match by geometric endpoint positions.
     let still_unpaired_after_retry: Vec<HalfEdgeId> = all_he_ids.iter()
         .filter(|he_id| {
-            !paired.contains(&he_id.index()) && !paired_unpaired.contains(&he_id.index())
+            !paired.contains(&he_id.index())
+                && !paired_unpaired.contains(&he_id.index())
+                && !zero_length.contains(&he_id.index())
         })
         .copied()
         .collect();
@@ -193,6 +211,10 @@ pub fn stitch_twins(
                 if i == j { continue; }
                 let (he_b, o_b, d_b) = edge_positions[j];
                 if position_paired.contains(&he_b.index()) { continue; }
+
+                let face_a = draft.arena().get_half_edge(he_a).map(|d| d.face()).ok();
+                let face_b = draft.arena().get_half_edge(he_b).map(|d| d.face()).ok();
+                if face_a.is_some() && face_a == face_b { continue; }
 
                 let dx_od = o_a[0]-d_b[0]; let dy_od = o_a[1]-d_b[1]; let dz_od = o_a[2]-d_b[2];
                 let dx_do = d_a[0]-o_b[0]; let dy_do = d_a[1]-o_b[1]; let dz_do = d_a[2]-o_b[2];
@@ -234,15 +256,38 @@ pub fn stitch_twins(
             .collect();
 
         if !final_unpaired.is_empty() {
+            eprintln!("=== ALL EDGES IN RESULT (for matching analysis) ===");
+            for (he_id, he_data) in draft.arena().iter_half_edges() {
+                let origin = he_data.origin();
+                let next_he = he_data.next();
+                if let Ok(next_data) = draft.arena().get_half_edge(next_he) {
+                    let dest = next_data.origin();
+                    let p_o = geom.get_vertex_position(origin).map(|p| format!("[{:.4},{:.4},{:.4}]", p[0], p[1], p[2])).unwrap_or_default();
+                    let p_d = geom.get_vertex_position(dest).map(|p| format!("[{:.4},{:.4},{:.4}]", p[0], p[1], p[2])).unwrap_or_default();
+                    let paired_status = if paired.contains(&he_id.index()) { "P1" }
+                        else if paired_unpaired.contains(&he_id.index()) { "P2" }
+                        else if position_paired.contains(&he_id.index()) { "P3" }
+                        else { "UNPD" };
+                    eprintln!("  {} {} -> {} f={} [{}] {}->{}", he_id, origin, dest, he_data.face(), paired_status, p_o, p_d);
+                }
+            }
             eprintln!("=== STITCH FAILURE: {} unpaired halfedges ===", final_unpaired.len());
             for &he_id in &final_unpaired {
                 let he_data = draft.arena().get_half_edge(he_id)?;
                 let origin = he_data.origin();
                 let next_he = he_data.next();
                 let dest = draft.arena().get_half_edge(next_he)?.origin();
+                let twin_id = he_data.twin();
+                let twin_status = if twin_id == he_id {
+                    "self-twin".to_string()
+                } else if let Ok(tw) = draft.arena().get_half_edge(twin_id) {
+                    format!("twin={} face={}", twin_id, tw.face())
+                } else {
+                    format!("twin={} INVALID", twin_id)
+                };
                 let p_o = geom.get_vertex_position(origin).map(|p| format!("{:.6e},{:.6e},{:.6e}", p[0], p[1], p[2])).unwrap_or_default();
                 let p_d = geom.get_vertex_position(dest).map(|p| format!("{:.6e},{:.6e},{:.6e}", p[0], p[1], p[2])).unwrap_or_default();
-                eprintln!("  he={} : {} -> {} (face={}) pos=[{}]->[{}]", he_id, origin, dest, he_data.face(), p_o, p_d);
+                eprintln!("  he={} : {} -> {} (face={}) [{}] pos=[{}]->[{}]", he_id, origin, dest, he_data.face(), twin_status, p_o, p_d);
             }
             return Err(KernelError::TopologyViolation {
                 err: forge_core::TopologyError::MissingTwin {

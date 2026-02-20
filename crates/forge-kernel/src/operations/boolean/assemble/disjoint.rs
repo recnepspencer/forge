@@ -436,10 +436,8 @@ fn has_overlapping_coplanar_faces(
         for (face_b, _) in tool_topo.arena().iter_faces() {
             let Some(plane_b) = tool_geom.get_face_plane(face_b) else { continue };
 
-            if forge_geom::primitives::plane::is_coplanar(
+            if forge_geom::primitives::plane::exact_eq(
                 plane_a, plane_b,
-                coplanar_angle_eps,
-                coplanar_offset_eps,
             ) {
                 return Ok(true);
             }

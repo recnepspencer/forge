@@ -53,33 +53,30 @@ pub fn classify_faces(
     let accelerator = accelerator_data.as_deref()
         .map(|bvh| bvh as &dyn forge_topo::classify::SpatialAccelerator);
 
-    let adjacency = build_face_adjacency(source_arena);
-    let patches = decompose_patches(source_arena, &adjacency);
-
+    // FLAT classification: classify each face independently, no patch grouping
     let mut classified = Vec::new();
 
-    for patch in &patches {
-        let seed_face = patch[0];
-        let computed_seed_class = classify_single_face(
+    for (face_id, _) in source_arena.iter_faces() {
+        let computed_class = classify_single_face(
             source_arena, source_geometry,
             other_arena, other_geometry,
             accelerator,
-            seed_face, &config, ctx,
+            face_id, &config, ctx,
         )?;
 
-        let decision_id = DecisionId(seed_face.index() as u64);
-        let (seed_class, overridden) = match ctx.get_classification_override(decision_id) {
+        let decision_id = DecisionId(face_id.index() as u64);
+        let (final_class, overridden) = match ctx.get_classification_override(decision_id) {
             Some(forced) => (forced, true),
-            None => (computed_seed_class, false),
+            None => (computed_class, false),
         };
 
-        let class_label = classification_label(&seed_class);
+        let class_label = classification_label(&final_class);
         let (kind, tier) = if overridden {
             (
                 DecisionKind::Forced {
                     reason: format!(
                         "counterfactual override: {} → {}",
-                        classification_label(&computed_seed_class),
+                        classification_label(&computed_class),
                         class_label,
                     ),
                 },
@@ -88,66 +85,20 @@ pub fn classify_faces(
         } else {
             (DecisionKind::Exact, DecisionTier::Deterministic)
         };
-        let mut seed_decision = TracedDecision::new(
+        let mut decision = TracedDecision::new(
             decision_id,
             kind,
             tier,
             1.0,
             DecisionContext::Classification {
-                point: compute_face_centroid(source_arena, source_geometry, seed_face)
+                point: compute_face_centroid(source_arena, source_geometry, face_id)
                     .unwrap_or([0.0; 3]),
-                result: format!("{}:Face#{} → {} (seed)", origin_label, seed_face.index(), class_label),
+                result: format!("{}:Face#{} → {}", origin_label, face_id.index(), class_label),
             },
         );
-        seed_decision.set_entity_scope(EntityRef::new("Face", seed_face.index()));
-        ctx.get_decision_log_mut().record(seed_decision);
-        classified.push(ClassifiedFace::new(seed_face, seed_class));
-
-        for &face_id in &patch[1..] {
-            let computed_class = classify_single_face(
-                source_arena, source_geometry,
-                other_arena, other_geometry,
-                accelerator,
-                face_id, &config, ctx,
-            )?;
-
-            let prop_decision_id = DecisionId(face_id.index() as u64);
-            let (propagated_class, prop_overridden) = match ctx.get_classification_override(prop_decision_id) {
-                Some(forced) => (forced, true),
-                None => (computed_class, false),
-            };
-
-            let prop_label = classification_label(&propagated_class);
-            let (prop_kind, prop_tier) = if prop_overridden {
-                (
-                    DecisionKind::Forced {
-                        reason: format!(
-                            "counterfactual override: {} → {}",
-                            classification_label(&computed_class),
-                            prop_label,
-                        ),
-                    },
-                    DecisionTier::Escalated,
-                )
-            } else {
-                (DecisionKind::Exact, DecisionTier::Resolved)
-            };
-            let mut decision = TracedDecision::new(
-                prop_decision_id,
-                prop_kind,
-                prop_tier,
-                1.0,
-                DecisionContext::Classification {
-                    point: compute_face_centroid(source_arena, source_geometry, face_id)
-                        .unwrap_or([0.0; 3]),
-                    result: format!("{}:Face#{} → {} (patch of seed #{})",
-                        origin_label, face_id.index(), prop_label, seed_face.index()),
-                },
-            );
-            decision.set_entity_scope(EntityRef::new("Face", face_id.index()));
-            ctx.get_decision_log_mut().record(decision);
-            classified.push(ClassifiedFace::new(face_id, propagated_class));
-        }
+        decision.set_entity_scope(EntityRef::new("Face", face_id.index()));
+        ctx.get_decision_log_mut().record(decision);
+        classified.push(ClassifiedFace::new(face_id, final_class));
     }
 
     Ok(classified)
@@ -223,7 +174,7 @@ fn decompose_patches(
     patches
 }
 
-/// Classify a single face by sampling its centroid against the other solid.
+/// Classify a single face by sampling a guaranteed-interior point against the other solid.
 fn classify_single_face(
     source_arena: &TopologyArena,
     source_geometry: &GeometryStore,
@@ -281,6 +232,9 @@ fn classify_single_face(
         ctx.log_escalation(escalation);
     }
 
+    eprintln!("  CLASSIFY face={} centroid=[{:.6},{:.6},{:.6}] → {:?}",
+        face_id.index(), sample[0], sample[1], sample[2], class);
+
     Ok(class)
 }
 
@@ -311,6 +265,64 @@ fn build_spatial_index(
         }
     }
     BvhNode::build(face_aabbs)
+}
+
+/// Compute a sample point guaranteed to lie strictly inside the face polygon.
+///
+/// Uses the centroid of the largest-area triangle in a fan decomposition.
+/// Triangle centroids are always strictly interior to their triangle,
+/// so the resulting point is inside the face even for concave polygons.
+/// Falls back to vertex-average centroid for degenerate faces (< 3 vertices).
+fn compute_interior_sample(
+    arena: &TopologyArena,
+    geom: &GeometryStore,
+    face_id: FaceId,
+) -> Result<[f64; 3], KernelError> {
+    let edges: Vec<_> = forge_topo::traverse::FaceEdgeIterator::new(arena, face_id)?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let mut vertices = Vec::with_capacity(edges.len());
+    for he in &edges {
+        let v = arena.get_half_edge(*he)?.origin();
+        if let Some(pos) = geom.get_vertex_position(v) {
+            vertices.push(*pos);
+        }
+    }
+
+    if vertices.len() < 3 {
+        return compute_face_centroid(arena, geom, face_id);
+    }
+
+    let mut best_area = -1.0_f64;
+    let mut best_centroid = [0.0_f64; 3];
+
+    let v0 = vertices[0];
+    for i in 1..vertices.len() - 1 {
+        let v1 = vertices[i];
+        let v2 = vertices[i + 1];
+
+        let e1 = [v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2]];
+        let e2 = [v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2]];
+        let cx = e1[1] * e2[2] - e1[2] * e2[1];
+        let cy = e1[2] * e2[0] - e1[0] * e2[2];
+        let cz = e1[0] * e2[1] - e1[1] * e2[0];
+        let area = cx * cx + cy * cy + cz * cz;
+
+        if area > best_area {
+            best_area = area;
+            best_centroid = [
+                (v0[0] + v1[0] + v2[0]) / 3.0,
+                (v0[1] + v1[1] + v2[1]) / 3.0,
+                (v0[2] + v1[2] + v2[2]) / 3.0,
+            ];
+        }
+    }
+
+    if best_area <= 0.0 {
+        return compute_face_centroid(arena, geom, face_id);
+    }
+
+    Ok(best_centroid)
 }
 
 /// Check whether two faces have aligned normals (same direction).

@@ -6,8 +6,8 @@ license.workspace = true
 description = "Exact arithmetic, certified predicates, and filtered evaluation for the Forge geometry kernel"
 
 [dependencies]
-num-bigint = "0.4"
-num-rational = "0.4"
+num-bigint = { version = "0.4", features = ["serde"] }
+num-rational = { version = "0.4", features = ["serde"] }
 num-traits = "0.2"
 serde = { workspace = true, features = ["derive"] }
 

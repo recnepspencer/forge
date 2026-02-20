@@ -11,13 +11,14 @@ use crate::sign::TriSign;
 use num_bigint::BigInt;
 use num_rational::BigRational;
 use num_traits::{One, Signed, Zero};
-use std::ops::{Add, Div, Mul, Sub};
+use serde::{Deserialize, Serialize};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 /// Exact rational number backed by arbitrary-precision integers.
 ///
 /// All arithmetic is exact — no rounding, no truncation. Bit-lengths grow
 /// with each operation (addressed by the precision budget in Milestone 0.2.3).
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Rational {
     inner: BigRational,
 }
@@ -159,6 +160,20 @@ impl Rational {
     pub fn is_zero(&self) -> bool {
         self.inner.is_zero()
     }
+
+    /// Absolute value of this rational.
+    pub fn abs(&self) -> Self {
+        Self {
+            inner: self.inner.abs(),
+        }
+    }
+
+    /// Negate this rational.
+    pub fn negate(&self) -> Self {
+        Self {
+            inner: -&self.inner,
+        }
+    }
 }
 
 /// Extract sign, significand, and exponent from an IEEE 754 `f64`.
@@ -272,6 +287,36 @@ impl Mul for &Rational {
 impl std::fmt::Display for Rational {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.inner)
+    }
+}
+
+impl Neg for Rational {
+    type Output = Self;
+    fn neg(self) -> Self {
+        Self {
+            inner: -self.inner,
+        }
+    }
+}
+
+impl Neg for &Rational {
+    type Output = Rational;
+    fn neg(self) -> Rational {
+        Rational {
+            inner: -&self.inner,
+        }
+    }
+}
+
+impl PartialOrd for Rational {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Rational {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.inner.cmp(&other.inner)
     }
 }
 

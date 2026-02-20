@@ -63,6 +63,8 @@ fn pv_09_1000_random_booleans_all_oriented() {
         let (target_topo, target_geom) = target.into_parts();
         let (tool_topo, tool_geom) = tool.into_parts();
 
+        println!("Iteration {}: Target [0,0,0] sz=2.0 | Tool [{:.4},{:.4},{:.4}] sz={:.4} | Op={:?}", i, cx, cy, cz, size, op);
+
         let input = BooleanInput::new(target_topo, target_geom, tool_topo, tool_geom, op);
 
         match execute_boolean(input) {
@@ -90,8 +92,8 @@ fn pv_09_1000_random_booleans_all_oriented() {
 
                 successes += 1;
             }
-            Err(_) => {
-                failures += 1;
+            Err(e) => {
+                panic!("Boolean operation failed on iteration {}: {:?}", i, e);
             }
         }
     }

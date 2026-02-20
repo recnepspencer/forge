@@ -81,11 +81,9 @@ fn run_merge_pass(
             let exact_match = plane_a.raw_normal() == plane_b.raw_normal()
                 && plane_a.raw_offset() == plane_b.raw_offset();
 
-            if exact_match || forge_geom::primitives::plane::is_coplanar(
+            if exact_match || forge_geom::primitives::plane::exact_eq(
                 plane_a, 
                 plane_b, 
-                config.get_coplanar_angle_epsilon(),
-                config.get_coplanar_offset_epsilon()
             ) {
                 local_candidates.push(he_id);
             }
@@ -97,7 +95,6 @@ fn run_merge_pass(
     let mut touched_faces = HashSet::new();
     
     for he_id in candidates {
-        // Need to extract face IDs without holding a borrow on the arena
         let (face_a, face_b) = {
             let Ok(he) = draft.arena().get_half_edge(he_id) else { continue };
             let Ok(twin) = draft.arena().get_half_edge(he.twin()) else { continue };
@@ -108,7 +105,25 @@ fn run_merge_pass(
             continue;
         }
 
-        // Apply the op
+        let shared_edge_count = {
+            let arena = draft.arena();
+            let mut count = 0u32;
+            for (iter_he_id, iter_he) in arena.iter_half_edges() {
+                if iter_he.face() == face_a {
+                    if let Ok(tw) = arena.get_half_edge(iter_he.twin()) {
+                        if tw.face() == face_b {
+                            count += 1;
+                        }
+                    }
+                }
+            }
+            count
+        };
+
+        if shared_edge_count > 1 {
+            continue;
+        }
+
         let op = JoinFaces { edge: he_id };
         
         match apply_op(&mut draft, op) {

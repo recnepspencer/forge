@@ -1,46 +1,49 @@
 //! Evaluation logic for Boolean operations.
 //!
 //! Includes vertex match key computation for robust deduplication.
-//! Every vertex is matched by exactly 3 sorted plane IDs —
-//! the 3 planes whose intersection defines the point in 3D space.
+//! Vertices are matched by their exact rational 3D position.
 //! This key is TRANSIENT (used only during the boolean phase).
 //! The vertex's permanent identity remains its `VertexId` + `Lineage`.
 
 use forge_geom::Plane;
+use forge_math::arithmetic::Rational;
 
 /// Transient geometric match key for cross-solid vertex deduplication.
 ///
-/// A point in 3D is defined by the intersection of exactly 3 non-parallel
-/// planes. This struct stores those 3 plane indices (from the global
-/// `PlaneTable`) in sorted order, forming a canonical hash key.
+/// Keyed by the exact rational `[x, y, z]` position of the vertex.
+/// Because `intersect_three_planes_exact` always reduces its result
+/// to canonical form (GCD-reduced numerator/denominator), two vertices
+/// at the same physical point produce bitwise-identical `Rational` values
+/// and therefore identical `VertexMatchKey`s — regardless of which solid
+/// they came from, which PlaneTable they used, or how many planes meet
+/// at that corner.
 ///
 /// This is NOT the vertex's permanent identity — that remains the
 /// `VertexId` and its `Lineage`. This key is used strictly during
-/// the boolean assembly phase to find geometrically coincident vertices
-/// across target and tool solids. When a match is found, lineages are
+/// the boolean assembly phase. When a match is found, lineages are
 /// merged (D1 compliance) rather than silently dropped.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct VertexMatchKey {
-    /// Always sorted: planes[0] < planes[1] < planes[2].
-    planes: [usize; 3],
+    /// Exact rational coordinates.
+    pos: [Rational; 3],
 }
+
 
 impl VertexMatchKey {
-    /// Create a match key from exactly 3 plane indices.
+    /// Create a match key from an exact rational vertex position.
     ///
-    /// The indices are sorted to ensure canonical representation:
-    /// `VertexMatchKey::from_planes(a, b, c) == VertexMatchKey::from_planes(c, a, b)`.
-    pub fn from_planes(p0: usize, p1: usize, p2: usize) -> Self {
-        let mut planes = [p0, p1, p2];
-        planes.sort_unstable();
-        Self { planes }
+    /// `BigRational` is always stored in canonical (GCD-reduced) form,
+    /// so two keys are equal iff they represent the same point.
+    pub fn from_exact_position(x: Rational, y: Rational, z: Rational) -> Self {
+        Self { pos: [x, y, z] }
     }
 
-    /// Access the sorted plane indices.
-    pub fn planes(&self) -> &[usize; 3] {
-        &self.planes
+    /// Access the exact rational coordinates.
+    pub fn position(&self) -> &[Rational; 3] {
+        &self.pos
     }
 }
+
 
 /// Check if two planes are parallel (or anti-parallel).
 ///

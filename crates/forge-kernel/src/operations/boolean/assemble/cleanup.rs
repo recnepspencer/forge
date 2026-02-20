@@ -175,40 +175,11 @@ fn remove_degenerate_faces(
 
         let edges: Vec<_> = match FaceEdgeIterator::new(draft.arena(), face_id) {
             Ok(iter) => iter.collect::<Result<Vec<_>, _>>()?,
-            Err(_) => continue, // Skip invalid faces
-        };for he_id in &edges {
-            if let Ok(he_data) = draft.arena().get_half_edge(*he_id) {
-                let twin_id = he_data.twin();
-                if let Ok(twin_data) = draft.arena().get_half_edge(twin_id) {
-                    let twin_face = twin_data.face();
-                    if twin_face != face_id && !processed_faces.contains(&twin_face.index()) {
-                        if let Ok(twin_next) = draft.arena().get_half_edge(twin_data.next()) {
-                            let _ = twin_next;
-                        }
-                    }
-                }
-            }
-        }
+            Err(_) => continue,
+        };
 
-        let edge_list: Vec<HalfEdgeId> = edges.clone();
-        for he_id in &edge_list {
-            if let Ok(he_data) = draft.arena().get_half_edge(*he_id) {
-                let twin_id = he_data.twin();
-                if let Ok(_twin_data) = draft.arena().get_half_edge(twin_id) {
-                    let prev_of_twin = find_prev_he(draft, twin_id);
-                    let next_of_twin_result = draft.arena().get_half_edge(twin_id).map(|d| d.next());
-
-                    if let (Ok(prev_t), Ok(next_t)) = (prev_of_twin, next_of_twin_result) {
-                        if prev_t != twin_id {
-                            let _ = draft.arena_mut().get_half_edge_mut(prev_t).map(|d| d.set_next(next_t));
-                        }
-                    }
-                }
-                let _ = draft.arena_mut().remove_half_edge(*he_id);
-                if draft.arena().get_half_edge(twin_id).is_ok() {
-                    let _ = draft.arena_mut().remove_half_edge(twin_id);
-                }
-            }
+        for he_id in &edges {
+            let _ = draft.arena_mut().remove_half_edge(*he_id);
         }
 
         let face_data = draft.arena().get_face(face_id)?;
