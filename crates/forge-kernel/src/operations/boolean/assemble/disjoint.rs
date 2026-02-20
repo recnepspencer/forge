@@ -5,16 +5,19 @@ use forge_core::result::{
     TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier, EntityRef
 };
 use forge_topo::state::TopologyState;
-use forge_topo::handles::{FaceId, HalfEdgeId};
+use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::classify::classify_point_in_solid;
 use forge_topo::replay::ReplayLog;
 use forge_topo::lineage::{LineageEvent, EntityKind, Lineage, OpSignature};
 
 use crate::core::ModelingContext;
 use crate::geometry_store::GeometryStore;
+use crate::operations::boolean::classify::find_coplanar_face_pairs;
+use crate::operations::boolean::eval::VertexMatchKey;
 use crate::operations::boolean::schema::{BooleanResult, BooleanOp};
 use super::copy::{copy_faces, VertexDedup};
 use super::stitch::stitch_twins;
+use super::cleanup::cleanup_degenerate_topology;
 
 /// Fast path for non-intersecting solids (zero face splits).
 ///
@@ -84,7 +87,7 @@ pub fn execute_zero_split(
             ).map(Some)
         }
         Containment::Touching => {
-            execute_disjoint_boolean(
+            execute_touching_boolean(
                 target_topo, target_geom,
                 tool_topo, tool_geom,
                 operation,
@@ -340,6 +343,102 @@ fn execute_disjoint_boolean(
         }
     }
 }
+
+/// Handle Booleans where the two solids are touching (flush coplanar contact).
+///
+/// For Union: identifies coplanar face pairs (same geometric plane, opposite
+/// normals) between the two solids and drops them — they form an internal
+/// boundary that must be removed by regularization. Remaining faces are
+/// assembled into a single manifold with shared vertex merging.
+///
+/// For other operations: delegates to existing handlers.
+fn execute_touching_boolean(
+    target_topo: &TopologyState,
+    target_geom: &GeometryStore,
+    tool_topo: &TopologyState,
+    tool_geom: &GeometryStore,
+    operation: BooleanOp,
+    ctx: &mut ModelingContext,
+) -> Result<BooleanResult, KernelError> {
+    if operation != BooleanOp::Union {
+        return execute_disjoint_boolean(
+            target_topo, target_geom, tool_topo, tool_geom, operation, ctx,
+        );
+    }
+
+    let (excluded_target, excluded_tool) = find_coplanar_face_pairs(
+        target_topo, target_geom, tool_topo, tool_geom,
+    );
+
+    eprintln!("[TOUCHING_UNION] excluded_target={} excluded_tool={}",
+        excluded_target.len(), excluded_tool.len());
+
+    let target_faces: Vec<FaceId> = target_topo.arena().iter_faces()
+        .map(|(fid, _)| fid)
+        .filter(|fid| !excluded_target.contains(&fid.index()))
+        .collect();
+    let tool_faces: Vec<FaceId> = tool_topo.arena().iter_faces()
+        .map(|(fid, _)| fid)
+        .filter(|fid| !excluded_tool.contains(&fid.index()))
+        .collect();
+
+    let target_count = target_faces.len();
+    let tool_count = tool_faces.len();
+
+    let state = TopologyState::empty();
+    let mut draft = state.into_mutation();
+    let mut result_geom = GeometryStore::new();
+
+    let characteristic_scale = compute_disjoint_scale(
+        target_topo.arena(), target_geom,
+        Some((tool_topo.arena(), tool_geom)),
+    );
+
+    let mut global_vertex_map: std::collections::BTreeMap<VertexMatchKey, VertexId> =
+        std::collections::BTreeMap::new();
+    let mut spatial_index = super::copy::SpatialVertexIndex::new(characteristic_scale);
+    let mut all_he_ids: Vec<HalfEdgeId> = Vec::new();
+
+    let mut target_dedup = VertexDedup::new();
+    copy_faces(
+        &mut draft, &mut result_geom, &mut target_dedup,
+        &mut all_he_ids,
+        &mut global_vertex_map,
+        &mut spatial_index,
+        target_topo.arena(), target_geom, &target_faces,
+        false,
+        None,
+    )?;
+
+    let mut tool_dedup = VertexDedup::new();
+    copy_faces(
+        &mut draft, &mut result_geom, &mut tool_dedup,
+        &mut all_he_ids,
+        &mut global_vertex_map,
+        &mut spatial_index,
+        tool_topo.arena(), tool_geom, &tool_faces,
+        false,
+        None,
+    )?;
+
+    cleanup_degenerate_topology(&mut draft, &result_geom)?;
+
+    stitch_twins(&mut draft, &all_he_ids, &result_geom, spatial_index.weld_tolerance_sq(), ctx)?;
+
+    let topo = draft.commit()?;
+    let lineage_events: Vec<LineageEvent> = topo.arena().iter_faces()
+        .map(|(fid, _)| LineageEvent::EntityCreated {
+            entity_kind: EntityKind::Face,
+            lineage: Lineage::root(fid.index() as u64, OpSignature::new("touching_boolean_union")),
+        })
+        .collect();
+    Ok(BooleanResult::new(
+        topo, result_geom, target_count, tool_count,
+        crate::operations::boolean::schema::BooleanIntrospection::default(),
+        ReplayLog::new(), lineage_events,
+    ))
+}
+
 
 /// Copy one or two complete solids into a fresh arena.
 ///

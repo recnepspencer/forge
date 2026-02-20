@@ -7,7 +7,7 @@
 //! DEPENDENCIES: `forge-math` (Rational, predicates, sign, error)
 
 pub use eval::{classify_point, classify_point_exact, signed_distance, intersect_three_planes,
-               intersect_three_planes_exact, to_plane_relation, exact_eq};
+               intersect_three_planes_exact, to_plane_relation, exact_eq, coplanar_eq};
 
 use forge_math::MathError;
 use forge_math::arithmetic::Rational;
@@ -397,6 +397,43 @@ fn compute_reference_points(plane: &Plane) -> [[f64; 3]; 3] {
     [origin, p1, p2]
 }
 
+/// Test whether two planes represent the same geometric surface.
+///
+/// Unlike `exact_eq` (which requires same normal direction, i.e. same
+/// half-space orientation), `coplanar_eq` returns true for both same-direction
+/// AND anti-parallel normals. This is the correct test for detecting shared
+/// geometric planes in boolean operations, where two touching faces have
+/// opposite normals.
+///
+/// Uses exact rational arithmetic — no tolerances.
+pub fn coplanar_eq(a: &Plane, b: &Plane) -> bool {
+    let (a0, a1, a2, a3) = a.exact_coefficients();
+    let (b0, b1, b2, b3) = b.exact_coefficients();
+
+    let cx = &(a0 * b1) - &(a1 * b0);
+    let cy = &(a1 * b2) - &(a2 * b1);
+    let cz = &(a0 * b2) - &(a2 * b0);
+
+    if !cx.is_zero() || !cy.is_zero() || !cz.is_zero() {
+        return false;
+    }
+
+    let check_a = &(a0 * b3) - &(b0 * a3);
+    if !check_a.is_zero() {
+        return false;
+    }
+    let check_b = &(a1 * b3) - &(b1 * a3);
+    if !check_b.is_zero() {
+        return false;
+    }
+    let check_c = &(a2 * b3) - &(b2 * a3);
+    if !check_c.is_zero() {
+        return false;
+    }
+
+    true
+}
+
 } // end mod eval
 
 #[cfg(test)]
@@ -405,7 +442,8 @@ mod tests {
     use forge_math::arithmetic::Rational;
     use crate::primitives::plane::{Plane, PlaneRelation, classify_point, classify_point_exact,
                                     signed_distance, intersect_three_planes,
-                                    intersect_three_planes_exact, to_plane_relation, exact_eq};
+                                    intersect_three_planes_exact, to_plane_relation, exact_eq,
+                                    coplanar_eq};
 
     const TEST_DEGENERACY: f64 = 1e-15;
     const TEST_TOLERANCE: f64 = 1e-10;
@@ -580,6 +618,41 @@ mod tests {
         let a = Plane::try_new([1.0, 0.0, 0.0], -5.0).unwrap();
         let b = Plane::try_new([-1.0, 0.0, 0.0], 5.0).unwrap();
         assert!(!exact_eq(&a, &b));
+    }
+
+    #[test]
+    fn coplanar_eq_same_direction() {
+        let a = Plane::try_new([1.0, 0.0, 0.0], -5.0).unwrap();
+        let b = Plane::try_new([1.0, 0.0, 0.0], -5.0).unwrap();
+        assert!(coplanar_eq(&a, &b));
+    }
+
+    #[test]
+    fn coplanar_eq_opposite_normals() {
+        let a = Plane::try_new([1.0, 0.0, 0.0], -5.0).unwrap();
+        let b = Plane::try_new([-1.0, 0.0, 0.0], 5.0).unwrap();
+        assert!(coplanar_eq(&a, &b));
+    }
+
+    #[test]
+    fn coplanar_eq_different_offset() {
+        let a = Plane::try_new([0.0, 0.0, 1.0], -0.5).unwrap();
+        let b = Plane::try_new([0.0, 0.0, 1.0], -1.5).unwrap();
+        assert!(!coplanar_eq(&a, &b));
+    }
+
+    #[test]
+    fn coplanar_eq_z_axis_antiparallel_different_offset() {
+        let a = Plane::try_new([0.0, 0.0, 1.0], -0.5).unwrap();
+        let b = Plane::try_new([0.0, 0.0, -1.0], -0.5).unwrap();
+        assert!(!coplanar_eq(&a, &b));
+    }
+
+    #[test]
+    fn coplanar_eq_z_axis_antiparallel_same_surface() {
+        let a = Plane::try_new([0.0, 0.0, 1.0], -0.5).unwrap();
+        let b = Plane::try_new([0.0, 0.0, -1.0], 0.5).unwrap();
+        assert!(coplanar_eq(&a, &b));
     }
 
     #[test]

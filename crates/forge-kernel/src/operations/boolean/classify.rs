@@ -13,13 +13,14 @@
 //! of each independently ray-casting (which can give inconsistent results
 //! for points exactly on the boundary of the other solid).
 
-use std::collections::{BTreeMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
 
 use forge_core::KernelError;
 use forge_core::result::{TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier, EntityRef};
 use forge_topo::arena::TopologyArena;
 use forge_topo::classify::classify_point_in_solid;
 use forge_topo::handles::FaceId;
+use forge_topo::state::TopologyState;
 
 use forge_geom::{Aabb, BvhNode};
 
@@ -394,31 +395,10 @@ fn detect_coplanar_faces(
 
 /// Check if two planes are coplanar using exact rational arithmetic.
 ///
-/// Two planes P1(a1,b1,c1,d1) and P2(a2,b2,c2,d2) are coplanar iff:
-///   1. cross(n1, n2) == (0, 0, 0)   — normals are parallel
-///   2. a1*d2 == a2*d1               — same offset (scale-invariant)
+/// Delegates to `forge_geom::coplanar_eq` which checks all three normal
+/// components against offset for correctness.
 fn planes_are_coplanar_exact(p1: &forge_geom::Plane, p2: &forge_geom::Plane) -> bool {
-    let (a1, b1, c1, d1) = p1.exact_coefficients();
-    let (a2, b2, c2, d2) = p2.exact_coefficients();
-
-    let cx = &(b1 * c2) - &(c1 * b2);
-    let cy = &(c1 * a2) - &(a1 * c2);
-    let cz = &(a1 * b2) - &(b1 * a2);
-
-    if !cx.is_zero() || !cy.is_zero() || !cz.is_zero() {
-        return false;
-    }
-
-    let lhs = &(a1 * d2) - &(a2 * d1);
-    if !lhs.is_zero() {
-        return false;
-    }
-    let lhs_b = &(b1 * d2) - &(b2 * d1);
-    if !lhs_b.is_zero() {
-        return false;
-    }
-
-    true
+    forge_geom::primitives::plane::coplanar_eq(p1, p2)
 }
 
 /// Check if two coplanar planes have aligned normals (same direction).
@@ -471,4 +451,94 @@ fn compute_ray_extent_from_bbox(
     let diagonal = (dx * dx + dy * dy + dz * dz).sqrt();
 
     (diagonal * 10.0).max(default_extent)
+}
+
+/// Find coplanar face pairs between two solids for regularized Boolean union.
+///
+/// Returns `(excluded_target_indices, excluded_tool_indices)` — the face
+/// indices that should be dropped because they form an internal boundary.
+///
+/// Two faces are paired when:
+///   1. They lie on the exact same geometric plane (`coplanar_eq`)
+///   2. Their 2D polygon projections overlap in area (`polygons_overlap_2d`)
+pub(crate) fn find_coplanar_face_pairs(
+    target_topo: &TopologyState,
+    target_geom: &GeometryStore,
+    tool_topo: &TopologyState,
+    tool_geom: &GeometryStore,
+) -> (BTreeSet<u32>, BTreeSet<u32>) {
+    let mut excluded_target: BTreeSet<u32> = BTreeSet::new();
+    let mut excluded_tool: BTreeSet<u32> = BTreeSet::new();
+
+    let tool_faces_data: Vec<(FaceId, forge_geom::Plane, Vec<[f64; 3]>)> =
+        tool_topo.arena().iter_faces()
+        .filter_map(|(fid, _)| {
+            let plane = tool_geom.get_face_plane(fid)?.clone();
+            let verts = extract_face_vertices_3d(tool_topo.arena(), tool_geom, fid)?;
+            Some((fid, plane, verts))
+        })
+        .collect();
+
+    for (target_fid, _) in target_topo.arena().iter_faces() {
+        let target_plane = match target_geom.get_face_plane(target_fid) {
+            Some(p) => p,
+            None => { continue; }
+        };
+        let target_verts = match extract_face_vertices_3d(
+            target_topo.arena(), target_geom, target_fid
+        ) {
+            Some(v) => v,
+            None => { continue; }
+        };
+
+        for (tool_fid, tool_plane, tool_verts) in &tool_faces_data {
+            if excluded_tool.contains(&tool_fid.index()) {
+                continue;
+            }
+            if !forge_geom::primitives::plane::coplanar_eq(target_plane, tool_plane) {
+                continue;
+            }
+            if !faces_overlap_3d(target_plane, &target_verts, tool_verts) {
+                continue;
+            }
+            excluded_target.insert(target_fid.index());
+            excluded_tool.insert(tool_fid.index());
+            break;
+        }
+    }
+
+    (excluded_target, excluded_tool)
+}
+
+/// Extract ordered vertex positions of a face by walking its half-edge loop.
+fn extract_face_vertices_3d(
+    arena: &TopologyArena,
+    geom: &GeometryStore,
+    face: FaceId,
+) -> Option<Vec<[f64; 3]>> {
+    let edges = forge_topo::traverse::FaceEdgeIterator::new(arena, face).ok()?;
+    let mut verts = Vec::new();
+    for he_res in edges {
+        let he = he_res.ok()?;
+        let v = arena.get_half_edge(he).ok()?.origin();
+        let pos = geom.get_vertex_position(v)?;
+        verts.push(*pos);
+    }
+    if verts.len() < 3 { return None; }
+    Some(verts)
+}
+
+/// Test if two coplanar 3D face polygons overlap in area.
+///
+/// Projects both polygons onto the shared plane's 2D coordinate system
+/// and delegates to `forge_geom::algorithms::polygons_overlap_2d`.
+fn faces_overlap_3d(
+    plane: &forge_geom::Plane,
+    poly_a: &[[f64; 3]],
+    poly_b: &[[f64; 3]],
+) -> bool {
+    let (ax1, ax2) = forge_geom::algorithms::dominant_projection_axes(plane.raw_normal());
+    let a2d: Vec<[f64; 2]> = poly_a.iter().map(|p| [p[ax1], p[ax2]]).collect();
+    let b2d: Vec<[f64; 2]> = poly_b.iter().map(|p| [p[ax1], p[ax2]]).collect();
+    forge_geom::algorithms::polygons_overlap_2d(&a2d, &b2d)
 }

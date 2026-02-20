@@ -47,6 +47,16 @@ pub fn normalize_checked(v: [f64; 3]) -> Option<[f64; 3]> {
     Some([v[0] / len, v[1] / len, v[2] / len])
 }
 
+/// 2D cross product (perpendicular dot product).
+///
+/// Equivalent to the z-component of the 3D cross product of
+/// `(a[0], a[1], 0)` and `(b[0], b[1], 0)`, or the determinant
+/// of the 2×2 matrix `[a | b]`.
+///
+/// Sign convention: positive when `b` is counter-clockwise from `a`.
+pub fn cross_2d(a: [f64; 2], b: [f64; 2]) -> f64 {
+    a[0] * b[1] - a[1] * b[0]
+}
 
 /// Compute a spatial hash from a 3D position.
 ///
@@ -173,5 +183,34 @@ mod tests {
         let a = compute_spatial_hash(&[1.0, 0.0, 0.0], scale);
         let b = compute_spatial_hash(&[0.0, 1.0, 0.0], scale);
         assert_ne!(a, b);
+    }
+    #[test]
+    fn cross_2d_axis_aligned() {
+        let result = cross_2d([1.0, 0.0], [0.0, 1.0]);
+        assert!((result - 1.0).abs() < 1e-15);
+    }
+
+    #[test]
+    fn cross_2d_anticommutative() {
+        let a = [3.0, 7.0];
+        let b = [2.0, 5.0];
+        let ab = cross_2d(a, b);
+        let ba = cross_2d(b, a);
+        assert!((ab + ba).abs() < 1e-15);
+    }
+
+    #[test]
+    fn cross_2d_parallel_is_zero() {
+        let result = cross_2d([2.0, 4.0], [3.0, 6.0]);
+        assert!(result.abs() < 1e-15);
+    }
+
+    #[test]
+    fn cross_2d_matches_3d_z_component() {
+        let a2 = [3.0, 7.0];
+        let b2 = [2.0, 5.0];
+        let result_2d = cross_2d(a2, b2);
+        let result_3d = cross([3.0, 7.0, 0.0], [2.0, 5.0, 0.0]);
+        assert!((result_2d - result_3d[2]).abs() < 1e-15);
     }
 }
