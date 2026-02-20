@@ -61,104 +61,96 @@ fn remove_zero_length_edges(
     let mut processed: HashSet<u32> = HashSet::new();
 
     for he_id in zero_edges {
-        if processed.contains(&he_id.index()) {
-            continue;
-        }
+        if !processed.contains(&he_id.index()) {
+            if let Ok(he_data) = draft.arena().get_half_edge(he_id) {
+                let he_data = he_data.clone();
+                let twin_id = he_data.twin();
+                if !processed.contains(&twin_id.index()) {
+                    let next_id = he_data.next();
+                    let prev_id = he_data.prev();
 
-        let he_data = match draft.arena().get_half_edge(he_id) {
-            Ok(d) => d.clone(),
-            Err(_) => continue,
-        };
+                    if prev_id != he_id && next_id != he_id {
+                        draft.arena_mut().get_half_edge_mut(prev_id)?.set_next(next_id);
+                        draft.arena_mut().get_half_edge_mut(next_id)?.set_prev(prev_id);
 
-        let twin_id = he_data.twin();
-        if processed.contains(&twin_id.index()) {
-            continue;
-        }
+                        if let Ok(twin_data) = draft.arena().get_half_edge(twin_id) {
+                            let twin_data = twin_data.clone();
+                            let twin_next = twin_data.next();
+                            let twin_prev = twin_data.prev();
 
-        let next_id = he_data.next();
-        let prev_id = he_data.prev();
+                            if twin_prev != twin_id && twin_next != twin_id {
+                                draft.arena_mut().get_half_edge_mut(twin_prev)?.set_next(twin_next);
+                                draft.arena_mut().get_half_edge_mut(twin_next)?.set_prev(twin_prev);
+                            }
+                        }
 
-        if prev_id == he_id || next_id == he_id {
-            continue;
-        }
+                        let outer_loop_id_primary = {
+                            let face_data = draft.arena().get_face(he_data.face())?;
+                            let loop_data = draft.arena().get_loop(face_data.outer_loop())?;
+                            if loop_data.half_edge() == he_id {
+                                Some(face_data.outer_loop())
+                            } else {
+                                None
+                            }
+                        };
+                        if let Some(loop_id) = outer_loop_id_primary {
+                            draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(next_id);
+                        }
 
-        draft.arena_mut().get_half_edge_mut(prev_id)?.set_next(next_id);
-        draft.arena_mut().get_half_edge_mut(next_id)?.set_prev(prev_id);
+                        let outgoing_update_primary = {
+                            let vertex_data = draft.arena().get_vertex(he_data.origin())?;
+                            if vertex_data.outgoing() == he_id {
+                                Some(he_data.origin())
+                            } else {
+                                None
+                            }
+                        };
+                        if let Some(vid) = outgoing_update_primary {
+                            draft.arena_mut().get_vertex_mut(vid)?.set_outgoing(next_id);
+                        }
 
-        if let Ok(twin_data) = draft.arena().get_half_edge(twin_id) {
-            let twin_data = twin_data.clone();
-            let twin_next = twin_data.next();
-            let twin_prev = twin_data.prev();
+                        if let Ok(twin_data) = draft.arena().get_half_edge(twin_id) {
+                            let twin_data = twin_data.clone();
+                            let twin_next = twin_data.next();
+                            
+                            let outer_loop_id_twin = {
+                                let face_data = draft.arena().get_face(twin_data.face())?;
+                                let loop_data = draft.arena().get_loop(face_data.outer_loop())?;
+                                if loop_data.half_edge() == twin_id {
+                                    Some(face_data.outer_loop())
+                                } else {
+                                    None
+                                }
+                            };
+                            if let Some(loop_id) = outer_loop_id_twin {
+                                draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(twin_next);
+                            }
 
-            if twin_prev != twin_id && twin_next != twin_id {
-                draft.arena_mut().get_half_edge_mut(twin_prev)?.set_next(twin_next);
-                draft.arena_mut().get_half_edge_mut(twin_next)?.set_prev(twin_prev);
-            }
-        }
+                            let outgoing_update_twin = {
+                                let vertex_data = draft.arena().get_vertex(twin_data.origin())?;
+                                if vertex_data.outgoing() == twin_id {
+                                    Some(twin_data.origin())
+                                } else {
+                                    None
+                                }
+                            };
+                            if let Some(vid) = outgoing_update_twin {
+                                draft.arena_mut().get_vertex_mut(vid)?.set_outgoing(twin_next);
+                            }
+                        }
 
-        let outer_loop_id_primary = {
-            let face_data = draft.arena().get_face(he_data.face())?;
-            let loop_data = draft.arena().get_loop(face_data.outer_loop())?;
-            if loop_data.half_edge() == he_id {
-                Some(face_data.outer_loop())
-            } else {
-                None
-            }
-        };
-        if let Some(loop_id) = outer_loop_id_primary {
-            draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(next_id);
-        }
+                        let _ = draft.arena_mut().remove_half_edge(he_id);
+                        if draft.arena().get_half_edge(twin_id).is_ok() {
+                            let _ = draft.arena_mut().remove_half_edge(twin_id);
+                        }
 
-        let outgoing_update_primary = {
-            let vertex_data = draft.arena().get_vertex(he_data.origin())?;
-            if vertex_data.outgoing() == he_id {
-                Some(he_data.origin())
-            } else {
-                None
-            }
-        };
-        if let Some(vid) = outgoing_update_primary {
-            draft.arena_mut().get_vertex_mut(vid)?.set_outgoing(next_id);
-        }
-
-        if let Ok(twin_data) = draft.arena().get_half_edge(twin_id) {
-            let twin_data = twin_data.clone();
-            let twin_next = twin_data.next();
-            
-            let outer_loop_id_twin = {
-                let face_data = draft.arena().get_face(twin_data.face())?;
-                let loop_data = draft.arena().get_loop(face_data.outer_loop())?;
-                if loop_data.half_edge() == twin_id {
-                    Some(face_data.outer_loop())
-                } else {
-                    None
+                        processed.insert(he_id.index());
+                        processed.insert(twin_id.index());
+                        removed += 1;
+                    }
                 }
-            };
-            if let Some(loop_id) = outer_loop_id_twin {
-                draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(twin_next);
-            }
-
-            let outgoing_update_twin = {
-                let vertex_data = draft.arena().get_vertex(twin_data.origin())?;
-                if vertex_data.outgoing() == twin_id {
-                    Some(twin_data.origin())
-                } else {
-                    None
-                }
-            };
-            if let Some(vid) = outgoing_update_twin {
-                draft.arena_mut().get_vertex_mut(vid)?.set_outgoing(twin_next);
             }
         }
-
-        let _ = draft.arena_mut().remove_half_edge(he_id);
-        if draft.arena().get_half_edge(twin_id).is_ok() {
-            let _ = draft.arena_mut().remove_half_edge(twin_id);
-        }
-
-        processed.insert(he_id.index());
-        processed.insert(twin_id.index());
-        removed += 1;
     }
 
     Ok(removed)
@@ -180,20 +172,19 @@ fn remove_degenerate_faces(
         .collect();
 
     for face_id in &faces {
-        let edges: Vec<_> = match FaceEdgeIterator::new(draft.arena(), *face_id) {
-            Ok(iter) => iter.collect::<Result<Vec<_>, _>>()?,
-            Err(_) => continue,
-        };
+        if let Ok(iter) = FaceEdgeIterator::new(draft.arena(), *face_id) {
+            let edges: Vec<_> = iter.collect::<Result<Vec<_>, _>>()?;
 
-        let mut unique_verts: HashSet<u32> = HashSet::new();
-        for he_id in &edges {
-            if let Ok(he_data) = draft.arena().get_half_edge(*he_id) {
-                unique_verts.insert(he_data.origin().index());
+            let mut unique_verts: HashSet<u32> = HashSet::new();
+            for he_id in &edges {
+                if let Ok(he_data) = draft.arena().get_half_edge(*he_id) {
+                    unique_verts.insert(he_data.origin().index());
+                }
             }
-        }
 
-        if unique_verts.len() < 3 {
-            degenerate_faces.push(*face_id);
+            if unique_verts.len() < 3 {
+                degenerate_faces.push(*face_id);
+            }
         }
     }
 
@@ -201,58 +192,52 @@ fn remove_degenerate_faces(
     let mut processed_faces: HashSet<u32> = HashSet::new();
 
     for face_id in degenerate_faces {
-        if processed_faces.contains(&face_id.index()) {
-            continue;
-        }
+        if !processed_faces.contains(&face_id.index()) {
+            if let Ok(iter) = FaceEdgeIterator::new(draft.arena(), face_id) {
+                let edges: Vec<_> = iter.collect::<Result<Vec<_>, _>>()?;
 
-        let edges: Vec<_> = match FaceEdgeIterator::new(draft.arena(), face_id) {
-            Ok(iter) => iter.collect::<Result<Vec<_>, _>>()?,
-            Err(_) => continue,
-        };
-
-        let mut deleted_he_set: HashSet<u32> = HashSet::new();
-        for he_id in &edges {
-            deleted_he_set.insert(he_id.index());
-        }
-
-        let mut affected_vertices: HashSet<u32> = HashSet::new();
-        for he_id in &edges {
-            if let Ok(he_data) = draft.arena().get_half_edge(*he_id) {
-                let origin = he_data.origin();
-                let outgoing = draft.arena().get_vertex(origin)
-                    .map(|v| v.outgoing())
-                    .ok();
-                if outgoing.map(|o| deleted_he_set.contains(&o.index())).unwrap_or(false) {
-                    affected_vertices.insert(origin.index());
+                let mut deleted_he_set: HashSet<u32> = HashSet::new();
+                for he_id in &edges {
+                    deleted_he_set.insert(he_id.index());
                 }
+
+                let mut affected_vertices: HashSet<u32> = HashSet::new();
+                for he_id in &edges {
+                    if let Ok(he_data) = draft.arena().get_half_edge(*he_id) {
+                        let origin = he_data.origin();
+                        let outgoing = draft.arena().get_vertex(origin)
+                            .map(|v| v.outgoing())
+                            .ok();
+                        if outgoing.map(|o| deleted_he_set.contains(&o.index())).unwrap_or(false) {
+                            affected_vertices.insert(origin.index());
+                        }
+                    }
+                }
+
+                let replacements: Vec<(VertexId, HalfEdgeId)> = draft.arena().iter_half_edges()
+                    .filter(|(he_id, _)| !deleted_he_set.contains(&he_id.index()))
+                    .filter(|(_, he_data)| affected_vertices.contains(&he_data.origin().index()))
+                    .map(|(he_id, he_data)| (he_data.origin(), he_id))
+                    .collect();
+
+                for (vid, he_id) in &replacements {
+                    affected_vertices.remove(&vid.index());
+                    let _ = draft.arena_mut().get_vertex_mut(*vid).map(|v| v.set_outgoing(*he_id));
+                }
+
+                for he_id in &edges {
+                    let _ = draft.arena_mut().remove_half_edge(*he_id);
+                }
+
+                let face_data = draft.arena().get_face(face_id)?;
+                let loop_id = face_data.outer_loop();
+                let _ = draft.arena_mut().remove_face(face_id);
+                let _ = draft.arena_mut().remove_loop(loop_id);
+
+                processed_faces.insert(face_id.index());
+                removed += 1;
             }
         }
-
-        let mut replacements: Vec<(VertexId, HalfEdgeId)> = Vec::new();
-        for (he_id, he_data) in draft.arena().iter_half_edges() {
-            if deleted_he_set.contains(&he_id.index()) {
-                continue;
-            }
-            if affected_vertices.contains(&he_data.origin().index()) {
-                replacements.push((he_data.origin(), he_id));
-                affected_vertices.remove(&he_data.origin().index());
-            }
-        }
-        for (vid, he_id) in replacements {
-            let _ = draft.arena_mut().get_vertex_mut(vid).map(|v| v.set_outgoing(he_id));
-        }
-
-        for he_id in &edges {
-            let _ = draft.arena_mut().remove_half_edge(*he_id);
-        }
-
-        let face_data = draft.arena().get_face(face_id)?;
-        let loop_id = face_data.outer_loop();
-        let _ = draft.arena_mut().remove_face(face_id);
-        let _ = draft.arena_mut().remove_loop(loop_id);
-
-        processed_faces.insert(face_id.index());
-        removed += 1;
     }
 
     Ok(removed)

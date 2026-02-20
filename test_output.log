@@ -2,7 +2,7 @@
   OPERATION: Intersection (half-overlap cubes)
 ============================================================
 
-Duration: 3.30875ms
+Duration: 1.54875ms
 State hash: 0x9A5CBF999B46E0E1957E6FE7B62D0EF9
 Faces in result: 6
 
@@ -12,7 +12,7 @@ Faces in result: 6
 
 64 decisions (4 interesting)
   ▹ split (8 decisions, clean)
-  ▸ classify (24 decisions, max=escalated, 179µs)
+  ▸ classify (24 decisions, max=escalated, 86µs)
     [decision-1] [escalated] Exact margin=0.00e0 span-2 | Escalation to Double: Δ=0.00e0 [aarch64-macos]
     [decision-2] [escalated] Exact margin=0.00e0 span-2 | Escalation to Double: Δ=0.00e0 [aarch64-macos]
     [decision-3] [escalated] Exact margin=0.00e0 span-2 | Escalation to Double: Δ=0.00e0 [aarch64-macos]
@@ -103,11 +103,11 @@ Faces in result: 6
   PER-SPAN STATS (TraceSummary)
 ============================================================
 
-  split — 8 decisions, max_tier=deterministic, 2861µs
-  classify — 24 decisions, max_tier=escalated, 179µs
-  select — 20 decisions, max_tier=deterministic, 12µs
-  assemble — 12 decisions, max_tier=deterministic, 108µs
-  postprocess — 0 decisions, max_tier=deterministic, 50µs
+  split — 8 decisions, max_tier=deterministic, 1332µs
+  classify — 24 decisions, max_tier=escalated, 86µs
+  select — 20 decisions, max_tier=deterministic, 5µs
+  assemble — 12 decisions, max_tier=deterministic, 54µs
+  postprocess — 0 decisions, max_tier=deterministic, 25µs
 
 
 ============================================================
@@ -326,7 +326,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 1,
-        "duration_micros": 2861
+        "duration_micros": 1332
       }
     },
     {
@@ -935,7 +935,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 2,
-        "duration_micros": 179
+        "duration_micros": 86
       }
     },
     {
@@ -1448,7 +1448,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 3,
-        "duration_micros": 12
+        "duration_micros": 5
       }
     },
     {
@@ -1701,7 +1701,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 4,
-        "duration_micros": 108
+        "duration_micros": 54
       }
     },
     {
@@ -1714,7 +1714,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 5,
-        "duration_micros": 50
+        "duration_micros": 25
       }
     }
   ]

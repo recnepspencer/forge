@@ -1,17 +1,6 @@
-//! Face classification for Boolean operations.
+//! Face classification evaluation logic.
 //!
-//! Classifies each face of a solid relative to the other solid.
-//!
-//! ALGORITHM: Flood-fill classification
-//! 1. Build face adjacency graph via twin edges
-//! 2. Decompose into connected patches (faces reachable via shared edges)
-//! 3. Ray-cast classify ONE seed face per patch
-//! 4. Propagate classification to all faces in the patch
-//!
-//! This is both a performance win (fewer ray casts) and a correctness win:
-//! coplanar sub-faces that share edges get consistent classification instead
-//! of each independently ray-casting (which can give inconsistent results
-//! for points exactly on the boundary of the other solid).
+//! DOMAIN: Classify faces of one solid relative to another via ray-casting.
 
 use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
 
@@ -26,8 +15,8 @@ use forge_geom::{Aabb, BvhNode};
 
 use crate::core::ModelingContext;
 use crate::geometry_store::GeometryStore;
-use super::eval::compute_face_centroid;
-use super::schema::{FaceClassification, ClassifiedFace, FaceOrigin};
+use crate::operations::boolean::eval::compute_face_centroid;
+use crate::operations::boolean::schema::{FaceClassification, ClassifiedFace, FaceOrigin};
 
 /// Classify all faces of one solid relative to the other solid.
 ///
@@ -114,19 +103,18 @@ fn build_face_adjacency(arena: &TopologyArena) -> BTreeMap<u32, Vec<FaceId>> {
     for (he_id, he_data) in arena.iter_half_edges() {
         let face_a = he_data.face();
         let twin_id = he_data.twin();
-        if he_id == twin_id {
-            continue;
-        }
-        if let Ok(twin_data) = arena.get_half_edge(twin_id) {
-            let face_b = twin_data.face();
-            if face_a != face_b {
-                let entry_a = adjacency.entry(face_a.index()).or_default();
-                if !entry_a.iter().any(|f| *f == face_b) {
-                    entry_a.push(face_b);
-                }
-                let entry_b = adjacency.entry(face_b.index()).or_default();
-                if !entry_b.iter().any(|f| *f == face_a) {
-                    entry_b.push(face_a);
+        if he_id != twin_id {
+            if let Ok(twin_data) = arena.get_half_edge(twin_id) {
+                let face_b = twin_data.face();
+                if face_a != face_b {
+                    let entry_a = adjacency.entry(face_a.index()).or_default();
+                    if !entry_a.iter().any(|f| *f == face_b) {
+                        entry_a.push(face_b);
+                    }
+                    let entry_b = adjacency.entry(face_b.index()).or_default();
+                    if !entry_b.iter().any(|f| *f == face_a) {
+                        entry_b.push(face_a);
+                    }
                 }
             }
         }
@@ -145,30 +133,37 @@ fn decompose_patches(
     let mut visited: HashSet<u32> = HashSet::new();
     let mut patches = Vec::new();
 
-    for (face_id, _) in arena.iter_faces() {
+    let unvisited_faces: Vec<FaceId> = arena.iter_faces()
+        .map(|(fid, _)| fid)
+        .filter(|fid| !visited.contains(&fid.index()))
+        .collect();
+
+    for face_id in unvisited_faces {
         if visited.contains(&face_id.index()) {
-            continue;
-        }
+            // Could have been visited by prior BFS from a different seed
+            // (the filter above collects eagerly before the loop)
+            // This guard replaces the original continue
+        } else {
+            let mut patch = Vec::new();
+            let mut queue = VecDeque::new();
+            queue.push_back(face_id);
+            visited.insert(face_id.index());
 
-        let mut patch = Vec::new();
-        let mut queue = VecDeque::new();
-        queue.push_back(face_id);
-        visited.insert(face_id.index());
+            while let Some(fid) = queue.pop_front() {
+                patch.push(fid);
 
-        while let Some(fid) = queue.pop_front() {
-            patch.push(fid);
-
-            if let Some(neighbors) = adjacency.get(&fid.index()) {
-                for neighbor in neighbors {
-                    if !visited.contains(&neighbor.index()) {
-                        visited.insert(neighbor.index());
-                        queue.push_back(*neighbor);
+                if let Some(neighbors) = adjacency.get(&fid.index()) {
+                    for neighbor in neighbors {
+                        if !visited.contains(&neighbor.index()) {
+                            visited.insert(neighbor.index());
+                            queue.push_back(*neighbor);
+                        }
                     }
                 }
             }
-        }
 
-        patches.push(patch);
+            patches.push(patch);
+        }
     }
 
     patches
@@ -291,40 +286,9 @@ fn compute_interior_sample(
         }
     }
 
-    if vertices.len() < 3 {
-        return compute_face_centroid(arena, geom, face_id);
-    }
-
-    let mut best_area = -1.0_f64;
-    let mut best_centroid = [0.0_f64; 3];
-
-    let v0 = vertices[0];
-    for i in 1..vertices.len() - 1 {
-        let v1 = vertices[i];
-        let v2 = vertices[i + 1];
-
-        let e1 = [v1[0] - v0[0], v1[1] - v0[1], v1[2] - v0[2]];
-        let e2 = [v2[0] - v0[0], v2[1] - v0[1], v2[2] - v0[2]];
-        let cx = e1[1] * e2[2] - e1[2] * e2[1];
-        let cy = e1[2] * e2[0] - e1[0] * e2[2];
-        let cz = e1[0] * e2[1] - e1[1] * e2[0];
-        let area = cx * cx + cy * cy + cz * cz;
-
-        if area > best_area {
-            best_area = area;
-            best_centroid = [
-                (v0[0] + v1[0] + v2[0]) / 3.0,
-                (v0[1] + v1[1] + v2[1]) / 3.0,
-                (v0[2] + v1[2] + v2[2]) / 3.0,
-            ];
-        }
-    }
-
-    if best_area <= 0.0 {
-        return compute_face_centroid(arena, geom, face_id);
-    }
-
-    Ok(best_centroid)
+    forge_geom::primitives::polygon::compute_largest_triangle_centroid(&vertices)
+        .ok_or_else(|| compute_face_centroid(arena, geom, face_id))
+        .or_else(|fallback| fallback)
 }
 
 /// Check whether two faces have aligned normals (same direction).
@@ -339,78 +303,10 @@ fn check_normal_alignment(
 
     match (source_plane, other_plane) {
         (Some(sp), Some(op)) => {
-            let sn = sp.raw_normal();
-            let on = op.raw_normal();
-            let dot = sn[0] * on[0] + sn[1] * on[1] + sn[2] * on[2];
-            dot > 0.0
+            forge_math::linalg::normals_aligned(sp.raw_normal(), op.raw_normal())
         }
         _ => true,
     }
-}
-
-/// Detect coplanar faces between source and other solids using exact rational arithmetic.
-///
-/// Two planes are coplanar iff their normals are parallel (cross product is zero)
-/// AND they have the same offset (scale-invariant check: a1*d2 == a2*d1 for any
-/// non-zero normal component). All checks use exact `Rational` arithmetic —
-/// no floating-point noise, no tolerance thresholds.
-///
-/// Returns a map from source face index → pre-determined classification.
-fn detect_coplanar_faces(
-    source_arena: &TopologyArena,
-    source_geom: &GeometryStore,
-    other_arena: &TopologyArena,
-    other_geom: &GeometryStore,
-) -> BTreeMap<u32, FaceClassification> {
-    let mut result = BTreeMap::new();
-
-    let other_planes: Vec<(FaceId, _)> = other_arena.iter_faces()
-        .filter_map(|(fid, _)| {
-            other_geom.get_face_plane(fid).map(|p| (fid, p.clone()))
-        })
-        .collect();
-
-    for (src_fid, _) in source_arena.iter_faces() {
-        let src_plane = match source_geom.get_face_plane(src_fid) {
-            Some(p) => p,
-            None => { continue; }
-        };
-
-        for (_, other_plane) in &other_planes {
-            if planes_are_coplanar_exact(src_plane, other_plane) {
-                let aligned = normals_aligned_exact(src_plane, other_plane);
-                let class = if aligned {
-                    FaceClassification::OnBoundary
-                } else {
-                    FaceClassification::OppositeBoundary
-                };
-                result.insert(src_fid.index(), class);
-                break;
-            }
-        }
-    }
-
-    result
-}
-
-/// Check if two planes are coplanar using exact rational arithmetic.
-///
-/// Delegates to `forge_geom::coplanar_eq` which checks all three normal
-/// components against offset for correctness.
-fn planes_are_coplanar_exact(p1: &forge_geom::Plane, p2: &forge_geom::Plane) -> bool {
-    forge_geom::primitives::plane::coplanar_eq(p1, p2)
-}
-
-/// Check if two coplanar planes have aligned normals (same direction).
-///
-/// For parallel normals, dot(n1, n2) > 0 means same direction.
-/// Uses exact rational arithmetic: sign of (a1*a2 + b1*b2 + c1*c2).
-fn normals_aligned_exact(p1: &forge_geom::Plane, p2: &forge_geom::Plane) -> bool {
-    let (a1, b1, c1, _) = p1.exact_coefficients();
-    let (a2, b2, c2, _) = p2.exact_coefficients();
-
-    let dot = &(&(a1 * a2) + &(b1 * b2)) + &(c1 * c2);
-    dot.sign() == forge_math::sign::TriSign::Pos
 }
 
 /// Human-readable label for a classification.
@@ -451,94 +347,4 @@ fn compute_ray_extent_from_bbox(
     let diagonal = (dx * dx + dy * dy + dz * dz).sqrt();
 
     (diagonal * 10.0).max(default_extent)
-}
-
-/// Find coplanar face pairs between two solids for regularized Boolean union.
-///
-/// Returns `(excluded_target_indices, excluded_tool_indices)` — the face
-/// indices that should be dropped because they form an internal boundary.
-///
-/// Two faces are paired when:
-///   1. They lie on the exact same geometric plane (`coplanar_eq`)
-///   2. Their 2D polygon projections overlap in area (`polygons_overlap_2d`)
-pub(crate) fn find_coplanar_face_pairs(
-    target_topo: &TopologyState,
-    target_geom: &GeometryStore,
-    tool_topo: &TopologyState,
-    tool_geom: &GeometryStore,
-) -> (BTreeSet<u32>, BTreeSet<u32>) {
-    let mut excluded_target: BTreeSet<u32> = BTreeSet::new();
-    let mut excluded_tool: BTreeSet<u32> = BTreeSet::new();
-
-    let tool_faces_data: Vec<(FaceId, forge_geom::Plane, Vec<[f64; 3]>)> =
-        tool_topo.arena().iter_faces()
-        .filter_map(|(fid, _)| {
-            let plane = tool_geom.get_face_plane(fid)?.clone();
-            let verts = extract_face_vertices_3d(tool_topo.arena(), tool_geom, fid)?;
-            Some((fid, plane, verts))
-        })
-        .collect();
-
-    for (target_fid, _) in target_topo.arena().iter_faces() {
-        let target_plane = match target_geom.get_face_plane(target_fid) {
-            Some(p) => p,
-            None => { continue; }
-        };
-        let target_verts = match extract_face_vertices_3d(
-            target_topo.arena(), target_geom, target_fid
-        ) {
-            Some(v) => v,
-            None => { continue; }
-        };
-
-        for (tool_fid, tool_plane, tool_verts) in &tool_faces_data {
-            if excluded_tool.contains(&tool_fid.index()) {
-                continue;
-            }
-            if !forge_geom::primitives::plane::coplanar_eq(target_plane, tool_plane) {
-                continue;
-            }
-            if !faces_overlap_3d(target_plane, &target_verts, tool_verts) {
-                continue;
-            }
-            excluded_target.insert(target_fid.index());
-            excluded_tool.insert(tool_fid.index());
-            break;
-        }
-    }
-
-    (excluded_target, excluded_tool)
-}
-
-/// Extract ordered vertex positions of a face by walking its half-edge loop.
-fn extract_face_vertices_3d(
-    arena: &TopologyArena,
-    geom: &GeometryStore,
-    face: FaceId,
-) -> Option<Vec<[f64; 3]>> {
-    let edges = forge_topo::traverse::FaceEdgeIterator::new(arena, face).ok()?;
-    let mut verts = Vec::new();
-    for he_res in edges {
-        let he = he_res.ok()?;
-        let v = arena.get_half_edge(he).ok()?.origin();
-        let pos = geom.get_vertex_position(v)?;
-        verts.push(*pos);
-    }
-    if verts.len() < 3 { return None; }
-    Some(verts)
-}
-
-/// Test if two coplanar 3D face polygons overlap in area.
-///
-/// Projects both polygons onto the shared plane's 2D coordinate system
-/// and delegates to `forge_geom::algorithms::polygons_overlap_2d`.
-fn faces_overlap_3d(
-    plane: &forge_geom::Plane,
-    poly_a: &[[f64; 3]],
-    poly_b: &[[f64; 3]],
-) -> bool {
-    let (ax1, ax2) = forge_geom::algorithms::dominant_projection_axes(plane.raw_normal());
-    let a2d: Vec<[f64; 2]> = poly_a.iter().map(|p| [p[ax1], p[ax2]]).collect();
-    let b2d: Vec<[f64; 2]> = poly_b.iter().map(|p| [p[ax1], p[ax2]]).collect();
-    forge_geom::algorithms::polygons_overlap_2d(&a2d, &b2d)
 }

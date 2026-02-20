@@ -191,48 +191,45 @@ fn split_solid(
     let mut current_face_planes = initial_face_planes.clone();
 
     while let Some((fid, cuts)) = queue.pop() {
-        if cuts.is_empty() { continue; }
+        if !cuts.is_empty() {
+            let cut_idx = cuts[0];
+            let remaining_cuts = cuts[1..].to_vec();
 
-        let cut_idx = cuts[0];
-        let remaining_cuts = cuts[1..].to_vec();
+            let cut_plane = plane_table.get(cut_idx);
+            let face_plane_idx = *current_face_planes.get(&fid)
+                .ok_or(KernelError::InternalError { message: "Missing plane for face".into(), context: None })?;
+            let face_plane = plane_table.get(face_plane_idx);
 
-        let cut_plane = plane_table.get(cut_idx);
-        let face_plane_idx = *current_face_planes.get(&fid)
-            .ok_or(KernelError::InternalError { message: "Missing plane for face".into(), context: None })?;
-        let face_plane = plane_table.get(face_plane_idx);
+            let new_faces = split_face_by_plane(
+                &mut draft,
+                &mut geom,
+                &mut dedup,
+                &mut edge_cut_map,
+                fid,
+                face_plane,
+                face_plane_idx,
+                cut_plane,
+                cut_idx,
+                config,
+                plane_table,
+                &current_face_planes,
+                shared_registry,
+                ctx,
+            )?;
 
-        let new_faces = split_face_by_plane(
-            &mut draft,
-            &mut geom,
-            &mut dedup,
-            &mut edge_cut_map,
-            fid,
-            face_plane,
-            face_plane_idx,
-            cut_plane,
-            cut_idx,
-            config,
-            plane_table,
-            &current_face_planes,
-            shared_registry,
-            ctx,
-        )?;
-
-        if !new_faces.is_empty() {
-            splits += 1;
-            for &nf in &new_faces {
-                current_face_planes.insert(nf, face_plane_idx);
+            if !new_faces.is_empty() {
+                splits += 1;
+                for &nf in &new_faces {
+                    current_face_planes.insert(nf, face_plane_idx);
+                }
+                let mut cuts_including_current = vec![cut_idx];
+                cuts_including_current.extend_from_slice(&remaining_cuts);
+                for nf in new_faces {
+                    queue.push((nf, cuts_including_current.clone()));
+                }
+            } else if !remaining_cuts.is_empty() {
+                queue.push((fid, remaining_cuts));
             }
-            // Prepend the current cut plane so both fragments are retested against it.
-            // This handles concave faces where a single split_face_by_plane call applies
-            // only one of potentially multiple interior chord segments.
-            let mut cuts_including_current = vec![cut_idx];
-            cuts_including_current.extend_from_slice(&remaining_cuts);
-            for nf in new_faces {
-                queue.push((nf, cuts_including_current.clone()));
-            }
-        } else if !remaining_cuts.is_empty() {
-            queue.push((fid, remaining_cuts));
         }
     }
 
@@ -325,51 +322,49 @@ pub fn expand_coplanar_adjacency(
     let mut extra_cuts: Vec<(FaceId, Vec<usize>)> = Vec::new();
 
     for (target_fid, &target_plane_idx) in target_face_planes {
-        if !coplanar_targets.contains(&target_fid.index()) {
-            continue;
-        }
-        let mut applicable_cuts = Vec::new();
-        for &cut_idx in &tool_plane_set {
-            if cut_idx == target_plane_idx { continue; }
-            let target_plane = plane_table.get(target_plane_idx);
-            let cut_plane = plane_table.get(cut_idx);
-            if !planes_are_parallel(target_plane, cut_plane) {
-                applicable_cuts.push(cut_idx);
+        if coplanar_targets.contains(&target_fid.index()) {
+            let applicable_cuts: Vec<usize> = tool_plane_set.iter()
+                .filter(|&&cut_idx| {
+                    cut_idx != target_plane_idx
+                        && !planes_are_parallel(
+                            plane_table.get(target_plane_idx),
+                            plane_table.get(cut_idx),
+                        )
+                })
+                .copied()
+                .collect();
+            if !applicable_cuts.is_empty() {
+                extra_cuts.push((*target_fid, applicable_cuts));
             }
-        }
-        if !applicable_cuts.is_empty() {
-            extra_cuts.push((*target_fid, applicable_cuts));
         }
     }
 
     for (he_id, he_data) in arena.iter_half_edges() {
         let face_a = he_data.face();
-        if !coplanar_targets.contains(&face_a.index()) { continue; }
-        let twin_id = he_data.twin();
-        if twin_id == he_id { continue; }
-        let twin_data = match arena.get_half_edge(twin_id) {
-            Ok(d) => d,
-            Err(_) => continue,
-        };
-        let adjacent_face = twin_data.face();
-        if adjacent_face == face_a || coplanar_targets.contains(&adjacent_face.index()) {
-            continue;
-        }
-        let adj_plane_idx = match target_face_planes.get(&adjacent_face) {
-            Some(&idx) => idx,
-            None => continue,
-        };
-        let mut applicable_cuts = Vec::new();
-        for &cut_idx in &tool_plane_set {
-            if cut_idx == adj_plane_idx { continue; }
-            let adj_plane = plane_table.get(adj_plane_idx);
-            let cut_plane = plane_table.get(cut_idx);
-            if !planes_are_parallel(adj_plane, cut_plane) {
-                applicable_cuts.push(cut_idx);
+        if coplanar_targets.contains(&face_a.index()) {
+            let twin_id = he_data.twin();
+            if twin_id != he_id {
+                if let Ok(twin_data) = arena.get_half_edge(twin_id) {
+                    let adjacent_face = twin_data.face();
+                    if adjacent_face != face_a && !coplanar_targets.contains(&adjacent_face.index()) {
+                        if let Some(&adj_plane_idx) = target_face_planes.get(&adjacent_face) {
+                            let applicable_cuts: Vec<usize> = tool_plane_set.iter()
+                                .filter(|&&cut_idx| {
+                                    cut_idx != adj_plane_idx
+                                        && !planes_are_parallel(
+                                            plane_table.get(adj_plane_idx),
+                                            plane_table.get(cut_idx),
+                                        )
+                                })
+                                .copied()
+                                .collect();
+                            if !applicable_cuts.is_empty() {
+                                extra_cuts.push((adjacent_face, applicable_cuts));
+                            }
+                        }
+                    }
+                }
             }
-        }
-        if !applicable_cuts.is_empty() {
-            extra_cuts.push((adjacent_face, applicable_cuts));
         }
     }
 

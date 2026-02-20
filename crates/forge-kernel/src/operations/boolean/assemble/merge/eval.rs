@@ -1,4 +1,6 @@
-//! Main boolean execution logic (split, classify, assemble).
+//! Boolean pipeline orchestration.
+//!
+//! DOMAIN: Execute the full split → classify → select → assemble → postprocess pipeline.
 
 use std::collections::BTreeMap;
 
@@ -21,11 +23,13 @@ use crate::operations::boolean::split::split_all_faces;
 use crate::operations::boolean::classify::classify_faces;
 use crate::operations::boolean::eval::{VertexMatchKey, compute_face_centroid};
 
-use super::select::select_faces;
-use super::disjoint::execute_zero_split;
-use super::copy::{copy_faces, VertexDedup};
-use super::stitch::stitch_twins;
-use super::cleanup::cleanup_degenerate_topology;
+use super::super::select::select_faces;
+use super::super::disjoint::execute_zero_split;
+use super::super::copy::{copy_faces, VertexDedup};
+use super::super::stitch::stitch_twins;
+use super::super::cleanup::cleanup_degenerate_topology;
+
+use super::assemble::{assemble_result, compute_characteristic_scale};
 
 /// Execute a Boolean operation on two solids.
 pub fn execute_boolean(input: BooleanInput) -> Result<OperationResult<BooleanResult>, KernelError> {
@@ -69,7 +73,6 @@ fn execute_boolean_core(
 
     let (target_topo, mut target_geom, tool_topo, mut tool_geom, operation) = input.into_parts();
 
-    // ── Local Coordinate Transform (P2.4) ───────────────────────────
     let mut all_points = Vec::new();
     for (v_id, _) in target_topo.arena().iter_vertices() {
         if let Some(pos) = target_geom.get_vertex_position(v_id) {
@@ -89,7 +92,7 @@ fn execute_boolean_core(
     } else {
         forge_geom::spatial::local_space::LocalCoordinateSpace::identity()
     };
-    
+
     if needs_transform {
         eprintln!("[SCALE_TRANSFORM] Applying local space (exact Rational). Condition={:.1e}, Scale={:.1e}", analysis.get_condition_number(), local_space.get_scale());
         target_geom.transform(&local_space);
@@ -99,7 +102,6 @@ fn execute_boolean_core(
     let pre_split_hash = compute_arena_topology_hash(target_topo.arena())
         ^ compute_arena_topology_hash(tool_topo.arena());
 
-    // ── Split phase ─────────────────────────────────────────────────
     let split_result = ctx.scope("split", |ctx| {
         split_all_faces(target_topo, target_geom, tool_topo, tool_geom, ctx)
     }).map_err(|e| {
@@ -122,7 +124,6 @@ fn execute_boolean_core(
     split_entry.set_post_hash(post_split_hash);
     replay_log.record(split_entry);
 
-    // ── Zero-split fast path ────────────────────────────────────────
     eprintln!("[DIAGNOSTIC] split_count={}", split_count);
     if split_count == 0 {
         let disjoint_result = ctx.scope("zero_split", |ctx| {
@@ -145,7 +146,7 @@ fn execute_boolean_core(
                 geom,
                 target_topo.arena().face_count(),
                 tool_topo.arena().face_count(),
-                BooleanIntrospection::default(), // Approximation, but it's zero-split
+                BooleanIntrospection::default(),
                 ReplayLog::new(),
                 Vec::new(),
             ), start_time);
@@ -154,7 +155,6 @@ fn execute_boolean_core(
         }
     }
 
-    // ── Classify phase ──────────────────────────────────────────────
     let pre_classify_hash = post_split_hash;
     let (target_classified, tool_classified) = ctx.scope("classify", |ctx| {
         let tc = classify_faces(
@@ -189,7 +189,6 @@ fn execute_boolean_core(
     classify_entry.set_post_hash(pre_classify_hash);
     replay_log.record(classify_entry);
 
-    // ── Select phase ────────────────────────────────────────────────
     let (selected_target, selected_tool) = ctx.scope("select", |ctx| {
         let st = select_faces(&target_classified, FaceOrigin::Target, operation, ctx);
         let stl = select_faces(&tool_classified, FaceOrigin::Tool, operation, ctx);
@@ -241,7 +240,6 @@ fn execute_boolean_core(
         return Ok(envelope);
     }
 
-    // ── Assemble phase ──────────────────────────────────────────────
     let pre_assemble_hash = pre_classify_hash;
     let (result_topo, result_geom) = ctx.scope("assemble", |ctx| {
         assemble_result(
@@ -279,7 +277,6 @@ fn execute_boolean_core(
         });
     }
 
-    // ── Post-process phase ──────────────────────────────────────────
     let pre_postprocess_hash = post_assemble_hash;
     let (result_topo, mut result_geom) = ctx.scope("postprocess", |ctx| {
         let (mut rt, _merged_count) = crate::operations::boolean::postprocess::merge_coplanar_faces(result_topo, &result_geom, ctx)?;
@@ -356,124 +353,4 @@ fn wrap_boolean_result(
     envelope.set_metrics(metrics);
     envelope.set_state_hash_after(state_hash_after);
     envelope
-}
-
-
-/// Assemble the Boolean result from selected faces of both arenas.
-fn assemble_result(
-    target_arena: &forge_topo::arena::TopologyArena,
-    target_geom: &GeometryStore,
-    target_faces: &[FaceId],
-    target_prov: &BTreeMap<VertexId, VertexMatchKey>,
-    tool_arena: &forge_topo::arena::TopologyArena,
-    tool_geom: &GeometryStore,
-    tool_faces: &[FaceId],
-    tool_prov: &BTreeMap<VertexId, VertexMatchKey>,
-    reverse_tool: bool,
-    ctx: &mut ModelingContext,
-) -> Result<(TopologyState, GeometryStore), KernelError> {
-    let characteristic_scale = compute_characteristic_scale(
-        target_arena, target_geom, tool_arena, tool_geom,
-    );
-
-    let state = TopologyState::empty();
-    let mut draft = state.into_mutation();
-    let mut result_geom = GeometryStore::new();
-    
-    let mut global_vertex_map: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
-    let mut spatial_index = super::copy::SpatialVertexIndex::new(characteristic_scale);
-
-    let mut all_new_he_ids: Vec<HalfEdgeId> = Vec::new();
-
-    let mut target_dedup = VertexDedup::new();
-    copy_faces(
-        &mut draft, &mut result_geom, &mut target_dedup,
-        &mut all_new_he_ids,
-        &mut global_vertex_map,
-        &mut spatial_index,
-        target_arena, target_geom, target_faces,
-        false,
-        Some(target_prov),
-    )?;
-
-    let mut tool_dedup = VertexDedup::new();
-    copy_faces(
-        &mut draft, &mut result_geom, &mut tool_dedup,
-        &mut all_new_he_ids,
-        &mut global_vertex_map,
-        &mut spatial_index,
-        tool_arena, tool_geom, tool_faces,
-        reverse_tool,
-        Some(tool_prov),
-    )?;
-
-    cleanup_degenerate_topology(&mut draft, &result_geom)?;
-
-    let post_copy_diag = diagnose_arena(draft.arena(), PipelineStage::PostCopy);
-    eprintln!("[PIPELINE_DIAG] {post_copy_diag}");
-
-    // Filter out any halfedges that cleanup may have deleted
-    let active_he_ids: Vec<HalfEdgeId> = all_new_he_ids.iter()
-        .filter(|id| draft.arena().get_half_edge(**id).is_ok())
-        .copied()
-        .collect();
-
-    match stitch_twins(&mut draft, &active_he_ids, &result_geom, spatial_index.weld_tolerance_sq(), ctx) {
-        Ok(()) => {}
-        Err(e) => {
-            let stitch_diag = diagnose_arena(draft.arena(), PipelineStage::PostStitch);
-            eprintln!("[PIPELINE_DIAG] {stitch_diag}");
-
-            let cleaned = cleanup_degenerate_topology(&mut draft, &result_geom)?;
-            if cleaned > 0 {
-                let remaining_he: Vec<HalfEdgeId> = draft.arena().iter_half_edges()
-                    .map(|(id, _)| id)
-                    .collect();
-                stitch_twins(&mut draft, &remaining_he, &result_geom, spatial_index.weld_tolerance_sq(), ctx)?;
-            } else {
-                return Err(e);
-            }
-        }
-    }
-
-    let topo = draft.commit()?;
-    Ok((topo, result_geom))
-}
-
-/// Compute the characteristic scale of two input solids for adaptive tolerances.
-///
-/// Returns the maximum bounding box diagonal of vertices across both arenas.
-/// Floored at 1e-15 to prevent division-by-zero for degenerate geometry.
-fn compute_characteristic_scale(
-    target_arena: &forge_topo::arena::TopologyArena,
-    target_geom: &GeometryStore,
-    tool_arena: &forge_topo::arena::TopologyArena,
-    tool_geom: &GeometryStore,
-) -> f64 {
-    let mut min_pos = [f64::INFINITY; 3];
-    let mut max_pos = [f64::NEG_INFINITY; 3];
-
-    for (vid, _) in target_arena.iter_vertices() {
-        if let Some(pos) = target_geom.get_vertex_position(vid) {
-            for i in 0..3 {
-                min_pos[i] = min_pos[i].min(pos[i]);
-                max_pos[i] = max_pos[i].max(pos[i]);
-            }
-        }
-    }
-    for (vid, _) in tool_arena.iter_vertices() {
-        if let Some(pos) = tool_geom.get_vertex_position(vid) {
-            for i in 0..3 {
-                min_pos[i] = min_pos[i].min(pos[i]);
-                max_pos[i] = max_pos[i].max(pos[i]);
-            }
-        }
-    }
-
-    let dx = max_pos[0] - min_pos[0];
-    let dy = max_pos[1] - min_pos[1];
-    let dz = max_pos[2] - min_pos[2];
-    let diagonal = (dx * dx + dy * dy + dz * dz).sqrt();
-
-    diagonal.max(1e-15)
 }

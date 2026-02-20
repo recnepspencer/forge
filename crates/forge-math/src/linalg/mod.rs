@@ -81,6 +81,13 @@ pub fn compute_spatial_hash(position: &[f64; 3], grid_scale: f64) -> u64 {
     })
 }
 
+/// Check whether two 3D normals point in the same general direction.
+///
+/// Returns `true` if `dot(a, b) > 0`, i.e. the angle between them is less than 90°.
+pub fn normals_aligned(a: [f64; 3], b: [f64; 3]) -> bool {
+    dot(a, b) > 0.0
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -212,5 +219,25 @@ mod tests {
         let result_2d = cross_2d(a2, b2);
         let result_3d = cross([3.0, 7.0, 0.0], [2.0, 5.0, 0.0]);
         assert!((result_2d - result_3d[2]).abs() < 1e-15);
+    }
+
+    #[test]
+    fn normals_aligned_same_direction() {
+        assert!(normals_aligned([1.0, 0.0, 0.0], [1.0, 0.0, 0.0]));
+    }
+
+    #[test]
+    fn normals_aligned_opposite_direction() {
+        assert!(!normals_aligned([1.0, 0.0, 0.0], [-1.0, 0.0, 0.0]));
+    }
+
+    #[test]
+    fn normals_aligned_orthogonal() {
+        assert!(!normals_aligned([1.0, 0.0, 0.0], [0.0, 1.0, 0.0]));
+    }
+
+    #[test]
+    fn normals_aligned_acute_angle() {
+        assert!(normals_aligned([1.0, 0.0, 0.0], [0.5, 0.5, 0.0]));
     }
 }

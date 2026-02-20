@@ -149,7 +149,7 @@ fn classify_in_solid(
     };
 
     let result = classify_point_in_solid(arena, &vertex_lookup, None, point, ray_extent, 1e-10);
-    matches!(result, Ok(PointClassification::Inside | PointClassification::OnBoundary(_)))
+    matches!(result, Ok(PointClassification::Inside { .. } | PointClassification::OnBoundary(_)))
 }
 
 /// Merge two bounding boxes into their union.

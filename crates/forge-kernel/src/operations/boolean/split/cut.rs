@@ -128,51 +128,61 @@ pub fn split_face_by_plane(
     }
 
     // ── Apply ONE MakeEdgeFace cut ────────────────────────────────────────────
-    for i in (0..resolved.len()).step_by(2) {
-        if i + 1 >= resolved.len() { break; }
-        let v_a = resolved[i];
-        let v_b = resolved[i + 1];
+    let cut_result = resolved.chunks_exact(2)
+        .filter(|pair| pair[0] != pair[1])
+        .filter(|pair| {
+            let key = if pair[0].index() <= pair[1].index() {
+                (pair[0].index(), pair[1].index())
+            } else {
+                (pair[1].index(), pair[0].index())
+            };
+            if adjacent_pairs.contains(&key) {
+                eprintln!("DEBUG_CUT: Face {} rejected adjacent pair {:?}-{:?}", face.index(), pair[0].index(), pair[1].index());
+                false
+            } else {
+                true
+            }
+        })
+        .find_map(|pair| {
+            let v_a = pair[0];
+            let v_b = pair[1];
+            let op = MakeEdgeFace { vertex_a: v_a, vertex_b: v_b, face };
+            match apply_op(draft, op) {
+                Ok(res) => {
+                    let edge_key = make_edge_key(v_a, v_b);
+                    edge_cut_map.insert(edge_key, cut_plane_idx);
 
-        if v_a == v_b { continue; }
-        let key = if v_a.index() <= v_b.index() {
-            (v_a.index(), v_b.index())
-        } else {
-            (v_b.index(), v_a.index())
-        };
-        if adjacent_pairs.contains(&key) { 
-            eprintln!("DEBUG_CUT: Face {} rejected adjacent pair {:?}-{:?}", face.index(), v_a.index(), v_b.index());
-            continue; 
-        }
+                    let new_face = res.get_value().new_face;
+                    geometry.set_face_plane(new_face, face_plane.clone());
 
-        let op = MakeEdgeFace { vertex_a: v_a, vertex_b: v_b, face };
-        if let Ok(res) = apply_op(draft, op) {
-            let edge_key = make_edge_key(v_a, v_b);
-            edge_cut_map.insert(edge_key, cut_plane_idx);
+                    let mut decision = TracedDecision::new(
+                        DecisionId(face.index() as u64),
+                        DecisionKind::PolicyApplied {
+                            policy: forge_core::PolicyKind::CoincidentGeometry,
+                            default_used: true,
+                        },
+                        DecisionTier::Deterministic,
+                        1.0,
+                        DecisionContext::Degeneracy {
+                            description: format!("Split face #{} by plane #{} -> new face #{}",
+                                face.index(), cut_plane_idx, new_face.index()),
+                        },
+                    );
+                    decision.set_entity_scope(EntityRef::new("Face", face.index()));
+                    ctx.get_decision_log_mut().record(decision);
 
-            let new_face = res.get_value().new_face;
-            geometry.set_face_plane(new_face, face_plane.clone());
+                    eprintln!("DEBUG_CUT: Face {} cut successfully into {} by plane {}", face.index(), new_face.index(), cut_plane_idx);
+                    Some(vec![new_face, face])
+                }
+                Err(_) => {
+                    eprintln!("DEBUG_CUT: Face {} apply_op MakeEdgeFace failed", face.index());
+                    None
+                }
+            }
+        });
 
-            let mut decision = TracedDecision::new(
-                DecisionId(face.index() as u64),
-                DecisionKind::PolicyApplied {
-                    policy: forge_core::PolicyKind::CoincidentGeometry,
-                    default_used: true,
-                },
-                DecisionTier::Deterministic,
-                1.0,
-                DecisionContext::Degeneracy {
-                    description: format!("Split face #{} by plane #{} -> new face #{}",
-                        face.index(), cut_plane_idx, new_face.index()),
-                },
-            );
-            decision.set_entity_scope(EntityRef::new("Face", face.index()));
-            ctx.get_decision_log_mut().record(decision);
-
-            eprintln!("DEBUG_CUT: Face {} cut successfully into {} by plane {}", face.index(), new_face.index(), cut_plane_idx);
-            return Ok(vec![new_face, face]);
-        } else {
-            eprintln!("DEBUG_CUT: Face {} apply_op MakeEdgeFace failed", face.index());
-        }
+    if let Some(result) = cut_result {
+        return Ok(result);
     }
 
     eprintln!("DEBUG_CUT: Face {} fell through without cutting", face.index());
@@ -244,17 +254,21 @@ fn compute_face_chord(
         let origin = he_data.origin();
         let next_data = arena.get_half_edge(he_data.next())?;
         let dest = next_data.origin();
-        let p_o = match geometry.get_vertex_position(origin) { Some(p) => p, None => continue };
-        let p_d = match geometry.get_vertex_position(dest) { Some(p) => p, None => continue };
-        let d_o = signed_distance(cut_plane, p_o);
-        let d_d = signed_distance(cut_plane, p_d);
-        if (d_o > 0.0 && d_d < 0.0) || (d_o < 0.0 && d_d > 0.0) {
-            let mid = edge_interpolate(cut_plane, p_o, p_d);
-            crossings.push(mid);
-        } else if d_o.abs() < MIN_CHORD_LEN {
-            crossings.push(*p_o);
+        let p_o = match geometry.get_vertex_position(origin) { Some(p) => p, None => { /* skip */ &[0.0; 3] } };
+        let p_d = match geometry.get_vertex_position(dest) { Some(p) => p, None => { /* skip */ &[0.0; 3] } };
+        if geometry.get_vertex_position(origin).is_some() && geometry.get_vertex_position(dest).is_some() {
+            let d_o = signed_distance(cut_plane, p_o);
+            let d_d = signed_distance(cut_plane, p_d);
+            if (d_o > 0.0 && d_d < 0.0) || (d_o < 0.0 && d_d > 0.0) {
+                let mid = edge_interpolate(cut_plane, p_o, p_d);
+                crossings.push(mid);
+            } else if d_o.abs() < MIN_CHORD_LEN {
+                crossings.push(*p_o);
+            }
         }
-        if crossings.len() >= 2 { break; }
+        if crossings.len() >= 2 {
+            // Stop scanning: we have enough crossings.
+        }
     }
     if crossings.len() >= 2 {
         return Ok(Some((crossings[0], crossings[1])));
@@ -302,86 +316,81 @@ fn find_cut_points_provenance(
         let next_data = arena.get_half_edge(he_data.next())?;
         let dest = next_data.origin();
 
-        let p_o = match geometry.get_vertex_position(origin) {
-            Some(p) => p,
-            None => continue,
-        };
-        let p_d = match geometry.get_vertex_position(dest) {
-            Some(p) => p,
-            None => continue,
-        };
-
-        let s_o = if let Some(exact_o) = geometry.get_vertex_position_exact(origin) {
-            classify_point_exact(cut_plane, exact_o)
-        } else if !p_o[0].is_finite() || !p_o[1].is_finite() || !p_o[2].is_finite() {
-            TriSign::Zero
-        } else {
-            match classify_point(cut_plane, p_o) {
-                Ok(cert) => cert.sign(),
-                Err(_) => TriSign::Zero,
-            }
-        };
-
-        let s_d = if let Some(exact_d) = geometry.get_vertex_position_exact(dest) {
-            classify_point_exact(cut_plane, exact_d)
-        } else if !p_d[0].is_finite() || !p_d[1].is_finite() || !p_d[2].is_finite() {
-            TriSign::Zero
-        } else {
-            match classify_point(cut_plane, p_d) {
-                Ok(cert) => cert.sign(),
-                Err(_) => TriSign::Zero,
-            }
-        };
-
-        if s_o == TriSign::Zero && s_d != TriSign::Zero {
-            points.push(CutPoint::Existing(origin));
-        } else if (s_o == TriSign::Pos && s_d == TriSign::Neg)
-               || (s_o == TriSign::Neg && s_d == TriSign::Pos)
-        {
-            let twin = he_data.twin();
-            let twin_face = arena.get_half_edge(twin)?.face();
-
-            let p_face_idx = *face_plane_map.get(&face).unwrap_or(&0);
-            let p_twin_idx = *face_plane_map.get(&twin_face).unwrap_or(&p_face_idx);
-
-            let (exact_pos, computed_pos): (Option<[Rational; 3]>, [f64; 3]) = {
-                if p_face_idx != p_twin_idx {
-                    let p0 = plane_table.get(p_face_idx);
-                    let p1 = plane_table.get(p_twin_idx);
-                    let p2 = plane_table.get(cut_plane_idx);
-                    match intersect_three_planes_exact(p0, p1, p2) {
-                        Ok(ep) => {
-                            let fx = ep[0].to_f64_approx();
-                            let fy = ep[1].to_f64_approx();
-                            let fz = ep[2].to_f64_approx();
-                            let f64_pos = if fx.is_finite() && fy.is_finite() && fz.is_finite() {
-                                [fx, fy, fz]
-                            } else {
-                                edge_interpolate(cut_plane, p_o, p_d)
-                            };
-                            (Some(ep), f64_pos)
-                        }
-                        Err(_) => (None, edge_interpolate(cut_plane, p_o, p_d)),
-                    }
+        if let Some(p_o) = geometry.get_vertex_position(origin) {
+            if let Some(p_d) = geometry.get_vertex_position(dest) {
+                let s_o = if let Some(exact_o) = geometry.get_vertex_position_exact(origin) {
+                    classify_point_exact(cut_plane, exact_o)
+                } else if !p_o[0].is_finite() || !p_o[1].is_finite() || !p_o[2].is_finite() {
+                    TriSign::Zero
                 } else {
-                    let f64_pos = edge_interpolate(cut_plane, p_o, p_d);
-                    let ep = try_exact_from_f64(&f64_pos);
-                    (ep, f64_pos)
+                    match classify_point(cut_plane, p_o) {
+                        Ok(cert) => cert.sign(),
+                        Err(_) => TriSign::Zero,
+                    }
+                };
+
+                let s_d = if let Some(exact_d) = geometry.get_vertex_position_exact(dest) {
+                    classify_point_exact(cut_plane, exact_d)
+                } else if !p_d[0].is_finite() || !p_d[1].is_finite() || !p_d[2].is_finite() {
+                    TriSign::Zero
+                } else {
+                    match classify_point(cut_plane, p_d) {
+                        Ok(cert) => cert.sign(),
+                        Err(_) => TriSign::Zero,
+                    }
+                };
+
+                if s_o == TriSign::Zero && s_d != TriSign::Zero {
+                    points.push(CutPoint::Existing(origin));
+                } else if (s_o == TriSign::Pos && s_d == TriSign::Neg)
+                       || (s_o == TriSign::Neg && s_d == TriSign::Pos)
+                {
+                    let twin = he_data.twin();
+                    let twin_face = arena.get_half_edge(twin)?.face();
+
+                    let p_face_idx = *face_plane_map.get(&face).unwrap_or(&0);
+                    let p_twin_idx = *face_plane_map.get(&twin_face).unwrap_or(&p_face_idx);
+
+                    let (exact_pos, computed_pos): (Option<[Rational; 3]>, [f64; 3]) = {
+                        if p_face_idx != p_twin_idx {
+                            let p0 = plane_table.get(p_face_idx);
+                            let p1 = plane_table.get(p_twin_idx);
+                            let p2 = plane_table.get(cut_plane_idx);
+                            match intersect_three_planes_exact(p0, p1, p2) {
+                                Ok(ep) => {
+                                    let fx = ep[0].to_f64_approx();
+                                    let fy = ep[1].to_f64_approx();
+                                    let fz = ep[2].to_f64_approx();
+                                    let f64_pos = if fx.is_finite() && fy.is_finite() && fz.is_finite() {
+                                        [fx, fy, fz]
+                                    } else {
+                                        edge_interpolate(cut_plane, p_o, p_d)
+                                    };
+                                    (Some(ep), f64_pos)
+                                }
+                                Err(_) => (None, edge_interpolate(cut_plane, p_o, p_d)),
+                            }
+                        } else {
+                            let f64_pos = edge_interpolate(cut_plane, p_o, p_d);
+                            let ep = try_exact_from_f64(&f64_pos);
+                            (ep, f64_pos)
+                        }
+                    };
+
+                    let provenance = build_provenance(&exact_pos, computed_pos);
+                    let canonical_pos = shared_registry.canonical_position(&provenance, computed_pos);
+
+                    if let Some(vid) = dedup.find_by_provenance(&provenance) {
+                        points.push(CutPoint::Existing(vid));
+                    } else {
+                        points.push(CutPoint::NewOnEdge {
+                            half_edge: he,
+                            provenance,
+                            position: canonical_pos,
+                            exact_position: exact_pos,
+                        });
+                    }
                 }
-            };
-
-            let provenance = build_provenance(&exact_pos, computed_pos);
-            let canonical_pos = shared_registry.canonical_position(&provenance, computed_pos);
-
-            if let Some(vid) = dedup.find_by_provenance(&provenance) {
-                points.push(CutPoint::Existing(vid));
-            } else {
-                points.push(CutPoint::NewOnEdge {
-                    half_edge: he,
-                    provenance,
-                    position: canonical_pos,
-                    exact_position: exact_pos,
-                });
             }
         }
     }
