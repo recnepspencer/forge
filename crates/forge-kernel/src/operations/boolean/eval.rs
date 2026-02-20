@@ -22,7 +22,7 @@ use forge_math::arithmetic::Rational;
 /// `VertexId` and its `Lineage`. This key is used strictly during
 /// the boolean assembly phase. When a match is found, lineages are
 /// merged (D1 compliance) rather than silently dropped.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct VertexMatchKey {
     /// Exact rational coordinates.
     pos: [Rational; 3],

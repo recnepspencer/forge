@@ -1,13 +1,5 @@
-//! Local coordinate space for scale-invariant precision (Milestone P2.4).
-//!
-//! DOMAIN: Translates geometry to the origin and normalizes scale so that
-//! interval arithmetic operates in a well-conditioned regime. Without this,
-//! operations at 1e12 coordinates lose all f64 significance on 1e-9 features.
-//!
-//! INVARIANTS: Round-trip transform preserves position to within 1 ULP.
-//! DEPENDENCIES: `Plane` (from primitives)
-
 use crate::primitives::plane::Plane;
+use forge_math::arithmetic::Rational;
 
 /// Local coordinate frame for scale-invariant computation.
 ///
@@ -81,7 +73,9 @@ impl LocalCoordinateSpace {
             .max(half_extent[2])
             .max(f64::MIN_POSITIVE);
 
-        let scale = 1.0 / max_extent;
+        let scale_log2 = max_extent.log2().ceil();
+        let safe_max_extent = scale_log2.exp2();
+        let scale = 1.0 / safe_max_extent;
 
         Self { origin, scale }
     }
@@ -140,10 +134,73 @@ impl LocalCoordinateSpace {
         ]
     }
 
-    /// Transform a plane to local coordinates.
+    /// Transform a plane to local coordinates using exact Rational arithmetic.
     ///
     /// For plane `ax + by + cz + d = 0`, substituting `x = x'/s + ox`
-    /// gives `a(x'/s + ox) + ... + d = 0` → `(a/s)x' + ... + (a·ox + b·oy + c·oz + d) = 0`.
+    /// gives `(a/s)x' + (b/s)y' + (c/s)z' + (a·ox + b·oy + c·oz + d) = 0`.
+    ///
+    /// All arithmetic is exact (Rational). The power-of-2 scale factor
+    /// has an exact rational representation, so no precision is lost.
+    pub fn transform_plane_exact(&self, plane: &Plane) -> Plane {
+        let (a, b, c, d) = plane.exact_coefficients();
+        let inv_scale = Rational::try_from_f64(1.0 / self.scale)
+            .unwrap_or_else(|_| Rational::one());
+        let ox = Rational::try_from_f64(self.origin[0]).unwrap_or_else(|_| Rational::zero());
+        let oy = Rational::try_from_f64(self.origin[1]).unwrap_or_else(|_| Rational::zero());
+        let oz = Rational::try_from_f64(self.origin[2]).unwrap_or_else(|_| Rational::zero());
+
+        let new_a = a * &inv_scale;
+        let new_b = b * &inv_scale;
+        let new_c = c * &inv_scale;
+        let new_d = &(&(a * &ox) + &(b * &oy)) + &(&(c * &oz) + d);
+
+        Plane::from_rationals(new_a, new_b, new_c, new_d)
+            .expect("transformed plane normal cannot be zero")
+    }
+
+    /// Transform a plane from local coordinates back to world using exact Rational.
+    pub fn inverse_transform_plane_exact(&self, local_plane: &Plane) -> Plane {
+        let (al, bl, cl, dl) = local_plane.exact_coefficients();
+        let scale_r = Rational::try_from_f64(self.scale)
+            .unwrap_or_else(|_| Rational::one());
+        let ox = Rational::try_from_f64(self.origin[0]).unwrap_or_else(|_| Rational::zero());
+        let oy = Rational::try_from_f64(self.origin[1]).unwrap_or_else(|_| Rational::zero());
+        let oz = Rational::try_from_f64(self.origin[2]).unwrap_or_else(|_| Rational::zero());
+
+        let a = al * &scale_r;
+        let b = bl * &scale_r;
+        let c = cl * &scale_r;
+        let d = dl - &(&(&(&a * &ox) + &(&b * &oy)) + &(&c * &oz));
+
+        Plane::from_rationals(a, b, c, d)
+            .expect("inverse transformed plane normal cannot be zero")
+    }
+
+    /// Transform an exact Rational position to local coordinates.
+    pub fn to_local_exact(&self, point: &[Rational; 3]) -> [Rational; 3] {
+        let s = Rational::try_from_f64(self.scale).unwrap_or_else(|_| Rational::one());
+        let ox = Rational::try_from_f64(self.origin[0]).unwrap_or_else(|_| Rational::zero());
+        let oy = Rational::try_from_f64(self.origin[1]).unwrap_or_else(|_| Rational::zero());
+        let oz = Rational::try_from_f64(self.origin[2]).unwrap_or_else(|_| Rational::zero());
+        let dx = &point[0] - &ox;
+        let dy = &point[1] - &oy;
+        let dz = &point[2] - &oz;
+        [&dx * &s, &dy * &s, &dz * &s]
+    }
+
+    /// Transform an exact Rational position from local back to world.
+    pub fn from_local_exact(&self, local: &[Rational; 3]) -> [Rational; 3] {
+        let inv_s = Rational::try_from_f64(1.0 / self.scale).unwrap_or_else(|_| Rational::one());
+        let ox = Rational::try_from_f64(self.origin[0]).unwrap_or_else(|_| Rational::zero());
+        let oy = Rational::try_from_f64(self.origin[1]).unwrap_or_else(|_| Rational::zero());
+        let oz = Rational::try_from_f64(self.origin[2]).unwrap_or_else(|_| Rational::zero());
+        let wx = &local[0] * &inv_s;
+        let wy = &local[1] * &inv_s;
+        let wz = &local[2] * &inv_s;
+        [&wx + &ox, &wy + &oy, &wz + &oz]
+    }
+
+    /// Transform a plane to local coordinates (f64 only, legacy).
     pub fn transform_plane(&self, plane: &Plane) -> Plane {
         let [a, b, c] = plane.raw_normal();
         let d = plane.raw_offset();
@@ -153,7 +210,7 @@ impl LocalCoordinateSpace {
             .expect("transformed plane normal cannot be zero")
     }
 
-    /// Transform a plane from local coordinates back to world.
+    /// Transform a plane from local coordinates back to world (f64 only, legacy).
     pub fn inverse_transform_plane(&self, local_plane: &Plane) -> Plane {
         let [a_local, b_local, c_local] = local_plane.raw_normal();
         let d_local = local_plane.raw_offset();

@@ -1,6 +1,6 @@
 //! Main boolean execution logic (split, classify, assemble).
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use forge_core::{KernelError, OperationResult, OperationMetrics};
 use forge_topo::state::TopologyState;
@@ -15,7 +15,7 @@ use crate::analysis::proof_validation::diagnose_pipeline::{diagnose_arena, Pipel
 use crate::core::ModelingContext;
 use crate::geometry_store::GeometryStore;
 use crate::operations::boolean::schema::{
-    BooleanInput, BooleanOp, BooleanResult, FaceOrigin, FaceClassification,
+    BooleanInput, BooleanOp, BooleanResult, FaceOrigin, FaceClassification, BooleanIntrospection,
 };
 use crate::operations::boolean::split::split_all_faces;
 use crate::operations::boolean::classify::classify_faces;
@@ -67,7 +67,34 @@ fn execute_boolean_core(
 
     input.validate()?;
 
-    let (target_topo, target_geom, tool_topo, tool_geom, operation) = input.into_parts();
+    let (target_topo, mut target_geom, tool_topo, mut tool_geom, operation) = input.into_parts();
+
+    // ── Local Coordinate Transform (P2.4) ───────────────────────────
+    let mut all_points = Vec::new();
+    for (v_id, _) in target_topo.arena().iter_vertices() {
+        if let Some(pos) = target_geom.get_vertex_position(v_id) {
+            all_points.push(*pos);
+        }
+    }
+    for (v_id, _) in tool_topo.arena().iter_vertices() {
+        if let Some(pos) = tool_geom.get_vertex_position(v_id) {
+            all_points.push(*pos);
+        }
+    }
+
+    let analysis = forge_geom::spatial::local_space::ScaleAnalysis::compute(&all_points, 1e-6);
+    let needs_transform = analysis.get_needs_local_transform();
+    let local_space = if needs_transform {
+        forge_geom::spatial::local_space::LocalCoordinateSpace::from_points(&all_points)
+    } else {
+        forge_geom::spatial::local_space::LocalCoordinateSpace::identity()
+    };
+    
+    if needs_transform {
+        eprintln!("[SCALE_TRANSFORM] Applying local space (exact Rational). Condition={:.1e}, Scale={:.1e}", analysis.get_condition_number(), local_space.get_scale());
+        target_geom.transform(&local_space);
+        tool_geom.transform(&local_space);
+    }
 
     let pre_split_hash = compute_arena_topology_hash(target_topo.arena())
         ^ compute_arena_topology_hash(tool_topo.arena());
@@ -109,7 +136,19 @@ fn execute_boolean_core(
         eprintln!("[DIAGNOSTIC] zero_split returned: {}", disjoint_result.is_some());
         if let Some(mut result) = disjoint_result {
             result.update_duration(start_time.elapsed());
-            let mut envelope = wrap_boolean_result(result, start_time);
+            let (topo, mut geom) = result.into_parts();
+            if needs_transform {
+                geom.inverse_transform(&local_space);
+            }
+            let mut envelope = wrap_boolean_result(BooleanResult::new(
+                topo,
+                geom,
+                target_topo.arena().face_count(),
+                tool_topo.arena().face_count(),
+                BooleanIntrospection::default(), // Approximation, but it's zero-split
+                ReplayLog::new(),
+                Vec::new(),
+            ), start_time);
             envelope.set_decision_log(ctx.take_decision_log());
             return Ok(envelope);
         }
@@ -242,7 +281,7 @@ fn execute_boolean_core(
 
     // ── Post-process phase ──────────────────────────────────────────
     let pre_postprocess_hash = post_assemble_hash;
-    let (result_topo, result_geom) = ctx.scope("postprocess", |ctx| {
+    let (result_topo, mut result_geom) = ctx.scope("postprocess", |ctx| {
         let (mut rt, _merged_count) = crate::operations::boolean::postprocess::merge_coplanar_faces(result_topo, &result_geom, ctx)?;
         let (cleaned_topo, _removed_count) = crate::operations::boolean::postprocess::remove_redundant_vertices(rt, &result_geom, ctx)?;
         rt = cleaned_topo;
@@ -251,6 +290,10 @@ fn execute_boolean_core(
         eprintln!("PHASE_FAIL: postprocess - {e:?}");
         e
     })?;
+
+    if needs_transform {
+        result_geom.inverse_transform(&local_space);
+    }
 
     let post_postprocess_hash = compute_arena_topology_hash(result_topo.arena());
     invocation_counter += 1;
@@ -321,11 +364,11 @@ fn assemble_result(
     target_arena: &forge_topo::arena::TopologyArena,
     target_geom: &GeometryStore,
     target_faces: &[FaceId],
-    target_prov: &HashMap<VertexId, VertexMatchKey>,
+    target_prov: &BTreeMap<VertexId, VertexMatchKey>,
     tool_arena: &forge_topo::arena::TopologyArena,
     tool_geom: &GeometryStore,
     tool_faces: &[FaceId],
-    tool_prov: &HashMap<VertexId, VertexMatchKey>,
+    tool_prov: &BTreeMap<VertexId, VertexMatchKey>,
     reverse_tool: bool,
     ctx: &mut ModelingContext,
 ) -> Result<(TopologyState, GeometryStore), KernelError> {
@@ -337,7 +380,7 @@ fn assemble_result(
     let mut draft = state.into_mutation();
     let mut result_geom = GeometryStore::new();
     
-    let mut global_vertex_map: HashMap<VertexMatchKey, VertexId> = HashMap::new();
+    let mut global_vertex_map: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
     let mut spatial_index = super::copy::SpatialVertexIndex::new(characteristic_scale);
 
     let mut all_new_he_ids: Vec<HalfEdgeId> = Vec::new();

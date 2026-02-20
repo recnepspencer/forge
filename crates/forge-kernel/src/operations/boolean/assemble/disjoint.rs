@@ -151,6 +151,8 @@ fn check_containment(
         }
     };
 
+    eprintln!("[CONTAINMENT] tool_sample={:?} tool_in_target={:?}", tool_sample, tool_in_target);
+
     if let Some(escalation) = extract_esc(&tool_in_target) {
         ctx.log_escalation(escalation);
     }
@@ -362,7 +364,7 @@ fn assemble_complete_shells(
 
     let mut primary_he: Vec<HalfEdgeId> = Vec::new();
     let mut primary_dedup = VertexDedup::new();
-    let mut primary_vertex_map: std::collections::HashMap<crate::operations::boolean::eval::VertexMatchKey, forge_topo::handles::VertexId> = std::collections::HashMap::new();
+    let mut primary_vertex_map: std::collections::BTreeMap<crate::operations::boolean::eval::VertexMatchKey, forge_topo::handles::VertexId> = std::collections::BTreeMap::new();
     let mut primary_spatial: super::copy::SpatialVertexIndex = super::copy::SpatialVertexIndex::new(
         compute_disjoint_scale(primary_topo.arena(), primary_geom, secondary.map(|(t, g)| (t.arena(), g))),
     );
@@ -388,7 +390,7 @@ fn assemble_complete_shells(
 
         let mut sec_he: Vec<HalfEdgeId> = Vec::new();
         let mut sec_dedup = VertexDedup::new();
-        let mut sec_vertex_map: std::collections::HashMap<crate::operations::boolean::eval::VertexMatchKey, forge_topo::handles::VertexId> = std::collections::HashMap::new();
+        let mut sec_vertex_map: std::collections::BTreeMap<crate::operations::boolean::eval::VertexMatchKey, forge_topo::handles::VertexId> = std::collections::BTreeMap::new();
         let mut sec_spatial: super::copy::SpatialVertexIndex = super::copy::SpatialVertexIndex::new(
             compute_disjoint_scale(sec_topo.arena(), sec_geom, None),
         );

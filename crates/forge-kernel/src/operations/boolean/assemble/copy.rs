@@ -11,7 +11,7 @@
 //! Uses direct arena insertion (same pattern as `mesh_builder/eval.rs`)
 //! rather than Euler operators, giving full control over halfedge wiring.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use forge_core::KernelError;
 use forge_topo::arena::{FaceData, HalfEdgeData, LoopData};
@@ -25,13 +25,13 @@ use crate::operations::boolean::eval::VertexMatchKey;
 
 /// Helper to map vertices from old arena to new arena (local to one solid).
 pub struct VertexDedup {
-    mapping: HashMap<VertexId, VertexId>,
+    mapping: BTreeMap<VertexId, VertexId>,
 }
 
 impl VertexDedup {
     pub fn new() -> Self {
         Self {
-            mapping: HashMap::new(),
+            mapping: BTreeMap::new(),
         }
     }
     
@@ -50,7 +50,7 @@ impl VertexDedup {
 /// characteristic scale of the input geometry. This ensures correct
 /// vertex deduplication at any scale — from nanometer to kilometer.
 pub struct SpatialVertexIndex {
-    grid: std::collections::HashMap<[i64; 3], Vec<(VertexId, [f64; 3])>>,
+    grid: std::collections::BTreeMap<[i64; 3], Vec<(VertexId, [f64; 3])>>,
     cell_size: f64,
     weld_tolerance_sq: f64,
 }
@@ -66,7 +66,7 @@ impl SpatialVertexIndex {
         let cell_size = scale * 1e-3;
         let linear_tol = scale * 1e-8;
         Self {
-            grid: std::collections::HashMap::new(),
+            grid: std::collections::BTreeMap::new(),
             cell_size,
             weld_tolerance_sq: linear_tol * linear_tol,
         }
@@ -133,13 +133,13 @@ pub fn copy_faces(
     result_geom: &mut GeometryStore,
     vertex_dedup: &mut VertexDedup,
     new_edges: &mut Vec<HalfEdgeId>,
-    global_vertex_map: &mut HashMap<VertexMatchKey, VertexId>,
+    global_vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
     spatial_index: &mut SpatialVertexIndex,
     source_arena: &forge_topo::arena::TopologyArena,
     source_geom: &GeometryStore,
     source_faces: &[FaceId],
     reverse_orientation: bool,
-    src_prov: Option<&HashMap<VertexId, VertexMatchKey>>,
+    src_prov: Option<&BTreeMap<VertexId, VertexMatchKey>>,
 ) -> Result<(), KernelError> {
     
     for &src_face in source_faces {
@@ -166,13 +166,13 @@ fn copy_single_face(
     result_geom: &mut GeometryStore,
     vertex_dedup: &mut VertexDedup,
     new_edges: &mut Vec<HalfEdgeId>,
-    global_vertex_map: &mut HashMap<VertexMatchKey, VertexId>,
+    global_vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
     spatial_index: &mut SpatialVertexIndex,
     source_arena: &forge_topo::arena::TopologyArena,
     source_geom: &GeometryStore,
     src_face: FaceId,
     reverse_orientation: bool,
-    src_prov: Option<&HashMap<VertexId, VertexMatchKey>>,
+    src_prov: Option<&BTreeMap<VertexId, VertexMatchKey>>,
 ) -> Result<FaceId, KernelError> {
     
     let src_plane = source_geom.get_face_plane(src_face).ok_or(KernelError::InvalidInput {
@@ -282,12 +282,12 @@ fn resolve_vertex(
     draft: &mut MutableDraft,
     result_geom: &mut GeometryStore,
     vertex_dedup: &mut VertexDedup,
-    global_vertex_map: &mut HashMap<VertexMatchKey, VertexId>,
+    global_vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
     spatial_index: &mut SpatialVertexIndex,
     source_arena: &forge_topo::arena::TopologyArena,
     source_geom: &GeometryStore,
     src_vertex: VertexId,
-    src_prov: Option<&HashMap<VertexId, VertexMatchKey>>,
+    src_prov: Option<&BTreeMap<VertexId, VertexMatchKey>>,
 ) -> Result<VertexId, KernelError> {
     let pos = source_geom.get_vertex_position(src_vertex).ok_or(
         KernelError::InvalidInput { message: "Missing vertex position".into(), context: None }

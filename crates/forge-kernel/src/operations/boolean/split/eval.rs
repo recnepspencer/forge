@@ -4,7 +4,7 @@
 //! DEPENDENCIES: schema, cut, GeometryStore, forge_geom BVH, forge_topo.
 //! INVARIANTS: split_solid processes each face-cut pair atomically via MutableDraft.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashSet};
 
 use forge_core::KernelError;
 use forge_geom::Aabb;
@@ -36,8 +36,8 @@ pub fn split_all_faces(
     let config = crate::core::ToleranceConfig::default();
 
     let mut plane_table = PlaneTable::new();
-    let mut target_face_planes = HashMap::new();
-    let mut tool_face_planes = HashMap::new();
+    let mut target_face_planes = BTreeMap::new();
+    let mut tool_face_planes = BTreeMap::new();
 
     for (fid, _) in target_topo.arena().iter_faces() {
         if let Some(p) = target_geom.get_face_plane(fid) {
@@ -70,8 +70,8 @@ pub fn split_all_faces(
     let mut potential_pairs = query_overlapping_pairs(&root_a, &root_b);
     potential_pairs.sort_unstable_by_key(|(a, b)| (*a, *b));
 
-    let mut target_cuts: HashMap<FaceId, Vec<usize>> = HashMap::new();
-    let mut tool_cuts: HashMap<FaceId, Vec<usize>> = HashMap::new();
+    let mut target_cuts: BTreeMap<FaceId, Vec<usize>> = BTreeMap::new();
+    let mut tool_cuts: BTreeMap<FaceId, Vec<usize>> = BTreeMap::new();
 
     for (idx_a_raw, idx_b_raw) in potential_pairs {
         let face_a = target_aabbs_full[idx_a_raw].0;
@@ -172,8 +172,8 @@ pub fn split_all_faces(
 fn split_solid(
     topo: TopologyState,
     mut geom: GeometryStore,
-    cuts_map: HashMap<FaceId, Vec<usize>>,
-    initial_face_planes: &HashMap<FaceId, usize>,
+    cuts_map: BTreeMap<FaceId, Vec<usize>>,
+    initial_face_planes: &BTreeMap<FaceId, usize>,
     plane_table: &mut PlaneTable,
     config: &crate::core::ToleranceConfig,
     shared_registry: &mut SharedVertexRegistry,
@@ -183,7 +183,7 @@ fn split_solid(
     let mut draft = topo.into_mutation();
     let mut splits = 0;
     let mut dedup = LocalVertexDedup::new();
-    let mut edge_cut_map: EdgeCutMap = HashMap::new();
+    let mut edge_cut_map: EdgeCutMap = BTreeMap::new();
 
     assign_original_vertex_provenance(draft.arena(), initial_face_planes, &mut dedup, &geom)?;
 
@@ -245,7 +245,7 @@ fn split_solid(
 /// Vertices without stored exact positions are skipped (spatial fallback in copy phase).
 fn assign_original_vertex_provenance(
     arena: &TopologyArena,
-    _face_plane_map: &HashMap<FaceId, usize>,
+    _face_plane_map: &BTreeMap<FaceId, usize>,
     dedup: &mut LocalVertexDedup,
     geom: &GeometryStore,
 ) -> Result<(), KernelError> {
@@ -304,9 +304,9 @@ pub fn compute_face_aabbs(
 /// the coplanar region does not leave orphaned edges.
 pub fn expand_coplanar_adjacency(
     arena: &TopologyArena,
-    target_face_planes: &HashMap<FaceId, usize>,
-    tool_face_planes: &HashMap<FaceId, usize>,
-    _existing_target_cuts: &HashMap<FaceId, Vec<usize>>,
+    target_face_planes: &BTreeMap<FaceId, usize>,
+    tool_face_planes: &BTreeMap<FaceId, usize>,
+    _existing_target_cuts: &BTreeMap<FaceId, Vec<usize>>,
     plane_table: &PlaneTable,
 ) -> Vec<(FaceId, Vec<usize>)> {
     let tool_plane_set: HashSet<usize> = tool_face_planes.values().copied().collect();

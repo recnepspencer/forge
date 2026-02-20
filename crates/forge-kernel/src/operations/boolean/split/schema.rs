@@ -4,7 +4,7 @@
 //! DEPENDENCIES: forge_geom::Plane, VertexMatchKey, GeometryStore.
 //! INVARIANTS: PlaneTable uses exact equality; LocalVertexDedup is per-solid.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use forge_geom::primitives::plane::Plane;
 use forge_math::arithmetic::Rational;
@@ -56,8 +56,8 @@ pub struct SplitPhaseResult {
     pub tool_topology: TopologyState,
     pub tool_geometry: GeometryStore,
     pub split_count: usize,
-    pub target_provenance: HashMap<VertexId, VertexMatchKey>,
-    pub tool_provenance: HashMap<VertexId, VertexMatchKey>,
+    pub target_provenance: BTreeMap<VertexId, VertexMatchKey>,
+    pub tool_provenance: BTreeMap<VertexId, VertexMatchKey>,
 }
 
 impl SplitPhaseResult {
@@ -66,8 +66,8 @@ impl SplitPhaseResult {
     pub fn into_parts(self) -> (
         TopologyState, GeometryStore,
         TopologyState, GeometryStore,
-        HashMap<VertexId, VertexMatchKey>,
-        HashMap<VertexId, VertexMatchKey>,
+        BTreeMap<VertexId, VertexMatchKey>,
+        BTreeMap<VertexId, VertexMatchKey>,
     ) {
         (
             self.target_topology,
@@ -83,7 +83,7 @@ impl SplitPhaseResult {
 /// Maps an undirected edge (sorted vertex index pair) to the cut plane index that created it.
 ///
 /// Used to resolve provenance for edges between coplanar sub-faces.
-pub type EdgeCutMap = HashMap<(u32, u32), usize>;
+pub type EdgeCutMap = BTreeMap<(u32, u32), usize>;
 
 /// Create a canonical (sorted) edge key from two vertex IDs.
 pub fn make_edge_key(v1: VertexId, v2: VertexId) -> (u32, u32) {
@@ -95,16 +95,16 @@ pub fn make_edge_key(v1: VertexId, v2: VertexId) -> (u32, u32) {
 /// Deduplication map for a single solid's vertices.
 pub struct LocalVertexDedup {
     /// VertexId → MatchKey (forward provenance map)
-    pub provenance: HashMap<VertexId, VertexMatchKey>,
+    pub provenance: BTreeMap<VertexId, VertexMatchKey>,
     /// MatchKey → VertexId (reverse lookup for finding existing vertices)
-    lookup: HashMap<VertexMatchKey, VertexId>,
+    lookup: BTreeMap<VertexMatchKey, VertexId>,
 }
 
 impl LocalVertexDedup {
     pub fn new() -> Self {
         Self {
-            provenance: HashMap::new(),
-            lookup: HashMap::new(),
+            provenance: BTreeMap::new(),
+            lookup: BTreeMap::new(),
         }
     }
 
@@ -125,12 +125,12 @@ impl LocalVertexDedup {
 /// geometric point always gets the same position — zero floating-point
 /// divergence between solids.
 pub struct SharedVertexRegistry {
-    positions: HashMap<VertexMatchKey, [f64; 3]>,
+    positions: BTreeMap<VertexMatchKey, [f64; 3]>,
 }
 
 impl SharedVertexRegistry {
     pub fn new() -> Self {
-        Self { positions: HashMap::new() }
+        Self { positions: BTreeMap::new() }
     }
 
     /// Register a position for a 3-plane key.

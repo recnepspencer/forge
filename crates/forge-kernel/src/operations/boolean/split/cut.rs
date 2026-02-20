@@ -13,7 +13,7 @@
 //!   - Exactly ONE cut pair is applied per call; both fragments are re-enqueued
 //!     by the caller for re-testing against the same and remaining planes.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashSet};
 
 use forge_core::KernelError;
 use forge_core::result::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
@@ -60,7 +60,7 @@ pub fn split_face_by_plane(
     cut_plane_idx: usize,
     _config: &crate::core::ToleranceConfig,
     plane_table: &PlaneTable,
-    face_plane_map: &HashMap<FaceId, usize>,
+    face_plane_map: &BTreeMap<FaceId, usize>,
     shared_registry: &mut SharedVertexRegistry,
     ctx: &mut ModelingContext,
 ) -> Result<Vec<FaceId>, KernelError> {
@@ -287,7 +287,7 @@ fn find_cut_points_provenance(
     cut_plane: &Plane,
     cut_plane_idx: usize,
     dedup: &LocalVertexDedup,
-    face_plane_map: &HashMap<FaceId, usize>,
+    face_plane_map: &BTreeMap<FaceId, usize>,
     _edge_cut_map: &EdgeCutMap,
     shared_registry: &mut SharedVertexRegistry,
     plane_table: &PlaneTable,
@@ -333,7 +333,7 @@ fn find_cut_points_provenance(
             }
         };
 
-        if s_o == TriSign::Zero {
+        if s_o == TriSign::Zero && s_d != TriSign::Zero {
             points.push(CutPoint::Existing(origin));
         } else if (s_o == TriSign::Pos && s_d == TriSign::Neg)
                || (s_o == TriSign::Neg && s_d == TriSign::Pos)
@@ -387,6 +387,31 @@ fn find_cut_points_provenance(
     }
 
     Ok(points)
+}
+
+/// Compute the exact sign of a vertex relative to a plane.
+///
+/// Uses exact Rational position if available, otherwise promotes the f64
+/// position to Rational (lossless for finite IEEE 754 values). This
+/// eliminates FMA-induced sign flips that differ between debug and release.
+fn exact_sign_for_vertex(
+    geometry: &GeometryStore,
+    vertex: VertexId,
+    f64_pos: &[f64; 3],
+    plane: &Plane,
+) -> TriSign {
+    if let Some(exact) = geometry.get_vertex_position_exact(vertex) {
+        return classify_point_exact(plane, exact);
+    }
+    if !f64_pos[0].is_finite() || !f64_pos[1].is_finite() || !f64_pos[2].is_finite() {
+        return TriSign::Zero;
+    }
+    let promoted = [
+        Rational::try_from_f64(f64_pos[0]).unwrap_or_else(|_| Rational::zero()),
+        Rational::try_from_f64(f64_pos[1]).unwrap_or_else(|_| Rational::zero()),
+        Rational::try_from_f64(f64_pos[2]).unwrap_or_else(|_| Rational::zero()),
+    ];
+    classify_point_exact(plane, &promoted)
 }
 
 /// Linearly interpolate to find where cut_plane crosses the edge [p_o, p_d].

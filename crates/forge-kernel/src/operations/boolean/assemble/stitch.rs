@@ -8,7 +8,7 @@
 //! boolean intersection), radially sort them by face normal around the
 //! edge axis for deterministic pairing.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashSet};
 use forge_core::KernelError;
 use forge_core::result::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
 use forge_topo::handles::{HalfEdgeId, VertexId};
@@ -29,7 +29,7 @@ pub fn stitch_twins(
     weld_tolerance_sq: f64,
     ctx: &mut ModelingContext,
 ) -> Result<(), KernelError> {
-    let mut forward_map: HashMap<(u32, u32), Vec<HalfEdgeId>> = HashMap::new();
+    let mut forward_map: BTreeMap<(u32, u32), Vec<HalfEdgeId>> = BTreeMap::new();
     let mut zero_length: HashSet<u32> = HashSet::new();
 
     for &he_id in all_he_ids {
@@ -118,7 +118,7 @@ pub fn stitch_twins(
     }
 
     // ── Second pass: index-based retry on unpaired subset ──────────
-    let mut unpaired_map: HashMap<(u32, u32), Vec<HalfEdgeId>> = HashMap::new();
+    let mut unpaired_map: BTreeMap<(u32, u32), Vec<HalfEdgeId>> = BTreeMap::new();
     for &(he_id, origin, dest) in &unpaired {
         unpaired_map
             .entry((origin.index(), dest.index()))
@@ -175,6 +175,8 @@ pub fn stitch_twins(
     // ── Third pass: position-based fallback ──────────────────────────
     // When vertex indices don't match (duplicate vertices at same position
     // from re-used boolean results), match by geometric endpoint positions.
+    // Uses a stitch-specific tolerance 100x wider than vertex dedup since
+    // stitch only needs "close enough" to identify the same geometric edge.
     let still_unpaired_after_retry: Vec<HalfEdgeId> = all_he_ids.iter()
         .filter(|he_id| {
             !paired.contains(&he_id.index())
@@ -199,7 +201,7 @@ pub fn stitch_twins(
             })
             .collect();
 
-        let tol_sq: f64 = weld_tolerance_sq;
+        let stitch_tol_sq: f64 = weld_tolerance_sq * 10000.0;
 
         for i in 0..edge_positions.len() {
             let (he_a, o_a, d_a) = edge_positions[i];
@@ -218,13 +220,14 @@ pub fn stitch_twins(
 
                 let dx_od = o_a[0]-d_b[0]; let dy_od = o_a[1]-d_b[1]; let dz_od = o_a[2]-d_b[2];
                 let dx_do = d_a[0]-o_b[0]; let dy_do = d_a[1]-o_b[1]; let dz_do = d_a[2]-o_b[2];
-                let dist_sq = dx_od*dx_od + dy_od*dy_od + dz_od*dz_od
-                            + dx_do*dx_do + dy_do*dy_do + dz_do*dz_do;
+                let dist_sq_od = dx_od*dx_od + dy_od*dy_od + dz_od*dz_od;
+                let dist_sq_do = dx_do*dx_do + dy_do*dy_do + dz_do*dz_do;
 
-                if dist_sq <= tol_sq {
+                if dist_sq_od <= stitch_tol_sq && dist_sq_do <= stitch_tol_sq {
+                    let total = dist_sq_od + dist_sq_do;
                     match best_match {
-                        None => best_match = Some((he_b, dist_sq)),
-                        Some((_, bd)) if dist_sq < bd => best_match = Some((he_b, dist_sq)),
+                        None => best_match = Some((he_b, total)),
+                        Some((_, bd)) if total < bd => best_match = Some((he_b, total)),
                         _ => {}
                     }
                 }
@@ -248,6 +251,93 @@ pub fn stitch_twins(
                 decision.set_entity_scope(EntityRef::new("HalfEdge", he_a.index()));
                 ctx.get_decision_log_mut().record(decision);
             }
+        }
+
+        // ── Fourth pass: single-vertex-match fallback ──────────────────
+        // Handles edges where one vertex matched by index but the other
+        // didn't (created independently in different split phases).
+        let still_unpaired_4: Vec<HalfEdgeId> = still_unpaired_after_retry.iter()
+            .filter(|he_id| !position_paired.contains(&he_id.index()))
+            .copied()
+            .collect();
+
+        if !still_unpaired_4.is_empty() {
+            let mut pass4_paired: HashSet<u32> = HashSet::new();
+
+            let edge_data_4: Vec<(HalfEdgeId, VertexId, VertexId, [f64; 3], [f64; 3])> = still_unpaired_4.iter()
+                .filter_map(|&he_id| {
+                    let he_data = draft.arena().get_half_edge(he_id).ok()?;
+                    let origin = he_data.origin();
+                    let next_he = he_data.next();
+                    let dest = draft.arena().get_half_edge(next_he).ok()?.origin();
+                    let p_o = geom.get_vertex_position(origin)?;
+                    let p_d = geom.get_vertex_position(dest)?;
+                    Some((he_id, origin, dest, *p_o, *p_d))
+                })
+                .collect();
+
+            for i in 0..edge_data_4.len() {
+                let (he_a, orig_a, dest_a, o_a, d_a) = edge_data_4[i];
+                if pass4_paired.contains(&he_a.index()) { continue; }
+
+                let mut best: Option<(HalfEdgeId, f64)> = None;
+
+                for j in 0..edge_data_4.len() {
+                    if i == j { continue; }
+                    let (he_b, orig_b, dest_b, o_b, d_b) = edge_data_4[j];
+                    if pass4_paired.contains(&he_b.index()) { continue; }
+
+                    let face_a = draft.arena().get_half_edge(he_a).map(|d| d.face()).ok();
+                    let face_b = draft.arena().get_half_edge(he_b).map(|d| d.face()).ok();
+                    if face_a.is_some() && face_a == face_b { continue; }
+
+                    let origin_match = orig_a == dest_b;
+                    let dest_match = dest_a == orig_b;
+
+                    if origin_match && !dest_match {
+                        let dx = d_a[0]-o_b[0]; let dy = d_a[1]-o_b[1]; let dz = d_a[2]-o_b[2];
+                        let dsq = dx*dx + dy*dy + dz*dz;
+                        if dsq <= stitch_tol_sq {
+                            match best {
+                                None => best = Some((he_b, dsq)),
+                                Some((_, bd)) if dsq < bd => best = Some((he_b, dsq)),
+                                _ => {}
+                            }
+                        }
+                    } else if !origin_match && dest_match {
+                        let dx = o_a[0]-d_b[0]; let dy = o_a[1]-d_b[1]; let dz = o_a[2]-d_b[2];
+                        let dsq = dx*dx + dy*dy + dz*dz;
+                        if dsq <= stitch_tol_sq {
+                            match best {
+                                None => best = Some((he_b, dsq)),
+                                Some((_, bd)) if dsq < bd => best = Some((he_b, dsq)),
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+
+                if let Some((he_b, _)) = best {
+                    draft.arena_mut().get_half_edge_mut(he_a)?.set_twin(he_b);
+                    draft.arena_mut().get_half_edge_mut(he_b)?.set_twin(he_a);
+                    pass4_paired.insert(he_a.index());
+                    pass4_paired.insert(he_b.index());
+
+                    let mut decision = TracedDecision::new(
+                        DecisionId(he_a.index() as u64),
+                        DecisionKind::PolicyApplied { policy: forge_core::PolicyKind::CoincidentGeometry, default_used: true },
+                        DecisionTier::NearBoundary,
+                        0.6,
+                        DecisionContext::Degeneracy { 
+                            description: format!("Stitched {} <-> {} (single-vertex fallback)", he_a, he_b) 
+                        },
+                    );
+                    decision.set_entity_scope(EntityRef::new("HalfEdge", he_a.index()));
+                    ctx.get_decision_log_mut().record(decision);
+                }
+            }
+
+            position_paired.extend(pass4_paired);
         }
 
         let final_unpaired: Vec<HalfEdgeId> = still_unpaired_after_retry.iter()

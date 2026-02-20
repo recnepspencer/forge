@@ -13,7 +13,7 @@
 //! of each independently ray-casting (which can give inconsistent results
 //! for points exactly on the boundary of the other solid).
 
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, HashSet, VecDeque};
 
 use forge_core::KernelError;
 use forge_core::result::{TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier, EntityRef};
@@ -53,7 +53,6 @@ pub fn classify_faces(
     let accelerator = accelerator_data.as_deref()
         .map(|bvh| bvh as &dyn forge_topo::classify::SpatialAccelerator);
 
-    // FLAT classification: classify each face independently, no patch grouping
     let mut classified = Vec::new();
 
     for (face_id, _) in source_arena.iter_faces() {
@@ -108,8 +107,8 @@ pub fn classify_faces(
 ///
 /// For each face, collects all neighboring faces reachable through
 /// halfedge twins. Two faces are adjacent if they share an edge.
-fn build_face_adjacency(arena: &TopologyArena) -> HashMap<u32, Vec<FaceId>> {
-    let mut adjacency: HashMap<u32, Vec<FaceId>> = HashMap::new();
+fn build_face_adjacency(arena: &TopologyArena) -> BTreeMap<u32, Vec<FaceId>> {
+    let mut adjacency: BTreeMap<u32, Vec<FaceId>> = BTreeMap::new();
 
     for (he_id, he_data) in arena.iter_half_edges() {
         let face_a = he_data.face();
@@ -140,7 +139,7 @@ fn build_face_adjacency(arena: &TopologyArena) -> HashMap<u32, Vec<FaceId>> {
 /// Each patch is a group of faces all connected through shared edges.
 fn decompose_patches(
     arena: &TopologyArena,
-    adjacency: &HashMap<u32, Vec<FaceId>>,
+    adjacency: &BTreeMap<u32, Vec<FaceId>>,
 ) -> Vec<Vec<FaceId>> {
     let mut visited: HashSet<u32> = HashSet::new();
     let mut patches = Vec::new();
@@ -346,6 +345,92 @@ fn check_normal_alignment(
         }
         _ => true,
     }
+}
+
+/// Detect coplanar faces between source and other solids using exact rational arithmetic.
+///
+/// Two planes are coplanar iff their normals are parallel (cross product is zero)
+/// AND they have the same offset (scale-invariant check: a1*d2 == a2*d1 for any
+/// non-zero normal component). All checks use exact `Rational` arithmetic —
+/// no floating-point noise, no tolerance thresholds.
+///
+/// Returns a map from source face index → pre-determined classification.
+fn detect_coplanar_faces(
+    source_arena: &TopologyArena,
+    source_geom: &GeometryStore,
+    other_arena: &TopologyArena,
+    other_geom: &GeometryStore,
+) -> BTreeMap<u32, FaceClassification> {
+    let mut result = BTreeMap::new();
+
+    let other_planes: Vec<(FaceId, _)> = other_arena.iter_faces()
+        .filter_map(|(fid, _)| {
+            other_geom.get_face_plane(fid).map(|p| (fid, p.clone()))
+        })
+        .collect();
+
+    for (src_fid, _) in source_arena.iter_faces() {
+        let src_plane = match source_geom.get_face_plane(src_fid) {
+            Some(p) => p,
+            None => { continue; }
+        };
+
+        for (_, other_plane) in &other_planes {
+            if planes_are_coplanar_exact(src_plane, other_plane) {
+                let aligned = normals_aligned_exact(src_plane, other_plane);
+                let class = if aligned {
+                    FaceClassification::OnBoundary
+                } else {
+                    FaceClassification::OppositeBoundary
+                };
+                result.insert(src_fid.index(), class);
+                break;
+            }
+        }
+    }
+
+    result
+}
+
+/// Check if two planes are coplanar using exact rational arithmetic.
+///
+/// Two planes P1(a1,b1,c1,d1) and P2(a2,b2,c2,d2) are coplanar iff:
+///   1. cross(n1, n2) == (0, 0, 0)   — normals are parallel
+///   2. a1*d2 == a2*d1               — same offset (scale-invariant)
+fn planes_are_coplanar_exact(p1: &forge_geom::Plane, p2: &forge_geom::Plane) -> bool {
+    let (a1, b1, c1, d1) = p1.exact_coefficients();
+    let (a2, b2, c2, d2) = p2.exact_coefficients();
+
+    let cx = &(b1 * c2) - &(c1 * b2);
+    let cy = &(c1 * a2) - &(a1 * c2);
+    let cz = &(a1 * b2) - &(b1 * a2);
+
+    if !cx.is_zero() || !cy.is_zero() || !cz.is_zero() {
+        return false;
+    }
+
+    let lhs = &(a1 * d2) - &(a2 * d1);
+    if !lhs.is_zero() {
+        return false;
+    }
+    let lhs_b = &(b1 * d2) - &(b2 * d1);
+    if !lhs_b.is_zero() {
+        return false;
+    }
+
+    true
+}
+
+/// Check if two coplanar planes have aligned normals (same direction).
+///
+/// For parallel normals, dot(n1, n2) > 0 means same direction.
+/// Uses exact rational arithmetic: sign of (a1*a2 + b1*b2 + c1*c2).
+fn normals_aligned_exact(p1: &forge_geom::Plane, p2: &forge_geom::Plane) -> bool {
+    let (a1, b1, c1, _) = p1.exact_coefficients();
+    let (a2, b2, c2, _) = p2.exact_coefficients();
+
+    let dot = &(&(a1 * a2) + &(b1 * b2)) + &(c1 * c2);
+    dot.sign() == forge_math::sign::TriSign::Pos
 }
 
 /// Human-readable label for a classification.

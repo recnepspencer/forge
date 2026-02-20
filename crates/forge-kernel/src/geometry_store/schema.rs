@@ -156,6 +156,36 @@ impl GeometryStore {
         );
     }
 
+    /// Transform all geometry into a local coordinate space (exact Rational).
+    ///
+    /// Uses exact Rational arithmetic for plane transforms and vertex positions,
+    /// preserving all precision through the transformation. The f64 approximations
+    /// are recomputed from the exact values after transformation.
+    pub fn transform(&mut self, space: &forge_geom::spatial::local_space::LocalCoordinateSpace) {
+        for plane in self.face_planes.values_mut() {
+            *plane = space.transform_plane_exact(plane);
+        }
+        for pos in self.vertex_positions.values_mut() {
+            let local_exact = space.to_local_exact(pos.exact());
+            let local_approx = space.to_local(pos.approx);
+            *pos = ExactPosition::from_exact_with_fallback(local_exact, local_approx);
+        }
+    }
+
+    /// Transform all geometry from a local coordinate space back to world (exact Rational).
+    ///
+    /// Uses exact Rational arithmetic for plane transforms and vertex positions,
+    /// preserving all precision through the inverse transformation.
+    pub fn inverse_transform(&mut self, space: &forge_geom::spatial::local_space::LocalCoordinateSpace) {
+        for plane in self.face_planes.values_mut() {
+            *plane = space.inverse_transform_plane_exact(plane);
+        }
+        for pos in self.vertex_positions.values_mut() {
+            let world_exact = space.from_local_exact(pos.exact());
+            let world_approx = space.from_local(pos.approx);
+            *pos = ExactPosition::from_exact_with_fallback(world_exact, world_approx);
+        }
+    }
 
     /// Retrieve the f64 approximation for a vertex position.
     ///
