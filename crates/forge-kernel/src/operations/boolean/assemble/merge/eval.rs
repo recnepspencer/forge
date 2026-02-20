@@ -8,10 +8,12 @@
 use std::collections::BTreeMap;
 
 use forge_core::{KernelError, OperationResult, OperationMetrics};
+use forge_core::tracing::checkpoint_diff::diff_decision_logs;
+use forge_core::DecisionLog;
 use forge_topo::state::TopologyState;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::replay::{ReplayLog, ReplayEntry};
-use forge_topo::lineage::{LineageEvent, EntityKind, Lineage, OpSignature};
+use forge_topo::lineage::{LineageEvent, Lineage, OpSignature};
 use forge_topo::hashing::compute_arena_topology_hash;
 
 use crate::analysis::proof_validation::checkpoint::{run_checkpoint, ValidationCheckpoint};
@@ -61,6 +63,7 @@ fn execute_boolean_core(
     let start_time = std::time::Instant::now();
     let mut replay = ReplayLog::with_current_target();
     let mut seq = 0u64;
+    let mut prev_decision_snapshot: Option<DecisionLog> = None;
 
     input.validate()?;
     let (target_topo, mut target_geom, tool_topo, mut tool_geom, operation) = input.into_parts();
@@ -74,8 +77,9 @@ fn execute_boolean_core(
     op_space.transform_geometry(&mut tool_geom);
 
     // ── Split ────────────────────────────────────────────────────────────────
-    let pre_hash = compute_arena_topology_hash(target_topo.arena())
-        ^ compute_arena_topology_hash(tool_topo.arena());
+    let pre_target_hash = compute_arena_topology_hash(target_topo.arena());
+    let pre_tool_hash = compute_arena_topology_hash(tool_topo.arena());
+    let pre_hash = pre_target_hash ^ pre_tool_hash;
 
     let split_result = ctx.scope("split", |ctx| {
         split_all_faces(target_topo, target_geom, tool_topo, tool_geom, ctx)
@@ -85,16 +89,19 @@ fn execute_boolean_core(
     let (target_topo, target_geom, tool_topo, tool_geom, target_prov, tool_prov) =
         split_result.into_parts();
 
-    let post_split_hash = compute_arena_topology_hash(target_topo.arena())
-        ^ compute_arena_topology_hash(tool_topo.arena());
+    let post_target_hash = compute_arena_topology_hash(target_topo.arena());
+    let post_tool_hash = compute_arena_topology_hash(tool_topo.arena());
+    let post_split_hash = post_target_hash ^ post_tool_hash;
     record_replay(&mut replay, &mut seq, "boolean_split",
-        format!("{{\"split_count\":{split_count}}}"), pre_hash, post_split_hash);
+        format!("{{\"split_count\":{split_count},\"target_hash\":\"{pre_target_hash:#x}\",\"tool_hash\":\"{pre_tool_hash:#x}\",\"post_target_hash\":\"{post_target_hash:#x}\",\"post_tool_hash\":\"{post_tool_hash:#x}\"}}"),
+        pre_hash, post_split_hash, &ctx, &mut prev_decision_snapshot);
 
     // ── Zero-split early return ──────────────────────────────────────────────
     if split_count == 0 {
         if let Some(early) = try_zero_split_early_return(
             &target_topo, &target_geom, &tool_topo, &tool_geom,
             operation, &op_space, &mut ctx, start_time,
+            &mut replay, &mut seq, &mut prev_decision_snapshot,
         )? {
             return Ok(early);
         }
@@ -117,7 +124,7 @@ fn execute_boolean_core(
 
     record_replay(&mut replay, &mut seq, "classify_faces",
         format!("{{\"target\":{},\"tool\":{}}}", target_classified.len(), tool_classified.len()),
-        post_split_hash, post_split_hash);
+        post_split_hash, post_split_hash, &ctx, &mut prev_decision_snapshot);
 
     // ── Select ───────────────────────────────────────────────────────────────
     let (selected_target, selected_tool) = ctx.scope("select", |ctx| {
@@ -131,7 +138,7 @@ fn execute_boolean_core(
 
     record_replay(&mut replay, &mut seq, "select_faces",
         format!("{{\"target_selected\":{target_face_count},\"tool_selected\":{tool_face_count}}}"),
-        post_split_hash, post_split_hash);
+        post_split_hash, post_split_hash, &ctx, &mut prev_decision_snapshot);
 
     let mut introspection = BooleanIntrospection::new(
         split_count, &target_classified, &tool_classified, start_time.elapsed(),
@@ -154,7 +161,7 @@ fn execute_boolean_core(
     let post_assemble_hash = compute_arena_topology_hash(result_topo.arena());
     record_replay(&mut replay, &mut seq, "assemble_result",
         format!("{{\"faces\":{}}}", result_topo.arena().face_count()),
-        post_split_hash, post_assemble_hash);
+        post_split_hash, post_assemble_hash, &ctx, &mut prev_decision_snapshot);
 
     let lineage_events = record_result_lineage(result_topo.arena(), seq);
 
@@ -170,7 +177,7 @@ fn execute_boolean_core(
     let post_pp_hash = compute_arena_topology_hash(result_topo.arena());
     record_replay(&mut replay, &mut seq, "postprocess",
         format!("{{\"faces\":{}}}", result_topo.arena().face_count()),
-        post_assemble_hash, post_pp_hash);
+        post_assemble_hash, post_pp_hash, &ctx, &mut prev_decision_snapshot);
 
     // ── Finalize ─────────────────────────────────────────────────────────────
     introspection.duration_micros = start_time.elapsed().as_micros() as u64;
@@ -196,7 +203,13 @@ fn try_zero_split_early_return(
     op_space: &OperationSpace,
     ctx: &mut ModelingContext,
     start_time: std::time::Instant,
+    replay: &mut ReplayLog,
+    seq: &mut u64,
+    prev_snapshot: &mut Option<DecisionLog>,
 ) -> Result<Option<OperationResult<BooleanResult>>, KernelError> {
+    let pre_hash = compute_arena_topology_hash(target_topo.arena())
+        ^ compute_arena_topology_hash(tool_topo.arena());
+
     let disjoint_result = ctx.scope("zero_split", |ctx| {
         execute_zero_split(target_topo, target_geom, tool_topo, tool_geom, operation, ctx)
     })?;
@@ -206,19 +219,23 @@ fn try_zero_split_early_return(
     };
 
     result.update_duration(start_time.elapsed());
-    let (topo, mut geom) = result.into_parts();
-    op_space.restore_geometry(&mut geom);
-
-    let envelope_result = BooleanResult::new(
-        topo, geom,
+    result.set_face_counts(
         target_topo.arena().face_count(),
         tool_topo.arena().face_count(),
-        BooleanIntrospection::default(),
-        ReplayLog::new(),
-        Vec::new(),
     );
+    op_space.restore_geometry(result.geometry_mut());
 
-    let envelope = finalize_envelope(envelope_result, start_time, ctx)?;
+    let post_hash = compute_arena_topology_hash(result.topology().arena());
+    record_replay(replay, seq, "assemble_result",
+        format!("{{\"path\":\"zero_split\",\"operation\":\"{operation:?}\",\"result_faces\":{}}}",
+            result.topology().arena().face_count()),
+        pre_hash, post_hash, ctx, prev_snapshot);
+
+    let lineage = record_result_lineage(result.topology().arena(), *seq);
+    result.set_replay_log(std::mem::replace(replay, ReplayLog::with_current_target()));
+    result.set_lineage_events(lineage);
+
+    let envelope = finalize_envelope(result, start_time, ctx)?;
     Ok(Some(envelope))
 }
 
@@ -242,7 +259,7 @@ fn record_result_lineage(arena: &forge_topo::arena::TopologyArena, seq: u64) -> 
     let op = OpSignature::with_id("assemble_result", seq);
     arena.iter_faces()
         .map(|(fid, _)| LineageEvent::EntityCreated {
-            entity_kind: EntityKind::Face,
+            entity: forge_core::EntityRef::new("Face", fid.index()),
             lineage: Lineage::root(fid.index() as u64, op.clone()),
         })
         .collect()
@@ -250,7 +267,7 @@ fn record_result_lineage(arena: &forge_topo::arena::TopologyArena, seq: u64) -> 
 
 // ── Replay logging ───────────────────────────────────────────────────────────
 
-/// Record a replay entry with pre/post hashes.
+/// Record a replay entry with pre/post hashes and auto-computed decision delta.
 fn record_replay(
     log: &mut ReplayLog,
     seq: &mut u64,
@@ -258,12 +275,22 @@ fn record_replay(
     payload: String,
     pre_hash: u128,
     post_hash: u128,
+    ctx: &ModelingContext,
+    prev_snapshot: &mut Option<DecisionLog>,
 ) {
     *seq += 1;
     let mut entry = ReplayEntry::new(
         OpSignature::with_id(name, *seq), payload, *seq, pre_hash,
     );
     entry.set_post_hash(post_hash);
+
+    let current_log = ctx.get_decision_log();
+    if let Some(prev) = prev_snapshot.as_ref() {
+        let delta = diff_decision_logs(prev, current_log);
+        entry.set_decision_delta(delta);
+    }
+    *prev_snapshot = Some(current_log.clone());
+
     log.record(entry);
 }
 

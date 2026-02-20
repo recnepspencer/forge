@@ -5,7 +5,7 @@
 //! were kept or dropped and why.
 
 use forge_topo::handles::FaceId;
-use forge_core::result::{TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier, EntityRef};
+use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier, EntityRef};
 use crate::core::ModelingContext;
 use crate::operations::boolean::schema::{BooleanOp, FaceOrigin, FaceClassification, ClassifiedFace};
 

@@ -12,7 +12,7 @@
 //! 6. Record TracedDecision for every classification.
 
 use forge_core::KernelError;
-use forge_core::result::{TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier, EntityRef};
+use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier, EntityRef};
 use forge_topo::arena::TopologyArena;
 use forge_topo::classify::classify_point_in_solid;
 use forge_topo::handles::FaceId;

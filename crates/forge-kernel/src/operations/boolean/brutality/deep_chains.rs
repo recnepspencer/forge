@@ -76,7 +76,7 @@ fn chain_union_10_steps() {
             "Union chain step {step} Euler violation: V={v} E={e} F={f} χ={chi}"
         );
 
-        let parts = r.into_parts();
+        let parts = r.into_topo_geom();
         topo = parts.0;
         geom = parts.1;
     }
@@ -119,7 +119,7 @@ fn chain_subtract_10_steps() {
             "Subtract chain step {step} Euler violation: V={v} E={e} F={f} χ={chi}"
         );
 
-        let parts = r.into_parts();
+        let parts = r.into_topo_geom();
         topo = parts.0;
         geom = parts.1;
     }
@@ -168,7 +168,7 @@ fn chain_mixed_ops_10() {
                     chi, 2,
                     "Mixed chain step {step} Euler violation: V={v} E={e} F={f} χ={chi}"
                 );
-                let parts = r.into_parts();
+                let parts = r.into_topo_geom();
                 topo = parts.0;
                 geom = parts.1;
             }
@@ -223,7 +223,7 @@ fn chain_identifies_failing_step() {
                     chi, 2,
                     "Step {step} ({op:?}) Euler violation: V={v} E={e} F={f}"
                 );
-                let parts = r.into_parts();
+                let parts = r.into_topo_geom();
                 topo = parts.0;
                 geom = parts.1;
             }
@@ -261,7 +261,7 @@ fn minimal_overlapping_notches() {
     let r0 = r0.into_value();
     let (v, e, f, chi) = euler_audit(r0.topology().arena());
     assert_eq!(chi, 2, "Step 0 Euler: V={v} E={e} F={f} χ={chi}");
-    let (topo, geom) = r0.into_parts();
+    let (topo, geom) = r0.into_topo_geom();
 
     // Step 1: overlapping notch
     let (tool1, tool1_g) = build_cube([-3.1, 0.0, 4.5], 0.5);
@@ -310,7 +310,7 @@ fn minimal_nonoverlapping_notches() {
     }
     eprintln!("=== END STEP 0 z=5 edges ===");
     
-    let (topo, geom) = r0.into_parts();
+    let (topo, geom) = r0.into_topo_geom();
 
     // Step 1: NON-overlapping notch at x=+4 (far away)
     let (tool1, tool1_g) = build_cube([4.0, 0.0, 4.5], 0.5);
@@ -350,7 +350,7 @@ fn minimal_two_interior_subtractions() {
     // Interior subtraction creates a cavity: V-E+F = 4 (two shells)
     let (v, e, f, chi) = euler_audit(r0.topology().arena());
     eprintln!("Step 0: V={v} E={e} F={f} χ={chi}");
-    let (topo, geom) = r0.into_parts();
+    let (topo, geom) = r0.into_topo_geom();
 
     // Step 1: another interior subtraction, far away
     let (tool1, tool1_g) = build_cube([3.0, 0.0, 0.0], 0.5);

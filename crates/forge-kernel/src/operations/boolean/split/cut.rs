@@ -11,7 +11,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use forge_core::KernelError;
-use forge_core::result::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
+use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
 use forge_geom::primitives::plane::{Plane, intersect_three_planes_exact};
 use forge_math::arithmetic::Rational;
 use forge_topo::handles::{FaceId, VertexId, HalfEdgeId};

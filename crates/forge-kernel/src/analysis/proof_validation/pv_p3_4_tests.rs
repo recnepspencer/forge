@@ -10,7 +10,7 @@
 
 #[cfg(test)]
 mod tests {
-    use forge_core::result::{DecisionId, DecisionTier, DecisionKind};
+    use forge_core::{DecisionId, DecisionTier, DecisionKind};
     use forge_topo::hashing::compute_arena_topology_hash;
 
     use crate::operations::boolean::test_helpers::{

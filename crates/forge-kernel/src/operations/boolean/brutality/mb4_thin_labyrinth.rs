@@ -100,7 +100,7 @@ fn build_thin_labyrinth(
                         i + 1
                     );
                 }
-                let parts = r.into_parts();
+                let parts = r.into_topo_geom();
                 topo = parts.0;
                 geom = parts.1;
             }

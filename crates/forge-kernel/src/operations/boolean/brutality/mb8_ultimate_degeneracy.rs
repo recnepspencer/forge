@@ -47,7 +47,7 @@ fn build_star_base() -> Option<(
         let (topo_tool, geom_tool) = build_cube([cx, cy, 0.5], 0.5);
         let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
         match execute_boolean_logged(input) {
-            Ok(env) => { let r = env.into_value(); let p = r.into_parts(); topo = p.0; geom = p.1; }
+            Ok(env) => { let r = env.into_value(); let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
             Err(e) => { eprintln!("MB8 star cube {i} failed: {e:?}"); return None; }
         }
     }
@@ -60,7 +60,7 @@ fn build_star_base() -> Option<(
         );
         let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
         match execute_boolean_logged(input) {
-            Ok(env) => { let r = env.into_value(); let p = r.into_parts(); topo = p.0; geom = p.1; }
+            Ok(env) => { let r = env.into_value(); let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
             Err(e) => { eprintln!("MB8 star tet {i} failed: {e:?}"); return None; }
         }
     }
@@ -73,7 +73,7 @@ fn build_star_base() -> Option<(
         );
         let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
         match execute_boolean_logged(input) {
-            Ok(env) => { let r = env.into_value(); let p = r.into_parts(); topo = p.0; geom = p.1; }
+            Ok(env) => { let r = env.into_value(); let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
             Err(e) => { eprintln!("MB8 star dodec {i} failed: {e:?}"); return None; }
         }
     }
@@ -100,7 +100,7 @@ fn add_coplanar_overlaps(
         match execute_boolean_logged(input) {
             Ok(env) => {
                 let r = env.into_value();
-                let p = r.into_parts();
+                let p = r.into_topo_geom();
                 topo = p.0;
                 geom = p.1;
             }
@@ -126,7 +126,7 @@ fn add_menger_tunnels(
         match execute_boolean_logged(input) {
             Ok(env) => {
                 let r = env.into_value();
-                let p = r.into_parts();
+                let p = r.into_topo_geom();
                 topo = p.0;
                 geom = p.1;
             }
@@ -178,7 +178,7 @@ fn run_chain_with_flip(
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
                     eprintln!("MB8 chain step {step}: V={v} E={e} F={f} χ={chi}");
                 }
-                let parts = r.into_parts();
+                let parts = r.into_topo_geom();
                 topo = parts.0;
                 geom = parts.1;
             }

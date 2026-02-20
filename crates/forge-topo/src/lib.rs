@@ -7,6 +7,7 @@ pub mod prelude;
 // Re-exports to maintain public API compatibility or provide shortcuts
 pub use topology::handles;
 pub use topology::history::lineage;
+pub use topology::history::lineage_store;
 pub use topology::state;
 // operator was at root, now at topology::operations::operator
 // but users might expect `forge_topo::operator`.

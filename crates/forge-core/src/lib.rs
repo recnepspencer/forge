@@ -11,9 +11,7 @@
 //!
 //! # Re-export strategy
 //!
-//! All public types are re-exported at the crate root for convenience.
-//! A backwards-compatible `result` module is provided so that existing
-//! `use forge_core::result::*` imports continue to work.
+//! All public types are re-exported at the crate root.
 
 // =========================================================================
 // DOMAIN MODULES
@@ -23,36 +21,6 @@ pub mod errors;
 pub mod policy;
 pub mod tracing;
 pub mod envelope;
-
-// =========================================================================
-// BACKWARDS-COMPATIBLE `result` RE-EXPORT MODULE
-//
-// Many crates use `use forge_core::result::{...}`, so we preserve this
-// path by re-exporting everything from the new domain modules.
-// =========================================================================
-
-pub mod result {
-    //! Backwards-compatible re-exports from the legacy `result` module.
-    //!
-    //! All types that previously lived in `result.rs` are now organized
-    //! in domain-specific directories. This module re-exports them
-    //! under the old path so downstream crates compile without changes.
-
-    pub use crate::tracing::{
-        EntityRef, SpanId, DecisionTier, TraceEvent,
-        DecisionKind, DecisionContext, DecisionId, TracedDecision,
-        EULER_OP_FEATURE_SCOPE,
-        DecisionLog, DecisionSummary, SpanSummaryEntry,
-        TraceSummary, TraceDiff,
-        DecisionDelta, DecisionChange, CheckpointLog, diff_decision_logs,
-        resolve_trace_dir, write_trace_file,
-        LogLevel, log_level, log_result, log_decision_log,
-    };
-
-    pub use crate::envelope::{
-        KernelWarning, OperationMetrics, LineageDelta, OperationResult,
-    };
-}
 
 // =========================================================================
 // CRATE-ROOT RE-EXPORTS
@@ -70,7 +38,7 @@ pub use policy::{
 
 pub use tracing::{
     DecisionKind, DecisionId, TracedDecision, DecisionLog,
-    DecisionSummary, DecisionContext, EntityRef,
+    DecisionSummary, DecisionContext, EntityRef, TopologyDelta,
     SpanId, DecisionTier, TraceEvent, TraceSummary, TraceDiff, SpanSummaryEntry,
     DecisionDelta, DecisionChange, CheckpointLog, diff_decision_logs,
     DivergenceReport, DivergenceDetail, scan_for_divergences,

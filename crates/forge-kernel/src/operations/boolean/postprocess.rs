@@ -10,7 +10,7 @@
 use std::collections::BTreeSet;
 
 use forge_core::KernelError;
-use forge_core::result::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
+use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
 use forge_topo::state::TopologyState;
 use forge_topo::handles::{HalfEdgeId, VertexId};
 use forge_topo::operator::apply_op;
@@ -66,20 +66,22 @@ fn find_coplanar_merge_candidate(
     arena: &forge_topo::arena::TopologyArena,
     geom: &GeometryStore,
 ) -> Option<(HalfEdgeId, forge_topo::handles::FaceId, forge_topo::handles::FaceId)> {
-    for (he_id, he) in arena.iter_half_edges() {
-        if he.twin() < he_id { continue; }
-        let twin = arena.get_half_edge(he.twin()).ok()?;
-        let face_a = he.face();
-        let face_b = twin.face();
-        if face_a == face_b { continue; }
+    arena.iter_half_edges()
+        .filter(|(he_id, he)| he.twin() >= *he_id)
+        .find_map(|(he_id, he)| {
+            let twin = arena.get_half_edge(he.twin()).ok()?;
+            let face_a = he.face();
+            let face_b = twin.face();
+            if face_a == face_b { return None; }
 
-        let plane_a = geom.get_face_plane(face_a)?;
-        let plane_b = geom.get_face_plane(face_b)?;
-        if forge_geom::primitives::plane::exact_eq(plane_a, plane_b) {
-            return Some((he_id, face_a, face_b));
-        }
-    }
-    None
+            let plane_a = geom.get_face_plane(face_a)?;
+            let plane_b = geom.get_face_plane(face_b)?;
+            if forge_geom::primitives::plane::exact_eq(plane_a, plane_b) {
+                Some((he_id, face_a, face_b))
+            } else {
+                None
+            }
+        })
 }
 
 /// Count edges shared between two faces.
@@ -163,11 +165,11 @@ fn find_collinear_vertex_candidate(
     for (vid, v) in arena.iter_vertices() {
         let he_first = v.outgoing();
         let (degree, edges) = compute_vertex_degree(arena, he_first)?;
-        if degree != 2 { continue; }
-
-        let incoming = check_collinearity(arena, geom, vid, &edges, config);
-        if let Some(he) = incoming {
-            candidates.push((vid, he));
+        if degree == 2 {
+            let incoming = check_collinearity(arena, geom, vid, &edges, config);
+            if let Some(he) = incoming {
+                candidates.push((vid, he));
+            }
         }
     }
 

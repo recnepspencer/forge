@@ -9,7 +9,7 @@
 //!
 //! ```ignore
 //! // From forge-core (available everywhere):
-//! forge_core::result::log_result("Union", &envelope);
+//! forge_core::log_result("Union", &envelope);
 //!
 //! // From forge-test (convenient re-export):
 //! forge_test::logging::log_result("Union", &envelope);
@@ -22,4 +22,4 @@
 //! - `compact` — summary + high-level decisions, no Euler ops (default)
 //! - `full`    — everything including Euler operator decisions
 
-pub use forge_core::result::{LogLevel, log_level, log_result, log_decision_log};
+pub use forge_core::{LogLevel, log_level, log_result, log_decision_log};

@@ -6,7 +6,7 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use forge_core::result::{DecisionLog, TraceEvent, SpanSummaryEntry, TracedDecision, DecisionTier};
+use forge_core::{DecisionLog, TraceEvent, SpanSummaryEntry, TracedDecision, DecisionTier};
 use serde::{Deserialize, Serialize};
 
 /// Metadata stored alongside each trace file.

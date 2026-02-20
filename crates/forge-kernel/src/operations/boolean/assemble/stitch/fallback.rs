@@ -9,7 +9,7 @@
 
 use std::collections::BTreeSet;
 use forge_core::KernelError;
-use forge_core::result::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
+use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
 use forge_geom::spatial::edge_match::{DirectedEdge, EdgeMatcher};
 use forge_topo::handles::HalfEdgeId;
 use forge_topo::state::MutableDraft;
@@ -43,7 +43,7 @@ pub(super) fn stitch_position_fallback(
         return Ok(());
     }
 
-    Err(build_stitch_failure_error(&final_unpaired))
+    Err(build_stitch_failure_error(&final_unpaired, draft, ctx))
 }
 
 // ── Stitch passes ────────────────────────────────────────────────────────────
@@ -173,7 +173,56 @@ fn log_stitch(he_a: HalfEdgeId, he_b: HalfEdgeId, label: &str, confidence: f64, 
 }
 
 /// Build a structured error for remaining unpaired halfedges.
-fn build_stitch_failure_error(unpaired: &[HalfEdgeId]) -> KernelError {
+///
+/// Includes per-entity decision ancestry: for each unpaired halfedge,
+/// reports which face it belongs to and which decisions were scoped to
+/// that entity or its parent face (enabling root-cause tracing).
+fn build_stitch_failure_error(
+    unpaired: &[HalfEdgeId],
+    draft: &MutableDraft,
+    ctx: &ModelingContext,
+) -> KernelError {
+    let mut detail_lines: Vec<String> = Vec::new();
+    detail_lines.push(format!(
+        "{} halfedges remain unpaired after stitching", unpaired.len(),
+    ));
+
+    let decision_log = ctx.get_decision_log();
+    let max_report = unpaired.len().min(5);
+
+    for &he_id in unpaired.iter().take(max_report) {
+        let he_ref = EntityRef::new("HalfEdge", he_id.index());
+        let face_index = draft.arena().get_half_edge(he_id)
+            .map(|he| he.face().index())
+            .unwrap_or(u32::MAX);
+        let face_ref = EntityRef::new("Face", face_index);
+
+        let related_decisions: Vec<String> = decision_log.decisions()
+            .filter(|d| {
+                d.get_entity_scope()
+                    .map(|e| *e == he_ref || *e == face_ref)
+                    .unwrap_or(false)
+            })
+            .map(|d| format!(
+                "    [{}] {} margin={:.2e} | {}",
+                d.get_tier(), d.get_kind(), d.get_margin(), d.get_context(),
+            ))
+            .collect();
+
+        detail_lines.push(format!("  HalfEdge#{} (Face#{})", he_id.index(), face_index));
+        if related_decisions.is_empty() {
+            detail_lines.push("    (no entity-scoped decisions found)".to_string());
+        } else {
+            for line in related_decisions {
+                detail_lines.push(line);
+            }
+        }
+    }
+
+    if unpaired.len() > max_report {
+        detail_lines.push(format!("  ... and {} more", unpaired.len() - max_report));
+    }
+
     KernelError::TopologyViolation {
         err: forge_core::TopologyError::MissingTwin {
             halfedge_index: unpaired[0].index(),
@@ -181,10 +230,7 @@ fn build_stitch_failure_error(unpaired: &[HalfEdgeId]) -> KernelError {
         context: Some(forge_core::ErrorContext {
             scope: forge_core::ErrorScope::Global,
             suggested_fixes: Vec::new(),
-            detail: format!(
-                "{} halfedges remain unpaired after stitching (first: {})",
-                unpaired.len(), unpaired[0],
-            ),
+            detail: detail_lines.join("\n"),
         }),
     }
 }

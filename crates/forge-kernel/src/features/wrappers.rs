@@ -1,12 +1,14 @@
 //! Feature implementations wrapping procedural kernels.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
 use forge_core::KernelError;
-use forge_core::result::DecisionLog;
+use forge_core::DecisionLog;
 use forge_signal::handles::NodeId;
+use forge_topo::replay::ReplayLog;
 use crate::operations::boolean::{BooleanInput, BooleanOp};
 use crate::operations::boolean::execute_boolean;
 
@@ -45,7 +47,9 @@ impl Feature for MakeCubeFeature {
         Ok(FeatureOutput {
             topology: topo,
             geometry: geom,
-            decision_log: DecisionLog::new(),
+            decision_log: Arc::new(DecisionLog::new()),
+            replay_log: Arc::new(ReplayLog::new()),
+            lineage_events: Arc::new(Vec::new()),
         })
     }
 
@@ -101,12 +105,14 @@ impl Feature for BooleanFeature {
         let mut envelope = execute_boolean(input)?;
         let log = envelope.take_decision_log();
         let result = envelope.into_value();
-        let (topo, geom) = result.into_parts();
+        let (topo, geom, replay, lineage, _introspection) = result.into_full_parts();
 
         Ok(FeatureOutput {
             topology: topo,
             geometry: geom,
-            decision_log: log,
+            decision_log: Arc::new(log),
+            replay_log: Arc::new(replay),
+            lineage_events: Arc::new(lineage),
         })
     }
 

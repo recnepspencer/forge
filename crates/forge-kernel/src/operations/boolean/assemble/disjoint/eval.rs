@@ -8,7 +8,7 @@
 //! INVARIANTS: Always records a TracedDecision for the containment result.
 
 use forge_core::KernelError;
-use forge_core::result::{
+use forge_core::{
     TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier,
 };
 use forge_topo::state::TopologyState;

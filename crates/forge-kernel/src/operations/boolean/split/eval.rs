@@ -259,42 +259,40 @@ fn split_solid(
     let mut current_face_planes = initial_face_planes.clone();
 
     while let Some((fid, cuts)) = queue.pop() {
-        if cuts.is_empty() {
-            continue;
-        }
+        if !cuts.is_empty() {
+            let cut_idx = cuts[0];
+            let remaining_cuts = cuts[1..].to_vec();
 
-        let cut_idx = cuts[0];
-        let remaining_cuts = cuts[1..].to_vec();
+            let cut_plane = plane_table.get(cut_idx);
+            let face_plane_idx = *current_face_planes.get(&fid)
+                .ok_or(KernelError::InternalError { message: "Missing plane for face".into(), context: None })?;
+            let face_plane = plane_table.get(face_plane_idx);
 
-        let cut_plane = plane_table.get(cut_idx);
-        let face_plane_idx = *current_face_planes.get(&fid)
-            .ok_or(KernelError::InternalError { message: "Missing plane for face".into(), context: None })?;
-        let face_plane = plane_table.get(face_plane_idx);
+            let split_cfg = SplitConfig {
+                plane_table,
+                face_plane_map: &current_face_planes,
+                tolerance: config,
+            };
 
-        let split_cfg = SplitConfig {
-            plane_table,
-            face_plane_map: &current_face_planes,
-            tolerance: config,
-        };
+            let new_faces = split_face_by_plane(
+                &mut draft, &mut geom, &mut dedup, &mut edge_cut_map,
+                fid, face_plane, cut_plane, cut_idx,
+                &split_cfg, shared_registry, ctx,
+            )?;
 
-        let new_faces = split_face_by_plane(
-            &mut draft, &mut geom, &mut dedup, &mut edge_cut_map,
-            fid, face_plane, cut_plane, cut_idx,
-            &split_cfg, shared_registry, ctx,
-        )?;
-
-        if !new_faces.is_empty() {
-            splits += 1;
-            for &nf in &new_faces {
-                current_face_planes.insert(nf, face_plane_idx);
+            if !new_faces.is_empty() {
+                splits += 1;
+                for &nf in &new_faces {
+                    current_face_planes.insert(nf, face_plane_idx);
+                }
+                let mut cuts_with_current = vec![cut_idx];
+                cuts_with_current.extend_from_slice(&remaining_cuts);
+                for nf in new_faces {
+                    queue.push((nf, cuts_with_current.clone()));
+                }
+            } else if !remaining_cuts.is_empty() {
+                queue.push((fid, remaining_cuts));
             }
-            let mut cuts_with_current = vec![cut_idx];
-            cuts_with_current.extend_from_slice(&remaining_cuts);
-            for nf in new_faces {
-                queue.push((nf, cuts_with_current.clone()));
-            }
-        } else if !remaining_cuts.is_empty() {
-            queue.push((fid, remaining_cuts));
         }
     }
 

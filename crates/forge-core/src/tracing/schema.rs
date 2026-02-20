@@ -15,7 +15,7 @@ use crate::policy::PolicyKind;
 /// Used in `TracedDecision` to scope a decision to a specific entity
 /// without importing typed handles from `forge-topo`. The kernel layer
 /// constructs these from `FaceId`, `VertexId`, etc.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct EntityRef {
     /// Entity kind name: "Face", "HalfEdge", "Vertex", "Loop".
     kind: String,
@@ -282,6 +282,40 @@ impl fmt::Display for DecisionId {
 // TRACED DECISION
 // =========================================================================
 
+/// Topology entities created or deleted as a result of a decision.
+///
+/// Attached to `TracedDecision` when a decision directly mutates the
+/// topology (e.g., splitting a face, removing an edge). Enables
+/// answering "which entities did this decision create?"
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct TopologyDelta {
+    /// Entities created as a result of this decision.
+    pub entities_created: Vec<EntityRef>,
+    /// Entities deleted as a result of this decision.
+    pub entities_deleted: Vec<EntityRef>,
+}
+
+impl TopologyDelta {
+    /// Create an empty topology delta.
+    pub fn new() -> Self {
+        Self {
+            entities_created: Vec::new(),
+            entities_deleted: Vec::new(),
+        }
+    }
+
+    /// Whether this delta is empty (no topology changes).
+    pub fn is_empty(&self) -> bool {
+        self.entities_created.is_empty() && self.entities_deleted.is_empty()
+    }
+}
+
+impl Default for TopologyDelta {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// A recorded kernel decision with full machine-actionable classification.
 ///
 /// Every time the kernel makes a judgment call — whether exact, policy-driven,
@@ -308,6 +342,9 @@ pub struct TracedDecision {
     /// The span this decision was recorded in (stamped automatically).
     #[serde(default)]
     span_id: Option<SpanId>,
+    /// Topology entities created or deleted by this decision.
+    #[serde(default)]
+    topology_delta: Option<TopologyDelta>,
 }
 
 impl TracedDecision {
@@ -329,6 +366,7 @@ impl TracedDecision {
             overridable: true,
             context,
             span_id: None,
+            topology_delta: None,
         }
     }
 
@@ -395,6 +433,16 @@ impl TracedDecision {
     /// Set the span this decision belongs to (called by DecisionLog::record).
     pub fn set_span_id(&mut self, span_id: SpanId) {
         self.span_id = Some(span_id);
+    }
+
+    /// Topology entities created or deleted by this decision.
+    pub fn get_topology_delta(&self) -> Option<&TopologyDelta> {
+        self.topology_delta.as_ref()
+    }
+
+    /// Set the topology delta for this decision.
+    pub fn set_topology_delta(&mut self, delta: TopologyDelta) {
+        self.topology_delta = Some(delta);
     }
 }
 

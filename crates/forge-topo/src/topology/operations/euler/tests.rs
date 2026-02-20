@@ -12,7 +12,7 @@
 //! - KV-16: deterministic lineage hashes
 //! - KV-17: split_edge children carry parent ancestry
 
-use forge_core::{KernelError, result::{log_result, OperationResult}};
+use forge_core::{KernelError, log_result, OperationResult};
 use crate::state::TopologyState;
 use crate::operator::apply_op;
 use crate::euler::make_vertex_face::MakeVertexFace;

@@ -149,7 +149,7 @@ fn nested_containment_subtraction() {
 
     match inner_result {
         Ok(medium_minus_small) => {
-            let (topo_ms, geom_ms) = medium_minus_small.into_parts();
+            let (topo_ms, geom_ms) = medium_minus_small.into_topo_geom();
             let (topo_large, geom_large) = build_cube([0.0, 0.0, 0.0], 4.0);
 
             let input = BooleanInput::new(

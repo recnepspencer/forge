@@ -235,7 +235,7 @@ pub fn diff_decision_logs(before: &DecisionLog, after: &DecisionLog) -> Decision
 ///
 /// ```
 /// use forge_core::tracing::checkpoint_diff::CheckpointLog;
-/// use forge_core::tracing::decision_log::DecisionLog;
+/// use forge_core::DecisionLog;
 ///
 /// let mut checkpoint_log = CheckpointLog::new();
 /// let log = DecisionLog::new();

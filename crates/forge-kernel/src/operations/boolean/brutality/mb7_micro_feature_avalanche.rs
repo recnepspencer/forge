@@ -72,7 +72,7 @@ fn micro_cube_grid_1000() {
                                 grid_dim * grid_dim * grid_dim
                             );
                         }
-                        let parts = r.into_parts();
+                        let parts = r.into_topo_geom();
                         topo = parts.0;
                         geom = parts.1;
                     }
@@ -136,7 +136,7 @@ fn micro_cube_grid_10000() {
                                 "MB7 micro-cube {step}/{total}: V={v} E={e} F={f} χ={chi}"
                             );
                         }
-                        let parts = r.into_parts();
+                        let parts = r.into_topo_geom();
                         topo = parts.0;
                         geom = parts.1;
                     }
@@ -188,7 +188,7 @@ fn micro_cube_graze_tool() {
                 match execute_boolean_logged(input) {
                     Ok(env) => {
                         let r = env.into_value();
-                        let p = r.into_parts();
+                        let p = r.into_topo_geom();
                         topo = p.0;
                         geom = p.1;
                     }

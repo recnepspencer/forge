@@ -15,7 +15,7 @@ use forge_core::KernelError;
 use forge_topo::state::TopologyState;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::replay::ReplayLog;
-use forge_topo::lineage::{LineageEvent, EntityKind, Lineage, OpSignature};
+use forge_topo::lineage::{LineageEvent, Lineage, OpSignature};
 
 use crate::core::ModelingContext;
 use crate::geometry_store::GeometryStore;
@@ -288,7 +288,7 @@ fn build_lineage_events(
 ) -> Vec<LineageEvent> {
     arena.iter_faces()
         .map(|(fid, _)| LineageEvent::EntityCreated {
-            entity_kind: EntityKind::Face,
+            entity: forge_core::EntityRef::new("Face", fid.index()),
             lineage: Lineage::root(fid.index() as u64, OpSignature::new(op_name)),
         })
         .collect()

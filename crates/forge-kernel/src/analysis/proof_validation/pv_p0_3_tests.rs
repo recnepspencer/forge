@@ -70,7 +70,7 @@ fn pv_09_1000_random_booleans_all_oriented() {
         match execute_boolean(input) {
             Ok(op_result) => {
                 let result = op_result.into_value();
-                let (result_topo, result_geom) = result.into_parts();
+                let (result_topo, result_geom) = result.into_topo_geom();
 
                 if result_topo.arena().face_count() < 4 {
                     successes += 1;

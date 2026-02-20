@@ -55,7 +55,7 @@ fn build_menger_sponge(
                         i + 1
                     );
                 }
-                let parts = r.into_parts();
+                let parts = r.into_topo_geom();
                 topo = parts.0;
                 geom = parts.1;
             }
@@ -236,7 +236,7 @@ fn menger_50_micro_rotated_unions() {
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
                     eprintln!("Menger+micro step {step}: V={v} E={e} F={f} χ={chi}");
                 }
-                let parts = r.into_parts();
+                let parts = r.into_topo_geom();
                 topo = parts.0;
                 geom = parts.1;
             }

@@ -76,7 +76,7 @@ fn bounding_box_cluster_pressure() {
                     chi, 2,
                     "Cluster step {i} Euler violation: V={v} E={e} F={f}"
                 );
-                let parts = r.into_parts();
+                let parts = r.into_topo_geom();
                 topo = parts.0;
                 geom = parts.1;
             }
@@ -220,7 +220,7 @@ fn octant_cluster_union() {
                 let (v, e, f, chi) = euler_audit(r.topology().arena());
                 eprintln!("Octant step {i}: V={v} E={e} F={f} χ={chi}");
                 assert_eq!(chi, 2, "Octant step {i} Euler violation");
-                let parts = r.into_parts();
+                let parts = r.into_topo_geom();
                 topo = parts.0;
                 geom = parts.1;
             }

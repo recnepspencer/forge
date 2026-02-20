@@ -290,13 +290,13 @@ impl Drop for ModelingContext {
             return;
         }
 
-        let dir = match forge_core::result::resolve_trace_dir() {
+        let dir = match forge_core::resolve_trace_dir() {
             Some(d) => d,
             None => return,
         };
 
         let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            forge_core::result::write_trace_file(&dir, &self.decision_log, 0, "error");
+            forge_core::write_trace_file(&dir, &self.decision_log, 0, "error");
         }));
     }
 }

@@ -18,14 +18,15 @@ use crate::geometry_store::GeometryStore;
 
 /// Remove degenerate faces and zero-length edges from the draft.
 ///
-/// Returns the total number of elements removed.
+/// Returns the total number of logical elements removed
+/// (each logical edge = halfedge + twin counted as one).
 pub fn cleanup_degenerate_topology(
     draft: &mut MutableDraft,
     geom: &GeometryStore,
 ) -> Result<usize, KernelError> {
-    let edges_removed = remove_zero_length_edges(draft)?;
+    let logical_edges_removed = remove_zero_length_edges(draft)?;
     let faces_removed = remove_degenerate_faces(draft, geom)?;
-    Ok(edges_removed + faces_removed)
+    Ok(logical_edges_removed + faces_removed)
 }
 
 // ── Zero-length edge removal ─────────────────────────────────────────────────
@@ -37,25 +38,26 @@ fn remove_zero_length_edges(draft: &mut MutableDraft) -> Result<usize, KernelErr
     let mut processed: BTreeSet<u32> = BTreeSet::new();
 
     for he_id in zero_edges {
-        if processed.contains(&he_id.index()) { continue; }
-        let he = draft.arena().get_half_edge(he_id);
-        let Ok(he) = he else { continue; };
-        let he = he.clone();
+        if !processed.contains(&he_id.index()) {
+            let he = draft.arena().get_half_edge(he_id)?.clone();
 
-        if processed.contains(&he.twin().index()) { continue; }
-        if he.prev() == he_id || he.next() == he_id { continue; }
+            let twin_unprocessed = !processed.contains(&he.twin().index());
+            let non_degenerate_loop = he.prev() != he_id && he.next() != he_id;
 
-        excise_halfedge(draft, he_id, &he)?;
-        excise_twin_halfedge(draft, he.twin())?;
+            if twin_unprocessed && non_degenerate_loop {
+                excise_halfedge(draft, he_id, &he)?;
+                excise_twin_halfedge(draft, he.twin())?;
 
-        let _ = draft.arena_mut().remove_half_edge(he_id);
-        if draft.arena().get_half_edge(he.twin()).is_ok() {
-            let _ = draft.arena_mut().remove_half_edge(he.twin());
+                let _ = draft.arena_mut().remove_half_edge(he_id);
+                if draft.arena().get_half_edge(he.twin()).is_ok() {
+                    let _ = draft.arena_mut().remove_half_edge(he.twin());
+                }
+
+                processed.insert(he_id.index());
+                processed.insert(he.twin().index());
+                removed += 1;
+            }
         }
-
-        processed.insert(he_id.index());
-        processed.insert(he.twin().index());
-        removed += 1;
     }
 
     Ok(removed)
@@ -153,16 +155,16 @@ fn remove_degenerate_faces(
     let mut processed: BTreeSet<u32> = BTreeSet::new();
 
     for face_id in degenerate {
-        if processed.contains(&face_id.index()) { continue; }
+        if !processed.contains(&face_id.index()) {
+            let edges = collect_face_edges(draft, face_id)?;
+            let deleted_set: BTreeSet<u32> = edges.iter().map(|he| he.index()).collect();
 
-        let edges = collect_face_edges(draft, face_id)?;
-        let deleted_set: BTreeSet<u32> = edges.iter().map(|he| he.index()).collect();
+            repair_affected_vertices(draft, &edges, &deleted_set)?;
+            remove_face_topology(draft, face_id, &edges)?;
 
-        repair_affected_vertices(draft, &edges, &deleted_set)?;
-        remove_face_topology(draft, face_id, &edges)?;
-
-        processed.insert(face_id.index());
-        removed += 1;
+            processed.insert(face_id.index());
+            removed += 1;
+        }
     }
 
     Ok(removed)
@@ -199,8 +201,7 @@ fn repair_affected_vertices(
 ) -> Result<(), KernelError> {
     let mut needs_repair: BTreeSet<u32> = BTreeSet::new();
     for &he_id in edges {
-        let he = draft.arena().get_half_edge(he_id);
-        let Ok(he) = he else { continue; };
+        let he = draft.arena().get_half_edge(he_id)?;
         let origin = he.origin();
         let outgoing = draft.arena().get_vertex(origin).ok().map(|v| v.outgoing());
         if outgoing.map(|o| deleted_set.contains(&o.index())).unwrap_or(false) {

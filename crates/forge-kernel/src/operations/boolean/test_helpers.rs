@@ -53,7 +53,7 @@ pub fn run_boolean(
         panic!("Boolean {:?} failed: {:?}", op, e);
     });
 
-    forge_core::result::log_result(&format!("{:?}", op), &envelope);
+    forge_core::log_result(&format!("{:?}", op), &envelope);
     envelope.into_value()
 }
 
@@ -75,7 +75,7 @@ pub fn try_boolean(
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, op);
     let envelope = execute_boolean(input)?;
 
-    forge_core::result::log_result(&format!("{:?}", op), &envelope);
+    forge_core::log_result(&format!("{:?}", op), &envelope);
     Ok(envelope.into_value())
 }
 
@@ -87,10 +87,10 @@ pub fn try_boolean(
 /// `FORGE_TRACE_DIR` is set.
 pub fn execute_boolean_logged(
     input: BooleanInput,
-) -> Result<forge_core::result::OperationResult<BooleanResult>, forge_core::KernelError> {
+) -> Result<forge_core::OperationResult<BooleanResult>, forge_core::KernelError> {
     let op = input.operation();
     let envelope = execute_boolean(input)?;
-    forge_core::result::log_result(&format!("{:?}", op), &envelope);
+    forge_core::log_result(&format!("{:?}", op), &envelope);
     Ok(envelope)
 }
 

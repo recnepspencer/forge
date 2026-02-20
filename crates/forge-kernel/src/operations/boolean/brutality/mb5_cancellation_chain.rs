@@ -79,7 +79,7 @@ fn chain_500_periodic_cancellation() {
                     assert_eq!(chi, 2, "MB5 step {step} Euler violation");
                 }
 
-                let parts = r.into_parts();
+                let parts = r.into_topo_geom();
                 topo = parts.0;
                 geom = parts.1;
             }
@@ -154,7 +154,7 @@ fn chain_500_with_graze_at_237() {
                     assert_eq!(chi, 2, "MB5-graze step {step} Euler violation");
                 }
 
-                let parts = r.into_parts();
+                let parts = r.into_topo_geom();
                 topo = parts.0;
                 geom = parts.1;
             }
@@ -196,7 +196,7 @@ fn exact_180_cancellation_100() {
         let r_union = execute_boolean_logged(input_union)
             .unwrap_or_else(|e| panic!("MB5 cancel cycle {cycle} union failed: {e:?}"))
             .into_value();
-        let (topo_u, geom_u) = r_union.into_parts();
+        let (topo_u, geom_u) = r_union.into_topo_geom();
 
         let (topo_sub, geom_sub) = build_cube([1.5, 0.0, 0.0], 1.0);
         let input_sub = BooleanInput::new(
@@ -225,7 +225,7 @@ fn exact_180_cancellation_100() {
             );
         }
 
-        let parts = r_sub.into_parts();
+        let parts = r_sub.into_topo_geom();
         topo = parts.0;
         geom = parts.1;
     }

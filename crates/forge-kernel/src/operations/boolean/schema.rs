@@ -324,8 +324,42 @@ impl BooleanResult {
         &self.lineage_events
     }
 
-    /// Consume and return owned parts.
-    pub fn into_parts(self) -> (TopologyState, GeometryStore) {
+    /// Mutable access to the geometry store (for coordinate restoration).
+    pub fn geometry_mut(&mut self) -> &mut GeometryStore {
+        &mut self.geometry
+    }
+
+    /// Replace the replay log (used by zero-split path to inject proof metadata).
+    pub fn set_replay_log(&mut self, log: ReplayLog) {
+        self.replay_log = log;
+    }
+
+    /// Replace the lineage events (used by zero-split path to inject proof metadata).
+    pub fn set_lineage_events(&mut self, events: Vec<LineageEvent>) {
+        self.lineage_events = events;
+    }
+
+    /// Consume and return only topology and geometry. Proof metadata is dropped.
+    ///
+    /// Use this when chaining boolean operations in tests where only
+    /// the resulting solid matters, not the decision provenance.
+    pub fn into_topo_geom(self) -> (TopologyState, GeometryStore) {
         (self.topology, self.geometry)
+    }
+
+    /// Consume and return all fields. Nothing is dropped.
+    ///
+    /// Use this when converting to `FeatureOutput` or any context
+    /// where replay, lineage, and introspection must be preserved.
+    pub fn into_full_parts(
+        self,
+    ) -> (TopologyState, GeometryStore, ReplayLog, Vec<LineageEvent>, BooleanIntrospection) {
+        (
+            self.topology,
+            self.geometry,
+            self.replay_log,
+            self.lineage_events,
+            self.introspection,
+        )
     }
 }

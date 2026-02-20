@@ -88,7 +88,7 @@ fn iterative_rotation_shredder_10() {
                     chi, 2,
                     "Iterative shredder step {step} Euler violation: V={v} E={e} F={f} χ={chi}"
                 );
-                accumulated = result.into_parts();
+                accumulated = result.into_topo_geom();
             }
             Err(e) => {
                 panic!("Iterative shredder step {step} failed: {e:?}");

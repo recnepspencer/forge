@@ -72,7 +72,7 @@ fn union_result_shape_audit() {
         BooleanOp::Union,
     );
 
-    let (topo, _geom) = result.into_parts();
+    let (topo, _geom) = result.into_topo_geom();
     let arena = topo.arena();
     let v = arena.vertex_count() as isize;
     let e = (arena.half_edge_count() / 2) as isize;
@@ -93,7 +93,7 @@ fn chained_union_union() {
         [1.0, 0.0, 0.0], 1.5,
         BooleanOp::Union,
     );
-    let (topo_ab, geom_ab) = result_ab.into_parts();
+    let (topo_ab, geom_ab) = result_ab.into_topo_geom();
     let (topo_c, geom_c) = build_cube([0.5, 0.5, 0.0], 1.0);
 
     let input = BooleanInput::new(topo_ab, geom_ab, topo_c, geom_c, BooleanOp::Union);
@@ -123,7 +123,7 @@ fn vertex_provenance_audit() {
         [1.0, 0.0, 0.0], 1.5,
         BooleanOp::Union,
     );
-    let (topo_ab, geom_ab) = result_ab.into_parts();
+    let (topo_ab, geom_ab) = result_ab.into_topo_geom();
     let arena = topo_ab.arena();
     
     // Build face-plane index map (replicate what split_all_faces does)
@@ -215,7 +215,7 @@ fn split_classify_audit() {
         [1.0, 0.0, 0.0], 1.5,
         BooleanOp::Union,
     );
-    let (topo_ab, geom_ab) = result_ab.into_parts();
+    let (topo_ab, geom_ab) = result_ab.into_topo_geom();
     let (topo_c, geom_c) = build_cube([0.5, 0.5, 0.0], 1.0);
     
     let mut ctx = ModelingContext::default();
@@ -351,7 +351,7 @@ fn boolean_result_intersection() {
         [1.0, 0.0, 0.0], 1.5,
         BooleanOp::Union,
     );
-    let (topo_ab, geom_ab) = result_ab.into_parts();
+    let (topo_ab, geom_ab) = result_ab.into_topo_geom();
 
     let arena = topo_ab.arena();
     eprintln!("=== BOOLEAN RESULT ARENA FOR INTERSECTION ===");
@@ -403,7 +403,7 @@ fn chained_booleans_preserve_euler() {
         BooleanOp::Union,
     );
 
-    let (topo_ab, geom_ab) = result_ab.into_parts();
+    let (topo_ab, geom_ab) = result_ab.into_topo_geom();
     
     // ═══════════════════════════════════════════════════════════════
     // EXHAUSTIVE HANDLE AUDIT of first boolean result
@@ -549,7 +549,7 @@ fn operation_permutation_counts() {
         [0.5, 0.0, 0.0], 1.0,
         BooleanOp::Union,
     );
-    let (topo_ab, geom_ab) = result_ab.into_parts();
+    let (topo_ab, geom_ab) = result_ab.into_topo_geom();
     let (topo_c, geom_c) = build_cube([1.0, 0.0, 0.0], 1.0);
 
     let input_abc = BooleanInput::new(topo_ab, geom_ab, topo_c, geom_c, BooleanOp::Union);
@@ -560,7 +560,7 @@ fn operation_permutation_counts() {
         [1.0, 0.0, 0.0], 1.0,
         BooleanOp::Union,
     );
-    let (topo_bc, geom_bc) = result_bc.into_parts();
+    let (topo_bc, geom_bc) = result_bc.into_topo_geom();
     let (topo_a2, geom_a2) = build_cube([0.0, 0.0, 0.0], 1.0);
 
     let input_a_bc = BooleanInput::new(topo_a2, geom_a2, topo_bc, geom_bc, BooleanOp::Union);

@@ -5,12 +5,12 @@
 //!
 //! DEPENDENCIES: `schema` (CausalChain, CausalStep, ChainSummary),
 //! `forge-core` (DecisionLog, TracedDecision, EntityRef, DecisionTier),
-//! `forge-topo` (ReplayLog, LineageEvent, OpSignature, EntityKind)
+//! `forge-topo` (ReplayLog, LineageEvent, OpSignature)
 
 use std::collections::BTreeSet;
 
 use forge_core::{DecisionTier, EntityRef, TracedDecision, DecisionLog};
-use forge_topo::lineage::{EntityKind, LineageEvent, OpSignature};
+use forge_topo::lineage::{LineageEvent, OpSignature};
 use forge_topo::replay::ReplayLog;
 
 use super::schema::{CausalChain, CausalStep, ChainSummary};
@@ -114,13 +114,7 @@ fn find_relevant_operations(
 
 /// Extract the entity kind string from a LineageEvent.
 fn extract_entity_kind_str(event: &LineageEvent) -> String {
-    match event {
-        LineageEvent::EntityCreated { entity_kind, .. }
-        | LineageEvent::EntityDeleted { entity_kind, .. }
-        | LineageEvent::EntityModified { entity_kind, .. } => {
-            format!("{}", entity_kind)
-        }
-    }
+    event.get_entity_kind_str().to_string()
 }
 
 /// Extract the most relevant OpSignature name from a LineageEvent.

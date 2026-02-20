@@ -103,9 +103,15 @@ impl ReplayEntry {
 pub struct ReplayLog {
     /// The recorded entries, in execution order.
     entries: Vec<ReplayEntry>,
-    /// The build target triple this log was recorded on (e.g., "x86_64-unknown-linux-gnu").
+    /// The build target triple this log was recorded on (e.g., "aarch64-macos").
     #[serde(default)]
     target_triple: Option<String>,
+    /// Whether FMA (fused multiply-add) instructions are available.
+    #[serde(default)]
+    fma_enabled: Option<bool>,
+    /// Optimization level ("debug" or "release").
+    #[serde(default)]
+    opt_level: Option<String>,
 }
 
 impl ReplayLog {
@@ -114,15 +120,21 @@ impl ReplayLog {
         Self {
             entries: Vec::new(),
             target_triple: None,
+            fma_enabled: None,
+            opt_level: None,
         }
     }
 
-    /// Create a replay log stamped with the current build target triple.
+    /// Create a replay log stamped with the current build target and platform metadata.
     pub fn with_current_target() -> Self {
         let triple = format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS);
+        let fma = cfg!(target_feature = "fma");
+        let opt = if cfg!(debug_assertions) { "debug" } else { "release" };
         Self {
             entries: Vec::new(),
             target_triple: Some(triple),
+            fma_enabled: Some(fma),
+            opt_level: Some(opt.to_string()),
         }
     }
 
@@ -134,6 +146,16 @@ impl ReplayLog {
     /// The target triple this log was recorded on.
     pub fn get_target_triple(&self) -> Option<&str> {
         self.target_triple.as_deref()
+    }
+
+    /// Whether FMA instructions were enabled at build time.
+    pub fn get_fma_enabled(&self) -> Option<bool> {
+        self.fma_enabled
+    }
+
+    /// The optimization level ("debug" or "release").
+    pub fn get_opt_level(&self) -> Option<&str> {
+        self.opt_level.as_deref()
     }
 
     /// Verify that this log's target triple matches the current process.

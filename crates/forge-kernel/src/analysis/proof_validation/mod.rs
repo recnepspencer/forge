@@ -15,9 +15,11 @@
 //! - `pv_p3_3_tests`: Causal chain reconstruction tests (PV-37, PV-38, PV-54, PV-54.5)
 //! - `pv_p3_4_tests`: Counterfactual replay tests (PV-39, PV-40, PV-40.5)
 //! - `pv_p3_5_tests`: MetaBoss replay torture suite (MB-R1 through MB-R7)
+//! - `pv_p3_6_tests`: Zero-split + FeatureTree proof metadata integrity (PV-37b/c/d, MB-R1b, MB-R8, MB-R9)
 
 pub mod checkpoint;
 pub mod diagnose_pipeline;
+pub mod proof_invariants;
 
 #[cfg(test)]
 mod pv_p0_1_tests;
@@ -41,6 +43,8 @@ mod pv_p3_3_tests;
 mod pv_p3_4_tests;
 #[cfg(test)]
 mod pv_p3_5_tests;
+#[cfg(test)]
+mod pv_p3_6_tests;
 #[cfg(test)]
 mod pv_p2_3_tests;
 #[cfg(test)]

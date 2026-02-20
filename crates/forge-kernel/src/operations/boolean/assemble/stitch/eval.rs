@@ -7,7 +7,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use forge_core::KernelError;
-use forge_core::result::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
+use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
 use forge_topo::handles::{HalfEdgeId, VertexId};
 use forge_topo::state::MutableDraft;
 use crate::core::ModelingContext;
@@ -104,43 +104,39 @@ fn run_stitch_pass(
     let mut paired = already_paired.clone();
 
     for &he_id in candidates {
-        if paired.contains(&he_id.index()) || zero_length.contains(&he_id.index()) {
-            continue;
+        let is_eligible = !paired.contains(&he_id.index()) && !zero_length.contains(&he_id.index());
+
+        if is_eligible {
+            let he_face = draft.arena().get_half_edge(he_id)?.face();
+            let (origin, dest) = get_edge_endpoints(draft, he_id)?;
+            let reverse_key = (dest.index(), origin.index());
+
+            if let Some(reverse_candidates) = edge_map.get(&reverse_key) {
+                let unpaired: Vec<HalfEdgeId> = reverse_candidates.iter()
+                    .filter(|&&c| {
+                        c != he_id
+                            && !paired.contains(&c.index())
+                            && draft.arena().get_half_edge(c).map(|d| d.face() != he_face).unwrap_or(false)
+                    })
+                    .copied()
+                    .collect();
+
+                if !unpaired.is_empty() {
+                    let best = if unpaired.len() == 1 {
+                        unpaired[0]
+                    } else {
+                        select_best_twin(draft, geom, he_id, &unpaired)
+                    };
+
+                    draft.arena_mut().get_half_edge_mut(he_id)?.set_twin(best);
+                    draft.arena_mut().get_half_edge_mut(best)?.set_twin(he_id);
+                    paired.insert(he_id.index());
+                    paired.insert(best.index());
+
+                    log_stitch_decision(he_id, best, &decision_kind, ctx);
+                }
+            }
         }
-
-        let he_face = draft.arena().get_half_edge(he_id)?.face();
-        let (origin, dest) = get_edge_endpoints(draft, he_id)?;
-        let reverse_key = (dest.index(), origin.index());
-
-        let Some(reverse_candidates) = edge_map.get(&reverse_key) else {
-            continue;
-        };
-
-        let unpaired: Vec<HalfEdgeId> = reverse_candidates.iter()
-            .filter(|&&c| {
-                c != he_id
-                    && !paired.contains(&c.index())
-                    && draft.arena().get_half_edge(c).map(|d| d.face() != he_face).unwrap_or(false)
-            })
-            .copied()
-            .collect();
-
-        if unpaired.is_empty() {
-            continue;
-        }
-
-        let best = if unpaired.len() == 1 {
-            unpaired[0]
-        } else {
-            select_best_twin(draft, geom, he_id, &unpaired)
-        };
-
-        draft.arena_mut().get_half_edge_mut(he_id)?.set_twin(best);
-        draft.arena_mut().get_half_edge_mut(best)?.set_twin(he_id);
-        paired.insert(he_id.index());
-        paired.insert(best.index());
-
-        log_stitch_decision(he_id, best, &decision_kind, ctx);
     }
 
     Ok(paired)

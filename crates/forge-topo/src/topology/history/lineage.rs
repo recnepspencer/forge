@@ -9,6 +9,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use forge_core::EntityRef;
+
 /// Unique signature for a topology operation, used for lineage and replay.
 ///
 /// Two operations with the same name but different parameters produce
@@ -177,26 +179,48 @@ impl Lineage {
 pub enum LineageEvent {
     /// A new entity was created
     EntityCreated {
-        /// What kind of entity
-        entity_kind: EntityKind,
+        /// The specific entity (kind + index)
+        entity: EntityRef,
         /// The lineage assigned to it
         lineage: Lineage,
     },
     /// An entity was deleted
     EntityDeleted {
-        entity_kind: EntityKind,
+        /// The specific entity (kind + index)
+        entity: EntityRef,
         /// The lineage of the deleted entity (preserved for replay)
         lineage: Lineage,
     },
     /// An entity was modified (e.g., connectivity changed)
     EntityModified {
-        entity_kind: EntityKind,
+        /// The specific entity (kind + index)
+        entity: EntityRef,
         old_lineage: Lineage,
         new_lineage: Lineage,
     },
 }
 
+impl LineageEvent {
+    /// The entity this event refers to.
+    pub fn get_entity(&self) -> &EntityRef {
+        match self {
+            LineageEvent::EntityCreated { entity, .. }
+            | LineageEvent::EntityDeleted { entity, .. }
+            | LineageEvent::EntityModified { entity, .. } => entity,
+        }
+    }
+
+    /// The entity kind ("Face", "HalfEdge", etc.).
+    pub fn get_entity_kind_str(&self) -> &str {
+        self.get_entity().get_kind()
+    }
+}
+
 /// The kinds of topological entities we track lineage for.
+///
+/// This is the type-safe enum used internally by `forge-topo`.
+/// For crate-neutral references that cross layer boundaries,
+/// use `EntityRef` from `forge-core` and the conversion bridge below.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EntityKind {
     Face,
@@ -205,14 +229,37 @@ pub enum EntityKind {
     Solid,
 }
 
+impl EntityKind {
+    /// The canonical string name for this kind.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            EntityKind::Face => "Face",
+            EntityKind::HalfEdge => "HalfEdge",
+            EntityKind::Vertex => "Vertex",
+            EntityKind::Solid => "Solid",
+        }
+    }
+
+    /// Parse a string into an EntityKind.
+    pub fn try_from_str(s: &str) -> Option<Self> {
+        match s {
+            "Face" => Some(EntityKind::Face),
+            "HalfEdge" => Some(EntityKind::HalfEdge),
+            "Vertex" => Some(EntityKind::Vertex),
+            "Solid" => Some(EntityKind::Solid),
+            _ => None,
+        }
+    }
+
+    /// Create a crate-neutral `EntityRef` from this kind and an arena index.
+    pub fn to_entity_ref(self, index: u32) -> EntityRef {
+        EntityRef::new(self.as_str(), index)
+    }
+}
+
 impl std::fmt::Display for EntityKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            EntityKind::Face => write!(f, "Face"),
-            EntityKind::HalfEdge => write!(f, "HalfEdge"),
-            EntityKind::Vertex => write!(f, "Vertex"),
-            EntityKind::Solid => write!(f, "Solid"),
-        }
+        write!(f, "{}", self.as_str())
     }
 }
 

@@ -4,7 +4,7 @@
 //! `DecisionLog` through its public API, verifying that spans, decisions,
 //! summaries, and diffs all work end-to-end.
 
-use forge_core::result::{TraceEvent, DecisionTier};
+use forge_core::{TraceEvent, DecisionTier};
 
 use super::super::test_helpers::build_cube;
 use super::super::assemble::merge::execute_boolean;

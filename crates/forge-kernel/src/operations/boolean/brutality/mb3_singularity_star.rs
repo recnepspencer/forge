@@ -53,7 +53,7 @@ fn build_singularity_star() -> Option<(
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
                     eprintln!("MB3 cube {step}/63: V={v} E={e} F={f} χ={chi}");
                 }
-                let parts = r.into_parts();
+                let parts = r.into_topo_geom();
                 topo = parts.0;
                 geom = parts.1;
             }
@@ -83,7 +83,7 @@ fn build_singularity_star() -> Option<(
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
                     eprintln!("MB3 tet {step}: V={v} E={e} F={f} χ={chi}");
                 }
-                let parts = r.into_parts();
+                let parts = r.into_topo_geom();
                 topo = parts.0;
                 geom = parts.1;
             }
@@ -110,7 +110,7 @@ fn build_singularity_star() -> Option<(
                 step += 1;
                 let (v, e, f, chi) = euler_audit(r.topology().arena());
                 eprintln!("MB3 dodec {step}: V={v} E={e} F={f} χ={chi}");
-                let parts = r.into_parts();
+                let parts = r.into_topo_geom();
                 topo = parts.0;
                 geom = parts.1;
             }
