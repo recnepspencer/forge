@@ -459,20 +459,20 @@ fn build_provenance(exact_pos: &Option<[Rational; 3]>, fallback: [f64; 3]) -> Ve
 
 /// Compute a reference direction perpendicular to the cut normal for 1D sorting.
 fn compute_ref_direction(n: [f64; 3]) -> [f64; 3] {
+    use forge_math::linalg::{dot, sub, scale, normalize_checked};
+
     let candidates = [[1.0_f64, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
     let mut best = candidates[0];
     let mut min_dot = f64::MAX;
     for c in &candidates {
-        let dot = (c[0]*n[0] + c[1]*n[1] + c[2]*n[2]).abs();
-        if dot < min_dot {
-            min_dot = dot;
+        let d = dot(*c, n).abs();
+        if d < min_dot {
+            min_dot = d;
             best = *c;
         }
     }
-    let dot_n = best[0]*n[0] + best[1]*n[1] + best[2]*n[2];
-    let proj = [best[0] - dot_n*n[0], best[1] - dot_n*n[1], best[2] - dot_n*n[2]];
-    let len = (proj[0]*proj[0] + proj[1]*proj[1] + proj[2]*proj[2]).sqrt();
-    if len > 1e-12 { [proj[0]/len, proj[1]/len, proj[2]/len] } else { best }
+    let proj = sub(best, scale(n, dot(best, n)));
+    normalize_checked(proj).unwrap_or(best)
 }
 
 /// Resolve a CutPoint to a concrete VertexId, performing SplitEdge when needed.

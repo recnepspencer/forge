@@ -11,6 +11,26 @@ pub fn dot(a: [f64; 3], b: [f64; 3]) -> f64 {
     a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 }
 
+/// Component-wise subtraction of two 3D vectors: `a - b`.
+pub fn sub(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
+    [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+}
+
+/// Scalar multiplication of a 3D vector.
+pub fn scale(v: [f64; 3], s: f64) -> [f64; 3] {
+    [v[0] * s, v[1] * s, v[2] * s]
+}
+
+/// Component-wise minimum of two 3D vectors.
+pub fn component_min(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
+    [a[0].min(b[0]), a[1].min(b[1]), a[2].min(b[2])]
+}
+
+/// Component-wise maximum of two 3D vectors.
+pub fn component_max(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
+    [a[0].max(b[0]), a[1].max(b[1]), a[2].max(b[2])]
+}
+
 /// Cross product of two 3D vectors.
 pub fn cross(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
     [

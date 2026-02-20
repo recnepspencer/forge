@@ -133,18 +133,12 @@ fn vertex_provenance_audit() {
     
     for (fid, _) in arena.iter_faces() {
         if let Some(p) = geom_ab.get_face_plane(fid) {
-            // Find matching existing plane or create new
             let idx = unique_planes.iter().find_map(|(existing, idx)| {
-                let n1 = existing.raw_normal();
-                let n2 = p.raw_normal();
-                let dot = n1[0]*n2[0] + n1[1]*n2[1] + n1[2]*n2[2];
-                if dot.abs() > 0.9999 {
-                    let sign = dot.signum();
-                    let d1 = existing.raw_offset();
-                    let d2 = p.raw_offset();
-                    let dist_diff = if sign > 0.0 { (d1 - d2).abs() } else { (d1 + d2).abs() };
-                    if dist_diff < 1e-9 { Some(*idx) } else { None }
-                } else { None }
+                if forge_geom::primitives::plane::coplanar_eq(existing, p) {
+                    Some(*idx)
+                } else {
+                    None
+                }
             }).unwrap_or_else(|| {
                 let idx = unique_planes.len();
                 unique_planes.push((p.clone(), idx));

@@ -240,17 +240,14 @@ fn compute_reference_points(plane: &Plane) -> [[f64; 3]; 3] {
 /// opposite normals.
 ///
 /// Uses exact rational arithmetic — no tolerances.
+/// Delegates the normal parallelism check to `are_parallel_exact`.
 pub fn coplanar_eq(a: &Plane, b: &Plane) -> bool {
-    let (a0, a1, a2, a3) = a.exact_coefficients();
-    let (b0, b1, b2, b3) = b.exact_coefficients();
-
-    let cx = &(a0 * b1) - &(a1 * b0);
-    let cy = &(a1 * b2) - &(a2 * b1);
-    let cz = &(a0 * b2) - &(a2 * b0);
-
-    if !cx.is_zero() || !cy.is_zero() || !cz.is_zero() {
+    if !are_parallel_exact(a, b) {
         return false;
     }
+
+    let (a0, a1, a2, a3) = a.exact_coefficients();
+    let (b0, b1, b2, b3) = b.exact_coefficients();
 
     let check_a = &(a0 * b3) - &(b0 * a3);
     if !check_a.is_zero() {
@@ -266,4 +263,36 @@ pub fn coplanar_eq(a: &Plane, b: &Plane) -> bool {
     }
 
     true
+}
+
+/// Test whether two planes have parallel normals (same or opposite direction).
+///
+/// Uses exact rational arithmetic — the cross product `n1 × n2` is computed
+/// in rational coordinates and checked for exact zero. No tolerance needed.
+///
+/// This is the D3-compliant replacement for float-based parallelism checks.
+/// It returns `true` for both same-direction and anti-parallel normals.
+pub fn are_parallel_exact(a: &Plane, b: &Plane) -> bool {
+    let (a0, a1, a2, _) = a.exact_coefficients();
+    let (b0, b1, b2, _) = b.exact_coefficients();
+
+    let cx = &(a0 * b1) - &(a1 * b0);
+    let cy = &(a1 * b2) - &(a2 * b1);
+    let cz = &(a0 * b2) - &(a2 * b0);
+
+    cx.is_zero() && cy.is_zero() && cz.is_zero()
+}
+
+/// Test whether two planes have normals pointing in the same general direction.
+///
+/// Returns `true` if the exact rational dot product of the normals is positive
+/// (angle between normals is less than 90°). Uses exact arithmetic — no tolerance.
+///
+/// This is the D3-compliant replacement for `normals_aligned(raw_normal(), raw_normal())`.
+pub fn normals_aligned_exact(a: &Plane, b: &Plane) -> bool {
+    let (a0, a1, a2, _) = a.exact_coefficients();
+    let (b0, b1, b2, _) = b.exact_coefficients();
+
+    let dot = &(&(a0 * b0) + &(a1 * b1)) + &(a2 * b2);
+    dot.sign() == forge_math::sign::TriSign::Pos
 }

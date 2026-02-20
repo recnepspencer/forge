@@ -170,10 +170,8 @@ fn find_coincident_vertex(
 ) -> Option<(VertexId, f64)> {
     let tol_sq = tolerance * tolerance;
     for (vid, existing_pos) in inserted {
-        let dx = pos[0] - existing_pos[0];
-        let dy = pos[1] - existing_pos[1];
-        let dz = pos[2] - existing_pos[2];
-        let dist_sq = dx * dx + dy * dy + dz * dz;
+        let diff = forge_math::linalg::sub(*pos, *existing_pos);
+        let dist_sq = forge_math::linalg::norm_sq(diff);
         if dist_sq < tol_sq {
             return Some((*vid, dist_sq.sqrt()));
         }
@@ -281,42 +279,40 @@ fn stitch_twins(
     }
     Ok(())
 }
+/// Build a convex solid from arbitrary planes.
+///
+/// General-purpose constructor: planes → BSP → halfedge mesh.
+pub fn make_convex_solid(
+    planes: Vec<forge_geom::Plane>,
+) -> Result<MeshBuildResult, KernelError> {
+    let cell = forge_geom::spatial::bsp::build_convex_polyhedron(&planes, &forge_geom::spatial::bsp::BspConfig::default())?;
+    let mut ctx = ModelingContext::new();
+    build_halfedge_mesh(&cell, &mut ctx)
+}
+
 /// Create a cube centered at `center` with side length `size`.
 pub fn make_cube(
     center: [f64; 3],
     size: f64,
 ) -> Result<MeshBuildResult, KernelError> {
-    let half_size = size / 2.0;
+    let planes = forge_geom::primitives::shapes::cube(center, size / 2.0);
+    make_convex_solid(planes)
+}
 
-    let planes = vec![
-        forge_geom::Plane::from_point_normal(
-            [center[0] + half_size, center[1], center[2]],
-            [1.0, 0.0, 0.0],
-        )?,
-        forge_geom::Plane::from_point_normal(
-            [center[0] - half_size, center[1], center[2]],
-            [-1.0, 0.0, 0.0],
-        )?,
-        forge_geom::Plane::from_point_normal(
-            [center[0], center[1] + half_size, center[2]],
-            [0.0, 1.0, 0.0],
-        )?,
-        forge_geom::Plane::from_point_normal(
-            [center[0], center[1] - half_size, center[2]],
-            [0.0, -1.0, 0.0],
-        )?,
-        forge_geom::Plane::from_point_normal(
-            [center[0], center[1], center[2] + half_size],
-            [0.0, 0.0, 1.0],
-        )?,
-        forge_geom::Plane::from_point_normal(
-            [center[0], center[1], center[2] - half_size],
-            [0.0, 0.0, -1.0],
-        )?,
-    ];
+/// Create a regular tetrahedron centered at `center` with the given `scale`.
+pub fn make_tetrahedron(
+    center: [f64; 3],
+    scale: f64,
+) -> Result<MeshBuildResult, KernelError> {
+    let planes = forge_geom::primitives::shapes::tetrahedron(center, scale);
+    make_convex_solid(planes)
+}
 
-    let cell = forge_geom::spatial::bsp::build_convex_polyhedron(&planes, &forge_geom::spatial::bsp::BspConfig::default())?;
-    let mut ctx = ModelingContext::new();
-
-    build_halfedge_mesh(&cell, &mut ctx)
+/// Create a regular dodecahedron centered at `center` with the given `scale`.
+pub fn make_dodecahedron(
+    center: [f64; 3],
+    scale: f64,
+) -> Result<MeshBuildResult, KernelError> {
+    let planes = forge_geom::primitives::shapes::dodecahedron(center, scale);
+    make_convex_solid(planes)
 }

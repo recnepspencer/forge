@@ -9,7 +9,7 @@
 //!
 //! DEPENDENCIES: `forge_topo::state::MutableDraft`, `GeometryStore`, `quantize_position`
 
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 use forge_core::KernelError;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::state::MutableDraft;
@@ -58,7 +58,7 @@ fn remove_zero_length_edges(
     }
 
     let mut removed = 0;
-    let mut processed: HashSet<u32> = HashSet::new();
+    let mut processed: BTreeSet<u32> = BTreeSet::new();
 
     for he_id in zero_edges {
         if !processed.contains(&he_id.index()) {
@@ -175,7 +175,7 @@ fn remove_degenerate_faces(
         if let Ok(iter) = FaceEdgeIterator::new(draft.arena(), *face_id) {
             let edges: Vec<_> = iter.collect::<Result<Vec<_>, _>>()?;
 
-            let mut unique_verts: HashSet<u32> = HashSet::new();
+            let mut unique_verts: BTreeSet<u32> = BTreeSet::new();
             for he_id in &edges {
                 if let Ok(he_data) = draft.arena().get_half_edge(*he_id) {
                     unique_verts.insert(he_data.origin().index());
@@ -189,19 +189,19 @@ fn remove_degenerate_faces(
     }
 
     let mut removed = 0;
-    let mut processed_faces: HashSet<u32> = HashSet::new();
+    let mut processed_faces: BTreeSet<u32> = BTreeSet::new();
 
     for face_id in degenerate_faces {
         if !processed_faces.contains(&face_id.index()) {
             if let Ok(iter) = FaceEdgeIterator::new(draft.arena(), face_id) {
                 let edges: Vec<_> = iter.collect::<Result<Vec<_>, _>>()?;
 
-                let mut deleted_he_set: HashSet<u32> = HashSet::new();
+                let mut deleted_he_set: BTreeSet<u32> = BTreeSet::new();
                 for he_id in &edges {
                     deleted_he_set.insert(he_id.index());
                 }
 
-                let mut affected_vertices: HashSet<u32> = HashSet::new();
+                let mut affected_vertices: BTreeSet<u32> = BTreeSet::new();
                 for he_id in &edges {
                     if let Ok(he_data) = draft.arena().get_half_edge(*he_id) {
                         let origin = he_data.origin();

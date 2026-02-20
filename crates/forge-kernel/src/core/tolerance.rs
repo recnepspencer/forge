@@ -253,6 +253,8 @@ pub struct ToleranceConfig {
     min_edge_length: f64,
     /// Tolerance for vertex collinearity check (dot product deviation from -1.0).
     collinearity_dot_tolerance: f64,
+    /// AABB inflation margin for BVH overlap detection (meters).
+    aabb_inflation: f64,
 }
 
 impl ToleranceConfig {
@@ -278,6 +280,7 @@ impl ToleranceConfig {
             edge_split_degeneracy,
             min_edge_length,
             collinearity_dot_tolerance,
+            aabb_inflation: DEFAULT_AABB_INFLATION,
         }
     }
 
@@ -370,6 +373,16 @@ impl ToleranceConfig {
     pub fn set_collinearity_dot_tolerance(&mut self, value: f64) {
         self.collinearity_dot_tolerance = value;
     }
+
+    /// AABB inflation margin for BVH overlap detection.
+    pub fn get_aabb_inflation(&self) -> f64 {
+        self.aabb_inflation
+    }
+
+    /// Set AABB inflation margin.
+    pub fn set_aabb_inflation(&mut self, value: f64) {
+        self.aabb_inflation = value;
+    }
 }
 
 impl Default for ToleranceConfig {
@@ -384,6 +397,7 @@ impl Default for ToleranceConfig {
             edge_split_degeneracy: DEFAULT_EDGE_SPLIT_DEGENERACY,
             min_edge_length: DEFAULT_MIN_EDGE_LENGTH,
             collinearity_dot_tolerance: DEFAULT_COLLINEARITY_DOT_TOLERANCE,
+            aabb_inflation: DEFAULT_AABB_INFLATION,
         }
     }
 }
@@ -406,3 +420,5 @@ const DEFAULT_EDGE_SPLIT_DEGENERACY: f64 = 1e-30;
 const DEFAULT_MIN_EDGE_LENGTH: f64 = 1e-9;
 /// Default collinearity dot product tolerance (1e-8).
 const DEFAULT_COLLINEARITY_DOT_TOLERANCE: f64 = 1e-8;
+/// Default AABB inflation margin (100 nm).
+const DEFAULT_AABB_INFLATION: f64 = 1e-7;

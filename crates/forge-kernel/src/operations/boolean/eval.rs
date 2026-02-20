@@ -45,14 +45,12 @@ impl VertexMatchKey {
 }
 
 
-/// Check if two planes are parallel (or anti-parallel).
+/// Check if two planes have parallel normals (same or opposite direction).
 ///
-/// Uses a strict dot-product check.
+/// Delegates to `forge_geom::primitives::plane::are_parallel_exact`, which
+/// uses exact rational cross product. No tolerance, no magic numbers — D3 compliant.
 pub fn planes_are_parallel(a: &Plane, b: &Plane) -> bool {
-    let n1 = a.raw_normal();
-    let n2 = b.raw_normal();
-    let dot = n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2];
-    dot.abs() > 0.9999999999
+    forge_geom::primitives::plane::are_parallel_exact(a, b)
 }
 
 /// Compute the centroid of a face.

@@ -361,28 +361,21 @@ pub(super) fn compute_disjoint_scale(
 
     for (vid, _) in primary_arena.iter_vertices() {
         if let Some(pos) = primary_geom.get_vertex_position(vid) {
-            for i in 0..3 {
-                min_pos[i] = min_pos[i].min(pos[i]);
-                max_pos[i] = max_pos[i].max(pos[i]);
-            }
+            min_pos = forge_math::linalg::component_min(min_pos, *pos);
+            max_pos = forge_math::linalg::component_max(max_pos, *pos);
         }
     }
 
     if let Some((sec_arena, sec_geom)) = secondary {
         for (vid, _) in sec_arena.iter_vertices() {
             if let Some(pos) = sec_geom.get_vertex_position(vid) {
-                for i in 0..3 {
-                    min_pos[i] = min_pos[i].min(pos[i]);
-                    max_pos[i] = max_pos[i].max(pos[i]);
-                }
+                min_pos = forge_math::linalg::component_min(min_pos, *pos);
+                max_pos = forge_math::linalg::component_max(max_pos, *pos);
             }
         }
     }
 
-    let dx = max_pos[0] - min_pos[0];
-    let dy = max_pos[1] - min_pos[1];
-    let dz = max_pos[2] - min_pos[2];
-    let diagonal = (dx * dx + dy * dy + dz * dz).sqrt();
+    let diagonal = forge_math::linalg::norm(forge_math::linalg::sub(max_pos, min_pos));
 
     diagonal.max(1e-15)
 }

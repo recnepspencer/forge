@@ -1,56 +1,26 @@
 //! Shared test fixtures for Boolean operation tests.
 //!
-//! Centralizes `build_cube` and `face_centroid` so every test module
-//! uses the same construction logic without duplication.
+//! Shape construction delegates to `crate::mesh_builder` which is the
+//! single source of truth for planes → BSP → halfedge mesh.
 //!
 //! Traces are persisted automatically by `OperationResult::into_value()`
 //! when `FORGE_TRACE_DIR` is set. No manual wiring needed.
 
-use forge_geom::spatial::bsp::{build_convex_polyhedron, BspConfig};
 use forge_geom::Plane;
 use forge_topo::state::TopologyState;
 
-use crate::core::ModelingContext;
 use crate::geometry_store::GeometryStore;
-use crate::mesh_builder::build_halfedge_mesh;
+use crate::mesh_builder;
 use super::eval::compute_face_centroid;
 use super::schema::{BooleanInput, BooleanOp, BooleanResult};
 use super::assemble::execute_boolean;
 
-/// Build a cube mesh from 6 axis-aligned planes.
+/// Build a cube mesh centered at `center` with the given `half_size`.
 pub fn build_cube(
     center: [f64; 3],
     half_size: f64,
 ) -> (TopologyState, GeometryStore) {
-    let planes = vec![
-        Plane::from_point_normal(
-            [center[0] + half_size, center[1], center[2]],
-            [1.0, 0.0, 0.0],
-        ).unwrap(),
-        Plane::from_point_normal(
-            [center[0] - half_size, center[1], center[2]],
-            [-1.0, 0.0, 0.0],
-        ).unwrap(),
-        Plane::from_point_normal(
-            [center[0], center[1] + half_size, center[2]],
-            [0.0, 1.0, 0.0],
-        ).unwrap(),
-        Plane::from_point_normal(
-            [center[0], center[1] - half_size, center[2]],
-            [0.0, -1.0, 0.0],
-        ).unwrap(),
-        Plane::from_point_normal(
-            [center[0], center[1], center[2] + half_size],
-            [0.0, 0.0, 1.0],
-        ).unwrap(),
-        Plane::from_point_normal(
-            [center[0], center[1], center[2] - half_size],
-            [0.0, 0.0, -1.0],
-        ).unwrap(),
-    ];
-    let cell = build_convex_polyhedron(&planes, &BspConfig::default()).unwrap();
-    let mut ctx = ModelingContext::new();
-    build_halfedge_mesh(&cell, &mut ctx).unwrap().into_parts()
+    mesh_builder::make_cube(center, half_size * 2.0).unwrap().into_parts()
 }
 
 /// Compute face centroid for test assertions (wraps the shared eval function).
@@ -137,87 +107,26 @@ pub fn euler_audit(arena: &forge_topo::arena::TopologyArena) -> (usize, usize, u
 }
 
 /// Build a tetrahedron mesh from 4 planes.
-///
-/// Creates a minimal closed convex solid (4 faces, 4 vertices, 6 edges).
-/// Useful for genus and minimal-geometry tests.
 pub fn build_tetrahedron(
     center: [f64; 3],
     scale: f64,
 ) -> (TopologyState, GeometryStore) {
-    let s = scale;
-    let planes = vec![
-        Plane::from_point_normal(
-            [center[0], center[1], center[2] + s],
-            [0.0, 0.0, 1.0],
-        ).unwrap(),
-        Plane::from_point_normal(
-            [center[0], center[1] + s, center[2] - s],
-            [0.0, 0.8164965809, -0.5773502692],
-        ).unwrap(),
-        Plane::from_point_normal(
-            [center[0] - s * 0.7071, center[1] - s * 0.5, center[2] - s],
-            [-0.8164965809, -0.4714045208, -0.3333333333],
-        ).unwrap(),
-        Plane::from_point_normal(
-            [center[0] + s * 0.7071, center[1] - s * 0.5, center[2] - s],
-            [0.8164965809, -0.4714045208, -0.3333333333],
-        ).unwrap(),
-    ];
-    let cell = build_convex_polyhedron(&planes, &BspConfig::default()).unwrap();
-    let mut ctx = ModelingContext::new();
-    build_halfedge_mesh(&cell, &mut ctx).unwrap().into_parts()
+    mesh_builder::make_tetrahedron(center, scale).unwrap().into_parts()
 }
 
 /// Build a convex solid from arbitrary planes.
-///
-/// Wrapper around `build_convex_polyhedron` + `build_halfedge_mesh`
-/// for tests that need custom geometry.
 pub fn build_convex_solid(
     planes: Vec<Plane>,
 ) -> (TopologyState, GeometryStore) {
-    let cell = build_convex_polyhedron(&planes, &BspConfig::default()).unwrap();
-    let mut ctx = ModelingContext::new();
-    build_halfedge_mesh(&cell, &mut ctx).unwrap().into_parts()
+    mesh_builder::make_convex_solid(planes).unwrap().into_parts()
 }
 
 /// Build a regular dodecahedron (12 pentagonal faces) from 12 planes.
-///
-/// Uses golden-ratio face normals. The dodecahedron is centered at
-/// `center` and scaled by `scale`.
 pub fn build_dodecahedron(
     center: [f64; 3],
     scale: f64,
 ) -> (TopologyState, GeometryStore) {
-    let phi: f64 = (1.0 + 5.0_f64.sqrt()) / 2.0;
-    let inv_phi = 1.0 / phi;
-
-    let raw_normals: [[f64; 3]; 12] = [
-        [0.0,  phi,  inv_phi],
-        [0.0,  phi, -inv_phi],
-        [0.0, -phi,  inv_phi],
-        [0.0, -phi, -inv_phi],
-        [ inv_phi, 0.0,  phi],
-        [-inv_phi, 0.0,  phi],
-        [ inv_phi, 0.0, -phi],
-        [-inv_phi, 0.0, -phi],
-        [ phi,  inv_phi, 0.0],
-        [ phi, -inv_phi, 0.0],
-        [-phi,  inv_phi, 0.0],
-        [-phi, -inv_phi, 0.0],
-    ];
-
-    let planes: Vec<Plane> = raw_normals.iter().map(|n| {
-        let len = (n[0]*n[0] + n[1]*n[1] + n[2]*n[2]).sqrt();
-        let norm = [n[0]/len, n[1]/len, n[2]/len];
-        let pt = [
-            center[0] + norm[0] * scale,
-            center[1] + norm[1] * scale,
-            center[2] + norm[2] * scale,
-        ];
-        Plane::from_point_normal(pt, norm).unwrap()
-    }).collect();
-
-    build_convex_solid(planes)
+    mesh_builder::make_dodecahedron(center, scale).unwrap().into_parts()
 }
 
 /// Generate Menger sponge subtraction centers for a given level.

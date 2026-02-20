@@ -303,7 +303,7 @@ fn check_normal_alignment(
 
     match (source_plane, other_plane) {
         (Some(sp), Some(op)) => {
-            forge_math::linalg::normals_aligned(sp.raw_normal(), op.raw_normal())
+            forge_geom::primitives::plane::normals_aligned_exact(sp, op)
         }
         _ => true,
     }
@@ -334,17 +334,12 @@ fn compute_ray_extent_from_bbox(
 
     for (vid, _) in arena.iter_vertices() {
         if let Some(pos) = geometry.get_vertex_position(vid) {
-            for i in 0..3 {
-                min_pos[i] = min_pos[i].min(pos[i]);
-                max_pos[i] = max_pos[i].max(pos[i]);
-            }
+            min_pos = forge_math::linalg::component_min(min_pos, *pos);
+            max_pos = forge_math::linalg::component_max(max_pos, *pos);
         }
     }
 
-    let dx = max_pos[0] - min_pos[0];
-    let dy = max_pos[1] - min_pos[1];
-    let dz = max_pos[2] - min_pos[2];
-    let diagonal = (dx * dx + dy * dy + dz * dz).sqrt();
+    let diagonal = forge_math::linalg::norm(forge_math::linalg::sub(max_pos, min_pos));
 
     (diagonal * 10.0).max(default_extent)
 }

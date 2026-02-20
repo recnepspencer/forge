@@ -3,7 +3,7 @@
 //! Includes simplification passes like merging coplanar faces to restore
 //! a canonical representation and ensure associativity.
 
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 use forge_core::KernelError;
 use forge_core::result::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
@@ -67,10 +67,7 @@ fn run_merge_pass(
                 let plane_a = geom.get_face_plane(face_a)?;
                 let plane_b = geom.get_face_plane(face_b)?;
 
-                let exact_match = plane_a.raw_normal() == plane_b.raw_normal()
-                    && plane_a.raw_offset() == plane_b.raw_offset();
-
-                if exact_match || forge_geom::primitives::plane::exact_eq(plane_a, plane_b) {
+                if forge_geom::primitives::plane::exact_eq(plane_a, plane_b) {
                     Some(he_id)
                 } else {
                     None
@@ -79,7 +76,7 @@ fn run_merge_pass(
             .collect::<Vec<_>>()
     };
 
-    let mut touched_faces = HashSet::new();
+    let mut touched_faces = BTreeSet::new();
     let mut found_merge = false;
 
     for he_id in candidates {
@@ -205,8 +202,8 @@ fn run_vertex_cleanup_pass(
                                     geom.get_vertex_position(target_a),
                                     geom.get_vertex_position(target_b),
                                 ) {
-                                    let v_va = [p_a[0]-p_v[0], p_a[1]-p_v[1], p_a[2]-p_v[2]];
-                                    let v_vb = [p_b[0]-p_v[0], p_b[1]-p_v[1], p_b[2]-p_v[2]];
+                                    let v_va = forge_math::linalg::sub(*p_a, *p_v);
+                                    let v_vb = forge_math::linalg::sub(*p_b, *p_v);
 
                                     let len_a = forge_math::linalg::norm(v_va);
                                     let len_b = forge_math::linalg::norm(v_vb);
@@ -231,7 +228,7 @@ fn run_vertex_cleanup_pass(
 
     candidates.sort_by_key(|k| k.0);
 
-    let mut touched_verts = HashSet::new();
+    let mut touched_verts = BTreeSet::new();
     let mut found_removal = false;
 
     for (vid, incoming_he) in candidates {

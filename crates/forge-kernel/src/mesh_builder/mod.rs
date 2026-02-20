@@ -17,4 +17,4 @@ mod eval;
 #[cfg(test)]
 mod tests;
 
-pub use eval::{build_halfedge_mesh, make_cube, MeshBuildResult};
+pub use eval::{build_halfedge_mesh, make_cube, make_tetrahedron, make_dodecahedron, make_convex_solid, MeshBuildResult};

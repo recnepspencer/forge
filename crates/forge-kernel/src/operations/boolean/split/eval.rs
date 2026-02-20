@@ -4,7 +4,7 @@
 //! DEPENDENCIES: schema, cut, GeometryStore, forge_geom BVH, forge_topo.
 //! INVARIANTS: split_solid processes each face-cut pair atomically via MutableDraft.
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 
 use forge_core::KernelError;
 use forge_geom::Aabb;
@@ -52,8 +52,8 @@ pub fn split_all_faces(
         }
     }
 
-    let target_aabbs_full = compute_face_aabbs(target_topo.arena(), &target_geom)?;
-    let tool_aabbs_full = compute_face_aabbs(tool_topo.arena(), &tool_geom)?;
+    let target_aabbs_full = compute_face_aabbs(target_topo.arena(), &target_geom, &config)?;
+    let tool_aabbs_full = compute_face_aabbs(tool_topo.arena(), &tool_geom, &config)?;
 
     let target_aabbs_indexed: Vec<(usize, Aabb)> = target_aabbs_full.iter()
         .enumerate().map(|(i, (_, aabb))| (i, aabb.clone())).collect();
@@ -263,7 +263,9 @@ fn assign_original_vertex_provenance(
 pub fn compute_face_aabbs(
     arena: &TopologyArena,
     geom: &GeometryStore,
+    config: &crate::core::ToleranceConfig,
 ) -> Result<Vec<(FaceId, Aabb)>, KernelError> {
+    let inflation = config.get_aabb_inflation();
     let mut list = Vec::new();
     for (fid, _) in arena.iter_faces() {
         let edges: Vec<_> = FaceEdgeIterator::new(arena, fid)?
@@ -276,16 +278,7 @@ pub fn compute_face_aabbs(
             }
         }
         if let Some(mut aabb) = Aabb::from_points(&points) {
-            // Inflate by a small epsilon to prevent FPU boundary misses.
-            //
-            // Exactly-touching coplanar face pairs (e.g. target z=5 top face vs
-            // tool z=5 cap) can straddle the `<=` threshold of `Aabb::intersects`
-            // when float coordinates are rounded differently per solid. The inflation
-            // ensures these pairs always reach the `exact_eq` coplanar-expansion
-            // branch and receive mutual boundary-plane cuts.
-            let eps = 1e-7;
-            aabb.min[0] -= eps; aabb.min[1] -= eps; aabb.min[2] -= eps;
-            aabb.max[0] += eps; aabb.max[1] += eps; aabb.max[2] += eps;
+            aabb.expand(inflation);
             list.push((fid, aabb));
         }
     }
@@ -306,9 +299,9 @@ pub fn expand_coplanar_adjacency(
     _existing_target_cuts: &BTreeMap<FaceId, Vec<usize>>,
     plane_table: &PlaneTable,
 ) -> Vec<(FaceId, Vec<usize>)> {
-    let tool_plane_set: HashSet<usize> = tool_face_planes.values().copied().collect();
+    let tool_plane_set: BTreeSet<usize> = tool_face_planes.values().copied().collect();
 
-    let mut coplanar_targets: HashSet<u32> = HashSet::new();
+    let mut coplanar_targets: BTreeSet<u32> = BTreeSet::new();
     for (target_fid, &target_plane_idx) in target_face_planes {
         if tool_plane_set.contains(&target_plane_idx) {
             coplanar_targets.insert(target_fid.index());
