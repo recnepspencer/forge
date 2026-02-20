@@ -256,21 +256,6 @@ pub fn stitch_twins(
             .collect();
 
         if !final_unpaired.is_empty() {
-            eprintln!("=== ALL EDGES IN RESULT (for matching analysis) ===");
-            for (he_id, he_data) in draft.arena().iter_half_edges() {
-                let origin = he_data.origin();
-                let next_he = he_data.next();
-                if let Ok(next_data) = draft.arena().get_half_edge(next_he) {
-                    let dest = next_data.origin();
-                    let p_o = geom.get_vertex_position(origin).map(|p| format!("[{:.4},{:.4},{:.4}]", p[0], p[1], p[2])).unwrap_or_default();
-                    let p_d = geom.get_vertex_position(dest).map(|p| format!("[{:.4},{:.4},{:.4}]", p[0], p[1], p[2])).unwrap_or_default();
-                    let paired_status = if paired.contains(&he_id.index()) { "P1" }
-                        else if paired_unpaired.contains(&he_id.index()) { "P2" }
-                        else if position_paired.contains(&he_id.index()) { "P3" }
-                        else { "UNPD" };
-                    eprintln!("  {} {} -> {} f={} [{}] {}->{}", he_id, origin, dest, he_data.face(), paired_status, p_o, p_d);
-                }
-            }
             eprintln!("=== STITCH FAILURE: {} unpaired halfedges ===", final_unpaired.len());
             for &he_id in &final_unpaired {
                 let he_data = draft.arena().get_half_edge(he_id)?;
@@ -288,6 +273,20 @@ pub fn stitch_twins(
                 let p_o = geom.get_vertex_position(origin).map(|p| format!("{:.6e},{:.6e},{:.6e}", p[0], p[1], p[2])).unwrap_or_default();
                 let p_d = geom.get_vertex_position(dest).map(|p| format!("{:.6e},{:.6e},{:.6e}", p[0], p[1], p[2])).unwrap_or_default();
                 eprintln!("  he={} : {} -> {} (face={}) [{}] pos=[{}]->[{}]", he_id, origin, dest, he_data.face(), twin_status, p_o, p_d);
+
+                let face_id = he_data.face();
+                eprintln!("    Face {} geometry:", face_id);
+                if let Ok(edges) = forge_topo::traverse::FaceEdgeIterator::new(draft.arena(), face_id) {
+                    for ehe_res in edges {
+                        if let Ok(ehe) = ehe_res {
+                            if let Ok(edata) = draft.arena().get_half_edge(ehe) {
+                                if let Some(vpos) = geom.get_vertex_position(edata.origin()) {
+                                    eprintln!("      Vertex {}: [{:e}, {:e}, {:e}]", edata.origin(), vpos[0], vpos[1], vpos[2]);
+                                }
+                            }
+                        }
+                    }
+                }
             }
             return Err(KernelError::TopologyViolation {
                 err: forge_core::TopologyError::MissingTwin {

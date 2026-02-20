@@ -76,25 +76,27 @@ fn remove_zero_length_edges(
         }
 
         let next_id = he_data.next();
-        let prev_id = find_prev_he(draft, he_id)?;
+        let prev_id = he_data.prev();
 
         if prev_id == he_id || next_id == he_id {
             continue;
         }
 
         draft.arena_mut().get_half_edge_mut(prev_id)?.set_next(next_id);
+        draft.arena_mut().get_half_edge_mut(next_id)?.set_prev(prev_id);
 
         if let Ok(twin_data) = draft.arena().get_half_edge(twin_id) {
             let twin_data = twin_data.clone();
             let twin_next = twin_data.next();
-            let twin_prev = find_prev_he(draft, twin_id)?;
+            let twin_prev = twin_data.prev();
 
             if twin_prev != twin_id && twin_next != twin_id {
                 draft.arena_mut().get_half_edge_mut(twin_prev)?.set_next(twin_next);
+                draft.arena_mut().get_half_edge_mut(twin_next)?.set_prev(twin_prev);
             }
         }
 
-        let outer_loop_id = {
+        let outer_loop_id_primary = {
             let face_data = draft.arena().get_face(he_data.face())?;
             let loop_data = draft.arena().get_loop(face_data.outer_loop())?;
             if loop_data.half_edge() == he_id {
@@ -103,11 +105,11 @@ fn remove_zero_length_edges(
                 None
             }
         };
-        if let Some(loop_id) = outer_loop_id {
+        if let Some(loop_id) = outer_loop_id_primary {
             draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(next_id);
         }
 
-        let outgoing_update = {
+        let outgoing_update_primary = {
             let vertex_data = draft.arena().get_vertex(he_data.origin())?;
             if vertex_data.outgoing() == he_id {
                 Some(he_data.origin())
@@ -115,8 +117,38 @@ fn remove_zero_length_edges(
                 None
             }
         };
-        if let Some(vid) = outgoing_update {
+        if let Some(vid) = outgoing_update_primary {
             draft.arena_mut().get_vertex_mut(vid)?.set_outgoing(next_id);
+        }
+
+        if let Ok(twin_data) = draft.arena().get_half_edge(twin_id) {
+            let twin_data = twin_data.clone();
+            let twin_next = twin_data.next();
+            
+            let outer_loop_id_twin = {
+                let face_data = draft.arena().get_face(twin_data.face())?;
+                let loop_data = draft.arena().get_loop(face_data.outer_loop())?;
+                if loop_data.half_edge() == twin_id {
+                    Some(face_data.outer_loop())
+                } else {
+                    None
+                }
+            };
+            if let Some(loop_id) = outer_loop_id_twin {
+                draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(twin_next);
+            }
+
+            let outgoing_update_twin = {
+                let vertex_data = draft.arena().get_vertex(twin_data.origin())?;
+                if vertex_data.outgoing() == twin_id {
+                    Some(twin_data.origin())
+                } else {
+                    None
+                }
+            };
+            if let Some(vid) = outgoing_update_twin {
+                draft.arena_mut().get_vertex_mut(vid)?.set_outgoing(twin_next);
+            }
         }
 
         let _ = draft.arena_mut().remove_half_edge(he_id);
@@ -178,6 +210,38 @@ fn remove_degenerate_faces(
             Err(_) => continue,
         };
 
+        let mut deleted_he_set: HashSet<u32> = HashSet::new();
+        for he_id in &edges {
+            deleted_he_set.insert(he_id.index());
+        }
+
+        let mut affected_vertices: HashSet<u32> = HashSet::new();
+        for he_id in &edges {
+            if let Ok(he_data) = draft.arena().get_half_edge(*he_id) {
+                let origin = he_data.origin();
+                let outgoing = draft.arena().get_vertex(origin)
+                    .map(|v| v.outgoing())
+                    .ok();
+                if outgoing.map(|o| deleted_he_set.contains(&o.index())).unwrap_or(false) {
+                    affected_vertices.insert(origin.index());
+                }
+            }
+        }
+
+        let mut replacements: Vec<(VertexId, HalfEdgeId)> = Vec::new();
+        for (he_id, he_data) in draft.arena().iter_half_edges() {
+            if deleted_he_set.contains(&he_id.index()) {
+                continue;
+            }
+            if affected_vertices.contains(&he_data.origin().index()) {
+                replacements.push((he_data.origin(), he_id));
+                affected_vertices.remove(&he_data.origin().index());
+            }
+        }
+        for (vid, he_id) in replacements {
+            let _ = draft.arena_mut().get_vertex_mut(vid).map(|v| v.set_outgoing(he_id));
+        }
+
         for he_id in &edges {
             let _ = draft.arena_mut().remove_half_edge(*he_id);
         }
@@ -194,31 +258,3 @@ fn remove_degenerate_faces(
     Ok(removed)
 }
 
-/// Find the halfedge whose `next` field points to `target`.
-fn find_prev_he(
-    draft: &MutableDraft,
-    target: HalfEdgeId,
-) -> Result<HalfEdgeId, KernelError> {
-    let he_data = draft.arena().get_half_edge(target)?;
-    let face_data = draft.arena().get_face(he_data.face())?;
-    let loop_data = draft.arena().get_loop(face_data.outer_loop())?;
-    let start = loop_data.half_edge();
-    let mut current = start;
-    let max_iter = 1000;
-
-    for _ in 0..max_iter {
-        let curr_data = draft.arena().get_half_edge(current)?;
-        if curr_data.next() == target {
-            return Ok(current);
-        }
-        current = curr_data.next();
-        if current == start {
-            break;
-        }
-    }
-
-    Err(KernelError::InternalError {
-        message: format!("Could not find prev halfedge for {}", target),
-        context: None,
-    })
-}

@@ -29,6 +29,7 @@ pub use spatial::bsp::BspTree;
 pub use spatial::bsp::PlaneSet; // Exposed for tests mostly?
 pub use spatial::bvh::BvhNode;
 pub use spatial::local_space::{LocalCoordinateSpace, ScaleAnalysis};
+pub use algorithms::chord::{compute_intersection_line, clip_line_to_face_polygon};
 
 /// Standard grid scale for spatial hashing (1 unit = 1e6 integers).
 pub const GRID_SCALE: f64 = 1e6;

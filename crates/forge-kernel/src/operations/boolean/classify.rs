@@ -228,6 +228,8 @@ fn classify_single_face(
         }
     };
 
+    eprintln!("DEBUG_CLASSIFY: face={} centroid={:?} class={:?}", face_id.index(), sample, class);
+
     if let Some(escalation) = esc {
         ctx.log_escalation(escalation);
     }

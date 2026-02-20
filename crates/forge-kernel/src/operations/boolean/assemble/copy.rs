@@ -244,6 +244,7 @@ fn copy_single_face(
             face_id,
             origin,
         ));
+        draft.arena_mut().get_half_edge_mut(he_id).unwrap().set_twin(he_id);
         he_ids.push(he_id);
     }
     
