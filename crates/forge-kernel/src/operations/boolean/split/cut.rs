@@ -13,11 +13,11 @@
 //!   - Exactly ONE cut pair is applied per call; both fragments are re-enqueued
 //!     by the caller for re-testing against the same and remaining planes.
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 
 use forge_core::KernelError;
 use forge_core::result::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
-use forge_geom::primitives::plane::{Plane, classify_point, classify_point_exact, signed_distance, intersect_three_planes_exact};
+use forge_geom::primitives::plane::{Plane, classify_point_exact, intersect_three_planes_exact};
 use forge_geom::{compute_intersection_line, clip_line_to_face_polygon};
 use forge_math::arithmetic::Rational;
 use forge_math::sign::TriSign;
@@ -35,11 +35,7 @@ use crate::operations::boolean::eval::VertexMatchKey;
 
 use super::schema::{CutPoint, EdgeCutMap, LocalVertexDedup, PlaneTable, SharedVertexRegistry, make_edge_key};
 
-/// Minimum chord length to consider a cut meaningful.
-const MIN_CHORD_LEN: f64 = 1e-9;
 
-/// Minimum cross-product norm for plane-plane intersection (parallel guard).
-const MIN_DIR_LEN: f64 = 1e-12;
 
 /// Split a face by a cutting plane — applies exactly ONE cut pair per call.
 ///
@@ -58,7 +54,7 @@ pub fn split_face_by_plane(
     _face_plane_idx: usize,
     cut_plane: &Plane,
     cut_plane_idx: usize,
-    _config: &crate::core::ToleranceConfig,
+    config: &crate::core::ToleranceConfig,
     plane_table: &PlaneTable,
     face_plane_map: &BTreeMap<FaceId, usize>,
     shared_registry: &mut SharedVertexRegistry,
@@ -66,9 +62,20 @@ pub fn split_face_by_plane(
 ) -> Result<Vec<FaceId>, KernelError> {
 
     // ── Gate: chord-clip decides IF this face needs cutting ──────────────────
-    let chord = compute_face_chord(draft.arena(), geometry, face, face_plane, cut_plane)?;
+    let chord = compute_face_chord(draft.arena(), geometry, face, face_plane, cut_plane, config)?;
     if chord.is_none() {
-        eprintln!("DEBUG_CUT: Face {} rejected by chord gate (plane {})", face.index(), cut_plane_idx);
+        let mut decision = TracedDecision::new(
+            DecisionId(face.index() as u64),
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            1.0,
+            DecisionContext::Degeneracy {
+                description: format!("Face #{} rejected by chord gate (plane #{})",
+                    face.index(), cut_plane_idx),
+            },
+        );
+        decision.set_entity_scope(EntityRef::new("Face", face.index()));
+        ctx.get_decision_log_mut().record(decision);
         return Ok(Vec::new());
     }
 
@@ -77,10 +84,22 @@ pub fn split_face_by_plane(
         draft.arena(), geometry, face,
         cut_plane, cut_plane_idx,
         dedup, face_plane_map, edge_cut_map, shared_registry, plane_table,
+        config,
     )?;
 
     if cut_points.len() < 2 {
-        eprintln!("DEBUG_CUT: Face {} rejected, <2 cut_points ({})", face.index(), cut_points.len());
+        let mut decision = TracedDecision::new(
+            DecisionId(face.index() as u64),
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            1.0,
+            DecisionContext::Degeneracy {
+                description: format!("Face #{} rejected: {} cut point(s) found (need >=2)",
+                    face.index(), cut_points.len()),
+            },
+        );
+        decision.set_entity_scope(EntityRef::new("Face", face.index()));
+        ctx.get_decision_log_mut().record(decision);
         return Ok(Vec::new());
     }
 
@@ -93,13 +112,24 @@ pub fn split_face_by_plane(
 
     resolved.dedup_by_key(|v| v.index());
     if resolved.len() < 2 {
-        eprintln!("DEBUG_CUT: Face {} rejected, <2 resolved vertices ({})", face.index(), resolved.len());
+        let mut decision = TracedDecision::new(
+            DecisionId(face.index() as u64),
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            1.0,
+            DecisionContext::Degeneracy {
+                description: format!("Face #{} rejected: {} resolved vertex/vertices after dedup (need >=2)",
+                    face.index(), resolved.len()),
+            },
+        );
+        decision.set_entity_scope(EntityRef::new("Face", face.index()));
+        ctx.get_decision_log_mut().record(decision);
         return Ok(Vec::new());
     }
 
     // ── Sort along a reference direction on the cutting plane ────────────────
     let cut_normal = cut_plane.raw_normal();
-    let ref_direction = compute_ref_direction(cut_normal);
+    let ref_direction = forge_math::linalg::compute_perpendicular_direction(cut_normal);
 
     resolved.sort_by(|a, b| {
         let pa = geometry.get_vertex_position(*a)
@@ -114,7 +144,7 @@ pub fn split_face_by_plane(
     // ── Build adjacent-pairs set to avoid redundant cuts ────────────────────
     let face_edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), face)?
         .collect::<Result<Vec<_>, _>>()?;
-    let mut adjacent_pairs: HashSet<(u32, u32)> = HashSet::new();
+    let mut adjacent_pairs: BTreeSet<(u32, u32)> = BTreeSet::new();
     for he in &face_edges {
         let origin = draft.arena().get_half_edge(*he)?.origin();
         let next_he = draft.arena().get_half_edge(*he)?.next();
@@ -137,7 +167,6 @@ pub fn split_face_by_plane(
                 (pair[1].index(), pair[0].index())
             };
             if adjacent_pairs.contains(&key) {
-                eprintln!("DEBUG_CUT: Face {} rejected adjacent pair {:?}-{:?}", face.index(), pair[0].index(), pair[1].index());
                 false
             } else {
                 true
@@ -171,11 +200,9 @@ pub fn split_face_by_plane(
                     decision.set_entity_scope(EntityRef::new("Face", face.index()));
                     ctx.get_decision_log_mut().record(decision);
 
-                    eprintln!("DEBUG_CUT: Face {} cut successfully into {} by plane {}", face.index(), new_face.index(), cut_plane_idx);
                     Some(vec![new_face, face])
                 }
                 Err(_) => {
-                    eprintln!("DEBUG_CUT: Face {} apply_op MakeEdgeFace failed", face.index());
                     None
                 }
             }
@@ -185,7 +212,18 @@ pub fn split_face_by_plane(
         return Ok(result);
     }
 
-    eprintln!("DEBUG_CUT: Face {} fell through without cutting", face.index());
+    let mut decision = TracedDecision::new(
+        DecisionId(face.index() as u64),
+        DecisionKind::Exact,
+        DecisionTier::Deterministic,
+        1.0,
+        DecisionContext::Degeneracy {
+            description: format!("Face #{} fell through: no valid cut pair found for plane #{}",
+                face.index(), cut_plane_idx),
+        },
+    );
+    decision.set_entity_scope(EntityRef::new("Face", face.index()));
+    ctx.get_decision_log_mut().record(decision);
     Ok(Vec::new())
 }
 
@@ -205,13 +243,19 @@ fn compute_face_chord(
     face: FaceId,
     face_plane: &Plane,
     cut_plane: &Plane,
+    config: &crate::core::ToleranceConfig,
 ) -> Result<Option<([f64; 3], [f64; 3])>, KernelError> {
+    if forge_geom::primitives::plane::are_parallel_exact(face_plane, cut_plane) {
+        return Ok(None);
+    }
+
     let fn_a = face_plane.normal();
     let fo_a = face_plane.offset();
     let fn_b = cut_plane.normal();
     let fo_b = cut_plane.offset();
+    let min_chord = config.get_min_edge_length();
 
-    let line = compute_intersection_line(fn_a, fo_a, fn_b, fo_b, MIN_DIR_LEN);
+    let line = compute_intersection_line(fn_a, fo_a, fn_b, fo_b, config.get_degeneracy());
     let (line_pt, line_dir) = match line {
         None => return Ok(None),
         Some(l) => l,
@@ -232,13 +276,13 @@ fn compute_face_chord(
         return Ok(None);
     }
 
-    let chord = clip_line_to_face_polygon(line_pt, line_dir, &verts, fn_a, MIN_CHORD_LEN);
+    let chord = clip_line_to_face_polygon(line_pt, line_dir, &verts, fn_a, min_chord);
     if chord.is_some() {
         return Ok(chord);
     }
     // Fallback 1: winding may be CW relative to stored plane normal.
     let fn_a_neg = [-fn_a[0], -fn_a[1], -fn_a[2]];
-    let chord_neg = clip_line_to_face_polygon(line_pt, line_dir, &verts, fn_a_neg, MIN_CHORD_LEN);
+    let chord_neg = clip_line_to_face_polygon(line_pt, line_dir, &verts, fn_a_neg, min_chord);
     if chord_neg.is_some() {
         return Ok(chord_neg);
     }
@@ -254,15 +298,15 @@ fn compute_face_chord(
         let origin = he_data.origin();
         let next_data = arena.get_half_edge(he_data.next())?;
         let dest = next_data.origin();
-        let p_o = match geometry.get_vertex_position(origin) { Some(p) => p, None => { /* skip */ &[0.0; 3] } };
-        let p_d = match geometry.get_vertex_position(dest) { Some(p) => p, None => { /* skip */ &[0.0; 3] } };
-        if geometry.get_vertex_position(origin).is_some() && geometry.get_vertex_position(dest).is_some() {
-            let d_o = signed_distance(cut_plane, p_o);
-            let d_d = signed_distance(cut_plane, p_d);
-            if (d_o > 0.0 && d_d < 0.0) || (d_o < 0.0 && d_d > 0.0) {
-                let mid = edge_interpolate(cut_plane, p_o, p_d);
+        if let (Some(p_o), Some(p_d)) = (geometry.get_vertex_position(origin), geometry.get_vertex_position(dest)) {
+            let s_o = exact_sign_for_vertex(geometry, origin, p_o, cut_plane);
+            let s_d = exact_sign_for_vertex(geometry, dest, p_d, cut_plane);
+            let is_crossing = (s_o == TriSign::Pos && s_d == TriSign::Neg)
+                           || (s_o == TriSign::Neg && s_d == TriSign::Pos);
+            if is_crossing {
+                let mid = forge_geom::primitives::plane::intersect_edge_plane(cut_plane, p_o, p_d, config.get_edge_split_degeneracy());
                 crossings.push(mid);
-            } else if d_o.abs() < MIN_CHORD_LEN {
+            } else if s_o == TriSign::Zero {
                 crossings.push(*p_o);
             }
         }
@@ -273,15 +317,6 @@ fn compute_face_chord(
     if crossings.len() >= 2 {
         return Ok(Some((crossings[0], crossings[1])));
     }
-
-    eprint!("DEBUG_REJECT: Face {} versus cut_plane {}. Dists:", face.index(), cut_plane.offset());
-    for he in &edges2 {
-        let v = arena.get_half_edge(*he)?.origin();
-        if let Some(p) = geometry.get_vertex_position(v) {
-            eprint!(" {:.3}", signed_distance(cut_plane, p));
-        }
-    }
-    eprintln!();
 
     Ok(None)
 }
@@ -305,6 +340,7 @@ fn find_cut_points_provenance(
     _edge_cut_map: &EdgeCutMap,
     shared_registry: &mut SharedVertexRegistry,
     plane_table: &PlaneTable,
+    config: &crate::core::ToleranceConfig,
 ) -> Result<Vec<CutPoint>, KernelError> {
     let edges: Vec<_> = FaceEdgeIterator::new(arena, face)?
         .collect::<Result<Vec<_>, _>>()?;
@@ -318,27 +354,8 @@ fn find_cut_points_provenance(
 
         if let Some(p_o) = geometry.get_vertex_position(origin) {
             if let Some(p_d) = geometry.get_vertex_position(dest) {
-                let s_o = if let Some(exact_o) = geometry.get_vertex_position_exact(origin) {
-                    classify_point_exact(cut_plane, exact_o)
-                } else if !p_o[0].is_finite() || !p_o[1].is_finite() || !p_o[2].is_finite() {
-                    TriSign::Zero
-                } else {
-                    match classify_point(cut_plane, p_o) {
-                        Ok(cert) => cert.sign(),
-                        Err(_) => TriSign::Zero,
-                    }
-                };
-
-                let s_d = if let Some(exact_d) = geometry.get_vertex_position_exact(dest) {
-                    classify_point_exact(cut_plane, exact_d)
-                } else if !p_d[0].is_finite() || !p_d[1].is_finite() || !p_d[2].is_finite() {
-                    TriSign::Zero
-                } else {
-                    match classify_point(cut_plane, p_d) {
-                        Ok(cert) => cert.sign(),
-                        Err(_) => TriSign::Zero,
-                    }
-                };
+                let s_o = exact_sign_for_vertex(geometry, origin, p_o, cut_plane);
+                let s_d = exact_sign_for_vertex(geometry, dest, p_d, cut_plane);
 
                 if s_o == TriSign::Zero && s_d != TriSign::Zero {
                     points.push(CutPoint::Existing(origin));
@@ -364,15 +381,15 @@ fn find_cut_points_provenance(
                                     let f64_pos = if fx.is_finite() && fy.is_finite() && fz.is_finite() {
                                         [fx, fy, fz]
                                     } else {
-                                        edge_interpolate(cut_plane, p_o, p_d)
+                                        forge_geom::primitives::plane::intersect_edge_plane(cut_plane, p_o, p_d, config.get_edge_split_degeneracy())
                                     };
                                     (Some(ep), f64_pos)
                                 }
-                                Err(_) => (None, edge_interpolate(cut_plane, p_o, p_d)),
+                                Err(_) => (None, forge_geom::primitives::plane::intersect_edge_plane(cut_plane, p_o, p_d, config.get_edge_split_degeneracy())),
                             }
                         } else {
-                            let f64_pos = edge_interpolate(cut_plane, p_o, p_d);
-                            let ep = try_exact_from_f64(&f64_pos);
+                            let f64_pos = forge_geom::primitives::plane::intersect_edge_plane(cut_plane, p_o, p_d, config.get_edge_split_degeneracy());
+                            let ep = Rational::try_from_f64_3(&f64_pos);
                             (ep, f64_pos)
                         }
                     };
@@ -423,26 +440,7 @@ fn exact_sign_for_vertex(
     classify_point_exact(plane, &promoted)
 }
 
-/// Linearly interpolate to find where cut_plane crosses the edge [p_o, p_d].
-fn edge_interpolate(cut_plane: &Plane, p_o: &[f64; 3], p_d: &[f64; 3]) -> [f64; 3] {
-    let dist_o = signed_distance(cut_plane, p_o);
-    let dist_d = signed_distance(cut_plane, p_d);
-    let denom = dist_o - dist_d;
-    if denom.abs() < 1e-30 {
-        [0.5*(p_o[0]+p_d[0]), 0.5*(p_o[1]+p_d[1]), 0.5*(p_o[2]+p_d[2])]
-    } else {
-        let t = dist_o / denom;
-        [p_o[0]+t*(p_d[0]-p_o[0]), p_o[1]+t*(p_d[1]-p_o[1]), p_o[2]+t*(p_d[2]-p_o[2])]
-    }
-}
 
-/// Convert an f64 triple to exact Rational, returning None on failure.
-fn try_exact_from_f64(pos: &[f64; 3]) -> Option<[Rational; 3]> {
-    let x = Rational::try_from_f64(pos[0]).ok()?;
-    let y = Rational::try_from_f64(pos[1]).ok()?;
-    let z = Rational::try_from_f64(pos[2]).ok()?;
-    Some([x, y, z])
-}
 
 /// Build a provenance key from an optional exact position.
 fn build_provenance(exact_pos: &Option<[Rational; 3]>, fallback: [f64; 3]) -> VertexMatchKey {
@@ -457,23 +455,7 @@ fn build_provenance(exact_pos: &Option<[Rational; 3]>, fallback: [f64; 3]) -> Ve
     }
 }
 
-/// Compute a reference direction perpendicular to the cut normal for 1D sorting.
-fn compute_ref_direction(n: [f64; 3]) -> [f64; 3] {
-    use forge_math::linalg::{dot, sub, scale, normalize_checked};
 
-    let candidates = [[1.0_f64, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-    let mut best = candidates[0];
-    let mut min_dot = f64::MAX;
-    for c in &candidates {
-        let d = dot(*c, n).abs();
-        if d < min_dot {
-            min_dot = d;
-            best = *c;
-        }
-    }
-    let proj = sub(best, scale(n, dot(best, n)));
-    normalize_checked(proj).unwrap_or(best)
-}
 
 /// Resolve a CutPoint to a concrete VertexId, performing SplitEdge when needed.
 pub fn resolve_cut_point(

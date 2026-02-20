@@ -57,14 +57,28 @@ pub fn norm(v: [f64; 3]) -> f64 {
     norm_sq(v).sqrt()
 }
 
-/// Normalize a 3D vector, returning `None` if the vector is zero-length
-/// or contains non-finite components.
 pub fn normalize_checked(v: [f64; 3]) -> Option<[f64; 3]> {
     let len = norm(v);
     if !len.is_finite() || len == 0.0 {
         return None;
     }
     Some([v[0] / len, v[1] / len, v[2] / len])
+}
+
+/// Compute a reference direction perpendicular to the given vector.
+pub fn compute_perpendicular_direction(n: [f64; 3]) -> [f64; 3] {
+    let candidates = [[1.0_f64, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+    let mut best = candidates[0];
+    let mut min_dot = f64::MAX;
+    for c in &candidates {
+        let d = dot(*c, n).abs();
+        if d < min_dot {
+            min_dot = d;
+            best = *c;
+        }
+    }
+    let proj = sub(best, scale(n, dot(best, n)));
+    normalize_checked(proj).unwrap_or(best)
 }
 
 /// 2D cross product (perpendicular dot product).

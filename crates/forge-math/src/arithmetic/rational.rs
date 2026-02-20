@@ -78,6 +78,15 @@ impl Rational {
         Ok(Self { inner: result })
     }
 
+    /// Convert a 3D `f64` array to an exact rational representation.
+    /// Returns `None` if any component is non-finite.
+    pub fn try_from_f64_3(pos: &[f64; 3]) -> Option<[Self; 3]> {
+        let x = Self::try_from_f64(pos[0]).ok()?;
+        let y = Self::try_from_f64(pos[1]).ok()?;
+        let z = Self::try_from_f64(pos[2]).ok()?;
+        Some([x, y, z])
+    }
+
     /// Return the exact sign of this rational.
     pub fn sign(&self) -> TriSign {
         if self.inner.is_zero() {

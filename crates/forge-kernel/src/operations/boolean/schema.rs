@@ -151,7 +151,7 @@ fn validate_solid(arena: &forge_topo::arena::TopologyArena, label: &str) -> Resu
 }
 
 /// Classification of a face relative to another solid.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum FaceClassification {
     /// Face is strictly inside the other solid.
     Inside,
@@ -204,9 +204,9 @@ pub struct BooleanIntrospection {
     /// Number of split events (edges/faces split).
     pub split_count: usize,
     /// Classification counts for the target solid.
-    pub target_classification: std::collections::HashMap<FaceClassification, usize>,
+    pub target_classification: std::collections::BTreeMap<FaceClassification, usize>,
     /// Classification counts for the tool solid.
-    pub tool_classification: std::collections::HashMap<FaceClassification, usize>,
+    pub tool_classification: std::collections::BTreeMap<FaceClassification, usize>,
     /// Time taken for the operation in microseconds.
     pub duration_micros: u64,
 }
@@ -219,12 +219,12 @@ impl BooleanIntrospection {
         tool_classified: &[ClassifiedFace],
         duration: std::time::Duration,
     ) -> Self {
-        let mut target_map = std::collections::HashMap::new();
+        let mut target_map = std::collections::BTreeMap::new();
         for f in target_classified {
             *target_map.entry(f.classification()).or_insert(0) += 1;
         }
 
-        let mut tool_map = std::collections::HashMap::new();
+        let mut tool_map = std::collections::BTreeMap::new();
         for f in tool_classified {
             *tool_map.entry(f.classification()).or_insert(0) += 1;
         }

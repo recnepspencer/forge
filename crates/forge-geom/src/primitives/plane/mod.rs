@@ -9,7 +9,7 @@
 mod eval;
 
 pub use eval::{classify_point, classify_point_exact, signed_distance, intersect_three_planes,
-               intersect_three_planes_exact, to_plane_relation, exact_eq, coplanar_eq,
+               intersect_three_planes_exact, intersect_edge_plane, to_plane_relation, exact_eq, coplanar_eq,
                are_parallel_exact, normals_aligned_exact};
 
 use forge_math::MathError;

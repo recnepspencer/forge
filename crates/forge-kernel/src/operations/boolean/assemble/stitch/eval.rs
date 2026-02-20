@@ -2,7 +2,7 @@
 //!
 //! DOMAIN: Match halfedges by directed edge identity and set twin pointers.
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use forge_core::KernelError;
 use forge_core::result::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
 use forge_topo::handles::{HalfEdgeId, VertexId};
@@ -26,7 +26,7 @@ pub fn stitch_twins(
     ctx: &mut ModelingContext,
 ) -> Result<(), KernelError> {
     let mut forward_map: BTreeMap<(u32, u32), Vec<HalfEdgeId>> = BTreeMap::new();
-    let mut zero_length: HashSet<u32> = HashSet::new();
+    let mut zero_length: BTreeSet<u32> = BTreeSet::new();
 
     for &he_id in all_he_ids {
         let he_data = draft.arena().get_half_edge(he_id)?;
@@ -43,7 +43,7 @@ pub fn stitch_twins(
         }
     }
 
-    let mut paired: HashSet<u32> = HashSet::new();
+    let mut paired: BTreeSet<u32> = BTreeSet::new();
 
     for &he_id in all_he_ids {
         if !paired.contains(&he_id.index()) {
@@ -117,7 +117,7 @@ pub fn stitch_twins(
             .push(he_id);
     }
 
-    let mut paired_unpaired: HashSet<u32> = HashSet::new();
+    let mut paired_unpaired: BTreeSet<u32> = BTreeSet::new();
     for &(he_id, origin, dest) in &unpaired {
         if !paired_unpaired.contains(&he_id.index()) {
             let he_face = draft.arena().get_half_edge(he_id)?.face();

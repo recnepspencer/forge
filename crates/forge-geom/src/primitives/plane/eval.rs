@@ -141,6 +141,24 @@ pub fn intersect_three_planes_exact(
     Ok([x, y, z])
 }
 
+/// Linearly interpolate to find where a plane crosses the edge `[p_o, p_d]`.
+/// 
+/// `degeneracy_tol` dictates when the edge is considered parallel or lying exactly
+/// on the plane (typically `1e-30`). In this near-degenerate case, the exact geometric
+/// midpoint is returned to guarantee the resulting point is strictly within the original edge.
+pub fn intersect_edge_plane(plane: &Plane, p_o: &[f64; 3], p_d: &[f64; 3], degeneracy_tol: f64) -> [f64; 3] {
+    let dist_o = signed_distance(plane, p_o);
+    let dist_d = signed_distance(plane, p_d);
+    let denom = dist_o - dist_d;
+    
+    if denom.abs() < degeneracy_tol {
+        [0.5 * (p_o[0] + p_d[0]), 0.5 * (p_o[1] + p_d[1]), 0.5 * (p_o[2] + p_d[2])]
+    } else {
+        let t = dist_o / denom;
+        [p_o[0] + t * (p_d[0] - p_o[0]), p_o[1] + t * (p_d[1] - p_o[1]), p_o[2] + t * (p_d[2] - p_o[2])]
+    }
+}
+
 /// Test whether two planes are exactly identical (after canonical normalization).
 ///
 /// Two planes are the same iff their coefficient vectors `(a, b, c, d)` are

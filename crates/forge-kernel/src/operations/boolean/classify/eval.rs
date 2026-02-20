@@ -2,7 +2,7 @@
 //!
 //! DOMAIN: Classify faces of one solid relative to another via ray-casting.
 
-use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use forge_core::KernelError;
 use forge_core::result::{TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier, EntityRef};
@@ -130,7 +130,7 @@ fn decompose_patches(
     arena: &TopologyArena,
     adjacency: &BTreeMap<u32, Vec<FaceId>>,
 ) -> Vec<Vec<FaceId>> {
-    let mut visited: HashSet<u32> = HashSet::new();
+    let mut visited: BTreeSet<u32> = BTreeSet::new();
     let mut patches = Vec::new();
 
     let unvisited_faces: Vec<FaceId> = arena.iter_faces()

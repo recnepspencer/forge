@@ -4,7 +4,7 @@
 //! from re-used boolean results), match by geometric endpoint positions.
 //! Delegates spatial matching to `forge_geom::spatial::edge_match::EdgeMatcher`.
 
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 use forge_core::KernelError;
 use forge_core::result::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
 use forge_geom::spatial::edge_match::{DirectedEdge, EdgeMatcher};
@@ -37,7 +37,7 @@ pub(super) fn stitch_position_fallback(
     let matcher = EdgeMatcher::new(directed_edges, stitch_tol_sq);
     let full_matches = matcher.find_full_matches();
 
-    let mut position_paired: HashSet<u32> = HashSet::new();
+    let mut position_paired: BTreeSet<u32> = BTreeSet::new();
 
     for m in &full_matches {
         if let (Some(&he_a), Some(&he_b)) = (id_to_he.get(&m.edge_a), id_to_he.get(&m.edge_b)) {
@@ -127,7 +127,7 @@ fn stitch_single_vertex_fallback(
     draft: &mut MutableDraft,
     geom: &GeometryStore,
     still_unpaired: &[HalfEdgeId],
-    position_paired: &mut HashSet<u32>,
+    position_paired: &mut BTreeSet<u32>,
     stitch_tol_sq: f64,
     ctx: &mut ModelingContext,
 ) -> Result<(), KernelError> {

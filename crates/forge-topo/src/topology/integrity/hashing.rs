@@ -237,10 +237,12 @@ fn canonical_face_loop(arena: &TopologyArena, face_id: crate::handles::FaceId) -
                 return Vec::new();
             }
             // Find the index of the halfedge with the minimum ID
-            let (min_pos, _) = edges.iter()
+            let min_pos = match edges.iter()
                 .enumerate()
-                .min_by_key(|(_, he)| he.index())
-                .unwrap(); // edges is not empty
+                .min_by_key(|(_, he)| he.index()) {
+                    Some((pos, _)) => pos,
+                    None => return Vec::new(),
+                };
             
             // Reorder: elements from min_pos to end, then 0 to min_pos
             let mut canonical = Vec::with_capacity(edges.len());
@@ -270,10 +272,12 @@ fn canonical_vertex_ring(arena: &TopologyArena, vertex_id: crate::handles::Verte
                 return Vec::new();
             }
              // Find the index of the halfedge with the minimum ID
-             let (min_pos, _) = edges.iter()
-             .enumerate()
-             .min_by_key(|(_, he)| he.index())
-             .unwrap(); // edges is not empty
+             let min_pos = match edges.iter()
+                .enumerate()
+                .min_by_key(|(_, he)| he.index()) {
+                    Some((pos, _)) => pos,
+                    None => return Vec::new(),
+                };
          
              // Reorder: elements from min_pos to end, then 0 to min_pos
              let mut canonical = Vec::with_capacity(edges.len());
