@@ -125,6 +125,16 @@ impl LocalVertexDedup {
     pub fn find_by_provenance(&self, prov: &VertexMatchKey) -> Option<VertexId> {
         self.lookup.get(prov).copied()
     }
+
+    /// Check if a provenance key exists in this dedup.
+    pub fn has_key(&self, key: &VertexMatchKey) -> bool {
+        self.lookup.contains_key(key)
+    }
+
+    /// Iterate over all (VertexId, VertexMatchKey) pairs.
+    pub fn iter_provenance(&self) -> impl Iterator<Item = (&VertexId, &VertexMatchKey)> {
+        self.provenance.iter()
+    }
 }
 
 /// Shared registry of canonical intersection positions.
@@ -148,6 +158,11 @@ impl SharedVertexRegistry {
     /// If new, stores and returns the provided position.
     pub fn canonical_position(&mut self, key: &VertexMatchKey, computed: [f64; 3]) -> [f64; 3] {
         *self.positions.entry(key.clone()).or_insert(computed)
+    }
+
+    /// Retrieve the canonical position for a provenance key.
+    pub fn get_position(&self, key: &VertexMatchKey) -> Option<&[f64; 3]> {
+        self.positions.get(key)
     }
 }
 

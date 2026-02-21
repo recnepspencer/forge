@@ -18,6 +18,7 @@ mod schema;
 mod gate;
 mod eval;
 mod cut;
+mod reconcile;
 
 pub use schema::{SplitPhaseResult, SplitConfig};
 pub use eval::split_all_faces;

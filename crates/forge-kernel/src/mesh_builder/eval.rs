@@ -139,7 +139,7 @@ fn insert_vertices(
                     &cell_planes[pa], &cell_planes[pb], &cell_planes[pc],
                 ) {
                     Ok(exact_pos) => {
-                        geometry.set_vertex_position_exact(vid, exact_pos);
+                        geometry.set_vertex_position_symbolic(vid, exact_pos, pos, [pa, pb, pc]);
                         true
                     }
                     Err(_) => false,

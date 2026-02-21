@@ -2,7 +2,7 @@
   OPERATION: Intersection (half-overlap cubes)
 ============================================================
 
-Duration: 842.125µs
+Duration: 945µs
 State hash: 0x0000000000000000
 Faces in result: 6
 
@@ -10,8 +10,8 @@ Faces in result: 6
   SPAN HIERARCHY (display_interesting)
 ============================================================
 
-132 decisions (4 interesting)
-[split] 76 decisions, clean | Δ +1F +6HE +2V, Δ +1F +6HE +2V, Δ +1F +2HE, Δ +1F +2HE, Δ +1F +6HE +2V, Δ +1F +6HE +2V, Δ +1F +2HE, Δ +1F +2HE
+150 decisions (4 interesting)
+[split] 94 decisions, clean | Δ +1F +6HE +2V, Δ +1F +6HE +2V, Δ +1F +2HE, Δ +1F +2HE, Δ +1F +6HE +2V, Δ +1F +6HE +2V, Δ +1F +2HE, Δ +1F +2HE
 [classify] 24 decisions (max tier: escalated)
   ▸ [decision-1] [escalated] Exact margin=0.00e0 span-2 | Escalation to Double: Δ=0.00e0 [aarch64-macos]
   ▸ [decision-2] [escalated] Exact margin=0.00e0 span-2 | Escalation to Double: Δ=0.00e0 [aarch64-macos]
@@ -25,13 +25,13 @@ Faces in result: 6
   DECISION SUMMARY
 ============================================================
 
-132 decisions (124 exact, 8 policy, 0 near-boundary, 0 ambiguous, 0 forced, min_margin=0.00e0)
+150 decisions (142 exact, 8 policy, 0 near-boundary, 0 ambiguous, 0 forced, min_margin=0.00e0)
 
 ============================================================
   ALL DECISIONS (full log)
 ============================================================
 
-132 decisions (124 exact, 8 policy, 0 near-boundary, 0 ambiguous, 0 forced, min_margin=0.00e0)
+150 decisions (142 exact, 8 policy, 0 near-boundary, 0 ambiguous, 0 forced, min_margin=0.00e0)
   [decision-5] [deterministic] Exact margin=1.00e0 span-1 entity=Face#5 | Degeneracy: Face #5 1 resolved vertices after dedup (need >=2) (plane #2)
   [decision-5] [deterministic] Exact margin=1.00e0 span-1 entity=Face#5 | Degeneracy: Face #5 1 resolved vertices after dedup (need >=2) (plane #3)
   [decision-5] [deterministic] Exact margin=1.00e0 span-1 entity=Face#5 | Degeneracy: Face #5 rejected by chord gate (plane #6)
@@ -63,6 +63,15 @@ Faces in result: 6
   [decision-0] [deterministic] Exact margin=1.00e0 span-1 entity=Face#0 | Degeneracy: Face #0 1 resolved vertices after dedup (need >=2) (plane #2)
   [decision-0] [deterministic] Exact margin=1.00e0 span-1 entity=Face#0 | Degeneracy: Face #0 1 resolved vertices after dedup (need >=2) (plane #3)
   [decision-0] [deterministic] Exact margin=1.00e0 span-1 entity=Face#0 | Degeneracy: Face #0 1 resolved vertices after dedup (need >=2) (plane #4)
+  [decision-0] [deterministic] Exact margin=1.00e0 span-1 entity=Face#0 | Degeneracy: Face #0 1 resolved vertices after dedup (need >=2) (plane #5)
+  [decision-5] [deterministic] Exact margin=1.00e0 span-1 entity=Face#5 | Degeneracy: Face #5 1 resolved vertices after dedup (need >=2) (plane #7)
+  [decision-6] [deterministic] Exact margin=1.00e0 span-1 entity=Face#6 | Degeneracy: Face #6 1 resolved vertices after dedup (need >=2) (plane #7)
+  [decision-4] [deterministic] Exact margin=1.00e0 span-1 entity=Face#4 | Degeneracy: Face #4 1 resolved vertices after dedup (need >=2) (plane #7)
+  [decision-7] [deterministic] Exact margin=1.00e0 span-1 entity=Face#7 | Degeneracy: Face #7 1 resolved vertices after dedup (need >=2) (plane #7)
+  [decision-3] [deterministic] Exact margin=1.00e0 span-1 entity=Face#3 | Degeneracy: Face #3 1 resolved vertices after dedup (need >=2) (plane #7)
+  [decision-8] [deterministic] Exact margin=1.00e0 span-1 entity=Face#8 | Degeneracy: Face #8 1 resolved vertices after dedup (need >=2) (plane #7)
+  [decision-2] [deterministic] Exact margin=1.00e0 span-1 entity=Face#2 | Degeneracy: Face #2 1 resolved vertices after dedup (need >=2) (plane #7)
+  [decision-9] [deterministic] Exact margin=1.00e0 span-1 entity=Face#9 | Degeneracy: Face #9 1 resolved vertices after dedup (need >=2) (plane #7)
   [decision-0] [deterministic] Exact margin=1.00e0 span-1 entity=Face#0 | Degeneracy: Face #0 1 resolved vertices after dedup (need >=2) (plane #5)
   [decision-5] [deterministic] PolicyApplied(CoincidentGeometry, default=true) margin=1.00e0 span-1 entity=Face#5 | Degeneracy: Split face #5 by plane #0 -> new face #6
   [decision-5] [deterministic] Exact margin=1.00e0 span-1 entity=Face#5 | Degeneracy: Split face FaceId(5:gen0) by plane 0 → 2 new faces
@@ -107,6 +116,15 @@ Faces in result: 6
   [decision-1] [deterministic] Exact margin=1.00e0 span-1 entity=Face#1 | Degeneracy: Face #1 1 resolved vertices after dedup (need >=2) (plane #2)
   [decision-1] [deterministic] Exact margin=1.00e0 span-1 entity=Face#1 | Degeneracy: Face #1 1 resolved vertices after dedup (need >=2) (plane #3)
   [decision-1] [deterministic] Exact margin=1.00e0 span-1 entity=Face#1 | Degeneracy: Face #1 1 resolved vertices after dedup (need >=2) (plane #4)
+  [decision-1] [deterministic] Exact margin=1.00e0 span-1 entity=Face#1 | Degeneracy: Face #1 1 resolved vertices after dedup (need >=2) (plane #5)
+  [decision-5] [deterministic] Exact margin=1.00e0 span-1 entity=Face#5 | Degeneracy: Face #5 1 resolved vertices after dedup (need >=2) (plane #3)
+  [decision-6] [deterministic] Exact margin=1.00e0 span-1 entity=Face#6 | Degeneracy: Face #6 1 resolved vertices after dedup (need >=2) (plane #3)
+  [decision-4] [deterministic] Exact margin=1.00e0 span-1 entity=Face#4 | Degeneracy: Face #4 1 resolved vertices after dedup (need >=2) (plane #3)
+  [decision-7] [deterministic] Exact margin=1.00e0 span-1 entity=Face#7 | Degeneracy: Face #7 1 resolved vertices after dedup (need >=2) (plane #3)
+  [decision-3] [deterministic] Exact margin=1.00e0 span-1 entity=Face#3 | Degeneracy: Face #3 1 resolved vertices after dedup (need >=2) (plane #5)
+  [decision-8] [deterministic] Exact margin=1.00e0 span-1 entity=Face#8 | Degeneracy: Face #8 1 resolved vertices after dedup (need >=2) (plane #5)
+  [decision-2] [deterministic] Exact margin=1.00e0 span-1 entity=Face#2 | Degeneracy: Face #2 1 resolved vertices after dedup (need >=2) (plane #5)
+  [decision-9] [deterministic] Exact margin=1.00e0 span-1 entity=Face#9 | Degeneracy: Face #9 1 resolved vertices after dedup (need >=2) (plane #5)
   [decision-1] [deterministic] Exact margin=1.00e0 span-1 entity=Face#1 | Degeneracy: Face #1 1 resolved vertices after dedup (need >=2) (plane #5)
   [decision-0] [deterministic] Exact margin=1.00e0 span-2 entity=Face#0 | Classification [0.0000, 0.0000, 0.0000] → Target:Face#0 → Inside
   [decision-1] [deterministic] Exact margin=1.00e0 span-2 entity=Face#1 | Classification [0.0000, 0.0000, 0.0000] → Target:Face#1 → Outside
@@ -170,11 +188,11 @@ Faces in result: 6
   PER-SPAN STATS (TraceSummary)
 ============================================================
 
-  split — 76 decisions, max_tier=deterministic, 462µs
-  classify — 24 decisions, max_tier=escalated, 113µs
-  select — 20 decisions, max_tier=deterministic, 8µs
-  assemble — 12 decisions, max_tier=deterministic, 54µs
-  postprocess — 0 decisions, max_tier=deterministic, 10µs
+  split — 94 decisions, max_tier=deterministic, 595µs
+  classify — 24 decisions, max_tier=escalated, 110µs
+  select — 20 decisions, max_tier=deterministic, 9µs
+  assemble — 12 decisions, max_tier=deterministic, 43µs
+  postprocess — 0 decisions, max_tier=deterministic, 11µs
 
 
 ============================================================
@@ -917,6 +935,195 @@ Faces in result: 6
         "context": {
           "Degeneracy": {
             "description": "Face #0 1 resolved vertices after dedup (need >=2) (plane #4)"
+          }
+        },
+        "span_id": 1,
+        "topology_delta": null
+      }
+    },
+    {
+      "Decision": {
+        "id": 0,
+        "kind": "Exact",
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 0
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Face #0 1 resolved vertices after dedup (need >=2) (plane #5)"
+          }
+        },
+        "span_id": 1,
+        "topology_delta": null
+      }
+    },
+    {
+      "Decision": {
+        "id": 5,
+        "kind": "Exact",
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 5
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Face #5 1 resolved vertices after dedup (need >=2) (plane #7)"
+          }
+        },
+        "span_id": 1,
+        "topology_delta": null
+      }
+    },
+    {
+      "Decision": {
+        "id": 6,
+        "kind": "Exact",
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 6
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Face #6 1 resolved vertices after dedup (need >=2) (plane #7)"
+          }
+        },
+        "span_id": 1,
+        "topology_delta": null
+      }
+    },
+    {
+      "Decision": {
+        "id": 4,
+        "kind": "Exact",
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 4
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Face #4 1 resolved vertices after dedup (need >=2) (plane #7)"
+          }
+        },
+        "span_id": 1,
+        "topology_delta": null
+      }
+    },
+    {
+      "Decision": {
+        "id": 7,
+        "kind": "Exact",
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 7
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Face #7 1 resolved vertices after dedup (need >=2) (plane #7)"
+          }
+        },
+        "span_id": 1,
+        "topology_delta": null
+      }
+    },
+    {
+      "Decision": {
+        "id": 3,
+        "kind": "Exact",
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 3
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Face #3 1 resolved vertices after dedup (need >=2) (plane #7)"
+          }
+        },
+        "span_id": 1,
+        "topology_delta": null
+      }
+    },
+    {
+      "Decision": {
+        "id": 8,
+        "kind": "Exact",
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 8
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Face #8 1 resolved vertices after dedup (need >=2) (plane #7)"
+          }
+        },
+        "span_id": 1,
+        "topology_delta": null
+      }
+    },
+    {
+      "Decision": {
+        "id": 2,
+        "kind": "Exact",
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 2
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Face #2 1 resolved vertices after dedup (need >=2) (plane #7)"
+          }
+        },
+        "span_id": 1,
+        "topology_delta": null
+      }
+    },
+    {
+      "Decision": {
+        "id": 9,
+        "kind": "Exact",
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 9
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Face #9 1 resolved vertices after dedup (need >=2) (plane #7)"
           }
         },
         "span_id": 1,
@@ -1951,9 +2158,198 @@ Faces in result: 6
       }
     },
     {
+      "Decision": {
+        "id": 5,
+        "kind": "Exact",
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 5
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Face #5 1 resolved vertices after dedup (need >=2) (plane #3)"
+          }
+        },
+        "span_id": 1,
+        "topology_delta": null
+      }
+    },
+    {
+      "Decision": {
+        "id": 6,
+        "kind": "Exact",
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 6
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Face #6 1 resolved vertices after dedup (need >=2) (plane #3)"
+          }
+        },
+        "span_id": 1,
+        "topology_delta": null
+      }
+    },
+    {
+      "Decision": {
+        "id": 4,
+        "kind": "Exact",
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 4
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Face #4 1 resolved vertices after dedup (need >=2) (plane #3)"
+          }
+        },
+        "span_id": 1,
+        "topology_delta": null
+      }
+    },
+    {
+      "Decision": {
+        "id": 7,
+        "kind": "Exact",
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 7
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Face #7 1 resolved vertices after dedup (need >=2) (plane #3)"
+          }
+        },
+        "span_id": 1,
+        "topology_delta": null
+      }
+    },
+    {
+      "Decision": {
+        "id": 3,
+        "kind": "Exact",
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 3
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Face #3 1 resolved vertices after dedup (need >=2) (plane #5)"
+          }
+        },
+        "span_id": 1,
+        "topology_delta": null
+      }
+    },
+    {
+      "Decision": {
+        "id": 8,
+        "kind": "Exact",
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 8
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Face #8 1 resolved vertices after dedup (need >=2) (plane #5)"
+          }
+        },
+        "span_id": 1,
+        "topology_delta": null
+      }
+    },
+    {
+      "Decision": {
+        "id": 2,
+        "kind": "Exact",
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 2
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Face #2 1 resolved vertices after dedup (need >=2) (plane #5)"
+          }
+        },
+        "span_id": 1,
+        "topology_delta": null
+      }
+    },
+    {
+      "Decision": {
+        "id": 9,
+        "kind": "Exact",
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 9
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Face #9 1 resolved vertices after dedup (need >=2) (plane #5)"
+          }
+        },
+        "span_id": 1,
+        "topology_delta": null
+      }
+    },
+    {
+      "Decision": {
+        "id": 1,
+        "kind": "Exact",
+        "tier": "Deterministic",
+        "margin": 1.0,
+        "feature_scope": null,
+        "entity_scope": {
+          "kind": "Face",
+          "index": 1
+        },
+        "overridable": true,
+        "context": {
+          "Degeneracy": {
+            "description": "Face #1 1 resolved vertices after dedup (need >=2) (plane #5)"
+          }
+        },
+        "span_id": 1,
+        "topology_delta": null
+      }
+    },
+    {
       "EndSpan": {
         "id": 1,
-        "duration_micros": 462
+        "duration_micros": 595
       }
     },
     {
@@ -2726,7 +3122,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 2,
-        "duration_micros": 113
+        "duration_micros": 110
       }
     },
     {
@@ -3259,7 +3655,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 3,
-        "duration_micros": 8
+        "duration_micros": 9
       }
     },
     {
@@ -3524,7 +3920,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 4,
-        "duration_micros": 54
+        "duration_micros": 43
       }
     },
     {
@@ -3537,7 +3933,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 5,
-        "duration_micros": 10
+        "duration_micros": 11
       }
     }
   ]

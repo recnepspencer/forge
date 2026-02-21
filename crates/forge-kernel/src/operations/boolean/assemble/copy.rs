@@ -368,7 +368,11 @@ fn create_new_vertex(
     let vid = draft.arena_mut().insert_vertex(VertexData::with_lineage(placeholder_he, src_lineage));
     result_geom.set_vertex_position(vid, *pos);
     if let Some(exact) = source_geom.get_vertex_position_exact(src_vertex) {
-        result_geom.set_vertex_position_exact(vid, exact.clone());
+        if let Some(planes) = source_geom.get_vertex_symbolic_planes(src_vertex) {
+            result_geom.set_vertex_position_symbolic(vid, exact.clone(), *pos, *planes);
+        } else {
+            result_geom.set_vertex_position_exact(vid, exact.clone());
+        }
     }
     Ok(vid)
 }

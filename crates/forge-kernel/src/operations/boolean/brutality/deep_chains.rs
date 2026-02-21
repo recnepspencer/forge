@@ -509,3 +509,87 @@ fn diagnostic_concave_face_audit() {
         eprintln!("This is likely the root cause — the split logic handles convex faces only.");
     }
 }
+
+// ══════════════════════════════════════════════════════════════
+// §DC.8  SYMBOLIC PLANE PRESERVATION
+// ══════════════════════════════════════════════════════════════
+
+/// DC.8a — Cube vertices must carry symbolic plane triples at birth.
+///
+/// Each vertex of a cube is the intersection of exactly 3 planes.
+/// After `make_cube`, every vertex's `get_vertex_symbolic_planes`
+/// must return `Some([p0, p1, p2])`.
+#[test]
+fn cube_vertices_born_with_symbolic_planes() {
+    let (topo, geom) = build_cube([0.0, 0.0, 0.0], 1.0);
+    let arena = topo.arena();
+
+    let mut with_planes = 0u32;
+    let mut without_planes = 0u32;
+
+    for (vid, _) in arena.iter_vertices() {
+        if geom.get_vertex_symbolic_planes(vid).is_some() {
+            with_planes += 1;
+        } else {
+            without_planes += 1;
+        }
+    }
+
+    let total = with_planes + without_planes;
+    eprintln!(
+        "Cube symbolic planes: {with_planes}/{total} vertices have plane triples"
+    );
+    assert_eq!(
+        without_planes, 0,
+        "All {total} cube vertices should have symbolic planes, but {without_planes} are missing them"
+    );
+    assert_eq!(total, 8, "A cube should have 8 vertices, got {total}");
+}
+
+/// DC.8b — Symbolic plane triples must survive a boolean chain.
+///
+/// After A ∪ B, vertices that were original cube corners should still
+/// carry their symbolic plane indices. This tests the copy phase in
+/// `copy.rs` which must propagate `get_vertex_symbolic_planes`.
+#[test]
+fn symbolic_planes_survive_boolean_chain() {
+    let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
+    let (topo_b, geom_b) = build_cube([3.0, 0.0, 0.0], 1.0);
+
+    let input = BooleanInput::new(
+        topo_a, geom_a,
+        topo_b, geom_b,
+        BooleanOp::Union,
+    );
+
+    let result = execute_boolean_logged(input)
+        .into_result()
+        .expect("Disjoint union failed");
+
+    let arena = result.topology().arena();
+    let geom = result.geometry();
+
+    let mut with_planes = 0u32;
+    let mut without_planes = 0u32;
+
+    for (vid, _) in arena.iter_vertices() {
+        if geom.get_vertex_symbolic_planes(vid).is_some() {
+            with_planes += 1;
+        } else {
+            without_planes += 1;
+        }
+    }
+
+    let total = with_planes + without_planes;
+    eprintln!(
+        "Post-union symbolic planes: {with_planes}/{total} vertices have plane triples"
+    );
+
+    assert_eq!(
+        without_planes, 0,
+        "After disjoint union of two cubes, all {total} vertices should preserve \
+         symbolic planes (got {with_planes}/{total}). \
+         The copy phase is dropping plane triples."
+    );
+    assert_eq!(total, 16, "Disjoint union of 2 cubes should have 16 vertices, got {total}");
+}
