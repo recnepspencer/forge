@@ -309,7 +309,8 @@ fn supplement_cuts_exhaustive(
 /// Only supplements faces that are ALREADY being cut (have at least one
 /// BVH-proposed cut). This prevents false positives for concentric/contained
 /// geometry where planes cross face polygons without actual boundary
-/// intersection.
+/// intersection. The chord gate alone is insufficient because a plane's
+/// infinite extent can cross distant faces that are geometrically irrelevant.
 fn supplement_one_direction(
     face_arena: &TopologyArena,
     face_geom: &GeometryStore,
@@ -541,22 +542,35 @@ fn assign_original_vertex_provenance(
 ) -> Result<(), KernelError> {
     let mut implicit_count = 0;
     let mut fallback_count = 0;
+    let mut symbolic_count = 0;
     for (vid, vdata) in arena.iter_vertices() {
-        let incident = collect_incident_plane_indices(arena, vid, vdata.outgoing(), face_planes);
-
-        let key = if incident.len() >= 3 {
-            implicit_count += 1;
-            compute_implicit_key(&incident, plane_table, geom, vid)
+        let key = if geom.get_vertex_symbolic_planes(vid).is_some() {
+            if let Some(exact) = geom.get_vertex_position_exact(vid) {
+                symbolic_count += 1;
+                implicit_count += 1;
+                Some(VertexMatchKey::from_exact_position(
+                    exact[0].clone(), exact[1].clone(), exact[2].clone(),
+                ))
+            } else {
+                fallback_count += 1;
+                compute_explicit_key(geom, vid)
+            }
         } else {
-            fallback_count += 1;
-            compute_explicit_key(geom, vid)
+            let incident = collect_incident_plane_indices(arena, vid, vdata.outgoing(), face_planes);
+            if incident.len() >= 3 {
+                implicit_count += 1;
+                compute_implicit_key(&incident, plane_table, geom, vid)
+            } else {
+                fallback_count += 1;
+                compute_explicit_key(geom, vid)
+            }
         };
 
         if let Some(k) = key {
             dedup.insert(vid, k);
         }
     }
-    eprintln!("[provenance] {} vertices implicit, {} fallback", implicit_count, fallback_count);
+    eprintln!("[provenance] {} vertices implicit ({} from symbolic planes), {} fallback", implicit_count, symbolic_count, fallback_count);
     Ok(())
 }
 

@@ -1,0 +1,17 @@
+--- src/operations/boolean/split/bsp.rs
++++ src/operations/boolean/split/bsp.rs
+@@ -53,6 +53,11 @@
+             signs.push(sign);
+         }
+ 
++        // If the polygon is entirely on the negative side (and boundary), it's inside.
+         let all_inside = signs.iter().all(|&s| s != TriSign::Pos);
+         if all_inside {
+             return Ok(Some(self.clone())); // Unchanged, completely inside
+         }
+         
++        // If the polygon is entirely on the positive side (and boundary), it's outside.
+         let all_outside = signs.iter().all(|&s| s != TriSign::Neg);
+         if all_outside {
+             return Ok(None); // Completely outside
+         }
