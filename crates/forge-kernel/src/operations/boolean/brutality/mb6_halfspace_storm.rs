@@ -114,9 +114,9 @@ fn halfspace_storm_80_coplanar() {
             );
 
             let step_num = group * 8 + sub;
-            match execute_boolean_logged(input) {
-                Ok(envelope) => {
-                    let r = envelope.into_value();
+            match execute_boolean_logged(input).into_result() {
+                Ok(result) => {
+                    let r = result;
                     if step_num % 20 == 0 {
                         let (v, e, f, chi) = euler_audit(r.topology().arena());
                         eprintln!("MB6 coplanar HS {step_num}/80: V={v} E={e} F={f} χ={chi}");
@@ -126,7 +126,7 @@ fn halfspace_storm_80_coplanar() {
                     geom = parts.1;
                 }
                 Err(e) => {
-                    panic!("MB6 coplanar half-space {step_num} failed: {e:?}");
+                    panic!("MB6 coplanar half-space {step_num} failed: {e}");
                 }
             }
         }
@@ -169,9 +169,9 @@ fn halfspace_storm_60_graze() {
             BooleanOp::Intersection,
         );
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let r = envelope.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                let r = result;
                 if i % 15 == 0 {
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
                     eprintln!("MB6 graze HS {i}/60: V={v} E={e} F={f} χ={chi}");
@@ -181,7 +181,7 @@ fn halfspace_storm_60_graze() {
                 geom = parts.1;
             }
             Err(e) => {
-                panic!("MB6 graze half-space {i} failed: {e:?}");
+                panic!("MB6 graze half-space {i} failed: {e}");
             }
         }
     }
@@ -221,15 +221,15 @@ fn halfspace_storm_60_sliver() {
             BooleanOp::Intersection,
         );
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let r = envelope.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                let r = result;
                 let parts = r.into_topo_geom();
                 topo = parts.0;
                 geom = parts.1;
             }
             Err(e) => {
-                panic!("MB6 sliver half-space top {i} failed: {e:?}");
+                panic!("MB6 sliver half-space top {i} failed: {e}");
             }
         }
 
@@ -245,9 +245,9 @@ fn halfspace_storm_60_sliver() {
             BooleanOp::Intersection,
         );
 
-        match execute_boolean_logged(input2) {
-            Ok(envelope) => {
-                let r = envelope.into_value();
+        match execute_boolean_logged(input2).into_result() {
+            Ok(result) => {
+                let r = result;
                 if i % 10 == 0 {
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
                     eprintln!("MB6 sliver pair {i}/30: V={v} E={e} F={f} χ={chi}");
@@ -257,7 +257,7 @@ fn halfspace_storm_60_sliver() {
                 geom = parts.1;
             }
             Err(e) => {
-                panic!("MB6 sliver half-space bot {i} failed: {e:?}");
+                panic!("MB6 sliver half-space bot {i} failed: {e}");
             }
         }
     }
@@ -292,9 +292,9 @@ fn halfspace_storm_full_200() {
                 extent,
             );
             let input = BooleanInput::new(topo, geom, topo_hs, geom_hs, BooleanOp::Intersection);
-            match execute_boolean_logged(input) {
-                Ok(env) => { let r = env.into_value(); let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
-                Err(e) => panic!("MB6 full step {step} (coplanar) failed: {e:?}"),
+            match execute_boolean_logged(input).into_result() {
+                Ok(r) => { let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
+                Err(e) => panic!("MB6 full step {step} (coplanar) failed: {e}"),
             }
             step += 1;
         }
@@ -309,9 +309,9 @@ fn halfspace_storm_full_200() {
         n[axis] = sign;
         let (topo_hs, geom_hs) = build_halfspace_approx(fp, n, extent);
         let input = BooleanInput::new(topo, geom, topo_hs, geom_hs, BooleanOp::Intersection);
-        match execute_boolean_logged(input) {
-            Ok(env) => { let r = env.into_value(); let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
-            Err(e) => panic!("MB6 full step {step} (graze) failed: {e:?}"),
+        match execute_boolean_logged(input).into_result() {
+            Ok(r) => { let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
+            Err(e) => panic!("MB6 full step {step} (graze) failed: {e}"),
         }
         step += 1;
     }
@@ -320,16 +320,16 @@ fn halfspace_storm_full_200() {
         let z = -4.0 + (i as f64) * 0.25;
         let (topo_t, geom_t) = build_halfspace_approx([0.0, 0.0, z + sliver], [0.0, 0.0, -1.0], extent);
         let input = BooleanInput::new(topo, geom, topo_t, geom_t, BooleanOp::Intersection);
-        match execute_boolean_logged(input) {
-            Ok(env) => { let r = env.into_value(); let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
-            Err(e) => panic!("MB6 full step {step} (sliver-top) failed: {e:?}"),
+        match execute_boolean_logged(input).into_result() {
+            Ok(r) => { let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
+            Err(e) => panic!("MB6 full step {step} (sliver-top) failed: {e}"),
         }
         step += 1;
         let (topo_b, geom_b) = build_halfspace_approx([0.0, 0.0, z], [0.0, 0.0, 1.0], extent);
         let input2 = BooleanInput::new(topo, geom, topo_b, geom_b, BooleanOp::Intersection);
-        match execute_boolean_logged(input2) {
-            Ok(env) => { let r = env.into_value(); let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
-            Err(e) => panic!("MB6 full step {step} (sliver-bot) failed: {e:?}"),
+        match execute_boolean_logged(input2).into_result() {
+            Ok(r) => { let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
+            Err(e) => panic!("MB6 full step {step} (sliver-bot) failed: {e}"),
         }
         step += 1;
     }

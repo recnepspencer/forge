@@ -107,9 +107,14 @@ pub(crate) fn find_coplanar_face_pairs(
                 target_topo.arena(), target_geom, target_fid
             ) {
                 let matched = tool_faces_data.iter().find(|(tool_fid, tool_plane, tool_verts)| {
-                    !excluded_tool.contains(&tool_fid.index())
-                        && forge_geom::primitives::plane::coplanar_eq(target_plane, tool_plane)
-                        && faces_overlap_3d(target_plane, &target_verts, tool_verts)
+                    let not_excluded = !excluded_tool.contains(&tool_fid.index());
+                    let is_coplanar = forge_geom::primitives::plane::coplanar_eq(target_plane, tool_plane);
+                    let overlaps = if not_excluded && is_coplanar {
+                        faces_overlap_3d(target_plane, &target_verts, tool_verts)
+                    } else {
+                        false
+                    };
+                    not_excluded && is_coplanar && overlaps
                 });
 
                 if let Some((tool_fid, _, _)) = matched {

@@ -40,7 +40,7 @@ mod tests {
             topo_a, geom_a, topo_b, geom_b, BooleanOp::Union,
         );
 
-        let envelope = execute_boolean_logged(input.clone()).expect("original Boolean failed");
+        let envelope = execute_boolean_logged(input.clone());
         let original_hash = envelope.get_state_hash_after();
         let original_log = envelope.get_decision_log().clone();
 
@@ -72,11 +72,11 @@ mod tests {
             };
 
             let overrides = vec![(decision.get_id(), flipped)];
-            let cf_result = execute_boolean_with_overrides(input.clone(), &overrides);
+            let cf_envelope = execute_boolean_with_overrides(input.clone(), &overrides);
+            let cf_hash = cf_envelope.get_state_hash_after();
 
-            match cf_result {
-                Ok(cf_envelope) => {
-                    let cf_hash = cf_envelope.get_state_hash_after();
+            match cf_envelope.into_result() {
+                Ok(_) => {
                     if cf_hash != original_hash {
                         any_diverged = true;
                     }
@@ -110,7 +110,7 @@ mod tests {
             topo_a, geom_a, topo_b, geom_b, BooleanOp::Intersection,
         );
 
-        let envelope = execute_boolean_logged(input.clone()).expect("original Boolean failed");
+        let envelope = execute_boolean_logged(input.clone());
         let original_hash = envelope.get_state_hash_after();
         let original_log = envelope.get_decision_log().clone();
 
@@ -173,7 +173,7 @@ mod tests {
             topo_a, geom_a, topo_b, geom_b, BooleanOp::Union,
         );
 
-        let envelope = execute_boolean_logged(input.clone()).expect("original Boolean failed");
+        let envelope = execute_boolean_logged(input.clone());
         let original_hash = envelope.get_state_hash_after();
         let original_log = envelope.get_decision_log().clone();
 

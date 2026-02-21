@@ -158,9 +158,8 @@ fn nested_containment_subtraction() {
                 BooleanOp::Subtraction,
             );
             let outer_result = execute_boolean_logged(input);
-            match outer_result {
-                Ok(envelope) => {
-                    let r = envelope.into_value();
+            match outer_result.into_result() {
+                Ok(r) => {
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
                     eprintln!("Nested containment: V={v} E={e} F={f} χ={chi}");
                     assert!(f >= 6, "Nested result should have faces, got {f}");

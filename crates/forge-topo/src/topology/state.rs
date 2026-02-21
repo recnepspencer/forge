@@ -25,6 +25,7 @@ use forge_core::KernelError;
 use crate::arena::TopologyArena;
 use crate::hashing::compute_arena_topology_hash;
 use crate::lineage::{LineageEvent, OpSignature};
+use crate::lineage_store::LineageStore;
 use crate::replay::{ReplayLog, ReplayEntry};
 use crate::validate::{self, ValidationLevel};
 
@@ -167,6 +168,7 @@ impl TopologyState {
             topology_hash: self.topology_hash,
             config,
             arena,
+            lineage_store: LineageStore::new(),
         }
     }
 }
@@ -204,6 +206,8 @@ pub struct MutableDraft {
     config: DraftConfig,
     /// The mutable arena — cloned from the source state's Arc on begin_mutation
     arena: TopologyArena,
+    /// Live lineage store tracking all entity provenance during this draft.
+    lineage_store: LineageStore,
 }
 
 impl MutableDraft {
@@ -287,6 +291,24 @@ impl MutableDraft {
     /// Mutable access to the draft's arena (for Euler operators).
     pub fn arena_mut(&mut self) -> &mut TopologyArena {
         &mut self.arena
+    }
+
+    /// Read-only access to the lineage store.
+    pub fn lineage_store(&self) -> &LineageStore {
+        &self.lineage_store
+    }
+
+    /// Mutable access to the lineage store.
+    pub fn lineage_store_mut(&mut self) -> &mut LineageStore {
+        &mut self.lineage_store
+    }
+
+    /// Take ownership of the lineage store, replacing it with an empty one.
+    ///
+    /// Use this to extract lineage data before commit (or on error paths
+    /// when the draft will be dropped without committing).
+    pub fn take_lineage_store(&mut self) -> LineageStore {
+        std::mem::take(&mut self.lineage_store)
     }
 
     /// Finalize the mutation, producing a new `TopologyState`.

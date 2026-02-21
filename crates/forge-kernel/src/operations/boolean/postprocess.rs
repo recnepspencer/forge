@@ -11,13 +11,14 @@ use std::collections::BTreeSet;
 
 use forge_core::KernelError;
 use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
+use forge_core::tracing::TopologyDelta;
 use forge_topo::state::TopologyState;
 use forge_topo::handles::{HalfEdgeId, VertexId};
 use forge_topo::operator::apply_op;
 use forge_topo::euler::join_faces::JoinFaces;
 use forge_topo::euler::kill_edge_vertex::KillEdgeVertex;
 
-use crate::core::ModelingContext;
+use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
 use crate::geometry_store::GeometryStore;
 
 // ── Coplanar face merging ────────────────────────────────────────────────────
@@ -47,14 +48,11 @@ fn run_merge_pass(
         return Ok((draft.commit()?, 0));
     };
 
-    let shared_count = count_shared_edges(draft.arena(), face_a, face_b);
-    if shared_count > 1 {
-        return Ok((draft.commit()?, 0));
-    }
-
+    let pre_snapshot = ArenaSnapshot::capture(draft.arena());
     match apply_op(&mut draft, JoinFaces { edge: he_id }) {
         Ok(_) => {
-            log_merge(he_id, face_a, face_b, ctx);
+            let delta = compute_topology_delta(&pre_snapshot, draft.arena());
+            log_merge(he_id, face_a, face_b, delta, ctx);
             Ok((draft.commit()?, 1))
         }
         Err(_) => Ok((draft.commit()?, 0)),
@@ -84,27 +82,13 @@ fn find_coplanar_merge_candidate(
         })
 }
 
-/// Count edges shared between two faces.
-fn count_shared_edges(
-    arena: &forge_topo::arena::TopologyArena,
-    face_a: forge_topo::handles::FaceId,
-    face_b: forge_topo::handles::FaceId,
-) -> u32 {
-    arena.iter_half_edges()
-        .filter(|(_, he)| {
-            he.face() == face_a
-                && arena.get_half_edge(he.twin())
-                    .map(|tw| tw.face() == face_b)
-                    .unwrap_or(false)
-        })
-        .count() as u32
-}
 
 /// Log a coplanar face merge decision.
 fn log_merge(
     he_id: HalfEdgeId,
     face_a: forge_topo::handles::FaceId,
     face_b: forge_topo::handles::FaceId,
+    delta: TopologyDelta,
     ctx: &mut ModelingContext,
 ) {
     let mut decision = TracedDecision::new(
@@ -116,6 +100,7 @@ fn log_merge(
         },
     );
     decision.set_entity_scope(EntityRef::new("HalfEdge", he_id.index()));
+    decision.set_topology_delta(delta);
     ctx.get_decision_log_mut().record(decision);
 }
 
@@ -145,9 +130,11 @@ fn run_vertex_cleanup_pass(
         return Ok((draft.commit()?, 0));
     };
 
+    let pre_snapshot = ArenaSnapshot::capture(draft.arena());
     match apply_op(&mut draft, KillEdgeVertex { edge: incoming_he }) {
         Ok(_) => {
-            log_vertex_removal(vid, ctx);
+            let delta = compute_topology_delta(&pre_snapshot, draft.arena());
+            log_vertex_removal(vid, delta, ctx);
             Ok((draft.commit()?, 1))
         }
         Err(_) => Ok((draft.commit()?, 0)),
@@ -215,7 +202,7 @@ fn check_collinearity(
 }
 
 /// Log a vertex removal decision.
-fn log_vertex_removal(vid: VertexId, ctx: &mut ModelingContext) {
+fn log_vertex_removal(vid: VertexId, delta: TopologyDelta, ctx: &mut ModelingContext) {
     let mut decision = TracedDecision::new(
         DecisionId(vid.index() as u64),
         DecisionKind::PolicyApplied { policy: forge_core::PolicyKind::CoincidentGeometry, default_used: true },
@@ -225,6 +212,7 @@ fn log_vertex_removal(vid: VertexId, ctx: &mut ModelingContext) {
         },
     );
     decision.set_entity_scope(EntityRef::new("Vertex", vid.index()));
+    decision.set_topology_delta(delta);
     ctx.get_decision_log_mut().record(decision);
 }
 

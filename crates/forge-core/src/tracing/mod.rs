@@ -43,4 +43,4 @@ pub use divergence::{
 
 pub use persistence::{resolve_trace_dir, write_trace_file};
 
-pub use logging::{LogLevel, log_level, log_result, log_decision_log};
+pub use logging::{LogLevel, log_level, log_result, log_decision_log, log_error};

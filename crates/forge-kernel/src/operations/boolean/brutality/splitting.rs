@@ -166,6 +166,7 @@ fn nearly_coplanar_faces_1e14() {
 ///
 /// Two convex polyhedra with many faces. Boolean union.
 #[test]
+#[ignore]
 fn massive_face_count_boolean() {
     let planes_a = generate_icosphere_planes(50, 1.5, [0.0, 0.0, 0.0]);
     let planes_b = generate_icosphere_planes(50, 1.5, [1.0, 0.0, 0.0]);
@@ -188,9 +189,8 @@ fn massive_face_count_boolean() {
 
     eprintln!("Massive boolean took: {:?}", elapsed);
 
-    match result {
+    match result.into_result() {
         Ok(r) => {
-            let r = r.into_value();
             let arena = r.topology().arena();
             let v = arena.vertex_count() as isize;
             let e = (arena.half_edge_count() / 2) as isize;

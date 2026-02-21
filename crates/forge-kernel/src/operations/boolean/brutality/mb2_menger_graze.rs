@@ -32,7 +32,7 @@ fn build_menger_sponge(
 ) -> Option<(forge_topo::state::TopologyState, crate::geometry_store::GeometryStore)> {
     let subs = menger_sponge_subtraction_centers(center, half, level);
     let total = subs.len();
-    eprintln!("Menger L{level}: {total} subtractions planned");
+
 
     let (mut topo, mut geom) = build_cube(center, half);
 
@@ -45,25 +45,15 @@ fn build_menger_sponge(
             BooleanOp::Subtraction,
         );
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let r = envelope.into_value();
-                if (i + 1) % 10 == 0 || i == total - 1 {
-                    let (v, e, f, chi) = euler_audit(r.topology().arena());
-                    eprintln!(
-                        "Menger L{level} sub {}/{total}: V={v} E={e} F={f} χ={chi}",
-                        i + 1
-                    );
-                }
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                let r = result;
+
                 let parts = r.into_topo_geom();
                 topo = parts.0;
                 geom = parts.1;
             }
             Err(e) => {
-                eprintln!(
-                    "Menger L{level} subtraction {}/{total} failed: {e:?}",
-                    i + 1
-                );
                 return None;
             }
         }
@@ -81,8 +71,7 @@ fn build_menger_sponge(
 fn menger_level1() {
     match build_menger_sponge([0.0, 0.0, 0.0], 3.0, 1) {
         Some((topo, _geom)) => {
-            let (v, e, f, chi) = euler_audit(topo.arena());
-            eprintln!("Menger L1 final: V={v} E={e} F={f} χ={chi}");
+            let (_v, _e, f, _chi) = euler_audit(topo.arena());
             assert!(f > 6, "Menger L1 should have many faces, got {f}");
         }
         None => {
@@ -103,8 +92,7 @@ fn menger_level1() {
 fn menger_level2() {
     match build_menger_sponge([0.0, 0.0, 0.0], 9.0, 2) {
         Some((topo, _geom)) => {
-            let (v, e, f, chi) = euler_audit(topo.arena());
-            eprintln!("Menger L2 final: V={v} E={e} F={f} χ={chi}");
+            let (_v, _e, f, _chi) = euler_audit(topo.arena());
             assert!(f > 100, "Menger L2 should have hundreds of faces, got {f}");
         }
         None => {
@@ -125,8 +113,7 @@ fn menger_level2() {
 fn menger_level3() {
     match build_menger_sponge([0.0, 0.0, 0.0], 27.0, 3) {
         Some((topo, _geom)) => {
-            let (v, e, f, chi) = euler_audit(topo.arena());
-            eprintln!("Menger L3 final: V={v} E={e} F={f} χ={chi}");
+            let (_v, _e, f, _chi) = euler_audit(topo.arena());
             assert!(f > 1000, "Menger L3 should have thousands of faces, got {f}");
         }
         None => {
@@ -147,8 +134,7 @@ fn menger_level3() {
 fn menger_level4() {
     match build_menger_sponge([0.0, 0.0, 0.0], 81.0, 4) {
         Some((topo, _geom)) => {
-            let (v, e, f, chi) = euler_audit(topo.arena());
-            eprintln!("Menger L4 final: V={v} E={e} F={f} χ={chi}");
+            let (_v, _e, f, _chi) = euler_audit(topo.arena());
             assert!(f > 10000, "Menger L4 should have ~20k faces, got {f}");
         }
         None => {
@@ -179,15 +165,14 @@ fn menger_graze_micro_translate() {
                 BooleanOp::Union,
             );
 
-            match execute_boolean_logged(input) {
-                Ok(envelope) => {
-                    let r = envelope.into_value();
-                    let (v, e, f, chi) = euler_audit(r.topology().arena());
-                    eprintln!("Menger graze: V={v} E={e} F={f} χ={chi}");
+            match execute_boolean_logged(input).into_result() {
+                Ok(result) => {
+                    let r = result;
+                    let (_v, _e, f, _chi) = euler_audit(r.topology().arena());
                     assert!(f > 0, "Menger graze should produce faces");
                 }
                 Err(e) => {
-                    panic!("Menger graze failed: {e:?}");
+                    panic!("Menger graze failed: {e}");
                 }
             }
         }
@@ -229,24 +214,19 @@ fn menger_50_micro_rotated_unions() {
             BooleanOp::Union,
         );
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let r = envelope.into_value();
-                if step % 10 == 0 {
-                    let (v, e, f, chi) = euler_audit(r.topology().arena());
-                    eprintln!("Menger+micro step {step}: V={v} E={e} F={f} χ={chi}");
-                }
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                let r = result;
                 let parts = r.into_topo_geom();
                 topo = parts.0;
                 geom = parts.1;
             }
             Err(e) => {
-                panic!("Menger+micro step {step} failed: {e:?}");
+                panic!("Menger+micro step {step} failed: {e}");
             }
         }
     }
 
-    let (v, e, f, chi) = euler_audit(topo.arena());
-    eprintln!("Menger+50 micro final: V={v} E={e} F={f} χ={chi}");
+    let (_v, _e, _f, chi) = euler_audit(topo.arena());
     assert_eq!(chi, 2, "Menger+50 Euler violation");
 }

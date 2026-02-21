@@ -45,9 +45,9 @@ fn build_singularity_star() -> Option<(
         let (topo_tool, geom_tool) = build_cube([cx, cy, cz], 0.5);
         let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let r = envelope.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                let r = result;
                 step += 1;
                 if step % 20 == 0 {
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
@@ -58,7 +58,7 @@ fn build_singularity_star() -> Option<(
                 geom = parts.1;
             }
             Err(e) => {
-                eprintln!("MB3 cube {step} failed: {e:?}");
+                eprintln!("MB3 cube {step} failed: {e}");
                 return None;
             }
         }
@@ -75,9 +75,9 @@ fn build_singularity_star() -> Option<(
         let (topo_tool, geom_tool) = build_tetrahedron([cx, cy, cz], 0.3);
         let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let r = envelope.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                let r = result;
                 step += 1;
                 if step % 20 == 0 {
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
@@ -88,7 +88,7 @@ fn build_singularity_star() -> Option<(
                 geom = parts.1;
             }
             Err(e) => {
-                eprintln!("MB3 tetrahedron {step} failed: {e:?}");
+                eprintln!("MB3 tetrahedron {step} failed: {e}");
                 return None;
             }
         }
@@ -104,9 +104,9 @@ fn build_singularity_star() -> Option<(
         let (topo_tool, geom_tool) = build_dodecahedron([cx, cy, 0.0], 0.25);
         let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let r = envelope.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                let r = result;
                 step += 1;
                 let (v, e, f, chi) = euler_audit(r.topology().arena());
                 eprintln!("MB3 dodec {step}: V={v} E={e} F={f} χ={chi}");
@@ -115,7 +115,7 @@ fn build_singularity_star() -> Option<(
                 geom = parts.1;
             }
             Err(e) => {
-                eprintln!("MB3 dodecahedron {step} failed: {e:?}");
+                eprintln!("MB3 dodecahedron {step} failed: {e}");
                 return None;
             }
         }
@@ -172,15 +172,15 @@ fn singularity_near_miss_subtraction() {
         BooleanOp::Subtraction,
     );
 
-    match execute_boolean_logged(input) {
-        Ok(envelope) => {
-            let r = envelope.into_value();
+    match execute_boolean_logged(input).into_result() {
+        Ok(result) => {
+            let r = result;
             let (v, e, f, chi) = euler_audit(r.topology().arena());
             eprintln!("MB3 near-miss: V={v} E={e} F={f} χ={chi}");
             assert!(f > 0, "MB3 near-miss should produce faces");
         }
         Err(e) => {
-            panic!("MB3 near-miss subtraction failed: {e:?}");
+            panic!("MB3 near-miss subtraction failed: {e}");
         }
     }
 }

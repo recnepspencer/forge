@@ -52,6 +52,28 @@ pub enum SuggestedFix {
     ManualIntervention { description: String },
 }
 
+impl fmt::Display for SuggestedFix {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SuggestedFix::IncreaseThreshold { parameter, current, suggested } => {
+                write!(f, "Increase {} from {:.2e} to {:.2e}", parameter, current, suggested)
+            }
+            SuggestedFix::ReduceValue { parameter, current, max_allowed } => {
+                write!(f, "Reduce {} from {:.2e} to at most {:.2e}", parameter, current, max_allowed)
+            }
+            SuggestedFix::RetryWithPolicy { policy_kind } => {
+                write!(f, "Retry with explicit policy: {:?}", policy_kind)
+            }
+            SuggestedFix::SplitOperation => {
+                write!(f, "Split into smaller operations")
+            }
+            SuggestedFix::ManualIntervention { description } => {
+                write!(f, "{}", description)
+            }
+        }
+    }
+}
+
 /// Structured diagnostic context for AI agents and UI.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ErrorContext {
@@ -184,6 +206,51 @@ impl fmt::Display for KernelError {
                 )
             }
         }
+    }
+}
+
+impl KernelError {
+    /// Extract the structured error context, if any variant carries one.
+    pub fn get_context(&self) -> Option<&ErrorContext> {
+        match self {
+            KernelError::TopologyViolation { context, .. }
+            | KernelError::AmbiguousResult { context, .. }
+            | KernelError::ToleranceExceeded { context, .. }
+            | KernelError::PrecisionEscalation { context, .. }
+            | KernelError::InvalidInput { context, .. }
+            | KernelError::InternalError { context, .. }
+            | KernelError::ReplayMismatch { context, .. } => context.as_ref(),
+            KernelError::DiagnosticFailure { source, .. } => source.get_context(),
+        }
+    }
+
+    /// Wrap this error with a phase label, prefixing its detail string.
+    pub fn with_phase(mut self, phase: &str) -> Self {
+        match &mut self {
+            KernelError::TopologyViolation { context, .. }
+            | KernelError::AmbiguousResult { context, .. }
+            | KernelError::ToleranceExceeded { context, .. }
+            | KernelError::PrecisionEscalation { context, .. }
+            | KernelError::InvalidInput { context, .. }
+            | KernelError::InternalError { context, .. }
+            | KernelError::ReplayMismatch { context, .. } => {
+                let ctx = context.get_or_insert_with(|| ErrorContext {
+                    scope: ErrorScope::Global,
+                    suggested_fixes: Vec::new(),
+                    detail: String::new(),
+                });
+                if ctx.detail.is_empty() {
+                    ctx.detail = format!("Failed during phase '{}'", phase);
+                } else {
+                    ctx.detail = format!("[{}] {}", phase, ctx.detail);
+                }
+            }
+            KernelError::DiagnosticFailure { source, .. } => {
+                let new_source = (**source).clone();
+                *source = Box::new(new_source.with_phase(phase));
+            }
+        }
+        self
     }
 }
 

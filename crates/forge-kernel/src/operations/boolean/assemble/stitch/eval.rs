@@ -10,7 +10,7 @@ use forge_core::KernelError;
 use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
 use forge_topo::handles::{HalfEdgeId, VertexId};
 use forge_topo::state::MutableDraft;
-use crate::core::ModelingContext;
+use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
 use crate::geometry_store::GeometryStore;
 
 use super::fallback::stitch_position_fallback;
@@ -52,7 +52,31 @@ pub fn stitch_twins(
         .collect();
 
     if !still_unpaired.is_empty() {
+        let pre_snapshot = ArenaSnapshot::capture(draft.arena());
+
         stitch_position_fallback(draft, geom, &still_unpaired, weld_tolerance_sq, ctx)?;
+
+        let delta = compute_topology_delta(&pre_snapshot, draft.arena());
+        if !delta.is_empty() {
+            let mut decision = TracedDecision::new(
+                DecisionId(still_unpaired.len() as u64),
+                DecisionKind::Forced {
+                    reason: format!("Position fallback stitched {} unpaired HEs", still_unpaired.len()),
+                },
+                DecisionTier::PolicyApplied,
+                1.0,
+                DecisionContext::Degeneracy {
+                    description: format!(
+                        "Stitch fallback created {} V, {} HE, {} F",
+                        delta.created_vertices.len(),
+                        delta.created_halfedges.len(),
+                        delta.created_faces.len(),
+                    ),
+                },
+            );
+            decision.set_topology_delta(delta);
+            ctx.get_decision_log_mut().record(decision);
+        }
     }
 
     Ok(())

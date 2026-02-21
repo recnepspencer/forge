@@ -79,10 +79,10 @@ fn union_of_disjoint_cubes() {
         BooleanOp::Union,
     );
 
-    let result = execute_boolean_logged(input);
+    let result = execute_boolean_logged(input).into_result();
     assert!(result.is_ok(), "Union failed: {:?}", result.err());
 
-    let bool_result = result.unwrap().into_value();
+    let bool_result = result.unwrap();
     assert_eq!(bool_result.target_faces_kept(), 6);
     assert_eq!(bool_result.tool_faces_kept(), 6);
 }
@@ -98,10 +98,10 @@ fn intersection_of_concentric_cubes() {
         BooleanOp::Intersection,
     );
 
-    let result = execute_boolean_logged(input);
+    let result = execute_boolean_logged(input).into_result();
     assert!(result.is_ok(), "Intersection failed: {:?}", result.err());
 
-    let bool_result = result.unwrap().into_value();
+    let bool_result = result.unwrap();
     assert_eq!(bool_result.target_faces_kept(), 0, "Outer faces should all be outside inner");
     assert_eq!(bool_result.tool_faces_kept(), 6, "Inner faces should all be inside outer");
 }
@@ -117,10 +117,10 @@ fn subtraction_of_concentric_cubes() {
         BooleanOp::Subtraction,
     );
 
-    let result = execute_boolean_logged(input);
+    let result = execute_boolean_logged(input).into_result();
     assert!(result.is_ok(), "Subtraction failed: {:?}", result.err());
 
-    let bool_result = result.unwrap().into_value();
+    let bool_result = result.unwrap();
     // Zero-split containment path: target outer shell (6 faces) + tool inner shell reversed (6 faces)
     assert_eq!(bool_result.target_faces_kept(), 6, "Outer cube kept as-is (zero-split containment)");
     assert_eq!(bool_result.tool_faces_kept(), 6, "Inner faces reversed to form hole (zero-split containment)");
@@ -137,7 +137,7 @@ fn boolean_result_has_topology() {
         BooleanOp::Union,
     );
 
-    let result = execute_boolean_logged(input).unwrap().into_value();
+    let result = execute_boolean_logged(input).into_result().unwrap();
     assert_eq!(result.topology().arena().vertex_count(), 16);
     assert_eq!(result.topology().arena().face_count(), 12);
     assert!(result.geometry().vertex_position_count() > 0);

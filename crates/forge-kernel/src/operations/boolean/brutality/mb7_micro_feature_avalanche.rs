@@ -61,9 +61,9 @@ fn micro_cube_grid_1000() {
                     BooleanOp::Subtraction,
                 );
 
-                match execute_boolean_logged(input) {
-                    Ok(envelope) => {
-                        let r = envelope.into_value();
+                match execute_boolean_logged(input).into_result() {
+                    Ok(result) => {
+                        let r = result;
                         step += 1;
                         if step % 100 == 0 {
                             let (v, e, f, chi) = euler_audit(r.topology().arena());
@@ -77,7 +77,7 @@ fn micro_cube_grid_1000() {
                         geom = parts.1;
                     }
                     Err(e) => {
-                        panic!("MB7 micro-cube step {step} failed: {e:?}");
+                        panic!("MB7 micro-cube step {step} failed: {e}");
                     }
                 }
             }
@@ -126,9 +126,9 @@ fn micro_cube_grid_10000() {
                     BooleanOp::Subtraction,
                 );
 
-                match execute_boolean_logged(input) {
-                    Ok(envelope) => {
-                        let r = envelope.into_value();
+                match execute_boolean_logged(input).into_result() {
+                    Ok(result) => {
+                        let r = result;
                         step += 1;
                         if step % 500 == 0 {
                             let (v, e, f, chi) = euler_audit(r.topology().arena());
@@ -141,7 +141,7 @@ fn micro_cube_grid_10000() {
                         geom = parts.1;
                     }
                     Err(e) => {
-                        panic!("MB7 micro-cube step {step}/{total} failed: {e:?}");
+                        panic!("MB7 micro-cube step {step}/{total} failed: {e}");
                     }
                 }
             }
@@ -185,14 +185,13 @@ fn micro_cube_graze_tool() {
                 let input = BooleanInput::new(
                     topo, geom, topo_micro, geom_micro, BooleanOp::Subtraction,
                 );
-                match execute_boolean_logged(input) {
-                    Ok(env) => {
-                        let r = env.into_value();
+                match execute_boolean_logged(input).into_result() {
+                    Ok(r) => {
                         let p = r.into_topo_geom();
                         topo = p.0;
                         geom = p.1;
                     }
-                    Err(e) => panic!("MB7 graze-prep micro-cube failed: {e:?}"),
+                    Err(e) => panic!("MB7 graze-prep micro-cube failed: {e}"),
                 }
             }
         }
@@ -210,15 +209,15 @@ fn micro_cube_graze_tool() {
         BooleanOp::Subtraction,
     );
 
-    match execute_boolean_logged(input) {
-        Ok(envelope) => {
-            let r = envelope.into_value();
+    match execute_boolean_logged(input).into_result() {
+        Ok(result) => {
+            let r = result;
             let (v, e, f, chi) = euler_audit(r.topology().arena());
             eprintln!("MB7 graze tool result: V={v} E={e} F={f} χ={chi}");
             assert!(f >= 6, "Graze tool should leave valid solid");
         }
         Err(e) => {
-            panic!("MB7 graze tool failed: {e:?}");
+            panic!("MB7 graze tool failed: {e}");
         }
     }
 }

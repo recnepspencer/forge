@@ -19,6 +19,7 @@ mod brep_workspace;
 mod operation_space;
 
 pub use context::ModelingContext;
+pub use context::{ArenaSnapshot, compute_topology_delta};
 pub use tolerance::{
     TolerancePolicy,
     TangencyPolicy,

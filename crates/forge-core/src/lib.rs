@@ -44,7 +44,7 @@ pub use tracing::{
     DivergenceReport, DivergenceDetail, scan_for_divergences,
     EULER_OP_FEATURE_SCOPE,
     resolve_trace_dir, write_trace_file,
-    LogLevel, log_level, log_result, log_decision_log,
+    LogLevel, log_level, log_result, log_decision_log, log_error,
 };
 
 pub use envelope::{

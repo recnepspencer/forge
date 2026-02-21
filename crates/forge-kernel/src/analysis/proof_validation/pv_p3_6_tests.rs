@@ -50,8 +50,8 @@ mod tests {
             topo_a, geom_a, topo_b, geom_b, BooleanOp::Union,
         );
 
-        let envelope = execute_boolean_logged(input).expect("Disjoint union failed");
-        let result = envelope.get_value();
+        let envelope = execute_boolean_logged(input);
+        let result = envelope.into_result().expect("Disjoint union failed");
 
         let replay_log = result.get_replay_log();
         let lineage_events = result.get_lineage_events();
@@ -105,9 +105,8 @@ mod tests {
 
         let result = execute_boolean_logged(input);
 
-        match result {
-            Ok(envelope) => {
-                let r = envelope.get_value();
+        match result.into_result() {
+            Ok(r) => {
                 let replay_log = r.get_replay_log();
                 let lineage_events = r.get_lineage_events();
 
@@ -260,13 +259,12 @@ mod tests {
                 BooleanOp::Union,
             );
 
-            let envelope = execute_boolean_logged(input)
-                .unwrap_or_else(|e| panic!("Chain step {} failed: {:?}", step, e));
-
+            let envelope = execute_boolean_logged(input);
             let step_decisions = envelope.get_decision_log().len();
             total_decisions += step_decisions;
 
-            let result = envelope.into_value();
+            let result = envelope.into_result()
+                .unwrap_or_else(|e| panic!("Chain step {} failed: {:?}", step, e));
             let step_replay = result.get_replay_log().len();
             let step_lineage = result.get_lineage_events().len();
 
@@ -348,11 +346,11 @@ mod tests {
             topo_a, geom_a, topo_b, geom_b, BooleanOp::Union,
         );
 
-        let envelope = execute_boolean_logged(input).expect("Disjoint union failed");
-        let result = envelope.get_value();
+        let envelope = execute_boolean_logged(input);
+        let decision_log = envelope.get_decision_log().clone();
+        let result = envelope.into_result().expect("Disjoint union failed");
         let replay_log = result.get_replay_log();
         let lineage_events = result.get_lineage_events();
-        let decision_log = envelope.get_decision_log();
 
         assert!(
             replay_log.len() >= 1,
@@ -371,7 +369,7 @@ mod tests {
         let chain = query_causal_chain(
             &face_ref,
             replay_log,
-            decision_log,
+            &decision_log,
             lineage_events,
             &[],
         );
@@ -386,7 +384,7 @@ mod tests {
         let summary = query_causal_summary(
             &face_ref,
             replay_log,
-            decision_log,
+            &decision_log,
             lineage_events,
             &[],
         );

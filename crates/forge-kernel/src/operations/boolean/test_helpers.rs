@@ -49,19 +49,15 @@ pub fn run_boolean(
     let (topo_b, geom_b) = build_cube(center_b, half_b);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, op);
-    let envelope = execute_boolean(input).unwrap_or_else(|e| {
+    let envelope = execute_boolean(input);
+    envelope.into_result().unwrap_or_else(|e| {
         panic!("Boolean {:?} failed: {:?}", op, e);
-    });
-
-    forge_core::log_result(&format!("{:?}", op), &envelope);
-    envelope.into_value()
+    })
 }
 
 /// Attempt a boolean, returning the Result for tests that expect errors.
 ///
-/// On success, logs the `DecisionLog` to stderr for diagnostic visibility.
-/// Traces auto-persist via `OperationResult::into_value()` when
-/// `FORGE_TRACE_DIR` is set.
+/// Traces and error logging are handled automatically by `into_result()`.
 pub fn try_boolean(
     center_a: [f64; 3],
     half_a: f64,
@@ -73,25 +69,19 @@ pub fn try_boolean(
     let (topo_b, geom_b) = build_cube(center_b, half_b);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, op);
-    let envelope = execute_boolean(input)?;
-
-    forge_core::log_result(&format!("{:?}", op), &envelope);
-    Ok(envelope.into_value())
+    execute_boolean(input).into_result()
 }
 
-/// Execute a boolean from a pre-built `BooleanInput`, logging decisions.
+/// Execute a boolean from a pre-built `BooleanInput`, returning the full envelope.
 ///
-/// Use this in tests that construct custom inputs (non-cube geometry,
-/// chained booleans, etc.) instead of calling `execute_boolean` directly.
-/// Traces auto-persist via `OperationResult::into_value()` when
-/// `FORGE_TRACE_DIR` is set.
+/// Use this in tests that need access to the `DecisionLog`, metrics, or
+/// other envelope data alongside the result. Callers use `into_result()`
+/// to extract the inner `Result` with automatic trace persistence and
+/// error logging.
 pub fn execute_boolean_logged(
     input: BooleanInput,
-) -> Result<forge_core::OperationResult<BooleanResult>, forge_core::KernelError> {
-    let op = input.operation();
-    let envelope = execute_boolean(input)?;
-    forge_core::log_result(&format!("{:?}", op), &envelope);
-    Ok(envelope)
+) -> forge_core::OperationResult<Result<BooleanResult, forge_core::KernelError>> {
+    execute_boolean(input)
 }
 
 /// Euler characteristic audit: returns (V, E, F, χ).

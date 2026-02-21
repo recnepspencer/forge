@@ -118,9 +118,9 @@ fn mb_n2_boolean_near_coincident_1e14() {
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
 
-    match execute_boolean_logged(input) {
-        Ok(envelope) => {
-            let result = envelope.into_value();
+    match execute_boolean_logged(input).into_result() {
+        Ok(result) => {
+            
             let (v, e, f, chi) = euler_audit(result.topology().arena());
             assert_eq!(chi, 2, "Union must produce valid manifold: V={} E={} F={} χ={}", v, e, f, chi);
             assert!(f >= 6, "Union should have at least 6 faces, got {}", f);
@@ -143,9 +143,9 @@ fn mb_n2_boolean_gap_sweep() {
 
         let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let result = envelope.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                
                 let (_, _, _, chi) = euler_audit(result.topology().arena());
                 assert_eq!(chi, 2, "χ must be 2 at gap={:.0e}", gap);
                 successes += 1;
@@ -188,9 +188,9 @@ fn mb_n3_boolean_chain_surface_notches() {
 
         let input = BooleanInput::new(topo, geom, topo_b, geom_b, BooleanOp::Subtraction);
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let result = envelope.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                
                 let (v, e, f, chi) = euler_audit(result.topology().arena());
                 assert!(
                     chi > 0 && chi % 2 == 0,
@@ -244,9 +244,9 @@ fn mb_n4_scale_sweep_union() {
 
         let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let result = envelope.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                
                 let (v, e, f, chi) = euler_audit(result.topology().arena());
 
                 if let Some(ref_chi) = reference_chi {
@@ -314,9 +314,9 @@ fn mb_n5_nearly_parallel_planes() {
     let analysis_b = ScaleAnalysis::compute(&points_b, 1e-9);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Intersection);
-    match execute_boolean_logged(input) {
-        Ok(envelope) => {
-            let result = envelope.into_value();
+    match execute_boolean_logged(input).into_result() {
+        Ok(result) => {
+            
             let (v, e, f, chi) = euler_audit(result.topology().arena());
             assert_eq!(chi, 2, "Nearly-parallel must produce valid manifold: χ={}", chi);
             eprintln!("MB-N5: succeeded with {} faces, angle={:.2e} rad", f, tiny_angle);

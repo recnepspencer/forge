@@ -41,7 +41,7 @@ fn shallow_angle_intersection() {
                 topo_a, geom_a, topo_b, geom_b, BooleanOp::Intersection,
             );
             let result = execute_boolean_logged(input);
-            let r = result.expect("Shallow-angle boolean must not fail").into_value();
+            let r = result.into_result().expect("Shallow-angle boolean must not fail");
             let arena = r.topology().arena();
             let v = arena.vertex_count() as isize;
             let e = (arena.half_edge_count() / 2) as isize;
@@ -49,6 +49,6 @@ fn shallow_angle_intersection() {
             assert!(f > 0, "Shallow-angle intersection should produce faces");
             assert_eq!(v - e + f, 2, "Shallow-angle Euler violation: V={v} E={e} F={f}");
         }
-        Err(e) => panic!("BSP for tilted solid must not fail: {e:?}"),
+        Err(e) => panic!("BSP for tilted solid must not fail: {e}"),
     }
 }

@@ -53,10 +53,10 @@ fn mb_r1_checkpoint_diff_pinpoints_injected_divergence() {
             BooleanOp::Subtraction,
         );
 
-        let envelope = execute_boolean_logged(input).expect("Original step failed");
+        let envelope = execute_boolean_logged(input);
         original_logs.push(envelope.get_decision_log().clone());
-        
-        let (t, g) = envelope.into_value().into_topo_geom();
+        let result = envelope.into_result().expect("Original step failed");
+        let (t, g) = result.into_topo_geom();
         current_topo = t;
         current_geom = g;
     }
@@ -104,14 +104,13 @@ fn mb_r1_checkpoint_diff_pinpoints_injected_divergence() {
 
         let envelope = if i == fault_step {
             crate::operations::boolean::execute_boolean_with_overrides(input, &overrides)
-                .expect("Fault step failed")
         } else {
-            execute_boolean_logged(input).expect("Re-run step failed")
+            execute_boolean_logged(input)
         };
 
         divergent_logs.push(envelope.get_decision_log().clone());
-        
-        let (t, g) = envelope.into_value().into_topo_geom();
+        let result = envelope.into_result().expect("Re-run step failed");
+        let (t, g) = result.into_topo_geom();
         current_topo = t;
         current_geom = g;
     }
@@ -140,18 +139,18 @@ fn mb_r2_geometry_perturbation_diff_catches_every_flipped_decision() {
     let (t2, g2) = build_cube([10.0, 10.0, 10.0], 10.0); // center at vertex
     let input_a = BooleanInput::new(t1, g1, t2, g2, BooleanOp::Intersection);
     
-    let env_a = execute_boolean_logged(input_a).unwrap();
+    let env_a = execute_boolean_logged(input_a);
     let log_a = env_a.get_decision_log().clone();
-    let res_a = env_a.into_value();
+    let res_a = env_a.into_result().expect("Original boolean failed");
 
     // 2. Perturbed run (shifted so one face is almost exactly coplanar, forcing margin to drop and potentially flip)
     let (t1, g1) = build_cube([0.0, 0.0, 0.0], 10.0);
     let (t2, g2) = build_cube([10.0, 10.0, 10.00000001], 10.0); // perturbed Z slightly
     let input_b = BooleanInput::new(t1, g1, t2, g2, BooleanOp::Intersection);
     
-    let env_b = execute_boolean_logged(input_b).unwrap();
+    let env_b = execute_boolean_logged(input_b);
     let log_b = env_b.get_decision_log().clone();
-    let res_b = env_b.into_value();
+    let res_b = env_b.into_result().expect("Perturbed boolean failed");
 
     // 3. Diff should show at least some change (margin delta, tier change, or kind change)
     let diff = diff_decision_logs(&log_a, &log_b);
@@ -181,9 +180,9 @@ fn mb_r3_causal_chains_scope_decisions_to_correct_faces() {
     let (t1, g1) = build_cube([0.0, 0.0, 0.0], 10.0);
     let (t2, g2) = build_cube([5.0, 5.0, 5.0], 10.0);
     let input = BooleanInput::new(t1, g1, t2, g2, BooleanOp::Union);
-    let env = execute_boolean_logged(input).unwrap();
+    let env = execute_boolean_logged(input);
     let log = env.get_decision_log().clone();
-    let result = env.into_value();
+    let result = env.into_result().unwrap();
 
     let arena = result.topology().arena();
     let face_indices: Vec<_> = arena.iter_faces().map(|(id, _)| id.index()).collect();
@@ -241,7 +240,7 @@ fn mb_r4_delta_debug_finds_injected_structural_failure() {
                 return Ok(true); // Failure detected!
             }
             
-            let res = execute_boolean_logged(input)?.into_value();
+            let res = execute_boolean_logged(input).into_result()?;
             t = res.topology().clone();
             g = res.geometry().clone();
         }
@@ -259,7 +258,7 @@ fn mb_r5_counterfactual_replay_classifies_valid_vs_breaking() {
     let (t1, g1) = build_cube([0.0, 0.0, 0.0], 10.0);
     let (t2, g2) = build_cube([5.0, 5.0, 5.0], 10.0);
     let input = BooleanInput::new(t1, g1, t2, g2, BooleanOp::Union);
-    let env = execute_boolean_logged(input.clone()).unwrap();
+    let env = execute_boolean_logged(input.clone());
     
     let original_log = env.get_decision_log();
     let original_hash = env.get_state_hash_after();
@@ -289,10 +288,10 @@ fn mb_r6_serialized_proof_metadata_enables_cross_session_detection() {
     let (t1, g1) = build_cube([0.0, 0.0, 0.0], 10.0);
     let (t2, g2) = build_cube([5.0, 5.0, 5.0], 10.0);
     let input = BooleanInput::new(t1, g1, t2, g2, BooleanOp::Union);
-    let env = execute_boolean_logged(input.clone()).unwrap();
+    let env = execute_boolean_logged(input.clone());
 
     let original_decision = env.get_decision_log().clone();
-    let result = env.into_value();
+    let result = env.into_result().expect("Boolean failed");
     let original_replay = result.get_replay_log();
     let original_lineage = result.get_lineage_events();
 
@@ -317,7 +316,7 @@ fn mb_r6_serialized_proof_metadata_enables_cross_session_detection() {
     ).expect("Invariants failed on deserialized data");
 
     // Re-run the exact same boolean to verify cross-session deterministic replay
-    let fresh_env = execute_boolean_logged(input).unwrap();
+    let fresh_env = execute_boolean_logged(input);
     let fresh_decision = fresh_env.get_decision_log();
 
     let diff = diff_decision_logs(&decoded_decision, fresh_decision);
@@ -330,7 +329,8 @@ fn mb_r7_margin_analysis_cross_validates_with_causal_chains() {
     let (t1, g1) = build_cube([0.0, 0.0, 0.0], 10.0);
     let (t2, g2) = build_cube([10.0, 10.0, 10.0], 10.0); // Face-to-face contact
     let input = BooleanInput::new(t1, g1, t2, g2, BooleanOp::Union);
-    let env = execute_boolean_logged(input).unwrap();
+    let env = execute_boolean_logged(input);
+    env.get_value().as_ref().expect("Boolean failed");
 
     let mut margin_decisions: Vec<_> = env.get_decision_log().decisions()
         .filter(|d| d.get_tier() >= DecisionTier::NearBoundary)

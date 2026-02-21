@@ -13,6 +13,7 @@
 
 use forge_core::KernelError;
 use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier, EntityRef};
+use forge_core::tracing::TopologyDelta;
 use forge_topo::arena::TopologyArena;
 use forge_topo::classify::classify_point_in_solid;
 use forge_topo::handles::FaceId;
@@ -185,6 +186,7 @@ fn log_classification(
         },
     );
     decision.set_entity_scope(EntityRef::new("Face", face_id.index()));
+    decision.set_topology_delta(TopologyDelta::default());
     ctx.get_decision_log_mut().record(decision);
 }
 

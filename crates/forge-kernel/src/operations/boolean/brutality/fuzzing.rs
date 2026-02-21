@@ -93,9 +93,8 @@ fn concave_union_composition() {
     let input_abc = BooleanInput::new(topo_ab, geom_ab, topo_c, geom_c, BooleanOp::Union);
     let concave = execute_boolean_logged(input_abc);
 
-    match concave {
+    match concave.into_result() {
         Ok(r) => {
-            let r = r.into_value();
             let arena = r.topology().arena();
             let v = arena.vertex_count() as isize;
             let e = (arena.half_edge_count() / 2) as isize;
@@ -111,9 +110,8 @@ fn concave_union_composition() {
             );
             let final_result = execute_boolean_logged(input);
 
-            match final_result {
-                Ok(fr_env) => {
-                    let fr = fr_env.into_value();
+            match final_result.into_result() {
+                Ok(fr) => {
                     let arena2 = fr.topology().arena();
                     let v2 = arena2.vertex_count() as isize;
                     let e2 = (arena2.half_edge_count() / 2) as isize;

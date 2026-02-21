@@ -67,9 +67,8 @@ fn pv_09_1000_random_booleans_all_oriented() {
 
         let input = BooleanInput::new(target_topo, target_geom, tool_topo, tool_geom, op);
 
-        match execute_boolean(input) {
-            Ok(op_result) => {
-                let result = op_result.into_value();
+        match execute_boolean(input).into_result() {
+            Ok(result) => {
                 let (result_topo, result_geom) = result.into_topo_geom();
 
                 if result_topo.arena().face_count() < 4 {

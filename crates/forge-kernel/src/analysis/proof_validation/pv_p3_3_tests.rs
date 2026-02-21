@@ -41,12 +41,12 @@ mod tests {
             topo_a, geom_a, topo_b, geom_b, BooleanOp::Union,
         );
 
-        let envelope = execute_boolean_logged(input).expect("Boolean failed");
+        let envelope = execute_boolean_logged(input);
+        let decision_log = envelope.get_decision_log().clone();
+        let result = envelope.into_result().expect("Boolean failed");
 
-        let result = envelope.get_value();
         let replay_log = result.get_replay_log();
         let lineage_events = result.get_lineage_events();
-        let decision_log = envelope.get_decision_log();
 
         assert!(
             replay_log.len() >= 5,
@@ -76,7 +76,7 @@ mod tests {
         let chain = query_causal_chain(
             &face_ref,
             replay_log,
-            decision_log,
+            &decision_log,
             lineage_events,
             &[],
         );
@@ -125,11 +125,11 @@ mod tests {
             topo_a, geom_a, topo_b, geom_b, BooleanOp::Union,
         );
 
-        let envelope = execute_boolean_logged(input).expect("Boolean failed");
-        let result = envelope.get_value();
+        let envelope = execute_boolean_logged(input);
+        let decision_log = envelope.get_decision_log().clone();
+        let result = envelope.into_result().expect("Boolean failed");
         let replay_log = result.get_replay_log();
         let lineage_events = result.get_lineage_events();
-        let decision_log = envelope.get_decision_log();
 
         let first_face = result.topology().arena().iter_faces().next()
             .expect("Result must have at least one face");
@@ -138,7 +138,7 @@ mod tests {
         let chain = query_causal_chain(
             &face_ref,
             replay_log,
-            decision_log,
+            &decision_log,
             lineage_events,
             &[],
         );
@@ -178,11 +178,11 @@ mod tests {
             topo_a, geom_a, topo_b, geom_b, BooleanOp::Union,
         );
 
-        let envelope = execute_boolean_logged(input).expect("Boolean failed");
-        let result = envelope.get_value();
+        let envelope = execute_boolean_logged(input);
+        let decision_log = envelope.get_decision_log().clone();
+        let result = envelope.into_result().expect("Boolean failed");
         let replay_log = result.get_replay_log();
         let lineage_events = result.get_lineage_events();
-        let decision_log = envelope.get_decision_log();
 
         let first_face = result.topology().arena().iter_faces().next()
             .expect("Result must have at least one face");
@@ -191,7 +191,7 @@ mod tests {
         let summary = query_causal_summary(
             &face_ref,
             replay_log,
-            decision_log,
+            &decision_log,
             lineage_events,
             &[],
         );
@@ -248,11 +248,11 @@ mod tests {
             topo_a, geom_a, topo_b, geom_b, BooleanOp::Intersection,
         );
 
-        let envelope = execute_boolean_logged(input).expect("Boolean failed");
-        let result = envelope.get_value();
+        let envelope = execute_boolean_logged(input);
+        let decision_log = envelope.get_decision_log().clone();
+        let result = envelope.into_result().expect("Boolean failed");
         let replay_log = result.get_replay_log();
         let lineage_events = result.get_lineage_events();
-        let decision_log = envelope.get_decision_log();
 
         let face_count = result.topology().arena().face_count();
         assert!(face_count > 0, "Intersection must produce at least one face");
@@ -269,7 +269,7 @@ mod tests {
         let chain_without_nring = query_causal_chain(
             &face_ref,
             replay_log,
-            decision_log,
+            &decision_log,
             lineage_events,
             &[],
         );
@@ -277,7 +277,7 @@ mod tests {
         let chain_with_nring = query_causal_chain(
             &face_ref,
             replay_log,
-            decision_log,
+            &decision_log,
             lineage_events,
             &nring_vertices,
         );

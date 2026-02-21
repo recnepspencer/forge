@@ -13,6 +13,9 @@
 
 use crate::error::MathError;
 
+pub mod sos;
+pub use sos::{orient3d_sos, orient2d_sos, SosPoint};
+
 /// A detected geometric coincidence between two entities.
 ///
 /// Entity IDs are `u64` stable identifiers. The invariant `a < b` is

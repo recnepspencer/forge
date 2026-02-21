@@ -66,9 +66,9 @@ fn chain_500_periodic_cancellation() {
             op,
         );
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let r = envelope.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                let r = result;
 
                 if step % 50 == 0 {
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
@@ -84,7 +84,7 @@ fn chain_500_periodic_cancellation() {
                 geom = parts.1;
             }
             Err(e) => {
-                panic!("MB5 step {step} ({op:?}) failed: {e:?}");
+                panic!("MB5 step {step} ({op:?}) failed: {e}");
             }
         }
     }
@@ -144,9 +144,9 @@ fn chain_500_with_graze_at_237() {
             op,
         );
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let r = envelope.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                let r = result;
 
                 if step % 50 == 0 || step == 237 || step == 238 {
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
@@ -159,7 +159,7 @@ fn chain_500_with_graze_at_237() {
                 geom = parts.1;
             }
             Err(e) => {
-                panic!("MB5-graze step {step} ({op:?}) failed: {e:?}");
+                panic!("MB5-graze step {step} ({op:?}) failed: {e}");
             }
         }
     }
@@ -194,8 +194,8 @@ fn exact_180_cancellation_100() {
         );
 
         let r_union = execute_boolean_logged(input_union)
-            .unwrap_or_else(|e| panic!("MB5 cancel cycle {cycle} union failed: {e:?}"))
-            .into_value();
+            .into_result()
+            .unwrap_or_else(|e| panic!("MB5 cancel cycle {cycle} union failed: {e}"));
         let (topo_u, geom_u) = r_union.into_topo_geom();
 
         let (topo_sub, geom_sub) = build_cube([1.5, 0.0, 0.0], 1.0);
@@ -206,8 +206,8 @@ fn exact_180_cancellation_100() {
         );
 
         let r_sub = execute_boolean_logged(input_sub)
-            .unwrap_or_else(|e| panic!("MB5 cancel cycle {cycle} subtract failed: {e:?}"))
-            .into_value();
+            .into_result()
+            .unwrap_or_else(|e| panic!("MB5 cancel cycle {cycle} subtract failed: {e}"));
 
         if cycle % 10 == 0 {
             let (v, e, f, chi) = euler_audit(r_sub.topology().arena());

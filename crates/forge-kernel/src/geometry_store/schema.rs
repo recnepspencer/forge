@@ -23,6 +23,8 @@ pub struct ExactPosition {
     /// (e.g. intersect_three_planes_exact) or promoted from f64.
     /// Only exact positions should be used with classify_point_exact.
     is_exact: bool,
+    /// Indices of the 3 planes defining this vertex, if known symbolically.
+    symbolic_planes: Option<[usize; 3]>,
 }
 
 impl ExactPosition {
@@ -42,7 +44,7 @@ impl ExactPosition {
             if raw[1].is_finite() { raw[1] } else { 0.0 },
             if raw[2].is_finite() { raw[2] } else { 0.0 },
         ];
-        Self { exact, approx, is_exact: true }
+        Self { exact, approx, is_exact: true, symbolic_planes: None }
     }
 
     /// Create from exact rationals with an explicit f64 fallback.
@@ -61,7 +63,7 @@ impl ExactPosition {
         } else {
             fallback
         };
-        Self { exact, approx: safe_approx, is_exact: true }
+        Self { exact, approx: safe_approx, is_exact: true, symbolic_planes: None }
     }
 
     /// Create from f64 coordinates (lossless IEEE754 → Rational conversion).
@@ -73,7 +75,7 @@ impl ExactPosition {
             Rational::try_from_f64(pos[1]).unwrap_or_else(|_| Rational::zero()),
             Rational::try_from_f64(pos[2]).unwrap_or_else(|_| Rational::zero()),
         ];
-        Self { exact, approx: pos, is_exact: false }
+        Self { exact, approx: pos, is_exact: false, symbolic_planes: None }
     }
 
     /// The cached f64 approximation.
@@ -89,6 +91,26 @@ impl ExactPosition {
     /// Whether this position was computed via genuine exact arithmetic.
     pub fn is_exact(&self) -> bool {
         self.is_exact
+    }
+
+    /// Create from exact rationals, preserving the symbolic planes that defined it.
+    pub fn from_symbolic(exact: [Rational; 3], fallback: [f64; 3], planes: [usize; 3]) -> Self {
+        let approx = [
+            exact[0].to_f64_approx(),
+            exact[1].to_f64_approx(),
+            exact[2].to_f64_approx(),
+        ];
+        let safe_approx = if approx[0].is_finite() && approx[1].is_finite() && approx[2].is_finite() {
+            approx
+        } else {
+            fallback
+        };
+        Self { exact, approx: safe_approx, is_exact: true, symbolic_planes: Some(planes) }
+    }
+
+    /// Retrieve the symbolic bounding planes if they form a precise 3-plane intersection.
+    pub fn symbolic_planes(&self) -> Option<&[usize; 3]> {
+        self.symbolic_planes.as_ref()
     }
 }
 
@@ -156,7 +178,19 @@ impl GeometryStore {
         );
     }
 
-    /// Transform all geometry into a local coordinate space (exact Rational).
+    /// Associate a vertex with exact rational coordinates, an f64 fallback, and its defining planes.
+    pub fn set_vertex_position_symbolic(
+        &mut self,
+        vertex: VertexId,
+        exact: [Rational; 3],
+        fallback: [f64; 3],
+        planes: [usize; 3],
+    ) {
+        self.vertex_positions.insert(
+            pack_handle(vertex.index(), vertex.generation()),
+            ExactPosition::from_symbolic(exact, fallback, planes),
+        );
+    }
     ///
     /// Uses exact Rational arithmetic for plane transforms and vertex positions,
     /// preserving all precision through the transformation. The f64 approximations
@@ -208,6 +242,13 @@ impl GeometryStore {
             .get(&pack_handle(vertex.index(), vertex.generation()))
             .filter(|ep| ep.is_exact())
             .map(|ep| ep.exact())
+    }
+
+    /// Retrieve the symbolic plane indices for a vertex if it is defined as a pure intersection.
+    pub fn get_vertex_symbolic_planes(&self, vertex: VertexId) -> Option<&[usize; 3]> {
+        self.vertex_positions
+            .get(&pack_handle(vertex.index(), vertex.generation()))
+            .and_then(|ep| ep.symbolic_planes())
     }
 
     /// Number of face-plane associations.

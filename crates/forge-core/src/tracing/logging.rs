@@ -35,7 +35,16 @@ pub fn log_level() -> LogLevel {
 /// Writes to stderr so output appears with `--nocapture` but doesn't
 /// pollute stdout assertions.
 pub fn log_result<T>(label: &str, result: &OperationResult<T>) {
+    let level = log_level();
+    if level == LogLevel::Off {
+        return;
+    }
+
     log_decision_log(label, result.get_decision_log());
+
+    for summary in result.get_extra_summaries() {
+        eprintln!("[{}] {}", label, summary);
+    }
 }
 
 /// Log a raw `DecisionLog` at the current verbosity.
@@ -44,7 +53,24 @@ pub fn log_result<T>(label: &str, result: &OperationResult<T>) {
 pub fn log_decision_log(label: &str, log: &DecisionLog) {
     match log_level() {
         LogLevel::Off => {}
-        LogLevel::Compact => eprint!("[{}] {}", label, log.display_interesting()),
-        LogLevel::Full => eprint!("[{}] {}", label, log),
+        LogLevel::Compact => eprintln!("[{}] {}", label, log.display_interesting()),
+        LogLevel::Full => eprintln!("[{}] {}", label, log),
+    }
+}
+
+/// Log a `KernelError` to stderr.
+///
+/// Unlike decision logging, errors are ALWAYS printed regardless of
+/// `FORGE_LOG` level. Errors are product output — users need to know
+/// exactly why an operation failed, with full context and remediation hints.
+pub fn log_error(label: &str, error: &crate::KernelError) {
+    eprintln!("[{label}] ❌ ERROR: {error}");
+    if let Some(ctx) = error.get_context() {
+        if !ctx.detail.is_empty() {
+            eprintln!("[{label}]   detail: {}", ctx.detail);
+        }
+        for fix in &ctx.suggested_fixes {
+            eprintln!("[{label}]   fix: {fix}");
+        }
     }
 }

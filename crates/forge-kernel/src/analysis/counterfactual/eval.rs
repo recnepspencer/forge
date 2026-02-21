@@ -57,11 +57,11 @@ pub fn replay_decision(
     let overrides = vec![(target_id, flipped)];
 
     let cloned_input = input.clone();
-    let counterfactual_result = execute_boolean_with_overrides(cloned_input, &overrides);
+    let counterfactual_envelope = execute_boolean_with_overrides(cloned_input, &overrides);
+    let counterfactual_decisions = counterfactual_envelope.get_decision_log().clone();
 
-    let (counterfactual_hash, entity_delta, validation) = match counterfactual_result {
-        Ok(envelope) => {
-            let cf_result = envelope.into_value();
+    let (counterfactual_hash, entity_delta, validation, cf_log) = match counterfactual_envelope.into_result() {
+        Ok(cf_result) => {
             let cf_hash = compute_arena_topology_hash(cf_result.topology().arena());
             let cf_face_count = cf_result.topology().arena().face_count();
 
@@ -95,13 +95,13 @@ pub fn replay_decision(
                 ),
             );
 
-            (cf_hash, delta, validation)
+            (cf_hash, delta, validation, counterfactual_decisions)
         }
         Err(e) => {
             let validation = CounterfactualValidation::TopologyBroken {
                 errors: vec![format!("Boolean re-execution failed: {e:?}")],
             };
-            (0, EntityDelta::empty(), validation)
+            (0, EntityDelta::empty(), validation, counterfactual_decisions)
         }
     };
 
@@ -112,6 +112,7 @@ pub fn replay_decision(
         counterfactual_hash,
         entity_delta,
         validation,
+        cf_log,
     ))
 }
 

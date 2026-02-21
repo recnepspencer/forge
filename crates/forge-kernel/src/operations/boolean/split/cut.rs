@@ -223,8 +223,8 @@ fn find_cut_points_provenance(
 
         if let Some(p_o) = geometry.get_vertex_position(origin) {
             if let Some(p_d) = geometry.get_vertex_position(dest) {
-                let s_o = exact_sign_for_vertex(geometry, origin, p_o, cut_plane);
-                let s_d = exact_sign_for_vertex(geometry, dest, p_d, cut_plane);
+                let s_o = exact_sign_for_vertex(geometry, origin, p_o, cut_plane, cut_plane_idx);
+                let s_d = exact_sign_for_vertex(geometry, dest, p_d, cut_plane, cut_plane_idx);
 
                 if s_o == forge_math::sign::TriSign::Zero && s_d != forge_math::sign::TriSign::Zero {
                     points.push(CutPoint::Existing(origin));
@@ -256,7 +256,7 @@ fn is_sign_crossing(s_o: forge_math::sign::TriSign, s_d: forge_math::sign::TriSi
 /// plane, otherwise falls back to edge-plane intersection.
 fn compute_crossing_cut_point(
     arena: &forge_topo::arena::TopologyArena,
-    geometry: &GeometryStore,
+    _geometry: &GeometryStore,
     he: HalfEdgeId,
     face: FaceId,
     cut_plane: &Plane,
@@ -274,7 +274,7 @@ fn compute_crossing_cut_point(
     let p_face_idx = *split_cfg.face_plane_map.get(&face).unwrap_or(&0);
     let p_twin_idx = *split_cfg.face_plane_map.get(&twin_face).unwrap_or(&p_face_idx);
 
-    let (exact_pos, computed_pos) = compute_intersection_position(
+    let (exact_pos, computed_pos, symbolic_planes) = compute_intersection_position(
         p_face_idx, p_twin_idx, cut_plane_idx,
         split_cfg.plane_table, cut_plane,
         p_o, p_d, split_cfg.tolerance,
@@ -292,6 +292,7 @@ fn compute_crossing_cut_point(
         provenance,
         position: canonical_pos,
         exact_position: exact_pos,
+        symbolic_planes,
     })
 }
 
@@ -309,7 +310,7 @@ fn compute_intersection_position(
     p_o: &[f64; 3],
     p_d: &[f64; 3],
     config: &crate::core::ToleranceConfig,
-) -> (Option<[Rational; 3]>, [f64; 3]) {
+) -> (Option<[Rational; 3]>, [f64; 3], Option<[usize; 3]>) {
     if face_plane_idx != twin_plane_idx {
         let p0 = plane_table.get(face_plane_idx);
         let p1 = plane_table.get(twin_plane_idx);
@@ -324,14 +325,14 @@ fn compute_intersection_position(
                 } else {
                     forge_geom::primitives::plane::intersect_edge_plane(cut_plane, p_o, p_d, config.get_edge_split_degeneracy())
                 };
-                (Some(ep), f64_pos)
+                (Some(ep), f64_pos, Some([face_plane_idx, twin_plane_idx, cut_plane_idx]))
             }
-            Err(_) => (None, forge_geom::primitives::plane::intersect_edge_plane(cut_plane, p_o, p_d, config.get_edge_split_degeneracy())),
+            Err(_) => (None, forge_geom::primitives::plane::intersect_edge_plane(cut_plane, p_o, p_d, config.get_edge_split_degeneracy()), None),
         }
     } else {
         let f64_pos = forge_geom::primitives::plane::intersect_edge_plane(cut_plane, p_o, p_d, config.get_edge_split_degeneracy());
         let ep = Rational::try_from_f64_3(&f64_pos);
-        (ep, f64_pos)
+        (ep, f64_pos, None)
     }
 }
 
@@ -382,11 +383,15 @@ pub fn resolve_cut_point(
 ) -> Result<VertexId, KernelError> {
     match cp {
         CutPoint::Existing(v) => Ok(*v),
-        CutPoint::NewOnEdge { half_edge, provenance, position, exact_position } => {
+        CutPoint::NewOnEdge { half_edge, provenance, position, exact_position, symbolic_planes } => {
             let res = apply_op(draft, SplitEdge { edge: *half_edge, parameter: 0.5 })?;
             let v = res.get_value().new_vertex;
             if let Some(exact) = exact_position {
-                geom.set_vertex_position_exact(v, exact.clone());
+                if let Some(planes) = symbolic_planes {
+                    geom.set_vertex_position_symbolic(v, exact.clone(), *position, *planes);
+                } else {
+                    geom.set_vertex_position_exact(v, exact.clone());
+                }
             } else {
                 geom.set_vertex_position(v, *position);
             }

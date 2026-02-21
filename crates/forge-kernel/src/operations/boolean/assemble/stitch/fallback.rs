@@ -43,7 +43,7 @@ pub(super) fn stitch_position_fallback(
         return Ok(());
     }
 
-    Err(build_stitch_failure_error(&final_unpaired, draft, ctx))
+    Err(build_stitch_failure_error(&final_unpaired, draft, geom, ctx))
 }
 
 // ── Stitch passes ────────────────────────────────────────────────────────────
@@ -174,12 +174,13 @@ fn log_stitch(he_a: HalfEdgeId, he_b: HalfEdgeId, label: &str, confidence: f64, 
 
 /// Build a structured error for remaining unpaired halfedges.
 ///
-/// Includes per-entity decision ancestry: for each unpaired halfedge,
-/// reports which face it belongs to and which decisions were scoped to
-/// that entity or its parent face (enabling root-cause tracing).
+/// Includes per-entity decision ancestry and a 2-ring extracted region
+/// for each unpaired halfedge, enabling root-cause tracing and local
+/// geometry reconstruction.
 fn build_stitch_failure_error(
     unpaired: &[HalfEdgeId],
     draft: &MutableDraft,
+    geom: &GeometryStore,
     ctx: &ModelingContext,
 ) -> KernelError {
     let mut detail_lines: Vec<String> = Vec::new();
@@ -215,6 +216,23 @@ fn build_stitch_failure_error(
         } else {
             for line in related_decisions {
                 detail_lines.push(line);
+            }
+        }
+
+        let face_id = forge_topo::handles::FaceId::from_raw_parts(face_index, 0);
+        if let Ok(region) = crate::analysis::region_extractor::extract_n_ring(
+            draft.arena(), geom, face_id, 2,
+        ) {
+            detail_lines.push(format!(
+                "  2-ring: {}F {}HE {}V",
+                region.face_count(), region.half_edge_count(), region.vertex_count(),
+            ));
+            for (&fidx, plane) in region.get_face_planes() {
+                let n = plane.get_normal();
+                detail_lines.push(format!(
+                    "    Face#{}: n=[{:.2},{:.2},{:.2}] d={:.2}",
+                    fidx, n[0], n[1], n[2], plane.get_offset(),
+                ));
             }
         }
     }

@@ -79,9 +79,9 @@ fn iterative_rotation_shredder_10() {
             BooleanOp::Union,
         );
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let result = envelope.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                
                 let (v, e, f, chi) = euler_audit(result.topology().arena());
                 eprintln!("Step {step}: V={v} E={e} F={f} χ={chi}");
                 assert_eq!(
@@ -91,7 +91,7 @@ fn iterative_rotation_shredder_10() {
                 accumulated = result.into_topo_geom();
             }
             Err(e) => {
-                panic!("Iterative shredder step {step} failed: {e:?}");
+                panic!("Iterative shredder step {step} failed: {e}");
             }
         }
     }
@@ -123,7 +123,7 @@ fn scale_separator_union() {
             );
         }
         Err(e) => {
-            eprintln!("Scale separator returned error (tracking): {e:?}");
+            eprintln!("Scale separator returned error (tracking): {e}");
         }
     }
 }
@@ -146,7 +146,7 @@ fn scale_separator_intersection() {
             assert!(f >= 6, "Intersection should produce the small cube (≥6 faces), got {f}");
         }
         Err(e) => {
-            eprintln!("Scale intersection returned error (tracking): {e:?}");
+            eprintln!("Scale intersection returned error (tracking): {e}");
         }
     }
 }
@@ -175,7 +175,7 @@ fn near_miss_graze() {
             assert!(f >= 6, "Near-miss result should have faces, got {f}");
         }
         Err(e) => {
-            eprintln!("Near-miss graze returned error (acceptable): {e:?}");
+            eprintln!("Near-miss graze returned error (acceptable): {e}");
         }
     }
 }
@@ -196,7 +196,7 @@ fn near_miss_sub_epsilon() {
             eprintln!("Sub-epsilon near-miss: {f} faces");
         }
         Err(e) => {
-            eprintln!("Sub-epsilon near-miss error (acceptable): {e:?}");
+            eprintln!("Sub-epsilon near-miss error (acceptable): {e}");
         }
     }
 }
@@ -232,16 +232,16 @@ fn tangent_plane_sliver() {
         BooleanOp::Intersection,
     );
 
-    match execute_boolean_logged(input) {
-        Ok(envelope) => {
-            let r = envelope.into_value();
+    match execute_boolean_logged(input).into_result() {
+        Ok(result) => {
+            let r = result;
             let (v, e, f, chi) = euler_audit(r.topology().arena());
             eprintln!("Tangent sliver: V={v} E={e} F={f} χ={chi}");
             assert!(f > 0, "Tangent sliver should produce faces");
             assert_eq!(chi, 2, "Tangent sliver Euler violation: χ={chi}");
         }
         Err(e) => {
-            eprintln!("Tangent sliver returned error (tracking): {e:?}");
+            eprintln!("Tangent sliver returned error (tracking): {e}");
         }
     }
 }
@@ -268,7 +268,7 @@ fn micro_cube_subtraction() {
             assert!(f >= 6, "Should have at least the outer shell");
         }
         Err(e) => {
-            eprintln!("Micro-cube subtraction error (tracking): {e:?}");
+            eprintln!("Micro-cube subtraction error (tracking): {e}");
         }
     }
 }
@@ -297,7 +297,7 @@ fn coordinate_extremes() {
             assert_eq!(chi, 2, "Far coordinate Euler violation");
         }
         Err(e) => {
-            eprintln!("Far coordinate error (tracking): {e:?}");
+            eprintln!("Far coordinate error (tracking): {e}");
         }
     }
 }

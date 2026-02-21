@@ -49,10 +49,6 @@ impl PlaneTable {
             }
         }
         let idx = self.planes.len();
-        let (a, b, c, d) = plane.exact_coefficients();
-        eprintln!("PLANE_INTERN_EXACT: idx={} n_approx=[{:.6},{:.6},{:.6}] d_approx={:.6} a={} b={} c={} d={}",
-            idx, plane.raw_normal()[0], plane.raw_normal()[1], plane.raw_normal()[2], plane.raw_offset(),
-            a, b, c, d);
         self.planes.push(plane.clone());
         idx
     }
@@ -164,5 +160,6 @@ pub enum CutPoint {
         provenance: VertexMatchKey,
         position: [f64; 3],
         exact_position: Option<[Rational; 3]>,
+        symbolic_planes: Option<[usize; 3]>,
     },
 }

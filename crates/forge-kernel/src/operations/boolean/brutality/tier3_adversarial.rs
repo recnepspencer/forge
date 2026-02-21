@@ -76,20 +76,20 @@ fn pinch_vertex_subtract_at_contact() {
                 BooleanOp::Subtraction,
             );
 
-            match execute_boolean_logged(input) {
-                Ok(envelope) => {
-                    let r = envelope.into_value();
+            match execute_boolean_logged(input).into_result() {
+                Ok(result) => {
+                    let r = result;
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
                     eprintln!("Pinch-subtract: V={v} E={e} F={f} χ={chi}");
                     assert!(f >= 6, "Should have faces after pinch subtraction");
                 }
                 Err(e) => {
-                    eprintln!("Pinch-subtract error (tracking): {e:?}");
+                    eprintln!("Pinch-subtract error (tracking): {e}");
                 }
             }
         }
         Err(e) => {
-            eprintln!("Pinch union failed (tracking): {e:?}");
+            eprintln!("Pinch union failed (tracking): {e}");
         }
     }
 }
@@ -122,20 +122,20 @@ fn cascading_near_coincidence() {
                 BooleanOp::Subtraction,
             );
 
-            match execute_boolean_logged(input) {
-                Ok(envelope) => {
-                    let r2 = envelope.into_value();
+            match execute_boolean_logged(input).into_result() {
+                Ok(result) => {
+                    let r2 = result;
                     let (v, e, f, chi) = euler_audit(r2.topology().arena());
                     eprintln!("Cascading near-coincidence: V={v} E={e} F={f} χ={chi}");
                     assert!(f >= 6, "Cascaded result should have faces");
                 }
                 Err(e) => {
-                    eprintln!("Cascading second op error (tracking): {e:?}");
+                    eprintln!("Cascading second op error (tracking): {e}");
                 }
             }
         }
         Err(e) => {
-            eprintln!("Cascading first op error (tracking): {e:?}");
+            eprintln!("Cascading first op error (tracking): {e}");
         }
     }
 }
@@ -167,20 +167,20 @@ fn triple_flush_union() {
                 BooleanOp::Union,
             );
 
-            match execute_boolean_logged(input) {
-                Ok(envelope) => {
-                    let r = envelope.into_value();
+            match execute_boolean_logged(input).into_result() {
+                Ok(result) => {
+                    let r = result;
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
                     eprintln!("Triple flush: V={v} E={e} F={f} χ={chi}");
                     assert!(f >= 6, "Triple flush should produce at least 6 faces");
                 }
                 Err(e) => {
-                    eprintln!("Triple flush second op error (tracking): {e:?}");
+                    eprintln!("Triple flush second op error (tracking): {e}");
                 }
             }
         }
         Err(e) => {
-            eprintln!("Triple flush first op error (tracking): {e:?}");
+            eprintln!("Triple flush first op error (tracking): {e}");
         }
     }
 }
@@ -215,20 +215,20 @@ fn concentric_triple_subtraction() {
                 BooleanOp::Subtraction,
             );
 
-            match execute_boolean_logged(input) {
-                Ok(envelope) => {
-                    let r2 = envelope.into_value();
+            match execute_boolean_logged(input).into_result() {
+                Ok(result) => {
+                    let r2 = result;
                     let (v2, e2, f2, chi2) = euler_audit(r2.topology().arena());
                     eprintln!("Step 2 (result−Small): V={v2} E={e2} F={f2} χ={chi2}");
                     assert!(f2 >= 6, "Double subtraction should have faces");
                 }
                 Err(e) => {
-                    eprintln!("Concentric step 2 error (tracking): {e:?}");
+                    eprintln!("Concentric step 2 error (tracking): {e}");
                 }
             }
         }
         Err(e) => {
-            eprintln!("Concentric step 1 error (tracking): {e:?}");
+            eprintln!("Concentric step 1 error (tracking): {e}");
         }
     }
 }
@@ -263,8 +263,8 @@ fn result_reuse_integrity() {
     );
 
     let r2 = execute_boolean_logged(input2)
-        .expect("Step 2 union must succeed for reuse test")
-        .into_value();
+        .into_result()
+        .expect("Step 2 union must succeed for reuse test");
     let (v2, e2, f2, chi2) = euler_audit(r2.topology().arena());
     assert_eq!(chi2, 2, "Step 2 Euler violation: V={v2} E={e2} F={f2}");
 
@@ -278,8 +278,8 @@ fn result_reuse_integrity() {
     );
 
     let r3 = execute_boolean_logged(input3)
-        .expect("Step 3 intersection must succeed for reuse test")
-        .into_value();
+        .into_result()
+        .expect("Step 3 intersection must succeed for reuse test");
     let (v3, e3, f3, chi3) = euler_audit(r3.topology().arena());
     assert_eq!(chi3, 2, "Step 3 Euler violation: V={v3} E={e3} F={f3}");
     assert!(f3 >= 6, "Triple-chained result should have faces, got {f3}");

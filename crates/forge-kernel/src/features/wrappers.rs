@@ -102,9 +102,9 @@ impl Feature for BooleanFeature {
             self.op,
         );
 
-        let mut envelope = execute_boolean(input)?;
+        let mut envelope = execute_boolean(input);
         let log = envelope.take_decision_log();
-        let result = envelope.into_value();
+        let result = envelope.into_result()?;
         let (topo, geom, replay, lineage, _introspection) = result.into_full_parts();
 
         Ok(FeatureOutput {

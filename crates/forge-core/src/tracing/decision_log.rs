@@ -229,8 +229,9 @@ impl DecisionLog {
         }
     }
 
-    /// Display using the Inverted Noise Rule: show only spans that contain
-    /// Tier 2+ decisions. Boring spans are collapsed to a one-liner.
+    /// Display grouping by phase (span), presenting a high-level summary.
+    /// Uses the Inverted Noise Rule: interesting decisions are shown in detail,
+    /// while boring spans are collapsed to a one-liner.
     pub fn display_interesting(&self) -> String {
         use std::fmt::Write;
         let mut out = String::new();
@@ -240,27 +241,59 @@ impl DecisionLog {
 
         let span_summaries = self.compute_span_summaries();
         for ss in &span_summaries {
+            // Compute aggregated TopologyDelta for the span
+            let mut span_delta_strs = Vec::new();
+            for d in self.decisions() {
+                if d.get_span_id().map(|s| self.span_name(s).as_deref() == Some(ss.name.as_str())).unwrap_or(false) {
+                    if let Some(delta) = d.get_topology_delta() {
+                        if !delta.is_empty() {
+                            span_delta_strs.push(format!("{}", delta));
+                        }
+                    }
+                }
+            }
+            let delta_str = if span_delta_strs.is_empty() {
+                String::new()
+            } else {
+                format!(" | {}", span_delta_strs.join(", "))
+            };
+
             if ss.max_tier >= DecisionTier::NearBoundary {
-                let _ = writeln!(out, "  ▸ {} ({} decisions, max={}, {}µs)",
-                    ss.name, ss.total_decisions, ss.max_tier, ss.duration_micros);
+                let _ = writeln!(out, "[{}] {} decisions (max tier: {}){}",
+                    ss.name, ss.total_decisions, ss.max_tier, delta_str);
                 for d in self.decisions() {
                     if d.get_span_id().map(|s| self.span_name(s).as_deref() == Some(ss.name.as_str())).unwrap_or(false)
                         && d.get_tier() >= DecisionTier::NearBoundary
                     {
-                        let _ = writeln!(out, "    {}", d);
+                        if let Some(delta) = d.get_topology_delta() {
+                            if !delta.is_empty() {
+                                let _ = writeln!(out, "  ▸ {} ({})", d, delta);
+                                continue;
+                            }
+                        }
+                        let _ = writeln!(out, "  ▸ {}", d);
                     }
                 }
             } else {
-                let _ = writeln!(out, "  ▹ {} ({} decisions, clean)", ss.name, ss.total_decisions);
+                let _ = writeln!(out, "[{}] {} decisions, clean{}", ss.name, ss.total_decisions, delta_str);
             }
         }
 
+        let mut orphaned = false;
         for d in &interesting {
             if d.get_span_id().is_none() {
-                let _ = writeln!(out, "  {}", d);
+                if !orphaned {
+                    let _ = writeln!(out, "[unspanned] interesting decisions:");
+                    orphaned = true;
+                }
+                let _ = writeln!(out, "  ▸ {}", d);
             }
         }
 
+        // remove trailing newline if present
+        if out.ends_with('\n') {
+            out.pop();
+        }
         out
     }
 

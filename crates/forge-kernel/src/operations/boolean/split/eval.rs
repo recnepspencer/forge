@@ -6,7 +6,10 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use forge_core::KernelError;
+use forge_core::{
+    KernelError, TracedDecision, DecisionId, DecisionKind, DecisionTier,
+    DecisionContext, EntityRef,
+};
 use forge_geom::Aabb;
 use forge_geom::spatial::bvh::{BvhNode, query_overlapping_pairs};
 use forge_topo::arena::TopologyArena;
@@ -15,7 +18,7 @@ use forge_topo::state::TopologyState;
 use forge_topo::traverse::FaceEdgeIterator;
 
 use crate::geometry_store::GeometryStore;
-use crate::core::ModelingContext;
+use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
 use crate::operations::boolean::eval::{VertexMatchKey, planes_are_parallel};
 
 use super::schema::{
@@ -274,11 +277,32 @@ fn split_solid(
                 tolerance: config,
             };
 
+            let pre_snapshot = ArenaSnapshot::capture(draft.arena());
+
             let new_faces = split_face_by_plane(
                 &mut draft, &mut geom, &mut dedup, &mut edge_cut_map,
                 fid, face_plane, cut_plane, cut_idx,
                 &split_cfg, shared_registry, ctx,
             )?;
+
+            if !new_faces.is_empty() {
+                let delta = compute_topology_delta(&pre_snapshot, draft.arena());
+                let mut decision = TracedDecision::new(
+                    DecisionId(fid.index() as u64),
+                    DecisionKind::Exact,
+                    DecisionTier::Deterministic,
+                    1.0,
+                    DecisionContext::Degeneracy {
+                        description: format!(
+                            "Split face {} by plane {} → {} new faces",
+                            fid, cut_idx, new_faces.len()
+                        ),
+                    },
+                );
+                decision.set_entity_scope(EntityRef::new("Face", fid.index()));
+                decision.set_topology_delta(delta);
+                ctx.get_decision_log_mut().record(decision);
+            }
 
             if !new_faces.is_empty() {
                 splits += 1;
@@ -291,7 +315,7 @@ fn split_solid(
                     queue.push((nf, cuts_with_current.clone()));
                 }
             } else if !remaining_cuts.is_empty() {
-                queue.push((fid, remaining_cuts));
+                    queue.push((fid, remaining_cuts));
             }
         }
     }

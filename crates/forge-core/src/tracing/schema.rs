@@ -289,30 +289,70 @@ impl fmt::Display for DecisionId {
 /// answering "which entities did this decision create?"
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TopologyDelta {
-    /// Entities created as a result of this decision.
-    pub entities_created: Vec<EntityRef>,
-    /// Entities deleted as a result of this decision.
-    pub entities_deleted: Vec<EntityRef>,
+    /// Faces created as a result of this decision.
+    pub created_faces: Vec<u32>,
+    /// HalfEdges created as a result of this decision.
+    pub created_halfedges: Vec<u32>,
+    /// Vertices created as a result of this decision.
+    pub created_vertices: Vec<u32>,
+    /// Faces deleted as a result of this decision.
+    pub deleted_faces: Vec<u32>,
+    /// HalfEdges deleted as a result of this decision.
+    pub deleted_halfedges: Vec<u32>,
+    /// Vertices deleted as a result of this decision.
+    pub deleted_vertices: Vec<u32>,
 }
 
 impl TopologyDelta {
     /// Create an empty topology delta.
     pub fn new() -> Self {
         Self {
-            entities_created: Vec::new(),
-            entities_deleted: Vec::new(),
+            created_faces: Vec::new(),
+            created_halfedges: Vec::new(),
+            created_vertices: Vec::new(),
+            deleted_faces: Vec::new(),
+            deleted_halfedges: Vec::new(),
+            deleted_vertices: Vec::new(),
         }
     }
 
     /// Whether this delta is empty (no topology changes).
     pub fn is_empty(&self) -> bool {
-        self.entities_created.is_empty() && self.entities_deleted.is_empty()
+        self.created_faces.is_empty()
+            && self.created_halfedges.is_empty()
+            && self.created_vertices.is_empty()
+            && self.deleted_faces.is_empty()
+            && self.deleted_halfedges.is_empty()
+            && self.deleted_vertices.is_empty()
     }
 }
 
 impl Default for TopologyDelta {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl fmt::Display for TopologyDelta {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.is_empty() {
+            return write!(f, "Δ 0");
+        }
+
+        let mut parts = Vec::new();
+        let f_diff = self.created_faces.len() as isize - self.deleted_faces.len() as isize;
+        let he_diff = self.created_halfedges.len() as isize - self.deleted_halfedges.len() as isize;
+        let v_diff = self.created_vertices.len() as isize - self.deleted_vertices.len() as isize;
+
+        if f_diff > 0 { parts.push(format!("+{}F", f_diff)); } else if f_diff < 0 { parts.push(format!("{}F", f_diff)); }
+        if he_diff > 0 { parts.push(format!("+{}HE", he_diff)); } else if he_diff < 0 { parts.push(format!("{}HE", he_diff)); }
+        if v_diff > 0 { parts.push(format!("+{}V", v_diff)); } else if v_diff < 0 { parts.push(format!("{}V", v_diff)); }
+
+        if parts.is_empty() {
+            write!(f, "Δ changed")
+        } else {
+            write!(f, "Δ {}", parts.join(" "))
+        }
     }
 }
 

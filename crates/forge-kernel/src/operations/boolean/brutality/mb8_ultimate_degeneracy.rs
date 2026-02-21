@@ -46,8 +46,8 @@ fn build_star_base() -> Option<(
         let cy = r * angle.sin() + r;
         let (topo_tool, geom_tool) = build_cube([cx, cy, 0.5], 0.5);
         let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
-        match execute_boolean_logged(input) {
-            Ok(env) => { let r = env.into_value(); let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
+        match execute_boolean_logged(input).into_result() {
+            Ok(r) => { let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
             Err(e) => { eprintln!("MB8 star cube {i} failed: {e:?}"); return None; }
         }
     }
@@ -59,8 +59,8 @@ fn build_star_base() -> Option<(
             0.2,
         );
         let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
-        match execute_boolean_logged(input) {
-            Ok(env) => { let r = env.into_value(); let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
+        match execute_boolean_logged(input).into_result() {
+            Ok(r) => { let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
             Err(e) => { eprintln!("MB8 star tet {i} failed: {e:?}"); return None; }
         }
     }
@@ -72,8 +72,8 @@ fn build_star_base() -> Option<(
             0.2,
         );
         let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
-        match execute_boolean_logged(input) {
-            Ok(env) => { let r = env.into_value(); let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
+        match execute_boolean_logged(input).into_result() {
+            Ok(r) => { let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
             Err(e) => { eprintln!("MB8 star dodec {i} failed: {e:?}"); return None; }
         }
     }
@@ -97,9 +97,8 @@ fn add_coplanar_overlaps(
             1.0,
         );
         let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
-        match execute_boolean_logged(input) {
-            Ok(env) => {
-                let r = env.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(r) => {
                 let p = r.into_topo_geom();
                 topo = p.0;
                 geom = p.1;
@@ -123,9 +122,8 @@ fn add_menger_tunnels(
     for (i, (center, half)) in subs.into_iter().enumerate() {
         let (topo_tool, geom_tool) = build_cube(center, half);
         let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Subtraction);
-        match execute_boolean_logged(input) {
-            Ok(env) => {
-                let r = env.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(r) => {
                 let p = r.into_topo_geom();
                 topo = p.0;
                 geom = p.1;
@@ -171,9 +169,9 @@ fn run_chain_with_flip(
         let (topo_tool, geom_tool) = build_cube(offset, half);
         let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, op);
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let r = envelope.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                let r = result;
                 if step % 50 == 0 {
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
                     eprintln!("MB8 chain step {step}: V={v} E={e} F={f} χ={chi}");

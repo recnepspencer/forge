@@ -138,6 +138,8 @@ pub struct OperationResult<T> {
     state_hash_after: u128,
     /// Checkpoint validation results logged during this operation.
     validation_results: Vec<String>,
+    /// Extra summary lines to print during compact logging (e.g., replay or lineage stats).
+    extra_summaries: Vec<String>,
 }
 
 impl<T> OperationResult<T> {
@@ -152,6 +154,7 @@ impl<T> OperationResult<T> {
             state_hash_before: 0,
             state_hash_after: 0,
             validation_results: Vec::new(),
+            extra_summaries: Vec::new(),
         }
     }
 
@@ -165,7 +168,7 @@ impl<T> OperationResult<T> {
         state_hash_before: u128,
         state_hash_after: u128,
     ) -> Self {
-        Self { value, warnings, decision_log, metrics, lineage_delta, state_hash_before, state_hash_after, validation_results: Vec::new() }
+        Self { value, warnings, decision_log, metrics, lineage_delta, state_hash_before, state_hash_after, validation_results: Vec::new(), extra_summaries: Vec::new() }
     }
 
     /// The primary return value of the operation.
@@ -275,6 +278,7 @@ impl<T> OperationResult<T> {
             state_hash_before: self.state_hash_before,
             state_hash_after: self.state_hash_after,
             validation_results: self.validation_results,
+            extra_summaries: self.extra_summaries,
         }
     }
 
@@ -288,6 +292,16 @@ impl<T> OperationResult<T> {
         self.validation_results.push(result);
     }
 
+    /// Checkpoint extra summaries.
+    pub fn get_extra_summaries(&self) -> &[String] {
+        &self.extra_summaries
+    }
+
+    /// Add an extra summary line.
+    pub fn add_extra_summary(&mut self, summary: String) {
+        self.extra_summaries.push(summary);
+    }
+
     /// Persist the trace to disk if `FORGE_TRACE_DIR` is set.
     ///
     /// Uses `OnceLock` to check the env var exactly once per process.
@@ -297,6 +311,11 @@ impl<T> OperationResult<T> {
     /// In debug/test builds, falls back to `workspace_root/traces/`
     /// (relative to this crate's compile-time `CARGO_MANIFEST_DIR`).
     fn maybe_persist_trace(&self) {
+        self.persist_trace_with_status("ok");
+    }
+
+    /// Persist the trace to disk with a status label ("ok" or "error").
+    fn persist_trace_with_status(&self, status: &str) {
         let dir = match resolve_trace_dir() {
             Some(d) => d,
             None => return,
@@ -307,7 +326,37 @@ impl<T> OperationResult<T> {
         }
 
         let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            write_trace_file(&dir, &self.decision_log, self.state_hash_after, "ok");
+            write_trace_file(&dir, &self.decision_log, self.state_hash_after, status);
         }));
+    }
+}
+
+// =========================================================================
+// RESULT-VALUED ENVELOPE (Always-Envelope Architecture)
+// =========================================================================
+
+impl<T> OperationResult<Result<T, crate::KernelError>> {
+    /// Extract the inner `Result`, auto-persisting the trace and logging errors.
+    ///
+    /// This is the primary extraction point for the always-envelope architecture.
+    /// Unlike `into_value()`, this method:
+    /// - Persists the trace on BOTH success and failure
+    /// - Calls `log_error` when the inner value is `Err`
+    /// - Calls `log_result`-equivalent when the inner value is `Ok`
+    ///
+    /// Every kernel operation should return `OperationResult<Result<T, KernelError>>`,
+    /// and callers should use `into_result()` to extract.
+    pub fn into_result(self) -> Result<T, crate::KernelError> {
+        match &self.value {
+            Ok(_) => {
+                self.persist_trace_with_status("ok");
+                crate::log_result("pipeline", &self);
+            }
+            Err(e) => {
+                self.persist_trace_with_status("error");
+                crate::log_error("pipeline", e);
+            }
+        }
+        self.value
     }
 }

@@ -115,14 +115,9 @@ pub struct ReplayLog {
 }
 
 impl ReplayLog {
-    /// Create an empty replay log.
+    /// Create an empty replay log stamped with the current architecture metadata.
     pub fn new() -> Self {
-        Self {
-            entries: Vec::new(),
-            target_triple: None,
-            fma_enabled: None,
-            opt_level: None,
-        }
+        Self::with_current_target()
     }
 
     /// Create a replay log stamped with the current build target and platform metadata.

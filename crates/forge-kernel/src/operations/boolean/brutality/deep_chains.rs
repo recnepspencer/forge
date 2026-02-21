@@ -67,8 +67,9 @@ fn chain_union_10_steps() {
         );
 
         let result = execute_boolean_logged(input)
-            .unwrap_or_else(|e| panic!("Union chain step {step} failed: {e:?}"));
-        let r = result.into_value();
+            .into_result()
+            .unwrap_or_else(|e| panic!("Union chain step {step} failed: {e}"));
+        let r = result;
 
         let (v, e, f, chi) = euler_audit(r.topology().arena());
         assert_eq!(
@@ -110,8 +111,9 @@ fn chain_subtract_10_steps() {
         );
 
         let result = execute_boolean_logged(input)
-            .unwrap_or_else(|e| panic!("Subtract chain step {step} failed: {e:?}"));
-        let r = result.into_value();
+            .into_result()
+            .unwrap_or_else(|e| panic!("Subtract chain step {step} failed: {e}"));
+        let r = result;
 
         let (v, e, f, chi) = euler_audit(r.topology().arena());
         assert_eq!(
@@ -159,9 +161,9 @@ fn chain_mixed_ops_10() {
             op,
         );
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let r = envelope.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                let r = result;
                 let (v, e, f, chi) = euler_audit(r.topology().arena());
                 eprintln!("Mixed chain step {step} ({op:?}): V={v} E={e} F={f} χ={chi}");
                 assert_eq!(
@@ -173,7 +175,7 @@ fn chain_mixed_ops_10() {
                 geom = parts.1;
             }
             Err(e) => {
-                panic!("Mixed chain step {step} ({op:?}) failed: {e:?}");
+                panic!("Mixed chain step {step} ({op:?}) failed: {e}");
             }
         }
     }
@@ -212,9 +214,9 @@ fn chain_identifies_failing_step() {
             *op,
         );
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let r = envelope.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                let r = result;
                 let (v, e, f, chi) = euler_audit(r.topology().arena());
                 eprintln!(
                     "Step {step} ({op:?} @ {center:?} h={half}): V={v} E={e} F={f} χ={chi}"
@@ -230,7 +232,7 @@ fn chain_identifies_failing_step() {
             Err(e) => {
                 let (v, e_count, f, chi) = pre_state;
                 eprintln!(
-                    "FAILURE at step {step} ({op:?}): {e:?}\n\
+                    "FAILURE at step {step} ({op:?}): {e}\n\
                      State BEFORE failure: V={v} E={e_count} F={f} χ={chi}"
                 );
                 panic!("Chain failed at step {step}");
@@ -257,8 +259,7 @@ fn minimal_overlapping_notches() {
     // Step 0: first notch
     let (tool0, tool0_g) = build_cube([-4.0, 0.0, 4.5], 0.5);
     let input0 = BooleanInput::new(topo, geom, tool0, tool0_g, BooleanOp::Subtraction);
-    let r0 = execute_boolean_logged(input0).expect("Step 0 failed");
-    let r0 = r0.into_value();
+    let r0 = execute_boolean_logged(input0).into_result().expect("Step 0 failed");
     let (v, e, f, chi) = euler_audit(r0.topology().arena());
     assert_eq!(chi, 2, "Step 0 Euler: V={v} E={e} F={f} χ={chi}");
     let (topo, geom) = r0.into_topo_geom();
@@ -266,8 +267,7 @@ fn minimal_overlapping_notches() {
     // Step 1: overlapping notch
     let (tool1, tool1_g) = build_cube([-3.1, 0.0, 4.5], 0.5);
     let input1 = BooleanInput::new(topo, geom, tool1, tool1_g, BooleanOp::Subtraction);
-    let r1 = execute_boolean_logged(input1).expect("Step 1 failed (overlapping notch)");
-    let r1 = r1.into_value();
+    let r1 = execute_boolean_logged(input1).into_result().expect("Step 1 failed (overlapping notch)");
     let (v, e, f, chi) = euler_audit(r1.topology().arena());
     assert_eq!(chi, 2, "Step 1 Euler: V={v} E={e} F={f} χ={chi}");
 }
@@ -284,8 +284,7 @@ fn minimal_nonoverlapping_notches() {
     // Step 0: first notch at x=-4
     let (tool0, tool0_g) = build_cube([-4.0, 0.0, 4.5], 0.5);
     let input0 = BooleanInput::new(topo, geom, tool0, tool0_g, BooleanOp::Subtraction);
-    let r0 = execute_boolean_logged(input0).expect("Step 0 failed");
-    let r0 = r0.into_value();
+    let r0 = execute_boolean_logged(input0).into_result().expect("Step 0 failed");
     let (v, e, f, chi) = euler_audit(r0.topology().arena());
     assert_eq!(chi, 2, "Step 0 Euler: V={v} E={e} F={f} χ={chi}");
     
@@ -315,8 +314,7 @@ fn minimal_nonoverlapping_notches() {
     // Step 1: NON-overlapping notch at x=+4 (far away)
     let (tool1, tool1_g) = build_cube([4.0, 0.0, 4.5], 0.5);
     let input1 = BooleanInput::new(topo, geom, tool1, tool1_g, BooleanOp::Subtraction);
-    let r1 = execute_boolean_logged(input1).expect("Step 1 failed (non-overlapping)");
-    let r1 = r1.into_value();
+    let r1 = execute_boolean_logged(input1).into_result().expect("Step 1 failed (non-overlapping)");
     let (v, e, f, chi) = euler_audit(r1.topology().arena());
     assert_eq!(chi, 2, "Step 1 Euler: V={v} E={e} F={f} χ={chi}");
 }
@@ -329,8 +327,7 @@ fn minimal_single_flush_subtraction() {
     let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
     let (tool, tool_g) = build_cube([0.0, 0.0, 4.5], 0.5);
     let input = BooleanInput::new(topo, geom, tool, tool_g, BooleanOp::Subtraction);
-    let r = execute_boolean_logged(input).expect("Single flush subtraction failed");
-    let r = r.into_value();
+    let r = execute_boolean_logged(input).into_result().expect("Single flush subtraction failed");
     let (v, e, f, chi) = euler_audit(r.topology().arena());
     assert_eq!(chi, 2, "Euler: V={v} E={e} F={f} χ={chi}");
 }
@@ -345,8 +342,7 @@ fn minimal_two_interior_subtractions() {
     // Step 0: interior subtraction
     let (tool0, tool0_g) = build_cube([-3.0, 0.0, 0.0], 0.5);
     let input0 = BooleanInput::new(topo, geom, tool0, tool0_g, BooleanOp::Subtraction);
-    let r0 = execute_boolean_logged(input0).expect("Step 0 failed");
-    let r0 = r0.into_value();
+    let r0 = execute_boolean_logged(input0).into_result().expect("Step 0 failed");
     // Interior subtraction creates a cavity: V-E+F = 4 (two shells)
     let (v, e, f, chi) = euler_audit(r0.topology().arena());
     eprintln!("Step 0: V={v} E={e} F={f} χ={chi}");
@@ -355,8 +351,7 @@ fn minimal_two_interior_subtractions() {
     // Step 1: another interior subtraction, far away
     let (tool1, tool1_g) = build_cube([3.0, 0.0, 0.0], 0.5);
     let input1 = BooleanInput::new(topo, geom, tool1, tool1_g, BooleanOp::Subtraction);
-    let r1 = execute_boolean_logged(input1).expect("Step 1 failed");
-    let r1 = r1.into_value();
+    let r1 = execute_boolean_logged(input1).into_result().expect("Step 1 failed");
     let (v, e, f, chi) = euler_audit(r1.topology().arena());
     eprintln!("Step 1: V={v} E={e} F={f} χ={chi}");
 }

@@ -97,9 +97,8 @@ fn chained_union_union() {
     let (topo_c, geom_c) = build_cube([0.5, 0.5, 0.0], 1.0);
 
     let input = BooleanInput::new(topo_ab, geom_ab, topo_c, geom_c, BooleanOp::Union);
-    match execute_boolean_logged(input) {
+    match execute_boolean_logged(input).into_result() {
         Ok(r) => {
-            let r = r.into_value();
             let arena = r.topology().arena();
             let v = arena.vertex_count() as isize;
             let e = (arena.half_edge_count() / 2) as isize;
@@ -326,9 +325,8 @@ fn fresh_cube_intersection_same_dims() {
     let (topo_c, geom_c) = build_cube([0.5, 0.5, 0.0], 1.0);
 
     let input = BooleanInput::new(topo_ab, geom_ab, topo_c, geom_c, BooleanOp::Intersection);
-    match execute_boolean_logged(input) {
+    match execute_boolean_logged(input).into_result() {
         Ok(r) => {
-            let r = r.into_value();
             let arena = r.topology().arena();
             let v = arena.vertex_count() as isize;
             let e = (arena.half_edge_count() / 2) as isize;
@@ -378,9 +376,8 @@ fn boolean_result_intersection() {
     let (topo_c, geom_c) = build_cube([0.5, 0.5, 0.0], 1.0);
 
     let input = BooleanInput::new(topo_ab, geom_ab, topo_c, geom_c, BooleanOp::Intersection);
-    match execute_boolean_logged(input) {
+    match execute_boolean_logged(input).into_result() {
         Ok(r) => {
-            let r = r.into_value();
             let arena = r.topology().arena();
             let v = arena.vertex_count() as isize;
             let e = (arena.half_edge_count() / 2) as isize;
@@ -481,9 +478,8 @@ fn chained_booleans_preserve_euler() {
     let input = BooleanInput::new(topo_ab, geom_ab, topo_c, geom_c, BooleanOp::Intersection);
     let result = execute_boolean_logged(input);
 
-    match result {
+    match result.into_result() {
         Ok(r) => {
-            let r = r.into_value();
             let arena = r.topology().arena();
             let v = arena.vertex_count() as isize;
             let e = (arena.half_edge_count() / 2) as isize;
@@ -553,7 +549,7 @@ fn operation_permutation_counts() {
     let (topo_c, geom_c) = build_cube([1.0, 0.0, 0.0], 1.0);
 
     let input_abc = BooleanInput::new(topo_ab, geom_ab, topo_c, geom_c, BooleanOp::Union);
-    let result_abc = execute_boolean_logged(input_abc).expect("(A∪B)∪C must not fail").into_value();
+    let result_abc = execute_boolean_logged(input_abc).into_result().expect("(A∪B)∪C must not fail");
 
     let result_bc = run_boolean(
         [0.5, 0.0, 0.0], 1.0,
@@ -564,7 +560,7 @@ fn operation_permutation_counts() {
     let (topo_a2, geom_a2) = build_cube([0.0, 0.0, 0.0], 1.0);
 
     let input_a_bc = BooleanInput::new(topo_a2, geom_a2, topo_bc, geom_bc, BooleanOp::Union);
-    let result_a_bc = execute_boolean_logged(input_a_bc).expect("A∪(B∪C) must not fail").into_value();
+    let result_a_bc = execute_boolean_logged(input_a_bc).into_result().expect("A∪(B∪C) must not fail");
 
     assert_eq!(
         result_abc.topology().arena().face_count(),

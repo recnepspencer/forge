@@ -53,12 +53,10 @@ pub fn run_single_case(input: BooleanInput) -> FuzzOutcome {
     let tool_geom = input.tool_geometry().clone();
 
     let result = execute_boolean(input);
+    forge_core::log_result(&format!("{:?}", op), &result);
 
-    let bool_result = match result {
-        Ok(r) => {
-            forge_core::log_result(&format!("{:?}", op), &r);
-            r.into_value()
-        }
+    let bool_result = match result.into_result() {
+        Ok(r) => r,
         Err(e) => return FuzzOutcome::BooleanError(e),
     };
 

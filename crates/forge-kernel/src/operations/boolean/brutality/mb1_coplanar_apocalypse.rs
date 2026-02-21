@@ -35,6 +35,9 @@ fn build_coplanar_grid_solid(
     let step = cube_half * 2.0;
     let (mut topo, mut geom) = build_cube(origin, cube_half);
 
+    let mut step_count = 1;
+    let total_steps = grid_dim * grid_dim * grid_dim - 1;
+
     for ix in 0..grid_dim {
         for iy in 0..grid_dim {
             for iz in 0..grid_dim {
@@ -52,17 +55,19 @@ fn build_coplanar_grid_solid(
                     BooleanOp::Union,
                 );
 
-                match execute_boolean_logged(input) {
-                    Ok(envelope) => {
-                        let r = envelope.into_value();
+                eprintln!("\n[chain] step {}/{} — Union at [{:.1}, {:.1}, {:.1}] ({}F in)",
+                    step_count, total_steps, center[0], center[1], center[2], input.target_topology().arena().face_count());
+
+                match execute_boolean_logged(input).into_result() {
+                    Ok(result) => {
+                        let r = result;
                         let parts = r.into_topo_geom();
                         topo = parts.0;
                         geom = parts.1;
+                        step_count += 1;
                     }
-                    Err(e) => {
-                        eprintln!(
-                            "MB1 grid build [{ix},{iy},{iz}] failed: {e:?}"
-                        );
+                    Err(_e) => {
+                        eprintln!("[chain] step {} FAILED: {:?}", step_count, _e);
                         return None;
                     }
                 }
@@ -87,9 +92,8 @@ fn build_coplanar_grid_solid(
 fn coplanar_grid_4x4x4() {
     match build_coplanar_grid_solid([0.0, 0.0, 0.0], 0.5, 4) {
         Some((topo, _geom)) => {
-            let (v, e, f, chi) = euler_audit(topo.arena());
-            eprintln!("MB1 4×4×4 grid: V={v} E={e} F={f} χ={chi}");
-            assert_eq!(chi, 2, "MB1 grid Euler violation: V={v} E={e} F={f}");
+            let (_v, _e, f, chi) = euler_audit(topo.arena());
+            assert_eq!(chi, 2, "MB1 grid Euler violation");
             assert_eq!(
                 f, 6,
                 "4×4×4 flush grid should merge to 6 faces (one box), got {f}"
@@ -129,24 +133,25 @@ fn coplanar_partial_overlap_12_regions() {
             BooleanOp::Union,
         );
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let r = envelope.into_value();
-                let (v, e, f, chi) = euler_audit(r.topology().arena());
-                eprintln!("MB1 partial-overlap step {i}: V={v} E={e} F={f} χ={chi}");
+        eprintln!("\n[chain] step {}/12 — Union at [{:.1}, {:.1}, {:.1}] ({}F in)",
+            i + 1, pos[0], pos[1], pos[2], input.target_topology().arena().face_count());
+
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                let r = result;
+                let (_v, _e, _f, chi) = euler_audit(r.topology().arena());
                 assert_eq!(chi, 2, "MB1 partial step {i} Euler violation");
                 let parts = r.into_topo_geom();
                 topo = parts.0;
                 geom = parts.1;
             }
             Err(e) => {
-                panic!("MB1 partial-overlap step {i} failed: {e:?}");
+                panic!("MB1 partial-overlap step {i} failed: {e}");
             }
         }
     }
 
-    let (v, e, f, chi) = euler_audit(topo.arena());
-    eprintln!("MB1 partial-overlap final: V={v} E={e} F={f} χ={chi}");
+    let (_v, _e, _f, _chi) = euler_audit(topo.arena());
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -175,16 +180,15 @@ fn coplanar_graze_at_1e14() {
                 BooleanOp::Subtraction,
             );
 
-            match execute_boolean_logged(input) {
-                Ok(envelope) => {
-                    let r = envelope.into_value();
-                    let (v, e, f, chi) = euler_audit(r.topology().arena());
-                    eprintln!("MB1 graze result: V={v} E={e} F={f} χ={chi}");
+            match execute_boolean_logged(input).into_result() {
+                Ok(result) => {
+                    let r = result;
+                    let (_v, _e, f, chi) = euler_audit(r.topology().arena());
                     assert_eq!(chi, 2, "MB1 graze Euler violation");
                     assert!(f >= 6, "MB1 graze should produce faces");
                 }
                 Err(e) => {
-                    panic!("MB1 graze failed: {e:?}");
+                    panic!("MB1 graze failed: {e}");
                 }
             }
         }
@@ -214,20 +218,19 @@ fn collinear_point_storm_50() {
             BooleanOp::Union,
         );
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let r = envelope.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                let r = result;
                 let parts = r.into_topo_geom();
                 topo = parts.0;
                 geom = parts.1;
             }
             Err(e) => {
-                panic!("MB1 collinear step {i} failed: {e:?}");
+                panic!("MB1 collinear step {i} failed: {e}");
             }
         }
     }
 
-    let (v, e, f, chi) = euler_audit(topo.arena());
-    eprintln!("MB1 collinear-50 final: V={v} E={e} F={f} χ={chi}");
+    let (_v, _e, _f, chi) = euler_audit(topo.arena());
     assert_eq!(chi, 2, "MB1 collinear Euler violation");
 }

@@ -24,7 +24,7 @@ pub use primitives::ray::{
     compute_ray_plane_intersection, dominant_projection_axes,
     resolve_zero_edge, scanline_edge_crossing, EdgeTieBreaker,
 };
-pub use primitives::implicit_vertex::ImplicitVertex;
+pub use primitives::implicit_vertex::Vertex;
 pub use spatial::bsp::BspTree;
 pub use spatial::bsp::PlaneSet; // Exposed for tests mostly?
 pub use spatial::bvh::BvhNode;

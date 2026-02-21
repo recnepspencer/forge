@@ -11,13 +11,13 @@
 
 use std::collections::BTreeMap;
 
-use forge_core::KernelError;
+use forge_core::{KernelError, TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
 use forge_topo::state::TopologyState;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::replay::ReplayLog;
 use forge_topo::lineage::{LineageEvent, Lineage, OpSignature};
 
-use crate::core::ModelingContext;
+use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
 use crate::geometry_store::GeometryStore;
 use crate::operations::boolean::classify::find_coplanar_face_pairs;
 use crate::operations::boolean::eval::VertexMatchKey;
@@ -139,17 +139,63 @@ pub(super) fn execute_touching_boolean(
     let mut spatial_index = SpatialVertexIndex::new(scale);
     let mut all_he_ids: Vec<HalfEdgeId> = Vec::new();
 
+    let pre_target = ArenaSnapshot::capture(draft.arena());
+
     copy_shell(
         &mut draft, &mut result_geom, &mut all_he_ids,
         &mut global_vertex_map, &mut spatial_index,
         target_topo.arena(), target_geom, &target_faces, false,
     )?;
 
+    let target_delta = compute_topology_delta(&pre_target, draft.arena());
+    if !target_delta.is_empty() {
+        let mut decision = TracedDecision::new(
+            DecisionId(0),
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            1.0,
+            DecisionContext::Degeneracy {
+                description: format!(
+                    "Copy target shell: {}F {}HE {}V (excluded {} coplanar)",
+                    target_delta.created_faces.len(),
+                    target_delta.created_halfedges.len(),
+                    target_delta.created_vertices.len(),
+                    excluded_target.len(),
+                ),
+            },
+        );
+        decision.set_topology_delta(target_delta);
+        ctx.get_decision_log_mut().record(decision);
+    }
+
+    let pre_tool = ArenaSnapshot::capture(draft.arena());
+
     copy_shell(
         &mut draft, &mut result_geom, &mut all_he_ids,
         &mut global_vertex_map, &mut spatial_index,
         tool_topo.arena(), tool_geom, &tool_faces, false,
     )?;
+
+    let tool_delta = compute_topology_delta(&pre_tool, draft.arena());
+    if !tool_delta.is_empty() {
+        let mut decision = TracedDecision::new(
+            DecisionId(1),
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            1.0,
+            DecisionContext::Degeneracy {
+                description: format!(
+                    "Copy tool shell: {}F {}HE {}V (excluded {} coplanar)",
+                    tool_delta.created_faces.len(),
+                    tool_delta.created_halfedges.len(),
+                    tool_delta.created_vertices.len(),
+                    excluded_tool.len(),
+                ),
+            },
+        );
+        decision.set_topology_delta(tool_delta);
+        ctx.get_decision_log_mut().record(decision);
+    }
 
     cleanup_degenerate_topology(&mut draft, &result_geom)?;
     stitch_twins(&mut draft, &all_he_ids, &result_geom, spatial_index.weld_tolerance_sq(), ctx)?;
@@ -182,11 +228,33 @@ fn assemble_single_shell(
     let mut vertex_map: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
     let mut spatial = SpatialVertexIndex::new(scale);
 
+    let pre_copy = ArenaSnapshot::capture(draft.arena());
+
     copy_shell(
         &mut draft, &mut result_geom, &mut he_ids,
         &mut vertex_map, &mut spatial,
         topo.arena(), geom, &faces, reverse,
     )?;
+
+    let copy_delta = compute_topology_delta(&pre_copy, draft.arena());
+    if !copy_delta.is_empty() {
+        let mut decision = TracedDecision::new(
+            DecisionId(0),
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            1.0,
+            DecisionContext::Degeneracy {
+                description: format!(
+                    "Copy shell: {}F {}HE {}V",
+                    copy_delta.created_faces.len(),
+                    copy_delta.created_halfedges.len(),
+                    copy_delta.created_vertices.len(),
+                ),
+            },
+        );
+        decision.set_topology_delta(copy_delta);
+        ctx.get_decision_log_mut().record(decision);
+    }
 
     stitch_twins(&mut draft, &he_ids, &result_geom, spatial.weld_tolerance_sq(), ctx)?;
 
@@ -225,22 +293,68 @@ fn assemble_two_shells(
     let mut pri_vm: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
     let mut pri_spatial = SpatialVertexIndex::new(scale);
 
+    let pre_pri = ArenaSnapshot::capture(draft.arena());
+
     copy_shell(
         &mut draft, &mut result_geom, &mut pri_he,
         &mut pri_vm, &mut pri_spatial,
         primary_topo.arena(), primary_geom, &primary_faces, false,
     )?;
+
+    let pri_delta = compute_topology_delta(&pre_pri, draft.arena());
+    if !pri_delta.is_empty() {
+        let mut decision = TracedDecision::new(
+            DecisionId(0),
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            1.0,
+            DecisionContext::Degeneracy {
+                description: format!(
+                    "Copy primary shell: {}F {}HE {}V",
+                    pri_delta.created_faces.len(),
+                    pri_delta.created_halfedges.len(),
+                    pri_delta.created_vertices.len(),
+                ),
+            },
+        );
+        decision.set_topology_delta(pri_delta);
+        ctx.get_decision_log_mut().record(decision);
+    }
+
     stitch_twins(&mut draft, &pri_he, &result_geom, pri_spatial.weld_tolerance_sq(), ctx)?;
 
     let mut sec_he: Vec<HalfEdgeId> = Vec::new();
     let mut sec_vm: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
     let mut sec_spatial = SpatialVertexIndex::new(scale);
 
+    let pre_sec = ArenaSnapshot::capture(draft.arena());
+
     copy_shell(
         &mut draft, &mut result_geom, &mut sec_he,
         &mut sec_vm, &mut sec_spatial,
         secondary_topo.arena(), secondary_geom, &secondary_faces, reverse_secondary,
     )?;
+
+    let sec_delta = compute_topology_delta(&pre_sec, draft.arena());
+    if !sec_delta.is_empty() {
+        let mut decision = TracedDecision::new(
+            DecisionId(1),
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            1.0,
+            DecisionContext::Degeneracy {
+                description: format!(
+                    "Copy secondary shell: {}F {}HE {}V",
+                    sec_delta.created_faces.len(),
+                    sec_delta.created_halfedges.len(),
+                    sec_delta.created_vertices.len(),
+                ),
+            },
+        );
+        decision.set_topology_delta(sec_delta);
+        ctx.get_decision_log_mut().record(decision);
+    }
+
     stitch_twins(&mut draft, &sec_he, &result_geom, sec_spatial.weld_tolerance_sq(), ctx)?;
 
     let topo = draft.commit()?;
@@ -281,17 +395,35 @@ fn empty_result() -> BooleanResult {
     )
 }
 
-/// Build lineage events for all faces in an arena.
+/// Build lineage events for all entities in an arena.
 fn build_lineage_events(
     arena: &forge_topo::arena::TopologyArena,
     op_name: &str,
 ) -> Vec<LineageEvent> {
-    arena.iter_faces()
-        .map(|(fid, _)| LineageEvent::EntityCreated {
+    let mut events: Vec<LineageEvent> = Vec::new();
+
+    for (fid, _) in arena.iter_faces() {
+        events.push(LineageEvent::EntityCreated {
             entity: forge_core::EntityRef::new("Face", fid.index()),
             lineage: Lineage::root(fid.index() as u64, OpSignature::new(op_name)),
-        })
-        .collect()
+        });
+    }
+
+    for (he_id, _) in arena.iter_half_edges() {
+        events.push(LineageEvent::EntityCreated {
+            entity: forge_core::EntityRef::new("HalfEdge", he_id.index()),
+            lineage: Lineage::root(he_id.index() as u64, OpSignature::new(op_name)),
+        });
+    }
+
+    for (vid, _) in arena.iter_vertices() {
+        events.push(LineageEvent::EntityCreated {
+            entity: forge_core::EntityRef::new("Vertex", vid.index()),
+            lineage: Lineage::root(vid.index() as u64, OpSignature::new(op_name)),
+        });
+    }
+
+    events
 }
 
 /// Filter faces, excluding those with indices in the exclusion set.

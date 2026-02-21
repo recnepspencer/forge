@@ -9,7 +9,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use forge_core::{DecisionId, DecisionKind, DecisionTier, TracedDecision};
+use forge_core::{DecisionId, DecisionKind, DecisionLog, DecisionTier, TracedDecision};
 
 /// Override specification for a counterfactual replay.
 ///
@@ -110,6 +110,8 @@ pub struct CounterfactualResult {
     entity_delta: EntityDelta,
     /// Validation status of the counterfactual topology.
     validation: CounterfactualValidation,
+    /// Full decision log from the counterfactual replay pipeline.
+    counterfactual_log: DecisionLog,
 }
 
 impl CounterfactualResult {
@@ -121,6 +123,7 @@ impl CounterfactualResult {
         counterfactual_hash: u128,
         entity_delta: EntityDelta,
         validation: CounterfactualValidation,
+        counterfactual_log: DecisionLog,
     ) -> Self {
         Self {
             overridden_decision,
@@ -129,6 +132,7 @@ impl CounterfactualResult {
             counterfactual_hash,
             entity_delta,
             validation,
+            counterfactual_log,
         }
     }
 
@@ -165,6 +169,11 @@ impl CounterfactualResult {
     /// Validation status.
     pub fn get_validation(&self) -> &CounterfactualValidation {
         &self.validation
+    }
+
+    /// Full decision log from the counterfactual replay.
+    pub fn get_counterfactual_log(&self) -> &DecisionLog {
+        &self.counterfactual_log
     }
 }
 

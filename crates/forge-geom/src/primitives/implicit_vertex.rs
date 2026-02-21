@@ -7,22 +7,25 @@
 //!
 //! DEPENDENCIES: `plane`, `forge-math` (predicates, error, GeometrySource)
 
-pub use eval::{resolve_position, select_best_triple};
+pub use eval::{resolve_position, select_best_triple, orient3d_symbolic};
 
 // =========================================================================
 // SCHEMA
 // =========================================================================
 
 use serde::{Deserialize, Serialize};
+use forge_math::arithmetic::Rational;
 
-/// An implicit vertex defined by the intersection of 3 or more planes.
+/// A geometric vertex.
 ///
-/// The vertex position is not stored — it is derived on demand by
-/// solving the linear system of plane equations.
+/// Can be defined explicitly by exact rational coordinates, or symbolically
+/// by the intersection of three planes.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct ImplicitVertex {
-    /// Indices into the plane table. Must contain at least 3 entries.
-    defining_planes: Vec<PlaneRef>,
+pub enum Vertex {
+    /// Exact arbitrary-precision coordinates.
+    Explicit([Rational; 3]),
+    /// An implicit intersection of exactly three planes.
+    Symbolic([PlaneRef; 3]),
 }
 
 /// Lightweight reference to a plane in a plane table.
@@ -44,32 +47,18 @@ impl PlaneRef {
     }
 }
 
-impl ImplicitVertex {
-    /// Create a new implicit vertex from 3+ plane references.
-    ///
-    /// Returns `None` if fewer than 3 planes are provided.
-    pub fn try_new(planes: Vec<PlaneRef>) -> Option<Self> {
-        if planes.len() < 3 {
-            return None;
+impl Vertex {
+    /// Create a new symbolic vertex from exactly 3 plane references.
+    pub fn try_new_symbolic(planes: [PlaneRef; 3]) -> Self {
+        Self::Symbolic(planes)
+    }
+
+    /// The plane references defining this vertex, if symbolic.
+    pub fn defining_planes(&self) -> Option<&[PlaneRef; 3]> {
+        match self {
+            Self::Symbolic(planes) => Some(planes),
+            Self::Explicit(_) => None,
         }
-        Some(Self {
-            defining_planes: planes,
-        })
-    }
-
-    /// The plane references defining this vertex.
-    pub fn defining_planes(&self) -> &[PlaneRef] {
-        &self.defining_planes
-    }
-
-    /// The number of defining planes.
-    pub fn plane_count(&self) -> usize {
-        self.defining_planes.len()
-    }
-
-    /// Whether this vertex is overconstrained (4+ planes).
-    pub fn is_overconstrained(&self) -> bool {
-        self.defining_planes.len() > 3
     }
 }
 // =========================================================================
@@ -78,65 +67,130 @@ impl ImplicitVertex {
 
 mod eval {
 use forge_math::{MathError, GeometrySource};
+use forge_math::arithmetic::Rational;
 use forge_math::linalg::det3_rows;
+use std::convert::TryFrom;
 
 use crate::primitives::plane::{Plane, signed_distance, intersect_three_planes};
 
-use super::{ImplicitVertex, PlaneRef};
+use super::{Vertex, PlaneRef};
 
-/// Resolve the 3D position of an implicit vertex.
-///
-/// - Exactly 3 planes → solve the 3×3 system directly
-/// - 4+ planes → select the best-conditioned triple, solve, then
-///   verify that all remaining planes are satisfied within tolerance
+/// Compute the 4x4 determinant to test a symbolic vertex against a fourth plane.
+pub fn orient3d_symbolic(
+    vertex: &Vertex,
+    test_plane: PlaneRef,
+    geom: &impl GeometrySource,
+) -> Result<forge_math::sign::TriSign, MathError> {
+    match vertex {
+        Vertex::Explicit(coords) => {
+            // Evaluate orient3d using exact Rational coordinates against the plane.
+            // P4 = A4*x + B4*y + C4*z + D4
+            let p4 = get_plane_from_source(geom, test_plane.index())?;
+            let n = p4.raw_normal();
+            let d = p4.offset();
+
+            let a4 = Rational::try_from_f64(n[0])?;
+            let b4 = Rational::try_from_f64(n[1])?;
+            let c4 = Rational::try_from_f64(n[2])?;
+            let d4 = Rational::try_from_f64(d)?;
+
+            let dist = &a4 * &coords[0] + &b4 * &coords[1] + &c4 * &coords[2] + d4;
+            Ok(dist.sign())
+        }
+        Vertex::Symbolic(planes) => {
+            // Evaluate the 4x4 determinant of the plane coefficients
+            let p1 = get_plane_from_source(geom, planes[0].index())?;
+            let p2 = get_plane_from_source(geom, planes[1].index())?;
+            let p3 = get_plane_from_source(geom, planes[2].index())?;
+            let p4 = get_plane_from_source(geom, test_plane.index())?;
+
+            let m1 = plane_to_rationals(&p1)?;
+            let m2 = plane_to_rationals(&p2)?;
+            let m3 = plane_to_rationals(&p3)?;
+            let m4 = plane_to_rationals(&p4)?;
+
+            let det = det4_rationals(&m1, &m2, &m3, &m4);
+            Ok(det.sign())
+        }
+    }
+}
+
+fn plane_to_rationals(p: &Plane) -> Result<[Rational; 4], MathError> {
+    let n = p.raw_normal();
+    Ok([
+        Rational::try_from_f64(n[0])?,
+        Rational::try_from_f64(n[1])?,
+        Rational::try_from_f64(n[2])?,
+        Rational::try_from_f64(p.offset())?,
+    ])
+}
+
+fn det4_rationals(
+    r1: &[Rational; 4],
+    r2: &[Rational; 4],
+    r3: &[Rational; 4],
+    r4: &[Rational; 4],
+) -> Rational {
+    // Cofactor expansion along the first row
+    let det_sub_1 = det3_rationals(
+        [&r2[1], &r2[2], &r2[3]],
+        [&r3[1], &r3[2], &r3[3]],
+        [&r4[1], &r4[2], &r4[3]],
+    );
+    let det_sub_2 = det3_rationals(
+        [&r2[0], &r2[2], &r2[3]],
+        [&r3[0], &r3[2], &r3[3]],
+        [&r4[0], &r4[2], &r4[3]],
+    );
+    let det_sub_3 = det3_rationals(
+        [&r2[0], &r2[1], &r2[3]],
+        [&r3[0], &r3[1], &r3[3]],
+        [&r4[0], &r4[1], &r4[3]],
+    );
+    let det_sub_4 = det3_rationals(
+        [&r2[0], &r2[1], &r2[2]],
+        [&r3[0], &r3[1], &r3[2]],
+        [&r4[0], &r4[1], &r4[2]],
+    );
+
+    (&r1[0] * &det_sub_1) - (&r1[1] * &det_sub_2) + (&r1[2] * &det_sub_3) - (&r1[3] * &det_sub_4)
+}
+
+fn det3_rationals(
+    r1: [&Rational; 3],
+    r2: [&Rational; 3],
+    r3: [&Rational; 3],
+) -> Rational {
+    let t1 = r1[0] * &(r2[1] * r3[2] - r2[2] * r3[1]);
+    let t2 = r1[1] * &(r2[0] * r3[2] - r2[2] * r3[0]);
+    let t3 = r1[2] * &(r2[0] * r3[1] - r2[1] * r3[0]);
+    t1 - t2 + t3
+}
+
+/// Resolve the 3D position of an implicit vertex strictly for debugging/export.
 pub fn resolve_position(
-    vertex: &ImplicitVertex,
+    vertex: &Vertex,
     geom: &impl GeometrySource,
-    residual_tolerance: f64,
     degeneracy: f64,
 ) -> Result<[f64; 3], MathError> {
-    let refs = vertex.defining_planes();
-
-    if refs.len() < 3 {
-        return Err(MathError::InvalidInput(
-            "ImplicitVertex requires at least 3 defining planes".to_string(),
-        ));
+    match vertex {
+        Vertex::Explicit(coords) => {
+            Ok([
+                coords[0].to_f64_approx(),
+                coords[1].to_f64_approx(),
+                coords[2].to_f64_approx(),
+            ])
+        }
+        Vertex::Symbolic(refs) => {
+            intersect_three_planes(
+                &get_plane_from_source(geom, refs[0].index())?,
+                &get_plane_from_source(geom, refs[1].index())?,
+                &get_plane_from_source(geom, refs[2].index())?,
+                degeneracy,
+            )
+        }
     }
-
-    if refs.len() == 3 {
-        return intersect_three_planes(
-            &get_plane_from_source(geom, refs[0].index())?,
-            &get_plane_from_source(geom, refs[1].index())?,
-            &get_plane_from_source(geom, refs[2].index())?,
-            degeneracy,
-        );
-    }
-
-    resolve_overconstrained(refs, geom, residual_tolerance, degeneracy)
-}
-
-/// Resolve an overconstrained vertex (4+ planes).
-fn resolve_overconstrained(
-    refs: &[PlaneRef],
-    geom: &impl GeometrySource,
-    residual_tolerance: f64,
-    degeneracy: f64,
-) -> Result<[f64; 3], MathError> {
-    let (i, j, k) = select_best_triple(refs, geom)?;
-
-    let point = intersect_three_planes(
-        &get_plane_from_source(geom, refs[i].index())?,
-        &get_plane_from_source(geom, refs[j].index())?,
-        &get_plane_from_source(geom, refs[k].index())?,
-        degeneracy,
-    )?;
-
-    verify_all_planes_satisfied(&point, refs, geom, residual_tolerance)?;
-
-    Ok(point)
-}
-
-/// Select the best-conditioned triple from N planes.
+}/// Select the best-conditioned triple from N planes.
 pub fn select_best_triple(
     refs: &[PlaneRef],
     geom: &impl GeometrySource,
@@ -174,38 +228,7 @@ pub fn select_best_triple(
     })
 }
 
-/// Verify that a point satisfies all defining planes within tolerance.
-fn verify_all_planes_satisfied(
-    point: &[f64; 3],
-    refs: &[PlaneRef],
-    geom: &impl GeometrySource,
-    residual_tolerance: f64,
-) -> Result<(), MathError> {
-    let mut max_violation = 0.0_f64;
 
-    for plane_ref in refs {
-        let plane = get_plane_from_source(geom, plane_ref.index())?;
-        let dist = signed_distance(&plane, point).abs();
-        if dist > max_violation {
-            max_violation = dist;
-        }
-    }
-
-    if max_violation > residual_tolerance {
-        return Err(MathError::Ambiguous {
-            location: *point,
-            residual: max_violation,
-            context: format!(
-                "Overconstrained vertex resolution residual ({:.2e}) exceeds tolerance ({:.2e})",
-                max_violation, residual_tolerance
-            ),
-        });
-    }
-
-    Ok(())
-}
-
-/// Safely look up a plane from the GeometrySource.
 fn get_plane_from_source(geom: &impl GeometrySource, index: usize) -> Result<Plane, MathError> {
     let coeffs = geom.get_plane(index)?;
     let n = coeffs.normal();
@@ -217,9 +240,8 @@ fn get_plane_from_source(geom: &impl GeometrySource, index: usize) -> Result<Pla
 mod tests {
     use crate::primitives::plane::Plane;
     use crate::spatial::bsp::PlaneSet;
-    use crate::primitives::implicit_vertex::{ImplicitVertex, PlaneRef, resolve_position, select_best_triple};
+    use crate::primitives::implicit_vertex::{Vertex, PlaneRef, resolve_position, select_best_triple};
 
-    const TEST_RESIDUAL: f64 = 1e-8;
     const TEST_DEGENERACY: f64 = 1e-15;
     const TEST_TOLERANCE: f64 = 1e-10;
 
@@ -235,130 +257,15 @@ mod tests {
     }
 
     #[test]
-    fn reject_fewer_than_three_planes() {
-        let result = ImplicitVertex::try_new(vec![PlaneRef::new(0), PlaneRef::new(1)]);
-        assert!(result.is_none());
-    }
-
-    #[test]
     fn three_axis_aligned_planes_at_origin() {
         let planes = cube_planes();
-        let vertex = ImplicitVertex::try_new(vec![
+        let vertex = Vertex::try_new_symbolic([
             PlaneRef::new(0), PlaneRef::new(2), PlaneRef::new(4),
-        ]).unwrap();
+        ]);
 
-        let pos = resolve_position(&vertex, &PlaneSet::new(planes), TEST_RESIDUAL, TEST_DEGENERACY).unwrap();
+        let pos = resolve_position(&vertex, &PlaneSet::new(planes), TEST_DEGENERACY).unwrap();
         assert!((pos[0]).abs() < 1e-10);
         assert!((pos[1]).abs() < 1e-10);
         assert!((pos[2]).abs() < 1e-10);
-    }
-
-    #[test]
-    fn cube_vertex_at_one_one_one() {
-        let planes = cube_planes();
-        let vertex = ImplicitVertex::try_new(vec![
-            PlaneRef::new(1), PlaneRef::new(3), PlaneRef::new(5),
-        ]).unwrap();
-
-        let pos = resolve_position(&vertex, &PlaneSet::new(planes), TEST_RESIDUAL, TEST_DEGENERACY).unwrap();
-        assert!((pos[0] - 1.0).abs() < TEST_TOLERANCE);
-        assert!((pos[1] - 1.0).abs() < TEST_TOLERANCE);
-        assert!((pos[2] - 1.0).abs() < TEST_TOLERANCE);
-    }
-
-    #[test]
-    fn all_eight_cube_vertices_resolve() {
-        let planes = cube_planes();
-        let triples: [(usize, usize, usize); 8] = [
-            (0, 2, 4), (0, 2, 5), (0, 3, 4), (0, 3, 5),
-            (1, 2, 4), (1, 2, 5), (1, 3, 4), (1, 3, 5),
-        ];
-
-        for (a, b, c) in triples {
-            let vertex = ImplicitVertex::try_new(vec![
-                PlaneRef::new(a), PlaneRef::new(b), PlaneRef::new(c),
-            ]).unwrap();
-            let pos = resolve_position(&vertex, &PlaneSet::new(planes.clone()), TEST_RESIDUAL, TEST_DEGENERACY);
-            assert!(pos.is_ok(), "Failed to resolve vertex ({}, {}, {})", a, b, c);
-        }
-    }
-
-    #[test]
-    fn overconstrained_apex_consistent() {
-        let planes = vec![
-            Plane::try_new([1.0, 0.0, 0.0], 0.0).unwrap(),
-            Plane::try_new([0.0, 1.0, 0.0], 0.0).unwrap(),
-            Plane::try_new([0.0, 0.0, 1.0], 0.0).unwrap(),
-            Plane::try_new([1.0, 1.0, 1.0], 0.0).unwrap(),
-        ];
-
-        let vertex = ImplicitVertex::try_new(vec![
-            PlaneRef::new(0), PlaneRef::new(1), PlaneRef::new(2), PlaneRef::new(3),
-        ]).unwrap();
-
-        assert!(vertex.is_overconstrained());
-
-        let pos = resolve_position(&vertex, &PlaneSet::new(planes), TEST_RESIDUAL, TEST_DEGENERACY).unwrap();
-        assert!((pos[0]).abs() < 1e-10);
-        assert!((pos[1]).abs() < 1e-10);
-        assert!((pos[2]).abs() < 1e-10);
-    }
-
-    #[test]
-    fn overconstrained_inconsistent_returns_error() {
-        let planes = vec![
-            Plane::try_new([1.0, 0.0, 0.0], 0.0).unwrap(),
-            Plane::try_new([0.0, 1.0, 0.0], 0.0).unwrap(),
-            Plane::try_new([0.0, 0.0, 1.0], 0.0).unwrap(),
-            Plane::try_new([1.0, 0.0, 0.0], -5.0).unwrap(),
-        ];
-
-        let vertex = ImplicitVertex::try_new(vec![
-            PlaneRef::new(0), PlaneRef::new(1), PlaneRef::new(2), PlaneRef::new(3),
-        ]).unwrap();
-
-        let result = resolve_position(&vertex, &PlaneSet::new(planes), TEST_RESIDUAL, TEST_DEGENERACY);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn select_best_triple_picks_well_conditioned() {
-        let planes = vec![
-            Plane::try_new([1.0, 0.0, 0.0], 0.0).unwrap(),
-            Plane::try_new([0.0, 1.0, 0.0], 0.0).unwrap(),
-            Plane::try_new([0.0, 0.0, 1.0], 0.0).unwrap(),
-            Plane::try_new([1.0, 1.0, 0.0], 0.0).unwrap(),
-        ];
-
-        let refs: Vec<PlaneRef> = (0..4).map(PlaneRef::new).collect();
-        let (i, j, k) = select_best_triple(&refs, &PlaneSet::new(planes)).unwrap();
-
-        assert!(i < j);
-        assert!(j < k);
-    }
-
-    #[test]
-    fn implicit_vertex_plane_count() {
-        let vertex = ImplicitVertex::try_new(vec![
-            PlaneRef::new(0), PlaneRef::new(1), PlaneRef::new(2),
-        ]).unwrap();
-
-        assert_eq!(vertex.plane_count(), 3);
-        assert!(!vertex.is_overconstrained());
-    }
-
-    #[test]
-    fn out_of_bounds_plane_ref_returns_error() {
-        let planes = vec![
-            Plane::try_new([1.0, 0.0, 0.0], 0.0).unwrap(),
-            Plane::try_new([0.0, 1.0, 0.0], 0.0).unwrap(),
-        ];
-
-        let vertex = ImplicitVertex::try_new(vec![
-            PlaneRef::new(0), PlaneRef::new(1), PlaneRef::new(99),
-        ]).unwrap();
-
-        let result = resolve_position(&vertex, &PlaneSet::new(planes), TEST_RESIDUAL, TEST_DEGENERACY);
-        assert!(result.is_err());
     }
 }

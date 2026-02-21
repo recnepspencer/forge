@@ -29,8 +29,8 @@ fn hash_stability_ab_vs_ba() {
         BooleanOp::Union,
     );
 
-    let result_ab = execute_boolean_logged(input_ab).unwrap().into_value();
-    let result_ba = execute_boolean_logged(input_ba).unwrap().into_value();
+    let result_ab = execute_boolean_logged(input_ab).into_result().unwrap();
+    let result_ba = execute_boolean_logged(input_ba).into_result().unwrap();
 
     assert_eq!(
         result_ab.topology().arena().face_count(),

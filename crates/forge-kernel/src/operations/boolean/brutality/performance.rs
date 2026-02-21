@@ -67,9 +67,9 @@ fn bounding_box_cluster_pressure() {
             BooleanOp::Union,
         );
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let r = envelope.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                let r = result;
                 let (v, e, f, chi) = euler_audit(r.topology().arena());
                 eprintln!("Cluster step {i}: V={v} E={e} F={f} χ={chi}");
                 assert_eq!(
@@ -81,7 +81,7 @@ fn bounding_box_cluster_pressure() {
                 geom = parts.1;
             }
             Err(e) => {
-                panic!("Cluster step {i} failed: {e:?}");
+                panic!("Cluster step {i} failed: {e}");
             }
         }
     }
@@ -115,7 +115,7 @@ fn replay_determinism_stress() {
             [0.0, 0.0, 0.0], 1.0,
             [0.7, 0.3, 0.2], 1.0,
             BooleanOp::Union,
-        ).unwrap_or_else(|e| panic!("Replay iteration {iter} failed: {e:?}"));
+        ).unwrap_or_else(|e| panic!("Replay iteration {iter} failed: {e}"));
 
         let hash = compute_arena_topology_hash(r.topology().arena());
         let faces = r.topology().arena().face_count();
@@ -156,7 +156,7 @@ fn large_face_count_union() {
             assert!(f >= 6, "Should have at least 6 faces, got {f}");
         }
         Err(e) => {
-            panic!("Large face count test failed: {e:?}");
+            panic!("Large face count test failed: {e}");
         }
     }
 }
@@ -177,7 +177,7 @@ fn large_face_count_subtraction() {
             assert_eq!(chi, 2, "Large subtraction Euler violation");
         }
         Err(e) => {
-            panic!("Large subtraction test failed: {e:?}");
+            panic!("Large subtraction test failed: {e}");
         }
     }
 }
@@ -214,9 +214,9 @@ fn octant_cluster_union() {
             BooleanOp::Union,
         );
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let r = envelope.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                let r = result;
                 let (v, e, f, chi) = euler_audit(r.topology().arena());
                 eprintln!("Octant step {i}: V={v} E={e} F={f} χ={chi}");
                 assert_eq!(chi, 2, "Octant step {i} Euler violation");
@@ -225,7 +225,7 @@ fn octant_cluster_union() {
                 geom = parts.1;
             }
             Err(e) => {
-                panic!("Octant step {i} failed: {e:?}");
+                panic!("Octant step {i} failed: {e}");
             }
         }
     }

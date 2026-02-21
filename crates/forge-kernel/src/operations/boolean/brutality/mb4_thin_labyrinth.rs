@@ -90,9 +90,9 @@ fn build_thin_labyrinth(
             BooleanOp::Subtraction,
         );
 
-        match execute_boolean_logged(input) {
-            Ok(envelope) => {
-                let r = envelope.into_value();
+        match execute_boolean_logged(input).into_result() {
+            Ok(result) => {
+                let r = result;
                 if (i + 1) % 50 == 0 || i == wall_count - 1 {
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
                     eprintln!(
@@ -105,7 +105,7 @@ fn build_thin_labyrinth(
                 geom = parts.1;
             }
             Err(e) => {
-                eprintln!("MB4 labyrinth slit {}/{wall_count} failed: {e:?}", i + 1);
+                eprintln!("MB4 labyrinth slit {}/{wall_count} failed: {e}", i + 1);
                 return None;
             }
         }
@@ -199,15 +199,15 @@ fn labyrinth_complex_intersection() {
         BooleanOp::Intersection,
     );
 
-    match execute_boolean_logged(input) {
-        Ok(envelope) => {
-            let r = envelope.into_value();
+    match execute_boolean_logged(input).into_result() {
+        Ok(result) => {
+            let r = result;
             let (v, e, f, chi) = euler_audit(r.topology().arena());
             eprintln!("MB4 labyrinth intersection: V={v} E={e} F={f} χ={chi}");
             assert!(f > 0, "Labyrinth intersection should produce faces");
         }
         Err(e) => {
-            panic!("MB4 labyrinth intersection failed: {e:?}");
+            panic!("MB4 labyrinth intersection failed: {e}");
         }
     }
 }

@@ -33,7 +33,8 @@ fn dump_trace_intersection() {
     let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Intersection);
-    let envelope = execute_boolean(input).expect("Boolean should succeed");
+    let envelope = execute_boolean(input);
+    assert!(envelope.get_value().is_ok(), "Boolean should succeed: {:?}", envelope.get_value().as_ref().err());
 
     let log = envelope.get_decision_log();
     let summary = log.summary();
@@ -42,12 +43,13 @@ fn dump_trace_intersection() {
     let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../test_output.log");
     let mut file = std::fs::File::create(path).expect("create output file");
 
+    let inner_result = envelope.get_value().as_ref().unwrap();
     write_section(&mut file, "OPERATION: Intersection (half-overlap cubes)",
         &format!(
             "Duration: {:?}\nState hash: 0x{:016X}\nFaces in result: {}",
             envelope.get_metrics().duration,
             envelope.get_state_hash_after(),
-            envelope.get_value().topology().arena().face_count(),
+            inner_result.topology().arena().face_count(),
         ),
     );
 
