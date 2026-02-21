@@ -19,7 +19,7 @@
 //!    operations because the copy phase doesn't carry it forward.
 //!    THIS IS THE ROOT CAUSE of all chain failures.
 //!
-//! 2. **Spatial Vertex Welding Tolerance**: The `SpatialVertexIndex` in
+//! 2. **Spatial Vertex Welding Tolerance**: The `VertexWelder` in
 //!    `copy.rs` uses `1e-18` squared tolerance for nearest-neighbor vertex
 //!    matching. This is too tight for vertices that went through floating-point
 //!    arithmetic in prior boolean ops. Needs to be relaxed to ~`1e-12` squared.

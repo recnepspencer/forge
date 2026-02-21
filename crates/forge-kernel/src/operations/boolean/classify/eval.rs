@@ -7,7 +7,9 @@
 //! 1. Build BVH spatial index on the "other" solid.
 //! 2. For each face of the "source" solid, compute its centroid.
 //! 3. Ray-cast from centroid into "other" solid → Inside/Outside/OnBoundary.
-//! 4. OnBoundary: check normal alignment → OnBoundary vs OppositeBoundary.
+//! 4. OnBoundary → multi-sample fallback: perturb along face normal (±ε),
+//!    re-classify both points. If they agree → use unambiguous result.
+//!    If they disagree → normal alignment → OnBoundary vs OppositeBoundary.
 //! 5. Apply counterfactual overrides if present (P3.3).
 //! 6. Record TracedDecision for every classification.
 
@@ -15,7 +17,7 @@ use forge_core::KernelError;
 use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier, EntityRef};
 use forge_core::tracing::TopologyDelta;
 use forge_topo::arena::TopologyArena;
-use forge_topo::classify::classify_point_in_solid;
+use forge_topo::classify::{classify_point_in_solid, PointClassification};
 use forge_topo::handles::FaceId;
 use forge_topo::traverse::FaceEdgeIterator;
 
@@ -64,6 +66,10 @@ pub fn classify_faces(
 // ── Per-face classification ──────────────────────────────────────────────────
 
 /// Classify a single face by ray-casting its centroid into the other solid.
+///
+/// When the centroid lands exactly on the other solid's boundary
+/// ("kissing" contact), a multi-sample fallback perturbs the sample
+/// along the face normal to resolve the ambiguity.
 fn classify_single_face(
     source_arena: &TopologyArena,
     source_geometry: &GeometryStore,
@@ -85,9 +91,16 @@ fn classify_single_face(
         config.get_edge_split_degeneracy(),
     )?;
 
-    let (class, escalation) = interpret_classification(
-        classification, source_geometry, face_id, other_geometry,
-    );
+    let (class, escalation) = match &classification {
+        PointClassification::OnBoundary(_) => resolve_boundary_classification(
+            source_arena, source_geometry, face_id,
+            other_arena, other_geometry, accelerator,
+            &classification, config,
+        )?,
+        _ => interpret_classification(
+            classification, source_geometry, face_id, other_geometry,
+        ),
+    };
 
     if let Some(esc) = escalation {
         ctx.log_escalation(esc);
@@ -120,6 +133,93 @@ fn interpret_classification(
             };
             (class, None)
         }
+    }
+}
+
+/// Resolve an OnBoundary classification via multi-sample normal perturbation.
+///
+/// When the centroid lands exactly on the other solid's boundary,
+/// we perturb the sample in both directions along the source face
+/// normal and re-classify. If both agree, the unambiguous result
+/// is returned. Otherwise, falls back to normal alignment.
+fn resolve_boundary_classification(
+    source_arena: &TopologyArena,
+    source_geometry: &GeometryStore,
+    source_face: FaceId,
+    other_arena: &TopologyArena,
+    other_geometry: &GeometryStore,
+    accelerator: Option<&dyn forge_topo::classify::SpatialAccelerator>,
+    original: &PointClassification,
+    config: &crate::core::ToleranceConfig,
+) -> Result<(FaceClassification, Option<forge_math::arithmetic::filter::PrecisionEscalation>), KernelError> {
+    let normal = match source_geometry.get_face_plane(source_face) {
+        Some(plane) => plane.raw_normal(),
+        None => {
+            return Ok(interpret_classification(
+                original.clone(), source_geometry, source_face, other_geometry,
+            ));
+        }
+    };
+
+    let centroid = compute_face_centroid(source_arena, source_geometry, source_face)?;
+    let epsilon = config.get_edge_split_degeneracy() * 100.0;
+
+    let pos_sample = [
+        centroid[0] + epsilon * normal[0],
+        centroid[1] + epsilon * normal[1],
+        centroid[2] + epsilon * normal[2],
+    ];
+    let neg_sample = [
+        centroid[0] - epsilon * normal[0],
+        centroid[1] - epsilon * normal[1],
+        centroid[2] - epsilon * normal[2],
+    ];
+
+    let pos_class = classify_point_in_solid(
+        other_arena,
+        &|index| lookup_vertex_position(other_arena, other_geometry, index),
+        accelerator,
+        &pos_sample,
+        config.get_ray_extent(),
+        config.get_edge_split_degeneracy(),
+    )?;
+
+    let neg_class = classify_point_in_solid(
+        other_arena,
+        &|index| lookup_vertex_position(other_arena, other_geometry, index),
+        accelerator,
+        &neg_sample,
+        config.get_ray_extent(),
+        config.get_edge_split_degeneracy(),
+    )?;
+
+    let pos_face_class = to_face_classification(&pos_class);
+    let neg_face_class = to_face_classification(&neg_class);
+
+    if pos_face_class == neg_face_class {
+        return Ok((pos_face_class, extract_escalation(&pos_class)));
+    }
+
+    Ok(interpret_classification(
+        original.clone(), source_geometry, source_face, other_geometry,
+    ))
+}
+
+/// Convert a PointClassification to a simple FaceClassification.
+fn to_face_classification(pc: &PointClassification) -> FaceClassification {
+    match pc {
+        PointClassification::Inside { .. } => FaceClassification::Inside,
+        PointClassification::Outside { .. } => FaceClassification::Outside,
+        PointClassification::OnBoundary(_) => FaceClassification::OnBoundary,
+    }
+}
+
+/// Extract the escalation from a PointClassification, if any.
+fn extract_escalation(pc: &PointClassification) -> Option<forge_math::arithmetic::filter::PrecisionEscalation> {
+    match pc {
+        PointClassification::Inside { escalation } => escalation.clone(),
+        PointClassification::Outside { escalation } => escalation.clone(),
+        PointClassification::OnBoundary(_) => None,
     }
 }
 

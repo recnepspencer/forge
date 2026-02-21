@@ -22,7 +22,7 @@ use crate::geometry_store::GeometryStore;
 use crate::operations::boolean::classify::find_coplanar_face_pairs;
 use crate::operations::boolean::eval::VertexMatchKey;
 use crate::operations::boolean::schema::{BooleanResult, BooleanOp, BooleanIntrospection};
-use super::super::copy::{copy_faces, VertexDedup, SpatialVertexIndex};
+use super::super::copy::{copy_faces, VertexDedup, VertexWelder};
 use super::super::stitch::stitch_twins;
 use super::super::cleanup::cleanup_degenerate_topology;
 use super::eval::{are_solids_coincident, compute_disjoint_scale};
@@ -136,7 +136,7 @@ pub(super) fn execute_touching_boolean(
     let mut draft = state.into_mutation();
     let mut result_geom = GeometryStore::new();
     let mut global_vertex_map: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
-    let mut spatial_index = SpatialVertexIndex::new(scale);
+    let mut spatial_index = VertexWelder::new(scale);
     let mut all_he_ids: Vec<HalfEdgeId> = Vec::new();
 
     let pre_target = ArenaSnapshot::capture(draft.arena());
@@ -226,7 +226,7 @@ fn assemble_single_shell(
     let mut result_geom = GeometryStore::new();
     let mut he_ids: Vec<HalfEdgeId> = Vec::new();
     let mut vertex_map: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
-    let mut spatial = SpatialVertexIndex::new(scale);
+    let mut spatial = VertexWelder::new(scale);
 
     let pre_copy = ArenaSnapshot::capture(draft.arena());
 
@@ -291,7 +291,7 @@ fn assemble_two_shells(
 
     let mut pri_he: Vec<HalfEdgeId> = Vec::new();
     let mut pri_vm: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
-    let mut pri_spatial = SpatialVertexIndex::new(scale);
+    let mut pri_spatial = VertexWelder::new(scale);
 
     let pre_pri = ArenaSnapshot::capture(draft.arena());
 
@@ -325,7 +325,7 @@ fn assemble_two_shells(
 
     let mut sec_he: Vec<HalfEdgeId> = Vec::new();
     let mut sec_vm: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
-    let mut sec_spatial = SpatialVertexIndex::new(scale);
+    let mut sec_spatial = VertexWelder::new(scale);
 
     let pre_sec = ArenaSnapshot::capture(draft.arena());
 
@@ -371,7 +371,7 @@ fn copy_shell(
     result_geom: &mut GeometryStore,
     he_ids: &mut Vec<HalfEdgeId>,
     vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
-    spatial: &mut SpatialVertexIndex,
+    spatial: &mut VertexWelder,
     source_arena: &forge_topo::arena::TopologyArena,
     source_geom: &GeometryStore,
     faces: &[FaceId],

@@ -32,7 +32,7 @@ pub struct CopyContext<'a> {
     pub vertex_dedup: &'a mut VertexDedup,
     pub new_edges: &'a mut Vec<HalfEdgeId>,
     pub global_vertex_map: &'a mut BTreeMap<VertexMatchKey, VertexId>,
-    pub spatial_index: &'a mut SpatialVertexIndex,
+    pub spatial_index: &'a mut VertexWelder,
 }
 
 /// Local vertex mapping for one solid (old arena → new arena).
@@ -54,82 +54,50 @@ impl VertexDedup {
     }
 }
 
-/// Vertex position index with fuzzy nearest-neighbor search.
+/// Vertex position welder with Union-Find transitive clustering.
 ///
-/// Grid cell size and weld tolerance are proportional to the
-/// characteristic scale of the input geometry.
-pub struct SpatialVertexIndex {
-    grid: BTreeMap<[i64; 3], Vec<(VertexId, [f64; 3])>>,
-    cell_size: f64,
+/// Backed by `forge_geom::spatial::epsilon_weld::EpsilonWelder` for
+/// spatial hashing and transitive merging. Maintains a parallel
+/// `VertexId` mapping so the topology layer can resolve cluster roots.
+pub struct VertexWelder {
+    welder: forge_geom::spatial::epsilon_weld::EpsilonWelder,
+    vertex_ids: Vec<VertexId>,
     weld_tolerance_sq: f64,
 }
 
-impl SpatialVertexIndex {
-    /// Create a new index scaled to the input geometry.
+impl VertexWelder {
+    /// Create a new welder scaled to the input geometry.
+    ///
+    /// Tolerance is `characteristic_scale * 1e-8`.
     pub fn new(characteristic_scale: f64) -> Self {
         let scale = characteristic_scale.max(1e-15);
-        let cell_size = scale * 1e-3;
         let linear_tol = scale * 1e-8;
         Self {
-            grid: BTreeMap::new(),
-            cell_size,
+            welder: forge_geom::spatial::epsilon_weld::EpsilonWelder::new(linear_tol),
+            vertex_ids: Vec::new(),
             weld_tolerance_sq: linear_tol * linear_tol,
         }
     }
 
-    /// Find the nearest vertex within tolerance.
-    pub fn find_nearest(&self, pos: &[f64; 3]) -> Option<VertexId> {
-        let center = self.cell_coords(pos);
-        let mut best: Option<(VertexId, f64)> = None;
+    /// Find the canonical VertexId for a position, or None if no match.
+    pub fn find_nearest(&mut self, pos: &[f64; 3]) -> Option<VertexId> {
+        self.welder.find_nearest(pos).map(|root| self.vertex_ids[root])
+    }
 
-        for dx in -1..=1 {
-            for dy in -1..=1 {
-                for dz in -1..=1 {
-                    let cell = [center[0] + dx, center[1] + dy, center[2] + dz];
-                    if let Some(entries) = self.grid.get(&cell) {
-                        for &(vid, ref p) in entries {
-                            let dist_sq = squared_distance(pos, p);
-                            if dist_sq <= self.weld_tolerance_sq {
-                                match best {
-                                    None => best = Some((vid, dist_sq)),
-                                    Some((_, bd)) if dist_sq < bd => best = Some((vid, dist_sq)),
-                                    _ => {}
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+    /// Register a vertex position for future lookups.
+    pub fn insert(&mut self, vid: VertexId, pos: [f64; 3]) {
+        let idx = self.welder.add_vertex(pos);
+        if idx >= self.vertex_ids.len() {
+            self.vertex_ids.push(vid);
+        } else {
+            self.vertex_ids[idx] = vid;
         }
-        best.map(|(vid, _)| vid)
     }
 
     /// The scale-proportional squared weld tolerance.
     pub fn weld_tolerance_sq(&self) -> f64 {
         self.weld_tolerance_sq
     }
-
-    /// Register a vertex position for future lookups.
-    pub fn insert(&mut self, vid: VertexId, pos: [f64; 3]) {
-        let cell = self.cell_coords(&pos);
-        self.grid.entry(cell).or_insert_with(Vec::new).push((vid, pos));
-    }
-
-    fn cell_coords(&self, pos: &[f64; 3]) -> [i64; 3] {
-        [
-            (pos[0] / self.cell_size).floor() as i64,
-            (pos[1] / self.cell_size).floor() as i64,
-            (pos[2] / self.cell_size).floor() as i64,
-        ]
-    }
-}
-
-/// Squared Euclidean distance between two 3D points.
-fn squared_distance(a: &[f64; 3], b: &[f64; 3]) -> f64 {
-    let dx = a[0] - b[0];
-    let dy = a[1] - b[1];
-    let dz = a[2] - b[2];
-    dx * dx + dy * dy + dz * dz
 }
 
 // ── Face copying ─────────────────────────────────────────────────────────────
@@ -141,7 +109,7 @@ pub fn copy_faces(
     vertex_dedup: &mut VertexDedup,
     new_edges: &mut Vec<HalfEdgeId>,
     global_vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
-    spatial_index: &mut SpatialVertexIndex,
+    spatial_index: &mut VertexWelder,
     source_arena: &forge_topo::arena::TopologyArena,
     source_geom: &GeometryStore,
     source_faces: &[FaceId],
@@ -165,7 +133,7 @@ fn copy_single_face(
     vertex_dedup: &mut VertexDedup,
     new_edges: &mut Vec<HalfEdgeId>,
     global_vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
-    spatial_index: &mut SpatialVertexIndex,
+    spatial_index: &mut VertexWelder,
     source_arena: &forge_topo::arena::TopologyArena,
     source_geom: &GeometryStore,
     src_face: FaceId,
@@ -259,7 +227,7 @@ fn resolve_all_vertices(
     result_geom: &mut GeometryStore,
     vertex_dedup: &mut VertexDedup,
     global_vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
-    spatial_index: &mut SpatialVertexIndex,
+    spatial_index: &mut VertexWelder,
     source_arena: &forge_topo::arena::TopologyArena,
     source_geom: &GeometryStore,
     src_verts: &[VertexId],
@@ -327,7 +295,7 @@ fn resolve_vertex(
     result_geom: &mut GeometryStore,
     vertex_dedup: &mut VertexDedup,
     global_vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
-    spatial_index: &mut SpatialVertexIndex,
+    spatial_index: &mut VertexWelder,
     source_arena: &forge_topo::arena::TopologyArena,
     source_geom: &GeometryStore,
     src_vertex: VertexId,

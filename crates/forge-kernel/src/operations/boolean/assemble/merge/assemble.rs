@@ -40,7 +40,7 @@ pub(crate) fn assemble_result(
     let mut result_geom = GeometryStore::new();
 
     let mut global_vertex_map: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
-    let mut spatial_index = super::super::copy::SpatialVertexIndex::new(characteristic_scale);
+    let mut spatial_index = super::super::copy::VertexWelder::new(characteristic_scale);
 
     let mut all_new_he_ids: Vec<HalfEdgeId> = Vec::new();
 
