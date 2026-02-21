@@ -355,3 +355,157 @@ fn minimal_two_interior_subtractions() {
     let (v, e, f, chi) = euler_audit(r1.topology().arena());
     eprintln!("Step 1: V={v} E={e} F={f} χ={chi}");
 }
+
+// ══════════════════════════════════════════════════════════════
+// §DC.7  DIAGNOSTIC TESTS — ROOT CAUSE ISOLATION
+// ══════════════════════════════════════════════════════════════
+
+/// Diagnostic 1: epsilon-offset overlap.
+///
+/// Identical to minimal_overlapping_notches but shifts the second tool
+/// by y=0.01, forcing true geometric intersection (2 cut points)
+/// instead of coplanar tangent grazing.
+///
+/// If this PASSES but minimal_overlapping_notches FAILS:
+///   → Bug is collinear/grazing handling in the split phase.
+/// If this ALSO FAILS:
+///   → Bug is precision drift / provenance loss in copy.rs.
+#[test]
+fn diagnostic_epsilon_offset_notches() {
+    let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
+
+    let (tool0, tool0_g) = build_cube([-4.0, 0.0, 4.5], 0.5);
+    let input0 = BooleanInput::new(topo, geom, tool0, tool0_g, BooleanOp::Subtraction);
+    let r0 = execute_boolean_logged(input0).into_result().expect("Step 0 failed");
+    let (topo, geom) = r0.into_topo_geom();
+
+    let (tool1, tool1_g) = build_cube([-3.1, 0.01, 4.5], 0.5);
+    let input1 = BooleanInput::new(topo, geom, tool1, tool1_g, BooleanOp::Subtraction);
+
+    match execute_boolean_logged(input1).into_result() {
+        Ok(r1) => {
+            let (_v, _e, _f, chi) = euler_audit(r1.topology().arena());
+            assert_eq!(chi, 2, "Passed but Euler violated");
+            eprintln!("DIAGNOSTIC: Epsilon-offset PASSED → bug is collinear/grazing handling");
+        }
+        Err(e) => {
+            panic!("DIAGNOSTIC: Epsilon-offset FAILED → bug is precision drift. Error: {e}");
+        }
+    }
+}
+
+/// Diagnostic 2: single tangent corner graze (no chaining).
+///
+/// A tool cube whose corner touches a target cube's corner at [5,5,5].
+/// No chaining — tests whether the split logic can handle a tangent
+/// vertex graze in pure isolation.
+///
+/// If this FAILS:
+///   → Split logic fundamentally cannot handle tangent vertex grazes.
+/// If this PASSES:
+///   → The problem is specific to chained operations.
+#[test]
+fn diagnostic_manual_tangent_graze() {
+    let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
+    let (tool, tool_g) = build_cube([6.0, 6.0, 6.0], 1.0);
+
+    let input = BooleanInput::new(topo, geom, tool, tool_g, BooleanOp::Subtraction);
+    match execute_boolean_logged(input).into_result() {
+        Ok(r) => {
+            let (v, e, f, chi) = euler_audit(r.topology().arena());
+            eprintln!("DIAGNOSTIC: Tangent graze PASSED: V={v} E={e} F={f} χ={chi}");
+        }
+        Err(e) => {
+            panic!("DIAGNOSTIC: Tangent graze FAILED → split logic broken. Error: {e}");
+        }
+    }
+}
+
+/// Diagnostic 3: vertex provenance survival audit.
+///
+/// Checks whether exact rational vertex positions survive the
+/// boolean result → new input pipeline. If exact positions are
+/// lost during copy, assign_original_vertex_provenance can't
+/// build VertexMatchKeys and cross-solid vertex gluing fails.
+#[test]
+fn diagnostic_vertex_provenance_survival() {
+    let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
+    let (tool0, tool0_g) = build_cube([-4.0, 0.0, 4.5], 0.5);
+    let input0 = BooleanInput::new(topo, geom, tool0, tool0_g, BooleanOp::Subtraction);
+    let r0 = execute_boolean_logged(input0).into_result().expect("Step 0 failed");
+
+    let result_geom = r0.geometry();
+    let result_arena = r0.topology().arena();
+    let mut exact_count = 0u32;
+    let mut total_count = 0u32;
+    for (vid, _) in result_arena.iter_vertices() {
+        total_count += 1;
+        if result_geom.get_vertex_position_exact(vid).is_some() {
+            exact_count += 1;
+        }
+    }
+
+    eprintln!("DIAGNOSTIC: {exact_count}/{total_count} vertices have exact rational positions");
+    assert!(exact_count > 0,
+        "PROVENANCE LOSS: No exact vertices survived Step 0! \
+         copy.rs is stripping exact positions.");
+    assert_eq!(exact_count, total_count,
+        "PARTIAL PROVENANCE LOSS: {exact_count}/{total_count} vertices have exact positions. \
+         Some vertices lost their symbolic identity.");
+}
+
+/// Diagnostic 4: concave face detection after Step 0.
+///
+/// Dumps the face topology (edge count, vertex positions) for every face
+/// in the Step 0 result. If the postprocessor merged coplanar fragments
+/// into concave polygons (>4 edges), the split logic in Step 1 may fail
+/// because it assumes convex face geometry.
+#[test]
+fn diagnostic_concave_face_audit() {
+    let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
+    let (tool0, tool0_g) = build_cube([-4.0, 0.0, 4.5], 0.5);
+    let input0 = BooleanInput::new(topo, geom, tool0, tool0_g, BooleanOp::Subtraction);
+    let r0 = execute_boolean_logged(input0).into_result().expect("Step 0 failed");
+
+    let arena = r0.topology().arena();
+    let geom_ref = r0.geometry();
+
+    let mut max_edges = 0usize;
+    let mut concave_faces = Vec::new();
+
+    for (fid, _) in arena.iter_faces() {
+        let edges: Vec<_> = forge_topo::traverse::FaceEdgeIterator::new(arena, fid)
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
+        let edge_count = edges.len();
+        if edge_count > max_edges { max_edges = edge_count; }
+
+        let plane = geom_ref.get_face_plane(fid);
+        let plane_str = plane.map(|p| {
+            let n = p.normal();
+            format!("n=[{:.2},{:.2},{:.2}] d={:.2}", n[0], n[1], n[2], p.offset())
+        }).unwrap_or("??".into());
+
+        let verts: Vec<String> = edges.iter().map(|he_id| {
+            let he = arena.get_half_edge(*he_id).unwrap();
+            let v = he.origin();
+            let pos = geom_ref.get_vertex_position(v).unwrap();
+            format!("[{:.2},{:.2},{:.2}]", pos[0], pos[1], pos[2])
+        }).collect();
+
+        eprintln!("  Face#{}: {}E {} | {}", fid.index(), edge_count, plane_str, verts.join(" → "));
+
+        if edge_count > 4 {
+            concave_faces.push((fid, edge_count));
+        }
+    }
+
+    eprintln!("DIAGNOSTIC: max edges per face = {max_edges}, concave faces (>4E) = {:?}",
+        concave_faces.iter().map(|(f, e)| format!("F#{} ({}E)", f.index(), e)).collect::<Vec<_>>());
+
+    if !concave_faces.is_empty() {
+        eprintln!("DIAGNOSTIC: CONCAVE FACES DETECTED! The postprocessor merged coplanar fragments into >4-gons.");
+        eprintln!("This is likely the root cause — the split logic handles convex faces only.");
+    }
+}

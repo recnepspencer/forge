@@ -19,10 +19,12 @@
 pub mod in_sphere;
 pub mod orient2d;
 pub mod orient3d;
+pub mod grid_predicates;
 
 pub use in_sphere::{in_sphere, InSphereInput};
 pub use orient2d::{orient2d, Orient2dInput};
 pub use orient3d::{orient3d, Orient3dInput};
+pub use grid_predicates::{orient3d_grid, orient2d_grid, classify_point_grid};
 
 /// Shewchuk-derived error bound coefficients for static filters.
 ///

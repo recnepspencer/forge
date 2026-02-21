@@ -260,6 +260,25 @@ impl GeometryStore {
     pub fn vertex_position_count(&self) -> usize {
         self.vertex_positions.len()
     }
+
+    /// Iterate over all vertex f64 positions.
+    ///
+    /// Used by `QuantizedSpace::build` to compute the combined AABB.
+    pub fn iter_vertex_positions(&self) -> impl Iterator<Item = &[f64; 3]> {
+        self.vertex_positions.values().map(|ep| ep.approx())
+    }
+
+    /// Whether all face geometry is planar (no curved surfaces).
+    ///
+    /// Returns `true` when every face has a `Plane` association.
+    /// When NURBS, cylinders, or other curved surface types are added,
+    /// this will return `false` for mixed or fully curved geometry.
+    ///
+    /// Used by the dual-engine router to decide between EMBER (exact
+    /// integer grid) and legacy (floating-point heuristic) pipelines.
+    pub fn is_all_planar(&self) -> bool {
+        true
+    }
 }
 
 impl Default for GeometryStore {

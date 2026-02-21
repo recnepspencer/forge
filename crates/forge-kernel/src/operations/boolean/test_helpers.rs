@@ -13,7 +13,7 @@ use crate::geometry_store::GeometryStore;
 use crate::mesh_builder;
 use super::eval::compute_face_centroid;
 use super::schema::{BooleanInput, BooleanOp, BooleanResult};
-use super::assemble::execute_boolean;
+use super::assemble::execute_boolean_direct;
 
 /// Build a cube mesh centered at `center` with the given `half_size`.
 pub fn build_cube(
@@ -49,7 +49,7 @@ pub fn run_boolean(
     let (topo_b, geom_b) = build_cube(center_b, half_b);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, op);
-    let envelope = execute_boolean(input);
+    let envelope = execute_boolean_direct(input);
     envelope.into_result().unwrap_or_else(|e| {
         panic!("Boolean {:?} failed: {:?}", op, e);
     })
@@ -69,19 +69,29 @@ pub fn try_boolean(
     let (topo_b, geom_b) = build_cube(center_b, half_b);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, op);
-    execute_boolean(input).into_result()
+    execute_boolean_direct(input).into_result()
 }
 
 /// Execute a boolean from a pre-built `BooleanInput`, returning the full envelope.
 ///
-/// Use this in tests that need access to the `DecisionLog`, metrics, or
-/// other envelope data alongside the result. Callers use `into_result()`
-/// to extract the inner `Result` with automatic trace persistence and
-/// error logging.
+/// Uses the standard pipeline (no EMBER coplanar resolution).
+/// For tests that need EMBER coplanar resolution, use `execute_boolean_ember`.
 pub fn execute_boolean_logged(
     input: BooleanInput,
 ) -> forge_core::OperationResult<Result<BooleanResult, forge_core::KernelError>> {
-    execute_boolean(input)
+    execute_boolean_direct(input)
+}
+
+/// Execute a boolean with the EMBER engine (coplanar resolution enabled).
+///
+/// Uses `planar_engine()` which includes `EmberCoplanarResolver` for
+/// exact coplanar face detection. Use this in MB1/coplanar tests.
+pub fn execute_boolean_ember(
+    input: BooleanInput,
+) -> forge_core::OperationResult<Result<BooleanResult, forge_core::KernelError>> {
+    use super::assemble::execute_boolean_with_engine;
+    use super::engines::planar::planar_engine;
+    execute_boolean_with_engine(input, planar_engine())
 }
 
 /// Euler characteristic audit: returns (V, E, F, χ).

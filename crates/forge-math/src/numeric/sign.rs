@@ -68,6 +68,15 @@ impl TriSign {
             (TriSign::Neg, TriSign::Neg) => TriSign::Pos,
         }
     }
+
+    /// Construct from an exact i128 determinant value (integer grid predicates).
+    pub fn from_i128(val: i128) -> Self {
+        match val.cmp(&0) {
+            std::cmp::Ordering::Less => TriSign::Neg,
+            std::cmp::Ordering::Equal => TriSign::Zero,
+            std::cmp::Ordering::Greater => TriSign::Pos,
+        }
+    }
 }
 
 impl std::fmt::Display for TriSign {

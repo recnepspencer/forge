@@ -19,7 +19,7 @@ use super::super::stitch::stitch_twins;
 use super::super::cleanup::cleanup_degenerate_topology;
 
 /// Assemble the Boolean result from selected faces of both arenas.
-pub(super) fn assemble_result(
+pub(crate) fn assemble_result(
     target_arena: &forge_topo::arena::TopologyArena,
     target_geom: &GeometryStore,
     target_faces: &[FaceId],

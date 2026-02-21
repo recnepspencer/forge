@@ -61,6 +61,14 @@ pub fn split_face_by_plane(
 
     let resolved = resolve_all_cut_points(&cut_points, draft, geometry, dedup)?;
     if resolved.len() < 2 {
+        let nan3 = [f64::NAN; 3];
+        eprintln!("[cut-diag] Face#{} by plane#{}: {} cut_points found, {} unique after dedup",
+            face.index(), cut_plane_idx, cut_points.len(), resolved.len());
+        for (i, vid) in resolved.iter().enumerate() {
+            let pos = geometry.get_vertex_position(*vid).unwrap_or(&nan3);
+            eprintln!("  [cut-diag]   resolved[{}]: vid={} pos=[{:.6},{:.6},{:.6}]",
+                i, vid, pos[0], pos[1], pos[2]);
+        }
         log_rejection(face, cut_plane_idx, &format!("{} resolved vertices after dedup (need >=2)", resolved.len()), ctx);
         return Ok(Vec::new());
     }

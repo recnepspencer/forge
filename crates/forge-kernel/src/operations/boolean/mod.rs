@@ -21,6 +21,8 @@ mod split;
 mod classify;
 mod postprocess;
 pub mod assemble;
+pub mod traits;
+pub mod engines;
 #[cfg(test)]
 pub mod test_helpers;
 #[cfg(test)]
@@ -29,6 +31,21 @@ mod tests;
 mod brutality;
 mod debug;
 
-pub use schema::{BooleanInput, BooleanOp, BooleanResult, FaceClassification};
-pub use assemble::execute_boolean;
+pub use schema::{BooleanInput, BooleanOp, BooleanResult, FaceClassification, ClassifiedFace};
+pub use assemble::execute_boolean_direct;
 pub use assemble::execute_boolean_with_overrides;
+
+/// Execute a Boolean operation — the production entry point.
+///
+/// Routes to the appropriate pipeline:
+/// - **Planar geometry** → EMBER (integer grid quantization + standard pipeline)
+/// - **Curved geometry** → Standard pipeline directly
+/// - **EMBER failure** → Automatic standard pipeline fallback
+///
+/// This ensures every Boolean gets the best available pipeline without
+/// callers needing to know about EMBER.
+pub fn execute_boolean(
+    input: BooleanInput,
+) -> forge_core::OperationResult<Result<BooleanResult, forge_core::KernelError>> {
+    crate::operations::ember_boolean::execute_boolean_adaptive(input)
+}

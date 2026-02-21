@@ -88,6 +88,14 @@ impl BooleanInput {
         Ok(())
     }
 
+    /// Whether either input solid contains curved geometry (NURBS, cylinders, etc.).
+    ///
+    /// When `true`, the EMBER exact integer grid pipeline cannot be used
+    /// and the operation must route through the legacy heuristic pipeline.
+    pub fn has_curved_geometry(&self) -> bool {
+        !self.target_geometry.is_all_planar() || !self.tool_geometry.is_all_planar()
+    }
+
     /// Consume and return owned parts.
     pub fn into_parts(self) -> (TopologyState, GeometryStore, TopologyState, GeometryStore, BooleanOp) {
         (
@@ -195,6 +203,11 @@ impl ClassifiedFace {
     /// Classification relative to the other solid.
     pub fn classification(&self) -> FaceClassification {
         self.classification
+    }
+
+    /// Override the classification (used by EMBER coplanar logic).
+    pub fn set_classification(&mut self, c: FaceClassification) {
+        self.classification = c;
     }
 }
 

@@ -7,7 +7,7 @@
 use forge_core::{TraceEvent, DecisionTier};
 
 use super::super::test_helpers::build_cube;
-use super::super::assemble::merge::execute_boolean;
+use super::super::assemble::merge::execute_boolean_direct;
 use super::super::schema::{BooleanInput, BooleanOp};
 
 // ══════════════════════════════════════════════════════════════
@@ -25,7 +25,7 @@ fn boolean_produces_span_events() {
     let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Intersection);
-    let envelope = execute_boolean(input);
+    let envelope = execute_boolean_direct(input);
 assert!(envelope.get_value().is_ok(), "Boolean should succeed: {:?}", envelope.get_value().as_ref().err());
 
     let log = envelope.get_decision_log();
@@ -63,7 +63,7 @@ fn span_durations_are_nonzero() {
     let (topo_b, geom_b) = build_cube([1.0, 1.0, 1.0], 2.0);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
-    let envelope = execute_boolean(input);
+    let envelope = execute_boolean_direct(input);
 assert!(envelope.get_value().is_ok(), "Boolean should succeed: {:?}", envelope.get_value().as_ref().err());
 
     let log = envelope.get_decision_log();
@@ -89,7 +89,7 @@ fn decisions_carry_span_ids() {
     let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Subtraction);
-    let envelope = execute_boolean(input);
+    let envelope = execute_boolean_direct(input);
 assert!(envelope.get_value().is_ok(), "Boolean should succeed: {:?}", envelope.get_value().as_ref().err());
 
     let log = envelope.get_decision_log();
@@ -115,7 +115,7 @@ fn summary_stats_match_manual_count() {
     let (topo_b, geom_b) = build_cube([0.5, 0.5, 0.5], 1.0);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Intersection);
-    let envelope = execute_boolean(input);
+    let envelope = execute_boolean_direct(input);
 assert!(envelope.get_value().is_ok(), "Boolean should succeed: {:?}", envelope.get_value().as_ref().err());
 
     let log = envelope.get_decision_log();
@@ -154,7 +154,7 @@ fn trace_summary_from_real_boolean() {
     let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
-    let envelope = execute_boolean(input);
+    let envelope = execute_boolean_direct(input);
 assert!(envelope.get_value().is_ok(), "Boolean should succeed: {:?}", envelope.get_value().as_ref().err());
 
     let log = envelope.get_decision_log();
@@ -196,11 +196,11 @@ fn trace_diff_between_different_booleans() {
         topo_a.clone(), geom_a.clone(), topo_b.clone(), geom_b.clone(),
         BooleanOp::Intersection,
     );
-    let envelope1 = execute_boolean(input1);
+    let envelope1 = execute_boolean_direct(input1);
     assert!(envelope1.get_value().is_ok(), "Boolean 1 (Intersection) should succeed");
 
     let input2 = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Subtraction);
-    let envelope2 = execute_boolean(input2);
+    let envelope2 = execute_boolean_direct(input2);
     assert!(envelope2.get_value().is_ok(), "Boolean 2 (Subtraction) should succeed");
 
     let summary1 = envelope1.get_decision_log().to_summary(
@@ -229,7 +229,7 @@ fn same_operation_produces_identical_summary() {
         let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
         let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Intersection);
-        execute_boolean(input)
+        execute_boolean_direct(input)
     };
 
     let envelope1 = run();
@@ -264,7 +264,7 @@ fn disjoint_cubes_full_pipeline_spans() {
     let (topo_b, geom_b) = build_cube([10.0, 0.0, 0.0], 1.0);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
-    let envelope = execute_boolean(input);
+    let envelope = execute_boolean_direct(input);
 assert!(envelope.get_value().is_ok(), "Disjoint union should succeed: {:?}", envelope.get_value().as_ref().err());
 
     let log = envelope.get_decision_log();
@@ -301,7 +301,7 @@ fn display_interesting_is_not_empty() {
     let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Subtraction);
-    let envelope = execute_boolean(input);
+    let envelope = execute_boolean_direct(input);
 assert!(envelope.get_value().is_ok(), "Boolean should succeed: {:?}", envelope.get_value().as_ref().err());
 
     let log = envelope.get_decision_log();
@@ -321,7 +321,7 @@ fn tier_filtering_matches_event_content() {
     let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Intersection);
-    let envelope = execute_boolean(input);
+    let envelope = execute_boolean_direct(input);
 assert!(envelope.get_value().is_ok(), "Boolean should succeed: {:?}", envelope.get_value().as_ref().err());
 
     let log = envelope.get_decision_log();

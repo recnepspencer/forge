@@ -22,9 +22,9 @@ use crate::geometry_store::GeometryStore;
 use crate::operations::boolean::schema::{
     BooleanInput, BooleanOp, BooleanResult, FaceOrigin, FaceClassification, BooleanIntrospection,
 };
-use crate::operations::boolean::split::split_all_faces;
-use crate::operations::boolean::classify::classify_faces;
 use crate::operations::boolean::eval::VertexMatchKey;
+use crate::operations::boolean::traits::BooleanEngine;
+use crate::operations::boolean::engines::planar::planar_engine_legacy;
 
 use super::super::select::select_faces;
 use super::super::disjoint::execute_zero_split;
@@ -32,14 +32,32 @@ use super::assemble::{assemble_result, compute_characteristic_scale};
 
 /// Execute a Boolean operation on two solids.
 ///
+/// Execute a Boolean operation using the standard pipeline directly.
+///
+/// This is the raw pipeline entry point — no EMBER routing.
+/// For production use, prefer `execute_boolean` which routes through
+/// the dual-engine router (EMBER for planar, standard for curved).
+///
 /// Returns an `OperationResult` envelope that ALWAYS carries the `DecisionLog`,
-/// metrics, and replay data — even when the inner operation fails. Use
-/// `into_result()` to extract the inner `Result` while auto-persisting traces
-/// and logging errors.
-pub fn execute_boolean(input: BooleanInput) -> OperationResult<Result<BooleanResult, KernelError>> {
+/// metrics, and replay data — even when the inner operation fails.
+pub fn execute_boolean_direct(input: BooleanInput) -> OperationResult<Result<BooleanResult, KernelError>> {
     let mut ctx = ModelingContext::default();
     ctx.enable_auto_persist();
-    execute_boolean_core(input, ctx)
+    execute_boolean_core(input, ctx, planar_engine_legacy())
+}
+
+/// Execute a Boolean operation with a specific engine configuration.
+///
+/// Used by the EMBER router to inject EmberCoplanarResolver into
+/// the pipeline. Callers provide a pre-built engine that controls
+/// which implementations are used for each phase.
+pub fn execute_boolean_with_engine(
+    input: BooleanInput,
+    engine: BooleanEngine,
+) -> OperationResult<Result<BooleanResult, KernelError>> {
+    let mut ctx = ModelingContext::default();
+    ctx.enable_auto_persist();
+    execute_boolean_core(input, ctx, engine)
 }
 
 /// Execute a Boolean operation with forced classification overrides.
@@ -56,7 +74,7 @@ pub fn execute_boolean_with_overrides(
     for &(decision_id, classification) in overrides {
         ctx.set_classification_override(decision_id, classification);
     }
-    execute_boolean_core(input, ctx)
+    execute_boolean_core(input, ctx, planar_engine_legacy())
 }
 
 // ── Pipeline orchestrator ────────────────────────────────────────────────────
@@ -69,10 +87,11 @@ pub fn execute_boolean_with_overrides(
 fn execute_boolean_core(
     input: BooleanInput,
     mut ctx: ModelingContext,
+    engine: BooleanEngine,
 ) -> OperationResult<Result<BooleanResult, KernelError>> {
     let start_time = std::time::Instant::now();
 
-    let inner_result = execute_boolean_pipeline(input, &mut ctx, start_time);
+    let inner_result = execute_boolean_pipeline(input, &engine, &mut ctx, start_time);
 
     let metrics = OperationMetrics {
         duration: start_time.elapsed(),
@@ -114,6 +133,7 @@ fn execute_boolean_core(
 /// which wraps them in the envelope.
 fn execute_boolean_pipeline(
     input: BooleanInput,
+    engine: &BooleanEngine,
     ctx: &mut ModelingContext,
     start_time: std::time::Instant,
 ) -> Result<BooleanResult, KernelError> {
@@ -138,7 +158,7 @@ fn execute_boolean_pipeline(
     let pre_hash = pre_target_hash ^ pre_tool_hash;
 
     let split_result = ctx.scope("split", |ctx| {
-        split_all_faces(target_topo, target_geom, tool_topo, tool_geom, ctx)
+        engine.splitter().split(target_topo, target_geom, tool_topo, tool_geom, ctx)
     }).map_err(|e| e.with_phase("split"))?;
 
     let split_count = split_result.split_count();
@@ -164,19 +184,25 @@ fn execute_boolean_pipeline(
     }
 
     // ── Classify ─────────────────────────────────────────────────────────────
-    let (target_classified, tool_classified) = ctx.scope("classify", |ctx| {
-        let tc = classify_faces(
+    let (mut target_classified, mut tool_classified) = ctx.scope("classify", |ctx| {
+        let tc = engine.classifier().classify(
             target_topo.arena(), &target_geom,
             tool_topo.arena(), &tool_geom,
             FaceOrigin::Target, ctx,
         )?;
-        let tlc = classify_faces(
+        let tlc = engine.classifier().classify(
             tool_topo.arena(), &tool_geom,
             target_topo.arena(), &target_geom,
             FaceOrigin::Tool, ctx,
         )?;
         Ok::<_, KernelError>((tc, tlc))
     }).map_err(|e| e.with_phase("classify"))?;
+
+    // ── Coplanar resolution ──────────────────────────────────────────────────
+    engine.coplanar_resolver().resolve_coplanars(
+        &mut target_classified, &mut tool_classified,
+        &target_topo, &target_geom, &tool_topo, &tool_geom,
+    );
 
     record_replay(&mut replay, &mut seq, "classify_faces",
         format!("{{\"target\":{},\"tool\":{}}}", target_classified.len(), tool_classified.len()),
@@ -207,7 +233,7 @@ fn execute_boolean_pipeline(
 
     // ── Assemble ─────────────────────────────────────────────────────────────
     let (result_topo, result_geom) = ctx.scope("assemble", |ctx| {
-        assemble_result(
+        engine.assembler().assemble(
             target_topo.arena(), &target_geom, &selected_target, &target_prov,
             tool_topo.arena(), &tool_geom, &selected_tool, &tool_prov,
             operation == BooleanOp::Subtraction, ctx,
@@ -223,9 +249,7 @@ fn execute_boolean_pipeline(
 
     // ── Postprocess ──────────────────────────────────────────────────────────
     let (result_topo, mut result_geom) = ctx.scope("postprocess", |ctx| {
-        let (rt, _) = crate::operations::boolean::postprocess::merge_coplanar_faces(result_topo, &result_geom, ctx)?;
-        let (rt, _) = crate::operations::boolean::postprocess::remove_redundant_vertices(rt, &result_geom, ctx)?;
-        Ok::<_, KernelError>((rt, result_geom))
+        engine.postprocessor().postprocess(result_topo, &result_geom, ctx)
     }).map_err(|e| e.with_phase("postprocess"))?;
 
     op_space.restore_geometry(&mut result_geom);

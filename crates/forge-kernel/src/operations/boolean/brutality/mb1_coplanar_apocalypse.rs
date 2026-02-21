@@ -18,7 +18,7 @@
 //! - Orientation consistency across touching coplanar regions
 
 use super::super::test_helpers::{
-    build_cube, execute_boolean_logged, euler_audit,
+    build_cube, execute_boolean_ember, euler_audit,
 };
 use super::super::schema::{BooleanInput, BooleanOp};
 
@@ -58,7 +58,7 @@ fn build_coplanar_grid_solid(
                 eprintln!("\n[chain] step {}/{} — Union at [{:.1}, {:.1}, {:.1}] ({}F in)",
                     step_count, total_steps, center[0], center[1], center[2], input.target_topology().arena().face_count());
 
-                match execute_boolean_logged(input).into_result() {
+                match execute_boolean_ember(input).into_result() {
                     Ok(result) => {
                         let r = result;
                         let parts = r.into_topo_geom();
@@ -136,7 +136,7 @@ fn coplanar_partial_overlap_12_regions() {
         eprintln!("\n[chain] step {}/12 — Union at [{:.1}, {:.1}, {:.1}] ({}F in)",
             i + 1, pos[0], pos[1], pos[2], input.target_topology().arena().face_count());
 
-        match execute_boolean_logged(input).into_result() {
+        match execute_boolean_ember(input).into_result() {
             Ok(result) => {
                 let r = result;
                 let (_v, _e, _f, chi) = euler_audit(r.topology().arena());
@@ -180,7 +180,7 @@ fn coplanar_graze_at_1e14() {
                 BooleanOp::Subtraction,
             );
 
-            match execute_boolean_logged(input).into_result() {
+            match execute_boolean_ember(input).into_result() {
                 Ok(result) => {
                     let r = result;
                     let (_v, _e, f, chi) = euler_audit(r.topology().arena());
@@ -218,7 +218,7 @@ fn collinear_point_storm_50() {
             BooleanOp::Union,
         );
 
-        match execute_boolean_logged(input).into_result() {
+        match execute_boolean_ember(input).into_result() {
             Ok(result) => {
                 let r = result;
                 let parts = r.into_topo_geom();
