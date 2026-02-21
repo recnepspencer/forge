@@ -1,24 +1,28 @@
-//! EMBER integer grid boolean pipeline.
+//! EMBER BSP Merge Pipeline.
 //!
-//! DOMAIN: Exact boolean operations using integer grid quantization.
-//! All input vertices are snapped to a discrete `[i64; 3]` grid before
-//! any boolean logic begins. Orientation predicates use `i128` arithmetic
-//! (zero epsilon, zero BigInt allocations). Cut vertices are identified
-//! by their defining plane IDs (`[usize; 3]`), not positions.
+//! DOMAIN: Exact boolean operations on planar solids via BSP tree merge
+//! (Bernstein/Naylor algorithm). This is a fully independent pipeline —
+//! it never delegates to the legacy split-classify-stitch path.
 //!
-//! DEPENDENCIES: forge-math (grid predicates), forge-geom (planes),
-//! forge-topo (topology arena), GeometryStore.
+//! PIPELINE:
+//!   1. Convert each input solid → `BspSolid` (convex planes → BSP tree)
+//!   2. Merge BSP trees (exact rational arithmetic, zero f64 comparisons)
+//!   3. Extract boundary ConvexCells from merged tree
+//!   4. Build halfedge mesh from ConvexCells
+//!
+//! DEPENDENCIES: forge-geom (BspSolid, merge_bsp, convex_to_bsp,
+//!   extract_boundary_cells), mesh_builder (build_halfedge_mesh)
 //!
 //! INVARIANTS:
-//!   - All input coordinates quantized to 30-bit `[i64; 3]` before splitting.
-//!   - Vertex dedup: grid verts by `[i64; 3]`, cut verts by sorted `[usize; 3]`.
-//!   - No spatial NNS fallback — exact vertex-ID matching only.
-//!   - Legacy pipeline preserved as fallback for scale disparity.
+//!   - All merge decisions use exact Rational::sign() (zero tolerance)
+//!   - Vertices are 3-plane intersections until mesh extraction
+//!   - Never delegates to legacy split-classify-stitch pipeline
 
 pub mod schema;
 pub mod quantize;
 pub mod eval;
 pub mod classify;
+pub mod mesh;
 #[cfg(test)]
 mod tests;
 

@@ -1,38 +1,41 @@
-//! EMBER boolean entry point — dual-engine router.
+//! EMBER BSP Merge Pipeline — Entry Point.
 //!
-//! DOMAIN: Routes Boolean operations to either the EMBER exact integer
-//! grid pipeline (for planar geometry) or the legacy heuristic pipeline
-//! (for curved geometry, scale disparity, or as fallback).
+//! DOMAIN: The production boolean pipeline for planar solids. Converts
+//! halfedge meshes to BSP trees, merges algebraically with exact arithmetic,
+//! extracts boundary, and builds the result mesh. Never delegates to legacy.
 //!
-//! ROUTING LOGIC:
-//!   1. If input has curved geometry → legacy pipeline (EMBER can't do NURBS)
-//!   2. If quantization would collapse >10% of vertices → legacy pipeline
-//!   3. Otherwise → EMBER: quantize → collapse → delegate to legacy with clean inputs
+//! PIPELINE PHASES:
+//!   1. Convert — halfedge → BspSolid (convex input assumption)
+//!   2. Merge — BSP tree merge (exact Rational arithmetic)
+//!   3. Extract — boundary ConvexCells from merged tree
+//!   4. Mesh — combined halfedge mesh from cells (mesh.rs)
+//!   5. Finalize — wrap in BooleanResult + OperationResult envelope
 //!
-//! INVARIANTS:
-//!   - Legacy pipeline is never modified — always available as fallback.
-//!   - Curved geometry detection is future-proofed (currently all planar).
+//! DEPENDENCIES: forge-geom (BspSolid, merge_bsp, convex_to_bsp),
+//!               mesh.rs (bsp_to_mesh), ModelingContext, OperationResult
 
-use forge_core::{KernelError, OperationResult};
+use forge_core::{KernelError, OperationResult, OperationMetrics};
+use forge_core::tracing::DecisionKind;
+use forge_core::tracing::DecisionTier;
+use forge_geom::spatial::bsp::{BspOp, BspSolid, BspNode, merge_bsp};
+use forge_geom::Plane;
+use forge_topo::state::TopologyState;
+use forge_topo::replay::ReplayLog;
 
-use crate::operations::boolean::{BooleanInput, BooleanResult, BooleanOp, execute_boolean_direct};
-use crate::operations::boolean::assemble::execute_boolean_with_engine;
-use crate::operations::boolean::engines::planar::planar_engine;
+use crate::core::ModelingContext;
+use crate::geometry_store::GeometryStore;
+use crate::operations::boolean::{
+    BooleanInput, BooleanOp, BooleanResult,
+};
+use crate::operations::boolean::schema::BooleanIntrospection;
+use super::mesh::bsp_to_mesh;
 
-use super::schema::QuantizedSpace;
-use super::quantize::{QuantizedVertices, collapse_coincident_vertices};
-
-/// EMBER error types — triggers fallback to legacy pipeline.
+/// EMBER error types — only CurvedGeometry triggers fallback.
 #[derive(Debug)]
 pub enum EmberError {
-    /// Quantization would collapse meaningful geometry (extreme scale disparity).
-    QuantizationCollapse {
-        collapsed_vertices: usize,
-        total_vertices: usize,
-    },
     /// Input contains curved geometry that EMBER cannot handle.
     CurvedGeometry,
-    /// The legacy pipeline failed even after quantization.
+    /// BSP pipeline failed (convert, merge, extract, or mesh phase).
     PipelineError(KernelError),
 }
 
@@ -42,15 +45,18 @@ impl From<KernelError> for EmberError {
     }
 }
 
-/// Execute a Boolean using the EMBER exact integer grid pipeline.
+impl From<forge_math::MathError> for EmberError {
+    fn from(e: forge_math::MathError) -> Self {
+        EmberError::PipelineError(KernelError::from(e))
+    }
+}
+
+/// Execute a Boolean using the EMBER BSP merge pipeline.
 ///
-/// Quantizes both input meshes, collapses coincident vertices, then runs
-/// the existing boolean pipeline on clean topology where near-misses
-/// have been eliminated.
+/// This is a fully self-contained pipeline: convert → merge → extract → mesh.
+/// It never delegates to the legacy split-classify-stitch path.
 ///
-/// Returns `Err(EmberError::CurvedGeometry)` if inputs contain non-planar
-/// faces, and `Err(EmberError::QuantizationCollapse)` if grid snapping
-/// would destroy meaningful geometry.
+/// Returns `Err(EmberError::CurvedGeometry)` only if inputs are non-planar.
 pub fn execute_ember_boolean(
     input: BooleanInput,
 ) -> Result<OperationResult<Result<BooleanResult, KernelError>>, EmberError> {
@@ -58,62 +64,304 @@ pub fn execute_ember_boolean(
         return Err(EmberError::CurvedGeometry);
     }
 
-    let (target_topo, mut target_geom, tool_topo, mut tool_geom, operation) = input.into_parts();
+    let mut ctx = ModelingContext::default();
+    ctx.enable_auto_persist();
+    let start_time = std::time::Instant::now();
 
-    let space = QuantizedSpace::build(&target_geom, &tool_geom);
+    let inner_result = execute_pipeline(input, &mut ctx, start_time);
 
-    let target_quant = QuantizedVertices::compute_keys(&target_topo, &target_geom, &space);
-    let tool_quant = QuantizedVertices::compute_keys(&tool_topo, &tool_geom, &space);
+    let metrics = OperationMetrics {
+        duration: start_time.elapsed(),
+        ..OperationMetrics::default()
+    };
 
-    let target_collapsed_groups = target_quant.find_coincident_groups();
-    let tool_collapsed_groups = tool_quant.find_coincident_groups();
+    let mut envelope = OperationResult::new(inner_result);
+    envelope.set_metrics(metrics);
+    envelope.set_decision_log(ctx.take_decision_log());
+    Ok(envelope)
+}
 
-    let total_target = target_quant.len();
-    let total_tool = tool_quant.len();
-    let collapsed_count = target_collapsed_groups.iter().map(|g| g.len() - 1).sum::<usize>()
-        + tool_collapsed_groups.iter().map(|g| g.len() - 1).sum::<usize>();
+/// The EMBER pipeline: convert → merge → extract → mesh → finalize.
+fn execute_pipeline(
+    input: BooleanInput,
+    ctx: &mut ModelingContext,
+    start_time: std::time::Instant,
+) -> Result<BooleanResult, KernelError> {
+    input.validate().map_err(|e| e.with_phase("ember_validate"))?;
+    let (target_topo, target_geom, tool_topo, tool_geom, operation) = input.into_parts();
 
-    let total = total_target + total_tool;
-    if total > 0 && collapsed_count as f64 / total as f64 > 0.1 {
-        return Err(EmberError::QuantizationCollapse {
-            collapsed_vertices: collapsed_count,
-            total_vertices: total,
+    let bsp_op = to_bsp_op(operation);
+
+    // ── Phase 1: Convert ────────────────────────────────────────────────────
+    let target_bsp = ctx.scope("ember_convert_target", |ctx| {
+        let bsp = halfedge_to_bsp(&target_topo, &target_geom)?;
+        ctx.log_decision(
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            [0.0, 0.0, 0.0],
+            0.0,
+            0.0,
+        );
+        Ok(bsp)
+    }).map_err(|e: KernelError| e.with_phase("ember_convert"))?;
+
+    let tool_bsp = ctx.scope("ember_convert_tool", |ctx| {
+        let bsp = halfedge_to_bsp(&tool_topo, &tool_geom)?;
+        ctx.log_decision(
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            [0.0, 0.0, 0.0],
+            0.0,
+            0.0,
+        );
+        Ok(bsp)
+    }).map_err(|e: KernelError| e.with_phase("ember_convert"))?;
+
+    // ── Phase 2: Merge ──────────────────────────────────────────────────────
+    let merged = ctx.scope("ember_merge", |ctx| {
+        let result = merge_bsp(&target_bsp, &tool_bsp, bsp_op)
+            .map_err(KernelError::from)?;
+        ctx.log_decision(
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            [0.0, 0.0, 0.0],
+            0.0,
+            0.0,
+        );
+        Ok(result)
+    }).map_err(|e: KernelError| e.with_phase("ember_merge"))?;
+
+    // ── Phase 3+4: Extract + Mesh ───────────────────────────────────────────
+    let (result_topo, result_geom) = ctx.scope("ember_mesh", |ctx| {
+        bsp_to_mesh(&merged, ctx)
+    }).map_err(|e: KernelError| e.with_phase("ember_mesh"))?;
+
+    // ── Phase 5: Finalize ───────────────────────────────────────────────────
+    let target_face_count = target_topo.arena().face_count();
+    let tool_face_count = tool_topo.arena().face_count();
+
+    let introspection = BooleanIntrospection::new(
+        0,
+        &[],
+        &[],
+        start_time.elapsed(),
+    );
+
+    let result = BooleanResult::new(
+        result_topo, result_geom,
+        target_face_count, tool_face_count,
+        introspection,
+        ReplayLog::with_current_target(),
+        Vec::new(),
+    );
+
+    Ok(result)
+}
+
+/// Convert a halfedge mesh to a BspSolid using autopartition.
+///
+/// Extracts face polygons (vertex positions) from the mesh and builds
+/// a BSP tree by recursively picking a face's plane as the splitter
+/// and classifying other face polygons against it. This correctly
+/// handles non-convex meshes (chained boolean results).
+fn halfedge_to_bsp(
+    topo: &TopologyState,
+    geom: &GeometryStore,
+) -> Result<BspSolid, KernelError> {
+    let mut planes: Vec<Plane> = Vec::new();
+    let mut plane_map: Vec<usize> = Vec::new(); // face_idx → plane_idx
+    let mut face_polygons: Vec<Vec<[f64; 3]>> = Vec::new();
+
+    for (fid, _) in topo.arena().iter_faces() {
+        let plane = geom.get_face_plane(fid).ok_or_else(|| KernelError::InternalError {
+            message: "EMBER: face missing plane in GeometryStore".to_string(),
+            context: None,
+        })?;
+
+        // Deduplicate planes by exact coefficients
+        let pidx = find_or_insert_plane(&mut planes, plane);
+        plane_map.push(pidx);
+
+        // Extract face polygon vertices
+        let verts = extract_face_polygon(topo, geom, fid)?;
+        face_polygons.push(verts);
+    }
+
+    if planes.is_empty() {
+        return Err(KernelError::InvalidInput {
+            message: "EMBER: no face planes found in GeometryStore".to_string(),
+            context: None,
         });
     }
 
-    let target_topo = collapse_coincident_vertices(
-        target_topo, &mut target_geom, &target_quant, &space,
-    )?;
+    // Build face descriptors for autopartition
+    let face_descs: Vec<FaceDesc> = plane_map.iter().zip(face_polygons.iter())
+        .map(|(&pidx, verts)| FaceDesc { plane_idx: pidx, vertices: verts.clone() })
+        .collect();
 
-    let tool_topo = collapse_coincident_vertices(
-        tool_topo, &mut tool_geom, &tool_quant, &space,
-    )?;
+    let root = build_autopartition(&planes, &face_descs);
+    let root = root.simplify();
 
-    let quantized_input = BooleanInput::new(
-        target_topo,
-        target_geom,
-        tool_topo,
-        tool_geom,
-        operation,
-    );
+    Ok(BspSolid::new(planes, root))
+}
 
-    let result = execute_boolean_with_engine(quantized_input, planar_engine());
-    Ok(result)
+/// A face polygon descriptor for autopartition BSP construction.
+struct FaceDesc {
+    /// Index into the shared plane set.
+    plane_idx: usize,
+    /// Vertex positions of the face polygon (ordered).
+    vertices: Vec<[f64; 3]>,
+}
+
+/// Find an existing plane with matching exact coefficients, or insert a new one.
+fn find_or_insert_plane(planes: &mut Vec<Plane>, plane: &Plane) -> usize {
+    for (i, existing) in planes.iter().enumerate() {
+        if forge_geom::primitives::plane::exact_eq(existing, plane)
+            || forge_geom::primitives::plane::coplanar_eq(existing, plane)
+        {
+            return i;
+        }
+    }
+    planes.push(plane.clone());
+    planes.len() - 1
+}
+
+/// Extract face polygon vertex positions from a halfedge mesh face.
+fn extract_face_polygon(
+    topo: &TopologyState,
+    geom: &GeometryStore,
+    face_id: forge_topo::handles::FaceId,
+) -> Result<Vec<[f64; 3]>, KernelError> {
+    let face_data = topo.arena().get_face(face_id)?;
+    let loop_id = face_data.outer_loop();
+    let loop_data = topo.arena().get_loop(loop_id)?;
+    let start_he = loop_data.half_edge();
+
+    let mut vertices = Vec::new();
+    let mut current = start_he;
+    loop {
+        let he = topo.arena().get_half_edge(current)?;
+        let vid = he.origin();
+        let pos = geom.get_vertex_position(vid).ok_or_else(|| KernelError::InternalError {
+            message: format!("EMBER: vertex {:?} missing position", vid),
+            context: None,
+        })?;
+        vertices.push(*pos);
+        current = he.next();
+        if current == start_he { break; }
+        if vertices.len() > 1000 {
+            return Err(KernelError::InternalError {
+                message: "EMBER: infinite loop in face polygon extraction".to_string(),
+                context: None,
+            });
+        }
+    }
+
+    Ok(vertices)
+}
+
+/// Evaluate a point against a plane: returns n·p + d (positive = in front of plane).
+fn evaluate_plane(plane: &Plane, point: &[f64; 3]) -> f64 {
+    let n = plane.raw_normal();
+    let d = plane.raw_offset();
+    n[0] * point[0] + n[1] * point[1] + n[2] * point[2] + d
+}
+
+/// Build a BSP tree from face polygons using autopartition.
+///
+/// Picks the first face's plane as the splitting plane, classifies
+/// other face polygons based on their vertex positions relative to
+/// the splitter, and recurses. Faces with all vertices on the negative
+/// side go to the neg child, positive to pos, spanning to both.
+/// When no faces remain, returns a solid leaf (fully inside the solid).
+fn build_autopartition(planes: &[Plane], faces: &[FaceDesc]) -> BspNode {
+    if faces.is_empty() {
+        return BspNode::solid();
+    }
+
+    let splitter = &faces[0];
+    let splitter_plane = &planes[splitter.plane_idx];
+    let remaining = &faces[1..];
+
+    let mut neg_faces = Vec::new();
+    let mut pos_faces = Vec::new();
+
+    for face in remaining {
+        if face.plane_idx == splitter.plane_idx {
+            // Coplanar face — same plane, skip (it's part of the same boundary)
+            // Put it on the neg side so the solid region is correctly bounded
+            neg_faces.push(FaceDesc {
+                plane_idx: face.plane_idx,
+                vertices: face.vertices.clone(),
+            });
+            continue;
+        }
+
+        let mut has_neg = false;
+        let mut has_pos = false;
+
+        for vert in &face.vertices {
+            let val = evaluate_plane(splitter_plane, vert);
+            if val < -1e-10 {
+                has_neg = true;
+            } else if val > 1e-10 {
+                has_pos = true;
+            }
+        }
+
+        if has_neg && !has_pos {
+            neg_faces.push(FaceDesc {
+                plane_idx: face.plane_idx,
+                vertices: face.vertices.clone(),
+            });
+        } else if has_pos && !has_neg {
+            pos_faces.push(FaceDesc {
+                plane_idx: face.plane_idx,
+                vertices: face.vertices.clone(),
+            });
+        } else {
+            // Spanning or all-on-plane → add to both sides
+            neg_faces.push(FaceDesc {
+                plane_idx: face.plane_idx,
+                vertices: face.vertices.clone(),
+            });
+            pos_faces.push(FaceDesc {
+                plane_idx: face.plane_idx,
+                vertices: face.vertices.clone(),
+            });
+        }
+    }
+
+    let neg_child = build_autopartition(planes, &neg_faces);
+    let pos_child = if pos_faces.is_empty() {
+        BspNode::empty()
+    } else {
+        build_autopartition(planes, &pos_faces)
+    };
+
+    BspNode::split(splitter.plane_idx, neg_child, pos_child)
+}
+
+/// Map BooleanOp to BspOp.
+fn to_bsp_op(op: BooleanOp) -> BspOp {
+    match op {
+        BooleanOp::Union => BspOp::Union,
+        BooleanOp::Intersection => BspOp::Intersection,
+        BooleanOp::Subtraction => BspOp::Subtraction,
+    }
 }
 
 /// Dual-engine Boolean router — the recommended production entry point.
 ///
 /// Routes operations to the appropriate pipeline:
-/// - **Curved geometry** → legacy heuristic pipeline (NURBS need Newton-Raphson)
-/// - **Scale disparity** → legacy pipeline (quantization would collapse geometry)
-/// - **Planar geometry** → EMBER exact integer grid pipeline
-/// - **EMBER failure** → automatic legacy fallback
-///
-/// This ensures the engine always produces a result, even if the exact
-/// pipeline encounters an edge case.
+/// - **Planar geometry** → EMBER BSP merge pipeline
+/// - **Curved geometry** → legacy split-classify-stitch pipeline
+/// - **EMBER failure** → automatic legacy fallback (temporary safety net)
 pub fn execute_boolean_adaptive(
     input: BooleanInput,
 ) -> OperationResult<Result<BooleanResult, KernelError>> {
+    use crate::operations::boolean::execute_boolean_direct;
+
     if input.has_curved_geometry() {
         return execute_boolean_direct(input);
     }
@@ -123,7 +371,6 @@ pub fn execute_boolean_adaptive(
     match execute_ember_boolean(input) {
         Ok(result) => result,
         Err(EmberError::CurvedGeometry) => execute_boolean_direct(input_clone),
-        Err(EmberError::QuantizationCollapse { .. }) => execute_boolean_direct(input_clone),
         Err(EmberError::PipelineError(_)) => execute_boolean_direct(input_clone),
     }
 }

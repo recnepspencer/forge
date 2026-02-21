@@ -25,7 +25,7 @@ pub use primitives::ray::{
     resolve_zero_edge, scanline_edge_crossing, EdgeTieBreaker,
 };
 pub use primitives::implicit_vertex::Vertex;
-pub use spatial::bsp::BspTree;
+pub use spatial::bsp::{BspSolid, BspOp};
 pub use spatial::bsp::PlaneSet; // Exposed for tests mostly?
 pub use spatial::bvh::BvhNode;
 pub use spatial::local_space::{LocalCoordinateSpace, ScaleAnalysis};

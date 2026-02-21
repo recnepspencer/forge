@@ -13,8 +13,12 @@
 
 mod schema;
 mod eval;
+pub mod merge;
+pub mod convert;
 #[cfg(test)]
 mod tests;
 
-pub use schema::{ConvexCell, CellFace, CellVertex, BspTree, BspNode, PlaneSet};
+pub use schema::{ConvexCell, CellFace, CellVertex, BspNode, BspSolid, BspOp, PlaneSet};
 pub use eval::{build_convex_polyhedron, clip_cell_by_plane, BspConfig};
+pub use merge::merge_bsp;
+pub use convert::{convex_to_bsp, extract_boundary_cells};

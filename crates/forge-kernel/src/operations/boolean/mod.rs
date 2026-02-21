@@ -15,7 +15,7 @@
 //! DEPENDENCIES: `forge-geom` (planes, predicates), `forge-topo` (arena, operators),
 //!               `geometry_store` (GeometryStore), `mesh_builder` (mesh construction)
 
-mod schema;
+pub(crate) mod schema;
 mod eval;
 mod split;
 mod classify;

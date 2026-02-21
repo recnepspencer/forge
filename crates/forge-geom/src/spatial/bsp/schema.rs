@@ -115,16 +115,225 @@ impl ConvexCell {
     }
 }
 
-/// A BSP Tree node.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BspNode {
-    // TBD
+/// Boolean operation type for BSP merge.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum BspOp {
+    /// A ∪ B — regions in either solid.
+    Union,
+    /// A ∩ B — regions in both solids.
+    Intersection,
+    /// A \ B — regions in A but not B.
+    Subtraction,
 }
 
-/// A Binary Space Partitioning Tree.
+/// A BSP tree node — either a leaf (in/out) or an internal splitting plane.
+///
+/// Internal nodes partition space by a plane index into the owning
+/// `BspSolid`'s plane set. Leaf nodes classify their region as solid
+/// (inside the object) or empty (outside).
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BspTree {
-    pub root: Option<Box<BspNode>>,
+pub enum BspNode {
+    /// This region is entirely inside (`solid = true`) or outside the solid.
+    Leaf { solid: bool },
+    /// Space is split by the plane at `plane_idx`.
+    Internal {
+        /// Index into the owning `BspSolid`'s plane set.
+        plane_idx: usize,
+        /// Negative half-space (behind the plane: n·x + d < 0).
+        neg: Box<BspNode>,
+        /// Positive half-space (in front of the plane: n·x + d > 0).
+        pos: Box<BspNode>,
+    },
+}
+
+impl BspNode {
+    /// Create a solid leaf.
+    pub fn solid() -> Self {
+        BspNode::Leaf { solid: true }
+    }
+
+    /// Create an empty leaf.
+    pub fn empty() -> Self {
+        BspNode::Leaf { solid: false }
+    }
+
+    /// Create an internal splitting node.
+    pub fn split(plane_idx: usize, neg: BspNode, pos: BspNode) -> Self {
+        BspNode::Internal {
+            plane_idx,
+            neg: Box::new(neg),
+            pos: Box::new(pos),
+        }
+    }
+
+    /// Whether this node is a leaf.
+    pub fn is_leaf(&self) -> bool {
+        matches!(self, BspNode::Leaf { .. })
+    }
+
+    /// Whether this node is a solid leaf.
+    pub fn is_solid(&self) -> bool {
+        matches!(self, BspNode::Leaf { solid: true })
+    }
+
+    /// Whether this node is an empty leaf.
+    pub fn is_empty(&self) -> bool {
+        matches!(self, BspNode::Leaf { solid: false })
+    }
+
+    /// Complement this tree (swap solid ↔ empty at every leaf).
+    pub fn complement(&self) -> BspNode {
+        match self {
+            BspNode::Leaf { solid } => BspNode::Leaf { solid: !solid },
+            BspNode::Internal { plane_idx, neg, pos } => BspNode::Internal {
+                plane_idx: *plane_idx,
+                neg: Box::new(neg.complement()),
+                pos: Box::new(pos.complement()),
+            },
+        }
+    }
+
+    /// Simplify this tree by collapsing internal nodes whose children
+    /// are both leaves with the same label.
+    pub fn simplify(self) -> BspNode {
+        match self {
+            BspNode::Leaf { .. } => self,
+            BspNode::Internal { plane_idx, neg, pos } => {
+                let neg_s = neg.simplify();
+                let pos_s = pos.simplify();
+                match (&neg_s, &pos_s) {
+                    (BspNode::Leaf { solid: a }, BspNode::Leaf { solid: b }) if a == b => {
+                        BspNode::Leaf { solid: *a }
+                    }
+                    _ => BspNode::Internal {
+                        plane_idx,
+                        neg: Box::new(neg_s),
+                        pos: Box::new(pos_s),
+                    },
+                }
+            }
+        }
+    }
+
+    /// Count the total number of nodes (leaves + internal).
+    pub fn node_count(&self) -> usize {
+        match self {
+            BspNode::Leaf { .. } => 1,
+            BspNode::Internal { neg, pos, .. } => {
+                1 + neg.node_count() + pos.node_count()
+            }
+        }
+    }
+
+    /// Count the number of leaf nodes.
+    pub fn leaf_count(&self) -> usize {
+        match self {
+            BspNode::Leaf { .. } => 1,
+            BspNode::Internal { neg, pos, .. } => {
+                neg.leaf_count() + pos.leaf_count()
+            }
+        }
+    }
+
+    /// Count the number of solid leaves.
+    pub fn solid_leaf_count(&self) -> usize {
+        match self {
+            BspNode::Leaf { solid } => if *solid { 1 } else { 0 },
+            BspNode::Internal { neg, pos, .. } => {
+                neg.solid_leaf_count() + pos.solid_leaf_count()
+            }
+        }
+    }
+
+    /// Maximum depth of the tree.
+    pub fn depth(&self) -> usize {
+        match self {
+            BspNode::Leaf { .. } => 0,
+            BspNode::Internal { neg, pos, .. } => {
+                1 + neg.depth().max(pos.depth())
+            }
+        }
+    }
+}
+
+/// A solid represented as a BSP tree.
+///
+/// The solid is defined by its plane set and tree structure.
+/// Vertices are implicit (3-plane intersections) — never stored as
+/// coordinates until halfedge conversion. This is what makes chained
+/// boolean operations robust: no coordinate drift, no tolerance matching.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BspSolid {
+    /// All planes referenced by the tree.
+    planes: Vec<Plane>,
+    /// Root of the BSP tree.
+    root: BspNode,
+}
+
+impl BspSolid {
+    /// Create a new BSP solid from planes and a root node.
+    pub fn new(planes: Vec<Plane>, root: BspNode) -> Self {
+        Self { planes, root }
+    }
+
+    /// The planes defining this solid.
+    pub fn planes(&self) -> &[Plane] {
+        &self.planes
+    }
+
+    /// The root node of the BSP tree.
+    pub fn root(&self) -> &BspNode {
+        &self.root
+    }
+
+    /// Consume and return parts.
+    pub fn into_parts(self) -> (Vec<Plane>, BspNode) {
+        (self.planes, self.root)
+    }
+
+    /// Number of planes in the plane set.
+    pub fn plane_count(&self) -> usize {
+        self.planes.len()
+    }
+
+    /// Total number of nodes in the tree.
+    pub fn node_count(&self) -> usize {
+        self.root.node_count()
+    }
+
+    /// Simplify the tree in place.
+    pub fn simplify(&mut self) {
+        let root = std::mem::replace(&mut self.root, BspNode::empty());
+        self.root = root.simplify();
+    }
+
+    /// Classify a point as inside (true) or outside (false) the solid.
+    ///
+    /// Walks the BSP tree, evaluating the point against each splitting
+    /// plane. At internal nodes, the point goes to the neg child if the
+    /// plane evaluates negative, or the pos child if positive. At a leaf,
+    /// returns the leaf's solid flag.
+    pub fn classify_point(&self, point: [f64; 3]) -> bool {
+        classify_node(&self.root, &self.planes, point)
+    }
+}
+
+/// Recursively classify a point against a BSP tree.
+fn classify_node(node: &BspNode, planes: &[Plane], point: [f64; 3]) -> bool {
+    match node {
+        BspNode::Leaf { solid } => *solid,
+        BspNode::Internal { plane_idx, neg, pos } => {
+            let plane = &planes[*plane_idx];
+            let n = plane.raw_normal();
+            let d = plane.raw_offset();
+            let val = n[0] * point[0] + n[1] * point[1] + n[2] * point[2] + d;
+            if val < 0.0 {
+                classify_node(neg, planes, point)
+            } else {
+                classify_node(pos, planes, point)
+            }
+        }
+    }
 }
 
 /// A collection of planes that implements `GeometrySource`.

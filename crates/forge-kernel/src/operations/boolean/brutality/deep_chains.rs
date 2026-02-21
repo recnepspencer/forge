@@ -43,6 +43,7 @@ use super::super::test_helpers::{
     build_cube, execute_boolean_logged, euler_audit,
 };
 use super::super::schema::{BooleanInput, BooleanOp};
+use forge_topo::hashing::compute_arena_topology_hash;
 
 // ══════════════════════════════════════════════════════════════
 // §DC.1  UNION CHAIN (10 STEPS)
@@ -592,4 +593,520 @@ fn symbolic_planes_survive_boolean_chain() {
          The copy phase is dropping plane triples."
     );
     assert_eq!(total, 16, "Disjoint union of 2 cubes should have 16 vertices, got {total}");
+}
+
+// ══════════════════════════════════════════════════════════════
+// §DC.9  IDEMPOTENCE TESTS (DRIFT DETECTOR)
+// ══════════════════════════════════════════════════════════════
+
+/// DC.9a — Self-Union Idempotence.
+///
+/// result1 = union(A, B), result2 = union(result1, B).
+/// Since result1 already contains B, the second union should produce
+/// topologically identical output (same V, E, F counts and hash).
+///
+/// If this fails → classification drift, merge instability, or
+/// nondeterministic ordering.
+#[test]
+fn idempotence_self_union() {
+    let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
+    let (topo_b, geom_b) = build_cube([0.8, 0.0, 0.0], 1.0);
+
+    let input1 = BooleanInput::new(
+        topo_a, geom_a,
+        topo_b.clone(), geom_b.clone(),
+        BooleanOp::Union,
+    );
+
+    let r1 = execute_boolean_logged(input1)
+        .into_result()
+        .expect("First union(A,B) failed");
+
+    let (v1, e1, f1, chi1) = euler_audit(r1.topology().arena());
+    assert_eq!(chi1, 2, "First union Euler violation: V={v1} E={e1} F={f1} χ={chi1}");
+    let hash1 = compute_arena_topology_hash(r1.topology().arena());
+
+    let (topo_r1, geom_r1) = r1.into_topo_geom();
+
+    let input2 = BooleanInput::new(
+        topo_r1, geom_r1,
+        topo_b, geom_b,
+        BooleanOp::Union,
+    );
+
+    let r2 = execute_boolean_logged(input2)
+        .into_result()
+        .expect("Second union(result1, B) failed");
+
+    let (v2, e2, f2, chi2) = euler_audit(r2.topology().arena());
+    assert_eq!(chi2, 2, "Second union Euler violation: V={v2} E={e2} F={f2} χ={chi2}");
+
+    assert_eq!(
+        v1, v2,
+        "IDEMPOTENCE: vertex count changed: {v1} → {v2}"
+    );
+    assert_eq!(
+        e1, e2,
+        "IDEMPOTENCE: edge count changed: {e1} → {e2}"
+    );
+    assert_eq!(
+        f1, f2,
+        "IDEMPOTENCE: face count changed: {f1} → {f2}"
+    );
+
+    let hash2 = compute_arena_topology_hash(r2.topology().arena());
+    assert_eq!(
+        hash1, hash2,
+        "IDEMPOTENCE: topology hash changed: {hash1:#x} → {hash2:#x}"
+    );
+}
+
+/// DC.9b — Double Application Neutrality.
+///
+/// result1 = union(A, B), result2 = subtract(result1, B).
+/// The result should topologically approximate A (Euler=2, face count ≥ 6).
+///
+/// If this fails → boundary classification inconsistency or
+/// split bookkeeping error.
+#[test]
+fn idempotence_double_application_neutrality() {
+    let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 2.0);
+    let (topo_b, geom_b) = build_cube([1.5, 0.0, 0.0], 1.0);
+
+    let input1 = BooleanInput::new(
+        topo_a, geom_a,
+        topo_b.clone(), geom_b.clone(),
+        BooleanOp::Union,
+    );
+
+    let r1 = execute_boolean_logged(input1)
+        .into_result()
+        .expect("union(A,B) failed");
+
+    let (v1, e1, f1, chi1) = euler_audit(r1.topology().arena());
+    assert_eq!(chi1, 2, "Union Euler violation: V={v1} E={e1} F={f1} χ={chi1}");
+
+    let (topo_r1, geom_r1) = r1.into_topo_geom();
+
+    let input2 = BooleanInput::new(
+        topo_r1, geom_r1,
+        topo_b, geom_b,
+        BooleanOp::Subtraction,
+    );
+
+    let r2 = execute_boolean_logged(input2)
+        .into_result()
+        .expect("subtract(union(A,B), B) failed");
+
+    let (v2, e2, f2, chi2) = euler_audit(r2.topology().arena());
+    eprintln!(
+        "NEUTRALITY: union(A,B) had V={v1} E={e1} F={f1} | \
+         subtract back → V={v2} E={e2} F={f2} χ={chi2}"
+    );
+
+    assert_eq!(chi2, 2, "Neutrality Euler violation: V={v2} E={e2} F={f2} χ={chi2}");
+    assert!(
+        f2 >= 6,
+        "NEUTRALITY: subtract(union(A,B), B) should produce at least 6 faces \
+         (original cube shape), got {f2}"
+    );
+}
+
+// ══════════════════════════════════════════════════════════════
+// §DC.10  COMMUTATIVITY + ASSOCIATIVITY TESTS
+// ══════════════════════════════════════════════════════════════
+
+/// DC.10a — Order Stability (Commutativity).
+///
+/// union(A,B) vs union(B,A) for overlapping grid-aligned cubes.
+/// Topology counts and hash must match.
+///
+/// If this fails → nondeterministic split ordering, hash iteration
+/// instability, or BSP asymmetry.
+#[test]
+fn commutativity_order_stability() {
+    let configs: Vec<([f64; 3], [f64; 3], f64)> = vec![
+        ([0.0, 0.0, 0.0], [0.8, 0.0, 0.0], 1.0),
+        ([0.0, 0.0, 0.0], [0.5, 0.5, 0.0], 1.0),
+        ([0.0, 0.0, 0.0], [1.0, 1.0, 1.0], 1.5),
+    ];
+
+    for (case_idx, (ca, cb, half)) in configs.iter().enumerate() {
+        let (ta1, ga1) = build_cube(*ca, *half);
+        let (tb1, gb1) = build_cube(*cb, *half);
+        let (ta2, ga2) = build_cube(*ca, *half);
+        let (tb2, gb2) = build_cube(*cb, *half);
+
+        let input_ab = BooleanInput::new(ta1, ga1, tb1, gb1, BooleanOp::Union);
+        let input_ba = BooleanInput::new(tb2, gb2, ta2, ga2, BooleanOp::Union);
+
+        let r_ab = execute_boolean_logged(input_ab)
+            .into_result()
+            .unwrap_or_else(|e| panic!("Case {case_idx} union(A,B) failed: {e}"));
+        let r_ba = execute_boolean_logged(input_ba)
+            .into_result()
+            .unwrap_or_else(|e| panic!("Case {case_idx} union(B,A) failed: {e}"));
+
+        let (v_ab, e_ab, f_ab, _) = euler_audit(r_ab.topology().arena());
+        let (v_ba, e_ba, f_ba, _) = euler_audit(r_ba.topology().arena());
+
+        assert_eq!(
+            (v_ab, e_ab, f_ab), (v_ba, e_ba, f_ba),
+            "COMMUTATIVITY case {case_idx}: \
+             union(A,B) → V={v_ab} E={e_ab} F={f_ab} vs \
+             union(B,A) → V={v_ba} E={e_ba} F={f_ba}"
+        );
+
+        let hash_ab = compute_arena_topology_hash(r_ab.topology().arena());
+        let hash_ba = compute_arena_topology_hash(r_ba.topology().arena());
+        assert_eq!(
+            hash_ab, hash_ba,
+            "COMMUTATIVITY case {case_idx}: hash {hash_ab:#x} vs {hash_ba:#x}"
+        );
+    }
+}
+
+/// DC.10b — Small Associativity Chain.
+///
+/// ((A ∪ B) ∪ C) ∪ D  vs  A ∪ (B ∪ (C ∪ D))
+/// Topology counts must match for 4 axis-aligned cubes.
+///
+/// If this fails at just 4 shapes, you don't need 64 to debug.
+#[test]
+fn associativity_small_chain() {
+    let cubes: Vec<([f64; 3], f64)> = vec![
+        ([0.0, 0.0, 0.0], 1.0),
+        ([1.5, 0.0, 0.0], 1.0),
+        ([0.0, 1.5, 0.0], 1.0),
+        ([0.0, 0.0, 1.5], 1.0),
+    ];
+
+    let left_fold = {
+        let (mut topo, mut geom) = build_cube(cubes[0].0, cubes[0].1);
+        for (step, (center, half)) in cubes[1..].iter().enumerate() {
+            let (t_tool, g_tool) = build_cube(*center, *half);
+            let input = BooleanInput::new(topo, geom, t_tool, g_tool, BooleanOp::Union);
+            let r = execute_boolean_logged(input)
+                .into_result()
+                .unwrap_or_else(|e| panic!("Left-fold step {step} failed: {e}"));
+            let parts = r.into_topo_geom();
+            topo = parts.0;
+            geom = parts.1;
+        }
+        euler_audit(topo.arena())
+    };
+
+    let right_fold = {
+        let last = cubes.len() - 1;
+        let (mut topo, mut geom) = build_cube(cubes[last].0, cubes[last].1);
+        for step in (0..last).rev() {
+            let (t_tool, g_tool) = build_cube(cubes[step].0, cubes[step].1);
+            let input = BooleanInput::new(t_tool, g_tool, topo, geom, BooleanOp::Union);
+            let r = execute_boolean_logged(input)
+                .into_result()
+                .unwrap_or_else(|e| panic!("Right-fold step {} failed: {e}", last - 1 - step));
+            let parts = r.into_topo_geom();
+            topo = parts.0;
+            geom = parts.1;
+        }
+        euler_audit(topo.arena())
+    };
+
+    let (v_l, e_l, f_l, chi_l) = left_fold;
+    let (v_r, e_r, f_r, chi_r) = right_fold;
+
+    eprintln!(
+        "ASSOCIATIVITY: left-fold V={v_l} E={e_l} F={f_l} χ={chi_l} | \
+         right-fold V={v_r} E={e_r} F={f_r} χ={chi_r}"
+    );
+
+    assert_eq!(chi_l, 2, "Left-fold Euler violation: χ={chi_l}");
+    assert_eq!(chi_r, 2, "Right-fold Euler violation: χ={chi_r}");
+
+    assert_eq!(
+        (v_l, e_l, f_l), (v_r, e_r, f_r),
+        "ASSOCIATIVITY: left-fold and right-fold produce different topology counts"
+    );
+}
+
+// ══════════════════════════════════════════════════════════════
+// §DC.11  PLANE INTERN STABILITY TEST
+// ══════════════════════════════════════════════════════════════
+
+/// DC.11 — Plane Intern Replay.
+///
+/// After a boolean operation, extract all unique face planes,
+/// reconstruct them via Plane::new with the same normal/offset,
+/// and verify the reconstructed plane has identical coefficients.
+///
+/// If any coefficient changes at the bit level → the canonicalization
+/// pipeline is not closed (idempotent).
+#[test]
+fn plane_intern_stability() {
+    use forge_geom::Plane;
+
+    let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 2.0);
+    let (topo_b, geom_b) = build_cube([1.0, 0.0, 0.0], 1.0);
+
+    let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
+    let r = execute_boolean_logged(input)
+        .into_result()
+        .expect("Union for plane intern test failed");
+
+    let arena = r.topology().arena();
+    let geom = r.geometry();
+
+    let mut planes_checked = 0u32;
+    let mut planes_drifted = 0u32;
+
+    for (fid, _) in arena.iter_faces() {
+        let plane = match geom.get_face_plane(fid) {
+            Some(p) => p,
+            None => continue,
+        };
+
+        let (a, b, c, d) = plane.exact_coefficients();
+
+        let reconstructed = match Plane::from_rationals(
+            a.clone(), b.clone(), c.clone(), d.clone(),
+        ) {
+            Ok(p) => p,
+            Err(e) => {
+                eprintln!("INTERN STABILITY: Face#{} plane reconstruction failed: {e}", fid.index());
+                planes_drifted += 1;
+                planes_checked += 1;
+                continue;
+            }
+        };
+
+        let n_orig = plane.normal();
+        let d_orig = plane.offset();
+        let n_recon = reconstructed.normal();
+        let d_recon = reconstructed.offset();
+
+        planes_checked += 1;
+
+        let n_match = n_orig[0].to_bits() == n_recon[0].to_bits()
+            && n_orig[1].to_bits() == n_recon[1].to_bits()
+            && n_orig[2].to_bits() == n_recon[2].to_bits();
+        let d_match = d_orig.to_bits() == d_recon.to_bits();
+
+        if !n_match || !d_match {
+            eprintln!(
+                "INTERN DRIFT: Face#{} original n=[{:.17e},{:.17e},{:.17e}] d={:.17e} \
+                 → reconstructed n=[{:.17e},{:.17e},{:.17e}] d={:.17e}",
+                fid.index(),
+                n_orig[0], n_orig[1], n_orig[2], d_orig,
+                n_recon[0], n_recon[1], n_recon[2], d_recon
+            );
+            planes_drifted += 1;
+        }
+    }
+
+    eprintln!(
+        "INTERN STABILITY: {planes_checked} planes checked, {planes_drifted} drifted"
+    );
+    assert_eq!(
+        planes_drifted, 0,
+        "INTERN STABILITY: {planes_drifted}/{planes_checked} planes had bit-level drift \
+         after reconstruction. Canonicalization pipeline is not closed."
+    );
+}
+
+// ══════════════════════════════════════════════════════════════
+// §DC.12  BOUNDARY CLASSIFICATION AUDIT
+// ══════════════════════════════════════════════════════════════
+
+/// DC.12 — Zero Classification Stability.
+///
+/// For every vertex in the result, compute signed distance to every
+/// face plane twice. The sign classification must be identical both times.
+///
+/// If classification changes between passes → epsilon drift,
+/// non-deterministic sign logic, or uninitialized state reuse.
+#[test]
+fn zero_classification_stability() {
+    use forge_geom::primitives::plane::signed_distance;
+
+    let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 2.0);
+    let (topo_b, geom_b) = build_cube([1.0, 0.0, 0.0], 1.0);
+
+    let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
+    let r = execute_boolean_logged(input)
+        .into_result()
+        .expect("Union for classification test failed");
+
+    let arena = r.topology().arena();
+    let geom = r.geometry();
+
+    let planes: Vec<_> = arena
+        .iter_faces()
+        .filter_map(|(fid, _)| geom.get_face_plane(fid).cloned())
+        .collect();
+
+    let vertices: Vec<_> = arena
+        .iter_vertices()
+        .map(|(vid, _)| (vid, geom.get_vertex_position(vid).unwrap()))
+        .collect();
+
+    let mut mismatches = 0u32;
+    let mut total = 0u32;
+
+    for plane in &planes {
+        for (vid, pos) in &vertices {
+            let d1 = signed_distance(plane, pos);
+            let d2 = signed_distance(plane, pos);
+            total += 1;
+
+            let sign1 = d1.partial_cmp(&0.0);
+            let sign2 = d2.partial_cmp(&0.0);
+
+            if sign1 != sign2 {
+                eprintln!(
+                    "CLASSIFICATION DRIFT: vertex {} pos=[{:.6},{:.6},{:.6}] \
+                     pass1={:?} ({:.2e}) pass2={:?} ({:.2e})",
+                    vid.index(), pos[0], pos[1], pos[2], sign1, d1, sign2, d2
+                );
+                mismatches += 1;
+            }
+        }
+    }
+
+    eprintln!(
+        "CLASSIFICATION STABILITY: {total} classifications, {mismatches} mismatches"
+    );
+    assert_eq!(
+        mismatches, 0,
+        "CLASSIFICATION DRIFT: {mismatches}/{total} vertex-plane classifications \
+         changed between identical passes. Sign logic is non-deterministic."
+    );
+}
+
+// ══════════════════════════════════════════════════════════════
+// §DC.13  DETERMINISTIC REPLAY HARNESS
+// ══════════════════════════════════════════════════════════════
+
+/// DC.13 — Step-by-Step Invariant Harness.
+///
+/// For N=8 union steps, at each step assert:
+///   1. Euler χ = 2
+///   2. No orphan halfedges (twin reciprocity)
+///   3. No duplicate coplanar faces with identical normals at same offset
+///   4. Topology hash is stable across 2 replays of the same step
+///
+/// When failure occurs, reports exact step + invariant + diff.
+#[test]
+fn deterministic_replay_harness() {
+    let operations: Vec<([f64; 3], f64, BooleanOp)> = vec![
+        ([0.8, 0.0, 0.0], 1.0, BooleanOp::Union),
+        ([0.0, 0.8, 0.0], 1.0, BooleanOp::Union),
+        ([0.0, 0.0, 0.8], 1.0, BooleanOp::Union),
+        ([1.6, 0.0, 0.0], 1.0, BooleanOp::Union),
+        ([0.0, 1.6, 0.0], 1.0, BooleanOp::Union),
+        ([0.0, 0.0, 1.6], 1.0, BooleanOp::Union),
+        ([0.8, 0.8, 0.0], 1.0, BooleanOp::Union),
+        ([0.0, 0.8, 0.8], 1.0, BooleanOp::Union),
+    ];
+
+    let mut run_chain = |run_label: &str| -> Vec<(usize, usize, usize, isize, u128)> {
+        let (mut topo, mut geom) = build_cube([0.0, 0.0, 0.0], 1.0);
+        let mut snapshots = Vec::new();
+
+        for (step, (center, half, op)) in operations.iter().enumerate() {
+            let (t_tool, g_tool) = build_cube(*center, *half);
+            let input = BooleanInput::new(topo, geom, t_tool, g_tool, *op);
+
+            let result = match execute_boolean_logged(input).into_result() {
+                Ok(r) => r,
+                Err(e) => {
+                    eprintln!(
+                        "REPLAY HARNESS [{run_label}]: step {step} ({op:?} @ {center:?}) FAILED: {e}"
+                    );
+                    panic!("Chain failed at step {step} in run '{run_label}'");
+                }
+            };
+
+            let arena = result.topology().arena();
+
+            let (v, e, f, chi) = euler_audit(arena);
+            assert_eq!(
+                chi, 2,
+                "REPLAY [{run_label}] step {step}: Euler violation V={v} E={e} F={f} χ={chi}"
+            );
+
+            for (he_id, he_data) in arena.iter_half_edges() {
+                let twin_id = he_data.twin();
+                assert_ne!(
+                    he_id, twin_id,
+                    "REPLAY [{run_label}] step {step}: orphan halfedge {} (self-twin)",
+                    he_id.index()
+                );
+                let twin_data = arena.get_half_edge(twin_id).unwrap_or_else(|_| {
+                    panic!(
+                        "REPLAY [{run_label}] step {step}: halfedge {} twin {} is stale",
+                        he_id.index(),
+                        twin_id.index()
+                    );
+                });
+                assert_eq!(
+                    twin_data.twin(), he_id,
+                    "REPLAY [{run_label}] step {step}: twin reciprocity violated \
+                     he[{}].twin={}, he[{}].twin={} (expected {})",
+                    he_id.index(), twin_id.index(),
+                    twin_id.index(), twin_data.twin().index(), he_id.index()
+                );
+            }
+
+            let result_geom = result.geometry();
+            let mut plane_keys: Vec<(i64, i64, i64, i64)> = Vec::new();
+            for (fid, _) in arena.iter_faces() {
+                if let Some(plane) = result_geom.get_face_plane(fid) {
+                    let n = plane.normal();
+                    let d = plane.offset();
+                    let key = (
+                        (n[0] * 1e9).round() as i64,
+                        (n[1] * 1e9).round() as i64,
+                        (n[2] * 1e9).round() as i64,
+                        (d * 1e9).round() as i64,
+                    );
+                    plane_keys.push(key);
+                }
+            }
+            plane_keys.sort();
+            let dup_count = plane_keys.windows(2).filter(|w| w[0] == w[1]).count();
+            if dup_count > 0 {
+                eprintln!(
+                    "REPLAY [{run_label}] step {step}: WARNING — {dup_count} duplicate plane pairs \
+                     (may indicate un-merged coplanar fragments)"
+                );
+            }
+
+            let hash = compute_arena_topology_hash(arena);
+            snapshots.push((v, e, f, chi, hash));
+
+            eprintln!(
+                "REPLAY [{run_label}] step {step}: V={v} E={e} F={f} χ={chi} hash={hash:#x}"
+            );
+
+            let parts = result.into_topo_geom();
+            topo = parts.0;
+            geom = parts.1;
+        }
+
+        snapshots
+    };
+
+    let run1 = run_chain("run1");
+    let run2 = run_chain("run2");
+
+    for (step, (s1, s2)) in run1.iter().zip(run2.iter()).enumerate() {
+        assert_eq!(
+            s1, s2,
+            "DETERMINISM FAILURE at step {step}: \
+             run1=(V={},E={},F={},χ={},hash={:#x}) vs \
+             run2=(V={},E={},F={},χ={},hash={:#x})",
+            s1.0, s1.1, s1.2, s1.3, s1.4,
+            s2.0, s2.1, s2.2, s2.3, s2.4
+        );
+    }
 }
