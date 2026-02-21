@@ -74,6 +74,18 @@ impl FaceData {
     /// Add an inner loop (hole boundary) to this face.
     pub fn add_inner_loop(&mut self, id: LoopId) { self.inner_loops.push(id); }
 
+    /// Remove an inner loop from this face.
+    ///
+    /// Returns `true` if the loop was found and removed, `false` otherwise.
+    pub fn remove_inner_loop(&mut self, id: LoopId) -> bool {
+        if let Some(pos) = self.inner_loops.iter().position(|&l| l == id) {
+            self.inner_loops.swap_remove(pos);
+            true
+        } else {
+            false
+        }
+    }
+
     /// Number of inner loops (rings) on this face.
     pub fn inner_loop_count(&self) -> usize { self.inner_loops.len() }
 

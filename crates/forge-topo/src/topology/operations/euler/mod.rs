@@ -14,6 +14,7 @@ pub mod make_edge_face;
 pub mod split_edge;
 pub mod join_faces;
 pub mod kill_edge_vertex;
+pub mod bridge_edge;
 
 #[cfg(test)]
 pub mod tests;
