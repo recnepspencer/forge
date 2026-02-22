@@ -8,7 +8,7 @@
 //! MB-N5: Condition-number stress: nearly-parallel planes
 //! MB-N6: 100 chained exact rational operations — bit length bounded
 
-use forge_math::arithmetic::filter::PrecisionMode;
+use forge_math::arithmetic::precision::PrecisionMode;
 use forge_math::arithmetic::precision::PrecisionBudget;
 use forge_math::arithmetic::rational::Rational;
 use forge_math::predicates::orient3d::orient3d;

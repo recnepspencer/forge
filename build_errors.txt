@@ -1,0 +1,544 @@
+warning: unused import: `crate::traits::*`
+ --> crates/forge-math/src/prelude.rs:1:9
+  |
+1 | pub use crate::traits::*;
+  |         ^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unnecessary parentheses around assigned value
+  --> crates/forge-math/src/predicates/orient3d.rs:43:25
+   |
+43 | ... = (adx.abs() * (bdy.abs() * cdz.abs() + bdz.abs() * cdy...
+   |       ^
+44 | ...() * (ady.abs() * cdz.abs() + adz.abs() * cdy.abs())
+45 | ...() * (ady.abs() * bdz.abs() + adz.abs() * bdy.abs()));
+   |                                                        ^
+   |
+   = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+   |
+43 ~         let permanent = adx.abs() * (bdy.abs() * cdz.abs() + bdz.abs() * cdy.abs())
+44 |             + bdx.abs() * (ady.abs() * cdz.abs() + adz.abs() * cdy.abs())
+45 ~             + cdx.abs() * (ady.abs() * bdz.abs() + adz.abs() * bdy.abs());
+   |
+
+warning: `forge-math` (lib) generated 2 warnings (run `cargo fix --lib -p forge-math` to apply 2 suggestions)
+warning: unused import: `std::convert::TryFrom`
+  --> crates/forge-geom/src/primitives/implicit_vertex.rs:72:5
+   |
+72 | use std::convert::TryFrom;
+   |     ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `signed_distance`
+  --> crates/forge-geom/src/primitives/implicit_vertex.rs:74:39
+   |
+74 | use crate::primitives::plane::{Plane, signed_distance, intersect_three_planes};
+   |                                       ^^^^^^^^^^^^^^^
+
+warning: field `cell_size` is never read
+  --> crates/forge-geom/src/spatial/edge_match.rs:47:5
+   |
+46 | pub struct EdgeMatcher {
+   |            ----------- field in this struct
+47 |     cell_size: f64,
+   |     ^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `forge-geom` (lib) generated 3 warnings (run `cargo fix --lib -p forge-geom` to apply 2 suggestions)
+warning: unused import: `crate::topology::queries::traverse::FaceEdgeIterator`
+  --> crates/forge-topo/src/topology/integrity/geometric.rs:17:5
+   |
+17 | use crate::topology::queries::traverse::FaceEdgeIterator;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated function `new` is never used
+  --> crates/forge-topo/src/topology/handles.rs:55:27
+   |
+53 |         impl $name {
+   |         ---------- associated function in this implementation
+54 |             /// Create a handle. Arena-internal only.
+55 |             pub(crate) fn new(index: u32, generation: u32) -> Self {
+   |                           ^^^
+...
+92 | define_handle!(SolidId);
+   | ----------------------- in this macro invocation
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+   = note: this warning originates in the macro `define_handle` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: `forge-topo` (lib) generated 2 warnings (run `cargo fix --lib -p forge-topo` to apply 1 suggestion)
+    Checking forge-kernel v0.1.0 (/Users/spenstar/Documents/programming/Forge/crates/forge-kernel)
+warning: unused import: `BTreeSet`
+ --> crates/forge-kernel/src/operations/boolean/split/eval.rs:7:34
+  |
+7 | use std::collections::{BTreeMap, BTreeSet};
+  |                                  ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `BTreeMap`
+  --> crates/forge-kernel/src/operations/boolean/split/cut.rs:11:24
+   |
+11 | use std::collections::{BTreeMap, BTreeSet};
+   |                        ^^^^^^^^
+
+warning: unused import: `SplitConfig`
+  --> crates/forge-kernel/src/operations/boolean/split/mod.rs:23:36
+   |
+23 | pub use schema::{SplitPhaseResult, SplitConfig};
+   |                                    ^^^^^^^^^^^
+
+warning: unused import: `BTreeMap`
+  --> crates/forge-kernel/src/operations/boolean/postprocess/polygon_extract.rs:14:34
+   |
+14 | use std::collections::{BTreeSet, BTreeMap, VecDeque};
+   |                                  ^^^^^^^^
+
+warning: unused import: `EntityRef`
+  --> crates/forge-kernel/src/operations/boolean/postprocess/polygon_extract.rs:17:91
+   |
+17 | ...nKind, DecisionTier, DecisionContext, EntityRef};
+   |                                          ^^^^^^^^^
+
+warning: unused import: `EntityRef`
+  --> crates/forge-kernel/src/operations/boolean/postprocess/hole_splice.rs:17:91
+   |
+17 | ...nKind, DecisionTier, DecisionContext, EntityRef};
+   |                                          ^^^^^^^^^
+
+warning: unused import: `hole_splice::splice_inner_holes`
+  --> crates/forge-kernel/src/operations/boolean/postprocess/mod.rs:25:9
+   |
+25 | pub use hole_splice::splice_inner_holes;
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `EntityRef`
+  --> crates/forge-kernel/src/operations/boolean/assemble/disjoint/assemble.rs:14:104
+   |
+14 | ...nKind, DecisionTier, DecisionContext, EntityRef};
+   |                                          ^^^^^^^^^
+
+warning: unused import: `std::collections::BTreeMap`
+ --> crates/forge-kernel/src/operations/boolean/assemble/merge/eval.rs:8:5
+  |
+8 | use std::collections::BTreeMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `FaceId`, `HalfEdgeId`, and `VertexId`
+  --> crates/forge-kernel/src/operations/boolean/assemble/merge/eval.rs:14:27
+   |
+14 | use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
+   |                           ^^^^^^  ^^^^^^^^^^  ^^^^^^^^
+
+warning: unused import: `crate::operations::boolean::eval::VertexMatchKey`
+  --> crates/forge-kernel/src/operations/boolean/assemble/merge/eval.rs:25:5
+   |
+25 | use crate::operations::boolean::eval::VertexMatchKey;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `assemble_result` and `compute_characteristic_scale`
+  --> crates/forge-kernel/src/operations/boolean/assemble/merge/eval.rs:31:23
+   |
+31 | use super::assemble::{assemble_result, compute_characteristic_scale};
+   |                       ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `build_cube`
+ --> crates/forge-kernel/src/operations/boolean/tests/sector_classification_tests.rs:8:34
+  |
+8 | use super::super::test_helpers::{build_cube, run_boolean, euler_audit};
+  |                                  ^^^^^^^^^^
+
+warning: unused import: `FaceClassification`
+   --> crates/forge-kernel/src/operations/boolean/brutality/integrity.rs:208:58
+    |
+208 |     use crate::operations::boolean::schema::{FaceOrigin, FaceClassification};
+    |                                                          ^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::geometry_store::GeometryStore`
+   --> crates/forge-kernel/src/operations/boolean/brutality/integrity.rs:210:9
+    |
+210 |     use crate::geometry_store::GeometryStore;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `run_boolean`
+  --> crates/forge-kernel/src/operations/boolean/brutality/tier2_numerical.rs:46:37
+   |
+46 |     build_cube, build_convex_solid, run_boolean, try_boolean,
+   |                                     ^^^^^^^^^^^
+
+warning: unused import: `predicates::*`
+  --> crates/forge-kernel/src/operations/boolean/brutality/mod.rs:33:9
+   |
+33 | pub use predicates::*;
+   |         ^^^^^^^^^^^^^
+
+warning: unused import: `coincidence::*`
+  --> crates/forge-kernel/src/operations/boolean/brutality/mod.rs:34:9
+   |
+34 | pub use coincidence::*;
+   |         ^^^^^^^^^^^^^^
+
+warning: unused import: `splitting::*`
+  --> crates/forge-kernel/src/operations/boolean/brutality/mod.rs:35:9
+   |
+35 | pub use splitting::*;
+   |         ^^^^^^^^^^^^
+
+warning: unused import: `integrity::*`
+  --> crates/forge-kernel/src/operations/boolean/brutality/mod.rs:36:9
+   |
+36 | pub use integrity::*;
+   |         ^^^^^^^^^^^^
+
+warning: unused import: `determinism::*`
+  --> crates/forge-kernel/src/operations/boolean/brutality/mod.rs:37:9
+   |
+37 | pub use determinism::*;
+   |         ^^^^^^^^^^^^^^
+
+warning: unused import: `fuzzing::*`
+  --> crates/forge-kernel/src/operations/boolean/brutality/mod.rs:38:9
+   |
+38 | pub use fuzzing::*;
+   |         ^^^^^^^^^^
+
+warning: unused import: `sliver::*`
+  --> crates/forge-kernel/src/operations/boolean/brutality/mod.rs:39:9
+   |
+39 | pub use sliver::*;
+   |         ^^^^^^^^^
+
+warning: unused import: `features::*`
+  --> crates/forge-kernel/src/operations/boolean/brutality/mod.rs:40:9
+   |
+40 | pub use features::*;
+   |         ^^^^^^^^^^^
+
+warning: unused import: `serialization::*`
+  --> crates/forge-kernel/src/operations/boolean/brutality/mod.rs:41:9
+   |
+41 | pub use serialization::*;
+   |         ^^^^^^^^^^^^^^^^
+
+warning: unused import: `tracing::*`
+  --> crates/forge-kernel/src/operations/boolean/brutality/mod.rs:42:9
+   |
+42 | pub use tracing::*;
+   |         ^^^^^^^^^^
+
+warning: unnecessary parentheses around method argument
+   --> crates/forge-kernel/src/operations/ember_boolean/mesh.rs:141:9
+    |
+141 |         (total_verts as f64 - total_edges as f64 + total_faces as f64),
+    |         ^                                                            ^
+    |
+    = note: `#[warn(unused_parens)]` (part of `#[warn(unused)]`) on by default
+help: remove these parentheses
+    |
+141 -         (total_verts as f64 - total_edges as f64 + total_faces as f64),
+141 +         total_verts as f64 - total_edges as f64 + total_faces as f64,
+    |
+
+warning: unused import: `crate::geometry_store::GeometryStore`
+   --> crates/forge-kernel/src/analysis/sliver.rs:135:9
+    |
+135 |     use crate::geometry_store::GeometryStore;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `forge_topo::state::TopologyState`
+   --> crates/forge-kernel/src/analysis/sliver.rs:136:9
+    |
+136 |     use forge_topo::state::TopologyState;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `super::analyze_slivers`
+   --> crates/forge-kernel/src/analysis/sliver.rs:137:9
+    |
+137 |     use super::analyze_slivers;
+    |         ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `forge_topo::hashing::compute_arena_topology_hash`
+  --> crates/forge-kernel/src/analysis/proof_validation/proof_invariants.rs:16:5
+   |
+16 | use forge_topo::hashing::compute_arena_topology_hash;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `ValidationLevel`
+  --> crates/forge-kernel/src/analysis/proof_validation/pv_p0_1_tests.rs:10:78
+   |
+10 | ...ric_invariants, validate_topology, ValidationLevel};
+   |                                       ^^^^^^^^^^^^^^^
+
+warning: unused imports: `KernelError` and `TopologyError`
+ --> crates/forge-kernel/src/analysis/proof_validation/pv_p0_2_tests.rs:8:18
+  |
+8 | use forge_core::{KernelError, TopologyError};
+  |                  ^^^^^^^^^^^  ^^^^^^^^^^^^^
+
+warning: unused import: `forge_core::KernelError`
+ --> crates/forge-kernel/src/analysis/proof_validation/pv_p0_3_tests.rs:6:5
+  |
+6 | use forge_core::KernelError;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `HealingResult`
+ --> crates/forge-kernel/src/analysis/proof_validation/pv_p0_3_tests.rs:8:51
+  |
+8 | use forge_topo::healing::{heal_shell_orientation, HealingResult};
+  |                                                   ^^^^^^^^^^^^^
+
+warning: unused imports: `KernelError` and `TopologyError`
+ --> crates/forge-kernel/src/analysis/proof_validation/pv_p0_4_tests.rs:7:18
+  |
+7 | use forge_core::{KernelError, TopologyError};
+  |                  ^^^^^^^^^^^  ^^^^^^^^^^^^^
+
+warning: unused import: `TopologyState`
+ --> crates/forge-kernel/src/analysis/proof_validation/pv_p0_4_tests.rs:9:25
+  |
+9 | use forge_topo::state::{TopologyState, DraftConfig};
+  |                         ^^^^^^^^^^^^^
+
+warning: unused imports: `FaceData`, `LoopData`, and `VertexData`
+  --> crates/forge-kernel/src/analysis/proof_validation/pv_p0_4_tests.rs:10:25
+   |
+10 | use forge_topo::arena::{FaceData, HalfEdgeData, VertexData, LoopData};
+   |                         ^^^^^^^^                ^^^^^^^^^^  ^^^^^^^^
+
+warning: unused imports: `FaceId` and `HalfEdgeId`
+  --> crates/forge-kernel/src/analysis/proof_validation/pv_p0_4_tests.rs:11:27
+   |
+11 | use forge_topo::handles::{FaceId, HalfEdgeId};
+   |                           ^^^^^^  ^^^^^^^^^^
+
+warning: unused import: `DecisionContext`
+  --> crates/forge-kernel/src/analysis/proof_validation/pv_p3_3_tests.rs:18:22
+   |
+18 |     use forge_core::{DecisionContext, EntityRef};
+   |                      ^^^^^^^^^^^^^^^
+
+warning: unused imports: `DecisionId`, `DecisionKind`, and `DecisionTier`
+  --> crates/forge-kernel/src/analysis/proof_validation/pv_p3_4_tests.rs:13:22
+   |
+13 |     use forge_core::{DecisionId, DecisionTier, DecisionKind};
+   |                      ^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^
+
+warning: unused import: `forge_topo::hashing::compute_arena_topology_hash`
+  --> crates/forge-kernel/src/analysis/proof_validation/pv_p3_4_tests.rs:14:9
+   |
+14 |     use forge_topo::hashing::compute_arena_topology_hash;
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `euler_audit`
+  --> crates/forge-kernel/src/analysis/proof_validation/pv_p3_4_tests.rs:17:45
+   |
+17 |         build_cube, execute_boolean_logged, euler_audit,
+   |                                             ^^^^^^^^^^^
+
+warning: unused import: `forge_core::DecisionContext`
+  --> crates/forge-kernel/src/analysis/proof_validation/pv_p3_6_tests.rs:25:9
+   |
+25 |     use forge_core::DecisionContext;
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `forge_topo::hashing::compute_arena_topology_hash`
+  --> crates/forge-kernel/src/analysis/proof_validation/pv_p3_6_tests.rs:26:9
+   |
+26 |     use forge_topo::hashing::compute_arena_topology_hash;
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `execute_boolean`
+  --> crates/forge-kernel/src/analysis/proof_validation/pv_p3_6_tests.rs:32:34
+   |
+32 |         BooleanInput, BooleanOp, execute_boolean,
+   |                                  ^^^^^^^^^^^^^^^
+
+warning: unused import: `FeatureOutput`
+  --> crates/forge-kernel/src/analysis/proof_validation/pv_p3_6_tests.rs:35:61
+   |
+35 |     use crate::features::tree::{FeatureTree, NativeFeature, FeatureOutput};
+   |                                                             ^^^^^^^^^^^^^
+
+warning: unused import: `LocalCoordinateSpace`
+  --> crates/forge-kernel/src/analysis/proof_validation/pv_p2_5_mb_n_tests.rs:22:40
+   |
+22 | use forge_geom::spatial::local_space::{LocalCoordinateSpace, ScaleAnalysis};
+   |                                        ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `DecisionId` and `DecisionTier`
+  --> crates/forge-kernel/src/analysis/counterfactual/eval.rs:12:35
+   |
+12 | use forge_core::{DecisionContext, DecisionId, DecisionLog, DecisionTier, KernelError, Tr...
+   |                                   ^^^^^^^^^^               ^^^^^^^^^^^^
+
+error[E0308]: mismatched types
+   --> crates/forge-kernel/src/operations/ember_boolean/mesh.rs:483:122
+    |
+483 | ...n(v_org)).unwrap_or([0.,0.,0.]);
+    |              --------- ^^^^^^^^^^ expected `&[f64; 3]`, found `[{float}; 3]`
+    |              |
+    |              arguments to this method are incorrect
+    |
+help: the return type of this call is `[{float}; 3]` due to the type of the argument passed
+   --> crates/forge-kernel/src/operations/ember_boolean/mesh.rs:483:25
+    |
+483 | ... = draft.arena().get_vertex(v_org).ok().and_then(|_| geometry.get_vertex_position(v_org)).unwrap_or([0.,0.,0.]);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----------^
+    |                                                                                                        |
+    |                                                                                                        this argument influences the return type of `unwrap_or`
+note: method defined here
+   --> /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/core/src/option.rs:1038:18
+help: consider borrowing here
+    |
+483 |             let p_org = draft.arena().get_vertex(v_org).ok().and_then(|_| geometry.get_vertex_position(v_org)).unwrap_or(&[0.,0.,0.]);
+    |                                                                                                                          +
+
+error[E0308]: mismatched types
+   --> crates/forge-kernel/src/operations/ember_boolean/mesh.rs:484:122
+    |
+484 | ...n(v_dst)).unwrap_or([0.,0.,0.]);
+    |              --------- ^^^^^^^^^^ expected `&[f64; 3]`, found `[{float}; 3]`
+    |              |
+    |              arguments to this method are incorrect
+    |
+help: the return type of this call is `[{float}; 3]` due to the type of the argument passed
+   --> crates/forge-kernel/src/operations/ember_boolean/mesh.rs:484:25
+    |
+484 | ... = draft.arena().get_vertex(v_dst).ok().and_then(|_| geometry.get_vertex_position(v_dst)).unwrap_or([0.,0.,0.]);
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^----------^
+    |                                                                                                        |
+    |                                                                                                        this argument influences the return type of `unwrap_or`
+note: method defined here
+   --> /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/core/src/option.rs:1038:18
+help: consider borrowing here
+    |
+484 |             let p_dst = draft.arena().get_vertex(v_dst).ok().and_then(|_| geometry.get_vertex_position(v_dst)).unwrap_or(&[0.,0.,0.]);
+    |                                                                                                                          +
+
+warning: unused variable: `he_id`
+   --> crates/forge-kernel/src/operations/boolean/split/reconcile.rs:408:10
+    |
+408 |     for (he_id, he_data) in draft.arena().iter_half_edges() {
+    |          ^^^^^ help: if this is intentional, prefix it with an underscore: `_he_id`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `h_max_vertex`
+  --> crates/forge-kernel/src/operations/boolean/postprocess/hole_splice.rs:96:20
+   |
+96 |     let (h_max_he, h_max_vertex, h_max_pos) =
+   |                    ^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_h_max_vertex`
+
+warning: variable does not need to be mutable
+   --> crates/forge-kernel/src/operations/boolean/assemble/merge/eval.rs:265:9
+    |
+265 |     let mut result = BooleanResult::new(
+    |         ----^^^^^^
+    |         |
+    |         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `sp`
+   --> crates/forge-kernel/src/operations/boolean/brutality/integrity.rs:227:26
+    |
+227 |     let (st, sg, tt, tg, sp, tp) = split_result.into_parts();
+    |                          ^^ help: if this is intentional, prefix it with an underscore: `_sp`
+
+warning: unused variable: `tp`
+   --> crates/forge-kernel/src/operations/boolean/brutality/integrity.rs:227:30
+    |
+227 |     let (st, sg, tt, tg, sp, tp) = split_result.into_parts();
+    |                              ^^ help: if this is intentional, prefix it with an underscore: `_tp`
+
+warning: unused variable: `e`
+   --> crates/forge-kernel/src/operations/boolean/brutality/tier1_manifold.rs:101:13
+    |
+101 |     let (v, e, f, chi) = euler_audit(arena);
+    |             ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: variable does not need to be mutable
+    --> crates/forge-kernel/src/operations/boolean/brutality/deep_chains.rs:1011:9
+     |
+1011 |     let mut run_chain = |run_label: &str| -> Vec<(usize, usize, usize, isize, u128)> {
+     |         ----^^^^^^^^^
+     |         |
+     |         help: remove this `mut`
+
+warning: unused variable: `total`
+  --> crates/forge-kernel/src/operations/boolean/brutality/mb2_menger_graze.rs:34:9
+   |
+34 |     let total = subs.len();
+   |         ^^^^^ help: if this is intentional, prefix it with an underscore: `_total`
+
+warning: unused variable: `i`
+  --> crates/forge-kernel/src/operations/boolean/brutality/mb2_menger_graze.rs:39:10
+   |
+39 |     for (i, (sub_center, sub_half)) in subs.into_iter().enumerate() {
+   |          ^ help: if this is intentional, prefix it with an underscore: `_i`
+
+warning: unused variable: `e`
+  --> crates/forge-kernel/src/operations/boolean/brutality/mb2_menger_graze.rs:56:17
+   |
+56 |             Err(e) => {
+   |                 ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `original_geom`
+   --> crates/forge-kernel/src/operations/boolean/brutality/mb5_cancellation_chain.rs:182:25
+    |
+182 |     let (original_topo, original_geom) = build_cube([0.0, 0.0, 0.0], 2.0);
+    |                         ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_original_geom`
+
+warning: variable does not need to be mutable
+   --> crates/forge-kernel/src/analysis/proof_validation/pv_p0_2_tests.rs:205:9
+    |
+205 |     let mut build_face_loop = |arena: &mut forge_topo::arena::TopologyArena,
+    |         ----^^^^^^^^^^^^^^^
+    |         |
+    |         help: remove this `mut`
+
+warning: unused variable: `target`
+   --> crates/forge-kernel/src/analysis/proof_validation/pv_p0_2_tests.rs:224:17
+    |
+224 |             let target = verts[face_verts[(k + 1) % n]];
+    |                 ^^^^^^ help: if this is intentional, prefix it with an underscore: `_target`
+
+warning: unused variable: `top_inner_loop`
+   --> crates/forge-kernel/src/analysis/proof_validation/pv_p0_2_tests.rs:257:9
+    |
+257 |     let top_inner_loop = {
+    |         ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_top_inner_loop`
+
+warning: unused variable: `bot_inner_loop`
+   --> crates/forge-kernel/src/analysis/proof_validation/pv_p0_2_tests.rs:287:9
+    |
+287 |     let bot_inner_loop = {
+    |         ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_bot_inner_loop`
+
+warning: unused variable: `v`
+   --> crates/forge-kernel/src/analysis/proof_validation/pv_p2_5_mb_n_tests.rs:320:18
+    |
+320 |             let (v, e, f, chi) = euler_audit(result.topology().arena());
+    |                  ^ help: if this is intentional, prefix it with an underscore: `_v`
+
+warning: unused variable: `e`
+   --> crates/forge-kernel/src/analysis/proof_validation/pv_p2_5_mb_n_tests.rs:320:21
+    |
+320 |             let (v, e, f, chi) = euler_audit(result.topology().arena());
+    |                     ^ help: if this is intentional, prefix it with an underscore: `_e`
+
+warning: unused variable: `original_sign`
+   --> crates/forge-kernel/src/analysis/proof_validation/pv_p2_5_mb_n_tests.rs:349:9
+    |
+349 |     let original_sign = TriSign::Pos;
+    |         ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_original_sign`
+
+For more information about this error, try `rustc --explain E0308`.
+warning: `forge-kernel` (lib test) generated 67 warnings
+error: could not compile `forge-kernel` (lib test) due to 2 previous errors; 67 warnings emitted

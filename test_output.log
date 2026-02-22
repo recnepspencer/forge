@@ -2,7 +2,7 @@
   OPERATION: Intersection (half-overlap cubes)
 ============================================================
 
-Duration: 1.457625ms
+Duration: 4.796125ms
 State hash: 0x0000000000000000
 Faces in result: 6
 
@@ -10,13 +10,9 @@ Faces in result: 6
   SPAN HIERARCHY (display_interesting)
 ============================================================
 
-150 decisions (4 interesting)
+146 decisions (0 interesting)
 [split] 94 decisions, clean | Δ +1F +6HE +2V, Δ +1F +6HE +2V, Δ +1F +2HE, Δ +1F +2HE, Δ +1F +6HE +2V, Δ +1F +6HE +2V, Δ +1F +2HE, Δ +1F +2HE
-[classify] 24 decisions (max tier: escalated)
-  ▸ [decision-1] [escalated] Exact margin=0.00e0 span-2 | Escalation to Double: Δ=0.00e0 [aarch64-macos]
-  ▸ [decision-2] [escalated] Exact margin=0.00e0 span-2 | Escalation to Double: Δ=0.00e0 [aarch64-macos]
-  ▸ [decision-3] [escalated] Exact margin=0.00e0 span-2 | Escalation to Double: Δ=0.00e0 [aarch64-macos]
-  ▸ [decision-4] [escalated] Exact margin=0.00e0 span-2 | Escalation to Double: Δ=0.00e0 [aarch64-macos]
+[classify] 20 decisions, clean
 [select] 20 decisions, clean
 [assemble] 12 decisions, clean
 [postprocess] 0 decisions, clean
@@ -25,13 +21,13 @@ Faces in result: 6
   DECISION SUMMARY
 ============================================================
 
-150 decisions (142 exact, 8 policy, 0 near-boundary, 0 ambiguous, 0 forced, min_margin=0.00e0)
+146 decisions (138 exact, 8 policy, 0 near-boundary, 0 ambiguous, 0 forced, min_margin=1.00e0)
 
 ============================================================
   ALL DECISIONS (full log)
 ============================================================
 
-150 decisions (142 exact, 8 policy, 0 near-boundary, 0 ambiguous, 0 forced, min_margin=0.00e0)
+146 decisions (138 exact, 8 policy, 0 near-boundary, 0 ambiguous, 0 forced, min_margin=1.00e0)
   [decision-5] [deterministic] Exact margin=1.00e0 span-1 entity=Face#5 | Degeneracy: Face #5 1 resolved vertices after dedup (need >=2) (plane #2)
   [decision-5] [deterministic] Exact margin=1.00e0 span-1 entity=Face#5 | Degeneracy: Face #5 1 resolved vertices after dedup (need >=2) (plane #3)
   [decision-5] [deterministic] Exact margin=1.00e0 span-1 entity=Face#5 | Degeneracy: Face #5 rejected by chord gate (plane #6)
@@ -128,14 +124,10 @@ Faces in result: 6
   [decision-1] [deterministic] Exact margin=1.00e0 span-1 entity=Face#1 | Degeneracy: Face #1 1 resolved vertices after dedup (need >=2) (plane #5)
   [decision-0] [deterministic] Exact margin=1.00e0 span-2 entity=Face#0 | Classification [0.0000, 0.0000, 0.0000] → Target:Face#0 → Inside
   [decision-1] [deterministic] Exact margin=1.00e0 span-2 entity=Face#1 | Classification [0.0000, 0.0000, 0.0000] → Target:Face#1 → Outside
-  [decision-1] [escalated] Exact margin=0.00e0 span-2 | Escalation to Double: Δ=0.00e0 [aarch64-macos]
   [decision-2] [deterministic] Exact margin=1.00e0 span-2 entity=Face#2 | Classification [0.0000, 0.0000, 0.0000] → Target:Face#2 → Outside
-  [decision-2] [escalated] Exact margin=0.00e0 span-2 | Escalation to Double: Δ=0.00e0 [aarch64-macos]
   [decision-3] [deterministic] Exact margin=1.00e0 span-2 entity=Face#3 | Classification [0.0000, 0.0000, 0.0000] → Target:Face#3 → Outside
-  [decision-3] [escalated] Exact margin=0.00e0 span-2 | Escalation to Double: Δ=0.00e0 [aarch64-macos]
   [decision-4] [deterministic] Exact margin=1.00e0 span-2 entity=Face#4 | Classification [0.0000, 0.0000, 0.0000] → Target:Face#4 → Outside
   [decision-5] [deterministic] Exact margin=1.00e0 span-2 entity=Face#5 | Classification [0.0000, 0.0000, 0.0000] → Target:Face#5 → OnBoundary(aligned)
-  [decision-4] [escalated] Exact margin=0.00e0 span-2 | Escalation to Double: Δ=0.00e0 [aarch64-macos]
   [decision-6] [deterministic] Exact margin=1.00e0 span-2 entity=Face#6 | Classification [0.0000, 0.0000, 0.0000] → Target:Face#6 → Outside
   [decision-7] [deterministic] Exact margin=1.00e0 span-2 entity=Face#7 | Classification [0.0000, 0.0000, 0.0000] → Target:Face#7 → OnBoundary(aligned)
   [decision-8] [deterministic] Exact margin=1.00e0 span-2 entity=Face#8 | Classification [0.0000, 0.0000, 0.0000] → Target:Face#8 → OnBoundary(aligned)
@@ -188,11 +180,11 @@ Faces in result: 6
   PER-SPAN STATS (TraceSummary)
 ============================================================
 
-  split — 94 decisions, max_tier=deterministic, 663µs
-  classify — 24 decisions, max_tier=escalated, 259µs
-  select — 20 decisions, max_tier=deterministic, 19µs
-  assemble — 12 decisions, max_tier=deterministic, 90µs
-  postprocess — 0 decisions, max_tier=deterministic, 28µs
+  split — 94 decisions, max_tier=deterministic, 4422µs
+  classify — 20 decisions, max_tier=deterministic, 105µs
+  select — 20 decisions, max_tier=deterministic, 9µs
+  assemble — 12 decisions, max_tier=deterministic, 61µs
+  postprocess — 0 decisions, max_tier=deterministic, 26µs
 
 
 ============================================================
@@ -2349,7 +2341,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 1,
-        "duration_micros": 663
+        "duration_micros": 4422
       }
     },
     {
@@ -2427,31 +2419,6 @@ Faces in result: 6
     },
     {
       "Decision": {
-        "id": 1,
-        "kind": "Exact",
-        "tier": "Escalated",
-        "margin": 0.0,
-        "feature_scope": null,
-        "entity_scope": null,
-        "overridable": true,
-        "context": {
-          "PrecisionEscalation": {
-            "escalation": {
-              "resolved_at": "Double",
-              "float_agreed": false,
-              "interval_width": null,
-              "target_triple": "aarch64-macos",
-              "disagreement_magnitude": null,
-              "float_sign": null
-            }
-          }
-        },
-        "span_id": 2,
-        "topology_delta": null
-      }
-    },
-    {
-      "Decision": {
         "id": 2,
         "kind": "Exact",
         "tier": "Deterministic",
@@ -2485,31 +2452,6 @@ Faces in result: 6
     },
     {
       "Decision": {
-        "id": 2,
-        "kind": "Exact",
-        "tier": "Escalated",
-        "margin": 0.0,
-        "feature_scope": null,
-        "entity_scope": null,
-        "overridable": true,
-        "context": {
-          "PrecisionEscalation": {
-            "escalation": {
-              "resolved_at": "Double",
-              "float_agreed": false,
-              "interval_width": null,
-              "target_triple": "aarch64-macos",
-              "disagreement_magnitude": null,
-              "float_sign": null
-            }
-          }
-        },
-        "span_id": 2,
-        "topology_delta": null
-      }
-    },
-    {
-      "Decision": {
         "id": 3,
         "kind": "Exact",
         "tier": "Deterministic",
@@ -2539,31 +2481,6 @@ Faces in result: 6
           "deleted_halfedges": [],
           "deleted_vertices": []
         }
-      }
-    },
-    {
-      "Decision": {
-        "id": 3,
-        "kind": "Exact",
-        "tier": "Escalated",
-        "margin": 0.0,
-        "feature_scope": null,
-        "entity_scope": null,
-        "overridable": true,
-        "context": {
-          "PrecisionEscalation": {
-            "escalation": {
-              "resolved_at": "Double",
-              "float_agreed": false,
-              "interval_width": null,
-              "target_triple": "aarch64-macos",
-              "disagreement_magnitude": null,
-              "float_sign": null
-            }
-          }
-        },
-        "span_id": 2,
-        "topology_delta": null
       }
     },
     {
@@ -2630,31 +2547,6 @@ Faces in result: 6
           "deleted_halfedges": [],
           "deleted_vertices": []
         }
-      }
-    },
-    {
-      "Decision": {
-        "id": 4,
-        "kind": "Exact",
-        "tier": "Escalated",
-        "margin": 0.0,
-        "feature_scope": null,
-        "entity_scope": null,
-        "overridable": true,
-        "context": {
-          "PrecisionEscalation": {
-            "escalation": {
-              "resolved_at": "Double",
-              "float_agreed": false,
-              "interval_width": null,
-              "target_triple": "aarch64-macos",
-              "disagreement_magnitude": null,
-              "float_sign": null
-            }
-          }
-        },
-        "span_id": 2,
-        "topology_delta": null
       }
     },
     {
@@ -3122,7 +3014,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 2,
-        "duration_micros": 259
+        "duration_micros": 105
       }
     },
     {
@@ -3655,7 +3547,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 3,
-        "duration_micros": 19
+        "duration_micros": 9
       }
     },
     {
@@ -3920,7 +3812,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 4,
-        "duration_micros": 90
+        "duration_micros": 61
       }
     },
     {
@@ -3933,7 +3825,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 5,
-        "duration_micros": 28
+        "duration_micros": 26
       }
     }
   ]

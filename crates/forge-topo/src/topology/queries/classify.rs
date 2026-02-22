@@ -49,12 +49,12 @@ pub enum PointClassification {
     /// Point is strictly inside the solid.
     Inside {
         /// Optional precision escalation that occurred during classification.
-        escalation: Option<forge_math::arithmetic::filter::PrecisionEscalation>,
+        escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation>,
     },
     /// Point is strictly outside the solid.
     Outside {
         /// Optional precision escalation that occurred during classification.
-        escalation: Option<forge_math::arithmetic::filter::PrecisionEscalation>,
+        escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation>,
     },
     /// Point lies exactly on a boundary face.
     OnBoundary(FaceId),
@@ -67,7 +67,7 @@ pub enum PointClassification {
 /// comparison is a compile error — enforcing Doctrine D3.
 pub fn classify_point_against_face(
     orientation: CertifiedTriSign,
-    escalation: Option<forge_math::arithmetic::filter::PrecisionEscalation>,
+    escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation>,
     face: FaceId,
 ) -> PointClassification {
     match orientation.sign() {
@@ -123,9 +123,9 @@ pub fn classify_point_in_solid(
 
     let mut crossing_count: i32 = 0;
 
-    let mut max_escalation: Option<forge_math::arithmetic::filter::PrecisionEscalation> = None;
+    let mut max_escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation> = None;
 
-    let mut update_escalation = |new_esc: Option<forge_math::arithmetic::filter::PrecisionEscalation>| {
+    let mut update_escalation = |new_esc: Option<forge_math::arithmetic::precision::PrecisionEscalation>| {
         if let Some(esc) = new_esc {
             match &mut max_escalation {
                 Some(existing) => {
@@ -202,11 +202,11 @@ enum RayFaceInteraction {
      OnBoundary,
     /// The ray strictly intersects the face interior (or valid edge/vertex crossing).
     Intersection {
-        escalation: Option<forge_math::arithmetic::filter::PrecisionEscalation>,
+        escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation>,
     },
     /// The ray does not intersect (or grazes in a non-crossing way).
     None {
-        escalation: Option<forge_math::arithmetic::filter::PrecisionEscalation>,
+        escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation>,
     },
 }
 
@@ -230,8 +230,8 @@ fn ray_intersects_face_exact(
         return Ok(RayFaceInteraction::None { escalation: None });
     }
 
-    let mut max_escalation: Option<forge_math::arithmetic::filter::PrecisionEscalation> = None;
-    let mut update_escalation = |new_esc: Option<forge_math::arithmetic::filter::PrecisionEscalation>| {
+    let mut max_escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation> = None;
+    let mut update_escalation = |new_esc: Option<forge_math::arithmetic::precision::PrecisionEscalation>| {
         if let Some(esc) = new_esc {
             match &mut max_escalation {
                 Some(existing) => {
@@ -317,15 +317,15 @@ fn ray_intersects_face_exact(
 /// Returns `None` if all vertices are collinear (degenerate face).
 fn find_certified_basis(
     params: &[[f64; 3]],
-) -> Result<Option<(([f64; 3], [f64; 3], [f64; 3]), Option<forge_math::arithmetic::filter::PrecisionEscalation>)>, KernelError> {
+) -> Result<Option<(([f64; 3], [f64; 3], [f64; 3]), Option<forge_math::arithmetic::precision::PrecisionEscalation>)>, KernelError> {
     if params.len() < 3 { return Ok(None); }
 
     let (u_axis, v_axis) = dominant_projection_axes(params);
     let p0 = params[0];
     let p1 = params[1];
 
-    let mut max_escalation: Option<forge_math::arithmetic::filter::PrecisionEscalation> = None;
-    let mut update_escalation = |new_esc: Option<forge_math::arithmetic::filter::PrecisionEscalation>| {
+    let mut max_escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation> = None;
+    let mut update_escalation = |new_esc: Option<forge_math::arithmetic::precision::PrecisionEscalation>| {
         if let Some(esc) = new_esc {
             match &mut max_escalation {
                 Some(existing) => {
@@ -363,7 +363,7 @@ fn find_certified_basis(
 fn point_in_projected_polygon(
     hit: &[f64; 3],
     verts: &[[f64; 3]],
-) -> Result<(bool, Option<forge_math::arithmetic::filter::PrecisionEscalation>), KernelError> {
+) -> Result<(bool, Option<forge_math::arithmetic::precision::PrecisionEscalation>), KernelError> {
     let n = verts.len();
     if n < 3 { return Ok((false, None)); }
 
@@ -372,8 +372,8 @@ fn point_in_projected_polygon(
     let hit_v = hit[v_axis];
 
     let mut winding: i32 = 0;
-    let mut max_escalation: Option<forge_math::arithmetic::filter::PrecisionEscalation> = None;
-    let mut update_escalation = |new_esc: Option<forge_math::arithmetic::filter::PrecisionEscalation>| {
+    let mut max_escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation> = None;
+    let mut update_escalation = |new_esc: Option<forge_math::arithmetic::precision::PrecisionEscalation>| {
         if let Some(esc) = new_esc {
             match &mut max_escalation {
                 Some(existing) => {

@@ -118,7 +118,7 @@ fn interpret_classification(
     source_geom: &GeometryStore,
     source_face: FaceId,
     other_geom: &GeometryStore,
-) -> (FaceClassification, Option<forge_math::arithmetic::filter::PrecisionEscalation>) {
+) -> (FaceClassification, Option<forge_math::arithmetic::precision::PrecisionEscalation>) {
     match classification {
         forge_topo::classify::PointClassification::Inside { escalation } =>
             (FaceClassification::Inside, escalation),
@@ -151,7 +151,7 @@ fn resolve_boundary_classification(
     accelerator: Option<&dyn forge_topo::classify::SpatialAccelerator>,
     original: &PointClassification,
     config: &crate::core::ToleranceConfig,
-) -> Result<(FaceClassification, Option<forge_math::arithmetic::filter::PrecisionEscalation>), KernelError> {
+) -> Result<(FaceClassification, Option<forge_math::arithmetic::precision::PrecisionEscalation>), KernelError> {
     let normal = match source_geometry.get_face_plane(source_face) {
         Some(plane) => plane.raw_normal(),
         None => {
@@ -215,7 +215,7 @@ fn to_face_classification(pc: &PointClassification) -> FaceClassification {
 }
 
 /// Extract the escalation from a PointClassification, if any.
-fn extract_escalation(pc: &PointClassification) -> Option<forge_math::arithmetic::filter::PrecisionEscalation> {
+fn extract_escalation(pc: &PointClassification) -> Option<forge_math::arithmetic::precision::PrecisionEscalation> {
     match pc {
         PointClassification::Inside { escalation } => escalation.clone(),
         PointClassification::Outside { escalation } => escalation.clone(),

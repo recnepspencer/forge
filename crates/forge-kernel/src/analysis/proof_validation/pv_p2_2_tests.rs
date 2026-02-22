@@ -6,7 +6,7 @@
 //! PV-26: Crafted near-degenerate geometry escalates to Interval and resolves.
 //! PV-27: Exactly-degenerate geometry cascades all the way to Rational.
 
-use forge_math::arithmetic::filter::PrecisionMode;
+use forge_math::arithmetic::precision::PrecisionMode;
 use forge_math::predicates::orient3d::orient3d;
 use forge_math::predicates::orient2d::orient2d;
 use forge_math::sign::TriSign;

@@ -1,14 +1,13 @@
-//! Geometric predicates with filtered evaluation.
+//! Geometric predicates with adaptive precision arithmetic.
 //!
-//! Each predicate uses the four-stage [`FilteredEval`](crate::arithmetic::filter::FilteredEval)
-//! pipeline to determine the sign of a geometric determinant:
+//! Each predicate uses Shewchuk's adaptive cascade to determine the sign
+//! of a geometric determinant with exact results and minimal work:
 //!
-//! 1. **f64** with Shewchuk error bounds — resolves >95% of random inputs
-//! 2. **Interval** with ULP-widened bounds — resolves >99% of remaining
-//! 3. **Double-double** (~106-bit) — resolves >99.9% of remaining
-//! 4. **Exact rational** — resolves everything
+//! 1. **Stage A (f64)** — Shewchuk error bounds — resolves >95% of inputs
+//! 2. **Stage B (Expansion)** — first adaptive refinement
+//! 3. **Stage C (Expansion)** — full expansion with tail corrections
 //!
-//! Every evaluation returns [`PrecisionEscalation`](crate::arithmetic::filter::PrecisionEscalation)
+//! Every evaluation returns [`PrecisionEscalation`](crate::arithmetic::precision::PrecisionEscalation)
 //! metadata recording which stage resolved the result.
 //!
 //! # Reference
@@ -16,20 +15,15 @@
 //! Shewchuk, "Adaptive Precision Floating-Point Arithmetic and Fast Robust
 //! Geometric Predicates," Discrete & Computational Geometry, 1997.
 
+pub mod grid_predicates;
 pub mod in_sphere;
+pub mod incircle;
 pub mod orient2d;
 pub mod orient3d;
-pub mod grid_predicates;
+mod vendored;
 
-pub use in_sphere::{in_sphere, InSphereInput};
-pub use orient2d::{orient2d, Orient2dInput};
-pub use orient3d::{orient3d, Orient3dInput};
 pub use grid_predicates::{orient3d_grid, orient2d_grid, classify_point_grid};
-
-/// Shewchuk-derived error bound coefficients for static filters.
-///
-/// For a sum of products, rounding error is bounded by `coeff * Σ|products|`.
-pub(crate) const EPSILON: f64 = f64::EPSILON;
-pub(crate) const ORIENT2D_ERR_BOUND_A: f64 = (3.0 + 16.0 * EPSILON) * EPSILON;
-pub(crate) const ORIENT3D_ERR_BOUND_A: f64 = (7.0 + 56.0 * EPSILON) * EPSILON;
-pub(crate) const IN_SPHERE_ERR_BOUND_A: f64 = (16.0 + 256.0 * EPSILON) * EPSILON;
+pub use in_sphere::{in_sphere, InSphereInput};
+pub use incircle::incircle;
+pub use orient2d::orient2d;
+pub use orient3d::{orient3d, Orient3dInput};

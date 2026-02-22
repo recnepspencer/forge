@@ -10,7 +10,7 @@ use forge_core::{
     DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, TracedDecision,
     DecisionLog,
 };
-use forge_math::arithmetic::filter::{build_target_description, PrecisionEscalation, PrecisionMode};
+use forge_math::arithmetic::precision::{build_target_description, PrecisionEscalation, PrecisionMode};
 use forge_math::sign::TriSign;
 
 fn make_clean_decision(id: u64) -> TracedDecision {
@@ -23,7 +23,7 @@ fn make_clean_decision(id: u64) -> TracedDecision {
             escalation: PrecisionEscalation {
                 resolved_at: PrecisionMode::Float64,
                 float_agreed: true,
-                interval_width: None,
+                expansion_length: None,
                 target_triple: build_target_description(),
                 disagreement_magnitude: None,
                 float_sign: Some(TriSign::Pos),
@@ -40,9 +40,9 @@ fn make_divergent_decision(id: u64, float_sign: Option<TriSign>) -> TracedDecisi
         1e-15,
         DecisionContext::PrecisionEscalation {
             escalation: PrecisionEscalation {
-                resolved_at: PrecisionMode::Interval,
+                resolved_at: PrecisionMode::ExpansionB,
                 float_agreed: false,
-                interval_width: Some(1e-14),
+                expansion_length: Some(4),
                 target_triple: build_target_description(),
                 disagreement_magnitude: Some(1e-15),
                 float_sign,
@@ -95,7 +95,7 @@ fn pv_29_near_degenerate_nonzero_divergence() {
 
     let detail = &report.get_details()[0];
     assert_eq!(detail.get_float_answer(), Some(TriSign::Neg));
-    assert_eq!(detail.get_resolved_at(), PrecisionMode::Interval);
+    assert_eq!(detail.get_resolved_at(), PrecisionMode::ExpansionB);
     assert!(detail.get_entity_scope().is_some());
     assert!(detail.is_topology_affecting());
 }

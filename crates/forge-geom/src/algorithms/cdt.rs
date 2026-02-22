@@ -17,6 +17,7 @@
 //! - No floating-point comparisons drive topology; only exact sign predicates.
 
 use forge_math::predicates::orient2d::orient2d;
+use forge_math::predicates::incircle::incircle;
 use forge_math::sign::TriSign;
 
 /// Result of a CDT computation.
@@ -193,28 +194,31 @@ impl CdtState {
 
     /// Test if point `p` is inside the circumcircle of triangle `tri`.
     ///
-    /// Uses the standard 3×3 determinant lift test with exact predicates.
+    /// Uses the robust Shewchuk incircle predicate for exact classification.
     fn in_circumcircle(&self, tri: &Triangle, p: [f64; 2]) -> bool {
         let a = self.vertices[tri.v[0]];
         let b = self.vertices[tri.v[1]];
         let c = self.vertices[tri.v[2]];
 
         let orient = orient2d(a, b, c);
-        let sign = match orient {
+        let orient_sign = match orient {
             Ok((s, _)) => s.sign(),
             Err(_) => return false,
         };
 
-        if sign == TriSign::Zero {
+        if orient_sign == TriSign::Zero {
             return false;
         }
 
-        let det = incircle_det(a, b, c, p);
+        let incircle_sign = match incircle(a, b, c, p) {
+            Ok((s, _)) => s.sign(),
+            Err(_) => return false,
+        };
 
-        if sign == TriSign::Pos {
-            det > 0.0
+        if orient_sign == TriSign::Pos {
+            incircle_sign == TriSign::Pos
         } else {
-            det < 0.0
+            incircle_sign == TriSign::Neg
         }
     }
 
@@ -382,30 +386,7 @@ fn bounding_box(vertices: &[[f64; 2]]) -> ([f64; 2], [f64; 2]) {
     (min, max)
 }
 
-/// Circumcircle test via the 3×3 determinant (in-circle predicate).
-///
-/// Returns the sign of det:
-/// ```text
-/// | ax-dx  ay-dy  (ax-dx)²+(ay-dy)² |
-/// | bx-dx  by-dy  (bx-dx)²+(by-dy)² |
-/// | cx-dx  cy-dy  (cx-dx)²+(cy-dy)² |
-/// ```
-fn incircle_det(a: [f64; 2], b: [f64; 2], c: [f64; 2], d: [f64; 2]) -> f64 {
-    let adx = a[0] - d[0];
-    let ady = a[1] - d[1];
-    let bdx = b[0] - d[0];
-    let bdy = b[1] - d[1];
-    let cdx = c[0] - d[0];
-    let cdy = c[1] - d[1];
 
-    let ad_lift = adx * adx + ady * ady;
-    let bd_lift = bdx * bdx + bdy * bdy;
-    let cd_lift = cdx * cdx + cdy * cdy;
-
-    adx * (bdy * cd_lift - cdy * bd_lift)
-        - ady * (bdx * cd_lift - cdx * bd_lift)
-        + ad_lift * (bdx * cdy - cdx * bdy)
-}
 
 /// Check if triangle `tri` contains edge (a, b) in either direction.
 fn triangle_has_edge(tri: &Triangle, a: VIdx, b: VIdx) -> bool {

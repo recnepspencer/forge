@@ -136,7 +136,7 @@ fn lookup_vertex(
 /// Extract a precision escalation from a point classification result.
 fn extract_escalation(
     cls: &forge_topo::classify::PointClassification,
-) -> Option<forge_math::arithmetic::filter::PrecisionEscalation> {
+) -> Option<forge_math::arithmetic::precision::PrecisionEscalation> {
     match cls {
         forge_topo::classify::PointClassification::Inside { escalation } => escalation.clone(),
         forge_topo::classify::PointClassification::Outside { escalation } => escalation.clone(),

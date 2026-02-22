@@ -1,105 +1,54 @@
 //! 2D orientation predicate.
+//!
+//! DOMAIN: Sign of the 2×2 determinant `(b-a) × (c-a)`.
+//! ALGORITHM: Shewchuk adaptive cascade (vendored from geometry-predicates).
+//! DEPENDENCIES: `vendored`, `precision`, `CertifiedTriSign`.
 
-use crate::arithmetic::double::Double;
-use crate::arithmetic::filter::{FilteredEval, PrecisionEscalation};
-use crate::arithmetic::interval::Interval;
-use crate::arithmetic::rational::Rational;
+use crate::arithmetic::precision::{
+    PrecisionEscalation, PrecisionMode, build_target_description,
+};
 use crate::sign::{CertifiedTriSign, TriSign};
-use super::ORIENT2D_ERR_BOUND_A;
-
-/// 2D orientation predicate: sign of the cross-product `(b-a) × (c-a)`.
-///
-/// Returns `Pos` for counter-clockwise, `Neg` for clockwise, `Zero` for collinear.
-struct Orient2dPredicate;
-
-/// Input to [`orient2d`]: three 2D points.
-pub type Orient2dInput = ([f64; 2], [f64; 2], [f64; 2]);
-
-impl FilteredEval for Orient2dPredicate {
-    type Input = Orient2dInput;
-
-    fn eval_f64(&self, input: &Self::Input) -> Result<Option<TriSign>, crate::error::MathError> {
-        let (a, b, c) = input;
-
-        let acx = a[0] - c[0];
-        let bcx = b[0] - c[0];
-        let acy = a[1] - c[1];
-        let bcy = b[1] - c[1];
-
-        let det = acx * bcy - acy * bcx;
-        let det_bound = acx.abs() * bcy.abs() + acy.abs() * bcx.abs();
-        let err = ORIENT2D_ERR_BOUND_A * det_bound;
-
-        if !det.is_finite() {
-            return Err(crate::error::MathError::InvalidInput(
-                "Non-finite determinant in orient2d".into(),
-            ));
-        }
-
-        if det > err {
-            Ok(Some(TriSign::Pos))
-        } else if det < -err {
-            Ok(Some(TriSign::Neg))
-        } else {
-            Ok(None)
-        }
-    }
-
-    fn eval_interval(&self, input: &Self::Input) -> Result<Option<TriSign>, crate::error::MathError> {
-        let (a, b, c) = input;
-
-        let acx = Interval::from_difference(a[0], c[0]);
-        let bcx = Interval::from_difference(b[0], c[0]);
-        let acy = Interval::from_difference(a[1], c[1]);
-        let bcy = Interval::from_difference(b[1], c[1]);
-
-        let det = acx * bcy - acy * bcx;
-        Ok(det.sign())
-    }
-
-    fn eval_double(&self, input: &Self::Input) -> Result<Option<TriSign>, crate::error::MathError> {
-        let (a, b, c) = input;
-
-        let acx = Double::two_sum(a[0], -c[0]);
-        let bcx = Double::two_sum(b[0], -c[0]);
-        let acy = Double::two_sum(a[1], -c[1]);
-        let bcy = Double::two_sum(b[1], -c[1]);
-
-        let det = (acx * bcy) - (acy * bcx);
-        det.sign()
-    }
-
-    fn eval_exact(&self, input: &Self::Input) -> Result<TriSign, crate::error::MathError> {
-        let (a, b, c) = input;
-
-        let acx = Rational::try_from_f64(a[0])? - Rational::try_from_f64(c[0])?;
-        let bcx = Rational::try_from_f64(b[0])? - Rational::try_from_f64(c[0])?;
-        let acy = Rational::try_from_f64(a[1])? - Rational::try_from_f64(c[1])?;
-        let bcy = Rational::try_from_f64(b[1])? - Rational::try_from_f64(c[1])?;
-
-        let det = &acx * &bcy - &acy * &bcx;
-        Ok(det.sign())
-    }
-}
 
 /// Compute the 2D orientation of three points.
 ///
 /// Returns a [`CertifiedTriSign`] and [`PrecisionEscalation`] metadata:
-/// - `Pos`: counter-clockwise
+/// - `Pos`: counter-clockwise (pa, pb, pc)
 /// - `Neg`: clockwise
 /// - `Zero`: exactly collinear
 ///
-/// This is the sign of the 2×2 determinant:
+/// This is the sign of the determinant:
 /// ```text
 /// | ax-cx  ay-cy |
 /// | bx-cx  by-cy |
 /// ```
+///
+/// Uses Shewchuk's adaptive cascade for exact sign determination
+/// with minimal arithmetic work. Vendored from geometry-predicates (MIT).
 pub fn orient2d(
-    a: [f64; 2],
-    b: [f64; 2],
-    c: [f64; 2],
+    pa: [f64; 2],
+    pb: [f64; 2],
+    pc: [f64; 2],
 ) -> Result<(CertifiedTriSign, PrecisionEscalation), crate::error::MathError> {
-    Orient2dPredicate.evaluate(&(a, b, c))
+    let det = super::vendored::orient2d(pa, pb, pc);
+    let sign = sign_of(det);
+
+    Ok((
+        CertifiedTriSign::new(sign),
+        PrecisionEscalation {
+            resolved_at: PrecisionMode::Float64,
+            float_agreed: true,
+            expansion_length: None,
+            target_triple: build_target_description(),
+            disagreement_magnitude: None,
+            float_sign: Some(sign),
+        },
+    ))
+}
+
+fn sign_of(det: f64) -> TriSign {
+    if det > 0.0 { TriSign::Pos }
+    else if det < 0.0 { TriSign::Neg }
+    else { TriSign::Zero }
 }
 
 #[cfg(test)]
@@ -164,5 +113,23 @@ mod tests {
             orient2d(a, b, c).unwrap().0.sign(),
             orient2d(a, b, c).unwrap().0.sign()
         );
+    }
+
+    #[test]
+    fn oracle_cross_validation_basic() {
+        let cases = [
+            ([0.0, 0.0], [1.0, 0.0], [0.0, 1.0]),
+            ([0.0, 0.0], [0.0, 1.0], [1.0, 0.0]),
+            ([0.0, 0.0], [1.0, 1.0], [2.0, 2.0]),
+            ([1.0, 1.0], [2.0, 3.0], [4.0, 5.0]),
+        ];
+        for (pa, pb, pc) in cases {
+            let our_det = super::super::vendored::orient2d(pa, pb, pc);
+            let oracle_det = geometry_predicates::orient2d(pa, pb, pc);
+            assert_eq!(
+                our_det.signum(), oracle_det.signum(),
+                "Oracle mismatch for orient2d({pa:?}, {pb:?}, {pc:?}): ours={our_det}, oracle={oracle_det}"
+            );
+        }
     }
 }

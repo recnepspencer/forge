@@ -192,9 +192,9 @@ impl ModelingContext {
     /// Record a precision escalation decision, auto-assigning a unique ID.
     pub fn log_escalation(
         &mut self,
-        escalation: forge_math::arithmetic::filter::PrecisionEscalation,
+        escalation: forge_math::arithmetic::precision::PrecisionEscalation,
     ) {
-        if escalation.resolved_at > forge_math::arithmetic::filter::PrecisionMode::Float64 {
+        if escalation.resolved_at > forge_math::arithmetic::precision::PrecisionMode::Float64 {
             self.decision_counter += 1;
             let decision = TracedDecision::new(
                 DecisionId(self.decision_counter),

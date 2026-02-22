@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 
 use super::decision_log::DecisionLog;
 use super::schema::{DecisionContext, DecisionId, DecisionTier, EntityRef, TracedDecision};
-use forge_math::arithmetic::filter::PrecisionMode;
+use forge_math::arithmetic::precision::PrecisionMode;
 use forge_math::sign::TriSign;
 
 /// Detail record for a single divergent decision.
@@ -35,8 +35,8 @@ pub struct DivergenceDetail {
     entity_scope: Option<EntityRef>,
     /// Which precision mode ultimately resolved the decision.
     resolved_at: PrecisionMode,
-    /// Interval width at the point of escalation.
-    interval_width: Option<f64>,
+    /// Expansion length at the point of escalation.
+    expansion_length: Option<usize>,
     /// Would the float answer have changed the topology?
     topology_affecting: bool,
 }
@@ -72,9 +72,9 @@ impl DivergenceDetail {
         self.resolved_at
     }
 
-    /// Interval width at escalation.
-    pub fn get_interval_width(&self) -> Option<f64> {
-        self.interval_width
+    /// Expansion length at escalation.
+    pub fn get_expansion_length(&self) -> Option<usize> {
+        self.expansion_length
     }
 
     /// Whether this divergence would have changed the topology.
@@ -200,7 +200,7 @@ pub fn scan_for_divergences(log: &DecisionLog) -> DivergenceReport {
             margin,
             entity_scope: decision.get_entity_scope().cloned(),
             resolved_at: escalation.resolved_at,
-            interval_width: escalation.interval_width,
+            expansion_length: escalation.expansion_length,
             topology_affecting,
         });
     }
@@ -249,13 +249,13 @@ fn extract_exact_sign(decision: &TracedDecision) -> TriSign {
 mod tests {
     use super::*;
     use crate::tracing::schema::{DecisionKind, DecisionTier};
-    use forge_math::arithmetic::filter::{build_target_description, PrecisionEscalation};
+    use forge_math::arithmetic::precision::{build_target_description, PrecisionEscalation};
 
     fn make_clean_escalation() -> PrecisionEscalation {
         PrecisionEscalation {
             resolved_at: PrecisionMode::Float64,
             float_agreed: true,
-            interval_width: None,
+            expansion_length: None,
             target_triple: build_target_description(),
             disagreement_magnitude: None,
             float_sign: Some(TriSign::Pos),
@@ -264,9 +264,9 @@ mod tests {
 
     fn make_divergent_escalation() -> PrecisionEscalation {
         PrecisionEscalation {
-            resolved_at: PrecisionMode::Interval,
+            resolved_at: PrecisionMode::ExpansionB,
             float_agreed: false,
-            interval_width: Some(1e-14),
+            expansion_length: Some(4),
             target_triple: build_target_description(),
             disagreement_magnitude: Some(1e-15),
             float_sign: Some(TriSign::Neg),
@@ -316,7 +316,7 @@ mod tests {
 
         let detail = &report.get_details()[0];
         assert_eq!(detail.get_float_answer(), Some(TriSign::Neg));
-        assert_eq!(detail.get_resolved_at(), PrecisionMode::Interval);
+        assert_eq!(detail.get_resolved_at(), PrecisionMode::ExpansionB);
         assert!(detail.is_topology_affecting());
     }
 

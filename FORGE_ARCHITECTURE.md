@@ -788,6 +788,84 @@ impl DecisionLog {
 }
 ```
 
+### Audience Projection Layer
+
+The `DecisionLog` is the single source of truth. Internal debugging and
+customer-facing output are **projections** of the same data, not separate
+collection systems. This avoids dual-tracing overhead while keeping the
+internal/customer boundary clean.
+
+**Principle: one collection, multiple lenses.**
+
+```
+                          ┌──────────────────────────┐
+                          │      DecisionLog         │
+                          │  (Tier 1 + Tier 2 data)  │
+                          └────────┬─────────────────┘
+                                   │
+              ┌────────────────────┼────────────────────┐
+              ▼                    ▼                     ▼
+     Dev / Agent Lens      Customer Lens         Compliance Lens
+  ─────────────────────  ───────────────────  ───────────────────
+  by_margin_ascending()  project_customer()   export_compliance()
+  divergent()            → SemanticDecision   → stable, versioned
+  micro_summary()          human-readable       audit trail
+  raw TracedDecision       no predicate guts    entity provenance
+```
+
+**The translation layer** converts raw `TracedDecision` variants into
+human-readable semantic explanations:
+
+```rust
+/// Customer-visible decision summary. Stable API — versioned independently
+/// of internal TracedDecision variants.
+pub struct SemanticDecision {
+    pub summary: String,            // "Two surfaces are near-tangent within 1e-9"
+    pub entity: EntityRef,          // which face/edge/vertex was affected
+    pub category: SemanticCategory, // ToleranceChange, PolicyOverride, Failure
+    pub severity: Severity,         // Info, Warning, Error
+}
+
+pub enum SemanticCategory {
+    ToleranceChange,     // vertex tolerance widened
+    PolicyOverride,      // ambiguity resolved by policy
+    AnalyticCoincidence, // surfaces declared identical
+    PrecisionEscalation, // exact arithmetic was required
+    FailureExplanation,  // why an operation failed
+}
+
+/// Project a full DecisionLog down to customer-visible summaries.
+pub fn project_customer_decisions(log: &DecisionLog) -> Vec<SemanticDecision>;
+
+/// Translate a single TracedDecision into a human sentence.
+/// This is where internal → customer translation lives (~200 lines of
+/// pattern matching, not a separate crate).
+///
+/// Example:
+///   PrecisionFuelExhausted { bits: 512, .. }
+///     → "Intersection is near-tangent and numerically unstable.
+///        Increase tolerance or modify geometry."
+pub fn explain(decision: &TracedDecision) -> String;
+```
+
+**What each audience sees from the same operation:**
+
+| Audience          | Output                             | Example                                                                |
+| ----------------- | ---------------------------------- | ---------------------------------------------------------------------- |
+| Dev / agent       | `log.by_margin_ascending()`        | "47 macro-decisions, min margin 0.034, 2 divergent"                    |
+| Customer CLI      | `project_customer_decisions(&log)` | "Vertex tolerance widened from 1e-7 to 2e-7 (sliver prevention)"       |
+| Compliance export | `export_compliance_trace(&log)`    | Versioned JSON: entity provenance, policy decisions, determinism proof |
+
+**What customers never see:** predicate counters, precision stage escalation
+details, interval arithmetic bounds, halfedge rewiring internals,
+intersection recursion depth. These remain accessible through the dev lens
+for kernel engineers and debugging agents.
+
+**What customers always see:** what changed, why it changed, whether it's
+deterministic, and whether it's stable. The `explain()` function is the
+single translation boundary between internal complexity and external
+clarity.
+
 ### The Operation Envelope
 
 ```rust

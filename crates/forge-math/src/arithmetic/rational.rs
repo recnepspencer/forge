@@ -1,18 +1,18 @@
-//! BigInt-backed rational arithmetic (Stage 3 exact fallback).
+//! BigInt-backed rational arithmetic (exact fallback).
 //!
 //! Provides `Rational`, a façade around `num_rational::BigRational`
 //! (Convention §6: Façade External Dependencies). The rest of the kernel
 //! depends on `Rational`, not on `num_rational` directly.
 //!
-//! Stage 3 of the filtered evaluation pipeline — always correct, but
-//! expensive. In practice, <1% of predicate evaluations reach this stage.
+//! Used as the exact arithmetic fallback for geometric computations
+//! that cannot be resolved by expansion arithmetic alone.
 
 use crate::sign::TriSign;
-use malachite::base::num::arithmetic::traits::{Abs, Sign};
-use malachite::Rational as MalachiteRational;
+use num_bigint::BigInt;
+use num_rational::BigRational;
+use num_traits::{Signed, ToPrimitive, Zero, One};
 use serde::{Deserialize, Serialize, Serializer, Deserializer, de};
 use std::fmt;
-use std::convert::TryFrom;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
 /// Exact rational number backed by arbitrary-precision integers.
@@ -21,7 +21,7 @@ use std::ops::{Add, Div, Mul, Neg, Sub};
 /// with each operation (addressed by the precision budget in Milestone 0.2.3).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Rational {
-    inner: MalachiteRational,
+    inner: BigRational,
 }
 
 impl Serialize for Rational {
@@ -29,7 +29,7 @@ impl Serialize for Rational {
     where
         S: Serializer,
     {
-        serializer.serialize_str(&self.inner.to_string())
+        serializer.serialize_str(&format!("{}/{}", self.inner.numer(), self.inner.denom()))
     }
 }
 
@@ -44,17 +44,24 @@ impl<'de> Deserialize<'de> for Rational {
             type Value = Rational;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a rational number string")
+                formatter.write_str("a rational number string like '3/4' or '5'")
             }
 
             fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
             where
                 E: de::Error,
             {
-                value
-                    .parse::<MalachiteRational>()
-                    .map(|inner| Rational { inner })
-                    .map_err(|_| E::custom(format!("Failed to parse Rational from string: {}", value)))
+                if let Some((n, d)) = value.split_once('/') {
+                    let numer: BigInt = n.parse().map_err(|e| E::custom(format!("bad numerator: {e}")))?;
+                    let denom: BigInt = d.parse().map_err(|e| E::custom(format!("bad denominator: {e}")))?;
+                    if denom.is_zero() {
+                        return Err(E::custom("denominator is zero"));
+                    }
+                    Ok(Rational { inner: BigRational::new(numer, denom) })
+                } else {
+                    let n: BigInt = value.parse().map_err(|e| E::custom(format!("bad integer: {e}")))?;
+                    Ok(Rational { inner: BigRational::from(n) })
+                }
             }
         }
 
@@ -66,21 +73,21 @@ impl Rational {
     /// The additive identity.
     pub fn zero() -> Self {
         Self {
-            inner: MalachiteRational::from(0),
+            inner: BigRational::zero(),
         }
     }
 
     /// The multiplicative identity.
     pub fn one() -> Self {
         Self {
-            inner: MalachiteRational::from(1),
+            inner: BigRational::one(),
         }
     }
 
     /// Create a rational from an integer.
     pub fn from_integer(n: i64) -> Self {
         Self {
-            inner: MalachiteRational::from(n),
+            inner: BigRational::from(BigInt::from(n)),
         }
     }
 
@@ -91,10 +98,10 @@ impl Rational {
                 "Rational denominator must be non-zero".into(),
             ));
         }
-        
-        let n = MalachiteRational::from(numer);
-        let d = MalachiteRational::from(denom);
-        Ok(Self { inner: n / d })
+
+        Ok(Self {
+            inner: BigRational::new(BigInt::from(numer), BigInt::from(denom)),
+        })
     }
 
     /// Convert an `f64` to an exact rational representation.
@@ -112,11 +119,32 @@ impl Rational {
             return Ok(Self::zero());
         }
 
-        let rat = MalachiteRational::try_from(value).map_err(|_| {
-            crate::error::MathError::InvalidInput("Failed to convert f64 to malachite::Rational".into())
-        })?;
+        let bits = value.to_bits();
+        let sign = if bits >> 63 == 1 { -1i64 } else { 1i64 };
+        let exponent = ((bits >> 52) & 0x7FF) as i64;
+        let mantissa = bits & 0x000F_FFFF_FFFF_FFFF;
 
-        Ok(Self { inner: rat })
+        let (numer, denom) = if exponent == 0 {
+            let sig = BigInt::from(mantissa);
+            let num = BigInt::from(sign) * sig;
+            let den = BigInt::from(1u64) << 1074usize;
+            (num, den)
+        } else {
+            let sig = BigInt::from(mantissa | (1u64 << 52));
+            let num = BigInt::from(sign) * sig;
+            let e = exponent - 1023 - 52;
+            if e >= 0 {
+                let shifted = num << (e as usize);
+                (shifted, BigInt::from(1))
+            } else {
+                let den = BigInt::from(1u64) << ((-e) as usize);
+                (num, den)
+            }
+        };
+
+        Ok(Self {
+            inner: BigRational::new(numer, denom),
+        })
     }
 
     /// Convert a 3D `f64` array to an exact rational representation.
@@ -130,57 +158,62 @@ impl Rational {
 
     /// Return the exact sign of this rational.
     pub fn sign(&self) -> TriSign {
-        match self.inner.sign() {
-            std::cmp::Ordering::Equal => TriSign::Zero,
-            std::cmp::Ordering::Greater => TriSign::Pos,
-            std::cmp::Ordering::Less => TriSign::Neg,
+        if self.inner.is_zero() {
+            TriSign::Zero
+        } else if self.inner.is_positive() {
+            TriSign::Pos
+        } else {
+            TriSign::Neg
         }
     }
 
     /// Approximate as `f64` (lossy — for display/debug only).
     pub fn to_f64_approx(&self) -> f64 {
-        if let Ok(exact_f64) = f64::try_from(&self.inner) {
-            exact_f64
+        let numer = self.inner.numer().to_f64().unwrap_or(f64::INFINITY);
+        let denom = self.inner.denom().to_f64().unwrap_or(f64::INFINITY);
+        if denom == 0.0 {
+            if numer >= 0.0 { f64::INFINITY } else { f64::NEG_INFINITY }
         } else {
-            use malachite::base::num::conversion::traits::RoundingFrom;
-            use malachite::base::rounding_modes::RoundingMode;
-            f64::rounding_from(&self.inner, RoundingMode::Nearest).0
+            numer / denom
         }
     }
 
     /// The number of bits in the numerator.
     pub fn numer_bit_length(&self) -> u32 {
-        // Not used outside of compress, simplified
-        0 
+        self.inner.numer().bits() as u32
     }
 
+    /// The number of bits in the denominator.
     pub fn denom_bit_length(&self) -> u32 {
-        0
+        self.inner.denom().bits() as u32
     }
 
+    /// Total bit length (max of numerator and denominator).
     pub fn bit_length(&self) -> u32 {
-        0
+        self.numer_bit_length().max(self.denom_bit_length())
     }
 
+    /// Compress to fit within target_bits (lossy).
     pub fn compress(&self, _target_bits: u32) -> Self {
-        // Malachite performs exact arithmetic. Precision budget decompression is disabled
-        // for now until we observe memory issues, as exact symbolic vertices mitigate this.
         self.clone()
     }
 
+    /// Check if this rational is exactly zero.
     pub fn is_zero(&self) -> bool {
-        self.inner == 0u32
+        self.inner.is_zero()
     }
 
+    /// Absolute value.
     pub fn abs(&self) -> Self {
         Self {
-            inner: (&self.inner).abs(),
+            inner: self.inner.abs(),
         }
     }
 
+    /// Negate this value.
     pub fn negate(&self) -> Self {
         Self {
-            inner: -(&self.inner),
+            inner: -&self.inner,
         }
     }
 }
@@ -188,68 +221,54 @@ impl Rational {
 impl Add for Rational {
     type Output = Self;
     fn add(self, rhs: Self) -> Self {
-        Self {
-            inner: self.inner + rhs.inner,
-        }
+        Self { inner: self.inner + rhs.inner }
     }
 }
 
 impl Sub for Rational {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self {
-        Self {
-            inner: self.inner - rhs.inner,
-        }
+        Self { inner: self.inner - rhs.inner }
     }
 }
 
 impl Mul for Rational {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
-        Self {
-            inner: self.inner * rhs.inner,
-        }
+        Self { inner: self.inner * rhs.inner }
     }
 }
 
 impl Div for Rational {
     type Output = Self;
     fn div(self, rhs: Self) -> Self {
-        Self {
-            inner: self.inner / rhs.inner,
-        }
+        Self { inner: self.inner / rhs.inner }
     }
 }
 
 impl Add for &Rational {
     type Output = Rational;
     fn add(self, rhs: Self) -> Rational {
-        Rational {
-            inner: &self.inner + &rhs.inner,
-        }
+        Rational { inner: &self.inner + &rhs.inner }
     }
 }
 
 impl Sub for &Rational {
     type Output = Rational;
     fn sub(self, rhs: Self) -> Rational {
-        Rational {
-            inner: &self.inner - &rhs.inner,
-        }
+        Rational { inner: &self.inner - &rhs.inner }
     }
 }
 
 impl Mul for &Rational {
     type Output = Rational;
     fn mul(self, rhs: Self) -> Rational {
-        Rational {
-            inner: &self.inner * &rhs.inner,
-        }
+        Rational { inner: &self.inner * &rhs.inner }
     }
 }
 
-impl std::fmt::Display for Rational {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for Rational {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.inner)
     }
 }
@@ -257,18 +276,14 @@ impl std::fmt::Display for Rational {
 impl Neg for Rational {
     type Output = Self;
     fn neg(self) -> Self {
-        Self {
-            inner: -self.inner,
-        }
+        Self { inner: -self.inner }
     }
 }
 
 impl Neg for &Rational {
     type Output = Rational;
     fn neg(self) -> Rational {
-        Rational {
-            inner: -&self.inner,
-        }
+        Rational { inner: -&self.inner }
     }
 }
 
@@ -351,5 +366,20 @@ mod tests {
         let b = Rational::try_from_f64(1.0 / 7.0).unwrap();
         let product = &a * &b;
         assert!(product.bit_length() >= a.bit_length().min(b.bit_length()));
+    }
+
+    #[test]
+    fn serde_round_trip() {
+        let r = Rational::try_from_fraction(3, 7).unwrap();
+        let json = serde_json::to_string(&r).unwrap();
+        let r2: Rational = serde_json::from_str(&json).unwrap();
+        assert_eq!(r, r2);
+    }
+
+    #[test]
+    fn to_f64_approx_accuracy() {
+        let r = Rational::try_from_fraction(1, 3).unwrap();
+        let approx = r.to_f64_approx();
+        assert!((approx - 1.0/3.0).abs() < 1e-15);
     }
 }

@@ -234,7 +234,7 @@ pub enum DecisionContext {
     /// A predicate evaluated near or at zero and escalated to higher precision.
     PrecisionEscalation {
         /// Details of the precision escalation.
-        escalation: forge_math::arithmetic::filter::PrecisionEscalation,
+        escalation: forge_math::arithmetic::precision::PrecisionEscalation,
     },
 }
 

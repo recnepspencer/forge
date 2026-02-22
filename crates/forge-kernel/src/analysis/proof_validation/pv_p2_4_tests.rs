@@ -7,7 +7,7 @@
 
 use forge_geom::spatial::local_space::{LocalCoordinateSpace, ScaleAnalysis};
 use forge_math::predicates::orient3d::orient3d;
-use forge_math::arithmetic::filter::PrecisionMode;
+use forge_math::arithmetic::precision::PrecisionMode;
 
 /// ULP computation (mirrors forge-math's internal ulp).
 fn ulp(x: f64) -> f64 {
@@ -84,7 +84,7 @@ fn pv_32_mixed_scale_correct_escalation() {
         "Should resolve to a definite sign in local space"
     );
     assert!(
-        esc.get_resolved_at() <= PrecisionMode::Interval,
+        esc.get_resolved_at() <= PrecisionMode::ExpansionB,
         "In local space (unit range), should resolve at Float64 or Interval, not {:?}",
         esc.get_resolved_at()
     );

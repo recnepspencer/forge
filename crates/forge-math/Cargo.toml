@@ -6,8 +6,6 @@ license.workspace = true
 description = "Exact arithmetic, certified predicates, and filtered evaluation for the Forge geometry kernel"
 
 [dependencies]
-malachite = "0.9.1"
-malachite-base = "0.9.1"
 num-bigint = { version = "0.4", features = ["serde"] }
 num-rational = { version = "0.4", features = ["serde"] }
 num-traits = "0.2"
@@ -21,6 +19,8 @@ workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
+geometry-predicates = "0.3"
+serde_json = "1"
 trybuild = "1.0"
 
 [[bench]]

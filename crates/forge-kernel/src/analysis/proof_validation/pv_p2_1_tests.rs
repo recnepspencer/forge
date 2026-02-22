@@ -5,7 +5,7 @@
 //! PV-24: Near-degenerate inputs — interval correctly reports inconclusive where
 //!        the f64 fast-path silently chooses a sign.
 
-use forge_math::arithmetic::filter::PrecisionMode;
+use forge_math::arithmetic::precision::PrecisionMode;
 use forge_math::predicates::orient3d::orient3d;
 use forge_math::sign::TriSign;
 
@@ -69,9 +69,9 @@ fn pv_23_orient3d_interval_matches_exact_100k() {
         total += 1;
         match esc.get_resolved_at() {
             PrecisionMode::Float64 => resolved_f64 += 1,
-            PrecisionMode::Interval => resolved_interval += 1,
-            PrecisionMode::Double => resolved_double += 1,
-            PrecisionMode::Rational => resolved_rational += 1,
+            PrecisionMode::ExpansionB => resolved_interval += 1,
+            PrecisionMode::ExpansionC => resolved_double += 1,
+            PrecisionMode::ExactRational => resolved_rational += 1,
         }
 
         assert!(
