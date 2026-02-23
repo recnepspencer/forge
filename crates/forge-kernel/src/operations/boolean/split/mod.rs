@@ -15,7 +15,7 @@
 //! - cut     — per-face application (split_face_by_plane, resolve_cut_point)
 
 mod schema;
-mod gate;
+pub(crate) mod gate;
 mod eval;
 mod cut;
 mod reconcile;

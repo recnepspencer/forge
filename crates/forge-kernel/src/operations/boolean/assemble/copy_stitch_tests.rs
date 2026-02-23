@@ -313,3 +313,91 @@ fn copy_stitch_round_trip_legacy_double_notched() {
     assert_eq!(src_v, dst_v);
     assert_eq!(dst_chi, src_chi);
 }
+
+// ── Test 8: MB-N3 step 4 split-phase minimal reproduction ────────────────────
+
+/// Minimal reproduction of MB-N3 step 4 failure.
+///
+/// Runs steps 0-3 to build the target, then runs step 4 and
+/// captures the actual error. Dumps Face#10 vertex geometry
+/// and the tool's plane table for root-cause analysis.
+#[test]
+fn mb_n3_step4_split_forensics() {
+    use forge_topo::traverse::FaceEdgeIterator;
+
+    let base_half = 5.0;
+    let step_count = 20;
+    let (mut topo, mut geom) = build_cube([0.0, 0.0, 0.0], base_half);
+
+    for i in 0..4 {
+        let angle = (i as f64) * std::f64::consts::TAU / (step_count as f64);
+        let x = base_half * angle.cos();
+        let y = base_half * angle.sin();
+        let z = -4.0 + (i as f64) * 0.4;
+        let (topo_b, geom_b) = build_cube([x, y, z], 0.3);
+        let input = BooleanInput::new(topo.clone(), geom.clone(), topo_b, geom_b, BooleanOp::Subtraction);
+        let result = execute_boolean_direct(input)
+            .into_result()
+            .unwrap_or_else(|e| panic!("setup step {} failed: {:?}", i, e));
+        let (t, g) = result.into_topo_geom();
+        topo = t;
+        geom = g;
+    }
+
+    let (v, e, f, chi) = euler_audit(topo.arena());
+    eprintln!("=== TARGET after step 3 ===");
+    eprintln!("V={v} E={e} F={f} χ={chi}");
+
+    eprintln!("\n=== All target faces ===");
+    for (fid, _) in topo.arena().iter_faces() {
+        let plane = geom.get_face_plane(fid);
+        let n = plane.map(|p| p.raw_normal()).unwrap_or([0.0; 3]);
+        let d = plane.map(|p| p.raw_offset()).unwrap_or(0.0);
+        let edges: Vec<_> = FaceEdgeIterator::new(topo.arena(), fid)
+            .unwrap().collect::<Result<Vec<_>, _>>().unwrap();
+
+        let verts: Vec<String> = edges.iter().map(|&he| {
+            let vid = topo.arena().get_half_edge(he).unwrap().origin();
+            let pos = geom.get_vertex_position(vid).unwrap();
+            format!("V{}[{:.4},{:.4},{:.4}]", vid.index(), pos[0], pos[1], pos[2])
+        }).collect();
+
+        eprintln!("  Face#{}: n=[{:.4},{:.4},{:.4}] d={:.4} edges={} verts={}",
+            fid.index(), n[0], n[1], n[2], d, edges.len(), verts.join(" → "));
+    }
+
+    let angle = 4.0 * std::f64::consts::TAU / (step_count as f64);
+    let tool_center = [
+        base_half * angle.cos(),
+        base_half * angle.sin(),
+        -4.0 + 4.0 * 0.4,
+    ];
+    let notch_half = 0.3;
+    eprintln!("\n=== TOOL ===");
+    eprintln!("center=[{:.6},{:.6},{:.6}] half={notch_half}",
+        tool_center[0], tool_center[1], tool_center[2]);
+
+    let (tool_topo, tool_geom) = build_cube(tool_center, notch_half);
+    eprintln!("\n=== Tool planes ===");
+    for (fid, _) in tool_topo.arena().iter_faces() {
+        let plane = tool_geom.get_face_plane(fid);
+        let n = plane.map(|p| p.raw_normal()).unwrap_or([0.0; 3]);
+        let d = plane.map(|p| p.raw_offset()).unwrap_or(0.0);
+        eprintln!("  Face#{}: n=[{:.6},{:.6},{:.6}] d={:.6}", fid.index(), n[0], n[1], n[2], d);
+    }
+
+    eprintln!("\n=== Running step 4 boolean (expect failure) ===");
+    let input = BooleanInput::new(topo, geom, tool_topo, tool_geom, BooleanOp::Subtraction);
+    match execute_boolean_direct(input).into_result() {
+        Ok(result) => {
+            let (v, e, f, chi) = euler_audit(result.topology().arena());
+            eprintln!("SUCCEEDED: V={v} E={e} F={f} χ={chi}");
+        }
+        Err(e) => {
+            eprintln!("FAILED: {:?}", e);
+        }
+    }
+}
+
+
+
