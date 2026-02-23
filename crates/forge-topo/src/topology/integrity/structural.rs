@@ -479,6 +479,11 @@ fn validate_edge_manifoldness(arena: &TopologyArena) -> Result<(), KernelError> 
 /// In a correctly oriented manifold halfedge mesh, every twin pair
 /// (he, twin) must belong to different faces and traverse the shared
 /// edge in opposite directions.
+///
+/// Wire edges (antennae from MakeEdgeVertex) are exempted: their twin
+/// pair legitimately shares the same face. A wire edge is identified
+/// by `he.face() == he.twin().face()` and is a valid non-manifold
+/// feature, not an orientation defect.
 fn validate_orientation_consistency(arena: &TopologyArena) -> Result<(), KernelError> {
     // In a single-face topology (e.g. digon from MVF+SE), all twin
     // pairs necessarily share the same face. This is valid — skip.
@@ -496,22 +501,10 @@ fn validate_orientation_consistency(arena: &TopologyArena) -> Result<(), KernelE
             let twin_data = arena.get_half_edge(twin_id)?;
 
             if he_data.face() == twin_data.face() {
-                return Err(KernelError::TopologyViolation {
-                    err: forge_core::TopologyError::OrientationInconsistency {
-                        face_index: he_data.face().index(),
-                    },
-                    context: Some(forge_core::ErrorContext {
-                        scope: forge_core::ErrorScope::Entity {
-                            entity_kind: "HalfEdge".to_string(),
-                            index: he_id.index(),
-                        },
-                        suggested_fixes: Vec::new(),
-                        detail: format!(
-                            "Twin pair ({}, {}) both belong to face {} — orientation is inconsistent",
-                            he_id.index(), twin_id.index(), he_data.face().index()
-                        ),
-                    }),
-                });
+                // Wire edge (antenna): both halfedges of a wire edge
+                // share the same face. This is valid topology created by
+                // MakeEdgeVertex — skip this pair.
+                continue;
             }
         }
     }

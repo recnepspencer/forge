@@ -5,14 +5,12 @@
 //! ## Current Operators
 //! - `MakeVertexFace` (MVF): seed creation — V+1 F+1 E+1 L+1
 //! - `MakeEdgeFace` (MEF): face splitting — E+1 F+1
+//! - `MakeEdgeVertex` (MEV): vertex extension — V+1 E+1 (wire edge)
 //! - `SplitEdge` (SE): edge subdivision — V+1 E+1
 //! - `JoinFaces` (JF): face merging (inverse of MEF) — E-1 F-1
-//! - `KillEdgeVertex` (KEV): edge/vertex collapse (inverse of SE) — V-1 E-1
+//! - `KillEdgeVertex` (KEV): edge/vertex collapse (inverse of MEV/SE) — V-1 E-1
 //!
 //! ## Missing Operators (Future Roadmap)
-//! - **MakeEdgeVertex (MEV)**: extend a vertex with a new edge+vertex.
-//!   Needed for: extrusion, sweep, wireframe construction.
-//!   Currently simulated by splitting a degenerate self-loop.
 //! - **MakeEdgeKillLoop (MEKL)**: create an edge merging two loops.
 //!   Needed for: general hole management mid-pipeline.
 //! - **KillEdgeMakeLoop (KEML)**: remove an edge, splitting a loop.
@@ -29,6 +27,7 @@
 
 pub mod make_vertex_face;
 pub mod make_edge_face;
+pub mod make_edge_vertex;
 pub mod split_edge;
 pub mod join_faces;
 pub mod kill_edge_vertex;

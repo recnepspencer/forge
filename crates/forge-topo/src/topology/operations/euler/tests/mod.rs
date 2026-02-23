@@ -7,6 +7,7 @@
 //! - helpers        : shared test utilities (logged_op)
 //! - mvf_tests      : MakeVertexFace — seed creation + lineage
 //! - mef_tests      : MakeEdgeFace — face splitting
+//! - mev_tests      : MakeEdgeVertex — vertex extension (wire edges)
 //! - split_edge_tests : SplitEdge — degenerate and normal cases
 //! - join_faces_tests : JoinFaces — face merge + inner loop preservation
 //! - kill_edge_vertex_tests : KillEdgeVertex — vertex collapse
@@ -19,6 +20,7 @@ mod helpers;
 
 mod mvf_tests;
 mod mef_tests;
+mod mev_tests;
 mod split_edge_tests;
 mod join_faces_tests;
 mod kill_edge_vertex_tests;
