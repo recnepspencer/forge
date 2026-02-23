@@ -155,8 +155,9 @@ impl PrecisionBudget {
         self.threshold
     }
 
-    pub fn within_budget(&self, _r: &Rational) -> bool {
-        true // Malachite exact arithmetic is unconstrained
+    /// Whether the given rational fits within the bit-length budget.
+    pub fn within_budget(&self, r: &Rational) -> bool {
+        r.bit_length() <= self.threshold
     }
 
     /// Enforce the budget: if the value exceeds the threshold, compress it.

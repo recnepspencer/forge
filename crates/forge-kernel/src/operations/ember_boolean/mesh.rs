@@ -33,6 +33,7 @@ use forge_topo::state::{TopologyState, MutableDraft};
 use crate::check_tolerance;
 use crate::core::ModelingContext;
 use crate::geometry_store::GeometryStore;
+use super::checkpoint::validate_checkpoint;
 
 /// Convert a BspSolid into a halfedge mesh.
 ///
@@ -106,8 +107,15 @@ fn build_multi_cell_mesh(
         )?;
     }
 
+    // ── Checkpoint: post_insert_faces ────────────────────────────────────
+    // Skip twin checks: twins are placeholder self-twins before stitching.
+    validate_checkpoint(&draft, ctx, "post_insert_faces", true)?;
+
     // Stitch twins with cross-plane pairing for non-manifold edges
     stitch_twins_cross_plane(&mut draft, &edge_map, &face_plane_map)?;
+
+    // ── Checkpoint: post_stitch_twins ───────────────────────────────────
+    validate_checkpoint(&draft, ctx, "post_stitch_twins", false)?;
 
     // After stitching, remove coplanar twin pairs (internal faces)
     let internal_faces = detect_coplanar_twin_faces(&face_plane_map, &draft);
@@ -115,8 +123,14 @@ fn build_multi_cell_mesh(
         remove_stitched_faces(&mut draft, &internal_faces)?;
     }
 
+    // ── Checkpoint: post_remove_faces ───────────────────────────────────
+    validate_checkpoint(&draft, ctx, "post_remove_faces", false)?;
+
     // Merge adjacent coplanar faces by dissolving shared edges
     merge_coplanar_neighbors(&mut draft, &geometry, &face_plane_map, tolerance)?;
+
+    // ── Checkpoint: post_merge_coplanar ─────────────────────────────────
+    validate_checkpoint(&draft, ctx, "post_merge_coplanar", false)?;
 
     let total_faces = draft.arena().face_count();
     let total_edges = draft.arena().half_edge_count() / 2;

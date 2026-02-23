@@ -8,6 +8,7 @@ use crate::arithmetic::precision::{
     PrecisionEscalation, PrecisionMode, build_target_description,
 };
 use crate::sign::{CertifiedTriSign, TriSign};
+use super::vendored;
 
 /// Input to [`orient3d`]: four 3D points.
 pub type Orient3dInput = ([f64; 3], [f64; 3], [f64; 3], [f64; 3]);
@@ -27,26 +28,92 @@ pub type Orient3dInput = ([f64; 3], [f64; 3], [f64; 3], [f64; 3]);
 /// ```
 ///
 /// Uses Shewchuk's adaptive cascade for exact sign determination.
+/// Tracks which precision stage resolved the sign for observability.
 pub fn orient3d(
     a: [f64; 3],
     b: [f64; 3],
     c: [f64; 3],
     d: [f64; 3],
 ) -> Result<(CertifiedTriSign, PrecisionEscalation), crate::error::MathError> {
-    let det = super::vendored::orient3d(a, b, c, d);
-    let sign = sign_of(det);
+    let fast_det = compute_fast_determinant(a, b, c, d);
+    let permanent = compute_permanent(a, b, c, d);
+    let errbound = vendored::O3D_ERRBOUND_A * permanent;
+
+    let float_sign = sign_of(fast_det);
+
+    if fast_det > errbound || -fast_det > errbound {
+        return Ok((
+            CertifiedTriSign::new(float_sign),
+            PrecisionEscalation {
+                resolved_at: PrecisionMode::Float64,
+                float_agreed: true,
+                expansion_length: None,
+                target_triple: build_target_description(),
+                disagreement_magnitude: None,
+                float_sign: Some(float_sign),
+            },
+        ));
+    }
+
+    let adaptive_det = vendored::orient3dadapt(a, b, c, d, permanent);
+    let adaptive_sign = sign_of(adaptive_det);
+    let float_agreed = float_sign == adaptive_sign;
+
+    let disagreement_magnitude = if !float_agreed && fast_det != 0.0 {
+        Some(fast_det.abs())
+    } else {
+        None
+    };
 
     Ok((
-        CertifiedTriSign::new(sign),
+        CertifiedTriSign::new(adaptive_sign),
         PrecisionEscalation {
-            resolved_at: PrecisionMode::Float64,
-            float_agreed: true,
-            expansion_length: None,
+            resolved_at: PrecisionMode::ExpansionB,
+            float_agreed,
+            expansion_length: Some(192),
             target_triple: build_target_description(),
-            disagreement_magnitude: None,
-            float_sign: Some(sign),
+            disagreement_magnitude,
+            float_sign: Some(float_sign),
         },
     ))
+}
+
+/// Compute the f64 fast-path determinant (Shewchuk Stage A).
+fn compute_fast_determinant(a: [f64; 3], b: [f64; 3], c: [f64; 3], d: [f64; 3]) -> f64 {
+    let adx = a[0] - d[0];
+    let bdx = b[0] - d[0];
+    let cdx = c[0] - d[0];
+    let ady = a[1] - d[1];
+    let bdy = b[1] - d[1];
+    let cdy = c[1] - d[1];
+    let adz = a[2] - d[2];
+    let bdz = b[2] - d[2];
+    let cdz = c[2] - d[2];
+    adz * (bdx * cdy - cdx * bdy)
+        + bdz * (cdx * ady - adx * cdy)
+        + cdz * (adx * bdy - bdx * ady)
+}
+
+/// Compute the permanent (sum of absolute sub-products) for error bounding.
+fn compute_permanent(a: [f64; 3], b: [f64; 3], c: [f64; 3], d: [f64; 3]) -> f64 {
+    let adx = a[0] - d[0];
+    let bdx = b[0] - d[0];
+    let cdx = c[0] - d[0];
+    let ady = a[1] - d[1];
+    let bdy = b[1] - d[1];
+    let cdy = c[1] - d[1];
+    let adz = a[2] - d[2];
+    let bdz = b[2] - d[2];
+    let cdz = c[2] - d[2];
+    let bdxcdy = bdx * cdy;
+    let cdxbdy = cdx * bdy;
+    let cdxady = cdx * ady;
+    let adxcdy = adx * cdy;
+    let adxbdy = adx * bdy;
+    let bdxady = bdx * ady;
+    (vendored::abs(bdxcdy) + vendored::abs(cdxbdy)) * vendored::abs(adz)
+        + (vendored::abs(cdxady) + vendored::abs(adxcdy)) * vendored::abs(bdz)
+        + (vendored::abs(adxbdy) + vendored::abs(bdxady)) * vendored::abs(cdz)
 }
 
 fn sign_of(det: f64) -> TriSign {

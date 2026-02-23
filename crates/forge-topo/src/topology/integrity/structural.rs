@@ -296,6 +296,8 @@ fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
     }
 
     let all_faces: Vec<FaceId> = arena.iter_faces().map(|(fid, _)| fid).collect();
+    let face_by_index: std::collections::BTreeMap<u32, FaceId> =
+        all_faces.iter().map(|fid| (fid.index(), *fid)).collect();
     let mut visited_faces: BTreeSet<u32> = BTreeSet::new();
     let mut shell_index: usize = 0;
 
@@ -337,7 +339,7 @@ fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
 
             let rings: usize = shell_faces.iter()
                 .filter_map(|idx| {
-                    let fid = all_faces.iter().find(|f| f.index() == *idx)?;
+                    let fid = face_by_index.get(idx)?;
                     arena.get_face(*fid).ok()
                 })
                 .map(|face_data| face_data.inner_loop_count())

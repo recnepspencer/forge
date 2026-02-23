@@ -93,6 +93,12 @@ const PARAMS: PredicateParams = PredicateParams {
     isperrbound_c: (71.0f64 + 1408.0f64 * EPSILON) * EPSILON * EPSILON,
 };
 
+/// orient3d Stage A error bound (public for cascade-splitting wrappers).
+pub const O3D_ERRBOUND_A: f64 = (7.0f64 + 56.0f64 * EPSILON) * EPSILON;
+
+/// orient2d (ccw) Stage A error bound (public for cascade-splitting wrappers).
+pub const CCW_ERRBOUND_A: f64 = (3.0f64 + 16.0f64 * EPSILON) * EPSILON;
+
 /* ****************************************************************************/
 /*                                                                           */
 /*  exactinit()   Initialize the variables used for exact arithmetic.        */

@@ -368,56 +368,36 @@ mod tests {
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
         let v0 = mvf.vertex;
 
-        let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
+        let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.33 }).unwrap().into_value();
         let v1 = se1.new_vertex;
 
-        let mef1 = apply_op(&mut draft, MakeEdgeFace {
-            vertex_a: v0, vertex_b: v1, face: mvf.face,
-        }).unwrap().into_value();
-
-        let se2 = apply_op(&mut draft, SplitEdge { edge: mef1.half_edge_ab, parameter: 0.5 }).unwrap().into_value();
+        let se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
         let v2 = se2.new_vertex;
 
-        let _mef2 = apply_op(&mut draft, MakeEdgeFace {
-            vertex_a: v2, vertex_b: v1, face: mef1.new_face,
-        }).unwrap().into_value();
-
-        let _mef3 = apply_op(&mut draft, MakeEdgeFace {
+        let mef1 = apply_op(&mut draft, MakeEdgeFace {
             vertex_a: v0, vertex_b: v2, face: mvf.face,
         }).unwrap().into_value();
 
-        let se3_edge = {
-            let mut found = None;
-            for face_id in draft.arena().iter_faces().map(|(fid, _)| fid).collect::<Vec<_>>() {
-                for eid_res in FaceEdgeIterator::new(draft.arena(), face_id).unwrap() {
-                    let eid = eid_res.unwrap();
-                    let he = draft.arena().get_half_edge(eid).unwrap();
-                    if he.origin() == v0 {
-                        let twin_data = draft.arena().get_half_edge(he.twin()).unwrap();
-                        if twin_data.origin() == v1 && he.face() != mvf.face {
-                            found = Some(eid);
-                            break;
-                        }
-                    }
-                }
-                if found.is_some() { break; }
-            }
-            found.expect("Must find edge v0→v1 on a non-original face")
-        };
-
-        let se3 = apply_op(&mut draft, SplitEdge { edge: se3_edge, parameter: 0.5 }).unwrap().into_value();
+        let se3 = apply_op(&mut draft, SplitEdge { edge: mef1.half_edge_ba, parameter: 0.5 }).unwrap().into_value();
         let v3 = se3.new_vertex;
 
-        let se3_face = draft.arena().get_half_edge(se3_edge).unwrap().face();
-        let _mef4 = apply_op(&mut draft, MakeEdgeFace {
-            vertex_a: v3, vertex_b: v0, face: se3_face,
+        let _mef2 = apply_op(&mut draft, MakeEdgeFace {
+            vertex_a: v1, vertex_b: v3, face: mvf.face,
+        }).unwrap().into_value();
+
+        let _mef3 = apply_op(&mut draft, MakeEdgeFace {
+            vertex_a: v2, vertex_b: v3, face: mef1.new_face,
         }).unwrap().into_value();
 
         let arena = draft.arena();
-        assert_eq!(arena.vertex_count(), 4);
-        assert_eq!(arena.half_edge_count() / 2, 6);
-        assert_eq!(arena.face_count(), 4);
-        assert_eq!(euler_chi(arena), 2, "Tetrahedron must have χ=2");
+        let v = arena.vertex_count();
+        let e = arena.half_edge_count() / 2;
+        let f = arena.face_count();
+        let chi = euler_chi(arena);
+        assert_eq!(v, 4, "Tetrahedron V count");
+        assert_eq!(e, 6, "Tetrahedron E count: got {} (HE={})", e, arena.half_edge_count());
+        assert_eq!(f, 4, "Tetrahedron F count");
+        assert_eq!(chi, 2, "Tetrahedron must have χ=2, got V={} E={} F={} χ={}", v, e, f, chi);
 
         let committed = draft.commit().unwrap();
         assert!(validate_topology(committed.arena(), ValidationLevel::Full).is_ok());
@@ -497,11 +477,11 @@ mod tests {
 
     /// L1: Classify a point inside a manually-built cube.
     ///
-    /// Constructs a cube topology with vertex positions and uses
-    /// classify_point_in_solid for interior/exterior classification.
+    /// Uses the raw-arena cube (V=8, E=12, F=6) and asserts the point at
+    /// the origin is Inside, a far-away point is Outside.
     #[test]
     fn classify_l1_point_inside_solid() {
-        use crate::classify::classify_point_in_solid;
+        use crate::classify::{classify_point_in_solid, PointClassification};
 
         let (arena, positions) = build_cube_arena();
 
@@ -514,19 +494,36 @@ mod tests {
 
         let inside = classify_point_in_solid(
             &arena, &position_fn, None, &[0.0, 0.0, 0.0], 100.0, 1e-10,
+        ).expect("Classification must not error for interior point");
+        assert!(
+            matches!(inside, PointClassification::Inside { .. }),
+            "Origin must be Inside the [-1,1]³ cube, got {:?}", inside
         );
-        assert!(inside.is_ok(), "Classification must not error: {:?}", inside.err());
 
         let outside = classify_point_in_solid(
             &arena, &position_fn, None, &[10.0, 10.0, 10.0], 100.0, 1e-10,
+        ).expect("Classification must not error for exterior point");
+        assert!(
+            matches!(outside, PointClassification::Outside { .. }),
+            "Point (10,10,10) must be Outside the [-1,1]³ cube, got {:?}", outside
         );
-        assert!(outside.is_ok(), "Classification must not error: {:?}", outside.err());
+
+        let also_outside = classify_point_in_solid(
+            &arena, &position_fn, None, &[-5.0, 0.0, 0.0], 100.0, 1e-10,
+        ).expect("Classification must not error for left-exterior point");
+        assert!(
+            matches!(also_outside, PointClassification::Outside { .. }),
+            "Point (-5,0,0) must be Outside, got {:?}", also_outside
+        );
     }
 
     /// L2: Classify a point on a face boundary.
+    ///
+    /// Point exactly on a face of the cube should be OnBoundary.
+    /// Point just inside a face should be Inside.
     #[test]
     fn classify_l2_point_on_edge_boundary() {
-        use crate::classify::classify_point_in_solid;
+        use crate::classify::{classify_point_in_solid, PointClassification};
 
         let (arena, positions) = build_cube_arena();
 
@@ -539,15 +536,38 @@ mod tests {
 
         let on_face = classify_point_in_solid(
             &arena, &position_fn, None, &[1.0, 0.0, 0.0], 100.0, 1e-10,
+        ).expect("Classification on face must not error");
+        assert!(
+            matches!(on_face, PointClassification::OnBoundary(_)),
+            "Point (1,0,0) on +X face must be OnBoundary, got {:?}", on_face
         );
-        assert!(on_face.is_ok(), "Classification on face must not error: {:?}", on_face.err());
+
+        let just_inside = classify_point_in_solid(
+            &arena, &position_fn, None, &[0.99, 0.0, 0.0], 100.0, 1e-10,
+        ).expect("Classification near face must not error");
+        assert!(
+            matches!(just_inside, PointClassification::Inside { .. }),
+            "Point (0.99,0,0) must be Inside, got {:?}", just_inside
+        );
+
+        let just_outside = classify_point_in_solid(
+            &arena, &position_fn, None, &[1.01, 0.0, 0.0], 100.0, 1e-10,
+        ).expect("Classification near face must not error");
+        assert!(
+            matches!(just_outside, PointClassification::Outside { .. }),
+            "Point (1.01,0,0) must be Outside, got {:?}", just_outside
+        );
     }
 
-    /// L3: Mass classification stress — 10,000 points at near-boundary distances.
-    /// Must not panic, infinite-loop, or corrupt state.
+    /// L3: Mass classification stress — 1,000 points in a grid pattern.
+    ///
+    /// Classifies points in and around the cube and verifies correctness:
+    /// - Points well inside → Inside
+    /// - Points well outside → Outside
+    /// - No crashes, no infinite loops
     #[test]
     fn classify_l3_near_boundary_mass() {
-        use crate::classify::classify_point_in_solid;
+        use crate::classify::{classify_point_in_solid, PointClassification};
 
         let (arena, positions) = build_cube_arena();
 
@@ -558,23 +578,175 @@ mod tests {
             })
         };
 
-        let mut success_count = 0usize;
+        let mut inside_count = 0usize;
+        let mut outside_count = 0usize;
+        let mut boundary_count = 0usize;
         let mut error_count = 0usize;
 
-        for i in 0..10_000 {
-            let offset = (i as f64) * 1e-12;
-            let point = [1.0 + offset, offset, offset];
+        let steps = 10;
+        for ix in 0..steps {
+            for iy in 0..steps {
+                for iz in 0..steps {
+                    let x = -2.0 + 4.0 * (ix as f64) / (steps as f64 - 1.0);
+                    let y = -2.0 + 4.0 * (iy as f64) / (steps as f64 - 1.0);
+                    let z = -2.0 + 4.0 * (iz as f64) / (steps as f64 - 1.0);
 
-            match classify_point_in_solid(
-                &arena, &position_fn, None, &point, 100.0, 1e-10,
-            ) {
-                Ok(_) => success_count += 1,
-                Err(_) => error_count += 1,
+                    match classify_point_in_solid(
+                        &arena, &position_fn, None, &[x, y, z], 100.0, 1e-10,
+                    ) {
+                        Ok(PointClassification::Inside { .. }) => inside_count += 1,
+                        Ok(PointClassification::Outside { .. }) => outside_count += 1,
+                        Ok(PointClassification::OnBoundary(_)) => boundary_count += 1,
+                        Err(_) => error_count += 1,
+                    }
+                }
             }
         }
 
-        assert!(success_count > 0, "At least some classifications must succeed");
-        assert_eq!(success_count + error_count, 10_000, "All points must be processed");
+        let total = inside_count + outside_count + boundary_count + error_count;
+        assert_eq!(total, steps * steps * steps, "All points must be processed");
+        assert!(inside_count > 0, "Must have some interior points, got 0");
+        assert!(outside_count > 0, "Must have some exterior points, got 0");
+        assert!(
+            inside_count < outside_count,
+            "Cube [-1,1]³ in [-2,2]³ grid: outside ({}) must exceed inside ({})",
+            outside_count, inside_count
+        );
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // CATEGORY 4B: Structural Validation on Mesh Topology
+    // ══════════════════════════════════════════════════════════════
+
+    /// Twin pairs must belong to DIFFERENT faces (orientation consistency).
+    ///
+    /// This is the exact invariant that MB-N3/MB-N4 violate. If this test
+    /// fails on our cube mesh, the topology builder has a fundamental bug.
+    #[test]
+    fn structural_twin_pairs_different_faces() {
+        let (arena, _) = build_cube_arena();
+
+        for (he_id, he_data) in arena.iter_half_edges() {
+            let twin_id = he_data.twin();
+            if he_id == twin_id { continue; }
+
+            let twin_data = arena.get_half_edge(twin_id).unwrap();
+            assert_ne!(
+                he_data.face(), twin_data.face(),
+                "Twin pair ({}, {}) both belong to face {} — orientation is inconsistent",
+                he_id.index(), twin_id.index(), he_data.face().index()
+            );
+        }
+    }
+
+    /// Every twin must be reciprocal: he.twin.twin == he.
+    #[test]
+    fn structural_twin_reciprocity_on_mesh() {
+        let (arena, _) = build_cube_arena();
+
+        for (he_id, he_data) in arena.iter_half_edges() {
+            let twin_id = he_data.twin();
+            if he_id == twin_id { continue; }
+
+            let twin_data = arena.get_half_edge(twin_id)
+                .unwrap_or_else(|_| panic!("Twin {} of {} is invalid", twin_id.index(), he_id.index()));
+            assert_eq!(
+                twin_data.twin(), he_id,
+                "Twin reciprocity broken: he[{}].twin = {}, but he[{}].twin = {}",
+                he_id.index(), twin_id.index(), twin_id.index(), twin_data.twin().index()
+            );
+        }
+    }
+
+    /// Every geometric edge must be shared by exactly 2 faces (manifold).
+    #[test]
+    fn structural_manifold_edges_on_mesh() {
+        let (arena, _) = build_cube_arena();
+
+        let mut edge_face_pairs: std::collections::BTreeMap<(u32, u32), Vec<u32>> =
+            std::collections::BTreeMap::new();
+
+        for (he_id, he_data) in arena.iter_half_edges() {
+            let twin_id = he_data.twin();
+            if he_id == twin_id { continue; }
+
+            let canonical = (he_id.index().min(twin_id.index()), he_id.index().max(twin_id.index()));
+            edge_face_pairs.entry(canonical).or_default().push(he_data.face().index());
+        }
+
+        for ((lo, hi), faces) in &edge_face_pairs {
+            assert_eq!(
+                faces.len(), 2,
+                "Edge ({}, {}) shared by {} faces (expected 2): {:?}",
+                lo, hi, faces.len(), faces
+            );
+            assert_ne!(
+                faces[0], faces[1],
+                "Edge ({}, {}) has both halfedges on face {} — non-manifold",
+                lo, hi, faces[0]
+            );
+        }
+    }
+
+    /// Every face loop must be closed and have consistent vertex wiring.
+    ///
+    /// For each face: next(prev(he)) == he AND prev(next(he)) == he.
+    #[test]
+    fn structural_loop_closure_on_mesh() {
+        let (arena, _) = build_cube_arena();
+
+        for (face_id, _) in arena.iter_faces() {
+            let mut edge_count = 0usize;
+            for he_result in FaceEdgeIterator::new(&arena, face_id).unwrap() {
+                let he_id = he_result.unwrap();
+                let he_data = arena.get_half_edge(he_id).unwrap();
+
+                assert_eq!(
+                    he_data.face(), face_id,
+                    "Half-edge {} in loop of face {} claims face {}",
+                    he_id.index(), face_id.index(), he_data.face().index()
+                );
+
+                let prev_data = arena.get_half_edge(he_data.prev()).unwrap();
+                assert_eq!(prev_data.next(), he_id,
+                    "prev({}).next != {} in face {}",
+                    he_data.prev().index(), he_id.index(), face_id.index()
+                );
+
+                edge_count += 1;
+            }
+            assert!(edge_count >= 3,
+                "Face {} has only {} edges (minimum 3 for a valid polygon)",
+                face_id.index(), edge_count
+            );
+        }
+    }
+
+    /// Adjacent faces must have opposite winding at their shared edge.
+    ///
+    /// If he goes from vertex A→B, twin must go from B→A. This is the
+    /// orientation coherence guarantee for a properly oriented manifold.
+    #[test]
+    fn structural_orientation_coherence_on_mesh() {
+        let (arena, _) = build_cube_arena();
+
+        for (he_id, he_data) in arena.iter_half_edges() {
+            let twin_id = he_data.twin();
+            if he_id == twin_id { continue; }
+
+            let twin_data = arena.get_half_edge(twin_id).unwrap();
+            let next_data = arena.get_half_edge(he_data.next()).unwrap();
+
+            assert_eq!(
+                next_data.origin(), twin_data.origin(),
+                "Orientation coherence broken at edge ({}, {}): \
+                 he[{}] origin={}, next.origin={}, twin.origin={} — \
+                 twin should go from target back to origin",
+                he_id.index(), twin_id.index(),
+                he_id.index(), he_data.origin().index(),
+                next_data.origin().index(), twin_data.origin().index()
+            );
+        }
     }
 
     /// Build a cube topology (V=8, E=12, F=6) with vertex positions using

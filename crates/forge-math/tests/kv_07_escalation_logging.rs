@@ -2,10 +2,6 @@
 //!
 //! Validates that intentionally exceeding the bit-length budget produces
 //! a structured `EscalationEvent` with correct fields, deterministically.
-//! 
-//! Note: As of the Malachite exact arbitrary-precision replacement, 
-//!bit-length compression has been disabled. `PrecisionBudget` acts 
-//! as a pass-through until memory usage requires re-enabling it.
 
 use forge_math::arithmetic::precision::PrecisionBudget;
 use forge_math::arithmetic::rational::Rational;
@@ -13,49 +9,71 @@ use forge_math::sign::TriSign;
 
 #[test]
 fn kv07_exceeding_budget_produces_escalation_event() {
-    let mut budget = PrecisionBudget::new(64);
+    let mut budget = PrecisionBudget::new(256);
     let mut r = Rational::try_from_f64(-1.0).unwrap();
-    let val = Rational::try_from_f64(1e30).unwrap();
-    
-    r = &r * &val;
-    r = &r * &val;
-    r = &r * &val;
-    r = &r * &val;
-    r = &r * &val;
+    let large = Rational::try_from_f64(1e15).unwrap();
+    let small = Rational::try_from_f64(1e-15).unwrap();
 
-    // Exact precision has no limit and compression is disabled
-    assert!(budget.within_budget(&r));
-    let compressed = budget.enforce(r.clone());
+    for _ in 0..20 {
+        r = &r * &large;
+        r = &r * &small;
+    }
 
-    assert_eq!(budget.escalation_count(), 0);
-    assert_eq!(compressed, r);
+    let before_bits = r.bit_length();
+    assert!(
+        before_bits > 256,
+        "20 multiply-divide cycles should exceed 256 bits, got {}",
+        before_bits
+    );
+
+    let compressed = budget.enforce(r);
+    assert_eq!(budget.escalation_count(), 1);
+    assert_eq!(compressed.sign(), TriSign::Neg);
 }
 
 #[test]
 fn kv07_multiple_escalations_recorded() {
-    let mut budget = PrecisionBudget::new(64);
+    let mut budget = PrecisionBudget::new(256);
     let mut r = Rational::try_from_f64(1.0).unwrap();
-    let val = Rational::try_from_f64(1e30).unwrap();
+    let large = Rational::try_from_f64(1e15).unwrap();
+    let small = Rational::try_from_f64(1e-15).unwrap();
 
-    r = &r * &val;
+    for _ in 0..20 {
+        r = &r * &large;
+        r = &r * &small;
+    }
     r = budget.enforce(r);
 
-    r = &r * &val;
-    let _ = budget.enforce(r);
+    for _ in 0..20 {
+        r = &r * &large;
+        r = &r * &small;
+    }
+    r = budget.enforce(r);
 
-    assert_eq!(budget.escalation_count(), 0);
+    assert_eq!(budget.escalation_count(), 2,
+        "Two rounds of 20 multiply-divide cycles must produce two escalations");
 }
 
 #[test]
 fn kv07_escalation_preserves_negative_sign() {
-    let mut budget = PrecisionBudget::new(64);
+    let mut budget = PrecisionBudget::new(256);
     let mut r = Rational::try_from_f64(-1.0).unwrap();
-    let val = Rational::try_from_f64(1e30).unwrap();
+    let large = Rational::try_from_f64(1e15).unwrap();
+    let small = Rational::try_from_f64(1e-15).unwrap();
 
-    r = &r * &val;
-    r = &r * &val;
+    for _ in 0..20 {
+        r = &r * &large;
+        r = &r * &small;
+    }
 
     assert_eq!(r.sign(), TriSign::Neg);
     let compressed = budget.enforce(r);
     assert_eq!(compressed.sign(), TriSign::Neg);
+}
+
+#[test]
+fn kv07_small_value_stays_within_budget() {
+    let budget = PrecisionBudget::new(256);
+    let r = Rational::try_from_f64(42.0).unwrap();
+    assert!(budget.within_budget(&r));
 }

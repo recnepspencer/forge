@@ -8,6 +8,7 @@ use crate::arithmetic::precision::{
     PrecisionEscalation, PrecisionMode, build_target_description,
 };
 use crate::sign::{CertifiedTriSign, TriSign};
+use super::vendored;
 
 /// Compute the 2D orientation of three points.
 ///
@@ -23,16 +24,63 @@ use crate::sign::{CertifiedTriSign, TriSign};
 /// ```
 ///
 /// Uses Shewchuk's adaptive cascade for exact sign determination
-/// with minimal arithmetic work. Vendored from geometry-predicates (MIT).
+/// with minimal arithmetic work. Tracks which precision stage resolved.
 pub fn orient2d(
     pa: [f64; 2],
     pb: [f64; 2],
     pc: [f64; 2],
 ) -> Result<(CertifiedTriSign, PrecisionEscalation), crate::error::MathError> {
-    let det = super::vendored::orient2d(pa, pb, pc);
-    let sign = sign_of(det);
+    let detleft = (pa[0] - pc[0]) * (pb[1] - pc[1]);
+    let detright = (pa[1] - pc[1]) * (pb[0] - pc[0]);
+    let det = detleft - detright;
+
+    let detsum = if detleft > 0.0 {
+        if detright <= 0.0 {
+            return Ok(make_float64_result(det));
+        }
+        detleft + detright
+    } else if detleft < 0.0 {
+        if detright >= 0.0 {
+            return Ok(make_float64_result(det));
+        }
+        -detleft - detright
+    } else {
+        return Ok(make_float64_result(det));
+    };
+
+    let errbound = vendored::CCW_ERRBOUND_A * detsum;
+    if det >= errbound || -det >= errbound {
+        return Ok(make_float64_result(det));
+    }
+
+    let adaptive_det = vendored::orient2dadapt(pa, pb, pc, detsum);
+    let float_sign = sign_of(det);
+    let adaptive_sign = sign_of(adaptive_det);
+    let float_agreed = float_sign == adaptive_sign;
+
+    let disagreement_magnitude = if !float_agreed && det != 0.0 {
+        Some(det.abs())
+    } else {
+        None
+    };
 
     Ok((
+        CertifiedTriSign::new(adaptive_sign),
+        PrecisionEscalation {
+            resolved_at: PrecisionMode::ExpansionB,
+            float_agreed,
+            expansion_length: Some(16),
+            target_triple: build_target_description(),
+            disagreement_magnitude,
+            float_sign: Some(float_sign),
+        },
+    ))
+}
+
+/// Build a Float64-resolved result from a determinant that passed the error bound.
+fn make_float64_result(det: f64) -> (CertifiedTriSign, PrecisionEscalation) {
+    let sign = sign_of(det);
+    (
         CertifiedTriSign::new(sign),
         PrecisionEscalation {
             resolved_at: PrecisionMode::Float64,
@@ -42,7 +90,7 @@ pub fn orient2d(
             disagreement_magnitude: None,
             float_sign: Some(sign),
         },
-    ))
+    )
 }
 
 fn sign_of(det: f64) -> TriSign {

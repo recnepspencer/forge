@@ -22,6 +22,7 @@ pub mod schema;
 pub mod quantize;
 pub mod eval;
 pub mod classify;
+pub mod checkpoint;
 pub mod mesh;
 #[cfg(test)]
 mod tests;

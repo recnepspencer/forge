@@ -193,9 +193,20 @@ impl Rational {
         self.numer_bit_length().max(self.denom_bit_length())
     }
 
-    /// Compress to fit within target_bits (lossy).
+    /// Compress to fit within target_bits (lossy, sign-preserving).
+    ///
+    /// Reduces bit-length by round-tripping through f64 approximation.
+    /// Guarantees: sign is preserved, result has ≤53 bits (f64 precision).
+    /// This is lossy — magnitude may shift by up to 1 ULP.
     pub fn compress(&self, _target_bits: u32) -> Self {
-        self.clone()
+        if self.inner.is_zero() {
+            return self.clone();
+        }
+        let approx = self.to_f64_approx();
+        match Self::try_from_f64(approx) {
+            Ok(compressed) if compressed.sign() == self.sign() => compressed,
+            _ => self.clone(),
+        }
     }
 
     /// Check if this rational is exactly zero.
