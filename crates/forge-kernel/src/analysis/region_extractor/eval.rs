@@ -71,7 +71,7 @@ pub fn extract_n_ring(
                 SerializedHalfEdge::from_half_edge_data(he_data),
             );
 
-            let twin = he_data.twin();
+            let twin = he_data.radial_next();
             half_edges.insert(twin);
 
             let twin_data = arena.get_half_edge(twin)?;
@@ -118,12 +118,11 @@ fn collect_adjacent_faces(
 
     for he_result in iter {
         let he_id = he_result?;
-        let (face_a, face_b) = edge_faces(arena, he_id)?;
-        if face_a != face {
-            neighbors.push(face_a);
-        }
-        if face_b != face {
-            neighbors.push(face_b);
+        let adjacent_faces = edge_faces(arena, he_id)?;
+        for adj_face in adjacent_faces {
+            if adj_face != face {
+                neighbors.push(adj_face);
+            }
         }
     }
 

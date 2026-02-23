@@ -113,8 +113,8 @@ fn apply_match(
         return Ok(());
     };
 
-    draft.arena_mut().get_half_edge_mut(he_a)?.set_twin(he_b);
-    draft.arena_mut().get_half_edge_mut(he_b)?.set_twin(he_a);
+    draft.arena_mut().get_half_edge_mut(he_a)?.set_radial_next(he_b);
+    draft.arena_mut().get_half_edge_mut(he_b)?.set_radial_next(he_a);
     paired.insert(he_a.index());
     paired.insert(he_b.index());
 

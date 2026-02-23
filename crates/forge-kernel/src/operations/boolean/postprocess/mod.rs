@@ -69,7 +69,7 @@ pub(crate) fn compute_vertex_degree(
         edges.push(curr);
 
         let curr_data = arena.get_half_edge(curr).ok()?;
-        let twin_data = arena.get_half_edge(curr_data.twin()).ok()?;
+        let twin_data = arena.get_half_edge(curr_data.radial_next()).ok()?;
         let next_outgoing = twin_data.next();
         if next_outgoing == he_first {
             return Some((count, edges));

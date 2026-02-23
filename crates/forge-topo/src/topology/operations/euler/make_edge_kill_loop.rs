@@ -111,7 +111,7 @@ impl EulerOperator for MakeEdgeKillLoop {
             Some(edge_lineage),
         ));
 
-        let (he_ab, he_ba) = draft.insert_half_edge_pair(
+        let (he_ab, he_ba) = draft.insert_radial_pair(
             HalfEdgeData::with_lineage(
                 placeholder_he,  // twin (fixed below by insert_half_edge_pair)
                 self.he_b,       // next → into inner loop

@@ -38,7 +38,7 @@ fn boolean_round_trip_validity() {
     assert_eq!(v - e + f, 2, "Boolean result violates Euler: V={v} E={e} F={f}");
 
     for (_he_id, he) in arena.iter_half_edges() {
-        let twin = arena.get_half_edge(he.twin());
+        let twin = arena.get_half_edge(he.radial_next());
         assert!(twin.is_ok(), "Orphan halfedge");
     }
 }
@@ -175,7 +175,7 @@ fn vertex_provenance_audit() {
                 plane_set.insert(pidx);
                 faces_seen.push(format!("F#{}", face.index()));
             }
-            let twin = he_data.twin();
+            let twin = he_data.radial_next();
             let twin_data = arena.get_half_edge(twin).unwrap();
             current = twin_data.next();
             if current == start_he { break; }
@@ -415,7 +415,7 @@ fn chained_booleans_preserve_euler() {
     // Print every active HE with full pointer details
     let mut stale_count = 0;
     for (he_id, he_data) in arena.iter_half_edges() {
-        let twin = he_data.twin();
+        let twin = he_data.radial_next();
         let next = he_data.next();
         let prev = he_data.prev();
         let origin = he_data.origin();

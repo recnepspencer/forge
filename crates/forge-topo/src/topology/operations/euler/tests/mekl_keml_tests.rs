@@ -35,8 +35,8 @@ fn mekl_absorbs_inner_loop() {
 
     let he_ab = draft.arena().get_half_edge(mekl.he_ab).unwrap();
     let he_ba = draft.arena().get_half_edge(mekl.he_ba).unwrap();
-    assert_eq!(he_ab.twin(), mekl.he_ba);
-    assert_eq!(he_ba.twin(), mekl.he_ab);
+    assert_eq!(he_ab.radial_next(), mekl.he_ba);
+    assert_eq!(he_ba.radial_next(), mekl.he_ab);
     assert_eq!(he_ab.face(), face);
     assert_eq!(he_ba.face(), face);
 
@@ -223,15 +223,15 @@ fn mekl_keml_on_multi_hole_face() {
     let v7 = arena.insert_vertex(crate::arena::VertexData::new(placeholder_he), None);
     let v8 = arena.insert_vertex(crate::arena::VertexData::new(placeholder_he), None);
 
-    let (he67, _he76) = arena.insert_half_edge_pair(
+    let (he67, _he76) = arena.insert_radial_pair(
         crate::arena::HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v6, placeholder_e),
         crate::arena::HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he,
             crate::handles::FaceId::new(u32::MAX, 0), v7, placeholder_e), None);
-    let (he78, _he87) = arena.insert_half_edge_pair(
+    let (he78, _he87) = arena.insert_radial_pair(
         crate::arena::HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v7, placeholder_e),
         crate::arena::HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he,
             crate::handles::FaceId::new(u32::MAX, 0), v8, placeholder_e), None);
-    let (he86, _he68) = arena.insert_half_edge_pair(
+    let (he86, _he68) = arena.insert_radial_pair(
         crate::arena::HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v8, placeholder_e),
         crate::arena::HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he,
             crate::handles::FaceId::new(u32::MAX, 0), v6, placeholder_e), None);

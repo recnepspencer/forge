@@ -39,7 +39,8 @@ mod tests {
         // belong to the same face in a single-face topology.
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
         let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.25 }).unwrap().into_value();
-        let _se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
+        let se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
+        let _se3 = apply_op(&mut draft, SplitEdge { edge: se2.he_mb, parameter: 0.75 }).unwrap().into_value();
 
         // Identify vertices on the quad loop
         let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face).unwrap()
@@ -162,9 +163,8 @@ mod tests {
         // SE2 → quad (4 edges, because both new half-edges are on the same face).
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
         let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
-        let _se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
-
-
+        let se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
+        let _se3 = apply_op(&mut draft, SplitEdge { edge: se2.he_mb, parameter: 0.5 }).unwrap().into_value();
 
         let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face).unwrap()
             .map(|r| r.unwrap()).collect();
@@ -221,7 +221,8 @@ mod tests {
         // Vertices at edges[0] and edges[2] are the SAME vertex (V2).
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
         let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
-        let _se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
+        let se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
+        let _se3 = apply_op(&mut draft, SplitEdge { edge: se2.he_mb, parameter: 0.5 }).unwrap().into_value();
 
         let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face).unwrap()
             .map(|r| r.unwrap()).collect();
@@ -343,9 +344,10 @@ mod tests {
         // The diff must NOT be empty — boundary was completely rewired
         assert!(!diff.is_empty(), "Diff must detect changes after boundary rewiring");
 
-        // Every split adds 1 vertex + 2 half-edges
+        // In sheet topology, boundary edges are self-radial (chain=1),
+        // so each split adds 1 vertex + 1 half-edge (not 2).
         let expected_new_vertices = edges_before.len();
-        let expected_new_half_edges = edges_before.len() * 2;
+        let expected_new_half_edges = edges_before.len();
         assert_eq!(
             state_after.arena().vertex_count(),
             vtx_count_before + expected_new_vertices,

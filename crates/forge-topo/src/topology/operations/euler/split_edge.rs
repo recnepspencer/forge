@@ -70,134 +70,131 @@ impl EulerOperator for SplitEdge {
 
     fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he_ab = self.edge;
-        let ab_data = draft.arena().get_half_edge(he_ab)?;
-
-        let he_twin = ab_data.twin();
-        let ab_face = ab_data.face();
-        let ab_lineage = ab_data.lineage().cloned();
-
-        let twin_data = draft.arena().get_half_edge(he_twin)?;
-        let twin_face = twin_data.face();
-        let vertex_b = twin_data.origin();
-        let twin_lineage = twin_data.lineage().cloned();
-
-        let is_self_loop = he_ab == he_twin;
-
+        let (vertex_a, vertex_b, ab_lineage) = {
+            let ab_data = draft.arena().get_half_edge(he_ab)?;
+            let ab_next = draft.arena().get_half_edge(ab_data.next())?;
+            (ab_data.origin(), ab_next.origin(), ab_data.lineage().cloned())
+        };
+        
+        let chain: Vec<HalfEdgeId> = crate::topology::queries::traverse::RadialEdgeIterator::new(draft.arena(), he_ab)?.collect::<Result<_, _>>()?;
+        
         let vertex_lineage = Lineage::derive_from(&ab_lineage, sig.clone());
-        let he_mb_lineage = Lineage::derive_from(&ab_lineage, sig.clone());
-
         let new_vertex = draft.insert_vertex(VertexData::with_lineage(
-            HalfEdgeId::new(u32::MAX, 0),
+            HalfEdgeId::new(u32::MAX, 0), // placeholder
             Some(vertex_lineage),
         ));
         draft.arena_mut().get_vertex_mut(new_vertex)?.set_birth_parameter(Some(self.parameter));
-
-        // ── Self-loop early return ──────────────────────────────────
-        if is_self_loop {
-            let new_edge = draft.insert_edge(EdgeData::with_lineage(
-                HalfEdgeId::new(u32::MAX, 0),
-                Some(he_mb_lineage.clone()),
-            ));
-
-            let he_mb = draft.insert_half_edge(HalfEdgeData::with_lineage(
-                he_ab,
-                he_ab,
-                he_ab,
-                ab_face,
-                new_vertex,
-                new_edge,
-                Some(he_mb_lineage),
-            ));
-
-            
-            draft.arena_mut().get_half_edge_mut(he_ab)?.set_twin(he_mb);
-            draft.arena_mut().get_half_edge_mut(he_ab)?.set_next(he_mb);
-            draft.arena_mut().get_half_edge_mut(he_ab)?.set_prev(he_mb);
-            draft.arena_mut().get_vertex_mut(new_vertex)?.set_outgoing(he_mb);
-            draft.arena_mut().get_edge_mut(new_edge)?.set_half_edge(he_mb);
-
-            let loop_id = draft.arena().get_face(ab_face)?.outer_loop();
-            draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(he_ab);
-
-            draft.arena_mut().bump_face_version(ab_face)?;
-
-            return Ok(ExecutionResult {
-                value: SplitEdgeOutput {
-                    he_am: he_ab,
-                    he_mb,
-                    he_bm: he_mb,
-                    he_ma: he_mb,
-                    new_vertex,
-                },
-                declared_delta: EulerDelta { vertices: 1, half_edges: 1, faces: 0, loops: 0, edges: 1, shells: 0 },
-            });
-        }
-
-        // ── Normal (non-self-loop) case ─────────────────────────────
-        let he_bm_lineage = Lineage::derive_from(&twin_lineage, sig.clone());
 
         let new_edge = draft.insert_edge(EdgeData::with_lineage(
             HalfEdgeId::new(u32::MAX, 0),
             Some(Lineage::derive_from(&ab_lineage, sig.clone())),
         ));
 
-        let placeholder = HalfEdgeId::new(u32::MAX, 0);
-        let (he_mb, he_bm) = draft.insert_half_edge_pair(
-            HalfEdgeData::with_lineage(
-                placeholder,
-                placeholder,
-                placeholder,
-                ab_face,
-                new_vertex,
-                new_edge,
-                Some(he_mb_lineage),
-            ),
-            HalfEdgeData::with_lineage(
-                placeholder,
-                placeholder,
-                placeholder,
-                twin_face,
-                vertex_b,
-                new_edge,
-                Some(he_bm_lineage),
+        let mut e_old_list = Vec::new();
+        let mut e_new_list = Vec::new();
+        let mut new_ids = std::collections::HashMap::new();
+
+        for &h in &chain {
+            let (h_face, h_orig, h_lineage, h_next) = {
+                let h_data = draft.arena().get_half_edge(h)?;
+                (h_data.face(), h_data.origin(), h_data.lineage().cloned(), h_data.next())
+            };
+            
+            // Determine orientation
+            let is_forward = h_orig == vertex_a;
+            if !is_forward && h_orig != vertex_b {
+                return Err(KernelError::InternalError {
+                    message: format!("Radial edge origin {} matches neither V_a {} nor V_b {}", h_orig.index(), vertex_a.index(), vertex_b.index()),
+                    context: None,
+                });
+            }
+            
+            let new_h_lineage = Lineage::derive_from(&h_lineage, sig.clone());
+            let h_new = draft.insert_half_edge(HalfEdgeData::with_lineage(
+                HalfEdgeId::new(u32::MAX, 0), // radial_next
+                HalfEdgeId::new(u32::MAX, 0), // next
+                HalfEdgeId::new(u32::MAX, 0), // prev
+                h_face,
+                new_vertex, // H_new ALWAYS originates at M
+                EdgeId::new(u32::MAX, 0), // placeholder edge
+                Some(new_h_lineage),
             ));
-
-        draft.arena_mut().get_half_edge_mut(he_twin)?.set_origin(new_vertex);
-
-        let am_old_next = draft.arena().get_half_edge(he_ab)?.next();
-        draft.arena_mut().get_half_edge_mut(he_ab)?.set_next(he_mb);
-        draft.arena_mut().get_half_edge_mut(he_mb)?.set_prev(he_ab);
-        draft.arena_mut().get_half_edge_mut(he_mb)?.set_next(am_old_next);
-        draft.arena_mut().get_half_edge_mut(am_old_next)?.set_prev(he_mb);
-
-        let ma_old_prev = draft.arena().get_half_edge(he_twin)?.prev();
-        draft.arena_mut().get_half_edge_mut(ma_old_prev)?.set_next(he_bm);
-        draft.arena_mut().get_half_edge_mut(he_bm)?.set_prev(ma_old_prev);
-        draft.arena_mut().get_half_edge_mut(he_bm)?.set_next(he_twin);
-        draft.arena_mut().get_half_edge_mut(he_twin)?.set_prev(he_bm);
-
-        draft.arena_mut().get_vertex_mut(new_vertex)?.set_outgoing(he_mb);
-
-        let vb_outgoing = draft.arena().get_vertex(vertex_b)?.outgoing();
-        if vb_outgoing == he_twin {
-            draft.arena_mut().get_vertex_mut(vertex_b)?.set_outgoing(he_bm);
+            
+            new_ids.insert(h, h_new);
+            
+            let old_edge = draft.arena().get_half_edge(he_ab)?.edge();
+            if is_forward {
+                // h is A->M (on E_old), h_new is M->B (on E_new)
+                draft.arena_mut().get_half_edge_mut(h)?.set_edge(old_edge);
+                draft.arena_mut().get_half_edge_mut(h_new)?.set_edge(new_edge);
+                e_old_list.push(h);
+                e_new_list.push(h_new);
+            } else {
+                // h is B->M (on E_new), h_new is M->A (on E_old)
+                draft.arena_mut().get_half_edge_mut(h)?.set_edge(new_edge);
+                draft.arena_mut().get_half_edge_mut(h_new)?.set_edge(old_edge);
+                e_new_list.push(h);
+                e_old_list.push(h_new);
+            }
+            
+            // Wire next/prev
+            draft.arena_mut().get_half_edge_mut(h_new)?.set_next(h_next);
+            draft.arena_mut().get_half_edge_mut(h_new)?.set_prev(h);
+            draft.arena_mut().get_half_edge_mut(h_next)?.set_prev(h_new);
+            draft.arena_mut().get_half_edge_mut(h)?.set_next(h_new);
+            
+            draft.arena_mut().bump_face_version(h_face)?;
         }
-
-        draft.arena_mut().bump_face_version(ab_face)?;
-        if twin_face != ab_face {
-            draft.arena_mut().bump_face_version(twin_face)?;
+        
+        // Wire radial next loops
+        for i in 0..e_old_list.len() {
+            let next_i = (i + 1) % e_old_list.len();
+            let curr = e_old_list[i];
+            let nxt = e_old_list[next_i];
+            draft.arena_mut().get_half_edge_mut(curr)?.set_radial_next(nxt);
         }
-        draft.arena_mut().get_edge_mut(new_edge)?.set_half_edge(he_mb);
+        for i in 0..e_new_list.len() {
+            let next_i = (i + 1) % e_new_list.len();
+            let curr = e_new_list[i];
+            let nxt = e_new_list[next_i];
+            draft.arena_mut().get_half_edge_mut(curr)?.set_radial_next(nxt);
+        }
+        
+        // Wire vertices and edges
+        let first_h_new = *new_ids.get(&chain[0]).unwrap();
+        draft.arena_mut().get_vertex_mut(new_vertex)?.set_outgoing(first_h_new);
+        
+        let e_old_he = e_old_list[0];
+        let e_new_he = e_new_list[0];
+        let old_edge = draft.arena().get_half_edge(he_ab)?.edge();
+        draft.arena_mut().get_edge_mut(old_edge)?.set_half_edge(e_old_he);
+        draft.arena_mut().get_edge_mut(new_edge)?.set_half_edge(e_new_he);
+        
+        // Construct output
+        let he_twin = chain[1 % chain.len()];
+        let he_mb = *new_ids.get(&he_ab).unwrap();
+        
+        let (he_bm, he_ma) = if chain.len() == 1 {
+            (he_mb, he_ab)
+        } else {
+            let twin_new = *new_ids.get(&he_twin).unwrap();
+            let is_twin_forward = draft.arena().get_half_edge(he_twin)?.origin() == vertex_a;
+            if is_twin_forward {
+                (twin_new, he_twin)
+            } else {
+                (he_twin, twin_new)
+            }
+        };
 
         Ok(ExecutionResult {
             value: SplitEdgeOutput {
                 he_am: he_ab,
                 he_mb,
                 he_bm,
-                he_ma: he_twin,
+                he_ma,
                 new_vertex,
             },
-            declared_delta: EulerDelta { vertices: 1, half_edges: 2, faces: 0, loops: 0, edges: 1, shells: 0 },
+            declared_delta: EulerDelta { vertices: 1, half_edges: chain.len() as i32, faces: 0, loops: 0, edges: 1, shells: 0 },
         })
     }
 

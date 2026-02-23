@@ -41,7 +41,7 @@ impl EulerOperator for JoinFaces {
     fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he = self.edge;
         let he_data = draft.arena().get_half_edge(he)?;
-        let he_twin = he_data.twin();
+        let he_twin = he_data.radial_next();
         let he_next = he_data.next();
         let he_prev = he_data.prev();
         let face_survive = he_data.face();
@@ -57,6 +57,14 @@ impl EulerOperator for JoinFaces {
         if face_survive == face_remove {
             return Err(KernelError::InvalidInput {
                 message: "JoinFaces: both sides of edge belong to the same face".to_string(),
+                context: None,
+            });
+        }
+        
+        let valence = crate::topology::queries::traverse::radial_valence(draft.arena(), he)?;
+        if valence != 2 {
+            return Err(KernelError::InvalidInput {
+                message: format!("JoinFaces: edge has radial valence {}, must be exactly 2 for joining", valence),
                 context: None,
             });
         }

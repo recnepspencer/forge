@@ -36,7 +36,7 @@ fn intersection_through_vertex() {
 
     for (_he_id, he) in arena.iter_half_edges() {
         let origin_pos = geom.get_vertex_position(he.origin());
-        if let Ok(twin) = arena.get_half_edge(he.twin()) {
+        if let Ok(twin) = arena.get_half_edge(he.radial_next()) {
             let next_origin_pos = geom.get_vertex_position(twin.origin());
 
             if let (Some(p1), Some(p2)) = (origin_pos, next_origin_pos) {
@@ -67,7 +67,7 @@ fn intersection_coincident_with_edge() {
         Ok(r) => {
             let arena = r.topology().arena();
             for (_he_id, he) in arena.iter_half_edges() {
-                let twin = arena.get_half_edge(he.twin());
+                let twin = arena.get_half_edge(he.radial_next());
                 assert!(
                     twin.is_ok(),
                     "Dangling halfedge after edge-coincident boolean"

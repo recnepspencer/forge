@@ -100,7 +100,7 @@ pub fn validate_checkpoint(
 /// Check twin reciprocity: he.twin.twin == he for all non-self-twin halfedges.
 fn check_twin_reciprocity(arena: &forge_topo::arena::TopologyArena) -> Result<(), String> {
     for (he_id, he_data) in arena.iter_half_edges() {
-        let twin_id = he_data.twin();
+        let twin_id = he_data.radial_next();
         if he_id == twin_id { continue; }
 
         let twin_data = match arena.get_half_edge(twin_id) {
@@ -111,11 +111,11 @@ fn check_twin_reciprocity(arena: &forge_topo::arena::TopologyArena) -> Result<()
             )),
         };
 
-        if twin_data.twin() != he_id {
+        if twin_data.radial_next() != he_id {
             return Err(format!(
                 "twin reciprocity: he[{}].twin={}, but he[{}].twin={} (expected {})",
                 he_id.index(), twin_id.index(),
-                twin_id.index(), twin_data.twin().index(), he_id.index()
+                twin_id.index(), twin_data.radial_next().index(), he_id.index()
             ));
         }
     }
@@ -125,7 +125,7 @@ fn check_twin_reciprocity(arena: &forge_topo::arena::TopologyArena) -> Result<()
 /// Check twin orientation: twin pairs must belong to different faces.
 fn check_twin_orientation(arena: &forge_topo::arena::TopologyArena) -> Result<(), String> {
     for (he_id, he_data) in arena.iter_half_edges() {
-        let twin_id = he_data.twin();
+        let twin_id = he_data.radial_next();
         if he_id == twin_id { continue; }
 
         let twin_data = match arena.get_half_edge(twin_id) {
@@ -173,7 +173,7 @@ fn check_manifold_edges(arena: &forge_topo::arena::TopologyArena) -> Result<(), 
         std::collections::BTreeMap::new();
 
     for (he_id, he_data) in arena.iter_half_edges() {
-        let twin_id = he_data.twin();
+        let twin_id = he_data.radial_next();
         if he_id == twin_id { continue; }
         let canonical = (he_id.index().min(twin_id.index()), he_id.index().max(twin_id.index()));
         *edge_counts.entry(canonical).or_insert(0) += 1;

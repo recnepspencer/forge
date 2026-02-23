@@ -65,10 +65,7 @@ impl EulerOperator for MakeEdgeVertex {
         let origin = anchor_data.origin();
         let face = anchor_data.face();
         let prev = anchor_data.prev();
-        let anchor_twin = anchor_data.twin();
         let anchor_lineage = anchor_data.lineage().cloned();
-
-        let is_self_loop = anchor == anchor_twin;
 
         let vertex_lineage = Lineage::derive_from(&anchor_lineage, sig.clone());
         let he_out_lineage = Lineage::derive_from(&anchor_lineage, sig.clone());
@@ -87,7 +84,7 @@ impl EulerOperator for MakeEdgeVertex {
 
         let placeholder = HalfEdgeId::new(u32::MAX, 0);
 
-        let (he_out, he_back) = draft.insert_half_edge_pair(
+        let (he_out, he_back) = draft.insert_radial_pair(
             HalfEdgeData::with_lineage(
                 placeholder, // twin → set below
                 placeholder, // next → set below
@@ -109,44 +106,18 @@ impl EulerOperator for MakeEdgeVertex {
         );
 
         // ── Splice into the face loop ───────────────────────────────
-        //
         // Before: ... → prev → anchor → ...
         // After:  ... → prev → he_out → he_back → anchor → ...
-        //
-        // Self-loop special case:
-        // Before: anchor → anchor (self-loop, twin/next/prev all == anchor)
-        // After:  anchor → he_out → he_back → anchor
-        //         (anchor.twin stays anchor for the self-loop path;
-        //          he_out.twin = he_back and vice versa)
+        let arena = draft.arena_mut();
 
-        if is_self_loop {
-            // ── Self-loop seed case ─────────────────────────────────
-            // The anchor currently has twin=next=prev=self.
-            // We need: anchor.next = he_out, he_out.next = he_back,
-            //          he_back.next = anchor.
-            let arena = draft.arena_mut();
+        arena.get_half_edge_mut(prev)?.set_next(he_out);
+        arena.get_half_edge_mut(he_out)?.set_prev(prev);
 
-            arena.get_half_edge_mut(anchor)?.set_next(he_out);
-            arena.get_half_edge_mut(anchor)?.set_prev(he_back);
+        arena.get_half_edge_mut(he_out)?.set_next(he_back);
+        arena.get_half_edge_mut(he_back)?.set_prev(he_out);
 
-            arena.get_half_edge_mut(he_out)?.set_prev(anchor);
-            arena.get_half_edge_mut(he_out)?.set_next(he_back);
-
-            arena.get_half_edge_mut(he_back)?.set_prev(he_out);
-            arena.get_half_edge_mut(he_back)?.set_next(anchor);
-        } else {
-            // ── Normal case ─────────────────────────────────────────
-            let arena = draft.arena_mut();
-
-            arena.get_half_edge_mut(prev)?.set_next(he_out);
-            arena.get_half_edge_mut(he_out)?.set_prev(prev);
-
-            arena.get_half_edge_mut(he_out)?.set_next(he_back);
-            arena.get_half_edge_mut(he_back)?.set_prev(he_out);
-
-            arena.get_half_edge_mut(he_back)?.set_next(anchor);
-            arena.get_half_edge_mut(anchor)?.set_prev(he_back);
-        }
+        arena.get_half_edge_mut(he_back)?.set_next(anchor);
+        arena.get_half_edge_mut(anchor)?.set_prev(he_back);
 
         // ── Entity ownership pointers ───────────────────────────────
         draft.arena_mut().get_vertex_mut(new_vertex)?.set_outgoing(he_back);

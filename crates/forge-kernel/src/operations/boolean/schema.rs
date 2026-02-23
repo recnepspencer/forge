@@ -122,7 +122,7 @@ fn validate_solid(arena: &forge_topo::arena::TopologyArena, label: &str) -> Resu
     }
 
     for (he_id, he_data) in arena.iter_half_edges() {
-        let twin_id = he_data.twin();
+        let twin_id = he_data.radial_next();
 
         if he_id == twin_id {
             return Err(forge_core::KernelError::InvalidInput {
@@ -144,11 +144,11 @@ fn validate_solid(arena: &forge_topo::arena::TopologyArena, label: &str) -> Resu
             }
         })?;
 
-        if twin_data.twin() != he_id {
+        if twin_data.radial_next() != he_id {
             return Err(forge_core::KernelError::InvalidInput {
                 message: format!(
                     "Boolean {} solid: twin reciprocity violated — he[{}].twin={}, he[{}].twin={} (expected {})",
-                    label, he_id.index(), twin_id.index(), twin_id.index(), twin_data.twin().index(), he_id.index()
+                    label, he_id.index(), twin_id.index(), twin_id.index(), twin_data.radial_next().index(), he_id.index()
                 ),
                 context: None,
             });

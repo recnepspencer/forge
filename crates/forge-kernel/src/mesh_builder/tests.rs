@@ -132,7 +132,7 @@ fn cube_mesh_twin_pairs_belong_to_different_faces() {
     let arena = result.topology().arena();
 
     for (he_id, he_data) in arena.iter_half_edges() {
-        let twin_id = he_data.twin();
+        let twin_id = he_data.radial_next();
         if he_id == twin_id { continue; }
 
         let twin_data = arena.get_half_edge(twin_id).unwrap();
@@ -155,7 +155,7 @@ fn cube_mesh_manifold_edges() {
         std::collections::BTreeMap::new();
 
     for (he_id, he_data) in arena.iter_half_edges() {
-        let twin_id = he_data.twin();
+        let twin_id = he_data.radial_next();
         if he_id == twin_id { continue; }
         let canonical = (he_id.index().min(twin_id.index()), he_id.index().max(twin_id.index()));
         edge_faces.entry(canonical).or_default().push(he_data.face().index());
@@ -179,7 +179,7 @@ fn cube_mesh_orientation_coherence() {
     let arena = result.topology().arena();
 
     for (he_id, he_data) in arena.iter_half_edges() {
-        let twin_id = he_data.twin();
+        let twin_id = he_data.radial_next();
         if he_id == twin_id { continue; }
 
         let twin_data = arena.get_half_edge(twin_id).unwrap();
@@ -219,7 +219,7 @@ fn tetrahedron_mesh_twin_pairs_belong_to_different_faces() {
     let arena = result.topology().arena();
 
     for (he_id, he_data) in arena.iter_half_edges() {
-        let twin_id = he_data.twin();
+        let twin_id = he_data.radial_next();
         if he_id == twin_id { continue; }
 
         let twin_data = arena.get_half_edge(twin_id).unwrap();

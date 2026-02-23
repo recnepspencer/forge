@@ -114,7 +114,7 @@ fn flip_face_winding(
         let he_data = arena.get_half_edge(he_id)?;
         let old_next = he_data.next();
         let old_prev = he_data.prev();
-        let twin_id = he_data.twin();
+        let twin_id = he_data.radial_next();
         let new_origin = if he_id != twin_id {
             arena.get_half_edge(twin_id)?.origin()
         } else {

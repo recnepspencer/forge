@@ -239,7 +239,7 @@ fn propagate_boundary_planes(
             Ok(d) => d,
             Err(_) => return,
         };
-        let twin_data = match source_arena.get_half_edge(he_data.twin()) {
+        let twin_data = match source_arena.get_half_edge(he_data.radial_next()) {
             Ok(d) => d,
             Err(_) => return,
         };
@@ -594,7 +594,7 @@ fn collect_incident_plane_indices(
                 }
             }
 
-            let twin = he_data.twin();
+            let twin = he_data.radial_next();
             if let Ok(twin_data) = arena.get_half_edge(twin) {
                 let next = twin_data.next();
                 if next == start_he {

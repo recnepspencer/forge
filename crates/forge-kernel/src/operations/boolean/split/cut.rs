@@ -276,7 +276,7 @@ fn compute_crossing_cut_point(
     split_cfg: &SplitConfig<'_>,
 ) -> Result<CutPoint, KernelError> {
     let he_data = arena.get_half_edge(he)?;
-    let twin = he_data.twin();
+    let twin = he_data.radial_next();
     let twin_face = arena.get_half_edge(twin)?.face();
 
     let p_face_idx = *split_cfg.face_plane_map.get(&face).unwrap_or(&0);

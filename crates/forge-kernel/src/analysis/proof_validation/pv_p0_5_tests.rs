@@ -105,7 +105,7 @@ fn pv_14_50k_entities_under_100ms() {
             let he_mut = dst.get_half_edge_mut(new_heid).unwrap();
             he_mut.set_next(he_map[&hedata.next().index()]);
             he_mut.set_prev(he_map[&hedata.prev().index()]);
-            he_mut.set_twin(he_map[&hedata.twin().index()]);
+            he_mut.set_radial_next(he_map[&hedata.radial_next().index()]);
             he_mut.set_face(face_map[&hedata.face().index()]);
             he_mut.set_origin(vert_map[&hedata.origin().index()]);
         }

@@ -192,7 +192,7 @@ fn halfedge_twin_reciprocity_audit() {
     let arena = result.topology().arena();
 
     for (he_id, he_data) in arena.iter_half_edges() {
-        let twin_id = he_data.twin();
+        let twin_id = he_data.radial_next();
         assert_ne!(
             he_id, twin_id,
             "Halfedge {he_id} has self-referencing twin"
@@ -202,9 +202,9 @@ fn halfedge_twin_reciprocity_audit() {
             .unwrap_or_else(|_| panic!("Twin {twin_id} of {he_id} is stale"));
 
         assert_eq!(
-            twin_data.twin(), he_id,
+            twin_data.radial_next(), he_id,
             "Twin reciprocity violated: he[{}].twin={}, but he[{}].twin={}",
-            he_id.index(), twin_id.index(), twin_id.index(), twin_data.twin().index()
+            he_id.index(), twin_id.index(), twin_id.index(), twin_data.radial_next().index()
         );
     }
 }

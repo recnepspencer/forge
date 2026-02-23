@@ -68,7 +68,7 @@ fn pv_02_zero_length_edge_detection() {
     let he_id = arena.iter_half_edges().next().unwrap().0;
     let he_data = arena.get_half_edge(he_id).unwrap();
     let origin = he_data.origin();
-    let twin_data = arena.get_half_edge(he_data.twin()).unwrap();
+    let twin_data = arena.get_half_edge(he_data.radial_next()).unwrap();
     let target = twin_data.origin();
 
     let origin_pos = *geom.get_vertex_position(origin).unwrap();
@@ -184,12 +184,12 @@ fn pv_04_degenerate_loop_detection() {
     arena.get_half_edge_mut(twin2).unwrap().set_next(twin0);
     arena.get_half_edge_mut(twin2).unwrap().set_prev(twin1);
 
-    arena.get_half_edge_mut(he0).unwrap().set_twin(twin0);
-    arena.get_half_edge_mut(twin0).unwrap().set_twin(he0);
-    arena.get_half_edge_mut(he1).unwrap().set_twin(twin1);
-    arena.get_half_edge_mut(twin1).unwrap().set_twin(he1);
-    arena.get_half_edge_mut(he2).unwrap().set_twin(twin2);
-    arena.get_half_edge_mut(twin2).unwrap().set_twin(he2);
+    arena.get_half_edge_mut(he0).unwrap().set_radial_next(twin0);
+    arena.get_half_edge_mut(twin0).unwrap().set_radial_next(he0);
+    arena.get_half_edge_mut(he1).unwrap().set_radial_next(twin1);
+    arena.get_half_edge_mut(twin1).unwrap().set_radial_next(he1);
+    arena.get_half_edge_mut(he2).unwrap().set_radial_next(twin2);
+    arena.get_half_edge_mut(twin2).unwrap().set_radial_next(he2);
 
     arena.get_loop_mut(loop_id).unwrap().set_half_edge(he0);
     arena.get_loop_mut(loop_id).unwrap().set_face(face);

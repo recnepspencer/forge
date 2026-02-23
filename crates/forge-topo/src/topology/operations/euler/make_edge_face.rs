@@ -91,7 +91,7 @@ impl EulerOperator for MakeEdgeFace {
             Some(edge_lineage),
         ));
 
-        let (he_ab, he_ba) = draft.insert_half_edge_pair(
+        let (he_ab, he_ba) = draft.insert_radial_pair(
             HalfEdgeData::with_lineage(
                 placeholder_he,
                 he_from_b,
@@ -119,6 +119,20 @@ impl EulerOperator for MakeEdgeFace {
             arena.get_half_edge_mut(he_from_a)?.set_prev(he_ba);
         }
 
+        // ── Edge-consistency repair ──────────────────────────────────
+        // Splitting the face loop changes which halfedge follows which.
+        // Any halfedge whose effective destination (next.origin) now
+        // differs from its radial twin's vertex pair needs its Edge
+        // entity split. Scan both resulting sub-loops.
+        let loop_a = collect_loop(draft, he_ab)?;
+        let loop_b = collect_loop(draft, he_ba)?;
+        let mut extra_edges = 0i32;
+        for &he in loop_a.iter().chain(loop_b.iter()) {
+            if repair_edge_after_next_change(draft, he, sig)? {
+                extra_edges += 1;
+            }
+        }
+
         reassign_face_loop(draft, he_ba, new_face)?;
 
         let original_loop = draft.arena().get_face(self.face)?.outer_loop();
@@ -136,7 +150,7 @@ impl EulerOperator for MakeEdgeFace {
                 new_loop,
                 edge,
             },
-            declared_delta: EulerDelta { vertices: 0, half_edges: 2, faces: 1, loops: 1, edges: 1, shells: 0 },
+            declared_delta: EulerDelta { vertices: 0, half_edges: 2, faces: 1, loops: 1, edges: 1 + extra_edges, shells: 0 },
         })
     }
 
@@ -147,30 +161,30 @@ impl EulerOperator for MakeEdgeFace {
 
 /// Collect all halfedges originating from `vertex` that lie on `face`.
 ///
-/// Uses a vertex orbit walk (O(valence)) instead of a face-loop walk
-/// (O(face_size)). Vertex valence is typically 3–6.
+/// Walks the face boundary loop (O(face_size)) to find all halfedges
+/// from `vertex`. This is robust against boundary edges (self-radial)
+/// that can disconnect the vertex orbit from certain faces.
 fn find_all_halfedges_from_vertex(
     draft: &MutableDraft,
     face: FaceId,
     vertex: VertexId,
 ) -> Result<Vec<HalfEdgeId>, KernelError> {
-    let outgoing = draft.arena().get_vertex(vertex)?.outgoing();
-    let start = outgoing;
+    let outer_loop = draft.arena().get_face(face)?.outer_loop();
+    let start = draft.arena().get_loop(outer_loop)?.half_edge();
     let mut current = start;
     let mut result = Vec::new();
     let bound = draft.arena().half_edge_count();
 
     for step in 0..=bound {
-        if draft.arena().get_half_edge(current)?.face() == face {
+        if draft.arena().get_half_edge(current)?.origin() == vertex {
             result.push(current);
         }
-        let twin = draft.arena().get_half_edge(current)?.twin();
-        current = draft.arena().get_half_edge(twin)?.next();
+        current = draft.arena().get_half_edge(current)?.next();
         if current == start { break; }
         if step == bound {
             return Err(KernelError::TopologyViolation {
                 err: TopologyError::LoopCorruption {
-                    walk_kind: "vertex_orbit".into(),
+                    walk_kind: "face_loop_vertex_search".into(),
                     seed_index: start.index(),
                     last_visited_index: current.index(),
                     steps_taken: step,
@@ -248,6 +262,34 @@ fn find_valid_split_pair(
     })
 }
 
+/// Collect all halfedge IDs in a face loop starting from `start`.
+fn collect_loop(
+    draft: &MutableDraft,
+    start: HalfEdgeId,
+) -> Result<Vec<HalfEdgeId>, KernelError> {
+    let bound = draft.arena().half_edge_count();
+    let mut result = Vec::new();
+    let mut current = start;
+    loop {
+        result.push(current);
+        current = draft.arena().get_half_edge(current)?.next();
+        if current == start { break; }
+        if result.len() > bound {
+            return Err(KernelError::TopologyViolation {
+                err: TopologyError::LoopCorruption {
+                    walk_kind: "collect_loop".into(),
+                    seed_index: start.index(),
+                    last_visited_index: current.index(),
+                    steps_taken: result.len(),
+                    entity_bound: bound,
+                },
+                context: None,
+            });
+        }
+    }
+    Ok(result)
+}
+
 /// Reassign all halfedges in a loop (starting from `start`) to `new_face`.
 fn reassign_face_loop(
     draft: &mut MutableDraft,
@@ -281,3 +323,70 @@ fn reassign_face_loop(
     }
     Ok(())
 }
+
+/// Repair edge-entity consistency after a halfedge's `.next` pointer changed.
+///
+/// When MEF redirects `h.next`, the effective destination of `h` changes
+/// (destination = `h.next.origin`). If `h` has a non-self-radial twin, the
+/// two halfedges may now span different vertex pairs, making the shared
+/// Edge entity inconsistent.
+///
+/// This function detects the inconsistency by comparing the vertex pair
+/// `{h.origin, h.next.origin}` against the twin's vertex pair
+/// `{twin.origin, twin.next.origin}`. If they differ, the radial link is
+/// broken and both become self-radial boundary edges on separate Edge
+/// entities.
+/// Returns `true` if a new Edge entity was created (for Euler delta tracking).
+fn repair_edge_after_next_change(
+    draft: &mut MutableDraft,
+    he: HalfEdgeId,
+    sig: &OpSignature,
+) -> Result<bool, KernelError> {
+    let he_data = draft.arena().get_half_edge(he)?;
+    let twin = he_data.radial_next();
+
+    if twin == he {
+        return Ok(false);
+    }
+
+    let he_origin = he_data.origin();
+    let he_dest = draft.arena().get_half_edge(he_data.next())?.origin();
+
+    let twin_data = draft.arena().get_half_edge(twin)?;
+    let twin_origin = twin_data.origin();
+    let twin_dest = draft.arena().get_half_edge(twin_data.next())?.origin();
+
+    let he_verts = vertex_pair(he_origin, he_dest);
+    let twin_verts = vertex_pair(twin_origin, twin_dest);
+
+    if he_verts == twin_verts {
+        return Ok(false);
+    }
+
+    // Vertex pairs diverged — split the radial link.
+    // The halfedge `he` keeps the old Edge entity.
+    // The twin gets a new Edge entity and becomes self-radial.
+    let old_edge = he_data.edge();
+
+    let he_lineage = he_data.lineage().cloned();
+    let new_edge = draft.insert_edge(EdgeData::with_lineage(
+        twin,
+        Some(Lineage::derive_from(&he_lineage, sig.clone())),
+    ));
+
+    let arena = draft.arena_mut();
+    arena.get_half_edge_mut(he)?.set_radial_next(he);
+    arena.get_half_edge_mut(twin)?.set_radial_next(twin);
+    arena.get_half_edge_mut(twin)?.set_edge(new_edge);
+    arena.get_edge_mut(old_edge)?.set_half_edge(he);
+
+    Ok(true)
+}
+
+/// Canonical vertex pair for an edge (smaller index first).
+fn vertex_pair(a: VertexId, b: VertexId) -> (u32, u32) {
+    let ai = a.index();
+    let bi = b.index();
+    if ai <= bi { (ai, bi) } else { (bi, ai) }
+}
+

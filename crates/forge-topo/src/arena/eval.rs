@@ -77,7 +77,7 @@ impl TopologyArena {
 
     /// Insert a single halfedge, returning its handle.
     ///
-    /// The caller is responsible for setting the `twin` field correctly.
+    /// The caller is responsible for setting the `radial_next` field correctly.
     pub fn insert_half_edge(&mut self, data: HalfEdgeData, mut ls: Option<&mut LineageStore>) -> HalfEdgeId {
         let index = self.half_edge_slots.len() as u32;
         let mut slot = Slot::empty();
@@ -93,10 +93,10 @@ impl TopologyArena {
         id
     }
 
-    /// Insert a pair of twin halfedges and wire their `twin` fields reciprocally.
+    /// Insert a pair of radial halfedges and wire their `radial_next` fields reciprocally.
     ///
-    /// Returns `(he_a, he_b)` where `he_a.twin == he_b` and `he_b.twin == he_a`.
-    pub fn insert_half_edge_pair(
+    /// Returns `(he_a, he_b)` where `he_a.radial_next == he_b` and `he_b.radial_next == he_a`.
+    pub fn insert_radial_pair(
         &mut self,
         mut data_a: HalfEdgeData,
         mut data_b: HalfEdgeData,
@@ -107,8 +107,8 @@ impl TopologyArena {
         let he_a_id = HalfEdgeId::new(base, 0);
         let he_b_id = HalfEdgeId::new(base + 1, 0);
 
-        data_a.set_twin(he_b_id);
-        data_b.set_twin(he_a_id);
+        data_a.set_radial_next(he_b_id);
+        data_b.set_radial_next(he_a_id);
 
         let mut slot_a = Slot::empty();
         let gen_a = slot_a.occupy(data_a);

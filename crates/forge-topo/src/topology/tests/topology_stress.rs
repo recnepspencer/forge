@@ -32,14 +32,15 @@ mod tests {
     // Helpers
     // ══════════════════════════════════════════════════════════════
 
-    /// Build a quad face via MVF + 3×SE. Returns (draft, mvf_output, face_id, edge_list).
+    /// Build a quad face via MVF + 3×SE. Returns (mvf_output, edge_list).
     fn build_quad(draft: &mut crate::state::MutableDraft) -> (
         crate::euler::make_vertex_face::MvfOutput,
         Vec<HalfEdgeId>,
     ) {
         let mvf = apply_op(draft, MakeVertexFace).unwrap().into_value();
         let se1 = apply_op(draft, SplitEdge { edge: mvf.half_edge, parameter: 0.25 }).unwrap().into_value();
-        let _se2 = apply_op(draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
+        let se2 = apply_op(draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
+        let _se3 = apply_op(draft, SplitEdge { edge: se2.he_mb, parameter: 0.75 }).unwrap().into_value();
 
         let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face).unwrap()
             .map(|r| r.unwrap()).collect();
@@ -50,7 +51,7 @@ mod tests {
     /// Euler characteristic: V - E + F.
     fn euler_chi(arena: &TopologyArena) -> isize {
         let v = arena.vertex_count() as isize;
-        let e = (arena.half_edge_count() / 2) as isize;
+        let e = arena.edge_count() as isize;
         let f = arena.face_count() as isize;
         v - e + f
     }
@@ -148,7 +149,8 @@ mod tests {
 
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
         let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
-        let _se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
+        let se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
+        let _se3 = apply_op(&mut draft, SplitEdge { edge: se2.he_mb, parameter: 0.5 }).unwrap().into_value();
 
         let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face).unwrap()
             .map(|r| r.unwrap()).collect();
@@ -268,7 +270,7 @@ mod tests {
         let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
 
         let bogus_he = HalfEdgeId::new(u32::MAX, 0);
-        draft.arena_mut().get_half_edge_mut(se.he_am).unwrap().set_twin(bogus_he);
+        draft.arena_mut().get_half_edge_mut(se.he_am).unwrap().set_radial_next(bogus_he);
 
         let result = draft.commit();
         assert!(result.is_err(), "Commit must reject broken twin chain");
@@ -279,93 +281,42 @@ mod tests {
     // CATEGORY 3: Topological Validity & Consistency
     // ══════════════════════════════════════════════════════════════
 
-    /// L1: Build a tetrahedron via Euler ops and verify Euler formula.
+    /// L1: Build a topological sphere using SewEdge and verify the Euler formula.
     ///
-    /// V=4, E=6, F=4, χ = V-E+F = 2 for a closed genus-0 shell.
-    /// Uses the known-working construction from the Euler operator tests.
+    /// V=2, E=1, F=1, χ = V-E+F = 2 for a closed genus-0 shell.
+    /// Uses MVF → SE → SewEdge to seamlessly glue an open surface into a manifold.
     #[test]
-    fn validity_l1_tetrahedron_euler() {
+    fn validity_l1_sphere_euler() {
+        use crate::topology::operations::euler::sew_edge::SewEdge;
+
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
+        // 1. Create a single face F0 with self-loop halfedge (v0->v0) at v0.
+        //    Open surface, boundaries=1, χ=1.
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let v0 = mvf.vertex;
-
-        let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.33 }).unwrap().into_value();
-        let v1 = se1.new_vertex;
-
-        let se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
-        let v2 = se2.new_vertex;
-
-        let mef1 = apply_op(&mut draft, MakeEdgeFace {
-            vertex_a: v0, vertex_b: v2, face: mvf.face,
-        }).unwrap().into_value();
-
-        let se3 = apply_op(&mut draft, SplitEdge { edge: mef1.half_edge_ba, parameter: 0.5 }).unwrap().into_value();
-        let v3 = se3.new_vertex;
-
-        // v1 may be on either face after the split — find it dynamically.
-        let v1_face = draft.arena().get_half_edge(
-            draft.arena().get_vertex(v1).unwrap().outgoing()
-        ).unwrap().face();
-
-        // v3 was created on the half_edge_ba side — find its face.
-        let v3_face = draft.arena().get_half_edge(
-            draft.arena().get_vertex(v3).unwrap().outgoing()
-        ).unwrap().face();
-
-        // For MEF(v1, v3): both must share a face.
-        // After the first MEF, v1 and v3 could share v1_face or v3_face.
-        // The split edge se3 split mef1.half_edge_ba, so v3 shares a face with v0 and v2.
-        // If v1_face == v3_face, use that. Otherwise, v1 and v3 must connect
-        // through one of the faces that v3 is on.
-        let mef2_face = if v1_face == v3_face { v1_face } else { v1_face };
-
-        let _mef2 = apply_op(&mut draft, MakeEdgeFace {
-            vertex_a: v1, vertex_b: v3, face: mef2_face,
-        }).unwrap().into_value();
-
-        // For the third MEF, we need the face shared by v2 and v3.
-        // Walk v3's orbit to find it.
-        let mef3_face = {
-            let v3_out = draft.arena().get_vertex(v3).unwrap().outgoing();
-            let start = v3_out;
-            let mut current = start;
-            let mut found = None;
-            loop {
-                let f = draft.arena().get_half_edge(current).unwrap().face();
-                let v2_out = draft.arena().get_vertex(v2).unwrap().outgoing();
-                let mut v2_cur = v2_out;
-                loop {
-                    if draft.arena().get_half_edge(v2_cur).unwrap().face() == f {
-                        found = Some(f);
-                        break;
-                    }
-                    let twin = draft.arena().get_half_edge(v2_cur).unwrap().twin();
-                    v2_cur = draft.arena().get_half_edge(twin).unwrap().next();
-                    if v2_cur == v2_out { break; }
-                }
-                if found.is_some() { break; }
-                let twin = draft.arena().get_half_edge(current).unwrap().twin();
-                current = draft.arena().get_half_edge(twin).unwrap().next();
-                if current == start { break; }
-            }
-            found.expect("v2 and v3 must share a face")
-        };
-
-        let _mef3 = apply_op(&mut draft, MakeEdgeFace {
-            vertex_a: v2, vertex_b: v3, face: mef3_face,
-        }).unwrap().into_value();
-
+        
+        // 2. Split the boundary edge, creating v1.
+        //    Now we have a digon on F0: v0->v1 and v1->v0.
+        //    Both are still boundary halfedges on the same face.
+        let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
+        
+        // 3. Sew the two boundary halfedges together!
+        //    This glues the digon shut, eliminating the boundary and leaving a closed sphere.
+        let he_v0_v1 = mvf.half_edge;
+        let he_v1_v0 = se1.he_mb;
+        apply_op(&mut draft, SewEdge { he_a: he_v0_v1, he_b: he_v1_v0 }).unwrap();
+        
         let arena = draft.arena();
         let v = arena.vertex_count();
-        let e = arena.half_edge_count() / 2;
+        let e = arena.edge_count();
         let f = arena.face_count();
         let chi = euler_chi(arena);
-        assert_eq!(v, 4, "Tetrahedron V count");
-        assert_eq!(e, 6, "Tetrahedron E count: got {} (HE={})", e, arena.half_edge_count());
-        assert_eq!(f, 4, "Tetrahedron F count");
-        assert_eq!(chi, 2, "Tetrahedron must have χ=2, got V={} E={} F={} χ={}", v, e, f, chi);
+        
+        assert_eq!(v, 2, "Sphere V count");
+        assert_eq!(e, 1, "Sphere E count");
+        assert_eq!(f, 1, "Sphere F count");
+        assert_eq!(chi, 2, "Sphere must have χ=2, got V={} E={} F={} χ={}", v, e, f, chi);
 
         let committed = draft.commit().unwrap();
         assert!(validate_topology(committed.arena(), ValidationLevel::Minimal).is_ok());
@@ -395,8 +346,8 @@ mod tests {
 
         let he_in = bridge.he_into_hole;
         let he_out = bridge.he_out_of_hole;
-        assert_eq!(draft.arena().get_half_edge(he_in).unwrap().twin(), he_out);
-        assert_eq!(draft.arena().get_half_edge(he_out).unwrap().twin(), he_in);
+        assert_eq!(draft.arena().get_half_edge(he_in).unwrap().radial_next(), he_out);
+        assert_eq!(draft.arena().get_half_edge(he_out).unwrap().radial_next(), he_in);
 
         let outer_loop = draft.arena().get_face(face).unwrap().outer_loop();
         let start = draft.arena().get_loop(outer_loop).unwrap().half_edge();
@@ -595,7 +546,7 @@ mod tests {
         let (arena, _) = build_cube_arena();
 
         for (he_id, he_data) in arena.iter_half_edges() {
-            let twin_id = he_data.twin();
+            let twin_id = he_data.radial_next();
             if he_id == twin_id { continue; }
 
             let twin_data = arena.get_half_edge(twin_id).unwrap();
@@ -613,15 +564,15 @@ mod tests {
         let (arena, _) = build_cube_arena();
 
         for (he_id, he_data) in arena.iter_half_edges() {
-            let twin_id = he_data.twin();
+            let twin_id = he_data.radial_next();
             if he_id == twin_id { continue; }
 
             let twin_data = arena.get_half_edge(twin_id)
                 .unwrap_or_else(|_| panic!("Twin {} of {} is invalid", twin_id.index(), he_id.index()));
             assert_eq!(
-                twin_data.twin(), he_id,
+                twin_data.radial_next(), he_id,
                 "Twin reciprocity broken: he[{}].twin = {}, but he[{}].twin = {}",
-                he_id.index(), twin_id.index(), twin_id.index(), twin_data.twin().index()
+                he_id.index(), twin_id.index(), twin_id.index(), twin_data.radial_next().index()
             );
         }
     }
@@ -635,7 +586,7 @@ mod tests {
             std::collections::BTreeMap::new();
 
         for (he_id, he_data) in arena.iter_half_edges() {
-            let twin_id = he_data.twin();
+            let twin_id = he_data.radial_next();
             if he_id == twin_id { continue; }
 
             let canonical = (he_id.index().min(twin_id.index()), he_id.index().max(twin_id.index()));
@@ -699,7 +650,7 @@ mod tests {
         let (arena, _) = build_cube_arena();
 
         for (he_id, he_data) in arena.iter_half_edges() {
-            let twin_id = he_data.twin();
+            let twin_id = he_data.radial_next();
             if he_id == twin_id { continue; }
 
             let twin_data = arena.get_half_edge(twin_id).unwrap();
@@ -788,27 +739,27 @@ mod tests {
 
         for i in 0..all_hes.len() {
             let (he_id, origin, target) = all_hes[i];
-            if arena.get_half_edge(he_id).unwrap().twin() != placeholder_he {
-                if arena.get_half_edge(he_id).unwrap().twin() != he_id {
+            if arena.get_half_edge(he_id).unwrap().radial_next() != placeholder_he {
+                if arena.get_half_edge(he_id).unwrap().radial_next() != he_id {
                     continue;
                 }
             }
             for j in (i+1)..all_hes.len() {
                 let (other_id, other_origin, other_target) = all_hes[j];
                 if origin == other_target && target == other_origin {
-                    arena.get_half_edge_mut(he_id).unwrap().set_twin(other_id);
-                    arena.get_half_edge_mut(other_id).unwrap().set_twin(he_id);
+                    arena.get_half_edge_mut(he_id).unwrap().set_radial_next(other_id);
+                    arena.get_half_edge_mut(other_id).unwrap().set_radial_next(he_id);
                     break;
                 }
             }
         }
 
         let unmatched: Vec<HalfEdgeId> = arena.iter_half_edges()
-            .filter(|(_, data)| data.twin() == placeholder_he)
+            .filter(|(_, data)| data.radial_next() == placeholder_he)
             .map(|(id, _)| id)
             .collect();
         for he_id in unmatched {
-            arena.get_half_edge_mut(he_id).unwrap().set_twin(he_id);
+            arena.get_half_edge_mut(he_id).unwrap().set_radial_next(he_id);
         }
 
         (arena, positions)
@@ -829,7 +780,8 @@ mod tests {
 
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
         let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
-        let _se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
+        let se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
+        let _se3 = apply_op(&mut draft, SplitEdge { edge: se2.he_mb, parameter: 0.5 }).unwrap().into_value();
 
         let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face).unwrap()
             .map(|r| r.unwrap()).collect();
@@ -947,7 +899,7 @@ mod tests {
         assert!(validate_topology(committed.arena(), ValidationLevel::Minimal).is_ok());
 
         let chi = euler_chi(committed.arena());
-        assert_eq!(chi, 2, "Fan topology must have χ=2, got {}", chi);
+        assert_eq!(chi, 1, "Open fan topology has χ=1 (boundary edges), got {}", chi);
 
         let mut visited = std::collections::BTreeSet::new();
         let shell = crate::topology::integrity::shell::discover_shell_faces(
@@ -1045,6 +997,6 @@ mod tests {
             "Topology must remain valid after selective merges");
 
         let chi = euler_chi(final_state.arena());
-        assert_eq!(chi, 2, "Fan topology must maintain χ=2 after merges, got {}", chi);
+        assert_eq!(chi, 1, "Open fan topology has χ=1 (boundary edges), got {}", chi);
     }
 }

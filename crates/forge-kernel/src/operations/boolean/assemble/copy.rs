@@ -121,12 +121,12 @@ pub fn copy_faces(
     for &src_face in source_faces {
         let src_shell = source_arena.get_face(src_face)?.shell();
         let dest_shell = *shell_map.entry(src_shell).or_insert_with(|| {
-            let orientation = source_arena.get_shell(src_shell)
-                .map(|s| s.orientation())
-                .unwrap_or(forge_topo::arena::ShellOrientation::Outer);
+            let kind = source_arena.get_shell(src_shell)
+                .map(|s| s.kind())
+                .unwrap_or(forge_topo::arena::ShellKind::Solid(forge_topo::arena::ShellOrientation::Outer));
             draft.insert_shell(ShellData::new(
                 FaceId::from_raw_parts(u32::MAX, 0),
-                orientation,
+                kind,
             ))
         });
         
@@ -274,7 +274,7 @@ fn insert_halfedges(
         ));
         let edge = draft.insert_edge(EdgeData::new(he_id));
         draft.arena_mut().get_half_edge_mut(he_id).unwrap().set_edge(edge);
-        draft.arena_mut().get_half_edge_mut(he_id).unwrap().set_twin(he_id);
+        draft.arena_mut().get_half_edge_mut(he_id).unwrap().set_radial_next(he_id);
         ids.push(he_id);
     }
     Ok(ids)

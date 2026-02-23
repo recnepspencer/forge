@@ -91,8 +91,8 @@ fn check_collinearity(
     let e2_data = arena.get_half_edge(edges[1]).ok()?;
 
     let p_v = geom.get_vertex_position(vid)?;
-    let target_a = arena.get_half_edge(e1_data.twin()).ok()?.origin();
-    let target_b = arena.get_half_edge(e2_data.twin()).ok()?.origin();
+    let target_a = arena.get_half_edge(e1_data.radial_next()).ok()?.origin();
+    let target_b = arena.get_half_edge(e2_data.radial_next()).ok()?.origin();
     let p_a = geom.get_vertex_position(target_a)?;
     let p_b = geom.get_vertex_position(target_b)?;
 
@@ -108,7 +108,7 @@ fn check_collinearity(
 
     let dot = forge_math::linalg::dot(v_va, v_vb) / (len_a * len_b);
     if (dot + 1.0).abs() < config.get_collinearity_dot_tolerance() {
-        Some(e1_data.twin())
+        Some(e1_data.radial_next())
     } else {
         None
     }

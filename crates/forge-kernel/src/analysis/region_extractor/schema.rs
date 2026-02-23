@@ -88,7 +88,7 @@ impl SerializedHalfEdge {
     /// Construct from arena halfedge data.
     pub fn from_half_edge_data(he: &forge_topo::arena::HalfEdgeData) -> Self {
         Self {
-            twin: he.twin().index(),
+            twin: he.radial_next().index(),
             next: he.next().index(),
             prev: he.prev().index(),
             face: he.face().index(),
@@ -233,7 +233,7 @@ impl ExtractedRegion {
         for (&he_idx, conn) in &self.half_edge_connectivity {
             let he_id = HalfEdgeId::from_raw_parts(he_idx, 0);
             let he_mut = arena.get_half_edge_mut(he_id)?;
-            he_mut.set_twin(HalfEdgeId::from_raw_parts(conn.twin, 0));
+            he_mut.set_radial_next(HalfEdgeId::from_raw_parts(conn.twin, 0));
             he_mut.set_next(HalfEdgeId::from_raw_parts(conn.next, 0));
             he_mut.set_prev(HalfEdgeId::from_raw_parts(conn.prev, 0));
             he_mut.set_face(FaceId::from_raw_parts(conn.face, 0));

@@ -12,7 +12,7 @@
 
 use forge_core::KernelError;
 
-use crate::arena::{FaceData, HalfEdgeData, LoopData, VertexData, ShellData, EdgeData, ShellOrientation};
+use crate::arena::{FaceData, HalfEdgeData, LoopData, VertexData, ShellData, EdgeData, ShellKind, ShellOrientation};
 use crate::handles::{HalfEdgeId, LoopId, ShellId, EdgeId};
 use crate::lineage::{Lineage, OpSignature};
 use crate::operator::{ExecutionResult, EulerDelta};
@@ -65,7 +65,7 @@ impl EulerOperator for MakeVertexFace {
 
         let shell = draft.insert_shell(ShellData::with_lineage(
             crate::handles::FaceId::new(u32::MAX, 0),
-            ShellOrientation::Outer,
+            ShellKind::Sheet,
             Some(shell_lineage),
         ));
 
@@ -93,7 +93,7 @@ impl EulerOperator for MakeVertexFace {
         ));
 
         
-        draft.arena_mut().get_half_edge_mut(he)?.set_twin(he);
+        draft.arena_mut().get_half_edge_mut(he)?.set_radial_next(he);
         draft.arena_mut().get_half_edge_mut(he)?.set_next(he);
         draft.arena_mut().get_half_edge_mut(he)?.set_prev(he);
         draft.arena_mut().get_vertex_mut(vertex)?.set_outgoing(he);

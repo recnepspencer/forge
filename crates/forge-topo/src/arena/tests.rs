@@ -89,12 +89,12 @@ fn paired_halfedge_insertion_sets_twins() {
     let face = arena.insert_face(dummy_face_data(), None);
     let vertex = arena.insert_vertex(dummy_vertex_data(), None);
 
-    let (he0, he1) = arena.insert_half_edge_pair(
+    let (he0, he1) = arena.insert_radial_pair(
         dummy_halfedge_data(face, vertex),
         dummy_halfedge_data(face, vertex), None);
     assert_eq!(arena.half_edge_count(), 2);
-    assert_eq!(arena.get_half_edge(he0).unwrap().twin(), he1);
-    assert_eq!(arena.get_half_edge(he1).unwrap().twin(), he0);
+    assert_eq!(arena.get_half_edge(he0).unwrap().radial_next(), he1);
+    assert_eq!(arena.get_half_edge(he1).unwrap().radial_next(), he0);
 }
 
 #[test]

@@ -94,7 +94,7 @@ fn edge_aligned_overlap() {
     );
 
     for (_he_id, he) in arena.iter_half_edges() {
-        let twin = arena.get_half_edge(he.twin());
+        let twin = arena.get_half_edge(he.radial_next());
         assert!(
             twin.is_ok(),
             "Dangling half-edge without valid twin"

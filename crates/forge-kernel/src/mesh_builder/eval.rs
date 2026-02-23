@@ -11,7 +11,7 @@ use std::collections::HashMap;
 
 use forge_core::{KernelError, DecisionKind};
 use forge_geom::spatial::bsp::ConvexCell;
-use forge_topo::arena::{FaceData, HalfEdgeData, VertexData, LoopData, ShellData, EdgeData, ShellOrientation};
+use forge_topo::arena::{FaceData, HalfEdgeData, VertexData, LoopData, ShellData, EdgeData, ShellKind, ShellOrientation};
 use forge_topo::handles::{HalfEdgeId, VertexId, LoopId, ShellId, EdgeId};
 use forge_topo::state::{TopologyState, MutableDraft};
 
@@ -72,7 +72,7 @@ pub fn build_halfedge_mesh(cell: &ConvexCell, ctx: &mut ModelingContext) -> Resu
     let shell = draft.insert_shell(
         ShellData::new(
             forge_topo::handles::FaceId::from_raw_parts(u32::MAX, 0),
-            ShellOrientation::Outer,
+            ShellKind::Solid(ShellOrientation::Outer),
         )
     );
 
@@ -284,8 +284,8 @@ fn stitch_twins(
         if a < b {
             if let Some(&twin_id) = edge_map.get(&(b, a)) {
                 let edge = draft.insert_edge(EdgeData::new(he_id));
-                draft.arena_mut().get_half_edge_mut(he_id)?.set_twin(twin_id);
-                draft.arena_mut().get_half_edge_mut(twin_id)?.set_twin(he_id);
+                draft.arena_mut().get_half_edge_mut(he_id)?.set_radial_next(twin_id);
+                draft.arena_mut().get_half_edge_mut(twin_id)?.set_radial_next(he_id);
                 draft.arena_mut().get_half_edge_mut(he_id)?.set_edge(edge);
                 draft.arena_mut().get_half_edge_mut(twin_id)?.set_edge(edge);
             } else {

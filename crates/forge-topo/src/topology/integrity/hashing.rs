@@ -173,7 +173,7 @@ pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
         let origin_deg = if origin_idx < vertex_degree.len() { vertex_degree[origin_idx] } else { 0 };
         let my_face_sz = if face_idx < face_size.len() { face_size[face_idx] } else { 0 };
 
-        let (twin_origin_deg, twin_face_sz) = match arena.get_half_edge(he.twin()) {
+        let (twin_origin_deg, twin_face_sz) = match arena.get_half_edge(he.radial_next()) {
             Ok(twin) => {
                 let t_origin_idx = twin.origin().index() as usize;
                 let t_face_idx = twin.face().index() as usize;
@@ -241,7 +241,7 @@ pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
             let origin_idx = he.origin().index() as usize;
             sig.push(if origin_idx < vertex_degree.len() { vertex_degree[origin_idx] } else { 0 });
             
-            if let Ok(twin) = arena.get_half_edge(he.twin()) {
+            if let Ok(twin) = arena.get_half_edge(he.radial_next()) {
                 let twin_origin_idx = twin.origin().index() as usize;
                 sig.push(if twin_origin_idx < vertex_degree.len() { vertex_degree[twin_origin_idx] } else { 0 });
             }

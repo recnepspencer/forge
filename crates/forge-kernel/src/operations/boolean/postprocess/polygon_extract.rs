@@ -160,7 +160,7 @@ fn collect_adjacent_faces(arena: &TopologyArena, face: FaceId) -> Vec<FaceId> {
 
     loop {
         if let Ok(he) = arena.get_half_edge(current) {
-            if let Ok(twin) = arena.get_half_edge(he.twin()) {
+            if let Ok(twin) = arena.get_half_edge(he.radial_next()) {
                 let twin_face = twin.face();
                 if twin_face != face {
                     neighbors.push(twin_face);
@@ -261,7 +261,7 @@ fn is_boundary_edge(
         Ok(d) => d,
         Err(_) => return false,
     };
-    let twin_data = match arena.get_half_edge(he_data.twin()) {
+    let twin_data = match arena.get_half_edge(he_data.radial_next()) {
         Ok(d) => d,
         Err(_) => return true,
     };
@@ -279,7 +279,7 @@ fn advance_to_boundary(
 
     while !is_boundary_edge(arena, group, current) {
         let he_data = arena.get_half_edge(current)?;
-        let twin_id = he_data.twin();
+        let twin_id = he_data.radial_next();
         let twin_data = arena.get_half_edge(twin_id)?;
         current = twin_data.next();
 
@@ -325,7 +325,7 @@ fn rebuild_face_from_perimeter(
 
     for i in 0..n {
         let origin = perimeter[i];
-        let (he, twin_he) = draft.insert_half_edge_pair(
+        let (he, twin_he) = draft.insert_radial_pair(
             forge_topo::arena::HalfEdgeData::new(
                 placeholder_he, placeholder_he, placeholder_he, new_face, origin, EdgeId::from_raw_parts(u32::MAX, 0),
             ),
@@ -398,7 +398,7 @@ fn collect_group_edges(
 
         loop {
             let he = arena.get_half_edge(current)?;
-            let twin_id = he.twin();
+            let twin_id = he.radial_next();
             let pair = if current.index() < twin_id.index() {
                 (current.index(), twin_id.index())
             } else {

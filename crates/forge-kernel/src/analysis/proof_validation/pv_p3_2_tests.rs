@@ -95,13 +95,13 @@ fn pv_35b_extracted_region_captures_corruption() {
 
     let (he_to_corrupt, corrupted_face) = {
         let (he_id, he_data) = arena.iter_half_edges()
-            .filter(|(id, d)| *id != d.twin())
+            .filter(|(id, d)| *id != d.radial_next())
             .next()
             .unwrap();
         (he_id, he_data.face())
     };
 
-    arena.get_half_edge_mut(he_to_corrupt).unwrap().set_twin(he_to_corrupt);
+    arena.get_half_edge_mut(he_to_corrupt).unwrap().set_radial_next(he_to_corrupt);
 
     let corruption_check = validate_topology(arena, ValidationLevel::Full);
     assert!(

@@ -11,49 +11,25 @@ use crate::euler::make_vertex_face::MakeVertexFace;
 use crate::euler::make_edge_face::MakeEdgeFace;
 use crate::euler::split_edge::SplitEdge;
 use crate::euler::join_faces::JoinFaces;
+use crate::euler::sew_edge::SewEdge;
 use crate::traverse::{FaceEdgeIterator, VertexRingIterator, face_edge_count};
 
-/// Building a tetrahedron via Euler operators produces V=4, E=6, F=4.
+/// Building a closed sphere via Euler operators produces V=2, E=1, F=1.
 #[test]
-fn build_tetrahedron_via_euler_operators() {
+fn build_sphere_via_euler_operators() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf  = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-    let v0   = mvf.vertex;
-    let se1  = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 })
-        .unwrap().into_value();
-    let v1   = se1.new_vertex;
-    let mef1 = apply_op(&mut draft, MakeEdgeFace { vertex_a: v0, vertex_b: v1, face: mvf.face })
-        .unwrap().into_value();
-    let se2  = apply_op(&mut draft, SplitEdge { edge: mef1.half_edge_ab, parameter: 0.5 })
-        .unwrap().into_value();
-    let v2   = se2.new_vertex;
-    let _mef2 = apply_op(&mut draft, MakeEdgeFace { vertex_a: v2, vertex_b: v1, face: mef1.new_face })
-        .unwrap().into_value();
-    let _mef3 = apply_op(&mut draft, MakeEdgeFace { vertex_a: v0, vertex_b: v2, face: mvf.face })
+    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+    let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 })
         .unwrap().into_value();
 
-    let edge_v0_in_face1 = FaceEdgeIterator::new(draft.arena(), mef1.new_face)
-        .unwrap()
-        .find_map(|res| {
-            let eid = res.unwrap();
-            let he  = draft.arena().get_half_edge(eid).unwrap();
-            if he.origin() == v0 { Some(eid) } else { None }
-        });
+    apply_op(&mut draft, SewEdge { he_a: mvf.half_edge, he_b: se1.he_mb }).unwrap();
 
-    if let Some(anchor) = edge_v0_in_face1 {
-        let se3  = apply_op(&mut draft, SplitEdge { edge: anchor, parameter: 0.5 })
-            .unwrap().into_value();
-        let v3   = se3.new_vertex;
-        let _mef4 = apply_op(&mut draft, MakeEdgeFace { vertex_a: v3, vertex_b: v0, face: mef1.new_face })
-            .unwrap().into_value();
-
-        let arena = draft.arena();
-        assert_eq!(arena.vertex_count(),          4);
-        assert_eq!(arena.half_edge_count() / 2,   6);
-        assert_eq!(arena.face_count(),             4);
-    }
+    let arena = draft.arena();
+    assert_eq!(arena.vertex_count(),    2);
+    assert_eq!(arena.edge_count(),      1);
+    assert_eq!(arena.face_count(),      1);
 
     let committed = draft.commit().unwrap();
     assert!(committed.epoch() > 0);
@@ -72,7 +48,7 @@ fn kv15_validation_catches_broken_twins() {
     // Deliberately corrupt a twin pointer
     draft.arena_mut()
         .get_half_edge_mut(mvf.half_edge).unwrap()
-        .set_twin(crate::handles::HalfEdgeId::new(u32::MAX, 0));
+        .set_radial_next(crate::handles::HalfEdgeId::new(u32::MAX, 0));
 
     let result = draft.commit();
     assert!(result.is_err());

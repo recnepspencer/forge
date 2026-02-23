@@ -210,8 +210,8 @@ fn run_stitch_pass(
                         select_best_twin(draft, geom, he_id, &unpaired)
                     };
 
-                    draft.arena_mut().get_half_edge_mut(he_id)?.set_twin(best);
-                    draft.arena_mut().get_half_edge_mut(best)?.set_twin(he_id);
+                    draft.arena_mut().get_half_edge_mut(he_id)?.set_radial_next(best);
+                    draft.arena_mut().get_half_edge_mut(best)?.set_radial_next(he_id);
                     paired.insert(he_id.index());
                     paired.insert(best.index());
 

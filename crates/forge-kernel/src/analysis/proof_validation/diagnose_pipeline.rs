@@ -138,6 +138,6 @@ pub fn diagnose_arena(
 /// Count halfedges whose twin pointer points to themselves (unpaired).
 fn count_unpaired_twins(arena: &TopologyArena) -> usize {
     arena.iter_half_edges()
-        .filter(|(id, data)| *id == data.twin())
+        .filter(|(id, data)| *id == data.radial_next())
         .count()
 }

@@ -26,7 +26,7 @@ fn mvf_creates_single_vertex_and_face() {
     assert_eq!(draft.arena().loop_count(), 1);
 
     let he = draft.arena().get_half_edge(out.half_edge).unwrap();
-    assert_eq!(he.twin(), out.half_edge, "seed must be self-twin");
+    assert_eq!(he.radial_next(), out.half_edge, "seed must be self-twin");
     assert_eq!(he.next(), out.half_edge, "seed must be self-next");
     assert_eq!(he.prev(), out.half_edge, "seed must be self-prev");
     assert_eq!(he.origin(), out.vertex);

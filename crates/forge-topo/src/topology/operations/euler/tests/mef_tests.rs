@@ -33,6 +33,8 @@ fn mef_splits_face_creating_two_faces() {
     assert_eq!(draft.arena().loop_count(), 2);
     assert_eq!(draft.arena().half_edge_count(), 4);
 
-    let (f1, f2) = edge_faces(draft.arena(), mef.half_edge_ab).unwrap();
+    let faces = edge_faces(draft.arena(), mef.half_edge_ab).unwrap();
+    assert_eq!(faces.len(), 2);
+    let (f1, f2) = (faces[0], faces[1]);
     assert_ne!(f1, f2, "the shared edge must separate two distinct faces");
 }

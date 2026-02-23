@@ -11,6 +11,7 @@
 //! - `JoinFaces` (JF): face merging (inverse of MEF) — E-1 F-1
 //! - `KillEdgeVertex` (KEV): edge/vertex collapse (inverse of MEV/SE) — V-1 E-1
 //! - `KillEdgeMakeLoop` (KEML): loop split (inverse of MEKL) — E-1 L+1
+//! - `SewEdge` (SEW): boundary edge gluing — E-1 χ+1
 //!
 //! ## Missing Operators (Future Roadmap)
 //! - **MakeShellFace / KillShellFace**: shell-level creation when
@@ -31,6 +32,7 @@ pub mod split_edge;
 pub mod join_faces;
 pub mod kill_edge_vertex;
 pub mod kill_edge_make_loop;
+pub mod sew_edge;
 
 #[cfg(test)]
 pub mod tests;

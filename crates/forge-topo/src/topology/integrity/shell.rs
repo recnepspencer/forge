@@ -34,13 +34,14 @@ pub(crate) fn discover_shell_faces(
 
         for he_result in FaceEdgeIterator::new(arena, face_id)? {
             let he_id = he_result?;
-            let he_data = arena.get_half_edge(he_id)?;
-
-            if he_id != he_data.twin() {
-                let twin_data = arena.get_half_edge(he_data.twin())?;
-                let neighbor = twin_data.face();
-                if face_set.insert(neighbor.index()) {
-                    queue.push_back(neighbor);
+            for neighbor_res in crate::topology::queries::traverse::RadialEdgeIterator::new(arena, he_id)? {
+                let neighbor_id = neighbor_res?;
+                if neighbor_id != he_id {
+                    let neighbor_data = arena.get_half_edge(neighbor_id)?;
+                    let neighbor = neighbor_data.face();
+                    if face_set.insert(neighbor.index()) {
+                        queue.push_back(neighbor);
+                    }
                 }
             }
         }

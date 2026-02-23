@@ -73,7 +73,7 @@ fn pv_05_genus_1_passes_generalized_euler() {
                 he_data.set_next(he_ids[(k + 1) % 4]);
                 he_data.set_prev(he_ids[(k + 3) % 4]);
                 he_data.set_face(face);
-                he_data.set_twin(he_ids[k]);
+                he_data.set_radial_next(he_ids[k]);
             }
 
             arena.get_loop_mut(loop_id).unwrap().set_half_edge(he_ids[0]);
@@ -96,13 +96,13 @@ fn pv_05_genus_1_passes_generalized_euler() {
         for col in 0..3 {
             let right_edge = get_face_he(row, col, 1);
             let left_of_right_neighbor = get_face_he(row, (col + 1) % 3, 3);
-            arena.get_half_edge_mut(right_edge).unwrap().set_twin(left_of_right_neighbor);
-            arena.get_half_edge_mut(left_of_right_neighbor).unwrap().set_twin(right_edge);
+            arena.get_half_edge_mut(right_edge).unwrap().set_radial_next(left_of_right_neighbor);
+            arena.get_half_edge_mut(left_of_right_neighbor).unwrap().set_radial_next(right_edge);
 
             let bottom_edge = get_face_he(row, col, 2);
             let top_of_bottom_neighbor = get_face_he((row + 1) % 3, col, 0);
-            arena.get_half_edge_mut(bottom_edge).unwrap().set_twin(top_of_bottom_neighbor);
-            arena.get_half_edge_mut(top_of_bottom_neighbor).unwrap().set_twin(bottom_edge);
+            arena.get_half_edge_mut(bottom_edge).unwrap().set_radial_next(top_of_bottom_neighbor);
+            arena.get_half_edge_mut(top_of_bottom_neighbor).unwrap().set_radial_next(bottom_edge);
         }
     }
 
@@ -144,7 +144,7 @@ fn pv_08_removed_edge_fails_euler() {
     let arena = draft.arena_mut();
 
     let first_he = arena.iter_half_edges().next().unwrap().0;
-    let twin_id = arena.get_half_edge(first_he).unwrap().twin();
+    let twin_id = arena.get_half_edge(first_he).unwrap().radial_next();
 
     let _ = arena.remove_half_edge(first_he);
     let _ = arena.remove_half_edge(twin_id);
@@ -317,8 +317,8 @@ fn pv_06_through_hole_passes_euler() {
 
     for (&(a, b), &he_ab) in &edge_map.clone() {
         if let Some(&he_ba) = edge_map.get(&(b, a)) {
-            arena.get_half_edge_mut(he_ab).unwrap().set_twin(he_ba);
-            arena.get_half_edge_mut(he_ba).unwrap().set_twin(he_ab);
+            arena.get_half_edge_mut(he_ab).unwrap().set_radial_next(he_ba);
+            arena.get_half_edge_mut(he_ba).unwrap().set_radial_next(he_ab);
         }
     }
 
@@ -333,9 +333,9 @@ fn pv_06_through_hole_passes_euler() {
 
     let mut edge_set: std::collections::BTreeSet<(u32, u32)> = std::collections::BTreeSet::new();
     for (id, data) in arena.iter_half_edges() {
-        if id != data.twin() {
-            let lo = id.index().min(data.twin().index());
-            let hi = id.index().max(data.twin().index());
+        if id != data.radial_next() {
+            let lo = id.index().min(data.radial_next().index());
+            let hi = id.index().max(data.radial_next().index());
             edge_set.insert((lo, hi));
         }
     }

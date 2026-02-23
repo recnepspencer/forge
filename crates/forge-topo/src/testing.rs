@@ -55,13 +55,13 @@ pub fn build_face_with_hole(
     let v2 = arena.insert_vertex(VertexData::new(placeholder_he), None);
 
     // Outer halfedges (counter-clockwise)
-    let (he01, _he10) = arena.insert_half_edge_pair(
+    let (he01, _he10) = arena.insert_radial_pair(
         HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v0, placeholder_e),
         HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v1, placeholder_e), None);
-    let (he12, _he21) = arena.insert_half_edge_pair(
+    let (he12, _he21) = arena.insert_radial_pair(
         HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v1, placeholder_e),
         HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v2, placeholder_e), None);
-    let (he20, _he02) = arena.insert_half_edge_pair(
+    let (he20, _he02) = arena.insert_radial_pair(
         HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v2, placeholder_e),
         HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v0, placeholder_e), None);
 
@@ -84,13 +84,13 @@ pub fn build_face_with_hole(
     let v5 = arena.insert_vertex(VertexData::new(placeholder_he), None);
 
     // Inner halfedges (clockwise around the hole)
-    let (he34, _he43) = arena.insert_half_edge_pair(
+    let (he34, _he43) = arena.insert_radial_pair(
         HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v3, placeholder_e),
         HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v4, placeholder_e), None);
-    let (he45, _he54) = arena.insert_half_edge_pair(
+    let (he45, _he54) = arena.insert_radial_pair(
         HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v4, placeholder_e),
         HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v5, placeholder_e), None);
-    let (he53, _he35) = arena.insert_half_edge_pair(
+    let (he53, _he35) = arena.insert_radial_pair(
         HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v5, placeholder_e),
         HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v3, placeholder_e), None);
 

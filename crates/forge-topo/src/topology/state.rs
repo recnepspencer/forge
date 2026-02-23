@@ -398,9 +398,9 @@ impl MutableDraft {
         arena.insert_half_edge(data, Some(store))
     }
 
-    pub fn insert_half_edge_pair(&mut self, data_a: crate::arena::HalfEdgeData, data_b: crate::arena::HalfEdgeData) -> (HalfEdgeId, HalfEdgeId) {
+    pub fn insert_radial_pair(&mut self, data_a: crate::arena::HalfEdgeData, data_b: crate::arena::HalfEdgeData) -> (HalfEdgeId, HalfEdgeId) {
         let (arena, store) = self.unbundle_mut();
-        arena.insert_half_edge_pair(data_a, data_b, Some(store))
+        arena.insert_radial_pair(data_a, data_b, Some(store))
     }
 
     pub fn remove_half_edge(&mut self, id: HalfEdgeId) -> Result<crate::arena::HalfEdgeData, KernelError> {

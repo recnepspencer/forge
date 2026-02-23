@@ -29,10 +29,10 @@ fn pv_11_non_manifold_edge_detected() {
 
     let (he_id, he_twin, he_face, he_origin) = {
         let (id, data) = arena.iter_half_edges()
-            .filter(|(id, d)| *id != d.twin())
+            .filter(|(id, d)| *id != d.radial_next())
             .next()
             .unwrap();
-        (id, data.twin(), data.face(), data.origin())
+        (id, data.radial_next(), data.face(), data.origin())
     };
 
     let twin_data = arena.get_half_edge(he_twin).unwrap();
@@ -41,7 +41,7 @@ fn pv_11_non_manifold_edge_detected() {
 
     let extra_a = HalfEdgeData::new(he_twin, he_id, he_id, he_face, he_origin, forge_topo::handles::EdgeId::from_raw_parts(0, 0));
     let extra_b = HalfEdgeData::new(he_id, he_twin, he_twin, twin_face, twin_origin, forge_topo::handles::EdgeId::from_raw_parts(0, 0));
-    let (extra_a_id, extra_b_id) = arena.insert_half_edge_pair(extra_a, extra_b);
+    let (extra_a_id, extra_b_id) = arena.insert_radial_pair(extra_a, extra_b);
 
     let _ = extra_a_id;
     let _ = extra_b_id;

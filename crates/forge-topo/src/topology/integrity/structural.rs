@@ -29,7 +29,7 @@ pub fn validate_topology(arena: &TopologyArena, level: ValidationLevel) -> Resul
         return Ok(());
     }
 
-    validate_twins(arena)?;
+    validate_radial_rings(arena)?;
     validate_prev_consistency(arena)?;
     validate_vertex_continuity(arena)?;
     validate_vertex_outgoing(arena)?;
@@ -37,43 +37,45 @@ pub fn validate_topology(arena: &TopologyArena, level: ValidationLevel) -> Resul
     if level == ValidationLevel::Full {
         validate_loops(arena)?;
         validate_euler(arena)?;
-        validate_edge_manifoldness(arena)?;
+        validate_shell_consistency(arena)?;
         validate_orientation_consistency(arena)?;
     }
 
     Ok(())
 }
 
-/// Validate twin reciprocity: for every halfedge, `he.twin.twin == he`.
-fn validate_twins(arena: &TopologyArena) -> Result<(), KernelError> {
-    for (he_id, he_data) in arena.iter_half_edges() {
-        if he_id == he_data.twin() {
-            continue;
-        }
-
-        let twin_data = arena.get_half_edge(he_data.twin()).map_err(|_| {
-            KernelError::TopologyViolation {
-                err: forge_core::TopologyError::MissingTwin {
-                    halfedge_index: he_id.index(),
-                },
+/// Validate radial rings: every halfedge must belong to a closed `.radial_next()` cycle.
+fn validate_radial_rings(arena: &TopologyArena) -> Result<(), KernelError> {
+    for (start_he, _) in arena.iter_half_edges() {
+        let mut current_he = start_he;
+        let mut count = 0;
+        let limit = 100_000;
+        loop {
+            let data = arena.get_half_edge(current_he).map_err(|_| KernelError::TopologyViolation {
+                err: forge_core::TopologyError::MissingTwin { halfedge_index: current_he.index() },
                 context: None,
+            })?;
+            current_he = data.radial_next();
+            count += 1;
+            if current_he == start_he {
+                break;
             }
-        })?;
-
-        if twin_data.twin() != he_id {
-            return Err(KernelError::TopologyViolation {
-                err: forge_core::TopologyError::MissingTwin {
-                    halfedge_index: he_id.index(),
-                },
-                context: Some(forge_core::ErrorContext {
-                    scope: forge_core::ErrorScope::Entity { entity_kind: "HalfEdge".to_string(), index: he_id.index() },
-                    suggested_fixes: Vec::new(),
-                    detail: format!(
-                        "Twin reciprocity violated: he[{}].twin = {}, but he[{}].twin = {} (expected {})",
-                        he_id.index(), he_data.twin().index(), he_data.twin().index(), twin_data.twin().index(), he_id.index()
-                    ),
-                }),
-            });
+            if count > limit {
+                return Err(KernelError::TopologyViolation {
+                    err: forge_core::TopologyError::LoopCorruption {
+                        walk_kind: "RadialRing".to_string(),
+                        seed_index: start_he.index(),
+                        last_visited_index: current_he.index(),
+                        steps_taken: count,
+                        entity_bound: limit,
+                    },
+                    context: Some(forge_core::ErrorContext {
+                        scope: forge_core::ErrorScope::Entity { entity_kind: "HalfEdge".to_string(), index: start_he.index() },
+                        suggested_fixes: vec![],
+                        detail: "Radial ring failed to cycle back to start within limit".into(),
+                    }),
+                });
+            }
         }
     }
     Ok(())
@@ -103,32 +105,48 @@ fn validate_prev_consistency(arena: &TopologyArena) -> Result<(), KernelError> {
     Ok(())
 }
 
-/// Validate vertex continuity: the next halfedge's origin must equal the
-/// twin's origin (i.e., the target vertex of this halfedge).
+/// Validate vertex continuity: for each halfedge, `he.next.origin`
+/// must be a valid endpoint of the geometric edge (i.e., it must equal
+/// some other halfedge's origin in the same radial ring, or he.origin
+/// for geometric self-loops).
 ///
 /// This catches the "spaghetti topology" bug where edges are mis-wired.
 fn validate_vertex_continuity(arena: &TopologyArena) -> Result<(), KernelError> {
+    let mut checked_edges: std::collections::BTreeSet<u32> = std::collections::BTreeSet::new();
+
     for (he_id, he_data) in arena.iter_half_edges() {
-        let is_self_twin = he_id == he_data.twin();
-        if is_self_twin {
+        let edge_id = he_data.edge();
+        if !checked_edges.insert(edge_id.index()) {
             continue;
         }
 
-        let twin_data = arena.get_half_edge(he_data.twin())?;
-        let next_data = arena.get_half_edge(he_data.next())?;
+        // Collect all (origin, target) pairs from this edge's radial ring
+        let mut endpoints: std::collections::BTreeSet<u32> = std::collections::BTreeSet::new();
+        let mut curr = he_id;
+        loop {
+            let curr_data = arena.get_half_edge(curr)?;
+            let next_data = arena.get_half_edge(curr_data.next())?;
+            endpoints.insert(curr_data.origin().index());
+            endpoints.insert(next_data.origin().index());
 
-        if next_data.origin() != twin_data.origin() {
+            curr = curr_data.radial_next();
+            if curr == he_id { break; }
+        }
+
+        // A well-formed edge should have at most 2 distinct endpoint vertices
+        // (exactly 1 for geometric self-loops, exactly 2 for normal edges)
+        if endpoints.len() > 2 {
             return Err(KernelError::TopologyViolation {
                 err: forge_core::TopologyError::BrokenLoop {
                     starting_halfedge: he_id.index(),
                     face_index: he_data.face().index(),
                 },
                 context: Some(forge_core::ErrorContext {
-                    scope: forge_core::ErrorScope::Entity { entity_kind: "HalfEdge".to_string(), index: he_id.index() },
+                    scope: forge_core::ErrorScope::Entity { entity_kind: "Edge".to_string(), index: edge_id.index() },
                     suggested_fixes: Vec::new(),
                     detail: format!(
-                        "Vertex continuity violated: he[{}].next.origin = {} but he[{}].twin.origin = {} (should be equal)",
-                        he_id.index(), next_data.origin().index(), he_id.index(), twin_data.origin().index()
+                        "Edge {} has {} distinct endpoint vertices (expected 1 or 2): {:?}",
+                        edge_id.index(), endpoints.len(), endpoints
                     ),
                 }),
             });
@@ -260,7 +278,7 @@ fn validate_loops(arena: &TopologyArena) -> Result<(), KernelError> {
 fn collect_shell_data_for_face(
     arena: &TopologyArena,
     face_id: FaceId,
-) -> Result<(Vec<FaceId>, Vec<(u32, u32)>, Vec<u32>), KernelError> {
+) -> Result<(Vec<FaceId>, Vec<u32>, Vec<u32>), KernelError> {
     let mut neighbors = Vec::new();
     let mut edge_keys = Vec::new();
     let mut vertex_indices = Vec::new();
@@ -270,14 +288,14 @@ fn collect_shell_data_for_face(
         let he_data = arena.get_half_edge(he_id)?;
 
         vertex_indices.push(he_data.origin().index());
+        edge_keys.push(he_data.edge().index());
 
-        if he_id != he_data.twin() {
-            let lo = he_id.index().min(he_data.twin().index());
-            let hi = he_id.index().max(he_data.twin().index());
-            edge_keys.push((lo, hi));
-
-            let twin_data = arena.get_half_edge(he_data.twin())?;
-            neighbors.push(twin_data.face());
+        for neighbor_res in crate::topology::queries::traverse::RadialEdgeIterator::new(arena, he_id)? {
+            let neighbor_he = neighbor_res?;
+            if neighbor_he != he_id {
+                let neighbor_data = arena.get_half_edge(neighbor_he)?;
+                neighbors.push(neighbor_data.face());
+            }
         }
     }
 
@@ -309,7 +327,7 @@ fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
         if !visited_faces.contains(&seed_face.index()) {
             let mut shell_faces: BTreeSet<u32> = BTreeSet::new();
             let mut shell_vertices: BTreeSet<u32> = BTreeSet::new();
-            let mut shell_edges: BTreeSet<(u32, u32)> = BTreeSet::new();
+            let mut shell_edges: BTreeSet<u32> = BTreeSet::new();
             let mut queue: VecDeque<FaceId> = VecDeque::new();
 
             queue.push_back(seed_face);
@@ -348,6 +366,13 @@ fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
                 })
                 .map(|face_data| face_data.inner_loop_count())
                 .sum();
+
+            let shell_id = face_by_index.get(&shell_faces.iter().cloned().next().unwrap()).unwrap();
+            let shell_kind = arena.get_face(*shell_id).unwrap().shell();
+            if !matches!(arena.get_shell(shell_kind).unwrap().kind(), crate::arena::ShellKind::Solid(_)) {
+                shell_index += 1;
+                continue;
+            }
 
             let genus = compute_shell_genus(euler_char, rings, shell_index)?;
             let expected = 2_i64 - 2 * (genus as i64) + (rings as i64);
@@ -392,7 +417,8 @@ fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
 /// structural damage in the shell rather than valid higher-genus topology.
 fn compute_shell_genus(euler_char: i64, rings: usize, shell_index: usize) -> Result<usize, KernelError> {
     let twice_genus = 2 - euler_char + rings as i64;
-    if twice_genus < 0 || twice_genus % 2 != 0 {
+    
+    if twice_genus < 0 {
         return Err(KernelError::TopologyViolation {
             err: forge_core::TopologyError::GeneralizedEulerViolation {
                 shell_index: shell_index as u32,
@@ -411,66 +437,68 @@ fn compute_shell_genus(euler_char: i64, rings: usize, shell_index: usize) -> Res
                 },
                 suggested_fixes: Vec::new(),
                 detail: format!(
-                    "Shell {} has invalid genus: 2·G = {} (negative or non-integer indicates structural damage)",
+                    "Shell {} has invalid genus: 2·G = {} (negative indicates structural damage)",
                     shell_index, twice_genus
                 ),
             }),
         });
     }
+
+    if twice_genus % 2 != 0 {
+        return Err(KernelError::TopologyViolation {
+            err: forge_core::TopologyError::NonOrientableSurface {
+                shell_index: shell_index as u32,
+            },
+            context: Some(forge_core::ErrorContext {
+                scope: forge_core::ErrorScope::Entity {
+                    entity_kind: "Shell".to_string(),
+                    index: shell_index as u32,
+                },
+                suggested_fixes: Vec::new(),
+                detail: format!(
+                    "Shell {} has an odd Euler characteristic implying it is a non-orientable surface (like a Möbius strip or Klein bottle).",
+                    shell_index
+                ),
+            }),
+        });
+    }
+
     Ok((twice_genus / 2) as usize)
 }
 
-/// Validate that every geometric edge is manifold (shared by exactly 2 faces).
-///
-/// In a manifold halfedge mesh, every geometric edge (identified by its
-/// vertex pair) should connect exactly two distinct faces. Non-manifold
-/// edges (3+ faces sharing one geometric edge) indicate corruption.
-///
-/// Keys by geometric vertex pairs `(min_vertex, max_vertex)` — not
-/// halfedge ID pairs, which would always yield exactly 2 by construction.
-fn validate_edge_manifoldness(arena: &TopologyArena) -> Result<(), KernelError> {
-    let mut edge_faces: std::collections::BTreeMap<(u32, u32), BTreeSet<u32>> =
-        std::collections::BTreeMap::new();
-
-    for (he_id, he_data) in arena.iter_half_edges().filter(|(id, d)| *id != d.twin()) {
-        let twin_data = arena.get_half_edge(he_data.twin())
-            .map_err(|_| KernelError::TopologyViolation {
-                err: forge_core::TopologyError::MissingTwin {
-                    halfedge_index: he_id.index(),
-                },
-                context: None,
-            })?;
-        let v_a = he_data.origin().index();
-        let v_b = twin_data.origin().index();
-        let canonical = (v_a.min(v_b), v_a.max(v_b));
-        edge_faces
-            .entry(canonical)
-            .or_default()
-            .insert(he_data.face().index());
-    }
-
-    for (&(v_lo, v_hi), faces) in &edge_faces {
-        if faces.len() > 2 {
-            return Err(KernelError::TopologyViolation {
-                err: forge_core::TopologyError::NonManifoldEdge {
-                    edge_index: v_lo,
-                    valence: faces.len(),
-                },
-                context: Some(forge_core::ErrorContext {
-                    scope: forge_core::ErrorScope::Entity {
-                        entity_kind: "Edge".to_string(),
-                        index: v_lo,
-                    },
-                    suggested_fixes: Vec::new(),
-                    detail: format!(
-                        "Geometric edge ({}, {}) shared by {} faces (expected ≤2 for manifold)",
-                        v_lo, v_hi, faces.len()
-                    ),
-                }),
-            });
+/// Validate shell consistency: Solid shells must not contain boundary edges.
+fn validate_shell_consistency(arena: &TopologyArena) -> Result<(), KernelError> {
+    for (shell_id, shell_data) in arena.iter_shells() {
+        if matches!(shell_data.kind(), crate::arena::ShellKind::Solid(_)) {
+            for (face_id, face_data) in arena.iter_faces() {
+                if face_data.shell() == shell_id {
+                    let iter = crate::topology::queries::traverse::FaceEdgeIterator::new(arena, face_id)?;
+                    for he_res in iter {
+                        let he_id = he_res?;
+                        if crate::topology::queries::traverse::is_boundary_edge(arena, he_id)? {
+                            return Err(KernelError::TopologyViolation {
+                                err: forge_core::TopologyError::BoundaryEdgeInSolid { 
+                                    halfedge_index: he_id.index(), 
+                                    shell_index: shell_id.index() 
+                                },
+                                context: Some(forge_core::ErrorContext {
+                                    scope: forge_core::ErrorScope::Entity {
+                                        entity_kind: "HalfEdge".to_string(),
+                                        index: he_id.index(),
+                                    },
+                                    suggested_fixes: Vec::new(),
+                                    detail: format!(
+                                        "Solid shell {} contains a boundary edge {} (Solid shells must be watertight)", 
+                                        shell_id.index(), he_id.index()
+                                    )
+                                })
+                            });
+                        }
+                    }
+                }
+            }
         }
     }
-
     Ok(())
 }
 
@@ -482,7 +510,7 @@ fn validate_edge_manifoldness(arena: &TopologyArena) -> Result<(), KernelError> 
 ///
 /// Wire edges (antennae from MakeEdgeVertex) are exempted: their twin
 /// pair legitimately shares the same face. A wire edge is identified
-/// by `he.face() == he.twin().face()` and is a valid non-manifold
+/// by `he.face() == he.radial_next().face()` and is a valid non-manifold
 /// feature, not an orientation defect.
 fn validate_orientation_consistency(arena: &TopologyArena) -> Result<(), KernelError> {
     // In a single-face topology (e.g. digon from MVF+SE), all twin
@@ -493,8 +521,8 @@ fn validate_orientation_consistency(arena: &TopologyArena) -> Result<(), KernelE
 
     let mut checked: BTreeSet<(u32, u32)> = BTreeSet::new();
 
-    for (he_id, he_data) in arena.iter_half_edges().filter(|(id, d)| *id != d.twin()) {
-        let twin_id = he_data.twin();
+    for (he_id, he_data) in arena.iter_half_edges().filter(|(id, d)| *id != d.radial_next()) {
+        let twin_id = he_data.radial_next();
         let canonical = (he_id.index().min(twin_id.index()), he_id.index().max(twin_id.index()));
 
         if checked.insert(canonical) {

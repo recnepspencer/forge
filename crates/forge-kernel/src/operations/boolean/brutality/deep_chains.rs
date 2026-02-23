@@ -302,7 +302,7 @@ fn minimal_nonoverlapping_notches() {
         let p_d = geom_ref.get_vertex_position(dest).unwrap();
         if (p_o[2] - 5.0).abs() < 1e-9 || (p_d[2] - 5.0).abs() < 1e-9 {
             let face = he_data.face();
-            let twin = he_data.twin();
+            let twin = he_data.radial_next();
             let twin_face = arena.get_half_edge(twin).map(|t| t.face()).unwrap_or(face);
             eprintln!("  HE#{}: {origin}->{dest} [{:.3},{:.3},{:.3}]->[{:.3},{:.3},{:.3}] face={face} twin_face={twin_face}",
                 he_id.index(), p_o[0], p_o[1], p_o[2], p_d[0], p_d[1], p_d[2]);
@@ -1035,7 +1035,7 @@ fn deterministic_replay_harness() {
             );
 
             for (he_id, he_data) in arena.iter_half_edges() {
-                let twin_id = he_data.twin();
+                let twin_id = he_data.radial_next();
                 assert_ne!(
                     he_id, twin_id,
                     "REPLAY [{run_label}] step {step}: orphan halfedge {} (self-twin)",
@@ -1049,11 +1049,11 @@ fn deterministic_replay_harness() {
                     );
                 });
                 assert_eq!(
-                    twin_data.twin(), he_id,
+                    twin_data.radial_next(), he_id,
                     "REPLAY [{run_label}] step {step}: twin reciprocity violated \
                      he[{}].twin={}, he[{}].twin={} (expected {})",
                     he_id.index(), twin_id.index(),
-                    twin_id.index(), twin_data.twin().index(), he_id.index()
+                    twin_id.index(), twin_data.radial_next().index(), he_id.index()
                 );
             }
 

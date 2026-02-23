@@ -29,4 +29,6 @@ mod kill_edge_vertex_tests;
 mod lineage_tests;
 mod integration_tests;
 mod shell_edge_tests;
+mod sew_edge_tests;
 mod brutality_tests;
+pub(crate) mod invariant_checker;

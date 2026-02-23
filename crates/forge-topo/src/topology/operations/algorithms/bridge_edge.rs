@@ -73,7 +73,7 @@ impl EulerOperator for BridgeEdge {
             Some(edge_lineage),
         ));
 
-        let (he_into_hole, he_out_of_hole) = draft.insert_half_edge_pair(
+        let (he_into_hole, he_out_of_hole) = draft.insert_radial_pair(
             HalfEdgeData::with_lineage(
                 placeholder_he,
                 self.inner_he,
@@ -270,11 +270,11 @@ mod tests {
         let he_in = result.he_into_hole;
         let he_out = result.he_out_of_hole;
         assert_eq!(
-            draft.arena().get_half_edge(he_in).unwrap().twin(),
+            draft.arena().get_half_edge(he_in).unwrap().radial_next(),
             he_out,
         );
         assert_eq!(
-            draft.arena().get_half_edge(he_out).unwrap().twin(),
+            draft.arena().get_half_edge(he_out).unwrap().radial_next(),
             he_in,
         );
     }

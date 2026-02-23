@@ -382,6 +382,17 @@ pub enum TopologyError {
         vertex_index: u32,
         face_index: u32,
     },
+    /// A shell has non-orientable surface topology (Möbius strip, Klein bottle).
+    /// The kernel targets orientable 2-manifolds only.
+    NonOrientableSurface {
+        shell_index: u32,
+    },
+    /// A boundary edge (self-radial, no face across the gap) was found in a
+    /// solid shell. Solid shells must be watertight.
+    BoundaryEdgeInSolid {
+        halfedge_index: u32,
+        shell_index: u32,
+    },
 }
 
 impl fmt::Display for TopologyError {
@@ -448,6 +459,14 @@ impl fmt::Display for TopologyError {
             TopologyError::MissingVertexPosition { vertex_index, face_index } => {
                 write!(f, "Vertex {} referenced by face {} has no position",
                     vertex_index, face_index)
+            }
+            TopologyError::NonOrientableSurface { shell_index } => {
+                write!(f, "Shell {} has non-orientable surface topology (kernel targets orientable 2-manifolds only)",
+                    shell_index)
+            }
+            TopologyError::BoundaryEdgeInSolid { halfedge_index, shell_index } => {
+                write!(f, "Halfedge {} is a boundary edge in solid shell {} (solid shells must be watertight)",
+                    halfedge_index, shell_index)
             }
         }
     }

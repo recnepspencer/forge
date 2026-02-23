@@ -44,7 +44,7 @@ fn diagnose_broken_twins_detected() {
     draft.arena_mut()
         .get_half_edge_mut(first_he)
         .unwrap()
-        .set_twin(first_he);
+        .set_radial_next(first_he);
 
     let diag = diagnose_arena(draft.arena(), PipelineStage::PostStitch);
 

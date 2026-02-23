@@ -100,29 +100,34 @@ impl<'a> Iterator for FaceEdgeIterator<'a> {
 
 /// Iterator over outgoing halfedges around a vertex.
 ///
-/// Follows `twin -> next` to circle the vertex.
+/// Scans the arena and returns all halfedges originating at this vertex.
 pub struct VertexRingIterator<'a> {
     arena: &'a TopologyArena,
-    start: HalfEdgeId,
-    current: Option<HalfEdgeId>,
-    steps: usize,
-    finished: bool,
+    vertex: VertexId,
+    outgoing_halfedges: std::vec::IntoIter<HalfEdgeId>,
 }
 
 impl<'a> VertexRingIterator<'a> {
-    const MAX_ITER: usize = 100_000;
-
     /// Create a new iterator around a vertex.
+    /// 
+    /// Scans the arena for all halfedges originating at this vertex.
+    /// This is necessary because non-manifold (radial) edges can break 
+    /// the continuous `twin -> next` cycle into disjoint orbits.
     pub fn new(arena: &'a TopologyArena, vertex: VertexId) -> Result<Self, KernelError> {
-        let vtx_data = arena.get_vertex(vertex)?;
-        let start = vtx_data.outgoing();
+        let mut edges = Vec::new();
+        for (id, data) in arena.iter_half_edges() {
+            if data.origin() == vertex {
+                edges.push(id);
+            }
+        }
         
+        // Ensure deterministic order
+        edges.sort_by_key(|h| h.index());
+
         Ok(Self {
             arena,
-            start,
-            current: Some(start),
-            steps: 0,
-            finished: false,
+            vertex,
+            outgoing_halfedges: edges.into_iter(),
         })
     }
 }
@@ -131,54 +136,67 @@ impl<'a> Iterator for VertexRingIterator<'a> {
     type Item = Result<HalfEdgeId, KernelError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.finished {
-            return None;
-        }
+        self.outgoing_halfedges.next().map(Ok)
+    }
+}
 
-        let curr_id = match self.current {
-            Some(id) => id,
-            None => {
-                self.finished = true;
-                return None;
-            }
-        };
+// =========================================================================
+// Radial Edge Iterator (Zero Allocation)
+// =========================================================================
 
-        // Cycle guard
-        self.steps += 1;
-        if self.steps >= Self::MAX_ITER {
-            self.finished = true;
+/// Iterator over halfedges in a radial ring around a geometric edge.
+///
+/// Follows `radial_next` to circle the edge.
+pub struct RadialEdgeIterator<'a> {
+    arena: &'a TopologyArena,
+    start: HalfEdgeId,
+    current: HalfEdgeId,
+    first: bool,
+    iter_count: usize,
+}
+
+impl<'a> RadialEdgeIterator<'a> {
+    const MAX_ITER: usize = 100_000;
+
+    /// Create a new iterator around an edge's radial ring.
+    pub fn new(arena: &'a TopologyArena, start: HalfEdgeId) -> Result<Self, KernelError> {
+        arena.get_half_edge(start)?; // validate existence
+        Ok(Self {
+            arena,
+            start,
+            current: start,
+            first: true,
+            iter_count: 0,
+        })
+    }
+}
+
+impl<'a> Iterator for RadialEdgeIterator<'a> {
+    type Item = Result<HalfEdgeId, KernelError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.iter_count > Self::MAX_ITER {
             return Some(Err(KernelError::InternalError {
-                message: format!("Vertex ring exceeded {} iterations — likely corrupted", Self::MAX_ITER),
+                message: format!("Radial loop traversal exceeded {} iterations (corrupted topology)", Self::MAX_ITER),
                 context: None,
             }));
         }
 
-        // Logic: next_around_vertex = twin(current).next
-        // 1. Get current halfedge
-        // 2. Get twin
-        // 3. Get twin data -> next
-        
-        let next_result = (|| -> Result<HalfEdgeId, KernelError> {
-            let he_data = self.arena.get_half_edge(curr_id)?;
-            let twin_id = he_data.twin();
-            let twin_data = self.arena.get_half_edge(twin_id)?;
-            Ok(twin_data.next())
-        })();
-
-        match next_result {
-            Ok(next_id) => {
-                if next_id == self.start {
-                    self.current = None; // Finishes after this yield
-                } else {
-                    self.current = Some(next_id);
-                }
-                Some(Ok(curr_id))
-            }
-            Err(e) => {
-                self.finished = true;
-                Some(Err(e))
-            }
+        if !self.first && self.current == self.start {
+            return None; // Loop completed
         }
+
+        let he_data = match self.arena.get_half_edge(self.current) {
+            Ok(h) => h,
+            Err(e) => return Some(Err(e)),
+        };
+
+        let result = self.current;
+        self.current = he_data.radial_next();
+        self.first = false;
+        self.iter_count += 1;
+
+        Some(Ok(result))
     }
 }
 
@@ -196,11 +214,31 @@ pub fn face_edge_count(arena: &TopologyArena, face: FaceId) -> Result<usize, Ker
     Ok(count)
 }
 
-/// Get the faces adjacent to an edge (the faces of its two halfedges).
-pub fn edge_faces(arena: &TopologyArena, he: HalfEdgeId) -> Result<(FaceId, FaceId), KernelError> {
+/// Check if an edge is a boundary edge (self-radial, valence 1).
+pub fn is_boundary_edge(arena: &TopologyArena, he: HalfEdgeId) -> Result<bool, KernelError> {
     let he_data = arena.get_half_edge(he)?;
-    let twin_data = arena.get_half_edge(he_data.twin())?;
-    Ok((he_data.face(), twin_data.face()))
+    Ok(he_data.radial_next() == he)
+}
+
+/// Count the number of faces sharing a geometric edge (radial valence).
+pub fn radial_valence(arena: &TopologyArena, he: HalfEdgeId) -> Result<usize, KernelError> {
+    let mut count = 0;
+    for res in RadialEdgeIterator::new(arena, he)? {
+        res?;
+        count += 1;
+    }
+    Ok(count)
+}
+
+/// Get all faces adjacent to a geometric edge from its radial ring.
+pub fn edge_faces(arena: &TopologyArena, he: HalfEdgeId) -> Result<Vec<FaceId>, KernelError> {
+    let mut faces = Vec::new();
+    for res in RadialEdgeIterator::new(arena, he)? {
+        let h = res?;
+        let he_data = arena.get_half_edge(h)?;
+        faces.push(he_data.face());
+    }
+    Ok(faces)
 }
 
 /// Walk a G1-continuous (tangent-continuous) edge chain starting at `start_edge`.
@@ -236,7 +274,7 @@ pub fn find_g1_chain(
         let he_data = arena.get_half_edge(current)?;
 
         // Advance: twin of current → next of that twin → candidate next edge.
-        let twin_id = he_data.twin();
+        let twin_id = he_data.radial_next();
         let twin_data = arena.get_half_edge(twin_id)?;
         let candidate = twin_data.next();
 

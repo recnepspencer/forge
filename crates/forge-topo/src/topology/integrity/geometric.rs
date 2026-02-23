@@ -96,22 +96,24 @@ fn validate_zero_length_edges(
     position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
     edge_length_threshold: f64,
 ) -> Result<(), KernelError> {
-    let mut checked_edges: BTreeSet<(u32, u32)> = BTreeSet::new();
+    let mut checked_edges: BTreeSet<u32> = BTreeSet::new();
 
     for (he_id, he_data) in arena.iter_half_edges() {
-        let twin_id = he_data.twin();
-        if he_id == twin_id {
+        let edge_id = he_data.edge();
+        if !checked_edges.insert(edge_id.index()) {
             continue;
         }
 
-        let canonical_key = (he_id.index().min(twin_id.index()), he_id.index().max(twin_id.index()));
-        if !checked_edges.insert(canonical_key) {
+        let origin = he_data.origin();
+        let next_data = arena.get_half_edge(he_data.next())?;
+        let target = next_data.origin();
+
+        if origin == target {
             continue;
         }
 
-        let twin_data = arena.get_half_edge(twin_id)?;
-        let origin_pos = position_fn(he_data.origin());
-        let target_pos = position_fn(twin_data.origin());
+        let origin_pos = position_fn(origin);
+        let target_pos = position_fn(target);
 
         if let (Some(p0), Some(p1)) = (origin_pos, target_pos) {
             let length = compute_edge_length(p0, p1);
@@ -164,6 +166,13 @@ fn validate_signed_volume(
         }
 
         let shell_faces = discover_shell_faces(arena, seed_face, &mut visited_faces)?;
+
+        let shell_id = arena.get_face(seed_face)?.shell();
+        if !matches!(arena.get_shell(shell_id)?.kind(), crate::arena::ShellKind::Solid(_)) {
+            shell_index += 1;
+            continue;
+        }
+
         let signed_volume = compute_shell_signed_volume(arena, &shell_faces, position_fn)?;
 
         if signed_volume < 0.0 {

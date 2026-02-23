@@ -41,20 +41,20 @@ fn remove_zero_length_edges(draft: &mut MutableDraft) -> Result<usize, KernelErr
         if !processed.contains(&he_id.index()) {
             let he = draft.arena().get_half_edge(he_id)?.clone();
 
-            let twin_unprocessed = !processed.contains(&he.twin().index());
+            let twin_unprocessed = !processed.contains(&he.radial_next().index());
             let non_degenerate_loop = he.prev() != he_id && he.next() != he_id;
 
             if twin_unprocessed && non_degenerate_loop {
                 excise_halfedge(draft, he_id, &he)?;
-                excise_twin_halfedge(draft, he.twin())?;
+                excise_twin_halfedge(draft, he.radial_next())?;
 
                 let _ = draft.remove_half_edge(he_id);
-                if draft.arena().get_half_edge(he.twin()).is_ok() {
-                    let _ = draft.remove_half_edge(he.twin());
+                if draft.arena().get_half_edge(he.radial_next()).is_ok() {
+                    let _ = draft.remove_half_edge(he.radial_next());
                 }
 
                 processed.insert(he_id.index());
-                processed.insert(he.twin().index());
+                processed.insert(he.radial_next().index());
                 removed += 1;
             }
         }

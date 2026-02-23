@@ -46,7 +46,7 @@ impl EulerOperator for KillEdgeMakeLoop {
 
     fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he_data = draft.arena().get_half_edge(self.edge)?;
-        let twin_id = he_data.twin();
+        let twin_id = he_data.radial_next();
         let face = he_data.face();
         let he_prev = he_data.prev();
         let he_next = he_data.next();
@@ -56,6 +56,14 @@ impl EulerOperator for KillEdgeMakeLoop {
         let twin_face = twin_data.face();
         let twin_prev = twin_data.prev();
         let twin_next = twin_data.next();
+
+        let valence = crate::topology::queries::traverse::radial_valence(draft.arena(), self.edge)?;
+        if valence != 2 {
+            return Err(KernelError::InvalidInput {
+                message: format!("KEML: edge has radial valence {}, must be exactly 2", valence),
+                context: None,
+            });
+        }
 
         // ── Validate: both halfedges on the same face ───────────────
         if face != twin_face {

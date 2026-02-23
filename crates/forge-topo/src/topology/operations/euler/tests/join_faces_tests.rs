@@ -91,13 +91,13 @@ fn join_faces_preserves_inner_loops() {
         let iv1 = arena.insert_vertex(VertexData::new(placeholder_he), None);
         let iv2 = arena.insert_vertex(VertexData::new(placeholder_he), None);
 
-        let (ihe01, _) = arena.insert_half_edge_pair(
+        let (ihe01, _) = arena.insert_radial_pair(
             HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, target_face, iv0, placeholder_e),
             HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, target_face, iv1, placeholder_e), None);
-        let (ihe12, _) = arena.insert_half_edge_pair(
+        let (ihe12, _) = arena.insert_radial_pair(
             HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, target_face, iv1, placeholder_e),
             HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, target_face, iv2, placeholder_e), None);
-        let (ihe20, _) = arena.insert_half_edge_pair(
+        let (ihe20, _) = arena.insert_radial_pair(
             HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, target_face, iv2, placeholder_e),
             HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, target_face, iv0, placeholder_e), None);
 

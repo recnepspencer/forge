@@ -62,9 +62,9 @@ fn find_coplanar_merge_candidate(
     geom: &GeometryStore,
 ) -> Option<(HalfEdgeId, forge_topo::handles::FaceId, forge_topo::handles::FaceId)> {
     arena.iter_half_edges()
-        .filter(|(he_id, he)| he.twin() >= *he_id)
+        .filter(|(he_id, he)| he.radial_next() >= *he_id)
         .find_map(|(he_id, he)| {
-            let twin = arena.get_half_edge(he.twin()).ok()?;
+            let twin = arena.get_half_edge(he.radial_next()).ok()?;
             let face_a = he.face();
             let face_b = twin.face();
             if face_a == face_b { return None; }

@@ -26,7 +26,7 @@ use forge_core::KernelError;
 use forge_core::tracing::{DecisionKind, DecisionTier};
 use forge_geom::Plane;
 use forge_geom::spatial::bsp::{BspConfig, BspSolid, ConvexCell};
-use forge_topo::arena::{FaceData, HalfEdgeData, VertexData, LoopData, ShellData, EdgeData, ShellOrientation};
+use forge_topo::arena::{FaceData, HalfEdgeData, VertexData, LoopData, ShellData, EdgeData, ShellKind, ShellOrientation};
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId, LoopId, ShellId, EdgeId};
 use forge_topo::state::{TopologyState, MutableDraft};
 
@@ -94,7 +94,7 @@ fn build_multi_cell_mesh(
 
     let shell = draft.insert_shell(ShellData::new(
         FaceId::from_raw_parts(u32::MAX, 0),
-        ShellOrientation::Outer,
+        ShellKind::Solid(ShellOrientation::Outer),
     ));
 
     for (_cell_idx, (cell, bsp_plane_indices)) in cells.iter().enumerate() {
@@ -107,7 +107,7 @@ fn build_multi_cell_mesh(
 
         let shell = draft.insert_shell(ShellData::new(
             FaceId::from_raw_parts(u32::MAX, 0),
-            ShellOrientation::Outer,
+            ShellKind::Solid(ShellOrientation::Outer),
         ));
 
         insert_cell_faces(
@@ -345,8 +345,8 @@ fn stitch_twins_cross_plane(
         };
 
         if fwd_ids.len() == 1 && rev_ids.len() == 1 {
-            draft.arena_mut().get_half_edge_mut(fwd_ids[0])?.set_twin(rev_ids[0]);
-            draft.arena_mut().get_half_edge_mut(rev_ids[0])?.set_twin(fwd_ids[0]);
+            draft.arena_mut().get_half_edge_mut(fwd_ids[0])?.set_radial_next(rev_ids[0]);
+            draft.arena_mut().get_half_edge_mut(rev_ids[0])?.set_radial_next(fwd_ids[0]);
             continue;
         }
 
@@ -382,8 +382,8 @@ fn stitch_twins_cross_plane(
             if let Some(rev_idx) = rev_remaining.iter().position(|(_, p)| *p != fwd_plane) {
                 let (fwd_id, _) = fwd_remaining.remove(i);
                 let (rev_id, _) = rev_remaining.remove(rev_idx);
-                draft.arena_mut().get_half_edge_mut(fwd_id)?.set_twin(rev_id);
-                draft.arena_mut().get_half_edge_mut(rev_id)?.set_twin(fwd_id);
+                draft.arena_mut().get_half_edge_mut(fwd_id)?.set_radial_next(rev_id);
+                draft.arena_mut().get_half_edge_mut(rev_id)?.set_radial_next(fwd_id);
             } else {
                 i += 1;
             }
@@ -393,8 +393,8 @@ fn stitch_twins_cross_plane(
         for i in 0..fwd_remaining.len().min(rev_remaining.len()) {
             let (fwd_id, _) = fwd_remaining[i];
             let (rev_id, _) = rev_remaining[i];
-            draft.arena_mut().get_half_edge_mut(fwd_id)?.set_twin(rev_id);
-            draft.arena_mut().get_half_edge_mut(rev_id)?.set_twin(fwd_id);
+            draft.arena_mut().get_half_edge_mut(fwd_id)?.set_radial_next(rev_id);
+            draft.arena_mut().get_half_edge_mut(rev_id)?.set_radial_next(fwd_id);
         }
 
         // Phase 3: Edge management. For all pairs created in this edge set,
@@ -405,7 +405,7 @@ fn stitch_twins_cross_plane(
              for (&f_he, &r_he) in fwd_ids.iter().zip(rev_ids.iter()) {
                   let f_data = draft.arena().get_half_edge(f_he)?;
                   let r_data = draft.arena().get_half_edge(r_he)?;
-                  if f_data.twin() == r_he {
+                  if f_data.radial_next() == r_he {
                        let f_edge = f_data.edge();
                        let r_edge = r_data.edge();
                        if f_edge != r_edge {
@@ -459,7 +459,7 @@ fn detect_coplanar_twin_faces(
                 Ok(h) => h,
                 Err(_) => { all_coplanar = false; break; }
             };
-            let twin_id = he.twin();
+            let twin_id = he.radial_next();
             let twin_he = match draft.arena().get_half_edge(twin_id) {
                 Ok(h) => h,
                 Err(_) => { all_coplanar = false; break; }
@@ -565,7 +565,7 @@ fn merge_coplanar_neighbors(
             let mut current = first_he;
             loop {
                 let he = draft.arena().get_half_edge(current)?;
-                let twin_id = he.twin();
+                let twin_id = he.radial_next();
                 let twin = draft.arena().get_half_edge(twin_id)?;
                 let adj_face = twin.face();
 
@@ -608,7 +608,7 @@ fn dissolve_edge(
     he_id: HalfEdgeId,
 ) -> Result<FaceId, KernelError> {
     let he = draft.arena().get_half_edge(he_id)?;
-    let twin_id = he.twin();
+    let twin_id = he.radial_next();
     let face_a = he.face();
     let he_next = he.next();
     let he_prev = he.prev();

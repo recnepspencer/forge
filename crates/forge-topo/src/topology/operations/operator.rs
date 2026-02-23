@@ -310,7 +310,7 @@ pub fn apply_op<O: EulerOperator>(
 /// Per-op post-condition: twin reciprocity and next/prev reciprocity.
 ///
 /// For every halfedge in the arena, checks:
-/// - `he.twin().twin() == he` (twin reciprocity)
+/// - `he.radial_next().radial_next() == he` (twin reciprocity)
 /// - `he.next().prev() == he` (next/prev reciprocity)
 ///
 /// These catch silent wiring bugs where operators set the wrong
@@ -322,10 +322,10 @@ fn validate_halfedge_reciprocity(
     invocation_id: u64,
 ) -> Result<(), KernelError> {
     for (he_id, he_data) in draft.arena().iter_half_edges() {
-        let twin_id = he_data.twin();
+        let twin_id = he_data.radial_next();
         if he_id != twin_id {
             let twin_data = draft.arena().get_half_edge(twin_id)?;
-            if twin_data.twin() != he_id {
+            if twin_data.radial_next() != he_id {
                 return Err(KernelError::TopologyViolation {
                     err: TopologyError::BrokenLoop {
                         face_index: he_data.face().index(),
@@ -340,7 +340,7 @@ fn validate_halfedge_reciprocity(
                         detail: format!(
                             "Twin reciprocity broken after {}: he[{}].twin={}, but he[{}].twin={} (expected {})",
                             op_name, he_id.index(), twin_id.index(),
-                            twin_id.index(), twin_data.twin().index(), he_id.index()
+                            twin_id.index(), twin_data.radial_next().index(), he_id.index()
                         ),
                     }),
                 });

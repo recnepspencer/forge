@@ -36,8 +36,8 @@ fn mev_from_seed_sprouts_antenna() {
     assert_eq!(he_out.origin(), mvf.vertex, "he_out origin must be the original vertex");
     assert_eq!(he_back.origin(), mev.new_vertex, "he_back origin must be the new vertex");
 
-    assert_eq!(he_out.twin(), mev.he_back, "he_out.twin must be he_back");
-    assert_eq!(he_back.twin(), mev.he_out, "he_back.twin must be he_out");
+    assert_eq!(he_out.radial_next(), mev.he_back, "he_out.twin must be he_back");
+    assert_eq!(he_back.radial_next(), mev.he_out, "he_back.twin must be he_out");
 
     assert_eq!(anchor.next(), mev.he_out, "anchor.next must be he_out");
     assert_eq!(he_out.next(), mev.he_back, "he_out.next must be he_back");
@@ -237,13 +237,13 @@ fn mev_double_antenna_same_vertex() {
 
     let he1_out = draft.arena().get_half_edge(mev1.he_out).unwrap();
     let he1_back = draft.arena().get_half_edge(mev1.he_back).unwrap();
-    assert_eq!(he1_out.twin(), mev1.he_back);
-    assert_eq!(he1_back.twin(), mev1.he_out);
+    assert_eq!(he1_out.radial_next(), mev1.he_back);
+    assert_eq!(he1_back.radial_next(), mev1.he_out);
 
     let he2_out = draft.arena().get_half_edge(mev2.he_out).unwrap();
     let he2_back = draft.arena().get_half_edge(mev2.he_back).unwrap();
-    assert_eq!(he2_out.twin(), mev2.he_back);
-    assert_eq!(he2_back.twin(), mev2.he_out);
+    assert_eq!(he2_out.radial_next(), mev2.he_back);
+    assert_eq!(he2_back.radial_next(), mev2.he_out);
 }
 
 /// MEV output passes full structural validation on commit.

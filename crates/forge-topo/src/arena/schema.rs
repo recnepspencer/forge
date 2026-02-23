@@ -102,10 +102,19 @@ impl FaceData {
 
 /// Data stored for each halfedge.
 ///
-/// Twin, next, and prev are all explicit pointers.
+/// Radial_next, next, and prev are all explicit pointers.
+///
+/// # Radial-Edge Structure
+///
+/// Each geometric edge is shared by a ring of halfedges linked via
+/// `radial_next`. For manifold edges (the common case), the ring has
+/// exactly 2 halfedges: `radial_next(radial_next(he)) == he`. For
+/// non-manifold edges (3+ faces sharing an edge), the ring is longer.
+/// For boundary edges (open shells), `radial_next == self`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HalfEdgeData {
-    twin: HalfEdgeId,
+    /// Next halfedge in the radial ring around the same geometric edge.
+    radial_next: HalfEdgeId,
     next: HalfEdgeId,
     prev: HalfEdgeId,
     face: FaceId,
@@ -122,19 +131,19 @@ pub struct HalfEdgeData {
 impl HalfEdgeData {
     /// Construct a new halfedge with all connectivity fields.
     pub fn new(
-        twin: HalfEdgeId,
+        radial_next: HalfEdgeId,
         next: HalfEdgeId,
         prev: HalfEdgeId,
         face: FaceId,
         origin: VertexId,
         edge: EdgeId,
     ) -> Self {
-        Self { twin, next, prev, face, origin, edge, lineage: None, is_bridge: false }
+        Self { radial_next, next, prev, face, origin, edge, lineage: None, is_bridge: false }
     }
 
     /// Construct a new halfedge with lineage.
     pub fn with_lineage(
-        twin: HalfEdgeId,
+        radial_next: HalfEdgeId,
         next: HalfEdgeId,
         prev: HalfEdgeId,
         face: FaceId,
@@ -142,11 +151,15 @@ impl HalfEdgeData {
         edge: EdgeId,
         lineage: Option<Lineage>,
     ) -> Self {
-        Self { twin, next, prev, face, origin, edge, lineage, is_bridge: false }
+        Self { radial_next, next, prev, face, origin, edge, lineage, is_bridge: false }
     }
 
-    /// The twin halfedge (on the adjacent face).
-    pub fn twin(&self) -> HalfEdgeId { self.twin }
+    /// Next halfedge in the radial ring around the same geometric edge.
+    ///
+    /// For manifold edges, `radial_next(radial_next(he)) == he` (pair).
+    /// For boundary edges, `radial_next == self` (self-radial).
+    /// For non-manifold edges, the ring has 3+ halfedges.
+    pub fn radial_next(&self) -> HalfEdgeId { self.radial_next }
 
     /// The next halfedge in the face loop.
     pub fn next(&self) -> HalfEdgeId { self.next }
@@ -169,8 +182,8 @@ impl HalfEdgeData {
     /// Whether this is a synthetic bridge halfedge (inserted by `BridgeEdge`).
     pub fn is_bridge(&self) -> bool { self.is_bridge }
 
-    /// Set the twin halfedge.
-    pub fn set_twin(&mut self, id: HalfEdgeId) { self.twin = id; }
+    /// Set the next halfedge in the radial ring.
+    pub fn set_radial_next(&mut self, id: HalfEdgeId) { self.radial_next = id; }
 
     /// Set the next halfedge.
     pub fn set_next(&mut self, id: HalfEdgeId) { self.next = id; }
@@ -287,38 +300,58 @@ pub enum ShellOrientation {
     Inner,
 }
 
+/// Classification of a shell's topological character.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ShellKind {
+    /// Closed watertight shell (every edge has exactly 2 incident faces).
+    Solid(ShellOrientation),
+    /// Open shell with boundary edges (car body panels, sheet metal).
+    Sheet,
+    /// Wire body: edges and vertices only, no faces.
+    Wire,
+}
+
 /// Data stored for each shell — a maximal connected subset of faces.
 ///
-/// Outer shells bound solid material; inner shells bound voids (cavities).
+/// Solid shells bound material or voids (cavities). Sheet shells are
+/// open surfaces with boundary edges. Wire shells have only edges/vertices.
 /// Shell membership is tracked via `FaceData::shell`. The representative
 /// face provides a traversal entry point.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShellData {
     representative_face: FaceId,
-    orientation: ShellOrientation,
+    kind: ShellKind,
     lineage: Option<Lineage>,
 }
 
 impl ShellData {
     /// Construct a new shell with the given representative face.
-    pub fn new(representative_face: FaceId, orientation: ShellOrientation) -> Self {
-        Self { representative_face, orientation, lineage: None }
+    pub fn new(representative_face: FaceId, kind: ShellKind) -> Self {
+        Self { representative_face, kind, lineage: None }
     }
 
     /// Construct a new shell with lineage.
     pub fn with_lineage(
         representative_face: FaceId,
-        orientation: ShellOrientation,
+        kind: ShellKind,
         lineage: Option<Lineage>,
     ) -> Self {
-        Self { representative_face, orientation, lineage }
+        Self { representative_face, kind, lineage }
     }
 
     /// One representative face (entry point for shell traversal).
     pub fn representative_face(&self) -> FaceId { self.representative_face }
 
-    /// Shell orientation (outer = material, inner = void).
-    pub fn orientation(&self) -> ShellOrientation { self.orientation }
+    /// Shell kind (solid, sheet, or wire).
+    pub fn kind(&self) -> ShellKind { self.kind }
+
+    /// Shell orientation for solid shells, `None` for sheet/wire.
+    pub fn orientation(&self) -> Option<ShellOrientation> {
+        match self.kind {
+            ShellKind::Solid(o) => Some(o),
+            _ => None,
+        }
+    }
 
     /// Inline lineage for provenance tracking.
     pub fn lineage(&self) -> Option<&Lineage> { self.lineage.as_ref() }
@@ -326,17 +359,18 @@ impl ShellData {
     /// Set the representative face.
     pub fn set_representative_face(&mut self, id: FaceId) { self.representative_face = id; }
 
-    /// Set the orientation.
-    pub fn set_orientation(&mut self, orientation: ShellOrientation) { self.orientation = orientation; }
+    /// Set the shell kind.
+    pub fn set_kind(&mut self, kind: ShellKind) { self.kind = kind; }
 
     /// Set inline lineage.
     pub fn set_lineage(&mut self, lineage: Option<Lineage>) { self.lineage = lineage; }
 }
 
-/// Data stored for each undirected edge — owns exactly one halfedge pair.
+/// Data stored for each undirected edge — owns a representative halfedge.
 ///
+/// All halfedges around this geometric edge form a radial ring linked
+/// via `radial_next`. The representative halfedge provides an entry point.
 /// Edge-level attributes (fillet radius, crease angle, seam) live here.
-/// The other halfedge of the pair is `half_edge.twin()`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EdgeData {
     half_edge: HalfEdgeId,
@@ -354,7 +388,7 @@ impl EdgeData {
         Self { half_edge, lineage }
     }
 
-    /// One halfedge of the pair (the other is `he.twin()`).
+    /// Representative halfedge of the radial ring.
     pub fn half_edge(&self) -> HalfEdgeId { self.half_edge }
 
     /// Inline lineage for provenance tracking.
