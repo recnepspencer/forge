@@ -162,7 +162,7 @@ fn redirect_vertex_references(
         }
     }
 
-    arena.remove_vertex(doomed_vid)?;
+    draft.remove_vertex(doomed_vid)?;
 
     Ok(())
 }

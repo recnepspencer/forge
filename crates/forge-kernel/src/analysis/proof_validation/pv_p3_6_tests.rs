@@ -364,7 +364,7 @@ mod tests {
 
         let first_face = result.topology().arena().iter_faces().next()
             .expect("Disjoint union must produce faces");
-        let face_ref = forge_core::EntityRef::new("Face", first_face.0.index() as u32);
+        let face_ref = forge_core::EntityRef::new(forge_core::EntityKind::Face, first_face.0.index() as u32);
 
         let chain = query_causal_chain(
             &face_ref,

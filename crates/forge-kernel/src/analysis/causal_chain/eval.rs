@@ -81,9 +81,9 @@ fn find_relevant_operations(
     nring_entities: &[EntityRef],
 ) -> Vec<usize> {
     let mut relevant_kinds: BTreeSet<String> = BTreeSet::new();
-    relevant_kinds.insert(target.get_kind().to_string());
+    relevant_kinds.insert(target.kind().as_str().to_string());
     for nring in nring_entities {
-        relevant_kinds.insert(nring.get_kind().to_string());
+        relevant_kinds.insert(nring.kind().as_str().to_string());
     }
 
     let mut relevant_op_sigs: BTreeSet<String> = BTreeSet::new();
@@ -114,7 +114,7 @@ fn find_relevant_operations(
 
 /// Extract the entity kind string from a LineageEvent.
 fn extract_entity_kind_str(event: &LineageEvent) -> String {
-    event.get_entity_kind_str().to_string()
+    event.get_entity_kind().as_str().to_string()
 }
 
 /// Extract the most relevant OpSignature name from a LineageEvent.
@@ -193,11 +193,11 @@ fn find_decisions_for_entity(
         .iter()
         .filter(|d| {
             if let Some(scope) = d.get_entity_scope() {
-                let matches_target = scope.get_kind() == target.get_kind()
-                    && scope.get_index() == target.get_index();
+                let matches_target = scope.kind().as_str() == target.kind().as_str()
+                    && scope.index() == target.index();
                 let matches_nring = nring_entities.iter().any(|nr| {
-                    scope.get_kind() == nr.get_kind()
-                        && scope.get_index() == nr.get_index()
+                    scope.kind().as_str() == nr.kind().as_str()
+                        && scope.index() == nr.index()
                 });
                 matches_target || matches_nring
             } else {
@@ -218,7 +218,7 @@ fn generate_semantic_summary(
     decisions: &[TracedDecision],
 ) -> String {
     let op_name = op.get_name();
-    let entity_kind = target.get_kind();
+    let entity_kind = target.kind().as_str();
 
     let action = infer_action_verb(op_name);
 

@@ -19,7 +19,7 @@ use forge_core::tracing::TopologyDelta;
 use forge_topo::handles::{FaceId, HalfEdgeId, LoopId, VertexId};
 use forge_topo::state::{TopologyState, MutableDraft};
 use forge_topo::operator::apply_op;
-use forge_topo::euler::bridge_edge::BridgeEdge;
+use forge_topo::algorithms::bridge_edge::BridgeEdge;
 
 use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
 use crate::geometry_store::GeometryStore;

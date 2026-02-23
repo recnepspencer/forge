@@ -10,11 +10,12 @@
 //!
 //! DEPENDENCIES: `arena` (entity storage), `lineage` (provenance)
 
-use forge_core::KernelError;
+use forge_core::{KernelError, TopologyError};
 
-use crate::handles::HalfEdgeId;
+use crate::handles::{HalfEdgeId, LoopId};
 use crate::lineage::{Lineage, OpSignature};
 use crate::EulerOperator;
+use crate::operator::{ExecutionResult, EulerDelta};
 use crate::state::MutableDraft;
 
 /// Merge two faces by removing a shared edge.
@@ -37,7 +38,7 @@ pub struct JfOutput {
 impl EulerOperator for JoinFaces {
     type Output = JfOutput;
 
-    fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<Self::Output, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he = self.edge;
         let he_data = draft.arena().get_half_edge(he)?;
         let he_twin = he_data.twin();
@@ -45,6 +46,7 @@ impl EulerOperator for JoinFaces {
         let he_prev = he_data.prev();
         let face_survive = he_data.face();
         let vertex_a = he_data.origin();
+        let killed_edge = he_data.edge();
 
         let twin_data = draft.arena().get_half_edge(he_twin)?;
         let twin_next = twin_data.next();
@@ -62,37 +64,43 @@ impl EulerOperator for JoinFaces {
         let survive_lineage = draft.arena().get_face(face_survive)?.lineage().cloned();
         let remove_lineage = draft.arena().get_face(face_remove)?.lineage().cloned();
         let merged_lineage = Lineage::merge(&survive_lineage, &remove_lineage, sig);
+        draft.arena_mut().get_half_edge_mut(he_prev)?.set_next(twin_next);
+        draft.arena_mut().get_half_edge_mut(twin_next)?.set_prev(he_prev);
+        draft.arena_mut().get_half_edge_mut(twin_prev)?.set_next(he_next);
+        draft.arena_mut().get_half_edge_mut(he_next)?.set_prev(twin_prev);
 
-        let arena = draft.arena_mut();
-        arena.get_half_edge_mut(he_prev)?.set_next(twin_next);
-        arena.get_half_edge_mut(twin_next)?.set_prev(he_prev);
-        arena.get_half_edge_mut(twin_prev)?.set_next(he_next);
-        arena.get_half_edge_mut(he_next)?.set_prev(twin_prev);
+        reassign_face(draft, twin_next, face_survive)?;
+        let loop_id = draft.arena().get_face(face_survive)?.outer_loop();
+        draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(he_next);
+        draft.arena_mut().get_face_mut(face_survive)?.set_lineage(Some(merged_lineage));
 
-        reassign_face(draft, twin_next, face_survive, he)?;
-
-        let arena = draft.arena_mut();
-        let loop_id = arena.get_face(face_survive)?.outer_loop();
-        arena.get_loop_mut(loop_id)?.set_half_edge(he_next);
-        arena.get_face_mut(face_survive)?.set_lineage(Some(merged_lineage));
-
-        let arena = draft.arena_mut();
-
-        if arena.get_vertex(vertex_a)?.outgoing() == he {
-            arena.get_vertex_mut(vertex_a)?.set_outgoing(twin_next);
-        }
-        if arena.get_vertex(vertex_b)?.outgoing() == he_twin {
-            arena.get_vertex_mut(vertex_b)?.set_outgoing(he_next);
+        // P10: Transfer inner loops from face_remove to face_survive
+        let inner_loops: Vec<LoopId> = draft.arena().get_face(face_remove)?.inner_loops().to_vec();
+        for il_id in inner_loops {
+            draft.arena_mut().get_face_mut(face_remove)?.remove_inner_loop(il_id);
+            draft.arena_mut().get_face_mut(face_survive)?.add_inner_loop(il_id);
+            draft.arena_mut().get_loop_mut(il_id)?.set_face(face_survive);
         }
 
-        let remove_loop = arena.get_face(face_remove)?.outer_loop();
-        arena.remove_half_edge(he)?;
-        arena.remove_half_edge(he_twin)?;
-        arena.remove_loop(remove_loop)?;
-        arena.remove_face(face_remove)?;
+        if draft.arena().get_vertex(vertex_a)?.outgoing() == he {
+            draft.arena_mut().get_vertex_mut(vertex_a)?.set_outgoing(twin_next);
+        }
+        if draft.arena().get_vertex(vertex_b)?.outgoing() == he_twin {
+            draft.arena_mut().get_vertex_mut(vertex_b)?.set_outgoing(he_next);
+        }
 
-        Ok(JfOutput {
-            surviving_face: face_survive,
+        let remove_loop = draft.arena().get_face(face_remove)?.outer_loop();
+        draft.remove_half_edge(he)?;
+        draft.remove_half_edge(he_twin)?;
+        draft.remove_loop(remove_loop)?;
+        draft.remove_face(face_remove)?;
+        draft.remove_edge(killed_edge)?;
+
+        Ok(ExecutionResult {
+            value: JfOutput {
+                surviving_face: face_survive,
+            },
+            declared_delta: EulerDelta { vertices: 0, half_edges: -2, faces: -1, loops: -1, edges: -1, shells: 0 },
         })
     }
 
@@ -101,22 +109,36 @@ impl EulerOperator for JoinFaces {
     }
 }
 
-/// Reassign all halfedges starting from `start` to `new_face`, stopping
-/// when we reach `stop` (exclusive).
+/// Reassign all halfedges starting from `start` to `new_face`.
+///
+/// Walks the loop via `next()` until returning to `start`.
 fn reassign_face(
     draft: &mut MutableDraft,
     start: HalfEdgeId,
     new_face: crate::handles::FaceId,
-    stop: HalfEdgeId,
 ) -> Result<(), KernelError> {
+    let bound = draft.arena().half_edge_count();
     let mut current = start;
+    let mut steps = 0usize;
     loop {
-        let arena = draft.arena_mut();
-        arena.get_half_edge_mut(current)?.set_face(new_face);
-        let next = arena.get_half_edge(current)?.next();
+        draft.arena_mut().get_half_edge_mut(current)?.set_face(new_face);
+        let next = draft.arena().get_half_edge(current)?.next();
         current = next;
-        if current == start || current == stop {
+        if current == start {
             break;
+        }
+        steps += 1;
+        if steps > bound {
+            return Err(KernelError::TopologyViolation {
+                err: TopologyError::LoopCorruption {
+                    walk_kind: "reassign_face".into(),
+                    seed_index: start.index(),
+                    last_visited_index: current.index(),
+                    steps_taken: steps,
+                    entity_bound: bound,
+                },
+                context: None,
+            });
         }
     }
     Ok(())

@@ -169,7 +169,7 @@ fn log_stitch(he_a: HalfEdgeId, he_b: HalfEdgeId, label: &str, confidence: f64, 
             description: format!("Stitched {} <-> {} ({})", he_a, he_b, label),
         },
     );
-    decision.set_entity_scope(EntityRef::new("HalfEdge", he_a.index()));
+    decision.set_entity_scope(EntityRef::new(forge_core::EntityKind::HalfEdge, he_a.index()));
     ctx.get_decision_log_mut().record(decision);
 }
 

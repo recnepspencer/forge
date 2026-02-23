@@ -292,7 +292,7 @@ pub fn run_checkpoint(
 
     if config.get_include_geometric() {
         if let Some(pos_fn) = position_fn {
-            validate_geometric_invariants(arena, pos_fn, area_threshold, edge_length_threshold)?;
+            validate_geometric_invariants(arena, pos_fn, &|_| true, area_threshold, edge_length_threshold)?;
         }
     }
 

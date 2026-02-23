@@ -90,6 +90,8 @@ define_handle!(HalfEdgeId);
 define_handle!(VertexId);
 define_handle!(LoopId);
 define_handle!(SolidId);
+define_handle!(ShellId);
+define_handle!(EdgeId);
 
 
 #[cfg(test)]

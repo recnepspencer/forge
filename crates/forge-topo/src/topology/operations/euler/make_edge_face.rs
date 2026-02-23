@@ -10,12 +10,13 @@
 //!
 //! DEPENDENCIES: `arena` (entity storage), `lineage` (provenance)
 
-use forge_core::KernelError;
+use forge_core::{KernelError, TopologyError};
 
-use crate::arena::{FaceData, HalfEdgeData, LoopData};
-use crate::handles::{FaceId, HalfEdgeId, LoopId, VertexId};
+use crate::arena::{FaceData, HalfEdgeData, LoopData, EdgeData};
+use crate::handles::{FaceId, HalfEdgeId, LoopId, VertexId, EdgeId};
 use crate::lineage::{Lineage, OpSignature};
 use crate::EulerOperator;
+use crate::operator::{ExecutionResult, EulerDelta};
 use crate::state::MutableDraft;
 
 /// Split a face by inserting a new edge between two of its vertices.
@@ -44,12 +45,21 @@ pub struct MefOutput {
     pub new_face: FaceId,
     /// The newly created loop for the new face.
     pub new_loop: LoopId,
+    /// The newly created edge (owns the halfedge pair).
+    pub edge: EdgeId,
 }
 
 impl EulerOperator for MakeEdgeFace {
     type Output = MefOutput;
 
-    fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<Self::Output, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
+        if self.vertex_a == self.vertex_b {
+            return Err(KernelError::InvalidInput {
+                message: "MakeEdgeFace: vertex_a and vertex_b cannot be the same vertex".into(),
+                context: None,
+            });
+        }
+
         let candidates_a = find_all_halfedges_from_vertex(draft, self.face, self.vertex_a)?;
         let candidates_b = find_all_halfedges_from_vertex(draft, self.face, self.vertex_b)?;
 
@@ -59,27 +69,36 @@ impl EulerOperator for MakeEdgeFace {
         let prev_b = draft.arena().get_half_edge(he_from_b)?.prev();
 
         let face_lineage = draft.arena().get_face(self.face)?.lineage().cloned();
+        let source_shell = draft.arena().get_face(self.face)?.shell();
         let he_ab_lineage = Lineage::derive_from(&face_lineage, sig.clone());
         let he_ba_lineage = Lineage::derive_from(&face_lineage, sig.clone());
         let new_face_lineage = Lineage::derive_from(&face_lineage, sig.clone());
+        let edge_lineage = Lineage::derive_from(&face_lineage, sig.clone());
 
         let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
         let placeholder_loop = LoopId::new(u32::MAX, 0);
 
-        let new_face = draft.arena_mut().insert_face(FaceData::with_lineage(
+        let new_face = draft.insert_face(FaceData::with_lineage(
             placeholder_loop,
+            source_shell,
             Some(new_face_lineage),
         ));
 
-        let new_loop = draft.arena_mut().insert_loop(LoopData::new(placeholder_he, new_face));
+        let new_loop = draft.insert_loop(LoopData::new(placeholder_he, new_face));
 
-        let (he_ab, he_ba) = draft.arena_mut().insert_half_edge_pair(
+        let edge = draft.insert_edge(EdgeData::with_lineage(
+            placeholder_he,
+            Some(edge_lineage),
+        ));
+
+        let (he_ab, he_ba) = draft.insert_half_edge_pair(
             HalfEdgeData::with_lineage(
                 placeholder_he,
                 he_from_b,
                 prev_a,
                 self.face,
                 self.vertex_a,
+                edge,
                 Some(he_ab_lineage),
             ),
             HalfEdgeData::with_lineage(
@@ -88,29 +107,36 @@ impl EulerOperator for MakeEdgeFace {
                 prev_b,
                 new_face,
                 self.vertex_b,
+                edge,
                 Some(he_ba_lineage),
-            ),
-        );
+            ));
 
-        let arena = draft.arena_mut();
-        arena.get_half_edge_mut(prev_a)?.set_next(he_ab);
-        arena.get_half_edge_mut(he_from_b)?.set_prev(he_ab);
-        arena.get_half_edge_mut(prev_b)?.set_next(he_ba);
-        arena.get_half_edge_mut(he_from_a)?.set_prev(he_ba);
+        {
+            let arena = draft.arena_mut();
+            arena.get_half_edge_mut(prev_a)?.set_next(he_ab);
+            arena.get_half_edge_mut(he_from_b)?.set_prev(he_ab);
+            arena.get_half_edge_mut(prev_b)?.set_next(he_ba);
+            arena.get_half_edge_mut(he_from_a)?.set_prev(he_ba);
+        }
 
         reassign_face_loop(draft, he_ba, new_face)?;
 
+        let original_loop = draft.arena().get_face(self.face)?.outer_loop();
         let arena = draft.arena_mut();
-        let original_loop = arena.get_face(self.face)?.outer_loop();
         arena.get_loop_mut(original_loop)?.set_half_edge(he_ab);
         arena.get_face_mut(new_face)?.set_outer_loop(new_loop);
         arena.get_loop_mut(new_loop)?.set_half_edge(he_ba);
+        arena.get_edge_mut(edge)?.set_half_edge(he_ab);
 
-        Ok(MefOutput {
-            half_edge_ab: he_ab,
-            half_edge_ba: he_ba,
-            new_face,
-            new_loop,
+        Ok(ExecutionResult {
+            value: MefOutput {
+                half_edge_ab: he_ab,
+                half_edge_ba: he_ba,
+                new_face,
+                new_loop,
+                edge,
+            },
+            declared_delta: EulerDelta { vertices: 0, half_edges: 2, faces: 1, loops: 1, edges: 1, shells: 0 },
         })
     }
 
@@ -120,25 +146,38 @@ impl EulerOperator for MakeEdgeFace {
 }
 
 /// Collect all halfedges originating from `vertex` that lie on `face`.
+///
+/// Uses a vertex orbit walk (O(valence)) instead of a face-loop walk
+/// (O(face_size)). Vertex valence is typically 3–6.
 fn find_all_halfedges_from_vertex(
     draft: &MutableDraft,
     face: FaceId,
     vertex: VertexId,
 ) -> Result<Vec<HalfEdgeId>, KernelError> {
-    let face_data = draft.arena().get_face(face)?;
-    let loop_data = draft.arena().get_loop(face_data.outer_loop())?;
-    let start = loop_data.half_edge();
+    let outgoing = draft.arena().get_vertex(vertex)?.outgoing();
+    let start = outgoing;
     let mut current = start;
     let mut result = Vec::new();
+    let bound = draft.arena().half_edge_count();
 
-    loop {
-        let he_data = draft.arena().get_half_edge(current)?;
-        if he_data.origin() == vertex {
+    for step in 0..=bound {
+        if draft.arena().get_half_edge(current)?.face() == face {
             result.push(current);
         }
-        current = he_data.next();
-        if current == start {
-            break;
+        let twin = draft.arena().get_half_edge(current)?.twin();
+        current = draft.arena().get_half_edge(twin)?.next();
+        if current == start { break; }
+        if step == bound {
+            return Err(KernelError::TopologyViolation {
+                err: TopologyError::LoopCorruption {
+                    walk_kind: "vertex_orbit".into(),
+                    seed_index: start.index(),
+                    last_visited_index: current.index(),
+                    steps_taken: step,
+                    entity_bound: bound,
+                },
+                context: None,
+            });
         }
     }
 
@@ -149,6 +188,7 @@ fn find_all_halfedges_from_vertex(
         });
     }
 
+    result.sort_by_key(|he| he.index());
     Ok(result)
 }
 
@@ -163,16 +203,26 @@ fn validate_split_pair(
     if he_a == he_b {
         return Ok(false);
     }
+    let bound = draft.arena().half_edge_count();
     let mut current = draft.arena().get_half_edge(he_a)?.next();
     let mut steps = 0usize;
-    let max_steps = 100_000;
 
     while current != he_b {
-        if current == he_a || steps >= max_steps {
-            return Ok(false);
+        if current == he_a { return Ok(false); }
+        steps += 1;
+        if steps > bound {
+            return Err(KernelError::TopologyViolation {
+                err: TopologyError::LoopCorruption {
+                    walk_kind: "validate_split_pair".into(),
+                    seed_index: he_a.index(),
+                    last_visited_index: current.index(),
+                    steps_taken: steps,
+                    entity_bound: bound,
+                },
+                context: None,
+            });
         }
         current = draft.arena().get_half_edge(current)?.next();
-        steps += 1;
     }
 
     Ok(true)
@@ -204,14 +254,29 @@ fn reassign_face_loop(
     start: HalfEdgeId,
     new_face: FaceId,
 ) -> Result<(), KernelError> {
+    let bound = draft.arena().half_edge_count();
     let mut current = start;
+    let mut steps = 0usize;
     loop {
-        let arena = draft.arena_mut();
-        arena.get_half_edge_mut(current)?.set_face(new_face);
-        let next = arena.get_half_edge(current)?.next();
+        
+        draft.arena_mut().get_half_edge_mut(current)?.set_face(new_face);
+        let next = draft.arena().get_half_edge(current)?.next();
         current = next;
         if current == start {
             break;
+        }
+        steps += 1;
+        if steps > bound {
+            return Err(KernelError::TopologyViolation {
+                err: TopologyError::LoopCorruption {
+                    walk_kind: "reassign_face_loop".into(),
+                    seed_index: start.index(),
+                    last_visited_index: current.index(),
+                    steps_taken: steps,
+                    entity_bound: bound,
+                },
+                context: None,
+            });
         }
     }
     Ok(())

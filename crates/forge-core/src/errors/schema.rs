@@ -364,6 +364,24 @@ pub enum TopologyError {
         face_index: u32,
         distinct_vertices: usize,
     },
+    /// A topology walk exceeded its entity-count bound (corrupted next/prev chain).
+    LoopCorruption {
+        /// What kind of walk was being performed.
+        walk_kind: String,
+        /// The entity where the walk started.
+        seed_index: u32,
+        /// The last entity visited before the bound was hit.
+        last_visited_index: u32,
+        /// How many steps were taken.
+        steps_taken: usize,
+        /// The upper bound that was exceeded.
+        entity_bound: usize,
+    },
+    /// A vertex referenced by a face has no geometry (position) available.
+    MissingVertexPosition {
+        vertex_index: u32,
+        face_index: u32,
+    },
 }
 
 impl fmt::Display for TopologyError {
@@ -422,6 +440,14 @@ impl fmt::Display for TopologyError {
             TopologyError::DegenerateLoop { face_index, distinct_vertices } => {
                 write!(f, "Face {} has degenerate loop with only {} distinct vertices (need >= 3)",
                     face_index, distinct_vertices)
+            }
+            TopologyError::LoopCorruption { walk_kind, seed_index, last_visited_index, steps_taken, entity_bound } => {
+                write!(f, "Loop corruption in {}: seed={}, last={}, steps={}/{}",
+                    walk_kind, seed_index, last_visited_index, steps_taken, entity_bound)
+            }
+            TopologyError::MissingVertexPosition { vertex_index, face_index } => {
+                write!(f, "Vertex {} referenced by face {} has no position",
+                    vertex_index, face_index)
             }
         }
     }

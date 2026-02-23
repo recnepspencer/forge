@@ -203,6 +203,117 @@ pub fn edge_faces(arena: &TopologyArena, he: HalfEdgeId) -> Result<(FaceId, Face
     Ok((he_data.face(), twin_data.face()))
 }
 
+/// Walk a G1-continuous (tangent-continuous) edge chain starting at `start_edge`.
+///
+/// Fillet operations act on edge *chains* — sequences of edges that share vertices
+/// and whose adjacent faces are tangent-continuous (G1) at those vertices.
+/// This function walks the chain by following `twin → next` at each shared vertex
+/// (the standard manifold-edge successor) and extends the chain while the dihedral
+/// angle between the adjacent face normals is below `angle_threshold` (in radians).
+///
+/// Non-bridge edges are followed; bridge halfedges (from `BridgeEdge`) are detected
+/// and skipped so that synthetic boundaries do not splice into organic fillet chains.
+///
+/// # Arguments
+/// - `arena`: topology arena
+/// - `start_edge`: the first halfedge of the chain
+/// - `position_fn`: maps vertex index → 3D world position (needed for normals)
+/// - `angle_threshold`: maximum dihedral angle (radians) to consider G1-continuous
+///
+/// Returns the ordered list of halfedge IDs forming the G1 chain.
+pub fn find_g1_chain(
+    arena: &TopologyArena,
+    start_edge: HalfEdgeId,
+    position_fn: &dyn Fn(crate::handles::VertexId) -> Option<[f64; 3]>,
+    angle_threshold: f64,
+) -> Result<Vec<HalfEdgeId>, KernelError> {
+    let cos_threshold = angle_threshold.cos();
+    let max_iter = arena.half_edge_count().max(1);
+    let mut chain = vec![start_edge];
+    let mut current = start_edge;
+
+    for _ in 0..max_iter {
+        let he_data = arena.get_half_edge(current)?;
+
+        // Advance: twin of current → next of that twin → candidate next edge.
+        let twin_id = he_data.twin();
+        let twin_data = arena.get_half_edge(twin_id)?;
+        let candidate = twin_data.next();
+
+        // Stop if we've looped back to the start.
+        if candidate == start_edge { break; }
+
+        // Skip bridge halfedges — they are synthetic and should not be filleted.
+        let candidate_data = arena.get_half_edge(candidate)?;
+        if candidate_data.is_bridge() { break; }
+
+        // Compute dihedral angle between the face of `current` and the face of `candidate`.
+        let face_a = he_data.face();
+        let face_b = candidate_data.face();
+
+        if face_a == face_b {
+            // Same face — the chain has folded back; stop.
+            break;
+        }
+
+        let normal_a = face_normal_from_loop(arena, face_a, position_fn)?;
+        let normal_b = face_normal_from_loop(arena, face_b, position_fn)?;
+
+        if let (Some(na), Some(nb)) = (normal_a, normal_b) {
+            let dot = na[0]*nb[0] + na[1]*nb[1] + na[2]*nb[2];
+            if dot < cos_threshold {
+                // Dihedral angle exceeds threshold — chain ends here.
+                break;
+            }
+        } else {
+            // Degenerate face — cannot compute normal, stop cascading.
+            break;
+        }
+
+        chain.push(candidate);
+        current = candidate;
+    }
+
+    Ok(chain)
+}
+
+/// Compute the face normal from the first three non-collinear vertices in the loop.
+///
+/// Returns `None` for degenerate (collinear) faces.
+fn face_normal_from_loop(
+    arena: &TopologyArena,
+    face: FaceId,
+    position_fn: &dyn Fn(crate::handles::VertexId) -> Option<[f64; 3]>,
+) -> Result<Option<[f64; 3]>, KernelError> {
+    let mut positions: Vec<[f64; 3]> = Vec::new();
+    for he_res in FaceEdgeIterator::new(arena, face)? {
+        let he_id = he_res?;
+        let v = arena.get_half_edge(he_id)?.origin();
+        if let Some(pos) = position_fn(v) {
+            positions.push(pos);
+            if positions.len() >= 3 { break; }
+        }
+    }
+
+    if positions.len() < 3 {
+        return Ok(None);
+    }
+
+    let a = positions[0];
+    let b = positions[1];
+    let c = positions[2];
+    let ab = [b[0]-a[0], b[1]-a[1], b[2]-a[2]];
+    let ac = [c[0]-a[0], c[1]-a[1], c[2]-a[2]];
+    let nx = ab[1]*ac[2] - ab[2]*ac[1];
+    let ny = ab[2]*ac[0] - ab[0]*ac[2];
+    let nz = ab[0]*ac[1] - ab[1]*ac[0];
+    let len = (nx*nx + ny*ny + nz*nz).sqrt();
+    if len < 1e-30 {
+        return Ok(None);
+    }
+    Ok(Some([nx/len, ny/len, nz/len]))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

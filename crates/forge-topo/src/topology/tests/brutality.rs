@@ -217,25 +217,24 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        // Build a quad (same as sliver test)
+        // Build a quad: MVF + 2×SE gives 4 edges but only 3 distinct vertices.
+        // Vertices at edges[0] and edges[2] are the SAME vertex (V2).
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
         let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
         let _se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
-
-
 
         let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face).unwrap()
             .map(|r| r.unwrap()).collect();
         assert_eq!(edges.len(), 4);
 
-        // Use v0/v2 — the pair that previously triggered BrokenLoop
-        let v0 = draft.arena().get_half_edge(edges[0]).unwrap().origin();
-        let v2 = draft.arena().get_half_edge(edges[2]).unwrap().origin();
+        // Use v1/v3 — these are distinct vertices (v0==v2 in this topology)
+        let v1 = draft.arena().get_half_edge(edges[1]).unwrap().origin();
+        let v3 = draft.arena().get_half_edge(edges[3]).unwrap().origin();
 
         let mef = apply_op(&mut draft, MakeEdgeFace {
             face: mvf.face,
-            vertex_a: v0,
-            vertex_b: v2,
+            vertex_a: v1,
+            vertex_b: v3,
         }).unwrap().into_value();
 
         // Both faces must be valid

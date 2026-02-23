@@ -13,27 +13,32 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::handles::{FaceId, HalfEdgeId, VertexId};
+use crate::handles::{FaceId, HalfEdgeId, VertexId, EdgeId, ShellId};
 
 /// The key into the attribute store — identifies which entity owns a tag set.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum EntityKey {
+    /// A shell entity.
+    Shell(ShellId),
     /// A face entity.
     Face(FaceId),
-    /// A canonical undirected edge (min index of the twin pair).
-    Edge(u32),
+    /// An edge entity.
+    Edge(EdgeId),
     /// A vertex entity.
     Vertex(VertexId),
 }
 
-impl EntityKey {
-    /// Create a canonical edge key from a halfedge pair.
-    /// 
-    /// Enforces that attributes are attached to the undirected physical edge
-    /// by using the minimum index of the twin pair.
-    pub fn canonical_edge(a: HalfEdgeId, b: HalfEdgeId) -> Self {
-        EntityKey::Edge(a.index().min(b.index()))
-    }
+impl From<ShellId> for EntityKey {
+    fn from(id: ShellId) -> Self { Self::Shell(id) }
+}
+impl From<FaceId> for EntityKey {
+    fn from(id: FaceId) -> Self { Self::Face(id) }
+}
+impl From<EdgeId> for EntityKey {
+    fn from(id: EdgeId) -> Self { Self::Edge(id) }
+}
+impl From<VertexId> for EntityKey {
+    fn from(id: VertexId) -> Self { Self::Vertex(id) }
 }
 
 /// A single attribute value attached to an entity.

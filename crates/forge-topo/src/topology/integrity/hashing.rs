@@ -17,7 +17,8 @@
 
 
 use crate::arena::TopologyArena;
-use crate::lineage::{EntityKind, Lineage};
+use crate::lineage::Lineage;
+use forge_core::EntityKind;
 
 /// FNV-1a constants for hash computation.
 const FNV_OFFSET: u64 = 0xcbf29ce484222325;
@@ -215,6 +216,41 @@ pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
         entity_hashes.push(hash);
     }
 
+    // ── Pre-compute Shell topological sizes ─────────────────────
+    let mut shell_face_sizes = std::collections::BTreeMap::new();
+    for (face_id, face_data) in arena.iter_faces() {
+        let f_idx = face_id.index() as usize;
+        let mut sz = 0;
+        if f_idx < face_size.len() {
+            sz = face_size[f_idx];
+        }
+        shell_face_sizes.entry(face_data.shell().index()).or_insert_with(Vec::new).push(sz);
+    }
+
+    // ── Step 5: Shell and Edge hashes ───────────────────────────
+    for (shell_id, _) in arena.iter_shells() {
+        let mut sig = shell_face_sizes.remove(&shell_id.index()).unwrap_or_default();
+        sig.sort_unstable();
+        let hash = compute_entity_hash(EntityKind::Shell, &sig, None);
+        entity_hashes.push(hash);
+    }
+
+    for (_, edge) in arena.iter_edges() {
+        let mut sig = Vec::new();
+        if let Ok(he) = arena.get_half_edge(edge.half_edge()) {
+            let origin_idx = he.origin().index() as usize;
+            sig.push(if origin_idx < vertex_degree.len() { vertex_degree[origin_idx] } else { 0 });
+            
+            if let Ok(twin) = arena.get_half_edge(he.twin()) {
+                let twin_origin_idx = twin.origin().index() as usize;
+                sig.push(if twin_origin_idx < vertex_degree.len() { vertex_degree[twin_origin_idx] } else { 0 });
+            }
+        }
+        sig.sort_unstable();
+        let hash = compute_entity_hash(EntityKind::Edge, &sig, None);
+        entity_hashes.push(hash);
+    }
+
     compute_solid_hash(&entity_hashes)
 }
 
@@ -303,7 +339,10 @@ fn entity_kind_discriminant(kind: EntityKind) -> u64 {
         EntityKind::Face => 1,
         EntityKind::HalfEdge => 2,
         EntityKind::Vertex => 3,
+        EntityKind::Loop => 4,
         EntityKind::Solid => 5,
+        EntityKind::Shell => 6,
+        EntityKind::Edge => 7,
     }
 }
 

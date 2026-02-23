@@ -413,21 +413,21 @@ fn build_lineage_events(
 
     for (fid, _) in arena.iter_faces() {
         events.push(LineageEvent::EntityCreated {
-            entity: forge_core::EntityRef::new("Face", fid.index()),
+            entity: forge_core::EntityRef::new(forge_core::EntityKind::Face, fid.index()),
             lineage: Lineage::root(fid.index() as u64, OpSignature::new(op_name)),
         });
     }
 
     for (he_id, _) in arena.iter_half_edges() {
         events.push(LineageEvent::EntityCreated {
-            entity: forge_core::EntityRef::new("HalfEdge", he_id.index()),
+            entity: forge_core::EntityRef::new(forge_core::EntityKind::HalfEdge, he_id.index()),
             lineage: Lineage::root(he_id.index() as u64, OpSignature::new(op_name)),
         });
     }
 
     for (vid, _) in arena.iter_vertices() {
         events.push(LineageEvent::EntityCreated {
-            entity: forge_core::EntityRef::new("Vertex", vid.index()),
+            entity: forge_core::EntityRef::new(forge_core::EntityKind::Vertex, vid.index()),
             lineage: Lineage::root(vid.index() as u64, OpSignature::new(op_name)),
         });
     }

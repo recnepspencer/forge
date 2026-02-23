@@ -36,9 +36,9 @@ pub fn validate_topology(arena: &TopologyArena, level: ValidationLevel) -> Resul
 
     if level == ValidationLevel::Full {
         validate_loops(arena)?;
-        validate_degenerate_loops(arena)?;
         validate_euler(arena)?;
         validate_edge_manifoldness(arena)?;
+        validate_orientation_consistency(arena)?;
     }
 
     Ok(())
@@ -181,7 +181,8 @@ fn validate_vertex_outgoing(arena: &TopologyArena) -> Result<(), KernelError> {
 
 /// Validate that every face's loop is closed and each halfedge belongs to the correct face.
 fn validate_loops(arena: &TopologyArena) -> Result<(), KernelError> {
-    for (face_id, _face_data) in arena.iter_faces() {
+    for (face_id, face_data) in arena.iter_faces() {
+        // Validate outer loop
         for he_result in FaceEdgeIterator::new(arena, face_id)? {
             let he_id = he_result?;
             let he_data = arena.get_half_edge(he_id)?;
@@ -196,59 +197,62 @@ fn validate_loops(arena: &TopologyArena) -> Result<(), KernelError> {
                         scope: forge_core::ErrorScope::Entity { entity_kind: "Face".to_string(), index: face_id.index() },
                         suggested_fixes: Vec::new(),
                         detail: format!(
-                            "Halfedge {} in loop of face {} belongs to face {} instead",
+                            "Halfedge {} in outer loop of face {} belongs to face {} instead",
                             he_id.index(), face_id.index(), he_data.face().index()
                         ),
                     }),
                 });
             }
         }
+
+        // Validate inner loops (holes)
+        let bound = arena.half_edge_count();
+        for &loop_id in face_data.inner_loops() {
+            let loop_data = arena.get_loop(loop_id)?;
+            let start = loop_data.half_edge();
+            let mut current = start;
+            let mut steps = 0usize;
+
+            loop {
+                let he_data = arena.get_half_edge(current)?;
+                if he_data.face() != face_id {
+                    return Err(KernelError::TopologyViolation {
+                        err: forge_core::TopologyError::BrokenLoop {
+                            starting_halfedge: current.index(),
+                            face_index: face_id.index(),
+                        },
+                        context: Some(forge_core::ErrorContext {
+                            scope: forge_core::ErrorScope::Entity { entity_kind: "Loop".to_string(), index: loop_id.index() },
+                            suggested_fixes: Vec::new(),
+                            detail: format!(
+                                "Halfedge {} in inner loop {} of face {} belongs to face {} instead",
+                                current.index(), loop_id.index(), face_id.index(), he_data.face().index()
+                            ),
+                        }),
+                    });
+                }
+                let next = he_data.next();
+                current = next;
+                if current == start { break; }
+                steps += 1;
+                if steps > bound {
+                    return Err(KernelError::TopologyViolation {
+                        err: forge_core::TopologyError::LoopCorruption {
+                            walk_kind: "validate_inner_loop".into(),
+                            seed_index: start.index(),
+                            last_visited_index: current.index(),
+                            steps_taken: steps,
+                            entity_bound: bound,
+                        },
+                        context: None,
+                    });
+                }
+            }
+        }
     }
     Ok(())
 }
 
-/// Validate that every face loop has at least 3 distinct vertices.
-///
-/// A loop with fewer than 3 distinct vertices cannot bound a valid face.
-/// Skips seed faces from Euler operators (loops with fewer than 3 edges).
-fn validate_degenerate_loops(arena: &TopologyArena) -> Result<(), KernelError> {
-    for (face_id, _face_data) in arena.iter_faces() {
-        let mut distinct_vertices: BTreeSet<u32> = BTreeSet::new();
-        let mut edge_count: usize = 0;
-
-        for he_result in FaceEdgeIterator::new(arena, face_id)? {
-            let he_id = he_result?;
-            let he_data = arena.get_half_edge(he_id)?;
-            distinct_vertices.insert(he_data.origin().index());
-            edge_count += 1;
-        }
-
-        if edge_count < 3 {
-            continue;
-        }
-
-        if distinct_vertices.len() < 2 {
-            return Err(KernelError::TopologyViolation {
-                err: forge_core::TopologyError::DegenerateLoop {
-                    face_index: face_id.index(),
-                    distinct_vertices: distinct_vertices.len(),
-                },
-                context: Some(forge_core::ErrorContext {
-                    scope: forge_core::ErrorScope::Entity {
-                        entity_kind: "Face".to_string(),
-                        index: face_id.index(),
-                    },
-                    suggested_fixes: Vec::new(),
-                    detail: format!(
-                        "Face {} loop has only {} distinct vertex (minimum 2 required)",
-                        face_id.index(), distinct_vertices.len()
-                    ),
-                }),
-            });
-        }
-    }
-    Ok(())
-}
 
 /// Collect halfedge IDs for a face's loop and find neighbor faces via twins.
 ///
@@ -345,7 +349,7 @@ fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
                 .map(|face_data| face_data.inner_loop_count())
                 .sum();
 
-            let genus = compute_shell_genus(euler_char, rings);
+            let genus = compute_shell_genus(euler_char, rings, shell_index)?;
             let expected = 2_i64 - 2 * (genus as i64) + (rings as i64);
 
             if euler_char != expected {
@@ -373,9 +377,8 @@ fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
                     }),
                 });
             }
+            shell_index += 1;
         }
-
-        shell_index += 1;
     }
 
     Ok(())
@@ -385,48 +388,131 @@ fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
 ///
 /// Full formula: V - E + F = 2 - 2G + R, so G = (2 - χ + R) / 2.
 /// Returns 0 for genus-0 (sphere-like), 1 for torus, etc.
-/// A non-integer or negative result indicates structural damage.
-fn compute_shell_genus(euler_char: i64, rings: usize) -> usize {
+/// Returns `Err` if genus is non-integer or negative — this indicates
+/// structural damage in the shell rather than valid higher-genus topology.
+fn compute_shell_genus(euler_char: i64, rings: usize, shell_index: usize) -> Result<usize, KernelError> {
     let twice_genus = 2 - euler_char + rings as i64;
     if twice_genus < 0 || twice_genus % 2 != 0 {
-        return 0;
+        return Err(KernelError::TopologyViolation {
+            err: forge_core::TopologyError::GeneralizedEulerViolation {
+                shell_index: shell_index as u32,
+                vertices: 0,
+                edges: 0,
+                faces: 0,
+                genus: 0,
+                rings,
+                expected_chi: 0,
+                actual_chi: euler_char,
+            },
+            context: Some(forge_core::ErrorContext {
+                scope: forge_core::ErrorScope::Entity {
+                    entity_kind: "Shell".to_string(),
+                    index: shell_index as u32,
+                },
+                suggested_fixes: Vec::new(),
+                detail: format!(
+                    "Shell {} has invalid genus: 2·G = {} (negative or non-integer indicates structural damage)",
+                    shell_index, twice_genus
+                ),
+            }),
+        });
     }
-    (twice_genus / 2) as usize
+    Ok((twice_genus / 2) as usize)
 }
 
 /// Validate that every geometric edge is manifold (shared by exactly 2 faces).
 ///
-/// In a manifold halfedge mesh, every edge (canonical halfedge pair) should
-/// connect exactly two distinct faces. Non-manifold edges (3+ faces sharing
-/// one edge) indicate geometric corruption.
+/// In a manifold halfedge mesh, every geometric edge (identified by its
+/// vertex pair) should connect exactly two distinct faces. Non-manifold
+/// edges (3+ faces sharing one geometric edge) indicate corruption.
+///
+/// Keys by geometric vertex pairs `(min_vertex, max_vertex)` — not
+/// halfedge ID pairs, which would always yield exactly 2 by construction.
 fn validate_edge_manifoldness(arena: &TopologyArena) -> Result<(), KernelError> {
-    let mut edge_face_count: std::collections::BTreeMap<(u32, u32), usize> = std::collections::BTreeMap::new();
+    let mut edge_faces: std::collections::BTreeMap<(u32, u32), BTreeSet<u32>> =
+        std::collections::BTreeMap::new();
 
     for (he_id, he_data) in arena.iter_half_edges().filter(|(id, d)| *id != d.twin()) {
-        let twin_id = he_data.twin();
-        let canonical = (he_id.index().min(twin_id.index()), he_id.index().max(twin_id.index()));
-        *edge_face_count.entry(canonical).or_insert(0) += 1;
+        let twin_data = arena.get_half_edge(he_data.twin())
+            .map_err(|_| KernelError::TopologyViolation {
+                err: forge_core::TopologyError::MissingTwin {
+                    halfedge_index: he_id.index(),
+                },
+                context: None,
+            })?;
+        let v_a = he_data.origin().index();
+        let v_b = twin_data.origin().index();
+        let canonical = (v_a.min(v_b), v_a.max(v_b));
+        edge_faces
+            .entry(canonical)
+            .or_default()
+            .insert(he_data.face().index());
     }
 
-    for (&(lo, _hi), &count) in &edge_face_count {
-        if count > 2 {
+    for (&(v_lo, v_hi), faces) in &edge_faces {
+        if faces.len() > 2 {
             return Err(KernelError::TopologyViolation {
                 err: forge_core::TopologyError::NonManifoldEdge {
-                    edge_index: lo,
-                    valence: count,
+                    edge_index: v_lo,
+                    valence: faces.len(),
                 },
                 context: Some(forge_core::ErrorContext {
                     scope: forge_core::ErrorScope::Entity {
                         entity_kind: "Edge".to_string(),
-                        index: lo,
+                        index: v_lo,
                     },
                     suggested_fixes: Vec::new(),
                     detail: format!(
-                        "Edge {} appears {} times (expected 2 for manifold)",
-                        lo, count
+                        "Geometric edge ({}, {}) shared by {} faces (expected ≤2 for manifold)",
+                        v_lo, v_hi, faces.len()
                     ),
                 }),
             });
+        }
+    }
+
+    Ok(())
+}
+
+/// Validate orientation consistency across twin edge pairs (P0.3).
+///
+/// In a correctly oriented manifold halfedge mesh, every twin pair
+/// (he, twin) must belong to different faces and traverse the shared
+/// edge in opposite directions.
+fn validate_orientation_consistency(arena: &TopologyArena) -> Result<(), KernelError> {
+    // In a single-face topology (e.g. digon from MVF+SE), all twin
+    // pairs necessarily share the same face. This is valid — skip.
+    if arena.face_count() <= 1 {
+        return Ok(());
+    }
+
+    let mut checked: BTreeSet<(u32, u32)> = BTreeSet::new();
+
+    for (he_id, he_data) in arena.iter_half_edges().filter(|(id, d)| *id != d.twin()) {
+        let twin_id = he_data.twin();
+        let canonical = (he_id.index().min(twin_id.index()), he_id.index().max(twin_id.index()));
+
+        if checked.insert(canonical) {
+            let twin_data = arena.get_half_edge(twin_id)?;
+
+            if he_data.face() == twin_data.face() {
+                return Err(KernelError::TopologyViolation {
+                    err: forge_core::TopologyError::OrientationInconsistency {
+                        face_index: he_data.face().index(),
+                    },
+                    context: Some(forge_core::ErrorContext {
+                        scope: forge_core::ErrorScope::Entity {
+                            entity_kind: "HalfEdge".to_string(),
+                            index: he_id.index(),
+                        },
+                        suggested_fixes: Vec::new(),
+                        detail: format!(
+                            "Twin pair ({}, {}) both belong to face {} — orientation is inconsistent",
+                            he_id.index(), twin_id.index(), he_data.face().index()
+                        ),
+                    }),
+                });
+            }
         }
     }
 

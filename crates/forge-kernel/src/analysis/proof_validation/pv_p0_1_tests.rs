@@ -141,17 +141,20 @@ fn pv_04_degenerate_loop_detection() {
 
     let v2 = arena.insert_vertex(VertexData::new(placeholder_he));
 
+    let placeholder_shell = forge_topo::handles::ShellId::from_raw_parts(0, 0);
+    let placeholder_edge = forge_topo::handles::EdgeId::from_raw_parts(0, 0);
+    
     let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
-    let face = arena.insert_face(FaceData::new(loop_id));
+    let face = arena.insert_face(FaceData::new(loop_id, placeholder_shell));
 
     let he0 = arena.insert_half_edge(HalfEdgeData::new(
-        placeholder_he, placeholder_he, placeholder_he, face, v0,
+        placeholder_he, placeholder_he, placeholder_he, face, v0, placeholder_edge,
     ));
     let he1 = arena.insert_half_edge(HalfEdgeData::new(
-        placeholder_he, placeholder_he, placeholder_he, face, v1,
+        placeholder_he, placeholder_he, placeholder_he, face, v1, placeholder_edge,
     ));
     let he2 = arena.insert_half_edge(HalfEdgeData::new(
-        placeholder_he, placeholder_he, placeholder_he, face, v0,
+        placeholder_he, placeholder_he, placeholder_he, face, v0, placeholder_edge,
     ));
 
     arena.get_half_edge_mut(he0).unwrap().set_next(he1);
@@ -162,16 +165,16 @@ fn pv_04_degenerate_loop_detection() {
     arena.get_half_edge_mut(he2).unwrap().set_prev(he1);
 
     let loop_id2 = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
-    let face2 = arena.insert_face(FaceData::new(loop_id2));
+    let face2 = arena.insert_face(FaceData::new(loop_id2, placeholder_shell));
 
     let twin0 = arena.insert_half_edge(HalfEdgeData::new(
-        placeholder_he, placeholder_he, placeholder_he, face2, v1,
+        placeholder_he, placeholder_he, placeholder_he, face2, v1, placeholder_edge,
     ));
     let twin1 = arena.insert_half_edge(HalfEdgeData::new(
-        placeholder_he, placeholder_he, placeholder_he, face2, v0,
+        placeholder_he, placeholder_he, placeholder_he, face2, v0, placeholder_edge,
     ));
     let twin2 = arena.insert_half_edge(HalfEdgeData::new(
-        placeholder_he, placeholder_he, placeholder_he, face2, v2,
+        placeholder_he, placeholder_he, placeholder_he, face2, v2, placeholder_edge,
     ));
 
     arena.get_half_edge_mut(twin0).unwrap().set_next(twin1);

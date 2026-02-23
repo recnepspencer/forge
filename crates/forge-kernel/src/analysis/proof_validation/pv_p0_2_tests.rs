@@ -44,10 +44,13 @@ fn pv_05_genus_1_passes_generalized_euler() {
     let mut faces: Vec<FaceId> = Vec::new();
     let mut all_he_ids: Vec<Vec<HalfEdgeId>> = Vec::new();
 
+    let placeholder_shell = forge_topo::handles::ShellId::from_raw_parts(0, 0);
+    let placeholder_edge = forge_topo::handles::EdgeId::from_raw_parts(0, 0);
+
     for row in 0..3 {
         for col in 0..3 {
             let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
-            let face = arena.insert_face(FaceData::new(loop_id));
+            let face = arena.insert_face(FaceData::new(loop_id, placeholder_shell));
 
             let origins = [
                 v_grid(row, col),
@@ -59,7 +62,7 @@ fn pv_05_genus_1_passes_generalized_euler() {
             let mut he_ids: Vec<HalfEdgeId> = Vec::new();
             for _k in 0..4 {
                 let he = arena.insert_half_edge(HalfEdgeData::new(
-                    placeholder_he, placeholder_he, placeholder_he, face, origins[0],
+                    placeholder_he, placeholder_he, placeholder_he, face, origins[0], placeholder_edge,
                 ));
                 he_ids.push(he);
             }
@@ -209,12 +212,12 @@ fn pv_06_through_hole_passes_euler() {
     {
         let n = face_verts.len();
         let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
-        let face = arena.insert_face(FaceData::new(loop_id));
+        let face = arena.insert_face(FaceData::new(loop_id, forge_topo::handles::ShellId::from_raw_parts(0, 0)));
 
         let mut he_ids: Vec<HalfEdgeId> = Vec::new();
         for _ in 0..n {
             let he = arena.insert_half_edge(HalfEdgeData::new(
-                placeholder_he, placeholder_he, placeholder_he, face, verts[0],
+                placeholder_he, placeholder_he, placeholder_he, face, verts[0], forge_topo::handles::EdgeId::from_raw_parts(0, 0),
             ));
             he_ids.push(he);
         }
@@ -260,7 +263,7 @@ fn pv_06_through_hole_passes_euler() {
         let mut il_he_ids: Vec<HalfEdgeId> = Vec::new();
         for _ in 0..n {
             let he = arena.insert_half_edge(HalfEdgeData::new(
-                placeholder_he, placeholder_he, placeholder_he, top_face, verts[0],
+                placeholder_he, placeholder_he, placeholder_he, top_face, verts[0], forge_topo::handles::EdgeId::from_raw_parts(0, 0),
             ));
             il_he_ids.push(he);
         }
@@ -290,7 +293,7 @@ fn pv_06_through_hole_passes_euler() {
         let mut il_he_ids: Vec<HalfEdgeId> = Vec::new();
         for _ in 0..n {
             let he = arena.insert_half_edge(HalfEdgeData::new(
-                placeholder_he, placeholder_he, placeholder_he, bot_face, verts[0],
+                placeholder_he, placeholder_he, placeholder_he, bot_face, verts[0], forge_topo::handles::EdgeId::from_raw_parts(0, 0),
             ));
             il_he_ids.push(he);
         }

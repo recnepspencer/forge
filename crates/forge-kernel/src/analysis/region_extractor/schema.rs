@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use forge_core::KernelError;
 use forge_geom::Plane;
 use forge_topo::arena::{TopologyArena, FaceData, HalfEdgeData, VertexData, LoopData};
-use forge_topo::handles::{FaceId, HalfEdgeId, LoopId, VertexId};
+use forge_topo::handles::{FaceId, HalfEdgeId, LoopId, VertexId, ShellId, EdgeId};
 
 /// A self-contained topological sub-region extracted from an arena.
 ///
@@ -209,13 +209,15 @@ impl ExtractedRegion {
 
         let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
         let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
+        let placeholder_shell = ShellId::from_raw_parts(u32::MAX, 0);
+        let placeholder_edge = EdgeId::from_raw_parts(u32::MAX, 0);
 
         for _ in 0..=max_vtx {
-            arena.insert_vertex(VertexData::new(placeholder_he));
+            arena.insert_vertex(VertexData::new(placeholder_he), None);
         }
         for _ in 0..=max_face {
-            let fid = arena.insert_face(FaceData::new(placeholder_loop));
-            arena.insert_loop(LoopData::new(placeholder_he, fid));
+            let fid = arena.insert_face(FaceData::new(placeholder_loop, placeholder_shell), None);
+            arena.insert_loop(LoopData::new(placeholder_he, fid), None);
         }
         for _ in 0..=max_he {
             arena.insert_half_edge(HalfEdgeData::new(
@@ -224,7 +226,8 @@ impl ExtractedRegion {
                 placeholder_he,
                 FaceId::from_raw_parts(0, 0),
                 VertexId::from_raw_parts(0, 0),
-            ));
+                placeholder_edge,
+            ), None);
         }
 
         for (&he_idx, conn) in &self.half_edge_connectivity {

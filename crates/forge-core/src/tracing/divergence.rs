@@ -306,7 +306,7 @@ mod tests {
                 escalation: make_divergent_escalation(),
             },
         );
-        decision.set_entity_scope(EntityRef::new("Face", 42));
+        decision.set_entity_scope(EntityRef::new(EntityKind::Face, 42));
         log.record(decision);
 
         let report = scan_for_divergences(&log);

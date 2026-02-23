@@ -14,13 +14,14 @@
 //!
 //! DEPENDENCIES: `arena` (entity storage), `lineage` (provenance)
 
-use forge_core::KernelError;
+use forge_core::{KernelError, TopologyError};
 
-use crate::arena::HalfEdgeData;
-use crate::handles::{FaceId, HalfEdgeId, LoopId};
+use crate::arena::{HalfEdgeData, EdgeData};
+use crate::handles::{FaceId, HalfEdgeId, LoopId, EdgeId};
 use crate::lineage::{Lineage, OpSignature};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
+use crate::operator::{ExecutionResult, EulerDelta};
 
 /// Splice an inner loop into the outer boundary via two bridge half-edges.
 ///
@@ -49,7 +50,7 @@ pub struct BridgeEdgeOutput {
 impl EulerOperator for BridgeEdge {
     type Output = BridgeEdgeOutput;
 
-    fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<Self::Output, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
         validate_bridge_preconditions(draft, self.face, self.outer_he, self.inner_he)?;
 
         let outer_prev = draft.arena().get_half_edge(self.outer_he)?.prev();
@@ -61,18 +62,25 @@ impl EulerOperator for BridgeEdge {
         let face_lineage = draft.arena().get_face(self.face)?.lineage().cloned();
         let bridge_in_lineage = Lineage::derive_from(&face_lineage, sig.clone());
         let bridge_out_lineage = Lineage::derive_from(&face_lineage, sig.clone());
+        let edge_lineage = Lineage::derive_from(&face_lineage, sig.clone());
 
         let inner_loop_id = find_inner_loop_containing(draft, self.face, self.inner_he)?;
 
         let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
 
-        let (he_into_hole, he_out_of_hole) = draft.arena_mut().insert_half_edge_pair(
+        let bridge_edge = draft.insert_edge(EdgeData::with_lineage(
+            placeholder_he,
+            Some(edge_lineage),
+        ));
+
+        let (he_into_hole, he_out_of_hole) = draft.insert_half_edge_pair(
             HalfEdgeData::with_lineage(
                 placeholder_he,
                 self.inner_he,
                 outer_prev,
                 self.face,
                 outer_vertex,
+                bridge_edge,
                 Some(bridge_in_lineage),
             ),
             HalfEdgeData::with_lineage(
@@ -81,25 +89,32 @@ impl EulerOperator for BridgeEdge {
                 inner_prev,
                 self.face,
                 inner_vertex,
+                bridge_edge,
                 Some(bridge_out_lineage),
-            ),
-        );
+            ));
+
+        let outer_loop_id = draft.arena().get_face(self.face)?.outer_loop();
 
         let arena = draft.arena_mut();
+        arena.get_half_edge_mut(he_into_hole)?.set_bridge(true);
+        arena.get_half_edge_mut(he_out_of_hole)?.set_bridge(true);
         arena.get_half_edge_mut(outer_prev)?.set_next(he_into_hole);
         arena.get_half_edge_mut(self.inner_he)?.set_prev(he_into_hole);
         arena.get_half_edge_mut(inner_prev)?.set_next(he_out_of_hole);
         arena.get_half_edge_mut(self.outer_he)?.set_prev(he_out_of_hole);
 
-        let outer_loop_id = arena.get_face(self.face)?.outer_loop();
         arena.get_loop_mut(outer_loop_id)?.set_half_edge(he_into_hole);
-
         arena.get_face_mut(self.face)?.remove_inner_loop(inner_loop_id);
-        arena.remove_loop(inner_loop_id)?;
+        arena.get_edge_mut(bridge_edge)?.set_half_edge(he_into_hole);
 
-        Ok(BridgeEdgeOutput {
-            he_into_hole,
-            he_out_of_hole,
+        draft.remove_loop(inner_loop_id)?;
+
+        Ok(ExecutionResult {
+            value: BridgeEdgeOutput {
+                he_into_hole,
+                he_out_of_hole,
+            },
+            declared_delta: EulerDelta { vertices: 0, half_edges: 2, faces: 0, loops: -1, edges: 1, shells: 0 },
         })
     }
 
@@ -138,6 +153,44 @@ fn validate_bridge_preconditions(
         });
     }
 
+    let outer_loop = draft.arena().get_face(face)?.outer_loop();
+    let outer_loop_start = draft.arena().get_loop(outer_loop)?.half_edge();
+    let mut current = outer_loop_start;
+    let bound = draft.arena().half_edge_count();
+    let mut found_outer = false;
+    for step in 0..=bound {
+        if current == outer_he { found_outer = true; break; }
+        current = draft.arena().get_half_edge(current)?.next();
+        if current == outer_loop_start { break; }
+        if step == bound {
+            return Err(KernelError::TopologyViolation {
+                err: TopologyError::LoopCorruption {
+                    walk_kind: "bridge_outer_loop_verify".into(),
+                    seed_index: outer_loop_start.index(),
+                    last_visited_index: current.index(),
+                    steps_taken: step,
+                    entity_bound: bound,
+                },
+                context: None,
+            });
+        }
+    }
+    if !found_outer {
+        return Err(KernelError::InvalidInput {
+            message: format!("BridgeEdge: outer_he {} is not on the outer loop of face {}",
+                outer_he.index(), face.index()),
+            context: None,
+        });
+    }
+
+    let face_data = draft.arena().get_face(face)?;
+    if face_data.inner_loops().is_empty() {
+        return Err(KernelError::InvalidInput {
+            message: format!("BridgeEdge: face {} has no inner loops", face.index()),
+            context: None,
+        });
+    }
+
     Ok(())
 }
 
@@ -148,6 +201,7 @@ fn find_inner_loop_containing(
     inner_he: HalfEdgeId,
 ) -> Result<LoopId, KernelError> {
     let face_data = draft.arena().get_face(face)?;
+    let bound = draft.arena().half_edge_count();
     for &loop_id in face_data.inner_loops() {
         let loop_data = draft.arena().get_loop(loop_id)?;
         let start = loop_data.half_edge();
@@ -160,8 +214,18 @@ fn find_inner_loop_containing(
             }
             current = draft.arena().get_half_edge(current)?.next();
             steps += 1;
-            if current == start || steps > 100_000 {
-                break;
+            if current == start { break; }
+            if steps > bound {
+                return Err(KernelError::TopologyViolation {
+                    err: TopologyError::LoopCorruption {
+                        walk_kind: "find_inner_loop_containing".into(),
+                        seed_index: start.index(),
+                        last_visited_index: current.index(),
+                        steps_taken: steps,
+                        entity_bound: bound,
+                    },
+                    context: None,
+                });
             }
         }
     }
@@ -182,85 +246,7 @@ mod tests {
     use crate::handles::VertexId;
     use crate::state::TopologyState;
     use crate::operator::apply_op;
-
-    /// Build a face with an outer triangle (v0→v1→v2) and inner triangle hole (v3→v4→v5).
-    fn build_face_with_hole(
-        draft: &mut MutableDraft,
-    ) -> (FaceId, HalfEdgeId, HalfEdgeId, LoopId, [VertexId; 6]) {
-        let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
-        let placeholder_loop = LoopId::new(u32::MAX, 0);
-        let placeholder_face = FaceId::new(u32::MAX, 0);
-
-        let arena = draft.arena_mut();
-
-        let face = arena.insert_face(FaceData::new(placeholder_loop));
-        let outer_loop = arena.insert_loop(LoopData::new(placeholder_he, face));
-        arena.get_face_mut(face).unwrap().set_outer_loop(outer_loop);
-
-        let v0 = arena.insert_vertex(VertexData::new(placeholder_he));
-        let v1 = arena.insert_vertex(VertexData::new(placeholder_he));
-        let v2 = arena.insert_vertex(VertexData::new(placeholder_he));
-
-        let (he01, _he10) = arena.insert_half_edge_pair(
-            HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v0),
-            HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v1),
-        );
-        let (he12, _he21) = arena.insert_half_edge_pair(
-            HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v1),
-            HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v2),
-        );
-        let (he20, _he02) = arena.insert_half_edge_pair(
-            HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v2),
-            HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v0),
-        );
-
-        let arena = draft.arena_mut();
-        arena.get_half_edge_mut(he01).unwrap().set_next(he12);
-        arena.get_half_edge_mut(he01).unwrap().set_prev(he20);
-        arena.get_half_edge_mut(he12).unwrap().set_next(he20);
-        arena.get_half_edge_mut(he12).unwrap().set_prev(he01);
-        arena.get_half_edge_mut(he20).unwrap().set_next(he01);
-        arena.get_half_edge_mut(he20).unwrap().set_prev(he12);
-
-        arena.get_loop_mut(outer_loop).unwrap().set_half_edge(he01);
-        arena.get_vertex_mut(v0).unwrap().set_outgoing(he01);
-        arena.get_vertex_mut(v1).unwrap().set_outgoing(he12);
-        arena.get_vertex_mut(v2).unwrap().set_outgoing(he20);
-
-        let v3 = arena.insert_vertex(VertexData::new(placeholder_he));
-        let v4 = arena.insert_vertex(VertexData::new(placeholder_he));
-        let v5 = arena.insert_vertex(VertexData::new(placeholder_he));
-
-        let (he34, _he43) = arena.insert_half_edge_pair(
-            HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v3),
-            HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v4),
-        );
-        let (he45, _he54) = arena.insert_half_edge_pair(
-            HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v4),
-            HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v5),
-        );
-        let (he53, _he35) = arena.insert_half_edge_pair(
-            HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v5),
-            HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v3),
-        );
-
-        let arena = draft.arena_mut();
-        arena.get_half_edge_mut(he34).unwrap().set_next(he45);
-        arena.get_half_edge_mut(he34).unwrap().set_prev(he53);
-        arena.get_half_edge_mut(he45).unwrap().set_next(he53);
-        arena.get_half_edge_mut(he45).unwrap().set_prev(he34);
-        arena.get_half_edge_mut(he53).unwrap().set_next(he34);
-        arena.get_half_edge_mut(he53).unwrap().set_prev(he45);
-
-        arena.get_vertex_mut(v3).unwrap().set_outgoing(he34);
-        arena.get_vertex_mut(v4).unwrap().set_outgoing(he45);
-        arena.get_vertex_mut(v5).unwrap().set_outgoing(he53);
-
-        let inner_loop = arena.insert_loop(LoopData::new(he34, face));
-        arena.get_face_mut(face).unwrap().add_inner_loop(inner_loop);
-
-        (face, he01, he34, inner_loop, [v0, v1, v2, v3, v4, v5])
-    }
+    use crate::testing::build_face_with_hole;
 
     #[test]
     fn bridge_edge_absorbs_inner_loop() {

@@ -144,8 +144,8 @@ fn pv_34_identical_rerun_empty_diff() {
             DecisionTier::PolicyApplied,
             0.05,
             DecisionContext::Coincidence {
-                entity_a: forge_core::EntityRef::new("Face", 0),
-                entity_b: forge_core::EntityRef::new("Face", 1),
+                entity_a: forge_core::EntityRef::new(forge_core::EntityKind::Face, 0),
+                entity_b: forge_core::EntityRef::new(forge_core::EntityKind::Face, 1),
             },
         ));
         log.end_span(span, 5000);

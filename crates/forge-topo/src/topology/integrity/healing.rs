@@ -10,7 +10,7 @@ use std::collections::BTreeSet;
 
 use forge_core::KernelError;
 use crate::arena::TopologyArena;
-use crate::handles::{FaceId, VertexId};
+use crate::handles::{FaceId, HalfEdgeId, VertexId};
 use crate::topology::queries::traverse::FaceEdgeIterator;
 use super::shell::{discover_shell_faces, compute_shell_signed_volume};
 
@@ -89,7 +89,19 @@ fn flip_shell_winding(
     Ok(())
 }
 
-/// Reverse winding of a single face by swapping next/prev on all halfedges.
+/// Reverse winding of a single face.
+///
+/// For each halfedge in the face loop, three mutations are required:
+/// 1. `origin` ← what was previously the "target" (twin's origin)
+/// 2. `next` ← old `prev`
+/// 3. `prev` ← old `next`
+///
+/// This preserves the vertex continuity invariant:
+///   `next(he).origin == twin(he).origin`
+///
+/// Uses a two-phase approach (read all, then mutate all) to avoid
+/// data races where mutating one halfedge's pointers corrupts reads
+/// of the next halfedge in the loop.
 fn flip_face_winding(
     arena: &mut TopologyArena,
     face_id: FaceId,
@@ -97,14 +109,25 @@ fn flip_face_winding(
     let halfedge_ids: Vec<_> = FaceEdgeIterator::new(arena, face_id)?
         .collect::<Result<Vec<_>, _>>()?;
 
+    let mut rewire_data: Vec<(HalfEdgeId, HalfEdgeId, HalfEdgeId, VertexId)> = Vec::new();
     for &he_id in &halfedge_ids {
         let he_data = arena.get_half_edge(he_id)?;
         let old_next = he_data.next();
         let old_prev = he_data.prev();
+        let twin_id = he_data.twin();
+        let new_origin = if he_id != twin_id {
+            arena.get_half_edge(twin_id)?.origin()
+        } else {
+            he_data.origin()
+        };
+        rewire_data.push((he_id, old_next, old_prev, new_origin));
+    }
 
+    for (he_id, old_next, old_prev, new_origin) in rewire_data {
         let he_mut = arena.get_half_edge_mut(he_id)?;
         he_mut.set_next(old_prev);
         he_mut.set_prev(old_next);
+        he_mut.set_origin(new_origin);
     }
 
     Ok(())

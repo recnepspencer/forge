@@ -22,7 +22,7 @@ mod logging;
 mod tests;
 
 pub use schema::{
-    EntityRef, SpanId, DecisionTier, TraceEvent,
+    EntityRef, EntityKind, SpanId, DecisionTier, TraceEvent,
     DecisionKind, DecisionContext, DecisionId, TracedDecision,
     TopologyDelta,
     EULER_OP_FEATURE_SCOPE,

@@ -17,7 +17,7 @@ use forge_core::KernelError;
 use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
 use forge_core::tracing::TopologyDelta;
 use forge_topo::arena::TopologyArena;
-use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
+use forge_topo::handles::{FaceId, HalfEdgeId, VertexId, ShellId, EdgeId};
 use forge_topo::state::{TopologyState, MutableDraft};
 
 use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
@@ -308,11 +308,14 @@ fn rebuild_face_from_perimeter(
 
     let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
     let placeholder_loop = forge_topo::handles::LoopId::from_raw_parts(u32::MAX, 0);
+    
+    let sample_face = *group.iter().next().unwrap();
+    let shell = draft.arena().get_face(sample_face)?.shell();
 
-    let new_face = draft.arena_mut().insert_face(
-        forge_topo::arena::FaceData::with_lineage(placeholder_loop, lineage.cloned()),
+    let new_face = draft.insert_face(
+        forge_topo::arena::FaceData::with_lineage(placeholder_loop, shell, lineage.cloned()),
     );
-    let new_loop = draft.arena_mut().insert_loop(
+    let new_loop = draft.insert_loop(
         forge_topo::arena::LoopData::new(placeholder_he, new_face),
     );
     draft.arena_mut().get_face_mut(new_face)?.set_outer_loop(new_loop);
@@ -322,14 +325,18 @@ fn rebuild_face_from_perimeter(
 
     for i in 0..n {
         let origin = perimeter[i];
-        let (he, _twin) = draft.arena_mut().insert_half_edge_pair(
+        let (he, twin_he) = draft.insert_half_edge_pair(
             forge_topo::arena::HalfEdgeData::new(
-                placeholder_he, placeholder_he, placeholder_he, new_face, origin,
+                placeholder_he, placeholder_he, placeholder_he, new_face, origin, EdgeId::from_raw_parts(u32::MAX, 0),
             ),
             forge_topo::arena::HalfEdgeData::new(
-                placeholder_he, placeholder_he, placeholder_he, new_face, perimeter[(i + 1) % n],
+                placeholder_he, placeholder_he, placeholder_he, new_face, perimeter[(i + 1) % n], EdgeId::from_raw_parts(u32::MAX, 0),
             ),
         );
+        let edge = draft.insert_edge(forge_topo::arena::EdgeData::new(he));
+        draft.arena_mut().get_half_edge_mut(he)?.set_edge(edge);
+        draft.arena_mut().get_half_edge_mut(twin_he)?.set_edge(edge);
+        
         new_half_edges.push(he);
     }
 
@@ -356,19 +363,19 @@ fn rebuild_face_from_perimeter(
     }
 
     for &(he_a, he_b) in &edges_to_delete {
-        let _ = draft.arena_mut().remove_half_edge(he_a);
-        let _ = draft.arena_mut().remove_half_edge(he_b);
+        let _ = draft.remove_half_edge(he_a);
+        let _ = draft.remove_half_edge(he_b);
     }
 
     for &face_id in group {
         let face_data = draft.arena().get_face(face_id)?;
         let loop_id = face_data.outer_loop();
-        let _ = draft.arena_mut().remove_loop(loop_id);
-        let _ = draft.arena_mut().remove_face(face_id);
+        let _ = draft.remove_loop(loop_id);
+        let _ = draft.remove_face(face_id);
     }
 
     for &vid in &internal_vertices {
-        let _ = draft.arena_mut().remove_vertex(vid);
+        let _ = draft.remove_vertex(vid);
     }
 
     Ok(new_face)

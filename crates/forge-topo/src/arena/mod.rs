@@ -19,5 +19,5 @@ mod eval;
 #[cfg(test)]
 mod tests;
 
-pub use schema::{FaceData, HalfEdgeData, VertexData, LoopData};
+pub use schema::{FaceData, HalfEdgeData, VertexData, LoopData, ShellData, EdgeData, ShellOrientation};
 pub use eval::TopologyArena;

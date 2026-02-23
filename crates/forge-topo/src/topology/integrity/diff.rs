@@ -9,6 +9,8 @@
 //!
 //! DEPENDENCIES: `arena` (TopologyArena), `handles` (typed IDs)
 
+use std::collections::BTreeSet;
+
 use crate::arena::TopologyArena;
 
 /// A single entity-level change between two arena snapshots.
@@ -85,23 +87,25 @@ impl TopologyDiff {
     }
 }
 
-/// Compare two arenas slot-by-slot to produce entity deltas for one entity kind.
-/// 
-/// The accessors `before_occupied` and `after_occupied` return `Option<(generation, version)>`.
+/// Compare two arenas using active-index union iteration.
+///
+/// Iterates only over slot indices that are occupied in at least one
+/// arena, making this O(active_entities) instead of O(capacity).
+/// The accessors `before_info` and `after_info` return `Option<(generation, version)>`.
 fn diff_slots(
-    before_count: usize,
-    after_count: usize,
-    before_occupied: impl Fn(usize) -> Option<(u32, u32)>,
-    after_occupied: impl Fn(usize) -> Option<(u32, u32)>,
+    before_active: impl Iterator<Item = usize>,
+    after_active: impl Iterator<Item = usize>,
+    before_info: impl Fn(usize) -> Option<(u32, u32)>,
+    after_info: impl Fn(usize) -> Option<(u32, u32)>,
 ) -> Vec<EntityDelta> {
-    let max_slots = before_count.max(after_count);
+    let all_indices: BTreeSet<usize> = before_active.chain(after_active).collect();
     let mut deltas = Vec::new();
 
-    for index in 0..max_slots {
-        let before_info = before_occupied(index);
-        let after_info = after_occupied(index);
+    for index in all_indices {
+        let before = before_info(index);
+        let after = after_info(index);
 
-        match (before_info, after_info) {
+        match (before, after) {
             (None, Some(_)) => {
                 deltas.push(EntityDelta::Added { index });
             }
@@ -128,9 +132,8 @@ fn diff_slots(
 
 /// Compute the diff between two topology arenas.
 ///
-/// Walks all entity slots (faces, halfedges, vertices, loops) and produces
-/// structured deltas. The `epoch_before` and `epoch_after` values are
-/// provided by the caller (from `TopologyState`).
+/// Uses active-index union iteration — only visits slot indices that
+/// are occupied in at least one arena. O(active) not O(capacity).
 pub fn compute_diff(
     before: &TopologyArena,
     after: &TopologyArena,
@@ -138,22 +141,22 @@ pub fn compute_diff(
     epoch_after: u64,
 ) -> TopologyDiff {
     let faces = diff_slots(
-        before.face_slot_count(),
-        after.face_slot_count(),
+        before.active_face_indices(),
+        after.active_face_indices(),
         |i| before.face_generation(i).map(|g| (g, before.face_version(i).unwrap_or(0))),
         |i| after.face_generation(i).map(|g| (g, after.face_version(i).unwrap_or(0))),
     );
 
     let half_edges = diff_slots(
-        before.half_edge_slot_count(),
-        after.half_edge_slot_count(),
+        before.active_half_edge_indices(),
+        after.active_half_edge_indices(),
         |i| before.half_edge_generation(i).map(|g| (g, before.half_edge_version(i).unwrap_or(0))),
         |i| after.half_edge_generation(i).map(|g| (g, after.half_edge_version(i).unwrap_or(0))),
     );
 
     let vertices = diff_slots(
-        before.vertex_slot_count(),
-        after.vertex_slot_count(),
+        before.active_vertex_indices(),
+        after.active_vertex_indices(),
         |i| before.vertex_generation(i).map(|g| (g, before.vertex_version(i).unwrap_or(0))),
         |i| after.vertex_generation(i).map(|g| (g, after.vertex_version(i).unwrap_or(0))),
     );

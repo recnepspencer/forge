@@ -74,7 +74,7 @@ pub fn validate_lineage_coverage(
     let face_count = arena.face_count();
 
     let creation_count = lineage_events.iter().filter(|e| {
-        matches!(e, LineageEvent::EntityCreated { entity, .. } if entity.get_kind() == "Face")
+        matches!(e, LineageEvent::EntityCreated { entity, .. } if entity.kind().as_str() == "Face")
     }).count();
 
     if creation_count != face_count {
@@ -87,8 +87,8 @@ pub fn validate_lineage_coverage(
     let mut seen_indices = BTreeSet::new();
     for event in lineage_events {
         if let LineageEvent::EntityCreated { lineage, entity } = event {
-            if entity.get_kind() != "Face" { continue; }
-            let idx = lineage.get_origin_feature() as u32;
+            if entity.kind().as_str() != "Face" { continue; }
+            let idx = lineage.get_origin_features()[0] as u32;
             if !seen_indices.insert(idx) {
                 return Err(format!(
                     "Duplicate lineage event for face index {}",
@@ -119,7 +119,7 @@ pub fn validate_causal_reachability(
     let mut faces_with_orphan_ops = Vec::new();
 
     for (fid, _) in arena.iter_faces() {
-        let face_ref = EntityRef::new("Face", fid.index() as u32);
+        let face_ref = EntityRef::new(forge_core::EntityKind::Face, fid.index() as u32);
         let chain = query_causal_chain(
             &face_ref, replay, decisions, lineage, &[],
         );

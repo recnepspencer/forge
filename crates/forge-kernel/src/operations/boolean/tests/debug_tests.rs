@@ -52,7 +52,7 @@ fn count_faces_inside(
         };
 
         let result = classify_point_in_solid(
-            target_topo.arena(), &vertex_lookup, None, &centroid, 1e6, 1e-10,
+            target_topo.arena(), &vertex_lookup, None, &centroid, 1e-10,
         ).unwrap();
         matches!(result, PointClassification::Inside { .. })
     }).count()

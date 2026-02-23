@@ -38,7 +38,7 @@ pub use policy::{
 
 pub use tracing::{
     DecisionKind, DecisionId, TracedDecision, DecisionLog,
-    DecisionSummary, DecisionContext, EntityRef, TopologyDelta,
+    DecisionSummary, DecisionContext, EntityRef, EntityKind, TopologyDelta,
     SpanId, DecisionTier, TraceEvent, TraceSummary, TraceDiff, SpanSummaryEntry,
     DecisionDelta, DecisionChange, CheckpointLog, diff_decision_logs,
     DivergenceReport, DivergenceDetail, scan_for_divergences,

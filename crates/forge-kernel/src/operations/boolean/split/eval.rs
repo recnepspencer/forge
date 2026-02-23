@@ -513,7 +513,7 @@ fn try_split_face(
             ),
         },
     );
-    decision.set_entity_scope(EntityRef::new("Face", fid.index()));
+    decision.set_entity_scope(EntityRef::new(forge_core::EntityKind::Face, fid.index()));
     decision.set_topology_delta(delta);
     ctx.get_decision_log_mut().record(decision);
 

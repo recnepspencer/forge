@@ -2,7 +2,7 @@
   OPERATION: Intersection (half-overlap cubes)
 ============================================================
 
-Duration: 7.105292ms
+Duration: 7.081917ms
 State hash: 0x0000000000000000
 Faces in result: 6
 
@@ -188,11 +188,11 @@ Faces in result: 6
   PER-SPAN STATS (TraceSummary)
 ============================================================
 
-  split — 94 decisions, max_tier=deterministic, 6652µs
-  classify — 24 decisions, max_tier=escalated, 126µs
-  select — 20 decisions, max_tier=deterministic, 9µs
-  assemble — 12 decisions, max_tier=deterministic, 67µs
-  postprocess — 0 decisions, max_tier=deterministic, 23µs
+  split — 94 decisions, max_tier=deterministic, 6618µs
+  classify — 24 decisions, max_tier=escalated, 105µs
+  select — 20 decisions, max_tier=deterministic, 7µs
+  assemble — 12 decisions, max_tier=deterministic, 75µs
+  postprocess — 0 decisions, max_tier=deterministic, 29µs
 
 
 ============================================================
@@ -215,10 +215,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
+        "entity_scope": 5,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -236,10 +233,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
+        "entity_scope": 5,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -257,10 +251,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
+        "entity_scope": 5,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -283,10 +274,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
+        "entity_scope": 5,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -304,10 +292,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
+        "entity_scope": 5,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -344,10 +329,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
+        "entity_scope": 5,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -365,10 +347,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 6
-        },
+        "entity_scope": 6,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -386,10 +365,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 4
-        },
+        "entity_scope": 4,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -407,10 +383,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 4
-        },
+        "entity_scope": 4,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -428,10 +401,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 4
-        },
+        "entity_scope": 4,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -454,10 +424,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 4
-        },
+        "entity_scope": 4,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -475,10 +442,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 4
-        },
+        "entity_scope": 4,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -515,10 +479,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 4
-        },
+        "entity_scope": 4,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -536,10 +497,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 7
-        },
+        "entity_scope": 7,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -557,10 +515,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
+        "entity_scope": 3,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -578,10 +533,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
+        "entity_scope": 3,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -599,10 +551,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
+        "entity_scope": 3,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -625,10 +574,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
+        "entity_scope": 3,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -646,10 +592,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
+        "entity_scope": 3,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -679,10 +622,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
+        "entity_scope": 3,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -700,10 +640,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 8
-        },
+        "entity_scope": 8,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -721,10 +658,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 2
-        },
+        "entity_scope": 2,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -742,10 +676,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 2
-        },
+        "entity_scope": 2,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -763,10 +694,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 2
-        },
+        "entity_scope": 2,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -789,10 +717,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 2
-        },
+        "entity_scope": 2,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -810,10 +735,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 2
-        },
+        "entity_scope": 2,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -843,10 +765,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 2
-        },
+        "entity_scope": 2,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -864,10 +783,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 9
-        },
+        "entity_scope": 9,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -885,10 +801,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 0
-        },
+        "entity_scope": 0,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -906,10 +819,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 0
-        },
+        "entity_scope": 0,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -927,10 +837,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 0
-        },
+        "entity_scope": 0,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -948,10 +855,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 0
-        },
+        "entity_scope": 0,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -969,10 +873,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
+        "entity_scope": 5,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -990,10 +891,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 6
-        },
+        "entity_scope": 6,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1011,10 +909,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 4
-        },
+        "entity_scope": 4,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1032,10 +927,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 7
-        },
+        "entity_scope": 7,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1053,10 +945,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
+        "entity_scope": 3,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1074,10 +963,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 8
-        },
+        "entity_scope": 8,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1095,10 +981,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 2
-        },
+        "entity_scope": 2,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1116,10 +999,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 9
-        },
+        "entity_scope": 9,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1137,10 +1017,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 0
-        },
+        "entity_scope": 0,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1163,10 +1040,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
+        "entity_scope": 5,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1184,10 +1058,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
+        "entity_scope": 5,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1224,10 +1095,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
+        "entity_scope": 5,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1245,10 +1113,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
+        "entity_scope": 5,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1266,10 +1131,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
+        "entity_scope": 5,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1287,10 +1149,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
+        "entity_scope": 5,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1308,10 +1167,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 6
-        },
+        "entity_scope": 6,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1329,10 +1185,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 6
-        },
+        "entity_scope": 6,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1350,10 +1203,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 6
-        },
+        "entity_scope": 6,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1371,10 +1221,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 6
-        },
+        "entity_scope": 6,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1397,10 +1244,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 4
-        },
+        "entity_scope": 4,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1418,10 +1262,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 4
-        },
+        "entity_scope": 4,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1458,10 +1299,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 4
-        },
+        "entity_scope": 4,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1479,10 +1317,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 4
-        },
+        "entity_scope": 4,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1500,10 +1335,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 4
-        },
+        "entity_scope": 4,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1521,10 +1353,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 4
-        },
+        "entity_scope": 4,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1542,10 +1371,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 7
-        },
+        "entity_scope": 7,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1563,10 +1389,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 7
-        },
+        "entity_scope": 7,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1584,10 +1407,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 7
-        },
+        "entity_scope": 7,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1605,10 +1425,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 7
-        },
+        "entity_scope": 7,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1631,10 +1448,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
+        "entity_scope": 3,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1652,10 +1466,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
+        "entity_scope": 3,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1685,10 +1496,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
+        "entity_scope": 3,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1706,10 +1514,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
+        "entity_scope": 3,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1727,10 +1532,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
+        "entity_scope": 3,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1748,10 +1550,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
+        "entity_scope": 3,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1769,10 +1568,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 8
-        },
+        "entity_scope": 8,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1790,10 +1586,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 8
-        },
+        "entity_scope": 8,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1811,10 +1604,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 8
-        },
+        "entity_scope": 8,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1832,10 +1622,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 8
-        },
+        "entity_scope": 8,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1858,10 +1645,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 2
-        },
+        "entity_scope": 2,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1879,10 +1663,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 2
-        },
+        "entity_scope": 2,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1912,10 +1693,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 2
-        },
+        "entity_scope": 2,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1933,10 +1711,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 2
-        },
+        "entity_scope": 2,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1954,10 +1729,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 2
-        },
+        "entity_scope": 2,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1975,10 +1747,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 2
-        },
+        "entity_scope": 2,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -1996,10 +1765,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 9
-        },
+        "entity_scope": 9,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -2017,10 +1783,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 9
-        },
+        "entity_scope": 9,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -2038,10 +1801,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 9
-        },
+        "entity_scope": 9,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -2059,10 +1819,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 9
-        },
+        "entity_scope": 9,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -2080,10 +1837,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 1
-        },
+        "entity_scope": 1,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -2101,10 +1855,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 1
-        },
+        "entity_scope": 1,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -2122,10 +1873,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 1
-        },
+        "entity_scope": 1,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -2143,10 +1891,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 1
-        },
+        "entity_scope": 1,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -2164,10 +1909,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
+        "entity_scope": 5,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -2185,10 +1927,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 6
-        },
+        "entity_scope": 6,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -2206,10 +1945,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 4
-        },
+        "entity_scope": 4,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -2227,10 +1963,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 7
-        },
+        "entity_scope": 7,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -2248,10 +1981,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
+        "entity_scope": 3,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -2269,10 +1999,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 8
-        },
+        "entity_scope": 8,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -2290,10 +2017,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 2
-        },
+        "entity_scope": 2,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -2311,10 +2035,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 9
-        },
+        "entity_scope": 9,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -2332,10 +2053,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 1
-        },
+        "entity_scope": 1,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -2349,7 +2067,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 1,
-        "duration_micros": 6652
+        "duration_micros": 6618
       }
     },
     {
@@ -2366,10 +2084,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 0
-        },
+        "entity_scope": 0,
         "overridable": true,
         "context": {
           "Classification": {
@@ -2399,10 +2114,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 1
-        },
+        "entity_scope": 1,
         "overridable": true,
         "context": {
           "Classification": {
@@ -2457,10 +2169,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 2
-        },
+        "entity_scope": 2,
         "overridable": true,
         "context": {
           "Classification": {
@@ -2515,10 +2224,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
+        "entity_scope": 3,
         "overridable": true,
         "context": {
           "Classification": {
@@ -2573,10 +2279,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 4
-        },
+        "entity_scope": 4,
         "overridable": true,
         "context": {
           "Classification": {
@@ -2606,10 +2309,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
+        "entity_scope": 5,
         "overridable": true,
         "context": {
           "Classification": {
@@ -2664,10 +2364,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 6
-        },
+        "entity_scope": 6,
         "overridable": true,
         "context": {
           "Classification": {
@@ -2697,10 +2394,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 7
-        },
+        "entity_scope": 7,
         "overridable": true,
         "context": {
           "Classification": {
@@ -2730,10 +2424,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 8
-        },
+        "entity_scope": 8,
         "overridable": true,
         "context": {
           "Classification": {
@@ -2763,10 +2454,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 9
-        },
+        "entity_scope": 9,
         "overridable": true,
         "context": {
           "Classification": {
@@ -2796,10 +2484,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 0
-        },
+        "entity_scope": 0,
         "overridable": true,
         "context": {
           "Classification": {
@@ -2829,10 +2514,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 1
-        },
+        "entity_scope": 1,
         "overridable": true,
         "context": {
           "Classification": {
@@ -2862,10 +2544,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 2
-        },
+        "entity_scope": 2,
         "overridable": true,
         "context": {
           "Classification": {
@@ -2895,10 +2574,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
+        "entity_scope": 3,
         "overridable": true,
         "context": {
           "Classification": {
@@ -2928,10 +2604,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 4
-        },
+        "entity_scope": 4,
         "overridable": true,
         "context": {
           "Classification": {
@@ -2961,10 +2634,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
+        "entity_scope": 5,
         "overridable": true,
         "context": {
           "Classification": {
@@ -2994,10 +2664,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 6
-        },
+        "entity_scope": 6,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3027,10 +2694,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 7
-        },
+        "entity_scope": 7,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3060,10 +2724,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 8
-        },
+        "entity_scope": 8,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3093,10 +2754,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 9
-        },
+        "entity_scope": 9,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3122,7 +2780,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 2,
-        "duration_micros": 126
+        "duration_micros": 105
       }
     },
     {
@@ -3139,10 +2797,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 0
-        },
+        "entity_scope": 0,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3165,10 +2820,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 1
-        },
+        "entity_scope": 1,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3191,10 +2843,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 2
-        },
+        "entity_scope": 2,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3217,10 +2866,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
+        "entity_scope": 3,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3243,10 +2889,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 4
-        },
+        "entity_scope": 4,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3269,10 +2912,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
+        "entity_scope": 5,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3295,10 +2935,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 6
-        },
+        "entity_scope": 6,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3321,10 +2958,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 7
-        },
+        "entity_scope": 7,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3347,10 +2981,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 8
-        },
+        "entity_scope": 8,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3373,10 +3004,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 9
-        },
+        "entity_scope": 9,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3399,10 +3027,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 0
-        },
+        "entity_scope": 0,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3425,10 +3050,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 1
-        },
+        "entity_scope": 1,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3451,10 +3073,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 2
-        },
+        "entity_scope": 2,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3477,10 +3096,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 3
-        },
+        "entity_scope": 3,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3503,10 +3119,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 4
-        },
+        "entity_scope": 4,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3529,10 +3142,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 5
-        },
+        "entity_scope": 5,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3555,10 +3165,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 6
-        },
+        "entity_scope": 6,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3581,10 +3188,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 7
-        },
+        "entity_scope": 7,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3607,10 +3211,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 8
-        },
+        "entity_scope": 8,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3633,10 +3234,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "Face",
-          "index": 9
-        },
+        "entity_scope": 9,
         "overridable": true,
         "context": {
           "Classification": {
@@ -3655,7 +3253,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 3,
-        "duration_micros": 9
+        "duration_micros": 7
       }
     },
     {
@@ -3672,10 +3270,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "HalfEdge",
-          "index": 0
-        },
+        "entity_scope": 72057594037927936,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -3693,10 +3288,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "HalfEdge",
-          "index": 1
-        },
+        "entity_scope": 72057594037927937,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -3714,10 +3306,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "HalfEdge",
-          "index": 2
-        },
+        "entity_scope": 72057594037927938,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -3735,10 +3324,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "HalfEdge",
-          "index": 3
-        },
+        "entity_scope": 72057594037927939,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -3756,10 +3342,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "HalfEdge",
-          "index": 4
-        },
+        "entity_scope": 72057594037927940,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -3777,10 +3360,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "HalfEdge",
-          "index": 5
-        },
+        "entity_scope": 72057594037927941,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -3798,10 +3378,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "HalfEdge",
-          "index": 7
-        },
+        "entity_scope": 72057594037927943,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -3819,10 +3396,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "HalfEdge",
-          "index": 8
-        },
+        "entity_scope": 72057594037927944,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -3840,10 +3414,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "HalfEdge",
-          "index": 9
-        },
+        "entity_scope": 72057594037927945,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -3861,10 +3432,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "HalfEdge",
-          "index": 11
-        },
+        "entity_scope": 72057594037927947,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -3882,10 +3450,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "HalfEdge",
-          "index": 12
-        },
+        "entity_scope": 72057594037927948,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -3903,10 +3468,7 @@ Faces in result: 6
         "tier": "Deterministic",
         "margin": 1.0,
         "feature_scope": null,
-        "entity_scope": {
-          "kind": "HalfEdge",
-          "index": 16
-        },
+        "entity_scope": 72057594037927952,
         "overridable": true,
         "context": {
           "Degeneracy": {
@@ -3920,7 +3482,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 4,
-        "duration_micros": 67
+        "duration_micros": 75
       }
     },
     {
@@ -3933,7 +3495,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 5,
-        "duration_micros": 23
+        "duration_micros": 29
       }
     }
   ]

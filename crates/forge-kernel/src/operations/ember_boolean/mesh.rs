@@ -26,8 +26,8 @@ use forge_core::KernelError;
 use forge_core::tracing::{DecisionKind, DecisionTier};
 use forge_geom::Plane;
 use forge_geom::spatial::bsp::{BspConfig, BspSolid, ConvexCell};
-use forge_topo::arena::{FaceData, HalfEdgeData, VertexData, LoopData};
-use forge_topo::handles::{FaceId, HalfEdgeId, VertexId, LoopId};
+use forge_topo::arena::{FaceData, HalfEdgeData, VertexData, LoopData, ShellData, EdgeData, ShellOrientation};
+use forge_topo::handles::{FaceId, HalfEdgeId, VertexId, LoopId, ShellId, EdgeId};
 use forge_topo::state::{TopologyState, MutableDraft};
 
 use crate::check_tolerance;
@@ -92,6 +92,11 @@ fn build_multi_cell_mesh(
     let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
     let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
 
+    let shell = draft.insert_shell(ShellData::new(
+        FaceId::from_raw_parts(u32::MAX, 0),
+        ShellOrientation::Outer,
+    ));
+
     for (_cell_idx, (cell, bsp_plane_indices)) in cells.iter().enumerate() {
         let cell_planes = cell.planes();
 
@@ -100,11 +105,20 @@ fn build_multi_cell_mesh(
             cell, cell_planes, tolerance, ctx,
         )?;
 
+        let shell = draft.insert_shell(ShellData::new(
+            FaceId::from_raw_parts(u32::MAX, 0),
+            ShellOrientation::Outer,
+        ));
+
         insert_cell_faces(
             &mut draft, &mut geometry, &mut edge_map, &mut face_plane_map,
             cell, &cell_vertex_ids, cell_planes, bsp_plane_indices,
-            placeholder_he, placeholder_loop,
+            shell, placeholder_he, placeholder_loop,
         )?;
+        
+        if let Some((first_face, _)) = draft.arena().iter_faces().last() {
+             draft.arena_mut().get_shell_mut(shell).ok().map(|s| s.set_representative_face(first_face));
+        }
     }
 
     // ── Checkpoint: post_insert_faces ────────────────────────────────────
@@ -175,7 +189,7 @@ fn insert_cell_vertices(
             check_tolerance!(ctx, tolerance, dist, pos, DecisionKind::NearBoundary { threshold: tolerance });
             cell_vertex_ids.push(*existing_vid);
         } else {
-            let vid = draft.arena_mut().insert_vertex(VertexData::new(placeholder_he));
+            let vid = draft.insert_vertex(VertexData::new(placeholder_he));
 
             let [pa, pb, pc] = vert.plane_indices();
             let stored_exact = if pa < cell_planes.len() && pb < cell_planes.len() && pc < cell_planes.len() {
@@ -214,6 +228,7 @@ fn insert_cell_faces(
     cell_vertex_ids: &[VertexId],
     cell_planes: &[Plane],
     bsp_plane_indices: &[usize],
+    shell: ShellId,
     placeholder_he: HalfEdgeId,
     placeholder_loop: LoopId,
 ) -> Result<(), KernelError> {
@@ -223,9 +238,9 @@ fn insert_cell_faces(
             continue;
         }
 
-        let face_id = draft.arena_mut().insert_face(FaceData::new(placeholder_loop));
+        let face_id = draft.insert_face(FaceData::new(placeholder_loop, shell));
 
-        let loop_id = draft.arena_mut().insert_loop(LoopData::new(
+        let loop_id = draft.insert_loop(LoopData::new(
             placeholder_he,
             face_id,
         ));
@@ -256,13 +271,20 @@ fn insert_cell_faces(
 
         for &cell_vert_idx in face_verts {
             let origin = cell_vertex_ids[cell_vert_idx];
-            let he_id = draft.arena_mut().insert_half_edge(HalfEdgeData::new(
+            let he_id = draft.insert_half_edge(HalfEdgeData::new(
                 placeholder_he,
                 placeholder_he,
                 placeholder_he,
                 face_id,
                 origin,
+                EdgeId::from_raw_parts(u32::MAX, 0),
             ));
+            
+            // Allocate a temporary edge for this half-edge. 
+            // The cross-plane stitcher will merge these.
+            let edge = draft.insert_edge(EdgeData::new(he_id));
+            draft.arena_mut().get_half_edge_mut(he_id)?.set_edge(edge);
+            
             he_ids.push(he_id);
         }
 
@@ -374,6 +396,26 @@ fn stitch_twins_cross_plane(
             draft.arena_mut().get_half_edge_mut(fwd_id)?.set_twin(rev_id);
             draft.arena_mut().get_half_edge_mut(rev_id)?.set_twin(fwd_id);
         }
+
+        // Phase 3: Edge management. For all pairs created in this edge set,
+        // merge their Edge entities so they share a single EdgeId.
+        for (&(a, b), fwd_ids) in edge_map {
+             if a.index() > b.index() { continue; }
+             let rev_ids = edge_map.get(&(b, a)).unwrap();
+             for (&f_he, &r_he) in fwd_ids.iter().zip(rev_ids.iter()) {
+                  let f_data = draft.arena().get_half_edge(f_he)?;
+                  let r_data = draft.arena().get_half_edge(r_he)?;
+                  if f_data.twin() == r_he {
+                       let f_edge = f_data.edge();
+                       let r_edge = r_data.edge();
+                       if f_edge != r_edge {
+                            // Merge Edge entities: remove r_edge, update r_he to use f_edge
+                            draft.remove_edge(r_edge)?;
+                            draft.arena_mut().get_half_edge_mut(r_he)?.set_edge(f_edge);
+                       }
+                  }
+             }
+        }
     }
 
     Ok(())
@@ -473,10 +515,10 @@ fn remove_stitched_faces(
         }
 
         for he_id in he_ids {
-            draft.arena_mut().remove_half_edge(he_id);
+            draft.remove_half_edge(he_id);
         }
-        draft.arena_mut().remove_loop(loop_id);
-        draft.arena_mut().remove_face(face_id);
+        draft.remove_loop(loop_id);
+        draft.remove_face(face_id);
     }
 
     Ok(())
@@ -612,13 +654,13 @@ fn dissolve_edge(
     }
 
     // Remove the dissolved halfedges
-    draft.arena_mut().remove_half_edge(he_id);
-    draft.arena_mut().remove_half_edge(twin_id);
+    draft.remove_half_edge(he_id);
+    draft.remove_half_edge(twin_id);
 
     // Remove face B and its loop
     let loop_b = draft.arena().get_face(face_b)?.outer_loop();
-    draft.arena_mut().remove_loop(loop_b);
-    draft.arena_mut().remove_face(face_b);
+    draft.remove_loop(loop_b);
+    draft.remove_face(face_b);
 
     Ok(face_b)
 }

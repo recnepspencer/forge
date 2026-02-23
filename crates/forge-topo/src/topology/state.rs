@@ -27,6 +27,7 @@ use crate::hashing::compute_arena_topology_hash;
 use crate::lineage::{LineageEvent, OpSignature};
 use crate::lineage_store::LineageStore;
 use crate::replay::{ReplayLog, ReplayEntry};
+use crate::handles::{FaceId, VertexId, HalfEdgeId, LoopId, ShellId, EdgeId};
 use crate::validate::{self, ValidationLevel};
 
 /// Configuration for a mutable draft transaction.
@@ -52,6 +53,10 @@ pub struct DraftConfig {
     ///
     /// Default: `Full` in Debug, `Minimal` in Release.
     pub validation_level: ValidationLevel,
+    /// When true, verify twin/next/prev consistency after every Euler op.
+    ///
+    /// Expensive — use only in dev/CI. Default: `false`.
+    pub per_op_validation: bool,
 }
 
 impl Default for DraftConfig {
@@ -60,6 +65,7 @@ impl Default for DraftConfig {
             per_op_hashing: false,
             deterministic_seed: 0,
             validation_level: ValidationLevel::default(),
+            per_op_validation: false,
         }
     }
 }
@@ -84,6 +90,11 @@ pub struct TopologyState {
     /// The topology arena holding all entity data (Milestone 0.5.1).
     /// Wrapped in `Arc` for cheap cloning and structural sharing.
     arena: Arc<TopologyArena>,
+    /// Chronological log of lineage events that produced this state.
+    ///
+    /// Accumulated across epochs: each `commit()` appends the draft's events
+    /// to the prior state's history so the full provenance chain survives.
+    lineage_events: Arc<Vec<LineageEvent>>,
 }
 
 impl TopologyState {
@@ -95,6 +106,7 @@ impl TopologyState {
             geometry_version: 0,
             topology_hash: 0,
             arena: Arc::new(TopologyArena::new()),
+            lineage_events: Arc::new(Vec::new()),
         }
     }
 
@@ -128,6 +140,11 @@ impl TopologyState {
         &self.arena
     }
 
+    /// The chronological lineage event log accumulated across all epochs.
+    pub fn lineage_events(&self) -> &[LineageEvent] {
+        &self.lineage_events
+    }
+
     /// Begin a transactional mutation by consuming the state (Zero-Cost).
     ///
     /// If the state holds the unique reference to the arena, reuses the allocation (O(1)).
@@ -156,6 +173,12 @@ impl TopologyState {
             Err(arc) => (*arc).clone(),
         };
 
+        // Carry forward the prior lineage history so new events append to it.
+        let prior_events = match Arc::try_unwrap(self.lineage_events) {
+            Ok(events) => events,
+            Err(arc) => (*arc).clone(),
+        };
+
         MutableDraft {
             base_epoch: self.epoch,
             next_epoch: self.epoch + 1,
@@ -169,6 +192,7 @@ impl TopologyState {
             config,
             arena,
             lineage_store: LineageStore::new(),
+            prior_lineage_events: prior_events,
         }
     }
 }
@@ -208,6 +232,8 @@ pub struct MutableDraft {
     arena: TopologyArena,
     /// Live lineage store tracking all entity provenance during this draft.
     lineage_store: LineageStore,
+    /// Lineage events inherited from the prior committed state.
+    prior_lineage_events: Vec<LineageEvent>,
 }
 
 impl MutableDraft {
@@ -235,7 +261,7 @@ impl MutableDraft {
         let seed = self.config.deterministic_seed.wrapping_add(self.op_counter);
         let entry = ReplayEntry::new(
             signature.clone(),
-            String::new(),
+            Vec::new(),
             seed,
             self.topology_hash,
         );
@@ -303,6 +329,14 @@ impl MutableDraft {
         &mut self.lineage_store
     }
 
+    /// Disjoint mutable access to both the arena and the lineage store.
+    ///
+    /// Essential for Euler operators to pass the lineage store to arena hooks
+    /// without violating borrow checker rules.
+    pub fn unbundle_mut(&mut self) -> (&mut TopologyArena, &mut LineageStore) {
+        (&mut self.arena, &mut self.lineage_store)
+    }
+
     /// Take ownership of the lineage store, replacing it with an empty one.
     ///
     /// Use this to extract lineage data before commit (or on error paths
@@ -328,12 +362,18 @@ impl MutableDraft {
         let topology_hash = self.compute_topology_hash();
         let committed_arena = std::mem::take(&mut self.arena);
 
+        // Drain the lineage store and append to the prior history.
+        let new_events = self.lineage_store.drain_events();
+        let mut all_events = std::mem::take(&mut self.prior_lineage_events);
+        all_events.extend(new_events);
+
         Ok(TopologyState {
             epoch: self.next_epoch,
             topology_version: self.topology_version,
             geometry_version: self.geometry_version,
             topology_hash,
             arena: Arc::new(committed_arena),
+            lineage_events: Arc::new(all_events),
         })
     }
 
@@ -341,7 +381,74 @@ impl MutableDraft {
     pub(crate) fn compute_topology_hash(&self) -> u128 {
         compute_arena_topology_hash(&self.arena)
     }
+    // ── Proxy CRUD Methods (Option B Lineage Hooks) ────────────────
+
+    pub fn insert_face(&mut self, data: crate::arena::FaceData) -> FaceId {
+        let (arena, store) = self.unbundle_mut();
+        arena.insert_face(data, Some(store))
+    }
+
+    pub fn remove_face(&mut self, id: FaceId) -> Result<crate::arena::FaceData, KernelError> {
+        let (arena, store) = self.unbundle_mut();
+        arena.remove_face(id, Some(store))
+    }
+
+    pub fn insert_half_edge(&mut self, data: crate::arena::HalfEdgeData) -> HalfEdgeId {
+        let (arena, store) = self.unbundle_mut();
+        arena.insert_half_edge(data, Some(store))
+    }
+
+    pub fn insert_half_edge_pair(&mut self, data_a: crate::arena::HalfEdgeData, data_b: crate::arena::HalfEdgeData) -> (HalfEdgeId, HalfEdgeId) {
+        let (arena, store) = self.unbundle_mut();
+        arena.insert_half_edge_pair(data_a, data_b, Some(store))
+    }
+
+    pub fn remove_half_edge(&mut self, id: HalfEdgeId) -> Result<crate::arena::HalfEdgeData, KernelError> {
+        let (arena, store) = self.unbundle_mut();
+        arena.remove_half_edge(id, Some(store))
+    }
+
+    pub fn insert_vertex(&mut self, data: crate::arena::VertexData) -> VertexId {
+        let (arena, store) = self.unbundle_mut();
+        arena.insert_vertex(data, Some(store))
+    }
+
+    pub fn remove_vertex(&mut self, id: VertexId) -> Result<crate::arena::VertexData, KernelError> {
+        let (arena, store) = self.unbundle_mut();
+        arena.remove_vertex(id, Some(store))
+    }
+
+    pub fn insert_loop(&mut self, data: crate::arena::LoopData) -> LoopId {
+        let (arena, store) = self.unbundle_mut();
+        arena.insert_loop(data, Some(store))
+    }
+
+    pub fn remove_loop(&mut self, id: LoopId) -> Result<crate::arena::LoopData, KernelError> {
+        let (arena, store) = self.unbundle_mut();
+        arena.remove_loop(id, Some(store))
+    }
+
+    pub fn insert_shell(&mut self, data: crate::arena::ShellData) -> ShellId {
+        let (arena, store) = self.unbundle_mut();
+        arena.insert_shell(data, Some(store))
+    }
+
+    pub fn remove_shell(&mut self, id: ShellId) -> Result<crate::arena::ShellData, KernelError> {
+        let (arena, store) = self.unbundle_mut();
+        arena.remove_shell(id, Some(store))
+    }
+
+    pub fn insert_edge(&mut self, data: crate::arena::EdgeData) -> EdgeId {
+        let (arena, store) = self.unbundle_mut();
+        arena.insert_edge(data, Some(store))
+    }
+
+    pub fn remove_edge(&mut self, id: EdgeId) -> Result<crate::arena::EdgeData, KernelError> {
+        let (arena, store) = self.unbundle_mut();
+        arena.remove_edge(id, Some(store))
+    }
 }
+
 
 impl Drop for MutableDraft {
     fn drop(&mut self) {

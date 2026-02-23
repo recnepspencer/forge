@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 use forge_core::EntityRef;
 
 use super::lineage::{Lineage, LineageEvent, OpSignature};
+use forge_core::KernelError;
 
 /// Live mapping from entity handles to their current lineage.
 ///
@@ -57,13 +58,20 @@ impl LineageStore {
     ///
     /// Removes from the live map and appends an `EntityDeleted` event
     /// preserving the lineage for replay.
-    pub fn record_deletion(&mut self, entity: EntityRef) {
+    pub fn record_deletion(&mut self, entity: EntityRef) -> Result<(), KernelError> {
         let lineage = self.entries.remove(&entity)
-            .unwrap_or_else(|| Lineage::root(0, OpSignature::new("unknown")));
+            .ok_or_else(|| KernelError::InternalError {
+                message: format!(
+                    "LineageStore: attempted to delete untracked entity {:?} — arena/history desync",
+                    entity
+                ),
+                context: None,
+            })?;
         self.events.push(LineageEvent::EntityDeleted {
             entity,
             lineage,
         });
+        Ok(())
     }
 
     /// Record a modification of an entity's lineage (e.g., edge rewiring).
@@ -73,16 +81,23 @@ impl LineageStore {
         &mut self,
         entity: EntityRef,
         new_lineage: Lineage,
-    ) {
+    ) -> Result<(), KernelError> {
         let old_lineage = self.entries.get(&entity)
             .cloned()
-            .unwrap_or_else(|| Lineage::root(0, OpSignature::new("unknown")));
+            .ok_or_else(|| KernelError::InternalError {
+                message: format!(
+                    "LineageStore: attempted to mutate untracked entity {:?} — arena/history desync",
+                    entity
+                ),
+                context: None,
+            })?;
         self.events.push(LineageEvent::EntityModified {
             entity: entity.clone(),
             old_lineage,
             new_lineage: new_lineage.clone(),
         });
         self.entries.insert(entity, new_lineage);
+        Ok(())
     }
 
     /// Look up the current lineage of an entity.
@@ -124,11 +139,12 @@ impl LineageStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use forge_core::EntityKind;
 
     #[test]
     fn creation_and_query() {
         let mut store = LineageStore::new();
-        let entity = EntityRef::new("Face", 42);
+        let entity = EntityRef::new(EntityKind::Face, 42);
         let lineage = Lineage::root(42, OpSignature::new("make_face"));
 
         store.record_creation(entity.clone(), lineage.clone());
@@ -143,13 +159,13 @@ mod tests {
     #[test]
     fn deletion_removes_from_live_map() {
         let mut store = LineageStore::new();
-        let entity = EntityRef::new("HalfEdge", 117);
+        let entity = EntityRef::new(EntityKind::HalfEdge, 117);
         let lineage = Lineage::root(117, OpSignature::new("split_edge"));
 
         store.record_creation(entity.clone(), lineage);
         assert_eq!(store.active_count(), 1);
 
-        store.record_deletion(entity.clone());
+        store.record_deletion(entity.clone()).unwrap();
         assert_eq!(store.active_count(), 0);
         assert!(store.get_lineage(&entity).is_none());
 
@@ -160,12 +176,12 @@ mod tests {
     #[test]
     fn mutation_updates_lineage() {
         let mut store = LineageStore::new();
-        let entity = EntityRef::new("Face", 10);
+        let entity = EntityRef::new(EntityKind::Face, 10);
         let original = Lineage::root(10, OpSignature::new("create"));
         let updated = Lineage::root(10, OpSignature::new("split"));
 
         store.record_creation(entity.clone(), original);
-        store.record_mutation(entity.clone(), updated.clone());
+        store.record_mutation(entity.clone(), updated.clone()).unwrap();
 
         let current = store.get_lineage(&entity).unwrap();
         assert_eq!(current.get_creation_op().get_name(), "split");

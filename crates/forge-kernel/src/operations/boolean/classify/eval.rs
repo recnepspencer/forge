@@ -37,9 +37,7 @@ pub fn classify_faces(
     origin: FaceOrigin,
     ctx: &mut ModelingContext,
 ) -> Result<Vec<ClassifiedFace>, KernelError> {
-    let mut config = ctx.get_tolerance_config().clone();
-    let ray_extent = compute_ray_extent_from_bbox(other_arena, other_geometry, config.get_ray_extent());
-    config.set_ray_extent(ray_extent);
+    let config = ctx.get_tolerance_config().clone();
 
     let accelerator_data = build_spatial_index(other_arena, other_geometry);
     let accelerator = accelerator_data.as_deref()
@@ -87,7 +85,6 @@ fn classify_single_face(
         &|index| lookup_vertex_position(other_arena, other_geometry, index),
         accelerator,
         &sample,
-        config.get_ray_extent(),
         config.get_edge_split_degeneracy(),
     )?;
 
@@ -180,7 +177,6 @@ fn resolve_boundary_classification(
         &|index| lookup_vertex_position(other_arena, other_geometry, index),
         accelerator,
         &pos_sample,
-        config.get_ray_extent(),
         config.get_edge_split_degeneracy(),
     )?;
 
@@ -189,7 +185,6 @@ fn resolve_boundary_classification(
         &|index| lookup_vertex_position(other_arena, other_geometry, index),
         accelerator,
         &neg_sample,
-        config.get_ray_extent(),
         config.get_edge_split_degeneracy(),
     )?;
 
@@ -285,7 +280,7 @@ fn log_classification(
             result: format!("{}:Face#{} → {}", origin_label, face_id.index(), label),
         },
     );
-    decision.set_entity_scope(EntityRef::new("Face", face_id.index()));
+    decision.set_entity_scope(EntityRef::new(forge_core::EntityKind::Face, face_id.index()));
     decision.set_topology_delta(TopologyDelta::default());
     ctx.get_decision_log_mut().record(decision);
 }

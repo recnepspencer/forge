@@ -77,7 +77,7 @@ pub fn select_faces(
                     origin_label, f.face().index(), f.classification(), operation, action),
             },
         );
-        decision.set_entity_scope(EntityRef::new("Face", f.face().index()));
+        decision.set_entity_scope(EntityRef::new(forge_core::EntityKind::Face, f.face().index()));
         ctx.get_decision_log_mut().record(decision);
 
         if keep {

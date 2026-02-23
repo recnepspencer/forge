@@ -24,8 +24,8 @@ use forge_core::DecisionDelta;
 pub struct ReplayEntry {
     /// The operation that was executed.
     signature: OpSignature,
-    /// Serialized operation parameters (opaque string).
-    parameters: String,
+    /// Serialized operation parameters (binary, format-agnostic).
+    parameters: Vec<u8>,
     /// RNG seed at the start of this operation.
     seed: u64,
     /// Topology hash before this operation.
@@ -40,7 +40,7 @@ impl ReplayEntry {
     /// Create a new replay entry.
     pub fn new(
         signature: OpSignature,
-        parameters: String,
+        parameters: Vec<u8>,
         seed: u64,
         pre_hash: u128,
     ) -> Self {
@@ -64,8 +64,8 @@ impl ReplayEntry {
         &self.signature
     }
 
-    /// The serialized parameters.
-    pub fn parameters(&self) -> &str {
+    /// The serialized parameters (binary).
+    pub fn parameters(&self) -> &[u8] {
         &self.parameters
     }
 
@@ -209,6 +209,7 @@ impl ReplayLog {
             .zip(other.entries.iter())
             .all(|(a, b)| {
                 a.signature == b.signature
+                    && a.parameters == b.parameters
                     && a.seed == b.seed
                     && a.pre_hash == b.pre_hash
                     && a.post_hash == b.post_hash
@@ -237,7 +238,7 @@ mod tests {
         let mut log = ReplayLog::new();
         log.record(ReplayEntry::new(
             make_op_sig("test_op"),
-            "{}".to_string(),
+            vec![],
             42,
             100,
         ));
@@ -252,7 +253,7 @@ mod tests {
         let mut log = ReplayLog::new();
         log.record(ReplayEntry::new(
             make_op_sig("op"),
-            "{}".to_string(),
+            vec![],
             1,
             0,
         ));
@@ -268,7 +269,7 @@ mod tests {
         for i in 0..5 {
             let entry = ReplayEntry::new(
                 make_op_sig("op"),
-                format!("{}", i),
+                vec![i as u8],
                 i as u64,
                 i as u128 * 10,
             );
@@ -284,8 +285,8 @@ mod tests {
         let mut a = ReplayLog::new();
         let mut b = ReplayLog::new();
 
-        a.record(ReplayEntry::new(make_op_sig("op"), "{}".to_string(), 1, 0));
-        b.record(ReplayEntry::new(make_op_sig("op"), "{}".to_string(), 2, 0));
+        a.record(ReplayEntry::new(make_op_sig("op"), vec![], 1, 0));
+        b.record(ReplayEntry::new(make_op_sig("op"), vec![], 2, 0));
 
         assert!(!a.verify_determinism(&b));
     }
@@ -295,7 +296,7 @@ mod tests {
         let mut a = ReplayLog::new();
         let b = ReplayLog::new();
 
-        a.record(ReplayEntry::new(make_op_sig("op"), "{}".to_string(), 1, 0));
+        a.record(ReplayEntry::new(make_op_sig("op"), vec![], 1, 0));
 
         assert!(!a.verify_determinism(&b));
     }

@@ -1063,6 +1063,58 @@ needs an adapter layer to bridge with our generational handle pattern:
 
 ---
 
+## §4.5 Assembly Hierarchy: Body → Lump → Region → Shell
+
+### Motivation
+
+A finished `TopologyArena` today has: `HalfEdge → Face → Loop → Shell`. The
+`Shell` is a connected manifold surface — but both engineers and boolean
+algorithms need to reason about _disjoint_ or _nested_ solids within a single
+arena. STEP uses this hierarchy explicitly; boolean operations create it implicitly.
+
+### The Four Levels
+
+| Level      | Meaning                                                                                                                                                                        | Current State                                  |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------- |
+| **Body**   | A complete mechanical solid — what the user thinks of as "one part". Corresponds to a STEP `MANIFOLD_SOLID_BREP` or a Forge `Feature` output.                                  | Implicit via `FeatureOutput` in `forge-kernel` |
+| **Lump**   | A maximal connected volume of material. A Body has ≥ 1 Lumps. After a boolean difference that separates geometry, each fragment becomes its own Lump.                          | Not tracked. Shells loosely play this role     |
+| **Region** | A bounded volume defined by one or more Shells. One outer Shell (bounds solid material) + zero or more inner Shells (cavity walls).                                            | Not tracked. One-to-one Shell→Region assumed   |
+| **Shell**  | A maximal connected manifold surface mesh — what `forge-topo` stores directly. Outer shells have `ShellOrientation::Outer`; inner cavity walls have `ShellOrientation::Inner`. | ✅ Implemented in `ShellData`                  |
+
+### Current Gap
+
+Right now, `TopologyArena` has no `Body`, `Lump`, or `Region` entity — only `Shell`.
+Boolean operations return a flat list of Shells, and the kernel assigns `ShellOrientation`
+to distinguish outer/inner. This is sufficient for single-body operations.
+
+The gap bites when:
+
+1. A boolean difference cleaves a solid into two fragments (two Lumps) — the kernel
+   returns two disconnected outer Shells but has no `LumpId` to group them under a
+   single output.
+2. Cavity detection (`ShellOrientation::Inner`) is manually assigned by the mesh
+   builder; there is no topology primitive that formally encodes "this inner Shell is
+   contained within Lump X."
+3. STEP export requires explicit `Lump` and `Region` entities.
+
+### Planned Resolution
+
+Introduce the full hierarchy lazily — only the `Region` level is needed before
+multi-body booleans ship:
+
+```
+Body   → owned by FeatureOutput (forge-kernel, not forge-topo)
+Lump   → owned by forge-topo; contains one or more Regions
+Region → owned by forge-topo; contains one outer Shell + N inner Shells
+Shell  → ✅ exists today
+```
+
+**Trigger**: implement when `boolean_difference` first produces a disconnected result
+that needs to be addressed as two independent bodies. Until then, single-body
+booleans work with the current Shell-only model.
+
+---
+
 # 5. The Hybrid Boolean Pipeline
 
 This is the heart of the kernel. It's where exact planar math and tolerant

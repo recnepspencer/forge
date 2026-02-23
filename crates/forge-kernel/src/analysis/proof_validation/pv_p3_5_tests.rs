@@ -188,8 +188,8 @@ fn mb_r3_causal_chains_scope_decisions_to_correct_faces() {
     let face_indices: Vec<_> = arena.iter_faces().map(|(id, _)| id.index()).collect();
     assert!(face_indices.len() >= 2, "Test requires at least 2 faces");
 
-    let f1 = forge_core::EntityRef::new("Face", face_indices[0] as u32);
-    let f2 = forge_core::EntityRef::new("Face", face_indices[1] as u32);
+    let f1 = forge_core::EntityRef::new(forge_core::EntityKind::Face, face_indices[0] as u32);
+    let f2 = forge_core::EntityRef::new(forge_core::EntityKind::Face, face_indices[1] as u32);
 
     let chain1 = query_causal_chain(
         &f1, result.get_replay_log(), &log, result.get_lineage_events(), &[],
@@ -202,7 +202,7 @@ fn mb_r3_causal_chains_scope_decisions_to_correct_faces() {
     assert!(!chain2.get_steps().is_empty(), "F2 chain must not be empty");
 
     // Verify querying a non-existent face returns an empty chain
-    let missing_face = forge_core::EntityRef::new("Face", 999999);
+    let missing_face = forge_core::EntityRef::new(forge_core::EntityKind::Face, 999999);
     let empty_chain = query_causal_chain(
         &missing_face, result.get_replay_log(), &log, result.get_lineage_events(), &[],
     );

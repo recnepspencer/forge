@@ -8,13 +8,16 @@
 
 
 use serde::{Deserialize, Serialize};
+use smallvec::{smallvec, SmallVec};
 
 use forge_core::EntityRef;
 
 /// Unique signature for a topology operation, used for lineage and replay.
 ///
-/// Two operations with the same name but different parameters produce
-/// different lineage hashes (the parameters are hashed in).
+/// Lineage hashes are based on the operation name and invocation ID.
+/// Parameters are NOT currently included in the hash. This is sufficient
+/// for the current replay system where invocation IDs are unique per draft.
+/// Phase 9 persistent naming may require adding a `param_hash` field.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct OpSignature {
     /// Human-readable operation name (e.g., "split_edge", "join_faces").
@@ -75,8 +78,9 @@ impl std::fmt::Display for OpSignature {
 /// - A selector can later query "edges descended from Edge-7 via split_edge"
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct Lineage {
-    /// Which feature created this entity (will be FeatureId in Phase 9).
-    origin_feature: u64,
+    /// Which features created this entity. Single-element for root/derive,
+    /// multi-element for merge (compound provenance from both parents).
+    origin_features: SmallVec<[u64; 2]>,
     /// Which Euler operation created this entity.
     creation_op: OpSignature,
     /// Deterministic hash of the parent lineage chain.
@@ -88,7 +92,7 @@ impl Lineage {
     pub fn root(feature_id: u64, op: OpSignature) -> Self {
         let ancestry_hash = Self::compute_hash(0, &op);
         Self {
-            origin_feature: feature_id,
+            origin_features: smallvec![feature_id],
             creation_op: op,
             ancestry_hash,
         }
@@ -98,7 +102,7 @@ impl Lineage {
     pub fn derive(parent: &Lineage, op: OpSignature) -> Self {
         let ancestry_hash = Self::compute_hash(parent.ancestry_hash, &op);
         Self {
-            origin_feature: parent.origin_feature,
+            origin_features: parent.origin_features.clone(),
             creation_op: op,
             ancestry_hash,
         }
@@ -114,9 +118,9 @@ impl Lineage {
         }
     }
 
-    /// The originating feature ID.
-    pub fn get_origin_feature(&self) -> u64 {
-        self.origin_feature
+    /// The originating feature IDs (compound provenance for merged entities).
+    pub fn get_origin_features(&self) -> &[u64] {
+        &self.origin_features
     }
 
     /// The operation that created this entity.
@@ -132,15 +136,15 @@ impl Lineage {
     /// Compute a deterministic ancestry hash using FNV-style mixing.
     fn compute_hash(parent_hash: u128, op: &OpSignature) -> u128 {
         let op_hash = {
-            let mut h: u128 = 0xcbf29ce484222325;
+            let mut h: u128 = 0x6c62272e07bb014262b821756295c58d;
             for byte in op.get_name().bytes() {
-                h = h.wrapping_mul(0x100000001b3);
+                h = h.wrapping_mul(0x1000000000000000000013b);
                 h ^= byte as u128;
             }
             h ^= op.get_invocation_id() as u128;
             h
         };
-        parent_hash.wrapping_mul(0x100000001b3) ^ op_hash
+        parent_hash.wrapping_mul(0x1000000000000000000013b) ^ op_hash
     }
 
     /// Merge two lineages using Merkle DAG hash mixing.
@@ -155,8 +159,15 @@ impl Lineage {
             (Some(la), Some(lb)) => {
                 let combined = Self::fnv_mix_128(la.ancestry_hash, lb.ancestry_hash);
                 let ancestry_hash = Self::compute_hash(combined, sig);
+                let mut features = la.origin_features.clone();
+                for &f in &lb.origin_features {
+                    if !features.contains(&f) {
+                        features.push(f);
+                    }
+                }
+                features.sort_unstable();
                 Lineage {
-                    origin_feature: la.origin_feature.min(lb.origin_feature),
+                    origin_features: features,
                     creation_op: sig.clone(),
                     ancestry_hash,
                 }
@@ -169,8 +180,8 @@ impl Lineage {
 
     /// FNV-1a style mixing of two 128-bit hashes.
     fn fnv_mix_128(a: u128, b: u128) -> u128 {
-        let mixed = a.wrapping_mul(0x100000001b3) ^ b;
-        mixed.wrapping_mul(0x100000001b3) ^ (a.rotate_left(17))
+        let mixed = a.wrapping_mul(0x1000000000000000000013b) ^ b;
+        mixed.wrapping_mul(0x1000000000000000000013b) ^ (a.rotate_left(17))
     }
 }
 
@@ -210,58 +221,14 @@ impl LineageEvent {
         }
     }
 
-    /// The entity kind ("Face", "HalfEdge", etc.).
-    pub fn get_entity_kind_str(&self) -> &str {
-        self.get_entity().get_kind()
+    /// The entity kind.
+    pub fn get_entity_kind(&self) -> forge_core::EntityKind {
+        self.get_entity().kind()
     }
 }
 
-/// The kinds of topological entities we track lineage for.
-///
-/// This is the type-safe enum used internally by `forge-topo`.
-/// For crate-neutral references that cross layer boundaries,
-/// use `EntityRef` from `forge-core` and the conversion bridge below.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum EntityKind {
-    Face,
-    HalfEdge,
-    Vertex,
-    Solid,
-}
-
-impl EntityKind {
-    /// The canonical string name for this kind.
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            EntityKind::Face => "Face",
-            EntityKind::HalfEdge => "HalfEdge",
-            EntityKind::Vertex => "Vertex",
-            EntityKind::Solid => "Solid",
-        }
-    }
-
-    /// Parse a string into an EntityKind.
-    pub fn try_from_str(s: &str) -> Option<Self> {
-        match s {
-            "Face" => Some(EntityKind::Face),
-            "HalfEdge" => Some(EntityKind::HalfEdge),
-            "Vertex" => Some(EntityKind::Vertex),
-            "Solid" => Some(EntityKind::Solid),
-            _ => None,
-        }
-    }
-
-    /// Create a crate-neutral `EntityRef` from this kind and an arena index.
-    pub fn to_entity_ref(self, index: u32) -> EntityRef {
-        EntityRef::new(self.as_str(), index)
-    }
-}
-
-impl std::fmt::Display for EntityKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.as_str())
-    }
-}
+// EntityKind is now defined in forge-core::tracing::schema.
+// forge-topo re-exports it via `use forge_core::EntityKind;`
 
 #[cfg(test)]
 mod tests {

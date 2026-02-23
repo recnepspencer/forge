@@ -48,9 +48,9 @@ fn remove_zero_length_edges(draft: &mut MutableDraft) -> Result<usize, KernelErr
                 excise_halfedge(draft, he_id, &he)?;
                 excise_twin_halfedge(draft, he.twin())?;
 
-                let _ = draft.arena_mut().remove_half_edge(he_id);
+                let _ = draft.remove_half_edge(he_id);
                 if draft.arena().get_half_edge(he.twin()).is_ok() {
-                    let _ = draft.arena_mut().remove_half_edge(he.twin());
+                    let _ = draft.remove_half_edge(he.twin());
                 }
 
                 processed.insert(he_id.index());
@@ -228,10 +228,10 @@ fn remove_face_topology(
     edges: &[HalfEdgeId],
 ) -> Result<(), KernelError> {
     for &he_id in edges {
-        let _ = draft.arena_mut().remove_half_edge(he_id);
+        let _ = draft.remove_half_edge(he_id);
     }
     let loop_id = draft.arena().get_face(face_id)?.outer_loop();
-    let _ = draft.arena_mut().remove_face(face_id);
-    let _ = draft.arena_mut().remove_loop(loop_id);
+    let _ = draft.remove_face(face_id);
+    let _ = draft.remove_loop(loop_id);
     Ok(())
 }

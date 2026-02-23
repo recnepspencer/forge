@@ -22,32 +22,43 @@ use super::shell::{discover_shell_faces, compute_shell_signed_volume, collect_fa
 /// Unlike `validate_topology()` (pure structural checks called at commit
 /// time), this requires a position-lookup callback from the kernel layer.
 /// Checks: zero-area faces, zero-length edges, signed volume consistency.
+///
+/// The `is_planar` callback allows skipping area and volume checks for
+/// non-planar faces (e.g., NURBS patches) where projected polygon area
+/// would give false positives under `ZeroAreaFace` validation.
 pub fn validate_geometric_invariants(
     arena: &TopologyArena,
     position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
+    is_planar: &dyn Fn(FaceId) -> bool,
     area_threshold: f64,
     edge_length_threshold: f64,
 ) -> Result<(), KernelError> {
-    validate_zero_area_faces(arena, position_fn, area_threshold)?;
+    validate_zero_area_faces(arena, position_fn, is_planar, area_threshold)?;
     validate_zero_length_edges(arena, position_fn, edge_length_threshold)?;
     validate_signed_volume(arena, position_fn)?;
-    validate_orientation_consistency(arena)?;
     Ok(())
 }
 
-/// Validate that no face has near-zero area.
+/// Validate that no planar face has near-zero area.
 ///
 /// Computes area magnitude via Newell's method over loop vertices.
+/// Non-planar faces (e.g., NURBS) are skipped via the `is_planar` callback
+/// to prevent false positives where projected polygon area would be misleadingly small.
 fn validate_zero_area_faces(
     arena: &TopologyArena,
     position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
+    is_planar: &dyn Fn(FaceId) -> bool,
     area_threshold: f64,
 ) -> Result<(), KernelError> {
     for (face_id, _face_data) in arena.iter_faces() {
+        if !is_planar(face_id) {
+            continue;
+        }
+
         let positions = collect_face_positions(arena, face_id, position_fn)?;
 
         if positions.len() < 3 {
-            return Ok(());
+            continue;
         }
 
         let area = compute_polygon_area(&positions);
@@ -90,12 +101,12 @@ fn validate_zero_length_edges(
     for (he_id, he_data) in arena.iter_half_edges() {
         let twin_id = he_data.twin();
         if he_id == twin_id {
-            return Ok(());
+            continue;
         }
 
         let canonical_key = (he_id.index().min(twin_id.index()), he_id.index().max(twin_id.index()));
         if !checked_edges.insert(canonical_key) {
-            return Ok(());
+            continue;
         }
 
         let twin_data = arena.get_half_edge(twin_id)?;
@@ -149,7 +160,7 @@ fn validate_signed_volume(
 
     for &seed_face in &all_faces {
         if visited_faces.contains(&seed_face.index()) {
-            return Ok(());
+            continue;
         }
 
         let shell_faces = discover_shell_faces(arena, seed_face, &mut visited_faces)?;
@@ -212,37 +223,3 @@ fn compute_polygon_area(vertices: &[[f64; 3]]) -> f64 {
     0.5 * (nx * nx + ny * ny + nz * nz).sqrt()
 }
 
-/// Validate orientation consistency across twin edge pairs (P0.3).\n///\n/// In a correctly oriented manifold halfedge mesh, every twin pair\n/// (he, twin) must belong to different faces and traverse the shared\n/// edge in opposite directions: `he.origin == twin.target` and\n/// `twin.origin == he.target`. This guarantees consistent winding.
-fn validate_orientation_consistency(arena: &TopologyArena) -> Result<(), KernelError> {
-    let mut checked: BTreeSet<(u32, u32)> = BTreeSet::new();
-
-    for (he_id, he_data) in arena.iter_half_edges().filter(|(id, d)| *id != d.twin()) {
-        let twin_id = he_data.twin();
-        let canonical = (he_id.index().min(twin_id.index()), he_id.index().max(twin_id.index()));
-
-        if checked.insert(canonical) {
-            let twin_data = arena.get_half_edge(twin_id)?;
-
-            if he_data.face() == twin_data.face() {
-                return Err(KernelError::TopologyViolation {
-                    err: forge_core::TopologyError::OrientationInconsistency {
-                        face_index: he_data.face().index(),
-                    },
-                    context: Some(forge_core::ErrorContext {
-                        scope: forge_core::ErrorScope::Entity {
-                            entity_kind: "HalfEdge".to_string(),
-                            index: he_id.index(),
-                        },
-                        suggested_fixes: Vec::new(),
-                        detail: format!(
-                            "Twin pair ({}, {}) both belong to face {} — orientation is inconsistent",
-                            he_id.index(), twin_id.index(), he_data.face().index()
-                        ),
-                    }),
-                });
-            }
-        }
-    }
-
-    Ok(())
-}

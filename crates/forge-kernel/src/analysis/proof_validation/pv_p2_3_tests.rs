@@ -49,7 +49,7 @@ fn make_divergent_decision(id: u64, float_sign: Option<TriSign>) -> TracedDecisi
             },
         },
     );
-    decision.set_entity_scope(EntityRef::new("Face", id as u32));
+    decision.set_entity_scope(EntityRef::new(forge_core::EntityKind::Face, id as u32));
     decision
 }
 

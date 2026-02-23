@@ -11,8 +11,8 @@ use std::collections::HashMap;
 
 use forge_core::{KernelError, DecisionKind};
 use forge_geom::spatial::bsp::ConvexCell;
-use forge_topo::arena::{FaceData, HalfEdgeData, VertexData, LoopData};
-use forge_topo::handles::{HalfEdgeId, VertexId, LoopId};
+use forge_topo::arena::{FaceData, HalfEdgeData, VertexData, LoopData, ShellData, EdgeData, ShellOrientation};
+use forge_topo::handles::{HalfEdgeId, VertexId, LoopId, ShellId, EdgeId};
 use forge_topo::state::{TopologyState, MutableDraft};
 
 use crate::check_tolerance;
@@ -69,9 +69,21 @@ pub fn build_halfedge_mesh(cell: &ConvexCell, ctx: &mut ModelingContext) -> Resu
 
     let vertex_ids = insert_vertices(&mut draft, &mut geometry, cell, tolerance, ctx)?;
 
-    let edge_map = insert_faces_and_loops(&mut draft, &mut geometry, cell, &vertex_ids)?;
+    let shell = draft.insert_shell(
+        ShellData::new(
+            forge_topo::handles::FaceId::from_raw_parts(u32::MAX, 0),
+            ShellOrientation::Outer,
+        )
+    );
+
+    let edge_map = insert_faces_and_loops(&mut draft, &mut geometry, cell, &vertex_ids, shell)?;
 
     stitch_twins(&mut draft, &edge_map)?;
+
+    let first_face = draft.arena().iter_faces().next().map(|(fid, _)| fid);
+    if let Some(fid) = first_face {
+        draft.arena_mut().get_shell_mut(shell)?.set_representative_face(fid);
+    }
 
     let topology = draft.commit()?;
 
@@ -129,7 +141,7 @@ fn insert_vertices(
             check_tolerance!(ctx, tolerance, dist, pos, DecisionKind::NearBoundary { threshold: tolerance });
             vertex_ids.push(existing_vid);
         } else {
-            let vid = draft.arena_mut().insert_vertex(VertexData::new(
+            let vid = draft.insert_vertex(VertexData::new(
                 placeholder_he,
             ));
 
@@ -189,9 +201,11 @@ fn insert_faces_and_loops(
     geometry: &mut GeometryStore,
     cell: &ConvexCell,
     vertex_ids: &[VertexId],
+    shell: ShellId,
 ) -> Result<HashMap<(usize, usize), HalfEdgeId>, KernelError> {
     let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
     let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
+    let placeholder_edge = EdgeId::from_raw_parts(u32::MAX, 0);
     let cell_planes = cell.planes();
 
     let mut edge_map: HashMap<(usize, usize), HalfEdgeId> = HashMap::new();
@@ -202,11 +216,12 @@ fn insert_faces_and_loops(
             continue;
         }
 
-        let face_id = draft.arena_mut().insert_face(FaceData::new(
+        let face_id = draft.insert_face(FaceData::new(
             placeholder_loop,
+            shell,
         ));
 
-        let loop_id = draft.arena_mut().insert_loop(LoopData::new(
+        let loop_id = draft.insert_loop(LoopData::new(
             placeholder_he,
             face_id,
         ));
@@ -221,12 +236,13 @@ fn insert_faces_and_loops(
 
         for &cell_vert_idx in face_verts {
             let origin = vertex_ids[cell_vert_idx];
-            let he_id = draft.arena_mut().insert_half_edge(HalfEdgeData::new(
+            let he_id = draft.insert_half_edge(HalfEdgeData::new(
                 placeholder_he,
                 placeholder_he,
                 placeholder_he,
                 face_id,
                 origin,
+                placeholder_edge,
             ));
             he_ids.push(he_id);
         }
@@ -265,16 +281,22 @@ fn stitch_twins(
     edge_map: &HashMap<(usize, usize), HalfEdgeId>,
 ) -> Result<(), KernelError> {
     for (&(a, b), &he_id) in edge_map {
-        if let Some(&twin_id) = edge_map.get(&(b, a)) {
-            draft.arena_mut().get_half_edge_mut(he_id)?.set_twin(twin_id);
-        } else {
-            return Err(KernelError::InternalError {
-                message: format!(
-                    "No twin found for directed edge ({} -> {}); mesh is not closed",
-                    a, b
-                ),
-                context: None,
-            });
+        if a < b {
+            if let Some(&twin_id) = edge_map.get(&(b, a)) {
+                let edge = draft.insert_edge(EdgeData::new(he_id));
+                draft.arena_mut().get_half_edge_mut(he_id)?.set_twin(twin_id);
+                draft.arena_mut().get_half_edge_mut(twin_id)?.set_twin(he_id);
+                draft.arena_mut().get_half_edge_mut(he_id)?.set_edge(edge);
+                draft.arena_mut().get_half_edge_mut(twin_id)?.set_edge(edge);
+            } else {
+                return Err(KernelError::InternalError {
+                    message: format!(
+                        "No twin found for directed edge ({} -> {}); mesh is not closed",
+                        a, b
+                    ),
+                    context: None,
+                });
+            }
         }
     }
     Ok(())

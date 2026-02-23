@@ -88,14 +88,14 @@ fn pv_14_50k_entities_under_100ms() {
 
         for (fid, fdata) in src.iter_faces() {
             let new_loop = loop_map[&fdata.outer_loop().index()];
-            let new_fid = dst.insert_face(FaceData::new(new_loop));
+            let new_fid = dst.insert_face(FaceData::new(new_loop, forge_topo::handles::ShellId::from_raw_parts(0, 0)));
             face_map.insert(fid.index(), new_fid);
         }
 
         for (heid, _hedata) in src.iter_half_edges() {
             let new_heid = dst.insert_half_edge(HalfEdgeData::new(
                 placeholder_he, placeholder_he, placeholder_he,
-                placeholder_face, VertexId::from_raw_parts(0, 0),
+                placeholder_face, VertexId::from_raw_parts(0, 0), forge_topo::handles::EdgeId::from_raw_parts(0, 0),
             ));
             he_map.insert(heid.index(), new_heid);
         }

@@ -1,36 +1,35 @@
-//! Topology classification driven by certified predicates (Doctrine D3).
+//! Topology classification driven by Simulation of Simplicity (Edelsbrunner–Mücke §4).
 //!
-//! DOMAIN: Point-in-solid classification via ray parity counting.
+//! DOMAIN: Point-in-solid classification via ray parity counting along the +X axis.
 //!
-//! Functions in this module accept [`CertifiedTriSign`] — they cannot be
-//! called with raw `f64` comparisons. This is the compile-time enforcement
-//! of the topology-geometry firewall.
+//! ALGORITHM: Plücker + YZ-projection winding number with proper SoS tie-breaking.
+//!
+//! The query point P is mathematically perturbed by P(ε) = (P_x+ε³, P_y+ε¹, P_z+ε²).
+//! Because ε is infinitesimal no floating-point arithmetic is done with it — if the
+//! base orient2d/orient3d result is exactly zero we read the sign off the ε-polynomial
+//! coefficients. This guarantees a consistent, non-zero answer for every degenerate
+//! configuration without touching the mesh geometry.
+//!
+//! Two-pass structure:
+//!  1. Tolerance boundary check — calls `classify_point_on_face` per face so that a
+//!     point physically on the surface still returns `OnBoundary` (SoS pushes it off).
+//!  2. SoS parity count — for each face compute a 2D winding number in the YZ plane
+//!     and, if non-zero, a 3D depth check via `sos_orient3d`. Odd count → `Inside`.
 //!
 //! DEPENDENCIES: `arena`, `handles`, `traverse`, `forge-math` (predicates),
-//! `forge-geom` (ray intersection, projection)
+//! `forge-geom` (Aabb, BvhNode)
 
 use forge_core::KernelError;
-use forge_math::sign::{CertifiedTriSign, TriSign};
+use forge_math::sign::TriSign;
 use forge_math::predicates::{orient2d, orient3d};
-use forge_geom::{
-    compute_ray_plane_intersection, resolve_zero_edge, dominant_projection_axes,
-    scanline_edge_crossing, EdgeTieBreaker,
-    Aabb, BvhNode,
-};
+use forge_geom::{Aabb, BvhNode};
 use crate::arena::TopologyArena;
 use crate::handles::FaceId;
 use crate::traverse::FaceEdgeIterator;
 
-
-/// Degeneracy threshold for ray-plane intersection.
-///
-/// When the dot product of the ray direction with the face normal
-/// is smaller than this value, the ray is considered parallel.
+// ── SpatialAccelerator ────────────────────────────────────────────────────────
 
 /// Trait for spatial acceleration structures (Doctrine D3: optimization firewall).
-///
-/// This allows `forge-topo` to use a BVH for O(log N) classification without
-/// knowing how the BVH is implemented or owning the geometric data types.
 pub trait SpatialAccelerator {
     /// Return all faces whose bounding boxes intersect the query AABB.
     fn candidates(&self, aabb: &Aabb) -> Vec<FaceId>;
@@ -42,6 +41,7 @@ impl SpatialAccelerator for BvhNode<FaceId> {
     }
 }
 
+// ── Public result types ───────────────────────────────────────────────────────
 
 /// Result of classifying a point relative to a solid's boundary.
 #[derive(Debug, Clone, PartialEq)]
@@ -62,11 +62,11 @@ pub enum PointClassification {
 
 /// Classify a point relative to a face's oriented plane.
 ///
-/// The `orientation` must be a [`CertifiedTriSign`] obtained from a
+/// The `orientation` must be a [`forge_math::sign::CertifiedTriSign`] obtained from a
 /// geometric predicate (e.g., `orient3d`). Passing a raw `f64`
 /// comparison is a compile error — enforcing Doctrine D3.
 pub fn classify_point_against_face(
-    orientation: CertifiedTriSign,
+    orientation: forge_math::sign::CertifiedTriSign,
     escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation>,
     face: FaceId,
 ) -> PointClassification {
@@ -77,289 +77,399 @@ pub fn classify_point_against_face(
     }
 }
 
+// ── Main classifier ───────────────────────────────────────────────────────────
+
 /// Classify a point relative to a solid using ray-casting parity counting.
 ///
-/// Casts a ray from `point` along the +X direction and counts crossings
-/// with face triangulations. Uses `orient3d` for certified decision-making.
+/// Casts a conceptually infinite ray from `point` along the +X axis and
+/// counts face crossings using the Plücker + YZ-projection method with
+/// proper Simulation of Simplicity tie-breaking.
 ///
 /// # Arguments
 /// - `arena`: the topology arena containing faces, edges, vertices
-/// - `planes`: geometry source providing plane coefficients per face
-/// - `vertex_positions`: maps vertex index to 3D position
-/// - `point`: the query point to classify
-/// - `ray_extent`: distance from point to far end of ray
+/// - `vertex_positions`: maps vertex slot index → 3D position
+/// - `spatial_index`: optional BVH to accelerate candidate selection  
+/// - `point`: the 3D query point
+/// - `tolerance`: linear tolerance for the boundary pre-check
 ///
-/// # Degenerate handling
-/// If the ray passes exactly through an edge or vertex (orient3d returns Zero),
-/// the crossing is counted with a consistent tie-breaking rule based on
-/// vertex ordering — not perturbation. This satisfies D0.
-/// Classify a point relative to a solid using ray-casting parity counting.
-///
-/// Casts a ray from `point` along the +X direction and counts crossings
-/// with face triangulations. Uses `orient3d` for certified decision-making.
-///
-/// # Arguments
-/// - `arena`: the topology arena containing faces, edges, vertices
-/// - `vertex_positions`: maps vertex index to 3D position
-/// - `spatial_index`: optional BVH to accelerate ray casting (nil = O(N) scan)
-/// - `point`: the query point to classify
-/// - `ray_extent`: distance from point to far end of ray
-/// - `tolerance`: strictly for resolving Floating Point collisions on edges
-///
-/// # Degenerate handling
-/// If the ray passes exactly through an edge or vertex (orient3d returns Zero),
-/// the crossing is counted with a consistent tie-breaking rule based on
-/// vertex ordering — not perturbation. This satisfies D0.
+/// # Note on `OnBoundary`
+/// A point physically on a face surface is detected in **Pass 1** using the
+/// tolerance-based check. SoS (Pass 2) intentionally perturbs the point
+/// off boundaries, so the pre-check is essential.
 pub fn classify_point_in_solid(
     arena: &TopologyArena,
     vertex_positions: &dyn Fn(u32) -> Result<[f64; 3], KernelError>,
     spatial_index: Option<&dyn SpatialAccelerator>,
     point: &[f64; 3],
-    ray_extent: f64,
     tolerance: f64,
 ) -> Result<PointClassification, KernelError> {
-    let ray_far = [point[0] + ray_extent, point[1], point[2]];
-    let ray_aabb = Aabb::from_points(&[*point, ray_far]).unwrap();
+    // ── Pass 1: Tolerance-based boundary check ────────────────────────────────
+    // SoS intentionally pushes P off boundaries. We must check physical
+    // proximity first so `OnBoundary` is still returnable.
+    let pos_fn = |v: crate::handles::VertexId| vertex_positions(v.index()).ok();
 
-    let mut crossing_count: i32 = 0;
-
-    let mut max_escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation> = None;
-
-    let mut update_escalation = |new_esc: Option<forge_math::arithmetic::precision::PrecisionEscalation>| {
-        if let Some(esc) = new_esc {
-            match &mut max_escalation {
-                Some(existing) => {
-                    if esc.resolved_at > existing.resolved_at {
-                        *existing = esc;
-                    }
-                }
-                None => max_escalation = Some(esc),
-            }
-        }
+    let faces_to_check: Vec<FaceId> = if let Some(bvh) = spatial_index {
+        // Use a point-AABB: just the query point itself.
+        let pt_aabb = Aabb::from_points(&[*point, *point]).unwrap();
+        bvh.candidates(&pt_aabb)
+    } else {
+        arena.iter_faces().map(|(id, _)| id).collect()
     };
 
-    // Optimization: If spatial index is provided, only check candidate faces.
-    // Otherwise, iterate all faces (O(N) fallback).
-    if let Some(bvh) = spatial_index {
-        let candidates = bvh.candidates(&ray_aabb);
-        for face_id in candidates {
-             // Redundant check? Maybe, but AABB is coarse.
-             // We could potentially strict-check AABB intersection here if BVH is loose.
-             let interaction = ray_intersects_face_exact(
-                arena,
-                vertex_positions,
-                point,
-                &ray_far,
-                face_id,
-                tolerance,
-            )?;
-    
-            match interaction {
-                RayFaceInteraction::OnBoundary => return Ok(PointClassification::OnBoundary(face_id)),
-                RayFaceInteraction::Intersection { escalation } => {
-                    update_escalation(escalation);
-                    crossing_count += 1;
-                }
-                RayFaceInteraction::None { escalation } => {
-                    update_escalation(escalation);
-                }
-            }
+    for &face_id in &faces_to_check {
+        match classify_point_on_face(arena, face_id, point, &pos_fn, tolerance)? {
+            FacePointClassification::Outside => {}
+            _ => return Ok(PointClassification::OnBoundary(face_id)),
         }
-    } else {
-        for (face_id, _face_data) in arena.iter_faces() {
-            let interaction = ray_intersects_face_exact(
-                arena,
-                vertex_positions,
-                point,
-                &ray_far,
-                face_id,
-                tolerance,
-            )?;
-    
-            match interaction {
-                RayFaceInteraction::OnBoundary => return Ok(PointClassification::OnBoundary(face_id)),
-                RayFaceInteraction::Intersection { escalation } => {
-                    update_escalation(escalation);
-                    crossing_count += 1;
-                }
-                RayFaceInteraction::None { escalation } => {
-                    update_escalation(escalation);
-                }
-            }
+    }
+
+    // ── Pass 2: SoS parity counting ──────────────────────────────────────────
+    let mut crossing_count: i32 = 0;
+
+    // For the parity count we need ALL faces, not just those near P (the ray
+    // is infinite). If we have a BVH we extend the query to also cover faces
+    // along the entire +X half-space starting from P.
+    let all_faces: Vec<FaceId> = arena.iter_faces().map(|(id, _)| id).collect();
+
+    for face_id in all_faces {
+        if sos_ray_intersects_face(arena, vertex_positions, face_id, point)? {
+            crossing_count += 1;
         }
     }
 
     if crossing_count % 2 == 1 {
-        Ok(PointClassification::Inside { escalation: max_escalation })
+        Ok(PointClassification::Inside { escalation: None })
     } else {
-        Ok(PointClassification::Outside { escalation: max_escalation })
+        Ok(PointClassification::Outside { escalation: None })
     }
 }
 
-/// Result of a certified ray-face intersection test.
-enum RayFaceInteraction {
-    /// The ray origin lies exactly on the face.
-     OnBoundary,
-    /// The ray strictly intersects the face interior (or valid edge/vertex crossing).
-    Intersection {
-        escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation>,
-    },
-    /// The ray does not intersect (or grazes in a non-crossing way).
-    None {
-        escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation>,
-    },
+// ── SoS predicates ───────────────────────────────────────────────────────────
+
+/// Orient2d tie-breaker for P(ε) = (P_y + ε¹, P_z + ε²) in the YZ plane.
+///
+/// Called only when `orient2d(a, b, p_yz)` is exactly zero.
+/// `a` and `b` are YZ coordinates `[y, z]` of the edge endpoints.
+fn sos_orient2d_tiebreak(a: [f64; 2], b: [f64; 2]) -> TriSign {
+    // ε¹ coefficient comes from the P_y perturbation: a[1] − b[1]  (the Z values).
+    let delta1 = a[1] - b[1];
+    if delta1 > 0.0 { return TriSign::Pos; }
+    if delta1 < 0.0 { return TriSign::Neg; }
+
+    // ε² coefficient comes from the P_z perturbation: b[0] − a[0]  (the Y values).
+    let delta2 = b[0] - a[0];
+    if delta2 > 0.0 { return TriSign::Pos; }
+    if delta2 < 0.0 { return TriSign::Neg; }
+
+    TriSign::Zero // Only when A == B (degenerate edge — caller skips this face).
 }
 
-/// Determine if a ray intersects a face using certified predicates.
-fn ray_intersects_face_exact(
+/// Full orient3d tie-breaker for P(ε) = (P_x + ε³, P_y + ε¹, P_z + ε²).
+///
+/// Called only when `orient3d(a, b, c, p)` is exactly zero.
+fn sos_orient3d_tiebreak(a: [f64; 3], b: [f64; 3], c: [f64; 3]) -> Result<TriSign, KernelError> {
+    // ε¹ term (P_y perturbation) → orient2d of XZ projection (unchanged sign).
+    let (o_xz, _) = orient2d(
+        [a[0], a[2]], [b[0], b[2]], [c[0], c[2]],
+    ).map_err(|e| KernelError::InternalError { message: e.to_string(), context: None })?;
+    if o_xz.sign() != TriSign::Zero { return Ok(o_xz.sign()); }
+
+    // ε² term (P_z perturbation) → **negated** orient2d of XY projection.
+    let (o_xy, _) = orient2d(
+        [a[0], a[1]], [b[0], b[1]], [c[0], c[1]],
+    ).map_err(|e| KernelError::InternalError { message: e.to_string(), context: None })?;
+    if o_xy.sign() != TriSign::Zero {
+        return Ok(match o_xy.sign() {
+            TriSign::Pos => TriSign::Neg,
+            TriSign::Neg => TriSign::Pos,
+            TriSign::Zero => TriSign::Zero,
+        });
+    }
+
+    // ε³ term (P_x perturbation) → **negated** orient2d of YZ projection.
+    let (o_yz, _) = orient2d(
+        [a[1], a[2]], [b[1], b[2]], [c[1], c[2]],
+    ).map_err(|e| KernelError::InternalError { message: e.to_string(), context: None })?;
+    Ok(match o_yz.sign() {
+        TriSign::Pos => TriSign::Neg,
+        TriSign::Neg => TriSign::Pos,
+        TriSign::Zero => TriSign::Zero, // A, B, C collinear — degenerate face.
+    })
+}
+
+// ── Winding number component ──────────────────────────────────────────────────
+
+/// Winding-number contribution of a single YZ-plane edge for query point (py, pz).
+///
+/// Uses the SoS perturbation P_z + ε² so that `az == pz` is treated as
+/// A being strictly above the scanline. Returns +1, −1, or 0.
+fn sos_edge_crossing_yz(
+    py: f64, pz: f64,
+    ay: f64, az: f64,
+    by: f64, bz: f64,
+) -> Result<i32, KernelError> {
+    // SoS ε² perturbation on P_z: treat az == pz as A being strictly above.
+    let a_above = az > pz;
+    let b_above = bz > pz;
+
+    // Both sides of the scanline — no crossing.
+    if a_above == b_above {
+        return Ok(0);
+    }
+
+    // Get the orient2d sign; fall back to SoS tie-breaker if zero.
+    let (raw_orient, _) = orient2d([ay, az], [by, bz], [py, pz])
+        .map_err(|e| KernelError::InternalError { message: e.to_string(), context: None })?;
+
+    let sign = if raw_orient.sign() != TriSign::Zero {
+        raw_orient.sign()
+    } else {
+        sos_orient2d_tiebreak([ay, az], [by, bz])
+    };
+
+    // Upward edge (a below, b above): counts +1 if P is to the left (Pos orient).
+    // Downward edge (a above, b below): counts −1 if P is to the right (Neg orient).
+    if !a_above && sign == TriSign::Pos { return Ok(1); }
+    if  a_above && sign == TriSign::Neg { return Ok(-1); }
+
+    Ok(0)
+}
+
+// ── Per-face intersection ─────────────────────────────────────────────────────
+
+/// Determine if the +X axis ray from `point` intersects a face using SoS.
+///
+/// Returns `true` when the crossing contributes to the parity count.
+fn sos_ray_intersects_face(
     arena: &TopologyArena,
     vertex_positions: &dyn Fn(u32) -> Result<[f64; 3], KernelError>,
-    origin: &[f64; 3],
-    far: &[f64; 3],
     face_id: FaceId,
-    tolerance: f64,
-) -> Result<RayFaceInteraction, KernelError> {
-    let mut positions: Vec<[f64; 3]> = Vec::new(); // Dynamic size, but usually 3-4
-    for he_id_res in FaceEdgeIterator::new(arena, face_id)? {
-        let he_id = he_id_res?;
-        let he_data = arena.get_half_edge(he_id)?;
-        positions.push(vertex_positions(he_data.origin().index())?);
+    point: &[f64; 3],
+) -> Result<bool, KernelError> {
+    // Collect all vertex positions along the outer loop.
+    let mut verts: Vec<[f64; 3]> = Vec::new();
+    for he_res in FaceEdgeIterator::new(arena, face_id)? {
+        let he_id = he_res?;
+        let he = arena.get_half_edge(he_id)?;
+        verts.push(vertex_positions(he.origin().index())?);
     }
 
-    if positions.len() < 3 {
-        return Ok(RayFaceInteraction::None { escalation: None });
+    if verts.len() < 3 {
+        return Ok(false);
     }
 
-    let mut max_escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation> = None;
-    let mut update_escalation = |new_esc: Option<forge_math::arithmetic::precision::PrecisionEscalation>| {
-        if let Some(esc) = new_esc {
-            match &mut max_escalation {
-                Some(existing) => {
-                    if esc.resolved_at > existing.resolved_at {
-                        *existing = esc;
-                    }
-                }
-                None => max_escalation = Some(esc.clone()),
-            }
-        }
+    // ── Step 1: Find a certified non-degenerate basis for the face plane ──────
+    // We need a non-collinear triplet for orient3d. We also compute the X-component
+    // of the face normal (sign of orient2d of the YZ projection of that triplet).
+    // If the x-component is zero the face is parallel to the +X ray — skip.
+    let (basis_a, basis_b, basis_c) = match find_nondegenerate_basis(&verts)? {
+        Some(b) => b,
+        None => return Ok(false), // All collinear — zero-area face.
     };
 
-    let basis = match find_certified_basis(&positions)? {
-        Some((b, esc)) => {
-            update_escalation(esc);
-            b
-        }
-        None => {
-            // Degenerate face (collinear vertices).
-            // It has no area, so it cannot contain a point (unless point is on the line?).
-            // For boolean solid classification, zero-area faces are ignored for parity.
-            return Ok(RayFaceInteraction::None { escalation: max_escalation });
-        }
-    };
+    // nx_sign = sign of orient2d in YZ of the basis triplet.
+    // This encodes the X-component of the face normal.
+    let (o_nx, _) = orient2d(
+        [basis_a[1], basis_a[2]],
+        [basis_b[1], basis_b[2]],
+        [basis_c[1], basis_c[2]],
+    ).map_err(|e| KernelError::InternalError { message: e.to_string(), context: None })?;
 
-    let (p0, p1, p2) = basis;
-    let (orient_origin, origin_esc) = orient3d(p0, p1, p2, *origin)
+    let nx_sign = o_nx.sign();
+    if nx_sign == TriSign::Zero {
+        // Face is perfectly parallel to the +X ray — no crossing.
+        return Ok(false);
+    }
+
+    // ── Step 2: 2D SoS winding number in the YZ plane ────────────────────────
+    let n = verts.len();
+    let mut winding: i32 = 0;
+
+    for i in 0..n {
+        let v0 = verts[i];
+        let v1 = verts[(i + 1) % n];
+        winding += sos_edge_crossing_yz(
+            point[1], point[2],
+            v0[1], v0[2],
+            v1[1], v1[2],
+        )?;
+    }
+
+    if winding == 0 {
+        return Ok(false); // Ray misses this face in the YZ projection.
+    }
+
+    // ── Step 3: 3D depth check — is the face in front of P along +X? ─────────
+    let (o3, _) = orient3d(basis_a, basis_b, basis_c, *point)
         .map_err(|e| KernelError::InternalError { message: e.to_string(), context: None })?;
-    update_escalation(Some(origin_esc));
-    
-    let sign_origin = orient_origin.sign();
 
-    if sign_origin == TriSign::Zero {
-         let (in_poly, poly_esc) = point_in_projected_polygon(origin, &positions)?;
-         update_escalation(poly_esc);
-         if in_poly {
-             return Ok(RayFaceInteraction::OnBoundary);
-         } else {
-             return Ok(RayFaceInteraction::None { escalation: max_escalation });
-         }
-    }
-
-    let (orient_far, far_esc) = orient3d(p0, p1, p2, *far)
-        .map_err(|e| KernelError::InternalError { message: e.to_string(), context: None })?;
-    update_escalation(Some(far_esc));
-    
-    let sign_far = orient_far.sign();
-
-    // If both are on same side, no intersection.
-    if sign_origin == sign_far {
-        return Ok(RayFaceInteraction::None { escalation: max_escalation });
-    }
-    
-    // If far is on plane, we treat it as no intersection (open interval).
-    if sign_far == TriSign::Zero {
-        return Ok(RayFaceInteraction::None { escalation: max_escalation });
-    }
-
-    let hit = match compute_ray_plane_intersection(origin, far, &positions, tolerance) {
-        Ok(h) => h,
-        Err(_) => return Ok(RayFaceInteraction::None { escalation: max_escalation }),
-    };
-
-    // Step 3: Check if hit point is inside the polygon.
-    let (in_poly, poly_esc) = point_in_projected_polygon(&hit, &positions)?;
-    update_escalation(poly_esc);
-    if in_poly {
-        Ok(RayFaceInteraction::Intersection { escalation: max_escalation })
+    let p_sign = if o3.sign() != TriSign::Zero {
+        o3.sign()
     } else {
-        Ok(RayFaceInteraction::None { escalation: max_escalation })
+        sos_orient3d_tiebreak(basis_a, basis_b, basis_c)?
+    };
+
+    if p_sign == TriSign::Zero {
+        // Degenerate face (basis collinear after all) — skip.
+        return Ok(false);
     }
+
+    // Mathematical invariant: the crossing counts if and only if the sign of
+    // orient3d(P relative to the face plane) differs from the face's X-normal sign.
+    Ok(p_sign != nx_sign)
 }
 
-
-/// Find a non-collinear triplet of vertices to serve as a basis for the face plane.
-///
-/// Projects the polygon onto the dominant 2D plane (dropping the axis with
-/// the largest normal component) and uses certified `orient2d` to find three
-/// vertices that are provably non-collinear.
+/// Find the first non-collinear triplet of vertices in the list.
 ///
 /// Returns `Some((p0, p1, pk))` where pk is the first vertex that forms a
-/// non-degenerate triangle with p0 and p1 under exact predicates.
+/// triangle with non-zero area under exact `orient2d` in the YZ plane.
 /// Returns `None` if all vertices are collinear (degenerate face).
-fn find_certified_basis(
-    params: &[[f64; 3]],
-) -> Result<Option<(([f64; 3], [f64; 3], [f64; 3]), Option<forge_math::arithmetic::precision::PrecisionEscalation>)>, KernelError> {
-    if params.len() < 3 { return Ok(None); }
+fn find_nondegenerate_basis(
+    verts: &[[f64; 3]],
+) -> Result<Option<([f64; 3], [f64; 3], [f64; 3])>, KernelError> {
+    if verts.len() < 3 { return Ok(None); }
 
-    let (u_axis, v_axis) = dominant_projection_axes(params);
-    let p0 = params[0];
-    let p1 = params[1];
+    let p0 = verts[0];
+    let p1 = verts[1];
 
-    let mut max_escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation> = None;
-    let mut update_escalation = |new_esc: Option<forge_math::arithmetic::precision::PrecisionEscalation>| {
-        if let Some(esc) = new_esc {
-            match &mut max_escalation {
-                Some(existing) => {
-                    if esc.resolved_at > existing.resolved_at {
-                        *existing = esc;
-                    }
-                }
-                None => max_escalation = Some(esc.clone()),
-            }
+    for &pk in &verts[2..] {
+        // Use YZ projection as the primary test axis.
+        let (o, _) = orient2d(
+            [p0[1], p0[2]], [p1[1], p1[2]], [pk[1], pk[2]],
+        ).map_err(|e| KernelError::InternalError { message: e.to_string(), context: None })?;
+
+        if o.sign() != TriSign::Zero {
+            return Ok(Some((p0, p1, pk)));
         }
-    };
 
-    for k in 2..params.len() {
-        let pk = params[k];
-        let (orient, esc) = orient2d(
-            [p0[u_axis], p0[v_axis]],
-            [p1[u_axis], p1[v_axis]],
-            [pk[u_axis], pk[v_axis]],
-        ).map_err(|e| KernelError::InternalError {
-            message: e.to_string(),
-            context: None,
-        })?;
+        // Fallback: try XY projection.
+        let (o_xy, _) = orient2d(
+            [p0[0], p0[1]], [p1[0], p1[1]], [pk[0], pk[1]],
+        ).map_err(|e| KernelError::InternalError { message: e.to_string(), context: None })?;
 
-        update_escalation(Some(esc));
-
-        if orient.sign() != TriSign::Zero {
-            return Ok(Some(((p0, p1, pk), max_escalation)));
+        if o_xy.sign() != TriSign::Zero {
+            return Ok(Some((p0, p1, pk)));
         }
     }
 
-    Ok(None)
+    Ok(None) // All collinear.
 }
 
-/// Strict 2D point-in-polygon test using winding number and exact edge handling.
+// ── Face-level boundary classifier ───────────────────────────────────────────
+
+/// Result of classifying a point relative to a specific face.
+#[derive(Debug, Clone, PartialEq)]
+pub enum FacePointClassification {
+    /// Point is strictly inside the face interior.
+    OnFace,
+    /// Point is within tolerance of a boundary edge.
+    OnEdge(crate::handles::HalfEdgeId),
+    /// Point is within tolerance of a boundary vertex.
+    OnVertex(crate::handles::VertexId),
+    /// Point is outside the face.
+    Outside,
+}
+
+/// Classify a 3D point relative to a specific face, with edge/vertex snapping.
+///
+/// Used in Pass 1 of `classify_point_in_solid` to detect true physical boundary
+/// contact before SoS perturbs the point away.
+///
+/// # Arguments
+/// - `arena`: topology arena
+/// - `face_id`: the face to test against
+/// - `point`: 3D query point
+/// - `position_fn`: maps `VertexId` → 3D position
+/// - `tolerance`: linear snap distance for vertex/edge proximity
+pub fn classify_point_on_face(
+    arena: &TopologyArena,
+    face_id: crate::handles::FaceId,
+    point: &[f64; 3],
+    position_fn: &dyn Fn(crate::handles::VertexId) -> Option<[f64; 3]>,
+    tolerance: f64,
+) -> Result<FacePointClassification, KernelError> {
+    let tol_sq = tolerance * tolerance;
+
+    let mut boundary: Vec<(crate::handles::HalfEdgeId, crate::handles::VertexId, [f64; 3])> =
+        Vec::new();
+    for he_res in FaceEdgeIterator::new(arena, face_id)? {
+        let he_id = he_res?;
+        let he = arena.get_half_edge(he_id)?;
+        let v = he.origin();
+        let pos = position_fn(v).ok_or_else(|| KernelError::InvalidInput {
+            message: format!("classify_point_on_face: no position for vertex {}", v.index()),
+            context: None,
+        })?;
+        boundary.push((he_id, v, pos));
+    }
+
+    if boundary.len() < 3 {
+        return Ok(FacePointClassification::Outside);
+    }
+
+    // Vertex proximity (closest wins).
+    for &(_, v, pos) in &boundary {
+        let dx = point[0] - pos[0];
+        let dy = point[1] - pos[1];
+        let dz = point[2] - pos[2];
+        if dx*dx + dy*dy + dz*dz <= tol_sq {
+            return Ok(FacePointClassification::OnVertex(v));
+        }
+    }
+
+    // Edge proximity.
+    let n = boundary.len();
+    for i in 0..n {
+        let (he_id, _, a) = boundary[i];
+        let (_, _, b) = boundary[(i + 1) % n];
+        let ab = [b[0]-a[0], b[1]-a[1], b[2]-a[2]];
+        let ap = [point[0]-a[0], point[1]-a[1], point[2]-a[2]];
+        let t_num = ap[0]*ab[0] + ap[1]*ab[1] + ap[2]*ab[2];
+        let t_den = ab[0]*ab[0] + ab[1]*ab[1] + ab[2]*ab[2];
+        if t_den > 0.0 {
+            let t = (t_num / t_den).clamp(0.0, 1.0);
+            let closest = [a[0]+t*ab[0], a[1]+t*ab[1], a[2]+t*ab[2]];
+            let dx = point[0]-closest[0];
+            let dy = point[1]-closest[1];
+            let dz = point[2]-closest[2];
+            if dx*dx + dy*dy + dz*dz <= tol_sq {
+                return Ok(FacePointClassification::OnEdge(he_id));
+            }
+        }
+    }
+
+    // Coplanarity check (distance to plane).
+    let positions: Vec<[f64; 3]> = boundary.iter().map(|&(_, _, p)| p).collect();
+    let normal = compute_newell_normal(&positions);
+    let mag_sq = normal[0]*normal[0] + normal[1]*normal[1] + normal[2]*normal[2];
+    if mag_sq > 0.0 {
+        let mag = mag_sq.sqrt();
+        let n_unit = [normal[0]/mag, normal[1]/mag, normal[2]/mag];
+        
+        let p0 = positions[0];
+        let d = -(n_unit[0]*p0[0] + n_unit[1]*p0[1] + n_unit[2]*p0[2]);
+        let dist = (n_unit[0]*point[0] + n_unit[1]*point[1] + n_unit[2]*point[2] + d).abs();
+        
+        if dist > tolerance {
+            return Ok(FacePointClassification::Outside);
+        }
+    }
+
+    // 2D containment check using winding number.
+    let (in_poly, _) = point_in_projected_polygon(point, &positions)?;
+    if in_poly {
+        Ok(FacePointClassification::OnFace)
+    } else {
+        Ok(FacePointClassification::Outside)
+    }
+}
+
+// ── 2D winding number (for classify_point_on_face) ───────────────────────────
+
+/// Strict 2D point-in-polygon test via winding number in the dominant projection.
+///
+/// This variant does NOT use SoS — it is used only inside `classify_point_on_face`
+/// where tolerance-based snapping has already cleared degenerate cases.
 fn point_in_projected_polygon(
     hit: &[f64; 3],
     verts: &[[f64; 3]],
@@ -367,24 +477,14 @@ fn point_in_projected_polygon(
     let n = verts.len();
     if n < 3 { return Ok((false, None)); }
 
+    use forge_geom::{dominant_projection_axes, resolve_zero_edge, scanline_edge_crossing, EdgeTieBreaker};
+
     let (u_axis, v_axis) = dominant_projection_axes(verts);
     let hit_u = hit[u_axis];
     let hit_v = hit[v_axis];
 
     let mut winding: i32 = 0;
     let mut max_escalation: Option<forge_math::arithmetic::precision::PrecisionEscalation> = None;
-    let mut update_escalation = |new_esc: Option<forge_math::arithmetic::precision::PrecisionEscalation>| {
-        if let Some(esc) = new_esc {
-            match &mut max_escalation {
-                Some(existing) => {
-                    if esc.resolved_at > existing.resolved_at {
-                        *existing = esc;
-                    }
-                }
-                None => max_escalation = Some(esc.clone()),
-            }
-        }
-    };
 
     for i in 0..n {
         let j = (i + 1) % n;
@@ -402,13 +502,14 @@ fn point_in_projected_polygon(
             context: None,
         })?;
 
-        update_escalation(Some(esc));
+        if let Some(e) = &max_escalation {
+            if esc.resolved_at > e.resolved_at { max_escalation = Some(esc); }
+        } else {
+            max_escalation = Some(esc);
+        }
 
         let sign = match orient.sign() {
-            TriSign::Zero => match resolve_zero_edge(
-                [vi_u, vi_v],
-                [vj_u, vj_v],
-            ) {
+            TriSign::Zero => match resolve_zero_edge([vi_u, vi_v], [vj_u, vj_v]) {
                 EdgeTieBreaker::PreferPos => TriSign::Pos,
                 EdgeTieBreaker::PreferNeg => TriSign::Neg,
             },
@@ -416,79 +517,40 @@ fn point_in_projected_polygon(
         };
 
         match scanline_edge_crossing(vi_v, vj_v, hit_v, sign) {
-            Some(true) => winding += 1,
+            Some(true)  => winding += 1,
             Some(false) => winding -= 1,
-            None => {},
+            None        => {}
         }
     }
 
     Ok((winding != 0, max_escalation))
 }
 
+/// Compute the Newell normal vector for a polygon.
+///
+/// Returns the unnormalized cross-product accumulation. The magnitude
+/// is twice the polygon area.
+fn compute_newell_normal(verts: &[[f64; 3]]) -> [f64; 3] {
+    let n = verts.len();
+    let mut nx = 0.0_f64;
+    let mut ny = 0.0_f64;
+    let mut nz = 0.0_f64;
+    for i in 0..n {
+        let curr = verts[i];
+        let next = verts[(i + 1) % n];
+        nx += (curr[1] - next[1]) * (curr[2] + next[2]);
+        ny += (curr[2] - next[2]) * (curr[0] + next[0]);
+        nz += (curr[0] - next[0]) * (curr[1] + next[1]);
+    }
+    [nx, ny, nz]
+}
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    /// Test whether a ray from `origin` to `far` intersects triangle (a, b, c).
-    ///
-    /// Uses orient3d predicates for exact sign computation:
-    /// 1. Check if origin and far are on opposite sides of the triangle plane
-    /// 2. Check if the ray passes through the triangle interior
-    ///
-    /// Degenerate cases (ray through edge/vertex) use consistent tie-breaking
-    /// based on vertex index ordering (D0 — no perturbation).
-    fn ray_intersects_triangle(
-        origin: &[f64; 3],
-        far: &[f64; 3],
-        a: &[f64; 3],
-        b: &[f64; 3],
-        c: &[f64; 3],
-    ) -> Result<bool, KernelError> {
-        let (o_orient, _) = orient3d(*a, *b, *c, *origin)
-            .map_err(|e| KernelError::InternalError {
-                message: format!("orient3d error: {e}"),
-                context: None,
-            })?;
-        let (f_orient, _) = orient3d(*a, *b, *c, *far)
-            .map_err(|e| KernelError::InternalError {
-                message: format!("orient3d error: {e}"),
-                context: None,
-            })?;
-
-        if o_orient.sign() == TriSign::Zero {
-            return Ok(false);
-        }
-
-        if o_orient.sign() == f_orient.sign() {
-            return Ok(false);
-        }
-
-        let (d0, _) = orient3d(*origin, *far, *a, *b)
-            .map_err(|e| KernelError::InternalError {
-                message: format!("orient3d error: {e}"),
-                context: None,
-            })?;
-        let (d1, _) = orient3d(*origin, *far, *b, *c)
-            .map_err(|e| KernelError::InternalError {
-                message: format!("orient3d error: {e}"),
-                context: None,
-            })?;
-        let (d2, _) = orient3d(*origin, *far, *c, *a)
-            .map_err(|e| KernelError::InternalError {
-                message: format!("orient3d error: {e}"),
-                context: None,
-            })?;
-
-        let s0 = d0.sign();
-        let s1 = d1.sign();
-        let s2 = d2.sign();
-
-        if s0 == TriSign::Zero || s1 == TriSign::Zero || s2 == TriSign::Zero {
-            return Ok(false);
-        }
-
-        Ok(s0 == s1 && s1 == s2)
-    }
+    use forge_math::sign::CertifiedTriSign;
 
     #[test]
     fn point_above_plane_classified_outside() {
@@ -530,100 +592,48 @@ mod tests {
     }
 
     #[test]
-    fn ray_hits_triangle() {
-        let origin = [0.0, 0.0, 0.0];
-        let far = [10.0, 0.0, 0.0];
-        let a = [5.0, -1.0, -1.0];
-        let b = [5.0, 1.0, 0.0];
-        let c = [5.0, -1.0, 1.0];
-
-        assert!(ray_intersects_triangle(&origin, &far, &a, &b, &c).unwrap());
+    fn sos_orient2d_tiebreak_nonzero_delta1() {
+        // a=[0,2] b=[0,0]: delta1 = a[1]-b[1] = 2 > 0 → Pos
+        assert_eq!(sos_orient2d_tiebreak([0.0, 2.0], [0.0, 0.0]), TriSign::Pos);
+        // a=[0,0] b=[0,2]: delta1 = 0-2 = -2 < 0 → Neg
+        assert_eq!(sos_orient2d_tiebreak([0.0, 0.0], [0.0, 2.0]), TriSign::Neg);
     }
 
     #[test]
-    fn ray_misses_triangle() {
-        let origin = [0.0, 0.0, 0.0];
-        let far = [10.0, 0.0, 0.0];
-        let a = [5.0, 5.0, 5.0];
-        let b = [5.0, 6.0, 5.0];
-        let c = [5.0, 5.0, 6.0];
-
-        assert!(!ray_intersects_triangle(&origin, &far, &a, &b, &c).unwrap());
+    fn sos_orient2d_tiebreak_delta2_fallback() {
+        // delta1 == 0, delta2 = b[0]-a[0] = 1 > 0 → Pos
+        assert_eq!(sos_orient2d_tiebreak([1.0, 0.0], [2.0, 0.0]), TriSign::Pos);
+        // delta2 = 1 - 2 = -1 < 0 → Neg
+        assert_eq!(sos_orient2d_tiebreak([2.0, 0.0], [1.0, 0.0]), TriSign::Neg);
     }
 
     #[test]
-    fn ray_parallel_to_triangle_no_intersection() {
-        let origin = [0.0, 0.0, 0.0];
-        let far = [10.0, 0.0, 0.0];
-        let a = [0.0, 1.0, 0.0];
-        let b = [10.0, 1.0, 0.0];
-        let c = [5.0, 1.0, 1.0];
-
-        assert!(!ray_intersects_triangle(&origin, &far, &a, &b, &c).unwrap());
+    fn sos_edge_no_crossing_same_side() {
+        // Both A and B have az > pz → both above → 0.
+        let result = sos_edge_crossing_yz(0.0, 0.0, 0.0, 1.0, 1.0, 2.0).unwrap();
+        assert_eq!(result, 0);
     }
 
-    /// Full point-in-solid test: classify points against a cube built from
-    /// the topology arena. We manually construct a cube mesh with 6 quad faces,
-    /// each triangulated as a fan.
     #[test]
-    fn classify_point_inside_cube() {
-        use crate::state::TopologyState;
-        use crate::operator::apply_op;
-        use crate::euler::make_vertex_face::MakeVertexFace;
-        use crate::euler::split_edge::SplitEdge;
-        use crate::euler::make_edge_face::MakeEdgeFace;
+    fn sos_edge_upward_crossing() {
+        // Collinear case: A=(0,-1), B=(0,1), P=(0,0) → orient2d is zero.
+        // SoS tiebreak: delta1 = a[1]-b[1] = -1-1 = -2 → Neg.
+        // !a_above(true) && Pos: false → no crossing (SoS pushes P off-edge).
+        let collinear = sos_edge_crossing_yz(0.0, 0.0, 0.0, -1.0, 0.0, 1.0).unwrap();
+        assert_eq!(collinear, 0, "Collinear upward edge: SoS yields Neg, no +1 crossing");
 
-        let state = TopologyState::empty();
-        let mut draft = state.into_mutation();
+        // Non-collinear upward crossing: A=(0,-1), B=(0,1), P=(-1,0).
+        // orient2d([0,-1],[0,1],[-1,0]):
+        //   det = (0 - (-1))*(0 - (-1)) - (0 - 0)*(0 - (-1)) = 1*1 - 0 = 1 → Pos
+        // !a_above(true) && Pos → +1
+        let upward = sos_edge_crossing_yz(-1.0, 0.0, 0.0, -1.0, 0.0, 1.0).unwrap();
+        assert_eq!(upward, 1, "P to the left of upward edge → +1");
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let v0 = mvf.vertex;
-
-        let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
-        let v1 = se1.new_vertex;
-
-        let mef1 = apply_op(&mut draft, MakeEdgeFace {
-            vertex_a: v0,
-            vertex_b: v1,
-            face: mvf.face,
-        }).unwrap().into_value();
-
-        let se2 = apply_op(&mut draft, SplitEdge { edge: mef1.half_edge_ab, parameter: 0.5 }).unwrap().into_value();
-        let v2 = se2.new_vertex;
-
-        let _mef2 = apply_op(&mut draft, MakeEdgeFace {
-            vertex_a: v2,
-            vertex_b: v0,
-            face: mvf.face,
-        }).unwrap().into_value();
-
-        let positions: std::collections::HashMap<u32, [f64; 3]> = [
-            (v0.index(), [0.0, 0.0, 0.0]),
-            (v1.index(), [2.0, 0.0, 0.0]),
-            (v2.index(), [1.0, 2.0, 0.0]),
-        ].into_iter().collect();
-
-        let ray_extent = 1e8;
-        let result = classify_point_in_solid(
-            draft.arena(),
-            &|idx: u32| {
-                positions.get(&idx).copied().ok_or_else(||
-                    KernelError::InvalidInput {
-                        message: format!("No position for vertex {idx}"),
-                        context: None,
-                    }
-                )
-            },
-            None,
-            &[1.0, 0.5, 0.0],
-            ray_extent,
-            1e-30, // Test tolerance
-        ).unwrap();
-
-        assert!(
-            matches!(result, PointClassification::OnBoundary(_)),
-            "Expected OnBoundary, got {:?}",
-            result
-        );
+        // Downward crossing: A=(0,1), B=(0,-1), P=(-1,0).
+        // a_above=true, orient2d([0,1],[0,-1],[-1,0]):
+        //   det = (0 - (-1))*(-1 - 0) - (0 - 0)*(0 - (-1)) = 1*(-1) - 0 = -1 → Neg
+        // a_above(true) && Neg → −1
+        let downward = sos_edge_crossing_yz(-1.0, 0.0, 0.0, 1.0, 0.0, -1.0).unwrap();
+        assert_eq!(downward, -1, "P to the right of downward edge → -1");
     }
 }

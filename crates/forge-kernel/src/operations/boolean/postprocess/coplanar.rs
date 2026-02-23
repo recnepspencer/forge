@@ -95,7 +95,7 @@ fn log_merge(
             description: format!("Merged coplanar faces #{} and #{}", face_a.index(), face_b.index()),
         },
     );
-    decision.set_entity_scope(EntityRef::new("HalfEdge", he_id.index()));
+    decision.set_entity_scope(EntityRef::new(forge_core::EntityKind::HalfEdge, he_id.index()));
     decision.set_topology_delta(delta);
     ctx.get_decision_log_mut().record(decision);
 }

@@ -103,7 +103,6 @@ fn classify_sample(
         &|index| lookup_vertex(topo, geom, index),
         None,
         point,
-        config.get_ray_extent(),
         config.get_edge_split_degeneracy(),
     )?;
 
@@ -225,7 +224,6 @@ fn has_boundary_centroid(
             &|index| lookup_vertex(tool_topo, tool_geom, index),
             None,
             &centroid,
-            config.get_ray_extent(),
             config.get_edge_split_degeneracy(),
         )?;
 
@@ -309,7 +307,6 @@ pub(super) fn are_solids_coincident(
             &|index| lookup_vertex(target_topo, target_geom, index),
             None,
             &centroid,
-            config.get_ray_extent(),
             config.get_edge_split_degeneracy(),
         )?;
 

@@ -71,7 +71,7 @@ mod tests {
 
         let first_result_face = result.topology().arena().iter_faces().next()
             .expect("Result must have at least one face");
-        let face_ref = EntityRef::new("Face", first_result_face.0.index() as u32);
+        let face_ref = EntityRef::new(forge_core::EntityKind::Face, first_result_face.0.index() as u32);
 
         let chain = query_causal_chain(
             &face_ref,
@@ -97,7 +97,7 @@ mod tests {
         );
 
         assert_eq!(
-            chain.get_target().get_kind(), "Face",
+            chain.get_target().kind().as_str(), "Face",
             "Chain target must be a Face"
         );
 
@@ -133,7 +133,7 @@ mod tests {
 
         let first_face = result.topology().arena().iter_faces().next()
             .expect("Result must have at least one face");
-        let face_ref = EntityRef::new("Face", first_face.0.index() as u32);
+        let face_ref = EntityRef::new(forge_core::EntityKind::Face, first_face.0.index() as u32);
 
         let chain = query_causal_chain(
             &face_ref,
@@ -186,7 +186,7 @@ mod tests {
 
         let first_face = result.topology().arena().iter_faces().next()
             .expect("Result must have at least one face");
-        let face_ref = EntityRef::new("Face", first_face.0.index() as u32);
+        let face_ref = EntityRef::new(forge_core::EntityKind::Face, first_face.0.index() as u32);
 
         let summary = query_causal_summary(
             &face_ref,
@@ -259,11 +259,11 @@ mod tests {
 
         let first_face = result.topology().arena().iter_faces().next()
             .expect("Result must have faces");
-        let face_ref = EntityRef::new("Face", first_face.0.index() as u32);
+        let face_ref = EntityRef::new(forge_core::EntityKind::Face, first_face.0.index() as u32);
 
         let nring_vertices: Vec<EntityRef> = result.topology().arena().iter_vertices()
             .take(3)
-            .map(|(vid, _)| EntityRef::new("Vertex", vid.index() as u32))
+            .map(|(vid, _)| EntityRef::new(forge_core::EntityKind::Vertex, vid.index() as u32))
             .collect();
 
         let chain_without_nring = query_causal_chain(

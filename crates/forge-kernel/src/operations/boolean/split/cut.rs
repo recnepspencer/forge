@@ -357,7 +357,7 @@ fn log_rejection(face: FaceId, cut_plane_idx: usize, reason: &str, ctx: &mut Mod
             description: format!("Face #{} {reason} (plane #{cut_plane_idx})", face.index()),
         },
     );
-    decision.set_entity_scope(EntityRef::new("Face", face.index()));
+    decision.set_entity_scope(EntityRef::new(forge_core::EntityKind::Face, face.index()));
     ctx.get_decision_log_mut().record(decision);
 }
 
@@ -376,7 +376,7 @@ fn log_split_success(face: FaceId, cut_plane_idx: usize, new_face: FaceId, ctx: 
                 face.index(), cut_plane_idx, new_face.index()),
         },
     );
-    decision.set_entity_scope(EntityRef::new("Face", face.index()));
+    decision.set_entity_scope(EntityRef::new(forge_core::EntityKind::Face, face.index()));
     ctx.get_decision_log_mut().record(decision);
 }
 

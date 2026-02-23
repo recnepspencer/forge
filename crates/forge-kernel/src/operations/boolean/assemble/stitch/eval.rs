@@ -255,7 +255,7 @@ fn log_stitch_decision(he_a: HalfEdgeId, he_b: HalfEdgeId, kind: &DecisionKind, 
             description: format!("Stitched {} <-> {}{}", he_a, he_b, suffix),
         },
     );
-    decision.set_entity_scope(EntityRef::new("HalfEdge", he_a.index()));
+    decision.set_entity_scope(EntityRef::new(forge_core::EntityKind::HalfEdge, he_a.index()));
     ctx.get_decision_log_mut().record(decision);
 }
 
@@ -317,11 +317,11 @@ fn build_stitch_failure_error(
     let max_report = unpaired.len().min(5);
 
     for &he_id in unpaired.iter().take(max_report) {
-        let he_ref = EntityRef::new("HalfEdge", he_id.index());
+        let he_ref = EntityRef::new(forge_core::EntityKind::HalfEdge, he_id.index());
         let face_index = draft.arena().get_half_edge(he_id)
             .map(|he| he.face().index())
             .unwrap_or(u32::MAX);
-        let face_ref = EntityRef::new("Face", face_index);
+        let face_ref = EntityRef::new(forge_core::EntityKind::Face, face_index);
 
         let related_decisions: Vec<String> = decision_log.decisions()
             .filter(|d| {

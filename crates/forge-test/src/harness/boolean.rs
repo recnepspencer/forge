@@ -93,13 +93,12 @@ fn check_point_consistency(
 
     let sample_points = generate_sample_grid_from_bb(&combined_bb, 5);
 
-    let ray_extent = 1e6;
     let mut mismatches = 0usize;
 
     for point in &sample_points {
-        let in_result = classify_in_solid(result_topo, result_geom, point, ray_extent);
-        let in_target = classify_in_solid(target_topo, target_geom, point, ray_extent);
-        let in_tool = classify_in_solid(tool_topo, tool_geom, point, ray_extent);
+        let in_result = classify_in_solid(result_topo, result_geom, point);
+        let in_target = classify_in_solid(target_topo, target_geom, point);
+        let in_tool = classify_in_solid(tool_topo, tool_geom, point);
 
         let expected = match op {
             BooleanOp::Union => in_target || in_tool,
@@ -127,7 +126,6 @@ fn classify_in_solid(
     topo: &TopologyState,
     geom: &GeometryStore,
     point: &[f64; 3],
-    ray_extent: f64,
 ) -> bool {
     let arena = topo.arena();
     let vertex_lookup = |index: u32| -> Result<[f64; 3], KernelError> {
@@ -146,7 +144,7 @@ fn classify_in_solid(
         })
     };
 
-    let result = classify_point_in_solid(arena, &vertex_lookup, None, point, ray_extent, 1e-10);
+    let result = classify_point_in_solid(arena, &vertex_lookup, None, point, 1e-10);
     matches!(result, Ok(PointClassification::Inside { .. } | PointClassification::OnBoundary(_)))
 }
 
