@@ -198,7 +198,8 @@ pub(super) fn execute_touching_boolean(
     }
 
     cleanup_degenerate_topology(&mut draft, &result_geom)?;
-    stitch_twins(&mut draft, &all_he_ids, &result_geom, spatial_index.weld_tolerance_sq(), ctx)?;
+    let report = stitch_twins(&mut draft, &all_he_ids, &result_geom, spatial_index.weld_tolerance_sq(), ctx)?;
+    report.require_fully_paired(&draft, &result_geom, ctx)?;
 
     let topo = draft.commit()?;
     let lineage = build_lineage_events(topo.arena(), "touching_boolean_union");
@@ -290,7 +291,8 @@ fn splice_two_shells(
         ctx.get_decision_log_mut().record(decision);
     }
 
-    stitch_twins(&mut draft, &sec_he, &result_geom, spatial.weld_tolerance_sq(), ctx)?;
+    let report = stitch_twins(&mut draft, &sec_he, &result_geom, spatial.weld_tolerance_sq(), ctx)?;
+    report.require_fully_paired(&draft, &result_geom, ctx)?;
 
     let topo = draft.commit()?;
     let lineage = build_lineage_events(topo.arena(), "splice_two_shells");
@@ -325,11 +327,6 @@ fn splice_tool_into_target(
     let mut result_geom = target_geom.clone();
 
     let mut spatial = VertexWelder::new(scale);
-    for (vid, _) in target_topo.arena().iter_vertices() {
-        if let Some(pos) = target_geom.get_vertex_position(vid) {
-            spatial.insert(vid, *pos);
-        }
-    }
 
     let tool_faces: Vec<FaceId> = tool_topo.arena().iter_faces()
         .map(|(fid, _)| fid).collect();
@@ -366,7 +363,8 @@ fn splice_tool_into_target(
         ctx.get_decision_log_mut().record(decision);
     }
 
-    stitch_twins(&mut draft, &tool_he, &result_geom, spatial.weld_tolerance_sq(), ctx)?;
+    let report = stitch_twins(&mut draft, &tool_he, &result_geom, spatial.weld_tolerance_sq(), ctx)?;
+    report.require_fully_paired(&draft, &result_geom, ctx)?;
 
     let topo = draft.commit()?;
     let lineage = build_lineage_events(topo.arena(), "splice_subtraction");

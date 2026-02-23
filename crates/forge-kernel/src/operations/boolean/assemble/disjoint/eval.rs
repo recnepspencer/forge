@@ -239,6 +239,9 @@ fn has_boundary_centroid(
 // ── Dispatch and logging ─────────────────────────────────────────────────────
 
 /// Dispatch to the appropriate assembly function based on containment.
+///
+/// Delegates to specialised assembly paths per containment class.
+/// Contained subtraction uses in-place splice to create an inner cavity.
 fn dispatch_containment(
     containment: Containment,
     target_topo: &TopologyState,

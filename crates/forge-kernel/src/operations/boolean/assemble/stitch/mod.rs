@@ -7,8 +7,13 @@
 //! halfedges share the same directed edge (non-manifold junction from
 //! boolean intersection), radially sort them by face normal around the
 //! edge axis for deterministic pairing.
+//!
+//! INVARIANTS:
+//! - Callers decide whether unpaired halfedges are an error (closed shells)
+//!   or acceptable (open shells, disjoint assembly).
+//! - `StitchReport` provides structured statistics for that decision.
 
 mod eval;
 mod fallback;
 
-pub use eval::stitch_twins;
+pub use eval::{stitch_twins, StitchReport, select_best_twin};

@@ -14,7 +14,7 @@ use crate::geometry_store::GeometryStore;
 use crate::operations::boolean::eval::VertexMatchKey;
 
 use crate::analysis::proof_validation::diagnose_pipeline::{diagnose_arena, PipelineStage};
-use super::super::copy::{copy_faces, VertexDedup};
+use super::super::copy::{copy_faces, repair_vertex_identity, VertexDedup};
 use super::super::stitch::stitch_twins;
 use super::super::cleanup::cleanup_degenerate_topology;
 
@@ -68,6 +68,12 @@ pub(crate) fn assemble_result(
 
     cleanup_degenerate_topology(&mut draft, &result_geom)?;
 
+    repair_vertex_identity(
+        &mut draft, &result_geom,
+        spatial_index.weld_tolerance_sq().sqrt(),
+        ctx,
+    )?;
+
     let _post_copy_diag = diagnose_arena(draft.arena(), PipelineStage::PostCopy);
 
     let active_he_ids: Vec<HalfEdgeId> = all_new_he_ids.iter()
@@ -75,20 +81,17 @@ pub(crate) fn assemble_result(
         .copied()
         .collect();
 
-    match stitch_twins(&mut draft, &active_he_ids, &result_geom, spatial_index.weld_tolerance_sq(), ctx) {
-        Ok(()) => {}
-        Err(e) => {
-            let _stitch_diag = diagnose_arena(draft.arena(), PipelineStage::PostStitch);
-
-            let cleaned = cleanup_degenerate_topology(&mut draft, &result_geom)?;
-            if cleaned > 0 {
-                let remaining_he: Vec<HalfEdgeId> = draft.arena().iter_half_edges()
-                    .map(|(id, _)| id)
-                    .collect();
-                stitch_twins(&mut draft, &remaining_he, &result_geom, spatial_index.weld_tolerance_sq(), ctx)?;
-            } else {
-                return Err(e);
-            }
+    let report = stitch_twins(&mut draft, &active_he_ids, &result_geom, spatial_index.weld_tolerance_sq(), ctx)?;
+    if !report.is_fully_paired() {
+        let cleaned = cleanup_degenerate_topology(&mut draft, &result_geom)?;
+        if cleaned > 0 {
+            let remaining_he: Vec<HalfEdgeId> = draft.arena().iter_half_edges()
+                .map(|(id, _)| id)
+                .collect();
+            let retry = stitch_twins(&mut draft, &remaining_he, &result_geom, spatial_index.weld_tolerance_sq(), ctx)?;
+            retry.require_fully_paired(&draft, &result_geom, ctx)?;
+        } else {
+            report.require_fully_paired(&draft, &result_geom, ctx)?;
         }
     }
 

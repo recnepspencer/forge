@@ -4,6 +4,7 @@
 //! DEPENDENCIES: fallback (position-based stitching), GeometryStore.
 //! INVARIANTS: Two passes — exact vertex match first, then among remaining
 //! unpaired edges. Position-based fallback handles geometric near-misses.
+//! Returns `StitchReport` so callers decide if unpaired is acceptable.
 
 use std::collections::{BTreeMap, BTreeSet};
 use forge_core::KernelError;
@@ -15,18 +16,50 @@ use crate::geometry_store::GeometryStore;
 
 use super::fallback::stitch_position_fallback;
 
+/// Structured result from stitching — callers decide if unpaired is acceptable.
+pub struct StitchReport {
+    /// Total halfedges that were paired in this pass.
+    pub paired_count: usize,
+    /// Halfedge IDs that remain unpaired after all passes.
+    pub unpaired_ids: Vec<HalfEdgeId>,
+}
+
+impl StitchReport {
+    /// All halfedges were successfully paired.
+    pub fn is_fully_paired(&self) -> bool {
+        self.unpaired_ids.is_empty()
+    }
+
+    /// Require all halfedges paired, or return an error with diagnostics.
+    pub fn require_fully_paired(
+        &self,
+        draft: &MutableDraft,
+        geom: &GeometryStore,
+        ctx: &ModelingContext,
+    ) -> Result<(), KernelError> {
+        if self.is_fully_paired() {
+            return Ok(());
+        }
+        Err(build_stitch_failure_error(&self.unpaired_ids, draft, geom, ctx))
+    }
+}
+
 /// Stitch twin pointers by matching directed edges.
 ///
 /// Pass 1: exact vertex-ID matching against all half-edges.
 /// Pass 2: retry among remaining unpaired edges.
 /// Fallback: position-based matching for geometric near-misses.
+///
+/// Returns `StitchReport` with paired count and unpaired IDs.
+/// Callers decide whether unpaired is an error (closed shell expected)
+/// or acceptable (disjoint shells in same arena).
 pub fn stitch_twins(
     draft: &mut MutableDraft,
     all_he_ids: &[HalfEdgeId],
     geom: &GeometryStore,
     weld_tolerance_sq: f64,
     ctx: &mut ModelingContext,
-) -> Result<(), KernelError> {
+) -> Result<StitchReport, KernelError> {
     let (forward_map, zero_length) = build_edge_map(draft, all_he_ids)?;
 
     let paired = run_stitch_pass(
@@ -36,7 +69,10 @@ pub fn stitch_twins(
 
     let unpaired_ids = collect_unpaired(all_he_ids, &paired, &zero_length);
     if unpaired_ids.is_empty() {
-        return Ok(());
+        return Ok(StitchReport {
+            paired_count: paired.len(),
+            unpaired_ids: Vec::new(),
+        });
     }
 
     let unpaired_map = build_directed_map(draft, &unpaired_ids)?;
@@ -51,10 +87,14 @@ pub fn stitch_twins(
         .copied()
         .collect();
 
+    let total_paired = paired.len() + paired_retry.len();
+
     if !still_unpaired.is_empty() {
         let pre_snapshot = ArenaSnapshot::capture(draft.arena());
 
-        stitch_position_fallback(draft, geom, &still_unpaired, weld_tolerance_sq, ctx)?;
+        let fallback_result = stitch_position_fallback(
+            draft, geom, &still_unpaired, weld_tolerance_sq, ctx,
+        );
 
         let delta = compute_topology_delta(&pre_snapshot, draft.arena());
         if !delta.is_empty() {
@@ -77,9 +117,27 @@ pub fn stitch_twins(
             decision.set_topology_delta(delta);
             ctx.get_decision_log_mut().record(decision);
         }
+
+        match fallback_result {
+            Ok(fallback_report) => {
+                return Ok(StitchReport {
+                    paired_count: total_paired + fallback_report.paired_count,
+                    unpaired_ids: fallback_report.unpaired_ids,
+                });
+            }
+            Err(_) => {
+                return Ok(StitchReport {
+                    paired_count: total_paired,
+                    unpaired_ids: still_unpaired,
+                });
+            }
+        }
     }
 
-    Ok(())
+    Ok(StitchReport {
+        paired_count: total_paired,
+        unpaired_ids: Vec::new(),
+    })
 }
 
 /// Build a forward map from (origin, dest) → Vec<HalfEdgeId>, filtering zero-length edges.
@@ -202,7 +260,7 @@ fn log_stitch_decision(he_a: HalfEdgeId, he_b: HalfEdgeId, kind: &DecisionKind, 
 }
 
 /// Select the best twin candidate using face normal dot product.
-pub(super) fn select_best_twin(
+pub fn select_best_twin(
     draft: &MutableDraft,
     geom: &GeometryStore,
     source_he: HalfEdgeId,
@@ -237,4 +295,85 @@ pub(super) fn select_best_twin(
         }
     }
     best
+}
+
+/// Build a structured error for remaining unpaired halfedges.
+///
+/// Includes per-entity decision ancestry and a 2-ring extracted region
+/// for each unpaired halfedge, enabling root-cause tracing and local
+/// geometry reconstruction.
+fn build_stitch_failure_error(
+    unpaired: &[HalfEdgeId],
+    draft: &MutableDraft,
+    geom: &GeometryStore,
+    ctx: &ModelingContext,
+) -> KernelError {
+    let mut detail_lines: Vec<String> = Vec::new();
+    detail_lines.push(format!(
+        "{} halfedges remain unpaired after stitching", unpaired.len(),
+    ));
+
+    let decision_log = ctx.get_decision_log();
+    let max_report = unpaired.len().min(5);
+
+    for &he_id in unpaired.iter().take(max_report) {
+        let he_ref = EntityRef::new("HalfEdge", he_id.index());
+        let face_index = draft.arena().get_half_edge(he_id)
+            .map(|he| he.face().index())
+            .unwrap_or(u32::MAX);
+        let face_ref = EntityRef::new("Face", face_index);
+
+        let related_decisions: Vec<String> = decision_log.decisions()
+            .filter(|d| {
+                d.get_entity_scope()
+                    .map(|e| *e == he_ref || *e == face_ref)
+                    .unwrap_or(false)
+            })
+            .map(|d| format!(
+                "    [{}] {} margin={:.2e} | {}",
+                d.get_tier(), d.get_kind(), d.get_margin(), d.get_context(),
+            ))
+            .collect();
+
+        detail_lines.push(format!("  HalfEdge#{} (Face#{})", he_id.index(), face_index));
+        if related_decisions.is_empty() {
+            detail_lines.push("    (no entity-scoped decisions found)".to_string());
+        } else {
+            for line in related_decisions {
+                detail_lines.push(line);
+            }
+        }
+
+        let face_id = forge_topo::handles::FaceId::from_raw_parts(face_index, 0);
+        if let Ok(region) = crate::analysis::region_extractor::extract_n_ring(
+            draft.arena(), geom, face_id, 2,
+        ) {
+            detail_lines.push(format!(
+                "  2-ring: {}F {}HE {}V",
+                region.face_count(), region.half_edge_count(), region.vertex_count(),
+            ));
+            for (&fidx, plane) in region.get_face_planes() {
+                let n = plane.get_normal();
+                detail_lines.push(format!(
+                    "    Face#{}: n=[{:.2},{:.2},{:.2}] d={:.2}",
+                    fidx, n[0], n[1], n[2], plane.get_offset(),
+                ));
+            }
+        }
+    }
+
+    if unpaired.len() > max_report {
+        detail_lines.push(format!("  ... and {} more", unpaired.len() - max_report));
+    }
+
+    KernelError::TopologyViolation {
+        err: forge_core::TopologyError::MissingTwin {
+            halfedge_index: unpaired[0].index(),
+        },
+        context: Some(forge_core::ErrorContext {
+            scope: forge_core::ErrorScope::Global,
+            suggested_fixes: Vec::new(),
+            detail: detail_lines.join("\n"),
+        }),
+    }
 }

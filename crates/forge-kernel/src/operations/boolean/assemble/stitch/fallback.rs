@@ -21,13 +21,15 @@ use crate::geometry_store::GeometryStore;
 /// Pass 3: full endpoint position matching via EdgeMatcher.
 /// Pass 4: single-vertex-match fallback for mixed index/position matches.
 /// Uses 100× wider tolerance than vertex dedup for "close enough" edge identity.
+///
+/// Returns `StitchReport` with paired count and remaining unpaired IDs.
 pub(super) fn stitch_position_fallback(
     draft: &mut MutableDraft,
     geom: &GeometryStore,
     still_unpaired: &[HalfEdgeId],
     weld_tolerance_sq: f64,
     ctx: &mut ModelingContext,
-) -> Result<(), KernelError> {
+) -> Result<super::eval::StitchReport, KernelError> {
     let stitch_tol_sq = weld_tolerance_sq * 10000.0;
     let mut paired: BTreeSet<u32> = BTreeSet::new();
 
@@ -39,11 +41,10 @@ pub(super) fn stitch_position_fallback(
         .copied()
         .collect();
 
-    if final_unpaired.is_empty() {
-        return Ok(());
-    }
-
-    Err(build_stitch_failure_error(&final_unpaired, draft, geom, ctx))
+    Ok(super::eval::StitchReport {
+        paired_count: paired.len(),
+        unpaired_ids: final_unpaired,
+    })
 }
 
 // ── Stitch passes ────────────────────────────────────────────────────────────
@@ -172,83 +173,4 @@ fn log_stitch(he_a: HalfEdgeId, he_b: HalfEdgeId, label: &str, confidence: f64, 
     ctx.get_decision_log_mut().record(decision);
 }
 
-/// Build a structured error for remaining unpaired halfedges.
-///
-/// Includes per-entity decision ancestry and a 2-ring extracted region
-/// for each unpaired halfedge, enabling root-cause tracing and local
-/// geometry reconstruction.
-fn build_stitch_failure_error(
-    unpaired: &[HalfEdgeId],
-    draft: &MutableDraft,
-    geom: &GeometryStore,
-    ctx: &ModelingContext,
-) -> KernelError {
-    let mut detail_lines: Vec<String> = Vec::new();
-    detail_lines.push(format!(
-        "{} halfedges remain unpaired after stitching", unpaired.len(),
-    ));
 
-    let decision_log = ctx.get_decision_log();
-    let max_report = unpaired.len().min(5);
-
-    for &he_id in unpaired.iter().take(max_report) {
-        let he_ref = EntityRef::new("HalfEdge", he_id.index());
-        let face_index = draft.arena().get_half_edge(he_id)
-            .map(|he| he.face().index())
-            .unwrap_or(u32::MAX);
-        let face_ref = EntityRef::new("Face", face_index);
-
-        let related_decisions: Vec<String> = decision_log.decisions()
-            .filter(|d| {
-                d.get_entity_scope()
-                    .map(|e| *e == he_ref || *e == face_ref)
-                    .unwrap_or(false)
-            })
-            .map(|d| format!(
-                "    [{}] {} margin={:.2e} | {}",
-                d.get_tier(), d.get_kind(), d.get_margin(), d.get_context(),
-            ))
-            .collect();
-
-        detail_lines.push(format!("  HalfEdge#{} (Face#{})", he_id.index(), face_index));
-        if related_decisions.is_empty() {
-            detail_lines.push("    (no entity-scoped decisions found)".to_string());
-        } else {
-            for line in related_decisions {
-                detail_lines.push(line);
-            }
-        }
-
-        let face_id = forge_topo::handles::FaceId::from_raw_parts(face_index, 0);
-        if let Ok(region) = crate::analysis::region_extractor::extract_n_ring(
-            draft.arena(), geom, face_id, 2,
-        ) {
-            detail_lines.push(format!(
-                "  2-ring: {}F {}HE {}V",
-                region.face_count(), region.half_edge_count(), region.vertex_count(),
-            ));
-            for (&fidx, plane) in region.get_face_planes() {
-                let n = plane.get_normal();
-                detail_lines.push(format!(
-                    "    Face#{}: n=[{:.2},{:.2},{:.2}] d={:.2}",
-                    fidx, n[0], n[1], n[2], plane.get_offset(),
-                ));
-            }
-        }
-    }
-
-    if unpaired.len() > max_report {
-        detail_lines.push(format!("  ... and {} more", unpaired.len() - max_report));
-    }
-
-    KernelError::TopologyViolation {
-        err: forge_core::TopologyError::MissingTwin {
-            halfedge_index: unpaired[0].index(),
-        },
-        context: Some(forge_core::ErrorContext {
-            scope: forge_core::ErrorScope::Global,
-            suggested_fixes: Vec::new(),
-            detail: detail_lines.join("\n"),
-        }),
-    }
-}
