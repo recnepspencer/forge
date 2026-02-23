@@ -44,22 +44,22 @@ pub(super) fn execute_contained_boolean(
 
     match (operation, tool_inside_target) {
         (BooleanOp::Union, true) => {
-            let mut r = assemble_single_shell(target_topo, target_geom, false, ctx)?;
+            let mut r = pass_through_shell(target_topo, target_geom, "contained_union")?;
             r.set_face_counts(target_fc, 0);
             Ok(r)
         }
         (BooleanOp::Union, false) => {
-            let mut r = assemble_single_shell(tool_topo, tool_geom, false, ctx)?;
+            let mut r = pass_through_shell(tool_topo, tool_geom, "contained_union")?;
             r.set_face_counts(0, tool_fc);
             Ok(r)
         }
         (BooleanOp::Intersection, true) => {
-            let mut r = assemble_single_shell(tool_topo, tool_geom, false, ctx)?;
+            let mut r = pass_through_shell(tool_topo, tool_geom, "contained_intersection")?;
             r.set_face_counts(0, tool_fc);
             Ok(r)
         }
         (BooleanOp::Intersection, false) => {
-            let mut r = assemble_single_shell(target_topo, target_geom, false, ctx)?;
+            let mut r = pass_through_shell(target_topo, target_geom, "contained_intersection")?;
             r.set_face_counts(target_fc, 0);
             Ok(r)
         }
@@ -67,8 +67,8 @@ pub(super) fn execute_contained_boolean(
             if are_solids_coincident(target_topo, target_geom, tool_topo, tool_geom)? {
                 return Ok(empty_result());
             }
-            let mut r = assemble_two_shells(
-                target_topo, target_geom, tool_topo, tool_geom, true, ctx,
+            let mut r = splice_tool_into_target(
+                target_topo, target_geom, tool_topo, tool_geom, ctx,
             )?;
             r.set_face_counts(target_fc, tool_fc);
             Ok(r)
@@ -89,11 +89,11 @@ pub(super) fn execute_disjoint_boolean(
     ctx: &mut ModelingContext,
 ) -> Result<BooleanResult, KernelError> {
     match operation {
-        BooleanOp::Union => assemble_two_shells(
+        BooleanOp::Union => splice_two_shells(
             target_topo, target_geom, tool_topo, tool_geom, false, ctx,
         ),
         BooleanOp::Intersection => Ok(empty_result()),
-        BooleanOp::Subtraction => assemble_single_shell(target_topo, target_geom, false, ctx),
+        BooleanOp::Subtraction => pass_through_shell(target_topo, target_geom, "disjoint_subtraction"),
     }
 }
 
@@ -210,64 +210,31 @@ pub(super) fn execute_touching_boolean(
 
 // ── Shell assembly helpers ───────────────────────────────────────────────────
 
-/// Copy a single solid into a fresh arena and stitch its shells.
-fn assemble_single_shell(
+/// Return the input solid directly — no copy, no stitch.
+///
+/// The solid is already a valid manifold. Copying it to a fresh arena
+/// and re-stitching is the Parasolid antipattern: it destroys vertex
+/// identity and relies on spatial heuristics to reconstruct topology
+/// that was already correct.
+fn pass_through_shell(
     topo: &TopologyState,
     geom: &GeometryStore,
-    reverse: bool,
-    ctx: &mut ModelingContext,
+    op_name: &str,
 ) -> Result<BooleanResult, KernelError> {
-    let faces: Vec<FaceId> = topo.arena().iter_faces().map(|(fid, _)| fid).collect();
-    let face_count = faces.len();
-    let scale = compute_disjoint_scale(topo.arena(), geom, None);
-
-    let state = TopologyState::empty();
-    let mut draft = state.into_mutation();
-    let mut result_geom = GeometryStore::new();
-    let mut he_ids: Vec<HalfEdgeId> = Vec::new();
-    let mut vertex_map: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
-    let mut spatial = VertexWelder::new(scale);
-
-    let pre_copy = ArenaSnapshot::capture(draft.arena());
-
-    copy_shell(
-        &mut draft, &mut result_geom, &mut he_ids,
-        &mut vertex_map, &mut spatial,
-        topo.arena(), geom, &faces, reverse,
-    )?;
-
-    let copy_delta = compute_topology_delta(&pre_copy, draft.arena());
-    if !copy_delta.is_empty() {
-        let mut decision = TracedDecision::new(
-            DecisionId(0),
-            DecisionKind::Exact,
-            DecisionTier::Deterministic,
-            1.0,
-            DecisionContext::Degeneracy {
-                description: format!(
-                    "Copy shell: {}F {}HE {}V",
-                    copy_delta.created_faces.len(),
-                    copy_delta.created_halfedges.len(),
-                    copy_delta.created_vertices.len(),
-                ),
-            },
-        );
-        decision.set_topology_delta(copy_delta);
-        ctx.get_decision_log_mut().record(decision);
-    }
-
-    stitch_twins(&mut draft, &he_ids, &result_geom, spatial.weld_tolerance_sq(), ctx)?;
-
-    let result_topo = draft.commit()?;
-    let lineage = build_lineage_events(result_topo.arena(), "assemble_single_shell");
+    let face_count = topo.arena().face_count();
+    let lineage = build_lineage_events(topo.arena(), op_name);
     Ok(BooleanResult::new(
-        result_topo, result_geom, face_count, 0,
+        topo.clone(), geom.clone(), face_count, 0,
         BooleanIntrospection::default(), ReplayLog::new(), lineage,
     ))
 }
 
-/// Copy two independent solids into a fresh arena, each stitched separately.
-fn assemble_two_shells(
+/// Combine two solids by cloning the primary and splicing the secondary.
+///
+/// The primary's topology is preserved exactly (no copy, no re-stitch).
+/// Only the secondary's faces are copied into the primary's arena,
+/// and only the secondary's new halfedges are stitched.
+fn splice_two_shells(
     primary_topo: &TopologyState,
     primary_geom: &GeometryStore,
     secondary_topo: &TopologyState,
@@ -275,34 +242,35 @@ fn assemble_two_shells(
     reverse_secondary: bool,
     ctx: &mut ModelingContext,
 ) -> Result<BooleanResult, KernelError> {
-    let primary_faces: Vec<FaceId> = primary_topo.arena().iter_faces().map(|(fid, _)| fid).collect();
-    let secondary_faces: Vec<FaceId> = secondary_topo.arena().iter_faces().map(|(fid, _)| fid).collect();
-    let primary_count = primary_faces.len();
-    let secondary_count = secondary_faces.len();
+    let primary_count = primary_topo.arena().face_count();
+    let secondary_count = secondary_topo.arena().face_count();
 
     let scale = compute_disjoint_scale(
         primary_topo.arena(), primary_geom,
         Some((secondary_topo.arena(), secondary_geom)),
     );
 
-    let state = TopologyState::empty();
-    let mut draft = state.into_mutation();
-    let mut result_geom = GeometryStore::new();
+    let mut draft = primary_topo.clone().into_mutation();
+    let mut result_geom = primary_geom.clone();
 
-    let mut pri_he: Vec<HalfEdgeId> = Vec::new();
-    let mut pri_vm: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
-    let mut pri_spatial = VertexWelder::new(scale);
+    let mut spatial = VertexWelder::new(scale);
 
-    let pre_pri = ArenaSnapshot::capture(draft.arena());
+    let secondary_faces: Vec<FaceId> = secondary_topo.arena().iter_faces()
+        .map(|(fid, _)| fid).collect();
+    let mut sec_he: Vec<HalfEdgeId> = Vec::new();
+    let mut sec_vm: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
+    let mut dedup = VertexDedup::new();
 
-    copy_shell(
-        &mut draft, &mut result_geom, &mut pri_he,
-        &mut pri_vm, &mut pri_spatial,
-        primary_topo.arena(), primary_geom, &primary_faces, false,
+    let pre_sec = ArenaSnapshot::capture(draft.arena());
+
+    copy_faces(
+        &mut draft, &mut result_geom, &mut dedup, &mut sec_he,
+        &mut sec_vm, &mut spatial,
+        secondary_topo.arena(), secondary_geom, &secondary_faces, reverse_secondary, None,
     )?;
 
-    let pri_delta = compute_topology_delta(&pre_pri, draft.arena());
-    if !pri_delta.is_empty() {
+    let sec_delta = compute_topology_delta(&pre_sec, draft.arena());
+    if !sec_delta.is_empty() {
         let mut decision = TracedDecision::new(
             DecisionId(0),
             DecisionKind::Exact,
@@ -310,44 +278,11 @@ fn assemble_two_shells(
             1.0,
             DecisionContext::Degeneracy {
                 description: format!(
-                    "Copy primary shell: {}F {}HE {}V",
-                    pri_delta.created_faces.len(),
-                    pri_delta.created_halfedges.len(),
-                    pri_delta.created_vertices.len(),
-                ),
-            },
-        );
-        decision.set_topology_delta(pri_delta);
-        ctx.get_decision_log_mut().record(decision);
-    }
-
-    stitch_twins(&mut draft, &pri_he, &result_geom, pri_spatial.weld_tolerance_sq(), ctx)?;
-
-    let mut sec_he: Vec<HalfEdgeId> = Vec::new();
-    let mut sec_vm: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
-    let mut sec_spatial = VertexWelder::new(scale);
-
-    let pre_sec = ArenaSnapshot::capture(draft.arena());
-
-    copy_shell(
-        &mut draft, &mut result_geom, &mut sec_he,
-        &mut sec_vm, &mut sec_spatial,
-        secondary_topo.arena(), secondary_geom, &secondary_faces, reverse_secondary,
-    )?;
-
-    let sec_delta = compute_topology_delta(&pre_sec, draft.arena());
-    if !sec_delta.is_empty() {
-        let mut decision = TracedDecision::new(
-            DecisionId(1),
-            DecisionKind::Exact,
-            DecisionTier::Deterministic,
-            1.0,
-            DecisionContext::Degeneracy {
-                description: format!(
-                    "Copy secondary shell: {}F {}HE {}V",
+                    "Splice secondary: {}F {}HE {}V into primary ({}F)",
                     sec_delta.created_faces.len(),
                     sec_delta.created_halfedges.len(),
                     sec_delta.created_vertices.len(),
+                    primary_count,
                 ),
             },
         );
@@ -355,12 +290,88 @@ fn assemble_two_shells(
         ctx.get_decision_log_mut().record(decision);
     }
 
-    stitch_twins(&mut draft, &sec_he, &result_geom, sec_spatial.weld_tolerance_sq(), ctx)?;
+    stitch_twins(&mut draft, &sec_he, &result_geom, spatial.weld_tolerance_sq(), ctx)?;
 
     let topo = draft.commit()?;
-    let lineage = build_lineage_events(topo.arena(), "assemble_two_shells");
+    let lineage = build_lineage_events(topo.arena(), "splice_two_shells");
     Ok(BooleanResult::new(
         topo, result_geom, primary_count, secondary_count,
+        BooleanIntrospection::default(), ReplayLog::new(), lineage,
+    ))
+}
+
+/// Splice a tool solid into the target without re-copying/re-stitching the target.
+///
+/// Clones the target's topology and geometry, then copies only the reversed
+/// tool faces into the existing arena. Only the new tool halfedges are stitched.
+/// This avoids the fragile copy+restitch pattern that fails for legacy output
+/// topology with vertex-identity defects.
+fn splice_tool_into_target(
+    target_topo: &TopologyState,
+    target_geom: &GeometryStore,
+    tool_topo: &TopologyState,
+    tool_geom: &GeometryStore,
+    ctx: &mut ModelingContext,
+) -> Result<BooleanResult, KernelError> {
+    let target_fc = target_topo.arena().face_count();
+    let tool_fc = tool_topo.arena().face_count();
+
+    let scale = compute_disjoint_scale(
+        target_topo.arena(), target_geom,
+        Some((tool_topo.arena(), tool_geom)),
+    );
+
+    let mut draft = target_topo.clone().into_mutation();
+    let mut result_geom = target_geom.clone();
+
+    let mut spatial = VertexWelder::new(scale);
+    for (vid, _) in target_topo.arena().iter_vertices() {
+        if let Some(pos) = target_geom.get_vertex_position(vid) {
+            spatial.insert(vid, *pos);
+        }
+    }
+
+    let tool_faces: Vec<FaceId> = tool_topo.arena().iter_faces()
+        .map(|(fid, _)| fid).collect();
+    let mut tool_he: Vec<HalfEdgeId> = Vec::new();
+    let mut tool_vm: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
+    let mut dedup = VertexDedup::new();
+
+    let pre_tool = ArenaSnapshot::capture(draft.arena());
+
+    copy_faces(
+        &mut draft, &mut result_geom, &mut dedup, &mut tool_he,
+        &mut tool_vm, &mut spatial,
+        tool_topo.arena(), tool_geom, &tool_faces, true, None,
+    )?;
+
+    let tool_delta = compute_topology_delta(&pre_tool, draft.arena());
+    if !tool_delta.is_empty() {
+        let mut decision = TracedDecision::new(
+            DecisionId(0),
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            1.0,
+            DecisionContext::Degeneracy {
+                description: format!(
+                    "Splice reversed tool: {}F {}HE {}V into target ({}F)",
+                    tool_delta.created_faces.len(),
+                    tool_delta.created_halfedges.len(),
+                    tool_delta.created_vertices.len(),
+                    target_fc,
+                ),
+            },
+        );
+        decision.set_topology_delta(tool_delta);
+        ctx.get_decision_log_mut().record(decision);
+    }
+
+    stitch_twins(&mut draft, &tool_he, &result_geom, spatial.weld_tolerance_sq(), ctx)?;
+
+    let topo = draft.commit()?;
+    let lineage = build_lineage_events(topo.arena(), "splice_subtraction");
+    Ok(BooleanResult::new(
+        topo, result_geom, target_fc, tool_fc,
         BooleanIntrospection::default(), ReplayLog::new(), lineage,
     ))
 }

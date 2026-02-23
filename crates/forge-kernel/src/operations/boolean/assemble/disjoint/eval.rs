@@ -319,7 +319,7 @@ pub(super) fn are_solids_coincident(
 }
 
 /// Compute the characteristic scale for the disjoint assembly path.
-pub(super) fn compute_disjoint_scale(
+pub fn compute_disjoint_scale(
     primary_arena: &forge_topo::arena::TopologyArena,
     primary_geom: &GeometryStore,
     secondary: Option<(&forge_topo::arena::TopologyArena, &GeometryStore)>,

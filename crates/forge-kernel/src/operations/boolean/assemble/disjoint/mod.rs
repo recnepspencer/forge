@@ -7,3 +7,4 @@ mod eval;
 mod assemble;
 
 pub use eval::execute_zero_split;
+pub use eval::compute_disjoint_scale;
