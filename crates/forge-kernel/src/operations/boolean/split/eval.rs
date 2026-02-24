@@ -998,21 +998,12 @@ pub fn compute_face_aabbs(
     config: &crate::core::ToleranceConfig,
 ) -> Result<Vec<(FaceId, Aabb)>, KernelError> {
     let inflation = config.get_aabb_inflation();
-    let mut list = Vec::new();
-    for (fid, _) in arena.iter_faces() {
-        let edges: Vec<_> = FaceEdgeIterator::new(arena, fid)?
-            .collect::<Result<Vec<_>, _>>()?;
-        let mut points = Vec::new();
-        for he in edges {
-            let v = arena.get_half_edge(he)?.origin();
-            if let Some(p) = geom.get_vertex_position(v) {
-                points.push(*p);
-            }
-        }
-        if let Some(mut aabb) = Aabb::from_points(&points) {
-            aabb.expand(inflation);
-            list.push((fid, aabb));
-        }
+    let mut list = forge_topo::bounds::all_face_bounds(
+        arena,
+        &|vid| geom.get_vertex_position(vid).copied(),
+    )?;
+    for (_, aabb) in &mut list {
+        aabb.expand(inflation);
     }
     Ok(list)
 }

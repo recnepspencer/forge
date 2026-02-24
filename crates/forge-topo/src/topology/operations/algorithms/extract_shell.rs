@@ -19,7 +19,8 @@ use crate::state::MutableDraft;
 use crate::operator::apply_op;
 use crate::topology::bitset::EntityBitset;
 use crate::topology::operations::euler::unsew_edge::UnsewEdge;
-use crate::topology::queries::traverse::FaceEdgeIterator;
+use crate::topology::operations::algorithms::region_extraction::is_face_group_boundary_half_edge;
+use crate::topology::queries::traverse::FaceAllEdgesIterator;
 
 /// Output of the extract_shell algorithm.
 pub struct ExtractShellOutput {
@@ -64,7 +65,7 @@ fn find_boundary_pairs(
 
     for face_idx in faces.iter_ones() {
         let face_id = FaceId::from_raw_parts(face_idx, 0);
-        for he_result in FaceEdgeIterator::new(draft.arena(), face_id)? {
+        for he_result in FaceAllEdgesIterator::new(draft.arena(), face_id)? {
             let he_id = he_result?;
             let he_data = draft.arena().get_half_edge(he_id)?;
             let twin_id = he_data.radial_next();
@@ -73,16 +74,17 @@ fn find_boundary_pairs(
                 continue;
             }
 
+            if !is_face_group_boundary_half_edge(draft.arena(), faces, he_id)? {
+                continue;
+            }
+
             let canonical = (he_id.index().min(twin_id.index()), he_id.index().max(twin_id.index()));
             if seen_edges.contains(&canonical) {
                 continue;
             }
 
-            let twin_face = draft.arena().get_half_edge(twin_id)?.face();
-            if !faces.contains(twin_face.index()).unwrap_or(false) {
-                pairs.push((he_id, twin_id));
-                seen_edges.insert(canonical);
-            }
+            pairs.push((he_id, twin_id));
+            seen_edges.insert(canonical);
         }
     }
 

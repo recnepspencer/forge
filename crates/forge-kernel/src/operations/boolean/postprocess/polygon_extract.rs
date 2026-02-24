@@ -11,15 +11,13 @@
 //!
 //! DEPENDENCIES: forge_topo (arena, handles), GeometryStore, forge_geom (exact_eq)
 
-use std::collections::{BTreeSet, BTreeMap, VecDeque};
-
 use forge_topo::bitset::EntityBitset;
 
 use forge_core::KernelError;
-use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
+use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext};
 use forge_core::tracing::TopologyDelta;
 use forge_topo::arena::TopologyArena;
-use forge_topo::handles::{FaceId, HalfEdgeId, VertexId, ShellId, EdgeId};
+use forge_topo::handles::{FaceId, HalfEdgeId, VertexId, EdgeId};
 use forge_topo::state::{TopologyState, MutableDraft};
 
 use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
@@ -35,7 +33,7 @@ pub fn extract_coplanar_regions(
     geom: &GeometryStore,
     ctx: &mut ModelingContext,
 ) -> Result<(TopologyState, usize), KernelError> {
-    let groups = discover_coplanar_groups(topo.arena(), geom);
+    let groups = discover_coplanar_groups(topo.arena(), geom)?;
     let mergeable: Vec<_> = groups.into_iter().filter(|g| g.count() >= 2).collect();
 
     if mergeable.is_empty() {
@@ -47,7 +45,10 @@ pub fn extract_coplanar_regions(
     let mut total_merged = 0usize;
 
     for group in &mergeable {
-        let perimeter = walk_boundary_perimeter(draft.arena(), group)?;
+        let perimeter = forge_topo::algorithms::region_extraction::walk_face_group_boundary_perimeter(
+            draft.arena(),
+            group,
+        )?;
         if perimeter.len() < 3 {
             return Err(KernelError::InternalError {
                 message: format!(
@@ -83,220 +84,19 @@ pub fn extract_coplanar_regions(
 fn discover_coplanar_groups(
     arena: &TopologyArena,
     geom: &GeometryStore,
-) -> Vec<EntityBitset> {
-    let mut visited = EntityBitset::for_faces(arena);
-    let mut groups: Vec<EntityBitset> = Vec::new();
+) -> Result<Vec<EntityBitset>, KernelError> {
+    let groups = forge_topo::algorithms::components::collect_connected_face_components(
+        arena,
+        |face_id| Ok(geom.get_face_plane(face_id)),
+        |seed_plane, _current, neighbor| {
+            let Some(neighbor_plane) = geom.get_face_plane(neighbor) else {
+                return Ok(false);
+            };
+            Ok(forge_geom::primitives::plane::exact_eq(*seed_plane, neighbor_plane))
+        },
+    )?;
 
-    for (face_id, _) in arena.iter_faces() {
-        if visited.contains(face_id.index()).unwrap_or(false) {
-            let _ = face_id;
-        } else {
-            let group = bfs_coplanar_cluster(arena, geom, face_id, &mut visited);
-            if group.count() >= 2 {
-                groups.push(group);
-            }
-        }
-    }
-
-    groups
-}
-
-/// BFS from a seed face to find all connected coplanar neighbors.
-fn bfs_coplanar_cluster(
-    arena: &TopologyArena,
-    geom: &GeometryStore,
-    seed: FaceId,
-    visited: &mut EntityBitset,
-) -> EntityBitset {
-    let mut group = EntityBitset::for_faces(arena);
-    let mut queue = VecDeque::new();
-
-    let seed_plane = match geom.get_face_plane(seed) {
-        Some(p) => p,
-        None => {
-            let _ = visited.insert(seed.index());
-            let _ = group.insert(seed.index());
-            return group;
-        }
-    };
-
-    let _ = visited.insert(seed.index());
-    let _ = group.insert(seed.index());
-    queue.push_back(seed);
-
-    while let Some(current) = queue.pop_front() {
-        let neighbors = collect_adjacent_faces(arena, current);
-        for neighbor in neighbors {
-            if visited.contains(neighbor.index()).unwrap_or(false) {
-                let _ = neighbor;
-            } else {
-                let _ = visited.insert(neighbor.index());
-                if let Some(neighbor_plane) = geom.get_face_plane(neighbor) {
-                    if forge_geom::primitives::plane::exact_eq(seed_plane, neighbor_plane) {
-                        let _ = group.insert(neighbor.index());
-                        queue.push_back(neighbor);
-                    }
-                }
-            }
-        }
-    }
-
-    group
-}
-
-/// Collect all face IDs adjacent to `face` via twin pointers.
-fn collect_adjacent_faces(arena: &TopologyArena, face: FaceId) -> Vec<FaceId> {
-    let mut neighbors = Vec::new();
-    let face_data = match arena.get_face(face) {
-        Ok(f) => f,
-        Err(_) => return neighbors,
-    };
-
-    let loop_data = match arena.get_loop(face_data.outer_loop()) {
-        Ok(l) => l,
-        Err(_) => return neighbors,
-    };
-
-    let start = loop_data.half_edge();
-    let mut current = start;
-    let mut steps = 0usize;
-
-    loop {
-        if let Ok(he) = arena.get_half_edge(current) {
-            if let Ok(twin) = arena.get_half_edge(he.radial_next()) {
-                let twin_face = twin.face();
-                if twin_face != face {
-                    neighbors.push(twin_face);
-                }
-            }
-            current = he.next();
-        } else {
-            break;
-        }
-
-        steps += 1;
-        if current == start || steps > 100_000 {
-            break;
-        }
-    }
-
-    neighbors
-}
-
-/// Walk the perimeter of a coplanar group, collecting boundary vertices.
-///
-/// A half-edge is a "boundary edge" if its twin's face is outside the group.
-/// An "internal edge" has its twin inside the group.
-///
-/// Walk logic: start at any boundary edge, follow `next()`. If `next()` is
-/// a boundary edge, continue. If `next()` is internal, twin-hop until
-/// landing on the next boundary edge.
-fn walk_boundary_perimeter(
-    arena: &TopologyArena,
-    group: &EntityBitset,
-) -> Result<Vec<VertexId>, KernelError> {
-    let start_he = find_boundary_edge(arena, group)?;
-    let mut perimeter = Vec::new();
-    let mut current = start_he;
-    let mut steps = 0usize;
-
-    loop {
-        let he_data = arena.get_half_edge(current)?;
-        perimeter.push(he_data.origin());
-
-        let next_candidate = he_data.next();
-        current = advance_to_boundary(arena, group, next_candidate)?;
-
-        steps += 1;
-        if current == start_he || steps > 100_000 {
-            break;
-        }
-    }
-
-    if steps > 100_000 {
-        return Err(KernelError::InternalError {
-            message: "Perimeter walk exceeded maximum iterations".to_string(),
-            context: None,
-        });
-    }
-
-    Ok(perimeter)
-}
-
-/// Find any boundary half-edge in the group.
-fn find_boundary_edge(
-    arena: &TopologyArena,
-    group: &EntityBitset,
-) -> Result<HalfEdgeId, KernelError> {
-    for face_idx in group.iter_ones() {
-        let face_id = FaceId::from_raw_parts(face_idx, 0);
-        let face_data = arena.get_face(face_id)?;
-        let loop_data = arena.get_loop(face_data.outer_loop())?;
-        let start = loop_data.half_edge();
-        let mut current = start;
-        let mut steps = 0usize;
-
-        loop {
-            let he = arena.get_half_edge(current)?;
-            if is_boundary_edge(arena, group, current) {
-                return Ok(current);
-            }
-            current = he.next();
-            steps += 1;
-            if current == start || steps > 100_000 {
-                break;
-            }
-        }
-    }
-
-    Err(KernelError::InternalError {
-        message: "No boundary edge found in coplanar group".to_string(),
-        context: None,
-    })
-}
-
-/// Check if a half-edge is a boundary edge (twin is outside the group).
-fn is_boundary_edge(
-    arena: &TopologyArena,
-    group: &EntityBitset,
-    he: HalfEdgeId,
-) -> bool {
-    let he_data = match arena.get_half_edge(he) {
-        Ok(d) => d,
-        Err(_) => return false,
-    };
-    let twin_data = match arena.get_half_edge(he_data.radial_next()) {
-        Ok(d) => d,
-        Err(_) => return true,
-    };
-    !group.contains(twin_data.face().index()).unwrap_or(false)
-}
-
-/// Advance from a candidate to the next boundary edge, twin-hopping over internals.
-fn advance_to_boundary(
-    arena: &TopologyArena,
-    group: &EntityBitset,
-    start: HalfEdgeId,
-) -> Result<HalfEdgeId, KernelError> {
-    let mut current = start;
-    let mut steps = 0usize;
-
-    while !is_boundary_edge(arena, group, current) {
-        let he_data = arena.get_half_edge(current)?;
-        let twin_id = he_data.radial_next();
-        let twin_data = arena.get_half_edge(twin_id)?;
-        current = twin_data.next();
-
-        steps += 1;
-        if steps > 100_000 {
-            return Err(KernelError::InternalError {
-                message: "Twin-hop exceeded maximum iterations".to_string(),
-                context: None,
-            });
-        }
-    }
-
-    Ok(current)
+    Ok(groups.into_iter().filter(|group| group.count() >= 2).collect())
 }
 
 /// Delete all entities in the group and rebuild a single face from perimeter vertices.
@@ -308,8 +108,15 @@ fn rebuild_face_from_perimeter(
     lineage: Option<&forge_topo::lineage::Lineage>,
     _geom: &GeometryStore,
 ) -> Result<FaceId, KernelError> {
-    let edges_to_delete = collect_group_edges(draft.arena(), group)?;
-    let internal_vertices = find_internal_vertices(draft.arena(), group, perimeter)?;
+    let edges_to_delete = forge_topo::algorithms::region_extraction::collect_face_group_edges(
+        draft.arena(),
+        group,
+    )?;
+    let internal_vertices = forge_topo::algorithms::region_extraction::find_face_group_internal_vertices(
+        draft.arena(),
+        group,
+        perimeter,
+    )?;
 
     let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
     let placeholder_loop = forge_topo::handles::LoopId::from_raw_parts(u32::MAX, 0);
@@ -386,85 +193,6 @@ fn rebuild_face_from_perimeter(
     }
 
     Ok(new_face)
-}
-
-/// Collect all half-edge pairs belonging to faces in the group.
-fn collect_group_edges(
-    arena: &TopologyArena,
-    group: &EntityBitset,
-) -> Result<Vec<(HalfEdgeId, HalfEdgeId)>, KernelError> {
-    let mut edges: BTreeSet<(u32, u32)> = BTreeSet::new();
-    let mut result = Vec::new();
-
-    for face_idx in group.iter_ones() {
-        let face_id = FaceId::from_raw_parts(face_idx, 0);
-        let face_data = arena.get_face(face_id)?;
-        let loop_data = arena.get_loop(face_data.outer_loop())?;
-        let start = loop_data.half_edge();
-        let mut current = start;
-        let mut steps = 0usize;
-
-        loop {
-            let he = arena.get_half_edge(current)?;
-            let twin_id = he.radial_next();
-            let pair = if current.index() < twin_id.index() {
-                (current.index(), twin_id.index())
-            } else {
-                (twin_id.index(), current.index())
-            };
-
-            if !edges.contains(&pair) {
-                edges.insert(pair);
-                result.push((current, twin_id));
-            }
-
-            current = he.next();
-            steps += 1;
-            if current == start || steps > 100_000 {
-                break;
-            }
-        }
-    }
-
-    Ok(result)
-}
-
-/// Find vertices that are exclusively internal to the group (not on the perimeter).
-fn find_internal_vertices(
-    arena: &TopologyArena,
-    group: &EntityBitset,
-    perimeter: &[VertexId],
-) -> Result<Vec<VertexId>, KernelError> {
-    let perimeter_set: EntityBitset = {
-        let mut bs = EntityBitset::for_vertices(arena);
-        for &v in perimeter {
-            let _ = bs.insert(v.index());
-        }
-        bs
-    };
-    let mut all_vertices = EntityBitset::for_vertices(arena);
-
-    for face_idx in group.iter_ones() {
-        let face_id = FaceId::from_raw_parts(face_idx, 0);
-        let face_data = arena.get_face(face_id)?;
-        let loop_data = arena.get_loop(face_data.outer_loop())?;
-        let start = loop_data.half_edge();
-        let mut current = start;
-        let mut steps = 0usize;
-
-        loop {
-            let he = arena.get_half_edge(current)?;
-            let _ = all_vertices.insert(he.origin().index());
-            current = he.next();
-            steps += 1;
-            if current == start || steps > 100_000 {
-                break;
-            }
-        }
-    }
-
-    all_vertices.difference_with(&perimeter_set);
-    Ok(all_vertices.iter_ones().map(|idx| VertexId::from_raw_parts(idx, 0)).collect())
 }
 
 /// Log the extraction decision.

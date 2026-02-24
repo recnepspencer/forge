@@ -7,6 +7,7 @@ description = "Analytic surfaces, NURBS, and curves for the Forge geometry kerne
 
 [dependencies]
 forge-math.workspace = true
+forge-core.workspace = true
 serde = { workspace = true, features = ["derive"] }
 
 [lints]

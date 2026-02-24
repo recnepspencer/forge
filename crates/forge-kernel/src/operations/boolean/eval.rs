@@ -104,27 +104,6 @@ pub fn compute_face_centroid(
     })
 }
 
-/// Compute the AABB of a single face from its vertex f64 positions.
-///
-/// Returns `None` for degenerate or unregistered faces (skipped silently in prepass).
-fn compute_face_aabb(
-    arena: &forge_topo::arena::TopologyArena,
-    geom: &crate::geometry_store::GeometryStore,
-    face: forge_topo::handles::FaceId,
-) -> Option<Aabb> {
-    let he_iter = forge_topo::traverse::FaceEdgeIterator::new(arena, face).ok()?;
-    let edges: Vec<_> = he_iter.collect::<Result<Vec<_>, _>>().ok()?;
-
-    let mut pts: Vec<[f64; 3]> = Vec::with_capacity(edges.len());
-    for he in edges {
-        let v = arena.get_half_edge(he).ok()?.origin();
-        if let Some(pos) = geom.get_vertex_position(v) {
-            pts.push(*pos);
-        }
-    }
-    Aabb::from_points(&pts)
-}
-
 /// Build a `CoincidenceGraph` for two solids using a BVH-accelerated face prepass.
 ///
 /// # Algorithm
@@ -146,20 +125,22 @@ pub fn build_face_coincidence_prepass(
     let mut graph = CoincidenceGraph::new();
 
     // ── 1. Collect per-face (packed u64, Aabb) pairs ──────────────────────────
-    let target_items: Vec<(u64, Aabb)> = target_arena
-        .iter_faces()
-        .filter_map(|(fid, _)| {
-            let aabb = compute_face_aabb(target_arena, target_geom, fid)?;
-            Some((pack_face_id(fid, false), aabb))
-        })
+    let target_items: Vec<(u64, Aabb)> = forge_topo::bounds::all_face_bounds(
+        target_arena,
+        &|vid| target_geom.get_vertex_position(vid).copied(),
+    )
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(fid, aabb)| (pack_face_id(fid, false), aabb))
         .collect();
 
-    let tool_items: Vec<(u64, Aabb)> = tool_arena
-        .iter_faces()
-        .filter_map(|(fid, _)| {
-            let aabb = compute_face_aabb(tool_arena, tool_geom, fid)?;
-            Some((pack_face_id(fid, true), aabb))
-        })
+    let tool_items: Vec<(u64, Aabb)> = forge_topo::bounds::all_face_bounds(
+        tool_arena,
+        &|vid| tool_geom.get_vertex_position(vid).copied(),
+    )
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(fid, aabb)| (pack_face_id(fid, true), aabb))
         .collect();
 
     // ── 2. Build BVH trees ────────────────────────────────────────────────────

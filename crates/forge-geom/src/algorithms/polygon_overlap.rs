@@ -66,6 +66,21 @@ pub fn polygons_overlap_2d(poly_a: &[[f64; 2]], poly_b: &[[f64; 2]]) -> bool {
     false
 }
 
+/// Test if two coplanar 3D polygons overlap in area.
+///
+/// Projects both polygons onto the dominant 2D plane of `plane_normal` and
+/// delegates to [`polygons_overlap_2d`].
+pub fn polygons_overlap_3d(
+    plane_normal: [f64; 3],
+    poly_a: &[[f64; 3]],
+    poly_b: &[[f64; 3]],
+) -> bool {
+    let (ax1, ax2) = dominant_projection_axes(plane_normal);
+    let a2d: Vec<[f64; 2]> = poly_a.iter().map(|p| [p[ax1], p[ax2]]).collect();
+    let b2d: Vec<[f64; 2]> = poly_b.iter().map(|p| [p[ax1], p[ax2]]).collect();
+    polygons_overlap_2d(&a2d, &b2d)
+}
+
 /// Compute the centroid (arithmetic mean of vertices) of a polygon.
 fn polygon_centroid(poly: &[[f64; 2]]) -> [f64; 2] {
     let n = poly.len() as f64;
@@ -275,6 +290,23 @@ mod tests {
         let a = [[-0.5, -2.0], [0.5, -2.0], [0.5, 2.0], [-0.5, 2.0]];
         let b = [[-2.0, -0.5], [2.0, -0.5], [2.0, 0.5], [-2.0, 0.5]];
         assert!(polygons_overlap_2d(&a, &b));
+    }
+
+    #[test]
+    fn polygons_overlap_3d_projects_to_2d() {
+        let a = [
+            [0.0, 0.0, 5.0],
+            [1.0, 0.0, 5.0],
+            [1.0, 1.0, 5.0],
+            [0.0, 1.0, 5.0],
+        ];
+        let b = [
+            [0.5, 0.5, 5.0],
+            [1.5, 0.5, 5.0],
+            [1.5, 1.5, 5.0],
+            [0.5, 1.5, 5.0],
+        ];
+        assert!(polygons_overlap_3d([0.0, 0.0, 1.0], &a, &b));
     }
 
     #[test]

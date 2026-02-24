@@ -14,7 +14,7 @@
 //! DEPENDENCIES: forge_topo (BridgeEdge, arena), GeometryStore, forge_geom
 
 use forge_core::KernelError;
-use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
+use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext};
 use forge_core::tracing::TopologyDelta;
 use forge_topo::handles::{FaceId, HalfEdgeId, LoopId, VertexId};
 use forge_topo::state::{TopologyState, MutableDraft};
@@ -22,6 +22,12 @@ use forge_topo::algorithms::bridge_edge::bridge_edge;
 
 use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
 use crate::geometry_store::GeometryStore;
+
+struct LoopVertexSample {
+    he: HalfEdgeId,
+    vertex: VertexId,
+    pos: [f64; 3],
+}
 
 /// Splice all inner holes on all faces into their outer boundaries.
 ///
@@ -86,25 +92,118 @@ fn splice_one_hole(
     inner_loop: LoopId,
     geom: &GeometryStore,
 ) -> Result<bool, KernelError> {
-    let face_data = draft.arena().get_face(face)?;
     let face_plane = match geom.get_face_plane(face) {
         Some(p) => p,
         None => return Ok(false),
     };
+    let outer_loop = draft.arena().get_face(face)?.outer_loop();
 
     let inner_he_start = draft.arena().get_loop(inner_loop)?.half_edge();
-    let (h_max_he, h_max_vertex, h_max_pos) =
-        find_extremal_vertex(draft, inner_he_start, geom, face_plane)?;
-
-    let outer_loop = face_data.outer_loop();
     let outer_he_start = draft.arena().get_loop(outer_loop)?.half_edge();
 
-    let (target_he, _target_vertex) =
-        raycast_to_outer_boundary(draft, outer_he_start, h_max_pos, geom, face_plane)?;
+    let maybe_bridge = select_bridge_with_geom_algorithm(
+        draft,
+        geom,
+        face_plane,
+        inner_he_start,
+        outer_he_start,
+    )?;
+    let (target_he, h_max_he) = match maybe_bridge {
+        Some(pair) => pair,
+        None => {
+            let (fallback_h_max_he, _fallback_h_max_vertex, h_max_pos) =
+                find_extremal_vertex(draft, inner_he_start, geom, face_plane)?;
+            let (fallback_target_he, _fallback_target_vertex) =
+                raycast_to_outer_boundary(draft, outer_he_start, h_max_pos, geom, face_plane)?;
+            (fallback_target_he, fallback_h_max_he)
+        }
+    };
 
     bridge_edge(draft, target_he, h_max_he)?;
 
     Ok(true)
+}
+
+fn select_bridge_with_geom_algorithm(
+    draft: &MutableDraft,
+    geom: &GeometryStore,
+    plane: &forge_geom::Plane,
+    inner_start: HalfEdgeId,
+    outer_start: HalfEdgeId,
+) -> Result<Option<(HalfEdgeId, HalfEdgeId)>, KernelError> {
+    let Some(inner_samples) = collect_loop_vertex_samples_complete(draft, inner_start, geom)? else {
+        return Ok(None);
+    };
+    let Some(outer_samples) = collect_loop_vertex_samples_complete(draft, outer_start, geom)? else {
+        return Ok(None);
+    };
+
+    let inner_positions: Vec<[f64; 3]> = inner_samples.iter().map(|sample| sample.pos).collect();
+    let outer_positions: Vec<[f64; 3]> = outer_samples.iter().map(|sample| sample.pos).collect();
+    let bridge = forge_geom::algorithms::polygon::bridge_polygon_hole(
+        &outer_positions,
+        &inner_positions,
+        plane.normal(),
+        1e-15,
+        1e-15,
+    );
+    let Some((outer_index, inner_index)) = bridge else {
+        return Ok(None);
+    };
+
+    let target_he = outer_samples
+        .get(outer_index)
+        .ok_or_else(|| KernelError::InternalError {
+            message: "Outer bridge index out of bounds".to_string(),
+            context: None,
+        })?
+        .he;
+    let h_max_he = inner_samples
+        .get(inner_index)
+        .ok_or_else(|| KernelError::InternalError {
+            message: "Hole bridge index out of bounds".to_string(),
+            context: None,
+        })?
+        .he;
+    Ok(Some((target_he, h_max_he)))
+}
+
+fn collect_loop_vertex_samples_complete(
+    draft: &MutableDraft,
+    start_he: HalfEdgeId,
+    geom: &GeometryStore,
+) -> Result<Option<Vec<LoopVertexSample>>, KernelError> {
+    let mut samples = Vec::new();
+    let mut current = start_he;
+    let mut steps = 0usize;
+
+    loop {
+        let he_data = draft.arena().get_half_edge(current)?;
+        let vertex = he_data.origin();
+        let Some(pos) = geom.get_vertex_position(vertex) else {
+            return Ok(None);
+        };
+        samples.push(LoopVertexSample {
+            he: current,
+            vertex,
+            pos: *pos,
+        });
+
+        current = he_data.next();
+        steps += 1;
+        if current == start_he || steps > 100_000 {
+            break;
+        }
+    }
+
+    if steps > 100_000 {
+        return Err(KernelError::InternalError {
+            message: "Loop traversal exceeded maximum iterations".to_string(),
+            context: None,
+        });
+    }
+
+    Ok(Some(samples))
 }
 
 /// Find the vertex on the inner loop with the maximum X coordinate in the face plane.

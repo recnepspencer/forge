@@ -32,6 +32,7 @@ pub use spatial::bsp::PlaneSet; // Exposed for tests mostly?
 pub use spatial::bvh::BvhNode;
 pub use spatial::local_space::{LocalCoordinateSpace, ScaleAnalysis};
 pub use algorithms::chord::{compute_intersection_line, clip_line_to_face_polygon};
+pub use traits::EvaluateNormal;
 
 // Phase 4 geometry types
 pub use surface::{SurfaceKind, SurfaceData, ParameterDomain, SurfaceRelation};

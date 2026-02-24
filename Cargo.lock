@@ -1342,6 +1342,7 @@ dependencies = [
 name = "forge-geom"
 version = "0.1.0"
 dependencies = [
+ "forge-core",
  "forge-math",
  "serde",
  "serde_json",

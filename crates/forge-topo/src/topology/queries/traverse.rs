@@ -11,11 +11,85 @@
 
 use forge_core::KernelError;
 use crate::arena::TopologyArena;
-use crate::handles::{FaceId, HalfEdgeId, VertexId};
+use crate::handles::{FaceId, HalfEdgeId, LoopId, VertexId};
 
 // =========================================================================
 // Face Edge Iterator (Zero Allocation)
 // =========================================================================
+
+/// Iterator over halfedges in a specific loop.
+///
+/// Yields `HalfEdgeId`s following the `next` pointer chain.
+/// Returns `Err` if the loop exceeds `MAX_ITER` (corrupted topology) or if
+/// a handle is stale.
+pub struct LoopEdgeIterator<'a> {
+    arena: &'a TopologyArena,
+    start: HalfEdgeId,
+    current: Option<HalfEdgeId>,
+    steps: usize,
+    finished: bool,
+}
+
+impl<'a> LoopEdgeIterator<'a> {
+    const MAX_ITER: usize = 100_000;
+
+    /// Create a new iterator around a loop.
+    pub fn new(arena: &'a TopologyArena, loop_id: LoopId) -> Result<Self, KernelError> {
+        let loop_data = arena.get_loop(loop_id)?;
+        let start = loop_data.half_edge();
+
+        Ok(Self {
+            arena,
+            start,
+            current: Some(start),
+            steps: 0,
+            finished: false,
+        })
+    }
+}
+
+impl<'a> Iterator for LoopEdgeIterator<'a> {
+    type Item = Result<HalfEdgeId, KernelError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.finished {
+            return None;
+        }
+
+        let curr_id = match self.current {
+            Some(id) => id,
+            None => {
+                self.finished = true;
+                return None;
+            }
+        };
+
+        self.steps += 1;
+        if self.steps >= Self::MAX_ITER {
+            self.finished = true;
+            return Some(Err(KernelError::InternalError {
+                message: format!("Loop traversal exceeded {} iterations — likely corrupted", Self::MAX_ITER),
+                context: None,
+            }));
+        }
+
+        match self.arena.get_half_edge(curr_id) {
+            Ok(he_data) => {
+                let next_id = he_data.next();
+                if next_id == self.start {
+                    self.current = None;
+                } else {
+                    self.current = Some(next_id);
+                }
+                Some(Ok(curr_id))
+            }
+            Err(e) => {
+                self.finished = true;
+                Some(Err(e))
+            }
+        }
+    }
+}
 
 /// Iterator over halfedges in a face loop.
 ///
@@ -31,20 +105,18 @@ pub struct FaceEdgeIterator<'a> {
 }
 
 impl<'a> FaceEdgeIterator<'a> {
-    const MAX_ITER: usize = 100_000;
-
     /// Create a new iterator around a face.
     pub fn new(arena: &'a TopologyArena, face: FaceId) -> Result<Self, KernelError> {
         let face_data = arena.get_face(face)?;
-        let loop_data = arena.get_loop(face_data.outer_loop())?;
-        let start = loop_data.half_edge();
+        let outer_loop = face_data.outer_loop();
+        let loop_iter = LoopEdgeIterator::new(arena, outer_loop)?;
         
         Ok(Self {
             arena,
-            start,
-            current: Some(start),
-            steps: 0,
-            finished: false,
+            start: loop_iter.start,
+            current: loop_iter.current,
+            steps: loop_iter.steps,
+            finished: loop_iter.finished,
         })
     }
 }
@@ -67,10 +139,10 @@ impl<'a> Iterator for FaceEdgeIterator<'a> {
 
         // Cycle guard
         self.steps += 1;
-        if self.steps >= Self::MAX_ITER {
+        if self.steps >= LoopEdgeIterator::MAX_ITER {
             self.finished = true;
             return Some(Err(KernelError::InternalError {
-                message: format!("Face loop exceeded {} iterations — likely corrupted", Self::MAX_ITER),
+                message: format!("Face loop exceeded {} iterations — likely corrupted", LoopEdgeIterator::MAX_ITER),
                 context: None,
             }));
         }
@@ -89,6 +161,82 @@ impl<'a> Iterator for FaceEdgeIterator<'a> {
             Err(e) => {
                 self.finished = true;
                 Some(Err(e))
+            }
+        }
+    }
+}
+
+// =========================================================================
+// Face Loop Iterator (Small Allocation)
+// =========================================================================
+
+/// Iterator over all loops on a face (outer loop first, then inner loops).
+pub struct FaceLoopsIterator {
+    loops: std::vec::IntoIter<LoopId>,
+}
+
+impl FaceLoopsIterator {
+    /// Create a new iterator over all loops on a face.
+    pub fn new(arena: &TopologyArena, face: FaceId) -> Result<Self, KernelError> {
+        Ok(Self {
+            loops: face_loops(arena, face)?.into_iter(),
+        })
+    }
+}
+
+impl Iterator for FaceLoopsIterator {
+    type Item = LoopId;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.loops.next()
+    }
+}
+
+/// Iterator over all halfedges on a face (outer loop and inner loops).
+pub struct FaceAllEdgesIterator<'a> {
+    arena: &'a TopologyArena,
+    loop_iter: FaceLoopsIterator,
+    current_loop_edges: Option<LoopEdgeIterator<'a>>,
+    failed: bool,
+}
+
+impl<'a> FaceAllEdgesIterator<'a> {
+    /// Create a new iterator over every halfedge on a face.
+    pub fn new(arena: &'a TopologyArena, face: FaceId) -> Result<Self, KernelError> {
+        Ok(Self {
+            arena,
+            loop_iter: FaceLoopsIterator::new(arena, face)?,
+            current_loop_edges: None,
+            failed: false,
+        })
+    }
+}
+
+impl<'a> Iterator for FaceAllEdgesIterator<'a> {
+    type Item = Result<HalfEdgeId, KernelError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.failed {
+            return None;
+        }
+
+        loop {
+            if let Some(edges) = self.current_loop_edges.as_mut() {
+                if let Some(item) = edges.next() {
+                    return Some(item);
+                }
+                self.current_loop_edges = None;
+            }
+
+            let loop_id = self.loop_iter.next()?;
+            match LoopEdgeIterator::new(self.arena, loop_id) {
+                Ok(iter) => {
+                    self.current_loop_edges = Some(iter);
+                }
+                Err(err) => {
+                    self.failed = true;
+                    return Some(Err(err));
+                }
             }
         }
     }
@@ -310,6 +458,15 @@ pub fn face_edge_count(arena: &TopologyArena, face: FaceId) -> Result<usize, Ker
     Ok(count)
 }
 
+/// Collect all loops on a face (outer loop first, then inner loops).
+pub fn face_loops(arena: &TopologyArena, face: FaceId) -> Result<Vec<LoopId>, KernelError> {
+    let face_data = arena.get_face(face)?;
+    let mut loops = Vec::with_capacity(1 + face_data.inner_loops().len());
+    loops.push(face_data.outer_loop());
+    loops.extend_from_slice(face_data.inner_loops());
+    Ok(loops)
+}
+
 /// Check if an edge is a boundary edge (self-radial, valence 1).
 pub fn is_boundary_edge(arena: &TopologyArena, he: HalfEdgeId) -> Result<bool, KernelError> {
     let he_data = arena.get_half_edge(he)?;
@@ -457,6 +614,7 @@ mod tests {
     use crate::operator::apply_op;
     use crate::euler::make_vertex_face::MakeVertexFace;
     use crate::euler::make_edge_face::MakeEdgeFace;
+    use crate::euler::make_loop_in_face_from_vertices::MakeLoopInFaceFromVertices;
     use crate::euler::split_edge::SplitEdge;
     use crate::euler::kill_edge_vertex::KillEdgeVertex;
 
@@ -490,6 +648,69 @@ mod tests {
             .collect();
             
         assert_eq!(edges.len(), 2);
+    }
+
+    #[test]
+    fn loop_edges_match_face_outer_loop_edges() {
+        let state = TopologyState::empty();
+        let mut draft = state.into_mutation();
+        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+        let _se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
+        let state = draft.commit().unwrap();
+
+        let face_edges: Vec<HalfEdgeId> = FaceEdgeIterator::new(state.arena(), mvf.face)
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+        let loop_edges: Vec<HalfEdgeId> = LoopEdgeIterator::new(state.arena(), mvf.loop_id)
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+
+        assert_eq!(face_edges, loop_edges);
+    }
+
+    #[test]
+    fn face_all_edges_includes_inner_loop_edges() {
+        let state = TopologyState::empty();
+        let mut draft = state.into_mutation();
+        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+        let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.25 }).unwrap().into_value();
+        let se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
+        let _se3 = apply_op(&mut draft, SplitEdge { edge: se2.he_mb, parameter: 0.75 }).unwrap().into_value();
+
+        let outer_edges_before: Vec<HalfEdgeId> = FaceEdgeIterator::new(draft.arena(), mvf.face)
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+
+        let v0 = draft.arena().get_half_edge(outer_edges_before[0]).unwrap().origin();
+        let v1 = draft.arena().get_half_edge(outer_edges_before[1]).unwrap().origin();
+        let v2 = draft.arena().get_half_edge(outer_edges_before[2]).unwrap().origin();
+
+        let inner = apply_op(
+            &mut draft,
+            MakeLoopInFaceFromVertices {
+                face: mvf.face,
+                vertices: vec![v0, v1, v2],
+            },
+        ).unwrap().into_value();
+
+        let state = draft.commit().unwrap();
+
+        let all_edges: Vec<HalfEdgeId> = FaceAllEdgesIterator::new(state.arena(), mvf.face)
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+        let inner_edges: Vec<HalfEdgeId> = LoopEdgeIterator::new(state.arena(), inner.loop_id)
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+        let loops = face_loops(state.arena(), mvf.face).unwrap();
+
+        assert_eq!(loops.len(), 2);
+        assert_eq!(inner_edges.len(), 3);
+        assert_eq!(all_edges.len(), 7);
     }
 
     // ── Vertex Neighborhood Orbit Tests ───────────────────────────────────

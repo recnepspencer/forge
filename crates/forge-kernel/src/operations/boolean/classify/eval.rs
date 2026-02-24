@@ -20,8 +20,7 @@ use forge_topo::arena::TopologyArena;
 use forge_topo::classify::{classify_point_in_solid, classify_point_on_face, PointClassification, FacePointClassification};
 use forge_topo::handles::FaceId;
 use forge_topo::traverse::FaceEdgeIterator;
-
-use forge_geom::{Aabb, BvhNode};
+use forge_geom::BvhNode;
 
 use crate::core::ModelingContext;
 use crate::geometry_store::GeometryStore;
@@ -484,31 +483,11 @@ fn build_spatial_index(
     arena: &TopologyArena,
     geometry: &GeometryStore,
 ) -> Option<Box<BvhNode<FaceId>>> {
-    let face_aabbs: Vec<(FaceId, Aabb)> = arena.iter_faces()
-        .filter_map(|(face_id, _)| {
-            let aabb = compute_face_aabb(arena, geometry, face_id)?;
-            Some((face_id, aabb))
-        })
-        .collect();
+    let face_aabbs = forge_topo::bounds::all_face_bounds(
+        arena,
+        &|vid| geometry.get_vertex_position(vid).copied(),
+    ).ok()?;
     BvhNode::build(face_aabbs)
-}
-
-/// Compute the AABB of a single face.
-fn compute_face_aabb(
-    arena: &TopologyArena,
-    geometry: &GeometryStore,
-    face_id: FaceId,
-) -> Option<Aabb> {
-    let edges = FaceEdgeIterator::new(arena, face_id).ok()?;
-    let mut points = Vec::new();
-    for he_res in edges {
-        let he_id = he_res.ok()?;
-        let he = arena.get_half_edge(he_id).ok()?;
-        if let Some(pos) = geometry.get_vertex_position(he.origin()) {
-            points.push(*pos);
-        }
-    }
-    Aabb::from_points(&points)
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

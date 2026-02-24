@@ -110,7 +110,11 @@ pub(crate) fn find_coplanar_face_pairs(
                     let not_excluded = !excluded_tool.contains(&tool_fid.index());
                     let is_coplanar = forge_geom::primitives::plane::coplanar_eq(target_plane, tool_plane);
                     let overlaps = if not_excluded && is_coplanar {
-                        faces_overlap_3d(target_plane, &target_verts, tool_verts)
+                        forge_geom::algorithms::polygons_overlap_3d(
+                            target_plane.raw_normal(),
+                            &target_verts,
+                            tool_verts,
+                        )
                     } else {
                         false
                     };
@@ -128,35 +132,26 @@ pub(crate) fn find_coplanar_face_pairs(
     (excluded_target, excluded_tool)
 }
 
-/// Extract ordered vertex positions of a face by walking its half-edge loop.
+/// Extract ordered vertex positions of a single-loop face.
+///
+/// Faces with inner loops are skipped until overlap logic is upgraded to
+/// multi-ring polygon handling.
 fn extract_face_vertices_3d(
     arena: &TopologyArena,
     geom: &GeometryStore,
     face: FaceId,
 ) -> Option<Vec<[f64; 3]>> {
-    let edges = forge_topo::traverse::FaceEdgeIterator::new(arena, face).ok()?;
+    let loops = forge_topo::polygon::face_loop_vertices(arena, face).ok()?;
+    if loops.len() != 1 {
+        return None;
+    }
     let mut verts = Vec::new();
-    for he_res in edges {
-        let he = he_res.ok()?;
-        let v = arena.get_half_edge(he).ok()?.origin();
-        let pos = geom.get_vertex_position(v)?;
+    for v in &loops[0] {
+        let pos = geom.get_vertex_position(*v)?;
         verts.push(*pos);
     }
-    if verts.len() < 3 { return None; }
+    if verts.len() < 3 {
+        return None;
+    }
     Some(verts)
-}
-
-/// Test if two coplanar 3D face polygons overlap in area.
-///
-/// Projects both polygons onto the shared plane's 2D coordinate system
-/// and delegates to `forge_geom::algorithms::polygons_overlap_2d`.
-fn faces_overlap_3d(
-    plane: &forge_geom::Plane,
-    poly_a: &[[f64; 3]],
-    poly_b: &[[f64; 3]],
-) -> bool {
-    let (ax1, ax2) = forge_geom::algorithms::dominant_projection_axes(plane.raw_normal());
-    let a2d: Vec<[f64; 2]> = poly_a.iter().map(|p| [p[ax1], p[ax2]]).collect();
-    let b2d: Vec<[f64; 2]> = poly_b.iter().map(|p| [p[ax1], p[ax2]]).collect();
-    forge_geom::algorithms::polygons_overlap_2d(&a2d, &b2d)
 }

@@ -10,12 +10,14 @@
 //!
 //! MODULES:
 //! - schema  — data shapes (PlaneTable, SplitConfig, LocalVertexDedup, SharedVertexRegistry, CutPoint)
-//! - gate    — cut gate logic (compute_face_chord, exact_sign_for_vertex)
+//! - gate    — cut gate logic (compute_face_chord)
+//! - signs   — exact vertex-vs-plane sign classification
 //! - eval    — orchestration (split_all_faces, split_solid)
 //! - cut     — per-face application (split_face_by_plane, resolve_cut_point)
 
 mod schema;
 pub(crate) mod gate;
+pub(crate) mod signs;
 mod eval;
 mod cut;
 mod reconcile;

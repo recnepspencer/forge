@@ -25,7 +25,8 @@ use crate::geometry_store::GeometryStore;
 use crate::core::ModelingContext;
 use crate::operations::boolean::eval::VertexMatchKey;
 
-use super::gate::{compute_face_chord, exact_sign_for_vertex};
+use super::gate::compute_face_chord;
+use super::signs::exact_sign_for_vertex;
 use super::schema::{CutPoint, EdgeCutMap, ExpectedCutHint, LocalVertexDedup, PlaneTable, SharedVertexRegistry, SplitConfig, make_edge_key};
 
 /// Split a face by a cutting plane — applies exactly ONE cut pair per call.

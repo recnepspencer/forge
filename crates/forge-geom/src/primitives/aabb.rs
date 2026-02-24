@@ -76,6 +76,22 @@ impl Aabb {
         Self { min, max }
     }
 
+    /// Squared distance from a point to this AABB (0 if the point is inside).
+    pub fn distance_to_point_sq(&self, point: &[f64; 3]) -> f64 {
+        let mut sum = 0.0;
+        for i in 0..3 {
+            let delta = if point[i] < self.min[i] {
+                self.min[i] - point[i]
+            } else if point[i] > self.max[i] {
+                point[i] - self.max[i]
+            } else {
+                0.0
+            };
+            sum += delta * delta;
+        }
+        sum
+    }
+
     /// Check if a plane intersects this AABB.
     ///
     /// Plane equation: ax + by + cz + d = 0
@@ -123,5 +139,24 @@ impl Aabb {
         if dx >= dy && dx >= dz { 0 }
         else if dy >= dz { 1 }
         else { 2 }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Aabb;
+
+    #[test]
+    fn distance_to_point_sq_is_zero_inside_box() {
+        let aabb = Aabb::new([0.0, 0.0, 0.0], [2.0, 2.0, 2.0]);
+        let distance_sq = aabb.distance_to_point_sq(&[1.0, 1.0, 1.0]);
+        assert_eq!(distance_sq, 0.0);
+    }
+
+    #[test]
+    fn distance_to_point_sq_accumulates_outside_axes() {
+        let aabb = Aabb::new([0.0, 0.0, 0.0], [1.0, 1.0, 1.0]);
+        let distance_sq = aabb.distance_to_point_sq(&[3.0, -2.0, 0.5]);
+        assert_eq!(distance_sq, 8.0);
     }
 }
