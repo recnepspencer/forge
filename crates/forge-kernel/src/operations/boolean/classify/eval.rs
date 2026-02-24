@@ -19,7 +19,6 @@ use forge_core::tracing::TopologyDelta;
 use forge_topo::arena::TopologyArena;
 use forge_topo::classify::{classify_point_in_solid, classify_point_on_face, PointClassification, FacePointClassification};
 use forge_topo::handles::FaceId;
-use forge_topo::traverse::FaceEdgeIterator;
 use forge_geom::BvhNode;
 
 use crate::core::ModelingContext;
@@ -219,12 +218,12 @@ fn collect_interior_face_samples(
     centroid: [f64; 3],
 ) -> Result<Vec<[f64; 3]>, KernelError> {
     let mut verts: Vec<[f64; 3]> = Vec::new();
-    for he_res in FaceEdgeIterator::new(arena, face_id)? {
-        let he_id = he_res?;
-        let he = arena.get_half_edge(he_id)?;
-        let v = he.origin();
-        if let Some(p) = geometry.get_vertex_position(v) {
-            verts.push(*p);
+    let loops = forge_topo::polygon::face_loop_vertices(arena, face_id)?;
+    if let Some(outer_loop) = loops.first() {
+        for vertex in outer_loop {
+            if let Some(p) = geometry.get_vertex_position(*vertex) {
+                verts.push(*p);
+            }
         }
     }
 
@@ -294,7 +293,7 @@ fn source_geometry_as_tol(geometry: &GeometryStore) -> &dyn ToleranceProvider {
 }
 
 fn same_point(a: &[f64; 3], b: &[f64; 3]) -> bool {
-    (a[0] - b[0]).abs() < 1e-12 && (a[1] - b[1]).abs() < 1e-12 && (a[2] - b[2]).abs() < 1e-12
+    forge_geom::primitives::point::is_same_point_within(a, b, 1e-12)
 }
 
 /// Interpret a raw PointClassification into a FaceClassification.
@@ -352,38 +351,20 @@ fn resolve_boundary_classification(
     let centroid = compute_face_centroid(source_arena, source_geometry, source_face)?;
     let epsilon = config.get_edge_split_degeneracy() * 100.0;
 
-    let pos_sample = [
-        centroid[0] + epsilon * normal[0],
-        centroid[1] + epsilon * normal[1],
-        centroid[2] + epsilon * normal[2],
-    ];
-    let neg_sample = [
-        centroid[0] - epsilon * normal[0],
-        centroid[1] - epsilon * normal[1],
-        centroid[2] - epsilon * normal[2],
-    ];
-
-    let pos_class = classify_point_in_solid(
+    let perturbed = forge_topo::classify::classify_point_with_perturbation(
         other_arena,
         &|index| lookup_vertex_position(other_arena, other_geometry, index),
         accelerator,
-        &pos_sample,
+        &centroid,
+        normal,
+        epsilon,
         other_geometry as &dyn ToleranceProvider,
     )?;
-
-    let neg_class = classify_point_in_solid(
-        other_arena,
-        &|index| lookup_vertex_position(other_arena, other_geometry, index),
-        accelerator,
-        &neg_sample,
-        other_geometry as &dyn ToleranceProvider,
-    )?;
-
-    let pos_face_class = to_face_classification(&pos_class);
-    let neg_face_class = to_face_classification(&neg_class);
-
-    if pos_face_class == neg_face_class {
-        return Ok((pos_face_class, extract_escalation(&pos_class)));
+    if let Some(classification) = perturbed {
+        return Ok((
+            to_face_classification(&classification),
+            extract_escalation(&classification),
+        ));
     }
 
     Ok(interpret_classification(

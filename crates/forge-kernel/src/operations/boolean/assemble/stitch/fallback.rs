@@ -10,7 +10,7 @@
 use std::collections::BTreeSet;
 use forge_core::KernelError;
 use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
-use forge_geom::spatial::edge_match::{DirectedEdge, EdgeMatcher};
+use forge_geom::spatial::edge_match::{DirectedEdge, FuzzyMatchMode, fuzzy_match_edges};
 use forge_topo::handles::HalfEdgeId;
 use forge_topo::operator::apply_op;
 use forge_topo::euler::sew_edge::SewEdge;
@@ -68,9 +68,8 @@ fn run_full_position_pass(
 ) -> Result<(), KernelError> {
     let edges = build_directed_edges(draft, geom, halfedges, false);
     let id_map = build_id_map(halfedges);
-    let matcher = EdgeMatcher::new(edges, tol_sq);
-
-    for m in &matcher.find_full_matches() {
+    let matches = fuzzy_match_edges(edges, tol_sq, FuzzyMatchMode::FullEndpoint);
+    for m in &matches {
         apply_match(draft, &id_map, m.edge_a, m.edge_b, paired, "position fallback", 0.8, ctx)?;
     }
     Ok(())
@@ -96,9 +95,8 @@ fn run_single_vertex_pass(
 
     let edges = build_directed_edges(draft, geom, &remaining, true);
     let id_map = build_id_map(&remaining);
-    let matcher = EdgeMatcher::new(edges, tol_sq);
-
-    for m in &matcher.find_single_vertex_matches() {
+    let matches = fuzzy_match_edges(edges, tol_sq, FuzzyMatchMode::SingleVertex);
+    for m in &matches {
         apply_match(draft, &id_map, m.edge_a, m.edge_b, paired, "single-vertex fallback", 0.6, ctx)?;
     }
     Ok(())

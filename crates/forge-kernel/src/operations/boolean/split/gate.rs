@@ -10,7 +10,6 @@ use forge_geom::primitives::plane::Plane;
 use forge_math::sign::TriSign;
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::FaceId;
-use forge_topo::traverse::FaceEdgeIterator;
 
 use crate::geometry_store::GeometryStore;
 use crate::core::ToleranceConfig;
@@ -104,15 +103,17 @@ fn try_sign_walk_fallback(
     cut_plane: &Plane,
     config: &ToleranceConfig,
 ) -> Result<Option<([f64; 3], [f64; 3])>, KernelError> {
-    let edges: Vec<_> = FaceEdgeIterator::new(arena, face)?
-        .collect::<Result<Vec<_>, _>>()?;
+    let loops = forge_topo::polygon::face_loop_vertices(arena, face)?;
+    let outer_loop = match loops.first() {
+        Some(loop_vertices) => loop_vertices,
+        None => return Ok(None),
+    };
     let mut crossings: Vec<[f64; 3]> = Vec::new();
 
-    for he in &edges {
-        let he_data = arena.get_half_edge(*he)?;
-        let origin = he_data.origin();
-        let next_data = arena.get_half_edge(he_data.next())?;
-        let dest = next_data.origin();
+    let n = outer_loop.len();
+    for i in 0..n {
+        let origin = outer_loop[i];
+        let dest = outer_loop[(i + 1) % n];
 
         if let (Some(p_o), Some(p_d)) = (geometry.get_vertex_position(origin), geometry.get_vertex_position(dest)) {
             // Cut plane index is not known in try_sign_walk_fallback currently,
@@ -146,13 +147,14 @@ fn collect_face_positions(
     geometry: &GeometryStore,
     face: FaceId,
 ) -> Result<Vec<[f64; 3]>, KernelError> {
-    let edges: Vec<_> = FaceEdgeIterator::new(arena, face)?
-        .collect::<Result<Vec<_>, _>>()?;
-    let mut verts = Vec::with_capacity(edges.len());
-    for he in &edges {
-        let v = arena.get_half_edge(*he)?.origin();
-        if let Some(p) = geometry.get_vertex_position(v) {
-            verts.push(*p);
+    let loops = forge_topo::polygon::face_loop_vertices(arena, face)?;
+    let mut verts = Vec::new();
+    if let Some(outer_loop) = loops.first() {
+        verts.reserve(outer_loop.len());
+        for vertex in outer_loop {
+            if let Some(p) = geometry.get_vertex_position(*vertex) {
+                verts.push(*p);
+            }
         }
     }
     Ok(verts)

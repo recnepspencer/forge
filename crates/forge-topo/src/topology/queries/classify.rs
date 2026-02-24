@@ -61,6 +61,53 @@ pub enum PointClassification {
     OnBoundary(FaceId),
 }
 
+/// Resolve a classification ambiguity by symmetric perturbation along a direction.
+///
+/// Samples `point ± epsilon * direction` and re-runs [`classify_point_in_solid`].
+/// Returns `Some(classification)` only when both samples agree exactly; otherwise
+/// returns `None` so the caller can apply domain-specific fallback policy.
+pub fn classify_point_with_perturbation(
+    arena: &TopologyArena,
+    vertex_positions: &dyn Fn(u32) -> Result<[f64; 3], KernelError>,
+    spatial_index: Option<&dyn SpatialAccelerator>,
+    point: &[f64; 3],
+    direction: [f64; 3],
+    epsilon: f64,
+    tolerance_provider: &dyn ToleranceProvider,
+) -> Result<Option<PointClassification>, KernelError> {
+    let pos_sample = [
+        point[0] + epsilon * direction[0],
+        point[1] + epsilon * direction[1],
+        point[2] + epsilon * direction[2],
+    ];
+    let neg_sample = [
+        point[0] - epsilon * direction[0],
+        point[1] - epsilon * direction[1],
+        point[2] - epsilon * direction[2],
+    ];
+
+    let pos_class = classify_point_in_solid(
+        arena,
+        vertex_positions,
+        spatial_index,
+        &pos_sample,
+        tolerance_provider,
+    )?;
+    let neg_class = classify_point_in_solid(
+        arena,
+        vertex_positions,
+        spatial_index,
+        &neg_sample,
+        tolerance_provider,
+    )?;
+
+    if pos_class == neg_class {
+        Ok(Some(pos_class))
+    } else {
+        Ok(None)
+    }
+}
+
 /// Classify a point relative to a face's oriented plane.
 ///
 /// The `orientation` must be a [`forge_math::sign::CertifiedTriSign`] obtained from a

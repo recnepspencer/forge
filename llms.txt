@@ -9,7 +9,7 @@
 
 ## Documentation
 
-- [Architecture](docs/architecture.md): Crate dependency graph and doctrine summary.
+- [Forge Architecture](docs/architecture.md): Crate dependency graph and doctrine summary.
 - [Exactness Contract](docs/exactness-contract.md): Precision guarantee model (planar = exact, curved = certified bounds).
 - [Tolerance Policy](docs/tolerance-policy.md): ModelingContext tolerance infrastructure.
 - [File Naming Dictionary](docs/FILE_NAMING.md): Deterministic naming conventions for source files.
@@ -17,12 +17,8 @@
 ## Agent Rules (always-on)
 
 - [Conventions](/.agent/rules/CONVENTIONS.md): Canonical source of truth — all rules in one place.
-- [Architecture](/.agent/rules/architecture.md): Bento Box feature-sliced layout.
-- [Control Flow](/.agent/rules/control-flow.md): Linear execution, early returns, pure functions.
-- [Doctrines](/.agent/rules/doctrines.md): D0–D8 kernel invariants.
-- [Documentation](/.agent/rules/docs.md): Doc comment standards.
-- [Naming](/.agent/rules/naming.md): Verbs for functions, nouns for variables.
-- [Testing](/.agent/rules/testing.md): Linear tests, no conditionals.
+- [Architecture Rules](/.agent/rules/architecture.md): Mandatory crate boundaries and dependency direction.
+- [Crate Map](/.agent/rules/CRATE_MAP.md): Cross-crate ownership and import lookup reference.
 
 ## Agent Workflows
 

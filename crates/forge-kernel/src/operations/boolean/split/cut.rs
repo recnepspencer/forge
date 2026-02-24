@@ -16,7 +16,7 @@ use forge_geom::primitives::plane::{Plane, intersect_three_planes_exact};
 use forge_math::arithmetic::Rational;
 use forge_topo::handles::{FaceId, VertexId, HalfEdgeId};
 use forge_topo::state::MutableDraft;
-use forge_topo::traverse::FaceEdgeIterator;
+use forge_topo::traverse::FaceAllEdgesIterator;
 use forge_topo::operator::apply_op;
 use forge_topo::euler::split_edge::SplitEdge;
 use forge_topo::euler::make_edge_face::MakeEdgeFace;
@@ -613,7 +613,7 @@ fn build_adjacent_pairs(
     draft: &MutableDraft,
     face: FaceId,
 ) -> Result<BTreeSet<(u32, u32)>, KernelError> {
-    let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), face)?
+    let edges: Vec<_> = FaceAllEdgesIterator::new(draft.arena(), face)?
         .collect::<Result<Vec<_>, _>>()?;
     let mut pairs = BTreeSet::new();
     for he in &edges {
@@ -650,7 +650,7 @@ fn find_cut_points_provenance(
     let mut points = Vec::new();
     let mut sign_cache: BTreeMap<VertexId, forge_math::sign::TriSign> = BTreeMap::new();
 
-    for he in FaceEdgeIterator::new(arena, face)? {
+    for he in FaceAllEdgesIterator::new(arena, face)? {
         let he = he?;
         let he_data = arena.get_half_edge(he)?;
         let origin = he_data.origin();

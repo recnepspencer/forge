@@ -17,7 +17,6 @@ use forge_topo::lineage::{LineageEvent, Lineage, OpSignature};
 use forge_topo::hashing::compute_arena_topology_hash;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 use forge_topo::arena::TopologyArena;
-use forge_topo::traverse::FaceEdgeIterator;
 
 use crate::analysis::proof_validation::checkpoint::{run_checkpoint, ValidationCheckpoint};
 use crate::core::{ModelingContext, OperationSpace};
@@ -437,23 +436,11 @@ fn count_split_face_neighbors(
     face_id: FaceId,
     class_map: &BTreeMap<FaceId, FaceClassification>,
 ) -> (usize, usize) {
-    let mut neighbors = std::collections::BTreeSet::new();
-    let Ok(iter) = FaceEdgeIterator::new(arena, face_id) else {
-        return (0, 0);
-    };
-    for he_res in iter {
-        let Ok(he_id) = he_res else { continue; };
-        let Ok(he) = arena.get_half_edge(he_id) else { continue; };
-        let twin_id = he.radial_next();
-        if twin_id == he_id {
-            continue;
-        }
-        let Ok(twin) = arena.get_half_edge(twin_id) else { continue; };
-        let neighbor_face = twin.face();
-        if neighbor_face != face_id {
-            neighbors.insert(neighbor_face);
-        }
-    }
+    let neighbors: std::collections::BTreeSet<FaceId> =
+        forge_topo::classification::face_adjacent_faces(arena, face_id)
+            .unwrap_or_default()
+            .into_iter()
+            .collect();
 
     let mut inside_neighbors = 0usize;
     let mut split_neighbors = 0usize;

@@ -17,7 +17,6 @@ use forge_topo::arena::{BodyData, LumpData, RegionData, FaceData, HalfEdgeData, 
 use forge_topo::handles::{BodyId, RegionId, FaceId, VertexId, HalfEdgeId, LoopId, ShellId, EdgeId};
 use forge_topo::lineage::{Lineage, OpSignature};
 use forge_topo::state::MutableDraft;
-use forge_topo::traverse::FaceEdgeIterator;
 
 use crate::geometry_store::GeometryStore;
 use crate::operations::boolean::eval::VertexMatchKey;

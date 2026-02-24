@@ -14,7 +14,10 @@ use forge_core::KernelError;
 
 use crate::arena::TopologyArena;
 use crate::handles::{FaceId, HalfEdgeId, VertexId};
+use crate::operator::apply_op;
+use crate::state::MutableDraft;
 use crate::topology::bitset::EntityBitset;
+use crate::topology::operations::euler::join_faces::JoinFaces;
 use crate::topology::queries::traverse::FaceAllEdgesIterator;
 
 /// Walk the boundary perimeter of a face group and collect perimeter vertices.
@@ -111,6 +114,129 @@ pub fn find_face_group_internal_vertices(
     Ok(all_vertices.iter_ones().map(|idx| VertexId::from_raw_parts(idx, 0)).collect())
 }
 
+/// Merge a contiguous face group using iterative `JoinFaces` across internal edges.
+///
+/// This is the topology-preserving replacement for "nuke-and-pave" region rebuild.
+/// The surviving face remains one of the original group faces.
+pub fn merge_face_group_by_join_faces(
+    draft: &mut MutableDraft,
+    group: &EntityBitset,
+) -> Result<FaceId, KernelError> {
+    let mut active: BTreeSet<u32> = group.iter_ones().collect();
+    if active.is_empty() {
+        return Err(KernelError::InternalError {
+            message: "merge_face_group_by_join_faces: empty face group".to_string(),
+            context: None,
+        });
+    }
+
+    while active.len() > 1 {
+        let candidates = collect_internal_group_half_edges(draft.arena(), &active)?;
+        let mut merged = false;
+
+        for he in candidates {
+            let he_data = match draft.arena().get_half_edge(he) {
+                Ok(data) => data,
+                Err(_) => continue,
+            };
+            let twin = he_data.radial_next();
+            if twin == he {
+                continue;
+            }
+            let twin_data = match draft.arena().get_half_edge(twin) {
+                Ok(data) => data,
+                Err(_) => continue,
+            };
+            let face_survive = he_data.face();
+            let face_remove = twin_data.face();
+            if face_survive == face_remove {
+                continue;
+            }
+            if !active.contains(&face_survive.index()) || !active.contains(&face_remove.index()) {
+                continue;
+            }
+
+            match apply_op(draft, JoinFaces { edge: he }) {
+                Ok(exec) => {
+                    let out = exec.into_value();
+                    let _ = active.remove(&face_remove.index());
+                    let _ = active.insert(out.surviving_face.index());
+                    merged = true;
+                    break;
+                }
+                Err(_) => {
+                    continue;
+                }
+            }
+        }
+
+        if !merged {
+            return Err(KernelError::InternalError {
+                message: format!(
+                    "merge_face_group_by_join_faces: unable to merge remaining {} faces",
+                    active.len()
+                ),
+                context: None,
+            });
+        }
+    }
+
+    let surviving_idx = *active.iter().next().ok_or_else(|| KernelError::InternalError {
+        message: "merge_face_group_by_join_faces: no surviving face".to_string(),
+        context: None,
+    })?;
+    let surviving = draft
+        .arena()
+        .iter_faces()
+        .find_map(|(fid, _)| (fid.index() == surviving_idx).then_some(fid))
+        .ok_or_else(|| KernelError::InternalError {
+            message: format!("merge_face_group_by_join_faces: surviving face {} not found", surviving_idx),
+            context: None,
+        })?;
+    Ok(surviving)
+}
+
+fn collect_internal_group_half_edges(
+    arena: &TopologyArena,
+    active_faces: &BTreeSet<u32>,
+) -> Result<Vec<HalfEdgeId>, KernelError> {
+    let mut seen_edges: BTreeSet<u32> = BTreeSet::new();
+    let mut candidates = Vec::new();
+
+    for &face_idx in active_faces {
+        let face_id = match arena.iter_faces().find_map(|(fid, _)| (fid.index() == face_idx).then_some(fid)) {
+            Some(fid) => fid,
+            None => continue,
+        };
+
+        for he_res in FaceAllEdgesIterator::new(arena, face_id)? {
+            let he = he_res?;
+            let he_data = arena.get_half_edge(he)?;
+            let edge_id = he_data.edge().index();
+            if seen_edges.contains(&edge_id) {
+                continue;
+            }
+            let twin = he_data.radial_next();
+            if twin == he {
+                continue;
+            }
+            let twin_data = arena.get_half_edge(twin)?;
+            if he_data.face() == twin_data.face() {
+                continue;
+            }
+            if active_faces.contains(&he_data.face().index()) && active_faces.contains(&twin_data.face().index()) {
+                let canonical = if he.index() <= twin.index() { he } else { twin };
+                candidates.push(canonical);
+                let _ = seen_edges.insert(edge_id);
+            }
+        }
+    }
+
+    candidates.sort_by_key(|he| he.index());
+    candidates.dedup_by_key(|he| he.index());
+    Ok(candidates)
+}
+
 fn find_group_boundary_edge(
     arena: &TopologyArena,
     group: &EntityBitset,
@@ -175,4 +301,45 @@ fn advance_to_group_boundary(
     }
 
     Ok(current)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::merge_face_group_by_join_faces;
+    use crate::bitset::EntityBitset;
+    use crate::euler::make_edge_face::MakeEdgeFace;
+    use crate::euler::make_vertex_face::MakeVertexFace;
+    use crate::euler::split_edge::SplitEdge;
+    use crate::operator::apply_op;
+    use crate::state::TopologyState;
+
+    #[test]
+    fn merge_face_group_by_join_faces_merges_two_faces() {
+        let state = TopologyState::empty();
+        let mut draft = state.into_mutation();
+
+        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+        let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 })
+            .unwrap()
+            .into_value();
+        let mef = apply_op(
+            &mut draft,
+            MakeEdgeFace {
+                vertex_a: mvf.vertex,
+                vertex_b: se.new_vertex,
+                face: mvf.face,
+            },
+        )
+        .unwrap()
+        .into_value();
+
+        let mut group = EntityBitset::for_faces(draft.arena());
+        let _ = group.insert(mvf.face.index());
+        let _ = group.insert(mef.new_face.index());
+
+        let surviving = merge_face_group_by_join_faces(&mut draft, &group).unwrap();
+
+        assert_eq!(draft.arena().face_count(), 1);
+        assert!(draft.arena().get_face(surviving).is_ok());
+    }
 }

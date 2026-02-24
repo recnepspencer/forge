@@ -88,12 +88,12 @@ pub fn compute_face_centroid(
     face: forge_topo::handles::FaceId,
 ) -> Result<[f64; 3], forge_core::KernelError> {
     let mut vertices = Vec::new();
-    let edges: Vec<_> = forge_topo::traverse::FaceEdgeIterator::new(arena, face)?
-        .collect::<Result<Vec<_>, _>>()?;
-    for he in edges {
-        let v = arena.get_half_edge(he)?.origin();
-        if let Some(pos) = geom.get_vertex_position(v) {
-            vertices.push(*pos);
+    let loops = forge_topo::polygon::face_loop_vertices(arena, face)?;
+    if let Some(outer_loop) = loops.first() {
+        for vertex in outer_loop {
+            if let Some(pos) = geom.get_vertex_position(*vertex) {
+                vertices.push(*pos);
+            }
         }
     }
     forge_geom::primitives::polygon::compute_polygon_centroid(&vertices).ok_or_else(|| {

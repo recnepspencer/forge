@@ -17,7 +17,6 @@ use forge_geom::spatial::bvh::{BvhNode, query_overlapping_pairs};
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::state::{TopologyState, MutableDraft};
-use forge_topo::traverse::FaceEdgeIterator;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
 use crate::geometry_store::GeometryStore;
@@ -494,30 +493,19 @@ fn propagate_boundary_planes(
     dest_cuts: &mut BTreeMap<FaceId, Vec<usize>>,
     dest_face: FaceId,
 ) {
-    let edges = match FaceEdgeIterator::new(source_arena, source_face) {
-        Ok(iter) => iter,
+    let adjacent_faces = match forge_topo::classification::face_adjacent_faces(source_arena, source_face) {
+        Ok(faces) => faces,
         Err(_) => return,
     };
 
-    for he_res in edges {
-        let he = match he_res {
-            Ok(h) => h,
-            Err(_) => return,
-        };
-        let he_data = match source_arena.get_half_edge(he) {
-            Ok(d) => d,
-            Err(_) => return,
-        };
-        let twin_data = match source_arena.get_half_edge(he_data.radial_next()) {
-            Ok(d) => d,
-            Err(_) => return,
-        };
-        if let Some(&adj_plane_idx) = source_face_planes.get(&twin_data.face()) {
-            if adj_plane_idx != source_plane_idx {
-                let adj_plane = plane_table.get(adj_plane_idx);
-                if !planes_are_parallel(dest_plane, adj_plane) {
-                    dest_cuts.entry(dest_face).or_default().push(adj_plane_idx);
-                }
+    for adjacent_face in adjacent_faces {
+        if let Some(&adj_plane_idx) = source_face_planes.get(&adjacent_face) {
+            if adj_plane_idx == source_plane_idx {
+                continue;
+            }
+            let adj_plane = plane_table.get(adj_plane_idx);
+            if !planes_are_parallel(dest_plane, adj_plane) {
+                dest_cuts.entry(dest_face).or_default().push(adj_plane_idx);
             }
         }
     }

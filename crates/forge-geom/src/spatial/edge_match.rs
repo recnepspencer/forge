@@ -38,6 +38,15 @@ pub struct EdgeMatch {
     pub distance_sq: f64,
 }
 
+/// Match mode for fuzzy edge matching.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FuzzyMatchMode {
+    /// Both endpoints must match by position within tolerance.
+    FullEndpoint,
+    /// One endpoint matches by vertex index, the other by position.
+    SingleVertex,
+}
+
 /// Spatial-hashed edge matcher for O(n) average reverse-edge pairing.
 ///
 /// Builds a grid over the destination endpoints. For each query edge
@@ -192,6 +201,21 @@ enum MatchMode {
     FullEndpoint,
     /// One endpoint matches by vertex index, the other by position.
     SingleVertex,
+}
+
+/// Fuzzy-match a set of directed edges with deterministic reverse-edge pairing.
+///
+/// This is the high-level geometry API used by kernel stitch fallbacks.
+pub fn fuzzy_match_edges(
+    edges: Vec<DirectedEdge>,
+    tolerance_sq: f64,
+    mode: FuzzyMatchMode,
+) -> Vec<EdgeMatch> {
+    let matcher = EdgeMatcher::new(edges, tolerance_sq);
+    match mode {
+        FuzzyMatchMode::FullEndpoint => matcher.find_full_matches(),
+        FuzzyMatchMode::SingleVertex => matcher.find_single_vertex_matches(),
+    }
 }
 
 /// Compute full reverse-endpoint distance (pass 3 style).
