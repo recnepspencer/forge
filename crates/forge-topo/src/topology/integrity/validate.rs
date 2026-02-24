@@ -13,6 +13,9 @@ pub enum ValidationLevel {
     /// Only check local connectivity invariants (twins, prev/next).
     /// Used for Release builds.
     Minimal,
+    /// Intermediate structural checks. Allows temporary non-manifold
+    /// topology mid-boolean but checks basic pointer coherence.
+    Intermediate,
     /// Full global validity checks (Euler formula, loop closure).
     /// Used for Debug/Test builds.
     Full,

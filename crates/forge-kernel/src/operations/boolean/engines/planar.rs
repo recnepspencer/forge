@@ -14,6 +14,7 @@ use forge_core::KernelError;
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::state::TopologyState;
+use forge_topo::validate::{validate_topology, ValidationLevel};
 
 use crate::core::ModelingContext;
 use crate::geometry_store::GeometryStore;
@@ -136,12 +137,29 @@ impl BooleanPostprocessor for StandardPostprocessor {
         geom: &GeometryStore,
         ctx: &mut ModelingContext,
     ) -> Result<(TopologyState, GeometryStore), KernelError> {
-        let (topo, _) = crate::operations::boolean::postprocess::merge_coplanar_faces(
-            topo, geom, ctx,
-        )?;
+        let topo = if std::env::var("FORGE_SKIP_COPLANAR_POSTPROCESS").ok().as_deref() == Some("1") {
+            topo
+        } else {
+            let (topo, _) = crate::operations::boolean::postprocess::merge_coplanar_faces(
+                topo, geom, ctx,
+            )?;
+            topo
+        };
+        if std::env::var("FORGE_DEBUG_VALIDATE_PHASES").ok().as_deref() == Some("1") {
+            match validate_topology(topo.arena(), ValidationLevel::Full) {
+                Ok(()) => eprintln!("[phase-check] postprocess merge_coplanar valid"),
+                Err(e) => eprintln!("[phase-check] postprocess merge_coplanar invalid: {}", e),
+            }
+        }
         let (topo, _) = crate::operations::boolean::postprocess::remove_redundant_vertices(
             topo, geom, ctx,
         )?;
+        if std::env::var("FORGE_DEBUG_VALIDATE_PHASES").ok().as_deref() == Some("1") {
+            match validate_topology(topo.arena(), ValidationLevel::Full) {
+                Ok(()) => eprintln!("[phase-check] postprocess remove_redundant valid"),
+                Err(e) => eprintln!("[phase-check] postprocess remove_redundant invalid: {}", e),
+            }
+        }
         Ok((topo, geom.clone()))
     }
 }

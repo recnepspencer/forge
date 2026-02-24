@@ -17,7 +17,7 @@ use forge_core::KernelError;
 use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier, EntityRef, ToleranceProvider};
 use forge_core::tracing::TopologyDelta;
 use forge_topo::arena::TopologyArena;
-use forge_topo::classify::{classify_point_in_solid, PointClassification};
+use forge_topo::classify::{classify_point_in_solid, classify_point_on_face, PointClassification, FacePointClassification};
 use forge_topo::handles::FaceId;
 use forge_topo::traverse::FaceEdgeIterator;
 
@@ -53,6 +53,24 @@ pub fn classify_faces(
             accelerator, face_id, &config, ctx,
         )?;
 
+        if std::env::var("FORGE_DEBUG_CLASSIFY_PROVENANCE").ok().as_deref() == Some("1") {
+            let sample = compute_face_centroid(source_arena, source_geometry, face_id)
+                .unwrap_or([f64::NAN; 3]);
+            let lineage_str = source_arena.get_face(face_id)
+                .ok()
+                .and_then(|f| f.lineage())
+                .map(|lin| format!("{}#{}", lin.get_creation_op().get_name(), lin.get_creation_op().get_invocation_id()))
+                .unwrap_or_else(|| "no-lineage".to_string());
+            eprintln!(
+                "[classify-prov] {} F#{} {:?} sample=[{:.6},{:.6},{:.6}] {}",
+                origin_label,
+                face_id.index(),
+                computed,
+                sample[0], sample[1], sample[2],
+                lineage_str
+            );
+        }
+
         let (final_class, overridden) = apply_override(ctx, face_id, computed);
         log_classification(ctx, face_id, &final_class, &computed, overridden, origin_label);
         classified.push(ClassifiedFace::new(face_id, final_class));
@@ -80,12 +98,23 @@ fn classify_single_face(
 ) -> Result<FaceClassification, KernelError> {
     let sample = compute_face_centroid(source_arena, source_geometry, face_id)?;
 
-    let classification = classify_point_in_solid(
+    let primary = classify_point_in_solid(
         other_arena,
         &|index| lookup_vertex_position(other_arena, other_geometry, index),
         accelerator,
         &sample,
         other_geometry as &dyn ToleranceProvider,
+    )?;
+
+    let classification = maybe_multisample_refine(
+        source_arena,
+        source_geometry,
+        other_arena,
+        other_geometry,
+        accelerator,
+        face_id,
+        sample,
+        primary,
     )?;
 
     let (class, escalation) = match &classification {
@@ -104,6 +133,138 @@ fn classify_single_face(
     }
 
     Ok(class)
+}
+
+fn maybe_multisample_refine(
+    source_arena: &TopologyArena,
+    source_geometry: &GeometryStore,
+    other_arena: &TopologyArena,
+    other_geometry: &GeometryStore,
+    accelerator: Option<&dyn forge_topo::classify::SpatialAccelerator>,
+    face_id: FaceId,
+    centroid: [f64; 3],
+    primary: PointClassification,
+) -> Result<PointClassification, KernelError> {
+    if matches!(primary, PointClassification::OnBoundary(_)) {
+        return Ok(primary);
+    }
+    if !face_needs_multisample(source_arena, face_id) {
+        return Ok(primary);
+    }
+
+    let samples = collect_interior_face_samples(source_arena, source_geometry, face_id, centroid)?;
+    if samples.len() <= 1 {
+        return Ok(primary);
+    }
+
+    let mut inside = 0usize;
+    let mut outside = 0usize;
+    let mut first_boundary: Option<FaceId> = None;
+
+    for p in samples {
+        let cls = classify_point_in_solid(
+            other_arena,
+            &|index| lookup_vertex_position(other_arena, other_geometry, index),
+            accelerator,
+            &p,
+            other_geometry as &dyn ToleranceProvider,
+        )?;
+        match cls {
+            PointClassification::Inside { .. } => inside += 1,
+            PointClassification::Outside { .. } => outside += 1,
+            PointClassification::OnBoundary(fid) => {
+                if first_boundary.is_none() {
+                    first_boundary = Some(fid);
+                }
+            }
+        }
+    }
+
+    if inside > outside && first_boundary.is_none() {
+        return Ok(PointClassification::Inside { escalation: None });
+    }
+    if outside > inside && first_boundary.is_none() {
+        return Ok(PointClassification::Outside { escalation: None });
+    }
+    if let Some(fid) = first_boundary {
+        return Ok(PointClassification::OnBoundary(fid));
+    }
+
+    Ok(primary)
+}
+
+fn face_needs_multisample(source_arena: &TopologyArena, face_id: FaceId) -> bool {
+    let Some(face) = source_arena.get_face(face_id).ok() else {
+        return false;
+    };
+    let Some(lineage) = face.lineage() else {
+        return false;
+    };
+    lineage.get_creation_op().get_name().starts_with("make_edge_face")
+}
+
+fn collect_interior_face_samples(
+    arena: &TopologyArena,
+    geometry: &GeometryStore,
+    face_id: FaceId,
+    centroid: [f64; 3],
+) -> Result<Vec<[f64; 3]>, KernelError> {
+    let mut verts: Vec<[f64; 3]> = Vec::new();
+    for he_res in FaceEdgeIterator::new(arena, face_id)? {
+        let he_id = he_res?;
+        let he = arena.get_half_edge(he_id)?;
+        let v = he.origin();
+        if let Some(p) = geometry.get_vertex_position(v) {
+            verts.push(*p);
+        }
+    }
+
+    if verts.len() < 3 {
+        return Ok(vec![centroid]);
+    }
+
+    let pos_fn = |v: forge_topo::handles::VertexId| geometry.get_vertex_position(v).copied();
+    let mut samples: Vec<[f64; 3]> = Vec::new();
+    let mut push_if_on_face = |p: [f64; 3]| -> Result<(), KernelError> {
+        match classify_point_on_face(arena, face_id, &p, &pos_fn, source_geometry_as_tol(geometry))? {
+            FacePointClassification::OnFace => {
+                if !samples.iter().any(|q| same_point(q, &p)) {
+                    samples.push(p);
+                }
+            }
+            _ => {}
+        }
+        Ok(())
+    };
+
+    push_if_on_face(centroid)?;
+
+    let n = verts.len();
+    for i in 0..n.min(4) {
+        let a = verts[i];
+        let b = verts[(i + 1) % n];
+        let edge_mid = [(a[0] + b[0]) * 0.5, (a[1] + b[1]) * 0.5, (a[2] + b[2]) * 0.5];
+        let inset = [
+            edge_mid[0] * 0.75 + centroid[0] * 0.25,
+            edge_mid[1] * 0.75 + centroid[1] * 0.25,
+            edge_mid[2] * 0.75 + centroid[2] * 0.25,
+        ];
+        push_if_on_face(inset)?;
+    }
+
+    if samples.is_empty() {
+        samples.push(centroid);
+    }
+
+    Ok(samples)
+}
+
+fn source_geometry_as_tol(geometry: &GeometryStore) -> &dyn ToleranceProvider {
+    geometry as &dyn ToleranceProvider
+}
+
+fn same_point(a: &[f64; 3], b: &[f64; 3]) -> bool {
+    (a[0] - b[0]).abs() < 1e-12 && (a[1] - b[1]).abs() < 1e-12 && (a[2] - b[2]).abs() < 1e-12
 }
 
 /// Interpret a raw PointClassification into a FaceClassification.

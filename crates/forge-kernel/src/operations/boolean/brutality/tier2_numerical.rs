@@ -59,6 +59,10 @@ use super::super::schema::{BooleanInput, BooleanOp};
 /// or self-intersecting edges.
 #[test]
 fn iterative_rotation_shredder_10() {
+    let stop_after = std::env::var("FORGE_SHREDDER_STOP_AFTER")
+        .ok()
+        .and_then(|s| s.parse::<usize>().ok())
+        .unwrap_or(10);
     let mut accumulated = {
         let (topo, geom) = build_cube([0.0, 0.0, 0.0], 1.0);
         (topo, geom)
@@ -93,6 +97,9 @@ fn iterative_rotation_shredder_10() {
             Err(e) => {
                 panic!("Iterative shredder step {step} failed: {e}");
             }
+        }
+        if step >= stop_after {
+            break;
         }
     }
 }

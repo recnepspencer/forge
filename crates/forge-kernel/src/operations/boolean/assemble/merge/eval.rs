@@ -15,6 +15,8 @@ use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::replay::{ReplayLog, ReplayEntry};
 use forge_topo::lineage::{LineageEvent, Lineage, OpSignature};
 use forge_topo::hashing::compute_arena_topology_hash;
+use forge_topo::validate::{validate_topology, ValidationLevel};
+use forge_topo::arena::TopologyArena;
 
 use crate::analysis::proof_validation::checkpoint::{run_checkpoint, ValidationCheckpoint};
 use crate::core::{ModelingContext, OperationSpace};
@@ -173,6 +175,15 @@ fn execute_boolean_pipeline(
     let (target_topo, target_geom, tool_topo, tool_geom, target_prov, tool_prov) =
         split_result.into_parts();
 
+    if cfg!(debug_assertions) {
+        if let Err(e) = validate_topology(target_topo.arena(), ValidationLevel::Intermediate) {
+            eprintln!("[phase-check] split target invalid: {}", e);
+        }
+        if let Err(e) = validate_topology(tool_topo.arena(), ValidationLevel::Intermediate) {
+            eprintln!("[phase-check] split tool invalid: {}", e);
+        }
+    }
+
     let post_target_hash = compute_arena_topology_hash(target_topo.arena());
     let post_tool_hash = compute_arena_topology_hash(tool_topo.arena());
     let post_split_hash = post_target_hash ^ post_tool_hash;
@@ -226,6 +237,21 @@ fn execute_boolean_pipeline(
     let target_face_count = selected_target.len();
     let tool_face_count = selected_tool.len();
 
+    if std::env::var("FORGE_DEBUG_SELECT_PROVENANCE").ok().as_deref() == Some("1") {
+        dump_selection_provenance(
+            "target",
+            target_topo.arena(),
+            &target_classified,
+            &selected_target,
+        );
+        dump_selection_provenance(
+            "tool",
+            tool_topo.arena(),
+            &tool_classified,
+            &selected_tool,
+        );
+    }
+
     record_replay(&mut replay, &mut seq, "select_faces",
         format!("{{\"target_selected\":{target_face_count},\"tool_selected\":{tool_face_count}}}"),
         post_split_hash, post_split_hash, ctx, &mut prev_decision_snapshot);
@@ -248,6 +274,12 @@ fn execute_boolean_pipeline(
         )
     }).map_err(|e| e.with_phase("assemble"))?;
 
+    if cfg!(debug_assertions) {
+        if let Err(e) = validate_topology(result_topo.arena(), ValidationLevel::Intermediate) {
+            eprintln!("[phase-check] assemble result invalid: {}", e);
+        }
+    }
+
     let post_assemble_hash = compute_arena_topology_hash(result_topo.arena());
     record_replay(&mut replay, &mut seq, "assemble_result",
         format!("{{\"faces\":{}}}", result_topo.arena().face_count()),
@@ -267,6 +299,12 @@ fn execute_boolean_pipeline(
         format!("{{\"faces\":{}}}", result_topo.arena().face_count()),
         post_assemble_hash, post_pp_hash, ctx, &mut prev_decision_snapshot);
 
+    if cfg!(debug_assertions) {
+        if let Err(e) = validate_topology(result_topo.arena(), ValidationLevel::Intermediate) {
+            eprintln!("[phase-check] postprocess result invalid: {}", e);
+        }
+    }
+
     // ── Finalize ─────────────────────────────────────────────────────────────
     introspection.duration_micros = start_time.elapsed().as_micros() as u64;
 
@@ -279,6 +317,33 @@ fn execute_boolean_pipeline(
     run_post_boolean_validation(&result, ctx).map_err(|e| e.with_phase("validate_result"))?;
 
     Ok(result)
+}
+
+fn dump_selection_provenance(
+    label: &str,
+    arena: &TopologyArena,
+    classified: &[crate::operations::boolean::schema::ClassifiedFace],
+    selected: &[FaceId],
+) {
+    let selected_set: std::collections::BTreeSet<u32> = selected.iter().map(|f| f.index()).collect();
+    eprintln!("[select-prov] {} classified={} selected={}", label, classified.len(), selected.len());
+    for cf in classified {
+        let face = cf.face();
+        let action = if selected_set.contains(&face.index()) { "KEEP" } else { "DROP" };
+        let lineage_str = arena.get_face(face)
+            .ok()
+            .and_then(|f| f.lineage())
+            .map(|lin| format!("{}#{}", lin.get_creation_op().get_name(), lin.get_creation_op().get_invocation_id()))
+            .unwrap_or_else(|| "no-lineage".to_string());
+        eprintln!(
+            "[select-prov] {} F#{} {:?} {} {}",
+            label,
+            face.index(),
+            cf.classification(),
+            action,
+            lineage_str
+        );
+    }
 }
 
 // ── Phase helpers ────────────────────────────────────────────────────────────
@@ -419,6 +484,7 @@ fn record_replay(
 ///
 /// This replaces the old `finalize_envelope` — validation errors are now captured
 /// in the envelope via the always-envelope pattern rather than being returned bare.
+// DEFECT(D6): No post-operation ValidationLevel::Full check is enforced.
 fn run_post_boolean_validation(
     result: &BooleanResult,
     ctx: &ModelingContext,

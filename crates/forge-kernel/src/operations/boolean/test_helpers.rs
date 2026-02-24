@@ -107,14 +107,17 @@ pub fn run_boolean_with_pipeline(
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, op);
     let envelope = execute_boolean_logged_with_pipeline(input, pipeline);
-    envelope.into_result().unwrap_or_else(|e| {
+    let result = envelope.into_result().unwrap_or_else(|e| {
         panic!("Boolean {:?} failed: {:?}", op, e);
-    })
+    });
+    assert_euler_formula_per_shell(result.topology().arena());
+    result
 }
 
 /// Attempt a boolean, returning the Result for tests that expect errors.
 ///
 /// Traces and error logging are handled automatically by `into_result()`.
+// DEFECT(D9): Tests assert `try_boolean(...).is_ok()` without inspecting invariants.
 pub fn try_boolean(
     center_a: [f64; 3],
     half_a: f64,
@@ -145,7 +148,11 @@ pub fn try_boolean_with_pipeline(
     let (topo_b, geom_b) = build_cube(center_b, half_b);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, op);
-    execute_boolean_logged_with_pipeline(input, pipeline).into_result()
+    let result = execute_boolean_logged_with_pipeline(input, pipeline).into_result();
+    if let Ok(ref res) = result {
+        assert_euler_formula_per_shell(res.topology().arena());
+    }
+    result
 }
 
 /// Execute a boolean from a pre-built `BooleanInput`, returning the full envelope.
@@ -192,6 +199,19 @@ pub fn euler_audit(arena: &forge_topo::arena::TopologyArena) -> (usize, usize, u
     let f = arena.face_count();
     let chi = v as isize - e as isize + f as isize;
     (v, e, f, chi)
+}
+
+/// Asserts the topological representation follows the generalized Euler characteristic:
+/// V - E + F = 2(1 - G) 
+/// for every shell, adjusting for genus G.
+pub fn assert_euler_formula_per_shell(arena: &forge_topo::arena::TopologyArena) {
+    if arena.face_count() == 0 { return; }
+    
+    // We already have validate_euler built-in which asserts V - E + F = 2 - 2G + R
+    // Just trigger it manually using the structural checker
+    if let Err(e) = forge_topo::validate::validate_topology(arena, forge_topo::validate::ValidationLevel::Full) {
+        panic!("Euler formula failed: {:?}", e);
+    }
 }
 
 /// Build a tetrahedron mesh from 4 planes.

@@ -296,6 +296,7 @@ fn advance_to_boundary(
 }
 
 /// Delete all entities in the group and rebuild a single face from perimeter vertices.
+// DEFECT(D3): rebuild_face_from_perimeter uses raw insert_radial_pair instead of Euler ops.
 fn rebuild_face_from_perimeter(
     draft: &mut MutableDraft,
     group: &BTreeSet<FaceId>,

@@ -72,6 +72,12 @@ impl VertexWelder {
     pub fn new(characteristic_scale: f64) -> Self {
         let scale = characteristic_scale.max(1e-15);
         let linear_tol = scale * 1e-8;
+        Self::with_linear_tolerance(linear_tol)
+    }
+
+    /// Create a welder with an explicit linear tolerance.
+    pub fn with_linear_tolerance(linear_tol: f64) -> Self {
+        let linear_tol = linear_tol.max(1e-15);
         Self {
             welder: forge_geom::spatial::epsilon_weld::EpsilonWelder::new(linear_tol),
             vertex_ids: Vec::new(),
@@ -114,6 +120,7 @@ pub fn copy_faces(
     source_geom: &GeometryStore,
     source_faces: &[FaceId],
     reverse_orientation: bool,
+    lineage_copy_tag: &str,
     src_prov: Option<&BTreeMap<VertexId, VertexMatchKey>>,
 ) -> Result<(), KernelError> {
     let mut shell_map: std::collections::BTreeMap<ShellId, ShellId> = std::collections::BTreeMap::new();
@@ -141,7 +148,7 @@ pub fn copy_faces(
         let new_face = copy_single_face(
             draft, result_geom, vertex_dedup, new_edges, global_vertex_map,
             spatial_index,
-            source_arena, source_geom, src_face, reverse_orientation, src_prov, dest_shell,
+            source_arena, source_geom, src_face, reverse_orientation, lineage_copy_tag, src_prov, dest_shell,
         )?;
         
         draft.arena_mut().get_shell_mut(dest_shell).unwrap().set_representative_face(new_face);
@@ -156,6 +163,7 @@ fn ensure_destination_body(draft: &mut MutableDraft) -> BodyId {
     draft.insert_body(BodyData::new())
 }
 
+// DEFECT(D7): Region/Lump/Body hierarchy created manually instead of via MakeLumpRegion.
 fn create_destination_region(
     draft: &mut MutableDraft,
     body: BodyId,
@@ -168,6 +176,7 @@ fn create_destination_region(
 }
 
 /// Copy a single face via direct arena insertion.
+// DEFECT(D1): copy_single_face does raw arena insertion (insert_face/insert_half_edge) instead of using certified Euler operations.
 fn copy_single_face(
     draft: &mut MutableDraft,
     result_geom: &mut GeometryStore,
@@ -179,10 +188,14 @@ fn copy_single_face(
     source_geom: &GeometryStore,
     src_face: FaceId,
     reverse_orientation: bool,
+    lineage_copy_tag: &str,
     src_prov: Option<&BTreeMap<VertexId, VertexMatchKey>>,
     dest_shell: ShellId,
 ) -> Result<FaceId, KernelError> {
     let new_plane = prepare_face_plane(source_geom, src_face, reverse_orientation)?;
+    let src_face_lineage = source_arena.get_face(src_face)
+        .ok()
+        .and_then(|f| f.lineage().cloned());
 
     let edges: Vec<_> = FaceEdgeIterator::new(source_arena, src_face)?
         .collect::<Result<Vec<_>, _>>()?;
@@ -196,7 +209,14 @@ fn copy_single_face(
     let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
     let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
 
-    let face_id = draft.insert_face(FaceData::new(placeholder_loop, dest_shell));
+    let copy_op_name = if reverse_orientation {
+        format!("boolean_copy_face_{}_rev", lineage_copy_tag)
+    } else {
+        format!("boolean_copy_face_{}_fwd", lineage_copy_tag)
+    };
+    let copy_sig = OpSignature::with_id(&copy_op_name, src_face.index() as u64);
+    let face_lineage = Some(Lineage::derive_from(&src_face_lineage, copy_sig));
+    let face_id = draft.insert_face(FaceData::with_lineage(placeholder_loop, dest_shell, face_lineage));
     result_geom.set_face_plane(face_id, new_plane);
 
     let loop_id = draft.insert_loop(LoopData::new(placeholder_he, face_id));

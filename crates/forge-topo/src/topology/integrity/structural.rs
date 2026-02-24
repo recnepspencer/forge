@@ -34,12 +34,15 @@ pub fn validate_topology(arena: &TopologyArena, level: ValidationLevel) -> Resul
     validate_vertex_continuity(arena)?;
     validate_vertex_outgoing(arena)?;
 
-    if level == ValidationLevel::Full {
+    if level == ValidationLevel::Intermediate || level == ValidationLevel::Full {
         validate_loops(arena)?;
+        validate_hierarchy(arena)?;
+    }
+
+    if level == ValidationLevel::Full {
         validate_euler(arena)?;
         validate_shell_consistency(arena)?;
         validate_orientation_consistency(arena)?;
-        validate_hierarchy(arena)?;
     }
 
     Ok(())

@@ -12,6 +12,7 @@ use forge_topo::state::TopologyState;
 use forge_topo::handles::{HalfEdgeId, VertexId};
 use forge_topo::operator::apply_op;
 use forge_topo::euler::kill_edge_vertex::KillEdgeVertex;
+use forge_topo::validate::{validate_topology, ValidationLevel};
 
 use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
 use crate::geometry_store::GeometryStore;
@@ -36,16 +37,25 @@ fn run_vertex_cleanup_pass(
     config: &crate::core::ToleranceConfig,
     ctx: &mut ModelingContext,
 ) -> Result<(TopologyState, usize), KernelError> {
-    let mut draft = topo.into_mutation();
-
-    let candidate = find_collinear_vertex_candidate(draft.arena(), geom, config);
+    let candidate = find_collinear_vertex_candidate(topo.arena(), geom, config);
     let Some((vid, incoming_he)) = candidate else {
-        return Ok((draft.commit()?, 0));
+        return Ok((topo, 0));
     };
+    let original = topo.clone();
+    let mut draft = topo.into_mutation();
 
     let pre_snapshot = ArenaSnapshot::capture(draft.arena());
     match apply_op(&mut draft, KillEdgeVertex { edge: incoming_he }) {
         Ok(_) => {
+            if let Err(err) = validate_topology(draft.arena(), ValidationLevel::Full) {
+                eprintln!(
+                    "[postprocess/vertex] skip invalid redundant-vertex removal v#{} via he#{}: {}",
+                    vid.index(),
+                    incoming_he.index(),
+                    err
+                );
+                return Ok((original, 0));
+            }
             let delta = compute_topology_delta(&pre_snapshot, draft.arena());
             log_vertex_removal(vid, delta, ctx);
             Ok((draft.commit()?, 1))
@@ -91,8 +101,8 @@ fn check_collinearity(
     let e2_data = arena.get_half_edge(edges[1]).ok()?;
 
     let p_v = geom.get_vertex_position(vid)?;
-    let target_a = arena.get_half_edge(e1_data.radial_next()).ok()?.origin();
-    let target_b = arena.get_half_edge(e2_data.radial_next()).ok()?.origin();
+    let target_a = arena.get_half_edge(e1_data.next()).ok()?.origin();
+    let target_b = arena.get_half_edge(e2_data.next()).ok()?.origin();
     let p_a = geom.get_vertex_position(target_a)?;
     let p_b = geom.get_vertex_position(target_b)?;
 

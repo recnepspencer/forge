@@ -93,6 +93,7 @@ impl SplitPhaseResult {
 ///
 /// Used to resolve provenance for edges between coplanar sub-faces.
 pub type EdgeCutMap = BTreeMap<(u32, u32), usize>;
+pub type ExpectedCutEndpointMap = BTreeMap<(FaceId, usize), Vec<[f64; 3]>>;
 
 /// Create a canonical (sorted) edge key from two vertex IDs.
 pub fn make_edge_key(v1: VertexId, v2: VertexId) -> (u32, u32) {

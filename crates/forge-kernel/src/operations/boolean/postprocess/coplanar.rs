@@ -14,6 +14,7 @@ use forge_topo::state::TopologyState;
 use forge_topo::handles::HalfEdgeId;
 use forge_topo::operator::apply_op;
 use forge_topo::euler::join_faces::JoinFaces;
+use forge_topo::validate::{validate_topology, ValidationLevel};
 
 use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
 use crate::geometry_store::GeometryStore;
@@ -38,16 +39,26 @@ fn run_merge_pass(
     geom: &GeometryStore,
     ctx: &mut ModelingContext,
 ) -> Result<(TopologyState, usize), KernelError> {
-    let mut draft = topo.into_mutation();
-
-    let candidate = find_coplanar_merge_candidate(draft.arena(), geom);
+    let candidate = find_coplanar_merge_candidate(topo.arena(), geom);
     let Some((he_id, face_a, face_b)) = candidate else {
-        return Ok((draft.commit()?, 0));
+        return Ok((topo, 0));
     };
+    let original = topo.clone();
+    let mut draft = topo.into_mutation();
 
     let pre_snapshot = ArenaSnapshot::capture(draft.arena());
     match apply_op(&mut draft, JoinFaces { edge: he_id }) {
         Ok(_) => {
+            if let Err(err) = validate_topology(draft.arena(), ValidationLevel::Full) {
+                eprintln!(
+                    "[postprocess/coplanar] skip invalid merge on he#{} faces {}+{}: {}",
+                    he_id.index(),
+                    face_a.index(),
+                    face_b.index(),
+                    err
+                );
+                return Ok((original, 0));
+            }
             let delta = compute_topology_delta(&pre_snapshot, draft.arena());
             log_merge(he_id, face_a, face_b, delta, ctx);
             Ok((draft.commit()?, 1))

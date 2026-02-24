@@ -267,7 +267,7 @@ fn splice_two_shells(
     copy_faces(
         &mut draft, &mut result_geom, &mut dedup, &mut sec_he,
         &mut sec_vm, &mut spatial,
-        secondary_topo.arena(), secondary_geom, &secondary_faces, reverse_secondary, None,
+        secondary_topo.arena(), secondary_geom, &secondary_faces, reverse_secondary, "secondary", None,
     )?;
 
     let sec_delta = compute_topology_delta(&pre_sec, draft.arena());
@@ -339,7 +339,7 @@ fn splice_tool_into_target(
     copy_faces(
         &mut draft, &mut result_geom, &mut dedup, &mut tool_he,
         &mut tool_vm, &mut spatial,
-        tool_topo.arena(), tool_geom, &tool_faces, true, None,
+        tool_topo.arena(), tool_geom, &tool_faces, true, "tool", None,
     )?;
 
     let tool_delta = compute_topology_delta(&pre_tool, draft.arena());
@@ -390,7 +390,7 @@ fn copy_shell(
     copy_faces(
         draft, result_geom, &mut dedup, he_ids,
         vertex_map, spatial,
-        source_arena, source_geom, faces, reverse, None,
+        source_arena, source_geom, faces, reverse, "copy_shell", None,
     )
 }
 

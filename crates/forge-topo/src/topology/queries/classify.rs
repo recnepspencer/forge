@@ -97,6 +97,7 @@ pub fn classify_point_against_face(
 /// A point physically on a face surface is detected in **Pass 1** using the
 /// tolerance-based check. SoS (Pass 2) intentionally perturbs the point
 /// off boundaries, so the pre-check is essential.
+// DEFECT(D8): classify_point_in_solid has no multi-direction retry if first ray hits degenerate components.
 pub fn classify_point_in_solid(
     arena: &TopologyArena,
     vertex_positions: &dyn Fn(u32) -> Result<[f64; 3], KernelError>,

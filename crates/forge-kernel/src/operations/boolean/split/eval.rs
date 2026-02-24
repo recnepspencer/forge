@@ -24,7 +24,7 @@ use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
 use crate::operations::boolean::eval::{VertexMatchKey, planes_are_parallel};
 
 use super::schema::{
-    EdgeCutMap, LocalVertexDedup, PlaneTable, SharedVertexRegistry, SplitPhaseResult, SplitConfig,
+    EdgeCutMap, ExpectedCutEndpointMap, LocalVertexDedup, PlaneTable, SharedVertexRegistry, SplitPhaseResult, SplitConfig,
 };
 use super::cut::split_face_by_plane;
 use super::gate::compute_face_chord;
@@ -49,6 +49,18 @@ pub fn split_all_faces(
         &target_geom,
         tool_topo.arena(),
         &tool_geom,
+        &config,
+    )?;
+
+    let (expected_shared_positions, target_expected_cut_endpoints, tool_expected_cut_endpoints) = collect_expected_overlap_hints(
+        &bvh_pairs,
+        target_topo.arena(),
+        &target_geom,
+        &target_face_planes,
+        tool_topo.arena(),
+        &tool_geom,
+        &tool_face_planes,
+        &plane_table,
         &config,
     )?;
 
@@ -87,6 +99,7 @@ pub fn split_all_faces(
         &mut plane_table,
         &config,
         &mut shared_registry,
+        target_expected_cut_endpoints,
         ctx,
     )?;
 
@@ -98,6 +111,7 @@ pub fn split_all_faces(
         &mut plane_table,
         &config,
         &mut shared_registry,
+        tool_expected_cut_endpoints,
         ctx,
     )?;
 
@@ -110,7 +124,15 @@ pub fn split_all_faces(
         .max(ctx.get_gap_closure().get_max_gap())
         .max(target_geom_out.global_default())
         .max(tool_geom_out.global_default());
-    let reconcile_search_tol = base_reconcile_tol.max(ctx.get_gap_closure().get_max_gap() * 100.0);
+    let reconcile_search_tol = base_reconcile_tol.max(ctx.get_gap_closure().get_max_gap() * 256.0);
+    if std::env::var("FORGE_DEBUG_VALIDATE_PHASES").ok().as_deref() == Some("1") {
+        eprintln!(
+            "[reconcile] search_tol={:.6e} (base={:.6e}, gap_max={:.6e})",
+            reconcile_search_tol,
+            base_reconcile_tol,
+            ctx.get_gap_closure().get_max_gap()
+        );
+    }
     let weld_tol_sq = reconcile_search_tol * reconcile_search_tol;
     let _reconciled = reconcile_boundary_vertices(
         &mut target_draft,
@@ -121,6 +143,7 @@ pub fn split_all_faces(
         &mut tool_dedup,
         &shared_registry,
         weld_tol_sq,
+        &expected_shared_positions,
         &target_original_vids,
         &tool_original_vids,
     )?;
@@ -137,6 +160,127 @@ pub fn split_all_faces(
         target_provenance: target_dedup.provenance,
         tool_provenance: tool_dedup.provenance,
     })
+}
+
+/// Collect overlap-segment endpoints for non-parallel BVH face pairs.
+///
+/// These are the only positions that should be considered "shared boundary"
+/// candidates during reconcile. Plane-only splitting can create extra one-sided
+/// chord-tail vertices; filtering reconcile to this set prevents false orphan
+/// injection.
+fn collect_expected_overlap_hints(
+    bvh_pairs: &[(FaceId, FaceId)],
+    target_arena: &TopologyArena,
+    target_geom: &GeometryStore,
+    target_face_planes: &BTreeMap<FaceId, usize>,
+    tool_arena: &TopologyArena,
+    tool_geom: &GeometryStore,
+    tool_face_planes: &BTreeMap<FaceId, usize>,
+    plane_table: &PlaneTable,
+    config: &crate::core::ToleranceConfig,
+) -> Result<(Vec<[f64; 3]>, ExpectedCutEndpointMap, ExpectedCutEndpointMap), KernelError> {
+    let mut positions = Vec::new();
+    let mut target_expected: ExpectedCutEndpointMap = BTreeMap::new();
+    let mut tool_expected: ExpectedCutEndpointMap = BTreeMap::new();
+
+    for &(face_a, face_b) in bvh_pairs {
+        let Some(&pa) = target_face_planes.get(&face_a) else { continue };
+        let Some(&pb) = tool_face_planes.get(&face_b) else { continue };
+        let plane_a = plane_table.get(pa);
+        let plane_b = plane_table.get(pb);
+
+        if planes_are_parallel(plane_a, plane_b) {
+            continue;
+        }
+
+        let chord_a = match compute_face_chord(target_arena, target_geom, face_a, plane_a, plane_b, config)? {
+            Some(ch) => ch,
+            None => continue,
+        };
+        let chord_b = match compute_face_chord(tool_arena, tool_geom, face_b, plane_b, plane_a, config)? {
+            Some(ch) => ch,
+            None => continue,
+        };
+
+        if let Some((p0, p1)) = chord_overlap_segment(chord_a, chord_b, config.get_min_edge_length()) {
+            positions.push(p0);
+            positions.push(p1);
+            target_expected.entry((face_a, pb)).or_default().extend([p0, p1]);
+            tool_expected.entry((face_b, pa)).or_default().extend([p0, p1]);
+        }
+    }
+
+    dedup_endpoint_map(&mut target_expected, config.get_min_edge_length());
+    dedup_endpoint_map(&mut tool_expected, config.get_min_edge_length());
+
+    Ok((dedup_positions(positions, config.get_min_edge_length()), target_expected, tool_expected))
+}
+
+fn chord_overlap_segment(
+    chord_a: ([f64; 3], [f64; 3]),
+    chord_b: ([f64; 3], [f64; 3]),
+    min_len: f64,
+) -> Option<([f64; 3], [f64; 3])> {
+    let dir = [
+        chord_a.1[0] - chord_a.0[0],
+        chord_a.1[1] - chord_a.0[1],
+        chord_a.1[2] - chord_a.0[2],
+    ];
+    let len_sq = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2];
+    if !len_sq.is_finite() || len_sq <= 1e-30 {
+        return None;
+    }
+    let len = len_sq.sqrt();
+    let unit = [dir[0] / len, dir[1] / len, dir[2] / len];
+    let origin = chord_a.0;
+
+    let proj = |p: [f64; 3]| -> f64 {
+        (p[0] - origin[0]) * unit[0]
+            + (p[1] - origin[1]) * unit[1]
+            + (p[2] - origin[2]) * unit[2]
+    };
+    let point_at = |t: f64| -> [f64; 3] {
+        [origin[0] + unit[0] * t, origin[1] + unit[1] * t, origin[2] + unit[2] * t]
+    };
+
+    let mut a0 = proj(chord_a.0);
+    let mut a1 = proj(chord_a.1);
+    let mut b0 = proj(chord_b.0);
+    let mut b1 = proj(chord_b.1);
+    if a0 > a1 { std::mem::swap(&mut a0, &mut a1); }
+    if b0 > b1 { std::mem::swap(&mut b0, &mut b1); }
+
+    let o0 = a0.max(b0);
+    let o1 = a1.min(b1);
+    if !o0.is_finite() || !o1.is_finite() || (o1 - o0) <= min_len * 0.5 {
+        return None;
+    }
+
+    Some((point_at(o0), point_at(o1)))
+}
+
+fn dedup_positions(mut pts: Vec<[f64; 3]>, tol: f64) -> Vec<[f64; 3]> {
+    let tol_sq = (tol.max(1e-9)).powi(2);
+    let mut out: Vec<[f64; 3]> = Vec::new();
+    for p in pts.drain(..) {
+        let is_dup = out.iter().any(|q| {
+            let dx = p[0] - q[0];
+            let dy = p[1] - q[1];
+            let dz = p[2] - q[2];
+            dx * dx + dy * dy + dz * dz <= tol_sq
+        });
+        if !is_dup {
+            out.push(p);
+        }
+    }
+    out
+}
+
+fn dedup_endpoint_map(map: &mut ExpectedCutEndpointMap, tol: f64) {
+    for pts in map.values_mut() {
+        let deduped = dedup_positions(std::mem::take(pts), tol);
+        *pts = deduped;
+    }
 }
 
 // ── Plane table construction ─────────────────────────────────────────────────
@@ -415,6 +559,8 @@ fn supplement_one_direction(
 /// where only 1 cut point is found) are collected for a retry round.
 /// The retry gives these faces a second chance after neighboring SplitEdge
 /// operations have propagated new vertices onto shared edges.
+// DEFECT(D5): split_solid deferred retry queue Abandons grazing cuts instead of handling them.
+// DEFECT(D5): split_solid deferred retry queue abandons grazing cuts instead of properly resolving them.
 fn split_solid(
     topo: TopologyState,
     mut geom: GeometryStore,
@@ -423,6 +569,7 @@ fn split_solid(
     plane_table: &mut PlaneTable,
     config: &crate::core::ToleranceConfig,
     shared_registry: &mut SharedVertexRegistry,
+    mut expected_cut_endpoints: ExpectedCutEndpointMap,
     ctx: &mut ModelingContext,
 ) -> Result<(MutableDraft, GeometryStore, usize, LocalVertexDedup, std::collections::BTreeSet<VertexId>), KernelError> {
     let mut draft = topo.into_mutation();
@@ -450,7 +597,7 @@ fn split_solid(
         let result = try_split_face(
             &mut draft, &mut geom, &mut dedup, &mut edge_cut_map,
             fid, cut_idx, &current_face_planes,
-            plane_table, config, shared_registry, ctx,
+            plane_table, config, shared_registry, &expected_cut_endpoints, ctx,
         )?;
 
         match result {
@@ -459,6 +606,7 @@ fn split_solid(
                 for &nf in &new_faces {
                     current_face_planes.insert(nf, face_plane_idx);
                 }
+                propagate_expected_cut_endpoints(&mut expected_cut_endpoints, fid, &new_faces);
                 for nf in new_faces {
                     queue.push((nf, Arc::clone(&cuts), cut_pos));
                 }
@@ -474,30 +622,78 @@ fn split_solid(
         }
     }
 
-    for (fid, cuts, cut_pos) in deferred {
-        if !current_face_planes.contains_key(&fid) {
-            continue;
-        }
+    let mut retry_queue = deferred;
+    let mut retry_round = 0usize;
+    while !retry_queue.is_empty() && retry_round < 8 {
+        retry_round += 1;
+        let mut next_retry: Vec<(FaceId, Arc<Vec<usize>>, usize)> = Vec::new();
+        let mut progress = false;
 
-        let Some(&cut_idx) = cuts.get(cut_pos) else {
-            continue;
-        };
+        while let Some((fid, cuts, cut_pos)) = retry_queue.pop() {
+            if !current_face_planes.contains_key(&fid) {
+                continue;
+            }
 
-        let result = try_split_face(
-            &mut draft, &mut geom, &mut dedup, &mut edge_cut_map,
-            fid, cut_idx, &current_face_planes,
-            plane_table, config, shared_registry, ctx,
-        )?;
+            let Some(&cut_idx) = cuts.get(cut_pos) else {
+                continue;
+            };
 
-        if let SplitAttempt::Split(new_faces, face_plane_idx) = result {
-            splits += 1;
-            for &nf in &new_faces {
-                current_face_planes.insert(nf, face_plane_idx);
+            let result = try_split_face(
+                &mut draft, &mut geom, &mut dedup, &mut edge_cut_map,
+                fid, cut_idx, &current_face_planes,
+                plane_table, config, shared_registry, &expected_cut_endpoints, ctx,
+            )?;
+
+            match result {
+                SplitAttempt::Split(new_faces, face_plane_idx) => {
+                    progress = true;
+                    splits += 1;
+                    for &nf in &new_faces {
+                        current_face_planes.insert(nf, face_plane_idx);
+                    }
+                    propagate_expected_cut_endpoints(&mut expected_cut_endpoints, fid, &new_faces);
+                    for nf in new_faces {
+                        next_retry.push((nf, Arc::clone(&cuts), cut_pos));
+                    }
+                }
+                SplitAttempt::NoSplit => {
+                    next_retry.push((fid, cuts, cut_pos));
+                }
             }
         }
+
+        if !progress {
+            break;
+        }
+        retry_queue = next_retry;
     }
 
     Ok((draft, geom, splits, dedup, original_vids))
+}
+
+fn propagate_expected_cut_endpoints(
+    expected_cut_endpoints: &mut ExpectedCutEndpointMap,
+    parent_face: FaceId,
+    new_faces: &[FaceId],
+) {
+    if new_faces.is_empty() {
+        return;
+    }
+
+    let inherited: Vec<(usize, Vec<[f64; 3]>)> = expected_cut_endpoints
+        .iter()
+        .filter(|((fid, _), _)| *fid == parent_face)
+        .map(|((_, cut_idx), pts)| (*cut_idx, pts.clone()))
+        .collect();
+
+    for &nf in new_faces {
+        for (cut_idx, pts) in &inherited {
+            expected_cut_endpoints
+                .entry((nf, *cut_idx))
+                .or_default()
+                .extend(pts.iter().copied());
+        }
+    }
 }
 
 /// Result of a single face split attempt.
@@ -518,6 +714,7 @@ fn try_split_face(
     plane_table: &mut PlaneTable,
     config: &crate::core::ToleranceConfig,
     shared_registry: &mut SharedVertexRegistry,
+    expected_cut_endpoints: &ExpectedCutEndpointMap,
     ctx: &mut ModelingContext,
 ) -> Result<SplitAttempt, KernelError> {
     let face_plane_idx = *current_face_planes.get(&fid)
@@ -536,7 +733,7 @@ fn try_split_face(
     let new_faces = split_face_by_plane(
         draft, geom, dedup, edge_cut_map,
         fid, face_plane, cut_plane, cut_idx,
-        &split_cfg, shared_registry, ctx,
+        &split_cfg, shared_registry, expected_cut_endpoints.get(&(fid, cut_idx)), ctx,
     )?;
 
     if new_faces.is_empty() {

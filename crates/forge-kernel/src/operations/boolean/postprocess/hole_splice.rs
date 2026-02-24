@@ -27,6 +27,7 @@ use crate::geometry_store::GeometryStore;
 ///
 /// Iterates faces with inner loops, finds bridge vertices via 2D raycasting,
 /// and applies the BridgeEdge Euler operator. Returns the count of holes spliced.
+// DEFECT(D4): splice_inner_holes uses bridge_edge to merge holes, creating non-manifold bridging edges.
 pub fn splice_inner_holes(
     topo: TopologyState,
     geom: &GeometryStore,

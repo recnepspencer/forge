@@ -7,7 +7,7 @@
 //! Returns `StitchReport` so callers decide if unpaired is acceptable.
 
 use std::collections::{BTreeMap, BTreeSet};
-use forge_core::KernelError;
+use forge_core::{KernelError, ToleranceProvider};
 use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
 use forge_topo::handles::{HalfEdgeId, VertexId};
 use forge_topo::state::MutableDraft;
@@ -15,6 +15,12 @@ use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
 use crate::geometry_store::GeometryStore;
 
 use super::fallback::stitch_position_fallback;
+
+fn debug_stitch_enabled() -> bool {
+    std::env::var("FORGE_DEBUG_STITCH")
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false)
+}
 
 /// Structured result from stitching — callers decide if unpaired is acceptable.
 pub struct StitchReport {
@@ -203,6 +209,26 @@ fn run_stitch_pass(
                     .copied()
                     .collect();
 
+                if debug_stitch_enabled() && unpaired.is_empty() {
+                    let reverse_summary: Vec<String> = reverse_candidates
+                        .iter()
+                        .map(|&c| {
+                            let face = draft.arena().get_half_edge(c).map(|d| d.face().index()).unwrap_or(u32::MAX);
+                            let paired_flag = paired.contains(&c.index());
+                            format!("HE#{}(F#{},paired={})", c.index(), face, paired_flag)
+                        })
+                        .collect();
+                    eprintln!(
+                        "[stitch] HE#{} F#{} {:?}->{:?} reverse {:?} exists but no eligible candidates: {}",
+                        he_id.index(),
+                        he_face.index(),
+                        origin.index(),
+                        dest.index(),
+                        reverse_key,
+                        reverse_summary.join(", ")
+                    );
+                }
+
                 if !unpaired.is_empty() {
                     let best = if unpaired.len() == 1 {
                         unpaired[0]
@@ -217,6 +243,30 @@ fn run_stitch_pass(
 
                     log_stitch_decision(he_id, best, &decision_kind, ctx);
                 }
+            }
+            if debug_stitch_enabled() && !edge_map.contains_key(&reverse_key) {
+                let same_key = (origin.index(), dest.index());
+                let same_summary = edge_map
+                    .get(&same_key)
+                    .map(|v| {
+                        v.iter()
+                            .map(|&c| {
+                                let face = draft.arena().get_half_edge(c).map(|d| d.face().index()).unwrap_or(u32::MAX);
+                                format!("HE#{}(F#{})", c.index(), face)
+                            })
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    })
+                    .unwrap_or_else(|| "<none>".to_string());
+                eprintln!(
+                    "[stitch] HE#{} F#{} {:?}->{:?} has no reverse key {:?}; same-dir={}",
+                    he_id.index(),
+                    he_face.index(),
+                    origin.index(),
+                    dest.index(),
+                    reverse_key,
+                    same_summary
+                );
             }
         }
     }
@@ -321,6 +371,7 @@ fn build_stitch_failure_error(
         let face_index = draft.arena().get_half_edge(he_id)
             .map(|he| he.face().index())
             .unwrap_or(u32::MAX);
+        let face_id_opt = draft.arena().get_half_edge(he_id).ok().map(|he| he.face());
         let face_ref = EntityRef::new(forge_core::EntityKind::Face, face_index);
 
         let related_decisions: Vec<String> = decision_log.decisions()
@@ -336,6 +387,42 @@ fn build_stitch_failure_error(
             .collect();
 
         detail_lines.push(format!("  HalfEdge#{} (Face#{})", he_id.index(), face_index));
+        if let Some(face_id) = face_id_opt {
+            if let Ok(face_data) = draft.arena().get_face(face_id) {
+                if let Some(lin) = face_data.lineage() {
+                    detail_lines.push(format!(
+                        "    face_lineage: op={} ancestry={:032x} features={:?}",
+                        lin.get_creation_op(),
+                        lin.get_ancestry_hash(),
+                        lin.get_origin_features(),
+                    ));
+                }
+            }
+        }
+        if debug_stitch_enabled() {
+            if let Ok((origin, dest)) = get_edge_endpoints(draft, he_id) {
+                let p0 = geom.get_vertex_position(origin);
+                let p1 = geom.get_vertex_position(dest);
+                if let (Some(a), Some(b)) = (p0, p1) {
+                    detail_lines.push(format!(
+                        "    endpoints: V#{} [{:.6},{:.6},{:.6}] -> V#{} [{:.6},{:.6},{:.6}]",
+                        origin.index(),
+                        a[0], a[1], a[2],
+                        dest.index(),
+                        b[0], b[1], b[2]
+                    ));
+                } else {
+                    detail_lines.push(format!(
+                        "    endpoints: V#{} -> V#{} (geometry missing)",
+                        origin.index(),
+                        dest.index()
+                    ));
+                }
+            }
+            if let Some(line) = find_near_reverse_edge_debug(he_id, draft, geom, ctx) {
+                detail_lines.push(format!("    near-reverse: {}", line));
+            }
+        }
         if related_decisions.is_empty() {
             detail_lines.push("    (no entity-scoped decisions found)".to_string());
         } else {
@@ -376,4 +463,79 @@ fn build_stitch_failure_error(
             detail: detail_lines.join("\n"),
         }),
     }
+}
+
+fn find_near_reverse_edge_debug(
+    source_he: HalfEdgeId,
+    draft: &MutableDraft,
+    geom: &GeometryStore,
+    ctx: &ModelingContext,
+) -> Option<String> {
+    let (src_o, src_d) = get_edge_endpoints(draft, source_he).ok()?;
+    let a = *geom.get_vertex_position(src_o)?;
+    let b = *geom.get_vertex_position(src_d)?;
+
+    let tol = geom.global_default().max(ctx.get_gap_closure().get_max_gap() * 4.0);
+    let tol_sq = tol * tol;
+
+    let mut best_any: Option<(HalfEdgeId, f64)> = None;
+    let mut best_close: Option<(HalfEdgeId, f64)> = None;
+    for (cand_id, _) in draft.arena().iter_half_edges() {
+        if cand_id == source_he {
+            continue;
+        }
+        let (co, cd) = match get_edge_endpoints(draft, cand_id) {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        let pa = match geom.get_vertex_position(co) {
+            Some(p) => *p,
+            None => continue,
+        };
+        let pb = match geom.get_vertex_position(cd) {
+            Some(p) => *p,
+            None => continue,
+        };
+
+        let d0 = dist_sq3(&a, &pb);
+        let d1 = dist_sq3(&b, &pa);
+        let score = d0 + d1;
+        let is_better_any = best_any.map(|(_, s)| score < s).unwrap_or(true);
+        if is_better_any {
+            best_any = Some((cand_id, score));
+        }
+        if d0 <= tol_sq * 100.0 && d1 <= tol_sq * 100.0 {
+            let is_better = best_close.map(|(_, s)| score < s).unwrap_or(true);
+            if is_better {
+                best_close = Some((cand_id, score));
+            }
+        }
+    }
+
+    let (best_id, score, close) = if let Some((id, s)) = best_close {
+        (id, s, true)
+    } else if let Some((id, s)) = best_any {
+        (id, s, false)
+    } else {
+        return None;
+    };
+    let face = draft.arena().get_half_edge(best_id).ok()?.face();
+    let lineage = draft.arena().get_face(face).ok()
+        .and_then(|f| f.lineage())
+        .map(|lin| format!("{}#{}", lin.get_creation_op().get_name(), lin.get_creation_op().get_invocation_id()))
+        .unwrap_or_else(|| "no-lineage".to_string());
+    Some(format!(
+        "HE#{} F#{} score={:.3e} {}",
+        best_id.index(),
+        face.index(),
+        score.sqrt(),
+        if close { lineage } else { format!("{} [far]", lineage) }
+    ))
+}
+
+fn dist_sq3(a: &[f64; 3], b: &[f64; 3]) -> f64 {
+    let dx = a[0] - b[0];
+    let dy = a[1] - b[1];
+    let dz = a[2] - b[2];
+    dx * dx + dy * dy + dz * dz
 }

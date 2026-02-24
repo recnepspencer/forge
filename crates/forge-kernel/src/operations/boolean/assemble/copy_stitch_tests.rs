@@ -41,7 +41,7 @@ fn copy_and_stitch(
     copy_faces(
         &mut draft, &mut result_geom, &mut dedup, &mut he_ids,
         &mut vertex_map, &mut spatial,
-        source_topo.arena(), source_geom, &faces, false, None,
+        source_topo.arena(), source_geom, &faces, false, "test_copy", None,
     )?;
 
     let mut ctx = ModelingContext::default();
@@ -398,6 +398,5 @@ fn mb_n3_step4_split_forensics() {
         }
     }
 }
-
 
 

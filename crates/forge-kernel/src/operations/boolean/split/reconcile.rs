@@ -38,14 +38,15 @@ pub fn reconcile_boundary_vertices(
     tool_dedup: &mut LocalVertexDedup,
     shared_registry: &SharedVertexRegistry,
     weld_tolerance_sq: f64,
+    expected_shared_positions: &[[f64; 3]],
     target_original_vids: &BTreeSet<VertexId>,
     tool_original_vids: &BTreeSet<VertexId>,
 ) -> Result<usize, KernelError> {
     let target_orphans = find_orphan_vertices(
-        target_dedup, tool_dedup, shared_registry, target_original_vids,
+        target_dedup, tool_dedup, shared_registry, expected_shared_positions, weld_tolerance_sq, target_original_vids,
     );
     let tool_orphans = find_orphan_vertices(
-        tool_dedup, target_dedup, shared_registry, tool_original_vids,
+        tool_dedup, target_dedup, shared_registry, expected_shared_positions, weld_tolerance_sq, tool_original_vids,
     );
 
     eprintln!("[reconcile] target cut-orphans: {}, tool cut-orphans: {}",
@@ -83,6 +84,8 @@ fn find_orphan_vertices(
     source_dedup: &LocalVertexDedup,
     dest_dedup: &LocalVertexDedup,
     shared_registry: &SharedVertexRegistry,
+    expected_shared_positions: &[[f64; 3]],
+    weld_tolerance_sq: f64,
     original_vids: &BTreeSet<VertexId>,
 ) -> Vec<OrphanVertex> {
     let mut orphans = Vec::new();
@@ -92,11 +95,22 @@ fn find_orphan_vertices(
         }
         if !dest_dedup.has_key(key) {
             if let Some(&pos) = shared_registry.get_position(key) {
+                if !is_expected_shared_position(&pos, expected_shared_positions, weld_tolerance_sq) {
+                    continue;
+                }
                 orphans.push(OrphanVertex { key: key.clone(), position: pos });
             }
         }
     }
     orphans
+}
+
+fn is_expected_shared_position(
+    pos: &[f64; 3],
+    expected_shared_positions: &[[f64; 3]],
+    weld_tolerance_sq: f64,
+) -> bool {
+    expected_shared_positions.iter().any(|p| dist_sq_3d(pos, p) <= weld_tolerance_sq * 100.0)
 }
 
 /// Inject a set of orphan vertices into a solid by splitting edges.
@@ -445,4 +459,3 @@ fn find_nearest_edge_distance(
     }
     best
 }
-

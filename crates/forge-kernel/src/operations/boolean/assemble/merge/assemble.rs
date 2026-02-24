@@ -40,7 +40,9 @@ pub(crate) fn assemble_result(
     let mut result_geom = GeometryStore::new();
 
     let mut global_vertex_map: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
-    let mut spatial_index = super::super::copy::VertexWelder::new(characteristic_scale);
+    let weld_floor = ctx.get_gap_closure().get_max_gap() * 4.0;
+    let weld_linear = (characteristic_scale.max(1e-15) * 1e-8).max(weld_floor);
+    let mut spatial_index = super::super::copy::VertexWelder::with_linear_tolerance(weld_linear);
 
     let mut all_new_he_ids: Vec<HalfEdgeId> = Vec::new();
 
@@ -52,6 +54,7 @@ pub(crate) fn assemble_result(
         &mut spatial_index,
         target_arena, target_geom, target_faces,
         false,
+        "target",
         Some(target_prov),
     )?;
 
@@ -63,6 +66,7 @@ pub(crate) fn assemble_result(
         &mut spatial_index,
         tool_arena, tool_geom, tool_faces,
         reverse_tool,
+        "tool",
         Some(tool_prov),
     )?;
 

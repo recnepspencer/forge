@@ -46,6 +46,7 @@ pub fn split_face_by_plane(
     cut_plane_idx: usize,
     split_cfg: &SplitConfig<'_>,
     shared_registry: &mut SharedVertexRegistry,
+    expected_endpoints: Option<&Vec<[f64; 3]>>,
     ctx: &mut ModelingContext,
 ) -> Result<Vec<FaceId>, KernelError> {
 
@@ -73,8 +74,18 @@ pub fn split_face_by_plane(
         return Ok(Vec::new());
     }
 
-    let sorted = sort_along_cut_direction(resolved, cut_plane, geometry);
-    apply_one_cut(sorted, draft, geometry, edge_cut_map, face, face_plane, cut_plane_idx, ctx)
+    let sorted = sort_along_cut_direction(resolved, face_plane, cut_plane, geometry);
+    apply_one_cut(
+        sorted,
+        draft,
+        geometry,
+        edge_cut_map,
+        face,
+        face_plane,
+        cut_plane_idx,
+        expected_endpoints,
+        ctx,
+    )
 }
 
 /// Run the chord-gate and log a decision if rejected.
@@ -114,10 +125,14 @@ fn resolve_all_cut_points(
 /// Sort resolved vertices along a reference direction on the cutting plane.
 fn sort_along_cut_direction(
     mut verts: Vec<VertexId>,
+    face_plane: &Plane,
     cut_plane: &Plane,
     geometry: &GeometryStore,
 ) -> Vec<VertexId> {
-    let ref_dir = forge_math::linalg::compute_perpendicular_direction(cut_plane.raw_normal());
+    let mut ref_dir = forge_math::linalg::cross(face_plane.raw_normal(), cut_plane.raw_normal());
+    if forge_math::linalg::norm_sq(ref_dir) <= 1e-24 {
+        ref_dir = forge_math::linalg::compute_perpendicular_direction(cut_plane.raw_normal());
+    }
     verts.sort_by(|a, b| {
         let pa = geometry.get_vertex_position(*a)
             .map(|p| p[0]*ref_dir[0] + p[1]*ref_dir[1] + p[2]*ref_dir[2])
@@ -142,9 +157,30 @@ fn apply_one_cut(
     face: FaceId,
     face_plane: &Plane,
     cut_plane_idx: usize,
+    expected_endpoints: Option<&Vec<[f64; 3]>>,
     ctx: &mut ModelingContext,
 ) -> Result<Vec<FaceId>, KernelError> {
     let adjacent = build_adjacent_pairs(draft, face)?;
+
+    if let Some(result) = try_expected_pair(
+        &sorted,
+        expected_endpoints,
+        &adjacent,
+        draft,
+        geometry,
+        edge_cut_map,
+        face,
+        face_plane,
+        cut_plane_idx,
+        ctx,
+    )? {
+        return Ok(result);
+    }
+
+    if expected_endpoints.is_some() {
+        log_rejection(face, cut_plane_idx, "deferred: expected overlap endpoints not yet realizable on fragment", ctx);
+        return Ok(Vec::new());
+    }
 
     let cut_result = sorted.chunks_exact(2)
         .filter(|pair| pair[0] != pair[1])
@@ -159,6 +195,15 @@ fn apply_one_cut(
         .find_map(|pair| {
             let v_a = pair[0];
             let v_b = pair[1];
+            if expected_endpoints.is_some() {
+                eprintln!(
+                    "[cut-expected] face#{} plane#{} fallback trying {} {}",
+                    face.index(),
+                    cut_plane_idx,
+                    v_a,
+                    v_b
+                );
+            }
             let op = MakeEdgeFace { vertex_a: v_a, vertex_b: v_b, face };
             match apply_op(draft, op) {
                 Ok(res) => {
@@ -178,6 +223,175 @@ fn apply_one_cut(
 
     log_rejection(face, cut_plane_idx, "no valid cut pair found", ctx);
     Ok(Vec::new())
+}
+
+fn try_expected_pair(
+    sorted: &[VertexId],
+    expected_endpoints: Option<&Vec<[f64; 3]>>,
+    adjacent: &BTreeSet<(u32, u32)>,
+    draft: &mut MutableDraft,
+    geometry: &mut GeometryStore,
+    edge_cut_map: &mut EdgeCutMap,
+    face: FaceId,
+    face_plane: &Plane,
+    cut_plane_idx: usize,
+    ctx: &mut ModelingContext,
+) -> Result<Option<Vec<FaceId>>, KernelError> {
+    let Some(expected) = expected_endpoints else {
+        return Ok(None);
+    };
+    if expected.len() < 2 || sorted.len() < 2 {
+        return Ok(None);
+    }
+
+    let mut candidates: Vec<(VertexId, VertexId, f64, f64)> = Vec::new();
+    for pair in sorted.chunks_exact(2) {
+        let v_a = pair[0];
+        let v_b = pair[1];
+        if v_a == v_b {
+            continue;
+        }
+        let key = if v_a.index() <= v_b.index() {
+            (v_a.index(), v_b.index())
+        } else {
+            (v_b.index(), v_a.index())
+        };
+        if adjacent.contains(&key) {
+            continue;
+        }
+        let Some(pa) = geometry.get_vertex_position(v_a) else { continue };
+        let Some(pb) = geometry.get_vertex_position(v_b) else { continue };
+        let (score, max_leg) = expected_pair_score(pa, pb, expected);
+        candidates.push((v_a, v_b, score, max_leg));
+    }
+
+    if candidates.is_empty() {
+        return Ok(None);
+    }
+
+    let scale = expected_extent(expected).max(1e-9);
+    let max_leg_allow = scale * 0.05 + 1e-6;
+    let score_allow = scale * scale * 0.25;
+    candidates.sort_by(|a, b| {
+        a.2.partial_cmp(&b.2)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.3.partial_cmp(&b.3).unwrap_or(std::cmp::Ordering::Equal))
+    });
+
+    let mut best_seen: Option<(f64, f64)> = None;
+    let mut rejected = 0usize;
+    for (v_a, v_b, score, max_leg) in candidates {
+        if best_seen.is_none() {
+            best_seen = Some((score, max_leg));
+        }
+        if score > score_allow || max_leg > max_leg_allow * max_leg_allow {
+            rejected += 1;
+            continue;
+        }
+
+        if let (Some(pa), Some(pb)) = (geometry.get_vertex_position(v_a), geometry.get_vertex_position(v_b)) {
+            eprintln!(
+                "[cut-expected] face#{} plane#{} choose {} {} score={:.3e}",
+                face.index(),
+                cut_plane_idx,
+                v_a,
+                v_b,
+                score
+            );
+            eprintln!(
+                "[cut-expected]   pair A=[{:.6},{:.6},{:.6}] B=[{:.6},{:.6},{:.6}]",
+                pa[0], pa[1], pa[2], pb[0], pb[1], pb[2]
+            );
+            for (i, p) in expected.iter().enumerate() {
+                eprintln!(
+                    "[cut-expected]   expected[{}]=[{:.6},{:.6},{:.6}]",
+                    i,
+                    p[0],
+                    p[1],
+                    p[2]
+                );
+            }
+        }
+
+        let op = MakeEdgeFace { vertex_a: v_a, vertex_b: v_b, face };
+        match apply_op(draft, op) {
+            Ok(res) => {
+                edge_cut_map.insert(make_edge_key(v_a, v_b), cut_plane_idx);
+                let new_face = res.get_value().new_face;
+                geometry.set_face_plane(new_face, face_plane.clone());
+                log_split_success(face, cut_plane_idx, new_face, ctx);
+                return Ok(Some(vec![new_face, face]));
+            }
+            Err(err) => {
+                eprintln!(
+                    "[cut-expected] face#{} plane#{} apply failed for {} {}: {}",
+                    face.index(),
+                    cut_plane_idx,
+                    v_a,
+                    v_b,
+                    err
+                );
+            }
+        }
+    }
+
+    if let Some((best_score, best_max_leg)) = best_seen {
+        eprintln!(
+            "[cut-expected] face#{} plane#{} reject best pair score={:.3e} max_leg={:.3e} allow={:.3e} scale={:.3e} sorted={} rejected={}",
+            face.index(),
+            cut_plane_idx,
+            best_score,
+            best_max_leg.sqrt(),
+            max_leg_allow,
+            scale,
+            sorted.len(),
+            rejected
+        );
+    }
+
+    Ok(None)
+}
+
+fn expected_pair_score(a: &[f64; 3], b: &[f64; 3], expected: &[[f64; 3]]) -> (f64, f64) {
+    let mut best = f64::INFINITY;
+    let mut best_max_leg = f64::INFINITY;
+    for i in 0..expected.len() {
+        for j in (i + 1)..expected.len() {
+            let d_ai = dist_sq(a, &expected[i]);
+            let d_bj = dist_sq(b, &expected[j]);
+            let d_aj = dist_sq(a, &expected[j]);
+            let d_bi = dist_sq(b, &expected[i]);
+            let s1 = d_ai + d_bj;
+            let s2 = d_aj + d_bi;
+            let (s, max_leg) = if s1 <= s2 {
+                (s1, d_ai.max(d_bj))
+            } else {
+                (s2, d_aj.max(d_bi))
+            };
+            if s < best || (s == best && max_leg < best_max_leg) {
+                best = s;
+                best_max_leg = max_leg;
+            }
+        }
+    }
+    (best, best_max_leg)
+}
+
+fn expected_extent(expected: &[[f64; 3]]) -> f64 {
+    let mut best: f64 = 0.0;
+    for i in 0..expected.len() {
+        for j in (i + 1)..expected.len() {
+            best = best.max(dist_sq(&expected[i], &expected[j]));
+        }
+    }
+    best.sqrt()
+}
+
+fn dist_sq(a: &[f64; 3], b: &[f64; 3]) -> f64 {
+    let dx = a[0] - b[0];
+    let dy = a[1] - b[1];
+    let dz = a[2] - b[2];
+    dx * dx + dy * dy + dz * dz
 }
 
 /// Build the set of vertex pairs already adjacent on a face.
