@@ -41,7 +41,7 @@ fn pv_11_non_manifold_edge_detected() {
 
     let extra_a = HalfEdgeData::new(he_twin, he_id, he_id, he_face, he_origin, forge_topo::handles::EdgeId::from_raw_parts(0, 0));
     let extra_b = HalfEdgeData::new(he_id, he_twin, he_twin, twin_face, twin_origin, forge_topo::handles::EdgeId::from_raw_parts(0, 0));
-    let (extra_a_id, extra_b_id) = arena.insert_radial_pair(extra_a, extra_b);
+    let (extra_a_id, extra_b_id) = arena.insert_radial_pair(extra_a, extra_b, None);
 
     let _ = extra_a_id;
     let _ = extra_b_id;

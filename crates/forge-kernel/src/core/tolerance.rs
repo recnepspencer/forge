@@ -227,6 +227,13 @@ impl Default for PrecisionEscalationPolicy {
 /// Default bit-length threshold for precision escalation.
 const DEFAULT_BIT_LENGTH_THRESHOLD: u32 = 512;
 
+/// Hard floor — no tolerance may be tighter than this regardless of model scale.
+///
+/// Prevents floating-point underflow when the model bounding box diagonal is
+/// sub-millimeter. IEEE-754 double precision loses meaningful digits below ~1e-15,
+/// so 1e-13 gives a comfortable two-decade margin.
+pub const ABSOLUTE_MINIMUM_TOLERANCE: f64 = 1e-13;
+
 /// Configurable thresholds for geometry-layer computations.
 ///
 /// These values are used by `forge-geom` functions that accept tolerance
@@ -255,6 +262,21 @@ pub struct ToleranceConfig {
     collinearity_dot_tolerance: f64,
     /// AABB inflation margin for BVH overlap detection (meters).
     aabb_inflation: f64,
+    /// Diagonal of the model bounding box in mm, set once at import / build time.
+    ///
+    /// Drives scale-aware tolerance defaults per ISO 10303-42:
+    /// `global_default = 1e-7 * max(model_scale_mm, 1.0)`.
+    /// Zero (the default) causes the formula to use `max(0, 1.0) = 1.0`,
+    /// giving the conservative fallback `1e-7`.
+    #[serde(default)]
+    model_scale_mm: f64,
+    /// Maximum acceptable accumulated error across an operation chain (mm).
+    ///
+    /// When the sum of per-vertex tolerance deltas exceeds this threshold,
+    /// `check_budget()` emits a `KernelWarning::ErrorBudgetExceeded`.
+    /// Default is `f64::INFINITY` (budget warnings disabled).
+    #[serde(default = "default_error_budget")]
+    error_budget_mm: f64,
 }
 
 impl ToleranceConfig {
@@ -281,7 +303,42 @@ impl ToleranceConfig {
             min_edge_length,
             collinearity_dot_tolerance,
             aabb_inflation: DEFAULT_AABB_INFLATION,
+            model_scale_mm: 0.0,
+            error_budget_mm: f64::INFINITY,
         }
+    }
+
+    /// Scale-aware vertex tolerance following ISO 10303-42.
+    ///
+    /// Returns `1e-7 * max(model_scale_mm, 1.0)`, floored at
+    /// `ABSOLUTE_MINIMUM_TOLERANCE` to prevent underflow on sub-mm models.
+    pub fn scaled_vertex_tolerance(&self) -> f64 {
+        let scale = self.model_scale_mm.max(1.0);
+        (scale * 1e-7).max(ABSOLUTE_MINIMUM_TOLERANCE)
+    }
+
+    /// Diagonal of the model bounding box (mm).
+    pub fn get_model_scale_mm(&self) -> f64 {
+        self.model_scale_mm
+    }
+
+    /// Set the model bounding box diagonal (mm).
+    ///
+    /// Call once at import or build time so that `global_default()` and
+    /// `scaled_vertex_tolerance()` reflect the actual model scale.
+    pub fn set_model_scale_mm(&mut self, value: f64) {
+        debug_assert!(value >= 0.0, "model_scale_mm must be non-negative");
+        self.model_scale_mm = value;
+    }
+
+    /// Maximum acceptable accumulated error budget (mm).
+    pub fn get_error_budget_mm(&self) -> f64 {
+        self.error_budget_mm
+    }
+
+    /// Set the error budget threshold (mm). Use `f64::INFINITY` to disable.
+    pub fn set_error_budget_mm(&mut self, value: f64) {
+        self.error_budget_mm = value;
     }
 
     /// The residual tolerance for overconstrained verification.
@@ -398,8 +455,15 @@ impl Default for ToleranceConfig {
             min_edge_length: DEFAULT_MIN_EDGE_LENGTH,
             collinearity_dot_tolerance: DEFAULT_COLLINEARITY_DOT_TOLERANCE,
             aabb_inflation: DEFAULT_AABB_INFLATION,
+            model_scale_mm: 0.0,
+            error_budget_mm: f64::INFINITY,
         }
     }
+}
+
+/// Serde default helper for `error_budget_mm` (returns `f64::INFINITY`).
+fn default_error_budget() -> f64 {
+    f64::INFINITY
 }
 
 /// Default residual tolerance for overconstrained vertex verification.

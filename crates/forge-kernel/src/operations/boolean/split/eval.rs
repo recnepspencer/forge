@@ -4,7 +4,8 @@
 //! DEPENDENCIES: schema, cut, GeometryStore, forge_geom BVH, forge_topo.
 //! INVARIANTS: split_solid processes each face-cut pair atomically via MutableDraft.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use forge_core::{
     KernelError, TracedDecision, DecisionId, DecisionKind, DecisionTier,
@@ -43,23 +44,33 @@ pub fn split_all_faces(
         build_plane_tables(&target_topo, &target_geom, &tool_topo, &tool_geom);
 
     let bvh_pairs = build_bvh_overlap_pairs(
-        target_topo.arena(), &target_geom,
-        tool_topo.arena(), &tool_geom,
+        target_topo.arena(),
+        &target_geom,
+        tool_topo.arena(),
+        &tool_geom,
         &config,
     )?;
 
     let (mut target_cuts, mut tool_cuts) = propose_cuts(
         &bvh_pairs,
-        &target_face_planes, &tool_face_planes,
+        &target_face_planes,
+        &tool_face_planes,
         &plane_table,
-        target_topo.arena(), tool_topo.arena(),
+        target_topo.arena(),
+        tool_topo.arena(),
     );
 
     let supplemented = supplement_cuts_exhaustive(
-        target_topo.arena(), &target_geom, &target_face_planes,
-        tool_topo.arena(), &tool_geom, &tool_face_planes,
-        &plane_table, &config,
-        &mut target_cuts, &mut tool_cuts,
+        target_topo.arena(),
+        &target_geom,
+        &target_face_planes,
+        tool_topo.arena(),
+        &tool_geom,
+        &tool_face_planes,
+        &plane_table,
+        &config,
+        &mut target_cuts,
+        &mut tool_cuts,
     )?;
 
     eprintln!("[split] BVH pairs: {}, supplemented: {}, target faces with cuts: {}, tool faces with cuts: {}",
@@ -68,22 +79,40 @@ pub fn split_all_faces(
     let mut shared_registry = SharedVertexRegistry::new();
 
     let (mut target_draft, mut target_geom_out, target_splits, mut target_dedup, target_original_vids) = split_solid(
-        target_topo, target_geom, target_cuts, &target_face_planes,
-        &mut plane_table, &config, &mut shared_registry, ctx,
+        target_topo,
+        target_geom,
+        target_cuts,
+        &target_face_planes,
+        &mut plane_table,
+        &config,
+        &mut shared_registry,
+        ctx,
     )?;
 
     let (mut tool_draft, mut tool_geom_out, tool_splits, mut tool_dedup, tool_original_vids) = split_solid(
-        tool_topo, tool_geom, tool_cuts, &tool_face_planes,
-        &mut plane_table, &config, &mut shared_registry, ctx,
+        tool_topo,
+        tool_geom,
+        tool_cuts,
+        &tool_face_planes,
+        &mut plane_table,
+        &config,
+        &mut shared_registry,
+        ctx,
     )?;
 
     let weld_tol = config.get_residual();
     let weld_tol_sq = weld_tol * weld_tol;
     let _reconciled = reconcile_boundary_vertices(
-        &mut target_draft, &mut target_geom_out, &mut target_dedup,
-        &mut tool_draft, &mut tool_geom_out, &mut tool_dedup,
-        &shared_registry, weld_tol_sq,
-        &target_original_vids, &tool_original_vids,
+        &mut target_draft,
+        &mut target_geom_out,
+        &mut target_dedup,
+        &mut tool_draft,
+        &mut tool_geom_out,
+        &mut tool_dedup,
+        &shared_registry,
+        weld_tol_sq,
+        &target_original_vids,
+        &tool_original_vids,
     )?;
 
     let target_res_topo = target_draft.commit()?;
@@ -396,60 +425,64 @@ fn split_solid(
     let original_vids: std::collections::BTreeSet<VertexId> =
         draft.arena().iter_vertices().map(|(vid, _)| vid).collect();
 
-    let mut queue: Vec<(FaceId, Vec<usize>)> = cuts_map.into_iter().collect();
+    let mut queue: Vec<(FaceId, Arc<Vec<usize>>, usize)> = cuts_map
+        .into_iter()
+        .map(|(fid, cuts)| (fid, Arc::new(cuts), 0))
+        .collect();
     let mut current_face_planes = initial_face_planes.clone();
-    let mut deferred: Vec<(FaceId, usize)> = Vec::new();
+    let mut deferred: Vec<(FaceId, Arc<Vec<usize>>, usize)> = Vec::new();
 
-    while let Some((fid, cuts)) = queue.pop() {
-        if !cuts.is_empty() {
-            let cut_idx = cuts[0];
-            let remaining_cuts = cuts[1..].to_vec();
+    while let Some((fid, cuts, cut_pos)) = queue.pop() {
+        let Some(&cut_idx) = cuts.get(cut_pos) else {
+            continue;
+        };
 
-            let result = try_split_face(
-                &mut draft, &mut geom, &mut dedup, &mut edge_cut_map,
-                fid, cut_idx, &current_face_planes,
-                plane_table, config, shared_registry, ctx,
-            )?;
+        let result = try_split_face(
+            &mut draft, &mut geom, &mut dedup, &mut edge_cut_map,
+            fid, cut_idx, &current_face_planes,
+            plane_table, config, shared_registry, ctx,
+        )?;
 
-            match result {
-                SplitAttempt::Split(new_faces, face_plane_idx) => {
-                    splits += 1;
-                    for &nf in &new_faces {
-                        current_face_planes.insert(nf, face_plane_idx);
-                    }
-                    let mut cuts_with_current = vec![cut_idx];
-                    cuts_with_current.extend_from_slice(&remaining_cuts);
-                    for nf in new_faces {
-                        queue.push((nf, cuts_with_current.clone()));
-                    }
+        match result {
+            SplitAttempt::Split(new_faces, face_plane_idx) => {
+                splits += 1;
+                for &nf in &new_faces {
+                    current_face_planes.insert(nf, face_plane_idx);
                 }
-                SplitAttempt::NoSplit => {
-                    if !remaining_cuts.is_empty() {
-                        queue.push((fid, remaining_cuts));
-                    } else {
-                        deferred.push((fid, cut_idx));
-                    }
+                for nf in new_faces {
+                    queue.push((nf, Arc::clone(&cuts), cut_pos));
+                }
+            }
+            SplitAttempt::NoSplit => {
+                let next_pos = cut_pos + 1;
+                if next_pos < cuts.len() {
+                    queue.push((fid, cuts, next_pos));
+                } else {
+                    deferred.push((fid, cuts, cut_pos));
                 }
             }
         }
     }
 
-    for (fid, cut_idx) in deferred {
-        let face_exists = current_face_planes.contains_key(&fid);
-        if !face_exists {
-            let _ = fid;
-        } else {
-            let result = try_split_face(
-                &mut draft, &mut geom, &mut dedup, &mut edge_cut_map,
-                fid, cut_idx, &current_face_planes,
-                plane_table, config, shared_registry, ctx,
-            )?;
+    for (fid, cuts, cut_pos) in deferred {
+        if !current_face_planes.contains_key(&fid) {
+            continue;
+        }
 
-            if let SplitAttempt::Split(new_faces, face_plane_idx) = result {
-                splits += 1;
-                for &nf in &new_faces {
-                    current_face_planes.insert(nf, face_plane_idx);
-                }
+        let Some(&cut_idx) = cuts.get(cut_pos) else {
+            continue;
+        };
+
+        let result = try_split_face(
+            &mut draft, &mut geom, &mut dedup, &mut edge_cut_map,
+            fid, cut_idx, &current_face_planes,
+            plane_table, config, shared_registry, ctx,
+        )?;
+
+        if let SplitAttempt::Split(new_faces, face_plane_idx) = result {
+            splits += 1;
+            for &nf in &new_faces {
+                current_face_planes.insert(nf, face_plane_idx);
             }
         }
     }

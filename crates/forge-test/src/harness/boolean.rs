@@ -5,7 +5,7 @@
 //! INVARIANTS: No external oracle required; uses Euler formula + raycasting.
 //! DEPENDENCIES: `forge-kernel` (execute_boolean), `forge-topo` (classify, validate)
 
-use forge_core::KernelError;
+use forge_core::{KernelError, ToleranceProvider};
 use forge_kernel::operations::boolean::{BooleanInput, BooleanOp, BooleanResult, execute_boolean};
 use forge_kernel::geometry_store::GeometryStore;
 use forge_topo::classify::{classify_point_in_solid, PointClassification};
@@ -144,7 +144,7 @@ fn classify_in_solid(
         })
     };
 
-    let result = classify_point_in_solid(arena, &vertex_lookup, None, point, 1e-10);
+    let result = classify_point_in_solid(arena, &vertex_lookup, None, point, geom as &dyn ToleranceProvider);
     matches!(result, Ok(PointClassification::Inside { .. } | PointClassification::OnBoundary(_)))
 }
 

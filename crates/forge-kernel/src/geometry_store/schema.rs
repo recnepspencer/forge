@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
+use forge_core::{KernelError, ToleranceProvider};
 use forge_math::{MathError, GeometrySource, PlaneCoefficients};
 use forge_math::arithmetic::Rational;
 use forge_geom::Plane;
@@ -116,15 +117,25 @@ impl ExactPosition {
 
 /// Side-car geometry storage mapping topology handles to geometric data.
 ///
-/// The topology arena (Architecture Rule 2.3) stores only structural
-/// connectivity. This store holds the geometric meaning: which plane
-/// each face lies on, and where each vertex sits in 3D space.
+/// The topology arena stores only structural connectivity. This store holds
+/// the geometric meaning: face planes, vertex positions, and — new in the
+/// tolerant topology model — per-vertex tolerance spheres.
+///
+/// Implements `ToleranceProvider` so that `forge-topo` functions
+/// (`classify_point_on_face`, `validate_geometric_invariants`) can query
+/// per-entity tolerances without owning any `f64` data.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GeometryStore {
     /// Map from face handle to the plane the face lies on.
     face_planes: HashMap<u64, Plane>,
     /// Map from vertex handle to its exact 3D position.
     vertex_positions: HashMap<u64, ExactPosition>,
+    /// Per-vertex tolerance spheres (certified uncertainty radii).
+    ///
+    /// Keyed by packed `(generation << 32 | index)`. When a key is absent the
+    /// `ToleranceProvider` implementation returns `global_default()` as a safe
+    /// conservative fallback instead of panicking.
+    vertex_tolerances: HashMap<u64, f64>,
 }
 
 impl GeometryStore {
@@ -133,6 +144,7 @@ impl GeometryStore {
         Self {
             face_planes: HashMap::new(),
             vertex_positions: HashMap::new(),
+            vertex_tolerances: HashMap::new(),
         }
     }
 
@@ -268,14 +280,120 @@ impl GeometryStore {
         self.vertex_positions.values().map(|ep| ep.approx())
     }
 
+    /// Compute the model bounding-box diagonal (mm) from all vertex positions.
+    ///
+    /// Iterates all stored vertex approximations to find the axis-aligned bounding
+    /// box, then returns `‖bbox_max − bbox_min‖`. Returns `0.0` for an empty store.
+    /// This drives the ISO 10303-42 scale-aware tolerance formula.
+    pub fn compute_model_scale(&self) -> f64 {
+        let mut min = [f64::MAX; 3];
+        let mut max = [f64::MIN; 3];
+        let mut any = false;
+
+        for pos in self.iter_vertex_positions() {
+            any = true;
+            for i in 0..3 {
+                if pos[i] < min[i] { min[i] = pos[i]; }
+                if pos[i] > max[i] { max[i] = pos[i]; }
+            }
+        }
+
+        if !any {
+            return 0.0;
+        }
+        let dx = max[0] - min[0];
+        let dy = max[1] - min[1];
+        let dz = max[2] - min[2];
+        (dx * dx + dy * dy + dz * dz).sqrt()
+    }
+
+    /// Whether a face is planar (always true for the current BSP-only kernel).
+    ///
+    /// Returns `false` for future NURBS faces so that `measure_gap` can
+    /// guard against projecting onto non-planar supporting planes.
+    pub fn face_is_planar(&self, _face: FaceId) -> bool {
+        true
+    }
+
+    /// Insert a new vertex with a position derived from its provenance.
+    ///
+    /// Dispatches on `provenance` to compute the certified tolerance:
+    /// - `ThreePlaneIntersection` → uses `global_default()` (conservative pre-SSI)
+    /// - `EdgeSplit` → `VertexGeom::split_tolerance(origin, target)` caller must supply
+    ///   pre-computed inherited tolerance via the `tolerance` parameter
+    /// - `Imported` → `healing_tolerance` from the provenance record
+    /// - `Coalesced` → `VertexGeom::coalesced_tolerance(a, b)` caller must supply
+    ///   pre-computed RSS via the `tolerance` parameter
+    ///
+    /// For `ThreePlaneIntersection` and other variants where the caller must
+    /// supply the tolerance, pass it in the `tolerance` parameter. The helper
+    /// will always use `Imported::healing_tolerance` when available.
+    pub fn insert_vertex_with_provenance(
+        &mut self,
+        vertex: VertexId,
+        position: [f64; 3],
+        tolerance: f64,
+        provenance: &forge_geom::primitives::vertex_geom::VertexProvenance,
+    ) {
+        use forge_geom::primitives::vertex_geom::VertexProvenance;
+        let certified_tol = match provenance {
+            VertexProvenance::Imported { healing_tolerance } => *healing_tolerance,
+            _ => tolerance,
+        };
+        debug_assert!(certified_tol > 0.0, "insert_vertex_with_provenance: tolerance must be > 0.0");
+        self.set_vertex_position(vertex, position);
+        self.set_vertex_tolerance(vertex, certified_tol);
+    }
+
+    /// Set the per-vertex tolerance sphere radius.
+    ///
+    /// Must be strictly positive. This is the certified uncertainty bound for
+    /// the vertex's 3D position — used by `ToleranceProvider::vertex_tolerance`.
+    ///
+    /// # Panics
+    /// Panics in debug builds if `tolerance <= 0.0`.
+    pub fn set_vertex_tolerance(&mut self, vertex: VertexId, tolerance: f64) {
+        debug_assert!(tolerance > 0.0, "vertex tolerance must be > 0.0, got {}", tolerance);
+        self.vertex_tolerances.insert(
+            pack_handle(vertex.index(), vertex.generation()),
+            tolerance,
+        );
+    }
+
+    /// Retrieve the per-vertex tolerance sphere radius, or `None` if not yet bound.
+    ///
+    /// A `None` return means the vertex was created by a Euler op but the kernel
+    /// has not yet decorated it with geometry. Callers should use `global_default()`
+    /// rather than treating `None` as `0.0`.
+    pub fn get_vertex_tolerance(&self, vertex: VertexId) -> Option<f64> {
+        self.vertex_tolerances.get(&pack_handle(vertex.index(), vertex.generation())).copied()
+    }
+
+    /// Check that every VertexId in the provided iterator has a tolerance bound.
+    ///
+    /// Call this before `MutableDraft::commit()` to catch Euler ops that created
+    /// vertices without the kernel decorating them with geometry. Returns the
+    /// first unbound vertex found.
+    pub fn validate_bindings<I>(&self, vertex_ids: I) -> Result<(), KernelError>
+    where
+        I: IntoIterator<Item = VertexId>,
+    {
+        for v in vertex_ids {
+            if self.get_vertex_tolerance(v).is_none() || self.get_vertex_position(v).is_none() {
+                return Err(KernelError::InternalError {
+                    message: format!(
+                        "VertexId {}:{} has no geometry binding. \
+                         Bind position and tolerance before calling draft.commit().",
+                        v.index(), v.generation(),
+                    ),
+                    context: None,
+                });
+            }
+        }
+        Ok(())
+    }
+
     /// Whether all face geometry is planar (no curved surfaces).
-    ///
-    /// Returns `true` when every face has a `Plane` association.
-    /// When NURBS, cylinders, or other curved surface types are added,
-    /// this will return `false` for mixed or fully curved geometry.
-    ///
-    /// Used by the dual-engine router to decide between EMBER (exact
-    /// integer grid) and legacy (floating-point heuristic) pipelines.
     pub fn is_all_planar(&self) -> bool {
         true
     }
@@ -284,6 +402,49 @@ impl GeometryStore {
 impl Default for GeometryStore {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Global default tolerance for planar vertices.
+///
+/// # Deprecated
+///
+/// Use `GeometryStore::global_default()` (via [`forge_core::ToleranceProvider`])
+/// instead. That method returns a scale-aware value derived from the model
+/// bounding box following ISO 10303-42 (`1e-7 * max(bbox_diagonal, 1.0)`).
+/// This constant remains only for external test code that has not yet migrated.
+#[deprecated(
+    since = "0.1.0",
+    note = "Use GeometryStore::global_default() via ToleranceProvider instead"
+)]
+pub const PLANAR_VERTEX_TOLERANCE: f64 = 1e-10;
+
+impl ToleranceProvider for GeometryStore {
+    fn vertex_tolerance(&self, vertex_index: u32, vertex_generation: u32) -> f64 {
+        let key = pack_handle(vertex_index, vertex_generation);
+        self.vertex_tolerances
+            .get(&key)
+            .copied()
+            .unwrap_or_else(|| self.global_default())
+    }
+
+    /// Tolerance used in point-on-edge classification.
+    ///
+    /// Capped at 1e-6 regardless of model scale so that snap-to-boundary
+    /// behaviour in `classify_point_in_solid` stays conservative on large models
+    /// (a 1000mm panel would otherwise get 1e-4 snap, which is far too aggressive).
+    fn edge_tolerance(&self, _edge_index: u32, _edge_generation: u32) -> f64 {
+        self.global_default().min(1e-6)
+    }
+
+    /// Scale-aware global default following ISO 10303-42.
+    ///
+    /// Returns `1e-7 * max(bbox_diagonal, 1.0)`, floored at `1e-13`.
+    /// Unknown vertices (not yet decorated by the kernel) fall back to this
+    /// value rather than panicking or returning 0.
+    fn global_default(&self) -> f64 {
+        let scale = self.compute_model_scale().max(1.0);
+        (scale * 1e-7).max(1e-13)
     }
 }
 

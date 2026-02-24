@@ -21,6 +21,7 @@ pub mod errors;
 pub mod policy;
 pub mod tracing;
 pub mod envelope;
+pub mod tolerance;
 
 // =========================================================================
 // CRATE-ROOT RE-EXPORTS
@@ -51,6 +52,8 @@ pub use envelope::{
     KernelWarning, OperationMetrics, LineageDelta, OperationResult,
 };
 
+pub use tolerance::{ToleranceProvider, FlatToleranceProvider};
+
 // =========================================================================
 // GEOMETRY SOURCE (Data-access trait, Rule 3.1)
 // =========================================================================
@@ -69,3 +72,4 @@ pub trait GeometrySource: std::fmt::Debug {
     /// Retrieve the plane coefficients [a, b, c, d] for a given index.
     fn get_plane(&self, index: usize) -> [f64; 4];
 }
+

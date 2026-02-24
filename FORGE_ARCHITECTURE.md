@@ -263,15 +263,17 @@ pub struct FaceData {
 }
 
 /// The undirected 3D boundary between two faces.
-/// Owns the shared 3D curve and 3D tolerance tube. For planar geometry,
-/// `curve` is None (edge is the implicit intersection of two planes).
-/// For curved geometry, `curve` holds the explicit 3D edge curve and
-/// `tolerance` defines the uncertainty tube radius.
+/// Owns only topological connectivity — the representative HalfEdgeId.
+///
+/// Geometric edge data (3D curve + tolerance tube) lives in
+/// `forge-geom::CurveGeom`, mirroring how `VertexGeom` holds vertex
+/// positions and tolerance spheres. `EdgeData` holds an opaque `CurveRef`
+/// only as a cross-crate lookup key — it does NOT own or compare f64 values.
 pub struct EdgeData {
-    pub halfedge: HalfEdgeId,   // points to one of the two directed half-edges
-    pub curve: Option<CurveRef>,// → forge-geom (None for planar, Some for curved)
-    pub tolerance: f64,         // 3D radius of uncertainty (the tube)
+    pub halfedge: HalfEdgeId,   // one halfedge in the radial ring (entry point)
+    pub curve: Option<CurveRef>,// opaque ID → forge-geom::CurveGeom (None = planar)
     pub lineage: Lineage,
+    // NO tolerance here. Tube radius lives in forge-geom::CurveGeom.tolerance.
 }
 
 /// The directed 2D boundary. Each Edge has two HalfEdges (one per adjacent face).
@@ -303,18 +305,35 @@ pub struct LoopData {
 **Key design: vertices have no coordinates, edges have no curves (in topology).**
 For planar geometry, a vertex's position is the intersection of 3+ planes —
 computed on demand from the original plane coefficients. For curved geometry,
-a vertex's position is stored in a `TolerantVertex` in forge-geom, and an
-edge's 3D curve is stored via `CurveRef` in `EdgeData` — but forge-topo only
-holds the opaque reference. Topology is connectivity. Geometry is everything
-else.
+a vertex's position is stored in `forge-geom::VertexGeom` (with a tolerance
+sphere), and an edge's 3D curve geometry + tolerance tube are stored in
+`forge-geom::CurveGeom`. `forge-topo` holds only opaque `CurveRef` handles
+— it never stores, reads, or compares `f64` geometry values.
+
+**Geometry mirror types in forge-geom:**
+
+```rust
+// forge-geom — mirrors VertexGeom for edges
+pub struct CurveGeom {
+    /// The 3D curve parametric definition (None = planar implicit intersection)
+    pub kind: Option<CurveKind>,
+    /// Certified error bound — the 3D tube of uncertainty around this edge
+    pub tolerance: f64,
+    /// How this edge geometry was created and its tolerance derived
+    pub provenance: CurveProvenance,
+}
+```
+
+Tolerance tube radius is always read from `CurveGeom.tolerance` via the
+`ToleranceProvider` trait — never stored in the topo arena.
 
 **Why Edge is a first-class entity:** In flat polygon meshes, edges are
 implicit (just a straight line between two vertices). In a curved B-Rep, an
 edge has its own 3D geometry (e.g., a NURBS curve) and its own 3D tolerance
 tube. Without `EdgeId`, the 3D curve would need to live on `HalfEdgeData` —
-but that duplicates it across twins and creates asymmetric state. `EdgeData`
-owns the shared 3D properties; `HalfEdgeData` owns the per-face UV coedge
-and directional orientation. This is the standard ACIS/Parasolid/OpenCASCADE
+but that duplicates it across twins and creates asymmetric state. `EdgeId`
+provides the shared key; `HalfEdgeData` owns the per-face UV coedge and
+directional orientation. This is the standard ACIS/Parasolid/OpenCASCADE
 pattern.
 
 **Euler operators:** `split_edge`, `join_faces`, `make_vertex_face`,
@@ -1674,7 +1693,126 @@ Where the hard problems are, in order of severity:
 
 ---
 
-# 12. One-Page Summary
+# 12. Product Manufacturing Information (GD&T / PMI)
+
+## The Two-Tolerance Model
+
+Forge maintains a strict separation between two kinds of tolerances that are
+easy to conflate but must never be mixed:
+
+| Concept                     | Type                                | Home                              | Meaning                                                                    |
+| --------------------------- | ----------------------------------- | --------------------------------- | -------------------------------------------------------------------------- |
+| **Geometric uncertainty**   | `f64` on `VertexGeom` / `CurveGeom` | `forge-geom`                      | "How accurately does the kernel know where this point is, mathematically?" |
+| **Specification tolerance** | `ToleranceZone` (PMI)               | `forge-schema` / `AttributeStore` | "How much deviation from nominal is acceptable for manufacturing?"         |
+
+The first is a _kernel_ property — it's about floating-point error bounds and
+SSI solver residuals. The second is a _design intent_ property — it's about
+what the part is allowed to be in the physical world. Conflating them is
+a classic CAD kernel bug (e.g. snapping geometry to GD&T zone boundaries).
+
+## Where GD&T Lives
+
+The existing architecture already has the right homes for every GD&T concept.
+No new crates are needed — GD&T is purely additive:
+
+### Annotations → `AttributeStore` (forge-topo)
+
+GD&T annotations are semantic metadata attached to topology entities.
+`AttributeStore` already provides the side-car tag mechanism:
+
+```
+face_42  ← TagValue::GdtAnnotation(Flatness { tolerance_mm: 0.002 })
+face_43  ← TagValue::GdtAnnotation(Position { diameter_mm: 0.010, datum_refs: [A, B, C] })
+edge_17  ← TagValue::GdtAnnotation(Cylindricity { tolerance_mm: 0.001 })
+```
+
+No topology changes required. No geometry changes required.
+
+### Schema Types → `forge-schema`
+
+`forge-schema` is the declarative JSON schema crate (serde-only, no kernel
+deps). ASME Y14.5 / ISO 1101 tolerance types belong here:
+
+```rust
+// forge-schema
+pub enum ToleranceZoneType { Cylindrical, Spherical, Projected, TwoLine }
+
+pub struct DatumReference { label: char, modifier: DatumModifier }
+
+pub struct GdtAnnotation {
+    characteristic: ToleranceCharacteristic, // Flatness, Cylindricity, Position, ...
+    tolerance_value: f64,                    // mm or degrees
+    datum_refs: Vec<DatumReference>,         // [A, B] or [A, B(M), C]
+    zone_type: ToleranceZoneType,
+    material_condition: MaterialCondition,   // MMC / LMC / RFS
+}
+
+pub struct DatumReferenceFrame {
+    primary:   DatumDefinition,
+    secondary: Option<DatumDefinition>,
+    tertiary:  Option<DatumDefinition>,
+}
+```
+
+### Validation → `forge-kernel::analysis::pmi`
+
+GD&T validation (is this face within its flatness spec?) is a `forge-kernel`
+analysis operation — it queries both topology (which faces), geometry (actual
+positions), and PMI annotations (what the spec says):
+
+```rust
+// forge-kernel::analysis::pmi
+pub fn evaluate_flatness(
+    face_id: FaceId,
+    topo: &TopologyState,
+    geom: &GeometryStore,
+    annotation: &GdtAnnotation,
+    ctx: &mut ModelingContext,
+) -> OperationResult<PmiEvaluation>
+```
+
+Every evaluation is a `TracedDecision` in the `DecisionLog` — which is exactly
+the compliance audit trail aerospace customers pay for.
+
+### Import/Export → `forge-io`
+
+STEP AP242 carries PMI as `draughting_model` entities alongside the B-rep.
+IGES Section D carries GD&T as entity type 402/212. `forge-io` reads and
+writes these as `GdtAnnotation` tags on the topology entities they reference.
+
+## Why the Architecture Is Already Set Up for This
+
+1. **`AttributeStore` was designed for exactly this** — arbitrary semantic
+   tags on topology entities. GD&T is the primary use case.
+
+2. **`DecisionLog` + `OperationResult` envelope** — compliance validation
+   reports are just `TracedDecision` records. The audit trail is free.
+
+3. **`forge-schema` is already separate** — GD&T types don't pollute the
+   kernel. They're JSON-serializable spec-layer types.
+
+4. **`VertexGeom::tolerance` is the right thing** — it does NOT need to be a
+   GD&T tolerance. It stays as geometric uncertainty. This is correct.
+
+5. **`ToleranceProvider` returns uncertainty, not specification** — this
+   distinction is enforced at the type level. A GD&T evaluator receives
+   `GdtAnnotation`, not a `ToleranceProvider`.
+
+## What Is Explicitly Not Needed
+
+- No new crate for GD&T (it's `forge-schema` + `forge-kernel::analysis`)
+- No changes to `forge-topo` (GD&T uses `AttributeStore` which already exists)
+- No changes to the `ToleranceProvider` trait (different concept entirely)
+- No feature recognition engine for _basic_ GD&T — annotations are attached
+  explicitly by the CAD operator or imported from STEP; Forge doesn't need to
+  infer them from geometry shape
+
+Feature recognition (inferring that 4 faces form a "slot" for auto-annotation)
+is an _optional_ higher-order analysis operation and is out of scope for v1.
+
+---
+
+# 13. One-Page Summary
 
 **Forge is a spec graph that derives geometry, not a geometry engine that
 stores specs.**

@@ -1,7 +1,7 @@
 //! Regression tests for Boolean classification edge cases.
 
 use forge_topo::classify::{classify_point_in_solid, PointClassification};
-use forge_core::KernelError;
+use forge_core::{FlatToleranceProvider, KernelError};
 
 use super::super::test_helpers::{build_cube, face_centroid};
 
@@ -51,8 +51,9 @@ fn count_faces_inside(
             })
         };
 
+        let tol = FlatToleranceProvider::new(1e-10);
         let result = classify_point_in_solid(
-            target_topo.arena(), &vertex_lookup, None, &centroid, 1e-10,
+            target_topo.arena(), &vertex_lookup, None, &centroid, &tol,
         ).unwrap();
         matches!(result, PointClassification::Inside { .. })
     }).count()

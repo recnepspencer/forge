@@ -95,6 +95,17 @@ define_handle!(RegionId);
 define_handle!(ShellId);
 define_handle!(EdgeId);
 
+/// Opaque cross-crate reference to a curve in `forge-geom::CurveGeom`.
+///
+/// This handle is stored in `EdgeData.curve` so that the topology arena can
+/// hold a typed reference to edge-curve geometry without owning or inspecting
+/// any `f64` values (Doctrine D3). The actual `CurveGeom` arena lives in
+/// `forge-geom` and is managed by the kernel's `GeometryStore`.
+///
+/// During Phase 1–2 (planar-only), this is always `None`. Phase 4+ populates
+/// it when curved surfaces are introduced.
+define_handle!(CurveRef);
+
 
 #[cfg(test)]
 mod tests {

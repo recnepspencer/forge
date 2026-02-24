@@ -1363,6 +1363,7 @@ dependencies = [
 name = "forge-kernel"
 version = "0.1.0"
 dependencies = [
+ "criterion",
  "forge-core",
  "forge-geom",
  "forge-math",

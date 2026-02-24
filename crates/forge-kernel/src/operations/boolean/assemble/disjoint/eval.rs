@@ -9,7 +9,7 @@
 
 use forge_core::KernelError;
 use forge_core::{
-    TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier,
+    TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier, ToleranceProvider,
 };
 use forge_topo::state::TopologyState;
 use forge_topo::classify::classify_point_in_solid;
@@ -95,7 +95,7 @@ fn classify_sample(
     point: &[f64; 3],
     topo: &TopologyState,
     geom: &GeometryStore,
-    config: &crate::core::ToleranceConfig,
+    _config: &crate::core::ToleranceConfig,
     ctx: &mut ModelingContext,
 ) -> Result<forge_topo::classify::PointClassification, KernelError> {
     let result = classify_point_in_solid(
@@ -103,7 +103,7 @@ fn classify_sample(
         &|index| lookup_vertex(topo, geom, index),
         None,
         point,
-        config.get_edge_split_degeneracy(),
+        geom as &dyn ToleranceProvider,
     )?;
 
     if let Some(esc) = extract_escalation(&result) {
@@ -224,7 +224,7 @@ fn has_boundary_centroid(
             &|index| lookup_vertex(tool_topo, tool_geom, index),
             None,
             &centroid,
-            config.get_edge_split_degeneracy(),
+            tool_geom as &dyn ToleranceProvider,
         )?;
 
         if is_on_boundary(&class) {
@@ -307,7 +307,7 @@ pub(super) fn are_solids_coincident(
             &|index| lookup_vertex(target_topo, target_geom, index),
             None,
             &centroid,
-            config.get_edge_split_degeneracy(),
+            target_geom as &dyn ToleranceProvider,
         )?;
 
         if !is_on_boundary(&class) {

@@ -1,5 +1,6 @@
 //! Tests for the geometry store.
 
+use forge_core::ToleranceProvider;
 use forge_geom::Plane;
 use forge_topo::handles::{FaceId, VertexId};
 use super::schema::GeometryStore;
@@ -94,4 +95,71 @@ fn geometry_source_missing_plane_returns_error() {
     let store = GeometryStore::new();
     let result = store.get_plane(42);
     assert!(result.is_err());
+}
+
+// ── Phase A — Scale-aware tolerance tests ─────────────────────────────────────
+
+#[test]
+fn empty_store_returns_conservative_fallback() {
+    let store = GeometryStore::new();
+    // No vertices → scale == 0.0 → max(0,1) = 1.0 → 1e-7 * 1.0 = 1e-7.
+    let tol = store.global_default();
+    assert!((tol - 1e-7).abs() < 1e-15, "empty store should return 1e-7, got {}", tol);
+}
+
+#[test]
+fn one_meter_cube_produces_correct_tolerance() {
+    let mut store = GeometryStore::new();
+    // 1 m = 1000 mm cube — diagonal ≈ 1732 mm.
+    // global_default = 1e-7 * 1732 ≈ 1.732e-4.
+    let v0 = VertexId::from_raw_parts(0, 0);
+    let v1 = VertexId::from_raw_parts(1, 0);
+    store.set_vertex_position(v0, [0.0, 0.0, 0.0]);
+    store.set_vertex_position(v1, [1000.0, 1000.0, 1000.0]); // mm
+    let tol = store.global_default();
+    let expected = (3f64.sqrt() * 1000.0 * 1e-7).max(1e-13);
+    assert!((tol - expected).abs() < 1e-18, "1 m cube: got {}, want {}", tol, expected);
+}
+
+#[test]
+fn sub_millimeter_model_is_floored_at_absolute_minimum() {
+    use crate::core::tolerance::ABSOLUTE_MINIMUM_TOLERANCE;
+    let mut store = GeometryStore::new();
+    // 0.001 mm model — scale = 0.001, max(0.001, 1.0) = 1.0, so tol = 1e-7.
+    // The floor 1e-13 cannot kick in here because 1e-7 > 1e-13, but let's
+    // confirm the floor is respected when scale would underflow:
+    // (Directly via ToleranceConfig, not GeometryStore.)
+    let mut cfg = crate::core::tolerance::ToleranceConfig::default();
+    cfg.set_model_scale_mm(0.0); // edge case: effectively 1.0 clamp.
+    let t = cfg.scaled_vertex_tolerance();
+    assert!(t >= ABSOLUTE_MINIMUM_TOLERANCE);
+    assert!((t - 1e-7).abs() < 1e-20);
+}
+
+#[test]
+fn edge_tolerance_is_capped_at_1e_6_for_large_models() {
+    let mut store = GeometryStore::new();
+    // A 10 km model (diameter 1e7 mm) would give global_default ≈ 1e0, but
+    // edge_tolerance must stay ≤ 1e-6 for classification snap safety.
+    let v0 = VertexId::from_raw_parts(0, 0);
+    let v1 = VertexId::from_raw_parts(1, 0);
+    store.set_vertex_position(v0, [0.0, 0.0, 0.0]);
+    store.set_vertex_position(v1, [1.0e7, 0.0, 0.0]); // 1e7 mm = 10 km
+    let et = store.edge_tolerance(0, 0);
+    assert!(et <= 1e-6, "edge tolerance must be capped at 1e-6, got {}", et);
+}
+
+#[test]
+fn scaled_vertex_tolerance_on_tolerance_config() {
+    use crate::core::tolerance::ToleranceConfig;
+    let mut cfg = ToleranceConfig::default();
+
+    cfg.set_model_scale_mm(1000.0); // 1 m
+    let t = cfg.scaled_vertex_tolerance();
+    assert!((t - 1e-4).abs() < 1e-20, "1000 mm → 1e-4, got {}", t);
+
+    cfg.set_model_scale_mm(0.1); // 100 μm MEMS
+    // max(0.1, 1.0) = 1.0 → 1e-7
+    let t = cfg.scaled_vertex_tolerance();
+    assert!((t - 1e-7).abs() < 1e-20, "0.1 mm → 1e-7 (clamped), got {}", t);
 }

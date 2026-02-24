@@ -7,7 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::handles::{FaceId, HalfEdgeId, VertexId, LoopId, ShellId, BodyId, LumpId, RegionId, EdgeId};
+use crate::handles::{FaceId, HalfEdgeId, VertexId, LoopId, ShellId, BodyId, LumpId, RegionId, EdgeId, CurveRef};
 use crate::lineage::Lineage;
 
 /// A slot in the arena that may be occupied or vacant.
@@ -590,21 +590,29 @@ impl ShellData {
 /// All halfedges around this geometric edge form a radial ring linked
 /// via `radial_next`. The representative halfedge provides an entry point.
 /// Edge-level attributes (fillet radius, crease angle, seam) live here.
+///
+/// Geometric data (3D curve + tolerance tube) lives in `forge-geom::CurveGeom`
+/// and is referenced via the opaque `curve` handle. `EdgeData` never owns
+/// or compares `f64` values (Doctrine D3).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EdgeData {
     half_edge: HalfEdgeId,
+    /// Opaque reference to the edge's 3D curve in `forge-geom::CurveGeom`.
+    /// `None` for planar edges (the edge is an implicit plane-plane intersection).
+    /// `Some` for curved edges, populated by the kernel in Phase 4+.
+    pub curve: Option<CurveRef>,
     lineage: Option<Lineage>,
 }
 
 impl EdgeData {
     /// Construct a new edge from one halfedge of the pair.
     pub fn new(half_edge: HalfEdgeId) -> Self {
-        Self { half_edge, lineage: None }
+        Self { half_edge, curve: None, lineage: None }
     }
 
     /// Construct a new edge with lineage.
     pub fn with_lineage(half_edge: HalfEdgeId, lineage: Option<Lineage>) -> Self {
-        Self { half_edge, lineage }
+        Self { half_edge, curve: None, lineage }
     }
 
     /// Representative halfedge of the radial ring.
@@ -613,8 +621,14 @@ impl EdgeData {
     /// Inline lineage for provenance tracking.
     pub fn lineage(&self) -> Option<&Lineage> { self.lineage.as_ref() }
 
+    /// The opaque curve reference for this edge (None = planar).
+    pub fn curve_ref(&self) -> Option<CurveRef> { self.curve }
+
     /// Set the representative halfedge.
     pub fn set_half_edge(&mut self, id: HalfEdgeId) { self.half_edge = id; }
+
+    /// Set the curve reference (populated by the kernel for curved edges).
+    pub fn set_curve_ref(&mut self, id: Option<CurveRef>) { self.curve = id; }
 
     /// Set inline lineage.
     pub fn set_lineage(&mut self, lineage: Option<Lineage>) { self.lineage = lineage; }

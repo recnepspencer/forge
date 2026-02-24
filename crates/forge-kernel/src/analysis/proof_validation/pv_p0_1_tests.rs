@@ -7,10 +7,11 @@
 //! - PV-04: Degenerate loops (fewer than 3 distinct vertices)
 
 use forge_core::{KernelError, TopologyError};
-use forge_topo::validate::{validate_geometric_invariants, validate_topology, ValidationLevel};
+use forge_topo::validate::{validate_topology, ValidationLevel};
 use forge_topo::handles::VertexId;
 use crate::mesh_builder::make_cube;
 use crate::geometry_store::GeometryStore;
+use super::test_support::{insert_test_solid_shell, validate_geometric_invariants_all_faces};
 
 /// Build a position lookup closure from a GeometryStore.
 fn position_lookup(store: &GeometryStore) -> impl Fn(VertexId) -> Option<[f64; 3]> + '_ {
@@ -46,7 +47,7 @@ fn pv_01_zero_area_face_detection() {
     }
 
     let lookup = position_lookup(&geom);
-    let err = validate_geometric_invariants(arena, &lookup, 1e-10, 1e-20);
+    let err = validate_geometric_invariants_all_faces(arena, &lookup, 1e-10, 1e-20);
 
     assert!(err.is_err(), "Should detect zero-area face");
     match err.unwrap_err() {
@@ -75,7 +76,7 @@ fn pv_02_zero_length_edge_detection() {
     geom.set_vertex_position(target, origin_pos);
 
     let lookup = position_lookup(&geom);
-    let err = validate_geometric_invariants(arena, &lookup, 1e-20, 1e-12);
+    let err = validate_geometric_invariants_all_faces(arena, &lookup, 1e-20, 1e-12);
 
     assert!(err.is_err(), "Should detect zero-length edge");
     match err.unwrap_err() {
@@ -106,7 +107,7 @@ fn pv_03_inverted_shell_signed_volume() {
     }
 
     let lookup = position_lookup(&geom);
-    let err = validate_geometric_invariants(arena, &lookup, 1e-20, 1e-20);
+    let err = validate_geometric_invariants_all_faces(arena, &lookup, 1e-20, 1e-20);
 
     assert!(err.is_err(), "Should detect negative signed volume");
     match err.unwrap_err() {
@@ -136,26 +137,27 @@ fn pv_04_degenerate_loop_detection() {
     let placeholder_he = HalfEdgeId::from_raw_parts(0, 0);
     let placeholder_face = FaceId::from_raw_parts(0, 0);
 
-    let v0 = arena.insert_vertex(VertexData::new(placeholder_he));
-    let v1 = arena.insert_vertex(VertexData::new(placeholder_he));
+    let v0 = arena.insert_vertex(VertexData::new(placeholder_he), None);
+    let v1 = arena.insert_vertex(VertexData::new(placeholder_he), None);
 
-    let v2 = arena.insert_vertex(VertexData::new(placeholder_he));
+    let v2 = arena.insert_vertex(VertexData::new(placeholder_he), None);
 
-    let placeholder_shell = forge_topo::handles::ShellId::from_raw_parts(0, 0);
+    let placeholder_shell = insert_test_solid_shell(arena);
     let placeholder_edge = forge_topo::handles::EdgeId::from_raw_parts(0, 0);
     
-    let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
-    let face = arena.insert_face(FaceData::new(loop_id, placeholder_shell));
+    let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face), None);
+    let face = arena.insert_face(FaceData::new(loop_id, placeholder_shell), None);
+    arena.get_shell_mut(placeholder_shell).unwrap().set_representative_face(face);
 
     let he0 = arena.insert_half_edge(HalfEdgeData::new(
         placeholder_he, placeholder_he, placeholder_he, face, v0, placeholder_edge,
-    ));
+    ), None);
     let he1 = arena.insert_half_edge(HalfEdgeData::new(
         placeholder_he, placeholder_he, placeholder_he, face, v1, placeholder_edge,
-    ));
+    ), None);
     let he2 = arena.insert_half_edge(HalfEdgeData::new(
         placeholder_he, placeholder_he, placeholder_he, face, v0, placeholder_edge,
-    ));
+    ), None);
 
     arena.get_half_edge_mut(he0).unwrap().set_next(he1);
     arena.get_half_edge_mut(he0).unwrap().set_prev(he2);
@@ -164,18 +166,18 @@ fn pv_04_degenerate_loop_detection() {
     arena.get_half_edge_mut(he2).unwrap().set_next(he0);
     arena.get_half_edge_mut(he2).unwrap().set_prev(he1);
 
-    let loop_id2 = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
-    let face2 = arena.insert_face(FaceData::new(loop_id2, placeholder_shell));
+    let loop_id2 = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face), None);
+    let face2 = arena.insert_face(FaceData::new(loop_id2, placeholder_shell), None);
 
     let twin0 = arena.insert_half_edge(HalfEdgeData::new(
         placeholder_he, placeholder_he, placeholder_he, face2, v1, placeholder_edge,
-    ));
+    ), None);
     let twin1 = arena.insert_half_edge(HalfEdgeData::new(
         placeholder_he, placeholder_he, placeholder_he, face2, v0, placeholder_edge,
-    ));
+    ), None);
     let twin2 = arena.insert_half_edge(HalfEdgeData::new(
         placeholder_he, placeholder_he, placeholder_he, face2, v2, placeholder_edge,
-    ));
+    ), None);
 
     arena.get_half_edge_mut(twin0).unwrap().set_next(twin1);
     arena.get_half_edge_mut(twin0).unwrap().set_prev(twin2);
@@ -216,6 +218,6 @@ fn valid_cube_passes_geometric_invariants() {
     let arena = topo.arena();
 
     let lookup = position_lookup(&geom);
-    let result = validate_geometric_invariants(arena, &lookup, 1e-10, 1e-12);
+    let result = validate_geometric_invariants_all_faces(arena, &lookup, 1e-10, 1e-12);
     assert!(result.is_ok(), "Valid cube should pass: {:?}", result.err());
 }

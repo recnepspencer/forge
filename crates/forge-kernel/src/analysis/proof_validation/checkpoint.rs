@@ -9,7 +9,7 @@
 //!
 //! DEPENDENCIES: `forge-topo` (validate, arena), `forge-core` (KernelError)
 
-use forge_core::KernelError;
+use forge_core::{KernelError, ToleranceProvider};
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::VertexId;
 use forge_topo::validate::{validate_topology, validate_geometric_invariants, ValidationLevel};
@@ -272,8 +272,7 @@ pub fn run_checkpoint(
     config: &ValidationConfig,
     checkpoint: ValidationCheckpoint,
     position_fn: Option<&dyn Fn(VertexId) -> Option<[f64; 3]>>,
-    area_threshold: f64,
-    edge_length_threshold: f64,
+    tolerance_provider: &dyn ToleranceProvider,
 ) -> Result<ValidationResult, KernelError> {
     let total_entities =
         arena.face_count() + arena.half_edge_count() + arena.vertex_count() + arena.loop_count();
@@ -292,7 +291,7 @@ pub fn run_checkpoint(
 
     if config.get_include_geometric() {
         if let Some(pos_fn) = position_fn {
-            validate_geometric_invariants(arena, pos_fn, &|_| true, area_threshold, edge_length_threshold)?;
+            validate_geometric_invariants(arena, pos_fn, &|_| true, tolerance_provider)?;
         }
     }
 

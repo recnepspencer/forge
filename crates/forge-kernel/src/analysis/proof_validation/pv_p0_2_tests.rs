@@ -11,6 +11,7 @@ use forge_topo::state::{TopologyState, DraftConfig};
 use forge_topo::arena::{FaceData, HalfEdgeData, VertexData, LoopData};
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId, LoopId};
 use crate::mesh_builder::make_cube;
+use super::test_support::{insert_test_solid_shell, materialize_edge_entities_from_radials};
 
 /// PV-05: A genus-1 topology passes the generalized Euler formula.
 ///
@@ -35,7 +36,7 @@ fn pv_05_genus_1_passes_generalized_euler() {
 
     let mut verts: Vec<VertexId> = Vec::new();
     for _i in 0..9 {
-        let v = arena.insert_vertex(VertexData::new(placeholder_he));
+        let v = arena.insert_vertex(VertexData::new(placeholder_he), None);
         verts.push(v);
     }
 
@@ -44,13 +45,16 @@ fn pv_05_genus_1_passes_generalized_euler() {
     let mut faces: Vec<FaceId> = Vec::new();
     let mut all_he_ids: Vec<Vec<HalfEdgeId>> = Vec::new();
 
-    let placeholder_shell = forge_topo::handles::ShellId::from_raw_parts(0, 0);
+    let placeholder_shell = insert_test_solid_shell(arena);
     let placeholder_edge = forge_topo::handles::EdgeId::from_raw_parts(0, 0);
 
     for row in 0..3 {
         for col in 0..3 {
-            let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
-            let face = arena.insert_face(FaceData::new(loop_id, placeholder_shell));
+            let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face), None);
+            let face = arena.insert_face(FaceData::new(loop_id, placeholder_shell), None);
+            if faces.is_empty() {
+                arena.get_shell_mut(placeholder_shell).unwrap().set_representative_face(face);
+            }
 
             let origins = [
                 v_grid(row, col),
@@ -63,7 +67,7 @@ fn pv_05_genus_1_passes_generalized_euler() {
             for _k in 0..4 {
                 let he = arena.insert_half_edge(HalfEdgeData::new(
                     placeholder_he, placeholder_he, placeholder_he, face, origins[0], placeholder_edge,
-                ));
+                ), None);
                 he_ids.push(he);
             }
 
@@ -106,6 +110,8 @@ fn pv_05_genus_1_passes_generalized_euler() {
         }
     }
 
+    materialize_edge_entities_from_radials(arena).unwrap();
+
     let result = validate_topology(arena, ValidationLevel::Full);
     assert!(result.is_ok(), "Genus-1 torus topology should pass generalized Euler: {:?}", result.err());
 }
@@ -146,8 +152,8 @@ fn pv_08_removed_edge_fails_euler() {
     let first_he = arena.iter_half_edges().next().unwrap().0;
     let twin_id = arena.get_half_edge(first_he).unwrap().radial_next();
 
-    let _ = arena.remove_half_edge(first_he);
-    let _ = arena.remove_half_edge(twin_id);
+    let _ = arena.remove_half_edge(first_he, None);
+    let _ = arena.remove_half_edge(twin_id, None);
 
     let err = validate_topology(arena, ValidationLevel::Full);
     assert!(err.is_err(), "Should fail after edge removal");
@@ -181,7 +187,7 @@ fn pv_06_through_hole_passes_euler() {
 
     let mut verts: Vec<VertexId> = Vec::new();
     for _ in 0..16 {
-        verts.push(arena.insert_vertex(VertexData::new(placeholder_he)));
+        verts.push(arena.insert_vertex(VertexData::new(placeholder_he), None));
     }
 
     let outer_faces: Vec<Vec<usize>> = vec![
@@ -204,6 +210,7 @@ fn pv_06_through_hole_passes_euler() {
     let bot_inner: Vec<usize> = vec![15, 14, 13, 12];
 
     let mut edge_map: BTreeMap<(u32, u32), HalfEdgeId> = BTreeMap::new();
+    let shell_id = insert_test_solid_shell(arena);
 
     let mut build_face_loop = |arena: &mut forge_topo::arena::TopologyArena,
                                 face_verts: &[usize],
@@ -211,14 +218,17 @@ fn pv_06_through_hole_passes_euler() {
         -> (FaceId, LoopId)
     {
         let n = face_verts.len();
-        let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
-        let face = arena.insert_face(FaceData::new(loop_id, forge_topo::handles::ShellId::from_raw_parts(0, 0)));
+        let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face), None);
+        let face = arena.insert_face(FaceData::new(loop_id, shell_id), None);
+        if arena.get_shell(shell_id).unwrap().representative_face() == FaceId::from_raw_parts(u32::MAX, 0) {
+            arena.get_shell_mut(shell_id).unwrap().set_representative_face(face);
+        }
 
         let mut he_ids: Vec<HalfEdgeId> = Vec::new();
         for _ in 0..n {
             let he = arena.insert_half_edge(HalfEdgeData::new(
                 placeholder_he, placeholder_he, placeholder_he, face, verts[0], forge_topo::handles::EdgeId::from_raw_parts(0, 0),
-            ));
+            ), None);
             he_ids.push(he);
         }
 
@@ -259,12 +269,12 @@ fn pv_06_through_hole_passes_euler() {
 
     let top_inner_loop = {
         let n = top_inner.len();
-        let il_loop_id = arena.insert_loop(LoopData::new(placeholder_he, top_face));
+        let il_loop_id = arena.insert_loop(LoopData::new(placeholder_he, top_face), None);
         let mut il_he_ids: Vec<HalfEdgeId> = Vec::new();
         for _ in 0..n {
             let he = arena.insert_half_edge(HalfEdgeData::new(
                 placeholder_he, placeholder_he, placeholder_he, top_face, verts[0], forge_topo::handles::EdgeId::from_raw_parts(0, 0),
-            ));
+            ), None);
             il_he_ids.push(he);
         }
         for k in 0..n {
@@ -289,12 +299,12 @@ fn pv_06_through_hole_passes_euler() {
 
     let bot_inner_loop = {
         let n = bot_inner.len();
-        let il_loop_id = arena.insert_loop(LoopData::new(placeholder_he, bot_face));
+        let il_loop_id = arena.insert_loop(LoopData::new(placeholder_he, bot_face), None);
         let mut il_he_ids: Vec<HalfEdgeId> = Vec::new();
         for _ in 0..n {
             let he = arena.insert_half_edge(HalfEdgeData::new(
                 placeholder_he, placeholder_he, placeholder_he, bot_face, verts[0], forge_topo::handles::EdgeId::from_raw_parts(0, 0),
-            ));
+            ), None);
             il_he_ids.push(he);
         }
         for k in 0..n {
@@ -321,6 +331,8 @@ fn pv_06_through_hole_passes_euler() {
             arena.get_half_edge_mut(he_ba).unwrap().set_radial_next(he_ab);
         }
     }
+
+    materialize_edge_entities_from_radials(arena).unwrap();
 
     let mut total_inner_loops: usize = 0;
     for (_, face_data) in arena.iter_faces() {
@@ -350,4 +362,3 @@ fn pv_06_through_hole_passes_euler() {
     let result = validate_topology(arena, ValidationLevel::Full);
     assert!(result.is_ok(), "Through-hole cube should pass Euler: {:?}", result.err());
 }
-

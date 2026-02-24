@@ -40,6 +40,26 @@ pub enum KernelWarning {
         /// The decision that was auto-applied.
         decision_id: DecisionId,
     },
+    /// The cumulative floating-point error budget has been exhausted.
+    ///
+    /// Accumulated from per-vertex tolerance deltas across the operation chain.
+    /// Non-fatal: the operation still succeeds; the caller decides whether to abort.
+    ErrorBudgetExceeded {
+        /// Total accumulated error (mm) across all operations so far.
+        accumulated_mm: f64,
+        /// Configured budget threshold (mm) that was exceeded.
+        threshold_mm: f64,
+    },
+    /// A healed vertex with large tolerance participated in a tight-tolerance operation.
+    ///
+    /// Emitted when a vertex with `ToleranceRegime::Healed` enters an operation
+    /// whose `global_default()` is tighter than the vertex's healing tolerance.
+    RegimeMismatch {
+        /// The healing tolerance of the incoming vertex (mm).
+        healing_tolerance_mm: f64,
+        /// The operation's `global_default()` tolerance (mm).
+        operation_tolerance: f64,
+    },
 }
 
 impl fmt::Display for KernelWarning {
@@ -53,6 +73,14 @@ impl fmt::Display for KernelWarning {
             }
             KernelWarning::AutoDecision { decision_id } => {
                 write!(f, "Automatic tolerance decision: {}", decision_id)
+            }
+            KernelWarning::ErrorBudgetExceeded { accumulated_mm, threshold_mm } => {
+                write!(f, "Error budget exceeded: {:.2e} mm accumulated (threshold {:.2e} mm)",
+                    accumulated_mm, threshold_mm)
+            }
+            KernelWarning::RegimeMismatch { healing_tolerance_mm, operation_tolerance } => {
+                write!(f, "Regime mismatch: healed vertex tol={:.2e} mm in op with tol={:.2e} mm",
+                    healing_tolerance_mm, operation_tolerance)
             }
         }
     }
@@ -156,6 +184,14 @@ pub struct OperationResult<T> {
     validation_results: Vec<String>,
     /// Extra summary lines to print during compact logging (e.g., replay or lineage stats).
     extra_summaries: Vec<String>,
+    /// Accumulated floating-point error budget consumed by this operation chain (mm).
+    ///
+    /// Increases by `max(new_vertex_tolerance) - global_default()` after each
+    /// boolean phase that creates vertices. When this exceeds
+    /// `ToleranceConfig::error_budget_mm`, `check_budget()` emits
+    /// `KernelWarning::ErrorBudgetExceeded`. Defaults to `0.0`.
+    #[serde(default)]
+    accumulated_error_budget: f64,
 }
 
 impl<T> OperationResult<T> {
@@ -171,6 +207,7 @@ impl<T> OperationResult<T> {
             state_hash_after: 0,
             validation_results: Vec::new(),
             extra_summaries: Vec::new(),
+            accumulated_error_budget: 0.0,
         }
     }
 
@@ -184,7 +221,7 @@ impl<T> OperationResult<T> {
         state_hash_before: u128,
         state_hash_after: u128,
     ) -> Self {
-        Self { value, warnings, decision_log, metrics, lineage_delta, state_hash_before, state_hash_after, validation_results: Vec::new(), extra_summaries: Vec::new() }
+        Self { value, warnings, decision_log, metrics, lineage_delta, state_hash_before, state_hash_after, validation_results: Vec::new(), extra_summaries: Vec::new(), accumulated_error_budget: 0.0 }
     }
 
     /// The primary return value of the operation.
@@ -295,7 +332,21 @@ impl<T> OperationResult<T> {
             state_hash_after: self.state_hash_after,
             validation_results: self.validation_results,
             extra_summaries: self.extra_summaries,
+            accumulated_error_budget: self.accumulated_error_budget,
         }
+    }
+
+    /// Accumulate floating-point error into the budget tracker.
+    ///
+    /// `delta` is the additional error (mm) this operation contributes.
+    /// Typically `max(new_vertex_tolerance) - global_default()` per phase.
+    pub fn consume_budget(&mut self, delta: f64) {
+        self.accumulated_error_budget += delta;
+    }
+
+    /// Total accumulated error budget consumed so far (mm).
+    pub fn get_accumulated_budget(&self) -> f64 {
+        self.accumulated_error_budget
     }
 
     /// Checkpoint validation results from this operation.
@@ -374,5 +425,35 @@ impl<T> OperationResult<Result<T, crate::KernelError>> {
             }
         }
         self.value
+    }
+}
+
+// ── Tests ────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn budget_tracking_accumulates_correctly() {
+        let mut envelope = OperationResult::new(42);
+        assert_eq!(envelope.get_accumulated_budget(), 0.0);
+
+        envelope.consume_budget(1e-7);
+        assert_eq!(envelope.get_accumulated_budget(), 1e-7);
+
+        envelope.consume_budget(3e-8);
+        assert!((envelope.get_accumulated_budget() - 1.3e-7).abs() < 1e-15);
+
+        let warning = KernelWarning::ErrorBudgetExceeded {
+            accumulated_mm: envelope.get_accumulated_budget(),
+            threshold_mm: 1e-7,
+        };
+        envelope.add_warning(warning);
+        assert_eq!(envelope.get_warnings().len(), 1);
+        assert!(matches!(
+            envelope.get_warnings()[0],
+            KernelWarning::ErrorBudgetExceeded { .. }
+        ));
     }
 }

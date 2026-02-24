@@ -6,6 +6,8 @@
 //! Traces are persisted automatically by `OperationResult::into_value()`
 //! when `FORGE_TRACE_DIR` is set. No manual wiring needed.
 
+use std::str::FromStr;
+
 use forge_geom::Plane;
 use forge_topo::state::TopologyState;
 
@@ -14,6 +16,42 @@ use crate::mesh_builder;
 use super::eval::compute_face_centroid;
 use super::schema::{BooleanInput, BooleanOp, BooleanResult};
 use super::assemble::execute_boolean_direct;
+use super::execute_boolean;
+
+/// Boolean pipeline selection for tests.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TestPipeline {
+    /// Production router (`execute_boolean`) with adaptive EMBER/legacy selection.
+    Adaptive,
+    /// Legacy/standard planar pipeline (`execute_boolean_direct`).
+    Legacy,
+    /// Forced EMBER planar engine (`execute_boolean_ember`).
+    Ember,
+}
+
+impl FromStr for TestPipeline {
+    type Err = ();
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "adaptive" | "auto" | "router" => Ok(Self::Adaptive),
+            "legacy" | "standard" => Ok(Self::Legacy),
+            "ember" => Ok(Self::Ember),
+            _ => Err(()),
+        }
+    }
+}
+
+/// Read the test pipeline from `FORGE_TEST_PIPELINE`.
+///
+/// Accepted values: `adaptive`, `legacy`, `ember`.
+/// Defaults to `Legacy` to preserve existing test helper behavior.
+pub fn selected_test_pipeline() -> TestPipeline {
+    std::env::var("FORGE_TEST_PIPELINE")
+        .ok()
+        .and_then(|value| TestPipeline::from_str(&value).ok())
+        .unwrap_or(TestPipeline::Legacy)
+}
 
 /// Build a cube mesh centered at `center` with the given `half_size`.
 pub fn build_cube(
@@ -45,11 +83,30 @@ pub fn run_boolean(
     half_b: f64,
     op: BooleanOp,
 ) -> BooleanResult {
+    run_boolean_with_pipeline(
+        center_a,
+        half_a,
+        center_b,
+        half_b,
+        op,
+        selected_test_pipeline(),
+    )
+}
+
+/// Execute a boolean via the selected test pipeline.
+pub fn run_boolean_with_pipeline(
+    center_a: [f64; 3],
+    half_a: f64,
+    center_b: [f64; 3],
+    half_b: f64,
+    op: BooleanOp,
+    pipeline: TestPipeline,
+) -> BooleanResult {
     let (topo_a, geom_a) = build_cube(center_a, half_a);
     let (topo_b, geom_b) = build_cube(center_b, half_b);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, op);
-    let envelope = execute_boolean_direct(input);
+    let envelope = execute_boolean_logged_with_pipeline(input, pipeline);
     envelope.into_result().unwrap_or_else(|e| {
         panic!("Boolean {:?} failed: {:?}", op, e);
     })
@@ -65,11 +122,30 @@ pub fn try_boolean(
     half_b: f64,
     op: BooleanOp,
 ) -> Result<BooleanResult, forge_core::KernelError> {
+    try_boolean_with_pipeline(
+        center_a,
+        half_a,
+        center_b,
+        half_b,
+        op,
+        selected_test_pipeline(),
+    )
+}
+
+/// Attempt a boolean via the selected test pipeline.
+pub fn try_boolean_with_pipeline(
+    center_a: [f64; 3],
+    half_a: f64,
+    center_b: [f64; 3],
+    half_b: f64,
+    op: BooleanOp,
+    pipeline: TestPipeline,
+) -> Result<BooleanResult, forge_core::KernelError> {
     let (topo_a, geom_a) = build_cube(center_a, half_a);
     let (topo_b, geom_b) = build_cube(center_b, half_b);
 
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, op);
-    execute_boolean_direct(input).into_result()
+    execute_boolean_logged_with_pipeline(input, pipeline).into_result()
 }
 
 /// Execute a boolean from a pre-built `BooleanInput`, returning the full envelope.
@@ -79,7 +155,19 @@ pub fn try_boolean(
 pub fn execute_boolean_logged(
     input: BooleanInput,
 ) -> forge_core::OperationResult<Result<BooleanResult, forge_core::KernelError>> {
-    execute_boolean_direct(input)
+    execute_boolean_logged_with_pipeline(input, selected_test_pipeline())
+}
+
+/// Execute a boolean using a specific test pipeline.
+pub fn execute_boolean_logged_with_pipeline(
+    input: BooleanInput,
+    pipeline: TestPipeline,
+) -> forge_core::OperationResult<Result<BooleanResult, forge_core::KernelError>> {
+    match pipeline {
+        TestPipeline::Adaptive => execute_boolean(input),
+        TestPipeline::Legacy => execute_boolean_direct(input),
+        TestPipeline::Ember => execute_boolean_ember(input),
+    }
 }
 
 /// Execute a boolean with the EMBER engine (coplanar resolution enabled).

@@ -20,6 +20,8 @@
 pub mod checkpoint;
 pub mod diagnose_pipeline;
 pub mod proof_invariants;
+#[cfg(test)]
+pub(crate) mod test_support;
 
 #[cfg(test)]
 mod pv_p0_1_tests;

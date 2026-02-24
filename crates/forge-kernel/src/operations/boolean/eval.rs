@@ -6,7 +6,27 @@
 //! The vertex's permanent identity remains its `VertexId` + `Lineage`.
 
 use forge_geom::Plane;
+use forge_geom::primitives::aabb::Aabb;
+use forge_geom::spatial::bvh::{BvhNode, query_overlapping_pairs};
+use forge_geom::spatial::coincidence::{CoincidenceGraph, CoincidenceKind};
 use forge_math::arithmetic::Rational;
+
+/// Pack a `FaceId` into a raw `u64` handle for use in `CoincidenceGraph` edges.
+///
+/// Uses the same bit-layout as `pack_handle` in `geometry_store`: `gen << 32 | idx`.
+/// This must stay consistent with `unpack_face_id`.
+#[inline]
+fn pack_face_id(fid: forge_topo::handles::FaceId) -> u64 {
+    ((fid.generation() as u64) << 32) | (fid.index() as u64)
+}
+
+/// Reconstruct a `FaceId` from a raw `u64` handle produced by `pack_face_id`.
+#[inline]
+fn unpack_face_id(raw: u64) -> forge_topo::handles::FaceId {
+    let idx = (raw & 0xFFFF_FFFF) as u32;
+    let gen = (raw >> 32) as u32;
+    forge_topo::handles::FaceId::from_raw_parts(idx, gen)
+}
 
 /// Transient geometric match key for cross-solid vertex deduplication.
 ///
@@ -28,7 +48,6 @@ pub struct VertexMatchKey {
     pos: [Rational; 3],
 }
 
-
 impl VertexMatchKey {
     /// Create a match key from an exact rational vertex position.
     ///
@@ -43,7 +62,6 @@ impl VertexMatchKey {
         &self.pos
     }
 }
-
 
 /// Check if two planes have parallel normals (same or opposite direction).
 ///
@@ -70,11 +88,147 @@ pub fn compute_face_centroid(
             vertices.push(*pos);
         }
     }
-    
     forge_geom::primitives::polygon::compute_polygon_centroid(&vertices).ok_or_else(|| {
         forge_core::KernelError::InvalidInput {
             message: format!("Face {:?} has degenerate geometry (no vertices/area)", face),
             context: None,
         }
     })
+}
+
+/// Compute the AABB of a single face from its vertex f64 positions.
+///
+/// Returns `None` for degenerate or unregistered faces (skipped silently in prepass).
+fn compute_face_aabb(
+    arena: &forge_topo::arena::TopologyArena,
+    geom: &crate::geometry_store::GeometryStore,
+    face: forge_topo::handles::FaceId,
+) -> Option<Aabb> {
+    let he_iter = forge_topo::traverse::FaceEdgeIterator::new(arena, face).ok()?;
+    let edges: Vec<_> = he_iter.collect::<Result<Vec<_>, _>>().ok()?;
+
+    let mut pts: Vec<[f64; 3]> = Vec::with_capacity(edges.len());
+    for he in edges {
+        let v = arena.get_half_edge(he).ok()?.origin();
+        if let Some(pos) = geom.get_vertex_position(v) {
+            pts.push(*pos);
+        }
+    }
+    Aabb::from_points(&pts)
+}
+
+/// Build a `CoincidenceGraph` for two solids using a BVH-accelerated face prepass.
+///
+/// # Algorithm
+/// 1. Collect `(packed u64, Aabb)` pairs for each solid using `arena.iter_faces()`.
+/// 2. Build two independent `BvhNode` trees.
+/// 3. `query_overlapping_pairs` finds AABB-intersecting candidates in `O(n log n)`.
+/// 4. Confirm each candidate as `CoplanarFaces` via `coplanar_eq` (exact rational
+///    arithmetic — no tolerance, D3-compliant).
+/// 5. Record confirmed pairs in `CoincidenceGraph` with canonical `(min, max)` key.
+///
+/// Faces without registered geometry are silently skipped (not a fatal error —
+/// they will be processed normally by the intersection pipeline).
+pub fn build_face_coincidence_prepass(
+    target_arena: &forge_topo::arena::TopologyArena,
+    target_geom: &crate::geometry_store::GeometryStore,
+    tool_arena: &forge_topo::arena::TopologyArena,
+    tool_geom: &crate::geometry_store::GeometryStore,
+) -> CoincidenceGraph {
+    let mut graph = CoincidenceGraph::new();
+
+    // ── 1. Collect per-face (packed u64, Aabb) pairs ──────────────────────────
+    let target_items: Vec<(u64, Aabb)> = target_arena
+        .iter_faces()
+        .filter_map(|(fid, _)| {
+            let aabb = compute_face_aabb(target_arena, target_geom, fid)?;
+            Some((pack_face_id(fid), aabb))
+        })
+        .collect();
+
+    let tool_items: Vec<(u64, Aabb)> = tool_arena
+        .iter_faces()
+        .filter_map(|(fid, _)| {
+            let aabb = compute_face_aabb(tool_arena, tool_geom, fid)?;
+            Some((pack_face_id(fid), aabb))
+        })
+        .collect();
+
+    // ── 2. Build BVH trees ────────────────────────────────────────────────────
+    let target_bvh = match BvhNode::build(target_items) {
+        Some(tree) => tree,
+        None => return graph,
+    };
+    let tool_bvh = match BvhNode::build(tool_items) {
+        Some(tree) => tree,
+        None => return graph,
+    };
+
+    // ── 3. O(n log n) AABB-overlap candidates ─────────────────────────────────
+    let candidates = query_overlapping_pairs(&target_bvh, &tool_bvh);
+
+    // ── 4. Exact coplanarity confirmation ─────────────────────────────────────
+    for (target_raw, tool_raw) in candidates {
+        let target_fid = unpack_face_id(target_raw);
+        let tool_fid   = unpack_face_id(tool_raw);
+
+        let Some(plane_a) = target_geom.get_face_plane(target_fid) else { continue };
+        let Some(plane_b) = tool_geom.get_face_plane(tool_fid)   else { continue };
+
+        if !forge_geom::primitives::plane::coplanar_eq(plane_a, plane_b) {
+            continue;
+        }
+
+        // Approximate gap for metadata: for exactly-coplanar opposite-normal faces
+        // this will be near zero; non-zero if planes are parallel but offset.
+        let gap_mm = plane_a.offset().abs();
+
+        graph.insert_edge(
+            target_raw,
+            tool_raw,
+            CoincidenceKind::CoplanarFaces { gap_mm },
+        );
+    }
+
+    graph
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::mesh_builder::make_cube;
+
+    #[test]
+    fn prepass_sharing_face_cubes() {
+        let res_a = make_cube([0.0, 0.0, 0.0], 10.0).unwrap();
+        let (topo_a, geom_a) = res_a.into_parts();
+        
+        let res_b = make_cube([10.0, 0.0, 0.0], 10.0).unwrap(); // exactly adjacent face
+        let (topo_b, geom_b) = res_b.into_parts();
+
+        let graph = build_face_coincidence_prepass(
+            topo_a.arena(), &geom_a,
+            topo_b.arena(), &geom_b,
+        );
+
+        // A cube touching another cube face-to-face will have exactly 1 coplanar face pair.
+        assert_eq!(graph.edge_count(), 1, "Expected exactly 1 coplanar face edge");
+    }
+
+    #[test]
+    fn prepass_non_adjacent_cubes() {
+        let res_a = make_cube([0.0, 0.0, 0.0], 10.0).unwrap();
+        let (topo_a, geom_a) = res_a.into_parts();
+        
+        let res_b = make_cube([25.0, 0.0, 0.0], 10.0).unwrap(); // far apart
+        let (topo_b, geom_b) = res_b.into_parts();
+
+        let graph = build_face_coincidence_prepass(
+            topo_a.arena(), &geom_a,
+            topo_b.arena(), &geom_b,
+        );
+
+        // No bounding box overlaps, should be empty graph.
+        assert_eq!(graph.edge_count(), 0, "Expected empty graph for non-adjacent cubes");
+    }
 }

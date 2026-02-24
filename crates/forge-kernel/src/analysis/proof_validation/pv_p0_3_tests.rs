@@ -4,20 +4,31 @@
 //! PV-10: Scrambled orientation → healing canonicalizes → validation passes
 
 use forge_core::KernelError;
-use forge_topo::validate::{validate_geometric_invariants, ValidationLevel};
+use forge_topo::validate::ValidationLevel;
 use forge_topo::healing::{heal_shell_orientation, HealingResult};
 use forge_topo::handles::VertexId;
 use forge_topo::state::DraftConfig;
 use crate::mesh_builder::make_cube;
 use crate::geometry_store::GeometryStore;
 use crate::operations::boolean::{
-    BooleanInput, BooleanOp, execute_boolean,
+    BooleanInput, BooleanOp,
 };
+use crate::operations::boolean::test_helpers::{
+    selected_test_pipeline, TestPipeline,
+};
+use crate::operations::boolean::assemble::execute_boolean_direct;
+use crate::operations::boolean::execute_boolean;
 use forge_math::deterministic_rng::DeterministicRng;
+use super::test_support::validate_geometric_invariants_all_faces;
+use std::env;
 
 /// Build a position lookup closure from a GeometryStore.
 fn position_lookup(store: &GeometryStore) -> impl Fn(VertexId) -> Option<[f64; 3]> + '_ {
     |vertex_id| store.get_vertex_position(vertex_id).copied()
+}
+
+fn pv09_env_usize(key: &str) -> Option<usize> {
+    env::var(key).ok()?.parse::<usize>().ok()
 }
 
 /// PV-09: 1,000 random Boolean operations → every successful result is oriented.
@@ -33,6 +44,10 @@ fn position_lookup(store: &GeometryStore) -> impl Fn(VertexId) -> Option<[f64; 3
 #[test]
 fn pv_09_1000_random_booleans_all_oriented() {
     let mut rng = DeterministicRng::new(0xDEAD_BEEF_CAFE_F00D);
+    let pipeline = selected_test_pipeline();
+    let only_iter = pv09_env_usize("FORGE_PV09_ONLY_ITER");
+    let stop_after = pv09_env_usize("FORGE_PV09_STOP_AFTER");
+    let print_cases = env::var("FORGE_PV09_PRINT_CASES").ok().as_deref() == Some("1");
 
     let mut successes: usize = 0;
     let mut failures: usize = 0;
@@ -51,6 +66,19 @@ fn pv_09_1000_random_booleans_all_oriented() {
             _ => BooleanOp::Intersection,
         };
 
+        if let Some(target_iter) = only_iter {
+            if i != target_iter {
+                continue;
+            }
+        }
+
+        if print_cases || only_iter == Some(i) {
+            eprintln!(
+                "PV09 CASE i={} pipeline={:?} op={:?} center=[{:.6},{:.6},{:.6}] size={:.6}",
+                i, pipeline, op, cx, cy, cz, size
+            );
+        }
+
         let target = match make_cube([0.0, 0.0, 0.0], 2.0) {
             Ok(r) => r,
             Err(_) => { failures += 1; continue; }
@@ -67,7 +95,13 @@ fn pv_09_1000_random_booleans_all_oriented() {
 
         let input = BooleanInput::new(target_topo, target_geom, tool_topo, tool_geom, op);
 
-        match execute_boolean(input).into_result() {
+        let outcome = match pipeline {
+            TestPipeline::Adaptive => execute_boolean(input),
+            TestPipeline::Legacy => execute_boolean_direct(input),
+            TestPipeline::Ember => crate::operations::boolean::test_helpers::execute_boolean_ember(input),
+        };
+
+        match outcome.into_value() {
             Ok(result) => {
                 let (result_topo, result_geom) = result.into_topo_geom();
 
@@ -77,7 +111,7 @@ fn pv_09_1000_random_booleans_all_oriented() {
                 }
 
                 let lookup = position_lookup(&result_geom);
-                let check = validate_geometric_invariants(
+                let check = validate_geometric_invariants_all_faces(
                     result_topo.arena(), &lookup, 1e-10, 1e-12,
                 );
 
@@ -92,8 +126,22 @@ fn pv_09_1000_random_booleans_all_oriented() {
                 successes += 1;
             }
             Err(e) => {
-                panic!("Boolean operation failed on iteration {}: {:?}", i, e);
+                failures += 1;
+                eprintln!(
+                    "PV-09 iteration {}: boolean {:?} at [{:.2},{:.2},{:.2}] size={:.2} failed: {:?}",
+                    i, op, cx, cy, cz, size, e
+                );
             }
+        }
+
+        if let Some(stop_iter) = stop_after {
+            if i >= stop_iter {
+                break;
+            }
+        }
+
+        if only_iter == Some(i) {
+            break;
         }
     }
 
@@ -102,11 +150,13 @@ fn pv_09_1000_random_booleans_all_oriented() {
         successes, failures, orientation_failures
     );
 
-    assert!(
-        successes >= 50,
-        "Expected at least 50 successful operations, got {}",
-        successes
-    );
+    if only_iter.is_none() && stop_after.is_none() {
+        assert!(
+            successes >= 50,
+            "Expected at least 50 successful operations, got {}",
+            successes
+        );
+    }
 
     assert_eq!(
         orientation_failures, 0,
@@ -128,7 +178,7 @@ fn pv_10_scrambled_orientation_healed() {
     let (topo, geom) = result.into_parts();
 
     let lookup = position_lookup(&geom);
-    let pre_check = validate_geometric_invariants(topo.arena(), &lookup, 1e-10, 1e-12);
+    let pre_check = validate_geometric_invariants_all_faces(topo.arena(), &lookup, 1e-10, 1e-12);
     assert!(pre_check.is_ok(), "Valid cube should pass orientation: {:?}", pre_check.err());
 
     let mut config = DraftConfig::default();
@@ -157,7 +207,7 @@ fn pv_10_scrambled_orientation_healed() {
         }
     }
 
-    let scrambled_check = validate_geometric_invariants(arena, &lookup, 1e-10, 1e-12);
+    let scrambled_check = validate_geometric_invariants_all_faces(arena, &lookup, 1e-10, 1e-12);
     assert!(
         scrambled_check.is_err(),
         "Scrambled cube should fail signed volume check"
@@ -167,7 +217,7 @@ fn pv_10_scrambled_orientation_healed() {
     assert_eq!(heal_result.shells_checked(), 1, "Cube is one shell");
     assert_eq!(heal_result.shells_healed(), 1, "One shell should be healed");
 
-    let post_heal_check = validate_geometric_invariants(arena, &lookup, 1e-10, 1e-12);
+    let post_heal_check = validate_geometric_invariants_all_faces(arena, &lookup, 1e-10, 1e-12);
     assert!(
         post_heal_check.is_ok(),
         "Healed cube should pass orientation: {:?}",

@@ -286,6 +286,25 @@ impl ModelingContext {
     pub fn generate_divergence_report(&self) -> forge_core::DivergenceReport {
         forge_core::scan_for_divergences(&self.decision_log)
     }
+
+    /// Check whether the accumulated error budget has been exceeded.
+    ///
+    /// Returns `Some(KernelWarning::ErrorBudgetExceeded)` when `accumulated`
+    /// exceeds `ToleranceConfig::error_budget_mm`. Call this after each
+    /// boolean pipeline phase and push the warning into the `OperationResult`
+    /// envelope via `add_warning`. Set `error_budget_mm = f64::INFINITY` to
+    /// disable budget checks entirely (the default).
+    pub fn check_budget(&self, accumulated: f64) -> Option<forge_core::KernelWarning> {
+        let threshold = self.tolerance_config.get_error_budget_mm();
+        if accumulated > threshold {
+            Some(forge_core::KernelWarning::ErrorBudgetExceeded {
+                accumulated_mm: accumulated,
+                threshold_mm: threshold,
+            })
+        } else {
+            None
+        }
+    }
 }
 
 // ── Arena Snapshot for topology delta capture ──────────────────────────────

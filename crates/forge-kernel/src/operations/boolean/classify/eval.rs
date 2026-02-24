@@ -14,7 +14,7 @@
 //! 6. Record TracedDecision for every classification.
 
 use forge_core::KernelError;
-use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier, EntityRef};
+use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier, EntityRef, ToleranceProvider};
 use forge_core::tracing::TopologyDelta;
 use forge_topo::arena::TopologyArena;
 use forge_topo::classify::{classify_point_in_solid, PointClassification};
@@ -85,7 +85,7 @@ fn classify_single_face(
         &|index| lookup_vertex_position(other_arena, other_geometry, index),
         accelerator,
         &sample,
-        config.get_edge_split_degeneracy(),
+        other_geometry as &dyn ToleranceProvider,
     )?;
 
     let (class, escalation) = match &classification {
@@ -177,7 +177,7 @@ fn resolve_boundary_classification(
         &|index| lookup_vertex_position(other_arena, other_geometry, index),
         accelerator,
         &pos_sample,
-        config.get_edge_split_degeneracy(),
+        other_geometry as &dyn ToleranceProvider,
     )?;
 
     let neg_class = classify_point_in_solid(
@@ -185,7 +185,7 @@ fn resolve_boundary_classification(
         &|index| lookup_vertex_position(other_arena, other_geometry, index),
         accelerator,
         &neg_sample,
-        config.get_edge_split_degeneracy(),
+        other_geometry as &dyn ToleranceProvider,
     )?;
 
     let pos_face_class = to_face_classification(&pos_class);

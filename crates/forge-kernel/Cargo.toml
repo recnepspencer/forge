@@ -14,6 +14,20 @@ forge-signal.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 
+[dev-dependencies]
+criterion.workspace = true
+
 [lints]
 workspace = true
 
+[[bench]]
+name = "tolerance"
+harness = false
+
+[[bench]]
+name = "coincidence_graph"
+harness = false
+
+[[bench]]
+name = "gap_measurement"
+harness = false

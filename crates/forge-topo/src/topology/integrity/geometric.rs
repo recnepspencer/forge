@@ -3,15 +3,15 @@
 //! DOMAIN: Checks that detect degenerate geometry which pure topology
 //! checks would miss — zero-area faces, zero-length edges, inverted shells.
 //!
-//! These checks require a position-lookup callback from the kernel layer,
-//! keeping the topo→kernel dependency boundary clean (Adapter Rule §6).
+//! These checks require a position-lookup callback and a `ToleranceProvider`
+//! from the kernel layer, keeping the topo→kernel dependency boundary clean.
 //!
-//! DEPENDENCIES: `arena` (entity data), `handles` (typed IDs), `forge-core` (errors),
-//!               `queries/traverse` (FaceEdgeIterator)
+//! DEPENDENCIES: `arena` (entity data), `handles` (typed IDs), `forge-core`
+//!               (errors, ToleranceProvider), `queries/traverse`
 
 use std::collections::BTreeSet;
 
-use forge_core::KernelError;
+use forge_core::{KernelError, ToleranceProvider};
 use crate::arena::TopologyArena;
 use crate::handles::{FaceId, VertexId};
 use crate::topology::queries::traverse::FaceEdgeIterator;
@@ -19,36 +19,34 @@ use super::shell::{discover_shell_faces, compute_shell_signed_volume, collect_fa
 
 /// Validate geometric invariants that require vertex positions.
 ///
-/// Unlike `validate_topology()` (pure structural checks called at commit
-/// time), this requires a position-lookup callback from the kernel layer.
+/// Unlike `validate_topology()` (pure structural checks called at commit time),
+/// this requires position-lookup and per-entity tolerance from the kernel layer.
 /// Checks: zero-area faces, zero-length edges, signed volume consistency.
 ///
-/// The `is_planar` callback allows skipping area and volume checks for
-/// non-planar faces (e.g., NURBS patches) where projected polygon area
-/// would give false positives under `ZeroAreaFace` validation.
+/// The `is_planar` callback allows skipping area/volume checks for non-planar
+/// faces (e.g., NURBS patches) where projected polygon area would be misleading.
 pub fn validate_geometric_invariants(
     arena: &TopologyArena,
     position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
     is_planar: &dyn Fn(FaceId) -> bool,
-    area_threshold: f64,
-    edge_length_threshold: f64,
+    tolerance_provider: &dyn ToleranceProvider,
 ) -> Result<(), KernelError> {
-    validate_zero_area_faces(arena, position_fn, is_planar, area_threshold)?;
-    validate_zero_length_edges(arena, position_fn, edge_length_threshold)?;
+    validate_zero_area_faces(arena, position_fn, is_planar, tolerance_provider)?;
+    validate_zero_length_edges(arena, position_fn, tolerance_provider)?;
     validate_signed_volume(arena, position_fn)?;
     Ok(())
 }
 
-/// Validate that no planar face has near-zero area.
+/// Validate that no planar face has area below its per-vertex tolerance.
 ///
-/// Computes area magnitude via Newell's method over loop vertices.
-/// Non-planar faces (e.g., NURBS) are skipped via the `is_planar` callback
-/// to prevent false positives where projected polygon area would be misleadingly small.
+/// Uses the maximum vertex tolerance of the face loop as the area threshold.
+/// This means a face formed by large-tolerance-sphere vertices tolerates a
+/// larger minimum area than one formed by exact planar vertices.
 fn validate_zero_area_faces(
     arena: &TopologyArena,
     position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
     is_planar: &dyn Fn(FaceId) -> bool,
-    area_threshold: f64,
+    tolerance_provider: &dyn ToleranceProvider,
 ) -> Result<(), KernelError> {
     for (face_id, _face_data) in arena.iter_faces() {
         if !is_planar(face_id) {
@@ -60,6 +58,16 @@ fn validate_zero_area_faces(
         if positions.len() < 3 {
             continue;
         }
+
+        // Threshold = max vertex tolerance of the face loop, squared then sqrt.
+        // For planar vertices this is PLANAR_VERTEX_TOLERANCE² area ≈ 1e-20m².
+        let area_threshold = FaceEdgeIterator::new(arena, face_id)
+            .map_err(|e| e)?
+            .filter_map(|r| r.ok())
+            .filter_map(|he_id| arena.get_half_edge(he_id).ok())
+            .map(|he| tolerance_provider.vertex_tolerance(he.origin().index(), he.origin().generation()))
+            .fold(0.0_f64, f64::max)
+            .powi(2);
 
         let area = compute_polygon_area(&positions);
 
@@ -77,7 +85,7 @@ fn validate_zero_area_faces(
                     },
                     suggested_fixes: Vec::new(),
                     detail: format!(
-                        "Face {} area {:.2e} is below threshold {:.2e}",
+                        "Face {} area {:.2e} is below per-entity threshold {:.2e}",
                         face_id.index(), area, area_threshold
                     ),
                 }),
@@ -87,14 +95,14 @@ fn validate_zero_area_faces(
     Ok(())
 }
 
-/// Validate that no edge has near-zero length.
+/// Validate that no edge has length below its endpoint vertex tolerances.
 ///
-/// Measures 3D distance between edge endpoint vertices. Each geometric
-/// edge is checked once by canonicalizing on (min_index, max_index).
+/// Uses `max(origin_tolerance, target_tolerance)` as the degenerate threshold
+/// for each edge. For exact planar vertices this is PLANAR_VERTEX_TOLERANCE ≈1e-10.
 fn validate_zero_length_edges(
     arena: &TopologyArena,
     position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
-    edge_length_threshold: f64,
+    tolerance_provider: &dyn ToleranceProvider,
 ) -> Result<(), KernelError> {
     let mut checked_edges: BTreeSet<u32> = BTreeSet::new();
 
@@ -117,6 +125,9 @@ fn validate_zero_length_edges(
 
         if let (Some(p0), Some(p1)) = (origin_pos, target_pos) {
             let length = compute_edge_length(p0, p1);
+            let edge_length_threshold = tolerance_provider
+                .vertex_tolerance(origin.index(), origin.generation())
+                .max(tolerance_provider.vertex_tolerance(target.index(), target.generation()));
 
             if length < edge_length_threshold {
                 return Err(KernelError::TopologyViolation {
@@ -132,7 +143,7 @@ fn validate_zero_length_edges(
                         },
                         suggested_fixes: Vec::new(),
                         detail: format!(
-                            "Edge {} length {:.2e} is below threshold {:.2e}",
+                            "Edge {} length {:.2e} is below per-entity threshold {:.2e}",
                             he_id.index(), length, edge_length_threshold
                         ),
                     }),

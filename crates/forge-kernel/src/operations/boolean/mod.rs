@@ -16,7 +16,7 @@
 //!               `geometry_store` (GeometryStore), `mesh_builder` (mesh construction)
 
 pub(crate) mod schema;
-mod eval;
+pub mod eval;
 mod split;
 mod classify;
 mod postprocess;

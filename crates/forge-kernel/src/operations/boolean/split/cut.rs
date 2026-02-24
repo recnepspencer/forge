@@ -219,11 +219,11 @@ fn find_cut_points_provenance(
     shared_registry: &mut SharedVertexRegistry,
     split_cfg: &SplitConfig<'_>,
 ) -> Result<Vec<CutPoint>, KernelError> {
-    let edges: Vec<_> = FaceEdgeIterator::new(arena, face)?
-        .collect::<Result<Vec<_>, _>>()?;
     let mut points = Vec::new();
+    let mut sign_cache: BTreeMap<VertexId, forge_math::sign::TriSign> = BTreeMap::new();
 
-    for he in edges {
+    for he in FaceEdgeIterator::new(arena, face)? {
+        let he = he?;
         let he_data = arena.get_half_edge(he)?;
         let origin = he_data.origin();
         let next_data = arena.get_half_edge(he_data.next())?;
@@ -231,8 +231,12 @@ fn find_cut_points_provenance(
 
         if let Some(p_o) = geometry.get_vertex_position(origin) {
             if let Some(p_d) = geometry.get_vertex_position(dest) {
-                let s_o = exact_sign_for_vertex(geometry, origin, p_o, cut_plane, cut_plane_idx);
-                let s_d = exact_sign_for_vertex(geometry, dest, p_d, cut_plane, cut_plane_idx);
+                let s_o = *sign_cache.entry(origin).or_insert_with(|| {
+                    exact_sign_for_vertex(geometry, origin, p_o, cut_plane, cut_plane_idx)
+                });
+                let s_d = *sign_cache.entry(dest).or_insert_with(|| {
+                    exact_sign_for_vertex(geometry, dest, p_d, cut_plane, cut_plane_idx)
+                });
 
                 if s_o == forge_math::sign::TriSign::Zero && s_d != forge_math::sign::TriSign::Zero {
                     points.push(CutPoint::Existing(origin));

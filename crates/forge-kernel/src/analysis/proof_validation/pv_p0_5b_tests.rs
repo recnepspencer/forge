@@ -9,6 +9,7 @@ use super::diagnose_pipeline::{diagnose_arena, PipelineStage};
 use super::checkpoint::{
     ValidationCheckpoint, ValidationConfig, run_checkpoint,
 };
+use forge_core::FlatToleranceProvider;
 use crate::mesh_builder::make_cube;
 
 /// Valid cube arena produces a healthy diagnostic.
@@ -60,9 +61,10 @@ fn checkpoint_with_position_fn() {
 
     let config = ValidationConfig::debug_default();
     let pos_fn = |vid| geom.get_vertex_position(vid).copied();
+    let flat = FlatToleranceProvider::new(1e-10);
     let vr = run_checkpoint(
         topo.arena(), &config, ValidationCheckpoint::PostBoolean,
-        Some(&pos_fn), 1e-10, 1e-12,
+        Some(&pos_fn), &flat,
     ).unwrap();
 
     assert!(vr.is_passed());

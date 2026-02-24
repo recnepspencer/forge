@@ -42,6 +42,9 @@ pub mod brep;
 pub use operations::boolean;
 pub use operations::boolean::{BooleanInput, BooleanOp, BooleanResult, execute_boolean};
 
+// Phase F — gap measurement
+pub use analysis::gap::{measure_gap, GapReport, GapSampleDensity};
+
 #[cfg(test)]
 mod tests {
     #[test]

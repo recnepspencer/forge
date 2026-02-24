@@ -13,18 +13,19 @@
 //! Two-pass structure:
 //!  1. Tolerance boundary check — calls `classify_point_on_face` per face so that a
 //!     point physically on the surface still returns `OnBoundary` (SoS pushes it off).
+//!     Uses per-vertex and per-edge tolerances from `ToleranceProvider`.
 //!  2. SoS parity count — for each face compute a 2D winding number in the YZ plane
 //!     and, if non-zero, a 3D depth check via `sos_orient3d`. Odd count → `Inside`.
 //!
 //! DEPENDENCIES: `arena`, `handles`, `traverse`, `forge-math` (predicates),
-//! `forge-geom` (Aabb, BvhNode)
+//! `forge-geom` (Aabb, BvhNode), `forge-core` (ToleranceProvider)
 
-use forge_core::KernelError;
+use forge_core::{KernelError, ToleranceProvider};
 use forge_math::sign::TriSign;
 use forge_math::predicates::{orient2d, orient3d};
 use forge_geom::{Aabb, BvhNode};
 use crate::arena::TopologyArena;
-use crate::handles::FaceId;
+use crate::handles::{FaceId, VertexId, EdgeId};
 use crate::traverse::FaceEdgeIterator;
 
 // ── SpatialAccelerator ────────────────────────────────────────────────────────
@@ -90,7 +91,7 @@ pub fn classify_point_against_face(
 /// - `vertex_positions`: maps vertex slot index → 3D position
 /// - `spatial_index`: optional BVH to accelerate candidate selection  
 /// - `point`: the 3D query point
-/// - `tolerance`: linear tolerance for the boundary pre-check
+/// - `tolerance_provider`: per-entity tolerance for the boundary pre-check
 ///
 /// # Note on `OnBoundary`
 /// A point physically on a face surface is detected in **Pass 1** using the
@@ -101,7 +102,7 @@ pub fn classify_point_in_solid(
     vertex_positions: &dyn Fn(u32) -> Result<[f64; 3], KernelError>,
     spatial_index: Option<&dyn SpatialAccelerator>,
     point: &[f64; 3],
-    tolerance: f64,
+    tolerance_provider: &dyn ToleranceProvider,
 ) -> Result<PointClassification, KernelError> {
     // ── Pass 1: Tolerance-based boundary check ────────────────────────────────
     // SoS intentionally pushes P off boundaries. We must check physical
@@ -109,7 +110,6 @@ pub fn classify_point_in_solid(
     let pos_fn = |v: crate::handles::VertexId| vertex_positions(v.index()).ok();
 
     let faces_to_check: Vec<FaceId> = if let Some(bvh) = spatial_index {
-        // Use a point-AABB: just the query point itself.
         let pt_aabb = Aabb::from_points(&[*point, *point]).unwrap();
         bvh.candidates(&pt_aabb)
     } else {
@@ -117,7 +117,7 @@ pub fn classify_point_in_solid(
     };
 
     for &face_id in &faces_to_check {
-        match classify_point_on_face(arena, face_id, point, &pos_fn, tolerance)? {
+        match classify_point_on_face(arena, face_id, point, &pos_fn, tolerance_provider)? {
             FacePointClassification::Outside => {}
             _ => return Ok(PointClassification::OnBoundary(face_id)),
         }
@@ -125,12 +125,7 @@ pub fn classify_point_in_solid(
 
     // ── Pass 2: SoS parity counting ──────────────────────────────────────────
     let mut crossing_count: i32 = 0;
-
-    // For the parity count we need ALL faces, not just those near P (the ray
-    // is infinite). If we have a BVH we extend the query to also cover faces
-    // along the entire +X half-space starting from P.
     let all_faces: Vec<FaceId> = arena.iter_faces().map(|(id, _)| id).collect();
-
     for face_id in all_faces {
         if sos_ray_intersects_face(arena, vertex_positions, face_id, point)? {
             crossing_count += 1;
@@ -370,7 +365,7 @@ pub enum FacePointClassification {
     Outside,
 }
 
-/// Classify a 3D point relative to a specific face, with edge/vertex snapping.
+/// Classify a 3D point relative to a specific face, with per-entity tolerance snapping.
 ///
 /// Used in Pass 1 of `classify_point_in_solid` to detect true physical boundary
 /// contact before SoS perturbs the point away.
@@ -380,16 +375,14 @@ pub enum FacePointClassification {
 /// - `face_id`: the face to test against
 /// - `point`: 3D query point
 /// - `position_fn`: maps `VertexId` → 3D position
-/// - `tolerance`: linear snap distance for vertex/edge proximity
+/// - `tolerance_provider`: supplies per-vertex and per-edge tolerance values
 pub fn classify_point_on_face(
     arena: &TopologyArena,
     face_id: crate::handles::FaceId,
     point: &[f64; 3],
     position_fn: &dyn Fn(crate::handles::VertexId) -> Option<[f64; 3]>,
-    tolerance: f64,
+    tolerance_provider: &dyn ToleranceProvider,
 ) -> Result<FacePointClassification, KernelError> {
-    let tol_sq = tolerance * tolerance;
-
     let mut boundary: Vec<(crate::handles::HalfEdgeId, crate::handles::VertexId, [f64; 3])> =
         Vec::new();
     for he_res in FaceEdgeIterator::new(arena, face_id)? {
@@ -407,8 +400,10 @@ pub fn classify_point_on_face(
         return Ok(FacePointClassification::Outside);
     }
 
-    // Vertex proximity (closest wins).
+    // Vertex proximity — use per-vertex tolerance sphere radius.
     for &(_, v, pos) in &boundary {
+        let vtol = tolerance_provider.vertex_tolerance(v.index(), v.generation());
+        let tol_sq = vtol * vtol;
         let dx = point[0] - pos[0];
         let dy = point[1] - pos[1];
         let dz = point[2] - pos[2];
@@ -417,11 +412,15 @@ pub fn classify_point_on_face(
         }
     }
 
-    // Edge proximity.
+    // Edge proximity — use per-edge tolerance tube radius (via the halfedge's parent edge).
     let n = boundary.len();
     for i in 0..n {
         let (he_id, _, a) = boundary[i];
         let (_, _, b) = boundary[(i + 1) % n];
+        let he = arena.get_half_edge(he_id)?;
+        let edge_id = he.edge();
+        let etol = tolerance_provider.edge_tolerance(edge_id.index(), edge_id.generation());
+        let tol_sq = etol * etol;
         let ab = [b[0]-a[0], b[1]-a[1], b[2]-a[2]];
         let ap = [point[0]-a[0], point[1]-a[1], point[2]-a[2]];
         let t_num = ap[0]*ab[0] + ap[1]*ab[1] + ap[2]*ab[2];
@@ -438,24 +437,25 @@ pub fn classify_point_on_face(
         }
     }
 
-    // Coplanarity check (distance to plane).
+    // Coplanarity check (distance to plane) — use minimum vertex tolerance as the plane threshold.
+    let min_vtol = boundary.iter().map(|&(_, v, _)| {
+        tolerance_provider.vertex_tolerance(v.index(), v.generation())
+    }).fold(f64::MAX, f64::min);
+
     let positions: Vec<[f64; 3]> = boundary.iter().map(|&(_, _, p)| p).collect();
     let normal = compute_newell_normal(&positions);
     let mag_sq = normal[0]*normal[0] + normal[1]*normal[1] + normal[2]*normal[2];
     if mag_sq > 0.0 {
         let mag = mag_sq.sqrt();
         let n_unit = [normal[0]/mag, normal[1]/mag, normal[2]/mag];
-        
         let p0 = positions[0];
         let d = -(n_unit[0]*p0[0] + n_unit[1]*p0[1] + n_unit[2]*p0[2]);
         let dist = (n_unit[0]*point[0] + n_unit[1]*point[1] + n_unit[2]*point[2] + d).abs();
-        
-        if dist > tolerance {
+        if dist > min_vtol {
             return Ok(FacePointClassification::Outside);
         }
     }
 
-    // 2D containment check using winding number.
     let (in_poly, _) = point_in_projected_polygon(point, &positions)?;
     if in_poly {
         Ok(FacePointClassification::OnFace)

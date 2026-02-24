@@ -152,6 +152,14 @@ fn execute_boolean_pipeline(
     op_space.transform_geometry(&mut target_geom);
     op_space.transform_geometry(&mut tool_geom);
 
+    // ── Phase E: Coincidence Prepass ─────────────────────────────────────────
+    // Run before split so we see the original un-subdivided faces.
+    let _coincidence_graph = crate::operations::boolean::eval::build_face_coincidence_prepass(
+        target_topo.arena(), &target_geom,
+        tool_topo.arena(), &tool_geom,
+    );
+    // ────────────────────────────────────────────────────────────
+
     // ── Split ────────────────────────────────────────────────────────────────
     let pre_target_hash = compute_arena_topology_hash(target_topo.arena());
     let pre_tool_hash = compute_arena_topology_hash(tool_topo.arena());
@@ -422,7 +430,8 @@ fn run_post_boolean_validation(
         ctx.get_validation_config(),
         ValidationCheckpoint::PostBoolean,
         Some(&pos_fn),
-        1e-10, 1e-12,
+        geom,
     )?;
+
     Ok(())
 }
