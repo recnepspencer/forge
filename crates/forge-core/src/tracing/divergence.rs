@@ -248,7 +248,7 @@ fn extract_exact_sign(decision: &TracedDecision) -> TriSign {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tracing::schema::{DecisionKind, DecisionTier};
+    use crate::tracing::schema::{DecisionKind, DecisionTier, EntityKind};
     use forge_math::arithmetic::precision::{build_target_description, PrecisionEscalation};
 
     fn make_clean_escalation() -> PrecisionEscalation {

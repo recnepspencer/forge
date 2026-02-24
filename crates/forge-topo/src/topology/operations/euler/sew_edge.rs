@@ -114,7 +114,7 @@ impl EulerOperator for SewEdge {
                 edge: edge_to_keep,
                 removed_edge: edge_to_remove,
             },
-            declared_delta: EulerDelta { vertices: 0, half_edges: 0, faces: 0, loops: 0, edges: -1, shells: 0 },
+            declared_delta: EulerDelta { vertices: 0, half_edges: 0, faces: 0, loops: 0, edges: -1, shells: 0, solids: 0, lumps: 0, regions: 0 },
         })
     }
 

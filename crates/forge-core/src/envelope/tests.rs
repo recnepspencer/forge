@@ -5,7 +5,7 @@ use std::time::Duration;
 use super::*;
 use crate::tracing::{
     DecisionId, DecisionKind, DecisionTier, DecisionContext,
-    DecisionLog, TracedDecision, EntityRef,
+    DecisionLog, TracedDecision, EntityRef, EntityKind,
 };
 use crate::policy::PolicyKind;
 

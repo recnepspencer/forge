@@ -133,7 +133,7 @@ impl EulerOperator for MakeEdgeVertex {
                 he_back,
                 edge: new_edge,
             },
-            declared_delta: EulerDelta { vertices: 1, half_edges: 2, faces: 0, loops: 0, edges: 1, shells: 0 },
+            declared_delta: EulerDelta { vertices: 1, half_edges: 2, faces: 0, loops: 0, edges: 1, shells: 0, solids: 0, lumps: 0, regions: 0 },
         })
     }
 

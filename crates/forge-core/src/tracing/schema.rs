@@ -22,9 +22,11 @@ pub enum EntityKind {
     HalfEdge = 1,
     Vertex = 2,
     Loop = 3,
-    Solid = 4,
+    Body = 4,
     Shell = 5,
     Edge = 6,
+    Lump = 7,
+    Region = 8,
 }
 
 impl EntityKind {
@@ -35,9 +37,11 @@ impl EntityKind {
             EntityKind::HalfEdge => "HalfEdge",
             EntityKind::Vertex => "Vertex",
             EntityKind::Loop => "Loop",
-            EntityKind::Solid => "Solid",
+            EntityKind::Body => "Body",
             EntityKind::Shell => "Shell",
             EntityKind::Edge => "Edge",
+            EntityKind::Lump => "Lump",
+            EntityKind::Region => "Region",
         }
     }
 
@@ -48,9 +52,11 @@ impl EntityKind {
             "HalfEdge" => Some(EntityKind::HalfEdge),
             "Vertex" => Some(EntityKind::Vertex),
             "Loop" => Some(EntityKind::Loop),
-            "Solid" => Some(EntityKind::Solid),
+            "Body" => Some(EntityKind::Body),
             "Shell" => Some(EntityKind::Shell),
             "Edge" => Some(EntityKind::Edge),
+            "Lump" => Some(EntityKind::Lump),
+            "Region" => Some(EntityKind::Region),
             _ => None,
         }
     }
@@ -62,9 +68,11 @@ impl EntityKind {
             1 => Some(EntityKind::HalfEdge),
             2 => Some(EntityKind::Vertex),
             3 => Some(EntityKind::Loop),
-            4 => Some(EntityKind::Solid),
+            4 => Some(EntityKind::Body),
             5 => Some(EntityKind::Shell),
             6 => Some(EntityKind::Edge),
+            7 => Some(EntityKind::Lump),
+            8 => Some(EntityKind::Region),
             _ => None,
         }
     }

@@ -340,9 +340,11 @@ fn entity_kind_discriminant(kind: EntityKind) -> u64 {
         EntityKind::HalfEdge => 2,
         EntityKind::Vertex => 3,
         EntityKind::Loop => 4,
-        EntityKind::Solid => 5,
+        EntityKind::Body => 5,
         EntityKind::Shell => 6,
         EntityKind::Edge => 7,
+        EntityKind::Lump => 8,
+        EntityKind::Region => 9,
     }
 }
 

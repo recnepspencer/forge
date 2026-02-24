@@ -7,7 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::handles::{FaceId, HalfEdgeId, VertexId, LoopId, ShellId, EdgeId};
+use crate::handles::{FaceId, HalfEdgeId, VertexId, LoopId, ShellId, BodyId, LumpId, RegionId, EdgeId};
 use crate::lineage::Lineage;
 
 /// A slot in the arena that may be occupied or vacant.
@@ -291,6 +291,174 @@ impl LoopData {
     pub fn set_face(&mut self, id: FaceId) { self.face = id; }
 }
 
+/// Data stored for each solid — the top-level topology container.
+///
+/// A solid owns one or more lumps. Each lump is a connected
+/// component of material within this body.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BodyData {
+    lumps: Vec<LumpId>,
+    lineage: Option<Lineage>,
+}
+
+impl BodyData {
+    /// Construct a new empty solid.
+    pub fn new() -> Self {
+        Self { lumps: Vec::new(), lineage: None }
+    }
+
+    /// Construct a new solid with lineage.
+    pub fn with_lineage(lineage: Option<Lineage>) -> Self {
+        Self { lumps: Vec::new(), lineage }
+    }
+
+    /// The lumps belonging to this solid.
+    pub fn lumps(&self) -> &[LumpId] { &self.lumps }
+
+    /// Add a lump to this solid.
+    pub fn add_lump(&mut self, id: LumpId) { self.lumps.push(id); }
+
+    /// Remove a lump from this solid.
+    ///
+    /// Returns `true` if the lump was found and removed, `false` otherwise.
+    pub fn remove_lump(&mut self, id: LumpId) -> bool {
+        if let Some(pos) = self.lumps.iter().position(|&l| l == id) {
+            self.lumps.swap_remove(pos);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Number of lumps in this solid.
+    pub fn lump_count(&self) -> usize { self.lumps.len() }
+
+    /// Inline lineage for provenance tracking.
+    pub fn lineage(&self) -> Option<&Lineage> { self.lineage.as_ref() }
+
+    /// Set inline lineage.
+    pub fn set_lineage(&mut self, lineage: Option<Lineage>) { self.lineage = lineage; }
+
+    /// Backward-compatible access: collect all shells across all lumps.
+    ///
+    /// Callers that previously used `solid.shells()` should migrate to
+    /// traversing the Lump/Region hierarchy directly. This method exists
+    /// as a migration aid.
+    #[deprecated(note = "traverse lumps/regions/shells hierarchy instead")]
+    pub fn shells(&self) -> &[LumpId] { &self.lumps }
+}
+
+/// Data stored for each lump — a connected component of material.
+///
+/// A lump contains one or more regions. Disconnected boolean results
+/// produce multiple lumps within a single body.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LumpData {
+    regions: Vec<RegionId>,
+    body: BodyId,
+    lineage: Option<Lineage>,
+}
+
+impl LumpData {
+    /// Construct a new lump with its parent body.
+    pub fn new(body: BodyId) -> Self {
+        Self { regions: Vec::new(), body, lineage: None }
+    }
+
+    /// Construct a new lump with lineage.
+    pub fn with_lineage(body: BodyId, lineage: Option<Lineage>) -> Self {
+        Self { regions: Vec::new(), body, lineage }
+    }
+
+    /// The regions belonging to this lump.
+    pub fn regions(&self) -> &[RegionId] { &self.regions }
+
+    /// Add a region to this lump.
+    pub fn add_region(&mut self, id: RegionId) { self.regions.push(id); }
+
+    /// Remove a region from this lump.
+    pub fn remove_region(&mut self, id: RegionId) -> bool {
+        if let Some(pos) = self.regions.iter().position(|&r| r == id) {
+            self.regions.swap_remove(pos);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Number of regions in this lump.
+    pub fn region_count(&self) -> usize { self.regions.len() }
+
+    /// The body this lump belongs to.
+    pub fn body(&self) -> BodyId { self.body }
+
+    /// Set the parent body.
+    pub fn set_body(&mut self, id: BodyId) { self.body = id; }
+
+    /// Inline lineage for provenance tracking.
+    pub fn lineage(&self) -> Option<&Lineage> { self.lineage.as_ref() }
+
+    /// Set inline lineage.
+    pub fn set_lineage(&mut self, lineage: Option<Lineage>) { self.lineage = lineage; }
+}
+
+/// Data stored for each region — a 3D volume bounded by shells.
+///
+/// A region contains exactly one outer shell (material boundary) and
+/// zero or more inner shells (cavities/voids). This is the topological
+/// encoding of a 3-manifold with boundary.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RegionData {
+    shells: Vec<ShellId>,
+    lump: LumpId,
+    lineage: Option<Lineage>,
+}
+
+impl RegionData {
+    /// Construct a new region with its parent lump.
+    ///
+    /// The first shell added is always the outer shell.
+    pub fn new(lump: LumpId) -> Self {
+        Self { shells: Vec::new(), lump, lineage: None }
+    }
+
+    /// Construct a new region with lineage.
+    pub fn with_lineage(lump: LumpId, lineage: Option<Lineage>) -> Self {
+        Self { shells: Vec::new(), lump, lineage }
+    }
+
+    /// All shells in this region (outer first, then inner).
+    pub fn shells(&self) -> &[ShellId] { &self.shells }
+
+    /// Add a shell to this region.
+    pub fn add_shell(&mut self, id: ShellId) { self.shells.push(id); }
+
+    /// Remove a shell from this region.
+    pub fn remove_shell(&mut self, id: ShellId) -> bool {
+        if let Some(pos) = self.shells.iter().position(|&s| s == id) {
+            self.shells.swap_remove(pos);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Number of shells in this region.
+    pub fn shell_count(&self) -> usize { self.shells.len() }
+
+    /// The lump this region belongs to.
+    pub fn lump(&self) -> LumpId { self.lump }
+
+    /// Set the parent lump.
+    pub fn set_lump(&mut self, id: LumpId) { self.lump = id; }
+
+    /// Inline lineage for provenance tracking.
+    pub fn lineage(&self) -> Option<&Lineage> { self.lineage.as_ref() }
+
+    /// Set inline lineage.
+    pub fn set_lineage(&mut self, lineage: Option<Lineage>) { self.lineage = lineage; }
+}
+
 /// Orientation of a shell within a solid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ShellOrientation {
@@ -321,22 +489,24 @@ pub enum ShellKind {
 pub struct ShellData {
     representative_face: FaceId,
     kind: ShellKind,
+    region: RegionId,
     lineage: Option<Lineage>,
 }
 
 impl ShellData {
-    /// Construct a new shell with the given representative face.
-    pub fn new(representative_face: FaceId, kind: ShellKind) -> Self {
-        Self { representative_face, kind, lineage: None }
+    /// Construct a new shell with the given representative face and parent region.
+    pub fn new(representative_face: FaceId, kind: ShellKind, region: RegionId) -> Self {
+        Self { representative_face, kind, region, lineage: None }
     }
 
     /// Construct a new shell with lineage.
     pub fn with_lineage(
         representative_face: FaceId,
         kind: ShellKind,
+        region: RegionId,
         lineage: Option<Lineage>,
     ) -> Self {
-        Self { representative_face, kind, lineage }
+        Self { representative_face, kind, region, lineage }
     }
 
     /// One representative face (entry point for shell traversal).
@@ -353,6 +523,9 @@ impl ShellData {
         }
     }
 
+    /// The region this shell belongs to.
+    pub fn region(&self) -> RegionId { self.region }
+
     /// Inline lineage for provenance tracking.
     pub fn lineage(&self) -> Option<&Lineage> { self.lineage.as_ref() }
 
@@ -361,6 +534,9 @@ impl ShellData {
 
     /// Set the shell kind.
     pub fn set_kind(&mut self, kind: ShellKind) { self.kind = kind; }
+
+    /// Set the region this shell belongs to.
+    pub fn set_region(&mut self, id: RegionId) { self.region = id; }
 
     /// Set inline lineage.
     pub fn set_lineage(&mut self, lineage: Option<Lineage>) { self.lineage = lineage; }

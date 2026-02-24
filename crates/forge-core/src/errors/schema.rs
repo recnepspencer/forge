@@ -389,9 +389,15 @@ pub enum TopologyError {
     },
     /// A boundary edge (self-radial, no face across the gap) was found in a
     /// solid shell. Solid shells must be watertight.
+    /// A boundary edge (self-radial, no face across the gap) was found in a
+    /// solid shell. Solid shells must be watertight.
     BoundaryEdgeInSolid {
         halfedge_index: u32,
         shell_index: u32,
+    },
+    /// An operation attempted something topologically invalid.
+    InvalidOperation {
+        detail: String,
     },
 }
 
@@ -467,6 +473,9 @@ impl fmt::Display for TopologyError {
             TopologyError::BoundaryEdgeInSolid { halfedge_index, shell_index } => {
                 write!(f, "Halfedge {} is a boundary edge in solid shell {} (solid shells must be watertight)",
                     halfedge_index, shell_index)
+            }
+            TopologyError::InvalidOperation { detail } => {
+                write!(f, "Invalid operation: {}", detail)
             }
         }
     }

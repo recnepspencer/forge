@@ -12,10 +12,12 @@
 //! - `KillEdgeVertex` (KEV): edge/vertex collapse (inverse of MEV/SE) — V-1 E-1
 //! - `KillEdgeMakeLoop` (KEML): loop split (inverse of MEKL) — E-1 L+1
 //! - `SewEdge` (SEW): boundary edge gluing — E-1 χ+1
+//! - `UnsewEdge` (USEW): boundary edge ungluing (inverse of SEW) — E+1
+//! - `MakeShellFace` (MSF): disjoint shell creation within a solid — V+1 F+1 E+1 L+1 S+1
+//! - `KillShellFace` (KSF): disjoint shell destruction (inverse of MSF) — V-1 F-1 E-1 L-1 S-1
+//! - `KillVertexFace` (KVF): atomic body teardown (inverse of MVF) — V-1 F-1 E-1 L-1 S-1 So-1
 //!
 //! ## Missing Operators (Future Roadmap)
-//! - **MakeShellFace / KillShellFace**: shell-level creation when
-//!   the region/shell layer is added for 3D solid modeling.
 //!
 //! INVARIANTS:
 //! - Every operator is executed via `apply_op()` — never called directly
@@ -33,6 +35,10 @@ pub mod join_faces;
 pub mod kill_edge_vertex;
 pub mod kill_edge_make_loop;
 pub mod sew_edge;
+pub mod unsew_edge;
+pub mod make_shell_face;
+pub mod kill_shell_face;
+pub mod kill_vertex_face;
 
 #[cfg(test)]
 pub mod tests;

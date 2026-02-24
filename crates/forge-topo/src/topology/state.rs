@@ -22,12 +22,12 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use forge_core::KernelError;
-use crate::arena::TopologyArena;
+use crate::arena::{TopologyArena};
 use crate::hashing::compute_arena_topology_hash;
 use crate::lineage::{LineageEvent, OpSignature};
 use crate::lineage_store::LineageStore;
 use crate::replay::{ReplayLog, ReplayEntry};
-use crate::handles::{FaceId, VertexId, HalfEdgeId, LoopId, ShellId, EdgeId};
+use crate::handles::{FaceId, VertexId, HalfEdgeId, LoopId, ShellId, BodyId, LumpId, RegionId, EdgeId};
 use crate::validate::{self, ValidationLevel};
 
 /// Configuration for a mutable draft transaction.
@@ -436,6 +436,36 @@ impl MutableDraft {
     pub fn remove_shell(&mut self, id: ShellId) -> Result<crate::arena::ShellData, KernelError> {
         let (arena, store) = self.unbundle_mut();
         arena.remove_shell(id, Some(store))
+    }
+
+    pub fn insert_body(&mut self, data: crate::arena::BodyData) -> BodyId {
+        let (arena, store) = self.unbundle_mut();
+        arena.insert_body(data, Some(store))
+    }
+
+    pub fn remove_body(&mut self, id: BodyId) -> Result<crate::arena::BodyData, KernelError> {
+        let (arena, store) = self.unbundle_mut();
+        arena.remove_body(id, Some(store))
+    }
+
+    pub fn insert_lump(&mut self, data: crate::arena::LumpData) -> LumpId {
+        let (arena, store) = self.unbundle_mut();
+        arena.insert_lump(data, Some(store))
+    }
+
+    pub fn remove_lump(&mut self, id: LumpId) -> Result<crate::arena::LumpData, KernelError> {
+        let (arena, store) = self.unbundle_mut();
+        arena.remove_lump(id, Some(store))
+    }
+
+    pub fn insert_region(&mut self, data: crate::arena::RegionData) -> RegionId {
+        let (arena, store) = self.unbundle_mut();
+        arena.insert_region(data, Some(store))
+    }
+
+    pub fn remove_region(&mut self, id: RegionId) -> Result<crate::arena::RegionData, KernelError> {
+        let (arena, store) = self.unbundle_mut();
+        arena.remove_region(id, Some(store))
     }
 
     pub fn insert_edge(&mut self, data: crate::arena::EdgeData) -> EdgeId {

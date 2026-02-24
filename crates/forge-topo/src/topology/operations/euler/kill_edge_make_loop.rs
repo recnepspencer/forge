@@ -143,6 +143,9 @@ impl EulerOperator for KillEdgeMakeLoop {
                 loops: 1,
                 edges: -1,
                 shells: 0,
+                solids: 0,
+                lumps: 0,
+                regions: 0,
             },
         })
     }

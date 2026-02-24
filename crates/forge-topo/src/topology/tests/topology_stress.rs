@@ -23,7 +23,7 @@ mod tests {
     use crate::euler::split_edge::SplitEdge;
     use crate::euler::join_faces::JoinFaces;
     use crate::euler::kill_edge_vertex::KillEdgeVertex;
-    use crate::algorithms::bridge_edge::BridgeEdge;
+    use crate::algorithms::bridge_edge::bridge_edge;
     use crate::traverse::{FaceEdgeIterator, VertexRingIterator};
     use crate::validate::{validate_topology, ValidationLevel};
     use crate::testing::build_face_with_hole;
@@ -336,11 +336,7 @@ mod tests {
 
         assert_eq!(draft.arena().get_face(face).unwrap().inner_loop_count(), 1);
 
-        let bridge = apply_op(&mut draft, BridgeEdge {
-            outer_he,
-            inner_he,
-            face,
-        }).unwrap().into_value();
+        let bridge = bridge_edge(&mut draft, outer_he, inner_he).unwrap();
 
         assert_eq!(draft.arena().get_face(face).unwrap().inner_loop_count(), 0);
 
@@ -821,9 +817,7 @@ mod tests {
         let (face, outer_he, inner_he, _inner_loop, _verts) =
             build_face_with_hole(&mut draft);
 
-        let _bridge1 = apply_op(&mut draft, BridgeEdge {
-            outer_he, inner_he, face,
-        }).unwrap().into_value();
+        let _bridge1 = bridge_edge(&mut draft, outer_he, inner_he).unwrap();
 
         assert_eq!(draft.arena().get_face(face).unwrap().inner_loop_count(), 0);
 

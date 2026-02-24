@@ -89,7 +89,9 @@ define_handle!(FaceId);
 define_handle!(HalfEdgeId);
 define_handle!(VertexId);
 define_handle!(LoopId);
-define_handle!(SolidId);
+define_handle!(BodyId);
+define_handle!(LumpId);
+define_handle!(RegionId);
 define_handle!(ShellId);
 define_handle!(EdgeId);
 

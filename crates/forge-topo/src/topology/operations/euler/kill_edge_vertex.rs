@@ -176,7 +176,7 @@ impl EulerOperator for KillEdgeVertex {
                 surviving_vertex: vertex_a,
                 is_degenerate: false,
             },
-            declared_delta: EulerDelta { vertices: -1, half_edges: -num_half_edges_removed, faces: 0, loops: 0, edges: -1, shells: 0 },
+            declared_delta: EulerDelta { vertices: -1, half_edges: -num_half_edges_removed, faces: 0, loops: 0, edges: -1, shells: 0, solids: 0, lumps: 0, regions: 0 },
         })
     }
 

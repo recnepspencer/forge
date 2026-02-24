@@ -98,6 +98,22 @@ pub struct LineageDelta {
     pub vertices_created: u32,
     /// Number of vertices deleted.
     pub vertices_deleted: u32,
+    /// Number of loops created.
+    pub loops_created: u32,
+    /// Number of loops deleted.
+    pub loops_deleted: u32,
+    /// Number of edges created.
+    pub edges_created: u32,
+    /// Number of edges deleted.
+    pub edges_deleted: u32,
+    /// Number of shells created.
+    pub shells_created: u32,
+    /// Number of shells deleted.
+    pub shells_deleted: u32,
+    /// Number of solids created.
+    pub solids_created: u32,
+    /// Number of solids deleted.
+    pub solids_deleted: u32,
 }
 
 // =========================================================================

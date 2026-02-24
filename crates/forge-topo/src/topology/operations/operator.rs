@@ -104,6 +104,12 @@ pub struct EulerDelta {
     pub edges: i32,
     /// Expected change in shell count.
     pub shells: i32,
+    /// Expected change in solid count.
+    pub solids: i32,
+    /// Expected change in lump count.
+    pub lumps: i32,
+    /// Expected change in region count.
+    pub regions: i32,
 }
 
 /// Result of an Euler operator execution.
@@ -156,6 +162,9 @@ pub fn apply_op<O: EulerOperator>(
     let loop_count_before = draft.arena().loop_count();
     let edge_count_before = draft.arena().edge_count();
     let shell_count_before = draft.arena().shell_count();
+    let body_count_before = draft.arena().body_count();
+    let lump_count_before = draft.arena().lump_count();
+    let region_count_before = draft.arena().region_count();
 
     let invocation_id = draft.next_op_id();
     let mut signature = op.signature();
@@ -190,6 +199,9 @@ pub fn apply_op<O: EulerOperator>(
     let loop_count_after = draft.arena().loop_count();
     let edge_count_after = draft.arena().edge_count();
     let shell_count_after = draft.arena().shell_count();
+    let body_count_after = draft.arena().body_count();
+    let lump_count_after = draft.arena().lump_count();
+    let region_count_after = draft.arena().region_count();
 
     // ── Euler invariant enforcement: declared intent vs actual reality ──
     let actual_delta = EulerDelta {
@@ -199,6 +211,9 @@ pub fn apply_op<O: EulerOperator>(
         loops: loop_count_after as i32 - loop_count_before as i32,
         edges: edge_count_after as i32 - edge_count_before as i32,
         shells: shell_count_after as i32 - shell_count_before as i32,
+        solids: body_count_after as i32 - body_count_before as i32,
+        lumps: lump_count_after as i32 - lump_count_before as i32,
+        regions: region_count_after as i32 - region_count_before as i32,
     };
     if actual_delta != declared_delta {
         return Err(KernelError::TopologyViolation {
@@ -216,12 +231,12 @@ pub fn apply_op<O: EulerOperator>(
                 },
                 suggested_fixes: vec![],
                 detail: format!(
-                    "{} declared Euler delta V={} HE={} F={} L={} E={} S={} but actual was V={} HE={} F={} L={} E={} S={}",
+                    "{} declared Euler delta V={} HE={} F={} L={} E={} S={} So={} but actual was V={} HE={} F={} L={} E={} S={} So={}",
                     op_name,
                     declared_delta.vertices, declared_delta.half_edges, declared_delta.faces, declared_delta.loops,
-                    declared_delta.edges, declared_delta.shells,
+                    declared_delta.edges, declared_delta.shells, declared_delta.solids,
                     actual_delta.vertices, actual_delta.half_edges, actual_delta.faces, actual_delta.loops,
-                    actual_delta.edges, actual_delta.shells,
+                    actual_delta.edges, actual_delta.shells, actual_delta.solids,
                 ),
             }),
         });
@@ -254,13 +269,23 @@ pub fn apply_op<O: EulerOperator>(
     let faces_created = face_count_after.saturating_sub(face_count_before) as u32;
     let vertices_created = vertex_count_after.saturating_sub(vertex_count_before) as u32;
     let half_edges_created = halfedge_count_after.saturating_sub(halfedge_count_before) as u32;
+    let loops_created = loop_count_after.saturating_sub(loop_count_before) as u32;
+    let edges_created = edge_count_after.saturating_sub(edge_count_before) as u32;
+    let shells_created = shell_count_after.saturating_sub(shell_count_before) as u32;
+    let solids_created = body_count_after.saturating_sub(body_count_before) as u32;
 
     let faces_deleted = face_count_before.saturating_sub(face_count_after) as u32;
     let vertices_deleted = vertex_count_before.saturating_sub(vertex_count_after) as u32;
     let half_edges_deleted = halfedge_count_before.saturating_sub(halfedge_count_after) as u32;
+    let loops_deleted = loop_count_before.saturating_sub(loop_count_after) as u32;
+    let edges_deleted = edge_count_before.saturating_sub(edge_count_after) as u32;
+    let shells_deleted = shell_count_before.saturating_sub(shell_count_after) as u32;
+    let solids_deleted = body_count_before.saturating_sub(body_count_after) as u32;
 
-    let entities_created = faces_created + vertices_created + half_edges_created;
-    let entities_deleted = faces_deleted + vertices_deleted + half_edges_deleted;
+    let entities_created = faces_created + vertices_created + half_edges_created
+        + loops_created + edges_created + shells_created + solids_created;
+    let entities_deleted = faces_deleted + vertices_deleted + half_edges_deleted
+        + loops_deleted + edges_deleted + shells_deleted + solids_deleted;
 
     let metrics = OperationMetrics {
         duration: start.elapsed(),
@@ -278,6 +303,14 @@ pub fn apply_op<O: EulerOperator>(
         half_edges_deleted,
         vertices_created,
         vertices_deleted,
+        loops_created,
+        loops_deleted,
+        edges_created,
+        edges_deleted,
+        shells_created,
+        shells_deleted,
+        solids_created,
+        solids_deleted,
     };
 
     let mut decision = TracedDecision::new(
@@ -388,7 +421,7 @@ mod tests {
         fn execute(&self, _draft: &mut MutableDraft, _sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
             Ok(ExecutionResult {
                 value: (),
-                declared_delta: EulerDelta { vertices: 0, half_edges: 0, faces: 0, loops: 0, edges: 0, shells: 0 },
+                declared_delta: EulerDelta { vertices: 0, half_edges: 0, faces: 0, loops: 0, edges: 0, shells: 0, solids: 0, lumps: 0, regions: 0 },
             })
         }
 

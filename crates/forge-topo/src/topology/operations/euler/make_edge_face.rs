@@ -150,7 +150,7 @@ impl EulerOperator for MakeEdgeFace {
                 new_loop,
                 edge,
             },
-            declared_delta: EulerDelta { vertices: 0, half_edges: 2, faces: 1, loops: 1, edges: 1 + extra_edges, shells: 0 },
+            declared_delta: EulerDelta { vertices: 0, half_edges: 2, faces: 1, loops: 1, edges: 1 + extra_edges, shells: 0, solids: 0, lumps: 0, regions: 0 },
         })
     }
 

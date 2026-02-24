@@ -14,43 +14,9 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        // 1. MVF: creates v0, F0, self-loop he0
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        
-        // 2. SE: splits he0, creating v1. Now F0 is a digon (v0->v1, v1->v0)
-        let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 })
-            .unwrap().into_value();
-        
-        // 3. MEF: splits F0 with a new edge connecting v0 and v1.
-        // It's a new bridge between existing vertices, splitting the digon into two digons.
-        let mef = apply_op(&mut draft, MakeEdgeFace {
-            vertex_a: mvf.vertex,
-            vertex_b: se.new_vertex,
-            face: mvf.face,
-        }).unwrap().into_value();
-
-        // MEF redirects next pointers, breaking the vertex-pair match between twins
-        //. This causes `repair_edge_after_next_change` to split the Edge entity.
-        // Now mef.half_edge_ab is on F0, and its twin (actually it's now self-radial) is somewhere else?
-        // Wait, NO. We want to test gluing TWO DIFFERENT edges together.
-        // If MEF already split the face and split the edges, we might have two boundary edges spanning the same vertices.
-
-        // Actually, the easiest way to get two open boundary edges spanning the same vertices
-        // is to use KEF (KillEdgeFace) or similar, but we don't have that.
-        // How do we get two independent edges spanning v0 and v1?
-        // MVF -> F0 (v0, he0)
-        // SE(he0) -> v1. Now F0 has v0->v1 and v1->v0. Note: these are radial twins (they share an Edge).
-        // Wait, no. SE gives them the SAME edge if they were one edge. But they are consecutive halfedges.
-        // Ah, he0 is v0->v0. SE splits it into he0 (v0->v1) and he_new (v1->v0). They are NOT twins.
-        // They are consecutive around F0, both self-radial.
-        
-        // Let's SE again: SE(v1->v0) -> v2. Now we have v0->v1->v2->v0.
-        // Then MEF(v0, v1, F0) -> creates a new bridge.
-        
-        // How to set up an antiparallel pair of boundary edges without SewEdge/MEF?
-        // 1. MVF: F0, v0 (he0 is v0->v0, E0)
-        // 2. SE1(he0): v1. he0 is v0->v1 (E0). he1 is v1->v0 (E1). Both are self-radial on F0.
-        // Wait, SE splits the edge. A self-loop edge split becomes 2 edges.
+        // MVF: creates v0, F0, self-loop he0 (v0->v0)
+        // SE: splits he0 into two halfedges: he0 (v0->v1) and he_mb (v1->v0)
+        // Both are self-radial boundary edges on the same face, each on its own Edge.
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
         let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
         

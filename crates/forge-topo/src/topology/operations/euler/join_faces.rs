@@ -108,7 +108,7 @@ impl EulerOperator for JoinFaces {
             value: JfOutput {
                 surviving_face: face_survive,
             },
-            declared_delta: EulerDelta { vertices: 0, half_edges: -2, faces: -1, loops: -1, edges: -1, shells: 0 },
+            declared_delta: EulerDelta { vertices: 0, half_edges: -2, faces: -1, loops: -1, edges: -1, shells: 0, solids: 0, lumps: 0, regions: 0 },
         })
     }
 

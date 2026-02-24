@@ -36,7 +36,7 @@ pub enum EntityDelta {
 
 /// Structured diff between two topology arena snapshots.
 ///
-/// Captures entity-level changes across three entity kinds.
+/// Captures entity-level changes across all seven entity kinds.
 /// Produced by `compute_diff` to support undo/redo visualization,
 /// change tracking, and AI-agent introspection.
 #[derive(Debug, Clone)]
@@ -47,6 +47,14 @@ pub struct TopologyDiff {
     pub half_edges: Vec<EntityDelta>,
     /// Changes to vertex entities.
     pub vertices: Vec<EntityDelta>,
+    /// Changes to loop entities.
+    pub loops: Vec<EntityDelta>,
+    /// Changes to edge entities.
+    pub edges: Vec<EntityDelta>,
+    /// Changes to shell entities.
+    pub shells: Vec<EntityDelta>,
+    /// Changes to solid entities.
+    pub solids: Vec<EntityDelta>,
     /// Epoch of the "before" state.
     pub epoch_before: u64,
     /// Epoch of the "after" state.
@@ -57,6 +65,7 @@ impl TopologyDiff {
     /// Total number of entity deltas across all kinds.
     pub fn total_changes(&self) -> usize {
         self.faces.len() + self.half_edges.len() + self.vertices.len()
+            + self.loops.len() + self.edges.len() + self.shells.len() + self.solids.len()
     }
 
     /// Whether the diff is empty (no changes).
@@ -84,6 +93,10 @@ impl TopologyDiff {
         self.faces.iter().filter(|d| predicate(d)).count()
             + self.half_edges.iter().filter(|d| predicate(d)).count()
             + self.vertices.iter().filter(|d| predicate(d)).count()
+            + self.loops.iter().filter(|d| predicate(d)).count()
+            + self.edges.iter().filter(|d| predicate(d)).count()
+            + self.shells.iter().filter(|d| predicate(d)).count()
+            + self.solids.iter().filter(|d| predicate(d)).count()
     }
 }
 
@@ -161,10 +174,42 @@ pub fn compute_diff(
         |i| after.vertex_generation(i).map(|g| (g, after.vertex_version(i).unwrap_or(0))),
     );
 
+    let loops = diff_slots(
+        before.active_loop_indices(),
+        after.active_loop_indices(),
+        |i| before.loop_generation(i).map(|g| (g, before.loop_version(i).unwrap_or(0))),
+        |i| after.loop_generation(i).map(|g| (g, after.loop_version(i).unwrap_or(0))),
+    );
+
+    let edges = diff_slots(
+        before.active_edge_indices(),
+        after.active_edge_indices(),
+        |i| before.edge_generation(i).map(|g| (g, before.edge_version(i).unwrap_or(0))),
+        |i| after.edge_generation(i).map(|g| (g, after.edge_version(i).unwrap_or(0))),
+    );
+
+    let shells = diff_slots(
+        before.active_shell_indices(),
+        after.active_shell_indices(),
+        |i| before.shell_generation(i).map(|g| (g, before.shell_version(i).unwrap_or(0))),
+        |i| after.shell_generation(i).map(|g| (g, after.shell_version(i).unwrap_or(0))),
+    );
+
+    let solids = diff_slots(
+        before.active_body_indices(),
+        after.active_body_indices(),
+        |i| before.body_generation(i).map(|g| (g, before.body_version(i).unwrap_or(0))),
+        |i| after.body_generation(i).map(|g| (g, after.body_version(i).unwrap_or(0))),
+    );
+
     TopologyDiff {
         faces,
         half_edges,
         vertices,
+        loops,
+        edges,
+        shells,
+        solids,
         epoch_before,
         epoch_after,
     }

@@ -39,6 +39,7 @@ pub fn validate_topology(arena: &TopologyArena, level: ValidationLevel) -> Resul
         validate_euler(arena)?;
         validate_shell_consistency(arena)?;
         validate_orientation_consistency(arena)?;
+        validate_hierarchy(arena)?;
     }
 
     Ok(())
@@ -534,6 +535,228 @@ fn validate_orientation_consistency(arena: &TopologyArena) -> Result<(), KernelE
                 // MakeEdgeVertex — skip this pair.
                 continue;
             }
+        }
+    }
+
+    Ok(())
+}
+
+/// Validate the parent-child hierarchy: Face→Shell and Shell→Solid.
+///
+/// Checks three invariants:
+/// 1. Every face's shell parent must be a live (non-deleted) shell.
+/// 2. Every shell's solid parent must be a live (non-deleted) solid.
+/// 3. Every shell listed in a solid's child vec must be a live shell.
+fn validate_hierarchy(arena: &TopologyArena) -> Result<(), KernelError> {
+    for (face_id, face_data) in arena.iter_faces() {
+        let shell_id = face_data.shell();
+        arena.get_shell(shell_id).map_err(|_| KernelError::TopologyViolation {
+            err: forge_core::TopologyError::BrokenLoop {
+                starting_halfedge: 0,
+                face_index: face_id.index(),
+            },
+            context: Some(forge_core::ErrorContext {
+                scope: forge_core::ErrorScope::Entity {
+                    entity_kind: "Face".to_string(),
+                    index: face_id.index(),
+                },
+                suggested_fixes: Vec::new(),
+                detail: format!(
+                    "Face {} references shell {}(gen{}) which is stale or deleted",
+                    face_id.index(), shell_id.index(), shell_id.generation()
+                ),
+            }),
+        })?;
+    }
+
+    for (shell_id, shell_data) in arena.iter_shells() {
+        let region_id = shell_data.region();
+        arena.get_region(region_id).map_err(|_| KernelError::TopologyViolation {
+            err: forge_core::TopologyError::BrokenLoop {
+                starting_halfedge: 0,
+                face_index: 0,
+            },
+            context: Some(forge_core::ErrorContext {
+                scope: forge_core::ErrorScope::Entity {
+                    entity_kind: "Shell".to_string(),
+                    index: shell_id.index(),
+                },
+                suggested_fixes: Vec::new(),
+                detail: format!(
+                    "Shell {} references region {}(gen{}) which is stale or deleted",
+                    shell_id.index(), region_id.index(), region_id.generation()
+                ),
+            }),
+        })?;
+    }
+
+    for (region_id, region_data) in arena.iter_regions() {
+        let lump_id = region_data.lump();
+        arena.get_lump(lump_id).map_err(|_| KernelError::TopologyViolation {
+            err: forge_core::TopologyError::BrokenLoop {
+                starting_halfedge: 0,
+                face_index: 0,
+            },
+            context: Some(forge_core::ErrorContext {
+                scope: forge_core::ErrorScope::Entity {
+                    entity_kind: "Region".to_string(),
+                    index: region_id.index(),
+                },
+                suggested_fixes: Vec::new(),
+                detail: format!(
+                    "Region {} references lump {}(gen{}) which is stale or deleted",
+                    region_id.index(), lump_id.index(), lump_id.generation()
+                ),
+            }),
+        })?;
+
+        for shell_id in region_data.shells() {
+            arena.get_shell(*shell_id).map_err(|_| KernelError::TopologyViolation {
+                err: forge_core::TopologyError::BrokenLoop {
+                    starting_halfedge: 0,
+                    face_index: 0,
+                },
+                context: Some(forge_core::ErrorContext {
+                    scope: forge_core::ErrorScope::Entity {
+                        entity_kind: "Region".to_string(),
+                        index: region_id.index(),
+                    },
+                    suggested_fixes: Vec::new(),
+                    detail: format!(
+                        "Region {} lists shell {}(gen{}) which is stale or deleted",
+                        region_id.index(), shell_id.index(), shell_id.generation()
+                    ),
+                }),
+            })?;
+        }
+    }
+
+    for (lump_id, lump_data) in arena.iter_lumps() {
+        let body_id = lump_data.body();
+        arena.get_body(body_id).map_err(|_| KernelError::TopologyViolation {
+            err: forge_core::TopologyError::BrokenLoop {
+                starting_halfedge: 0,
+                face_index: 0,
+            },
+            context: Some(forge_core::ErrorContext {
+                scope: forge_core::ErrorScope::Entity {
+                    entity_kind: "Lump".to_string(),
+                    index: lump_id.index(),
+                },
+                suggested_fixes: Vec::new(),
+                detail: format!(
+                    "Lump {} references solid {}(gen{}) which is stale or deleted",
+                    lump_id.index(), body_id.index(), body_id.generation()
+                ),
+            }),
+        })?;
+    }
+
+    for (body_id, solid_data) in arena.iter_bodies() {
+        for lump_id in solid_data.lumps() {
+            arena.get_lump(*lump_id).map_err(|_| KernelError::TopologyViolation {
+                err: forge_core::TopologyError::BrokenLoop {
+                    starting_halfedge: 0,
+                    face_index: 0,
+                },
+                context: Some(forge_core::ErrorContext {
+                    scope: forge_core::ErrorScope::Entity {
+                        entity_kind: "Body".to_string(),
+                        index: body_id.index(),
+                    },
+                    suggested_fixes: Vec::new(),
+                    detail: format!(
+                        "Solid {} lists lump {}(gen{}) which is stale or deleted",
+                        body_id.index(), lump_id.index(), lump_id.generation()
+                    ),
+                }),
+            })?;
+        }
+    }
+
+    // ── Orphan detection: every child must be owned by exactly one parent ──
+
+    let mut owned_shells = std::collections::BTreeSet::new();
+    for (_region_id, region_data) in arena.iter_regions() {
+        for shell_id in region_data.shells() {
+            owned_shells.insert(*shell_id);
+        }
+    }
+    for (shell_id, _shell_data) in arena.iter_shells() {
+        if !owned_shells.contains(&shell_id) {
+            return Err(KernelError::TopologyViolation {
+                err: forge_core::TopologyError::BrokenLoop {
+                    starting_halfedge: 0,
+                    face_index: 0,
+                },
+                context: Some(forge_core::ErrorContext {
+                    scope: forge_core::ErrorScope::Entity {
+                        entity_kind: "Shell".to_string(),
+                        index: shell_id.index(),
+                    },
+                    suggested_fixes: Vec::new(),
+                    detail: format!(
+                        "Orphaned shell {}: not owned by any region",
+                        shell_id.index()
+                    ),
+                }),
+            });
+        }
+    }
+
+    let mut owned_regions = std::collections::BTreeSet::new();
+    for (_lump_id, lump_data) in arena.iter_lumps() {
+        for region_id in lump_data.regions() {
+            owned_regions.insert(*region_id);
+        }
+    }
+    for (region_id, _region_data) in arena.iter_regions() {
+        if !owned_regions.contains(&region_id) {
+            return Err(KernelError::TopologyViolation {
+                err: forge_core::TopologyError::BrokenLoop {
+                    starting_halfedge: 0,
+                    face_index: 0,
+                },
+                context: Some(forge_core::ErrorContext {
+                    scope: forge_core::ErrorScope::Entity {
+                        entity_kind: "Region".to_string(),
+                        index: region_id.index(),
+                    },
+                    suggested_fixes: Vec::new(),
+                    detail: format!(
+                        "Orphaned region {}: not owned by any lump",
+                        region_id.index()
+                    ),
+                }),
+            });
+        }
+    }
+
+    let mut owned_lumps = std::collections::BTreeSet::new();
+    for (_body_id, body_data) in arena.iter_bodies() {
+        for lump_id in body_data.lumps() {
+            owned_lumps.insert(*lump_id);
+        }
+    }
+    for (lump_id, _lump_data) in arena.iter_lumps() {
+        if !owned_lumps.contains(&lump_id) {
+            return Err(KernelError::TopologyViolation {
+                err: forge_core::TopologyError::BrokenLoop {
+                    starting_halfedge: 0,
+                    face_index: 0,
+                },
+                context: Some(forge_core::ErrorContext {
+                    scope: forge_core::ErrorScope::Entity {
+                        entity_kind: "Lump".to_string(),
+                        index: lump_id.index(),
+                    },
+                    suggested_fixes: Vec::new(),
+                    detail: format!(
+                        "Orphaned lump {}: not owned by any body",
+                        lump_id.index()
+                    ),
+                }),
+            });
         }
     }
 

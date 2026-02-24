@@ -4,9 +4,9 @@ use forge_core::{KernelError, TopologyError, ErrorContext, ErrorScope};
 use crate::attributes::AttributeStore;
 use crate::lineage_store::LineageStore;
 use forge_core::{EntityRef, EntityKind};
-use crate::handles::{FaceId, HalfEdgeId, VertexId, LoopId, ShellId, EdgeId};
+use crate::handles::{FaceId, HalfEdgeId, VertexId, LoopId, ShellId, BodyId, LumpId, RegionId, EdgeId};
 
-use super::schema::{Slot, FaceData, HalfEdgeData, VertexData, LoopData, ShellData, EdgeData};
+use super::schema::{Slot, FaceData, HalfEdgeData, VertexData, LoopData, ShellData, BodyData, LumpData, RegionData, EdgeData};
 
 /// Entity storage for the halfedge mesh.
 ///
@@ -25,6 +25,12 @@ pub struct TopologyArena {
     loop_slots: Vec<Slot<LoopData>>,
     /// Arena-allocated shell entities with generational handles.
     shell_slots: Vec<Slot<ShellData>>,
+    /// Arena-allocated solid entities with generational handles.
+    body_slots: Vec<Slot<BodyData>>,
+    /// Arena-allocated lump entities with generational handles.
+    lump_slots: Vec<Slot<LumpData>>,
+    /// Arena-allocated region entities with generational handles.
+    region_slots: Vec<Slot<RegionData>>,
     /// Arena-allocated edge entities with generational handles.
     edge_slots: Vec<Slot<EdgeData>>,
     /// Side-car attribute storage for manufacturing metadata.
@@ -36,6 +42,9 @@ pub struct TopologyArena {
     active_vertex_count: usize,
     active_loop_count: usize,
     active_shell_count: usize,
+    active_body_count: usize,
+    active_lump_count: usize,
+    active_region_count: usize,
     active_edge_count: usize,
 }
 
@@ -48,6 +57,9 @@ impl TopologyArena {
             vertex_slots: Vec::new(),
             loop_slots: Vec::new(),
             shell_slots: Vec::new(),
+            body_slots: Vec::new(),
+            lump_slots: Vec::new(),
+            region_slots: Vec::new(),
             edge_slots: Vec::new(),
             attribute_store: AttributeStore::new(),
             active_face_count: 0,
@@ -55,6 +67,9 @@ impl TopologyArena {
             active_vertex_count: 0,
             active_loop_count: 0,
             active_shell_count: 0,
+            active_body_count: 0,
+            active_lump_count: 0,
+            active_region_count: 0,
             active_edge_count: 0,
         }
     }
@@ -266,6 +281,21 @@ impl TopologyArena {
         self.active_shell_count
     }
 
+    /// Count of active solids.
+    pub fn body_count(&self) -> usize {
+        self.active_body_count
+    }
+
+    /// Count of active lumps.
+    pub fn lump_count(&self) -> usize {
+        self.active_lump_count
+    }
+
+    /// Count of active regions.
+    pub fn region_count(&self) -> usize {
+        self.active_region_count
+    }
+
     /// Count of active edges.
     pub fn edge_count(&self) -> usize {
         self.active_edge_count
@@ -449,6 +479,70 @@ impl TopologyArena {
             .filter_map(|(i, s)| s.data.as_ref().map(|_| i))
     }
 
+    /// Indices of all active (occupied) loop slots.
+    pub fn active_loop_indices(&self) -> impl Iterator<Item = usize> + '_ {
+        self.loop_slots.iter().enumerate()
+            .filter_map(|(i, s)| s.data.as_ref().map(|_| i))
+    }
+
+    /// Indices of all active (occupied) edge slots.
+    pub fn active_edge_indices(&self) -> impl Iterator<Item = usize> + '_ {
+        self.edge_slots.iter().enumerate()
+            .filter_map(|(i, s)| s.data.as_ref().map(|_| i))
+    }
+
+    /// Indices of all active (occupied) shell slots.
+    pub fn active_shell_indices(&self) -> impl Iterator<Item = usize> + '_ {
+        self.shell_slots.iter().enumerate()
+            .filter_map(|(i, s)| s.data.as_ref().map(|_| i))
+    }
+
+    /// Indices of all active (occupied) solid slots.
+    pub fn active_body_indices(&self) -> impl Iterator<Item = usize> + '_ {
+        self.body_slots.iter().enumerate()
+            .filter_map(|(i, s)| s.data.as_ref().map(|_| i))
+    }
+
+    /// Generation of loop at slot index, or None if vacant/out-of-bounds.
+    pub fn loop_generation(&self, index: usize) -> Option<u32> {
+        self.loop_slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.generation))
+    }
+
+    /// Generation of edge at slot index, or None if vacant/out-of-bounds.
+    pub fn edge_generation(&self, index: usize) -> Option<u32> {
+        self.edge_slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.generation))
+    }
+
+    /// Generation of shell at slot index, or None if vacant/out-of-bounds.
+    pub fn shell_generation(&self, index: usize) -> Option<u32> {
+        self.shell_slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.generation))
+    }
+
+    /// Generation of solid at slot index, or None if vacant/out-of-bounds.
+    pub fn body_generation(&self, index: usize) -> Option<u32> {
+        self.body_slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.generation))
+    }
+
+    /// Version of loop at slot index, or None if vacant/out-of-bounds.
+    pub fn loop_version(&self, index: usize) -> Option<u32> {
+        self.loop_slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.version))
+    }
+
+    /// Version of edge at slot index, or None if vacant/out-of-bounds.
+    pub fn edge_version(&self, index: usize) -> Option<u32> {
+        self.edge_slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.version))
+    }
+
+    /// Version of shell at slot index, or None if vacant/out-of-bounds.
+    pub fn shell_version(&self, index: usize) -> Option<u32> {
+        self.shell_slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.version))
+    }
+
+    /// Version of solid at slot index, or None if vacant/out-of-bounds.
+    pub fn body_version(&self, index: usize) -> Option<u32> {
+        self.body_slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.version))
+    }
+
     // ── Shell CRUD ──────────────────────────────────────────────────
 
     /// Insert a new shell, returning its handle.
@@ -511,7 +605,225 @@ impl TopologyArena {
         })
     }
 
-    // ── Edge CRUD ───────────────────────────────────────────────────
+    // ── Solid CRUD ──────────────────────────────────────────────────
+
+    /// Insert a new solid, returning its handle.
+    pub fn insert_body(&mut self, data: BodyData, mut ls: Option<&mut LineageStore>) -> BodyId {
+        let index = self.body_slots.len() as u32;
+        let mut slot = Slot::empty();
+        let gen = slot.occupy(data);
+        self.body_slots.push(slot);
+        self.active_body_count += 1;
+        let id = BodyId::new(index, gen);
+        if let Some(store) = ls.as_deref_mut() {
+            if let Some(lin) = self.body_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
+                store.record_creation(EntityRef::new(EntityKind::Body, id.index()), lin);
+            }
+        }
+        id
+    }
+
+    /// Get a solid by handle, validating the generation.
+    #[inline]
+    pub fn get_body(&self, id: BodyId) -> Result<&BodyData, KernelError> {
+        let slot = self.body_slots.get(id.index() as usize)
+            .ok_or_else(|| cold_err_bounds("Body", id.index(), id.generation()))?;
+        validate_generation(slot.generation, id.generation(), "Body", id.index())?;
+        slot.data.as_ref()
+            .ok_or_else(|| cold_err_deleted("Body", id.index(), id.generation(), slot.generation))
+    }
+
+    /// Get a mutable reference to a solid by handle.
+    #[inline]
+    pub fn get_body_mut(&mut self, id: BodyId) -> Result<&mut BodyData, KernelError> {
+        let slot = self.body_slots.get_mut(id.index() as usize)
+            .ok_or_else(|| cold_err_bounds("Body", id.index(), id.generation()))?;
+        validate_generation(slot.generation, id.generation(), "Body", id.index())?;
+        slot.version += 1;
+        slot.data.as_mut()
+            .ok_or_else(|| cold_err_deleted("Body", id.index(), id.generation(), slot.generation))
+    }
+
+    /// Remove a solid, bumping the generation of its slot.
+    pub fn remove_body(&mut self, id: BodyId, mut ls: Option<&mut LineageStore>) -> Result<BodyData, KernelError> {
+        let slot = self.body_slots.get_mut(id.index() as usize)
+            .ok_or_else(|| cold_err_bounds("Body", id.index(), id.generation()))?;
+        validate_generation(slot.generation, id.generation(), "Body", id.index())?;
+        let data = slot.data.take()
+            .ok_or_else(|| cold_err_deleted("Body", id.index(), id.generation(), slot.generation))?;
+        slot.generation += 1;
+        self.active_body_count -= 1;
+        if let Some(store) = ls.as_deref_mut() {
+            let _ = store.record_deletion(EntityRef::new(EntityKind::Body, id.index()));
+        }
+        Ok(data)
+    }
+
+    /// Iterate over all active solids, yielding `(BodyId, &BodyData)` pairs.
+    pub fn iter_bodies(&self) -> impl Iterator<Item = (BodyId, &BodyData)> {
+        self.body_slots.iter().enumerate().filter_map(|(i, slot)| {
+            let data = slot.data.as_ref()?;
+            Some((BodyId::new(i as u32, slot.generation), data))
+        })
+    }
+
+    // ── Lump CRUD ──────────────────────────────────────────────────────────
+
+    /// Insert a new lump, returning its handle.
+    pub fn insert_lump(&mut self, data: LumpData, mut ls: Option<&mut LineageStore>) -> LumpId {
+        let index = self.lump_slots.len() as u32;
+        let mut slot = Slot::empty();
+        let gen = slot.occupy(data);
+        self.lump_slots.push(slot);
+        self.active_lump_count += 1;
+        let id = LumpId::new(index, gen);
+        if let Some(store) = ls.as_deref_mut() {
+            if let Some(lin) = self.lump_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
+                store.record_creation(EntityRef::new(EntityKind::Lump, id.index()), lin);
+            }
+        }
+        id
+    }
+
+    /// Get a lump by handle, validating the generation.
+    #[inline]
+    pub fn get_lump(&self, id: LumpId) -> Result<&LumpData, KernelError> {
+        let slot = self.lump_slots.get(id.index() as usize)
+            .ok_or_else(|| cold_err_bounds("Lump", id.index(), id.generation()))?;
+        validate_generation(slot.generation, id.generation(), "Lump", id.index())?;
+        slot.data.as_ref()
+            .ok_or_else(|| cold_err_deleted("Lump", id.index(), id.generation(), slot.generation))
+    }
+
+    /// Get a mutable reference to a lump by handle.
+    #[inline]
+    pub fn get_lump_mut(&mut self, id: LumpId) -> Result<&mut LumpData, KernelError> {
+        let slot = self.lump_slots.get_mut(id.index() as usize)
+            .ok_or_else(|| cold_err_bounds("Lump", id.index(), id.generation()))?;
+        validate_generation(slot.generation, id.generation(), "Lump", id.index())?;
+        slot.version += 1;
+        slot.data.as_mut()
+            .ok_or_else(|| cold_err_deleted("Lump", id.index(), id.generation(), slot.generation))
+    }
+
+    /// Remove a lump, bumping the generation of its slot.
+    pub fn remove_lump(&mut self, id: LumpId, mut ls: Option<&mut LineageStore>) -> Result<LumpData, KernelError> {
+        let slot = self.lump_slots.get_mut(id.index() as usize)
+            .ok_or_else(|| cold_err_bounds("Lump", id.index(), id.generation()))?;
+        validate_generation(slot.generation, id.generation(), "Lump", id.index())?;
+        let data = slot.data.take()
+            .ok_or_else(|| cold_err_deleted("Lump", id.index(), id.generation(), slot.generation))?;
+        slot.generation += 1;
+        self.active_lump_count -= 1;
+        if let Some(store) = ls.as_deref_mut() {
+            let _ = store.record_deletion(EntityRef::new(EntityKind::Lump, id.index()));
+        }
+        Ok(data)
+    }
+
+    /// Iterate over all active lumps, yielding `(LumpId, &LumpData)` pairs.
+    pub fn iter_lumps(&self) -> impl Iterator<Item = (LumpId, &LumpData)> {
+        self.lump_slots.iter().enumerate().filter_map(|(i, slot)| {
+            let data = slot.data.as_ref()?;
+            Some((LumpId::new(i as u32, slot.generation), data))
+        })
+    }
+
+    /// Indices of all active (occupied) lump slots.
+    pub fn active_lump_indices(&self) -> impl Iterator<Item = usize> + '_ {
+        self.lump_slots.iter().enumerate()
+            .filter_map(|(i, s)| s.data.as_ref().map(|_| i))
+    }
+
+    /// Generation of lump at slot index, or None if vacant/out-of-bounds.
+    pub fn lump_generation(&self, index: usize) -> Option<u32> {
+        self.lump_slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.generation))
+    }
+
+    /// Version of lump at slot index, or None if vacant/out-of-bounds.
+    pub fn lump_version(&self, index: usize) -> Option<u32> {
+        self.lump_slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.version))
+    }
+
+    // ── Region CRUD ────────────────────────────────────────────────────────
+
+    /// Insert a new region, returning its handle.
+    pub fn insert_region(&mut self, data: RegionData, mut ls: Option<&mut LineageStore>) -> RegionId {
+        let index = self.region_slots.len() as u32;
+        let mut slot = Slot::empty();
+        let gen = slot.occupy(data);
+        self.region_slots.push(slot);
+        self.active_region_count += 1;
+        let id = RegionId::new(index, gen);
+        if let Some(store) = ls.as_deref_mut() {
+            if let Some(lin) = self.region_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
+                store.record_creation(EntityRef::new(EntityKind::Region, id.index()), lin);
+            }
+        }
+        id
+    }
+
+    /// Get a region by handle, validating the generation.
+    #[inline]
+    pub fn get_region(&self, id: RegionId) -> Result<&RegionData, KernelError> {
+        let slot = self.region_slots.get(id.index() as usize)
+            .ok_or_else(|| cold_err_bounds("Region", id.index(), id.generation()))?;
+        validate_generation(slot.generation, id.generation(), "Region", id.index())?;
+        slot.data.as_ref()
+            .ok_or_else(|| cold_err_deleted("Region", id.index(), id.generation(), slot.generation))
+    }
+
+    /// Get a mutable reference to a region by handle.
+    #[inline]
+    pub fn get_region_mut(&mut self, id: RegionId) -> Result<&mut RegionData, KernelError> {
+        let slot = self.region_slots.get_mut(id.index() as usize)
+            .ok_or_else(|| cold_err_bounds("Region", id.index(), id.generation()))?;
+        validate_generation(slot.generation, id.generation(), "Region", id.index())?;
+        slot.version += 1;
+        slot.data.as_mut()
+            .ok_or_else(|| cold_err_deleted("Region", id.index(), id.generation(), slot.generation))
+    }
+
+    /// Remove a region, bumping the generation of its slot.
+    pub fn remove_region(&mut self, id: RegionId, mut ls: Option<&mut LineageStore>) -> Result<RegionData, KernelError> {
+        let slot = self.region_slots.get_mut(id.index() as usize)
+            .ok_or_else(|| cold_err_bounds("Region", id.index(), id.generation()))?;
+        validate_generation(slot.generation, id.generation(), "Region", id.index())?;
+        let data = slot.data.take()
+            .ok_or_else(|| cold_err_deleted("Region", id.index(), id.generation(), slot.generation))?;
+        slot.generation += 1;
+        self.active_region_count -= 1;
+        if let Some(store) = ls.as_deref_mut() {
+            let _ = store.record_deletion(EntityRef::new(EntityKind::Region, id.index()));
+        }
+        Ok(data)
+    }
+
+    /// Iterate over all active regions, yielding `(RegionId, &RegionData)` pairs.
+    pub fn iter_regions(&self) -> impl Iterator<Item = (RegionId, &RegionData)> {
+        self.region_slots.iter().enumerate().filter_map(|(i, slot)| {
+            let data = slot.data.as_ref()?;
+            Some((RegionId::new(i as u32, slot.generation), data))
+        })
+    }
+
+    /// Indices of all active (occupied) region slots.
+    pub fn active_region_indices(&self) -> impl Iterator<Item = usize> + '_ {
+        self.region_slots.iter().enumerate()
+            .filter_map(|(i, s)| s.data.as_ref().map(|_| i))
+    }
+
+    /// Generation of region at slot index, or None if vacant/out-of-bounds.
+    pub fn region_generation(&self, index: usize) -> Option<u32> {
+        self.region_slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.generation))
+    }
+
+    /// Version of region at slot index, or None if vacant/out-of-bounds.
+    pub fn region_version(&self, index: usize) -> Option<u32> {
+        self.region_slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.version))
+    }
+
+    // ── Edge CRUD ───────────────────────────────────────────────────────────
 
     /// Insert a new edge, returning its handle.
     pub fn insert_edge(&mut self, data: EdgeData, mut ls: Option<&mut LineageStore>) -> EdgeId {
