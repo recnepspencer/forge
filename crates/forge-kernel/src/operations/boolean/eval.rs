@@ -15,14 +15,22 @@ use forge_math::arithmetic::Rational;
 ///
 /// Uses the same bit-layout as `pack_handle` in `geometry_store`: `gen << 32 | idx`.
 /// This must stay consistent with `unpack_face_id`.
+const COINCIDENCE_SIDE_TAG_BIT: u64 = 1u64 << 63;
+
 #[inline]
-fn pack_face_id(fid: forge_topo::handles::FaceId) -> u64 {
-    ((fid.generation() as u64) << 32) | (fid.index() as u64)
+fn pack_face_id(fid: forge_topo::handles::FaceId, is_tool: bool) -> u64 {
+    let raw = ((fid.generation() as u64) << 32) | (fid.index() as u64);
+    if is_tool {
+        raw | COINCIDENCE_SIDE_TAG_BIT
+    } else {
+        raw & !COINCIDENCE_SIDE_TAG_BIT
+    }
 }
 
 /// Reconstruct a `FaceId` from a raw `u64` handle produced by `pack_face_id`.
 #[inline]
 fn unpack_face_id(raw: u64) -> forge_topo::handles::FaceId {
+    let raw = raw & !COINCIDENCE_SIDE_TAG_BIT;
     let idx = (raw & 0xFFFF_FFFF) as u32;
     let gen = (raw >> 32) as u32;
     forge_topo::handles::FaceId::from_raw_parts(idx, gen)
@@ -142,7 +150,7 @@ pub fn build_face_coincidence_prepass(
         .iter_faces()
         .filter_map(|(fid, _)| {
             let aabb = compute_face_aabb(target_arena, target_geom, fid)?;
-            Some((pack_face_id(fid), aabb))
+            Some((pack_face_id(fid, false), aabb))
         })
         .collect();
 
@@ -150,7 +158,7 @@ pub fn build_face_coincidence_prepass(
         .iter_faces()
         .filter_map(|(fid, _)| {
             let aabb = compute_face_aabb(tool_arena, tool_geom, fid)?;
-            Some((pack_face_id(fid), aabb))
+            Some((pack_face_id(fid, true), aabb))
         })
         .collect();
 

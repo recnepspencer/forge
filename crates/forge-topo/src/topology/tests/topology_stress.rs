@@ -397,6 +397,8 @@ mod tests {
     #[test]
     fn classify_l1_point_inside_solid() {
         use crate::classify::{classify_point_in_solid, PointClassification};
+        use forge_core::FlatToleranceProvider;
+        let tol = FlatToleranceProvider::new(1e-10);
 
         let (arena, positions) = build_cube_arena();
 
@@ -408,7 +410,7 @@ mod tests {
         };
 
         let inside = classify_point_in_solid(
-            &arena, &position_fn, None, &[0.0, 0.0, 0.0], 1e-10,
+            &arena, &position_fn, None, &[0.0, 0.0, 0.0], &tol,
         ).expect("Classification must not error for interior point");
         assert!(
             matches!(inside, PointClassification::Inside { .. }),
@@ -416,7 +418,7 @@ mod tests {
         );
 
         let outside = classify_point_in_solid(
-            &arena, &position_fn, None, &[10.0, 10.0, 10.0], 1e-10,
+            &arena, &position_fn, None, &[10.0, 10.0, 10.0], &tol,
         ).expect("Classification must not error for exterior point");
         assert!(
             matches!(outside, PointClassification::Outside { .. }),
@@ -424,7 +426,7 @@ mod tests {
         );
 
         let also_outside = classify_point_in_solid(
-            &arena, &position_fn, None, &[-5.0, 0.0, 0.0], 1e-10,
+            &arena, &position_fn, None, &[-5.0, 0.0, 0.0], &tol,
         ).expect("Classification must not error for left-exterior point");
         assert!(
             matches!(also_outside, PointClassification::Outside { .. }),
@@ -439,6 +441,8 @@ mod tests {
     #[test]
     fn classify_l2_point_on_edge_boundary() {
         use crate::classify::{classify_point_in_solid, PointClassification};
+        use forge_core::FlatToleranceProvider;
+        let tol = FlatToleranceProvider::new(1e-10);
 
         let (arena, positions) = build_cube_arena();
 
@@ -450,7 +454,7 @@ mod tests {
         };
 
         let on_face = classify_point_in_solid(
-            &arena, &position_fn, None, &[1.0, 0.0, 0.0], 1e-10,
+            &arena, &position_fn, None, &[1.0, 0.0, 0.0], &tol,
         ).expect("Classification on face must not error");
         assert!(
             matches!(on_face, PointClassification::OnBoundary(_)),
@@ -458,7 +462,7 @@ mod tests {
         );
 
         let just_inside = classify_point_in_solid(
-            &arena, &position_fn, None, &[0.99, 0.0, 0.0], 1e-10,
+            &arena, &position_fn, None, &[0.99, 0.0, 0.0], &tol,
         ).expect("Classification near face must not error");
         assert!(
             matches!(just_inside, PointClassification::Inside { .. }),
@@ -466,7 +470,7 @@ mod tests {
         );
 
         let just_outside = classify_point_in_solid(
-            &arena, &position_fn, None, &[1.01, 0.0, 0.0], 1e-10,
+            &arena, &position_fn, None, &[1.01, 0.0, 0.0], &tol,
         ).expect("Classification near face must not error");
         assert!(
             matches!(just_outside, PointClassification::Outside { .. }),
@@ -483,6 +487,8 @@ mod tests {
     #[test]
     fn classify_l3_near_boundary_mass() {
         use crate::classify::{classify_point_in_solid, PointClassification};
+        use forge_core::FlatToleranceProvider;
+        let tol = FlatToleranceProvider::new(1e-10);
 
         let (arena, positions) = build_cube_arena();
 
@@ -507,7 +513,7 @@ mod tests {
                     let z = -2.0 + 4.0 * (iz as f64) / (steps as f64 - 1.0);
 
                     match classify_point_in_solid(
-                        &arena, &position_fn, None, &[x, y, z], 1e-10,
+                        &arena, &position_fn, None, &[x, y, z], &tol,
                     ) {
                         Ok(PointClassification::Inside { .. }) => inside_count += 1,
                         Ok(PointClassification::Outside { .. }) => outside_count += 1,

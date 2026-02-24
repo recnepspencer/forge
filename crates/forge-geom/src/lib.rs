@@ -15,6 +15,7 @@ pub mod primitives;
 pub mod spatial;
 pub mod curve;
 pub mod surface;
+pub mod coedge;
 pub mod algorithms;
 
 // Re-exports for cleaner API (optional, but requested "public re-exports only")
@@ -31,6 +32,12 @@ pub use spatial::bsp::PlaneSet; // Exposed for tests mostly?
 pub use spatial::bvh::BvhNode;
 pub use spatial::local_space::{LocalCoordinateSpace, ScaleAnalysis};
 pub use algorithms::chord::{compute_intersection_line, clip_line_to_face_polygon};
+
+// Phase 4 geometry types
+pub use surface::{SurfaceKind, SurfaceData, ParameterDomain, SurfaceRelation};
+pub use surface::classify_surface_pair;
+pub use curve::{CurveKind, CurveGeom, CurveProvenance, SpCurveApproximation, SurfaceIndex};
+pub use coedge::{Coedge, ParametricCurve2D};
 
 /// Standard grid scale for spatial hashing (1 unit = 1e6 integers).
 pub const GRID_SCALE: f64 = 1e6;

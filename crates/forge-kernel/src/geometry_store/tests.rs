@@ -163,3 +163,161 @@ fn scaled_vertex_tolerance_on_tolerance_config() {
     let t = cfg.scaled_vertex_tolerance();
     assert!((t - 1e-7).abs() < 1e-20, "0.1 mm → 1e-7 (clamped), got {}", t);
 }
+
+// ── Phase 4 — Surface CRUD tests ──────────────────────────────────────────────
+
+#[test]
+fn surface_insert_and_retrieve() {
+    use forge_geom::SurfaceData;
+    let mut store = GeometryStore::new();
+    let surface = SurfaceData::sphere([0.0, 0.0, 0.0], 5.0);
+    let r = store.insert_surface(surface);
+    let retrieved = store.get_surface(r);
+    assert!(retrieved.is_ok());
+}
+
+#[test]
+fn surface_remove_then_stale_get_errors() {
+    use forge_geom::SurfaceData;
+    let mut store = GeometryStore::new();
+    let r = store.insert_surface(SurfaceData::plane([0.0, 0.0, 1.0], 0.0));
+    assert!(store.remove_surface(r).is_ok());
+    assert!(store.get_surface(r).is_err());
+}
+
+#[test]
+fn surface_count_reflects_active_slots() {
+    use forge_geom::SurfaceData;
+    let mut store = GeometryStore::new();
+    assert_eq!(store.surface_count(), 0);
+    let r1 = store.insert_surface(SurfaceData::plane([0.0, 0.0, 1.0], 0.0));
+    let _r2 = store.insert_surface(SurfaceData::sphere([0.0, 0.0, 0.0], 1.0));
+    assert_eq!(store.surface_count(), 2);
+    store.remove_surface(r1).unwrap();
+    assert_eq!(store.surface_count(), 1);
+}
+
+#[test]
+fn curve_insert_and_retrieve() {
+    use forge_geom::curve::schema::{CurveKind, CurveGeom};
+    let mut store = GeometryStore::new();
+    let curve = CurveGeom::from_analytic(
+        CurveKind::Line { origin: [0.0, 0.0, 0.0], direction: [1.0, 0.0, 0.0] },
+        [0, 1],
+    );
+    let r = store.insert_curve(curve);
+    assert!(store.get_curve(r).is_ok());
+    assert_eq!(store.curve_count(), 1);
+}
+
+#[test]
+fn coedge_insert_and_retrieve() {
+    use forge_geom::{Coedge, ParametricCurve2D};
+    let mut store = GeometryStore::new();
+    let coedge = Coedge {
+        uv_curve: ParametricCurve2D::Line { start: [0.0, 0.0], end: [1.0, 1.0] },
+        surface: 0,
+    };
+    let r = store.insert_coedge(coedge);
+    assert!(store.get_coedge(r).is_ok());
+    assert_eq!(store.coedge_count(), 1);
+}
+
+// ── Phase 4 — Attachment round-trip tests ─────────────────────────────────────
+
+#[test]
+fn attach_surface_to_face_round_trip() {
+    use forge_geom::SurfaceData;
+    use forge_topo::handles::SurfaceRef;
+    let mut store = GeometryStore::new();
+    let face = FaceId::from_raw_parts(0, 0);
+    let sr = store.insert_surface(SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 2.0));
+    store.attach_surface_to_face(face, sr);
+    assert_eq!(store.get_face_surface(face), Some(sr));
+}
+
+#[test]
+fn attach_coedge_to_halfedge_round_trip() {
+    use forge_geom::{Coedge, ParametricCurve2D};
+    use forge_topo::handles::{HalfEdgeId, CoedgeRef};
+    let mut store = GeometryStore::new();
+    let he = HalfEdgeId::from_raw_parts(0, 0);
+    let coedge = Coedge {
+        uv_curve: ParametricCurve2D::Line { start: [0.0, 0.0], end: [1.0, 1.0] },
+        surface: 0,
+    };
+    let cr = store.insert_coedge(coedge);
+    store.attach_coedge_to_halfedge(he, cr, true);
+    assert_eq!(store.get_halfedge_coedge(he), Some((cr, true)));
+}
+
+#[test]
+fn attach_curve_to_edge_round_trip() {
+    use forge_geom::curve::schema::{CurveKind, CurveGeom};
+    use forge_topo::handles::{EdgeId, CurveRef};
+    let mut store = GeometryStore::new();
+    let edge = EdgeId::from_raw_parts(0, 0);
+    let curve = CurveGeom::from_analytic(
+        CurveKind::Circle { center: [0.0, 0.0, 0.0], normal: [0.0, 0.0, 1.0], radius: 1.0 },
+        [0, 1],
+    );
+    let cr = store.insert_curve(curve);
+    store.attach_curve_to_edge(edge, cr);
+    assert_eq!(store.get_edge_curve(edge), Some(cr));
+}
+
+// ── Phase 4 — face_is_planar with real surfaces ───────────────────────────────
+
+#[test]
+fn face_is_planar_true_when_no_surface_attached() {
+    let store = GeometryStore::new();
+    let face = FaceId::from_raw_parts(0, 0);
+    assert!(store.face_is_planar(face));
+}
+
+#[test]
+fn face_is_planar_true_when_plane_surface_attached() {
+    use forge_geom::SurfaceData;
+    let mut store = GeometryStore::new();
+    let face = FaceId::from_raw_parts(0, 0);
+    let sr = store.insert_surface(SurfaceData::plane([0.0, 0.0, 1.0], 0.0));
+    store.attach_surface_to_face(face, sr);
+    assert!(store.face_is_planar(face));
+}
+
+#[test]
+fn face_is_planar_false_when_cylinder_surface_attached() {
+    use forge_geom::SurfaceData;
+    let mut store = GeometryStore::new();
+    let face = FaceId::from_raw_parts(0, 0);
+    let sr = store.insert_surface(SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 2.0));
+    store.attach_surface_to_face(face, sr);
+    assert!(!store.face_is_planar(face));
+}
+
+// ── Phase 4 — validate_geometry_bindings ──────────────────────────────────────
+
+#[test]
+fn validate_bindings_passes_when_all_refs_live() {
+    use forge_geom::SurfaceData;
+    use forge_topo::arena::TopologyArena;
+    let mut store = GeometryStore::new();
+    let face = FaceId::from_raw_parts(0, 0);
+    let sr = store.insert_surface(SurfaceData::plane([0.0, 0.0, 1.0], 0.0));
+    store.attach_surface_to_face(face, sr);
+    let arena = TopologyArena::new();
+    assert!(store.validate_geometry_bindings(&arena).is_ok());
+}
+
+#[test]
+fn validate_bindings_fails_on_dangling_surface_ref() {
+    use forge_geom::SurfaceData;
+    use forge_topo::arena::TopologyArena;
+    let mut store = GeometryStore::new();
+    let face = FaceId::from_raw_parts(0, 0);
+    let sr = store.insert_surface(SurfaceData::plane([0.0, 0.0, 1.0], 0.0));
+    store.attach_surface_to_face(face, sr);
+    store.remove_surface(sr).unwrap();
+    let arena = TopologyArena::new();
+    assert!(store.validate_geometry_bindings(&arena).is_err());
+}

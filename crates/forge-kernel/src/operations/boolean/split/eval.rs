@@ -11,6 +11,7 @@ use forge_core::{
     KernelError, TracedDecision, DecisionId, DecisionKind, DecisionTier,
     DecisionContext, EntityRef,
 };
+use forge_core::ToleranceProvider;
 use forge_geom::Aabb;
 use forge_geom::spatial::bvh::{BvhNode, query_overlapping_pairs};
 use forge_topo::arena::TopologyArena;
@@ -100,8 +101,17 @@ pub fn split_all_faces(
         ctx,
     )?;
 
-    let weld_tol = config.get_residual();
-    let weld_tol_sq = weld_tol * weld_tol;
+    // Reconciliation is a geometric stitching step, not a residual-check step.
+    // The topo overhaul + tolerant geometry path can leave counterpart cut points
+    // slightly separated after independent splits (especially in small-angle T2.1).
+    // Use a search tolerance derived from gap-closure policy / geometry scale
+    // rather than the much tighter residual verification tolerance.
+    let base_reconcile_tol = config.get_residual()
+        .max(ctx.get_gap_closure().get_max_gap())
+        .max(target_geom_out.global_default())
+        .max(tool_geom_out.global_default());
+    let reconcile_search_tol = base_reconcile_tol.max(ctx.get_gap_closure().get_max_gap() * 100.0);
+    let weld_tol_sq = reconcile_search_tol * reconcile_search_tol;
     let _reconciled = reconcile_boundary_vertices(
         &mut target_draft,
         &mut target_geom_out,

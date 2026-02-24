@@ -1,0 +1,535 @@
+//! Surface evaluation — point_at, normal_at, and analytic arbitration.
+//!
+//! DOMAIN: Pure stateless evaluation of parametric surfaces. No tolerance
+//! decisions, no geometry store access.
+//!
+//! DEPENDENCIES: surface schema types
+
+use super::schema::{SurfaceKind, SurfaceData, SurfaceRelation};
+
+impl SurfaceData {
+    /// Evaluate the surface at parameter (u, v), returning the 3D point.
+    ///
+    /// For analytic surfaces this is exact (closed-form). NURBS surfaces
+    /// require numerical evaluation (Phase 7).
+    pub fn point_at(&self, u: f64, v: f64) -> [f64; 3] {
+        match &self.kind {
+            SurfaceKind::Plane { normal, offset } => {
+                let (tangent_u, tangent_v) = plane_tangent_frame(normal);
+                [
+                    normal[0] * offset + tangent_u[0] * u + tangent_v[0] * v,
+                    normal[1] * offset + tangent_u[1] * u + tangent_v[1] * v,
+                    normal[2] * offset + tangent_u[2] * u + tangent_v[2] * v,
+                ]
+            }
+            SurfaceKind::Cylinder { origin, axis, radius } => {
+                let (u_dir, v_dir) = cylinder_frame(axis);
+                let cu = u.cos();
+                let su = u.sin();
+                [
+                    origin[0] + radius * (cu * u_dir[0] + su * v_dir[0]) + v * axis[0],
+                    origin[1] + radius * (cu * u_dir[1] + su * v_dir[1]) + v * axis[1],
+                    origin[2] + radius * (cu * u_dir[2] + su * v_dir[2]) + v * axis[2],
+                ]
+            }
+            SurfaceKind::Cone { apex, axis, half_angle } => {
+                let (u_dir, v_dir) = cylinder_frame(axis);
+                let r = v * half_angle.tan();
+                let cu = u.cos();
+                let su = u.sin();
+                [
+                    apex[0] + v * axis[0] + r * (cu * u_dir[0] + su * v_dir[0]),
+                    apex[1] + v * axis[1] + r * (cu * u_dir[1] + su * v_dir[1]),
+                    apex[2] + v * axis[2] + r * (cu * u_dir[2] + su * v_dir[2]),
+                ]
+            }
+            SurfaceKind::Sphere { center, radius } => {
+                let cv = v.cos();
+                let sv = v.sin();
+                let cu = u.cos();
+                let su = u.sin();
+                [
+                    center[0] + radius * cv * cu,
+                    center[1] + radius * cv * su,
+                    center[2] + radius * sv,
+                ]
+            }
+            SurfaceKind::Torus { center, axis, major_r, minor_r } => {
+                let (u_dir, v_dir) = cylinder_frame(axis);
+                let cu = u.cos();
+                let su = u.sin();
+                let cv = v.cos();
+                let sv = v.sin();
+                let ring_r = *major_r + *minor_r * cv;
+                let radial = [
+                    cu * u_dir[0] + su * v_dir[0],
+                    cu * u_dir[1] + su * v_dir[1],
+                    cu * u_dir[2] + su * v_dir[2],
+                ];
+                [
+                    center[0] + ring_r * radial[0] + minor_r * sv * axis[0],
+                    center[1] + ring_r * radial[1] + minor_r * sv * axis[1],
+                    center[2] + ring_r * radial[2] + minor_r * sv * axis[2],
+                ]
+            }
+        }
+    }
+
+    /// Evaluate the outward unit normal at parameter (u, v).
+    pub fn normal_at(&self, u: f64, v: f64) -> [f64; 3] {
+        match &self.kind {
+            SurfaceKind::Plane { normal, .. } => *normal,
+
+            SurfaceKind::Cylinder { axis, .. } => {
+                let (u_dir, v_dir) = cylinder_frame(axis);
+                let cu = u.cos();
+                let su = u.sin();
+                [
+                    cu * u_dir[0] + su * v_dir[0],
+                    cu * u_dir[1] + su * v_dir[1],
+                    cu * u_dir[2] + su * v_dir[2],
+                ]
+            }
+            SurfaceKind::Cone { axis, half_angle, .. } => {
+                let (u_dir, v_dir) = cylinder_frame(axis);
+                let cu = u.cos();
+                let su = u.sin();
+                let ca = half_angle.cos();
+                let sa = half_angle.sin();
+                let radial = [
+                    cu * u_dir[0] + su * v_dir[0],
+                    cu * u_dir[1] + su * v_dir[1],
+                    cu * u_dir[2] + su * v_dir[2],
+                ];
+                let n = [
+                    ca * radial[0] - sa * axis[0],
+                    ca * radial[1] - sa * axis[1],
+                    ca * radial[2] - sa * axis[2],
+                ];
+                normalize(n)
+            }
+            SurfaceKind::Sphere { .. } => {
+                let cv = v.cos();
+                let sv = v.sin();
+                let cu = u.cos();
+                let su = u.sin();
+                [cv * cu, cv * su, sv]
+            }
+            SurfaceKind::Torus { axis, major_r, minor_r, .. } => {
+                let (u_dir, v_dir) = cylinder_frame(axis);
+                let cu = u.cos();
+                let su = u.sin();
+                let cv = v.cos();
+                let sv = v.sin();
+                let radial = [
+                    cu * u_dir[0] + su * v_dir[0],
+                    cu * u_dir[1] + su * v_dir[1],
+                    cu * u_dir[2] + su * v_dir[2],
+                ];
+                let _ = major_r;
+                let _ = minor_r;
+                let n = [
+                    cv * radial[0] + sv * axis[0],
+                    cv * radial[1] + sv * axis[1],
+                    cv * radial[2] + sv * axis[2],
+                ];
+                normalize(n)
+            }
+        }
+    }
+}
+
+/// Analytic surface-surface relation classification.
+///
+/// Compares abstract surface definitions to determine if two surfaces are
+/// coincident (same surface), disjoint (cannot intersect), or general
+/// (require SSI computation). This is the "analytic arbitration" step in
+/// the hybrid Boolean pipeline (Architecture §4.3.4).
+pub fn classify_surface_pair(a: &SurfaceData, b: &SurfaceData) -> SurfaceRelation {
+    match (&a.kind, &b.kind) {
+        (
+            SurfaceKind::Plane { normal: n1, offset: d1 },
+            SurfaceKind::Plane { normal: n2, offset: d2 },
+        ) => classify_plane_plane(n1, *d1, n2, *d2),
+
+        (
+            SurfaceKind::Sphere { center: c1, radius: r1 },
+            SurfaceKind::Sphere { center: c2, radius: r2 },
+        ) => classify_sphere_sphere(c1, *r1, c2, *r2),
+
+        (
+            SurfaceKind::Cylinder { origin: o1, axis: a1, radius: r1 },
+            SurfaceKind::Cylinder { origin: o2, axis: a2, radius: r2 },
+        ) => classify_cylinder_cylinder(o1, a1, *r1, o2, a2, *r2),
+
+        _ => SurfaceRelation::General,
+    }
+}
+
+/// Classify two planes: coincident (same or antiparallel normals, same offset),
+/// disjoint (parallel but different offset), or general (intersecting).
+fn classify_plane_plane(n1: &[f64; 3], d1: f64, n2: &[f64; 3], d2: f64) -> SurfaceRelation {
+    let dot = n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2];
+    let eps = 1e-12;
+
+    if (dot.abs() - 1.0).abs() < eps {
+        let effective_d2 = if dot > 0.0 { d2 } else { -d2 };
+        if (d1 - effective_d2).abs() < eps {
+            SurfaceRelation::Coincident
+        } else {
+            SurfaceRelation::Disjoint
+        }
+    } else {
+        SurfaceRelation::General
+    }
+}
+
+/// Classify two spheres.
+fn classify_sphere_sphere(c1: &[f64; 3], r1: f64, c2: &[f64; 3], r2: f64) -> SurfaceRelation {
+    let dx = c1[0] - c2[0];
+    let dy = c1[1] - c2[1];
+    let dz = c1[2] - c2[2];
+    let dist_sq = dx * dx + dy * dy + dz * dz;
+    let eps = 1e-12;
+
+    if dist_sq < eps && (r1 - r2).abs() < eps {
+        SurfaceRelation::Coincident
+    } else {
+        let dist = dist_sq.sqrt();
+        if dist > r1 + r2 + eps {
+            SurfaceRelation::Disjoint
+        } else if dist + r1.min(r2) + eps < r1.max(r2) {
+            SurfaceRelation::Disjoint
+        } else {
+            SurfaceRelation::General
+        }
+    }
+}
+
+/// Classify two cylinders: coincident if coaxial with same radius.
+fn classify_cylinder_cylinder(
+    o1: &[f64; 3], a1: &[f64; 3], r1: f64,
+    o2: &[f64; 3], a2: &[f64; 3], r2: f64,
+) -> SurfaceRelation {
+    let eps = 1e-12;
+    let dot = a1[0] * a2[0] + a1[1] * a2[1] + a1[2] * a2[2];
+
+    if (dot.abs() - 1.0).abs() > eps {
+        return SurfaceRelation::General;
+    }
+    if (r1 - r2).abs() > eps {
+        return SurfaceRelation::General;
+    }
+
+    let d = [o2[0] - o1[0], o2[1] - o1[1], o2[2] - o1[2]];
+    let proj = d[0] * a1[0] + d[1] * a1[1] + d[2] * a1[2];
+    let perp_sq = (d[0] - proj * a1[0]).powi(2)
+                + (d[1] - proj * a1[1]).powi(2)
+                + (d[2] - proj * a1[2]).powi(2);
+
+    if perp_sq < eps {
+        SurfaceRelation::Coincident
+    } else {
+        SurfaceRelation::General
+    }
+}
+
+/// Build an orthonormal tangent frame for a plane given its normal.
+fn plane_tangent_frame(normal: &[f64; 3]) -> ([f64; 3], [f64; 3]) {
+    let seed = if normal[0].abs() < 0.9 {
+        [1.0, 0.0, 0.0]
+    } else {
+        [0.0, 1.0, 0.0]
+    };
+    let u = normalize(cross(&seed, normal));
+    let v = cross(normal, &u);
+    (u, v)
+}
+
+/// Build a local frame for a cylinder/cone/torus given its axis direction.
+fn cylinder_frame(axis: &[f64; 3]) -> ([f64; 3], [f64; 3]) {
+    plane_tangent_frame(axis)
+}
+
+fn cross(a: &[f64; 3], b: &[f64; 3]) -> [f64; 3] {
+    [
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    ]
+}
+
+fn normalize(v: [f64; 3]) -> [f64; 3] {
+    let len = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
+    if len < 1e-30 {
+        return [0.0, 0.0, 0.0];
+    }
+    [v[0] / len, v[1] / len, v[2] / len]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::f64::consts::{FRAC_PI_2, PI, TAU};
+
+    #[test]
+    fn plane_point_at_origin() {
+        let s = SurfaceData::plane([0.0, 0.0, 1.0], 0.0);
+        let p = s.point_at(0.0, 0.0);
+        assert!((p[2]).abs() < 1e-12);
+    }
+
+    #[test]
+    fn plane_point_at_offset() {
+        let s = SurfaceData::plane([0.0, 0.0, 1.0], 5.0);
+        let p = s.point_at(0.0, 0.0);
+        assert!((p[2] - 5.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn plane_normal_is_constant() {
+        let s = SurfaceData::plane([0.0, 1.0, 0.0], 3.0);
+        let n1 = s.normal_at(0.0, 0.0);
+        let n2 = s.normal_at(42.0, -17.0);
+        assert_eq!(n1, n2);
+        assert!((n1[1] - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn cylinder_point_on_surface() {
+        let s = SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 2.0);
+        let p = s.point_at(0.0, 5.0);
+        let r = (p[0] * p[0] + p[1] * p[1]).sqrt();
+        assert!((r - 2.0).abs() < 1e-12);
+        assert!((p[2] - 5.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn cylinder_normal_is_radial() {
+        let s = SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 3.0);
+        let n = s.normal_at(0.0, 0.0);
+        let p = s.point_at(0.0, 0.0);
+        let dot = n[0] * p[0] + n[1] * p[1];
+        assert!(dot > 0.0);
+        assert!(n[2].abs() < 1e-12);
+    }
+
+    #[test]
+    fn sphere_point_at_poles() {
+        let s = SurfaceData::sphere([0.0, 0.0, 0.0], 1.0);
+        let north = s.point_at(0.0, FRAC_PI_2);
+        assert!((north[2] - 1.0).abs() < 1e-12);
+        let south = s.point_at(0.0, -FRAC_PI_2);
+        assert!((south[2] + 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn sphere_normal_is_outward() {
+        let s = SurfaceData::sphere([1.0, 2.0, 3.0], 5.0);
+        let p = s.point_at(0.0, 0.0);
+        let n = s.normal_at(0.0, 0.0);
+        let dir = [p[0] - 1.0, p[1] - 2.0, p[2] - 3.0];
+        let dot = dir[0] * n[0] + dir[1] * n[1] + dir[2] * n[2];
+        assert!(dot > 0.0);
+    }
+
+    #[test]
+    fn coincident_planes_detected() {
+        let a = SurfaceData::plane([0.0, 0.0, 1.0], 5.0);
+        let b = SurfaceData::plane([0.0, 0.0, 1.0], 5.0);
+        assert_eq!(classify_surface_pair(&a, &b), SurfaceRelation::Coincident);
+    }
+
+    #[test]
+    fn antiparallel_coincident_planes_detected() {
+        let a = SurfaceData::plane([0.0, 0.0, 1.0], 5.0);
+        let b = SurfaceData::plane([0.0, 0.0, -1.0], -5.0);
+        assert_eq!(classify_surface_pair(&a, &b), SurfaceRelation::Coincident);
+    }
+
+    #[test]
+    fn parallel_disjoint_planes() {
+        let a = SurfaceData::plane([0.0, 0.0, 1.0], 3.0);
+        let b = SurfaceData::plane([0.0, 0.0, 1.0], 7.0);
+        assert_eq!(classify_surface_pair(&a, &b), SurfaceRelation::Disjoint);
+    }
+
+    #[test]
+    fn intersecting_planes_are_general() {
+        let a = SurfaceData::plane([1.0, 0.0, 0.0], 0.0);
+        let b = SurfaceData::plane([0.0, 1.0, 0.0], 0.0);
+        assert_eq!(classify_surface_pair(&a, &b), SurfaceRelation::General);
+    }
+
+    #[test]
+    fn coincident_spheres() {
+        let a = SurfaceData::sphere([0.0, 0.0, 0.0], 5.0);
+        let b = SurfaceData::sphere([0.0, 0.0, 0.0], 5.0);
+        assert_eq!(classify_surface_pair(&a, &b), SurfaceRelation::Coincident);
+    }
+
+    #[test]
+    fn disjoint_spheres() {
+        let a = SurfaceData::sphere([0.0, 0.0, 0.0], 1.0);
+        let b = SurfaceData::sphere([10.0, 0.0, 0.0], 1.0);
+        assert_eq!(classify_surface_pair(&a, &b), SurfaceRelation::Disjoint);
+    }
+
+    #[test]
+    fn contained_sphere_is_disjoint() {
+        let a = SurfaceData::sphere([0.0, 0.0, 0.0], 10.0);
+        let b = SurfaceData::sphere([0.0, 0.0, 0.0], 1.0);
+        assert_eq!(classify_surface_pair(&a, &b), SurfaceRelation::Disjoint);
+    }
+
+    #[test]
+    fn coincident_cylinders() {
+        let a = SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 3.0);
+        let b = SurfaceData::cylinder([0.0, 0.0, 5.0], [0.0, 0.0, 1.0], 3.0);
+        assert_eq!(classify_surface_pair(&a, &b), SurfaceRelation::Coincident);
+    }
+
+    // ── Cone evaluation ─────────────────────────────────────────────────
+
+    #[test]
+    fn cone_apex_is_at_v_zero() {
+        let s = SurfaceData::cone([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], PI / 4.0);
+        let p = s.point_at(0.0, 0.0);
+        assert!((p[0]).abs() < 1e-12);
+        assert!((p[1]).abs() < 1e-12);
+        assert!((p[2]).abs() < 1e-12);
+    }
+
+    #[test]
+    fn cone_radius_grows_with_v() {
+        let half_angle = PI / 6.0; // 30°
+        let s = SurfaceData::cone([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], half_angle);
+        let v = 5.0;
+        let p = s.point_at(0.0, v);
+        let r = (p[0] * p[0] + p[1] * p[1]).sqrt();
+        let expected_r = v * half_angle.tan();
+        assert!((r - expected_r).abs() < 1e-10, "r={} expected={}", r, expected_r);
+        assert!((p[2] - v).abs() < 1e-10);
+    }
+
+    #[test]
+    fn cone_normal_perpendicular_to_surface() {
+        let half_angle = PI / 4.0;
+        let s = SurfaceData::cone([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], half_angle);
+        let u = 0.3;
+        let v = 2.0;
+        let n = s.normal_at(u, v);
+        let len = (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]).sqrt();
+        assert!((len - 1.0).abs() < 1e-10, "normal not unit length: {}", len);
+    }
+
+    // ── Torus evaluation ────────────────────────────────────────────────
+
+    #[test]
+    fn torus_outer_equator_at_v_zero() {
+        let major = 5.0;
+        let minor = 1.0;
+        let s = SurfaceData::torus([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], major, minor);
+        let p = s.point_at(0.0, 0.0);
+        let r = (p[0] * p[0] + p[1] * p[1]).sqrt();
+        assert!((r - (major + minor)).abs() < 1e-10,
+            "outer equator r={}, expected={}", r, major + minor);
+        assert!(p[2].abs() < 1e-10);
+    }
+
+    #[test]
+    fn torus_inner_equator_at_v_pi() {
+        let major = 5.0;
+        let minor = 1.0;
+        let s = SurfaceData::torus([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], major, minor);
+        let p = s.point_at(0.0, PI);
+        let r = (p[0] * p[0] + p[1] * p[1]).sqrt();
+        assert!((r - (major - minor)).abs() < 1e-10,
+            "inner equator r={}, expected={}", r, major - minor);
+        assert!(p[2].abs() < 1e-10);
+    }
+
+    #[test]
+    fn torus_top_at_v_half_pi() {
+        let major = 5.0;
+        let minor = 1.0;
+        let s = SurfaceData::torus([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], major, minor);
+        let p = s.point_at(0.0, FRAC_PI_2);
+        assert!((p[2] - minor).abs() < 1e-10, "z={}, expected={}", p[2], minor);
+        let r = (p[0] * p[0] + p[1] * p[1]).sqrt();
+        assert!((r - major).abs() < 1e-10,
+            "at top of tube, r should equal major: r={}, major={}", r, major);
+    }
+
+    #[test]
+    fn torus_normal_is_unit_length() {
+        let s = SurfaceData::torus([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 5.0, 1.0);
+        for (u, v) in [(0.0, 0.0), (PI / 3.0, PI / 4.0), (PI, PI), (TAU * 0.7, FRAC_PI_2)] {
+            let n = s.normal_at(u, v);
+            let len = (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]).sqrt();
+            assert!((len - 1.0).abs() < 1e-10,
+                "normal not unit at u={}, v={}: len={}", u, v, len);
+        }
+    }
+
+    // ── Normal consistency (numerical derivative check) ─────────────────
+
+    fn numerical_normal(s: &SurfaceData, u: f64, v: f64) -> [f64; 3] {
+        let dt = 1e-7;
+        let du = [
+            (s.point_at(u + dt, v)[0] - s.point_at(u - dt, v)[0]) / (2.0 * dt),
+            (s.point_at(u + dt, v)[1] - s.point_at(u - dt, v)[1]) / (2.0 * dt),
+            (s.point_at(u + dt, v)[2] - s.point_at(u - dt, v)[2]) / (2.0 * dt),
+        ];
+        let dv = [
+            (s.point_at(u, v + dt)[0] - s.point_at(u, v - dt)[0]) / (2.0 * dt),
+            (s.point_at(u, v + dt)[1] - s.point_at(u, v - dt)[1]) / (2.0 * dt),
+            (s.point_at(u, v + dt)[2] - s.point_at(u, v - dt)[2]) / (2.0 * dt),
+        ];
+        let raw = [
+            du[1] * dv[2] - du[2] * dv[1],
+            du[2] * dv[0] - du[0] * dv[2],
+            du[0] * dv[1] - du[1] * dv[0],
+        ];
+        let len = (raw[0] * raw[0] + raw[1] * raw[1] + raw[2] * raw[2]).sqrt();
+        if len < 1e-15 { return [0.0, 0.0, 0.0]; }
+        [raw[0] / len, raw[1] / len, raw[2] / len]
+    }
+
+    #[test]
+    fn cylinder_normal_agrees_with_numerical_derivative() {
+        let s = SurfaceData::cylinder([1.0, 2.0, 3.0], [0.0, 0.0, 1.0], 4.0);
+        for &u in &[0.5, 1.0, 2.5, 4.0] {
+            let analytic = s.normal_at(u, 0.0);
+            let numerical = numerical_normal(&s, u, 0.0);
+            let dot = analytic[0] * numerical[0] + analytic[1] * numerical[1] + analytic[2] * numerical[2];
+            assert!(dot.abs() > 0.999,
+                "cylinder normal mismatch at u={}: analytic={:?} numerical={:?} dot={}",
+                u, analytic, numerical, dot);
+        }
+    }
+
+    #[test]
+    fn sphere_normal_agrees_with_numerical_derivative() {
+        let s = SurfaceData::sphere([0.0, 0.0, 0.0], 3.0);
+        for &(u, v) in &[(0.5, 0.3), (PI, 0.0), (1.0, -0.5)] {
+            let analytic = s.normal_at(u, v);
+            let numerical = numerical_normal(&s, u, v);
+            let dot = analytic[0] * numerical[0] + analytic[1] * numerical[1] + analytic[2] * numerical[2];
+            assert!(dot.abs() > 0.999,
+                "sphere normal mismatch at u={}, v={}: dot={}", u, v, dot);
+        }
+    }
+
+    #[test]
+    fn torus_normal_agrees_with_numerical_derivative() {
+        let s = SurfaceData::torus([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 5.0, 1.0);
+        for &(u, v) in &[(0.5, 0.3), (PI, PI / 4.0), (2.0, 1.0)] {
+            let analytic = s.normal_at(u, v);
+            let numerical = numerical_normal(&s, u, v);
+            let dot = analytic[0] * numerical[0] + analytic[1] * numerical[1] + analytic[2] * numerical[2];
+            assert!(dot.abs() > 0.999,
+                "torus normal mismatch at u={}, v={}: dot={}", u, v, dot);
+        }
+    }
+}

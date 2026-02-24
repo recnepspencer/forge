@@ -106,6 +106,29 @@ define_handle!(EdgeId);
 /// it when curved surfaces are introduced.
 define_handle!(CurveRef);
 
+/// Opaque cross-crate reference to a surface in `forge-geom::SurfaceData`.
+///
+/// Stored in `FaceData.surface` so that the topology arena can hold a typed
+/// reference to face-surface geometry without owning any `f64` values
+/// (Doctrine D3). The actual `SurfaceData` arena lives in the kernel's
+/// `GeometryStore`.
+///
+/// `None` for planar faces where the surface is an implicit plane defined
+/// by face-plane association in the `GeometryStore`. `Some` for curved
+/// surfaces (cylinders, cones, spheres, tori, NURBS).
+define_handle!(SurfaceRef);
+
+/// Opaque cross-crate reference to a coedge (UV trim curve) in
+/// `forge-geom::Coedge`.
+///
+/// Stored in `HalfEdgeData.coedge` so that each directed use of an edge
+/// can reference its 2D trim curve in the adjacent face's parameter space.
+/// This is the mechanism that prevents 3D positional drift in deep boolean
+/// chains: `surface.point_at(coedge.uv_at(t))` is on the surface by
+/// construction.
+///
+/// `None` for planar halfedges (the coedge is a trivial straight line in UV).
+define_handle!(CoedgeRef);
 
 #[cfg(test)]
 mod tests {

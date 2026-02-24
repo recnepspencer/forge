@@ -1344,6 +1344,7 @@ version = "0.1.0"
 dependencies = [
  "forge-math",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

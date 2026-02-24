@@ -7,7 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::handles::{FaceId, HalfEdgeId, VertexId, LoopId, ShellId, BodyId, LumpId, RegionId, EdgeId, CurveRef};
+use crate::handles::{FaceId, HalfEdgeId, VertexId, LoopId, ShellId, BodyId, LumpId, RegionId, EdgeId, CurveRef, SurfaceRef, CoedgeRef};
 use crate::lineage::Lineage;
 
 /// A slot in the arena that may be occupied or vacant.
@@ -47,17 +47,21 @@ pub struct FaceData {
     inner_loops: Vec<LoopId>,
     shell: ShellId,
     lineage: Option<Lineage>,
+    /// Opaque reference to this face's parametric surface in the `GeometryStore`.
+    /// `None` for planar faces (the surface is an implicit plane defined by
+    /// the face-plane association). `Some` for curved surfaces (Phase 4+).
+    surface: Option<SurfaceRef>,
 }
 
 impl FaceData {
     /// Construct a new face with the given outer loop and shell.
     pub fn new(outer_loop: LoopId, shell: ShellId) -> Self {
-        Self { outer_loop, inner_loops: Vec::new(), shell, lineage: None }
+        Self { outer_loop, inner_loops: Vec::new(), shell, lineage: None, surface: None }
     }
 
     /// Construct a new face with lineage.
     pub fn with_lineage(outer_loop: LoopId, shell: ShellId, lineage: Option<Lineage>) -> Self {
-        Self { outer_loop, inner_loops: Vec::new(), shell, lineage }
+        Self { outer_loop, inner_loops: Vec::new(), shell, lineage, surface: None }
     }
 
     /// The outer boundary loop of this face.
@@ -98,6 +102,12 @@ impl FaceData {
 
     /// Set inline lineage.
     pub fn set_lineage(&mut self, lineage: Option<Lineage>) { self.lineage = lineage; }
+
+    /// Opaque reference to this face's parametric surface (None = planar).
+    pub fn surface_ref(&self) -> Option<SurfaceRef> { self.surface }
+
+    /// Set the surface reference (populated by the kernel for curved faces).
+    pub fn set_surface_ref(&mut self, r: Option<SurfaceRef>) { self.surface = r; }
 }
 
 /// Data stored for each halfedge.
@@ -126,7 +136,20 @@ pub struct HalfEdgeData {
     /// outer loop and are not geometric boundaries. Fillet and offset algorithms
     /// must skip or treat these differently (concave vs. convex rolling ball).
     is_bridge: bool,
+    /// Opaque reference to this halfedge's UV trim curve (coedge) in the
+    /// `GeometryStore`. `None` for planar halfedges where the coedge is a
+    /// trivial straight line in UV space. `Some` for curved surfaces (Phase 4+).
+    coedge: Option<CoedgeRef>,
+    /// Whether this coedge's parametric direction is aligned with the parent
+    /// Edge's 3D curve direction. `true` = same direction, `false` = reversed.
+    /// This is the "sense" in STEP terminology (`ORIENTED_EDGE.orientation`).
+    /// Defaults to `true` for planar geometry where coedges don't exist yet.
+    #[serde(default = "default_direction")]
+    direction: bool,
 }
+
+/// Serde default for the `direction` field (true = aligned).
+fn default_direction() -> bool { true }
 
 impl HalfEdgeData {
     /// Construct a new halfedge with all connectivity fields.
@@ -138,7 +161,7 @@ impl HalfEdgeData {
         origin: VertexId,
         edge: EdgeId,
     ) -> Self {
-        Self { radial_next, next, prev, face, origin, edge, lineage: None, is_bridge: false }
+        Self { radial_next, next, prev, face, origin, edge, lineage: None, is_bridge: false, coedge: None, direction: true }
     }
 
     /// Construct a new halfedge with lineage.
@@ -151,7 +174,7 @@ impl HalfEdgeData {
         edge: EdgeId,
         lineage: Option<Lineage>,
     ) -> Self {
-        Self { radial_next, next, prev, face, origin, edge, lineage, is_bridge: false }
+        Self { radial_next, next, prev, face, origin, edge, lineage, is_bridge: false, coedge: None, direction: true }
     }
 
     /// Next halfedge in the radial ring around the same geometric edge.
@@ -205,6 +228,18 @@ impl HalfEdgeData {
 
     /// Mark this halfedge as a synthetic bridge (from `BridgeEdge`).
     pub fn set_bridge(&mut self, value: bool) { self.is_bridge = value; }
+
+    /// Opaque reference to this halfedge's UV trim curve (None = planar).
+    pub fn coedge_ref(&self) -> Option<CoedgeRef> { self.coedge }
+
+    /// Set the coedge reference (populated by the kernel for curved halfedges).
+    pub fn set_coedge_ref(&mut self, r: Option<CoedgeRef>) { self.coedge = r; }
+
+    /// Whether this coedge's direction is aligned with the parent Edge's 3D curve.
+    pub fn direction(&self) -> bool { self.direction }
+
+    /// Set the coedge direction sense (true = aligned with Edge curve).
+    pub fn set_direction(&mut self, d: bool) { self.direction = d; }
 }
 
 /// Data stored for each vertex.

@@ -29,6 +29,7 @@ mod mb5_cancellation_chain;
 mod mb6_halfspace_storm;
 mod mb7_micro_feature_avalanche;
 mod mb8_ultimate_degeneracy;
+mod tolerance_integration;
 
 pub use predicates::*;
 pub use coincidence::*;

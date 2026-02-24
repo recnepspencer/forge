@@ -7,7 +7,9 @@ use forge_core::{KernelError, ToleranceProvider};
 use forge_math::{MathError, GeometrySource, PlaneCoefficients};
 use forge_math::arithmetic::Rational;
 use forge_geom::Plane;
-use forge_topo::handles::{FaceId, VertexId};
+use forge_geom::{SurfaceData, SurfaceKind, CurveGeom, Coedge};
+use forge_topo::handles::{FaceId, VertexId, HalfEdgeId, EdgeId, SurfaceRef, CurveRef, CoedgeRef};
+use forge_topo::arena::TopologyArena;
 
 /// Exact 3D position backed by rational coordinates with a cached f64 approximation.
 ///
@@ -136,6 +138,39 @@ pub struct GeometryStore {
     /// `ToleranceProvider` implementation returns `global_default()` as a safe
     /// conservative fallback instead of panicking.
     vertex_tolerances: HashMap<u64, f64>,
+
+    // ── Phase 4: Geometry entity arenas ──────────────────────────────────
+
+    /// Parametric surface definitions (indexed by `SurfaceRef`).
+    surfaces: Vec<GeomSlot<SurfaceData>>,
+    /// 3D edge curve geometries (indexed by `CurveRef`).
+    curves: Vec<GeomSlot<CurveGeom>>,
+    /// UV trim curves / coedges (indexed by `CoedgeRef`).
+    coedges: Vec<GeomSlot<Coedge>>,
+
+    /// Map from face handle → `SurfaceRef` for faces with attached surfaces.
+    face_surfaces: HashMap<u64, SurfaceRef>,
+    /// Map from halfedge handle → `(CoedgeRef, direction)` for curved halfedges.
+    halfedge_coedges: HashMap<u64, (CoedgeRef, bool)>,
+    /// Map from edge handle → `CurveRef` for edges with attached curves.
+    edge_curves: HashMap<u64, CurveRef>,
+}
+
+/// A generational slot in the geometry arenas.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct GeomSlot<T> {
+    data: Option<T>,
+    generation: u32,
+}
+
+impl<T> GeomSlot<T> {
+    fn vacant(gen: u32) -> Self {
+        Self { data: None, generation: gen }
+    }
+
+    fn occupied(data: T, gen: u32) -> Self {
+        Self { data: Some(data), generation: gen }
+    }
 }
 
 impl GeometryStore {
@@ -145,6 +180,12 @@ impl GeometryStore {
             face_planes: HashMap::new(),
             vertex_positions: HashMap::new(),
             vertex_tolerances: HashMap::new(),
+            surfaces: Vec::new(),
+            curves: Vec::new(),
+            coedges: Vec::new(),
+            face_surfaces: HashMap::new(),
+            halfedge_coedges: HashMap::new(),
+            edge_curves: HashMap::new(),
         }
     }
 
@@ -307,12 +348,252 @@ impl GeometryStore {
         (dx * dx + dy * dy + dz * dz).sqrt()
     }
 
-    /// Whether a face is planar (always true for the current BSP-only kernel).
+    /// Whether a face has a planar surface (or no surface attached yet).
     ///
-    /// Returns `false` for future NURBS faces so that `measure_gap` can
-    /// guard against projecting onto non-planar supporting planes.
-    pub fn face_is_planar(&self, _face: FaceId) -> bool {
-        true
+    /// Returns `false` for faces with an attached non-planar `SurfaceRef`.
+    /// Returns `true` for faces with no surface (planar-only phase) or
+    /// faces with an attached `SurfaceKind::Plane`.
+    pub fn face_is_planar(&self, face: FaceId) -> bool {
+        let key = pack_handle(face.index(), face.generation());
+        match self.face_surfaces.get(&key) {
+            None => true,
+            Some(surface_ref) => {
+                match self.get_surface(*surface_ref) {
+                    Ok(data) => matches!(data.kind, SurfaceKind::Plane { .. }),
+                    Err(_) => true,
+                }
+            }
+        }
+    }
+
+    // ── Phase 4: Surface CRUD ────────────────────────────────────────────
+
+    /// Insert a new surface, returning its `SurfaceRef` handle.
+    pub fn insert_surface(&mut self, data: SurfaceData) -> SurfaceRef {
+        let index = self.surfaces.len() as u32;
+        self.surfaces.push(GeomSlot::occupied(data, 0));
+        SurfaceRef::from_raw_parts(index, 0)
+    }
+
+    /// Retrieve a surface by its handle.
+    pub fn get_surface(&self, r: SurfaceRef) -> Result<&SurfaceData, KernelError> {
+        let slot = self.surfaces.get(r.index() as usize)
+            .ok_or_else(|| KernelError::InternalError {
+                message: format!("SurfaceRef {} out of range", r),
+                context: None,
+            })?;
+        if slot.generation != r.generation() {
+            return Err(KernelError::InternalError {
+                message: format!("Stale SurfaceRef {} (arena gen {})", r, slot.generation),
+                context: None,
+            });
+        }
+        slot.data.as_ref().ok_or_else(|| KernelError::InternalError {
+            message: format!("SurfaceRef {} points to a vacant slot", r),
+            context: None,
+        })
+    }
+
+    /// Remove a surface, returning its data.
+    pub fn remove_surface(&mut self, r: SurfaceRef) -> Result<SurfaceData, KernelError> {
+        let slot = self.surfaces.get_mut(r.index() as usize)
+            .ok_or_else(|| KernelError::InternalError {
+                message: format!("SurfaceRef {} out of range", r),
+                context: None,
+            })?;
+        if slot.generation != r.generation() {
+            return Err(KernelError::InternalError {
+                message: format!("Stale SurfaceRef {}", r),
+                context: None,
+            });
+        }
+        let data = slot.data.take().ok_or_else(|| KernelError::InternalError {
+            message: format!("SurfaceRef {} already vacant", r),
+            context: None,
+        })?;
+        slot.generation += 1;
+        Ok(data)
+    }
+
+    // ── Phase 4: Curve CRUD ──────────────────────────────────────────────
+
+    /// Insert a new curve geometry, returning its `CurveRef` handle.
+    pub fn insert_curve(&mut self, data: CurveGeom) -> CurveRef {
+        let index = self.curves.len() as u32;
+        self.curves.push(GeomSlot::occupied(data, 0));
+        CurveRef::from_raw_parts(index, 0)
+    }
+
+    /// Retrieve a curve geometry by its handle.
+    pub fn get_curve(&self, r: CurveRef) -> Result<&CurveGeom, KernelError> {
+        let slot = self.curves.get(r.index() as usize)
+            .ok_or_else(|| KernelError::InternalError {
+                message: format!("CurveRef {} out of range", r),
+                context: None,
+            })?;
+        if slot.generation != r.generation() {
+            return Err(KernelError::InternalError {
+                message: format!("Stale CurveRef {}", r),
+                context: None,
+            });
+        }
+        slot.data.as_ref().ok_or_else(|| KernelError::InternalError {
+            message: format!("CurveRef {} points to a vacant slot", r),
+            context: None,
+        })
+    }
+
+    /// Remove a curve geometry, returning its data.
+    pub fn remove_curve(&mut self, r: CurveRef) -> Result<CurveGeom, KernelError> {
+        let slot = self.curves.get_mut(r.index() as usize)
+            .ok_or_else(|| KernelError::InternalError {
+                message: format!("CurveRef {} out of range", r),
+                context: None,
+            })?;
+        if slot.generation != r.generation() {
+            return Err(KernelError::InternalError {
+                message: format!("Stale CurveRef {}", r),
+                context: None,
+            });
+        }
+        let data = slot.data.take().ok_or_else(|| KernelError::InternalError {
+            message: format!("CurveRef {} already vacant", r),
+            context: None,
+        })?;
+        slot.generation += 1;
+        Ok(data)
+    }
+
+    // ── Phase 4: Coedge CRUD ─────────────────────────────────────────────
+
+    /// Insert a new coedge (UV trim curve), returning its `CoedgeRef` handle.
+    pub fn insert_coedge(&mut self, data: Coedge) -> CoedgeRef {
+        let index = self.coedges.len() as u32;
+        self.coedges.push(GeomSlot::occupied(data, 0));
+        CoedgeRef::from_raw_parts(index, 0)
+    }
+
+    /// Retrieve a coedge by its handle.
+    pub fn get_coedge(&self, r: CoedgeRef) -> Result<&Coedge, KernelError> {
+        let slot = self.coedges.get(r.index() as usize)
+            .ok_or_else(|| KernelError::InternalError {
+                message: format!("CoedgeRef {} out of range", r),
+                context: None,
+            })?;
+        if slot.generation != r.generation() {
+            return Err(KernelError::InternalError {
+                message: format!("Stale CoedgeRef {}", r),
+                context: None,
+            });
+        }
+        slot.data.as_ref().ok_or_else(|| KernelError::InternalError {
+            message: format!("CoedgeRef {} points to a vacant slot", r),
+            context: None,
+        })
+    }
+
+    // ── Phase 4: Attachment APIs ──────────────────────────────────────────
+
+    /// Attach a surface to a face. Does NOT go through Euler operators
+    /// (geometry attachment ≠ topology change).
+    pub fn attach_surface_to_face(&mut self, face: FaceId, surface: SurfaceRef) {
+        let key = pack_handle(face.index(), face.generation());
+        self.face_surfaces.insert(key, surface);
+    }
+
+    /// Attach a coedge + direction to a halfedge.
+    pub fn attach_coedge_to_halfedge(&mut self, he: HalfEdgeId, coedge: CoedgeRef, direction: bool) {
+        let key = pack_handle(he.index(), he.generation());
+        self.halfedge_coedges.insert(key, (coedge, direction));
+    }
+
+    /// Attach a curve to an edge.
+    pub fn attach_curve_to_edge(&mut self, edge: EdgeId, curve: CurveRef) {
+        let key = pack_handle(edge.index(), edge.generation());
+        self.edge_curves.insert(key, curve);
+    }
+
+    /// Retrieve the surface attached to a face, if any.
+    pub fn get_face_surface(&self, face: FaceId) -> Option<SurfaceRef> {
+        let key = pack_handle(face.index(), face.generation());
+        self.face_surfaces.get(&key).copied()
+    }
+
+    /// Retrieve the coedge + direction attached to a halfedge, if any.
+    pub fn get_halfedge_coedge(&self, he: HalfEdgeId) -> Option<(CoedgeRef, bool)> {
+        let key = pack_handle(he.index(), he.generation());
+        self.halfedge_coedges.get(&key).copied()
+    }
+
+    /// Retrieve the curve attached to an edge, if any.
+    pub fn get_edge_curve(&self, edge: EdgeId) -> Option<CurveRef> {
+        let key = pack_handle(edge.index(), edge.generation());
+        self.edge_curves.get(&key).copied()
+    }
+
+    /// Number of active surfaces.
+    pub fn surface_count(&self) -> usize {
+        self.surfaces.iter().filter(|s| s.data.is_some()).count()
+    }
+
+    /// Number of active curves.
+    pub fn curve_count(&self) -> usize {
+        self.curves.iter().filter(|s| s.data.is_some()).count()
+    }
+
+    /// Number of active coedges.
+    pub fn coedge_count(&self) -> usize {
+        self.coedges.iter().filter(|s| s.data.is_some()).count()
+    }
+
+    // ── Phase 4: Validation ──────────────────────────────────────────────
+
+    /// Validate that all geometry bindings point to live arena entries.
+    ///
+    /// Called by the kernel during commit to catch dangling geometry
+    /// references. This check CANNOT live in `forge-topo` because
+    /// `TopologyArena` must not see `GeometryStore` (layer boundary).
+    pub fn validate_geometry_bindings(&self, arena: &TopologyArena) -> Result<(), KernelError> {
+        for (&key, &surface_ref) in &self.face_surfaces {
+            if self.get_surface(surface_ref).is_err() {
+                let index = (key & 0xFFFF_FFFF) as u32;
+                return Err(KernelError::InternalError {
+                    message: format!(
+                        "Face index {} has a dangling SurfaceRef {}",
+                        index, surface_ref,
+                    ),
+                    context: None,
+                });
+            }
+        }
+
+        for (&key, &(coedge_ref, _)) in &self.halfedge_coedges {
+            if self.get_coedge(coedge_ref).is_err() {
+                let index = (key & 0xFFFF_FFFF) as u32;
+                return Err(KernelError::InternalError {
+                    message: format!(
+                        "HalfEdge index {} has a dangling CoedgeRef {}",
+                        index, coedge_ref,
+                    ),
+                    context: None,
+                });
+            }
+        }
+
+        for (&key, &curve_ref) in &self.edge_curves {
+            if self.get_curve(curve_ref).is_err() {
+                let index = (key & 0xFFFF_FFFF) as u32;
+                return Err(KernelError::InternalError {
+                    message: format!(
+                        "Edge index {} has a dangling CurveRef {}",
+                        index, curve_ref,
+                    ),
+                    context: None,
+                });
+            }
+        }
+
+        Ok(())
     }
 
     /// Insert a new vertex with a position derived from its provenance.
@@ -395,7 +676,10 @@ impl GeometryStore {
 
     /// Whether all face geometry is planar (no curved surfaces).
     pub fn is_all_planar(&self) -> bool {
-        true
+        self.surfaces.iter()
+            .filter_map(|s| s.data.as_ref())
+            .all(|s| matches!(s.kind, SurfaceKind::Plane { .. }))
+            && self.face_surfaces.is_empty()
     }
 }
 

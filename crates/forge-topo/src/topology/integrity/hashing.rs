@@ -9,6 +9,12 @@
 //! - Hashes are **index-independent**: isomorphic topologies with different
 //!   arena slot assignments produce the same hash (permutation invariance)
 //!
+//! EXCLUDED FIELDS (geometry-layer, tracked by `geometry_version` not topology hash):
+//! - `EdgeData.curve: Option<CurveRef>` — 3D edge curve
+//! - `FaceData.surface: Option<SurfaceRef>` — parametric surface definition
+//! - `HalfEdgeData.coedge: Option<CoedgeRef>` — UV trim curve
+//! - `HalfEdgeData.direction: bool` — coedge sense (aligned/reversed)
+//!
 //! NOTE: This is a change-detection tool, NOT a canonical graph isomorphism
 //! test. Two non-isomorphic topologies may (rarely) hash to the same value.
 //!

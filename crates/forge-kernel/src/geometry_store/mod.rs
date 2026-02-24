@@ -14,9 +14,15 @@
 
 mod schema;
 mod eval;
+pub mod coalescence;
+pub mod split_propagation;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod adversarial_tests;
 
 pub use schema::GeometryStore;
 pub use schema::ExactPosition;
 pub use eval::build_position_lookup;
+pub use coalescence::{snap_or_coalesce_vertex, CoalescenceResult};
+pub use split_propagation::propagate_curve_on_split;
