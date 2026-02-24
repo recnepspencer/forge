@@ -5,7 +5,7 @@
 
 # Part 1: How to Read This Document
 
-This specification defines **5 proof layers, 29 milestones, 61 proof validation suites (PV), 50 MetaBoss tests across 7 series (MB), 8 performance gates, and 8 Danger Zones.** It is the companion specification to the `DEVELOPMENT_BLUEPRINT.MD` — that document builds the kernel; this one proves the kernel is correct.
+This specification defines **5 proof layers, 29 milestones, 61 proof validation suites (PV), 50 MetaBoss tests across 7 series (MB), 8 performance gates, and 8 Danger Zones.** It is the companion specification to the `FORGE_ARCHITECTURE.MD` — that document builds the kernel; this one proves the kernel is correct.
 
 > **See also:** [`METABOSS_TIER4.md`](file:///Users/spenstar/Documents/programming/Forge/METABOSS_TIER4.md) — 24 additional "No Kernel Survives" tests that combine multiple failure modes simultaneously. These are the final 0.0001% scenarios that no commercial kernel handles.
 

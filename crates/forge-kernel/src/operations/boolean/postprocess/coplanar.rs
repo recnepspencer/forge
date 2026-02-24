@@ -27,7 +27,7 @@ use super::run_iterative_pass;
 /// via `JoinFaces`. Critical for canonical results: `(A ∪ B) ∪ C == A ∪ (B ∪ C)`.
 pub fn merge_coplanar_faces(
     topo: TopologyState,
-    geom: &GeometryStore,
+    geom: &mut GeometryStore,
     ctx: &mut ModelingContext,
 ) -> Result<(TopologyState, usize), KernelError> {
     run_iterative_pass(topo, |current| run_merge_pass(current, geom, ctx))
@@ -36,13 +36,36 @@ pub fn merge_coplanar_faces(
 /// Find and merge one pair of coplanar faces.
 fn run_merge_pass(
     topo: TopologyState,
-    geom: &GeometryStore,
+    geom: &mut GeometryStore,
     ctx: &mut ModelingContext,
 ) -> Result<(TopologyState, usize), KernelError> {
     let candidate = find_coplanar_merge_candidate(topo.arena(), geom);
     let Some((he_id, face_a, face_b)) = candidate else {
         return Ok((topo, 0));
     };
+
+    let mut pair_group = forge_topo::bitset::EntityBitset::for_faces(topo.arena());
+    let _ = pair_group.insert(face_a.index());
+    let _ = pair_group.insert(face_b.index());
+
+    let cert_ok = match super::merge_eligibility::eval::certify_merge_boundary(
+        topo.arena(),
+        &pair_group,
+        geom,
+    ) {
+        Ok(mut op_result) => {
+            let cert_log = op_result.take_decision_log();
+            ctx.get_decision_log_mut().merge(cert_log);
+            let cert = op_result.into_value();
+            !matches!(cert, forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::Rejected { .. })
+        }
+        Err(_) => false,
+    };
+
+    if !cert_ok {
+        return Ok((topo, 0));
+    }
+
     let original = topo.clone();
     let mut draft = topo.into_mutation();
 
@@ -61,7 +84,9 @@ fn run_merge_pass(
             }
             let delta = compute_topology_delta(&pre_snapshot, draft.arena());
             log_merge(he_id, face_a, face_b, delta, ctx);
-            Ok((draft.commit()?, 1))
+            let committed = draft.commit()?;
+            geom.remove_face_plane(face_b);
+            Ok((committed, 1))
         }
         Err(_) => Ok((draft.commit()?, 0)),
     }

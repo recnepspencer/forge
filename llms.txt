@@ -1,16 +1,19 @@
 # Forge
+STOP. As soon as you finish reading this document, your first to-do is read FORGE_ARCHITECTURE.MD.
 
-> A from-scratch B-Rep geometry kernel in Rust, built for correctness, determinism, and AI-assisted development.
+> A from-scratch B-Rep geometry kernel in Rust, built for correctness, determinism, and AI-assisted development. IMPORTANT: Being designed as an aerospace-grade parasolid competitor. Ambitious? Yes. But that means we cant do code hacks. Everything must be clean and well-architected. 
 
 ## Project Overview
 
-- [Development Blueprint](DEVELOPMENT_BLUEPRINT.MD): Full engineering specification — 10 phases, 58 milestones, 9 global doctrines.
-- [Product Pitch](PRODUCT_PITCH.md): Vision and market positioning.
+- READ THIS [Forge Architecture](FORGE_ARCHITECTURE.md): Architecture Pre-spec — components, dependencies, and hybrid pipeline.
+- [Proof System](PROOF_SYSTEM.md): Internal certainty specification — 5 proof layers and validation suites.
+
 
 ## Documentation
 
-- [Forge Architecture](docs/architecture.md): Crate dependency graph and doctrine summary.
-- [Exactness Contract](docs/exactness-contract.md): Precision guarantee model (planar = exact, curved = certified bounds).
+- [Crate Overview](CRATE_OVERVIEW.md): Comprehensive reference guide for all crates and their exact responsibilities.
+- [Boolean Upgrade Spec](BooleanUpgradeSpec.MD): Engineering specification for exact boolean operations.
+- [Topology Queries Spec](TOPO_QUERIES_SPEC.md): Specification for topological extraction and queries.
 - [Tolerance Policy](docs/tolerance-policy.md): ModelingContext tolerance infrastructure.
 - [File Naming Dictionary](docs/FILE_NAMING.md): Deterministic naming conventions for source files.
 
@@ -22,14 +25,120 @@
 
 ## Agent Workflows
 
-- [Add Feature](/.agent/workflows/add-feature.md): Workflow for adding a new feature or milestone.
+- [Add Feature](/.agent/workflows/add-feature.md): Formalized workflow for adding a new feature or milestone.
+- [Add Proof Milestone](/.agent/workflows/add-proof-milestone.md): Workflow for implementing a proof system milestone.
 - [New Module](/.agent/workflows/new-module.md): Create a new module following the Bento Box pattern.
+- [Testing and Tracing](/.agent/workflows/testing-and-tracing.md): Guide for writing, running, and inspecting tests.
 
 ## Crate Map
 
-- `forge-math`: Exact arithmetic, predicates, filtered evaluation (no internal deps).
-- `forge-topo`: Halfedge mesh, Euler operators, topology state (depends on forge-math).
-- `forge-geom`: Analytic surfaces, NURBS, curves (depends on forge-math, forge-topo).
-- `forge-kernel`: Features, booleans, fillets (depends on all above).
-- `forge-io`: STEP, IGES, STL, JSON serialization (depends on all above).
-- `forge-test`: Differential harness, fuzzer generators, KV suites (test-only).
+- `forge-math`: Exact predicates, rational arithmetic, linear algebra (no internal deps).
+- `forge-core`: Shared types, error definitions, policy language, tracing envelope (depends on math).
+- `forge-geom`: Stateless geometry solvers, bounding volumes, spatial trees (depends on core).
+- `forge-signal`: Reactive dependency graph, evaluation engine (depends on core).
+- `forge-topo`: Topology arena, generational handles, Euler operators (depends on geom, core).
+- `forge-kernel`: Features, booleans, policy decisions, tolerance config (depends on topo, geom, core).
+- `forge-io`: JSON import/export, serialization schemas (depends on kernel/topo/geom/math).
+- `forge-test`: Differential test harness, random generators (test-only, depends on all).
+- `forge-schema`: Declarative modeling JSON schema (no kernel deps).
+- `forge-repr`: Representation types for rendering like TriangleMesh (no kernel deps).
+- `forge-view`: Trace viewer GUI app and CLI inspector (depends on core).
+
+## Core Concepts & Key Types
+
+Status: ✔ implemented, ◐ partially implemented, ○ future
+
+### 1. Exact Arithmetic (forge-math) ✔
+- `TriSign` — Neg/Zero/Pos tri-valued predicate result
+- `CertifiedTriSign` — only constructable inside forge-math, proves sign was mathematically verified
+- `Rational` — exact BigInt/BigInt rational for planar Stage 3A fallback
+
+### 2. Errors & Policy (forge-core) ✔
+- `KernelError` — primary error type for all crates above forge-math
+- `PolicyResult<T>` — three-state return: Ok / Ambiguous / Err (for escalation)
+- `PolicyKind` — CoincidentGeometry / NearTangency / SliverFace / etc.
+
+### 3. Tracing & Decisions (forge-core) ✔
+- `TracedDecision` — a single logged kernel decision with kind, tier, margin, threshold
+- `DecisionKind` — Exact / NearBoundary / PolicyApplied / PrecisionEscalation / Forced
+- `DecisionTier` — Routine / NearBoundary / PolicyApplied / Escalated
+- `DecisionLog` — span-based decision trace with open/close events and summary
+- `DivergenceReport` — scan for float vs exact disagreements
+
+### 4. Result Envelope (forge-core) ✔
+- `OperationResult<T>` — universal return wrapper: value + DecisionLog + warnings + metrics + lineage delta + state hashes. Auto-persists traces when `FORGE_TRACE_DIR` is set.
+
+### 5. Tolerance (forge-kernel) ✔
+- `ToleranceConfig` — all numeric thresholds bundled: spatial, angular, tangency, sliver, gap, precision
+- `TolerancePolicy` — spatial + angular coincidence thresholds
+- `TangencyPolicy` — near-tangent surface intersection handling
+- `SliverPolicy` — min face area and max slivers per operation
+- `GapClosurePolicy` — gap healing limits
+- `PrecisionEscalationPolicy` — fuel caps for Stage 3B arbitrary precision
+- `ModelingContext` — the policy engine: holds all tolerance policies, decision log, and validation config
+- `ToleranceProvider` trait (forge-core) — per-entity tolerance query interface so forge-topo can ask "how close is close enough?" without owning geometry
+
+### 6. Topology State & Transactions (forge-topo) ✔
+- `TopologyState` — immutable snapshot with epoch, topology_version, geometry_version, topology_hash
+- `MutableDraft` — transactional mutation handle; commit or drop (auto-rollback)
+- `TopologyArena` — the actual halfedge data store
+
+### 7. Typed Handles (forge-topo) ✔
+- `FaceId`, `HalfEdgeId`, `VertexId`, `LoopId`, `EdgeId`, `BodyId`, `ShellId`, `LumpId`, `RegionId`
+- Generational `(index, generation)` pairs — stale access detected immediately
+
+### 8. Hierarchy (forge-topo) ✔
+- Body → Lump → Region → Shell → Face → Loop → HalfEdge → Vertex
+- Euler formula validated per solid: `V - E + F = 2(S - G) + R`
+
+### 9. Euler Operators (forge-topo) ✔
+- `MakeVertexFace`, `MakeEdgeFace`, `MakeEdgeVertex`, `SplitEdge`, `JoinFaces`, `KillEdgeVertex`, `SewEdge`, `UnsewEdge`, `MakeEdgeKillLoop`, `KillEdgeMakeLoop`, `MakeShellFace`, `KillShellFace`, `MakeFaceFromVertices`, etc.
+- All atomic, all go through `apply_op()` with lineage logging
+
+### 10. Lineage & Provenance (forge-topo) ✔
+- `Lineage` — provenance: origin features, creation op, deterministic ancestry hash (Merkle DAG)
+- `OpSignature` — operation name + invocation ID for replay
+- `LineageEvent` — EntityCreated / EntityDeleted / EntityModified events
+
+### 11. Validation & Integrity (forge-topo) ✔
+- Structural checks: twin reciprocity, loop closure, vertex continuity, Euler formula
+- Geometric checks: zero-area faces, zero-length edges, signed volume, degenerate loops
+- Orientation healing: auto-flip inverted shells
+- Manifold enforcement: solid shells require edge valence exactly 2
+
+### 12. Geometry (forge-geom) ✔
+- `Plane` — analytic plane
+- `PlaneSet` — Vec<Plane> implementing GeometrySource (test double)
+- `BspTree` / `BspConfig` — BSP spatial partitioning for convex polyhedra
+- `BvhNode` / `Aabb` — bounding volume hierarchy for spatial queries
+
+### 13. Boolean Operations (forge-kernel) ◐
+- `BooleanInput` / `BooleanOp` / `BooleanResult` / `execute_boolean`
+- Dual pipeline: **Ember** (fast BSP-based, planar-only) and **Classic** (robust face-splitting pipeline designed to handle planes correctly now so it extends cleanly to curves later)
+- Currently supports planar Union/Intersection/Subtraction; active upgrade for exact coplanar handling and robust face splitting
+
+### 14. Features (forge-kernel) ◐
+- `FeatureTree` — parametric feature graph
+- `NativeFeature` — enum of all features (MakeCube, Boolean, etc.)
+- `Feature` trait / `FeatureOutput` — feature interface
+
+### 15. Mesh Building (forge-kernel) ✔
+- `build_halfedge_mesh` / `make_cube` / `MeshBuildResult` — BSP → halfedge mesh construction
+
+### 16. Signal Graph (forge-signal) ✔
+- `SignalGraph` / `NodeId` — reactive dependency graph for feature invalidation
+- `mark_dirty` / `evaluate` — push/pull evaluation
+
+### 17. Serialization (forge-io) ✔
+- `save_model` / `load_model` — JSON persistence
+- `diff_models` — model diffing
+
+## Future Milestones
+
+- **Curved Geometry** — NURBS surfaces, surface-surface intersection, coedges (UV trim curves), tolerant vertices
+- **Dual-Path Verification** — independent winding-number vs ray-cast point-in-solid cross-check
+- **Precision Escalation Pipeline** — float → interval → rational auto-escalation with `PrecisionEscalation` tracking
+- **Causal Replay & Witnesses** — `CausalChain` reconstruction, counterfactual replay, delta-debug minimal region extraction
+- **Self-Consistency Fuzzing** — Boolean identity combinators (commutativity, associativity, cancellation), adversarial mutation engine
+- **Persistent Naming** — selectors that find entities by lineage ancestry
+- **STEP/IGES Import/Export** — currently JSON-only

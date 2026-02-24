@@ -199,6 +199,13 @@ impl GeometryStore {
         self.face_planes.get(&pack_handle(face.index(), face.generation()))
     }
 
+    /// Remove the plane binding for a killed face (spec §6.7 cleanup).
+    ///
+    /// Returns the plane that was removed, or `None` if no binding existed.
+    pub fn remove_face_plane(&mut self, face: FaceId) -> Option<Plane> {
+        self.face_planes.remove(&pack_handle(face.index(), face.generation()))
+    }
+
     /// Associate a vertex with an f64 position (promoted to exact rational internally).
     pub fn set_vertex_position(&mut self, vertex: VertexId, position: [f64; 3]) {
         self.vertex_positions.insert(

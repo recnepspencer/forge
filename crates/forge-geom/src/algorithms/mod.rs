@@ -7,6 +7,7 @@ pub mod clipping;
 pub mod intersection;
 pub mod polygon;
 pub mod polygon_overlap;
+pub mod boundary_cert;
 
 pub use angular_sort::sort_edges_radially;
 pub use cdt::{triangulate_polygon_2d, triangulate_face_with_cut, CdtResult};

@@ -4,7 +4,7 @@ description: Formalized workflow for adding a new feature or milestone to the Fo
 
 # Add Feature Workflow (v2)
 
-Use this workflow to implement any milestone from `DEVELOPMENT_BLUEPRINT.MD`.
+Use this workflow to implement any milestone from `FORGE_ARCHITECTURE.MD`.
 
 > **Before writing any code**, read `CRATE_MAP.md` to know which crate owns
 > which abstractions. Most violations come from putting code in the wrong crate.

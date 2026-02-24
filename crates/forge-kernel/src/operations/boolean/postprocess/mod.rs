@@ -11,6 +11,7 @@ mod coplanar;
 pub mod polygon_extract;
 mod vertex;
 pub mod hole_splice;
+pub mod merge_eligibility;
 
 use forge_core::KernelError;
 use forge_topo::state::TopologyState;
@@ -28,7 +29,7 @@ pub use hole_splice::splice_inner_holes;
 /// Falls back to the legacy iterative JoinFaces if extraction fails.
 pub fn merge_coplanar_faces_extracted(
     topo: TopologyState,
-    geom: &GeometryStore,
+    geom: &mut GeometryStore,
     ctx: &mut ModelingContext,
 ) -> Result<(TopologyState, usize), KernelError> {
     match extract_coplanar_regions(topo.clone(), geom, ctx) {

@@ -105,7 +105,7 @@ pub trait BooleanPostprocessor {
     fn postprocess(
         &self,
         topo: TopologyState,
-        geom: &GeometryStore,
+        geom: &mut GeometryStore,
         ctx: &mut ModelingContext,
     ) -> Result<(TopologyState, GeometryStore), KernelError>;
 }

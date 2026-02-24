@@ -134,7 +134,7 @@ impl BooleanPostprocessor for StandardPostprocessor {
     fn postprocess(
         &self,
         topo: TopologyState,
-        geom: &GeometryStore,
+        geom: &mut GeometryStore,
         ctx: &mut ModelingContext,
     ) -> Result<(TopologyState, GeometryStore), KernelError> {
         let topo = if std::env::var("FORGE_SKIP_COPLANAR_POSTPROCESS").ok().as_deref() == Some("1") {
@@ -176,7 +176,7 @@ impl BooleanPostprocessor for ConvexOnlyPostprocessor {
     fn postprocess(
         &self,
         topo: TopologyState,
-        geom: &GeometryStore,
+        geom: &mut GeometryStore,
         ctx: &mut ModelingContext,
     ) -> Result<(TopologyState, GeometryStore), KernelError> {
         let (topo, _) = crate::operations::boolean::postprocess::remove_redundant_vertices(

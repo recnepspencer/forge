@@ -279,7 +279,7 @@ fn execute_boolean_pipeline(
     }
 
     // ── Assemble ─────────────────────────────────────────────────────────────
-    let (result_topo, result_geom) = ctx.scope("assemble", |ctx| {
+    let (result_topo, mut result_geom) = ctx.scope("assemble", |ctx| {
         engine.assembler().assemble(
             target_topo.arena(), &target_geom, &selected_target, &target_prov,
             tool_topo.arena(), &tool_geom, &selected_tool, &tool_prov,
@@ -302,7 +302,7 @@ fn execute_boolean_pipeline(
 
     // ── Postprocess ──────────────────────────────────────────────────────────
     let (result_topo, mut result_geom) = ctx.scope("postprocess", |ctx| {
-        engine.postprocessor().postprocess(result_topo, &result_geom, ctx)
+        engine.postprocessor().postprocess(result_topo, &mut result_geom, ctx)
     }).map_err(|e| e.with_phase("postprocess"))?;
 
     op_space.restore_geometry(&mut result_geom);
@@ -515,7 +515,7 @@ fn try_zero_split_early_return(
     let kept_tool = result.tool_faces_kept();
     let (result_topo, mut result_geom, replay_saved, lineage_saved, intro) = result.into_full_parts();
     let (result_topo, _) = ctx.scope("postprocess", |ctx| {
-        let (rt, _) = crate::operations::boolean::postprocess::merge_coplanar_faces(result_topo, &result_geom, ctx)?;
+        let (rt, _) = crate::operations::boolean::postprocess::merge_coplanar_faces(result_topo, &mut result_geom, ctx)?;
         let (rt, _) = crate::operations::boolean::postprocess::remove_redundant_vertices(rt, &result_geom, ctx)?;
         Ok::<_, KernelError>((rt, 0))
     })?;

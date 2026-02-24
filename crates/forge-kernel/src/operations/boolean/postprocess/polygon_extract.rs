@@ -15,6 +15,7 @@ use forge_core::KernelError;
 use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext};
 use forge_core::tracing::TopologyDelta;
 use forge_topo::arena::TopologyArena;
+use forge_topo::handles::FaceId;
 use forge_topo::state::TopologyState;
 
 use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
@@ -27,7 +28,7 @@ use crate::geometry_store::GeometryStore;
 /// (caller should use legacy path) if any group merge fails.
 pub fn extract_coplanar_regions(
     topo: TopologyState,
-    geom: &GeometryStore,
+    geom: &mut GeometryStore,
     ctx: &mut ModelingContext,
 ) -> Result<(TopologyState, usize), KernelError> {
     let groups = discover_coplanar_groups(topo.arena(), geom)?;
@@ -40,19 +41,55 @@ pub fn extract_coplanar_regions(
     let mut draft = topo.into_mutation();
     let pre_snapshot = ArenaSnapshot::capture(draft.arena());
     let mut total_merged = 0usize;
+    let mut killed_faces: Vec<FaceId> = Vec::new();
 
     for group in &mergeable {
-        let _surviving = forge_topo::algorithms::region_extraction::merge_face_group_by_join_faces(
+        let cert_result = super::merge_eligibility::eval::certify_merge_boundary(
+            draft.arena(),
+            group,
+            geom,
+        );
+
+        let should_merge = match cert_result {
+            Ok(mut op_result) => {
+                let cert_log = op_result.take_decision_log();
+                ctx.get_decision_log_mut().merge(cert_log);
+                let cert = op_result.into_value();
+                !matches!(cert, forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::Rejected { .. })
+            }
+            Err(_) => false,
+        };
+
+        if !should_merge {
+            continue;
+        }
+
+        let surviving = forge_topo::algorithms::region_extraction::merge_face_group_by_join_faces(
             &mut draft,
             group,
         )?;
+
+        for (face_id, _) in draft.arena().iter_faces() {
+            if face_id != surviving
+                && group.contains(face_id.index()).unwrap_or(false)
+            {
+                killed_faces.push(face_id);
+            }
+        }
+
         total_merged += (group.count() - 1) as usize;
     }
 
     let delta = compute_topology_delta(&pre_snapshot, draft.arena());
     log_extraction(total_merged, mergeable.len(), delta, ctx);
 
-    Ok((draft.commit()?, total_merged))
+    let committed = draft.commit()?;
+
+    for face_id in &killed_faces {
+        geom.remove_face_plane(*face_id);
+    }
+
+    Ok((committed, total_merged))
 }
 
 /// Discover connected coplanar face groups via BFS.
@@ -86,7 +123,7 @@ fn log_extraction(
     ctx: &mut ModelingContext,
 ) {
     let mut decision = TracedDecision::new(
-        DecisionId(0),
+        DecisionId(merged_count as u64),
         DecisionKind::PolicyApplied {
             policy: forge_core::PolicyKind::CoincidentGeometry,
             default_used: true,
