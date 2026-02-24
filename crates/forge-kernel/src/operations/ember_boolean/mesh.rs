@@ -26,7 +26,7 @@ use forge_core::KernelError;
 use forge_core::tracing::{DecisionKind, DecisionTier};
 use forge_geom::Plane;
 use forge_geom::spatial::bsp::{BspConfig, BspSolid, ConvexCell};
-use forge_topo::arena::{FaceData, HalfEdgeData, VertexData, LoopData, ShellData, EdgeData, ShellKind, ShellOrientation};
+use forge_topo::arena::{BodyData, LumpData, RegionData, FaceData, HalfEdgeData, VertexData, LoopData, ShellData, EdgeData, ShellKind, ShellOrientation};
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId, LoopId, ShellId, EdgeId};
 use forge_topo::state::{TopologyState, MutableDraft};
 
@@ -92,10 +92,7 @@ fn build_multi_cell_mesh(
     let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
     let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
 
-    let shell = draft.insert_shell(ShellData::new(
-        FaceId::from_raw_parts(u32::MAX, 0),
-        ShellKind::Solid(ShellOrientation::Outer),
-    ));
+    let body = draft.insert_body(BodyData::new());
 
     for (_cell_idx, (cell, bsp_plane_indices)) in cells.iter().enumerate() {
         let cell_planes = cell.planes();
@@ -105,10 +102,16 @@ fn build_multi_cell_mesh(
             cell, cell_planes, tolerance, ctx,
         )?;
 
+        let lump = draft.insert_lump(LumpData::new(body));
+        let region = draft.insert_region(RegionData::new(lump));
+        draft.arena_mut().get_body_mut(body)?.add_lump(lump);
+        draft.arena_mut().get_lump_mut(lump)?.add_region(region);
         let shell = draft.insert_shell(ShellData::new(
             FaceId::from_raw_parts(u32::MAX, 0),
             ShellKind::Solid(ShellOrientation::Outer),
+            region,
         ));
+        draft.arena_mut().get_region_mut(region)?.add_shell(shell);
 
         insert_cell_faces(
             &mut draft, &mut geometry, &mut edge_map, &mut face_plane_map,

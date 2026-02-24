@@ -13,8 +13,8 @@
 use std::collections::BTreeMap;
 
 use forge_core::KernelError;
-use forge_topo::arena::{FaceData, HalfEdgeData, LoopData, VertexData, ShellData, EdgeData};
-use forge_topo::handles::{FaceId, VertexId, HalfEdgeId, LoopId, ShellId, EdgeId};
+use forge_topo::arena::{BodyData, LumpData, RegionData, FaceData, HalfEdgeData, LoopData, VertexData, ShellData, EdgeData};
+use forge_topo::handles::{BodyId, RegionId, FaceId, VertexId, HalfEdgeId, LoopId, ShellId, EdgeId};
 use forge_topo::lineage::{Lineage, OpSignature};
 use forge_topo::state::MutableDraft;
 use forge_topo::traverse::FaceEdgeIterator;
@@ -117,18 +117,26 @@ pub fn copy_faces(
     src_prov: Option<&BTreeMap<VertexId, VertexMatchKey>>,
 ) -> Result<(), KernelError> {
     let mut shell_map: std::collections::BTreeMap<ShellId, ShellId> = std::collections::BTreeMap::new();
+    let destination_body = ensure_destination_body(draft);
 
     for &src_face in source_faces {
         let src_shell = source_arena.get_face(src_face)?.shell();
-        let dest_shell = *shell_map.entry(src_shell).or_insert_with(|| {
+        let dest_shell = if let Some(existing_shell) = shell_map.get(&src_shell) {
+            *existing_shell
+        } else {
             let kind = source_arena.get_shell(src_shell)
                 .map(|s| s.kind())
                 .unwrap_or(forge_topo::arena::ShellKind::Solid(forge_topo::arena::ShellOrientation::Outer));
-            draft.insert_shell(ShellData::new(
+            let region = create_destination_region(draft, destination_body)?;
+            let shell = draft.insert_shell(ShellData::new(
                 FaceId::from_raw_parts(u32::MAX, 0),
                 kind,
-            ))
-        });
+                region,
+            ));
+            draft.arena_mut().get_region_mut(region)?.add_shell(shell);
+            shell_map.insert(src_shell, shell);
+            shell
+        };
         
         let new_face = copy_single_face(
             draft, result_geom, vertex_dedup, new_edges, global_vertex_map,
@@ -139,6 +147,24 @@ pub fn copy_faces(
         draft.arena_mut().get_shell_mut(dest_shell).unwrap().set_representative_face(new_face);
     }
     Ok(())
+}
+
+fn ensure_destination_body(draft: &mut MutableDraft) -> BodyId {
+    if let Some((body_id, _)) = draft.arena().iter_bodies().next() {
+        return body_id;
+    }
+    draft.insert_body(BodyData::new())
+}
+
+fn create_destination_region(
+    draft: &mut MutableDraft,
+    body: BodyId,
+) -> Result<RegionId, KernelError> {
+    let lump = draft.insert_lump(LumpData::new(body));
+    let region = draft.insert_region(RegionData::new(lump));
+    draft.arena_mut().get_body_mut(body)?.add_lump(lump);
+    draft.arena_mut().get_lump_mut(lump)?.add_region(region);
+    Ok(region)
 }
 
 /// Copy a single face via direct arena insertion.

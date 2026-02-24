@@ -251,6 +251,44 @@ pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
         entity_hashes.push(hash);
     }
 
+    // ── Step 6: Hierarchy hashes (Body, Lump, Region) ───────────
+    //
+    // If a boolean splits a Lump into two Lumps (same faces regrouped),
+    // the topology hash must change even though face/edge/vertex wiring
+    // didn't change. We hash the containment structure: sorted child
+    // counts and child shell-face-sizes.
+    for (_, region_data) in arena.iter_regions() {
+        let mut sig: Vec<u64> = Vec::new();
+        sig.push(region_data.shell_count() as u64);
+        if let Some(outer) = region_data.outer_shell() {
+            sig.push(outer.index() as u64);
+        }
+        for s in region_data.inner_shells() {
+            sig.push(s.index() as u64);
+        }
+        sig.sort_unstable();
+        let hash = compute_entity_hash(EntityKind::Region, &sig, None);
+        entity_hashes.push(hash);
+    }
+
+    for (_, lump_data) in arena.iter_lumps() {
+        let mut sig: Vec<u64> = lump_data.regions().iter()
+            .map(|r| r.index() as u64)
+            .collect();
+        sig.sort_unstable();
+        let hash = compute_entity_hash(EntityKind::Lump, &sig, None);
+        entity_hashes.push(hash);
+    }
+
+    for (_, body_data) in arena.iter_bodies() {
+        let mut sig: Vec<u64> = body_data.lumps().iter()
+            .map(|l| l.index() as u64)
+            .collect();
+        sig.sort_unstable();
+        let hash = compute_entity_hash(EntityKind::Body, &sig, None);
+        entity_hashes.push(hash);
+    }
+
     compute_solid_hash(&entity_hashes)
 }
 

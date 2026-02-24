@@ -11,7 +11,7 @@ use std::collections::HashMap;
 
 use forge_core::{KernelError, DecisionKind};
 use forge_geom::spatial::bsp::ConvexCell;
-use forge_topo::arena::{FaceData, HalfEdgeData, VertexData, LoopData, ShellData, EdgeData, ShellKind, ShellOrientation};
+use forge_topo::arena::{BodyData, LumpData, RegionData, FaceData, HalfEdgeData, VertexData, LoopData, ShellData, EdgeData, ShellKind, ShellOrientation};
 use forge_topo::handles::{HalfEdgeId, VertexId, LoopId, ShellId, EdgeId};
 use forge_topo::state::{TopologyState, MutableDraft};
 
@@ -69,12 +69,19 @@ pub fn build_halfedge_mesh(cell: &ConvexCell, ctx: &mut ModelingContext) -> Resu
 
     let vertex_ids = insert_vertices(&mut draft, &mut geometry, cell, tolerance, ctx)?;
 
+    let body = draft.insert_body(BodyData::new());
+    let lump = draft.insert_lump(LumpData::new(body));
+    let region = draft.insert_region(RegionData::new(lump));
+    draft.arena_mut().get_body_mut(body)?.add_lump(lump);
+    draft.arena_mut().get_lump_mut(lump)?.add_region(region);
     let shell = draft.insert_shell(
         ShellData::new(
             forge_topo::handles::FaceId::from_raw_parts(u32::MAX, 0),
             ShellKind::Solid(ShellOrientation::Outer),
+            region,
         )
     );
+    draft.arena_mut().get_region_mut(region)?.add_shell(shell);
 
     let edge_map = insert_faces_and_loops(&mut draft, &mut geometry, cell, &vertex_ids, shell)?;
 

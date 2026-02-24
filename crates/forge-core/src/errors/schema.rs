@@ -399,6 +399,19 @@ pub enum TopologyError {
     InvalidOperation {
         detail: String,
     },
+    /// A parent-child hierarchy invariant was violated (Solid→Lump→Region→Shell).
+    HierarchyViolation {
+        /// The kind of the parent entity (e.g. "Region", "Lump", "Body").
+        parent_kind: String,
+        /// Arena index of the parent entity.
+        parent_index: u32,
+        /// The kind of the child entity (e.g. "Shell", "Region", "Lump").
+        child_kind: String,
+        /// Arena index of the child entity.
+        child_index: u32,
+        /// What went wrong.
+        detail: String,
+    },
 }
 
 impl fmt::Display for TopologyError {
@@ -476,6 +489,10 @@ impl fmt::Display for TopologyError {
             }
             TopologyError::InvalidOperation { detail } => {
                 write!(f, "Invalid operation: {}", detail)
+            }
+            TopologyError::HierarchyViolation { parent_kind, parent_index, child_kind, child_index, detail } => {
+                write!(f, "Hierarchy violation: {} {} → {} {}: {}",
+                    parent_kind, parent_index, child_kind, child_index, detail)
             }
         }
     }

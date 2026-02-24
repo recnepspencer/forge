@@ -18,8 +18,7 @@ use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, Decisio
 use forge_core::tracing::TopologyDelta;
 use forge_topo::handles::{FaceId, HalfEdgeId, LoopId, VertexId};
 use forge_topo::state::{TopologyState, MutableDraft};
-use forge_topo::operator::apply_op;
-use forge_topo::algorithms::bridge_edge::BridgeEdge;
+use forge_topo::algorithms::bridge_edge::bridge_edge;
 
 use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
 use crate::geometry_store::GeometryStore;
@@ -102,11 +101,7 @@ fn splice_one_hole(
     let (target_he, _target_vertex) =
         raycast_to_outer_boundary(draft, outer_he_start, h_max_pos, geom, face_plane)?;
 
-    apply_op(draft, BridgeEdge {
-        outer_he: target_he,
-        inner_he: h_max_he,
-        face,
-    })?;
+    bridge_edge(draft, target_he, h_max_he)?;
 
     Ok(true)
 }
