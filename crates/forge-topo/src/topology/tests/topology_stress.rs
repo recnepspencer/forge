@@ -802,13 +802,13 @@ mod tests {
 
         let committed = draft.commit().unwrap();
 
-        let mut visited = std::collections::BTreeSet::new();
+        let mut visited = crate::topology::bitset::EntityBitset::for_faces(committed.arena());
         let shell = crate::topology::integrity::shell::discover_shell_faces(
             committed.arena(), mvf.face, &mut visited,
         ).unwrap();
         assert_eq!(shell.len(), 2, "Both faces must be in the same shell");
-        assert!(visited.contains(&mvf.face.index()));
-        assert!(visited.contains(&mef.new_face.index()));
+        assert!(visited.contains(mvf.face.index()).unwrap());
+        assert!(visited.contains(mef.new_face.index()).unwrap());
     }
 
     /// L2: Double hole splice — build one face with two holes, bridge both.
@@ -901,7 +901,7 @@ mod tests {
         let chi = euler_chi(committed.arena());
         assert_eq!(chi, 1, "Open fan topology has χ=1 (boundary edges), got {}", chi);
 
-        let mut visited = std::collections::BTreeSet::new();
+        let mut visited = crate::topology::bitset::EntityBitset::for_faces(committed.arena());
         let shell = crate::topology::integrity::shell::discover_shell_faces(
             committed.arena(), mvf.face, &mut visited,
         ).unwrap();
@@ -927,7 +927,7 @@ mod tests {
 
         let committed = draft.commit().unwrap();
 
-        let mut visited = std::collections::BTreeSet::new();
+        let mut visited = crate::topology::bitset::EntityBitset::for_faces(committed.arena());
         let shell1 = crate::topology::integrity::shell::discover_shell_faces(
             committed.arena(), mvf1.face, &mut visited,
         ).unwrap();

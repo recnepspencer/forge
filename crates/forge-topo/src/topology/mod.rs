@@ -1,6 +1,7 @@
 pub mod state;
 pub mod handles;
 pub mod attributes;
+pub mod bitset;
 pub mod integrity;
 pub(crate) mod tests;
 

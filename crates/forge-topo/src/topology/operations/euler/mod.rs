@@ -43,3 +43,6 @@ pub mod kill_vertex_face;
 #[cfg(test)]
 pub mod tests;
 
+pub mod make_face_from_vertices;
+pub mod make_face_in_shell_from_vertices;
+pub mod make_loop_in_face_from_vertices;

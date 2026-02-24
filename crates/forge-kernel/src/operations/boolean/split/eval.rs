@@ -18,13 +18,14 @@ use forge_topo::arena::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::state::{TopologyState, MutableDraft};
 use forge_topo::traverse::FaceEdgeIterator;
+use forge_topo::validate::{validate_topology, ValidationLevel};
 
 use crate::geometry_store::GeometryStore;
 use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
 use crate::operations::boolean::eval::{VertexMatchKey, planes_are_parallel};
 
 use super::schema::{
-    EdgeCutMap, ExpectedCutEndpointMap, LocalVertexDedup, PlaneTable, SharedVertexRegistry, SplitPhaseResult, SplitConfig,
+    EdgeCutMap, ExpectedCutEndpointMap, ExpectedCutHint, ExpectedCutInterval, LocalVertexDedup, PlaneTable, SharedVertexRegistry, SplitPhaseResult, SplitConfig,
 };
 use super::cut::split_face_by_plane;
 use super::gate::compute_face_chord;
@@ -115,6 +116,17 @@ pub fn split_all_faces(
         ctx,
     )?;
 
+    if std::env::var("FORGE_DEBUG_VALIDATE_PHASES").ok().as_deref() == Some("1") {
+        match validate_topology(target_draft.arena(), ValidationLevel::Full) {
+            Ok(()) => eprintln!("[phase-check] split target pre-reconcile valid"),
+            Err(e) => eprintln!("[phase-check] split target pre-reconcile invalid: {}", e),
+        }
+        match validate_topology(tool_draft.arena(), ValidationLevel::Full) {
+            Ok(()) => eprintln!("[phase-check] split tool pre-reconcile valid"),
+            Err(e) => eprintln!("[phase-check] split tool pre-reconcile invalid: {}", e),
+        }
+    }
+
     // Reconciliation is a geometric stitching step, not a residual-check step.
     // The topo overhaul + tolerant geometry path can leave counterpart cut points
     // slightly separated after independent splits (especially in small-angle T2.1).
@@ -134,6 +146,13 @@ pub fn split_all_faces(
         );
     }
     let weld_tol_sq = reconcile_search_tol * reconcile_search_tol;
+    let expected_shared_tol = config
+        .get_residual()
+        .max(ctx.get_gap_closure().get_max_gap())
+        .max(target_geom_out.global_default())
+        .max(tool_geom_out.global_default())
+        .max(config.get_min_edge_length() * 0.01);
+    let expected_shared_tol_sq = expected_shared_tol * expected_shared_tol;
     let _reconciled = reconcile_boundary_vertices(
         &mut target_draft,
         &mut target_geom_out,
@@ -143,10 +162,22 @@ pub fn split_all_faces(
         &mut tool_dedup,
         &shared_registry,
         weld_tol_sq,
+        expected_shared_tol_sq,
         &expected_shared_positions,
         &target_original_vids,
         &tool_original_vids,
     )?;
+
+    if std::env::var("FORGE_DEBUG_VALIDATE_PHASES").ok().as_deref() == Some("1") {
+        match validate_topology(target_draft.arena(), ValidationLevel::Full) {
+            Ok(()) => eprintln!("[phase-check] split target post-reconcile valid"),
+            Err(e) => eprintln!("[phase-check] split target post-reconcile invalid: {}", e),
+        }
+        match validate_topology(tool_draft.arena(), ValidationLevel::Full) {
+            Ok(()) => eprintln!("[phase-check] split tool post-reconcile valid"),
+            Err(e) => eprintln!("[phase-check] split tool post-reconcile invalid: {}", e),
+        }
+    }
 
     let target_res_topo = target_draft.commit()?;
     let tool_res_topo = tool_draft.commit()?;
@@ -205,13 +236,18 @@ fn collect_expected_overlap_hints(
         if let Some((p0, p1)) = chord_overlap_segment(chord_a, chord_b, config.get_min_edge_length()) {
             positions.push(p0);
             positions.push(p1);
-            target_expected.entry((face_a, pb)).or_default().extend([p0, p1]);
-            tool_expected.entry((face_b, pa)).or_default().extend([p0, p1]);
+            let target_hint = target_expected.entry((face_a, pb)).or_default();
+            target_hint.endpoints.extend([p0, p1]);
+            target_hint.intervals.push(ExpectedCutInterval { p0, p1 });
+
+            let tool_hint = tool_expected.entry((face_b, pa)).or_default();
+            tool_hint.endpoints.extend([p0, p1]);
+            tool_hint.intervals.push(ExpectedCutInterval { p0, p1 });
         }
     }
 
-    dedup_endpoint_map(&mut target_expected, config.get_min_edge_length());
-    dedup_endpoint_map(&mut tool_expected, config.get_min_edge_length());
+    normalize_hint_map(&mut target_expected, config.get_min_edge_length());
+    normalize_hint_map(&mut tool_expected, config.get_min_edge_length());
 
     Ok((dedup_positions(positions, config.get_min_edge_length()), target_expected, tool_expected))
 }
@@ -276,11 +312,61 @@ fn dedup_positions(mut pts: Vec<[f64; 3]>, tol: f64) -> Vec<[f64; 3]> {
     out
 }
 
-fn dedup_endpoint_map(map: &mut ExpectedCutEndpointMap, tol: f64) {
-    for pts in map.values_mut() {
-        let deduped = dedup_positions(std::mem::take(pts), tol);
-        *pts = deduped;
+fn normalize_hint_map(map: &mut ExpectedCutEndpointMap, tol: f64) {
+    for hint in map.values_mut() {
+        hint.endpoints = dedup_positions(std::mem::take(&mut hint.endpoints), tol);
+        hint.intervals = normalize_intervals(std::mem::take(&mut hint.intervals), tol);
     }
+}
+
+fn normalize_intervals(intervals: Vec<ExpectedCutInterval>, tol: f64) -> Vec<ExpectedCutInterval> {
+    let tol = tol.max(1e-9);
+    let tol_sq = tol * tol;
+    let mut out: Vec<ExpectedCutInterval> = Vec::new();
+
+    'outer: for mut iv in intervals {
+        if dist_sq3(&iv.p0, &iv.p1) <= tol_sq {
+            continue;
+        }
+        canonicalize_interval(&mut iv);
+        for existing in &out {
+            let same_dir = (dist_sq3(&iv.p0, &existing.p0) <= tol_sq && dist_sq3(&iv.p1, &existing.p1) <= tol_sq)
+                || (dist_sq3(&iv.p0, &existing.p1) <= tol_sq && dist_sq3(&iv.p1, &existing.p0) <= tol_sq);
+            if same_dir {
+                continue 'outer;
+            }
+        }
+        out.push(iv);
+    }
+
+    out.sort_by(interval_sort_key);
+    out
+}
+
+fn canonicalize_interval(iv: &mut ExpectedCutInterval) {
+    let a = iv.p0;
+    let b = iv.p1;
+    if point_cmp_key(&a, &b).is_gt() {
+        iv.p0 = b;
+        iv.p1 = a;
+    }
+}
+
+fn interval_sort_key(a: &ExpectedCutInterval, b: &ExpectedCutInterval) -> std::cmp::Ordering {
+    point_cmp_key(&a.p0, &b.p0).then_with(|| point_cmp_key(&a.p1, &b.p1))
+}
+
+fn point_cmp_key(a: &[f64; 3], b: &[f64; 3]) -> std::cmp::Ordering {
+    a[0].partial_cmp(&b[0]).unwrap_or(std::cmp::Ordering::Equal)
+        .then_with(|| a[1].partial_cmp(&b[1]).unwrap_or(std::cmp::Ordering::Equal))
+        .then_with(|| a[2].partial_cmp(&b[2]).unwrap_or(std::cmp::Ordering::Equal))
+}
+
+fn dist_sq3(a: &[f64; 3], b: &[f64; 3]) -> f64 {
+    let dx = a[0] - b[0];
+    let dy = a[1] - b[1];
+    let dz = a[2] - b[2];
+    dx * dx + dy * dy + dz * dz
 }
 
 // ── Plane table construction ─────────────────────────────────────────────────
@@ -680,20 +766,20 @@ fn propagate_expected_cut_endpoints(
         return;
     }
 
-    let inherited: Vec<(usize, Vec<[f64; 3]>)> = expected_cut_endpoints
+    let inherited: Vec<(usize, ExpectedCutHint)> = expected_cut_endpoints
         .iter()
         .filter(|((fid, _), _)| *fid == parent_face)
-        .map(|((_, cut_idx), pts)| (*cut_idx, pts.clone()))
+        .map(|((_, cut_idx), hint)| (*cut_idx, hint.clone()))
         .collect();
 
     for &nf in new_faces {
-        for (cut_idx, pts) in &inherited {
-            expected_cut_endpoints
-                .entry((nf, *cut_idx))
-                .or_default()
-                .extend(pts.iter().copied());
+        for (cut_idx, hint) in &inherited {
+            let entry = expected_cut_endpoints.entry((nf, *cut_idx)).or_default();
+            entry.endpoints.extend(hint.endpoints.iter().copied());
+            entry.intervals.extend(hint.intervals.iter().cloned());
         }
     }
+    normalize_hint_map(expected_cut_endpoints, 1e-6);
 }
 
 /// Result of a single face split attempt.
@@ -729,6 +815,12 @@ fn try_split_face(
     };
 
     let pre_snapshot = ArenaSnapshot::capture(draft.arena());
+    let debug_validate = std::env::var("FORGE_DEBUG_VALIDATE_PHASES").ok().as_deref() == Some("1");
+    let was_valid_before = if debug_validate {
+        validate_topology(draft.arena(), ValidationLevel::Full).is_ok()
+    } else {
+        false
+    };
 
     let new_faces = split_face_by_plane(
         draft, geom, dedup, edge_cut_map,
@@ -738,6 +830,25 @@ fn try_split_face(
 
     if new_faces.is_empty() {
         return Ok(SplitAttempt::NoSplit);
+    }
+
+    if debug_validate {
+        if let Err(e) = validate_topology(draft.arena(), ValidationLevel::Full) {
+            eprintln!(
+                "[phase-check] split op invalid after face#{} by plane#{} -> {:?}: {}",
+                fid.index(),
+                cut_idx,
+                new_faces.iter().map(|f| f.index()).collect::<Vec<_>>(),
+                e
+            );
+            if was_valid_before {
+                eprintln!(
+                    "[phase-check] split op FIRST invalid transition face#{} plane#{}",
+                    fid.index(),
+                    cut_idx
+                );
+            }
+        }
     }
 
     let delta = compute_topology_delta(&pre_snapshot, draft.arena());

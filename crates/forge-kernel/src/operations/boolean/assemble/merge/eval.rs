@@ -17,6 +17,7 @@ use forge_topo::lineage::{LineageEvent, Lineage, OpSignature};
 use forge_topo::hashing::compute_arena_topology_hash;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 use forge_topo::arena::TopologyArena;
+use forge_topo::traverse::FaceEdgeIterator;
 
 use crate::analysis::proof_validation::checkpoint::{run_checkpoint, ValidationCheckpoint};
 use crate::core::{ModelingContext, OperationSpace};
@@ -26,7 +27,7 @@ use crate::operations::boolean::schema::{
 };
 use crate::operations::boolean::eval::VertexMatchKey;
 use crate::operations::boolean::traits::BooleanEngine;
-use crate::operations::boolean::engines::planar::planar_engine_legacy;
+use crate::operations::boolean::engines::planar::{planar_engine, planar_engine_legacy};
 
 use super::super::select::select_faces;
 use super::super::disjoint::execute_zero_split;
@@ -45,7 +46,12 @@ use super::assemble::{assemble_result, compute_characteristic_scale};
 pub fn execute_boolean_direct(input: BooleanInput) -> OperationResult<Result<BooleanResult, KernelError>> {
     let mut ctx = ModelingContext::default();
     ctx.enable_auto_persist();
-    execute_boolean_core(input, ctx, planar_engine_legacy())
+    let use_ember = std::env::var("FORGE_DIRECT_USE_EMBER").ok().as_deref() == Some("1");
+    if use_ember {
+        execute_boolean_core(input, ctx, planar_engine())
+    } else {
+        execute_boolean_core(input, ctx, planar_engine_legacy())
+    }
 }
 
 /// Execute a Boolean operation with a specific engine configuration.
@@ -222,6 +228,14 @@ fn execute_boolean_pipeline(
         &mut target_classified, &mut tool_classified,
         &target_topo, &target_geom, &tool_topo, &tool_geom,
     );
+    resolve_fragment_ambiguities(
+        &target_topo,
+        &tool_topo,
+        operation,
+        &mut target_classified,
+        &mut tool_classified,
+        ctx,
+    );
 
     record_replay(&mut replay, &mut seq, "classify_faces",
         format!("{{\"target\":{},\"tool\":{}}}", target_classified.len(), tool_classified.len()),
@@ -317,6 +331,141 @@ fn execute_boolean_pipeline(
     run_post_boolean_validation(&result, ctx).map_err(|e| e.with_phase("validate_result"))?;
 
     Ok(result)
+}
+
+fn resolve_fragment_ambiguities(
+    target_topo: &TopologyState,
+    tool_topo: &TopologyState,
+    operation: BooleanOp,
+    target_classified: &mut [crate::operations::boolean::schema::ClassifiedFace],
+    tool_classified: &mut [crate::operations::boolean::schema::ClassifiedFace],
+    ctx: &mut ModelingContext,
+) {
+    if operation != BooleanOp::Subtraction {
+        return;
+    }
+    if std::env::var("FORGE_ENABLE_FRAGMENT_AMBIGUITY").ok().as_deref() != Some("1") {
+        return;
+    }
+    mark_outside_split_fragments_ambiguous(tool_topo.arena(), tool_classified, "tool", ctx);
+    let _ = target_topo;
+    let _ = target_classified;
+}
+
+fn mark_outside_split_fragments_ambiguous(
+    arena: &TopologyArena,
+    classified: &mut [crate::operations::boolean::schema::ClassifiedFace],
+    label: &str,
+    ctx: &mut ModelingContext,
+) {
+    let class_map: BTreeMap<FaceId, FaceClassification> =
+        classified.iter().map(|f| (f.face(), f.classification())).collect();
+
+    for face in classified.iter_mut() {
+        if face.classification() != FaceClassification::Outside {
+            continue;
+        }
+        if !is_make_edge_face_fragment(arena, face.face()) {
+            continue;
+        }
+        let (inside_neighbors, split_neighbors) = count_split_face_neighbors(arena, face.face(), &class_map);
+        if std::env::var("FORGE_DEBUG_AMBIGUITY").ok().as_deref() == Some("1")
+            && matches!(face.face().index(), 14 | 15)
+        {
+            eprintln!(
+                "[ambiguity] probe {} F#{} class={:?} inside_neighbors={} split_neighbors={}",
+                label,
+                face.face().index(),
+                face.classification(),
+                inside_neighbors,
+                split_neighbors,
+            );
+        }
+        let bridge_like = (inside_neighbors >= 2 && split_neighbors >= 2)
+            || (inside_neighbors >= 1 && split_neighbors >= 3);
+        if !bridge_like {
+            continue;
+        }
+        face.set_classification(FaceClassification::Ambiguous);
+
+        if std::env::var("FORGE_DEBUG_SELECT_PROVENANCE").ok().as_deref() == Some("1") {
+            let lineage = arena
+                .get_face(face.face())
+                .ok()
+                .and_then(|f| f.lineage())
+                .map(|lin| format!("{}#{}", lin.get_creation_op().get_name(), lin.get_creation_op().get_invocation_id()))
+                .unwrap_or_else(|| "no-lineage".to_string());
+            eprintln!(
+                "[ambiguity] {} F#{} Outside -> Ambiguous (inside_neighbors={}, split_neighbors={}) {}",
+                label,
+                face.face().index(),
+                inside_neighbors,
+                split_neighbors,
+                lineage,
+            );
+        }
+
+        let mut decision = forge_core::TracedDecision::new(
+            forge_core::DecisionId(50_000 + face.face().index() as u64),
+            forge_core::DecisionKind::PolicyApplied { policy: forge_core::PolicyKind::CoincidentGeometry, default_used: true },
+            forge_core::DecisionTier::Deterministic,
+            1.0,
+            forge_core::DecisionContext::Classification {
+                point: [0.0; 3],
+                result: format!(
+                    "Promote {}:Face#{} Outside -> Ambiguous (split-fragment closure safeguard)",
+                    label,
+                    face.face().index()
+                ),
+            },
+        );
+        decision.set_entity_scope(forge_core::EntityRef::new(forge_core::EntityKind::Face, face.face().index()));
+        ctx.get_decision_log_mut().record(decision);
+    }
+}
+
+fn is_make_edge_face_fragment(arena: &TopologyArena, face_id: FaceId) -> bool {
+    arena.get_face(face_id)
+        .ok()
+        .and_then(|f| f.lineage())
+        .map(|lin| lin.get_creation_op().get_name().starts_with("make_edge_face"))
+        .unwrap_or(false)
+}
+
+fn count_split_face_neighbors(
+    arena: &TopologyArena,
+    face_id: FaceId,
+    class_map: &BTreeMap<FaceId, FaceClassification>,
+) -> (usize, usize) {
+    let mut neighbors = std::collections::BTreeSet::new();
+    let Ok(iter) = FaceEdgeIterator::new(arena, face_id) else {
+        return (0, 0);
+    };
+    for he_res in iter {
+        let Ok(he_id) = he_res else { continue; };
+        let Ok(he) = arena.get_half_edge(he_id) else { continue; };
+        let twin_id = he.radial_next();
+        if twin_id == he_id {
+            continue;
+        }
+        let Ok(twin) = arena.get_half_edge(twin_id) else { continue; };
+        let neighbor_face = twin.face();
+        if neighbor_face != face_id {
+            neighbors.insert(neighbor_face);
+        }
+    }
+
+    let mut inside_neighbors = 0usize;
+    let mut split_neighbors = 0usize;
+    for nface in neighbors {
+        if is_make_edge_face_fragment(arena, nface) {
+            split_neighbors += 1;
+        }
+        if matches!(class_map.get(&nface), Some(FaceClassification::Inside | FaceClassification::OnBoundary | FaceClassification::OppositeBoundary)) {
+            inside_neighbors += 1;
+        }
+    }
+    (inside_neighbors, split_neighbors)
 }
 
 fn dump_selection_provenance(

@@ -276,13 +276,15 @@ pub struct EdgeData {
     // NO tolerance here. Tube radius lives in forge-geom::CurveGeom.tolerance.
 }
 
-/// The directed 2D boundary. Each Edge has two HalfEdges (one per adjacent face).
-/// The HalfEdge owns the UV-space coedge and directional orientation.
+/// The directed 2D boundary. Each Edge has a ring of HalfEdges linked
+/// via `radial_next`. For manifold edges (the common case), the ring has
+/// exactly 2 halfedges. For non-manifold edges (3+ faces sharing an edge),
+/// the ring is longer. For boundary edges (open shells), `radial_next == self`.
 pub struct HalfEdgeData {
     pub edge: EdgeId,           // parent undirected edge
     pub next: HalfEdgeId,
     pub prev: HalfEdgeId,
-    pub twin: HalfEdgeId,
+    pub radial_next: HalfEdgeId, // next halfedge in the radial ring (NMT-capable)
     pub face: FaceId,
     pub vertex: VertexId,       // vertex at the START of this halfedge
     pub coedge: Option<CoedgeRef>,  // UV-space curve on this face's surface
@@ -343,11 +345,38 @@ pattern.
 
 **Validation:** `validate_topology()` checks:
 
-- Twin reciprocity (every halfedge's twin's twin is itself)
+- Radial ring closure (every halfedge's `radial_next` ring returns to start)
+- Previous consistency (`he.prev.next == he`)
+- Vertex continuity (`next(he).origin` is a valid edge endpoint)
+- Vertex outgoing (`v.outgoing.origin == v`)
 - Loop closure (following `next` returns to start)
-- Euler formula: V - E + F = 2(S - G) + R
-- No non-manifold edges
+- Hierarchy integrity (Face→Shell→Region→Lump→Solid chain)
+- Euler formula: V - E + F = 2 - 2G + R
+- Shell consistency (solid shells have no boundary edges)
+- Manifold enforcement (solid shell edges have valence ≤ 2)
 - Consistent orientation
+
+**Manifold Policy Doctrine (D8):**
+
+The kernel is **2-manifold by default, NMT-aware by data structure**.
+
+- `radial_next` supports radial rings of arbitrary length, enabling NMT
+  representation during intermediate construction phases (e.g., boolean
+  face classification, multi-body imprinting).
+- **Solid shells** enforce the 2-manifold invariant at commit time:
+  every edge must have radial valence exactly 2. Edges with valence > 2
+  cause `TopologyError::NonManifoldEdge` at `MutableDraft::commit()`.
+- **Open shells** allow boundary edges (valence 1, `radial_next == self`)
+  and manifold edges (valence 2). Valence > 2 is still rejected.
+- Wire edges (antennae from `MakeEdgeVertex`, where both halfedges share
+  the same face) are explicitly exempted from manifold checks — they are
+  valid topological construction features, not manifold defects.
+- Euler operators (`JoinFaces`, `KillEdgeMakeLoop`) enforce `valence == 2`
+  as a precondition because they are defined only for manifold edges.
+  This is correct — they reject early rather than corrupting topology.
+- Future NMT support (honeycombs, sheet-metal mid-surfaces) will
+  generalize the Euler operators to accept radial insertion parameters
+  and relax the commit-time check per-shell.
 
 **Settled decisions:**
 

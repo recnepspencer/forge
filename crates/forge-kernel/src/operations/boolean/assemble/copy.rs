@@ -10,7 +10,7 @@
 //! - Cross-solid vertex collisions merge lineage using `Lineage::merge` (D1).
 //! - Direct arena insertion (not Euler operators) for full halfedge control.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use forge_core::KernelError;
 use forge_topo::arena::{BodyData, LumpData, RegionData, FaceData, HalfEdgeData, LoopData, VertexData, ShellData, EdgeData};
@@ -21,6 +21,10 @@ use forge_topo::traverse::FaceEdgeIterator;
 
 use crate::geometry_store::GeometryStore;
 use crate::operations::boolean::eval::VertexMatchKey;
+use crate::operations::boolean::assemble::rebuild_face::{
+    rebuild_face_from_vertices,
+    rebuild_inner_loop_from_vertices,
+};
 
 /// Mutable destination state for the face-copy phase.
 ///
@@ -193,12 +197,13 @@ fn copy_single_face(
     dest_shell: ShellId,
 ) -> Result<FaceId, KernelError> {
     let new_plane = prepare_face_plane(source_geom, src_face, reverse_orientation)?;
-    let src_face_lineage = source_arena.get_face(src_face)
-        .ok()
-        .and_then(|f| f.lineage().cloned());
+    let src_face_data = source_arena.get_face(src_face)?;
+    let src_face_lineage = src_face_data.lineage().cloned();
+    let src_inner_loops = src_face_data.inner_loops().to_vec();
 
-    let edges: Vec<_> = FaceEdgeIterator::new(source_arena, src_face)?
-        .collect::<Result<Vec<_>, _>>()?;
+    let edges = collect_loop_halfedges(source_arena, src_face_data.outer_loop())?;
+
+    debug_source_face_backtracks(source_arena, src_face, &edges)?;
 
     if edges.is_empty() {
         return insert_empty_face(draft, result_geom, new_plane);
@@ -206,36 +211,85 @@ fn copy_single_face(
 
     let src_verts = collect_source_vertices(source_arena, &edges, reverse_orientation)?;
 
-    let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
-    let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
+    // 1. Resolve vertices independently
+    let resolved_verts = resolve_all_vertices(
+        draft, result_geom, vertex_dedup, global_vertex_map, spatial_index,
+        source_arena, source_geom, &src_verts, src_prov,
+    )?;
 
+    // 2. Build the face topologically using Euler operations
     let copy_op_name = if reverse_orientation {
         format!("boolean_copy_face_{}_rev", lineage_copy_tag)
     } else {
         format!("boolean_copy_face_{}_fwd", lineage_copy_tag)
     };
     let copy_sig = OpSignature::with_id(&copy_op_name, src_face.index() as u64);
+    
+    let rebuild_output = rebuild_face_from_vertices(draft, &resolved_verts, dest_shell, copy_sig.clone())?;
+    
+    // 3. Migrate the built face into the target shell and link lineage
     let face_lineage = Some(Lineage::derive_from(&src_face_lineage, copy_sig));
-    let face_id = draft.insert_face(FaceData::with_lineage(placeholder_loop, dest_shell, face_lineage));
-    result_geom.set_face_plane(face_id, new_plane);
+    draft.arena_mut().get_face_mut(rebuild_output.face)?.set_lineage(face_lineage);
 
-    let loop_id = draft.insert_loop(LoopData::new(placeholder_he, face_id));
+    for (inner_idx, inner_loop_id) in src_inner_loops.into_iter().enumerate() {
+        let inner_edges = collect_loop_halfedges(source_arena, inner_loop_id)?;
+        if inner_edges.is_empty() {
+            continue;
+        }
+        let inner_src_verts = collect_source_vertices(source_arena, &inner_edges, reverse_orientation)?;
+        let inner_resolved_verts = resolve_all_vertices(
+            draft, result_geom, vertex_dedup, global_vertex_map, spatial_index,
+            source_arena, source_geom, &inner_src_verts, src_prov,
+        )?;
+        let inner_sig = OpSignature::with_id(
+            &format!("{}_inner_loop", copy_op_name),
+            ((src_face.index() as u64) << 16) | inner_idx as u64,
+        );
+        let inner_output = rebuild_inner_loop_from_vertices(
+            draft,
+            rebuild_output.face,
+            &inner_resolved_verts,
+            inner_sig,
+        )?;
+        let _ = inner_output.loop_id;
+        new_edges.extend_from_slice(&inner_output.loop_halfedges);
+    }
 
-    let resolved_verts = resolve_all_vertices(
-        draft, result_geom, vertex_dedup, global_vertex_map, spatial_index,
-        source_arena, source_geom, &src_verts, src_prov,
-    )?;
+    result_geom.set_face_plane(rebuild_output.face, new_plane);
+    new_edges.extend_from_slice(&rebuild_output.outer_loop_halfedges);
 
-    let he_ids = insert_halfedges(draft, &resolved_verts, face_id)?;
-    wire_halfedge_loop(draft, &he_ids)?;
+    Ok(rebuild_output.face)
+}
 
-    draft.arena_mut().get_face_mut(face_id)?.set_outer_loop(loop_id);
-    draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(he_ids[0]);
+fn debug_source_face_backtracks(
+    source_arena: &forge_topo::arena::TopologyArena,
+    src_face: FaceId,
+    edges: &[HalfEdgeId],
+) -> Result<(), KernelError> {
+    let enabled = std::env::var("FORGE_DEBUG_STITCH")
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false);
+    if !enabled || edges.is_empty() {
+        return Ok(());
+    }
 
-    set_vertex_outgoing_pointers(draft, &he_ids)?;
-
-    new_edges.extend_from_slice(&he_ids);
-    Ok(face_id)
+    let mut directed: BTreeSet<(u32, u32)> = BTreeSet::new();
+    for &he_id in edges {
+        let he = source_arena.get_half_edge(he_id)?;
+        let next = source_arena.get_half_edge(he.next())?;
+        let key = (he.origin().index(), next.origin().index());
+        let rev = (key.1, key.0);
+        if directed.contains(&rev) {
+            eprintln!(
+                "[copy-face] source Face#{} contains reverse segment pair {:?}<->{:?}",
+                src_face.index(),
+                key,
+                rev
+            );
+        }
+        directed.insert(key);
+    }
+    Ok(())
 }
 
 /// Prepare the face plane, flipping if reverse orientation is needed.
@@ -284,6 +338,34 @@ fn collect_source_vertices(
     Ok(verts)
 }
 
+/// Collect halfedges around a specific loop.
+fn collect_loop_halfedges(
+    source_arena: &forge_topo::arena::TopologyArena,
+    loop_id: LoopId,
+) -> Result<Vec<HalfEdgeId>, KernelError> {
+    let start = source_arena.get_loop(loop_id)?.half_edge();
+    let mut current = start;
+    let mut edges = Vec::new();
+    let bound = source_arena.half_edge_count().max(1);
+
+    for step in 0..=bound {
+        edges.push(current);
+        let next = source_arena.get_half_edge(current)?.next();
+        if next == start {
+            return Ok(edges);
+        }
+        current = next;
+        if step == bound {
+            return Err(KernelError::InternalError {
+                message: format!("Loop {} traversal exceeded bound while copying face {}", loop_id, loop_id.index()),
+                context: None,
+            });
+        }
+    }
+
+    Ok(edges)
+}
+
 /// Resolve all source vertices to destination vertices.
 fn resolve_all_vertices(
     draft: &mut MutableDraft,
@@ -304,48 +386,6 @@ fn resolve_all_vertices(
         )?);
     }
     Ok(resolved)
-}
-
-/// Insert halfedges for each vertex with self-twin placeholders.
-fn insert_halfedges(
-    draft: &mut MutableDraft,
-    verts: &[VertexId],
-    face_id: FaceId,
-) -> Result<Vec<HalfEdgeId>, KernelError> {
-    let placeholder = HalfEdgeId::from_raw_parts(u32::MAX, 0);
-    let mut ids = Vec::with_capacity(verts.len());
-    for &origin in verts {
-        let he_id = draft.insert_half_edge(HalfEdgeData::new(
-            placeholder, placeholder, placeholder, face_id, origin, EdgeId::from_raw_parts(u32::MAX, 0),
-        ));
-        let edge = draft.insert_edge(EdgeData::new(he_id));
-        draft.arena_mut().get_half_edge_mut(he_id).unwrap().set_edge(edge);
-        draft.arena_mut().get_half_edge_mut(he_id).unwrap().set_radial_next(he_id);
-        ids.push(he_id);
-    }
-    Ok(ids)
-}
-
-/// Wire next/prev pointers in a closed loop.
-fn wire_halfedge_loop(draft: &mut MutableDraft, he_ids: &[HalfEdgeId]) -> Result<(), KernelError> {
-    let n = he_ids.len();
-    for i in 0..n {
-        let next_i = (i + 1) % n;
-        let prev_i = if i == 0 { n - 1 } else { i - 1 };
-        let arena = draft.arena_mut();
-        arena.get_half_edge_mut(he_ids[i])?.set_next(he_ids[next_i]);
-        arena.get_half_edge_mut(he_ids[i])?.set_prev(he_ids[prev_i]);
-    }
-    Ok(())
-}
-
-/// Set outgoing pointer on each vertex to its halfedge.
-fn set_vertex_outgoing_pointers(draft: &mut MutableDraft, he_ids: &[HalfEdgeId]) -> Result<(), KernelError> {
-    for &he_id in he_ids {
-        let origin = draft.arena().get_half_edge(he_id)?.origin();
-        draft.arena_mut().get_vertex_mut(origin)?.set_outgoing(he_id);
-    }
-    Ok(())
 }
 
 // ── Vertex resolution ────────────────────────────────────────────────────────

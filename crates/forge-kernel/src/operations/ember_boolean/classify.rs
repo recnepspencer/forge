@@ -42,6 +42,28 @@ pub fn apply_ember_coplanar_overrides(
         target_topo, target_geom, tool_topo, tool_geom,
     );
 
+    if std::env::var("FORGE_DEBUG_COPLANAR_OVERRIDES").ok().as_deref() == Some("1") {
+        for fid in [14u32, 15u32] {
+            let tool_hit = excluded_tool.contains(&fid);
+            if tool_hit {
+                let face_id = tool_topo
+                    .arena()
+                    .iter_faces()
+                    .find_map(|(face_id, _)| (face_id.index() == fid).then_some(face_id));
+                let lineage = tool_topo
+                    .arena()
+                    .get_face(face_id.unwrap())
+                    .ok()
+                    .and_then(|f| f.lineage())
+                    .map(|lin| format!("{}#{}", lin.get_creation_op().get_name(), lin.get_creation_op().get_invocation_id()))
+                    .unwrap_or_else(|| "no-lineage".to_string());
+                eprintln!("[coplanar-override] tool F#{} excluded {}", fid, lineage);
+            } else {
+                eprintln!("[coplanar-override] tool F#{} not excluded", fid);
+            }
+        }
+    }
+
     for face in target_classified.iter_mut() {
         if excluded_target.contains(&face.face().index()) {
             face.set_classification(FaceClassification::OnBoundary);

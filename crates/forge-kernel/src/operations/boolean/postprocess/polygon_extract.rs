@@ -13,6 +13,8 @@
 
 use std::collections::{BTreeSet, BTreeMap, VecDeque};
 
+use forge_topo::bitset::EntityBitset;
+
 use forge_core::KernelError;
 use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
 use forge_core::tracing::TopologyDelta;
@@ -34,7 +36,7 @@ pub fn extract_coplanar_regions(
     ctx: &mut ModelingContext,
 ) -> Result<(TopologyState, usize), KernelError> {
     let groups = discover_coplanar_groups(topo.arena(), geom);
-    let mergeable: Vec<_> = groups.into_iter().filter(|g| g.len() >= 2).collect();
+    let mergeable: Vec<_> = groups.into_iter().filter(|g| g.count() >= 2).collect();
 
     if mergeable.is_empty() {
         return Ok((topo, 0));
@@ -50,20 +52,21 @@ pub fn extract_coplanar_regions(
             return Err(KernelError::InternalError {
                 message: format!(
                     "Coplanar group of {} faces produced only {} perimeter vertices",
-                    group.len(), perimeter.len()
+                    group.count(), perimeter.len()
                 ),
                 context: None,
             });
         }
 
-        let sample_face = *group.iter().next().ok_or_else(|| KernelError::InternalError {
+        let sample_idx = group.iter_ones().next().ok_or_else(|| KernelError::InternalError {
             message: "Empty coplanar group".to_string(),
             context: None,
         })?;
+        let sample_face = FaceId::from_raw_parts(sample_idx, 0);
         let lineage = draft.arena().get_face(sample_face)?.lineage().cloned();
 
         rebuild_face_from_perimeter(&mut draft, group, &perimeter, lineage.as_ref(), geom)?;
-        total_merged += group.len() - 1;
+        total_merged += (group.count() - 1) as usize;
     }
 
     let delta = compute_topology_delta(&pre_snapshot, draft.arena());
@@ -80,16 +83,16 @@ pub fn extract_coplanar_regions(
 fn discover_coplanar_groups(
     arena: &TopologyArena,
     geom: &GeometryStore,
-) -> Vec<BTreeSet<FaceId>> {
-    let mut visited: BTreeSet<FaceId> = BTreeSet::new();
-    let mut groups: Vec<BTreeSet<FaceId>> = Vec::new();
+) -> Vec<EntityBitset> {
+    let mut visited = EntityBitset::for_faces(arena);
+    let mut groups: Vec<EntityBitset> = Vec::new();
 
     for (face_id, _) in arena.iter_faces() {
-        if visited.contains(&face_id) {
+        if visited.contains(face_id.index()).unwrap_or(false) {
             let _ = face_id;
         } else {
             let group = bfs_coplanar_cluster(arena, geom, face_id, &mut visited);
-            if group.len() >= 2 {
+            if group.count() >= 2 {
                 groups.push(group);
             }
         }
@@ -103,34 +106,34 @@ fn bfs_coplanar_cluster(
     arena: &TopologyArena,
     geom: &GeometryStore,
     seed: FaceId,
-    visited: &mut BTreeSet<FaceId>,
-) -> BTreeSet<FaceId> {
-    let mut group = BTreeSet::new();
+    visited: &mut EntityBitset,
+) -> EntityBitset {
+    let mut group = EntityBitset::for_faces(arena);
     let mut queue = VecDeque::new();
 
     let seed_plane = match geom.get_face_plane(seed) {
         Some(p) => p,
         None => {
-            visited.insert(seed);
-            group.insert(seed);
+            let _ = visited.insert(seed.index());
+            let _ = group.insert(seed.index());
             return group;
         }
     };
 
-    visited.insert(seed);
-    group.insert(seed);
+    let _ = visited.insert(seed.index());
+    let _ = group.insert(seed.index());
     queue.push_back(seed);
 
     while let Some(current) = queue.pop_front() {
         let neighbors = collect_adjacent_faces(arena, current);
         for neighbor in neighbors {
-            if visited.contains(&neighbor) {
+            if visited.contains(neighbor.index()).unwrap_or(false) {
                 let _ = neighbor;
             } else {
-                visited.insert(neighbor);
+                let _ = visited.insert(neighbor.index());
                 if let Some(neighbor_plane) = geom.get_face_plane(neighbor) {
                     if forge_geom::primitives::plane::exact_eq(seed_plane, neighbor_plane) {
-                        group.insert(neighbor);
+                        let _ = group.insert(neighbor.index());
                         queue.push_back(neighbor);
                     }
                 }
@@ -190,7 +193,7 @@ fn collect_adjacent_faces(arena: &TopologyArena, face: FaceId) -> Vec<FaceId> {
 /// landing on the next boundary edge.
 fn walk_boundary_perimeter(
     arena: &TopologyArena,
-    group: &BTreeSet<FaceId>,
+    group: &EntityBitset,
 ) -> Result<Vec<VertexId>, KernelError> {
     let start_he = find_boundary_edge(arena, group)?;
     let mut perimeter = Vec::new();
@@ -223,9 +226,10 @@ fn walk_boundary_perimeter(
 /// Find any boundary half-edge in the group.
 fn find_boundary_edge(
     arena: &TopologyArena,
-    group: &BTreeSet<FaceId>,
+    group: &EntityBitset,
 ) -> Result<HalfEdgeId, KernelError> {
-    for &face_id in group {
+    for face_idx in group.iter_ones() {
+        let face_id = FaceId::from_raw_parts(face_idx, 0);
         let face_data = arena.get_face(face_id)?;
         let loop_data = arena.get_loop(face_data.outer_loop())?;
         let start = loop_data.half_edge();
@@ -254,7 +258,7 @@ fn find_boundary_edge(
 /// Check if a half-edge is a boundary edge (twin is outside the group).
 fn is_boundary_edge(
     arena: &TopologyArena,
-    group: &BTreeSet<FaceId>,
+    group: &EntityBitset,
     he: HalfEdgeId,
 ) -> bool {
     let he_data = match arena.get_half_edge(he) {
@@ -265,13 +269,13 @@ fn is_boundary_edge(
         Ok(d) => d,
         Err(_) => return true,
     };
-    !group.contains(&twin_data.face())
+    !group.contains(twin_data.face().index()).unwrap_or(false)
 }
 
 /// Advance from a candidate to the next boundary edge, twin-hopping over internals.
 fn advance_to_boundary(
     arena: &TopologyArena,
-    group: &BTreeSet<FaceId>,
+    group: &EntityBitset,
     start: HalfEdgeId,
 ) -> Result<HalfEdgeId, KernelError> {
     let mut current = start;
@@ -299,7 +303,7 @@ fn advance_to_boundary(
 // DEFECT(D3): rebuild_face_from_perimeter uses raw insert_radial_pair instead of Euler ops.
 fn rebuild_face_from_perimeter(
     draft: &mut MutableDraft,
-    group: &BTreeSet<FaceId>,
+    group: &EntityBitset,
     perimeter: &[VertexId],
     lineage: Option<&forge_topo::lineage::Lineage>,
     _geom: &GeometryStore,
@@ -310,7 +314,8 @@ fn rebuild_face_from_perimeter(
     let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
     let placeholder_loop = forge_topo::handles::LoopId::from_raw_parts(u32::MAX, 0);
     
-    let sample_face = *group.iter().next().unwrap();
+    let sample_idx = group.iter_ones().next().unwrap();
+    let sample_face = FaceId::from_raw_parts(sample_idx, 0);
     let shell = draft.arena().get_face(sample_face)?.shell();
 
     let new_face = draft.insert_face(
@@ -368,7 +373,8 @@ fn rebuild_face_from_perimeter(
         let _ = draft.remove_half_edge(he_b);
     }
 
-    for &face_id in group {
+    for face_idx in group.iter_ones() {
+        let face_id = FaceId::from_raw_parts(face_idx, 0);
         let face_data = draft.arena().get_face(face_id)?;
         let loop_id = face_data.outer_loop();
         let _ = draft.remove_loop(loop_id);
@@ -385,12 +391,13 @@ fn rebuild_face_from_perimeter(
 /// Collect all half-edge pairs belonging to faces in the group.
 fn collect_group_edges(
     arena: &TopologyArena,
-    group: &BTreeSet<FaceId>,
+    group: &EntityBitset,
 ) -> Result<Vec<(HalfEdgeId, HalfEdgeId)>, KernelError> {
     let mut edges: BTreeSet<(u32, u32)> = BTreeSet::new();
     let mut result = Vec::new();
 
-    for &face_id in group {
+    for face_idx in group.iter_ones() {
+        let face_id = FaceId::from_raw_parts(face_idx, 0);
         let face_data = arena.get_face(face_id)?;
         let loop_data = arena.get_loop(face_data.outer_loop())?;
         let start = loop_data.half_edge();
@@ -425,13 +432,20 @@ fn collect_group_edges(
 /// Find vertices that are exclusively internal to the group (not on the perimeter).
 fn find_internal_vertices(
     arena: &TopologyArena,
-    group: &BTreeSet<FaceId>,
+    group: &EntityBitset,
     perimeter: &[VertexId],
 ) -> Result<Vec<VertexId>, KernelError> {
-    let perimeter_set: BTreeSet<VertexId> = perimeter.iter().copied().collect();
-    let mut all_vertices: BTreeSet<VertexId> = BTreeSet::new();
+    let perimeter_set: EntityBitset = {
+        let mut bs = EntityBitset::for_vertices(arena);
+        for &v in perimeter {
+            let _ = bs.insert(v.index());
+        }
+        bs
+    };
+    let mut all_vertices = EntityBitset::for_vertices(arena);
 
-    for &face_id in group {
+    for face_idx in group.iter_ones() {
+        let face_id = FaceId::from_raw_parts(face_idx, 0);
         let face_data = arena.get_face(face_id)?;
         let loop_data = arena.get_loop(face_data.outer_loop())?;
         let start = loop_data.half_edge();
@@ -440,7 +454,7 @@ fn find_internal_vertices(
 
         loop {
             let he = arena.get_half_edge(current)?;
-            all_vertices.insert(he.origin());
+            let _ = all_vertices.insert(he.origin().index());
             current = he.next();
             steps += 1;
             if current == start || steps > 100_000 {
@@ -449,7 +463,8 @@ fn find_internal_vertices(
         }
     }
 
-    Ok(all_vertices.difference(&perimeter_set).copied().collect())
+    all_vertices.difference_with(&perimeter_set);
+    Ok(all_vertices.iter_ones().map(|idx| VertexId::from_raw_parts(idx, 0)).collect())
 }
 
 /// Log the extraction decision.

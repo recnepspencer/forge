@@ -179,6 +179,7 @@ fn flip_classification(class: FaceClassification) -> FaceClassification {
     match class {
         FaceClassification::Inside => FaceClassification::Outside,
         FaceClassification::Outside => FaceClassification::Inside,
+        FaceClassification::Ambiguous => FaceClassification::OnBoundary,
         FaceClassification::OnBoundary => FaceClassification::OppositeBoundary,
         FaceClassification::OppositeBoundary => FaceClassification::OnBoundary,
     }
@@ -189,6 +190,7 @@ fn classification_label(class: FaceClassification) -> &'static str {
     match class {
         FaceClassification::Inside => "Inside",
         FaceClassification::Outside => "Outside",
+        FaceClassification::Ambiguous => "Ambiguous",
         FaceClassification::OnBoundary => "OnBoundary",
         FaceClassification::OppositeBoundary => "OppositeBoundary",
     }

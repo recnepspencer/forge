@@ -9,7 +9,7 @@
 //! DEPENDENCIES: `arena` (entity data), `handles` (typed IDs), `forge-core`
 //!               (errors, ToleranceProvider), `queries/traverse`
 
-use std::collections::BTreeSet;
+use crate::topology::bitset::EntityBitset;
 
 use forge_core::{KernelError, ToleranceProvider};
 use crate::arena::TopologyArena;
@@ -104,11 +104,11 @@ fn validate_zero_length_edges(
     position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
     tolerance_provider: &dyn ToleranceProvider,
 ) -> Result<(), KernelError> {
-    let mut checked_edges: BTreeSet<u32> = BTreeSet::new();
+    let mut checked_edges = EntityBitset::for_edges(arena);
 
     for (he_id, he_data) in arena.iter_half_edges() {
         let edge_id = he_data.edge();
-        if !checked_edges.insert(edge_id.index()) {
+        if !checked_edges.insert(edge_id.index())? {
             continue;
         }
 
@@ -168,11 +168,11 @@ fn validate_signed_volume(
     }
 
     let all_faces: Vec<FaceId> = arena.iter_faces().map(|(fid, _)| fid).collect();
-    let mut visited_faces: BTreeSet<u32> = BTreeSet::new();
+    let mut visited_faces = EntityBitset::for_faces(arena);
     let mut shell_index: u32 = 0;
 
     for &seed_face in &all_faces {
-        if visited_faces.contains(&seed_face.index()) {
+        if visited_faces.contains(seed_face.index()).unwrap_or(false) {
             continue;
         }
 

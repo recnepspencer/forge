@@ -17,6 +17,7 @@ use forge_core::KernelError;
 use crate::handles::{FaceId, HalfEdgeId};
 use crate::state::MutableDraft;
 use crate::operator::apply_op;
+use crate::topology::bitset::EntityBitset;
 use crate::topology::operations::euler::unsew_edge::UnsewEdge;
 use crate::topology::queries::traverse::FaceEdgeIterator;
 
@@ -33,7 +34,7 @@ pub struct ExtractShellOutput {
 /// the face subset is topologically disconnected.
 pub fn extract_shell(
     draft: &mut MutableDraft,
-    faces: &BTreeSet<FaceId>,
+    faces: &EntityBitset,
 ) -> Result<ExtractShellOutput, KernelError> {
     if faces.is_empty() {
         return Ok(ExtractShellOutput { unsewn_pairs: Vec::new() });
@@ -56,12 +57,13 @@ pub fn extract_shell(
 /// `he.radial_next` belongs to a face NOT in `faces`.
 fn find_boundary_pairs(
     draft: &MutableDraft,
-    faces: &BTreeSet<FaceId>,
+    faces: &EntityBitset,
 ) -> Result<Vec<(HalfEdgeId, HalfEdgeId)>, KernelError> {
     let mut pairs = Vec::new();
     let mut seen_edges = BTreeSet::new();
 
-    for &face_id in faces {
+    for face_idx in faces.iter_ones() {
+        let face_id = FaceId::from_raw_parts(face_idx, 0);
         for he_result in FaceEdgeIterator::new(draft.arena(), face_id)? {
             let he_id = he_result?;
             let he_data = draft.arena().get_half_edge(he_id)?;
@@ -77,7 +79,7 @@ fn find_boundary_pairs(
             }
 
             let twin_face = draft.arena().get_half_edge(twin_id)?.face();
-            if !faces.contains(&twin_face) {
+            if !faces.contains(twin_face.index()).unwrap_or(false) {
                 pairs.push((he_id, twin_id));
                 seen_edges.insert(canonical);
             }
@@ -118,8 +120,8 @@ mod tests {
 
         assert_eq!(draft.arena().face_count(), 2);
 
-        let mut subset = BTreeSet::new();
-        subset.insert(mef.new_face);
+        let mut subset = EntityBitset::for_faces(draft.arena());
+        let _ = subset.insert(mef.new_face.index());
 
         let result = extract_shell(&mut draft, &subset).unwrap();
 
@@ -138,7 +140,7 @@ mod tests {
 
         let _mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
 
-        let subset = BTreeSet::new();
+        let subset = EntityBitset::for_faces(draft.arena());
         let result = extract_shell(&mut draft, &subset).unwrap();
         assert!(result.unsewn_pairs.is_empty());
     }

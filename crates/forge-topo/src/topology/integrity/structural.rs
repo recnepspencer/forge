@@ -3,17 +3,21 @@
 //! DOMAIN: Pure connectivity checks that require no geometry data.
 //!
 //! INVARIANTS:
-//! - Twin reciprocity: he.twin.twin == he
+//! - Radial ring closure: every halfedge's radial_next ring returns to start
 //! - Previous consistency: he.prev.next == he
-//! - Vertex continuity: next(he).origin == twin(he).origin
+//! - Vertex continuity: next(he).origin is a valid edge endpoint
 //! - Vertex outgoing: v.outgoing.origin == v
 //! - Loop closure: following `next` pointers returns to start
-//! - Degenerate loops: every face loop has >= 3 distinct vertices
-//! - Euler formula: V - E + F = 2 per connected shell
+//! - Hierarchy integrity: Face→Shell→Region→Lump→Solid chain
+//! - Euler formula: V - E + F = 2 - 2G + R
+//! - Shell consistency: solid shells have no boundary edges
+//! - Manifold enforcement (D8): all shell edges have valence ≤ 2
+//! - Orientation consistency
 //!
 //! DEPENDENCIES: `arena` (entity data), `handles` (typed IDs), `queries/traverse` (FaceEdgeIterator)
 
 use std::collections::{BTreeSet, VecDeque};
+use crate::topology::bitset::EntityBitset;
 
 use forge_core::KernelError;
 use crate::arena::TopologyArena;
@@ -42,6 +46,7 @@ pub fn validate_topology(arena: &TopologyArena, level: ValidationLevel) -> Resul
     if level == ValidationLevel::Full {
         validate_euler(arena)?;
         validate_shell_consistency(arena)?;
+        validate_manifold_edges(arena)?;
         validate_orientation_consistency(arena)?;
     }
 
@@ -116,22 +121,22 @@ fn validate_prev_consistency(arena: &TopologyArena) -> Result<(), KernelError> {
 ///
 /// This catches the "spaghetti topology" bug where edges are mis-wired.
 fn validate_vertex_continuity(arena: &TopologyArena) -> Result<(), KernelError> {
-    let mut checked_edges: std::collections::BTreeSet<u32> = std::collections::BTreeSet::new();
+    let mut checked_edges = EntityBitset::for_edges(arena);
 
     for (he_id, he_data) in arena.iter_half_edges() {
         let edge_id = he_data.edge();
-        if !checked_edges.insert(edge_id.index()) {
+        if !checked_edges.insert(edge_id.index())? {
             continue;
         }
 
         // Collect all (origin, target) pairs from this edge's radial ring
-        let mut endpoints: std::collections::BTreeSet<u32> = std::collections::BTreeSet::new();
+        let mut endpoints = EntityBitset::for_vertices(arena);
         let mut curr = he_id;
         loop {
             let curr_data = arena.get_half_edge(curr)?;
             let next_data = arena.get_half_edge(curr_data.next())?;
-            endpoints.insert(curr_data.origin().index());
-            endpoints.insert(next_data.origin().index());
+            endpoints.insert(curr_data.origin().index())?;
+            endpoints.insert(next_data.origin().index())?;
 
             curr = curr_data.radial_next();
             if curr == he_id { break; }
@@ -139,7 +144,7 @@ fn validate_vertex_continuity(arena: &TopologyArena) -> Result<(), KernelError> 
 
         // A well-formed edge should have at most 2 distinct endpoint vertices
         // (exactly 1 for geometric self-loops, exactly 2 for normal edges)
-        if endpoints.len() > 2 {
+        if endpoints.count() > 2 {
             return Err(KernelError::TopologyViolation {
                 err: forge_core::TopologyError::BrokenLoop {
                     starting_halfedge: he_id.index(),
@@ -149,8 +154,8 @@ fn validate_vertex_continuity(arena: &TopologyArena) -> Result<(), KernelError> 
                     scope: forge_core::ErrorScope::Entity { entity_kind: "Edge".to_string(), index: edge_id.index() },
                     suggested_fixes: Vec::new(),
                     detail: format!(
-                        "Edge {} has {} distinct endpoint vertices (expected 1 or 2): {:?}",
-                        edge_id.index(), endpoints.len(), endpoints
+                        "Edge {} has {} distinct endpoint vertices (expected 1 or 2)",
+                        edge_id.index(), endpoints.count()
                     ),
                 }),
             });
@@ -324,54 +329,56 @@ fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
     let all_faces: Vec<FaceId> = arena.iter_faces().map(|(fid, _)| fid).collect();
     let face_by_index: std::collections::BTreeMap<u32, FaceId> =
         all_faces.iter().map(|fid| (fid.index(), *fid)).collect();
-    let mut visited_faces: BTreeSet<u32> = BTreeSet::new();
+    let mut visited_faces = EntityBitset::for_faces(arena);
     let mut shell_index: usize = 0;
 
     for &seed_face in &all_faces {
-        if !visited_faces.contains(&seed_face.index()) {
-            let mut shell_faces: BTreeSet<u32> = BTreeSet::new();
-            let mut shell_vertices: BTreeSet<u32> = BTreeSet::new();
-            let mut shell_edges: BTreeSet<u32> = BTreeSet::new();
+        if !visited_faces.contains(seed_face.index()).unwrap_or(true) {
+            let mut shell_faces = EntityBitset::for_faces(arena);
+            let mut shell_vertices = EntityBitset::for_vertices(arena);
+            let mut shell_edges = EntityBitset::for_edges(arena);
             let mut queue: VecDeque<FaceId> = VecDeque::new();
 
             queue.push_back(seed_face);
-            shell_faces.insert(seed_face.index());
+            shell_faces.insert(seed_face.index()).ok();
 
             while let Some(face_id) = queue.pop_front() {
                 let (neighbors, edge_keys, vertex_indices) =
                     collect_shell_data_for_face(arena, face_id)?;
 
                 for vid in vertex_indices {
-                    shell_vertices.insert(vid);
+                    shell_vertices.insert(vid).ok();
                 }
 
                 for ek in edge_keys {
-                    shell_edges.insert(ek);
+                    shell_edges.insert(ek).ok();
                 }
 
                 for neighbor in neighbors {
-                    if shell_faces.insert(neighbor.index()) {
+                    if shell_faces.insert(neighbor.index()).unwrap_or(false) {
                         queue.push_back(neighbor);
                     }
                 }
             }
 
-            visited_faces.append(&mut shell_faces.clone());
+            for idx in shell_faces.iter_ones() {
+                visited_faces.insert(idx).ok();
+            }
 
-            let sv = shell_vertices.len() as i64;
-            let se = shell_edges.len() as i64;
-            let sf = shell_faces.len() as i64;
+            let sv = shell_vertices.count() as i64;
+            let se = shell_edges.count() as i64;
+            let sf = shell_faces.count() as i64;
             let euler_char = sv - se + sf;
 
-            let rings: usize = shell_faces.iter()
+            let rings: usize = shell_faces.iter_ones()
                 .filter_map(|idx| {
-                    let fid = face_by_index.get(idx)?;
+                    let fid = face_by_index.get(&idx)?;
                     arena.get_face(*fid).ok()
                 })
                 .map(|face_data| face_data.inner_loop_count())
                 .sum();
 
-            let shell_id = face_by_index.get(&shell_faces.iter().cloned().next().unwrap()).unwrap();
+            let shell_id = face_by_index.get(&shell_faces.iter_ones().next().unwrap()).unwrap();
             let shell_kind = arena.get_face(*shell_id).unwrap().shell();
             if !matches!(arena.get_shell(shell_kind).unwrap().kind(), crate::arena::ShellKind::Solid(_)) {
                 shell_index += 1;
@@ -502,6 +509,62 @@ fn validate_shell_consistency(arena: &TopologyArena) -> Result<(), KernelError> 
                 }
             }
         }
+    }
+    Ok(())
+}
+
+/// Validate the 2-manifold invariant (Doctrine D8).
+///
+/// Every edge in every shell must have radial valence ≤ 2.
+/// - **Solid shells**: valence must be exactly 2 (watertight).
+/// - **Open shells**: valence 1 (boundary) or 2 (manifold) is valid.
+/// - **Wire edges** (same-face twin pair from `MakeEdgeVertex`) are exempted
+///   — they are valid topological construction features.
+///
+/// This is the commit-time enforcement of the NMT-aware data structure:
+/// `radial_next` supports arbitrary-length rings during construction,
+/// but `validate_manifold_edges` rejects valence > 2 at commit.
+fn validate_manifold_edges(arena: &TopologyArena) -> Result<(), KernelError> {
+    let mut checked_edges = EntityBitset::for_edges(arena);
+
+    for (he_id, he_data) in arena.iter_half_edges() {
+        let edge_id = he_data.edge();
+        if !checked_edges.insert(edge_id.index())? {
+            continue;
+        }
+
+        let valence = crate::topology::queries::traverse::radial_valence(arena, he_id)?;
+
+        if valence <= 2 {
+            continue;
+        }
+
+        let twin_id = he_data.radial_next();
+        if twin_id != he_id {
+            let twin_data = arena.get_half_edge(twin_id)?;
+            if he_data.face() == twin_data.face() {
+                continue;
+            }
+        }
+
+        return Err(KernelError::TopologyViolation {
+            err: forge_core::TopologyError::NonManifoldEdge {
+                edge_index: edge_id.index(),
+                valence,
+            },
+            context: Some(forge_core::ErrorContext {
+                scope: forge_core::ErrorScope::Entity {
+                    entity_kind: "Edge".to_string(),
+                    index: edge_id.index(),
+                },
+                suggested_fixes: Vec::new(),
+                detail: format!(
+                    "Edge {} has radial valence {} (max allowed: 2). \
+                     Doctrine D8 requires 2-manifold topology at commit time.",
+                    edge_id.index(), valence
+                ),
+            }),
+        });
     }
     Ok(())
 }

@@ -5,10 +5,11 @@
 //!
 //! DEPENDENCIES: `forge-topo` (arena, traverse), `geometry_store` (GeometryStore)
 
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::collections::{BTreeMap, VecDeque};
 
 use forge_core::KernelError;
 use forge_topo::arena::TopologyArena;
+use forge_topo::bitset::EntityBitset;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::traverse::{FaceEdgeIterator, edge_faces};
 
@@ -28,10 +29,10 @@ pub fn extract_n_ring(
     seed_face: FaceId,
     depth: usize,
 ) -> Result<ExtractedRegion, KernelError> {
-    let mut visited_faces: BTreeSet<FaceId> = BTreeSet::new();
+    let mut visited_faces = EntityBitset::for_faces(arena);
     let mut frontier: VecDeque<FaceId> = VecDeque::new();
 
-    visited_faces.insert(seed_face);
+    let _ = visited_faces.insert(seed_face.index());
     frontier.push_back(seed_face);
 
     for _ring in 0..depth {
@@ -47,50 +48,63 @@ pub fn extract_n_ring(
 
             let neighbor_faces = collect_adjacent_faces(arena, face)?;
             for neighbor in neighbor_faces {
-                if visited_faces.insert(neighbor) {
+                if visited_faces.insert(neighbor.index()).unwrap_or(false) {
                     frontier.push_back(neighbor);
                 }
             }
         }
     }
 
-    let mut half_edges: BTreeSet<HalfEdgeId> = BTreeSet::new();
-    let mut vertices: BTreeSet<VertexId> = BTreeSet::new();
+    let mut half_edges = EntityBitset::for_half_edges(arena);
+    let mut vertices = EntityBitset::for_vertices(arena);
     let mut half_edge_connectivity: BTreeMap<u32, SerializedHalfEdge> = BTreeMap::new();
 
-    for &face in &visited_faces {
-        let iter = FaceEdgeIterator::new(arena, face)?;
+    for face_idx in visited_faces.iter_ones() {
+        let face = FaceId::from_raw_parts(face_idx, 0);
+        let iter = match FaceEdgeIterator::new(arena, face) {
+            Ok(it) => it,
+            Err(_) => continue, // Skip entirely broken faces
+        };
         for he_result in iter {
-            let he_id = he_result?;
-            half_edges.insert(he_id);
+            let he_id = match he_result {
+                Ok(id) => id,
+                Err(_) => break, // Stop on cycle/corruption
+            };
+            let _ = half_edges.insert(he_id.index());
 
-            let he_data = arena.get_half_edge(he_id)?;
-            vertices.insert(he_data.origin());
+            let he_data = match arena.get_half_edge(he_id) {
+                Ok(d) => d,
+                Err(_) => continue,
+            };
+            let _ = vertices.insert(he_data.origin().index());
             half_edge_connectivity.insert(
                 he_id.index(),
                 SerializedHalfEdge::from_half_edge_data(he_data),
             );
 
             let twin = he_data.radial_next();
-            half_edges.insert(twin);
+            let _ = half_edges.insert(twin.index());
 
-            let twin_data = arena.get_half_edge(twin)?;
-            half_edge_connectivity.insert(
-                twin.index(),
-                SerializedHalfEdge::from_half_edge_data(twin_data),
-            );
+            if let Ok(twin_data) = arena.get_half_edge(twin) {
+                half_edge_connectivity.insert(
+                    twin.index(),
+                    SerializedHalfEdge::from_half_edge_data(twin_data),
+                );
+            }
         }
     }
 
     let mut face_planes: BTreeMap<u32, SerializedPlane> = BTreeMap::new();
-    for &face in &visited_faces {
+    for face_idx in visited_faces.iter_ones() {
+        let face = FaceId::from_raw_parts(face_idx, 0);
         if let Some(plane) = geometry_store.get_face_plane(face) {
             face_planes.insert(face.index(), SerializedPlane::from_plane(plane));
         }
     }
 
     let mut vertex_positions: BTreeMap<u32, [f64; 3]> = BTreeMap::new();
-    for &vtx in &vertices {
+    for vtx_idx in vertices.iter_ones() {
+        let vtx = VertexId::from_raw_parts(vtx_idx, 0);
         if let Some(&pos) = geometry_store.get_vertex_position(vtx) {
             vertex_positions.insert(vtx.index(), pos);
         }
@@ -114,11 +128,20 @@ fn collect_adjacent_faces(
     face: FaceId,
 ) -> Result<Vec<FaceId>, KernelError> {
     let mut neighbors = Vec::new();
-    let iter = FaceEdgeIterator::new(arena, face)?;
+    let iter = match FaceEdgeIterator::new(arena, face) {
+        Ok(it) => it,
+        Err(_) => return Ok(neighbors),
+    };
 
     for he_result in iter {
-        let he_id = he_result?;
-        let adjacent_faces = edge_faces(arena, he_id)?;
+        let he_id = match he_result {
+            Ok(id) => id,
+            Err(_) => break,
+        };
+        let adjacent_faces = match edge_faces(arena, he_id) {
+            Ok(faces) => faces,
+            Err(_) => vec![],
+        };
         for adj_face in adjacent_faces {
             if adj_face != face {
                 neighbors.push(adj_face);

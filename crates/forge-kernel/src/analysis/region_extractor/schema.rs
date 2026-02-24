@@ -13,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use forge_core::KernelError;
 use forge_geom::Plane;
 use forge_topo::arena::{TopologyArena, FaceData, HalfEdgeData, VertexData, LoopData};
+use forge_topo::bitset::EntityBitset;
 use forge_topo::handles::{FaceId, HalfEdgeId, LoopId, VertexId, ShellId, EdgeId};
 
 /// A self-contained topological sub-region extracted from an arena.
@@ -27,11 +28,11 @@ pub struct ExtractedRegion {
     /// How many rings were extracted.
     ring_depth: usize,
     /// Extracted face IDs (deterministically ordered).
-    faces: BTreeSet<FaceId>,
+    faces: EntityBitset,
     /// Halfedges bounding the extracted faces.
-    half_edges: BTreeSet<HalfEdgeId>,
+    half_edges: EntityBitset,
     /// Vertices referenced by the extracted halfedges.
-    vertices: BTreeSet<VertexId>,
+    vertices: EntityBitset,
     /// Halfedge connectivity (keyed by halfedge index).
     half_edge_connectivity: BTreeMap<u32, SerializedHalfEdge>,
     /// Plane geometry for each extracted face (keyed by face index).
@@ -102,9 +103,9 @@ impl ExtractedRegion {
     pub fn new(
         seed_face: FaceId,
         ring_depth: usize,
-        faces: BTreeSet<FaceId>,
-        half_edges: BTreeSet<HalfEdgeId>,
-        vertices: BTreeSet<VertexId>,
+        faces: EntityBitset,
+        half_edges: EntityBitset,
+        vertices: EntityBitset,
         half_edge_connectivity: BTreeMap<u32, SerializedHalfEdge>,
         face_planes: BTreeMap<u32, SerializedPlane>,
         vertex_positions: BTreeMap<u32, [f64; 3]>,
@@ -132,17 +133,17 @@ impl ExtractedRegion {
     }
 
     /// The extracted face set.
-    pub fn get_faces(&self) -> &BTreeSet<FaceId> {
+    pub fn get_faces(&self) -> &EntityBitset {
         &self.faces
     }
 
     /// The extracted halfedge set.
-    pub fn get_half_edges(&self) -> &BTreeSet<HalfEdgeId> {
+    pub fn get_half_edges(&self) -> &EntityBitset {
         &self.half_edges
     }
 
     /// The extracted vertex set.
-    pub fn get_vertices(&self) -> &BTreeSet<VertexId> {
+    pub fn get_vertices(&self) -> &EntityBitset {
         &self.vertices
     }
 
@@ -158,17 +159,17 @@ impl ExtractedRegion {
 
     /// Number of faces in the extracted region.
     pub fn face_count(&self) -> usize {
-        self.faces.len()
+        self.faces.count() as usize
     }
 
     /// Number of vertices in the extracted region.
     pub fn vertex_count(&self) -> usize {
-        self.vertices.len()
+        self.vertices.count() as usize
     }
 
     /// Number of halfedges in the extracted region.
     pub fn half_edge_count(&self) -> usize {
-        self.half_edges.len()
+        self.half_edges.count() as usize
     }
 
     /// Whether the region is empty.
@@ -203,9 +204,9 @@ impl ExtractedRegion {
     pub fn to_arena(&self) -> Result<TopologyArena, KernelError> {
         let mut arena = TopologyArena::new();
 
-        let max_vtx = self.vertices.iter().map(|v| v.index()).max().unwrap_or(0);
-        let max_face = self.faces.iter().map(|f| f.index()).max().unwrap_or(0);
-        let max_he = self.half_edges.iter().map(|h| h.index()).max().unwrap_or(0);
+        let max_vtx = self.vertices.iter_ones().max().unwrap_or(0);
+        let max_face = self.faces.iter_ones().max().unwrap_or(0);
+        let max_he = self.half_edges.iter_ones().max().unwrap_or(0);
 
         let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
         let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
@@ -240,23 +241,23 @@ impl ExtractedRegion {
             he_mut.set_origin(VertexId::from_raw_parts(conn.origin, 0));
         }
 
-        for &vtx_id in &self.vertices {
+        for vtx_id in self.vertices.iter_ones() {
             let first_outgoing = self.half_edge_connectivity.iter()
-                .find(|(_, conn)| conn.origin == vtx_id.index());
+                .find(|(_, conn)| conn.origin == vtx_id);
             if let Some((&he_idx, _)) = first_outgoing {
-                arena.get_vertex_mut(VertexId::from_raw_parts(vtx_id.index(), 0))?
+                arena.get_vertex_mut(VertexId::from_raw_parts(vtx_id, 0))?
                     .set_outgoing(HalfEdgeId::from_raw_parts(he_idx, 0));
             }
         }
 
-        for &face_id in &self.faces {
+        for face_id in self.faces.iter_ones() {
             let first_he = self.half_edge_connectivity.iter()
-                .find(|(_, conn)| conn.face == face_id.index());
+                .find(|(_, conn)| conn.face == face_id);
             if let Some((&he_idx, _)) = first_he {
-                let loop_id = LoopId::from_raw_parts(face_id.index(), 0);
+                let loop_id = LoopId::from_raw_parts(face_id, 0);
                 arena.get_loop_mut(loop_id)?
                     .set_half_edge(HalfEdgeId::from_raw_parts(he_idx, 0));
-                arena.get_face_mut(FaceId::from_raw_parts(face_id.index(), 0))?
+                arena.get_face_mut(FaceId::from_raw_parts(face_id, 0))?
                     .set_outer_loop(loop_id);
             }
         }

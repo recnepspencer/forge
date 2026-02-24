@@ -108,3 +108,18 @@ fn loop_insert_and_get() {
     assert_eq!(arena.loop_count(), 1);
     assert!(arena.get_loop(loop_id).is_ok());
 }
+
+#[test]
+fn removed_vertex_slot_is_reused() {
+    let mut arena = TopologyArena::new();
+
+    let v0 = arena.insert_vertex(dummy_vertex_data(), None);
+    arena.remove_vertex(v0, None).unwrap();
+    let slot_count_after_remove = arena.vertex_slot_count();
+
+    let v1 = arena.insert_vertex(dummy_vertex_data(), None);
+
+    assert_eq!(v1.index(), v0.index());
+    assert_ne!(v1.generation(), v0.generation());
+    assert_eq!(arena.vertex_slot_count(), slot_count_after_remove);
+}

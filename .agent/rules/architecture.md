@@ -3,6 +3,7 @@ trigger: always_on
 ---
 
 # Forge Kernel Architectural Rules
+
 **Version:** 1.5 (Crate Structure Update)
 **Status:** Mandatory — violations are structural defects, not style issues.
 
@@ -49,6 +50,7 @@ forge-view    ← trace viewer + CLI + representation (depends on forge-core)
 ## 2. Layer Responsibilities
 
 ### 2.1 forge-math
+
 **Scope:** Exact predicates, rational arithmetic, linear algebra.
 **Structure:** `numeric/` (sign, rng), `arithmetic/`, `predicates/`, `linalg/`, `coincidence/`
 
@@ -58,12 +60,14 @@ forge-view    ← trace viewer + CLI + representation (depends on forge-core)
 - **DON'T:** Define geometry types (`Plane`) or topology types (`FaceId`).
 
 ### 2.2 forge-core
+
 **Scope:** Shared language — `KernelError`, `GeometrySource`, `PolicyResult<T>`, `PolicyKind`.
 
 - **DO:** Put error variants, policy types, and data-access traits here.
 - **DON'T:** Put business logic, arena, or geometry math here.
 
 ### 2.3 forge-geom
+
 **Scope:** Stateless geometry solvers, intersection logic, constraint resolution.
 **Structure:** `primitives/` (plane, ray, aabb, polygon, implicit_vertex), `spatial/` (bsp, bvh), `algorithms/`, `curve/`, `surface/`
 
@@ -75,6 +79,7 @@ forge-view    ← trace viewer + CLI + representation (depends on forge-core)
 - **DON'T:** Make policy decisions — signal `PolicyRequired`, let the kernel decide.
 
 ### 2.4 forge-topo
+
 **Scope:** Arena management, generational handles, structural invariants, transactions.
 **Structure:** `topology/` (handles, arena, state, operations/, queries/, integrity/, history/, tests/)
 
@@ -83,10 +88,12 @@ forge-view    ← trace viewer + CLI + representation (depends on forge-core)
 - **DO:** Store data in Global Modeling Space only.
 - **DO:** All numeric comparisons in `forge-topo` must go through named helpers (`forge-math` predicates, `forge-geom` classification functions, or `CertifiedTriSign`).
 - **DON'T:** Write **any** raw f64 comparisons (no `dist < EPS`, no `denom.abs() < 1e-30`). Code review rule: if you see `<` on an `f64` in `forge-topo`, it must be inside a named helper.
+- **DO:** Enforce the 2-manifold invariant for solid shells at commit time via `validate_manifold_edges()`. Open shells may have boundary edges (valence 1). All shells reject valence > 2.
 - **DON'T:** Hardcode tolerance constants — pass them as parameters from the kernel.
 - **DON'T:** Apply Matrix4 transformations to the arena.
 
 ### 2.5 forge-kernel
+
 **Scope:** ModelingContext, policy decisions, tolerance config, feature implementations.
 **Structure:** `core/`, `features/`, `geometry_store/`, `mesh_builder/`, `analysis/`, `operations/` (boolean/, fillet/, extrude/, ...), `brep/`
 
@@ -96,6 +103,7 @@ forge-view    ← trace viewer + CLI + representation (depends on forge-core)
 - **DO:** Place all modeling operations under `operations/` (boolean, fillet, extrude, etc.).
 
 ### 2.6 forge-signal
+
 **Scope:** Reactive dependency graph for feature invalidation.
 **Structure:** `handles.rs`, `schema.rs`, `graph.rs`, `evaluation/` (push.rs, pull.rs, context.rs)
 

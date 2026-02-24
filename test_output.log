@@ -2,7 +2,7 @@
   OPERATION: Intersection (half-overlap cubes)
 ============================================================
 
-Duration: 4.42375ms
+Duration: 1.097943459s
 State hash: 0x0000000000000000
 Faces in result: 6
 
@@ -180,11 +180,11 @@ Faces in result: 6
   PER-SPAN STATS (TraceSummary)
 ============================================================
 
-  split — 94 decisions, max_tier=deterministic, 3610µs
-  classify — 20 decisions, max_tier=deterministic, 330µs
-  select — 20 decisions, max_tier=deterministic, 7µs
-  assemble — 12 decisions, max_tier=deterministic, 73µs
-  postprocess — 0 decisions, max_tier=deterministic, 12µs
+  split — 94 decisions, max_tier=deterministic, 12547µs
+  classify — 20 decisions, max_tier=deterministic, 4781µs
+  select — 20 decisions, max_tier=deterministic, 18µs
+  assemble — 12 decisions, max_tier=deterministic, 1079012µs
+  postprocess — 0 decisions, max_tier=deterministic, 75µs
 
 
 ============================================================
@@ -2059,7 +2059,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 1,
-        "duration_micros": 3610
+        "duration_micros": 12547
       }
     },
     {
@@ -2672,7 +2672,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 2,
-        "duration_micros": 330
+        "duration_micros": 4781
       }
     },
     {
@@ -3145,7 +3145,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 3,
-        "duration_micros": 7
+        "duration_micros": 18
       }
     },
     {
@@ -3374,7 +3374,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 4,
-        "duration_micros": 73
+        "duration_micros": 1079012
       }
     },
     {
@@ -3387,7 +3387,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 5,
-        "duration_micros": 12
+        "duration_micros": 75
       }
     }
   ]

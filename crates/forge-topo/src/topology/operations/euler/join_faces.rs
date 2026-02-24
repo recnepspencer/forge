@@ -85,9 +85,11 @@ impl EulerOperator for JoinFaces {
         // P10: Transfer inner loops from face_remove to face_survive
         let inner_loops: Vec<LoopId> = draft.arena().get_face(face_remove)?.inner_loops().to_vec();
         for il_id in inner_loops {
+            let inner_start = draft.arena().get_loop(il_id)?.half_edge();
             draft.arena_mut().get_face_mut(face_remove)?.remove_inner_loop(il_id);
             draft.arena_mut().get_face_mut(face_survive)?.add_inner_loop(il_id);
             draft.arena_mut().get_loop_mut(il_id)?.set_face(face_survive);
+            reassign_face(draft, inner_start, face_survive)?;
         }
 
         if draft.arena().get_vertex(vertex_a)?.outgoing() == he {

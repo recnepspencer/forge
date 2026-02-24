@@ -7,11 +7,12 @@
 //! DEPENDENCIES: `arena` (entity data), `handles` (typed IDs),
 //!               `queries/traverse` (FaceEdgeIterator)
 
-use std::collections::{BTreeSet, VecDeque};
+use std::collections::VecDeque;
 
 use forge_core::KernelError;
 use crate::arena::TopologyArena;
 use crate::handles::{FaceId, VertexId};
+use crate::topology::bitset::EntityBitset;
 use crate::topology::queries::traverse::FaceEdgeIterator;
 
 /// Discover all faces in a connected shell via BFS from a seed face.
@@ -20,14 +21,14 @@ use crate::topology::queries::traverse::FaceEdgeIterator;
 pub(crate) fn discover_shell_faces(
     arena: &TopologyArena,
     seed_face: FaceId,
-    visited: &mut BTreeSet<u32>,
+    visited: &mut EntityBitset,
 ) -> Result<Vec<FaceId>, KernelError> {
     let mut shell_faces: Vec<FaceId> = Vec::new();
-    let mut face_set: BTreeSet<u32> = BTreeSet::new();
+    let mut face_set = EntityBitset::for_faces(arena);
     let mut queue: VecDeque<FaceId> = VecDeque::new();
 
     queue.push_back(seed_face);
-    face_set.insert(seed_face.index());
+    face_set.insert(seed_face.index())?;
 
     while let Some(face_id) = queue.pop_front() {
         shell_faces.push(face_id);
@@ -39,7 +40,7 @@ pub(crate) fn discover_shell_faces(
                 if neighbor_id != he_id {
                     let neighbor_data = arena.get_half_edge(neighbor_id)?;
                     let neighbor = neighbor_data.face();
-                    if face_set.insert(neighbor.index()) {
+                    if face_set.insert(neighbor.index())? {
                         queue.push_back(neighbor);
                     }
                 }
@@ -47,7 +48,9 @@ pub(crate) fn discover_shell_faces(
         }
     }
 
-    visited.extend(face_set.iter());
+    for idx in face_set.iter_ones() {
+        visited.insert(idx)?;
+    }
     Ok(shell_faces)
 }
 

@@ -27,6 +27,7 @@ use forge_core::tracing::{DecisionKind, DecisionTier};
 use forge_geom::Plane;
 use forge_geom::spatial::bsp::{BspConfig, BspSolid, ConvexCell};
 use forge_topo::arena::{BodyData, LumpData, RegionData, FaceData, HalfEdgeData, VertexData, LoopData, ShellData, EdgeData, ShellKind, ShellOrientation};
+use forge_topo::bitset::EntityBitset;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId, LoopId, ShellId, EdgeId};
 use forge_topo::state::{TopologyState, MutableDraft};
 
@@ -435,10 +436,10 @@ fn detect_coplanar_twin_faces(
     draft: &MutableDraft,
 ) -> Vec<FaceId> {
     let mut internal: Vec<FaceId> = Vec::new();
-    let mut checked: std::collections::HashSet<FaceId> = std::collections::HashSet::new();
+    let mut checked = EntityBitset::for_faces(draft.arena());
 
     for (&fid, &bsp_idx) in face_plane_map {
-        if bsp_idx == usize::MAX || checked.contains(&fid) {
+        if bsp_idx == usize::MAX || checked.contains(fid.index()).unwrap_or(false) {
             continue;
         }
 
@@ -482,9 +483,9 @@ fn detect_coplanar_twin_faces(
 
         if all_coplanar {
             if let Some(twin_fid) = twin_face {
-                if !checked.contains(&twin_fid) {
-                    checked.insert(fid);
-                    checked.insert(twin_fid);
+                if !checked.contains(twin_fid.index()).unwrap_or(false) {
+                    let _ = checked.insert(fid.index());
+                    let _ = checked.insert(twin_fid.index());
                     internal.push(fid);
                     internal.push(twin_fid);
                 }
@@ -540,20 +541,20 @@ fn merge_coplanar_neighbors(
     tolerance: f64,
 ) -> Result<usize, KernelError> {
     let mut merged_count = 0;
-    let mut removed: std::collections::HashSet<FaceId> = std::collections::HashSet::new();
+    let mut removed = EntityBitset::for_faces(draft.arena());
     let mut changed = true;
 
     while changed {
         changed = false;
 
         let face_ids: Vec<FaceId> = face_plane_map.keys()
-            .filter(|fid| !removed.contains(fid))
+            .filter(|fid| !removed.contains(fid.index()).unwrap_or(false))
             .filter(|fid| draft.arena().get_face(**fid).is_ok())
             .copied()
             .collect();
 
         for face_id in face_ids {
-            if removed.contains(&face_id) { continue; }
+            if removed.contains(face_id.index()).unwrap_or(false) { continue; }
             if draft.arena().get_face(face_id).is_err() { continue; }
 
             let plane_a = match geometry.get_face_plane(face_id) {
@@ -572,7 +573,7 @@ fn merge_coplanar_neighbors(
                 let twin = draft.arena().get_half_edge(twin_id)?;
                 let adj_face = twin.face();
 
-                if adj_face != face_id && !removed.contains(&adj_face) {
+                if adj_face != face_id && !removed.contains(adj_face.index()).unwrap_or(false) {
                     if let Some(plane_b) = geometry.get_face_plane(adj_face) {
                         if planes_are_coplanar(&plane_a, plane_b, tolerance) {
                             dissolve_target = Some(current);
@@ -587,7 +588,7 @@ fn merge_coplanar_neighbors(
 
             if let Some(he_id) = dissolve_target {
                 let absorbed = dissolve_edge(draft, he_id)?;
-                removed.insert(absorbed);
+                let _ = removed.insert(absorbed.index());
                 merged_count += 1;
                 changed = true;
                 break;

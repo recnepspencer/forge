@@ -180,6 +180,16 @@ fn maybe_multisample_refine(
         }
     }
 
+    if std::env::var("FORGE_DEBUG_MULTISAMPLE").ok().as_deref() == Some("1") {
+        eprintln!(
+            "[multisample] face#{} votes inside={} outside={} boundary={}",
+            face_id.index(),
+            inside,
+            outside,
+            usize::from(first_boundary.is_some())
+        );
+    }
+
     if inside > outside && first_boundary.is_none() {
         return Ok(PointClassification::Inside { escalation: None });
     }
@@ -240,16 +250,37 @@ fn collect_interior_face_samples(
     push_if_on_face(centroid)?;
 
     let n = verts.len();
-    for i in 0..n.min(4) {
+    for i in 0..n.min(8) {
         let a = verts[i];
         let b = verts[(i + 1) % n];
         let edge_mid = [(a[0] + b[0]) * 0.5, (a[1] + b[1]) * 0.5, (a[2] + b[2]) * 0.5];
         let inset = [
-            edge_mid[0] * 0.75 + centroid[0] * 0.25,
-            edge_mid[1] * 0.75 + centroid[1] * 0.25,
-            edge_mid[2] * 0.75 + centroid[2] * 0.25,
+            edge_mid[0] * 0.35 + centroid[0] * 0.65,
+            edge_mid[1] * 0.35 + centroid[1] * 0.65,
+            edge_mid[2] * 0.35 + centroid[2] * 0.65,
         ];
         push_if_on_face(inset)?;
+
+        let fan = [
+            (a[0] + b[0] + centroid[0]) / 3.0,
+            (a[1] + b[1] + centroid[1]) / 3.0,
+            (a[2] + b[2] + centroid[2]) / 3.0,
+        ];
+        push_if_on_face(fan)?;
+
+        let toward_a = [
+            centroid[0] * 0.6 + a[0] * 0.4,
+            centroid[1] * 0.6 + a[1] * 0.4,
+            centroid[2] * 0.6 + a[2] * 0.4,
+        ];
+        push_if_on_face(toward_a)?;
+
+        let toward_b = [
+            centroid[0] * 0.6 + b[0] * 0.4,
+            centroid[1] * 0.6 + b[1] * 0.4,
+            centroid[2] * 0.6 + b[2] * 0.4,
+        ];
+        push_if_on_face(toward_b)?;
     }
 
     if samples.is_empty() {
@@ -522,6 +553,7 @@ fn classification_label(class: &FaceClassification) -> &'static str {
     match class {
         FaceClassification::Inside => "Inside",
         FaceClassification::Outside => "Outside",
+        FaceClassification::Ambiguous => "Ambiguous",
         FaceClassification::OnBoundary => "OnBoundary(aligned)",
         FaceClassification::OppositeBoundary => "OppositeBoundary(opposed)",
     }

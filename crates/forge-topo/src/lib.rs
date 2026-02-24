@@ -29,6 +29,7 @@ pub use topology::queries::{traverse, classify, ordering};
 pub use topology::history::replay;
 pub use topology::integrity::{diff, validate, hashing, healing};
 pub use topology::attributes;
+pub use topology::bitset;
 
 #[cfg(test)]
 pub mod testing;

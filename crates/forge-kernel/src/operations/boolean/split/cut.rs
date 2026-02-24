@@ -26,7 +26,7 @@ use crate::core::ModelingContext;
 use crate::operations::boolean::eval::VertexMatchKey;
 
 use super::gate::{compute_face_chord, exact_sign_for_vertex};
-use super::schema::{CutPoint, EdgeCutMap, LocalVertexDedup, PlaneTable, SharedVertexRegistry, SplitConfig, make_edge_key};
+use super::schema::{CutPoint, EdgeCutMap, ExpectedCutHint, LocalVertexDedup, PlaneTable, SharedVertexRegistry, SplitConfig, make_edge_key};
 
 /// Split a face by a cutting plane — applies exactly ONE cut pair per call.
 ///
@@ -46,13 +46,15 @@ pub fn split_face_by_plane(
     cut_plane_idx: usize,
     split_cfg: &SplitConfig<'_>,
     shared_registry: &mut SharedVertexRegistry,
-    expected_endpoints: Option<&Vec<[f64; 3]>>,
+    expected_hint: Option<&ExpectedCutHint>,
     ctx: &mut ModelingContext,
 ) -> Result<Vec<FaceId>, KernelError> {
 
-    if !gate_passes(draft, geometry, face, face_plane, cut_plane, cut_plane_idx, split_cfg, ctx)? {
+    let Some(face_chord) = gate_chord(
+        draft, geometry, face, face_plane, cut_plane, cut_plane_idx, split_cfg, ctx,
+    )? else {
         return Ok(Vec::new());
-    }
+    };
 
     let cut_points = find_cut_points_provenance(
         draft.arena(), geometry, face,
@@ -75,6 +77,19 @@ pub fn split_face_by_plane(
     }
 
     let sorted = sort_along_cut_direction(resolved, face_plane, cut_plane, geometry);
+    let had_expected_hint = expected_hint.is_some();
+    let localized_expected_hint = expected_hint
+        .and_then(|hint| localize_expected_hint(hint, face_chord, split_cfg.tolerance.get_min_edge_length()));
+    if had_expected_hint && localized_expected_hint.is_none() {
+        log_rejection(
+            face,
+            cut_plane_idx,
+            "deferred: fragment chord does not overlap expected segment interval",
+            ctx,
+        );
+        return Ok(Vec::new());
+    }
+
     apply_one_cut(
         sorted,
         draft,
@@ -82,14 +97,15 @@ pub fn split_face_by_plane(
         edge_cut_map,
         face,
         face_plane,
+        cut_plane,
         cut_plane_idx,
-        expected_endpoints,
+        localized_expected_hint.as_ref(),
         ctx,
     )
 }
 
-/// Run the chord-gate and log a decision if rejected.
-fn gate_passes(
+/// Run the chord-gate and return the current face chord.
+fn gate_chord(
     draft: &MutableDraft,
     geometry: &GeometryStore,
     face: FaceId,
@@ -98,13 +114,13 @@ fn gate_passes(
     cut_plane_idx: usize,
     split_cfg: &SplitConfig<'_>,
     ctx: &mut ModelingContext,
-) -> Result<bool, KernelError> {
+) -> Result<Option<([f64; 3], [f64; 3])>, KernelError> {
     let chord = compute_face_chord(draft.arena(), geometry, face, face_plane, cut_plane, split_cfg.tolerance)?;
     if chord.is_none() {
         log_rejection(face, cut_plane_idx, "rejected by chord gate", ctx);
-        return Ok(false);
+        return Ok(None);
     }
-    Ok(true)
+    Ok(chord)
 }
 
 /// Resolve CutPoints to VertexIds, dedup, and validate count.
@@ -156,15 +172,16 @@ fn apply_one_cut(
     edge_cut_map: &mut EdgeCutMap,
     face: FaceId,
     face_plane: &Plane,
+    cut_plane: &Plane,
     cut_plane_idx: usize,
-    expected_endpoints: Option<&Vec<[f64; 3]>>,
+    expected_hint: Option<&ExpectedCutHint>,
     ctx: &mut ModelingContext,
 ) -> Result<Vec<FaceId>, KernelError> {
     let adjacent = build_adjacent_pairs(draft, face)?;
 
     if let Some(result) = try_expected_pair(
         &sorted,
-        expected_endpoints,
+        expected_hint,
         &adjacent,
         draft,
         geometry,
@@ -177,8 +194,17 @@ fn apply_one_cut(
         return Ok(result);
     }
 
-    if expected_endpoints.is_some() {
-        log_rejection(face, cut_plane_idx, "deferred: expected overlap endpoints not yet realizable on fragment", ctx);
+    if expected_hint.is_some()
+        && !can_use_scaffold_fallback(
+            &sorted,
+            expected_hint.unwrap(),
+            geometry,
+            &adjacent,
+            face_plane,
+            cut_plane,
+        )
+    {
+        log_rejection(face, cut_plane_idx, "deferred: expected overlap endpoints not bracketed by scaffold fragment", ctx);
         return Ok(Vec::new());
     }
 
@@ -195,7 +221,7 @@ fn apply_one_cut(
         .find_map(|pair| {
             let v_a = pair[0];
             let v_b = pair[1];
-            if expected_endpoints.is_some() {
+            if expected_hint.is_some() {
                 eprintln!(
                     "[cut-expected] face#{} plane#{} fallback trying {} {}",
                     face.index(),
@@ -225,9 +251,195 @@ fn apply_one_cut(
     Ok(Vec::new())
 }
 
+fn can_use_scaffold_fallback(
+    sorted: &[VertexId],
+    expected_hint: &ExpectedCutHint,
+    geometry: &GeometryStore,
+    adjacent: &BTreeSet<(u32, u32)>,
+    face_plane: &Plane,
+    cut_plane: &Plane,
+) -> bool {
+    let dir = scaffold_projection_dir(face_plane, cut_plane);
+    let expected_intervals = scaffold_expected_intervals(expected_hint, dir);
+    if expected_intervals.is_empty() {
+        return false;
+    }
+
+    let mut viable_pairs = 0usize;
+    let mut bracketed_pairs = 0usize;
+
+    for pair in sorted.chunks_exact(2) {
+        let v_a = pair[0];
+        let v_b = pair[1];
+        if v_a == v_b {
+            continue;
+        }
+        let key = if v_a.index() <= v_b.index() {
+            (v_a.index(), v_b.index())
+        } else {
+            (v_b.index(), v_a.index())
+        };
+        if adjacent.contains(&key) {
+            continue;
+        }
+
+        let Some(pa) = geometry.get_vertex_position(v_a) else { continue; };
+        let Some(pb) = geometry.get_vertex_position(v_b) else { continue; };
+        let a_t = dot3(pa, dir);
+        let b_t = dot3(pb, dir);
+        let cand_min = a_t.min(b_t);
+        let cand_max = a_t.max(b_t);
+        let bracketed = expected_intervals.iter().any(|(exp_min, exp_max, exp_scale)| {
+            let bracket_tol = (exp_scale * 0.10).max(1e-6);
+            cand_min <= *exp_min + bracket_tol && cand_max >= *exp_max - bracket_tol
+        });
+
+        if bracketed {
+            bracketed_pairs += 1;
+        }
+
+        viable_pairs += 1;
+    }
+    
+    // Fallback is only allowed if there is at most 1 viable pair AND it brackets the expected endpoints.
+    // If there is >1 viable bounding candidate, we defer to avoid crossing cuts.
+    viable_pairs == 1 && bracketed_pairs == 1
+}
+
+fn scaffold_projection_dir(face_plane: &Plane, cut_plane: &Plane) -> [f64; 3] {
+    let mut dir = forge_math::linalg::cross(face_plane.raw_normal(), cut_plane.raw_normal());
+    if forge_math::linalg::norm_sq(dir) <= 1e-24 {
+        dir = forge_math::linalg::compute_perpendicular_direction(cut_plane.raw_normal());
+    }
+    dir
+}
+
+fn localize_expected_hint(
+    hint: &ExpectedCutHint,
+    face_chord: ([f64; 3], [f64; 3]),
+    min_len: f64,
+) -> Option<ExpectedCutHint> {
+    let mut out = ExpectedCutHint::default();
+    if hint.intervals.is_empty() {
+        return Some(hint.clone());
+    }
+
+    for iv in &hint.intervals {
+        if let Some((p0, p1)) = chord_overlap_segment(face_chord, (iv.p0, iv.p1), min_len) {
+            out.endpoints.push(p0);
+            out.endpoints.push(p1);
+            out.intervals.push(super::schema::ExpectedCutInterval { p0, p1 });
+        }
+    }
+
+    if out.intervals.is_empty() {
+        return None;
+    }
+
+    out.endpoints = dedup_local_points(out.endpoints, min_len.max(1e-9));
+    Some(out)
+}
+
+fn chord_overlap_segment(
+    chord_a: ([f64; 3], [f64; 3]),
+    chord_b: ([f64; 3], [f64; 3]),
+    min_len: f64,
+) -> Option<([f64; 3], [f64; 3])> {
+    let dir = [
+        chord_a.1[0] - chord_a.0[0],
+        chord_a.1[1] - chord_a.0[1],
+        chord_a.1[2] - chord_a.0[2],
+    ];
+    let len_sq = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2];
+    if !len_sq.is_finite() || len_sq <= 1e-30 {
+        return None;
+    }
+    let len = len_sq.sqrt();
+    let unit = [dir[0] / len, dir[1] / len, dir[2] / len];
+    let origin = chord_a.0;
+
+    let proj = |p: [f64; 3]| -> f64 {
+        (p[0] - origin[0]) * unit[0]
+            + (p[1] - origin[1]) * unit[1]
+            + (p[2] - origin[2]) * unit[2]
+    };
+    let point_at = |t: f64| -> [f64; 3] {
+        [origin[0] + unit[0] * t, origin[1] + unit[1] * t, origin[2] + unit[2] * t]
+    };
+
+    let mut a0 = proj(chord_a.0);
+    let mut a1 = proj(chord_a.1);
+    let mut b0 = proj(chord_b.0);
+    let mut b1 = proj(chord_b.1);
+    if a0 > a1 { std::mem::swap(&mut a0, &mut a1); }
+    if b0 > b1 { std::mem::swap(&mut b0, &mut b1); }
+    let o0 = a0.max(b0);
+    let o1 = a1.min(b1);
+    if !o0.is_finite() || !o1.is_finite() || (o1 - o0) <= min_len * 0.5 {
+        return None;
+    }
+    Some((point_at(o0), point_at(o1)))
+}
+
+fn dedup_local_points(mut pts: Vec<[f64; 3]>, tol: f64) -> Vec<[f64; 3]> {
+    let tol_sq = tol * tol;
+    let mut out = Vec::new();
+    for p in pts.drain(..) {
+        let dup = out.iter().any(|q: &[f64; 3]| {
+            let dx = p[0] - q[0];
+            let dy = p[1] - q[1];
+            let dz = p[2] - q[2];
+            dx * dx + dy * dy + dz * dz <= tol_sq
+        });
+        if !dup {
+            out.push(p);
+        }
+    }
+    out
+}
+
+fn project_interval<I>(points: I, dir: [f64; 3]) -> Option<(f64, f64, f64)>
+where
+    I: IntoIterator<Item = [f64; 3]>,
+{
+    let mut min_t = f64::INFINITY;
+    let mut max_t = f64::NEG_INFINITY;
+    let mut saw = false;
+    for p in points {
+        let t = p[0] * dir[0] + p[1] * dir[1] + p[2] * dir[2];
+        min_t = min_t.min(t);
+        max_t = max_t.max(t);
+        saw = true;
+    }
+    if !saw {
+        return None;
+    }
+    Some((min_t, max_t, (max_t - min_t).abs()))
+}
+
+fn dot3(p: &[f64; 3], dir: [f64; 3]) -> f64 {
+    p[0] * dir[0] + p[1] * dir[1] + p[2] * dir[2]
+}
+
+fn scaffold_expected_intervals(hint: &ExpectedCutHint, dir: [f64; 3]) -> Vec<(f64, f64, f64)> {
+    let mut out = Vec::new();
+    if !hint.intervals.is_empty() {
+        for iv in &hint.intervals {
+            if let Some((a, b, s)) = project_interval([iv.p0, iv.p1], dir) {
+                out.push((a.min(b), a.max(b), s.max(1e-9)));
+            }
+        }
+        return out;
+    }
+    if let Some((a, b, s)) = project_interval(hint.endpoints.iter().copied(), dir) {
+        out.push((a.min(b), a.max(b), s.max(1e-9)));
+    }
+    out
+}
+
 fn try_expected_pair(
     sorted: &[VertexId],
-    expected_endpoints: Option<&Vec<[f64; 3]>>,
+    expected_hint: Option<&ExpectedCutHint>,
     adjacent: &BTreeSet<(u32, u32)>,
     draft: &mut MutableDraft,
     geometry: &mut GeometryStore,
@@ -237,9 +449,10 @@ fn try_expected_pair(
     cut_plane_idx: usize,
     ctx: &mut ModelingContext,
 ) -> Result<Option<Vec<FaceId>>, KernelError> {
-    let Some(expected) = expected_endpoints else {
+    let Some(expected_hint) = expected_hint else {
         return Ok(None);
     };
+    let expected = &expected_hint.endpoints;
     if expected.len() < 2 || sorted.len() < 2 {
         return Ok(None);
     }

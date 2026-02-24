@@ -11,6 +11,8 @@ use forge_core::{KernelError, ToleranceProvider};
 use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
 use forge_topo::handles::{HalfEdgeId, VertexId};
 use forge_topo::state::MutableDraft;
+use forge_topo::operator::apply_op;
+use forge_topo::euler::sew_edge::SewEdge;
 use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
 use crate::geometry_store::GeometryStore;
 
@@ -236,8 +238,7 @@ fn run_stitch_pass(
                         select_best_twin(draft, geom, he_id, &unpaired)
                     };
 
-                    draft.arena_mut().get_half_edge_mut(he_id)?.set_radial_next(best);
-                    draft.arena_mut().get_half_edge_mut(best)?.set_radial_next(he_id);
+                    let _ = apply_op(draft, SewEdge { he_a: he_id, he_b: best })?;
                     paired.insert(he_id.index());
                     paired.insert(best.index());
 

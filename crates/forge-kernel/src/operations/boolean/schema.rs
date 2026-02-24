@@ -165,6 +165,11 @@ pub enum FaceClassification {
     Inside,
     /// Face is strictly outside the other solid.
     Outside,
+    /// Face classification is ambiguous and requires resolver policy.
+    ///
+    /// Used for split fragments where point-sample classification is
+    /// topologically unsafe to consume directly in selection.
+    Ambiguous,
     /// Face is on the boundary (coplanar) with same normal alignment.
     OnBoundary,
     /// Face is on the boundary (coplanar) with opposite normal alignment.

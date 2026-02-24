@@ -85,7 +85,7 @@ fn join_faces_preserves_inner_loops() {
     let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
     let placeholder_e  = EdgeId::new(u32::MAX, 0);
 
-    {
+    let (inner_loop, ihe01, ihe12, ihe20) = {
         let arena = draft.arena_mut();
         let iv0 = arena.insert_vertex(VertexData::new(placeholder_he), None);
         let iv1 = arena.insert_vertex(VertexData::new(placeholder_he), None);
@@ -114,7 +114,8 @@ fn join_faces_preserves_inner_loops() {
 
         let inner_loop = arena.insert_loop(LoopData::new(ihe01, target_face), None);
         arena.get_face_mut(target_face).unwrap().add_inner_loop(inner_loop);
-    }
+        (inner_loop, ihe01, ihe12, ihe20)
+    };
 
     assert_eq!(draft.arena().get_face(target_face).unwrap().inner_loop_count(), 1);
     assert_eq!(draft.arena().get_face(face).unwrap().inner_loop_count(), 0);
@@ -126,5 +127,8 @@ fn join_faces_preserves_inner_loops() {
         draft.arena().get_face(surviving).unwrap().inner_loop_count(), 1,
         "Inner loop must survive on the merged face"
     );
+    assert_eq!(draft.arena().get_loop(inner_loop).unwrap().face(), surviving);
+    assert_eq!(draft.arena().get_half_edge(ihe01).unwrap().face(), surviving);
+    assert_eq!(draft.arena().get_half_edge(ihe12).unwrap().face(), surviving);
+    assert_eq!(draft.arena().get_half_edge(ihe20).unwrap().face(), surviving);
 }
-

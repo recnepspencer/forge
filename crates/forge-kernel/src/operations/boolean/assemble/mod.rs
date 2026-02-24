@@ -14,3 +14,4 @@ mod copy_stitch_tests;
 pub use merge::execute_boolean_direct;
 pub use merge::execute_boolean_with_overrides;
 pub use merge::execute_boolean_with_engine;
+pub mod rebuild_face;

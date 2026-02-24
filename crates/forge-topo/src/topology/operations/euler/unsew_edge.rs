@@ -47,7 +47,7 @@ impl EulerOperator for UnsewEdge {
         let inv_id = sig.get_invocation_id() as u64;
 
         // Validate inputs and extract necessary handles first
-        let (original_edge, target_edge, face_a, face_b) = {
+        let (original_edge, face_a, face_b) = {
             let he_a_data = draft.arena().get_half_edge(self.he_a)?;
             let he_b_data = draft.arena().get_half_edge(self.he_b)?;
 
@@ -63,10 +63,11 @@ impl EulerOperator for UnsewEdge {
                 });
             }
 
-            (he_a_data.edge(), he_b_data.edge(), he_a_data.face(), he_b_data.face())
+            (he_a_data.edge(), he_a_data.face(), he_b_data.face())
         };
 
-        let edge_lineage = Lineage::root(0, sig.clone());
+        let original_edge_lineage = draft.arena().get_edge(original_edge)?.lineage().cloned();
+        let edge_lineage = Lineage::derive_from(&original_edge_lineage, sig.clone());
         let new_edge = draft.insert_edge(EdgeData::with_lineage(
             self.he_b,
             Some(edge_lineage),

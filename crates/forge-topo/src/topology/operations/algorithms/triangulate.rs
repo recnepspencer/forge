@@ -9,6 +9,8 @@
 //! NOTE: This is purely topological — no geometric ear-clipping.
 //! For non-convex faces, a geometry-aware triangulator in forge-kernel
 //! should be used instead.
+//! Curved faces are rejected here because topological fan diagonals may not
+//! be valid trim curves in parametric space.
 //!
 //! DEPENDENCIES: `euler::make_edge_face`
 
@@ -36,6 +38,16 @@ pub fn triangulate_face(
     draft: &mut MutableDraft,
     face: FaceId,
 ) -> Result<TriangulateOutput, KernelError> {
+    if draft.arena().get_face(face)?.surface_ref().is_some() {
+        return Err(KernelError::InvalidInput {
+            message: format!(
+                "triangulate_face: face {} is curved; use kernel geometry validation/triangulation",
+                face.index()
+            ),
+            context: None,
+        });
+    }
+
     if !draft.arena().get_face(face)?.inner_loops().is_empty() {
         return Err(KernelError::InvalidInput {
             message: format!(

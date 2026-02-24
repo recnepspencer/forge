@@ -12,9 +12,17 @@ use forge_core::KernelError;
 use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
 use forge_geom::spatial::edge_match::{DirectedEdge, EdgeMatcher};
 use forge_topo::handles::HalfEdgeId;
+use forge_topo::operator::apply_op;
+use forge_topo::euler::sew_edge::SewEdge;
 use forge_topo::state::MutableDraft;
 use crate::core::ModelingContext;
 use crate::geometry_store::GeometryStore;
+
+fn debug_stitch_enabled() -> bool {
+    std::env::var("FORGE_DEBUG_STITCH")
+        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+        .unwrap_or(false)
+}
 
 /// Position-based fallback for stitching unpaired halfedges.
 ///
@@ -113,8 +121,23 @@ fn apply_match(
         return Ok(());
     };
 
-    draft.arena_mut().get_half_edge_mut(he_a)?.set_radial_next(he_b);
-    draft.arena_mut().get_half_edge_mut(he_b)?.set_radial_next(he_a);
+    if paired.contains(&he_a.index()) || paired.contains(&he_b.index()) || he_a == he_b {
+        return Ok(());
+    }
+
+    if let Err(err) = apply_op(draft, SewEdge { he_a, he_b }) {
+        if debug_stitch_enabled() {
+            eprintln!(
+                "[stitch-fallback] rejected {} <-> {} ({}): {}",
+                he_a.index(),
+                he_b.index(),
+                label,
+                err
+            );
+        }
+        return Ok(());
+    }
+
     paired.insert(he_a.index());
     paired.insert(he_b.index());
 
@@ -172,5 +195,3 @@ fn log_stitch(he_a: HalfEdgeId, he_b: HalfEdgeId, label: &str, confidence: f64, 
     decision.set_entity_scope(EntityRef::new(forge_core::EntityKind::HalfEdge, he_a.index()));
     ctx.get_decision_log_mut().record(decision);
 }
-
-

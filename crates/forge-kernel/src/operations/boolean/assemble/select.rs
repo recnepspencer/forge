@@ -61,6 +61,7 @@ pub fn select_faces(
             (FaceOrigin::Target, BooleanOp::Subtraction, FaceClassification::Outside) => true,
             (FaceOrigin::Target, BooleanOp::Subtraction, FaceClassification::OppositeBoundary) => true,
             (FaceOrigin::Tool,   BooleanOp::Subtraction, FaceClassification::Inside) => true,
+            (FaceOrigin::Tool,   BooleanOp::Subtraction, FaceClassification::Ambiguous) => true,
             
             _ => false,
         };

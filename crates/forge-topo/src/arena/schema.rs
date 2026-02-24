@@ -19,6 +19,9 @@ pub(crate) struct Slot<T: Clone> {
     pub(crate) version: u32,
     /// The data, if the slot is occupied.
     pub(crate) data: Option<T>,
+    /// Next vacant slot in the arena free-list.
+    #[serde(default)]
+    pub(crate) next_free: Option<u32>,
 }
 
 impl<T: Clone> Slot<T> {
@@ -28,6 +31,7 @@ impl<T: Clone> Slot<T> {
             generation: 0,
             version: 0,
             data: None,
+            next_free: None,
         }
     }
 
@@ -36,6 +40,7 @@ impl<T: Clone> Slot<T> {
     pub(crate) fn occupy(&mut self, data: T) -> u32 {
         self.data = Some(data);
         self.version = 0;
+        self.next_free = None;
         self.generation
     }
 }

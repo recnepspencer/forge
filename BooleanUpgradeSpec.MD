@@ -92,15 +92,9 @@ Each defect has a severity, a root cause, and a targeted fix.
 
 ---
 
-## 3. Implementation Tiers
-
-Tasks are ordered so each tier can be completed and verified before the
-next begins. Never work out of order — a lower-tier fix is always a
-prerequisite for a higher-tier correctness guarantee.
-
----
-
 ## 3. Sprint Plan & Acceptance Criteria
+
+Tasks are ordered so each tier/sprint can be completed and verified before the next begins. Never work out of order — a lower-tier fix is always a prerequisite for a higher-tier correctness guarantee. This implementation plan is organized into four sequential sprints. Every task requires the `BooleanResult` to pass full topology validation (`ValidationLevel::Full`) and the Euler characteristic formula (`V - E + F = 2`) for all closed shells.
 
 This implementation plan is organized into four sequential sprints. Every task requires the `BooleanResult` to pass full topology validation (`ValidationLevel::Full`) and the Euler characteristic formula (`V - E + F = 2`) for all closed shells.
 
@@ -137,15 +131,22 @@ This implementation plan is organized into four sequential sprints. Every task r
 
 - **Task 2.1: In-Place Target Mutation & Topological Tool Sewing (Fixes D1 & D2)**
   - Stop deep-copying the target into a new draft. Mutate the target in-place (destroying rejected faces).
-  - Instantiate surviving Tool faces as independent islands (`MakeVertexFace`, `MakeEdgeFace`).
+  - Instantiate surviving Tool faces as independent islands using `MakeVertexFace` and `MakeEdgeFace`.
+  - **Trap Avoidance (Vertex Identity):** When instantiating Tool faces along the seam, strictly retrieve identical `VertexId`s from the `SharedVertexRegistry` (do not mint new vertices), ensuring `SewEdge` operates on shared bounding vertices.
+  - **Trap Avoidance (Orientation Mismatch):** For subtraction booleans, explicitly flip the loop windings of Tool faces before/during instantiation to avoid `SewEdge` encountering parallel half-edges.
   - Use `SewEdge` along the exact boundary seam (driven by `VertexWelder`) to natively zip the target and tool shells together.
-- **Task 2.2: Coplanar Merge via Boundary Reduction (Fixes D3)**
+- **Task 2.2: Coplanar Merge via Boundary Reduction (Fixes D3, Mitigates G8 & G9)**
   - In `polygon_extract.rs`, eliminate the nuke-and-pave strategy.
-  - Traverse the coplanar group and incrementally apply `KillEdgeFace` (KEF) and `KillVertexEdge` (KVE) to dissolve internal boundaries and merge the region intact. Apply `Lineage::merge`.
+  - Traverse the coplanar group and incrementally apply `KillEdgeFace` (KEF) and `KillVertexEdge` (KVE) to dissolve internal boundaries and merge the region intact.
+  - **Trap Avoidance (Lineage Loss, G8):** Apply `Lineage::merge` explicitly across all faces collapsed in the group using the appropriate `OpSignature`.
+  - **Trap Avoidance (Stale Pointers, G9):** Set internal vertex `outgoing` pointers to a sentinel (`HalfEdgeId::MAX`) before the KVE pass, and assert that no live vertex holds a stale outgoing ID to prevent Validation failures.
 - **Task 2.3: Hole Splicing with MEKL (Fixes D4)**
   - Replace `bridge_edge` in `hole_splice.rs` with `MakeEdgeKillLoop` (MEKL) to mathematically absorb holes into standard outer loops.
 - **Task 2.4: Clean Up Non-Manifold Antennae**
   - Implement a final post-process sweep mapping `KillEdgeVertex` (KEV) to dissolve zero-area wire edges ("antennae") leftover from intermediate Euler operations.
+- **Task 2.5: Multi-Lump Disconnected Shell Segregation (Mitigates G4)**
+  - **Trap Avoidance (G4):** Because target mutations occur in-place, a cut may physically divide one shell into two disconnected shells. Perform a BFS reachability pass over the half-edge graph at the end of assembly.
+  - For any disconnected components within the same `Solid`, assign them to new `Lump` and `Region` parents to assert strict hierarchy invariants before `ValidationLevel::Full`.
 
 **Sprint 2 Acceptance Criteria:**
 
@@ -161,14 +162,15 @@ This implementation plan is organized into four sequential sprints. Every task r
 
 - **Task 3.1: MEV Grazing-Cut Retry (Fixes D5)**
   - In `split_solid`, when a cut-attempt resolves exactly one boundary vertex, explicitly embed it using `MakeEdgeVertex` (MEV) to anchor the tangent collision and re-evaluate the split.
-- **Task 3.2: Explicit Non-Solid Routing (Tier 6.1 & 6.2)**
+- **Task 3.2: Explicit Non-Solid Routing (Fixes T4.1 & T4.2)**
   - Pre-screen inputs via `detect_body_kind`.
   - Solid × Solid executes standard pipeline.
   - Solid × Sheet is formally intercepted (returning `NotSupported` pending Imprint/Trim implementation).
   - Relax `validate_solid` to permit valid halfspace approximations (`face_count` override based on shell outer orientation).
-- **Task 3.3: Correct Void Shell Hierarchy (Fixes D7)**
-  - Ensure subtracted tool faces produce `Solid(Inner)` void boundaries properly nested inside the target's `Region` struct, not independent lumps.
-- **Task 3.4: Winding Number Fast-Path Fallback**
+- **Task 3.3: Correct Void Shell Hierarchy (Fixes D7 & Mitigates G12)**
+  - Ensure subtracted tool faces produce `Solid(Inner)` void boundaries properly nested inside the target's `Region` struct, not independent lumps or default outer shells.
+  - **Trap Avoidance (G12):** Ensure `copy.rs` propagates shell kinds precisely using `?`, never defaulting missing shells to `Solid(Outer)`, which would silently invert void orientations.
+- **Task 3.4: Winding Number Fast-Path Fallback (Fixes T4.3)**
   - Detect ray-parity failures (`PrecisionEscalation` flag). Only when it fires, fallback to O(N²) Generalized Winding Number classification.
 
 **Sprint 3 Acceptance Criteria:**
@@ -208,11 +210,9 @@ This implementation plan is organized into four sequential sprints. Every task r
 
 ---
 
-## 4. Expert Architectural Gap Registry (G1–G12)
+## 4. Architectural Feature Routing (T4.1–T4.4)
 
-These 12 architectural traps are the most likely to remain latent even after
-Sprints 1–4 are complete. Each will appear only under specific geometric conditions
-and will fail silently or produce subtly wrong output.
+These feature routing tasks ensure correct pipeline branching or graceful rejection when dealing with inputs outside the standard watertight Solid paradigm.
 
 ### The Core Assumption Violation
 
@@ -234,7 +234,7 @@ Sheets, wires, and non-manifold surfaces violate all three.
 
 🔶 = faked today via large-box approximation in mb6 (works for convex cases only)
 
-### T6.1 — Add Input-Type Detection Before Pipeline Entry
+### T4.1 — Add Input-Type Detection Before Pipeline Entry
 
 **File:** `execute_boolean` orchestrator
 
@@ -270,7 +270,7 @@ producing garbage topology or panicking.
 **Acceptance:** `execute_boolean(sheet_input)` returns `Err(NotSupported)`,
 not a topology violation.
 
-### T6.2 — Relax `validate_solid` for Halfspace / Large-Box Inputs
+### T4.2 — Relax `validate_solid` for Halfspace / Large-Box Inputs
 
 **File:** `schema.rs::validate_solid`
 
@@ -293,7 +293,7 @@ if !has_outer_solid_shell {
 **Acceptance:** A 6-face cube (valid) passes. A single-face sheet (invalid for
 solid boolean) is caught and named.
 
-### T6.3 — Replace Ray-Parity Classify with Winding Number (Solids Only)
+### T4.3 — Replace Ray-Parity Classify with Winding Number (Solids Only)
 
 **File:** `classify/eval.rs`, `forge-topo::classify`
 
@@ -319,7 +319,7 @@ alternating sign pattern) and add a retry path.
 
 **Acceptance:** mb6's `halfspace_storm_80_coplanar` passes with χ=2.
 
-### T6.4 — Add Tests That Assert `NotSupported` for Unimplemented Combinations
+### T4.4 — Add Tests That Assert `NotSupported` for Unimplemented Combinations
 
 **File:** `tests/edge_case_tests.rs`
 
@@ -341,7 +341,7 @@ fn sheet_solid_boolean_returns_not_supported() {
 
 ---
 
-## 9. Expert Gap Registry
+## 5. Latent Topological Traps (G1-G12)
 
 These are the **architectural traps** most likely to remain latent even after
 Tiers 1–6 are complete. Each will appear only under specific geometric conditions
@@ -473,7 +473,7 @@ shell is always a real topology defect, not a recoverable default.
 
 ---
 
-## 8. Key Test Commands Reference
+## 6. Key Test Commands Reference
 
 ```bash
 # Full boolean test suite

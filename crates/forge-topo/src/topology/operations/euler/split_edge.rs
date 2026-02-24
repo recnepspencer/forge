@@ -77,6 +77,8 @@ impl EulerOperator for SplitEdge {
         };
         
         let chain: Vec<HalfEdgeId> = crate::topology::queries::traverse::RadialEdgeIterator::new(draft.arena(), he_ab)?.collect::<Result<_, _>>()?;
+        let old_edge = draft.arena().get_half_edge(he_ab)?.edge();
+        let is_closed_edge = vertex_a == vertex_b;
         
         let vertex_lineage = Lineage::derive_from(&ab_lineage, sig.clone());
         let new_vertex = draft.insert_vertex(VertexData::with_lineage(
@@ -94,21 +96,38 @@ impl EulerOperator for SplitEdge {
         let mut e_new_list = Vec::new();
         let mut new_ids = std::collections::HashMap::new();
 
-        for &h in &chain {
+        for (radial_index, &h) in chain.iter().enumerate() {
             let (h_face, h_orig, h_lineage, h_next) = {
                 let h_data = draft.arena().get_half_edge(h)?;
                 (h_data.face(), h_data.origin(), h_data.lineage().cloned(), h_data.next())
             };
-            
-            // Determine orientation
-            let is_forward = h_orig == vertex_a;
-            if !is_forward && h_orig != vertex_b {
+
+            let is_forward = radial_index % 2 == 0;
+            if !is_closed_edge {
+                let expected_origin = if is_forward { vertex_a } else { vertex_b };
+                if h_orig != expected_origin {
+                    return Err(KernelError::InternalError {
+                        message: format!(
+                            "Radial edge origin {} does not match expected endpoint {} at radial index {}",
+                            h_orig.index(),
+                            expected_origin.index(),
+                            radial_index
+                        ),
+                        context: None,
+                    });
+                }
+            }
+            if is_closed_edge && h_orig != vertex_a {
                 return Err(KernelError::InternalError {
-                    message: format!("Radial edge origin {} matches neither V_a {} nor V_b {}", h_orig.index(), vertex_a.index(), vertex_b.index()),
+                    message: format!(
+                        "Closed-edge radial halfedge origin {} does not match closed endpoint {}",
+                        h_orig.index(),
+                        vertex_a.index()
+                    ),
                     context: None,
                 });
             }
-            
+
             let new_h_lineage = Lineage::derive_from(&h_lineage, sig.clone());
             let h_new = draft.insert_half_edge(HalfEdgeData::with_lineage(
                 HalfEdgeId::new(u32::MAX, 0), // radial_next
@@ -121,8 +140,7 @@ impl EulerOperator for SplitEdge {
             ));
             
             new_ids.insert(h, h_new);
-            
-            let old_edge = draft.arena().get_half_edge(he_ab)?.edge();
+
             if is_forward {
                 // h is A->M (on E_old), h_new is M->B (on E_new)
                 draft.arena_mut().get_half_edge_mut(h)?.set_edge(old_edge);
@@ -178,12 +196,7 @@ impl EulerOperator for SplitEdge {
             (he_mb, he_ab)
         } else {
             let twin_new = *new_ids.get(&he_twin).unwrap();
-            let is_twin_forward = draft.arena().get_half_edge(he_twin)?.origin() == vertex_a;
-            if is_twin_forward {
-                (twin_new, he_twin)
-            } else {
-                (he_twin, twin_new)
-            }
+            (he_twin, twin_new)
         };
 
         Ok(ExecutionResult {

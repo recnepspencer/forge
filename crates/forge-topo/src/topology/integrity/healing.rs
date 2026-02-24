@@ -6,7 +6,7 @@
 //! DEPENDENCIES: `arena` (entity data), `handles` (typed IDs),
 //!               `shell` (shared discovery/volume), `forge-core` (errors)
 
-use std::collections::BTreeSet;
+use crate::topology::bitset::EntityBitset;
 
 use forge_core::KernelError;
 use crate::arena::TopologyArena;
@@ -48,12 +48,12 @@ pub fn heal_shell_orientation(
     }
 
     let all_faces: Vec<FaceId> = arena.iter_faces().map(|(fid, _)| fid).collect();
-    let mut visited_faces: BTreeSet<u32> = BTreeSet::new();
+    let mut visited_faces = EntityBitset::for_faces(arena);
     let mut shells_to_flip: Vec<Vec<FaceId>> = Vec::new();
     let mut shells_checked: usize = 0;
 
     for &seed_face in &all_faces {
-        if visited_faces.contains(&seed_face.index()) {
+        if visited_faces.contains(seed_face.index()).unwrap_or(false) {
             continue;
         }
 

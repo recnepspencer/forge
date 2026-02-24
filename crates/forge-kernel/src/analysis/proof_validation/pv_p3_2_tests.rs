@@ -118,7 +118,7 @@ fn pv_35b_extracted_region_captures_corruption() {
     );
 
     let region_faces = region.get_faces();
-    let contains_corrupted = region_faces.iter().any(|f| *f == corrupted_face);
+    let contains_corrupted = region_faces.contains(corrupted_face.index()).unwrap_or(false);
     assert!(
         contains_corrupted,
         "Extracted region must contain the corrupted face"
