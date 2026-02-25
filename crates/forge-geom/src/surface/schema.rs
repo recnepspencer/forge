@@ -198,4 +198,11 @@ pub enum SurfaceRelation {
     Disjoint,
     /// Surfaces may intersect — must run the SSI solver.
     General,
+    /// Classification could not be safely decided under bounded precision.
+    ///
+    /// Kernel-side policy: fail-closed by default for merge eligibility.
+    /// Must emit a `TracedDecision` (precision/policy escalation), never
+    /// silently proceed. The kernel may choose to escalate to exact
+    /// arithmetic or reject the merge.
+    Undetermined,
 }

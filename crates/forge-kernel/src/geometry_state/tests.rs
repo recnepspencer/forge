@@ -310,24 +310,30 @@ fn face_is_planar_false_when_cylinder_surface_attached() {
 #[test]
 fn validate_bindings_passes_when_all_refs_live() {
     use forge_geom::SurfaceData;
-    use forge_topo::arena::TopologyArena;
+    use forge_topo::arena::{TopologyArena, FaceData};
+    use forge_topo::handles::{LoopId, ShellId};
+
     let mut store = GeometryState::new();
-    let face = FaceId::from_raw_parts(0, 0);
+    let mut arena = TopologyArena::new();
+    let face = arena.insert_face(FaceData::new(LoopId::from_raw_parts(0, 0), ShellId::from_raw_parts(0, 0)), None);
+
     let sr = store.insert_surface(SurfaceData::plane([0.0, 0.0, 1.0], 0.0));
     store.attach_surface_to_face(face, sr);
-    let arena = TopologyArena::new();
     assert!(store.validate_geometry_bindings(&arena).is_ok());
 }
 
 #[test]
 fn validate_bindings_fails_on_dangling_surface_ref() {
     use forge_geom::SurfaceData;
-    use forge_topo::arena::TopologyArena;
+    use forge_topo::arena::{TopologyArena, FaceData};
+    use forge_topo::handles::{LoopId, ShellId};
+
     let mut store = GeometryState::new();
-    let face = FaceId::from_raw_parts(0, 0);
+    let mut arena = TopologyArena::new();
+    let face = arena.insert_face(FaceData::new(LoopId::from_raw_parts(0, 0), ShellId::from_raw_parts(0, 0)), None);
+
     let sr = store.insert_surface(SurfaceData::plane([0.0, 0.0, 1.0], 0.0));
     store.attach_surface_to_face(face, sr);
     store.remove_surface(sr).unwrap();
-    let arena = TopologyArena::new();
     assert!(store.validate_geometry_bindings(&arena).is_err());
 }

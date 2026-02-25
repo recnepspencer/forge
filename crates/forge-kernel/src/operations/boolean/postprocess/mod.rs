@@ -12,6 +12,7 @@ pub mod polygon_extract;
 mod vertex;
 pub mod hole_splice;
 pub mod merge_eligibility;
+pub mod curved_merge;
 
 use forge_core::KernelError;
 use crate::core::{ModelingContext, KernelState};

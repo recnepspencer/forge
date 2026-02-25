@@ -32,7 +32,7 @@ pub use eval::build_position_lookup;
 pub use coalescence::{snap_or_coalesce_vertex, CoalescenceResult};
 pub use split_propagation::propagate_curve_on_split;
 
-use forge_topo::handles::{FaceId, VertexId};
+use forge_topo::handles::{FaceId, VertexId, HalfEdgeId, EdgeId, SurfaceRef, CoedgeRef, CurveRef};
 use forge_geom::Plane;
 use forge_core::ToleranceProvider;
 use forge_math::GeometrySource;
@@ -45,6 +45,15 @@ pub trait GeometryView: ToleranceProvider + GeometrySource {
     
     /// Retrieve the cached f64 position for a vertex.
     fn get_vertex_position(&self, vertex: VertexId) -> Option<&[f64; 3]>;
+
+    /// Retrieve the surface attached to a face, if any.
+    fn get_face_surface(&self, face: FaceId) -> Option<SurfaceRef>;
+
+    /// Retrieve the coedge + direction attached to a halfedge, if any.
+    fn get_halfedge_coedge(&self, he: HalfEdgeId) -> Option<(CoedgeRef, bool)>;
+
+    /// Retrieve the curve attached to an edge, if any.
+    fn get_edge_curve(&self, edge: EdgeId) -> Option<CurveRef>;
 }
 
 impl GeometryView for GeometryState {
@@ -55,6 +64,18 @@ impl GeometryView for GeometryState {
     fn get_vertex_position(&self, vertex: VertexId) -> Option<&[f64; 3]> {
         self.get_vertex_position(vertex)
     }
+
+    fn get_face_surface(&self, face: FaceId) -> Option<SurfaceRef> {
+        self.get_face_surface(face)
+    }
+
+    fn get_halfedge_coedge(&self, he: HalfEdgeId) -> Option<(CoedgeRef, bool)> {
+        self.get_halfedge_coedge(he)
+    }
+
+    fn get_edge_curve(&self, edge: EdgeId) -> Option<CurveRef> {
+        self.get_edge_curve(edge)
+    }
 }
 
 impl GeometryView for GeometryPatch {
@@ -64,5 +85,17 @@ impl GeometryView for GeometryPatch {
 
     fn get_vertex_position(&self, vertex: VertexId) -> Option<&[f64; 3]> {
         self.get_vertex_position(vertex)
+    }
+
+    fn get_face_surface(&self, face: FaceId) -> Option<SurfaceRef> {
+        self.get_face_surface(face)
+    }
+
+    fn get_halfedge_coedge(&self, he: HalfEdgeId) -> Option<(CoedgeRef, bool)> {
+        self.get_halfedge_coedge(he)
+    }
+
+    fn get_edge_curve(&self, edge: EdgeId) -> Option<CurveRef> {
+        self.get_edge_curve(edge)
     }
 }

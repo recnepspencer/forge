@@ -573,48 +573,120 @@ impl GeometryState {
         self.coedges.iter().filter(|s| s.data.is_some()).count()
     }
 
+    /// Internal: commit a raw handle mapping directly.
+    pub(crate) fn _set_face_surface_raw(&mut self, packed_key: u64, surface: SurfaceRef) {
+        self.face_surfaces.insert(packed_key, surface);
+    }
+
+    /// Internal: remove a raw handle mapping directly.
+    pub(crate) fn _remove_face_surface_raw(&mut self, packed_key: u64) {
+        self.face_surfaces.remove(&packed_key);
+    }
+
+    /// Internal: commit a raw handle mapping directly.
+    pub(crate) fn _set_halfedge_coedge_raw(&mut self, packed_key: u64, coedge: CoedgeRef, direction: bool) {
+        self.halfedge_coedges.insert(packed_key, (coedge, direction));
+    }
+
+    /// Internal: remove a raw handle mapping directly.
+    pub(crate) fn _remove_halfedge_coedge_raw(&mut self, packed_key: u64) {
+        self.halfedge_coedges.remove(&packed_key);
+    }
+
+    /// Internal: commit a raw handle mapping directly.
+    pub(crate) fn _set_edge_curve_raw(&mut self, packed_key: u64, curve: CurveRef) {
+        self.edge_curves.insert(packed_key, curve);
+    }
+
+    /// Internal: remove a raw handle mapping directly.
+    pub(crate) fn _remove_edge_curve_raw(&mut self, packed_key: u64) {
+        self.edge_curves.remove(&packed_key);
+    }
+
     // ── Phase 4: Validation ──────────────────────────────────────────────
 
-    /// Validate that all geometry bindings point to live arena entries.
-    ///
-    /// Called by the kernel during commit to catch dangling geometry
-    /// references. This check CANNOT live in `forge-topo` because
-    /// `TopologyArena` must not see `GeometryState` (layer boundary).
     pub fn validate_geometry_bindings(&self, arena: &TopologyArena) -> Result<(), KernelError> {
-        for (&key, &surface_ref) in &self.face_surfaces {
-            if self.get_surface(surface_ref).is_err() {
-                let index = (key & 0xFFFF_FFFF) as u32;
+        // Core topology bindings
+        for &key in self.face_planes.keys() {
+            let index = (key & 0xFFFF_FFFF) as u32;
+            let gen = (key >> 32) as u32;
+            if arena.get_face(FaceId::from_raw_parts(index, gen)).is_err() {
                 return Err(KernelError::InternalError {
-                    message: format!(
-                        "Face index {} has a dangling SurfaceRef {}",
-                        index, surface_ref,
-                    ),
+                    message: format!("Dangling face_plane binding for FaceId {}:{}", index, gen),
+                    context: None,
+                });
+            }
+        }
+
+        for &key in self.vertex_positions.keys() {
+            let index = (key & 0xFFFF_FFFF) as u32;
+            let gen = (key >> 32) as u32;
+            if arena.get_vertex(VertexId::from_raw_parts(index, gen)).is_err() {
+                return Err(KernelError::InternalError {
+                    message: format!("Dangling vertex_position binding for VertexId {}:{}", index, gen),
+                    context: None,
+                });
+            }
+        }
+
+        for &key in self.vertex_tolerances.keys() {
+            let index = (key & 0xFFFF_FFFF) as u32;
+            let gen = (key >> 32) as u32;
+            if arena.get_vertex(VertexId::from_raw_parts(index, gen)).is_err() {
+                return Err(KernelError::InternalError {
+                    message: format!("Dangling vertex_tolerance binding for VertexId {}:{}", index, gen),
+                    context: None,
+                });
+            }
+        }
+
+        // Phase 4: Curved entity bindings
+        for (&key, &surface_ref) in &self.face_surfaces {
+            let index = (key & 0xFFFF_FFFF) as u32;
+            let gen = (key >> 32) as u32;
+            if arena.get_face(FaceId::from_raw_parts(index, gen)).is_err() {
+                return Err(KernelError::InternalError {
+                    message: format!("Dangling face_surface topology handle for FaceId {}:{}", index, gen),
+                    context: None,
+                });
+            }
+            if self.get_surface(surface_ref).is_err() {
+                return Err(KernelError::InternalError {
+                    message: format!("FaceId {}:{} has a dangling SurfaceRef {}", index, gen, surface_ref),
                     context: None,
                 });
             }
         }
 
         for (&key, &(coedge_ref, _)) in &self.halfedge_coedges {
-            if self.get_coedge(coedge_ref).is_err() {
-                let index = (key & 0xFFFF_FFFF) as u32;
+            let index = (key & 0xFFFF_FFFF) as u32;
+            let gen = (key >> 32) as u32;
+            if arena.get_half_edge(HalfEdgeId::from_raw_parts(index, gen)).is_err() {
                 return Err(KernelError::InternalError {
-                    message: format!(
-                        "HalfEdge index {} has a dangling CoedgeRef {}",
-                        index, coedge_ref,
-                    ),
+                    message: format!("Dangling halfedge_coedge topology handle for HalfEdgeId {}:{}", index, gen),
+                    context: None,
+                });
+            }
+            if self.get_coedge(coedge_ref).is_err() {
+                return Err(KernelError::InternalError {
+                    message: format!("HalfEdgeId {}:{} has a dangling CoedgeRef {}", index, gen, coedge_ref),
                     context: None,
                 });
             }
         }
 
         for (&key, &curve_ref) in &self.edge_curves {
-            if self.get_curve(curve_ref).is_err() {
-                let index = (key & 0xFFFF_FFFF) as u32;
+            let index = (key & 0xFFFF_FFFF) as u32;
+            let gen = (key >> 32) as u32;
+            if arena.get_edge(EdgeId::from_raw_parts(index, gen)).is_err() {
                 return Err(KernelError::InternalError {
-                    message: format!(
-                        "Edge index {} has a dangling CurveRef {}",
-                        index, curve_ref,
-                    ),
+                    message: format!("Dangling edge_curve topology handle for EdgeId {}:{}", index, gen),
+                    context: None,
+                });
+            }
+            if self.get_curve(curve_ref).is_err() {
+                return Err(KernelError::InternalError {
+                    message: format!("EdgeId {}:{} has a dangling CurveRef {}", index, gen, curve_ref),
                     context: None,
                 });
             }

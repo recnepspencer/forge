@@ -6,7 +6,7 @@ use forge_math::{MathError, GeometrySource, PlaneCoefficients};
 
 use crate::geometry_state::{GeometryState, ExactPosition};
 use crate::geometry_state::schema::pack_handle;
-use forge_topo::handles::{FaceId, VertexId};
+use forge_topo::handles::{FaceId, VertexId, HalfEdgeId, EdgeId, SurfaceRef, CoedgeRef, CurveRef};
 use forge_geom::Plane;
 
 /// Transactional mutation handle for geometry.
@@ -31,8 +31,15 @@ pub struct GeometryPatch {
     vertex_tolerance_inserts: HashMap<u64, f64>,
     vertex_tolerance_removes: HashSet<u64>,
 
-    // Note: Future NURBS layers (surfaces, curves, coedges) will 
-    // add their own diff maps here tracking index generations.
+    // -- Phase 4 Curved Entity Data --
+    face_surface_inserts: HashMap<u64, SurfaceRef>,
+    face_surface_removes: HashSet<u64>,
+
+    halfedge_coedge_inserts: HashMap<u64, (CoedgeRef, bool)>,
+    halfedge_coedge_removes: HashSet<u64>,
+
+    edge_curve_inserts: HashMap<u64, CurveRef>,
+    edge_curve_removes: HashSet<u64>,
 }
 
 impl GeometryPatch {
@@ -46,6 +53,12 @@ impl GeometryPatch {
             vertex_position_removes: HashSet::new(),
             vertex_tolerance_inserts: HashMap::new(),
             vertex_tolerance_removes: HashSet::new(),
+            face_surface_inserts: HashMap::new(),
+            face_surface_removes: HashSet::new(),
+            halfedge_coedge_inserts: HashMap::new(),
+            halfedge_coedge_removes: HashSet::new(),
+            edge_curve_inserts: HashMap::new(),
+            edge_curve_removes: HashSet::new(),
         }
     }
 
@@ -125,6 +138,77 @@ impl GeometryPatch {
         self.vertex_tolerance_inserts.insert(key, tolerance);
     }
 
+    // ─── Phase 4 Curved Entity Layer ────────────────────────────
+
+    pub fn get_face_surface(&self, face: FaceId) -> Option<SurfaceRef> {
+        let key = pack_handle(face.index(), face.generation());
+        if self.face_surface_removes.contains(&key) {
+            return None;
+        }
+        if let Some(r) = self.face_surface_inserts.get(&key) {
+            return Some(*r);
+        }
+        self.base.get_face_surface(face)
+    }
+
+    pub fn set_face_surface(&mut self, face: FaceId, surface_ref: SurfaceRef) {
+        let key = pack_handle(face.index(), face.generation());
+        self.face_surface_removes.remove(&key);
+        self.face_surface_inserts.insert(key, surface_ref);
+    }
+
+    pub fn remove_face_surface(&mut self, face: FaceId) {
+        let key = pack_handle(face.index(), face.generation());
+        self.face_surface_inserts.remove(&key);
+        self.face_surface_removes.insert(key);
+    }
+
+    pub fn get_halfedge_coedge(&self, he: HalfEdgeId) -> Option<(CoedgeRef, bool)> {
+        let key = pack_handle(he.index(), he.generation());
+        if self.halfedge_coedge_removes.contains(&key) {
+            return None;
+        }
+        if let Some(r) = self.halfedge_coedge_inserts.get(&key) {
+            return Some(*r);
+        }
+        self.base.get_halfedge_coedge(he)
+    }
+
+    pub fn set_halfedge_coedge(&mut self, he: HalfEdgeId, coedge_ref: CoedgeRef, direction: bool) {
+        let key = pack_handle(he.index(), he.generation());
+        self.halfedge_coedge_removes.remove(&key);
+        self.halfedge_coedge_inserts.insert(key, (coedge_ref, direction));
+    }
+
+    pub fn remove_halfedge_coedge(&mut self, he: HalfEdgeId) {
+        let key = pack_handle(he.index(), he.generation());
+        self.halfedge_coedge_inserts.remove(&key);
+        self.halfedge_coedge_removes.insert(key);
+    }
+
+    pub fn get_edge_curve(&self, edge: EdgeId) -> Option<CurveRef> {
+        let key = pack_handle(edge.index(), edge.generation());
+        if self.edge_curve_removes.contains(&key) {
+            return None;
+        }
+        if let Some(r) = self.edge_curve_inserts.get(&key) {
+            return Some(*r);
+        }
+        self.base.get_edge_curve(edge)
+    }
+
+    pub fn set_edge_curve(&mut self, edge: EdgeId, curve_ref: CurveRef) {
+        let key = pack_handle(edge.index(), edge.generation());
+        self.edge_curve_removes.remove(&key);
+        self.edge_curve_inserts.insert(key, curve_ref);
+    }
+
+    pub fn remove_edge_curve(&mut self, edge: EdgeId) {
+        let key = pack_handle(edge.index(), edge.generation());
+        self.edge_curve_inserts.remove(&key);
+        self.edge_curve_removes.insert(key);
+    }
+
     // ─── Lifecycle ──────────────────────────────────────────────
     
     /// Commits all pending mutations to the base `GeometryState`.
@@ -151,6 +235,27 @@ impl GeometryPatch {
         }
         for v_packed in self.vertex_tolerance_removes {
             self.base._remove_vertex_tolerance_raw(v_packed);
+        }
+
+        for (packed_key, s_ref) in self.face_surface_inserts {
+            self.base._set_face_surface_raw(packed_key, s_ref);
+        }
+        for packed_key in self.face_surface_removes {
+            self.base._remove_face_surface_raw(packed_key);
+        }
+
+        for (packed_key, (c_ref, dir)) in self.halfedge_coedge_inserts {
+            self.base._set_halfedge_coedge_raw(packed_key, c_ref, dir);
+        }
+        for packed_key in self.halfedge_coedge_removes {
+            self.base._remove_halfedge_coedge_raw(packed_key);
+        }
+
+        for (packed_key, c_ref) in self.edge_curve_inserts {
+            self.base._set_edge_curve_raw(packed_key, c_ref);
+        }
+        for packed_key in self.edge_curve_removes {
+            self.base._remove_edge_curve_raw(packed_key);
         }
 
         self.base
