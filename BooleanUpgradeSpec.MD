@@ -46,6 +46,7 @@ Why boolean tests hit this:
 
 fillet and curved boolean outputs will quickly require “same support merge” rather than planar-only merge.
 4. Tolerant / fuzzy boundary certification
+
 What’s missing:
 
 A lower-layer ambiguity representation (PolicyResult-style) for boundary certification outcomes
@@ -58,24 +59,28 @@ near-coincident vertex/edge clustering with deterministic order
 Canonical snapping / clustering policy
 deterministic, logged, reversible or transactional
 Test corpus for near-degenerate merge boundaries
+
 Why boolean tests hit this:
 
 exact topological checks fail on imported/healed or numerically perturbed data that is geometrically intended to merge.
-5. Global rectification / repair fallback inside merge
+
+5. Per-join deep validation by default
+
 What’s missing:
 
-A dedicated repair pipeline contract (separate from local merge)
-candidate generation
-scoring/objective
-deterministic selection policy
-Structured “repair requested” result instead of hard failure
-Geometry+topology rectification algorithms (non-local)
-Performance/timeout policy and observability
-Clear doctrine boundary so local ops don’t silently become repair routines
+Fast incremental validators (local neighborhood validation)
+full validation each join is too expensive for large regions
+Validation checkpoint configuration surfaced in API/options
+Performance baselines and thresholds
+Debug vs production profiles with deterministic behavior unchanged
+Instrumentation for “which join invalidated topology”
+
 Why boolean tests hit this:
 
-some pathological outputs are not locally mergeable but still salvageable with repair; mixing this into merge would hide failure causes.
+deep validation is useful for debugging failing complex cases, but too slow to run always unless incrementalized.
+
 6. Complete formal join applicability for all topology cases
+
 What’s missing:
 
 A comprehensive case taxonomy for JoinFaces applicability
@@ -86,21 +91,28 @@ Join simulation/preflight model
 Operator capability introspection
 what current JoinFaces actually guarantees vs rejects
 Exhaustive topology tests (small graph fixtures), not just geometry-driven boolean cases
+
 Why boolean tests hit this:
 
 ad hoc eligibility fails on rare loop/topology configurations that only appear in complex unions/differences.
-7. Inclusion-topology handling for auxiliary/internal construction entities
+
+7. Automatic geometric reclassification if preconditions drift during merge
+
 What’s missing:
 
-Data model support for inclusion topology / non-boundary entities
-Boundary extraction that distinguishes authoritative boundary vs internal/support entities
-Query APIs exposing inclusion relationships
-Validation rules for inclusion-consistent merges
-Boolean pipeline tagging for construction/generated auxiliary topology
+A callback/adapter contract from topo back to kernel-owned geometry classification
+while preserving layer boundaries (Adapter Rule)
+Incremental geometry support cache updates as faces are joined
+Policy/logging integration for reclassification decisions
+Deterministic restart/reschedule strategy if region membership changes mid-merge
+Clear transaction semantics (restart merge loop vs fail vs split region)
+
 Why boolean tests hit this:
 
-as operations get richer (fillet, loft, healing), internal helper entities can leak into downstream traversal unless modeled explicitly.
+regions chosen as coplanar by caller can become invalid after local edits if geometry bindings or classification assumptions are incomplete.
+
 8. Rich lineage composition inside topo algorithm
+
 What’s missing:
 
 A stable lineage-composition contract shared between topo and kernel
@@ -110,30 +122,38 @@ multi-parent lineage policy
 Structured result payload in topo (MergeRegionResult) carrying lineage hooks/IDs
 Kernel-side lineage reducer utilities to consume topo outcomes deterministically
 Tests for lineage stability under deterministic edge-order changes
+
 Why boolean tests hit this:
 
 regression/debugging and replay become hard if face merges lose parentage in complex boolean cascades.
-9. Per-join deep validation by default
+
+9. Inclusion-topology handling for auxiliary/internal construction entities
+
 What’s missing:
 
-Fast incremental validators (local neighborhood validation)
-full validation each join is too expensive for large regions
-Validation checkpoint configuration surfaced in API/options
-Performance baselines and thresholds
-Debug vs production profiles with deterministic behavior unchanged
-Instrumentation for “which join invalidated topology”
+Data model support for inclusion topology / non-boundary entities
+Boundary extraction that distinguishes authoritative boundary vs internal/support entities
+Query APIs exposing inclusion relationships
+Validation rules for inclusion-consistent merges
+Boolean pipeline tagging for construction/generated auxiliary topology
+
 Why boolean tests hit this:
 
-deep validation is useful for debugging failing complex cases, but too slow to run always unless incrementalized.
-10. Automatic geometric reclassification if preconditions drift during merge
+as operations get richer (fillet, loft, healing), internal helper entities can leak into downstream traversal unless modeled explicitly.
+
+10. Global rectification / repair fallback inside merge
+
 What’s missing:
 
-A callback/adapter contract from topo back to kernel-owned geometry classification
-while preserving layer boundaries (Adapter Rule)
-Incremental geometry support cache updates as faces are joined
-Policy/logging integration for reclassification decisions
-Deterministic restart/reschedule strategy if region membership changes mid-merge
-Clear transaction semantics (restart merge loop vs fail vs split region)
+A dedicated repair pipeline contract (separate from local merge)
+candidate generation
+scoring/objective
+deterministic selection policy
+Structured “repair requested” result instead of hard failure
+Geometry+topology rectification algorithms (non-local)
+Performance/timeout policy and observability
+Clear doctrine boundary so local ops don’t silently become repair routines
+
 Why boolean tests hit this:
 
-regions chosen as coplanar by caller can become invalid after local edits if geometry bindings or classification assumptions are incomplete.
+some pathological outputs are not locally mergeable but still salvageable with repair; mixing this into merge would hide failure causes.

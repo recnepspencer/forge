@@ -264,22 +264,16 @@ impl KernelError {
                 let new_source = (**source).clone();
                 *source = Box::new(new_source.with_phase(phase));
             }
-            // Preserve typed MergeError structure. Prefix the reason on
-            // PartialMergePlanRejected; wrap other variants in a PartialMergePlanRejected
-            // so the phase is always traceable without losing the original error kind.
+            // Preserve typed MergeError structure exactly.
+            // Only PartialMergePlanRejected gets a phase prefix on its reason field —
+            // it is the only general-purpose carrier. All other MergeError variants
+            // already carry fully structured fields (edge_index, valence, witness, etc.)
+            // that are more informative than a phase string. Do not convert them.
             KernelError::MergeFailure(merge_err) => {
-                match merge_err {
-                    MergeError::PartialMergePlanRejected { reason, .. } => {
-                        *reason = format!("[{}] {}", phase, reason);
-                    }
-                    ref other => {
-                        let inner = format!("[{}] {}", phase, other);
-                        *merge_err = MergeError::PartialMergePlanRejected {
-                            step_index: None,
-                            reason: inner,
-                        };
-                    }
+                if let MergeError::PartialMergePlanRejected { reason, .. } = merge_err {
+                    *reason = format!("[{}] {}", phase, reason);
                 }
+                // All other MergeError variants: left completely untouched.
             }
         }
         self
@@ -444,6 +438,19 @@ pub enum TopologyError {
         /// What went wrong.
         detail: String,
     },
+    /// Two halfedges in the same radial ring reference different `EdgeId`s.
+    /// A radial ring represents all face-uses of a single geometric edge;
+    /// mixed edge entities indicate structural corruption.
+    RadialEdgeInconsistency {
+        /// The halfedge that disagrees with the ring seed.
+        halfedge_index: u32,
+        /// The edge entity found on the disagreeing halfedge.
+        actual_edge: u32,
+        /// The seed halfedge that defines the expected edge.
+        seed_halfedge_index: u32,
+        /// The edge entity on the ring seed.
+        expected_edge: u32,
+    },
 }
 
 impl fmt::Display for TopologyError {
@@ -525,6 +532,10 @@ impl fmt::Display for TopologyError {
             TopologyError::HierarchyViolation { parent_kind, parent_index, child_kind, child_index, detail } => {
                 write!(f, "Hierarchy violation: {} {} → {} {}: {}",
                     parent_kind, parent_index, child_kind, child_index, detail)
+            }
+            TopologyError::RadialEdgeInconsistency { halfedge_index, actual_edge, seed_halfedge_index, expected_edge } => {
+                write!(f, "Radial ring edge-entity inconsistency: he[{}].edge = {} but ring seed he[{}].edge = {}",
+                    halfedge_index, actual_edge, seed_halfedge_index, expected_edge)
             }
         }
     }

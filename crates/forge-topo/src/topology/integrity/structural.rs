@@ -47,11 +47,20 @@ pub fn validate_topology_with_mode(
     level: ValidationLevel,
     mode: super::validate::TopologyMode,
 ) -> Result<(), KernelError> {
+    // D8 — Manifold enforcement is unconditional. It runs BEFORE the level
+    // gate because it is a hard phase-boundary invariant, not a diagnostic.
+    // ValidationLevel::None bypasses diagnostics, NOT semantic policy.
+    if mode == super::validate::TopologyMode::ManifoldStrict {
+        validate_manifold_edges(arena)?;
+    }
+
     if level == ValidationLevel::None {
         return Ok(());
     }
 
+    // Tier 1a: Core pointer coherence and local invariants.
     validate_radial_rings(arena)?;
+    validate_radial_edge_consistency(arena)?;
     validate_prev_consistency(arena)?;
     validate_vertex_continuity(arena)?;
     validate_vertex_outgoing(arena)?;
@@ -64,10 +73,6 @@ pub fn validate_topology_with_mode(
     if level == ValidationLevel::Full {
         validate_euler(arena)?;
         validate_shell_consistency(arena)?;
-        // Named skip-list: only validate_manifold_edges is skipped in NmtIntermediate.
-        if mode == super::validate::TopologyMode::ManifoldStrict {
-            validate_manifold_edges(arena)?;
-        }
         validate_orientation_consistency(arena)?;
     }
 
@@ -112,6 +117,62 @@ fn validate_radial_rings(arena: &TopologyArena) -> Result<(), KernelError> {
     Ok(())
 }
 
+/// Validate radial ring edge-entity consistency: every halfedge in a
+/// `.radial_next()` ring must reference the same `EdgeId`.
+///
+/// A radial ring represents all face-uses of a single geometric edge.
+/// If two halfedges in the same ring disagree on which edge entity they
+/// belong to, the topology is structurally corrupt — the ring conflates
+/// two distinct geometric edges into one cycle.
+///
+/// This is a Tier 1a invariant (same level as radial ring closure).
+pub(crate) fn validate_radial_edge_consistency(arena: &TopologyArena) -> Result<(), KernelError> {
+    let mut checked = EntityBitset::for_half_edges(arena);
+
+    for (start_he, start_data) in arena.iter_half_edges() {
+        if checked.contains(start_he.index())? {
+            continue;
+        }
+        checked.insert(start_he.index())?;
+
+        let expected_edge = start_data.edge();
+        let mut curr = start_data.radial_next();
+
+        while curr != start_he {
+            checked.insert(curr.index())?;
+            let curr_data = arena.get_half_edge(curr)?;
+
+            if curr_data.edge() != expected_edge {
+                return Err(KernelError::TopologyViolation {
+                    err: forge_core::TopologyError::RadialEdgeInconsistency {
+                        halfedge_index: curr.index(),
+                        actual_edge: curr_data.edge().index(),
+                        seed_halfedge_index: start_he.index(),
+                        expected_edge: expected_edge.index(),
+                    },
+                    context: Some(forge_core::ErrorContext {
+                        scope: forge_core::ErrorScope::Entity {
+                            entity_kind: "HalfEdge".to_string(),
+                            index: curr.index(),
+                        },
+                        suggested_fixes: Vec::new(),
+                        detail: format!(
+                            "Radial ring edge-entity inconsistency: he[{}].edge = {} \
+                             but ring seed he[{}].edge = {}. All members of a radial \
+                             ring must reference the same geometric edge.",
+                            curr.index(), curr_data.edge().index(),
+                            start_he.index(), expected_edge.index(),
+                        ),
+                    }),
+                });
+            }
+
+            curr = curr_data.radial_next();
+        }
+    }
+    Ok(())
+}
+
 /// Validate previous-pointer consistency: for every halfedge, `he.prev.next == he`.
 fn validate_prev_consistency(arena: &TopologyArena) -> Result<(), KernelError> {
     for (he_id, he_data) in arena.iter_half_edges() {
@@ -142,19 +203,25 @@ fn validate_prev_consistency(arena: &TopologyArena) -> Result<(), KernelError> {
 /// for geometric self-loops).
 ///
 /// This catches the "spaghetti topology" bug where edges are mis-wired.
-fn validate_vertex_continuity(arena: &TopologyArena) -> Result<(), KernelError> {
-    let mut checked_edges = EntityBitset::for_edges(arena);
+pub(crate) fn validate_vertex_continuity(arena: &TopologyArena) -> Result<(), KernelError> {
+    let mut checked_halfedges = EntityBitset::for_half_edges(arena);
 
     for (he_id, he_data) in arena.iter_half_edges() {
-        let edge_id = he_data.edge();
-        if !checked_edges.insert(edge_id.index())? {
+        if checked_halfedges.contains(he_id.index())? {
             continue;
         }
+
+        checked_halfedges.insert(he_id.index())?;
+        
+        // Unify the edge explicitly for the error message, even though
+        // validate_radial_edge_consistency ensures it's uniform per ring.
+        let edge_id = he_data.edge();
 
         // Collect all (origin, target) pairs from this edge's radial ring
         let mut endpoints = EntityBitset::for_vertices(arena);
         let mut curr = he_id;
         loop {
+            checked_halfedges.insert(curr.index())?;
             let curr_data = arena.get_half_edge(curr)?;
             let next_data = arena.get_half_edge(curr_data.next())?;
             endpoints.insert(curr_data.origin().index())?;
@@ -547,26 +614,35 @@ fn validate_shell_consistency(arena: &TopologyArena) -> Result<(), KernelError> 
 /// `radial_next` supports arbitrary-length rings during construction,
 /// but `validate_manifold_edges` rejects valence > 2 at commit.
 fn validate_manifold_edges(arena: &TopologyArena) -> Result<(), KernelError> {
-    let mut checked_edges = EntityBitset::for_edges(arena);
+    let mut checked_halfedges = EntityBitset::for_half_edges(arena);
 
     for (he_id, he_data) in arena.iter_half_edges() {
-        let edge_id = he_data.edge();
-        if !checked_edges.insert(edge_id.index())? {
+        if checked_halfedges.contains(he_id.index())? {
             continue;
         }
 
-        let valence = crate::topology::queries::traverse::radial_valence(arena, he_id)?;
+        checked_halfedges.insert(he_id.index())?;
 
+        let edge_id = he_data.edge();
+        let valence = crate::topology::queries::traverse::radial_valence(arena, he_id)?;
+        
+        let mut curr = he_data.radial_next();
+        while curr != he_id {
+            checked_halfedges.insert(curr.index())?;
+            curr = arena.get_half_edge(curr)?.radial_next();
+        }
+
+        // Valence 1: self-radial wire edge (boundary halfedge). Valid.
+        // Valence 2: manifold interior edge. Valid.
+        // Valence > 2: non-manifold. Always rejected under ManifoldStrict.
+        //
+        // NOTE: The former same-face exemption ("is this a wire edge?") was
+        // removed here because valence > 2 is unconditionally non-manifold —
+        // wire edges are already excluded by the valence <= 2 guard (they are
+        // self-radial, valence 1). If the first pair of a 3+ ring shares a face,
+        // that is still a structural violation, not a wire edge.
         if valence <= 2 {
             continue;
-        }
-
-        let twin_id = he_data.radial_next();
-        if twin_id != he_id {
-            let twin_data = arena.get_half_edge(twin_id)?;
-            if he_data.face() == twin_data.face() {
-                continue;
-            }
         }
 
         return Err(KernelError::TopologyViolation {
@@ -590,6 +666,7 @@ fn validate_manifold_edges(arena: &TopologyArena) -> Result<(), KernelError> {
     }
     Ok(())
 }
+
 
 /// Validate orientation consistency across twin edge pairs (P0.3).
 ///

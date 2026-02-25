@@ -25,6 +25,7 @@ mod mev_tests;
 mod mekl_keml_tests;
 mod split_edge_tests;
 mod join_faces_tests;
+mod join_faces_nmt_tests;
 mod kill_edge_vertex_tests;
 mod lineage_tests;
 mod integration_tests;

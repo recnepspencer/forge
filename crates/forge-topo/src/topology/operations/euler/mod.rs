@@ -9,6 +9,7 @@
 //! - `MakeEdgeKillLoop` (MEKL): loop merge — E+1 L-1
 //! - `SplitEdge` (SE): edge subdivision — V+1 E+1
 //! - `JoinFaces` (JF): face merging (inverse of MEF) — E-1 F-1
+//! - `JoinFacesNmt` (JFN): NMT face merging (leaves a slit) — F-1
 //! - `KillEdgeVertex` (KEV): edge/vertex collapse (inverse of MEV/SE) — V-1 E-1
 //! - `KillEdgeMakeLoop` (KEML): loop split (inverse of MEKL) — E-1 L+1
 //! - `SewEdge` (SEW): boundary edge gluing — E-1 χ+1
@@ -32,6 +33,7 @@ pub mod make_edge_vertex;
 pub mod make_edge_kill_loop;
 pub mod split_edge;
 pub mod join_faces;
+pub mod join_faces_nmt;
 pub mod kill_edge_vertex;
 pub mod kill_edge_make_loop;
 pub mod sew_edge;
