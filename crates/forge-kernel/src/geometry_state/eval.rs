@@ -3,7 +3,7 @@
 use forge_core::KernelError;
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::VertexId;
-use super::schema::GeometryStore;
+use super::schema::GeometryState;
 
 /// Create a position lookup function for use with `classify_point_in_solid`.
 ///
@@ -11,10 +11,10 @@ use super::schema::GeometryStore;
 /// by resolving the generation from the arena and looking up the position
 /// in the geometry store.
 ///
-/// This bridges the `GeometryStore` (kernel layer) to the `classify`
+/// This bridges the `GeometryState` (kernel layer) to the `classify`
 /// module (topo layer) without upward dependency (Architecture Rule 6).
 pub fn build_position_lookup<'a>(
-    store: &'a GeometryStore,
+    store: &'a GeometryState,
     arena: &'a TopologyArena,
 ) -> impl Fn(u32) -> Result<[f64; 3], KernelError> + 'a {
     move |index: u32| {

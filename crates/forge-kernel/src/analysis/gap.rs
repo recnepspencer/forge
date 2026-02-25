@@ -2,7 +2,7 @@
 //!
 //! DOMAIN: Measure the geometric distance between two faces.
 //! DEPENDENCIES: forge_core, forge_geom (plane signed_distance, polygon bounds),
-//!               forge_kernel (GeometryStore, ModelingContext).
+//!               forge_kernel (GeometryState, ModelingContext).
 //! INVARIANTS:
 //!   - Non-planar faces → `KernelError::PolicyRequired` (never a wrong answer).
 //!   - Sample density maps to fixed counts for reproducible `sample_count`.
@@ -13,7 +13,7 @@ use forge_topo::state::TopologyState;
 use forge_topo::handles::FaceId;
 use forge_topo::traverse::FaceEdgeIterator;
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use crate::core::ModelingContext;
 
 // ── Public types ──────────────────────────────────────────────────────────────
@@ -70,10 +70,10 @@ impl GapSampleDensity {
 pub fn measure_gap(
     face_a: FaceId,
     topo_a: &TopologyState,
-    geom_a: &GeometryStore,
+    geom_a: &GeometryState,
     face_b: FaceId,
     topo_b: &TopologyState,
-    geom_b: &GeometryStore,
+    geom_b: &GeometryState,
     density: GapSampleDensity,
     _ctx: &mut ModelingContext,
 ) -> OperationResult<Result<GapReport, KernelError>> {
@@ -86,10 +86,10 @@ pub fn measure_gap(
 fn measure_gap_inner(
     face_a: FaceId,
     topo_a: &TopologyState,
-    geom_a: &GeometryStore,
+    geom_a: &GeometryState,
     face_b: FaceId,
     _topo_b: &TopologyState,
-    geom_b: &GeometryStore,
+    geom_b: &GeometryState,
     density: GapSampleDensity,
 ) -> Result<GapReport, KernelError> {
     // ── 1. Guard: face_b must be planar ───────────────────────────────────────
@@ -309,7 +309,7 @@ mod tests {
         
         let res_b = crate::mesh_builder::make_cube([11.5, 0.0, 0.0], 10.0).unwrap();
         let (topo_b, _geom_b) = res_b.into_parts();
-        let empty_geom = GeometryStore::new();
+        let empty_geom = GeometryState::new();
 
         let face_a = topo_a.arena().iter_faces().next().unwrap().0;
         let face_b = topo_b.arena().iter_faces().next().unwrap().0;

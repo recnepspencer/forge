@@ -1,7 +1,7 @@
 //! Orchestration for the face-splitting phase.
 //!
 //! DOMAIN: BVH query, cut-proposal, and per-face split queuing for both solids.
-//! DEPENDENCIES: schema, cut, GeometryStore, forge_geom BVH, forge_topo.
+//! DEPENDENCIES: schema, cut, GeometryState, forge_geom BVH, forge_topo.
 //! INVARIANTS: split_solid processes each face-cut pair atomically via MutableDraft.
 
 use std::collections::BTreeMap;
@@ -19,7 +19,7 @@ use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::state::{TopologyState, MutableDraft};
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
 use crate::operations::boolean::eval::{VertexMatchKey, planes_are_parallel};
 
@@ -34,9 +34,9 @@ use super::reconcile::reconcile_boundary_vertices;
 /// and split both solids.
 pub fn split_all_faces(
     target_topo: TopologyState,
-    target_geom: GeometryStore,
+    target_geom: GeometryState,
     tool_topo: TopologyState,
-    tool_geom: GeometryStore,
+    tool_geom: GeometryState,
     ctx: &mut ModelingContext,
 ) -> Result<SplitPhaseResult, KernelError> {
     let config = crate::core::ToleranceConfig::default();
@@ -201,10 +201,10 @@ pub fn split_all_faces(
 fn collect_expected_overlap_hints(
     bvh_pairs: &[(FaceId, FaceId)],
     target_arena: &TopologyArena,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     target_face_planes: &BTreeMap<FaceId, usize>,
     tool_arena: &TopologyArena,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
     tool_face_planes: &BTreeMap<FaceId, usize>,
     plane_table: &PlaneTable,
     config: &crate::core::ToleranceConfig,
@@ -373,9 +373,9 @@ fn dist_sq3(a: &[f64; 3], b: &[f64; 3]) -> f64 {
 /// Build the shared PlaneTable and per-solid face→plane-index maps.
 fn build_plane_tables(
     target_topo: &TopologyState,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_topo: &TopologyState,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
 ) -> (PlaneTable, BTreeMap<FaceId, usize>, BTreeMap<FaceId, usize>) {
     let mut plane_table = PlaneTable::new();
     let mut target_face_planes = BTreeMap::new();
@@ -402,9 +402,9 @@ fn build_plane_tables(
 /// Returns pairs as `(target_face_index, tool_face_index)` into the AABB lists.
 fn build_bvh_overlap_pairs(
     target_arena: &TopologyArena,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_arena: &TopologyArena,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
     config: &crate::core::ToleranceConfig,
 ) -> Result<Vec<(FaceId, FaceId)>, KernelError> {
     let target_aabbs = compute_face_aabbs(target_arena, target_geom, config)?;
@@ -530,10 +530,10 @@ fn dedup_cut_lists(cuts: &mut BTreeMap<FaceId, Vec<usize>>) {
 /// Returns the number of supplemental cuts added.
 fn supplement_cuts_exhaustive(
     target_arena: &TopologyArena,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     target_face_planes: &BTreeMap<FaceId, usize>,
     tool_arena: &TopologyArena,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
     tool_face_planes: &BTreeMap<FaceId, usize>,
     plane_table: &PlaneTable,
     config: &crate::core::ToleranceConfig,
@@ -570,7 +570,7 @@ fn supplement_cuts_exhaustive(
 /// infinite extent can cross distant faces that are geometrically irrelevant.
 fn supplement_one_direction(
     face_arena: &TopologyArena,
-    face_geom: &GeometryStore,
+    face_geom: &GeometryState,
     face_planes: &BTreeMap<FaceId, usize>,
     opposing_planes: &[usize],
     plane_table: &PlaneTable,
@@ -637,7 +637,7 @@ fn supplement_one_direction(
 // DEFECT(D5): split_solid deferred retry queue abandons grazing cuts instead of properly resolving them.
 fn split_solid(
     topo: TopologyState,
-    mut geom: GeometryStore,
+    mut geom: GeometryState,
     cuts_map: BTreeMap<FaceId, Vec<usize>>,
     initial_face_planes: &BTreeMap<FaceId, usize>,
     plane_table: &mut PlaneTable,
@@ -645,7 +645,7 @@ fn split_solid(
     shared_registry: &mut SharedVertexRegistry,
     mut expected_cut_endpoints: ExpectedCutEndpointMap,
     ctx: &mut ModelingContext,
-) -> Result<(MutableDraft, GeometryStore, usize, LocalVertexDedup, std::collections::BTreeSet<VertexId>), KernelError> {
+) -> Result<(MutableDraft, GeometryState, usize, LocalVertexDedup, std::collections::BTreeSet<VertexId>), KernelError> {
     let mut draft = topo.into_mutation();
     let mut splits = 0;
     let mut dedup = LocalVertexDedup::new();
@@ -779,7 +779,7 @@ enum SplitAttempt {
 /// Attempt to split a single face by a single cut plane.
 fn try_split_face(
     draft: &mut MutableDraft,
-    geom: &mut GeometryStore,
+    geom: &mut GeometryState,
     dedup: &mut LocalVertexDedup,
     edge_cut_map: &mut EdgeCutMap,
     fid: FaceId,
@@ -875,7 +875,7 @@ fn try_split_face(
 fn assign_original_vertex_provenance(
     arena: &TopologyArena,
     dedup: &mut LocalVertexDedup,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     face_planes: &BTreeMap<FaceId, usize>,
     plane_table: &PlaneTable,
 ) -> Result<(), KernelError> {
@@ -955,7 +955,7 @@ fn collect_incident_plane_indices(
 fn compute_implicit_key(
     incident: &[usize],
     plane_table: &PlaneTable,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     vid: VertexId,
 ) -> Option<VertexMatchKey> {
     let p0 = plane_table.get(incident[0]);
@@ -971,7 +971,7 @@ fn compute_implicit_key(
 }
 
 /// Fallback: compute VertexMatchKey from stored exact coordinates.
-fn compute_explicit_key(geom: &GeometryStore, vid: VertexId) -> Option<VertexMatchKey> {
+fn compute_explicit_key(geom: &GeometryState, vid: VertexId) -> Option<VertexMatchKey> {
     geom.get_vertex_position_exact(vid).map(|exact| {
         VertexMatchKey::from_exact_position(
             exact[0].clone(), exact[1].clone(), exact[2].clone(),
@@ -982,7 +982,7 @@ fn compute_explicit_key(geom: &GeometryStore, vid: VertexId) -> Option<VertexMat
 /// Compute AABBs for all faces in a solid.
 pub fn compute_face_aabbs(
     arena: &TopologyArena,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     config: &crate::core::ToleranceConfig,
 ) -> Result<Vec<(FaceId, Aabb)>, KernelError> {
     let inflation = config.get_aabb_inflation();

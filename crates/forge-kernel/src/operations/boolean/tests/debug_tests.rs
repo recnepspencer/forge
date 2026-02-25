@@ -28,9 +28,9 @@ fn all_inner_faces_classify_inside_outer() {
 
 fn count_faces_inside(
     source_topo: &forge_topo::state::TopologyState,
-    source_geom: &crate::geometry_store::GeometryStore,
+    source_geom: &crate::geometry_state::GeometryState,
     target_topo: &forge_topo::state::TopologyState,
-    target_geom: &crate::geometry_store::GeometryStore,
+    target_geom: &crate::geometry_state::GeometryState,
 ) -> usize {
     source_topo.arena().iter_faces().filter(|(fid, _fdata)| {
         let centroid = face_centroid(source_topo.arena(), source_geom, *fid);

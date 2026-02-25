@@ -1,7 +1,7 @@
 //! Gate logic: should a face be cut by a plane?
 //!
 //! DOMAIN: Determines IF a face needs cutting, separately from applying the cut.
-//! DEPENDENCIES: forge_geom (intersection_line, clip_line), GeometryStore.
+//! DEPENDENCIES: forge_geom (intersection_line, clip_line), GeometryState.
 //! INVARIANTS: `compute_face_chord` is the SOLE gate for face cutting.
 //!   No cut occurs without passing this gate first.
 
@@ -11,7 +11,7 @@ use forge_math::sign::TriSign;
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::FaceId;
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use crate::core::ToleranceConfig;
 use super::signs::exact_sign_for_vertex;
 
@@ -23,7 +23,7 @@ use super::signs::exact_sign_for_vertex;
 /// polygons from prior splits.
 pub fn compute_face_chord(
     arena: &TopologyArena,
-    geometry: &GeometryStore,
+    geometry: &GeometryState,
     face: FaceId,
     face_plane: &Plane,
     cut_plane: &Plane,
@@ -48,7 +48,7 @@ pub fn compute_face_chord(
 /// may have CW winding relative to the stored plane normal.
 fn try_cyrus_beck_clip(
     arena: &TopologyArena,
-    geometry: &GeometryStore,
+    geometry: &GeometryState,
     face: FaceId,
     face_plane: &Plane,
     cut_plane: &Plane,
@@ -98,7 +98,7 @@ fn try_cyrus_beck_clip(
 /// Pos↔Neg crossing. Returns a synthetic chord from crossing midpoints.
 fn try_sign_walk_fallback(
     arena: &TopologyArena,
-    geometry: &GeometryStore,
+    geometry: &GeometryState,
     face: FaceId,
     cut_plane: &Plane,
     config: &ToleranceConfig,
@@ -144,7 +144,7 @@ fn try_sign_walk_fallback(
 /// Collect f64 vertex positions for a face in winding order.
 fn collect_face_positions(
     arena: &TopologyArena,
-    geometry: &GeometryStore,
+    geometry: &GeometryState,
     face: FaceId,
 ) -> Result<Vec<[f64; 3]>, KernelError> {
     let loops = forge_topo::polygon::face_loop_vertices(arena, face)?;

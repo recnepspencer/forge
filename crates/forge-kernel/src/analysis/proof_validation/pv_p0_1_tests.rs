@@ -10,11 +10,11 @@ use forge_core::{KernelError, TopologyError};
 use forge_topo::validate::{validate_topology, ValidationLevel};
 use forge_topo::handles::VertexId;
 use crate::mesh_builder::make_cube;
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use super::test_support::{insert_test_solid_shell, validate_geometric_invariants_all_faces};
 
-/// Build a position lookup closure from a GeometryStore.
-fn position_lookup(store: &GeometryStore) -> impl Fn(VertexId) -> Option<[f64; 3]> + '_ {
+/// Build a position lookup closure from a GeometryState.
+fn position_lookup(store: &GeometryState) -> impl Fn(VertexId) -> Option<[f64; 3]> + '_ {
     |vertex_id| store.get_vertex_position(vertex_id).copied()
 }
 

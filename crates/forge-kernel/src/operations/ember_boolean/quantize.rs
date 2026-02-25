@@ -4,7 +4,7 @@
 //! vertices that snap to the same grid coordinate before the split
 //! phase begins. This eliminates floating-point drift at the source.
 //!
-//! DEPENDENCIES: QuantizedSpace, GeometryStore, forge-topo (MutableDraft, KillEdgeVertex).
+//! DEPENDENCIES: QuantizedSpace, GeometryState, forge-topo (MutableDraft, KillEdgeVertex).
 //!
 //! INVARIANTS:
 //!   - After collapse, no two distinct vertices share the same `[i64; 3]`.
@@ -17,7 +17,7 @@ use forge_core::KernelError;
 use forge_topo::handles::VertexId;
 use forge_topo::state::TopologyState;
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use super::schema::QuantizedSpace;
 
 /// Quantized vertex identity map.
@@ -31,7 +31,7 @@ impl QuantizedVertices {
     /// Compute grid keys for all vertex positions (read-only).
     pub fn compute_keys(
         topo: &TopologyState,
-        geom: &GeometryStore,
+        geom: &GeometryState,
         space: &QuantizedSpace,
     ) -> Self {
         let mut grid_positions = BTreeMap::new();
@@ -87,7 +87,7 @@ impl QuantizedVertices {
 /// downstream split/stitch phases never see near-misses.
 pub fn collapse_coincident_vertices(
     topo: TopologyState,
-    geom: &mut GeometryStore,
+    geom: &mut GeometryState,
     quant: &QuantizedVertices,
     space: &QuantizedSpace,
 ) -> Result<TopologyState, KernelError> {
@@ -190,7 +190,7 @@ fn find_vertex_by_index(
 /// see clean, consistent positions.
 fn snap_vertex_positions(
     topo: &TopologyState,
-    geom: &mut GeometryStore,
+    geom: &mut GeometryState,
     quant: &QuantizedVertices,
     space: &QuantizedSpace,
 ) {

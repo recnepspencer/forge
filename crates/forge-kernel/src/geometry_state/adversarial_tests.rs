@@ -223,10 +223,10 @@ fn chained_coalescence_20_steps_stays_below_1e_6() {
 #[test]
 fn chained_snap_decisions_are_all_logged() {
     use forge_topo::handles::VertexId;
-    use crate::geometry_store::{GeometryStore, snap_or_coalesce_vertex, CoalescenceResult};
+    use crate::geometry_state::{GeometryState, snap_or_coalesce_vertex, CoalescenceResult};
     use crate::core::ModelingContext;
 
-    let mut geom = GeometryStore::new();
+    let mut geom = GeometryState::new();
     let mut ctx = ModelingContext::new();
     let v = VertexId::from_raw_parts(0, 0);
     geom.set_vertex_position(v, [0.0, 0.0, 0.0]);
@@ -251,9 +251,9 @@ fn chained_snap_decisions_are_all_logged() {
 #[test]
 fn split_line_segments_are_continuous_at_split_point() {
     use forge_topo::handles::EdgeId;
-    use crate::geometry_store::{GeometryStore, propagate_curve_on_split};
+    use crate::geometry_state::{GeometryState, propagate_curve_on_split};
 
-    let mut geom = GeometryStore::new();
+    let mut geom = GeometryState::new();
     let old_edge = EdgeId::from_raw_parts(0, 0);
     let new_edge = EdgeId::from_raw_parts(1, 0);
     let t_split = 0.4;
@@ -284,9 +284,9 @@ fn split_line_segments_are_continuous_at_split_point() {
 #[test]
 fn split_sp_curve_domains_partition_original() {
     use forge_topo::handles::EdgeId;
-    use crate::geometry_store::{GeometryStore, propagate_curve_on_split};
+    use crate::geometry_state::{GeometryState, propagate_curve_on_split};
 
-    let mut geom = GeometryStore::new();
+    let mut geom = GeometryState::new();
     let old_edge = EdgeId::from_raw_parts(0, 0);
     let new_edge = EdgeId::from_raw_parts(1, 0);
 
@@ -340,12 +340,12 @@ fn split_sp_curve_domains_partition_original() {
 #[test]
 fn anti_drift_survives_curve_split_on_cylinder() {
     use forge_topo::handles::EdgeId;
-    use crate::geometry_store::{GeometryStore, propagate_curve_on_split};
+    use crate::geometry_state::{GeometryState, propagate_curve_on_split};
 
     let radius = 3.0;
     let surface = SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], radius);
 
-    let mut geom = GeometryStore::new();
+    let mut geom = GeometryState::new();
     let old_edge = EdgeId::from_raw_parts(0, 0);
     let new_edge = EdgeId::from_raw_parts(1, 0);
 

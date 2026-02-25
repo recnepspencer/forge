@@ -3,7 +3,7 @@
 //! DOMAIN: Given a seed face, BFS-expand through edge adjacency to collect
 //! an N-ring neighborhood, then gather all halfedges, vertices, and geometry.
 //!
-//! DEPENDENCIES: `forge-topo` (arena, traverse), `geometry_store` (GeometryStore)
+//! DEPENDENCIES: `forge-topo` (arena, traverse), `geometry_state` (GeometryState)
 
 use std::collections::{BTreeMap, VecDeque};
 
@@ -13,19 +13,19 @@ use forge_topo::bitset::EntityBitset;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::traverse::{FaceEdgeIterator, edge_faces};
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use super::schema::{ExtractedRegion, SerializedHalfEdge, SerializedPlane};
 
 /// Extract the N-ring neighborhood of a seed face from the arena.
 ///
 /// BFS-expands from `seed_face` through shared edges (via halfedge twins)
 /// for `depth` rings. Collects all faces, halfedges, vertices, and their
-/// associated geometry from the `GeometryStore`.
+/// associated geometry from the `GeometryState`.
 ///
 /// Ring 0 = seed face only. Ring 1 = seed + all edge-adjacent faces. Etc.
 pub fn extract_n_ring(
     arena: &TopologyArena,
-    geometry_store: &GeometryStore,
+    geometry_state: &GeometryState,
     seed_face: FaceId,
     depth: usize,
 ) -> Result<ExtractedRegion, KernelError> {
@@ -97,7 +97,7 @@ pub fn extract_n_ring(
     let mut face_planes: BTreeMap<u32, SerializedPlane> = BTreeMap::new();
     for face_idx in visited_faces.iter_ones() {
         let face = FaceId::from_raw_parts(face_idx, 0);
-        if let Some(plane) = geometry_store.get_face_plane(face) {
+        if let Some(plane) = geometry_state.get_face_plane(face) {
             face_planes.insert(face.index(), SerializedPlane::from_plane(plane));
         }
     }
@@ -105,7 +105,7 @@ pub fn extract_n_ring(
     let mut vertex_positions: BTreeMap<u32, [f64; 3]> = BTreeMap::new();
     for vtx_idx in vertices.iter_ones() {
         let vtx = VertexId::from_raw_parts(vtx_idx, 0);
-        if let Some(&pos) = geometry_store.get_vertex_position(vtx) {
+        if let Some(&pos) = geometry_state.get_vertex_position(vtx) {
             vertex_positions.insert(vtx.index(), pos);
         }
     }

@@ -9,7 +9,7 @@ use forge_geom::spatial::bsp::{build_convex_polyhedron, BspConfig};
 use forge_geom::Plane;
 use forge_kernel::operations::boolean::{BooleanInput, BooleanOp};
 use forge_kernel::core::ModelingContext;
-use forge_kernel::geometry_store::GeometryStore;
+use forge_kernel::geometry_state::GeometryState;
 use forge_kernel::mesh_builder::build_halfedge_mesh;
 use forge_topo::state::TopologyState;
 
@@ -51,7 +51,7 @@ impl Xorshift64 {
 /// then constructs via BSP + halfedge mesh builder.
 pub fn random_convex_solid(
     seed: u64,
-) -> Result<(TopologyState, GeometryStore), KernelError> {
+) -> Result<(TopologyState, GeometryState), KernelError> {
     let mut rng = Xorshift64::new(seed);
     let num_planes = rng.next_usize_range(4, 10);
 
@@ -90,7 +90,7 @@ pub fn random_convex_solid(
 pub fn build_cube_at(
     center: [f64; 3],
     half: f64,
-) -> Result<(TopologyState, GeometryStore), KernelError> {
+) -> Result<(TopologyState, GeometryState), KernelError> {
     let planes = vec![
         Plane::from_point_normal([center[0] + half, center[1], center[2]], [1.0, 0.0, 0.0])
             .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
@@ -115,7 +115,7 @@ pub fn build_cube_at(
 /// Build a cube at a random position with random half-size.
 pub fn random_cube(
     rng: &mut Xorshift64,
-) -> Result<(TopologyState, GeometryStore), KernelError> {
+) -> Result<(TopologyState, GeometryState), KernelError> {
     let cx = rng.next_f64_range(-5.0, 5.0);
     let cy = rng.next_f64_range(-5.0, 5.0);
     let cz = rng.next_f64_range(-5.0, 5.0);

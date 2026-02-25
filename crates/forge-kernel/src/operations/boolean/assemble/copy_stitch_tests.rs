@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 use forge_topo::state::TopologyState;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use crate::operations::boolean::test_helpers::{build_cube, euler_audit};
 use crate::operations::boolean::schema::{BooleanInput, BooleanOp};
 use crate::operations::boolean::assemble::copy::{copy_faces, VertexDedup, VertexWelder};
@@ -24,15 +24,15 @@ use crate::operations::boolean::eval::VertexMatchKey;
 /// Helper: copy all faces from a source topology into a fresh arena and stitch.
 fn copy_and_stitch(
     source_topo: &TopologyState,
-    source_geom: &GeometryStore,
-) -> Result<(TopologyState, GeometryStore, usize, usize), forge_core::KernelError> {
+    source_geom: &GeometryState,
+) -> Result<(TopologyState, GeometryState, usize, usize), forge_core::KernelError> {
     let faces: Vec<FaceId> = source_topo.arena().iter_faces().map(|(fid, _)| fid).collect();
     let src_v = source_topo.arena().vertex_count();
     let scale = compute_disjoint_scale(source_topo.arena(), source_geom, None);
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
-    let mut result_geom = GeometryStore::new();
+    let mut result_geom = GeometryState::new();
     let mut he_ids: Vec<HalfEdgeId> = Vec::new();
     let mut vertex_map: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
     let mut spatial = VertexWelder::new(scale);
@@ -54,7 +54,7 @@ fn copy_and_stitch(
 }
 
 /// Dump the plane histogram for a topology — how many faces share each plane.
-fn plane_histogram(topo: &TopologyState, geom: &GeometryStore) -> Vec<(String, usize)> {
+fn plane_histogram(topo: &TopologyState, geom: &GeometryState) -> Vec<(String, usize)> {
     let mut hist: BTreeMap<String, usize> = BTreeMap::new();
     for (fid, _) in topo.arena().iter_faces() {
         let key = if let Some(p) = geom.get_face_plane(fid) {
@@ -226,7 +226,7 @@ fn bisect_legacy_chain_face_shatter() {
 /// Counts: (a) vertex clusters where multiple VertexIds share the same
 /// quantized position, (b) directed edge pairs where the geometry matches
 /// but vertex IDs differ.
-fn dump_vertex_identity(topo: &TopologyState, geom: &GeometryStore) {
+fn dump_vertex_identity(topo: &TopologyState, geom: &GeometryState) {
     let tol = 1e-6;
     let mut pos_clusters: BTreeMap<(i64, i64, i64), Vec<VertexId>> = BTreeMap::new();
 

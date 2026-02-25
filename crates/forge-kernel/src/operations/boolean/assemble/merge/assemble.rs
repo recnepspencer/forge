@@ -9,8 +9,8 @@ use forge_core::KernelError;
 use forge_topo::state::TopologyState;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 
-use crate::core::ModelingContext;
-use crate::geometry_store::GeometryStore;
+use crate::core::{ModelingContext, KernelState};
+use crate::geometry_state::GeometryState;
 use crate::operations::boolean::eval::VertexMatchKey;
 
 use crate::analysis::proof_validation::diagnose_pipeline::{diagnose_arena, PipelineStage};
@@ -21,23 +21,23 @@ use super::super::cleanup::cleanup_degenerate_topology;
 /// Assemble the Boolean result from selected faces of both arenas.
 pub(crate) fn assemble_result(
     target_arena: &forge_topo::arena::TopologyArena,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     target_faces: &[FaceId],
     target_prov: &BTreeMap<VertexId, VertexMatchKey>,
     tool_arena: &forge_topo::arena::TopologyArena,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
     tool_faces: &[FaceId],
     tool_prov: &BTreeMap<VertexId, VertexMatchKey>,
     reverse_tool: bool,
     ctx: &mut ModelingContext,
-) -> Result<(TopologyState, GeometryStore), KernelError> {
+) -> Result<KernelState, KernelError> {
     let characteristic_scale = compute_characteristic_scale(
         target_arena, target_geom, tool_arena, tool_geom,
     );
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
-    let mut result_geom = GeometryStore::new();
+    let mut result_geom = GeometryState::new();
 
     let mut global_vertex_map: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
     let weld_floor = ctx.get_gap_closure().get_max_gap() * 4.0;
@@ -100,7 +100,7 @@ pub(crate) fn assemble_result(
     }
 
     let topo = draft.commit()?;
-    Ok((topo, result_geom))
+    Ok(KernelState::new(topo, result_geom))
 }
 
 /// Compute the characteristic scale of two input solids for adaptive tolerances.
@@ -109,9 +109,9 @@ pub(crate) fn assemble_result(
 /// Floored at 1e-15 to prevent division-by-zero for degenerate geometry.
 pub(super) fn compute_characteristic_scale(
     target_arena: &forge_topo::arena::TopologyArena,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_arena: &forge_topo::arena::TopologyArena,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
 ) -> f64 {
     let mut min_pos = [f64::INFINITY; 3];
     let mut max_pos = [f64::NEG_INFINITY; 3];

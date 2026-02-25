@@ -21,7 +21,7 @@ use forge_topo::operator::apply_op;
 use forge_topo::euler::split_edge::SplitEdge;
 use forge_topo::euler::make_edge_face::MakeEdgeFace;
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use crate::core::ModelingContext;
 use crate::operations::boolean::eval::VertexMatchKey;
 
@@ -38,7 +38,7 @@ use super::schema::{CutPoint, EdgeCutMap, ExpectedCutHint, LocalVertexDedup, Pla
 /// re-enqueue both with the current cut plane prepended.
 pub fn split_face_by_plane(
     draft: &mut MutableDraft,
-    geometry: &mut GeometryStore,
+    geometry: &mut GeometryState,
     dedup: &mut LocalVertexDedup,
     edge_cut_map: &mut EdgeCutMap,
     face: FaceId,
@@ -108,7 +108,7 @@ pub fn split_face_by_plane(
 /// Run the chord-gate and return the current face chord.
 fn gate_chord(
     draft: &MutableDraft,
-    geometry: &GeometryStore,
+    geometry: &GeometryState,
     face: FaceId,
     face_plane: &Plane,
     cut_plane: &Plane,
@@ -128,7 +128,7 @@ fn gate_chord(
 fn resolve_all_cut_points(
     cut_points: &[CutPoint],
     draft: &mut MutableDraft,
-    geometry: &mut GeometryStore,
+    geometry: &mut GeometryState,
     dedup: &mut LocalVertexDedup,
 ) -> Result<Vec<VertexId>, KernelError> {
     let mut resolved: Vec<VertexId> = Vec::new();
@@ -144,7 +144,7 @@ fn sort_along_cut_direction(
     mut verts: Vec<VertexId>,
     face_plane: &Plane,
     cut_plane: &Plane,
-    geometry: &GeometryStore,
+    geometry: &GeometryState,
 ) -> Vec<VertexId> {
     let mut ref_dir = forge_math::linalg::cross(face_plane.raw_normal(), cut_plane.raw_normal());
     if forge_math::linalg::norm_sq(ref_dir) <= 1e-24 {
@@ -169,7 +169,7 @@ fn sort_along_cut_direction(
 fn apply_one_cut(
     sorted: Vec<VertexId>,
     draft: &mut MutableDraft,
-    geometry: &mut GeometryStore,
+    geometry: &mut GeometryState,
     edge_cut_map: &mut EdgeCutMap,
     face: FaceId,
     face_plane: &Plane,
@@ -255,7 +255,7 @@ fn apply_one_cut(
 fn can_use_scaffold_fallback(
     sorted: &[VertexId],
     expected_hint: &ExpectedCutHint,
-    geometry: &GeometryStore,
+    geometry: &GeometryState,
     adjacent: &BTreeSet<(u32, u32)>,
     face_plane: &Plane,
     cut_plane: &Plane,
@@ -443,7 +443,7 @@ fn try_expected_pair(
     expected_hint: Option<&ExpectedCutHint>,
     adjacent: &BTreeSet<(u32, u32)>,
     draft: &mut MutableDraft,
-    geometry: &mut GeometryStore,
+    geometry: &mut GeometryState,
     edge_cut_map: &mut EdgeCutMap,
     face: FaceId,
     face_plane: &Plane,
@@ -639,7 +639,7 @@ fn build_adjacent_pairs(
 /// - Edge crossing Pos↔Neg → new vertex CutPoint on the edge
 fn find_cut_points_provenance(
     arena: &forge_topo::arena::TopologyArena,
-    geometry: &GeometryStore,
+    geometry: &GeometryState,
     face: FaceId,
     cut_plane: &Plane,
     cut_plane_idx: usize,
@@ -696,7 +696,7 @@ fn is_sign_crossing(s_o: forge_math::sign::TriSign, s_d: forge_math::sign::TriSi
 /// plane, otherwise falls back to edge-plane intersection.
 fn compute_crossing_cut_point(
     arena: &forge_topo::arena::TopologyArena,
-    _geometry: &GeometryStore,
+    _geometry: &GeometryState,
     he: HalfEdgeId,
     face: FaceId,
     cut_plane: &Plane,
@@ -818,7 +818,7 @@ fn log_split_success(face: FaceId, cut_plane_idx: usize, new_face: FaceId, ctx: 
 pub fn resolve_cut_point(
     cp: &CutPoint,
     draft: &mut MutableDraft,
-    geom: &mut GeometryStore,
+    geom: &mut GeometryState,
     dedup: &mut LocalVertexDedup,
 ) -> Result<VertexId, KernelError> {
     match cp {

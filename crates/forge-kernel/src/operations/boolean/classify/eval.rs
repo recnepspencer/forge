@@ -1,7 +1,7 @@
 //! Face classification evaluation.
 //!
 //! DOMAIN: Classify each face of one solid relative to another via ray-casting.
-//! DEPENDENCIES: forge_topo::classify (point-in-solid), GeometryStore, BVH.
+//! DEPENDENCIES: forge_topo::classify (point-in-solid), GeometryState, BVH.
 //!
 //! ALGORITHM:
 //! 1. Build BVH spatial index on the "other" solid.
@@ -22,16 +22,16 @@ use forge_topo::handles::FaceId;
 use forge_geom::BvhNode;
 
 use crate::core::ModelingContext;
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use crate::operations::boolean::eval::compute_face_centroid;
 use crate::operations::boolean::schema::{FaceClassification, ClassifiedFace, FaceOrigin};
 
 /// Classify all faces of one solid relative to the other solid.
 pub fn classify_faces(
     source_arena: &TopologyArena,
-    source_geometry: &GeometryStore,
+    source_geometry: &GeometryState,
     other_arena: &TopologyArena,
-    other_geometry: &GeometryStore,
+    other_geometry: &GeometryState,
     origin: FaceOrigin,
     ctx: &mut ModelingContext,
 ) -> Result<Vec<ClassifiedFace>, KernelError> {
@@ -86,9 +86,9 @@ pub fn classify_faces(
 /// along the face normal to resolve the ambiguity.
 fn classify_single_face(
     source_arena: &TopologyArena,
-    source_geometry: &GeometryStore,
+    source_geometry: &GeometryState,
     other_arena: &TopologyArena,
-    other_geometry: &GeometryStore,
+    other_geometry: &GeometryState,
     accelerator: Option<&dyn forge_topo::classify::SpatialAccelerator>,
     face_id: FaceId,
     config: &crate::core::ToleranceConfig,
@@ -135,9 +135,9 @@ fn classify_single_face(
 
 fn maybe_multisample_refine(
     source_arena: &TopologyArena,
-    source_geometry: &GeometryStore,
+    source_geometry: &GeometryState,
     other_arena: &TopologyArena,
-    other_geometry: &GeometryStore,
+    other_geometry: &GeometryState,
     accelerator: Option<&dyn forge_topo::classify::SpatialAccelerator>,
     face_id: FaceId,
     centroid: [f64; 3],
@@ -213,7 +213,7 @@ fn face_needs_multisample(source_arena: &TopologyArena, face_id: FaceId) -> bool
 
 fn collect_interior_face_samples(
     arena: &TopologyArena,
-    geometry: &GeometryStore,
+    geometry: &GeometryState,
     face_id: FaceId,
     centroid: [f64; 3],
 ) -> Result<Vec<[f64; 3]>, KernelError> {
@@ -288,7 +288,7 @@ fn collect_interior_face_samples(
     Ok(samples)
 }
 
-fn source_geometry_as_tol(geometry: &GeometryStore) -> &dyn ToleranceProvider {
+fn source_geometry_as_tol(geometry: &GeometryState) -> &dyn ToleranceProvider {
     geometry as &dyn ToleranceProvider
 }
 
@@ -302,9 +302,9 @@ fn same_point(a: &[f64; 3], b: &[f64; 3]) -> bool {
 /// or opposed, yielding OnBoundary vs OppositeBoundary.
 fn interpret_classification(
     classification: forge_topo::classify::PointClassification,
-    source_geom: &GeometryStore,
+    source_geom: &GeometryState,
     source_face: FaceId,
-    other_geom: &GeometryStore,
+    other_geom: &GeometryState,
 ) -> (FaceClassification, Option<forge_math::arithmetic::precision::PrecisionEscalation>) {
     match classification {
         forge_topo::classify::PointClassification::Inside { escalation } =>
@@ -331,10 +331,10 @@ fn interpret_classification(
 /// is returned. Otherwise, falls back to normal alignment.
 fn resolve_boundary_classification(
     source_arena: &TopologyArena,
-    source_geometry: &GeometryStore,
+    source_geometry: &GeometryState,
     source_face: FaceId,
     other_arena: &TopologyArena,
-    other_geometry: &GeometryStore,
+    other_geometry: &GeometryState,
     accelerator: Option<&dyn forge_topo::classify::SpatialAccelerator>,
     original: &PointClassification,
     config: &crate::core::ToleranceConfig,
@@ -393,7 +393,7 @@ fn extract_escalation(pc: &PointClassification) -> Option<forge_math::arithmetic
 /// Look up a vertex position by raw slot index.
 fn lookup_vertex_position(
     arena: &TopologyArena,
-    geometry: &GeometryStore,
+    geometry: &GeometryState,
     index: u32,
 ) -> Result<[f64; 3], KernelError> {
     let gen = arena.vertex_generation(index as usize).ok_or_else(|| {
@@ -462,7 +462,7 @@ fn log_classification(
 /// Build BVH spatial index for the "other" solid.
 fn build_spatial_index(
     arena: &TopologyArena,
-    geometry: &GeometryStore,
+    geometry: &GeometryState,
 ) -> Option<Box<BvhNode<FaceId>>> {
     let face_aabbs = forge_topo::bounds::all_face_bounds(
         arena,
@@ -475,9 +475,9 @@ fn build_spatial_index(
 
 /// Check whether two faces have aligned normals.
 fn check_normal_alignment(
-    source_geom: &GeometryStore,
+    source_geom: &GeometryState,
     source_face: FaceId,
-    other_geom: &GeometryStore,
+    other_geom: &GeometryState,
     other_face: FaceId,
 ) -> bool {
     match (source_geom.get_face_plane(source_face), other_geom.get_face_plane(other_face)) {
@@ -491,7 +491,7 @@ fn check_normal_alignment(
 /// Returns `max(10 * diagonal, default_extent)`.
 fn compute_ray_extent_from_bbox(
     arena: &TopologyArena,
-    geometry: &GeometryStore,
+    geometry: &GeometryState,
     default_extent: f64,
 ) -> f64 {
     let mut min_pos = [f64::INFINITY; 3];

@@ -21,8 +21,8 @@ use forge_topo::arena::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::state::TopologyState;
 
-use crate::core::ModelingContext;
-use crate::geometry_store::GeometryStore;
+use crate::core::{ModelingContext, KernelState};
+use crate::geometry_state::GeometryState;
 use crate::operations::boolean::eval::VertexMatchKey;
 use crate::operations::boolean::schema::{
     ClassifiedFace, FaceOrigin,
@@ -38,9 +38,9 @@ pub trait BooleanSplitter {
     fn split(
         &self,
         target_topo: TopologyState,
-        target_geom: GeometryStore,
+        target_geom: GeometryState,
         tool_topo: TopologyState,
-        tool_geom: GeometryStore,
+        tool_geom: GeometryState,
         ctx: &mut ModelingContext,
     ) -> Result<SplitPhaseResult, KernelError>;
 }
@@ -53,9 +53,9 @@ pub trait BooleanClassifier {
     fn classify(
         &self,
         source_arena: &TopologyArena,
-        source_geom: &GeometryStore,
+        source_geom: &GeometryState,
         other_arena: &TopologyArena,
-        other_geom: &GeometryStore,
+        other_geom: &GeometryState,
         origin: FaceOrigin,
         ctx: &mut ModelingContext,
     ) -> Result<Vec<ClassifiedFace>, KernelError>;
@@ -71,9 +71,9 @@ pub trait CoplanarResolver {
         target_classified: &mut Vec<ClassifiedFace>,
         tool_classified: &mut Vec<ClassifiedFace>,
         target_topo: &TopologyState,
-        target_geom: &GeometryStore,
+        target_geom: &GeometryState,
         tool_topo: &TopologyState,
-        tool_geom: &GeometryStore,
+        tool_geom: &GeometryState,
     );
 }
 
@@ -85,16 +85,16 @@ pub trait BooleanAssembler {
     fn assemble(
         &self,
         target_arena: &TopologyArena,
-        target_geom: &GeometryStore,
+        target_geom: &GeometryState,
         target_faces: &[FaceId],
         target_prov: &BTreeMap<VertexId, VertexMatchKey>,
         tool_arena: &TopologyArena,
-        tool_geom: &GeometryStore,
+        tool_geom: &GeometryState,
         tool_faces: &[FaceId],
         tool_prov: &BTreeMap<VertexId, VertexMatchKey>,
         reverse_tool: bool,
         ctx: &mut ModelingContext,
-    ) -> Result<(TopologyState, GeometryStore), KernelError>;
+    ) -> Result<KernelState, KernelError>;
 }
 
 /// Post-process the assembled result.
@@ -104,10 +104,9 @@ pub trait BooleanAssembler {
 pub trait BooleanPostprocessor {
     fn postprocess(
         &self,
-        topo: TopologyState,
-        geom: &mut GeometryStore,
+        state: KernelState,
         ctx: &mut ModelingContext,
-    ) -> Result<(TopologyState, GeometryStore), KernelError>;
+    ) -> Result<KernelState, KernelError>;
 }
 
 /// A complete Boolean engine — one implementation per geometry class.

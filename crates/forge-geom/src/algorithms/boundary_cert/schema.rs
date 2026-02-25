@@ -6,6 +6,8 @@
 //! DEPENDENCIES: None (pure data shapes).
 //! INVARIANTS: All types are value-only — no topology handles, no policy.
 
+use forge_math::arithmetic::Rational;
+
 /// Deterministic 2D projection frame for planar boundaries.
 ///
 /// Encodes which 3D axis was dropped and the resulting u/v mapping
@@ -100,73 +102,40 @@ impl ProjectedBoundary2D {
     pub fn segment_count(&self) -> usize { self.segments.len() }
 }
 
-/// Classifies a boundary interaction event between two segments.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BoundaryEventKind {
-    /// Two non-adjacent segments cross transversally.
-    ProperCrossing,
-    /// A segment endpoint touches a non-incident segment interior.
-    EndpointTouch,
-    /// Two collinear segments begin overlapping.
-    OverlapStart,
-    /// Two collinear segments stop overlapping.
-    OverlapEnd,
-    /// A segment has zero projected length (degenerate).
-    DegenerateSegment,
-}
+use super::split::{AtomicSegment2D, ArrangementVertex};
 
-/// A classified event at a point in the boundary arrangement.
-#[derive(Debug, Clone)]
-pub struct BoundaryEvent {
-    /// What kind of interaction this is.
-    kind: BoundaryEventKind,
-    /// Location in 2D projected space.
-    location: [f64; 2],
-    /// Indices of the two involved segments (self-referencing for degenerate).
-    segments: [usize; 2],
-}
-
-impl BoundaryEvent {
-    /// Construct a boundary event.
-    pub fn new(kind: BoundaryEventKind, location: [f64; 2], segments: [usize; 2]) -> Self {
-        Self { kind, location, segments }
-    }
-
-    /// The event kind.
-    pub fn get_kind(&self) -> BoundaryEventKind { self.kind }
-
-    /// The 2D location of the event.
-    pub fn get_location(&self) -> [f64; 2] { self.location }
-
-    /// The segment indices involved.
-    pub fn get_segments(&self) -> [usize; 2] { self.segments }
-}
-
-/// Event-based classification of boundary segment interactions.
+/// Planar arrangement: boundary segments subdivided at all event points.
 ///
-/// This is NOT a planar subdivision — segments are stored as-is from the
-/// input boundary. Events classify pairwise interactions (crossing, touch,
-/// overlap, degeneracy) for weakly-simple recognition per Akitaya et al.
-/// No segment splitting occurs; the events are sufficient for certification.
-#[derive(Debug, Clone)]
+/// Every atomic segment contains no interior event points.
+/// Vertices carry exact rational positions for identity.
+#[derive(Debug, Clone, PartialEq)]
 pub struct BoundaryArrangement {
     /// Original input segments (not split at events).
-    segments: Vec<Segment2D>,
-    /// Classified interaction events, in deterministic order.
-    events: Vec<BoundaryEvent>,
+    source_segments: Vec<Segment2D>,
+    /// Subdivided arrangement edges containing no interior events.
+    atomic_segments: Vec<AtomicSegment2D>,
+    /// Exact vertices in the arrangement graph, capturing incidence.
+    vertices: Vec<ArrangementVertex>,
 }
 
 impl BoundaryArrangement {
-    /// Construct an arrangement from input segments and classified events.
-    pub fn new(segments: Vec<Segment2D>, events: Vec<BoundaryEvent>) -> Self {
-        Self { segments, events }
+    /// Construct an arrangement from input segments, computed splits and exact vertices.
+    pub fn new(
+        source_segments: Vec<Segment2D>,
+        atomic_segments: Vec<AtomicSegment2D>,
+        vertices: Vec<ArrangementVertex>,
+    ) -> Self {
+        Self { source_segments, atomic_segments, vertices }
     }
 
-    /// The input segments (original, not split).
-    pub fn get_segments(&self) -> &[Segment2D] { &self.segments }
+    /// Original source segments.
+    pub fn get_source_segments(&self) -> &[Segment2D] { &self.source_segments }
 
-    /// The classified events.
-    pub fn get_events(&self) -> &[BoundaryEvent] { &self.events }
+    /// The resulting atomic segments.
+    pub fn get_atomic_segments(&self) -> &[AtomicSegment2D] { &self.atomic_segments }
+
+    /// The exact topological vertices grouping the atomic segments.
+    pub fn get_vertices(&self) -> &[ArrangementVertex] { &self.vertices }
 }
 
 /// Reason for rejecting a boundary as non-mergeable.
@@ -178,6 +147,19 @@ pub enum BoundaryRejectReason {
     OverlappingSegments,
     /// Boundary is degenerate (zero-length segments, insufficient vertices).
     DegenerateBoundary,
+}
+
+/// Errors raised during exact boundary certification due to degenerate input
+/// that cannot be robustly classified.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BoundaryCertError {
+    /// Exact geometric predicate failed to evaluate (e.g., NaN coordinates).
+    PredicateFailure,
+    /// Vector direction evaluates to exactly zero.
+    DegenerateVector,
+    /// A computed intersection parameter fell outside `[0, 1]`, indicating
+    /// a logic defect in the caller (not a recoverable input condition).
+    OutOfRangeParameter,
 }
 
 /// Result of boundary certification for merge eligibility.

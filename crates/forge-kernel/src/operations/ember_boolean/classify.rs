@@ -21,7 +21,7 @@ use forge_topo::arena::TopologyArena;
 use forge_topo::handles::FaceId;
 use forge_topo::state::TopologyState;
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use crate::operations::boolean::{ClassifiedFace, FaceClassification};
 
 /// Override classified face lists to force-exclude coplanar face pairs.
@@ -34,9 +34,9 @@ pub fn apply_ember_coplanar_overrides(
     target_classified: &mut Vec<ClassifiedFace>,
     tool_classified: &mut Vec<ClassifiedFace>,
     target_topo: &TopologyState,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_topo: &TopologyState,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
 ) {
     let (excluded_target, excluded_tool) = find_coplanar_pairs_exact(
         target_topo, target_geom, tool_topo, tool_geom,
@@ -84,7 +84,7 @@ struct FaceAabb {
 }
 
 /// Compute the AABB of a face from its vertex positions.
-fn compute_face_aabb(arena: &TopologyArena, geom: &GeometryStore, face: FaceId) -> Option<FaceAabb> {
+fn compute_face_aabb(arena: &TopologyArena, geom: &GeometryState, face: FaceId) -> Option<FaceAabb> {
     let face_data = arena.get_face(face).ok()?;
     let loop_data = arena.get_loop(face_data.outer_loop()).ok()?;
     let first_he = loop_data.half_edge();
@@ -131,9 +131,9 @@ fn normals_anti_parallel(a: &forge_geom::Plane, b: &forge_geom::Plane) -> bool {
 /// Find coplanar face pairs using exact plane comparison + AABB overlap.
 fn find_coplanar_pairs_exact(
     target_topo: &TopologyState,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_topo: &TopologyState,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
 ) -> (BTreeSet<u32>, BTreeSet<u32>) {
     let mut excluded_target = BTreeSet::new();
     let mut excluded_tool = BTreeSet::new();

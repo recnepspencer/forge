@@ -16,7 +16,7 @@ use forge_topo::operator::apply_op;
 use forge_topo::euler::sew_edge::SewEdge;
 use forge_topo::state::MutableDraft;
 use crate::core::ModelingContext;
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 
 fn debug_stitch_enabled() -> bool {
     std::env::var("FORGE_DEBUG_STITCH")
@@ -33,7 +33,7 @@ fn debug_stitch_enabled() -> bool {
 /// Returns `StitchReport` with paired count and remaining unpaired IDs.
 pub(super) fn stitch_position_fallback(
     draft: &mut MutableDraft,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     still_unpaired: &[HalfEdgeId],
     weld_tolerance_sq: f64,
     ctx: &mut ModelingContext,
@@ -60,7 +60,7 @@ pub(super) fn stitch_position_fallback(
 /// Pass 3: match by full endpoint positions (both origin and dest).
 fn run_full_position_pass(
     draft: &mut MutableDraft,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     halfedges: &[HalfEdgeId],
     tol_sq: f64,
     paired: &mut BTreeSet<u32>,
@@ -78,7 +78,7 @@ fn run_full_position_pass(
 /// Pass 4: match by single shared vertex + one position endpoint.
 fn run_single_vertex_pass(
     draft: &mut MutableDraft,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     halfedges: &[HalfEdgeId],
     tol_sq: f64,
     paired: &mut BTreeSet<u32>,
@@ -154,7 +154,7 @@ fn build_id_map(halfedges: &[HalfEdgeId]) -> std::collections::BTreeMap<u32, Hal
 /// single-vertex matching (pass 4).
 fn build_directed_edges(
     draft: &MutableDraft,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     halfedges: &[HalfEdgeId],
     include_indices: bool,
 ) -> Vec<DirectedEdge> {

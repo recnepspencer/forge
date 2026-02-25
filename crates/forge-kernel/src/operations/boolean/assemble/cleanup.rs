@@ -6,7 +6,7 @@
 use forge_core::KernelError;
 use forge_topo::state::MutableDraft;
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 
 /// Remove degenerate faces and zero-length edges from the draft.
 ///
@@ -14,7 +14,7 @@ use crate::geometry_store::GeometryStore;
 /// API for caller compatibility while boolean assembly is refactored.
 pub fn cleanup_degenerate_topology(
     draft: &mut MutableDraft,
-    _geom: &GeometryStore,
+    _geom: &GeometryState,
 ) -> Result<usize, KernelError> {
     forge_topo::algorithms::simplify::cleanup_degenerate_topology(draft)
 }

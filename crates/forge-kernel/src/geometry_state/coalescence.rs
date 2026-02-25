@@ -7,7 +7,7 @@
 //! Every coalescence is a `TracedDecision`. This makes the operation
 //! auditable, overridable, and replayable (Doctrine D2).
 //!
-//! DEPENDENCIES: `forge-kernel::geometry_store` (GeometryStore),
+//! DEPENDENCIES: `forge-kernel::geometry_state` (GeometryState),
 //!               `forge-kernel::core` (ModelingContext),
 //!               `forge-core` (tracing types)
 
@@ -16,7 +16,7 @@ use forge_core::policy::PolicyKind;
 use forge_geom::primitives::vertex_geom::VertexGeom;
 use forge_topo::handles::VertexId;
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use crate::core::ModelingContext;
 
 /// Result of attempting to snap or coalesce a candidate vertex position
@@ -33,7 +33,7 @@ pub enum CoalescenceResult {
     /// Candidate was near but not inside the tolerance sphere.
     /// Both positions merged into one vertex with a wider (RSS-combined)
     /// tolerance. The caller must update the existing vertex's position
-    /// and tolerance in the `GeometryStore`.
+    /// and tolerance in the `GeometryState`.
     Coalesced {
         /// The existing vertex (now with merged position and wider tolerance).
         merged: VertexId,
@@ -64,7 +64,7 @@ pub fn snap_or_coalesce_vertex(
     candidate_pos: [f64; 3],
     candidate_tol: f64,
     existing: VertexId,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     ctx: &mut ModelingContext,
     coalescence_threshold: f64,
 ) -> CoalescenceResult {
@@ -126,7 +126,7 @@ mod tests {
 
     #[test]
     fn snap_when_inside_tolerance_sphere() {
-        let mut geom = GeometryStore::new();
+        let mut geom = GeometryState::new();
         let mut ctx = ModelingContext::new();
 
         let v = VertexId::from_raw_parts(0, 0);
@@ -148,7 +148,7 @@ mod tests {
 
     #[test]
     fn coalesce_when_near_but_outside_tolerance() {
-        let mut geom = GeometryStore::new();
+        let mut geom = GeometryState::new();
         let mut ctx = ModelingContext::new();
 
         let v = VertexId::from_raw_parts(0, 0);
@@ -176,7 +176,7 @@ mod tests {
 
     #[test]
     fn new_vertex_when_far_away() {
-        let mut geom = GeometryStore::new();
+        let mut geom = GeometryState::new();
         let mut ctx = ModelingContext::new();
 
         let v = VertexId::from_raw_parts(0, 0);
@@ -198,7 +198,7 @@ mod tests {
 
     #[test]
     fn coalesced_tolerance_exceeds_both_inputs() {
-        let mut geom = GeometryStore::new();
+        let mut geom = GeometryState::new();
         let mut ctx = ModelingContext::new();
 
         let v = VertexId::from_raw_parts(0, 0);

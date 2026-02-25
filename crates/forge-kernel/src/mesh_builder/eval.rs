@@ -4,7 +4,7 @@
 //! 1. Creating all vertices via direct arena insertion (with spatial dedup)
 //! 2. Building face loops with properly wired halfedges
 //! 3. Stitching twins between adjacent faces via shared-edge matching
-//! 4. Registering face planes and vertex positions in GeometryStore
+//! 4. Registering face planes and vertex positions in GeometryState
 
 
 use std::collections::HashMap;
@@ -17,14 +17,14 @@ use forge_topo::state::{TopologyState, MutableDraft};
 
 use crate::check_tolerance;
 use crate::core::ModelingContext;
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 
 /// Result of building a halfedge mesh from a ConvexCell.
 pub struct MeshBuildResult {
     /// The committed topology state.
     topology: TopologyState,
     /// The associated geometry store.
-    geometry: GeometryStore,
+    geometry: GeometryState,
 }
 
 impl MeshBuildResult {
@@ -34,12 +34,12 @@ impl MeshBuildResult {
     }
 
     /// The associated geometry store.
-    pub fn geometry(&self) -> &GeometryStore {
+    pub fn geometry(&self) -> &GeometryState {
         &self.geometry
     }
 
     /// Consume and return owned parts.
-    pub fn into_parts(self) -> (TopologyState, GeometryStore) {
+    pub fn into_parts(self) -> (TopologyState, GeometryState) {
         (self.topology, self.geometry)
     }
 }
@@ -65,7 +65,7 @@ pub fn build_halfedge_mesh(cell: &ConvexCell, ctx: &mut ModelingContext) -> Resu
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
-    let mut geometry = GeometryStore::new();
+    let mut geometry = GeometryState::new();
 
     let vertex_ids = insert_vertices(&mut draft, &mut geometry, cell, tolerance, ctx)?;
 
@@ -129,7 +129,7 @@ fn validate_cell(cell: &ConvexCell) -> Result<(), KernelError> {
 /// Returns a mapping from ConvexCell vertex index to VertexId.
 fn insert_vertices(
     draft: &mut MutableDraft,
-    geometry: &mut GeometryStore,
+    geometry: &mut GeometryState,
     cell: &ConvexCell,
     tolerance: f64,
     ctx: &mut ModelingContext,
@@ -205,7 +205,7 @@ fn find_coincident_vertex(
 /// used by [`stitch_twins`] to pair up twin halfedges.
 fn insert_faces_and_loops(
     draft: &mut MutableDraft,
-    geometry: &mut GeometryStore,
+    geometry: &mut GeometryState,
     cell: &ConvexCell,
     vertex_ids: &[VertexId],
     shell: ShellId,

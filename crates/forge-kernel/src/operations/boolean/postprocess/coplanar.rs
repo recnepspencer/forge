@@ -3,7 +3,7 @@
 //! DOMAIN: Simplification pass — merge adjacent coplanar faces
 //! by iteratively removing shared edges via `JoinFaces`.
 //!
-//! DEPENDENCIES: forge_topo (JoinFaces), GeometryStore.
+//! DEPENDENCIES: forge_topo (JoinFaces), GeometryState.
 //! INVARIANTS: Each pass removes at most one entity, then re-enters
 //! with fresh topology. This avoids invalidating arena handles mid-pass.
 
@@ -16,8 +16,8 @@ use forge_topo::operator::apply_op;
 use forge_topo::euler::join_faces::JoinFaces;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
-use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
-use crate::geometry_store::GeometryStore;
+use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta, KernelState, KernelDraft};
+use crate::geometry_state::{GeometryState, GeometryPatch};
 
 use super::run_iterative_pass;
 
@@ -26,22 +26,21 @@ use super::run_iterative_pass;
 /// Iteratively removes edges separating faces on the exact same plane
 /// via `JoinFaces`. Critical for canonical results: `(A ∪ B) ∪ C == A ∪ (B ∪ C)`.
 pub fn merge_coplanar_faces(
-    topo: TopologyState,
-    geom: &mut GeometryStore,
+    state: KernelState,
     ctx: &mut ModelingContext,
-) -> Result<(TopologyState, usize), KernelError> {
-    run_iterative_pass(topo, |current| run_merge_pass(current, geom, ctx))
+) -> Result<(KernelState, usize), KernelError> {
+    run_iterative_pass(state, |current| run_merge_pass(current, ctx))
 }
 
 /// Find and merge one pair of coplanar faces.
 fn run_merge_pass(
-    topo: TopologyState,
-    geom: &mut GeometryStore,
+    state: KernelState,
     ctx: &mut ModelingContext,
-) -> Result<(TopologyState, usize), KernelError> {
-    let candidate = find_coplanar_merge_candidate(topo.arena(), geom);
+) -> Result<(KernelState, usize), KernelError> {
+    let (topo, mut geom) = state.into_parts();
+    let candidate = find_coplanar_merge_candidate(topo.arena(), &geom);
     let Some((he_id, face_a, face_b)) = candidate else {
-        return Ok((topo, 0));
+        return Ok((KernelState::new(topo, geom), 0));
     };
 
     let mut pair_group = forge_topo::bitset::EntityBitset::for_faces(topo.arena());
@@ -51,7 +50,7 @@ fn run_merge_pass(
     let cert_ok = match super::merge_eligibility::eval::certify_merge_boundary(
         topo.arena(),
         &pair_group,
-        geom,
+        &geom,
     ) {
         Ok(mut op_result) => {
             let cert_log = op_result.take_decision_log();
@@ -63,16 +62,17 @@ fn run_merge_pass(
     };
 
     if !cert_ok {
-        return Ok((topo, 0));
+        return Ok((KernelState::new(topo, geom), 0));
     }
 
     let original = topo.clone();
-    let mut draft = topo.into_mutation();
+    let mut draft = KernelDraft::new(KernelState::new(topo, geom));
 
     let pre_snapshot = ArenaSnapshot::capture(draft.arena());
-    match apply_op(&mut draft, JoinFaces { edge: he_id }) {
+    let (mut_draft, mut_geom) = draft.as_parts_mut();
+    match apply_op(mut_draft, JoinFaces { edge: he_id }) {
         Ok(_) => {
-            if let Err(err) = validate_topology(draft.arena(), ValidationLevel::Full) {
+            if let Err(err) = validate_topology(mut_draft.arena(), ValidationLevel::Full) {
                 eprintln!(
                     "[postprocess/coplanar] skip invalid merge on he#{} faces {}+{}: {}",
                     he_id.index(),
@@ -80,13 +80,12 @@ fn run_merge_pass(
                     face_b.index(),
                     err
                 );
-                return Ok((original, 0));
+                return Ok((draft.rollback(original), 0));
             }
-            let delta = compute_topology_delta(&pre_snapshot, draft.arena());
+            let delta = compute_topology_delta(&pre_snapshot, mut_draft.arena());
             log_merge(he_id, face_a, face_b, delta, ctx);
-            let committed = draft.commit()?;
-            geom.remove_face_plane(face_b);
-            Ok((committed, 1))
+            mut_geom.remove_face_plane(face_b);
+            Ok((draft.commit()?, 1))
         }
         Err(_) => Ok((draft.commit()?, 0)),
     }
@@ -95,7 +94,7 @@ fn run_merge_pass(
 /// Find the first edge separating two coplanar faces.
 fn find_coplanar_merge_candidate(
     arena: &forge_topo::arena::TopologyArena,
-    geom: &GeometryStore,
+    geom: &GeometryState,
 ) -> Option<(HalfEdgeId, forge_topo::handles::FaceId, forge_topo::handles::FaceId)> {
     arena.iter_half_edges()
         .filter(|(he_id, he)| he.radial_next() >= *he_id)

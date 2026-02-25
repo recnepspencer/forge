@@ -5,7 +5,8 @@ use forge_topo::state::TopologyState;
 use forge_topo::handles::FaceId;
 use forge_topo::replay::ReplayLog;
 use forge_topo::lineage::LineageEvent;
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
+use crate::core::KernelState;
 
 /// A Boolean operation type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -24,11 +25,11 @@ pub struct BooleanInput {
     /// The target (base) solid topology.
     target_topology: TopologyState,
     /// The target solid geometry.
-    target_geometry: GeometryStore,
+    target_geometry: GeometryState,
     /// The tool solid topology.
     tool_topology: TopologyState,
     /// The tool solid geometry.
-    tool_geometry: GeometryStore,
+    tool_geometry: GeometryState,
     /// The Boolean operation to perform.
     operation: BooleanOp,
 }
@@ -37,9 +38,9 @@ impl BooleanInput {
     /// Create a new Boolean input.
     pub fn new(
         target_topology: TopologyState,
-        target_geometry: GeometryStore,
+        target_geometry: GeometryState,
         tool_topology: TopologyState,
-        tool_geometry: GeometryStore,
+        tool_geometry: GeometryState,
         operation: BooleanOp,
     ) -> Self {
         Self {
@@ -57,7 +58,7 @@ impl BooleanInput {
     }
 
     /// The target solid geometry.
-    pub fn target_geometry(&self) -> &GeometryStore {
+    pub fn target_geometry(&self) -> &GeometryState {
         &self.target_geometry
     }
 
@@ -67,7 +68,7 @@ impl BooleanInput {
     }
 
     /// The tool solid geometry.
-    pub fn tool_geometry(&self) -> &GeometryStore {
+    pub fn tool_geometry(&self) -> &GeometryState {
         &self.tool_geometry
     }
 
@@ -97,7 +98,7 @@ impl BooleanInput {
     }
 
     /// Consume and return owned parts.
-    pub fn into_parts(self) -> (TopologyState, GeometryStore, TopologyState, GeometryStore, BooleanOp) {
+    pub fn into_parts(self) -> (TopologyState, GeometryState, TopologyState, GeometryState, BooleanOp) {
         (
             self.target_topology,
             self.target_geometry,
@@ -261,7 +262,7 @@ pub struct BooleanResult {
     /// The resulting topology.
     topology: TopologyState,
     /// The resulting geometry.
-    geometry: GeometryStore,
+    geometry: GeometryState,
     /// Number of faces from the target that were kept.
     target_faces_kept: usize,
     /// Number of faces from the tool that were kept.
@@ -278,7 +279,7 @@ impl BooleanResult {
     /// Create a new Boolean result.
     pub fn new(
         topology: TopologyState,
-        geometry: GeometryStore,
+        geometry: GeometryState,
         target_faces_kept: usize,
         tool_faces_kept: usize,
         introspection: BooleanIntrospection,
@@ -296,13 +297,34 @@ impl BooleanResult {
         }
     }
 
+    /// Create a new Boolean result from an owned `KernelState`.
+    pub fn from_kernel_state(
+        state: KernelState,
+        target_faces_kept: usize,
+        tool_faces_kept: usize,
+        introspection: BooleanIntrospection,
+        replay_log: ReplayLog,
+        lineage_events: Vec<LineageEvent>,
+    ) -> Self {
+        let (topology, geometry) = state.into_parts();
+        Self {
+            topology,
+            geometry,
+            target_faces_kept,
+            tool_faces_kept,
+            introspection,
+            replay_log,
+            lineage_events,
+        }
+    }
+
     /// The resulting topology.
     pub fn topology(&self) -> &TopologyState {
         &self.topology
     }
 
     /// The resulting geometry.
-    pub fn geometry(&self) -> &GeometryStore {
+    pub fn geometry(&self) -> &GeometryState {
         &self.geometry
     }
 
@@ -343,7 +365,7 @@ impl BooleanResult {
     }
 
     /// Mutable access to the geometry store (for coordinate restoration).
-    pub fn geometry_mut(&mut self) -> &mut GeometryStore {
+    pub fn geometry_mut(&mut self) -> &mut GeometryState {
         &mut self.geometry
     }
 
@@ -361,7 +383,7 @@ impl BooleanResult {
     ///
     /// Use this when chaining boolean operations in tests where only
     /// the resulting solid matters, not the decision provenance.
-    pub fn into_topo_geom(self) -> (TopologyState, GeometryStore) {
+    pub fn into_topo_geom(self) -> (TopologyState, GeometryState) {
         (self.topology, self.geometry)
     }
 
@@ -371,7 +393,7 @@ impl BooleanResult {
     /// where replay, lineage, and introspection must be preserved.
     pub fn into_full_parts(
         self,
-    ) -> (TopologyState, GeometryStore, ReplayLog, Vec<LineageEvent>, BooleanIntrospection) {
+    ) -> (TopologyState, GeometryState, ReplayLog, Vec<LineageEvent>, BooleanIntrospection) {
         (
             self.topology,
             self.geometry,

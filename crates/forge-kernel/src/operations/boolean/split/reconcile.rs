@@ -4,7 +4,7 @@
 //! splitting. For each cut vertex present on one solid but absent on the
 //! other, locate the edge on the opposing solid and insert a SplitEdge.
 //!
-//! DEPENDENCIES: schema (LocalVertexDedup, SharedVertexRegistry), GeometryStore,
+//! DEPENDENCIES: schema (LocalVertexDedup, SharedVertexRegistry), GeometryState,
 //! forge_topo (MutableDraft, SplitEdge).
 //!
 //! INVARIANTS:
@@ -21,7 +21,7 @@ use forge_topo::state::MutableDraft;
 use forge_topo::operator::apply_op;
 use forge_topo::euler::split_edge::SplitEdge;
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use crate::operations::boolean::eval::VertexMatchKey;
 use super::schema::{LocalVertexDedup, SharedVertexRegistry};
 
@@ -31,10 +31,10 @@ use super::schema::{LocalVertexDedup, SharedVertexRegistry};
 /// then injects them by splitting the appropriate edge on the opposing solid.
 pub fn reconcile_boundary_vertices(
     target_draft: &mut MutableDraft,
-    target_geom: &mut GeometryStore,
+    target_geom: &mut GeometryState,
     target_dedup: &mut LocalVertexDedup,
     tool_draft: &mut MutableDraft,
-    tool_geom: &mut GeometryStore,
+    tool_geom: &mut GeometryState,
     tool_dedup: &mut LocalVertexDedup,
     shared_registry: &SharedVertexRegistry,
     weld_tolerance_sq: f64,
@@ -127,7 +127,7 @@ fn is_expected_shared_position(
 /// sequentially with handle tracking.
 fn inject_orphans_into_solid(
     draft: &mut MutableDraft,
-    geom: &mut GeometryStore,
+    geom: &mut GeometryState,
     dedup: &mut LocalVertexDedup,
     orphans: &[OrphanVertex],
     weld_tolerance_sq: f64,
@@ -224,7 +224,7 @@ fn inject_orphans_into_solid(
 /// Find a vertex on the solid whose position is coincident with the given point.
 fn find_coincident_vertex(
     draft: &MutableDraft,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     point: &[f64; 3],
     weld_tolerance_sq: f64,
 ) -> Option<VertexId> {
@@ -251,7 +251,7 @@ fn find_coincident_vertex(
 /// Returns the half-edge ID and parametric t value (0..1) along the edge.
 fn locate_edge_for_vertex(
     draft: &MutableDraft,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     point: &[f64; 3],
     weld_tolerance_sq: f64,
 ) -> Option<(HalfEdgeId, f64)> {
@@ -339,7 +339,7 @@ fn point_on_segment(
 /// Check if the orphan point is coincident with either endpoint of the edge.
 fn is_endpoint_coincident(
     draft: &MutableDraft,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     he_id: HalfEdgeId,
     point: &[f64; 3],
     weld_tolerance_sq: f64,
@@ -363,7 +363,7 @@ fn is_endpoint_coincident(
 /// Find which endpoint (if any) is coincident, returning its VertexId.
 fn find_coincident_endpoint(
     draft: &MutableDraft,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     he_id: HalfEdgeId,
     point: &[f64; 3],
     weld_tolerance_sq: f64,
@@ -399,7 +399,7 @@ fn dist_sq_3d(a: &[f64; 3], b: &[f64; 3]) -> f64 {
 /// Find the squared distance to the nearest vertex (diagnostic only).
 fn find_nearest_vertex_distance(
     draft: &MutableDraft,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     point: &[f64; 3],
 ) -> Option<f64> {
     let mut best: Option<f64> = None;
@@ -418,7 +418,7 @@ fn find_nearest_vertex_distance(
 /// Find the squared distance to the nearest edge midpoint (diagnostic only).
 fn find_nearest_edge_distance(
     draft: &MutableDraft,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     point: &[f64; 3],
 ) -> Option<f64> {
     let mut best: Option<f64> = None;

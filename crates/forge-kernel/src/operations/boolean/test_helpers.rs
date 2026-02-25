@@ -11,7 +11,7 @@ use std::str::FromStr;
 use forge_geom::Plane;
 use forge_topo::state::TopologyState;
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use crate::mesh_builder;
 use super::eval::compute_face_centroid;
 use super::schema::{BooleanInput, BooleanOp, BooleanResult};
@@ -57,14 +57,14 @@ pub fn selected_test_pipeline() -> TestPipeline {
 pub fn build_cube(
     center: [f64; 3],
     half_size: f64,
-) -> (TopologyState, GeometryStore) {
+) -> (TopologyState, GeometryState) {
     mesh_builder::make_cube(center, half_size * 2.0).unwrap().into_parts()
 }
 
 /// Compute face centroid for test assertions (wraps the shared eval function).
 pub fn face_centroid(
     arena: &forge_topo::arena::TopologyArena,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     face: forge_topo::handles::FaceId,
 ) -> [f64; 3] {
     compute_face_centroid(arena, geom, face).unwrap()
@@ -218,14 +218,14 @@ pub fn assert_euler_formula_per_shell(arena: &forge_topo::arena::TopologyArena) 
 pub fn build_tetrahedron(
     center: [f64; 3],
     scale: f64,
-) -> (TopologyState, GeometryStore) {
+) -> (TopologyState, GeometryState) {
     mesh_builder::make_tetrahedron(center, scale).unwrap().into_parts()
 }
 
 /// Build a convex solid from arbitrary planes.
 pub fn build_convex_solid(
     planes: Vec<Plane>,
-) -> (TopologyState, GeometryStore) {
+) -> (TopologyState, GeometryState) {
     mesh_builder::make_convex_solid(planes).unwrap().into_parts()
 }
 
@@ -233,7 +233,7 @@ pub fn build_convex_solid(
 pub fn build_dodecahedron(
     center: [f64; 3],
     scale: f64,
-) -> (TopologyState, GeometryStore) {
+) -> (TopologyState, GeometryState) {
     mesh_builder::make_dodecahedron(center, scale).unwrap().into_parts()
 }
 

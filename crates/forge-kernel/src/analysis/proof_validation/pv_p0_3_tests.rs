@@ -9,7 +9,7 @@ use forge_topo::healing::{heal_shell_orientation, HealingResult};
 use forge_topo::handles::VertexId;
 use forge_topo::state::DraftConfig;
 use crate::mesh_builder::make_cube;
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use crate::operations::boolean::{
     BooleanInput, BooleanOp,
 };
@@ -22,8 +22,8 @@ use forge_math::deterministic_rng::DeterministicRng;
 use super::test_support::validate_geometric_invariants_all_faces;
 use std::env;
 
-/// Build a position lookup closure from a GeometryStore.
-fn position_lookup(store: &GeometryStore) -> impl Fn(VertexId) -> Option<[f64; 3]> + '_ {
+/// Build a position lookup closure from a GeometryState.
+fn position_lookup(store: &GeometryState) -> impl Fn(VertexId) -> Option<[f64; 3]> + '_ {
     |vertex_id| store.get_vertex_position(vertex_id).copied()
 }
 

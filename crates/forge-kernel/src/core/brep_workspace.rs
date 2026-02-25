@@ -2,16 +2,16 @@
 //!
 //! DOMAIN: Manages the create → work → commit lifecycle of topology mutation.
 //!
-//! DEPENDENCIES: `forge-topo` (TopologyState, MutableDraft), GeometryStore,
+//! DEPENDENCIES: `forge-topo` (TopologyState, MutableDraft), GeometryState,
 //! ModelingContext.
 //!
 //! INVARIANTS: Functions destructure via `as_parts_mut()` and pass individual
 //! borrows to leaf functions — BRepWorkspace is NOT a parameter bag.
 
-use forge_core::KernelError;
 use forge_topo::state::{TopologyState, MutableDraft};
 
-use crate::geometry_store::GeometryStore;
+use crate::core::{KernelDraft, KernelState};
+use crate::geometry_state::{GeometryState, GeometryPatch};
 use super::ModelingContext;
 
 /// Lifecycle wrapper for kernel operations that need draft + geometry + context.
@@ -20,30 +20,30 @@ use super::ModelingContext;
 /// functions. This avoids the borrow-checker conflict where bundling
 /// everything prevents simultaneous `arena()` reads and `draft()` writes.
 pub struct BRepWorkspace {
-    draft: MutableDraft,
-    geometry: GeometryStore,
+    draft: KernelDraft,
     ctx: ModelingContext,
 }
 
 impl BRepWorkspace {
-    /// Create a workspace from a committed topology state.
-    pub fn new(topo: TopologyState, geometry: GeometryStore, ctx: ModelingContext) -> Self {
-        Self { draft: topo.into_mutation(), geometry, ctx }
+    /// Create a workspace from an existing `KernelState`.
+    pub fn new(state: KernelState, ctx: ModelingContext) -> Self {
+        Self { draft: KernelDraft::new(state), ctx }
     }
 
     /// Destructure for use — pass individual borrows to leaf functions.
-    pub fn as_parts_mut(&mut self) -> (&mut MutableDraft, &mut GeometryStore, &mut ModelingContext) {
-        (&mut self.draft, &mut self.geometry, &mut self.ctx)
+    pub fn as_parts_mut(&mut self) -> (&mut MutableDraft, &mut GeometryPatch, &mut ModelingContext) {
+        let (draft, geom) = self.draft.as_parts_mut();
+        (draft, geom, &mut self.ctx)
     }
 
-    /// Read-only access to the draft.
-    pub fn get_draft(&self) -> &MutableDraft {
-        &self.draft
+    /// Mut access to the draft.
+    pub fn get_draft(&mut self) -> &mut MutableDraft {
+        self.draft.draft_mut()
     }
 
     /// Read-only access to geometry.
-    pub fn get_geometry(&self) -> &GeometryStore {
-        &self.geometry
+    pub fn get_geometry(&self) -> &GeometryPatch {
+        self.draft.geometry()
     }
 
     /// Read-only access to the modeling context.
@@ -52,8 +52,8 @@ impl BRepWorkspace {
     }
 
     /// Finish: commit topology and return everything.
-    pub fn commit(self) -> Result<(TopologyState, GeometryStore, ModelingContext), KernelError> {
-        let topo = self.draft.commit()?;
-        Ok((topo, self.geometry, self.ctx))
+    pub fn commit(self) -> Result<(KernelState, ModelingContext), forge_core::KernelError> {
+        let state = self.draft.commit()?;
+        Ok((state, self.ctx))
     }
 }

@@ -34,7 +34,7 @@ fn build_thin_labyrinth(
     outer_half: f64,
     wall_count: usize,
     wall_thickness: f64,
-) -> Option<(forge_topo::state::TopologyState, crate::geometry_store::GeometryStore)> {
+) -> Option<(forge_topo::state::TopologyState, crate::geometry_state::GeometryState)> {
     let (mut topo, mut geom) = build_cube(center, outer_half);
 
     let span = outer_half * 2.0;

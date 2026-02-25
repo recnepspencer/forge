@@ -27,7 +27,7 @@ use super::super::schema::{BooleanInput, BooleanOp};
 /// Build the singularity star: union 64+32+16 solids all touching one vertex.
 fn build_singularity_star() -> Option<(
     forge_topo::state::TopologyState,
-    crate::geometry_store::GeometryStore,
+    crate::geometry_state::GeometryState,
 )> {
     let shared_vertex = [0.0, 0.0, 0.0];
     let (mut topo, mut geom) = build_cube([0.5, 0.5, 0.5], 0.5);

@@ -18,7 +18,7 @@
 //!   - Result satisfies Euler V−E+F=2 per shell
 //!
 //! DEPENDENCIES: forge-geom (BspSolid, extract_boundary_cells, ConvexCell),
-//!               forge-topo (arena insertion), GeometryStore, ModelingContext
+//!               forge-topo (arena insertion), GeometryState, ModelingContext
 
 use std::collections::HashMap;
 
@@ -33,7 +33,7 @@ use forge_topo::state::{TopologyState, MutableDraft};
 
 use crate::check_tolerance;
 use crate::core::ModelingContext;
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use super::checkpoint::validate_checkpoint;
 
 /// Convert a BspSolid into a halfedge mesh.
@@ -43,7 +43,7 @@ use super::checkpoint::validate_checkpoint;
 pub fn bsp_to_mesh(
     solid: &BspSolid,
     ctx: &mut ModelingContext,
-) -> Result<(TopologyState, GeometryStore), KernelError> {
+) -> Result<(TopologyState, GeometryState), KernelError> {
     let config = BspConfig::default();
     let cells = forge_geom::spatial::bsp::extract_boundary_cells(solid, &config)
         .map_err(|e| KernelError::InternalError {
@@ -60,7 +60,7 @@ pub fn bsp_to_mesh(
     );
 
     if cells.is_empty() {
-        return Ok((TopologyState::empty(), GeometryStore::new()));
+        return Ok((TopologyState::empty(), GeometryState::new()));
     }
 
     if cells.len() == 1 {
@@ -79,12 +79,12 @@ pub fn bsp_to_mesh(
 fn build_multi_cell_mesh(
     cells: &[(ConvexCell, Vec<usize>)],
     ctx: &mut ModelingContext,
-) -> Result<(TopologyState, GeometryStore), KernelError> {
+) -> Result<(TopologyState, GeometryState), KernelError> {
     let tolerance = ctx.get_tolerance().get_spatial_tolerance();
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
-    let mut geometry = GeometryStore::new();
+    let mut geometry = GeometryState::new();
 
     let mut vertex_pool: Vec<(VertexId, [f64; 3])> = Vec::new();
     let mut edge_map: HashMap<(VertexId, VertexId), Vec<HalfEdgeId>> = HashMap::new();
@@ -169,7 +169,7 @@ fn build_multi_cell_mesh(
 /// Insert vertices from one ConvexCell, deduplicating against the global pool.
 fn insert_cell_vertices(
     draft: &mut MutableDraft,
-    geometry: &mut GeometryStore,
+    geometry: &mut GeometryState,
     vertex_pool: &mut Vec<(VertexId, [f64; 3])>,
     cell: &ConvexCell,
     cell_planes: &[Plane],
@@ -225,7 +225,7 @@ fn insert_cell_vertices(
 /// Insert faces and halfedge loops for one ConvexCell.
 fn insert_cell_faces(
     draft: &mut MutableDraft,
-    geometry: &mut GeometryStore,
+    geometry: &mut GeometryState,
     edge_map: &mut HashMap<(VertexId, VertexId), Vec<HalfEdgeId>>,
     face_plane_map: &mut HashMap<FaceId, usize>,
     cell: &ConvexCell,
@@ -536,7 +536,7 @@ fn remove_stitched_faces(
 /// representations with fewer faces.
 fn merge_coplanar_neighbors(
     draft: &mut MutableDraft,
-    geometry: &GeometryStore,
+    geometry: &GeometryState,
     face_plane_map: &HashMap<FaceId, usize>,
     tolerance: f64,
 ) -> Result<usize, KernelError> {

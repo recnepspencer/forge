@@ -13,7 +13,7 @@
 //! - Result satisfies Euler's formula (V - E + F = 2)
 //!
 //! DEPENDENCIES: `forge-geom` (planes, predicates), `forge-topo` (arena, operators),
-//!               `geometry_store` (GeometryStore), `mesh_builder` (mesh construction)
+//!               `geometry_state` (GeometryState), `mesh_builder` (mesh construction)
 
 pub(crate) mod schema;
 pub mod eval;

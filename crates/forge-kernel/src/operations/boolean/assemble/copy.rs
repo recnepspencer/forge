@@ -3,7 +3,7 @@
 //! DOMAIN: Transfer topology and geometry between arenas, remapping handles
 //! and deduplicating vertices via provenance keys and spatial search.
 //!
-//! DEPENDENCIES: schema (VertexMatchKey), GeometryStore, forge_topo.
+//! DEPENDENCIES: schema (VertexMatchKey), GeometryState, forge_topo.
 //!
 //! INVARIANTS:
 //! - Vertex dedup uses 3 layers: local → provenance key → spatial NNS → create new.
@@ -18,7 +18,7 @@ use forge_topo::handles::{BodyId, RegionId, FaceId, VertexId, HalfEdgeId, LoopId
 use forge_topo::lineage::{Lineage, OpSignature};
 use forge_topo::state::MutableDraft;
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use crate::operations::boolean::eval::VertexMatchKey;
 use crate::operations::boolean::assemble::rebuild_face::{
     rebuild_face_from_vertices,
@@ -31,7 +31,7 @@ use crate::operations::boolean::assemble::rebuild_face::{
 /// Source-side `(arena, geom)` stays as separate `&` params.
 pub struct CopyContext<'a> {
     pub draft: &'a mut MutableDraft,
-    pub geometry: &'a mut GeometryStore,
+    pub geometry: &'a mut GeometryState,
     pub vertex_dedup: &'a mut VertexDedup,
     pub new_edges: &'a mut Vec<HalfEdgeId>,
     pub global_vertex_map: &'a mut BTreeMap<VertexMatchKey, VertexId>,
@@ -114,13 +114,13 @@ impl VertexWelder {
 /// Copy a set of faces from a source arena to a destination draft.
 pub fn copy_faces(
     draft: &mut MutableDraft,
-    result_geom: &mut GeometryStore,
+    result_geom: &mut GeometryState,
     vertex_dedup: &mut VertexDedup,
     new_edges: &mut Vec<HalfEdgeId>,
     global_vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
     spatial_index: &mut VertexWelder,
     source_arena: &forge_topo::arena::TopologyArena,
-    source_geom: &GeometryStore,
+    source_geom: &GeometryState,
     source_faces: &[FaceId],
     reverse_orientation: bool,
     lineage_copy_tag: &str,
@@ -182,13 +182,13 @@ fn create_destination_region(
 // DEFECT(D1): copy_single_face does raw arena insertion (insert_face/insert_half_edge) instead of using certified Euler operations.
 fn copy_single_face(
     draft: &mut MutableDraft,
-    result_geom: &mut GeometryStore,
+    result_geom: &mut GeometryState,
     vertex_dedup: &mut VertexDedup,
     new_edges: &mut Vec<HalfEdgeId>,
     global_vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
     spatial_index: &mut VertexWelder,
     source_arena: &forge_topo::arena::TopologyArena,
-    source_geom: &GeometryStore,
+    source_geom: &GeometryState,
     src_face: FaceId,
     reverse_orientation: bool,
     lineage_copy_tag: &str,
@@ -293,7 +293,7 @@ fn debug_source_face_backtracks(
 
 /// Prepare the face plane, flipping if reverse orientation is needed.
 fn prepare_face_plane(
-    source_geom: &GeometryStore,
+    source_geom: &GeometryState,
     src_face: FaceId,
     reverse: bool,
 ) -> Result<forge_geom::Plane, KernelError> {
@@ -308,7 +308,7 @@ fn prepare_face_plane(
 /// Insert an empty face (no edges) with the given plane.
 fn insert_empty_face(
     draft: &mut MutableDraft,
-    geom: &mut GeometryStore,
+    geom: &mut GeometryState,
     plane: forge_geom::Plane,
 ) -> Result<FaceId, KernelError> {
     let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
@@ -368,12 +368,12 @@ fn collect_loop_halfedges(
 /// Resolve all source vertices to destination vertices.
 fn resolve_all_vertices(
     draft: &mut MutableDraft,
-    result_geom: &mut GeometryStore,
+    result_geom: &mut GeometryState,
     vertex_dedup: &mut VertexDedup,
     global_vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
     spatial_index: &mut VertexWelder,
     source_arena: &forge_topo::arena::TopologyArena,
-    source_geom: &GeometryStore,
+    source_geom: &GeometryState,
     src_verts: &[VertexId],
     src_prov: Option<&BTreeMap<VertexId, VertexMatchKey>>,
 ) -> Result<Vec<VertexId>, KernelError> {
@@ -396,12 +396,12 @@ fn resolve_all_vertices(
 /// 4. Create new vertex
 fn resolve_vertex(
     draft: &mut MutableDraft,
-    result_geom: &mut GeometryStore,
+    result_geom: &mut GeometryState,
     vertex_dedup: &mut VertexDedup,
     global_vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
     spatial_index: &mut VertexWelder,
     source_arena: &forge_topo::arena::TopologyArena,
-    source_geom: &GeometryStore,
+    source_geom: &GeometryState,
     src_vertex: VertexId,
     src_prov: Option<&BTreeMap<VertexId, VertexMatchKey>>,
 ) -> Result<VertexId, KernelError> {
@@ -460,9 +460,9 @@ fn merge_vertex_lineage(
 /// Create a brand new vertex in the destination arena with geometry.
 fn create_new_vertex(
     draft: &mut MutableDraft,
-    result_geom: &mut GeometryStore,
+    result_geom: &mut GeometryState,
     source_arena: &forge_topo::arena::TopologyArena,
-    source_geom: &GeometryStore,
+    source_geom: &GeometryState,
     src_vertex: VertexId,
     pos: &[f64; 3],
 ) -> Result<VertexId, KernelError> {
@@ -494,7 +494,7 @@ fn create_new_vertex(
 /// Returns the number of vertices that were merged into canonical IDs.
 pub fn repair_vertex_identity(
     draft: &mut MutableDraft,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     weld_tolerance: f64,
     ctx: &mut crate::core::ModelingContext,
 ) -> Result<usize, KernelError> {

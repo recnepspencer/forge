@@ -8,17 +8,16 @@
 //! INVARIANTS: All functions are pure. No topology, no policy, no thresholds.
 //! Certification predicates use exact Shewchuk orient2d (spec §4.5).
 //!
-//! NOTE: The fallback certifier classifies segment interactions but does NOT
-//! split segments at intersection points. The `BoundaryArrangement` stores
-//! the original segments plus classified events — it is an event-based
-//! classification, not a full planar subdivision. This is sufficient for
-//! weakly-simple recognition per Akitaya et al.
+//! NOTE: The fallback certifier constructs a rigorous planar arrangement by
+//! calculating exact intersections and geometrically subdividing all segments.
+//! Akitaya's recognition criteria are then applied to the resulting exact
+//! arrangement graph combinatorial strands.
 
-use forge_math::predicates::orient2d::orient2d;
-use forge_math::sign::TriSign;
+use forge_math::numeric::sign::TriSign;
+use forge_math::arithmetic::rational::Rational;
 
 use super::schema::{
-    BoundaryArrangement, BoundaryEvent, BoundaryEventKind, BoundaryRejectReason,
+    BoundaryArrangement, BoundaryCertError, BoundaryRejectReason,
     ProjectedBoundary2D, ProjectionFrame2D, Segment2D, WeakSimpleCertificate,
 };
 
@@ -255,7 +254,7 @@ fn classify_segment_pair_exact(
 /// Returns `Err` on predicate evaluation failure — callers MUST NOT
 /// silently map this to `TriSign::Zero`.
 fn orient2d_sign(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> Result<TriSign, forge_math::MathError> {
-    let (certified, _) = orient2d(pa, pb, pc)?;
+    let (certified, _) = forge_math::predicates::orient2d(pa, pb, pc)?;
     Ok(certified.sign())
 }
 
@@ -344,231 +343,238 @@ fn detect_repeated_vertices(segments: &[Segment2D]) -> bool {
     false
 }
 
-/// Fallback certifier: classify all interactions and run recognition.
+/// Map a `BoundaryCertError` to the best available `WeakSimpleCertificate::Rejected` variant.
 ///
-/// Classifies all non-adjacent segment pair interactions using exact predicates,
-/// then determines the weakly-simple certificate from the event types.
+/// Uses the segment that triggered the error (by index, if known) to produce a meaningful
+/// witness point rather than always falling back to the first segment's start.
+fn cert_error_to_rejected(
+    err: BoundaryCertError,
+    segments: &[Segment2D],
+    offending_segment_idx: Option<usize>,
+) -> WeakSimpleCertificate {
+    let witness = offending_segment_idx
+        .and_then(|i| segments.get(i))
+        .map(|s| s.get_start())
+        .unwrap_or_else(|| segments[0].get_start());
+
+    let reason = match err {
+        BoundaryCertError::OutOfRangeParameter => BoundaryRejectReason::DegenerateBoundary,
+        BoundaryCertError::PredicateFailure    => BoundaryRejectReason::DegenerateBoundary,
+        BoundaryCertError::DegenerateVector    => BoundaryRejectReason::DegenerateBoundary,
+    };
+
+    WeakSimpleCertificate::Rejected { reason, witness }
+}
+
+/// Build exact arrangement graph and fully classify it. Akitaya-style 2D graph classification,
+/// then determines the weakly-simple certificate from the event types. If exact predicates fail,
+/// rejects the boundary with the specific error kind and the offending segment witness.
 fn run_fallback_certifier(segments: &[Segment2D]) -> WeakSimpleCertificate {
-    let arrangement = build_arrangement(segments);
-    classify_arrangement(&arrangement)
+    let arrangement = match build_arrangement(segments) {
+        Ok(a) => a,
+        Err(e) => return cert_error_to_rejected(e, segments, None),
+    };
+
+    match classify_arrangement(&arrangement) {
+        Ok(cert) => cert,
+        Err(e) => cert_error_to_rejected(e, segments, None),
+    }
 }
 
-/// Build a boundary arrangement by classifying all interactions between segments.
+
+/// Build a boundary arrangement by computing exact atomic splits and vertices.
+fn build_arrangement(segments: &[Segment2D]) -> Result<BoundaryArrangement, BoundaryCertError> {
+    let (atomics, vertices) = crate::algorithms::boundary_cert::split::compute_splits(segments)?;
+    
+    Ok(BoundaryArrangement::new(segments.to_vec(), atomics, vertices))
+}
+
+/// Returns the CCW quadrant [0, 3] for an exact direction vector `(dx, dy)`.
 ///
-/// This produces an event-based classification (not a planar subdivision).
-/// Events are sorted deterministically: primary by x, secondary by y,
-/// tertiary by event kind ordinal.
-fn build_arrangement(segments: &[Segment2D]) -> BoundaryArrangement {
-    let n = segments.len();
-    let mut events = Vec::new();
+/// Quadrant assignment (standard math convention):
+/// - Q0: dx >= 0, dy >= 0 (but not both zero)
+/// - Q1: dx < 0, dy >= 0
+/// - Q2: dx < 0, dy < 0
+/// - Q3: dx >= 0, dy < 0
+///
+/// Returns `Err(DegenerateVector)` if both components are exactly zero.
+fn get_quadrant_from_exact_vec(dx: &Rational, dy: &Rational) -> Result<u8, BoundaryCertError> {
+    let zero = Rational::zero();
+    let dx_pos = *dx > zero;
+    let dx_zero = *dx == zero;
+    let dy_pos = *dy > zero;
+    let dy_zero = *dy == zero;
 
-    for i in 0..n {
-        let a0 = segments[i].get_start();
-        let a1 = segments[i].get_end();
+    if dx_zero && dy_zero {
+        return Err(BoundaryCertError::DegenerateVector);
+    }
 
-        if a0[0] == a1[0] && a0[1] == a1[1] {
-            events.push(BoundaryEvent::new(
-                BoundaryEventKind::DegenerateSegment,
-                a0,
-                [i, i],
-            ));
-            continue;
-        }
+    if dx_pos || dx_zero {
+        if dy_pos || (dy_zero && dx_pos) { return Ok(0); }
+        return Ok(3);
+    } else {
+        if dy_pos || (dy_zero && !dx_pos) { return Ok(1); }
+        return Ok(2);
+    }
+}
 
-        for j in (i + 2)..n {
-            if i == 0 && j == n - 1 {
-                continue;
-            }
+/// Classify an arrangement graph into a WeakSimpleCertificate.
+///
+/// Akitaya-inspired approach on explicit arrangement graph:
+/// 1. Reject degenerate atomic segments
+/// 2. Reject overlaps (multiple atomics sharing exact endpoints)
+/// 3. Check high-valence vertices (>= 4 incident atomics)
+/// 4. Angularly sort incident edges at high-valence vertices.
+/// 5. Check interleaving pattern. ABAB = crossing (Reject), AABB = touch (Admit).
+fn classify_arrangement(arrangement: &BoundaryArrangement) -> Result<WeakSimpleCertificate, BoundaryCertError> {
+    let atomics = arrangement.get_atomic_segments();
+    let vertices = arrangement.get_vertices();
 
-            let b0 = segments[j].get_start();
-            let b1 = segments[j].get_end();
-
-            let d1 = match orient2d_sign(a0, a1, b0) {
-                Ok(s) => s,
-                Err(_) => {
-                    events.push(BoundaryEvent::new(
-                        BoundaryEventKind::DegenerateSegment,
-                        b0,
-                        [i, j],
-                    ));
-                    continue;
-                }
-            };
-            let d2 = match orient2d_sign(a0, a1, b1) {
-                Ok(s) => s,
-                Err(_) => {
-                    events.push(BoundaryEvent::new(
-                        BoundaryEventKind::DegenerateSegment,
-                        b1,
-                        [i, j],
-                    ));
-                    continue;
-                }
-            };
-            let d3 = match orient2d_sign(b0, b1, a0) {
-                Ok(s) => s,
-                Err(_) => {
-                    events.push(BoundaryEvent::new(
-                        BoundaryEventKind::DegenerateSegment,
-                        a0,
-                        [i, j],
-                    ));
-                    continue;
-                }
-            };
-            let d4 = match orient2d_sign(b0, b1, a1) {
-                Ok(s) => s,
-                Err(_) => {
-                    events.push(BoundaryEvent::new(
-                        BoundaryEventKind::DegenerateSegment,
-                        a1,
-                        [i, j],
-                    ));
-                    continue;
-                }
-            };
-
-            if d1 == TriSign::Zero && d2 == TriSign::Zero {
-                if segments_collinear_overlap_exact(a0, a1, b0, b1) {
-                    let loc = [(a0[0] + b0[0]) * 0.5, (a0[1] + b0[1]) * 0.5];
-                    events.push(BoundaryEvent::new(
-                        BoundaryEventKind::OverlapStart,
-                        loc,
-                        [i, j],
-                    ));
-                }
-                continue;
-            }
-
-            let has_zero = d1 == TriSign::Zero
-                || d2 == TriSign::Zero
-                || d3 == TriSign::Zero
-                || d4 == TriSign::Zero;
-
-            if has_zero {
-                let touch_loc = find_touch_location(a0, a1, b0, b1, d1, d2, d3, d4);
-                events.push(BoundaryEvent::new(
-                    BoundaryEventKind::EndpointTouch,
-                    touch_loc,
-                    [i, j],
-                ));
-            } else if d1 != d2 && d3 != d4 {
-                let witness = approximate_crossing_point(a0, a1, b0, b1);
-                events.push(BoundaryEvent::new(
-                    BoundaryEventKind::ProperCrossing,
-                    witness,
-                    [i, j],
-                ));
-            }
+    // 1. Degenerate atomics
+    for atomic in atomics {
+        if atomic.t_range[0] == atomic.t_range[1] {
+            return Ok(WeakSimpleCertificate::Rejected {
+                reason: BoundaryRejectReason::DegenerateBoundary,
+                witness: atomic.start,
+            });
         }
     }
 
-    events.sort_by(|a, b| {
-        let xa = a.get_location()[0];
-        let xb = b.get_location()[0];
-        xa.partial_cmp(&xb)
-            .unwrap_or(std::cmp::Ordering::Equal)
-            .then_with(|| {
-                let ya = a.get_location()[1];
-                let yb = b.get_location()[1];
-                ya.partial_cmp(&yb).unwrap_or(std::cmp::Ordering::Equal)
-            })
-            .then_with(|| event_kind_ordinal(a.get_kind()).cmp(&event_kind_ordinal(b.get_kind())))
-    });
-
-    BoundaryArrangement::new(segments.to_vec(), events)
-}
-
-/// Deterministic ordering of event kinds.
-fn event_kind_ordinal(kind: BoundaryEventKind) -> u8 {
-    match kind {
-        BoundaryEventKind::DegenerateSegment => 0,
-        BoundaryEventKind::OverlapStart => 1,
-        BoundaryEventKind::OverlapEnd => 2,
-        BoundaryEventKind::EndpointTouch => 3,
-        BoundaryEventKind::ProperCrossing => 4,
-    }
-}
-
-/// Check if two collinear segments overlap using exact coordinate comparisons.
-///
-/// Projects onto the axis with greater extent (no floating-point threshold).
-fn segments_collinear_overlap_exact(
-    a0: [f64; 2], a1: [f64; 2],
-    b0: [f64; 2], b1: [f64; 2],
-) -> bool {
-    let axis = if (a1[0] - a0[0]).abs() > (a1[1] - a0[1]).abs() { 0 } else { 1 };
-
-    let (a_min, a_max) = if a0[axis] <= a1[axis] {
-        (a0[axis], a1[axis])
-    } else {
-        (a1[axis], a0[axis])
-    };
-    let (b_min, b_max) = if b0[axis] <= b1[axis] {
-        (b0[axis], b1[axis])
-    } else {
-        (b1[axis], b0[axis])
-    };
-
-    a_min < b_max && b_min < a_max
-}
-
-/// Find the location of an endpoint-touch event.
-fn find_touch_location(
-    a0: [f64; 2], a1: [f64; 2],
-    b0: [f64; 2], b1: [f64; 2],
-    d1: TriSign, d2: TriSign, d3: TriSign, d4: TriSign,
-) -> [f64; 2] {
-    if d3 == TriSign::Zero { return a0; }
-    if d4 == TriSign::Zero { return a1; }
-    if d1 == TriSign::Zero { return b0; }
-    if d2 == TriSign::Zero { return b1; }
-    [(a0[0] + b0[0]) * 0.5, (a0[1] + b0[1]) * 0.5]
-}
-
-/// Classify an arrangement into a WeakSimpleCertificate.
-///
-/// Akitaya-inspired approach:
-/// - Any ProperCrossing → Rejected { SelfCrossing }
-/// - Any OverlapStart/OverlapEnd → Rejected { OverlappingSegments }
-/// - Any DegenerateSegment → Rejected { DegenerateBoundary }
-/// - Only EndpointTouch events → WeaklySimple { touch_count }
-/// - No events → Simple
-fn classify_arrangement(arrangement: &BoundaryArrangement) -> WeakSimpleCertificate {
-    let events = arrangement.get_events();
-
-    if events.is_empty() {
-        return WeakSimpleCertificate::Simple;
+    let n_sources = arrangement.get_source_segments().len();
+    let mut ordered_tour = Vec::new();
+    for src_id in 0..n_sources {
+        let mut atomics_for_src: Vec<_> = atomics.iter().enumerate().filter(|(_, a)| a.source_segment == src_id).collect();
+        atomics_for_src.sort_by(|(_, a), (_, b)| a.t_range[0].as_rational().cmp(b.t_range[0].as_rational()));
+        for (idx, _) in atomics_for_src {
+            ordered_tour.push(idx);
+        }
     }
 
-    for event in events {
-        match event.get_kind() {
-            BoundaryEventKind::ProperCrossing => {
-                return WeakSimpleCertificate::Rejected {
+    let mut touch_count = 0;
+
+    // Analyze each vertex in the graph
+    for v in vertices {
+        let incident_edges = &v.incident_atomic_edges;
+        
+        // High-valence vertex: potential touch, crossing, or overlap
+        if incident_edges.len() >= 4 {
+            // Pre-compute exact outgoing direction vectors and quadrants before sorting.
+            // This eliminates all fallible operations from sort closures — errors are
+            // propagated eagerly here so that sort_by operates on infallible Rational values.
+            struct OutgoingEdge<'a> {
+                atomic_idx: usize,
+                source_segment: usize,
+                quadrant: u8,
+                dx: Rational,
+                dy: Rational,
+                other_end_exact: &'a [Rational; 2],
+            }
+
+            let mut outgoing: Vec<OutgoingEdge<'_>> = Vec::new();
+            for &idx in incident_edges {
+                let atomic = &atomics[idx];
+                let other_end_exact = if atomic.end_exact == v.exact_position {
+                    &atomic.start_exact
+                } else {
+                    &atomic.end_exact
+                };
+
+                let dx = other_end_exact[0].clone() - v.exact_position[0].clone();
+                let dy = other_end_exact[1].clone() - v.exact_position[1].clone();
+                let quadrant = get_quadrant_from_exact_vec(&dx, &dy)?;
+
+                outgoing.push(OutgoingEdge {
+                    atomic_idx: idx,
+                    source_segment: atomic.source_segment,
+                    quadrant,
+                    dx,
+                    dy,
+                    other_end_exact,
+                });
+            }
+
+            // Sort by (quadrant, then cross-product within quadrant) — both infallible
+            outgoing.sort_by(|a, b| {
+                let q_cmp = a.quadrant.cmp(&b.quadrant);
+                if q_cmp != std::cmp::Ordering::Equal { return q_cmp; }
+                // Same quadrant: cross product (a x b) > 0 means a is CCW of b  
+                let cross = a.dx.clone() * b.dy.clone() - a.dy.clone() * b.dx.clone();
+                let zero = Rational::zero();
+                if cross > zero { std::cmp::Ordering::Less }
+                else if cross < zero { std::cmp::Ordering::Greater }
+                else { std::cmp::Ordering::Equal }
+            });
+
+            // Detect overlapping collinear edges from different source segments
+            let mut radial_pos = std::collections::HashMap::new();
+            for i in 0..outgoing.len() {
+                radial_pos.insert(outgoing[i].atomic_idx, i);
+                
+                let next = (i + 1) % outgoing.len();
+                let q_same = outgoing[i].quadrant == outgoing[next].quadrant;
+                let collinear = q_same && {
+                    let cross = outgoing[i].dx.clone() * outgoing[next].dy.clone()
+                        - outgoing[i].dy.clone() * outgoing[next].dx.clone();
+                    cross == Rational::zero()
+                };
+                if collinear && outgoing[i].source_segment != outgoing[next].source_segment {
+                    return Ok(WeakSimpleCertificate::Rejected {
+                        reason: BoundaryRejectReason::OverlappingSegments,
+                        witness: v.position,
+                    });
+                }
+            }
+
+            // Extract topological strands from the global ordered tour
+            let mut strands = Vec::new();
+            let m = ordered_tour.len();
+            for k in 0..m {
+                let e_in = ordered_tour[k];
+                let e_out = ordered_tour[(k + 1) % m];
+                
+                if radial_pos.contains_key(&e_in) && radial_pos.contains_key(&e_out) {
+                    let p_in = radial_pos[&e_in];
+                    let p_out = radial_pos[&e_out];
+                    // Skip spurs (U-turns on the exact same ray)
+                    if p_in != p_out {
+                        strands.push((p_in, p_out));
+                    }
+                }
+            }
+
+            // Strand Interleaving Check (Akitaya): test pairs of strands for intersection
+            let mut crossings = 0;
+            for i in 0..strands.len() {
+                for j in (i + 1)..strands.len() {
+                    let (p1, p2) = strands[i];
+                    let (q1, q2) = strands[j];
+                    
+                    let (min1, max1) = if p1 < p2 { (p1, p2) } else { (p2, p1) };
+                    
+                    let q1_in = q1 > min1 && q1 < max1;
+                    let q2_in = q2 > min1 && q2 < max1;
+                    
+                    if q1_in != q2_in {
+                        crossings += 1;
+                    }
+                }
+            }
+
+            if crossings > 0 {
+                return Ok(WeakSimpleCertificate::Rejected {
                     reason: BoundaryRejectReason::SelfCrossing,
-                    witness: event.get_location(),
-                };
+                    witness: v.position,
+                });
             }
-            BoundaryEventKind::OverlapStart | BoundaryEventKind::OverlapEnd => {
-                return WeakSimpleCertificate::Rejected {
-                    reason: BoundaryRejectReason::OverlappingSegments,
-                    witness: event.get_location(),
-                };
-            }
-            BoundaryEventKind::DegenerateSegment => {
-                return WeakSimpleCertificate::Rejected {
-                    reason: BoundaryRejectReason::DegenerateBoundary,
-                    witness: event.get_location(),
-                };
-            }
-            BoundaryEventKind::EndpointTouch => {}
+            
+            // Admissible touch
+            touch_count += 1;
         }
     }
 
-    let touch_count = events
-        .iter()
-        .filter(|e| e.get_kind() == BoundaryEventKind::EndpointTouch)
-        .count();
-
-    WeakSimpleCertificate::WeaklySimple { touch_count }
+    if touch_count > 0 {
+        Ok(WeakSimpleCertificate::WeaklySimple { touch_count })
+    } else {
+        Ok(WeakSimpleCertificate::Simple)
+    }
 }

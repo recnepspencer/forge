@@ -29,4 +29,10 @@ pub use tolerance::{
     ToleranceConfig,
 };
 pub use brep_workspace::BRepWorkspace;
+
+pub mod kernel_state;
+pub use kernel_state::KernelState;
+
+pub mod kernel_draft;
+pub use kernel_draft::KernelDraft;
 pub use operation_space::OperationSpace;

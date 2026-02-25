@@ -1,7 +1,7 @@
 //! Data shapes for the face-splitting phase.
 //!
 //! DOMAIN: Planes, vertex provenance, and split-phase results.
-//! DEPENDENCIES: forge_geom::Plane, VertexMatchKey, GeometryStore.
+//! DEPENDENCIES: forge_geom::Plane, VertexMatchKey, GeometryState.
 //! INVARIANTS: PlaneTable uses exact equality; LocalVertexDedup is per-solid.
 
 use std::collections::BTreeMap;
@@ -11,7 +11,7 @@ use forge_math::arithmetic::Rational;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::state::TopologyState;
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use crate::core::ToleranceConfig;
 use crate::operations::boolean::eval::VertexMatchKey;
 
@@ -61,9 +61,9 @@ impl PlaneTable {
 /// Output of the split phase for both solids.
 pub struct SplitPhaseResult {
     pub target_topology: TopologyState,
-    pub target_geometry: GeometryStore,
+    pub target_geometry: GeometryState,
     pub tool_topology: TopologyState,
-    pub tool_geometry: GeometryStore,
+    pub tool_geometry: GeometryState,
     pub split_count: usize,
     pub target_provenance: BTreeMap<VertexId, VertexMatchKey>,
     pub tool_provenance: BTreeMap<VertexId, VertexMatchKey>,
@@ -73,8 +73,8 @@ impl SplitPhaseResult {
     pub fn split_count(&self) -> usize { self.split_count }
 
     pub fn into_parts(self) -> (
-        TopologyState, GeometryStore,
-        TopologyState, GeometryStore,
+        TopologyState, GeometryState,
+        TopologyState, GeometryState,
         BTreeMap<VertexId, VertexMatchKey>,
         BTreeMap<VertexId, VertexMatchKey>,
     ) {

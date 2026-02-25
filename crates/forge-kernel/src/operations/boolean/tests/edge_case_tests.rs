@@ -2,7 +2,7 @@
 //!
 //! DOMAIN: Milestone 2.5 — every hard planar scenario with pinned assertions.
 //! INVARIANTS: No crashes, no non-manifold output, every ambiguous case logged.
-//! DEPENDENCIES: `boolean` (execute_boolean), `geometry_store`, `mesh_builder`
+//! DEPENDENCIES: `boolean` (execute_boolean), `geometry_state`, `mesh_builder`
 
 use super::super::test_helpers::{run_boolean, try_boolean};
 use super::super::schema::BooleanOp;

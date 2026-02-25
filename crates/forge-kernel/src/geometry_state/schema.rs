@@ -127,17 +127,17 @@ impl ExactPosition {
 /// (`classify_point_on_face`, `validate_geometric_invariants`) can query
 /// per-entity tolerances without owning any `f64` data.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct GeometryStore {
+pub struct GeometryState {
     /// Map from face handle to the plane the face lies on.
-    face_planes: HashMap<u64, Plane>,
+    pub(crate) face_planes: HashMap<u64, Plane>,
     /// Map from vertex handle to its exact 3D position.
-    vertex_positions: HashMap<u64, ExactPosition>,
+    pub(crate) vertex_positions: HashMap<u64, ExactPosition>,
     /// Per-vertex tolerance spheres (certified uncertainty radii).
     ///
     /// Keyed by packed `(generation << 32 | index)`. When a key is absent the
     /// `ToleranceProvider` implementation returns `global_default()` as a safe
     /// conservative fallback instead of panicking.
-    vertex_tolerances: HashMap<u64, f64>,
+    pub(crate) vertex_tolerances: HashMap<u64, f64>,
 
     // ── Phase 4: Geometry entity arenas ──────────────────────────────────
 
@@ -173,7 +173,7 @@ impl<T> GeomSlot<T> {
     }
 }
 
-impl GeometryStore {
+impl GeometryState {
     /// Create an empty geometry store.
     pub fn new() -> Self {
         Self {
@@ -206,12 +206,32 @@ impl GeometryStore {
         self.face_planes.remove(&pack_handle(face.index(), face.generation()))
     }
 
+    /// Internal: commit a raw handle mapping directly.
+    pub(crate) fn _set_face_plane_raw(&mut self, packed_key: u64, plane: Plane) {
+        self.face_planes.insert(packed_key, plane);
+    }
+
+    /// Internal: remove a raw handle mapping directly.
+    pub(crate) fn _remove_face_plane_raw(&mut self, packed_key: u64) {
+        self.face_planes.remove(&packed_key);
+    }
+
     /// Associate a vertex with an f64 position (promoted to exact rational internally).
     pub fn set_vertex_position(&mut self, vertex: VertexId, position: [f64; 3]) {
         self.vertex_positions.insert(
             pack_handle(vertex.index(), vertex.generation()),
             ExactPosition::from_f64(position),
         );
+    }
+
+    /// Internal: commit a raw handle position directly.
+    pub(crate) fn _set_vertex_position_raw(&mut self, packed_key: u64, pos: ExactPosition) {
+        self.vertex_positions.insert(packed_key, pos);
+    }
+
+    /// Internal: remove a raw handle position directly.
+    pub(crate) fn _remove_vertex_position_raw(&mut self, packed_key: u64) {
+        self.vertex_positions.remove(&packed_key);
     }
 
     /// Associate a vertex with an exact rational position.
@@ -559,7 +579,7 @@ impl GeometryStore {
     ///
     /// Called by the kernel during commit to catch dangling geometry
     /// references. This check CANNOT live in `forge-topo` because
-    /// `TopologyArena` must not see `GeometryStore` (layer boundary).
+    /// `TopologyArena` must not see `GeometryState` (layer boundary).
     pub fn validate_geometry_bindings(&self, arena: &TopologyArena) -> Result<(), KernelError> {
         for (&key, &surface_ref) in &self.face_surfaces {
             if self.get_surface(surface_ref).is_err() {
@@ -648,6 +668,16 @@ impl GeometryStore {
         );
     }
 
+    /// Internal: commit a raw handle tolerance directly.
+    pub(crate) fn _set_vertex_tolerance_raw(&mut self, packed_key: u64, tolerance: f64) {
+        self.vertex_tolerances.insert(packed_key, tolerance);
+    }
+
+    /// Internal: remove a raw handle tolerance directly.
+    pub(crate) fn _remove_vertex_tolerance_raw(&mut self, packed_key: u64) {
+        self.vertex_tolerances.remove(&packed_key);
+    }
+
     /// Retrieve the per-vertex tolerance sphere radius, or `None` if not yet bound.
     ///
     /// A `None` return means the vertex was created by a Euler op but the kernel
@@ -690,7 +720,7 @@ impl GeometryStore {
     }
 }
 
-impl Default for GeometryStore {
+impl Default for GeometryState {
     fn default() -> Self {
         Self::new()
     }
@@ -700,17 +730,17 @@ impl Default for GeometryStore {
 ///
 /// # Deprecated
 ///
-/// Use `GeometryStore::global_default()` (via [`forge_core::ToleranceProvider`])
+/// Use `GeometryState::global_default()` (via [`forge_core::ToleranceProvider`])
 /// instead. That method returns a scale-aware value derived from the model
 /// bounding box following ISO 10303-42 (`1e-7 * max(bbox_diagonal, 1.0)`).
 /// This constant remains only for external test code that has not yet migrated.
 #[deprecated(
     since = "0.1.0",
-    note = "Use GeometryStore::global_default() via ToleranceProvider instead"
+    note = "Use GeometryState::global_default() via ToleranceProvider instead"
 )]
 pub const PLANAR_VERTEX_TOLERANCE: f64 = 1e-10;
 
-impl ToleranceProvider for GeometryStore {
+impl ToleranceProvider for GeometryState {
     fn vertex_tolerance(&self, vertex_index: u32, vertex_generation: u32) -> f64 {
         let key = pack_handle(vertex_index, vertex_generation);
         self.vertex_tolerances
@@ -739,7 +769,7 @@ impl ToleranceProvider for GeometryStore {
     }
 }
 
-impl GeometrySource for GeometryStore {
+impl GeometrySource for GeometryState {
     fn get_plane(&self, index: usize) -> Result<PlaneCoefficients, MathError> {
         for (&key, plane) in &self.face_planes {
             let stored_index = (key & 0xFFFF_FFFF) as usize;
@@ -755,6 +785,6 @@ impl GeometrySource for GeometryStore {
 }
 
 /// Pack a (index, generation) pair into a single u64 key for HashMap lookup.
-fn pack_handle(index: u32, generation: u32) -> u64 {
+pub(crate) fn pack_handle(index: u32, generation: u32) -> u64 {
     (u64::from(generation) << 32) | u64::from(index)
 }

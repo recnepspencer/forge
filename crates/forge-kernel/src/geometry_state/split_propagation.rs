@@ -8,13 +8,13 @@
 //! doesn't see CurveGeom data (Doctrine D3). The kernel calls this helper
 //! after each `SplitEdge` application.
 //!
-//! DEPENDENCIES: `geometry_store` (GeometryStore), `forge-geom` (CurveGeom)
+//! DEPENDENCIES: `geometry_state` (GeometryState), `forge-geom` (CurveGeom)
 
 use forge_core::KernelError;
 use forge_geom::curve::schema::{CurveKind, CurveGeom, CurveProvenance, SpCurveApproximation};
 use forge_topo::handles::{EdgeId, CurveRef};
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 
 /// Propagate curve geometry after a `SplitEdge` operation.
 ///
@@ -31,7 +31,7 @@ pub fn propagate_curve_on_split(
     old_edge: EdgeId,
     new_edge: EdgeId,
     parameter: f64,
-    geom: &mut GeometryStore,
+    geom: &mut GeometryState,
 ) -> Result<(), KernelError> {
     let curve_ref = match geom.get_edge_curve(old_edge) {
         Some(r) => r,
@@ -165,11 +165,11 @@ fn subdivide_sp_curve(cache: &SpCurveApproximation, t: f64) -> (SpCurveApproxima
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::geometry_store::GeometryStore;
+    use crate::geometry_state::GeometryState;
 
     #[test]
     fn no_op_when_edge_has_no_curve() {
-        let mut geom = GeometryStore::new();
+        let mut geom = GeometryState::new();
         let old_edge = EdgeId::from_raw_parts(0, 0);
         let new_edge = EdgeId::from_raw_parts(1, 0);
 
@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn line_curve_propagates_to_both_segments() {
-        let mut geom = GeometryStore::new();
+        let mut geom = GeometryState::new();
         let old_edge = EdgeId::from_raw_parts(0, 0);
         let new_edge = EdgeId::from_raw_parts(1, 0);
 
@@ -213,7 +213,7 @@ mod tests {
 
     #[test]
     fn surface_intersection_preserves_symbolic_references() {
-        let mut geom = GeometryStore::new();
+        let mut geom = GeometryState::new();
         let old_edge = EdgeId::from_raw_parts(0, 0);
         let new_edge = EdgeId::from_raw_parts(1, 0);
 
@@ -260,7 +260,7 @@ mod tests {
 
     #[test]
     fn split_provenance_has_correct_parameter_ranges() {
-        let mut geom = GeometryStore::new();
+        let mut geom = GeometryState::new();
         let old_edge = EdgeId::from_raw_parts(0, 0);
         let new_edge = EdgeId::from_raw_parts(1, 0);
 

@@ -23,7 +23,7 @@ use forge_topo::state::TopologyState;
 use forge_topo::replay::ReplayLog;
 
 use crate::core::ModelingContext;
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use crate::operations::boolean::{
     BooleanInput, BooleanOp, BooleanResult,
 };
@@ -166,7 +166,7 @@ fn execute_pipeline(
 /// handles non-convex meshes (chained boolean results).
 fn halfedge_to_bsp(
     topo: &TopologyState,
-    geom: &GeometryStore,
+    geom: &GeometryState,
 ) -> Result<BspSolid, KernelError> {
     let mut planes: Vec<Plane> = Vec::new();
     let mut plane_map: Vec<usize> = Vec::new(); // face_idx → plane_idx
@@ -174,7 +174,7 @@ fn halfedge_to_bsp(
 
     for (fid, _) in topo.arena().iter_faces() {
         let plane = geom.get_face_plane(fid).ok_or_else(|| KernelError::InternalError {
-            message: "EMBER: face missing plane in GeometryStore".to_string(),
+            message: "EMBER: face missing plane in GeometryState".to_string(),
             context: None,
         })?;
 
@@ -189,7 +189,7 @@ fn halfedge_to_bsp(
 
     if planes.is_empty() {
         return Err(KernelError::InvalidInput {
-            message: "EMBER: no face planes found in GeometryStore".to_string(),
+            message: "EMBER: no face planes found in GeometryState".to_string(),
             context: None,
         });
     }
@@ -229,7 +229,7 @@ fn find_or_insert_plane(planes: &mut Vec<Plane>, plane: &Plane) -> usize {
 /// Extract face polygon vertex positions from a halfedge mesh face.
 fn extract_face_polygon(
     topo: &TopologyState,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     face_id: forge_topo::handles::FaceId,
 ) -> Result<Vec<[f64; 3]>, KernelError> {
     let face_data = topo.arena().get_face(face_id)?;

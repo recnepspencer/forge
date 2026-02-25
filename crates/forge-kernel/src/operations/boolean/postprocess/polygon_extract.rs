@@ -7,7 +7,7 @@
 //!   1. Graph discovery: BFS to find connected coplanar face clusters
 //!   2. Topology merge: iteratively JoinFaces across internal region edges
 //!
-//! DEPENDENCIES: forge_topo (arena, handles), GeometryStore, forge_geom (exact_eq)
+//! DEPENDENCIES: forge_topo (arena, handles), GeometryState, forge_geom (exact_eq)
 
 use forge_topo::bitset::EntityBitset;
 
@@ -18,8 +18,8 @@ use forge_topo::arena::TopologyArena;
 use forge_topo::handles::FaceId;
 use forge_topo::state::TopologyState;
 
-use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
-use crate::geometry_store::GeometryStore;
+use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta, KernelState, KernelDraft};
+use crate::geometry_state::GeometryView;
 
 /// Extract and merge coplanar regions using the topology compound-merge path.
 ///
@@ -27,18 +27,16 @@ use crate::geometry_store::GeometryStore;
 /// applying `JoinFaces` across internal region edges. Falls back to None
 /// (caller should use legacy path) if any group merge fails.
 pub fn extract_coplanar_regions(
-    topo: TopologyState,
-    geom: &mut GeometryStore,
+    draft: &mut KernelDraft,
     ctx: &mut ModelingContext,
-) -> Result<(TopologyState, usize), KernelError> {
-    let groups = discover_coplanar_groups(topo.arena(), geom)?;
+) -> Result<usize, KernelError> {
+    let groups = discover_coplanar_groups(draft.arena(), draft.geometry())?;
     let mergeable: Vec<_> = groups.into_iter().filter(|g| g.count() >= 2).collect();
 
     if mergeable.is_empty() {
-        return Ok((topo, 0));
+        return Ok(0);
     }
 
-    let mut draft = topo.into_mutation();
     let pre_snapshot = ArenaSnapshot::capture(draft.arena());
     let mut total_merged = 0usize;
     let mut killed_faces: Vec<FaceId> = Vec::new();
@@ -47,7 +45,7 @@ pub fn extract_coplanar_regions(
         let cert_result = super::merge_eligibility::eval::certify_merge_boundary(
             draft.arena(),
             group,
-            geom,
+            draft.geometry(),
         );
 
         let should_merge = match cert_result {
@@ -64,16 +62,27 @@ pub fn extract_coplanar_regions(
             continue;
         }
 
+        let group_faces: Vec<FaceId> = {
+            let arena = draft.arena();
+            (0..group.capacity())
+                .filter(|&idx| group.contains(idx).unwrap_or(false))
+                .filter_map(|idx| {
+                    arena.iter_faces()
+                        .find(|(fid, _)| fid.index() == idx)
+                        .map(|(fid, _)| fid)
+                })
+                .collect()
+        };
+
+        let (mut_draft, _mut_geom) = draft.as_parts_mut();
         let surviving = forge_topo::algorithms::region_extraction::merge_face_group_by_join_faces(
-            &mut draft,
+            mut_draft,
             group,
         )?;
 
-        for (face_id, _) in draft.arena().iter_faces() {
-            if face_id != surviving
-                && group.contains(face_id.index()).unwrap_or(false)
-            {
-                killed_faces.push(face_id);
+        for face_id in &group_faces {
+            if *face_id != surviving {
+                killed_faces.push(*face_id);
             }
         }
 
@@ -83,13 +92,11 @@ pub fn extract_coplanar_regions(
     let delta = compute_topology_delta(&pre_snapshot, draft.arena());
     log_extraction(total_merged, mergeable.len(), delta, ctx);
 
-    let committed = draft.commit()?;
-
+    let (_, mut_geom) = draft.as_parts_mut();
     for face_id in &killed_faces {
-        geom.remove_face_plane(*face_id);
+        mut_geom.remove_face_plane(*face_id);
     }
-
-    Ok((committed, total_merged))
+    Ok(total_merged)
 }
 
 /// Discover connected coplanar face groups via BFS.
@@ -99,7 +106,7 @@ pub fn extract_coplanar_regions(
 /// 2. Their plane equations are exactly equal (via `exact_eq`)
 fn discover_coplanar_groups(
     arena: &TopologyArena,
-    geom: &GeometryStore,
+    geom: &dyn GeometryView,
 ) -> Result<Vec<EntityBitset>, KernelError> {
     let groups = forge_topo::algorithms::components::collect_connected_face_components(
         arena,

@@ -7,7 +7,7 @@
 
 use forge_core::{KernelError, ToleranceProvider};
 use forge_kernel::operations::boolean::{BooleanInput, BooleanOp, BooleanResult, execute_boolean};
-use forge_kernel::geometry_store::GeometryStore;
+use forge_kernel::geometry_state::GeometryState;
 use forge_topo::classify::{classify_point_in_solid, PointClassification};
 use forge_topo::handles::VertexId;
 use forge_topo::state::TopologyState;
@@ -80,9 +80,9 @@ fn check_point_consistency(
     result: &BooleanResult,
     op: BooleanOp,
     target_topo: &TopologyState,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_topo: &TopologyState,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
 ) -> Result<(), String> {
     let result_topo = result.topology();
     let result_geom = result.geometry();
@@ -124,7 +124,7 @@ fn check_point_consistency(
 /// Classify a point as inside (true) or outside (false) a solid.
 fn classify_in_solid(
     topo: &TopologyState,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     point: &[f64; 3],
 ) -> bool {
     let arena = topo.arena();
@@ -196,7 +196,7 @@ fn generate_sample_grid_from_bb(
 /// Compute axis-aligned bounding box from topology vertex positions.
 fn compute_bounding_box(
     topo: &TopologyState,
-    geom: &GeometryStore,
+    geom: &GeometryState,
 ) -> ([f64; 3], [f64; 3]) {
     let mut min_bb = [f64::MAX; 3];
     let mut max_bb = [f64::MIN; 3];

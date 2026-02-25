@@ -9,7 +9,7 @@ use forge_topo::arena::TopologyArena;
 use forge_topo::handles::FaceId;
 use forge_topo::state::TopologyState;
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use crate::operations::boolean::schema::FaceClassification;
 
 /// Detect coplanar faces between source and other solids using exact rational arithmetic.
@@ -22,9 +22,9 @@ use crate::operations::boolean::schema::FaceClassification;
 /// Returns a map from source face index → pre-determined classification.
 fn detect_coplanar_faces(
     source_arena: &TopologyArena,
-    source_geom: &GeometryStore,
+    source_geom: &GeometryState,
     other_arena: &TopologyArena,
-    other_geom: &GeometryStore,
+    other_geom: &GeometryState,
 ) -> BTreeMap<u32, FaceClassification> {
     let mut result = BTreeMap::new();
 
@@ -85,9 +85,9 @@ fn normals_aligned_exact(p1: &forge_geom::Plane, p2: &forge_geom::Plane) -> bool
 ///   2. Their 2D polygon projections overlap in area (`polygons_overlap_2d`)
 pub(crate) fn find_coplanar_face_pairs(
     target_topo: &TopologyState,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_topo: &TopologyState,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
 ) -> (BTreeSet<u32>, BTreeSet<u32>) {
     let mut excluded_target: BTreeSet<u32> = BTreeSet::new();
     let mut excluded_tool: BTreeSet<u32> = BTreeSet::new();
@@ -138,7 +138,7 @@ pub(crate) fn find_coplanar_face_pairs(
 /// multi-ring polygon handling.
 fn extract_face_vertices_3d(
     arena: &TopologyArena,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     face: FaceId,
 ) -> Option<Vec<[f64; 3]>> {
     let loops = forge_topo::polygon::face_loop_vertices(arena, face).ok()?;

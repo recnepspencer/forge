@@ -11,7 +11,7 @@
 //! ├── prelude.rs     ← convenient imports
 //! ├── core/          ← shared infrastructure (ModelingContext, policies)
 //! ├── features/      ← feature-sliced domain modules (Bento Box)
-//! ├── geometry_store/ ← data adapter
+//! ├── geometry_state/ ← data adapter
 //! ├── mesh_builder/  ← construction service
 //! ├── analysis/      ← queries & diagnostics
 //! ├── operations/    ← all modeling operations
@@ -32,7 +32,7 @@
 pub mod prelude;
 pub mod core;
 pub mod features;
-pub mod geometry_store;
+pub mod geometry_state;
 pub mod mesh_builder;
 pub mod operations;
 pub mod analysis;

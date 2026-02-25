@@ -12,7 +12,7 @@ use forge_topo::state::TopologyState;
 use forge_topo::replay::ReplayLog;
 use forge_topo::lineage::LineageEvent;
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 
 /// The output of a feature evaluation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,7 +20,7 @@ pub struct FeatureOutput {
     /// The resulting topology (snapshot).
     pub topology: TopologyState,
     /// The resulting geometry.
-    pub geometry: GeometryStore,
+    pub geometry: GeometryState,
     /// Traced decisions from this evaluation.
     pub decision_log: Arc<DecisionLog>,
     /// Replay log recording each pipeline phase.

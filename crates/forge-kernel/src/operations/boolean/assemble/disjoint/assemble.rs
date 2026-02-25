@@ -18,7 +18,7 @@ use forge_topo::replay::ReplayLog;
 use forge_topo::lineage::{LineageEvent, Lineage, OpSignature};
 
 use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use crate::operations::boolean::classify::find_coplanar_face_pairs;
 use crate::operations::boolean::eval::VertexMatchKey;
 use crate::operations::boolean::schema::{BooleanResult, BooleanOp, BooleanIntrospection};
@@ -32,9 +32,9 @@ use super::eval::{are_solids_coincident, compute_disjoint_scale};
 /// Handle Booleans where tool is contained inside target (or vice versa).
 pub(super) fn execute_contained_boolean(
     target_topo: &TopologyState,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_topo: &TopologyState,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
     operation: BooleanOp,
     tool_inside_target: bool,
     ctx: &mut ModelingContext,
@@ -82,9 +82,9 @@ pub(super) fn execute_contained_boolean(
 /// Handle Booleans where the two solids are disjoint.
 pub(super) fn execute_disjoint_boolean(
     target_topo: &TopologyState,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_topo: &TopologyState,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
     operation: BooleanOp,
     ctx: &mut ModelingContext,
 ) -> Result<BooleanResult, KernelError> {
@@ -106,9 +106,9 @@ pub(super) fn execute_disjoint_boolean(
 /// For other operations: delegates to disjoint handler.
 pub(super) fn execute_touching_boolean(
     target_topo: &TopologyState,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_topo: &TopologyState,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
     operation: BooleanOp,
     ctx: &mut ModelingContext,
 ) -> Result<BooleanResult, KernelError> {
@@ -134,7 +134,7 @@ pub(super) fn execute_touching_boolean(
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
-    let mut result_geom = GeometryStore::new();
+    let mut result_geom = GeometryState::new();
     let mut global_vertex_map: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
     let mut spatial_index = VertexWelder::new(scale);
     let mut all_he_ids: Vec<HalfEdgeId> = Vec::new();
@@ -219,7 +219,7 @@ pub(super) fn execute_touching_boolean(
 /// that was already correct.
 fn pass_through_shell(
     topo: &TopologyState,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     op_name: &str,
 ) -> Result<BooleanResult, KernelError> {
     let face_count = topo.arena().face_count();
@@ -237,9 +237,9 @@ fn pass_through_shell(
 /// and only the secondary's new halfedges are stitched.
 fn splice_two_shells(
     primary_topo: &TopologyState,
-    primary_geom: &GeometryStore,
+    primary_geom: &GeometryState,
     secondary_topo: &TopologyState,
-    secondary_geom: &GeometryStore,
+    secondary_geom: &GeometryState,
     reverse_secondary: bool,
     ctx: &mut ModelingContext,
 ) -> Result<BooleanResult, KernelError> {
@@ -310,9 +310,9 @@ fn splice_two_shells(
 /// topology with vertex-identity defects.
 fn splice_tool_into_target(
     target_topo: &TopologyState,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_topo: &TopologyState,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
     ctx: &mut ModelingContext,
 ) -> Result<BooleanResult, KernelError> {
     let target_fc = target_topo.arena().face_count();
@@ -377,12 +377,12 @@ fn splice_tool_into_target(
 /// Copy faces from a source arena into a draft (shared helper for all paths).
 fn copy_shell(
     draft: &mut forge_topo::state::MutableDraft,
-    result_geom: &mut GeometryStore,
+    result_geom: &mut GeometryState,
     he_ids: &mut Vec<HalfEdgeId>,
     vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
     spatial: &mut VertexWelder,
     source_arena: &forge_topo::arena::TopologyArena,
-    source_geom: &GeometryStore,
+    source_geom: &GeometryState,
     faces: &[FaceId],
     reverse: bool,
 ) -> Result<(), KernelError> {
@@ -399,7 +399,7 @@ fn copy_shell(
 /// Create an empty BooleanResult.
 fn empty_result() -> BooleanResult {
     BooleanResult::new(
-        TopologyState::empty(), GeometryStore::new(), 0, 0,
+        TopologyState::empty(), GeometryState::new(), 0, 0,
         BooleanIntrospection::default(), ReplayLog::new(), Vec::new(),
     )
 }

@@ -13,7 +13,7 @@ use forge_math::arithmetic::Rational;
 
 /// Pack a `FaceId` into a raw `u64` handle for use in `CoincidenceGraph` edges.
 ///
-/// Uses the same bit-layout as `pack_handle` in `geometry_store`: `gen << 32 | idx`.
+/// Uses the same bit-layout as `pack_handle` in `geometry_state`: `gen << 32 | idx`.
 /// This must stay consistent with `unpack_face_id`.
 const COINCIDENCE_SIDE_TAG_BIT: u64 = 1u64 << 63;
 
@@ -84,7 +84,7 @@ pub fn planes_are_parallel(a: &Plane, b: &Plane) -> bool {
 /// Used for heuristic classification (e.g. containment check).
 pub fn compute_face_centroid(
     arena: &forge_topo::arena::TopologyArena,
-    geom: &crate::geometry_store::GeometryStore,
+    geom: &crate::geometry_state::GeometryState,
     face: forge_topo::handles::FaceId,
 ) -> Result<[f64; 3], forge_core::KernelError> {
     let mut vertices = Vec::new();
@@ -118,9 +118,9 @@ pub fn compute_face_centroid(
 /// they will be processed normally by the intersection pipeline).
 pub fn build_face_coincidence_prepass(
     target_arena: &forge_topo::arena::TopologyArena,
-    target_geom: &crate::geometry_store::GeometryStore,
+    target_geom: &crate::geometry_state::GeometryState,
     tool_arena: &forge_topo::arena::TopologyArena,
-    tool_geom: &crate::geometry_store::GeometryStore,
+    tool_geom: &crate::geometry_state::GeometryState,
 ) -> CoincidenceGraph {
     let mut graph = CoincidenceGraph::new();
 

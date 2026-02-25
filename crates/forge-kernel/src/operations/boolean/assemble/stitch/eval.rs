@@ -1,7 +1,7 @@
 //! Core twin-stitching logic.
 //!
 //! DOMAIN: Match half-edges by directed edge identity and set twin pointers.
-//! DEPENDENCIES: fallback (position-based stitching), GeometryStore.
+//! DEPENDENCIES: fallback (position-based stitching), GeometryState.
 //! INVARIANTS: Two passes — exact vertex match first, then among remaining
 //! unpaired edges. Position-based fallback handles geometric near-misses.
 //! Returns `StitchReport` so callers decide if unpaired is acceptable.
@@ -14,7 +14,7 @@ use forge_topo::state::MutableDraft;
 use forge_topo::operator::apply_op;
 use forge_topo::euler::sew_edge::SewEdge;
 use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 
 use super::fallback::stitch_position_fallback;
 
@@ -42,7 +42,7 @@ impl StitchReport {
     pub fn require_fully_paired(
         &self,
         draft: &MutableDraft,
-        geom: &GeometryStore,
+        geom: &GeometryState,
         ctx: &ModelingContext,
     ) -> Result<(), KernelError> {
         if self.is_fully_paired() {
@@ -64,7 +64,7 @@ impl StitchReport {
 pub fn stitch_twins(
     draft: &mut MutableDraft,
     all_he_ids: &[HalfEdgeId],
-    geom: &GeometryStore,
+    geom: &GeometryState,
     weld_tolerance_sq: f64,
     ctx: &mut ModelingContext,
 ) -> Result<StitchReport, KernelError> {
@@ -183,7 +183,7 @@ fn build_directed_map(
 /// Run one stitch pass: match each half-edge against reverse candidates.
 fn run_stitch_pass(
     draft: &mut MutableDraft,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     candidates: &[HalfEdgeId],
     edge_map: &BTreeMap<(u32, u32), Vec<HalfEdgeId>>,
     already_paired: &BTreeSet<u32>,
@@ -313,7 +313,7 @@ fn log_stitch_decision(he_a: HalfEdgeId, he_b: HalfEdgeId, kind: &DecisionKind, 
 /// Select the best twin candidate using face normal dot product.
 pub fn select_best_twin(
     draft: &MutableDraft,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     source_he: HalfEdgeId,
     candidates: &[HalfEdgeId],
 ) -> HalfEdgeId {
@@ -356,7 +356,7 @@ pub fn select_best_twin(
 fn build_stitch_failure_error(
     unpaired: &[HalfEdgeId],
     draft: &MutableDraft,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     ctx: &ModelingContext,
 ) -> KernelError {
     let mut detail_lines: Vec<String> = Vec::new();
@@ -469,7 +469,7 @@ fn build_stitch_failure_error(
 fn find_near_reverse_edge_debug(
     source_he: HalfEdgeId,
     draft: &MutableDraft,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     ctx: &ModelingContext,
 ) -> Option<String> {
     let (src_o, src_d) = get_edge_endpoints(draft, source_he).ok()?;

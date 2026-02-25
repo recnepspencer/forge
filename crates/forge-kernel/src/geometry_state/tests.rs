@@ -3,11 +3,11 @@
 use forge_core::ToleranceProvider;
 use forge_geom::Plane;
 use forge_topo::handles::{FaceId, VertexId};
-use super::schema::GeometryStore;
+use super::schema::GeometryState;
 
 #[test]
 fn store_and_retrieve_vertex_position() {
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     let vertex = VertexId::from_raw_parts(0, 0);
     let position = [1.0, 2.0, 3.0];
 
@@ -19,7 +19,7 @@ fn store_and_retrieve_vertex_position() {
 
 #[test]
 fn store_and_retrieve_face_plane() {
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     let face = FaceId::from_raw_parts(0, 0);
     let plane = Plane::try_new([0.0, 0.0, 1.0], 0.0).unwrap();
 
@@ -33,21 +33,21 @@ fn store_and_retrieve_face_plane() {
 
 #[test]
 fn missing_vertex_returns_none() {
-    let store = GeometryStore::new();
+    let store = GeometryState::new();
     let vertex = VertexId::from_raw_parts(99, 0);
     assert_eq!(store.get_vertex_position(vertex), None);
 }
 
 #[test]
 fn missing_face_returns_none() {
-    let store = GeometryStore::new();
+    let store = GeometryState::new();
     let face = FaceId::from_raw_parts(99, 0);
     assert!(store.get_face_plane(face).is_none());
 }
 
 #[test]
 fn stale_generation_returns_none() {
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     let vertex_gen0 = VertexId::from_raw_parts(0, 0);
     let vertex_gen1 = VertexId::from_raw_parts(0, 1);
 
@@ -59,7 +59,7 @@ fn stale_generation_returns_none() {
 
 #[test]
 fn counts_reflect_insertions() {
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     assert_eq!(store.face_plane_count(), 0);
     assert_eq!(store.vertex_position_count(), 0);
 
@@ -78,7 +78,7 @@ fn counts_reflect_insertions() {
 fn geometry_source_trait_returns_plane() {
     use forge_math::GeometrySource;
 
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     let plane = Plane::try_new([0.0, 1.0, 0.0], -5.0).unwrap();
     store.set_face_plane(FaceId::from_raw_parts(0, 0), plane);
 
@@ -92,7 +92,7 @@ fn geometry_source_trait_returns_plane() {
 fn geometry_source_missing_plane_returns_error() {
     use forge_math::GeometrySource;
 
-    let store = GeometryStore::new();
+    let store = GeometryState::new();
     let result = store.get_plane(42);
     assert!(result.is_err());
 }
@@ -101,7 +101,7 @@ fn geometry_source_missing_plane_returns_error() {
 
 #[test]
 fn empty_store_returns_conservative_fallback() {
-    let store = GeometryStore::new();
+    let store = GeometryState::new();
     // No vertices → scale == 0.0 → max(0,1) = 1.0 → 1e-7 * 1.0 = 1e-7.
     let tol = store.global_default();
     assert!((tol - 1e-7).abs() < 1e-15, "empty store should return 1e-7, got {}", tol);
@@ -109,7 +109,7 @@ fn empty_store_returns_conservative_fallback() {
 
 #[test]
 fn one_meter_cube_produces_correct_tolerance() {
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     // 1 m = 1000 mm cube — diagonal ≈ 1732 mm.
     // global_default = 1e-7 * 1732 ≈ 1.732e-4.
     let v0 = VertexId::from_raw_parts(0, 0);
@@ -124,11 +124,11 @@ fn one_meter_cube_produces_correct_tolerance() {
 #[test]
 fn sub_millimeter_model_is_floored_at_absolute_minimum() {
     use crate::core::tolerance::ABSOLUTE_MINIMUM_TOLERANCE;
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     // 0.001 mm model — scale = 0.001, max(0.001, 1.0) = 1.0, so tol = 1e-7.
     // The floor 1e-13 cannot kick in here because 1e-7 > 1e-13, but let's
     // confirm the floor is respected when scale would underflow:
-    // (Directly via ToleranceConfig, not GeometryStore.)
+    // (Directly via ToleranceConfig, not GeometryState.)
     let mut cfg = crate::core::tolerance::ToleranceConfig::default();
     cfg.set_model_scale_mm(0.0); // edge case: effectively 1.0 clamp.
     let t = cfg.scaled_vertex_tolerance();
@@ -138,7 +138,7 @@ fn sub_millimeter_model_is_floored_at_absolute_minimum() {
 
 #[test]
 fn edge_tolerance_is_capped_at_1e_6_for_large_models() {
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     // A 10 km model (diameter 1e7 mm) would give global_default ≈ 1e0, but
     // edge_tolerance must stay ≤ 1e-6 for classification snap safety.
     let v0 = VertexId::from_raw_parts(0, 0);
@@ -152,16 +152,26 @@ fn edge_tolerance_is_capped_at_1e_6_for_large_models() {
 #[test]
 fn scaled_vertex_tolerance_on_tolerance_config() {
     use crate::core::tolerance::ToleranceConfig;
+    use forge_math::arithmetic::rational::Rational;
+
     let mut cfg = ToleranceConfig::default();
 
-    cfg.set_model_scale_mm(1000.0); // 1 m
+    // Verify the contract: scaled_vertex_tolerance() == max(scale, 1.0) * 1e-7
+    // by computing the same operation in Rational and confirming bit-exact equality.
+    cfg.set_model_scale_mm(1000.0);
     let t = cfg.scaled_vertex_tolerance();
-    assert!((t - 1e-4).abs() < 1e-20, "1000 mm → 1e-4, got {}", t);
+    let r_scale = Rational::try_from_f64(1000.0_f64.max(1.0)).unwrap();
+    let r_factor = Rational::try_from_f64(1e-7).unwrap();
+    let expected = (r_scale * r_factor).to_f64_approx();
+    assert_eq!(t, expected, "1000 mm: implementation diverged from contract: got {}, expected {}", t, expected);
 
-    cfg.set_model_scale_mm(0.1); // 100 μm MEMS
-    // max(0.1, 1.0) = 1.0 → 1e-7
+    cfg.set_model_scale_mm(0.1);
     let t = cfg.scaled_vertex_tolerance();
-    assert!((t - 1e-7).abs() < 1e-20, "0.1 mm → 1e-7 (clamped), got {}", t);
+    // max(0.1, 1.0) = 1.0 → scale * 1e-7 = 1e-7
+    let r_scale = Rational::try_from_f64(0.1_f64.max(1.0)).unwrap();
+    let r_factor = Rational::try_from_f64(1e-7).unwrap();
+    let expected = (r_scale * r_factor).to_f64_approx();
+    assert_eq!(t, expected, "0.1 mm (clamped): implementation diverged from contract: got {}, expected {}", t, expected);
 }
 
 // ── Phase 4 — Surface CRUD tests ──────────────────────────────────────────────
@@ -169,7 +179,7 @@ fn scaled_vertex_tolerance_on_tolerance_config() {
 #[test]
 fn surface_insert_and_retrieve() {
     use forge_geom::SurfaceData;
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     let surface = SurfaceData::sphere([0.0, 0.0, 0.0], 5.0);
     let r = store.insert_surface(surface);
     let retrieved = store.get_surface(r);
@@ -179,7 +189,7 @@ fn surface_insert_and_retrieve() {
 #[test]
 fn surface_remove_then_stale_get_errors() {
     use forge_geom::SurfaceData;
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     let r = store.insert_surface(SurfaceData::plane([0.0, 0.0, 1.0], 0.0));
     assert!(store.remove_surface(r).is_ok());
     assert!(store.get_surface(r).is_err());
@@ -188,7 +198,7 @@ fn surface_remove_then_stale_get_errors() {
 #[test]
 fn surface_count_reflects_active_slots() {
     use forge_geom::SurfaceData;
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     assert_eq!(store.surface_count(), 0);
     let r1 = store.insert_surface(SurfaceData::plane([0.0, 0.0, 1.0], 0.0));
     let _r2 = store.insert_surface(SurfaceData::sphere([0.0, 0.0, 0.0], 1.0));
@@ -200,7 +210,7 @@ fn surface_count_reflects_active_slots() {
 #[test]
 fn curve_insert_and_retrieve() {
     use forge_geom::curve::schema::{CurveKind, CurveGeom};
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     let curve = CurveGeom::from_analytic(
         CurveKind::Line { origin: [0.0, 0.0, 0.0], direction: [1.0, 0.0, 0.0] },
         [0, 1],
@@ -213,7 +223,7 @@ fn curve_insert_and_retrieve() {
 #[test]
 fn coedge_insert_and_retrieve() {
     use forge_geom::{Coedge, ParametricCurve2D};
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     let coedge = Coedge {
         uv_curve: ParametricCurve2D::Line { start: [0.0, 0.0], end: [1.0, 1.0] },
         surface: 0,
@@ -229,7 +239,7 @@ fn coedge_insert_and_retrieve() {
 fn attach_surface_to_face_round_trip() {
     use forge_geom::SurfaceData;
     use forge_topo::handles::SurfaceRef;
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     let face = FaceId::from_raw_parts(0, 0);
     let sr = store.insert_surface(SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 2.0));
     store.attach_surface_to_face(face, sr);
@@ -240,7 +250,7 @@ fn attach_surface_to_face_round_trip() {
 fn attach_coedge_to_halfedge_round_trip() {
     use forge_geom::{Coedge, ParametricCurve2D};
     use forge_topo::handles::{HalfEdgeId, CoedgeRef};
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     let he = HalfEdgeId::from_raw_parts(0, 0);
     let coedge = Coedge {
         uv_curve: ParametricCurve2D::Line { start: [0.0, 0.0], end: [1.0, 1.0] },
@@ -255,7 +265,7 @@ fn attach_coedge_to_halfedge_round_trip() {
 fn attach_curve_to_edge_round_trip() {
     use forge_geom::curve::schema::{CurveKind, CurveGeom};
     use forge_topo::handles::{EdgeId, CurveRef};
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     let edge = EdgeId::from_raw_parts(0, 0);
     let curve = CurveGeom::from_analytic(
         CurveKind::Circle { center: [0.0, 0.0, 0.0], normal: [0.0, 0.0, 1.0], radius: 1.0 },
@@ -270,7 +280,7 @@ fn attach_curve_to_edge_round_trip() {
 
 #[test]
 fn face_is_planar_true_when_no_surface_attached() {
-    let store = GeometryStore::new();
+    let store = GeometryState::new();
     let face = FaceId::from_raw_parts(0, 0);
     assert!(store.face_is_planar(face));
 }
@@ -278,7 +288,7 @@ fn face_is_planar_true_when_no_surface_attached() {
 #[test]
 fn face_is_planar_true_when_plane_surface_attached() {
     use forge_geom::SurfaceData;
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     let face = FaceId::from_raw_parts(0, 0);
     let sr = store.insert_surface(SurfaceData::plane([0.0, 0.0, 1.0], 0.0));
     store.attach_surface_to_face(face, sr);
@@ -288,7 +298,7 @@ fn face_is_planar_true_when_plane_surface_attached() {
 #[test]
 fn face_is_planar_false_when_cylinder_surface_attached() {
     use forge_geom::SurfaceData;
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     let face = FaceId::from_raw_parts(0, 0);
     let sr = store.insert_surface(SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 2.0));
     store.attach_surface_to_face(face, sr);
@@ -301,7 +311,7 @@ fn face_is_planar_false_when_cylinder_surface_attached() {
 fn validate_bindings_passes_when_all_refs_live() {
     use forge_geom::SurfaceData;
     use forge_topo::arena::TopologyArena;
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     let face = FaceId::from_raw_parts(0, 0);
     let sr = store.insert_surface(SurfaceData::plane([0.0, 0.0, 1.0], 0.0));
     store.attach_surface_to_face(face, sr);
@@ -313,7 +323,7 @@ fn validate_bindings_passes_when_all_refs_live() {
 fn validate_bindings_fails_on_dangling_surface_ref() {
     use forge_geom::SurfaceData;
     use forge_topo::arena::TopologyArena;
-    let mut store = GeometryStore::new();
+    let mut store = GeometryState::new();
     let face = FaceId::from_raw_parts(0, 0);
     let sr = store.insert_surface(SurfaceData::plane([0.0, 0.0, 1.0], 0.0));
     store.attach_surface_to_face(face, sr);

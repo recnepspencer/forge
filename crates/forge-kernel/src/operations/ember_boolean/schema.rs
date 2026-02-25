@@ -28,8 +28,8 @@ impl QuantizedSpace {
     /// Target: 30-bit grid (`±2^30` ≈ 1 billion points per axis).
     /// For meter-scale objects, this gives ~1 nanometer resolution.
     pub fn build(
-        target_geom: &crate::geometry_store::GeometryStore,
-        tool_geom: &crate::geometry_store::GeometryStore,
+        target_geom: &crate::geometry_state::GeometryState,
+        tool_geom: &crate::geometry_state::GeometryState,
     ) -> Self {
         let mut min_pos = [f64::INFINITY; 3];
         let mut max_pos = [f64::NEG_INFINITY; 3];

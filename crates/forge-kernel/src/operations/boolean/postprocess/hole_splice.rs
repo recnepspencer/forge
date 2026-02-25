@@ -11,7 +11,7 @@
 //!   4. Pick target vertex (mutually visible, closest)
 //!   5. Apply BridgeEdge Euler operator
 //!
-//! DEPENDENCIES: forge_topo (BridgeEdge, arena), GeometryStore, forge_geom
+//! DEPENDENCIES: forge_topo (BridgeEdge, arena), GeometryState, forge_geom
 
 use forge_core::KernelError;
 use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext};
@@ -21,7 +21,7 @@ use forge_topo::state::{TopologyState, MutableDraft};
 use forge_topo::algorithms::bridge_edge::bridge_edge;
 
 use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 
 struct LoopVertexSample {
     he: HalfEdgeId,
@@ -36,7 +36,7 @@ struct LoopVertexSample {
 // DEFECT(D4): splice_inner_holes uses bridge_edge to merge holes, creating non-manifold bridging edges.
 pub fn splice_inner_holes(
     topo: TopologyState,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     ctx: &mut ModelingContext,
 ) -> Result<(TopologyState, usize), KernelError> {
     let faces_with_holes = find_faces_with_holes(topo.arena());
@@ -90,7 +90,7 @@ fn splice_one_hole(
     draft: &mut MutableDraft,
     face: FaceId,
     inner_loop: LoopId,
-    geom: &GeometryStore,
+    geom: &GeometryState,
 ) -> Result<bool, KernelError> {
     let face_plane = match geom.get_face_plane(face) {
         Some(p) => p,
@@ -126,7 +126,7 @@ fn splice_one_hole(
 
 fn select_bridge_with_geom_algorithm(
     draft: &MutableDraft,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     plane: &forge_geom::Plane,
     inner_start: HalfEdgeId,
     outer_start: HalfEdgeId,
@@ -171,7 +171,7 @@ fn select_bridge_with_geom_algorithm(
 fn collect_loop_vertex_samples_complete(
     draft: &MutableDraft,
     start_he: HalfEdgeId,
-    geom: &GeometryStore,
+    geom: &GeometryState,
 ) -> Result<Option<Vec<LoopVertexSample>>, KernelError> {
     let mut samples = Vec::new();
     let mut current = start_he;
@@ -210,7 +210,7 @@ fn collect_loop_vertex_samples_complete(
 fn find_extremal_vertex(
     draft: &MutableDraft,
     start_he: HalfEdgeId,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     plane: &forge_geom::Plane,
 ) -> Result<(HalfEdgeId, VertexId, [f64; 3]), KernelError> {
     let normal = plane.normal();
@@ -262,7 +262,7 @@ fn raycast_to_outer_boundary(
     draft: &MutableDraft,
     outer_start: HalfEdgeId,
     h_max_pos: [f64; 3],
-    geom: &GeometryStore,
+    geom: &GeometryState,
     plane: &forge_geom::Plane,
 ) -> Result<(HalfEdgeId, VertexId), KernelError> {
     let normal = plane.normal();
@@ -366,7 +366,7 @@ fn compute_ray_edge_intersection(
 /// Pick the closer of two edge endpoints to h_max as the bridge target.
 fn pick_closer_vertex(
     draft: &MutableDraft,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     h_max_pos: [f64; 3],
     origin_vid: VertexId,
     dest_vid: VertexId,

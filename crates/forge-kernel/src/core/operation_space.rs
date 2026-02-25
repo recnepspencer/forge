@@ -4,7 +4,7 @@
 //! mandates for operations at extreme scales.
 //!
 //! DEPENDENCIES: `forge-geom` (LocalCoordinateSpace, ScaleAnalysis),
-//! `forge-topo` (TopologyState), GeometryStore.
+//! `forge-topo` (TopologyState), GeometryState.
 //!
 //! INVARIANTS: `transform_geometry` and `restore_geometry` are inverse
 //! operations — calling both is a no-op within floating-point ULP.
@@ -12,7 +12,7 @@
 use forge_geom::spatial::local_space::{LocalCoordinateSpace, ScaleAnalysis};
 use forge_topo::state::TopologyState;
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 
 /// Local coordinate transform lifecycle for multi-solid operations.
 ///
@@ -28,9 +28,9 @@ impl OperationSpace {
     /// Analyze two solids and compute a local coordinate space if needed.
     pub fn analyze_binary(
         target_topo: &TopologyState,
-        target_geom: &GeometryStore,
+        target_geom: &GeometryState,
         tool_topo: &TopologyState,
-        tool_geom: &GeometryStore,
+        tool_geom: &GeometryState,
         feature_tolerance: f64,
     ) -> Self {
         let mut points = collect_vertex_positions(target_topo, target_geom);
@@ -41,7 +41,7 @@ impl OperationSpace {
     /// Analyze a single solid (for unary operations like fillet/extrude).
     pub fn analyze_unary(
         topo: &TopologyState,
-        geom: &GeometryStore,
+        geom: &GeometryState,
         feature_tolerance: f64,
     ) -> Self {
         let points = collect_vertex_positions(topo, geom);
@@ -49,14 +49,14 @@ impl OperationSpace {
     }
 
     /// Transform a geometry store to local coordinates (call before pipeline).
-    pub fn transform_geometry(&self, geom: &mut GeometryStore) {
+    pub fn transform_geometry(&self, geom: &mut GeometryState) {
         if self.active {
             geom.transform(&self.local_space);
         }
     }
 
     /// Transform a geometry store from local back to world (call after pipeline).
-    pub fn restore_geometry(&self, geom: &mut GeometryStore) {
+    pub fn restore_geometry(&self, geom: &mut GeometryState) {
         if self.active {
             geom.inverse_transform(&self.local_space);
         }
@@ -94,7 +94,7 @@ impl OperationSpace {
 }
 
 /// Collect all f64 vertex positions from a topology+geometry pair.
-fn collect_vertex_positions(topo: &TopologyState, geom: &GeometryStore) -> Vec<[f64; 3]> {
+fn collect_vertex_positions(topo: &TopologyState, geom: &GeometryState) -> Vec<[f64; 3]> {
     let mut points = Vec::new();
     for (v_id, _) in topo.arena().iter_vertices() {
         if let Some(pos) = geom.get_vertex_position(v_id) {

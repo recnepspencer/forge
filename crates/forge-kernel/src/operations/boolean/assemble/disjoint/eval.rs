@@ -15,7 +15,7 @@ use forge_topo::state::TopologyState;
 use forge_topo::classify::classify_point_in_solid;
 
 use crate::core::ModelingContext;
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use crate::operations::boolean::schema::{BooleanOp, BooleanResult};
 
 use super::assemble::{
@@ -38,9 +38,9 @@ pub(super) enum Containment {
 /// Fast path for non-intersecting solids (zero face splits).
 pub fn execute_zero_split(
     target_topo: &TopologyState,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_topo: &TopologyState,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
     operation: BooleanOp,
     ctx: &mut ModelingContext,
 ) -> Result<Option<BooleanResult>, KernelError> {
@@ -54,9 +54,9 @@ pub fn execute_zero_split(
 /// Determine the spatial relationship between two solids by sampling.
 pub(super) fn check_containment(
     target_topo: &TopologyState,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_topo: &TopologyState,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
     ctx: &mut ModelingContext,
 ) -> Result<Containment, KernelError> {
     let config = ctx.get_tolerance_config().clone();
@@ -94,7 +94,7 @@ pub(super) fn check_containment(
 fn classify_sample(
     point: &[f64; 3],
     topo: &TopologyState,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     _config: &crate::core::ToleranceConfig,
     ctx: &mut ModelingContext,
 ) -> Result<forge_topo::classify::PointClassification, KernelError> {
@@ -116,7 +116,7 @@ fn classify_sample(
 /// Look up a vertex position by raw slot index.
 fn lookup_vertex(
     topo: &TopologyState,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     index: u32,
 ) -> Result<[f64; 3], KernelError> {
     let gen = topo.arena().vertex_generation(index as usize).ok_or_else(|| {
@@ -156,7 +156,7 @@ fn is_on_boundary(cls: &forge_topo::classify::PointClassification) -> bool {
 /// Sample a point inside a solid by averaging all vertex positions.
 fn sample_interior_point(
     topo: &TopologyState,
-    geom: &GeometryStore,
+    geom: &GeometryState,
 ) -> Result<[f64; 3], KernelError> {
     let vertices: Vec<[f64; 3]> = topo.arena().iter_vertices()
         .filter_map(|(vid, _)| geom.get_vertex_position(vid).copied())
@@ -175,9 +175,9 @@ fn sample_interior_point(
 /// any face centroid lies on the other solid's boundary.
 fn has_overlapping_coplanar_faces(
     target_topo: &TopologyState,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_topo: &TopologyState,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
     config: &crate::core::ToleranceConfig,
 ) -> Result<bool, KernelError> {
     if has_coplanar_plane_pair(target_topo, target_geom, tool_topo, tool_geom) {
@@ -190,9 +190,9 @@ fn has_overlapping_coplanar_faces(
 /// Check if any face plane from target exactly matches any from tool.
 fn has_coplanar_plane_pair(
     target_topo: &TopologyState,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_topo: &TopologyState,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
 ) -> bool {
     for (face_a, _) in target_topo.arena().iter_faces() {
         let Some(plane_a) = target_geom.get_face_plane(face_a) else { continue };
@@ -209,9 +209,9 @@ fn has_coplanar_plane_pair(
 /// Check if any target face centroid lies on the tool's boundary.
 fn has_boundary_centroid(
     target_topo: &TopologyState,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_topo: &TopologyState,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
     config: &crate::core::ToleranceConfig,
 ) -> Result<bool, KernelError> {
     for (face_id, _) in target_topo.arena().iter_faces() {
@@ -243,9 +243,9 @@ fn has_boundary_centroid(
 fn dispatch_containment(
     containment: Containment,
     target_topo: &TopologyState,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_topo: &TopologyState,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
     operation: BooleanOp,
     ctx: &mut ModelingContext,
 ) -> Result<Option<BooleanResult>, KernelError> {
@@ -287,9 +287,9 @@ fn log_containment(containment: &Containment, operation: BooleanOp, ctx: &mut Mo
 /// the target boundary). Used to detect A−A=∅ in subtraction.
 pub(super) fn are_solids_coincident(
     target_topo: &TopologyState,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_topo: &TopologyState,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
 ) -> Result<bool, KernelError> {
     if target_topo.arena().face_count() != tool_topo.arena().face_count() {
         return Ok(false);
@@ -321,8 +321,8 @@ pub(super) fn are_solids_coincident(
 /// Compute the characteristic scale for the disjoint assembly path.
 pub fn compute_disjoint_scale(
     primary_arena: &forge_topo::arena::TopologyArena,
-    primary_geom: &GeometryStore,
-    secondary: Option<(&forge_topo::arena::TopologyArena, &GeometryStore)>,
+    primary_geom: &GeometryState,
+    secondary: Option<(&forge_topo::arena::TopologyArena, &GeometryState)>,
 ) -> f64 {
     let mut min_pos = [f64::INFINITY; 3];
     let mut max_pos = [f64::NEG_INFINITY; 3];

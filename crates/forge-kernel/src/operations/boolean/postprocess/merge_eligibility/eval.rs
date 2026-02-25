@@ -3,7 +3,7 @@
 //! DOMAIN: Orchestrate boundary extraction and certification for merge eligibility.
 //! Wraps forge-geom certifier results in OperationResult<T> with traced decisions.
 //!
-//! DEPENDENCIES: `boundary_adapter`, `forge-geom::boundary_cert`, `GeometryStore`.
+//! DEPENDENCIES: `boundary_adapter`, `forge-geom::boundary_cert`, `GeometryState`.
 //! INVARIANTS: Wraps plain results in OperationResult. Policy here, not in geom.
 
 use forge_core::{KernelError, OperationResult};
@@ -18,7 +18,7 @@ use forge_geom::algorithms::boundary_cert::eval::{
 };
 use forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate;
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryView;
 
 use super::boundary_adapter::{extract_boundary_candidate, get_group_plane_normal};
 
@@ -29,7 +29,7 @@ use super::boundary_adapter::{extract_boundary_candidate, get_group_plane_normal
 pub fn certify_merge_boundary(
     arena: &TopologyArena,
     group: &EntityBitset,
-    geom: &GeometryStore,
+    geom: &dyn GeometryView,
 ) -> Result<OperationResult<WeakSimpleCertificate>, KernelError> {
     let candidate = extract_boundary_candidate(arena, group, geom)?;
 

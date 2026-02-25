@@ -3,12 +3,12 @@
 //! DOMAIN: Post-boolean quality analysis — detecting degenerate thin faces
 //! that indicate precision issues or require explicit policy waivers.
 //!
-//! DEPENDENCIES: `forge-topo` (arena, handles), `geometry_store` (vertex positions)
+//! DEPENDENCIES: `forge-topo` (arena, handles), `geometry_state` (vertex positions)
 
 use forge_core::KernelError;
 use forge_topo::handles::FaceId;
 use forge_topo::state::TopologyState;
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 
 /// Result of sliver analysis on a topology.
 #[derive(Debug, Clone)]
@@ -66,7 +66,7 @@ impl SliverReport {
 /// faces below `min_face_area` as slivers.
 pub fn analyze_slivers(
     topo: &TopologyState,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     min_face_area: f64,
 ) -> Result<SliverReport, KernelError> {
     let arena = topo.arena();
@@ -97,7 +97,7 @@ pub fn analyze_slivers(
 /// Collect vertex positions around a face loop.
 fn collect_loop_positions(
     topo: &TopologyState,
-    geom: &GeometryStore,
+    geom: &GeometryState,
     loop_id: forge_topo::handles::LoopId,
 ) -> Result<Vec<[f64; 3]>, KernelError> {
     let arena = topo.arena();
@@ -132,7 +132,7 @@ fn collect_loop_positions(
 
 #[cfg(test)]
 mod tests {
-    use crate::geometry_store::GeometryStore;
+    use crate::geometry_state::GeometryState;
     use forge_topo::state::TopologyState;
     use super::analyze_slivers;
 

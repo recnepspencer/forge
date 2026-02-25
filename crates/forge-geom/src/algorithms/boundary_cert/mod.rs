@@ -12,6 +12,8 @@
 //! INVARIANTS: Stateless, pure. No topology, no policy, no thresholds.
 
 pub mod schema;
+pub mod exact_intersect;
+pub mod split;
 pub mod eval;
 
 #[cfg(test)]

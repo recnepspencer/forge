@@ -4,7 +4,7 @@
 //! face area computation, manifold validation, region extraction,
 //! causal chain reconstruction, and face-to-face gap measurement.
 //!
-//! DEPENDENCIES: `forge-topo` (arena traversal), `geometry_store` (positions)
+//! DEPENDENCIES: `forge-topo` (arena traversal), `geometry_state` (positions)
 
 pub mod sliver;
 pub mod proof_validation;

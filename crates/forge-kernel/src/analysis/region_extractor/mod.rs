@@ -6,7 +6,7 @@
 //! - `schema`: `ExtractedRegion` data shape
 //! - `eval`: `extract_n_ring()` BFS extraction algorithm
 //!
-//! DEPENDENCIES: `forge-topo` (arena, traversal), `geometry_store` (planes, positions)
+//! DEPENDENCIES: `forge-topo` (arena, traversal), `geometry_state` (planes, positions)
 
 mod schema;
 mod eval;

@@ -16,8 +16,8 @@ use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::state::TopologyState;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
-use crate::core::ModelingContext;
-use crate::geometry_store::GeometryStore;
+use crate::core::{ModelingContext, KernelState};
+use crate::geometry_state::GeometryState;
 use crate::operations::boolean::eval::VertexMatchKey;
 use crate::operations::boolean::schema::{
     ClassifiedFace, FaceOrigin,
@@ -35,9 +35,9 @@ impl BooleanSplitter for PlanarSplitter {
     fn split(
         &self,
         target_topo: TopologyState,
-        target_geom: GeometryStore,
+        target_geom: GeometryState,
         tool_topo: TopologyState,
-        tool_geom: GeometryStore,
+        tool_geom: GeometryState,
         ctx: &mut ModelingContext,
     ) -> Result<SplitPhaseResult, KernelError> {
         crate::operations::boolean::split::split_all_faces(
@@ -53,9 +53,9 @@ impl BooleanClassifier for RayCastClassifier {
     fn classify(
         &self,
         source_arena: &TopologyArena,
-        source_geom: &GeometryStore,
+        source_geom: &GeometryState,
         other_arena: &TopologyArena,
-        other_geom: &GeometryStore,
+        other_geom: &GeometryState,
         origin: FaceOrigin,
         ctx: &mut ModelingContext,
     ) -> Result<Vec<ClassifiedFace>, KernelError> {
@@ -74,9 +74,9 @@ impl CoplanarResolver for EmberCoplanarResolver {
         target_classified: &mut Vec<ClassifiedFace>,
         tool_classified: &mut Vec<ClassifiedFace>,
         target_topo: &TopologyState,
-        target_geom: &GeometryStore,
+        target_geom: &GeometryState,
         tool_topo: &TopologyState,
-        tool_geom: &GeometryStore,
+        tool_geom: &GeometryState,
     ) {
         crate::operations::ember_boolean::classify::apply_ember_coplanar_overrides(
             target_classified, tool_classified,
@@ -94,9 +94,9 @@ impl CoplanarResolver for NoopCoplanarResolver {
         _target_classified: &mut Vec<ClassifiedFace>,
         _tool_classified: &mut Vec<ClassifiedFace>,
         _target_topo: &TopologyState,
-        _target_geom: &GeometryStore,
+        _target_geom: &GeometryState,
         _tool_topo: &TopologyState,
-        _tool_geom: &GeometryStore,
+        _tool_geom: &GeometryState,
     ) {
         // Legacy behavior: no coplanar override injection
     }
@@ -109,16 +109,16 @@ impl BooleanAssembler for HalfEdgeAssembler {
     fn assemble(
         &self,
         target_arena: &TopologyArena,
-        target_geom: &GeometryStore,
+        target_geom: &GeometryState,
         target_faces: &[FaceId],
         target_prov: &BTreeMap<VertexId, VertexMatchKey>,
         tool_arena: &TopologyArena,
-        tool_geom: &GeometryStore,
+        tool_geom: &GeometryState,
         tool_faces: &[FaceId],
         tool_prov: &BTreeMap<VertexId, VertexMatchKey>,
         reverse_tool: bool,
         ctx: &mut ModelingContext,
-    ) -> Result<(TopologyState, GeometryStore), KernelError> {
+    ) -> Result<KernelState, KernelError> {
         crate::operations::boolean::assemble::merge::assemble_result(
             target_arena, target_geom, target_faces, target_prov,
             tool_arena, tool_geom, tool_faces, tool_prov,
@@ -133,34 +133,36 @@ pub struct StandardPostprocessor;
 impl BooleanPostprocessor for StandardPostprocessor {
     fn postprocess(
         &self,
-        topo: TopologyState,
-        geom: &mut GeometryStore,
+        state: KernelState,
         ctx: &mut ModelingContext,
-    ) -> Result<(TopologyState, GeometryStore), KernelError> {
-        let topo = if std::env::var("FORGE_SKIP_COPLANAR_POSTPROCESS").ok().as_deref() == Some("1") {
-            topo
+    ) -> Result<KernelState, KernelError> {
+        let state = if std::env::var("FORGE_SKIP_COPLANAR_POSTPROCESS").ok().as_deref() == Some("1") {
+            state
         } else {
-            let (topo, _) = crate::operations::boolean::postprocess::merge_coplanar_faces(
-                topo, geom, ctx,
+            let (new_state, _) = crate::operations::boolean::postprocess::merge_coplanar_faces(
+                state, ctx,
             )?;
-            topo
+            new_state
         };
         if std::env::var("FORGE_DEBUG_VALIDATE_PHASES").ok().as_deref() == Some("1") {
+            let (topo, _) = state.as_parts();
             match validate_topology(topo.arena(), ValidationLevel::Full) {
                 Ok(()) => eprintln!("[phase-check] postprocess merge_coplanar valid"),
                 Err(e) => eprintln!("[phase-check] postprocess merge_coplanar invalid: {}", e),
             }
         }
-        let (topo, _) = crate::operations::boolean::postprocess::remove_redundant_vertices(
-            topo, geom, ctx,
+        let (new_state, _) = crate::operations::boolean::postprocess::remove_redundant_vertices(
+            state, ctx,
         )?;
+        let state = new_state;
         if std::env::var("FORGE_DEBUG_VALIDATE_PHASES").ok().as_deref() == Some("1") {
+            let (topo, _) = state.as_parts();
             match validate_topology(topo.arena(), ValidationLevel::Full) {
                 Ok(()) => eprintln!("[phase-check] postprocess remove_redundant valid"),
                 Err(e) => eprintln!("[phase-check] postprocess remove_redundant invalid: {}", e),
             }
         }
-        Ok((topo, geom.clone()))
+        Ok(state)
     }
 }
 
@@ -175,14 +177,13 @@ pub struct ConvexOnlyPostprocessor;
 impl BooleanPostprocessor for ConvexOnlyPostprocessor {
     fn postprocess(
         &self,
-        topo: TopologyState,
-        geom: &mut GeometryStore,
+        state: KernelState,
         ctx: &mut ModelingContext,
-    ) -> Result<(TopologyState, GeometryStore), KernelError> {
-        let (topo, _) = crate::operations::boolean::postprocess::remove_redundant_vertices(
-            topo, geom, ctx,
+    ) -> Result<KernelState, KernelError> {
+        let (new_state, _) = crate::operations::boolean::postprocess::remove_redundant_vertices(
+            state, ctx,
         )?;
-        Ok((topo, geom.clone()))
+        Ok(new_state)
     }
 }
 

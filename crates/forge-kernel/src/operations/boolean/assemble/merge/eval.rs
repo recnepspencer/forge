@@ -20,7 +20,7 @@ use forge_topo::arena::TopologyArena;
 
 use crate::analysis::proof_validation::checkpoint::{run_checkpoint, ValidationCheckpoint};
 use crate::core::{ModelingContext, OperationSpace};
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 use crate::operations::boolean::schema::{
     BooleanInput, BooleanOp, BooleanResult, FaceOrigin, FaceClassification, BooleanIntrospection,
 };
@@ -279,13 +279,14 @@ fn execute_boolean_pipeline(
     }
 
     // ── Assemble ─────────────────────────────────────────────────────────────
-    let (result_topo, mut result_geom) = ctx.scope("assemble", |ctx| {
+    let result_state = ctx.scope("assemble", |ctx| {
         engine.assembler().assemble(
             target_topo.arena(), &target_geom, &selected_target, &target_prov,
             tool_topo.arena(), &tool_geom, &selected_tool, &tool_prov,
             operation == BooleanOp::Subtraction, ctx,
         )
     }).map_err(|e| e.with_phase("assemble"))?;
+    let (result_topo, mut result_geom) = result_state.into_parts();
 
     if cfg!(debug_assertions) {
         if let Err(e) = validate_topology(result_topo.arena(), ValidationLevel::Intermediate) {
@@ -301,9 +302,12 @@ fn execute_boolean_pipeline(
     let lineage_events = record_result_lineage(result_topo.arena(), seq);
 
     // ── Postprocess ──────────────────────────────────────────────────────────
-    let (result_topo, mut result_geom) = ctx.scope("postprocess", |ctx| {
-        engine.postprocessor().postprocess(result_topo, &mut result_geom, ctx)
+    let result_state = ctx.scope("postprocess", |ctx| {
+        engine.postprocessor().postprocess(
+            crate::core::KernelState::new(result_topo, result_geom), ctx
+        )
     }).map_err(|e| e.with_phase("postprocess"))?;
+    let (result_topo, mut result_geom) = result_state.into_parts();
 
     op_space.restore_geometry(&mut result_geom);
 
@@ -487,9 +491,9 @@ fn dump_selection_provenance(
 /// Handle the zero-split path: disjoint or fully-contained solids.
 fn try_zero_split_early_return(
     target_topo: &TopologyState,
-    target_geom: &GeometryStore,
+    target_geom: &GeometryState,
     tool_topo: &TopologyState,
-    tool_geom: &GeometryStore,
+    tool_geom: &GeometryState,
     operation: BooleanOp,
     op_space: &OperationSpace,
     ctx: &mut ModelingContext,
@@ -513,11 +517,13 @@ fn try_zero_split_early_return(
 
     let kept_target = result.target_faces_kept();
     let kept_tool = result.tool_faces_kept();
-    let (result_topo, mut result_geom, replay_saved, lineage_saved, intro) = result.into_full_parts();
-    let (result_topo, _) = ctx.scope("postprocess", |ctx| {
-        let (rt, _) = crate::operations::boolean::postprocess::merge_coplanar_faces(result_topo, &mut result_geom, ctx)?;
-        let (rt, _) = crate::operations::boolean::postprocess::remove_redundant_vertices(rt, &result_geom, ctx)?;
-        Ok::<_, KernelError>((rt, 0))
+    let (result_topo, result_geom, replay_saved, lineage_saved, intro) = result.into_full_parts();
+    let (result_topo, mut result_geom) = ctx.scope("postprocess", |ctx| {
+        let (rt_state, _) = crate::operations::boolean::postprocess::merge_coplanar_faces(
+            crate::core::KernelState::new(result_topo, result_geom), ctx
+        )?;
+        let (rt_state, _) = crate::operations::boolean::postprocess::remove_redundant_vertices(rt_state, ctx)?;
+        Ok::<_, KernelError>(rt_state.into_parts())
     })?;
     op_space.restore_geometry(&mut result_geom);
 
@@ -551,7 +557,7 @@ fn build_empty_result(
 ) -> Result<BooleanResult, KernelError> {
     introspection.duration_micros = start_time.elapsed().as_micros() as u64;
     Ok(BooleanResult::new(
-        TopologyState::empty(), GeometryStore::new(),
+        TopologyState::empty(), GeometryState::new(),
         0, 0, introspection, replay, Vec::new(),
     ))
 }

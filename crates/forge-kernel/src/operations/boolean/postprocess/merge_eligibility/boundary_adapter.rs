@@ -3,7 +3,7 @@
 //! DOMAIN: Convert topology-derived face-group boundaries into raw geometry
 //! inputs suitable for the `forge-geom::boundary_cert` certifier.
 //!
-//! DEPENDENCIES: `forge-topo` (arena, region_extraction), `GeometryStore`.
+//! DEPENDENCIES: `forge-topo` (arena, region_extraction), `GeometryState`.
 //! INVARIANTS: No policy decisions. Pure data extraction.
 
 use forge_core::KernelError;
@@ -12,7 +12,7 @@ use forge_topo::handles::{VertexId, FaceId};
 use forge_topo::bitset::EntityBitset;
 use forge_topo::algorithms::region_extraction::walk_face_group_boundary_perimeter;
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryView;
 
 /// A 3D boundary segment with provenance tracking.
 #[derive(Debug, Clone)]
@@ -79,11 +79,11 @@ impl BoundaryCycleCandidate {
 /// Extract a boundary candidate from a face group.
 ///
 /// Uses `walk_face_group_boundary_perimeter` to find the boundary vertices,
-/// then resolves their 3D positions from the GeometryStore.
+/// then resolves their 3D positions from the GeometryState.
 pub fn extract_boundary_candidate(
     arena: &TopologyArena,
     group: &EntityBitset,
-    geom: &GeometryStore,
+    geom: &dyn GeometryView,
 ) -> Result<BoundaryCycleCandidate, KernelError> {
     let perimeter_vertices = walk_face_group_boundary_perimeter(arena, group)?;
 
@@ -141,7 +141,7 @@ pub fn extract_boundary_candidate(
 pub fn get_group_plane_normal(
     arena: &TopologyArena,
     group: &EntityBitset,
-    geom: &GeometryStore,
+    geom: &dyn GeometryView,
 ) -> Result<[f64; 3], KernelError> {
     for (face_id, _face_data) in arena.iter_faces() {
         if group.contains(face_id.index()).unwrap_or(false) {

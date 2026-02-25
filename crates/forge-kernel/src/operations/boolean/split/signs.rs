@@ -9,7 +9,7 @@ use forge_math::arithmetic::Rational;
 use forge_math::sign::TriSign;
 use forge_topo::handles::VertexId;
 
-use crate::geometry_store::GeometryStore;
+use crate::geometry_state::GeometryState;
 
 /// Compute the exact sign of a vertex relative to a plane.
 ///
@@ -17,7 +17,7 @@ use crate::geometry_store::GeometryStore;
 /// If the vertex is symbolic, evaluates the 4x4 determinant.
 /// Fallback: promotes f64 to `Rational`.
 pub fn exact_sign_for_vertex(
-    geometry: &GeometryStore,
+    geometry: &GeometryState,
     vertex: VertexId,
     f64_pos: &[f64; 3],
     plane: &Plane,

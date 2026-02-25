@@ -29,7 +29,7 @@ fn build_menger_sponge(
     center: [f64; 3],
     half: f64,
     level: u32,
-) -> Option<(forge_topo::state::TopologyState, crate::geometry_store::GeometryStore)> {
+) -> Option<(forge_topo::state::TopologyState, crate::geometry_state::GeometryState)> {
     let subs = menger_sponge_subtraction_centers(center, half, level);
     let total = subs.len();
 
