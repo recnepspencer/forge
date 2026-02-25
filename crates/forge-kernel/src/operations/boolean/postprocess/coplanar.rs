@@ -44,8 +44,8 @@ fn run_merge_pass(
     };
 
     let mut pair_group = forge_topo::bitset::EntityBitset::for_faces(topo.arena());
-    let _ = pair_group.insert(face_a.index());
-    let _ = pair_group.insert(face_b.index());
+    pair_group.insert(face_a.index())?;
+    pair_group.insert(face_b.index())?;
 
     let cert_ok = match super::merge_eligibility::eval::certify_merge_boundary(
         topo.arena(),

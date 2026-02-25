@@ -56,7 +56,7 @@ pub fn certify_merge_boundary(
     let group_hash = {
         let mut h: u64 = 0xcbf29ce484222325;
         for idx in 0..group.capacity() {
-            if group.contains(idx).unwrap_or(false) {
+            if group.contains(idx)? {
                 h = h.wrapping_mul(0x100000001b3) ^ (idx as u64);
             }
         }

@@ -16,4 +16,5 @@ pub use schema::{
     ErrorScope, SuggestedFix, ErrorContext,
     KernelError, TopologyError,
     AmbiguousResult, DiagnosticPayload,
+    MergeError,
 };

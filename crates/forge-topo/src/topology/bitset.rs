@@ -90,9 +90,7 @@ impl EntityBitset {
 
     /// Insert an index. Returns `true` if it was newly inserted.
     pub fn insert(&mut self, index: u32) -> Result<bool, KernelError> {
-        if index >= self.capacity {
-            self.grow(index + 1);
-        }
+        self.check_bounds(index)?;
         let (word_idx, bit_idx) = split_index(index);
         let mask = 1u64 << bit_idx;
         let was_set = self.words[word_idx] & mask != 0;
@@ -105,18 +103,14 @@ impl EntityBitset {
 
     /// Check membership.
     pub fn contains(&self, index: u32) -> Result<bool, KernelError> {
-        if index >= self.capacity {
-            return Ok(false);
-        }
+        self.check_bounds(index)?;
         let (word_idx, bit_idx) = split_index(index);
         Ok(self.words[word_idx] & (1u64 << bit_idx) != 0)
     }
 
     /// Remove an index. Returns `true` if it was present.
     pub fn remove(&mut self, index: u32) -> Result<bool, KernelError> {
-        if index >= self.capacity {
-            return Ok(false);
-        }
+        self.check_bounds(index)?;
         let (word_idx, bit_idx) = split_index(index);
         let mask = 1u64 << bit_idx;
         let was_set = self.words[word_idx] & mask != 0;

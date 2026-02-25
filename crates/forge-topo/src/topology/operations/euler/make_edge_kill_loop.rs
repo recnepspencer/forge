@@ -133,22 +133,23 @@ impl EulerOperator for MakeEdgeKillLoop {
         );
 
         // ── Splice into loop ────────────────────────────────────────
-        let arena = draft.arena_mut();
+        {
+            let arena = draft.arena_mut();
 
-        arena.get_half_edge_mut(prev_a)?.set_next(he_ab);
-        arena.get_half_edge_mut(self.he_b)?.set_prev(he_ab);
-        arena.get_half_edge_mut(prev_b)?.set_next(he_ba);
-        arena.get_half_edge_mut(self.he_a)?.set_prev(he_ba);
+            arena.get_half_edge_mut(prev_a)?.set_next(he_ab);
+            arena.get_half_edge_mut(self.he_b)?.set_prev(he_ab);
+            arena.get_half_edge_mut(prev_b)?.set_next(he_ba);
+            arena.get_half_edge_mut(self.he_a)?.set_prev(he_ba);
 
-        // ── Update edge representative ──────────────────────────────
-        arena.get_edge_mut(new_edge)?.set_half_edge(he_ab);
+            // ── Update edge representative ──────────────────────────────
+            arena.get_edge_mut(new_edge)?.set_half_edge(he_ab);
 
-        // ── Update outer loop entry point (may have been prev_a) ────
-        arena.get_loop_mut(outer_loop)?.set_half_edge(he_ab);
+            // ── Update outer loop entry point (may have been prev_a) ────
+            arena.get_loop_mut(outer_loop)?.set_half_edge(he_ab);
 
-        // ── Kill inner loop ─────────────────────────────────────────
-        arena.get_face_mut(face)?.remove_inner_loop(inner_loop_id);
-        drop(arena);
+            // ── Kill inner loop ─────────────────────────────────────────
+            arena.get_face_mut(face)?.remove_inner_loop(inner_loop_id);
+        }
         draft.remove_loop(inner_loop_id)?;
 
         Ok(ExecutionResult {

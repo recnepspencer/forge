@@ -48,11 +48,11 @@ mod tests {
 
     #[test]
     fn endpoint_self_touch_is_weakly_simple() {
-        /// Figure-8 boundary: two lobes meeting at vertex [1.0, 1.0].
-        /// The boundary touches itself at that point but does not cross.
-        /// Segments: (0,0)→(2,0)→(2,1)→(1,1)→(2,2)→(0,2)→(1,1)→(0,1)→(0,0)
-        /// The vertex [1,1] appears twice as segment endpoints but the
-        /// closing segment (0,1)→(0,0) has non-zero length.
+        // Figure-8 boundary: two lobes meeting at vertex [1.0, 1.0].
+        // The boundary touches itself at that point but does not cross.
+        // Segments: (0,0)->(2,0)->(2,1)->(1,1)->(2,2)->(0,2)->(1,1)->(0,1)->(0,0)
+        // The vertex [1,1] appears twice as segment endpoints but the
+        // closing segment (0,1)->(0,0) has non-zero length.
         let segments = vec![
             Segment2D::new([0.0, 0.0], [2.0, 0.0], 0),
             Segment2D::new([2.0, 0.0], [2.0, 1.0], 1),
@@ -328,4 +328,3 @@ mod tests {
         );
     }
 }
-

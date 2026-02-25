@@ -8,7 +8,7 @@
 //! rational fractions representing the exact intersection parameters.
 
 use forge_math::arithmetic::rational::Rational;
-use forge_math::numeric::sign::{CertifiedTriSign, TriSign};
+use forge_math::numeric::sign::TriSign;
 use forge_math::predicates::orient2d;
 
 use super::schema::Segment2D;

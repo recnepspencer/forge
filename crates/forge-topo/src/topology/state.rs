@@ -377,6 +377,41 @@ impl MutableDraft {
         })
     }
 
+    /// Commit with an explicit topology manifold policy.
+    ///
+    /// `level` overrides the draft's configured `ValidationLevel`.
+    /// `mode` controls what topology is semantically permitted at commit time:
+    ///   - `ManifoldStrict` (default): rejects valence > 2 edges.
+    ///   - `NmtIntermediate`: permits valence > 2 for internal pipeline checkpoints.
+    ///
+    /// Default `commit()` always uses `ManifoldStrict`. This cannot be silently changed.
+    /// Callers requiring NMT semantics must use this method explicitly.
+    pub fn commit_with_mode(
+        mut self,
+        level: validate::ValidationLevel,
+        mode: validate::TopologyMode,
+    ) -> Result<TopologyState, KernelError> {
+        self.committed = true;
+
+        validate::validate_topology_with_mode(&self.arena, level, mode)?;
+
+        let topology_hash = self.compute_topology_hash();
+        let committed_arena = std::mem::take(&mut self.arena);
+
+        let new_events = self.lineage_store.drain_events();
+        let mut all_events = std::mem::take(&mut self.prior_lineage_events);
+        all_events.extend(new_events);
+
+        Ok(TopologyState {
+            epoch: self.next_epoch,
+            topology_version: self.topology_version,
+            geometry_version: self.geometry_version,
+            topology_hash,
+            arena: Arc::new(committed_arena),
+            lineage_events: Arc::new(all_events),
+        })
+    }
+
     /// Compute the structural topology hash from the arena.
     pub(crate) fn compute_topology_hash(&self) -> u128 {
         compute_arena_topology_hash(&self.arena)

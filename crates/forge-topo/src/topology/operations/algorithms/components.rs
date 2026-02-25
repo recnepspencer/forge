@@ -33,12 +33,12 @@ where
     let mut groups = Vec::new();
 
     for (face_id, _) in arena.iter_faces() {
-        if visited.contains(face_id.index()).unwrap_or(false) {
+        if visited.contains(face_id.index())? {
             continue;
         }
 
         let Some(seed_state) = init_seed(face_id)? else {
-            let _ = visited.insert(face_id.index());
+            visited.insert(face_id.index())?;
             continue;
         };
 

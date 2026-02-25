@@ -32,7 +32,7 @@ pub fn extract_n_ring(
     let mut visited_faces = EntityBitset::for_faces(arena);
     let mut frontier: VecDeque<FaceId> = VecDeque::new();
 
-    let _ = visited_faces.insert(seed_face.index());
+    visited_faces.insert(seed_face.index())?;
     frontier.push_back(seed_face);
 
     for _ring in 0..depth {
@@ -48,7 +48,7 @@ pub fn extract_n_ring(
 
             let neighbor_faces = collect_adjacent_faces(arena, face)?;
             for neighbor in neighbor_faces {
-                if visited_faces.insert(neighbor.index()).unwrap_or(false) {
+                if visited_faces.insert(neighbor.index())? {
                     frontier.push_back(neighbor);
                 }
             }
@@ -70,20 +70,20 @@ pub fn extract_n_ring(
                 Ok(id) => id,
                 Err(_) => break, // Stop on cycle/corruption
             };
-            let _ = half_edges.insert(he_id.index());
+            half_edges.insert(he_id.index())?;
 
             let he_data = match arena.get_half_edge(he_id) {
                 Ok(d) => d,
                 Err(_) => continue,
             };
-            let _ = vertices.insert(he_data.origin().index());
+            vertices.insert(he_data.origin().index())?;
             half_edge_connectivity.insert(
                 he_id.index(),
                 SerializedHalfEdge::from_half_edge_data(he_data),
             );
 
             let twin = he_data.radial_next();
-            let _ = half_edges.insert(twin.index());
+            half_edges.insert(twin.index())?;
 
             if let Ok(twin_data) = arena.get_half_edge(twin) {
                 half_edge_connectivity.insert(

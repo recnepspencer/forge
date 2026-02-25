@@ -6,3 +6,4 @@ pub mod continuity;
 pub mod hierarchy;
 pub mod ordering;
 pub mod polygon;
+pub mod radial;

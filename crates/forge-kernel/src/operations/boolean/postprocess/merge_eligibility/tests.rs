@@ -172,12 +172,12 @@ mod tests {
         use forge_topo::bitset::EntityBitset;
 
         let mut group_a = EntityBitset::with_capacity(10);
-        let _ = group_a.insert(0);
-        let _ = group_a.insert(1);
+        group_a.insert(0).expect("bitset capacity must cover test indices");
+        group_a.insert(1).expect("bitset capacity must cover test indices");
 
         let mut group_b = EntityBitset::with_capacity(10);
-        let _ = group_b.insert(2);
-        let _ = group_b.insert(3);
+        group_b.insert(2).expect("bitset capacity must cover test indices");
+        group_b.insert(3).expect("bitset capacity must cover test indices");
 
         assert_ne!(
             compute_group_hash(&group_a),
@@ -190,16 +190,16 @@ mod tests {
     fn same_group_produces_same_decision_id() {
         use forge_topo::bitset::EntityBitset;
         let mut group = EntityBitset::with_capacity(10);
-        let _ = group.insert(0);
-        let _ = group.insert(3);
-        let _ = group.insert(7);
+        group.insert(0).expect("bitset capacity must cover test indices");
+        group.insert(3).expect("bitset capacity must cover test indices");
+        group.insert(7).expect("bitset capacity must cover test indices");
         assert_eq!(compute_group_hash(&group), compute_group_hash(&group));
     }
 
     fn compute_group_hash(group: &forge_topo::bitset::EntityBitset) -> u64 {
         let mut h: u64 = 0xcbf29ce484222325;
         for idx in 0..group.capacity() {
-            if group.contains(idx).unwrap_or(false) {
+            if group.contains(idx).expect("bitset capacity must cover test indices") {
                 h = h.wrapping_mul(0x100000001b3) ^ (idx as u64);
             }
         }
@@ -337,8 +337,8 @@ mod tests {
         let topo = draft.commit().expect("fixture topology commit");
 
         let mut group = forge_topo::bitset::EntityBitset::for_faces(topo.arena());
-        let _ = group.insert(mvf.face.index());
-        let _ = group.insert(mef.new_face.index());
+        group.insert(mvf.face.index()).expect("bitset capacity must cover fixture faces");
+        group.insert(mef.new_face.index()).expect("bitset capacity must cover fixture faces");
 
         let mut geom = GeometryState::new();
         let perimeter = forge_topo::algorithms::region_extraction::walk_face_group_boundary_perimeter(

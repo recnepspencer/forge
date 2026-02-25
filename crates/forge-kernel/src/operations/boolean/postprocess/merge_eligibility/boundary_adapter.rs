@@ -8,7 +8,7 @@
 
 use forge_core::KernelError;
 use forge_topo::arena::TopologyArena;
-use forge_topo::handles::{VertexId, FaceId};
+use forge_topo::handles::VertexId;
 use forge_topo::bitset::EntityBitset;
 use forge_topo::algorithms::region_extraction::walk_face_group_boundary_perimeter;
 
@@ -37,6 +37,7 @@ impl BoundarySegment3D {
 }
 
 /// Source metadata for a boundary segment (for diagnostics/tracing).
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct BoundaryProvenance {
     /// The start vertex handle.
@@ -57,6 +58,7 @@ impl BoundaryProvenance {
 ///
 /// Contains boundary segments in 3D with stable provenance.
 /// Kernel-owned (spec §4.3).
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct BoundaryCycleCandidate {
     /// Boundary segments in 3D.
@@ -144,7 +146,7 @@ pub fn get_group_plane_normal(
     geom: &dyn GeometryView,
 ) -> Result<[f64; 3], KernelError> {
     for (face_id, _face_data) in arena.iter_faces() {
-        if group.contains(face_id.index()).unwrap_or(false) {
+        if group.contains(face_id.index())? {
             if let Some(plane) = geom.get_face_plane(face_id) {
                 return Ok(plane.normal());
             }

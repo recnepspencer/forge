@@ -123,7 +123,7 @@ mod tests {
         assert_eq!(draft.arena().face_count(), 2);
 
         let mut subset = EntityBitset::for_faces(draft.arena());
-        let _ = subset.insert(mef.new_face.index());
+        subset.insert(mef.new_face.index()).expect("bitset capacity must cover fixture faces");
 
         let result = extract_shell(&mut draft, &subset).unwrap();
 

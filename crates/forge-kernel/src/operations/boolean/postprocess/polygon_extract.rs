@@ -64,14 +64,16 @@ pub fn extract_coplanar_regions(
 
         let group_faces: Vec<FaceId> = {
             let arena = draft.arena();
-            (0..group.capacity())
-                .filter(|&idx| group.contains(idx).unwrap_or(false))
-                .filter_map(|idx| {
-                    arena.iter_faces()
-                        .find(|(fid, _)| fid.index() == idx)
-                        .map(|(fid, _)| fid)
-                })
-                .collect()
+            let mut faces = Vec::new();
+            for idx in 0..group.capacity() {
+                if !group.contains(idx)? {
+                    continue;
+                }
+                if let Some((fid, _)) = arena.iter_faces().find(|(fid, _)| fid.index() == idx) {
+                    faces.push(fid);
+                }
+            }
+            faces
         };
 
         let (mut_draft, _mut_geom) = draft.as_parts_mut();

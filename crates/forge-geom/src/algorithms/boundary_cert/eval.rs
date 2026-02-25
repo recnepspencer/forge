@@ -469,11 +469,10 @@ fn classify_arrangement(arrangement: &BoundaryArrangement) -> Result<WeakSimpleC
             // propagated eagerly here so that sort_by operates on infallible Rational values.
             struct OutgoingEdge<'a> {
                 atomic_idx: usize,
-                source_segment: usize,
                 quadrant: u8,
                 dx: Rational,
                 dy: Rational,
-                other_end_exact: &'a [Rational; 2],
+                _other_end_exact: &'a [Rational; 2],
             }
 
             let mut outgoing: Vec<OutgoingEdge<'_>> = Vec::new();
@@ -491,11 +490,10 @@ fn classify_arrangement(arrangement: &BoundaryArrangement) -> Result<WeakSimpleC
 
                 outgoing.push(OutgoingEdge {
                     atomic_idx: idx,
-                    source_segment: atomic.source_segment,
                     quadrant,
                     dx,
                     dy,
-                    other_end_exact,
+                    _other_end_exact: other_end_exact,
                 });
             }
 

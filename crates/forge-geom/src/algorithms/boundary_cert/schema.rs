@@ -6,8 +6,6 @@
 //! DEPENDENCIES: None (pure data shapes).
 //! INVARIANTS: All types are value-only — no topology handles, no policy.
 
-use forge_math::arithmetic::Rational;
-
 /// Deterministic 2D projection frame for planar boundaries.
 ///
 /// Encodes which 3D axis was dropped and the resulting u/v mapping

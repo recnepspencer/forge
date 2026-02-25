@@ -41,13 +41,13 @@ fn remove_zero_length_edges(draft: &mut MutableDraft) -> Result<usize, KernelErr
         excise_halfedge(draft, he_id, &he)?;
         excise_twin_halfedge(draft, he.radial_next())?;
 
-        let _ = draft.remove_half_edge(he_id);
+        draft.remove_half_edge(he_id)?;
         if draft.arena().get_half_edge(he.radial_next()).is_ok() {
-            let _ = draft.remove_half_edge(he.radial_next());
+            draft.remove_half_edge(he.radial_next())?;
         }
 
-        let _ = processed.insert(he_id.index());
-        let _ = processed.insert(he.radial_next().index());
+        processed.insert(he_id.index());
+        processed.insert(he.radial_next().index());
         removed += 1;
     }
 
@@ -141,7 +141,7 @@ fn remove_degenerate_faces(draft: &mut MutableDraft) -> Result<usize, KernelErro
         let deleted_set: BTreeSet<u32> = edges.iter().map(|he| he.index()).collect();
         repair_affected_vertices(draft, &edges, &deleted_set)?;
         remove_face_topology(draft, face_id, &edges)?;
-        let _ = processed.insert(face_id.index());
+        processed.insert(face_id.index());
         removed += 1;
     }
 
@@ -181,7 +181,7 @@ fn repair_affected_vertices(
         let origin = he.origin();
         let outgoing = draft.arena().get_vertex(origin).ok().map(|v| v.outgoing());
         if outgoing.map(|o| deleted_set.contains(&o.index())).unwrap_or(false) {
-            let _ = needs_repair.insert(origin.index());
+            needs_repair.insert(origin.index());
         }
     }
 
@@ -194,7 +194,7 @@ fn repair_affected_vertices(
         .collect();
 
     for (vid, he_id) in replacements {
-        let _ = draft.arena_mut().get_vertex_mut(vid).map(|v| v.set_outgoing(he_id));
+        draft.arena_mut().get_vertex_mut(vid)?.set_outgoing(he_id);
     }
     Ok(())
 }
@@ -205,10 +205,10 @@ fn remove_face_topology(
     edges: &[HalfEdgeId],
 ) -> Result<(), KernelError> {
     for &he_id in edges {
-        let _ = draft.remove_half_edge(he_id);
+        draft.remove_half_edge(he_id)?;
     }
     let loop_id = draft.arena().get_face(face_id)?.outer_loop();
-    let _ = draft.remove_face(face_id);
-    let _ = draft.remove_loop(loop_id);
+    draft.remove_face(face_id)?;
+    draft.remove_loop(loop_id)?;
     Ok(())
 }

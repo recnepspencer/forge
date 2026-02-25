@@ -29,6 +29,24 @@ use crate::validate::ValidationLevel;
 ///
 /// Called automatically by `MutableDraft::commit()`. Runs checks based on `level`.
 pub fn validate_topology(arena: &TopologyArena, level: ValidationLevel) -> Result<(), KernelError> {
+    validate_topology_with_mode(arena, level, super::validate::TopologyMode::ManifoldStrict)
+}
+
+/// Validate the topology of an arena with explicit manifold policy.
+///
+/// `level` controls breadth/depth of checks.
+/// `mode` controls what topology is semantically permitted.
+///
+/// **NmtIntermediate skip-list (exhaustive):**
+/// - SKIP: `validate_manifold_edges` (valence > 2 permitted)
+///
+/// All other checks run regardless of mode. Any extension to this skip-list
+/// requires a named spec amendment and dedicated tests.
+pub fn validate_topology_with_mode(
+    arena: &TopologyArena,
+    level: ValidationLevel,
+    mode: super::validate::TopologyMode,
+) -> Result<(), KernelError> {
     if level == ValidationLevel::None {
         return Ok(());
     }
@@ -46,12 +64,16 @@ pub fn validate_topology(arena: &TopologyArena, level: ValidationLevel) -> Resul
     if level == ValidationLevel::Full {
         validate_euler(arena)?;
         validate_shell_consistency(arena)?;
-        validate_manifold_edges(arena)?;
+        // Named skip-list: only validate_manifold_edges is skipped in NmtIntermediate.
+        if mode == super::validate::TopologyMode::ManifoldStrict {
+            validate_manifold_edges(arena)?;
+        }
         validate_orientation_consistency(arena)?;
     }
 
     Ok(())
 }
+
 
 /// Validate radial rings: every halfedge must belong to a closed `.radial_next()` cycle.
 fn validate_radial_rings(arena: &TopologyArena) -> Result<(), KernelError> {
@@ -333,36 +355,36 @@ fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
     let mut shell_index: usize = 0;
 
     for &seed_face in &all_faces {
-        if !visited_faces.contains(seed_face.index()).unwrap_or(true) {
+        if !visited_faces.contains(seed_face.index())? {
             let mut shell_faces = EntityBitset::for_faces(arena);
             let mut shell_vertices = EntityBitset::for_vertices(arena);
             let mut shell_edges = EntityBitset::for_edges(arena);
             let mut queue: VecDeque<FaceId> = VecDeque::new();
 
             queue.push_back(seed_face);
-            shell_faces.insert(seed_face.index()).ok();
+            shell_faces.insert(seed_face.index())?;
 
             while let Some(face_id) = queue.pop_front() {
                 let (neighbors, edge_keys, vertex_indices) =
                     collect_shell_data_for_face(arena, face_id)?;
 
                 for vid in vertex_indices {
-                    shell_vertices.insert(vid).ok();
+                    shell_vertices.insert(vid)?;
                 }
 
                 for ek in edge_keys {
-                    shell_edges.insert(ek).ok();
+                    shell_edges.insert(ek)?;
                 }
 
                 for neighbor in neighbors {
-                    if shell_faces.insert(neighbor.index()).unwrap_or(false) {
+                    if shell_faces.insert(neighbor.index())? {
                         queue.push_back(neighbor);
                     }
                 }
             }
 
             for idx in shell_faces.iter_ones() {
-                visited_faces.insert(idx).ok();
+                visited_faces.insert(idx)?;
             }
 
             let sv = shell_vertices.count() as i64;

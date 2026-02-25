@@ -136,7 +136,7 @@ fn build_multi_cell_mesh(
     validate_checkpoint(&draft, ctx, "post_stitch_twins", false)?;
 
     // After stitching, remove coplanar twin pairs (internal faces)
-    let internal_faces = detect_coplanar_twin_faces(&face_plane_map, &draft);
+    let internal_faces = detect_coplanar_twin_faces(&face_plane_map, &draft)?;
     if !internal_faces.is_empty() {
         remove_stitched_faces(&mut draft, &internal_faces)?;
     }
@@ -434,12 +434,12 @@ fn stitch_twins_cross_plane(
 fn detect_coplanar_twin_faces(
     face_plane_map: &HashMap<FaceId, usize>,
     draft: &MutableDraft,
-) -> Vec<FaceId> {
+) -> Result<Vec<FaceId>, KernelError> {
     let mut internal: Vec<FaceId> = Vec::new();
     let mut checked = EntityBitset::for_faces(draft.arena());
 
     for (&fid, &bsp_idx) in face_plane_map {
-        if bsp_idx == usize::MAX || checked.contains(fid.index()).unwrap_or(false) {
+        if bsp_idx == usize::MAX || checked.contains(fid.index())? {
             continue;
         }
 
@@ -483,9 +483,9 @@ fn detect_coplanar_twin_faces(
 
         if all_coplanar {
             if let Some(twin_fid) = twin_face {
-                if !checked.contains(twin_fid.index()).unwrap_or(false) {
-                    let _ = checked.insert(fid.index());
-                    let _ = checked.insert(twin_fid.index());
+                if !checked.contains(twin_fid.index())? {
+                    checked.insert(fid.index())?;
+                    checked.insert(twin_fid.index())?;
                     internal.push(fid);
                     internal.push(twin_fid);
                 }
@@ -493,7 +493,7 @@ fn detect_coplanar_twin_faces(
         }
     }
 
-    internal
+    Ok(internal)
 }
 
 /// Remove faces from a stitched mesh, re-linking twin pointers.
@@ -519,10 +519,10 @@ fn remove_stitched_faces(
         }
 
         for he_id in he_ids {
-            draft.remove_half_edge(he_id);
+            draft.remove_half_edge(he_id)?;
         }
-        draft.remove_loop(loop_id);
-        draft.remove_face(face_id);
+        draft.remove_loop(loop_id)?;
+        draft.remove_face(face_id)?;
     }
 
     Ok(())
@@ -547,14 +547,19 @@ fn merge_coplanar_neighbors(
     while changed {
         changed = false;
 
-        let face_ids: Vec<FaceId> = face_plane_map.keys()
-            .filter(|fid| !removed.contains(fid.index()).unwrap_or(false))
-            .filter(|fid| draft.arena().get_face(**fid).is_ok())
-            .copied()
-            .collect();
+        let mut face_ids: Vec<FaceId> = Vec::new();
+        for &fid in face_plane_map.keys() {
+            if removed.contains(fid.index())? {
+                continue;
+            }
+            if draft.arena().get_face(fid).is_err() {
+                continue;
+            }
+            face_ids.push(fid);
+        }
 
         for face_id in face_ids {
-            if removed.contains(face_id.index()).unwrap_or(false) { continue; }
+            if removed.contains(face_id.index())? { continue; }
             if draft.arena().get_face(face_id).is_err() { continue; }
 
             let plane_a = match geometry.get_face_plane(face_id) {
@@ -573,7 +578,7 @@ fn merge_coplanar_neighbors(
                 let twin = draft.arena().get_half_edge(twin_id)?;
                 let adj_face = twin.face();
 
-                if adj_face != face_id && !removed.contains(adj_face.index()).unwrap_or(false) {
+                if adj_face != face_id && !removed.contains(adj_face.index())? {
                     if let Some(plane_b) = geometry.get_face_plane(adj_face) {
                         if planes_are_coplanar(&plane_a, plane_b, tolerance) {
                             dissolve_target = Some(current);
@@ -588,7 +593,7 @@ fn merge_coplanar_neighbors(
 
             if let Some(he_id) = dissolve_target {
                 let absorbed = dissolve_edge(draft, he_id)?;
-                let _ = removed.insert(absorbed.index());
+                removed.insert(absorbed.index())?;
                 merged_count += 1;
                 changed = true;
                 break;
@@ -658,13 +663,13 @@ fn dissolve_edge(
     }
 
     // Remove the dissolved halfedges
-    draft.remove_half_edge(he_id);
-    draft.remove_half_edge(twin_id);
+    draft.remove_half_edge(he_id)?;
+    draft.remove_half_edge(twin_id)?;
 
     // Remove face B and its loop
     let loop_b = draft.arena().get_face(face_b)?.outer_loop();
-    draft.remove_loop(loop_b);
-    draft.remove_face(face_b);
+    draft.remove_loop(loop_b)?;
+    draft.remove_face(face_b)?;
 
     Ok(face_b)
 }

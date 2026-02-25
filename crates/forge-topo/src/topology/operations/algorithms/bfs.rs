@@ -32,20 +32,20 @@ where
     let mut group = EntityBitset::for_faces(arena);
     let mut queue = VecDeque::new();
 
-    let _ = visited.insert(seed.index());
-    let _ = group.insert(seed.index());
+    visited.insert(seed.index())?;
+    group.insert(seed.index())?;
     queue.push_back(seed);
 
     while let Some(current) = queue.pop_front() {
         let neighbors = face_adjacent_faces(arena, current)?;
         for neighbor in neighbors {
-            if visited.contains(neighbor.index()).unwrap_or(false) {
+            if visited.contains(neighbor.index())? {
                 continue;
             }
 
-            let _ = visited.insert(neighbor.index());
+            visited.insert(neighbor.index())?;
             if include_neighbor(current, neighbor)? {
-                let _ = group.insert(neighbor.index());
+                group.insert(neighbor.index())?;
                 queue.push_back(neighbor);
             }
         }

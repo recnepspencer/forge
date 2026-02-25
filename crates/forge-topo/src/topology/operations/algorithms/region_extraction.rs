@@ -95,7 +95,7 @@ pub fn find_face_group_internal_vertices(
     let perimeter_set = {
         let mut bs = EntityBitset::for_vertices(arena);
         for &v in perimeter {
-            let _ = bs.insert(v.index());
+            bs.insert(v.index())?;
         }
         bs
     };
@@ -106,7 +106,7 @@ pub fn find_face_group_internal_vertices(
         for he_res in FaceAllEdgesIterator::new(arena, face_id)? {
             let current = he_res?;
             let he = arena.get_half_edge(current)?;
-            let _ = all_vertices.insert(he.origin().index());
+            all_vertices.insert(he.origin().index())?;
         }
     }
 
@@ -159,8 +159,13 @@ pub fn merge_face_group_by_join_faces(
             match apply_op(draft, JoinFaces { edge: he }) {
                 Ok(exec) => {
                     let out = exec.into_value();
-                    let _ = active.remove(&face_remove.index());
-                    let _ = active.insert(out.surviving_face.index());
+                    let removed = active.remove(&face_remove.index());
+                    debug_assert!(
+                        removed,
+                        "merge_face_group_by_join_faces: removed face must be present in active set"
+                    );
+                    // `surviving_face` is often already active; duplicate insert is fine.
+                    active.insert(out.surviving_face.index());
                     merged = true;
                     break;
                 }
@@ -227,7 +232,11 @@ fn collect_internal_group_half_edges(
             if active_faces.contains(&he_data.face().index()) && active_faces.contains(&twin_data.face().index()) {
                 let canonical = if he.index() <= twin.index() { he } else { twin };
                 candidates.push(canonical);
-                let _ = seen_edges.insert(edge_id);
+                let was_new = seen_edges.insert(edge_id);
+                debug_assert!(
+                    was_new,
+                    "collect_internal_group_half_edges: edge should not be inserted twice after contains check"
+                );
             }
         }
     }
@@ -334,8 +343,8 @@ mod tests {
         .into_value();
 
         let mut group = EntityBitset::for_faces(draft.arena());
-        let _ = group.insert(mvf.face.index());
-        let _ = group.insert(mef.new_face.index());
+        group.insert(mvf.face.index()).expect("bitset capacity must cover fixture faces");
+        group.insert(mef.new_face.index()).expect("bitset capacity must cover fixture faces");
 
         let surviving = merge_face_group_by_join_faces(&mut draft, &group).unwrap();
 

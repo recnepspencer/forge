@@ -156,6 +156,13 @@ pub enum KernelError {
         actual: String,
         context: Option<ErrorContext>,
     },
+
+    /// A region merge operation failed due to a topological or geometric policy violation.
+    ///
+    /// Carries a structured `MergeError` describing the exact failure mode.
+    /// Never downgraded to `InternalError` — the typed variant is preserved through
+    /// `with_phase` so callers can match on specific failure modes.
+    MergeFailure(MergeError),
 }
 
 impl fmt::Display for KernelError {
@@ -205,6 +212,7 @@ impl fmt::Display for KernelError {
                     expected, actual
                 )
             }
+            KernelError::MergeFailure(err) => write!(f, "Merge failure: {}", err),
         }
     }
 }
@@ -221,10 +229,17 @@ impl KernelError {
             | KernelError::InternalError { context, .. }
             | KernelError::ReplayMismatch { context, .. } => context.as_ref(),
             KernelError::DiagnosticFailure { source, .. } => source.get_context(),
+            // MergeError fields are self-describing; no separate ErrorContext attached.
+            KernelError::MergeFailure(_) => None,
         }
     }
 
     /// Wrap this error with a phase label, prefixing its detail string.
+    ///
+    /// For `MergeFailure`, the typed `MergeError` structure is preserved.
+    /// `PartialMergePlanRejected` has its `reason` prefixed with the phase label.
+    /// Other `MergeError` variants are re-wrapped with an outer `PartialMergePlanRejected`
+    /// carrying the phase context. This ensures typed semantics are never lost.
     pub fn with_phase(mut self, phase: &str) -> Self {
         match &mut self {
             KernelError::TopologyViolation { context, .. }
@@ -248,6 +263,23 @@ impl KernelError {
             KernelError::DiagnosticFailure { source, .. } => {
                 let new_source = (**source).clone();
                 *source = Box::new(new_source.with_phase(phase));
+            }
+            // Preserve typed MergeError structure. Prefix the reason on
+            // PartialMergePlanRejected; wrap other variants in a PartialMergePlanRejected
+            // so the phase is always traceable without losing the original error kind.
+            KernelError::MergeFailure(merge_err) => {
+                match merge_err {
+                    MergeError::PartialMergePlanRejected { reason, .. } => {
+                        *reason = format!("[{}] {}", phase, reason);
+                    }
+                    ref other => {
+                        let inner = format!("[{}] {}", phase, other);
+                        *merge_err = MergeError::PartialMergePlanRejected {
+                            step_index: None,
+                            reason: inner,
+                        };
+                    }
+                }
             }
         }
         self
@@ -531,4 +563,87 @@ pub struct DiagnosticPayload {
     pub seed: u64,
     /// Additional human-readable context.
     pub context: String,
+}
+
+// =========================================================================
+// MERGE ERROR
+// =========================================================================
+
+/// Structured failure reasons for `MergeSheetRegion` and related NMT merge operations.
+///
+/// Wrapped by `KernelError::MergeFailure`. Never downgraded to `InternalError`.
+/// Fields use raw indices (`u32`) for serialisability and trace output.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum MergeError {
+    /// A high-valence edge neighborhood is ambiguous and requires an explicit
+    /// `RadialUseSelector` to disambiguate which pair of face-uses to merge.
+    AmbiguousRadialSelection { edge_index: u32, valence: u32 },
+
+    /// The selected radial uses at the given edge do not form a sheet-like
+    /// (locally planar, merging) pair.
+    SelectedUsesNotSheetLike { edge_index: u32 },
+
+    /// An explicitly protected radial use conflicts with the merge selection.
+    ProtectedUseConflict { edge_index: u32 },
+
+    /// Merging the selected face group would disconnect the sheet topology.
+    WouldDisconnectSheet { face_index: u32 },
+
+    /// The Epic A boundary certifier rejected the merge boundary.
+    BoundaryCertificationFailed {
+        reason: String,
+        /// 2D witness point (projected face plane space) where the rejection occurred.
+        witness: Option<[f64; 2]>,
+    },
+
+    /// The merge plan could not be fully executed.
+    ///
+    /// `step_index: None`    — rejected during plan construction, before execution began.
+    /// `step_index: Some(n)` — rejected at execution step `n` (0-indexed).
+    PartialMergePlanRejected { step_index: Option<u32>, reason: String },
+
+    /// Persistent NMT output is not implemented in this milestone.
+    UnsupportedPersistentNmtOutput,
+}
+
+impl fmt::Display for MergeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MergeError::AmbiguousRadialSelection { edge_index, valence } => {
+                write!(
+                    f,
+                    "Ambiguous radial selection at edge {}: valence {} requires explicit RadialUseSelector",
+                    edge_index, valence
+                )
+            }
+            MergeError::SelectedUsesNotSheetLike { edge_index } => {
+                write!(f, "Selected radial uses at edge {} are not sheet-like", edge_index)
+            }
+            MergeError::ProtectedUseConflict { edge_index } => {
+                write!(f, "Protected radial use conflict at edge {}", edge_index)
+            }
+            MergeError::WouldDisconnectSheet { face_index } => {
+                write!(f, "Merging face {} would disconnect the sheet", face_index)
+            }
+            MergeError::BoundaryCertificationFailed { reason, witness } => {
+                match witness {
+                    Some(w) => write!(
+                        f,
+                        "Boundary certification failed at [{:.6}, {:.6}]: {}",
+                        w[0], w[1], reason
+                    ),
+                    None => write!(f, "Boundary certification failed: {}", reason),
+                }
+            }
+            MergeError::PartialMergePlanRejected { step_index, reason } => {
+                match step_index {
+                    Some(n) => write!(f, "Merge plan rejected at step {}: {}", n, reason),
+                    None => write!(f, "Merge plan rejected during construction: {}", reason),
+                }
+            }
+            MergeError::UnsupportedPersistentNmtOutput => {
+                write!(f, "Persistent NMT output is not supported in this milestone")
+            }
+        }
+    }
 }

@@ -15,7 +15,7 @@ Current concrete issues:
 1 JoinFaces requires radial valence == 2; intermediate boolean states can produce valence > 2 join_faces.rs
 2 merge_face_group_by_join_faces merges by internal-edge iteration without geometric boundary certification region_extraction.rs
 3 Coplanar postprocess merge paths use local heuristics (single-edge / iterative candidate selection) and no weakly-simple boundary certifier coplanar.rs, polygon_extract.rs
-4 Killed faces after merge leave stale GeometryStore face bindings (benign for planes today, unsafe for future surface/coedge-backed merges) schema.rs consumers in postprocess merge paths
+4 Killed faces after merge leave stale GeometryState face bindings (historically `GeometryStore`; benign for planes today, unsafe for future surface/coedge-backed merges) schema.rs consumers in postprocess merge paths
 1.2 Architectural Drivers
 Curved booleans need “same-support surface merge”, not planar-only plane equality.
 D8 already allows NMT-capable storage (radial_next rings of arbitrary length), but validation and Euler semantics are manifold-default.
@@ -28,7 +28,7 @@ Halfedge + radial_next ring storage forge-topo::arena::schema Keep
 JoinFaces manifold-only semantics forge-topo::euler::join_faces Keep unchanged
 ValidationLevel forge-topo::integrity::validate Extend (not replace)
 SurfaceRelation + classify_surface_pair forge-geom::surface::{schema,eval} Evolve
-GeometryStore generational refs (SurfaceRef, CurveRef, CoedgeRef) forge-kernel::geometry_store::schema Reuse/extend
+GeometryState generational refs (SurfaceRef, CurveRef, CoedgeRef) forge-kernel::geometry_state::schema (historically `geometry_store`) Reuse/extend
 EntityBitset forge-topo::topology::bitset Reuse
 merge_face_group_by_join_faces forge-topo::algorithms::region_extraction Keep pure-topology; call from certified kernel wrapper
 Dominant-axis projection utilities / segment crossing helpers forge-geom::algorithms::polygon_overlap Reuse/extend 2. Scope Framing
@@ -104,7 +104,8 @@ KernelError wraps this as a structured variant (or equivalent sub-enum wrapper).
 3.5 Tracing and Result Envelopes
 forge-geom returns plain certifiers/results.
 forge-kernel wraps merge/certification orchestration in OperationResult<T>.
-Tests for new merge/certification flows must support FORGE_TRACE_DIR. 4. Epic A — Boundary Certification (Planar Now, UV-Reusable)
+Tests for new merge/certification flows must support FORGE_TRACE_DIR.
+4. Epic A — Boundary Certification (Planar Now, UV-Reusable)
 4.1 Goal
 Before merging a face group, certify the group boundary is geometrically valid for merge:
 
@@ -158,7 +159,10 @@ segments: [usize; 2],
 }
 
 pub struct BoundaryArrangement {
+/// Deterministic planar arrangement after fallback subdivision.
+/// Actual implementation may use exact atomic segment/vertex identities internally.
 atomic_segments: Vec<Segment2D>,
+/// Optional diagnostics/events for tracing (implementation may emit diagnostics via trace instead).
 events: Vec<BoundaryEvent>,
 }
 
@@ -205,8 +209,8 @@ degenerate segment candidate
 ambiguous fast-path classification
 Fallback (degenerate path)
 
-Build BoundaryArrangement (deterministic event ordering).
-Classify all interactions: crossing / touch / overlap / degeneracy.
+Build BoundaryArrangement (deterministic subdivision / atomic segments; deterministic diagnostics ordering if events are emitted).
+Classify all interactions on the arrangement: crossing / touch / overlap / degeneracy.
 Run weakly-simple recognizer (Akitaya-inspired certifying approach).
 Return WeakSimpleCertificate with witness on rejection.
 4.8 Integration Points (Corrected for Crate Boundaries)
@@ -216,6 +220,8 @@ Kernel-side changes
 
 Gate polygon_extract.rs
 Gate coplanar.rs
+Epic A gating integrates with D8 ownership model: kernel entrypoints operate on `KernelState`; any topology/geometry mutation during merge execution occurs inside a local `KernelDraft`.
+Epic A certification decisions must be propagated into kernel `OperationResult` / `ModelingContext` decision logs (no dropped local envelopes).
 Topo-side changes
 
 None for geometry certification call flow.
@@ -231,7 +237,8 @@ forge-kernel/src/operations/boolean/postprocess/merge_eligibility/
 mod.rs
 boundary_adapter.rs
 eval.rs
-tests.rs 5. Epic B — NMT-Compatible Region Merge (Intermediate States)
+tests.rs
+5. Epic B — NMT-Compatible Region Merge (Intermediate States)
 5.1 Goal
 Permit controlled merge reasoning and cleanup when local radial valence exceeds 2, while preserving manifold-default final output semantics.
 
@@ -435,6 +442,7 @@ Design target:
 add cone/cone and torus/torus analytic support classification
 preserve existing plane/sphere/cylinder behavior
 return Undetermined when classification cannot be safely decided under future bounded precision policies
+Kernel-side policy requirement: `SurfaceRelation::Undetermined` is fail-closed by default for merge eligibility and must emit a traced decision (precision/policy escalation), never silently proceed.
 6.4 Surface Evaluation API Contracts (forge-geom)
 Acknowledge existing SurfaceData::{point_at, normal_at} and define traits as abstractions/extensions, not replacements.
 
@@ -458,20 +466,40 @@ Support relation is SurfaceRelation::Coincident
 Shared trims match/resolve in UV
 Resulting UV loops certify Simple or WeaklySimple (same certifier architecture as Epic A, UV backend)
 Normal/tangent continuity checks pass per policy
-6.7 GeometryStore Post-Merge Updates (Cross-Cutting Requirement)
+All support/trim/certification/continuity decisions must be emitted in `OperationResult` as traced decisions (same trace discipline as Epic A/B).
+6.6.1 Curved Merge Orchestration Placeholder Contracts (forge-kernel)
+Curved merge scaffolding must follow the same D8/D6 execution model as Epic B:
+
+Entry point consumes `KernelState` and returns `Result<OperationResult<KernelState>, KernelError>` (or equivalent typed wrapper that preserves `OperationResult` trace content).
+Internal execution creates a local `KernelDraft` and mutates topology + geometry through `MutableDraft` + `GeometryPatch`.
+On success: `draft.commit()` finalizes topology + geometry atomically.
+On failure: dropping the local `KernelDraft` discards both topology and geometry mutations (fail-fast, no bleed).
+
+Intent / execution split (placeholders, design target):
+
+`CurvedMergeSelection` = agent-facing / serializable merge intent (selected faces, protected entities, policy overrides)
+`CurvedMergePlan` = kernel-derived deterministic execution blueprint (snapshot-scoped; traceable artifact)
+`CurvedMergeResult` = surviving face + killed/rebuilt face/coedge/curve provenance
+
+Handle lifetime requirement:
+
+Topology and geometry handles used during execution planning are snapshot-scoped unless explicitly documented otherwise.
+Plans should store stable identifiers / ordering keys for traceability and per-step re-derivation, not raw ephemeral handles as locked execution pointers.
+6.7 GeometryState / GeometryPatch Post-Merge Updates (Cross-Cutting Requirement)
 This section applies to planar now and curved later.
 
 Planar (Milestone 1)
 
-remove stale killed-face plane entries from GeometryStore
+remove stale killed-face plane entries from GeometryState (via `GeometryPatch` during transactional execution)
 preserve surviving face plane binding
 clean any stale per-entity bindings created during merge (if applicable)
 Curved (Later)
 
 preserve/attach surviving SurfaceRef
 rebuild boundary CoedgeRef set
-remove stale face/coedge/curve bindings
-validate geometry binding integrity after merge 7. Boundary Certifier Backend Abstraction (For Planar + UV Reuse)
+remove stale face/coedge/curve bindings via `GeometryPatch` (not direct side effects on `GeometryState`)
+validate geometry binding integrity after merge (post-commit)
+7. Boundary Certifier Backend Abstraction (For Planar + UV Reuse)
 7.1 Rationale
 Boundary certification must support both:
 
@@ -482,6 +510,7 @@ without duplicating weakly-simple logic.
 7.2 Contract Shape (Design Requirement)
 forge-kernel builds a backend-neutral boundary candidate from topology + geometry references.
 forge-geom provides backend-specific input builders and a common certifier API.
+UV backend must reuse the same certificate/result taxonomy (`WeakSimpleCertificate`, deterministic witnesses/rejections) as planar backend.
 Example direction (illustrative, not final API):
 
 pub trait BoundaryCertifierInputBuilder<TInput> {
@@ -503,7 +532,7 @@ This keeps backend pluggability without violating crate dependencies.
    forge-kernel merge-eligibility wrapper
    boundary adapter from face group to certifier input
    gate coplanar merge paths on cert
-   GeometryStore cleanup for killed faces after planar merge
+   GeometryState / GeometryPatch cleanup for killed faces after planar merge
    trace-emitting tests (FORGE_TRACE_DIR)
    Milestone 2 — NMT-Intermediate Merge (Build Now)
    TopologyMode in forge-topo
@@ -518,7 +547,10 @@ This keeps backend pluggability without violating crate dependencies.
    extend SurfaceRelation (Undetermined)
    extend classify_surface_pair (cone/torus)
    define EvaluateSurface / TrimCurveOps contracts
+   define `CurvedMergeSelection` / `CurvedMergePlan` / `CurvedMergeResult` placeholders (intent vs plan vs result)
+   document `KernelState` -> local `KernelDraft` -> `OperationResult<KernelState>` execution contract
    document curved merge eligibility and trim rebuild postconditions
+   document `GeometryPatch`-staged curved binding updates and fail-closed `Undetermined` policy
 9. Testing Strategy
    9.1 General Requirements
    All new merge/certification regression suites support trace output via FORGE_TRACE_DIR.
@@ -561,7 +593,8 @@ This keeps backend pluggability without violating crate dependencies.
     Milestone 3 (Scaffold)
     Curved same-support merge contracts are documented in code-facing terms.
     Existing SurfaceRelation is extended (not duplicated).
-    Trait/API contracts are aligned with existing SurfaceData and GeometryStore design.
+    Trait/API contracts are aligned with existing SurfaceData and GeometryState/GeometryPatch design.
+    Curved placeholders use the same D8/D6 ownership + transaction model as Epic B (`KernelState` + local `KernelDraft` + traced `OperationResult`).
 11. References
     Akitaya et al. — weakly simple polygon recognition (SoCG 2016)
     Shewchuk — robust adaptive predicates
