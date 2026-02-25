@@ -1,5 +1,5 @@
 # Forge
-STOP. As soon as you finish reading this document, your first to-do is read FORGE_ARCHITECTURE.MD.
+STOP. As soon as you finish reading this document, your first to-do is read ARCHITECTURE_COMPONENT_INVENTORY.MD. Then read Vision.md.
 
 > A from-scratch B-Rep geometry kernel in Rust, built for correctness, determinism, and AI-assisted development. IMPORTANT: Being designed as an aerospace-grade parasolid competitor. Ambitious? Yes. But that means we cant do code hacks. Everything must be clean and well-architected. 
 

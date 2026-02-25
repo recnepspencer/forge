@@ -595,7 +595,11 @@ pub enum MergeError {
     SelectedUsesNotSheetLike { edge_index: u32 },
 
     /// An explicitly protected radial use conflicts with the merge selection.
-    ProtectedUseConflict { edge_index: u32 },
+    ///
+    /// `face_index`: the protected face that conflicts.
+    /// `edge_index`: the edge where the conflict was detected, or `None` if
+    /// detected at input validation (selected ∩ protected overlap).
+    ProtectedUseConflict { face_index: u32, edge_index: Option<u32> },
 
     /// Merging the selected face group would disconnect the sheet topology.
     WouldDisconnectSheet { face_index: u32 },
@@ -630,8 +634,11 @@ impl fmt::Display for MergeError {
             MergeError::SelectedUsesNotSheetLike { edge_index } => {
                 write!(f, "Selected radial uses at edge {} are not sheet-like", edge_index)
             }
-            MergeError::ProtectedUseConflict { edge_index } => {
-                write!(f, "Protected radial use conflict at edge {}", edge_index)
+            MergeError::ProtectedUseConflict { face_index, edge_index } => {
+                match edge_index {
+                    Some(ei) => write!(f, "Protected face {} conflicts with merge at edge {}", face_index, ei),
+                    None => write!(f, "Protected face {} is in both selected and protected sets", face_index),
+                }
             }
             MergeError::WouldDisconnectSheet { face_index } => {
                 write!(f, "Merging face {} would disconnect the sheet", face_index)

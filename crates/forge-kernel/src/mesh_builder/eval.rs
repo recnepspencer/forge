@@ -7,7 +7,7 @@
 //! 4. Registering face planes and vertex positions in GeometryState
 
 
-use std::collections::HashMap;
+
 
 use forge_core::{KernelError, DecisionKind};
 use forge_geom::spatial::bsp::ConvexCell;
@@ -209,13 +209,14 @@ fn insert_faces_and_loops(
     cell: &ConvexCell,
     vertex_ids: &[VertexId],
     shell: ShellId,
-) -> Result<HashMap<(usize, usize), HalfEdgeId>, KernelError> {
+) -> Result<EdgeMap, KernelError> {
     let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
     let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
     let placeholder_edge = EdgeId::from_raw_parts(u32::MAX, 0);
     let cell_planes = cell.planes();
 
-    let mut edge_map: HashMap<(usize, usize), HalfEdgeId> = HashMap::new();
+    let vertex_count = vertex_ids.len();
+    let mut edge_map = EdgeMap::new(vertex_count);
 
     for cell_face in cell.faces() {
         let face_verts = cell_face.vertices();
@@ -263,7 +264,7 @@ fn insert_faces_and_loops(
             arena.get_half_edge_mut(he_ids[i])?.set_prev(he_ids[prev_i]);
 
             edge_map.insert(
-                (face_verts[i], face_verts[next_i]),
+                face_verts[i], face_verts[next_i],
                 he_ids[i],
             );
         }
@@ -280,16 +281,57 @@ fn insert_faces_and_loops(
     Ok(edge_map)
 }
 
+/// Dense bitmap mapping (vertex_a, vertex_b) → HalfEdgeId.
+///
+/// Flat Vec of size vertex_count², indexed by `a * n + b`.
+/// O(1) insert/lookup, zero hash overhead, deterministic iteration order.
+struct EdgeMap {
+    data: Vec<Option<HalfEdgeId>>,
+    vertex_count: usize,
+}
+
+impl EdgeMap {
+    /// Create a new edge map for the given vertex count.
+    fn new(vertex_count: usize) -> Self {
+        Self {
+            data: vec![None; vertex_count * vertex_count],
+            vertex_count,
+        }
+    }
+
+    /// Insert a directed edge.
+    fn insert(&mut self, a: usize, b: usize, he: HalfEdgeId) {
+        self.data[a * self.vertex_count + b] = Some(he);
+    }
+
+    /// Look up a directed edge.
+    fn get(&self, a: usize, b: usize) -> Option<HalfEdgeId> {
+        self.data[a * self.vertex_count + b]
+    }
+
+    /// Iterate all entries in deterministic ascending order by (a, b).
+    fn iter_ascending(&self) -> impl Iterator<Item = (usize, usize, HalfEdgeId)> + '_ {
+        self.data.iter().enumerate().filter_map(move |(idx, opt)| {
+            opt.map(|he| {
+                let a = idx / self.vertex_count;
+                let b = idx % self.vertex_count;
+                (a, b, he)
+            })
+        })
+    }
+}
+
 /// Stitch twin pointers between halfedges on adjacent faces.
 ///
 /// For each directed edge (a→b), find the matching (b→a) and set twins.
+/// Iterates in deterministic ascending order by vertex-pair key.
 fn stitch_twins(
     draft: &mut MutableDraft,
-    edge_map: &HashMap<(usize, usize), HalfEdgeId>,
+    edge_map: &EdgeMap,
 ) -> Result<(), KernelError> {
-    for (&(a, b), &he_id) in edge_map {
+    for (a, b, he_id) in edge_map.iter_ascending() {
         if a < b {
-            if let Some(&twin_id) = edge_map.get(&(b, a)) {
+            if let Some(twin_id) = edge_map.get(b, a) {
                 let edge = draft.insert_edge(EdgeData::new(he_id));
                 draft.arena_mut().get_half_edge_mut(he_id)?.set_radial_next(twin_id);
                 draft.arena_mut().get_half_edge_mut(twin_id)?.set_radial_next(he_id);

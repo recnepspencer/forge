@@ -1641,3 +1641,54 @@ fn rejection_messages_are_distinguishable() {
     assert!(msg1.contains("valence") || msg1.contains("> 2"), "Manifold message should mention valence");
     assert!(msg2.contains("same face"), "Same-face message should mention 'same face'");
 }
+
+// ===========================================================================
+// D2 REGRESSION: shared-origin outgoing == he_kill
+// ===========================================================================
+
+/// D2 regression: when vertex_s == vertex_k AND outgoing == he_kill,
+/// the old branching code skipped the fixup entirely (only checked he_s
+/// in the first branch, and skipped vertex_k because vertex_k == vertex_s).
+///
+/// This test directly guards the asymmetry bug.
+#[test]
+fn shared_origin_outgoing_he_kill_is_fixed() {
+    let state = TopologyState::empty();
+    let mut draft = state.into_mutation();
+    let hes = setup_valence_n_edge(&mut draft, 3);
+
+    let he_s = hes[0];
+    let he_k = hes[1];
+
+    // Both share v1 as origin (parallel setup).
+    let v1 = draft.arena().get_half_edge(he_s).unwrap().origin();
+    assert_eq!(
+        v1,
+        draft.arena().get_half_edge(he_k).unwrap().origin(),
+        "Pre-condition: both slit halfedges share origin vertex (parallel setup)",
+    );
+
+    // Force v1 outgoing to he_k (the KILL halfedge). This is the exact
+    // scenario the old code missed — it only checked `vs_out == he_s` in
+    // the first branch, and the second branch was guarded by `vertex_k != vertex_s`.
+    draft.arena_mut().get_vertex_mut(v1).unwrap().set_outgoing(he_k);
+
+    apply_op(&mut draft, JoinFacesNmt {
+        he_survive: he_s,
+        he_kill: he_k,
+    }).unwrap();
+
+    let v1_out = draft.arena().get_vertex(v1).unwrap().outgoing();
+    assert_ne!(
+        v1_out, he_s,
+        "D2 regression: v1 outgoing must not be slit he_s after shared-origin merge",
+    );
+    assert_ne!(
+        v1_out, he_k,
+        "D2 regression: v1 outgoing must not be slit he_k after shared-origin merge",
+    );
+    assert_eq!(
+        draft.arena().get_half_edge(v1_out).unwrap().origin(), v1,
+        "D2 regression: v1 outgoing replacement must originate at v1",
+    );
+}

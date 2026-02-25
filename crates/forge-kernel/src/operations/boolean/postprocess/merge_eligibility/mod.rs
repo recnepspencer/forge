@@ -11,6 +11,8 @@
 
 pub mod boundary_adapter;
 pub mod eval;
+pub mod nmt_eval;
+pub mod schema;
 
 #[cfg(test)]
 mod tests;

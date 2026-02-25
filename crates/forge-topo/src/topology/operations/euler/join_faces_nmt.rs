@@ -165,21 +165,18 @@ impl EulerOperator for JoinFacesNmt {
         // outgoing pointer points to a slit halfedge, we must replace it with
         // a non-slit halfedge that has the same origin.
         //
-        // Strategy: for each slit vertex, check if a protected-ring halfedge
-        // has the correct origin. If not, walk the merged outer loop to find one.
+        // Loop processes both vertices unconditionally. When vertex_s == vertex_k,
+        // the second iteration is safe (no-op since the first already fixed it).
+        // This avoids the asymmetry bug where the old branching code skipped
+        // vertex_k fixup when vertex_s == vertex_k and outgoing == he_k.
         let vertex_s = draft.arena().get_half_edge(he_s)?.origin();
         let vertex_k = draft.arena().get_half_edge(he_k)?.origin();
 
-        let vs_out = draft.arena().get_vertex(vertex_s)?.outgoing();
-        if vs_out == he_s || vs_out == he_k {
-            let replacement = find_non_slit_outgoing(draft, vertex_s, he_s, he_k, &protected)?;
-            draft.arena_mut().get_vertex_mut(vertex_s)?.set_outgoing(replacement);
-        }
-        if vertex_k != vertex_s {
-            let vk_out = draft.arena().get_vertex(vertex_k)?.outgoing();
-            if vk_out == he_s || vk_out == he_k {
-                let replacement = find_non_slit_outgoing(draft, vertex_k, he_s, he_k, &protected)?;
-                draft.arena_mut().get_vertex_mut(vertex_k)?.set_outgoing(replacement);
+        for &target_vertex in &[vertex_s, vertex_k] {
+            let current_out = draft.arena().get_vertex(target_vertex)?.outgoing();
+            if current_out == he_s || current_out == he_k {
+                let replacement = find_non_slit_outgoing(draft, target_vertex, he_s, he_k, &protected)?;
+                draft.arena_mut().get_vertex_mut(target_vertex)?.set_outgoing(replacement);
             }
         }
 
