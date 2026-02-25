@@ -216,13 +216,19 @@ pub fn apply_op<O: EulerOperator>(
         regions: region_count_after as i32 - region_count_before as i32,
     };
     if actual_delta != declared_delta {
+        let expected_vertices_after = vertex_count_before as i64 + declared_delta.vertices as i64;
+        let expected_edges_after = edge_count_before as i64 + declared_delta.edges as i64;
+        let expected_faces_after = face_count_before as i64 + declared_delta.faces as i64;
+        let expected_chi = expected_vertices_after - expected_edges_after + expected_faces_after;
+        let actual_chi = vertex_count_after as i64 - edge_count_after as i64 + face_count_after as i64;
+
         return Err(KernelError::TopologyViolation {
             err: TopologyError::EulerFormulaViolation {
                 vertices: vertex_count_after,
-                edges: halfedge_count_after / 2,
+                edges: edge_count_after,
                 faces: face_count_after,
-                expected_chi: 0,
-                actual_chi: 0,
+                expected_chi,
+                actual_chi,
             },
             context: Some(ErrorContext {
                 scope: ErrorScope::Operation {

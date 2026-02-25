@@ -18,3 +18,6 @@ pub mod eval;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod adversarial_tests;

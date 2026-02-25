@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use forge_math::arithmetic::rational::Rational;
 
-use super::schema::Segment2D;
+use super::schema::{BoundaryCertError, Segment2D};
 use super::exact_intersect::{intersect_segments_exact, ExactIntersection, ExactParam};
 
 /// An unbroken segment of the boundary arrangement.
@@ -77,11 +77,19 @@ pub fn compute_splits(
                 ExactIntersection::SharedEndpoint { .. } => {
                     // Shared endpoints are already at t=0 or t=1, which are seeded.
                 }
-                ExactIntersection::Overlap { t_a_range, t_b_range } => {
-                    segment_splits[i].insert(t_a_range[0].clone());
-                    segment_splits[i].insert(t_a_range[1].clone());
-                    segment_splits[j].insert(t_b_range[0].clone());
-                    segment_splits[j].insert(t_b_range[1].clone());
+                ExactIntersection::Overlap { t_a_range, .. } => {
+                    // Collinear overlap detected between source segments i and j.
+                    // Return early: this is an unambiguous OverlappingSegments violation.
+                    // Use the approximate midpoint of the overlap on segment i as the witness.
+                    let t_mid = t_a_range[0].as_rational().clone()
+                        + (t_a_range[1].as_rational().clone() - t_a_range[0].as_rational().clone())
+                        * forge_math::arithmetic::rational::Rational::try_from_f64(0.5)
+                            .map_err(|_| BoundaryCertError::PredicateFailure)?;
+                    let p0 = segments[i].get_start();
+                    let p1 = segments[i].get_end();
+                    let t_f64 = t_mid.to_f64_approx();
+                    let witness = [p0[0] + (p1[0] - p0[0]) * t_f64, p0[1] + (p1[1] - p0[1]) * t_f64];
+                    return Err(BoundaryCertError::OverlapDetected(witness));
                 }
             }
         }
@@ -227,26 +235,17 @@ mod tests {
 
     #[test]
     fn collinear_overlap_splits_at_boundaries() {
+        // Two collinear segments with a partial overlap: [0,4] and [1,5] on y=0.
+        // Since overlap detection is now done at the pair level in compute_splits,
+        // this must return Err(OverlapDetected) — not Ok with atomics.
         let segments = vec![
             Segment2D::new([0.0, 0.0], [4.0, 0.0], 0),
             Segment2D::new([1.0, 0.0], [5.0, 0.0], 1),
         ];
-
-        let Ok((atomics, vertices)) = compute_splits(&segments) else { panic!("Expected Ok") };
-
-        // Segment 0 splits at x=1. (0->1, 1->4).
-        // Segment 1 splits at x=4. (1->4, 4->5).
-        // Total atomics = 2 + 2 = 4.
-        assert_eq!(atomics.len(), 4);
-        
-        // Vertices at x=0, x=1, x=4, x=5. Total 4.
-        assert_eq!(vertices.len(), 4);
-        
-        // Vertex at x=1 should have 2 incident atomics: (0->1) and (1->4)
-        // actually, (1->4) from seg 0 and (1->4) from seg 1, so wait -
-        let vx1 = vertices.iter().find(|v| v.position[0] == 1.0).unwrap();
-        // At x=1, seg0 ends its first piece (0->1) and begins its second (1->4).
-        // Seg1 begins its first piece (1->4). Total = 3 incident atomics.
-        assert_eq!(vx1.incident_atomic_edges.len(), 3);
+        let result = compute_splits(&segments);
+        match result {
+            Err(BoundaryCertError::OverlapDetected(_)) => {}
+            other => panic!("Expected OverlapDetected, got {:?}", other.map(|_| "Ok")),
+        }
     }
 }

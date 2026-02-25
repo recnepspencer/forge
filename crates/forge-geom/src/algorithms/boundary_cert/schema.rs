@@ -151,7 +151,7 @@ pub enum BoundaryRejectReason {
 
 /// Errors raised during exact boundary certification due to degenerate input
 /// that cannot be robustly classified.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BoundaryCertError {
     /// Exact geometric predicate failed to evaluate (e.g., NaN coordinates).
     PredicateFailure,
@@ -160,6 +160,9 @@ pub enum BoundaryCertError {
     /// A computed intersection parameter fell outside `[0, 1]`, indicating
     /// a logic defect in the caller (not a recoverable input condition).
     OutOfRangeParameter,
+    /// Two non-adjacent source segments share a collinear overlapping 1D interval.
+    /// The `f64` coordinates are the approximate midpoint of the overlap for diagnostics.
+    OverlapDetected([f64; 2]),
 }
 
 /// Result of boundary certification for merge eligibility.

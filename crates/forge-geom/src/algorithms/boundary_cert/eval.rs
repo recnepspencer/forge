@@ -358,6 +358,12 @@ fn cert_error_to_rejected(
         .unwrap_or_else(|| segments[0].get_start());
 
     let reason = match err {
+        BoundaryCertError::OverlapDetected(w) => {
+            return WeakSimpleCertificate::Rejected {
+                reason: BoundaryRejectReason::OverlappingSegments,
+                witness: w,
+            };
+        }
         BoundaryCertError::OutOfRangeParameter => BoundaryRejectReason::DegenerateBoundary,
         BoundaryCertError::PredicateFailure    => BoundaryRejectReason::DegenerateBoundary,
         BoundaryCertError::DegenerateVector    => BoundaryRejectReason::DegenerateBoundary,
@@ -505,24 +511,12 @@ fn classify_arrangement(arrangement: &BoundaryArrangement) -> Result<WeakSimpleC
                 else { std::cmp::Ordering::Equal }
             });
 
-            // Detect overlapping collinear edges from different source segments
+            // Collinear overlap detection has been moved to compute_splits, where exact
+            // pair-level intersection data is available. By the time we reach the arrangement
+            // here, any OverlappingSegments intersection has already been reported.
             let mut radial_pos = std::collections::HashMap::new();
             for i in 0..outgoing.len() {
                 radial_pos.insert(outgoing[i].atomic_idx, i);
-                
-                let next = (i + 1) % outgoing.len();
-                let q_same = outgoing[i].quadrant == outgoing[next].quadrant;
-                let collinear = q_same && {
-                    let cross = outgoing[i].dx.clone() * outgoing[next].dy.clone()
-                        - outgoing[i].dy.clone() * outgoing[next].dx.clone();
-                    cross == Rational::zero()
-                };
-                if collinear && outgoing[i].source_segment != outgoing[next].source_segment {
-                    return Ok(WeakSimpleCertificate::Rejected {
-                        reason: BoundaryRejectReason::OverlappingSegments,
-                        witness: v.position,
-                    });
-                }
             }
 
             // Extract topological strands from the global ordered tour

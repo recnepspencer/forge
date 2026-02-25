@@ -186,35 +186,42 @@ impl ToleranceProvider for GeometryPatch {
 }
 
 impl GeometrySource for GeometryPatch {
-    /// Find a plane by face index scanning packed keys.
+    /// Find a plane by face index, scanning packed generational keys.
     ///
-    /// The `GeometrySource` trait passes only the bare face index because
-    /// lower layers do not know about generations. This means the lookup is
-    /// inherently generation-agnostic: we scan all packed keys and match on
-    /// the low-32-bit index. To guarantee determinism we treat multiple live
-    /// entries whose index part matches as an ambiguity error — that state
-    /// should never occur in a well-formed `GeometryPatch`.
+    /// `GeometrySource` passes only the bare face index because lower layers do
+    /// not carry handle generations. We scan packed keys and match on the low-32
+    /// bit index word. Determinism is guaranteed by treating *any* case where
+    /// multiple live entries share the same index — whether in the patch layer,
+    /// the base layer, or across both — as a hard ambiguity error. That state
+    /// indicates an ABA collision and must never silently return a value.
+    ///
+    /// Lookup order:
+    /// 1. If the packed key is in `face_plane_removes` → skip.
+    /// 2. Scan `face_plane_inserts` (patch layer). Ambiguity → `Err`.
+    /// 3. If patch found exactly one → return it.
+    /// 4. Scan `base.face_planes` (excluding removed keys). Ambiguity → `Err`.
+    /// 5. Mixed case: patch found one AND base found one → `Err` (ABA collision).
+    /// 6. Return whichever single layer found a result, or `Err` if neither did.
     fn get_plane(&self, index: usize) -> Result<PlaneCoefficients, MathError> {
-        let mut found: Option<PlaneCoefficients> = None;
-
+        // — Patch layer scan —
+        let mut patch_found: Option<PlaneCoefficients> = None;
         for (&key, plane) in &self.face_plane_inserts {
             let stored_index = (key & 0xFFFF_FFFF) as usize;
             if stored_index == index {
                 let n = plane.normal();
                 let coeff = PlaneCoefficients::try_new(n[0], n[1], n[2], plane.offset())?;
-                if found.is_some() {
+                if patch_found.is_some() {
                     return Err(MathError::InvalidInput(format!(
-                        "Ambiguous plane lookup: multiple generations live for face index {}",
+                        "Ambiguous plane lookup: multiple patch-layer generations live for face index {}",
                         index
                     )));
                 }
-                found = Some(coeff);
+                patch_found = Some(coeff);
             }
         }
-        if let Some(coeff) = found {
-            return Ok(coeff);
-        }
 
+        // — Base layer scan —
+        let mut base_found: Option<PlaneCoefficients> = None;
         for (&key, plane) in &self.base.face_planes {
             if self.face_plane_removes.contains(&key) {
                 continue;
@@ -222,11 +229,29 @@ impl GeometrySource for GeometryPatch {
             let stored_index = (key & 0xFFFF_FFFF) as usize;
             if stored_index == index {
                 let n = plane.normal();
-                return PlaneCoefficients::try_new(n[0], n[1], n[2], plane.offset());
+                let coeff = PlaneCoefficients::try_new(n[0], n[1], n[2], plane.offset())?;
+                if base_found.is_some() {
+                    return Err(MathError::InvalidInput(format!(
+                        "Ambiguous plane lookup: multiple base-layer generations live for face index {}",
+                        index
+                    )));
+                }
+                base_found = Some(coeff);
             }
         }
-        Err(MathError::InvalidInput(
-            format!("No plane found for face index {}", index),
-        ))
+
+        // — Resolution —
+        match (patch_found, base_found) {
+            (Some(_), Some(_)) => Err(MathError::InvalidInput(format!(
+                "Ambiguous plane lookup: face index {} exists in both patch and base layers \
+                 (ABA generation collision)",
+                index
+            ))),
+            (Some(coeff), None) => Ok(coeff),
+            (None, Some(coeff)) => Ok(coeff),
+            (None, None) => Err(MathError::InvalidInput(
+                format!("No plane found for face index {}", index),
+            )),
+        }
     }
 }

@@ -65,7 +65,6 @@ fn run_merge_pass(
         return Ok((KernelState::new(topo, geom), 0));
     }
 
-    let original = topo.clone();
     let mut draft = KernelDraft::new(KernelState::new(topo, geom));
 
     let pre_snapshot = ArenaSnapshot::capture(draft.arena());
@@ -80,7 +79,7 @@ fn run_merge_pass(
                     face_b.index(),
                     err
                 );
-                return Ok((draft.rollback(original), 0));
+                return Ok((draft.rollback(), 0));
             }
             let delta = compute_topology_delta(&pre_snapshot, mut_draft.arena());
             log_merge(he_id, face_a, face_b, delta, ctx);

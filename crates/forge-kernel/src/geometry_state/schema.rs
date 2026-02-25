@@ -770,15 +770,30 @@ impl ToleranceProvider for GeometryState {
 }
 
 impl GeometrySource for GeometryState {
+    /// Find a plane by face index, scanning packed generational keys.
+    ///
+    /// `GeometrySource` passes only the bare face index. We scan all keys
+    /// and match on the low-32-bit index word. Multiple live entries sharing
+    /// the same index indicate an ABA generation collision — returned as
+    /// `Err(InvalidInput)` rather than silently resolving to either value.
     fn get_plane(&self, index: usize) -> Result<PlaneCoefficients, MathError> {
+        let mut found: Option<PlaneCoefficients> = None;
         for (&key, plane) in &self.face_planes {
             let stored_index = (key & 0xFFFF_FFFF) as usize;
             if stored_index == index {
                 let n = plane.normal();
-                return PlaneCoefficients::try_new(n[0], n[1], n[2], plane.offset());
+                let coeff = PlaneCoefficients::try_new(n[0], n[1], n[2], plane.offset())?;
+                if found.is_some() {
+                    return Err(MathError::InvalidInput(format!(
+                        "Ambiguous plane lookup: multiple live generations for face index {} \
+                         (ABA generation collision in GeometryState)",
+                        index
+                    )));
+                }
+                found = Some(coeff);
             }
         }
-        Err(MathError::InvalidInput(
+        found.ok_or_else(|| MathError::InvalidInput(
             format!("No plane found for face index {}", index),
         ))
     }
