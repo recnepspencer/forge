@@ -56,7 +56,7 @@ use crate::validate::{self, ValidationLevel};
 ///
 ///     fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<Self::Output, KernelError> {
 ///         // Pure topology manipulation + lineage stamping
-///         todo!()
+///         panic!("example stub")
 ///     }
 ///
 ///     fn signature(&self) -> OpSignature {

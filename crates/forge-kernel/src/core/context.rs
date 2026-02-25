@@ -38,6 +38,15 @@ use super::tolerance::{
     GapClosurePolicy, PrecisionEscalationPolicy, ToleranceConfig,
 };
 
+/// Aggregated metadata absorbed from sub-operation envelopes.
+#[derive(Debug, Clone, Default)]
+pub struct SubOperationMetadata {
+    pub warnings: Vec<KernelWarning>,
+    pub metrics: OperationMetrics,
+    pub lineage_delta: LineageDelta,
+    pub accumulated_error_budget: f64,
+}
+
 /// The modeling context that governs all policy decisions.
 ///
 /// Passed to operations that may encounter ambiguity. Records every
@@ -233,9 +242,34 @@ impl ModelingContext {
         result
     }
 
-    /// Clear the decision log (for starting a fresh operation).
-    pub fn clear_decisions(&mut self) {
+    /// Clear only the decision log events, preserving counters and sub-op sinks.
+    ///
+    /// This is a low-level utility for tests/debug tooling. It is NOT a full
+    /// operation-boundary reset.
+    pub fn clear_decision_log_only(&mut self) {
         self.decision_log = DecisionLog::new();
+    }
+
+    /// Reset per-operation trace/metadata state while preserving configuration.
+    ///
+    /// Resets:
+    /// - decision log
+    /// - decision ID counter (next decision restarts at 1)
+    /// - success-path drain flag (`log_drained`)
+    /// - absorbed sub-operation metadata sink
+    ///
+    /// Preserves:
+    /// - policy/tolerance/validation configuration
+    /// - auto-persist capability flag
+    /// - classification overrides (counterfactual replay control)
+    pub fn reset_for_new_operation(&mut self) {
+        self.decision_log = DecisionLog::new();
+        self.sub_warnings.clear();
+        self.sub_metrics = OperationMetrics::default();
+        self.sub_lineage_delta = LineageDelta::default();
+        self.sub_accumulated_error_budget = 0.0;
+        self.decision_counter = 0;
+        self.log_drained = false;
     }
 
     /// Returns the number of tolerance decisions made.
@@ -273,16 +307,28 @@ impl ModelingContext {
         self.sub_accumulated_error_budget
     }
 
+    /// Drain all aggregated sub-operation metadata and reset the sink.
+    pub fn take_sub_metadata(&mut self) -> SubOperationMetadata {
+        SubOperationMetadata {
+            warnings: std::mem::take(&mut self.sub_warnings),
+            metrics: std::mem::take(&mut self.sub_metrics),
+            lineage_delta: std::mem::take(&mut self.sub_lineage_delta),
+            accumulated_error_budget: std::mem::take(&mut self.sub_accumulated_error_budget),
+        }
+    }
+
     /// Pull all metadata from an `OperationResult` sub-operation into this context.
     ///
     /// Use this when the current function returns a plain value/result (not an
     /// `OperationResult`) but must preserve the sub-operation's audit trail.
+    ///
+    /// This is a true drain: absorbed metadata is removed from `op` to prevent
+    /// accidental double-counting if the caller reuses the child envelope.
     pub fn absorb_sub_result<U>(&mut self, op: &mut OperationResult<U>) {
         self.decision_log.merge(op.take_decision_log());
+        self.sub_warnings.extend(op.take_warnings());
 
-        self.sub_warnings.extend(op.get_warnings().iter().cloned());
-
-        let metrics = op.get_metrics();
+        let metrics = op.take_metrics();
         self.sub_metrics.duration += metrics.duration;
         self.sub_metrics.entities_created += metrics.entities_created;
         self.sub_metrics.entities_deleted += metrics.entities_deleted;
@@ -290,7 +336,7 @@ impl ModelingContext {
         self.sub_metrics.exact_predicate_calls += metrics.exact_predicate_calls;
         self.sub_metrics.policy_decisions_made += metrics.policy_decisions_made;
 
-        let lineage = op.get_lineage_delta();
+        let lineage = op.take_lineage_delta();
         self.sub_lineage_delta.faces_created += lineage.faces_created;
         self.sub_lineage_delta.faces_deleted += lineage.faces_deleted;
         self.sub_lineage_delta.half_edges_created += lineage.half_edges_created;
@@ -306,7 +352,7 @@ impl ModelingContext {
         self.sub_lineage_delta.solids_created += lineage.solids_created;
         self.sub_lineage_delta.solids_deleted += lineage.solids_deleted;
 
-        self.sub_accumulated_error_budget += op.get_accumulated_budget();
+        self.sub_accumulated_error_budget += op.take_accumulated_budget();
     }
 
     /// Take ownership of the decision log, replacing it with an empty one.
@@ -529,6 +575,97 @@ mod tests {
     }
 
     #[test]
+    fn reset_for_new_operation_restarts_decision_ids_at_one() {
+        let mut ctx = ModelingContext::new();
+
+        ctx.log_decision(
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            [0.0, 0.0, 0.0],
+            0.0,
+            1.0,
+        );
+        let _ = ctx.take_decision_log();
+
+        ctx.reset_for_new_operation();
+        ctx.log_decision(
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            [0.0, 0.0, 0.0],
+            0.0,
+            1.0,
+        );
+
+        let ids: Vec<_> = ctx.get_decision_log().decisions().map(|d| d.get_id().0).collect();
+        assert_eq!(ids, vec![1], "full operation reset must restore deterministic ID sequence");
+    }
+
+    #[test]
+    fn reset_for_new_operation_clears_log_drained_and_sub_metadata_sink() {
+        let mut ctx = ModelingContext::new();
+        ctx.enable_auto_persist();
+
+        ctx.log_decision(
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            [0.0, 0.0, 0.0],
+            0.0,
+            1.0,
+        );
+        let _ = ctx.take_decision_log();
+        assert!(ctx.log_drained, "take_decision_log sets success-path drain flag");
+
+        let mut sub = OperationResult::new(());
+        sub.add_warning(forge_core::KernelWarning::AutoDecision { decision_id: DecisionId(99) });
+        let mut metrics = forge_core::envelope::OperationMetrics::default();
+        metrics.entities_deleted = 4;
+        sub.set_metrics(metrics);
+        ctx.absorb_sub_result(&mut sub);
+        assert_eq!(ctx.get_sub_warnings().len(), 1);
+        assert_eq!(ctx.get_sub_metrics().entities_deleted, 4);
+
+        ctx.reset_for_new_operation();
+
+        assert!(!ctx.log_drained, "new operation must not inherit prior success-path drain state");
+        assert_eq!(ctx.get_decision_count(), 0);
+        assert!(ctx.get_sub_warnings().is_empty());
+        assert_eq!(ctx.get_sub_metrics().entities_deleted, 0);
+        assert_eq!(ctx.get_sub_accumulated_error_budget(), 0.0);
+        assert_eq!(ctx.get_tolerance_config().get_error_budget_mm(), f64::INFINITY);
+    }
+
+    #[test]
+    fn clear_decision_log_only_preserves_counter_and_sub_metadata() {
+        let mut ctx = ModelingContext::new();
+        ctx.log_decision(
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            [0.0, 0.0, 0.0],
+            0.0,
+            1.0,
+        );
+        let mut sub = OperationResult::new(());
+        let mut metrics = forge_core::envelope::OperationMetrics::default();
+        metrics.entities_created = 7;
+        sub.set_metrics(metrics);
+        ctx.absorb_sub_result(&mut sub);
+
+        ctx.clear_decision_log_only();
+        assert_eq!(ctx.get_decision_count(), 0);
+        assert_eq!(ctx.get_sub_metrics().entities_created, 7, "log-only clear must not wipe metadata sink");
+
+        ctx.log_decision(
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            [0.0, 0.0, 0.0],
+            0.0,
+            1.0,
+        );
+        let ids: Vec<_> = ctx.get_decision_log().decisions().map(|d| d.get_id().0).collect();
+        assert_eq!(ids, vec![2], "log-only clear preserves monotonically increasing IDs");
+    }
+
+    #[test]
     fn absorb_sub_result_accumulates_full_metadata() {
         let mut ctx = ModelingContext::new();
         let mut sub = OperationResult::new(());
@@ -561,5 +698,117 @@ mod tests {
         assert_eq!(ctx.get_sub_lineage_delta().faces_deleted, 2);
         assert!(ctx.get_sub_accumulated_error_budget() > 0.0);
         assert!(sub.get_decision_log().is_empty());
+        assert!(sub.get_warnings().is_empty());
+        assert_eq!(sub.get_metrics().entities_modified, 0);
+        assert_eq!(sub.get_metrics().policy_decisions_made, 0);
+        assert_eq!(sub.get_lineage_delta().faces_deleted, 0);
+        assert_eq!(sub.get_accumulated_budget(), 0.0);
+    }
+
+    #[test]
+    fn absorb_sub_result_is_idempotent_for_child_envelope_metadata() {
+        let mut ctx = ModelingContext::new();
+        let mut sub = OperationResult::new(());
+
+        sub.add_warning(forge_core::KernelWarning::AutoDecision { decision_id: DecisionId(11) });
+        let mut metrics = forge_core::envelope::OperationMetrics::default();
+        metrics.entities_created = 2;
+        metrics.policy_decisions_made = 1;
+        sub.set_metrics(metrics);
+        let mut lineage = forge_core::envelope::LineageDelta::default();
+        lineage.edges_deleted = 3;
+        sub.set_lineage_delta(lineage);
+        sub.consume_budget(9.0e-7);
+
+        ctx.absorb_sub_result(&mut sub);
+        ctx.absorb_sub_result(&mut sub);
+
+        assert_eq!(ctx.get_decision_count(), 0, "no decisions were added in this fixture");
+        assert_eq!(ctx.get_sub_warnings().len(), 1, "warnings must not double-count");
+        assert_eq!(ctx.get_sub_metrics().entities_created, 2, "metrics must drain from child");
+        assert_eq!(ctx.get_sub_metrics().policy_decisions_made, 1);
+        assert_eq!(ctx.get_sub_lineage_delta().edges_deleted, 3, "lineage must drain from child");
+        assert!((ctx.get_sub_accumulated_error_budget() - 9.0e-7).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn absorb_sub_result_accumulates_then_take_sub_metadata_drains() {
+        let mut ctx = ModelingContext::new();
+        let mut sub = OperationResult::new(());
+
+        sub.add_warning(forge_core::KernelWarning::AutoDecision { decision_id: DecisionId(7) });
+        let mut metrics = forge_core::envelope::OperationMetrics::default();
+        metrics.entities_created = 3;
+        metrics.policy_decisions_made = 2;
+        sub.set_metrics(metrics);
+
+        let mut lineage = forge_core::envelope::LineageDelta::default();
+        lineage.vertices_created = 4;
+        sub.set_lineage_delta(lineage);
+        sub.consume_budget(1.25e-6);
+
+        ctx.absorb_sub_result(&mut sub);
+        let drained = ctx.take_sub_metadata();
+
+        assert_eq!(drained.warnings.len(), 1);
+        assert_eq!(drained.metrics.entities_created, 3);
+        assert_eq!(drained.metrics.policy_decisions_made, 2);
+        assert_eq!(drained.lineage_delta.vertices_created, 4);
+        assert!((drained.accumulated_error_budget - 1.25e-6).abs() < f64::EPSILON);
+
+        assert!(ctx.get_sub_warnings().is_empty());
+        assert_eq!(ctx.get_sub_metrics().entities_created, 0);
+        assert_eq!(ctx.get_sub_lineage_delta().vertices_created, 0);
+        assert_eq!(ctx.get_sub_accumulated_error_budget(), 0.0);
+    }
+
+    #[test]
+    fn take_sub_metadata_is_idempotent_after_reset() {
+        let mut ctx = ModelingContext::new();
+
+        let first = ctx.take_sub_metadata();
+        assert!(first.warnings.is_empty());
+        assert_eq!(first.metrics.entities_created, 0);
+        assert_eq!(first.accumulated_error_budget, 0.0);
+
+        let second = ctx.take_sub_metadata();
+        assert!(second.warnings.is_empty());
+        assert_eq!(second.metrics.entities_created, 0);
+        assert_eq!(second.accumulated_error_budget, 0.0);
+    }
+
+    #[test]
+    fn sub_metadata_can_be_folded_into_operation_result_without_double_counting() {
+        let mut ctx = ModelingContext::new();
+        let mut sub = OperationResult::new(());
+
+        let mut metrics = forge_core::envelope::OperationMetrics::default();
+        metrics.entities_modified = 8;
+        sub.set_metrics(metrics);
+
+        let mut lineage = forge_core::envelope::LineageDelta::default();
+        lineage.faces_created = 2;
+        sub.set_lineage_delta(lineage);
+        sub.consume_budget(3.0e-6);
+
+        ctx.absorb_sub_result(&mut sub);
+        let drained = ctx.take_sub_metadata();
+
+        let mut parent = OperationResult::new("ok");
+        for warning in drained.warnings {
+            parent.add_warning(warning);
+        }
+        parent.set_metrics(drained.metrics.clone());
+        parent.set_lineage_delta(drained.lineage_delta.clone());
+        parent.consume_budget(drained.accumulated_error_budget);
+
+        assert_eq!(parent.get_metrics().entities_modified, 8);
+        assert_eq!(parent.get_lineage_delta().faces_created, 2);
+        assert!((parent.get_accumulated_budget() - 3.0e-6).abs() < f64::EPSILON);
+
+        let drained_again = ctx.take_sub_metadata();
+        assert_eq!(drained_again.metrics.entities_modified, 0);
+        assert_eq!(drained_again.lineage_delta.faces_created, 0);
+        assert_eq!(drained_again.accumulated_error_budget, 0.0);
     }
 }

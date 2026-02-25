@@ -27,7 +27,7 @@ pub struct OpSignature {
 }
 
 impl OpSignature {
-    /// Create a new operation signature with a placeholder invocation ID.
+    /// Create a new operation signature with a zeroed invocation ID.
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),

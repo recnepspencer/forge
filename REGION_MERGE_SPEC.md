@@ -620,3 +620,267 @@ Epic A certifier is optional for NMT paths | FALSE | certify_merge_boundary gate
     Use workspace-relative links in the actual REGION_MERGE_SPEC.md instead of file:///... URIs.
     Keep forge-topo geometry-free; all boundary certification calls should originate in forge-kernel.
     Prefer explicit "design target" wording where APIs are placeholders to avoid accidental implementation commitments.
+
+
+
+LAST STEPS TO CLEAN IT UP:
+
+
+part 1:
+Policy registry/config source model
+Persistent-name resolution result contract (typed + traced)
+Operation finalization contract (context drain + envelope merge + audit emit)
+Trace adjunct/versioning strategy (typed policy/provenance payload attachment model)
+Replay/audit bridge contract (how audit records map to replay inputs/witnesses)
+
+
+part 2:
+Engineering Spec (Comprehensive)
+This is the implementation spec for the next four architecture items.
+
+1. Full Policy Protocol Integration (PolicyQuery / PolicyResult)
+Goal
+Replace policy-shaped trace labels with actual policy protocol execution in region merge and related geometry/classification paths.
+
+Scope
+
+Kernel boundary certification wrapper (eval.rs)
+Surface relation classification call sites used by merge eligibility / curved merge
+ModelingContext policy resolution helpers
+Trace emission for ambiguous/policy decisions
+Non-goals (this phase)
+
+UI for user policy overrides
+Persistent storage format changes for policies (unless already in core schema)
+Contract
+
+Geometry/analysis routines may return PolicyResult<T>:
+Success(T)
+Ambiguous { query, potential_value }
+HardError(KernelError)
+Kernel must resolve Ambiguous via ModelingContext policy APIs.
+Every Ambiguous resolution must emit a traced decision with:
+stable DecisionId
+DecisionKind::PolicyApplied or DecisionKind::Ambiguous/Forced depending on outcome
+meaningful DecisionTier
+margin/threshold in DecisionContext::Tolerance (or stricter typed context if added later)
+Design requirements
+
+forge-geom may depend on forge-core policy schema, but not forge-kernel.
+Policy evaluation must be explicit:
+no direct “default_used=true” traces without an actual PolicyQuery
+Fail-closed by default:
+if no policy exists for a given ambiguous query, kernel returns an error (or explicit forced-safe fallback with escalated trace)
+Deterministic decision IDs:
+derive from stable inputs (group hash, entity refs, query kind)
+Implementation steps
+
+Add ModelingContext::resolve_policy_result<T>(...) (or equivalent)
+takes PolicyResult<T>
+logs traced decision for Ambiguous
+applies configured policy
+Refactor certify_merge_boundary(...)
+return PolicyResult<WeakSimpleCertificate> internally or wrap cert result into policy protocol in kernel
+WeaklySimple path should be a real policy resolution
+Rejected path remains fail-closed, traced
+Update region-merge executor to preserve both:
+certifier decision(s)
+policy resolution decision(s)
+Add exact typed tests for policy resolution outcomes
+Tests (must-have)
+
+weakly_simple_cert_path_emits_policy_query_backed_decision
+policy_override_changes_merge_eligibility_outcome_and_trace
+missing_policy_for_ambiguous_case_fails_closed
+decision_ids_deterministic_for_same_group_and_query
+Acceptance criteria
+
+No PolicyApplied traces emitted without a corresponding PolicyQuery/resolution path
+Ambiguous cases are resolvable/configurable via ModelingContext
+All ambiguous outcomes are traced with margins and thresholds
+2. Precision / Undetermined Semantics for Surface Classification
+Goal
+Make SurfaceRelation::Undetermined real, explicit, and fail-closed; eliminate “declared but never returned” precision semantics.
+
+Scope
+
+forge-geom surface pair classification
+Kernel callers that consume surface relations for merge eligibility / curved merge
+Trace + policy handling for near-threshold classifications
+Non-goals (initial phase)
+
+Final numeric thresholds for every surface type beyond documented defaults
+Arbitrary precision SSI implementation (that is a later precision escalation epic)
+Contract
+
+Surface classification returns a result that can express ambiguity:
+preferred: PolicyResult<SurfaceRelation>
+SurfaceRelation::Undetermined is not a silent success path.
+Kernel must treat Undetermined as fail-closed unless an explicit policy says otherwise.
+Design requirements
+
+No arbitrary magic bands (tol * 2) without spec justification.
+Ambiguity criteria must be surface-type-specific and documented.
+Classification must expose measured margin + threshold.
+Kernel must not proceed on Undetermined by accident.
+Implementation steps
+
+Define ambiguity metrics per classifier:
+plane/plane: offset/normal differences near tolerance
+cylinder/cylinder, etc.: axis/radius/offset near tolerance
+Change classifier return shape to PolicyResult<SurfaceRelation>
+Encode ambiguity via PolicyQuery:
+kind likely CoincidentGeometry / NearTangency depending on case
+measured margin and threshold populated
+Kernel-side handlers:
+merge eligibility: reject on ambiguous/undetermined unless policy explicitly allows
+trace forced/ambiguous outcomes
+Add doc examples showing fail-closed handling
+Tests (must-have)
+
+plane_plane_within_tolerance_band_returns_ambiguous_or_undetermined
+kernel_merge_rejects_undetermined_surface_relation_by_default
+policy_override_can_accept_specific_undetermined_case (if policy supports it)
+classifier_never_returns_success_undetermined_without_policy_path
+Acceptance criteria
+
+Undetermined is reachable in real classifier logic
+All kernel callers handle ambiguity explicitly
+No silent merge progress on ambiguous surface classification without policy resolution
+3. Persistent Naming + Lineage Integration for Region Merge
+Goal
+Move region-merge APIs/results from snapshot handles/indexes toward stable, user/agent-facing identity backed by persistent naming and lineage.
+
+Scope
+
+Region merge intent schema
+Region merge result/audit outputs
+Name resolution layer (PersistentName -> snapshot handles)
+Lineage deltas for merge operations
+Non-goals (initial phase)
+
+Full UI selector authoring
+Backfilling all kernel operations with persistent naming in one pass
+Current problem
+
+MergeRegionSelection is snapshot-serializable, not persistent
+MergeResultSummary is a trace summary, not a stable identity artifact
+Target API split
+
+MergeRegionSelectionSnapshot (existing MergeRegionSelection semantics)
+internal execution input
+MergeRegionSelectionPersistent (new)
+persistent names/selectors for selected/protected/survivor
+optional persistent radial selectors keyed by stable refs
+Kernel resolution phase:
+persistent intent -> snapshot intent (MergeRegionSelection)
+fail closed on ambiguous/unresolved names with trace
+Persistent execution result:
+stable names of surviving/killed faces (or lineage-based references)
+lineage delta
+snapshot summary optionally attached for diagnostics only
+Design requirements
+
+Persistent naming resolution must be deterministic and traced.
+Resolution ambiguity must error (no first-match behavior).
+Execution result must separate:
+user-stable identity outputs
+snapshot debug outputs
+Lineage emitted for merge must be consumable by future re-identification.
+Implementation steps
+
+Define persistent selection/result schemas in kernel or io schema layer (based on crate ownership rules)
+Implement resolver:
+PersistentName -> FaceId on current KernelState
+exact/ambiguous/missing outcomes traced
+Add region-merge entrypoint overload (or new API) accepting persistent intent
+Extend region-merge envelope/result with lineage delta + persistent output summary
+Add compatibility adapter from snapshot selection for internal tests
+Tests (must-have)
+
+persistent_selection_resolves_to_same_snapshot_intent_deterministically
+ambiguous_persistent_name_fails_closed
+merge_result_reports_persistent_survivor_and_killed_faces
+lineage_delta_supports_post_merge_reidentification
+generation reuse / topology reorder tests to prove snapshot handles are not leaked as persistent IDs
+Acceptance criteria
+
+User/agent-facing region merge can be expressed without raw indices/handles
+Resolution is traced and fail-closed
+Outputs include stable identity + lineage, not just snapshot indexes
+4. Richer Serializable Audit Artifacts Beyond MergeResultSummary
+Goal
+Produce replay/audit-grade serializable artifacts, not just fingerprints (plan_hash) and snapshot summaries.
+
+Scope
+
+Region-merge audit record schema
+Trace/envelope integration
+Serializable execution plan/result details
+Provenance attachments (boundary provenance, selector resolution provenance, policy decisions)
+Non-goals
+
+Full binary trace compression
+Generalized audit record for every kernel op in the first pass (start with region merge)
+Current gap
+
+MergeResultSummary is useful but too thin:
+no executed step list
+no certifier outcome details
+no policy resolution details
+no provenance trail
+no lineage delta snapshot
+Target artifact (proposed)
+RegionMergeAuditRecord (serializable), containing:
+
+intent_snapshot: serializable snapshot intent (MergeRegionSelection or normalized form)
+resolved_plan: MergePlan + ordered MergeStepPlans
+execution_outcome:
+success/failure
+typed error summary (serializable form)
+certification:
+certificate kind
+reject reason/witness if any
+boundary provenance hashes
+policy_decisions:
+list of resolved policy queries/results (IDs, margins, chosen outcomes)
+topology_effects:
+surviving/killed face indices (snapshot)
+lineage delta summary
+trace_fingerprints:
+plan hash
+decision IDs list / trace hash (optional)
+versioning:
+schema version
+operation version for replay compatibility
+Design requirements
+
+Artifact must be serializable without KernelState.
+Artifact must clearly label snapshot-scoped fields vs persistent fields.
+Error summaries must be typed and machine-readable (not string-only).
+Artifact generation must be deterministic for deterministic inputs.
+Implementation steps
+
+Define RegionMergeAuditRecord + versioned schema
+Add typed serializable error summary enum for merge failures
+Extend execute_sheet_region_merge (or wrapper) to emit audit record in OperationResult.extra_summaries or dedicated field
+Include provenance + certifier data from boundary adapter/cert wrapper
+Add validation that the audit record matches runtime MergeResult/trace for successful runs
+Tests (must-have)
+
+audit_record_serializes_and_round_trips
+audit_record_contains_executed_steps_not_just_plan_hash
+audit_record_preserves_reject_witness_reason
+audit_record_deterministic_for_same_input
+audit_record_labels_snapshot_vs_persistent_fields
+Acceptance criteria
+
+Region merge produces a machine-readable audit artifact suitable for replay/debug pipelines
+Artifact includes enough detail to explain “why this merge succeeded/failed”
+No reliance on raw log text parsing for critical semantics
+Recommended implementation order for these four specs
+
+Full policy protocol integration (kernel-side wrapper first)
+Precision/Undetermined semantics (because it plugs into policy protocol)
+Richer serializable audit artifacts (once policy + cert semantics stabilize)
+Persistent naming + lineage integration (largest UX/API refactor, should target stabilized audit/trace semantics)

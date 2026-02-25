@@ -549,7 +549,7 @@ impl fmt::Display for TopologyError {
 ///
 /// This carries ONLY geometric data. No policy categories or modeling
 /// concepts are allowed in the math/geom layers (Rule 2.1).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct AmbiguousResult {
     /// 3D location where the ambiguity occurred.
     pub location: [f64; 3],
@@ -617,7 +617,7 @@ pub enum MergeError {
     /// `step_index: Some(n)` — rejected at execution step `n` (0-indexed).
     PartialMergePlanRejected { step_index: Option<u32>, reason: String },
 
-    /// Persistent NMT output is not implemented in this milestone.
+    /// Persistent NMT output is unavailable in this milestone.
     UnsupportedPersistentNmtOutput,
 }
 

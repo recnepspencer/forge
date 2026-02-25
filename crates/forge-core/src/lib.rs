@@ -22,6 +22,7 @@ pub mod policy;
 pub mod tracing;
 pub mod envelope;
 pub mod tolerance;
+pub mod provenance;
 
 // =========================================================================
 // CRATE-ROOT RE-EXPORTS
@@ -31,6 +32,8 @@ pub use errors::{
     ErrorScope, SuggestedFix, ErrorContext,
     KernelError, TopologyError,
     AmbiguousResult, DiagnosticPayload,
+    ErrorCategory, ErrorSummary, SourceErrorSummary,
+    KernelErrorSummary, MergeErrorSummary, TopologyErrorSummary, DiagnosticPayloadSummary,
 };
 
 pub use policy::{
@@ -46,6 +49,9 @@ pub use tracing::{
     EULER_OP_FEATURE_SCOPE,
     resolve_trace_dir, write_trace_file,
     LogLevel, log_level, log_result, log_decision_log, log_error,
+    PolicyResolutionSource, PolicyResolutionOutcome, CandidateValueSummary,
+    PolicyDecisionTracePayload, PolicyTraceConsistencyError,
+    TraceFingerprint, compute_trace_fingerprint,
 };
 
 pub use envelope::{
@@ -53,6 +59,10 @@ pub use envelope::{
 };
 
 pub use tolerance::{ToleranceProvider, FlatToleranceProvider};
+pub use provenance::{
+    SnapshotHandleRef, BoundarySegmentProvenance, MergeStepProvenance, SelectorOrigin,
+    hash_directed_snapshot_segment_transport,
+};
 
 // =========================================================================
 // GEOMETRY SOURCE (Data-access trait, Rule 3.1)
@@ -72,4 +82,3 @@ pub trait GeometrySource: std::fmt::Debug {
     /// Retrieve the plane coefficients [a, b, c, d] for a given index.
     fn get_plane(&self, index: usize) -> [f64; 4];
 }
-

@@ -33,6 +33,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
+      - name: Delivery guards
+        run: python3 scripts/ci/check_delivery_guards.py
+
       - name: Build workspace
         run: cargo build --workspace
 

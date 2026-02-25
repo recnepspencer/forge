@@ -1,1 +1,1 @@
-// Traits module placeholder
+// Traits module scaffolding

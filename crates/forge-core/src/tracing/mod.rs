@@ -17,6 +17,8 @@ pub mod delta_debug;
 pub mod divergence;
 mod persistence;
 mod logging;
+pub mod policy_trace;
+pub mod fingerprint;
 
 #[cfg(test)]
 mod tests;
@@ -44,3 +46,8 @@ pub use divergence::{
 pub use persistence::{resolve_trace_dir, write_trace_file};
 
 pub use logging::{LogLevel, log_level, log_result, log_decision_log, log_error};
+pub use policy_trace::{
+    PolicyResolutionSource, PolicyResolutionOutcome, CandidateValueSummary,
+    PolicyDecisionTracePayload, PolicyTraceConsistencyError,
+};
+pub use fingerprint::{TraceFingerprint, compute_trace_fingerprint};

@@ -12,6 +12,7 @@
 #![forbid(unsafe_code)]
 
 pub mod fixtures;
+pub mod region_merge_fixtures;
 pub mod generators;
 pub mod harness;
 pub mod logging;

@@ -27,7 +27,7 @@ pub enum VertexProvenance {
         ///
         /// `None` = pre-SSI estimate — use `global_default()` as a certified-
         /// conservative tolerance for this vertex (D3 compliant: no silent
-        /// heuristic, explicitly documented placeholder).
+        /// heuristic, explicitly documented interim fallback).
         #[serde(default)]
         residual: Option<f64>,
     },

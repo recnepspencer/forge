@@ -245,6 +245,11 @@ impl<T> OperationResult<T> {
         &self.warnings
     }
 
+    /// Take ownership of warnings, replacing them with an empty list.
+    pub fn take_warnings(&mut self) -> Vec<KernelWarning> {
+        std::mem::take(&mut self.warnings)
+    }
+
     /// The full decision log.
     pub fn get_decision_log(&self) -> &DecisionLog {
         &self.decision_log
@@ -260,9 +265,19 @@ impl<T> OperationResult<T> {
         &self.metrics
     }
 
+    /// Take ownership of metrics, replacing with defaults.
+    pub fn take_metrics(&mut self) -> OperationMetrics {
+        std::mem::take(&mut self.metrics)
+    }
+
     /// Summary of lineage changes from the operation.
     pub fn get_lineage_delta(&self) -> &LineageDelta {
         &self.lineage_delta
+    }
+
+    /// Take ownership of lineage delta, replacing with defaults.
+    pub fn take_lineage_delta(&mut self) -> LineageDelta {
+        std::mem::take(&mut self.lineage_delta)
     }
 
     /// Topology hash before the operation.
@@ -390,6 +405,11 @@ impl<T> OperationResult<T> {
     /// Total accumulated error budget consumed so far (mm).
     pub fn get_accumulated_budget(&self) -> f64 {
         self.accumulated_error_budget
+    }
+
+    /// Take and reset the accumulated error budget tracker.
+    pub fn take_accumulated_budget(&mut self) -> f64 {
+        std::mem::take(&mut self.accumulated_error_budget)
     }
 
     /// Checkpoint validation results from this operation.

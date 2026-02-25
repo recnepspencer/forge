@@ -5,12 +5,14 @@
 //! ## Modules
 //!
 //! - **json** — Versioned JSON serialization (`save_model`, `load_model`, `diff_models`)
+//! - **audit** — Versioned audit-record + trace bundle storage
 //!
 //! Future formats (STEP, STL, IGES) will be added as sibling directories.
 
 #![forbid(unsafe_code)]
 
 pub mod json;
+pub mod audit;
 
 /// Error type for IO operations.
 #[derive(Debug)]
@@ -55,3 +57,9 @@ impl std::fmt::Display for IoError {
 /// Backwards-compatible re-exports.
 pub use json::{save_model, load_model, VersionedModel, SCHEMA_VERSION};
 pub use json::diff::{ModelChange, diff_models};
+pub use audit::{
+    AUDIT_BUNDLE_MANIFEST_VERSION, AUDIT_SCHEMA_VERSION,
+    AuditBundleFiles, AuditBundleManifest, VersionedAuditRecord,
+    AuditIdentityScope, AuditFieldLabel, AuditConventionError,
+    save_audit_record, load_audit_record, append_audit_record_jsonl, write_audit_bundle,
+};

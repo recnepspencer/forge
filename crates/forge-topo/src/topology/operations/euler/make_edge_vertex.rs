@@ -82,22 +82,22 @@ impl EulerOperator for MakeEdgeVertex {
             Some(edge_lineage),
         ));
 
-        let placeholder = HalfEdgeId::new(u32::MAX, 0);
+        let sentinel = HalfEdgeId::new(u32::MAX, 0);
 
         let (he_out, he_back) = draft.insert_radial_pair(
             HalfEdgeData::with_lineage(
-                placeholder, // twin → set below
-                placeholder, // next → set below
-                placeholder, // prev → set below
+                sentinel, // twin → set below
+                sentinel, // next → set below
+                sentinel, // prev → set below
                 face,
                 origin,
                 new_edge,
                 Some(he_out_lineage),
             ),
             HalfEdgeData::with_lineage(
-                placeholder, // twin → set below
-                placeholder, // next → set below
-                placeholder, // prev → set below
+                sentinel, // twin → set below
+                sentinel, // next → set below
+                sentinel, // prev → set below
                 face,
                 new_vertex,
                 new_edge,

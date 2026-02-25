@@ -63,8 +63,8 @@ impl EulerOperator for MakeFaceFromVertices {
             });
         }
         
-        let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
-        let placeholder_loop = LoopId::new(u32::MAX, 0);
+        let sentinel_he = HalfEdgeId::new(u32::MAX, 0);
+        let sentinel_loop = LoopId::new(u32::MAX, 0);
 
         let face_lineage = Lineage::root(0, sig.clone());
         let loop_lineage = Lineage::root(1, sig.clone()); // Assuming loops don't need explicit lineage tracking right now, but keeping parity with MVF
@@ -95,12 +95,12 @@ impl EulerOperator for MakeFaceFromVertices {
         ));
 
         let face = draft.insert_face(FaceData::with_lineage(
-            placeholder_loop,
+            sentinel_loop,
             shell,
             Some(face_lineage),
         ));
 
-        let loop_id = draft.insert_loop(LoopData::new(placeholder_he, face));
+        let loop_id = draft.insert_loop(LoopData::new(sentinel_he, face));
         
         draft.arena_mut().get_shell_mut(shell)?.set_representative_face(face);
         draft.arena_mut().get_face_mut(face)?.set_outer_loop(loop_id);
@@ -125,9 +125,9 @@ impl EulerOperator for MakeFaceFromVertices {
             let edge_lineage = Lineage::root(6, sig.clone());
             let he_lineage = Lineage::root(7, sig.clone());
 
-            let edge = draft.insert_edge(EdgeData::with_lineage(placeholder_he, Some(edge_lineage)));
+            let edge = draft.insert_edge(EdgeData::with_lineage(sentinel_he, Some(edge_lineage)));
             let he = draft.insert_half_edge(HalfEdgeData::with_lineage(
-                placeholder_he, placeholder_he, placeholder_he, face, VertexId::new(u32::MAX, 0), edge, Some(he_lineage)
+                sentinel_he, sentinel_he, sentinel_he, face, VertexId::new(u32::MAX, 0), edge, Some(he_lineage)
             ));
             
             draft.arena_mut().get_edge_mut(edge)?.set_half_edge(he);
@@ -152,7 +152,7 @@ impl EulerOperator for MakeFaceFromVertices {
             arena.get_half_edge_mut(he)?.set_prev(prev_he);
             
             // Note: Does not overwrite vertex outgoing if it has one!
-            // Wait, we need to set the outgoing if it's currently a placeholder or if 
+            // Wait, we need to set the outgoing if it's currently a sentinel or if 
             // the operator is claiming isolated vertices. 
             // In boolean copy, vertices DO come independently. But wait!
             // If the vertex is already used by another face in the schema, we shouldn't overwrite 

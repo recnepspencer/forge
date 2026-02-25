@@ -81,7 +81,7 @@ impl BooleanInput {
     ///
     /// Checks:
     /// - Both solids have at least 4 faces (minimum for a closed polyhedron)
-    /// - Every halfedge has a valid twin (not self-referencing placeholder)
+    /// - Every halfedge has a valid twin (not an unresolved self-twin)
     /// - Twin reciprocity: `he.twin.twin == he`
     pub fn validate(&self) -> Result<(), forge_core::KernelError> {
         validate_solid(self.target_topology.arena(), "target")?;
@@ -128,7 +128,7 @@ fn validate_solid(arena: &forge_topo::arena::TopologyArena, label: &str) -> Resu
         if he_id == twin_id {
             return Err(forge_core::KernelError::InvalidInput {
                 message: format!(
-                    "Boolean {} solid: halfedge {} has self-referencing twin (placeholder not resolved)",
+                    "Boolean {} solid: halfedge {} has self-referencing twin (unresolved sentinel twin)",
                     label, he_id
                 ),
                 context: None,

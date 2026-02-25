@@ -8,6 +8,7 @@
 //! DEPENDENCIES: forge-math (MathError conversion), serde
 
 mod schema;
+mod summary;
 
 #[cfg(test)]
 mod tests;
@@ -17,4 +18,9 @@ pub use schema::{
     KernelError, TopologyError,
     AmbiguousResult, DiagnosticPayload,
     MergeError,
+};
+pub use summary::{
+    ErrorCategory, ErrorSummary, SourceErrorSummary,
+    KernelErrorSummary, MergeErrorSummary, TopologyErrorSummary,
+    DiagnosticPayloadSummary,
 };

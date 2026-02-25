@@ -90,8 +90,8 @@ fn build_multi_cell_mesh(
     let mut edge_map: HashMap<(VertexId, VertexId), Vec<HalfEdgeId>> = HashMap::new();
     let mut face_plane_map: HashMap<FaceId, usize> = HashMap::new();
 
-    let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
-    let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
+    let sentinel_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
+    let sentinel_loop = LoopId::from_raw_parts(u32::MAX, 0);
 
     let body = draft.insert_body(BodyData::new());
 
@@ -117,7 +117,7 @@ fn build_multi_cell_mesh(
         insert_cell_faces(
             &mut draft, &mut geometry, &mut edge_map, &mut face_plane_map,
             cell, &cell_vertex_ids, cell_planes, bsp_plane_indices,
-            shell, placeholder_he, placeholder_loop,
+            shell, sentinel_he, sentinel_loop,
         )?;
         
         if let Some((first_face, _)) = draft.arena().iter_faces().last() {
@@ -126,7 +126,7 @@ fn build_multi_cell_mesh(
     }
 
     // ── Checkpoint: post_insert_faces ────────────────────────────────────
-    // Skip twin checks: twins are placeholder self-twins before stitching.
+    // Skip twin checks: twins are sentinel self-twins before stitching.
     validate_checkpoint(&draft, ctx, "post_insert_faces", true)?;
 
     // Stitch twins with cross-plane pairing for non-manifold edges
@@ -176,7 +176,7 @@ fn insert_cell_vertices(
     tolerance: f64,
     ctx: &mut ModelingContext,
 ) -> Result<Vec<VertexId>, KernelError> {
-    let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
+    let sentinel_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
     let tol_sq = tolerance * tolerance;
     let mut cell_vertex_ids = Vec::with_capacity(cell.vertex_count());
 
@@ -193,7 +193,7 @@ fn insert_cell_vertices(
             check_tolerance!(ctx, tolerance, dist, pos, DecisionKind::NearBoundary { threshold: tolerance });
             cell_vertex_ids.push(*existing_vid);
         } else {
-            let vid = draft.insert_vertex(VertexData::new(placeholder_he));
+            let vid = draft.insert_vertex(VertexData::new(sentinel_he));
 
             let [pa, pb, pc] = vert.plane_indices();
             let stored_exact = if pa < cell_planes.len() && pb < cell_planes.len() && pc < cell_planes.len() {
@@ -233,8 +233,8 @@ fn insert_cell_faces(
     cell_planes: &[Plane],
     bsp_plane_indices: &[usize],
     shell: ShellId,
-    placeholder_he: HalfEdgeId,
-    placeholder_loop: LoopId,
+    sentinel_he: HalfEdgeId,
+    sentinel_loop: LoopId,
 ) -> Result<(), KernelError> {
     for cell_face in cell.faces() {
         let face_verts = cell_face.vertices();
@@ -242,10 +242,10 @@ fn insert_cell_faces(
             continue;
         }
 
-        let face_id = draft.insert_face(FaceData::new(placeholder_loop, shell));
+        let face_id = draft.insert_face(FaceData::new(sentinel_loop, shell));
 
         let loop_id = draft.insert_loop(LoopData::new(
-            placeholder_he,
+            sentinel_he,
             face_id,
         ));
 
@@ -276,9 +276,9 @@ fn insert_cell_faces(
         for &cell_vert_idx in face_verts {
             let origin = cell_vertex_ids[cell_vert_idx];
             let he_id = draft.insert_half_edge(HalfEdgeData::new(
-                placeholder_he,
-                placeholder_he,
-                placeholder_he,
+                sentinel_he,
+                sentinel_he,
+                sentinel_he,
                 face_id,
                 origin,
                 EdgeId::from_raw_parts(u32::MAX, 0),

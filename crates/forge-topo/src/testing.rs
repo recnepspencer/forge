@@ -1,6 +1,6 @@
 //! Shared unit test utilities for `forge-topo`.
 //!
-//! Provides placeholder generation and manual structural wiring helpers.
+//! Provides sentinel generation and manual structural wiring helpers.
 //! Since Euler operators don't natively create disconnected loops, these
 //! manual constructions are necessary to test topological edge cases.
 
@@ -8,18 +8,18 @@ use crate::arena::{FaceData, HalfEdgeData, LoopData, VertexData};
 use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
 use crate::state::MutableDraft;
 
-/// Returns a VertexData with a placeholder outgoing halfedge.
+/// Returns a VertexData with a sentinel outgoing halfedge.
 pub fn dummy_vertex_data() -> VertexData {
     VertexData::new(HalfEdgeId::new(u32::MAX, 0))
 }
 
-/// Returns a FaceData with a placeholder outer loop and shell.
+/// Returns a FaceData with a sentinel outer loop and shell.
 pub fn dummy_face_data() -> FaceData {
     FaceData::new(LoopId::new(u32::MAX, 0), ShellId::new(u32::MAX, 0))
 }
 
 /// Returns a HalfEdgeData pointing to the given face and origin,
-/// with placeholders for all other links.
+/// with sentinels for all other links.
 pub fn dummy_halfedge_data(face: FaceId, origin: VertexId) -> HalfEdgeData {
     HalfEdgeData::new(
         HalfEdgeId::new(u32::MAX, 0),
@@ -37,33 +37,33 @@ pub fn dummy_halfedge_data(face: FaceId, origin: VertexId) -> HalfEdgeData {
 pub fn build_face_with_hole(
     draft: &mut MutableDraft,
 ) -> (FaceId, HalfEdgeId, HalfEdgeId, LoopId, [VertexId; 6]) {
-    let placeholder_he    = HalfEdgeId::new(u32::MAX, 0);
-    let placeholder_loop  = LoopId::new(u32::MAX, 0);
-    let placeholder_face  = FaceId::new(u32::MAX, 0);
-    let placeholder_shell = ShellId::new(u32::MAX, 0);
-    let placeholder_e     = EdgeId::new(u32::MAX, 0);
+    let sentinel_he    = HalfEdgeId::new(u32::MAX, 0);
+    let sentinel_loop  = LoopId::new(u32::MAX, 0);
+    let sentinel_face  = FaceId::new(u32::MAX, 0);
+    let sentinel_shell = ShellId::new(u32::MAX, 0);
+    let sentinel_e     = EdgeId::new(u32::MAX, 0);
 
     let arena = draft.arena_mut();
 
-    let face = arena.insert_face(FaceData::new(placeholder_loop, placeholder_shell), None);
-    let outer_loop = arena.insert_loop(LoopData::new(placeholder_he, face), None);
+    let face = arena.insert_face(FaceData::new(sentinel_loop, sentinel_shell), None);
+    let outer_loop = arena.insert_loop(LoopData::new(sentinel_he, face), None);
     arena.get_face_mut(face).unwrap().set_outer_loop(outer_loop);
 
     // Outer loop vertices
-    let v0 = arena.insert_vertex(VertexData::new(placeholder_he), None);
-    let v1 = arena.insert_vertex(VertexData::new(placeholder_he), None);
-    let v2 = arena.insert_vertex(VertexData::new(placeholder_he), None);
+    let v0 = arena.insert_vertex(VertexData::new(sentinel_he), None);
+    let v1 = arena.insert_vertex(VertexData::new(sentinel_he), None);
+    let v2 = arena.insert_vertex(VertexData::new(sentinel_he), None);
 
     // Outer halfedges (counter-clockwise)
     let (he01, _he10) = arena.insert_radial_pair(
-        HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v0, placeholder_e),
-        HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v1, placeholder_e), None);
+        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, face, v0, sentinel_e),
+        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, sentinel_face, v1, sentinel_e), None);
     let (he12, _he21) = arena.insert_radial_pair(
-        HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v1, placeholder_e),
-        HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v2, placeholder_e), None);
+        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, face, v1, sentinel_e),
+        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, sentinel_face, v2, sentinel_e), None);
     let (he20, _he02) = arena.insert_radial_pair(
-        HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v2, placeholder_e),
-        HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v0, placeholder_e), None);
+        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, face, v2, sentinel_e),
+        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, sentinel_face, v0, sentinel_e), None);
 
     let arena = draft.arena_mut();
     arena.get_half_edge_mut(he01).unwrap().set_next(he12);
@@ -79,20 +79,20 @@ pub fn build_face_with_hole(
     arena.get_vertex_mut(v2).unwrap().set_outgoing(he20);
 
     // Inner loop vertices
-    let v3 = arena.insert_vertex(VertexData::new(placeholder_he), None);
-    let v4 = arena.insert_vertex(VertexData::new(placeholder_he), None);
-    let v5 = arena.insert_vertex(VertexData::new(placeholder_he), None);
+    let v3 = arena.insert_vertex(VertexData::new(sentinel_he), None);
+    let v4 = arena.insert_vertex(VertexData::new(sentinel_he), None);
+    let v5 = arena.insert_vertex(VertexData::new(sentinel_he), None);
 
     // Inner halfedges (clockwise around the hole)
     let (he34, _he43) = arena.insert_radial_pair(
-        HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v3, placeholder_e),
-        HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v4, placeholder_e), None);
+        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, face, v3, sentinel_e),
+        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, sentinel_face, v4, sentinel_e), None);
     let (he45, _he54) = arena.insert_radial_pair(
-        HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v4, placeholder_e),
-        HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v5, placeholder_e), None);
+        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, face, v4, sentinel_e),
+        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, sentinel_face, v5, sentinel_e), None);
     let (he53, _he35) = arena.insert_radial_pair(
-        HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v5, placeholder_e),
-        HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v3, placeholder_e), None);
+        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, face, v5, sentinel_e),
+        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, sentinel_face, v3, sentinel_e), None);
 
     let arena = draft.arena_mut();
     arena.get_half_edge_mut(he34).unwrap().set_next(he45);

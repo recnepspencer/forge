@@ -82,7 +82,7 @@ impl EulerOperator for SplitEdge {
         
         let vertex_lineage = Lineage::derive_from(&ab_lineage, sig.clone());
         let new_vertex = draft.insert_vertex(VertexData::with_lineage(
-            HalfEdgeId::new(u32::MAX, 0), // placeholder
+            HalfEdgeId::new(u32::MAX, 0), // sentinel
             Some(vertex_lineage),
         ));
         draft.arena_mut().get_vertex_mut(new_vertex)?.set_birth_parameter(Some(self.parameter));
@@ -135,7 +135,7 @@ impl EulerOperator for SplitEdge {
                 HalfEdgeId::new(u32::MAX, 0), // prev
                 h_face,
                 new_vertex, // H_new ALWAYS originates at M
-                EdgeId::new(u32::MAX, 0), // placeholder edge
+                EdgeId::new(u32::MAX, 0), // sentinel edge
                 Some(new_h_lineage),
             ));
             

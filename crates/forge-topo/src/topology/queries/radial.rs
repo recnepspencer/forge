@@ -107,7 +107,7 @@ mod tests {
 
         // Insert ghost halfedge to form the 3rd ring member.
         let extra = draft.insert_half_edge(HalfEdgeData::new(
-            start, // radial_next placeholder — overwritten below
+            start, // radial_next sentinel — overwritten below
             start, // next (same face, safe dummy)
             start, // prev
             face,

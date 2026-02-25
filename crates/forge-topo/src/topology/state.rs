@@ -270,7 +270,7 @@ impl MutableDraft {
 
     /// Apply lineage tracking for the completed operation (called by `apply_op` runner).
     ///
-    /// Currently a placeholder — expanded in Milestone 1.2 (Euler Lineage Tracking).
+    /// Currently a stub — expanded in Milestone 1.2 (Euler Lineage Tracking).
     pub fn apply_lineage(&mut self, _signature: &OpSignature) {
     }
 
