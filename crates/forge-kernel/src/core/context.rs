@@ -26,6 +26,7 @@ use forge_core::{
     TracedDecision, DecisionKind, DecisionContext, DecisionId, DecisionLog, DecisionTier,
     TopologyDelta,
 };
+use forge_core::envelope::{KernelWarning, LineageDelta, OperationMetrics, OperationResult};
 use forge_topo::arena::TopologyArena;
 
 use crate::operations::boolean::FaceClassification;
@@ -59,6 +60,14 @@ pub struct ModelingContext {
     tolerance_config: ToleranceConfig,
     validation_config: ValidationConfig,
     decision_log: DecisionLog,
+    /// Aggregated warnings absorbed from sub-operations that returned envelopes.
+    sub_warnings: Vec<KernelWarning>,
+    /// Aggregated metrics absorbed from sub-operations.
+    sub_metrics: OperationMetrics,
+    /// Aggregated lineage deltas absorbed from sub-operations.
+    sub_lineage_delta: LineageDelta,
+    /// Aggregated error budget consumed by absorbed sub-operations.
+    sub_accumulated_error_budget: f64,
     decision_counter: u64,
     /// When true, Drop persists the DecisionLog as an error trace
     /// if take_decision_log() was never called (i.e. the operation failed).
@@ -85,6 +94,10 @@ impl ModelingContext {
             tolerance_config: ToleranceConfig::default(),
             validation_config: ValidationConfig::default(),
             decision_log: DecisionLog::new(),
+            sub_warnings: Vec::new(),
+            sub_metrics: OperationMetrics::default(),
+            sub_lineage_delta: LineageDelta::default(),
+            sub_accumulated_error_budget: 0.0,
             decision_counter: 0,
             auto_persist: false,
             log_drained: false,
@@ -240,6 +253,62 @@ impl ModelingContext {
         &mut self.decision_log
     }
 
+    /// Warnings absorbed from sub-operation envelopes.
+    pub fn get_sub_warnings(&self) -> &[KernelWarning] {
+        &self.sub_warnings
+    }
+
+    /// Aggregated metrics absorbed from sub-operation envelopes.
+    pub fn get_sub_metrics(&self) -> &OperationMetrics {
+        &self.sub_metrics
+    }
+
+    /// Aggregated lineage delta absorbed from sub-operation envelopes.
+    pub fn get_sub_lineage_delta(&self) -> &LineageDelta {
+        &self.sub_lineage_delta
+    }
+
+    /// Aggregated error budget absorbed from sub-operation envelopes.
+    pub fn get_sub_accumulated_error_budget(&self) -> f64 {
+        self.sub_accumulated_error_budget
+    }
+
+    /// Pull all metadata from an `OperationResult` sub-operation into this context.
+    ///
+    /// Use this when the current function returns a plain value/result (not an
+    /// `OperationResult`) but must preserve the sub-operation's audit trail.
+    pub fn absorb_sub_result<U>(&mut self, op: &mut OperationResult<U>) {
+        self.decision_log.merge(op.take_decision_log());
+
+        self.sub_warnings.extend(op.get_warnings().iter().cloned());
+
+        let metrics = op.get_metrics();
+        self.sub_metrics.duration += metrics.duration;
+        self.sub_metrics.entities_created += metrics.entities_created;
+        self.sub_metrics.entities_deleted += metrics.entities_deleted;
+        self.sub_metrics.entities_modified += metrics.entities_modified;
+        self.sub_metrics.exact_predicate_calls += metrics.exact_predicate_calls;
+        self.sub_metrics.policy_decisions_made += metrics.policy_decisions_made;
+
+        let lineage = op.get_lineage_delta();
+        self.sub_lineage_delta.faces_created += lineage.faces_created;
+        self.sub_lineage_delta.faces_deleted += lineage.faces_deleted;
+        self.sub_lineage_delta.half_edges_created += lineage.half_edges_created;
+        self.sub_lineage_delta.half_edges_deleted += lineage.half_edges_deleted;
+        self.sub_lineage_delta.vertices_created += lineage.vertices_created;
+        self.sub_lineage_delta.vertices_deleted += lineage.vertices_deleted;
+        self.sub_lineage_delta.loops_created += lineage.loops_created;
+        self.sub_lineage_delta.loops_deleted += lineage.loops_deleted;
+        self.sub_lineage_delta.edges_created += lineage.edges_created;
+        self.sub_lineage_delta.edges_deleted += lineage.edges_deleted;
+        self.sub_lineage_delta.shells_created += lineage.shells_created;
+        self.sub_lineage_delta.shells_deleted += lineage.shells_deleted;
+        self.sub_lineage_delta.solids_created += lineage.solids_created;
+        self.sub_lineage_delta.solids_deleted += lineage.solids_deleted;
+
+        self.sub_accumulated_error_budget += op.get_accumulated_budget();
+    }
+
     /// Take ownership of the decision log, replacing it with an empty one.
     ///
     /// Marks the log as drained so `Drop` knows the success path was taken.
@@ -393,6 +462,7 @@ impl Default for ModelingContext {
 mod tests {
     use super::*;
     use crate::check_tolerance;
+    use forge_core::envelope::OperationResult;
 
     #[test]
     fn default_context_has_no_decisions() {
@@ -456,5 +526,40 @@ mod tests {
         let log = ctx.take_decision_log();
         assert_eq!(log.len(), 1);
         assert_eq!(ctx.get_decision_count(), 0);
+    }
+
+    #[test]
+    fn absorb_sub_result_accumulates_full_metadata() {
+        let mut ctx = ModelingContext::new();
+        let mut sub = OperationResult::new(());
+
+        sub.get_decision_log_mut().record(TracedDecision::new(
+            DecisionId(42),
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            1.0,
+            DecisionContext::Degeneracy { description: "sub".into() },
+        ));
+        sub.add_warning(forge_core::KernelWarning::AutoDecision { decision_id: DecisionId(42) });
+
+        let mut metrics = forge_core::envelope::OperationMetrics::default();
+        metrics.entities_modified = 5;
+        metrics.policy_decisions_made = 1;
+        sub.set_metrics(metrics);
+
+        let mut lineage = forge_core::envelope::LineageDelta::default();
+        lineage.faces_deleted = 2;
+        sub.set_lineage_delta(lineage);
+        sub.consume_budget(2e-6);
+
+        ctx.absorb_sub_result(&mut sub);
+
+        assert_eq!(ctx.get_decision_count(), 1);
+        assert_eq!(ctx.get_sub_warnings().len(), 1);
+        assert_eq!(ctx.get_sub_metrics().entities_modified, 5);
+        assert_eq!(ctx.get_sub_metrics().policy_decisions_made, 1);
+        assert_eq!(ctx.get_sub_lineage_delta().faces_deleted, 2);
+        assert!(ctx.get_sub_accumulated_error_budget() > 0.0);
+        assert!(sub.get_decision_log().is_empty());
     }
 }

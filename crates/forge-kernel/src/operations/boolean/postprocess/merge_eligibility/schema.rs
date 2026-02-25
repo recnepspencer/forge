@@ -1,6 +1,6 @@
 //! Schema types for sheet region merge execution.
 //!
-//! DOMAIN: Intent-stable selection, snapshot-scoped execution plans, results,
+//! DOMAIN: Snapshot-scoped intent, snapshot-scoped execution plans, results,
 //! and typed output for the `execute_sheet_region_merge` compound algorithm
 //! (spec §5.7–5.8).
 //!
@@ -12,15 +12,18 @@
 
 use forge_topo::bitset::EntityBitset;
 use forge_topo::handles::FaceId;
+use serde::{Deserialize, Serialize};
 
 use crate::core::KernelState;
 
 /// Intent-level selection for a sheet region merge.
 ///
-/// Stable, serializable, agent-facing. Determines **what** to merge.
-/// Does not contain ephemeral handles — only face bitsets and optional
-/// radial-use selectors for disambiguation.
-#[derive(Debug)]
+/// Serializable snapshot-scoped intent. Determines **what** to merge.
+///
+/// Indices/handles here are valid for one topology snapshot and are not stable
+/// across commits. For persistent agent-facing identity, resolve through
+/// `PersistentName` before constructing this selection.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MergeRegionSelection {
     /// Faces to be merged together (surviving + all killed faces).
     selected_faces: EntityBitset,
@@ -89,7 +92,7 @@ impl MergeRegionSelection {
 ///
 /// Specifies which face pair to merge on a specific edge.
 /// Uses raw arena face indices (not halfedge indices) for serializability.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct RadialUseSelector {
     /// Arena index of the edge to disambiguate.
     edge_index: u32,
@@ -120,7 +123,7 @@ impl RadialUseSelector {
 /// Deterministic: steps are sorted by `edge_index`. The `plan_hash` is
 /// computed over the step sequence for trace stability.
 /// This is derived from a `MergeRegionSelection` + a topology snapshot.
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MergePlan {
     /// Ordered merge steps (sorted by edge_index for determinism).
     steps: Vec<MergeStepPlan>,
@@ -166,7 +169,7 @@ impl MergePlan {
 ///
 /// Uses raw indices (not opaque handles) for serializability and replay.
 /// Handles are re-derived from the draft arena at execution time.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct MergeStepPlan {
     /// Arena index of the edge to merge.
     pub edge_index: u32,
@@ -207,12 +210,37 @@ impl MergeResult {
     pub fn get_plan(&self) -> &MergePlan {
         &self.plan
     }
+
+    /// Snapshot-serializable summary for trace/logging (not a persistent naming record).
+    pub fn to_summary(&self) -> MergeResultSummary {
+        MergeResultSummary {
+            surviving_face_index: self.surviving_face.index(),
+            killed_face_indices: self.killed_faces.iter().map(|f| f.index()).collect(),
+            plan_hash: self.plan.get_plan_hash(),
+        }
+    }
+}
+
+/// Snapshot-serializable summary of an executed merge.
+///
+/// This is suitable for trace payloads and deterministic comparisons, but it is
+/// not a persistent identity record across topology commits.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MergeResultSummary {
+    /// Arena index of the surviving face in the execution snapshot.
+    pub surviving_face_index: u32,
+    /// Arena indices of killed faces in the execution snapshot.
+    pub killed_face_indices: Vec<u32>,
+    /// Deterministic hash of the executed step sequence.
+    pub plan_hash: u64,
 }
 
 /// Typed output of `execute_sheet_region_merge`.
 ///
 /// Bundles the committed `KernelState` with the `MergeResult` metadata.
 /// Avoids tuple-position bugs and makes the API self-documenting.
+/// Runtime-only container: not serializable because it owns a committed
+/// `KernelState` snapshot.
 #[derive(Debug)]
 pub struct SheetRegionMergeOutput {
     /// The committed kernel state after all merge steps.

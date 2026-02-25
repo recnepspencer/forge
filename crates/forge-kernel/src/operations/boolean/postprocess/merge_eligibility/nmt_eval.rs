@@ -5,8 +5,7 @@
 //! Operates on `KernelDraft` for atomic topo+geom transactionality.
 //!
 //! STATUS: Staged for integration (test-exercised only). Not yet called from
-//! production boolean postprocess flow. Will be wired via coplanar.rs after
-//! Epic A boundary certification gate is in the production path.
+//! production boolean postprocess flow.
 //!
 //! DEPENDENCIES: `KernelDraft`, `GeometryPatch`, `JoinFaces`, `JoinFacesNmt`,
 //! `radial_valence`, `ModelingContext`, `TracedDecision`.
@@ -37,6 +36,7 @@ use crate::core::KernelState;
 use crate::core::kernel_draft::KernelDraft;
 use crate::core::ModelingContext;
 
+use super::eval::certify_merge_boundary;
 use super::schema::{
     MergeRegionSelection, MergePlan, MergeStepPlan, MergeResult, SheetRegionMergeOutput,
 };
@@ -48,18 +48,37 @@ use super::schema::{
 /// On failure, the draft is dropped (atomic rollback of topo + geometry).
 ///
 /// Internal flow (spec §5.9):
-/// 1. Create `KernelDraft` from `KernelState`
-/// 2. Validate protected-face / selected-face disjointness
-/// 3. Validate connectivity of selected faces (BFS)
-/// 4. Build `MergePlan` (deterministic step ordering by edge_index)
-/// 5. Execute steps one-at-a-time with handle re-derivation
-/// 6. Propagate decisions to both `OperationResult` and `ModelingContext`
-/// 7. `commit_with_mode(Intermediate, NmtIntermediate)`
+/// 1. Certify merge boundary (Epic A gate) before touching topology
+/// 2. Create `KernelDraft` from `KernelState`
+/// 3. Validate protected-face / selected-face disjointness
+/// 4. Validate connectivity of selected faces (BFS)
+/// 5. Build `MergePlan` (deterministic step ordering by edge_index)
+/// 6. Execute steps one-at-a-time with handle re-derivation
+/// 7. Propagate decisions to both `OperationResult` and `ModelingContext`
+/// 8. `commit_with_mode(Intermediate, NmtIntermediate)`
 pub fn execute_sheet_region_merge(
     state: KernelState,
     selection: &MergeRegionSelection,
     ctx: &mut ModelingContext,
 ) -> Result<OperationResult<SheetRegionMergeOutput>, KernelError> {
+    // Mandatory Epic A gate: certify before creating a draft so a rejected
+    // boundary cannot produce any topo/geom mutations.
+    let mut cert_result = certify_merge_boundary(
+        state.topology().arena(),
+        selection.get_selected_faces(),
+        state.geometry(),
+    )?;
+    let mut cert_result_for_output = cert_result.clone();
+    ctx.absorb_sub_result(&mut cert_result);
+    if let forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::Rejected { reason, witness } =
+        cert_result.get_value()
+    {
+        return Err(KernelError::MergeFailure(MergeError::BoundaryCertificationFailed {
+            reason: format!("{:?}", reason),
+            witness: Some(*witness),
+        }));
+    }
+
     let mut draft = KernelDraft::new(state);
 
     validate_protected_faces(selection)?;
@@ -122,10 +141,11 @@ pub fn execute_sheet_region_merge(
 
     let output = SheetRegionMergeOutput::new(new_state, merge_result);
 
-    ctx.get_decision_log_mut().merge(decision_log.clone());
-
     let mut op_result = OperationResult::new(output);
-    op_result.set_decision_log(decision_log);
+    op_result.absorb_metadata(&mut cert_result_for_output);
+    op_result.get_decision_log_mut().merge(decision_log.clone());
+
+    ctx.get_decision_log_mut().merge(decision_log);
 
     Ok(op_result)
 }
@@ -327,6 +347,14 @@ fn build_merge_plan(
     Ok(MergePlan::new(steps))
 }
 
+#[cfg(test)]
+pub(super) fn test_build_merge_plan(
+    arena: &forge_topo::arena::TopologyArena,
+    selection: &MergeRegionSelection,
+) -> Result<MergePlan, KernelError> {
+    build_merge_plan(arena, selection)
+}
+
 /// Re-derive halfedge handles for a merge step from the current draft arena.
 ///
 /// Looks up the edge by index, walks its radial ring, and finds halfedges
@@ -374,6 +402,14 @@ fn rederive_halfedges_for_step(
             ),
         })),
     }
+}
+
+#[cfg(test)]
+pub(super) fn test_validate_connectivity(
+    arena: &forge_topo::arena::TopologyArena,
+    selection: &MergeRegionSelection,
+) -> Result<(), KernelError> {
+    validate_connectivity(arena, selection)
 }
 
 /// Find a FaceId by its arena index.

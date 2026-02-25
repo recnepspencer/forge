@@ -50,8 +50,7 @@ pub fn extract_coplanar_regions(
 
         let should_merge = match cert_result {
             Ok(mut op_result) => {
-                let cert_log = op_result.take_decision_log();
-                ctx.get_decision_log_mut().merge(cert_log);
+                ctx.absorb_sub_result(&mut op_result);
                 let cert = op_result.into_value();
                 !matches!(cert, forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::Rejected { .. })
             }

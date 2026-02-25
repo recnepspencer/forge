@@ -320,6 +320,49 @@ impl<T> OperationResult<T> {
         self.warnings.push(warning);
     }
 
+    /// Absorb metadata from another envelope, discarding its value.
+    ///
+    /// This is for nested operation composition: preserve the parent `value`
+    /// while merging sub-operation audit data (decisions, warnings, metrics,
+    /// lineage deltas, validation summaries, and accumulated error budget).
+    ///
+    /// State hashes are intentionally NOT merged because they describe the
+    /// parent operation boundary, not arbitrary nested sub-operations.
+    pub fn absorb_metadata<U>(&mut self, other: &mut OperationResult<U>) {
+        self.decision_log.merge(other.take_decision_log());
+        self.warnings.extend(std::mem::take(&mut other.warnings));
+
+        let other_metrics = std::mem::take(&mut other.metrics);
+        self.metrics.duration += other_metrics.duration;
+        self.metrics.entities_created += other_metrics.entities_created;
+        self.metrics.entities_deleted += other_metrics.entities_deleted;
+        self.metrics.entities_modified += other_metrics.entities_modified;
+        self.metrics.exact_predicate_calls += other_metrics.exact_predicate_calls;
+        self.metrics.policy_decisions_made += other_metrics.policy_decisions_made;
+
+        let other_lineage = std::mem::take(&mut other.lineage_delta);
+        self.lineage_delta.faces_created += other_lineage.faces_created;
+        self.lineage_delta.faces_deleted += other_lineage.faces_deleted;
+        self.lineage_delta.half_edges_created += other_lineage.half_edges_created;
+        self.lineage_delta.half_edges_deleted += other_lineage.half_edges_deleted;
+        self.lineage_delta.vertices_created += other_lineage.vertices_created;
+        self.lineage_delta.vertices_deleted += other_lineage.vertices_deleted;
+        self.lineage_delta.loops_created += other_lineage.loops_created;
+        self.lineage_delta.loops_deleted += other_lineage.loops_deleted;
+        self.lineage_delta.edges_created += other_lineage.edges_created;
+        self.lineage_delta.edges_deleted += other_lineage.edges_deleted;
+        self.lineage_delta.shells_created += other_lineage.shells_created;
+        self.lineage_delta.shells_deleted += other_lineage.shells_deleted;
+        self.lineage_delta.solids_created += other_lineage.solids_created;
+        self.lineage_delta.solids_deleted += other_lineage.solids_deleted;
+
+        self.validation_results
+            .extend(std::mem::take(&mut other.validation_results));
+        self.extra_summaries
+            .extend(std::mem::take(&mut other.extra_summaries));
+        self.accumulated_error_budget += std::mem::take(&mut other.accumulated_error_budget);
+    }
+
     /// Transform the inner value while preserving all metadata.
     pub fn map<U, F: FnOnce(T) -> U>(self, f: F) -> OperationResult<U> {
         OperationResult {
@@ -455,5 +498,46 @@ mod tests {
             envelope.get_warnings()[0],
             KernelWarning::ErrorBudgetExceeded { .. }
         ));
+    }
+
+    #[test]
+    fn absorb_metadata_merges_suboperation_audit_data() {
+        let mut parent = OperationResult::new("parent");
+        let mut child = OperationResult::new("child");
+
+        child.add_warning(KernelWarning::AutoDecision { decision_id: DecisionId(7) });
+        child.get_decision_log_mut().record(crate::TracedDecision::new(
+            DecisionId(1),
+            crate::DecisionKind::Exact,
+            crate::DecisionTier::Deterministic,
+            1.0,
+            crate::DecisionContext::Degeneracy { description: "sub-op".into() },
+        ));
+        child.metrics.entities_modified = 3;
+        child.metrics.policy_decisions_made = 1;
+        child.lineage_delta.faces_deleted = 2;
+        child.add_validation_result("ok".into());
+        child.add_extra_summary("summary".into());
+        child.consume_budget(1e-6);
+
+        parent.absorb_metadata(&mut child);
+
+        assert_eq!(parent.get_warnings().len(), 1);
+        assert_eq!(parent.get_decision_log().len(), 1);
+        assert_eq!(parent.get_metrics().entities_modified, 3);
+        assert_eq!(parent.get_metrics().policy_decisions_made, 1);
+        assert_eq!(parent.get_lineage_delta().faces_deleted, 2);
+        assert_eq!(parent.get_validation_results().len(), 1);
+        assert_eq!(parent.get_extra_summaries().len(), 1);
+        assert!(parent.get_accumulated_budget() > 0.0);
+
+        assert!(child.get_decision_log().is_empty());
+        assert!(child.get_warnings().is_empty());
+        assert_eq!(child.get_metrics().entities_modified, 0);
+        assert_eq!(child.get_metrics().policy_decisions_made, 0);
+        assert_eq!(child.get_lineage_delta().faces_deleted, 0);
+        assert_eq!(child.get_accumulated_budget(), 0.0);
+        assert!(child.get_validation_results().is_empty());
+        assert!(child.get_extra_summaries().is_empty());
     }
 }

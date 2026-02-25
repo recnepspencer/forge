@@ -215,6 +215,7 @@ mod tests {
 
     use crate::geometry_state::GeometryState;
     use crate::core::ModelingContext;
+    use super::super::nmt_eval::{test_build_merge_plan, test_validate_connectivity};
 
     fn env_test_lock() -> &'static Mutex<()> {
         static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
@@ -400,7 +401,7 @@ mod tests {
         );
     }
 
-    /// Integration: decision metadata uses content-derived ID and PolicyApplied kind.
+    /// Integration: decision metadata uses content-derived ID and outcome-accurate kind.
     #[test]
     fn certify_produces_meaningful_decision_metadata_on_sheet_fixture() {
         let (topo, geom, group) = build_two_face_coplanar_sheet_fixture();
@@ -419,11 +420,31 @@ mod tests {
             d.get_id().0, 0,
             "D5 regression: DecisionId should not be 0 — should be content-derived hash",
         );
-        assert!(
-            matches!(d.get_kind(), forge_core::DecisionKind::PolicyApplied { .. }),
-            "D5 regression: DecisionKind should be PolicyApplied, got {:?}",
-            d.get_kind(),
-        );
+        match d.get_kind() {
+            forge_core::DecisionKind::Exact => {
+                assert_eq!(
+                    d.get_tier(),
+                    forge_core::DecisionTier::Deterministic,
+                    "Simple certificate should trace as Exact/Deterministic",
+                );
+            }
+            forge_core::DecisionKind::PolicyApplied { policy, .. } => {
+                assert!(
+                    matches!(policy, forge_core::PolicyKind::CoincidentGeometry),
+                    "WeaklySimple path should use CoincidentGeometry policy, got {:?}",
+                    policy,
+                );
+                assert_eq!(
+                    d.get_tier(),
+                    forge_core::DecisionTier::PolicyApplied,
+                    "WeaklySimple certificate should trace as policy-applied",
+                );
+            }
+            other => panic!(
+                "D5 regression: unexpected decision kind for certifier result: {:?}",
+                other
+            ),
+        }
     }
 
     /// Integration: verify FORGE_TRACE_DIR causes trace files to be emitted
@@ -736,8 +757,92 @@ mod tests {
             .expect_err("Must fail on ambiguous valence-4 edge");
 
         assert!(
+            matches!(err,
+                KernelError::MergeFailure(MergeError::AmbiguousRadialSelection { .. })
+                | KernelError::MergeFailure(MergeError::BoundaryCertificationFailed { .. })
+                | KernelError::InternalError { .. }
+            ),
+            "Expected AmbiguousRadialSelection or earlier boundary-gate failure, got: {:?}",
+            err,
+        );
+    }
+
+    /// Pre-gate planner unit coverage: the valence-4 synthetic fixture must still
+    /// hit the ambiguity path in `build_merge_plan`, independent of boundary cert.
+    #[test]
+    fn planner_pre_gate_valence_4_rejects_without_radial_selector() {
+        let (state, edge_idx, face_a, face_b, face_extra) = build_cube_with_valence_3_edge();
+
+        let mut draft = KernelDraft::new(state);
+        let target_edge_id = draft.arena().iter_edges()
+            .find_map(|(eid, _)| (eid.index() == edge_idx).then_some(eid))
+            .expect("target edge must exist");
+
+        let entry_he = draft.arena().get_edge(target_edge_id).unwrap().half_edge();
+        let v_a = draft.arena().get_half_edge(entry_he).unwrap().origin();
+        let v_b = {
+            let twin = draft.arena().get_half_edge(entry_he).unwrap().radial_next();
+            draft.arena().get_half_edge(twin).unwrap().origin()
+        };
+        let shell = draft.arena().get_face(face_a).unwrap().shell();
+        let ph_loop = forge_topo::handles::LoopId::from_raw_parts(u32::MAX, 0);
+
+        let face_4 = draft.draft_mut().insert_face(forge_topo::arena::FaceData::new(ph_loop, shell));
+        let edge_4 = draft.draft_mut().insert_edge(
+            forge_topo::arena::EdgeData::new(HalfEdgeId::from_raw_parts(u32::MAX, 0)),
+        );
+        let he4_fwd = draft.draft_mut().insert_half_edge(
+            forge_topo::arena::HalfEdgeData::new(
+                HalfEdgeId::from_raw_parts(u32::MAX, 0),
+                HalfEdgeId::from_raw_parts(u32::MAX, 0),
+                HalfEdgeId::from_raw_parts(u32::MAX, 0),
+                face_4, v_a, target_edge_id,
+            ),
+        );
+        let he4_ret = draft.draft_mut().insert_half_edge(
+            forge_topo::arena::HalfEdgeData::new(he4_fwd, he4_fwd, he4_fwd, face_4, v_b, edge_4),
+        );
+
+        let dm = draft.draft_mut();
+        dm.arena_mut().get_half_edge_mut(he4_fwd).unwrap().set_next(he4_ret);
+        dm.arena_mut().get_half_edge_mut(he4_fwd).unwrap().set_prev(he4_ret);
+        dm.arena_mut().get_half_edge_mut(he4_ret).unwrap().set_next(he4_fwd);
+        dm.arena_mut().get_half_edge_mut(he4_ret).unwrap().set_prev(he4_fwd);
+        dm.arena_mut().get_half_edge_mut(he4_ret).unwrap().set_radial_next(he4_ret);
+        dm.arena_mut().get_edge_mut(edge_4).unwrap().set_half_edge(he4_ret);
+
+        let he3 = {
+            let mut cur = entry_he;
+            loop {
+                let next = dm.arena().get_half_edge(cur).unwrap().radial_next();
+                if next == entry_he { break cur; }
+                cur = next;
+            }
+        };
+        dm.arena_mut().get_half_edge_mut(he3).unwrap().set_radial_next(he4_fwd);
+        dm.arena_mut().get_half_edge_mut(he4_fwd).unwrap().set_radial_next(entry_he);
+        let l4 = dm.insert_loop(forge_topo::arena::LoopData::new(he4_fwd, face_4));
+        dm.arena_mut().get_face_mut(face_4).unwrap().set_outer_loop(l4);
+
+        let state_v4 = draft.commit_with_mode(
+            forge_topo::validate::ValidationLevel::Minimal,
+            forge_topo::validate::TopologyMode::NmtIntermediate,
+        ).unwrap();
+
+        let cap = 64;
+        let mut selected = EntityBitset::with_capacity(cap);
+        selected.insert(face_a.index()).unwrap();
+        selected.insert(face_b.index()).unwrap();
+        selected.insert(face_extra.index()).unwrap();
+        let protected = EntityBitset::with_capacity(cap);
+        let selection = MergeRegionSelection::new(selected, protected, face_a);
+
+        let err = test_build_merge_plan(state_v4.topology().arena(), &selection)
+            .expect_err("planner must reject ambiguous valence-4 edge without selector");
+        assert!(
             matches!(err, KernelError::MergeFailure(MergeError::AmbiguousRadialSelection { .. })),
-            "Expected AmbiguousRadialSelection, got: {:?}", err,
+            "pre-gate planner coverage regression: expected AmbiguousRadialSelection, got {:?}",
+            err,
         );
     }
 
@@ -811,6 +916,57 @@ mod tests {
                 "Expected WouldDisconnectSheet, got: {:?}", err,
             );
         }
+    }
+
+    /// Pre-gate connectivity unit coverage: disconnected synthetic fixtures should
+    /// still deterministically fail BFS connectivity even if the executor now
+    /// rejects earlier at the boundary-cert gate.
+    #[test]
+    fn connectivity_validator_rejects_disconnected_faces_pre_gate() {
+        let cube = make_cube([0.0, 0.0, 0.0], 2.0).expect("make_cube must succeed");
+        let (topo, geom) = cube.into_parts();
+        let state = KernelState::new(topo, geom);
+        let mut draft = KernelDraft::new(state);
+
+        let (cube_face, _) = draft.arena().iter_faces().next().unwrap();
+        let shell = draft.arena().get_face(cube_face).unwrap().shell();
+
+        let ph_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
+        let ph_loop = forge_topo::handles::LoopId::from_raw_parts(u32::MAX, 0);
+        let orphan_face = draft.draft_mut().insert_face(forge_topo::arena::FaceData::new(ph_loop, shell));
+        let orphan_v = draft.draft_mut().insert_vertex(forge_topo::arena::VertexData::new(ph_he));
+        let orphan_edge = draft.draft_mut().insert_edge(forge_topo::arena::EdgeData::new(ph_he));
+        let orphan_he = draft.draft_mut().insert_half_edge(
+            forge_topo::arena::HalfEdgeData::new(ph_he, ph_he, ph_he, orphan_face, orphan_v, orphan_edge),
+        );
+        let dm = draft.draft_mut();
+        dm.arena_mut().get_half_edge_mut(orphan_he).unwrap().set_next(orphan_he);
+        dm.arena_mut().get_half_edge_mut(orphan_he).unwrap().set_prev(orphan_he);
+        dm.arena_mut().get_half_edge_mut(orphan_he).unwrap().set_radial_next(orphan_he);
+        dm.arena_mut().get_vertex_mut(orphan_v).unwrap().set_outgoing(orphan_he);
+        dm.arena_mut().get_edge_mut(orphan_edge).unwrap().set_half_edge(orphan_he);
+        let orphan_loop = dm.insert_loop(forge_topo::arena::LoopData::new(orphan_he, orphan_face));
+        dm.arena_mut().get_face_mut(orphan_face).unwrap().set_outer_loop(orphan_loop);
+
+        let state = draft.commit_with_mode(
+            forge_topo::validate::ValidationLevel::Minimal,
+            forge_topo::validate::TopologyMode::NmtIntermediate,
+        ).unwrap();
+
+        let cap = 64;
+        let mut selected = EntityBitset::with_capacity(cap);
+        selected.insert(cube_face.index()).unwrap();
+        selected.insert(orphan_face.index()).unwrap();
+        let protected = EntityBitset::with_capacity(cap);
+        let selection = MergeRegionSelection::new(selected, protected, cube_face);
+
+        let err = test_validate_connectivity(state.topology().arena(), &selection)
+            .expect_err("disconnected selection must fail BFS connectivity pre-gate");
+        assert!(
+            matches!(err, KernelError::MergeFailure(MergeError::WouldDisconnectSheet { .. })),
+            "pre-gate connectivity coverage regression: expected WouldDisconnectSheet, got {:?}",
+            err,
+        );
     }
 
     // ----- Test 7: Deterministic merge plans -----
@@ -1102,8 +1258,10 @@ mod tests {
         if let Err(err) = result {
             assert!(
                 matches!(err, KernelError::MergeFailure(MergeError::WouldDisconnectSheet { .. })
-                    | KernelError::InvalidInput { .. }),
-                "Expected connectivity or input error, got: {:?}", err,
+                    | KernelError::InvalidInput { .. }
+                    | KernelError::InternalError { .. }),
+                "Expected connectivity/input error or earlier boundary-gate failure, got: {:?}",
+                err,
             );
         }
     }
@@ -1152,9 +1310,12 @@ mod tests {
                     matches!(err,
                         KernelError::MergeFailure(MergeError::AmbiguousRadialSelection { .. })
                         | KernelError::MergeFailure(MergeError::PartialMergePlanRejected { .. })
+                        | KernelError::MergeFailure(MergeError::BoundaryCertificationFailed { .. })
                         | KernelError::TopologyViolation { .. }
+                        | KernelError::InternalError { .. }
                     ),
-                    "Expected merge or topology error, got unexpected: {:?}", err,
+                    "Expected merge/topology error or earlier boundary-gate failure, got: {:?}",
+                    err,
                 );
             }
         }
@@ -1271,6 +1432,125 @@ mod tests {
         assert_eq!(
             op_count, ctx_count,
             "D5 regression: OperationResult and ctx must have same decision count",
+        );
+    }
+
+    /// Epic A gate regression: if boundary certification rejects before draft creation,
+    /// the returned error must preserve witness/reason and the ctx trace must still
+    /// contain the certifier decision.
+    #[test]
+    fn boundary_cert_gate_rejection_preserves_witness_reason_and_ctx_trace() {
+        // Selecting all three faces from this synthetic valence-3 fixture is known to
+        // produce a degenerate/rejected boundary under the certifier.
+        let (state, _, face_a, face_b, face_extra) = build_cube_with_valence_3_edge();
+
+        let cap = 64;
+        let mut selected = EntityBitset::with_capacity(cap);
+        selected.insert(face_a.index()).unwrap();
+        selected.insert(face_b.index()).unwrap();
+        selected.insert(face_extra.index()).unwrap();
+        let protected = EntityBitset::with_capacity(cap);
+        let selection = MergeRegionSelection::new(selected, protected, face_a);
+
+        let mut ctx = ModelingContext::new();
+        let err = execute_sheet_region_merge(state, &selection, &mut ctx)
+            .expect_err("rejected boundary must fail before merge execution");
+
+        match err {
+            KernelError::MergeFailure(MergeError::BoundaryCertificationFailed { reason, witness }) => {
+                assert!(
+                    !reason.is_empty(),
+                    "gate rejection must preserve certifier reason text",
+                );
+                assert!(
+                    reason.contains("Boundary") || reason.contains("Degenerate"),
+                    "expected certifier rejection detail in reason, got: {}",
+                    reason,
+                );
+                assert!(
+                    witness.is_some(),
+                    "gate rejection must preserve certifier witness when provided",
+                );
+            }
+            other => panic!(
+                "expected BoundaryCertificationFailed from gate rejection, got {:?}",
+                other
+            ),
+        }
+
+        let decisions: Vec<_> = ctx.get_decision_log_mut().decisions().collect();
+        assert!(
+            !decisions.is_empty(),
+            "gate rejection must still propagate certifier decision trace into ctx",
+        );
+        assert_eq!(
+            decisions.len(), 1,
+            "gate rejection should stop before merge-step execution; expected only certifier decision",
+        );
+
+        let d = decisions[0];
+        assert_eq!(
+            d.get_tier(),
+            forge_core::DecisionTier::Escalated,
+            "rejected certificate should trace as an escalated decision",
+        );
+        assert!(
+            matches!(d.get_kind(), forge_core::DecisionKind::Forced { .. }),
+            "rejected certificate should trace as Forced, got {:?}",
+            d.get_kind(),
+        );
+        match d.get_context() {
+            forge_core::DecisionContext::Degeneracy { description } => {
+                assert!(
+                    description.contains("Boundary rejected"),
+                    "expected rejection context text, got: {}",
+                    description,
+                );
+                assert!(
+                    !description.contains("MergeStep"),
+                    "gate rejection must occur before any merge-step decisions",
+                );
+            }
+            other => panic!("expected Degeneracy context on cert rejection, got {:?}", other),
+        }
+    }
+
+    /// Gate ordering regression: boundary certification must run before later
+    /// input validation (e.g. selected/protected overlap), so a rejected boundary
+    /// fails with BoundaryCertificationFailed rather than ProtectedUseConflict.
+    #[test]
+    fn boundary_cert_gate_precedes_protected_overlap_validation() {
+        let (state, _, face_a, face_b, face_extra) = build_cube_with_valence_3_edge();
+
+        let cap = 64;
+        let mut selected = EntityBitset::with_capacity(cap);
+        selected.insert(face_a.index()).unwrap();
+        selected.insert(face_b.index()).unwrap();
+        selected.insert(face_extra.index()).unwrap();
+
+        // Deliberately invalid: overlap with selected set.
+        let mut protected = EntityBitset::with_capacity(cap);
+        protected.insert(face_b.index()).unwrap();
+
+        let selection = MergeRegionSelection::new(selected, protected, face_a);
+        let mut ctx = ModelingContext::new();
+        let err = execute_sheet_region_merge(state, &selection, &mut ctx)
+            .expect_err("gate should reject before protected-face overlap validation");
+
+        assert!(
+            matches!(err, KernelError::MergeFailure(MergeError::BoundaryCertificationFailed { .. })),
+            "gate ordering regression: expected BoundaryCertificationFailed before ProtectedUseConflict, got {:?}",
+            err,
+        );
+
+        let decisions: Vec<_> = ctx.get_decision_log_mut().decisions().collect();
+        assert_eq!(
+            decisions.len(), 1,
+            "gate ordering regression: expected only the certifier decision before early return",
+        );
+        assert!(
+            !matches!(decisions[0].get_context(), forge_core::DecisionContext::Degeneracy { description } if description.contains("MergeStep")),
+            "gate ordering regression: merge-step decisions must not appear before boundary gate passes",
         );
     }
 
