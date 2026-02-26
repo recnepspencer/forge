@@ -24,6 +24,7 @@ pub mod traits;
 // Features will be added here as milestones are implemented:
 pub mod tree;
 pub mod wrappers;
+pub mod pipeline;
 // pub mod extrude;   // Phase 2.3
 // pub mod boolean;   // Phase 2
 // pub mod fillet;    // Phase 4

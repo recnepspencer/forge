@@ -11,12 +11,16 @@ use forge_signal::handles::NodeId;
 use forge_topo::replay::ReplayLog;
 use crate::operations::boolean::{BooleanInput, BooleanOp};
 use crate::operations::boolean::execute_boolean;
+use crate::core::ModelingContext;
 
 use super::traits::{Feature, FeatureOutput};
+use super::pipeline::contract::{
+    AuditLevel, EntityOriginKind, InvariantKind, FeatureInputs,
+};
+
+// ── MakeCube ──────────────────────────────────────────────────────────────
 
 /// A root feature that produces a base shape (e.g. from a sketch/extrude).
-/// For Phase 2.7, we simulate this as a "Make Cube" feature since we don't have
-/// full sketch->extrude logic exposed as a single function yet (it's in 2.3 pipeline).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MakeCubeFeature {
     name: String,
@@ -34,33 +38,49 @@ impl MakeCubeFeature {
     }
 }
 
+/// Typed inputs for MakeCube — empty (root feature, no dependencies).
+pub struct MakeCubeInputs;
+
+impl FeatureInputs for MakeCubeInputs {
+    fn validate(&self) -> Result<(), KernelError> {
+        Ok(())
+    }
+}
+
+crate::declare_feature!(MakeCubeFeature,
+    kind: "make_cube",
+    policies: [],
+    origins: [EntityOriginKind::EulerOperator],
+    invariants: [InvariantKind::ManifoldEdges],
+    audit: AuditLevel::Summary,
+);
+
 impl Feature for MakeCubeFeature {
-    fn evaluate(
-        &self,
-        _inputs: &HashMap<NodeId, FeatureOutput>,
-    ) -> Result<FeatureOutput, KernelError> {
-        // Use the test helper logic for now (extracted to public helper if needed)
-        // Or reconstruct manually.
-        // For 2.7, let's just make a cube using bsp.
+    type Inputs = MakeCubeInputs;
+
+    fn parse_inputs(&self, _raw: &HashMap<NodeId, FeatureOutput>) -> Result<MakeCubeInputs, KernelError> {
+        Ok(MakeCubeInputs)
+    }
+
+    fn execute_typed(&self, _inputs: &MakeCubeInputs, _ctx: &mut ModelingContext) -> Result<FeatureOutput, KernelError> {
         let build_result = crate::mesh_builder::make_cube(self.center, self.size)?;
         let (topo, geom) = build_result.into_parts();
         Ok(FeatureOutput {
             topology: topo,
             geometry: geom,
-            decision_log: Arc::new(DecisionLog::new()),
-            replay_log: Arc::new(ReplayLog::new()),
-            lineage_events: Arc::new(Vec::new()),
         })
     }
 
     fn dependencies(&self) -> Vec<NodeId> {
-        Vec::new() // Roots have no deps
+        Vec::new()
     }
 
     fn name(&self) -> &str {
         &self.name
     }
 }
+
+// ── Boolean ───────────────────────────────────────────────────────────────
 
 /// A Boolean feature taking two inputs.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,37 +102,75 @@ impl BooleanFeature {
     }
 }
 
-impl Feature for BooleanFeature {
-    fn evaluate(
-        &self,
-        inputs: &HashMap<NodeId, FeatureOutput>,
-    ) -> Result<FeatureOutput, KernelError> {
-        let target_out = inputs.get(&self.target).ok_or(KernelError::InvalidInput {
-             message: "Missing target input".into(), context: None
-        })?;
-        let tool_out = inputs.get(&self.tool).ok_or(KernelError::InvalidInput {
-             message: "Missing tool input".into(), context: None
-        })?;
+/// Typed inputs for Boolean — target and tool feature outputs.
+pub struct BooleanInputs {
+    pub target: FeatureOutput,
+    pub tool: FeatureOutput,
+}
 
+impl FeatureInputs for BooleanInputs {
+    fn validate(&self) -> Result<(), KernelError> {
+        if self.target.topology.arena().face_count() == 0 {
+            return Err(KernelError::InvalidInput {
+                message: "Boolean target has no faces".into(),
+                context: None,
+            });
+        }
+        if self.tool.topology.arena().face_count() == 0 {
+            return Err(KernelError::InvalidInput {
+                message: "Boolean tool has no faces".into(),
+                context: None,
+            });
+        }
+        Ok(())
+    }
+}
+
+crate::declare_feature!(BooleanFeature,
+    kind: "boolean",
+    policies: [
+        forge_core::PolicyKind::CoincidentGeometry,
+    ],
+    origins: [
+        EntityOriginKind::SplitOperator,
+        EntityOriginKind::CopyOperator,
+    ],
+    invariants: [InvariantKind::ManifoldEdges],
+    audit: AuditLevel::Full,
+);
+
+impl Feature for BooleanFeature {
+    type Inputs = BooleanInputs;
+
+    fn parse_inputs(&self, raw: &HashMap<NodeId, FeatureOutput>) -> Result<BooleanInputs, KernelError> {
+        let target = raw.get(&self.target).ok_or(KernelError::InvalidInput {
+            message: "Missing target input".into(),
+            context: None,
+        })?.clone();
+        let tool = raw.get(&self.tool).ok_or(KernelError::InvalidInput {
+            message: "Missing tool input".into(),
+            context: None,
+        })?.clone();
+        Ok(BooleanInputs { target, tool })
+    }
+
+    fn execute_typed(&self, inputs: &BooleanInputs, ctx: &mut ModelingContext) -> Result<FeatureOutput, KernelError> {
         let input = BooleanInput::new(
-            target_out.topology.clone(),
-            target_out.geometry.clone(),
-            tool_out.topology.clone(),
-            tool_out.geometry.clone(),
+            inputs.target.topology.clone(),
+            inputs.target.geometry.clone(),
+            inputs.tool.topology.clone(),
+            inputs.tool.geometry.clone(),
             self.op,
         );
 
         let mut envelope = execute_boolean(input);
-        let log = envelope.take_decision_log();
+        ctx.absorb_sub_result(&mut envelope);
         let result = envelope.into_result()?;
-        let (topo, geom, replay, lineage, _introspection) = result.into_full_parts();
+        let (topo, geom) = result.into_topo_geom();
 
         Ok(FeatureOutput {
             topology: topo,
             geometry: geom,
-            decision_log: Arc::new(log),
-            replay_log: Arc::new(replay),
-            lineage_events: Arc::new(lineage),
         })
     }
 

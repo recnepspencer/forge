@@ -3,9 +3,11 @@
 //! DOMAIN: Managing the dependency graph of high-level features.
 //!
 //! INVARIANTS:
-//! - All feature evaluation is pure (output depends only on inputs)
+//! - All feature evaluation goes through `FeaturePipeline::execute`
 //! - Dependencies are tracked via `forge-signal`
 //! - Topology is immutable (passed as snapshots)
+//! - `NativeFeature` is a dispatch enum, NOT a `Feature` impl
+//!   (because `Feature::type Inputs` differs per variant)
 
 use std::collections::HashMap;
 
@@ -18,36 +20,46 @@ use forge_signal::schema::{AspectVersion, Aspect};
 
 pub use super::traits::{Feature, FeatureOutput};
 use super::wrappers::{MakeCubeFeature, BooleanFeature};
+use super::pipeline::executor::FeaturePipeline;
+use crate::core::ModelingContext;
 
 /// A concrete enum implementation of all supported features for serialization.
 ///
 /// This replaces `Box<dyn Feature>` to allow native `serde` support without
 /// complex dynamic dispatch serialization crates.
+///
+/// `NativeFeature` does NOT implement `Feature` because each variant has
+/// a different `type Inputs`. Instead, it dispatches to the concrete
+/// `Feature` impl via `execute_via_pipeline`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NativeFeature {
     MakeCube(MakeCubeFeature),
     Boolean(BooleanFeature),
 }
 
-impl Feature for NativeFeature {
-    fn evaluate(
+impl NativeFeature {
+    /// Execute this feature through the pipeline, dispatching to the concrete type.
+    fn execute_via_pipeline(
         &self,
         inputs: &HashMap<NodeId, FeatureOutput>,
+        ctx: &mut ModelingContext,
     ) -> Result<FeatureOutput, KernelError> {
         match self {
-            NativeFeature::MakeCube(f) => f.evaluate(inputs),
-            NativeFeature::Boolean(f) => f.evaluate(inputs),
+            NativeFeature::MakeCube(f) => FeaturePipeline::execute(f, inputs, ctx),
+            NativeFeature::Boolean(f) => FeaturePipeline::execute(f, inputs, ctx),
         }
     }
 
-    fn dependencies(&self) -> Vec<NodeId> {
+    /// Return the dependencies of the inner feature.
+    pub fn dependencies(&self) -> Vec<NodeId> {
         match self {
             NativeFeature::MakeCube(f) => f.dependencies(),
             NativeFeature::Boolean(f) => f.dependencies(),
         }
     }
 
-    fn name(&self) -> &str {
+    /// Return the name of the inner feature.
+    pub fn name(&self) -> &str {
         match self {
             NativeFeature::MakeCube(f) => f.name(),
             NativeFeature::Boolean(f) => f.name(),
@@ -156,28 +168,42 @@ impl FeatureTree {
 
     /// Evaluate a specific feature (and its dependencies) to get the latest output.
     ///
-    /// Implements a two-phase trace flush:
-    /// 1. During evaluation, each node's `DecisionLog` is converted to a
-    ///    `TraceSummary` and collected in a side-channel map.
-    /// 2. After evaluation completes, summaries are flushed to the signal
-    ///    graph's `NodeEntry` records for subsequent diffing.
+    /// Routes through `FeaturePipeline::execute` for each node, which handles
+    /// contract validation, input parsing, post-invariants, and audit.
+    ///
+    /// A default `ModelingContext` is used for now. Future: accept `&mut ModelingContext`
+    /// as a parameter so callers can configure policies per-evaluation.
     pub fn evaluate_feature(&mut self, node_id: NodeId) -> Result<FeatureOutput, KernelError> {
+        let mut ctx = ModelingContext::new();
+        self.evaluate_feature_with_context(node_id, &mut ctx)
+    }
+
+    /// Evaluate a feature with an explicit `ModelingContext`.
+    pub fn evaluate_feature_with_context(
+        &mut self,
+        node_id: NodeId,
+        ctx: &mut ModelingContext,
+    ) -> Result<FeatureOutput, KernelError> {
         let graph = &mut self.graph;
         let features = &self.features;
         let outputs = &mut self.outputs;
 
         let mut pending_traces: HashMap<NodeId, forge_core::TraceSummary> = HashMap::new();
 
+        // Need to partition the mutable borrow: ctx is captured by the closure.
+        // The closure needs &mut ctx plus references into self's fields.
+        // Since evaluate() requires &mut SignalGraph and we also need the features map,
+        // we extract what we need.
         let mut compute = |id: NodeId, _graph_ref: &SignalGraph| -> Result<AspectVersion, KernelError> {
             let feature = features.get(&id).ok_or_else(|| KernelError::InvalidInput {
                 message: format!("Feature logic not found for node {}", id),
                 context: None,
             })?;
 
-            let mut inputs = HashMap::new();
+            let mut input_map = HashMap::new();
             for dep_id in feature.dependencies() {
                 if let Some(output) = outputs.get(&dep_id) {
-                     inputs.insert(dep_id, output.clone());
+                     input_map.insert(dep_id, output.clone());
                 } else {
                     return Err(KernelError::InvalidInput {
                          message: format!("Dependency output missing for node {}", dep_id),
@@ -186,12 +212,12 @@ impl FeatureTree {
                 }
             }
 
-            let output = feature.evaluate(&inputs)?;
+            let output = feature.execute_via_pipeline(&input_map, ctx)?;
 
             let state_hash = forge_topo::hashing::compute_arena_topology_hash(
                 output.topology.arena(),
             );
-            let summary = output.decision_log.to_summary(state_hash);
+            let summary = ctx.get_decision_log().to_summary(state_hash);
             pending_traces.insert(id, summary);
 
             outputs.insert(id, output);

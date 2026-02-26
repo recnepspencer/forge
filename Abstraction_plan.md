@@ -43,6 +43,7 @@ After:   FeaturePipeline::execute → OperationResult<Result<FeatureOutput, Kern
 ```
 
 This means:
+
 - `FeatureTree::evaluate_feature` stores `OperationResult<FeatureOutput>` per node instead of bare `FeatureOutput`
 - Sub-operation absorption (`absorb_sub_result`, `absorb_metadata`) works naturally — envelope-to-envelope
 - `OperationFinalizer` at the feature boundary drains `ModelingContext` into the envelope exactly once
@@ -50,11 +51,11 @@ This means:
 
 ### Other Existing Components
 
-| Component | Location | Pipeline Relationship |
-| --- | --- | --- |
-| `PrimitiveSpec` / intent layer | `features/intent.rs` | Orthogonal — operates before the pipeline. Intent resolves *what* to build; pipeline orchestrates *how*. |
-| `BooleanEngine` traits | `operations/boolean/traits.rs` | Internal to boolean. Pipeline wraps around `execute_boolean`, not inside the engine dispatch. |
-| `check_tolerance!` macro | `core/macros.rs` | Per-decision recording inside step implementations. Pipeline reads the decisions after; macro stays as-is. |
+| Component                      | Location                       | Pipeline Relationship                                                                                      |
+| ------------------------------ | ------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `PrimitiveSpec` / intent layer | `features/intent.rs`           | Orthogonal — operates before the pipeline. Intent resolves _what_ to build; pipeline orchestrates _how_.   |
+| `BooleanEngine` traits         | `operations/boolean/traits.rs` | Internal to boolean. Pipeline wraps around `execute_boolean`, not inside the engine dispatch.              |
+| `check_tolerance!` macro       | `core/macros.rs`               | Per-decision recording inside step implementations. Pipeline reads the decisions after; macro stays as-is. |
 
 ---
 
@@ -132,8 +133,8 @@ This is ~100 LOC. It grows one match arm per `Command` variant, which the compil
 
 ### Tier 0 File Manifest
 
-| File | Purpose |
-| --- | --- |
+| File                   | Purpose                                   |
+| ---------------------- | ----------------------------------------- |
 | `features/dispatch.rs` | `CommandDispatcher`, `resolve_entity_ref` |
 
 ### Tier 0 Acceptance Tests
@@ -335,11 +336,12 @@ The current `FeatureTree::evaluate_feature` calls `feature.evaluate(&inputs)` in
 4. `FeatureTree` stores `OperationResult<FeatureOutput>` per node (replacing bare `FeatureOutput`). The envelope carries all audit metadata; `FeatureOutput` is domain-only (topology + geometry). Trace summary extraction for `NodeEntry` reads from the envelope's decision log instead of a separate `Arc<DecisionLog>` field.
 
 **Boolean-specific note:** `execute_boolean` today takes `BooleanInput` and returns `OperationResult<Result<BooleanResult, KernelError>>` with no `ModelingContext` parameter. The `BooleanFeature::execute_typed` implementation will:
+
 1. Call `execute_boolean(input)` — returns `OperationResult<Result<BooleanResult, KernelError>>`
 2. Call `ctx.absorb_sub_result(&mut envelope)` — drains decisions, metrics, warnings, lineage into context
 3. Extract `BooleanResult` and build `FeatureOutput { topology, geometry }` (no manual `Arc` wrapping)
 
-The boolean internal pipeline (EMBER → split → classify → assemble → postprocess) is unchanged — the feature pipeline wraps *around* it, not inside it.
+The boolean internal pipeline (EMBER → split → classify → assemble → postprocess) is unchanged — the feature pipeline wraps _around_ it, not inside it.
 
 ### 1.10 `validate_policy_configured` Specification
 
@@ -517,7 +519,7 @@ let (result, audit) = PipelineBuilder::start(ctx, selection)
 | 8   | `detect_slivers`               | policies: [SliverFace], precision: true                       | Boolean, Fillet, Chamfer                          |
 
 > [!NOTE]
-> **Relationship to boolean's internal phases:** Boolean's existing pipeline (EMBER quantize → split → classify → assemble → postprocess) is NOT replaced or wrapped by these steps. Boolean's internal phases are engine-specific and orchestrated by `BooleanEngine` traits (`Splitter`, `Classifier`, `Assembler`, `PostProcessor`). The step catalog above captures *cross-feature* reusable operations — things that fillet, chamfer, and boolean all do. For example, `certify_boundary` wraps the existing `forge-geom::boundary_cert` module, and `detect_slivers` wraps `forge-kernel::analysis::sliver::analyze_slivers`. Boolean's `execute_typed` implementation calls `execute_boolean` internally and uses the step library only for pre/post operations (selection resolution, manifold validation, sliver detection).
+> **Relationship to boolean's internal phases:** Boolean's existing pipeline (EMBER quantize → split → classify → assemble → postprocess) is NOT replaced or wrapped by these steps. Boolean's internal phases are engine-specific and orchestrated by `BooleanEngine` traits (`Splitter`, `Classifier`, `Assembler`, `PostProcessor`). The step catalog above captures _cross-feature_ reusable operations — things that fillet, chamfer, and boolean all do. For example, `certify_boundary` wraps the existing `forge-geom::boundary_cert` module, and `detect_slivers` wraps `forge-kernel::analysis::sliver::analyze_slivers`. Boolean's `execute_typed` implementation calls `execute_boolean` internally and uses the step library only for pre/post operations (selection resolution, manifold validation, sliver detection).
 
 ### 3.2 Queryability
 
@@ -708,28 +710,63 @@ This is ~200 LOC of infrastructure and can be built when the first parallel feat
 
 ---
 
+## Directory Layout: Adapter-by-Default
+
+Pipeline infrastructure lives in dedicated `pipeline/` sub-directories. Feature and operation implementations are **consumers** that adapt to the pipeline — even when a feature's pipeline usage is a pass-through (e.g., MakeCube has no policies to validate). This eliminates "should I abstract this?" decisions: every feature goes through the pipeline, and the pipeline degrades to a no-op for simple cases.
+
+```
+features/
+├── mod.rs              ← table of contents
+├── intent.rs           ← PrimitiveSpec (dual SDF/B-Rep)
+├── traits.rs           ← Feature trait, FeatureOutput
+├── tree.rs             ← FeatureTree, NativeFeature enum
+├── wrappers.rs         ← MakeCubeFeature, BooleanFeature (consumers)
+└── pipeline/           ← canonical feature pipeline infrastructure
+    ├── mod.rs           ← pipeline table of contents
+    ├── dispatch.rs      ← Tier 0: CommandDispatcher
+    ├── contract.rs      ← Tier 1: FeatureContract, AuditLevel, InvariantKind
+    ├── executor.rs      ← Tier 1: FeaturePipeline::execute
+    ├── macros.rs        ← Tier 1: declare_feature!
+    └── tests.rs         ← tests for all pipeline tiers
+
+operations/
+├── pipeline/            ← step-level infrastructure (Tier 2)
+│   ├── mod.rs
+│   ├── step_contract.rs
+│   ├── builder.rs
+│   └── tests.rs
+├── boolean/             ← consumer of operations/pipeline/
+├── fillet/              ← future consumer
+```
+
+---
+
 ## File Manifest
 
 ### New Files
 
-| File                               | Tier | Purpose                                                   |
-| ---------------------------------- | ---- | --------------------------------------------------------- |
-| `features/dispatch.rs`             | 0    | CommandDispatcher: Command → NativeFeature → FeatureTree  |
-| `features/contract.rs`             | 1    | FeatureContract, AuditLevel, InvariantKind, FeatureInputs |
-| `features/macros.rs`               | 1    | declare_feature! macro                                    |
-| `features/pipeline.rs`             | 1    | FeaturePipeline::execute, validate_invariant              |
-| `operations/step_contract.rs`      | 2    | StepContract, declare_step!, step types                   |
-| `operations/operation_pipeline.rs` | 2    | OperationPipeline, PipelineBuilder, StepAuditEntry        |
+| File                                   | Tier | Purpose                                                   |
+| -------------------------------------- | ---- | --------------------------------------------------------- |
+| `features/pipeline/mod.rs`             | —    | Pipeline sub-directory table of contents                  |
+| `features/pipeline/dispatch.rs`        | 0    | CommandDispatcher: Command → NativeFeature → FeatureTree  |
+| `features/pipeline/contract.rs`        | 1    | FeatureContract, AuditLevel, InvariantKind, FeatureInputs |
+| `features/pipeline/macros.rs`          | 1    | declare_feature! macro                                    |
+| `features/pipeline/executor.rs`        | 1    | FeaturePipeline::execute, validate_invariant              |
+| `features/pipeline/tests.rs`           | 0–1  | Acceptance tests for all pipeline tiers                   |
+| `operations/pipeline/mod.rs`           | 2    | Operation pipeline table of contents                      |
+| `operations/pipeline/step_contract.rs` | 2    | StepContract, declare_step!, step types                   |
+| `operations/pipeline/builder.rs`       | 2    | OperationPipeline, PipelineBuilder, StepAuditEntry        |
+| `operations/pipeline/tests.rs`         | 2    | Operation pipeline tests                                  |
 
 ### Modified Files
 
-| File                   | Tier | Changes                                                     |
-| ---------------------- | ---- | ----------------------------------------------------------- |
+| File                   | Tier | Changes                                                                                                                                      |
+| ---------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | `features/traits.rs`   | 1    | Feature: FeatureContract supertrait, type Inputs; slim FeatureOutput to topology+geometry only (remove Arc'd decision/replay/lineage fields) |
-| `features/wrappers.rs` | 1    | declare_feature! for MakeCube + Boolean, typed inputs; wrappers build slim FeatureOutput |
-| `features/tree.rs`     | 1    | Route evaluate_feature through FeaturePipeline; store `OperationResult<FeatureOutput>` per node; accept `&mut ModelingContext` |
-| `core/context.rs`      | —    | Add `validate_policy_configured` (see §1.10 for specification) |
-| `envelope/schema.rs`   | —    | Add `OperationMetrics::accumulate`, `LineageDelta::accumulate` (dedup manual field addition) |
+| `features/wrappers.rs` | 1    | declare_feature! for MakeCube + Boolean, typed inputs; wrappers build slim FeatureOutput                                                     |
+| `features/tree.rs`     | 1    | Route evaluate_feature through FeaturePipeline; store `OperationResult<FeatureOutput>` per node; accept `&mut ModelingContext`               |
+| `core/context.rs`      | —    | Add `validate_policy_configured` (see §1.10 for specification)                                                                               |
+| `envelope/schema.rs`   | —    | Add `OperationMetrics::accumulate`, `LineageDelta::accumulate` (dedup manual field addition)                                                 |
 
 ---
 
@@ -777,21 +814,21 @@ This section traces the path from today's planar boolean through the full operat
 
 ### Feature Roadmap Through the Pipeline
 
-| Feature | Tier 1 (FeatureContract) | Tier 2 (OperationPipeline / PipelineBuilder) | Tier 3 (Step Library) | Notes |
-| --- | --- | --- | --- | --- |
-| **MakeCube** | `policies: [], invariants: [ManifoldEdges]` | No sub-steps (single Euler op chain) | `apply_euler_ops`, `validate_manifold` | Trivial — validates the pipeline with zero policy overhead |
-| **Boolean** | `policies: [CoincidentGeometry, NearTangency, SliverFace], invariants: [ManifoldEdges, NoSliverFaces]` | Wraps `execute_boolean` as a single step; boolean's internal phases stay as-is | `resolve_persistent_selection`, `validate_manifold`, `detect_slivers` (pre/post only) | Boolean's EMBER/standard pipeline is opaque to Tier 2 — no change to internal architecture |
-| **Fillet** | `policies: [NearTangency, SliverFace], invariants: [ManifoldEdges, G1Continuity]` | 6-step `PipelineBuilder`: resolve → classify convexity → construct surface → apply Euler → validate → detect slivers | All of: `resolve_persistent_selection`, `classify_edge_convexity`, `construct_surface`, `apply_euler_ops`, `validate_manifold`, `detect_slivers` | First real consumer of `PipelineBuilder`'s typed state threading |
-| **Chamfer** | Same policies as fillet, minus G1Continuity | Nearly identical pipeline to fillet (flat surface instead of blend) | Same steps as fillet | Validates that step library enables code sharing without inheritance |
-| **Shell** | `policies: [CoincidentGeometry], invariants: [ManifoldEdges]` | 4-step: resolve faces → offset surfaces → rebuild topology → validate | `resolve_persistent_selection`, `construct_surface`, `apply_euler_ops`, `validate_manifold`, `certify_boundary` | Offset surface construction reuses `construct_surface` step |
-| **Extrude** | `policies: [], invariants: [ManifoldEdges]` | 3-step: resolve sketch → construct swept surface → apply Euler | `resolve_persistent_selection`, `construct_surface`, `apply_euler_ops`, `validate_manifold` | Simplest multi-step pipeline after MakeCube |
-| **Loft/Sweep** | `policies: [NearTangency], invariants: [ManifoldEdges, G1Continuity]` | Multi-step with intermediate surface fitting | `construct_surface`, `apply_euler_ops`, `validate_manifold` | `construct_surface` step handles NURBS surface fitting via `SurfaceKind` dispatch |
-| **NURBS Trim** | `policies: [CoincidentGeometry, NearTangency], invariants: [ManifoldEdges]` | Multi-step: project trim curve → split face → validate | `classify_surface_pair`, `certify_boundary`, `apply_euler_ops`, `validate_manifold` | Trim is essentially a 2D boolean on a parametric surface — `certify_boundary` is critical |
-| **Pattern** | Inherits from source feature | Iterates a transform matrix, applies source feature N times | `resolve_persistent_selection`, then delegates to source feature's pipeline | Pattern is a meta-feature — it calls `FeaturePipeline::execute` on the source feature in a loop |
+| Feature        | Tier 1 (FeatureContract)                                                                               | Tier 2 (OperationPipeline / PipelineBuilder)                                                                         | Tier 3 (Step Library)                                                                                                                            | Notes                                                                                           |
+| -------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| **MakeCube**   | `policies: [], invariants: [ManifoldEdges]`                                                            | No sub-steps (single Euler op chain)                                                                                 | `apply_euler_ops`, `validate_manifold`                                                                                                           | Trivial — validates the pipeline with zero policy overhead                                      |
+| **Boolean**    | `policies: [CoincidentGeometry, NearTangency, SliverFace], invariants: [ManifoldEdges, NoSliverFaces]` | Wraps `execute_boolean` as a single step; boolean's internal phases stay as-is                                       | `resolve_persistent_selection`, `validate_manifold`, `detect_slivers` (pre/post only)                                                            | Boolean's EMBER/standard pipeline is opaque to Tier 2 — no change to internal architecture      |
+| **Fillet**     | `policies: [NearTangency, SliverFace], invariants: [ManifoldEdges, G1Continuity]`                      | 6-step `PipelineBuilder`: resolve → classify convexity → construct surface → apply Euler → validate → detect slivers | All of: `resolve_persistent_selection`, `classify_edge_convexity`, `construct_surface`, `apply_euler_ops`, `validate_manifold`, `detect_slivers` | First real consumer of `PipelineBuilder`'s typed state threading                                |
+| **Chamfer**    | Same policies as fillet, minus G1Continuity                                                            | Nearly identical pipeline to fillet (flat surface instead of blend)                                                  | Same steps as fillet                                                                                                                             | Validates that step library enables code sharing without inheritance                            |
+| **Shell**      | `policies: [CoincidentGeometry], invariants: [ManifoldEdges]`                                          | 4-step: resolve faces → offset surfaces → rebuild topology → validate                                                | `resolve_persistent_selection`, `construct_surface`, `apply_euler_ops`, `validate_manifold`, `certify_boundary`                                  | Offset surface construction reuses `construct_surface` step                                     |
+| **Extrude**    | `policies: [], invariants: [ManifoldEdges]`                                                            | 3-step: resolve sketch → construct swept surface → apply Euler                                                       | `resolve_persistent_selection`, `construct_surface`, `apply_euler_ops`, `validate_manifold`                                                      | Simplest multi-step pipeline after MakeCube                                                     |
+| **Loft/Sweep** | `policies: [NearTangency], invariants: [ManifoldEdges, G1Continuity]`                                  | Multi-step with intermediate surface fitting                                                                         | `construct_surface`, `apply_euler_ops`, `validate_manifold`                                                                                      | `construct_surface` step handles NURBS surface fitting via `SurfaceKind` dispatch               |
+| **NURBS Trim** | `policies: [CoincidentGeometry, NearTangency], invariants: [ManifoldEdges]`                            | Multi-step: project trim curve → split face → validate                                                               | `classify_surface_pair`, `certify_boundary`, `apply_euler_ops`, `validate_manifold`                                                              | Trim is essentially a 2D boolean on a parametric surface — `certify_boundary` is critical       |
+| **Pattern**    | Inherits from source feature                                                                           | Iterates a transform matrix, applies source feature N times                                                          | `resolve_persistent_selection`, then delegates to source feature's pipeline                                                                      | Pattern is a meta-feature — it calls `FeaturePipeline::execute` on the source feature in a loop |
 
 ### What The Pipeline Doesn't Constrain
 
-- **Internal operation architecture**: Boolean keeps EMBER → split → classify → assemble → postprocess. Fillet will have its own internal phase structure. The pipeline wraps *around* operations, not inside them.
+- **Internal operation architecture**: Boolean keeps EMBER → split → classify → assemble → postprocess. Fillet will have its own internal phase structure. The pipeline wraps _around_ operations, not inside them.
 - **Surface/curve representation**: `construct_surface` dispatches on `SurfaceKind` (planar, NURBS, analytic). The step contract doesn't know or care about surface type — it just declares precision sensitivity.
 - **Precision escalation path**: Steps that set `precision_sensitive: true` get the existing `PrecisionMode` escalation (float → compensated → interval → rational). NURBS evaluation adds parametric domain precision, but that's inside the step implementation, not the contract.
 - **OperationSpace coordinate transforms**: The pipeline manages `OperationSpace::analyze/transform/restore` around execution. This works identically for planar and curved geometry — `OperationSpace` already handles scale analysis via `LocalCoordinateSpace`.

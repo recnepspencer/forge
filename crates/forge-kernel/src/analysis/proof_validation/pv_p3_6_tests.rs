@@ -145,13 +145,13 @@ mod tests {
         }
     }
 
-    /// PV-37d: FeatureTree evaluation → Arc<ReplayLog> survives into FeatureOutput.
+    /// PV-37d: FeatureTree evaluation → topology correctness after Boolean.
     ///
     /// PROOF: Registers two MakeCube features and one Boolean feature in
     /// the FeatureTree. Evaluates the Boolean node. The resulting FeatureOutput
-    /// must carry non-empty `replay_log` and `lineage_events` (both Arc-wrapped).
-    /// This verifies the BooleanFeature::evaluate() → FeatureOutput conversion
-    /// preserves proof metadata through the signal graph evaluation path.
+    /// must produce correct topology. Proof metadata now flows through the
+    /// OperationResult envelope (not FeatureOutput), so this test verifies
+    /// domain output correctness only.
     #[test]
     fn pv_37d_feature_tree_preserves_proof_metadata() {
         let mut tree = FeatureTree::new();
@@ -173,47 +173,24 @@ mod tests {
 
         let output = tree.evaluate_feature(node_bool).expect("eval boolean failed");
 
-        assert!(
-            output.replay_log.len() >= 1,
-            "FeatureOutput from Boolean must carry replay_log with at least 1 entry, got {}. \
-             This means BooleanFeature::evaluate() is not populating replay_log in FeatureOutput.",
-            output.replay_log.len()
-        );
-
-        assert!(
-            !output.lineage_events.is_empty(),
-            "FeatureOutput from Boolean must carry lineage_events, got 0. \
-             This means BooleanFeature::evaluate() is not populating lineage_events in FeatureOutput."
-        );
-
-        assert!(
-            !output.decision_log.is_empty(),
-            "FeatureOutput from Boolean must carry a non-empty decision_log"
-        );
-
+        // FeatureOutput is now slim (topology+geometry only).
+        // Proof metadata lives in the OperationResult envelope.
+        // Verify domain correctness:
         let (v, e, f, chi) = euler_audit(output.topology.arena());
         assert_eq!(
             chi, 2,
             "FeatureTree Boolean union Euler violation: V={v} E={e} F={f} χ={chi}"
         );
 
-        let replay_names: Vec<&str> = output.replay_log.entries().iter()
-            .map(|e| e.signature().get_name())
-            .collect();
-
         assert!(
-            replay_names.iter().any(|n| n.contains("split") || n.contains("assemble")),
-            "Replay log must contain pipeline phase names, got: {:?}",
-            replay_names
+            f >= 6,
+            "FeatureTree Boolean union must produce at least 6 faces, got {}",
+            f,
         );
 
         eprintln!(
-            "PV-37d: replay={}, lineage={}, decisions={}, faces={}, phases={:?}",
-            output.replay_log.len(),
-            output.lineage_events.len(),
-            output.decision_log.len(),
-            f,
-            replay_names,
+            "PV-37d: faces={}, V={}, E={}, F={}, χ={}",
+            f, v, e, f, chi,
         );
     }
 
@@ -411,13 +388,11 @@ mod tests {
         );
     }
 
-    /// MB-R9: FeatureTree 3-step chain → proof metadata accumulates correctly.
+    /// MB-R9: FeatureTree 3-step chain → topology correctness after chained booleans.
     ///
-    /// PROOF: Builds a 3-node FeatureTree (cube_a → union(cube_a, cube_b) → 
-    /// union(result, cube_c)). Evaluates the final node. Verifies:
-    /// - Each intermediate node's FeatureOutput has proof metadata
-    /// - The final node's replay_log contains pipeline phases
-    /// - Arc cloning preserves data integrity (no corruption from sharing)
+    /// PROOF: Builds a 3-node FeatureTree chain. Proof metadata now flows
+    /// through the OperationResult envelope, so this test verifies domain
+    /// output correctness (Euler characteristic, face counts) at each step.
     #[test]
     fn mb_r9_feature_tree_chain_proof_accumulation() {
         let mut tree = FeatureTree::new();
@@ -447,31 +422,13 @@ mod tests {
         tree.evaluate_feature(node_c).expect("eval cube_c");
 
         let output_ab = tree.evaluate_feature(node_ab).expect("eval union_ab");
-        assert!(
-            output_ab.replay_log.len() >= 1,
-            "Step 1 (A∪B) FeatureOutput must carry replay_log, got {}",
-            output_ab.replay_log.len()
-        );
-        assert!(
-            !output_ab.lineage_events.is_empty(),
-            "Step 1 (A∪B) FeatureOutput must carry lineage_events"
+        let (v_ab, e_ab, f_ab, chi_ab) = euler_audit(output_ab.topology.arena());
+        assert_eq!(
+            chi_ab, 2,
+            "Step 1 (A∪B) Euler violation: V={v_ab} E={e_ab} F={f_ab} χ={chi_ab}"
         );
 
         let output_abc = tree.evaluate_feature(node_abc).expect("eval union_abc");
-        assert!(
-            output_abc.replay_log.len() >= 1,
-            "Step 2 ((A∪B)∪C) FeatureOutput must carry replay_log, got {}",
-            output_abc.replay_log.len()
-        );
-        assert!(
-            !output_abc.lineage_events.is_empty(),
-            "Step 2 ((A∪B)∪C) FeatureOutput must carry lineage_events"
-        );
-        assert!(
-            !output_abc.decision_log.is_empty(),
-            "Step 2 ((A∪B)∪C) FeatureOutput must carry decision_log"
-        );
-
         let (v, e, f, chi) = euler_audit(output_abc.topology.arena());
         assert_eq!(
             chi, 2,
@@ -479,10 +436,7 @@ mod tests {
         );
 
         eprintln!(
-            "MB-R9: step1 replay={} lineage={}, step2 replay={} lineage={} decisions={}, final faces={}",
-            output_ab.replay_log.len(), output_ab.lineage_events.len(),
-            output_abc.replay_log.len(), output_abc.lineage_events.len(),
-            output_abc.decision_log.len(), f,
+            "MB-R9: step1 faces={f_ab}, step2 faces={f}, final χ={chi}",
         );
     }
 }

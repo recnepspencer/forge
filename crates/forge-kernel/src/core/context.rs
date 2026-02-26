@@ -96,6 +96,27 @@ fn default_policy_registry() -> BTreeMap<PolicyKind, bool> {
     defaults
 }
 
+impl PolicyRegistrySnapshot {
+    /// Check if any policy scope has a configured rule for the given kind.
+    ///
+    /// Returns `true` if defaults, session, model, feature, or operation
+    /// scopes contain a rule — meaning `resolve_policy_query` will NOT
+    /// fall through to `ForcedSafeFallback`.
+    pub fn has_any_rule_for(&self, kind: &PolicyKind) -> bool {
+        self.defaults.contains_key(kind)
+            || self.session_overrides.contains_key(kind)
+            || self.active_model_scope.as_ref()
+                .and_then(|s| self.model_overrides.get(s))
+                .is_some_and(|m| m.contains_key(kind))
+            || self.active_feature_scope.as_ref()
+                .and_then(|s| self.feature_overrides.get(s))
+                .is_some_and(|m| m.contains_key(kind))
+            || self.active_operation_scope.as_ref()
+                .and_then(|s| self.operation_overrides.get(s))
+                .is_some_and(|m| m.contains_key(kind))
+    }
+}
+
 /// The modeling context that governs all policy decisions.
 ///
 /// Passed to operations that may encounter ambiguity. Records every
@@ -490,6 +511,26 @@ impl ModelingContext {
             active_model_scope: self.active_model_policy_scope.clone(),
             active_feature_scope: self.active_feature_policy_scope.clone(),
             active_operation_scope: self.active_operation_policy_scope.clone(),
+        }
+    }
+
+    /// Verify that a policy kind has a configured resolution strategy.
+    ///
+    /// Returns `Ok(())` if any scope has a configuration for this kind.
+    /// Returns `Err` if no scope covers it — a fail-fast pre-check so the
+    /// pipeline rejects misconfigured features before execution starts.
+    pub fn validate_policy_configured(&self, kind: &PolicyKind) -> Result<(), KernelError> {
+        let snapshot = self.policy_registry_snapshot();
+        if snapshot.has_any_rule_for(kind) {
+            Ok(())
+        } else {
+            Err(KernelError::InvalidInput {
+                message: format!(
+                    "Policy {:?} is not configured in any scope (default/session/model/feature/operation)",
+                    kind
+                ),
+                context: None,
+            })
         }
     }
 

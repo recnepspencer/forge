@@ -1425,6 +1425,7 @@ dependencies = [
  "forge-core",
  "forge-geom",
  "forge-math",
+ "forge-schema",
  "forge-signal",
  "forge-topo",
  "serde",
