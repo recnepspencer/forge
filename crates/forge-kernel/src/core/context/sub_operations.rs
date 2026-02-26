@@ -63,6 +63,18 @@ impl ModelingContext {
     /// This is a true drain: absorbed metadata is removed from `op` to prevent
     /// accidental double-counting if the caller reuses the child envelope.
     pub fn absorb_sub_result<U>(&mut self, op: &mut OperationResult<U>) {
+        if crate::core::tracing::KernelSpan::is_active() {
+            crate::core::tracing::KernelSpan::merge_decision_log(op.take_decision_log());
+            crate::core::tracing::KernelSpan::extend_warnings(op.take_warnings());
+            let metrics = op.take_metrics();
+            crate::core::tracing::KernelSpan::add_metrics(metrics.clone());
+            crate::core::tracing::KernelSpan::record_lineage_delta(op.take_lineage_delta());
+            
+            // Still accumulate the budget here for the check_budget function
+            self.sub_accumulated_error_budget += op.take_accumulated_budget();
+            return;
+        }
+
         self.decision_log.merge(op.take_decision_log());
         self.sub_warnings.extend(op.take_warnings());
 

@@ -3,7 +3,7 @@
 //! Renders as a centered dialog with a title, message, and action buttons.
 //! Typically used for destructive actions (e.g. Delete confirmation) or important notifications.
 
-use egui::{Color32, CornerRadius, Frame, Stroke, Vec2};
+use egui::{Color32, CornerRadius, Frame, Stroke};
 use forge_ui_theme::ForgeTheme;
 
 use crate::{fg_button, FgButton, FgButtonVariant};
@@ -47,7 +47,7 @@ impl<'a> FgAlert<'a> {
 }
 
 /// Renders a modal alert dialog. Returns the index of the clicked action button, if any.
-pub fn fg_alert(ctx: &egui::Context, theme: &ForgeTheme, id: &str, props: FgAlert<'_>) -> Option<usize> {
+pub fn fg_alert(ctx: &egui::Context, theme: &ForgeTheme, icons: &crate::IconStore, id: &str, props: FgAlert<'_>) -> Option<usize> {
     let mut clicked_idx = None;
 
     // Dark scrim
@@ -103,7 +103,7 @@ pub fn fg_alert(ctx: &egui::Context, theme: &ForgeTheme, id: &str, props: FgAler
                             let resp = ui.add_sized(
                                 [btn_width, 0.0],
                                 |ui: &mut egui::Ui| {
-                                    fg_button(ui, theme, FgButton::new(action.label).variant(action.variant))
+                                    crate::fg_button(ui, theme, icons, FgButton::new(action.label).variant(action.variant))
                                 }
                             );
                             if resp.clicked() {

@@ -16,6 +16,7 @@
 pub(crate) mod context;
 pub mod tolerance;
 pub mod config;
+pub mod tracing;
 mod macros;
 mod brep_workspace;
 mod operation_space;

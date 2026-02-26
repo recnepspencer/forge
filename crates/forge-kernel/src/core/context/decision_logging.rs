@@ -28,7 +28,11 @@ impl ModelingContext {
             margin,
             DecisionContext::Tolerance { measured: margin, threshold },
         );
-        self.decision_log.record(decision);
+        if crate::core::tracing::KernelSpan::is_active() {
+            crate::core::tracing::KernelSpan::record_decision(decision);
+        } else {
+            self.decision_log.record(decision);
+        }
     }
 
     /// Record a precision escalation decision, auto-assigning a unique ID.
@@ -45,7 +49,11 @@ impl ModelingContext {
                 escalation.disagreement_magnitude.unwrap_or(0.0),
                 DecisionContext::PrecisionEscalation { escalation },
             );
-            self.decision_log.record(decision);
+            if crate::core::tracing::KernelSpan::is_active() {
+                crate::core::tracing::KernelSpan::record_decision(decision);
+            } else {
+                self.decision_log.record(decision);
+            }
         }
     }
 
@@ -54,11 +62,21 @@ impl ModelingContext {
     where
         F: FnOnce(&mut Self) -> R,
     {
-        let span_id = self.decision_log.start_span(name);
+        let use_kernel_span = crate::core::tracing::KernelSpan::is_active();
+        let span_id = if use_kernel_span {
+            crate::core::tracing::KernelSpan::start_span(name)
+        } else {
+            self.decision_log.start_span(name)
+        };
         let start = std::time::Instant::now();
         let result = f(self);
         let duration_micros = start.elapsed().as_micros() as u64;
-        self.decision_log.end_span(span_id, duration_micros);
+        
+        if use_kernel_span {
+            crate::core::tracing::KernelSpan::end_span(span_id, duration_micros);
+        } else {
+            self.decision_log.end_span(span_id, duration_micros);
+        }
         result
     }
 

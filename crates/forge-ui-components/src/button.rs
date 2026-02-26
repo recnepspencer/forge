@@ -3,7 +3,7 @@
 use egui::{Response, Ui, Vec2};
 use forge_ui_theme::ForgeTheme;
 
-use crate::{FgIcon, IconStore};
+use crate::IconStore;
 
 /// Darken a color by `amount` (0..1).
 fn darken(c: egui::Color32, amount: f32) -> egui::Color32 {
@@ -97,7 +97,6 @@ pub fn fg_button(ui: &mut Ui, theme: &ForgeTheme, icons: &IconStore, props: FgBu
     let (rect, mut response) = ui.allocate_exact_size(size, egui::Sense::click());
 
     if ui.is_rect_visible(rect) {
-        let painter = ui.painter();
         let rounding = egui::CornerRadius::same(theme.radius_md as u8);
 
         let is_pressed = response.is_pointer_button_down_on() && !props.disabled && !props.loading;
@@ -126,7 +125,7 @@ pub fn fg_button(ui: &mut Ui, theme: &ForgeTheme, icons: &IconStore, props: FgBu
         // Pressed scale-down effect: inset rect by 1px
         let draw_rect = if is_pressed { rect.shrink(1.0) } else { rect };
 
-        painter.rect(draw_rect, rounding, actual_bg, egui::Stroke::new(1.0, border), egui::StrokeKind::Outside);
+        ui.painter().rect(draw_rect, rounding, actual_bg, egui::Stroke::new(1.0, border), egui::StrokeKind::Outside);
         
         let text_offset = if is_pressed { Vec2::new(h_pad, v_pad + 0.5) } else { Vec2::new(h_pad, v_pad) };
         let mut content_start = draw_rect.min + text_offset;
@@ -141,11 +140,11 @@ pub fn fg_button(ui: &mut Ui, theme: &ForgeTheme, icons: &IconStore, props: FgBu
             if !props.label.is_empty() {
                 content_start.x += font_size + 8.0;
                 let text_pos = content_start + Vec2::new(0.0, ((font_size - galley.size().y) / 2.0).max(0.0));
-                painter.galley(text_pos, galley, text_col);
+                ui.painter().galley(text_pos, galley, text_col);
             }
         } else {
             let text_pos = content_start + Vec2::new(0.0, ((font_size - galley.size().y) / 2.0).max(0.0));
-            painter.galley(text_pos, galley, text_col);
+            ui.painter().galley(text_pos, galley, text_col);
         }
     }
 

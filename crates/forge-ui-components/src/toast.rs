@@ -1,6 +1,6 @@
 //! FgToast — dismissible toast banner.
 
-use egui::{Response, Ui};
+use egui::Ui;
 use forge_ui_theme::ForgeTheme;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

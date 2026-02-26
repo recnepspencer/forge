@@ -45,6 +45,7 @@ pub enum FgIcon {
     Ruler,
     Move3d,
     Grid2x2,
+    LoaderCircle,
 }
 
 impl FgIcon {
@@ -70,6 +71,7 @@ impl FgIcon {
             FgIcon::Ruler         => Some(include_bytes!("../icons/ruler.svg")),
             FgIcon::Move3d        => Some(include_bytes!("../icons/move-3d.svg")),
             FgIcon::Grid2x2       => Some(include_bytes!("../icons/grid-2x2.svg")),
+            FgIcon::LoaderCircle  => Some(include_bytes!("../icons/loader-circle.svg")),
             _ => None,
         }
     }
@@ -108,6 +110,7 @@ impl FgIcon {
             FgIcon::Ruler         => "📏",
             FgIcon::Move3d        => "✥",
             FgIcon::Grid2x2       => "▦",
+            FgIcon::LoaderCircle  => "↻",
         }
     }
 }
@@ -156,6 +159,20 @@ impl IconStore {
         }
     }
 
+    /// Draw a rotated icon.
+    pub fn draw_rotated(&self, ui: &mut egui::Ui, icon: FgIcon, rect: egui::Rect, tint: egui::Color32, angle: f32) {
+        if let Some(texture) = self.textures.get(&icon) {
+            let sized = egui::load::SizedTexture::new(texture.id(), rect.size());
+            let img = egui::Image::from_texture(sized)
+                .tint(tint)
+                .rotate(angle, egui::vec2(0.5, 0.5));
+            ui.put(rect, img);
+        } else {
+            // fallback for missing svg
+            ui.put(rect, egui::Label::new(egui::RichText::new(icon.glyph()).color(tint)));
+        }
+    }
+
     fn all_icons() -> &'static [FgIcon] {
         &[
             FgIcon::Plus, FgIcon::Minus, FgIcon::Edit, FgIcon::Delete,
@@ -165,7 +182,7 @@ impl IconStore {
             FgIcon::Orient, FgIcon::Chat, FgIcon::Properties, FgIcon::Logo,
             FgIcon::Box, FgIcon::PencilLine, FgIcon::Trash2, FgIcon::MessageSquare,
             FgIcon::X, FgIcon::PenLine, FgIcon::Eye, FgIcon::Layers3,
-            FgIcon::Ruler, FgIcon::Move3d, FgIcon::Grid2x2,
+            FgIcon::Ruler, FgIcon::Move3d, FgIcon::Grid2x2, FgIcon::LoaderCircle,
         ]
     }
 }

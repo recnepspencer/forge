@@ -72,27 +72,27 @@ pub fn draw_test_board(ctx: &egui::Context, state: &mut AppState, icons: &IconSt
                         .stroke(Stroke::new(1.0, t.border_subtle))
                         .show(ui, |ui| {
                             ui.horizontal(|ui| {
-                                fg_button(ui, &t, FgButton::new("Primary"));
+                                fg_button(ui, &t, icons, FgButton::new("Primary"));
                                 ui.add_space(8.0);
-                                fg_button(ui, &t, FgButton::new("Secondary").variant(FgButtonVariant::Secondary));
+                                fg_button(ui, &t, icons, FgButton::new("Secondary").variant(FgButtonVariant::Secondary));
                                 ui.add_space(8.0);
-                                fg_button(ui, &t, FgButton::new("Danger").variant(FgButtonVariant::Danger));
+                                fg_button(ui, &t, icons, FgButton::new("Danger").variant(FgButtonVariant::Danger));
                                 ui.add_space(8.0);
-                                fg_button(ui, &t, FgButton::new("Ghost").variant(FgButtonVariant::Ghost));
+                                fg_button(ui, &t, icons, FgButton::new("Ghost").variant(FgButtonVariant::Ghost));
                                 ui.add_space(8.0);
-                                fg_button(ui, &t, FgButton::new("Link").variant(FgButtonVariant::Link));
+                                fg_button(ui, &t, icons, FgButton::new("Link").variant(FgButtonVariant::Link));
                             });
                             ui.add_space(8.0);
                             ui.horizontal(|ui| {
-                                fg_button(ui, &t, FgButton::new("Small").size(FgButtonSize::Sm));
+                                fg_button(ui, &t, icons, FgButton::new("Small").size(FgButtonSize::Sm));
                                 ui.add_space(8.0);
-                                fg_button(ui, &t, FgButton::new("Medium").size(FgButtonSize::Md));
+                                fg_button(ui, &t, icons, FgButton::new("Medium").size(FgButtonSize::Md));
                                 ui.add_space(8.0);
-                                fg_button(ui, &t, FgButton::new("Large").size(FgButtonSize::Lg));
+                                fg_button(ui, &t, icons, FgButton::new("Large").size(FgButtonSize::Lg));
                                 ui.add_space(8.0);
-                                fg_button(ui, &t, FgButton::new("Disabled").disabled(true));
+                                fg_button(ui, &t, icons, FgButton::new("Disabled").disabled(true));
                                 ui.add_space(8.0);
-                                fg_button(ui, &t, FgButton::new("Loading").disabled(true));
+                                fg_button(ui, &t, icons, FgButton::new("Loading").disabled(true));
                             });
                         });
                     ui.add_space(24.0);
@@ -109,7 +109,7 @@ pub fn draw_test_board(ctx: &egui::Context, state: &mut AppState, icons: &IconSt
                             ui.label(egui::RichText::new("Click to open a modal with a form inside:")
                                 .color(t.text_secondary).size(t.font_size_sm));
                             ui.add_space(8.0);
-                            let resp = fg_button(ui, &t, FgButton::new("Open Modal"));
+                            let resp = fg_button(ui, &t, icons, FgButton::new("Open Modal"));
                             if resp.clicked() { demo.show_modal = true; }
                         });
                     ui.add_space(24.0);
@@ -136,7 +136,7 @@ pub fn draw_test_board(ctx: &egui::Context, state: &mut AppState, icons: &IconSt
                                         FgAlertVariant::Error   => FgButtonVariant::Danger,
                                         FgAlertVariant::Info    => FgButtonVariant::Ghost,
                                     };
-                                    let resp = fg_button(ui, &t, FgButton::new(label).variant(v));
+                                    let resp = fg_button(ui, &t, icons, FgButton::new(label).variant(v));
                                     if resp.clicked() {
                                         demo.alert_visible = true;
                                         demo.alert_variant = variant;
@@ -154,7 +154,7 @@ pub fn draw_test_board(ctx: &egui::Context, state: &mut AppState, icons: &IconSt
                                 };
                                 fg_alert(ui, &t, FgAlert::new(msg).variant(demo.alert_variant));
                                 ui.add_space(4.0);
-                                let dismiss = fg_button(ui, &t,
+                                let dismiss = fg_button(ui, &t, icons,
                                     FgButton::new("Dismiss").variant(FgButtonVariant::Ghost).size(FgButtonSize::Sm));
                                 if dismiss.clicked() { demo.alert_visible = false; }
                             }
@@ -247,9 +247,9 @@ pub fn draw_test_board(ctx: &egui::Context, state: &mut AppState, icons: &IconSt
                                         .label("Notes").placeholder("Additional notes…").rows(2));
                                 },
                                 |ui| {
-                                    fg_button(ui, &t, FgButton::new("Cancel").variant(FgButtonVariant::Ghost));
+                                    fg_button(ui, &t, icons, FgButton::new("Cancel").variant(FgButtonVariant::Ghost));
                                     ui.add_space(8.0);
-                                    fg_button(ui, &t, FgButton::new("Save"));
+                                    fg_button(ui, &t, icons, FgButton::new("Save"));
                                 },
                             );
                         });
@@ -374,9 +374,9 @@ pub fn draw_test_board(ctx: &egui::Context, state: &mut AppState, icons: &IconSt
                 ui.separator();
                 ui.add_space(8.0);
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let save = fg_button(ui, &t, FgButton::new("Create"));
+                    let save = fg_button(ui, &t, icons, FgButton::new("Create"));
                     ui.add_space(8.0);
-                    let cancel = fg_button(ui, &t, FgButton::new("Cancel").variant(FgButtonVariant::Ghost));
+                    let cancel = fg_button(ui, &t, icons, FgButton::new("Cancel").variant(FgButtonVariant::Ghost));
                     if save.clicked() || cancel.clicked() {
                         demo.show_modal = false;
                     }
