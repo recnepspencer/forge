@@ -62,4 +62,5 @@ pub use audit::{
     AuditBundleFiles, AuditBundleManifest, VersionedAuditRecord,
     AuditIdentityScope, AuditFieldLabel, AuditConventionError,
     save_audit_record, load_audit_record, append_audit_record_jsonl, write_audit_bundle,
+    ReplayBridgeRecord, ReplayCompatibility, ReplayWitnessRef, ReplayWitnessKind, build_replay_bridge_record,
 };

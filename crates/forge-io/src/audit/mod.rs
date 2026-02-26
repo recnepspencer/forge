@@ -8,6 +8,7 @@
 
 pub mod schema;
 pub mod eval;
+pub mod replay_bridge;
 
 #[cfg(test)]
 mod tests;
@@ -18,4 +19,7 @@ pub use schema::{
 };
 pub use eval::{
     append_audit_record_jsonl, load_audit_record, save_audit_record, write_audit_bundle,
+};
+pub use replay_bridge::{
+    ReplayBridgeRecord, ReplayCompatibility, ReplayWitnessRef, ReplayWitnessKind, build_replay_bridge_record
 };

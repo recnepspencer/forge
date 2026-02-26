@@ -1407,6 +1407,7 @@ dependencies = [
 name = "forge-io"
 version = "0.1.0"
 dependencies = [
+ "forge-core",
  "forge-geom",
  "forge-kernel",
  "forge-math",

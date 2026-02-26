@@ -119,8 +119,10 @@ impl eframe::App for ForgeApp {
             let t = &self.state.theme;
             let accent     = t.accent_primary;
             let bg_raised  = t.bg_raised;
+            let bg_base    = t.bg_base;
             let border_def = t.border_default;
-            let text_muted = t.text_muted;
+            let border_subtle = t.border_subtle;
+            let _text_muted = t.text_muted;
             let text_sec   = t.text_secondary;
             let radius_sm  = t.radius_sm;
             let radius_md  = t.radius_md;
@@ -131,12 +133,15 @@ impl eframe::App for ForgeApp {
                 forge_ui_state::ThemeKind::Dark  => "☀",
                 forge_ui_state::ThemeKind::Light => "☾",
             };
+            
+            let top_bg = t.bg_surface;
+            let top_stroke = t.border_subtle;
 
             egui::TopBottomPanel::top("titlebar")
                 .exact_height(44.0)
                 .frame(Frame::new()
-                    .fill(self.state.theme.bg_surface)
-                    .stroke(Stroke::new(1.0, self.state.theme.border_subtle)))
+                    .fill(top_bg)
+                    .stroke(Stroke::new(1.0, top_stroke)))
                 .show(ctx, |ui| {
                     ui.horizontal_centered(|ui| {
                         ui.add_space(12.0);
@@ -168,18 +173,18 @@ impl eframe::App for ForgeApp {
                             let (rect, resp) = ui.allocate_exact_size(Vec2::new(260.0, 30.0), egui::Sense::click());
                             if ui.is_rect_visible(rect) {
                                 let hovered = resp.hovered() || palette_open;
-                                let bg = if hovered { t.bg_raised } else { t.bg_base };
-                                let border = if hovered { t.border_subtle } else { t.border_default };
+                                let bg = if hovered { bg_raised } else { bg_base };
+                                let border = if hovered { border_subtle } else { border_def };
                                 ui.painter().rect(rect, CornerRadius::same(radius_md as u8), bg, Stroke::new(1.0, border), egui::StrokeKind::Outside);
                                 
                                 // Draw ⌘K on the right
-                                let galley_cmd = ui.fonts(|f| f.layout_no_wrap("⌘K".to_string(), egui::FontId::proportional(fsz_sm), t.text_muted));
-                                ui.painter().galley(Pos2::new(rect.max.x - 10.0 - galley_cmd.size().x, rect.center().y - galley_cmd.size().y / 2.0), galley_cmd, t.text_muted);
+                                let galley_cmd = ui.fonts(|f| f.layout_no_wrap("⌘K".to_string(), egui::FontId::proportional(fsz_sm), _text_muted));
+                                ui.painter().galley(Pos2::new(rect.max.x - 10.0 - galley_cmd.size().x, rect.center().y - galley_cmd.size().y / 2.0), galley_cmd, _text_muted);
                                 
                                 // Draw text
                                 let search_text = if palette_open { "Search operations…" } else { "Search operations…" };
-                                let galley_text = ui.fonts(|f| f.layout_no_wrap(search_text.to_string(), egui::FontId::proportional(fsz_sm), t.text_muted));
-                                ui.painter().galley(Pos2::new(rect.min.x + 12.0, rect.center().y - galley_text.size().y / 2.0), galley_text, t.text_muted);
+                                let galley_text = ui.fonts(|f| f.layout_no_wrap(search_text.to_string(), egui::FontId::proportional(fsz_sm), _text_muted));
+                                ui.painter().galley(Pos2::new(rect.min.x + 12.0, rect.center().y - galley_text.size().y / 2.0), galley_text, _text_muted);
                             }
                             if resp.clicked() { self.state.palette.toggle(); }
                         });
@@ -286,6 +291,7 @@ impl eframe::App for ForgeApp {
                             }
 
                             // Feature icon and name
+                            let label_color = if is_selected { t.text_primary } else { t.text_secondary };
                             let mut child_ui = ui.new_child(
                                 egui::UiBuilder::new()
                                     .max_rect(bg_rect)

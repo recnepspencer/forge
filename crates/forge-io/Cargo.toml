@@ -6,6 +6,7 @@ license.workspace = true
 description = "STEP, IGES, STL, and native JSON serialization for the Forge geometry kernel"
 
 [dependencies]
+forge-core.workspace = true
 forge-math.workspace = true
 forge-topo.workspace = true
 forge-geom.workspace = true
