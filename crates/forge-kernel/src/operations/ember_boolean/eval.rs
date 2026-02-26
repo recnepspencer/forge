@@ -15,14 +15,13 @@
 //!               mesh.rs (bsp_to_mesh), ModelingContext, OperationResult
 
 use forge_core::{KernelError, OperationResult, OperationMetrics};
-use forge_core::tracing::DecisionKind;
-use forge_core::tracing::DecisionTier;
+use forge_core::tracing::{DecisionKind, DecisionTier, TraceAdjunctSet};
 use forge_geom::spatial::bsp::{BspOp, BspSolid, BspNode, merge_bsp};
 use forge_geom::Plane;
 use forge_topo::state::TopologyState;
 use forge_topo::replay::ReplayLog;
 
-use crate::core::ModelingContext;
+use crate::core::{ModelingContext, OperationFinalizer, TopologyHashBoundary, FinalizationError};
 use crate::geometry_state::GeometryState;
 use crate::operations::boolean::{
     BooleanInput, BooleanOp, BooleanResult,
@@ -51,6 +50,15 @@ impl From<forge_math::MathError> for EmberError {
     }
 }
 
+impl From<FinalizationError> for EmberError {
+    fn from(e: FinalizationError) -> Self {
+        EmberError::PipelineError(KernelError::InternalError {
+            message: format!("ember finalization failed: {:?}", e),
+            context: None,
+        })
+    }
+}
+
 /// Execute a Boolean using the EMBER BSP merge pipeline.
 ///
 /// This is a fully self-contained pipeline: convert → merge → extract → mesh.
@@ -63,6 +71,7 @@ pub fn execute_ember_boolean(
     if input.has_curved_geometry() {
         return Err(EmberError::CurvedGeometry);
     }
+    let topo_hash_before = input.target_topology().topology_hash() ^ input.tool_topology().topology_hash();
 
     let mut ctx = ModelingContext::default();
     ctx.enable_auto_persist();
@@ -77,7 +86,33 @@ pub fn execute_ember_boolean(
 
     let mut envelope = OperationResult::new(inner_result);
     envelope.set_metrics(metrics);
-    envelope.set_decision_log(ctx.take_decision_log());
+    let topo_hash_after = match envelope.get_value() {
+        Ok(result) => Some(result.topology().topology_hash()),
+        Err(_) => None,
+    };
+    let mut finalizer = OperationFinalizer::new(&mut ctx);
+    match envelope.get_value() {
+        Ok(_) => {
+            let _ = finalizer.collect_success(
+                &mut envelope,
+                TraceAdjunctSet::new(),
+                TopologyHashBoundary {
+                    before: Some(topo_hash_before),
+                    after: topo_hash_after,
+                },
+            )?;
+        }
+        Err(_) => {
+            let _ = finalizer.collect_error(
+                &mut envelope,
+                TraceAdjunctSet::new(),
+                TopologyHashBoundary {
+                    before: Some(topo_hash_before),
+                    after: None,
+                },
+            )?;
+        }
+    }
     Ok(envelope)
 }
 

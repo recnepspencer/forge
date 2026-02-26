@@ -19,6 +19,7 @@ mod persistence;
 mod logging;
 pub mod policy_trace;
 pub mod fingerprint;
+pub mod adjunct;
 
 #[cfg(test)]
 mod tests;
@@ -43,11 +44,18 @@ pub use divergence::{
     DivergenceReport, DivergenceDetail, scan_for_divergences,
 };
 
-pub use persistence::{resolve_trace_dir, write_trace_file};
+pub use persistence::{
+    resolve_trace_dir, write_trace_file, write_trace_file_with_adjuncts,
+    try_write_trace_file_with_adjuncts, TracePersistenceError,
+};
 
 pub use logging::{LogLevel, log_level, log_result, log_decision_log, log_error};
 pub use policy_trace::{
     PolicyResolutionSource, PolicyResolutionOutcome, CandidateValueSummary,
-    PolicyDecisionTracePayload, PolicyTraceConsistencyError,
+    PolicyDecisionTracePayload, PolicyTraceConsistencyError, PolicyResolutionScopeRef,
 };
 pub use fingerprint::{TraceFingerprint, compute_trace_fingerprint};
+pub use adjunct::{
+    TraceAdjunctRecord, TraceAdjunctSet,
+    POLICY_DECISION_TRACE_PAYLOAD_KIND, POLICY_DECISION_TRACE_PAYLOAD_VERSION,
+};

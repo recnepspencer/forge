@@ -14,9 +14,21 @@ use super::{DecisionContext, DecisionId, DecisionKind, DecisionTier, TracedDecis
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PolicyResolutionSource {
     DefaultPolicy,
-    UserOverride,
+    SessionUserOverride,
+    ModelSpecOverride,
+    FeatureOverride,
+    OperationOverride,
     ForcedSafeFallback,
     NonOverridableRule,
+}
+
+/// Optional typed scope identifier associated with a policy source.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PolicyResolutionScopeRef {
+    SessionUser { scope_id: Option<String> },
+    ModelSpec { policy_key: String },
+    Feature { feature_id: String },
+    Operation { operation_id: String },
 }
 
 /// The outcome of resolving an ambiguous policy query.
@@ -42,6 +54,8 @@ pub enum CandidateValueSummary {
 pub struct PolicyDecisionTracePayload {
     pub decision_id: DecisionId,
     pub policy_kind: PolicyKind,
+    /// Optional entrypoint/operation scope where this policy query was resolved.
+    pub operation_scope_id: Option<String>,
     pub query_location: [f64; 3],
     pub measured_margin: f64,
     pub threshold: Option<f64>,
@@ -49,6 +63,7 @@ pub struct PolicyDecisionTracePayload {
     pub candidate_summary: CandidateValueSummary,
     pub outcome: PolicyResolutionOutcome,
     pub source: PolicyResolutionSource,
+    pub source_scope: Option<PolicyResolutionScopeRef>,
     pub default_used: bool,
 }
 
@@ -60,6 +75,7 @@ pub enum PolicyTraceConsistencyError {
     DecisionTierMismatch,
     PolicyKindMismatch,
     SourceDefaultMismatch,
+    SourceScopeMismatch,
     NonFiniteQueryLocation { axis: u8 },
     NonFiniteMargin,
     NonFiniteThreshold,
@@ -113,13 +129,41 @@ impl PolicyDecisionTracePayload {
             PolicyResolutionSource::DefaultPolicy if !self.default_used => {
                 return Err(PolicyTraceConsistencyError::SourceDefaultMismatch);
             }
-            PolicyResolutionSource::UserOverride if self.default_used => {
+            PolicyResolutionSource::SessionUserOverride
+            | PolicyResolutionSource::ModelSpecOverride
+            | PolicyResolutionSource::FeatureOverride
+            | PolicyResolutionSource::OperationOverride
+                if self.default_used =>
+            {
                 return Err(PolicyTraceConsistencyError::SourceDefaultMismatch);
             }
             PolicyResolutionSource::ForcedSafeFallback | PolicyResolutionSource::NonOverridableRule => {
                 // `default_used` may be false or true depending on how the caller models
                 // forced/non-overridable handling. Phase 2 will tighten this once the
                 // policy registry + operation finalization contract is in place.
+            }
+            _ => {}
+        }
+
+        match (&self.source, &self.source_scope) {
+            (PolicyResolutionSource::DefaultPolicy, Some(_))
+            | (PolicyResolutionSource::ForcedSafeFallback, Some(_))
+            | (PolicyResolutionSource::NonOverridableRule, Some(_)) => {
+                return Err(PolicyTraceConsistencyError::SourceScopeMismatch);
+            }
+            (PolicyResolutionSource::SessionUserOverride, Some(PolicyResolutionScopeRef::SessionUser { .. }))
+            | (PolicyResolutionSource::ModelSpecOverride, Some(PolicyResolutionScopeRef::ModelSpec { .. }))
+            | (PolicyResolutionSource::FeatureOverride, Some(PolicyResolutionScopeRef::Feature { .. }))
+            | (PolicyResolutionSource::OperationOverride, Some(PolicyResolutionScopeRef::Operation { .. })) => {}
+            (PolicyResolutionSource::SessionUserOverride
+            | PolicyResolutionSource::ModelSpecOverride
+            | PolicyResolutionSource::FeatureOverride
+            | PolicyResolutionSource::OperationOverride, None) => {}
+            (PolicyResolutionSource::SessionUserOverride
+            | PolicyResolutionSource::ModelSpecOverride
+            | PolicyResolutionSource::FeatureOverride
+            | PolicyResolutionSource::OperationOverride, Some(_)) => {
+                return Err(PolicyTraceConsistencyError::SourceScopeMismatch);
             }
             _ => {}
         }
@@ -184,6 +228,7 @@ mod tests {
         PolicyDecisionTracePayload {
             decision_id: DecisionId(7),
             policy_kind: PolicyKind::CoincidentGeometry,
+            operation_scope_id: None,
             query_location: [1.0, 2.0, 3.0],
             measured_margin: 1e-6,
             threshold: Some(1e-5),
@@ -194,6 +239,29 @@ mod tests {
             },
             outcome: PolicyResolutionOutcome::AcceptedPotentialValue,
             source,
+            source_scope: match source {
+                PolicyResolutionSource::SessionUserOverride => Some(
+                    PolicyResolutionScopeRef::SessionUser {
+                        scope_id: Some("session-user".to_string()),
+                    },
+                ),
+                PolicyResolutionSource::ModelSpecOverride => Some(
+                    PolicyResolutionScopeRef::ModelSpec {
+                        policy_key: "merge.coincident_geometry".to_string(),
+                    },
+                ),
+                PolicyResolutionSource::FeatureOverride => Some(
+                    PolicyResolutionScopeRef::Feature {
+                        feature_id: "feature-42".to_string(),
+                    },
+                ),
+                PolicyResolutionSource::OperationOverride => Some(
+                    PolicyResolutionScopeRef::Operation {
+                        operation_id: "sheet_region_merge".to_string(),
+                    },
+                ),
+                _ => None,
+            },
             default_used: matches!(source, PolicyResolutionSource::DefaultPolicy),
         }
     }
@@ -226,7 +294,7 @@ mod tests {
     #[test]
     fn policy_trace_payload_captures_default_vs_user_source() {
         let default_payload = sample_payload(PolicyResolutionSource::DefaultPolicy);
-        let user_payload = sample_payload(PolicyResolutionSource::UserOverride);
+        let user_payload = sample_payload(PolicyResolutionSource::SessionUserOverride);
 
         assert_ne!(default_payload.source, user_payload.source);
         assert!(default_payload.default_used);
@@ -255,7 +323,7 @@ mod tests {
 
     #[test]
     fn policy_trace_payload_detects_source_default_mismatch() {
-        let mut payload = sample_payload(PolicyResolutionSource::UserOverride);
+        let mut payload = sample_payload(PolicyResolutionSource::SessionUserOverride);
         payload.default_used = true;
 
         let mut decision = sample_decision(true);
@@ -264,6 +332,19 @@ mod tests {
         assert_eq!(
             payload.validate_against_decision(&decision),
             Err(PolicyTraceConsistencyError::SourceDefaultMismatch)
+        );
+    }
+
+    #[test]
+    fn policy_trace_payload_detects_source_scope_mismatch() {
+        let mut payload = sample_payload(PolicyResolutionSource::DefaultPolicy);
+        payload.source_scope = Some(PolicyResolutionScopeRef::Operation {
+            operation_id: "sheet_region_merge".to_string(),
+        });
+        let decision = sample_decision(true);
+        assert_eq!(
+            payload.validate_against_decision(&decision),
+            Err(PolicyTraceConsistencyError::SourceScopeMismatch)
         );
     }
 

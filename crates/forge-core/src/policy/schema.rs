@@ -9,7 +9,7 @@ use crate::errors::{KernelError, AmbiguousResult};
 // =========================================================================
 
 /// Categories of policy decisions the kernel may request.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum PolicyKind {
     /// Two geometric entities are within tolerance of coincident
     CoincidentGeometry,

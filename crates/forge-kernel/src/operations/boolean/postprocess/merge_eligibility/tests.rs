@@ -428,16 +428,11 @@ mod tests {
                     "Simple certificate should trace as Exact/Deterministic",
                 );
             }
-            forge_core::DecisionKind::PolicyApplied { policy, .. } => {
-                assert!(
-                    matches!(policy, forge_core::PolicyKind::CoincidentGeometry),
-                    "WeaklySimple path should use CoincidentGeometry policy, got {:?}",
-                    policy,
-                );
+            forge_core::DecisionKind::NearBoundary { .. } => {
                 assert_eq!(
                     d.get_tier(),
-                    forge_core::DecisionTier::PolicyApplied,
-                    "WeaklySimple certificate should trace as policy-applied",
+                    forge_core::DecisionTier::NearBoundary,
+                    "WeaklySimple certificate should trace as near-boundary until policy is resolved by the caller",
                 );
             }
             other => panic!(
@@ -1397,9 +1392,12 @@ mod tests {
         );
     }
 
-    /// D5 regression: after merge, ModelingContext decision log must be populated.
+    /// D5/P2-2 regression: merge traces must survive finalization exactly once.
     ///
-    /// Verifies both sides: ctx log AND OperationResult log.
+    /// Under the OperationFinalizer contract, decisions accumulate in `ModelingContext`
+    /// during execution and are drained into the returned `OperationResult` at the
+    /// operation boundary. The context must be empty after successful finalization to
+    /// avoid double-counting on reuse.
     #[test]
     fn ctx_receives_traced_decisions_after_merge() {
         let (state, _, face_a, face_b, face_extra) = build_cube_with_valence_3_edge();
@@ -1423,15 +1421,8 @@ mod tests {
         );
 
         assert!(
-            !ctx.get_decision_log_mut().is_empty(),
-            "D5 regression: ModelingContext decision log must not be empty after merge",
-        );
-
-        let op_count = result.get_decision_log().decisions().count();
-        let ctx_count = ctx.get_decision_log_mut().decisions().count();
-        assert_eq!(
-            op_count, ctx_count,
-            "D5 regression: OperationResult and ctx must have same decision count",
+            ctx.get_decision_log_mut().is_empty(),
+            "P2-2 regression: ModelingContext decision log must be drained after finalization",
         );
     }
 

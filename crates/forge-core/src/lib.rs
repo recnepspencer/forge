@@ -50,7 +50,7 @@ pub use tracing::{
     resolve_trace_dir, write_trace_file,
     LogLevel, log_level, log_result, log_decision_log, log_error,
     PolicyResolutionSource, PolicyResolutionOutcome, CandidateValueSummary,
-    PolicyDecisionTracePayload, PolicyTraceConsistencyError,
+    PolicyDecisionTracePayload, PolicyTraceConsistencyError, PolicyResolutionScopeRef,
     TraceFingerprint, compute_trace_fingerprint,
 };
 

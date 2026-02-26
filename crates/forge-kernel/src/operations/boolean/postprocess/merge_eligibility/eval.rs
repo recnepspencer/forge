@@ -22,7 +22,7 @@ use crate::geometry_state::GeometryView;
 
 use super::boundary_adapter::{extract_boundary_candidate, get_group_plane_normal};
 
-fn compute_group_hash(group: &EntityBitset) -> Result<u64, KernelError> {
+pub(crate) fn compute_group_hash(group: &EntityBitset) -> Result<u64, KernelError> {
     let mut h: u64 = 0xcbf29ce484222325;
     for idx in 0..group.capacity() {
         if group.contains(idx)? {
@@ -48,17 +48,14 @@ fn build_certification_decision(
         ),
         WeakSimpleCertificate::WeaklySimple { touch_count } => TracedDecision::new(
             DecisionId(group_hash),
-            DecisionKind::PolicyApplied {
-                policy: forge_core::PolicyKind::CoincidentGeometry,
-                default_used: true,
+            DecisionKind::NearBoundary {
+                threshold: 0.0,
             },
-            DecisionTier::PolicyApplied,
+            DecisionTier::NearBoundary,
             *touch_count as f64,
-            DecisionContext::Degeneracy {
-                description: format!(
-                    "Boundary certified WeaklySimple (touch_count={})",
-                    touch_count
-                ),
+            DecisionContext::Tolerance {
+                measured: *touch_count as f64,
+                threshold: 0.0,
             },
         ),
         WeakSimpleCertificate::Rejected { reason, witness } => TracedDecision::new(
@@ -124,16 +121,16 @@ mod tests {
     }
 
     #[test]
-    fn weakly_simple_certificate_traces_as_policy_applied() {
+    fn weakly_simple_certificate_traces_as_near_boundary_pending_policy_resolution() {
         let d = build_certification_decision(
             7,
             &WeakSimpleCertificate::WeaklySimple { touch_count: 3 },
         );
         assert!(matches!(
             d.get_kind(),
-            DecisionKind::PolicyApplied { policy: forge_core::PolicyKind::CoincidentGeometry, .. }
+            DecisionKind::NearBoundary { .. }
         ));
-        assert_eq!(d.get_tier(), DecisionTier::PolicyApplied);
+        assert_eq!(d.get_tier(), DecisionTier::NearBoundary);
         assert_eq!(d.get_margin(), 3.0);
     }
 

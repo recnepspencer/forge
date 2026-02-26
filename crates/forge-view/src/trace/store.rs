@@ -7,6 +7,7 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use forge_core::{DecisionLog, TraceEvent, SpanSummaryEntry, TracedDecision, DecisionTier};
+use forge_core::tracing::TraceAdjunctRecord;
 use serde::{Deserialize, Serialize};
 
 /// Metadata stored alongside each trace file.
@@ -35,6 +36,7 @@ pub struct TraceMeta {
 struct StoredTrace {
     meta: TraceMeta,
     log: DecisionLog,
+    adjuncts: Vec<TraceAdjunctRecord>,
 }
 
 /// On-disk trace file format (what tests write).
@@ -51,6 +53,9 @@ pub struct TraceFile {
     pub status: String,
     /// The full DecisionLog.
     pub log: DecisionLog,
+    /// Typed adjunct payloads attached to decisions (optional, versioned).
+    #[serde(default)]
+    pub adjuncts: Vec<TraceAdjunctRecord>,
 }
 
 /// Default status for backward compatibility with old trace files.
@@ -169,6 +174,7 @@ impl TraceStore {
         self.traces.insert(id, StoredTrace {
             meta,
             log: trace_file.log,
+            adjuncts: trace_file.adjuncts,
         });
     }
 
@@ -218,9 +224,84 @@ impl TraceStore {
         self.traces.get(trace_id).map(|t| &t.log)
     }
 
+    /// Get raw typed adjunct payloads stored alongside the trace (may be empty).
+    pub fn get_raw_adjuncts(&self, trace_id: &str) -> Option<&[TraceAdjunctRecord]> {
+        self.traces.get(trace_id).map(|t| t.adjuncts.as_slice())
+    }
+
     /// Get the trace directory path.
     pub fn trace_dir(&self) -> &Path {
         &self.trace_dir
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use forge_core::{
+        CandidateValueSummary, DecisionContext, DecisionId, DecisionKind, DecisionLog, DecisionTier,
+        PolicyDecisionTracePayload, PolicyKind, PolicyResolutionOutcome, PolicyResolutionSource,
+        TracedDecision,
+    };
+    use forge_core::tracing::TraceAdjunctRecord;
+
+    #[test]
+    fn trace_store_preserves_unknown_and_known_adjuncts_on_reload() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let trace_path = dir.path().join("trace.json");
+
+        let mut log = DecisionLog::new();
+        log.record(TracedDecision::new(
+            DecisionId(7),
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            0.0,
+            DecisionContext::Degeneracy { description: "fixture".into() },
+        ));
+
+        let known = TraceAdjunctRecord::from_policy_payload(&PolicyDecisionTracePayload {
+            decision_id: DecisionId(7),
+            policy_kind: PolicyKind::CoincidentGeometry,
+            operation_scope_id: Some("sheet_region_merge".into()),
+            query_location: [0.0, 0.0, 0.0],
+            measured_margin: 1.0e-7,
+            threshold: Some(1.0e-6),
+            overridable: true,
+            candidate_summary: CandidateValueSummary::EnumTag {
+                type_name: "Foo".into(),
+                variant: "Bar".into(),
+            },
+            outcome: PolicyResolutionOutcome::AcceptedPotentialValue,
+            source: PolicyResolutionSource::DefaultPolicy,
+            source_scope: None,
+            default_used: true,
+        });
+        let unknown = TraceAdjunctRecord::new(
+            DecisionId(7),
+            "future_payload",
+            999,
+            serde_json::json!({"x": 1, "nested": ["a", 2]}),
+        );
+
+        let file = vec![TraceFile {
+            name: "fixture::trace".into(),
+            timestamp: "0".into(),
+            state_hash: 123,
+            status: "ok".into(),
+            log,
+            adjuncts: vec![unknown.clone(), known.clone()],
+        }];
+        std::fs::write(&trace_path, serde_json::to_string_pretty(&file).expect("serialize trace file"))
+            .expect("write trace file");
+
+        let mut store = TraceStore::new(dir.path().to_path_buf());
+        assert_eq!(store.reload(), 1);
+        let adjuncts = store
+            .get_raw_adjuncts("fixture_trace")
+            .expect("adjuncts for stored trace");
+        assert_eq!(adjuncts.len(), 2);
+        assert!(adjuncts.contains(&known));
+        assert!(adjuncts.contains(&unknown));
     }
 }
 

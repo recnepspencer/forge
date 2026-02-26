@@ -20,11 +20,11 @@
 use std::collections::BTreeSet;
 
 use forge_core::{
-    KernelError, OperationResult,
+    KernelError, OperationResult, PolicyKind, PolicyQuery,
 };
 use forge_core::errors::MergeError;
 use forge_core::tracing::{
-    DecisionId, DecisionKind, DecisionTier, DecisionContext, TracedDecision, DecisionLog,
+    CandidateValueSummary, DecisionId, DecisionKind, DecisionTier, DecisionContext, TracedDecision, TraceAdjunctSet,
 };
 use forge_topo::handles::{FaceId, HalfEdgeId, EdgeId};
 use forge_topo::operator::apply_op;
@@ -32,11 +32,11 @@ use forge_topo::euler::join_faces::JoinFaces;
 use forge_topo::euler::join_faces_nmt::JoinFacesNmt;
 use forge_topo::traverse::radial_valence;
 
-use crate::core::KernelState;
+use crate::core::{KernelState, OperationFinalizer, TopologyHashBoundary};
 use crate::core::kernel_draft::KernelDraft;
 use crate::core::ModelingContext;
 
-use super::eval::certify_merge_boundary;
+use super::eval::{certify_merge_boundary, compute_group_hash};
 use super::schema::{
     MergeRegionSelection, MergePlan, MergeStepPlan, MergeResult, SheetRegionMergeOutput,
 };
@@ -61,6 +61,9 @@ pub fn execute_sheet_region_merge(
     selection: &MergeRegionSelection,
     ctx: &mut ModelingContext,
 ) -> Result<OperationResult<SheetRegionMergeOutput>, KernelError> {
+    let topo_hash_before = state.topology().topology_hash();
+    let mut finalization_adjuncts = TraceAdjunctSet::new();
+
     // Mandatory Epic A gate: certify before creating a draft so a rejected
     // boundary cannot produce any topo/geom mutations.
     let mut cert_result = certify_merge_boundary(
@@ -68,16 +71,8 @@ pub fn execute_sheet_region_merge(
         selection.get_selected_faces(),
         state.geometry(),
     )?;
-    let mut cert_result_for_output = cert_result.clone();
     ctx.absorb_sub_result(&mut cert_result);
-    if let forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::Rejected { reason, witness } =
-        cert_result.get_value()
-    {
-        return Err(KernelError::MergeFailure(MergeError::BoundaryCertificationFailed {
-            reason: format!("{:?}", reason),
-            witness: Some(*witness),
-        }));
-    }
+    apply_boundary_cert_gate_policy(cert_result.get_value(), selection, ctx)?;
 
     let mut draft = KernelDraft::new(state);
 
@@ -85,8 +80,6 @@ pub fn execute_sheet_region_merge(
     validate_connectivity(draft.arena(), selection)?;
 
     let plan = build_merge_plan(draft.arena(), selection)?;
-
-    let mut decision_log = DecisionLog::new();
     let mut killed_faces: Vec<FaceId> = Vec::with_capacity(plan.step_count());
 
     for (step_idx, step) in plan.get_steps().iter().enumerate() {
@@ -125,7 +118,7 @@ pub fn execute_sheet_region_merge(
                 ),
             },
         );
-        decision_log.record(decision);
+        ctx.get_decision_log_mut().record(decision);
     }
 
     let new_state = draft.commit_with_mode(
@@ -140,14 +133,71 @@ pub fn execute_sheet_region_merge(
     );
 
     let output = SheetRegionMergeOutput::new(new_state, merge_result);
+    let topo_hash_after = output.get_state().topology().topology_hash();
 
     let mut op_result = OperationResult::new(output);
-    op_result.absorb_metadata(&mut cert_result_for_output);
-    op_result.get_decision_log_mut().merge(decision_log.clone());
-
-    ctx.get_decision_log_mut().merge(decision_log);
+    let mut finalizer = OperationFinalizer::new(ctx);
+    let _collected = finalizer
+        .collect_success(
+            &mut op_result,
+            finalization_adjuncts,
+            TopologyHashBoundary {
+                before: Some(topo_hash_before),
+                after: Some(topo_hash_after),
+            },
+        )
+        .map_err(|e| KernelError::InternalError {
+            message: format!("region merge finalization failed: {:?}", e),
+            context: None,
+        })?;
 
     Ok(op_result)
+}
+
+fn apply_boundary_cert_gate_policy(
+    cert: &forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate,
+    selection: &MergeRegionSelection,
+    ctx: &mut ModelingContext,
+) -> Result<(), KernelError> {
+    match cert {
+        forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::Rejected { reason, witness } => {
+            Err(KernelError::MergeFailure(MergeError::BoundaryCertificationFailed {
+                reason: format!("{:?}", reason),
+                witness: Some(*witness),
+            }))
+        }
+        forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::WeaklySimple { touch_count } => {
+            let group_hash = compute_group_hash(selection.get_selected_faces())?;
+            let policy_decision_id = DecisionId(group_hash ^ 0x9e37_79b9_7f4a_7c15);
+            let prev_scope = ctx.get_active_operation_policy_scope().map(str::to_string);
+            ctx.set_active_operation_policy_scope(Some("sheet_region_merge".to_string()));
+            let policy_query = PolicyQuery {
+                kind: PolicyKind::CoincidentGeometry,
+                location: [0.0, 0.0, 0.0],
+                margin: *touch_count as f64,
+                overridable: true,
+            };
+            let resolved_result = ctx.resolve_policy_query(
+                policy_decision_id,
+                &policy_query,
+                Some(0.0),
+                CandidateValueSummary::EnumTag {
+                    type_name: "WeakSimpleCertificate".to_string(),
+                    variant: "WeaklySimple".to_string(),
+                },
+            );
+            ctx.set_active_operation_policy_scope(prev_scope);
+            let resolved = resolved_result?;
+            if !resolved.accept_potential_value {
+                return Err(KernelError::MergeFailure(MergeError::BoundaryCertificationFailed {
+                    reason: "CoincidentGeometry policy rejected WeaklySimple boundary".to_string(),
+                    witness: None,
+                }));
+            }
+            Ok(())
+        }
+        forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::Simple => Ok(()),
+    }
 }
 
 /// Reject if any face appears in both `selected_faces` and `protected_faces`.
@@ -439,4 +489,50 @@ fn find_edge_by_index(
         }
     }
     None
+}
+
+#[cfg(test)]
+mod gate_policy_tests {
+    use super::*;
+    use forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate;
+    use forge_topo::bitset::EntityBitset;
+
+    #[test]
+    fn weakly_simple_gate_uses_registry_backed_policy_resolution() {
+        let mut selected = EntityBitset::with_capacity(4);
+        selected.insert(0).expect("bitset capacity");
+        let protected = EntityBitset::with_capacity(4);
+        let selection = MergeRegionSelection::new(
+            selected,
+            protected,
+            FaceId::from_raw_parts(0, 0),
+        );
+
+        let mut ctx = ModelingContext::new();
+        ctx.set_session_policy_override(PolicyKind::CoincidentGeometry, false, Some("qa".into()));
+
+        let err = apply_boundary_cert_gate_policy(
+            &WeakSimpleCertificate::WeaklySimple { touch_count: 2 },
+            &selection,
+            &mut ctx,
+        ).expect_err("session override rejecting CoincidentGeometry must fail merge gate");
+
+        assert!(matches!(err, KernelError::MergeFailure(MergeError::BoundaryCertificationFailed { .. })));
+        assert_eq!(ctx.get_trace_adjuncts().records().len(), 1);
+
+        let payload = ctx.get_trace_adjuncts().records()[0]
+            .as_policy_payload()
+            .expect("policy adjunct kind")
+            .expect("decode policy payload");
+        assert_eq!(payload.source, forge_core::PolicyResolutionSource::SessionUserOverride);
+        assert_eq!(
+            payload.source_scope,
+            Some(forge_core::PolicyResolutionScopeRef::SessionUser {
+                scope_id: Some("qa".to_string()),
+            })
+        );
+        assert_eq!(payload.operation_scope_id.as_deref(), Some("sheet_region_merge"));
+        assert_eq!(payload.outcome, forge_core::PolicyResolutionOutcome::RejectedPotentialValue);
+        assert_eq!(ctx.get_decision_count(), 1, "policy resolution must emit one traced decision");
+    }
 }

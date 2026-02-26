@@ -9,6 +9,7 @@ use std::collections::BTreeMap;
 
 use forge_core::{KernelError, OperationResult, OperationMetrics};
 use forge_core::tracing::checkpoint_diff::diff_decision_logs;
+use forge_core::tracing::TraceAdjunctSet;
 use forge_core::DecisionLog;
 use forge_topo::state::TopologyState;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
@@ -19,7 +20,7 @@ use forge_topo::validate::{validate_topology, ValidationLevel};
 use forge_topo::arena::TopologyArena;
 
 use crate::analysis::proof_validation::checkpoint::{run_checkpoint, ValidationCheckpoint};
-use crate::core::{ModelingContext, OperationSpace};
+use crate::core::{ModelingContext, OperationSpace, OperationFinalizer, TopologyHashBoundary};
 use crate::geometry_state::GeometryState;
 use crate::operations::boolean::schema::{
     BooleanInput, BooleanOp, BooleanResult, FaceOrigin, FaceClassification, BooleanIntrospection,
@@ -97,6 +98,7 @@ fn execute_boolean_core(
     engine: BooleanEngine,
 ) -> OperationResult<Result<BooleanResult, KernelError>> {
     let start_time = std::time::Instant::now();
+    let topology_hash_before = input.target_topology().topology_hash() ^ input.tool_topology().topology_hash();
 
     let inner_result = execute_boolean_pipeline(input, &engine, &mut ctx, start_time);
 
@@ -107,7 +109,37 @@ fn execute_boolean_core(
 
     let mut envelope = OperationResult::new(inner_result);
     envelope.set_metrics(metrics);
-    envelope.set_decision_log(ctx.take_decision_log());
+    let topology_hash_after = envelope
+        .get_value()
+        .as_ref()
+        .ok()
+        .map(|res| res.topology().topology_hash());
+
+    let mut finalizer = OperationFinalizer::new(&mut ctx);
+    let finalize_result = match envelope.get_value() {
+        Ok(_) => finalizer.collect_success(
+            &mut envelope,
+            TraceAdjunctSet::new(),
+            TopologyHashBoundary {
+                before: Some(topology_hash_before),
+                after: topology_hash_after,
+            },
+        ),
+        Err(_) => finalizer.collect_error(
+            &mut envelope,
+            TraceAdjunctSet::new(),
+            TopologyHashBoundary {
+                before: Some(topology_hash_before),
+                after: None,
+            },
+        ),
+    };
+    if let Err(e) = finalize_result {
+        return OperationResult::new(Err(KernelError::InternalError {
+            message: format!("OperationFinalizer failed in execute_boolean_core: {:?}", e),
+            context: None,
+        }));
+    }
 
     let mut summaries = Vec::new();
     if let Ok(res) = envelope.get_value() {

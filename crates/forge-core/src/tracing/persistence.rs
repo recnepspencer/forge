@@ -6,6 +6,22 @@ use std::sync::OnceLock;
 use serde::{Deserialize, Serialize};
 
 use super::decision_log::DecisionLog;
+use super::adjunct::TraceAdjunctRecord;
+
+/// Typed trace persistence failure for explicit emit paths.
+#[derive(Debug)]
+pub enum TracePersistenceError {
+    Io(std::io::Error),
+    Serde(serde_json::Error),
+}
+
+impl From<std::io::Error> for TracePersistenceError {
+    fn from(value: std::io::Error) -> Self { Self::Io(value) }
+}
+
+impl From<serde_json::Error> for TracePersistenceError {
+    fn from(value: serde_json::Error) -> Self { Self::Serde(value) }
+}
 
 /// Resolve the trace output directory (cached, checked once per process).
 ///
@@ -42,14 +58,38 @@ pub fn resolve_trace_dir() -> Option<PathBuf> {
 /// This ensures `cargo test` produces one file with ALL test traces,
 /// while re-running overwrites the previous batch.
 pub fn write_trace_file(dir: &Path, log: &DecisionLog, state_hash: u128, status: &str) {
+    write_trace_file_with_adjuncts(dir, log, &[], state_hash, status);
+}
+
+/// Write a trace entry with typed adjunct payloads to `trace.json`.
+///
+/// Adjunct records are stored alongside the `DecisionLog` and preserved for
+/// trace readers/viewers. Callers should provide adjuncts in deterministic
+/// order (or use `TraceAdjunctSet`).
+pub fn write_trace_file_with_adjuncts(
+    dir: &Path,
+    log: &DecisionLog,
+    adjuncts: &[TraceAdjunctRecord],
+    state_hash: u128,
+    status: &str,
+) {
+    let _ = try_write_trace_file_with_adjuncts(dir, log, adjuncts, state_hash, status);
+}
+
+/// Explicit (typed) trace write path for operation finalization and tests.
+pub fn try_write_trace_file_with_adjuncts(
+    dir: &Path,
+    log: &DecisionLog,
+    adjuncts: &[TraceAdjunctRecord],
+    state_hash: u128,
+    status: &str,
+) -> Result<(), TracePersistenceError> {
     use std::sync::Mutex;
 
     /// Process-level guard: `None` = first write hasn't happened yet.
     static FILE_LOCK: OnceLock<Mutex<bool>> = OnceLock::new();
 
-    if std::fs::create_dir_all(dir).is_err() {
-        return;
-    }
+    std::fs::create_dir_all(dir)?;
 
     let test_name = std::thread::current()
         .name()
@@ -64,7 +104,9 @@ pub fn write_trace_file(dir: &Path, log: &DecisionLog, state_hash: u128, status:
     let path = dir.join("trace.json");
     let lock = FILE_LOCK.get_or_init(|| Mutex::new(false));
 
-    let Ok(mut initialized) = lock.lock() else { return };
+    let mut initialized = lock
+        .lock()
+        .map_err(|_| std::io::Error::other("trace persistence lock poisoned"))?;
 
     #[derive(Serialize, Deserialize)]
     struct TraceEntry {
@@ -73,6 +115,8 @@ pub fn write_trace_file(dir: &Path, log: &DecisionLog, state_hash: u128, status:
         state_hash: u128,
         status: String,
         log: DecisionLog,
+        #[serde(default)]
+        adjuncts: Vec<TraceAdjunctRecord>,
     }
 
     let mut entries: Vec<TraceEntry> = if *initialized {
@@ -91,9 +135,10 @@ pub fn write_trace_file(dir: &Path, log: &DecisionLog, state_hash: u128, status:
         state_hash,
         status: status.to_string(),
         log: log.clone(),
+        adjuncts: adjuncts.to_vec(),
     });
 
-    if let Ok(json) = serde_json::to_string_pretty(&entries) {
-        let _ = std::fs::write(&path, json);
-    }
+    let json = serde_json::to_string_pretty(&entries)?;
+    std::fs::write(&path, json)?;
+    Ok(())
 }

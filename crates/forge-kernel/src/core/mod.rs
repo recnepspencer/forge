@@ -17,6 +17,7 @@ pub mod tolerance;
 mod macros;
 mod brep_workspace;
 mod operation_space;
+mod finalization;
 
 pub use context::ModelingContext;
 pub use context::{ArenaSnapshot, SubOperationMetadata, compute_topology_delta};
@@ -36,3 +37,8 @@ pub use kernel_state::KernelState;
 pub mod kernel_draft;
 pub use kernel_draft::KernelDraft;
 pub use operation_space::OperationSpace;
+pub use finalization::{
+    OperationFinalizer, FinalizationError, FinalizationStatus,
+    TopologyHashBoundary, FinalizationEmitOptions, FinalizationSummary,
+    CollectedFinalization,
+};
