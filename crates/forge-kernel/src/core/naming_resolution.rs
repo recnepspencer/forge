@@ -28,9 +28,55 @@ impl ResolutionQuery {
             ResolutionQuery::Selector(sel) => ResolutionQuerySummary::Selector {
                 entity_kind: selector_entity_kind(sel),
                 selector_kind: selector_kind_tag(sel).to_string(),
+                selector_fingerprint: Some(hash_selector(sel)),
             },
         }
     }
+}
+
+/// Compute a deterministic fingerprint of a Selector strictly from its topological criteria.
+///
+/// INV-1 Guard: This completely ignores any future explicit or implicit float-derived
+/// or geometric properties unless explicitly allowed. The hash covers ONLY structural
+/// and feature/operation identities.
+fn hash_selector(sel: &Selector) -> u64 {
+    let mut h: u64 = 0xcbf29ce484222325;
+    let mut mix = |val: u64| {
+        h ^= val;
+        h = h.wrapping_mul(0x100000001b3);
+    };
+
+    match sel {
+        Selector::ByAncestry { hash, kind } => {
+            mix(1);
+            mix((*hash & 0xFFFFFFFFFFFFFFFF) as u64);
+            mix((*hash >> 64) as u64);
+            mix(*kind as u64);
+        }
+        Selector::ByFeature { feature_id, kind } => {
+            mix(2);
+            mix(*feature_id);
+            mix(*kind as u64);
+        }
+        Selector::ByOperation { op_name, kind } => {
+            mix(3);
+            for b in op_name.as_bytes() {
+                mix(*b as u64);
+            }
+            mix(*kind as u64);
+        }
+        Selector::And(a, b) => {
+            mix(4);
+            mix(hash_selector(a));
+            mix(hash_selector(b));
+        }
+        Selector::Or(a, b) => {
+            mix(5);
+            mix(hash_selector(a));
+            mix(hash_selector(b));
+        }
+    }
+    h
 }
 
 /// Resolver path used for a result/candidate.
@@ -243,6 +289,7 @@ impl ResolutionResult<ResolutionCandidate> {
                     query: ResolutionQuerySummary::Selector {
                         entity_kind: Some(value.entity_kind),
                         selector_kind: "resolved_candidate".into(),
+                        selector_fingerprint: None,
                     },
                     outcome: ResolutionOutcome::Resolved,
                     final_route: *route,

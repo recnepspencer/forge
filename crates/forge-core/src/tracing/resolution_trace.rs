@@ -43,6 +43,7 @@ pub enum ResolutionQuerySummary {
     Selector {
         entity_kind: Option<EntityKind>,
         selector_kind: String,
+        selector_fingerprint: Option<u64>,
     },
 }
 
@@ -151,6 +152,7 @@ mod tests {
             query: ResolutionQuerySummary::Selector {
                 entity_kind: Some(EntityKind::Face),
                 selector_kind: "by_feature".into(),
+                selector_fingerprint: None,
             },
             outcome: ResolutionOutcome::Ambiguous,
             final_route: ResolutionRoute::DirectPersistentName,

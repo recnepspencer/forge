@@ -75,8 +75,8 @@ const EPSILON: f64 = 0.000_000_000_000_000_111_022_302_462_515_65;
 ///
 ///  See exactinit() for the function used to generate these values.
 const PARAMS: PredicateParams = PredicateParams {
-    ///  Used to split floating-point numbers into two half-length significands
-    ///  for exact multiplication.
+    //  Used to split floating-point numbers into two half-length significands
+    //  for exact multiplication.
     splitter: 134_217_729f64,
     resulterrbound: (3.0 + 8.0 * EPSILON) * EPSILON,
     ccwerrbound_a: (3.0 + 16.0 * EPSILON) * EPSILON,

@@ -713,12 +713,12 @@ mod tests {
 
         let result = test_resolve_face_ref_result_direct(topo.arena(), &selector);
         match result {
-            crate::core::ResolutionResult::Ambiguous { candidates, .. } => {
+            crate::core::ResolutionResult::Ambiguous { candidates, evidence, query } => {
+                let ordered = candidates.as_slice();
                 assert!(
-                    candidates.len() >= 2,
+                    ordered.len() >= 2,
                     "selector ambiguity must preserve multiple candidates"
                 );
-                let ordered = candidates.as_slice();
                 let mut sorted = ordered.to_vec();
                 sorted.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
                 assert_eq!(
@@ -726,6 +726,16 @@ mod tests {
                     sorted.as_slice(),
                     "selector candidates must be deterministically ordered"
                 );
+
+                let payload = crate::core::ResolutionResult::Ambiguous { candidates, evidence, query }
+                    .to_trace_payload(forge_core::DecisionId(1), None, None);
+                
+                match payload.query {
+                    forge_core::tracing::ResolutionQuerySummary::Selector { selector_fingerprint, .. } => {
+                        assert!(selector_fingerprint.is_some(), "NURBS-safe fingerprint must be emitted for selector queries");
+                    }
+                    _ => panic!("Expected Selector query summary"),
+                }
             }
             other => panic!(
                 "expected Ambiguous typed resolution result, got {:?}",
@@ -2741,6 +2751,85 @@ mod tests {
             drifted.validate_against_decision(&fake_decision),
             Err(ReidentificationTraceConsistencyError::OutcomeCompatibilityMismatch),
             "Incompatible outcome with Available compatibility must be flagged as OutcomeCompatibilityMismatch",
+        );
+    }
+
+    #[test]
+    fn generation_reuse_does_not_cause_stale_snapshot_leakage() {
+        use forge_core::tracing::ResolutionOutcome;
+
+        // 1. Setup topography and face
+        let mut draft = forge_topo::state::TopologyState::empty().into_mutation();
+        let f1 = draft.arena_mut().add_face();
+        let root_lineage = forge_topo::lineage::Lineage::root(
+            1,
+            forge_topo::lineage::OpSignature::with_id("root_face", 1),
+        );
+        draft.arena_mut().get_face_mut(f1).unwrap().set_lineage(Some(root_lineage.clone()));
+
+        // Save the old name
+        let persistent_name = PersistentName::new(
+            root_lineage.get_ancestry_hash(),
+            forge_core::EntityKind::Face,
+            0,
+        );
+
+        // 2. Delete the first face (frees up its slot)
+        draft.arena_mut().remove_face(f1).unwrap();
+
+        // 3. Add a new face (generation bumps in the slot)
+        let f2 = draft.arena_mut().add_face();
+        
+        // Assert generation bumped up
+        assert_eq!(f1.index(), f2.index(), "arena should reuse slot");
+        assert!(f2.generation() > f1.generation(), "new face must have a higher generation");
+        
+        let new_lineage = forge_topo::lineage::Lineage::root(
+            2,
+            forge_topo::lineage::OpSignature::with_id("new_face", 2),
+        );
+        draft.arena_mut().get_face_mut(f2).unwrap().set_lineage(Some(new_lineage));
+
+        let topo = draft.commit().expect("commit");
+
+        // 4. Resolve the old persistent name against tracking
+        let selection = MergeRegionSelectionPersistent::new(
+            vec![persistent_name],
+            Vec::new(),
+            PersistentName::new(0, forge_core::EntityKind::Face, 0),
+        );
+        
+        let state = crate::core::KernelState::new(topo, GeometryState::new());
+        let mut ctx = ModelingContext::new();
+
+        // Should NOT find the matching entity due to a different generation or lineage
+        let resolved = resolve_merge_region_selection_persistent(&state, &selection, &mut ctx)
+            .expect("should return gracefully");
+
+        assert_eq!(
+            resolved.get_selected_faces().iter_ones().count(),
+            0,
+            "stale snapshot cannot be erroneously resolved"
+        );
+
+        // Check the resolution trace adjunct
+        let resolution_adjunct = ctx
+            .get_trace_adjuncts()
+            .records()
+            .iter()
+            .find_map(|r| r.as_resolution_payload())
+            .expect("must emit a tracing adjunct")
+            .unwrap();
+
+        assert_eq!(
+            resolution_adjunct.outcome,
+            ResolutionOutcome::Missing,
+            "Must report missing when the snapshot is stale"
+        );
+        assert_eq!(
+            resolution_adjunct.ordered_candidates.len(),
+            0,
+            "candidate count must be zero since stale entities are not valid candidates"
         );
     }
 }

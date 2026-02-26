@@ -300,6 +300,7 @@ mod tests {
             query: ResolutionQuerySummary::Selector {
                 entity_kind: Some(crate::tracing::EntityKind::Face),
                 selector_kind: "by_feature".into(),
+                selector_fingerprint: None,
             },
             outcome: ResolutionOutcome::Resolved,
             final_route: ResolutionRoute::DirectPersistentName,
