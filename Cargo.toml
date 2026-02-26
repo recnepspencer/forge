@@ -12,6 +12,13 @@ members = [
     "crates/forge-repr",
     "crates/forge-schema",
     "crates/forge-signal",
+    # UI library stack
+    "crates/forge-ui-types",
+    "crates/forge-ui-theme",
+    "crates/forge-ui-components",
+    "crates/forge-ui-adapters",
+    "crates/forge-ui-state",
+    "crates/forge-ui",
 ]
 
 [workspace.package]
@@ -20,7 +27,7 @@ version = "0.1.0"
 license = "MIT OR Apache-2.0"
 
 [workspace.dependencies]
-# Internal crates
+# Internal crates — kernel
 forge-math = { path = "crates/forge-math" }
 forge-core = { path = "crates/forge-core" }
 forge-topo = { path = "crates/forge-topo" }
@@ -32,6 +39,13 @@ forge-view = { path = "crates/forge-view" }
 forge-repr = { path = "crates/forge-repr" }
 forge-schema = { path = "crates/forge-schema" }
 forge-signal = { path = "crates/forge-signal" }
+# Internal crates — UI library stack
+forge-ui-types      = { path = "crates/forge-ui-types" }
+forge-ui-theme      = { path = "crates/forge-ui-theme" }
+forge-ui-components = { path = "crates/forge-ui-components" }
+forge-ui-adapters   = { path = "crates/forge-ui-adapters" }
+forge-ui-state      = { path = "crates/forge-ui-state" }
+forge-ui            = { path = "crates/forge-ui" }
 
 # Benchmarking
 criterion = { version = "0.5", features = ["html_reports"] }
@@ -42,9 +56,14 @@ trybuild = "1.0"
 # Observability
 tracing = "0.1"
 
-# Native GUI
-eframe = "0.31"
-notify = "7"
+# Native GUI (eframe for MVP shell; wgpu for full viewport in M5)
+eframe   = { version = "0.31", features = ["default"] }
+egui     = "0.31"
+notify   = "7"
+wgpu     = "22"
+winit    = "0.30"
+pollster = "0.3"
+glam     = "0.29"
 
 # Serialization
 serde = { version = "1", features = ["derive", "rc"] }

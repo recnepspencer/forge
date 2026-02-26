@@ -1,0 +1,26 @@
+[package]
+name = "forge-ui"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "forge-ui"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+forge-ui-types      = { workspace = true }
+forge-ui-theme      = { workspace = true }
+forge-ui-components = { workspace = true }
+forge-ui-adapters   = { workspace = true }
+forge-ui-state      = { workspace = true }
+
+# UI framework
+eframe        = { workspace = true }
+egui          = { workspace = true }
+egui_extras   = { version = "0.31", features = ["svg", "image"] }
+glam          = { workspace = true }
+image         = { version = "0.25", default-features = false, features = ["png"] }

@@ -1,0 +1,1 @@
+{"rustc":13850170861107434965,"features":"[]","declared_features":"[]","target":11924314251200954656,"profile":8276155916380437441,"path":18155939398337620953,"deps":[],"local":[{"CheckDepInfo":{"dep_info":"debug/.fingerprint/rctree-7b8e5197cc32db40/dep-lib-rctree","checksum":false}}],"rustflags":["-C","overflow-checks=on"],"config":2069994364910194474,"compile_kind":0}

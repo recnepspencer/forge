@@ -414,6 +414,7 @@ fn build_lineage_events(
     for (fid, _) in arena.iter_faces() {
         events.push(LineageEvent::EntityCreated {
             entity: forge_core::EntityRef::new(forge_core::EntityKind::Face, fid.index()),
+            entity_snapshot: None,
             lineage: Lineage::root(fid.index() as u64, OpSignature::new(op_name)),
         });
     }
@@ -421,6 +422,7 @@ fn build_lineage_events(
     for (he_id, _) in arena.iter_half_edges() {
         events.push(LineageEvent::EntityCreated {
             entity: forge_core::EntityRef::new(forge_core::EntityKind::HalfEdge, he_id.index()),
+            entity_snapshot: None,
             lineage: Lineage::root(he_id.index() as u64, OpSignature::new(op_name)),
         });
     }
@@ -428,6 +430,7 @@ fn build_lineage_events(
     for (vid, _) in arena.iter_vertices() {
         events.push(LineageEvent::EntityCreated {
             entity: forge_core::EntityRef::new(forge_core::EntityKind::Vertex, vid.index()),
+            entity_snapshot: None,
             lineage: Lineage::root(vid.index() as u64, OpSignature::new(op_name)),
         });
     }

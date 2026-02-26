@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 
 use forge_core::EntityRef;
 
-use super::lineage::{Lineage, LineageEvent, OpSignature};
+use super::lineage::{Lineage, LineageEntityRef, LineageEvent, OpSignature};
 use forge_core::KernelError;
 
 /// Live mapping from entity handles to their current lineage.
@@ -49,6 +49,22 @@ impl LineageStore {
     pub fn record_creation(&mut self, entity: EntityRef, lineage: Lineage) {
         self.events.push(LineageEvent::EntityCreated {
             entity: entity.clone(),
+            entity_snapshot: None,
+            lineage: lineage.clone(),
+        });
+        self.entries.insert(entity, lineage);
+    }
+
+    /// Record creation with a generational snapshot identity.
+    pub fn record_creation_with_snapshot(
+        &mut self,
+        entity: EntityRef,
+        entity_snapshot: LineageEntityRef,
+        lineage: Lineage,
+    ) {
+        self.events.push(LineageEvent::EntityCreated {
+            entity: entity.clone(),
+            entity_snapshot: Some(entity_snapshot),
             lineage: lineage.clone(),
         });
         self.entries.insert(entity, lineage);
@@ -69,6 +85,29 @@ impl LineageStore {
             })?;
         self.events.push(LineageEvent::EntityDeleted {
             entity,
+            entity_snapshot: None,
+            lineage,
+        });
+        Ok(())
+    }
+
+    /// Record deletion with a generational snapshot identity.
+    pub fn record_deletion_with_snapshot(
+        &mut self,
+        entity: EntityRef,
+        entity_snapshot: LineageEntityRef,
+    ) -> Result<(), KernelError> {
+        let lineage = self.entries.remove(&entity)
+            .ok_or_else(|| KernelError::InternalError {
+                message: format!(
+                    "LineageStore: attempted to delete untracked entity {:?} — arena/history desync",
+                    entity
+                ),
+                context: None,
+            })?;
+        self.events.push(LineageEvent::EntityDeleted {
+            entity,
+            entity_snapshot: Some(entity_snapshot),
             lineage,
         });
         Ok(())
@@ -93,6 +132,33 @@ impl LineageStore {
             })?;
         self.events.push(LineageEvent::EntityModified {
             entity: entity.clone(),
+            entity_snapshot: None,
+            old_lineage,
+            new_lineage: new_lineage.clone(),
+        });
+        self.entries.insert(entity, new_lineage);
+        Ok(())
+    }
+
+    /// Record mutation with a generational snapshot identity.
+    pub fn record_mutation_with_snapshot(
+        &mut self,
+        entity: EntityRef,
+        entity_snapshot: LineageEntityRef,
+        new_lineage: Lineage,
+    ) -> Result<(), KernelError> {
+        let old_lineage = self.entries.get(&entity)
+            .cloned()
+            .ok_or_else(|| KernelError::InternalError {
+                message: format!(
+                    "LineageStore: attempted to mutate untracked entity {:?} — arena/history desync",
+                    entity
+                ),
+                context: None,
+            })?;
+        self.events.push(LineageEvent::EntityModified {
+            entity: entity.clone(),
+            entity_snapshot: Some(entity_snapshot),
             old_lineage,
             new_lineage: new_lineage.clone(),
         });
@@ -188,5 +254,22 @@ mod tests {
 
         let history = store.query_entity_history(&entity);
         assert_eq!(history.len(), 2);
+    }
+
+    #[test]
+    fn creation_with_snapshot_preserves_generation() {
+        let mut store = LineageStore::new();
+        let entity = EntityRef::new(EntityKind::Face, 42);
+        let snapshot = LineageEntityRef::new(EntityKind::Face, 42, 7);
+        let lineage = Lineage::root(42, OpSignature::new("make_face"));
+
+        store.record_creation_with_snapshot(entity, snapshot, lineage);
+
+        match &store.events()[0] {
+            LineageEvent::EntityCreated { entity_snapshot, .. } => {
+                assert_eq!(*entity_snapshot, Some(snapshot));
+            }
+            _ => panic!("expected created event"),
+        }
     }
 }

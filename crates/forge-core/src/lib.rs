@@ -54,6 +54,9 @@ pub use tracing::{
     ResolutionOutcome, ResolutionRoute, ResolutionMatchKind,
     ResolutionQuerySummary, ResolutionCandidateSummary, ResolutionTracePayload,
     ResolutionTraceConsistencyError,
+    ReidentificationOutcome, ReidentificationModeSummary, ReidentificationOriginKindSummary,
+    ReidentificationCompatibilitySummary, ReidentificationFailureCauseSummary,
+    ReidentificationTracePayload, ReidentificationTraceConsistencyError,
     TraceFingerprint, compute_trace_fingerprint,
 };
 

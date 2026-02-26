@@ -1,0 +1,10 @@
+/Users/spenstar/Documents/programming/Forge/target-ui/debug/deps/ecolor-e62102c1005df0a8.d: /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecolor-0.31.1/src/lib.rs /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecolor-0.31.1/src/color32.rs /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecolor-0.31.1/src/hsva_gamma.rs /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecolor-0.31.1/src/hsva.rs /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecolor-0.31.1/src/rgba.rs /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecolor-0.31.1/src/hex_color_runtime.rs
+
+/Users/spenstar/Documents/programming/Forge/target-ui/debug/deps/libecolor-e62102c1005df0a8.rmeta: /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecolor-0.31.1/src/lib.rs /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecolor-0.31.1/src/color32.rs /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecolor-0.31.1/src/hsva_gamma.rs /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecolor-0.31.1/src/hsva.rs /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecolor-0.31.1/src/rgba.rs /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecolor-0.31.1/src/hex_color_runtime.rs
+
+/Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecolor-0.31.1/src/lib.rs:
+/Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecolor-0.31.1/src/color32.rs:
+/Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecolor-0.31.1/src/hsva_gamma.rs:
+/Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecolor-0.31.1/src/hsva.rs:
+/Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecolor-0.31.1/src/rgba.rs:
+/Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ecolor-0.31.1/src/hex_color_runtime.rs:

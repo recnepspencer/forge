@@ -1,0 +1,1 @@
+{"rustc":13850170861107434965,"features":"[]","declared_features":"[]","target":14022534369768855544,"profile":522796759009225741,"path":16551884107084142411,"deps":[],"local":[{"CheckDepInfo":{"dep_info":"debug/.fingerprint/cfg_aliases-1278444c6e164f56/dep-lib-cfg_aliases","checksum":false}}],"rustflags":["-C","overflow-checks=on"],"config":2069994364910194474,"compile_kind":0}

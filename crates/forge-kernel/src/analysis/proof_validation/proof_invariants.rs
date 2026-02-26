@@ -86,7 +86,7 @@ pub fn validate_lineage_coverage(
 
     let mut seen_indices = BTreeSet::new();
     for event in lineage_events {
-        if let LineageEvent::EntityCreated { lineage, entity } = event {
+        if let LineageEvent::EntityCreated { lineage, entity, .. } = event {
             if entity.kind().as_str() != "Face" { continue; }
             let idx = lineage.get_origin_features()[0] as u32;
             if !seen_indices.insert(idx) {

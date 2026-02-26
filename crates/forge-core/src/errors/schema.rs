@@ -655,9 +655,19 @@ pub enum PersistentResolutionRole {
 pub enum PersistentResolutionIncompatibility {
     UnsupportedEntityKind { requested: crate::EntityKind },
     MissingLineageStore,
+    SubstrateUnavailable,
+    UnsupportedEntityOrigin { origin: PersistentResolutionOriginKind },
     UnsupportedLineageFallback,
     SchemaVersionMismatch { expected: u32, actual: u32 },
     Other { code: String },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PersistentResolutionOriginKind {
+    EulerOperator,
+    GeometricIntersection,
+    ConstraintSolver,
+    Unknown,
 }
 
 impl fmt::Display for MergeError {

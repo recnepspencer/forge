@@ -25,6 +25,7 @@ use forge_core::KernelError;
 use crate::arena::{TopologyArena};
 use crate::hashing::compute_arena_topology_hash;
 use crate::lineage::{LineageEvent, OpSignature};
+use crate::topology::history::lineage_link::ReidentificationLinkIndex;
 use crate::lineage_store::LineageStore;
 use crate::replay::{ReplayLog, ReplayEntry};
 use crate::handles::{FaceId, VertexId, HalfEdgeId, LoopId, ShellId, BodyId, LumpId, RegionId, EdgeId};
@@ -95,6 +96,11 @@ pub struct TopologyState {
     /// Accumulated across epochs: each `commit()` appends the draft's events
     /// to the prior state's history so the full provenance chain survives.
     lineage_events: Arc<Vec<LineageEvent>>,
+    /// Queryable one-hop lineage linkage index for persistent re-identification.
+    ///
+    /// Built at commit time from `lineage_events`. Snapshot-scoped + deterministic.
+    #[serde(default)]
+    reidentification_link_index: Arc<ReidentificationLinkIndex>,
 }
 
 impl TopologyState {
@@ -107,6 +113,7 @@ impl TopologyState {
             topology_hash: 0,
             arena: Arc::new(TopologyArena::new()),
             lineage_events: Arc::new(Vec::new()),
+            reidentification_link_index: Arc::new(ReidentificationLinkIndex::default()),
         }
     }
 
@@ -143,6 +150,11 @@ impl TopologyState {
     /// The chronological lineage event log accumulated across all epochs.
     pub fn lineage_events(&self) -> &[LineageEvent] {
         &self.lineage_events
+    }
+
+    /// One-hop re-identification linkage index built from committed lineage events.
+    pub fn reidentification_link_index(&self) -> &ReidentificationLinkIndex {
+        &self.reidentification_link_index
     }
 
     /// Begin a transactional mutation by consuming the state (Zero-Cost).
@@ -242,7 +254,14 @@ impl MutableDraft {
         self.topology_hash
     }
 
-    /// Record a lineage event during mutation.
+    /// Record a lineage event during mutation on the explicit/manual lineage channel.
+    ///
+    /// Forge currently has two lineage event sources in a draft:
+    /// - `lineage_store`: live arena-driven provenance events emitted by topology mutations
+    /// - `lineage_log`: explicit/manual events emitted by higher-level orchestration/tests
+    ///
+    /// Commit semantics must persist both channels into the committed chronology.
+    /// This method exists for the explicit/manual channel.
     pub fn log_lineage_event(&mut self, event: LineageEvent) {
         self.lineage_log.push(event);
     }
@@ -362,10 +381,16 @@ impl MutableDraft {
         let topology_hash = self.compute_topology_hash();
         let committed_arena = std::mem::take(&mut self.arena);
 
-        // Drain the lineage store and append to the prior history.
-        let new_events = self.lineage_store.drain_events();
+        // Drain lineage sources and append to the prior history.
+        //
+        // `lineage_log` is the explicit/manual lineage channel used by some
+        // callers and tests; `lineage_store` is the live arena-driven lineage
+        // event source. Both are part of the committed chronology.
+        let mut new_events = std::mem::take(&mut self.lineage_log);
+        new_events.extend(self.lineage_store.drain_events());
         let mut all_events = std::mem::take(&mut self.prior_lineage_events);
         all_events.extend(new_events);
+        let reid_index = ReidentificationLinkIndex::from_lineage_events(self.next_epoch, &all_events);
 
         Ok(TopologyState {
             epoch: self.next_epoch,
@@ -374,6 +399,7 @@ impl MutableDraft {
             topology_hash,
             arena: Arc::new(committed_arena),
             lineage_events: Arc::new(all_events),
+            reidentification_link_index: Arc::new(reid_index),
         })
     }
 
@@ -398,9 +424,11 @@ impl MutableDraft {
         let topology_hash = self.compute_topology_hash();
         let committed_arena = std::mem::take(&mut self.arena);
 
-        let new_events = self.lineage_store.drain_events();
+        let mut new_events = std::mem::take(&mut self.lineage_log);
+        new_events.extend(self.lineage_store.drain_events());
         let mut all_events = std::mem::take(&mut self.prior_lineage_events);
         all_events.extend(new_events);
+        let reid_index = ReidentificationLinkIndex::from_lineage_events(self.next_epoch, &all_events);
 
         Ok(TopologyState {
             epoch: self.next_epoch,
@@ -409,6 +437,7 @@ impl MutableDraft {
             topology_hash,
             arena: Arc::new(committed_arena),
             lineage_events: Arc::new(all_events),
+            reidentification_link_index: Arc::new(reid_index),
         })
     }
 
@@ -542,6 +571,9 @@ impl std::fmt::Debug for MutableDraft {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use forge_core::{EntityKind, EntityRef};
+    use crate::lineage::{Lineage, LineageEntityRef};
+    use serde_json::Value;
 
     #[test]
     fn empty_state_has_epoch_zero() {
@@ -614,5 +646,193 @@ mod tests {
         let after_geom = draft_geom.commit().unwrap();
 
         assert_eq!(after_topo.topology_hash(), after_geom.topology_hash());
+    }
+
+    #[test]
+    fn commit_builds_reidentification_index_from_generational_lineage_events() {
+        let state = TopologyState::empty();
+        let mut draft = state.into_mutation();
+
+        let lineage = Lineage::root(7, OpSignature::with_id("make_face", 1));
+        draft
+            .lineage_store
+            .record_creation_with_snapshot(
+                EntityRef::new(EntityKind::Face, 42),
+                LineageEntityRef::new(EntityKind::Face, 42, 3),
+                lineage.clone(),
+            );
+
+        let committed = draft.commit().unwrap();
+        let hits = committed
+            .reidentification_link_index()
+            .find_by_child_hash(lineage.get_ancestry_hash(), Some(EntityKind::Face));
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].child_snapshot.index, 42);
+        assert_eq!(hits[0].child_snapshot.generation, 3);
+    }
+
+    #[test]
+    fn topology_state_serde_round_trip_preserves_reidentification_index() {
+        let committed = TopologyState {
+            epoch: 1,
+            topology_version: 1,
+            geometry_version: 0,
+            topology_hash: 0,
+            arena: Arc::new(crate::arena::TopologyArena::new()),
+            lineage_events: Arc::new(Vec::new()),
+            reidentification_link_index: Arc::new(crate::topology::history::lineage_link::ReidentificationLinkIndex {
+                schema_version: crate::topology::history::lineage_link::LinkSchemaVersion::V1,
+                epoch: 1,
+                records: vec![crate::topology::history::lineage_link::ReidentificationLinkRecord {
+                    schema_version: crate::topology::history::lineage_link::LinkSchemaVersion::V1,
+                    child_snapshot: crate::topology::history::lineage_link::TopoSnapshotHandleRef {
+                        kind: EntityKind::Face,
+                        index: 5,
+                        generation: 2,
+                    },
+                    child_ancestry_hash: 42,
+                    parent_ancestry_hashes: vec![7],
+                    parent_linkage_mode: crate::lineage::ParentLinkageMode::Single,
+                    parent_snapshot: None,
+                    origin_kind: crate::topology::history::lineage_link::EntityOriginKind::EulerOperator,
+                    creation_op_name: "make_face".to_string(),
+                    creation_op_invocation: 1,
+                    epoch: 1,
+                    origin_features: vec![1],
+                }],
+            }),
+        };
+
+        let json = serde_json::to_value(&committed).unwrap();
+        let decoded: TopologyState = serde_json::from_value(json).unwrap();
+        let hits = decoded
+            .reidentification_link_index()
+            .find_by_child_hash(42, Some(EntityKind::Face));
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].child_snapshot.generation, 2);
+    }
+
+    #[test]
+    fn topology_state_legacy_deserialize_missing_reidentification_index_defaults_empty() {
+        let state = TopologyState::empty();
+        let mut json = serde_json::to_value(&state).unwrap();
+        if let Value::Object(map) = &mut json {
+            map.remove("reidentification_link_index");
+        }
+        let decoded: TopologyState = serde_json::from_value(json).unwrap();
+        assert!(decoded.reidentification_link_index().records.is_empty());
+    }
+
+    #[test]
+    fn commit_level_reidentification_index_order_is_deterministic_despite_event_insertion_order() {
+        let make_state = |first: (u32, u32), second: (u32, u32)| {
+            let state = TopologyState::empty();
+            let mut draft = state.into_mutation();
+            let root = Lineage::root(1, OpSignature::with_id("root", 1));
+            let child = Lineage::derive(&root, OpSignature::with_id("derive", 2));
+            draft.lineage_store.record_creation_with_snapshot(
+                EntityRef::new(EntityKind::Face, first.0),
+                LineageEntityRef::new(EntityKind::Face, first.0, first.1),
+                child.clone(),
+            );
+            draft.lineage_store.record_creation_with_snapshot(
+                EntityRef::new(EntityKind::Face, second.0),
+                LineageEntityRef::new(EntityKind::Face, second.0, second.1),
+                child.clone(),
+            );
+            (draft.commit().unwrap(), child.get_ancestry_hash())
+        };
+
+        let (a, hash_a) = make_state((20, 2), (10, 1));
+        let (b, hash_b) = make_state((10, 1), (20, 2));
+        assert_eq!(hash_a, hash_b);
+
+        let seq_a: Vec<(u32, u32)> = a
+            .reidentification_link_index()
+            .find_by_child_hash(hash_a, Some(EntityKind::Face))
+            .into_iter()
+            .map(|r| (r.child_snapshot.index, r.child_snapshot.generation))
+            .collect();
+        let seq_b: Vec<(u32, u32)> = b
+            .reidentification_link_index()
+            .find_by_child_hash(hash_b, Some(EntityKind::Face))
+            .into_iter()
+            .map(|r| (r.child_snapshot.index, r.child_snapshot.generation))
+            .collect();
+        assert_eq!(seq_a, seq_b);
+    }
+
+    #[test]
+    fn commit_persists_manual_lineage_log_events() {
+        let mut draft = TopologyState::empty().into_mutation();
+        let root = Lineage::root(1, OpSignature::with_id("root", 1));
+        let child = Lineage::derive(&root, OpSignature::with_id("child", 2));
+        draft.log_lineage_event(LineageEvent::EntityCreated {
+            entity: EntityRef::new(EntityKind::Face, 42),
+            entity_snapshot: None,
+            lineage: child.clone(),
+        });
+
+        let committed = draft.commit().expect("manual lineage log event commit");
+        assert_eq!(committed.lineage_events().len(), 1);
+        match &committed.lineage_events()[0] {
+            LineageEvent::EntityCreated { entity, entity_snapshot, lineage } => {
+                assert_eq!(entity.kind(), EntityKind::Face);
+                assert_eq!(entity.index(), 42);
+                assert!(entity_snapshot.is_none());
+                assert_eq!(lineage.get_ancestry_hash(), child.get_ancestry_hash());
+            }
+            other => panic!("expected EntityCreated event, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn commit_persists_both_lineage_channels_deterministically() {
+        let mut draft = TopologyState::empty().into_mutation();
+
+        let manual_root = Lineage::root(10, OpSignature::with_id("manual_root", 1));
+        let manual_child = Lineage::derive(&manual_root, OpSignature::with_id("manual_child", 2));
+        draft.log_lineage_event(LineageEvent::EntityCreated {
+            entity: EntityRef::new(EntityKind::Face, 100),
+            entity_snapshot: None,
+            lineage: manual_child.clone(),
+        });
+
+        let store_root = Lineage::root(20, OpSignature::with_id("store_root", 1));
+        let store_child = Lineage::derive(&store_root, OpSignature::with_id("store_child", 2));
+        draft.lineage_store.record_creation_with_snapshot(
+            EntityRef::new(EntityKind::Face, 200),
+            LineageEntityRef::new(EntityKind::Face, 200, 7),
+            store_child.clone(),
+        );
+
+        let committed = draft.commit().expect("mixed lineage channels commit");
+        let events = committed.lineage_events();
+        assert_eq!(events.len(), 2, "both lineage channels must be persisted");
+
+        let mut manual_seen = false;
+        let mut store_seen = false;
+        for ev in events {
+            match ev {
+                LineageEvent::EntityCreated { entity, entity_snapshot, lineage } if lineage.get_ancestry_hash() == manual_child.get_ancestry_hash() => {
+                    assert_eq!(entity.kind(), EntityKind::Face);
+                    assert_eq!(entity.index(), 100);
+                    assert!(entity_snapshot.is_none(), "manual channel event should remain explicit legacy/none");
+                    manual_seen = true;
+                }
+                LineageEvent::EntityCreated { entity, entity_snapshot, lineage } if lineage.get_ancestry_hash() == store_child.get_ancestry_hash() => {
+                    assert_eq!(entity.kind(), EntityKind::Face);
+                    assert_eq!(entity.index(), 200);
+                    assert_eq!(
+                        *entity_snapshot,
+                        Some(LineageEntityRef::new(EntityKind::Face, 200, 7)),
+                        "lineage_store event must preserve generational snapshot"
+                    );
+                    store_seen = true;
+                }
+                _ => {}
+            }
+        }
+        assert!(manual_seen && store_seen, "must persist one event from each lineage channel");
     }
 }

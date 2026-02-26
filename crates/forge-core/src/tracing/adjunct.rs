@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{DecisionId, PolicyDecisionTracePayload, ResolutionTracePayload};
+use super::{DecisionId, PolicyDecisionTracePayload, ResolutionTracePayload, ReidentificationTracePayload};
 
 /// Stable payload kind tag for `PolicyDecisionTracePayload`.
 pub const POLICY_DECISION_TRACE_PAYLOAD_KIND: &str = "policy_decision";
@@ -17,6 +17,10 @@ pub const POLICY_DECISION_TRACE_PAYLOAD_VERSION: u32 = 2;
 pub const RESOLUTION_TRACE_PAYLOAD_KIND: &str = "name_resolution";
 /// Version of the serialized `ResolutionTracePayload` adjunct schema.
 pub const RESOLUTION_TRACE_PAYLOAD_VERSION: u32 = 1;
+/// Stable payload kind tag for `ReidentificationTracePayload`.
+pub const REIDENTIFICATION_TRACE_PAYLOAD_KIND: &str = "reidentification";
+/// Version of the serialized `ReidentificationTracePayload` adjunct schema.
+pub const REIDENTIFICATION_TRACE_PAYLOAD_VERSION: u32 = 1;
 
 /// Versioned typed adjunct payload attached to a trace decision.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -74,6 +78,18 @@ impl TraceAdjunctRecord {
         )
     }
 
+    /// Build a versioned adjunct record from a typed re-identification payload.
+    pub fn from_reidentification_payload(payload: &ReidentificationTracePayload) -> Self {
+        let payload_json = serde_json::to_value(payload)
+            .expect("ReidentificationTracePayload must serialize for trace adjunct transport");
+        Self::new(
+            payload.decision_id,
+            REIDENTIFICATION_TRACE_PAYLOAD_KIND,
+            REIDENTIFICATION_TRACE_PAYLOAD_VERSION,
+            payload_json,
+        )
+    }
+
     /// Decode a typed policy payload from an adjunct record.
     pub fn as_policy_payload(&self) -> Option<Result<PolicyDecisionTracePayload, serde_json::Error>> {
         if self.payload_kind != POLICY_DECISION_TRACE_PAYLOAD_KIND {
@@ -85,6 +101,14 @@ impl TraceAdjunctRecord {
     /// Decode a typed resolution payload from an adjunct record.
     pub fn as_resolution_payload(&self) -> Option<Result<ResolutionTracePayload, serde_json::Error>> {
         if self.payload_kind != RESOLUTION_TRACE_PAYLOAD_KIND {
+            return None;
+        }
+        Some(serde_json::from_value(self.payload_json.clone()))
+    }
+
+    /// Decode a typed re-identification payload from an adjunct record.
+    pub fn as_reidentification_payload(&self) -> Option<Result<ReidentificationTracePayload, serde_json::Error>> {
+        if self.payload_kind != REIDENTIFICATION_TRACE_PAYLOAD_KIND {
             return None;
         }
         Some(serde_json::from_value(self.payload_json.clone()))

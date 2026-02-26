@@ -13,8 +13,8 @@
 
 #[cfg(test)]
 mod tests {
-    use forge_geom::algorithms::boundary_cert::schema::*;
     use forge_geom::algorithms::boundary_cert::eval::*;
+    use forge_geom::algorithms::boundary_cert::schema::*;
     use std::sync::{Mutex, OnceLock};
 
     // =====================================================================
@@ -61,7 +61,13 @@ mod tests {
         let boundary = ProjectedBoundary2D::new(segments, frame);
         let cert = certify_boundary(&boundary);
         assert!(
-            matches!(cert, WeakSimpleCertificate::Rejected { reason: BoundaryRejectReason::OverlappingSegments, .. }),
+            matches!(
+                cert,
+                WeakSimpleCertificate::Rejected {
+                    reason: BoundaryRejectReason::OverlappingSegments,
+                    ..
+                }
+            ),
             "Collinear overlap MUST be rejected, got {:?}",
             cert,
         );
@@ -124,7 +130,13 @@ mod tests {
         let boundary = ProjectedBoundary2D::new(segments, frame);
         let cert = certify_boundary(&boundary);
         assert!(
-            matches!(cert, WeakSimpleCertificate::Rejected { reason: BoundaryRejectReason::SelfCrossing, .. }),
+            matches!(
+                cert,
+                WeakSimpleCertificate::Rejected {
+                    reason: BoundaryRejectReason::SelfCrossing,
+                    ..
+                }
+            ),
             "Exact crossing must be Rejected with SelfCrossing, got {:?}",
             cert,
         );
@@ -141,7 +153,10 @@ mod tests {
         let frame = ProjectionFrame2D::new(2, 0, 1, 1.0);
         let boundary = ProjectedBoundary2D::new(segments, frame);
         assert!(
-            matches!(certify_boundary(&boundary), WeakSimpleCertificate::Rejected { .. }),
+            matches!(
+                certify_boundary(&boundary),
+                WeakSimpleCertificate::Rejected { .. }
+            ),
             "Collinear triangle is zero-area degenerate — must be rejected",
         );
     }
@@ -161,7 +176,13 @@ mod tests {
         let frame = ProjectionFrame2D::new(2, 0, 1, 1.0);
         let boundary = ProjectedBoundary2D::new(segments, frame);
         assert!(
-            matches!(certify_boundary(&boundary), WeakSimpleCertificate::Rejected { reason: BoundaryRejectReason::SelfCrossing, .. }),
+            matches!(
+                certify_boundary(&boundary),
+                WeakSimpleCertificate::Rejected {
+                    reason: BoundaryRejectReason::SelfCrossing,
+                    ..
+                }
+            ),
             "Pentagram must be SelfCrossing",
         );
     }
@@ -172,12 +193,20 @@ mod tests {
         use forge_topo::bitset::EntityBitset;
 
         let mut group_a = EntityBitset::with_capacity(10);
-        group_a.insert(0).expect("bitset capacity must cover test indices");
-        group_a.insert(1).expect("bitset capacity must cover test indices");
+        group_a
+            .insert(0)
+            .expect("bitset capacity must cover test indices");
+        group_a
+            .insert(1)
+            .expect("bitset capacity must cover test indices");
 
         let mut group_b = EntityBitset::with_capacity(10);
-        group_b.insert(2).expect("bitset capacity must cover test indices");
-        group_b.insert(3).expect("bitset capacity must cover test indices");
+        group_b
+            .insert(2)
+            .expect("bitset capacity must cover test indices");
+        group_b
+            .insert(3)
+            .expect("bitset capacity must cover test indices");
 
         assert_ne!(
             compute_group_hash(&group_a),
@@ -190,16 +219,25 @@ mod tests {
     fn same_group_produces_same_decision_id() {
         use forge_topo::bitset::EntityBitset;
         let mut group = EntityBitset::with_capacity(10);
-        group.insert(0).expect("bitset capacity must cover test indices");
-        group.insert(3).expect("bitset capacity must cover test indices");
-        group.insert(7).expect("bitset capacity must cover test indices");
+        group
+            .insert(0)
+            .expect("bitset capacity must cover test indices");
+        group
+            .insert(3)
+            .expect("bitset capacity must cover test indices");
+        group
+            .insert(7)
+            .expect("bitset capacity must cover test indices");
         assert_eq!(compute_group_hash(&group), compute_group_hash(&group));
     }
 
     fn compute_group_hash(group: &forge_topo::bitset::EntityBitset) -> u64 {
         let mut h: u64 = 0xcbf29ce484222325;
         for idx in 0..group.capacity() {
-            if group.contains(idx).expect("bitset capacity must cover test indices") {
+            if group
+                .contains(idx)
+                .expect("bitset capacity must cover test indices")
+            {
                 h = h.wrapping_mul(0x100000001b3) ^ (idx as u64);
             }
         }
@@ -213,16 +251,17 @@ mod tests {
     // → boundary_adapter → certify_merge_boundary → trace propagation.
     // =====================================================================
 
-    use crate::geometry_state::GeometryState;
-    use crate::core::ModelingContext;
     use super::super::nmt_eval::{
-        test_build_merge_plan, test_validate_connectivity, resolve_merge_region_selection_persistent,
-        execute_sheet_region_merge_persistent,
+        execute_sheet_region_merge_persistent, resolve_merge_region_selection_persistent,
+        test_build_merge_plan, test_map_resolution_incompatibility_for_persistent,
         test_resolve_face_ref_result_direct, test_resolve_face_ref_result_with_lineage_fallback,
+        test_validate_connectivity,
     };
     use super::super::schema::{MergeRegionSelectionPersistent, PersistentFaceRef};
-    use forge_topo::topology::naming::{PersistentName, assign_name};
+    use crate::core::ModelingContext;
+    use crate::geometry_state::GeometryState;
     use forge_topo::topology::naming::Selector;
+    use forge_topo::topology::naming::{assign_name, PersistentName};
 
     fn env_test_lock() -> &'static Mutex<()> {
         static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
@@ -242,10 +281,14 @@ mod tests {
         );
 
         let result = crate::operations::boolean::postprocess::merge_coplanar_faces_extracted(
-            crate::core::KernelState::new(topo, geom), &mut ctx,
+            crate::core::KernelState::new(topo, geom),
+            &mut ctx,
         );
 
-        assert!(result.is_ok(), "merge_coplanar_faces_extracted should succeed");
+        assert!(
+            result.is_ok(),
+            "merge_coplanar_faces_extracted should succeed"
+        );
         let (_, merged_count) = result.unwrap();
 
         assert!(
@@ -267,12 +310,15 @@ mod tests {
         let (topo, mut geom, _) = build_two_face_coplanar_sheet_fixture();
         let mut ctx = ModelingContext::new();
 
-        let faces_with_planes_before: usize = topo.arena().iter_faces()
+        let faces_with_planes_before: usize = topo
+            .arena()
+            .iter_faces()
             .filter(|(fid, _)| geom.get_face_plane(*fid).is_some())
             .count();
 
         let result = crate::operations::boolean::postprocess::merge_coplanar_faces_extracted(
-            crate::core::KernelState::new(topo, geom), &mut ctx,
+            crate::core::KernelState::new(topo, geom),
+            &mut ctx,
         );
         assert!(result.is_ok());
         let (new_state, merged_count) = result.unwrap();
@@ -283,7 +329,9 @@ mod tests {
             "Fixture regression: expected merge_coplanar_faces to merge at least one coplanar pair",
         );
 
-        let faces_with_planes_after: usize = new_topo.arena().iter_faces()
+        let faces_with_planes_after: usize = new_topo
+            .arena()
+            .iter_faces()
             .filter(|(fid, _)| new_geom.get_face_plane(*fid).is_some())
             .count();
 
@@ -294,8 +342,7 @@ mod tests {
             "D3 regression: after merging {} faces, there are {} live faces \
              but {} plane bindings. Killed-face bindings were not cleaned. \
              (Before merge: {} bindings)",
-            merged_count, live_face_count, faces_with_planes_after,
-            faces_with_planes_before,
+            merged_count, live_face_count, faces_with_planes_after, faces_with_planes_before,
         );
     }
 
@@ -304,31 +351,48 @@ mod tests {
     ///
     /// Returns the topology, geometry, and the exact two-face selection bitset
     /// for direct `certify_merge_boundary` integration tests.
-    fn build_two_face_coplanar_sheet_fixture(
-    ) -> (
+    fn build_two_face_coplanar_sheet_fixture() -> (
         forge_topo::state::TopologyState,
         GeometryState,
         forge_topo::bitset::EntityBitset,
     ) {
-        use forge_topo::state::TopologyState;
-        use forge_topo::operator::apply_op;
+        use forge_topo::euler::make_edge_face::MakeEdgeFace;
         use forge_topo::euler::make_vertex_face::MakeVertexFace;
         use forge_topo::euler::split_edge::SplitEdge;
-        use forge_topo::euler::make_edge_face::MakeEdgeFace;
+        use forge_topo::operator::apply_op;
+        use forge_topo::state::TopologyState;
 
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.25 })
-            .unwrap()
-            .into_value();
-        let _se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_am, parameter: 0.50 })
-            .unwrap()
-            .into_value();
-        let se3 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.50 })
-            .unwrap()
-            .into_value();
+        let se1 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.25,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let _se2 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se1.he_am,
+                parameter: 0.50,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let se3 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se1.he_mb,
+                parameter: 0.50,
+            },
+        )
+        .unwrap()
+        .into_value();
 
         // Split the 4-vertex boundary into two faces via a diagonal.
         let mef = apply_op(
@@ -345,15 +409,20 @@ mod tests {
         let topo = draft.commit().expect("fixture topology commit");
 
         let mut group = forge_topo::bitset::EntityBitset::for_faces(topo.arena());
-        group.insert(mvf.face.index()).expect("bitset capacity must cover fixture faces");
-        group.insert(mef.new_face.index()).expect("bitset capacity must cover fixture faces");
+        group
+            .insert(mvf.face.index())
+            .expect("bitset capacity must cover fixture faces");
+        group
+            .insert(mef.new_face.index())
+            .expect("bitset capacity must cover fixture faces");
 
         let mut geom = GeometryState::new();
-        let perimeter = forge_topo::algorithms::region_extraction::walk_face_group_boundary_perimeter(
-            topo.arena(),
-            &group,
-        )
-        .expect("fixture perimeter extraction");
+        let perimeter =
+            forge_topo::algorithms::region_extraction::walk_face_group_boundary_perimeter(
+                topo.arena(),
+                &group,
+            )
+            .expect("fixture perimeter extraction");
         assert_eq!(
             perimeter.len(),
             4,
@@ -388,12 +457,18 @@ mod tests {
                 face_ids.push(fid);
             }
         }
-        assert!(face_ids.len() >= 2, "fixture must contain at least two selected faces");
+        assert!(
+            face_ids.len() >= 2,
+            "fixture must contain at least two selected faces"
+        );
 
         let source_face = face_ids[0];
         let target_face = face_ids[1];
-        let name = assign_name(topo.arena(), forge_topo::attributes::EntityKey::Face(source_face))
-            .expect("assign source face name");
+        let name = assign_name(
+            topo.arena(),
+            forge_topo::attributes::EntityKey::Face(source_face),
+        )
+        .expect("assign source face name");
 
         let mut draft = topo.into_mutation();
         let source_lineage = draft
@@ -403,7 +478,8 @@ mod tests {
             .lineage()
             .cloned()
             .expect("source face lineage");
-        draft.arena_mut()
+        draft
+            .arena_mut()
             .get_face_mut(target_face)
             .expect("target face exists")
             .set_lineage(Some(source_lineage));
@@ -451,21 +527,21 @@ mod tests {
                 if surviving.is_none() {
                     surviving = Some(fid);
                 }
-                selected_names.push(assign_name(topo.arena(), forge_topo::attributes::EntityKey::Face(fid))
-                    .expect("assign face name"));
+                selected_names.push(
+                    assign_name(topo.arena(), forge_topo::attributes::EntityKey::Face(fid))
+                        .expect("assign face name"),
+                );
             }
         }
         selected_names.sort_by_key(|n| (n.get_ancestry_hash(), n.get_ordinal()));
         let surviving_name = assign_name(
             topo.arena(),
             forge_topo::attributes::EntityKey::Face(surviving.expect("fixture face")),
-        ).expect("assign surviving name");
+        )
+        .expect("assign surviving name");
 
-        let persistent = MergeRegionSelectionPersistent::new(
-            selected_names,
-            Vec::new(),
-            surviving_name,
-        );
+        let persistent =
+            MergeRegionSelectionPersistent::new(selected_names, Vec::new(), surviving_name);
         let state = crate::core::KernelState::new(topo, GeometryState::new());
         let mut ctx = ModelingContext::new();
 
@@ -473,8 +549,15 @@ mod tests {
             .expect("persistent selection should resolve");
 
         assert_eq!(resolved.get_selected_faces().iter_ones().count(), 2);
-        assert!(resolved.get_selected_faces().contains(resolved.get_surviving_face().index()).unwrap());
-        assert_eq!(ctx.get_trace_adjuncts().records().len(), 3, "2 selected + 1 surviving resolutions");
+        assert!(resolved
+            .get_selected_faces()
+            .contains(resolved.get_surviving_face().index())
+            .unwrap());
+        assert_eq!(
+            ctx.get_trace_adjuncts().records().len(),
+            3,
+            "2 selected + 1 surviving resolutions"
+        );
     }
 
     #[test]
@@ -487,20 +570,20 @@ mod tests {
                 if surviving.is_none() {
                     surviving = Some(fid);
                 }
-                selected_names.push(assign_name(topo.arena(), forge_topo::attributes::EntityKey::Face(fid))
-                    .expect("assign face name"));
+                selected_names.push(
+                    assign_name(topo.arena(), forge_topo::attributes::EntityKey::Face(fid))
+                        .expect("assign face name"),
+                );
             }
         }
         let surviving_name = assign_name(
             topo.arena(),
             forge_topo::attributes::EntityKey::Face(surviving.expect("fixture face")),
-        ).expect("assign surviving name");
+        )
+        .expect("assign surviving name");
 
-        let persistent = MergeRegionSelectionPersistent::new(
-            selected_names,
-            Vec::new(),
-            surviving_name,
-        );
+        let persistent =
+            MergeRegionSelectionPersistent::new(selected_names, Vec::new(), surviving_name);
         let state = crate::core::KernelState::new(topo, geom);
         let mut ctx = ModelingContext::new();
 
@@ -509,14 +592,19 @@ mod tests {
         let output = op.into_value();
         let (_new_state, merge) = output.into_parts();
 
-        assert_eq!(merge.get_killed_faces().len(), 1, "two-face merge should kill exactly one face");
+        assert_eq!(
+            merge.get_killed_faces().len(),
+            1,
+            "two-face merge should kill exactly one face"
+        );
     }
 
     #[test]
     fn persistent_selection_missing_face_fails_closed_with_typed_resolution_adjunct() {
         let (topo, _geom, _group) = build_two_face_coplanar_sheet_fixture();
         let missing = PersistentName::new(0xdead_beef, forge_core::EntityKind::Face, 0);
-        let persistent = MergeRegionSelectionPersistent::new(vec![missing.clone()], Vec::new(), missing);
+        let persistent =
+            MergeRegionSelectionPersistent::new(vec![missing.clone()], Vec::new(), missing);
         let state = crate::core::KernelState::new(topo, GeometryState::new());
         let mut ctx = ModelingContext::new();
 
@@ -524,9 +612,12 @@ mod tests {
             .expect_err("missing persistent name must fail closed");
         match err {
             forge_core::KernelError::MergeFailure(
-                forge_core::errors::MergeError::PersistentResolutionMissing { role, query }
+                forge_core::errors::MergeError::PersistentResolutionMissing { role, query },
             ) => {
-                assert_eq!(role, forge_core::errors::PersistentResolutionRole::SurvivingFace);
+                assert_eq!(
+                    role,
+                    forge_core::errors::PersistentResolutionRole::SurvivingFace
+                );
                 assert_eq!(
                     query,
                     forge_core::ResolutionQuerySummary::PersistentName {
@@ -536,7 +627,10 @@ mod tests {
                     }
                 );
             }
-            other => panic!("expected typed PersistentResolutionMissing merge error, got {:?}", other),
+            other => panic!(
+                "expected typed PersistentResolutionMissing merge error, got {:?}",
+                other
+            ),
         }
 
         let payload = ctx.get_trace_adjuncts().records()[0]
@@ -544,7 +638,10 @@ mod tests {
             .expect("resolution adjunct kind")
             .expect("decode resolution payload");
         assert_eq!(payload.outcome, forge_core::ResolutionOutcome::Missing);
-        assert_eq!(payload.operation_scope_id.as_deref(), Some("sheet_region_merge"));
+        assert_eq!(
+            payload.operation_scope_id.as_deref(),
+            Some("sheet_region_merge")
+        );
     }
 
     #[test]
@@ -562,23 +659,30 @@ mod tests {
             .expect_err("split ancestry name must resolve ambiguously and fail closed");
         match err {
             forge_core::KernelError::MergeFailure(
-                forge_core::errors::MergeError::PersistentResolutionAmbiguous { role, candidate_count, query }
+                forge_core::errors::MergeError::PersistentResolutionAmbiguous {
+                    role,
+                    candidate_count,
+                    query,
+                },
             ) => {
-                assert_eq!(role, forge_core::errors::PersistentResolutionRole::SurvivingFace);
+                assert_eq!(
+                    role,
+                    forge_core::errors::PersistentResolutionRole::SurvivingFace
+                );
                 assert!(candidate_count >= 2);
                 assert_eq!(
                     query,
                     forge_core::ResolutionQuerySummary::PersistentName {
                         entity_kind: forge_core::EntityKind::Face,
-                        ancestry_hash_hex: format!(
-                            "{:032x}",
-                            ambiguous_name.get_ancestry_hash()
-                        ),
+                        ancestry_hash_hex: format!("{:032x}", ambiguous_name.get_ancestry_hash()),
                         ordinal: ambiguous_name.get_ordinal(),
                     }
                 );
             }
-            other => panic!("expected typed PersistentResolutionAmbiguous merge error, got {:?}", other),
+            other => panic!(
+                "expected typed PersistentResolutionAmbiguous merge error, got {:?}",
+                other
+            ),
         }
 
         let payload = ctx.get_trace_adjuncts().records()[0]
@@ -586,11 +690,17 @@ mod tests {
             .expect("resolution adjunct kind")
             .expect("decode resolution payload");
         assert_eq!(payload.outcome, forge_core::ResolutionOutcome::Ambiguous);
-        assert!(payload.candidate_count >= 2, "must preserve all candidates, no first-match");
+        assert!(
+            payload.candidate_count >= 2,
+            "must preserve all candidates, no first-match"
+        );
         let ordered = &payload.ordered_candidates;
         let mut sorted = ordered.clone();
         sorted.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
-        assert_eq!(&sorted, ordered, "candidate summaries must be deterministically ordered");
+        assert_eq!(
+            &sorted, ordered,
+            "candidate summaries must be deterministically ordered"
+        );
     }
 
     #[test]
@@ -604,30 +714,416 @@ mod tests {
         let result = test_resolve_face_ref_result_direct(topo.arena(), &selector);
         match result {
             crate::core::ResolutionResult::Ambiguous { candidates, .. } => {
-                assert!(candidates.len() >= 2, "selector ambiguity must preserve multiple candidates");
+                assert!(
+                    candidates.len() >= 2,
+                    "selector ambiguity must preserve multiple candidates"
+                );
                 let ordered = candidates.as_slice();
                 let mut sorted = ordered.to_vec();
                 sorted.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
-                assert_eq!(ordered, sorted.as_slice(), "selector candidates must be deterministically ordered");
+                assert_eq!(
+                    ordered,
+                    sorted.as_slice(),
+                    "selector candidates must be deterministically ordered"
+                );
             }
-            other => panic!("expected Ambiguous typed resolution result, got {:?}", other),
+            other => panic!(
+                "expected Ambiguous typed resolution result, got {:?}",
+                other
+            ),
         }
     }
 
     #[test]
-    fn lineage_fallback_pipeline_unavailable_returns_typed_incompatible_not_missing() {
-        let (topo, _geom, _group) = build_two_face_coplanar_sheet_fixture();
-        let missing = PersistentFaceRef::Name(PersistentName::new(0xfeed_beef, forge_core::EntityKind::Face, 0));
-        let result = test_resolve_face_ref_result_with_lineage_fallback(topo.arena(), &missing);
+    fn lineage_fallback_legacy_history_returns_typed_incompatible_not_missing() {
+        let root = forge_topo::lineage::Lineage::root(
+            1,
+            forge_topo::lineage::OpSignature::with_id("root_face", 1),
+        );
+        let child = forge_topo::lineage::Lineage::derive(
+            &root,
+            forge_topo::lineage::OpSignature::with_id("split_face", 2),
+        );
+
+        let mut draft = forge_topo::state::TopologyState::empty().into_mutation();
+        draft.log_lineage_event(forge_topo::lineage::LineageEvent::EntityCreated {
+            entity: forge_core::EntityRef::new(forge_core::EntityKind::Face, 0),
+            entity_snapshot: None, // legacy/index-only lineage evidence
+            lineage: child,
+        });
+        let topo = draft
+            .commit()
+            .expect("synthetic legacy lineage state must commit");
+
+        let missing = PersistentFaceRef::Name(PersistentName::new(
+            root.get_ancestry_hash(),
+            forge_core::EntityKind::Face,
+            0,
+        ));
+        assert!(
+            forge_topo::topology::naming::resolve_name(
+                topo.arena(),
+                match &missing { PersistentFaceRef::Name(name) => name, _ => unreachable!() }
+            ).is_empty(),
+            "test precondition: no live face exists, so direct persistent-name resolution must miss"
+        );
+        let result = test_resolve_face_ref_result_with_lineage_fallback(&topo, &missing);
         match result {
-            crate::core::ResolutionResult::Incompatible { incompatibility, .. } => {
+            crate::core::ResolutionResult::Incompatible {
+                incompatibility, ..
+            } => {
                 assert!(matches!(
                     incompatibility,
-                    crate::core::ResolutionIncompatibility::UnsupportedResolverMode { .. }
+                    crate::core::ResolutionIncompatibility::LegacyIndexOnlyLineageHistory
                 ));
             }
-            other => panic!("expected typed Incompatible when fallback pipeline is unavailable, got {:?}", other),
+            other => panic!(
+                "expected typed Incompatible for legacy lineage history, got {:?}",
+                other
+            ),
         }
+    }
+
+    #[test]
+    fn lineage_fallback_with_no_descendants_stays_typed_missing() {
+        let (topo, _geom, _group) = build_two_face_coplanar_sheet_fixture();
+        let missing = PersistentFaceRef::Name(PersistentName::new(
+            0xfeed_face_u128,
+            forge_core::EntityKind::Face,
+            0,
+        ));
+
+        assert!(
+            forge_topo::topology::naming::resolve_name(
+                topo.arena(),
+                match &missing {
+                    PersistentFaceRef::Name(name) => name,
+                    _ => unreachable!(),
+                }
+            )
+            .is_empty(),
+            "test precondition: direct persistent-name resolution must miss"
+        );
+
+        let result = test_resolve_face_ref_result_with_lineage_fallback(&topo, &missing);
+        match result {
+            crate::core::ResolutionResult::Missing { evidence, .. } => {
+                assert!(
+                    evidence
+                        .routes_attempted
+                        .contains(&crate::core::ResolverRoute::DirectPersistentName),
+                    "direct route must be recorded"
+                );
+                assert!(
+                    evidence
+                        .routes_attempted
+                        .contains(&crate::core::ResolverRoute::LineageReidentified),
+                    "lineage route attempt must be recorded"
+                );
+            }
+            other => panic!(
+                "expected typed Missing when no lineage descendants exist, got {:?}",
+                other
+            ),
+        }
+    }
+
+    #[test]
+    fn persistent_incompatibility_mapping_preserves_substrate_unavailable_and_origin_kind() {
+        let mapped = test_map_resolution_incompatibility_for_persistent(
+            &crate::core::ResolutionIncompatibility::SubstrateUnavailable,
+        );
+        assert_eq!(
+            mapped,
+            forge_core::errors::PersistentResolutionIncompatibility::SubstrateUnavailable
+        );
+
+        let mapped = test_map_resolution_incompatibility_for_persistent(
+            &crate::core::ResolutionIncompatibility::UnsupportedEntityOrigin {
+                origin: forge_core::errors::PersistentResolutionOriginKind::GeometricIntersection,
+            },
+        );
+        assert_eq!(
+            mapped,
+            forge_core::errors::PersistentResolutionIncompatibility::UnsupportedEntityOrigin {
+                origin: forge_core::errors::PersistentResolutionOriginKind::GeometricIntersection,
+            }
+        );
+    }
+
+    #[test]
+    fn lineage_fallback_resolves_live_descendant_and_traces_lineage_route() {
+        let (topo, _geom, group) = build_two_face_coplanar_sheet_fixture();
+        let target_face = topo
+            .arena()
+            .iter_faces()
+            .find_map(|(fid, _)| {
+                group
+                    .contains(fid.index())
+                    .ok()
+                    .and_then(|in_group| in_group.then_some(fid))
+            })
+            .expect("fixture must have at least one selected face");
+
+        let synthetic_root = forge_topo::lineage::Lineage::root(
+            77,
+            forge_topo::lineage::OpSignature::with_id("synthetic_root_face", 1),
+        );
+        let child = forge_topo::lineage::Lineage::derive(
+            &synthetic_root,
+            forge_topo::lineage::OpSignature::with_id("synthetic_split_face", 2),
+        );
+
+        let mut draft = topo.into_mutation();
+        draft
+            .arena_mut()
+            .get_face_mut(target_face)
+            .expect("target face exists")
+            .set_lineage(Some(child.clone()));
+        draft.log_lineage_event(forge_topo::lineage::LineageEvent::EntityCreated {
+            entity: forge_core::EntityRef::new(forge_core::EntityKind::Face, target_face.index()),
+            entity_snapshot: Some(target_face.into()),
+            lineage: child,
+        });
+        let topo = draft
+            .commit()
+            .expect("synthetic lineage descendant fixture commit");
+
+        let missing_parent_name = PersistentName::new(
+            synthetic_root.get_ancestry_hash(),
+            forge_core::EntityKind::Face,
+            0,
+        );
+        let pref = PersistentFaceRef::Name(missing_parent_name.clone());
+
+        let direct = test_resolve_face_ref_result_direct(topo.arena(), &pref);
+        assert!(
+            matches!(direct, crate::core::ResolutionResult::Missing { .. }),
+            "Direct persistent-name lookup must miss to exercise lineage fallback, got {:?}",
+            direct,
+        );
+
+        let fallback = test_resolve_face_ref_result_with_lineage_fallback(&topo, &pref);
+        match fallback {
+            crate::core::ResolutionResult::Resolved { value, route, .. } => {
+                assert_eq!(
+                    route,
+                    crate::core::ResolverRoute::LineageReidentified,
+                    "lineage fallback success must surface the lineage route",
+                );
+                assert_eq!(value.snapshot_ref.kind, forge_core::EntityKind::Face);
+                assert_eq!(value.snapshot_ref.index, target_face.index());
+                assert_eq!(value.snapshot_ref.generation, target_face.generation());
+            }
+            other => panic!("expected lineage fallback Resolved result, got {:?}", other),
+        }
+
+        let persistent = MergeRegionSelectionPersistent::new(
+            vec![missing_parent_name.clone()],
+            Vec::new(),
+            missing_parent_name,
+        );
+        let state = crate::core::KernelState::new(topo, GeometryState::new());
+        let mut ctx = ModelingContext::new();
+        let resolved = resolve_merge_region_selection_persistent(&state, &persistent, &mut ctx)
+            .expect("persistent resolver should succeed via lineage fallback");
+        assert_eq!(resolved.get_selected_faces().iter_ones().count(), 1);
+        assert_eq!(resolved.get_surviving_face(), target_face);
+
+        let payload = ctx
+            .get_trace_adjuncts()
+            .records()
+            .first()
+            .expect("must emit at least one resolution adjunct")
+            .as_resolution_payload()
+            .expect("resolution adjunct kind")
+            .expect("decode resolution adjunct");
+        assert_eq!(payload.outcome, forge_core::ResolutionOutcome::Resolved);
+        assert_eq!(
+            payload.final_route,
+            forge_core::ResolutionRoute::LineageReidentified,
+            "typed resolution adjunct must preserve lineage route",
+        );
+        assert_eq!(
+            payload.operation_scope_id.as_deref(),
+            Some("sheet_region_merge")
+        );
+
+        let reid_payload = ctx
+            .get_trace_adjuncts()
+            .records()
+            .iter()
+            .find_map(|r| r.as_reidentification_payload())
+            .expect("must emit dedicated reidentification adjunct")
+            .expect("decode reidentification adjunct");
+        assert_eq!(
+            reid_payload.outcome,
+            forge_core::ReidentificationOutcome::Resolved
+        );
+        assert_eq!(
+            reid_payload.compatibility,
+            forge_core::ReidentificationCompatibilitySummary::Available
+        );
+        assert_eq!(
+            reid_payload.operation_scope_id.as_deref(),
+            Some("sheet_region_merge")
+        );
+    }
+
+    #[test]
+    fn lineage_fallback_ambiguous_descendants_fail_closed_with_deterministic_candidates() {
+        let (topo, _geom, group) = build_two_face_coplanar_sheet_fixture();
+        let mut faces: Vec<_> = topo
+            .arena()
+            .iter_faces()
+            .filter_map(|(fid, _)| {
+                group
+                    .contains(fid.index())
+                    .ok()
+                    .and_then(|in_group| in_group.then_some(fid))
+            })
+            .collect();
+        faces.sort_by_key(|f| (f.index(), f.generation()));
+        assert!(faces.len() >= 2, "fixture must have at least two faces");
+        let face_a = faces[0];
+        let face_b = faces[1];
+
+        let synthetic_root = forge_topo::lineage::Lineage::root(
+            88,
+            forge_topo::lineage::OpSignature::with_id("synthetic_root_face", 10),
+        );
+        let child_a = forge_topo::lineage::Lineage::derive(
+            &synthetic_root,
+            forge_topo::lineage::OpSignature::with_id("synthetic_split_face", 11),
+        );
+        let child_b = forge_topo::lineage::Lineage::derive(
+            &synthetic_root,
+            forge_topo::lineage::OpSignature::with_id("synthetic_split_face", 12),
+        );
+
+        let mut draft = topo.into_mutation();
+        draft
+            .arena_mut()
+            .get_face_mut(face_a)
+            .unwrap()
+            .set_lineage(Some(child_a.clone()));
+        draft
+            .arena_mut()
+            .get_face_mut(face_b)
+            .unwrap()
+            .set_lineage(Some(child_b.clone()));
+        draft.log_lineage_event(forge_topo::lineage::LineageEvent::EntityCreated {
+            entity: forge_core::EntityRef::new(forge_core::EntityKind::Face, face_a.index()),
+            entity_snapshot: Some(face_a.into()),
+            lineage: child_a,
+        });
+        draft.log_lineage_event(forge_topo::lineage::LineageEvent::EntityCreated {
+            entity: forge_core::EntityRef::new(forge_core::EntityKind::Face, face_b.index()),
+            entity_snapshot: Some(face_b.into()),
+            lineage: child_b,
+        });
+        let topo = draft
+            .commit()
+            .expect("synthetic ambiguous lineage fixture commit");
+
+        let missing_parent_name = PersistentName::new(
+            synthetic_root.get_ancestry_hash(),
+            forge_core::EntityKind::Face,
+            0,
+        );
+        let pref = PersistentFaceRef::Name(missing_parent_name.clone());
+
+        let direct = test_resolve_face_ref_result_direct(topo.arena(), &pref);
+        assert!(
+            matches!(direct, crate::core::ResolutionResult::Missing { .. }),
+            "Direct persistent-name lookup must miss to exercise lineage fallback, got {:?}",
+            direct,
+        );
+
+        let fallback = test_resolve_face_ref_result_with_lineage_fallback(&topo, &pref);
+        match fallback {
+            crate::core::ResolutionResult::Ambiguous {
+                candidates,
+                evidence,
+                ..
+            } => {
+                assert_eq!(
+                    candidates.len(),
+                    2,
+                    "must preserve both lineage descendants"
+                );
+                assert!(
+                    evidence
+                        .routes_attempted
+                        .contains(&crate::core::ResolverRoute::LineageReidentified),
+                    "lineage route must be recorded in resolver evidence"
+                );
+                let ordered = candidates.as_slice();
+                let mut sorted = ordered.to_vec();
+                sorted.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+                assert_eq!(
+                    ordered,
+                    sorted.as_slice(),
+                    "fallback candidates must be deterministic"
+                );
+            }
+            other => panic!(
+                "expected lineage fallback Ambiguous result, got {:?}",
+                other
+            ),
+        }
+
+        let persistent = MergeRegionSelectionPersistent::new(
+            vec![missing_parent_name.clone()],
+            Vec::new(),
+            missing_parent_name,
+        );
+        let state = crate::core::KernelState::new(topo, GeometryState::new());
+        let mut ctx = ModelingContext::new();
+        let err = resolve_merge_region_selection_persistent(&state, &persistent, &mut ctx)
+            .expect_err("persistent resolver must fail closed on ambiguous lineage descendants");
+        match err {
+            forge_core::KernelError::MergeFailure(
+                forge_core::errors::MergeError::PersistentResolutionAmbiguous {
+                    role,
+                    candidate_count,
+                    ..
+                },
+            ) => {
+                assert_eq!(
+                    role,
+                    forge_core::errors::PersistentResolutionRole::SurvivingFace
+                );
+                assert_eq!(candidate_count, 2);
+            }
+            other => panic!(
+                "expected typed PersistentResolutionAmbiguous merge error, got {:?}",
+                other
+            ),
+        }
+
+        let payload = ctx
+            .get_trace_adjuncts()
+            .records()
+            .first()
+            .expect("must emit at least one resolution adjunct")
+            .as_resolution_payload()
+            .expect("resolution adjunct kind")
+            .expect("decode resolution adjunct");
+        assert_eq!(payload.outcome, forge_core::ResolutionOutcome::Ambiguous);
+        assert_eq!(payload.candidate_count, 2);
+        assert!(
+            payload
+                .routes_attempted
+                .contains(&forge_core::ResolutionRoute::LineageReidentified),
+            "typed resolution adjunct must record attempted lineage route",
+        );
+        let mut sorted = payload.ordered_candidates.clone();
+        sorted.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+        assert_eq!(
+            payload.ordered_candidates, sorted,
+            "adjunct candidate summaries must be deterministic"
+        );
     }
 
     /// Integration: decision metadata uses content-derived ID and outcome-accurate kind.
@@ -646,7 +1142,8 @@ mod tests {
 
         let d = &decisions[0];
         assert_ne!(
-            d.get_id().0, 0,
+            d.get_id().0,
+            0,
             "D5 regression: DecisionId should not be 0 — should be content-derived hash",
         );
         match d.get_kind() {
@@ -752,15 +1249,17 @@ mod tests {
     // JoinFaces/JoinFacesNmt dispatch, geometry cleanup, and traced decisions.
     // =====================================================================
 
-    use crate::core::KernelState;
     use crate::core::kernel_draft::KernelDraft;
+    use crate::core::KernelState;
     use crate::mesh_builder::make_cube;
     use crate::operations::boolean::postprocess::merge_eligibility::nmt_eval::execute_sheet_region_merge;
-    use crate::operations::boolean::postprocess::merge_eligibility::schema::{MergeRegionSelection, RadialUseSelector};
-    use forge_core::KernelError;
+    use crate::operations::boolean::postprocess::merge_eligibility::schema::{
+        MergeRegionSelection, RadialUseSelector,
+    };
     use forge_core::errors::MergeError;
+    use forge_core::KernelError;
     use forge_topo::bitset::EntityBitset;
-    use forge_topo::handles::{FaceId, HalfEdgeId, EdgeId};
+    use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId};
 
     /// Build a cube KernelState with one edge inflated to valence 3.
     ///
@@ -769,10 +1268,10 @@ mod tests {
     /// and face_extra is the manually inserted third face.
     fn build_cube_with_valence_3_edge() -> (
         KernelState,
-        u32,                // target edge index
-        FaceId,             // face_a (original, adjacent to target edge)
-        FaceId,             // face_b (original, adjacent to target edge)
-        FaceId,             // face_extra (inserted, creating valence 3)
+        u32,    // target edge index
+        FaceId, // face_a (original, adjacent to target edge)
+        FaceId, // face_b (original, adjacent to target edge)
+        FaceId, // face_extra (inserted, creating valence 3)
     ) {
         let cube = make_cube([0.0, 0.0, 0.0], 2.0).expect("make_cube must succeed");
         let (topo, geom) = cube.into_parts();
@@ -781,7 +1280,10 @@ mod tests {
         let mut draft = KernelDraft::new(state);
 
         // Find the first edge and its two adjacent faces.
-        let (target_edge_id, target_edge_data) = draft.arena().iter_edges().next()
+        let (target_edge_id, target_edge_data) = draft
+            .arena()
+            .iter_edges()
+            .next()
             .expect("cube must have edges");
         let target_edge_idx = target_edge_id.index();
 
@@ -794,7 +1296,9 @@ mod tests {
         let v_b = draft.arena().get_half_edge(twin_he).unwrap().origin();
 
         // Get face_a's plane for the extra face.
-        let plane_a = draft.geometry().get_face_plane(face_a_id)
+        let plane_a = draft
+            .geometry()
+            .get_face_plane(face_a_id)
             .cloned()
             .expect("cube faces must have plane bindings");
 
@@ -802,57 +1306,88 @@ mod tests {
         let shell = draft.arena().get_face(face_a_id).unwrap().shell();
         let ph_loop = forge_topo::handles::LoopId::from_raw_parts(u32::MAX, 0);
 
-        let extra_face = draft.draft_mut().insert_face(
-            forge_topo::arena::FaceData::new(ph_loop, shell),
-        );
-        let extra_edge = draft.draft_mut().insert_edge(
-            forge_topo::arena::EdgeData::new(HalfEdgeId::from_raw_parts(u32::MAX, 0)),
-        );
+        let extra_face = draft
+            .draft_mut()
+            .insert_face(forge_topo::arena::FaceData::new(ph_loop, shell));
+        let extra_edge = draft
+            .draft_mut()
+            .insert_edge(forge_topo::arena::EdgeData::new(
+                HalfEdgeId::from_raw_parts(u32::MAX, 0),
+            ));
 
-        let he_fwd = draft.draft_mut().insert_half_edge(
-            forge_topo::arena::HalfEdgeData::new(
+        let he_fwd = draft
+            .draft_mut()
+            .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
                 HalfEdgeId::from_raw_parts(u32::MAX, 0),
                 HalfEdgeId::from_raw_parts(u32::MAX, 0),
                 HalfEdgeId::from_raw_parts(u32::MAX, 0),
                 extra_face,
                 v_a,
                 target_edge_id,
-            ),
-        );
-        let he_ret = draft.draft_mut().insert_half_edge(
-            forge_topo::arena::HalfEdgeData::new(
-                he_fwd, he_fwd, he_fwd,
-                extra_face,
-                v_b,
-                extra_edge,
-            ),
-        );
+            ));
+        let he_ret = draft
+            .draft_mut()
+            .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
+                he_fwd, he_fwd, he_fwd, extra_face, v_b, extra_edge,
+            ));
 
         // Wire the 2-element loop: fwd ↔ ret.
         let dm = draft.draft_mut();
-        dm.arena_mut().get_half_edge_mut(he_fwd).unwrap().set_next(he_ret);
-        dm.arena_mut().get_half_edge_mut(he_fwd).unwrap().set_prev(he_ret);
-        dm.arena_mut().get_half_edge_mut(he_ret).unwrap().set_next(he_fwd);
-        dm.arena_mut().get_half_edge_mut(he_ret).unwrap().set_prev(he_fwd);
-        dm.arena_mut().get_half_edge_mut(he_ret).unwrap().set_radial_next(he_ret);
-        dm.arena_mut().get_edge_mut(extra_edge).unwrap().set_half_edge(he_ret);
+        dm.arena_mut()
+            .get_half_edge_mut(he_fwd)
+            .unwrap()
+            .set_next(he_ret);
+        dm.arena_mut()
+            .get_half_edge_mut(he_fwd)
+            .unwrap()
+            .set_prev(he_ret);
+        dm.arena_mut()
+            .get_half_edge_mut(he_ret)
+            .unwrap()
+            .set_next(he_fwd);
+        dm.arena_mut()
+            .get_half_edge_mut(he_ret)
+            .unwrap()
+            .set_prev(he_fwd);
+        dm.arena_mut()
+            .get_half_edge_mut(he_ret)
+            .unwrap()
+            .set_radial_next(he_ret);
+        dm.arena_mut()
+            .get_edge_mut(extra_edge)
+            .unwrap()
+            .set_half_edge(he_ret);
 
         // Wire the radial ring: entry_he → twin_he → he_fwd → entry_he (valence 3).
-        dm.arena_mut().get_half_edge_mut(entry_he).unwrap().set_radial_next(twin_he);
-        dm.arena_mut().get_half_edge_mut(twin_he).unwrap().set_radial_next(he_fwd);
-        dm.arena_mut().get_half_edge_mut(he_fwd).unwrap().set_radial_next(entry_he);
+        dm.arena_mut()
+            .get_half_edge_mut(entry_he)
+            .unwrap()
+            .set_radial_next(twin_he);
+        dm.arena_mut()
+            .get_half_edge_mut(twin_he)
+            .unwrap()
+            .set_radial_next(he_fwd);
+        dm.arena_mut()
+            .get_half_edge_mut(he_fwd)
+            .unwrap()
+            .set_radial_next(entry_he);
 
         // Create a loop for the extra face.
         let extra_loop = dm.insert_loop(forge_topo::arena::LoopData::new(he_fwd, extra_face));
-        dm.arena_mut().get_face_mut(extra_face).unwrap().set_outer_loop(extra_loop);
+        dm.arena_mut()
+            .get_face_mut(extra_face)
+            .unwrap()
+            .set_outer_loop(extra_loop);
 
         // Give the extra face a plane binding.
         draft.geometry_mut().set_face_plane(extra_face, plane_a);
 
-        let nmt_state = draft.commit_with_mode(
-            forge_topo::validate::ValidationLevel::Minimal,
-            forge_topo::validate::TopologyMode::NmtIntermediate,
-        ).expect("NMT commit must succeed");
+        let nmt_state = draft
+            .commit_with_mode(
+                forge_topo::validate::ValidationLevel::Minimal,
+                forge_topo::validate::TopologyMode::NmtIntermediate,
+            )
+            .expect("NMT commit must succeed");
 
         (nmt_state, target_edge_idx, face_a_id, face_b_id, extra_face)
     }
@@ -917,54 +1452,88 @@ mod tests {
         let shell = draft.arena().get_face(face_a).unwrap().shell();
         let ph_loop = forge_topo::handles::LoopId::from_raw_parts(u32::MAX, 0);
 
-        let face_4 = draft.draft_mut().insert_face(
-            forge_topo::arena::FaceData::new(ph_loop, shell),
-        );
-        let edge_4 = draft.draft_mut().insert_edge(
-            forge_topo::arena::EdgeData::new(HalfEdgeId::from_raw_parts(u32::MAX, 0)),
-        );
-        let he4_fwd = draft.draft_mut().insert_half_edge(
-            forge_topo::arena::HalfEdgeData::new(
+        let face_4 = draft
+            .draft_mut()
+            .insert_face(forge_topo::arena::FaceData::new(ph_loop, shell));
+        let edge_4 = draft
+            .draft_mut()
+            .insert_edge(forge_topo::arena::EdgeData::new(
+                HalfEdgeId::from_raw_parts(u32::MAX, 0),
+            ));
+        let he4_fwd = draft
+            .draft_mut()
+            .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
                 HalfEdgeId::from_raw_parts(u32::MAX, 0),
                 HalfEdgeId::from_raw_parts(u32::MAX, 0),
                 HalfEdgeId::from_raw_parts(u32::MAX, 0),
-                face_4, v_a, target_edge_id,
-            ),
-        );
-        let he4_ret = draft.draft_mut().insert_half_edge(
-            forge_topo::arena::HalfEdgeData::new(
-                he4_fwd, he4_fwd, he4_fwd,
-                face_4, v_b, edge_4,
-            ),
-        );
+                face_4,
+                v_a,
+                target_edge_id,
+            ));
+        let he4_ret = draft
+            .draft_mut()
+            .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
+                he4_fwd, he4_fwd, he4_fwd, face_4, v_b, edge_4,
+            ));
 
         let dm = draft.draft_mut();
-        dm.arena_mut().get_half_edge_mut(he4_fwd).unwrap().set_next(he4_ret);
-        dm.arena_mut().get_half_edge_mut(he4_fwd).unwrap().set_prev(he4_ret);
-        dm.arena_mut().get_half_edge_mut(he4_ret).unwrap().set_next(he4_fwd);
-        dm.arena_mut().get_half_edge_mut(he4_ret).unwrap().set_prev(he4_fwd);
-        dm.arena_mut().get_half_edge_mut(he4_ret).unwrap().set_radial_next(he4_ret);
-        dm.arena_mut().get_edge_mut(edge_4).unwrap().set_half_edge(he4_ret);
+        dm.arena_mut()
+            .get_half_edge_mut(he4_fwd)
+            .unwrap()
+            .set_next(he4_ret);
+        dm.arena_mut()
+            .get_half_edge_mut(he4_fwd)
+            .unwrap()
+            .set_prev(he4_ret);
+        dm.arena_mut()
+            .get_half_edge_mut(he4_ret)
+            .unwrap()
+            .set_next(he4_fwd);
+        dm.arena_mut()
+            .get_half_edge_mut(he4_ret)
+            .unwrap()
+            .set_prev(he4_fwd);
+        dm.arena_mut()
+            .get_half_edge_mut(he4_ret)
+            .unwrap()
+            .set_radial_next(he4_ret);
+        dm.arena_mut()
+            .get_edge_mut(edge_4)
+            .unwrap()
+            .set_half_edge(he4_ret);
 
         // Wire valence-4 ring: find the existing ring and insert he4_fwd.
         let he3 = {
             let mut cur = entry_he;
             loop {
                 let next = dm.arena().get_half_edge(cur).unwrap().radial_next();
-                if next == entry_he { break cur; }
+                if next == entry_he {
+                    break cur;
+                }
                 cur = next;
             }
         };
-        dm.arena_mut().get_half_edge_mut(he3).unwrap().set_radial_next(he4_fwd);
-        dm.arena_mut().get_half_edge_mut(he4_fwd).unwrap().set_radial_next(entry_he);
+        dm.arena_mut()
+            .get_half_edge_mut(he3)
+            .unwrap()
+            .set_radial_next(he4_fwd);
+        dm.arena_mut()
+            .get_half_edge_mut(he4_fwd)
+            .unwrap()
+            .set_radial_next(entry_he);
 
         let l4 = dm.insert_loop(forge_topo::arena::LoopData::new(he4_fwd, face_4));
-        dm.arena_mut().get_face_mut(face_4).unwrap().set_outer_loop(l4);
+        dm.arena_mut()
+            .get_face_mut(face_4)
+            .unwrap()
+            .set_outer_loop(l4);
 
-        let state_v4 = draft.commit_with_mode(
-            forge_topo::validate::ValidationLevel::Minimal,
-            forge_topo::validate::TopologyMode::NmtIntermediate,
-        ).unwrap();
+        let state_v4 = draft
+            .commit_with_mode(
+                forge_topo::validate::ValidationLevel::Minimal,
+                forge_topo::validate::TopologyMode::NmtIntermediate,
+            )
+            .unwrap();
 
         // Now try to merge 3 of the 4 faces without radial selectors.
         let cap = 64;
@@ -981,10 +1550,11 @@ mod tests {
             .expect_err("Must fail on ambiguous valence-4 edge");
 
         assert!(
-            matches!(err,
+            matches!(
+                err,
                 KernelError::MergeFailure(MergeError::AmbiguousRadialSelection { .. })
-                | KernelError::MergeFailure(MergeError::BoundaryCertificationFailed { .. })
-                | KernelError::InternalError { .. }
+                    | KernelError::MergeFailure(MergeError::BoundaryCertificationFailed { .. })
+                    | KernelError::InternalError { .. }
             ),
             "Expected AmbiguousRadialSelection or earlier boundary-gate failure, got: {:?}",
             err,
@@ -998,7 +1568,9 @@ mod tests {
         let (state, edge_idx, face_a, face_b, face_extra) = build_cube_with_valence_3_edge();
 
         let mut draft = KernelDraft::new(state);
-        let target_edge_id = draft.arena().iter_edges()
+        let target_edge_id = draft
+            .arena()
+            .iter_edges()
             .find_map(|(eid, _)| (eid.index() == edge_idx).then_some(eid))
             .expect("target edge must exist");
 
@@ -1011,47 +1583,86 @@ mod tests {
         let shell = draft.arena().get_face(face_a).unwrap().shell();
         let ph_loop = forge_topo::handles::LoopId::from_raw_parts(u32::MAX, 0);
 
-        let face_4 = draft.draft_mut().insert_face(forge_topo::arena::FaceData::new(ph_loop, shell));
-        let edge_4 = draft.draft_mut().insert_edge(
-            forge_topo::arena::EdgeData::new(HalfEdgeId::from_raw_parts(u32::MAX, 0)),
-        );
-        let he4_fwd = draft.draft_mut().insert_half_edge(
-            forge_topo::arena::HalfEdgeData::new(
+        let face_4 = draft
+            .draft_mut()
+            .insert_face(forge_topo::arena::FaceData::new(ph_loop, shell));
+        let edge_4 = draft
+            .draft_mut()
+            .insert_edge(forge_topo::arena::EdgeData::new(
+                HalfEdgeId::from_raw_parts(u32::MAX, 0),
+            ));
+        let he4_fwd = draft
+            .draft_mut()
+            .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
                 HalfEdgeId::from_raw_parts(u32::MAX, 0),
                 HalfEdgeId::from_raw_parts(u32::MAX, 0),
                 HalfEdgeId::from_raw_parts(u32::MAX, 0),
-                face_4, v_a, target_edge_id,
-            ),
-        );
-        let he4_ret = draft.draft_mut().insert_half_edge(
-            forge_topo::arena::HalfEdgeData::new(he4_fwd, he4_fwd, he4_fwd, face_4, v_b, edge_4),
-        );
+                face_4,
+                v_a,
+                target_edge_id,
+            ));
+        let he4_ret = draft
+            .draft_mut()
+            .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
+                he4_fwd, he4_fwd, he4_fwd, face_4, v_b, edge_4,
+            ));
 
         let dm = draft.draft_mut();
-        dm.arena_mut().get_half_edge_mut(he4_fwd).unwrap().set_next(he4_ret);
-        dm.arena_mut().get_half_edge_mut(he4_fwd).unwrap().set_prev(he4_ret);
-        dm.arena_mut().get_half_edge_mut(he4_ret).unwrap().set_next(he4_fwd);
-        dm.arena_mut().get_half_edge_mut(he4_ret).unwrap().set_prev(he4_fwd);
-        dm.arena_mut().get_half_edge_mut(he4_ret).unwrap().set_radial_next(he4_ret);
-        dm.arena_mut().get_edge_mut(edge_4).unwrap().set_half_edge(he4_ret);
+        dm.arena_mut()
+            .get_half_edge_mut(he4_fwd)
+            .unwrap()
+            .set_next(he4_ret);
+        dm.arena_mut()
+            .get_half_edge_mut(he4_fwd)
+            .unwrap()
+            .set_prev(he4_ret);
+        dm.arena_mut()
+            .get_half_edge_mut(he4_ret)
+            .unwrap()
+            .set_next(he4_fwd);
+        dm.arena_mut()
+            .get_half_edge_mut(he4_ret)
+            .unwrap()
+            .set_prev(he4_fwd);
+        dm.arena_mut()
+            .get_half_edge_mut(he4_ret)
+            .unwrap()
+            .set_radial_next(he4_ret);
+        dm.arena_mut()
+            .get_edge_mut(edge_4)
+            .unwrap()
+            .set_half_edge(he4_ret);
 
         let he3 = {
             let mut cur = entry_he;
             loop {
                 let next = dm.arena().get_half_edge(cur).unwrap().radial_next();
-                if next == entry_he { break cur; }
+                if next == entry_he {
+                    break cur;
+                }
                 cur = next;
             }
         };
-        dm.arena_mut().get_half_edge_mut(he3).unwrap().set_radial_next(he4_fwd);
-        dm.arena_mut().get_half_edge_mut(he4_fwd).unwrap().set_radial_next(entry_he);
+        dm.arena_mut()
+            .get_half_edge_mut(he3)
+            .unwrap()
+            .set_radial_next(he4_fwd);
+        dm.arena_mut()
+            .get_half_edge_mut(he4_fwd)
+            .unwrap()
+            .set_radial_next(entry_he);
         let l4 = dm.insert_loop(forge_topo::arena::LoopData::new(he4_fwd, face_4));
-        dm.arena_mut().get_face_mut(face_4).unwrap().set_outer_loop(l4);
+        dm.arena_mut()
+            .get_face_mut(face_4)
+            .unwrap()
+            .set_outer_loop(l4);
 
-        let state_v4 = draft.commit_with_mode(
-            forge_topo::validate::ValidationLevel::Minimal,
-            forge_topo::validate::TopologyMode::NmtIntermediate,
-        ).unwrap();
+        let state_v4 = draft
+            .commit_with_mode(
+                forge_topo::validate::ValidationLevel::Minimal,
+                forge_topo::validate::TopologyMode::NmtIntermediate,
+            )
+            .unwrap();
 
         let cap = 64;
         let mut selected = EntityBitset::with_capacity(cap);
@@ -1064,7 +1675,10 @@ mod tests {
         let err = test_build_merge_plan(state_v4.topology().arena(), &selection)
             .expect_err("planner must reject ambiguous valence-4 edge without selector");
         assert!(
-            matches!(err, KernelError::MergeFailure(MergeError::AmbiguousRadialSelection { .. })),
+            matches!(
+                err,
+                KernelError::MergeFailure(MergeError::AmbiguousRadialSelection { .. })
+            ),
             "pre-gate planner coverage regression: expected AmbiguousRadialSelection, got {:?}",
             err,
         );
@@ -1089,37 +1703,60 @@ mod tests {
         // Insert an orphan face with its own vertex + loop, no shared edges.
         let ph_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
         let ph_loop = forge_topo::handles::LoopId::from_raw_parts(u32::MAX, 0);
-        let orphan_face = draft.draft_mut().insert_face(
-            forge_topo::arena::FaceData::new(ph_loop, shell),
-        );
-        let orphan_v = draft.draft_mut().insert_vertex(
-            forge_topo::arena::VertexData::new(ph_he),
-        );
-        let orphan_edge = draft.draft_mut().insert_edge(
-            forge_topo::arena::EdgeData::new(ph_he),
-        );
-        let orphan_he = draft.draft_mut().insert_half_edge(
-            forge_topo::arena::HalfEdgeData::new(
-                ph_he, ph_he, ph_he, orphan_face, orphan_v, orphan_edge,
-            ),
-        );
+        let orphan_face = draft
+            .draft_mut()
+            .insert_face(forge_topo::arena::FaceData::new(ph_loop, shell));
+        let orphan_v = draft
+            .draft_mut()
+            .insert_vertex(forge_topo::arena::VertexData::new(ph_he));
+        let orphan_edge = draft
+            .draft_mut()
+            .insert_edge(forge_topo::arena::EdgeData::new(ph_he));
+        let orphan_he = draft
+            .draft_mut()
+            .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
+                ph_he,
+                ph_he,
+                ph_he,
+                orphan_face,
+                orphan_v,
+                orphan_edge,
+            ));
         // Self-loop: next/prev/radial all point to itself.
         let dm = draft.draft_mut();
-        dm.arena_mut().get_half_edge_mut(orphan_he).unwrap().set_next(orphan_he);
-        dm.arena_mut().get_half_edge_mut(orphan_he).unwrap().set_prev(orphan_he);
-        dm.arena_mut().get_half_edge_mut(orphan_he).unwrap().set_radial_next(orphan_he);
-        dm.arena_mut().get_vertex_mut(orphan_v).unwrap().set_outgoing(orphan_he);
-        dm.arena_mut().get_edge_mut(orphan_edge).unwrap().set_half_edge(orphan_he);
+        dm.arena_mut()
+            .get_half_edge_mut(orphan_he)
+            .unwrap()
+            .set_next(orphan_he);
+        dm.arena_mut()
+            .get_half_edge_mut(orphan_he)
+            .unwrap()
+            .set_prev(orphan_he);
+        dm.arena_mut()
+            .get_half_edge_mut(orphan_he)
+            .unwrap()
+            .set_radial_next(orphan_he);
+        dm.arena_mut()
+            .get_vertex_mut(orphan_v)
+            .unwrap()
+            .set_outgoing(orphan_he);
+        dm.arena_mut()
+            .get_edge_mut(orphan_edge)
+            .unwrap()
+            .set_half_edge(orphan_he);
 
-        let orphan_loop = dm.insert_loop(
-            forge_topo::arena::LoopData::new(orphan_he, orphan_face),
-        );
-        dm.arena_mut().get_face_mut(orphan_face).unwrap().set_outer_loop(orphan_loop);
+        let orphan_loop = dm.insert_loop(forge_topo::arena::LoopData::new(orphan_he, orphan_face));
+        dm.arena_mut()
+            .get_face_mut(orphan_face)
+            .unwrap()
+            .set_outer_loop(orphan_loop);
 
-        let state = draft.commit_with_mode(
-            forge_topo::validate::ValidationLevel::Minimal,
-            forge_topo::validate::TopologyMode::NmtIntermediate,
-        ).unwrap();
+        let state = draft
+            .commit_with_mode(
+                forge_topo::validate::ValidationLevel::Minimal,
+                forge_topo::validate::TopologyMode::NmtIntermediate,
+            )
+            .unwrap();
 
         // Select cube_face + orphan_face. They share no edges → BFS must fail.
         let cap = 64;
@@ -1136,8 +1773,12 @@ mod tests {
 
         if let Err(err) = result {
             assert!(
-                matches!(err, KernelError::MergeFailure(MergeError::WouldDisconnectSheet { .. })),
-                "Expected WouldDisconnectSheet, got: {:?}", err,
+                matches!(
+                    err,
+                    KernelError::MergeFailure(MergeError::WouldDisconnectSheet { .. })
+                ),
+                "Expected WouldDisconnectSheet, got: {:?}",
+                err,
             );
         }
     }
@@ -1157,25 +1798,58 @@ mod tests {
 
         let ph_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
         let ph_loop = forge_topo::handles::LoopId::from_raw_parts(u32::MAX, 0);
-        let orphan_face = draft.draft_mut().insert_face(forge_topo::arena::FaceData::new(ph_loop, shell));
-        let orphan_v = draft.draft_mut().insert_vertex(forge_topo::arena::VertexData::new(ph_he));
-        let orphan_edge = draft.draft_mut().insert_edge(forge_topo::arena::EdgeData::new(ph_he));
-        let orphan_he = draft.draft_mut().insert_half_edge(
-            forge_topo::arena::HalfEdgeData::new(ph_he, ph_he, ph_he, orphan_face, orphan_v, orphan_edge),
-        );
+        let orphan_face = draft
+            .draft_mut()
+            .insert_face(forge_topo::arena::FaceData::new(ph_loop, shell));
+        let orphan_v = draft
+            .draft_mut()
+            .insert_vertex(forge_topo::arena::VertexData::new(ph_he));
+        let orphan_edge = draft
+            .draft_mut()
+            .insert_edge(forge_topo::arena::EdgeData::new(ph_he));
+        let orphan_he = draft
+            .draft_mut()
+            .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
+                ph_he,
+                ph_he,
+                ph_he,
+                orphan_face,
+                orphan_v,
+                orphan_edge,
+            ));
         let dm = draft.draft_mut();
-        dm.arena_mut().get_half_edge_mut(orphan_he).unwrap().set_next(orphan_he);
-        dm.arena_mut().get_half_edge_mut(orphan_he).unwrap().set_prev(orphan_he);
-        dm.arena_mut().get_half_edge_mut(orphan_he).unwrap().set_radial_next(orphan_he);
-        dm.arena_mut().get_vertex_mut(orphan_v).unwrap().set_outgoing(orphan_he);
-        dm.arena_mut().get_edge_mut(orphan_edge).unwrap().set_half_edge(orphan_he);
+        dm.arena_mut()
+            .get_half_edge_mut(orphan_he)
+            .unwrap()
+            .set_next(orphan_he);
+        dm.arena_mut()
+            .get_half_edge_mut(orphan_he)
+            .unwrap()
+            .set_prev(orphan_he);
+        dm.arena_mut()
+            .get_half_edge_mut(orphan_he)
+            .unwrap()
+            .set_radial_next(orphan_he);
+        dm.arena_mut()
+            .get_vertex_mut(orphan_v)
+            .unwrap()
+            .set_outgoing(orphan_he);
+        dm.arena_mut()
+            .get_edge_mut(orphan_edge)
+            .unwrap()
+            .set_half_edge(orphan_he);
         let orphan_loop = dm.insert_loop(forge_topo::arena::LoopData::new(orphan_he, orphan_face));
-        dm.arena_mut().get_face_mut(orphan_face).unwrap().set_outer_loop(orphan_loop);
+        dm.arena_mut()
+            .get_face_mut(orphan_face)
+            .unwrap()
+            .set_outer_loop(orphan_loop);
 
-        let state = draft.commit_with_mode(
-            forge_topo::validate::ValidationLevel::Minimal,
-            forge_topo::validate::TopologyMode::NmtIntermediate,
-        ).unwrap();
+        let state = draft
+            .commit_with_mode(
+                forge_topo::validate::ValidationLevel::Minimal,
+                forge_topo::validate::TopologyMode::NmtIntermediate,
+            )
+            .unwrap();
 
         let cap = 64;
         let mut selected = EntityBitset::with_capacity(cap);
@@ -1187,7 +1861,10 @@ mod tests {
         let err = test_validate_connectivity(state.topology().arena(), &selection)
             .expect_err("disconnected selection must fail BFS connectivity pre-gate");
         assert!(
-            matches!(err, KernelError::MergeFailure(MergeError::WouldDisconnectSheet { .. })),
+            matches!(
+                err,
+                KernelError::MergeFailure(MergeError::WouldDisconnectSheet { .. })
+            ),
             "pre-gate connectivity coverage regression: expected WouldDisconnectSheet, got {:?}",
             err,
         );
@@ -1217,7 +1894,9 @@ mod tests {
                 .expect("merge must succeed");
             let output = result.into_value();
             let merge = output.get_merge();
-            let steps: Vec<u32> = merge.get_plan().get_steps()
+            let steps: Vec<u32> = merge
+                .get_plan()
+                .get_steps()
                 .iter()
                 .map(|s| s.edge_index)
                 .collect();
@@ -1228,16 +1907,10 @@ mod tests {
         let (steps_a, hash_a) = run();
         let (steps_b, hash_b) = run();
 
-        assert_eq!(
-            steps_a.len(), steps_b.len(),
-            "Plan step counts must match",
-        );
+        assert_eq!(steps_a.len(), steps_b.len(), "Plan step counts must match",);
 
         for (i, (a, b)) in steps_a.iter().zip(steps_b.iter()).enumerate() {
-            assert_eq!(
-                a, b,
-                "Step {} edge_index differs: {} vs {}", i, a, b,
-            );
+            assert_eq!(a, b, "Step {} edge_index differs: {} vs {}", i, a, b,);
         }
 
         assert_eq!(
@@ -1262,8 +1935,8 @@ mod tests {
 
         let selection = MergeRegionSelection::new(selected, protected, face_a);
         let mut ctx = ModelingContext::new();
-        let result = execute_sheet_region_merge(state, &selection, &mut ctx)
-            .expect("merge must succeed");
+        let result =
+            execute_sheet_region_merge(state, &selection, &mut ctx).expect("merge must succeed");
 
         let plan_steps = result.get_value().get_merge().get_plan().step_count();
         let decision_count = result.get_decision_log().decisions().count();
@@ -1271,7 +1944,8 @@ mod tests {
         assert!(
             decision_count >= plan_steps,
             "Decision log must have at least one decision per step: got {} decisions for {} steps",
-            decision_count, plan_steps,
+            decision_count,
+            plan_steps,
         );
     }
 
@@ -1298,7 +1972,8 @@ mod tests {
         // But if we then try to re-commit with ManifoldStrict, slits would fail.
         assert!(
             result.is_ok(),
-            "NmtIntermediate merge must succeed: {:?}", result.err(),
+            "NmtIntermediate merge must succeed: {:?}",
+            result.err(),
         );
     }
 
@@ -1335,53 +2010,87 @@ mod tests {
         let shell = draft.arena().get_face(face_a).unwrap().shell();
         let ph_loop = forge_topo::handles::LoopId::from_raw_parts(u32::MAX, 0);
 
-        let face_4 = draft.draft_mut().insert_face(
-            forge_topo::arena::FaceData::new(ph_loop, shell),
-        );
-        let edge_4 = draft.draft_mut().insert_edge(
-            forge_topo::arena::EdgeData::new(HalfEdgeId::from_raw_parts(u32::MAX, 0)),
-        );
-        let he4_fwd = draft.draft_mut().insert_half_edge(
-            forge_topo::arena::HalfEdgeData::new(
+        let face_4 = draft
+            .draft_mut()
+            .insert_face(forge_topo::arena::FaceData::new(ph_loop, shell));
+        let edge_4 = draft
+            .draft_mut()
+            .insert_edge(forge_topo::arena::EdgeData::new(
+                HalfEdgeId::from_raw_parts(u32::MAX, 0),
+            ));
+        let he4_fwd = draft
+            .draft_mut()
+            .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
                 HalfEdgeId::from_raw_parts(u32::MAX, 0),
                 HalfEdgeId::from_raw_parts(u32::MAX, 0),
                 HalfEdgeId::from_raw_parts(u32::MAX, 0),
-                face_4, v_a, target_edge_id,
-            ),
-        );
-        let he4_ret = draft.draft_mut().insert_half_edge(
-            forge_topo::arena::HalfEdgeData::new(
-                he4_fwd, he4_fwd, he4_fwd,
-                face_4, v_b, edge_4,
-            ),
-        );
+                face_4,
+                v_a,
+                target_edge_id,
+            ));
+        let he4_ret = draft
+            .draft_mut()
+            .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
+                he4_fwd, he4_fwd, he4_fwd, face_4, v_b, edge_4,
+            ));
 
         let dm = draft.draft_mut();
-        dm.arena_mut().get_half_edge_mut(he4_fwd).unwrap().set_next(he4_ret);
-        dm.arena_mut().get_half_edge_mut(he4_fwd).unwrap().set_prev(he4_ret);
-        dm.arena_mut().get_half_edge_mut(he4_ret).unwrap().set_next(he4_fwd);
-        dm.arena_mut().get_half_edge_mut(he4_ret).unwrap().set_prev(he4_fwd);
-        dm.arena_mut().get_half_edge_mut(he4_ret).unwrap().set_radial_next(he4_ret);
-        dm.arena_mut().get_edge_mut(edge_4).unwrap().set_half_edge(he4_ret);
+        dm.arena_mut()
+            .get_half_edge_mut(he4_fwd)
+            .unwrap()
+            .set_next(he4_ret);
+        dm.arena_mut()
+            .get_half_edge_mut(he4_fwd)
+            .unwrap()
+            .set_prev(he4_ret);
+        dm.arena_mut()
+            .get_half_edge_mut(he4_ret)
+            .unwrap()
+            .set_next(he4_fwd);
+        dm.arena_mut()
+            .get_half_edge_mut(he4_ret)
+            .unwrap()
+            .set_prev(he4_fwd);
+        dm.arena_mut()
+            .get_half_edge_mut(he4_ret)
+            .unwrap()
+            .set_radial_next(he4_ret);
+        dm.arena_mut()
+            .get_edge_mut(edge_4)
+            .unwrap()
+            .set_half_edge(he4_ret);
 
         let he3 = {
             let mut cur = entry_he;
             loop {
                 let next = dm.arena().get_half_edge(cur).unwrap().radial_next();
-                if next == entry_he { break cur; }
+                if next == entry_he {
+                    break cur;
+                }
                 cur = next;
             }
         };
-        dm.arena_mut().get_half_edge_mut(he3).unwrap().set_radial_next(he4_fwd);
-        dm.arena_mut().get_half_edge_mut(he4_fwd).unwrap().set_radial_next(entry_he);
+        dm.arena_mut()
+            .get_half_edge_mut(he3)
+            .unwrap()
+            .set_radial_next(he4_fwd);
+        dm.arena_mut()
+            .get_half_edge_mut(he4_fwd)
+            .unwrap()
+            .set_radial_next(entry_he);
 
         let l4 = dm.insert_loop(forge_topo::arena::LoopData::new(he4_fwd, face_4));
-        dm.arena_mut().get_face_mut(face_4).unwrap().set_outer_loop(l4);
+        dm.arena_mut()
+            .get_face_mut(face_4)
+            .unwrap()
+            .set_outer_loop(l4);
 
-        let state_v4 = draft.commit_with_mode(
-            forge_topo::validate::ValidationLevel::Minimal,
-            forge_topo::validate::TopologyMode::NmtIntermediate,
-        ).unwrap();
+        let state_v4 = draft
+            .commit_with_mode(
+                forge_topo::validate::ValidationLevel::Minimal,
+                forge_topo::validate::TopologyMode::NmtIntermediate,
+            )
+            .unwrap();
 
         // Select face_a + face_b WITH an explicit radial selector for the ambiguous edge.
         let cap = 64;
@@ -1391,23 +2100,21 @@ mod tests {
 
         let protected = EntityBitset::with_capacity(cap);
 
-        let selectors = vec![
-            RadialUseSelector::new(
-                edge_idx,
-                face_a.index(),
-                face_b.index(),
-            ),
-        ];
+        let selectors = vec![RadialUseSelector::new(
+            edge_idx,
+            face_a.index(),
+            face_b.index(),
+        )];
 
-        let selection = MergeRegionSelection::with_radial_selectors(
-            selected, protected, face_a, selectors,
-        );
+        let selection =
+            MergeRegionSelection::with_radial_selectors(selected, protected, face_a, selectors);
 
         let mut ctx = ModelingContext::new();
         let result = execute_sheet_region_merge(state_v4, &selection, &mut ctx);
         assert!(
             result.is_ok(),
-            "Merge with explicit RadialUseSelector must succeed: {:?}", result.err(),
+            "Merge with explicit RadialUseSelector must succeed: {:?}",
+            result.err(),
         );
     }
 
@@ -1428,13 +2135,14 @@ mod tests {
 
         let selection = MergeRegionSelection::new(selected, protected, face_a);
         let mut ctx = ModelingContext::new();
-        let result = execute_sheet_region_merge(state, &selection, &mut ctx)
-            .expect("merge must succeed");
+        let result =
+            execute_sheet_region_merge(state, &selection, &mut ctx).expect("merge must succeed");
 
         let output = result.into_value();
         let merge = output.get_merge();
         assert_eq!(
-            merge.get_surviving_face(), face_a,
+            merge.get_surviving_face(),
+            face_a,
             "Surviving face must be face_a",
         );
         assert!(
@@ -1471,19 +2179,19 @@ mod tests {
         let mut ctx = ModelingContext::new();
         let result = execute_sheet_region_merge(state, &selection, &mut ctx);
 
-        assert!(
-            result.is_err(),
-            "Merge with empty selection must fail",
-        );
+        assert!(result.is_err(), "Merge with empty selection must fail",);
 
         // The original state was consumed by KernelDraft, which was dropped.
         // No topology mutation leaked — the error proves atomic rollback.
         // Verify it's the expected error kind.
         if let Err(err) = result {
             assert!(
-                matches!(err, KernelError::MergeFailure(MergeError::WouldDisconnectSheet { .. })
-                    | KernelError::InvalidInput { .. }
-                    | KernelError::InternalError { .. }),
+                matches!(
+                    err,
+                    KernelError::MergeFailure(MergeError::WouldDisconnectSheet { .. })
+                        | KernelError::InvalidInput { .. }
+                        | KernelError::InternalError { .. }
+                ),
                 "Expected connectivity/input error or earlier boundary-gate failure, got: {:?}",
                 err,
             );
@@ -1531,12 +2239,17 @@ mod tests {
                 // or PartialMergePlanRejected (expected when topology mutates mid-plan).
                 // NOT acceptable: a panic from invalid handle access.
                 assert!(
-                    matches!(err,
+                    matches!(
+                        err,
                         KernelError::MergeFailure(MergeError::AmbiguousRadialSelection { .. })
-                        | KernelError::MergeFailure(MergeError::PartialMergePlanRejected { .. })
-                        | KernelError::MergeFailure(MergeError::BoundaryCertificationFailed { .. })
-                        | KernelError::TopologyViolation { .. }
-                        | KernelError::InternalError { .. }
+                            | KernelError::MergeFailure(
+                                MergeError::PartialMergePlanRejected { .. }
+                            )
+                            | KernelError::MergeFailure(
+                                MergeError::BoundaryCertificationFailed { .. }
+                            )
+                            | KernelError::TopologyViolation { .. }
+                            | KernelError::InternalError { .. }
                     ),
                     "Expected merge/topology error or earlier boundary-gate failure, got: {:?}",
                     err,
@@ -1570,8 +2283,8 @@ mod tests {
 
         let selection = MergeRegionSelection::new(selected, protected, face_a);
         let mut ctx = ModelingContext::new();
-        let result = execute_sheet_region_merge(state, &selection, &mut ctx)
-            .expect("merge must succeed");
+        let result =
+            execute_sheet_region_merge(state, &selection, &mut ctx).expect("merge must succeed");
 
         let output = result.into_value();
         let new_state = output.get_state();
@@ -1581,7 +2294,8 @@ mod tests {
             face_count_after < face_count_before,
             "D1 regression: returned KernelState must have fewer faces after merge. \
             Before: {}, after: {}",
-            face_count_before, face_count_after,
+            face_count_before,
+            face_count_after,
         );
 
         assert!(
@@ -1616,8 +2330,12 @@ mod tests {
             .expect_err("Must reject when selected ∩ protected != ∅");
 
         assert!(
-            matches!(err, KernelError::MergeFailure(MergeError::ProtectedUseConflict { .. })),
-            "D3 regression: expected ProtectedUseConflict, got: {:?}", err,
+            matches!(
+                err,
+                KernelError::MergeFailure(MergeError::ProtectedUseConflict { .. })
+            ),
+            "D3 regression: expected ProtectedUseConflict, got: {:?}",
+            err,
         );
     }
 
@@ -1641,8 +2359,8 @@ mod tests {
 
         let selection = MergeRegionSelection::new(selected, protected, face_a);
         let mut ctx = ModelingContext::new();
-        let result = execute_sheet_region_merge(state, &selection, &mut ctx)
-            .expect("merge must succeed");
+        let result =
+            execute_sheet_region_merge(state, &selection, &mut ctx).expect("merge must succeed");
 
         assert!(
             !result.get_decision_log().is_empty(),
@@ -1677,7 +2395,10 @@ mod tests {
             .expect_err("rejected boundary must fail before merge execution");
 
         match err {
-            KernelError::MergeFailure(MergeError::BoundaryCertificationFailed { reason, witness }) => {
+            KernelError::MergeFailure(MergeError::BoundaryCertificationFailed {
+                reason,
+                witness,
+            }) => {
                 assert!(
                     !reason.is_empty(),
                     "gate rejection must preserve certifier reason text",
@@ -1731,7 +2452,10 @@ mod tests {
                     "gate rejection must occur before any merge-step decisions",
                 );
             }
-            other => panic!("expected Degeneracy context on cert rejection, got {:?}", other),
+            other => panic!(
+                "expected Degeneracy context on cert rejection, got {:?}",
+                other
+            ),
         }
     }
 
@@ -1765,7 +2489,8 @@ mod tests {
 
         let decisions: Vec<_> = ctx.get_decision_log_mut().decisions().collect();
         assert_eq!(
-            decisions.len(), 1,
+            decisions.len(),
+            1,
             "gate ordering regression: expected only the certifier decision before early return",
         );
         assert!(
@@ -1788,17 +2513,14 @@ mod tests {
 
         let protected = EntityBitset::with_capacity(cap);
 
-        let selectors = vec![
-            RadialUseSelector::new(
-                edge_idx,
-                face_a.index(),
-                face_b.index(),
-            ),
-        ];
+        let selectors = vec![RadialUseSelector::new(
+            edge_idx,
+            face_a.index(),
+            face_b.index(),
+        )];
 
-        let selection = MergeRegionSelection::with_radial_selectors(
-            selected, protected, face_a, selectors,
-        );
+        let selection =
+            MergeRegionSelection::with_radial_selectors(selected, protected, face_a, selectors);
 
         let mut ctx = ModelingContext::new();
         let result = execute_sheet_region_merge(state, &selection, &mut ctx);
@@ -1845,17 +2567,13 @@ mod tests {
 
         let protected = EntityBitset::with_capacity(cap);
 
-        let selectors = vec![
-            RadialUseSelector::new(
-                edge_idx,
-                he_idx_a,  // halfedge index, not face index
-                he_idx_b,
-            ),
-        ];
+        let selectors = vec![RadialUseSelector::new(
+            edge_idx, he_idx_a, // halfedge index, not face index
+            he_idx_b,
+        )];
 
-        let selection = MergeRegionSelection::with_radial_selectors(
-            selected, protected, face_a, selectors,
-        );
+        let selection =
+            MergeRegionSelection::with_radial_selectors(selected, protected, face_a, selectors);
 
         let mut ctx = ModelingContext::new();
         let result = execute_sheet_region_merge(state, &selection, &mut ctx);
@@ -1876,7 +2594,10 @@ mod tests {
         let (state, _, face_a, _face_b, _face_extra) = build_cube_with_valence_3_edge();
 
         // Find the maximum face index in the arena.
-        let max_face_idx = state.topology().arena().iter_faces()
+        let max_face_idx = state
+            .topology()
+            .arena()
+            .iter_faces()
             .map(|(fid, _)| fid.index())
             .max()
             .expect("cube must have faces");
@@ -1908,7 +2629,118 @@ mod tests {
             result.is_err(),
             "D6 regression: out-of-range bitset must propagate error, not silently ignore. \
             max_face_idx={}, bitset_cap={}",
-            max_face_idx, cap,
+            max_face_idx,
+            cap,
+        );
+    }
+
+    /// Integration: the runtime validator runs at emission without false-positives.
+    /// Uses the same live-descendant fixture as `lineage_fallback_resolves_live_descendant_and_traces_lineage_route`.
+    /// On the happy path the validator must pass (no `InternalError`) and the
+    /// reidentification adjunct must be emitted with matching outcome/compatibility.
+    #[test]
+    fn reidentification_trace_payload_drift_causes_internal_error_before_adjunct_push_no_false_positive() {
+        use forge_core::{
+            ReidentificationCompatibilitySummary, ReidentificationOutcome,
+            ReidentificationTraceConsistencyError,
+        };
+
+        // ── Build the live-descendant fixture ──────────────────────────────
+        let (topo, _geom, group) = build_two_face_coplanar_sheet_fixture();
+        let target_face = topo
+            .arena()
+            .iter_faces()
+            .find_map(|(fid, _)| {
+                group
+                    .contains(fid.index())
+                    .ok()
+                    .and_then(|in_group| in_group.then_some(fid))
+            })
+            .expect("fixture must have at least one selected face");
+
+        let synthetic_root = forge_topo::lineage::Lineage::root(
+            99,
+            forge_topo::lineage::OpSignature::with_id("synthetic_root_face", 1),
+        );
+        let child = forge_topo::lineage::Lineage::derive(
+            &synthetic_root,
+            forge_topo::lineage::OpSignature::with_id("synthetic_split_face", 2),
+        );
+
+        let mut draft = topo.into_mutation();
+        draft
+            .arena_mut()
+            .get_face_mut(target_face)
+            .expect("target face exists")
+            .set_lineage(Some(child.clone()));
+        draft.log_lineage_event(forge_topo::lineage::LineageEvent::EntityCreated {
+            entity: forge_core::EntityRef::new(forge_core::EntityKind::Face, target_face.index()),
+            entity_snapshot: Some(target_face.into()),
+            lineage: child,
+        });
+        let topo = draft
+            .commit()
+            .expect("synthetic lineage descendant fixture commit");
+
+        let missing_parent_name = PersistentName::new(
+            synthetic_root.get_ancestry_hash(),
+            forge_core::EntityKind::Face,
+            0,
+        );
+
+        // ── Happy path: validator must pass and adjunct must be emitted ───
+        let persistent = MergeRegionSelectionPersistent::new(
+            vec![missing_parent_name.clone()],
+            Vec::new(),
+            missing_parent_name,
+        );
+        let state = crate::core::KernelState::new(topo, GeometryState::new());
+        let mut ctx = ModelingContext::new();
+        let resolved = resolve_merge_region_selection_persistent(&state, &persistent, &mut ctx)
+            .expect("happy-path lineage resolved — validator must not false-positive");
+        assert_eq!(resolved.get_selected_faces().iter_ones().count(), 1);
+
+        let reid_adjunct = ctx
+            .get_trace_adjuncts()
+            .records()
+            .iter()
+            .find_map(|r| r.as_reidentification_payload())
+            .expect("happy-path must emit a reidentification adjunct")
+            .expect("adjunct decoded");
+        assert_eq!(
+            reid_adjunct.outcome,
+            ReidentificationOutcome::Resolved,
+            "happy-path adjunct outcome must be Resolved",
+        );
+        assert_eq!(
+            reid_adjunct.compatibility,
+            ReidentificationCompatibilitySummary::Available,
+            "happy-path adjunct compatibility must be Available",
+        );
+
+        // ── Adversarial: artificially drift payload and confirm validator ─
+        // Build a standalone drifted payload to test the validator API directly.
+        // (We can't inject a tampered payload into resolve_single_face_ref without
+        // refactoring the emission site; instead this covers the validator contract
+        // at the API level, complementing the unit tests in reidentification_trace.rs.)
+        let mut drifted = reid_adjunct;
+        drifted.outcome = ReidentificationOutcome::Incompatible;
+        // Leave compatibility = Available — this is the exact drift the validator guards against.
+        let fake_decision = forge_core::tracing::TracedDecision::new(
+            drifted.decision_id,
+            forge_core::DecisionKind::Forced {
+                reason: "ReidentificationIncompatible".into(),
+            },
+            forge_core::DecisionTier::Escalated,
+            0.0,
+            forge_core::DecisionContext::Degeneracy {
+                description: "adversarial_drift_test".into(),
+            },
+        );
+        assert_eq!(
+            drifted.validate_against_decision(&fake_decision),
+            Err(ReidentificationTraceConsistencyError::OutcomeCompatibilityMismatch),
+            "Incompatible outcome with Available compatibility must be flagged as OutcomeCompatibilityMismatch",
         );
     }
 }

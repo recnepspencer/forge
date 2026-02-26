@@ -136,7 +136,7 @@ impl TopologyArena {
         let id = FaceId::new(index, gen);
         if let Some(store) = ls.as_deref_mut() {
             if let Some(lin) = self.face_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
-                store.record_creation(EntityRef::new(EntityKind::Face, id.index()), lin);
+                store.record_creation_with_snapshot(EntityRef::new(EntityKind::Face, id.index()), id.into(), lin);
             }
         }
         id
@@ -151,7 +151,7 @@ impl TopologyArena {
         let id = HalfEdgeId::new(index, gen);
         if let Some(store) = ls.as_deref_mut() {
             if let Some(lin) = self.half_edge_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
-                store.record_creation(EntityRef::new(EntityKind::HalfEdge, id.index()), lin);
+                store.record_creation_with_snapshot(EntityRef::new(EntityKind::HalfEdge, id.index()), id.into(), lin);
             }
         }
         id
@@ -189,7 +189,7 @@ impl TopologyArena {
         let id = VertexId::new(index, gen);
         if let Some(store) = ls.as_deref_mut() {
             if let Some(lin) = self.vertex_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
-                store.record_creation(EntityRef::new(EntityKind::Vertex, id.index()), lin);
+                store.record_creation_with_snapshot(EntityRef::new(EntityKind::Vertex, id.index()), id.into(), lin);
             }
         }
         id
@@ -451,7 +451,7 @@ impl TopologyArena {
         self.free_face_head = Some(id.index());
         self.active_face_count -= 1;
         if let Some(store) = ls.as_deref_mut() {
-            let _ = store.record_deletion(EntityRef::new(EntityKind::Face, id.index()));
+            let _ = store.record_deletion_with_snapshot(EntityRef::new(EntityKind::Face, id.index()), id.into());
         }
         Ok(data)
     }
@@ -468,7 +468,7 @@ impl TopologyArena {
         self.free_vertex_head = Some(id.index());
         self.active_vertex_count -= 1;
         if let Some(store) = ls.as_deref_mut() {
-            let _ = store.record_deletion(EntityRef::new(EntityKind::Vertex, id.index()));
+            let _ = store.record_deletion_with_snapshot(EntityRef::new(EntityKind::Vertex, id.index()), id.into());
         }
         Ok(data)
     }
@@ -485,7 +485,7 @@ impl TopologyArena {
         self.free_half_edge_head = Some(id.index());
         self.active_half_edge_count -= 1;
         if let Some(store) = ls.as_deref_mut() {
-            let _ = store.record_deletion(EntityRef::new(EntityKind::HalfEdge, id.index()));
+            let _ = store.record_deletion_with_snapshot(EntityRef::new(EntityKind::HalfEdge, id.index()), id.into());
         }
         Ok(data)
     }
@@ -598,7 +598,7 @@ impl TopologyArena {
         let id = ShellId::new(index, gen);
         if let Some(store) = ls.as_deref_mut() {
             if let Some(lin) = self.shell_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
-                store.record_creation(EntityRef::new(EntityKind::Shell, id.index()), lin);
+                store.record_creation_with_snapshot(EntityRef::new(EntityKind::Shell, id.index()), id.into(), lin);
             }
         }
         id
@@ -637,7 +637,7 @@ impl TopologyArena {
         self.free_shell_head = Some(id.index());
         self.active_shell_count -= 1;
         if let Some(store) = ls.as_deref_mut() {
-            let _ = store.record_deletion(EntityRef::new(EntityKind::Shell, id.index()));
+            let _ = store.record_deletion_with_snapshot(EntityRef::new(EntityKind::Shell, id.index()), id.into());
         }
         Ok(data)
     }
@@ -659,7 +659,7 @@ impl TopologyArena {
         let id = BodyId::new(index, gen);
         if let Some(store) = ls.as_deref_mut() {
             if let Some(lin) = self.body_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
-                store.record_creation(EntityRef::new(EntityKind::Body, id.index()), lin);
+                store.record_creation_with_snapshot(EntityRef::new(EntityKind::Body, id.index()), id.into(), lin);
             }
         }
         id
@@ -698,7 +698,7 @@ impl TopologyArena {
         self.free_body_head = Some(id.index());
         self.active_body_count -= 1;
         if let Some(store) = ls.as_deref_mut() {
-            let _ = store.record_deletion(EntityRef::new(EntityKind::Body, id.index()));
+            let _ = store.record_deletion_with_snapshot(EntityRef::new(EntityKind::Body, id.index()), id.into());
         }
         Ok(data)
     }
@@ -720,7 +720,7 @@ impl TopologyArena {
         let id = LumpId::new(index, gen);
         if let Some(store) = ls.as_deref_mut() {
             if let Some(lin) = self.lump_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
-                store.record_creation(EntityRef::new(EntityKind::Lump, id.index()), lin);
+                store.record_creation_with_snapshot(EntityRef::new(EntityKind::Lump, id.index()), id.into(), lin);
             }
         }
         id
@@ -759,7 +759,7 @@ impl TopologyArena {
         self.free_lump_head = Some(id.index());
         self.active_lump_count -= 1;
         if let Some(store) = ls.as_deref_mut() {
-            let _ = store.record_deletion(EntityRef::new(EntityKind::Lump, id.index()));
+            let _ = store.record_deletion_with_snapshot(EntityRef::new(EntityKind::Lump, id.index()), id.into());
         }
         Ok(data)
     }
@@ -797,7 +797,7 @@ impl TopologyArena {
         let id = RegionId::new(index, gen);
         if let Some(store) = ls.as_deref_mut() {
             if let Some(lin) = self.region_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
-                store.record_creation(EntityRef::new(EntityKind::Region, id.index()), lin);
+                store.record_creation_with_snapshot(EntityRef::new(EntityKind::Region, id.index()), id.into(), lin);
             }
         }
         id
@@ -836,7 +836,7 @@ impl TopologyArena {
         self.free_region_head = Some(id.index());
         self.active_region_count -= 1;
         if let Some(store) = ls.as_deref_mut() {
-            let _ = store.record_deletion(EntityRef::new(EntityKind::Region, id.index()));
+            let _ = store.record_deletion_with_snapshot(EntityRef::new(EntityKind::Region, id.index()), id.into());
         }
         Ok(data)
     }
@@ -874,7 +874,7 @@ impl TopologyArena {
         let id = EdgeId::new(index, gen);
         if let Some(store) = ls.as_deref_mut() {
             if let Some(lin) = self.edge_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
-                store.record_creation(EntityRef::new(EntityKind::Edge, id.index()), lin);
+                store.record_creation_with_snapshot(EntityRef::new(EntityKind::Edge, id.index()), id.into(), lin);
             }
         }
         id
@@ -913,7 +913,7 @@ impl TopologyArena {
         self.free_edge_head = Some(id.index());
         self.active_edge_count -= 1;
         if let Some(store) = ls.as_deref_mut() {
-            let _ = store.record_deletion(EntityRef::new(EntityKind::Edge, id.index()));
+            let _ = store.record_deletion_with_snapshot(EntityRef::new(EntityKind::Edge, id.index()), id.into());
         }
         Ok(data)
     }

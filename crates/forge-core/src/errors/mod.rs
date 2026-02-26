@@ -18,6 +18,7 @@ pub use schema::{
     KernelError, TopologyError,
     AmbiguousResult, DiagnosticPayload,
     MergeError, PersistentResolutionRole, PersistentResolutionIncompatibility,
+    PersistentResolutionOriginKind,
 };
 pub use summary::{
     ErrorCategory, ErrorSummary, SourceErrorSummary,

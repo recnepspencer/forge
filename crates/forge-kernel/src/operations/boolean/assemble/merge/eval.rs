@@ -602,6 +602,7 @@ fn record_result_lineage(arena: &forge_topo::arena::TopologyArena, seq: u64) -> 
     for (fid, _) in arena.iter_faces() {
         events.push(LineageEvent::EntityCreated {
             entity: forge_core::EntityRef::new(forge_core::EntityKind::Face, fid.index()),
+            entity_snapshot: None,
             lineage: Lineage::root(fid.index() as u64, op.clone()),
         });
     }
@@ -609,6 +610,7 @@ fn record_result_lineage(arena: &forge_topo::arena::TopologyArena, seq: u64) -> 
     for (he_id, _) in arena.iter_half_edges() {
         events.push(LineageEvent::EntityCreated {
             entity: forge_core::EntityRef::new(forge_core::EntityKind::HalfEdge, he_id.index()),
+            entity_snapshot: None,
             lineage: Lineage::root(he_id.index() as u64, op.clone()),
         });
     }
@@ -616,6 +618,7 @@ fn record_result_lineage(arena: &forge_topo::arena::TopologyArena, seq: u64) -> 
     for (vid, _) in arena.iter_vertices() {
         events.push(LineageEvent::EntityCreated {
             entity: forge_core::EntityRef::new(forge_core::EntityKind::Vertex, vid.index()),
+            entity_snapshot: None,
             lineage: Lineage::root(vid.index() as u64, op.clone()),
         });
     }

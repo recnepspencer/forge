@@ -1,5 +1,8 @@
 # Rust build artifacts
-/target
+target/
+
+# AI brain / agent state
+.gemini/
 
 # IDE
 .idea/

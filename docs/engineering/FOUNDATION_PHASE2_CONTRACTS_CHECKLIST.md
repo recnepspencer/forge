@@ -112,6 +112,9 @@ Evidence:
 
 ## P2-4A. Persistent Re-identification Substrate (Lineage Linkage + Delta / Audit Integration)
 
+- [ ] Prerequisite generational lineage-event reference upgrade implemented (no index-only lineage refs in P2-4A builder path)
+- [ ] Backward-compatible lineage event deserialization preserved with typed legacy/limited-evidence handling
+- [ ] P2-4A builder fails closed or emits typed compatibility when only legacy index-only lineage history is available
 - [ ] Persisted/queryable re-identification linkage substrate implemented (or equivalent typed index/store)
 - [ ] Linkage schema/versioning contract implemented (typed compatibility outcomes, no string-only mismatch)
 - [ ] Deterministic candidate enumeration from lineage-derived lookup implemented and tested
@@ -121,6 +124,7 @@ Evidence:
 - [ ] Finalization path (`P2-2`) persists/attaches re-identification metadata deterministically for migrated paths
 - [ ] Replay/audit bridge integration points defined and tested (exact vs counterfactual-only vs incompatible)
 - [ ] Adversarial test: topology reorder/generation reuse does not alias stale snapshot refs in re-identified candidates
+- [ ] Adversarial test: lineage event generation reuse (same index, new generation) remains distinct in linkage substrate build path
 - [ ] Adversarial test: missing linkage substrate vs missing entity are distinct typed outcomes
 - [ ] Adversarial test: deterministic linkage-derived candidate ordering across repeated runs
 

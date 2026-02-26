@@ -1,0 +1,9 @@
+/Users/spenstar/Documents/programming/Forge/target-ui/debug/deps/accesskit_winit-6597df330945d498.d: /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/accesskit_winit-0.23.1/src/lib.rs /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/accesskit_winit-0.23.1/src/platform_impl/mod.rs /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/accesskit_winit-0.23.1/src/platform_impl/macos.rs
+
+/Users/spenstar/Documents/programming/Forge/target-ui/debug/deps/libaccesskit_winit-6597df330945d498.rlib: /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/accesskit_winit-0.23.1/src/lib.rs /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/accesskit_winit-0.23.1/src/platform_impl/mod.rs /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/accesskit_winit-0.23.1/src/platform_impl/macos.rs
+
+/Users/spenstar/Documents/programming/Forge/target-ui/debug/deps/libaccesskit_winit-6597df330945d498.rmeta: /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/accesskit_winit-0.23.1/src/lib.rs /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/accesskit_winit-0.23.1/src/platform_impl/mod.rs /Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/accesskit_winit-0.23.1/src/platform_impl/macos.rs
+
+/Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/accesskit_winit-0.23.1/src/lib.rs:
+/Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/accesskit_winit-0.23.1/src/platform_impl/mod.rs:
+/Users/spenstar/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/accesskit_winit-0.23.1/src/platform_impl/macos.rs:

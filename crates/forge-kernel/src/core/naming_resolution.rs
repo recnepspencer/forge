@@ -1,10 +1,11 @@
 use serde::{Deserialize, Serialize};
 
+use forge_core::errors::PersistentResolutionOriginKind;
 use forge_core::provenance::SnapshotHandleRef;
 use forge_core::tracing::{
-    DecisionContext, DecisionId, DecisionKind, DecisionTier, TracedDecision,
-    EntityKind, ResolutionCandidateSummary, ResolutionMatchKind, ResolutionOutcome,
-    ResolutionQuerySummary, ResolutionRoute, ResolutionTracePayload,
+    DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityKind,
+    ResolutionCandidateSummary, ResolutionMatchKind, ResolutionOutcome, ResolutionQuerySummary,
+    ResolutionRoute, ResolutionTracePayload, TracedDecision,
 };
 use forge_topo::topology::attributes::EntityKey;
 use forge_topo::topology::naming::{PersistentName, Selector};
@@ -40,12 +41,30 @@ pub type ResolverMatchKind = ResolutionMatchKind;
 /// Typed incompatibility result for resolver contracts.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ResolutionIncompatibility {
-    UnsupportedEntityKind { requested: EntityKind },
+    UnsupportedEntityKind {
+        requested: EntityKind,
+    },
     MissingLineageStore,
-    SchemaVersionMismatch { expected: u32, actual: u32 },
-    LineageStoreVersionMismatch { expected: u32, actual: u32 },
-    UnsupportedResolverMode { mode: String },
-    Other { code: String, detail: String },
+    SubstrateUnavailable,
+    UnsupportedEntityOrigin {
+        origin: PersistentResolutionOriginKind,
+    },
+    SchemaVersionMismatch {
+        expected: u32,
+        actual: u32,
+    },
+    LineageStoreVersionMismatch {
+        expected: u32,
+        actual: u32,
+    },
+    LegacyIndexOnlyLineageHistory,
+    UnsupportedResolverMode {
+        mode: String,
+    },
+    Other {
+        code: String,
+        detail: String,
+    },
 }
 
 /// Machine-readable evidence describing resolver passes and filters.
@@ -118,11 +137,17 @@ pub struct ResolutionCandidates {
 }
 
 impl ResolutionCandidates {
-    pub fn new() -> Self { Self { ordered: Vec::new() } }
+    pub fn new() -> Self {
+        Self {
+            ordered: Vec::new(),
+        }
+    }
 
     pub fn from_vec(mut candidates: Vec<ResolutionCandidate>) -> Self {
         candidates.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
-        Self { ordered: candidates }
+        Self {
+            ordered: candidates,
+        }
     }
 
     pub fn push(&mut self, candidate: ResolutionCandidate) {
@@ -130,10 +155,18 @@ impl ResolutionCandidates {
         self.ordered.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
     }
 
-    pub fn as_slice(&self) -> &[ResolutionCandidate] { &self.ordered }
-    pub fn len(&self) -> usize { self.ordered.len() }
-    pub fn is_empty(&self) -> bool { self.ordered.is_empty() }
-    pub fn into_vec(self) -> Vec<ResolutionCandidate> { self.ordered }
+    pub fn as_slice(&self) -> &[ResolutionCandidate] {
+        &self.ordered
+    }
+    pub fn len(&self) -> usize {
+        self.ordered.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.ordered.is_empty()
+    }
+    pub fn into_vec(self) -> Vec<ResolutionCandidate> {
+        self.ordered
+    }
 
     pub fn candidate_set_hash(&self) -> u64 {
         let mut h: u64 = 0xcbf29ce484222325;
@@ -200,7 +233,11 @@ impl ResolutionResult<ResolutionCandidate> {
         source_scope_id: Option<String>,
     ) -> ResolutionTracePayload {
         match self {
-            ResolutionResult::Resolved { value, route, evidence } => {
+            ResolutionResult::Resolved {
+                value,
+                route,
+                evidence,
+            } => {
                 let mut payload = ResolutionTracePayload {
                     decision_id,
                     query: ResolutionQuerySummary::Selector {
@@ -219,7 +256,11 @@ impl ResolutionResult<ResolutionCandidate> {
                 payload.canonicalize();
                 payload
             }
-            ResolutionResult::Ambiguous { query, candidates, evidence } => {
+            ResolutionResult::Ambiguous {
+                query,
+                candidates,
+                evidence,
+            } => {
                 let mut payload = ResolutionTracePayload {
                     decision_id,
                     query: query.to_trace_summary(),
@@ -283,29 +324,43 @@ pub fn build_resolution_decision(
         ),
         ResolutionResult::Ambiguous { candidates, .. } => TracedDecision::new(
             decision_id,
-            DecisionKind::Forced { reason: "NameResolutionAmbiguous".into() },
+            DecisionKind::Forced {
+                reason: "NameResolutionAmbiguous".into(),
+            },
             DecisionTier::Escalated,
             candidates.len() as f64,
             DecisionContext::Degeneracy {
-                description: format!("Persistent-name resolution ambiguous ({} candidates)", candidates.len()),
+                description: format!(
+                    "Persistent-name resolution ambiguous ({} candidates)",
+                    candidates.len()
+                ),
             },
         ),
         ResolutionResult::Missing { .. } => TracedDecision::new(
             decision_id,
-            DecisionKind::Forced { reason: "NameResolutionMissing".into() },
+            DecisionKind::Forced {
+                reason: "NameResolutionMissing".into(),
+            },
             DecisionTier::Escalated,
             0.0,
             DecisionContext::Degeneracy {
                 description: "Persistent-name resolution missing".into(),
             },
         ),
-        ResolutionResult::Incompatible { incompatibility, .. } => TracedDecision::new(
+        ResolutionResult::Incompatible {
+            incompatibility, ..
+        } => TracedDecision::new(
             decision_id,
-            DecisionKind::Forced { reason: "NameResolutionIncompatible".into() },
+            DecisionKind::Forced {
+                reason: "NameResolutionIncompatible".into(),
+            },
             DecisionTier::Escalated,
             0.0,
             DecisionContext::Degeneracy {
-                description: format!("Persistent-name resolution incompatible: {:?}", incompatibility),
+                description: format!(
+                    "Persistent-name resolution incompatible: {:?}",
+                    incompatibility
+                ),
             },
         ),
     }
@@ -313,10 +368,18 @@ pub fn build_resolution_decision(
 
 pub fn snapshot_ref_from_entity_key(key: EntityKey) -> SnapshotHandleRef {
     match key {
-        EntityKey::Face(fid) => SnapshotHandleRef::new(EntityKind::Face, fid.index(), fid.generation()),
-        EntityKey::Edge(eid) => SnapshotHandleRef::new(EntityKind::Edge, eid.index(), eid.generation()),
-        EntityKey::Vertex(vid) => SnapshotHandleRef::new(EntityKind::Vertex, vid.index(), vid.generation()),
-        EntityKey::Shell(sid) => SnapshotHandleRef::new(EntityKind::Shell, sid.index(), sid.generation()),
+        EntityKey::Face(fid) => {
+            SnapshotHandleRef::new(EntityKind::Face, fid.index(), fid.generation())
+        }
+        EntityKey::Edge(eid) => {
+            SnapshotHandleRef::new(EntityKind::Edge, eid.index(), eid.generation())
+        }
+        EntityKey::Vertex(vid) => {
+            SnapshotHandleRef::new(EntityKind::Vertex, vid.index(), vid.generation())
+        }
+        EntityKey::Shell(sid) => {
+            SnapshotHandleRef::new(EntityKind::Shell, sid.index(), sid.generation())
+        }
     }
 }
 
@@ -328,12 +391,20 @@ fn selector_entity_kind(sel: &Selector) -> Option<EntityKind> {
         Selector::And(a, b) => {
             let ka = selector_entity_kind(a);
             let kb = selector_entity_kind(b);
-            if ka == kb { ka } else { None }
+            if ka == kb {
+                ka
+            } else {
+                None
+            }
         }
         Selector::Or(a, b) => {
             let ka = selector_entity_kind(a);
             let kb = selector_entity_kind(b);
-            if ka == kb { ka } else { None }
+            if ka == kb {
+                ka
+            } else {
+                None
+            }
         }
     }
 }
@@ -373,10 +444,24 @@ mod tests {
             face_candidate("face:a", 11, 1),
             face_candidate("face:a", 3, 2),
         ]);
-        let refs: Vec<_> = set.as_slice().iter().map(|c| (&c.persistent_ref, c.snapshot_ref.index, c.snapshot_ref.generation)).collect();
+        let refs: Vec<_> = set
+            .as_slice()
+            .iter()
+            .map(|c| {
+                (
+                    &c.persistent_ref,
+                    c.snapshot_ref.index,
+                    c.snapshot_ref.generation,
+                )
+            })
+            .collect();
         assert_eq!(
             refs,
-            vec![(&"face:a".to_string(), 3, 2), (&"face:a".to_string(), 11, 1), (&"face:b".to_string(), 7, 1)]
+            vec![
+                (&"face:a".to_string(), 3, 2),
+                (&"face:a".to_string(), 11, 1),
+                (&"face:b".to_string(), 7, 1)
+            ]
         );
     }
 
@@ -396,7 +481,8 @@ mod tests {
                 notes: vec![],
             },
         };
-        let payload = result.to_trace_payload(DecisionId(5), Some("sheet_region_merge".into()), None);
+        let payload =
+            result.to_trace_payload(DecisionId(5), Some("sheet_region_merge".into()), None);
         assert_eq!(payload.ordered_candidates[0].persistent_ref, "face:a");
         assert_eq!(payload.candidate_count, 2);
         assert!(payload.candidate_set_hash.is_some());

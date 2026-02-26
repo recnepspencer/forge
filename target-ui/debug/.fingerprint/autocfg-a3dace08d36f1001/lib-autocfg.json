@@ -1,0 +1,1 @@
+{"rustc":13850170861107434965,"features":"[]","declared_features":"[]","target":6962977057026645649,"profile":3033921117576893,"path":12345320881094044680,"deps":[],"local":[{"CheckDepInfo":{"dep_info":"debug/.fingerprint/autocfg-a3dace08d36f1001/dep-lib-autocfg","checksum":false}}],"rustflags":["-C","overflow-checks=on"],"config":2069994364910194474,"compile_kind":0}

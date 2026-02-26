@@ -19,42 +19,46 @@
 
 use std::collections::BTreeSet;
 
-use forge_core::{
-    KernelError, OperationResult, PolicyKind, PolicyQuery,
-};
-use forge_core::errors::{MergeError, PersistentResolutionIncompatibility, PersistentResolutionRole};
-use forge_core::tracing::{
-    CandidateValueSummary, DecisionId, DecisionKind, DecisionTier, DecisionContext, TracedDecision,
-    TraceAdjunctSet, TraceAdjunctRecord,
+use forge_core::errors::{
+    MergeError, PersistentResolutionIncompatibility, PersistentResolutionRole,
 };
 use forge_core::provenance::SnapshotHandleRef;
+use forge_core::tracing::{
+    CandidateValueSummary, DecisionContext, DecisionId, DecisionKind, DecisionTier,
+    ReidentificationCompatibilitySummary, ReidentificationFailureCauseSummary,
+    ReidentificationModeSummary, ReidentificationOutcome as ReidentificationTraceOutcome,
+    ReidentificationTracePayload, TraceAdjunctRecord, TraceAdjunctSet, TracedDecision,
+};
 use forge_core::EntityKind as TraceEntityKind;
+use forge_core::{KernelError, OperationResult, PolicyKind, PolicyQuery};
 use forge_topo::attributes::EntityKey;
-use forge_topo::handles::{FaceId, HalfEdgeId, EdgeId};
-use forge_topo::operator::apply_op;
 use forge_topo::euler::join_faces::JoinFaces;
 use forge_topo::euler::join_faces_nmt::JoinFacesNmt;
-use forge_topo::topology::naming::{PersistentName, Selector, resolve_name, resolve_selector};
+use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId};
+use forge_topo::operator::apply_op;
+use forge_topo::topology::history::lineage_link::{
+    PersistentNameRef, ReidentificationCompatibility, ReidentificationMode, ReidentificationQuery,
+    ReidentificationQueryResult,
+};
+use forge_topo::topology::naming::{resolve_name, resolve_selector};
 use forge_topo::traverse::radial_valence;
 
-use crate::core::{
-    KernelState, OperationFinalizer, TopologyHashBoundary,
-    ResolutionQuery, ResolutionResult, ResolutionCandidate, ResolutionCandidates,
-    ResolutionEvidence, ResolutionIncompatibility, ResolverRoute, ResolverMatchKind,
-    build_resolution_decision,
-};
 use crate::core::kernel_draft::KernelDraft;
 use crate::core::ModelingContext;
+use crate::core::{
+    build_resolution_decision, KernelState, OperationFinalizer, ResolutionCandidate,
+    ResolutionCandidates, ResolutionEvidence, ResolutionIncompatibility, ResolutionQuery,
+    ResolutionResult, ResolverMatchKind, ResolverRoute, TopologyHashBoundary,
+};
 
 use super::eval::{certify_merge_boundary, compute_group_hash};
 use super::schema::{
-    MergeRegionSelection, MergeRegionSelectionPersistent, PersistentFaceRef,
-    MergePlan, MergeStepPlan, MergeResult, SheetRegionMergeOutput,
+    MergePlan, MergeRegionSelection, MergeRegionSelectionPersistent, MergeResult, MergeStepPlan,
+    PersistentFaceRef, SheetRegionMergeOutput,
 };
 
 #[derive(Debug, Clone, Copy)]
 enum FaceResolutionFallbackPipeline {
-    DirectOnly,
     DirectThenLineageThenHybrid,
 }
 
@@ -70,29 +74,29 @@ pub fn resolve_merge_region_selection_persistent(
     let mut protected = forge_topo::bitset::EntityBitset::for_faces(arena);
 
     let surviving_face = resolve_single_face_ref(
-        arena,
+        state.topology(),
         selection.get_surviving_face(),
         PersistentResolutionRole::SurvivingFace,
-        FaceResolutionFallbackPipeline::DirectOnly,
+        FaceResolutionFallbackPipeline::DirectThenLineageThenHybrid,
         ctx,
     )?;
 
     for pref in selection.get_selected_faces() {
         let fid = resolve_single_face_ref(
-            arena,
+            state.topology(),
             pref,
             PersistentResolutionRole::SelectedFace,
-            FaceResolutionFallbackPipeline::DirectOnly,
+            FaceResolutionFallbackPipeline::DirectThenLineageThenHybrid,
             ctx,
         )?;
         selected.insert(fid.index())?;
     }
     for pref in selection.get_protected_faces() {
         let fid = resolve_single_face_ref(
-            arena,
+            state.topology(),
             pref,
             PersistentResolutionRole::ProtectedFace,
-            FaceResolutionFallbackPipeline::DirectOnly,
+            FaceResolutionFallbackPipeline::DirectThenLineageThenHybrid,
             ctx,
         )?;
         protected.insert(fid.index())?;
@@ -165,22 +169,22 @@ pub fn execute_sheet_region_merge(
     let mut killed_faces: Vec<FaceId> = Vec::with_capacity(plan.step_count());
 
     for (step_idx, step) in plan.get_steps().iter().enumerate() {
-        let (he_survive, he_kill, killed_face) = rederive_halfedges_for_step(
-            draft.arena(),
-            step,
-            step_idx,
-        )?;
+        let (he_survive, he_kill, killed_face) =
+            rederive_halfedges_for_step(draft.arena(), step, step_idx)?;
 
         let current_valence = radial_valence(draft.arena(), he_survive)?;
 
         if current_valence == 2 {
-            apply_op(draft.draft_mut(), JoinFaces { edge: he_survive })?
-                .into_value();
+            apply_op(draft.draft_mut(), JoinFaces { edge: he_survive })?.into_value();
         } else {
-            apply_op(draft.draft_mut(), JoinFacesNmt {
-                he_survive,
-                he_kill,
-            })?.into_value();
+            apply_op(
+                draft.draft_mut(),
+                JoinFacesNmt {
+                    he_survive,
+                    he_kill,
+                },
+            )?
+            .into_value();
         }
 
         draft.geometry_mut().remove_face_plane(killed_face);
@@ -195,8 +199,11 @@ pub fn execute_sheet_region_merge(
             DecisionContext::Degeneracy {
                 description: format!(
                     "MergeStep {}/{}: edge_idx={} kill_face_idx={} valence={}",
-                    step_idx + 1, plan.step_count(),
-                    step.edge_index, step.kill_face_index, current_valence,
+                    step_idx + 1,
+                    plan.step_count(),
+                    step.edge_index,
+                    step.kill_face_index,
+                    current_valence,
                 ),
             },
         );
@@ -208,11 +215,7 @@ pub fn execute_sheet_region_merge(
         forge_topo::validate::TopologyMode::NmtIntermediate,
     )?;
 
-    let merge_result = MergeResult::new(
-        selection.get_surviving_face(),
-        killed_faces,
-        plan,
-    );
+    let merge_result = MergeResult::new(selection.get_surviving_face(), killed_faces, plan);
 
     let output = SheetRegionMergeOutput::new(new_state, merge_result);
     let topo_hash_after = output.get_state().topology().topology_hash();
@@ -242,13 +245,18 @@ fn apply_boundary_cert_gate_policy(
     ctx: &mut ModelingContext,
 ) -> Result<(), KernelError> {
     match cert {
-        forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::Rejected { reason, witness } => {
-            Err(KernelError::MergeFailure(MergeError::BoundaryCertificationFailed {
+        forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::Rejected {
+            reason,
+            witness,
+        } => Err(KernelError::MergeFailure(
+            MergeError::BoundaryCertificationFailed {
                 reason: format!("{:?}", reason),
                 witness: Some(*witness),
-            }))
-        }
-        forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::WeaklySimple { touch_count } => {
+            },
+        )),
+        forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::WeaklySimple {
+            touch_count,
+        } => {
             let group_hash = compute_group_hash(selection.get_selected_faces())?;
             let policy_decision_id = DecisionId(group_hash ^ 0x9e37_79b9_7f4a_7c15);
             let prev_scope = ctx.get_active_operation_policy_scope().map(str::to_string);
@@ -271,10 +279,13 @@ fn apply_boundary_cert_gate_policy(
             ctx.set_active_operation_policy_scope(prev_scope);
             let resolved = resolved_result?;
             if !resolved.accept_potential_value {
-                return Err(KernelError::MergeFailure(MergeError::BoundaryCertificationFailed {
-                    reason: "CoincidentGeometry policy rejected WeaklySimple boundary".to_string(),
-                    witness: None,
-                }));
+                return Err(KernelError::MergeFailure(
+                    MergeError::BoundaryCertificationFailed {
+                        reason: "CoincidentGeometry policy rejected WeaklySimple boundary"
+                            .to_string(),
+                        witness: None,
+                    },
+                ));
             }
             Ok(())
         }
@@ -283,13 +294,13 @@ fn apply_boundary_cert_gate_policy(
 }
 
 fn resolve_single_face_ref(
-    arena: &forge_topo::arena::TopologyArena,
+    topo_state: &forge_topo::state::TopologyState,
     pref: &PersistentFaceRef,
     role: PersistentResolutionRole,
     fallback: FaceResolutionFallbackPipeline,
     ctx: &mut ModelingContext,
 ) -> Result<FaceId, KernelError> {
-    let result = resolve_face_ref_result(arena, pref, fallback);
+    let result = resolve_face_ref_result(topo_state, pref, fallback);
     let role_tag = persistent_role_tag(role);
     let decision_id = DecisionId(hash_resolution_query_id(pref, role_tag));
     let decision = build_resolution_decision(decision_id, &result);
@@ -299,15 +310,33 @@ fn resolve_single_face_ref(
         Some(role_tag.to_string()),
     );
 
-    ctx.get_decision_log_mut().record(decision);
+    ctx.get_decision_log_mut().record(decision.clone());
     ctx.push_trace_adjunct(TraceAdjunctRecord::from_resolution_payload(&payload));
+    if let Some(reid_payload) =
+        build_reidentification_trace_payload(topo_state, pref, fallback, decision_id, role_tag)
+    {
+        reid_payload
+            .validate_against_decision(&decision)
+            .map_err(|e| KernelError::InternalError {
+                message: format!(
+                    "ReidentificationTracePayload consistency violation (role={}): {:?}",
+                    role_tag, e
+                ),
+                context: None,
+            })?;
+        ctx.push_trace_adjunct(TraceAdjunctRecord::from_reidentification_payload(
+            &reid_payload,
+        ));
+    }
 
     match result {
         ResolutionResult::Resolved { value, .. } => Ok(FaceId::from_raw_parts(
             value.snapshot_ref.index,
             value.snapshot_ref.generation,
         )),
-        ResolutionResult::Ambiguous { query, candidates, .. } => Err(KernelError::MergeFailure(
+        ResolutionResult::Ambiguous {
+            query, candidates, ..
+        } => Err(KernelError::MergeFailure(
             MergeError::PersistentResolutionAmbiguous {
                 role,
                 candidate_count: candidates.len() as u32,
@@ -320,7 +349,10 @@ fn resolve_single_face_ref(
                 query: query.to_trace_summary(),
             },
         )),
-        ResolutionResult::Incompatible { query, incompatibility } => Err(KernelError::MergeFailure(
+        ResolutionResult::Incompatible {
+            query,
+            incompatibility,
+        } => Err(KernelError::MergeFailure(
             MergeError::PersistentResolutionIncompatible {
                 role,
                 incompatibility: map_resolution_incompatibility(&incompatibility),
@@ -331,15 +363,16 @@ fn resolve_single_face_ref(
 }
 
 fn resolve_face_ref_result(
-    arena: &forge_topo::arena::TopologyArena,
+    topo_state: &forge_topo::state::TopologyState,
     pref: &PersistentFaceRef,
     fallback: FaceResolutionFallbackPipeline,
 ) -> ResolutionResult<ResolutionCandidate> {
-    let direct = resolve_face_ref_direct(arena, pref);
+    let direct = resolve_face_ref_direct(topo_state.arena(), pref);
     match (&direct, fallback) {
-        (ResolutionResult::Missing { .. }, FaceResolutionFallbackPipeline::DirectThenLineageThenHybrid) => {
-            resolve_face_ref_lineage_fallback(pref, direct)
-        }
+        (
+            ResolutionResult::Missing { .. },
+            FaceResolutionFallbackPipeline::DirectThenLineageThenHybrid,
+        ) => resolve_face_ref_lineage_fallback(topo_state, pref, direct),
         _ => direct,
     }
 }
@@ -358,11 +391,15 @@ fn resolve_face_ref_direct(
                     },
                 };
             }
-            (ResolutionQuery::PersistentName(name.clone()), resolve_name(arena, name))
+            (
+                ResolutionQuery::PersistentName(name.clone()),
+                resolve_name(arena, name),
+            )
         }
-        PersistentFaceRef::Selector(sel) => {
-            (ResolutionQuery::Selector(sel.clone()), resolve_selector(arena, sel))
-        }
+        PersistentFaceRef::Selector(sel) => (
+            ResolutionQuery::Selector(sel.clone()),
+            resolve_selector(arena, sel),
+        ),
     };
 
     let mut candidates = Vec::new();
@@ -378,7 +415,11 @@ fn resolve_face_ref_direct(
         candidates.push(ResolutionCandidate {
             entity_kind: TraceEntityKind::Face,
             persistent_ref: persistent_face_ref_label(pref),
-            snapshot_ref: SnapshotHandleRef::new(TraceEntityKind::Face, fid.index(), fid.generation()),
+            snapshot_ref: SnapshotHandleRef::new(
+                TraceEntityKind::Face,
+                fid.index(),
+                fid.generation(),
+            ),
             route: ResolverRoute::DirectPersistentName,
             match_kind: match pref {
                 PersistentFaceRef::Name(_) => ResolverMatchKind::ExactPersistentName,
@@ -398,10 +439,7 @@ fn resolve_face_ref_direct(
     };
 
     match candidates.len() {
-        0 => ResolutionResult::Missing {
-            query,
-            evidence,
-        },
+        0 => ResolutionResult::Missing { query, evidence },
         1 => ResolutionResult::Resolved {
             value: candidates.pop().expect("len=1"),
             route: ResolverRoute::DirectPersistentName,
@@ -416,24 +454,165 @@ fn resolve_face_ref_direct(
 }
 
 fn resolve_face_ref_lineage_fallback(
+    topo_state: &forge_topo::state::TopologyState,
     pref: &PersistentFaceRef,
     direct_missing: ResolutionResult<ResolutionCandidate>,
 ) -> ResolutionResult<ResolutionCandidate> {
+    let arena = topo_state.arena();
     match direct_missing {
-        ResolutionResult::Missing { query, mut evidence } => {
-            evidence.routes_attempted.push(ResolverRoute::LineageReidentified);
-            evidence.routes_attempted.push(ResolverRoute::Hybrid);
-            evidence.notes.push("lineage fallback not yet implemented for region merge face resolution".into());
-            let _ = evidence; // evidence preserved in trace on direct result path in this phase; incompatibility is typed.
-            ResolutionResult::Incompatible {
-                query,
-                incompatibility: ResolutionIncompatibility::UnsupportedResolverMode {
-                    mode: format!("fallback_pipeline:{}", pref_kind(pref)),
+        ResolutionResult::Missing {
+            query,
+            mut evidence,
+        } => {
+            evidence
+                .routes_attempted
+                .push(ResolverRoute::LineageReidentified);
+            let PersistentFaceRef::Name(name) = pref else {
+                evidence.routes_attempted.push(ResolverRoute::Hybrid);
+                evidence
+                    .notes
+                    .push("lineage fallback unsupported for selector queries in V1".into());
+                return ResolutionResult::Incompatible {
+                    query,
+                    incompatibility: ResolutionIncompatibility::UnsupportedResolverMode {
+                        mode: format!("fallback_pipeline:{}", pref_kind(pref)),
+                    },
+                };
+            };
+
+            if name.get_kind() != TraceEntityKind::Face {
+                return ResolutionResult::Incompatible {
+                    query,
+                    incompatibility: ResolutionIncompatibility::UnsupportedEntityKind {
+                        requested: name.get_kind(),
+                    },
+                };
+            }
+
+            let reid_query = ReidentificationQuery {
+                target: PersistentNameRef {
+                    ancestry_hash: name.get_ancestry_hash(),
+                    kind: name.get_kind(),
+                    ordinal: name.get_ordinal(),
                 },
+                mode: ReidentificationMode::Descendants,
+            };
+            match forge_topo::topology::history::lineage_link::resolve_reidentification_query_v1(
+                arena,
+                topo_state.lineage_events(),
+                topo_state.reidentification_link_index(),
+                &reid_query,
+            ) {
+                ReidentificationQueryResult::Resolved { candidate, .. } => {
+                    ResolutionResult::Resolved {
+                        value: topology_reid_candidate_to_kernel_face_candidate(pref, candidate),
+                        route: ResolverRoute::LineageReidentified,
+                        evidence,
+                    }
+                }
+                ReidentificationQueryResult::Ambiguous { candidates, .. } => {
+                    let converted = candidates
+                        .into_iter()
+                        .filter_map(|c| {
+                            topology_reid_candidate_to_kernel_face_candidate_checked(pref, c)
+                        })
+                        .collect::<Vec<_>>();
+                    ResolutionResult::Ambiguous {
+                        query,
+                        candidates: ResolutionCandidates::from_vec(converted),
+                        evidence,
+                    }
+                }
+                ReidentificationQueryResult::Missing { evidence: topo_ev } => {
+                    if matches!(
+                        topo_ev.compatibility,
+                        ReidentificationCompatibility::MissingLinkage { .. }
+                    ) {
+                        // Differentiate pure "no descendants" vs legacy/index-only history by suspected cause.
+                        if matches!(topo_ev.suspected_cause, Some(forge_topo::topology::history::lineage_link::ReidentificationFailureCause::SubstrateNotBuilt)) {
+                            return ResolutionResult::Incompatible {
+                                query,
+                                incompatibility: ResolutionIncompatibility::LegacyIndexOnlyLineageHistory,
+                            };
+                        }
+                    }
+                    ResolutionResult::Missing { query, evidence }
+                }
+                ReidentificationQueryResult::Incompatible { evidence: topo_ev } => {
+                    let incompatibility = match topo_ev.compatibility {
+                        ReidentificationCompatibility::Unavailable => {
+                            ResolutionIncompatibility::SubstrateUnavailable
+                        }
+                        ReidentificationCompatibility::SchemaVersionMismatch {
+                            supported,
+                            recorded,
+                        } => ResolutionIncompatibility::SchemaVersionMismatch {
+                            expected: supported,
+                            actual: recorded,
+                        },
+                        ReidentificationCompatibility::MissingLinkage { .. } => {
+                            ResolutionIncompatibility::LegacyIndexOnlyLineageHistory
+                        }
+                        ReidentificationCompatibility::UnsupportedMode { .. } => {
+                            ResolutionIncompatibility::UnsupportedResolverMode {
+                                mode: "lineage_descendants_v1".into(),
+                            }
+                        }
+                        ReidentificationCompatibility::UnsupportedEntityOrigin { origin } => {
+                            ResolutionIncompatibility::UnsupportedEntityOrigin {
+                                origin: map_topo_origin_kind_to_persistent(origin.clone()),
+                            }
+                        }
+                        _ => ResolutionIncompatibility::Other {
+                            code: "topo_reid_incompatible".into(),
+                            detail: format!("{:?}", topo_ev.compatibility),
+                        },
+                    };
+                    ResolutionResult::Incompatible {
+                        query,
+                        incompatibility,
+                    }
+                }
             }
         }
         other => other,
     }
+}
+
+fn topology_reid_candidate_to_kernel_face_candidate(
+    pref: &PersistentFaceRef,
+    record: forge_topo::topology::history::lineage_link::ReidentificationCandidate,
+) -> ResolutionCandidate {
+    ResolutionCandidate {
+        entity_kind: TraceEntityKind::Face,
+        persistent_ref: persistent_face_ref_label(pref),
+        snapshot_ref: SnapshotHandleRef::new(
+            TraceEntityKind::Face,
+            record.snapshot_ref.index,
+            record.snapshot_ref.generation,
+        ),
+        route: ResolverRoute::LineageReidentified,
+        match_kind: ResolverMatchKind::LineageDescendant,
+        provenance_tag: Some("reidentification_link_index".into()),
+        provenance_detail: Some(format!(
+            "parent_linkage_mode={:?};origin={:?};epoch={}",
+            record.link_evidence.parent_linkage_mode,
+            record.link_evidence.origin_kind,
+            record.link_evidence.epoch
+        )),
+    }
+}
+
+fn topology_reid_candidate_to_kernel_face_candidate_checked(
+    pref: &PersistentFaceRef,
+    record: forge_topo::topology::history::lineage_link::ReidentificationCandidate,
+) -> Option<ResolutionCandidate> {
+    if record.snapshot_ref.kind != forge_core::EntityKind::Face {
+        return None;
+    }
+    Some(topology_reid_candidate_to_kernel_face_candidate(
+        pref, record,
+    ))
 }
 
 fn hash_resolution_query_id(pref: &PersistentFaceRef, role: &str) -> u64 {
@@ -466,7 +645,11 @@ fn hash_resolution_query_id(pref: &PersistentFaceRef, role: &str) -> u64 {
 
 fn persistent_face_ref_label(pref: &PersistentFaceRef) -> String {
     match pref {
-        PersistentFaceRef::Name(name) => format!("face:{:032x}:{}", name.get_ancestry_hash(), name.get_ordinal()),
+        PersistentFaceRef::Name(name) => format!(
+            "face:{:032x}:{}",
+            name.get_ancestry_hash(),
+            name.get_ordinal()
+        ),
         PersistentFaceRef::Selector(sel) => format!("selector:{:?}", sel),
     }
 }
@@ -492,15 +675,19 @@ pub(super) fn test_resolve_face_ref_result_direct(
     arena: &forge_topo::arena::TopologyArena,
     pref: &PersistentFaceRef,
 ) -> ResolutionResult<ResolutionCandidate> {
-    resolve_face_ref_result(arena, pref, FaceResolutionFallbackPipeline::DirectOnly)
+    resolve_face_ref_direct(arena, pref)
 }
 
 #[cfg(test)]
 pub(super) fn test_resolve_face_ref_result_with_lineage_fallback(
-    arena: &forge_topo::arena::TopologyArena,
+    topo: &forge_topo::state::TopologyState,
     pref: &PersistentFaceRef,
 ) -> ResolutionResult<ResolutionCandidate> {
-    resolve_face_ref_result(arena, pref, FaceResolutionFallbackPipeline::DirectThenLineageThenHybrid)
+    resolve_face_ref_result(
+        topo,
+        pref,
+        FaceResolutionFallbackPipeline::DirectThenLineageThenHybrid,
+    )
 }
 
 fn persistent_role_tag(role: PersistentResolutionRole) -> &'static str {
@@ -516,15 +703,29 @@ fn map_resolution_incompatibility(
 ) -> PersistentResolutionIncompatibility {
     match inc {
         crate::core::ResolutionIncompatibility::UnsupportedEntityKind { requested } => {
-            PersistentResolutionIncompatibility::UnsupportedEntityKind { requested: *requested }
+            PersistentResolutionIncompatibility::UnsupportedEntityKind {
+                requested: *requested,
+            }
         }
         crate::core::ResolutionIncompatibility::MissingLineageStore => {
             PersistentResolutionIncompatibility::MissingLineageStore
         }
+        crate::core::ResolutionIncompatibility::SubstrateUnavailable => {
+            PersistentResolutionIncompatibility::SubstrateUnavailable
+        }
+        crate::core::ResolutionIncompatibility::UnsupportedEntityOrigin { origin } => {
+            PersistentResolutionIncompatibility::UnsupportedEntityOrigin { origin: *origin }
+        }
         crate::core::ResolutionIncompatibility::SchemaVersionMismatch { expected, actual } => {
-            PersistentResolutionIncompatibility::SchemaVersionMismatch { expected: *expected, actual: *actual }
+            PersistentResolutionIncompatibility::SchemaVersionMismatch {
+                expected: *expected,
+                actual: *actual,
+            }
         }
         crate::core::ResolutionIncompatibility::LineageStoreVersionMismatch { .. } => {
+            PersistentResolutionIncompatibility::UnsupportedLineageFallback
+        }
+        crate::core::ResolutionIncompatibility::LegacyIndexOnlyLineageHistory => {
             PersistentResolutionIncompatibility::UnsupportedLineageFallback
         }
         crate::core::ResolutionIncompatibility::UnsupportedResolverMode { .. } => {
@@ -536,22 +737,192 @@ fn map_resolution_incompatibility(
     }
 }
 
+fn map_topo_origin_kind_to_persistent(
+    origin: forge_topo::topology::history::lineage_link::EntityOriginKind,
+) -> forge_core::errors::PersistentResolutionOriginKind {
+    match origin {
+        forge_topo::topology::history::lineage_link::EntityOriginKind::EulerOperator => {
+            forge_core::errors::PersistentResolutionOriginKind::EulerOperator
+        }
+        forge_topo::topology::history::lineage_link::EntityOriginKind::GeometricIntersection => {
+            forge_core::errors::PersistentResolutionOriginKind::GeometricIntersection
+        }
+        forge_topo::topology::history::lineage_link::EntityOriginKind::ConstraintSolver => {
+            forge_core::errors::PersistentResolutionOriginKind::ConstraintSolver
+        }
+        forge_topo::topology::history::lineage_link::EntityOriginKind::Unknown => {
+            forge_core::errors::PersistentResolutionOriginKind::Unknown
+        }
+    }
+}
+
+fn build_reidentification_trace_payload(
+    topo_state: &forge_topo::state::TopologyState,
+    pref: &PersistentFaceRef,
+    fallback: FaceResolutionFallbackPipeline,
+    decision_id: DecisionId,
+    role_tag: &str,
+) -> Option<ReidentificationTracePayload> {
+    if !matches!(
+        fallback,
+        FaceResolutionFallbackPipeline::DirectThenLineageThenHybrid
+    ) {
+        return None;
+    }
+    let PersistentFaceRef::Name(name) = pref else {
+        return None;
+    };
+    if name.get_kind() != TraceEntityKind::Face {
+        return None;
+    }
+    // Only attach a topo re-identification payload when direct lookup missed and the
+    // lineage fallback path is relevant. This is deterministic and keeps adjunct volume bounded.
+    if !resolve_name(topo_state.arena(), name).is_empty() {
+        return None;
+    }
+
+    let query = ReidentificationQuery {
+        target: PersistentNameRef {
+            ancestry_hash: name.get_ancestry_hash(),
+            kind: name.get_kind(),
+            ordinal: name.get_ordinal(),
+        },
+        mode: ReidentificationMode::Descendants,
+    };
+    let topo_result =
+        forge_topo::topology::history::lineage_link::resolve_reidentification_query_v1(
+            topo_state.arena(),
+            topo_state.lineage_events(),
+            topo_state.reidentification_link_index(),
+            &query,
+        );
+    let (outcome, evidence) = match topo_result {
+        ReidentificationQueryResult::Resolved { evidence, .. } => {
+            (ReidentificationTraceOutcome::Resolved, evidence)
+        }
+        ReidentificationQueryResult::Ambiguous { evidence, .. } => {
+            (ReidentificationTraceOutcome::Ambiguous, evidence)
+        }
+        ReidentificationQueryResult::Missing { evidence } => {
+            (ReidentificationTraceOutcome::Missing, evidence)
+        }
+        ReidentificationQueryResult::Incompatible { evidence } => {
+            (ReidentificationTraceOutcome::Incompatible, evidence)
+        }
+    };
+    Some(ReidentificationTracePayload {
+        decision_id,
+        query_entity_kind: name.get_kind(),
+        query_ancestry_hash_hex: format!("{:032x}", name.get_ancestry_hash()),
+        query_ordinal: name.get_ordinal(),
+        outcome,
+        compatibility: map_topo_reid_compatibility(&evidence.compatibility),
+        suspected_cause: evidence
+            .suspected_cause
+            .as_ref()
+            .map(map_topo_reid_failure_cause),
+        mode_used: map_topo_reid_mode(evidence.mode_used),
+        records_scanned: evidence.records_scanned,
+        candidates_pre_filter: evidence.candidates_pre_filter,
+        candidates_post_filter: evidence.candidates_post_filter,
+        index_schema_version: evidence.index_schema_version,
+        operation_scope_id: Some("sheet_region_merge".into()),
+        source_scope_id: Some(role_tag.to_string()),
+    })
+}
+
+fn map_topo_reid_mode(
+    mode: forge_topo::topology::history::lineage_link::ReidentificationMode,
+) -> ReidentificationModeSummary {
+    match mode {
+        forge_topo::topology::history::lineage_link::ReidentificationMode::Descendants => {
+            ReidentificationModeSummary::Descendants
+        }
+        forge_topo::topology::history::lineage_link::ReidentificationMode::Ancestors => {
+            ReidentificationModeSummary::Ancestors
+        }
+        forge_topo::topology::history::lineage_link::ReidentificationMode::Hybrid => {
+            ReidentificationModeSummary::Hybrid
+        }
+    }
+}
+
+fn map_topo_origin_kind(
+    origin: forge_topo::topology::history::lineage_link::EntityOriginKind,
+) -> forge_core::tracing::ReidentificationOriginKindSummary {
+    match origin {
+        forge_topo::topology::history::lineage_link::EntityOriginKind::EulerOperator => {
+            forge_core::tracing::ReidentificationOriginKindSummary::EulerOperator
+        }
+        forge_topo::topology::history::lineage_link::EntityOriginKind::GeometricIntersection => {
+            forge_core::tracing::ReidentificationOriginKindSummary::GeometricIntersection
+        }
+        forge_topo::topology::history::lineage_link::EntityOriginKind::ConstraintSolver => {
+            forge_core::tracing::ReidentificationOriginKindSummary::ConstraintSolver
+        }
+        forge_topo::topology::history::lineage_link::EntityOriginKind::Unknown => {
+            forge_core::tracing::ReidentificationOriginKindSummary::Unknown
+        }
+    }
+}
+
+fn map_topo_reid_compatibility(
+    c: &forge_topo::topology::history::lineage_link::ReidentificationCompatibility,
+) -> ReidentificationCompatibilitySummary {
+    match c {
+        forge_topo::topology::history::lineage_link::ReidentificationCompatibility::Available => ReidentificationCompatibilitySummary::Available,
+        forge_topo::topology::history::lineage_link::ReidentificationCompatibility::Unavailable => ReidentificationCompatibilitySummary::Unavailable,
+        forge_topo::topology::history::lineage_link::ReidentificationCompatibility::SchemaVersionMismatch { recorded, supported } => {
+            ReidentificationCompatibilitySummary::SchemaVersionMismatch { recorded: *recorded, supported: *supported }
+        }
+        forge_topo::topology::history::lineage_link::ReidentificationCompatibility::MissingLinkage { kind } => {
+            ReidentificationCompatibilitySummary::MissingLinkage { kind: *kind }
+        }
+        forge_topo::topology::history::lineage_link::ReidentificationCompatibility::UnsupportedMode { mode } => {
+            ReidentificationCompatibilitySummary::UnsupportedMode { mode: map_topo_reid_mode(*mode) }
+        }
+        forge_topo::topology::history::lineage_link::ReidentificationCompatibility::UnsupportedEntityOrigin { origin } => {
+            ReidentificationCompatibilitySummary::UnsupportedEntityOrigin { origin: map_topo_origin_kind(origin.clone()) }
+        }
+    }
+}
+
+fn map_topo_reid_failure_cause(
+    c: &forge_topo::topology::history::lineage_link::ReidentificationFailureCause,
+) -> ReidentificationFailureCauseSummary {
+    match c {
+        forge_topo::topology::history::lineage_link::ReidentificationFailureCause::EntityDeleted => ReidentificationFailureCauseSummary::EntityDeleted,
+        forge_topo::topology::history::lineage_link::ReidentificationFailureCause::ToleranceSnapVariant => ReidentificationFailureCauseSummary::ToleranceSnapVariant,
+        forge_topo::topology::history::lineage_link::ReidentificationFailureCause::UnsupportedOriginClass { origin } => {
+            ReidentificationFailureCauseSummary::UnsupportedOriginClass { origin: map_topo_origin_kind(origin.clone()) }
+        }
+        forge_topo::topology::history::lineage_link::ReidentificationFailureCause::SubstrateNotBuilt => ReidentificationFailureCauseSummary::SubstrateNotBuilt,
+    }
+}
+
+#[cfg(test)]
+pub(super) fn test_map_resolution_incompatibility_for_persistent(
+    inc: &crate::core::ResolutionIncompatibility,
+) -> PersistentResolutionIncompatibility {
+    map_resolution_incompatibility(inc)
+}
+
 /// Reject if any face appears in both `selected_faces` and `protected_faces`.
 ///
 /// This is a deterministic input validation: the two sets must be disjoint.
 /// If overlap exists, no merge can proceed without violating protection semantics.
-fn validate_protected_faces(
-    selection: &MergeRegionSelection,
-) -> Result<(), KernelError> {
+fn validate_protected_faces(selection: &MergeRegionSelection) -> Result<(), KernelError> {
     let selected = selection.get_selected_faces();
     let protected = selection.get_protected_faces();
 
     for idx in selected.iter_ones() {
         if protected.contains(idx)? {
-            return Err(KernelError::MergeFailure(MergeError::ProtectedUseConflict {
-                face_index: idx,
-                edge_index: None,
-            }));
+            return Err(KernelError::MergeFailure(
+                MergeError::ProtectedUseConflict {
+                    face_index: idx,
+                    edge_index: None,
+                },
+            ));
         }
     }
 
@@ -578,9 +949,9 @@ fn validate_connectivity(
     }
 
     if selected_indices.is_empty() {
-        return Err(KernelError::MergeFailure(MergeError::WouldDisconnectSheet {
-            face_index: 0,
-        }));
+        return Err(KernelError::MergeFailure(
+            MergeError::WouldDisconnectSheet { face_index: 0 },
+        ));
     }
 
     let start_idx = selection.get_surviving_face().index();
@@ -626,18 +997,23 @@ fn validate_connectivity(
             }
 
             he = arena.get_half_edge(he)?.next();
-            if he == loop_he { break; }
+            if he == loop_he {
+                break;
+            }
         }
     }
 
     if visited.len() != selected_indices.len() {
-        let disconnected = selected_indices.iter()
+        let disconnected = selected_indices
+            .iter()
             .find(|idx| !visited.contains(idx))
             .copied()
             .unwrap_or(0);
-        return Err(KernelError::MergeFailure(MergeError::WouldDisconnectSheet {
-            face_index: disconnected,
-        }));
+        return Err(KernelError::MergeFailure(
+            MergeError::WouldDisconnectSheet {
+                face_index: disconnected,
+            },
+        ));
     }
 
     Ok(())
@@ -669,7 +1045,9 @@ fn build_merge_plan(
             let face = arena.get_half_edge(cur)?.face();
             radial_ring.push((cur, face.index()));
             cur = arena.get_half_edge(cur)?.radial_next();
-            if cur == entry_he { break; }
+            if cur == entry_he {
+                break;
+            }
         }
 
         let mut selected_uses: Vec<(HalfEdgeId, u32)> = Vec::new();
@@ -683,13 +1061,18 @@ fn build_merge_plan(
             continue;
         }
 
-        if let Some(selector) = selectors.iter().find(|s| s.get_edge_index() == edge_id.index()) {
+        if let Some(selector) = selectors
+            .iter()
+            .find(|s| s.get_edge_index() == edge_id.index())
+        {
             let kill_fi = selector.get_kill_face_index();
             if protected.contains(kill_fi)? {
-                return Err(KernelError::MergeFailure(MergeError::ProtectedUseConflict {
-                    face_index: kill_fi,
-                    edge_index: Some(edge_id.index()),
-                }));
+                return Err(KernelError::MergeFailure(
+                    MergeError::ProtectedUseConflict {
+                        face_index: kill_fi,
+                        edge_index: Some(edge_id.index()),
+                    },
+                ));
             }
             steps.push(MergeStepPlan {
                 edge_index: edge_id.index(),
@@ -709,10 +1092,12 @@ fn build_merge_plan(
             };
 
             if protected.contains(kill_idx)? {
-                return Err(KernelError::MergeFailure(MergeError::ProtectedUseConflict {
-                    face_index: kill_idx,
-                    edge_index: Some(edge_id.index()),
-                }));
+                return Err(KernelError::MergeFailure(
+                    MergeError::ProtectedUseConflict {
+                        face_index: kill_idx,
+                        edge_index: Some(edge_id.index()),
+                    },
+                ));
             }
 
             steps.push(MergeStepPlan {
@@ -721,10 +1106,12 @@ fn build_merge_plan(
                 kill_face_index: kill_idx,
             });
         } else {
-            return Err(KernelError::MergeFailure(MergeError::AmbiguousRadialSelection {
-                edge_index: edge_id.index(),
-                valence: selected_uses.len() as u32,
-            }));
+            return Err(KernelError::MergeFailure(
+                MergeError::AmbiguousRadialSelection {
+                    edge_index: edge_id.index(),
+                    valence: selected_uses.len() as u32,
+                },
+            ));
         }
     }
 
@@ -751,11 +1138,15 @@ fn rederive_halfedges_for_step(
     step: &MergeStepPlan,
     step_idx: usize,
 ) -> Result<(HalfEdgeId, HalfEdgeId, FaceId), KernelError> {
-    let edge_id = find_edge_by_index(arena, step.edge_index)
-        .ok_or_else(|| KernelError::MergeFailure(MergeError::PartialMergePlanRejected {
+    let edge_id = find_edge_by_index(arena, step.edge_index).ok_or_else(|| {
+        KernelError::MergeFailure(MergeError::PartialMergePlanRejected {
             step_index: Some(step_idx as u32),
-            reason: format!("Edge with index {} no longer exists in arena", step.edge_index),
-        }))?;
+            reason: format!(
+                "Edge with index {} no longer exists in arena",
+                step.edge_index
+            ),
+        })
+    })?;
 
     let entry_he = arena.get_edge(edge_id)?.half_edge();
     let mut he_survive: Option<HalfEdgeId> = None;
@@ -775,18 +1166,22 @@ fn rederive_halfedges_for_step(
         }
 
         cur = arena.get_half_edge(cur)?.radial_next();
-        if cur == entry_he { break; }
+        if cur == entry_he {
+            break;
+        }
     }
 
     match (he_survive, he_kill, kill_face) {
         (Some(hs), Some(hk), Some(kf)) => Ok((hs, hk, kf)),
-        _ => Err(KernelError::MergeFailure(MergeError::PartialMergePlanRejected {
-            step_index: Some(step_idx as u32),
-            reason: format!(
-                "Edge {} radial ring does not contain faces {} and {}",
-                step.edge_index, step.survive_face_index, step.kill_face_index,
-            ),
-        })),
+        _ => Err(KernelError::MergeFailure(
+            MergeError::PartialMergePlanRejected {
+                step_index: Some(step_idx as u32),
+                reason: format!(
+                    "Edge {} radial ring does not contain faces {} and {}",
+                    step.edge_index, step.survive_face_index, step.kill_face_index,
+                ),
+            },
+        )),
     }
 }
 
@@ -815,10 +1210,7 @@ fn find_face_by_index(
 }
 
 /// Find an EdgeId by its arena index.
-fn find_edge_by_index(
-    arena: &forge_topo::arena::TopologyArena,
-    index: u32,
-) -> Option<EdgeId> {
+fn find_edge_by_index(arena: &forge_topo::arena::TopologyArena, index: u32) -> Option<EdgeId> {
     for (edge_id, _) in arena.iter_edges() {
         if edge_id.index() == index {
             return Some(edge_id);
@@ -838,11 +1230,8 @@ mod gate_policy_tests {
         let mut selected = EntityBitset::with_capacity(4);
         selected.insert(0).expect("bitset capacity");
         let protected = EntityBitset::with_capacity(4);
-        let selection = MergeRegionSelection::new(
-            selected,
-            protected,
-            FaceId::from_raw_parts(0, 0),
-        );
+        let selection =
+            MergeRegionSelection::new(selected, protected, FaceId::from_raw_parts(0, 0));
 
         let mut ctx = ModelingContext::new();
         ctx.set_session_policy_override(PolicyKind::CoincidentGeometry, false, Some("qa".into()));
@@ -851,24 +1240,41 @@ mod gate_policy_tests {
             &WeakSimpleCertificate::WeaklySimple { touch_count: 2 },
             &selection,
             &mut ctx,
-        ).expect_err("session override rejecting CoincidentGeometry must fail merge gate");
+        )
+        .expect_err("session override rejecting CoincidentGeometry must fail merge gate");
 
-        assert!(matches!(err, KernelError::MergeFailure(MergeError::BoundaryCertificationFailed { .. })));
+        assert!(matches!(
+            err,
+            KernelError::MergeFailure(MergeError::BoundaryCertificationFailed { .. })
+        ));
         assert_eq!(ctx.get_trace_adjuncts().records().len(), 1);
 
         let payload = ctx.get_trace_adjuncts().records()[0]
             .as_policy_payload()
             .expect("policy adjunct kind")
             .expect("decode policy payload");
-        assert_eq!(payload.source, forge_core::PolicyResolutionSource::SessionUserOverride);
+        assert_eq!(
+            payload.source,
+            forge_core::PolicyResolutionSource::SessionUserOverride
+        );
         assert_eq!(
             payload.source_scope,
             Some(forge_core::PolicyResolutionScopeRef::SessionUser {
                 scope_id: Some("qa".to_string()),
             })
         );
-        assert_eq!(payload.operation_scope_id.as_deref(), Some("sheet_region_merge"));
-        assert_eq!(payload.outcome, forge_core::PolicyResolutionOutcome::RejectedPotentialValue);
-        assert_eq!(ctx.get_decision_count(), 1, "policy resolution must emit one traced decision");
+        assert_eq!(
+            payload.operation_scope_id.as_deref(),
+            Some("sheet_region_merge")
+        );
+        assert_eq!(
+            payload.outcome,
+            forge_core::PolicyResolutionOutcome::RejectedPotentialValue
+        );
+        assert_eq!(
+            ctx.get_decision_count(),
+            1,
+            "policy resolution must emit one traced decision"
+        );
     }
 }

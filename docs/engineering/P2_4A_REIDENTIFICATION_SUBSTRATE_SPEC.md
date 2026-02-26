@@ -80,6 +80,13 @@ What is **missing** — the exact gap:
    accounting but has no re-identification payload. Detailed provenance must be
    in a separate typed channel (audit adjunct), not squeezed here.
 
+7. **Lineage events are index-only today (`forge_core::EntityRef`).**
+   `LineageStore` / `LineageEvent` currently preserve `EntityKind + index` but
+   not generation. P2-4A V1 link records require generation-safe snapshot refs
+   (`TopoSnapshotHandleRef`) to satisfy ABA safety and deterministic auditability.
+   This is a prerequisite substrate upgrade; builders must not fabricate
+   generations (e.g. `0`) or silently degrade to index-only records.
+
 ### 1.3 Non-goals
 
 - Full persistent naming rollout for all kernel features
@@ -144,6 +151,85 @@ Phase C: EMIT (at P2-2 finalize time)
   ──▶ ReidentificationAuditPayload (trace adjunct, keyed by DecisionId)
   ──▶ attached to FinalizationSummary / audit record
 ```
+
+### 2.3 P2-4A prerequisite: Generational lineage-event references (production gate)
+
+Before implementing `build_link_records_from_store(...)` and commit-time index
+construction, Forge must upgrade lineage event/reference storage to preserve
+generational topology identity for created/modified/deleted entities.
+
+This is a **required prerequisite**, not an optional enhancement. Without it,
+P2-4A would either:
+- fabricate generations (incorrect, unsafe),
+- degrade to index-only linkage (violates spec and ABA guarantees), or
+- produce mixed-quality records that break audit/replay trust.
+
+#### 2.3.1 Contract goal
+
+- `LineageStore` / `LineageEvent` preserve generation-safe entity identity when
+  recording topology provenance events.
+- P2-4A builders can construct `TopoSnapshotHandleRef` without consulting stale
+  arena state or inventing generations.
+- Legacy index-only lineage events remain deserializable and explicitly marked
+  as structurally limited evidence.
+
+#### 2.3.2 Data model upgrade (topo-local)
+
+Add a topo-local generational lineage reference type (example naming):
+
+```rust
+// forge-topo::history::lineage
+pub struct LineageEntityRef {
+    pub kind: EntityKind,
+    pub index: u32,
+    pub generation: u32,
+}
+```
+
+`LineageEvent` must use this topo-local generational ref type (or carry both a
+legacy `EntityRef` and a generational ref during migration).
+
+`forge_core::EntityRef` remains valid for crate-neutral tracing contexts where
+generation is intentionally unavailable. It is **not sufficient** for P2-4A
+linkage record construction.
+
+#### 2.3.3 Compatibility and storage/replay impact
+
+- Existing serialized `LineageEvent` payloads must remain readable.
+- Legacy events without generation must deserialize into an explicit legacy form
+  (or defaulted form) that downstream code treats as limited evidence.
+- Replay/counterfactual tooling must distinguish:
+  - `LegacyIndexOnlyLineageEvent` (usable for coarse provenance)
+  - `GenerationalLineageEvent` (usable for P2-4A linkage)
+- P2-4A builders must fail closed or emit typed limited-compatibility evidence
+  when only legacy lineage events are available.
+
+#### 2.3.4 Recording path migration (required order)
+
+1. Introduce `LineageEntityRef` + conversion helpers from typed handles.
+2. Update `LineageEvent` and `LineageStore` to record generational refs.
+3. Migrate arena/draft lineage recording callsites so generation is captured at:
+   - creation
+   - deletion
+   - mutation
+4. Add backward-compatible serde handling for pre-upgrade lineage events.
+5. Only then implement `build_link_records_from_store(...)`.
+
+#### 2.3.5 Consumers impacted (must be audited)
+
+- `forge-topo` replay log / replay helpers
+- kernel causal chain / counterfactual analysis readers
+- proof validation tools that inspect lineage events
+- P2-4A link-record builder and resolver evidence generation
+- audit/export paths that serialize lineage history
+
+#### 2.3.6 Adversarial tests (prerequisite suite)
+
+- same index, different generation produce distinct lineage events
+- deletion + slot reuse does not alias lineage event identity
+- legacy lineage event deserializes and is marked limited/legacy
+- P2-4A builder rejects or marks legacy-only lineage history as incompatible
+- mixed legacy+generational history produces deterministic, typed compatibility outcome
 
 ---
 
@@ -433,6 +519,10 @@ selection, and entity-kind filtering**, and before any historical-audit-only
 candidate augmentation. This rule is binding for V1 and must be used by both
 direct and lineage-backed resolution paths.
 
+**V2 note:** If historical replay requires alternative ordinal semantics, add an
+explicit `OrdinalSource` enum (e.g. `CreationTime`, `PostFilterLiveSet`) rather
+than changing V1 behavior in place.
+
 ### 3.6 `ReidentificationCandidate`
 
 ```rust
@@ -620,6 +710,10 @@ pub fn build_link_records_from_store(
 
 2. Ignore `EntityModified` and `EntityDeleted` events in V1.
    (Deletion tracking is a V2 feature; V1 focuses on creation linkage.)
+
+   **V2 extension point:** introduce an explicit record-kind discriminator
+   (e.g. `ReidentificationLinkRecordKind::{Creation, Modification, Deletion}`)
+   or split record structs, rather than overloading V1 creation-link semantics.
 
 3. Return records sorted by `(epoch, child_snapshot.index, child_snapshot.generation)`.
 
@@ -875,8 +969,15 @@ the number of creation events in the draft, but curved/fillet workflows may make
 - link records built
 - index build duration
 - query records scanned
+- `reid_records_built_per_commit`
+- `reid_query_latency_us` (tagged by `EntityKind` and `ReidentificationMode`)
+- `reid_candidate_count_post_filter` (distribution/histogram preferred)
 These metrics must flow through operation metrics/audit paths so substrate cost
 remains observable as geometry complexity grows.
+
+**Compaction note (deferred):** Do not add record-dropping compaction (e.g.
+epoch-window pruning) in V1. Compaction changes replay/re-identification
+semantics and must be specified together with P2-5 audit/replay retention policy.
 
 ---
 
