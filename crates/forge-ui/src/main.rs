@@ -286,8 +286,11 @@ impl eframe::App for ForgeApp {
                             }
 
                             // Feature icon and name
-                            let label_color = if is_selected { t.text_primary } else { t.text_secondary };
-                            let mut child_ui = ui.child_ui(bg_rect, egui::Layout::left_to_right(egui::Align::Center));
+                            let mut child_ui = ui.new_child(
+                                egui::UiBuilder::new()
+                                    .max_rect(bg_rect)
+                                    .layout(egui::Layout::left_to_right(egui::Align::Center))
+                            );
                             child_ui.add_space(8.0);
                             self.icons.draw(&mut child_ui, FgIcon::Box, 14.0, status_color);
                             child_ui.add_space(6.0);
