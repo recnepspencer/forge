@@ -70,6 +70,10 @@ impl Camera {
 struct ViewportState {
     camera: Camera,
     cube_center: Vec3,
+    /// True when the viewport has captured the mouse (click to enter, Escape to exit).
+    mouse_captured: bool,
+    /// 0.0 = midnight, 0.25 = sunrise, 0.5 = noon, 0.75 = sunset
+    time_of_day: f32,
 }
 
 impl ViewportState {
@@ -77,6 +81,8 @@ impl ViewportState {
         Self {
             camera: Camera::new(),
             cube_center: Vec3::ZERO,
+            mouse_captured: false,
+            time_of_day: 0.25, // start at sunrise
         }
     }
 }
@@ -129,11 +135,6 @@ impl eframe::App for ForgeApp {
             let fsz_md = t.font_size_md;
             let fsz_sm = t.font_size_sm;
             let palette_open = self.state.palette.open;
-            let theme_icon = match self.state.theme_kind {
-                forge_ui_state::ThemeKind::Dark  => "☀",
-                forge_ui_state::ThemeKind::Light => "☾",
-            };
-            
             let top_bg = t.bg_surface;
             let top_stroke = t.border_subtle;
 
@@ -168,38 +169,62 @@ impl eframe::App for ForgeApp {
                                 ui.label(egui::RichText::new("my_model.fg ●").color(text_sec).size(fsz_sm));
                             });
 
-                        // ── ⌘K search (centered) ─────────────────────────
-                        ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
-                            let (rect, resp) = ui.allocate_exact_size(Vec2::new(260.0, 30.0), egui::Sense::click());
+                        // ── ⌘K search (takes remaining center space) ────
+                        {
+                            let search_w = 280.0_f32;
+                            let search_h = 30.0_f32;
+                            let (rect, resp) = ui.allocate_exact_size(Vec2::new(search_w, search_h), egui::Sense::click());
                             if ui.is_rect_visible(rect) {
                                 let hovered = resp.hovered() || palette_open;
                                 let bg = if hovered { bg_raised } else { bg_base };
                                 let border = if hovered { border_subtle } else { border_def };
                                 ui.painter().rect(rect, CornerRadius::same(radius_md as u8), bg, Stroke::new(1.0, border), egui::StrokeKind::Outside);
-                                
-                                // Draw ⌘K on the right
-                                let galley_cmd = ui.fonts(|f| f.layout_no_wrap("⌘K".to_string(), egui::FontId::proportional(fsz_sm), _text_muted));
-                                ui.painter().galley(Pos2::new(rect.max.x - 10.0 - galley_cmd.size().x, rect.center().y - galley_cmd.size().y / 2.0), galley_cmd, _text_muted);
-                                
-                                // Draw text
-                                let search_text = if palette_open { "Search operations…" } else { "Search operations…" };
-                                let galley_text = ui.fonts(|f| f.layout_no_wrap(search_text.to_string(), egui::FontId::proportional(fsz_sm), _text_muted));
-                                ui.painter().galley(Pos2::new(rect.min.x + 12.0, rect.center().y - galley_text.size().y / 2.0), galley_text, _text_muted);
+
+                                // Search icon on the left
+                                let icon_y = rect.center().y - 6.0;
+                                let search_galley = ui.fonts(|f| f.layout_no_wrap("🔍".to_string(), egui::FontId::proportional(11.0), _text_muted));
+                                ui.painter().galley(Pos2::new(rect.min.x + 10.0, icon_y), search_galley, _text_muted);
+
+                                // Placeholder text
+                                let galley_text = ui.fonts(|f| f.layout_no_wrap("Search operations…".to_string(), egui::FontId::proportional(fsz_sm), _text_muted));
+                                ui.painter().galley(Pos2::new(rect.min.x + 28.0, rect.center().y - galley_text.size().y / 2.0), galley_text, _text_muted);
+
+                                // ⌘K badge on the right
+                                let badge_text = "⌘K";
+                                let badge_galley = ui.fonts(|f| f.layout_no_wrap(badge_text.to_string(), egui::FontId::proportional(10.0), _text_muted));
+                                let badge_w = badge_galley.size().x + 8.0;
+                                let badge_h = badge_galley.size().y + 4.0;
+                                let badge_rect = Rect::from_min_size(
+                                    Pos2::new(rect.max.x - badge_w - 8.0, rect.center().y - badge_h / 2.0),
+                                    Vec2::new(badge_w, badge_h),
+                                );
+                                ui.painter().rect(badge_rect, CornerRadius::same(3), border_def, Stroke::NONE, egui::StrokeKind::Outside);
+                                ui.painter().galley(badge_rect.min + Vec2::new(4.0, 2.0), badge_galley, _text_muted);
                             }
                             if resp.clicked() { self.state.palette.toggle(); }
-                        });
+                        }
 
-                        // ── Theme toggle (right-aligned) ──────────────────
+                        // ── Spacer → push theme toggle to the right ────
                         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             ui.add_space(16.0);
+                            // Theme toggle using SVG icon
+                            let theme_fg_icon = match self.state.theme_kind {
+                                forge_ui_state::ThemeKind::Dark  => FgIcon::Sun,
+                                forge_ui_state::ThemeKind::Light => FgIcon::Moon,
+                            };
                             let (rect, resp) = ui.allocate_exact_size(Vec2::new(28.0, 28.0), egui::Sense::click());
                             if ui.is_rect_visible(rect) {
-                                let hovered = resp.hovered();
-                                if hovered {
+                                if resp.hovered() {
                                     ui.painter().rect_filled(rect, CornerRadius::same(radius_sm as u8), bg_raised);
                                 }
-                                let galley = ui.fonts(|f| f.layout_no_wrap(theme_icon.to_string(), egui::FontId::proportional(14.0), text_sec));
-                                ui.painter().galley(rect.center() - galley.size() / 2.0, galley, text_sec);
+                                // Draw centered SVG icon
+                                if let Some(tex) = self.icons.textures.get(&theme_fg_icon) {
+                                    let icon_size = 16.0;
+                                    let icon_pos = rect.center() - Vec2::splat(icon_size / 2.0);
+                                    let sized = egui::load::SizedTexture::new(tex.id(), [icon_size, icon_size]);
+                                    let img = egui::Image::from_texture(sized).tint(text_sec);
+                                    img.paint_at(ui, Rect::from_min_size(icon_pos, Vec2::splat(icon_size)));
+                                }
                             }
                             if resp.clicked() {
                                 self.state.toggle_theme();
@@ -372,46 +397,195 @@ impl eframe::App for ForgeApp {
                 let t  = &self.state.theme;
                 let rect = ui.available_rect_before_wrap();
 
-                // ── Background ────────────────────────────────────────────
-                ui.painter().rect_filled(rect, 0.0, t.bg_base);
+                // ── Day / night cycle ────────────────────────────────────
+                // Advance time (full cycle in ~90 seconds real time).
+                vp.time_of_day = (vp.time_of_day + ctx.input(|i| i.stable_dt) * (1.0 / 90.0)).fract();
+                ctx.request_repaint(); // always animate
+
+                let t_day = vp.time_of_day; // 0.0=midnight  0.5=noon
+                // Map to a 0-1 "brightness" with smooth sunrise/sunset peaks
+                let sun_angle = t_day * std::f32::consts::TAU; // radians
+                // y component of sun: +1 = zenith, -1 = nadir
+                let sun_y = (sun_angle - std::f32::consts::PI * 0.5).sin(); // -1..+1
+                let daytime = ((sun_y + 1.0) * 0.5).powf(0.4); // 0=night, 1=full day
+
+                // Sky color key-frames (top / horizon)
+                // midnight
+                let mid_top  = Color32::from_rgb(3,  5, 20);
+                let mid_hor  = Color32::from_rgb(5, 10, 30);
+                // sunrise/sunset
+                let ss_top   = Color32::from_rgb(40, 30, 100);
+                let ss_hor   = Color32::from_rgb(255, 110, 30);
+                // noon
+                let noon_top = Color32::from_rgb(18, 90, 195);
+                let noon_hor = Color32::from_rgb(130, 200, 255);
+
+                // sunrise factor: peaks when sun is near horizon going up
+                let rise_t = {
+                    let h = (sun_y.abs() - 0.0).max(0.0);
+                    (1.0 - (h / 0.35).min(1.0)).powi(2) * if sun_y > -0.1 { 1.0 } else { 0.0 }
+                };
+
+                let lerp_col = |a: Color32, b: Color32, t: f32| -> Color32 {
+                    Color32::from_rgb(
+                        (a.r() as f32 + (b.r() as f32 - a.r() as f32) * t) as u8,
+                        (a.g() as f32 + (b.g() as f32 - a.g() as f32) * t) as u8,
+                        (a.b() as f32 + (b.b() as f32 - a.b() as f32) * t) as u8,
+                    )
+                };
+
+                // Blend: night → sunrise → noon → sunset → night
+                let sky_top = lerp_col(
+                    lerp_col(mid_top, ss_top, rise_t),
+                    noon_top, daytime * (1.0 - rise_t),
+                );
+                let sky_hor = lerp_col(
+                    lerp_col(mid_hor, ss_hor, rise_t),
+                    noon_hor, daytime * (1.0 - rise_t),
+                );
+
+                // ── Sky gradient mesh ─────────────────────────────────────
+                {
+                    use egui::epaint::{Mesh, Vertex, WHITE_UV};
+                    let tl = rect.left_top();
+                    let tr = rect.right_top();
+                    let bl = rect.left_bottom();
+                    let br = rect.right_bottom();
+                    let mut mesh = Mesh::default();
+                    let horizon_y = rect.min.y + rect.height() * 0.55; // horizon sits slightly below center
+
+                    // Top strip (sky): tl → tr → horizon_l → horizon_r
+                    let hl = Pos2::new(rect.min.x, horizon_y);
+                    let hr = Pos2::new(rect.max.x, horizon_y);
+
+                    let add = |m: &mut Mesh, p: Pos2, c: Color32| {
+                        m.vertices.push(Vertex { pos: p, uv: WHITE_UV, color: c }); };
+                    add(&mut mesh, tl, sky_top); // 0
+                    add(&mut mesh, tr, sky_top); // 1
+                    add(&mut mesh, hr, sky_hor); // 2
+                    add(&mut mesh, hl, sky_hor); // 3
+                    mesh.indices.extend_from_slice(&[0,1,2, 0,2,3]);
+
+                    // Ground strip (below horizon): dark earth tone
+                    let ground_top = lerp_col(Color32::from_rgb(40, 50, 35), Color32::from_rgb(60, 70, 50), daytime);
+                    let ground_bot = lerp_col(Color32::from_rgb(20, 25, 18), Color32::from_rgb(35, 45, 28), daytime);
+                    let base = mesh.vertices.len() as u32;
+                    add(&mut mesh, hl,  ground_top); // base+0
+                    add(&mut mesh, hr,  ground_top); // base+1
+                    add(&mut mesh, br,  ground_bot); // base+2
+                    add(&mut mesh, bl,  ground_bot); // base+3
+                    mesh.indices.extend_from_slice(&[base,base+1,base+2, base,base+2,base+3]);
+
+                    ui.painter().add(egui::Shape::Mesh(std::sync::Arc::new(mesh)));
+                }
+
+                // ── Stars (visible at night, fade out at day) ─────────────
+                let star_alpha = ((1.0 - daytime) * 255.0) as u8;
+                if star_alpha > 10 {
+                    // Fixed pseudo-random star positions
+                    let stars: &[(f32, f32, f32)] = &[
+                        (0.06, 0.05, 1.5), (0.18, 0.09, 1.0), (0.32, 0.03, 2.0),
+                        (0.45, 0.12, 1.2), (0.57, 0.04, 1.8), (0.71, 0.07, 1.0),
+                        (0.84, 0.02, 2.2), (0.92, 0.10, 1.3), (0.13, 0.20, 1.6),
+                        (0.29, 0.18, 0.9), (0.50, 0.22, 1.4), (0.65, 0.16, 2.0),
+                        (0.78, 0.25, 1.1), (0.88, 0.19, 1.7), (0.07, 0.32, 1.3),
+                        (0.40, 0.35, 2.1), (0.60, 0.30, 0.8), (0.75, 0.40, 1.5),
+                        (0.20, 0.45, 1.0), (0.90, 0.38, 2.0), (0.35, 0.50, 1.2),
+                    ];
+                    let h_frac = 0.55; // match horizon
+                    for &(fx, fy, r) in stars {
+                        let px = rect.min.x + fx * rect.width();
+                        let py = rect.min.y + fy * rect.height() * h_frac;
+                        let twinkle = ((t_day * 500.0 + fx * 137.0).sin() * 0.3 + 0.7).clamp(0.0, 1.0);
+                        let a = (star_alpha as f32 * twinkle) as u8;
+                        let col = Color32::from_rgba_unmultiplied(255, 252, 220, a);
+                        ui.painter().circle_filled(Pos2::new(px, py), r, col);
+                    }
+                }
+
+                // ── Horizon glow (sunrise/sunset rim) ────────────────────
+                if rise_t > 0.05 {
+                    let alpha = (rise_t * 180.0) as u8;
+                    let glow_col = Color32::from_rgba_unmultiplied(255, 90, 20, alpha);
+                    let horizon_y = rect.min.y + rect.height() * 0.55;
+                    for i in 0..6u8 {
+                        let spread = i as f32 * 3.0;
+                        let a = (alpha as f32 * (1.0 - i as f32 / 6.0)) as u8;
+                        let c = Color32::from_rgba_unmultiplied(255, 90, 20, a);
+                        ui.painter().hline(
+                            rect.min.x..=rect.max.x,
+                            horizon_y - spread,
+                            Stroke::new(1.5, c),
+                        );
+                        ui.painter().hline(
+                            rect.min.x..=rect.max.x,
+                            horizon_y + spread,
+                            Stroke::new(1.5, c),
+                        );
+                    }
+                    let _ = glow_col;
+                }
 
                 // ── WASD / Mouse Aim Navigation ───────────────────────────
                 let dt = ctx.input(|i| i.stable_dt).min(0.05);
                 let speed = 5.0 * dt;
                 let input = ctx.input(|i| i.clone());
-                
-                // Mouse aim via drag on the background
-                let canvas_resp = ui.interact(rect, egui::Id::new("viewport_bg"), egui::Sense::drag());
-                if canvas_resp.dragged() {
-                    let delta = canvas_resp.drag_delta();
-                    vp.camera.yaw -= delta.x * 0.005;
-                    vp.camera.pitch -= delta.y * 0.005;
-                    vp.camera.pitch = vp.camera.pitch.clamp(-1.5, 1.5);
+
+                // ── Click-to-lock mouse capture ───────────────────────────
+                // Click viewport → lock + hide cursor; Click again or Esc → release.
+                let canvas_resp = ui.interact(rect, egui::Id::new("viewport_bg"), egui::Sense::click());
+
+                if vp.mouse_captured {
+                    // Any click anywhere releases the lock (cursor is hidden so normal
+                    // hit-testing on canvas_resp doesn't fire).
+                    if input.pointer.any_click() {
+                        vp.mouse_captured = false;
+                    }
+                    if input.key_pressed(Key::Escape) {
+                        vp.mouse_captured = false;
+                    }
+                } else if canvas_resp.clicked() {
+                    vp.mouse_captured = true;
                 }
-                
-                // Scroll to zoom
+
+                if vp.mouse_captured {
+                    // Hide cursor and continuously read delta (no button needed).
+                    ctx.send_viewport_cmd(egui::ViewportCommand::CursorVisible(false));
+                    let delta = input.pointer.delta();
+                    if delta.x != 0.0 || delta.y != 0.0 {
+                        vp.camera.yaw   -= delta.x * 0.005;
+                        vp.camera.pitch -= delta.y * 0.005;
+                        vp.camera.pitch  = vp.camera.pitch.clamp(-1.5, 1.5);
+                        ctx.request_repaint();
+                    }
+                } else {
+                    ctx.send_viewport_cmd(egui::ViewportCommand::CursorVisible(true));
+                }
+
+                // ── Scroll to zoom ─────────────────────────────────────────
                 if canvas_resp.hovered() {
                     let scroll = ctx.input(|i| i.smooth_scroll_delta.y);
                     if scroll != 0.0 {
                         vp.camera.fov_y -= scroll * 0.001;
                         vp.camera.fov_y = vp.camera.fov_y.clamp(10.0_f32.to_radians(), 120.0_f32.to_radians());
+                        ctx.request_repaint();
                     }
                 }
 
+                // ── WASD movement ─────────────────────────────────────────
                 let mut move_dir = Vec3::ZERO;
                 if input.key_down(Key::W) || input.key_down(Key::ArrowUp)    { move_dir += vp.camera.forward(); }
                 if input.key_down(Key::S) || input.key_down(Key::ArrowDown)  { move_dir -= vp.camera.forward(); }
                 if input.key_down(Key::A) || input.key_down(Key::ArrowLeft)  { move_dir -= vp.camera.right(); }
                 if input.key_down(Key::D) || input.key_down(Key::ArrowRight) { move_dir += vp.camera.right(); }
-                
-                // Vertical move with Q/E
-                if input.key_down(Key::Q) { move_dir.y -= 1.0; }
-                if input.key_down(Key::E) { move_dir.y += 1.0; }
+                if input.key_down(Key::Space)   { move_dir.y += 1.0; }
+                if input.modifiers.shift        { move_dir.y -= 1.0; }
 
                 if move_dir.length_squared() > 0.01 {
                     vp.camera.pos += move_dir.normalize() * speed;
-                    ctx.request_repaint(); // Keep repainting while moving
+                    ctx.request_repaint();
                 }
+
 
                 // ── 3D Projection & Drawing ───────────────────────────────
                 let aspect = rect.width() / rect.height().max(1.0);
@@ -449,10 +623,88 @@ impl eframe::App for ForgeApp {
                     }
                 }
 
+                // ── Sun / Moon ────────────────────────────────────────────
+                {
+                    // Sun orbits in XZ plane at Y=40, X-component tracks time
+                    let sx = (sun_angle).cos() * 40.0;
+                    let sy = (sun_angle - std::f32::consts::PI * 0.5).sin() * 40.0;
+                    let sz = 0.0_f32;
 
-                // ── HUD overlay ───────────────────────────────────────────
+                    let is_day = sun_y > -0.05;
+                    let body_pos = Vec3::new(sx, sy, sz);
+
+                    if let Some(sp) = project(body_pos) {
+                        if rect.contains(sp) {
+                            if is_day {
+                                // Sun: bright disc with atmospheric halo layers
+                                let sun_col = lerp_col(Color32::from_rgb(255, 180, 50), Color32::from_rgb(255, 252, 200), daytime);
+                                for i in (0..5u8).rev() {
+                                    let r = 18.0 + i as f32 * 8.0;
+                                    let a = (60u8).saturating_sub(i * 14);
+                                    let halo = Color32::from_rgba_unmultiplied(sun_col.r(), sun_col.g(), sun_col.b(), a);
+                                    ui.painter().circle_filled(sp, r, halo);
+                                }
+                                ui.painter().circle_filled(sp, 18.0, sun_col);
+                                // Bright core
+                                ui.painter().circle_filled(sp, 10.0, Color32::from_rgb(255, 255, 240));
+                            } else {
+                                // Moon: cool grey disc with subtle glow
+                                let moon_col = Color32::from_rgb(210, 215, 230);
+                                ui.painter().circle_filled(sp, 12.0, Color32::from_rgba_unmultiplied(200, 210, 230, 60));
+                                ui.painter().circle_filled(sp, 10.0, Color32::from_rgba_unmultiplied(200, 210, 230, 80));
+                                ui.painter().circle_filled(sp,  8.0, moon_col);
+                            }
+                        }
+                    }
+                }
+
+                // ── Ground grid (XZ plane at Y=0) ─────────────────────────
+                {
+                    let grid_extent = 30i32;
+                    let step = 1i32;
+                    let grid_col_base = lerp_col(
+                        Color32::from_rgba_unmultiplied(60, 120, 80, 60),
+                        Color32::from_rgba_unmultiplied(100, 180, 110, 100),
+                        daytime,
+                    );
+
+                    // Draw lines parallel to X axis (varying Z)
+                    let mut z = -grid_extent;
+                    while z <= grid_extent {
+                        let p1 = project(Vec3::new(-grid_extent as f32, 0.0, z as f32));
+                        let p2 = project(Vec3::new( grid_extent as f32, 0.0, z as f32));
+                        if let (Some(p1), Some(p2)) = (p1, p2) {
+                            let dist_fade = 1.0 - (z.abs() as f32 / grid_extent as f32).powi(2);
+                            let a = (dist_fade * grid_col_base.a() as f32) as u8;
+                            let c = Color32::from_rgba_unmultiplied(grid_col_base.r(), grid_col_base.g(), grid_col_base.b(), a);
+                            let w = if z == 0 { 1.5 } else { 0.8 };
+                            ui.painter().line_segment([p1, p2], Stroke::new(w, c));
+                        }
+                        z += step;
+                    }
+                    // Lines parallel to Z axis (varying X)
+                    let mut x = -grid_extent;
+                    while x <= grid_extent {
+                        let p1 = project(Vec3::new(x as f32, 0.0, -grid_extent as f32));
+                        let p2 = project(Vec3::new(x as f32, 0.0,  grid_extent as f32));
+                        if let (Some(p1), Some(p2)) = (p1, p2) {
+                            let dist_fade = 1.0 - (x.abs() as f32 / grid_extent as f32).powi(2);
+                            let a = (dist_fade * grid_col_base.a() as f32) as u8;
+                            let c = Color32::from_rgba_unmultiplied(grid_col_base.r(), grid_col_base.g(), grid_col_base.b(), a);
+                            let w = if x == 0 { 1.5 } else { 0.8 };
+                            ui.painter().line_segment([p1, p2], Stroke::new(w, c));
+                        }
+                        x += step;
+                    }
+                }
+
+
                 // Mini key hint at bottom-left
-                let hint = "WASD/↑↓←→ move  ·  QE up/down  ·  mouse drag aim  ·  scroll zoom";
+                let hint = if vp.mouse_captured {
+                    "● LOCKED  ·  WASD move  ·  Space/Shift up/down  ·  scroll zoom  ·  Esc to release"
+                } else {
+                    "Click viewport to look  ·  scroll to zoom"
+                };
                 let hg = ui.fonts(|f| f.layout_no_wrap(hint.to_string(), egui::FontId::proportional(10.5), t.text_muted));
                 ui.painter().galley(Pos2::new(rect.min.x + 12.0, rect.max.y - 20.0), hg, t.text_muted);
             });

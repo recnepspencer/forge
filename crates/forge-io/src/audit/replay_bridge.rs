@@ -93,9 +93,11 @@ pub fn build_replay_bridge_record(
     } else if witnesses.is_empty() {
         ReplayCompatibility::RequiresWitness
     } else if witnesses.iter().any(|w| w.witness_kind == ReplayWitnessKind::GeometricIntersection) {
-        // NURBS INV-3 Guard: Any geometric intersection witness immediately
-        // flags the record as an unsupported origin unless it's overridden
-        // by a counterfactual policy (which we downgrade to CounterfactualOnly).
+        // NURBS INV-3 Guard: Any GeometricIntersection witness flags the record as
+        // unsupported origin for exact replay. The presence of *any* PolicyDecision
+        // witness anywhere in the list (regardless of order or position) overrides
+        // this and downgrades to CounterfactualOnly. Without a PolicyDecision override,
+        // exact replay is architecturally forbidden for intersection-derived entities.
         if witnesses.iter().any(|w| w.witness_kind == ReplayWitnessKind::PolicyDecision) {
             ReplayCompatibility::CounterfactualOnly
         } else {
@@ -105,6 +107,12 @@ pub fn build_replay_bridge_record(
         }
     } else if witnesses.iter().any(|w| w.witness_kind == ReplayWitnessKind::TopologySnapshot) {
         ReplayCompatibility::Compatible
+    } else if witnesses.iter().any(|w| w.witness_kind == ReplayWitnessKind::ProvenanceTrace)
+        && !witnesses.iter().any(|w| w.witness_kind == ReplayWitnessKind::PolicyDecision)
+    {
+        // ProvenanceTrace is present but no topology snapshot: replay requires
+        // a full TopologySnapshot to reconstruct the exact pre-op state.
+        ReplayCompatibility::RequiresSnapshot
     } else {
         ReplayCompatibility::CounterfactualOnly
     };
@@ -247,5 +255,26 @@ mod tests {
         ]);
         
         assert_eq!(record_overridden.compatibility, ReplayCompatibility::CounterfactualOnly);
+    }
+
+    #[test]
+    fn replay_bridge_requires_snapshot_when_only_provenance_trace_present() {
+        let manifest = test_manifest(AUDIT_SCHEMA_VERSION, 1);
+
+        // Only a ProvenanceTrace witness — no TopologySnapshot, no PolicyDecision.
+        // The bridge must signal that a full snapshot is needed to reconstruct the pre-op state.
+        let record = build_replay_bridge_record(&manifest, None, vec![
+            ReplayWitnessRef {
+                decision_id: DecisionId(1),
+                witness_kind: ReplayWitnessKind::ProvenanceTrace,
+                scope_id: Some("op-0001/trace.json".to_string()),
+            }
+        ]);
+
+        assert_eq!(
+            record.compatibility,
+            ReplayCompatibility::RequiresSnapshot,
+            "ProvenanceTrace-only witness must require a TopologySnapshot for exact replay"
+        );
     }
 }

@@ -8,7 +8,7 @@
 //!
 //! DEPENDENCIES: egui, egui_extras.
 
-/// Identifies a Forge UI icon. Variants are added via `scripts/add-icon.js`.
+/// Identifies a Forge UI icon.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FgIcon {
     // ── Core UI ─────────────────────────────────────────────────────────
@@ -38,24 +38,43 @@ pub enum FgIcon {
     PencilLine,
     Trash2,
     MessageSquare,
+    X,
+    PenLine,
+    Eye,
+    Layers3,
+    Ruler,
+    Move3d,
+    Grid2x2,
 }
 
 impl FgIcon {
-    /// Returns the raw bytes of the SVG file for this icon, if available.
-    ///
-    /// Returns `None` for icons that have not yet been downloaded via the
-    /// `scripts/add-icon.js` workflow. Callers fall back to `FgIcon::glyph()`.
+    /// Raw SVG bytes for this icon, or `None` if not yet downloaded.
     pub fn svg_bytes(self) -> Option<&'static [u8]> {
         match self {
+            FgIcon::Plus          => Some(include_bytes!("../icons/plus.svg")),
+            FgIcon::Minus         => Some(include_bytes!("../icons/minus.svg")),
+            FgIcon::Check         => Some(include_bytes!("../icons/check.svg")),
+            FgIcon::Search        => Some(include_bytes!("../icons/search.svg")),
+            FgIcon::ChevronRight  => Some(include_bytes!("../icons/chevron-right.svg")),
+            FgIcon::ChevronDown   => Some(include_bytes!("../icons/chevron-down.svg")),
+            FgIcon::Sun           => Some(include_bytes!("../icons/sun.svg")),
+            FgIcon::Moon          => Some(include_bytes!("../icons/moon.svg")),
             FgIcon::Box           => Some(include_bytes!("../icons/box.svg")),
             FgIcon::PencilLine    => Some(include_bytes!("../icons/pencil-line.svg")),
             FgIcon::Trash2        => Some(include_bytes!("../icons/trash-2.svg")),
             FgIcon::MessageSquare => Some(include_bytes!("../icons/message-square.svg")),
+            FgIcon::X             => Some(include_bytes!("../icons/x.svg")),
+            FgIcon::PenLine       => Some(include_bytes!("../icons/pen-line.svg")),
+            FgIcon::Eye           => Some(include_bytes!("../icons/eye.svg")),
+            FgIcon::Layers3       => Some(include_bytes!("../icons/layers-3.svg")),
+            FgIcon::Ruler         => Some(include_bytes!("../icons/ruler.svg")),
+            FgIcon::Move3d        => Some(include_bytes!("../icons/move-3d.svg")),
+            FgIcon::Grid2x2       => Some(include_bytes!("../icons/grid-2x2.svg")),
             _ => None,
         }
     }
 
-    /// Fallback Unicode glyph used when no SVG has been downloaded yet.
+    /// Fallback Unicode glyph when SVG is not available.
     pub fn glyph(self) -> &'static str {
         match self {
             FgIcon::Plus          => "+",
@@ -64,7 +83,7 @@ impl FgIcon {
             FgIcon::Delete        => "⌫",
             FgIcon::Check         => "✓",
             FgIcon::Close         => "✕",
-            FgIcon::Search        => "⌘K",
+            FgIcon::Search        => "🔍",
             FgIcon::ChevronRight  => "›",
             FgIcon::ChevronDown   => "‹",
             FgIcon::Sun           => "☀",
@@ -78,29 +97,30 @@ impl FgIcon {
             FgIcon::Chat          => "💬",
             FgIcon::Properties    => "≡",
             FgIcon::Logo          => "◆",
-            FgIcon::Box           => "□",
+            FgIcon::Box           => "☐",
             FgIcon::PencilLine    => "✎",
-            FgIcon::Trash2        => "⌫",
+            FgIcon::Trash2        => "🗑",
             FgIcon::MessageSquare => "💬",
+            FgIcon::X             => "✕",
+            FgIcon::PenLine       => "✎",
+            FgIcon::Eye           => "👁",
+            FgIcon::Layers3       => "☰",
+            FgIcon::Ruler         => "📏",
+            FgIcon::Move3d        => "✥",
+            FgIcon::Grid2x2       => "▦",
         }
     }
 }
 
 /// Holds loaded egui textures for all icons that have SVG data.
-///
-/// Create one `IconStore` per `ForgeApp` and call `load()` once in `new()`.
-/// Then call `draw()` anywhere you have a `&mut egui::Ui`.
 pub struct IconStore {
-    textures: std::collections::HashMap<FgIcon, egui::TextureHandle>,
+    pub textures: std::collections::HashMap<FgIcon, egui::TextureHandle>,
 }
 
 impl IconStore {
-    /// Load all icons that have SVG bytes into GPU textures.
-    ///
-    /// Call once at app startup from `eframe::CreationContext`.
+    /// Load every icon with SVG bytes into GPU textures. Call once at startup.
     pub fn load(ctx: &egui::Context) -> Self {
         let mut textures = std::collections::HashMap::new();
-
         for &icon in Self::all_icons() {
             if let Some(bytes) = icon.svg_bytes() {
                 match egui_extras::image::load_svg_bytes(bytes) {
@@ -118,12 +138,10 @@ impl IconStore {
                 }
             }
         }
-
         Self { textures }
     }
 
-    /// Draw an icon at the given size. Falls back to the Unicode glyph if no
-    /// SVG texture has been loaded for this icon.
+    /// Draw an icon. Falls back to glyph if SVG texture is missing.
     pub fn draw(&self, ui: &mut egui::Ui, icon: FgIcon, size: f32, tint: egui::Color32) {
         if let Some(texture) = self.textures.get(&icon) {
             let sized = egui::load::SizedTexture::new(texture.id(), [size, size]);
@@ -146,6 +164,8 @@ impl IconStore {
             FgIcon::Boolean, FgIcon::Select, FgIcon::Measure, FgIcon::Sketch,
             FgIcon::Orient, FgIcon::Chat, FgIcon::Properties, FgIcon::Logo,
             FgIcon::Box, FgIcon::PencilLine, FgIcon::Trash2, FgIcon::MessageSquare,
+            FgIcon::X, FgIcon::PenLine, FgIcon::Eye, FgIcon::Layers3,
+            FgIcon::Ruler, FgIcon::Move3d, FgIcon::Grid2x2,
         ]
     }
 }

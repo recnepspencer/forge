@@ -2756,80 +2756,128 @@ mod tests {
 
     #[test]
     fn generation_reuse_does_not_cause_stale_snapshot_leakage() {
-        use forge_core::tracing::ResolutionOutcome;
+        // P2-4A adversarial test: exercises the FULL re-identification pipeline.
+        //
+        // Scenario:
+        //   1. Face at slot 0, gen=1 is created with lineage hash H (from parent P).
+        //   2. Face at slot 0, gen=1 is deleted.
+        //   3. Face at slot 0, gen=2 is created with a DIFFERENT child lineage hash H2
+        //      (from the same parent P — it's a descendant).
+        //   4. Both events produce link records in the index.
+        //   5. resolve_reidentification_query_v1 is called looking for
+        //      descendants of P.
+        //
+        // Expected: The resolver must find only gen=2 (the live candidate).
+        //   gen=1's link record has the right parent hash, but arena.get_face(gen=1)
+        //   returns StaleHandle — the ABA guard in link_record_to_live_candidate
+        //   filters it out. This is the critical generational safety gate.
 
-        // 1. Setup topography and face
-        let mut draft = forge_topo::state::TopologyState::empty().into_mutation();
-        let f1 = draft.arena_mut().add_face();
-        let root_lineage = forge_topo::lineage::Lineage::root(
-            1,
-            forge_topo::lineage::OpSignature::with_id("root_face", 1),
+        use forge_topo::topology::history::lineage::{Lineage, LineageEntityRef, OpSignature};
+        use forge_topo::topology::history::lineage_link::{
+            ReidentificationLinkIndex, ReidentificationQuery, ReidentificationMode,
+            PersistentNameRef, ReidentificationQueryResult, ReidentificationCandidateState,
+        };
+
+        let parent = Lineage::root(1, OpSignature::with_id("parent_face", 1));
+        let parent_hash = parent.get_ancestry_hash();
+
+        // Two children from the same parent — different ops produce different ancestry hashes
+        let child_gen1 = Lineage::derive(&parent, OpSignature::with_id("split_a", 2));
+        let child_gen2 = Lineage::derive(&parent, OpSignature::with_id("split_b", 3));
+        let child_gen1_hash = child_gen1.get_ancestry_hash();
+        let child_gen2_hash = child_gen2.get_ancestry_hash();
+
+        // Both events land in the link index — same slot, different generations
+        let events = vec![
+            forge_topo::lineage::LineageEvent::EntityCreated {
+                entity: forge_core::EntityRef::new(forge_core::EntityKind::Face, 0),
+                entity_snapshot: Some(LineageEntityRef::new(forge_core::EntityKind::Face, 0, 1)),
+                lineage: child_gen1.clone(),
+            },
+            forge_topo::lineage::LineageEvent::EntityCreated {
+                entity: forge_core::EntityRef::new(forge_core::EntityKind::Face, 0),
+                entity_snapshot: Some(LineageEntityRef::new(forge_core::EntityKind::Face, 0, 2)),
+                lineage: child_gen2.clone(),
+            },
+        ];
+
+        let index = ReidentificationLinkIndex::from_lineage_events(1, &events);
+
+        // Build an arena that has ONLY gen=2 alive at slot 0 (gen=1 is dead)
+        let mut arena = forge_topo::arena::TopologyArena::new();
+        let ph_loop = forge_topo::handles::LoopId::from_raw_parts(u32::MAX, 0);
+        let ph_shell = forge_topo::handles::ShellId::from_raw_parts(u32::MAX, 0);
+
+        // First insert → slot 0, gen=0 (arena starts at 0)
+        let f_first = arena.insert_face(
+            forge_topo::arena::FaceData::new(ph_loop, ph_shell),
+            None,
         );
-        draft.arena_mut().get_face_mut(f1).unwrap().set_lineage(Some(root_lineage.clone()));
+        // Remove to free the slot
+        arena.remove_face(f_first, None).unwrap();
+        // Second insert → slot 0, gen=1 (the "stale" face)
+        let f_stale = arena.insert_face(
+            forge_topo::arena::FaceData::new(ph_loop, ph_shell),
+            None,
+        );
+        arena.get_face_mut(f_stale).unwrap().set_lineage(Some(child_gen1));
+        // Remove again
+        arena.remove_face(f_stale, None).unwrap();
+        // Third insert → slot 0, gen=2 (the "live" face)
+        let f_live = arena.insert_face(
+            forge_topo::arena::FaceData::new(ph_loop, ph_shell),
+            None,
+        );
+        arena.get_face_mut(f_live).unwrap().set_lineage(Some(child_gen2));
 
-        // Save the old name
-        let persistent_name = PersistentName::new(
-            root_lineage.get_ancestry_hash(),
-            forge_core::EntityKind::Face,
-            0,
+        // Verify arena state: slot 0 is at gen=2, gen=1 is unreachable
+        assert_eq!(f_live.index(), 0, "must reuse slot 0");
+        assert!(f_live.generation() >= 2, "generation must have advanced past stale");
+
+        // Query: find descendants of parent_hash
+        let query = ReidentificationQuery {
+            target: PersistentNameRef {
+                ancestry_hash: parent_hash,
+                kind: forge_core::EntityKind::Face,
+                ordinal: 0,
+            },
+            mode: ReidentificationMode::Descendants,
+        };
+
+        let result = forge_topo::topology::history::lineage_link::resolve_reidentification_query_v1(
+            &arena,
+            &events,
+            &index,
+            &query,
         );
 
-        // 2. Delete the first face (frees up its slot)
-        draft.arena_mut().remove_face(f1).unwrap();
-
-        // 3. Add a new face (generation bumps in the slot)
-        let f2 = draft.arena_mut().add_face();
-        
-        // Assert generation bumped up
-        assert_eq!(f1.index(), f2.index(), "arena should reuse slot");
-        assert!(f2.generation() > f1.generation(), "new face must have a higher generation");
-        
-        let new_lineage = forge_topo::lineage::Lineage::root(
-            2,
-            forge_topo::lineage::OpSignature::with_id("new_face", 2),
-        );
-        draft.arena_mut().get_face_mut(f2).unwrap().set_lineage(Some(new_lineage));
-
-        let topo = draft.commit().expect("commit");
-
-        // 4. Resolve the old persistent name against tracking
-        let selection = MergeRegionSelectionPersistent::new(
-            vec![persistent_name],
-            Vec::new(),
-            PersistentName::new(0, forge_core::EntityKind::Face, 0),
-        );
-        
-        let state = crate::core::KernelState::new(topo, GeometryState::new());
-        let mut ctx = ModelingContext::new();
-
-        // Should NOT find the matching entity due to a different generation or lineage
-        let resolved = resolve_merge_region_selection_persistent(&state, &selection, &mut ctx)
-            .expect("should return gracefully");
-
-        assert_eq!(
-            resolved.get_selected_faces().iter_ones().count(),
-            0,
-            "stale snapshot cannot be erroneously resolved"
-        );
-
-        // Check the resolution trace adjunct
-        let resolution_adjunct = ctx
-            .get_trace_adjuncts()
-            .records()
-            .iter()
-            .find_map(|r| r.as_resolution_payload())
-            .expect("must emit a tracing adjunct")
-            .unwrap();
-
-        assert_eq!(
-            resolution_adjunct.outcome,
-            ResolutionOutcome::Missing,
-            "Must report missing when the snapshot is stale"
-        );
-        assert_eq!(
-            resolution_adjunct.ordered_candidates.len(),
-            0,
-            "candidate count must be zero since stale entities are not valid candidates"
-        );
+        match result {
+            ReidentificationQueryResult::Resolved { candidate, evidence } => {
+                // Only the gen=2 live candidate should resolve
+                assert_eq!(
+                    candidate.snapshot_ref.generation, f_live.generation(),
+                    "resolved candidate must be the live gen={} face, not the stale gen=1",
+                    f_live.generation()
+                );
+                assert_eq!(
+                    candidate.candidate_state,
+                    ReidentificationCandidateState::Live,
+                );
+                assert_eq!(
+                    candidate.link_evidence.child_ancestry_hash,
+                    child_gen2_hash,
+                    "resolved candidate must carry gen=2's ancestry hash"
+                );
+                // Evidence must show the index had 2 records but only 1 survived live filter
+                assert_eq!(evidence.records_scanned, 2,
+                    "index should contain both gen=1 and gen=2 link records");
+                assert_eq!(evidence.candidates_post_filter, 1,
+                    "only gen=2 should survive live-arena validation");
+            }
+            other => panic!(
+                "Expected Resolved with gen=2 candidate, got {:?}",
+                std::mem::discriminant(&other)
+            ),
+        }
     }
 }

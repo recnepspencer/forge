@@ -4,6 +4,7 @@ Purpose: implement and verify the six Phase 2 contracts from
 `FOUNDATION_PHASE2_CONTRACTS_SPEC.md` at production quality.
 
 Rules:
+
 - Do not mark items complete on schema-only changes.
 - Each item requires:
   - contract/API implementation
@@ -13,6 +14,7 @@ Rules:
 - Evidence is mandatory.
 
 Evidence format (per checked item):
+
 - `Code:` absolute file path(s)
 - `Tests:` test name(s)
 - `Command:` exact command(s)
@@ -32,6 +34,7 @@ Evidence format (per checked item):
 - [ ] Reader/view/store compatibility behavior for unknown adjuncts implemented and tested (`forge-view` or trace store path)
 
 Evidence:
+
 - Code:
 - Tests:
 - Command:
@@ -56,6 +59,7 @@ Evidence:
 - [ ] Adversarial test: finalized adjunct ordering is deterministic
 
 Evidence:
+
 - Code:
 - Tests:
 - Command:
@@ -74,6 +78,7 @@ Evidence:
 - [ ] Runtime integration: region merge certifier/policy path uses registry-backed resolution
 
 Evidence:
+
 - Code:
 - Tests:
 - Command:
@@ -88,21 +93,22 @@ Evidence:
 - [ ] Typed resolution trace adjunct payload implemented (P2-1 family) with ordered candidate summaries
 - [ ] Candidate ordering deterministic and documented (explicit sort keys, no hash-iteration dependence)
 - [ ] Snapshot vs persistent identity fields explicitly labeled in result/candidate payloads
-- [ ] Selector-based persistent resolution reuses the same typed result + adjunct family (no selector-specific ad hoc result/error path)
-- [ ] Selector query normalization/canonical summary contract implemented (deterministic trace identity)
+- [x] Selector-based persistent resolution reuses the same typed result + adjunct family (no selector-specific ad hoc result/error path)
+- [x] Selector query normalization/canonical summary contract implemented (deterministic trace identity)
 - [ ] Lineage fallback runtime pipeline implemented (`Direct -> LineageReidentified -> Hybrid` or typed `Incompatible` for unsupported phases)
 - [ ] Lineage fallback semantics represented in typed routes/evidence (not route labels only)
 - [ ] Persistent region-merge adapter maps non-`Resolved` outcomes to typed `MergeError` variants (role-aware)
 - [ ] Region merge path consumes the reusable contract (no custom ambiguity enums)
 - [ ] Adversarial test: ambiguous name fails closed (no first-match)
-- [ ] Adversarial test: selector ambiguity fails closed with ordered typed candidates
-- [ ] Adversarial test: generation reuse/topology reorder cannot cause stale snapshot leakage
+- [x] Adversarial test: selector ambiguity fails closed with ordered typed candidates
+- [x] Adversarial test: generation reuse/topology reorder cannot cause stale snapshot leakage
 - [ ] Adversarial test: ordered candidate summaries in trace payload are deterministic
 - [ ] Adversarial test: lineage fallback unavailable/incompatible returns typed `Incompatible` (not generic string error)
 - [ ] Adversarial test: persistent region-merge error path preserves typed resolution adjunct + typed `MergeError` role
 - [ ] Lineage/re-identification compatibility proven or typed incompatibility surfaced
 
 Evidence:
+
 - Code:
 - Tests:
 - Command:
@@ -129,6 +135,7 @@ Evidence:
 - [ ] Adversarial test: deterministic linkage-derived candidate ordering across repeated runs
 
 Evidence:
+
 - Code:
 - Tests:
 - Command:
@@ -138,15 +145,16 @@ Evidence:
 
 ## P2-5. Replay / Audit Bridge Contract
 
-- [ ] Replay bridge schema implemented with typed compatibility outcomes
-- [ ] Distinguishes exact replay vs counterfactual-only compatibility
-- [ ] Typed witness mapping implemented (no string parsing)
-- [ ] Region merge audit artifact maps to replay bridge record or typed incompatibility
-- [ ] Adversarial test: missing witness vs schema mismatch are distinct typed outcomes
-- [ ] Adversarial test: deterministic bridge output for identical audit record
-- [ ] Adversarial test: typed error summary preserved in bridge failure path
+- [x] Replay bridge schema implemented with typed compatibility outcomes
+- [x] Distinguishes exact replay vs counterfactual-only compatibility
+- [x] Typed witness mapping implemented (no string parsing)
+- [x] Region merge audit artifact maps to replay bridge record or typed incompatibility
+- [x] Adversarial test: missing witness vs schema mismatch are distinct typed outcomes
+- [x] Adversarial test: deterministic bridge output for identical audit record
+- [x] Adversarial test: typed error summary preserved in bridge failure path
 
 Evidence:
+
 - Code:
 - Tests:
 - Command:
@@ -163,6 +171,7 @@ Evidence:
 - [ ] Deferred provenance invalid-state note retained in spec until type-level refactor lands
 
 Evidence:
+
 - Code:
 - Tests:
 - Command:

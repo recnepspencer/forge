@@ -49,7 +49,7 @@ fn hash_selector(sel: &Selector) -> u64 {
     match sel {
         Selector::ByAncestry { hash, kind } => {
             mix(1);
-            mix((*hash & 0xFFFFFFFFFFFFFFFF) as u64);
+            mix(*hash as u64);
             mix((*hash >> 64) as u64);
             mix(*kind as u64);
         }
@@ -72,8 +72,12 @@ fn hash_selector(sel: &Selector) -> u64 {
         }
         Selector::Or(a, b) => {
             mix(5);
-            mix(hash_selector(a));
-            mix(hash_selector(b));
+            // Or is semantically commutative — sort child hashes so Or(A,B) == Or(B,A).
+            let ha = hash_selector(a);
+            let hb = hash_selector(b);
+            let (lo, hi) = if ha <= hb { (ha, hb) } else { (hb, ha) };
+            mix(lo);
+            mix(hi);
         }
     }
     h
