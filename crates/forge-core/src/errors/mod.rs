@@ -17,7 +17,7 @@ pub use schema::{
     ErrorScope, SuggestedFix, ErrorContext,
     KernelError, TopologyError,
     AmbiguousResult, DiagnosticPayload,
-    MergeError,
+    MergeError, PersistentResolutionRole, PersistentResolutionIncompatibility,
 };
 pub use summary::{
     ErrorCategory, ErrorSummary, SourceErrorSummary,

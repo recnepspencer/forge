@@ -11,6 +11,44 @@ This specification defines **5 proof layers, 29 milestones, 61 proof validation 
 
 **Proof Layers** are the five independent verification mechanisms. Each layer catches a distinct class of defect. A bug that evades one layer is caught by another. The system achieves certainty through redundancy, not through the perfection of any single layer.
 
+> [!IMPORTANT]
+> **Architecture Alignment Note (v1 document, v1.1 codebase reality).**
+> This proof document predates several major architecture refinements. The proof
+> strategy remains valid, but some API sketches below are now historical. In
+> particular:
+> - `KernelState` (topology + geometry) is the primary immutable operation-state
+>   boundary for many kernel paths, not just `TopologyState`.
+> - `ModelingContext` is a first-class policy/trace/finalization participant.
+> - Typed trace adjunct payloads (policy/resolution/provenance) and versioned
+>   audit storage exist and should be used by proof outputs.
+> - Operation finalization is moving to an explicit contract (collect/emit,
+>   deterministic drains, typed failure semantics), not ad hoc envelope glue.
+> - Persistent naming / lineage resolution now has typed traced contracts under
+>   active development.
+>
+> Read this document as the proof-system intent. When a milestone’s API sketch
+> conflicts with current architecture contracts, prefer current architecture and
+> update the milestone wording rather than adding compatibility glue.
+
+> [!NOTE]
+> **Proof System Status Matrix (high-level, architecture-aligned snapshot).**
+> This is a coarse implementation status guide for agents/readers. It is not a
+> substitute for milestone-level tracking.
+>
+> | Proof Phase / Layer | Status | Notes (2026-02 alignment) |
+> |---|---|---|
+> | **P0 / Layer 1 — Topological invariants** | **Partial (strong)** | Structural validation is mature; manifold/NMT semantics and validation-level split are implemented. Some proof-doc milestones remain to be aligned to current contracts and expanded geometric/curved invariants are still pending. |
+> | **P1 / Layer 2 — Dual-path verification** | **Planned / Minimal groundwork only** | Core classifiers and tracing exist, but the proof-layer dual-path cross-check + disagreement protocol described here is not implemented as a full proof system yet. |
+> | **P2 / Layer 3 — Redundant numerical modes** | **Partial (infrastructure ahead of proof integration)** | Interval arithmetic, precision escalation scaffolding, and divergence tooling components exist in the codebase; proof-layer integration/hardening and MB-N completion remain pending. |
+> | **P3 / Layer 4 — Causal replay & witnesses** | **Partial (strong foundation)** | `ReplayLog`, `DecisionLog`, `Lineage`, counterfactual tooling, and proof-validation infrastructure exist. Typed adjuncts/finalization/audit storage were added later and should be treated as baseline for this phase. |
+> | **P4 / Layer 5 — Self-consistency fuzzing** | **Partial** | Brutality / fuzz harness infrastructure exists, but proof-system framing, coverage guarantees, and MB-series closure are still in progress. |
+> | **Cross-cutting proof observability / auditability** | **Partial, rapidly advancing** | Typed error summaries, typed trace adjuncts, deterministic finalization, audit storage substrate, and persistent-resolution tracing are now in place or in active Phase 2 work. |
+>
+> **Interpretation:** Forge is ahead on proof *infrastructure primitives* and
+> observability, but behind this document’s ideal sequence on full proof-layer
+> completion (especially P1). This is acceptable as long as production claims
+> are scoped honestly and missing layers remain tracked as mandatory work.
+
 **Milestones** are the atomic work units. Each is scoped for an AI coding agent to implement and validate in isolation. Milestones within a layer are sequential unless noted otherwise.
 
 **PV suites** (Proof Validation) are internal correctness tests specific to the proof system itself. They validate that the proof infrastructure works correctly — they are tests of the tests. Named `PV-01` through `PV-40+`.
@@ -38,7 +76,7 @@ This specification defines **5 proof layers, 29 milestones, 61 proof validation 
 These five principles govern every component of the proof system. They are meta-invariants — invariants about the invariant system itself.
 
 ### P0 — Independence of Proof Layers
-Each proof layer must operate independently. A failure in Layer 2 (dual representation) must not compromise Layer 1 (topological invariants). Proof layers share no mutable state. They communicate only through the immutable `TopologyState` and `OperationResult<T>` envelope.
+Each proof layer must operate independently. A failure in Layer 2 (dual representation) must not compromise Layer 1 (topological invariants). Proof layers share no mutable state. They communicate through immutable state snapshots (`TopologyState` / `KernelState` as appropriate), typed envelopes (`OperationResult<T>`), and explicit context/finalization contracts — never through hidden shared mutable proof state.
 
 ### P1 — Proof Before Feature
 No modeling feature ships without a corresponding proof mechanism at every applicable layer. The proof system is not a post-hoc audit — it is a prerequisite for feature acceptance.
@@ -106,12 +144,19 @@ Each phase builds one proof layer, bottom-up. Later phases depend on earlier one
 
 **Existing foundation:** `validate_topology()` already checks twin reciprocity, previous consistency, vertex continuity, loop closure, and per-shell Euler formula. This is ahead of most commercial kernels. The following milestones extend this into a fortress.
 
+> [!NOTE]
+> **Architecture refinement since this draft.**
+> Forge now distinguishes topology/manifold policy semantics (`TopologyMode`,
+> e.g. `ManifoldStrict` vs `NmtIntermediate`) from validation intensity
+> (`ValidationLevel`). P0 milestones that discuss "validation" must preserve
+> that split; they are different knobs with different architectural meaning.
+
 ---
 
 ### Milestone P0.1 — Geometric Invariant Extensions 🟡
 **What:** Add geometric checks that catch degenerate entities invisible to purely topological validation.
 
-**Implementation:**
+**Implementation (conceptual sketch; align to current validation contracts):**
 - Zero-area face detection: compute signed area via cross-product summation over loop edges. Flag faces below `area_threshold` (passed from `ToleranceConfig`).
 - Zero-length edge detection: measure 3D distance between edge endpoints. Flag edges below `edge_length_threshold`.
 - Signed volume consistency: compute signed volume of each shell. All closed shells of a manifold solid must have positive signed volume (outward normals). Inner shells (voids) must have negative signed volume.
@@ -173,6 +218,13 @@ Each phase builds one proof layer, bottom-up. Later phases depend on earlier one
 ### Milestone P0.4 — Non-Manifold Edge Detection 🟡
 **What:** Guarantee that the kernel never produces non-manifold topology (edges shared by more than 2 faces).
 
+> [!NOTE]
+> **Current architecture nuance (already implemented):**
+> Forge now supports explicit non-manifold-transitional modes (`NMT`) for staged
+> execution/validation. This milestone should be interpreted as the proof contract
+> for **manifold outputs and manifold-strict checkpoints**, not as a claim that all
+> intermediate modes enforce manifold valence-2 semantics identically.
+
 **Implementation:**
 - Edge valence check: every edge must have exactly 2 adjacent faces in a manifold solid.
 - T-junction detection: vertices where 3+ edges meet at a non-manifold junction.
@@ -212,6 +264,11 @@ pub struct ValidationConfig {
 }
 ```
 - Integrate with `ModelingContext`: validation config stored alongside tolerance config.
+- Preserve the architecture split between:
+  - `ValidationLevel` (how much checking runs)
+  - topology/manifold policy mode (`ManifoldStrict`, `NmtIntermediate`, etc.)
+  The checkpoint system must route both explicitly and must not collapse them
+  into one "validation" enum.
 - ValidationResult logged in `OperationResult<T>` envelope.
 - Cost-bounded: geometric invariants skip entities beyond `entity_limit` but log the skip.
 
@@ -260,17 +317,18 @@ MB-T7: Scale-extreme validation — solid with 1e12 extent + 1e-9 feature size �
 ---
 
 ### Milestone P1.1 — Post-Boolean Cross-Check Wiring 🟡
-**What:** After every Boolean operation, re-classify a sample of face centroids through `classify_point_in_solid` on the pre-Boolean operands and compare against the assembled result.
+**What:** After every Boolean operation, re-classify a sample of **interior witness points** (not raw face centroids) through `classify_point_in_solid` on the pre-Boolean operands and compare against the assembled result.
 
 **Implementation:**
-- Extract centroids of all result faces.
-- For each centroid, classify against the original operands A and B independently using ray-based `classify_point_in_solid`.
-- Determine expected inclusion based on Boolean type:
-  - **Union:** centroid should be Inside(A) OR Inside(B)
-  - **Intersection:** centroid should be Inside(A) AND Inside(B)
-  - **Subtraction:** centroid should be Inside(A) AND NOT Inside(B)
+- Generate one or more **interior witness points** per result face (with boundary-distance metric where available).
+- For each witness, classify against the original operands A and B independently using ray-based `classify_point_in_solid`.
+- Determine expected inclusion based on Boolean type for non-boundary classifications:
+  - **Union:** witness should be Inside(A) OR Inside(B)
+  - **Intersection:** witness should be Inside(A) AND Inside(B)
+  - **Subtraction:** witness should be Inside(A) AND NOT Inside(B)
+- Boundary / near-boundary classifications must route into the structured disagreement protocol (`P1.3`) instead of being treated as simple binary mismatches.
 - Compare classification against which faces were actually kept.
-- Disagreement → `ProofFailure::DualPathMismatch` with centroid coordinates + classifications.
+- Disagreement → `ProofFailure::DualPathMismatch` with witness coordinates + classifications + boundary-distance metric.
 
 **Acceptance:**
 - PV-15: Correct Boolean → cross-check passes (zero false positives on 1,000 random cases)
@@ -333,7 +391,10 @@ pub struct DisagreementContext {
 }
 ```
 - `FundamentalDisagreement` triggers: re-run both classifiers with higher-precision arithmetic (Layer 3 integration). If still disagreeing, flag as `ProofFailure::IrreconcilableDualPath` and abort the operation.
-- `BoundaryDisagreement` triggers: log as `TracedDecision::NearBoundary` with the distance-to-boundary metric. Apply `ModelingContext` policy.
+- `BoundaryDisagreement` triggers:
+  - emit a structured `TracedDecision` (`DecisionKind::NearBoundary` / appropriate tier) with distance-to-boundary metric
+  - attach typed adjunct payload(s) for witness/classifier disagreement details (via the trace adjunct contract)
+  - apply `ModelingContext` policy explicitly (traced; no silent default)
 
 **Acceptance:**
 - PV-19: Constructed case at exact boundary → both classifiers return boundary-aware results, disagreement protocol logs appropriately
@@ -393,6 +454,13 @@ MB-D6: Scale-extreme: 1e12 block ∪ 1e-6 cylinder — dual-path functions acros
 **Unlocks:** Phase P3, MB-N series
 
 **Core principle:** A decision that produces the same answer at float precision and at exact (rational) precision is almost certainly correct. A decision that flips between precisions is definitively a near-degenerate case requiring policy intervention.
+
+> [!NOTE]
+> **Current architecture additions not yet reflected below.**
+> Parts of this phase now exist in the codebase in partial form: interval
+> arithmetic, precision escalation scaffolding, and divergence tooling are no
+> longer purely hypothetical. The remaining work is integration/hardening and
+> proof-layer completion, not a greenfield implementation of every component.
 
 ---
 
@@ -531,7 +599,7 @@ MB-N6: Bit-growth budget: 100 chained exact rational operations — bit length s
 **Depends on:** Phase P0, existing `DecisionLog` + `ReplayLog` + `Lineage`
 **Unlocks:** Phase P4, MB-R series
 
-**Existing foundation:** `ReplayLog` records operations with pre/post hashes. `DecisionLog` captures span-based decision traces with margins. `Lineage` provides Merkle DAG ancestry. This phase connects these into a causal debugging system.
+**Existing foundation:** `ReplayLog` records operations with pre/post hashes. `DecisionLog` captures span-based decision traces with margins. `Lineage` provides Merkle DAG ancestry. Since this document was drafted, Forge also added typed trace adjunct payloads (policy/resolution/provenance), explicit operation finalization contracts, and versioned audit storage. This phase should connect those into a single causal debugging system instead of introducing parallel trace/audit channels.
 
 ---
 

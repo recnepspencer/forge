@@ -22,24 +22,106 @@ use std::collections::BTreeSet;
 use forge_core::{
     KernelError, OperationResult, PolicyKind, PolicyQuery,
 };
-use forge_core::errors::MergeError;
+use forge_core::errors::{MergeError, PersistentResolutionIncompatibility, PersistentResolutionRole};
 use forge_core::tracing::{
-    CandidateValueSummary, DecisionId, DecisionKind, DecisionTier, DecisionContext, TracedDecision, TraceAdjunctSet,
+    CandidateValueSummary, DecisionId, DecisionKind, DecisionTier, DecisionContext, TracedDecision,
+    TraceAdjunctSet, TraceAdjunctRecord,
 };
+use forge_core::provenance::SnapshotHandleRef;
+use forge_core::EntityKind as TraceEntityKind;
+use forge_topo::attributes::EntityKey;
 use forge_topo::handles::{FaceId, HalfEdgeId, EdgeId};
 use forge_topo::operator::apply_op;
 use forge_topo::euler::join_faces::JoinFaces;
 use forge_topo::euler::join_faces_nmt::JoinFacesNmt;
+use forge_topo::topology::naming::{PersistentName, Selector, resolve_name, resolve_selector};
 use forge_topo::traverse::radial_valence;
 
-use crate::core::{KernelState, OperationFinalizer, TopologyHashBoundary};
+use crate::core::{
+    KernelState, OperationFinalizer, TopologyHashBoundary,
+    ResolutionQuery, ResolutionResult, ResolutionCandidate, ResolutionCandidates,
+    ResolutionEvidence, ResolutionIncompatibility, ResolverRoute, ResolverMatchKind,
+    build_resolution_decision,
+};
 use crate::core::kernel_draft::KernelDraft;
 use crate::core::ModelingContext;
 
 use super::eval::{certify_merge_boundary, compute_group_hash};
 use super::schema::{
-    MergeRegionSelection, MergePlan, MergeStepPlan, MergeResult, SheetRegionMergeOutput,
+    MergeRegionSelection, MergeRegionSelectionPersistent, PersistentFaceRef,
+    MergePlan, MergeStepPlan, MergeResult, SheetRegionMergeOutput,
 };
+
+#[derive(Debug, Clone, Copy)]
+enum FaceResolutionFallbackPipeline {
+    DirectOnly,
+    DirectThenLineageThenHybrid,
+}
+
+/// Resolve a persistent selection to a snapshot `MergeRegionSelection`, tracing
+/// every missing/ambiguous/incompatible outcome and failing closed.
+pub fn resolve_merge_region_selection_persistent(
+    state: &KernelState,
+    selection: &MergeRegionSelectionPersistent,
+    ctx: &mut ModelingContext,
+) -> Result<MergeRegionSelection, KernelError> {
+    let arena = state.topology().arena();
+    let mut selected = forge_topo::bitset::EntityBitset::for_faces(arena);
+    let mut protected = forge_topo::bitset::EntityBitset::for_faces(arena);
+
+    let surviving_face = resolve_single_face_ref(
+        arena,
+        selection.get_surviving_face(),
+        PersistentResolutionRole::SurvivingFace,
+        FaceResolutionFallbackPipeline::DirectOnly,
+        ctx,
+    )?;
+
+    for pref in selection.get_selected_faces() {
+        let fid = resolve_single_face_ref(
+            arena,
+            pref,
+            PersistentResolutionRole::SelectedFace,
+            FaceResolutionFallbackPipeline::DirectOnly,
+            ctx,
+        )?;
+        selected.insert(fid.index())?;
+    }
+    for pref in selection.get_protected_faces() {
+        let fid = resolve_single_face_ref(
+            arena,
+            pref,
+            PersistentResolutionRole::ProtectedFace,
+            FaceResolutionFallbackPipeline::DirectOnly,
+            ctx,
+        )?;
+        protected.insert(fid.index())?;
+    }
+
+    if !selected.contains(surviving_face.index())? {
+        return Err(KernelError::InvalidInput {
+            message: "Persistent surviving_face did not resolve into selected_faces set".into(),
+            context: None,
+        });
+    }
+
+    Ok(MergeRegionSelection::with_radial_selectors(
+        selected,
+        protected,
+        surviving_face,
+        selection.get_radial_selectors().to_vec(),
+    ))
+}
+
+/// Persistent-name variant of `execute_sheet_region_merge`.
+pub fn execute_sheet_region_merge_persistent(
+    state: KernelState,
+    selection: &MergeRegionSelectionPersistent,
+    ctx: &mut ModelingContext,
+) -> Result<OperationResult<SheetRegionMergeOutput>, KernelError> {
+    let snapshot_selection = resolve_merge_region_selection_persistent(&state, selection, ctx)?;
+    execute_sheet_region_merge(state, &snapshot_selection, ctx)
+}
 
 /// Execute a sheet region merge: validate, plan, execute, commit.
 ///
@@ -197,6 +279,260 @@ fn apply_boundary_cert_gate_policy(
             Ok(())
         }
         forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::Simple => Ok(()),
+    }
+}
+
+fn resolve_single_face_ref(
+    arena: &forge_topo::arena::TopologyArena,
+    pref: &PersistentFaceRef,
+    role: PersistentResolutionRole,
+    fallback: FaceResolutionFallbackPipeline,
+    ctx: &mut ModelingContext,
+) -> Result<FaceId, KernelError> {
+    let result = resolve_face_ref_result(arena, pref, fallback);
+    let role_tag = persistent_role_tag(role);
+    let decision_id = DecisionId(hash_resolution_query_id(pref, role_tag));
+    let decision = build_resolution_decision(decision_id, &result);
+    let payload = result.to_trace_payload(
+        decision_id,
+        Some("sheet_region_merge".to_string()),
+        Some(role_tag.to_string()),
+    );
+
+    ctx.get_decision_log_mut().record(decision);
+    ctx.push_trace_adjunct(TraceAdjunctRecord::from_resolution_payload(&payload));
+
+    match result {
+        ResolutionResult::Resolved { value, .. } => Ok(FaceId::from_raw_parts(
+            value.snapshot_ref.index,
+            value.snapshot_ref.generation,
+        )),
+        ResolutionResult::Ambiguous { query, candidates, .. } => Err(KernelError::MergeFailure(
+            MergeError::PersistentResolutionAmbiguous {
+                role,
+                candidate_count: candidates.len() as u32,
+                query: query.to_trace_summary(),
+            },
+        )),
+        ResolutionResult::Missing { query, .. } => Err(KernelError::MergeFailure(
+            MergeError::PersistentResolutionMissing {
+                role,
+                query: query.to_trace_summary(),
+            },
+        )),
+        ResolutionResult::Incompatible { query, incompatibility } => Err(KernelError::MergeFailure(
+            MergeError::PersistentResolutionIncompatible {
+                role,
+                incompatibility: map_resolution_incompatibility(&incompatibility),
+                query: query.to_trace_summary(),
+            },
+        )),
+    }
+}
+
+fn resolve_face_ref_result(
+    arena: &forge_topo::arena::TopologyArena,
+    pref: &PersistentFaceRef,
+    fallback: FaceResolutionFallbackPipeline,
+) -> ResolutionResult<ResolutionCandidate> {
+    let direct = resolve_face_ref_direct(arena, pref);
+    match (&direct, fallback) {
+        (ResolutionResult::Missing { .. }, FaceResolutionFallbackPipeline::DirectThenLineageThenHybrid) => {
+            resolve_face_ref_lineage_fallback(pref, direct)
+        }
+        _ => direct,
+    }
+}
+
+fn resolve_face_ref_direct(
+    arena: &forge_topo::arena::TopologyArena,
+    pref: &PersistentFaceRef,
+) -> ResolutionResult<ResolutionCandidate> {
+    let (query, keys): (ResolutionQuery, Vec<EntityKey>) = match pref {
+        PersistentFaceRef::Name(name) => {
+            if name.get_kind() != TraceEntityKind::Face {
+                return ResolutionResult::Incompatible {
+                    query: ResolutionQuery::PersistentName(name.clone()),
+                    incompatibility: ResolutionIncompatibility::UnsupportedEntityKind {
+                        requested: name.get_kind(),
+                    },
+                };
+            }
+            (ResolutionQuery::PersistentName(name.clone()), resolve_name(arena, name))
+        }
+        PersistentFaceRef::Selector(sel) => {
+            (ResolutionQuery::Selector(sel.clone()), resolve_selector(arena, sel))
+        }
+    };
+
+    let mut candidates = Vec::new();
+    for key in keys {
+        let EntityKey::Face(fid) = key else {
+            return ResolutionResult::Incompatible {
+                query,
+                incompatibility: ResolutionIncompatibility::UnsupportedEntityKind {
+                    requested: entity_key_kind(key),
+                },
+            };
+        };
+        candidates.push(ResolutionCandidate {
+            entity_kind: TraceEntityKind::Face,
+            persistent_ref: persistent_face_ref_label(pref),
+            snapshot_ref: SnapshotHandleRef::new(TraceEntityKind::Face, fid.index(), fid.generation()),
+            route: ResolverRoute::DirectPersistentName,
+            match_kind: match pref {
+                PersistentFaceRef::Name(_) => ResolverMatchKind::ExactPersistentName,
+                PersistentFaceRef::Selector(_) => ResolverMatchKind::SelectorMatch,
+            },
+            provenance_tag: Some("direct_persistent_name".into()),
+            provenance_detail: None,
+        });
+    }
+
+    let evidence = ResolutionEvidence {
+        routes_attempted: vec![ResolverRoute::DirectPersistentName],
+        initial_candidate_count: candidates.len() as u32,
+        surviving_candidate_count: candidates.len() as u32,
+        filters_applied: Vec::new(),
+        notes: Vec::new(),
+    };
+
+    match candidates.len() {
+        0 => ResolutionResult::Missing {
+            query,
+            evidence,
+        },
+        1 => ResolutionResult::Resolved {
+            value: candidates.pop().expect("len=1"),
+            route: ResolverRoute::DirectPersistentName,
+            evidence,
+        },
+        _ => ResolutionResult::Ambiguous {
+            query,
+            candidates: ResolutionCandidates::from_vec(candidates),
+            evidence,
+        },
+    }
+}
+
+fn resolve_face_ref_lineage_fallback(
+    pref: &PersistentFaceRef,
+    direct_missing: ResolutionResult<ResolutionCandidate>,
+) -> ResolutionResult<ResolutionCandidate> {
+    match direct_missing {
+        ResolutionResult::Missing { query, mut evidence } => {
+            evidence.routes_attempted.push(ResolverRoute::LineageReidentified);
+            evidence.routes_attempted.push(ResolverRoute::Hybrid);
+            evidence.notes.push("lineage fallback not yet implemented for region merge face resolution".into());
+            let _ = evidence; // evidence preserved in trace on direct result path in this phase; incompatibility is typed.
+            ResolutionResult::Incompatible {
+                query,
+                incompatibility: ResolutionIncompatibility::UnsupportedResolverMode {
+                    mode: format!("fallback_pipeline:{}", pref_kind(pref)),
+                },
+            }
+        }
+        other => other,
+    }
+}
+
+fn hash_resolution_query_id(pref: &PersistentFaceRef, role: &str) -> u64 {
+    let mut h: u64 = 0xcbf29ce484222325;
+    match pref {
+        PersistentFaceRef::Name(name) => {
+            for word in [
+                name.get_kind() as u64,
+                (name.get_ancestry_hash() >> 64) as u64,
+                name.get_ancestry_hash() as u64,
+                name.get_ordinal() as u64,
+            ] {
+                h ^= word;
+                h = h.wrapping_mul(0x100000001b3);
+            }
+        }
+        PersistentFaceRef::Selector(sel) => {
+            for b in format!("selector:{:?}", sel).as_bytes() {
+                h ^= *b as u64;
+                h = h.wrapping_mul(0x100000001b3);
+            }
+        }
+    }
+    for b in role.as_bytes() {
+        h ^= *b as u64;
+        h = h.wrapping_mul(0x100000001b3);
+    }
+    h
+}
+
+fn persistent_face_ref_label(pref: &PersistentFaceRef) -> String {
+    match pref {
+        PersistentFaceRef::Name(name) => format!("face:{:032x}:{}", name.get_ancestry_hash(), name.get_ordinal()),
+        PersistentFaceRef::Selector(sel) => format!("selector:{:?}", sel),
+    }
+}
+
+fn pref_kind(pref: &PersistentFaceRef) -> &'static str {
+    match pref {
+        PersistentFaceRef::Name(_) => "name",
+        PersistentFaceRef::Selector(_) => "selector",
+    }
+}
+
+fn entity_key_kind(key: EntityKey) -> TraceEntityKind {
+    match key {
+        EntityKey::Face(_) => TraceEntityKind::Face,
+        EntityKey::Edge(_) => TraceEntityKind::Edge,
+        EntityKey::Vertex(_) => TraceEntityKind::Vertex,
+        EntityKey::Shell(_) => TraceEntityKind::Shell,
+    }
+}
+
+#[cfg(test)]
+pub(super) fn test_resolve_face_ref_result_direct(
+    arena: &forge_topo::arena::TopologyArena,
+    pref: &PersistentFaceRef,
+) -> ResolutionResult<ResolutionCandidate> {
+    resolve_face_ref_result(arena, pref, FaceResolutionFallbackPipeline::DirectOnly)
+}
+
+#[cfg(test)]
+pub(super) fn test_resolve_face_ref_result_with_lineage_fallback(
+    arena: &forge_topo::arena::TopologyArena,
+    pref: &PersistentFaceRef,
+) -> ResolutionResult<ResolutionCandidate> {
+    resolve_face_ref_result(arena, pref, FaceResolutionFallbackPipeline::DirectThenLineageThenHybrid)
+}
+
+fn persistent_role_tag(role: PersistentResolutionRole) -> &'static str {
+    match role {
+        PersistentResolutionRole::SurvivingFace => "surviving_face",
+        PersistentResolutionRole::SelectedFace => "selected_face",
+        PersistentResolutionRole::ProtectedFace => "protected_face",
+    }
+}
+
+fn map_resolution_incompatibility(
+    inc: &crate::core::ResolutionIncompatibility,
+) -> PersistentResolutionIncompatibility {
+    match inc {
+        crate::core::ResolutionIncompatibility::UnsupportedEntityKind { requested } => {
+            PersistentResolutionIncompatibility::UnsupportedEntityKind { requested: *requested }
+        }
+        crate::core::ResolutionIncompatibility::MissingLineageStore => {
+            PersistentResolutionIncompatibility::MissingLineageStore
+        }
+        crate::core::ResolutionIncompatibility::SchemaVersionMismatch { expected, actual } => {
+            PersistentResolutionIncompatibility::SchemaVersionMismatch { expected: *expected, actual: *actual }
+        }
+        crate::core::ResolutionIncompatibility::LineageStoreVersionMismatch { .. } => {
+            PersistentResolutionIncompatibility::UnsupportedLineageFallback
+        }
+        crate::core::ResolutionIncompatibility::UnsupportedResolverMode { .. } => {
+            PersistentResolutionIncompatibility::UnsupportedLineageFallback
+        }
+        crate::core::ResolutionIncompatibility::Other { code, .. } => {
+            PersistentResolutionIncompatibility::Other { code: code.clone() }
+        }
     }
 }
 

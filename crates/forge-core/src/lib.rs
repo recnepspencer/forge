@@ -51,6 +51,9 @@ pub use tracing::{
     LogLevel, log_level, log_result, log_decision_log, log_error,
     PolicyResolutionSource, PolicyResolutionOutcome, CandidateValueSummary,
     PolicyDecisionTracePayload, PolicyTraceConsistencyError, PolicyResolutionScopeRef,
+    ResolutionOutcome, ResolutionRoute, ResolutionMatchKind,
+    ResolutionQuerySummary, ResolutionCandidateSummary, ResolutionTracePayload,
+    ResolutionTraceConsistencyError,
     TraceFingerprint, compute_trace_fingerprint,
 };
 

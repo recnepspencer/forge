@@ -6,13 +6,17 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{DecisionId, PolicyDecisionTracePayload};
+use super::{DecisionId, PolicyDecisionTracePayload, ResolutionTracePayload};
 
 /// Stable payload kind tag for `PolicyDecisionTracePayload`.
 pub const POLICY_DECISION_TRACE_PAYLOAD_KIND: &str = "policy_decision";
 
 /// Version of the serialized `PolicyDecisionTracePayload` adjunct schema.
 pub const POLICY_DECISION_TRACE_PAYLOAD_VERSION: u32 = 2;
+/// Stable payload kind tag for `ResolutionTracePayload`.
+pub const RESOLUTION_TRACE_PAYLOAD_KIND: &str = "name_resolution";
+/// Version of the serialized `ResolutionTracePayload` adjunct schema.
+pub const RESOLUTION_TRACE_PAYLOAD_VERSION: u32 = 1;
 
 /// Versioned typed adjunct payload attached to a trace decision.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -58,9 +62,29 @@ impl TraceAdjunctRecord {
         )
     }
 
+    /// Build a versioned adjunct record from a typed resolution payload.
+    pub fn from_resolution_payload(payload: &ResolutionTracePayload) -> Self {
+        let payload_json = serde_json::to_value(payload)
+            .expect("ResolutionTracePayload must serialize for trace adjunct transport");
+        Self::new(
+            payload.decision_id,
+            RESOLUTION_TRACE_PAYLOAD_KIND,
+            RESOLUTION_TRACE_PAYLOAD_VERSION,
+            payload_json,
+        )
+    }
+
     /// Decode a typed policy payload from an adjunct record.
     pub fn as_policy_payload(&self) -> Option<Result<PolicyDecisionTracePayload, serde_json::Error>> {
         if self.payload_kind != POLICY_DECISION_TRACE_PAYLOAD_KIND {
+            return None;
+        }
+        Some(serde_json::from_value(self.payload_json.clone()))
+    }
+
+    /// Decode a typed resolution payload from an adjunct record.
+    pub fn as_resolution_payload(&self) -> Option<Result<ResolutionTracePayload, serde_json::Error>> {
+        if self.payload_kind != RESOLUTION_TRACE_PAYLOAD_KIND {
             return None;
         }
         Some(serde_json::from_value(self.payload_json.clone()))
@@ -107,8 +131,11 @@ mod tests {
     use crate::policy::PolicyKind;
     use crate::tracing::{
         CandidateValueSummary, DecisionContext, DecisionKind, DecisionTier, PolicyResolutionOutcome,
-        PolicyResolutionSource, PolicyTraceConsistencyError, TracedDecision,
+        PolicyResolutionSource, PolicyTraceConsistencyError, TracedDecision, ResolutionCandidateSummary,
+        ResolutionMatchKind, ResolutionOutcome, ResolutionQuerySummary, ResolutionRoute,
+        ResolutionTraceConsistencyError, ResolutionTracePayload,
     };
+    use crate::provenance::SnapshotHandleRef;
 
     fn sample_policy_payload() -> PolicyDecisionTracePayload {
         PolicyDecisionTracePayload {
@@ -182,6 +209,38 @@ mod tests {
     }
 
     #[test]
+    fn resolution_trace_payload_round_trips_through_trace_adjunct_record() {
+        let payload = ResolutionTracePayload {
+            decision_id: DecisionId(44),
+            query: ResolutionQuerySummary::PersistentName {
+                entity_kind: crate::tracing::EntityKind::Face,
+                ancestry_hash_hex: "001122".into(),
+                ordinal: 0,
+            },
+            outcome: ResolutionOutcome::Ambiguous,
+            final_route: ResolutionRoute::DirectPersistentName,
+            routes_attempted: vec![ResolutionRoute::DirectPersistentName],
+            candidate_count: 1,
+            ordered_candidates: vec![ResolutionCandidateSummary {
+                entity_kind: crate::tracing::EntityKind::Face,
+                persistent_ref: "face:001122".into(),
+                snapshot_ref: SnapshotHandleRef::new(crate::tracing::EntityKind::Face, 9, 3),
+                route: ResolutionRoute::DirectPersistentName,
+                match_kind: ResolutionMatchKind::ExactPersistentName,
+            }],
+            operation_scope_id: Some("sheet_region_merge".into()),
+            source_scope_id: None,
+            candidate_set_hash: Some(77),
+        };
+        let record = TraceAdjunctRecord::from_resolution_payload(&payload);
+        let decoded = record
+            .as_resolution_payload()
+            .expect("resolution kind")
+            .expect("decode resolution payload");
+        assert_eq!(decoded, payload);
+    }
+
+    #[test]
     fn policy_adjunct_contradiction_is_detectable_via_typed_validator() {
         let mut payload = sample_policy_payload();
         payload.default_used = false; // contradicts DefaultPolicy source
@@ -207,6 +266,36 @@ mod tests {
         assert_eq!(
             decoded.validate_against_decision(&decision),
             Err(PolicyTraceConsistencyError::SourceDefaultMismatch)
+        );
+    }
+
+    #[test]
+    fn resolution_adjunct_contradiction_is_detectable_via_typed_validator() {
+        let payload = ResolutionTracePayload {
+            decision_id: DecisionId(19),
+            query: ResolutionQuerySummary::Selector {
+                entity_kind: Some(crate::tracing::EntityKind::Face),
+                selector_kind: "by_feature".into(),
+            },
+            outcome: ResolutionOutcome::Resolved,
+            final_route: ResolutionRoute::DirectPersistentName,
+            routes_attempted: vec![ResolutionRoute::DirectPersistentName],
+            candidate_count: 0,
+            ordered_candidates: vec![],
+            operation_scope_id: None,
+            source_scope_id: None,
+            candidate_set_hash: None,
+        };
+        let decision = TracedDecision::new(
+            DecisionId(19),
+            DecisionKind::Forced { reason: "NameResolutionAmbiguous".into() },
+            DecisionTier::Escalated,
+            0.0,
+            DecisionContext::Degeneracy { description: "resolution".into() },
+        );
+        assert_eq!(
+            payload.validate_against_decision(&decision),
+            Err(ResolutionTraceConsistencyError::DecisionKindTierMismatch)
         );
     }
 }

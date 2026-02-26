@@ -8,7 +8,9 @@ use serde::{Deserialize, Serialize};
 
 use super::schema::{
     AmbiguousResult, DiagnosticPayload, ErrorContext, KernelError, MergeError, TopologyError,
+    PersistentResolutionRole, PersistentResolutionIncompatibility,
 };
+use crate::tracing::ResolutionQuerySummary;
 
 /// Broad category for a serialized error summary.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -146,6 +148,20 @@ pub enum MergeErrorSummary {
     WouldDisconnectSheet { face_index: u32 },
     BoundaryCertificationFailed { reason: String, witness: Option<[f64; 2]> },
     PartialMergePlanRejected { step_index: Option<u32>, reason: String },
+    PersistentResolutionMissing {
+        role: PersistentResolutionRole,
+        query: ResolutionQuerySummary,
+    },
+    PersistentResolutionAmbiguous {
+        role: PersistentResolutionRole,
+        candidate_count: u32,
+        query: ResolutionQuerySummary,
+    },
+    PersistentResolutionIncompatible {
+        role: PersistentResolutionRole,
+        incompatibility: PersistentResolutionIncompatibility,
+        query: ResolutionQuerySummary,
+    },
     UnsupportedPersistentNmtOutput,
 }
 
@@ -169,6 +185,23 @@ impl From<&MergeError> for MergeErrorSummary {
             }
             MergeError::PartialMergePlanRejected { step_index, reason } => {
                 Self::PartialMergePlanRejected { step_index: *step_index, reason: reason.clone() }
+            }
+            MergeError::PersistentResolutionMissing { role, query } => {
+                Self::PersistentResolutionMissing { role: *role, query: query.clone() }
+            }
+            MergeError::PersistentResolutionAmbiguous { role, candidate_count, query } => {
+                Self::PersistentResolutionAmbiguous {
+                    role: *role,
+                    candidate_count: *candidate_count,
+                    query: query.clone(),
+                }
+            }
+            MergeError::PersistentResolutionIncompatible { role, incompatibility, query } => {
+                Self::PersistentResolutionIncompatible {
+                    role: *role,
+                    incompatibility: incompatibility.clone(),
+                    query: query.clone(),
+                }
             }
             MergeError::UnsupportedPersistentNmtOutput => Self::UnsupportedPersistentNmtOutput,
         }
@@ -350,4 +383,3 @@ impl From<&DiagnosticPayload> for DiagnosticPayloadSummary {
         }
     }
 }
-

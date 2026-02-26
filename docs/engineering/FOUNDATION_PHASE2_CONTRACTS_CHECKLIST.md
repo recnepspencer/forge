@@ -1,6 +1,6 @@
 # Foundation Phase 2 Contracts Checklist
 
-Purpose: implement and verify the five Phase 2 contracts from
+Purpose: implement and verify the six Phase 2 contracts from
 `FOUNDATION_PHASE2_CONTRACTS_SPEC.md` at production quality.
 
 Rules:
@@ -83,14 +83,46 @@ Evidence:
 
 ## P2-4. Persistent-Name Resolution Result Contract (Typed + Traced)
 
-- [ ] Reusable typed resolution result contract implemented (`Resolved/Ambiguous/Missing`)
-- [ ] Typed resolution trace adjunct payload implemented (P2-1 family)
-- [ ] Candidate ordering deterministic and documented
-- [ ] Snapshot vs persistent identity fields explicitly labeled in result payloads
+- [ ] Reusable typed resolution result contract implemented (`Resolved/Ambiguous/Missing/Incompatible`)
+- [ ] Typed `ResolutionCandidate` + `ResolutionEvidence` + `ResolutionIncompatibility` contract implemented
+- [ ] Typed resolution trace adjunct payload implemented (P2-1 family) with ordered candidate summaries
+- [ ] Candidate ordering deterministic and documented (explicit sort keys, no hash-iteration dependence)
+- [ ] Snapshot vs persistent identity fields explicitly labeled in result/candidate payloads
+- [ ] Selector-based persistent resolution reuses the same typed result + adjunct family (no selector-specific ad hoc result/error path)
+- [ ] Selector query normalization/canonical summary contract implemented (deterministic trace identity)
+- [ ] Lineage fallback runtime pipeline implemented (`Direct -> LineageReidentified -> Hybrid` or typed `Incompatible` for unsupported phases)
+- [ ] Lineage fallback semantics represented in typed routes/evidence (not route labels only)
+- [ ] Persistent region-merge adapter maps non-`Resolved` outcomes to typed `MergeError` variants (role-aware)
 - [ ] Region merge path consumes the reusable contract (no custom ambiguity enums)
 - [ ] Adversarial test: ambiguous name fails closed (no first-match)
+- [ ] Adversarial test: selector ambiguity fails closed with ordered typed candidates
 - [ ] Adversarial test: generation reuse/topology reorder cannot cause stale snapshot leakage
+- [ ] Adversarial test: ordered candidate summaries in trace payload are deterministic
+- [ ] Adversarial test: lineage fallback unavailable/incompatible returns typed `Incompatible` (not generic string error)
+- [ ] Adversarial test: persistent region-merge error path preserves typed resolution adjunct + typed `MergeError` role
 - [ ] Lineage/re-identification compatibility proven or typed incompatibility surfaced
+
+Evidence:
+- Code:
+- Tests:
+- Command:
+- Notes:
+
+---
+
+## P2-4A. Persistent Re-identification Substrate (Lineage Linkage + Delta / Audit Integration)
+
+- [ ] Persisted/queryable re-identification linkage substrate implemented (or equivalent typed index/store)
+- [ ] Linkage schema/versioning contract implemented (typed compatibility outcomes, no string-only mismatch)
+- [ ] Deterministic candidate enumeration from lineage-derived lookup implemented and tested
+- [ ] Re-identification evidence payload implemented (typed sources/filters/counts/version metadata)
+- [ ] `P2-4` lineage fallback routes only emitted when backed by real substrate (otherwise typed `Incompatible`/`Missing`)
+- [ ] `LineageDelta` remains count-only accounting; detailed re-identification data emitted in separate typed channel
+- [ ] Finalization path (`P2-2`) persists/attaches re-identification metadata deterministically for migrated paths
+- [ ] Replay/audit bridge integration points defined and tested (exact vs counterfactual-only vs incompatible)
+- [ ] Adversarial test: topology reorder/generation reuse does not alias stale snapshot refs in re-identified candidates
+- [ ] Adversarial test: missing linkage substrate vs missing entity are distinct typed outcomes
+- [ ] Adversarial test: deterministic linkage-derived candidate ordering across repeated runs
 
 Evidence:
 - Code:

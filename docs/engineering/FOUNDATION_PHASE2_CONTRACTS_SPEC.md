@@ -18,12 +18,13 @@ References:
 
 ## Scope
 
-This spec covers five Foundation Phase 2 contracts:
+This spec covers six Foundation Phase 2 contracts:
 1. Trace adjunct/versioning strategy (typed policy/provenance payload attachment)
 2. Operation finalization contract (context drain + envelope merge + audit emit)
 3. Policy registry/config source model
 4. Persistent-name resolution result contract (typed + traced)
-5. Replay/audit bridge contract
+5. Persistent re-identification substrate (lineage linkage + delta/audit integration)
+6. Replay/audit bridge contract
 
 Non-goals:
 - Full curved/NURBS implementation
@@ -45,6 +46,9 @@ Non-goals:
 - `P2-4 Persistent-name resolution result contract`: **Medium-High**
   - Blast radius: naming resolver APIs, region merge intent/result schemas, tracing/audit outputs
   - Risk: ambiguous resolution semantics / snapshot-handle leakage into persistent outputs
+- `P2-4A Persistent re-identification substrate`: **High**
+  - Blast radius: `forge-topo` lineage persistence/event schema, `forge-kernel` audit/finalization, persistent naming fallback
+  - Risk: fake lineage fallback, non-replayable identity claims, incomplete provenance for audit/reidentification
 - `P2-5 Replay/audit bridge contract`: **High**
   - Blast radius: audit artifact schema, replay analysis modules, witness formats
   - Risk: building rich audit artifacts that are not actually replayable
@@ -54,7 +58,8 @@ Implementation order (recommended):
 2. `P2-2`
 3. `P2-3`
 4. `P2-4`
-5. `P2-5`
+5. `P2-4A`
+6. `P2-5`
 
 ## Global Production-Grade Requirements (applies to all five)
 
@@ -335,14 +340,35 @@ invent incompatible ambiguity handling.
 - region merge APIs/results are still snapshot-scoped
 - no reusable kernel-level typed resolution result contract with trace semantics
 
+### Difficulty / estimated implementation size
+
+- **Difficulty**: Medium-High (contract-heavy, lineage coupling, trace/audit integration)
+- **Spec clarification + checklist updates**: ~80-160 LOC docs/tests-list
+- **Core contract types (result/candidate/trace payload)**: ~220-420 LOC
+- **`ModelingContext` / resolver wiring (typed + traced)**: ~180-350 LOC
+- **Region-merge first integration (persistent -> snapshot)**: ~220-500 LOC
+- **Adversarial tests (determinism/ambiguity/leakage/lineage)**: ~250-600 LOC
+- **Expected total for first production slice**: ~900-2,000 LOC
+
+This estimate assumes a production-grade first slice (typed results, typed traces,
+deterministic ordering, fail-closed semantics, and one real region-merge entrypoint),
+not a minimal helper wrapper.
+
 ### Contract
 
 Name/selector resolution returns a typed result:
 - `Resolved(T)`
-- `Ambiguous { candidates, reason }`
-- `Missing { queried }`
+- `Ambiguous { query, candidates, evidence }`
+- `Missing { query, evidence }`
+- `Incompatible { query, incompatibility }` (typed; e.g. version/scope/lineage incompatibility)
 
 All non-`Resolved` outcomes are traced and fail-closed by default.
+
+Resolution is a **two-phase contract**:
+1. **Resolution analysis** (deterministic candidate generation + typed result)
+2. **Kernel policy/operation handling** (accept/reject/escalate based on feature semantics)
+
+No API may collapse analysis outcomes into `Option<T>` or string-only errors.
 
 ### Design requirements
 
@@ -351,12 +377,204 @@ All non-`Resolved` outcomes are traced and fail-closed by default.
 3. Snapshot handles only in resolution internals or explicitly labeled snapshot debug fields
 4. Persistent output identity separated from snapshot debug identity
 5. Resolution outputs must be compatible with lineage-based re-identification workflows (not naming-only islands)
+6. Resolver path provenance must be explicit (`direct-name`, `lineage-reidentified`, `hybrid`, `none`)
+7. Candidate set semantics must be stable under deterministic topology traversal (ordering must not depend on hash map iteration)
+8. Ambiguity evidence must be machine-readable (not prose-only) so audit/replay tooling can inspect why multiple candidates survived
+9. Missing/incompatible outcomes must carry enough typed query data to support exact trace/audit correlation without parsing strings
+10. Region-merge integration must not leak `FaceId`/snapshot handles into persistent API outputs except in explicitly labeled debug sections
+
+### Clarified typed result model (required)
+
+The contract must define a reusable resolver result family (names illustrative):
+
+- `ResolutionResult<T>`
+  - `Resolved { value: T, route, evidence }`
+  - `Ambiguous { query, candidates, evidence }`
+  - `Missing { query, evidence }`
+  - `Incompatible { query, incompatibility }`
+- `ResolutionRoute`
+  - `DirectPersistentName`
+  - `LineageReidentified`
+  - `Hybrid` (must enumerate substeps in evidence)
+- `ResolutionEvidence`
+  - typed summary of resolver passes attempted, filters applied, and surviving candidate counts
+- `ResolutionIncompatibility`
+  - typed enum for version/scope/schema/lineage-store incompatibilities
+
+This result family must be crate-reusable (not region-merge-specific).
+
+### Candidate payload contract (required)
+
+`ResolutionCandidate` must be typed + serializable and include, at minimum:
+
+- `persistent_ref` (the persistent identifier that matched or was derived)
+- `snapshot_ref` (typed snapshot handle ref, explicitly labeled snapshot-scoped)
+- `entity_kind` (e.g. Face)
+- `route` (`DirectPersistentName`, `LineageReidentified`, etc.)
+- `match_kind` (exact-name, lineage-descendant, alias, etc.; typed enum)
+- `rank_key` / deterministic ordering fields (or enough fields to derive them deterministically)
+- `provenance` (typed provenance/evidence payload summary sufficient for audit)
+
+Candidate payloads must not require `Display` parsing to understand why they were included.
+
+### Deterministic ordering contract (required)
+
+Candidate ordering must be deterministic and specified. At minimum, define:
+
+1. primary key: `entity_kind`
+2. secondary key: canonical persistent identifier bytes/string
+3. tertiary key: snapshot `(index, generation)` (explicitly snapshot-scoped)
+4. quaternary key: route/match-kind discriminator
+
+If a different ordering is chosen, it must be documented and tested. Hash-map iteration order
+or arena insertion coincidence is never acceptable as ordering semantics.
+
+### Lineage fallback contract (required)
+
+The resolver must define an explicit fallback pipeline (feature may opt out, but cannot improvise):
+
+1. direct persistent-name resolution
+2. lineage-backed re-identification (using current lineage store / replay metadata)
+3. hybrid reconciliation (if supported)
+4. fail-closed typed `Missing` / `Ambiguous` / `Incompatible`
+
+Each attempted phase must be reflected in typed `ResolutionEvidence` and trace payloads.
+
+### Typed trace adjunct contract (required)
+
+Add a `ResolutionTracePayload` adjunct family (via `P2-1` trace adjunct strategy) keyed by `DecisionId`.
+It must include:
+
+- query identity (typed, serializable)
+- resolver route(s) attempted
+- candidate count and (for ambiguity) ordered candidate summaries
+- chosen outcome (`Resolved`, `Ambiguous`, `Missing`, `Incompatible`)
+- source scope / operation scope identifiers when available
+- deterministic fingerprint/hash of the candidate set (optional but recommended)
+
+This avoids repeating the prior "trace-label cosplay" problem for persistent-name resolution.
+
+### Selector-based persistent resolution contract (required for `P2-4` completion)
+
+Selector resolution must not be a separate ad hoc contract. It must reuse the same
+`ResolutionResult<T>` family and `ResolutionTracePayload` adjunct family as
+`PersistentName` resolution.
+
+Required clarifications:
+
+1. **Selector query normalization**
+   - The resolver must canonicalize selector queries (or produce a canonical summary)
+     before hashing/tracing so semantically equivalent selector forms do not produce
+     nondeterministic trace identities.
+   - `ResolutionQuerySummary::Selector` must capture:
+     - selector kind
+     - target entity kind (if constrained)
+     - canonical selector fingerprint/hash (recommended)
+
+2. **Selector result-kind enforcement**
+   - If a feature expects faces, selector resolution must reject mixed-kind result sets
+     with typed `Incompatible` (not silently filter by first matching kind).
+   - Any feature-side narrowing (e.g. face-only) must be explicit and traced.
+
+3. **Selector ambiguity semantics**
+   - Ambiguity is determined after deterministic dedup + ordering.
+   - The trace payload must include ordered candidate summaries and candidate count
+     exactly as returned to the caller (no hidden post-trace filtering).
+
+4. **Selector composition evidence**
+   - `ResolutionEvidence` for selectors must include typed filter/application steps
+     (at minimum: selector subclauses applied and post-filter candidate counts).
+
+### Lineage fallback pipeline runtime contract (required for `P2-4` completion)
+
+The fallback pipeline (`Direct -> LineageReidentified -> Hybrid`) must be specified as
+runtime behavior, not just route labels.
+
+Required runtime semantics:
+
+1. **DirectPersistentName phase**
+   - Resolve via current naming subsystem only (`PersistentName` / `Selector`)
+   - Produce deterministic candidate set
+   - If `Resolved` or `Ambiguous`, stop (no implicit lineage fallback on ambiguity unless
+     feature explicitly opts into a refinement strategy and traces it)
+
+2. **LineageReidentified phase**
+   - Entered only on `Missing` (default) or explicit feature opt-in path
+   - Must consult lineage store / replay metadata using a typed compatibility gate
+   - Must produce `ResolutionEvidence` describing:
+     - lineage source version(s)
+     - re-identification pass used
+     - candidate counts pre/post lineage filter
+   - If lineage metadata is unavailable/incompatible, return typed `Incompatible`
+
+3. **Hybrid phase**
+   - Must be explicitly defined (e.g., intersect direct selector candidates with lineage-derived candidates)
+   - If unsupported for a query/entity kind, return typed `Incompatible` instead of silently skipping
+   - Must emit route/evidence showing hybrid substeps
+
+4. **Determinism**
+   - Every phase must produce deterministically ordered candidates using the shared ordering contract.
+   - Candidate ordering may not depend on lineage store internal map iteration.
+
+5. **Fail-closed default**
+   - If direct resolution is missing and lineage fallback is disabled/unavailable, return typed `Missing`/`Incompatible`
+     and trace both the attempted direct route and the absence of fallback.
+
+### Merge error taxonomy contract for persistent resolution failures (required)
+
+`P2-4` production integration must not collapse persistent resolution failures into
+generic `KernelError::InvalidInput` / `KernelError::AmbiguousResult` once merge execution
+adopts persistent entrypoints.
+
+Required contract:
+
+1. Add typed `MergeError` variants for persistent-resolution failures, e.g.:
+   - `PersistentResolutionMissing { role, query_summary }`
+   - `PersistentResolutionAmbiguous { role, candidate_count, query_summary }`
+   - `PersistentResolutionIncompatible { role, incompatibility }`
+
+2. Mapping rule
+   - Resolver returns `ResolutionResult<T>` + traced decision + typed adjunct payload
+   - Region-merge adapter maps non-`Resolved` to `KernelError::MergeFailure(MergeError::...)`
+   - No string-only merge failure mapping for these outcomes
+
+3. Trace-before-error invariant
+   - The typed resolution decision + adjunct must be recorded before returning the merge error.
+   - Error paths must preserve `DecisionId` correlation with the adjunct payload.
+
+4. Role semantics
+   - `role` must be typed or constrained string enum (`surviving_face`, `selected_face`, `protected_face`, ...)
+   - Role is part of deterministic resolution decision identity (or explicitly excluded and documented)
+
+5. Batch semantics
+   - When resolving lists (`selected_faces`, `protected_faces`), failure behavior must be explicit:
+     - fail on first error (default) or
+     - aggregate multiple failures in deterministic order (if implemented later)
+   - Current phase should document and test fail-on-first deterministic behavior.
 
 ### Proposed API shape (contract-level)
 
 - `ResolutionResult<T>`
 - `ResolutionCandidate` (typed + serializable, with snapshot and/or persistent labels)
 - `ResolutionTracePayload` (adjunct family for `P2-1`)
+- `ResolutionEvidence`
+- `ResolutionIncompatibility`
+- `ResolutionRoute`
+- `ResolutionMatchKind`
+
+### Region-merge integration requirements (first consumer)
+
+1. Introduce explicit API split:
+   - `MergeRegionSelectionPersistent`
+   - `MergeRegionSelection` (snapshot; existing internal execution form)
+2. Add a deterministic, traced resolver:
+   - `MergeRegionSelectionPersistent -> Result<MergeRegionSelection, KernelError>`
+3. Region merge must fail closed on any unresolved ambiguity/missing/incompatibility unless explicitly handled by a feature policy contract
+4. Persistent result outputs must separate:
+   - persistent identity output (user/agent-facing)
+   - snapshot debug output (optional, labeled)
+5. Lineage delta emitted by merge must be sufficient to support future re-identification of survivor/killed faces
+6. Persistent-resolution failures must surface as typed `MergeError` variants (not generic input/ambiguity errors) once the persistent entrypoint is declared production-ready
 
 ### Must-have tests
 
@@ -364,11 +582,195 @@ All non-`Resolved` outcomes are traced and fail-closed by default.
 - missing selector emits typed trace payload and fails closed
 - generation reuse does not cause persistent selector success via stale snapshot handle leakage
 - lineage-backed re-identification remains possible after resolution + merge (or typed incompatibility is reported)
+- direct-name and lineage fallback produce distinct typed `ResolutionRoute` outcomes
+- resolver trace payload preserves ordered candidate summaries deterministically
+- region-merge persistent entrypoint never exposes raw snapshot handles in persistent output fields
+- incompatible lineage/schema versions return typed `Incompatible` (not generic string error)
+- selector-based persistent resolution uses the same typed result + adjunct family as persistent-name resolution
+- lineage fallback disabled/unavailable yields traced fail-closed `Missing`/`Incompatible` (documented default)
+- persistent region-merge adapter maps missing/ambiguous/incompatible to typed `MergeError` variants with role
 
 ### Acceptance criteria
 
 - Region merge can reuse one typed resolution contract (not custom result enums)
 - Ambiguity and missing outcomes are machine-readable and traced
+- Candidate ordering is deterministic and documented
+- Lineage-backed fallback behavior is explicit, typed, and traced
+- Persistent-facing outputs remain free of unlabeled snapshot handles
+- Persistent-resolution failure modes are surfaced via typed merge errors, not generic input/string errors
+
+## P2-4A. Persistent Re-identification Substrate (Lineage Linkage + Delta / Audit Integration)
+
+### Goal
+
+Provide the persisted lineage/provenance substrate required for real
+`LineageReidentified` fallback in `P2-4`, instead of route labels or typed
+"unsupported" placeholders.
+
+This section exists because the current architecture stores enough lineage to
+support persistent naming and causal audit, but not enough structured linkage to
+re-identify a *missing* persistent name across topology evolution in a
+deterministic, audit-grade way.
+
+### Current state (source-derived)
+
+- `PersistentName` stores `{ ancestry_hash, kind, ordinal }` (`forge-topo::topology::naming`)
+- `resolve_name` / `resolve_selector` query the *current* arena only
+- `TopologyState` persists `lineage_events: Arc<Vec<LineageEvent>>`
+- `LineageStore` exists, but is draft-local and not persisted as a queryable
+  committed-state index
+- `LineageEvent::{EntityCreated, EntityDeleted, EntityModified}` preserve current
+  lineage values but do not encode parent-lineage linkage in a form sufficient
+  for deterministic descendant re-identification from a missing ancestry hash
+- `LineageDelta` in `OperationResult` is count-only summary (good for accounting,
+  insufficient for re-identification)
+
+### Why this contract is required (explicit limitation)
+
+`P2-4` can produce typed, traced `Incompatible` outcomes when lineage fallback is
+unavailable, but it cannot implement real `LineageReidentified` behavior until a
+persisted re-identification substrate exists.
+
+Without this section, the project risks:
+- fake lineage fallback claims
+- audit artifacts that *look* rich but cannot support replay/re-identification
+- persistent naming APIs that silently degrade into direct-name-only behavior
+
+### Contract
+
+Forge must provide a deterministic, persisted re-identification substrate that:
+1. maps persistent identity queries to candidate descendants/ancestors across
+   topology evolution using structured lineage linkage
+2. exposes typed evidence sufficient for audit and trace adjunct payloads
+3. integrates with operation envelopes/finalization so re-identification data is
+   preserved at operation boundaries
+4. distinguishes unsupported vs unavailable vs ambiguous re-identification with
+   typed outcomes
+
+This substrate is a prerequisite for runtime `ResolutionRoute::LineageReidentified`
+in `P2-4`.
+
+### Design requirements
+
+1. **Structured lineage linkage, not just event chronology**
+- Persist enough linkage to answer re-identification queries deterministically:
+  - predecessor/successor relationships and/or stable ancestry references
+  - operation boundary association (`OpSignature`, replay index, or equivalent)
+- Scanning `LineageEvent` logs by operation name alone is not sufficient.
+
+2. **Snapshot identity and persistent identity are both explicit**
+- Re-identification data must clearly distinguish:
+  - persistent query identity (e.g. ancestry hash + ordinal + kind)
+  - snapshot candidate identity (typed snapshot refs with generation)
+- No unlabeled raw indices in APIs/audit payloads.
+
+3. **Deterministic candidate enumeration**
+- Candidate ordering must be deterministic and compatible with `P2-4` ordering rules.
+- Internal map iteration order may not affect outputs.
+
+4. **Typed availability / compatibility gates**
+- The substrate must report typed incompatibilities such as:
+  - lineage linkage unavailable for this topology epoch
+  - unsupported entity kind / resolver mode
+  - schema/version mismatch for persisted lineage linkage records
+- No generic string errors.
+
+5. **LineageDelta integration is explicit**
+- `LineageDelta` remains a count summary for envelope/accounting, but cannot be
+  treated as the re-identification substrate.
+- If re-identification-relevant lineage details are needed in operation outputs,
+  they must be emitted in a separate typed payload (audit artifact and/or adjunct),
+  not squeezed into count-only `LineageDelta`.
+
+6. **Finalization integration**
+- `P2-2` finalization must be the canonical point that attaches/persists any
+  re-identification metadata emitted by migrated operations.
+- No split path where lineage-reidentification evidence is logged outside the
+  finalized trace/audit bundle.
+
+7. **Replay compatibility**
+- The substrate must be designed so `P2-5` can map re-identification evidence to:
+  - exact replay witnesses (when sufficient)
+  - counterfactual-only evidence (when exact replay is impossible)
+- Replay compatibility status must be typed, not inferred from missing fields.
+
+### Proposed architecture shape (contract-level)
+
+The exact data structures may differ, but Phase 2 must provide equivalents to:
+
+- `ReidentificationLinkStore` (persisted/queryable per committed topology state or audit artifact)
+  - deterministic index for lineage-derived candidate lookup
+  - versioned schema
+
+- `ReidentificationQuery`
+  - persistent identity target (`PersistentName` / canonical selector summary)
+  - target entity kind
+  - mode (`descendants`, `ancestors`, `hybrid`)
+
+- `ReidentificationCandidate`
+  - snapshot candidate ref
+  - derived persistent summary (if available)
+  - linkage evidence summary (typed)
+  - route/match kind compatible with `P2-4`
+
+- `ReidentificationEvidence`
+  - linkage sources consulted
+  - operation/replay ranges considered
+  - candidate counts before/after filters
+  - compatibility/version metadata
+
+- `ReidentificationCompatibility`
+  - `Available`
+  - `Unavailable`
+  - `SchemaVersionMismatch`
+  - `MissingLinkage`
+  - `UnsupportedMode`
+  - etc. (typed)
+
+### Integration requirements (with existing components)
+
+1. **`forge-topo` lineage / replay**
+- Must define how linkage records are derived from:
+  - `Lineage`
+  - `LineageEvent`
+  - `ReplayLog`
+- If current event schema is insufficient, this section authorizes a schema
+  upgrade (new event payload fields or parallel linkage records).
+
+2. **`forge-core::envelope::LineageDelta`**
+- Keep `LineageDelta` as count summary.
+- Add separate typed re-identification metadata path (audit record field and/or
+  trace adjunct family); do not overload `LineageDelta`.
+
+3. **`P2-4` resolver contract**
+- `LineageReidentified` route may only be emitted when backed by this substrate.
+- Otherwise resolver must emit typed `Incompatible`/`Missing` and trace that fact.
+
+4. **`P2-5` replay/audit bridge**
+- Re-identification linkage/evidence schema must expose versioning and witness
+  references so replay bridge can classify exact vs counterfactual compatibility.
+
+### Must-have tests
+
+- lineage linkage persistence is deterministic for identical operation sequences
+- re-identification substrate distinguishes unavailable linkage vs missing entity
+- candidate ordering from linkage-derived results is deterministic
+- generation reuse/topology reorder does not alias stale snapshot identities into
+  re-identified candidates
+- `LineageDelta` remains count-only while re-identification details are preserved
+  in the typed metadata path (no silent data loss)
+- replay/counterfactual bridge can classify re-identification evidence as exact,
+  counterfactual-only, or incompatible (typed)
+
+### Acceptance criteria
+
+- `P2-4` lineage fallback can be implemented against a real persisted substrate
+  (not route labels / typed placeholders)
+- Re-identification evidence is typed, deterministic, and audit-compatible
+- `LineageDelta` accounting remains intact while detailed lineage/reidentification
+  semantics are carried in a separate typed channel
+- Replay/audit bridge has the data it needs to classify re-identification
+  compatibility without parsing human-readable logs
 
 ## P2-5. Replay / Audit Bridge Contract
 

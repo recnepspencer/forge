@@ -18,6 +18,7 @@ pub mod divergence;
 mod persistence;
 mod logging;
 pub mod policy_trace;
+pub mod resolution_trace;
 pub mod fingerprint;
 pub mod adjunct;
 
@@ -54,8 +55,14 @@ pub use policy_trace::{
     PolicyResolutionSource, PolicyResolutionOutcome, CandidateValueSummary,
     PolicyDecisionTracePayload, PolicyTraceConsistencyError, PolicyResolutionScopeRef,
 };
+pub use resolution_trace::{
+    ResolutionOutcome, ResolutionRoute, ResolutionMatchKind,
+    ResolutionQuerySummary, ResolutionCandidateSummary, ResolutionTracePayload,
+    ResolutionTraceConsistencyError,
+};
 pub use fingerprint::{TraceFingerprint, compute_trace_fingerprint};
 pub use adjunct::{
     TraceAdjunctRecord, TraceAdjunctSet,
     POLICY_DECISION_TRACE_PAYLOAD_KIND, POLICY_DECISION_TRACE_PAYLOAD_VERSION,
+    RESOLUTION_TRACE_PAYLOAD_KIND, RESOLUTION_TRACE_PAYLOAD_VERSION,
 };

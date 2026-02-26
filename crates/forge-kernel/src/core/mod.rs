@@ -18,6 +18,7 @@ mod macros;
 mod brep_workspace;
 mod operation_space;
 mod finalization;
+mod naming_resolution;
 
 pub use context::ModelingContext;
 pub use context::{ArenaSnapshot, SubOperationMetadata, compute_topology_delta};
@@ -41,4 +42,9 @@ pub use finalization::{
     OperationFinalizer, FinalizationError, FinalizationStatus,
     TopologyHashBoundary, FinalizationEmitOptions, FinalizationSummary,
     CollectedFinalization,
+};
+pub use naming_resolution::{
+    ResolutionQuery, ResolutionResult, ResolutionCandidate, ResolutionCandidates,
+    ResolutionEvidence, ResolutionIncompatibility, ResolverRoute, ResolverMatchKind,
+    snapshot_ref_from_entity_key, build_resolution_decision,
 };

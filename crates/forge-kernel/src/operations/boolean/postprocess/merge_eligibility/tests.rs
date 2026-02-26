@@ -215,7 +215,14 @@ mod tests {
 
     use crate::geometry_state::GeometryState;
     use crate::core::ModelingContext;
-    use super::super::nmt_eval::{test_build_merge_plan, test_validate_connectivity};
+    use super::super::nmt_eval::{
+        test_build_merge_plan, test_validate_connectivity, resolve_merge_region_selection_persistent,
+        execute_sheet_region_merge_persistent,
+        test_resolve_face_ref_result_direct, test_resolve_face_ref_result_with_lineage_fallback,
+    };
+    use super::super::schema::{MergeRegionSelectionPersistent, PersistentFaceRef};
+    use forge_topo::topology::naming::{PersistentName, assign_name};
+    use forge_topo::topology::naming::Selector;
 
     fn env_test_lock() -> &'static Mutex<()> {
         static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
@@ -372,6 +379,39 @@ mod tests {
         (topo, geom, group)
     }
 
+    fn build_ambiguous_face_persistent_name_fixture(
+    ) -> (forge_topo::state::TopologyState, PersistentName) {
+        let (topo, _geom, group) = build_two_face_coplanar_sheet_fixture();
+        let mut face_ids = Vec::new();
+        for (fid, _) in topo.arena().iter_faces() {
+            if group.contains(fid.index()).expect("group capacity") {
+                face_ids.push(fid);
+            }
+        }
+        assert!(face_ids.len() >= 2, "fixture must contain at least two selected faces");
+
+        let source_face = face_ids[0];
+        let target_face = face_ids[1];
+        let name = assign_name(topo.arena(), forge_topo::attributes::EntityKey::Face(source_face))
+            .expect("assign source face name");
+
+        let mut draft = topo.into_mutation();
+        let source_lineage = draft
+            .arena()
+            .get_face(source_face)
+            .expect("source face exists")
+            .lineage()
+            .cloned()
+            .expect("source face lineage");
+        draft.arena_mut()
+            .get_face_mut(target_face)
+            .expect("target face exists")
+            .set_lineage(Some(source_lineage));
+
+        let topo_ambiguous = draft.commit().expect("tampered lineage fixture commit");
+        (topo_ambiguous, name)
+    }
+
     /// Integration: exercise `certify_merge_boundary` directly with a real
     /// kernel-built two-face coplanar sheet fixture (topology + GeometryState).
     #[test]
@@ -399,6 +439,195 @@ mod tests {
             "two-face coplanar sheet should be merge-eligible, got {:?}",
             cert,
         );
+    }
+
+    #[test]
+    fn persistent_selection_resolves_two_face_fixture_deterministically() {
+        let (topo, _geom, group) = build_two_face_coplanar_sheet_fixture();
+        let mut selected_names = Vec::new();
+        let mut surviving: Option<forge_topo::handles::FaceId> = None;
+        for (fid, _) in topo.arena().iter_faces() {
+            if group.contains(fid.index()).expect("group capacity") {
+                if surviving.is_none() {
+                    surviving = Some(fid);
+                }
+                selected_names.push(assign_name(topo.arena(), forge_topo::attributes::EntityKey::Face(fid))
+                    .expect("assign face name"));
+            }
+        }
+        selected_names.sort_by_key(|n| (n.get_ancestry_hash(), n.get_ordinal()));
+        let surviving_name = assign_name(
+            topo.arena(),
+            forge_topo::attributes::EntityKey::Face(surviving.expect("fixture face")),
+        ).expect("assign surviving name");
+
+        let persistent = MergeRegionSelectionPersistent::new(
+            selected_names,
+            Vec::new(),
+            surviving_name,
+        );
+        let state = crate::core::KernelState::new(topo, GeometryState::new());
+        let mut ctx = ModelingContext::new();
+
+        let resolved = resolve_merge_region_selection_persistent(&state, &persistent, &mut ctx)
+            .expect("persistent selection should resolve");
+
+        assert_eq!(resolved.get_selected_faces().iter_ones().count(), 2);
+        assert!(resolved.get_selected_faces().contains(resolved.get_surviving_face().index()).unwrap());
+        assert_eq!(ctx.get_trace_adjuncts().records().len(), 3, "2 selected + 1 surviving resolutions");
+    }
+
+    #[test]
+    fn persistent_selection_executes_region_merge_through_persistent_entrypoint() {
+        let (topo, mut geom, group) = build_two_face_coplanar_sheet_fixture();
+        let mut selected_names = Vec::new();
+        let mut surviving: Option<forge_topo::handles::FaceId> = None;
+        for (fid, _) in topo.arena().iter_faces() {
+            if group.contains(fid.index()).expect("group capacity") {
+                if surviving.is_none() {
+                    surviving = Some(fid);
+                }
+                selected_names.push(assign_name(topo.arena(), forge_topo::attributes::EntityKey::Face(fid))
+                    .expect("assign face name"));
+            }
+        }
+        let surviving_name = assign_name(
+            topo.arena(),
+            forge_topo::attributes::EntityKey::Face(surviving.expect("fixture face")),
+        ).expect("assign surviving name");
+
+        let persistent = MergeRegionSelectionPersistent::new(
+            selected_names,
+            Vec::new(),
+            surviving_name,
+        );
+        let state = crate::core::KernelState::new(topo, geom);
+        let mut ctx = ModelingContext::new();
+
+        let op = execute_sheet_region_merge_persistent(state, &persistent, &mut ctx)
+            .expect("persistent region merge entrypoint should succeed on coplanar 2-face fixture");
+        let output = op.into_value();
+        let (_new_state, merge) = output.into_parts();
+
+        assert_eq!(merge.get_killed_faces().len(), 1, "two-face merge should kill exactly one face");
+    }
+
+    #[test]
+    fn persistent_selection_missing_face_fails_closed_with_typed_resolution_adjunct() {
+        let (topo, _geom, _group) = build_two_face_coplanar_sheet_fixture();
+        let missing = PersistentName::new(0xdead_beef, forge_core::EntityKind::Face, 0);
+        let persistent = MergeRegionSelectionPersistent::new(vec![missing.clone()], Vec::new(), missing);
+        let state = crate::core::KernelState::new(topo, GeometryState::new());
+        let mut ctx = ModelingContext::new();
+
+        let err = resolve_merge_region_selection_persistent(&state, &persistent, &mut ctx)
+            .expect_err("missing persistent name must fail closed");
+        match err {
+            forge_core::KernelError::MergeFailure(
+                forge_core::errors::MergeError::PersistentResolutionMissing { role, query }
+            ) => {
+                assert_eq!(role, forge_core::errors::PersistentResolutionRole::SurvivingFace);
+                assert_eq!(
+                    query,
+                    forge_core::ResolutionQuerySummary::PersistentName {
+                        entity_kind: forge_core::EntityKind::Face,
+                        ancestry_hash_hex: format!("{:032x}", 0xdead_beefu128),
+                        ordinal: 0,
+                    }
+                );
+            }
+            other => panic!("expected typed PersistentResolutionMissing merge error, got {:?}", other),
+        }
+
+        let payload = ctx.get_trace_adjuncts().records()[0]
+            .as_resolution_payload()
+            .expect("resolution adjunct kind")
+            .expect("decode resolution payload");
+        assert_eq!(payload.outcome, forge_core::ResolutionOutcome::Missing);
+        assert_eq!(payload.operation_scope_id.as_deref(), Some("sheet_region_merge"));
+    }
+
+    #[test]
+    fn persistent_selection_ambiguous_face_fails_closed_no_first_match() {
+        let (topo, ambiguous_name) = build_ambiguous_face_persistent_name_fixture();
+        let state = crate::core::KernelState::new(topo, GeometryState::new());
+        let persistent = MergeRegionSelectionPersistent::new(
+            vec![ambiguous_name.clone()],
+            Vec::new(),
+            ambiguous_name.clone(),
+        );
+        let mut ctx = ModelingContext::new();
+
+        let err = resolve_merge_region_selection_persistent(&state, &persistent, &mut ctx)
+            .expect_err("split ancestry name must resolve ambiguously and fail closed");
+        match err {
+            forge_core::KernelError::MergeFailure(
+                forge_core::errors::MergeError::PersistentResolutionAmbiguous { role, candidate_count, query }
+            ) => {
+                assert_eq!(role, forge_core::errors::PersistentResolutionRole::SurvivingFace);
+                assert!(candidate_count >= 2);
+                assert_eq!(
+                    query,
+                    forge_core::ResolutionQuerySummary::PersistentName {
+                        entity_kind: forge_core::EntityKind::Face,
+                        ancestry_hash_hex: format!(
+                            "{:032x}",
+                            ambiguous_name.get_ancestry_hash()
+                        ),
+                        ordinal: ambiguous_name.get_ordinal(),
+                    }
+                );
+            }
+            other => panic!("expected typed PersistentResolutionAmbiguous merge error, got {:?}", other),
+        }
+
+        let payload = ctx.get_trace_adjuncts().records()[0]
+            .as_resolution_payload()
+            .expect("resolution adjunct kind")
+            .expect("decode resolution payload");
+        assert_eq!(payload.outcome, forge_core::ResolutionOutcome::Ambiguous);
+        assert!(payload.candidate_count >= 2, "must preserve all candidates, no first-match");
+        let ordered = &payload.ordered_candidates;
+        let mut sorted = ordered.clone();
+        sorted.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+        assert_eq!(&sorted, ordered, "candidate summaries must be deterministically ordered");
+    }
+
+    #[test]
+    fn selector_based_persistent_resolution_uses_typed_contract_and_fails_closed() {
+        let (topo, ambiguous_name) = build_ambiguous_face_persistent_name_fixture();
+        let selector = PersistentFaceRef::Selector(Selector::ByAncestry {
+            hash: ambiguous_name.get_ancestry_hash(),
+            kind: forge_core::EntityKind::Face,
+        });
+
+        let result = test_resolve_face_ref_result_direct(topo.arena(), &selector);
+        match result {
+            crate::core::ResolutionResult::Ambiguous { candidates, .. } => {
+                assert!(candidates.len() >= 2, "selector ambiguity must preserve multiple candidates");
+                let ordered = candidates.as_slice();
+                let mut sorted = ordered.to_vec();
+                sorted.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+                assert_eq!(ordered, sorted.as_slice(), "selector candidates must be deterministically ordered");
+            }
+            other => panic!("expected Ambiguous typed resolution result, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn lineage_fallback_pipeline_unavailable_returns_typed_incompatible_not_missing() {
+        let (topo, _geom, _group) = build_two_face_coplanar_sheet_fixture();
+        let missing = PersistentFaceRef::Name(PersistentName::new(0xfeed_beef, forge_core::EntityKind::Face, 0));
+        let result = test_resolve_face_ref_result_with_lineage_fallback(topo.arena(), &missing);
+        match result {
+            crate::core::ResolutionResult::Incompatible { incompatibility, .. } => {
+                assert!(matches!(
+                    incompatibility,
+                    crate::core::ResolutionIncompatibility::UnsupportedResolverMode { .. }
+                ));
+            }
+            other => panic!("expected typed Incompatible when fallback pipeline is unavailable, got {:?}", other),
+        }
     }
 
     /// Integration: decision metadata uses content-derived ID and outcome-accurate kind.

@@ -5,6 +5,7 @@ use std::fmt;
 use serde::{Deserialize, Serialize};
 
 use crate::policy::PolicyKind;
+use crate::tracing::ResolutionQuerySummary;
 
 // =========================================================================
 // STRUCTURED ERROR CONTEXT (Milestone 1B.1)
@@ -617,8 +618,46 @@ pub enum MergeError {
     /// `step_index: Some(n)` — rejected at execution step `n` (0-indexed).
     PartialMergePlanRejected { step_index: Option<u32>, reason: String },
 
+    /// Persistent reference resolution returned zero matches for a required merge role.
+    PersistentResolutionMissing {
+        role: PersistentResolutionRole,
+        query: ResolutionQuerySummary,
+    },
+
+    /// Persistent reference resolution returned multiple matches and merge cannot choose.
+    PersistentResolutionAmbiguous {
+        role: PersistentResolutionRole,
+        candidate_count: u32,
+        query: ResolutionQuerySummary,
+    },
+
+    /// Persistent reference resolution could not run due to typed incompatibility.
+    PersistentResolutionIncompatible {
+        role: PersistentResolutionRole,
+        incompatibility: PersistentResolutionIncompatibility,
+        query: ResolutionQuerySummary,
+    },
+
     /// Persistent NMT output is unavailable in this milestone.
     UnsupportedPersistentNmtOutput,
+}
+
+/// Role of a persistent reference inside region-merge intent.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PersistentResolutionRole {
+    SurvivingFace,
+    SelectedFace,
+    ProtectedFace,
+}
+
+/// Typed incompatibility reported by persistent resolution adapters.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PersistentResolutionIncompatibility {
+    UnsupportedEntityKind { requested: crate::EntityKind },
+    MissingLineageStore,
+    UnsupportedLineageFallback,
+    SchemaVersionMismatch { expected: u32, actual: u32 },
+    Other { code: String },
 }
 
 impl fmt::Display for MergeError {
@@ -658,6 +697,23 @@ impl fmt::Display for MergeError {
                     Some(n) => write!(f, "Merge plan rejected at step {}: {}", n, reason),
                     None => write!(f, "Merge plan rejected during construction: {}", reason),
                 }
+            }
+            MergeError::PersistentResolutionMissing { role, query } => {
+                write!(f, "Persistent resolution missing for {:?}: {:?}", role, query)
+            }
+            MergeError::PersistentResolutionAmbiguous { role, candidate_count, query } => {
+                write!(
+                    f,
+                    "Persistent resolution ambiguous for {:?} ({} candidates): {:?}",
+                    role, candidate_count, query
+                )
+            }
+            MergeError::PersistentResolutionIncompatible { role, incompatibility, query } => {
+                write!(
+                    f,
+                    "Persistent resolution incompatible for {:?}: {:?} (query={:?})",
+                    role, incompatibility, query
+                )
             }
             MergeError::UnsupportedPersistentNmtOutput => {
                 write!(f, "Persistent NMT output is not supported in this milestone")

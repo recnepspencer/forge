@@ -12,6 +12,7 @@
 
 use forge_topo::bitset::EntityBitset;
 use forge_topo::handles::FaceId;
+use forge_topo::topology::naming::{PersistentName, Selector};
 use serde::{Deserialize, Serialize};
 
 use crate::core::KernelState;
@@ -35,6 +36,81 @@ pub struct MergeRegionSelection {
     /// Optional explicit radial-use selectors for edges with valence > 3.
     /// Required when face-only selection is ambiguous on a given edge.
     selected_radial_uses: Vec<RadialUseSelector>,
+}
+
+/// Persistent face reference for region-merge intent.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum PersistentFaceRef {
+    Name(PersistentName),
+    Selector(Selector),
+}
+
+/// Persistent (agent-facing) intent for a sheet region merge.
+///
+/// This is resolved against a specific `KernelState` snapshot to produce a
+/// `MergeRegionSelection`. Resolution is fail-closed and traced; names may
+/// resolve to zero or multiple faces.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MergeRegionSelectionPersistent {
+    /// Persistent names of all faces to merge (surviving + all killed).
+    selected_faces: Vec<PersistentFaceRef>,
+    /// Persistent names of neighboring faces that must not be modified.
+    protected_faces: Vec<PersistentFaceRef>,
+    /// Persistent name of the face that survives after the merge.
+    surviving_face: PersistentFaceRef,
+    /// Optional explicit radial-use selectors (still snapshot-scoped in this phase).
+    selected_radial_uses: Vec<RadialUseSelector>,
+}
+
+impl MergeRegionSelectionPersistent {
+    pub fn new(
+        selected_faces: Vec<PersistentName>,
+        protected_faces: Vec<PersistentName>,
+        surviving_face: PersistentName,
+    ) -> Self {
+        Self {
+            selected_faces: selected_faces.into_iter().map(PersistentFaceRef::Name).collect(),
+            protected_faces: protected_faces.into_iter().map(PersistentFaceRef::Name).collect(),
+            surviving_face: PersistentFaceRef::Name(surviving_face),
+            selected_radial_uses: Vec::new(),
+        }
+    }
+
+    pub fn new_refs(
+        selected_faces: Vec<PersistentFaceRef>,
+        protected_faces: Vec<PersistentFaceRef>,
+        surviving_face: PersistentFaceRef,
+    ) -> Self {
+        Self { selected_faces, protected_faces, surviving_face, selected_radial_uses: Vec::new() }
+    }
+
+    pub fn with_radial_selectors(
+        selected_faces: Vec<PersistentName>,
+        protected_faces: Vec<PersistentName>,
+        surviving_face: PersistentName,
+        selected_radial_uses: Vec<RadialUseSelector>,
+    ) -> Self {
+        Self {
+            selected_faces: selected_faces.into_iter().map(PersistentFaceRef::Name).collect(),
+            protected_faces: protected_faces.into_iter().map(PersistentFaceRef::Name).collect(),
+            surviving_face: PersistentFaceRef::Name(surviving_face),
+            selected_radial_uses,
+        }
+    }
+
+    pub fn with_radial_selectors_refs(
+        selected_faces: Vec<PersistentFaceRef>,
+        protected_faces: Vec<PersistentFaceRef>,
+        surviving_face: PersistentFaceRef,
+        selected_radial_uses: Vec<RadialUseSelector>,
+    ) -> Self {
+        Self { selected_faces, protected_faces, surviving_face, selected_radial_uses }
+    }
+
+    pub fn get_selected_faces(&self) -> &[PersistentFaceRef] { &self.selected_faces }
+    pub fn get_protected_faces(&self) -> &[PersistentFaceRef] { &self.protected_faces }
+    pub fn get_surviving_face(&self) -> &PersistentFaceRef { &self.surviving_face }
+    pub fn get_radial_selectors(&self) -> &[RadialUseSelector] { &self.selected_radial_uses }
 }
 
 impl MergeRegionSelection {
