@@ -224,9 +224,10 @@ fn pipeline_executes_make_cube_through_full_pipeline() {
     let inputs = HashMap::new();
     let mut ctx = ModelingContext::new();
 
-    let output = FeaturePipeline::execute(&feature, &inputs, &mut ctx)
+    let envelope = FeaturePipeline::execute(&feature, &inputs, &mut ctx)
         .expect("MakeCube through pipeline should succeed");
 
+    let output = envelope.get_value();
     assert_eq!(
         output.topology.arena().face_count(), 6,
         "Cube must have 6 faces"
@@ -278,15 +279,202 @@ fn pipeline_skips_audit_at_none_level() {
     let result = FeaturePipeline::execute(&feature, &inputs, &mut ctx);
     assert!(result.is_ok(), "no-audit feature should execute successfully");
 
-    let log = ctx.get_decision_log();
+    // The envelope carries the canonical decision log (drained from ctx
+    // by the OperationFinalizer). Verify no audit spans were added.
+    let envelope = result.unwrap();
+    let log = envelope.get_decision_log();
     let events = log.get_events();
     let audit_spans: Vec<_> = events.iter().filter(|e| match e {
-        forge_core::tracing::TraceEvent::StartSpan { name, .. } => name == "audit",
+        forge_core::tracing::TraceEvent::StartSpan { name, .. } => name.starts_with("audit"),
         _ => false,
     }).collect();
     assert!(
         audit_spans.is_empty(),
         "AuditLevel::None should produce no audit spans, got {}",
         audit_spans.len(),
+    );
+}
+
+#[test]
+fn pipeline_validates_post_invariants_after_execution() {
+    use crate::features::pipeline::contract::*;
+    use crate::features::traits::Feature;
+    use forge_topo::state::TopologyState;
+    use crate::geometry_state::GeometryState;
+
+    /// Feature that produces an empty topology but declares ManifoldEdges
+    /// as a post-invariant. An empty arena passes validation (no edges to
+    /// violate), so the pipeline should succeed.
+    #[derive(Debug)]
+    struct InvariantFeature;
+
+    struct EmptyInputs;
+    impl FeatureInputs for EmptyInputs {
+        fn validate(&self) -> Result<(), forge_core::KernelError> { Ok(()) }
+    }
+
+    impl FeatureContract for InvariantFeature {
+        fn feature_kind(&self) -> &str { "test_invariant" }
+        fn required_policies(&self) -> &[PolicyKind] { &[] }
+        fn entity_origins(&self) -> &[EntityOriginKind] { &[] }
+        fn post_invariants(&self) -> &[InvariantKind] {
+            &[InvariantKind::ManifoldEdges]
+        }
+        fn audit_level(&self) -> AuditLevel { AuditLevel::None }
+    }
+
+    impl Feature for InvariantFeature {
+        type Inputs = EmptyInputs;
+        fn parse_inputs(&self, _raw: &HashMap<NodeId, FeatureOutput>) -> Result<EmptyInputs, forge_core::KernelError> {
+            Ok(EmptyInputs)
+        }
+        fn execute_typed(&self, _inputs: &EmptyInputs, _ctx: &mut ModelingContext) -> Result<FeatureOutput, forge_core::KernelError> {
+            Ok(FeatureOutput {
+                topology: TopologyState::empty(),
+                geometry: GeometryState::new(),
+            })
+        }
+        fn dependencies(&self) -> Vec<NodeId> { Vec::new() }
+        fn name(&self) -> &str { "test_invariant" }
+    }
+
+    let feature = InvariantFeature;
+    let inputs = HashMap::new();
+    let mut ctx = ModelingContext::new();
+
+    // With an empty topology, ManifoldEdges passes (no edges to violate).
+    let result = FeaturePipeline::execute(&feature, &inputs, &mut ctx);
+    assert!(result.is_ok(), "feature with ManifoldEdges invariant on empty topo should succeed");
+
+    // Now test with a real cube — ManifoldEdges should also pass for valid topology.
+    let cube = MakeCubeFeature::new("cube", [0.0, 0.0, 0.0], 1.0);
+    let cube_result = FeaturePipeline::execute(&cube, &inputs, &mut ctx);
+    assert!(
+        cube_result.is_ok(),
+        "MakeCube with ManifoldEdges invariant should pass: {:?}",
+        cube_result.err()
+    );
+}
+
+#[test]
+fn pipeline_emits_audit_at_full_level() {
+    use crate::features::pipeline::contract::*;
+    use crate::features::traits::Feature;
+    use forge_topo::state::TopologyState;
+    use crate::geometry_state::GeometryState;
+
+    #[derive(Debug)]
+    struct FullAuditFeature;
+
+    struct EmptyInputs;
+    impl FeatureInputs for EmptyInputs {
+        fn validate(&self) -> Result<(), forge_core::KernelError> { Ok(()) }
+    }
+
+    impl FeatureContract for FullAuditFeature {
+        fn feature_kind(&self) -> &str { "test_full_audit" }
+        fn required_policies(&self) -> &[PolicyKind] { &[] }
+        fn entity_origins(&self) -> &[EntityOriginKind] { &[] }
+        fn post_invariants(&self) -> &[InvariantKind] { &[] }
+        fn audit_level(&self) -> AuditLevel { AuditLevel::Full }
+    }
+
+    impl Feature for FullAuditFeature {
+        type Inputs = EmptyInputs;
+        fn parse_inputs(&self, _raw: &HashMap<NodeId, FeatureOutput>) -> Result<EmptyInputs, forge_core::KernelError> {
+            Ok(EmptyInputs)
+        }
+        fn execute_typed(&self, _inputs: &EmptyInputs, _ctx: &mut ModelingContext) -> Result<FeatureOutput, forge_core::KernelError> {
+            Ok(FeatureOutput {
+                topology: TopologyState::empty(),
+                geometry: GeometryState::new(),
+            })
+        }
+        fn dependencies(&self) -> Vec<NodeId> { Vec::new() }
+        fn name(&self) -> &str { "test_full_audit" }
+    }
+
+    let feature = FullAuditFeature;
+    let inputs = HashMap::new();
+    let mut ctx = ModelingContext::new();
+
+    let envelope = FeaturePipeline::execute(&feature, &inputs, &mut ctx)
+        .expect("full-audit feature should succeed");
+
+    // AuditLevel::Full should produce an audit span in the envelope's log.
+    // The executor records a span named "audit/{feature_kind}".
+    let log = envelope.get_decision_log();
+    let events = log.get_events();
+    let audit_spans: Vec<_> = events.iter().filter(|e| match e {
+        forge_core::tracing::TraceEvent::StartSpan { name, .. } => name.starts_with("audit/"),
+        _ => false,
+    }).collect();
+    assert!(
+        !audit_spans.is_empty(),
+        "AuditLevel::Full should produce at least one audit span, got none. Events: {:?}",
+        events,
+    );
+}
+
+#[test]
+fn typed_inputs_reject_missing_dependency() {
+    use crate::features::pipeline::contract::*;
+    use crate::features::traits::Feature;
+
+    /// Feature that requires a dependency but the input map is empty.
+    #[derive(Debug)]
+    struct NeedyFeature {
+        dep_id: NodeId,
+    }
+
+    struct NeedyInputs;
+    impl FeatureInputs for NeedyInputs {
+        fn validate(&self) -> Result<(), forge_core::KernelError> { Ok(()) }
+    }
+
+    impl FeatureContract for NeedyFeature {
+        fn feature_kind(&self) -> &str { "test_needy" }
+        fn required_policies(&self) -> &[PolicyKind] { &[] }
+        fn entity_origins(&self) -> &[EntityOriginKind] { &[] }
+        fn post_invariants(&self) -> &[InvariantKind] { &[] }
+        fn audit_level(&self) -> AuditLevel { AuditLevel::None }
+    }
+
+    impl Feature for NeedyFeature {
+        type Inputs = NeedyInputs;
+        fn parse_inputs(&self, raw: &HashMap<NodeId, FeatureOutput>) -> Result<NeedyInputs, forge_core::KernelError> {
+            if !raw.contains_key(&self.dep_id) {
+                return Err(forge_core::KernelError::InvalidInput {
+                    message: format!("Missing required dependency {}", self.dep_id),
+                    context: None,
+                });
+            }
+            Ok(NeedyInputs)
+        }
+        fn execute_typed(&self, _inputs: &NeedyInputs, _ctx: &mut ModelingContext) -> Result<FeatureOutput, forge_core::KernelError> {
+            unreachable!("should not reach execution with missing dependency")
+        }
+        fn dependencies(&self) -> Vec<NodeId> { vec![self.dep_id] }
+        fn name(&self) -> &str { "test_needy" }
+    }
+
+    // Create a fake NodeId that won't exist in the input map.
+    let fake_id = {
+        let mut graph = forge_signal::graph::SignalGraph::new();
+        graph.create_node()
+    };
+
+    let feature = NeedyFeature { dep_id: fake_id };
+    let inputs = HashMap::new(); // Empty — no dependencies provided
+
+    let mut ctx = ModelingContext::new();
+    let result = FeaturePipeline::execute(&feature, &inputs, &mut ctx);
+
+    assert!(result.is_err(), "should fail when required dependency is missing");
+    let err = format!("{:?}", result.unwrap_err());
+    assert!(
+        err.contains("Missing required dependency") || err.contains("missing"),
+        "error should mention the missing dependency: {}",
+        err,
     );
 }

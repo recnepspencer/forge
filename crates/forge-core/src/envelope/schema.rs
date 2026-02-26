@@ -107,6 +107,22 @@ pub struct OperationMetrics {
     pub policy_decisions_made: u32,
 }
 
+impl OperationMetrics {
+    /// Accumulate another metrics record into this one.
+    ///
+    /// Adds all counters field-by-field. Used by `absorb_sub_result`
+    /// and `OperationFinalizer` to roll up sub-operation metrics
+    /// without manual per-field addition.
+    pub fn accumulate(&mut self, other: &Self) {
+        self.duration += other.duration;
+        self.entities_created += other.entities_created;
+        self.entities_deleted += other.entities_deleted;
+        self.entities_modified += other.entities_modified;
+        self.exact_predicate_calls += other.exact_predicate_calls;
+        self.policy_decisions_made += other.policy_decisions_made;
+    }
+}
+
 // =========================================================================
 // LINEAGE DELTA
 // =========================================================================
@@ -142,6 +158,30 @@ pub struct LineageDelta {
     pub solids_created: u32,
     /// Number of solids deleted.
     pub solids_deleted: u32,
+}
+
+impl LineageDelta {
+    /// Accumulate another lineage delta into this one.
+    ///
+    /// Adds all counters field-by-field. Used by `absorb_sub_result`
+    /// and `OperationFinalizer` to roll up sub-operation lineage deltas
+    /// without manual per-field addition.
+    pub fn accumulate(&mut self, other: &Self) {
+        self.faces_created += other.faces_created;
+        self.faces_deleted += other.faces_deleted;
+        self.half_edges_created += other.half_edges_created;
+        self.half_edges_deleted += other.half_edges_deleted;
+        self.vertices_created += other.vertices_created;
+        self.vertices_deleted += other.vertices_deleted;
+        self.loops_created += other.loops_created;
+        self.loops_deleted += other.loops_deleted;
+        self.edges_created += other.edges_created;
+        self.edges_deleted += other.edges_deleted;
+        self.shells_created += other.shells_created;
+        self.shells_deleted += other.shells_deleted;
+        self.solids_created += other.solids_created;
+        self.solids_deleted += other.solids_deleted;
+    }
 }
 
 // =========================================================================

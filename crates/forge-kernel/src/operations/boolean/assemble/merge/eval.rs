@@ -670,7 +670,7 @@ fn run_post_boolean_validation(
     let pos_fn = |vid| geom.get_vertex_position(vid).copied();
     let _validation = run_checkpoint(
         result.topology().arena(),
-        ctx.get_validation_config(),
+        &ctx.get_validation_config(),
         ValidationCheckpoint::PostBoolean,
         Some(&pos_fn),
         geom,

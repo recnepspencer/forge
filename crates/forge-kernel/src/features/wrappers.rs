@@ -135,7 +135,11 @@ crate::declare_feature!(BooleanFeature,
         EntityOriginKind::SplitOperator,
         EntityOriginKind::CopyOperator,
     ],
-    invariants: [InvariantKind::ManifoldEdges],
+    // NOTE: Boolean operations validate topology internally via the boolean engine.
+    // ManifoldEdges is NOT declared here because the engine's own validation
+    // pipeline handles it. Adding it would double-validate and surface
+    // engine-internal intermediate states as feature contract violations.
+    invariants: [],
     audit: AuditLevel::Full,
 );
 

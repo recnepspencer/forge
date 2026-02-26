@@ -5,6 +5,7 @@
 //! DEPENDENCIES: serde (serialization)
 
 use serde::{Deserialize, Serialize};
+use super::config::defaults;
 
 /// Spatial tolerance policy for coincidence detection.
 #[derive(Debug, Clone)]
@@ -46,16 +47,12 @@ impl TolerancePolicy {
 impl Default for TolerancePolicy {
     fn default() -> Self {
         Self {
-            spatial_tolerance: DEFAULT_SPATIAL_TOLERANCE,
-            angular_tolerance: DEFAULT_ANGULAR_TOLERANCE,
+            spatial_tolerance: defaults::SPATIAL_TOLERANCE,
+            angular_tolerance: defaults::ANGULAR_TOLERANCE,
         }
     }
 }
 
-/// Default spatial tolerance: 1 micron.
-const DEFAULT_SPATIAL_TOLERANCE: f64 = 1e-6;
-/// Default angular tolerance: ~0.00006 degrees.
-const DEFAULT_ANGULAR_TOLERANCE: f64 = 1e-6;
 
 /// Policy for handling near-tangent surface intersections.
 #[derive(Debug, Clone)]
@@ -97,16 +94,12 @@ impl TangencyPolicy {
 impl Default for TangencyPolicy {
     fn default() -> Self {
         Self {
-            min_transversal_angle: DEFAULT_MIN_TRANSVERSAL_ANGLE,
-            max_tangent_gap: DEFAULT_MAX_TANGENT_GAP,
+            min_transversal_angle: defaults::MIN_TRANSVERSAL_ANGLE,
+            max_tangent_gap: defaults::MAX_TANGENT_GAP,
         }
     }
 }
 
-/// Default minimum transversal angle: ~0.06 degrees.
-const DEFAULT_MIN_TRANSVERSAL_ANGLE: f64 = 1e-3;
-/// Default maximum tangent gap: 0.1mm.
-const DEFAULT_MAX_TANGENT_GAP: f64 = 1e-4;
 
 /// Policy for sliver face detection and removal.
 #[derive(Debug, Clone)]
@@ -148,16 +141,12 @@ impl SliverPolicy {
 impl Default for SliverPolicy {
     fn default() -> Self {
         Self {
-            min_face_area: DEFAULT_MIN_FACE_AREA,
-            max_slivers_per_op: DEFAULT_MAX_SLIVERS_PER_OP,
+            min_face_area: defaults::MIN_FACE_AREA,
+            max_slivers_per_op: defaults::MAX_SLIVERS_PER_OP,
         }
     }
 }
 
-/// Default minimum face area: 0.01 mm².
-const DEFAULT_MIN_FACE_AREA: f64 = 1e-10;
-/// Default maximum slivers per operation.
-const DEFAULT_MAX_SLIVERS_PER_OP: usize = 3;
 
 /// Policy for automatic gap closure during sewing.
 #[derive(Debug, Clone)]
@@ -185,13 +174,11 @@ impl GapClosurePolicy {
 impl Default for GapClosurePolicy {
     fn default() -> Self {
         Self {
-            max_gap: DEFAULT_GAP_CLOSURE_MAX,
+            max_gap: defaults::GAP_CLOSURE_MAX,
         }
     }
 }
 
-/// Default maximum gap for closure: 0.1mm.
-const DEFAULT_GAP_CLOSURE_MAX: f64 = 1e-4;
 
 /// Policy for precision escalation (Milestone 0.2.3).
 #[derive(Debug, Clone)]
@@ -219,13 +206,11 @@ impl PrecisionEscalationPolicy {
 impl Default for PrecisionEscalationPolicy {
     fn default() -> Self {
         Self {
-            bit_length_threshold: DEFAULT_BIT_LENGTH_THRESHOLD,
+            bit_length_threshold: defaults::BIT_LENGTH_THRESHOLD,
         }
     }
 }
 
-/// Default bit-length threshold for precision escalation.
-const DEFAULT_BIT_LENGTH_THRESHOLD: u32 = 512;
 
 /// Hard floor — no tolerance may be tighter than this regardless of model scale.
 ///
@@ -277,6 +262,13 @@ pub struct ToleranceConfig {
     /// Default is `f64::INFINITY` (budget warnings disabled).
     #[serde(default = "default_error_budget")]
     error_budget_mm: f64,
+    /// Multiplier defining the ambiguity band around tolerance boundaries.
+    ///
+    /// When a surface classification measure falls in `tol..tol*factor`,
+    /// `classify_surface_pair` returns `PolicyResult::Ambiguous` instead
+    /// of making a crisp decision. Default is 10.0 (one decade).
+    #[serde(default = "default_ambiguity_band_factor")]
+    ambiguity_band_factor: f64,
 }
 
 impl ToleranceConfig {
@@ -302,9 +294,10 @@ impl ToleranceConfig {
             edge_split_degeneracy,
             min_edge_length,
             collinearity_dot_tolerance,
-            aabb_inflation: DEFAULT_AABB_INFLATION,
+            aabb_inflation: defaults::AABB_INFLATION,
             model_scale_mm: 0.0,
             error_budget_mm: f64::INFINITY,
+            ambiguity_band_factor: defaults::AMBIGUITY_BAND_FACTOR,
         }
     }
 
@@ -440,23 +433,38 @@ impl ToleranceConfig {
     pub fn set_aabb_inflation(&mut self, value: f64) {
         self.aabb_inflation = value;
     }
+
+    /// Multiplier for the ambiguity band around tolerance boundaries.
+    ///
+    /// Surface classification returns `Ambiguous` when a measure falls
+    /// in `tol..tol*factor`. Default 10.0 (one decade).
+    pub fn get_ambiguity_band_factor(&self) -> f64 {
+        self.ambiguity_band_factor
+    }
+
+    /// Set the ambiguity band factor.
+    pub fn set_ambiguity_band_factor(&mut self, value: f64) {
+        debug_assert!(value > 1.0, "ambiguity_band_factor must be > 1.0");
+        self.ambiguity_band_factor = value;
+    }
 }
 
 impl Default for ToleranceConfig {
     fn default() -> Self {
         Self {
-            residual: DEFAULT_RESIDUAL_TOLERANCE,
-            degeneracy: DEFAULT_DEGENERACY_THRESHOLD,
-            sample_inward_offset: DEFAULT_SAMPLE_INWARD_OFFSET,
-            ray_extent: DEFAULT_RAY_EXTENT,
-            coplanar_angle_epsilon: DEFAULT_COPLANAR_ANGLE_EPSILON,
-            coplanar_offset_epsilon: DEFAULT_COPLANAR_OFFSET_EPSILON,
-            edge_split_degeneracy: DEFAULT_EDGE_SPLIT_DEGENERACY,
-            min_edge_length: DEFAULT_MIN_EDGE_LENGTH,
-            collinearity_dot_tolerance: DEFAULT_COLLINEARITY_DOT_TOLERANCE,
-            aabb_inflation: DEFAULT_AABB_INFLATION,
+            residual: defaults::RESIDUAL_TOLERANCE,
+            degeneracy: defaults::DEGENERACY_THRESHOLD,
+            sample_inward_offset: defaults::SAMPLE_INWARD_OFFSET,
+            ray_extent: defaults::RAY_EXTENT,
+            coplanar_angle_epsilon: defaults::COPLANAR_ANGLE_EPSILON,
+            coplanar_offset_epsilon: defaults::COPLANAR_OFFSET_EPSILON,
+            edge_split_degeneracy: defaults::EDGE_SPLIT_DEGENERACY,
+            min_edge_length: defaults::MIN_EDGE_LENGTH,
+            collinearity_dot_tolerance: defaults::COLLINEARITY_DOT_TOLERANCE,
+            aabb_inflation: defaults::AABB_INFLATION,
             model_scale_mm: 0.0,
             error_budget_mm: f64::INFINITY,
+            ambiguity_band_factor: defaults::AMBIGUITY_BAND_FACTOR,
         }
     }
 }
@@ -466,23 +474,8 @@ fn default_error_budget() -> f64 {
     f64::INFINITY
 }
 
-/// Default residual tolerance for overconstrained vertex verification.
-const DEFAULT_RESIDUAL_TOLERANCE: f64 = 1e-8;
-/// Default degeneracy threshold for plane intersection determinants.
-const DEFAULT_DEGENERACY_THRESHOLD: f64 = 1e-12;
-/// Default inward offset for face centroid sampling (1 micron).
-const DEFAULT_SAMPLE_INWARD_OFFSET: f64 = 1e-6;
-/// Default ray extent for point-in-solid classification.
-const DEFAULT_RAY_EXTENT: f64 = 1e6;
-/// Default tolerance for coplanar angle (parallelism).
-const DEFAULT_COPLANAR_ANGLE_EPSILON: f64 = 1e-20;
-/// Default tolerance for coplanar offset.
-const DEFAULT_COPLANAR_OFFSET_EPSILON: f64 = 1e-12;
-/// Default denominator threshold for edge splitting (1e-30).
-const DEFAULT_EDGE_SPLIT_DEGENERACY: f64 = 1e-30;
-/// Default minimum edge length (1e-9).
-const DEFAULT_MIN_EDGE_LENGTH: f64 = 1e-9;
-/// Default collinearity dot product tolerance (1e-8).
-const DEFAULT_COLLINEARITY_DOT_TOLERANCE: f64 = 1e-8;
-/// Default AABB inflation margin (100 nm).
-const DEFAULT_AABB_INFLATION: f64 = 1e-7;
+
+/// Serde default helper for `ambiguity_band_factor`.
+fn default_ambiguity_band_factor() -> f64 {
+    defaults::AMBIGUITY_BAND_FACTOR
+}

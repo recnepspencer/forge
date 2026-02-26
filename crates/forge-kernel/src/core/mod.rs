@@ -5,23 +5,29 @@
 //!
 //! ## Modules
 //!
-//! - `context`   — `ModelingContext` (policy decisions + decision logging)
+//! - `context/`   — `ModelingContext` split into schema, accessors, decision logging,
+//!                  sub-operations, counterfactual replay, policy resolution, topology delta
 //! - `tolerance`  — `ToleranceConfig` + all `*Policy` structs with defaults
 //! - `macros`     — `check_tolerance!` macro for doctrine D2
 //!
 //! INVARIANTS: Every tolerance decision is logged (D2).
 //! DEPENDENCIES: `forge-core` (DecisionLog, TracedDecision)
 
-mod context;
+pub(crate) mod context;
 pub mod tolerance;
+pub mod config;
 mod macros;
 mod brep_workspace;
 mod operation_space;
-mod finalization;
+pub(crate) mod finalization;
 mod naming_resolution;
 
 pub use context::ModelingContext;
 pub use context::{ArenaSnapshot, SubOperationMetadata, compute_topology_delta};
+pub use context::{
+    ResolvedPolicySource, ResolvedPolicyDecision, ScopedPolicyValue,
+    PolicyRegistrySnapshot,
+};
 pub use tolerance::{
     TolerancePolicy,
     TangencyPolicy,

@@ -1,0 +1,143 @@
+//! ModelingContext struct definition and lifecycle.
+//!
+//! DOMAIN: The core struct that holds all policy configuration and tracing state.
+//! INVARIANTS: Default construction provides sensible defaults for all policies.
+
+use std::collections::BTreeMap;
+
+use forge_core::{
+    DecisionLog, KernelError, PolicyKind,
+};
+use forge_core::envelope::{KernelWarning, LineageDelta, OperationMetrics};
+use forge_core::tracing::TraceAdjunctSet;
+
+use crate::operations::boolean::FaceClassification;
+
+use super::super::config::KernelConfig;
+
+use super::policy_resolution::{ScopedPolicyValue, default_policy_registry};
+
+/// Aggregated metadata absorbed from sub-operation envelopes.
+#[derive(Debug, Clone, Default)]
+pub struct SubOperationMetadata {
+    pub warnings: Vec<KernelWarning>,
+    pub metrics: OperationMetrics,
+    pub lineage_delta: LineageDelta,
+    pub accumulated_error_budget: f64,
+}
+
+/// The modeling context that governs all policy decisions.
+///
+/// Passed to operations that may encounter ambiguity. Records every
+/// tolerance-driven decision for traceability (D2) and replay (D1).
+///
+/// # Example
+/// ```
+/// use forge_kernel::core::ModelingContext;
+///
+/// let ctx = ModelingContext::default();
+/// assert_eq!(ctx.get_decision_count(), 0);
+/// ```
+#[derive(Debug, Clone)]
+pub struct ModelingContext {
+    pub(crate) config: KernelConfig,
+    pub(crate) decision_log: DecisionLog,
+    /// Aggregated warnings absorbed from sub-operations that returned envelopes.
+    pub(crate) sub_warnings: Vec<KernelWarning>,
+    /// Aggregated metrics absorbed from sub-operations.
+    pub(crate) sub_metrics: OperationMetrics,
+    /// Aggregated lineage deltas absorbed from sub-operations.
+    pub(crate) sub_lineage_delta: LineageDelta,
+    /// Aggregated error budget consumed by absorbed sub-operations.
+    pub(crate) sub_accumulated_error_budget: f64,
+    /// Typed adjunct payloads produced alongside traced decisions.
+    pub(crate) trace_adjuncts: TraceAdjunctSet,
+    pub(crate) decision_counter: u64,
+    /// When true, Drop persists the DecisionLog as an error trace
+    /// if take_decision_log() was never called (i.e. the operation failed).
+    pub(crate) auto_persist: bool,
+    /// Set by take_decision_log() to indicate the success path was taken.
+    pub(crate) log_drained: bool,
+    /// Forced classification overrides for counterfactual replay.
+    ///
+    /// Keyed by `DecisionId` raw value (face index). When the classify
+    /// phase encounters a matching decision, it uses the forced
+    /// `FaceClassification` instead of the computed result.
+    pub(crate) classification_overrides: BTreeMap<u64, FaceClassification>,
+    pub(crate) policy_defaults: BTreeMap<PolicyKind, bool>,
+    pub(crate) policy_session_overrides: BTreeMap<PolicyKind, ScopedPolicyValue>,
+    pub(crate) policy_model_overrides: BTreeMap<String, BTreeMap<PolicyKind, bool>>,
+    pub(crate) policy_feature_overrides: BTreeMap<String, BTreeMap<PolicyKind, bool>>,
+    pub(crate) policy_operation_overrides: BTreeMap<String, BTreeMap<PolicyKind, bool>>,
+    pub(crate) active_model_policy_scope: Option<String>,
+    pub(crate) active_feature_policy_scope: Option<String>,
+    pub(crate) active_operation_policy_scope: Option<String>,
+    /// Local coordinate space for the current operation.
+    ///
+    /// Set by the feature pipeline executor after analyzing input geometry.
+    /// Steps read coordinates through `op_space().to_local()` / `to_world()`
+    /// — geometry stays immutable in world space.
+    pub(crate) operation_space: super::super::OperationSpace,
+}
+
+impl ModelingContext {
+    /// Create a modeling context with default policies.
+    pub fn new() -> Self {
+        Self {
+            config: KernelConfig::default(),
+            decision_log: DecisionLog::new(),
+            sub_warnings: Vec::new(),
+            sub_metrics: OperationMetrics::default(),
+            sub_lineage_delta: LineageDelta::default(),
+            sub_accumulated_error_budget: 0.0,
+            trace_adjuncts: TraceAdjunctSet::new(),
+            decision_counter: 0,
+            auto_persist: false,
+            log_drained: false,
+            classification_overrides: BTreeMap::new(),
+            policy_defaults: default_policy_registry(),
+            policy_session_overrides: BTreeMap::new(),
+            policy_model_overrides: BTreeMap::new(),
+            policy_feature_overrides: BTreeMap::new(),
+            policy_operation_overrides: BTreeMap::new(),
+            active_model_policy_scope: None,
+            active_feature_policy_scope: None,
+            active_operation_policy_scope: None,
+            operation_space: super::super::OperationSpace::identity(),
+        }
+    }
+
+    /// Enable auto-persist on Drop. Call this on contexts used by
+    /// top-level operations (e.g. `execute_boolean`) so that error
+    /// traces are captured when the operation fails.
+    pub fn enable_auto_persist(&mut self) {
+        self.auto_persist = true;
+    }
+}
+
+impl Drop for ModelingContext {
+    /// Auto-persist the DecisionLog on error or panic.
+    ///
+    /// Only fires when `auto_persist` is enabled (top-level operations)
+    /// AND `take_decision_log()` was never called (the error path).
+    fn drop(&mut self) {
+        if !self.auto_persist || self.log_drained || self.decision_log.is_empty() {
+            return;
+        }
+
+        let dir = match forge_core::resolve_trace_dir() {
+            Some(d) => d,
+            None => return,
+        };
+
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            forge_core::write_trace_file(&dir, &self.decision_log, 0, "error");
+        }));
+    }
+}
+
+impl Default for ModelingContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}

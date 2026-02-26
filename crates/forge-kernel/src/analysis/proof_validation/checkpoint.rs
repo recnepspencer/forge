@@ -38,13 +38,13 @@ pub enum ValidationCheckpoint {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ValidationConfig {
     /// Which checkpoints are enabled.
-    checkpoints: Vec<ValidationCheckpoint>,
+    pub(crate) checkpoints: Vec<ValidationCheckpoint>,
     /// Whether to include geometric invariants (zero-area, zero-length, signed volume).
     /// More expensive than structural-only validation.
-    include_geometric: bool,
+    pub(crate) include_geometric: bool,
     /// Maximum entities before skipping (perf safety valve).
     /// A value of 0 means no limit (always validate).
-    entity_limit: usize,
+    pub(crate) entity_limit: usize,
 }
 
 impl ValidationConfig {

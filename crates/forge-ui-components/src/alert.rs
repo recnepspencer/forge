@@ -1,59 +1,118 @@
-//! FgAlert — dismissible alert banner.
+//! FgAlert — modal alert dialog box.
+//!
+//! Renders as a centered dialog with a title, message, and action buttons.
+//! Typically used for destructive actions (e.g. Delete confirmation) or important notifications.
 
-use egui::{Response, Ui};
+use egui::{Color32, CornerRadius, Frame, Stroke, Vec2};
 use forge_ui_theme::ForgeTheme;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FgAlertVariant { Info, Success, Warning, Error }
+use crate::{fg_button, FgButton, FgButtonVariant};
 
-pub struct FgAlert<'a> {
-    pub variant:     FgAlertVariant,
-    pub title:       &'a str,
-    pub message:     &'a str,
-    pub dismissible: bool,
+/// Describes a button action on the alert.
+pub struct AlertAction<'a> {
+    pub label: &'a str,
+    pub variant: FgButtonVariant,
 }
 
-/// Renders an alert banner. Returns a Response; if `dismissible` is true,
-/// the caller should check `response.secondary_clicked()` or a returned `bool`
-/// to remove the alert from state.
-pub fn fg_alert(ui: &mut Ui, theme: &ForgeTheme, props: FgAlert<'_>) -> bool {
-    let (bg, accent, icon) = match props.variant {
-        FgAlertVariant::Info    => (theme.info_surface,    theme.info,    "ℹ"),
-        FgAlertVariant::Success => (theme.success_surface, theme.success, "✓"),
-        FgAlertVariant::Warning => (theme.warning_surface, theme.warning, "⚠"),
-        FgAlertVariant::Error   => (theme.danger_surface,  theme.danger,  "✕"),
-    };
+impl<'a> AlertAction<'a> {
+    pub fn new(label: &'a str) -> Self {
+        Self { label, variant: FgButtonVariant::Secondary }
+    }
+    pub fn primary(label: &'a str) -> Self {
+        Self { label, variant: FgButtonVariant::Primary }
+    }
+    pub fn danger(label: &'a str) -> Self {
+        Self { label, variant: FgButtonVariant::Danger }
+    }
+    pub fn cancel(label: &'a str) -> Self {
+        Self { label, variant: FgButtonVariant::Ghost }
+    }
+}
 
-    let mut dismissed = false;
-    let frame = egui::Frame::new()
-        .fill(bg)
-        .inner_margin(egui::Margin::symmetric(theme.sp(3) as i8, theme.sp(2) as i8))
-        .corner_radius(egui::CornerRadius::same(theme.radius_md as u8))
-        .stroke(egui::Stroke::new(1.0, accent));
+pub struct FgAlert<'a> {
+    pub title: &'a str,
+    pub message: &'a str,
+    pub actions: Vec<AlertAction<'a>>,
+}
 
-    frame.show(ui, |ui| {
-        ui.horizontal(|ui| {
-            ui.label(egui::RichText::new(icon).color(accent).size(theme.font_size_md));
-            ui.vertical(|ui| {
-                if !props.title.is_empty() {
-                    ui.label(egui::RichText::new(props.title)
-                        .color(accent)
-                        .size(theme.font_size_sm)
-                        .strong());
-                }
-                ui.label(egui::RichText::new(props.message)
-                    .color(theme.text_secondary)
-                    .size(theme.font_size_sm));
-            });
-            if props.dismissible {
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if ui.button(egui::RichText::new("✕").color(theme.text_muted).size(theme.font_size_sm)).clicked() {
-                        dismissed = true;
-                    }
-                });
-            }
+impl<'a> FgAlert<'a> {
+    pub fn new(title: &'a str, message: &'a str) -> Self {
+        Self { title, message, actions: Vec::new() }
+    }
+
+    pub fn with_action(mut self, action: AlertAction<'a>) -> Self {
+        self.actions.push(action);
+        self
+    }
+}
+
+/// Renders a modal alert dialog. Returns the index of the clicked action button, if any.
+pub fn fg_alert(ctx: &egui::Context, theme: &ForgeTheme, id: &str, props: FgAlert<'_>) -> Option<usize> {
+    let mut clicked_idx = None;
+
+    // Dark scrim
+    let _scrim_resp = egui::Area::new(egui::Id::new(format!("{id}_scrim")))
+        .fixed_pos(egui::Pos2::ZERO)
+        .order(egui::Order::Foreground)
+        .interactable(true)
+        .show(ctx, |ui| {
+            let screen = ctx.screen_rect();
+            let (rect, resp) = ui.allocate_exact_size(screen.size(), egui::Sense::click());
+            ui.painter().rect_filled(rect, 0.0, Color32::from_black_alpha(160));
+            resp
         });
-    });
 
-    dismissed
+    // Dialog card
+    egui::Area::new(egui::Id::new(id))
+        .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
+        .order(egui::Order::Foreground)
+        .show(ctx, |ui| {
+            Frame::new()
+                .fill(theme.bg_surface)
+                .stroke(Stroke::new(1.0, theme.border_subtle))
+                .corner_radius(CornerRadius::same(theme.radius_lg as u8))
+                .inner_margin(egui::Margin::same(24))
+                .shadow(egui::Shadow {
+                    offset: [0, 16],
+                    blur: 32,
+                    spread: 4,
+                    color: Color32::from_black_alpha(120),
+                })
+                .show(ui, |ui| {
+                    ui.set_width(320.0);
+                    
+                    // Center title and message
+                    ui.vertical_centered(|ui| {
+                        ui.label(egui::RichText::new(props.title)
+                            .color(theme.text_primary)
+                            .size(theme.font_size_lg)
+                            .strong());
+                        ui.add_space(8.0);
+                        ui.label(egui::RichText::new(props.message)
+                            .color(theme.text_secondary)
+                            .size(theme.font_size_md));
+                    });
+                    
+                    ui.add_space(24.0);
+
+                    // Actions
+                    ui.horizontal(|ui| {
+                        let btn_width = (ui.available_width() - ((props.actions.len().saturating_sub(1) as f32) * 8.0)) / (props.actions.len().max(1) as f32);
+                        
+                        for (i, action) in props.actions.iter().enumerate() {
+                            let resp = ui.add_sized(
+                                [btn_width, 0.0],
+                                |ui: &mut egui::Ui| {
+                                    fg_button(ui, theme, FgButton::new(action.label).variant(action.variant))
+                                }
+                            );
+                            if resp.clicked() {
+                                clicked_idx = Some(i);
+                            }
+                        }
+                    });
+                })
+        });
+
+    clicked_idx
 }

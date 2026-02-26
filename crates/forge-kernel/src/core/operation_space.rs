@@ -18,6 +18,7 @@ use crate::geometry_state::GeometryState;
 ///
 /// Holds the `LocalCoordinateSpace` and tracks whether a transform is active.
 /// Zero cost when the scale is safe (identity transform, `active = false`).
+#[derive(Debug, Clone)]
 pub struct OperationSpace {
     local_space: LocalCoordinateSpace,
     active: bool,
@@ -25,6 +26,16 @@ pub struct OperationSpace {
 }
 
 impl OperationSpace {
+    /// Identity (no-op) operation space. Used as default when no
+    /// scale analysis has been performed.
+    pub fn identity() -> Self {
+        Self {
+            local_space: LocalCoordinateSpace::identity(),
+            active: false,
+            condition_number: 1.0,
+        }
+    }
+
     /// Analyze two solids and compute a local coordinate space if needed.
     pub fn analyze_binary(
         target_topo: &TopologyState,
@@ -47,6 +58,37 @@ impl OperationSpace {
         let points = collect_vertex_positions(topo, geom);
         Self::from_points(&points, feature_tolerance)
     }
+
+    // =====================================================================
+    // Pure coordinate lens (geometry stays immutable in world space)
+    // =====================================================================
+
+    /// Transform a point to local coordinates (pure function).
+    ///
+    /// Steps call this to read world-space geometry in the local frame.
+    /// The source geometry is never mutated.
+    pub fn to_local(&self, point: [f64; 3]) -> [f64; 3] {
+        self.local_space.to_local(point)
+    }
+
+    /// Transform a point from local to world coordinates (pure function).
+    pub fn to_world(&self, local: [f64; 3]) -> [f64; 3] {
+        self.local_space.from_local(local)
+    }
+
+    /// Transform a plane to local coordinates using exact arithmetic (pure function).
+    pub fn plane_to_local(&self, plane: &forge_geom::Plane) -> forge_geom::Plane {
+        self.local_space.transform_plane_exact(plane)
+    }
+
+    /// Transform a plane from local to world coordinates using exact arithmetic (pure function).
+    pub fn plane_to_world(&self, local_plane: &forge_geom::Plane) -> forge_geom::Plane {
+        self.local_space.inverse_transform_plane_exact(local_plane)
+    }
+
+    // =====================================================================
+    // Mutable geometry transform (used by boolean merge internally)
+    // =====================================================================
 
     /// Transform a geometry store to local coordinates (call before pipeline).
     pub fn transform_geometry(&self, geom: &mut GeometryState) {
@@ -78,7 +120,7 @@ impl OperationSpace {
     }
 
     /// Compute the operation space from a point cloud.
-    fn from_points(points: &[[f64; 3]], feature_tolerance: f64) -> Self {
+    pub fn from_points(points: &[[f64; 3]], feature_tolerance: f64) -> Self {
         let analysis = ScaleAnalysis::compute(points, feature_tolerance);
         let active = analysis.get_needs_local_transform();
         let condition_number = analysis.get_condition_number();

@@ -1,0 +1,37 @@
+error[E0277]: the trait bound `NakedFeature: FeatureContract` is not satisfied
+  --> tests/compile_fail/feature_without_contract.rs:20:18
+   |
+20 | impl Feature for NakedFeature {
+   |                  ^^^^^^^^^^^^ unsatisfied trait bound
+   |
+help: the trait `FeatureContract` is not implemented for `NakedFeature`
+  --> tests/compile_fail/feature_without_contract.rs:12:1
+   |
+12 | struct NakedFeature;
+   | ^^^^^^^^^^^^^^^^^^^
+help: the following other types implement trait `FeatureContract`
+  --> src/features/wrappers.rs
+   |
+   | / crate::declare_feature!(MakeCubeFeature,
+   | |     kind: "make_cube",
+   | |     policies: [],
+   | |     origins: [EntityOriginKind::EulerOperator],
+   | |     invariants: [InvariantKind::ManifoldEdges],
+   | |     audit: AuditLevel::Summary,
+   | | );
+   | |_^ `MakeCubeFeature`
+...
+   | / crate::declare_feature!(BooleanFeature,
+   | |     kind: "boolean",
+   | |     policies: [
+   | |         forge_core::PolicyKind::CoincidentGeometry,
+...  |
+   | |     audit: AuditLevel::Full,
+   | | );
+   | |_^ `BooleanFeature`
+note: required by a bound in `forge_kernel::features::traits::Feature`
+  --> src/features/traits.rs
+   |
+   | pub trait Feature: FeatureContract + std::fmt::Debug + Any {
+   |                    ^^^^^^^^^^^^^^^ required by this bound in `Feature`
+   = note: this error originates in the macro `crate::declare_feature` (in Nightly builds, run with -Z macro-backtrace for more info)

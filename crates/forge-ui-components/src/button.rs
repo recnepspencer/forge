@@ -3,6 +3,28 @@
 use egui::{Response, Ui, Vec2};
 use forge_ui_theme::ForgeTheme;
 
+use crate::{FgIcon, IconStore};
+
+/// Darken a color by `amount` (0..1).
+fn darken(c: egui::Color32, amount: f32) -> egui::Color32 {
+    let f = 1.0 - amount;
+    egui::Color32::from_rgb(
+        (c.r() as f32 * f) as u8,
+        (c.g() as f32 * f) as u8,
+        (c.b() as f32 * f) as u8,
+    )
+}
+
+/// Lighten a color by `amount` (0..1).
+fn lighten(c: egui::Color32, amount: f32) -> egui::Color32 {
+    egui::Color32::from_rgb(
+        (c.r() as f32 + (255.0 - c.r() as f32) * amount) as u8,
+        (c.g() as f32 + (255.0 - c.g() as f32) * amount) as u8,
+        (c.b() as f32 + (255.0 - c.b() as f32) * amount) as u8,
+    )
+}
+
+
 /// Button variant controls colour and visual weight.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FgButtonVariant {
@@ -41,8 +63,7 @@ impl<'a> FgButton<'a> {
     pub fn disabled(mut self, d: bool) -> Self { self.disabled = d; self }
 }
 
-/// Render a styled Forge button.
-pub fn fg_button(ui: &mut Ui, theme: &ForgeTheme, props: FgButton<'_>) -> Response {
+pub fn fg_button(ui: &mut Ui, theme: &ForgeTheme, icons: &IconStore, props: FgButton<'_>) -> Response {
     let (h_pad, v_pad, font_size) = match props.size {
         FgButtonSize::Sm => (theme.sp(1), theme.sp(0), theme.font_size_sm),
         FgButtonSize::Md => (theme.sp(3), theme.sp(1), theme.font_size_md),
@@ -61,33 +82,71 @@ pub fn fg_button(ui: &mut Ui, theme: &ForgeTheme, props: FgButton<'_>) -> Respon
         }
     };
 
-    let label_text = if props.loading {
-        format!("⏳ {}", props.label)
-    } else {
-        props.label.to_string()
-    };
-
     let galley = ui.fonts(|f| {
-        f.layout_no_wrap(label_text.clone(), egui::FontId::proportional(font_size), text_col)
+        f.layout_no_wrap(props.label.to_string(), egui::FontId::proportional(font_size), text_col)
     });
-    let size = Vec2::new(galley.size().x + h_pad * 2.0, galley.size().y + v_pad * 2.0);
+
+    let mut total_width = if props.loading {
+        galley.size().x + font_size + 8.0 
+    } else {
+        galley.size().x
+    };
+    if props.label.is_empty() && props.loading { total_width = font_size; }
+    
+    let size = Vec2::new(total_width + h_pad * 2.0, galley.size().y.max(font_size) + v_pad * 2.0);
     let (rect, mut response) = ui.allocate_exact_size(size, egui::Sense::click());
 
     if ui.is_rect_visible(rect) {
         let painter = ui.painter();
         let rounding = egui::CornerRadius::same(theme.radius_md as u8);
 
-        let actual_bg = if response.hovered() && !props.disabled {
+        let is_pressed = response.is_pointer_button_down_on() && !props.disabled && !props.loading;
+        let is_hovered = response.hovered() && !props.disabled && !props.loading;
+
+        let actual_bg = if is_pressed {
             match props.variant {
-                FgButtonVariant::Primary => theme.accent_hover,
-                _ => theme.accent_hover,
+                FgButtonVariant::Primary   => darken(theme.accent_primary, 0.2),
+                FgButtonVariant::Secondary => darken(theme.bg_raised, 0.15),
+                FgButtonVariant::Ghost     => egui::Color32::from_white_alpha(12),
+                FgButtonVariant::Danger    => darken(theme.danger, 0.2),
+                FgButtonVariant::Link      => egui::Color32::from_white_alpha(8),
+            }
+        } else if is_hovered {
+            match props.variant {
+                FgButtonVariant::Primary   => theme.accent_hover,
+                FgButtonVariant::Secondary => lighten(theme.bg_raised, 0.1),
+                FgButtonVariant::Ghost     => egui::Color32::from_white_alpha(8),
+                FgButtonVariant::Danger    => lighten(theme.danger_surface, 0.1),
+                FgButtonVariant::Link      => egui::Color32::TRANSPARENT,
             }
         } else {
             bg
         };
 
-        painter.rect(rect, rounding, actual_bg, egui::Stroke::new(1.0, border), egui::StrokeKind::Outside);
-        painter.galley(rect.min + Vec2::new(h_pad, v_pad), galley, text_col);
+        // Pressed scale-down effect: inset rect by 1px
+        let draw_rect = if is_pressed { rect.shrink(1.0) } else { rect };
+
+        painter.rect(draw_rect, rounding, actual_bg, egui::Stroke::new(1.0, border), egui::StrokeKind::Outside);
+        
+        let text_offset = if is_pressed { Vec2::new(h_pad, v_pad + 0.5) } else { Vec2::new(h_pad, v_pad) };
+        let mut content_start = draw_rect.min + text_offset;
+        
+        if props.loading {
+            let icon_rect = egui::Rect::from_min_size(content_start, Vec2::splat(font_size));
+            ui.ctx().request_repaint(); // Needs continuous repaint for animation
+            let t = ui.input(|i| i.time);
+            let angle = (t * std::f64::consts::PI * 2.0) as f32; // 1 rotation per second
+            icons.draw_rotated(ui, crate::FgIcon::LoaderCircle, icon_rect, text_col, angle);
+            
+            if !props.label.is_empty() {
+                content_start.x += font_size + 8.0;
+                let text_pos = content_start + Vec2::new(0.0, ((font_size - galley.size().y) / 2.0).max(0.0));
+                painter.galley(text_pos, galley, text_col);
+            }
+        } else {
+            let text_pos = content_start + Vec2::new(0.0, ((font_size - galley.size().y) / 2.0).max(0.0));
+            painter.galley(text_pos, galley, text_col);
+        }
     }
 
     if props.disabled || props.loading { response = response.on_disabled_hover_text("Unavailable"); }

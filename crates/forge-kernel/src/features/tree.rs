@@ -8,12 +8,16 @@
 //! - Topology is immutable (passed as snapshots)
 //! - `NativeFeature` is a dispatch enum, NOT a `Feature` impl
 //!   (because `Feature::type Inputs` differs per variant)
+//! - Per-node `OperationResult<FeatureOutput>` envelopes are the
+//!   canonical storage — they carry the full decision log, metrics,
+//!   lineage, and warnings from each feature evaluation
 
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
 use forge_core::KernelError;
+use forge_core::envelope::OperationResult;
 use forge_signal::graph::SignalGraph;
 use forge_signal::handles::NodeId;
 use forge_signal::schema::{AspectVersion, Aspect};
@@ -39,11 +43,16 @@ pub enum NativeFeature {
 
 impl NativeFeature {
     /// Execute this feature through the pipeline, dispatching to the concrete type.
+    ///
+    /// Returns `OperationResult<FeatureOutput>` — the envelope carries the
+    /// canonical decision log, warnings, metrics, and lineage from the
+    /// pipeline's finalization step. The `ModelingContext`'s decision log
+    /// is drained into the envelope by the `OperationFinalizer`.
     fn execute_via_pipeline(
         &self,
         inputs: &HashMap<NodeId, FeatureOutput>,
         ctx: &mut ModelingContext,
-    ) -> Result<FeatureOutput, KernelError> {
+    ) -> Result<OperationResult<FeatureOutput>, KernelError> {
         match self {
             NativeFeature::MakeCube(f) => FeaturePipeline::execute(f, inputs, ctx),
             NativeFeature::Boolean(f) => FeaturePipeline::execute(f, inputs, ctx),
@@ -70,14 +79,18 @@ impl NativeFeature {
 /// The Feature Tree manager.
 ///
 /// Owns the signal graph and the storage for feature data.
+/// Each evaluated node stores an `OperationResult<FeatureOutput>` envelope
+/// containing the domain output (topology + geometry) plus the full audit
+/// trail (decision log, metrics, lineage, warnings). This is the canonical
+/// metadata storage — no separate `Arc<DecisionLog>` fields needed.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FeatureTree {
     /// The reactive dependency graph.
     graph: SignalGraph,
     /// Map from NodeId to the Feature implementation.
     features: HashMap<NodeId, NativeFeature>,
-    /// Cache of feature outputs.
-    outputs: HashMap<NodeId, FeatureOutput>,
+    /// Cached envelopes carrying both domain output and audit metadata.
+    envelopes: HashMap<NodeId, OperationResult<FeatureOutput>>,
     /// Map of names to NodeIds (optional, for lookup).
     names: HashMap<String, NodeId>,
 }
@@ -94,7 +107,7 @@ impl FeatureTree {
         Self {
             graph: SignalGraph::new(),
             features: HashMap::new(),
-            outputs: HashMap::new(),
+            envelopes: HashMap::new(),
             names: HashMap::new(),
         }
     }
@@ -168,42 +181,48 @@ impl FeatureTree {
 
     /// Evaluate a specific feature (and its dependencies) to get the latest output.
     ///
-    /// Routes through `FeaturePipeline::execute` for each node, which handles
-    /// contract validation, input parsing, post-invariants, and audit.
-    ///
-    /// A default `ModelingContext` is used for now. Future: accept `&mut ModelingContext`
-    /// as a parameter so callers can configure policies per-evaluation.
+    /// Convenience wrapper over `evaluate_feature_with_context` that uses a
+    /// default `ModelingContext`. Returns only the `FeatureOutput` — callers
+    /// that need the full envelope should use `evaluate_feature_with_context`.
     pub fn evaluate_feature(&mut self, node_id: NodeId) -> Result<FeatureOutput, KernelError> {
         let mut ctx = ModelingContext::new();
-        self.evaluate_feature_with_context(node_id, &mut ctx)
+        let envelope = self.evaluate_feature_with_context(node_id, &mut ctx)?;
+        Ok(envelope.into_value())
     }
 
     /// Evaluate a feature with an explicit `ModelingContext`.
+    ///
+    /// Returns the full `OperationResult<FeatureOutput>` envelope so callers
+    /// can inspect the decision log, warnings, metrics, and lineage alongside
+    /// the domain output.
+    ///
+    /// The envelope stored per-node is the canonical metadata record — the
+    /// `ModelingContext`'s decision log is drained into each envelope by the
+    /// `OperationFinalizer` during pipeline execution.
     pub fn evaluate_feature_with_context(
         &mut self,
         node_id: NodeId,
         ctx: &mut ModelingContext,
-    ) -> Result<FeatureOutput, KernelError> {
+    ) -> Result<OperationResult<FeatureOutput>, KernelError> {
         let graph = &mut self.graph;
         let features = &self.features;
-        let outputs = &mut self.outputs;
+        let envelopes = &mut self.envelopes;
 
         let mut pending_traces: HashMap<NodeId, forge_core::TraceSummary> = HashMap::new();
 
-        // Need to partition the mutable borrow: ctx is captured by the closure.
-        // The closure needs &mut ctx plus references into self's fields.
-        // Since evaluate() requires &mut SignalGraph and we also need the features map,
-        // we extract what we need.
         let mut compute = |id: NodeId, _graph_ref: &SignalGraph| -> Result<AspectVersion, KernelError> {
             let feature = features.get(&id).ok_or_else(|| KernelError::InvalidInput {
                 message: format!("Feature logic not found for node {}", id),
                 context: None,
             })?;
 
+            // Build input map by borrowing FeatureOutput from stored envelopes.
+            // The clone is at the input boundary — necessary because
+            // parse_inputs takes &HashMap<NodeId, FeatureOutput>.
             let mut input_map = HashMap::new();
             for dep_id in feature.dependencies() {
-                if let Some(output) = outputs.get(&dep_id) {
-                     input_map.insert(dep_id, output.clone());
+                if let Some(envelope) = envelopes.get(&dep_id) {
+                     input_map.insert(dep_id, envelope.get_value().clone());
                 } else {
                     return Err(KernelError::InvalidInput {
                          message: format!("Dependency output missing for node {}", dep_id),
@@ -212,15 +231,18 @@ impl FeatureTree {
                 }
             }
 
-            let output = feature.execute_via_pipeline(&input_map, ctx)?;
+            let envelope = feature.execute_via_pipeline(&input_map, ctx)?;
 
+            // Build the trace summary from the envelope's decision log —
+            // NOT from ctx, which was drained by the OperationFinalizer.
             let state_hash = forge_topo::hashing::compute_arena_topology_hash(
-                output.topology.arena(),
+                envelope.get_value().topology.arena(),
             );
-            let summary = ctx.get_decision_log().to_summary(state_hash);
+            let summary = envelope.get_decision_log().to_summary(state_hash);
             pending_traces.insert(id, summary);
 
-            outputs.insert(id, output);
+            // Store the full envelope — metadata is preserved.
+            envelopes.insert(id, envelope);
 
             Ok(AspectVersion::new(1, 1))
         };
@@ -233,7 +255,7 @@ impl FeatureTree {
             }
         }
 
-        outputs.get(&node_id).cloned().ok_or_else(|| KernelError::InternalError {
+        envelopes.get(&node_id).cloned().ok_or_else(|| KernelError::InternalError {
             message: "Evaluation finished but output missing".to_string(),
             context: None,
         })
@@ -247,5 +269,10 @@ impl FeatureTree {
     /// Read-only access to the signal graph (for trace inspection).
     pub fn get_graph(&self) -> &SignalGraph {
         &self.graph
+    }
+
+    /// Read-only access to a stored envelope (for external audit inspection).
+    pub fn get_envelope(&self, node_id: NodeId) -> Option<&OperationResult<FeatureOutput>> {
+        self.envelopes.get(&node_id)
     }
 }

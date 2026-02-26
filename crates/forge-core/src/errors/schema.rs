@@ -137,6 +137,12 @@ pub enum KernelError {
         context: Option<ErrorContext>,
     },
 
+    /// Invalid configuration parameter provided to a solver or policy.
+    InvalidConfig {
+        field: String,
+        reason: String,
+    },
+
     /// A diagnostic failure wrapping another error with replay context.
     DiagnosticFailure {
         /// Structured context for replay and debugging.
@@ -199,6 +205,9 @@ impl fmt::Display for KernelError {
             }
             KernelError::InvalidInput { message, .. } => write!(f, "Invalid input: {}", message),
             KernelError::InternalError { message, .. } => write!(f, "Internal error: {}", message),
+            KernelError::InvalidConfig { field, reason } => {
+                write!(f, "Invalid configuration for '{}': {}", field, reason)
+            }
             KernelError::DiagnosticFailure { payload, source } => {
                 write!(
                     f,
@@ -229,6 +238,7 @@ impl KernelError {
             | KernelError::InvalidInput { context, .. }
             | KernelError::InternalError { context, .. }
             | KernelError::ReplayMismatch { context, .. } => context.as_ref(),
+            KernelError::InvalidConfig { .. } => None,
             KernelError::DiagnosticFailure { source, .. } => source.get_context(),
             // MergeError fields are self-describing; no separate ErrorContext attached.
             KernelError::MergeFailure(_) => None,
@@ -260,6 +270,9 @@ impl KernelError {
                 } else {
                     ctx.detail = format!("[{}] {}", phase, ctx.detail);
                 }
+            }
+            KernelError::InvalidConfig { .. } => {
+                // InvalidConfig has no ErrorContext to attach a phase to.
             }
             KernelError::DiagnosticFailure { source, .. } => {
                 let new_source = (**source).clone();

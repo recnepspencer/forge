@@ -83,6 +83,10 @@ pub enum KernelErrorSummary {
         message: String,
         context: Option<ErrorContext>,
     },
+    InvalidConfig {
+        field: String,
+        reason: String,
+    },
     DiagnosticFailure {
         payload: DiagnosticPayloadSummary,
         source: Box<KernelErrorSummary>,
@@ -124,6 +128,10 @@ impl From<&KernelError> for KernelErrorSummary {
             KernelError::InternalError { message, context } => Self::InternalError {
                 message: message.clone(),
                 context: context.clone(),
+            },
+            KernelError::InvalidConfig { field, reason } => Self::InvalidConfig {
+                field: field.clone(),
+                reason: reason.clone(),
             },
             KernelError::DiagnosticFailure { payload, source } => Self::DiagnosticFailure {
                 payload: DiagnosticPayloadSummary::from(payload),

@@ -134,14 +134,14 @@ fn sp_curve_single_control_point_is_constant() {
 fn planes_one_ulp_apart_are_still_disjoint() {
     let a = SurfaceData::plane([0.0, 0.0, 1.0], 0.0);
     let b = SurfaceData::plane([0.0, 0.0, 1.0], 1e-10);
-    assert_eq!(classify_surface_pair(&a, &b, 1e-12), SurfaceRelation::Disjoint);
+    assert_eq!(classify_surface_pair(&a, &b, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::Disjoint);
 }
 
 #[test]
 fn spheres_just_touching_are_general() {
     let a = SurfaceData::sphere([0.0, 0.0, 0.0], 5.0);
     let b = SurfaceData::sphere([10.0, 0.0, 0.0], 5.0);
-    assert_eq!(classify_surface_pair(&a, &b, 1e-12), SurfaceRelation::General,
+    assert_eq!(classify_surface_pair(&a, &b, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::General,
         "Spheres exactly touching should be General (tangent intersection)");
 }
 
@@ -149,14 +149,14 @@ fn spheres_just_touching_are_general() {
 fn spheres_barely_overlapping_are_general() {
     let a = SurfaceData::sphere([0.0, 0.0, 0.0], 5.0);
     let b = SurfaceData::sphere([9.999, 0.0, 0.0], 5.0);
-    assert_eq!(classify_surface_pair(&a, &b, 1e-12), SurfaceRelation::General);
+    assert_eq!(classify_surface_pair(&a, &b, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::General);
 }
 
 #[test]
 fn spheres_barely_separated_are_disjoint() {
     let a = SurfaceData::sphere([0.0, 0.0, 0.0], 5.0);
     let b = SurfaceData::sphere([10.001, 0.0, 0.0], 5.0);
-    assert_eq!(classify_surface_pair(&a, &b, 1e-12), SurfaceRelation::Disjoint);
+    assert_eq!(classify_surface_pair(&a, &b, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::Disjoint);
 }
 
 #[test]
@@ -167,25 +167,25 @@ fn different_surface_types_always_general() {
     let cone = SurfaceData::cone([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], PI / 4.0);
     let torus = SurfaceData::torus([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 5.0, 1.0);
 
-    assert_eq!(classify_surface_pair(&plane, &sphere, 1e-12), SurfaceRelation::General);
-    assert_eq!(classify_surface_pair(&plane, &cylinder, 1e-12), SurfaceRelation::General);
-    assert_eq!(classify_surface_pair(&sphere, &cylinder, 1e-12), SurfaceRelation::General);
-    assert_eq!(classify_surface_pair(&cone, &torus, 1e-12), SurfaceRelation::General);
-    assert_eq!(classify_surface_pair(&plane, &torus, 1e-12), SurfaceRelation::General);
+    assert_eq!(classify_surface_pair(&plane, &sphere, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::General);
+    assert_eq!(classify_surface_pair(&plane, &cylinder, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::General);
+    assert_eq!(classify_surface_pair(&sphere, &cylinder, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::General);
+    assert_eq!(classify_surface_pair(&cone, &torus, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::General);
+    assert_eq!(classify_surface_pair(&plane, &torus, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::General);
 }
 
 #[test]
 fn cylinders_parallel_different_radius_are_general() {
     let a = SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 3.0);
     let b = SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 5.0);
-    assert_eq!(classify_surface_pair(&a, &b, 1e-12), SurfaceRelation::General);
+    assert_eq!(classify_surface_pair(&a, &b, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::General);
 }
 
 #[test]
 fn cylinders_skew_axes_are_general() {
     let a = SurfaceData::cylinder([0.0, 0.0, 0.0], [1.0, 0.0, 0.0], 3.0);
     let b = SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 1.0, 0.0], 3.0);
-    assert_eq!(classify_surface_pair(&a, &b, 1e-12), SurfaceRelation::General);
+    assert_eq!(classify_surface_pair(&a, &b, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::General);
 }
 
 // =====================================================================
