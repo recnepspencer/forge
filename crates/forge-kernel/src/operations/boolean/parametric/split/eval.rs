@@ -11,7 +11,8 @@ use forge_core::ToleranceProvider;
 use forge_core::{
     DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, KernelError, TracedDecision,
 };
-use crate::geom::{query_overlapping_pairs, Aabb, BvhNode, Plane};
+use crate::geom_facade::{query_overlapping_pairs, Aabb, BvhNode, Plane};
+use forge_topo::arena::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::state::{MutableDraft, TopologyState};
 use forge_topo::validate::{validate_topology, ValidationLevel};
@@ -19,7 +20,7 @@ use forge_topo::validate::{validate_topology, ValidationLevel};
 use crate::core::{compute_topology_delta, ArenaSnapshot, ModelingContext};
 use crate::geometry_state::GeometryState;
 use crate::shared_ops::vertex_identity::VertexMatchKey;
-use crate::geom::are_parallel_exact as planes_are_parallel;
+use crate::geom_facade::are_parallel_exact as planes_are_parallel;
 
 use super::cut::split_face_by_plane;
 use super::gate::compute_face_chord;
@@ -358,15 +359,19 @@ fn normalize_hint_map(map: &mut ExpectedCutEndpointMap, tol: f64) {
 }
 
 fn normalize_intervals(intervals: Vec<ExpectedCutInterval>, tol: f64) -> Vec<ExpectedCutInterval> {
-        if forge_math::linalg::distance_sq(*iv.p0, *iv.p1) <= tol_sq {
+    let tol_sq = tol * tol;
+    let mut out: Vec<ExpectedCutInterval> = Vec::new();
+
+    'outer: for mut iv in intervals {
+        if forge_math::linalg::distance_sq(iv.p0, iv.p1) <= tol_sq {
             continue;
         }
         canonicalize_interval(&mut iv);
         for existing in &out {
-            let same_dir = (forge_math::linalg::distance_sq(*iv.p0, *existing.p0) <= tol_sq
-                && forge_math::linalg::distance_sq(*iv.p1, *existing.p1) <= tol_sq)
-                || (forge_math::linalg::distance_sq(*iv.p0, *existing.p1) <= tol_sq
-                    && forge_math::linalg::distance_sq(*iv.p1, *existing.p0) <= tol_sq);
+            let same_dir = (forge_math::linalg::distance_sq(iv.p0, existing.p0) <= tol_sq
+                && forge_math::linalg::distance_sq(iv.p1, existing.p1) <= tol_sq)
+                || (forge_math::linalg::distance_sq(iv.p0, existing.p1) <= tol_sq
+                    && forge_math::linalg::distance_sq(iv.p1, existing.p0) <= tol_sq);
             if same_dir {
                 continue 'outer;
             }
@@ -499,7 +504,7 @@ fn propose_cuts(
             if !planes_are_parallel(plane_a, plane_b) {
                 target_cuts.entry(face_a).or_default().push(pb);
                 tool_cuts.entry(face_b).or_default().push(pa);
-            } else if crate::geom::plane_exact_eq(plane_a, plane_b) {
+            } else if crate::geom_facade::plane_exact_eq(plane_a, plane_b) {
                 propagate_boundary_planes(
                     tool_arena,
                     face_b,
@@ -1078,7 +1083,7 @@ fn compute_implicit_key(
     let p1 = plane_table.get(incident[1]);
     let p2 = plane_table.get(incident[2]);
 
-    match crate::geom::intersect_three_planes_exact(p0, p1, p2) {
+    match crate::geom_facade::intersect_three_planes_exact(p0, p1, p2) {
         Ok(exact_pos) => Some(VertexMatchKey::from_exact_position(
             exact_pos[0].clone(),
             exact_pos[1].clone(),

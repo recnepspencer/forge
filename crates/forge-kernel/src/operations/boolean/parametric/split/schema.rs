@@ -1,12 +1,12 @@
 //! Data shapes for the face-splitting phase.
 //!
 //! DOMAIN: Planes, vertex provenance, and split-phase results.
-//! DEPENDENCIES: crate::geom::Plane, VertexMatchKey, GeometryState.
+//! DEPENDENCIES: crate::geom_facade::Plane, VertexMatchKey, GeometryState.
 //! INVARIANTS: PlaneTable uses exact equality; LocalVertexDedup is per-solid.
 
 use std::collections::BTreeMap;
 
-use crate::geom::Plane;
+use crate::geom_facade::Plane;
 use forge_math::arithmetic::Rational;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::state::TopologyState;
@@ -44,7 +44,7 @@ impl PlaneTable {
     /// Uses exact rational equality — no tolerances, no scale sensitivity.
     pub fn intern(&mut self, plane: &Plane) -> usize {
         for (i, p) in self.planes.iter().enumerate() {
-            if crate::geom::plane_exact_eq(p, plane) {
+            if crate::geom_facade::plane_exact_eq(p, plane) {
                 return i;
             }
         }

@@ -57,7 +57,7 @@ fn build_thin_labyrinth(
         };
 
         let slit_planes = vec![
-            crate::geom::Plane::from_point_normal(
+            crate::geom_facade::Plane::from_point_normal(
                 [
                     slit_center[0] + slit_half[0],
                     slit_center[1],
@@ -66,7 +66,7 @@ fn build_thin_labyrinth(
                 [1.0, 0.0, 0.0],
             )
             .unwrap(),
-            crate::geom::Plane::from_point_normal(
+            crate::geom_facade::Plane::from_point_normal(
                 [
                     slit_center[0] - slit_half[0],
                     slit_center[1],
@@ -75,7 +75,7 @@ fn build_thin_labyrinth(
                 [-1.0, 0.0, 0.0],
             )
             .unwrap(),
-            crate::geom::Plane::from_point_normal(
+            crate::geom_facade::Plane::from_point_normal(
                 [
                     slit_center[0],
                     slit_center[1] + slit_half[1],
@@ -84,7 +84,7 @@ fn build_thin_labyrinth(
                 [0.0, 1.0, 0.0],
             )
             .unwrap(),
-            crate::geom::Plane::from_point_normal(
+            crate::geom_facade::Plane::from_point_normal(
                 [
                     slit_center[0],
                     slit_center[1] - slit_half[1],
@@ -93,7 +93,7 @@ fn build_thin_labyrinth(
                 [0.0, -1.0, 0.0],
             )
             .unwrap(),
-            crate::geom::Plane::from_point_normal(
+            crate::geom_facade::Plane::from_point_normal(
                 [
                     slit_center[0],
                     slit_center[1],
@@ -102,7 +102,7 @@ fn build_thin_labyrinth(
                 [0.0, 0.0, 1.0],
             )
             .unwrap(),
-            crate::geom::Plane::from_point_normal(
+            crate::geom_facade::Plane::from_point_normal(
                 [
                     slit_center[0],
                     slit_center[1],
@@ -213,22 +213,22 @@ fn labyrinth_complex_intersection() {
     let sin_a = angle.sin();
 
     let rotated_planes = vec![
-        crate::geom::Plane::from_point_normal([cos_a * 4.0, sin_a * 4.0, 0.0], [cos_a, sin_a, 0.0])
+        crate::geom_facade::Plane::from_point_normal([cos_a * 4.0, sin_a * 4.0, 0.0], [cos_a, sin_a, 0.0])
             .unwrap(),
-        crate::geom::Plane::from_point_normal(
+        crate::geom_facade::Plane::from_point_normal(
             [-cos_a * 4.0, -sin_a * 4.0, 0.0],
             [-cos_a, -sin_a, 0.0],
         )
         .unwrap(),
-        crate::geom::Plane::from_point_normal([0.0, cos_a * 4.0, sin_a * 4.0], [0.0, cos_a, sin_a])
+        crate::geom_facade::Plane::from_point_normal([0.0, cos_a * 4.0, sin_a * 4.0], [0.0, cos_a, sin_a])
             .unwrap(),
-        crate::geom::Plane::from_point_normal(
+        crate::geom_facade::Plane::from_point_normal(
             [0.0, -cos_a * 4.0, -sin_a * 4.0],
             [0.0, -cos_a, -sin_a],
         )
         .unwrap(),
-        crate::geom::Plane::from_point_normal([0.0, 0.0, 4.0], [0.0, 0.0, 1.0]).unwrap(),
-        crate::geom::Plane::from_point_normal([0.0, 0.0, -4.0], [0.0, 0.0, -1.0]).unwrap(),
+        crate::geom_facade::Plane::from_point_normal([0.0, 0.0, 4.0], [0.0, 0.0, 1.0]).unwrap(),
+        crate::geom_facade::Plane::from_point_normal([0.0, 0.0, -4.0], [0.0, 0.0, -1.0]).unwrap(),
     ];
 
     let (topo_tool, geom_tool) = super::super::test_helpers::build_convex_solid(rotated_planes);

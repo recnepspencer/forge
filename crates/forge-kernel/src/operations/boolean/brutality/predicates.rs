@@ -4,8 +4,8 @@ use crate::brep::state::BrepState;
 use crate::brep::state::BrepState;
 use crate::core::ModelingContext;
 use crate::mesh_builder::build_halfedge_mesh;
-use crate::geom::{build_convex_polyhedron, BspConfig};
-use crate::geom::Plane;
+use crate::geom_facade::{build_convex_polyhedron, BspConfig};
+use crate::geom_facade::Plane;
 use forge_math::predicates::orient3d::orient3d;
 use forge_math::sign::TriSign;
 

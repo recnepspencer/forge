@@ -64,7 +64,7 @@ pub(super) fn execute_contained_boolean(
             Ok(r)
         }
         (BooleanOp::Subtraction, true) => {
-            if are_solids_coincident(target_topo, target_geom, tool_topo, tool_geom)? {
+            if are_solids_coincident(target_topo.arena(), target_geom, tool_topo.arena(), tool_geom)? {
                 return Ok(empty_result());
             }
             let mut r =

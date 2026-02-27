@@ -2,7 +2,7 @@
 
 use super::schema::GeometryState;
 use forge_core::ToleranceProvider;
-use crate::geom::Plane;
+use crate::geom_facade::Plane;
 use forge_topo::handles::{FaceId, VertexId};
 
 #[test]
@@ -202,7 +202,7 @@ fn scaled_vertex_tolerance_on_tolerance_config() {
 
 #[test]
 fn surface_insert_and_retrieve() {
-    use crate::geom::SurfaceData;
+    use crate::geom_facade::SurfaceData;
     let mut store = GeometryState::new();
     let surface = SurfaceData::sphere([0.0, 0.0, 0.0], 5.0);
     let r = store.insert_surface(surface);
@@ -212,7 +212,7 @@ fn surface_insert_and_retrieve() {
 
 #[test]
 fn surface_remove_then_stale_get_errors() {
-    use crate::geom::SurfaceData;
+    use crate::geom_facade::SurfaceData;
     let mut store = GeometryState::new();
     let r = store.insert_surface(SurfaceData::plane([0.0, 0.0, 1.0], 0.0));
     assert!(store.remove_surface(r).is_ok());
@@ -221,7 +221,7 @@ fn surface_remove_then_stale_get_errors() {
 
 #[test]
 fn surface_count_reflects_active_slots() {
-    use crate::geom::SurfaceData;
+    use crate::geom_facade::SurfaceData;
     let mut store = GeometryState::new();
     assert_eq!(store.surface_count(), 0);
     let r1 = store.insert_surface(SurfaceData::plane([0.0, 0.0, 1.0], 0.0));
@@ -233,7 +233,7 @@ fn surface_count_reflects_active_slots() {
 
 #[test]
 fn curve_insert_and_retrieve() {
-    use crate::geom::{CurveGeom, CurveKind};
+    use crate::geom_facade::{CurveGeom, CurveKind};
     let mut store = GeometryState::new();
     let curve = CurveGeom::from_analytic(
         CurveKind::Line {
@@ -249,7 +249,7 @@ fn curve_insert_and_retrieve() {
 
 #[test]
 fn coedge_insert_and_retrieve() {
-    use crate::geom::{Coedge, ParametricCurve2D};
+    use crate::geom_facade::{Coedge, ParametricCurve2D};
     let mut store = GeometryState::new();
     let coedge = Coedge {
         uv_curve: ParametricCurve2D::Line {
@@ -267,7 +267,7 @@ fn coedge_insert_and_retrieve() {
 
 #[test]
 fn attach_surface_to_face_round_trip() {
-    use crate::geom::SurfaceData;
+    use crate::geom_facade::SurfaceData;
     use forge_topo::handles::SurfaceRef;
     let mut store = GeometryState::new();
     let face = FaceId::from_raw_parts(0, 0);
@@ -278,7 +278,7 @@ fn attach_surface_to_face_round_trip() {
 
 #[test]
 fn attach_coedge_to_halfedge_round_trip() {
-    use crate::geom::{Coedge, ParametricCurve2D};
+    use crate::geom_facade::{Coedge, ParametricCurve2D};
     use forge_topo::handles::{CoedgeRef, HalfEdgeId};
     let mut store = GeometryState::new();
     let he = HalfEdgeId::from_raw_parts(0, 0);
@@ -296,7 +296,7 @@ fn attach_coedge_to_halfedge_round_trip() {
 
 #[test]
 fn attach_curve_to_edge_round_trip() {
-    use crate::geom::{CurveGeom, CurveKind};
+    use crate::geom_facade::{CurveGeom, CurveKind};
     use forge_topo::handles::{CurveRef, EdgeId};
     let mut store = GeometryState::new();
     let edge = EdgeId::from_raw_parts(0, 0);
@@ -324,7 +324,7 @@ fn face_is_planar_true_when_no_surface_attached() {
 
 #[test]
 fn face_is_planar_true_when_plane_surface_attached() {
-    use crate::geom::SurfaceData;
+    use crate::geom_facade::SurfaceData;
     let mut store = GeometryState::new();
     let face = FaceId::from_raw_parts(0, 0);
     let sr = store.insert_surface(SurfaceData::plane([0.0, 0.0, 1.0], 0.0));
@@ -334,7 +334,7 @@ fn face_is_planar_true_when_plane_surface_attached() {
 
 #[test]
 fn face_is_planar_false_when_cylinder_surface_attached() {
-    use crate::geom::SurfaceData;
+    use crate::geom_facade::SurfaceData;
     let mut store = GeometryState::new();
     let face = FaceId::from_raw_parts(0, 0);
     let sr = store.insert_surface(SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 2.0));
@@ -346,7 +346,7 @@ fn face_is_planar_false_when_cylinder_surface_attached() {
 
 #[test]
 fn validate_bindings_passes_when_all_refs_live() {
-    use crate::geom::SurfaceData;
+    use crate::geom_facade::SurfaceData;
     use forge_topo::arena::{FaceData, TopologyArena};
     use forge_topo::handles::{LoopId, ShellId};
 
@@ -364,7 +364,7 @@ fn validate_bindings_passes_when_all_refs_live() {
 
 #[test]
 fn validate_bindings_fails_on_dangling_surface_ref() {
-    use crate::geom::SurfaceData;
+    use crate::geom_facade::SurfaceData;
     use forge_topo::arena::{FaceData, TopologyArena};
     use forge_topo::handles::{LoopId, ShellId};
 

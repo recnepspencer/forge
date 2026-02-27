@@ -25,7 +25,7 @@ crate::declare_step!(ResolvePersistentSelection,
 /// Classify the geometric relationship between two surfaces
 /// (coincident, disjoint, tangent, general intersection).
 ///
-/// Wraps: crate::geom::classify_surface_pair
+/// Wraps: crate::geom_facade::classify_surface_pair
 pub struct ClassifySurfacePair;
 
 crate::declare_step!(ClassifySurfacePair,
@@ -52,7 +52,7 @@ crate::declare_step!(ClassifyEdgeConvexity,
 /// Certify that a boundary loop is geometrically valid
 /// (closed, non-self-intersecting, consistent winding).
 ///
-/// Wraps: crate::geom::cert::certify_boundary
+/// Wraps: crate::geom_facade::cert::certify_boundary
 pub struct CertifyBoundary;
 
 crate::declare_step!(CertifyBoundary,

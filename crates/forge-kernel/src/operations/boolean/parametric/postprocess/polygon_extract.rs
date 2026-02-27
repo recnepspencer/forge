@@ -54,7 +54,7 @@ pub fn extract_coplanar_regions(
             Ok(mut op_result) => {
                 ctx.absorb_sub_result(&mut op_result);
                 let cert = op_result.into_value();
-                !matches!(cert, crate::geom::WeakSimpleCertificate::Rejected { .. })
+                !matches!(cert, crate::geom_facade::WeakSimpleCertificate::Rejected { .. })
             }
             Err(_) => false,
         };
@@ -117,7 +117,7 @@ fn discover_coplanar_groups(
             let Some(neighbor_plane) = geom.get_face_plane(neighbor) else {
                 return Ok(false);
             };
-            Ok(crate::geom::plane_exact_eq(
+            Ok(crate::geom_facade::plane_exact_eq(
                 *seed_plane,
                 neighbor_plane,
             ))

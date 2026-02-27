@@ -136,7 +136,7 @@ fn vertex_provenance_audit() {
 
     // Build face-plane index map (replicate what split_all_faces does)
     // Use unique plane indices by comparing normals/offsets
-    let mut unique_planes: Vec<(crate::geom::Plane, usize)> = Vec::new();
+    let mut unique_planes: Vec<(crate::geom_facade::Plane, usize)> = Vec::new();
     let mut face_planes: HashMap<forge_topo::handles::FaceId, usize> = HashMap::new();
 
     for (fid, _) in arena.iter_faces() {
@@ -144,7 +144,7 @@ fn vertex_provenance_audit() {
             let idx = unique_planes
                 .iter()
                 .find_map(|(existing, idx)| {
-                    if crate::geom::coplanar_eq(existing, p) {
+                    if crate::geom_facade::coplanar_eq(existing, p) {
                         Some(*idx)
                     } else {
                         None

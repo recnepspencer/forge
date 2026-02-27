@@ -140,7 +140,7 @@ fn aabbs_overlap(a: &FaceAabb, b: &FaceAabb) -> bool {
 /// For shared boundary faces between two solids, one normal faces outward
 /// from each solid — so they point in opposite directions at the boundary.
 /// Parallel exterior faces have same-direction normals.
-fn normals_anti_parallel(a: &crate::geom::Plane, b: &crate::geom::Plane) -> bool {
+fn normals_anti_parallel(a: &crate::geom_facade::Plane, b: &crate::geom_facade::Plane) -> bool {
     let dot = a.normal()[0] * b.normal()[0]
         + a.normal()[1] * b.normal()[1]
         + a.normal()[2] * b.normal()[2];
@@ -178,7 +178,7 @@ fn find_coplanar_pairs_exact(
             let matched = tool_data.iter().find(|(tool_fid, tool_plane, tool_aabb)| {
                 let not_excluded = !excluded_tool.contains(&tool_fid.index());
                 let is_coplanar =
-                    crate::geom::coplanar_eq(target_plane, tool_plane);
+                    crate::geom_facade::coplanar_eq(target_plane, tool_plane);
                 let anti_parallel = normals_anti_parallel(target_plane, tool_plane);
                 let overlaps = aabbs_overlap(&target_aabb, tool_aabb);
                 not_excluded && is_coplanar && anti_parallel && overlaps

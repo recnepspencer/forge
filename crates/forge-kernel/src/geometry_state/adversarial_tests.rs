@@ -5,9 +5,9 @@
 //! chained operation tolerance accumulation, and post-mutation
 //! invariant preservation.
 
-use crate::geom::{classify_surface_pair, SurfaceData, SurfaceRelation};
-use crate::geom::{Coedge, ParametricCurve2D};
-use crate::geom::{CurveGeom, CurveKind, CurveProvenance, SpCurveApproximation};
+use crate::geom_facade::{classify_surface_pair, SurfaceData, SurfaceRelation};
+use crate::geom_facade::{Coedge, ParametricCurve2D};
+use crate::geom_facade::{CurveGeom, CurveKind, CurveProvenance, SpCurveApproximation};
 use std::f64::consts::{FRAC_PI_2, PI, TAU};
 
 // =====================================================================
@@ -116,7 +116,7 @@ fn sp_curve_empty_control_points_returns_origin() {
     let kind = CurveKind::SurfaceIntersection {
         surface_a: 0,
         surface_b: 1,
-        sp_curve_cache: crate::geom::SpCurveApproximation {
+        sp_curve_cache: crate::geom_facade::SpCurveApproximation {
             control_points: vec![],
             knots: vec![],
             error_bound: 0.0,
@@ -132,7 +132,7 @@ fn sp_curve_single_control_point_is_constant() {
     let kind = CurveKind::SurfaceIntersection {
         surface_a: 0,
         surface_b: 1,
-        sp_curve_cache: crate::geom::SpCurveApproximation {
+        sp_curve_cache: crate::geom_facade::SpCurveApproximation {
             control_points: vec![[3.0, 4.0, 5.0]],
             knots: vec![0.0, 1.0],
             error_bound: 0.0,
@@ -268,7 +268,7 @@ fn cylinders_skew_axes_are_general() {
 
 #[test]
 fn chained_coalescence_tolerance_grows_monotonically() {
-    use crate::geom::VertexGeom;
+    use crate::geom_facade::VertexGeom;
 
     let initial = 1e-10;
     let mut tolerance = initial;
@@ -291,7 +291,7 @@ fn chained_coalescence_tolerance_grows_monotonically() {
 
 #[test]
 fn chained_coalescence_20_steps_stays_below_1e_6() {
-    use crate::geom::VertexGeom;
+    use crate::geom_facade::VertexGeom;
 
     let initial = 1e-10;
     let mut tolerance = initial;

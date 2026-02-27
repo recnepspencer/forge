@@ -33,7 +33,7 @@ pub mod analysis;
 pub mod brep;
 pub mod core;
 pub mod engine;
-pub mod geom;
+pub mod geom_facade;
 pub mod geometry_state;
 pub mod mesh_builder;
 pub mod operations;

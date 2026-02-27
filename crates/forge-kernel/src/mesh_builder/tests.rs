@@ -2,10 +2,10 @@
 
 use super::eval::build_halfedge_mesh;
 use crate::core::ModelingContext;
-use crate::geom::{build_convex_polyhedron, BspConfig, Plane};
+use crate::geom_facade::{build_convex_polyhedron, BspConfig, Plane};
 
 /// Build a unit cube centered at origin (±1 on each axis) from 6 planes.
-fn build_unit_cube_cell() -> crate::geom::ConvexCell {
+fn build_unit_cube_cell() -> crate::geom_facade::ConvexCell {
     let planes = vec![
         Plane::from_point_normal([1.0, 0.0, 0.0], [1.0, 0.0, 0.0]).unwrap(),
         Plane::from_point_normal([-1.0, 0.0, 0.0], [-1.0, 0.0, 0.0]).unwrap(),
@@ -18,7 +18,7 @@ fn build_unit_cube_cell() -> crate::geom::ConvexCell {
 }
 
 /// Build a tetrahedron from 4 planes.
-fn build_tetrahedron_cell() -> crate::geom::ConvexCell {
+fn build_tetrahedron_cell() -> crate::geom_facade::ConvexCell {
     let planes = vec![
         Plane::from_point_normal([0.0, 0.0, 0.0], [0.0, 0.0, -1.0]).unwrap(),
         Plane::from_point_normal([0.0, 0.0, 0.0], [0.0, -1.0, 0.0]).unwrap(),

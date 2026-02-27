@@ -2,7 +2,7 @@
 //!
 //! DOMAIN: Extracts 2-ring topological neighborhoods and lineage to report boolean assembly failures.
 
-use forge_core::{KernelError, EntityRef};
+use forge_core::{EntityRef, KernelError, ToleranceProvider};
 use forge_topo::handles::HalfEdgeId;
 use forge_topo::state::MutableDraft;
 

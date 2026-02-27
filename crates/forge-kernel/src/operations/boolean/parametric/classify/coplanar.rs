@@ -58,15 +58,15 @@ fn detect_coplanar_faces(
 ///
 /// Delegates to `forge_geom::coplanar_eq` which checks all three normal
 /// components against offset for correctness.
-fn planes_are_coplanar_exact(p1: &crate::geom::Plane, p2: &crate::geom::Plane) -> bool {
-    crate::geom::coplanar_eq(p1, p2)
+fn planes_are_coplanar_exact(p1: &crate::geom_facade::Plane, p2: &crate::geom_facade::Plane) -> bool {
+    crate::geom_facade::coplanar_eq(p1, p2)
 }
 
 /// Check if two coplanar planes have aligned normals (same direction).
 ///
 /// For parallel normals, dot(n1, n2) > 0 means same direction.
 /// Uses exact rational arithmetic: sign of (a1*a2 + b1*b2 + c1*c2).
-fn normals_aligned_exact(p1: &crate::geom::Plane, p2: &crate::geom::Plane) -> bool {
+fn normals_aligned_exact(p1: &crate::geom_facade::Plane, p2: &crate::geom_facade::Plane) -> bool {
     let (a1, b1, c1, _) = p1.exact_coefficients();
     let (a2, b2, c2, _) = p2.exact_coefficients();
 
@@ -91,7 +91,7 @@ pub(crate) fn find_coplanar_face_pairs(
     let mut excluded_target: BTreeSet<u32> = BTreeSet::new();
     let mut excluded_tool: BTreeSet<u32> = BTreeSet::new();
 
-    let tool_faces_data: Vec<(FaceId, crate::geom::Plane, Vec<[f64; 3]>)> = tool_topo
+    let tool_faces_data: Vec<(FaceId, crate::geom_facade::Plane, Vec<[f64; 3]>)> = tool_topo
         .arena()
         .iter_faces()
         .filter_map(|(fid, _)| {
@@ -111,9 +111,9 @@ pub(crate) fn find_coplanar_face_pairs(
                     .find(|(tool_fid, tool_plane, tool_verts)| {
                         let not_excluded = !excluded_tool.contains(&tool_fid.index());
                         let is_coplanar =
-                            crate::geom::coplanar_eq(target_plane, tool_plane);
+                            crate::geom_facade::coplanar_eq(target_plane, tool_plane);
                         let overlaps = if not_excluded && is_coplanar {
-                            crate::geom::polygons_overlap_3d(
+                            crate::geom_facade::polygons_overlap_3d(
                                 target_plane.raw_normal(),
                                 &target_verts,
                                 tool_verts,

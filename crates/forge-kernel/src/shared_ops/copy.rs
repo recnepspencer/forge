@@ -5,7 +5,7 @@
 //! This is a shared operation used by Boolean, Patterning, and Instancing.
 //!
 //! DEPENDENCIES: VertexMatchKey (shared_ops), GeometryState, forge_topo,
-//!   crate::geom::EpsilonWelder.
+//!   crate::geom_facade::EpsilonWelder.
 //!
 //! INVARIANTS:
 //! - Vertex dedup uses 4 layers: local → provenance key → spatial NNS → create new.
@@ -30,11 +30,11 @@ use crate::shared_ops::rebuild_face::{
 
 /// Vertex position welder with Union-Find transitive clustering.
 ///
-/// Backed by `crate::geom::EpsilonWelder` for
+/// Backed by `crate::geom_facade::EpsilonWelder` for
 /// spatial hashing and transitive merging. Maintains a parallel
 /// `VertexId` mapping so the topology layer can resolve cluster roots.
 pub struct VertexWelder {
-    welder: crate::geom::EpsilonWelder,
+    welder: crate::geom_facade::EpsilonWelder,
     vertex_ids: Vec<VertexId>,
     weld_tolerance_sq: f64,
 }
@@ -53,7 +53,7 @@ impl VertexWelder {
     pub fn with_linear_tolerance(linear_tol: f64) -> Self {
         let linear_tol = linear_tol.max(1e-15);
         Self {
-            welder: crate::geom::EpsilonWelder::new(linear_tol),
+            welder: crate::geom_facade::EpsilonWelder::new(linear_tol),
             vertex_ids: Vec::new(),
             weld_tolerance_sq: linear_tol * linear_tol,
         }
@@ -267,7 +267,7 @@ fn prepare_face_plane(
     source_geom: &GeometryState,
     src_face: FaceId,
     reverse: bool,
-) -> Result<crate::geom::Plane, KernelError> {
+) -> Result<crate::geom_facade::Plane, KernelError> {
     let src_plane = source_geom.get_face_plane(src_face).ok_or(KernelError::InvalidInput {
         message: format!("Face {} missing plane", src_face), context: None,
     })?;
@@ -280,7 +280,7 @@ fn prepare_face_plane(
 fn insert_empty_face(
     draft: &mut MutableDraft,
     geom: &mut GeometryState,
-    plane: crate::geom::Plane,
+    plane: crate::geom_facade::Plane,
 ) -> Result<FaceId, KernelError> {
     let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
     let placeholder_shell = ShellId::from_raw_parts(u32::MAX, 0);

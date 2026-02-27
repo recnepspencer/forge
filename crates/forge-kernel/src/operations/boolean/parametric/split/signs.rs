@@ -3,7 +3,7 @@
 //! DOMAIN: Centralizes the explicit/symbolic/f64-promoted sign pipeline used by
 //! split gating and cut-point discovery.
 
-use crate::geom::{classify_point_exact, orient3d_symbolic, Plane, PlaneRef, Vertex};
+use crate::geom_facade::{classify_point_exact, orient3d_symbolic, Plane, PlaneRef, Vertex};
 use forge_math::arithmetic::Rational;
 use forge_math::sign::TriSign;
 use forge_topo::handles::VertexId;

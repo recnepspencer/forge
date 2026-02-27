@@ -178,7 +178,7 @@ fn measure_gap_inner(
         // set the dominant coordinate to 0; signed_distance from plane_b accounts for the offset
         sample[dominant] = 0.0;
 
-        let dist = crate::geom::plane_signed_distance(plane_b, &sample);
+        let dist = crate::geom_facade::plane_signed_distance(plane_b, &sample);
         distances.push(dist);
     }
 

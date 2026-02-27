@@ -11,10 +11,10 @@ use forge_topo::state::MutableDraft;
 use forge_topo::handles::HalfEdgeId;
 use forge_topo::operator::apply_op;
 use forge_topo::euler::sew_edge::SewEdge;
-use crate::geom::{fuzzy_match_edges, DirectedEdge, FuzzyMatchMode, select_best_radial_match};
+use crate::geom_facade::{fuzzy_match_edges, DirectedEdge, FuzzyMatchMode, select_best_radial_match};
 
 use crate::core::ModelingContext;
-use crate::core::macros::declare_step;
+use crate::declare_step;
 use crate::geometry_state::GeometryState;
 use crate::shared_ops::stitch::StitchReport;
 
@@ -24,21 +24,22 @@ fn debug_stitch_enabled() -> bool {
         .unwrap_or(false)
 }
 
-declare_step! {
-    /// Stitch twins for newly assembled faces and resolve non-manifold junctions.
-    pub struct StitchTwinsStep<'a> {
-        draft: &'a mut MutableDraft,
-        all_he_ids: &'a [HalfEdgeId],
-        geom: &'a GeometryState,
-        weld_tolerance_sq: f64,
-    }
+/// Stitch twins for newly assembled faces and resolve non-manifold junctions.
+pub struct StitchTwinsStep<'a> {
+    pub draft: &'a mut MutableDraft,
+    pub all_he_ids: &'a [HalfEdgeId],
+    pub geom: &'a GeometryState,
+    pub weld_tolerance_sq: f64,
+}
 
-    fn execute(self, ctx: &mut ModelingContext) -> Result<StitchReport, KernelError> {
+impl<'a> StitchTwinsStep<'a> {
+    pub fn execute(self, ctx: &mut ModelingContext) -> Result<StitchReport, KernelError> {
         let draft = self.draft;
         let geom = self.geom;
         let all_he_ids = self.all_he_ids;
 
-        let edge_map_result = forge_topo::topology::queries::edge_map::build_edge_map(draft.arena(), all_he_ids)?;
+        let edge_map_result =
+            forge_topo::queries::edge_map::build_edge_map(draft.arena(), all_he_ids)?;
         let forward_map = edge_map_result.forward_map;
         let zero_length = edge_map_result.zero_length;
 
@@ -61,7 +62,8 @@ declare_step! {
             });
         }
 
-        let unpaired_map = forge_topo::topology::queries::edge_map::build_directed_map(draft.arena(), &unpaired_ids)?;
+        let unpaired_map =
+            forge_topo::queries::edge_map::build_directed_map(draft.arena(), &unpaired_ids)?;
         let paired_retry = run_stitch_pass(
             draft,
             geom,
@@ -87,13 +89,8 @@ declare_step! {
         if !still_unpaired.is_empty() {
             let pre_snapshot = crate::core::ArenaSnapshot::capture(draft.arena());
 
-            let fallback_result = stitch_position_fallback(
-                draft,
-                geom,
-                &still_unpaired,
-                self.weld_tolerance_sq,
-                ctx,
-            );
+            let fallback_result =
+                stitch_position_fallback(draft, geom, &still_unpaired, self.weld_tolerance_sq, ctx);
 
             let delta = crate::core::compute_topology_delta(&pre_snapshot, draft.arena());
             if !delta.is_empty() {
@@ -137,6 +134,20 @@ declare_step! {
             paired_count: total_paired,
             unpaired_ids: Vec::new(),
         })
+    }
+}
+
+impl<'a> crate::operations::pipeline::step_contract::StepContract for StitchTwinsStep<'a> {
+    fn step_name(&self) -> &str {
+        "stitch_twins"
+    }
+
+    fn policy_queries(&self) -> &[forge_core::PolicyKind] {
+        &[forge_core::PolicyKind::CoincidentGeometry]
+    }
+
+    fn precision_sensitive(&self) -> bool {
+        true
     }
 }
 

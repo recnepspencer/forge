@@ -180,7 +180,7 @@ fn has_overlapping_coplanar_faces(
         target_topo.arena(), target_geom,
         tool_topo.arena(), tool_geom
     );
-    if !coincidence_graph.is_empty() {
+    if coincidence_graph.edge_count() > 0 {
         return Ok(true);
     }
 
@@ -246,17 +246,12 @@ pub fn compute_disjoint_scale(
     primary_geom: &GeometryState,
     secondary: Option<(&forge_topo::arena::TopologyArena, &GeometryState)>,
 ) -> f64 {
-    let sec = secondary.map(|(a, g)| {
-        let cb: &dyn Fn(forge_topo::handles::VertexId) -> Option<[f64; 3]> = &|vid| g.get_vertex_position(vid).copied();
-        (a, cb)
-    });
+    let primary_pos = |vid| primary_geom.get_vertex_position(vid).copied();
     
-    match sec {
-        Some((a, cb)) => combined_solid_scale(
-            primary_arena, &|vid| primary_geom.get_vertex_position(vid).copied(), Some((a, cb))
-        ),
-        None => combined_solid_scale(
-            primary_arena, &|vid| primary_geom.get_vertex_position(vid).copied(), None
-        )
+    if let Some((sec_arena, sec_geom)) = secondary {
+        let sec_pos = |vid| sec_geom.get_vertex_position(vid).copied();
+        combined_solid_scale(primary_arena, &primary_pos, Some((sec_arena, &sec_pos)))
+    } else {
+        combined_solid_scale(primary_arena, &primary_pos, None)
     }
 }

@@ -13,7 +13,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::geom::*;
+    use crate::geom_facade::*;
     use std::sync::{Mutex, OnceLock};
 
     // =====================================================================

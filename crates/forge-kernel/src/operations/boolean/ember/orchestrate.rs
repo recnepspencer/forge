@@ -16,8 +16,8 @@
 
 use forge_core::tracing::{DecisionKind, DecisionTier, TraceAdjunctSet};
 use forge_core::{KernelError, OperationMetrics, OperationResult};
-use crate::geom::{merge_bsp, BspNode, BspOp, BspSolid};
-use crate::geom::Plane;
+use crate::geom_facade::{merge_bsp, BspNode, BspOp, BspSolid};
+use crate::geom_facade::Plane;
 use forge_topo::state::TopologyState;
 
 use super::mesh::bsp_to_mesh;
@@ -258,8 +258,8 @@ struct FaceDesc {
 /// Find an existing plane with matching exact coefficients, or insert a new one.
 fn find_or_insert_plane(planes: &mut Vec<Plane>, plane: &Plane) -> usize {
     for (i, existing) in planes.iter().enumerate() {
-        if crate::geom::plane_exact_eq(existing, plane)
-            || crate::geom::coplanar_eq(existing, plane)
+        if crate::geom_facade::plane_exact_eq(existing, plane)
+            || crate::geom_facade::coplanar_eq(existing, plane)
         {
             return i;
         }
@@ -406,7 +406,7 @@ fn to_bsp_op(op: BooleanOp) -> BspOp {
 pub fn execute_boolean_adaptive(
     input: BooleanInput,
 ) -> OperationResult<Result<BooleanResult, KernelError>> {
-    use crate::operations::boolean::parametric::assemble::merge::eval::execute_boolean_direct;
+    use crate::operations::boolean::parametric::assemble::execute_boolean_direct;
 
     if input.has_curved_geometry() {
         return execute_boolean_direct(input);

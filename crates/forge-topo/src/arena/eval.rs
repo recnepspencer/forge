@@ -232,6 +232,18 @@ impl TopologyArena {
             .ok_or_else(|| cold_err_deleted("Vertex", id.index(), id.generation(), slot.generation))
     }
 
+    /// Helper to fetch topological endpoints of an undirected edge.
+    pub fn get_edge_endpoints(
+        &self,
+        edge_id: crate::handles::EdgeId,
+    ) -> Result<(VertexId, VertexId), KernelError> {
+        let he_id = self.get_edge(edge_id)?.half_edge();
+        let he = self.get_half_edge(he_id)?;
+        let origin = he.origin();
+        let dest = self.get_half_edge(he.next())?.origin();
+        Ok((origin, dest))
+    }
+
     /// Get a loop by handle, validating the generation.
     #[inline]
     pub fn get_loop(&self, id: LoopId) -> Result<&LoopData, KernelError> {

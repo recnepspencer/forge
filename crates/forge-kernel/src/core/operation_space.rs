@@ -9,7 +9,7 @@
 //! INVARIANTS: `transform_geometry` and `restore_geometry` are inverse
 //! operations — calling both is a no-op within floating-point ULP.
 
-use crate::geom::{LocalCoordinateSpace, ScaleAnalysis};
+use crate::geom_facade::{LocalCoordinateSpace, ScaleAnalysis};
 use forge_topo::state::TopologyState;
 
 use crate::geometry_state::GeometryState;
@@ -77,12 +77,12 @@ impl OperationSpace {
     }
 
     /// Transform a plane to local coordinates using exact arithmetic (pure function).
-    pub fn plane_to_local(&self, plane: &crate::geom::Plane) -> crate::geom::Plane {
+    pub fn plane_to_local(&self, plane: &crate::geom_facade::Plane) -> crate::geom_facade::Plane {
         self.local_space.transform_plane_exact(plane)
     }
 
     /// Transform a plane from local to world coordinates using exact arithmetic (pure function).
-    pub fn plane_to_world(&self, local_plane: &crate::geom::Plane) -> crate::geom::Plane {
+    pub fn plane_to_world(&self, local_plane: &crate::geom_facade::Plane) -> crate::geom_facade::Plane {
         self.local_space.inverse_transform_plane_exact(local_plane)
     }
 

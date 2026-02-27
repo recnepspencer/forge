@@ -59,8 +59,8 @@ fn build_halfspace_approx(
     ];
 
     let planes = vec![
-        crate::geom::Plane::from_point_normal(face_point, n).unwrap(),
-        crate::geom::Plane::from_point_normal(
+        crate::geom_facade::Plane::from_point_normal(face_point, n).unwrap(),
+        crate::geom_facade::Plane::from_point_normal(
             [
                 center[0] - n[0] * extent,
                 center[1] - n[1] * extent,
@@ -69,7 +69,7 @@ fn build_halfspace_approx(
             [-n[0], -n[1], -n[2]],
         )
         .unwrap(),
-        crate::geom::Plane::from_point_normal(
+        crate::geom_facade::Plane::from_point_normal(
             [
                 center[0] + tangent1[0] * extent,
                 center[1] + tangent1[1] * extent,
@@ -78,7 +78,7 @@ fn build_halfspace_approx(
             tangent1,
         )
         .unwrap(),
-        crate::geom::Plane::from_point_normal(
+        crate::geom_facade::Plane::from_point_normal(
             [
                 center[0] - tangent1[0] * extent,
                 center[1] - tangent1[1] * extent,
@@ -87,7 +87,7 @@ fn build_halfspace_approx(
             [-tangent1[0], -tangent1[1], -tangent1[2]],
         )
         .unwrap(),
-        crate::geom::Plane::from_point_normal(
+        crate::geom_facade::Plane::from_point_normal(
             [
                 center[0] + tangent2[0] * extent,
                 center[1] + tangent2[1] * extent,
@@ -96,7 +96,7 @@ fn build_halfspace_approx(
             tangent2,
         )
         .unwrap(),
-        crate::geom::Plane::from_point_normal(
+        crate::geom_facade::Plane::from_point_normal(
             [
                 center[0] - tangent2[0] * extent,
                 center[1] - tangent2[1] * extent,

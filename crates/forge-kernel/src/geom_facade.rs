@@ -13,8 +13,10 @@ pub use forge_geom::primitives::plane::exact_eq as plane_exact_eq;
 pub use forge_geom::primitives::plane::normals_aligned_exact;
 pub use forge_geom::primitives::plane::intersect_three_planes_exact;
 pub use forge_geom::primitives::plane::intersect_edge_plane;
+pub use forge_geom::primitives::plane::are_parallel_exact;
 pub use forge_geom::primitives::plane::are_parallel_exact as planes_are_parallel;
 pub use forge_geom::primitives::plane::classify_point_exact;
+pub use forge_geom::primitives::plane::coplanar_eq;
 pub use forge_geom::primitives::plane::signed_distance as plane_signed_distance;
 
 // ── BSP ──────────────────────────────────────────────────────────────────────
@@ -81,21 +83,29 @@ pub use forge_geom::primitives::vertex_geom::{VertexGeom, VertexProvenance};
 pub mod cert {
     pub use forge_geom::algorithms::boundary_cert::eval::{certify_boundary, project_boundary_to_2d};
     pub use forge_geom::algorithms::boundary_cert::schema::{
-        WeakSimpleCertificate, BoundaryRejectReason,
+        BoundaryRejectReason, WeakSimpleCertificate,
     };
 }
+
+pub use cert::{certify_boundary, project_boundary_to_2d, WeakSimpleCertificate};
 
 // ── Polygon algorithms ───────────────────────────────────────────────────────
 pub mod polygon {
     pub use forge_geom::algorithms::polygon::bridge_polygon_hole;
+    pub use forge_geom::algorithms::polygon_overlap::polygons_overlap_3d;
     pub use forge_geom::primitives::polygon::compute_polygon_area;
 }
 
+pub use polygon::{bridge_polygon_hole, compute_polygon_area, polygons_overlap_3d};
+
 // ── Clipping ─────────────────────────────────────────────────────────────────
 pub mod clipping {
-    pub use forge_geom::algorithms::clipping::{clip_line_to_polygon, clip_line_to_face_polygon};
     pub use forge_geom::algorithms::chord::compute_intersection_line;
+    pub use forge_geom::algorithms::chord::clip_line_to_face_polygon;
+    pub use forge_geom::algorithms::clipping::clip_line_to_polygon;
 }
+
+pub use clipping::{clip_line_to_face_polygon, clip_line_to_polygon, compute_intersection_line};
 
 // ── Traits ───────────────────────────────────────────────────────────────────
 pub use forge_geom::traits::EvaluateNormal;

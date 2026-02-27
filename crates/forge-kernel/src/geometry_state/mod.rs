@@ -33,7 +33,7 @@ pub use schema::GeometryState;
 pub use split_propagation::propagate_curve_on_split;
 
 use forge_core::ToleranceProvider;
-use crate::geom::Plane;
+use crate::geom_facade::Plane;
 use forge_math::GeometrySource;
 use forge_topo::handles::{FaceId, VertexId};
 

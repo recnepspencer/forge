@@ -11,7 +11,7 @@
 //! DEPENDENCIES: `geometry_state` (GeometryState), `forge-geom` (CurveGeom)
 
 use forge_core::KernelError;
-use crate::geom::{CurveGeom, CurveKind, CurveProvenance, SpCurveApproximation};
+use crate::geom_facade::{CurveGeom, CurveKind, CurveProvenance, SpCurveApproximation};
 use forge_topo::handles::{CurveRef, EdgeId};
 
 use crate::brep::state::BrepState;

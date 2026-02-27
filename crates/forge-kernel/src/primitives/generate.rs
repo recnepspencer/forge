@@ -24,9 +24,9 @@ pub fn generate_primitive(
     _config: &ResolvedConfig,
 ) -> Result<FeatureOutput, KernelError> {
     let planes = match kind {
-        PrimitiveKind::Cube => crate::geom::shapes::cube(center, size / 2.0),
-        PrimitiveKind::Tetrahedron => crate::geom::shapes::tetrahedron(center, size),
-        PrimitiveKind::Dodecahedron => crate::geom::shapes::dodecahedron(center, size),
+        PrimitiveKind::Cube => crate::geom_facade::shapes::cube(center, size / 2.0),
+        PrimitiveKind::Tetrahedron => crate::geom_facade::shapes::tetrahedron(center, size),
+        PrimitiveKind::Dodecahedron => crate::geom_facade::shapes::dodecahedron(center, size),
     };
 
     let result = crate::mesh_builder::make_convex_solid(planes)?;

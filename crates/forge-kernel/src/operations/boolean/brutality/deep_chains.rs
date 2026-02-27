@@ -995,7 +995,7 @@ fn associativity_small_chain() {
 /// pipeline is not closed (idempotent).
 #[test]
 fn plane_intern_stability() {
-    use crate::geom::Plane;
+    use crate::geom_facade::Plane;
 
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 2.0);
     let (topo_b, geom_b) = build_cube([1.0, 0.0, 0.0], 1.0);
@@ -1092,8 +1092,8 @@ fn plane_intern_stability() {
 /// non-deterministic sign logic, or uninitialized state reuse.
 #[test]
 fn zero_classification_stability() {
-    use crate::geom::Plane;
-    use crate::geom::plane_signed_distance as signed_distance;
+    use crate::geom_facade::Plane;
+    use crate::geom_facade::plane_signed_distance as signed_distance;
 
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 2.0);
     let (topo_b, geom_b) = build_cube([1.0, 0.0, 0.0], 1.0);

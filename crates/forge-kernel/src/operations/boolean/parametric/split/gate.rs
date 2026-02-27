@@ -6,7 +6,7 @@
 //!   No cut occurs without passing this gate first.
 
 use forge_core::KernelError;
-use crate::geom::Plane;
+use crate::geom_facade::Plane;
 use forge_math::sign::TriSign;
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::FaceId;
@@ -29,7 +29,7 @@ pub fn compute_face_chord(
     cut_plane: &Plane,
     config: &ToleranceConfig,
 ) -> Result<Option<([f64; 3], [f64; 3])>, KernelError> {
-    if crate::geom::are_parallel_exact(face_plane, cut_plane) {
+    if crate::geom_facade::are_parallel_exact(face_plane, cut_plane) {
         return Ok(None);
     }
 
@@ -60,7 +60,7 @@ fn try_cyrus_beck_clip(
     let fo_b = cut_plane.offset();
     let min_chord = config.get_min_edge_length();
 
-    let (line_pt, line_dir) = match crate::geom::compute_intersection_line(
+    let (line_pt, line_dir) = match crate::geom_facade::compute_intersection_line(
         fn_a,
         fo_a,
         fn_b,
@@ -76,7 +76,7 @@ fn try_cyrus_beck_clip(
         return Ok(None);
     }
 
-    let chord = crate::geom::clip_line_to_polygon(
+    let chord = crate::geom_facade::clip_line_to_polygon(
         line_pt, line_dir, &verts, fn_a, min_chord,
     );
     if chord.is_some() {
@@ -84,7 +84,7 @@ fn try_cyrus_beck_clip(
     }
 
     let fn_a_neg = [-fn_a[0], -fn_a[1], -fn_a[2]];
-    Ok(crate::geom::clip_line_to_polygon(
+    Ok(crate::geom_facade::clip_line_to_polygon(
         line_pt, line_dir, &verts, fn_a_neg, min_chord,
     ))
 }
@@ -125,7 +125,7 @@ fn try_sign_walk_fallback(
             let is_crossing = (s_o == TriSign::Pos && s_d == TriSign::Neg)
                 || (s_o == TriSign::Neg && s_d == TriSign::Pos);
             if is_crossing {
-                let mid = crate::geom::intersect_edge_plane(
+                let mid = crate::geom_facade::intersect_edge_plane(
                     cut_plane,
                     p_o,
                     p_d,

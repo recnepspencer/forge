@@ -61,7 +61,7 @@ fn run_merge_pass(
             let cert = op_result.into_value();
             !matches!(
                 cert,
-                crate::geom::WeakSimpleCertificate::Rejected { .. }
+                crate::geom_facade::WeakSimpleCertificate::Rejected { .. }
             )
         }
         Err(_) => false,
@@ -118,7 +118,7 @@ fn find_coplanar_merge_candidate(
 
             let plane_a = geom.get_face_plane(face_a)?;
             let plane_b = geom.get_face_plane(face_b)?;
-            if crate::geom::plane_exact_eq(plane_a, plane_b) {
+            if crate::geom_facade::plane_exact_eq(plane_a, plane_b) {
                 Some((he_id, face_a, face_b))
             } else {
                 None

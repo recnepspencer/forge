@@ -57,6 +57,11 @@ pub fn norm(v: [f64; 3]) -> f64 {
     norm_sq(v).sqrt()
 }
 
+/// Squared Euclidean distance between two 3D points.
+pub fn distance_sq(a: [f64; 3], b: [f64; 3]) -> f64 {
+    norm_sq(sub(a, b))
+}
+
 pub fn normalize_checked(v: [f64; 3]) -> Option<[f64; 3]> {
     let len = norm(v);
     if !len.is_finite() || len == 0.0 {

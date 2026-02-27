@@ -1,6 +1,7 @@
 #![forbid(unsafe_code)]
 
 pub mod arena;
+pub use arena::TopologyArena;
 pub mod prelude;
 pub mod topology;
 
@@ -27,6 +28,7 @@ pub use topology::operations::algorithms;
 pub use topology::operations::euler;
 pub use topology::operations::operator;
 pub use topology::operations::operator::EulerOperator;
+pub use topology::queries;
 pub use topology::queries::{classification, continuity, hierarchy, ordering, polygon, traverse};
 
 #[cfg(test)]
