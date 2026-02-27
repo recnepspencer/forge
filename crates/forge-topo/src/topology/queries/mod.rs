@@ -8,3 +8,5 @@ pub mod polygon;
 pub mod radial;
 pub mod traverse;
 pub mod edge_map;
+
+pub use traverse::edge_endpoint_ids;

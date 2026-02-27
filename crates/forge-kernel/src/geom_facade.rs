@@ -106,6 +106,7 @@ pub mod clipping {
 }
 
 pub use clipping::{clip_line_to_face_polygon, clip_line_to_polygon, compute_intersection_line};
+pub use forge_geom::algorithms::segment::point_on_segment;
 
 // ── Traits ───────────────────────────────────────────────────────────────────
 pub use forge_geom::traits::EvaluateNormal;

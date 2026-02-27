@@ -20,6 +20,7 @@ pub mod surface;
 
 // Re-exports for cleaner API (optional, but requested "public re-exports only")
 pub use algorithms::chord::{clip_line_to_face_polygon, compute_intersection_line};
+pub use algorithms::segment::point_on_segment;
 pub use primitives::aabb::Aabb;
 pub use primitives::implicit_vertex::Vertex;
 pub use primitives::plane::Plane;

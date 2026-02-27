@@ -501,6 +501,21 @@ pub fn edge_faces(arena: &TopologyArena, he: HalfEdgeId) -> Result<Vec<FaceId>, 
     Ok(faces)
 }
 
+/// Return the origin and destination vertices of a half-edge.
+///
+/// Equivalent to `(he.origin(), arena.get_half_edge(he.next())?.origin())`.
+/// Centralizes the most common two-step pointer walk in kernel code.
+pub fn edge_endpoint_ids(
+    arena: &TopologyArena,
+    he_id: HalfEdgeId,
+) -> Result<(VertexId, VertexId), KernelError> {
+    let he = arena.get_half_edge(he_id)?;
+    let origin = he.origin();
+    let dest = arena.get_half_edge(he.next())?.origin();
+    Ok((origin, dest))
+}
+
+
 /// Walk a G1-continuous (tangent-continuous) edge chain starting at `start_edge`.
 ///
 /// Fillet operations act on edge *chains* — sequences of edges that share vertices

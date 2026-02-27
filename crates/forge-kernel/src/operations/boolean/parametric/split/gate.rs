@@ -71,12 +71,19 @@ fn try_cyrus_beck_clip(
         Some(l) => l,
     };
 
-    let verts = collect_face_positions(arena, geometry, face)?;
+    let loops = forge_topo::polygon::face_loop_vertices(arena, face)?;
+    let verts: Vec<[f64; 3]> = loops
+        .into_iter()
+        .next()
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|v| geometry.get_vertex_position(v).copied())
+        .collect();
     if verts.len() < 3 {
         return Ok(None);
     }
 
-    let chord = crate::geom_facade::clip_line_to_polygon(
+    let chord = crate::geom_facade::clip_line_to_face_polygon(
         line_pt, line_dir, &verts, fn_a, min_chord,
     );
     if chord.is_some() {
@@ -84,7 +91,7 @@ fn try_cyrus_beck_clip(
     }
 
     let fn_a_neg = [-fn_a[0], -fn_a[1], -fn_a[2]];
-    Ok(crate::geom_facade::clip_line_to_polygon(
+    Ok(crate::geom_facade::clip_line_to_face_polygon(
         line_pt, line_dir, &verts, fn_a_neg, min_chord,
     ))
 }
@@ -145,21 +152,5 @@ fn try_sign_walk_fallback(
     Ok(None)
 }
 
-/// Collect f64 vertex positions for a face in winding order.
-fn collect_face_positions(
-    arena: &TopologyArena,
-    geometry: &GeometryState,
-    face: FaceId,
-) -> Result<Vec<[f64; 3]>, KernelError> {
-    let loops = forge_topo::polygon::face_loop_vertices(arena, face)?;
-    let mut verts = Vec::new();
-    if let Some(outer_loop) = loops.first() {
-        verts.reserve(outer_loop.len());
-        for vertex in outer_loop {
-            if let Some(p) = geometry.get_vertex_position(*vertex) {
-                verts.push(*p);
-            }
-        }
-    }
-    Ok(verts)
-}
+// collect_face_positions removed — use forge_topo::polygon::face_loop_vertices +
+// geometry.get_vertex_position directly (see try_cyrus_beck_clip).

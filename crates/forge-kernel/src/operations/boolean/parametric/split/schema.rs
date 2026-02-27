@@ -3,6 +3,7 @@
 //! DOMAIN: Planes, vertex provenance, and split-phase results.
 //! DEPENDENCIES: crate::geom_facade::Plane, VertexMatchKey, GeometryState.
 //! INVARIANTS: PlaneTable uses exact equality; LocalVertexDedup is per-solid.
+//!   IntersectionRegistry and make_edge_key live in crate::shared_ops.
 
 use std::collections::BTreeMap;
 
@@ -119,15 +120,9 @@ pub struct ExpectedCutInterval {
 }
 
 /// Create a canonical (sorted) edge key from two vertex IDs.
-pub fn make_edge_key(v1: VertexId, v2: VertexId) -> (u32, u32) {
-    let a = v1.index();
-    let b = v2.index();
-    if a <= b {
-        (a, b)
-    } else {
-        (b, a)
-    }
-}
+///
+/// Delegates to `shared_ops::edge_key::make_edge_key`.
+pub use crate::shared_ops::edge_key::make_edge_key;
 
 /// Deduplication map for a single solid's vertices.
 pub struct LocalVertexDedup {
@@ -165,38 +160,7 @@ impl LocalVertexDedup {
     }
 }
 
-/// Shared registry of canonical intersection positions.
-///
-/// Each 3-plane intersection is computed once and stored here.
-/// Both `split_solid` calls reference the same registry so the same
-/// geometric point always gets the same position — zero floating-point
-/// divergence between solids.
-pub struct SharedVertexRegistry {
-    positions: BTreeMap<VertexMatchKey, [f64; 3]>,
-}
-
-impl SharedVertexRegistry {
-    pub fn new() -> Self {
-        Self {
-            positions: BTreeMap::new(),
-        }
-    }
-
-    /// Register a position for a 3-plane key.
-    ///
-    /// If the key already exists, returns the previously stored (canonical) position.
-    /// If new, stores and returns the provided position.
-    pub fn canonical_position(&mut self, key: &VertexMatchKey, computed: [f64; 3]) -> [f64; 3] {
-        *self.positions.entry(key.clone()).or_insert(computed)
-    }
-
-    /// Retrieve the canonical position for a provenance key.
-    pub fn get_position(&self, key: &VertexMatchKey) -> Option<&[f64; 3]> {
-        self.positions.get(key)
-    }
-}
-
-/// A point where the cut plane intersects a face edge.
+/// `CutPoint` distinguishes an existing vertex from a new vertex-on-edge.
 #[derive(Debug)]
 pub enum CutPoint {
     Existing(VertexId),

@@ -164,6 +164,25 @@ pub fn sort_points_along_direction<T: Clone>(
     items
 }
 
+/// Lexicographic ordering of two 3D points by (x, y, z).
+///
+/// Produces a total order stable under any coordinate permutation.
+/// Used wherever 3D points need deterministic sorting independent of
+/// a specific projection direction: NURBS control point dedup, fillet
+/// endpoint ordering, interval canonicalization, curve sampling dedup.
+pub fn compare_points_lex(a: &[f64; 3], b: &[f64; 3]) -> std::cmp::Ordering {
+    a[0].partial_cmp(&b[0])
+        .unwrap_or(std::cmp::Ordering::Equal)
+        .then_with(|| {
+            a[1].partial_cmp(&b[1])
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .then_with(|| {
+            a[2].partial_cmp(&b[2])
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
