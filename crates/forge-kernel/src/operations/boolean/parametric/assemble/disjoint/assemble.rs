@@ -16,7 +16,7 @@ use crate::shared_steps::stitch::stitch_twins;
 use super::eval::{compute_disjoint_scale};
 use crate::core::{compute_topology_delta, ArenaSnapshot, ModelingContext};
 use crate::geometry_state::GeometryState;
-use crate::operations::boolean::parametric::classify::find_coplanar_face_pairs;
+use crate::operations::boolean::shared::coplanar::find_coplanar_face_pairs;
 use crate::operations::boolean::result::{BooleanIntrospection, BooleanResult};
 use crate::operations::boolean::schema::BooleanOp;
 use crate::shared_ops::equivalence::are_solids_coincident;

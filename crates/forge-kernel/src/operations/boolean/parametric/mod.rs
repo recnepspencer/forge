@@ -4,8 +4,9 @@
 //! (planar, NURBS, analytic surfaces). Uses face splitting, ray-cast
 //! classification, and halfedge stitching.
 //!
-//! DEPENDENCIES: `split/`, `classify/`, `assemble/`, `postprocess/`,
+//! DEPENDENCIES: `split/`, `assemble/`, `postprocess/`,
 //!               `traits` (engine abstraction), `engines/` (concrete engines)
+//!               classify is in `shared_steps::classify_faces`
 //!
 //! INVARIANTS:
 //! - All topology decisions use `CertifiedTriSign` (D3)
@@ -13,7 +14,6 @@
 //! - Result satisfies Euler's formula (V - E + F = 2)
 
 pub mod assemble;
-pub(crate) mod classify;
 pub mod engines;
 pub(crate) mod postprocess;
 pub(crate) mod split;

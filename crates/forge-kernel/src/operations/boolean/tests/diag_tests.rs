@@ -1,7 +1,7 @@
 //! Focused diagnostic for half-overlap Boolean to trace the pipeline.
 
 use super::super::classify_schema::{FaceClassification, FaceOrigin};
-use super::super::parametric::classify::classify_faces;
+use crate::operations::shared_steps::classify_faces::classify_faces;
 use super::super::parametric::split::split_all_faces;
 use super::super::test_helpers::{build_cube, face_centroid};
 use crate::core::ModelingContext;

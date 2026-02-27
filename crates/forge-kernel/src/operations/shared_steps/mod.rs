@@ -16,6 +16,7 @@
 pub mod apply_euler_ops;
 pub mod certify_boundary;
 pub mod classify_edge_convexity;
+pub mod classify_faces;
 pub mod classify_surface_pair;
 pub mod construct_surface;
 pub mod detect_slivers;

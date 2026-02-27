@@ -63,3 +63,35 @@ pub fn combined_solid_scale(
 
     forge_math::linalg::norm(forge_math::linalg::sub(max_pos, min_pos)).max(1e-15)
 }
+
+/// Compute a scale-aware ray extent for point-in-solid classification.
+///
+/// Walks all vertex positions in `arena` to compute the bounding box diagonal,
+/// then multiplies by `scale_factor` (typically 10.0 for a safe ray overshoot).
+/// The `scale_factor` is always supplied by the kernel via `ToleranceConfig` — no
+/// magic numbers live below `forge-kernel`.
+///
+/// Returns `default_extent` when the arena is empty or unbounded.
+pub fn compute_solid_ray_extent(
+    arena: &forge_topo::arena::TopologyArena,
+    position_fn: &dyn Fn(forge_topo::handles::VertexId) -> Option<[f64; 3]>,
+    scale_factor: f64,
+    default_extent: f64,
+) -> f64 {
+    let mut min_pos = [f64::INFINITY; 3];
+    let mut max_pos = [f64::NEG_INFINITY; 3];
+
+    for (vid, _) in arena.iter_vertices() {
+        if let Some(pos) = position_fn(vid) {
+            min_pos = forge_math::linalg::component_min(min_pos, pos);
+            max_pos = forge_math::linalg::component_max(max_pos, pos);
+        }
+    }
+
+    if min_pos[0] == f64::INFINITY {
+        return default_extent;
+    }
+
+    let diagonal = forge_math::linalg::norm(forge_math::linalg::sub(max_pos, min_pos));
+    (diagonal * scale_factor).max(default_extent)
+}

@@ -56,6 +56,11 @@ impl PlaneTable {
     pub fn get(&self, index: usize) -> &Plane {
         &self.planes[index]
     }
+
+    /// Access the raw plane slice for generic algorithms.
+    pub fn planes(&self) -> &[Plane] {
+        &self.planes
+    }
 }
 
 /// Output of the split phase for both solids.

@@ -939,7 +939,7 @@ fn try_split_face(
                 "[phase-check] split op invalid after face#{} by plane#{} -> {:?}: {}",
                 fid.index(),
                 cut_idx,
-                new_faces.iter().map(|f| f.index()).collect::<Vec<_>>(),
+                new_faces.iter().map(|f: &FaceId| f.index()).collect::<Vec<_>>(),
                 e
             );
             if was_valid_before {

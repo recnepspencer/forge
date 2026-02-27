@@ -248,7 +248,7 @@ fn split_classify_audit() {
     use crate::geometry_state::GeometryState;
     use crate::operations::boolean::classify_schema::{FaceClassification, FaceOrigin};
     use crate::operations::boolean::parametric::assemble::select::select_faces;
-    use crate::operations::boolean::parametric::classify::classify_faces;
+    use crate::operations::shared_steps::classify_faces::classify_faces;
     use crate::operations::boolean::parametric::split::split_all_faces;
 
     let result_ab = run_boolean([0.0, 0.0, 0.0], 1.5, [1.0, 0.0, 0.0], 1.5, BooleanOp::Union);

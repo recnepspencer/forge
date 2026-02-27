@@ -127,6 +127,43 @@ pub fn normals_aligned(a: [f64; 3], b: [f64; 3]) -> bool {
     dot(a, b) > 0.0
 }
 
+/// Compute the projection direction for the intersection line of two planes.
+///
+/// Returns `cross(normal_a, normal_b)`, normalized if longer than `min_len`.
+/// Falls back to `compute_perpendicular_direction(normal_b)` when the planes
+/// are parallel (cross product too short). This is the canonical reference
+/// direction for sorting vertices along a plane-cut chord.
+///
+/// Used by: Boolean face splitting (sort cut vertices), Fillet sweep direction,
+/// NURBS trim curve orientation.
+pub fn plane_cut_direction(normal_a: [f64; 3], normal_b: [f64; 3], min_len_sq: f64) -> [f64; 3] {
+    let dir = cross(normal_a, normal_b);
+    if norm_sq(dir) > min_len_sq {
+        dir
+    } else {
+        compute_perpendicular_direction(normal_b)
+    }
+}
+
+/// Sort 3D points by their signed projection onto `direction`.
+///
+/// Points are ordered from most-negative to most-positive projection.
+/// Ties are broken by the original order (stable sort).
+///
+/// Used to order cut vertices along a plane chord before pairing them
+/// for MakeEdgeFace insertion. Also useful for fillet arc endpoint ordering.
+pub fn sort_points_along_direction<T: Clone>(
+    mut items: Vec<(T, [f64; 3])>,
+    direction: [f64; 3],
+) -> Vec<(T, [f64; 3])> {
+    items.sort_by(|(_, pa), (_, pb)| {
+        let ta = dot(*pa, direction);
+        let tb = dot(*pb, direction);
+        ta.partial_cmp(&tb).unwrap_or(std::cmp::Ordering::Equal)
+    });
+    items
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

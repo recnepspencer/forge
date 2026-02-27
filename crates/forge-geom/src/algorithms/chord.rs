@@ -177,6 +177,89 @@ pub fn clip_line_to_face_polygon(
     Some((p_start, p_end))
 }
 
+/// Compute the overlapping sub-segment of two colinear 3D line segments.
+///
+/// Projects both segments onto the axis of `chord_a` and returns the 3D
+/// parametric overlap as `(p0, p1)` in world space.
+///
+/// Returns `None` when:
+/// - `chord_a` has zero or near-zero length.
+/// - The overlap is shorter than `min_len * 0.5`.
+///
+/// Used by: Boolean split hint localization, NURBS trim curve overlap,
+/// fillet blend segment pairing.
+pub fn chord_overlap_segment(
+    chord_a: ([f64; 3], [f64; 3]),
+    chord_b: ([f64; 3], [f64; 3]),
+    min_len: f64,
+) -> Option<([f64; 3], [f64; 3])> {
+    let dir = [
+        chord_a.1[0] - chord_a.0[0],
+        chord_a.1[1] - chord_a.0[1],
+        chord_a.1[2] - chord_a.0[2],
+    ];
+    let len_sq = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2];
+    if !len_sq.is_finite() || len_sq <= 1e-30 {
+        return None;
+    }
+    let len = len_sq.sqrt();
+    let unit = [dir[0] / len, dir[1] / len, dir[2] / len];
+    let origin = chord_a.0;
+
+    let proj = |p: [f64; 3]| -> f64 {
+        (p[0] - origin[0]) * unit[0]
+            + (p[1] - origin[1]) * unit[1]
+            + (p[2] - origin[2]) * unit[2]
+    };
+    let point_at = |t: f64| -> [f64; 3] {
+        [
+            origin[0] + unit[0] * t,
+            origin[1] + unit[1] * t,
+            origin[2] + unit[2] * t,
+        ]
+    };
+
+    let mut a0 = proj(chord_a.0);
+    let mut a1 = proj(chord_a.1);
+    let mut b0 = proj(chord_b.0);
+    let mut b1 = proj(chord_b.1);
+    if a0 > a1 { std::mem::swap(&mut a0, &mut a1); }
+    if b0 > b1 { std::mem::swap(&mut b0, &mut b1); }
+
+    let o0 = a0.max(b0);
+    let o1 = a1.min(b1);
+    if !o0.is_finite() || !o1.is_finite() || (o1 - o0) <= min_len * 0.5 {
+        return None;
+    }
+    Some((point_at(o0), point_at(o1)))
+}
+
+/// Project an iterator of 3D points onto a direction and return `(min_t, max_t, extent)`.
+///
+/// Returns `None` when the iterator is empty.
+///
+/// Used to compute the parametric interval of a set of points along a
+/// reference direction — for expected-cut hint bracketing, fillet pass
+/// extent checking, and NURBS trim range validation.
+pub fn project_interval_onto_direction<I>(points: I, dir: [f64; 3]) -> Option<(f64, f64, f64)>
+where
+    I: IntoIterator<Item = [f64; 3]>,
+{
+    let mut min_t = f64::INFINITY;
+    let mut max_t = f64::NEG_INFINITY;
+    let mut saw = false;
+    for p in points {
+        let t = p[0] * dir[0] + p[1] * dir[1] + p[2] * dir[2];
+        min_t = min_t.min(t);
+        max_t = max_t.max(t);
+        saw = true;
+    }
+    if !saw {
+        return None;
+    }
+    Some((min_t, max_t, (max_t - min_t).abs()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -61,7 +61,7 @@ impl BooleanClassifier for RayCastClassifier {
         origin: FaceOrigin,
         ctx: &mut ModelingContext,
     ) -> Result<Vec<ClassifiedFace>, KernelError> {
-        crate::operations::boolean::parametric::classify::classify_faces(
+        crate::operations::shared_steps::classify_faces::classify_faces(
             source_arena,
             source_geom,
             other_arena,

@@ -50,3 +50,31 @@ pub fn all_face_bounds(
     }
     Ok(list)
 }
+
+/// Extract ordered 3D vertex positions of a face's outer loop.
+///
+/// Returns `None` when:
+/// - The face has inner loops (multi-ring — not yet supported for overlap testing).
+/// - The face has fewer than 3 vertices (degenerate).
+/// - Any vertex position lookup fails.
+///
+/// The caller supplies a `position_fn` callback so this function stays
+/// independent of any specific geometry store implementation.
+pub fn face_vertex_positions(
+    arena: &TopologyArena,
+    position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
+    face: FaceId,
+) -> Option<Vec<[f64; 3]>> {
+    let loops = forge_topo::topology::queries::polygon::face_loop_vertices(arena, face).ok()?;
+    if loops.len() != 1 {
+        return None;
+    }
+    let verts: Vec<[f64; 3]> = loops[0]
+        .iter()
+        .filter_map(|vid| position_fn(*vid))
+        .collect();
+    if verts.len() < 3 {
+        return None;
+    }
+    Some(verts)
+}

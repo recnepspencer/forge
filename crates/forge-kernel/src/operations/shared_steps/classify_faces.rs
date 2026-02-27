@@ -1,17 +1,20 @@
-//! Face classification evaluation.
+//! Face classification step — classify all faces of one solid relative to another.
 //!
-//! DOMAIN: Classify each face of one solid relative to another via ray-casting.
-//! DEPENDENCIES: forge_topo::classify (point-in-solid), GeometryState, BVH.
+//! DOMAIN: For each face of the `source` solid, determines whether it lies
+//! Inside, Outside, OnBoundary, or OppositeBoundary of the `other` solid.
+//! Records a `TracedDecision` per face and applies counterfactual overrides (P3.3).
+//!
+//! CONSUMERS: boolean (RayCastClassifier), future: fillet (tool selection),
+//!            shell (inner/outer face assignment)
 //!
 //! ALGORITHM:
-//! 1. Build BVH spatial index on the "other" solid.
-//! 2. For each face of the "source" solid, compute its centroid.
-//! 3. Ray-cast from centroid into "other" solid → Inside/Outside/OnBoundary.
-//! 4. OnBoundary → multi-sample fallback: perturb along face normal (±ε),
-//!    re-classify both points. If they agree → use unambiguous result.
-//!    If they disagree → normal alignment → OnBoundary vs OppositeBoundary.
-//! 5. Apply counterfactual overrides if present (P3.3).
-//! 6. Record TracedDecision for every classification.
+//! 1. Build BVH spatial index on the `other` solid.
+//! 2. For each face, compute centroid via `shared_ops::centroid`.
+//! 3. Ray-cast from centroid → primary classification.
+//! 4. Multi-sample fallback for intersection-derived faces (boundary landing).
+//! 5. Perturbation fallback if primary is OnBoundary.
+//! 6. Apply P3.3 counterfactual override if present.
+//! 7. Log TracedDecision.
 
 use forge_core::tracing::TopologyDelta;
 use forge_core::KernelError;
@@ -19,18 +22,21 @@ use forge_core::{
     DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, ToleranceProvider,
     TracedDecision,
 };
-use crate::geom_facade::BvhNode;
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::FaceId;
 
 use crate::core::ModelingContext;
+use crate::geom_facade::BvhNode;
 use crate::geometry_state::GeometryState;
 use crate::operations::boolean::classify_schema::{ClassifiedFace, FaceClassification, FaceOrigin};
+use crate::operations::boolean::shared::coplanar::is_intersection_face;
 use crate::shared_ops::centroid::compute_face_centroid;
+use crate::shared_ops::normal_alignment::faces_have_aligned_normals;
+use crate::shared_ops::vertex_lookup::lookup_vertex_position_by_slot;
 use crate::spatial::{
-    all_face_bounds, classify_point_in_solid, classify_point_on_face,
-    classify_point_with_perturbation, FacePointClassification, PointClassification,
-    SpatialAccelerator,
+    all_face_bounds, classify_point_in_solid, classify_point_with_perturbation,
+    face_interior_samples, FacePointClassification, PointClassification, SpatialAccelerator,
+    classify_point_on_face,
 };
 
 /// Classify all faces of one solid relative to the other solid.
@@ -43,6 +49,7 @@ pub fn classify_faces(
     ctx: &mut ModelingContext,
 ) -> Result<Vec<ClassifiedFace>, KernelError> {
     let config = ctx.get_tolerance_config().clone();
+    let point_coincidence_tol = ctx.get_tolerance().get_spatial_tolerance();
 
     let accelerator_data = build_spatial_index(other_arena, other_geometry);
     let accelerator = accelerator_data
@@ -61,6 +68,7 @@ pub fn classify_faces(
             accelerator,
             face_id,
             &config,
+            point_coincidence_tol,
             ctx,
         )?;
 
@@ -113,10 +121,6 @@ pub fn classify_faces(
 // ── Per-face classification ──────────────────────────────────────────────────
 
 /// Classify a single face by ray-casting its centroid into the other solid.
-///
-/// When the centroid lands exactly on the other solid's boundary
-/// ("kissing" contact), a multi-sample fallback perturbs the sample
-/// along the face normal to resolve the ambiguity.
 fn classify_single_face(
     source_arena: &TopologyArena,
     source_geometry: &GeometryState,
@@ -125,6 +129,7 @@ fn classify_single_face(
     accelerator: Option<&dyn SpatialAccelerator>,
     face_id: FaceId,
     config: &crate::core::ToleranceConfig,
+    point_coincidence_tol: f64,
     ctx: &mut ModelingContext,
 ) -> Result<FaceClassification, KernelError> {
     let sample =
@@ -138,9 +143,11 @@ fn classify_single_face(
             }
         })?;
 
+    let pos_fn = |idx: u32| lookup_vertex_position_by_slot(other_arena, other_geometry, idx);
+
     let primary = classify_point_in_solid(
         other_arena,
-        &|index| lookup_vertex_position(other_arena, other_geometry, index),
+        &pos_fn,
         accelerator,
         &sample,
         other_geometry as &dyn ToleranceProvider,
@@ -155,6 +162,8 @@ fn classify_single_face(
         face_id,
         sample,
         primary,
+        config,
+        point_coincidence_tol,
     )?;
 
     let (class, escalation) = match &classification {
@@ -187,19 +196,31 @@ fn maybe_multisample_refine(
     face_id: FaceId,
     centroid: [f64; 3],
     primary: PointClassification,
+    config: &crate::core::ToleranceConfig,
+    point_coincidence_tol: f64,
 ) -> Result<PointClassification, KernelError> {
     if matches!(primary, PointClassification::OnBoundary(_)) {
         return Ok(primary);
     }
-    if !face_needs_multisample(source_arena, face_id) {
+    if !is_intersection_face(source_arena, face_id) {
         return Ok(primary);
     }
 
-    let samples = collect_interior_face_samples(source_arena, source_geometry, face_id, centroid)?;
+    let pos_fn_src = |v: forge_topo::handles::VertexId| source_geometry.get_vertex_position(v).copied();
+    let samples = face_interior_samples(
+        source_arena,
+        &pos_fn_src,
+        face_id,
+        centroid,
+        source_geometry as &dyn ToleranceProvider,
+        point_coincidence_tol,
+    )?;
+
     if samples.len() <= 1 {
         return Ok(primary);
     }
 
+    let pos_fn_other = |idx: u32| lookup_vertex_position_by_slot(other_arena, other_geometry, idx);
     let mut inside = 0usize;
     let mut outside = 0usize;
     let mut first_boundary: Option<FaceId> = None;
@@ -207,7 +228,7 @@ fn maybe_multisample_refine(
     for p in samples {
         let cls = classify_point_in_solid(
             other_arena,
-            &|index| lookup_vertex_position(other_arena, other_geometry, index),
+            &pos_fn_other,
             accelerator,
             &p,
             other_geometry as &dyn ToleranceProvider,
@@ -246,118 +267,6 @@ fn maybe_multisample_refine(
     Ok(primary)
 }
 
-fn face_needs_multisample(source_arena: &TopologyArena, face_id: FaceId) -> bool {
-    let Some(face) = source_arena.get_face(face_id).ok() else {
-        return false;
-    };
-    let Some(lineage) = face.lineage() else {
-        return false;
-    };
-    lineage
-        .get_creation_op()
-        .get_name()
-        .starts_with("make_edge_face")
-}
-
-fn collect_interior_face_samples(
-    arena: &TopologyArena,
-    geometry: &GeometryState,
-    face_id: FaceId,
-    centroid: [f64; 3],
-) -> Result<Vec<[f64; 3]>, KernelError> {
-    let mut verts: Vec<[f64; 3]> = Vec::new();
-    let loops = forge_topo::polygon::face_loop_vertices(arena, face_id)?;
-    if let Some(outer_loop) = loops.first() {
-        for vertex in outer_loop {
-            if let Some(p) = geometry.get_vertex_position(*vertex) {
-                verts.push(*p);
-            }
-        }
-    }
-
-    if verts.len() < 3 {
-        return Ok(vec![centroid]);
-    }
-
-    let pos_fn = |v: forge_topo::handles::VertexId| geometry.get_vertex_position(v).copied();
-    let mut samples: Vec<[f64; 3]> = Vec::new();
-    let mut push_if_on_face = |p: [f64; 3]| -> Result<(), KernelError> {
-        match classify_point_on_face(
-            arena,
-            face_id,
-            &p,
-            &pos_fn,
-            source_geometry_as_tol(geometry),
-        )? {
-            FacePointClassification::OnFace => {
-                if !samples.iter().any(|q| same_point(q, &p)) {
-                    samples.push(p);
-                }
-            }
-            _ => {}
-        }
-        Ok(())
-    };
-
-    push_if_on_face(centroid)?;
-
-    let n = verts.len();
-    for i in 0..n.min(8) {
-        let a = verts[i];
-        let b = verts[(i + 1) % n];
-        let edge_mid = [
-            (a[0] + b[0]) * 0.5,
-            (a[1] + b[1]) * 0.5,
-            (a[2] + b[2]) * 0.5,
-        ];
-        let inset = [
-            edge_mid[0] * 0.35 + centroid[0] * 0.65,
-            edge_mid[1] * 0.35 + centroid[1] * 0.65,
-            edge_mid[2] * 0.35 + centroid[2] * 0.65,
-        ];
-        push_if_on_face(inset)?;
-
-        let fan = [
-            (a[0] + b[0] + centroid[0]) / 3.0,
-            (a[1] + b[1] + centroid[1]) / 3.0,
-            (a[2] + b[2] + centroid[2]) / 3.0,
-        ];
-        push_if_on_face(fan)?;
-
-        let toward_a = [
-            centroid[0] * 0.6 + a[0] * 0.4,
-            centroid[1] * 0.6 + a[1] * 0.4,
-            centroid[2] * 0.6 + a[2] * 0.4,
-        ];
-        push_if_on_face(toward_a)?;
-
-        let toward_b = [
-            centroid[0] * 0.6 + b[0] * 0.4,
-            centroid[1] * 0.6 + b[1] * 0.4,
-            centroid[2] * 0.6 + b[2] * 0.4,
-        ];
-        push_if_on_face(toward_b)?;
-    }
-
-    if samples.is_empty() {
-        samples.push(centroid);
-    }
-
-    Ok(samples)
-}
-
-fn source_geometry_as_tol(geometry: &GeometryState) -> &dyn ToleranceProvider {
-    geometry as &dyn ToleranceProvider
-}
-
-fn same_point(a: &[f64; 3], b: &[f64; 3]) -> bool {
-    crate::geom_facade::is_same_point_within(a, b, 1e-12)
-}
-
-/// Interpret a raw PointClassification into a FaceClassification.
-///
-/// For boundary hits, checks whether normals are aligned (same-facing)
-/// or opposed, yielding OnBoundary vs OppositeBoundary.
 fn interpret_classification(
     classification: PointClassification,
     source_geom: &GeometryState,
@@ -371,8 +280,7 @@ fn interpret_classification(
         PointClassification::Inside { escalation } => (FaceClassification::Inside, escalation),
         PointClassification::Outside { escalation } => (FaceClassification::Outside, escalation),
         PointClassification::OnBoundary(boundary_face) => {
-            let aligned =
-                check_normal_alignment(source_geom, source_face, other_geom, boundary_face);
+            let aligned = faces_have_aligned_normals(source_geom, source_face, other_geom, boundary_face);
             let class = if aligned {
                 FaceClassification::OnBoundary
             } else {
@@ -383,12 +291,6 @@ fn interpret_classification(
     }
 }
 
-/// Resolve an OnBoundary classification via multi-sample normal perturbation.
-///
-/// When the centroid lands exactly on the other solid's boundary,
-/// we perturb the sample in both directions along the source face
-/// normal and re-classify. If both agree, the unambiguous result
-/// is returned. Otherwise, falls back to normal alignment.
 fn resolve_boundary_classification(
     source_arena: &TopologyArena,
     source_geometry: &GeometryState,
@@ -427,11 +329,13 @@ fn resolve_boundary_classification(
                 context: None,
             }
         })?;
+
     let epsilon = config.get_edge_split_degeneracy() * 100.0;
+    let pos_fn = |idx: u32| lookup_vertex_position_by_slot(other_arena, other_geometry, idx);
 
     let perturbed = classify_point_with_perturbation(
         other_arena,
-        &|index| lookup_vertex_position(other_arena, other_geometry, index),
+        &pos_fn,
         accelerator,
         &centroid,
         normal,
@@ -453,7 +357,6 @@ fn resolve_boundary_classification(
     ))
 }
 
-/// Convert a PointClassification to a simple FaceClassification.
 fn to_face_classification(pc: &PointClassification) -> FaceClassification {
     match pc {
         PointClassification::Inside { .. } => FaceClassification::Inside,
@@ -462,7 +365,6 @@ fn to_face_classification(pc: &PointClassification) -> FaceClassification {
     }
 }
 
-/// Extract the escalation from a PointClassification, if any.
 fn extract_escalation(
     pc: &PointClassification,
 ) -> Option<forge_math::arithmetic::precision::PrecisionEscalation> {
@@ -473,31 +375,8 @@ fn extract_escalation(
     }
 }
 
-/// Look up a vertex position by raw slot index.
-fn lookup_vertex_position(
-    arena: &TopologyArena,
-    geometry: &GeometryState,
-    index: u32,
-) -> Result<[f64; 3], KernelError> {
-    let gen = arena
-        .vertex_generation(index as usize)
-        .ok_or_else(|| KernelError::InvalidInput {
-            message: format!("No active vertex at slot index {}", index),
-            context: None,
-        })?;
-    let vid = forge_topo::handles::VertexId::from_raw_parts(index, gen);
-    geometry
-        .get_vertex_position(vid)
-        .copied()
-        .ok_or_else(|| KernelError::InvalidInput {
-            message: format!("No position for vertex {}", index),
-            context: None,
-        })
-}
-
 // ── Override and logging ─────────────────────────────────────────────────────
 
-/// Apply a counterfactual classification override if one exists.
 fn apply_override(
     ctx: &ModelingContext,
     face_id: FaceId,
@@ -510,7 +389,6 @@ fn apply_override(
     }
 }
 
-/// Record a TracedDecision for a face classification.
 fn log_classification(
     ctx: &mut ModelingContext,
     face_id: FaceId,
@@ -551,7 +429,6 @@ fn log_classification(
 
 // ── Spatial indexing ─────────────────────────────────────────────────────────
 
-/// Build BVH spatial index for the "other" solid.
 fn build_spatial_index(
     arena: &TopologyArena,
     geometry: &GeometryState,
@@ -560,47 +437,8 @@ fn build_spatial_index(
     face_aabbs.and_then(|aabbs| BvhNode::build(aabbs))
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Label helpers ────────────────────────────────────────────────────────────
 
-/// Check whether two faces have aligned normals.
-fn check_normal_alignment(
-    source_geom: &GeometryState,
-    source_face: FaceId,
-    other_geom: &GeometryState,
-    other_face: FaceId,
-) -> bool {
-    match (
-        source_geom.get_face_plane(source_face),
-        other_geom.get_face_plane(other_face),
-    ) {
-        (Some(sp), Some(op)) => crate::geom_facade::normals_aligned_exact(sp, op),
-        _ => true,
-    }
-}
-
-/// Compute a scale-aware ray extent from the bounding box of a solid.
-///
-/// Returns `max(10 * diagonal, default_extent)`.
-fn compute_ray_extent_from_bbox(
-    arena: &TopologyArena,
-    geometry: &GeometryState,
-    default_extent: f64,
-) -> f64 {
-    let mut min_pos = [f64::INFINITY; 3];
-    let mut max_pos = [f64::NEG_INFINITY; 3];
-
-    for (vid, _) in arena.iter_vertices() {
-        if let Some(pos) = geometry.get_vertex_position(vid) {
-            min_pos = forge_math::linalg::component_min(min_pos, *pos);
-            max_pos = forge_math::linalg::component_max(max_pos, *pos);
-        }
-    }
-
-    let diagonal = forge_math::linalg::norm(forge_math::linalg::sub(max_pos, min_pos));
-    (diagonal * 10.0).max(default_extent)
-}
-
-/// Human-readable label for a FaceClassification.
 fn classification_label(class: &FaceClassification) -> &'static str {
     match class {
         FaceClassification::Inside => "Inside",
@@ -611,7 +449,6 @@ fn classification_label(class: &FaceClassification) -> &'static str {
     }
 }
 
-/// Convert FaceOrigin to a label string.
 fn origin_to_label(origin: FaceOrigin) -> &'static str {
     match origin {
         FaceOrigin::Target => "Target",

@@ -79,6 +79,21 @@ impl TriSign {
     }
 }
 
+/// True when two vertex signs indicate a Pos↔Neg edge crossing.
+///
+/// An edge with endpoints at `s_origin` and `s_dest` crosses a plane when
+/// one endpoint is strictly positive and the other strictly negative.
+/// Zero (on-plane) endpoints are handled separately as `Existing` cut points.
+///
+/// This predicate is the core gate for any edge-sign walk:
+/// Boolean face splitting, NURBS surface trimming, fillet boundary walking.
+pub fn is_sign_crossing(s_origin: TriSign, s_dest: TriSign) -> bool {
+    matches!(
+        (s_origin, s_dest),
+        (TriSign::Pos, TriSign::Neg) | (TriSign::Neg, TriSign::Pos)
+    )
+}
+
 impl std::fmt::Display for TriSign {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

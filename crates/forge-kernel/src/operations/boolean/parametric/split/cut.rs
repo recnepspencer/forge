@@ -16,16 +16,21 @@ use forge_core::{
 };
 use crate::geom_facade::{intersect_three_planes_exact, Plane};
 use forge_math::arithmetic::Rational;
+use forge_math::linalg::{plane_cut_direction, sort_points_along_direction};
+use forge_math::sign::is_sign_crossing;
 use forge_topo::euler::make_edge_face::MakeEdgeFace;
 use forge_topo::euler::split_edge::SplitEdge;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::operator::apply_op;
 use forge_topo::state::MutableDraft;
 use forge_topo::traverse::FaceAllEdgesIterator;
+use forge_topo::topology::queries::polygon::face_adjacent_vertex_pairs;
 
 use crate::core::ModelingContext;
 use crate::geometry_state::GeometryState;
-use crate::shared_ops::vertex_identity::VertexMatchKey;
+use crate::operations::boolean::shared::edge_intersection::compute_edge_plane_intersection_position;
+use crate::shared_ops::point_dedup::dedup_points_by_tolerance;
+use crate::shared_ops::vertex_identity::{build_vertex_provenance, VertexMatchKey};
 
 use super::gate::compute_face_chord;
 use super::schema::{
@@ -179,29 +184,25 @@ fn resolve_all_cut_points(
     Ok(resolved)
 }
 
-/// Sort resolved vertices along a reference direction on the cutting plane.
+/// Sort resolved vertices along the cut chord direction.
 fn sort_along_cut_direction(
-    mut verts: Vec<VertexId>,
+    verts: Vec<VertexId>,
     face_plane: &Plane,
     cut_plane: &Plane,
     geometry: &GeometryState,
 ) -> Vec<VertexId> {
-    let mut ref_dir = forge_math::linalg::cross(face_plane.raw_normal(), cut_plane.raw_normal());
-    if forge_math::linalg::norm_sq(ref_dir) <= 1e-24 {
-        ref_dir = forge_math::linalg::compute_perpendicular_direction(cut_plane.raw_normal());
-    }
-    verts.sort_by(|a, b| {
-        let pa = geometry
-            .get_vertex_position(*a)
-            .map(|p| p[0] * ref_dir[0] + p[1] * ref_dir[1] + p[2] * ref_dir[2])
-            .unwrap_or(0.0);
-        let pb = geometry
-            .get_vertex_position(*b)
-            .map(|p| p[0] * ref_dir[0] + p[1] * ref_dir[1] + p[2] * ref_dir[2])
-            .unwrap_or(0.0);
-        pa.partial_cmp(&pb).unwrap_or(std::cmp::Ordering::Equal)
-    });
-    verts
+    let dir = plane_cut_direction(face_plane.raw_normal(), cut_plane.raw_normal(), 1e-24);
+    let items: Vec<(VertexId, [f64; 3])> = verts
+        .into_iter()
+        .map(|v| {
+            let pos = geometry.get_vertex_position(v).copied().unwrap_or([0.0; 3]);
+            (v, pos)
+        })
+        .collect();
+    sort_points_along_direction(items, dir)
+        .into_iter()
+        .map(|(v, _)| v)
+        .collect()
 }
 
 /// Apply ONE MakeEdgeFace cut from sorted vertex pairs.
@@ -220,7 +221,7 @@ fn apply_one_cut(
     expected_hint: Option<&ExpectedCutHint>,
     ctx: &mut ModelingContext,
 ) -> Result<Vec<FaceId>, KernelError> {
-    let adjacent = build_adjacent_pairs(draft, face)?;
+    let adjacent = face_adjacent_vertex_pairs(draft.arena(), face)?;
 
     if let Some(result) = try_expected_pair(
         &sorted,
@@ -256,53 +257,111 @@ fn apply_one_cut(
         return Ok(Vec::new());
     }
 
-    let cut_result = sorted
-        .chunks_exact(2)
-        .filter(|pair| pair[0] != pair[1])
-        .filter(|pair| {
-            let key = if pair[0].index() <= pair[1].index() {
-                (pair[0].index(), pair[1].index())
-            } else {
-                (pair[1].index(), pair[0].index())
-            };
-            !adjacent.contains(&key)
-        })
-        .find_map(|pair| {
-            let v_a = pair[0];
-            let v_b = pair[1];
-            if expected_hint.is_some() {
-                eprintln!(
-                    "[cut-expected] face#{} plane#{} fallback trying {} {}",
-                    face.index(),
-                    cut_plane_idx,
-                    v_a,
-                    v_b
-                );
-            }
-            let op = MakeEdgeFace {
-                vertex_a: v_a,
-                vertex_b: v_b,
-                face,
-            };
-            match apply_op(draft, op) {
-                Ok(res) => {
-                    edge_cut_map.insert(make_edge_key(v_a, v_b), cut_plane_idx);
-                    let new_face = res.get_value().new_face;
-                    geometry.set_face_plane(new_face, face_plane.clone());
-                    log_split_success(face, cut_plane_idx, new_face, ctx);
-                    Some(vec![new_face, face])
-                }
-                Err(_) => None,
-            }
-        });
-
-    if let Some(result) = cut_result {
+    let pairs = select_non_adjacent_pairs(&sorted, &adjacent);
+    if let Some(result) = apply_scaffold_pass(
+        &pairs,
+        draft,
+        geometry,
+        edge_cut_map,
+        face,
+        face_plane,
+        cut_plane_idx,
+        expected_hint,
+        ctx,
+    )? {
         return Ok(result);
     }
 
     log_rejection(face, cut_plane_idx, "no valid cut pair found", ctx);
     Ok(Vec::new())
 }
+
+/// Filter a sorted vertex list down to non-identical, non-adjacent chunk pairs.
+///
+/// Returns `(v_a, v_b)` tuples in chunk order, skipping:
+/// - Pairs where both vertices are the same.
+/// - Pairs that already share a boundary edge on the face.
+///
+/// Pure function — no mutation, easily unit-testable in isolation.
+fn select_non_adjacent_pairs(
+    sorted: &[VertexId],
+    adjacent: &BTreeSet<(u32, u32)>,
+) -> Vec<(VertexId, VertexId)> {
+    sorted
+        .chunks_exact(2)
+        .filter(|pair| pair[0] != pair[1])
+        .filter(|pair| !adjacent.contains(&make_edge_key(pair[0], pair[1])))
+        .map(|pair| (pair[0], pair[1]))
+        .collect()
+}
+
+/// Apply a `MakeEdgeFace` cut between `v_a` and `v_b` on `face`.
+///
+/// On success: records the cut in `edge_cut_map`, assigns the face plane
+/// to the new fragment, logs the decision, and returns `Some([new_face, face])`.
+/// On topology failure: returns `None` (caller tries the next pair).
+fn execute_make_edge_face(
+    draft: &mut MutableDraft,
+    geometry: &mut GeometryState,
+    edge_cut_map: &mut EdgeCutMap,
+    face: FaceId,
+    face_plane: &Plane,
+    cut_plane_idx: usize,
+    v_a: VertexId,
+    v_b: VertexId,
+    ctx: &mut ModelingContext,
+) -> Option<Vec<FaceId>> {
+    let op = MakeEdgeFace {
+        vertex_a: v_a,
+        vertex_b: v_b,
+        face,
+    };
+    match apply_op(draft, op) {
+        Ok(res) => {
+            edge_cut_map.insert(make_edge_key(v_a, v_b), cut_plane_idx);
+            let new_face = res.get_value().new_face;
+            geometry.set_face_plane(new_face, face_plane.clone());
+            log_split_success(face, cut_plane_idx, new_face, ctx);
+            Some(vec![new_face, face])
+        }
+        Err(_) => None,
+    }
+}
+
+/// Try each non-adjacent pair in order until one `MakeEdgeFace` succeeds.
+///
+/// This is the "scaffold pass" — used when no expected hint was set or
+/// when the expected pair path already failed.
+fn apply_scaffold_pass(
+    pairs: &[(VertexId, VertexId)],
+    draft: &mut MutableDraft,
+    geometry: &mut GeometryState,
+    edge_cut_map: &mut EdgeCutMap,
+    face: FaceId,
+    face_plane: &Plane,
+    cut_plane_idx: usize,
+    expected_hint: Option<&ExpectedCutHint>,
+    ctx: &mut ModelingContext,
+) -> Result<Option<Vec<FaceId>>, KernelError> {
+    for &(v_a, v_b) in pairs {
+        if expected_hint.is_some() {
+            eprintln!(
+                "[cut-expected] face#{} plane#{} fallback trying {} {}",
+                face.index(),
+                cut_plane_idx,
+                v_a,
+                v_b
+            );
+        }
+        if let Some(result) =
+            execute_make_edge_face(draft, geometry, edge_cut_map, face, face_plane, cut_plane_idx, v_a, v_b, ctx)
+        {
+            return Ok(Some(result));
+        }
+    }
+    Ok(None)
+}
+
 
 fn can_use_scaffold_fallback(
     sorted: &[VertexId],
@@ -312,7 +371,7 @@ fn can_use_scaffold_fallback(
     face_plane: &Plane,
     cut_plane: &Plane,
 ) -> bool {
-    let dir = scaffold_projection_dir(face_plane, cut_plane);
+    let dir = plane_cut_direction(face_plane.raw_normal(), cut_plane.raw_normal(), 1e-24);
     let expected_intervals = scaffold_expected_intervals(expected_hint, dir);
     if expected_intervals.is_empty() {
         return false;
@@ -342,8 +401,8 @@ fn can_use_scaffold_fallback(
         let Some(pb) = geometry.get_vertex_position(v_b) else {
             continue;
         };
-        let a_t = dot3(pa, dir);
-        let b_t = dot3(pb, dir);
+        let a_t = forge_math::linalg::dot(*pa, dir);
+        let b_t = forge_math::linalg::dot(*pb, dir);
         let cand_min = a_t.min(b_t);
         let cand_max = a_t.max(b_t);
         let bracketed = expected_intervals
@@ -365,13 +424,6 @@ fn can_use_scaffold_fallback(
     viable_pairs == 1 && bracketed_pairs == 1
 }
 
-fn scaffold_projection_dir(face_plane: &Plane, cut_plane: &Plane) -> [f64; 3] {
-    let mut dir = forge_math::linalg::cross(face_plane.raw_normal(), cut_plane.raw_normal());
-    if forge_math::linalg::norm_sq(dir) <= 1e-24 {
-        dir = forge_math::linalg::compute_perpendicular_direction(cut_plane.raw_normal());
-    }
-    dir
-}
 
 fn localize_expected_hint(
     hint: &ExpectedCutHint,
@@ -384,7 +436,9 @@ fn localize_expected_hint(
     }
 
     for iv in &hint.intervals {
-        if let Some((p0, p1)) = chord_overlap_segment(face_chord, (iv.p0, iv.p1), min_len) {
+        if let Some((p0, p1)) = forge_geom::algorithms::chord::chord_overlap_segment(
+            face_chord, (iv.p0, iv.p1), min_len,
+        ) {
             out.endpoints.push(p0);
             out.endpoints.push(p1);
             out.intervals
@@ -396,108 +450,26 @@ fn localize_expected_hint(
         return None;
     }
 
-    out.endpoints = dedup_local_points(out.endpoints, min_len.max(1e-9));
+    out.endpoints = dedup_points_by_tolerance(out.endpoints, min_len.max(1e-9));
     Some(out)
 }
 
-fn chord_overlap_segment(
-    chord_a: ([f64; 3], [f64; 3]),
-    chord_b: ([f64; 3], [f64; 3]),
-    min_len: f64,
-) -> Option<([f64; 3], [f64; 3])> {
-    let dir = [
-        chord_a.1[0] - chord_a.0[0],
-        chord_a.1[1] - chord_a.0[1],
-        chord_a.1[2] - chord_a.0[2],
-    ];
-    let len_sq = dir[0] * dir[0] + dir[1] * dir[1] + dir[2] * dir[2];
-    if !len_sq.is_finite() || len_sq <= 1e-30 {
-        return None;
-    }
-    let len = len_sq.sqrt();
-    let unit = [dir[0] / len, dir[1] / len, dir[2] / len];
-    let origin = chord_a.0;
-
-    let proj = |p: [f64; 3]| -> f64 {
-        (p[0] - origin[0]) * unit[0] + (p[1] - origin[1]) * unit[1] + (p[2] - origin[2]) * unit[2]
-    };
-    let point_at = |t: f64| -> [f64; 3] {
-        [
-            origin[0] + unit[0] * t,
-            origin[1] + unit[1] * t,
-            origin[2] + unit[2] * t,
-        ]
-    };
-
-    let mut a0 = proj(chord_a.0);
-    let mut a1 = proj(chord_a.1);
-    let mut b0 = proj(chord_b.0);
-    let mut b1 = proj(chord_b.1);
-    if a0 > a1 {
-        std::mem::swap(&mut a0, &mut a1);
-    }
-    if b0 > b1 {
-        std::mem::swap(&mut b0, &mut b1);
-    }
-    let o0 = a0.max(b0);
-    let o1 = a1.min(b1);
-    if !o0.is_finite() || !o1.is_finite() || (o1 - o0) <= min_len * 0.5 {
-        return None;
-    }
-    Some((point_at(o0), point_at(o1)))
-}
-
-fn dedup_local_points(mut pts: Vec<[f64; 3]>, tol: f64) -> Vec<[f64; 3]> {
-    let tol_sq = tol * tol;
-    let mut out = Vec::new();
-    for p in pts.drain(..) {
-        let dup = out.iter().any(|q: &[f64; 3]| {
-            let dx = p[0] - q[0];
-            let dy = p[1] - q[1];
-            let dz = p[2] - q[2];
-            dx * dx + dy * dy + dz * dz <= tol_sq
-        });
-        if !dup {
-            out.push(p);
-        }
-    }
-    out
-}
-
-fn project_interval<I>(points: I, dir: [f64; 3]) -> Option<(f64, f64, f64)>
-where
-    I: IntoIterator<Item = [f64; 3]>,
-{
-    let mut min_t = f64::INFINITY;
-    let mut max_t = f64::NEG_INFINITY;
-    let mut saw = false;
-    for p in points {
-        let t = p[0] * dir[0] + p[1] * dir[1] + p[2] * dir[2];
-        min_t = min_t.min(t);
-        max_t = max_t.max(t);
-        saw = true;
-    }
-    if !saw {
-        return None;
-    }
-    Some((min_t, max_t, (max_t - min_t).abs()))
-}
-
-fn dot3(p: &[f64; 3], dir: [f64; 3]) -> f64 {
-    p[0] * dir[0] + p[1] * dir[1] + p[2] * dir[2]
-}
 
 fn scaffold_expected_intervals(hint: &ExpectedCutHint, dir: [f64; 3]) -> Vec<(f64, f64, f64)> {
     let mut out = Vec::new();
     if !hint.intervals.is_empty() {
         for iv in &hint.intervals {
-            if let Some((a, b, s)) = project_interval([iv.p0, iv.p1], dir) {
+            if let Some((a, b, s)) = forge_geom::algorithms::chord::project_interval_onto_direction(
+                [iv.p0, iv.p1], dir,
+            ) {
                 out.push((a.min(b), a.max(b), s.max(1e-9)));
             }
         }
         return out;
     }
-    if let Some((a, b, s)) = project_interval(hint.endpoints.iter().copied(), dir) {
+    if let Some((a, b, s)) = forge_geom::algorithms::chord::project_interval_onto_direction(
+        hint.endpoints.iter().copied(), dir,
+    ) {
         out.push((a.min(b), a.max(b), s.max(1e-9)));
     }
     out
@@ -596,27 +568,25 @@ fn try_expected_pair(
             }
         }
 
-        let op = MakeEdgeFace {
-            vertex_a: v_a,
-            vertex_b: v_b,
+        match execute_make_edge_face(
+            draft,
+            geometry,
+            edge_cut_map,
             face,
-        };
-        match apply_op(draft, op) {
-            Ok(res) => {
-                edge_cut_map.insert(make_edge_key(v_a, v_b), cut_plane_idx);
-                let new_face = res.get_value().new_face;
-                geometry.set_face_plane(new_face, face_plane.clone());
-                log_split_success(face, cut_plane_idx, new_face, ctx);
-                return Ok(Some(vec![new_face, face]));
-            }
-            Err(err) => {
+            face_plane,
+            cut_plane_idx,
+            v_a,
+            v_b,
+            ctx,
+        ) {
+            Some(result) => return Ok(Some(result)),
+            None => {
                 eprintln!(
-                    "[cut-expected] face#{} plane#{} apply failed for {} {}: {}",
+                    "[cut-expected] face#{} plane#{} apply failed for {} {}",
                     face.index(),
                     cut_plane_idx,
                     v_a,
-                    v_b,
-                    err
+                    v_b
                 );
             }
         }
@@ -682,26 +652,6 @@ fn dist_sq(a: &[f64; 3], b: &[f64; 3]) -> f64 {
 }
 
 /// Build the set of vertex pairs already adjacent on a face.
-fn build_adjacent_pairs(
-    draft: &MutableDraft,
-    face: FaceId,
-) -> Result<BTreeSet<(u32, u32)>, KernelError> {
-    let edges: Vec<_> =
-        FaceAllEdgesIterator::new(draft.arena(), face)?.collect::<Result<Vec<_>, _>>()?;
-    let mut pairs = BTreeSet::new();
-    for he in &edges {
-        let origin = draft.arena().get_half_edge(*he)?.origin();
-        let next_he = draft.arena().get_half_edge(*he)?.next();
-        let dest = draft.arena().get_half_edge(next_he)?.origin();
-        let key = if origin.index() <= dest.index() {
-            (origin.index(), dest.index())
-        } else {
-            (dest.index(), origin.index())
-        };
-        pairs.insert(key);
-    }
-    Ok(pairs)
-}
 
 // ── Cut-point location (vertex sign walk) ───────────────────────────────────
 
@@ -766,10 +716,7 @@ fn find_cut_points_provenance(
 }
 
 /// True when signs indicate a Pos↔Neg edge crossing.
-fn is_sign_crossing(s_o: forge_math::sign::TriSign, s_d: forge_math::sign::TriSign) -> bool {
-    (s_o == forge_math::sign::TriSign::Pos && s_d == forge_math::sign::TriSign::Neg)
-        || (s_o == forge_math::sign::TriSign::Neg && s_d == forge_math::sign::TriSign::Pos)
-}
+/// Delegates to the canonical predicate in `forge_math::sign`.
 
 /// Compute the CutPoint for a Pos↔Neg edge crossing.
 ///
@@ -798,18 +745,18 @@ fn compute_crossing_cut_point(
         .get(&twin_face)
         .unwrap_or(&p_face_idx);
 
-    let (exact_pos, computed_pos, symbolic_planes) = compute_intersection_position(
+    let (exact_pos, computed_pos, symbolic_planes) = compute_edge_plane_intersection_position(
         p_face_idx,
         p_twin_idx,
         cut_plane_idx,
-        split_cfg.plane_table,
+        split_cfg.plane_table.planes(),
         cut_plane,
         p_o,
         p_d,
         split_cfg.tolerance,
     );
 
-    let provenance = build_provenance(&exact_pos, computed_pos);
+    let provenance = build_vertex_provenance(&exact_pos, computed_pos);
     let canonical_pos = shared_registry.canonical_position(&provenance, computed_pos);
 
     if let Some(vid) = dedup.find_by_provenance(&provenance) {
@@ -830,63 +777,6 @@ fn compute_crossing_cut_point(
 /// If the face and twin have different planes, uses exact 3-plane
 /// intersection. Otherwise falls back to edge-plane intersection
 /// with f64→Rational promotion.
-fn compute_intersection_position(
-    face_plane_idx: usize,
-    twin_plane_idx: usize,
-    cut_plane_idx: usize,
-    plane_table: &PlaneTable,
-    cut_plane: &Plane,
-    p_o: &[f64; 3],
-    p_d: &[f64; 3],
-    config: &crate::core::ToleranceConfig,
-) -> (Option<[Rational; 3]>, [f64; 3], Option<[usize; 3]>) {
-    if face_plane_idx != twin_plane_idx {
-        let p0 = plane_table.get(face_plane_idx);
-        let p1 = plane_table.get(twin_plane_idx);
-        let p2 = plane_table.get(cut_plane_idx);
-        match intersect_three_planes_exact(p0, p1, p2) {
-            Ok(ep) => {
-                let fx = ep[0].to_f64_approx();
-                let fy = ep[1].to_f64_approx();
-                let fz = ep[2].to_f64_approx();
-                let f64_pos = if fx.is_finite() && fy.is_finite() && fz.is_finite() {
-                    [fx, fy, fz]
-                } else {
-                    crate::geom_facade::intersect_edge_plane(
-                        cut_plane,
-                        p_o,
-                        p_d,
-                        config.get_edge_split_degeneracy(),
-                    )
-                };
-                (
-                    Some(ep),
-                    f64_pos,
-                    Some([face_plane_idx, twin_plane_idx, cut_plane_idx]),
-                )
-            }
-            Err(_) => (
-                None,
-                crate::geom_facade::intersect_edge_plane(
-                    cut_plane,
-                    p_o,
-                    p_d,
-                    config.get_edge_split_degeneracy(),
-                ),
-                None,
-            ),
-        }
-    } else {
-        let f64_pos = crate::geom_facade::intersect_edge_plane(
-            cut_plane,
-            p_o,
-            p_d,
-            config.get_edge_split_degeneracy(),
-        );
-        let ep = Rational::try_from_f64_3(&f64_pos);
-        (ep, f64_pos, None)
-    }
-}
 
 // ── Decision logging ─────────────────────────────────────────────────────────
 
@@ -974,17 +864,5 @@ pub fn resolve_cut_point(
     }
 }
 
-/// Build a provenance key from an optional exact position.
-fn build_provenance(exact_pos: &Option<[Rational; 3]>, fallback: [f64; 3]) -> VertexMatchKey {
-    match exact_pos {
-        Some(ep) => {
-            VertexMatchKey::from_exact_position(ep[0].clone(), ep[1].clone(), ep[2].clone())
-        }
-        None => {
-            let rx = Rational::try_from_f64(fallback[0]).unwrap_or_else(|_| Rational::zero());
-            let ry = Rational::try_from_f64(fallback[1]).unwrap_or_else(|_| Rational::zero());
-            let rz = Rational::try_from_f64(fallback[2]).unwrap_or_else(|_| Rational::zero());
-            VertexMatchKey::from_exact_position(rx, ry, rz)
-        }
-    }
-}
+/// Build a vertex provenance key from an optional exact position.
+/// Delegates to `shared_ops::vertex_identity::build_vertex_provenance`.

@@ -54,3 +54,32 @@ impl VertexMatchKey {
         &self.pos
     }
 }
+
+/// Build a vertex provenance key from an optional exact position.
+///
+/// When `exact_pos` is `Some`, uses it directly (3-plane intersection result).
+/// When `None`, promotes the `f64` fallback position to `Rational` — precision
+/// loss is acceptable here because the fallback only occurs when the face and
+/// its twin share the same plane (no distinct 3rd plane for exact intersection).
+///
+/// This is the canonical entry point for any feature that creates new vertices
+/// from plane intersections: Boolean splitting, fillet arc insertion,
+/// NURBS trim point computation.
+pub fn build_vertex_provenance(
+    exact_pos: &Option<[Rational; 3]>,
+    fallback: [f64; 3],
+) -> VertexMatchKey {
+    match exact_pos {
+        Some(ep) => VertexMatchKey::from_exact_position(
+            ep[0].clone(),
+            ep[1].clone(),
+            ep[2].clone(),
+        ),
+        None => {
+            let rx = Rational::try_from_f64(fallback[0]).unwrap_or_else(|_| Rational::zero());
+            let ry = Rational::try_from_f64(fallback[1]).unwrap_or_else(|_| Rational::zero());
+            let rz = Rational::try_from_f64(fallback[2]).unwrap_or_else(|_| Rational::zero());
+            VertexMatchKey::from_exact_position(rx, ry, rz)
+        }
+    }
+}
