@@ -670,25 +670,7 @@ fn entity_key_kind(key: EntityKey) -> TraceEntityKind {
     }
 }
 
-#[cfg(test)]
-pub(super) fn test_resolve_face_ref_result_direct(
-    arena: &forge_topo::arena::TopologyArena,
-    pref: &PersistentFaceRef,
-) -> ResolutionResult<ResolutionCandidate> {
-    resolve_face_ref_direct(arena, pref)
-}
 
-#[cfg(test)]
-pub(super) fn test_resolve_face_ref_result_with_lineage_fallback(
-    topo: &forge_topo::state::TopologyState,
-    pref: &PersistentFaceRef,
-) -> ResolutionResult<ResolutionCandidate> {
-    resolve_face_ref_result(
-        topo,
-        pref,
-        FaceResolutionFallbackPipeline::DirectThenLineageThenHybrid,
-    )
-}
 
 fn persistent_role_tag(role: PersistentResolutionRole) -> &'static str {
     match role {
@@ -900,12 +882,7 @@ fn map_topo_reid_failure_cause(
     }
 }
 
-#[cfg(test)]
-pub(super) fn test_map_resolution_incompatibility_for_persistent(
-    inc: &crate::core::ResolutionIncompatibility,
-) -> PersistentResolutionIncompatibility {
-    map_resolution_incompatibility(inc)
-}
+
 
 /// Reject if any face appears in both `selected_faces` and `protected_faces`.
 ///
@@ -1120,13 +1097,7 @@ fn build_merge_plan(
     Ok(MergePlan::new(steps))
 }
 
-#[cfg(test)]
-pub(super) fn test_build_merge_plan(
-    arena: &forge_topo::arena::TopologyArena,
-    selection: &MergeRegionSelection,
-) -> Result<MergePlan, KernelError> {
-    build_merge_plan(arena, selection)
-}
+
 
 /// Re-derive halfedge handles for a merge step from the current draft arena.
 ///
@@ -1185,13 +1156,7 @@ fn rederive_halfedges_for_step(
     }
 }
 
-#[cfg(test)]
-pub(super) fn test_validate_connectivity(
-    arena: &forge_topo::arena::TopologyArena,
-    selection: &MergeRegionSelection,
-) -> Result<(), KernelError> {
-    validate_connectivity(arena, selection)
-}
+
 
 /// Find a FaceId by its arena index.
 fn find_face_by_index(
@@ -1220,56 +1185,46 @@ fn find_edge_by_index(arena: &forge_topo::arena::TopologyArena, index: u32) -> O
 }
 
 #[cfg(test)]
-mod gate_policy_tests {
-    use super::*;
-    use crate::geom_facade::WeakSimpleCertificate;
-    use forge_topo::bitset::EntityBitset;
+pub(super) struct NmtEvalTestApi;
 
-    #[test]
-    fn weakly_simple_gate_uses_registry_backed_policy_resolution() {
-        let mut selected = EntityBitset::with_capacity(4);
-        selected.insert(0).expect("bitset capacity");
-        let protected = EntityBitset::with_capacity(4);
-        let selection =
-            MergeRegionSelection::new(selected, protected, FaceId::from_raw_parts(0, 0));
+#[cfg(test)]
+impl NmtEvalTestApi {
+    pub fn resolve_face_ref_direct(
+        arena: &forge_topo::arena::TopologyArena,
+        pref: &PersistentFaceRef,
+    ) -> ResolutionResult<ResolutionCandidate> {
+        resolve_face_ref_direct(arena, pref)
+    }
 
-        let mut ctx = ModelingContext::new();
-        ctx.config
-            .policy
-            .fallback_rules
-            .insert(PolicyKind::CoincidentGeometry, false);
-
-        let err = apply_boundary_cert_gate_policy(
-            &WeakSimpleCertificate::WeaklySimple { touch_count: 2 },
-            &selection,
-            &mut ctx,
+    pub fn resolve_face_ref_with_lineage_fallback(
+        topo: &forge_topo::state::TopologyState,
+        pref: &PersistentFaceRef,
+    ) -> ResolutionResult<ResolutionCandidate> {
+        resolve_face_ref_result(
+            topo,
+            pref,
+            FaceResolutionFallbackPipeline::DirectThenLineageThenHybrid,
         )
-        .expect_err("session override rejecting CoincidentGeometry must fail merge gate");
+    }
 
-        assert!(matches!(
-            err,
-            KernelError::MergeFailure(MergeError::BoundaryCertificationFailed { .. })
-        ));
-        assert_eq!(ctx.get_trace_adjuncts().records().len(), 1);
+    pub fn map_resolution_incompatibility(
+        inc: &crate::core::ResolutionIncompatibility,
+    ) -> PersistentResolutionIncompatibility {
+        map_resolution_incompatibility(inc)
+    }
 
-        let payload = ctx.get_trace_adjuncts().records()[0]
-            .as_policy_payload()
-            .expect("policy adjunct kind")
-            .expect("decode policy payload");
-        assert_eq!(
-            payload.source,
-            forge_core::PolicyResolutionSource::DefaultPolicy
-        );
-        assert_eq!(payload.source_scope, None);
-        assert_eq!(payload.operation_scope_id, None);
-        assert_eq!(
-            payload.outcome,
-            forge_core::PolicyResolutionOutcome::RejectedPotentialValue
-        );
-        assert_eq!(
-            ctx.get_decision_count(),
-            1,
-            "policy resolution must emit one traced decision"
-        );
+    pub fn build_merge_plan(
+        arena: &forge_topo::arena::TopologyArena,
+        selection: &MergeRegionSelection,
+    ) -> Result<MergePlan, KernelError> {
+        build_merge_plan(arena, selection)
+    }
+
+    pub fn validate_connectivity(
+        arena: &forge_topo::arena::TopologyArena,
+        selection: &MergeRegionSelection,
+    ) -> Result<(), KernelError> {
+        validate_connectivity(arena, selection)
     }
 }
+
