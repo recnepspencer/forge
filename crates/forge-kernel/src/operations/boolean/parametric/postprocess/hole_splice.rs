@@ -118,7 +118,7 @@ fn splice_one_hole(
 fn select_bridge_with_geom_algorithm(
     draft: &MutableDraft,
     geom: &GeometryState,
-    plane: &forge_geom::Plane,
+    plane: &crate::geom::Plane,
     inner_start: HalfEdgeId,
     outer_start: HalfEdgeId,
 ) -> Result<Option<(HalfEdgeId, HalfEdgeId)>, KernelError> {
@@ -133,7 +133,7 @@ fn select_bridge_with_geom_algorithm(
 
     let inner_positions: Vec<[f64; 3]> = inner_samples.iter().map(|sample| sample.pos).collect();
     let outer_positions: Vec<[f64; 3]> = outer_samples.iter().map(|sample| sample.pos).collect();
-    let bridge = forge_geom::algorithms::polygon::bridge_polygon_hole(
+    let bridge = crate::geom::bridge_polygon_hole(
         &outer_positions,
         &inner_positions,
         plane.normal(),
@@ -204,7 +204,7 @@ fn find_extremal_vertex(
     draft: &MutableDraft,
     start_he: HalfEdgeId,
     geom: &GeometryState,
-    plane: &forge_geom::Plane,
+    plane: &crate::geom::Plane,
 ) -> Result<(HalfEdgeId, VertexId, [f64; 3]), KernelError> {
     let normal = plane.normal();
     let u_axis = forge_math::linalg::compute_perpendicular_direction(normal);
@@ -256,7 +256,7 @@ fn raycast_to_outer_boundary(
     outer_start: HalfEdgeId,
     h_max_pos: [f64; 3],
     geom: &GeometryState,
-    plane: &forge_geom::Plane,
+    plane: &crate::geom::Plane,
 ) -> Result<(HalfEdgeId, VertexId), KernelError> {
     let normal = plane.normal();
     let u_axis = forge_math::linalg::compute_perpendicular_direction(normal);

@@ -13,8 +13,9 @@ use forge_core::{KernelError, OperationResult};
 use forge_topo::arena::TopologyArena;
 use forge_topo::bitset::EntityBitset;
 
-use forge_geom::algorithms::boundary_cert::eval::{certify_boundary, project_boundary_to_2d};
-use forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate;
+use crate::geom::certify_boundary;
+use crate::geom::project_boundary_to_2d;
+use crate::geom::WeakSimpleCertificate;
 
 use crate::geometry_state::GeometryView;
 
@@ -103,7 +104,7 @@ pub fn certify_merge_boundary(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use forge_geom::algorithms::boundary_cert::schema::BoundaryRejectReason;
+    use crate::geom::BoundaryRejectReason;
 
     #[test]
     fn simple_certificate_traces_as_exact_deterministic() {

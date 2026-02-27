@@ -7,7 +7,7 @@
 //! 4. Registering face planes and vertex positions in GeometryState
 
 use forge_core::{DecisionKind, KernelError};
-use forge_geom::spatial::bsp::ConvexCell;
+use crate::geom::ConvexCell;
 use forge_topo::arena::{
     BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
     ShellKind, ShellOrientation, VertexData,
@@ -179,7 +179,7 @@ fn insert_vertices(
                 && pb < cell_planes.len()
                 && pc < cell_planes.len()
             {
-                match forge_geom::primitives::plane::intersect_three_planes_exact(
+                match crate::geom::intersect_three_planes_exact(
                     &cell_planes[pa],
                     &cell_planes[pb],
                     &cell_planes[pc],
@@ -383,10 +383,10 @@ fn stitch_twins(draft: &mut MutableDraft, edge_map: &EdgeMap) -> Result<(), Kern
 /// Build a convex solid from arbitrary planes.
 ///
 /// General-purpose constructor: planes → BSP → halfedge mesh.
-pub fn make_convex_solid(planes: Vec<forge_geom::Plane>) -> Result<MeshBuildResult, KernelError> {
-    let cell = forge_geom::spatial::bsp::build_convex_polyhedron(
+pub fn make_convex_solid(planes: Vec<crate::geom::Plane>) -> Result<MeshBuildResult, KernelError> {
+    let cell = crate::geom::build_convex_polyhedron(
         &planes,
-        &forge_geom::spatial::bsp::BspConfig::default(),
+        &crate::geom::BspConfig::default(),
     )?;
     let mut ctx = ModelingContext::new();
     build_halfedge_mesh(&cell, &mut ctx)
@@ -394,18 +394,18 @@ pub fn make_convex_solid(planes: Vec<forge_geom::Plane>) -> Result<MeshBuildResu
 
 /// Create a cube centered at `center` with side length `size`.
 pub fn make_cube(center: [f64; 3], size: f64) -> Result<MeshBuildResult, KernelError> {
-    let planes = forge_geom::primitives::shapes::cube(center, size / 2.0);
+    let planes = crate::geom::shapes::cube(center, size / 2.0);
     make_convex_solid(planes)
 }
 
 /// Create a regular tetrahedron centered at `center` with the given `scale`.
 pub fn make_tetrahedron(center: [f64; 3], scale: f64) -> Result<MeshBuildResult, KernelError> {
-    let planes = forge_geom::primitives::shapes::tetrahedron(center, scale);
+    let planes = crate::geom::shapes::tetrahedron(center, scale);
     make_convex_solid(planes)
 }
 
 /// Create a regular dodecahedron centered at `center` with the given `scale`.
 pub fn make_dodecahedron(center: [f64; 3], scale: f64) -> Result<MeshBuildResult, KernelError> {
-    let planes = forge_geom::primitives::shapes::dodecahedron(center, scale);
+    let planes = crate::geom::shapes::dodecahedron(center, scale);
     make_convex_solid(planes)
 }

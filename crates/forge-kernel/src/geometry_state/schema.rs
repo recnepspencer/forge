@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use forge_core::{KernelError, ToleranceProvider};
-use forge_geom::Plane;
+use crate::geom::Plane;
 use forge_math::arithmetic::Rational;
 use forge_math::{GeometrySource, MathError, PlaneCoefficients};
 use forge_topo::arena::TopologyArena;
@@ -249,11 +249,10 @@ impl GeometryState {
             ExactPosition::from_symbolic(exact, fallback, planes),
         );
     }
-    ///
     /// Uses exact Rational arithmetic for plane transforms and vertex positions,
     /// preserving all precision through the transformation. The f64 approximations
     /// are recomputed from the exact values after transformation.
-    pub fn transform(&mut self, space: &forge_geom::spatial::local_space::LocalCoordinateSpace) {
+    pub fn transform(&mut self, space: &crate::geom::LocalCoordinateSpace) {
         for plane in self.face_planes.values_mut() {
             *plane = space.transform_plane_exact(plane);
         }
@@ -270,7 +269,7 @@ impl GeometryState {
     /// preserving all precision through the inverse transformation.
     pub fn inverse_transform(
         &mut self,
-        space: &forge_geom::spatial::local_space::LocalCoordinateSpace,
+        space: &crate::geom::LocalCoordinateSpace,
     ) {
         for plane in self.face_planes.values_mut() {
             *plane = space.inverse_transform_plane_exact(plane);

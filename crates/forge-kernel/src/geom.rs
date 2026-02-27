@@ -88,6 +88,7 @@ pub mod cert {
 // ── Polygon algorithms ───────────────────────────────────────────────────────
 pub mod polygon {
     pub use forge_geom::algorithms::polygon::bridge_polygon_hole;
+    pub use forge_geom::primitives::polygon::compute_polygon_area;
 }
 
 // ── Clipping ─────────────────────────────────────────────────────────────────

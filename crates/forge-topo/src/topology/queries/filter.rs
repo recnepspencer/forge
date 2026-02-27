@@ -3,8 +3,8 @@
 //! DOMAIN: Utility functions for filtering collections of topology handles.
 
 use std::collections::BTreeSet;
-use forge_topo::arena::TopologyArena;
-use forge_topo::handles::FaceId;
+use crate::arena::TopologyArena;
+use crate::handles::FaceId;
 
 /// Return all active faces in the arena excluding the provided set of index integers.
 pub fn exclude_faces(
@@ -14,6 +14,6 @@ pub fn exclude_faces(
     arena
         .iter_faces()
         .map(|(fid, _)| fid)
-        .filter(|fid| !excluded_indices.contains(&fid.index()))
+        .filter(|fid: &FaceId| !excluded_indices.contains(&fid.index()))
         .collect()
 }

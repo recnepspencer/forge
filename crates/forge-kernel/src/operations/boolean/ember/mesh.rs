@@ -24,8 +24,8 @@ use std::collections::HashMap;
 
 use forge_core::tracing::{DecisionKind, DecisionTier};
 use forge_core::KernelError;
-use forge_geom::spatial::bsp::{BspConfig, BspSolid, ConvexCell};
-use forge_geom::Plane;
+use crate::geom::{BspConfig, BspSolid, ConvexCell};
+use crate::geom::Plane;
 use forge_topo::arena::{
     BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
     ShellKind, ShellOrientation, VertexData,
@@ -49,7 +49,7 @@ pub fn bsp_to_mesh(
     ctx: &mut ModelingContext,
 ) -> Result<(TopologyState, GeometryState, BrepState), KernelError> {
     let config = BspConfig::default();
-    let cells = forge_geom::spatial::bsp::extract_boundary_cells(solid, &config).map_err(|e| {
+    let cells = crate::geom::extract_boundary_cells(solid, &config).map_err(|e| {
         KernelError::InternalError {
             message: format!("BSP boundary extraction failed: {e}"),
             context: None,
@@ -234,7 +234,7 @@ fn insert_cell_vertices(
                 && pb < cell_planes.len()
                 && pc < cell_planes.len()
             {
-                match forge_geom::primitives::plane::intersect_three_planes_exact(
+                match crate::geom::intersect_three_planes_exact(
                     &cell_planes[pa],
                     &cell_planes[pb],
                     &cell_planes[pc],

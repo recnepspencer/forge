@@ -13,8 +13,7 @@
 
 #[cfg(test)]
 mod tests {
-    use forge_geom::algorithms::boundary_cert::eval::*;
-    use forge_geom::algorithms::boundary_cert::schema::*;
+    use crate::geom::*;
     use std::sync::{Mutex, OnceLock};
 
     // =====================================================================
@@ -442,7 +441,7 @@ mod tests {
             geom.set_vertex_position(*v, *p);
         }
 
-        let plane = forge_geom::Plane::from_point_normal([0.0, 0.0, 0.0], [0.0, 0.0, 1.0])
+        let plane = Plane::from_point_normal([0.0, 0.0, 0.0], [0.0, 0.0, 1.0])
             .expect("fixture plane");
         geom.set_face_plane(mvf.face, plane.clone());
         geom.set_face_plane(mef.new_face, plane);
@@ -511,8 +510,8 @@ mod tests {
         assert!(
             matches!(
                 cert,
-                forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::Simple
-                    | forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::WeaklySimple { .. }
+                WeakSimpleCertificate::Simple
+                    | WeakSimpleCertificate::WeaklySimple { .. }
             ),
             "two-face coplanar sheet should be merge-eligible, got {:?}",
             cert,

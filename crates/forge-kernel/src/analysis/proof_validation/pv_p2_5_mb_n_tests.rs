@@ -19,7 +19,7 @@ use crate::operations::boolean::test_helpers::{
 };
 use crate::operations::boolean::{BooleanInput, BooleanOp};
 
-use forge_geom::spatial::local_space::{LocalCoordinateSpace, ScaleAnalysis};
+use crate::geom::{LocalCoordinateSpace, ScaleAnalysis};
 
 /// Deterministic LCG for reproducible random inputs.
 struct Lcg {
@@ -316,12 +316,12 @@ fn mb_n5_nearly_parallel_planes() {
     let tiny_angle = 1e-10;
     let normal = [tiny_angle, 0.0, 1.0];
     let planes = vec![
-        forge_geom::Plane::from_point_normal([0.0, 0.0, 0.5], normal).unwrap(),
-        forge_geom::Plane::from_point_normal([0.0, 0.0, -0.5], [0.0, 0.0, -1.0]).unwrap(),
-        forge_geom::Plane::from_point_normal([0.5, 0.0, 0.0], [1.0, 0.0, 0.0]).unwrap(),
-        forge_geom::Plane::from_point_normal([-0.5, 0.0, 0.0], [-1.0, 0.0, 0.0]).unwrap(),
-        forge_geom::Plane::from_point_normal([0.0, 0.5, 0.0], [0.0, 1.0, 0.0]).unwrap(),
-        forge_geom::Plane::from_point_normal([0.0, -0.5, 0.0], [0.0, -1.0, 0.0]).unwrap(),
+        crate::geom::Plane::from_point_normal([0.0, 0.0, 0.5], normal).unwrap(),
+        crate::geom::Plane::from_point_normal([0.0, 0.0, -0.5], [0.0, 0.0, -1.0]).unwrap(),
+        crate::geom::Plane::from_point_normal([0.5, 0.0, 0.0], [1.0, 0.0, 0.0]).unwrap(),
+        crate::geom::Plane::from_point_normal([-0.5, 0.0, 0.0], [-1.0, 0.0, 0.0]).unwrap(),
+        crate::geom::Plane::from_point_normal([0.0, 0.5, 0.0], [0.0, 1.0, 0.0]).unwrap(),
+        crate::geom::Plane::from_point_normal([0.0, -0.5, 0.0], [0.0, -1.0, 0.0]).unwrap(),
     ];
 
     let (topo_b, geom_b) = build_convex_solid(planes);

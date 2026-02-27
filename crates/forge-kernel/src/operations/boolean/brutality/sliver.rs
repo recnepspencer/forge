@@ -2,8 +2,8 @@ use super::super::schema::{BooleanInput, BooleanOp};
 use super::super::test_helpers::{build_cube, execute_boolean_logged};
 use crate::core::ModelingContext;
 use crate::mesh_builder::build_halfedge_mesh;
-use forge_geom::spatial::bsp::{build_convex_polyhedron, BspConfig};
-use forge_geom::Plane;
+use crate::geom::{build_convex_polyhedron, BspConfig};
+use crate::geom::Plane;
 
 // ══════════════════════════════════════════════════════════════
 // §7  SLIVER BUDGET TORTURE

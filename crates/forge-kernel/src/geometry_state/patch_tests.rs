@@ -6,7 +6,7 @@
 
 #[cfg(test)]
 mod tests {
-    use forge_geom::Plane;
+    use crate::geom::Plane;
     use forge_topo::handles::{FaceId, VertexId};
 
     use crate::core::{KernelDraft, KernelState};

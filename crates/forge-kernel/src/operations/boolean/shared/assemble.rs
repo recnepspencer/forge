@@ -38,7 +38,7 @@ pub(crate) fn assemble_result(
         .iter_vertices()
         .filter_map(|(vid, _)| tool_geom.get_vertex_position(vid));
 
-    let characteristic_scale = forge_geom::spatial::bounds::compute_characteristic_scale(
+    let characteristic_scale = crate::geom::compute_characteristic_scale(
         target_positions.chain(tool_positions),
     );
 

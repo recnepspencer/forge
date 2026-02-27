@@ -19,7 +19,7 @@ use forge_core::{
     DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, ToleranceProvider,
     TracedDecision,
 };
-use forge_geom::BvhNode;
+use crate::geom::BvhNode;
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::FaceId;
 
@@ -351,7 +351,7 @@ fn source_geometry_as_tol(geometry: &GeometryState) -> &dyn ToleranceProvider {
 }
 
 fn same_point(a: &[f64; 3], b: &[f64; 3]) -> bool {
-    forge_geom::primitives::point::is_same_point_within(a, b, 1e-12)
+    crate::geom::is_same_point_within(a, b, 1e-12)
 }
 
 /// Interpret a raw PointClassification into a FaceClassification.
@@ -573,7 +573,7 @@ fn check_normal_alignment(
         source_geom.get_face_plane(source_face),
         other_geom.get_face_plane(other_face),
     ) {
-        (Some(sp), Some(op)) => forge_geom::primitives::plane::normals_aligned_exact(sp, op),
+        (Some(sp), Some(op)) => crate::geom::normals_aligned_exact(sp, op),
         _ => true,
     }
 }

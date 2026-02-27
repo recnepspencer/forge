@@ -256,8 +256,7 @@ impl<'a> Iterator for FaceAllEdgesIterator<'a> {
 ///
 /// Scans the arena and returns all halfedges originating at this vertex.
 pub struct VertexRingIterator<'a> {
-    arena: &'a TopologyArena,
-    vertex: VertexId,
+    _arena: &'a TopologyArena,
     outgoing_halfedges: std::vec::IntoIter<HalfEdgeId>,
 }
 
@@ -279,8 +278,7 @@ impl<'a> VertexRingIterator<'a> {
         edges.sort_by_key(|h| h.index());
 
         Ok(Self {
-            arena,
-            vertex,
+            _arena: arena,
             outgoing_halfedges: edges.into_iter(),
         })
     }

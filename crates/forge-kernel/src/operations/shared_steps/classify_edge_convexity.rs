@@ -14,7 +14,7 @@
 //! DEPENDENCIES: forge-topo (handles, arena), forge-geom (Plane)
 
 use forge_core::KernelError;
-use forge_geom::Plane;
+use crate::geom::Plane;
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::{FaceId, HalfEdgeId};
 

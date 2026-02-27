@@ -5,7 +5,7 @@
 //! PV-32: Mixed-scale (1e12 + 1e-9) → correct precision escalation
 //! PV-52: Local coordinate round-trip < 1 ULP
 
-use forge_geom::spatial::local_space::{LocalCoordinateSpace, ScaleAnalysis};
+use crate::geom::{LocalCoordinateSpace, ScaleAnalysis};
 use forge_math::arithmetic::precision::PrecisionMode;
 use forge_math::predicates::orient3d::orient3d;
 

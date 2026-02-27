@@ -241,12 +241,12 @@ pub fn execute_sheet_region_merge(
 }
 
 fn apply_boundary_cert_gate_policy(
-    cert: &forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate,
+    cert: &crate::geom::WeakSimpleCertificate,
     selection: &MergeRegionSelection,
     ctx: &mut ModelingContext,
 ) -> Result<(), KernelError> {
     match cert {
-        forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::Rejected {
+        crate::geom::WeakSimpleCertificate::Rejected {
             reason,
             witness,
         } => Err(KernelError::MergeFailure(
@@ -255,7 +255,7 @@ fn apply_boundary_cert_gate_policy(
                 witness: Some(*witness),
             },
         )),
-        forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::WeaklySimple {
+        crate::geom::WeakSimpleCertificate::WeaklySimple {
             touch_count,
         } => {
             let group_hash = compute_group_hash(selection.get_selected_faces())?;
@@ -289,7 +289,7 @@ fn apply_boundary_cert_gate_policy(
             }
             Ok(())
         }
-        forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::Simple => Ok(()),
+        crate::geom::WeakSimpleCertificate::Simple => Ok(()),
     }
 }
 
@@ -1222,7 +1222,7 @@ fn find_edge_by_index(arena: &forge_topo::arena::TopologyArena, index: u32) -> O
 #[cfg(test)]
 mod gate_policy_tests {
     use super::*;
-    use forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate;
+    use crate::geom::WeakSimpleCertificate;
     use forge_topo::bitset::EntityBitset;
 
     #[test]

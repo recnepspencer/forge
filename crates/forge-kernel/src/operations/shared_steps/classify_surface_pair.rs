@@ -10,7 +10,7 @@
 //! DEPENDENCIES: forge-geom (Plane), forge-core (KernelError)
 
 use forge_core::KernelError;
-use forge_geom::Plane;
+use crate::geom::Plane;
 
 /// Geometric relationship between two surface planes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

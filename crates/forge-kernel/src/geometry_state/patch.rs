@@ -6,7 +6,7 @@ use forge_math::{GeometrySource, MathError, PlaneCoefficients};
 
 use crate::geometry_state::schema::pack_handle;
 use crate::geometry_state::{ExactPosition, GeometryState};
-use forge_geom::Plane;
+use crate::geom::Plane;
 use forge_topo::handles::{FaceId, VertexId};
 
 /// Transactional mutation handle for geometry.

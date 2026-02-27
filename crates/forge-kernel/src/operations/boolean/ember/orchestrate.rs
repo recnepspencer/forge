@@ -16,8 +16,8 @@
 
 use forge_core::tracing::{DecisionKind, DecisionTier, TraceAdjunctSet};
 use forge_core::{KernelError, OperationMetrics, OperationResult};
-use forge_geom::spatial::bsp::{merge_bsp, BspNode, BspOp, BspSolid};
-use forge_geom::Plane;
+use crate::geom::{merge_bsp, BspNode, BspOp, BspSolid};
+use crate::geom::Plane;
 use forge_topo::state::TopologyState;
 
 use super::mesh::bsp_to_mesh;
@@ -258,8 +258,8 @@ struct FaceDesc {
 /// Find an existing plane with matching exact coefficients, or insert a new one.
 fn find_or_insert_plane(planes: &mut Vec<Plane>, plane: &Plane) -> usize {
     for (i, existing) in planes.iter().enumerate() {
-        if forge_geom::primitives::plane::exact_eq(existing, plane)
-            || forge_geom::primitives::plane::coplanar_eq(existing, plane)
+        if crate::geom::plane_exact_eq(existing, plane)
+            || crate::geom::coplanar_eq(existing, plane)
         {
             return i;
         }

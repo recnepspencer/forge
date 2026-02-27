@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::geometry_state::schema::pack_handle;
 use forge_core::KernelError;
-use forge_geom::{Coedge, CurveGeom, SurfaceData};
+use crate::geom::{Coedge, CurveGeom, SurfaceData};
 use forge_topo::handles::{CoedgeRef, CurveRef, EdgeId, FaceId, HalfEdgeId, SurfaceRef};
 
 /// A generational slot in the B-Rep arenas.

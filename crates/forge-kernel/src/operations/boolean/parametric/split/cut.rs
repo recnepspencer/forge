@@ -14,7 +14,7 @@ use forge_core::KernelError;
 use forge_core::{
     DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, TracedDecision,
 };
-use forge_geom::primitives::plane::{intersect_three_planes_exact, Plane};
+use crate::geom::{intersect_three_planes_exact, Plane};
 use forge_math::arithmetic::Rational;
 use forge_topo::euler::make_edge_face::MakeEdgeFace;
 use forge_topo::euler::split_edge::SplitEdge;
@@ -852,7 +852,7 @@ fn compute_intersection_position(
                 let f64_pos = if fx.is_finite() && fy.is_finite() && fz.is_finite() {
                     [fx, fy, fz]
                 } else {
-                    forge_geom::primitives::plane::intersect_edge_plane(
+                    crate::geom::intersect_edge_plane(
                         cut_plane,
                         p_o,
                         p_d,
@@ -867,7 +867,7 @@ fn compute_intersection_position(
             }
             Err(_) => (
                 None,
-                forge_geom::primitives::plane::intersect_edge_plane(
+                crate::geom::intersect_edge_plane(
                     cut_plane,
                     p_o,
                     p_d,
@@ -877,7 +877,7 @@ fn compute_intersection_position(
             ),
         }
     } else {
-        let f64_pos = forge_geom::primitives::plane::intersect_edge_plane(
+        let f64_pos = crate::geom::intersect_edge_plane(
             cut_plane,
             p_o,
             p_d,

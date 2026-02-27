@@ -8,7 +8,7 @@
 
 use std::str::FromStr;
 
-use forge_geom::Plane;
+use crate::geom::Plane;
 use forge_topo::state::TopologyState;
 
 use super::execute_boolean;

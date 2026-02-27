@@ -40,7 +40,7 @@
 //!    (scaled to the magnitude of the coordinates) instead of fixed absolute
 //!    thresholds. Critical for T2.2 and T2.6 where ULP varies by 10¹².
 
-use forge_geom::Plane;
+use crate::geom::{Coedge, CurveGeom, SurfaceData, Plane};
 
 use super::super::schema::{BooleanInput, BooleanOp};
 use super::super::test_helpers::{

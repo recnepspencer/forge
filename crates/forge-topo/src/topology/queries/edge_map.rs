@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use forge_core::KernelError;
 
 use crate::arena::TopologyArena;
-use crate::handles::HalfEdgeId;
+use crate::handles::{HalfEdgeId, EdgeId, VertexId};
 
 /// Result of building a directed edge map.
 pub struct EdgeMapResult {
@@ -28,12 +28,12 @@ pub fn build_edge_map(
 
     for &he_id in halfedges {
         let edge_id = arena.get_half_edge(he_id)?.edge();
-        let (origin, dest) = arena.get_edge_endpoints(edge_id)?;
+        let (origin, dest) = get_edge_endpoints(arena, edge_id)?;
         if origin == dest {
             zero_length.insert(he_id.index());
         } else {
             forward_map
-                .entry((origin.index(), dest.index()))
+                .entry((origin.index() as u32, dest.index() as u32))
                 .or_default()
                 .push(he_id);
         }
@@ -54,10 +54,22 @@ pub fn build_directed_map(
     for &he_id in ids {
         let he = arena.get_half_edge(he_id)?;
         let edge_id = he.edge();
-        let (origin, dest) = arena.get_edge_endpoints(edge_id)?;
-        map.entry((origin.index(), dest.index()))
+        let (origin, dest) = get_edge_endpoints(arena, edge_id)?;
+        map.entry((origin.index() as u32, dest.index() as u32))
             .or_default()
             .push(he_id);
     }
     Ok(map)
+}
+
+/// Helper to fetch topological endpoints of an undirected edge.
+fn get_edge_endpoints(
+    arena: &TopologyArena,
+    edge_id: EdgeId,
+) -> Result<(VertexId, VertexId), KernelError> {
+    let he_id = arena.get_edge(edge_id)?.half_edge();
+    let he = arena.get_half_edge(he_id)?;
+    let origin = he.origin();
+    let dest = arena.get_half_edge(he.next())?.origin();
+    Ok((origin, dest))
 }

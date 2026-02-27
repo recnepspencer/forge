@@ -4,7 +4,7 @@
 //! handles. Used by operations that need face planes, vertex positions,
 //! or curve/surface data without depending on `GeometryState` directly.
 
-use forge_geom::Plane;
+use crate::geom::Plane;
 use forge_topo::handles::{FaceId, VertexId};
 
 use crate::geometry_state::GeometryState;

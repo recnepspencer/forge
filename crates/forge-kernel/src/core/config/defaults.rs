@@ -66,7 +66,7 @@ pub const AMBIGUITY_BAND_FACTOR: f64 = 10.0;
 /// Grid scale for spatial hashing (quantization resolution).
 ///
 /// `1e6` = 1-micrometer grid cells on a meter-unit model. Drives
-/// `compute_entity_spatial_hash` via `ToleranceConfig::get_spatial_hash_grid_scale`.
+/// `forge_math::linalg::compute_spatial_hash` via `ToleranceConfig::get_spatial_hash_grid_scale`.
 pub const SPATIAL_HASH_GRID_SCALE: f64 = 1e6;
 
 /// Maximum iterations for iterative numeric solvers (e.g. Newton-Raphson).

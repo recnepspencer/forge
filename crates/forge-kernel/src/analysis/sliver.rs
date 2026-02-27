@@ -75,7 +75,7 @@ pub fn analyze_slivers(
 
     for (face_id, face_data) in arena.iter_faces() {
         let vertices = collect_loop_positions(topo, geom, face_data.outer_loop())?;
-        let area = forge_geom::primitives::polygon::compute_polygon_area(&vertices);
+        let area = crate::geom::polygon::compute_polygon_area(&vertices);
 
         if area < min_face_area {
             sliver_count += 1;
@@ -146,21 +146,21 @@ mod tests {
             [1.0, 1.0, 0.0],
             [0.0, 1.0, 0.0],
         ];
-        let area = forge_geom::primitives::polygon::compute_polygon_area(&verts);
+        let area = crate::geom::polygon::compute_polygon_area(&verts);
         assert!((area - 1.0).abs() < 1e-10, "Expected 1.0, got {area}");
     }
 
     #[test]
     fn triangle_area() {
         let verts = [[0.0, 0.0, 0.0], [2.0, 0.0, 0.0], [0.0, 3.0, 0.0]];
-        let area = forge_geom::primitives::polygon::compute_polygon_area(&verts);
+        let area = crate::geom::polygon::compute_polygon_area(&verts);
         assert!((area - 3.0).abs() < 1e-10, "Expected 3.0, got {area}");
     }
 
     #[test]
     fn degenerate_line_has_zero_area() {
         let verts = [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]];
-        let area = forge_geom::primitives::polygon::compute_polygon_area(&verts);
+        let area = crate::geom::polygon::compute_polygon_area(&verts);
         assert!(area < 1e-15, "Expected 0, got {area}");
     }
 
@@ -172,7 +172,7 @@ mod tests {
             [1.0, 1e-12, 0.0],
             [0.0, 1e-12, 0.0],
         ];
-        let area = forge_geom::primitives::polygon::compute_polygon_area(&verts);
+        let area = crate::geom::polygon::compute_polygon_area(&verts);
         assert!(area < 1e-10, "Sliver area {area} should be tiny");
         assert!(area > 0.0, "Sliver area should be positive");
     }

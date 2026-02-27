@@ -13,7 +13,7 @@
 
 use forge_core::policy::PolicyKind;
 use forge_core::{DecisionKind, DecisionTier, ToleranceProvider};
-use forge_geom::primitives::vertex_geom::VertexGeom;
+use crate::geom::VertexGeom;
 use forge_topo::handles::VertexId;
 
 // Removed geometry_state dependency

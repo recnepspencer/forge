@@ -4,10 +4,10 @@
 //! split phase. Uses AABB overlap (BVH) to find candidates, then
 //! exact rational coplanarity confirmation (D3-compliant).
 
-use forge_geom::primitives::aabb::Aabb;
-use forge_geom::spatial::bvh::{query_overlapping_pairs, BvhNode};
-use forge_geom::spatial::coincidence::{CoincidenceGraph, CoincidenceKind};
-use forge_geom::Plane;
+use crate::geom::Aabb;
+use crate::geom::{query_overlapping_pairs, BvhNode};
+use crate::geom::{CoincidenceGraph, CoincidenceKind};
+use crate::geom::Plane;
 use forge_topo::handles::FaceId;
 
 /// Pack a `FaceId` into a raw `u64` handle for use in `CoincidenceGraph` edges.
@@ -93,7 +93,7 @@ pub fn build_face_coincidence_prepass(
             continue;
         };
 
-        if !forge_geom::primitives::plane::coplanar_eq(plane_a, plane_b) {
+        if !crate::geom::coplanar_eq(plane_a, plane_b) {
             continue;
         }
 
@@ -114,5 +114,5 @@ pub fn build_face_coincidence_prepass(
 /// Delegates to `forge_geom::primitives::plane::are_parallel_exact`, which
 /// uses exact rational cross product. No tolerance, no magic numbers — D3 compliant.
 pub(crate) fn planes_are_parallel(a: &Plane, b: &Plane) -> bool {
-    forge_geom::primitives::plane::are_parallel_exact(a, b)
+    crate::geom::are_parallel_exact(a, b)
 }

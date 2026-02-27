@@ -5,8 +5,8 @@ use crate::brep::state::BrepState;
 use crate::brep::state::BrepState;
 use crate::core::ModelingContext;
 use crate::mesh_builder::build_halfedge_mesh;
-use forge_geom::spatial::bsp::{build_convex_polyhedron, BspConfig};
-use forge_geom::Plane;
+use crate::geom::{build_convex_polyhedron, BspConfig};
+use crate::geom::Plane;
 use forge_topo::hashing::compute_arena_topology_hash;
 
 // ══════════════════════════════════════════════════════════════
