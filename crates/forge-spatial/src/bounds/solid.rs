@@ -19,7 +19,9 @@ pub fn shell_bounds(
 ) -> Result<Option<Aabb>, KernelError> {
     let mut result: Option<Aabb> = None;
     for face_id in shell_faces(arena, shell)? {
-        let Some(face_box) = face_bounds(arena, position_fn, face_id)? else { continue; };
+        let Some(face_box) = face_bounds(arena, position_fn, face_id)? else {
+            continue;
+        };
         result = match result {
             Some(bounds) => Some(bounds.union(&face_box)),
             None => Some(face_box),
@@ -43,7 +45,9 @@ pub fn region_bounds(
         }
     }
     for &inner_shell in region_data.inner_shells() {
-        let Some(shell_box) = shell_bounds(arena, position_fn, inner_shell)? else { continue; };
+        let Some(shell_box) = shell_bounds(arena, position_fn, inner_shell)? else {
+            continue;
+        };
         result = match result {
             Some(bounds) => Some(bounds.union(&shell_box)),
             None => Some(shell_box),
@@ -61,7 +65,9 @@ pub fn lump_bounds(
     let lump_data = arena.get_lump(lump)?;
     let mut result: Option<Aabb> = None;
     for &region_id in lump_data.regions() {
-        let Some(region_box) = region_bounds(arena, position_fn, region_id)? else { continue; };
+        let Some(region_box) = region_bounds(arena, position_fn, region_id)? else {
+            continue;
+        };
         result = match result {
             Some(bounds) => Some(bounds.union(&region_box)),
             None => Some(region_box),
@@ -79,7 +85,9 @@ pub fn solid_bounds(
     let body_data = arena.get_body(body)?;
     let mut result: Option<Aabb> = None;
     for &lump_id in body_data.lumps() {
-        let Some(lump_box) = lump_bounds(arena, position_fn, lump_id)? else { continue; };
+        let Some(lump_box) = lump_bounds(arena, position_fn, lump_id)? else {
+            continue;
+        };
         result = match result {
             Some(bounds) => Some(bounds.union(&lump_box)),
             None => Some(lump_box),

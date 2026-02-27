@@ -107,7 +107,7 @@ fn kv05_large_cluster_merge() {
     g.merge(0, 2);
     g.merge(0, 3);
     g.merge(0, 4);
-    
+
     assert_eq!(g.representative(4).unwrap(), 0);
     assert_eq!(g.representative(1).unwrap(), 0);
 }

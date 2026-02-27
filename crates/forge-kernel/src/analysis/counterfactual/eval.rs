@@ -9,18 +9,18 @@
 //! `forge-topo` (TopologyState, validate_topology, hashing),
 //! `operations::boolean` (execute_boolean_with_overrides, FaceClassification)
 
-use forge_core::{DecisionContext, DecisionId, DecisionLog, DecisionTier, KernelError, TracedDecision};
-use forge_topo::validate::{validate_topology, ValidationLevel};
+use forge_core::{
+    DecisionContext, DecisionId, DecisionLog, DecisionTier, KernelError, TracedDecision,
+};
 use forge_topo::hashing::compute_arena_topology_hash;
+use forge_topo::validate::{validate_topology, ValidationLevel};
 
 use crate::operations::boolean::{
-    BooleanInput, FaceClassification,
-    execute_boolean_with_overrides,
+    execute_boolean_with_overrides, BooleanInput, FaceClassification,
 };
 
 use super::schema::{
-    CounterfactualResult, CounterfactualValidation,
-    DecisionOverride, EntityDelta,
+    CounterfactualResult, CounterfactualValidation, DecisionOverride, EntityDelta,
 };
 
 /// Replay a Boolean operation with a single classification override.
@@ -44,13 +44,12 @@ pub fn replay_decision(
         })?
         .clone();
 
-    let classification = parse_classification_from_context(&original_decision)
-        .ok_or_else(|| KernelError::InvalidInput {
-            message: format!(
-                "Decision {:?} is not a classification decision",
-                target_id
-            ),
-            context: None,
+    let classification =
+        parse_classification_from_context(&original_decision).ok_or_else(|| {
+            KernelError::InvalidInput {
+                message: format!("Decision {:?} is not a classification decision", target_id),
+                context: None,
+            }
         })?;
 
     let flipped = flip_classification(classification);
@@ -60,50 +59,57 @@ pub fn replay_decision(
     let counterfactual_envelope = execute_boolean_with_overrides(cloned_input, &overrides);
     let counterfactual_decisions = counterfactual_envelope.get_decision_log().clone();
 
-    let (counterfactual_hash, entity_delta, validation, cf_log) = match counterfactual_envelope.into_result() {
-        Ok(cf_result) => {
-            let cf_hash = compute_arena_topology_hash(cf_result.topology().arena());
-            let cf_face_count = cf_result.topology().arena().face_count();
+    let (counterfactual_hash, entity_delta, validation, cf_log) =
+        match counterfactual_envelope.into_result() {
+            Ok(cf_result) => {
+                let cf_hash = compute_arena_topology_hash(cf_result.topology().arena());
+                let cf_face_count = cf_result.topology().arena().face_count();
 
-            let original_face_count = estimate_original_face_count(original_log);
-            let face_diff = (cf_face_count as i64 - original_face_count as i64).unsigned_abs() as usize;
+                let original_face_count = estimate_original_face_count(original_log);
+                let face_diff =
+                    (cf_face_count as i64 - original_face_count as i64).unsigned_abs() as usize;
 
-            let valid = validate_topology(cf_result.topology().arena(), ValidationLevel::Full);
-            let validation = match valid {
-                Ok(()) => {
-                    if cf_hash != original_hash {
-                        CounterfactualValidation::DivergentButValid
-                    } else {
-                        CounterfactualValidation::Valid
+                let valid = validate_topology(cf_result.topology().arena(), ValidationLevel::Full);
+                let validation = match valid {
+                    Ok(()) => {
+                        if cf_hash != original_hash {
+                            CounterfactualValidation::DivergentButValid
+                        } else {
+                            CounterfactualValidation::Valid
+                        }
                     }
-                }
-                Err(e) => CounterfactualValidation::TopologyBroken {
-                    errors: vec![format!("{e:?}")],
-                },
-            };
+                    Err(e) => CounterfactualValidation::TopologyBroken {
+                        errors: vec![format!("{e:?}")],
+                    },
+                };
 
-            let delta = EntityDelta::new(
-                face_diff,
-                0,
-                0,
-                format!(
-                    "Flipped {:?} from {} to {} — face count delta: {}",
-                    target_id,
-                    classification_label(classification),
-                    classification_label(flipped),
+                let delta = EntityDelta::new(
                     face_diff,
-                ),
-            );
+                    0,
+                    0,
+                    format!(
+                        "Flipped {:?} from {} to {} — face count delta: {}",
+                        target_id,
+                        classification_label(classification),
+                        classification_label(flipped),
+                        face_diff,
+                    ),
+                );
 
-            (cf_hash, delta, validation, counterfactual_decisions)
-        }
-        Err(e) => {
-            let validation = CounterfactualValidation::TopologyBroken {
-                errors: vec![format!("Boolean re-execution failed: {e:?}")],
-            };
-            (0, EntityDelta::empty(), validation, counterfactual_decisions)
-        }
-    };
+                (cf_hash, delta, validation, counterfactual_decisions)
+            }
+            Err(e) => {
+                let validation = CounterfactualValidation::TopologyBroken {
+                    errors: vec![format!("Boolean re-execution failed: {e:?}")],
+                };
+                (
+                    0,
+                    EntityDelta::empty(),
+                    validation,
+                    counterfactual_decisions,
+                )
+            }
+        };
 
     Ok(CounterfactualResult::new(
         original_decision,

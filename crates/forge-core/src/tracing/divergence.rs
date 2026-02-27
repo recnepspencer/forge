@@ -336,8 +336,7 @@ mod tests {
 
         let report = scan_for_divergences(&log);
         let json = serde_json::to_string(&report).expect("serialize");
-        let deserialized: DivergenceReport =
-            serde_json::from_str(&json).expect("deserialize");
+        let deserialized: DivergenceReport = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(report, deserialized);
     }
 }

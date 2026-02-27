@@ -11,8 +11,8 @@
 //! DEPENDENCIES: `geometry_state` (GeometryState), `forge-geom` (CurveGeom)
 
 use forge_core::KernelError;
-use forge_geom::curve::schema::{CurveKind, CurveGeom, CurveProvenance, SpCurveApproximation};
-use forge_topo::handles::{EdgeId, CurveRef};
+use forge_geom::curve::schema::{CurveGeom, CurveKind, CurveProvenance, SpCurveApproximation};
+use forge_topo::handles::{CurveRef, EdgeId};
 
 use crate::brep::state::BrepState;
 
@@ -88,25 +88,57 @@ fn subdivide_curve_kind(kind: &CurveKind, t: f64) -> (CurveKind, CurveKind) {
                 origin[2] + t * direction[2],
             ];
             (
-                CurveKind::Line { origin: *origin, direction: *direction },
-                CurveKind::Line { origin: mid, direction: *direction },
+                CurveKind::Line {
+                    origin: *origin,
+                    direction: *direction,
+                },
+                CurveKind::Line {
+                    origin: mid,
+                    direction: *direction,
+                },
             )
         }
-        CurveKind::Circle { center, normal, radius } => {
+        CurveKind::Circle {
+            center,
+            normal,
+            radius,
+        } => {
             let angle_a_end = t * std::f64::consts::TAU;
             let _angle_b_start = angle_a_end;
             (
-                CurveKind::Circle { center: *center, normal: *normal, radius: *radius },
-                CurveKind::Circle { center: *center, normal: *normal, radius: *radius },
+                CurveKind::Circle {
+                    center: *center,
+                    normal: *normal,
+                    radius: *radius,
+                },
+                CurveKind::Circle {
+                    center: *center,
+                    normal: *normal,
+                    radius: *radius,
+                },
             )
         }
-        CurveKind::Ellipse { center, major, minor } => {
-            (
-                CurveKind::Ellipse { center: *center, major: *major, minor: *minor },
-                CurveKind::Ellipse { center: *center, major: *major, minor: *minor },
-            )
-        }
-        CurveKind::SurfaceIntersection { surface_a, surface_b, sp_curve_cache } => {
+        CurveKind::Ellipse {
+            center,
+            major,
+            minor,
+        } => (
+            CurveKind::Ellipse {
+                center: *center,
+                major: *major,
+                minor: *minor,
+            },
+            CurveKind::Ellipse {
+                center: *center,
+                major: *major,
+                minor: *minor,
+            },
+        ),
+        CurveKind::SurfaceIntersection {
+            surface_a,
+            surface_b,
+            sp_curve_cache,
+        } => {
             let (cache_a, cache_b) = subdivide_sp_curve(sp_curve_cache, t);
             (
                 CurveKind::SurfaceIntersection {
@@ -128,7 +160,10 @@ fn subdivide_curve_kind(kind: &CurveKind, t: f64) -> (CurveKind, CurveKind) {
 ///
 /// Splits the control point polyline at the parametric midpoint and
 /// adjusts domains. Full de Casteljau subdivision is Phase 7 (NURBS).
-fn subdivide_sp_curve(cache: &SpCurveApproximation, t: f64) -> (SpCurveApproximation, SpCurveApproximation) {
+fn subdivide_sp_curve(
+    cache: &SpCurveApproximation,
+    t: f64,
+) -> (SpCurveApproximation, SpCurveApproximation) {
     let t_global = cache.domain.0 + t * (cache.domain.1 - cache.domain.0);
 
     let n = cache.control_points.len();
@@ -143,19 +178,37 @@ fn subdivide_sp_curve(cache: &SpCurveApproximation, t: f64) -> (SpCurveApproxima
     let pts_a: Vec<[f64; 3]> = cache.control_points[..=split_idx].to_vec();
     let pts_b: Vec<[f64; 3]> = cache.control_points[split_idx..].to_vec();
 
-    let knots_a: Vec<f64> = cache.knots.iter().filter(|&&k| k <= t_global).cloned().collect();
-    let knots_b: Vec<f64> = cache.knots.iter().filter(|&&k| k >= t_global).cloned().collect();
+    let knots_a: Vec<f64> = cache
+        .knots
+        .iter()
+        .filter(|&&k| k <= t_global)
+        .cloned()
+        .collect();
+    let knots_b: Vec<f64> = cache
+        .knots
+        .iter()
+        .filter(|&&k| k >= t_global)
+        .cloned()
+        .collect();
 
     (
         SpCurveApproximation {
             control_points: pts_a,
-            knots: if knots_a.is_empty() { vec![cache.domain.0, t_global] } else { knots_a },
+            knots: if knots_a.is_empty() {
+                vec![cache.domain.0, t_global]
+            } else {
+                knots_a
+            },
             error_bound: cache.error_bound,
             domain: (cache.domain.0, t_global),
         },
         SpCurveApproximation {
             control_points: pts_b,
-            knots: if knots_b.is_empty() { vec![t_global, cache.domain.1] } else { knots_b },
+            knots: if knots_b.is_empty() {
+                vec![t_global, cache.domain.1]
+            } else {
+                knots_b
+            },
             error_bound: cache.error_bound,
             domain: (t_global, cache.domain.1),
         },
@@ -198,8 +251,12 @@ mod tests {
         let result = propagate_curve_on_split(old_edge, new_edge, 0.5, &mut geom);
         assert!(result.is_ok());
 
-        let ref_a = geom.get_edge_curve(old_edge).expect("old edge should have curve");
-        let ref_b = geom.get_edge_curve(new_edge).expect("new edge should have curve");
+        let ref_a = geom
+            .get_edge_curve(old_edge)
+            .expect("old edge should have curve");
+        let ref_b = geom
+            .get_edge_curve(new_edge)
+            .expect("new edge should have curve");
 
         assert_ne!(ref_a.index(), ref_b.index());
 
@@ -230,7 +287,9 @@ mod tests {
                 sp_curve_cache: sp_cache,
             },
             tolerance: 1e-8,
-            provenance: CurveProvenance::AnalyticIntersection { surface_indices: [0, 1] },
+            provenance: CurveProvenance::AnalyticIntersection {
+                surface_indices: [0, 1],
+            },
         };
         let curve_ref = geom.insert_curve(curve);
         geom.attach_curve_to_edge(old_edge, curve_ref);
@@ -246,8 +305,16 @@ mod tests {
 
         match (&curve_a.kind, &curve_b.kind) {
             (
-                CurveKind::SurfaceIntersection { surface_a: sa1, surface_b: sb1, .. },
-                CurveKind::SurfaceIntersection { surface_a: sa2, surface_b: sb2, .. },
+                CurveKind::SurfaceIntersection {
+                    surface_a: sa1,
+                    surface_b: sb1,
+                    ..
+                },
+                CurveKind::SurfaceIntersection {
+                    surface_a: sa2,
+                    surface_b: sb2,
+                    ..
+                },
             ) => {
                 assert_eq!(*sa1, 0);
                 assert_eq!(*sb1, 1);
@@ -280,7 +347,9 @@ mod tests {
         let ref_a = geom.get_edge_curve(old_edge).unwrap();
         let curve_a = geom.get_curve(ref_a).unwrap();
         match &curve_a.provenance {
-            CurveProvenance::SplitInherited { parameter_range, .. } => {
+            CurveProvenance::SplitInherited {
+                parameter_range, ..
+            } => {
                 assert!((parameter_range.0 - 0.0).abs() < 1e-12);
                 assert!((parameter_range.1 - 0.3).abs() < 1e-12);
             }
@@ -290,7 +359,9 @@ mod tests {
         let ref_b = geom.get_edge_curve(new_edge).unwrap();
         let curve_b = geom.get_curve(ref_b).unwrap();
         match &curve_b.provenance {
-            CurveProvenance::SplitInherited { parameter_range, .. } => {
+            CurveProvenance::SplitInherited {
+                parameter_range, ..
+            } => {
                 assert!((parameter_range.0 - 0.3).abs() < 1e-12);
                 assert!((parameter_range.1 - 1.0).abs() < 1e-12);
             }

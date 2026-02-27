@@ -25,15 +25,15 @@
 //! └── wrappers.rs    ← Legacy feature wrappers (to be migrated)
 //! ```
 
-pub mod traits;
-pub mod tree;
-pub mod intent;
 pub mod contract;
-pub mod executor;
-pub mod macros;
-pub mod invariants;
 pub mod dispatch;
 pub mod errors;
+pub mod executor;
+pub mod intent;
+pub mod invariants;
+pub mod macros;
+pub mod traits;
+pub mod tree;
 pub mod wrappers;
 
 #[cfg(test)]

@@ -90,12 +90,20 @@ impl PipelineDiagnostic {
 
 impl std::fmt::Display for PipelineDiagnostic {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let status = if self.is_healthy() { "HEALTHY" } else { "DEFECTIVE" };
+        let status = if self.is_healthy() {
+            "HEALTHY"
+        } else {
+            "DEFECTIVE"
+        };
         write!(
             f,
             "[{}] {} — F={} HE={} V={} unpaired={}",
-            self.stage, status,
-            self.face_count, self.half_edge_count, self.vertex_count, self.unpaired_twins
+            self.stage,
+            status,
+            self.face_count,
+            self.half_edge_count,
+            self.vertex_count,
+            self.unpaired_twins
         )?;
         for err in &self.structural_errors {
             write!(f, "\n  ✗ {}", err)?;
@@ -109,10 +117,7 @@ impl std::fmt::Display for PipelineDiagnostic {
 /// Unlike `run_checkpoint`, this function never returns `Err`. It captures
 /// all validation failures as data within the `PipelineDiagnostic` struct,
 /// allowing the caller to log and continue.
-pub fn diagnose_arena(
-    arena: &TopologyArena,
-    stage: PipelineStage,
-) -> PipelineDiagnostic {
+pub fn diagnose_arena(arena: &TopologyArena, stage: PipelineStage) -> PipelineDiagnostic {
     let face_count = arena.face_count();
     let half_edge_count = arena.half_edge_count();
     let vertex_count = arena.vertex_count();
@@ -137,7 +142,8 @@ pub fn diagnose_arena(
 
 /// Count halfedges whose twin pointer points to themselves (unpaired).
 fn count_unpaired_twins(arena: &TopologyArena) -> usize {
-    arena.iter_half_edges()
+    arena
+        .iter_half_edges()
         .filter(|(id, data)| *id == data.radial_next())
         .count()
 }

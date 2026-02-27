@@ -18,11 +18,10 @@
 //! - Stitching survives vertex fan with 100+ outgoing halfedges
 //! - Classification handles near-coplanar tool faces at shared vertex
 
-use super::super::test_helpers::{
-    build_cube, build_tetrahedron, build_dodecahedron,
-    execute_boolean_logged, euler_audit,
-};
 use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::test_helpers::{
+    build_cube, build_dodecahedron, build_tetrahedron, euler_audit, execute_boolean_logged,
+};
 
 /// Build the singularity star: union 64+32+16 solids all touching one vertex.
 fn build_singularity_star() -> Option<(
@@ -43,7 +42,15 @@ fn build_singularity_star() -> Option<(
         let cz = shared_vertex[2] + r * angle_v.sin() + r;
 
         let (topo_tool, geom_tool) = build_cube([cx, cy, cz], 0.5);
-        let input = BooleanInput::new(topo, geom, BrepState::new(), topo_tool, geom_tool, BrepState::new(), BooleanOp::Union);
+        let input = BooleanInput::new(
+            topo,
+            geom,
+            BrepState::new(),
+            topo_tool,
+            geom_tool,
+            BrepState::new(),
+            BooleanOp::Union,
+        );
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
@@ -73,7 +80,15 @@ fn build_singularity_star() -> Option<(
         let cz = shared_vertex[2] + (i as f64) * 0.05;
 
         let (topo_tool, geom_tool) = build_tetrahedron([cx, cy, cz], 0.3);
-        let input = BooleanInput::new(topo, geom, BrepState::new(), topo_tool, geom_tool, BrepState::new(), BooleanOp::Union);
+        let input = BooleanInput::new(
+            topo,
+            geom,
+            BrepState::new(),
+            topo_tool,
+            geom_tool,
+            BrepState::new(),
+            BooleanOp::Union,
+        );
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
@@ -102,7 +117,15 @@ fn build_singularity_star() -> Option<(
         let cy = shared_vertex[1] + r * angle.sin();
 
         let (topo_tool, geom_tool) = build_dodecahedron([cx, cy, 0.0], 0.25);
-        let input = BooleanInput::new(topo, geom, BrepState::new(), topo_tool, geom_tool, BrepState::new(), BooleanOp::Union);
+        let input = BooleanInput::new(
+            topo,
+            geom,
+            BrepState::new(),
+            topo_tool,
+            geom_tool,
+            BrepState::new(),
+            BooleanOp::Union,
+        );
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
@@ -167,8 +190,10 @@ fn singularity_near_miss_subtraction() {
     let (topo_tool, geom_tool) = build_cube([epsilon, epsilon, epsilon], 2.0);
 
     let input = BooleanInput::new(
-        topo_star, geom_star,
-        topo_tool, geom_tool,
+        topo_star,
+        geom_star,
+        topo_tool,
+        geom_tool,
         BooleanOp::Subtraction,
     );
 

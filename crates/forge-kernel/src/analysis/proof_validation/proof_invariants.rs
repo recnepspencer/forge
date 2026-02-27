@@ -26,10 +26,7 @@ use crate::analysis::causal_chain::query_causal_chain;
 /// - Last entry's post_hash matches `result_hash`
 ///
 /// Returns descriptive error string on failure.
-pub fn validate_hash_chain(
-    replay: &ReplayLog,
-    result_hash: u128,
-) -> Result<(), String> {
+pub fn validate_hash_chain(replay: &ReplayLog, result_hash: u128) -> Result<(), String> {
     let entries = replay.entries();
     if entries.is_empty() {
         return Err("Replay log is empty — no hash chain to validate".to_string());
@@ -86,14 +83,16 @@ pub fn validate_lineage_coverage(
 
     let mut seen_indices = BTreeSet::new();
     for event in lineage_events {
-        if let LineageEvent::EntityCreated { lineage, entity, .. } = event {
-            if entity.kind().as_str() != "Face" { continue; }
+        if let LineageEvent::EntityCreated {
+            lineage, entity, ..
+        } = event
+        {
+            if entity.kind().as_str() != "Face" {
+                continue;
+            }
             let idx = lineage.get_origin_features()[0] as u32;
             if !seen_indices.insert(idx) {
-                return Err(format!(
-                    "Duplicate lineage event for face index {}",
-                    idx,
-                ));
+                return Err(format!("Duplicate lineage event for face index {}", idx,));
             }
         }
     }
@@ -111,7 +110,9 @@ pub fn validate_causal_reachability(
     decisions: &DecisionLog,
     lineage: &[LineageEvent],
 ) -> Result<(), String> {
-    let replay_op_names: BTreeSet<&str> = replay.entries().iter()
+    let replay_op_names: BTreeSet<&str> = replay
+        .entries()
+        .iter()
         .map(|e| e.signature().get_name())
         .collect();
 
@@ -120,9 +121,7 @@ pub fn validate_causal_reachability(
 
     for (fid, _) in arena.iter_faces() {
         let face_ref = EntityRef::new(forge_core::EntityKind::Face, fid.index() as u32);
-        let chain = query_causal_chain(
-            &face_ref, replay, decisions, lineage, &[],
-        );
+        let chain = query_causal_chain(&face_ref, replay, decisions, lineage, &[]);
 
         if chain.get_steps().is_empty() {
             faces_with_empty_chains.push(fid.index());

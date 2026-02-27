@@ -7,11 +7,11 @@
 //! exact replay for entities that originated from `GeometricIntersection`
 //! (unsupported origin) unless a proper counterfactual override is available.
 
-use serde::{Deserialize, Serialize};
-use forge_core::tracing::DecisionId;
 use crate::audit::schema::AuditBundleManifest;
 use crate::audit::schema::AUDIT_SCHEMA_VERSION;
+use forge_core::tracing::DecisionId;
 use forge_core::tracing::TraceFingerprint;
+use serde::{Deserialize, Serialize};
 
 /// Compatibility rating for a trace bundle against the replay system.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -26,19 +26,12 @@ pub enum ReplayCompatibility {
     /// Cannot replay because no witnesses were provided.
     RequiresWitness,
     /// The audit schema version is incompatible with this bridge.
-    SchemaVersionMismatch {
-        recorded: u32,
-        supported: u32,
-    },
+    SchemaVersionMismatch { recorded: u32, supported: u32 },
     /// The operation payload version is unsupported.
-    UnsupportedOperationVersion {
-        version: u32,
-    },
+    UnsupportedOperationVersion { version: u32 },
     /// The origin of an entity in the operation cannot be forward-linked
     /// natively (e.g. `GeometricIntersection` from NURBS).
-    UnsupportedEntityOrigin {
-        origin: String,
-    },
+    UnsupportedEntityOrigin { origin: String },
 }
 
 /// Category of a provided replay witness.
@@ -92,23 +85,36 @@ pub fn build_replay_bridge_record(
         }
     } else if witnesses.is_empty() {
         ReplayCompatibility::RequiresWitness
-    } else if witnesses.iter().any(|w| w.witness_kind == ReplayWitnessKind::GeometricIntersection) {
+    } else if witnesses
+        .iter()
+        .any(|w| w.witness_kind == ReplayWitnessKind::GeometricIntersection)
+    {
         // NURBS INV-3 Guard: Any GeometricIntersection witness flags the record as
         // unsupported origin for exact replay. The presence of *any* PolicyDecision
         // witness anywhere in the list (regardless of order or position) overrides
         // this and downgrades to CounterfactualOnly. Without a PolicyDecision override,
         // exact replay is architecturally forbidden for intersection-derived entities.
-        if witnesses.iter().any(|w| w.witness_kind == ReplayWitnessKind::PolicyDecision) {
+        if witnesses
+            .iter()
+            .any(|w| w.witness_kind == ReplayWitnessKind::PolicyDecision)
+        {
             ReplayCompatibility::CounterfactualOnly
         } else {
             ReplayCompatibility::UnsupportedEntityOrigin {
                 origin: "GeometricIntersection".to_string(),
             }
         }
-    } else if witnesses.iter().any(|w| w.witness_kind == ReplayWitnessKind::TopologySnapshot) {
+    } else if witnesses
+        .iter()
+        .any(|w| w.witness_kind == ReplayWitnessKind::TopologySnapshot)
+    {
         ReplayCompatibility::Compatible
-    } else if witnesses.iter().any(|w| w.witness_kind == ReplayWitnessKind::ProvenanceTrace)
-        && !witnesses.iter().any(|w| w.witness_kind == ReplayWitnessKind::PolicyDecision)
+    } else if witnesses
+        .iter()
+        .any(|w| w.witness_kind == ReplayWitnessKind::ProvenanceTrace)
+        && !witnesses
+            .iter()
+            .any(|w| w.witness_kind == ReplayWitnessKind::PolicyDecision)
     {
         // ProvenanceTrace is present but no topology snapshot: replay requires
         // a full TopologySnapshot to reconstruct the exact pre-op state.
@@ -149,7 +155,10 @@ mod tests {
         // Missing witnesses test
         let manifest_good = test_manifest(AUDIT_SCHEMA_VERSION, 1);
         let record_no_witness = build_replay_bridge_record(&manifest_good, None, vec![]);
-        assert_eq!(record_no_witness.compatibility, ReplayCompatibility::RequiresWitness);
+        assert_eq!(
+            record_no_witness.compatibility,
+            ReplayCompatibility::RequiresWitness
+        );
 
         // Schema mismatch test (takes precedence over missing witnesses if both are valid)
         let manifest_bad_schema = test_manifest(AUDIT_SCHEMA_VERSION + 1, 1);
@@ -171,24 +180,26 @@ mod tests {
             witness_kind: ReplayWitnessKind::TopologySnapshot,
             scope_id: None,
         }];
-        
+
         let record_1 = build_replay_bridge_record(&manifest, None, witnesses.clone());
         let record_2 = build_replay_bridge_record(&manifest, None, witnesses);
-        
+
         assert_eq!(record_1, record_2);
     }
 
     #[test]
     fn replay_bridge_preserves_typed_error_summary_in_failure_path() {
         let manifest = test_manifest(AUDIT_SCHEMA_VERSION, 0); // version 0 triggers Unsupported
-        let record = build_replay_bridge_record(&manifest, None, vec![
-            ReplayWitnessRef {
+        let record = build_replay_bridge_record(
+            &manifest,
+            None,
+            vec![ReplayWitnessRef {
                 decision_id: DecisionId(1),
                 witness_kind: ReplayWitnessKind::TopologySnapshot,
                 scope_id: None,
-            }
-        ]);
-        
+            }],
+        );
+
         assert_eq!(
             record.compatibility,
             ReplayCompatibility::UnsupportedOperationVersion { version: 0 }
@@ -198,63 +209,79 @@ mod tests {
     #[test]
     fn replay_bridge_distinguishes_exact_compatible_vs_counterfactual_only() {
         let manifest = test_manifest(AUDIT_SCHEMA_VERSION, 1);
-        
+
         // Exact compatible with TopologySnapshot
-        let record_exact = build_replay_bridge_record(&manifest, None, vec![
-            ReplayWitnessRef {
+        let record_exact = build_replay_bridge_record(
+            &manifest,
+            None,
+            vec![ReplayWitnessRef {
                 decision_id: DecisionId(1),
                 witness_kind: ReplayWitnessKind::TopologySnapshot,
                 scope_id: None,
-            }
-        ]);
+            }],
+        );
         assert_eq!(record_exact.compatibility, ReplayCompatibility::Compatible);
-        
+
         // Counterfactual only with PolicyDecision
-        let record_cf = build_replay_bridge_record(&manifest, None, vec![
-            ReplayWitnessRef {
+        let record_cf = build_replay_bridge_record(
+            &manifest,
+            None,
+            vec![ReplayWitnessRef {
                 decision_id: DecisionId(2),
                 witness_kind: ReplayWitnessKind::PolicyDecision,
                 scope_id: None,
-            }
-        ]);
-        assert_eq!(record_cf.compatibility, ReplayCompatibility::CounterfactualOnly);
+            }],
+        );
+        assert_eq!(
+            record_cf.compatibility,
+            ReplayCompatibility::CounterfactualOnly
+        );
     }
 
     #[test]
     fn replay_bridge_respects_nurbs_invariant_for_geometric_intersection() {
         let manifest = test_manifest(AUDIT_SCHEMA_VERSION, 1);
-        
+
         // Geometric intersection without policy override downgrades to Unsupported
-        let record_nurbs = build_replay_bridge_record(&manifest, None, vec![
-            ReplayWitnessRef {
+        let record_nurbs = build_replay_bridge_record(
+            &manifest,
+            None,
+            vec![ReplayWitnessRef {
                 decision_id: DecisionId(1),
                 witness_kind: ReplayWitnessKind::GeometricIntersection,
                 scope_id: None,
-            }
-        ]);
-        
+            }],
+        );
+
         match record_nurbs.compatibility {
             ReplayCompatibility::UnsupportedEntityOrigin { origin } => {
                 assert_eq!(origin, "GeometricIntersection");
             }
             _ => panic!("Expected UnsupportedEntityOrigin"),
         }
-        
+
         // Geometric intersection with policy override upgrades to CounterfactualOnly
-        let record_overridden = build_replay_bridge_record(&manifest, None, vec![
-            ReplayWitnessRef {
-                decision_id: DecisionId(1),
-                witness_kind: ReplayWitnessKind::GeometricIntersection,
-                scope_id: None,
-            },
-            ReplayWitnessRef {
-                decision_id: DecisionId(2),
-                witness_kind: ReplayWitnessKind::PolicyDecision,
-                scope_id: None,
-            }
-        ]);
-        
-        assert_eq!(record_overridden.compatibility, ReplayCompatibility::CounterfactualOnly);
+        let record_overridden = build_replay_bridge_record(
+            &manifest,
+            None,
+            vec![
+                ReplayWitnessRef {
+                    decision_id: DecisionId(1),
+                    witness_kind: ReplayWitnessKind::GeometricIntersection,
+                    scope_id: None,
+                },
+                ReplayWitnessRef {
+                    decision_id: DecisionId(2),
+                    witness_kind: ReplayWitnessKind::PolicyDecision,
+                    scope_id: None,
+                },
+            ],
+        );
+
+        assert_eq!(
+            record_overridden.compatibility,
+            ReplayCompatibility::CounterfactualOnly
+        );
     }
 
     #[test]
@@ -263,13 +290,15 @@ mod tests {
 
         // Only a ProvenanceTrace witness — no TopologySnapshot, no PolicyDecision.
         // The bridge must signal that a full snapshot is needed to reconstruct the pre-op state.
-        let record = build_replay_bridge_record(&manifest, None, vec![
-            ReplayWitnessRef {
+        let record = build_replay_bridge_record(
+            &manifest,
+            None,
+            vec![ReplayWitnessRef {
                 decision_id: DecisionId(1),
                 witness_kind: ReplayWitnessKind::ProvenanceTrace,
                 scope_id: Some("op-0001/trace.json".to_string()),
-            }
-        ]);
+            }],
+        );
 
         assert_eq!(
             record.compatibility,

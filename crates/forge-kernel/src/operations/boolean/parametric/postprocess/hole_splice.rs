@@ -13,14 +13,14 @@
 //!
 //! DEPENDENCIES: forge_topo (BridgeEdge, arena), GeometryState, forge_geom
 
-use forge_core::KernelError;
-use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext};
 use forge_core::tracing::TopologyDelta;
-use forge_topo::handles::{FaceId, HalfEdgeId, LoopId, VertexId};
-use forge_topo::state::{TopologyState, MutableDraft};
+use forge_core::KernelError;
+use forge_core::{DecisionContext, DecisionId, DecisionKind, DecisionTier, TracedDecision};
 use forge_topo::algorithms::bridge_edge::bridge_edge;
+use forge_topo::handles::{FaceId, HalfEdgeId, LoopId, VertexId};
+use forge_topo::state::{MutableDraft, TopologyState};
 
-use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
+use crate::core::{compute_topology_delta, ArenaSnapshot, ModelingContext};
 use crate::geometry_state::GeometryState;
 
 struct LoopVertexSample {
@@ -67,20 +67,16 @@ pub fn splice_inner_holes(
 }
 
 /// Find all face IDs that have at least one inner loop.
-fn find_faces_with_holes(
-    arena: &forge_topo::arena::TopologyArena,
-) -> Vec<FaceId> {
-    arena.iter_faces()
+fn find_faces_with_holes(arena: &forge_topo::arena::TopologyArena) -> Vec<FaceId> {
+    arena
+        .iter_faces()
         .filter(|(_, face_data)| face_data.inner_loop_count() > 0)
         .map(|(face_id, _)| face_id)
         .collect()
 }
 
 /// Get the inner loop IDs for a face (snapshot before mutation).
-fn get_face_inner_loops(
-    draft: &MutableDraft,
-    face: FaceId,
-) -> Result<Vec<LoopId>, KernelError> {
+fn get_face_inner_loops(draft: &MutableDraft, face: FaceId) -> Result<Vec<LoopId>, KernelError> {
     let face_data = draft.arena().get_face(face)?;
     Ok(face_data.inner_loops().to_vec())
 }
@@ -101,13 +97,8 @@ fn splice_one_hole(
     let inner_he_start = draft.arena().get_loop(inner_loop)?.half_edge();
     let outer_he_start = draft.arena().get_loop(outer_loop)?.half_edge();
 
-    let maybe_bridge = select_bridge_with_geom_algorithm(
-        draft,
-        geom,
-        face_plane,
-        inner_he_start,
-        outer_he_start,
-    )?;
+    let maybe_bridge =
+        select_bridge_with_geom_algorithm(draft, geom, face_plane, inner_he_start, outer_he_start)?;
     let (target_he, h_max_he) = match maybe_bridge {
         Some(pair) => pair,
         None => {
@@ -131,10 +122,12 @@ fn select_bridge_with_geom_algorithm(
     inner_start: HalfEdgeId,
     outer_start: HalfEdgeId,
 ) -> Result<Option<(HalfEdgeId, HalfEdgeId)>, KernelError> {
-    let Some(inner_samples) = collect_loop_vertex_samples_complete(draft, inner_start, geom)? else {
+    let Some(inner_samples) = collect_loop_vertex_samples_complete(draft, inner_start, geom)?
+    else {
         return Ok(None);
     };
-    let Some(outer_samples) = collect_loop_vertex_samples_complete(draft, outer_start, geom)? else {
+    let Some(outer_samples) = collect_loop_vertex_samples_complete(draft, outer_start, geom)?
+    else {
         return Ok(None);
     };
 
@@ -295,10 +288,7 @@ fn raycast_to_outer_boundary(
             let d_u = forge_math::linalg::dot(*p_dest, u_axis);
             let d_v = forge_math::linalg::dot(*p_dest, v_axis);
 
-            let t = compute_ray_edge_intersection(
-                ray_origin_u, ray_origin_v,
-                o_u, o_v, d_u, d_v,
-            );
+            let t = compute_ray_edge_intersection(ray_origin_u, ray_origin_v, o_u, o_v, d_u, d_v);
 
             if let Some(t_val) = t {
                 if t_val > 0.0 && t_val < best_t {
@@ -325,9 +315,7 @@ fn raycast_to_outer_boundary(
     let origin_vid = hit_data.origin();
     let dest_vid = hit_next_data.origin();
 
-    let target = pick_closer_vertex(
-        draft, geom, h_max_pos, origin_vid, dest_vid, hit_he,
-    )?;
+    let target = pick_closer_vertex(draft, geom, h_max_pos, origin_vid, dest_vid, hit_he)?;
 
     Ok(target)
 }
@@ -339,9 +327,12 @@ fn raycast_to_outer_boundary(
 ///
 /// Returns Some(t) if the ray crosses the edge, None otherwise.
 fn compute_ray_edge_intersection(
-    ray_u: f64, ray_v: f64,
-    o_u: f64, o_v: f64,
-    d_u: f64, d_v: f64,
+    ray_u: f64,
+    ray_v: f64,
+    o_u: f64,
+    o_v: f64,
+    d_u: f64,
+    d_v: f64,
 ) -> Option<f64> {
     let dv = d_v - o_v;
     if dv.abs() < 1e-15 {

@@ -80,7 +80,10 @@ impl EulerOperator for MakeLoopInFaceFromVertices {
         let _loop_lineage = Lineage::derive_from(&face_lineage, sig.clone());
 
         let loop_id = draft.insert_loop(LoopData::new(placeholder_he, self.face));
-        draft.arena_mut().get_face_mut(self.face)?.add_inner_loop(loop_id);
+        draft
+            .arena_mut()
+            .get_face_mut(self.face)?
+            .add_inner_loop(loop_id);
 
         let mut half_edges = Vec::with_capacity(n);
         let mut edges = Vec::with_capacity(n);
@@ -89,10 +92,8 @@ impl EulerOperator for MakeLoopInFaceFromVertices {
             let edge_lineage = Lineage::derive_from(&face_lineage, sig.clone());
             let he_lineage = Lineage::derive_from(&face_lineage, sig.clone());
 
-            let edge = draft.insert_edge(EdgeData::with_lineage(
-                placeholder_he,
-                Some(edge_lineage),
-            ));
+            let edge =
+                draft.insert_edge(EdgeData::with_lineage(placeholder_he, Some(edge_lineage)));
             let he = draft.insert_half_edge(HalfEdgeData::with_lineage(
                 placeholder_he,
                 placeholder_he,
@@ -129,7 +130,10 @@ impl EulerOperator for MakeLoopInFaceFromVertices {
             }
         }
 
-        draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(half_edges[0]);
+        draft
+            .arena_mut()
+            .get_loop_mut(loop_id)?
+            .set_half_edge(half_edges[0]);
 
         Ok(ExecutionResult {
             value: MlifvOutput {

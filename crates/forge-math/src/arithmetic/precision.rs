@@ -98,7 +98,11 @@ impl PrecisionEscalation {
 
 impl std::fmt::Display for PrecisionEscalation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "resolved_at={}, float_agreed={}", self.resolved_at, self.float_agreed)?;
+        write!(
+            f,
+            "resolved_at={}, float_agreed={}",
+            self.resolved_at, self.float_agreed
+        )?;
         if let Some(len) = self.expansion_length {
             write!(f, ", expansion_len={}", len)?;
         }
@@ -221,8 +225,6 @@ mod tests {
         assert_eq!(result, r);
         assert_eq!(budget.escalation_count(), 0);
     }
-
-
 
     #[test]
     fn default_budget_is_512_bits() {

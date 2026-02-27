@@ -8,5 +8,4 @@
 /// by default. Will implement FPU control word reset for x86-64 targets
 /// in Milestone 0.2.
 #[cfg(feature = "strict_env")]
-pub fn init_fpu() {
-}
+pub fn init_fpu() {}

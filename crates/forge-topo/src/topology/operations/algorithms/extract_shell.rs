@@ -13,14 +13,14 @@
 
 use std::collections::BTreeSet;
 
-use forge_core::KernelError;
 use crate::handles::{FaceId, HalfEdgeId};
-use crate::state::MutableDraft;
 use crate::operator::apply_op;
+use crate::state::MutableDraft;
 use crate::topology::bitset::EntityBitset;
-use crate::topology::operations::euler::unsew_edge::UnsewEdge;
 use crate::topology::operations::algorithms::region_extraction::is_face_group_boundary_half_edge;
+use crate::topology::operations::euler::unsew_edge::UnsewEdge;
 use crate::topology::queries::traverse::FaceAllEdgesIterator;
+use forge_core::KernelError;
 
 /// Output of the extract_shell algorithm.
 pub struct ExtractShellOutput {
@@ -38,14 +38,23 @@ pub fn extract_shell(
     faces: &EntityBitset,
 ) -> Result<ExtractShellOutput, KernelError> {
     if faces.is_empty() {
-        return Ok(ExtractShellOutput { unsewn_pairs: Vec::new() });
+        return Ok(ExtractShellOutput {
+            unsewn_pairs: Vec::new(),
+        });
     }
 
     let boundary_pairs = find_boundary_pairs(draft, faces)?;
 
     let mut unsewn_pairs = Vec::new();
     for (he_inside, he_outside) in boundary_pairs {
-        apply_op(draft, UnsewEdge { he_a: he_inside, he_b: he_outside })?.into_value();
+        apply_op(
+            draft,
+            UnsewEdge {
+                he_a: he_inside,
+                he_b: he_outside,
+            },
+        )?
+        .into_value();
         unsewn_pairs.push((he_inside, he_outside));
     }
 
@@ -78,7 +87,10 @@ fn find_boundary_pairs(
                 continue;
             }
 
-            let canonical = (he_id.index().min(twin_id.index()), he_id.index().max(twin_id.index()));
+            let canonical = (
+                he_id.index().min(twin_id.index()),
+                he_id.index().max(twin_id.index()),
+            );
             if seen_edges.contains(&canonical) {
                 continue;
             }
@@ -94,11 +106,11 @@ fn find_boundary_pairs(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::TopologyState;
-    use crate::operator::apply_op;
+    use crate::euler::make_edge_face::MakeEdgeFace;
     use crate::euler::make_vertex_face::MakeVertexFace;
     use crate::euler::split_edge::SplitEdge;
-    use crate::euler::make_edge_face::MakeEdgeFace;
+    use crate::operator::apply_op;
+    use crate::state::TopologyState;
     use crate::topology::queries::traverse::FaceEdgeIterator;
 
     #[test]
@@ -107,31 +119,73 @@ mod tests {
         let mut draft = state.into_mutation();
 
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.25 }).unwrap().into_value();
-        let se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
-        let _se3 = apply_op(&mut draft, SplitEdge { edge: se2.he_mb, parameter: 0.75 }).unwrap().into_value();
+        let se1 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.25,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let se2 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se1.he_mb,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let _se3 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se2.he_mb,
+                parameter: 0.75,
+            },
+        )
+        .unwrap()
+        .into_value();
 
-        let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face).unwrap()
-            .map(|r| r.unwrap()).collect();
+        let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face)
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
         let v1 = draft.arena().get_half_edge(edges[1]).unwrap().origin();
         let v3 = draft.arena().get_half_edge(edges[3]).unwrap().origin();
 
-        let mef = apply_op(&mut draft, MakeEdgeFace {
-            face: mvf.face, vertex_a: v1, vertex_b: v3,
-        }).unwrap().into_value();
+        let mef = apply_op(
+            &mut draft,
+            MakeEdgeFace {
+                face: mvf.face,
+                vertex_a: v1,
+                vertex_b: v3,
+            },
+        )
+        .unwrap()
+        .into_value();
 
         assert_eq!(draft.arena().face_count(), 2);
 
         let mut subset = EntityBitset::for_faces(draft.arena());
-        subset.insert(mef.new_face.index()).expect("bitset capacity must cover fixture faces");
+        subset
+            .insert(mef.new_face.index())
+            .expect("bitset capacity must cover fixture faces");
 
         let result = extract_shell(&mut draft, &subset).unwrap();
 
-        assert!(!result.unsewn_pairs.is_empty(), "Must have unsewn at least one edge");
+        assert!(
+            !result.unsewn_pairs.is_empty(),
+            "Must have unsewn at least one edge"
+        );
 
         for &(he_in, _) in &result.unsewn_pairs {
             let he_data = draft.arena().get_half_edge(he_in).unwrap();
-            assert_eq!(he_data.radial_next(), he_in, "Unsewn halfedge must be self-radial");
+            assert_eq!(
+                he_data.radial_next(),
+                he_in,
+                "Unsewn halfedge must be self-radial"
+            );
         }
     }
 

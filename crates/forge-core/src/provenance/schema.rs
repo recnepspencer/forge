@@ -15,7 +15,11 @@ pub struct SnapshotHandleRef {
 
 impl SnapshotHandleRef {
     pub fn new(kind: EntityKind, index: u32, generation: u32) -> Self {
-        Self { kind, index, generation }
+        Self {
+            kind,
+            index,
+            generation,
+        }
     }
 
     pub fn packed_generational(self) -> u64 {
@@ -53,24 +57,32 @@ pub fn hash_undirected_snapshot_segment_transport(
     a: SnapshotHandleRef,
     b: SnapshotHandleRef,
 ) -> u64 {
-    let (start, end) = if (a.kind as u8, a.index, a.generation) <= (b.kind as u8, b.index, b.generation) {
-        (a, b)
-    } else {
-        (b, a)
-    };
+    let (start, end) =
+        if (a.kind as u8, a.index, a.generation) <= (b.kind as u8, b.index, b.generation) {
+            (a, b)
+        } else {
+            (b, a)
+        };
     hash_directed_snapshot_segment_transport(start, end)
 }
 
 /// Invariant validation errors for serialized provenance payloads.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProvenanceValidationError {
-    InvalidSegmentEndpointKind { field: &'static str, kind: EntityKind },
+    InvalidSegmentEndpointKind {
+        field: &'static str,
+        kind: EntityKind,
+    },
     InvalidSourceKind {
         field: &'static str,
         expected: EntityKind,
         actual: EntityKind,
     },
-    TransportHashMismatch { expected: u64, actual: u64, directed: bool },
+    TransportHashMismatch {
+        expected: u64,
+        actual: u64,
+        directed: bool,
+    },
 }
 
 /// Serializable provenance payload for a boundary segment used in certification.
@@ -154,9 +166,15 @@ impl BoundarySegmentProvenance {
         }
 
         let expected = if self.directed {
-            hash_directed_snapshot_segment_transport(self.start_vertex_snapshot, self.end_vertex_snapshot)
+            hash_directed_snapshot_segment_transport(
+                self.start_vertex_snapshot,
+                self.end_vertex_snapshot,
+            )
         } else {
-            hash_undirected_snapshot_segment_transport(self.start_vertex_snapshot, self.end_vertex_snapshot)
+            hash_undirected_snapshot_segment_transport(
+                self.start_vertex_snapshot,
+                self.end_vertex_snapshot,
+            )
         };
         if self.transport_hash != expected {
             return Err(ProvenanceValidationError::TransportHashMismatch {

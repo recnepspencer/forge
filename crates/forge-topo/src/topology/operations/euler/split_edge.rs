@@ -12,12 +12,12 @@
 
 use forge_core::KernelError;
 
-use crate::arena::{HalfEdgeData, VertexData, EdgeData};
-use crate::handles::{HalfEdgeId, EdgeId};
+use crate::arena::{EdgeData, HalfEdgeData, VertexData};
+use crate::handles::{EdgeId, HalfEdgeId};
 use crate::lineage::{Lineage, OpSignature};
-use crate::EulerOperator;
-use crate::operator::{ExecutionResult, EulerDelta};
+use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
+use crate::EulerOperator;
 
 /// Split an existing edge by inserting a midpoint vertex.
 ///
@@ -68,24 +68,37 @@ impl SplitEdgeOutput {
 impl EulerOperator for SplitEdge {
     type Output = SplitEdgeOutput;
 
-    fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        sig: &OpSignature,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he_ab = self.edge;
         let (vertex_a, vertex_b, ab_lineage) = {
             let ab_data = draft.arena().get_half_edge(he_ab)?;
             let ab_next = draft.arena().get_half_edge(ab_data.next())?;
-            (ab_data.origin(), ab_next.origin(), ab_data.lineage().cloned())
+            (
+                ab_data.origin(),
+                ab_next.origin(),
+                ab_data.lineage().cloned(),
+            )
         };
-        
-        let chain: Vec<HalfEdgeId> = crate::topology::queries::traverse::RadialEdgeIterator::new(draft.arena(), he_ab)?.collect::<Result<_, _>>()?;
+
+        let chain: Vec<HalfEdgeId> =
+            crate::topology::queries::traverse::RadialEdgeIterator::new(draft.arena(), he_ab)?
+                .collect::<Result<_, _>>()?;
         let old_edge = draft.arena().get_half_edge(he_ab)?.edge();
         let is_closed_edge = vertex_a == vertex_b;
-        
+
         let vertex_lineage = Lineage::derive_from(&ab_lineage, sig.clone());
         let new_vertex = draft.insert_vertex(VertexData::with_lineage(
             HalfEdgeId::new(u32::MAX, 0), // sentinel
             Some(vertex_lineage),
         ));
-        draft.arena_mut().get_vertex_mut(new_vertex)?.set_birth_parameter(Some(self.parameter));
+        draft
+            .arena_mut()
+            .get_vertex_mut(new_vertex)?
+            .set_birth_parameter(Some(self.parameter));
 
         let new_edge = draft.insert_edge(EdgeData::with_lineage(
             HalfEdgeId::new(u32::MAX, 0),
@@ -99,7 +112,12 @@ impl EulerOperator for SplitEdge {
         for (radial_index, &h) in chain.iter().enumerate() {
             let (h_face, h_orig, h_lineage, h_next) = {
                 let h_data = draft.arena().get_half_edge(h)?;
-                (h_data.face(), h_data.origin(), h_data.lineage().cloned(), h_data.next())
+                (
+                    h_data.face(),
+                    h_data.origin(),
+                    h_data.lineage().cloned(),
+                    h_data.next(),
+                )
             };
 
             let is_forward = radial_index % 2 == 0;
@@ -134,64 +152,85 @@ impl EulerOperator for SplitEdge {
                 HalfEdgeId::new(u32::MAX, 0), // next
                 HalfEdgeId::new(u32::MAX, 0), // prev
                 h_face,
-                new_vertex, // H_new ALWAYS originates at M
+                new_vertex,               // H_new ALWAYS originates at M
                 EdgeId::new(u32::MAX, 0), // sentinel edge
                 Some(new_h_lineage),
             ));
-            
+
             new_ids.insert(h, h_new);
 
             if is_forward {
                 // h is A->M (on E_old), h_new is M->B (on E_new)
                 draft.arena_mut().get_half_edge_mut(h)?.set_edge(old_edge);
-                draft.arena_mut().get_half_edge_mut(h_new)?.set_edge(new_edge);
+                draft
+                    .arena_mut()
+                    .get_half_edge_mut(h_new)?
+                    .set_edge(new_edge);
                 e_old_list.push(h);
                 e_new_list.push(h_new);
             } else {
                 // h is B->M (on E_new), h_new is M->A (on E_old)
                 draft.arena_mut().get_half_edge_mut(h)?.set_edge(new_edge);
-                draft.arena_mut().get_half_edge_mut(h_new)?.set_edge(old_edge);
+                draft
+                    .arena_mut()
+                    .get_half_edge_mut(h_new)?
+                    .set_edge(old_edge);
                 e_new_list.push(h);
                 e_old_list.push(h_new);
             }
-            
+
             // Wire next/prev
             draft.arena_mut().get_half_edge_mut(h_new)?.set_next(h_next);
             draft.arena_mut().get_half_edge_mut(h_new)?.set_prev(h);
             draft.arena_mut().get_half_edge_mut(h_next)?.set_prev(h_new);
             draft.arena_mut().get_half_edge_mut(h)?.set_next(h_new);
-            
+
             draft.arena_mut().bump_face_version(h_face)?;
         }
-        
+
         // Wire radial next loops
         for i in 0..e_old_list.len() {
             let next_i = (i + 1) % e_old_list.len();
             let curr = e_old_list[i];
             let nxt = e_old_list[next_i];
-            draft.arena_mut().get_half_edge_mut(curr)?.set_radial_next(nxt);
+            draft
+                .arena_mut()
+                .get_half_edge_mut(curr)?
+                .set_radial_next(nxt);
         }
         for i in 0..e_new_list.len() {
             let next_i = (i + 1) % e_new_list.len();
             let curr = e_new_list[i];
             let nxt = e_new_list[next_i];
-            draft.arena_mut().get_half_edge_mut(curr)?.set_radial_next(nxt);
+            draft
+                .arena_mut()
+                .get_half_edge_mut(curr)?
+                .set_radial_next(nxt);
         }
-        
+
         // Wire vertices and edges
         let first_h_new = *new_ids.get(&chain[0]).unwrap();
-        draft.arena_mut().get_vertex_mut(new_vertex)?.set_outgoing(first_h_new);
-        
+        draft
+            .arena_mut()
+            .get_vertex_mut(new_vertex)?
+            .set_outgoing(first_h_new);
+
         let e_old_he = e_old_list[0];
         let e_new_he = e_new_list[0];
         let old_edge = draft.arena().get_half_edge(he_ab)?.edge();
-        draft.arena_mut().get_edge_mut(old_edge)?.set_half_edge(e_old_he);
-        draft.arena_mut().get_edge_mut(new_edge)?.set_half_edge(e_new_he);
-        
+        draft
+            .arena_mut()
+            .get_edge_mut(old_edge)?
+            .set_half_edge(e_old_he);
+        draft
+            .arena_mut()
+            .get_edge_mut(new_edge)?
+            .set_half_edge(e_new_he);
+
         // Construct output
         let he_twin = chain[1 % chain.len()];
         let he_mb = *new_ids.get(&he_ab).unwrap();
-        
+
         let (he_bm, he_ma) = if chain.len() == 1 {
             (he_mb, he_ab)
         } else {
@@ -207,7 +246,17 @@ impl EulerOperator for SplitEdge {
                 he_ma,
                 new_vertex,
             },
-            declared_delta: EulerDelta { vertices: 1, half_edges: chain.len() as i32, faces: 0, loops: 0, edges: 1, shells: 0, solids: 0, lumps: 0, regions: 0 },
+            declared_delta: EulerDelta {
+                vertices: 1,
+                half_edges: chain.len() as i32,
+                faces: 0,
+                loops: 0,
+                edges: 1,
+                shells: 0,
+                solids: 0,
+                lumps: 0,
+                regions: 0,
+            },
         })
     }
 

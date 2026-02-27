@@ -1,2 +1,1 @@
-
-pub use crate::numeric::sign::{TriSign, CertifiedTriSign};
+pub use crate::numeric::sign::{CertifiedTriSign, TriSign};

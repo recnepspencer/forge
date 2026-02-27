@@ -4,8 +4,8 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::algorithms::boundary_cert::schema::*;
     use crate::algorithms::boundary_cert::eval::*;
+    use crate::algorithms::boundary_cert::schema::*;
 
     /// Helper: build a projected boundary from 2D vertex positions.
     ///
@@ -13,9 +13,7 @@ mod tests {
     fn boundary_from_vertices(vertices: &[[f64; 2]]) -> ProjectedBoundary2D {
         let n = vertices.len();
         let segments: Vec<Segment2D> = (0..n)
-            .map(|i| {
-                Segment2D::new(vertices[i], vertices[(i + 1) % n], i as u64)
-            })
+            .map(|i| Segment2D::new(vertices[i], vertices[(i + 1) % n], i as u64))
             .collect();
         let frame = ProjectionFrame2D::new(2, 0, 1, 1.0);
         ProjectedBoundary2D::new(segments, frame)
@@ -23,25 +21,15 @@ mod tests {
 
     #[test]
     fn clean_coplanar_merge_adjacent_quads_is_simple() {
-        let boundary = boundary_from_vertices(&[
-            [0.0, 0.0],
-            [2.0, 0.0],
-            [2.0, 1.0],
-            [0.0, 1.0],
-        ]);
+        let boundary = boundary_from_vertices(&[[0.0, 0.0], [2.0, 0.0], [2.0, 1.0], [0.0, 1.0]]);
         let cert = certify_boundary(&boundary);
         assert_eq!(cert, WeakSimpleCertificate::Simple);
     }
 
     #[test]
     fn convex_pentagon_is_simple() {
-        let boundary = boundary_from_vertices(&[
-            [1.0, 0.0],
-            [2.0, 0.5],
-            [1.8, 1.5],
-            [0.2, 1.5],
-            [0.0, 0.5],
-        ]);
+        let boundary =
+            boundary_from_vertices(&[[1.0, 0.0], [2.0, 0.5], [1.8, 1.5], [0.2, 1.5], [0.0, 0.5]]);
         let cert = certify_boundary(&boundary);
         assert_eq!(cert, WeakSimpleCertificate::Simple);
     }
@@ -68,7 +56,11 @@ mod tests {
         let cert = certify_boundary(&boundary);
         match cert {
             WeakSimpleCertificate::WeaklySimple { touch_count } => {
-                assert!(touch_count > 0, "Expected touch_count > 0, got {}", touch_count);
+                assert!(
+                    touch_count > 0,
+                    "Expected touch_count > 0, got {}",
+                    touch_count
+                );
             }
             _ => panic!("Expected WeaklySimple, got {:?}", cert),
         }
@@ -76,12 +68,7 @@ mod tests {
 
     #[test]
     fn proper_crossing_is_rejected() {
-        let boundary = boundary_from_vertices(&[
-            [0.0, 0.0],
-            [1.0, 1.0],
-            [1.0, 0.0],
-            [0.0, 1.0],
-        ]);
+        let boundary = boundary_from_vertices(&[[0.0, 0.0], [1.0, 1.0], [1.0, 0.0], [0.0, 1.0]]);
         let cert = certify_boundary(&boundary);
         match cert {
             WeakSimpleCertificate::Rejected { reason, .. } => {
@@ -116,10 +103,7 @@ mod tests {
 
     #[test]
     fn degenerate_too_few_segments_rejected() {
-        let boundary = boundary_from_vertices(&[
-            [0.0, 0.0],
-            [1.0, 0.0],
-        ]);
+        let boundary = boundary_from_vertices(&[[0.0, 0.0], [1.0, 0.0]]);
         let cert = certify_boundary(&boundary);
         match cert {
             WeakSimpleCertificate::Rejected { reason, .. } => {
@@ -185,15 +169,12 @@ mod tests {
             Segment2D::new([0.0, 0.0], [1.0, 1.0], 0),
             Segment2D::new([1.0, 1.0], [0.0, 1.0], 1),
             Segment2D::new([0.0, 1.0], [0.0, 0.0], 2), // Lobe 1 returns
-
             Segment2D::new([0.0, 0.0], [-1.0, 1.0], 3),
             Segment2D::new([-1.0, 1.0], [-1.0, 0.0], 4),
             Segment2D::new([-1.0, 0.0], [0.0, 0.0], 5), // Lobe 2 returns
-
             Segment2D::new([0.0, 0.0], [-1.0, -1.0], 6),
             Segment2D::new([-1.0, -1.0], [0.0, -1.0], 7),
             Segment2D::new([0.0, -1.0], [0.0, 0.0], 8), // Lobe 3 returns
-
             Segment2D::new([0.0, 0.0], [1.0, -1.0], 9),
             Segment2D::new([1.0, -1.0], [1.0, 0.0], 10),
             Segment2D::new([1.0, 0.0], [0.0, 0.0], 11), // Lobe 4 returns
@@ -202,10 +183,13 @@ mod tests {
         let frame = ProjectionFrame2D::new(2, 0, 1, 1.0);
         let boundary = ProjectedBoundary2D::new(segments, frame);
         let cert = certify_boundary(&boundary);
-        
+
         match cert {
             WeakSimpleCertificate::WeaklySimple { touch_count } => {
-                assert_eq!(touch_count, 1, "Expected exactly 1 high-valence touch point at the origin");
+                assert_eq!(
+                    touch_count, 1,
+                    "Expected exactly 1 high-valence touch point at the origin"
+                );
             }
             _ => panic!("Expected WeaklySimple, got {:?}", cert),
         }
@@ -215,14 +199,10 @@ mod tests {
     fn adversarial_sub_epsilon_sliver_triangle() {
         // A triangle possessing an extremely tiny altitude (1e-50).
         // It's not degenerate (area > 0) and doesn't self-intersect.
-        // The exact orient2d predicate must correctly recognize this as simple 
+        // The exact orient2d predicate must correctly recognize this as simple
         // without snapping it to collinear.
         let m = 1e-50;
-        let boundary = boundary_from_vertices(&[
-            [0.0, 0.0],
-            [1.0, 0.0],
-            [0.5, m],
-        ]);
+        let boundary = boundary_from_vertices(&[[0.0, 0.0], [1.0, 0.0], [0.5, m]]);
         assert_eq!(certify_boundary(&boundary), WeakSimpleCertificate::Simple);
     }
 
@@ -246,9 +226,12 @@ mod tests {
         let frame = ProjectionFrame2D::new(2, 0, 1, 1.0);
         let boundary = ProjectedBoundary2D::new(segments, frame);
         let cert = certify_boundary(&boundary);
-        
+
         match cert {
-            WeakSimpleCertificate::Rejected { reason: BoundaryRejectReason::SelfCrossing, .. } => {}
+            WeakSimpleCertificate::Rejected {
+                reason: BoundaryRejectReason::SelfCrossing,
+                ..
+            } => {}
             _ => panic!("Expected Rejected with SelfCrossing, got {:?}", cert),
         }
     }
@@ -264,13 +247,16 @@ mod tests {
             Segment2D::new([1.0, 0.0], [0.0, 1.0], 2),
             Segment2D::new([0.0, 1.0], [0.0, 0.0], 3),
         ];
-        
+
         let frame = ProjectionFrame2D::new(2, 0, 1, 1.0);
         let boundary = ProjectedBoundary2D::new(segments, frame);
         let cert = certify_boundary(&boundary);
-        
+
         match cert {
-            WeakSimpleCertificate::Rejected { reason: BoundaryRejectReason::OverlappingSegments, .. } => {}
+            WeakSimpleCertificate::Rejected {
+                reason: BoundaryRejectReason::OverlappingSegments,
+                ..
+            } => {}
             _ => panic!("Expected OverlappingSegments, got {:?}", cert),
         }
     }
@@ -284,11 +270,7 @@ mod tests {
         // It does NOT exercise compute_splits, arrangement graph construction, or strand
         // classification. See `adversarial_sub_epsilon_sliver_forces_fallback_path` for that.
         let m = 1e-50;
-        let boundary = boundary_from_vertices(&[
-            [0.0, 0.0],
-            [1.0, 0.0],
-            [0.5, m],
-        ]);
+        let boundary = boundary_from_vertices(&[[0.0, 0.0], [1.0, 0.0], [0.5, m]]);
         assert_eq!(certify_boundary(&boundary), WeakSimpleCertificate::Simple);
     }
 
@@ -305,12 +287,12 @@ mod tests {
         //   [0.0, -m] ——————— [1.0, -m]   seg 1 (bottom)
         let m = 1e-50;
         let segments = vec![
-            Segment2D::new([0.0,  0.0], [0.0, -m],  0),
-            Segment2D::new([0.0, -m],   [1.0, -m],  1),   // bottom — near-collinear with seg 4
-            Segment2D::new([1.0, -m],   [1.0,  0.0], 2),
-            Segment2D::new([1.0,  0.0], [1.0,  m],  3),
-            Segment2D::new([1.0,  m],   [0.0,  m],  4),   // top — near-collinear with seg 1
-            Segment2D::new([0.0,  m],   [0.0,  0.0], 5),
+            Segment2D::new([0.0, 0.0], [0.0, -m], 0),
+            Segment2D::new([0.0, -m], [1.0, -m], 1), // bottom — near-collinear with seg 4
+            Segment2D::new([1.0, -m], [1.0, 0.0], 2),
+            Segment2D::new([1.0, 0.0], [1.0, m], 3),
+            Segment2D::new([1.0, m], [0.0, m], 4), // top — near-collinear with seg 1
+            Segment2D::new([0.0, m], [0.0, 0.0], 5),
         ];
         let frame = ProjectionFrame2D::new(2, 0, 1, 1.0);
         let boundary = ProjectedBoundary2D::new(segments, frame);

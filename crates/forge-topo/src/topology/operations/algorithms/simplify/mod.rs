@@ -8,6 +8,5 @@ pub mod consolidate_collinear_vertices;
 
 pub use cleanup::cleanup_degenerate_topology;
 pub use consolidate_collinear_vertices::{
-    consolidate_one_collinear_vertex,
-    find_collinear_vertex_candidate,
+    consolidate_one_collinear_vertex, find_collinear_vertex_candidate,
 };

@@ -1,7 +1,7 @@
 //! Compile-gate and contract tests for curved merge scaffolding.
 
-use super::*;
 use super::schema::*;
+use super::*;
 use forge_topo::handles::FaceId;
 
 #[test]

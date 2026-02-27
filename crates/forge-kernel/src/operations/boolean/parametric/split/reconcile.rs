@@ -16,14 +16,14 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use forge_core::KernelError;
-use forge_topo::handles::{HalfEdgeId, VertexId};
-use forge_topo::state::MutableDraft;
-use forge_topo::operator::apply_op;
 use forge_topo::euler::split_edge::SplitEdge;
+use forge_topo::handles::{HalfEdgeId, VertexId};
+use forge_topo::operator::apply_op;
+use forge_topo::state::MutableDraft;
 
+use super::schema::{LocalVertexDedup, SharedVertexRegistry};
 use crate::geometry_state::GeometryState;
 use crate::shared_ops::vertex_identity::VertexMatchKey;
-use super::schema::{LocalVertexDedup, SharedVertexRegistry};
 
 /// Reconcile boundary vertices between target and tool after splitting.
 ///
@@ -44,29 +44,54 @@ pub fn reconcile_boundary_vertices(
     tool_original_vids: &BTreeSet<VertexId>,
 ) -> Result<usize, KernelError> {
     let target_orphans = find_orphan_vertices(
-        target_dedup, tool_dedup, shared_registry, expected_shared_positions, expected_position_tolerance_sq, target_original_vids,
+        target_dedup,
+        tool_dedup,
+        shared_registry,
+        expected_shared_positions,
+        expected_position_tolerance_sq,
+        target_original_vids,
     );
     let tool_orphans = find_orphan_vertices(
-        tool_dedup, target_dedup, shared_registry, expected_shared_positions, expected_position_tolerance_sq, tool_original_vids,
+        tool_dedup,
+        target_dedup,
+        shared_registry,
+        expected_shared_positions,
+        expected_position_tolerance_sq,
+        tool_original_vids,
     );
 
-    eprintln!("[reconcile] target cut-orphans: {}, tool cut-orphans: {}",
-        target_orphans.len(), tool_orphans.len());
+    eprintln!(
+        "[reconcile] target cut-orphans: {}, tool cut-orphans: {}",
+        target_orphans.len(),
+        tool_orphans.len()
+    );
 
     let mut injected = 0;
 
     let target_into_tool = inject_orphans_into_solid(
-        tool_draft, tool_geom, tool_dedup,
-        &target_orphans, weld_tolerance_sq,
+        tool_draft,
+        tool_geom,
+        tool_dedup,
+        &target_orphans,
+        weld_tolerance_sq,
     )?;
-    eprintln!("[reconcile] injected {} target orphans into tool", target_into_tool);
+    eprintln!(
+        "[reconcile] injected {} target orphans into tool",
+        target_into_tool
+    );
     injected += target_into_tool;
 
     let tool_into_target = inject_orphans_into_solid(
-        target_draft, target_geom, target_dedup,
-        &tool_orphans, weld_tolerance_sq,
+        target_draft,
+        target_geom,
+        target_dedup,
+        &tool_orphans,
+        weld_tolerance_sq,
     )?;
-    eprintln!("[reconcile] injected {} tool orphans into target", tool_into_target);
+    eprintln!(
+        "[reconcile] injected {} tool orphans into target",
+        tool_into_target
+    );
     injected += tool_into_target;
 
     Ok(injected)
@@ -96,10 +121,17 @@ fn find_orphan_vertices(
         }
         if !dest_dedup.has_key(key) {
             if let Some(&pos) = shared_registry.get_position(key) {
-                if !is_expected_shared_position(&pos, expected_shared_positions, expected_position_tolerance_sq) {
+                if !is_expected_shared_position(
+                    &pos,
+                    expected_shared_positions,
+                    expected_position_tolerance_sq,
+                ) {
                     continue;
                 }
-                orphans.push(OrphanVertex { key: key.clone(), position: pos });
+                orphans.push(OrphanVertex {
+                    key: key.clone(),
+                    position: pos,
+                });
             }
         }
     }
@@ -136,9 +168,13 @@ fn inject_orphans_into_solid(
     let mut remaining_orphan_indices: Vec<usize> = Vec::new();
 
     for (idx, orphan) in orphans.iter().enumerate() {
-        if let Some(existing_vid) = find_coincident_vertex(draft, geom, &orphan.position, weld_tolerance_sq) {
-            eprintln!("[reconcile]   welded orphan [{:.4},{:.4},{:.4}] to vertex {}",
-                orphan.position[0], orphan.position[1], orphan.position[2], existing_vid);
+        if let Some(existing_vid) =
+            find_coincident_vertex(draft, geom, &orphan.position, weld_tolerance_sq)
+        {
+            eprintln!(
+                "[reconcile]   welded orphan [{:.4},{:.4},{:.4}] to vertex {}",
+                orphan.position[0], orphan.position[1], orphan.position[2], existing_vid
+            );
             dedup.insert(existing_vid, orphan.key.clone());
             injected += 1;
         } else {
@@ -159,7 +195,10 @@ fn inject_orphans_into_solid(
         match locate_edge_for_vertex(draft, geom, &orphan.position, weld_tolerance_sq) {
             Some((he_id, t)) => {
                 let edge_key = he_id.index();
-                edge_groups.entry(edge_key).or_default().push((orphan_idx, t));
+                edge_groups
+                    .entry(edge_key)
+                    .or_default()
+                    .push((orphan_idx, t));
                 edge_ids.entry(edge_key).or_insert(he_id);
             }
             None => {
@@ -175,7 +214,10 @@ fn inject_orphans_into_solid(
     }
 
     if unmatched > 0 {
-        eprintln!("[reconcile]   {} orphans could not be matched to any edge or vertex", unmatched);
+        eprintln!(
+            "[reconcile]   {} orphans could not be matched to any edge or vertex",
+            unmatched
+        );
     }
 
     for (edge_key, mut group) in edge_groups {
@@ -195,21 +237,41 @@ fn inject_orphans_into_solid(
                 (global_t - accumulated_t) / (1.0 - accumulated_t)
             };
 
-            if is_endpoint_coincident(draft, geom, current_he, &orphan.position, weld_tolerance_sq)? {
-                let coincident_vid = find_coincident_endpoint(draft, geom, current_he, &orphan.position, weld_tolerance_sq)?;
+            if is_endpoint_coincident(draft, geom, current_he, &orphan.position, weld_tolerance_sq)?
+            {
+                let coincident_vid = find_coincident_endpoint(
+                    draft,
+                    geom,
+                    current_he,
+                    &orphan.position,
+                    weld_tolerance_sq,
+                )?;
                 if let Some(vid) = coincident_vid {
-                    eprintln!("[reconcile]   welded edge-orphan to endpoint vertex {}", vid);
+                    eprintln!(
+                        "[reconcile]   welded edge-orphan to endpoint vertex {}",
+                        vid
+                    );
                     dedup.insert(vid, orphan.key.clone());
                 }
             } else {
-                let result = apply_op(draft, SplitEdge { edge: current_he, parameter: local_t })?;
+                let result = apply_op(
+                    draft,
+                    SplitEdge {
+                        edge: current_he,
+                        parameter: local_t,
+                    },
+                )?;
                 let new_vertex = result.get_value().new_vertex;
 
                 geom.set_vertex_position(new_vertex, orphan.position);
                 dedup.insert(new_vertex, orphan.key.clone());
 
-                eprintln!("[reconcile]   split edge HE#{} at t={:.4} → vertex {}",
-                    current_he.index(), local_t, new_vertex);
+                eprintln!(
+                    "[reconcile]   split edge HE#{} at t={:.4} → vertex {}",
+                    current_he.index(),
+                    local_t,
+                    new_vertex
+                );
 
                 current_he = result.get_value().he_mb;
                 accumulated_t = *global_t;
@@ -302,7 +364,7 @@ fn point_on_segment(
     let dx = dest[0] - origin[0];
     let dy = dest[1] - origin[1];
     let dz = dest[2] - origin[2];
-    let len_sq = dx*dx + dy*dy + dz*dz;
+    let len_sq = dx * dx + dy * dy + dz * dz;
 
     if len_sq < tolerance_sq {
         return None;
@@ -312,7 +374,7 @@ fn point_on_segment(
     let py = point[1] - origin[1];
     let pz = point[2] - origin[2];
 
-    let t = (px*dx + py*dy + pz*dz) / len_sq;
+    let t = (px * dx + py * dy + pz * dz) / len_sq;
 
     let endpoint_margin = (tolerance_sq / len_sq).sqrt();
     if t <= endpoint_margin || t >= 1.0 - endpoint_margin {
@@ -327,7 +389,7 @@ fn point_on_segment(
     let ey = point[1] - proj_y;
     let ez = point[2] - proj_z;
 
-    let dist_sq = ex*ex + ey*ey + ez*ez;
+    let dist_sq = ex * ex + ey * ey + ez * ez;
 
     if dist_sq > tolerance_sq * 100.0 {
         return None;
@@ -349,11 +411,13 @@ fn is_endpoint_coincident(
     let next_he = he.next();
     let dest = draft.arena().get_half_edge(next_he)?.origin();
 
-    let near_origin = geom.get_vertex_position(origin)
+    let near_origin = geom
+        .get_vertex_position(origin)
         .map(|p| dist_sq_3d(p, point) < weld_tolerance_sq)
         .unwrap_or(false);
 
-    let near_dest = geom.get_vertex_position(dest)
+    let near_dest = geom
+        .get_vertex_position(dest)
         .map(|p| dist_sq_3d(p, point) < weld_tolerance_sq)
         .unwrap_or(false);
 
@@ -393,7 +457,7 @@ fn dist_sq_3d(a: &[f64; 3], b: &[f64; 3]) -> f64 {
     let dx = a[0] - b[0];
     let dy = a[1] - b[1];
     let dz = a[2] - b[2];
-    dx*dx + dy*dy + dz*dz
+    dx * dx + dy * dy + dz * dz
 }
 
 /// Find the squared distance to the nearest vertex (diagnostic only).
@@ -441,13 +505,15 @@ fn find_nearest_edge_distance(
         let dx = p_d[0] - p_o[0];
         let dy = p_d[1] - p_o[1];
         let dz = p_d[2] - p_o[2];
-        let len_sq = dx*dx + dy*dy + dz*dz;
-        if len_sq < 1e-30 { continue; }
+        let len_sq = dx * dx + dy * dy + dz * dz;
+        if len_sq < 1e-30 {
+            continue;
+        }
 
         let px = point[0] - p_o[0];
         let py = point[1] - p_o[1];
         let pz = point[2] - p_o[2];
-        let t = (px*dx + py*dy + pz*dz) / len_sq;
+        let t = (px * dx + py * dy + pz * dz) / len_sq;
         let t_clamped = t.max(0.0).min(1.0);
 
         let proj_x = p_o[0] + t_clamped * dx;

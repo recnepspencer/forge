@@ -14,14 +14,11 @@ mod summary;
 mod tests;
 
 pub use schema::{
-    ErrorScope, SuggestedFix, ErrorContext,
-    KernelError, TopologyError,
-    AmbiguousResult, DiagnosticPayload,
-    MergeError, PersistentResolutionRole, PersistentResolutionIncompatibility,
-    PersistentResolutionOriginKind,
+    AmbiguousResult, DiagnosticPayload, ErrorContext, ErrorScope, KernelError, MergeError,
+    PersistentResolutionIncompatibility, PersistentResolutionOriginKind, PersistentResolutionRole,
+    SuggestedFix, TopologyError,
 };
 pub use summary::{
-    ErrorCategory, ErrorSummary, SourceErrorSummary,
-    KernelErrorSummary, MergeErrorSummary, TopologyErrorSummary,
-    DiagnosticPayloadSummary,
+    DiagnosticPayloadSummary, ErrorCategory, ErrorSummary, KernelErrorSummary, MergeErrorSummary,
+    SourceErrorSummary, TopologyErrorSummary,
 };

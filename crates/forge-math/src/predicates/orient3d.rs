@@ -4,11 +4,9 @@
 //! ALGORITHM: Shewchuk adaptive cascade (vendored from geometry-predicates).
 //! DEPENDENCIES: `vendored`, `precision`, `CertifiedTriSign`.
 
-use crate::arithmetic::precision::{
-    PrecisionEscalation, PrecisionMode, build_target_description,
-};
-use crate::sign::{CertifiedTriSign, TriSign};
 use super::vendored;
+use crate::arithmetic::precision::{build_target_description, PrecisionEscalation, PrecisionMode};
+use crate::sign::{CertifiedTriSign, TriSign};
 
 /// Input to [`orient3d`]: four 3D points.
 pub type Orient3dInput = ([f64; 3], [f64; 3], [f64; 3], [f64; 3]);
@@ -89,9 +87,7 @@ fn compute_fast_determinant(a: [f64; 3], b: [f64; 3], c: [f64; 3], d: [f64; 3]) 
     let adz = a[2] - d[2];
     let bdz = b[2] - d[2];
     let cdz = c[2] - d[2];
-    adz * (bdx * cdy - cdx * bdy)
-        + bdz * (cdx * ady - adx * cdy)
-        + cdz * (adx * bdy - bdx * ady)
+    adz * (bdx * cdy - cdx * bdy) + bdz * (cdx * ady - adx * cdy) + cdz * (adx * bdy - bdx * ady)
 }
 
 /// Compute the permanent (sum of absolute sub-products) for error bounding.
@@ -117,9 +113,13 @@ fn compute_permanent(a: [f64; 3], b: [f64; 3], c: [f64; 3], d: [f64; 3]) -> f64 
 }
 
 fn sign_of(det: f64) -> TriSign {
-    if det > 0.0 { TriSign::Pos }
-    else if det < 0.0 { TriSign::Neg }
-    else { TriSign::Zero }
+    if det > 0.0 {
+        TriSign::Pos
+    } else if det < 0.0 {
+        TriSign::Neg
+    } else {
+        TriSign::Zero
+    }
 }
 
 #[cfg(test)]
@@ -134,7 +134,8 @@ mod tests {
             [1.0, 0.0, 0.0],
             [0.0, 1.0, 0.0],
             [0.0, 0.0, 1.0],
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(result.sign(), TriSign::Neg);
     }
 
@@ -145,7 +146,8 @@ mod tests {
             [1.0, 0.0, 0.0],
             [0.0, 1.0, 0.0],
             [0.0, 0.0, -1.0],
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(result.sign(), TriSign::Pos);
     }
 
@@ -156,7 +158,8 @@ mod tests {
             [1.0, 0.0, 0.0],
             [0.0, 1.0, 0.0],
             [0.5, 0.5, 0.0],
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(result.sign(), TriSign::Zero);
     }
 
@@ -167,7 +170,8 @@ mod tests {
             [1.0, 0.0, 0.0],
             [0.0, 1.0, 0.0],
             [0.0, 0.0, 1e-300],
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(result.sign(), TriSign::Neg);
     }
 
@@ -186,14 +190,25 @@ mod tests {
     #[test]
     fn oracle_cross_validation_basic() {
         let cases = [
-            ([0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]),
-            ([0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.5, 0.5, 0.0]),
+            (
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+            ),
+            (
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.5, 0.5, 0.0],
+            ),
         ];
         for (pa, pb, pc, pd) in cases {
             let our_det = super::super::vendored::orient3d(pa, pb, pc, pd);
             let oracle_det = geometry_predicates::orient3d(pa, pb, pc, pd);
             assert_eq!(
-                our_det.signum(), oracle_det.signum(),
+                our_det.signum(),
+                oracle_det.signum(),
                 "Oracle mismatch for orient3d"
             );
         }

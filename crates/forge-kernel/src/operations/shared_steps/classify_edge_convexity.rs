@@ -15,8 +15,8 @@
 
 use forge_core::KernelError;
 use forge_geom::Plane;
-use forge_topo::handles::{FaceId, HalfEdgeId};
 use forge_topo::arena::TopologyArena;
+use forge_topo::handles::{FaceId, HalfEdgeId};
 
 /// Convexity classification for a boundary edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -50,13 +50,15 @@ pub fn classify_edge_convexity(
     plane_fn: &dyn Fn(FaceId) -> Option<Plane>,
     tangency_tol: f64,
 ) -> Result<EdgeConvexity, KernelError> {
-    let he_data = arena.get_half_edge(half_edge).map_err(|_| KernelError::InvalidInput {
-        message: format!(
-            "classify_edge_convexity: halfedge {} not alive",
-            half_edge.index()
-        ),
-        context: None,
-    })?;
+    let he_data = arena
+        .get_half_edge(half_edge)
+        .map_err(|_| KernelError::InvalidInput {
+            message: format!(
+                "classify_edge_convexity: halfedge {} not alive",
+                half_edge.index()
+            ),
+            context: None,
+        })?;
 
     let face_a = he_data.face();
 
@@ -74,13 +76,15 @@ pub fn classify_edge_convexity(
         });
     }
 
-    let twin_data = arena.get_half_edge(twin_id).map_err(|_| KernelError::InternalError {
-        message: format!(
-            "classify_edge_convexity: radial partner {} not alive",
-            twin_id.index()
-        ),
-        context: None,
-    })?;
+    let twin_data = arena
+        .get_half_edge(twin_id)
+        .map_err(|_| KernelError::InternalError {
+            message: format!(
+                "classify_edge_convexity: radial partner {} not alive",
+                twin_id.index()
+            ),
+            context: None,
+        })?;
 
     let face_b = twin_data.face();
 

@@ -117,28 +117,22 @@ impl ForgeTheme {
         visuals.faint_bg_color = self.bg_surface;
 
         visuals.widgets.noninteractive.bg_fill = self.bg_surface;
-        visuals.widgets.noninteractive.fg_stroke =
-            egui::Stroke::new(1.0, self.text_secondary);
-        visuals.widgets.noninteractive.bg_stroke =
-            egui::Stroke::new(1.0, self.border_subtle);
+        visuals.widgets.noninteractive.fg_stroke = egui::Stroke::new(1.0, self.text_secondary);
+        visuals.widgets.noninteractive.bg_stroke = egui::Stroke::new(1.0, self.border_subtle);
 
         visuals.widgets.inactive.bg_fill = self.bg_surface;
         visuals.widgets.inactive.fg_stroke = egui::Stroke::new(1.0, self.text_primary);
-        visuals.widgets.inactive.bg_stroke =
-            egui::Stroke::new(1.0, self.border_default);
+        visuals.widgets.inactive.bg_stroke = egui::Stroke::new(1.0, self.border_default);
 
         visuals.widgets.hovered.bg_fill = self.accent_hover;
         visuals.widgets.hovered.fg_stroke = egui::Stroke::new(1.0, self.text_primary);
-        visuals.widgets.hovered.bg_stroke =
-            egui::Stroke::new(1.5, self.border_focus);
+        visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.5, self.border_focus);
 
         visuals.widgets.active.bg_fill = self.accent_primary;
         visuals.widgets.active.fg_stroke = egui::Stroke::new(1.0, self.text_inverse);
-        visuals.widgets.active.bg_stroke =
-            egui::Stroke::new(2.0, self.accent_primary);
+        visuals.widgets.active.bg_stroke = egui::Stroke::new(2.0, self.accent_primary);
 
-        visuals.selection.bg_fill =
-            Color32::from_rgba_unmultiplied(108, 99, 255, 60);
+        visuals.selection.bg_fill = Color32::from_rgba_unmultiplied(108, 99, 255, 60);
         visuals.selection.stroke = egui::Stroke::new(1.0, self.accent_primary);
 
         visuals.window_corner_radius = egui::CornerRadius::same(self.radius_md as u8);
@@ -153,43 +147,43 @@ impl ForgeTheme {
 /// Dark theme — the default Forge experience.
 pub fn dark_theme() -> ForgeTheme {
     ForgeTheme {
-        bg_base:    Color32::from_rgb(10, 11, 14),
+        bg_base: Color32::from_rgb(10, 11, 14),
         bg_surface: Color32::from_rgb(17, 19, 24),
-        bg_raised:  Color32::from_rgb(26, 29, 36),
+        bg_raised: Color32::from_rgb(26, 29, 36),
         bg_overlay: Color32::from_rgba_unmultiplied(0, 0, 0, 180),
 
-        border_subtle:  Color32::from_rgb(30, 33, 42),
+        border_subtle: Color32::from_rgb(30, 33, 42),
         border_default: Color32::from_rgb(37, 40, 48),
-        border_focus:   Color32::from_rgb(108, 99, 255),
+        border_focus: Color32::from_rgb(108, 99, 255),
 
-        text_primary:   Color32::from_rgb(232, 233, 238),
+        text_primary: Color32::from_rgb(232, 233, 238),
         text_secondary: Color32::from_rgb(123, 127, 142),
-        text_muted:     Color32::from_rgb(69, 74, 88),
-        text_inverse:   Color32::from_rgb(255, 255, 255),
+        text_muted: Color32::from_rgb(69, 74, 88),
+        text_inverse: Color32::from_rgb(255, 255, 255),
 
         accent_primary: Color32::from_rgb(108, 99, 255),
-        accent_glow:    Color32::from_rgba_unmultiplied(108, 99, 255, 100),
-        accent_hover:   Color32::from_rgb(37, 40, 48),
-        accent_subtle:  Color32::from_rgba_unmultiplied(108, 99, 255, 22),
+        accent_glow: Color32::from_rgba_unmultiplied(108, 99, 255, 100),
+        accent_hover: Color32::from_rgb(37, 40, 48),
+        accent_subtle: Color32::from_rgba_unmultiplied(108, 99, 255, 22),
 
         success: Color32::from_rgb(46, 204, 143),
         warning: Color32::from_rgb(245, 166, 35),
-        danger:  Color32::from_rgb(255, 77, 106),
-        info:    Color32::from_rgb(56, 182, 255),
+        danger: Color32::from_rgb(255, 77, 106),
+        info: Color32::from_rgb(56, 182, 255),
 
         success_surface: Color32::from_rgba_unmultiplied(46, 204, 143, 25),
         warning_surface: Color32::from_rgba_unmultiplied(245, 166, 35, 25),
-        danger_surface:  Color32::from_rgba_unmultiplied(255, 77, 106, 25),
-        info_surface:    Color32::from_rgba_unmultiplied(56, 182, 255, 25),
+        danger_surface: Color32::from_rgba_unmultiplied(255, 77, 106, 25),
+        info_surface: Color32::from_rgba_unmultiplied(56, 182, 255, 25),
 
-        bg_sidebar:     Color32::from_rgb(13, 14, 18),
-        viewport_grid:  Color32::from_rgba_unmultiplied(255, 255, 255, 12),
-        chat_user_bg:   Color32::TRANSPARENT,
-        chat_agent_bg:  Color32::from_rgb(22, 25, 32),
+        bg_sidebar: Color32::from_rgb(13, 14, 18),
+        viewport_grid: Color32::from_rgba_unmultiplied(255, 255, 255, 12),
+        chat_user_bg: Color32::TRANSPARENT,
+        chat_agent_bg: Color32::from_rgb(22, 25, 32),
 
-        radius_sm:   4.0,
-        radius_md:   8.0,
-        radius_lg:   12.0,
+        radius_sm: 4.0,
+        radius_md: 8.0,
+        radius_lg: 12.0,
         radius_pill: 9999.0,
 
         space: [4.0, 8.0, 12.0, 16.0, 20.0, 24.0, 32.0, 48.0],
@@ -210,43 +204,43 @@ pub fn dark_theme() -> ForgeTheme {
 /// Light theme — clean, high-contrast studio look.
 pub fn light_theme() -> ForgeTheme {
     ForgeTheme {
-        bg_base:    Color32::from_rgb(248, 249, 251),
+        bg_base: Color32::from_rgb(248, 249, 251),
         bg_surface: Color32::from_rgb(255, 255, 255),
-        bg_raised:  Color32::from_rgb(244, 245, 248),
+        bg_raised: Color32::from_rgb(244, 245, 248),
         bg_overlay: Color32::from_rgba_unmultiplied(0, 0, 0, 80),
 
-        border_subtle:  Color32::from_rgb(226, 228, 234),
+        border_subtle: Color32::from_rgb(226, 228, 234),
         border_default: Color32::from_rgb(210, 213, 222),
-        border_focus:   Color32::from_rgb(108, 99, 255),
+        border_focus: Color32::from_rgb(108, 99, 255),
 
-        text_primary:   Color32::from_rgb(15, 17, 26),
+        text_primary: Color32::from_rgb(15, 17, 26),
         text_secondary: Color32::from_rgb(80, 87, 108),
-        text_muted:     Color32::from_rgb(155, 160, 178),
-        text_inverse:   Color32::from_rgb(255, 255, 255),
+        text_muted: Color32::from_rgb(155, 160, 178),
+        text_inverse: Color32::from_rgb(255, 255, 255),
 
         accent_primary: Color32::from_rgb(108, 99, 255),
-        accent_glow:    Color32::from_rgba_unmultiplied(108, 99, 255, 80),
-        accent_hover:   Color32::from_rgb(237, 236, 255),
-        accent_subtle:  Color32::from_rgba_unmultiplied(108, 99, 255, 18),
+        accent_glow: Color32::from_rgba_unmultiplied(108, 99, 255, 80),
+        accent_hover: Color32::from_rgb(237, 236, 255),
+        accent_subtle: Color32::from_rgba_unmultiplied(108, 99, 255, 18),
 
         success: Color32::from_rgb(22, 163, 111),
         warning: Color32::from_rgb(202, 120, 10),
-        danger:  Color32::from_rgb(220, 38, 75),
-        info:    Color32::from_rgb(14, 140, 210),
+        danger: Color32::from_rgb(220, 38, 75),
+        info: Color32::from_rgb(14, 140, 210),
 
         success_surface: Color32::from_rgba_unmultiplied(22, 163, 111, 20),
         warning_surface: Color32::from_rgba_unmultiplied(202, 120, 10, 20),
-        danger_surface:  Color32::from_rgba_unmultiplied(220, 38, 75, 20),
-        info_surface:    Color32::from_rgba_unmultiplied(14, 140, 210, 20),
+        danger_surface: Color32::from_rgba_unmultiplied(220, 38, 75, 20),
+        info_surface: Color32::from_rgba_unmultiplied(14, 140, 210, 20),
 
-        bg_sidebar:     Color32::from_rgb(240, 241, 245),
-        viewport_grid:  Color32::from_rgba_unmultiplied(0, 0, 0, 12),
-        chat_user_bg:   Color32::TRANSPARENT,
-        chat_agent_bg:  Color32::from_rgb(244, 245, 250),
+        bg_sidebar: Color32::from_rgb(240, 241, 245),
+        viewport_grid: Color32::from_rgba_unmultiplied(0, 0, 0, 12),
+        chat_user_bg: Color32::TRANSPARENT,
+        chat_agent_bg: Color32::from_rgb(244, 245, 250),
 
-        radius_sm:   4.0,
-        radius_md:   8.0,
-        radius_lg:   12.0,
+        radius_sm: 4.0,
+        radius_md: 8.0,
+        radius_lg: 12.0,
         radius_pill: 9999.0,
 
         space: [4.0, 8.0, 12.0, 16.0, 20.0, 24.0, 32.0, 48.0],

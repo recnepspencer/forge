@@ -16,15 +16,15 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use forge_core::KernelError;
 use forge_core::envelope::OperationResult;
+use forge_core::KernelError;
 use forge_signal::graph::SignalGraph;
 use forge_signal::handles::NodeId;
-use forge_signal::schema::{AspectVersion, Aspect};
+use forge_signal::schema::{Aspect, AspectVersion};
 
-pub use super::traits::{Feature, FeatureOutput};
-use super::wrappers::{MakeCubeFeature, BooleanFeature};
 use super::executor::FeaturePipeline;
+pub use super::traits::{Feature, FeatureOutput};
+use super::wrappers::{BooleanFeature, MakeCubeFeature};
 use crate::core::ModelingContext;
 use crate::primitives::MakePrimitiveFeature;
 
@@ -122,20 +122,19 @@ impl FeatureTree {
     /// 1. Allocates a NodeId in the signal graph.
     /// 2. Registers dependencies.
     /// 3. Stores the feature logic.
-    pub fn register_feature(
-        &mut self,
-        feature: NativeFeature,
-    ) -> Result<NodeId, KernelError> {
+    pub fn register_feature(&mut self, feature: NativeFeature) -> Result<NodeId, KernelError> {
         let node_id = self.graph.create_node();
         let deps = feature.dependencies();
 
         for dep_id in deps {
-            self.graph.add_dependency(node_id, dep_id, Aspect::Topology)?;
-            self.graph.add_dependency(node_id, dep_id, Aspect::Geometry)?;
+            self.graph
+                .add_dependency(node_id, dep_id, Aspect::Topology)?;
+            self.graph
+                .add_dependency(node_id, dep_id, Aspect::Geometry)?;
         }
 
         if let Some(name) = feature.name().split('/').last() {
-             self.names.insert(name.to_string(), node_id);
+            self.names.insert(name.to_string(), node_id);
         }
 
         self.features.insert(node_id, feature);
@@ -155,10 +154,10 @@ impl FeatureTree {
         feature: NativeFeature,
     ) -> Result<(), KernelError> {
         if !self.graph.is_alive(node_id) {
-             return Err(KernelError::InvalidInput {
-                 message: format!("Node {} is not alive", node_id),
-                 context: None,
-             });
+            return Err(KernelError::InvalidInput {
+                message: format!("Node {} is not alive", node_id),
+                context: None,
+            });
         }
 
         let old_feature = self.features.insert(node_id, feature);
@@ -169,13 +168,18 @@ impl FeatureTree {
             }
         }
 
-        let new_feature = self.features.get(&node_id).ok_or_else(|| KernelError::InternalError {
-            message: format!("Feature missing after insert for node {}", node_id),
-            context: None,
-        })?;
+        let new_feature =
+            self.features
+                .get(&node_id)
+                .ok_or_else(|| KernelError::InternalError {
+                    message: format!("Feature missing after insert for node {}", node_id),
+                    context: None,
+                })?;
         for dep_id in new_feature.dependencies() {
-             self.graph.add_dependency(node_id, dep_id, Aspect::Topology)?;
-             self.graph.add_dependency(node_id, dep_id, Aspect::Geometry)?;
+            self.graph
+                .add_dependency(node_id, dep_id, Aspect::Topology)?;
+            self.graph
+                .add_dependency(node_id, dep_id, Aspect::Geometry)?;
         }
 
         forge_signal::evaluation::mark_dirty(&mut self.graph, node_id, Aspect::Topology)?;
@@ -215,42 +219,43 @@ impl FeatureTree {
 
         let mut pending_traces: HashMap<NodeId, forge_core::TraceSummary> = HashMap::new();
 
-        let mut compute = |id: NodeId, _graph_ref: &SignalGraph| -> Result<AspectVersion, KernelError> {
-            let feature = features.get(&id).ok_or_else(|| KernelError::InvalidInput {
-                message: format!("Feature logic not found for node {}", id),
-                context: None,
-            })?;
+        let mut compute =
+            |id: NodeId, _graph_ref: &SignalGraph| -> Result<AspectVersion, KernelError> {
+                let feature = features.get(&id).ok_or_else(|| KernelError::InvalidInput {
+                    message: format!("Feature logic not found for node {}", id),
+                    context: None,
+                })?;
 
-            // Build input map by borrowing FeatureOutput from stored envelopes.
-            // The clone is at the input boundary — necessary because
-            // parse_inputs takes &HashMap<NodeId, FeatureOutput>.
-            let mut input_map = HashMap::new();
-            for dep_id in feature.dependencies() {
-                if let Some(envelope) = envelopes.get(&dep_id) {
-                     input_map.insert(dep_id, envelope.get_value().clone());
-                } else {
-                    return Err(KernelError::InvalidInput {
-                         message: format!("Dependency output missing for node {}", dep_id),
-                         context: None,
-                    });
+                // Build input map by borrowing FeatureOutput from stored envelopes.
+                // The clone is at the input boundary — necessary because
+                // parse_inputs takes &HashMap<NodeId, FeatureOutput>.
+                let mut input_map = HashMap::new();
+                for dep_id in feature.dependencies() {
+                    if let Some(envelope) = envelopes.get(&dep_id) {
+                        input_map.insert(dep_id, envelope.get_value().clone());
+                    } else {
+                        return Err(KernelError::InvalidInput {
+                            message: format!("Dependency output missing for node {}", dep_id),
+                            context: None,
+                        });
+                    }
                 }
-            }
 
-            let envelope = feature.execute_via_pipeline(&input_map, ctx)?;
+                let envelope = feature.execute_via_pipeline(&input_map, ctx)?;
 
-            // Build the trace summary from the envelope's decision log —
-            // NOT from ctx, which was drained by the OperationFinalizer.
-            let state_hash = forge_topo::hashing::compute_arena_topology_hash(
-                envelope.get_value().topology.arena(),
-            );
-            let summary = envelope.get_decision_log().to_summary(state_hash);
-            pending_traces.insert(id, summary);
+                // Build the trace summary from the envelope's decision log —
+                // NOT from ctx, which was drained by the OperationFinalizer.
+                let state_hash = forge_topo::hashing::compute_arena_topology_hash(
+                    envelope.get_value().topology.arena(),
+                );
+                let summary = envelope.get_decision_log().to_summary(state_hash);
+                pending_traces.insert(id, summary);
 
-            // Store the full envelope — metadata is preserved.
-            envelopes.insert(id, envelope);
+                // Store the full envelope — metadata is preserved.
+                envelopes.insert(id, envelope);
 
-            Ok(AspectVersion::new(1, 1))
-        };
+                Ok(AspectVersion::new(1, 1))
+            };
 
         forge_signal::evaluation::evaluate(graph, node_id, &mut compute)?;
 
@@ -260,10 +265,13 @@ impl FeatureTree {
             }
         }
 
-        envelopes.get(&node_id).cloned().ok_or_else(|| KernelError::InternalError {
-            message: "Evaluation finished but output missing".to_string(),
-            context: None,
-        })
+        envelopes
+            .get(&node_id)
+            .cloned()
+            .ok_or_else(|| KernelError::InternalError {
+                message: "Evaluation finished but output missing".to_string(),
+                context: None,
+            })
     }
 
     /// Get a feature ID by name.

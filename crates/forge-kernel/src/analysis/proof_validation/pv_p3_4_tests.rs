@@ -10,19 +10,17 @@
 
 #[cfg(test)]
 mod tests {
-    use forge_core::{DecisionId, DecisionTier, DecisionKind};
+    use forge_core::{DecisionId, DecisionKind, DecisionTier};
     use forge_topo::hashing::compute_arena_topology_hash;
 
+    use crate::analysis::counterfactual::{
+        replay_all_near_boundary, replay_decision, DecisionOverride,
+    };
     use crate::operations::boolean::test_helpers::{
-        build_cube, execute_boolean_logged, euler_audit,
+        build_cube, euler_audit, execute_boolean_logged,
     };
     use crate::operations::boolean::{
-        BooleanInput, BooleanOp, FaceClassification,
-        execute_boolean_with_overrides,
-    };
-    use crate::analysis::counterfactual::{
-        replay_decision, replay_all_near_boundary,
-        DecisionOverride,
+        execute_boolean_with_overrides, BooleanInput, BooleanOp, FaceClassification,
     };
 
     /// PV-39: Override a single classification decision and verify the
@@ -36,9 +34,7 @@ mod tests {
         let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
         let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
-        let input = BooleanInput::new(
-            topo_a, geom_a, topo_b, geom_b, BooleanOp::Union,
-        );
+        let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
 
         let envelope = execute_boolean_logged(input.clone());
         let original_hash = envelope.get_state_hash_after();
@@ -46,8 +42,12 @@ mod tests {
 
         let classification_decisions: Vec<_> = original_log
             .decisions()
-            .filter(|d| matches!(d.get_context(),
-                forge_core::DecisionContext::Classification { .. }))
+            .filter(|d| {
+                matches!(
+                    d.get_context(),
+                    forge_core::DecisionContext::Classification { .. }
+                )
+            })
             .collect();
 
         assert!(
@@ -106,9 +106,7 @@ mod tests {
         let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
         let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
-        let input = BooleanInput::new(
-            topo_a, geom_a, topo_b, geom_b, BooleanOp::Intersection,
-        );
+        let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Intersection);
 
         let envelope = execute_boolean_logged(input.clone());
         let original_hash = envelope.get_state_hash_after();
@@ -116,8 +114,12 @@ mod tests {
 
         let classification_decisions: Vec<_> = original_log
             .decisions()
-            .filter(|d| matches!(d.get_context(),
-                forge_core::DecisionContext::Classification { .. }))
+            .filter(|d| {
+                matches!(
+                    d.get_context(),
+                    forge_core::DecisionContext::Classification { .. }
+                )
+            })
             .collect();
 
         assert!(
@@ -135,9 +137,7 @@ mod tests {
                 target.get_margin(),
             );
 
-            let cf_result = replay_decision(
-                &input, &original_log, original_hash, &override_spec,
-            );
+            let cf_result = replay_decision(&input, &original_log, original_hash, &override_spec);
 
             match cf_result {
                 Ok(cf) => {
@@ -169,17 +169,13 @@ mod tests {
         let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
         let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
-        let input = BooleanInput::new(
-            topo_a, geom_a, topo_b, geom_b, BooleanOp::Union,
-        );
+        let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
 
         let envelope = execute_boolean_logged(input.clone());
         let original_hash = envelope.get_state_hash_after();
         let original_log = envelope.get_decision_log().clone();
 
-        let results = replay_all_near_boundary(
-            &input, &original_log, original_hash,
-        );
+        let results = replay_all_near_boundary(&input, &original_log, original_hash);
 
         for result in &results {
             match result {
@@ -197,8 +193,12 @@ mod tests {
 
         let total_classification = original_log
             .decisions()
-            .filter(|d| matches!(d.get_context(),
-                forge_core::DecisionContext::Classification { .. }))
+            .filter(|d| {
+                matches!(
+                    d.get_context(),
+                    forge_core::DecisionContext::Classification { .. }
+                )
+            })
             .count();
 
         eprintln!(

@@ -2,9 +2,9 @@ use forge_core::KernelError;
 use forge_topo::arena::TopologyArena;
 use forge_topo::state::{MutableDraft, TopologyState};
 
+use crate::brep::patch::BrepPatch;
 use crate::core::KernelState;
 use crate::geometry_state::GeometryPatch;
-use crate::brep::patch::BrepPatch;
 
 /// Transactional mutation handle for topology + geometry.
 ///
@@ -82,13 +82,21 @@ impl KernelDraft {
     /// Uses the original topology stored at construction time, guaranteeing
     /// that geometry and topology are always paired correctly.
     pub fn rollback(self) -> KernelState {
-        KernelState::new(self.original_topo, self.geom_patch.rollback(), self.brep_patch.rollback())
+        KernelState::new(
+            self.original_topo,
+            self.geom_patch.rollback(),
+            self.brep_patch.rollback(),
+        )
     }
 
     /// Commit the transaction, finalizing all topology and geometry mutations.
     pub fn commit(self) -> Result<KernelState, KernelError> {
         let topo = self.draft.commit()?;
-        Ok(KernelState::new(topo, self.geom_patch.commit(), self.brep_patch.commit()))
+        Ok(KernelState::new(
+            topo,
+            self.geom_patch.commit(),
+            self.brep_patch.commit(),
+        ))
     }
 
     /// Commit with an explicit `TopologyMode`, permitting NMT-intermediate states.
@@ -102,6 +110,10 @@ impl KernelDraft {
         mode: forge_topo::validate::TopologyMode,
     ) -> Result<KernelState, KernelError> {
         let topo = self.draft.commit_with_mode(level, mode)?;
-        Ok(KernelState::new(topo, self.geom_patch.commit(), self.brep_patch.commit()))
+        Ok(KernelState::new(
+            topo,
+            self.geom_patch.commit(),
+            self.brep_patch.commit(),
+        ))
     }
 }

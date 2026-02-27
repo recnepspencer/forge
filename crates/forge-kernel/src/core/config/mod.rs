@@ -8,22 +8,22 @@
 //! - `defaults` — All named default constants (the one source of truth)
 
 pub mod defaults;
-pub mod schema;
 pub mod overrides;
 pub mod provenance;
 pub mod resolve;
+pub mod schema;
 
 #[cfg(test)]
 mod tests;
 
 pub use schema::{
-    KernelConfig, ConfigSection, UnitSystem, ToleranceSection,
-    SolverSection, ValidationSection, PolicySection, PrecisionSection,
+    ConfigSection, KernelConfig, PolicySection, PrecisionSection, SolverSection, ToleranceSection,
+    UnitSystem, ValidationSection,
 };
 
 pub use overrides::{
-    ConfigOverride, ToleranceOverride, SolverOverride,
-    ValidationOverride, PolicyOverride, PrecisionOverride,
+    ConfigOverride, PolicyOverride, PrecisionOverride, SolverOverride, ToleranceOverride,
+    ValidationOverride,
 };
-pub use provenance::{ConfigScope, ConfigSource, ConfigProvenance};
-pub use resolve::{ResolvedConfig, resolve_config};
+pub use provenance::{ConfigProvenance, ConfigScope, ConfigSource};
+pub use resolve::{resolve_config, ResolvedConfig};

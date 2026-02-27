@@ -1234,7 +1234,10 @@ mod gate_policy_tests {
             MergeRegionSelection::new(selected, protected, FaceId::from_raw_parts(0, 0));
 
         let mut ctx = ModelingContext::new();
-        ctx.config.policy.fallback_rules.insert(PolicyKind::CoincidentGeometry, false);
+        ctx.config
+            .policy
+            .fallback_rules
+            .insert(PolicyKind::CoincidentGeometry, false);
 
         let err = apply_boundary_cert_gate_policy(
             &WeakSimpleCertificate::WeaklySimple { touch_count: 2 },
@@ -1257,14 +1260,8 @@ mod gate_policy_tests {
             payload.source,
             forge_core::PolicyResolutionSource::DefaultPolicy
         );
-        assert_eq!(
-            payload.source_scope,
-            None
-        );
-        assert_eq!(
-            payload.operation_scope_id,
-            None
-        );
+        assert_eq!(payload.source_scope, None);
+        assert_eq!(payload.operation_scope_id, None);
         assert_eq!(
             payload.outcome,
             forge_core::PolicyResolutionOutcome::RejectedPotentialValue

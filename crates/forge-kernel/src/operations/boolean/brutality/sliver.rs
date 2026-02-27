@@ -1,9 +1,9 @@
-use super::super::test_helpers::{build_cube, execute_boolean_logged};
 use super::super::schema::{BooleanInput, BooleanOp};
-use forge_geom::spatial::bsp::{build_convex_polyhedron, BspConfig};
-use forge_geom::Plane;
+use super::super::test_helpers::{build_cube, execute_boolean_logged};
 use crate::core::ModelingContext;
 use crate::mesh_builder::build_halfedge_mesh;
+use forge_geom::spatial::bsp::{build_convex_polyhedron, BspConfig};
+use forge_geom::Plane;
 
 // ══════════════════════════════════════════════════════════════
 // §7  SLIVER BUDGET TORTURE
@@ -37,17 +37,21 @@ fn shallow_angle_intersection() {
             let (topo_b, geom_b) = mr.into_parts();
             let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
 
-            let input = BooleanInput::new(
-                topo_a, geom_a, topo_b, geom_b, BooleanOp::Intersection,
-            );
+            let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Intersection);
             let result = execute_boolean_logged(input);
-            let r = result.into_result().expect("Shallow-angle boolean must not fail");
+            let r = result
+                .into_result()
+                .expect("Shallow-angle boolean must not fail");
             let arena = r.topology().arena();
             let v = arena.vertex_count() as isize;
             let e = (arena.half_edge_count() / 2) as isize;
             let f = arena.face_count() as isize;
             assert!(f > 0, "Shallow-angle intersection should produce faces");
-            assert_eq!(v - e + f, 2, "Shallow-angle Euler violation: V={v} E={e} F={f}");
+            assert_eq!(
+                v - e + f,
+                2,
+                "Shallow-angle Euler violation: V={v} E={e} F={f}"
+            );
         }
         Err(e) => panic!("BSP for tilted solid must not fail: {e}"),
     }

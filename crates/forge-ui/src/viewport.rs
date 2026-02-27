@@ -83,10 +83,10 @@ pub fn draw_viewport(ctx: &egui::Context, vp: &mut ViewportState, theme: &ForgeT
             let sun_y = (sun_angle - std::f32::consts::PI * 0.5).sin();
             let daytime = ((sun_y + 1.0) * 0.5).powf(0.4);
 
-            let mid_top  = Color32::from_rgb(3,  5, 20);
-            let mid_hor  = Color32::from_rgb(5, 10, 30);
-            let ss_top   = Color32::from_rgb(40, 30, 100);
-            let ss_hor   = Color32::from_rgb(255, 110, 30);
+            let mid_top = Color32::from_rgb(3, 5, 20);
+            let mid_hor = Color32::from_rgb(5, 10, 30);
+            let ss_top = Color32::from_rgb(40, 30, 100);
+            let ss_hor = Color32::from_rgb(255, 110, 30);
             let noon_top = Color32::from_rgb(18, 90, 195);
             let noon_hor = Color32::from_rgb(130, 200, 255);
 
@@ -105,11 +105,13 @@ pub fn draw_viewport(ctx: &egui::Context, vp: &mut ViewportState, theme: &ForgeT
 
             let sky_top = lerp_col(
                 lerp_col(mid_top, ss_top, rise_t),
-                noon_top, daytime * (1.0 - rise_t),
+                noon_top,
+                daytime * (1.0 - rise_t),
             );
             let sky_hor = lerp_col(
                 lerp_col(mid_hor, ss_hor, rise_t),
-                noon_hor, daytime * (1.0 - rise_t),
+                noon_hor,
+                daytime * (1.0 - rise_t),
             );
 
             // ── Sky gradient mesh ─────────────────────────────────────
@@ -130,7 +132,9 @@ pub fn draw_viewport(ctx: &egui::Context, vp: &mut ViewportState, theme: &ForgeT
 
             let project = |pos: Vec3| -> Option<Pos2> {
                 let mut p = vp_mat * Vec4::new(pos.x, pos.y, pos.z, 1.0);
-                if p.w <= 0.0 { return None; }
+                if p.w <= 0.0 {
+                    return None;
+                }
                 p /= p.w;
                 let x = rect.min.x + (p.x * 0.5 + 0.5) * rect.width();
                 let y = rect.min.y + (0.5 - p.y * 0.5) * rect.height();
@@ -152,16 +156,29 @@ pub fn draw_viewport(ctx: &egui::Context, vp: &mut ViewportState, theme: &ForgeT
             } else {
                 "Click viewport to look  ·  scroll to zoom"
             };
-            let hg = ui.fonts(|f| f.layout_no_wrap(hint.to_string(), egui::FontId::proportional(10.5), t.text_muted));
-            ui.painter().galley(Pos2::new(rect.min.x + 12.0, rect.max.y - 20.0), hg, t.text_muted);
+            let hg = ui.fonts(|f| {
+                f.layout_no_wrap(
+                    hint.to_string(),
+                    egui::FontId::proportional(10.5),
+                    t.text_muted,
+                )
+            });
+            ui.painter().galley(
+                Pos2::new(rect.min.x + 12.0, rect.max.y - 20.0),
+                hg,
+                t.text_muted,
+            );
         });
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 fn draw_sky_mesh(
-    ui: &mut egui::Ui, rect: Rect,
-    sky_top: Color32, sky_hor: Color32, daytime: f32,
+    ui: &mut egui::Ui,
+    rect: Rect,
+    sky_top: Color32,
+    sky_hor: Color32,
+    daytime: f32,
     lerp_col: &dyn Fn(Color32, Color32, f32) -> Color32,
 ) {
     use egui::epaint::{Mesh, Vertex, WHITE_UV};
@@ -175,38 +192,68 @@ fn draw_sky_mesh(
     let hr = Pos2::new(rect.max.x, horizon_y);
 
     let add = |m: &mut Mesh, p: Pos2, c: Color32| {
-        m.vertices.push(Vertex { pos: p, uv: WHITE_UV, color: c });
+        m.vertices.push(Vertex {
+            pos: p,
+            uv: WHITE_UV,
+            color: c,
+        });
     };
     add(&mut mesh, tl, sky_top);
     add(&mut mesh, tr, sky_top);
     add(&mut mesh, hr, sky_hor);
     add(&mut mesh, hl, sky_hor);
-    mesh.indices.extend_from_slice(&[0,1,2, 0,2,3]);
+    mesh.indices.extend_from_slice(&[0, 1, 2, 0, 2, 3]);
 
-    let ground_top = lerp_col(Color32::from_rgb(40, 50, 35), Color32::from_rgb(60, 70, 50), daytime);
-    let ground_bot = lerp_col(Color32::from_rgb(20, 25, 18), Color32::from_rgb(35, 45, 28), daytime);
+    let ground_top = lerp_col(
+        Color32::from_rgb(40, 50, 35),
+        Color32::from_rgb(60, 70, 50),
+        daytime,
+    );
+    let ground_bot = lerp_col(
+        Color32::from_rgb(20, 25, 18),
+        Color32::from_rgb(35, 45, 28),
+        daytime,
+    );
     let base = mesh.vertices.len() as u32;
-    add(&mut mesh, hl,  ground_top);
-    add(&mut mesh, hr,  ground_top);
-    add(&mut mesh, br,  ground_bot);
-    add(&mut mesh, bl,  ground_bot);
-    mesh.indices.extend_from_slice(&[base,base+1,base+2, base,base+2,base+3]);
+    add(&mut mesh, hl, ground_top);
+    add(&mut mesh, hr, ground_top);
+    add(&mut mesh, br, ground_bot);
+    add(&mut mesh, bl, ground_bot);
+    mesh.indices
+        .extend_from_slice(&[base, base + 1, base + 2, base, base + 2, base + 3]);
 
-    ui.painter().add(egui::Shape::Mesh(std::sync::Arc::new(mesh)));
+    ui.painter()
+        .add(egui::Shape::Mesh(std::sync::Arc::new(mesh)));
 }
 
 fn draw_stars(ui: &mut egui::Ui, rect: Rect, daytime: f32, t_day: f32) {
     let star_alpha = ((1.0 - daytime) * 255.0) as u8;
-    if star_alpha <= 10 { return; }
+    if star_alpha <= 10 {
+        return;
+    }
 
     let stars: &[(f32, f32, f32)] = &[
-        (0.06, 0.05, 1.5), (0.18, 0.09, 1.0), (0.32, 0.03, 2.0),
-        (0.45, 0.12, 1.2), (0.57, 0.04, 1.8), (0.71, 0.07, 1.0),
-        (0.84, 0.02, 2.2), (0.92, 0.10, 1.3), (0.13, 0.20, 1.6),
-        (0.29, 0.18, 0.9), (0.50, 0.22, 1.4), (0.65, 0.16, 2.0),
-        (0.78, 0.25, 1.1), (0.88, 0.19, 1.7), (0.07, 0.32, 1.3),
-        (0.40, 0.35, 2.1), (0.60, 0.30, 0.8), (0.75, 0.40, 1.5),
-        (0.20, 0.45, 1.0), (0.90, 0.38, 2.0), (0.35, 0.50, 1.2),
+        (0.06, 0.05, 1.5),
+        (0.18, 0.09, 1.0),
+        (0.32, 0.03, 2.0),
+        (0.45, 0.12, 1.2),
+        (0.57, 0.04, 1.8),
+        (0.71, 0.07, 1.0),
+        (0.84, 0.02, 2.2),
+        (0.92, 0.10, 1.3),
+        (0.13, 0.20, 1.6),
+        (0.29, 0.18, 0.9),
+        (0.50, 0.22, 1.4),
+        (0.65, 0.16, 2.0),
+        (0.78, 0.25, 1.1),
+        (0.88, 0.19, 1.7),
+        (0.07, 0.32, 1.3),
+        (0.40, 0.35, 2.1),
+        (0.60, 0.30, 0.8),
+        (0.75, 0.40, 1.5),
+        (0.20, 0.45, 1.0),
+        (0.90, 0.38, 2.0),
+        (0.35, 0.50, 1.2),
     ];
     let h_frac = 0.55;
     for &(fx, fy, r) in stars {
@@ -220,21 +267,33 @@ fn draw_stars(ui: &mut egui::Ui, rect: Rect, daytime: f32, t_day: f32) {
 }
 
 fn draw_horizon_glow(ui: &mut egui::Ui, rect: Rect, rise_t: f32) {
-    if rise_t <= 0.05 { return; }
+    if rise_t <= 0.05 {
+        return;
+    }
     let alpha = (rise_t * 180.0) as u8;
     let horizon_y = rect.min.y + rect.height() * 0.55;
     for i in 0..6u8 {
         let spread = i as f32 * 3.0;
         let a = (alpha as f32 * (1.0 - i as f32 / 6.0)) as u8;
         let c = Color32::from_rgba_unmultiplied(255, 90, 20, a);
-        ui.painter().hline(rect.min.x..=rect.max.x, horizon_y - spread, Stroke::new(1.5, c));
-        ui.painter().hline(rect.min.x..=rect.max.x, horizon_y + spread, Stroke::new(1.5, c));
+        ui.painter().hline(
+            rect.min.x..=rect.max.x,
+            horizon_y - spread,
+            Stroke::new(1.5, c),
+        );
+        ui.painter().hline(
+            rect.min.x..=rect.max.x,
+            horizon_y + spread,
+            Stroke::new(1.5, c),
+        );
     }
 }
 
 fn handle_camera_controls(
-    ctx: &egui::Context, ui: &mut egui::Ui,
-    vp: &mut ViewportState, rect: Rect,
+    ctx: &egui::Context,
+    ui: &mut egui::Ui,
+    vp: &mut ViewportState,
+    rect: Rect,
 ) {
     let dt = ctx.input(|i| i.stable_dt).min(0.05);
     let speed = 5.0 * dt;
@@ -243,8 +302,12 @@ fn handle_camera_controls(
     let canvas_resp = ui.interact(rect, egui::Id::new("viewport_bg"), egui::Sense::click());
 
     if vp.mouse_captured {
-        if input.pointer.any_click() { vp.mouse_captured = false; }
-        if input.key_pressed(Key::Escape) { vp.mouse_captured = false; }
+        if input.pointer.any_click() {
+            vp.mouse_captured = false;
+        }
+        if input.key_pressed(Key::Escape) {
+            vp.mouse_captured = false;
+        }
     } else if canvas_resp.clicked() {
         vp.mouse_captured = true;
     }
@@ -253,9 +316,9 @@ fn handle_camera_controls(
         ctx.send_viewport_cmd(egui::ViewportCommand::CursorVisible(false));
         let delta = input.pointer.delta();
         if delta.x != 0.0 || delta.y != 0.0 {
-            vp.camera.yaw   -= delta.x * 0.005;
+            vp.camera.yaw -= delta.x * 0.005;
             vp.camera.pitch -= delta.y * 0.005;
-            vp.camera.pitch  = vp.camera.pitch.clamp(-1.5, 1.5);
+            vp.camera.pitch = vp.camera.pitch.clamp(-1.5, 1.5);
             ctx.request_repaint();
         }
     } else {
@@ -266,18 +329,33 @@ fn handle_camera_controls(
         let scroll = ctx.input(|i| i.smooth_scroll_delta.y);
         if scroll != 0.0 {
             vp.camera.fov_y -= scroll * 0.001;
-            vp.camera.fov_y = vp.camera.fov_y.clamp(10.0_f32.to_radians(), 120.0_f32.to_radians());
+            vp.camera.fov_y = vp
+                .camera
+                .fov_y
+                .clamp(10.0_f32.to_radians(), 120.0_f32.to_radians());
             ctx.request_repaint();
         }
     }
 
     let mut move_dir = Vec3::ZERO;
-    if input.key_down(Key::W) || input.key_down(Key::ArrowUp)    { move_dir += vp.camera.forward(); }
-    if input.key_down(Key::S) || input.key_down(Key::ArrowDown)  { move_dir -= vp.camera.forward(); }
-    if input.key_down(Key::A) || input.key_down(Key::ArrowLeft)  { move_dir -= vp.camera.right(); }
-    if input.key_down(Key::D) || input.key_down(Key::ArrowRight) { move_dir += vp.camera.right(); }
-    if input.key_down(Key::Space)   { move_dir.y += 1.0; }
-    if input.modifiers.shift        { move_dir.y -= 1.0; }
+    if input.key_down(Key::W) || input.key_down(Key::ArrowUp) {
+        move_dir += vp.camera.forward();
+    }
+    if input.key_down(Key::S) || input.key_down(Key::ArrowDown) {
+        move_dir -= vp.camera.forward();
+    }
+    if input.key_down(Key::A) || input.key_down(Key::ArrowLeft) {
+        move_dir -= vp.camera.right();
+    }
+    if input.key_down(Key::D) || input.key_down(Key::ArrowRight) {
+        move_dir += vp.camera.right();
+    }
+    if input.key_down(Key::Space) {
+        move_dir.y += 1.0;
+    }
+    if input.modifiers.shift {
+        move_dir.y -= 1.0;
+    }
 
     if move_dir.length_squared() > 0.01 {
         vp.camera.pos += move_dir.normalize() * speed;
@@ -288,20 +366,34 @@ fn handle_camera_controls(
 fn draw_wireframe_cube(
     ui: &mut egui::Ui,
     project: &dyn Fn(Vec3) -> Option<Pos2>,
-    center: Vec3, color: Color32,
+    center: Vec3,
+    color: Color32,
 ) {
     let d = 0.5;
     let c = center;
     let vertices = [
-        c + Vec3::new(-d, -d, -d), c + Vec3::new( d, -d, -d),
-        c + Vec3::new( d,  d, -d), c + Vec3::new(-d,  d, -d),
-        c + Vec3::new(-d, -d,  d), c + Vec3::new( d, -d,  d),
-        c + Vec3::new( d,  d,  d), c + Vec3::new(-d,  d,  d),
+        c + Vec3::new(-d, -d, -d),
+        c + Vec3::new(d, -d, -d),
+        c + Vec3::new(d, d, -d),
+        c + Vec3::new(-d, d, -d),
+        c + Vec3::new(-d, -d, d),
+        c + Vec3::new(d, -d, d),
+        c + Vec3::new(d, d, d),
+        c + Vec3::new(-d, d, d),
     ];
     let edges = [
-        (0,1), (1,2), (2,3), (3,0),
-        (4,5), (5,6), (6,7), (7,4),
-        (0,4), (1,5), (2,6), (3,7),
+        (0, 1),
+        (1, 2),
+        (2, 3),
+        (3, 0),
+        (4, 5),
+        (5, 6),
+        (6, 7),
+        (7, 4),
+        (0, 4),
+        (1, 5),
+        (2, 6),
+        (3, 7),
     ];
     let stroke = Stroke::new(2.0, color);
     for &(i, j) in &edges {
@@ -315,7 +407,9 @@ fn draw_sun_moon(
     ui: &mut egui::Ui,
     project: &dyn Fn(Vec3) -> Option<Pos2>,
     rect: Rect,
-    sun_angle: f32, sun_y: f32, daytime: f32,
+    sun_angle: f32,
+    sun_y: f32,
+    daytime: f32,
     lerp_col: &dyn Fn(Color32, Color32, f32) -> Color32,
 ) {
     let sx = sun_angle.cos() * 40.0;
@@ -326,20 +420,34 @@ fn draw_sun_moon(
     if let Some(sp) = project(body_pos) {
         if rect.contains(sp) {
             if is_day {
-                let sun_col = lerp_col(Color32::from_rgb(255, 180, 50), Color32::from_rgb(255, 252, 200), daytime);
+                let sun_col = lerp_col(
+                    Color32::from_rgb(255, 180, 50),
+                    Color32::from_rgb(255, 252, 200),
+                    daytime,
+                );
                 for i in (0..5u8).rev() {
                     let r = 18.0 + i as f32 * 8.0;
                     let a = (60u8).saturating_sub(i * 14);
-                    let halo = Color32::from_rgba_unmultiplied(sun_col.r(), sun_col.g(), sun_col.b(), a);
+                    let halo =
+                        Color32::from_rgba_unmultiplied(sun_col.r(), sun_col.g(), sun_col.b(), a);
                     ui.painter().circle_filled(sp, r, halo);
                 }
                 ui.painter().circle_filled(sp, 18.0, sun_col);
-                ui.painter().circle_filled(sp, 10.0, Color32::from_rgb(255, 255, 240));
+                ui.painter()
+                    .circle_filled(sp, 10.0, Color32::from_rgb(255, 255, 240));
             } else {
                 let moon_col = Color32::from_rgb(210, 215, 230);
-                ui.painter().circle_filled(sp, 12.0, Color32::from_rgba_unmultiplied(200, 210, 230, 60));
-                ui.painter().circle_filled(sp, 10.0, Color32::from_rgba_unmultiplied(200, 210, 230, 80));
-                ui.painter().circle_filled(sp,  8.0, moon_col);
+                ui.painter().circle_filled(
+                    sp,
+                    12.0,
+                    Color32::from_rgba_unmultiplied(200, 210, 230, 60),
+                );
+                ui.painter().circle_filled(
+                    sp,
+                    10.0,
+                    Color32::from_rgba_unmultiplied(200, 210, 230, 80),
+                );
+                ui.painter().circle_filled(sp, 8.0, moon_col);
             }
         }
     }
@@ -362,11 +470,16 @@ fn draw_ground_grid(
     let mut z = -grid_extent;
     while z <= grid_extent {
         let p1 = project(Vec3::new(-grid_extent as f32, 0.0, z as f32));
-        let p2 = project(Vec3::new( grid_extent as f32, 0.0, z as f32));
+        let p2 = project(Vec3::new(grid_extent as f32, 0.0, z as f32));
         if let (Some(p1), Some(p2)) = (p1, p2) {
             let dist_fade = 1.0 - (z.abs() as f32 / grid_extent as f32).powi(2);
             let a = (dist_fade * grid_col_base.a() as f32) as u8;
-            let c = Color32::from_rgba_unmultiplied(grid_col_base.r(), grid_col_base.g(), grid_col_base.b(), a);
+            let c = Color32::from_rgba_unmultiplied(
+                grid_col_base.r(),
+                grid_col_base.g(),
+                grid_col_base.b(),
+                a,
+            );
             let w = if z == 0 { 1.5 } else { 0.8 };
             ui.painter().line_segment([p1, p2], Stroke::new(w, c));
         }
@@ -375,11 +488,16 @@ fn draw_ground_grid(
     let mut x = -grid_extent;
     while x <= grid_extent {
         let p1 = project(Vec3::new(x as f32, 0.0, -grid_extent as f32));
-        let p2 = project(Vec3::new(x as f32, 0.0,  grid_extent as f32));
+        let p2 = project(Vec3::new(x as f32, 0.0, grid_extent as f32));
         if let (Some(p1), Some(p2)) = (p1, p2) {
             let dist_fade = 1.0 - (x.abs() as f32 / grid_extent as f32).powi(2);
             let a = (dist_fade * grid_col_base.a() as f32) as u8;
-            let c = Color32::from_rgba_unmultiplied(grid_col_base.r(), grid_col_base.g(), grid_col_base.b(), a);
+            let c = Color32::from_rgba_unmultiplied(
+                grid_col_base.r(),
+                grid_col_base.g(),
+                grid_col_base.b(),
+                a,
+            );
             let w = if x == 0 { 1.5 } else { 0.8 };
             ui.painter().line_segment([p1, p2], Stroke::new(w, c));
         }

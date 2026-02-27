@@ -27,12 +27,10 @@ fn ambiguous_carries_query_and_value() {
 
 #[test]
 fn hard_error_is_hard_error() {
-    let r: PolicyResult<i32> = PolicyResult::HardError(
-        KernelError::InvalidInput {
-            message: "bad".to_string(),
-            context: None,
-        },
-    );
+    let r: PolicyResult<i32> = PolicyResult::HardError(KernelError::InvalidInput {
+        message: "bad".to_string(),
+        context: None,
+    });
     assert!(r.is_hard_error());
 }
 
@@ -95,7 +93,10 @@ fn kernel_error_summary_preserves_typed_merge_variant() {
     });
 
     match KernelErrorSummary::from(&err) {
-        KernelErrorSummary::MergeFailure(MergeErrorSummary::ProtectedUseConflict { face_index, edge_index }) => {
+        KernelErrorSummary::MergeFailure(MergeErrorSummary::ProtectedUseConflict {
+            face_index,
+            edge_index,
+        }) => {
             assert_eq!(face_index, 17);
             assert_eq!(edge_index, Some(4));
         }
@@ -116,7 +117,11 @@ fn error_summary_round_trips_json() {
 
     assert_eq!(restored, summary);
     assert!(matches!(restored.category, ErrorCategory::Kernel));
-    assert!(restored.human_message.as_deref().unwrap_or("").contains("Merge failure"));
+    assert!(restored
+        .human_message
+        .as_deref()
+        .unwrap_or("")
+        .contains("Merge failure"));
 }
 
 #[test]

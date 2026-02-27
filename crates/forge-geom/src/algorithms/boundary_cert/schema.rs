@@ -25,20 +25,33 @@ pub struct ProjectionFrame2D {
 impl ProjectionFrame2D {
     /// Construct a projection frame from axis indices and orientation sign.
     pub fn new(drop_axis: usize, u_axis: usize, v_axis: usize, orientation_sign: f64) -> Self {
-        Self { drop_axis, u_axis, v_axis, orientation_sign }
+        Self {
+            drop_axis,
+            u_axis,
+            v_axis,
+            orientation_sign,
+        }
     }
 
     /// The dropped axis index (0=X, 1=Y, 2=Z).
-    pub fn get_drop_axis(&self) -> usize { self.drop_axis }
+    pub fn get_drop_axis(&self) -> usize {
+        self.drop_axis
+    }
 
     /// The u-axis index in the original 3D space.
-    pub fn get_u_axis(&self) -> usize { self.u_axis }
+    pub fn get_u_axis(&self) -> usize {
+        self.u_axis
+    }
 
     /// The v-axis index in the original 3D space.
-    pub fn get_v_axis(&self) -> usize { self.v_axis }
+    pub fn get_v_axis(&self) -> usize {
+        self.v_axis
+    }
 
     /// Orientation sign (+1.0 or -1.0).
-    pub fn get_orientation_sign(&self) -> f64 { self.orientation_sign }
+    pub fn get_orientation_sign(&self) -> f64 {
+        self.orientation_sign
+    }
 }
 
 /// A 2D segment in projected space with provenance tracking.
@@ -55,17 +68,27 @@ pub struct Segment2D {
 impl Segment2D {
     /// Construct a segment from endpoints and provenance.
     pub fn new(start: [f64; 2], end: [f64; 2], provenance: u64) -> Self {
-        Self { start, end, provenance }
+        Self {
+            start,
+            end,
+            provenance,
+        }
     }
 
     /// Start point of the segment.
-    pub fn get_start(&self) -> [f64; 2] { self.start }
+    pub fn get_start(&self) -> [f64; 2] {
+        self.start
+    }
 
     /// End point of the segment.
-    pub fn get_end(&self) -> [f64; 2] { self.end }
+    pub fn get_end(&self) -> [f64; 2] {
+        self.end
+    }
 
     /// Provenance identifier.
-    pub fn get_provenance(&self) -> u64 { self.provenance }
+    pub fn get_provenance(&self) -> u64 {
+        self.provenance
+    }
 
     /// Squared length of this segment in 2D.
     pub fn length_sq(&self) -> f64 {
@@ -91,16 +114,22 @@ impl ProjectedBoundary2D {
     }
 
     /// The boundary segments.
-    pub fn get_segments(&self) -> &[Segment2D] { &self.segments }
+    pub fn get_segments(&self) -> &[Segment2D] {
+        &self.segments
+    }
 
     /// The projection frame.
-    pub fn get_frame(&self) -> &ProjectionFrame2D { &self.frame }
+    pub fn get_frame(&self) -> &ProjectionFrame2D {
+        &self.frame
+    }
 
     /// Number of segments in this boundary.
-    pub fn segment_count(&self) -> usize { self.segments.len() }
+    pub fn segment_count(&self) -> usize {
+        self.segments.len()
+    }
 }
 
-use super::split::{AtomicSegment2D, ArrangementVertex};
+use super::split::{ArrangementVertex, AtomicSegment2D};
 
 /// Planar arrangement: boundary segments subdivided at all event points.
 ///
@@ -123,17 +152,27 @@ impl BoundaryArrangement {
         atomic_segments: Vec<AtomicSegment2D>,
         vertices: Vec<ArrangementVertex>,
     ) -> Self {
-        Self { source_segments, atomic_segments, vertices }
+        Self {
+            source_segments,
+            atomic_segments,
+            vertices,
+        }
     }
 
     /// Original source segments.
-    pub fn get_source_segments(&self) -> &[Segment2D] { &self.source_segments }
+    pub fn get_source_segments(&self) -> &[Segment2D] {
+        &self.source_segments
+    }
 
     /// The resulting atomic segments.
-    pub fn get_atomic_segments(&self) -> &[AtomicSegment2D] { &self.atomic_segments }
+    pub fn get_atomic_segments(&self) -> &[AtomicSegment2D] {
+        &self.atomic_segments
+    }
 
     /// The exact topological vertices grouping the atomic segments.
-    pub fn get_vertices(&self) -> &[ArrangementVertex] { &self.vertices }
+    pub fn get_vertices(&self) -> &[ArrangementVertex] {
+        &self.vertices
+    }
 }
 
 /// Reason for rejecting a boundary as non-mergeable.

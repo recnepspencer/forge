@@ -3,10 +3,10 @@
 //! DOMAIN: Recording tolerance decisions, precision escalations, and named spans.
 //! INVARIANTS: Every decision gets a monotonically increasing ID.
 
-use forge_core::{
-    TracedDecision, DecisionKind, DecisionContext, DecisionId, DecisionLog, DecisionTier,
-};
 use forge_core::envelope::OperationMetrics;
+use forge_core::{
+    DecisionContext, DecisionId, DecisionKind, DecisionLog, DecisionTier, TracedDecision,
+};
 
 use super::schema::ModelingContext;
 
@@ -26,7 +26,10 @@ impl ModelingContext {
             kind,
             tier,
             margin,
-            DecisionContext::Tolerance { measured: margin, threshold },
+            DecisionContext::Tolerance {
+                measured: margin,
+                threshold,
+            },
         );
         if crate::core::tracing::KernelSpan::is_active() {
             crate::core::tracing::KernelSpan::record_decision(decision);
@@ -71,7 +74,7 @@ impl ModelingContext {
         let start = std::time::Instant::now();
         let result = f(self);
         let duration_micros = start.elapsed().as_micros() as u64;
-        
+
         if use_kernel_span {
             crate::core::tracing::KernelSpan::end_span(span_id, duration_micros);
         } else {

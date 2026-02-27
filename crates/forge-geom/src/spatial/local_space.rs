@@ -143,8 +143,8 @@ impl LocalCoordinateSpace {
     /// has an exact rational representation, so no precision is lost.
     pub fn transform_plane_exact(&self, plane: &Plane) -> Plane {
         let (a, b, c, d) = plane.exact_coefficients();
-        let inv_scale = Rational::try_from_f64(1.0 / self.scale)
-            .unwrap_or_else(|_| Rational::one());
+        let inv_scale =
+            Rational::try_from_f64(1.0 / self.scale).unwrap_or_else(|_| Rational::one());
         let ox = Rational::try_from_f64(self.origin[0]).unwrap_or_else(|_| Rational::zero());
         let oy = Rational::try_from_f64(self.origin[1]).unwrap_or_else(|_| Rational::zero());
         let oz = Rational::try_from_f64(self.origin[2]).unwrap_or_else(|_| Rational::zero());
@@ -161,8 +161,7 @@ impl LocalCoordinateSpace {
     /// Transform a plane from local coordinates back to world using exact Rational.
     pub fn inverse_transform_plane_exact(&self, local_plane: &Plane) -> Plane {
         let (al, bl, cl, dl) = local_plane.exact_coefficients();
-        let scale_r = Rational::try_from_f64(self.scale)
-            .unwrap_or_else(|_| Rational::one());
+        let scale_r = Rational::try_from_f64(self.scale).unwrap_or_else(|_| Rational::one());
         let ox = Rational::try_from_f64(self.origin[0]).unwrap_or_else(|_| Rational::zero());
         let oy = Rational::try_from_f64(self.origin[1]).unwrap_or_else(|_| Rational::zero());
         let oz = Rational::try_from_f64(self.origin[2]).unwrap_or_else(|_| Rational::zero());
@@ -172,8 +171,7 @@ impl LocalCoordinateSpace {
         let c = cl * &scale_r;
         let d = dl - &(&(&(&a * &ox) + &(&b * &oy)) + &(&c * &oz));
 
-        Plane::from_rationals(a, b, c, d)
-            .expect("inverse transformed plane normal cannot be zero")
+        Plane::from_rationals(a, b, c, d).expect("inverse transformed plane normal cannot be zero")
     }
 
     /// Transform an exact Rational position to local coordinates.
@@ -218,8 +216,7 @@ impl LocalCoordinateSpace {
         let b = b_local * self.scale;
         let c = c_local * self.scale;
         let d = d_local - (a * self.origin[0] + b * self.origin[1] + c * self.origin[2]);
-        Plane::try_new([a, b, c], d)
-            .expect("inverse transformed plane normal cannot be zero")
+        Plane::try_new([a, b, c], d).expect("inverse transformed plane normal cannot be zero")
     }
 
     /// The translation origin.
@@ -324,10 +321,7 @@ mod tests {
 
     #[test]
     fn round_trip_preserves_precision() {
-        let points = vec![
-            [1e12, 1e12, 1e12],
-            [1e12 + 1.0, 1e12 + 1.0, 1e12 + 1.0],
-        ];
+        let points = vec![[1e12, 1e12, 1e12], [1e12 + 1.0, 1e12 + 1.0, 1e12 + 1.0]];
         let space = LocalCoordinateSpace::from_points(&points);
 
         for p in &points {
@@ -339,7 +333,9 @@ mod tests {
                 assert!(
                     err <= u,
                     "Round-trip error {} exceeds ULP {} at coord {}",
-                    err, u, p[i]
+                    err,
+                    u,
+                    p[i]
                 );
             }
         }
@@ -347,10 +343,7 @@ mod tests {
 
     #[test]
     fn scale_analysis_detects_mixed_scale() {
-        let points = vec![
-            [1e12, 0.0, 0.0],
-            [1e12 + 1e-9, 0.0, 0.0],
-        ];
+        let points = vec![[1e12, 0.0, 0.0], [1e12 + 1e-9, 0.0, 0.0]];
         let analysis = ScaleAnalysis::compute(&points, 1e-9);
         assert!(analysis.get_needs_local_transform());
         assert!(analysis.get_condition_number() > 1e15);
@@ -358,10 +351,7 @@ mod tests {
 
     #[test]
     fn scale_analysis_unit_scale_is_fine() {
-        let points = vec![
-            [0.0, 0.0, 0.0],
-            [1.0, 1.0, 1.0],
-        ];
+        let points = vec![[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]];
         let analysis = ScaleAnalysis::compute(&points, 1e-6);
         assert!(!analysis.get_needs_local_transform());
     }
@@ -369,10 +359,7 @@ mod tests {
     #[test]
     fn plane_round_trip() {
         let plane = Plane::try_new([0.0, 0.0, 1.0], -1e12).unwrap();
-        let space = LocalCoordinateSpace::from_points(&[
-            [0.0, 0.0, 1e12],
-            [1.0, 1.0, 1e12 + 1.0],
-        ]);
+        let space = LocalCoordinateSpace::from_points(&[[0.0, 0.0, 1e12], [1.0, 1.0, 1e12 + 1.0]]);
         let local_plane = space.transform_plane(&plane);
         let back = space.inverse_transform_plane(&local_plane);
         let d = back.raw_offset();

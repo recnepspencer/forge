@@ -280,10 +280,11 @@ mod tests {
             "Precondition: ctx decision log should be empty before merge",
         );
 
-        let result = crate::operations::boolean::parametric::postprocess::merge_coplanar_faces_extracted(
-            crate::core::KernelState::new(topo, geom),
-            &mut ctx,
-        );
+        let result =
+            crate::operations::boolean::parametric::postprocess::merge_coplanar_faces_extracted(
+                crate::core::KernelState::new(topo, geom),
+                &mut ctx,
+            );
 
         assert!(
             result.is_ok(),
@@ -316,10 +317,11 @@ mod tests {
             .filter(|(fid, _)| geom.get_face_plane(*fid).is_some())
             .count();
 
-        let result = crate::operations::boolean::parametric::postprocess::merge_coplanar_faces_extracted(
-            crate::core::KernelState::new(topo, geom),
-            &mut ctx,
-        );
+        let result =
+            crate::operations::boolean::parametric::postprocess::merge_coplanar_faces_extracted(
+                crate::core::KernelState::new(topo, geom),
+                &mut ctx,
+            );
         assert!(result.is_ok());
         let (new_state, merged_count) = result.unwrap();
         let (new_topo, new_geom) = new_state.into_parts();
@@ -713,7 +715,11 @@ mod tests {
 
         let result = test_resolve_face_ref_result_direct(topo.arena(), &selector);
         match result {
-            crate::core::ResolutionResult::Ambiguous { candidates, evidence, query } => {
+            crate::core::ResolutionResult::Ambiguous {
+                candidates,
+                evidence,
+                query,
+            } => {
                 let ordered = candidates.as_slice();
                 assert!(
                     ordered.len() >= 2,
@@ -727,12 +733,22 @@ mod tests {
                     "selector candidates must be deterministically ordered"
                 );
 
-                let payload = crate::core::ResolutionResult::Ambiguous { candidates, evidence, query }
-                    .to_trace_payload(forge_core::DecisionId(1), None, None);
-                
+                let payload = crate::core::ResolutionResult::Ambiguous {
+                    candidates,
+                    evidence,
+                    query,
+                }
+                .to_trace_payload(forge_core::DecisionId(1), None, None);
+
                 match payload.query {
-                    forge_core::tracing::ResolutionQuerySummary::Selector { selector_fingerprint, .. } => {
-                        assert!(selector_fingerprint.is_some(), "NURBS-safe fingerprint must be emitted for selector queries");
+                    forge_core::tracing::ResolutionQuerySummary::Selector {
+                        selector_fingerprint,
+                        ..
+                    } => {
+                        assert!(
+                            selector_fingerprint.is_some(),
+                            "NURBS-safe fingerprint must be emitted for selector queries"
+                        );
                     }
                     _ => panic!("Expected Selector query summary"),
                 }
@@ -2649,7 +2665,8 @@ mod tests {
     /// On the happy path the validator must pass (no `InternalError`) and the
     /// reidentification adjunct must be emitted with matching outcome/compatibility.
     #[test]
-    fn reidentification_trace_payload_drift_causes_internal_error_before_adjunct_push_no_false_positive() {
+    fn reidentification_trace_payload_drift_causes_internal_error_before_adjunct_push_no_false_positive(
+    ) {
         use forge_core::{
             ReidentificationCompatibilitySummary, ReidentificationOutcome,
             ReidentificationTraceConsistencyError,
@@ -2774,8 +2791,8 @@ mod tests {
 
         use forge_topo::topology::history::lineage::{Lineage, LineageEntityRef, OpSignature};
         use forge_topo::topology::history::lineage_link::{
-            ReidentificationLinkIndex, ReidentificationQuery, ReidentificationMode,
-            PersistentNameRef, ReidentificationQueryResult, ReidentificationCandidateState,
+            PersistentNameRef, ReidentificationCandidateState, ReidentificationLinkIndex,
+            ReidentificationMode, ReidentificationQuery, ReidentificationQueryResult,
         };
 
         let parent = Lineage::root(1, OpSignature::with_id("parent_face", 1));
@@ -2809,30 +2826,30 @@ mod tests {
         let ph_shell = forge_topo::handles::ShellId::from_raw_parts(u32::MAX, 0);
 
         // First insert → slot 0, gen=0 (arena starts at 0)
-        let f_first = arena.insert_face(
-            forge_topo::arena::FaceData::new(ph_loop, ph_shell),
-            None,
-        );
+        let f_first = arena.insert_face(forge_topo::arena::FaceData::new(ph_loop, ph_shell), None);
         // Remove to free the slot
         arena.remove_face(f_first, None).unwrap();
         // Second insert → slot 0, gen=1 (the "stale" face)
-        let f_stale = arena.insert_face(
-            forge_topo::arena::FaceData::new(ph_loop, ph_shell),
-            None,
-        );
-        arena.get_face_mut(f_stale).unwrap().set_lineage(Some(child_gen1));
+        let f_stale = arena.insert_face(forge_topo::arena::FaceData::new(ph_loop, ph_shell), None);
+        arena
+            .get_face_mut(f_stale)
+            .unwrap()
+            .set_lineage(Some(child_gen1));
         // Remove again
         arena.remove_face(f_stale, None).unwrap();
         // Third insert → slot 0, gen=2 (the "live" face)
-        let f_live = arena.insert_face(
-            forge_topo::arena::FaceData::new(ph_loop, ph_shell),
-            None,
-        );
-        arena.get_face_mut(f_live).unwrap().set_lineage(Some(child_gen2));
+        let f_live = arena.insert_face(forge_topo::arena::FaceData::new(ph_loop, ph_shell), None);
+        arena
+            .get_face_mut(f_live)
+            .unwrap()
+            .set_lineage(Some(child_gen2));
 
         // Verify arena state: slot 0 is at gen=2, gen=1 is unreachable
         assert_eq!(f_live.index(), 0, "must reuse slot 0");
-        assert!(f_live.generation() >= 2, "generation must have advanced past stale");
+        assert!(
+            f_live.generation() >= 2,
+            "generation must have advanced past stale"
+        );
 
         // Query: find descendants of parent_hash
         let query = ReidentificationQuery {
@@ -2845,17 +2862,18 @@ mod tests {
         };
 
         let result = forge_topo::topology::history::lineage_link::resolve_reidentification_query_v1(
-            &arena,
-            &events,
-            &index,
-            &query,
+            &arena, &events, &index, &query,
         );
 
         match result {
-            ReidentificationQueryResult::Resolved { candidate, evidence } => {
+            ReidentificationQueryResult::Resolved {
+                candidate,
+                evidence,
+            } => {
                 // Only the gen=2 live candidate should resolve
                 assert_eq!(
-                    candidate.snapshot_ref.generation, f_live.generation(),
+                    candidate.snapshot_ref.generation,
+                    f_live.generation(),
                     "resolved candidate must be the live gen={} face, not the stale gen=1",
                     f_live.generation()
                 );
@@ -2864,15 +2882,18 @@ mod tests {
                     ReidentificationCandidateState::Live,
                 );
                 assert_eq!(
-                    candidate.link_evidence.child_ancestry_hash,
-                    child_gen2_hash,
+                    candidate.link_evidence.child_ancestry_hash, child_gen2_hash,
                     "resolved candidate must carry gen=2's ancestry hash"
                 );
                 // Evidence must show the index had 2 records but only 1 survived live filter
-                assert_eq!(evidence.records_scanned, 2,
-                    "index should contain both gen=1 and gen=2 link records");
-                assert_eq!(evidence.candidates_post_filter, 1,
-                    "only gen=2 should survive live-arena validation");
+                assert_eq!(
+                    evidence.records_scanned, 2,
+                    "index should contain both gen=1 and gen=2 link records"
+                );
+                assert_eq!(
+                    evidence.candidates_post_filter, 1,
+                    "only gen=2 should survive live-arena validation"
+                );
             }
             other => panic!(
                 "Expected Resolved with gen=2 candidate, got {:?}",

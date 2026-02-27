@@ -12,11 +12,11 @@
 use std::sync::{Arc, Mutex};
 
 use axum::{
-    Router,
     extract::{Path, State},
     http::StatusCode,
     response::{Html, IntoResponse, Json},
     routing::{get, post},
+    Router,
 };
 use tower_http::cors::CorsLayer;
 
@@ -47,10 +47,7 @@ async fn list_traces(State(store): State<AppState>) -> impl IntoResponse {
 }
 
 /// `GET /api/traces/:id` — trace overview with spans (no decisions).
-async fn get_trace(
-    State(store): State<AppState>,
-    Path(id): Path<String>,
-) -> impl IntoResponse {
+async fn get_trace(State(store): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
     let store = store.lock().unwrap();
     match store.get_trace_overview(&id) {
         Some(overview) => Json(serde_json::to_value(overview).unwrap()).into_response(),
@@ -83,10 +80,7 @@ async fn get_decision(
 }
 
 /// `GET /api/traces/:id/summary` — display_interesting text.
-async fn get_summary(
-    State(store): State<AppState>,
-    Path(id): Path<String>,
-) -> impl IntoResponse {
+async fn get_summary(State(store): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
     let store = store.lock().unwrap();
     match store.get_raw_log(&id) {
         Some(log) => log.display_interesting().into_response(),

@@ -5,9 +5,9 @@
 
 use std::io::Write;
 
-use super::super::test_helpers::build_cube;
 use super::super::parametric::assemble::merge::execute_boolean_direct;
 use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::test_helpers::build_cube;
 
 fn write_section(file: &mut std::fs::File, header: &str, content: &str) {
     let bar = "=".repeat(60);
@@ -32,9 +32,21 @@ fn dump_trace_intersection() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
     let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
-    let input = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Intersection);
+    let input = BooleanInput::new(
+        topo_a,
+        geom_a,
+        BrepState::new(),
+        topo_b,
+        geom_b,
+        BrepState::new(),
+        BooleanOp::Intersection,
+    );
     let envelope = execute_boolean_direct(input);
-    assert!(envelope.get_value().is_ok(), "Boolean should succeed: {:?}", envelope.get_value().as_ref().err());
+    assert!(
+        envelope.get_value().is_ok(),
+        "Boolean should succeed: {:?}",
+        envelope.get_value().as_ref().err()
+    );
 
     let log = envelope.get_decision_log();
     let summary = log.summary();
@@ -44,7 +56,9 @@ fn dump_trace_intersection() {
     let mut file = std::fs::File::create(path).expect("create output file");
 
     let inner_result = envelope.get_value().as_ref().unwrap();
-    write_section(&mut file, "OPERATION: Intersection (half-overlap cubes)",
+    write_section(
+        &mut file,
+        "OPERATION: Intersection (half-overlap cubes)",
         &format!(
             "Duration: {:?}\nState hash: 0x{:016X}\nFaces in result: {}",
             envelope.get_metrics().duration,
@@ -53,7 +67,11 @@ fn dump_trace_intersection() {
         ),
     );
 
-    write_section(&mut file, "SPAN HIERARCHY (display_interesting)", &log.display_interesting());
+    write_section(
+        &mut file,
+        "SPAN HIERARCHY (display_interesting)",
+        &log.display_interesting(),
+    );
 
     write_section(&mut file, "DECISION SUMMARY", &format!("{}", summary));
 
@@ -68,7 +86,9 @@ fn dump_trace_intersection() {
     }
     write_section(&mut file, "PER-SPAN STATS (TraceSummary)", &span_stats);
 
-    write_section(&mut file, "RAW EVENT STREAM (JSON)",
+    write_section(
+        &mut file,
+        "RAW EVENT STREAM (JSON)",
         &serde_json::to_string_pretty(log).expect("serialize log"),
     );
 }

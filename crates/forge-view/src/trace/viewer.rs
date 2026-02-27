@@ -14,9 +14,7 @@ use std::time::Instant;
 use eframe::egui;
 use notify::{Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
-use crate::trace::store::{
-    DecisionView, SpanView, TraceMeta, TraceStore,
-};
+use crate::trace::store::{DecisionView, SpanView, TraceMeta, TraceStore};
 
 /// Color palette for decision tiers.
 struct TierColors;
@@ -84,9 +82,10 @@ impl TraceViewerApp {
         let watcher_tx = tx.clone();
         let mut watcher = notify::recommended_watcher(move |res: Result<Event, notify::Error>| {
             if let Ok(event) = res {
-                let dominated_by_json = event.paths.iter().any(|p| {
-                    p.extension().map(|e| e == "json").unwrap_or(false)
-                });
+                let dominated_by_json = event
+                    .paths
+                    .iter()
+                    .any(|p| p.extension().map(|e| e == "json").unwrap_or(false));
                 let is_relevant = matches!(
                     event.kind,
                     EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
@@ -158,7 +157,9 @@ impl TraceViewerApp {
             .into_iter()
             .filter(|t| {
                 let name_match = self.search_filter.is_empty()
-                    || t.name.to_lowercase().contains(&self.search_filter.to_lowercase());
+                    || t.name
+                        .to_lowercase()
+                        .contains(&self.search_filter.to_lowercase());
                 let tier_match = match self.tier_filter {
                     TierFilter::All => true,
                     TierFilter::Clean => t.interesting_count == 0 && t.status == "ok",
@@ -169,7 +170,8 @@ impl TraceViewerApp {
             })
             .collect();
 
-        let status_text = format!("{}/{} traces · {:.0}s ago",
+        let status_text = format!(
+            "{}/{} traces · {:.0}s ago",
             filtered.len(),
             self.trace_count,
             self.last_reload.elapsed().as_secs_f64()
@@ -190,11 +192,9 @@ impl TraceViewerApp {
                 } else {
                     "✅"
                 };
-                let label = format!("{} {} ({} dec, {} spans)",
-                    tier_label,
-                    trace.name,
-                    trace.total_decisions,
-                    trace.span_count,
+                let label = format!(
+                    "{} {} ({} dec, {} spans)",
+                    tier_label, trace.name, trace.total_decisions, trace.span_count,
                 );
 
                 let response = ui.selectable_label(is_selected, &label);
@@ -212,9 +212,11 @@ impl TraceViewerApp {
             Some(id) => id.clone(),
             None => {
                 ui.centered_and_justified(|ui| {
-                    ui.label(egui::RichText::new("Select a trace from the sidebar")
-                        .weak()
-                        .size(18.0));
+                    ui.label(
+                        egui::RichText::new("Select a trace from the sidebar")
+                            .weak()
+                            .size(18.0),
+                    );
                 });
                 return;
             }
@@ -232,17 +234,24 @@ impl TraceViewerApp {
         ui.add_space(4.0);
 
         ui.horizontal(|ui| {
-            ui.label(egui::RichText::new(format!("Hash: 0x{:016X}", overview.meta.state_hash))
-                .monospace()
-                .weak());
+            ui.label(
+                egui::RichText::new(format!("Hash: 0x{:016X}", overview.meta.state_hash))
+                    .monospace()
+                    .weak(),
+            );
             ui.separator();
             ui.label(format!("{} decisions", overview.meta.total_decisions));
             ui.separator();
             ui.label(format!("{} spans", overview.meta.span_count));
             if overview.meta.interesting_count > 0 {
                 ui.separator();
-                ui.label(egui::RichText::new(format!("⚠ {} interesting", overview.meta.interesting_count))
-                    .color(TierColors::from_tier("Escalated")));
+                ui.label(
+                    egui::RichText::new(format!(
+                        "⚠ {} interesting",
+                        overview.meta.interesting_count
+                    ))
+                    .color(TierColors::from_tier("Escalated")),
+                );
             }
         });
 
@@ -274,7 +283,11 @@ impl TraceViewerApp {
         }
 
         for span in spans {
-            let is_expanded = self.expanded_spans.get(&span.span_id).copied().unwrap_or(false);
+            let is_expanded = self
+                .expanded_spans
+                .get(&span.span_id)
+                .copied()
+                .unwrap_or(false);
 
             let tier_color = TierColors::from_tier(&span.max_tier);
             let badge_bg = TierColors::badge_bg(&span.max_tier);
@@ -335,23 +348,23 @@ impl TraceViewerApp {
         let tier_color = TierColors::from_tier(&d.tier);
 
         ui.horizontal(|ui| {
-            ui.label(egui::RichText::new(format!("#{}", d.id))
-                .monospace()
-                .weak()
-                .small());
+            ui.label(
+                egui::RichText::new(format!("#{}", d.id))
+                    .monospace()
+                    .weak()
+                    .small(),
+            );
 
-            ui.label(egui::RichText::new(&d.kind)
-                .color(tier_color)
-                .strong());
+            ui.label(egui::RichText::new(&d.kind).color(tier_color).strong());
 
-            ui.label(egui::RichText::new(format!("m={:.4}", d.margin))
-                .monospace()
-                .weak());
+            ui.label(
+                egui::RichText::new(format!("m={:.4}", d.margin))
+                    .monospace()
+                    .weak(),
+            );
 
             if !d.entity.is_empty() && d.entity != "None" {
-                ui.label(egui::RichText::new(&d.entity)
-                    .weak()
-                    .small());
+                ui.label(egui::RichText::new(&d.entity).weak().small());
             }
         });
     }

@@ -158,7 +158,10 @@ impl CurveGeom {
         Self {
             kind,
             tolerance: residual,
-            provenance: CurveProvenance::SsiSolver { residual, iterations },
+            provenance: CurveProvenance::SsiSolver {
+                residual,
+                iterations,
+            },
         }
     }
 }

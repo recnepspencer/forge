@@ -17,9 +17,16 @@ pub struct DropdownItem {
 
 impl DropdownItem {
     pub fn new(id: impl Into<String>, label: impl Into<String>) -> Self {
-        Self { id: id.into(), label: label.into(), group: None }
+        Self {
+            id: id.into(),
+            label: label.into(),
+            group: None,
+        }
     }
-    pub fn group(mut self, g: impl Into<String>) -> Self { self.group = Some(g.into()); self }
+    pub fn group(mut self, g: impl Into<String>) -> Self {
+        self.group = Some(g.into());
+        self
+    }
 }
 
 /// Persistent state for a dropdown instance. Store this on your page/state struct.
@@ -52,8 +59,14 @@ impl<'a> FgDropdown<'a> {
             dropdown_state,
         }
     }
-    pub fn label(mut self, l: &'a str) -> Self { self.label = Some(l); self }
-    pub fn placeholder(mut self, p: &'a str) -> Self { self.placeholder = p; self }
+    pub fn label(mut self, l: &'a str) -> Self {
+        self.label = Some(l);
+        self
+    }
+    pub fn placeholder(mut self, p: &'a str) -> Self {
+        self.placeholder = p;
+        self
+    }
 }
 
 /// Render a searchable dropdown. Returns the newly selected item ID if changed.
@@ -75,23 +88,52 @@ pub fn fg_dropdown(
     }
 
     // ── Trigger button ──────────────────────────────────────────
-    let display_text = props.selected_id
+    let display_text = props
+        .selected_id
         .and_then(|sid| props.items.iter().find(|i| i.id == sid))
         .map(|i| i.label.as_str())
         .unwrap_or(props.placeholder);
 
     let trigger_resp = Frame::new()
         .fill(theme.bg_base)
-        .stroke(Stroke::new(1.0, if props.dropdown_state.open { theme.border_focus } else { theme.border_default }))
+        .stroke(Stroke::new(
+            1.0,
+            if props.dropdown_state.open {
+                theme.border_focus
+            } else {
+                theme.border_default
+            },
+        ))
         .corner_radius(CornerRadius::same(theme.radius_sm as u8))
-        .inner_margin(egui::Margin { left: 10, right: 10, top: 6, bottom: 6 })
+        .inner_margin(egui::Margin {
+            left: 10,
+            right: 10,
+            top: 6,
+            bottom: 6,
+        })
         .show(ui, |ui| {
             ui.horizontal(|ui| {
-                let text_color = if props.selected_id.is_some() { theme.text_primary } else { theme.text_muted };
-                ui.label(egui::RichText::new(display_text).color(text_color).size(theme.font_size_sm));
+                let text_color = if props.selected_id.is_some() {
+                    theme.text_primary
+                } else {
+                    theme.text_muted
+                };
+                ui.label(
+                    egui::RichText::new(display_text)
+                        .color(text_color)
+                        .size(theme.font_size_sm),
+                );
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let arrow = if props.dropdown_state.open { "▲" } else { "▼" };
-                    ui.label(egui::RichText::new(arrow).color(theme.text_muted).size(theme.font_size_xs));
+                    let arrow = if props.dropdown_state.open {
+                        "▲"
+                    } else {
+                        "▼"
+                    };
+                    ui.label(
+                        egui::RichText::new(arrow)
+                            .color(theme.text_muted)
+                            .size(theme.font_size_xs),
+                    );
                 });
             });
         })
@@ -143,7 +185,9 @@ pub fn fg_dropdown(
 
                         // Filtered items
                         let query = props.dropdown_state.search.to_lowercase();
-                        let filtered: Vec<_> = props.items.iter()
+                        let filtered: Vec<_> = props
+                            .items
+                            .iter()
                             .filter(|i| query.is_empty() || i.label.to_lowercase().contains(&query))
                             .collect();
 
@@ -155,9 +199,15 @@ pub fn fg_dropdown(
                                     // Group header
                                     if let Some(g) = &item.group {
                                         if last_group != Some(g.as_str()) {
-                                            if last_group.is_some() { ui.add_space(4.0); }
-                                            ui.label(egui::RichText::new(g.as_str())
-                                                .color(theme.text_muted).size(theme.font_size_xs).strong());
+                                            if last_group.is_some() {
+                                                ui.add_space(4.0);
+                                            }
+                                            ui.label(
+                                                egui::RichText::new(g.as_str())
+                                                    .color(theme.text_muted)
+                                                    .size(theme.font_size_xs)
+                                                    .strong(),
+                                            );
                                             ui.add_space(2.0);
                                             last_group = Some(g.as_str());
                                         }
@@ -173,22 +223,36 @@ pub fn fg_dropdown(
                                     if ui.is_rect_visible(row_rect) {
                                         if is_selected {
                                             ui.painter().rect_filled(
-                                                row_rect, CornerRadius::same(theme.radius_sm as u8),
-                                                theme.accent_subtle);
+                                                row_rect,
+                                                CornerRadius::same(theme.radius_sm as u8),
+                                                theme.accent_subtle,
+                                            );
                                         } else if row_resp.hovered() {
                                             ui.painter().rect_filled(
-                                                row_rect, CornerRadius::same(theme.radius_sm as u8),
-                                                Color32::from_white_alpha(8));
+                                                row_rect,
+                                                CornerRadius::same(theme.radius_sm as u8),
+                                                Color32::from_white_alpha(8),
+                                            );
                                         }
-                                        let label_color = if is_selected { theme.accent_primary } else { theme.text_primary };
-                                        let g = ui.fonts(|f| f.layout_no_wrap(
-                                            item.label.clone(),
-                                            egui::FontId::proportional(theme.font_size_sm),
-                                            label_color,
-                                        ));
+                                        let label_color = if is_selected {
+                                            theme.accent_primary
+                                        } else {
+                                            theme.text_primary
+                                        };
+                                        let g = ui.fonts(|f| {
+                                            f.layout_no_wrap(
+                                                item.label.clone(),
+                                                egui::FontId::proportional(theme.font_size_sm),
+                                                label_color,
+                                            )
+                                        });
                                         ui.painter().galley(
-                                            Pos2::new(row_rect.min.x + 8.0, row_rect.center().y - g.size().y / 2.0),
-                                            g, label_color,
+                                            Pos2::new(
+                                                row_rect.min.x + 8.0,
+                                                row_rect.center().y - g.size().y / 2.0,
+                                            ),
+                                            g,
+                                            label_color,
                                         );
                                     }
 
@@ -199,7 +263,11 @@ pub fn fg_dropdown(
                                 }
 
                                 if filtered.is_empty() {
-                                    ui.label(egui::RichText::new("No results").color(theme.text_muted).size(theme.font_size_sm));
+                                    ui.label(
+                                        egui::RichText::new("No results")
+                                            .color(theme.text_muted)
+                                            .size(theme.font_size_sm),
+                                    );
                                 }
                             });
                     });

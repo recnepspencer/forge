@@ -16,4 +16,4 @@
 mod eval;
 mod fallback;
 
-pub use eval::{stitch_twins, StitchReport, select_best_twin};
+pub use eval::{select_best_twin, stitch_twins, StitchReport};

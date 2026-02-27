@@ -4,21 +4,17 @@ use std::fs::{File, OpenOptions};
 use std::io::{BufReader, BufWriter, Write};
 use std::path::Path;
 
-use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
 
 use crate::IoError;
 
 use super::schema::{
-    AUDIT_SCHEMA_VERSION, AuditBundleFiles, AuditBundleManifest,
-    VersionedAuditRecord,
+    AuditBundleFiles, AuditBundleManifest, VersionedAuditRecord, AUDIT_SCHEMA_VERSION,
 };
 
 /// Save a versioned audit record to a JSON file.
-pub fn save_audit_record<P, T>(
-    record: &VersionedAuditRecord<T>,
-    path: P,
-) -> Result<(), IoError>
+pub fn save_audit_record<P, T>(record: &VersionedAuditRecord<T>, path: P) -> Result<(), IoError>
 where
     P: AsRef<Path>,
     T: Serialize,
@@ -61,10 +57,7 @@ where
     P: AsRef<Path>,
     T: Serialize,
 {
-    let mut file = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(path)?;
+    let mut file = OpenOptions::new().create(true).append(true).open(path)?;
     serde_json::to_writer(&mut file, record)?;
     file.write_all(b"\n")?;
     file.flush()?;
@@ -101,7 +94,8 @@ where
 
     save_audit_record(record, bundle_dir.join(&files.operation_json))?;
     if let Some(trace_payload) = trace {
-        let trace_file = File::create(bundle_dir.join(files.trace_json.as_ref().expect("trace filename set")))?;
+        let trace_file =
+            File::create(bundle_dir.join(files.trace_json.as_ref().expect("trace filename set")))?;
         serde_json::to_writer_pretty(BufWriter::new(trace_file), trace_payload)?;
     }
 
@@ -109,12 +103,8 @@ where
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_millis())
         .unwrap_or(0);
-    let manifest = AuditBundleManifest::from_record(
-        operation_id,
-        record,
-        files,
-        created_at_unix_millis,
-    );
+    let manifest =
+        AuditBundleManifest::from_record(operation_id, record, files, created_at_unix_millis);
 
     let manifest_file = File::create(bundle_dir.join("manifest.json"))?;
     serde_json::to_writer_pretty(BufWriter::new(manifest_file), &manifest)?;

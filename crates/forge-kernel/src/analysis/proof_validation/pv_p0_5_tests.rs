@@ -6,11 +6,9 @@
 //! - PostBoolean automatic validation on valid cube Boolean
 //! - run_checkpoint against a valid arena
 
-use super::checkpoint::{
-    ValidationCheckpoint, ValidationConfig, ValidationResult, run_checkpoint,
-};
-use forge_core::FlatToleranceProvider;
+use super::checkpoint::{run_checkpoint, ValidationCheckpoint, ValidationConfig, ValidationResult};
 use crate::mesh_builder::make_cube;
+use forge_core::FlatToleranceProvider;
 use forge_topo::validate::ValidationLevel;
 
 /// PV-13: ValidationConfig correctly enables/disables checkpoints.
@@ -50,7 +48,6 @@ fn pv_13_checkpoint_activation() {
 /// 1,320 cubes → 50,160 entities (≥ 50K).
 #[test]
 fn pv_14_50k_entities_under_100ms() {
-    use forge_topo::state::{TopologyState, DraftConfig};
     use forge_topo::arena::{
         BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
         VertexData,
@@ -59,6 +56,7 @@ fn pv_14_50k_entities_under_100ms() {
     use forge_topo::handles::{
         BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
     };
+    use forge_topo::state::{DraftConfig, TopologyState};
     use std::collections::BTreeMap;
 
     let template = make_cube([0.0, 0.0, 0.0], 2.0).unwrap();
@@ -107,8 +105,12 @@ fn pv_14_50k_entities_under_100ms() {
 
         for (sid, sdata) in src.iter_shells() {
             let kind = match sdata.kind() {
-                ShellKind::Solid(ShellOrientation::Outer) => ShellKind::Solid(ShellOrientation::Outer),
-                ShellKind::Solid(ShellOrientation::Inner) => ShellKind::Solid(ShellOrientation::Inner),
+                ShellKind::Solid(ShellOrientation::Outer) => {
+                    ShellKind::Solid(ShellOrientation::Outer)
+                }
+                ShellKind::Solid(ShellOrientation::Inner) => {
+                    ShellKind::Solid(ShellOrientation::Inner)
+                }
                 ShellKind::Sheet => ShellKind::Sheet,
                 ShellKind::Wire => ShellKind::Wire,
             };
@@ -131,15 +133,25 @@ fn pv_14_50k_entities_under_100ms() {
 
         for (fid, fdata) in src.iter_faces() {
             let new_loop = loop_map[&fdata.outer_loop().index()];
-            let new_fid = dst.insert_face(FaceData::new(new_loop, shell_map[&fdata.shell().index()]), None);
+            let new_fid = dst.insert_face(
+                FaceData::new(new_loop, shell_map[&fdata.shell().index()]),
+                None,
+            );
             face_map.insert(fid.index(), new_fid);
         }
 
         for (heid, _hedata) in src.iter_half_edges() {
-            let new_heid = dst.insert_half_edge(HalfEdgeData::new(
-                placeholder_he, placeholder_he, placeholder_he,
-                placeholder_face, placeholder_vertex, placeholder_edge,
-            ), None);
+            let new_heid = dst.insert_half_edge(
+                HalfEdgeData::new(
+                    placeholder_he,
+                    placeholder_he,
+                    placeholder_he,
+                    placeholder_face,
+                    placeholder_vertex,
+                    placeholder_edge,
+                ),
+                None,
+            );
             he_map.insert(heid.index(), new_heid);
         }
 
@@ -161,7 +173,9 @@ fn pv_14_50k_entities_under_100ms() {
 
         for (vid, vdata) in src.iter_vertices() {
             let new_vid = vert_map[&vid.index()];
-            dst.get_vertex_mut(new_vid).unwrap().set_outgoing(he_map[&vdata.outgoing().index()]);
+            dst.get_vertex_mut(new_vid)
+                .unwrap()
+                .set_outgoing(he_map[&vdata.outgoing().index()]);
         }
 
         for (lid, ldata) in src.iter_loops() {
@@ -219,7 +233,9 @@ fn pv_14_50k_entities_under_100ms() {
 
         for (eid, edata) in src.iter_edges() {
             let new_eid = edge_map[&eid.index()];
-            dst.get_edge_mut(new_eid).unwrap().set_half_edge(he_map[&edata.half_edge().index()]);
+            dst.get_edge_mut(new_eid)
+                .unwrap()
+                .set_half_edge(he_map[&edata.half_edge().index()]);
         }
     }
 
@@ -245,8 +261,14 @@ fn pv_14_50k_entities_under_100ms() {
     assert!(
         elapsed.as_millis() < budget_ms,
         "Structural validation of {} entities took {}ms (budget: {}ms, {})",
-        total_entities, elapsed.as_millis(), budget_ms,
-        if cfg!(debug_assertions) { "debug" } else { "release" }
+        total_entities,
+        elapsed.as_millis(),
+        budget_ms,
+        if cfg!(debug_assertions) {
+            "debug"
+        } else {
+            "release"
+        }
     );
 
     eprintln!(
@@ -256,7 +278,6 @@ fn pv_14_50k_entities_under_100ms() {
         budget_ms
     );
 }
-
 
 /// PV-14b: Entity limit configuration tests (originally PV-14).
 #[test]
@@ -272,16 +293,18 @@ fn pv_14b_entity_limit_config() {
     assert!(result_skipped.is_skipped());
     assert!(result_skipped.is_passed());
 
-    let result_passed = ValidationResult::passed(
-        ValidationCheckpoint::PostCommit, 500, true, 42,
-    );
+    let result_passed = ValidationResult::passed(ValidationCheckpoint::PostCommit, 500, true, 42);
     assert!(!result_passed.is_skipped());
     assert!(result_passed.is_passed());
     assert!(result_passed.included_geometric());
     assert_eq!(result_passed.duration_micros(), 42);
 
     let result_failed = ValidationResult::failed(
-        ValidationCheckpoint::PostCommit, 500, "Euler violation".to_string(), false, 100,
+        ValidationCheckpoint::PostCommit,
+        500,
+        "Euler violation".to_string(),
+        false,
+        100,
     );
     assert!(!result_failed.is_passed());
     assert_eq!(result_failed.error_detail(), Some("Euler violation"));
@@ -299,9 +322,13 @@ fn run_checkpoint_skips_inactive() {
     let config = ValidationConfig::disabled();
     let flat = FlatToleranceProvider::new(1e-10);
     let vr = run_checkpoint(
-        topo.arena(), &config, ValidationCheckpoint::PostBoolean,
-        None, &flat,
-    ).unwrap();
+        topo.arena(),
+        &config,
+        ValidationCheckpoint::PostBoolean,
+        None,
+        &flat,
+    )
+    .unwrap();
 
     assert!(vr.is_skipped());
 }
@@ -316,9 +343,13 @@ fn run_checkpoint_passes_valid_cube() {
     let pos_fn = |vid| geom.get_vertex_position(vid).copied();
     let flat = FlatToleranceProvider::new(1e-10);
     let vr = run_checkpoint(
-        topo.arena(), &config, ValidationCheckpoint::PostBoolean,
-        Some(&pos_fn), &flat,
-    ).unwrap();
+        topo.arena(),
+        &config,
+        ValidationCheckpoint::PostBoolean,
+        Some(&pos_fn),
+        &flat,
+    )
+    .unwrap();
 
     assert!(vr.is_passed());
     assert!(!vr.is_skipped());
@@ -336,9 +367,13 @@ fn run_checkpoint_skips_entity_limit() {
     config.set_entity_limit(1);
     let flat = FlatToleranceProvider::new(1e-10);
     let vr = run_checkpoint(
-        topo.arena(), &config, ValidationCheckpoint::PostCommit,
-        None, &flat,
-    ).unwrap();
+        topo.arena(),
+        &config,
+        ValidationCheckpoint::PostCommit,
+        None,
+        &flat,
+    )
+    .unwrap();
 
     assert!(vr.is_skipped());
 }
@@ -353,9 +388,13 @@ fn run_checkpoint_structural_only() {
     config.set_include_geometric(false);
     let flat = FlatToleranceProvider::new(1e-10);
     let vr = run_checkpoint(
-        topo.arena(), &config, ValidationCheckpoint::PostBoolean,
-        None, &flat,
-    ).unwrap();
+        topo.arena(),
+        &config,
+        ValidationCheckpoint::PostBoolean,
+        None,
+        &flat,
+    )
+    .unwrap();
 
     assert!(vr.is_passed());
     assert!(!vr.included_geometric());

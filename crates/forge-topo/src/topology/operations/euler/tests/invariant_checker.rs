@@ -14,12 +14,12 @@
 //! println!("{}", report.summary());
 //! ```
 
+use crate::arena::TopologyArena;
+use crate::handles::{FaceId, HalfEdgeId};
+use crate::state::{MutableDraft, TopologyState};
+use forge_core::KernelError;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
-use crate::arena::TopologyArena;
-use crate::handles::{HalfEdgeId, FaceId};
-use crate::state::{TopologyState, MutableDraft};
-use forge_core::KernelError;
 
 /// A violation found by the invariant checker.
 #[derive(Debug)]
@@ -35,7 +35,9 @@ pub struct CheckResult {
 }
 
 impl CheckResult {
-    pub fn is_ok(&self) -> bool { self.violations.is_empty() }
+    pub fn is_ok(&self) -> bool {
+        self.violations.is_empty()
+    }
 
     pub fn summary(&self) -> String {
         if self.violations.is_empty() {
@@ -73,7 +75,11 @@ impl ArenaSnapshot {
 
 impl std::fmt::Display for ArenaSnapshot {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "V={} HE={} F={} E={} L={}", self.vertices, self.half_edges, self.faces, self.edges, self.loops)
+        write!(
+            f,
+            "V={} HE={} F={} E={} L={}",
+            self.vertices, self.half_edges, self.faces, self.edges, self.loops
+        )
     }
 }
 
@@ -214,31 +220,52 @@ pub fn dump_all_wiring(arena: &TopologyArena) -> String {
     let mut s = String::new();
     s.push_str(&format!(
         "Arena: V={} HE={} F={} E={} L={}\n",
-        arena.vertex_count(), arena.half_edge_count(),
-        arena.face_count(), arena.edge_count(), arena.loop_count()
+        arena.vertex_count(),
+        arena.half_edge_count(),
+        arena.face_count(),
+        arena.edge_count(),
+        arena.loop_count()
     ));
     for (id, data) in arena.iter_half_edges() {
-        let next_origin = arena.get_half_edge(data.next())
+        let next_origin = arena
+            .get_half_edge(data.next())
             .map(|n| format!("V{}", n.origin().index()))
             .unwrap_or_else(|_| "INVALID".to_string());
         s.push_str(&format!(
             "  HE[{}]: V{}→{} next=HE{} prev=HE{} radial=HE{} face=F{} edge=E{}\n",
-            id.index(), data.origin().index(), next_origin,
-            data.next().index(), data.prev().index(),
-            data.radial_next().index(), data.face().index(), data.edge().index(),
+            id.index(),
+            data.origin().index(),
+            next_origin,
+            data.next().index(),
+            data.prev().index(),
+            data.radial_next().index(),
+            data.face().index(),
+            data.edge().index(),
         ));
     }
     for (id, data) in arena.iter_vertices() {
-        s.push_str(&format!("  V[{}]: outgoing=HE{}\n", id.index(), data.outgoing().index()));
+        s.push_str(&format!(
+            "  V[{}]: outgoing=HE{}\n",
+            id.index(),
+            data.outgoing().index()
+        ));
     }
     for (id, data) in arena.iter_edges() {
-        s.push_str(&format!("  E[{}]: half_edge=HE{}\n", id.index(), data.half_edge().index()));
+        s.push_str(&format!(
+            "  E[{}]: half_edge=HE{}\n",
+            id.index(),
+            data.half_edge().index()
+        ));
     }
     for (face_id, _) in arena.iter_faces() {
         let edge_count = crate::topology::queries::traverse::FaceEdgeIterator::new(arena, face_id)
             .map(|iter| iter.count())
             .unwrap_or(0);
-        s.push_str(&format!("  F[{}]: {} edges in loop\n", face_id.index(), edge_count));
+        s.push_str(&format!(
+            "  F[{}]: {} edges in loop\n",
+            face_id.index(),
+            edge_count
+        ));
     }
     s
 }
@@ -274,7 +301,10 @@ fn check_edge_vertex_consistency(arena: &TopologyArena, violations: &mut Vec<Vio
         };
         edge_verts.entry(edge_idx).or_default().insert(origin);
         edge_verts.entry(edge_idx).or_default().insert(target);
-        edge_halfedges.entry(edge_idx).or_default().push(he_id.index());
+        edge_halfedges
+            .entry(edge_idx)
+            .or_default()
+            .push(he_id.index());
     }
 
     for (edge_idx, verts) in &edge_verts {
@@ -284,13 +314,17 @@ fn check_edge_vertex_consistency(arena: &TopologyArena, violations: &mut Vec<Vio
             for &he_idx in hes {
                 for (he_id, he_data) in arena.iter_half_edges() {
                     if he_id.index() == he_idx {
-                        let next_origin = arena.get_half_edge(he_data.next())
+                        let next_origin = arena
+                            .get_half_edge(he_data.next())
                             .map(|n| n.origin().index())
                             .unwrap_or(u32::MAX);
                         he_details.push(format!(
                             "he[{}](V{}→V{}, E{}, F{}, radial=he[{}])",
-                            he_idx, he_data.origin().index(), next_origin,
-                            he_data.edge().index(), he_data.face().index(),
+                            he_idx,
+                            he_data.origin().index(),
+                            next_origin,
+                            he_data.edge().index(),
+                            he_data.face().index(),
                             he_data.radial_next().index()
                         ));
                         break;
@@ -301,7 +335,10 @@ fn check_edge_vertex_consistency(arena: &TopologyArena, violations: &mut Vec<Vio
                 invariant: "EdgeVertexConsistency",
                 detail: format!(
                     "E{} has {} vertices {:?}\n      halfedges: {}",
-                    edge_idx, verts.len(), verts, he_details.join(", ")
+                    edge_idx,
+                    verts.len(),
+                    verts,
+                    he_details.join(", ")
                 ),
             });
         }
@@ -330,7 +367,12 @@ fn check_loop_closure(arena: &TopologyArena, violations: &mut Vec<Violation>) {
                 Err(_) => {
                     violations.push(Violation {
                         invariant: "LoopClosure",
-                        detail: format!("F{}: he[{}] is invalid at step {}", face_id.index(), cur.index(), step),
+                        detail: format!(
+                            "F{}: he[{}] is invalid at step {}",
+                            face_id.index(),
+                            cur.index(),
+                            step
+                        ),
                     });
                     break;
                 }
@@ -338,16 +380,27 @@ fn check_loop_closure(arena: &TopologyArena, violations: &mut Vec<Violation>) {
             if he.face() != face_id {
                 violations.push(Violation {
                     invariant: "LoopClosure",
-                    detail: format!("F{}: he[{}] belongs to F{}", face_id.index(), cur.index(), he.face().index()),
+                    detail: format!(
+                        "F{}: he[{}] belongs to F{}",
+                        face_id.index(),
+                        cur.index(),
+                        he.face().index()
+                    ),
                 });
                 break;
             }
             cur = he.next();
-            if cur == start { break; }
+            if cur == start {
+                break;
+            }
             if step == bound - 1 {
                 violations.push(Violation {
                     invariant: "LoopClosure",
-                    detail: format!("F{}: loop doesn't close after {} steps", face_id.index(), bound),
+                    detail: format!(
+                        "F{}: loop doesn't close after {} steps",
+                        face_id.index(),
+                        bound
+                    ),
                 });
             }
         }
@@ -361,8 +414,12 @@ fn check_prev_consistency(arena: &TopologyArena, violations: &mut Vec<Violation>
             if prev.next() != he_id {
                 violations.push(Violation {
                     invariant: "PrevConsistency",
-                    detail: format!("he[{}].prev.next = he[{}] (expected he[{}])", 
-                        he_id.index(), prev.next().index(), he_id.index()),
+                    detail: format!(
+                        "he[{}].prev.next = he[{}] (expected he[{}])",
+                        he_id.index(),
+                        prev.next().index(),
+                        he_id.index()
+                    ),
                 });
             }
         }
@@ -370,8 +427,12 @@ fn check_prev_consistency(arena: &TopologyArena, violations: &mut Vec<Violation>
             if next.prev() != he_id {
                 violations.push(Violation {
                     invariant: "PrevConsistency",
-                    detail: format!("he[{}].next.prev = he[{}] (expected he[{}])", 
-                        he_id.index(), next.prev().index(), he_id.index()),
+                    detail: format!(
+                        "he[{}].next.prev = he[{}] (expected he[{}])",
+                        he_id.index(),
+                        next.prev().index(),
+                        he_id.index()
+                    ),
                 });
             }
         }
@@ -382,7 +443,9 @@ fn check_prev_consistency(arena: &TopologyArena, violations: &mut Vec<Violation>
 fn check_radial_closure(arena: &TopologyArena, violations: &mut Vec<Violation>) {
     let mut visited: BTreeSet<u32> = BTreeSet::new();
     for (he_id, _) in arena.iter_half_edges() {
-        if visited.contains(&he_id.index()) { continue; }
+        if visited.contains(&he_id.index()) {
+            continue;
+        }
         let mut cur = he_id;
         let bound = arena.half_edge_count() + 1;
         for step in 0..bound {
@@ -392,17 +455,28 @@ fn check_radial_closure(arena: &TopologyArena, violations: &mut Vec<Violation>) 
                 Err(_) => {
                     violations.push(Violation {
                         invariant: "RadialClosure",
-                        detail: format!("he[{}] radial ring: he[{}] invalid at step {}", he_id.index(), cur.index(), step),
+                        detail: format!(
+                            "he[{}] radial ring: he[{}] invalid at step {}",
+                            he_id.index(),
+                            cur.index(),
+                            step
+                        ),
                     });
                     break;
                 }
             };
             cur = he.radial_next();
-            if cur == he_id { break; }
+            if cur == he_id {
+                break;
+            }
             if step == bound - 1 {
                 violations.push(Violation {
                     invariant: "RadialClosure",
-                    detail: format!("he[{}] radial ring doesn't close after {} steps", he_id.index(), bound),
+                    detail: format!(
+                        "he[{}] radial ring doesn't close after {} steps",
+                        he_id.index(),
+                        bound
+                    ),
                 });
             }
         }
@@ -414,13 +488,21 @@ fn check_origin_edge_agreement(arena: &TopologyArena, violations: &mut Vec<Viola
     let mut edge_origins: BTreeMap<u32, BTreeSet<u32>> = BTreeMap::new();
     for (_he_id, he_data) in arena.iter_half_edges() {
         let edge_idx = he_data.edge().index();
-        edge_origins.entry(edge_idx).or_default().insert(he_data.origin().index());
+        edge_origins
+            .entry(edge_idx)
+            .or_default()
+            .insert(he_data.origin().index());
     }
     for (edge_idx, origins) in &edge_origins {
         if origins.len() > 2 {
             violations.push(Violation {
                 invariant: "OriginEdgeAgreement",
-                detail: format!("E{} has halfedges originating from {} vertices: {:?}", edge_idx, origins.len(), origins),
+                detail: format!(
+                    "E{} has halfedges originating from {} vertices: {:?}",
+                    edge_idx,
+                    origins.len(),
+                    origins
+                ),
             });
         }
     }
@@ -429,7 +511,9 @@ fn check_origin_edge_agreement(arena: &TopologyArena, violations: &mut Vec<Viola
 /// Run a sequence of named operations, checking invariants after each one.
 /// Returns the name of the first operation that breaks invariants, along with the violations.
 pub fn find_first_breaking_op<F>(ops: &[(&str, F)]) -> Option<(String, CheckResult)>
-where F: Fn() -> CheckResult {
+where
+    F: Fn() -> CheckResult,
+{
     for (name, check_fn) in ops {
         let result = check_fn();
         if !result.is_ok() {

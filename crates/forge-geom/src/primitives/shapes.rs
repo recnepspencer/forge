@@ -16,27 +16,33 @@ pub fn cube(center: [f64; 3], half_size: f64) -> Vec<Plane> {
         Plane::from_point_normal(
             [center[0] + half_size, center[1], center[2]],
             [1.0, 0.0, 0.0],
-        ).unwrap(),
+        )
+        .unwrap(),
         Plane::from_point_normal(
             [center[0] - half_size, center[1], center[2]],
             [-1.0, 0.0, 0.0],
-        ).unwrap(),
+        )
+        .unwrap(),
         Plane::from_point_normal(
             [center[0], center[1] + half_size, center[2]],
             [0.0, 1.0, 0.0],
-        ).unwrap(),
+        )
+        .unwrap(),
         Plane::from_point_normal(
             [center[0], center[1] - half_size, center[2]],
             [0.0, -1.0, 0.0],
-        ).unwrap(),
+        )
+        .unwrap(),
         Plane::from_point_normal(
             [center[0], center[1], center[2] + half_size],
             [0.0, 0.0, 1.0],
-        ).unwrap(),
+        )
+        .unwrap(),
         Plane::from_point_normal(
             [center[0], center[1], center[2] - half_size],
             [0.0, 0.0, -1.0],
-        ).unwrap(),
+        )
+        .unwrap(),
     ]
 }
 
@@ -48,22 +54,22 @@ pub fn cube(center: [f64; 3], half_size: f64) -> Vec<Plane> {
 pub fn tetrahedron(center: [f64; 3], scale: f64) -> Vec<Plane> {
     let s = scale;
     vec![
-        Plane::from_point_normal(
-            [center[0], center[1], center[2] + s],
-            [0.0, 0.0, 1.0],
-        ).unwrap(),
+        Plane::from_point_normal([center[0], center[1], center[2] + s], [0.0, 0.0, 1.0]).unwrap(),
         Plane::from_point_normal(
             [center[0], center[1] + s, center[2] - s],
             [0.0, 0.8164965809, -0.5773502692],
-        ).unwrap(),
+        )
+        .unwrap(),
         Plane::from_point_normal(
             [center[0] - s * 0.7071, center[1] - s * 0.5, center[2] - s],
             [-0.8164965809, -0.4714045208, -0.3333333333],
-        ).unwrap(),
+        )
+        .unwrap(),
         Plane::from_point_normal(
             [center[0] + s * 0.7071, center[1] - s * 0.5, center[2] - s],
             [0.8164965809, -0.4714045208, -0.3333333333],
-        ).unwrap(),
+        )
+        .unwrap(),
     ]
 }
 
@@ -76,29 +82,32 @@ pub fn dodecahedron(center: [f64; 3], scale: f64) -> Vec<Plane> {
     let inv_phi = 1.0 / phi;
 
     let raw_normals: [[f64; 3]; 12] = [
-        [0.0,  phi,  inv_phi],
-        [0.0,  phi, -inv_phi],
-        [0.0, -phi,  inv_phi],
+        [0.0, phi, inv_phi],
+        [0.0, phi, -inv_phi],
+        [0.0, -phi, inv_phi],
         [0.0, -phi, -inv_phi],
-        [ inv_phi, 0.0,  phi],
-        [-inv_phi, 0.0,  phi],
-        [ inv_phi, 0.0, -phi],
+        [inv_phi, 0.0, phi],
+        [-inv_phi, 0.0, phi],
+        [inv_phi, 0.0, -phi],
         [-inv_phi, 0.0, -phi],
-        [ phi,  inv_phi, 0.0],
-        [ phi, -inv_phi, 0.0],
-        [-phi,  inv_phi, 0.0],
+        [phi, inv_phi, 0.0],
+        [phi, -inv_phi, 0.0],
+        [-phi, inv_phi, 0.0],
         [-phi, -inv_phi, 0.0],
     ];
 
-    raw_normals.iter().map(|n| {
-        let norm = forge_math::linalg::normalize_checked(*n).unwrap();
-        let pt = [
-            center[0] + norm[0] * scale,
-            center[1] + norm[1] * scale,
-            center[2] + norm[2] * scale,
-        ];
-        Plane::from_point_normal(pt, norm).unwrap()
-    }).collect()
+    raw_normals
+        .iter()
+        .map(|n| {
+            let norm = forge_math::linalg::normalize_checked(*n).unwrap();
+            let pt = [
+                center[0] + norm[0] * scale,
+                center[1] + norm[1] * scale,
+                center[2] + norm[2] * scale,
+            ];
+            Plane::from_point_normal(pt, norm).unwrap()
+        })
+        .collect()
 }
 
 #[cfg(test)]

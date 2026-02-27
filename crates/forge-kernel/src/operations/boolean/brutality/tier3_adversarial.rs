@@ -42,10 +42,8 @@
 //!    phase produces `MissingTwin` errors on chained booleans.
 //!    THIS IS THE PRIMARY BLOCKER for T3.2, T3.3, T3.4, and T3.5.
 
-use super::super::test_helpers::{
-    build_cube, try_boolean, execute_boolean_logged, euler_audit,
-};
 use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::test_helpers::{build_cube, euler_audit, execute_boolean_logged, try_boolean};
 
 // ══════════════════════════════════════════════════════════════
 // §T3.1  PINCH VERTEX
@@ -59,11 +57,7 @@ use super::super::schema::{BooleanInput, BooleanOp};
 /// created by vertex-touching unions, and then resolve it via subtraction.
 #[test]
 fn pinch_vertex_subtract_at_contact() {
-    let union_result = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [2.0, 2.0, 2.0], 1.0,
-        BooleanOp::Union,
-    );
+    let union_result = try_boolean([0.0, 0.0, 0.0], 1.0, [2.0, 2.0, 2.0], 1.0, BooleanOp::Union);
 
     match union_result {
         Ok(union_r) => {
@@ -71,8 +65,10 @@ fn pinch_vertex_subtract_at_contact() {
             let (topo_tool, geom_tool) = build_cube([1.0, 1.0, 1.0], 0.5);
 
             let input = BooleanInput::new(
-                topo_union, geom_union,
-                topo_tool, geom_tool,
+                topo_union,
+                geom_union,
+                topo_tool,
+                geom_tool,
                 BooleanOp::Subtraction,
             );
 
@@ -106,8 +102,10 @@ fn pinch_vertex_subtract_at_contact() {
 fn cascading_near_coincidence() {
     let epsilon = 1e-9;
     let first = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [2.0 - epsilon, 0.0, 0.0], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [2.0 - epsilon, 0.0, 0.0],
+        1.0,
         BooleanOp::Union,
     );
 
@@ -116,11 +114,7 @@ fn cascading_near_coincidence() {
             let (topo_r1, geom_r1, _) = r1.into_states();
             let (topo_c, geom_c) = build_cube([1.0, 0.0, 0.0], 0.5);
 
-            let input = BooleanInput::new(
-                topo_r1, geom_r1,
-                topo_c, geom_c,
-                BooleanOp::Subtraction,
-            );
+            let input = BooleanInput::new(topo_r1, geom_r1, topo_c, geom_c, BooleanOp::Subtraction);
 
             match execute_boolean_logged(input).into_result() {
                 Ok(result) => {
@@ -151,8 +145,10 @@ fn cascading_near_coincidence() {
 #[test]
 fn triple_flush_union() {
     let ab_result = try_boolean(
-        [-1.0, 0.0, 0.0], 1.0,
-        [1.0, 0.0, 0.0], 1.0,
+        [-1.0, 0.0, 0.0],
+        1.0,
+        [1.0, 0.0, 0.0],
+        1.0,
         BooleanOp::Union,
     );
 
@@ -161,11 +157,7 @@ fn triple_flush_union() {
             let (topo_ab, geom_ab, _) = ab.into_states();
             let (topo_c, geom_c) = build_cube([3.0, 0.0, 0.0], 1.0);
 
-            let input = BooleanInput::new(
-                topo_ab, geom_ab,
-                topo_c, geom_c,
-                BooleanOp::Union,
-            );
+            let input = BooleanInput::new(topo_ab, geom_ab, topo_c, geom_c, BooleanOp::Union);
 
             match execute_boolean_logged(input).into_result() {
                 Ok(result) => {
@@ -196,8 +188,10 @@ fn triple_flush_union() {
 #[test]
 fn concentric_triple_subtraction() {
     let step1 = try_boolean(
-        [0.0, 0.0, 0.0], 3.0,
-        [0.0, 0.0, 0.0], 2.0,
+        [0.0, 0.0, 0.0],
+        3.0,
+        [0.0, 0.0, 0.0],
+        2.0,
         BooleanOp::Subtraction,
     );
 
@@ -210,8 +204,10 @@ fn concentric_triple_subtraction() {
             let (topo_small, geom_small) = build_cube([0.0, 0.0, 0.0], 1.0);
 
             let input = BooleanInput::new(
-                topo_r1, geom_r1,
-                topo_small, geom_small,
+                topo_r1,
+                geom_r1,
+                topo_small,
+                geom_small,
                 BooleanOp::Subtraction,
             );
 
@@ -243,11 +239,7 @@ fn concentric_triple_subtraction() {
 /// mismatches when reusing a BooleanResult's topology as input.
 #[test]
 fn result_reuse_integrity() {
-    let step1 = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [0.5, 0.0, 0.0], 1.0,
-        BooleanOp::Union,
-    );
+    let step1 = try_boolean([0.0, 0.0, 0.0], 1.0, [0.5, 0.0, 0.0], 1.0, BooleanOp::Union);
 
     let r1 = step1.expect("Step 1 union must succeed for reuse test");
     let (v1, e1, f1, chi1) = euler_audit(r1.topology().arena());
@@ -256,11 +248,7 @@ fn result_reuse_integrity() {
     let (topo_r1, geom_r1, _) = r1.into_states();
     let (topo_c, geom_c) = build_cube([0.0, 0.5, 0.0], 1.0);
 
-    let input2 = BooleanInput::new(
-        topo_r1, geom_r1,
-        topo_c, geom_c,
-        BooleanOp::Union,
-    );
+    let input2 = BooleanInput::new(topo_r1, geom_r1, topo_c, geom_c, BooleanOp::Union);
 
     let r2 = execute_boolean_logged(input2)
         .into_result()
@@ -271,11 +259,7 @@ fn result_reuse_integrity() {
     let (topo_r2, geom_r2, _) = r2.into_states();
     let (topo_d, geom_d) = build_cube([0.0, 0.0, 0.5], 1.0);
 
-    let input3 = BooleanInput::new(
-        topo_r2, geom_r2,
-        topo_d, geom_d,
-        BooleanOp::Intersection,
-    );
+    let input3 = BooleanInput::new(topo_r2, geom_r2, topo_d, geom_d, BooleanOp::Intersection);
 
     let r3 = execute_boolean_logged(input3)
         .into_result()

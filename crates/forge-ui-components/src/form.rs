@@ -31,8 +31,11 @@ pub fn fg_form<R>(
             ui.add_space(12.0);
 
             // ── Button footer (right-aligned) ────────────────────
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), add_buttons)
-                .inner
+            ui.with_layout(
+                egui::Layout::right_to_left(egui::Align::Center),
+                add_buttons,
+            )
+            .inner
         })
         .inner
 }

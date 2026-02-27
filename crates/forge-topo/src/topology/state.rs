@@ -21,15 +21,17 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use forge_core::KernelError;
-use crate::arena::{TopologyArena};
+use crate::arena::TopologyArena;
+use crate::handles::{
+    BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
+};
 use crate::hashing::compute_arena_topology_hash;
 use crate::lineage::{LineageEvent, OpSignature};
-use crate::topology::history::lineage_link::ReidentificationLinkIndex;
 use crate::lineage_store::LineageStore;
-use crate::replay::{ReplayLog, ReplayEntry};
-use crate::handles::{FaceId, VertexId, HalfEdgeId, LoopId, ShellId, BodyId, LumpId, RegionId, EdgeId};
+use crate::replay::{ReplayEntry, ReplayLog};
+use crate::topology::history::lineage_link::ReidentificationLinkIndex;
 use crate::validate::{self, ValidationLevel};
+use forge_core::KernelError;
 
 /// Configuration for a mutable draft transaction.
 ///
@@ -278,20 +280,14 @@ impl MutableDraft {
     /// deterministic seed from the config's base seed + op counter.
     pub fn log_operation_start(&mut self, signature: &OpSignature) {
         let seed = self.config.deterministic_seed.wrapping_add(self.op_counter);
-        let entry = ReplayEntry::new(
-            signature.clone(),
-            Vec::new(),
-            seed,
-            self.topology_hash,
-        );
+        let entry = ReplayEntry::new(signature.clone(), Vec::new(), seed, self.topology_hash);
         self.replay_log.record(entry);
     }
 
     /// Apply lineage tracking for the completed operation (called by `apply_op` runner).
     ///
     /// Currently a stub — expanded in Milestone 1.2 (Euler Lineage Tracking).
-    pub fn apply_lineage(&mut self, _signature: &OpSignature) {
-    }
+    pub fn apply_lineage(&mut self, _signature: &OpSignature) {}
 
     /// The draft's configuration.
     pub fn config(&self) -> &DraftConfig {
@@ -390,7 +386,8 @@ impl MutableDraft {
         new_events.extend(self.lineage_store.drain_events());
         let mut all_events = std::mem::take(&mut self.prior_lineage_events);
         all_events.extend(new_events);
-        let reid_index = ReidentificationLinkIndex::from_lineage_events(self.next_epoch, &all_events);
+        let reid_index =
+            ReidentificationLinkIndex::from_lineage_events(self.next_epoch, &all_events);
 
         Ok(TopologyState {
             epoch: self.next_epoch,
@@ -428,7 +425,8 @@ impl MutableDraft {
         new_events.extend(self.lineage_store.drain_events());
         let mut all_events = std::mem::take(&mut self.prior_lineage_events);
         all_events.extend(new_events);
-        let reid_index = ReidentificationLinkIndex::from_lineage_events(self.next_epoch, &all_events);
+        let reid_index =
+            ReidentificationLinkIndex::from_lineage_events(self.next_epoch, &all_events);
 
         Ok(TopologyState {
             epoch: self.next_epoch,
@@ -462,12 +460,19 @@ impl MutableDraft {
         arena.insert_half_edge(data, Some(store))
     }
 
-    pub fn insert_radial_pair(&mut self, data_a: crate::arena::HalfEdgeData, data_b: crate::arena::HalfEdgeData) -> (HalfEdgeId, HalfEdgeId) {
+    pub fn insert_radial_pair(
+        &mut self,
+        data_a: crate::arena::HalfEdgeData,
+        data_b: crate::arena::HalfEdgeData,
+    ) -> (HalfEdgeId, HalfEdgeId) {
         let (arena, store) = self.unbundle_mut();
         arena.insert_radial_pair(data_a, data_b, Some(store))
     }
 
-    pub fn remove_half_edge(&mut self, id: HalfEdgeId) -> Result<crate::arena::HalfEdgeData, KernelError> {
+    pub fn remove_half_edge(
+        &mut self,
+        id: HalfEdgeId,
+    ) -> Result<crate::arena::HalfEdgeData, KernelError> {
         let (arena, store) = self.unbundle_mut();
         arena.remove_half_edge(id, Some(store))
     }
@@ -543,7 +548,6 @@ impl MutableDraft {
     }
 }
 
-
 impl Drop for MutableDraft {
     fn drop(&mut self) {
         if !self.committed {
@@ -571,8 +575,8 @@ impl std::fmt::Debug for MutableDraft {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use forge_core::{EntityKind, EntityRef};
     use crate::lineage::{Lineage, LineageEntityRef};
+    use forge_core::{EntityKind, EntityRef};
     use serde_json::Value;
 
     #[test]
@@ -630,7 +634,10 @@ mod tests {
         let first_mutation = state.clone().into_mutation().commit().unwrap();
         let second_mutation = state.into_mutation().commit().unwrap();
 
-        assert_eq!(first_mutation.topology_hash(), second_mutation.topology_hash());
+        assert_eq!(
+            first_mutation.topology_hash(),
+            second_mutation.topology_hash()
+        );
     }
 
     #[test]
@@ -654,13 +661,11 @@ mod tests {
         let mut draft = state.into_mutation();
 
         let lineage = Lineage::root(7, OpSignature::with_id("make_face", 1));
-        draft
-            .lineage_store
-            .record_creation_with_snapshot(
-                EntityRef::new(EntityKind::Face, 42),
-                LineageEntityRef::new(EntityKind::Face, 42, 3),
-                lineage.clone(),
-            );
+        draft.lineage_store.record_creation_with_snapshot(
+            EntityRef::new(EntityKind::Face, 42),
+            LineageEntityRef::new(EntityKind::Face, 42, 3),
+            lineage.clone(),
+        );
 
         let committed = draft.commit().unwrap();
         let hits = committed
@@ -776,7 +781,11 @@ mod tests {
         let committed = draft.commit().expect("manual lineage log event commit");
         assert_eq!(committed.lineage_events().len(), 1);
         match &committed.lineage_events()[0] {
-            LineageEvent::EntityCreated { entity, entity_snapshot, lineage } => {
+            LineageEvent::EntityCreated {
+                entity,
+                entity_snapshot,
+                lineage,
+            } => {
                 assert_eq!(entity.kind(), EntityKind::Face);
                 assert_eq!(entity.index(), 42);
                 assert!(entity_snapshot.is_none());
@@ -814,13 +823,24 @@ mod tests {
         let mut store_seen = false;
         for ev in events {
             match ev {
-                LineageEvent::EntityCreated { entity, entity_snapshot, lineage } if lineage.get_ancestry_hash() == manual_child.get_ancestry_hash() => {
+                LineageEvent::EntityCreated {
+                    entity,
+                    entity_snapshot,
+                    lineage,
+                } if lineage.get_ancestry_hash() == manual_child.get_ancestry_hash() => {
                     assert_eq!(entity.kind(), EntityKind::Face);
                     assert_eq!(entity.index(), 100);
-                    assert!(entity_snapshot.is_none(), "manual channel event should remain explicit legacy/none");
+                    assert!(
+                        entity_snapshot.is_none(),
+                        "manual channel event should remain explicit legacy/none"
+                    );
                     manual_seen = true;
                 }
-                LineageEvent::EntityCreated { entity, entity_snapshot, lineage } if lineage.get_ancestry_hash() == store_child.get_ancestry_hash() => {
+                LineageEvent::EntityCreated {
+                    entity,
+                    entity_snapshot,
+                    lineage,
+                } if lineage.get_ancestry_hash() == store_child.get_ancestry_hash() => {
                     assert_eq!(entity.kind(), EntityKind::Face);
                     assert_eq!(entity.index(), 200);
                     assert_eq!(
@@ -833,6 +853,9 @@ mod tests {
                 _ => {}
             }
         }
-        assert!(manual_seen && store_seen, "must persist one event from each lineage channel");
+        assert!(
+            manual_seen && store_seen,
+            "must persist one event from each lineage channel"
+        );
     }
 }

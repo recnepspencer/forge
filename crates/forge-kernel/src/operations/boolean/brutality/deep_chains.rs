@@ -39,10 +39,8 @@
 //!    via radial sorting. This is partially implemented in `select_best_twin`
 //!    but needs testing under chained-op conditions.
 
-use super::super::test_helpers::{
-    build_cube, execute_boolean_logged, euler_audit,
-};
 use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::test_helpers::{build_cube, euler_audit, execute_boolean_logged};
 use crate::brep::state::BrepState;
 use forge_topo::hashing::compute_arena_topology_hash;
 
@@ -62,11 +60,7 @@ fn chain_union_10_steps() {
         let offset = step as f64 * 0.8;
         let (topo_tool, geom_tool) = build_cube([offset, 0.0, 0.0], 1.0);
 
-        let input = BooleanInput::new(
-            topo, geom,
-            topo_tool, geom_tool,
-            BooleanOp::Union,
-        );
+        let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
 
         let result = execute_boolean_logged(input)
             .into_result()
@@ -106,11 +100,7 @@ fn chain_subtract_10_steps() {
         let x = -4.0 + step as f64 * 0.9;
         let (topo_tool, geom_tool) = build_cube([x, 0.0, 4.5], 0.5);
 
-        let input = BooleanInput::new(
-            topo, geom,
-            topo_tool, geom_tool,
-            BooleanOp::Subtraction,
-        );
+        let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Subtraction);
 
         let result = execute_boolean_logged(input)
             .into_result()
@@ -157,11 +147,7 @@ fn chain_mixed_ops_10() {
         let half = if step % 2 == 1 { 1.0 } else { 0.3 };
         let (topo_tool, geom_tool) = build_cube([offset, 0.0, 0.0], half);
 
-        let input = BooleanInput::new(
-            topo, geom,
-            topo_tool, geom_tool,
-            op,
-        );
+        let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, op);
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
@@ -210,19 +196,13 @@ fn chain_identifies_failing_step() {
         let pre_state = euler_audit(topo.arena());
         let (topo_tool, geom_tool) = build_cube(*center, *half);
 
-        let input = BooleanInput::new(
-            topo, geom,
-            topo_tool, geom_tool,
-            *op,
-        );
+        let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, *op);
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
                 let r = result;
                 let (v, e, f, chi) = euler_audit(r.topology().arena());
-                eprintln!(
-                    "Step {step} ({op:?} @ {center:?} h={half}): V={v} E={e} F={f} χ={chi}"
-                );
+                eprintln!("Step {step} ({op:?} @ {center:?} h={half}): V={v} E={e} F={f} χ={chi}");
                 assert_eq!(
                     chi, 2,
                     "Step {step} ({op:?}) Euler violation: V={v} E={e} F={f}"
@@ -241,7 +221,6 @@ fn chain_identifies_failing_step() {
             }
         }
     }
-
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -260,16 +239,36 @@ fn minimal_overlapping_notches() {
 
     // Step 0: first notch
     let (tool0, tool0_g) = build_cube([-4.0, 0.0, 4.5], 0.5);
-    let input0 = BooleanInput::new(topo, geom, BrepState::new(), tool0, tool0_g, BrepState::new(), BooleanOp::Subtraction);
-    let r0 = execute_boolean_logged(input0).into_result().expect("Step 0 failed");
+    let input0 = BooleanInput::new(
+        topo,
+        geom,
+        BrepState::new(),
+        tool0,
+        tool0_g,
+        BrepState::new(),
+        BooleanOp::Subtraction,
+    );
+    let r0 = execute_boolean_logged(input0)
+        .into_result()
+        .expect("Step 0 failed");
     let (v, e, f, chi) = euler_audit(r0.topology().arena());
     assert_eq!(chi, 2, "Step 0 Euler: V={v} E={e} F={f} χ={chi}");
     let (topo, geom, _) = r0.into_states();
 
     // Step 1: overlapping notch
     let (tool1, tool1_g) = build_cube([-3.1, 0.0, 4.5], 0.5);
-    let input1 = BooleanInput::new(topo, geom, BrepState::new(), tool1, tool1_g, BrepState::new(), BooleanOp::Subtraction);
-    let r1 = execute_boolean_logged(input1).into_result().expect("Step 1 failed (overlapping notch)");
+    let input1 = BooleanInput::new(
+        topo,
+        geom,
+        BrepState::new(),
+        tool1,
+        tool1_g,
+        BrepState::new(),
+        BooleanOp::Subtraction,
+    );
+    let r1 = execute_boolean_logged(input1)
+        .into_result()
+        .expect("Step 1 failed (overlapping notch)");
     let (v, e, f, chi) = euler_audit(r1.topology().arena());
     assert_eq!(chi, 2, "Step 1 Euler: V={v} E={e} F={f} χ={chi}");
 }
@@ -285,11 +284,21 @@ fn minimal_nonoverlapping_notches() {
 
     // Step 0: first notch at x=-4
     let (tool0, tool0_g) = build_cube([-4.0, 0.0, 4.5], 0.5);
-    let input0 = BooleanInput::new(topo, geom, BrepState::new(), tool0, tool0_g, BrepState::new(), BooleanOp::Subtraction);
-    let r0 = execute_boolean_logged(input0).into_result().expect("Step 0 failed");
+    let input0 = BooleanInput::new(
+        topo,
+        geom,
+        BrepState::new(),
+        tool0,
+        tool0_g,
+        BrepState::new(),
+        BooleanOp::Subtraction,
+    );
+    let r0 = execute_boolean_logged(input0)
+        .into_result()
+        .expect("Step 0 failed");
     let (v, e, f, chi) = euler_audit(r0.topology().arena());
     assert_eq!(chi, 2, "Step 0 Euler: V={v} E={e} F={f} χ={chi}");
-    
+
     // DIAGNOSTIC: print all edges that have at least one endpoint at z=5
     let arena = r0.topology().arena();
     let geom_ref = r0.geometry();
@@ -310,13 +319,23 @@ fn minimal_nonoverlapping_notches() {
         }
     }
     eprintln!("=== END STEP 0 z=5 edges ===");
-    
+
     let (topo, geom, _) = r0.into_states();
 
     // Step 1: NON-overlapping notch at x=+4 (far away)
     let (tool1, tool1_g) = build_cube([4.0, 0.0, 4.5], 0.5);
-    let input1 = BooleanInput::new(topo, geom, BrepState::new(), tool1, tool1_g, BrepState::new(), BooleanOp::Subtraction);
-    let r1 = execute_boolean_logged(input1).into_result().expect("Step 1 failed (non-overlapping)");
+    let input1 = BooleanInput::new(
+        topo,
+        geom,
+        BrepState::new(),
+        tool1,
+        tool1_g,
+        BrepState::new(),
+        BooleanOp::Subtraction,
+    );
+    let r1 = execute_boolean_logged(input1)
+        .into_result()
+        .expect("Step 1 failed (non-overlapping)");
     let (v, e, f, chi) = euler_audit(r1.topology().arena());
     assert_eq!(chi, 2, "Step 1 Euler: V={v} E={e} F={f} χ={chi}");
 }
@@ -328,8 +347,18 @@ fn minimal_nonoverlapping_notches() {
 fn minimal_single_flush_subtraction() {
     let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
     let (tool, tool_g) = build_cube([0.0, 0.0, 4.5], 0.5);
-    let input = BooleanInput::new(topo, geom, BrepState::new(), tool, tool_g, BrepState::new(), BooleanOp::Subtraction);
-    let r = execute_boolean_logged(input).into_result().expect("Single flush subtraction failed");
+    let input = BooleanInput::new(
+        topo,
+        geom,
+        BrepState::new(),
+        tool,
+        tool_g,
+        BrepState::new(),
+        BooleanOp::Subtraction,
+    );
+    let r = execute_boolean_logged(input)
+        .into_result()
+        .expect("Single flush subtraction failed");
     let (v, e, f, chi) = euler_audit(r.topology().arena());
     assert_eq!(chi, 2, "Euler: V={v} E={e} F={f} χ={chi}");
 }
@@ -343,8 +372,18 @@ fn minimal_two_interior_subtractions() {
 
     // Step 0: interior subtraction
     let (tool0, tool0_g) = build_cube([-3.0, 0.0, 0.0], 0.5);
-    let input0 = BooleanInput::new(topo, geom, BrepState::new(), tool0, tool0_g, BrepState::new(), BooleanOp::Subtraction);
-    let r0 = execute_boolean_logged(input0).into_result().expect("Step 0 failed");
+    let input0 = BooleanInput::new(
+        topo,
+        geom,
+        BrepState::new(),
+        tool0,
+        tool0_g,
+        BrepState::new(),
+        BooleanOp::Subtraction,
+    );
+    let r0 = execute_boolean_logged(input0)
+        .into_result()
+        .expect("Step 0 failed");
     // Interior subtraction creates a cavity: V-E+F = 4 (two shells)
     let (v, e, f, chi) = euler_audit(r0.topology().arena());
     eprintln!("Step 0: V={v} E={e} F={f} χ={chi}");
@@ -352,8 +391,18 @@ fn minimal_two_interior_subtractions() {
 
     // Step 1: another interior subtraction, far away
     let (tool1, tool1_g) = build_cube([3.0, 0.0, 0.0], 0.5);
-    let input1 = BooleanInput::new(topo, geom, BrepState::new(), tool1, tool1_g, BrepState::new(), BooleanOp::Subtraction);
-    let r1 = execute_boolean_logged(input1).into_result().expect("Step 1 failed");
+    let input1 = BooleanInput::new(
+        topo,
+        geom,
+        BrepState::new(),
+        tool1,
+        tool1_g,
+        BrepState::new(),
+        BooleanOp::Subtraction,
+    );
+    let r1 = execute_boolean_logged(input1)
+        .into_result()
+        .expect("Step 1 failed");
     let (v, e, f, chi) = euler_audit(r1.topology().arena());
     eprintln!("Step 1: V={v} E={e} F={f} χ={chi}");
 }
@@ -377,12 +426,30 @@ fn diagnostic_epsilon_offset_notches() {
     let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
 
     let (tool0, tool0_g) = build_cube([-4.0, 0.0, 4.5], 0.5);
-    let input0 = BooleanInput::new(topo, geom, BrepState::new(), tool0, tool0_g, BrepState::new(), BooleanOp::Subtraction);
-    let r0 = execute_boolean_logged(input0).into_result().expect("Step 0 failed");
+    let input0 = BooleanInput::new(
+        topo,
+        geom,
+        BrepState::new(),
+        tool0,
+        tool0_g,
+        BrepState::new(),
+        BooleanOp::Subtraction,
+    );
+    let r0 = execute_boolean_logged(input0)
+        .into_result()
+        .expect("Step 0 failed");
     let (topo, geom, _) = r0.into_states();
 
     let (tool1, tool1_g) = build_cube([-3.1, 0.01, 4.5], 0.5);
-    let input1 = BooleanInput::new(topo, geom, BrepState::new(), tool1, tool1_g, BrepState::new(), BooleanOp::Subtraction);
+    let input1 = BooleanInput::new(
+        topo,
+        geom,
+        BrepState::new(),
+        tool1,
+        tool1_g,
+        BrepState::new(),
+        BooleanOp::Subtraction,
+    );
 
     match execute_boolean_logged(input1).into_result() {
         Ok(r1) => {
@@ -411,7 +478,15 @@ fn diagnostic_manual_tangent_graze() {
     let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
     let (tool, tool_g) = build_cube([6.0, 6.0, 6.0], 1.0);
 
-    let input = BooleanInput::new(topo, geom, BrepState::new(), tool, tool_g, BrepState::new(), BooleanOp::Subtraction);
+    let input = BooleanInput::new(
+        topo,
+        geom,
+        BrepState::new(),
+        tool,
+        tool_g,
+        BrepState::new(),
+        BooleanOp::Subtraction,
+    );
     match execute_boolean_logged(input).into_result() {
         Ok(r) => {
             let (v, e, f, chi) = euler_audit(r.topology().arena());
@@ -433,8 +508,18 @@ fn diagnostic_manual_tangent_graze() {
 fn diagnostic_vertex_provenance_survival() {
     let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
     let (tool0, tool0_g) = build_cube([-4.0, 0.0, 4.5], 0.5);
-    let input0 = BooleanInput::new(topo, geom, BrepState::new(), tool0, tool0_g, BrepState::new(), BooleanOp::Subtraction);
-    let r0 = execute_boolean_logged(input0).into_result().expect("Step 0 failed");
+    let input0 = BooleanInput::new(
+        topo,
+        geom,
+        BrepState::new(),
+        tool0,
+        tool0_g,
+        BrepState::new(),
+        BooleanOp::Subtraction,
+    );
+    let r0 = execute_boolean_logged(input0)
+        .into_result()
+        .expect("Step 0 failed");
 
     let result_geom = r0.geometry();
     let result_arena = r0.topology().arena();
@@ -448,12 +533,16 @@ fn diagnostic_vertex_provenance_survival() {
     }
 
     eprintln!("DIAGNOSTIC: {exact_count}/{total_count} vertices have exact rational positions");
-    assert!(exact_count > 0,
+    assert!(
+        exact_count > 0,
         "PROVENANCE LOSS: No exact vertices survived Step 0! \
-         copy.rs is stripping exact positions.");
-    assert_eq!(exact_count, total_count,
+         copy.rs is stripping exact positions."
+    );
+    assert_eq!(
+        exact_count, total_count,
         "PARTIAL PROVENANCE LOSS: {exact_count}/{total_count} vertices have exact positions. \
-         Some vertices lost their symbolic identity.");
+         Some vertices lost their symbolic identity."
+    );
 }
 
 /// Diagnostic 4: concave face detection after Step 0.
@@ -466,8 +555,18 @@ fn diagnostic_vertex_provenance_survival() {
 fn diagnostic_concave_face_audit() {
     let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
     let (tool0, tool0_g) = build_cube([-4.0, 0.0, 4.5], 0.5);
-    let input0 = BooleanInput::new(topo, geom, BrepState::new(), tool0, tool0_g, BrepState::new(), BooleanOp::Subtraction);
-    let r0 = execute_boolean_logged(input0).into_result().expect("Step 0 failed");
+    let input0 = BooleanInput::new(
+        topo,
+        geom,
+        BrepState::new(),
+        tool0,
+        tool0_g,
+        BrepState::new(),
+        BooleanOp::Subtraction,
+    );
+    let r0 = execute_boolean_logged(input0)
+        .into_result()
+        .expect("Step 0 failed");
 
     let arena = r0.topology().arena();
     let geom_ref = r0.geometry();
@@ -481,30 +580,54 @@ fn diagnostic_concave_face_audit() {
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
         let edge_count = edges.len();
-        if edge_count > max_edges { max_edges = edge_count; }
+        if edge_count > max_edges {
+            max_edges = edge_count;
+        }
 
         let plane = geom_ref.get_face_plane(fid);
-        let plane_str = plane.map(|p| {
-            let n = p.normal();
-            format!("n=[{:.2},{:.2},{:.2}] d={:.2}", n[0], n[1], n[2], p.offset())
-        }).unwrap_or("??".into());
+        let plane_str = plane
+            .map(|p| {
+                let n = p.normal();
+                format!(
+                    "n=[{:.2},{:.2},{:.2}] d={:.2}",
+                    n[0],
+                    n[1],
+                    n[2],
+                    p.offset()
+                )
+            })
+            .unwrap_or("??".into());
 
-        let verts: Vec<String> = edges.iter().map(|he_id| {
-            let he = arena.get_half_edge(*he_id).unwrap();
-            let v = he.origin();
-            let pos = geom_ref.get_vertex_position(v).unwrap();
-            format!("[{:.2},{:.2},{:.2}]", pos[0], pos[1], pos[2])
-        }).collect();
+        let verts: Vec<String> = edges
+            .iter()
+            .map(|he_id| {
+                let he = arena.get_half_edge(*he_id).unwrap();
+                let v = he.origin();
+                let pos = geom_ref.get_vertex_position(v).unwrap();
+                format!("[{:.2},{:.2},{:.2}]", pos[0], pos[1], pos[2])
+            })
+            .collect();
 
-        eprintln!("  Face#{}: {}E {} | {}", fid.index(), edge_count, plane_str, verts.join(" → "));
+        eprintln!(
+            "  Face#{}: {}E {} | {}",
+            fid.index(),
+            edge_count,
+            plane_str,
+            verts.join(" → ")
+        );
 
         if edge_count > 4 {
             concave_faces.push((fid, edge_count));
         }
     }
 
-    eprintln!("DIAGNOSTIC: max edges per face = {max_edges}, concave faces (>4E) = {:?}",
-        concave_faces.iter().map(|(f, e)| format!("F#{} ({}E)", f.index(), e)).collect::<Vec<_>>());
+    eprintln!(
+        "DIAGNOSTIC: max edges per face = {max_edges}, concave faces (>4E) = {:?}",
+        concave_faces
+            .iter()
+            .map(|(f, e)| format!("F#{} ({}E)", f.index(), e))
+            .collect::<Vec<_>>()
+    );
 
     if !concave_faces.is_empty() {
         eprintln!("DIAGNOSTIC: CONCAVE FACES DETECTED! The postprocessor merged coplanar fragments into >4-gons.");
@@ -538,9 +661,7 @@ fn cube_vertices_born_with_symbolic_planes() {
     }
 
     let total = with_planes + without_planes;
-    eprintln!(
-        "Cube symbolic planes: {with_planes}/{total} vertices have plane triples"
-    );
+    eprintln!("Cube symbolic planes: {with_planes}/{total} vertices have plane triples");
     assert_eq!(
         without_planes, 0,
         "All {total} cube vertices should have symbolic planes, but {without_planes} are missing them"
@@ -558,11 +679,7 @@ fn symbolic_planes_survive_boolean_chain() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
     let (topo_b, geom_b) = build_cube([3.0, 0.0, 0.0], 1.0);
 
-    let input = BooleanInput::new(
-        topo_a, geom_a,
-        topo_b, geom_b,
-        BooleanOp::Union,
-    );
+    let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
 
     let result = execute_boolean_logged(input)
         .into_result()
@@ -583,9 +700,7 @@ fn symbolic_planes_survive_boolean_chain() {
     }
 
     let total = with_planes + without_planes;
-    eprintln!(
-        "Post-union symbolic planes: {with_planes}/{total} vertices have plane triples"
-    );
+    eprintln!("Post-union symbolic planes: {with_planes}/{total} vertices have plane triples");
 
     assert_eq!(
         without_planes, 0,
@@ -593,7 +708,10 @@ fn symbolic_planes_survive_boolean_chain() {
          symbolic planes (got {with_planes}/{total}). \
          The copy phase is dropping plane triples."
     );
-    assert_eq!(total, 16, "Disjoint union of 2 cubes should have 16 vertices, got {total}");
+    assert_eq!(
+        total, 16,
+        "Disjoint union of 2 cubes should have 16 vertices, got {total}"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -614,8 +732,10 @@ fn idempotence_self_union() {
     let (topo_b, geom_b) = build_cube([0.8, 0.0, 0.0], 1.0);
 
     let input1 = BooleanInput::new(
-        topo_a, geom_a,
-        topo_b.clone(), geom_b.clone(),
+        topo_a,
+        geom_a,
+        topo_b.clone(),
+        geom_b.clone(),
         BooleanOp::Union,
     );
 
@@ -624,36 +744,29 @@ fn idempotence_self_union() {
         .expect("First union(A,B) failed");
 
     let (v1, e1, f1, chi1) = euler_audit(r1.topology().arena());
-    assert_eq!(chi1, 2, "First union Euler violation: V={v1} E={e1} F={f1} χ={chi1}");
+    assert_eq!(
+        chi1, 2,
+        "First union Euler violation: V={v1} E={e1} F={f1} χ={chi1}"
+    );
     let hash1 = compute_arena_topology_hash(r1.topology().arena());
 
     let (topo_r1, geom_r1, _) = r1.into_states();
 
-    let input2 = BooleanInput::new(
-        topo_r1, geom_r1,
-        topo_b, geom_b,
-        BooleanOp::Union,
-    );
+    let input2 = BooleanInput::new(topo_r1, geom_r1, topo_b, geom_b, BooleanOp::Union);
 
     let r2 = execute_boolean_logged(input2)
         .into_result()
         .expect("Second union(result1, B) failed");
 
     let (v2, e2, f2, chi2) = euler_audit(r2.topology().arena());
-    assert_eq!(chi2, 2, "Second union Euler violation: V={v2} E={e2} F={f2} χ={chi2}");
+    assert_eq!(
+        chi2, 2,
+        "Second union Euler violation: V={v2} E={e2} F={f2} χ={chi2}"
+    );
 
-    assert_eq!(
-        v1, v2,
-        "IDEMPOTENCE: vertex count changed: {v1} → {v2}"
-    );
-    assert_eq!(
-        e1, e2,
-        "IDEMPOTENCE: edge count changed: {e1} → {e2}"
-    );
-    assert_eq!(
-        f1, f2,
-        "IDEMPOTENCE: face count changed: {f1} → {f2}"
-    );
+    assert_eq!(v1, v2, "IDEMPOTENCE: vertex count changed: {v1} → {v2}");
+    assert_eq!(e1, e2, "IDEMPOTENCE: edge count changed: {e1} → {e2}");
+    assert_eq!(f1, f2, "IDEMPOTENCE: face count changed: {f1} → {f2}");
 
     let hash2 = compute_arena_topology_hash(r2.topology().arena());
     assert_eq!(
@@ -675,8 +788,10 @@ fn idempotence_double_application_neutrality() {
     let (topo_b, geom_b) = build_cube([1.5, 0.0, 0.0], 1.0);
 
     let input1 = BooleanInput::new(
-        topo_a, geom_a,
-        topo_b.clone(), geom_b.clone(),
+        topo_a,
+        geom_a,
+        topo_b.clone(),
+        geom_b.clone(),
         BooleanOp::Union,
     );
 
@@ -685,15 +800,14 @@ fn idempotence_double_application_neutrality() {
         .expect("union(A,B) failed");
 
     let (v1, e1, f1, chi1) = euler_audit(r1.topology().arena());
-    assert_eq!(chi1, 2, "Union Euler violation: V={v1} E={e1} F={f1} χ={chi1}");
+    assert_eq!(
+        chi1, 2,
+        "Union Euler violation: V={v1} E={e1} F={f1} χ={chi1}"
+    );
 
     let (topo_r1, geom_r1, _) = r1.into_states();
 
-    let input2 = BooleanInput::new(
-        topo_r1, geom_r1,
-        topo_b, geom_b,
-        BooleanOp::Subtraction,
-    );
+    let input2 = BooleanInput::new(topo_r1, geom_r1, topo_b, geom_b, BooleanOp::Subtraction);
 
     let r2 = execute_boolean_logged(input2)
         .into_result()
@@ -705,7 +819,10 @@ fn idempotence_double_application_neutrality() {
          subtract back → V={v2} E={e2} F={f2} χ={chi2}"
     );
 
-    assert_eq!(chi2, 2, "Neutrality Euler violation: V={v2} E={e2} F={f2} χ={chi2}");
+    assert_eq!(
+        chi2, 2,
+        "Neutrality Euler violation: V={v2} E={e2} F={f2} χ={chi2}"
+    );
     assert!(
         f2 >= 6,
         "NEUTRALITY: subtract(union(A,B), B) should produce at least 6 faces \
@@ -738,8 +855,24 @@ fn commutativity_order_stability() {
         let (ta2, ga2) = build_cube(*ca, *half);
         let (tb2, gb2) = build_cube(*cb, *half);
 
-        let input_ab = BooleanInput::new(ta1, ga1, BrepState::new(), tb1, gb1, BrepState::new(), BooleanOp::Union);
-        let input_ba = BooleanInput::new(tb2, gb2, BrepState::new(), ta2, ga2, BrepState::new(), BooleanOp::Union);
+        let input_ab = BooleanInput::new(
+            ta1,
+            ga1,
+            BrepState::new(),
+            tb1,
+            gb1,
+            BrepState::new(),
+            BooleanOp::Union,
+        );
+        let input_ba = BooleanInput::new(
+            tb2,
+            gb2,
+            BrepState::new(),
+            ta2,
+            ga2,
+            BrepState::new(),
+            BooleanOp::Union,
+        );
 
         let r_ab = execute_boolean_logged(input_ab)
             .into_result()
@@ -752,7 +885,8 @@ fn commutativity_order_stability() {
         let (v_ba, e_ba, f_ba, _) = euler_audit(r_ba.topology().arena());
 
         assert_eq!(
-            (v_ab, e_ab, f_ab), (v_ba, e_ba, f_ba),
+            (v_ab, e_ab, f_ab),
+            (v_ba, e_ba, f_ba),
             "COMMUTATIVITY case {case_idx}: \
              union(A,B) → V={v_ab} E={e_ab} F={f_ab} vs \
              union(B,A) → V={v_ba} E={e_ba} F={f_ba}"
@@ -786,7 +920,15 @@ fn associativity_small_chain() {
         let (mut topo, mut geom) = build_cube(cubes[0].0, cubes[0].1);
         for (step, (center, half)) in cubes[1..].iter().enumerate() {
             let (t_tool, g_tool) = build_cube(*center, *half);
-            let input = BooleanInput::new(topo, geom, BrepState::new(), t_tool, g_tool, BrepState::new(), BooleanOp::Union);
+            let input = BooleanInput::new(
+                topo,
+                geom,
+                BrepState::new(),
+                t_tool,
+                g_tool,
+                BrepState::new(),
+                BooleanOp::Union,
+            );
             let r = execute_boolean_logged(input)
                 .into_result()
                 .unwrap_or_else(|e| panic!("Left-fold step {step} failed: {e}"));
@@ -802,7 +944,15 @@ fn associativity_small_chain() {
         let (mut topo, mut geom) = build_cube(cubes[last].0, cubes[last].1);
         for step in (0..last).rev() {
             let (t_tool, g_tool) = build_cube(cubes[step].0, cubes[step].1);
-            let input = BooleanInput::new(t_tool, g_tool, BrepState::new(), topo, geom, BrepState::new(), BooleanOp::Union);
+            let input = BooleanInput::new(
+                t_tool,
+                g_tool,
+                BrepState::new(),
+                topo,
+                geom,
+                BrepState::new(),
+                BooleanOp::Union,
+            );
             let r = execute_boolean_logged(input)
                 .into_result()
                 .unwrap_or_else(|e| panic!("Right-fold step {} failed: {e}", last - 1 - step));
@@ -825,7 +975,8 @@ fn associativity_small_chain() {
     assert_eq!(chi_r, 2, "Right-fold Euler violation: χ={chi_r}");
 
     assert_eq!(
-        (v_l, e_l, f_l), (v_r, e_r, f_r),
+        (v_l, e_l, f_l),
+        (v_r, e_r, f_r),
         "ASSOCIATIVITY: left-fold and right-fold produce different topology counts"
     );
 }
@@ -849,7 +1000,15 @@ fn plane_intern_stability() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 2.0);
     let (topo_b, geom_b) = build_cube([1.0, 0.0, 0.0], 1.0);
 
-    let input = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Union);
+    let input = BooleanInput::new(
+        topo_a,
+        geom_a,
+        BrepState::new(),
+        topo_b,
+        geom_b,
+        BrepState::new(),
+        BooleanOp::Union,
+    );
     let r = execute_boolean_logged(input)
         .into_result()
         .expect("Union for plane intern test failed");
@@ -868,12 +1027,14 @@ fn plane_intern_stability() {
 
         let (a, b, c, d) = plane.exact_coefficients();
 
-        let reconstructed = match Plane::from_rationals(
-            a.clone(), b.clone(), c.clone(), d.clone(),
-        ) {
+        let reconstructed = match Plane::from_rationals(a.clone(), b.clone(), c.clone(), d.clone())
+        {
             Ok(p) => p,
             Err(e) => {
-                eprintln!("INTERN STABILITY: Face#{} plane reconstruction failed: {e}", fid.index());
+                eprintln!(
+                    "INTERN STABILITY: Face#{} plane reconstruction failed: {e}",
+                    fid.index()
+                );
                 planes_drifted += 1;
                 planes_checked += 1;
                 continue;
@@ -897,16 +1058,20 @@ fn plane_intern_stability() {
                 "INTERN DRIFT: Face#{} original n=[{:.17e},{:.17e},{:.17e}] d={:.17e} \
                  → reconstructed n=[{:.17e},{:.17e},{:.17e}] d={:.17e}",
                 fid.index(),
-                n_orig[0], n_orig[1], n_orig[2], d_orig,
-                n_recon[0], n_recon[1], n_recon[2], d_recon
+                n_orig[0],
+                n_orig[1],
+                n_orig[2],
+                d_orig,
+                n_recon[0],
+                n_recon[1],
+                n_recon[2],
+                d_recon
             );
             planes_drifted += 1;
         }
     }
 
-    eprintln!(
-        "INTERN STABILITY: {planes_checked} planes checked, {planes_drifted} drifted"
-    );
+    eprintln!("INTERN STABILITY: {planes_checked} planes checked, {planes_drifted} drifted");
     assert_eq!(
         planes_drifted, 0,
         "INTERN STABILITY: {planes_drifted}/{planes_checked} planes had bit-level drift \
@@ -932,7 +1097,15 @@ fn zero_classification_stability() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 2.0);
     let (topo_b, geom_b) = build_cube([1.0, 0.0, 0.0], 1.0);
 
-    let input = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Union);
+    let input = BooleanInput::new(
+        topo_a,
+        geom_a,
+        BrepState::new(),
+        topo_b,
+        geom_b,
+        BrepState::new(),
+        BooleanOp::Union,
+    );
     let r = execute_boolean_logged(input)
         .into_result()
         .expect("Union for classification test failed");
@@ -966,16 +1139,21 @@ fn zero_classification_stability() {
                 eprintln!(
                     "CLASSIFICATION DRIFT: vertex {} pos=[{:.6},{:.6},{:.6}] \
                      pass1={:?} ({:.2e}) pass2={:?} ({:.2e})",
-                    vid.index(), pos[0], pos[1], pos[2], sign1, d1, sign2, d2
+                    vid.index(),
+                    pos[0],
+                    pos[1],
+                    pos[2],
+                    sign1,
+                    d1,
+                    sign2,
+                    d2
                 );
                 mismatches += 1;
             }
         }
     }
 
-    eprintln!(
-        "CLASSIFICATION STABILITY: {total} classifications, {mismatches} mismatches"
-    );
+    eprintln!("CLASSIFICATION STABILITY: {total} classifications, {mismatches} mismatches");
     assert_eq!(
         mismatches, 0,
         "CLASSIFICATION DRIFT: {mismatches}/{total} vertex-plane classifications \
@@ -1015,7 +1193,15 @@ fn deterministic_replay_harness() {
 
         for (step, (center, half, op)) in operations.iter().enumerate() {
             let (t_tool, g_tool) = build_cube(*center, *half);
-            let input = BooleanInput::new(topo, geom, BrepState::new(), t_tool, g_tool, BrepState::new(), *op);
+            let input = BooleanInput::new(
+                topo,
+                geom,
+                BrepState::new(),
+                t_tool,
+                g_tool,
+                BrepState::new(),
+                *op,
+            );
 
             let result = match execute_boolean_logged(input).into_result() {
                 Ok(r) => r,
@@ -1038,7 +1224,8 @@ fn deterministic_replay_harness() {
             for (he_id, he_data) in arena.iter_half_edges() {
                 let twin_id = he_data.radial_next();
                 assert_ne!(
-                    he_id, twin_id,
+                    he_id,
+                    twin_id,
                     "REPLAY [{run_label}] step {step}: orphan halfedge {} (self-twin)",
                     he_id.index()
                 );
@@ -1050,11 +1237,15 @@ fn deterministic_replay_harness() {
                     );
                 });
                 assert_eq!(
-                    twin_data.radial_next(), he_id,
+                    twin_data.radial_next(),
+                    he_id,
                     "REPLAY [{run_label}] step {step}: twin reciprocity violated \
                      he[{}].twin={}, he[{}].twin={} (expected {})",
-                    he_id.index(), twin_id.index(),
-                    twin_id.index(), twin_data.radial_next().index(), he_id.index()
+                    he_id.index(),
+                    twin_id.index(),
+                    twin_id.index(),
+                    twin_data.radial_next().index(),
+                    he_id.index()
                 );
             }
 
@@ -1085,9 +1276,7 @@ fn deterministic_replay_harness() {
             let hash = compute_arena_topology_hash(arena);
             snapshots.push((v, e, f, chi, hash));
 
-            eprintln!(
-                "REPLAY [{run_label}] step {step}: V={v} E={e} F={f} χ={chi} hash={hash:#x}"
-            );
+            eprintln!("REPLAY [{run_label}] step {step}: V={v} E={e} F={f} χ={chi} hash={hash:#x}");
 
             let parts = result.into_states();
             topo = parts.0;
@@ -1106,8 +1295,7 @@ fn deterministic_replay_harness() {
             "DETERMINISM FAILURE at step {step}: \
              run1=(V={},E={},F={},χ={},hash={:#x}) vs \
              run2=(V={},E={},F={},χ={},hash={:#x})",
-            s1.0, s1.1, s1.2, s1.3, s1.4,
-            s2.0, s2.1, s2.2, s2.3, s2.4
+            s1.0, s1.1, s1.2, s1.3, s1.4, s2.0, s2.1, s2.2, s2.3, s2.4
         );
     }
 }

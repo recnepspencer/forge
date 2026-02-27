@@ -12,12 +12,9 @@
 //! - `DecisionOverride` — target decision + forced values
 //! - `CounterfactualValidation` — Valid / TopologyBroken / DivergentButValid
 
-mod schema;
 mod eval;
+mod schema;
 
-pub use schema::{
-    CounterfactualResult, CounterfactualValidation,
-    DecisionOverride, EntityDelta,
-};
+pub use schema::{CounterfactualResult, CounterfactualValidation, DecisionOverride, EntityDelta};
 
-pub use eval::{replay_decision, replay_all_near_boundary};
+pub use eval::{replay_all_near_boundary, replay_decision};

@@ -15,12 +15,12 @@
 //! - eval    — orchestration (split_all_faces, split_solid)
 //! - cut     — per-face application (split_face_by_plane, resolve_cut_point)
 
-mod schema;
-pub(crate) mod gate;
-pub(crate) mod signs;
-mod eval;
 mod cut;
+mod eval;
+pub(crate) mod gate;
 mod reconcile;
+mod schema;
+pub(crate) mod signs;
 
-pub use schema::{SplitPhaseResult, SplitConfig};
 pub use eval::split_all_faces;
+pub use schema::{SplitConfig, SplitPhaseResult};

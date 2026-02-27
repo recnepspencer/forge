@@ -44,10 +44,10 @@ fn main() -> eframe::Result<()> {
 // ── App ───────────────────────────────────────────────────────────────────────
 
 struct ForgeApp {
-    state:    AppState,
-    icons:    IconStore,
+    state: AppState,
+    icons: IconStore,
     viewport: viewport::ViewportState,
-    page:     Page,
+    page: Page,
 }
 
 impl ForgeApp {
@@ -62,10 +62,10 @@ impl ForgeApp {
         }
 
         Self {
-            icons:    IconStore::load(&cc.egui_ctx),
+            icons: IconStore::load(&cc.egui_ctx),
             viewport: viewport::ViewportState::new(),
             state,
-            page:     Page::Editor,
+            page: Page::Editor,
         }
     }
 }
@@ -78,7 +78,7 @@ impl eframe::App for ForgeApp {
         let input = ctx.input(|i| i.clone());
         if input.key_pressed(Key::F1) {
             self.page = match self.page {
-                Page::Editor    => Page::TestBoard,
+                Page::Editor => Page::TestBoard,
                 Page::TestBoard => Page::Editor,
             };
         }
@@ -127,13 +127,22 @@ fn draw_command_palette(ctx: &egui::Context, state: &mut AppState) {
                 .fill(t.bg_raised)
                 .stroke(Stroke::new(1.0, t.border_default))
                 .corner_radius(CornerRadius::same(t.radius_lg as u8))
-                .shadow(egui::Shadow { offset: [0, 8], blur: 32, spread: 0, color: Color32::from_black_alpha(120) })
+                .shadow(egui::Shadow {
+                    offset: [0, 8],
+                    blur: 32,
+                    spread: 0,
+                    color: Color32::from_black_alpha(120),
+                })
                 .show(ui, |ui| {
                     ui.set_width(520.0);
                     ui.add_space(4.0);
                     ui.horizontal(|ui| {
                         ui.add_space(12.0);
-                        ui.label(egui::RichText::new("⌘K").color(t.text_muted).size(t.font_size_sm));
+                        ui.label(
+                            egui::RichText::new("⌘K")
+                                .color(t.text_muted)
+                                .size(t.font_size_sm),
+                        );
                         ui.add_space(6.0);
                         let resp = ui.add(
                             egui::TextEdit::singleline(&mut state.palette.query)
@@ -147,18 +156,31 @@ fn draw_command_palette(ctx: &egui::Context, state: &mut AppState) {
                     ui.add_space(4.0);
                     ui.separator();
                     for (icon, name, desc) in [
-                        ("⊕", "Boolean Union",     "Merge two solids"),
-                        ("⊖", "Boolean Subtract",  "Subtract one solid from another"),
+                        ("⊕", "Boolean Union", "Merge two solids"),
+                        ("⊖", "Boolean Subtract", "Subtract one solid from another"),
                         ("⊗", "Boolean Intersect", "Keep the overlapping region"),
                     ] {
                         ui.add_space(2.0);
                         ui.horizontal(|ui| {
                             ui.add_space(14.0);
-                            ui.label(egui::RichText::new(icon).color(t.accent_primary).size(t.font_size_md));
+                            ui.label(
+                                egui::RichText::new(icon)
+                                    .color(t.accent_primary)
+                                    .size(t.font_size_md),
+                            );
                             ui.add_space(8.0);
                             ui.vertical(|ui| {
-                                ui.label(egui::RichText::new(name).color(t.text_primary).size(t.font_size_sm).strong());
-                                ui.label(egui::RichText::new(desc).color(t.text_muted).size(t.font_size_xs));
+                                ui.label(
+                                    egui::RichText::new(name)
+                                        .color(t.text_primary)
+                                        .size(t.font_size_sm)
+                                        .strong(),
+                                );
+                                ui.label(
+                                    egui::RichText::new(desc)
+                                        .color(t.text_muted)
+                                        .size(t.font_size_xs),
+                                );
                             });
                         });
                     }
@@ -166,7 +188,11 @@ fn draw_command_palette(ctx: &egui::Context, state: &mut AppState) {
                     ui.separator();
                     ui.horizontal(|ui| {
                         ui.add_space(14.0);
-                        ui.label(egui::RichText::new("↑↓ navigate  ↵ run  Esc close").color(t.text_muted).size(t.font_size_xs));
+                        ui.label(
+                            egui::RichText::new("↑↓ navigate  ↵ run  Esc close")
+                                .color(t.text_muted)
+                                .size(t.font_size_xs),
+                        );
                     });
                     ui.add_space(4.0);
                 });

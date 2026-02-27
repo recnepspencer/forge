@@ -13,11 +13,14 @@
 //! - `schema`: Data shapes (`FaceData`, `HalfEdgeData`, `VertexData`, `LoopData`, `Slot`)
 //! - `eval`: `TopologyArena` struct and all arena operations
 
-pub(crate) mod schema;
 mod eval;
+pub(crate) mod schema;
 
 #[cfg(test)]
 mod tests;
 
-pub use schema::{FaceData, HalfEdgeData, VertexData, LoopData, ShellData, BodyData, LumpData, RegionData, EdgeData, ShellOrientation, ShellKind};
 pub use eval::TopologyArena;
+pub use schema::{
+    BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
+    ShellKind, ShellOrientation, VertexData,
+};

@@ -13,44 +13,37 @@
 //! INVARIANTS: Every tolerance decision is logged (D2).
 //! DEPENDENCIES: `forge-core` (DecisionLog, TracedDecision)
 
-pub(crate) mod context;
-pub mod tolerance;
-pub mod config;
-pub mod tracing;
-mod macros;
 mod brep_workspace;
-mod operation_space;
+pub mod config;
+pub(crate) mod context;
 pub(crate) mod finalization;
+mod macros;
 mod naming_resolution;
+mod operation_space;
+pub mod tolerance;
+pub mod tracing;
 
-pub use context::ModelingContext;
-pub use context::{ArenaSnapshot, SubOperationMetadata, compute_topology_delta};
-pub use context::{
-    ResolvedPolicySource, ResolvedPolicyDecision,
-};
-pub use tolerance::{
-    TolerancePolicy,
-    TangencyPolicy,
-    SliverPolicy,
-    GapClosurePolicy,
-    PrecisionEscalationPolicy,
-    ToleranceConfig,
-};
 pub use brep_workspace::BRepWorkspace;
+pub use context::ModelingContext;
+pub use context::{compute_topology_delta, ArenaSnapshot, SubOperationMetadata};
+pub use context::{ResolvedPolicyDecision, ResolvedPolicySource};
+pub use tolerance::{
+    GapClosurePolicy, PrecisionEscalationPolicy, SliverPolicy, TangencyPolicy, ToleranceConfig,
+    TolerancePolicy,
+};
 
 pub mod kernel_state;
 pub use kernel_state::KernelState;
 
 pub mod kernel_draft;
-pub use kernel_draft::KernelDraft;
-pub use operation_space::OperationSpace;
 pub use finalization::{
-    OperationFinalizer, FinalizationError, FinalizationStatus,
-    TopologyHashBoundary, FinalizationEmitOptions, FinalizationSummary,
-    CollectedFinalization,
+    CollectedFinalization, FinalizationEmitOptions, FinalizationError, FinalizationStatus,
+    FinalizationSummary, OperationFinalizer, TopologyHashBoundary,
 };
+pub use kernel_draft::KernelDraft;
 pub use naming_resolution::{
-    ResolutionQuery, ResolutionResult, ResolutionCandidate, ResolutionCandidates,
-    ResolutionEvidence, ResolutionIncompatibility, ResolverRoute, ResolverMatchKind,
-    snapshot_ref_from_entity_key, build_resolution_decision,
+    build_resolution_decision, snapshot_ref_from_entity_key, ResolutionCandidate,
+    ResolutionCandidates, ResolutionEvidence, ResolutionIncompatibility, ResolutionQuery,
+    ResolutionResult, ResolverMatchKind, ResolverRoute,
 };
+pub use operation_space::OperationSpace;

@@ -1,5 +1,5 @@
+use super::super::schema::BooleanOp;
 use super::super::test_helpers::{run_boolean, try_boolean};
-use super::super::schema::{BooleanOp};
 use forge_topo::hashing::compute_arena_topology_hash;
 
 // ══════════════════════════════════════════════════════════════
@@ -15,11 +15,7 @@ fn perfect_flush_union_100x() {
     let mut hashes = Vec::with_capacity(100);
 
     for i in 0..100 {
-        let result = run_boolean(
-            [0.0, 0.0, 0.0], 1.0,
-            [2.0, 0.0, 0.0], 1.0,
-            BooleanOp::Union,
-        );
+        let result = run_boolean([0.0, 0.0, 0.0], 1.0, [2.0, 0.0, 0.0], 1.0, BooleanOp::Union);
 
         let hash = compute_arena_topology_hash(result.topology().arena());
         let arena = result.topology().arena();
@@ -29,8 +25,14 @@ fn perfect_flush_union_100x() {
             let e = arena.half_edge_count() / 2;
             let f = arena.face_count();
             let euler = v as isize - e as isize + f as isize;
-            assert_eq!(euler, 2, "Euler formula V-E+F should be 2, got {euler} (V={v}, E={e}, F={f})");
-            assert!(f >= 6, "Flush union should produce at least 6 faces, got {f}");
+            assert_eq!(
+                euler, 2,
+                "Euler formula V-E+F should be 2, got {euler} (V={v}, E={e}, F={f})"
+            );
+            assert!(
+                f >= 6,
+                "Flush union should produce at least 6 faces, got {f}"
+            );
         }
 
         hashes.push(hash);
@@ -51,21 +53,24 @@ fn perfect_flush_union_100x() {
 /// Expect face split into rectangular region, no micro-faces.
 #[test]
 fn partial_coplanar_overlap() {
-    let result = run_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [1.0, 1.0, 0.0], 1.0,
-        BooleanOp::Union,
-    );
+    let result = run_boolean([0.0, 0.0, 0.0], 1.0, [1.0, 1.0, 0.0], 1.0, BooleanOp::Union);
 
     let arena = result.topology().arena();
     let face_count = arena.face_count();
     let vertex_count = arena.vertex_count();
 
     eprintln!("Partial coplanar overlap: V={vertex_count}, F={face_count}");
-    assert!(face_count >= 10, "Expected at least 10 faces for partial overlap union, got {face_count}");
+    assert!(
+        face_count >= 10,
+        "Expected at least 10 faces for partial overlap union, got {face_count}"
+    );
 
-    let euler = vertex_count as isize - (arena.half_edge_count() / 2) as isize + face_count as isize;
-    assert_eq!(euler, 2, "Euler formula violation: V-E+F = {euler}, expected 2");
+    let euler =
+        vertex_count as isize - (arena.half_edge_count() / 2) as isize + face_count as isize;
+    assert_eq!(
+        euler, 2,
+        "Euler formula violation: V-E+F = {euler}, expected 2"
+    );
 }
 
 /// 2.3 — Edge-Aligned Overlap
@@ -74,11 +79,7 @@ fn partial_coplanar_overlap() {
 /// Expect union produces correct topology, no non-manifold edge.
 #[test]
 fn edge_aligned_overlap() {
-    let result = run_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [2.0, 2.0, 0.0], 1.0,
-        BooleanOp::Union,
-    );
+    let result = run_boolean([0.0, 0.0, 0.0], 1.0, [2.0, 2.0, 0.0], 1.0, BooleanOp::Union);
 
     let arena = result.topology().arena();
     let face_count = arena.face_count();
@@ -95,10 +96,7 @@ fn edge_aligned_overlap() {
 
     for (_he_id, he) in arena.iter_half_edges() {
         let twin = arena.get_half_edge(he.radial_next());
-        assert!(
-            twin.is_ok(),
-            "Dangling half-edge without valid twin"
-        );
+        assert!(twin.is_ok(), "Dangling half-edge without valid twin");
     }
 }
 
@@ -108,11 +106,7 @@ fn edge_aligned_overlap() {
 /// Expect union produces correct manifold, no phantom edges.
 #[test]
 fn vertex_only_contact() {
-    let result = run_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [2.0, 2.0, 2.0], 1.0,
-        BooleanOp::Union,
-    );
+    let result = run_boolean([0.0, 0.0, 0.0], 1.0, [2.0, 2.0, 2.0], 1.0, BooleanOp::Union);
 
     let arena = result.topology().arena();
     let face_count = arena.face_count();
@@ -130,11 +124,7 @@ fn vertex_only_contact() {
 /// union(solid, identical solid) should return the same solid.
 #[test]
 fn identical_solids_union() {
-    let result = run_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [0.0, 0.0, 0.0], 1.0,
-        BooleanOp::Union,
-    );
+    let result = run_boolean([0.0, 0.0, 0.0], 1.0, [0.0, 0.0, 0.0], 1.0, BooleanOp::Union);
 
     let arena = result.topology().arena();
     let face_count = arena.face_count();
@@ -142,23 +132,34 @@ fn identical_solids_union() {
 
     eprintln!("Identical union: V={vertex_count}, F={face_count}");
 
-    assert_eq!(face_count, 6, "Identical union should produce 6 faces, got {face_count}");
-    assert_eq!(vertex_count, 8, "Identical union should produce 8 vertices, got {vertex_count}");
+    assert_eq!(
+        face_count, 6,
+        "Identical union should produce 6 faces, got {face_count}"
+    );
+    assert_eq!(
+        vertex_count, 8,
+        "Identical union should produce 8 vertices, got {vertex_count}"
+    );
 }
 
 /// 2.5b — Identical Solids Subtraction → empty result
 #[test]
 fn identical_solids_subtraction_empty() {
     let result = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [0.0, 0.0, 0.0], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
         BooleanOp::Subtraction,
     );
 
     match result {
         Ok(r) => {
             let face_count = r.topology().arena().face_count();
-            assert_eq!(face_count, 0, "Identical subtraction should produce 0 faces, got {face_count}");
+            assert_eq!(
+                face_count, 0,
+                "Identical subtraction should produce 0 faces, got {face_count}"
+            );
         }
         Err(_) => {
             // Returning an error is also acceptable (empty result can be signaled as error)

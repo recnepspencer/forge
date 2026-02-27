@@ -65,5 +65,10 @@ fn orient2d_near_collinear(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, orient2d_random, orient3d_random, orient2d_near_collinear);
+criterion_group!(
+    benches,
+    orient2d_random,
+    orient3d_random,
+    orient2d_near_collinear
+);
 criterion_main!(benches);

@@ -8,8 +8,8 @@
 //!
 //! DEPENDENCIES: `forge-topo` (arena, traversal), `geometry_state` (planes, positions)
 
-mod schema;
 mod eval;
+mod schema;
 
-pub use schema::ExtractedRegion;
 pub use eval::extract_n_ring;
+pub use schema::ExtractedRegion;

@@ -3,8 +3,8 @@
 //! DOMAIN: Face classification labels and classified face structs used
 //! by both the parametric and ember boolean pipelines.
 
-use serde::{Deserialize, Serialize};
 use forge_topo::handles::FaceId;
+use serde::{Deserialize, Serialize};
 
 /// Classification of a face relative to another solid.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -45,7 +45,10 @@ pub struct ClassifiedFace {
 impl ClassifiedFace {
     /// Create a new classified face.
     pub fn new(face: FaceId, classification: FaceClassification) -> Self {
-        Self { face, classification }
+        Self {
+            face,
+            classification,
+        }
     }
 
     /// The face handle.

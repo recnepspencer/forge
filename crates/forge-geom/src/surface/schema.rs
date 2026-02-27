@@ -90,27 +90,36 @@ impl ParameterDomain {
     /// Standard plane domain (finite working range for UV operations).
     pub fn plane() -> Self {
         Self {
-            u_min: -1e6, u_max: 1e6,
-            v_min: -1e6, v_max: 1e6,
-            u_periodic: false, v_periodic: false,
+            u_min: -1e6,
+            u_max: 1e6,
+            v_min: -1e6,
+            v_max: 1e6,
+            u_periodic: false,
+            v_periodic: false,
         }
     }
 
     /// Standard cylinder domain: u ∈ [0, 2π) periodic, v ∈ [-1e6, 1e6].
     pub fn cylinder() -> Self {
         Self {
-            u_min: 0.0, u_max: std::f64::consts::TAU,
-            v_min: -1e6, v_max: 1e6,
-            u_periodic: true, v_periodic: false,
+            u_min: 0.0,
+            u_max: std::f64::consts::TAU,
+            v_min: -1e6,
+            v_max: 1e6,
+            u_periodic: true,
+            v_periodic: false,
         }
     }
 
     /// Standard cone domain: u ∈ [0, 2π) periodic, v ∈ [0, 1e6].
     pub fn cone() -> Self {
         Self {
-            u_min: 0.0, u_max: std::f64::consts::TAU,
-            v_min: 0.0, v_max: 1e6,
-            u_periodic: true, v_periodic: false,
+            u_min: 0.0,
+            u_max: std::f64::consts::TAU,
+            v_min: 0.0,
+            v_max: 1e6,
+            u_periodic: true,
+            v_periodic: false,
         }
     }
 
@@ -118,18 +127,24 @@ impl ParameterDomain {
     pub fn sphere() -> Self {
         use std::f64::consts::{FRAC_PI_2, TAU};
         Self {
-            u_min: 0.0, u_max: TAU,
-            v_min: -FRAC_PI_2, v_max: FRAC_PI_2,
-            u_periodic: true, v_periodic: false,
+            u_min: 0.0,
+            u_max: TAU,
+            v_min: -FRAC_PI_2,
+            v_max: FRAC_PI_2,
+            u_periodic: true,
+            v_periodic: false,
         }
     }
 
     /// Standard torus domain: both u, v ∈ [0, 2π) periodic.
     pub fn torus() -> Self {
         Self {
-            u_min: 0.0, u_max: std::f64::consts::TAU,
-            v_min: 0.0, v_max: std::f64::consts::TAU,
-            u_periodic: true, v_periodic: true,
+            u_min: 0.0,
+            u_max: std::f64::consts::TAU,
+            v_min: 0.0,
+            v_max: std::f64::consts::TAU,
+            u_periodic: true,
+            v_periodic: true,
         }
     }
 }
@@ -155,7 +170,11 @@ impl SurfaceData {
     /// Create a cylindrical surface.
     pub fn cylinder(origin: [f64; 3], axis: [f64; 3], radius: f64) -> Self {
         Self {
-            kind: SurfaceKind::Cylinder { origin, axis, radius },
+            kind: SurfaceKind::Cylinder {
+                origin,
+                axis,
+                radius,
+            },
             domain: ParameterDomain::cylinder(),
         }
     }
@@ -163,7 +182,11 @@ impl SurfaceData {
     /// Create a conical surface.
     pub fn cone(apex: [f64; 3], axis: [f64; 3], half_angle: f64) -> Self {
         Self {
-            kind: SurfaceKind::Cone { apex, axis, half_angle },
+            kind: SurfaceKind::Cone {
+                apex,
+                axis,
+                half_angle,
+            },
             domain: ParameterDomain::cone(),
         }
     }
@@ -179,7 +202,12 @@ impl SurfaceData {
     /// Create a toroidal surface.
     pub fn torus(center: [f64; 3], axis: [f64; 3], major_r: f64, minor_r: f64) -> Self {
         Self {
-            kind: SurfaceKind::Torus { center, axis, major_r, minor_r },
+            kind: SurfaceKind::Torus {
+                center,
+                axis,
+                major_r,
+                minor_r,
+            },
             domain: ParameterDomain::torus(),
         }
     }

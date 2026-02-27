@@ -39,10 +39,8 @@
 //!    Same root cause as deep_chains — vertex provenance loss and spatial
 //!    weld tolerance. Fixing those unblocks these performance tests too.
 
-use super::super::test_helpers::{
-    build_cube, try_boolean, execute_boolean_logged, euler_audit,
-};
 use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::test_helpers::{build_cube, euler_audit, execute_boolean_logged, try_boolean};
 use forge_topo::hashing::compute_arena_topology_hash;
 
 // ══════════════════════════════════════════════════════════════
@@ -61,11 +59,7 @@ fn bounding_box_cluster_pressure() {
         let offset = i as f64 * 0.15;
         let (topo_tool, geom_tool) = build_cube([offset, offset * 0.5, 0.0], 1.0);
 
-        let input = BooleanInput::new(
-            topo, geom,
-            topo_tool, geom_tool,
-            BooleanOp::Union,
-        );
+        let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
@@ -101,21 +95,15 @@ fn bounding_box_cluster_pressure() {
 /// thread scheduling, or floating-point non-associativity.
 #[test]
 fn replay_determinism_stress() {
-    let first = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [0.7, 0.3, 0.2], 1.0,
-        BooleanOp::Union,
-    ).expect("Reference boolean must succeed");
+    let first = try_boolean([0.0, 0.0, 0.0], 1.0, [0.7, 0.3, 0.2], 1.0, BooleanOp::Union)
+        .expect("Reference boolean must succeed");
 
     let reference_hash = compute_arena_topology_hash(first.topology().arena());
     let reference_faces = first.topology().arena().face_count();
 
     for iter in 1..50 {
-        let r = try_boolean(
-            [0.0, 0.0, 0.0], 1.0,
-            [0.7, 0.3, 0.2], 1.0,
-            BooleanOp::Union,
-        ).unwrap_or_else(|e| panic!("Replay iteration {iter} failed: {e}"));
+        let r = try_boolean([0.0, 0.0, 0.0], 1.0, [0.7, 0.3, 0.2], 1.0, BooleanOp::Union)
+            .unwrap_or_else(|e| panic!("Replay iteration {iter} failed: {e}"));
 
         let hash = compute_arena_topology_hash(r.topology().arena());
         let faces = r.topology().arena().face_count();
@@ -142,11 +130,7 @@ fn replay_determinism_stress() {
 /// the resulting complexity without degradation.
 #[test]
 fn large_face_count_union() {
-    let result = try_boolean(
-        [0.0, 0.0, 0.0], 2.0,
-        [1.0, 0.3, 0.7], 2.0,
-        BooleanOp::Union,
-    );
+    let result = try_boolean([0.0, 0.0, 0.0], 2.0, [1.0, 0.3, 0.7], 2.0, BooleanOp::Union);
 
     match result {
         Ok(r) => {
@@ -165,8 +149,10 @@ fn large_face_count_union() {
 #[test]
 fn large_face_count_subtraction() {
     let result = try_boolean(
-        [0.0, 0.0, 0.0], 2.0,
-        [1.0, 0.3, 0.7], 2.0,
+        [0.0, 0.0, 0.0],
+        2.0,
+        [1.0, 0.3, 0.7],
+        2.0,
         BooleanOp::Subtraction,
     );
 
@@ -208,11 +194,7 @@ fn octant_cluster_union() {
     for (i, offset) in offsets.iter().enumerate() {
         let (topo_tool, geom_tool) = build_cube(*offset, 0.5);
 
-        let input = BooleanInput::new(
-            topo, geom,
-            topo_tool, geom_tool,
-            BooleanOp::Union,
-        );
+        let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {

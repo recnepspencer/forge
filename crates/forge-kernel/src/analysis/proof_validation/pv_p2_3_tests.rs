@@ -7,10 +7,11 @@
 
 use forge_core::tracing::divergence::{scan_for_divergences, DivergenceReport};
 use forge_core::{
-    DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, TracedDecision,
-    DecisionLog,
+    DecisionContext, DecisionId, DecisionKind, DecisionLog, DecisionTier, EntityRef, TracedDecision,
 };
-use forge_math::arithmetic::precision::{build_target_description, PrecisionEscalation, PrecisionMode};
+use forge_math::arithmetic::precision::{
+    build_target_description, PrecisionEscalation, PrecisionMode,
+};
 use forge_math::sign::TriSign;
 
 fn make_clean_decision(id: u64) -> TracedDecision {

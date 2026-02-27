@@ -38,12 +38,7 @@ pub struct ReplayEntry {
 
 impl ReplayEntry {
     /// Create a new replay entry.
-    pub fn new(
-        signature: OpSignature,
-        parameters: Vec<u8>,
-        seed: u64,
-        pre_hash: u128,
-    ) -> Self {
+    pub fn new(signature: OpSignature, parameters: Vec<u8>, seed: u64, pre_hash: u128) -> Self {
         Self {
             signature,
             parameters,
@@ -124,7 +119,11 @@ impl ReplayLog {
     pub fn with_current_target() -> Self {
         let triple = format!("{}-{}", std::env::consts::ARCH, std::env::consts::OS);
         let fma = cfg!(target_feature = "fma");
-        let opt = if cfg!(debug_assertions) { "debug" } else { "release" };
+        let opt = if cfg!(debug_assertions) {
+            "debug"
+        } else {
+            "release"
+        };
         Self {
             entries: Vec::new(),
             target_triple: Some(triple),
@@ -204,16 +203,13 @@ impl ReplayLog {
         if self.entries.len() != other.entries.len() {
             return false;
         }
-        self.entries
-            .iter()
-            .zip(other.entries.iter())
-            .all(|(a, b)| {
-                a.signature == b.signature
-                    && a.parameters == b.parameters
-                    && a.seed == b.seed
-                    && a.pre_hash == b.pre_hash
-                    && a.post_hash == b.post_hash
-            })
+        self.entries.iter().zip(other.entries.iter()).all(|(a, b)| {
+            a.signature == b.signature
+                && a.parameters == b.parameters
+                && a.seed == b.seed
+                && a.pre_hash == b.pre_hash
+                && a.post_hash == b.post_hash
+        })
     }
 }
 
@@ -236,12 +232,7 @@ mod tests {
     #[test]
     fn record_and_retrieve() {
         let mut log = ReplayLog::new();
-        log.record(ReplayEntry::new(
-            make_op_sig("test_op"),
-            vec![],
-            42,
-            100,
-        ));
+        log.record(ReplayEntry::new(make_op_sig("test_op"), vec![], 42, 100));
 
         assert_eq!(log.len(), 1);
         assert_eq!(log.entries()[0].seed(), 42);
@@ -251,12 +242,7 @@ mod tests {
     #[test]
     fn finalize_sets_post_hash() {
         let mut log = ReplayLog::new();
-        log.record(ReplayEntry::new(
-            make_op_sig("op"),
-            vec![],
-            1,
-            0,
-        ));
+        log.record(ReplayEntry::new(make_op_sig("op"), vec![], 1, 0));
         log.finalize_last(999);
         assert_eq!(log.entries()[0].post_hash(), 999);
     }
@@ -267,12 +253,8 @@ mod tests {
         let mut b = ReplayLog::new();
 
         for i in 0..5 {
-            let entry = ReplayEntry::new(
-                make_op_sig("op"),
-                vec![i as u8],
-                i as u64,
-                i as u128 * 10,
-            );
+            let entry =
+                ReplayEntry::new(make_op_sig("op"), vec![i as u8], i as u64, i as u128 * 10);
             a.record(entry.clone());
             b.record(entry);
         }

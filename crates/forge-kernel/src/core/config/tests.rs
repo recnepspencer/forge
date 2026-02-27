@@ -1,8 +1,7 @@
 #[cfg(test)]
 mod cascade_tests {
     use super::super::{
-        KernelConfig, ConfigOverride, ToleranceOverride, ConfigScope,
-        resolve_config,
+        resolve_config, ConfigOverride, ConfigScope, KernelConfig, ToleranceOverride,
     };
 
     #[test]
@@ -48,7 +47,8 @@ mod cascade_tests {
             Some((&model, Some("ModelA".into()))),
             Some((&feature, Some("FeatureB".into()))),
             Some((&operation, Some("OpC".into()))),
-        ).unwrap();
+        )
+        .unwrap();
 
         let tol = &resolved.config().tolerance;
         assert_eq!(tol.spatial_tolerance, 1e-3);
@@ -90,6 +90,10 @@ mod cascade_tests {
         assert!(result.is_err());
         let err = result.unwrap_err();
         let msg = err.to_string();
-        assert!(msg.contains("max_gap_closure"), "Error should mention max_gap_closure: {}", msg);
+        assert!(
+            msg.contains("max_gap_closure"),
+            "Error should mention max_gap_closure: {}",
+            msg
+        );
     }
 }

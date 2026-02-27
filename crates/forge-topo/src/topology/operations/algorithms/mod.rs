@@ -6,11 +6,11 @@
 //!
 //! DEPENDENCIES: `euler` (operators), `arena` (entity storage)
 
-pub mod bridge_edge;
 pub mod bfs;
+pub mod bridge_edge;
 pub mod components;
-pub mod flip_edge;
-pub mod triangulate;
 pub mod extract_shell;
+pub mod flip_edge;
 pub mod region_extraction;
 pub mod simplify;
+pub mod triangulate;

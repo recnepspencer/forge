@@ -14,7 +14,10 @@ use forge_ui_types::{
 // ── Theme ────────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ThemeKind { Dark, Light }
+pub enum ThemeKind {
+    Dark,
+    Light,
+}
 
 // ── Model ViewModel ──────────────────────────────────────────────────────────
 
@@ -34,12 +37,22 @@ impl ModelVm {
         }
     }
 
-    pub fn features(&self) -> &[UiFeature] { &self.features }
-    pub fn planes(&self) -> &[UiPlane] { &self.planes }
-    pub fn selected(&self) -> Option<UiFeatureId> { self.selected }
+    pub fn features(&self) -> &[UiFeature] {
+        &self.features
+    }
+    pub fn planes(&self) -> &[UiPlane] {
+        &self.planes
+    }
+    pub fn selected(&self) -> Option<UiFeatureId> {
+        self.selected
+    }
 
-    pub fn select(&mut self, id: UiFeatureId) { self.selected = Some(id); }
-    pub fn deselect(&mut self) { self.selected = None; }
+    pub fn select(&mut self, id: UiFeatureId) {
+        self.selected = Some(id);
+    }
+    pub fn deselect(&mut self) {
+        self.selected = None;
+    }
 }
 
 // ── Chat ViewModel ───────────────────────────────────────────────────────────
@@ -52,16 +65,23 @@ pub struct ChatVm {
 
 impl ChatVm {
     fn new() -> Self {
-        Self { messages: stub_chat_history(), input_draft: String::new() }
+        Self {
+            messages: stub_chat_history(),
+            input_draft: String::new(),
+        }
     }
 
-    pub fn messages(&self) -> &[ChatMessage] { &self.messages }
+    pub fn messages(&self) -> &[ChatMessage] {
+        &self.messages
+    }
 
     /// Submit the current draft as a user message and append a placeholder
     /// agent response. (Real agent wiring comes in a later phase.)
     pub fn submit_draft(&mut self) {
         let text = std::mem::take(&mut self.input_draft);
-        if text.trim().is_empty() { return; }
+        if text.trim().is_empty() {
+            return;
+        }
 
         self.messages.push(ChatMessage {
             role: MessageRole::User,
@@ -87,15 +107,28 @@ pub struct PaletteVm {
 }
 
 impl PaletteVm {
-    fn new() -> Self { Self { open: false, query: String::new() } }
-    pub fn toggle(&mut self) { self.open = !self.open; }
-    pub fn close(&mut self) { self.open = false; self.query.clear(); }
+    fn new() -> Self {
+        Self {
+            open: false,
+            query: String::new(),
+        }
+    }
+    pub fn toggle(&mut self) {
+        self.open = !self.open;
+    }
+    pub fn close(&mut self) {
+        self.open = false;
+        self.query.clear();
+    }
 }
 
 // ── Right drawer ─────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DrawerTab { Properties, Chat }
+pub enum DrawerTab {
+    Properties,
+    Chat,
+}
 
 pub struct DrawerVm {
     pub open: bool,
@@ -103,31 +136,36 @@ pub struct DrawerVm {
 }
 
 impl DrawerVm {
-    fn new() -> Self { Self { open: true, active_tab: DrawerTab::Properties } }
+    fn new() -> Self {
+        Self {
+            open: true,
+            active_tab: DrawerTab::Properties,
+        }
+    }
 }
 
 // ── App State (top-level) ────────────────────────────────────────────────────
 
 /// The single root of all UI mutable state.
 pub struct AppState {
-    pub model:   ModelVm,
-    pub chat:    ChatVm,
+    pub model: ModelVm,
+    pub chat: ChatVm,
     pub palette: PaletteVm,
-    pub drawer:  DrawerVm,
+    pub drawer: DrawerVm,
     pub theme_kind: ThemeKind,
-    pub theme:   ForgeTheme,
+    pub theme: ForgeTheme,
     pub telemetry: KernelTelemetry,
 }
 
 impl AppState {
     pub fn new() -> Self {
         Self {
-            model:    ModelVm::new(),
-            chat:     ChatVm::new(),
-            palette:  PaletteVm::new(),
-            drawer:   DrawerVm::new(),
+            model: ModelVm::new(),
+            chat: ChatVm::new(),
+            palette: PaletteVm::new(),
+            drawer: DrawerVm::new(),
             theme_kind: ThemeKind::Dark,
-            theme:    dark_theme(),
+            theme: dark_theme(),
             telemetry: stub_telemetry(),
         }
     }
@@ -135,16 +173,18 @@ impl AppState {
     /// Switch between dark and light themes.
     pub fn toggle_theme(&mut self) {
         self.theme_kind = match self.theme_kind {
-            ThemeKind::Dark  => ThemeKind::Light,
+            ThemeKind::Dark => ThemeKind::Light,
             ThemeKind::Light => ThemeKind::Dark,
         };
         self.theme = match self.theme_kind {
-            ThemeKind::Dark  => dark_theme(),
+            ThemeKind::Dark => dark_theme(),
             ThemeKind::Light => light_theme(),
         };
     }
 }
 
 impl Default for AppState {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }

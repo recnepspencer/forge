@@ -4,11 +4,11 @@
 //!
 //! DEPENDENCIES: `forge-math` (Rational, predicates, sign, linalg)
 
-use forge_math::MathError;
 use forge_math::arithmetic::Rational;
 use forge_math::linalg::{cross, norm_sq};
 use forge_math::predicates::orient3d::orient3d;
 use forge_math::sign::{CertifiedTriSign, TriSign};
+use forge_math::MathError;
 
 use super::{Plane, PlaneRelation};
 
@@ -19,9 +19,7 @@ use super::{Plane, PlaneRelation};
 pub fn classify_point(plane: &Plane, point: &[f64; 3]) -> Result<CertifiedTriSign, MathError> {
     let [a, b, c] = compute_reference_points(plane);
     let (sign, _escalation) = orient3d(a, b, c, *point).map_err(|e| {
-        MathError::InternalError(
-            format!("orient3d failed on plane reference points: {}", e),
-        )
+        MathError::InternalError(format!("orient3d failed on plane reference points: {}", e))
     })?;
     Ok(sign)
 }
@@ -81,12 +79,15 @@ pub fn intersect_three_planes(
 
     let inv_det = 1.0 / det;
 
-    let x = forge_math::linalg::det3_rows([d0, n0[1], n0[2]], [d1, n1[1], n1[2]], [d2, n2[1], n2[2]])
-        * inv_det;
-    let y = forge_math::linalg::det3_rows([n0[0], d0, n0[2]], [n1[0], d1, n1[2]], [n2[0], d2, n2[2]])
-        * inv_det;
-    let z = forge_math::linalg::det3_rows([n0[0], n0[1], d0], [n1[0], n1[1], d1], [n2[0], n2[1], d2])
-        * inv_det;
+    let x =
+        forge_math::linalg::det3_rows([d0, n0[1], n0[2]], [d1, n1[1], n1[2]], [d2, n2[1], n2[2]])
+            * inv_det;
+    let y =
+        forge_math::linalg::det3_rows([n0[0], d0, n0[2]], [n1[0], d1, n1[2]], [n2[0], d2, n2[2]])
+            * inv_det;
+    let z =
+        forge_math::linalg::det3_rows([n0[0], n0[1], d0], [n1[0], n1[1], d1], [n2[0], n2[1], d2])
+            * inv_det;
 
     Ok([x, y, z])
 }
@@ -104,11 +105,7 @@ pub fn intersect_three_planes_exact(
     let (a1, b1, c1, d1) = p1.exact_coefficients();
     let (a2, b2, c2, d2) = p2.exact_coefficients();
 
-    let det = rational_det3(
-        a0, b0, c0,
-        a1, b1, c1,
-        a2, b2, c2,
-    );
+    let det = rational_det3(a0, b0, c0, a1, b1, c1, a2, b2, c2);
 
     if det.is_zero() {
         return Err(MathError::InvalidInput(
@@ -120,42 +117,43 @@ pub fn intersect_three_planes_exact(
     let neg_d1 = -d1;
     let neg_d2 = -d2;
 
-    let x = rational_det3(
-        &neg_d0, b0, c0,
-        &neg_d1, b1, c1,
-        &neg_d2, b2, c2,
-    ) / det.clone();
+    let x = rational_det3(&neg_d0, b0, c0, &neg_d1, b1, c1, &neg_d2, b2, c2) / det.clone();
 
-    let y = rational_det3(
-        a0, &neg_d0, c0,
-        a1, &neg_d1, c1,
-        a2, &neg_d2, c2,
-    ) / det.clone();
+    let y = rational_det3(a0, &neg_d0, c0, a1, &neg_d1, c1, a2, &neg_d2, c2) / det.clone();
 
-    let z = rational_det3(
-        a0, b0, &neg_d0,
-        a1, b1, &neg_d1,
-        a2, b2, &neg_d2,
-    ) / det;
+    let z = rational_det3(a0, b0, &neg_d0, a1, b1, &neg_d1, a2, b2, &neg_d2) / det;
 
     Ok([x, y, z])
 }
 
 /// Linearly interpolate to find where a plane crosses the edge `[p_o, p_d]`.
-/// 
+///
 /// `degeneracy_tol` dictates when the edge is considered parallel or lying exactly
 /// on the plane (typically `1e-30`). In this near-degenerate case, the exact geometric
 /// midpoint is returned to guarantee the resulting point is strictly within the original edge.
-pub fn intersect_edge_plane(plane: &Plane, p_o: &[f64; 3], p_d: &[f64; 3], degeneracy_tol: f64) -> [f64; 3] {
+pub fn intersect_edge_plane(
+    plane: &Plane,
+    p_o: &[f64; 3],
+    p_d: &[f64; 3],
+    degeneracy_tol: f64,
+) -> [f64; 3] {
     let dist_o = signed_distance(plane, p_o);
     let dist_d = signed_distance(plane, p_d);
     let denom = dist_o - dist_d;
-    
+
     if denom.abs() < degeneracy_tol {
-        [0.5 * (p_o[0] + p_d[0]), 0.5 * (p_o[1] + p_d[1]), 0.5 * (p_o[2] + p_d[2])]
+        [
+            0.5 * (p_o[0] + p_d[0]),
+            0.5 * (p_o[1] + p_d[1]),
+            0.5 * (p_o[2] + p_d[2]),
+        ]
     } else {
         let t = dist_o / denom;
-        [p_o[0] + t * (p_d[0] - p_o[0]), p_o[1] + t * (p_d[1] - p_o[1]), p_o[2] + t * (p_d[2] - p_o[2])]
+        [
+            p_o[0] + t * (p_d[0] - p_o[0]),
+            p_o[1] + t * (p_d[1] - p_o[1]),
+            p_o[2] + t * (p_d[2] - p_o[2]),
+        ]
     }
 }
 
@@ -173,16 +171,16 @@ pub fn exact_eq(a: &Plane, b: &Plane) -> bool {
 
     let all_pairs: [(&Rational, &Rational); 4] = [(a0, b0), (a1, b1), (a2, b2), (a3, b3)];
 
-    let reference = all_pairs.iter().find_map(|&(ai, bi)| {
-        match (ai.is_zero(), bi.is_zero()) {
+    let reference = all_pairs
+        .iter()
+        .find_map(|&(ai, bi)| match (ai.is_zero(), bi.is_zero()) {
             (false, false) => Some((ai.clone() * bi.clone()).sign()),
             _ => None,
-        }
-    });
+        });
 
-    let has_mismatch = all_pairs.iter().any(|&(ai, bi)| {
-        matches!((ai.is_zero(), bi.is_zero()), (true, false) | (false, true))
-    });
+    let has_mismatch = all_pairs
+        .iter()
+        .any(|&(ai, bi)| matches!((ai.is_zero(), bi.is_zero()), (true, false) | (false, true)));
 
     if has_mismatch {
         return false;
@@ -205,13 +203,22 @@ pub fn exact_eq(a: &Plane, b: &Plane) -> bool {
 
 /// 3×3 determinant in exact rational arithmetic.
 fn rational_det3(
-    a00: &Rational, a01: &Rational, a02: &Rational,
-    a10: &Rational, a11: &Rational, a12: &Rational,
-    a20: &Rational, a21: &Rational, a22: &Rational,
+    a00: &Rational,
+    a01: &Rational,
+    a02: &Rational,
+    a10: &Rational,
+    a11: &Rational,
+    a12: &Rational,
+    a20: &Rational,
+    a21: &Rational,
+    a22: &Rational,
 ) -> Rational {
-    let t0 = &(a00.clone() * (a11.clone() * a22.clone())) - &(a00.clone() * (a12.clone() * a21.clone()));
-    let t1 = &(a01.clone() * (a12.clone() * a20.clone())) - &(a01.clone() * (a10.clone() * a22.clone()));
-    let t2 = &(a02.clone() * (a10.clone() * a21.clone())) - &(a02.clone() * (a11.clone() * a20.clone()));
+    let t0 =
+        &(a00.clone() * (a11.clone() * a22.clone())) - &(a00.clone() * (a12.clone() * a21.clone()));
+    let t1 =
+        &(a01.clone() * (a12.clone() * a20.clone())) - &(a01.clone() * (a10.clone() * a22.clone()));
+    let t2 =
+        &(a02.clone() * (a10.clone() * a21.clone())) - &(a02.clone() * (a11.clone() * a20.clone()));
     t0 + t1 + t2
 }
 
@@ -225,11 +232,7 @@ fn compute_reference_points(plane: &Plane) -> [[f64; 3]; 3] {
     let d = plane.raw_offset();
     let n_sq = norm_sq(n);
 
-    let origin = [
-        -n[0] * d / n_sq,
-        -n[1] * d / n_sq,
-        -n[2] * d / n_sq,
-    ];
+    let origin = [-n[0] * d / n_sq, -n[1] * d / n_sq, -n[2] * d / n_sq];
 
     let abs_n = [n[0].abs(), n[1].abs(), n[2].abs()];
     let seed = if abs_n[0] <= abs_n[1] && abs_n[0] <= abs_n[2] {

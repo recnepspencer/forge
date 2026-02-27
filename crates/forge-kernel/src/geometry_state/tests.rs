@@ -1,9 +1,9 @@
 //! Tests for the geometry store.
 
+use super::schema::GeometryState;
 use forge_core::ToleranceProvider;
 use forge_geom::Plane;
 use forge_topo::handles::{FaceId, VertexId};
-use super::schema::GeometryState;
 
 #[test]
 fn store_and_retrieve_vertex_position() {
@@ -53,7 +53,10 @@ fn stale_generation_returns_none() {
 
     store.set_vertex_position(vertex_gen0, [1.0, 2.0, 3.0]);
 
-    assert_eq!(store.get_vertex_position(vertex_gen0), Some(&[1.0, 2.0, 3.0]));
+    assert_eq!(
+        store.get_vertex_position(vertex_gen0),
+        Some(&[1.0, 2.0, 3.0])
+    );
     assert_eq!(store.get_vertex_position(vertex_gen1), None);
 }
 
@@ -104,7 +107,11 @@ fn empty_store_returns_conservative_fallback() {
     let store = GeometryState::new();
     // No vertices → scale == 0.0 → max(0,1) = 1.0 → 1e-7 * 1.0 = 1e-7.
     let tol = store.global_default();
-    assert!((tol - 1e-7).abs() < 1e-15, "empty store should return 1e-7, got {}", tol);
+    assert!(
+        (tol - 1e-7).abs() < 1e-15,
+        "empty store should return 1e-7, got {}",
+        tol
+    );
 }
 
 #[test]
@@ -118,7 +125,12 @@ fn one_meter_cube_produces_correct_tolerance() {
     store.set_vertex_position(v1, [1000.0, 1000.0, 1000.0]); // mm
     let tol = store.global_default();
     let expected = (3f64.sqrt() * 1000.0 * 1e-7).max(1e-13);
-    assert!((tol - expected).abs() < 1e-18, "1 m cube: got {}, want {}", tol, expected);
+    assert!(
+        (tol - expected).abs() < 1e-18,
+        "1 m cube: got {}, want {}",
+        tol,
+        expected
+    );
 }
 
 #[test]
@@ -146,7 +158,11 @@ fn edge_tolerance_is_capped_at_1e_6_for_large_models() {
     store.set_vertex_position(v0, [0.0, 0.0, 0.0]);
     store.set_vertex_position(v1, [1.0e7, 0.0, 0.0]); // 1e7 mm = 10 km
     let et = store.edge_tolerance(0, 0);
-    assert!(et <= 1e-6, "edge tolerance must be capped at 1e-6, got {}", et);
+    assert!(
+        et <= 1e-6,
+        "edge tolerance must be capped at 1e-6, got {}",
+        et
+    );
 }
 
 #[test]
@@ -163,7 +179,11 @@ fn scaled_vertex_tolerance_on_tolerance_config() {
     let r_scale = Rational::try_from_f64(1000.0_f64.max(1.0)).unwrap();
     let r_factor = Rational::try_from_f64(1e-7).unwrap();
     let expected = (r_scale * r_factor).to_f64_approx();
-    assert_eq!(t, expected, "1000 mm: implementation diverged from contract: got {}, expected {}", t, expected);
+    assert_eq!(
+        t, expected,
+        "1000 mm: implementation diverged from contract: got {}, expected {}",
+        t, expected
+    );
 
     cfg.set_model_scale_mm(0.1);
     let t = cfg.scaled_vertex_tolerance();
@@ -171,7 +191,11 @@ fn scaled_vertex_tolerance_on_tolerance_config() {
     let r_scale = Rational::try_from_f64(0.1_f64.max(1.0)).unwrap();
     let r_factor = Rational::try_from_f64(1e-7).unwrap();
     let expected = (r_scale * r_factor).to_f64_approx();
-    assert_eq!(t, expected, "0.1 mm (clamped): implementation diverged from contract: got {}, expected {}", t, expected);
+    assert_eq!(
+        t, expected,
+        "0.1 mm (clamped): implementation diverged from contract: got {}, expected {}",
+        t, expected
+    );
 }
 
 // ── Phase 4 — Surface CRUD tests ──────────────────────────────────────────────
@@ -209,10 +233,13 @@ fn surface_count_reflects_active_slots() {
 
 #[test]
 fn curve_insert_and_retrieve() {
-    use forge_geom::curve::schema::{CurveKind, CurveGeom};
+    use forge_geom::curve::schema::{CurveGeom, CurveKind};
     let mut store = GeometryState::new();
     let curve = CurveGeom::from_analytic(
-        CurveKind::Line { origin: [0.0, 0.0, 0.0], direction: [1.0, 0.0, 0.0] },
+        CurveKind::Line {
+            origin: [0.0, 0.0, 0.0],
+            direction: [1.0, 0.0, 0.0],
+        },
         [0, 1],
     );
     let r = store.insert_curve(curve);
@@ -225,7 +252,10 @@ fn coedge_insert_and_retrieve() {
     use forge_geom::{Coedge, ParametricCurve2D};
     let mut store = GeometryState::new();
     let coedge = Coedge {
-        uv_curve: ParametricCurve2D::Line { start: [0.0, 0.0], end: [1.0, 1.0] },
+        uv_curve: ParametricCurve2D::Line {
+            start: [0.0, 0.0],
+            end: [1.0, 1.0],
+        },
         surface: 0,
     };
     let r = store.insert_coedge(coedge);
@@ -249,11 +279,14 @@ fn attach_surface_to_face_round_trip() {
 #[test]
 fn attach_coedge_to_halfedge_round_trip() {
     use forge_geom::{Coedge, ParametricCurve2D};
-    use forge_topo::handles::{HalfEdgeId, CoedgeRef};
+    use forge_topo::handles::{CoedgeRef, HalfEdgeId};
     let mut store = GeometryState::new();
     let he = HalfEdgeId::from_raw_parts(0, 0);
     let coedge = Coedge {
-        uv_curve: ParametricCurve2D::Line { start: [0.0, 0.0], end: [1.0, 1.0] },
+        uv_curve: ParametricCurve2D::Line {
+            start: [0.0, 0.0],
+            end: [1.0, 1.0],
+        },
         surface: 0,
     };
     let cr = store.insert_coedge(coedge);
@@ -263,12 +296,16 @@ fn attach_coedge_to_halfedge_round_trip() {
 
 #[test]
 fn attach_curve_to_edge_round_trip() {
-    use forge_geom::curve::schema::{CurveKind, CurveGeom};
-    use forge_topo::handles::{EdgeId, CurveRef};
+    use forge_geom::curve::schema::{CurveGeom, CurveKind};
+    use forge_topo::handles::{CurveRef, EdgeId};
     let mut store = GeometryState::new();
     let edge = EdgeId::from_raw_parts(0, 0);
     let curve = CurveGeom::from_analytic(
-        CurveKind::Circle { center: [0.0, 0.0, 0.0], normal: [0.0, 0.0, 1.0], radius: 1.0 },
+        CurveKind::Circle {
+            center: [0.0, 0.0, 0.0],
+            normal: [0.0, 0.0, 1.0],
+            radius: 1.0,
+        },
         [0, 1],
     );
     let cr = store.insert_curve(curve);
@@ -310,12 +347,15 @@ fn face_is_planar_false_when_cylinder_surface_attached() {
 #[test]
 fn validate_bindings_passes_when_all_refs_live() {
     use forge_geom::SurfaceData;
-    use forge_topo::arena::{TopologyArena, FaceData};
+    use forge_topo::arena::{FaceData, TopologyArena};
     use forge_topo::handles::{LoopId, ShellId};
 
     let mut store = GeometryState::new();
     let mut arena = TopologyArena::new();
-    let face = arena.insert_face(FaceData::new(LoopId::from_raw_parts(0, 0), ShellId::from_raw_parts(0, 0)), None);
+    let face = arena.insert_face(
+        FaceData::new(LoopId::from_raw_parts(0, 0), ShellId::from_raw_parts(0, 0)),
+        None,
+    );
 
     let sr = store.insert_surface(SurfaceData::plane([0.0, 0.0, 1.0], 0.0));
     store.attach_surface_to_face(face, sr);
@@ -325,12 +365,15 @@ fn validate_bindings_passes_when_all_refs_live() {
 #[test]
 fn validate_bindings_fails_on_dangling_surface_ref() {
     use forge_geom::SurfaceData;
-    use forge_topo::arena::{TopologyArena, FaceData};
+    use forge_topo::arena::{FaceData, TopologyArena};
     use forge_topo::handles::{LoopId, ShellId};
 
     let mut store = GeometryState::new();
     let mut arena = TopologyArena::new();
-    let face = arena.insert_face(FaceData::new(LoopId::from_raw_parts(0, 0), ShellId::from_raw_parts(0, 0)), None);
+    let face = arena.insert_face(
+        FaceData::new(LoopId::from_raw_parts(0, 0), ShellId::from_raw_parts(0, 0)),
+        None,
+    );
 
     let sr = store.insert_surface(SurfaceData::plane([0.0, 0.0, 1.0], 0.0));
     store.attach_surface_to_face(face, sr);

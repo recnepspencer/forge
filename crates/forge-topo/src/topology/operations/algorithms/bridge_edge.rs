@@ -11,11 +11,11 @@
 //!
 //! DEPENDENCIES: `arena` (entity storage)
 
-use forge_core::KernelError;
 use crate::handles::HalfEdgeId;
-use crate::state::MutableDraft;
 use crate::operator::apply_op;
+use crate::state::MutableDraft;
 use crate::topology::operations::euler::make_edge_kill_loop::MakeEdgeKillLoop;
+use forge_core::KernelError;
 
 /// Output of the bridge_edge algorithm.
 pub struct BridgeEdgeOutput {
@@ -44,8 +44,9 @@ pub fn bridge_edge(
         MakeEdgeKillLoop {
             he_a: outer_he,
             he_b: inner_he,
-        }
-    )?.into_value();
+        },
+    )?
+    .into_value();
 
     {
         let arena = draft.arena_mut();
@@ -70,8 +71,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let (face, outer_he, inner_he, _inner_loop, _verts) =
-            build_face_with_hole(&mut draft);
+        let (face, outer_he, inner_he, _inner_loop, _verts) = build_face_with_hole(&mut draft);
 
         assert_eq!(draft.arena().get_face(face).unwrap().inner_loop_count(), 1);
 
@@ -89,7 +89,7 @@ mod tests {
             draft.arena().get_half_edge(he_out).unwrap().radial_next(),
             he_in,
         );
-        
+
         assert!(draft.arena().get_half_edge(he_in).unwrap().is_bridge());
         assert!(draft.arena().get_half_edge(he_out).unwrap().is_bridge());
     }
@@ -99,8 +99,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let (face, outer_he, inner_he, _inner_loop, _verts) =
-            build_face_with_hole(&mut draft);
+        let (face, outer_he, inner_he, _inner_loop, _verts) = build_face_with_hole(&mut draft);
 
         let _result = bridge_edge(&mut draft, outer_he, inner_he).unwrap();
 
@@ -118,7 +117,10 @@ mod tests {
             }
         }
 
-        assert_eq!(count, 8, "Outer triangle (3) + inner triangle (3) + 2 bridge edges = 8");
+        assert_eq!(
+            count, 8,
+            "Outer triangle (3) + inner triangle (3) + 2 bridge edges = 8"
+        );
     }
 
     #[test]
@@ -126,12 +128,14 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let (_face, outer_he, _inner_he, _inner_loop, _verts) =
-            build_face_with_hole(&mut draft);
+        let (_face, outer_he, _inner_he, _inner_loop, _verts) = build_face_with_hole(&mut draft);
 
         let outer_he_next = draft.arena().get_half_edge(outer_he).unwrap().next();
         let result = bridge_edge(&mut draft, outer_he, outer_he_next);
 
-        assert!(result.is_err(), "Both halfedges on the outer loop must be rejected");
+        assert!(
+            result.is_err(),
+            "Both halfedges on the outer loop must be rejected"
+        );
     }
 }

@@ -5,16 +5,13 @@
 
 use std::collections::BTreeMap;
 
-use forge_core::{
-    DecisionLog, KernelError, PolicyKind,
-};
 use forge_core::envelope::{KernelWarning, LineageDelta, OperationMetrics};
 use forge_core::tracing::TraceAdjunctSet;
+use forge_core::{DecisionLog, KernelError, PolicyKind};
 
 use crate::operations::boolean::FaceClassification;
 
 use super::super::config::KernelConfig;
-
 
 /// Aggregated metadata absorbed from sub-operation envelopes.
 #[derive(Debug, Clone, Default)]

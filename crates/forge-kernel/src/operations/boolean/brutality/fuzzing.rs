@@ -1,14 +1,20 @@
-use super::super::test_helpers::{build_cube, run_boolean, try_boolean, execute_boolean_logged};
 use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::test_helpers::{build_cube, execute_boolean_logged, run_boolean, try_boolean};
 
 // ══════════════════════════════════════════════════════════════
 // §6  FUZZ CORPUS ESCALATION
 // ══════════════════════════════════════════════════════════════
 
 /// Minimal inline PRNG (avoids circular dep on forge-test).
-struct Rng { state: u64 }
+struct Rng {
+    state: u64,
+}
 impl Rng {
-    fn new(seed: u64) -> Self { Self { state: if seed == 0 { 1 } else { seed } } }
+    fn new(seed: u64) -> Self {
+        Self {
+            state: if seed == 0 { 1 } else { seed },
+        }
+    }
     fn next_u64(&mut self) -> u64 {
         self.state ^= self.state << 13;
         self.state ^= self.state >> 7;
@@ -33,9 +39,17 @@ fn cube_cube_100_corpus() {
     let mut failures = 0usize;
 
     for _ in 0..100 {
-        let ca = [rng.next_f64(-5.0, 5.0), rng.next_f64(-5.0, 5.0), rng.next_f64(-5.0, 5.0)];
+        let ca = [
+            rng.next_f64(-5.0, 5.0),
+            rng.next_f64(-5.0, 5.0),
+            rng.next_f64(-5.0, 5.0),
+        ];
         let ha = rng.next_f64(0.5, 4.0);
-        let cb = [rng.next_f64(-5.0, 5.0), rng.next_f64(-5.0, 5.0), rng.next_f64(-5.0, 5.0)];
+        let cb = [
+            rng.next_f64(-5.0, 5.0),
+            rng.next_f64(-5.0, 5.0),
+            rng.next_f64(-5.0, 5.0),
+        ];
         let hb = rng.next_f64(0.5, 4.0);
 
         let op = match rng.next_u64() % 3 {
@@ -61,7 +75,9 @@ fn cube_cube_100_corpus() {
                     eprintln!("Euler violation: V={v} E={e} F={f} Euler={euler}");
                 }
             }
-            Err(_) => { errors += 1; }
+            Err(_) => {
+                errors += 1;
+            }
         }
     }
 
@@ -81,16 +97,20 @@ fn cube_cube_100_corpus() {
 /// 6.2 — Concave Cases (union of cubes → concave → boolean)
 #[test]
 fn concave_union_composition() {
-    let ab = run_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [1.5, 0.0, 0.0], 1.0,
-        BooleanOp::Union,
-    );
+    let ab = run_boolean([0.0, 0.0, 0.0], 1.0, [1.5, 0.0, 0.0], 1.0, BooleanOp::Union);
 
     let (topo_ab, geom_ab, _) = ab.into_states();
     let (topo_c, geom_c) = build_cube([0.75, 1.5, 0.0], 1.0);
 
-    let input_abc = BooleanInput::new(topo_ab, geom_ab, BrepState::new(), topo_c, geom_c, BrepState::new(), BooleanOp::Union);
+    let input_abc = BooleanInput::new(
+        topo_ab,
+        geom_ab,
+        BrepState::new(),
+        topo_c,
+        geom_c,
+        BrepState::new(),
+        BooleanOp::Union,
+    );
     let concave = execute_boolean_logged(input_abc);
 
     match concave.into_result() {
@@ -104,8 +124,10 @@ fn concave_union_composition() {
             let (topo_concave, geom_concave, _) = r.into_states();
             let (topo_tool, geom_tool) = build_cube([0.75, 0.75, 0.75], 0.5);
             let input = BooleanInput::new(
-                topo_concave, geom_concave,
-                topo_tool, geom_tool,
+                topo_concave,
+                geom_concave,
+                topo_tool,
+                geom_tool,
                 BooleanOp::Subtraction,
             );
             let final_result = execute_boolean_logged(input);
@@ -116,7 +138,11 @@ fn concave_union_composition() {
                     let v2 = arena2.vertex_count() as isize;
                     let e2 = (arena2.half_edge_count() / 2) as isize;
                     let f2 = arena2.face_count() as isize;
-                    assert_eq!(v2 - e2 + f2, 2, "Concave result Euler violation: V={v2} E={e2} F={f2}");
+                    assert_eq!(
+                        v2 - e2 + f2,
+                        2,
+                        "Concave result Euler violation: V={v2} E={e2} F={f2}"
+                    );
                 }
                 Err(e) => {
                     eprintln!("Concave subtraction returned error (accepted): {e:?}");
@@ -157,14 +183,18 @@ fn perturbed_rotation_stability() {
         let offset = 1e-9;
 
         let result_orig = try_boolean(
-            [cx, cy, cz], half,
-            [cx + half * 0.5, cy, cz], half,
+            [cx, cy, cz],
+            half,
+            [cx + half * 0.5, cy, cz],
+            half,
             BooleanOp::Union,
         );
 
         let result_pert = try_boolean(
-            [cx, cy, cz], half,
-            [cx + half * 0.5 + offset, cy + offset, cz], half,
+            [cx, cy, cz],
+            half,
+            [cx + half * 0.5 + offset, cy + offset, cz],
+            half,
             BooleanOp::Union,
         );
 
@@ -212,8 +242,14 @@ fn perturbed_convex_no_crash() {
         let perturbation = rng.next_f64(-1e-9, 1e-9);
 
         let result = try_boolean(
-            [cx, cy, cz], half,
-            [cx + half * 0.7 + perturbation, cy + perturbation, cz + perturbation], half,
+            [cx, cy, cz],
+            half,
+            [
+                cx + half * 0.7 + perturbation,
+                cy + perturbation,
+                cz + perturbation,
+            ],
+            half,
             BooleanOp::Union,
         );
 
@@ -231,5 +267,8 @@ fn perturbed_convex_no_crash() {
         }
     }
 
-    assert_eq!(crashes, 0, "Found {crashes} non-finite coordinates in perturbed fuzzing");
+    assert_eq!(
+        crashes, 0,
+        "Found {crashes} non-finite coordinates in perturbed fuzzing"
+    );
 }

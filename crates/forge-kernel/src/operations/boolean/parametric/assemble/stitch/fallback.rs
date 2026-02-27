@@ -7,16 +7,18 @@
 //! INVARIANTS: Always reports stitch failures as KernelError::TopologyViolation
 //! with structured error context — never via eprintln.
 
-use std::collections::BTreeSet;
-use forge_core::KernelError;
-use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
-use forge_geom::spatial::edge_match::{DirectedEdge, FuzzyMatchMode, fuzzy_match_edges};
-use forge_topo::handles::HalfEdgeId;
-use forge_topo::operator::apply_op;
-use forge_topo::euler::sew_edge::SewEdge;
-use forge_topo::state::MutableDraft;
 use crate::core::ModelingContext;
 use crate::geometry_state::GeometryState;
+use forge_core::KernelError;
+use forge_core::{
+    DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, TracedDecision,
+};
+use forge_geom::spatial::edge_match::{fuzzy_match_edges, DirectedEdge, FuzzyMatchMode};
+use forge_topo::euler::sew_edge::SewEdge;
+use forge_topo::handles::HalfEdgeId;
+use forge_topo::operator::apply_op;
+use forge_topo::state::MutableDraft;
+use std::collections::BTreeSet;
 
 fn debug_stitch_enabled() -> bool {
     std::env::var("FORGE_DEBUG_STITCH")
@@ -44,7 +46,8 @@ pub(super) fn stitch_position_fallback(
     run_full_position_pass(draft, geom, still_unpaired, stitch_tol_sq, &mut paired, ctx)?;
     run_single_vertex_pass(draft, geom, still_unpaired, stitch_tol_sq, &mut paired, ctx)?;
 
-    let final_unpaired: Vec<HalfEdgeId> = still_unpaired.iter()
+    let final_unpaired: Vec<HalfEdgeId> = still_unpaired
+        .iter()
         .filter(|he| !paired.contains(&he.index()))
         .copied()
         .collect();
@@ -70,7 +73,16 @@ fn run_full_position_pass(
     let id_map = build_id_map(halfedges);
     let matches = fuzzy_match_edges(edges, tol_sq, FuzzyMatchMode::FullEndpoint);
     for m in &matches {
-        apply_match(draft, &id_map, m.edge_a, m.edge_b, paired, "position fallback", 0.8, ctx)?;
+        apply_match(
+            draft,
+            &id_map,
+            m.edge_a,
+            m.edge_b,
+            paired,
+            "position fallback",
+            0.8,
+            ctx,
+        )?;
     }
     Ok(())
 }
@@ -84,7 +96,8 @@ fn run_single_vertex_pass(
     paired: &mut BTreeSet<u32>,
     ctx: &mut ModelingContext,
 ) -> Result<(), KernelError> {
-    let remaining: Vec<HalfEdgeId> = halfedges.iter()
+    let remaining: Vec<HalfEdgeId> = halfedges
+        .iter()
         .filter(|he| !paired.contains(&he.index()))
         .copied()
         .collect();
@@ -97,7 +110,16 @@ fn run_single_vertex_pass(
     let id_map = build_id_map(&remaining);
     let matches = fuzzy_match_edges(edges, tol_sq, FuzzyMatchMode::SingleVertex);
     for m in &matches {
-        apply_match(draft, &id_map, m.edge_a, m.edge_b, paired, "single-vertex fallback", 0.6, ctx)?;
+        apply_match(
+            draft,
+            &id_map,
+            m.edge_a,
+            m.edge_b,
+            paired,
+            "single-vertex fallback",
+            0.6,
+            ctx,
+        )?;
     }
     Ok(())
 }
@@ -158,7 +180,8 @@ fn build_directed_edges(
     halfedges: &[HalfEdgeId],
     include_indices: bool,
 ) -> Vec<DirectedEdge> {
-    halfedges.iter()
+    halfedges
+        .iter()
         .filter_map(|&he_id| {
             let he = draft.arena().get_half_edge(he_id).ok()?;
             let origin = he.origin();
@@ -168,8 +191,16 @@ fn build_directed_edges(
             Some(DirectedEdge {
                 id: he_id.index(),
                 group: Some(he.face().index()),
-                origin_index: if include_indices { Some(origin.index()) } else { None },
-                dest_index: if include_indices { Some(dest.index()) } else { None },
+                origin_index: if include_indices {
+                    Some(origin.index())
+                } else {
+                    None
+                },
+                dest_index: if include_indices {
+                    Some(dest.index())
+                } else {
+                    None
+                },
                 origin: *p_o,
                 dest: *p_d,
             })
@@ -180,16 +211,28 @@ fn build_directed_edges(
 // ── Decision logging ─────────────────────────────────────────────────────────
 
 /// Record a stitch decision.
-fn log_stitch(he_a: HalfEdgeId, he_b: HalfEdgeId, label: &str, confidence: f64, ctx: &mut ModelingContext) {
+fn log_stitch(
+    he_a: HalfEdgeId,
+    he_b: HalfEdgeId,
+    label: &str,
+    confidence: f64,
+    ctx: &mut ModelingContext,
+) {
     let mut decision = TracedDecision::new(
         DecisionId(he_a.index() as u64),
-        DecisionKind::PolicyApplied { policy: forge_core::PolicyKind::CoincidentGeometry, default_used: true },
+        DecisionKind::PolicyApplied {
+            policy: forge_core::PolicyKind::CoincidentGeometry,
+            default_used: true,
+        },
         DecisionTier::NearBoundary,
         confidence,
         DecisionContext::Degeneracy {
             description: format!("Stitched {} <-> {} ({})", he_a, he_b, label),
         },
     );
-    decision.set_entity_scope(EntityRef::new(forge_core::EntityKind::HalfEdge, he_a.index()));
+    decision.set_entity_scope(EntityRef::new(
+        forge_core::EntityKind::HalfEdge,
+        he_a.index(),
+    ));
     ctx.get_decision_log_mut().record(decision);
 }

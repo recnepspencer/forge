@@ -8,14 +8,14 @@
 //! MB-N5: Condition-number stress: nearly-parallel planes
 //! MB-N6: 100 chained exact rational operations — bit length bounded
 
-use forge_math::arithmetic::precision::PrecisionMode;
 use forge_math::arithmetic::precision::PrecisionBudget;
+use forge_math::arithmetic::precision::PrecisionMode;
 use forge_math::arithmetic::rational::Rational;
 use forge_math::predicates::orient3d::orient3d;
 use forge_math::sign::TriSign;
 
 use crate::operations::boolean::test_helpers::{
-    build_cube, execute_boolean_logged, euler_audit, build_convex_solid,
+    build_convex_solid, build_cube, euler_audit, execute_boolean_logged,
 };
 use crate::operations::boolean::{BooleanInput, BooleanOp};
 
@@ -32,7 +32,9 @@ impl Lcg {
     }
 
     fn next_u64(&mut self) -> u64 {
-        self.state = self.state.wrapping_mul(6_364_136_223_846_793_005)
+        self.state = self
+            .state
+            .wrapping_mul(6_364_136_223_846_793_005)
             .wrapping_add(1_442_695_040_888_963_407);
         self.state
     }
@@ -74,15 +76,15 @@ fn mb_n1_orient3d_near_degenerate_10k() {
         let third = m / 3.0;
         let d = [third, third, third + z_offset];
 
-        let (result, esc) = orient3d(a, b, c, d)
-            .expect("orient3d must not fail");
+        let (result, esc) = orient3d(a, b, c, d).expect("orient3d must not fail");
 
         total += 1;
 
         assert!(
             result.sign().is_positive() || result.sign().is_negative(),
             "Non-zero offset must produce definite sign, got {:?} at offset={:.2e}",
-            result.sign(), z_offset
+            result.sign(),
+            z_offset
         );
 
         if esc.get_resolved_at() == PrecisionMode::Float64 {
@@ -95,14 +97,17 @@ fn mb_n1_orient3d_near_degenerate_10k() {
     let f64_rate = f64_resolved as f64 / total as f64;
     eprintln!(
         "MB-N1: f64_rate={:.1}%, escalated={}, total={}",
-        f64_rate * 100.0, escalated, total
+        f64_rate * 100.0,
+        escalated,
+        total
     );
 
     assert!(
         escalated > 0,
         "Large-coordinate near-degenerate inputs MUST trigger some escalations \
          (M={}, ERR_BOUND ≈ {:.2e})",
-        m, 7.77e-16 * m * m * m
+        m,
+        7.77e-16 * m * m * m
     );
 }
 
@@ -120,13 +125,19 @@ fn mb_n2_boolean_near_coincident_1e14() {
 
     match execute_boolean_logged(input).into_result() {
         Ok(result) => {
-            
             let (v, e, f, chi) = euler_audit(result.topology().arena());
-            assert_eq!(chi, 2, "Union must produce valid manifold: V={} E={} F={} χ={}", v, e, f, chi);
+            assert_eq!(
+                chi, 2,
+                "Union must produce valid manifold: V={} E={} F={} χ={}",
+                v, e, f, chi
+            );
             assert!(f >= 6, "Union should have at least 6 faces, got {}", f);
         }
         Err(e) => {
-            eprintln!("MB-N2: Boolean returned error (acceptable for near-coincident): {:?}", e);
+            eprintln!(
+                "MB-N2: Boolean returned error (acceptable for near-coincident): {:?}",
+                e
+            );
         }
     }
 }
@@ -145,7 +156,6 @@ fn mb_n2_boolean_gap_sweep() {
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
-                
                 let (_, _, _, chi) = euler_audit(result.topology().arena());
                 assert_eq!(chi, 2, "χ must be 2 at gap={:.0e}", gap);
                 successes += 1;
@@ -190,12 +200,15 @@ fn mb_n3_boolean_chain_surface_notches() {
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
-                
                 let (v, e, f, chi) = euler_audit(result.topology().arena());
                 assert!(
                     chi > 0 && chi % 2 == 0,
                     "Step {} must have positive even χ, got χ={} (V={} E={} F={})",
-                    i, chi, v, e, f
+                    i,
+                    chi,
+                    v,
+                    e,
+                    f
                 );
                 let (t, g, _) = result.into_states();
                 topo = t;
@@ -214,7 +227,10 @@ fn mb_n3_boolean_chain_surface_notches() {
         "Should complete at least 5 surface-notch steps, got {}",
         successful_steps
     );
-    eprintln!("MB-N3: completed {}/{} Boolean chain steps", successful_steps, step_count);
+    eprintln!(
+        "MB-N3: completed {}/{} Boolean chain steps",
+        successful_steps, step_count
+    );
 }
 
 /// MB-N4: Scale-sweep — same Boolean at multiple scales.
@@ -231,8 +247,7 @@ fn mb_n4_scale_sweep_union() {
     let mut successes = 0u32;
 
     let scales: Vec<f64> = vec![
-        1e-6, 1e-4, 1e-2, 1.0, 1e2, 1e4, 1e6,
-        0.001, 0.01, 0.1, 10.0, 100.0, 1000.0,
+        1e-6, 1e-4, 1e-2, 1.0, 1e2, 1e4, 1e6, 0.001, 0.01, 0.1, 10.0, 100.0, 1000.0,
     ];
 
     for scale in &scales {
@@ -246,7 +261,6 @@ fn mb_n4_scale_sweep_union() {
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
-                
                 let (v, e, f, chi) = euler_audit(result.topology().arena());
 
                 if let Some(ref_chi) = reference_chi {
@@ -279,9 +293,14 @@ fn mb_n4_scale_sweep_union() {
     assert!(
         successes >= 8,
         "At least 8/{} scales should produce identical topology, got {}",
-        scales.len(), successes
+        scales.len(),
+        successes
     );
-    eprintln!("MB-N4: {}/{} scales passed with identical topology", successes, scales.len());
+    eprintln!(
+        "MB-N4: {}/{} scales passed with identical topology",
+        successes,
+        scales.len()
+    );
 }
 
 /// MB-N5: Condition-number stress — nearly-parallel planes.
@@ -316,10 +335,16 @@ fn mb_n5_nearly_parallel_planes() {
     let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Intersection);
     match execute_boolean_logged(input).into_result() {
         Ok(result) => {
-            
             let (v, e, f, chi) = euler_audit(result.topology().arena());
-            assert_eq!(chi, 2, "Nearly-parallel must produce valid manifold: χ={}", chi);
-            eprintln!("MB-N5: succeeded with {} faces, angle={:.2e} rad", f, tiny_angle);
+            assert_eq!(
+                chi, 2,
+                "Nearly-parallel must produce valid manifold: χ={}",
+                chi
+            );
+            eprintln!(
+                "MB-N5: succeeded with {} faces, angle={:.2e} rad",
+                f, tiny_angle
+            );
         }
         Err(e) => {
             eprintln!("MB-N5: rejected nearly-parallel (acceptable): {:?}", e);
@@ -350,10 +375,19 @@ fn mb_n6_rational_bit_growth_bounded() {
 
     for i in 0..100 {
         match i % 4 {
-            0 => { value = &value * &large; }
-            1 => { value = &value * &small; }
-            2 => { value = &value * &neg; }
-            3 => { value = &value * &large; value = &value * &small; }
+            0 => {
+                value = &value * &large;
+            }
+            1 => {
+                value = &value * &small;
+            }
+            2 => {
+                value = &value * &neg;
+            }
+            3 => {
+                value = &value * &large;
+                value = &value * &small;
+            }
             _ => unreachable!(),
         }
 
@@ -362,7 +396,8 @@ fn mb_n6_rational_bit_growth_bounded() {
         assert!(
             value.bit_length() <= 256,
             "Step {}: bit_length {} exceeds budget 256",
-            i, value.bit_length()
+            i,
+            value.bit_length()
         );
     }
 
@@ -378,7 +413,9 @@ fn mb_n6_rational_bit_growth_bounded() {
 
     eprintln!(
         "MB-N6: {} escalations in 100 ops, final bit_length={}, sign={:?}",
-        budget.escalation_count(), value.bit_length(), value.sign()
+        budget.escalation_count(),
+        value.bit_length(),
+        value.sign()
     );
 
     for event in budget.escalations() {

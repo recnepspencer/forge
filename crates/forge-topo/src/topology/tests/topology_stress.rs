@@ -13,37 +13,62 @@
 
 #[cfg(test)]
 mod tests {
-    use forge_core::KernelError;
+    use crate::algorithms::bridge_edge::bridge_edge;
     use crate::arena::{FaceData, HalfEdgeData, LoopData, TopologyArena, VertexData};
-    use crate::handles::{FaceId, HalfEdgeId, LoopId, VertexId, EdgeId, ShellId};
-    use crate::state::TopologyState;
-    use crate::operator::apply_op;
-    use crate::euler::make_vertex_face::MakeVertexFace;
-    use crate::euler::make_edge_face::MakeEdgeFace;
-    use crate::euler::split_edge::SplitEdge;
     use crate::euler::join_faces::JoinFaces;
     use crate::euler::kill_edge_vertex::KillEdgeVertex;
-    use crate::algorithms::bridge_edge::bridge_edge;
+    use crate::euler::make_edge_face::MakeEdgeFace;
+    use crate::euler::make_vertex_face::MakeVertexFace;
+    use crate::euler::split_edge::SplitEdge;
+    use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
+    use crate::operator::apply_op;
+    use crate::state::TopologyState;
+    use crate::testing::build_face_with_hole;
     use crate::traverse::{FaceEdgeIterator, VertexRingIterator};
     use crate::validate::{validate_topology, ValidationLevel};
-    use crate::testing::build_face_with_hole;
+    use forge_core::KernelError;
 
     // ══════════════════════════════════════════════════════════════
     // Helpers
     // ══════════════════════════════════════════════════════════════
 
     /// Build a quad face via MVF + 3×SE. Returns (mvf_output, edge_list).
-    fn build_quad(draft: &mut crate::state::MutableDraft) -> (
-        crate::euler::make_vertex_face::MvfOutput,
-        Vec<HalfEdgeId>,
-    ) {
+    fn build_quad(
+        draft: &mut crate::state::MutableDraft,
+    ) -> (crate::euler::make_vertex_face::MvfOutput, Vec<HalfEdgeId>) {
         let mvf = apply_op(draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(draft, SplitEdge { edge: mvf.half_edge, parameter: 0.25 }).unwrap().into_value();
-        let se2 = apply_op(draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
-        let _se3 = apply_op(draft, SplitEdge { edge: se2.he_mb, parameter: 0.75 }).unwrap().into_value();
+        let se1 = apply_op(
+            draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.25,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let se2 = apply_op(
+            draft,
+            SplitEdge {
+                edge: se1.he_mb,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let _se3 = apply_op(
+            draft,
+            SplitEdge {
+                edge: se2.he_mb,
+                parameter: 0.75,
+            },
+        )
+        .unwrap()
+        .into_value();
 
-        let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face).unwrap()
-            .map(|r| r.unwrap()).collect();
+        let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face)
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
         assert_eq!(edges.len(), 4, "Quad must have 4 edges");
         (mvf, edges)
     }
@@ -74,23 +99,40 @@ mod tests {
         let mut current_edge = mvf.half_edge;
 
         for _ in 0..10 {
-            let se = apply_op(&mut draft, SplitEdge {
-                edge: current_edge, parameter: 0.5,
-            }).unwrap().into_value();
+            let se = apply_op(
+                &mut draft,
+                SplitEdge {
+                    edge: current_edge,
+                    parameter: 0.5,
+                },
+            )
+            .unwrap()
+            .into_value();
 
             let face_id = draft.arena().get_half_edge(current_edge).unwrap().face();
-            let mef = apply_op(&mut draft, MakeEdgeFace {
-                vertex_a: pole,
-                vertex_b: se.new_vertex,
-                face: face_id,
-            }).unwrap().into_value();
+            let mef = apply_op(
+                &mut draft,
+                MakeEdgeFace {
+                    vertex_a: pole,
+                    vertex_b: se.new_vertex,
+                    face: face_id,
+                },
+            )
+            .unwrap()
+            .into_value();
 
             current_edge = mef.half_edge_ab;
         }
 
-        let ring: Vec<_> = VertexRingIterator::new(draft.arena(), pole).unwrap()
-            .map(|r| r.unwrap()).collect();
-        assert!(ring.len() >= 10, "Pole vertex ring must visit all fan edges, got {}", ring.len());
+        let ring: Vec<_> = VertexRingIterator::new(draft.arena(), pole)
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+        assert!(
+            ring.len() >= 10,
+            "Pole vertex ring must visit all fan edges, got {}",
+            ring.len()
+        );
 
         let committed = draft.commit().unwrap();
         // Fan from self-loop seed creates multi-edges (valid DCEL, non-manifold geometry).
@@ -113,27 +155,45 @@ mod tests {
         let v1 = draft.arena().get_half_edge(edges[1]).unwrap().origin();
         let v3 = draft.arena().get_half_edge(edges[3]).unwrap().origin();
 
-        let mef = apply_op(&mut draft, MakeEdgeFace {
-            face: mvf.face,
-            vertex_a: v1,
-            vertex_b: v3,
-        }).unwrap().into_value();
+        let mef = apply_op(
+            &mut draft,
+            MakeEdgeFace {
+                face: mvf.face,
+                vertex_a: v1,
+                vertex_b: v3,
+            },
+        )
+        .unwrap()
+        .into_value();
 
         let faces_before_kev = draft.arena().face_count();
         let verts_before_kev = draft.arena().vertex_count();
         assert_eq!(faces_before_kev, 2);
 
-        let kev = apply_op(&mut draft, KillEdgeVertex {
-            edge: mef.half_edge_ab,
-        }).unwrap().into_value();
+        let kev = apply_op(
+            &mut draft,
+            KillEdgeVertex {
+                edge: mef.half_edge_ab,
+            },
+        )
+        .unwrap()
+        .into_value();
 
-        assert_eq!(draft.arena().face_count(), faces_before_kev,
-            "KEV removes edge+vertex but keeps faces");
-        assert_eq!(draft.arena().vertex_count(), verts_before_kev - 1,
-            "KEV must remove exactly 1 vertex");
+        assert_eq!(
+            draft.arena().face_count(),
+            faces_before_kev,
+            "KEV removes edge+vertex but keeps faces"
+        );
+        assert_eq!(
+            draft.arena().vertex_count(),
+            verts_before_kev - 1,
+            "KEV must remove exactly 1 vertex"
+        );
 
-        let ring: Vec<_> = VertexRingIterator::new(draft.arena(), kev.surviving_vertex).unwrap()
-            .map(|r| r.unwrap()).collect();
+        let ring: Vec<_> = VertexRingIterator::new(draft.arena(), kev.surviving_vertex)
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
         assert!(!ring.is_empty(), "Surviving vertex must have edges");
 
         let committed = draft.commit().unwrap();
@@ -148,12 +208,38 @@ mod tests {
         let mut draft = state.into_mutation();
 
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
-        let se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
-        let _se3 = apply_op(&mut draft, SplitEdge { edge: se2.he_mb, parameter: 0.5 }).unwrap().into_value();
+        let se1 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let se2 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se1.he_mb,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let _se3 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se2.he_mb,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
 
-        let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face).unwrap()
-            .map(|r| r.unwrap()).collect();
+        let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face)
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
         assert_eq!(edges.len(), 4);
 
         let v0 = draft.arena().get_half_edge(edges[0]).unwrap().origin();
@@ -164,8 +250,14 @@ mod tests {
         }
 
         let result = draft.commit();
-        assert!(result.is_err(), "Commit must reject topology with all-same-vertex loop");
-        assert!(matches!(result.unwrap_err(), KernelError::TopologyViolation { .. }));
+        assert!(
+            result.is_err(),
+            "Commit must reject topology with all-same-vertex loop"
+        );
+        assert!(matches!(
+            result.unwrap_err(),
+            KernelError::TopologyViolation { .. }
+        ));
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -184,31 +276,95 @@ mod tests {
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
         let center = mvf.vertex;
 
-        let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.2 }).unwrap().into_value();
-        let se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.3 }).unwrap().into_value();
-        let se3 = apply_op(&mut draft, SplitEdge { edge: se2.he_mb, parameter: 0.4 }).unwrap().into_value();
-        let se4 = apply_op(&mut draft, SplitEdge { edge: se3.he_mb, parameter: 0.5 }).unwrap().into_value();
-        let _se5 = apply_op(&mut draft, SplitEdge { edge: se4.he_mb, parameter: 0.5 }).unwrap().into_value();
+        let se1 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.2,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let se2 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se1.he_mb,
+                parameter: 0.3,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let se3 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se2.he_mb,
+                parameter: 0.4,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let se4 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se3.he_mb,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let _se5 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se4.he_mb,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
 
-        let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face).unwrap()
-            .map(|r| r.unwrap()).collect();
+        let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face)
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
 
         let v_at_2 = draft.arena().get_half_edge(edges[2]).unwrap().origin();
         let v_at_4 = draft.arena().get_half_edge(edges[4]).unwrap().origin();
 
-        let _mef1 = apply_op(&mut draft, MakeEdgeFace {
-            face: mvf.face, vertex_a: center, vertex_b: v_at_2,
-        }).unwrap().into_value();
+        let _mef1 = apply_op(
+            &mut draft,
+            MakeEdgeFace {
+                face: mvf.face,
+                vertex_a: center,
+                vertex_b: v_at_2,
+            },
+        )
+        .unwrap()
+        .into_value();
 
-        let _mef2 = apply_op(&mut draft, MakeEdgeFace {
-            face: mvf.face, vertex_a: center, vertex_b: v_at_4,
-        }).unwrap().into_value();
+        let _mef2 = apply_op(
+            &mut draft,
+            MakeEdgeFace {
+                face: mvf.face,
+                vertex_a: center,
+                vertex_b: v_at_4,
+            },
+        )
+        .unwrap()
+        .into_value();
 
-        assert!(draft.arena().face_count() >= 3, "Must have at least 3 faces");
+        assert!(
+            draft.arena().face_count() >= 3,
+            "Must have at least 3 faces"
+        );
 
-        let ring: Vec<_> = VertexRingIterator::new(draft.arena(), center).unwrap()
-            .map(|r| r.unwrap()).collect();
-        assert!(ring.len() >= 3, "Center vertex ring must visit edges from all faces");
+        let ring: Vec<_> = VertexRingIterator::new(draft.arena(), center)
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+        assert!(
+            ring.len() >= 3,
+            "Center vertex ring must visit edges from all faces"
+        );
 
         let unique_count = {
             let mut ids: Vec<_> = ring.iter().map(|h| h.index()).collect();
@@ -233,16 +389,27 @@ mod tests {
         let mut current_edge = mvf.half_edge;
 
         for _ in 0..20 {
-            let se = apply_op(&mut draft, SplitEdge {
-                edge: current_edge, parameter: 0.5,
-            }).unwrap().into_value();
+            let se = apply_op(
+                &mut draft,
+                SplitEdge {
+                    edge: current_edge,
+                    parameter: 0.5,
+                },
+            )
+            .unwrap()
+            .into_value();
 
             let face_id = draft.arena().get_half_edge(current_edge).unwrap().face();
-            let mef = apply_op(&mut draft, MakeEdgeFace {
-                vertex_a: center,
-                vertex_b: se.new_vertex,
-                face: face_id,
-            }).unwrap().into_value();
+            let mef = apply_op(
+                &mut draft,
+                MakeEdgeFace {
+                    vertex_a: center,
+                    vertex_b: se.new_vertex,
+                    face: face_id,
+                },
+            )
+            .unwrap()
+            .into_value();
 
             current_edge = mef.half_edge_ab;
         }
@@ -250,9 +417,15 @@ mod tests {
         assert_eq!(draft.arena().vertex_count(), 21);
         assert_eq!(draft.arena().face_count(), 21);
 
-        let ring: Vec<_> = VertexRingIterator::new(draft.arena(), center).unwrap()
-            .map(|r| r.unwrap()).collect();
-        assert_eq!(ring.len(), 21, "Center must have exactly 21 outgoing half-edges");
+        let ring: Vec<_> = VertexRingIterator::new(draft.arena(), center)
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+        assert_eq!(
+            ring.len(),
+            21,
+            "Center must have exactly 21 outgoing half-edges"
+        );
 
         let committed = draft.commit().unwrap();
         assert!(validate_topology(committed.arena(), ValidationLevel::Minimal).is_ok());
@@ -267,14 +440,29 @@ mod tests {
         let mut draft = state.into_mutation();
 
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
+        let se = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
 
         let bogus_he = HalfEdgeId::new(u32::MAX, 0);
-        draft.arena_mut().get_half_edge_mut(se.he_am).unwrap().set_radial_next(bogus_he);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(se.he_am)
+            .unwrap()
+            .set_radial_next(bogus_he);
 
         let result = draft.commit();
         assert!(result.is_err(), "Commit must reject broken twin chain");
-        assert!(matches!(result.unwrap_err(), KernelError::TopologyViolation { .. }));
+        assert!(matches!(
+            result.unwrap_err(),
+            KernelError::TopologyViolation { .. }
+        ));
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -295,28 +483,47 @@ mod tests {
         // 1. Create a single face F0 with self-loop halfedge (v0->v0) at v0.
         //    Open surface, boundaries=1, χ=1.
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        
+
         // 2. Split the boundary edge, creating v1.
         //    Now we have a digon on F0: v0->v1 and v1->v0.
         //    Both are still boundary halfedges on the same face.
-        let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
-        
+        let se1 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
+
         // 3. Sew the two boundary halfedges together!
         //    This glues the digon shut, eliminating the boundary and leaving a closed sphere.
         let he_v0_v1 = mvf.half_edge;
         let he_v1_v0 = se1.he_mb;
-        apply_op(&mut draft, SewEdge { he_a: he_v0_v1, he_b: he_v1_v0 }).unwrap();
-        
+        apply_op(
+            &mut draft,
+            SewEdge {
+                he_a: he_v0_v1,
+                he_b: he_v1_v0,
+            },
+        )
+        .unwrap();
+
         let arena = draft.arena();
         let v = arena.vertex_count();
         let e = arena.edge_count();
         let f = arena.face_count();
         let chi = euler_chi(arena);
-        
+
         assert_eq!(v, 2, "Sphere V count");
         assert_eq!(e, 1, "Sphere E count");
         assert_eq!(f, 1, "Sphere F count");
-        assert_eq!(chi, 2, "Sphere must have χ=2, got V={} E={} F={} χ={}", v, e, f, chi);
+        assert_eq!(
+            chi, 2,
+            "Sphere must have χ=2, got V={} E={} F={} χ={}",
+            v, e, f, chi
+        );
 
         let committed = draft.commit().unwrap();
         assert!(validate_topology(committed.arena(), ValidationLevel::Minimal).is_ok());
@@ -331,8 +538,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let (face, outer_he, inner_he, _inner_loop, _verts) =
-            build_face_with_hole(&mut draft);
+        let (face, outer_he, inner_he, _inner_loop, _verts) = build_face_with_hole(&mut draft);
 
         assert_eq!(draft.arena().get_face(face).unwrap().inner_loop_count(), 1);
 
@@ -342,8 +548,14 @@ mod tests {
 
         let he_in = bridge.he_into_hole;
         let he_out = bridge.he_out_of_hole;
-        assert_eq!(draft.arena().get_half_edge(he_in).unwrap().radial_next(), he_out);
-        assert_eq!(draft.arena().get_half_edge(he_out).unwrap().radial_next(), he_in);
+        assert_eq!(
+            draft.arena().get_half_edge(he_in).unwrap().radial_next(),
+            he_out
+        );
+        assert_eq!(
+            draft.arena().get_half_edge(he_out).unwrap().radial_next(),
+            he_in
+        );
 
         let outer_loop = draft.arena().get_face(face).unwrap().outer_loop();
         let start = draft.arena().get_loop(outer_loop).unwrap().half_edge();
@@ -354,10 +566,15 @@ mod tests {
             count += 1;
             assert!(count <= 100, "Infinite loop in merged loop traversal");
             current = draft.arena().get_half_edge(current).unwrap().next();
-            if current == start { break; }
+            if current == start {
+                break;
+            }
         }
 
-        assert_eq!(count, 8, "Outer(3) + Inner(3) + 2 bridge = 8 edges in merged loop");
+        assert_eq!(
+            count, 8,
+            "Outer(3) + Inner(3) + 2 bridge = 8 edges in merged loop"
+        );
     }
 
     /// L3: Deliberately reversed prev/next on one half-edge.
@@ -368,11 +585,29 @@ mod tests {
         let mut draft = state.into_mutation();
 
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.3 }).unwrap().into_value();
-        let _se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
+        let se1 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.3,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let _se2 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se1.he_mb,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
 
-        let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face).unwrap()
-            .map(|r| r.unwrap()).collect();
+        let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face)
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
         assert!(edges.len() >= 3);
 
         let e0 = edges[0];
@@ -382,8 +617,14 @@ mod tests {
         arena.get_half_edge_mut(e1).unwrap().set_prev(e1);
 
         let result = draft.commit();
-        assert!(result.is_err(), "Commit must reject broken prev/next pointers");
-        assert!(matches!(result.unwrap_err(), KernelError::TopologyViolation { .. }));
+        assert!(
+            result.is_err(),
+            "Commit must reject broken prev/next pointers"
+        );
+        assert!(matches!(
+            result.unwrap_err(),
+            KernelError::TopologyViolation { .. }
+        ));
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -403,34 +644,39 @@ mod tests {
         let (arena, positions) = build_cube_arena();
 
         let position_fn = |idx: u32| -> Result<[f64; 3], KernelError> {
-            positions.get(idx as usize).copied().ok_or_else(|| KernelError::InternalError {
-                message: format!("No position for vertex index {}", idx),
-                context: None,
-            })
+            positions
+                .get(idx as usize)
+                .copied()
+                .ok_or_else(|| KernelError::InternalError {
+                    message: format!("No position for vertex index {}", idx),
+                    context: None,
+                })
         };
 
-        let inside = classify_point_in_solid(
-            &arena, &position_fn, None, &[0.0, 0.0, 0.0], &tol,
-        ).expect("Classification must not error for interior point");
+        let inside = classify_point_in_solid(&arena, &position_fn, None, &[0.0, 0.0, 0.0], &tol)
+            .expect("Classification must not error for interior point");
         assert!(
             matches!(inside, PointClassification::Inside { .. }),
-            "Origin must be Inside the [-1,1]³ cube, got {:?}", inside
+            "Origin must be Inside the [-1,1]³ cube, got {:?}",
+            inside
         );
 
-        let outside = classify_point_in_solid(
-            &arena, &position_fn, None, &[10.0, 10.0, 10.0], &tol,
-        ).expect("Classification must not error for exterior point");
+        let outside =
+            classify_point_in_solid(&arena, &position_fn, None, &[10.0, 10.0, 10.0], &tol)
+                .expect("Classification must not error for exterior point");
         assert!(
             matches!(outside, PointClassification::Outside { .. }),
-            "Point (10,10,10) must be Outside the [-1,1]³ cube, got {:?}", outside
+            "Point (10,10,10) must be Outside the [-1,1]³ cube, got {:?}",
+            outside
         );
 
-        let also_outside = classify_point_in_solid(
-            &arena, &position_fn, None, &[-5.0, 0.0, 0.0], &tol,
-        ).expect("Classification must not error for left-exterior point");
+        let also_outside =
+            classify_point_in_solid(&arena, &position_fn, None, &[-5.0, 0.0, 0.0], &tol)
+                .expect("Classification must not error for left-exterior point");
         assert!(
             matches!(also_outside, PointClassification::Outside { .. }),
-            "Point (-5,0,0) must be Outside, got {:?}", also_outside
+            "Point (-5,0,0) must be Outside, got {:?}",
+            also_outside
         );
     }
 
@@ -447,34 +693,39 @@ mod tests {
         let (arena, positions) = build_cube_arena();
 
         let position_fn = |idx: u32| -> Result<[f64; 3], KernelError> {
-            positions.get(idx as usize).copied().ok_or_else(|| KernelError::InternalError {
-                message: format!("No position for vertex index {}", idx),
-                context: None,
-            })
+            positions
+                .get(idx as usize)
+                .copied()
+                .ok_or_else(|| KernelError::InternalError {
+                    message: format!("No position for vertex index {}", idx),
+                    context: None,
+                })
         };
 
-        let on_face = classify_point_in_solid(
-            &arena, &position_fn, None, &[1.0, 0.0, 0.0], &tol,
-        ).expect("Classification on face must not error");
+        let on_face = classify_point_in_solid(&arena, &position_fn, None, &[1.0, 0.0, 0.0], &tol)
+            .expect("Classification on face must not error");
         assert!(
             matches!(on_face, PointClassification::OnBoundary(_)),
-            "Point (1,0,0) on +X face must be OnBoundary, got {:?}", on_face
+            "Point (1,0,0) on +X face must be OnBoundary, got {:?}",
+            on_face
         );
 
-        let just_inside = classify_point_in_solid(
-            &arena, &position_fn, None, &[0.99, 0.0, 0.0], &tol,
-        ).expect("Classification near face must not error");
+        let just_inside =
+            classify_point_in_solid(&arena, &position_fn, None, &[0.99, 0.0, 0.0], &tol)
+                .expect("Classification near face must not error");
         assert!(
             matches!(just_inside, PointClassification::Inside { .. }),
-            "Point (0.99,0,0) must be Inside, got {:?}", just_inside
+            "Point (0.99,0,0) must be Inside, got {:?}",
+            just_inside
         );
 
-        let just_outside = classify_point_in_solid(
-            &arena, &position_fn, None, &[1.01, 0.0, 0.0], &tol,
-        ).expect("Classification near face must not error");
+        let just_outside =
+            classify_point_in_solid(&arena, &position_fn, None, &[1.01, 0.0, 0.0], &tol)
+                .expect("Classification near face must not error");
         assert!(
             matches!(just_outside, PointClassification::Outside { .. }),
-            "Point (1.01,0,0) must be Outside, got {:?}", just_outside
+            "Point (1.01,0,0) must be Outside, got {:?}",
+            just_outside
         );
     }
 
@@ -493,10 +744,13 @@ mod tests {
         let (arena, positions) = build_cube_arena();
 
         let position_fn = |idx: u32| -> Result<[f64; 3], KernelError> {
-            positions.get(idx as usize).copied().ok_or_else(|| KernelError::InternalError {
-                message: format!("No position for vertex index {}", idx),
-                context: None,
-            })
+            positions
+                .get(idx as usize)
+                .copied()
+                .ok_or_else(|| KernelError::InternalError {
+                    message: format!("No position for vertex index {}", idx),
+                    context: None,
+                })
         };
 
         let mut inside_count = 0usize;
@@ -512,9 +766,7 @@ mod tests {
                     let y = -2.0 + 4.0 * (iy as f64) / (steps as f64 - 1.0);
                     let z = -2.0 + 4.0 * (iz as f64) / (steps as f64 - 1.0);
 
-                    match classify_point_in_solid(
-                        &arena, &position_fn, None, &[x, y, z], &tol,
-                    ) {
+                    match classify_point_in_solid(&arena, &position_fn, None, &[x, y, z], &tol) {
                         Ok(PointClassification::Inside { .. }) => inside_count += 1,
                         Ok(PointClassification::Outside { .. }) => outside_count += 1,
                         Ok(PointClassification::OnBoundary(_)) => boundary_count += 1,
@@ -531,7 +783,8 @@ mod tests {
         assert!(
             inside_count < outside_count,
             "Cube [-1,1]³ in [-2,2]³ grid: outside ({}) must exceed inside ({})",
-            outside_count, inside_count
+            outside_count,
+            inside_count
         );
     }
 
@@ -549,13 +802,18 @@ mod tests {
 
         for (he_id, he_data) in arena.iter_half_edges() {
             let twin_id = he_data.radial_next();
-            if he_id == twin_id { continue; }
+            if he_id == twin_id {
+                continue;
+            }
 
             let twin_data = arena.get_half_edge(twin_id).unwrap();
             assert_ne!(
-                he_data.face(), twin_data.face(),
+                he_data.face(),
+                twin_data.face(),
                 "Twin pair ({}, {}) both belong to face {} — orientation is inconsistent",
-                he_id.index(), twin_id.index(), he_data.face().index()
+                he_id.index(),
+                twin_id.index(),
+                he_data.face().index()
             );
         }
     }
@@ -567,14 +825,21 @@ mod tests {
 
         for (he_id, he_data) in arena.iter_half_edges() {
             let twin_id = he_data.radial_next();
-            if he_id == twin_id { continue; }
+            if he_id == twin_id {
+                continue;
+            }
 
-            let twin_data = arena.get_half_edge(twin_id)
-                .unwrap_or_else(|_| panic!("Twin {} of {} is invalid", twin_id.index(), he_id.index()));
+            let twin_data = arena.get_half_edge(twin_id).unwrap_or_else(|_| {
+                panic!("Twin {} of {} is invalid", twin_id.index(), he_id.index())
+            });
             assert_eq!(
-                twin_data.radial_next(), he_id,
+                twin_data.radial_next(),
+                he_id,
                 "Twin reciprocity broken: he[{}].twin = {}, but he[{}].twin = {}",
-                he_id.index(), twin_id.index(), twin_id.index(), twin_data.radial_next().index()
+                he_id.index(),
+                twin_id.index(),
+                twin_id.index(),
+                twin_data.radial_next().index()
             );
         }
     }
@@ -589,17 +854,29 @@ mod tests {
 
         for (he_id, he_data) in arena.iter_half_edges() {
             let twin_id = he_data.radial_next();
-            if he_id == twin_id { continue; }
+            if he_id == twin_id {
+                continue;
+            }
 
-            let canonical = (he_id.index().min(twin_id.index()), he_id.index().max(twin_id.index()));
-            edge_face_pairs.entry(canonical).or_default().push(he_data.face().index());
+            let canonical = (
+                he_id.index().min(twin_id.index()),
+                he_id.index().max(twin_id.index()),
+            );
+            edge_face_pairs
+                .entry(canonical)
+                .or_default()
+                .push(he_data.face().index());
         }
 
         for ((lo, hi), faces) in &edge_face_pairs {
             assert_eq!(
-                faces.len(), 2,
+                faces.len(),
+                2,
                 "Edge ({}, {}) shared by {} faces (expected 2): {:?}",
-                lo, hi, faces.len(), faces
+                lo,
+                hi,
+                faces.len(),
+                faces
             );
             assert_ne!(
                 faces[0], faces[1],
@@ -623,22 +900,31 @@ mod tests {
                 let he_data = arena.get_half_edge(he_id).unwrap();
 
                 assert_eq!(
-                    he_data.face(), face_id,
+                    he_data.face(),
+                    face_id,
                     "Half-edge {} in loop of face {} claims face {}",
-                    he_id.index(), face_id.index(), he_data.face().index()
+                    he_id.index(),
+                    face_id.index(),
+                    he_data.face().index()
                 );
 
                 let prev_data = arena.get_half_edge(he_data.prev()).unwrap();
-                assert_eq!(prev_data.next(), he_id,
+                assert_eq!(
+                    prev_data.next(),
+                    he_id,
                     "prev({}).next != {} in face {}",
-                    he_data.prev().index(), he_id.index(), face_id.index()
+                    he_data.prev().index(),
+                    he_id.index(),
+                    face_id.index()
                 );
 
                 edge_count += 1;
             }
-            assert!(edge_count >= 3,
+            assert!(
+                edge_count >= 3,
                 "Face {} has only {} edges (minimum 3 for a valid polygon)",
-                face_id.index(), edge_count
+                face_id.index(),
+                edge_count
             );
         }
     }
@@ -653,19 +939,25 @@ mod tests {
 
         for (he_id, he_data) in arena.iter_half_edges() {
             let twin_id = he_data.radial_next();
-            if he_id == twin_id { continue; }
+            if he_id == twin_id {
+                continue;
+            }
 
             let twin_data = arena.get_half_edge(twin_id).unwrap();
             let next_data = arena.get_half_edge(he_data.next()).unwrap();
 
             assert_eq!(
-                next_data.origin(), twin_data.origin(),
+                next_data.origin(),
+                twin_data.origin(),
                 "Orientation coherence broken at edge ({}, {}): \
                  he[{}] origin={}, next.origin={}, twin.origin={} — \
                  twin should go from target back to origin",
-                he_id.index(), twin_id.index(),
-                he_id.index(), he_data.origin().index(),
-                next_data.origin().index(), twin_data.origin().index()
+                he_id.index(),
+                twin_id.index(),
+                he_id.index(),
+                he_data.origin().index(),
+                next_data.origin().index(),
+                twin_data.origin().index()
             );
         }
     }
@@ -677,13 +969,13 @@ mod tests {
 
         let positions = vec![
             [-1.0, -1.0, -1.0], // 0
-            [ 1.0, -1.0, -1.0], // 1
-            [ 1.0,  1.0, -1.0], // 2
-            [-1.0,  1.0, -1.0], // 3
-            [-1.0, -1.0,  1.0], // 4
-            [ 1.0, -1.0,  1.0], // 5
-            [ 1.0,  1.0,  1.0], // 6
-            [-1.0,  1.0,  1.0], // 7
+            [1.0, -1.0, -1.0],  // 1
+            [1.0, 1.0, -1.0],   // 2
+            [-1.0, 1.0, -1.0],  // 3
+            [-1.0, -1.0, 1.0],  // 4
+            [1.0, -1.0, 1.0],   // 5
+            [1.0, 1.0, 1.0],    // 6
+            [-1.0, 1.0, 1.0],   // 7
         ];
 
         let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
@@ -705,17 +997,26 @@ mod tests {
 
         for quad in &quad_faces {
             let placeholder_shell_q = crate::handles::ShellId::new(u32::MAX, 0);
-            let placeholder_e_q     = crate::handles::EdgeId::new(u32::MAX, 0);
-            let face = arena.insert_face(FaceData::new(placeholder_loop, placeholder_shell_q), None);
+            let placeholder_e_q = crate::handles::EdgeId::new(u32::MAX, 0);
+            let face =
+                arena.insert_face(FaceData::new(placeholder_loop, placeholder_shell_q), None);
             let loop_id = arena.insert_loop(LoopData::new(placeholder_he, face), None);
             arena.get_face_mut(face).unwrap().set_outer_loop(loop_id);
 
             let mut he_ids = Vec::new();
             for i in 0..4 {
                 let origin = verts[quad[i]];
-                let he = arena.insert_half_edge(HalfEdgeData::new(
-                    placeholder_he, placeholder_he, placeholder_he, face, origin, placeholder_e_q,
-                ), None);
+                let he = arena.insert_half_edge(
+                    HalfEdgeData::new(
+                        placeholder_he,
+                        placeholder_he,
+                        placeholder_he,
+                        face,
+                        origin,
+                        placeholder_e_q,
+                    ),
+                    None,
+                );
                 he_ids.push(he);
             }
 
@@ -726,11 +1027,18 @@ mod tests {
                 arena.get_half_edge_mut(he_ids[i]).unwrap().set_prev(prev);
             }
 
-            arena.get_loop_mut(loop_id).unwrap().set_half_edge(he_ids[0]);
-            arena.get_vertex_mut(verts[quad[0]]).unwrap().set_outgoing(he_ids[0]);
+            arena
+                .get_loop_mut(loop_id)
+                .unwrap()
+                .set_half_edge(he_ids[0]);
+            arena
+                .get_vertex_mut(verts[quad[0]])
+                .unwrap()
+                .set_outgoing(he_ids[0]);
         }
 
-        let all_hes: Vec<(HalfEdgeId, u32, u32)> = arena.iter_half_edges()
+        let all_hes: Vec<(HalfEdgeId, u32, u32)> = arena
+            .iter_half_edges()
             .map(|(id, data)| {
                 let origin = data.origin().index();
                 let next_he = arena.get_half_edge(data.next()).unwrap();
@@ -746,22 +1054,32 @@ mod tests {
                     continue;
                 }
             }
-            for j in (i+1)..all_hes.len() {
+            for j in (i + 1)..all_hes.len() {
                 let (other_id, other_origin, other_target) = all_hes[j];
                 if origin == other_target && target == other_origin {
-                    arena.get_half_edge_mut(he_id).unwrap().set_radial_next(other_id);
-                    arena.get_half_edge_mut(other_id).unwrap().set_radial_next(he_id);
+                    arena
+                        .get_half_edge_mut(he_id)
+                        .unwrap()
+                        .set_radial_next(other_id);
+                    arena
+                        .get_half_edge_mut(other_id)
+                        .unwrap()
+                        .set_radial_next(he_id);
                     break;
                 }
             }
         }
 
-        let unmatched: Vec<HalfEdgeId> = arena.iter_half_edges()
+        let unmatched: Vec<HalfEdgeId> = arena
+            .iter_half_edges()
             .filter(|(_, data)| data.radial_next() == placeholder_he)
             .map(|(id, _)| id)
             .collect();
         for he_id in unmatched {
-            arena.get_half_edge_mut(he_id).unwrap().set_radial_next(he_id);
+            arena
+                .get_half_edge_mut(he_id)
+                .unwrap()
+                .set_radial_next(he_id);
         }
 
         (arena, positions)
@@ -781,12 +1099,38 @@ mod tests {
         let mut draft = state.into_mutation();
 
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
-        let se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
-        let _se3 = apply_op(&mut draft, SplitEdge { edge: se2.he_mb, parameter: 0.5 }).unwrap().into_value();
+        let se1 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let se2 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se1.he_mb,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let _se3 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se2.he_mb,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
 
-        let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face).unwrap()
-            .map(|r| r.unwrap()).collect();
+        let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face)
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
         assert_eq!(edges.len(), 4);
 
         // MVF+2×SE creates 3 distinct vertices; edges[0] and edges[2] share
@@ -794,9 +1138,16 @@ mod tests {
         let v1 = draft.arena().get_half_edge(edges[1]).unwrap().origin();
         let v3 = draft.arena().get_half_edge(edges[3]).unwrap().origin();
 
-        let mef = apply_op(&mut draft, MakeEdgeFace {
-            face: mvf.face, vertex_a: v1, vertex_b: v3,
-        }).unwrap().into_value();
+        let mef = apply_op(
+            &mut draft,
+            MakeEdgeFace {
+                face: mvf.face,
+                vertex_a: v1,
+                vertex_b: v3,
+            },
+        )
+        .unwrap()
+        .into_value();
 
         assert_eq!(draft.arena().face_count(), 2);
 
@@ -804,8 +1155,11 @@ mod tests {
 
         let mut visited = crate::topology::bitset::EntityBitset::for_faces(committed.arena());
         let shell = crate::topology::integrity::shell::discover_shell_faces(
-            committed.arena(), mvf.face, &mut visited,
-        ).unwrap();
+            committed.arena(),
+            mvf.face,
+            &mut visited,
+        )
+        .unwrap();
         assert_eq!(shell.len(), 2, "Both faces must be in the same shell");
         assert!(visited.contains(mvf.face.index()).unwrap());
         assert!(visited.contains(mef.new_face.index()).unwrap());
@@ -820,8 +1174,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let (face, outer_he, inner_he, _inner_loop, _verts) =
-            build_face_with_hole(&mut draft);
+        let (face, outer_he, inner_he, _inner_loop, _verts) = build_face_with_hole(&mut draft);
 
         let _bridge1 = bridge_edge(&mut draft, outer_he, inner_he).unwrap();
 
@@ -836,7 +1189,9 @@ mod tests {
             count += 1;
             assert!(count <= 200, "Infinite loop in merged traversal");
             current = draft.arena().get_half_edge(current).unwrap().next();
-            if current == start { break; }
+            if current == start {
+                break;
+            }
         }
 
         assert_eq!(count, 8, "Outer(3) + inner(3) + 2 bridge = 8 edges");
@@ -850,14 +1205,32 @@ mod tests {
         let mut draft = state.into_mutation();
 
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
+        let se = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
 
         let wrong_he = se.he_mb;
-        draft.arena_mut().get_vertex_mut(mvf.vertex).unwrap().set_outgoing(wrong_he);
+        draft
+            .arena_mut()
+            .get_vertex_mut(mvf.vertex)
+            .unwrap()
+            .set_outgoing(wrong_he);
 
         let result = draft.commit();
-        assert!(result.is_err(), "Commit must reject mismatched vertex outgoing");
-        assert!(matches!(result.unwrap_err(), KernelError::TopologyViolation { .. }));
+        assert!(
+            result.is_err(),
+            "Commit must reject mismatched vertex outgoing"
+        );
+        assert!(matches!(
+            result.unwrap_err(),
+            KernelError::TopologyViolation { .. }
+        ));
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -878,16 +1251,27 @@ mod tests {
         let mut current_edge = mvf.half_edge;
 
         for _ in 0..50 {
-            let se = apply_op(&mut draft, SplitEdge {
-                edge: current_edge, parameter: 0.5,
-            }).unwrap().into_value();
+            let se = apply_op(
+                &mut draft,
+                SplitEdge {
+                    edge: current_edge,
+                    parameter: 0.5,
+                },
+            )
+            .unwrap()
+            .into_value();
 
             let face_id = draft.arena().get_half_edge(current_edge).unwrap().face();
-            let mef = apply_op(&mut draft, MakeEdgeFace {
-                vertex_a: center,
-                vertex_b: se.new_vertex,
-                face: face_id,
-            }).unwrap().into_value();
+            let mef = apply_op(
+                &mut draft,
+                MakeEdgeFace {
+                    vertex_a: center,
+                    vertex_b: se.new_vertex,
+                    face: face_id,
+                },
+            )
+            .unwrap()
+            .into_value();
 
             current_edge = mef.half_edge_ab;
         }
@@ -899,13 +1283,24 @@ mod tests {
         assert!(validate_topology(committed.arena(), ValidationLevel::Minimal).is_ok());
 
         let chi = euler_chi(committed.arena());
-        assert_eq!(chi, 1, "Open fan topology has χ=1 (boundary edges), got {}", chi);
+        assert_eq!(
+            chi, 1,
+            "Open fan topology has χ=1 (boundary edges), got {}",
+            chi
+        );
 
         let mut visited = crate::topology::bitset::EntityBitset::for_faces(committed.arena());
         let shell = crate::topology::integrity::shell::discover_shell_faces(
-            committed.arena(), mvf.face, &mut visited,
-        ).unwrap();
-        assert_eq!(shell.len(), 51, "All 51 faces must be in one connected shell");
+            committed.arena(),
+            mvf.face,
+            &mut visited,
+        )
+        .unwrap();
+        assert_eq!(
+            shell.len(),
+            51,
+            "All 51 faces must be in one connected shell"
+        );
     }
 
     /// L2: Multiple independent shells in one arena.
@@ -918,10 +1313,26 @@ mod tests {
         let mut draft = state.into_mutation();
 
         let mvf1 = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let _se1 = apply_op(&mut draft, SplitEdge { edge: mvf1.half_edge, parameter: 0.5 }).unwrap().into_value();
+        let _se1 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf1.half_edge,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
 
         let mvf2 = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let _se2 = apply_op(&mut draft, SplitEdge { edge: mvf2.half_edge, parameter: 0.5 }).unwrap().into_value();
+        let _se2 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf2.half_edge,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
 
         assert_eq!(draft.arena().face_count(), 2);
 
@@ -929,11 +1340,17 @@ mod tests {
 
         let mut visited = crate::topology::bitset::EntityBitset::for_faces(committed.arena());
         let shell1 = crate::topology::integrity::shell::discover_shell_faces(
-            committed.arena(), mvf1.face, &mut visited,
-        ).unwrap();
+            committed.arena(),
+            mvf1.face,
+            &mut visited,
+        )
+        .unwrap();
         let shell2 = crate::topology::integrity::shell::discover_shell_faces(
-            committed.arena(), mvf2.face, &mut visited,
-        ).unwrap();
+            committed.arena(),
+            mvf2.face,
+            &mut visited,
+        )
+        .unwrap();
 
         assert_eq!(shell1.len(), 1, "Shell 1 has exactly 1 face");
         assert_eq!(shell2.len(), 1, "Shell 2 has exactly 1 face");
@@ -955,16 +1372,27 @@ mod tests {
         let mut mef_edges: Vec<HalfEdgeId> = Vec::new();
 
         for _ in 0..100 {
-            let se = apply_op(&mut draft, SplitEdge {
-                edge: current_edge, parameter: 0.5,
-            }).unwrap().into_value();
+            let se = apply_op(
+                &mut draft,
+                SplitEdge {
+                    edge: current_edge,
+                    parameter: 0.5,
+                },
+            )
+            .unwrap()
+            .into_value();
 
             let face_id = draft.arena().get_half_edge(current_edge).unwrap().face();
-            let mef = apply_op(&mut draft, MakeEdgeFace {
-                vertex_a: center,
-                vertex_b: se.new_vertex,
-                face: face_id,
-            }).unwrap().into_value();
+            let mef = apply_op(
+                &mut draft,
+                MakeEdgeFace {
+                    vertex_a: center,
+                    vertex_b: se.new_vertex,
+                    face: face_id,
+                },
+            )
+            .unwrap()
+            .into_value();
 
             mef_edges.push(mef.half_edge_ab);
             current_edge = mef.half_edge_ab;
@@ -974,8 +1402,10 @@ mod tests {
         assert_eq!(draft.arena().vertex_count(), 101);
 
         let mid_state = draft.commit().unwrap();
-        assert!(validate_topology(mid_state.arena(), ValidationLevel::Minimal).is_ok(),
-            "Topology must be valid after 100 fan splits");
+        assert!(
+            validate_topology(mid_state.arena(), ValidationLevel::Minimal).is_ok(),
+            "Topology must be valid after 100 fan splits"
+        );
 
         let mut draft2 = mid_state.into_mutation();
 
@@ -993,10 +1423,16 @@ mod tests {
         assert!(merged > 0, "At least some faces must have been merged back");
 
         let final_state = draft2.commit().unwrap();
-        assert!(validate_topology(final_state.arena(), ValidationLevel::Minimal).is_ok(),
-            "Topology must remain valid after selective merges");
+        assert!(
+            validate_topology(final_state.arena(), ValidationLevel::Minimal).is_ok(),
+            "Topology must remain valid after selective merges"
+        );
 
         let chi = euler_chi(final_state.arena());
-        assert_eq!(chi, 1, "Open fan topology has χ=1 (boundary edges), got {}", chi);
+        assert_eq!(
+            chi, 1,
+            "Open fan topology has χ=1 (boundary edges), got {}",
+            chi
+        );
     }
 }

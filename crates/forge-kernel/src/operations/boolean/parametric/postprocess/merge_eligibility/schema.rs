@@ -69,8 +69,14 @@ impl MergeRegionSelectionPersistent {
         surviving_face: PersistentName,
     ) -> Self {
         Self {
-            selected_faces: selected_faces.into_iter().map(PersistentFaceRef::Name).collect(),
-            protected_faces: protected_faces.into_iter().map(PersistentFaceRef::Name).collect(),
+            selected_faces: selected_faces
+                .into_iter()
+                .map(PersistentFaceRef::Name)
+                .collect(),
+            protected_faces: protected_faces
+                .into_iter()
+                .map(PersistentFaceRef::Name)
+                .collect(),
             surviving_face: PersistentFaceRef::Name(surviving_face),
             selected_radial_uses: Vec::new(),
         }
@@ -81,7 +87,12 @@ impl MergeRegionSelectionPersistent {
         protected_faces: Vec<PersistentFaceRef>,
         surviving_face: PersistentFaceRef,
     ) -> Self {
-        Self { selected_faces, protected_faces, surviving_face, selected_radial_uses: Vec::new() }
+        Self {
+            selected_faces,
+            protected_faces,
+            surviving_face,
+            selected_radial_uses: Vec::new(),
+        }
     }
 
     pub fn with_radial_selectors(
@@ -91,8 +102,14 @@ impl MergeRegionSelectionPersistent {
         selected_radial_uses: Vec<RadialUseSelector>,
     ) -> Self {
         Self {
-            selected_faces: selected_faces.into_iter().map(PersistentFaceRef::Name).collect(),
-            protected_faces: protected_faces.into_iter().map(PersistentFaceRef::Name).collect(),
+            selected_faces: selected_faces
+                .into_iter()
+                .map(PersistentFaceRef::Name)
+                .collect(),
+            protected_faces: protected_faces
+                .into_iter()
+                .map(PersistentFaceRef::Name)
+                .collect(),
             surviving_face: PersistentFaceRef::Name(surviving_face),
             selected_radial_uses,
         }
@@ -104,13 +121,26 @@ impl MergeRegionSelectionPersistent {
         surviving_face: PersistentFaceRef,
         selected_radial_uses: Vec<RadialUseSelector>,
     ) -> Self {
-        Self { selected_faces, protected_faces, surviving_face, selected_radial_uses }
+        Self {
+            selected_faces,
+            protected_faces,
+            surviving_face,
+            selected_radial_uses,
+        }
     }
 
-    pub fn get_selected_faces(&self) -> &[PersistentFaceRef] { &self.selected_faces }
-    pub fn get_protected_faces(&self) -> &[PersistentFaceRef] { &self.protected_faces }
-    pub fn get_surviving_face(&self) -> &PersistentFaceRef { &self.surviving_face }
-    pub fn get_radial_selectors(&self) -> &[RadialUseSelector] { &self.selected_radial_uses }
+    pub fn get_selected_faces(&self) -> &[PersistentFaceRef] {
+        &self.selected_faces
+    }
+    pub fn get_protected_faces(&self) -> &[PersistentFaceRef] {
+        &self.protected_faces
+    }
+    pub fn get_surviving_face(&self) -> &PersistentFaceRef {
+        &self.surviving_face
+    }
+    pub fn get_radial_selectors(&self) -> &[RadialUseSelector] {
+        &self.selected_radial_uses
+    }
 }
 
 impl MergeRegionSelection {
@@ -181,17 +211,27 @@ pub struct RadialUseSelector {
 impl RadialUseSelector {
     /// Create a new radial use selector with face indices.
     pub fn new(edge_index: u32, survive_face_index: u32, kill_face_index: u32) -> Self {
-        Self { edge_index, survive_face_index, kill_face_index }
+        Self {
+            edge_index,
+            survive_face_index,
+            kill_face_index,
+        }
     }
 
     /// The edge being disambiguated.
-    pub fn get_edge_index(&self) -> u32 { self.edge_index }
+    pub fn get_edge_index(&self) -> u32 {
+        self.edge_index
+    }
 
     /// Arena index of the surviving face.
-    pub fn get_survive_face_index(&self) -> u32 { self.survive_face_index }
+    pub fn get_survive_face_index(&self) -> u32 {
+        self.survive_face_index
+    }
 
     /// Arena index of the killed face.
-    pub fn get_kill_face_index(&self) -> u32 { self.kill_face_index }
+    pub fn get_kill_face_index(&self) -> u32 {
+        self.kill_face_index
+    }
 }
 
 /// Snapshot-scoped execution blueprint for a merge sequence.
@@ -269,7 +309,11 @@ pub struct MergeResult {
 impl MergeResult {
     /// Create a new merge result.
     pub fn new(surviving_face: FaceId, killed_faces: Vec<FaceId>, plan: MergePlan) -> Self {
-        Self { surviving_face, killed_faces, plan }
+        Self {
+            surviving_face,
+            killed_faces,
+            plan,
+        }
     }
 
     /// The surviving face.

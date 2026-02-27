@@ -17,13 +17,9 @@ use crate::arena::TopologyArena;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EntityDelta {
     /// Entity was added (did not exist before, exists after).
-    Added {
-        index: usize,
-    },
+    Added { index: usize },
     /// Entity was removed (existed before, does not exist after).
-    Removed {
-        index: usize,
-    },
+    Removed { index: usize },
     /// Entity was modified (exists in both, generation changed OR version changed).
     Modified {
         index: usize,
@@ -64,8 +60,13 @@ pub struct TopologyDiff {
 impl TopologyDiff {
     /// Total number of entity deltas across all kinds.
     pub fn total_changes(&self) -> usize {
-        self.faces.len() + self.half_edges.len() + self.vertices.len()
-            + self.loops.len() + self.edges.len() + self.shells.len() + self.solids.len()
+        self.faces.len()
+            + self.half_edges.len()
+            + self.vertices.len()
+            + self.loops.len()
+            + self.edges.len()
+            + self.shells.len()
+            + self.solids.len()
     }
 
     /// Whether the diff is empty (no changes).
@@ -127,7 +128,7 @@ fn diff_slots(
             }
             (Some((old_gen, old_ver)), Some((new_gen, new_ver))) => {
                 if old_gen != new_gen || old_ver != new_ver {
-                     deltas.push(EntityDelta::Modified {
+                    deltas.push(EntityDelta::Modified {
                         index,
                         old_generation: old_gen,
                         new_generation: new_gen,
@@ -156,50 +157,106 @@ pub fn compute_diff(
     let faces = diff_slots(
         before.active_face_indices(),
         after.active_face_indices(),
-        |i| before.face_generation(i).map(|g| (g, before.face_version(i).unwrap_or(0))),
-        |i| after.face_generation(i).map(|g| (g, after.face_version(i).unwrap_or(0))),
+        |i| {
+            before
+                .face_generation(i)
+                .map(|g| (g, before.face_version(i).unwrap_or(0)))
+        },
+        |i| {
+            after
+                .face_generation(i)
+                .map(|g| (g, after.face_version(i).unwrap_or(0)))
+        },
     );
 
     let half_edges = diff_slots(
         before.active_half_edge_indices(),
         after.active_half_edge_indices(),
-        |i| before.half_edge_generation(i).map(|g| (g, before.half_edge_version(i).unwrap_or(0))),
-        |i| after.half_edge_generation(i).map(|g| (g, after.half_edge_version(i).unwrap_or(0))),
+        |i| {
+            before
+                .half_edge_generation(i)
+                .map(|g| (g, before.half_edge_version(i).unwrap_or(0)))
+        },
+        |i| {
+            after
+                .half_edge_generation(i)
+                .map(|g| (g, after.half_edge_version(i).unwrap_or(0)))
+        },
     );
 
     let vertices = diff_slots(
         before.active_vertex_indices(),
         after.active_vertex_indices(),
-        |i| before.vertex_generation(i).map(|g| (g, before.vertex_version(i).unwrap_or(0))),
-        |i| after.vertex_generation(i).map(|g| (g, after.vertex_version(i).unwrap_or(0))),
+        |i| {
+            before
+                .vertex_generation(i)
+                .map(|g| (g, before.vertex_version(i).unwrap_or(0)))
+        },
+        |i| {
+            after
+                .vertex_generation(i)
+                .map(|g| (g, after.vertex_version(i).unwrap_or(0)))
+        },
     );
 
     let loops = diff_slots(
         before.active_loop_indices(),
         after.active_loop_indices(),
-        |i| before.loop_generation(i).map(|g| (g, before.loop_version(i).unwrap_or(0))),
-        |i| after.loop_generation(i).map(|g| (g, after.loop_version(i).unwrap_or(0))),
+        |i| {
+            before
+                .loop_generation(i)
+                .map(|g| (g, before.loop_version(i).unwrap_or(0)))
+        },
+        |i| {
+            after
+                .loop_generation(i)
+                .map(|g| (g, after.loop_version(i).unwrap_or(0)))
+        },
     );
 
     let edges = diff_slots(
         before.active_edge_indices(),
         after.active_edge_indices(),
-        |i| before.edge_generation(i).map(|g| (g, before.edge_version(i).unwrap_or(0))),
-        |i| after.edge_generation(i).map(|g| (g, after.edge_version(i).unwrap_or(0))),
+        |i| {
+            before
+                .edge_generation(i)
+                .map(|g| (g, before.edge_version(i).unwrap_or(0)))
+        },
+        |i| {
+            after
+                .edge_generation(i)
+                .map(|g| (g, after.edge_version(i).unwrap_or(0)))
+        },
     );
 
     let shells = diff_slots(
         before.active_shell_indices(),
         after.active_shell_indices(),
-        |i| before.shell_generation(i).map(|g| (g, before.shell_version(i).unwrap_or(0))),
-        |i| after.shell_generation(i).map(|g| (g, after.shell_version(i).unwrap_or(0))),
+        |i| {
+            before
+                .shell_generation(i)
+                .map(|g| (g, before.shell_version(i).unwrap_or(0)))
+        },
+        |i| {
+            after
+                .shell_generation(i)
+                .map(|g| (g, after.shell_version(i).unwrap_or(0)))
+        },
     );
 
     let solids = diff_slots(
         before.active_body_indices(),
         after.active_body_indices(),
-        |i| before.body_generation(i).map(|g| (g, before.body_version(i).unwrap_or(0))),
-        |i| after.body_generation(i).map(|g| (g, after.body_version(i).unwrap_or(0))),
+        |i| {
+            before
+                .body_generation(i)
+                .map(|g| (g, before.body_version(i).unwrap_or(0)))
+        },
+        |i| {
+            after
+                .body_generation(i)
+                .map(|g| (g, after.body_version(i).unwrap_or(0)))
+        },
     );
 
     TopologyDiff {
@@ -218,10 +275,10 @@ pub fn compute_diff(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::TopologyState;
-    use crate::operator::apply_op;
     use crate::euler::make_vertex_face::MakeVertexFace;
     use crate::euler::split_edge::SplitEdge;
+    use crate::operator::apply_op;
+    use crate::state::TopologyState;
 
     #[test]
     fn empty_to_empty_diff_is_empty() {
@@ -264,7 +321,15 @@ mod tests {
         // We cloned `before_arena` from strict clone.
         // state_1 is consumed by into_mutation.
         let mut draft2 = state_1.into_mutation();
-        let _se = apply_op(&mut draft2, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
+        let _se = apply_op(
+            &mut draft2,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
         let state_2 = draft2.commit().unwrap();
 
         let diff = compute_diff(&before_arena, state_2.arena(), 1, 2);

@@ -4,8 +4,8 @@
 //! runtime policy decisions query this trait instead of calling
 //! `ModelingContext::resolve_policy_query` directly.
 
-use forge_core::{KernelError, PolicyKind};
 use crate::core::ModelingContext;
+use forge_core::{KernelError, PolicyKind};
 
 /// Policy pre-validation and resolution.
 ///

@@ -35,7 +35,9 @@ pub trait FeatureContract {
     fn audit_level(&self) -> AuditLevel;
 
     /// Whether this feature produces persistent output topology that should be tracked.
-    fn persistent_output(&self) -> bool { true }
+    fn persistent_output(&self) -> bool {
+        true
+    }
 
     /// Config overrides this feature requires.
     /// Default: no overrides (use cascade defaults).

@@ -24,27 +24,27 @@
 //! - `adapters.rs` — BooleanTolerances adapter
 //! - `parametric/` — Parametric pipeline (split, classify, assemble, postprocess)
 
-pub(crate) mod schema;
-pub mod result;
+pub mod adapters;
+#[cfg(test)]
+mod brutality;
 pub mod classify_schema;
 pub mod contract;
-pub mod adapters;
-pub mod parametric;
+mod debug;
 pub mod ember;
+pub mod parametric;
+pub mod result;
+pub(crate) mod schema;
 pub(crate) mod shared;
 #[cfg(test)]
 pub mod test_helpers;
 #[cfg(test)]
 mod tests;
-#[cfg(test)]
-mod brutality;
-mod debug;
 
-pub use schema::{BooleanInput, BooleanOp};
-pub use result::{BooleanResult, BooleanIntrospection};
-pub use classify_schema::{FaceClassification, ClassifiedFace, FaceOrigin};
+pub use classify_schema::{ClassifiedFace, FaceClassification, FaceOrigin};
 pub use parametric::assemble::execute_boolean_direct;
 pub use parametric::assemble::execute_boolean_with_overrides;
+pub use result::{BooleanIntrospection, BooleanResult};
+pub use schema::{BooleanInput, BooleanOp};
 
 /// Execute a Boolean operation — the production entry point.
 ///

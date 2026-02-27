@@ -2,16 +2,16 @@
 
 use std::collections::HashMap;
 
+use super::dispatch::CommandDispatcher;
+use crate::brep::state::BrepState;
+use crate::core::ModelingContext;
+use crate::engine::executor::FeaturePipeline;
+use crate::engine::traits::FeatureOutput;
+use crate::engine::tree::FeatureTree;
+use crate::engine::wrappers::{BooleanFeature, MakeCubeFeature};
 use forge_core::PolicyKind;
 use forge_schema::{Command, EntityRef};
 use forge_signal::handles::NodeId;
-use crate::core::ModelingContext;
-use crate::engine::tree::FeatureTree;
-use crate::engine::traits::FeatureOutput;
-use crate::engine::executor::FeaturePipeline;
-use crate::engine::wrappers::{MakeCubeFeature, BooleanFeature};
-use crate::brep::state::BrepState;
-use super::dispatch::CommandDispatcher;
 
 // ── Tier 0: Command Dispatch ─────────────────────────────────────────────
 
@@ -60,7 +60,11 @@ fn dispatch_boolean_subtract_resolves_entity_refs() {
     };
 
     let result_id = dispatcher.dispatch(&subtract);
-    assert!(result_id.is_ok(), "boolean dispatch should succeed: {:?}", result_id.err());
+    assert!(
+        result_id.is_ok(),
+        "boolean dispatch should succeed: {:?}",
+        result_id.err()
+    );
 }
 
 #[test]
@@ -86,7 +90,11 @@ fn dispatch_boolean_union_resolves_entity_refs() {
     };
 
     let result_id = dispatcher.dispatch(&union);
-    assert!(result_id.is_ok(), "union dispatch should succeed: {:?}", result_id.err());
+    assert!(
+        result_id.is_ok(),
+        "union dispatch should succeed: {:?}",
+        result_id.err()
+    );
 }
 
 #[test]
@@ -126,31 +134,56 @@ fn pipeline_rejects_feature_with_missing_policy_configuration() {
 
     struct EmptyInputs;
     impl FeatureInputs for EmptyInputs {
-        fn validate(&self) -> Result<(), forge_core::KernelError> { Ok(()) }
+        fn validate(&self) -> Result<(), forge_core::KernelError> {
+            Ok(())
+        }
     }
 
     impl FeatureContract for PolicyHungryFeature {
-        fn feature_kind(&self) -> &'static str { "test_policy_hungry" }
+        fn feature_kind(&self) -> &'static str {
+            "test_policy_hungry"
+        }
         fn required_policies(&self) -> &[PolicyKind] {
             &[PolicyKind::NearTangency]
         }
-        fn entity_origins(&self) -> &[EntityOriginKind] { &[] }
-        fn euler_ops(&self) -> &[crate::engine::contract::EulerOpKind] { &[] }
-        fn surface_types(&self) -> &[crate::engine::contract::SurfaceKind] { &[] }
-        fn post_invariants(&self) -> &[InvariantKind] { &[] }
-        fn audit_level(&self) -> AuditLevel { AuditLevel::None }
+        fn entity_origins(&self) -> &[EntityOriginKind] {
+            &[]
+        }
+        fn euler_ops(&self) -> &[crate::engine::contract::EulerOpKind] {
+            &[]
+        }
+        fn surface_types(&self) -> &[crate::engine::contract::SurfaceKind] {
+            &[]
+        }
+        fn post_invariants(&self) -> &[InvariantKind] {
+            &[]
+        }
+        fn audit_level(&self) -> AuditLevel {
+            AuditLevel::None
+        }
     }
 
     impl Feature for PolicyHungryFeature {
         type Inputs = EmptyInputs;
-        fn parse_inputs(&self, _raw: &HashMap<NodeId, FeatureOutput>) -> Result<EmptyInputs, forge_core::KernelError> {
+        fn parse_inputs(
+            &self,
+            _raw: &HashMap<NodeId, FeatureOutput>,
+        ) -> Result<EmptyInputs, forge_core::KernelError> {
             Ok(EmptyInputs)
         }
-        fn execute_typed(&self, _inputs: &EmptyInputs, _config: &crate::core::config::resolve::ResolvedConfig) -> Result<FeatureOutput, forge_core::KernelError> {
+        fn execute_typed(
+            &self,
+            _inputs: &EmptyInputs,
+            _config: &crate::core::config::resolve::ResolvedConfig,
+        ) -> Result<FeatureOutput, forge_core::KernelError> {
             unreachable!("should not reach execution with missing policy")
         }
-        fn dependencies(&self) -> Vec<NodeId> { Vec::new() }
-        fn name(&self) -> &str { "test_policy_hungry" }
+        fn dependencies(&self) -> Vec<NodeId> {
+            Vec::new()
+        }
+        fn name(&self) -> &str {
+            "test_policy_hungry"
+        }
     }
 
     let feature = PolicyHungryFeature;
@@ -158,7 +191,10 @@ fn pipeline_rejects_feature_with_missing_policy_configuration() {
     let mut ctx = ModelingContext::new();
 
     let result = FeaturePipeline::execute(&feature, &inputs, &mut ctx);
-    assert!(result.is_err(), "pipeline should reject feature with missing policy");
+    assert!(
+        result.is_err(),
+        "pipeline should reject feature with missing policy"
+    );
 
     let err = format!("{:?}", result.unwrap_err());
     assert!(
@@ -187,25 +223,50 @@ fn pipeline_validates_inputs_before_execution() {
     }
 
     impl FeatureContract for StrictInputFeature {
-        fn feature_kind(&self) -> &'static str { "test_strict" }
-        fn required_policies(&self) -> &[PolicyKind] { &[] }
-        fn entity_origins(&self) -> &[EntityOriginKind] { &[] }
-        fn euler_ops(&self) -> &[crate::engine::contract::EulerOpKind] { &[] }
-        fn surface_types(&self) -> &[crate::engine::contract::SurfaceKind] { &[] }
-        fn post_invariants(&self) -> &[InvariantKind] { &[] }
-        fn audit_level(&self) -> AuditLevel { AuditLevel::None }
+        fn feature_kind(&self) -> &'static str {
+            "test_strict"
+        }
+        fn required_policies(&self) -> &[PolicyKind] {
+            &[]
+        }
+        fn entity_origins(&self) -> &[EntityOriginKind] {
+            &[]
+        }
+        fn euler_ops(&self) -> &[crate::engine::contract::EulerOpKind] {
+            &[]
+        }
+        fn surface_types(&self) -> &[crate::engine::contract::SurfaceKind] {
+            &[]
+        }
+        fn post_invariants(&self) -> &[InvariantKind] {
+            &[]
+        }
+        fn audit_level(&self) -> AuditLevel {
+            AuditLevel::None
+        }
     }
 
     impl Feature for StrictInputFeature {
         type Inputs = StrictInputs;
-        fn parse_inputs(&self, _raw: &HashMap<NodeId, FeatureOutput>) -> Result<StrictInputs, forge_core::KernelError> {
+        fn parse_inputs(
+            &self,
+            _raw: &HashMap<NodeId, FeatureOutput>,
+        ) -> Result<StrictInputs, forge_core::KernelError> {
             Ok(StrictInputs)
         }
-        fn execute_typed(&self, _inputs: &StrictInputs, _config: &crate::core::config::resolve::ResolvedConfig) -> Result<FeatureOutput, forge_core::KernelError> {
+        fn execute_typed(
+            &self,
+            _inputs: &StrictInputs,
+            _config: &crate::core::config::resolve::ResolvedConfig,
+        ) -> Result<FeatureOutput, forge_core::KernelError> {
             unreachable!("should not reach execution with failed validation")
         }
-        fn dependencies(&self) -> Vec<NodeId> { Vec::new() }
-        fn name(&self) -> &str { "test_strict" }
+        fn dependencies(&self) -> Vec<NodeId> {
+            Vec::new()
+        }
+        fn name(&self) -> &str {
+            "test_strict"
+        }
     }
 
     let feature = StrictInputFeature;
@@ -213,7 +274,10 @@ fn pipeline_validates_inputs_before_execution() {
     let mut ctx = ModelingContext::new();
 
     let result = FeaturePipeline::execute(&feature, &inputs, &mut ctx);
-    assert!(result.is_err(), "pipeline should reject feature with invalid inputs");
+    assert!(
+        result.is_err(),
+        "pipeline should reject feature with invalid inputs"
+    );
 
     let err = format!("{:?}", result.unwrap_err());
     assert!(
@@ -234,7 +298,8 @@ fn pipeline_executes_make_cube_through_full_pipeline() {
 
     let output = envelope.get_value();
     assert_eq!(
-        output.topology.arena().face_count(), 6,
+        output.topology.arena().face_count(),
+        6,
         "Cube must have 6 faces"
     );
 }
@@ -243,41 +308,68 @@ fn pipeline_executes_make_cube_through_full_pipeline() {
 fn pipeline_skips_audit_at_none_level() {
     use crate::engine::contract::*;
     use crate::engine::traits::Feature;
-    use forge_topo::state::TopologyState;
     use crate::geometry_state::GeometryState;
+    use forge_topo::state::TopologyState;
 
     #[derive(Debug)]
     struct NoAuditFeature;
 
     struct EmptyInputs;
     impl FeatureInputs for EmptyInputs {
-        fn validate(&self) -> Result<(), forge_core::KernelError> { Ok(()) }
+        fn validate(&self) -> Result<(), forge_core::KernelError> {
+            Ok(())
+        }
     }
 
     impl FeatureContract for NoAuditFeature {
-        fn feature_kind(&self) -> &'static str { "test_no_audit" }
-        fn required_policies(&self) -> &[PolicyKind] { &[] }
-        fn entity_origins(&self) -> &[EntityOriginKind] { &[] }
-        fn euler_ops(&self) -> &[crate::engine::contract::EulerOpKind] { &[] }
-        fn surface_types(&self) -> &[crate::engine::contract::SurfaceKind] { &[] }
-        fn post_invariants(&self) -> &[InvariantKind] { &[] }
-        fn audit_level(&self) -> AuditLevel { AuditLevel::None }
+        fn feature_kind(&self) -> &'static str {
+            "test_no_audit"
+        }
+        fn required_policies(&self) -> &[PolicyKind] {
+            &[]
+        }
+        fn entity_origins(&self) -> &[EntityOriginKind] {
+            &[]
+        }
+        fn euler_ops(&self) -> &[crate::engine::contract::EulerOpKind] {
+            &[]
+        }
+        fn surface_types(&self) -> &[crate::engine::contract::SurfaceKind] {
+            &[]
+        }
+        fn post_invariants(&self) -> &[InvariantKind] {
+            &[]
+        }
+        fn audit_level(&self) -> AuditLevel {
+            AuditLevel::None
+        }
     }
 
     impl Feature for NoAuditFeature {
         type Inputs = EmptyInputs;
-        fn parse_inputs(&self, _raw: &HashMap<NodeId, FeatureOutput>) -> Result<EmptyInputs, forge_core::KernelError> {
+        fn parse_inputs(
+            &self,
+            _raw: &HashMap<NodeId, FeatureOutput>,
+        ) -> Result<EmptyInputs, forge_core::KernelError> {
             Ok(EmptyInputs)
         }
-        fn execute_typed(&self, _inputs: &EmptyInputs, _config: &crate::core::config::resolve::ResolvedConfig) -> Result<FeatureOutput, forge_core::KernelError> {
+        fn execute_typed(
+            &self,
+            _inputs: &EmptyInputs,
+            _config: &crate::core::config::resolve::ResolvedConfig,
+        ) -> Result<FeatureOutput, forge_core::KernelError> {
             Ok(FeatureOutput {
                 topology: TopologyState::empty(),
                 geometry: GeometryState::new(),
                 brep: BrepState::new(),
             })
         }
-        fn dependencies(&self) -> Vec<NodeId> { Vec::new() }
-        fn name(&self) -> &str { "test_no_audit" }
+        fn dependencies(&self) -> Vec<NodeId> {
+            Vec::new()
+        }
+        fn name(&self) -> &str {
+            "test_no_audit"
+        }
     }
 
     let feature = NoAuditFeature;
@@ -285,17 +377,23 @@ fn pipeline_skips_audit_at_none_level() {
     let mut ctx = ModelingContext::new();
 
     let result = FeaturePipeline::execute(&feature, &inputs, &mut ctx);
-    assert!(result.is_ok(), "no-audit feature should execute successfully");
+    assert!(
+        result.is_ok(),
+        "no-audit feature should execute successfully"
+    );
 
     // The envelope carries the canonical decision log (drained from ctx
     // by the OperationFinalizer). Verify no audit spans were added.
     let envelope = result.unwrap();
     let log = envelope.get_decision_log();
     let events = log.get_events();
-    let audit_spans: Vec<_> = events.iter().filter(|e| match e {
-        forge_core::tracing::TraceEvent::StartSpan { name, .. } => name.starts_with("audit"),
-        _ => false,
-    }).collect();
+    let audit_spans: Vec<_> = events
+        .iter()
+        .filter(|e| match e {
+            forge_core::tracing::TraceEvent::StartSpan { name, .. } => name.starts_with("audit"),
+            _ => false,
+        })
+        .collect();
     assert!(
         audit_spans.is_empty(),
         "AuditLevel::None should produce no audit spans, got {}",
@@ -307,8 +405,8 @@ fn pipeline_skips_audit_at_none_level() {
 fn pipeline_validates_post_invariants_after_execution() {
     use crate::engine::contract::*;
     use crate::engine::traits::Feature;
-    use forge_topo::state::TopologyState;
     use crate::geometry_state::GeometryState;
+    use forge_topo::state::TopologyState;
 
     /// Feature that produces an empty topology but declares ManifoldEdges
     /// as a post-invariant. An empty arena passes validation (no edges to
@@ -318,35 +416,60 @@ fn pipeline_validates_post_invariants_after_execution() {
 
     struct EmptyInputs;
     impl FeatureInputs for EmptyInputs {
-        fn validate(&self) -> Result<(), forge_core::KernelError> { Ok(()) }
+        fn validate(&self) -> Result<(), forge_core::KernelError> {
+            Ok(())
+        }
     }
 
     impl FeatureContract for InvariantFeature {
-        fn feature_kind(&self) -> &'static str { "test_invariant" }
-        fn required_policies(&self) -> &[PolicyKind] { &[] }
-        fn entity_origins(&self) -> &[EntityOriginKind] { &[] }
-        fn euler_ops(&self) -> &[crate::engine::contract::EulerOpKind] { &[] }
-        fn surface_types(&self) -> &[crate::engine::contract::SurfaceKind] { &[] }
+        fn feature_kind(&self) -> &'static str {
+            "test_invariant"
+        }
+        fn required_policies(&self) -> &[PolicyKind] {
+            &[]
+        }
+        fn entity_origins(&self) -> &[EntityOriginKind] {
+            &[]
+        }
+        fn euler_ops(&self) -> &[crate::engine::contract::EulerOpKind] {
+            &[]
+        }
+        fn surface_types(&self) -> &[crate::engine::contract::SurfaceKind] {
+            &[]
+        }
         fn post_invariants(&self) -> &[InvariantKind] {
             &[InvariantKind::ManifoldEdges]
         }
-        fn audit_level(&self) -> AuditLevel { AuditLevel::None }
+        fn audit_level(&self) -> AuditLevel {
+            AuditLevel::None
+        }
     }
 
     impl Feature for InvariantFeature {
         type Inputs = EmptyInputs;
-        fn parse_inputs(&self, _raw: &HashMap<NodeId, FeatureOutput>) -> Result<EmptyInputs, forge_core::KernelError> {
+        fn parse_inputs(
+            &self,
+            _raw: &HashMap<NodeId, FeatureOutput>,
+        ) -> Result<EmptyInputs, forge_core::KernelError> {
             Ok(EmptyInputs)
         }
-        fn execute_typed(&self, _inputs: &EmptyInputs, _config: &crate::core::config::resolve::ResolvedConfig) -> Result<FeatureOutput, forge_core::KernelError> {
+        fn execute_typed(
+            &self,
+            _inputs: &EmptyInputs,
+            _config: &crate::core::config::resolve::ResolvedConfig,
+        ) -> Result<FeatureOutput, forge_core::KernelError> {
             Ok(FeatureOutput {
                 topology: TopologyState::empty(),
                 geometry: GeometryState::new(),
                 brep: BrepState::new(),
             })
         }
-        fn dependencies(&self) -> Vec<NodeId> { Vec::new() }
-        fn name(&self) -> &str { "test_invariant" }
+        fn dependencies(&self) -> Vec<NodeId> {
+            Vec::new()
+        }
+        fn name(&self) -> &str {
+            "test_invariant"
+        }
     }
 
     let feature = InvariantFeature;
@@ -355,7 +478,10 @@ fn pipeline_validates_post_invariants_after_execution() {
 
     // With an empty topology, ManifoldEdges passes (no edges to violate).
     let result = FeaturePipeline::execute(&feature, &inputs, &mut ctx);
-    assert!(result.is_ok(), "feature with ManifoldEdges invariant on empty topo should succeed");
+    assert!(
+        result.is_ok(),
+        "feature with ManifoldEdges invariant on empty topo should succeed"
+    );
 
     // Now test with a real cube — ManifoldEdges should also pass for valid topology.
     let cube = MakeCubeFeature::new("cube", [0.0, 0.0, 0.0], 1.0);
@@ -371,41 +497,68 @@ fn pipeline_validates_post_invariants_after_execution() {
 fn pipeline_emits_audit_at_full_level() {
     use crate::engine::contract::*;
     use crate::engine::traits::Feature;
-    use forge_topo::state::TopologyState;
     use crate::geometry_state::GeometryState;
+    use forge_topo::state::TopologyState;
 
     #[derive(Debug)]
     struct FullAuditFeature;
 
     struct EmptyInputs;
     impl FeatureInputs for EmptyInputs {
-        fn validate(&self) -> Result<(), forge_core::KernelError> { Ok(()) }
+        fn validate(&self) -> Result<(), forge_core::KernelError> {
+            Ok(())
+        }
     }
 
     impl FeatureContract for FullAuditFeature {
-        fn feature_kind(&self) -> &'static str { "test_full_audit" }
-        fn required_policies(&self) -> &[PolicyKind] { &[] }
-        fn entity_origins(&self) -> &[EntityOriginKind] { &[] }
-        fn euler_ops(&self) -> &[crate::engine::contract::EulerOpKind] { &[] }
-        fn surface_types(&self) -> &[crate::engine::contract::SurfaceKind] { &[] }
-        fn post_invariants(&self) -> &[InvariantKind] { &[] }
-        fn audit_level(&self) -> AuditLevel { AuditLevel::Full }
+        fn feature_kind(&self) -> &'static str {
+            "test_full_audit"
+        }
+        fn required_policies(&self) -> &[PolicyKind] {
+            &[]
+        }
+        fn entity_origins(&self) -> &[EntityOriginKind] {
+            &[]
+        }
+        fn euler_ops(&self) -> &[crate::engine::contract::EulerOpKind] {
+            &[]
+        }
+        fn surface_types(&self) -> &[crate::engine::contract::SurfaceKind] {
+            &[]
+        }
+        fn post_invariants(&self) -> &[InvariantKind] {
+            &[]
+        }
+        fn audit_level(&self) -> AuditLevel {
+            AuditLevel::Full
+        }
     }
 
     impl Feature for FullAuditFeature {
         type Inputs = EmptyInputs;
-        fn parse_inputs(&self, _raw: &HashMap<NodeId, FeatureOutput>) -> Result<EmptyInputs, forge_core::KernelError> {
+        fn parse_inputs(
+            &self,
+            _raw: &HashMap<NodeId, FeatureOutput>,
+        ) -> Result<EmptyInputs, forge_core::KernelError> {
             Ok(EmptyInputs)
         }
-        fn execute_typed(&self, _inputs: &EmptyInputs, _config: &crate::core::config::resolve::ResolvedConfig) -> Result<FeatureOutput, forge_core::KernelError> {
+        fn execute_typed(
+            &self,
+            _inputs: &EmptyInputs,
+            _config: &crate::core::config::resolve::ResolvedConfig,
+        ) -> Result<FeatureOutput, forge_core::KernelError> {
             Ok(FeatureOutput {
                 topology: TopologyState::empty(),
                 geometry: GeometryState::new(),
                 brep: BrepState::new(),
             })
         }
-        fn dependencies(&self) -> Vec<NodeId> { Vec::new() }
-        fn name(&self) -> &str { "test_full_audit" }
+        fn dependencies(&self) -> Vec<NodeId> {
+            Vec::new()
+        }
+        fn name(&self) -> &str {
+            "test_full_audit"
+        }
     }
 
     let feature = FullAuditFeature;
@@ -419,10 +572,13 @@ fn pipeline_emits_audit_at_full_level() {
     // The executor records a span named "audit/{feature_kind}".
     let log = envelope.get_decision_log();
     let events = log.get_events();
-    let audit_spans: Vec<_> = events.iter().filter(|e| match e {
-        forge_core::tracing::TraceEvent::StartSpan { name, .. } => name.starts_with("audit/"),
-        _ => false,
-    }).collect();
+    let audit_spans: Vec<_> = events
+        .iter()
+        .filter(|e| match e {
+            forge_core::tracing::TraceEvent::StartSpan { name, .. } => name.starts_with("audit/"),
+            _ => false,
+        })
+        .collect();
     assert!(
         !audit_spans.is_empty(),
         "AuditLevel::Full should produce at least one audit span, got none. Events: {:?}",
@@ -443,22 +599,41 @@ fn typed_inputs_reject_missing_dependency() {
 
     struct NeedyInputs;
     impl FeatureInputs for NeedyInputs {
-        fn validate(&self) -> Result<(), forge_core::KernelError> { Ok(()) }
+        fn validate(&self) -> Result<(), forge_core::KernelError> {
+            Ok(())
+        }
     }
 
     impl FeatureContract for NeedyFeature {
-        fn feature_kind(&self) -> &'static str { "test_needy" }
-        fn required_policies(&self) -> &[PolicyKind] { &[] }
-        fn entity_origins(&self) -> &[EntityOriginKind] { &[] }
-        fn euler_ops(&self) -> &[crate::engine::contract::EulerOpKind] { &[] }
-        fn surface_types(&self) -> &[crate::engine::contract::SurfaceKind] { &[] }
-        fn post_invariants(&self) -> &[InvariantKind] { &[] }
-        fn audit_level(&self) -> AuditLevel { AuditLevel::None }
+        fn feature_kind(&self) -> &'static str {
+            "test_needy"
+        }
+        fn required_policies(&self) -> &[PolicyKind] {
+            &[]
+        }
+        fn entity_origins(&self) -> &[EntityOriginKind] {
+            &[]
+        }
+        fn euler_ops(&self) -> &[crate::engine::contract::EulerOpKind] {
+            &[]
+        }
+        fn surface_types(&self) -> &[crate::engine::contract::SurfaceKind] {
+            &[]
+        }
+        fn post_invariants(&self) -> &[InvariantKind] {
+            &[]
+        }
+        fn audit_level(&self) -> AuditLevel {
+            AuditLevel::None
+        }
     }
 
     impl Feature for NeedyFeature {
         type Inputs = NeedyInputs;
-        fn parse_inputs(&self, raw: &HashMap<NodeId, FeatureOutput>) -> Result<NeedyInputs, forge_core::KernelError> {
+        fn parse_inputs(
+            &self,
+            raw: &HashMap<NodeId, FeatureOutput>,
+        ) -> Result<NeedyInputs, forge_core::KernelError> {
             if !raw.contains_key(&self.dep_id) {
                 return Err(forge_core::KernelError::InvalidInput {
                     message: format!("Missing required dependency {}", self.dep_id),
@@ -467,11 +642,19 @@ fn typed_inputs_reject_missing_dependency() {
             }
             Ok(NeedyInputs)
         }
-        fn execute_typed(&self, _inputs: &NeedyInputs, _config: &crate::core::config::resolve::ResolvedConfig) -> Result<FeatureOutput, forge_core::KernelError> {
+        fn execute_typed(
+            &self,
+            _inputs: &NeedyInputs,
+            _config: &crate::core::config::resolve::ResolvedConfig,
+        ) -> Result<FeatureOutput, forge_core::KernelError> {
             unreachable!("should not reach execution with missing dependency")
         }
-        fn dependencies(&self) -> Vec<NodeId> { vec![self.dep_id] }
-        fn name(&self) -> &str { "test_needy" }
+        fn dependencies(&self) -> Vec<NodeId> {
+            vec![self.dep_id]
+        }
+        fn name(&self) -> &str {
+            "test_needy"
+        }
     }
 
     // Create a fake NodeId that won't exist in the input map.
@@ -486,7 +669,10 @@ fn typed_inputs_reject_missing_dependency() {
     let mut ctx = ModelingContext::new();
     let result = FeaturePipeline::execute(&feature, &inputs, &mut ctx);
 
-    assert!(result.is_err(), "should fail when required dependency is missing");
+    assert!(
+        result.is_err(),
+        "should fail when required dependency is missing"
+    );
     let err = format!("{:?}", result.unwrap_err());
     assert!(
         err.contains("Missing required dependency") || err.contains("missing"),

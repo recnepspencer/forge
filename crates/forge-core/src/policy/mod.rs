@@ -9,6 +9,4 @@
 
 mod schema;
 
-pub use schema::{
-    PolicyKind, PolicyQuery, PolicyResult,
-};
+pub use schema::{PolicyKind, PolicyQuery, PolicyResult};

@@ -17,13 +17,9 @@
 mod tests {
     use forge_core::{DecisionContext, EntityRef};
 
-    use crate::operations::boolean::test_helpers::{
-        build_cube, execute_boolean_logged,
-    };
-    use crate::operations::boolean::{
-        BooleanInput, BooleanOp,
-    };
     use crate::analysis::causal_chain::{query_causal_chain, query_causal_summary};
+    use crate::operations::boolean::test_helpers::{build_cube, execute_boolean_logged};
+    use crate::operations::boolean::{BooleanInput, BooleanOp};
 
     /// PV-37: Face created by Boolean → causal chain traces through
     /// the real pipeline phases.
@@ -37,14 +33,11 @@ mod tests {
         let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
         let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
-        let input = BooleanInput::new(
-            topo_a, geom_a, topo_b, geom_b, BooleanOp::Union,
-        );
+        let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
 
         let envelope = execute_boolean_logged(input);
         let decision_log = envelope.get_decision_log().clone();
         let result = envelope.into_result().expect("Boolean failed");
-
 
         assert!(
             replay_log.len() >= 5,
@@ -52,39 +45,64 @@ mod tests {
             replay_log.len()
         );
 
-        let replay_names: Vec<&str> = replay_log.entries().iter()
+        let replay_names: Vec<&str> = replay_log
+            .entries()
+            .iter()
             .map(|e| e.signature().get_name())
             .collect();
 
-        assert!(replay_names.contains(&"boolean_split"), "Missing boolean_split entry. Got: {:?}", replay_names);
-        assert!(replay_names.contains(&"classify_faces"), "Missing classify_faces entry. Got: {:?}", replay_names);
-        assert!(replay_names.contains(&"select_faces"), "Missing select_faces entry. Got: {:?}", replay_names);
-        assert!(replay_names.contains(&"assemble_result"), "Missing assemble_result entry. Got: {:?}", replay_names);
-        assert!(replay_names.contains(&"postprocess"), "Missing postprocess entry. Got: {:?}", replay_names);
+        assert!(
+            replay_names.contains(&"boolean_split"),
+            "Missing boolean_split entry. Got: {:?}",
+            replay_names
+        );
+        assert!(
+            replay_names.contains(&"classify_faces"),
+            "Missing classify_faces entry. Got: {:?}",
+            replay_names
+        );
+        assert!(
+            replay_names.contains(&"select_faces"),
+            "Missing select_faces entry. Got: {:?}",
+            replay_names
+        );
+        assert!(
+            replay_names.contains(&"assemble_result"),
+            "Missing assemble_result entry. Got: {:?}",
+            replay_names
+        );
+        assert!(
+            replay_names.contains(&"postprocess"),
+            "Missing postprocess entry. Got: {:?}",
+            replay_names
+        );
 
         assert!(
             !lineage_events.is_empty(),
             "Boolean must produce lineage events for result faces"
         );
 
-        let first_result_face = result.topology().arena().iter_faces().next()
+        let first_result_face = result
+            .topology()
+            .arena()
+            .iter_faces()
+            .next()
             .expect("Result must have at least one face");
-        let face_ref = EntityRef::new(forge_core::EntityKind::Face, first_result_face.0.index() as u32);
-
-        let chain = query_causal_chain(
-            &face_ref,
-            replay_log,
-            &decision_log,
-            lineage_events,
-            &[],
+        let face_ref = EntityRef::new(
+            forge_core::EntityKind::Face,
+            first_result_face.0.index() as u32,
         );
+
+        let chain = query_causal_chain(&face_ref, replay_log, &decision_log, lineage_events, &[]);
 
         assert!(
             !chain.get_steps().is_empty(),
             "Causal chain for a result face must have at least one step"
         );
 
-        let step_op_names: Vec<&str> = chain.get_steps().iter()
+        let step_op_names: Vec<&str> = chain
+            .get_steps()
+            .iter()
             .map(|s| s.get_operation().get_name())
             .collect();
 
@@ -95,7 +113,8 @@ mod tests {
         );
 
         assert_eq!(
-            chain.get_target().kind().as_str(), "Face",
+            chain.get_target().kind().as_str(),
+            "Face",
             "Chain target must be a Face"
         );
 
@@ -119,25 +138,21 @@ mod tests {
         let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
         let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
-        let input = BooleanInput::new(
-            topo_a, geom_a, topo_b, geom_b, BooleanOp::Union,
-        );
+        let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
 
         let envelope = execute_boolean_logged(input);
         let decision_log = envelope.get_decision_log().clone();
         let result = envelope.into_result().expect("Boolean failed");
 
-        let first_face = result.topology().arena().iter_faces().next()
+        let first_face = result
+            .topology()
+            .arena()
+            .iter_faces()
+            .next()
             .expect("Result must have at least one face");
         let face_ref = EntityRef::new(forge_core::EntityKind::Face, first_face.0.index() as u32);
 
-        let chain = query_causal_chain(
-            &face_ref,
-            replay_log,
-            &decision_log,
-            lineage_events,
-            &[],
-        );
+        let chain = query_causal_chain(&face_ref, replay_log, &decision_log, lineage_events, &[]);
 
         assert!(
             chain.get_steps().len() <= 5,
@@ -170,25 +185,22 @@ mod tests {
         let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
         let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
-        let input = BooleanInput::new(
-            topo_a, geom_a, topo_b, geom_b, BooleanOp::Union,
-        );
+        let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
 
         let envelope = execute_boolean_logged(input);
         let decision_log = envelope.get_decision_log().clone();
         let result = envelope.into_result().expect("Boolean failed");
 
-        let first_face = result.topology().arena().iter_faces().next()
+        let first_face = result
+            .topology()
+            .arena()
+            .iter_faces()
+            .next()
             .expect("Result must have at least one face");
         let face_ref = EntityRef::new(forge_core::EntityKind::Face, first_face.0.index() as u32);
 
-        let summary = query_causal_summary(
-            &face_ref,
-            replay_log,
-            &decision_log,
-            lineage_events,
-            &[],
-        );
+        let summary =
+            query_causal_summary(&face_ref, replay_log, &decision_log, lineage_events, &[]);
 
         let token_count = summary.narrative_token_count();
         assert!(
@@ -203,12 +215,8 @@ mod tests {
             "Summary must report at least 1 step"
         );
 
-        let all_margins: Vec<f64> = decision_log.decisions()
-            .map(|d| d.get_margin())
-            .collect();
-        let true_min_margin = all_margins.iter()
-            .copied()
-            .fold(f64::INFINITY, f64::min);
+        let all_margins: Vec<f64> = decision_log.decisions().map(|d| d.get_margin()).collect();
+        let true_min_margin = all_margins.iter().copied().fold(f64::INFINITY, f64::min);
 
         if !all_margins.is_empty() && true_min_margin.is_finite() {
             assert!(
@@ -238,33 +246,36 @@ mod tests {
         let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
         let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
-        let input = BooleanInput::new(
-            topo_a, geom_a, topo_b, geom_b, BooleanOp::Intersection,
-        );
+        let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Intersection);
 
         let envelope = execute_boolean_logged(input);
         let decision_log = envelope.get_decision_log().clone();
         let result = envelope.into_result().expect("Boolean failed");
 
         let face_count = result.topology().arena().face_count();
-        assert!(face_count > 0, "Intersection must produce at least one face");
+        assert!(
+            face_count > 0,
+            "Intersection must produce at least one face"
+        );
 
-        let first_face = result.topology().arena().iter_faces().next()
+        let first_face = result
+            .topology()
+            .arena()
+            .iter_faces()
+            .next()
             .expect("Result must have faces");
         let face_ref = EntityRef::new(forge_core::EntityKind::Face, first_face.0.index() as u32);
 
-        let nring_vertices: Vec<EntityRef> = result.topology().arena().iter_vertices()
+        let nring_vertices: Vec<EntityRef> = result
+            .topology()
+            .arena()
+            .iter_vertices()
             .take(3)
             .map(|(vid, _)| EntityRef::new(forge_core::EntityKind::Vertex, vid.index() as u32))
             .collect();
 
-        let chain_without_nring = query_causal_chain(
-            &face_ref,
-            replay_log,
-            &decision_log,
-            lineage_events,
-            &[],
-        );
+        let chain_without_nring =
+            query_causal_chain(&face_ref, replay_log, &decision_log, lineage_events, &[]);
 
         let chain_with_nring = query_causal_chain(
             &face_ref,

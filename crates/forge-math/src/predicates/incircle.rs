@@ -4,9 +4,7 @@
 //! ALGORITHM: Shewchuk adaptive cascade (vendored from geometry-predicates).
 //! DEPENDENCIES: `vendored`, `precision`, `CertifiedTriSign`.
 
-use crate::arithmetic::precision::{
-    PrecisionEscalation, PrecisionMode, build_target_description,
-};
+use crate::arithmetic::precision::{build_target_description, PrecisionEscalation, PrecisionMode};
 use crate::sign::{CertifiedTriSign, TriSign};
 
 /// Compute the 2D incircle test for four points.
@@ -43,9 +41,13 @@ pub fn incircle(
 }
 
 fn sign_of(det: f64) -> TriSign {
-    if det > 0.0 { TriSign::Pos }
-    else if det < 0.0 { TriSign::Neg }
-    else { TriSign::Zero }
+    if det > 0.0 {
+        TriSign::Pos
+    } else if det < 0.0 {
+        TriSign::Neg
+    } else {
+        TriSign::Zero
+    }
 }
 
 #[cfg(test)]
@@ -55,28 +57,19 @@ mod tests {
 
     #[test]
     fn incircle_point_inside() {
-        let (result, _) = incircle(
-            [0.0, 0.0], [1.0, 0.0], [0.0, 1.0],
-            [0.1, 0.1],
-        ).unwrap();
+        let (result, _) = incircle([0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [0.1, 0.1]).unwrap();
         assert_eq!(result.sign(), TriSign::Pos);
     }
 
     #[test]
     fn incircle_point_outside() {
-        let (result, _) = incircle(
-            [0.0, 0.0], [1.0, 0.0], [0.0, 1.0],
-            [10.0, 10.0],
-        ).unwrap();
+        let (result, _) = incircle([0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [10.0, 10.0]).unwrap();
         assert_eq!(result.sign(), TriSign::Neg);
     }
 
     #[test]
     fn incircle_cocircular() {
-        let (result, _) = incircle(
-            [1.0, 0.0], [0.0, 1.0], [-1.0, 0.0],
-            [0.0, -1.0],
-        ).unwrap();
+        let (result, _) = incircle([1.0, 0.0], [0.0, 1.0], [-1.0, 0.0], [0.0, -1.0]).unwrap();
         assert_eq!(result.sign(), TriSign::Zero);
     }
 
@@ -91,7 +84,8 @@ mod tests {
             let our_det = super::super::vendored::incircle(pa, pb, pc, pd);
             let oracle_det = geometry_predicates::incircle(pa, pb, pc, pd);
             assert_eq!(
-                our_det.signum(), oracle_det.signum(),
+                our_det.signum(),
+                oracle_det.signum(),
                 "Oracle mismatch for incircle({pa:?}, {pb:?}, {pc:?}, {pd:?})"
             );
         }

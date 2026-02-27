@@ -21,7 +21,9 @@ impl Lcg {
     }
 
     fn next_u64(&mut self) -> u64 {
-        self.state = self.state.wrapping_mul(6_364_136_223_846_793_005)
+        self.state = self
+            .state
+            .wrapping_mul(6_364_136_223_846_793_005)
             .wrapping_add(1_442_695_040_888_963_407);
         self.state
     }
@@ -50,21 +52,28 @@ fn pv_23_orient3d_interval_matches_exact_100k() {
     let mut resolved_rational = 0u64;
 
     for _ in 0..100_000 {
-        let a = [rng.next_range(-100.0, 100.0),
-                 rng.next_range(-100.0, 100.0),
-                 rng.next_range(-100.0, 100.0)];
-        let b = [rng.next_range(-100.0, 100.0),
-                 rng.next_range(-100.0, 100.0),
-                 rng.next_range(-100.0, 100.0)];
-        let c = [rng.next_range(-100.0, 100.0),
-                 rng.next_range(-100.0, 100.0),
-                 rng.next_range(-100.0, 100.0)];
-        let d = [rng.next_range(-100.0, 100.0),
-                 rng.next_range(-100.0, 100.0),
-                 rng.next_range(-100.0, 100.0)];
+        let a = [
+            rng.next_range(-100.0, 100.0),
+            rng.next_range(-100.0, 100.0),
+            rng.next_range(-100.0, 100.0),
+        ];
+        let b = [
+            rng.next_range(-100.0, 100.0),
+            rng.next_range(-100.0, 100.0),
+            rng.next_range(-100.0, 100.0),
+        ];
+        let c = [
+            rng.next_range(-100.0, 100.0),
+            rng.next_range(-100.0, 100.0),
+            rng.next_range(-100.0, 100.0),
+        ];
+        let d = [
+            rng.next_range(-100.0, 100.0),
+            rng.next_range(-100.0, 100.0),
+            rng.next_range(-100.0, 100.0),
+        ];
 
-        let (sign, esc) = orient3d(a, b, c, d)
-            .expect("orient3d must not fail on finite inputs");
+        let (sign, esc) = orient3d(a, b, c, d).expect("orient3d must not fail on finite inputs");
 
         total += 1;
         match esc.get_resolved_at() {
@@ -87,8 +96,10 @@ fn pv_23_orient3d_interval_matches_exact_100k() {
         resolved_f64
     );
 
-    eprintln!("PV-23 stats: f64={}, interval={}, double={}, rational={}",
-        resolved_f64, resolved_interval, resolved_double, resolved_rational);
+    eprintln!(
+        "PV-23 stats: f64={}, interval={}, double={}, rational={}",
+        resolved_f64, resolved_interval, resolved_double, resolved_rational
+    );
 }
 
 /// PV-24: Near-degenerate orient3d — forces escalation beyond Float64.
@@ -109,9 +120,7 @@ fn pv_24_near_degenerate_interval_inconclusive() {
     let b = [0.0, m, 0.0];
     let c = [0.0, 0.0, m];
 
-    let near_degenerate_offsets = [
-        5e-8, 4e-8, 3e-8,
-    ];
+    let near_degenerate_offsets = [5e-8, 4e-8, 3e-8];
 
     let mut escalation_count = 0u32;
 
@@ -132,16 +141,21 @@ fn pv_24_near_degenerate_interval_inconclusive() {
 
         assert!(
             !sign_pos.sign().is_zero(),
-            "Non-zero eps={} must produce definite sign, got Zero", eps
+            "Non-zero eps={} must produce definite sign, got Zero",
+            eps
         );
         assert!(
             !sign_neg.sign().is_zero(),
-            "Non-zero eps=-{} must produce definite sign, got Zero", eps
+            "Non-zero eps=-{} must produce definite sign, got Zero",
+            eps
         );
         assert_ne!(
-            sign_pos.sign(), sign_neg.sign(),
+            sign_pos.sign(),
+            sign_neg.sign(),
             "Flipping eps={} must flip sign: +eps={:?}, -eps={:?}",
-            eps, sign_pos.sign(), sign_neg.sign()
+            eps,
+            sign_pos.sign(),
+            sign_neg.sign()
         );
     }
 
@@ -149,11 +163,17 @@ fn pv_24_near_degenerate_interval_inconclusive() {
         escalation_count > 0,
         "Large-coordinate near-degenerate inputs MUST escalate beyond Float64 \
          (error bound ≈ {:.2e} * {:.2e}^3 = {:.2e}, det ≈ {:.2e}^2 * eps)",
-        7.77e-16, m, 7.77e-16 * m * m * m, m
+        7.77e-16,
+        m,
+        7.77e-16 * m * m * m,
+        m
     );
 
-    eprintln!("PV-24: {}/{} large-coordinate inputs escalated beyond Float64",
-        escalation_count, near_degenerate_offsets.len());
+    eprintln!(
+        "PV-24: {}/{} large-coordinate inputs escalated beyond Float64",
+        escalation_count,
+        near_degenerate_offsets.len()
+    );
 }
 
 /// PV-24 supplemental: Exactly coplanar at large coordinates.
@@ -171,12 +191,15 @@ fn pv_24_exactly_coplanar_at_large_scale() {
 
     let (sign, esc) = orient3d(a, b, c, d).unwrap();
 
-    assert_eq!(sign.sign(), TriSign::Zero,
-        "Exactly coplanar must be Zero, got {:?}", sign.sign());
+    assert_eq!(
+        sign.sign(),
+        TriSign::Zero,
+        "Exactly coplanar must be Zero, got {:?}",
+        sign.sign()
+    );
     assert!(
         esc.get_resolved_at() > PrecisionMode::Float64,
         "Exactly coplanar at large scale must escalate past Float64, got {:?}",
         esc.get_resolved_at()
     );
 }
-

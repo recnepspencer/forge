@@ -1,33 +1,32 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
 use forge_core::ToleranceProvider;
-use forge_math::{MathError, GeometrySource, PlaneCoefficients};
+use forge_math::{GeometrySource, MathError, PlaneCoefficients};
 
-use crate::geometry_state::{GeometryState, ExactPosition};
 use crate::geometry_state::schema::pack_handle;
-use forge_topo::handles::{FaceId, VertexId};
+use crate::geometry_state::{ExactPosition, GeometryState};
 use forge_geom::Plane;
+use forge_topo::handles::{FaceId, VertexId};
 
 /// Transactional mutation handle for geometry.
 ///
 /// Wraps an underlying `GeometryState` snapshot and tracks pending diffs
-/// for faces and vertices. Used inside `KernelDraft` to enforce that 
+/// for faces and vertices. Used inside `KernelDraft` to enforce that
 /// opportunistic geometry mutations in failing topological phases do not
 /// corrupt the canonical geometry store.
 #[derive(Debug)]
 pub struct GeometryPatch {
     /// The immutable baseline state we are patching on top of.
     pub(crate) base: GeometryState,
-    
+
     // -- Face Data --
     face_plane_inserts: HashMap<u64, Plane>,
     face_plane_removes: HashSet<u64>,
-    
+
     // -- Vertex Data --
     vertex_position_inserts: HashMap<u64, ExactPosition>,
     vertex_position_removes: HashSet<u64>,
-    
     // Local tolerances moved to AttributeStore
 
     // Phase 4 Curved Entity Data moved to BrepPatch.
@@ -55,7 +54,7 @@ impl GeometryPatch {
     }
 
     // ─── Face Plane Layer ───────────────────────────────────────
-    
+
     pub fn get_face_plane(&self, face: FaceId) -> Option<&Plane> {
         let key = pack_handle(face.index(), face.generation());
         if self.face_plane_removes.contains(&key) {
@@ -80,7 +79,7 @@ impl GeometryPatch {
     }
 
     // ─── Vertex Position Layer ──────────────────────────────────
-    
+
     pub fn get_vertex_position(&self, vertex: VertexId) -> Option<&[f64; 3]> {
         let key = pack_handle(vertex.index(), vertex.generation());
         if self.vertex_position_removes.contains(&key) {
@@ -107,12 +106,11 @@ impl GeometryPatch {
     // ─── Phase 4 Curved Entity Layer moved to BrepPatch ─────────
 
     // ─── Lifecycle ──────────────────────────────────────────────
-    
+
     /// Commits all pending mutations to the base `GeometryState`.
     ///
     /// Consumes the patch and applies every diff in-place because we own the base.
     pub fn commit(mut self) -> GeometryState {
-        
         for (f_idx, plane) in self.face_plane_inserts {
             self.base._set_face_plane_raw(f_idx, plane);
         }
@@ -220,9 +218,10 @@ impl GeometrySource for GeometryPatch {
             ))),
             (Some(coeff), None) => Ok(coeff),
             (None, Some(coeff)) => Ok(coeff),
-            (None, None) => Err(MathError::InvalidInput(
-                format!("No plane found for face index {}", index),
-            )),
+            (None, None) => Err(MathError::InvalidInput(format!(
+                "No plane found for face index {}",
+                index
+            ))),
         }
     }
 }

@@ -1,9 +1,9 @@
 //! Tests for the mesh builder.
 
+use super::eval::build_halfedge_mesh;
+use crate::core::ModelingContext;
 use forge_geom::spatial::bsp::{build_convex_polyhedron, BspConfig};
 use forge_geom::Plane;
-use crate::core::ModelingContext;
-use super::eval::build_halfedge_mesh;
 
 /// Build a unit cube centered at origin (±1 on each axis) from 6 planes.
 fn build_unit_cube_cell() -> forge_geom::spatial::bsp::ConvexCell {
@@ -133,13 +133,18 @@ fn cube_mesh_twin_pairs_belong_to_different_faces() {
 
     for (he_id, he_data) in arena.iter_half_edges() {
         let twin_id = he_data.radial_next();
-        if he_id == twin_id { continue; }
+        if he_id == twin_id {
+            continue;
+        }
 
         let twin_data = arena.get_half_edge(twin_id).unwrap();
         assert_ne!(
-            he_data.face(), twin_data.face(),
+            he_data.face(),
+            twin_data.face(),
             "BSP cube: twin pair ({}, {}) both on face {} — OrientationInconsistency",
-            he_id.index(), twin_id.index(), he_data.face().index()
+            he_id.index(),
+            twin_id.index(),
+            he_data.face().index()
         );
     }
 }
@@ -156,18 +161,34 @@ fn cube_mesh_manifold_edges() {
 
     for (he_id, he_data) in arena.iter_half_edges() {
         let twin_id = he_data.radial_next();
-        if he_id == twin_id { continue; }
-        let canonical = (he_id.index().min(twin_id.index()), he_id.index().max(twin_id.index()));
-        edge_faces.entry(canonical).or_default().push(he_data.face().index());
+        if he_id == twin_id {
+            continue;
+        }
+        let canonical = (
+            he_id.index().min(twin_id.index()),
+            he_id.index().max(twin_id.index()),
+        );
+        edge_faces
+            .entry(canonical)
+            .or_default()
+            .push(he_data.face().index());
     }
 
     for ((lo, hi), faces) in &edge_faces {
-        assert_eq!(faces.len(), 2,
+        assert_eq!(
+            faces.len(),
+            2,
             "BSP cube: edge ({},{}) has {} halfedges (expected 2): {:?}",
-            lo, hi, faces.len(), faces);
-        assert_ne!(faces[0], faces[1],
+            lo,
+            hi,
+            faces.len(),
+            faces
+        );
+        assert_ne!(
+            faces[0], faces[1],
             "BSP cube: edge ({},{}) non-manifold — both on face {}",
-            lo, hi, faces[0]);
+            lo, hi, faces[0]
+        );
     }
 }
 
@@ -180,16 +201,21 @@ fn cube_mesh_orientation_coherence() {
 
     for (he_id, he_data) in arena.iter_half_edges() {
         let twin_id = he_data.radial_next();
-        if he_id == twin_id { continue; }
+        if he_id == twin_id {
+            continue;
+        }
 
         let twin_data = arena.get_half_edge(twin_id).unwrap();
         let next_data = arena.get_half_edge(he_data.next()).unwrap();
 
         assert_eq!(
-            next_data.origin(), twin_data.origin(),
+            next_data.origin(),
+            twin_data.origin(),
             "BSP cube: orientation broken at ({},{}): next.origin={} != twin.origin={}",
-            he_id.index(), twin_id.index(),
-            next_data.origin().index(), twin_data.origin().index()
+            he_id.index(),
+            twin_id.index(),
+            next_data.origin().index(),
+            twin_data.origin().index()
         );
     }
 }
@@ -206,9 +232,11 @@ fn cube_mesh_euler_formula() {
     let f = arena.face_count() as i64;
     let chi = v - e + f;
 
-    assert_eq!(chi, 2,
+    assert_eq!(
+        chi, 2,
         "BSP cube Euler: V={} - E={} + F={} = {} (expected χ=2)",
-        v, e, f, chi);
+        v, e, f, chi
+    );
 }
 
 #[test]
@@ -220,13 +248,18 @@ fn tetrahedron_mesh_twin_pairs_belong_to_different_faces() {
 
     for (he_id, he_data) in arena.iter_half_edges() {
         let twin_id = he_data.radial_next();
-        if he_id == twin_id { continue; }
+        if he_id == twin_id {
+            continue;
+        }
 
         let twin_data = arena.get_half_edge(twin_id).unwrap();
         assert_ne!(
-            he_data.face(), twin_data.face(),
+            he_data.face(),
+            twin_data.face(),
             "BSP tet: twin pair ({}, {}) both on face {}",
-            he_id.index(), twin_id.index(), he_data.face().index()
+            he_id.index(),
+            twin_id.index(),
+            he_data.face().index()
         );
     }
 }

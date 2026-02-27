@@ -3,23 +3,19 @@
 //! PV-09: 1,000 random Boolean operations → every successful result has outward normals
 //! PV-10: Scrambled orientation → healing canonicalizes → validation passes
 
-use forge_core::KernelError;
-use forge_topo::validate::ValidationLevel;
-use forge_topo::healing::{heal_shell_orientation, HealingResult};
-use forge_topo::handles::VertexId;
-use forge_topo::state::DraftConfig;
-use crate::mesh_builder::make_cube;
-use crate::geometry_state::GeometryState;
-use crate::operations::boolean::{
-    BooleanInput, BooleanOp,
-};
-use crate::operations::boolean::test_helpers::{
-    selected_test_pipeline, TestPipeline,
-};
-use crate::operations::boolean::parametric::assemble::execute_boolean_direct;
-use crate::operations::boolean::execute_boolean;
-use forge_math::deterministic_rng::DeterministicRng;
 use super::test_support::validate_geometric_invariants_all_faces;
+use crate::geometry_state::GeometryState;
+use crate::mesh_builder::make_cube;
+use crate::operations::boolean::execute_boolean;
+use crate::operations::boolean::parametric::assemble::merge::eval::execute_boolean_direct;
+use crate::operations::boolean::test_helpers::{selected_test_pipeline, TestPipeline};
+use crate::operations::boolean::{BooleanInput, BooleanOp};
+use forge_core::KernelError;
+use forge_math::deterministic_rng::DeterministicRng;
+use forge_topo::handles::VertexId;
+use forge_topo::healing::{heal_shell_orientation, HealingResult};
+use forge_topo::state::DraftConfig;
+use forge_topo::validate::ValidationLevel;
 use std::env;
 
 /// Build a position lookup closure from a GeometryState.
@@ -81,24 +77,35 @@ fn pv_09_1000_random_booleans_all_oriented() {
 
         let target = match make_cube([0.0, 0.0, 0.0], 2.0) {
             Ok(r) => r,
-            Err(_) => { failures += 1; continue; }
+            Err(_) => {
+                failures += 1;
+                continue;
+            }
         };
         let tool = match make_cube([cx, cy, cz], size) {
             Ok(r) => r,
-            Err(_) => { failures += 1; continue; }
+            Err(_) => {
+                failures += 1;
+                continue;
+            }
         };
 
         let (target_topo, target_geom) = target.into_parts();
         let (tool_topo, tool_geom) = tool.into_parts();
 
-        println!("Iteration {}: Target [0,0,0] sz=2.0 | Tool [{:.4},{:.4},{:.4}] sz={:.4} | Op={:?}", i, cx, cy, cz, size, op);
+        println!(
+            "Iteration {}: Target [0,0,0] sz=2.0 | Tool [{:.4},{:.4},{:.4}] sz={:.4} | Op={:?}",
+            i, cx, cy, cz, size, op
+        );
 
         let input = BooleanInput::new(target_topo, target_geom, tool_topo, tool_geom, op);
 
         let outcome = match pipeline {
             TestPipeline::Adaptive => execute_boolean(input),
             TestPipeline::Parametric => execute_boolean_direct(input),
-            TestPipeline::Ember => crate::operations::boolean::test_helpers::execute_boolean_ember(input),
+            TestPipeline::Ember => {
+                crate::operations::boolean::test_helpers::execute_boolean_ember(input)
+            }
         };
 
         match outcome.into_value() {
@@ -112,7 +119,10 @@ fn pv_09_1000_random_booleans_all_oriented() {
 
                 let lookup = position_lookup(&result_geom);
                 let check = validate_geometric_invariants_all_faces(
-                    result_topo.arena(), &lookup, 1e-10, 1e-12,
+                    result_topo.arena(),
+                    &lookup,
+                    1e-10,
+                    1e-12,
                 );
 
                 if check.is_err() {
@@ -179,7 +189,11 @@ fn pv_10_scrambled_orientation_healed() {
 
     let lookup = position_lookup(&geom);
     let pre_check = validate_geometric_invariants_all_faces(topo.arena(), &lookup, 1e-10, 1e-12);
-    assert!(pre_check.is_ok(), "Valid cube should pass orientation: {:?}", pre_check.err());
+    assert!(
+        pre_check.is_ok(),
+        "Valid cube should pass orientation: {:?}",
+        pre_check.err()
+    );
 
     let mut config = DraftConfig::default();
     config.validation_level = ValidationLevel::None;
@@ -195,10 +209,13 @@ fn pv_10_scrambled_orientation_healed() {
             .collect::<Result<Vec<_>, _>>()
             .unwrap();
 
-        let swaps: Vec<_> = he_ids.iter().map(|&he_id| {
-            let he_data = arena.get_half_edge(he_id).unwrap();
-            (he_id, he_data.next(), he_data.prev())
-        }).collect();
+        let swaps: Vec<_> = he_ids
+            .iter()
+            .map(|&he_id| {
+                let he_data = arena.get_half_edge(he_id).unwrap();
+                (he_id, he_data.next(), he_data.prev())
+            })
+            .collect();
 
         for (he_id, old_next, old_prev) in swaps {
             let he_mut = arena.get_half_edge_mut(he_id).unwrap();
@@ -226,7 +243,8 @@ fn pv_10_scrambled_orientation_healed() {
 
     let second_heal = heal_shell_orientation(arena, &lookup).unwrap();
     assert_eq!(
-        second_heal.shells_healed(), 0,
+        second_heal.shells_healed(),
+        0,
         "Already-healed cube should need no further healing"
     );
 }

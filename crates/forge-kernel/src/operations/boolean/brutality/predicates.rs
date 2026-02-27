@@ -1,13 +1,13 @@
-use super::super::test_helpers::{run_boolean, execute_boolean_logged};
 use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::test_helpers::{execute_boolean_logged, run_boolean};
+use crate::brep::state::BrepState;
+use crate::brep::state::BrepState;
+use crate::core::ModelingContext;
+use crate::mesh_builder::build_halfedge_mesh;
 use forge_geom::spatial::bsp::{build_convex_polyhedron, BspConfig};
 use forge_geom::Plane;
 use forge_math::predicates::orient3d::orient3d;
 use forge_math::sign::TriSign;
-use crate::brep::state::BrepState;
-use crate::core::ModelingContext;
-use crate::brep::state::BrepState;
-use crate::mesh_builder::build_halfedge_mesh;
 
 // ══════════════════════════════════════════════════════════════
 // §1  PREDICATE & EXACTNESS TORTURE
@@ -57,7 +57,11 @@ fn coplanar_returns_zero() {
 
     for _ in 0..100 {
         let sign = orient3d(a, b, c, d).unwrap().0.sign();
-        assert_eq!(sign, TriSign::Zero, "Coplanar point must always return Zero");
+        assert_eq!(
+            sign,
+            TriSign::Zero,
+            "Coplanar point must always return Zero"
+        );
     }
 }
 
@@ -67,19 +71,17 @@ fn coplanar_returns_zero() {
 /// Expect same topology as origin case, no precision-driven misclassification.
 #[test]
 fn large_coordinate_stress_1e6() {
-    let origin_result = run_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [0.5, 0.0, 0.0], 1.0,
-        BooleanOp::Union,
-    );
+    let origin_result = run_boolean([0.0, 0.0, 0.0], 1.0, [0.5, 0.0, 0.0], 1.0, BooleanOp::Union);
     let origin_v = origin_result.topology().arena().vertex_count();
     let origin_e = origin_result.topology().arena().half_edge_count() / 2;
     let origin_f = origin_result.topology().arena().face_count();
 
     let offset = 1e6;
     let result = run_boolean(
-        [offset, offset, offset], 1.0,
-        [offset + 0.5, offset, offset], 1.0,
+        [offset, offset, offset],
+        1.0,
+        [offset + 0.5, offset, offset],
+        1.0,
         BooleanOp::Union,
     );
 
@@ -118,18 +120,36 @@ fn large_coordinate_stress_1e12() {
 fn run_large_coordinate_boolean(offset: f64, label: &str) {
     let build_at = |center: [f64; 3], half: f64| -> Result<_, forge_core::KernelError> {
         let planes = vec![
-            Plane::from_point_normal([center[0]+half, center[1], center[2]], [1.0,0.0,0.0])
-                .map_err(|e| forge_core::KernelError::InternalError { message: format!("{e}"), context: None })?,
-            Plane::from_point_normal([center[0]-half, center[1], center[2]], [-1.0,0.0,0.0])
-                .map_err(|e| forge_core::KernelError::InternalError { message: format!("{e}"), context: None })?,
-            Plane::from_point_normal([center[0], center[1]+half, center[2]], [0.0,1.0,0.0])
-                .map_err(|e| forge_core::KernelError::InternalError { message: format!("{e}"), context: None })?,
-            Plane::from_point_normal([center[0], center[1]-half, center[2]], [0.0,-1.0,0.0])
-                .map_err(|e| forge_core::KernelError::InternalError { message: format!("{e}"), context: None })?,
-            Plane::from_point_normal([center[0], center[1], center[2]+half], [0.0,0.0,1.0])
-                .map_err(|e| forge_core::KernelError::InternalError { message: format!("{e}"), context: None })?,
-            Plane::from_point_normal([center[0], center[1], center[2]-half], [0.0,0.0,-1.0])
-                .map_err(|e| forge_core::KernelError::InternalError { message: format!("{e}"), context: None })?,
+            Plane::from_point_normal([center[0] + half, center[1], center[2]], [1.0, 0.0, 0.0])
+                .map_err(|e| forge_core::KernelError::InternalError {
+                    message: format!("{e}"),
+                    context: None,
+                })?,
+            Plane::from_point_normal([center[0] - half, center[1], center[2]], [-1.0, 0.0, 0.0])
+                .map_err(|e| forge_core::KernelError::InternalError {
+                    message: format!("{e}"),
+                    context: None,
+                })?,
+            Plane::from_point_normal([center[0], center[1] + half, center[2]], [0.0, 1.0, 0.0])
+                .map_err(|e| forge_core::KernelError::InternalError {
+                    message: format!("{e}"),
+                    context: None,
+                })?,
+            Plane::from_point_normal([center[0], center[1] - half, center[2]], [0.0, -1.0, 0.0])
+                .map_err(|e| forge_core::KernelError::InternalError {
+                    message: format!("{e}"),
+                    context: None,
+                })?,
+            Plane::from_point_normal([center[0], center[1], center[2] + half], [0.0, 0.0, 1.0])
+                .map_err(|e| forge_core::KernelError::InternalError {
+                    message: format!("{e}"),
+                    context: None,
+                })?,
+            Plane::from_point_normal([center[0], center[1], center[2] - half], [0.0, 0.0, -1.0])
+                .map_err(|e| forge_core::KernelError::InternalError {
+                    message: format!("{e}"),
+                    context: None,
+                })?,
         ];
         let cell = build_convex_polyhedron(&planes, &BspConfig::default())?;
         let mut ctx = ModelingContext::new();
@@ -142,7 +162,15 @@ fn run_large_coordinate_boolean(offset: f64, label: &str) {
 
     match (solid_a, solid_b) {
         (Ok((topo_a, geom_a)), Ok((topo_b, geom_b))) => {
-            let input = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Union);
+            let input = BooleanInput::new(
+                topo_a,
+                geom_a,
+                BrepState::new(),
+                topo_b,
+                geom_b,
+                BrepState::new(),
+                BooleanOp::Union,
+            );
             match execute_boolean_logged(input).into_result() {
                 Ok(r) => {
                     let face_count = r.topology().arena().face_count();
@@ -157,7 +185,9 @@ fn run_large_coordinate_boolean(offset: f64, label: &str) {
             }
         }
         (Err(e), _) | (_, Err(e)) => {
-            panic!("{label}-coord cube construction failed: {e:?} — BSP must handle large coordinates");
+            panic!(
+                "{label}-coord cube construction failed: {e:?} — BSP must handle large coordinates"
+            );
         }
     }
 }

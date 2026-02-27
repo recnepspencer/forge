@@ -1,7 +1,7 @@
-pub mod push;
-pub mod pull;
 pub mod context;
+pub mod pull;
+pub mod push;
 
 pub use context::EvaluationContext;
-pub use push::mark_dirty;
 pub use pull::evaluate;
+pub use push::mark_dirty;

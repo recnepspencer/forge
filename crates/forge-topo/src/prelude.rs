@@ -1,3 +1,5 @@
-pub use crate::topology::handles::{FaceId, VertexId, HalfEdgeId, LoopId, ShellId, BodyId, LumpId, RegionId, EdgeId};
-pub use crate::topology::state::{TopologyState, MutableDraft};
+pub use crate::topology::handles::{
+    BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
+};
 pub use crate::topology::operations::operator::EulerOperator;
+pub use crate::topology::state::{MutableDraft, TopologyState};

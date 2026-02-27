@@ -8,13 +8,13 @@
 //!
 //! DEPENDENCIES: `euler::join_faces`, `euler::make_edge_face`
 
-use forge_core::KernelError;
 use crate::handles::{HalfEdgeId, VertexId};
-use crate::state::MutableDraft;
 use crate::operator::apply_op;
+use crate::state::MutableDraft;
 use crate::topology::operations::euler::join_faces::JoinFaces;
 use crate::topology::operations::euler::make_edge_face::MakeEdgeFace;
 use crate::topology::queries::traverse::FaceEdgeIterator;
+use forge_core::KernelError;
 
 /// Output of the flip_edge algorithm.
 pub struct FlipEdgeOutput {
@@ -77,11 +77,15 @@ pub fn flip_edge(
     let jf = apply_op(draft, JoinFaces { edge })?.into_value();
     let merged_face = jf.surviving_face;
 
-    let mef = apply_op(draft, MakeEdgeFace {
-        face: merged_face,
-        vertex_a,
-        vertex_b,
-    })?.into_value();
+    let mef = apply_op(
+        draft,
+        MakeEdgeFace {
+            face: merged_face,
+            vertex_a,
+            vertex_b,
+        },
+    )?
+    .into_value();
 
     Ok(FlipEdgeOutput {
         he_ab: mef.half_edge_ab,
@@ -92,7 +96,10 @@ pub fn flip_edge(
 }
 
 /// Count edges in a face loop.
-fn face_edge_count(draft: &MutableDraft, face: crate::handles::FaceId) -> Result<usize, KernelError> {
+fn face_edge_count(
+    draft: &MutableDraft,
+    face: crate::handles::FaceId,
+) -> Result<usize, KernelError> {
     let mut count = 0usize;
     for he_result in FaceEdgeIterator::new(draft.arena(), face)? {
         let _he = he_result?;
@@ -120,7 +127,10 @@ fn find_opposite_vertex(
     }
 
     Err(KernelError::InvalidInput {
-        message: format!("flip_edge: could not find opposite vertex in face {}", face.index()),
+        message: format!(
+            "flip_edge: could not find opposite vertex in face {}",
+            face.index()
+        ),
         context: None,
     })
 }
@@ -128,11 +138,11 @@ fn find_opposite_vertex(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::TopologyState;
-    use crate::operator::apply_op;
+    use crate::euler::make_edge_face::MakeEdgeFace;
     use crate::euler::make_vertex_face::MakeVertexFace;
     use crate::euler::split_edge::SplitEdge;
-    use crate::euler::make_edge_face::MakeEdgeFace;
+    use crate::operator::apply_op;
+    use crate::state::TopologyState;
     use crate::topology::queries::traverse::FaceEdgeIterator;
 
     #[test]
@@ -141,28 +151,69 @@ mod tests {
         let mut draft = state.into_mutation();
 
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.25 }).unwrap().into_value();
-        let se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
-        let _se3 = apply_op(&mut draft, SplitEdge { edge: se2.he_mb, parameter: 0.75 }).unwrap().into_value();
+        let se1 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.25,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let se2 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se1.he_mb,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let _se3 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se2.he_mb,
+                parameter: 0.75,
+            },
+        )
+        .unwrap()
+        .into_value();
 
-        let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face).unwrap()
-            .map(|r| r.unwrap()).collect();
+        let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face)
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
         assert_eq!(edges.len(), 4);
 
         let v1 = draft.arena().get_half_edge(edges[1]).unwrap().origin();
         let v3 = draft.arena().get_half_edge(edges[3]).unwrap().origin();
 
-        let mef = apply_op(&mut draft, MakeEdgeFace {
-            face: mvf.face, vertex_a: v1, vertex_b: v3,
-        }).unwrap().into_value();
+        let mef = apply_op(
+            &mut draft,
+            MakeEdgeFace {
+                face: mvf.face,
+                vertex_a: v1,
+                vertex_b: v3,
+            },
+        )
+        .unwrap()
+        .into_value();
 
         assert_eq!(draft.arena().face_count(), 2);
         assert_eq!(draft.arena().vertex_count(), 4);
 
         let flip = flip_edge(&mut draft, mef.half_edge_ab).unwrap();
 
-        assert_eq!(draft.arena().face_count(), 2, "Flip must preserve face count");
-        assert_eq!(draft.arena().vertex_count(), 4, "Flip must preserve vertex count");
+        assert_eq!(
+            draft.arena().face_count(),
+            2,
+            "Flip must preserve face count"
+        );
+        assert_eq!(
+            draft.arena().vertex_count(),
+            4,
+            "Flip must preserve vertex count"
+        );
 
         assert_ne!(flip.vertex_a, v1);
         assert_ne!(flip.vertex_a, v3);

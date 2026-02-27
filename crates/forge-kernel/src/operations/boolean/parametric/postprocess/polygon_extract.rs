@@ -11,14 +11,16 @@
 
 use forge_topo::bitset::EntityBitset;
 
-use forge_core::KernelError;
-use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext};
 use forge_core::tracing::TopologyDelta;
+use forge_core::KernelError;
+use forge_core::{DecisionContext, DecisionId, DecisionKind, DecisionTier, TracedDecision};
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::FaceId;
 use forge_topo::state::TopologyState;
 
-use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta, KernelState, KernelDraft};
+use crate::core::{
+    compute_topology_delta, ArenaSnapshot, KernelDraft, KernelState, ModelingContext,
+};
 use crate::geometry_state::GeometryView;
 
 /// Extract and merge coplanar regions using the topology compound-merge path.
@@ -77,8 +79,7 @@ pub fn extract_coplanar_regions(
 
         let (mut_draft, _mut_geom, _mut_brep) = draft.as_parts_mut();
         let surviving = forge_topo::algorithms::region_extraction::merge_face_group_by_join_faces(
-            mut_draft,
-            group,
+            mut_draft, group,
         )?;
 
         for face_id in &group_faces {
@@ -116,11 +117,17 @@ fn discover_coplanar_groups(
             let Some(neighbor_plane) = geom.get_face_plane(neighbor) else {
                 return Ok(false);
             };
-            Ok(forge_geom::primitives::plane::exact_eq(*seed_plane, neighbor_plane))
+            Ok(forge_geom::primitives::plane::exact_eq(
+                *seed_plane,
+                neighbor_plane,
+            ))
         },
     )?;
 
-    Ok(groups.into_iter().filter(|group| group.count() >= 2).collect())
+    Ok(groups
+        .into_iter()
+        .filter(|group| group.count() >= 2)
+        .collect())
 }
 
 /// Log the extraction decision.

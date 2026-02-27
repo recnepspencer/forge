@@ -28,17 +28,16 @@ fn detect_coplanar_faces(
 ) -> BTreeMap<u32, FaceClassification> {
     let mut result = BTreeMap::new();
 
-    let other_planes: Vec<(FaceId, _)> = other_arena.iter_faces()
-        .filter_map(|(fid, _)| {
-            other_geom.get_face_plane(fid).map(|p| (fid, p.clone()))
-        })
+    let other_planes: Vec<(FaceId, _)> = other_arena
+        .iter_faces()
+        .filter_map(|(fid, _)| other_geom.get_face_plane(fid).map(|p| (fid, p.clone())))
         .collect();
 
     for (src_fid, _) in source_arena.iter_faces() {
         if let Some(src_plane) = source_geom.get_face_plane(src_fid) {
-            let coplanar_match = other_planes.iter().find(|(_, other_plane)| {
-                planes_are_coplanar_exact(src_plane, other_plane)
-            });
+            let coplanar_match = other_planes
+                .iter()
+                .find(|(_, other_plane)| planes_are_coplanar_exact(src_plane, other_plane));
 
             if let Some((_, other_plane)) = coplanar_match {
                 let aligned = normals_aligned_exact(src_plane, other_plane);
@@ -92,8 +91,9 @@ pub(crate) fn find_coplanar_face_pairs(
     let mut excluded_target: BTreeSet<u32> = BTreeSet::new();
     let mut excluded_tool: BTreeSet<u32> = BTreeSet::new();
 
-    let tool_faces_data: Vec<(FaceId, forge_geom::Plane, Vec<[f64; 3]>)> =
-        tool_topo.arena().iter_faces()
+    let tool_faces_data: Vec<(FaceId, forge_geom::Plane, Vec<[f64; 3]>)> = tool_topo
+        .arena()
+        .iter_faces()
         .filter_map(|(fid, _)| {
             let plane = tool_geom.get_face_plane(fid)?.clone();
             let verts = extract_face_vertices_3d(tool_topo.arena(), tool_geom, fid)?;
@@ -103,23 +103,26 @@ pub(crate) fn find_coplanar_face_pairs(
 
     for (target_fid, _) in target_topo.arena().iter_faces() {
         if let Some(target_plane) = target_geom.get_face_plane(target_fid) {
-            if let Some(target_verts) = extract_face_vertices_3d(
-                target_topo.arena(), target_geom, target_fid
-            ) {
-                let matched = tool_faces_data.iter().find(|(tool_fid, tool_plane, tool_verts)| {
-                    let not_excluded = !excluded_tool.contains(&tool_fid.index());
-                    let is_coplanar = forge_geom::primitives::plane::coplanar_eq(target_plane, tool_plane);
-                    let overlaps = if not_excluded && is_coplanar {
-                        forge_geom::algorithms::polygons_overlap_3d(
-                            target_plane.raw_normal(),
-                            &target_verts,
-                            tool_verts,
-                        )
-                    } else {
-                        false
-                    };
-                    not_excluded && is_coplanar && overlaps
-                });
+            if let Some(target_verts) =
+                extract_face_vertices_3d(target_topo.arena(), target_geom, target_fid)
+            {
+                let matched = tool_faces_data
+                    .iter()
+                    .find(|(tool_fid, tool_plane, tool_verts)| {
+                        let not_excluded = !excluded_tool.contains(&tool_fid.index());
+                        let is_coplanar =
+                            forge_geom::primitives::plane::coplanar_eq(target_plane, tool_plane);
+                        let overlaps = if not_excluded && is_coplanar {
+                            forge_geom::algorithms::polygons_overlap_3d(
+                                target_plane.raw_normal(),
+                                &target_verts,
+                                tool_verts,
+                            )
+                        } else {
+                            false
+                        };
+                        not_excluded && is_coplanar && overlaps
+                    });
 
                 if let Some((tool_fid, _, _)) = matched {
                     excluded_target.insert(target_fid.index());

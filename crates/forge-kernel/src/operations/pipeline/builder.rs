@@ -14,8 +14,8 @@
 
 use forge_core::KernelError;
 
+use super::step_contract::{OperationAuditRecord, StepAuditEntry, StepContract};
 use crate::core::ModelingContext;
-use super::step_contract::{StepContract, StepAuditEntry, OperationAuditRecord};
 
 /// Sequential operation pipeline with step-scoped audit.
 ///
@@ -60,7 +60,9 @@ impl<'a> OperationPipeline<'a> {
         let start = std::time::Instant::now();
         let result = execute(self.ctx);
         let duration_micros = start.elapsed().as_micros() as u64;
-        self.ctx.get_decision_log_mut().end_span(span_id, duration_micros);
+        self.ctx
+            .get_decision_log_mut()
+            .end_span(span_id, duration_micros);
 
         // 4. Collect step audit (regardless of success/failure)
         let decisions_count = self.ctx.get_decision_count() - checkpoint;

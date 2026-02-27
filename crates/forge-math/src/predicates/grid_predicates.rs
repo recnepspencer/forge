@@ -8,7 +8,7 @@
 //! orientation determinant of 30-bit inputs requires at most 94 bits,
 //! which fits exactly in i128 (128 bits).
 
-use crate::sign::{TriSign, CertifiedTriSign};
+use crate::sign::{CertifiedTriSign, TriSign};
 
 /// Exact 3D orientation predicate on integer grid coordinates.
 ///
@@ -23,12 +23,7 @@ use crate::sign::{TriSign, CertifiedTriSign};
 /// `Neg` if above, and `Zero` if coplanar.
 ///
 /// **Exact**: 30-bit inputs → 94-bit determinant → fits in i128. Zero error.
-pub fn orient3d_grid(
-    pa: [i64; 3],
-    pb: [i64; 3],
-    pc: [i64; 3],
-    pd: [i64; 3],
-) -> CertifiedTriSign {
+pub fn orient3d_grid(pa: [i64; 3], pb: [i64; 3], pc: [i64; 3], pd: [i64; 3]) -> CertifiedTriSign {
     let adx = (pa[0] - pd[0]) as i128;
     let ady = (pa[1] - pd[1]) as i128;
     let adz = (pa[2] - pd[2]) as i128;
@@ -41,9 +36,8 @@ pub fn orient3d_grid(
     let cdy = (pc[1] - pd[1]) as i128;
     let cdz = (pc[2] - pd[2]) as i128;
 
-    let det = adx * (bdy * cdz - bdz * cdy)
-            - ady * (bdx * cdz - bdz * cdx)
-            + adz * (bdx * cdy - bdy * cdx);
+    let det = adx * (bdy * cdz - bdz * cdy) - ady * (bdx * cdz - bdz * cdx)
+        + adz * (bdx * cdy - bdy * cdx);
 
     CertifiedTriSign::new(TriSign::from_i128(det))
 }
@@ -57,11 +51,7 @@ pub fn orient3d_grid(
 /// ```
 ///
 /// **Exact**: 30-bit inputs → 62-bit determinant → fits in i128.
-pub fn orient2d_grid(
-    pa: [i64; 2],
-    pb: [i64; 2],
-    pc: [i64; 2],
-) -> CertifiedTriSign {
+pub fn orient2d_grid(pa: [i64; 2], pb: [i64; 2], pc: [i64; 2]) -> CertifiedTriSign {
     let acx = (pa[0] - pc[0]) as i128;
     let acy = (pa[1] - pc[1]) as i128;
     let bcx = (pb[0] - pc[0]) as i128;

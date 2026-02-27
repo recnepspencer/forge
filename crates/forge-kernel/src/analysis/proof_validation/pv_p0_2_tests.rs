@@ -5,13 +5,13 @@
 //! - PV-07: Multi-shell solid (two disjoint cubes)
 //! - PV-08: Shell with removed edge → fails validation
 
-use forge_core::{KernelError, TopologyError};
-use forge_topo::validate::{validate_topology, ValidationLevel};
-use forge_topo::state::{TopologyState, DraftConfig};
-use forge_topo::arena::{FaceData, HalfEdgeData, VertexData, LoopData};
-use forge_topo::handles::{FaceId, HalfEdgeId, VertexId, LoopId};
-use crate::mesh_builder::make_cube;
 use super::test_support::{insert_test_solid_shell, materialize_edge_entities_from_radials};
+use crate::mesh_builder::make_cube;
+use forge_core::{KernelError, TopologyError};
+use forge_topo::arena::{FaceData, HalfEdgeData, LoopData, VertexData};
+use forge_topo::handles::{FaceId, HalfEdgeId, LoopId, VertexId};
+use forge_topo::state::{DraftConfig, TopologyState};
+use forge_topo::validate::{validate_topology, ValidationLevel};
 
 /// PV-05: A genus-1 topology passes the generalized Euler formula.
 ///
@@ -53,7 +53,10 @@ fn pv_05_genus_1_passes_generalized_euler() {
             let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face), None);
             let face = arena.insert_face(FaceData::new(loop_id, placeholder_shell), None);
             if faces.is_empty() {
-                arena.get_shell_mut(placeholder_shell).unwrap().set_representative_face(face);
+                arena
+                    .get_shell_mut(placeholder_shell)
+                    .unwrap()
+                    .set_representative_face(face);
             }
 
             let origins = [
@@ -65,9 +68,17 @@ fn pv_05_genus_1_passes_generalized_euler() {
 
             let mut he_ids: Vec<HalfEdgeId> = Vec::new();
             for _k in 0..4 {
-                let he = arena.insert_half_edge(HalfEdgeData::new(
-                    placeholder_he, placeholder_he, placeholder_he, face, origins[0], placeholder_edge,
-                ), None);
+                let he = arena.insert_half_edge(
+                    HalfEdgeData::new(
+                        placeholder_he,
+                        placeholder_he,
+                        placeholder_he,
+                        face,
+                        origins[0],
+                        placeholder_edge,
+                    ),
+                    None,
+                );
                 he_ids.push(he);
             }
 
@@ -80,11 +91,17 @@ fn pv_05_genus_1_passes_generalized_euler() {
                 he_data.set_radial_next(he_ids[k]);
             }
 
-            arena.get_loop_mut(loop_id).unwrap().set_half_edge(he_ids[0]);
+            arena
+                .get_loop_mut(loop_id)
+                .unwrap()
+                .set_half_edge(he_ids[0]);
             arena.get_loop_mut(loop_id).unwrap().set_face(face);
 
             for k in 0..4 {
-                arena.get_vertex_mut(origins[k]).unwrap().set_outgoing(he_ids[k]);
+                arena
+                    .get_vertex_mut(origins[k])
+                    .unwrap()
+                    .set_outgoing(he_ids[k]);
             }
 
             faces.push(face);
@@ -100,20 +117,36 @@ fn pv_05_genus_1_passes_generalized_euler() {
         for col in 0..3 {
             let right_edge = get_face_he(row, col, 1);
             let left_of_right_neighbor = get_face_he(row, (col + 1) % 3, 3);
-            arena.get_half_edge_mut(right_edge).unwrap().set_radial_next(left_of_right_neighbor);
-            arena.get_half_edge_mut(left_of_right_neighbor).unwrap().set_radial_next(right_edge);
+            arena
+                .get_half_edge_mut(right_edge)
+                .unwrap()
+                .set_radial_next(left_of_right_neighbor);
+            arena
+                .get_half_edge_mut(left_of_right_neighbor)
+                .unwrap()
+                .set_radial_next(right_edge);
 
             let bottom_edge = get_face_he(row, col, 2);
             let top_of_bottom_neighbor = get_face_he((row + 1) % 3, col, 0);
-            arena.get_half_edge_mut(bottom_edge).unwrap().set_radial_next(top_of_bottom_neighbor);
-            arena.get_half_edge_mut(top_of_bottom_neighbor).unwrap().set_radial_next(bottom_edge);
+            arena
+                .get_half_edge_mut(bottom_edge)
+                .unwrap()
+                .set_radial_next(top_of_bottom_neighbor);
+            arena
+                .get_half_edge_mut(top_of_bottom_neighbor)
+                .unwrap()
+                .set_radial_next(bottom_edge);
         }
     }
 
     materialize_edge_entities_from_radials(arena).unwrap();
 
     let result = validate_topology(arena, ValidationLevel::Full);
-    assert!(result.is_ok(), "Genus-1 torus topology should pass generalized Euler: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Genus-1 torus topology should pass generalized Euler: {:?}",
+        result.err()
+    );
 }
 
 /// PV-07: Two disjoint cubes (multi-shell) pass Euler validation.
@@ -129,10 +162,18 @@ fn pv_07_multi_shell_passes_euler() {
     let (topo_b, _geom_b) = result_b.into_parts();
 
     let result_a_check = validate_topology(topo_a.arena(), ValidationLevel::Full);
-    assert!(result_a_check.is_ok(), "Cube A should pass Euler: {:?}", result_a_check.err());
+    assert!(
+        result_a_check.is_ok(),
+        "Cube A should pass Euler: {:?}",
+        result_a_check.err()
+    );
 
     let result_b_check = validate_topology(topo_b.arena(), ValidationLevel::Full);
-    assert!(result_b_check.is_ok(), "Cube B should pass Euler: {:?}", result_b_check.err());
+    assert!(
+        result_b_check.is_ok(),
+        "Cube B should pass Euler: {:?}",
+        result_b_check.err()
+    );
 }
 
 /// PV-08: A valid cube with one edge removed fails Euler validation.
@@ -213,22 +254,34 @@ fn pv_06_through_hole_passes_euler() {
     let shell_id = insert_test_solid_shell(arena);
 
     let mut build_face_loop = |arena: &mut forge_topo::arena::TopologyArena,
-                                face_verts: &[usize],
-                                edge_map: &mut BTreeMap<(u32, u32), HalfEdgeId>|
-        -> (FaceId, LoopId)
-    {
+                               face_verts: &[usize],
+                               edge_map: &mut BTreeMap<(u32, u32), HalfEdgeId>|
+     -> (FaceId, LoopId) {
         let n = face_verts.len();
         let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face), None);
         let face = arena.insert_face(FaceData::new(loop_id, shell_id), None);
-        if arena.get_shell(shell_id).unwrap().representative_face() == FaceId::from_raw_parts(u32::MAX, 0) {
-            arena.get_shell_mut(shell_id).unwrap().set_representative_face(face);
+        if arena.get_shell(shell_id).unwrap().representative_face()
+            == FaceId::from_raw_parts(u32::MAX, 0)
+        {
+            arena
+                .get_shell_mut(shell_id)
+                .unwrap()
+                .set_representative_face(face);
         }
 
         let mut he_ids: Vec<HalfEdgeId> = Vec::new();
         for _ in 0..n {
-            let he = arena.insert_half_edge(HalfEdgeData::new(
-                placeholder_he, placeholder_he, placeholder_he, face, verts[0], forge_topo::handles::EdgeId::from_raw_parts(0, 0),
-            ), None);
+            let he = arena.insert_half_edge(
+                HalfEdgeData::new(
+                    placeholder_he,
+                    placeholder_he,
+                    placeholder_he,
+                    face,
+                    verts[0],
+                    forge_topo::handles::EdgeId::from_raw_parts(0, 0),
+                ),
+                None,
+            );
             he_ids.push(he);
         }
 
@@ -242,16 +295,25 @@ fn pv_06_through_hole_passes_euler() {
             he_mut.set_face(face);
 
             edge_map.insert(
-                (verts[face_verts[k]].index(), verts[face_verts[(k + 1) % n]].index()),
+                (
+                    verts[face_verts[k]].index(),
+                    verts[face_verts[(k + 1) % n]].index(),
+                ),
                 he_ids[k],
             );
         }
 
-        arena.get_loop_mut(loop_id).unwrap().set_half_edge(he_ids[0]);
+        arena
+            .get_loop_mut(loop_id)
+            .unwrap()
+            .set_half_edge(he_ids[0]);
         arena.get_loop_mut(loop_id).unwrap().set_face(face);
 
         for k in 0..n {
-            arena.get_vertex_mut(verts[face_verts[k]]).unwrap().set_outgoing(he_ids[k]);
+            arena
+                .get_vertex_mut(verts[face_verts[k]])
+                .unwrap()
+                .set_outgoing(he_ids[k]);
         }
 
         (face, loop_id)
@@ -272,9 +334,17 @@ fn pv_06_through_hole_passes_euler() {
         let il_loop_id = arena.insert_loop(LoopData::new(placeholder_he, top_face), None);
         let mut il_he_ids: Vec<HalfEdgeId> = Vec::new();
         for _ in 0..n {
-            let he = arena.insert_half_edge(HalfEdgeData::new(
-                placeholder_he, placeholder_he, placeholder_he, top_face, verts[0], forge_topo::handles::EdgeId::from_raw_parts(0, 0),
-            ), None);
+            let he = arena.insert_half_edge(
+                HalfEdgeData::new(
+                    placeholder_he,
+                    placeholder_he,
+                    placeholder_he,
+                    top_face,
+                    verts[0],
+                    forge_topo::handles::EdgeId::from_raw_parts(0, 0),
+                ),
+                None,
+            );
             il_he_ids.push(he);
         }
         for k in 0..n {
@@ -290,8 +360,14 @@ fn pv_06_through_hole_passes_euler() {
                 il_he_ids[k],
             );
         }
-        arena.get_loop_mut(il_loop_id).unwrap().set_half_edge(il_he_ids[0]);
-        arena.get_face_mut(top_face).unwrap().add_inner_loop(il_loop_id);
+        arena
+            .get_loop_mut(il_loop_id)
+            .unwrap()
+            .set_half_edge(il_he_ids[0]);
+        arena
+            .get_face_mut(top_face)
+            .unwrap()
+            .add_inner_loop(il_loop_id);
         il_loop_id
     };
 
@@ -302,9 +378,17 @@ fn pv_06_through_hole_passes_euler() {
         let il_loop_id = arena.insert_loop(LoopData::new(placeholder_he, bot_face), None);
         let mut il_he_ids: Vec<HalfEdgeId> = Vec::new();
         for _ in 0..n {
-            let he = arena.insert_half_edge(HalfEdgeData::new(
-                placeholder_he, placeholder_he, placeholder_he, bot_face, verts[0], forge_topo::handles::EdgeId::from_raw_parts(0, 0),
-            ), None);
+            let he = arena.insert_half_edge(
+                HalfEdgeData::new(
+                    placeholder_he,
+                    placeholder_he,
+                    placeholder_he,
+                    bot_face,
+                    verts[0],
+                    forge_topo::handles::EdgeId::from_raw_parts(0, 0),
+                ),
+                None,
+            );
             il_he_ids.push(he);
         }
         for k in 0..n {
@@ -320,15 +404,27 @@ fn pv_06_through_hole_passes_euler() {
                 il_he_ids[k],
             );
         }
-        arena.get_loop_mut(il_loop_id).unwrap().set_half_edge(il_he_ids[0]);
-        arena.get_face_mut(bot_face).unwrap().add_inner_loop(il_loop_id);
+        arena
+            .get_loop_mut(il_loop_id)
+            .unwrap()
+            .set_half_edge(il_he_ids[0]);
+        arena
+            .get_face_mut(bot_face)
+            .unwrap()
+            .add_inner_loop(il_loop_id);
         il_loop_id
     };
 
     for (&(a, b), &he_ab) in &edge_map.clone() {
         if let Some(&he_ba) = edge_map.get(&(b, a)) {
-            arena.get_half_edge_mut(he_ab).unwrap().set_radial_next(he_ba);
-            arena.get_half_edge_mut(he_ba).unwrap().set_radial_next(he_ab);
+            arena
+                .get_half_edge_mut(he_ab)
+                .unwrap()
+                .set_radial_next(he_ba);
+            arena
+                .get_half_edge_mut(he_ba)
+                .unwrap()
+                .set_radial_next(he_ab);
         }
     }
 
@@ -360,5 +456,9 @@ fn pv_06_through_hole_passes_euler() {
     );
 
     let result = validate_topology(arena, ValidationLevel::Full);
-    assert!(result.is_ok(), "Through-hole cube should pass Euler: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Through-hole cube should pass Euler: {:?}",
+        result.err()
+    );
 }

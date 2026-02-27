@@ -3,8 +3,8 @@
 //! DOMAIN: Data shapes for the JSON serialization envelope.
 //! DEPENDENCIES: `serde`, `forge-kernel` (FeatureTree)
 
-use serde::{Deserialize, Serialize};
 use forge_kernel::engine::tree::FeatureTree;
+use serde::{Deserialize, Serialize};
 
 /// Current schema version for forward compatibility.
 pub const SCHEMA_VERSION: u32 = 1;

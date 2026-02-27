@@ -14,19 +14,17 @@
 //! DEPENDENCIES: forge-geom (BspSolid, merge_bsp, convex_to_bsp),
 //!               mesh.rs (bsp_to_mesh), ModelingContext, OperationResult
 
-use forge_core::{KernelError, OperationResult, OperationMetrics};
 use forge_core::tracing::{DecisionKind, DecisionTier, TraceAdjunctSet};
-use forge_geom::spatial::bsp::{BspOp, BspSolid, BspNode, merge_bsp};
+use forge_core::{KernelError, OperationMetrics, OperationResult};
+use forge_geom::spatial::bsp::{merge_bsp, BspNode, BspOp, BspSolid};
 use forge_geom::Plane;
 use forge_topo::state::TopologyState;
 
-use crate::core::{ModelingContext, OperationFinalizer, TopologyHashBoundary, FinalizationError};
-use crate::geometry_state::GeometryState;
-use crate::operations::boolean::{
-    BooleanInput, BooleanOp, BooleanResult,
-};
-use crate::operations::boolean::result::BooleanIntrospection;
 use super::mesh::bsp_to_mesh;
+use crate::core::{FinalizationError, ModelingContext, OperationFinalizer, TopologyHashBoundary};
+use crate::geometry_state::GeometryState;
+use crate::operations::boolean::result::BooleanIntrospection;
+use crate::operations::boolean::{BooleanInput, BooleanOp, BooleanResult};
 
 /// EMBER error types — only CurvedGeometry triggers fallback.
 #[derive(Debug)]
@@ -70,7 +68,8 @@ pub fn execute_ember_boolean(
     if input.has_curved_geometry() {
         return Err(EmberError::CurvedGeometry);
     }
-    let topo_hash_before = input.target_topology().topology_hash() ^ input.tool_topology().topology_hash();
+    let topo_hash_before =
+        input.target_topology().topology_hash() ^ input.tool_topology().topology_hash();
 
     let mut ctx = ModelingContext::default();
     ctx.enable_auto_persist();
@@ -123,69 +122,74 @@ fn execute_pipeline(
     ctx: &mut ModelingContext,
     start_time: std::time::Instant,
 ) -> Result<BooleanResult, KernelError> {
-    input.validate().map_err(|e| e.with_phase("ember_validate"))?;
+    input
+        .validate()
+        .map_err(|e| e.with_phase("ember_validate"))?;
     let (target_topo, target_geom, tool_topo, tool_geom, operation) = input.into_parts();
 
     let bsp_op = to_bsp_op(operation);
 
     // ── Phase 1: Convert ────────────────────────────────────────────────────
-    let target_bsp = ctx.scope("ember_convert_target", |ctx| {
-        let bsp = halfedge_to_bsp(&target_topo, &target_geom)?;
-        ctx.log_decision(
-            DecisionKind::Exact,
-            DecisionTier::Deterministic,
-            [0.0, 0.0, 0.0],
-            0.0,
-            0.0,
-        );
-        Ok(bsp)
-    }).map_err(|e: KernelError| e.with_phase("ember_convert"))?;
+    let target_bsp = ctx
+        .scope("ember_convert_target", |ctx| {
+            let bsp = halfedge_to_bsp(&target_topo, &target_geom)?;
+            ctx.log_decision(
+                DecisionKind::Exact,
+                DecisionTier::Deterministic,
+                [0.0, 0.0, 0.0],
+                0.0,
+                0.0,
+            );
+            Ok(bsp)
+        })
+        .map_err(|e: KernelError| e.with_phase("ember_convert"))?;
 
-    let tool_bsp = ctx.scope("ember_convert_tool", |ctx| {
-        let bsp = halfedge_to_bsp(&tool_topo, &tool_geom)?;
-        ctx.log_decision(
-            DecisionKind::Exact,
-            DecisionTier::Deterministic,
-            [0.0, 0.0, 0.0],
-            0.0,
-            0.0,
-        );
-        Ok(bsp)
-    }).map_err(|e: KernelError| e.with_phase("ember_convert"))?;
+    let tool_bsp = ctx
+        .scope("ember_convert_tool", |ctx| {
+            let bsp = halfedge_to_bsp(&tool_topo, &tool_geom)?;
+            ctx.log_decision(
+                DecisionKind::Exact,
+                DecisionTier::Deterministic,
+                [0.0, 0.0, 0.0],
+                0.0,
+                0.0,
+            );
+            Ok(bsp)
+        })
+        .map_err(|e: KernelError| e.with_phase("ember_convert"))?;
 
     // ── Phase 2: Merge ──────────────────────────────────────────────────────
-    let merged = ctx.scope("ember_merge", |ctx| {
-        let result = merge_bsp(&target_bsp, &tool_bsp, bsp_op)
-            .map_err(KernelError::from)?;
-        ctx.log_decision(
-            DecisionKind::Exact,
-            DecisionTier::Deterministic,
-            [0.0, 0.0, 0.0],
-            0.0,
-            0.0,
-        );
-        Ok(result)
-    }).map_err(|e: KernelError| e.with_phase("ember_merge"))?;
+    let merged = ctx
+        .scope("ember_merge", |ctx| {
+            let result = merge_bsp(&target_bsp, &tool_bsp, bsp_op).map_err(KernelError::from)?;
+            ctx.log_decision(
+                DecisionKind::Exact,
+                DecisionTier::Deterministic,
+                [0.0, 0.0, 0.0],
+                0.0,
+                0.0,
+            );
+            Ok(result)
+        })
+        .map_err(|e: KernelError| e.with_phase("ember_merge"))?;
 
     // ── Phase 3+4: Extract + Mesh ───────────────────────────────────────────
-    let (result_topo, result_geom, result_brep) = ctx.scope("ember_mesh", |ctx| {
-        bsp_to_mesh(&merged, ctx)
-    }).map_err(|e: KernelError| e.with_phase("ember_mesh"))?;
+    let (result_topo, result_geom, result_brep) = ctx
+        .scope("ember_mesh", |ctx| bsp_to_mesh(&merged, ctx))
+        .map_err(|e: KernelError| e.with_phase("ember_mesh"))?;
 
     // ── Phase 5: Finalize ───────────────────────────────────────────────────
     let target_face_count = target_topo.arena().face_count();
     let tool_face_count = tool_topo.arena().face_count();
 
-    let introspection = BooleanIntrospection::new(
-        0,
-        &[],
-        &[],
-        start_time.elapsed(),
-    );
+    let introspection = BooleanIntrospection::new(0, &[], &[], start_time.elapsed());
 
     let result = BooleanResult::new(
-        result_topo, result_geom, crate::brep::state::BrepState::new(),
-        target_face_count, tool_face_count,
+        result_topo,
+        result_geom,
+        crate::brep::state::BrepState::new(),
+        target_face_count,
+        tool_face_count,
         introspection,
     );
 
@@ -198,19 +202,18 @@ fn execute_pipeline(
 /// a BSP tree by recursively picking a face's plane as the splitter
 /// and classifying other face polygons against it. This correctly
 /// handles non-convex meshes (chained boolean results).
-fn halfedge_to_bsp(
-    topo: &TopologyState,
-    geom: &GeometryState,
-) -> Result<BspSolid, KernelError> {
+fn halfedge_to_bsp(topo: &TopologyState, geom: &GeometryState) -> Result<BspSolid, KernelError> {
     let mut planes: Vec<Plane> = Vec::new();
     let mut plane_map: Vec<usize> = Vec::new(); // face_idx → plane_idx
     let mut face_polygons: Vec<Vec<[f64; 3]>> = Vec::new();
 
     for (fid, _) in topo.arena().iter_faces() {
-        let plane = geom.get_face_plane(fid).ok_or_else(|| KernelError::InternalError {
-            message: "EMBER: face missing plane in GeometryState".to_string(),
-            context: None,
-        })?;
+        let plane = geom
+            .get_face_plane(fid)
+            .ok_or_else(|| KernelError::InternalError {
+                message: "EMBER: face missing plane in GeometryState".to_string(),
+                context: None,
+            })?;
 
         // Deduplicate planes by exact coefficients
         let pidx = find_or_insert_plane(&mut planes, plane);
@@ -229,8 +232,13 @@ fn halfedge_to_bsp(
     }
 
     // Build face descriptors for autopartition
-    let face_descs: Vec<FaceDesc> = plane_map.iter().zip(face_polygons.iter())
-        .map(|(&pidx, verts)| FaceDesc { plane_idx: pidx, vertices: verts.clone() })
+    let face_descs: Vec<FaceDesc> = plane_map
+        .iter()
+        .zip(face_polygons.iter())
+        .map(|(&pidx, verts)| FaceDesc {
+            plane_idx: pidx,
+            vertices: verts.clone(),
+        })
         .collect();
 
     let root = build_autopartition(&planes, &face_descs);
@@ -276,13 +284,17 @@ fn extract_face_polygon(
     loop {
         let he = topo.arena().get_half_edge(current)?;
         let vid = he.origin();
-        let pos = geom.get_vertex_position(vid).ok_or_else(|| KernelError::InternalError {
-            message: format!("EMBER: vertex {:?} missing position", vid),
-            context: None,
-        })?;
+        let pos = geom
+            .get_vertex_position(vid)
+            .ok_or_else(|| KernelError::InternalError {
+                message: format!("EMBER: vertex {:?} missing position", vid),
+                context: None,
+            })?;
         vertices.push(*pos);
         current = he.next();
-        if current == start_he { break; }
+        if current == start_he {
+            break;
+        }
         if vertices.len() > 1000 {
             return Err(KernelError::InternalError {
                 message: "EMBER: infinite loop in face polygon extraction".to_string(),
@@ -394,7 +406,7 @@ fn to_bsp_op(op: BooleanOp) -> BspOp {
 pub fn execute_boolean_adaptive(
     input: BooleanInput,
 ) -> OperationResult<Result<BooleanResult, KernelError>> {
-    use crate::operations::boolean::execute_boolean_direct;
+    use crate::operations::boolean::parametric::assemble::merge::eval::execute_boolean_direct;
 
     if input.has_curved_geometry() {
         return execute_boolean_direct(input);

@@ -1,8 +1,8 @@
-use std::collections::HashSet;
-use forge_core::KernelError;
 use crate::graph::SignalGraph;
 use crate::handles::NodeId;
-use crate::schema::{Aspect, AspectVersion, NodeState, DependencySnapshot};
+use crate::schema::{Aspect, AspectVersion, DependencySnapshot, NodeState};
+use forge_core::KernelError;
+use std::collections::HashSet;
 
 /// Evaluate a node, recomputing only if necessary.
 ///
@@ -31,7 +31,13 @@ where
     while let Some(task) = eval_stack.pop() {
         match task {
             EvalTask::Evaluate(current) => {
-                process_evaluate_task(graph, current, &mut eval_stack, &mut active_path, &mut visited)?;
+                process_evaluate_task(
+                    graph,
+                    current,
+                    &mut eval_stack,
+                    &mut active_path,
+                    &mut visited,
+                )?;
             }
             EvalTask::Recompute(current) => {
                 active_path.remove(&current);
@@ -61,7 +67,7 @@ fn process_evaluate_task(
     if !graph.is_alive(current) {
         return Ok(());
     }
-    
+
     if visited.contains(&current) {
         return Ok(());
     }
@@ -69,14 +75,14 @@ fn process_evaluate_task(
     if active_path.contains(&current) {
         return Err(circular_reference_error(current));
     }
-    
+
     let state = *graph.get_entry(current)?.get_state();
 
     match state {
         NodeState::Clean => {
             visited.insert(current);
             Ok(())
-        },
+        }
 
         NodeState::MaybeStale => {
             let upstream_unchanged = check_upstream_unchanged(graph, current)?;
@@ -93,7 +99,7 @@ fn process_evaluate_task(
         NodeState::Dirty => {
             active_path.insert(current);
             push_deps_then_recompute(graph, current, eval_stack)
-        },
+        }
     }
 }
 
@@ -152,9 +158,7 @@ fn push_deps_then_recompute(
 fn revert_to_clean(graph: &mut SignalGraph, node: NodeId) -> Result<(), KernelError> {
     let ver = graph.get_entry(node)?.get_aspect_version();
     let _clean_version = ver.topology() + ver.geometry();
-    graph
-        .get_entry_mut(node)?
-        .set_state(NodeState::Clean);
+    graph.get_entry_mut(node)?.set_state(NodeState::Clean);
     Ok(())
 }
 
@@ -162,10 +166,7 @@ fn revert_to_clean(graph: &mut SignalGraph, node: NodeId) -> Result<(), KernelEr
 ///
 /// Returns `true` if all subscribed aspect versions are unchanged,
 /// meaning the node can safely revert to `Clean`.
-fn check_upstream_unchanged(
-    graph: &SignalGraph,
-    node: NodeId,
-) -> Result<bool, KernelError> {
+fn check_upstream_unchanged(graph: &SignalGraph, node: NodeId) -> Result<bool, KernelError> {
     let snapshot = graph.get_entry(node)?.get_dep_snapshot().clone();
 
     for (source, aspect, cached_version) in snapshot.entries() {
@@ -235,10 +236,7 @@ enum EvalTask {
 /// Produce a structured error for a circular reference.
 fn circular_reference_error(node: NodeId) -> KernelError {
     KernelError::InvalidInput {
-        message: format!(
-            "Circular reference detected at signal node: {}",
-            node
-        ),
+        message: format!("Circular reference detected at signal node: {}", node),
         context: None,
     }
 }

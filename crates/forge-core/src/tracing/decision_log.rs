@@ -4,10 +4,7 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use super::schema::{
-    DecisionId, DecisionKind, DecisionTier, SpanId,
-    TraceEvent, TracedDecision,
-};
+use super::schema::{DecisionId, DecisionKind, DecisionTier, SpanId, TraceEvent, TracedDecision};
 
 // =========================================================================
 // DECISION LOG
@@ -108,7 +105,10 @@ impl DecisionLog {
     /// Handles mismatched closes: if `id` is not the top of the stack,
     /// truncates to (and removes) the matching span entry.
     pub fn end_span(&mut self, id: SpanId, duration_micros: u64) {
-        self.events.push(TraceEvent::EndSpan { id, duration_micros });
+        self.events.push(TraceEvent::EndSpan {
+            id,
+            duration_micros,
+        });
         if let Some(pos) = self.span_stack.iter().rposition(|s| *s == id) {
             self.span_stack.truncate(pos);
         }
@@ -146,7 +146,9 @@ impl DecisionLog {
 
     /// Decisions at or above a given tier.
     pub fn tier_at_least(&self, min_tier: DecisionTier) -> Vec<&TracedDecision> {
-        self.decisions().filter(|d| d.get_tier() >= min_tier).collect()
+        self.decisions()
+            .filter(|d| d.get_tier() >= min_tier)
+            .collect()
     }
 
     /// Decisions at Tier 2 (NearBoundary) or above.
@@ -167,7 +169,8 @@ impl DecisionLog {
     pub fn by_margin_ascending(&self) -> Vec<&TracedDecision> {
         let mut refs: Vec<&TracedDecision> = self.decisions().collect();
         refs.sort_by(|a, b| {
-            a.get_margin().partial_cmp(&b.get_margin())
+            a.get_margin()
+                .partial_cmp(&b.get_margin())
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
         refs
@@ -175,9 +178,9 @@ impl DecisionLog {
 
     /// Only decisions with `DecisionKind::Ambiguous`.
     pub fn ambiguous_only(&self) -> Vec<&TracedDecision> {
-        self.decisions().filter(|d| {
-            matches!(d.get_kind(), DecisionKind::Ambiguous { .. })
-        }).collect()
+        self.decisions()
+            .filter(|d| matches!(d.get_kind(), DecisionKind::Ambiguous { .. }))
+            .collect()
     }
 
     /// Only decisions that are overridable.
@@ -187,9 +190,9 @@ impl DecisionLog {
 
     /// Returns `true` if there are zero `Ambiguous` decisions.
     pub fn is_clean(&self) -> bool {
-        !self.decisions().any(|d| {
-            matches!(d.get_kind(), DecisionKind::Ambiguous { .. })
-        })
+        !self
+            .decisions()
+            .any(|d| matches!(d.get_kind(), DecisionKind::Ambiguous { .. }))
     }
 
     /// Produce a summary counting decisions by kind (O(1) via cached running summary).
@@ -215,7 +218,8 @@ impl DecisionLog {
 
     /// Extract a `TraceSummary` for diffing across evaluations.
     pub fn to_summary(&self, state_hash: u128) -> TraceSummary {
-        let interesting: Vec<TracedDecision> = self.decisions()
+        let interesting: Vec<TracedDecision> = self
+            .decisions()
             .filter(|d| d.get_tier() >= DecisionTier::NearBoundary)
             .cloned()
             .collect();
@@ -237,14 +241,22 @@ impl DecisionLog {
         let mut out = String::new();
         let total = self.len();
         let interesting = self.interesting_only();
-        let _ = writeln!(out, "{} decisions ({} interesting)", total, interesting.len());
+        let _ = writeln!(
+            out,
+            "{} decisions ({} interesting)",
+            total,
+            interesting.len()
+        );
 
         let span_summaries = self.compute_span_summaries();
         for ss in &span_summaries {
             // Compute aggregated TopologyDelta for the span
             let mut span_delta_strs = Vec::new();
             for d in self.decisions() {
-                if d.get_span_id().map(|s| self.span_name(s).as_deref() == Some(ss.name.as_str())).unwrap_or(false) {
+                if d.get_span_id()
+                    .map(|s| self.span_name(s).as_deref() == Some(ss.name.as_str()))
+                    .unwrap_or(false)
+                {
                     if let Some(delta) = d.get_topology_delta() {
                         if !delta.is_empty() {
                             span_delta_strs.push(format!("{}", delta));
@@ -259,10 +271,15 @@ impl DecisionLog {
             };
 
             if ss.max_tier >= DecisionTier::NearBoundary {
-                let _ = writeln!(out, "[{}] {} decisions (max tier: {}){}",
-                    ss.name, ss.total_decisions, ss.max_tier, delta_str);
+                let _ = writeln!(
+                    out,
+                    "[{}] {} decisions (max tier: {}){}",
+                    ss.name, ss.total_decisions, ss.max_tier, delta_str
+                );
                 for d in self.decisions() {
-                    if d.get_span_id().map(|s| self.span_name(s).as_deref() == Some(ss.name.as_str())).unwrap_or(false)
+                    if d.get_span_id()
+                        .map(|s| self.span_name(s).as_deref() == Some(ss.name.as_str()))
+                        .unwrap_or(false)
                         && d.get_tier() >= DecisionTier::NearBoundary
                     {
                         if let Some(delta) = d.get_topology_delta() {
@@ -275,7 +292,11 @@ impl DecisionLog {
                     }
                 }
             } else {
-                let _ = writeln!(out, "[{}] {} decisions, clean{}", ss.name, ss.total_decisions, delta_str);
+                let _ = writeln!(
+                    out,
+                    "[{}] {} decisions, clean{}",
+                    ss.name, ss.total_decisions, delta_str
+                );
             }
         }
 
@@ -305,7 +326,8 @@ impl DecisionLog {
     /// Compute per-span aggregate statistics (uses cached span_names for O(1) name lookup).
     fn compute_span_summaries(&self) -> Vec<SpanSummaryEntry> {
         let mut spans: Vec<SpanSummaryEntry> = Vec::new();
-        let mut span_idx: std::collections::HashMap<SpanId, usize> = std::collections::HashMap::new();
+        let mut span_idx: std::collections::HashMap<SpanId, usize> =
+            std::collections::HashMap::new();
 
         for event in &self.events {
             if let TraceEvent::StartSpan { id, name, .. } = event {
@@ -332,7 +354,11 @@ impl DecisionLog {
         }
 
         for event in &self.events {
-            if let TraceEvent::EndSpan { id, duration_micros } = event {
+            if let TraceEvent::EndSpan {
+                id,
+                duration_micros,
+            } = event
+            {
                 if let Some(&idx) = span_idx.get(id) {
                     spans[idx].duration_micros = *duration_micros;
                 }
@@ -517,7 +543,8 @@ impl TraceSummary {
                 None => added.push((*new_d).clone()),
                 Some(old_d) => {
                     if old_d.get_tier() != new_d.get_tier()
-                        || std::mem::discriminant(old_d.get_kind()) != std::mem::discriminant(new_d.get_kind())
+                        || std::mem::discriminant(old_d.get_kind())
+                            != std::mem::discriminant(new_d.get_kind())
                     {
                         changed.push(((*old_d).clone(), (*new_d).clone()));
                     }
@@ -531,7 +558,12 @@ impl TraceSummary {
             }
         }
 
-        TraceDiff { added, removed, changed, state_hash_changed }
+        TraceDiff {
+            added,
+            removed,
+            changed,
+            state_hash_changed,
+        }
     }
 }
 

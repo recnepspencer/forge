@@ -7,7 +7,10 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::handles::{FaceId, HalfEdgeId, VertexId, LoopId, ShellId, BodyId, LumpId, RegionId, EdgeId, CurveRef, SurfaceRef, CoedgeRef};
+use crate::handles::{
+    BodyId, CoedgeRef, CurveRef, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId,
+    SurfaceRef, VertexId,
+};
 use crate::lineage::Lineage;
 
 /// A slot in the arena that may be occupied or vacant.
@@ -61,34 +64,60 @@ pub struct FaceData {
 impl FaceData {
     /// Construct a new face with the given outer loop and shell.
     pub fn new(outer_loop: LoopId, shell: ShellId) -> Self {
-        Self { outer_loop, inner_loops: Vec::new(), shell, lineage: None, surface: None }
+        Self {
+            outer_loop,
+            inner_loops: Vec::new(),
+            shell,
+            lineage: None,
+            surface: None,
+        }
     }
 
     /// Construct a new face with lineage.
     pub fn with_lineage(outer_loop: LoopId, shell: ShellId, lineage: Option<Lineage>) -> Self {
-        Self { outer_loop, inner_loops: Vec::new(), shell, lineage, surface: None }
+        Self {
+            outer_loop,
+            inner_loops: Vec::new(),
+            shell,
+            lineage,
+            surface: None,
+        }
     }
 
     /// The outer boundary loop of this face.
-    pub fn outer_loop(&self) -> LoopId { self.outer_loop }
+    pub fn outer_loop(&self) -> LoopId {
+        self.outer_loop
+    }
 
     /// Inline lineage for provenance tracking.
-    pub fn lineage(&self) -> Option<&Lineage> { self.lineage.as_ref() }
+    pub fn lineage(&self) -> Option<&Lineage> {
+        self.lineage.as_ref()
+    }
 
     /// The shell this face belongs to.
-    pub fn shell(&self) -> ShellId { self.shell }
+    pub fn shell(&self) -> ShellId {
+        self.shell
+    }
 
     /// Set the outer boundary loop.
-    pub fn set_outer_loop(&mut self, id: LoopId) { self.outer_loop = id; }
+    pub fn set_outer_loop(&mut self, id: LoopId) {
+        self.outer_loop = id;
+    }
 
     /// Set the shell this face belongs to.
-    pub fn set_shell(&mut self, id: ShellId) { self.shell = id; }
+    pub fn set_shell(&mut self, id: ShellId) {
+        self.shell = id;
+    }
 
     /// Inner loops (holes) on this face.
-    pub fn inner_loops(&self) -> &[LoopId] { &self.inner_loops }
+    pub fn inner_loops(&self) -> &[LoopId] {
+        &self.inner_loops
+    }
 
     /// Add an inner loop (hole boundary) to this face.
-    pub fn add_inner_loop(&mut self, id: LoopId) { self.inner_loops.push(id); }
+    pub fn add_inner_loop(&mut self, id: LoopId) {
+        self.inner_loops.push(id);
+    }
 
     /// Remove an inner loop from this face.
     ///
@@ -103,16 +132,24 @@ impl FaceData {
     }
 
     /// Number of inner loops (rings) on this face.
-    pub fn inner_loop_count(&self) -> usize { self.inner_loops.len() }
+    pub fn inner_loop_count(&self) -> usize {
+        self.inner_loops.len()
+    }
 
     /// Set inline lineage.
-    pub fn set_lineage(&mut self, lineage: Option<Lineage>) { self.lineage = lineage; }
+    pub fn set_lineage(&mut self, lineage: Option<Lineage>) {
+        self.lineage = lineage;
+    }
 
     /// Opaque reference to this face's parametric surface (None = planar).
-    pub fn surface_ref(&self) -> Option<SurfaceRef> { self.surface }
+    pub fn surface_ref(&self) -> Option<SurfaceRef> {
+        self.surface
+    }
 
     /// Set the surface reference (populated by the kernel for curved faces).
-    pub fn set_surface_ref(&mut self, r: Option<SurfaceRef>) { self.surface = r; }
+    pub fn set_surface_ref(&mut self, r: Option<SurfaceRef>) {
+        self.surface = r;
+    }
 }
 
 /// Data stored for each halfedge.
@@ -154,7 +191,9 @@ pub struct HalfEdgeData {
 }
 
 /// Serde default for the `direction` field (true = aligned).
-fn default_direction() -> bool { true }
+fn default_direction() -> bool {
+    true
+}
 
 impl HalfEdgeData {
     /// Construct a new halfedge with all connectivity fields.
@@ -166,7 +205,18 @@ impl HalfEdgeData {
         origin: VertexId,
         edge: EdgeId,
     ) -> Self {
-        Self { radial_next, next, prev, face, origin, edge, lineage: None, is_bridge: false, coedge: None, direction: true }
+        Self {
+            radial_next,
+            next,
+            prev,
+            face,
+            origin,
+            edge,
+            lineage: None,
+            is_bridge: false,
+            coedge: None,
+            direction: true,
+        }
     }
 
     /// Construct a new halfedge with lineage.
@@ -179,7 +229,18 @@ impl HalfEdgeData {
         edge: EdgeId,
         lineage: Option<Lineage>,
     ) -> Self {
-        Self { radial_next, next, prev, face, origin, edge, lineage, is_bridge: false, coedge: None, direction: true }
+        Self {
+            radial_next,
+            next,
+            prev,
+            face,
+            origin,
+            edge,
+            lineage,
+            is_bridge: false,
+            coedge: None,
+            direction: true,
+        }
     }
 
     /// Next halfedge in the radial ring around the same geometric edge.
@@ -187,64 +248,104 @@ impl HalfEdgeData {
     /// For manifold edges, `radial_next(radial_next(he)) == he` (pair).
     /// For boundary edges, `radial_next == self` (self-radial).
     /// For non-manifold edges, the ring has 3+ halfedges.
-    pub fn radial_next(&self) -> HalfEdgeId { self.radial_next }
+    pub fn radial_next(&self) -> HalfEdgeId {
+        self.radial_next
+    }
 
     /// The next halfedge in the face loop.
-    pub fn next(&self) -> HalfEdgeId { self.next }
+    pub fn next(&self) -> HalfEdgeId {
+        self.next
+    }
 
     /// The previous halfedge in the face loop.
-    pub fn prev(&self) -> HalfEdgeId { self.prev }
+    pub fn prev(&self) -> HalfEdgeId {
+        self.prev
+    }
 
     /// The face this halfedge borders.
-    pub fn face(&self) -> FaceId { self.face }
+    pub fn face(&self) -> FaceId {
+        self.face
+    }
 
     /// The origin vertex.
-    pub fn origin(&self) -> VertexId { self.origin }
+    pub fn origin(&self) -> VertexId {
+        self.origin
+    }
 
     /// The owning undirected edge.
-    pub fn edge(&self) -> EdgeId { self.edge }
+    pub fn edge(&self) -> EdgeId {
+        self.edge
+    }
 
     /// Inline lineage for provenance tracking.
-    pub fn lineage(&self) -> Option<&Lineage> { self.lineage.as_ref() }
+    pub fn lineage(&self) -> Option<&Lineage> {
+        self.lineage.as_ref()
+    }
 
     /// Whether this is a synthetic bridge halfedge (inserted by `BridgeEdge`).
-    pub fn is_bridge(&self) -> bool { self.is_bridge }
+    pub fn is_bridge(&self) -> bool {
+        self.is_bridge
+    }
 
     /// Set the next halfedge in the radial ring.
-    pub fn set_radial_next(&mut self, id: HalfEdgeId) { self.radial_next = id; }
+    pub fn set_radial_next(&mut self, id: HalfEdgeId) {
+        self.radial_next = id;
+    }
 
     /// Set the next halfedge.
-    pub fn set_next(&mut self, id: HalfEdgeId) { self.next = id; }
+    pub fn set_next(&mut self, id: HalfEdgeId) {
+        self.next = id;
+    }
 
     /// Set the previous halfedge.
-    pub fn set_prev(&mut self, id: HalfEdgeId) { self.prev = id; }
+    pub fn set_prev(&mut self, id: HalfEdgeId) {
+        self.prev = id;
+    }
 
     /// Set the face this halfedge borders.
-    pub fn set_face(&mut self, id: FaceId) { self.face = id; }
+    pub fn set_face(&mut self, id: FaceId) {
+        self.face = id;
+    }
 
     /// Set the origin vertex.
-    pub fn set_origin(&mut self, id: VertexId) { self.origin = id; }
+    pub fn set_origin(&mut self, id: VertexId) {
+        self.origin = id;
+    }
 
     /// Set the owning undirected edge.
-    pub fn set_edge(&mut self, id: EdgeId) { self.edge = id; }
+    pub fn set_edge(&mut self, id: EdgeId) {
+        self.edge = id;
+    }
 
     /// Set inline lineage.
-    pub fn set_lineage(&mut self, lineage: Option<Lineage>) { self.lineage = lineage; }
+    pub fn set_lineage(&mut self, lineage: Option<Lineage>) {
+        self.lineage = lineage;
+    }
 
     /// Mark this halfedge as a synthetic bridge (from `BridgeEdge`).
-    pub fn set_bridge(&mut self, value: bool) { self.is_bridge = value; }
+    pub fn set_bridge(&mut self, value: bool) {
+        self.is_bridge = value;
+    }
 
     /// Opaque reference to this halfedge's UV trim curve (None = planar).
-    pub fn coedge_ref(&self) -> Option<CoedgeRef> { self.coedge }
+    pub fn coedge_ref(&self) -> Option<CoedgeRef> {
+        self.coedge
+    }
 
     /// Set the coedge reference (populated by the kernel for curved halfedges).
-    pub fn set_coedge_ref(&mut self, r: Option<CoedgeRef>) { self.coedge = r; }
+    pub fn set_coedge_ref(&mut self, r: Option<CoedgeRef>) {
+        self.coedge = r;
+    }
 
     /// Whether this coedge's direction is aligned with the parent Edge's 3D curve.
-    pub fn direction(&self) -> bool { self.direction }
+    pub fn direction(&self) -> bool {
+        self.direction
+    }
 
     /// Set the coedge direction sense (true = aligned with Edge curve).
-    pub fn set_direction(&mut self, d: bool) { self.direction = d; }
+    pub fn set_direction(&mut self, d: bool) {
+        self.direction = d;
+    }
 }
 
 /// Data stored for each vertex.
@@ -269,37 +370,63 @@ pub struct VertexData {
 impl VertexData {
     /// Construct a new vertex with the given outgoing halfedge.
     pub fn new(outgoing: HalfEdgeId) -> Self {
-        Self { outgoing, lineage: None, provenance: None, birth_parameter: None }
+        Self {
+            outgoing,
+            lineage: None,
+            provenance: None,
+            birth_parameter: None,
+        }
     }
 
     /// Construct a new vertex with lineage.
     pub fn with_lineage(outgoing: HalfEdgeId, lineage: Option<Lineage>) -> Self {
-        Self { outgoing, lineage, provenance: None, birth_parameter: None }
+        Self {
+            outgoing,
+            lineage,
+            provenance: None,
+            birth_parameter: None,
+        }
     }
 
     /// One outgoing halfedge (for traversal entry).
-    pub fn outgoing(&self) -> HalfEdgeId { self.outgoing }
+    pub fn outgoing(&self) -> HalfEdgeId {
+        self.outgoing
+    }
 
     /// Inline lineage for provenance tracking.
-    pub fn lineage(&self) -> Option<&Lineage> { self.lineage.as_ref() }
+    pub fn lineage(&self) -> Option<&Lineage> {
+        self.lineage.as_ref()
+    }
 
     /// The 3-plane intersection provenance (sorted plane indices).
-    pub fn provenance(&self) -> Option<&[usize; 3]> { self.provenance.as_ref() }
+    pub fn provenance(&self) -> Option<&[usize; 3]> {
+        self.provenance.as_ref()
+    }
 
     /// The birth parameter `t` at which this vertex was inserted during `SplitEdge`.
-    pub fn birth_parameter(&self) -> Option<f64> { self.birth_parameter }
+    pub fn birth_parameter(&self) -> Option<f64> {
+        self.birth_parameter
+    }
 
     /// Set the outgoing halfedge.
-    pub fn set_outgoing(&mut self, id: HalfEdgeId) { self.outgoing = id; }
+    pub fn set_outgoing(&mut self, id: HalfEdgeId) {
+        self.outgoing = id;
+    }
 
     /// Set inline lineage.
-    pub fn set_lineage(&mut self, lineage: Option<Lineage>) { self.lineage = lineage; }
+    pub fn set_lineage(&mut self, lineage: Option<Lineage>) {
+        self.lineage = lineage;
+    }
 
     /// Set the 3-plane intersection provenance.
-    pub fn set_provenance(&mut self, provenance: Option<[usize; 3]>) { self.provenance = provenance; }
+    pub fn set_provenance(&mut self, provenance: Option<[usize; 3]>) {
+        self.provenance = provenance;
+    }
 
     /// Set the curve birth parameter (stored during `SplitEdge`).
-    pub fn set_birth_parameter(&mut self, t: Option<f64>) { self.birth_parameter = t; }
+    pub fn set_birth_parameter(&mut self, t: Option<f64>) {
+        self.birth_parameter = t;
+    }
 }
 
 /// Data stored for each loop (boundary of a face).
@@ -319,16 +446,24 @@ impl LoopData {
     }
 
     /// One halfedge on this loop (entry point for traversal).
-    pub fn half_edge(&self) -> HalfEdgeId { self.half_edge }
+    pub fn half_edge(&self) -> HalfEdgeId {
+        self.half_edge
+    }
 
     /// The face this loop belongs to.
-    pub fn face(&self) -> FaceId { self.face }
+    pub fn face(&self) -> FaceId {
+        self.face
+    }
 
     /// Set the entry halfedge.
-    pub fn set_half_edge(&mut self, id: HalfEdgeId) { self.half_edge = id; }
+    pub fn set_half_edge(&mut self, id: HalfEdgeId) {
+        self.half_edge = id;
+    }
 
     /// Set the owning face.
-    pub fn set_face(&mut self, id: FaceId) { self.face = id; }
+    pub fn set_face(&mut self, id: FaceId) {
+        self.face = id;
+    }
 }
 
 /// Data stored for each solid — the top-level topology container.
@@ -344,19 +479,29 @@ pub struct BodyData {
 impl BodyData {
     /// Construct a new empty solid.
     pub fn new() -> Self {
-        Self { lumps: Vec::new(), lineage: None }
+        Self {
+            lumps: Vec::new(),
+            lineage: None,
+        }
     }
 
     /// Construct a new solid with lineage.
     pub fn with_lineage(lineage: Option<Lineage>) -> Self {
-        Self { lumps: Vec::new(), lineage }
+        Self {
+            lumps: Vec::new(),
+            lineage,
+        }
     }
 
     /// The lumps belonging to this solid.
-    pub fn lumps(&self) -> &[LumpId] { &self.lumps }
+    pub fn lumps(&self) -> &[LumpId] {
+        &self.lumps
+    }
 
     /// Add a lump to this solid.
-    pub fn add_lump(&mut self, id: LumpId) { self.lumps.push(id); }
+    pub fn add_lump(&mut self, id: LumpId) {
+        self.lumps.push(id);
+    }
 
     /// Remove a lump from this solid.
     ///
@@ -371,13 +516,19 @@ impl BodyData {
     }
 
     /// Number of lumps in this solid.
-    pub fn lump_count(&self) -> usize { self.lumps.len() }
+    pub fn lump_count(&self) -> usize {
+        self.lumps.len()
+    }
 
     /// Inline lineage for provenance tracking.
-    pub fn lineage(&self) -> Option<&Lineage> { self.lineage.as_ref() }
+    pub fn lineage(&self) -> Option<&Lineage> {
+        self.lineage.as_ref()
+    }
 
     /// Set inline lineage.
-    pub fn set_lineage(&mut self, lineage: Option<Lineage>) { self.lineage = lineage; }
+    pub fn set_lineage(&mut self, lineage: Option<Lineage>) {
+        self.lineage = lineage;
+    }
 
     /// Backward-compatible access: collect all shells across all lumps.
     ///
@@ -385,7 +536,9 @@ impl BodyData {
     /// traversing the Lump/Region hierarchy directly. This method exists
     /// as a migration aid.
     #[deprecated(note = "traverse lumps/regions/shells hierarchy instead")]
-    pub fn shells(&self) -> &[LumpId] { &self.lumps }
+    pub fn shells(&self) -> &[LumpId] {
+        &self.lumps
+    }
 }
 
 /// Data stored for each lump — a connected component of material.
@@ -402,19 +555,31 @@ pub struct LumpData {
 impl LumpData {
     /// Construct a new lump with its parent body.
     pub fn new(body: BodyId) -> Self {
-        Self { regions: Vec::new(), body, lineage: None }
+        Self {
+            regions: Vec::new(),
+            body,
+            lineage: None,
+        }
     }
 
     /// Construct a new lump with lineage.
     pub fn with_lineage(body: BodyId, lineage: Option<Lineage>) -> Self {
-        Self { regions: Vec::new(), body, lineage }
+        Self {
+            regions: Vec::new(),
+            body,
+            lineage,
+        }
     }
 
     /// The regions belonging to this lump.
-    pub fn regions(&self) -> &[RegionId] { &self.regions }
+    pub fn regions(&self) -> &[RegionId] {
+        &self.regions
+    }
 
     /// Add a region to this lump.
-    pub fn add_region(&mut self, id: RegionId) { self.regions.push(id); }
+    pub fn add_region(&mut self, id: RegionId) {
+        self.regions.push(id);
+    }
 
     /// Remove a region from this lump.
     pub fn remove_region(&mut self, id: RegionId) -> bool {
@@ -427,19 +592,29 @@ impl LumpData {
     }
 
     /// Number of regions in this lump.
-    pub fn region_count(&self) -> usize { self.regions.len() }
+    pub fn region_count(&self) -> usize {
+        self.regions.len()
+    }
 
     /// The body this lump belongs to.
-    pub fn body(&self) -> BodyId { self.body }
+    pub fn body(&self) -> BodyId {
+        self.body
+    }
 
     /// Set the parent body.
-    pub fn set_body(&mut self, id: BodyId) { self.body = id; }
+    pub fn set_body(&mut self, id: BodyId) {
+        self.body = id;
+    }
 
     /// Inline lineage for provenance tracking.
-    pub fn lineage(&self) -> Option<&Lineage> { self.lineage.as_ref() }
+    pub fn lineage(&self) -> Option<&Lineage> {
+        self.lineage.as_ref()
+    }
 
     /// Set inline lineage.
-    pub fn set_lineage(&mut self, lineage: Option<Lineage>) { self.lineage = lineage; }
+    pub fn set_lineage(&mut self, lineage: Option<Lineage>) {
+        self.lineage = lineage;
+    }
 }
 
 /// Data stored for each region — a 3D volume bounded by shells.
@@ -464,19 +639,33 @@ impl RegionData {
     ///
     /// The outer shell must be set via `set_outer_shell` before commit.
     pub fn new(lump: LumpId) -> Self {
-        Self { outer_shell: None, inner_shells: Vec::new(), lump, lineage: None }
+        Self {
+            outer_shell: None,
+            inner_shells: Vec::new(),
+            lump,
+            lineage: None,
+        }
     }
 
     /// Construct a new region with lineage.
     pub fn with_lineage(lump: LumpId, lineage: Option<Lineage>) -> Self {
-        Self { outer_shell: None, inner_shells: Vec::new(), lump, lineage }
+        Self {
+            outer_shell: None,
+            inner_shells: Vec::new(),
+            lump,
+            lineage,
+        }
     }
 
     /// The outer shell bounding this region's material (if set).
-    pub fn outer_shell(&self) -> Option<ShellId> { self.outer_shell }
+    pub fn outer_shell(&self) -> Option<ShellId> {
+        self.outer_shell
+    }
 
     /// Inner shells (cavity/void walls) within this region.
-    pub fn inner_shells(&self) -> &[ShellId] { &self.inner_shells }
+    pub fn inner_shells(&self) -> &[ShellId] {
+        &self.inner_shells
+    }
 
     /// All shells in this region: outer first (if present), then inner.
     ///
@@ -501,10 +690,14 @@ impl RegionData {
     }
 
     /// Set the outer shell explicitly.
-    pub fn set_outer_shell(&mut self, id: ShellId) { self.outer_shell = Some(id); }
+    pub fn set_outer_shell(&mut self, id: ShellId) {
+        self.outer_shell = Some(id);
+    }
 
     /// Add an inner shell (cavity wall) to this region.
-    pub fn add_inner_shell(&mut self, id: ShellId) { self.inner_shells.push(id); }
+    pub fn add_inner_shell(&mut self, id: ShellId) {
+        self.inner_shells.push(id);
+    }
 
     /// Remove a shell from this region.
     ///
@@ -530,16 +723,24 @@ impl RegionData {
     }
 
     /// The lump this region belongs to.
-    pub fn lump(&self) -> LumpId { self.lump }
+    pub fn lump(&self) -> LumpId {
+        self.lump
+    }
 
     /// Set the parent lump.
-    pub fn set_lump(&mut self, id: LumpId) { self.lump = id; }
+    pub fn set_lump(&mut self, id: LumpId) {
+        self.lump = id;
+    }
 
     /// Inline lineage for provenance tracking.
-    pub fn lineage(&self) -> Option<&Lineage> { self.lineage.as_ref() }
+    pub fn lineage(&self) -> Option<&Lineage> {
+        self.lineage.as_ref()
+    }
 
     /// Set inline lineage.
-    pub fn set_lineage(&mut self, lineage: Option<Lineage>) { self.lineage = lineage; }
+    pub fn set_lineage(&mut self, lineage: Option<Lineage>) {
+        self.lineage = lineage;
+    }
 }
 
 /// Orientation of a shell within a solid.
@@ -579,7 +780,12 @@ pub struct ShellData {
 impl ShellData {
     /// Construct a new shell with the given representative face and parent region.
     pub fn new(representative_face: FaceId, kind: ShellKind, region: RegionId) -> Self {
-        Self { representative_face, kind, region, lineage: None }
+        Self {
+            representative_face,
+            kind,
+            region,
+            lineage: None,
+        }
     }
 
     /// Construct a new shell with lineage.
@@ -589,14 +795,23 @@ impl ShellData {
         region: RegionId,
         lineage: Option<Lineage>,
     ) -> Self {
-        Self { representative_face, kind, region, lineage }
+        Self {
+            representative_face,
+            kind,
+            region,
+            lineage,
+        }
     }
 
     /// One representative face (entry point for shell traversal).
-    pub fn representative_face(&self) -> FaceId { self.representative_face }
+    pub fn representative_face(&self) -> FaceId {
+        self.representative_face
+    }
 
     /// Shell kind (solid, sheet, or wire).
-    pub fn kind(&self) -> ShellKind { self.kind }
+    pub fn kind(&self) -> ShellKind {
+        self.kind
+    }
 
     /// Shell orientation for solid shells, `None` for sheet/wire.
     pub fn orientation(&self) -> Option<ShellOrientation> {
@@ -607,22 +822,34 @@ impl ShellData {
     }
 
     /// The region this shell belongs to.
-    pub fn region(&self) -> RegionId { self.region }
+    pub fn region(&self) -> RegionId {
+        self.region
+    }
 
     /// Inline lineage for provenance tracking.
-    pub fn lineage(&self) -> Option<&Lineage> { self.lineage.as_ref() }
+    pub fn lineage(&self) -> Option<&Lineage> {
+        self.lineage.as_ref()
+    }
 
     /// Set the representative face.
-    pub fn set_representative_face(&mut self, id: FaceId) { self.representative_face = id; }
+    pub fn set_representative_face(&mut self, id: FaceId) {
+        self.representative_face = id;
+    }
 
     /// Set the shell kind.
-    pub fn set_kind(&mut self, kind: ShellKind) { self.kind = kind; }
+    pub fn set_kind(&mut self, kind: ShellKind) {
+        self.kind = kind;
+    }
 
     /// Set the region this shell belongs to.
-    pub fn set_region(&mut self, id: RegionId) { self.region = id; }
+    pub fn set_region(&mut self, id: RegionId) {
+        self.region = id;
+    }
 
     /// Set inline lineage.
-    pub fn set_lineage(&mut self, lineage: Option<Lineage>) { self.lineage = lineage; }
+    pub fn set_lineage(&mut self, lineage: Option<Lineage>) {
+        self.lineage = lineage;
+    }
 }
 
 /// Data stored for each undirected edge — owns a representative halfedge.
@@ -647,29 +874,49 @@ pub struct EdgeData {
 impl EdgeData {
     /// Construct a new edge from one halfedge of the pair.
     pub fn new(half_edge: HalfEdgeId) -> Self {
-        Self { half_edge, curve: None, lineage: None }
+        Self {
+            half_edge,
+            curve: None,
+            lineage: None,
+        }
     }
 
     /// Construct a new edge with lineage.
     pub fn with_lineage(half_edge: HalfEdgeId, lineage: Option<Lineage>) -> Self {
-        Self { half_edge, curve: None, lineage }
+        Self {
+            half_edge,
+            curve: None,
+            lineage,
+        }
     }
 
     /// Representative halfedge of the radial ring.
-    pub fn half_edge(&self) -> HalfEdgeId { self.half_edge }
+    pub fn half_edge(&self) -> HalfEdgeId {
+        self.half_edge
+    }
 
     /// Inline lineage for provenance tracking.
-    pub fn lineage(&self) -> Option<&Lineage> { self.lineage.as_ref() }
+    pub fn lineage(&self) -> Option<&Lineage> {
+        self.lineage.as_ref()
+    }
 
     /// The opaque curve reference for this edge (None = planar).
-    pub fn curve_ref(&self) -> Option<CurveRef> { self.curve }
+    pub fn curve_ref(&self) -> Option<CurveRef> {
+        self.curve
+    }
 
     /// Set the representative halfedge.
-    pub fn set_half_edge(&mut self, id: HalfEdgeId) { self.half_edge = id; }
+    pub fn set_half_edge(&mut self, id: HalfEdgeId) {
+        self.half_edge = id;
+    }
 
     /// Set the curve reference (populated by the kernel for curved edges).
-    pub fn set_curve_ref(&mut self, id: Option<CurveRef>) { self.curve = id; }
+    pub fn set_curve_ref(&mut self, id: Option<CurveRef>) {
+        self.curve = id;
+    }
 
     /// Set inline lineage.
-    pub fn set_lineage(&mut self, lineage: Option<Lineage>) { self.lineage = lineage; }
+    pub fn set_lineage(&mut self, lineage: Option<Lineage>) {
+        self.lineage = lineage;
+    }
 }

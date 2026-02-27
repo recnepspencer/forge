@@ -6,9 +6,9 @@
 use forge_core::KernelError;
 
 use crate::arena::TopologyArena;
+use crate::euler::kill_edge_vertex::KillEdgeVertex;
 use crate::handles::{HalfEdgeId, VertexId};
 use crate::operator::apply_op;
-use crate::euler::kill_edge_vertex::KillEdgeVertex;
 use crate::state::MutableDraft;
 
 /// Find the first valence-2 vertex whose adjacent edges are collinear.

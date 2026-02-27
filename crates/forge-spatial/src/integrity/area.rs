@@ -28,7 +28,9 @@ pub fn validate_zero_area_faces(
         let area_threshold = FaceEdgeIterator::new(arena, face_id)?
             .filter_map(|r| r.ok())
             .filter_map(|he_id| arena.get_half_edge(he_id).ok())
-            .map(|he| tolerance_provider.vertex_tolerance(he.origin().index(), he.origin().generation()))
+            .map(|he| {
+                tolerance_provider.vertex_tolerance(he.origin().index(), he.origin().generation())
+            })
             .fold(0.0_f64, f64::max)
             .powi(2);
 
@@ -49,7 +51,9 @@ pub fn validate_zero_area_faces(
                     suggested_fixes: Vec::new(),
                     detail: format!(
                         "Face {} area {:.2e} below threshold {:.2e}",
-                        face_id.index(), area, area_threshold
+                        face_id.index(),
+                        area,
+                        area_threshold
                     ),
                 }),
             });

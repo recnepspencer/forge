@@ -6,14 +6,14 @@
 
 use std::collections::BTreeMap;
 
-use forge_core::{
-    TracedDecision, DecisionKind, DecisionContext, DecisionId, DecisionTier,
-    KernelError, PolicyKind, PolicyQuery,
-};
 use forge_core::errors::AmbiguousResult;
 use forge_core::tracing::{
     CandidateValueSummary, PolicyDecisionTracePayload, PolicyResolutionOutcome,
     PolicyResolutionScopeRef, PolicyResolutionSource, TraceAdjunctRecord,
+};
+use forge_core::{
+    DecisionContext, DecisionId, DecisionKind, DecisionTier, KernelError, PolicyKind, PolicyQuery,
+    TracedDecision,
 };
 
 use super::schema::ModelingContext;
@@ -51,13 +51,17 @@ impl ModelingContext {
             ));
         }
 
-        let (config, config_source, default_used) = if crate::core::tracing::KernelSpan::is_active() {
+        let (config, config_source, default_used) = if crate::core::tracing::KernelSpan::is_active()
+        {
             if let Some(snapshot) = crate::core::tracing::KernelSpan::get_config_snapshot() {
                 let fallback_path = format!("policy.fallback_rules.{:?}", query.kind);
                 let source = snapshot.source_of(&fallback_path).cloned();
-                
+
                 let default_used = if let Some(src) = &source {
-                    matches!(src.scope, crate::core::config::provenance::ConfigScope::SessionDefault)
+                    matches!(
+                        src.scope,
+                        crate::core::config::provenance::ConfigScope::SessionDefault
+                    )
                 } else {
                     true
                 };
@@ -74,21 +78,44 @@ impl ModelingContext {
             let (res_source, res_scope) = match config_source {
                 Some(src) => {
                     let res_src = match src.scope {
-                        crate::core::config::provenance::ConfigScope::SessionDefault => PolicyResolutionSource::SessionUserOverride,
-                        crate::core::config::provenance::ConfigScope::ModelOverride => PolicyResolutionSource::ModelSpecOverride,
-                        crate::core::config::provenance::ConfigScope::FeatureOverride => PolicyResolutionSource::FeatureOverride,
-                        crate::core::config::provenance::ConfigScope::OperationOverride => PolicyResolutionSource::OperationOverride,
+                        crate::core::config::provenance::ConfigScope::SessionDefault => {
+                            PolicyResolutionSource::SessionUserOverride
+                        }
+                        crate::core::config::provenance::ConfigScope::ModelOverride => {
+                            PolicyResolutionSource::ModelSpecOverride
+                        }
+                        crate::core::config::provenance::ConfigScope::FeatureOverride => {
+                            PolicyResolutionSource::FeatureOverride
+                        }
+                        crate::core::config::provenance::ConfigScope::OperationOverride => {
+                            PolicyResolutionSource::OperationOverride
+                        }
                     };
-                    
+
                     let res_scp = match src.scope {
                         crate::core::config::provenance::ConfigScope::SessionDefault => None,
-                        crate::core::config::provenance::ConfigScope::ModelOverride => src.origin.as_deref().map(|id| PolicyResolutionScopeRef::ModelSpec { policy_key: id.to_string() }),
-                        crate::core::config::provenance::ConfigScope::FeatureOverride => src.origin.as_deref().map(|id| PolicyResolutionScopeRef::Feature { feature_id: id.to_string() }),
-                        crate::core::config::provenance::ConfigScope::OperationOverride => src.origin.as_deref().map(|id| PolicyResolutionScopeRef::Operation { operation_id: id.to_string() }),
+                        crate::core::config::provenance::ConfigScope::ModelOverride => src
+                            .origin
+                            .as_deref()
+                            .map(|id| PolicyResolutionScopeRef::ModelSpec {
+                                policy_key: id.to_string(),
+                            }),
+                        crate::core::config::provenance::ConfigScope::FeatureOverride => src
+                            .origin
+                            .as_deref()
+                            .map(|id| PolicyResolutionScopeRef::Feature {
+                                feature_id: id.to_string(),
+                            }),
+                        crate::core::config::provenance::ConfigScope::OperationOverride => src
+                            .origin
+                            .as_deref()
+                            .map(|id| PolicyResolutionScopeRef::Operation {
+                                operation_id: id.to_string(),
+                            }),
                     };
                     (res_src, res_scp)
-                },
-                None => (PolicyResolutionSource::DefaultPolicy, None) // It came from the base config defaults
+                }
+                None => (PolicyResolutionSource::DefaultPolicy, None), // It came from the base config defaults
             };
 
             return Some((
@@ -204,13 +231,8 @@ impl ModelingContext {
                 }
             };
 
-        let decision = TracedDecision::new(
-            decision_id,
-            decision_kind,
-            decision_tier,
-            margin,
-            context,
-        );
+        let decision =
+            TracedDecision::new(decision_id, decision_kind, decision_tier, margin, context);
         self.decision_log.record(decision);
 
         let payload = PolicyDecisionTracePayload {

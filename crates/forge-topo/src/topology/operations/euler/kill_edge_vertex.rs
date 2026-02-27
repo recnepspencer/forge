@@ -12,12 +12,12 @@
 
 use forge_core::{KernelError, TopologyError};
 
-use crate::arena::{HalfEdgeData, EdgeData};
-use crate::handles::{HalfEdgeId, EdgeId};
+use crate::arena::{EdgeData, HalfEdgeData};
+use crate::handles::{EdgeId, HalfEdgeId};
 use crate::lineage::{Lineage, OpSignature};
-use crate::EulerOperator;
-use crate::operator::{ExecutionResult, EulerDelta};
+use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
+use crate::EulerOperator;
 
 /// Collapse an edge by removing it and merging its target vertex into the origin.
 ///
@@ -45,14 +45,18 @@ pub struct KevOutput {
 impl EulerOperator for KillEdgeVertex {
     type Output = KevOutput;
 
-    fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        sig: &OpSignature,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he = self.edge;
         let he_data = draft.arena().get_half_edge(he)?;
         let vertex_a = he_data.origin();
-        
+
         let he_next = draft.arena().get_half_edge(he_data.next())?;
         let vertex_b = he_next.origin();
-        
+
         let killed_edge = he_data.edge();
 
         if vertex_a == vertex_b {
@@ -62,7 +66,9 @@ impl EulerOperator for KillEdgeVertex {
             });
         }
 
-        let chain: Vec<HalfEdgeId> = crate::topology::queries::traverse::RadialEdgeIterator::new(draft.arena(), he)?.collect::<Result<_, _>>()?;
+        let chain: Vec<HalfEdgeId> =
+            crate::topology::queries::traverse::RadialEdgeIterator::new(draft.arena(), he)?
+                .collect::<Result<_, _>>()?;
 
         let v_a_lineage = draft.arena().get_vertex(vertex_a)?.lineage().cloned();
         let v_b_lineage = draft.arena().get_vertex(vertex_b)?.lineage().cloned();
@@ -73,7 +79,7 @@ impl EulerOperator for KillEdgeVertex {
             let face = draft.arena().get_half_edge(h)?.face();
             let loop_id = draft.arena().get_face(face)?.outer_loop();
             let start = draft.arena().get_loop(loop_id)?.half_edge();
-            
+
             let mut survivor = None;
             let mut curr = start;
             for _ in 0..draft.arena().half_edge_count() {
@@ -82,9 +88,11 @@ impl EulerOperator for KillEdgeVertex {
                     break;
                 }
                 curr = draft.arena().get_half_edge(curr)?.next();
-                if curr == start { break; }
+                if curr == start {
+                    break;
+                }
             }
-            
+
             if let Some(s) = survivor {
                 draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(s);
             } else {
@@ -136,7 +144,10 @@ impl EulerOperator for KillEdgeVertex {
             }
         }
         for edge_id in edges_from_b {
-            draft.arena_mut().get_half_edge_mut(edge_id)?.set_origin(vertex_a);
+            draft
+                .arena_mut()
+                .get_half_edge_mut(edge_id)?
+                .set_origin(vertex_a);
         }
 
         // 4. Update vertex_a outgoing pointer
@@ -153,12 +164,16 @@ impl EulerOperator for KillEdgeVertex {
             draft.arena_mut().get_vertex_mut(vertex_a)?.set_outgoing(s);
         } else {
             return Err(KernelError::InvalidInput {
-                message: "KillEdgeVertex would leave Vertex A isolated with no outgoing edges.".into(),
+                message: "KillEdgeVertex would leave Vertex A isolated with no outgoing edges."
+                    .into(),
                 context: None,
             });
         }
-        
-        draft.arena_mut().get_vertex_mut(vertex_a)?.set_lineage(Some(merged_lineage));
+
+        draft
+            .arena_mut()
+            .get_vertex_mut(vertex_a)?
+            .set_lineage(Some(merged_lineage));
 
         // 5. Bump face versions and clean up
         let num_half_edges_removed = chain.len() as i32;
@@ -167,7 +182,7 @@ impl EulerOperator for KillEdgeVertex {
             draft.arena_mut().bump_face_version(f)?;
             draft.remove_half_edge(h)?;
         }
-        
+
         draft.remove_vertex(vertex_b)?;
         draft.remove_edge(killed_edge)?;
 
@@ -176,7 +191,17 @@ impl EulerOperator for KillEdgeVertex {
                 surviving_vertex: vertex_a,
                 is_degenerate: false,
             },
-            declared_delta: EulerDelta { vertices: -1, half_edges: -num_half_edges_removed, faces: 0, loops: 0, edges: -1, shells: 0, solids: 0, lumps: 0, regions: 0 },
+            declared_delta: EulerDelta {
+                vertices: -1,
+                half_edges: -num_half_edges_removed,
+                faces: 0,
+                loops: 0,
+                edges: -1,
+                shells: 0,
+                solids: 0,
+                lumps: 0,
+                regions: 0,
+            },
         })
     }
 

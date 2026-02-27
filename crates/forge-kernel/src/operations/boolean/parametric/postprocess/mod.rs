@@ -8,19 +8,19 @@
 //! DEPENDENCIES: forge_topo (Euler operators), GeometryState.
 
 mod coplanar;
-pub mod polygon_extract;
-mod vertex;
+pub mod curved_merge;
 pub mod hole_splice;
 pub mod merge_eligibility;
-pub mod curved_merge;
+pub mod polygon_extract;
+mod vertex;
 
+use crate::core::{KernelState, ModelingContext};
 use forge_core::KernelError;
-use crate::core::{ModelingContext, KernelState};
 
 pub use coplanar::merge_coplanar_faces;
-pub use vertex::remove_redundant_vertices;
-pub use polygon_extract::extract_coplanar_regions;
 pub use hole_splice::splice_inner_holes;
+pub use polygon_extract::extract_coplanar_regions;
+pub use vertex::remove_redundant_vertices;
 
 /// Merge coplanar faces using the O(N) polygon extraction approach.
 ///
@@ -30,7 +30,7 @@ pub fn merge_coplanar_faces_extracted(
     ctx: &mut ModelingContext,
 ) -> Result<(KernelState, usize), KernelError> {
     let mut draft = crate::core::KernelDraft::new(state);
-    
+
     match extract_coplanar_regions(&mut draft, ctx) {
         Ok(count) => {
             if count > 0 {

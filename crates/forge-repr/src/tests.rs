@@ -1,6 +1,6 @@
 //! Tests for forge-repr types and traits.
 
-use crate::{TriangleMesh, Viewable, Tessellatable};
+use crate::{Tessellatable, TriangleMesh, Viewable};
 
 #[test]
 fn triangle_mesh_construction() {
@@ -19,10 +19,7 @@ fn viewable_trait_is_object_safe() {
     struct UnitSphere;
     impl Viewable for UnitSphere {
         fn evaluate_sdf(&self, point: [f64; 3]) -> f64 {
-            let r = (point[0] * point[0]
-                + point[1] * point[1]
-                + point[2] * point[2])
-                .sqrt();
+            let r = (point[0] * point[0] + point[1] * point[1] + point[2] * point[2]).sqrt();
             r - 1.0
         }
         fn bounding_box(&self) -> ([f64; 3], [f64; 3]) {

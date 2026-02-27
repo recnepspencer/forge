@@ -3,7 +3,7 @@
 //! DOMAIN: Validate that no edge has length below its endpoint vertex tolerances.
 
 use forge_core::{KernelError, ToleranceProvider};
-use forge_math::linalg::{sub, norm};
+use forge_math::linalg::{norm, sub};
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::VertexId;
 use forge_topo::topology::bitset::EntityBitset;
@@ -54,7 +54,9 @@ pub fn validate_zero_length_edges(
                         suggested_fixes: Vec::new(),
                         detail: format!(
                             "Edge {} length {:.2e} is below per-entity threshold {:.2e}",
-                            he_id.index(), length, edge_length_threshold
+                            he_id.index(),
+                            length,
+                            edge_length_threshold
                         ),
                     }),
                 });

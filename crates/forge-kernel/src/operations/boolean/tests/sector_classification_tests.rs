@@ -5,8 +5,8 @@
 //!
 //! INVARIANTS: No crashes, correct face counts, valid Euler characteristic.
 
-use super::super::test_helpers::{build_cube, run_boolean, euler_audit};
 use super::super::schema::BooleanOp;
+use super::super::test_helpers::{build_cube, euler_audit, run_boolean};
 
 // ── Touching vertex (no volume overlap) ──────────────────────────────────────
 
@@ -18,8 +18,11 @@ use super::super::schema::BooleanOp;
 #[test]
 fn touching_vertex_union_face_count() {
     let result = run_boolean([0.0, 0.0, 0.0], 1.0, [2.0, 2.0, 2.0], 1.0, BooleanOp::Union);
-    assert_eq!(result.topology().arena().face_count(), 12,
-        "Union of vertex-touching cubes should keep all 12 faces");
+    assert_eq!(
+        result.topology().arena().face_count(),
+        12,
+        "Union of vertex-touching cubes should keep all 12 faces"
+    );
 }
 
 /// Two cubes touching at one vertex: subtraction leaves target intact.
@@ -27,9 +30,18 @@ fn touching_vertex_union_face_count() {
 /// No volume overlap means A - B == A.
 #[test]
 fn touching_vertex_subtraction_preserves_target() {
-    let result = run_boolean([0.0, 0.0, 0.0], 1.0, [2.0, 2.0, 2.0], 1.0, BooleanOp::Subtraction);
-    assert_eq!(result.topology().arena().face_count(), 6,
-        "Subtraction with vertex-only contact should preserve target 6 faces");
+    let result = run_boolean(
+        [0.0, 0.0, 0.0],
+        1.0,
+        [2.0, 2.0, 2.0],
+        1.0,
+        BooleanOp::Subtraction,
+    );
+    assert_eq!(
+        result.topology().arena().face_count(),
+        6,
+        "Subtraction with vertex-only contact should preserve target 6 faces"
+    );
 }
 
 // ── Edge-on-edge contact (no volume overlap) ─────────────────────────────────
@@ -41,16 +53,28 @@ fn touching_vertex_subtraction_preserves_target() {
 #[test]
 fn edge_contact_union_face_count() {
     let result = run_boolean([0.0, 0.0, 0.0], 1.0, [2.0, 2.0, 0.0], 1.0, BooleanOp::Union);
-    assert_eq!(result.topology().arena().face_count(), 12,
-        "Union of edge-touching cubes should keep all 12 faces");
+    assert_eq!(
+        result.topology().arena().face_count(),
+        12,
+        "Union of edge-touching cubes should keep all 12 faces"
+    );
 }
 
 /// Two cubes sharing one edge: subtraction leaves target intact.
 #[test]
 fn edge_contact_subtraction_preserves_target() {
-    let result = run_boolean([0.0, 0.0, 0.0], 1.0, [2.0, 2.0, 0.0], 1.0, BooleanOp::Subtraction);
-    assert_eq!(result.topology().arena().face_count(), 6,
-        "Subtraction with edge-only contact should preserve target 6 faces");
+    let result = run_boolean(
+        [0.0, 0.0, 0.0],
+        1.0,
+        [2.0, 2.0, 0.0],
+        1.0,
+        BooleanOp::Subtraction,
+    );
+    assert_eq!(
+        result.topology().arena().face_count(),
+        6,
+        "Subtraction with edge-only contact should preserve target 6 faces"
+    );
 }
 
 // ── Euler characteristic validation ──────────────────────────────────────────
@@ -60,8 +84,10 @@ fn edge_contact_subtraction_preserves_target() {
 fn touching_vertex_union_euler() {
     let result = run_boolean([0.0, 0.0, 0.0], 1.0, [2.0, 2.0, 2.0], 1.0, BooleanOp::Union);
     let (_v, _e, _f, chi) = euler_audit(result.topology().arena());
-    assert!(chi == 2 || chi == 4,
-        "Euler χ should be 2 (if merged into one shell) or 4 (two disjoint shells), got {chi}");
+    assert!(
+        chi == 2 || chi == 4,
+        "Euler χ should be 2 (if merged into one shell) or 4 (two disjoint shells), got {chi}"
+    );
 }
 
 /// Edge-contact union produces valid Euler characteristic.
@@ -69,6 +95,5 @@ fn touching_vertex_union_euler() {
 fn edge_contact_union_euler() {
     let result = run_boolean([0.0, 0.0, 0.0], 1.0, [2.0, 2.0, 0.0], 1.0, BooleanOp::Union);
     let (_v, _e, _f, chi) = euler_audit(result.topology().arena());
-    assert!(chi == 2 || chi == 4,
-        "Euler χ should be 2 or 4, got {chi}");
+    assert!(chi == 2 || chi == 4, "Euler χ should be 2 or 4, got {chi}");
 }

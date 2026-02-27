@@ -20,10 +20,8 @@
 //! - 180° rotation cancellation produces bit-identical results
 //! - Single 10⁻¹⁴ graze perturbation is absorbed without cascade
 
-use super::super::test_helpers::{
-    build_cube, execute_boolean_logged, euler_audit,
-};
 use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::test_helpers::{build_cube, euler_audit, execute_boolean_logged};
 use forge_topo::hashing::compute_arena_topology_hash;
 
 // ══════════════════════════════════════════════════════════════
@@ -56,15 +54,15 @@ fn chain_500_periodic_cancellation() {
             2 => [0.0, 0.5, 0.0],
             _ => [0.0, -0.5, 0.0],
         };
-        let half = if op == BooleanOp::Subtraction { 0.3 } else { 1.0 };
+        let half = if op == BooleanOp::Subtraction {
+            0.3
+        } else {
+            1.0
+        };
 
         let (topo_tool, geom_tool) = build_cube(offset, half);
 
-        let input = BooleanInput::new(
-            topo, geom,
-            topo_tool, geom_tool,
-            op,
-        );
+        let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, op);
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
@@ -73,9 +71,7 @@ fn chain_500_periodic_cancellation() {
                 if step % 50 == 0 {
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
                     let hash = compute_arena_topology_hash(r.topology().arena());
-                    eprintln!(
-                        "MB5 step {step}: V={v} E={e} F={f} χ={chi} hash={hash:#x}"
-                    );
+                    eprintln!("MB5 step {step}: V={v} E={e} F={f} χ={chi} hash={hash:#x}");
                     assert_eq!(chi, 2, "MB5 step {step} Euler violation");
                 }
 
@@ -91,9 +87,7 @@ fn chain_500_periodic_cancellation() {
 
     let final_hash = compute_arena_topology_hash(topo.arena());
     let (v, e, f, chi) = euler_audit(topo.arena());
-    eprintln!(
-        "MB5 final: V={v} E={e} F={f} χ={chi} hash={final_hash:#x} ref={reference_hash:#x}"
-    );
+    eprintln!("MB5 final: V={v} E={e} F={f} χ={chi} hash={final_hash:#x} ref={reference_hash:#x}");
     assert_eq!(chi, 2, "MB5 final Euler violation");
 }
 
@@ -127,7 +121,11 @@ fn chain_500_with_graze_at_237() {
             2 => [0.0, 0.5, 0.0],
             _ => [0.0, -0.5, 0.0],
         };
-        let half = if op == BooleanOp::Subtraction { 0.3 } else { 1.0 };
+        let half = if op == BooleanOp::Subtraction {
+            0.3
+        } else {
+            1.0
+        };
 
         if step == 237 {
             offset[0] += epsilon;
@@ -138,11 +136,7 @@ fn chain_500_with_graze_at_237() {
 
         let (topo_tool, geom_tool) = build_cube(offset, half);
 
-        let input = BooleanInput::new(
-            topo, geom,
-            topo_tool, geom_tool,
-            op,
-        );
+        let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, op);
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
@@ -187,11 +181,7 @@ fn exact_180_cancellation_100() {
 
     for cycle in 0..100 {
         let (topo_add, geom_add) = build_cube([1.5, 0.0, 0.0], 1.0);
-        let input_union = BooleanInput::new(
-            topo, geom,
-            topo_add, geom_add,
-            BooleanOp::Union,
-        );
+        let input_union = BooleanInput::new(topo, geom, topo_add, geom_add, BooleanOp::Union);
 
         let r_union = execute_boolean_logged(input_union)
             .into_result()
@@ -199,11 +189,8 @@ fn exact_180_cancellation_100() {
         let (topo_u, geom_u, _) = r_union.into_states();
 
         let (topo_sub, geom_sub) = build_cube([1.5, 0.0, 0.0], 1.0);
-        let input_sub = BooleanInput::new(
-            topo_u, geom_u,
-            topo_sub, geom_sub,
-            BooleanOp::Subtraction,
-        );
+        let input_sub =
+            BooleanInput::new(topo_u, geom_u, topo_sub, geom_sub, BooleanOp::Subtraction);
 
         let r_sub = execute_boolean_logged(input_sub)
             .into_result()

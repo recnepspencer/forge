@@ -90,7 +90,7 @@ mod tests {
     fn insert_canonicalizes_order() {
         let mut graph = CoincidenceGraph::new();
         graph.insert_edge(10, 5, CoincidenceKind::CoplanarFaces { gap_mm: 0.1 });
-        
+
         // Querying with forward and reverse order should both find the edge.
         assert!(graph.query_edge(10, 5).is_some());
         assert!(graph.query_edge(5, 10).is_some());
@@ -105,7 +105,7 @@ mod tests {
     fn query_missing_edge_returns_none() {
         let mut graph = CoincidenceGraph::new();
         graph.insert_edge(1, 2, CoincidenceKind::CoplanarFaces { gap_mm: 0.0 });
-        
+
         assert!(graph.query_edge(2, 3).is_none());
     }
     #[test]
@@ -119,7 +119,7 @@ mod tests {
         graph.insert_edge(10, 50, CoincidenceKind::CoplanarFaces { gap_mm: 0.3 });
 
         assert_eq!(graph.edge_count(), 2);
-        
+
         let mut keys = graph.edges.keys();
         let k1 = keys.next().unwrap();
         assert_eq!(*k1, (10, 50)); // canonical ordering

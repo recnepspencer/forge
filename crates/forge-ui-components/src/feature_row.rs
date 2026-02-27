@@ -1,8 +1,8 @@
 //! FeatureRow — sidebar feature list item.
 
+use crate::icons::{FgIcon, IconStore};
 use egui::{Color32, CornerRadius, Pos2, Response, Ui, Vec2};
 use forge_ui_theme::ForgeTheme;
-use crate::icons::{FgIcon, IconStore};
 
 /// Props for a feature row.
 pub struct FeatureRowProps<'a> {
@@ -14,9 +14,17 @@ pub struct FeatureRowProps<'a> {
 
 impl<'a> FeatureRowProps<'a> {
     pub fn new(name: &'a str, status_color: Color32, is_selected: bool) -> Self {
-        Self { name, icon: FgIcon::Box, status_color, is_selected }
+        Self {
+            name,
+            icon: FgIcon::Box,
+            status_color,
+            is_selected,
+        }
     }
-    pub fn icon(mut self, icon: FgIcon) -> Self { self.icon = icon; self }
+    pub fn icon(mut self, icon: FgIcon) -> Self {
+        self.icon = icon;
+        self
+    }
 }
 
 /// Render a feature row. Returns click response.
@@ -28,10 +36,8 @@ pub fn fg_feature_row(
 ) -> Response {
     let row_h = 28.0;
     let avail_w = ui.available_width();
-    let (row_rect, row_resp) = ui.allocate_exact_size(
-        Vec2::new(avail_w, row_h),
-        egui::Sense::click(),
-    );
+    let (row_rect, row_resp) =
+        ui.allocate_exact_size(Vec2::new(avail_w, row_h), egui::Sense::click());
 
     if ui.is_rect_visible(row_rect) {
         let painter = ui.painter();

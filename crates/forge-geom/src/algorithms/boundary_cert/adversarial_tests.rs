@@ -13,8 +13,8 @@
 
 #[cfg(test)]
 mod adversarial {
-    use crate::algorithms::boundary_cert::schema::*;
     use crate::algorithms::boundary_cert::eval::*;
+    use crate::algorithms::boundary_cert::schema::*;
 
     // ── 1. Near-coincident crossing vs. endpoint touch ────────────────────────
     //
@@ -35,18 +35,24 @@ mod adversarial {
         // is "near" the crossing point without coinciding with it.
         // Segs 0 and 2 still properly cross at their interior.
         let segments = vec![
-            Segment2D::new([-1.0, -1.0], [1.0,  1.0], 0), // diagonal: crosses seg 2 at (0,0)
-            Segment2D::new([ 1.0,  1.0], [1.0 + e, -1.0], 1), // right side: endpoint near (1,-1)
-            Segment2D::new([ 1.0 + e, -1.0], [-1.0, 1.0], 2), // crosses seg 0 at near-(0,0)
-            Segment2D::new([-1.0,  1.0], [-1.0, -1.0], 3), // close
+            Segment2D::new([-1.0, -1.0], [1.0, 1.0], 0), // diagonal: crosses seg 2 at (0,0)
+            Segment2D::new([1.0, 1.0], [1.0 + e, -1.0], 1), // right side: endpoint near (1,-1)
+            Segment2D::new([1.0 + e, -1.0], [-1.0, 1.0], 2), // crosses seg 0 at near-(0,0)
+            Segment2D::new([-1.0, 1.0], [-1.0, -1.0], 3), // close
         ];
         let frame = ProjectionFrame2D::new(2, 0, 1, 1.0);
         let boundary = ProjectedBoundary2D::new(segments, frame);
         let cert = certify_boundary(&boundary);
         // Segs 0 and 2 must still be detected as crossing.
         match cert {
-            WeakSimpleCertificate::Rejected { reason: BoundaryRejectReason::SelfCrossing, .. } => {}
-            _ => panic!("Near-coincident crossing must be SelfCrossing, got {:?}", cert),
+            WeakSimpleCertificate::Rejected {
+                reason: BoundaryRejectReason::SelfCrossing,
+                ..
+            } => {}
+            _ => panic!(
+                "Near-coincident crossing must be SelfCrossing, got {:?}",
+                cert
+            ),
         }
     }
 
@@ -61,16 +67,18 @@ mod adversarial {
         let big = 1e150_f64;
         let segments = vec![
             Segment2D::new([0.0, 0.0], [big, 0.0], 0),
-            Segment2D::new([big, 0.0], [big, big],  1),
-            Segment2D::new([big, big], [0.0, big],  2),
-            Segment2D::new([0.0, big], [0.0, 0.0],  3),
+            Segment2D::new([big, 0.0], [big, big], 1),
+            Segment2D::new([big, big], [0.0, big], 2),
+            Segment2D::new([0.0, big], [0.0, 0.0], 3),
         ];
         let frame = ProjectionFrame2D::new(2, 0, 1, 1.0);
         let boundary = ProjectedBoundary2D::new(segments, frame);
         let cert = certify_boundary(&boundary);
         assert_eq!(
-            cert, WeakSimpleCertificate::Simple,
-            "1e150-scale rectangle must be Simple, got {:?}", cert
+            cert,
+            WeakSimpleCertificate::Simple,
+            "1e150-scale rectangle must be Simple, got {:?}",
+            cert
         );
     }
 
@@ -85,10 +93,10 @@ mod adversarial {
         let huge = 1e100_f64;
         // Non-degenerate quadrilateral spanning 200 orders of magnitude.
         let segments = vec![
-            Segment2D::new([0.0,  0.0],  [tiny, tiny],  0),
-            Segment2D::new([tiny, tiny], [huge, 0.0],   1),
-            Segment2D::new([huge, 0.0],  [huge, huge],  2),
-            Segment2D::new([huge, huge], [0.0,  0.0],   3),
+            Segment2D::new([0.0, 0.0], [tiny, tiny], 0),
+            Segment2D::new([tiny, tiny], [huge, 0.0], 1),
+            Segment2D::new([huge, 0.0], [huge, huge], 2),
+            Segment2D::new([huge, huge], [0.0, 0.0], 3),
         ];
         let frame = ProjectionFrame2D::new(2, 0, 1, 1.0);
         let boundary = ProjectedBoundary2D::new(segments, frame);
@@ -141,8 +149,14 @@ mod adversarial {
         let cert = certify_boundary(&boundary);
         // Segs 0 and 2 cross at rational point (1,1) — must be SelfCrossing.
         match cert {
-            WeakSimpleCertificate::Rejected { reason: BoundaryRejectReason::SelfCrossing, .. } => {}
-            _ => panic!("Z-path crossing at rational (1,1) must be SelfCrossing, got {:?}", cert),
+            WeakSimpleCertificate::Rejected {
+                reason: BoundaryRejectReason::SelfCrossing,
+                ..
+            } => {}
+            _ => panic!(
+                "Z-path crossing at rational (1,1) must be SelfCrossing, got {:?}",
+                cert
+            ),
         }
     }
 
@@ -155,16 +169,19 @@ mod adversarial {
     #[test]
     fn bowtie_crossing_at_rational_origin_is_self_crossing() {
         let segments = vec![
-            Segment2D::new([-1.0, -1.0], [1.0,  1.0],  0), // lower-left to upper-right
-            Segment2D::new([ 1.0,  1.0], [1.0, -1.0],  1), // down right side
-            Segment2D::new([ 1.0, -1.0], [-1.0, 1.0],  2), // lower-right to upper-left (crosses seg 0 at origin)
-            Segment2D::new([-1.0,  1.0], [-1.0, -1.0], 3), // down left side
+            Segment2D::new([-1.0, -1.0], [1.0, 1.0], 0), // lower-left to upper-right
+            Segment2D::new([1.0, 1.0], [1.0, -1.0], 1),  // down right side
+            Segment2D::new([1.0, -1.0], [-1.0, 1.0], 2), // lower-right to upper-left (crosses seg 0 at origin)
+            Segment2D::new([-1.0, 1.0], [-1.0, -1.0], 3), // down left side
         ];
         let frame = ProjectionFrame2D::new(2, 0, 1, 1.0);
         let boundary = ProjectedBoundary2D::new(segments, frame);
         let cert = certify_boundary(&boundary);
         match cert {
-            WeakSimpleCertificate::Rejected { reason: BoundaryRejectReason::SelfCrossing, .. } => {}
+            WeakSimpleCertificate::Rejected {
+                reason: BoundaryRejectReason::SelfCrossing,
+                ..
+            } => {}
             _ => panic!("Bowtie must be SelfCrossing, got {:?}", cert),
         }
     }
@@ -178,18 +195,24 @@ mod adversarial {
     #[test]
     fn collinear_partial_overlap_on_shared_interval_is_rejected() {
         let segments = vec![
-            Segment2D::new([0.0, 0.0], [4.0, 0.0], 0),  // bottom: 0→4 on y=0
-            Segment2D::new([4.0, 0.0], [4.0, 2.0], 1),  // up
-            Segment2D::new([4.0, 2.0], [2.0, 2.0], 2),  // top: partial width
-            Segment2D::new([2.0, 2.0], [2.0, 0.0], 3),  // down to y=0 at x=2
-            Segment2D::new([2.0, 0.0], [0.0, 0.0], 4),  // bottom: 2→0 on y=0 — overlaps seg 0 on [0,2]
+            Segment2D::new([0.0, 0.0], [4.0, 0.0], 0), // bottom: 0→4 on y=0
+            Segment2D::new([4.0, 0.0], [4.0, 2.0], 1), // up
+            Segment2D::new([4.0, 2.0], [2.0, 2.0], 2), // top: partial width
+            Segment2D::new([2.0, 2.0], [2.0, 0.0], 3), // down to y=0 at x=2
+            Segment2D::new([2.0, 0.0], [0.0, 0.0], 4), // bottom: 2→0 on y=0 — overlaps seg 0 on [0,2]
         ];
         let frame = ProjectionFrame2D::new(2, 0, 1, 1.0);
         let boundary = ProjectedBoundary2D::new(segments, frame);
         let cert = certify_boundary(&boundary);
         match cert {
-            WeakSimpleCertificate::Rejected { reason: BoundaryRejectReason::OverlappingSegments, .. } => {}
-            _ => panic!("Partial collinear overlap must be OverlappingSegments, got {:?}", cert),
+            WeakSimpleCertificate::Rejected {
+                reason: BoundaryRejectReason::OverlappingSegments,
+                ..
+            } => {}
+            _ => panic!(
+                "Partial collinear overlap must be OverlappingSegments, got {:?}",
+                cert
+            ),
         }
     }
 
@@ -209,11 +232,11 @@ mod adversarial {
         // Non-adjacent pair: seg 1 ([1,e]→[2,0]) and seg 3 ([3,0]→[4,e]) are near-collinear
         // (nearly horizontal) but don't overlap because they're in different x-ranges.
         let boundary_segments = vec![
-            Segment2D::new([0.0, 1.0], [1.0, e  ], 0),  // going down to near-zero
-            Segment2D::new([1.0, e  ], [2.0, 0.0], 1),  // nearly horizontal: near-collinear with seg 3
-            Segment2D::new([2.0, 0.0], [3.0, e  ], 2),  // going up
-            Segment2D::new([3.0, e  ], [4.0, 1.0], 3),  // going up to y=1
-            Segment2D::new([4.0, 1.0], [0.0, 1.0], 4),  // top edge back to start
+            Segment2D::new([0.0, 1.0], [1.0, e], 0), // going down to near-zero
+            Segment2D::new([1.0, e], [2.0, 0.0], 1), // nearly horizontal: near-collinear with seg 3
+            Segment2D::new([2.0, 0.0], [3.0, e], 2), // going up
+            Segment2D::new([3.0, e], [4.0, 1.0], 3), // going up to y=1
+            Segment2D::new([4.0, 1.0], [0.0, 1.0], 4), // top edge back to start
         ];
         let frame = ProjectionFrame2D::new(2, 0, 1, 1.0);
         let boundary = ProjectedBoundary2D::new(boundary_segments, frame);
@@ -224,7 +247,8 @@ mod adversarial {
         assert_eq!(
             cert,
             WeakSimpleCertificate::Simple,
-            "Just-off-collinear pentagon must be Simple; got {:?}", cert
+            "Just-off-collinear pentagon must be Simple; got {:?}",
+            cert
         );
     }
 }

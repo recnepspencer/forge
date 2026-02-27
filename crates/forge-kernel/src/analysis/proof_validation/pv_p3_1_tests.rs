@@ -225,12 +225,15 @@ fn pv_33b_union_of_diffs_reconstructs_final_log() {
         }
     }
 
-    let final_log = checkpoint.get_snapshot(10).expect("Final snapshot should exist");
+    let final_log = checkpoint
+        .get_snapshot(10)
+        .expect("Final snapshot should exist");
     let final_ids: std::collections::BTreeSet<u64> =
         final_log.decisions().map(|d| d.get_id().0).collect();
 
     assert_eq!(
-        union_ids, final_ids,
+        union_ids,
+        final_ids,
         "Union of diffs must exactly equal the final DecisionLog.\n\
          Missing (false negatives): {:?}\n\
          Extra (false positives): {:?}",
@@ -238,5 +241,9 @@ fn pv_33b_union_of_diffs_reconstructs_final_log() {
         union_ids.difference(&final_ids).collect::<Vec<_>>()
     );
 
-    assert_eq!(union_ids.len(), 30, "Should have exactly 30 decisions total");
+    assert_eq!(
+        union_ids.len(),
+        30,
+        "Should have exactly 30 decisions total"
+    );
 }

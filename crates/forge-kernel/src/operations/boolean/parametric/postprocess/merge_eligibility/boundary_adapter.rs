@@ -7,10 +7,10 @@
 //! INVARIANTS: No policy decisions. Pure data extraction.
 
 use forge_core::KernelError;
-use forge_topo::arena::TopologyArena;
-use forge_topo::handles::VertexId;
-use forge_topo::bitset::EntityBitset;
 use forge_topo::algorithms::region_extraction::walk_face_group_boundary_perimeter;
+use forge_topo::arena::TopologyArena;
+use forge_topo::bitset::EntityBitset;
+use forge_topo::handles::VertexId;
 
 use crate::geometry_state::GeometryView;
 
@@ -28,13 +28,19 @@ pub struct BoundarySegment3D {
 
 impl BoundarySegment3D {
     /// Start position.
-    pub fn get_start(&self) -> [f64; 3] { self.start }
+    pub fn get_start(&self) -> [f64; 3] {
+        self.start
+    }
 
     /// End position.
-    pub fn get_end(&self) -> [f64; 3] { self.end }
+    pub fn get_end(&self) -> [f64; 3] {
+        self.end
+    }
 
     /// Provenance identifier.
-    pub fn get_provenance(&self) -> u64 { self.provenance }
+    pub fn get_provenance(&self) -> u64 {
+        self.provenance
+    }
 }
 
 /// Source metadata for a boundary segment (for diagnostics/tracing).
@@ -49,10 +55,14 @@ pub struct BoundaryProvenance {
 
 impl BoundaryProvenance {
     /// The start vertex.
-    pub fn get_start_vertex(&self) -> VertexId { self.start_vertex }
+    pub fn get_start_vertex(&self) -> VertexId {
+        self.start_vertex
+    }
 
     /// The end vertex.
-    pub fn get_end_vertex(&self) -> VertexId { self.end_vertex }
+    pub fn get_end_vertex(&self) -> VertexId {
+        self.end_vertex
+    }
 }
 
 fn pack_vertex_handle(v: VertexId) -> u64 {
@@ -85,13 +95,19 @@ pub struct BoundaryCycleCandidate {
 
 impl BoundaryCycleCandidate {
     /// The 3D boundary segments.
-    pub fn get_segments_3d(&self) -> &[BoundarySegment3D] { &self.segments_3d }
+    pub fn get_segments_3d(&self) -> &[BoundarySegment3D] {
+        &self.segments_3d
+    }
 
     /// Source metadata.
-    pub fn get_provenance(&self) -> &[BoundaryProvenance] { &self.provenance }
+    pub fn get_provenance(&self) -> &[BoundaryProvenance] {
+        &self.provenance
+    }
 
     /// Number of segments.
-    pub fn segment_count(&self) -> usize { self.segments_3d.len() }
+    pub fn segment_count(&self) -> usize {
+        self.segments_3d.len()
+    }
 }
 
 /// Extract a boundary candidate from a face group.
@@ -123,19 +139,19 @@ pub fn extract_boundary_candidate(
         let v_start = perimeter_vertices[i];
         let v_end = perimeter_vertices[(i + 1) % n];
 
-        let pos_start = geom.get_vertex_position(v_start).ok_or_else(|| {
-            KernelError::InvalidInput {
-                message: format!("No position for boundary vertex {}", v_start.index()),
-                context: None,
-            }
-        })?;
+        let pos_start =
+            geom.get_vertex_position(v_start)
+                .ok_or_else(|| KernelError::InvalidInput {
+                    message: format!("No position for boundary vertex {}", v_start.index()),
+                    context: None,
+                })?;
 
-        let pos_end = geom.get_vertex_position(v_end).ok_or_else(|| {
-            KernelError::InvalidInput {
+        let pos_end = geom
+            .get_vertex_position(v_end)
+            .ok_or_else(|| KernelError::InvalidInput {
                 message: format!("No position for boundary vertex {}", v_end.index()),
                 context: None,
-            }
-        })?;
+            })?;
 
         segments_3d.push(BoundarySegment3D {
             start: *pos_start,
@@ -149,7 +165,10 @@ pub fn extract_boundary_candidate(
         });
     }
 
-    Ok(BoundaryCycleCandidate { segments_3d, provenance })
+    Ok(BoundaryCycleCandidate {
+        segments_3d,
+        provenance,
+    })
 }
 
 #[cfg(test)]
@@ -182,7 +201,10 @@ mod tests {
         let ba = hash_directed_segment_provenance(b, a);
 
         assert_ne!(ab, ac, "changing endpoint must change segment provenance");
-        assert_ne!(ab, ba, "directed boundary segment provenance must be order-sensitive");
+        assert_ne!(
+            ab, ba,
+            "directed boundary segment provenance must be order-sensitive"
+        );
     }
 }
 

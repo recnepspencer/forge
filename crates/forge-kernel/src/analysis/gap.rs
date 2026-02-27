@@ -9,12 +9,12 @@
 //!   - `has_overlap = min_gap_mm < 0` (negative → penetration).
 
 use forge_core::{KernelError, OperationResult};
-use forge_topo::state::TopologyState;
 use forge_topo::handles::FaceId;
+use forge_topo::state::TopologyState;
 use forge_topo::traverse::FaceEdgeIterator;
 
-use crate::geometry_state::GeometryState;
 use crate::core::ModelingContext;
+use crate::geometry_state::GeometryState;
 
 // ── Public types ──────────────────────────────────────────────────────────────
 
@@ -51,7 +51,7 @@ impl GapSampleDensity {
         match self {
             GapSampleDensity::Coarse => 25,
             GapSampleDensity::Medium => 100,
-            GapSampleDensity::Fine   => 400,
+            GapSampleDensity::Fine => 400,
         }
     }
 }
@@ -96,12 +96,12 @@ fn measure_gap_inner(
     // (GeometryState now only contains planar data, B-Rep data moved to BrepState)
 
     // ── 2. Get face_b's supporting plane ──────────────────────────────────────
-    let plane_b = geom_b.get_face_plane(face_b).ok_or_else(|| {
-        KernelError::InvalidInput {
+    let plane_b = geom_b
+        .get_face_plane(face_b)
+        .ok_or_else(|| KernelError::InvalidInput {
             message: format!("measure_gap: no plane registered for face {:?}", face_b),
             context: None,
-        }
-    })?;
+        })?;
 
     // ── 3. Collect face_a polygon vertices ────────────────────────────────────
     let arena_a = topo_a.arena();
@@ -128,9 +128,13 @@ fn measure_gap_inner(
     // ── 4. Compute 2D bounding rect in the face's dominant axis projection ────
     let n = plane_b.normal();
     // dominant axis = axis of largest |n| component → project onto the other two
-    let dominant = if n[0].abs() >= n[1].abs() && n[0].abs() >= n[2].abs() { 0 }
-                   else if n[1].abs() >= n[2].abs() { 1 }
-                   else { 2 };
+    let dominant = if n[0].abs() >= n[1].abs() && n[0].abs() >= n[2].abs() {
+        0
+    } else if n[1].abs() >= n[2].abs() {
+        1
+    } else {
+        2
+    };
     let (u_axis, v_axis) = other_axes(dominant);
 
     let mut u_min = f64::MAX;
@@ -140,10 +144,18 @@ fn measure_gap_inner(
     for p in &poly_pts {
         let pu = p[u_axis];
         let pv = p[v_axis];
-        if pu < u_min { u_min = pu; }
-        if pu > u_max { u_max = pu; }
-        if pv < v_min { v_min = pv; }
-        if pv > v_max { v_max = pv; }
+        if pu < u_min {
+            u_min = pu;
+        }
+        if pu > u_max {
+            u_max = pu;
+        }
+        if pv < v_min {
+            v_min = pv;
+        }
+        if pv > v_max {
+            v_max = pv;
+        }
     }
 
     // ── 5. Halton sampling + signed distance accumulation ─────────────────────
@@ -197,7 +209,9 @@ fn halton(n: usize, b: usize) -> f64 {
         f /= b as f64;
         r += f * (idx % b) as f64;
         idx /= b;
-        if idx == 0 { break; }
+        if idx == 0 {
+            break;
+        }
     }
     r
 }
@@ -222,7 +236,13 @@ mod tests {
         let expected = [0.5, 0.25, 0.75, 0.125, 0.625, 0.375, 0.875, 0.0625];
         for (i, &exp) in expected.iter().enumerate() {
             let got = halton(i + 1, 2);
-            assert!((got - exp).abs() < 1e-12, "index {}: got {}, exp {}", i + 1, got, exp);
+            assert!(
+                (got - exp).abs() < 1e-12,
+                "index {}: got {}, exp {}",
+                i + 1,
+                got,
+                exp
+            );
         }
     }
 
@@ -238,25 +258,45 @@ mod tests {
         let mut ctx = crate::core::ModelingContext::new();
         let res_a = crate::mesh_builder::make_cube([0.0, 0.0, 0.0], 10.0).unwrap();
         let (topo_a, geom_a) = res_a.into_parts();
-        
+
         let res_b = crate::mesh_builder::make_cube([11.5, 0.0, 0.0], 10.0).unwrap();
         let (topo_b, geom_b) = res_b.into_parts();
 
         // Find the +X face of A and -X face of B
-        let face_a = topo_a.arena().iter_faces().find(|(f, _)| {
-            geom_a.get_face_plane(*f).map_or(false, |p| p.normal()[0] > 0.9)
-        }).unwrap().0;
+        let face_a = topo_a
+            .arena()
+            .iter_faces()
+            .find(|(f, _)| {
+                geom_a
+                    .get_face_plane(*f)
+                    .map_or(false, |p| p.normal()[0] > 0.9)
+            })
+            .unwrap()
+            .0;
 
-        let face_b = topo_b.arena().iter_faces().find(|(f, _)| {
-            geom_b.get_face_plane(*f).map_or(false, |p| p.normal()[0] < -0.9)
-        }).unwrap().0;
+        let face_b = topo_b
+            .arena()
+            .iter_faces()
+            .find(|(f, _)| {
+                geom_b
+                    .get_face_plane(*f)
+                    .map_or(false, |p| p.normal()[0] < -0.9)
+            })
+            .unwrap()
+            .0;
 
         let report = measure_gap(
-            face_a, &topo_a, &geom_a,
-            face_b, &topo_b, &geom_b,
+            face_a,
+            &topo_a,
+            &geom_a,
+            face_b,
+            &topo_b,
+            &geom_b,
             GapSampleDensity::Coarse,
             &mut ctx,
-        ).into_value().unwrap();
+        )
+        .into_value()
+        .unwrap();
 
         assert!(!report.has_overlap);
         assert!((report.min_gap_mm - 1.5).abs() < 1e-6);
@@ -269,25 +309,45 @@ mod tests {
         let mut ctx = crate::core::ModelingContext::new();
         let res_a = crate::mesh_builder::make_cube([0.0, 0.0, 0.0], 10.0).unwrap();
         let (topo_a, geom_a) = res_a.into_parts();
-        
+
         // Overlap of 2mm
         let res_b = crate::mesh_builder::make_cube([8.0, 0.0, 0.0], 10.0).unwrap();
         let (topo_b, geom_b) = res_b.into_parts();
 
-        let face_a = topo_a.arena().iter_faces().find(|(f, _)| {
-            geom_a.get_face_plane(*f).map_or(false, |p| p.normal()[0] > 0.9)
-        }).unwrap().0;
+        let face_a = topo_a
+            .arena()
+            .iter_faces()
+            .find(|(f, _)| {
+                geom_a
+                    .get_face_plane(*f)
+                    .map_or(false, |p| p.normal()[0] > 0.9)
+            })
+            .unwrap()
+            .0;
 
-        let face_b = topo_b.arena().iter_faces().find(|(f, _)| {
-            geom_b.get_face_plane(*f).map_or(false, |p| p.normal()[0] < -0.9)
-        }).unwrap().0;
+        let face_b = topo_b
+            .arena()
+            .iter_faces()
+            .find(|(f, _)| {
+                geom_b
+                    .get_face_plane(*f)
+                    .map_or(false, |p| p.normal()[0] < -0.9)
+            })
+            .unwrap()
+            .0;
 
         let report = measure_gap(
-            face_a, &topo_a, &geom_a,
-            face_b, &topo_b, &geom_b,
+            face_a,
+            &topo_a,
+            &geom_a,
+            face_b,
+            &topo_b,
+            &geom_b,
             GapSampleDensity::Coarse,
             &mut ctx,
-        ).into_value().unwrap();
+        )
+        .into_value()
+        .unwrap();
 
         assert!(report.has_overlap);
         assert!(report.min_gap_mm < -1.9); // Approximately -2.0
@@ -298,20 +358,25 @@ mod tests {
         let mut ctx = crate::core::ModelingContext::new();
         let res_a = crate::mesh_builder::make_cube([0.0, 0.0, 0.0], 10.0).unwrap();
         let (topo_a, geom_a) = res_a.into_parts();
-        
+
         let res_b = crate::mesh_builder::make_cube([11.5, 0.0, 0.0], 10.0).unwrap();
         let (topo_b, _geom_b) = res_b.into_parts();
         let empty_geom = GeometryState::new();
 
         let face_a = topo_a.arena().iter_faces().next().unwrap().0;
         let face_b = topo_b.arena().iter_faces().next().unwrap().0;
-        
+
         let result = measure_gap(
-            face_a, &topo_a, &geom_a,
-            face_b, &topo_b, &empty_geom,
+            face_a,
+            &topo_a,
+            &geom_a,
+            face_b,
+            &topo_b,
+            &empty_geom,
             GapSampleDensity::Coarse,
             &mut ctx,
-        ).into_value();
+        )
+        .into_value();
 
         match result {
             Err(KernelError::InvalidInput { message, .. }) => {

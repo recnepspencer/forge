@@ -15,9 +15,9 @@
 
 use forge_math::MathError;
 
-use crate::Plane;
-use super::schema::{BspNode, BspSolid, ConvexCell};
 use super::eval::{build_convex_polyhedron, BspConfig};
+use super::schema::{BspNode, BspSolid, ConvexCell};
+use crate::Plane;
 
 /// Build a BspSolid from a convex solid defined by half-space planes.
 ///
@@ -64,7 +64,13 @@ pub fn extract_boundary_cells(
 ) -> Result<Vec<(ConvexCell, Vec<usize>)>, MathError> {
     let mut cells = Vec::new();
     let mut constraints = Vec::new();
-    collect_solid_cells(solid.root(), solid.planes(), &mut constraints, &mut cells, config)?;
+    collect_solid_cells(
+        solid.root(),
+        solid.planes(),
+        &mut constraints,
+        &mut cells,
+        config,
+    )?;
     Ok(cells)
 }
 
@@ -94,7 +100,11 @@ fn collect_solid_cells(
             }
             Ok(())
         }
-        BspNode::Internal { plane_idx, neg, pos } => {
+        BspNode::Internal {
+            plane_idx,
+            neg,
+            pos,
+        } => {
             constraints.push(HalfSpaceConstraint {
                 plane_idx: *plane_idx,
                 negative_side: true,
@@ -197,12 +207,17 @@ mod tests {
         let config = BspConfig::default();
         let cells = extract_boundary_cells(&merged, &config).unwrap();
 
-        assert!(cells.len() >= 2,
-            "Union of disjoint cubes should produce at least 2 cells, got {}", cells.len());
+        assert!(
+            cells.len() >= 2,
+            "Union of disjoint cubes should produce at least 2 cells, got {}",
+            cells.len()
+        );
 
         let total_faces: usize = cells.iter().map(|(c, _)| c.face_count()).sum();
-        assert!(total_faces >= 12,
-            "Two disjoint cubes should have at least 12 boundary faces, got {total_faces}");
+        assert!(
+            total_faces >= 12,
+            "Two disjoint cubes should have at least 12 boundary faces, got {total_faces}"
+        );
     }
 
     #[test]
@@ -217,8 +232,10 @@ mod tests {
         let config = BspConfig::default();
         let cells = extract_boundary_cells(&merged, &config).unwrap();
 
-        assert!(!cells.is_empty(),
-            "Overlapping union should produce at least 1 cell");
+        assert!(
+            !cells.is_empty(),
+            "Overlapping union should produce at least 1 cell"
+        );
 
         let total_verts: usize = cells.iter().map(|(c, _)| c.vertex_count()).sum();
         assert!(total_verts > 0, "Should have vertices");
@@ -236,12 +253,16 @@ mod tests {
         let config = BspConfig::default();
         let cells = extract_boundary_cells(&result, &config).unwrap();
 
-        assert!(!cells.is_empty(),
-            "Subtracting interior cube should produce cells");
+        assert!(
+            !cells.is_empty(),
+            "Subtracting interior cube should produce cells"
+        );
 
         let total_faces: usize = cells.iter().map(|(c, _)| c.face_count()).sum();
-        assert!(total_faces >= 6,
-            "Hollow cube should have at least 6 outer faces, got {total_faces}");
+        assert!(
+            total_faces >= 6,
+            "Hollow cube should have at least 6 outer faces, got {total_faces}"
+        );
     }
 
     #[test]
@@ -259,7 +280,6 @@ mod tests {
         let config = BspConfig::default();
         let cells = extract_boundary_cells(&abc, &config).unwrap();
 
-        assert!(!cells.is_empty(),
-            "3-cube union chain should produce cells");
+        assert!(!cells.is_empty(), "3-cube union chain should produce cells");
     }
 }

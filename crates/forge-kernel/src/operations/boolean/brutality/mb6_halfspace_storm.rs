@@ -19,10 +19,8 @@
 //! - Manifold repair for unbounded → bounded conversion
 //! - BVH handles 200 overlapping large-scale boxes efficiently
 
-use super::super::test_helpers::{
-    build_cube, execute_boolean_logged, euler_audit,
-};
 use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::test_helpers::{build_cube, euler_audit, execute_boolean_logged};
 
 /// Approximate a half-space as a very large box.
 ///
@@ -32,23 +30,26 @@ fn build_halfspace_approx(
     face_point: [f64; 3],
     normal: [f64; 3],
     extent: f64,
-) -> (forge_topo::state::TopologyState, crate::geometry_state::GeometryState) {
-    let len = (normal[0]*normal[0] + normal[1]*normal[1] + normal[2]*normal[2]).sqrt();
-    let n = [normal[0]/len, normal[1]/len, normal[2]/len];
+) -> (
+    forge_topo::state::TopologyState,
+    crate::geometry_state::GeometryState,
+) {
+    let len = (normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]).sqrt();
+    let n = [normal[0] / len, normal[1] / len, normal[2] / len];
 
     let tangent1 = if n[0].abs() < 0.9 {
         let t = [0.0, -n[2], n[1]];
-        let tl = (t[0]*t[0] + t[1]*t[1] + t[2]*t[2]).sqrt();
-        [t[0]/tl, t[1]/tl, t[2]/tl]
+        let tl = (t[0] * t[0] + t[1] * t[1] + t[2] * t[2]).sqrt();
+        [t[0] / tl, t[1] / tl, t[2] / tl]
     } else {
         let t = [n[2], 0.0, -n[0]];
-        let tl = (t[0]*t[0] + t[1]*t[1] + t[2]*t[2]).sqrt();
-        [t[0]/tl, t[1]/tl, t[2]/tl]
+        let tl = (t[0] * t[0] + t[1] * t[1] + t[2] * t[2]).sqrt();
+        [t[0] / tl, t[1] / tl, t[2] / tl]
     };
     let tangent2 = [
-        n[1]*tangent1[2] - n[2]*tangent1[1],
-        n[2]*tangent1[0] - n[0]*tangent1[2],
-        n[0]*tangent1[1] - n[1]*tangent1[0],
+        n[1] * tangent1[2] - n[2] * tangent1[1],
+        n[2] * tangent1[0] - n[0] * tangent1[2],
+        n[0] * tangent1[1] - n[1] * tangent1[0],
     ];
 
     let center = [
@@ -60,25 +61,50 @@ fn build_halfspace_approx(
     let planes = vec![
         forge_geom::Plane::from_point_normal(face_point, n).unwrap(),
         forge_geom::Plane::from_point_normal(
-            [center[0] - n[0] * extent, center[1] - n[1] * extent, center[2] - n[2] * extent],
+            [
+                center[0] - n[0] * extent,
+                center[1] - n[1] * extent,
+                center[2] - n[2] * extent,
+            ],
             [-n[0], -n[1], -n[2]],
-        ).unwrap(),
+        )
+        .unwrap(),
         forge_geom::Plane::from_point_normal(
-            [center[0] + tangent1[0] * extent, center[1] + tangent1[1] * extent, center[2] + tangent1[2] * extent],
+            [
+                center[0] + tangent1[0] * extent,
+                center[1] + tangent1[1] * extent,
+                center[2] + tangent1[2] * extent,
+            ],
             tangent1,
-        ).unwrap(),
+        )
+        .unwrap(),
         forge_geom::Plane::from_point_normal(
-            [center[0] - tangent1[0] * extent, center[1] - tangent1[1] * extent, center[2] - tangent1[2] * extent],
+            [
+                center[0] - tangent1[0] * extent,
+                center[1] - tangent1[1] * extent,
+                center[2] - tangent1[2] * extent,
+            ],
             [-tangent1[0], -tangent1[1], -tangent1[2]],
-        ).unwrap(),
+        )
+        .unwrap(),
         forge_geom::Plane::from_point_normal(
-            [center[0] + tangent2[0] * extent, center[1] + tangent2[1] * extent, center[2] + tangent2[2] * extent],
+            [
+                center[0] + tangent2[0] * extent,
+                center[1] + tangent2[1] * extent,
+                center[2] + tangent2[2] * extent,
+            ],
             tangent2,
-        ).unwrap(),
+        )
+        .unwrap(),
         forge_geom::Plane::from_point_normal(
-            [center[0] - tangent2[0] * extent, center[1] - tangent2[1] * extent, center[2] - tangent2[2] * extent],
+            [
+                center[0] - tangent2[0] * extent,
+                center[1] - tangent2[1] * extent,
+                center[2] - tangent2[2] * extent,
+            ],
             [-tangent2[0], -tangent2[1], -tangent2[2]],
-        ).unwrap(),
+        )
+        .unwrap(),
     ];
 
     super::super::test_helpers::build_convex_solid(planes)
@@ -107,11 +133,7 @@ fn halfspace_storm_80_coplanar() {
 
             let (topo_hs, geom_hs) = build_halfspace_approx(face_point, normal, extent);
 
-            let input = BooleanInput::new(
-                topo, geom,
-                topo_hs, geom_hs,
-                BooleanOp::Intersection,
-            );
+            let input = BooleanInput::new(topo, geom, topo_hs, geom_hs, BooleanOp::Intersection);
 
             let step_num = group * 8 + sub;
             match execute_boolean_logged(input).into_result() {
@@ -163,11 +185,7 @@ fn halfspace_storm_60_graze() {
 
         let (topo_hs, geom_hs) = build_halfspace_approx(face_point, normal, extent);
 
-        let input = BooleanInput::new(
-            topo, geom,
-            topo_hs, geom_hs,
-            BooleanOp::Intersection,
-        );
+        let input = BooleanInput::new(topo, geom, topo_hs, geom_hs, BooleanOp::Intersection);
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
@@ -209,17 +227,10 @@ fn halfspace_storm_60_sliver() {
     for i in 0..30 {
         let z = -4.0 + (i as f64) * 0.25;
 
-        let (topo_top, geom_top) = build_halfspace_approx(
-            [0.0, 0.0, z + sliver_thickness],
-            [0.0, 0.0, -1.0],
-            extent,
-        );
+        let (topo_top, geom_top) =
+            build_halfspace_approx([0.0, 0.0, z + sliver_thickness], [0.0, 0.0, -1.0], extent);
 
-        let input = BooleanInput::new(
-            topo, geom,
-            topo_top, geom_top,
-            BooleanOp::Intersection,
-        );
+        let input = BooleanInput::new(topo, geom, topo_top, geom_top, BooleanOp::Intersection);
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
@@ -233,17 +244,9 @@ fn halfspace_storm_60_sliver() {
             }
         }
 
-        let (topo_bot, geom_bot) = build_halfspace_approx(
-            [0.0, 0.0, z],
-            [0.0, 0.0, 1.0],
-            extent,
-        );
+        let (topo_bot, geom_bot) = build_halfspace_approx([0.0, 0.0, z], [0.0, 0.0, 1.0], extent);
 
-        let input2 = BooleanInput::new(
-            topo, geom,
-            topo_bot, geom_bot,
-            BooleanOp::Intersection,
-        );
+        let input2 = BooleanInput::new(topo, geom, topo_bot, geom_bot, BooleanOp::Intersection);
 
         match execute_boolean_logged(input2).into_result() {
             Ok(result) => {
@@ -286,14 +289,23 @@ fn halfspace_storm_full_200() {
     for group in 0..10 {
         let z = -5.0 + group as f64 * 1.0;
         for sub in 0..8 {
-            let (topo_hs, geom_hs) = build_halfspace_approx(
-                [(sub as f64 - 3.5) * 0.1, 0.0, z],
-                [0.0, 0.0, 1.0],
-                extent,
+            let (topo_hs, geom_hs) =
+                build_halfspace_approx([(sub as f64 - 3.5) * 0.1, 0.0, z], [0.0, 0.0, 1.0], extent);
+            let input = BooleanInput::new(
+                topo,
+                geom,
+                BrepState::new(),
+                topo_hs,
+                geom_hs,
+                BrepState::new(),
+                BooleanOp::Intersection,
             );
-            let input = BooleanInput::new(topo, geom, BrepState::new(), topo_hs, geom_hs, BrepState::new(), BooleanOp::Intersection);
             match execute_boolean_logged(input).into_result() {
-                Ok(r) => { let p = r.into_states(); topo = p.0; geom = p.1; }
+                Ok(r) => {
+                    let p = r.into_states();
+                    topo = p.0;
+                    geom = p.1;
+                }
                 Err(e) => panic!("MB6 full step {step} (coplanar) failed: {e}"),
             }
             step += 1;
@@ -308,9 +320,21 @@ fn halfspace_storm_full_200() {
         let mut n = [0.0, 0.0, 0.0];
         n[axis] = sign;
         let (topo_hs, geom_hs) = build_halfspace_approx(fp, n, extent);
-        let input = BooleanInput::new(topo, geom, BrepState::new(), topo_hs, geom_hs, BrepState::new(), BooleanOp::Intersection);
+        let input = BooleanInput::new(
+            topo,
+            geom,
+            BrepState::new(),
+            topo_hs,
+            geom_hs,
+            BrepState::new(),
+            BooleanOp::Intersection,
+        );
         match execute_boolean_logged(input).into_result() {
-            Ok(r) => { let p = r.into_states(); topo = p.0; geom = p.1; }
+            Ok(r) => {
+                let p = r.into_states();
+                topo = p.0;
+                geom = p.1;
+            }
             Err(e) => panic!("MB6 full step {step} (graze) failed: {e}"),
         }
         step += 1;
@@ -318,17 +342,42 @@ fn halfspace_storm_full_200() {
 
     for i in 0..30 {
         let z = -4.0 + (i as f64) * 0.25;
-        let (topo_t, geom_t) = build_halfspace_approx([0.0, 0.0, z + sliver], [0.0, 0.0, -1.0], extent);
-        let input = BooleanInput::new(topo, geom, BrepState::new(), topo_t, geom_t, BrepState::new(), BooleanOp::Intersection);
+        let (topo_t, geom_t) =
+            build_halfspace_approx([0.0, 0.0, z + sliver], [0.0, 0.0, -1.0], extent);
+        let input = BooleanInput::new(
+            topo,
+            geom,
+            BrepState::new(),
+            topo_t,
+            geom_t,
+            BrepState::new(),
+            BooleanOp::Intersection,
+        );
         match execute_boolean_logged(input).into_result() {
-            Ok(r) => { let p = r.into_states(); topo = p.0; geom = p.1; }
+            Ok(r) => {
+                let p = r.into_states();
+                topo = p.0;
+                geom = p.1;
+            }
             Err(e) => panic!("MB6 full step {step} (sliver-top) failed: {e}"),
         }
         step += 1;
         let (topo_b, geom_b) = build_halfspace_approx([0.0, 0.0, z], [0.0, 0.0, 1.0], extent);
-        let input2 = BooleanInput::new(topo, geom, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Intersection);
+        let input2 = BooleanInput::new(
+            topo,
+            geom,
+            BrepState::new(),
+            topo_b,
+            geom_b,
+            BrepState::new(),
+            BooleanOp::Intersection,
+        );
         match execute_boolean_logged(input2).into_result() {
-            Ok(r) => { let p = r.into_states(); topo = p.0; geom = p.1; }
+            Ok(r) => {
+                let p = r.into_states();
+                topo = p.0;
+                geom = p.1;
+            }
             Err(e) => panic!("MB6 full step {step} (sliver-bot) failed: {e}"),
         }
         step += 1;

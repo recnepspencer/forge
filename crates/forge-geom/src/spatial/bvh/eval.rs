@@ -1,5 +1,5 @@
-use crate::primitives::aabb::Aabb;
 use super::schema::BvhNode;
+use crate::primitives::aabb::Aabb;
 
 impl<T: Copy> BvhNode<T> {
     /// Get the AABB of this node.
@@ -36,8 +36,8 @@ impl<T: Copy> BvhNode<T> {
 
         items.select_nth_unstable_by(mid, |a, b| {
             a.1.min[axis]
-            .partial_cmp(&b.1.min[axis])
-            .unwrap_or(std::cmp::Ordering::Equal)
+                .partial_cmp(&b.1.min[axis])
+                .unwrap_or(std::cmp::Ordering::Equal)
         });
 
         let (left_items, right_items) = items.split_at_mut(mid);
@@ -63,7 +63,7 @@ impl<T: Copy> BvhNode<T> {
 
             match node {
                 BvhNode::Leaf { item, .. } => {
-                     results.push(*item);
+                    results.push(*item);
                 }
                 BvhNode::Internal { left, right, .. } => {
                     stack.push(left);
@@ -78,10 +78,7 @@ impl<T: Copy> BvhNode<T> {
 /// Query overlapping pairs between two BVH trees.
 ///
 /// Returns a vector of (item_a, item_b) pairs where the AABBs overlap.
-pub fn query_overlapping_pairs<T: Copy>(
-    root_a: &BvhNode<T>,
-    root_b: &BvhNode<T>,
-) -> Vec<(T, T)> {
+pub fn query_overlapping_pairs<T: Copy>(root_a: &BvhNode<T>, root_b: &BvhNode<T>) -> Vec<(T, T)> {
     let mut results = Vec::new();
     // Use a stack to avoid recursion depth issues
     let mut stack = vec![(root_a, root_b)];
@@ -103,7 +100,18 @@ pub fn query_overlapping_pairs<T: Copy>(
                 stack.push((left, node_b));
                 stack.push((right, node_b));
             }
-            (BvhNode::Internal { left: la, right: ra, .. }, BvhNode::Internal { left: lb, right: rb, .. }) => {
+            (
+                BvhNode::Internal {
+                    left: la,
+                    right: ra,
+                    ..
+                },
+                BvhNode::Internal {
+                    left: lb,
+                    right: rb,
+                    ..
+                },
+            ) => {
                 // Heuristic: descend into the larger node first? or just cross product?
                 // Standard BVH traversal:
                 stack.push((la, lb));

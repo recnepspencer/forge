@@ -3,11 +3,11 @@
 use std::time::Duration;
 
 use super::*;
-use crate::tracing::{
-    DecisionId, DecisionKind, DecisionTier, DecisionContext,
-    DecisionLog, TracedDecision, EntityRef, EntityKind,
-};
 use crate::policy::PolicyKind;
+use crate::tracing::{
+    DecisionContext, DecisionId, DecisionKind, DecisionLog, DecisionTier, EntityKind, EntityRef,
+    TracedDecision,
+};
 
 #[test]
 fn operation_result_new_has_empty_metadata() {
@@ -46,10 +46,22 @@ fn with_metadata_constructor() {
     let log = DecisionLog::new();
     let result = OperationResult::with_metadata(
         99,
-        vec![KernelWarning::AutoDecision { decision_id: DecisionId(1) }],
+        vec![KernelWarning::AutoDecision {
+            decision_id: DecisionId(1),
+        }],
         log,
-        OperationMetrics { duration: Duration::from_millis(5), entities_created: 3, entities_deleted: 1, entities_modified: 0, exact_predicate_calls: 10, policy_decisions_made: 2 },
-        LineageDelta { faces_created: 1, ..LineageDelta::default() },
+        OperationMetrics {
+            duration: Duration::from_millis(5),
+            entities_created: 3,
+            entities_deleted: 1,
+            entities_modified: 0,
+            exact_predicate_calls: 10,
+            policy_decisions_made: 2,
+        },
+        LineageDelta {
+            faces_created: 1,
+            ..LineageDelta::default()
+        },
         0xAABB,
         0xCCDD,
     );
@@ -80,15 +92,24 @@ fn serde_roundtrip_operation_result() {
     ));
     log.record(TracedDecision::new(
         DecisionId(2),
-        DecisionKind::Ambiguous { fallback_applied: "merge".to_string() },
+        DecisionKind::Ambiguous {
+            fallback_applied: "merge".to_string(),
+        },
         DecisionTier::Escalated,
         0.001,
-        DecisionContext::Tolerance { measured: 9.5e-7, threshold: 1e-6 },
+        DecisionContext::Tolerance {
+            measured: 9.5e-7,
+            threshold: 1e-6,
+        },
     ));
 
     let result = OperationResult::with_metadata(
         42_i32,
-        vec![KernelWarning::SliverFaceCreated { face_index: 5, area: 1e-12, threshold: 1e-10 }],
+        vec![KernelWarning::SliverFaceCreated {
+            face_index: 5,
+            area: 1e-12,
+            threshold: 1e-10,
+        }],
         log,
         OperationMetrics {
             duration: Duration::from_micros(1234),
@@ -98,7 +119,11 @@ fn serde_roundtrip_operation_result() {
             exact_predicate_calls: 100,
             policy_decisions_made: 3,
         },
-        LineageDelta { faces_created: 4, vertices_created: 8, ..LineageDelta::default() },
+        LineageDelta {
+            faces_created: 4,
+            vertices_created: 8,
+            ..LineageDelta::default()
+        },
         0x1234_5678_9ABC_DEF0,
         0xFEDC_BA98_7654_3210,
     );
@@ -129,7 +154,9 @@ fn operation_result_map_preserves_metadata() {
     let mut result = OperationResult::new(10);
     result.set_state_hash_before(0xAA);
     result.set_state_hash_after(0xBB);
-    result.add_warning(KernelWarning::AutoDecision { decision_id: DecisionId(1) });
+    result.add_warning(KernelWarning::AutoDecision {
+        decision_id: DecisionId(1),
+    });
 
     let mapped = result.map(|v| v * 2);
     assert_eq!(*mapped.get_value(), 20);

@@ -14,12 +14,12 @@
 
 use forge_core::KernelError;
 
-use crate::arena::{FaceData, HalfEdgeData, LoopData, VertexData, ShellData, EdgeData, ShellKind};
-use crate::handles::{HalfEdgeId, LoopId, ShellId, RegionId, EdgeId};
+use crate::arena::{EdgeData, FaceData, HalfEdgeData, LoopData, ShellData, ShellKind, VertexData};
+use crate::handles::{EdgeId, HalfEdgeId, LoopId, RegionId, ShellId};
 use crate::lineage::{Lineage, OpSignature};
-use crate::operator::{ExecutionResult, EulerDelta};
-use crate::EulerOperator;
+use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
+use crate::EulerOperator;
 
 /// Creates a new, disjoint shell within an existing solid.
 #[derive(Debug)]
@@ -47,7 +47,11 @@ pub struct MsfOutput {
 impl EulerOperator for MakeShellFace {
     type Output = MsfOutput;
 
-    fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        sig: &OpSignature,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
         let placeholder_loop = LoopId::new(u32::MAX, 0);
 
@@ -77,10 +81,7 @@ impl EulerOperator for MakeShellFace {
 
         let loop_id = draft.insert_loop(LoopData::new(placeholder_he, face));
 
-        let edge = draft.insert_edge(EdgeData::with_lineage(
-            placeholder_he,
-            Some(edge_lineage),
-        ));
+        let edge = draft.insert_edge(EdgeData::with_lineage(placeholder_he, Some(edge_lineage)));
 
         let he = draft.insert_half_edge(HalfEdgeData::with_lineage(
             placeholder_he,
@@ -96,10 +97,19 @@ impl EulerOperator for MakeShellFace {
         draft.arena_mut().get_half_edge_mut(he)?.set_next(he);
         draft.arena_mut().get_half_edge_mut(he)?.set_prev(he);
         draft.arena_mut().get_vertex_mut(vertex)?.set_outgoing(he);
-        draft.arena_mut().get_face_mut(face)?.set_outer_loop(loop_id);
+        draft
+            .arena_mut()
+            .get_face_mut(face)?
+            .set_outer_loop(loop_id);
         draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(he);
-        draft.arena_mut().get_shell_mut(shell)?.set_representative_face(face);
-        draft.arena_mut().get_region_mut(self.region)?.add_shell(shell);
+        draft
+            .arena_mut()
+            .get_shell_mut(shell)?
+            .set_representative_face(face);
+        draft
+            .arena_mut()
+            .get_region_mut(self.region)?
+            .add_shell(shell);
         draft.arena_mut().get_edge_mut(edge)?.set_half_edge(he);
 
         Ok(ExecutionResult {
@@ -111,7 +121,17 @@ impl EulerOperator for MakeShellFace {
                 shell,
                 edge,
             },
-            declared_delta: EulerDelta { vertices: 1, half_edges: 1, faces: 1, loops: 1, edges: 1, shells: 1, solids: 0, lumps: 0, regions: 0 },
+            declared_delta: EulerDelta {
+                vertices: 1,
+                half_edges: 1,
+                faces: 1,
+                loops: 1,
+                edges: 1,
+                shells: 1,
+                solids: 0,
+                lumps: 0,
+                regions: 0,
+            },
         })
     }
 
@@ -122,11 +142,11 @@ impl EulerOperator for MakeShellFace {
 
 #[cfg(test)]
 mod tests {
-    use crate::EulerOperator;
+    use super::MakeShellFace;
     use crate::operator::apply_op;
     use crate::state::TopologyState;
     use crate::topology::operations::euler::make_vertex_face::MakeVertexFace;
-    use super::MakeShellFace;
+    use crate::EulerOperator;
 
     #[test]
     fn make_shell_face_creates_new_shell_in_solid() {
@@ -134,18 +154,20 @@ mod tests {
         let mut draft = state.into_mutation();
 
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        
+
         assert_eq!(draft.arena().face_count(), 1);
         assert_eq!(draft.arena().shell_count(), 1);
         assert_eq!(draft.arena().body_count(), 1);
-        
+
         let region = draft.arena().get_shell(mvf.shell).unwrap().region();
-        let msf = apply_op(&mut draft, MakeShellFace { region }).unwrap().into_value();
-        
+        let msf = apply_op(&mut draft, MakeShellFace { region })
+            .unwrap()
+            .into_value();
+
         assert_eq!(draft.arena().face_count(), 2);
         assert_eq!(draft.arena().shell_count(), 2);
         assert_eq!(draft.arena().body_count(), 1);
-        
+
         let region_data = draft.arena().get_region(region).unwrap();
         assert_eq!(region_data.shell_count(), 2);
         assert!(region_data.shells().contains(&mvf.shell));

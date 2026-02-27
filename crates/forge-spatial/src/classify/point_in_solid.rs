@@ -14,16 +14,16 @@
 //!               forge-geom (Aabb), forge-math (orient2d, orient3d, TriSign).
 
 use forge_core::{KernelError, ToleranceProvider};
-use forge_math::sign::TriSign;
-use forge_math::predicates::{orient2d, orient3d};
 use forge_geom::Aabb;
+use forge_math::predicates::{orient2d, orient3d};
+use forge_math::sign::TriSign;
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::traverse::FaceEdgeIterator;
 
-use super::schema::{PointClassification, SpatialAccelerator};
 use super::point_on_face::{classify_point_on_face, FacePointClassification};
-use super::sos::{sos_orient2d_tiebreak, sos_orient3d_tiebreak, sos_edge_crossing_yz};
+use super::schema::{PointClassification, SpatialAccelerator};
+use super::sos::{sos_edge_crossing_yz, sos_orient2d_tiebreak, sos_orient3d_tiebreak};
 
 /// Classify a point relative to a solid using ray-casting parity counting.
 ///
@@ -96,10 +96,26 @@ pub fn classify_point_with_perturbation(
         point[2] - epsilon * direction[2],
     ];
 
-    let pos_class = classify_point_in_solid(arena, vertex_positions, spatial_index, &pos_sample, tolerance_provider)?;
-    let neg_class = classify_point_in_solid(arena, vertex_positions, spatial_index, &neg_sample, tolerance_provider)?;
+    let pos_class = classify_point_in_solid(
+        arena,
+        vertex_positions,
+        spatial_index,
+        &pos_sample,
+        tolerance_provider,
+    )?;
+    let neg_class = classify_point_in_solid(
+        arena,
+        vertex_positions,
+        spatial_index,
+        &neg_sample,
+        tolerance_provider,
+    )?;
 
-    if pos_class == neg_class { Ok(Some(pos_class)) } else { Ok(None) }
+    if pos_class == neg_class {
+        Ok(Some(pos_class))
+    } else {
+        Ok(None)
+    }
 }
 
 /// Determine if the +X axis ray from `point` intersects a face using SoS.
@@ -129,7 +145,11 @@ fn sos_ray_intersects_face(
         [basis_a[1], basis_a[2]],
         [basis_b[1], basis_b[2]],
         [basis_c[1], basis_c[2]],
-    ).map_err(|e| KernelError::InternalError { message: e.to_string(), context: None })?;
+    )
+    .map_err(|e| KernelError::InternalError {
+        message: e.to_string(),
+        context: None,
+    })?;
 
     let nx_sign = o_nx.sign();
     if nx_sign == TriSign::Zero {
@@ -141,19 +161,18 @@ fn sos_ray_intersects_face(
     for i in 0..n {
         let v0 = verts[i];
         let v1 = verts[(i + 1) % n];
-        winding += sos_edge_crossing_yz(
-            point[1], point[2],
-            v0[1], v0[2],
-            v1[1], v1[2],
-        )?;
+        winding += sos_edge_crossing_yz(point[1], point[2], v0[1], v0[2], v1[1], v1[2])?;
     }
 
     if winding == 0 {
         return Ok(false);
     }
 
-    let (o3, _) = orient3d(basis_a, basis_b, basis_c, *point)
-        .map_err(|e| KernelError::InternalError { message: e.to_string(), context: None })?;
+    let (o3, _) =
+        orient3d(basis_a, basis_b, basis_c, *point).map_err(|e| KernelError::InternalError {
+            message: e.to_string(),
+            context: None,
+        })?;
 
     let p_sign = if o3.sign() != TriSign::Zero {
         o3.sign()
@@ -172,23 +191,31 @@ fn sos_ray_intersects_face(
 fn find_nondegenerate_basis(
     verts: &[[f64; 3]],
 ) -> Result<Option<([f64; 3], [f64; 3], [f64; 3])>, KernelError> {
-    if verts.len() < 3 { return Ok(None); }
+    if verts.len() < 3 {
+        return Ok(None);
+    }
 
     let p0 = verts[0];
     let p1 = verts[1];
 
     for &pk in &verts[2..] {
-        let (o, _) = orient2d(
-            [p0[1], p0[2]], [p1[1], p1[2]], [pk[1], pk[2]],
-        ).map_err(|e| KernelError::InternalError { message: e.to_string(), context: None })?;
+        let (o, _) = orient2d([p0[1], p0[2]], [p1[1], p1[2]], [pk[1], pk[2]]).map_err(|e| {
+            KernelError::InternalError {
+                message: e.to_string(),
+                context: None,
+            }
+        })?;
 
         if o.sign() != TriSign::Zero {
             return Ok(Some((p0, p1, pk)));
         }
 
-        let (o_xy, _) = orient2d(
-            [p0[0], p0[1]], [p1[0], p1[1]], [pk[0], pk[1]],
-        ).map_err(|e| KernelError::InternalError { message: e.to_string(), context: None })?;
+        let (o_xy, _) = orient2d([p0[0], p0[1]], [p1[0], p1[1]], [pk[0], pk[1]]).map_err(|e| {
+            KernelError::InternalError {
+                message: e.to_string(),
+                context: None,
+            }
+        })?;
 
         if o_xy.sign() != TriSign::Zero {
             return Ok(Some((p0, p1, pk)));
@@ -209,16 +236,20 @@ mod tests {
         let mut arena = TopologyArena::new();
 
         let positions = vec![
-            [-1.0, -1.0, -1.0], [ 1.0, -1.0, -1.0],
-            [ 1.0,  1.0, -1.0], [-1.0,  1.0, -1.0],
-            [-1.0, -1.0,  1.0], [ 1.0, -1.0,  1.0],
-            [ 1.0,  1.0,  1.0], [-1.0,  1.0,  1.0],
+            [-1.0, -1.0, -1.0],
+            [1.0, -1.0, -1.0],
+            [1.0, 1.0, -1.0],
+            [-1.0, 1.0, -1.0],
+            [-1.0, -1.0, 1.0],
+            [1.0, -1.0, 1.0],
+            [1.0, 1.0, 1.0],
+            [-1.0, 1.0, 1.0],
         ];
 
         let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
         let placeholder_loop = LoopId::new(u32::MAX, 0);
         let placeholder_shell_q = ShellId::new(u32::MAX, 0);
-        let placeholder_e_q     = EdgeId::new(u32::MAX, 0);
+        let placeholder_e_q = EdgeId::new(u32::MAX, 0);
 
         let mut verts = Vec::new();
         for _ in 0..8 {
@@ -226,33 +257,58 @@ mod tests {
         }
 
         let quad_faces: [[usize; 4]; 6] = [
-            [0, 3, 2, 1], [4, 5, 6, 7],
-            [0, 1, 5, 4], [2, 3, 7, 6],
-            [0, 4, 7, 3], [1, 2, 6, 5],
+            [0, 3, 2, 1],
+            [4, 5, 6, 7],
+            [0, 1, 5, 4],
+            [2, 3, 7, 6],
+            [0, 4, 7, 3],
+            [1, 2, 6, 5],
         ];
 
         for quad in &quad_faces {
-            let face = arena.insert_face(FaceData::new(placeholder_loop, placeholder_shell_q), None);
+            let face =
+                arena.insert_face(FaceData::new(placeholder_loop, placeholder_shell_q), None);
             let loop_id = arena.insert_loop(LoopData::new(placeholder_he, face), None);
             arena.get_face_mut(face).unwrap().set_outer_loop(loop_id);
 
             let mut he_ids = Vec::new();
             for i in 0..4 {
                 let origin = verts[quad[i]];
-                let he = arena.insert_half_edge(HalfEdgeData::new(
-                    placeholder_he, placeholder_he, placeholder_he, face, origin, placeholder_e_q,
-                ), None);
+                let he = arena.insert_half_edge(
+                    HalfEdgeData::new(
+                        placeholder_he,
+                        placeholder_he,
+                        placeholder_he,
+                        face,
+                        origin,
+                        placeholder_e_q,
+                    ),
+                    None,
+                );
                 he_ids.push(he);
             }
             for i in 0..4 {
-                arena.get_half_edge_mut(he_ids[i]).unwrap().set_next(he_ids[(i + 1) % 4]);
-                arena.get_half_edge_mut(he_ids[i]).unwrap().set_prev(he_ids[(i + 3) % 4]);
+                arena
+                    .get_half_edge_mut(he_ids[i])
+                    .unwrap()
+                    .set_next(he_ids[(i + 1) % 4]);
+                arena
+                    .get_half_edge_mut(he_ids[i])
+                    .unwrap()
+                    .set_prev(he_ids[(i + 3) % 4]);
             }
-            arena.get_loop_mut(loop_id).unwrap().set_half_edge(he_ids[0]);
-            arena.get_vertex_mut(verts[quad[0]]).unwrap().set_outgoing(he_ids[0]);
+            arena
+                .get_loop_mut(loop_id)
+                .unwrap()
+                .set_half_edge(he_ids[0]);
+            arena
+                .get_vertex_mut(verts[quad[0]])
+                .unwrap()
+                .set_outgoing(he_ids[0]);
         }
 
-        let all_hes: Vec<(HalfEdgeId, u32, u32)> = arena.iter_half_edges()
+        let all_hes: Vec<(HalfEdgeId, u32, u32)> = arena
+            .iter_half_edges()
             .map(|(id, data)| {
                 let origin = data.origin().index();
                 let next_he = arena.get_half_edge(data.next()).unwrap();
@@ -264,24 +320,36 @@ mod tests {
         for i in 0..all_hes.len() {
             let (he_id, origin, target) = all_hes[i];
             if arena.get_half_edge(he_id).unwrap().radial_next() != placeholder_he {
-                if arena.get_half_edge(he_id).unwrap().radial_next() != he_id { continue; }
+                if arena.get_half_edge(he_id).unwrap().radial_next() != he_id {
+                    continue;
+                }
             }
-            for j in (i+1)..all_hes.len() {
+            for j in (i + 1)..all_hes.len() {
                 let (other_id, other_origin, other_target) = all_hes[j];
                 if origin == other_target && target == other_origin {
-                    arena.get_half_edge_mut(he_id).unwrap().set_radial_next(other_id);
-                    arena.get_half_edge_mut(other_id).unwrap().set_radial_next(he_id);
+                    arena
+                        .get_half_edge_mut(he_id)
+                        .unwrap()
+                        .set_radial_next(other_id);
+                    arena
+                        .get_half_edge_mut(other_id)
+                        .unwrap()
+                        .set_radial_next(he_id);
                     break;
                 }
             }
         }
 
-        let unmatched: Vec<HalfEdgeId> = arena.iter_half_edges()
+        let unmatched: Vec<HalfEdgeId> = arena
+            .iter_half_edges()
             .filter(|(_, data)| data.radial_next() == placeholder_he)
             .map(|(id, _)| id)
             .collect();
         for he_id in unmatched {
-            arena.get_half_edge_mut(he_id).unwrap().set_radial_next(he_id);
+            arena
+                .get_half_edge_mut(he_id)
+                .unwrap()
+                .set_radial_next(he_id);
         }
 
         (arena, positions)
@@ -292,16 +360,30 @@ mod tests {
         let tol = FlatToleranceProvider::new(1e-10);
         let (arena, positions) = build_cube_arena();
         let position_fn = |idx: u32| -> Result<[f64; 3], KernelError> {
-            positions.get(idx as usize).copied().ok_or_else(|| KernelError::InternalError {
-                message: format!("No position for vertex {}", idx), context: None,
-            })
+            positions
+                .get(idx as usize)
+                .copied()
+                .ok_or_else(|| KernelError::InternalError {
+                    message: format!("No position for vertex {}", idx),
+                    context: None,
+                })
         };
 
-        let inside = classify_point_in_solid(&arena, &position_fn, None, &[0.0, 0.0, 0.0], &tol).unwrap();
-        assert!(matches!(inside, PointClassification::Inside { .. }), "Origin must be Inside, got {:?}", inside);
+        let inside =
+            classify_point_in_solid(&arena, &position_fn, None, &[0.0, 0.0, 0.0], &tol).unwrap();
+        assert!(
+            matches!(inside, PointClassification::Inside { .. }),
+            "Origin must be Inside, got {:?}",
+            inside
+        );
 
-        let outside = classify_point_in_solid(&arena, &position_fn, None, &[10.0, 10.0, 10.0], &tol).unwrap();
-        assert!(matches!(outside, PointClassification::Outside { .. }), "(10,10,10) must be Outside, got {:?}", outside);
+        let outside =
+            classify_point_in_solid(&arena, &position_fn, None, &[10.0, 10.0, 10.0], &tol).unwrap();
+        assert!(
+            matches!(outside, PointClassification::Outside { .. }),
+            "(10,10,10) must be Outside, got {:?}",
+            outside
+        );
     }
 
     #[test]
@@ -309,12 +391,21 @@ mod tests {
         let tol = FlatToleranceProvider::new(1e-10);
         let (arena, positions) = build_cube_arena();
         let position_fn = |idx: u32| -> Result<[f64; 3], KernelError> {
-            positions.get(idx as usize).copied().ok_or_else(|| KernelError::InternalError {
-                message: format!("No position for vertex {}", idx), context: None,
-            })
+            positions
+                .get(idx as usize)
+                .copied()
+                .ok_or_else(|| KernelError::InternalError {
+                    message: format!("No position for vertex {}", idx),
+                    context: None,
+                })
         };
 
-        let on_face = classify_point_in_solid(&arena, &position_fn, None, &[1.0, 0.0, 0.0], &tol).unwrap();
-        assert!(matches!(on_face, PointClassification::OnBoundary(_)), "Face point must be OnBoundary, got {:?}", on_face);
+        let on_face =
+            classify_point_in_solid(&arena, &position_fn, None, &[1.0, 0.0, 0.0], &tol).unwrap();
+        assert!(
+            matches!(on_face, PointClassification::OnBoundary(_)),
+            "Face point must be OnBoundary, got {:?}",
+            on_face
+        );
     }
 }

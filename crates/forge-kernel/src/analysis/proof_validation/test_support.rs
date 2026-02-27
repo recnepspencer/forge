@@ -4,13 +4,13 @@
 //! stable wrappers around arena mutation methods and geometric validation calls.
 
 use forge_core::{FlatToleranceProvider, KernelError};
+use forge_spatial::integrity::validate_geometric_invariants;
 use forge_topo::arena::{
     BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
     ShellKind, ShellOrientation, TopologyArena, VertexData,
 };
 use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
 use forge_topo::lineage_store::LineageStore;
-use forge_spatial::integrity::validate_geometric_invariants;
 
 /// Validate geometric invariants assuming all faces are planar.
 pub fn validate_geometric_invariants_all_faces(
@@ -20,12 +20,7 @@ pub fn validate_geometric_invariants_all_faces(
     edge_length_threshold: f64,
 ) -> Result<(), KernelError> {
     let tol = FlatToleranceProvider::new(area_threshold.sqrt().max(edge_length_threshold));
-    validate_geometric_invariants(
-        arena,
-        position_fn,
-        &all_faces_planar,
-        &tol,
-    )
+    validate_geometric_invariants(arena, position_fn, &all_faces_planar, &tol)
 }
 
 /// Validate geometric invariants with an explicit planarity predicate.
@@ -37,12 +32,7 @@ pub fn validate_geometric_invariants_with_planarity(
     edge_length_threshold: f64,
 ) -> Result<(), KernelError> {
     let tol = FlatToleranceProvider::new(area_threshold.sqrt().max(edge_length_threshold));
-    validate_geometric_invariants(
-        arena,
-        position_fn,
-        is_planar,
-        &tol,
-    )
+    validate_geometric_invariants(arena, position_fn, is_planar, &tol)
 }
 
 fn all_faces_planar(_face: FaceId) -> bool {
@@ -78,7 +68,9 @@ pub fn insert_test_solid_shell(arena: &mut TopologyArena) -> ShellId {
 /// manually. Newer validators count edges through `halfedge.edge()`, so these
 /// synthetic arenas must also create first-class `EdgeData` and assign each
 /// halfedge to the edge for its radial cycle.
-pub fn materialize_edge_entities_from_radials(arena: &mut TopologyArena) -> Result<(), KernelError> {
+pub fn materialize_edge_entities_from_radials(
+    arena: &mut TopologyArena,
+) -> Result<(), KernelError> {
     let halfedge_ids: Vec<HalfEdgeId> = arena.iter_half_edges().map(|(id, _)| id).collect();
     let mut visited: std::collections::BTreeSet<u32> = std::collections::BTreeSet::new();
 
@@ -101,7 +93,8 @@ pub fn materialize_edge_entities_from_radials(arena: &mut TopologyArena) -> Resu
             steps += 1;
             if steps > bound {
                 return Err(KernelError::InternalError {
-                    message: "Radial cycle exceeded halfedge count while materializing test edges".to_string(),
+                    message: "Radial cycle exceeded halfedge count while materializing test edges"
+                        .to_string(),
                     context: None,
                 });
             }
@@ -133,7 +126,11 @@ fn assign_edge_to_cycle(
 pub trait ArenaTestExt {
     fn insert_face(&mut self, data: FaceData) -> FaceId;
     fn insert_half_edge(&mut self, data: HalfEdgeData) -> HalfEdgeId;
-    fn insert_radial_pair(&mut self, data_a: HalfEdgeData, data_b: HalfEdgeData) -> (HalfEdgeId, HalfEdgeId);
+    fn insert_radial_pair(
+        &mut self,
+        data_a: HalfEdgeData,
+        data_b: HalfEdgeData,
+    ) -> (HalfEdgeId, HalfEdgeId);
     fn insert_vertex(&mut self, data: VertexData) -> VertexId;
     fn insert_loop(&mut self, data: LoopData) -> LoopId;
     fn remove_half_edge(&mut self, id: HalfEdgeId) -> Result<HalfEdgeData, KernelError>;
@@ -148,7 +145,11 @@ impl ArenaTestExt for TopologyArena {
         TopologyArena::insert_half_edge(self, data, no_lineage())
     }
 
-    fn insert_radial_pair(&mut self, data_a: HalfEdgeData, data_b: HalfEdgeData) -> (HalfEdgeId, HalfEdgeId) {
+    fn insert_radial_pair(
+        &mut self,
+        data_a: HalfEdgeData,
+        data_b: HalfEdgeData,
+    ) -> (HalfEdgeId, HalfEdgeId) {
         TopologyArena::insert_radial_pair(self, data_a, data_b, no_lineage())
     }
 

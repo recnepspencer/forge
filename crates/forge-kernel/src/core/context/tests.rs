@@ -2,14 +2,16 @@
 
 #[cfg(test)]
 mod context_tests {
-    use crate::core::context::schema::ModelingContext;
     use crate::check_tolerance;
-    use forge_core::{
-        TracedDecision, DecisionKind, DecisionContext, DecisionId, DecisionTier,
-        PolicyKind, PolicyQuery,
-    };
+    use crate::core::context::schema::ModelingContext;
     use forge_core::envelope::OperationResult;
-    use forge_core::tracing::{CandidateValueSummary, PolicyResolutionOutcome, PolicyResolutionSource};
+    use forge_core::tracing::{
+        CandidateValueSummary, PolicyResolutionOutcome, PolicyResolutionSource,
+    };
+    use forge_core::{
+        DecisionContext, DecisionId, DecisionKind, DecisionTier, PolicyKind, PolicyQuery,
+        TracedDecision,
+    };
 
     fn sample_policy_query(kind: PolicyKind, overridable: bool) -> PolicyQuery {
         PolicyQuery {
@@ -55,7 +57,13 @@ mod context_tests {
         let threshold = 1e-6;
         let location = [0.0, 0.0, 0.0];
 
-        let within = check_tolerance!(ctx, threshold, distance, location, DecisionKind::NearBoundary { threshold });
+        let within = check_tolerance!(
+            ctx,
+            threshold,
+            distance,
+            location,
+            DecisionKind::NearBoundary { threshold }
+        );
 
         assert!(within);
         assert_eq!(ctx.get_decision_count(), 1);
@@ -68,7 +76,13 @@ mod context_tests {
         let threshold = 1e-6;
         let location = [0.0, 0.0, 0.0];
 
-        let within = check_tolerance!(ctx, threshold, distance, location, DecisionKind::NearBoundary { threshold });
+        let within = check_tolerance!(
+            ctx,
+            threshold,
+            distance,
+            location,
+            DecisionKind::NearBoundary { threshold }
+        );
 
         assert!(!within);
         assert_eq!(ctx.get_decision_count(), 0);
@@ -113,8 +127,16 @@ mod context_tests {
             1.0,
         );
 
-        let ids: Vec<_> = ctx.get_decision_log().decisions().map(|d| d.get_id().0).collect();
-        assert_eq!(ids, vec![1], "full operation reset must restore deterministic ID sequence");
+        let ids: Vec<_> = ctx
+            .get_decision_log()
+            .decisions()
+            .map(|d| d.get_id().0)
+            .collect();
+        assert_eq!(
+            ids,
+            vec![1],
+            "full operation reset must restore deterministic ID sequence"
+        );
     }
 
     #[test]
@@ -130,10 +152,15 @@ mod context_tests {
             1.0,
         );
         let _ = ctx.take_decision_log();
-        assert!(ctx.log_drained, "take_decision_log sets success-path drain flag");
+        assert!(
+            ctx.log_drained,
+            "take_decision_log sets success-path drain flag"
+        );
 
         let mut sub = OperationResult::new(());
-        sub.add_warning(forge_core::KernelWarning::AutoDecision { decision_id: DecisionId(99) });
+        sub.add_warning(forge_core::KernelWarning::AutoDecision {
+            decision_id: DecisionId(99),
+        });
         let mut metrics = forge_core::envelope::OperationMetrics::default();
         metrics.entities_deleted = 4;
         sub.set_metrics(metrics);
@@ -143,12 +170,18 @@ mod context_tests {
 
         ctx.reset_for_new_operation();
 
-        assert!(!ctx.log_drained, "new operation must not inherit prior success-path drain state");
+        assert!(
+            !ctx.log_drained,
+            "new operation must not inherit prior success-path drain state"
+        );
         assert_eq!(ctx.get_decision_count(), 0);
         assert!(ctx.get_sub_warnings().is_empty());
         assert_eq!(ctx.get_sub_metrics().entities_deleted, 0);
         assert_eq!(ctx.get_sub_accumulated_error_budget(), 0.0);
-        assert_eq!(ctx.get_tolerance_config().get_error_budget_mm(), f64::INFINITY);
+        assert_eq!(
+            ctx.get_tolerance_config().get_error_budget_mm(),
+            f64::INFINITY
+        );
     }
 
     #[test]
@@ -169,7 +202,11 @@ mod context_tests {
 
         ctx.clear_decision_log_only();
         assert_eq!(ctx.get_decision_count(), 0);
-        assert_eq!(ctx.get_sub_metrics().entities_created, 7, "log-only clear must not wipe metadata sink");
+        assert_eq!(
+            ctx.get_sub_metrics().entities_created,
+            7,
+            "log-only clear must not wipe metadata sink"
+        );
 
         ctx.log_decision(
             DecisionKind::Exact,
@@ -178,8 +215,16 @@ mod context_tests {
             0.0,
             1.0,
         );
-        let ids: Vec<_> = ctx.get_decision_log().decisions().map(|d| d.get_id().0).collect();
-        assert_eq!(ids, vec![2], "log-only clear preserves monotonically increasing IDs");
+        let ids: Vec<_> = ctx
+            .get_decision_log()
+            .decisions()
+            .map(|d| d.get_id().0)
+            .collect();
+        assert_eq!(
+            ids,
+            vec![2],
+            "log-only clear preserves monotonically increasing IDs"
+        );
     }
 
     #[test]
@@ -192,9 +237,13 @@ mod context_tests {
             DecisionKind::Exact,
             DecisionTier::Deterministic,
             1.0,
-            DecisionContext::Degeneracy { description: "sub".into() },
+            DecisionContext::Degeneracy {
+                description: "sub".into(),
+            },
         ));
-        sub.add_warning(forge_core::KernelWarning::AutoDecision { decision_id: DecisionId(42) });
+        sub.add_warning(forge_core::KernelWarning::AutoDecision {
+            decision_id: DecisionId(42),
+        });
 
         let mut metrics = forge_core::envelope::OperationMetrics::default();
         metrics.entities_modified = 5;
@@ -227,7 +276,9 @@ mod context_tests {
         let mut ctx = ModelingContext::new();
         let mut sub = OperationResult::new(());
 
-        sub.add_warning(forge_core::KernelWarning::AutoDecision { decision_id: DecisionId(11) });
+        sub.add_warning(forge_core::KernelWarning::AutoDecision {
+            decision_id: DecisionId(11),
+        });
         let mut metrics = forge_core::envelope::OperationMetrics::default();
         metrics.entities_created = 2;
         metrics.policy_decisions_made = 1;
@@ -240,11 +291,27 @@ mod context_tests {
         ctx.absorb_sub_result(&mut sub);
         ctx.absorb_sub_result(&mut sub);
 
-        assert_eq!(ctx.get_decision_count(), 0, "no decisions were added in this fixture");
-        assert_eq!(ctx.get_sub_warnings().len(), 1, "warnings must not double-count");
-        assert_eq!(ctx.get_sub_metrics().entities_created, 2, "metrics must drain from child");
+        assert_eq!(
+            ctx.get_decision_count(),
+            0,
+            "no decisions were added in this fixture"
+        );
+        assert_eq!(
+            ctx.get_sub_warnings().len(),
+            1,
+            "warnings must not double-count"
+        );
+        assert_eq!(
+            ctx.get_sub_metrics().entities_created,
+            2,
+            "metrics must drain from child"
+        );
         assert_eq!(ctx.get_sub_metrics().policy_decisions_made, 1);
-        assert_eq!(ctx.get_sub_lineage_delta().edges_deleted, 3, "lineage must drain from child");
+        assert_eq!(
+            ctx.get_sub_lineage_delta().edges_deleted,
+            3,
+            "lineage must drain from child"
+        );
         assert!((ctx.get_sub_accumulated_error_budget() - 9.0e-7).abs() < f64::EPSILON);
     }
 
@@ -253,7 +320,9 @@ mod context_tests {
         let mut ctx = ModelingContext::new();
         let mut sub = OperationResult::new(());
 
-        sub.add_warning(forge_core::KernelWarning::AutoDecision { decision_id: DecisionId(7) });
+        sub.add_warning(forge_core::KernelWarning::AutoDecision {
+            decision_id: DecisionId(7),
+        });
         let mut metrics = forge_core::envelope::OperationMetrics::default();
         metrics.entities_created = 3;
         metrics.policy_decisions_made = 2;
@@ -294,27 +363,41 @@ mod context_tests {
         assert_eq!(second.accumulated_error_budget, 0.0);
     }
 
-
-
     #[test]
     fn policy_missing_fails_closed_and_emits_typed_adjunct() {
         let mut ctx = ModelingContext::new();
         let query = sample_policy_query(PolicyKind::NearTangency, true);
 
-        let err = ctx.resolve_policy_query(
-            DecisionId(1201),
-            &query,
-            Some(5.0e-5),
-            sample_candidate_summary(),
-        ).expect_err("missing policy must fail closed");
-        assert!(matches!(err, forge_core::KernelError::AmbiguousResult { .. }));
+        let err = ctx
+            .resolve_policy_query(
+                DecisionId(1201),
+                &query,
+                Some(5.0e-5),
+                sample_candidate_summary(),
+            )
+            .expect_err("missing policy must fail closed");
+        assert!(matches!(
+            err,
+            forge_core::KernelError::AmbiguousResult { .. }
+        ));
 
         let decisions: Vec<_> = ctx.get_decision_log().decisions().collect();
-        assert_eq!(decisions.len(), 1, "missing policy path must still emit a traced decision");
-        assert!(matches!(decisions[0].get_kind(), DecisionKind::Ambiguous { .. }));
+        assert_eq!(
+            decisions.len(),
+            1,
+            "missing policy path must still emit a traced decision"
+        );
+        assert!(matches!(
+            decisions[0].get_kind(),
+            DecisionKind::Ambiguous { .. }
+        ));
 
         let adjuncts = ctx.get_trace_adjuncts();
-        assert_eq!(adjuncts.records().len(), 1, "missing policy path must emit typed policy adjunct");
+        assert_eq!(
+            adjuncts.records().len(),
+            1,
+            "missing policy path must emit typed policy adjunct"
+        );
         let payload = adjuncts.records()[0]
             .as_policy_payload()
             .expect("policy adjunct kind")

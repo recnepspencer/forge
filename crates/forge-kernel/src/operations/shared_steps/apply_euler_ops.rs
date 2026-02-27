@@ -32,10 +32,7 @@ use forge_topo::state::MutableDraft;
 ///     })?
 ///     .finish();
 /// ```
-pub fn apply_euler_ops<R, F>(
-    draft: &mut MutableDraft,
-    ops: F,
-) -> Result<R, KernelError>
+pub fn apply_euler_ops<R, F>(draft: &mut MutableDraft, ops: F) -> Result<R, KernelError>
 where
     F: FnOnce(&mut MutableDraft) -> Result<R, KernelError>,
 {

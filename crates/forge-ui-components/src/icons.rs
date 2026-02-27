@@ -54,28 +54,28 @@ impl FgIcon {
     /// Raw SVG bytes for this icon, or `None` if not yet downloaded.
     pub fn svg_bytes(self) -> Option<&'static [u8]> {
         match self {
-            FgIcon::Plus          => Some(include_bytes!("../icons/plus.svg")),
-            FgIcon::Minus         => Some(include_bytes!("../icons/minus.svg")),
-            FgIcon::Check         => Some(include_bytes!("../icons/check.svg")),
-            FgIcon::Search        => Some(include_bytes!("../icons/search.svg")),
-            FgIcon::ChevronRight  => Some(include_bytes!("../icons/chevron-right.svg")),
-            FgIcon::ChevronDown   => Some(include_bytes!("../icons/chevron-down.svg")),
-            FgIcon::Sun           => Some(include_bytes!("../icons/sun.svg")),
-            FgIcon::Moon          => Some(include_bytes!("../icons/moon.svg")),
-            FgIcon::Box           => Some(include_bytes!("../icons/box.svg")),
-            FgIcon::PencilLine    => Some(include_bytes!("../icons/pencil-line.svg")),
-            FgIcon::Trash2        => Some(include_bytes!("../icons/trash-2.svg")),
+            FgIcon::Plus => Some(include_bytes!("../icons/plus.svg")),
+            FgIcon::Minus => Some(include_bytes!("../icons/minus.svg")),
+            FgIcon::Check => Some(include_bytes!("../icons/check.svg")),
+            FgIcon::Search => Some(include_bytes!("../icons/search.svg")),
+            FgIcon::ChevronRight => Some(include_bytes!("../icons/chevron-right.svg")),
+            FgIcon::ChevronDown => Some(include_bytes!("../icons/chevron-down.svg")),
+            FgIcon::Sun => Some(include_bytes!("../icons/sun.svg")),
+            FgIcon::Moon => Some(include_bytes!("../icons/moon.svg")),
+            FgIcon::Box => Some(include_bytes!("../icons/box.svg")),
+            FgIcon::PencilLine => Some(include_bytes!("../icons/pencil-line.svg")),
+            FgIcon::Trash2 => Some(include_bytes!("../icons/trash-2.svg")),
             FgIcon::MessageSquare => Some(include_bytes!("../icons/message-square.svg")),
-            FgIcon::X             => Some(include_bytes!("../icons/x.svg")),
-            FgIcon::PenLine       => Some(include_bytes!("../icons/pen-line.svg")),
-            FgIcon::Eye           => Some(include_bytes!("../icons/eye.svg")),
-            FgIcon::Layers3       => Some(include_bytes!("../icons/layers-3.svg")),
-            FgIcon::Ruler         => Some(include_bytes!("../icons/ruler.svg")),
-            FgIcon::Move3d        => Some(include_bytes!("../icons/move-3d.svg")),
-            FgIcon::Grid2x2       => Some(include_bytes!("../icons/grid-2x2.svg")),
-            FgIcon::LoaderCircle  => Some(include_bytes!("../icons/loader-circle.svg")),
-            FgIcon::Info          => Some(include_bytes!("../icons/info.svg")),
-            FgIcon::Warning       => Some(include_bytes!("../icons/alert-triangle.svg")),
+            FgIcon::X => Some(include_bytes!("../icons/x.svg")),
+            FgIcon::PenLine => Some(include_bytes!("../icons/pen-line.svg")),
+            FgIcon::Eye => Some(include_bytes!("../icons/eye.svg")),
+            FgIcon::Layers3 => Some(include_bytes!("../icons/layers-3.svg")),
+            FgIcon::Ruler => Some(include_bytes!("../icons/ruler.svg")),
+            FgIcon::Move3d => Some(include_bytes!("../icons/move-3d.svg")),
+            FgIcon::Grid2x2 => Some(include_bytes!("../icons/grid-2x2.svg")),
+            FgIcon::LoaderCircle => Some(include_bytes!("../icons/loader-circle.svg")),
+            FgIcon::Info => Some(include_bytes!("../icons/info.svg")),
+            FgIcon::Warning => Some(include_bytes!("../icons/alert-triangle.svg")),
             _ => None,
         }
     }
@@ -83,40 +83,40 @@ impl FgIcon {
     /// Fallback Unicode glyph when SVG is not available.
     pub fn glyph(self) -> &'static str {
         match self {
-            FgIcon::Plus          => "+",
-            FgIcon::Minus         => "−",
-            FgIcon::Edit          => "✎",
-            FgIcon::Delete        => "⌫",
-            FgIcon::Check         => "✓",
-            FgIcon::Close         => "✕",
-            FgIcon::Search        => "🔍",
-            FgIcon::ChevronRight  => "›",
-            FgIcon::ChevronDown   => "‹",
-            FgIcon::Sun           => "☀",
-            FgIcon::Moon          => "☾",
-            FgIcon::Plane         => "◈",
-            FgIcon::Boolean       => "⊕",
-            FgIcon::Select        => "↖",
-            FgIcon::Measure       => "⊿",
-            FgIcon::Sketch        => "▣",
-            FgIcon::Orient        => "✦",
-            FgIcon::Chat          => "💬",
-            FgIcon::Properties    => "≡",
-            FgIcon::Logo          => "◆",
-            FgIcon::Box           => "☐",
-            FgIcon::PencilLine    => "✎",
-            FgIcon::Trash2        => "🗑",
+            FgIcon::Plus => "+",
+            FgIcon::Minus => "−",
+            FgIcon::Edit => "✎",
+            FgIcon::Delete => "⌫",
+            FgIcon::Check => "✓",
+            FgIcon::Close => "✕",
+            FgIcon::Search => "🔍",
+            FgIcon::ChevronRight => "›",
+            FgIcon::ChevronDown => "‹",
+            FgIcon::Sun => "☀",
+            FgIcon::Moon => "☾",
+            FgIcon::Plane => "◈",
+            FgIcon::Boolean => "⊕",
+            FgIcon::Select => "↖",
+            FgIcon::Measure => "⊿",
+            FgIcon::Sketch => "▣",
+            FgIcon::Orient => "✦",
+            FgIcon::Chat => "💬",
+            FgIcon::Properties => "≡",
+            FgIcon::Logo => "◆",
+            FgIcon::Box => "☐",
+            FgIcon::PencilLine => "✎",
+            FgIcon::Trash2 => "🗑",
             FgIcon::MessageSquare => "💬",
-            FgIcon::X             => "✕",
-            FgIcon::PenLine       => "✎",
-            FgIcon::Eye           => "👁",
-            FgIcon::Layers3       => "☰",
-            FgIcon::Ruler         => "📏",
-            FgIcon::Move3d        => "✥",
-            FgIcon::Grid2x2       => "▦",
-            FgIcon::LoaderCircle  => "↻",
-            FgIcon::Info          => "ℹ",
-            FgIcon::Warning       => "⚠",
+            FgIcon::X => "✕",
+            FgIcon::PenLine => "✎",
+            FgIcon::Eye => "👁",
+            FgIcon::Layers3 => "☰",
+            FgIcon::Ruler => "📏",
+            FgIcon::Move3d => "✥",
+            FgIcon::Grid2x2 => "▦",
+            FgIcon::LoaderCircle => "↻",
+            FgIcon::Info => "ℹ",
+            FgIcon::Warning => "⚠",
         }
     }
 }
@@ -166,7 +166,13 @@ impl IconStore {
     }
 
     /// Draw an icon spanning exactly the specified rectangle.
-    pub fn draw_in_rect(&self, ui: &mut egui::Ui, icon: FgIcon, rect: egui::Rect, tint: egui::Color32) {
+    pub fn draw_in_rect(
+        &self,
+        ui: &mut egui::Ui,
+        icon: FgIcon,
+        rect: egui::Rect,
+        tint: egui::Color32,
+    ) {
         if let Some(texture) = self.textures.get(&icon) {
             let uv = egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0));
             ui.painter().image(texture.id(), rect, uv, tint);
@@ -182,7 +188,14 @@ impl IconStore {
     }
 
     /// Draw a rotated icon.
-    pub fn draw_rotated(&self, ui: &mut egui::Ui, icon: FgIcon, rect: egui::Rect, tint: egui::Color32, angle: f32) {
+    pub fn draw_rotated(
+        &self,
+        ui: &mut egui::Ui,
+        icon: FgIcon,
+        rect: egui::Rect,
+        tint: egui::Color32,
+        angle: f32,
+    ) {
         if let Some(texture) = self.textures.get(&icon) {
             let sized = egui::load::SizedTexture::new(texture.id(), rect.size());
             let img = egui::Image::from_texture(sized)
@@ -191,20 +204,47 @@ impl IconStore {
             ui.put(rect, img);
         } else {
             // fallback for missing svg
-            ui.put(rect, egui::Label::new(egui::RichText::new(icon.glyph()).color(tint)));
+            ui.put(
+                rect,
+                egui::Label::new(egui::RichText::new(icon.glyph()).color(tint)),
+            );
         }
     }
 
     fn all_icons() -> &'static [FgIcon] {
         &[
-            FgIcon::Plus, FgIcon::Minus, FgIcon::Edit, FgIcon::Delete,
-            FgIcon::Check, FgIcon::Close, FgIcon::Search, FgIcon::ChevronRight,
-            FgIcon::ChevronDown, FgIcon::Sun, FgIcon::Moon, FgIcon::Plane,
-            FgIcon::Boolean, FgIcon::Select, FgIcon::Measure, FgIcon::Sketch,
-            FgIcon::Orient, FgIcon::Chat, FgIcon::Properties, FgIcon::Logo,
-            FgIcon::Box, FgIcon::PencilLine, FgIcon::Trash2, FgIcon::MessageSquare,
-            FgIcon::X, FgIcon::PenLine, FgIcon::Eye, FgIcon::Layers3,
-            FgIcon::Ruler, FgIcon::Move3d, FgIcon::Grid2x2, FgIcon::LoaderCircle,
+            FgIcon::Plus,
+            FgIcon::Minus,
+            FgIcon::Edit,
+            FgIcon::Delete,
+            FgIcon::Check,
+            FgIcon::Close,
+            FgIcon::Search,
+            FgIcon::ChevronRight,
+            FgIcon::ChevronDown,
+            FgIcon::Sun,
+            FgIcon::Moon,
+            FgIcon::Plane,
+            FgIcon::Boolean,
+            FgIcon::Select,
+            FgIcon::Measure,
+            FgIcon::Sketch,
+            FgIcon::Orient,
+            FgIcon::Chat,
+            FgIcon::Properties,
+            FgIcon::Logo,
+            FgIcon::Box,
+            FgIcon::PencilLine,
+            FgIcon::Trash2,
+            FgIcon::MessageSquare,
+            FgIcon::X,
+            FgIcon::PenLine,
+            FgIcon::Eye,
+            FgIcon::Layers3,
+            FgIcon::Ruler,
+            FgIcon::Move3d,
+            FgIcon::Grid2x2,
+            FgIcon::LoaderCircle,
         ]
     }
 }

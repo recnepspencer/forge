@@ -40,7 +40,11 @@ impl PersistentName {
     ///
     /// `ordinal` is 0 for entities not produced by a split.
     pub fn new(ancestry_hash: u128, kind: EntityKind, ordinal: u32) -> Self {
-        Self { ancestry_hash, kind, ordinal }
+        Self {
+            ancestry_hash,
+            kind,
+            ordinal,
+        }
     }
 
     /// The ancestry hash embedded in this name.

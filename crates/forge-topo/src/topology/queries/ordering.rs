@@ -8,8 +8,6 @@
 //! This ensures that enumeration order is identical across runs
 //! given the same input.
 
-
-
 /// A composite ordering key for deterministic entity sorting (D1).
 ///
 /// Compared lexicographically: `id` first, then `lineage_hash`,
@@ -114,7 +112,10 @@ mod tests {
     #[test]
     fn entity_spatial_hash_is_deterministic() {
         let pos = [1.5, 2.5, 3.5];
-        assert_eq!(compute_entity_spatial_hash(&pos), compute_entity_spatial_hash(&pos));
+        assert_eq!(
+            compute_entity_spatial_hash(&pos),
+            compute_entity_spatial_hash(&pos)
+        );
     }
 
     #[test]

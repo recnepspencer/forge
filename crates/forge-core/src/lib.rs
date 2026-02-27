@@ -17,58 +17,48 @@
 // DOMAIN MODULES
 // =========================================================================
 
+pub mod envelope;
 pub mod errors;
 pub mod policy;
-pub mod tracing;
-pub mod envelope;
-pub mod tolerance;
 pub mod provenance;
+pub mod tolerance;
+pub mod tracing;
 
 // =========================================================================
 // CRATE-ROOT RE-EXPORTS
 // =========================================================================
 
 pub use errors::{
-    ErrorScope, SuggestedFix, ErrorContext,
-    KernelError, TopologyError,
-    AmbiguousResult, DiagnosticPayload,
-    ErrorCategory, ErrorSummary, SourceErrorSummary,
-    KernelErrorSummary, MergeErrorSummary, TopologyErrorSummary, DiagnosticPayloadSummary,
+    AmbiguousResult, DiagnosticPayload, DiagnosticPayloadSummary, ErrorCategory, ErrorContext,
+    ErrorScope, ErrorSummary, KernelError, KernelErrorSummary, MergeErrorSummary,
+    SourceErrorSummary, SuggestedFix, TopologyError, TopologyErrorSummary,
 };
 
-pub use policy::{
-    PolicyKind, PolicyQuery, PolicyResult,
-};
+pub use policy::{PolicyKind, PolicyQuery, PolicyResult};
 
 pub use tracing::{
-    DecisionKind, DecisionId, TracedDecision, DecisionLog,
-    DecisionSummary, DecisionContext, EntityRef, EntityKind, TopologyDelta,
-    SpanId, DecisionTier, TraceEvent, TraceSummary, TraceDiff, SpanSummaryEntry,
-    DecisionDelta, DecisionChange, CheckpointLog, diff_decision_logs,
-    DivergenceReport, DivergenceDetail, scan_for_divergences,
-    EULER_OP_FEATURE_SCOPE,
-    resolve_trace_dir, write_trace_file,
-    LogLevel, log_level, log_result, log_decision_log, log_error,
-    PolicyResolutionSource, PolicyResolutionOutcome, CandidateValueSummary,
-    PolicyDecisionTracePayload, PolicyTraceConsistencyError, PolicyResolutionScopeRef,
-    ResolutionOutcome, ResolutionRoute, ResolutionMatchKind,
-    ResolutionQuerySummary, ResolutionCandidateSummary, ResolutionTracePayload,
-    ResolutionTraceConsistencyError,
-    ReidentificationOutcome, ReidentificationModeSummary, ReidentificationOriginKindSummary,
+    compute_trace_fingerprint, diff_decision_logs, log_decision_log, log_error, log_level,
+    log_result, resolve_trace_dir, scan_for_divergences, write_trace_file, CandidateValueSummary,
+    CheckpointLog, DecisionChange, DecisionContext, DecisionDelta, DecisionId, DecisionKind,
+    DecisionLog, DecisionSummary, DecisionTier, DivergenceDetail, DivergenceReport, EntityKind,
+    EntityRef, LogLevel, PolicyDecisionTracePayload, PolicyResolutionOutcome,
+    PolicyResolutionScopeRef, PolicyResolutionSource, PolicyTraceConsistencyError,
     ReidentificationCompatibilitySummary, ReidentificationFailureCauseSummary,
-    ReidentificationTracePayload, ReidentificationTraceConsistencyError,
-    TraceFingerprint, compute_trace_fingerprint,
+    ReidentificationModeSummary, ReidentificationOriginKindSummary, ReidentificationOutcome,
+    ReidentificationTraceConsistencyError, ReidentificationTracePayload,
+    ResolutionCandidateSummary, ResolutionMatchKind, ResolutionOutcome, ResolutionQuerySummary,
+    ResolutionRoute, ResolutionTraceConsistencyError, ResolutionTracePayload, SpanId,
+    SpanSummaryEntry, TopologyDelta, TraceDiff, TraceEvent, TraceFingerprint, TraceSummary,
+    TracedDecision, EULER_OP_FEATURE_SCOPE,
 };
 
-pub use envelope::{
-    KernelWarning, OperationMetrics, LineageDelta, OperationResult,
-};
+pub use envelope::{KernelWarning, LineageDelta, OperationMetrics, OperationResult};
 
-pub use tolerance::{ToleranceProvider, FlatToleranceProvider};
 pub use provenance::{
-    SnapshotHandleRef, BoundarySegmentProvenance, MergeStepProvenance, SelectorOrigin,
-    hash_directed_snapshot_segment_transport,
+    hash_directed_snapshot_segment_transport, BoundarySegmentProvenance, MergeStepProvenance,
+    SelectorOrigin, SnapshotHandleRef,
 };
+pub use tolerance::{FlatToleranceProvider, ToleranceProvider};
 
 // =========================================================================
 // GEOMETRY SOURCE (Data-access trait, Rule 3.1)

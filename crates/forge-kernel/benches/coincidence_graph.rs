@@ -12,14 +12,16 @@ fn bench_face_coincidence_prepass(c: &mut Criterion) {
     group.bench_function("sharing_faces", |b| {
         let (topo_a, geom_a) = make_cube([0.0, 0.0, 0.0], 10.0).unwrap().into_parts();
         let (topo_b, geom_b) = make_cube([10.0, 0.0, 0.0], 10.0).unwrap().into_parts();
-        
+
         let target_arena = topo_a.arena();
         let tool_arena = topo_b.arena();
 
         b.iter(|| {
             black_box(build_face_coincidence_prepass(
-                target_arena, &geom_a,
-                tool_arena, &geom_b,
+                target_arena,
+                &geom_a,
+                tool_arena,
+                &geom_b,
             ));
         });
     });
@@ -28,14 +30,16 @@ fn bench_face_coincidence_prepass(c: &mut Criterion) {
     group.bench_function("distant_faces", |b| {
         let (topo_a, geom_a) = make_cube([0.0, 0.0, 0.0], 10.0).unwrap().into_parts();
         let (topo_b, geom_b) = make_cube([100.0, 0.0, 0.0], 10.0).unwrap().into_parts();
-        
+
         let target_arena = topo_a.arena();
         let tool_arena = topo_b.arena();
 
         b.iter(|| {
             black_box(build_face_coincidence_prepass(
-                target_arena, &geom_a,
-                tool_arena, &geom_b,
+                target_arena,
+                &geom_a,
+                tool_arena,
+                &geom_b,
             ));
         });
     });

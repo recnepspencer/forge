@@ -9,8 +9,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use forge_math::arithmetic::rational::Rational;
 
-use super::schema::{BoundaryCertError, Segment2D};
 use super::exact_intersect::{intersect_segments_exact, ExactIntersection, ExactParam};
+use super::schema::{BoundaryCertError, Segment2D};
 
 /// An unbroken segment of the boundary arrangement.
 /// Guaranteed to contain no interior geometric events.
@@ -38,9 +38,12 @@ pub struct ArrangementVertex {
 
 pub fn compute_splits(
     segments: &[Segment2D],
-) -> Result<(Vec<AtomicSegment2D>, Vec<ArrangementVertex>), crate::algorithms::boundary_cert::schema::BoundaryCertError> {
+) -> Result<
+    (Vec<AtomicSegment2D>, Vec<ArrangementVertex>),
+    crate::algorithms::boundary_cert::schema::BoundaryCertError,
+> {
     let n = segments.len();
-    
+
     // Store exact split parameters for each segment
     let mut segment_splits: Vec<BTreeSet<ExactParam>> = vec![BTreeSet::new(); n];
 
@@ -57,7 +60,7 @@ pub fn compute_splits(
             // The exact intersect will discover it naturally. We don't skip adjacencies
             // because in NMT geometry, a single Segment2D might intersect its sequential neighbor
             // in the middle as well (figure-8 loops).
-            
+
             let intersection = intersect_segments_exact(&segments[i], &segments[j])?;
             match intersection {
                 ExactIntersection::Disjoint => {}
@@ -65,7 +68,11 @@ pub fn compute_splits(
                     segment_splits[i].insert(t_a);
                     segment_splits[j].insert(t_b);
                 }
-                ExactIntersection::EndpointTouch { touching_seg, t_on_other, .. } => {
+                ExactIntersection::EndpointTouch {
+                    touching_seg,
+                    t_on_other,
+                    ..
+                } => {
                     if touching_seg == 0 {
                         // j touches i; j's endpoint is already at 0 or 1.
                         segment_splits[i].insert(t_on_other);
@@ -83,12 +90,15 @@ pub fn compute_splits(
                     // Use the approximate midpoint of the overlap on segment i as the witness.
                     let t_mid = t_a_range[0].as_rational().clone()
                         + (t_a_range[1].as_rational().clone() - t_a_range[0].as_rational().clone())
-                        * forge_math::arithmetic::rational::Rational::try_from_f64(0.5)
-                            .map_err(|_| BoundaryCertError::PredicateFailure)?;
+                            * forge_math::arithmetic::rational::Rational::try_from_f64(0.5)
+                                .map_err(|_| BoundaryCertError::PredicateFailure)?;
                     let p0 = segments[i].get_start();
                     let p1 = segments[i].get_end();
                     let t_f64 = t_mid.to_f64_approx();
-                    let witness = [p0[0] + (p1[0] - p0[0]) * t_f64, p0[1] + (p1[1] - p0[1]) * t_f64];
+                    let witness = [
+                        p0[0] + (p1[0] - p0[0]) * t_f64,
+                        p0[1] + (p1[1] - p0[1]) * t_f64,
+                    ];
                     return Err(BoundaryCertError::OverlapDetected(witness));
                 }
             }
@@ -111,11 +121,14 @@ pub fn compute_splits(
                 continue;
             }
 
-            let start_f64 = interpolate_point(segments[i].get_start(), segments[i].get_end(), t_start);
+            let start_f64 =
+                interpolate_point(segments[i].get_start(), segments[i].get_end(), t_start);
             let end_f64 = interpolate_point(segments[i].get_start(), segments[i].get_end(), t_end);
 
-            let start_exact = interpolate_exact(segments[i].get_start(), segments[i].get_end(), t_start)?;
-            let end_exact = interpolate_exact(segments[i].get_start(), segments[i].get_end(), t_end)?;
+            let start_exact =
+                interpolate_exact(segments[i].get_start(), segments[i].get_end(), t_start)?;
+            let end_exact =
+                interpolate_exact(segments[i].get_start(), segments[i].get_end(), t_end)?;
 
             let atomic_id = atomics.len();
             atomics.push(AtomicSegment2D {
@@ -128,24 +141,29 @@ pub fn compute_splits(
             });
 
             // Register start vertex
-            let start_vtx = exact_vertices.entry(start_exact.clone()).or_insert_with(|| ArrangementVertex {
-                position: start_f64,
-                exact_position: start_exact,
-                incident_atomic_edges: Vec::new(),
-                incident_sources: Vec::new(),
-            });
+            let start_vtx = exact_vertices
+                .entry(start_exact.clone())
+                .or_insert_with(|| ArrangementVertex {
+                    position: start_f64,
+                    exact_position: start_exact,
+                    incident_atomic_edges: Vec::new(),
+                    incident_sources: Vec::new(),
+                });
             start_vtx.incident_atomic_edges.push(atomic_id);
             if !start_vtx.incident_sources.contains(&i) {
                 start_vtx.incident_sources.push(i);
             }
 
             // Register end vertex
-            let end_vtx = exact_vertices.entry(end_exact.clone()).or_insert_with(|| ArrangementVertex {
-                position: end_f64,
-                exact_position: end_exact,
-                incident_atomic_edges: Vec::new(),
-                incident_sources: Vec::new(),
-            });
+            let end_vtx =
+                exact_vertices
+                    .entry(end_exact.clone())
+                    .or_insert_with(|| ArrangementVertex {
+                        position: end_f64,
+                        exact_position: end_exact,
+                        incident_atomic_edges: Vec::new(),
+                        incident_sources: Vec::new(),
+                    });
             end_vtx.incident_atomic_edges.push(atomic_id);
             if !end_vtx.incident_sources.contains(&i) {
                 end_vtx.incident_sources.push(i);
@@ -166,17 +184,23 @@ fn interpolate_point(p1: [f64; 2], p2: [f64; 2], t: &ExactParam) -> [f64; 2] {
     ]
 }
 
-fn interpolate_exact(p1: [f64; 2], p2: [f64; 2], t: &ExactParam) -> Result<[Rational; 2], crate::algorithms::boundary_cert::schema::BoundaryCertError> {
+fn interpolate_exact(
+    p1: [f64; 2],
+    p2: [f64; 2],
+    t: &ExactParam,
+) -> Result<[Rational; 2], crate::algorithms::boundary_cert::schema::BoundaryCertError> {
     use crate::algorithms::boundary_cert::schema::BoundaryCertError;
     let r_p1_x = Rational::try_from_f64(p1[0]).map_err(|_| BoundaryCertError::PredicateFailure)?;
     let r_p1_y = Rational::try_from_f64(p1[1]).map_err(|_| BoundaryCertError::PredicateFailure)?;
-    
+
     if t.is_start() {
         return Ok([r_p1_x, r_p1_y]);
     }
     if t.is_end() {
-        let r_p2_x = Rational::try_from_f64(p2[0]).map_err(|_| BoundaryCertError::PredicateFailure)?;
-        let r_p2_y = Rational::try_from_f64(p2[1]).map_err(|_| BoundaryCertError::PredicateFailure)?;
+        let r_p2_x =
+            Rational::try_from_f64(p2[0]).map_err(|_| BoundaryCertError::PredicateFailure)?;
+        let r_p2_y =
+            Rational::try_from_f64(p2[1]).map_err(|_| BoundaryCertError::PredicateFailure)?;
         return Ok([r_p2_x, r_p2_y]);
     }
 
@@ -199,7 +223,6 @@ fn interpolate_exact(p1: [f64; 2], p2: [f64; 2], t: &ExactParam) -> Result<[Rati
 mod tests {
     use super::*;
 
-
     #[test]
     fn exact_split_crossing() {
         let segments = vec![
@@ -207,14 +230,19 @@ mod tests {
             Segment2D::new([0.0, 2.0], [2.0, 0.0], 1),
         ];
 
-        let Ok((atomics, vertices)) = compute_splits(&segments) else { panic!("Expected Ok") };
+        let Ok((atomics, vertices)) = compute_splits(&segments) else {
+            panic!("Expected Ok")
+        };
 
         // 2 segments crossing perfectly in the middle -> 4 atomic segments, 5 vertices
         assert_eq!(atomics.len(), 4);
         assert_eq!(vertices.len(), 5);
 
         // Find the central vertex
-        let center_v = vertices.iter().find(|v| v.incident_atomic_edges.len() == 4).unwrap();
+        let center_v = vertices
+            .iter()
+            .find(|v| v.incident_atomic_edges.len() == 4)
+            .unwrap();
         assert_eq!(center_v.position, [1.0, 1.0]);
         let exact_one = Rational::one();
         assert_eq!(center_v.exact_position, [exact_one.clone(), exact_one]);
@@ -227,7 +255,9 @@ mod tests {
             Segment2D::new([0.0, 1.0], [1.0, 1.0], 1),
         ];
 
-        let Ok((atomics, vertices)) = compute_splits(&segments) else { panic!("Expected Ok") };
+        let Ok((atomics, vertices)) = compute_splits(&segments) else {
+            panic!("Expected Ok")
+        };
 
         assert_eq!(atomics.len(), 2);
         assert_eq!(vertices.len(), 4);

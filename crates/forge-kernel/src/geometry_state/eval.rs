@@ -1,9 +1,9 @@
 //! Evaluation logic for the geometry store.
 
+use super::schema::GeometryState;
 use forge_core::KernelError;
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::VertexId;
-use super::schema::GeometryState;
 
 /// Create a position lookup function for use with `classify_point_in_solid`.
 ///
@@ -18,18 +18,20 @@ pub fn build_position_lookup<'a>(
     arena: &'a TopologyArena,
 ) -> impl Fn(u32) -> Result<[f64; 3], KernelError> + 'a {
     move |index: u32| {
-        let gen = arena.vertex_generation(index as usize).ok_or_else(|| {
-            KernelError::InvalidInput {
-                message: format!("No active vertex at slot index {}", index),
-                context: None,
-            }
-        })?;
+        let gen =
+            arena
+                .vertex_generation(index as usize)
+                .ok_or_else(|| KernelError::InvalidInput {
+                    message: format!("No active vertex at slot index {}", index),
+                    context: None,
+                })?;
         let vertex_id = VertexId::from_raw_parts(index, gen);
-        store.get_vertex_position(vertex_id).copied().ok_or_else(|| {
-            KernelError::InvalidInput {
+        store
+            .get_vertex_position(vertex_id)
+            .copied()
+            .ok_or_else(|| KernelError::InvalidInput {
                 message: format!("No position found for vertex index {}", index),
                 context: None,
-            }
-        })
+            })
     }
 }

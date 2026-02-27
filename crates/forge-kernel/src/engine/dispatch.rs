@@ -47,9 +47,7 @@ impl<'a> CommandDispatcher<'a> {
                     origin[2] + dimensions[2] / 2.0,
                 ];
                 let size = dimensions[0];
-                let feature = NativeFeature::MakeCube(
-                    MakeCubeFeature::new("block", center, size),
-                );
+                let feature = NativeFeature::MakeCube(MakeCubeFeature::new("block", center, size));
                 self.tree.register_feature(feature)?
             }
             Command::AddHole { .. } => {
@@ -67,17 +65,23 @@ impl<'a> CommandDispatcher<'a> {
             Command::BooleanUnion { target, tool } => {
                 let target_id = self.resolve_entity_ref(target)?;
                 let tool_id = self.resolve_entity_ref(tool)?;
-                let feature = NativeFeature::Boolean(
-                    BooleanFeature::new("boolean_union", BooleanOp::Union, target_id, tool_id),
-                );
+                let feature = NativeFeature::Boolean(BooleanFeature::new(
+                    "boolean_union",
+                    BooleanOp::Union,
+                    target_id,
+                    tool_id,
+                ));
                 self.tree.register_feature(feature)?
             }
             Command::BooleanSubtract { target, tool } => {
                 let target_id = self.resolve_entity_ref(target)?;
                 let tool_id = self.resolve_entity_ref(tool)?;
-                let feature = NativeFeature::Boolean(
-                    BooleanFeature::new("boolean_subtract", BooleanOp::Subtraction, target_id, tool_id),
-                );
+                let feature = NativeFeature::Boolean(BooleanFeature::new(
+                    "boolean_subtract",
+                    BooleanOp::Subtraction,
+                    target_id,
+                    tool_id,
+                ));
                 self.tree.register_feature(feature)?
             }
             Command::SetAttribute { .. } => {
@@ -95,25 +99,25 @@ impl<'a> CommandDispatcher<'a> {
     /// Resolve an `EntityRef` to a `NodeId` in the feature tree.
     fn resolve_entity_ref(&self, entity: &EntityRef) -> Result<NodeId, KernelError> {
         match entity {
-            EntityRef::ByFeature { feature_name, .. } => {
-                self.tree.get_node_by_name(feature_name).ok_or_else(|| {
-                    KernelError::InvalidInput {
-                        message: format!("Feature '{}' not found", feature_name),
-                        context: None,
-                    }
-                })
-            }
+            EntityRef::ByFeature { feature_name, .. } => self
+                .tree
+                .get_node_by_name(feature_name)
+                .ok_or_else(|| KernelError::InvalidInput {
+                    message: format!("Feature '{}' not found", feature_name),
+                    context: None,
+                }),
             EntityRef::ByIndex { index } => {
-                self.insertion_order.get(*index).copied().ok_or_else(|| {
-                    KernelError::InvalidInput {
+                self.insertion_order
+                    .get(*index)
+                    .copied()
+                    .ok_or_else(|| KernelError::InvalidInput {
                         message: format!(
                             "Index {} out of range (dispatched {} commands so far)",
                             index,
                             self.insertion_order.len()
                         ),
                         context: None,
-                    }
-                })
+                    })
             }
         }
     }

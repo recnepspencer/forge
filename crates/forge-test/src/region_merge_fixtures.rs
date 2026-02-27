@@ -6,7 +6,9 @@
 //! - simple boundaries
 //! - deterministic face-group bitsets / hash inputs
 
-use forge_geom::algorithms::boundary_cert::schema::{ProjectedBoundary2D, ProjectionFrame2D, Segment2D};
+use forge_geom::algorithms::boundary_cert::schema::{
+    ProjectedBoundary2D, ProjectionFrame2D, Segment2D,
+};
 use forge_topo::bitset::EntityBitset;
 
 /// Deterministic simple square boundary (strictly simple).
@@ -52,7 +54,9 @@ pub fn face_group_bitset(capacity: usize, indices: &[u32]) -> EntityBitset {
         u32::try_from(capacity).expect("fixture capacity must fit in u32"),
     );
     for &idx in indices {
-        group.insert(idx).expect("fixture capacity must cover face indices");
+        group
+            .insert(idx)
+            .expect("fixture capacity must cover face indices");
     }
     group
 }
@@ -62,7 +66,10 @@ pub fn face_group_bitset(capacity: usize, indices: &[u32]) -> EntityBitset {
 pub fn hash_face_group_indices(group: &EntityBitset) -> u64 {
     let mut h: u64 = 0xcbf29ce484222325;
     for idx in 0..group.capacity() {
-        if group.contains(idx).expect("fixture bitset contains must stay in-range") {
+        if group
+            .contains(idx)
+            .expect("fixture bitset contains must stay in-range")
+        {
             h = h.wrapping_mul(0x100000001b3) ^ (idx as u64);
         }
     }
@@ -73,14 +80,19 @@ pub fn hash_face_group_indices(group: &EntityBitset) -> u64 {
 mod tests {
     use super::*;
     use forge_geom::algorithms::boundary_cert::eval::certify_boundary;
-    use forge_geom::algorithms::boundary_cert::schema::{BoundaryRejectReason, WeakSimpleCertificate};
+    use forge_geom::algorithms::boundary_cert::schema::{
+        BoundaryRejectReason, WeakSimpleCertificate,
+    };
 
     #[test]
     fn fixture_rejected_boundary_produces_expected_cert_outcome() {
         let cert = certify_boundary(&rejected_crossing_boundary_2d());
         assert!(matches!(
             cert,
-            WeakSimpleCertificate::Rejected { reason: BoundaryRejectReason::SelfCrossing, .. }
+            WeakSimpleCertificate::Rejected {
+                reason: BoundaryRejectReason::SelfCrossing,
+                ..
+            }
         ));
     }
 
@@ -98,7 +110,10 @@ mod tests {
     #[test]
     fn fixture_group_hash_is_deterministic() {
         let group = face_group_bitset(16, &[0, 3, 7]);
-        assert_eq!(hash_face_group_indices(&group), hash_face_group_indices(&group));
+        assert_eq!(
+            hash_face_group_indices(&group),
+            hash_face_group_indices(&group)
+        );
 
         let same_set_different_insert_order = face_group_bitset(16, &[7, 0, 3]);
         assert_eq!(

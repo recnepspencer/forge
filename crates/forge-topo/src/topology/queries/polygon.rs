@@ -7,8 +7,8 @@ use forge_core::KernelError;
 
 use crate::arena::TopologyArena;
 use crate::handles::{FaceId, VertexId};
-use crate::topology::queries::traverse::LoopEdgeIterator;
 use crate::topology::queries::traverse::FaceLoopsIterator;
+use crate::topology::queries::traverse::LoopEdgeIterator;
 
 /// Return ordered vertex IDs for all loops on a face.
 ///

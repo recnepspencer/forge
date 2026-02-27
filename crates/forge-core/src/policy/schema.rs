@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::errors::{KernelError, AmbiguousResult};
+use crate::errors::{AmbiguousResult, KernelError};
 
 // =========================================================================
 // POLICY KIND
@@ -121,16 +121,14 @@ impl<T> PolicyResult<T> {
     pub fn into_result_strict(self) -> Result<T, KernelError> {
         match self {
             PolicyResult::Success(v) => Ok(v),
-            PolicyResult::Ambiguous { query, .. } => {
-                Err(KernelError::AmbiguousResult {
-                    result: AmbiguousResult {
-                        location: query.location,
-                        residual: query.margin,
-                        context: format!("Policy decision required: {:?}", query.kind),
-                    },
-                    context: None,
-                })
-            }
+            PolicyResult::Ambiguous { query, .. } => Err(KernelError::AmbiguousResult {
+                result: AmbiguousResult {
+                    location: query.location,
+                    residual: query.margin,
+                    context: format!("Policy decision required: {:?}", query.kind),
+                },
+                context: None,
+            }),
             PolicyResult::HardError(e) => Err(e),
         }
     }
@@ -141,7 +139,9 @@ impl<T> PolicyResult<T> {
     pub fn into_result_accepting(self) -> Result<T, KernelError> {
         match self {
             PolicyResult::Success(v) => Ok(v),
-            PolicyResult::Ambiguous { potential_value, .. } => Ok(potential_value),
+            PolicyResult::Ambiguous {
+                potential_value, ..
+            } => Ok(potential_value),
             PolicyResult::HardError(e) => Err(e),
         }
     }

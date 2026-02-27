@@ -2,8 +2,8 @@
 //!
 //! Home for true NURBS B-rep parametric curves, surfaces, and solid abstractions.
 
-pub mod state;
 pub mod patch;
+pub mod state;
 
-pub use state::BrepState;
 pub use patch::BrepPatch;
+pub use state::BrepState;

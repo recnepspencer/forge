@@ -108,7 +108,10 @@ mod tests {
             [0.0, 1.0, 0.0],
         ];
         let area = compute_polygon_area(&verts);
-        assert!((area - 1.0).abs() < TEST_TOLERANCE, "Expected 1.0, got {area}");
+        assert!(
+            (area - 1.0).abs() < TEST_TOLERANCE,
+            "Expected 1.0, got {area}"
+        );
     }
 
     #[test]
@@ -127,11 +130,7 @@ mod tests {
 
     #[test]
     fn largest_triangle_centroid_of_triangle() {
-        let verts = [
-            [0.0, 0.0, 0.0],
-            [3.0, 0.0, 0.0],
-            [0.0, 3.0, 0.0],
-        ];
+        let verts = [[0.0, 0.0, 0.0], [3.0, 0.0, 0.0], [0.0, 3.0, 0.0]];
         let centroid = compute_largest_triangle_centroid(&verts).unwrap();
         assert!((centroid[0] - 1.0).abs() < TEST_TOLERANCE);
         assert!((centroid[1] - 1.0).abs() < TEST_TOLERANCE);
@@ -147,37 +146,30 @@ mod tests {
             [10.0, 10.0, 0.0],
         ];
         let centroid = compute_largest_triangle_centroid(&verts).unwrap();
-        assert!(centroid[0] > 3.0, "Should pick third triangle, got x={}", centroid[0]);
+        assert!(
+            centroid[0] > 3.0,
+            "Should pick third triangle, got x={}",
+            centroid[0]
+        );
     }
 
     #[test]
     fn largest_triangle_centroid_returns_none_for_degenerate() {
-        let verts = [
-            [0.0, 0.0, 0.0],
-            [1.0, 0.0, 0.0],
-        ];
+        let verts = [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]];
         assert!(compute_largest_triangle_centroid(&verts).is_none());
     }
 
     #[test]
     fn largest_triangle_centroid_returns_none_for_collinear() {
-        let verts = [
-            [0.0, 0.0, 0.0],
-            [1.0, 0.0, 0.0],
-            [2.0, 0.0, 0.0],
-        ];
+        let verts = [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [2.0, 0.0, 0.0]];
         assert!(compute_largest_triangle_centroid(&verts).is_none());
     }
 
     #[test]
     fn largest_triangle_centroid_3d_tilted() {
-        let verts = [
-            [0.0, 0.0, 0.0],
-            [1.0, 0.0, 1.0],
-            [0.0, 1.0, 1.0],
-        ];
+        let verts = [[0.0, 0.0, 0.0], [1.0, 0.0, 1.0], [0.0, 1.0, 1.0]];
         let centroid = compute_largest_triangle_centroid(&verts).unwrap();
-        let expected = [1.0/3.0, 1.0/3.0, 2.0/3.0];
+        let expected = [1.0 / 3.0, 1.0 / 3.0, 2.0 / 3.0];
         assert!((centroid[0] - expected[0]).abs() < TEST_TOLERANCE);
         assert!((centroid[1] - expected[1]).abs() < TEST_TOLERANCE);
         assert!((centroid[2] - expected[2]).abs() < TEST_TOLERANCE);

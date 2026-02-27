@@ -4,11 +4,9 @@
 //! ALGORITHM: Shewchuk adaptive cascade (vendored from geometry-predicates).
 //! DEPENDENCIES: `vendored`, `precision`, `CertifiedTriSign`.
 
-use crate::arithmetic::precision::{
-    PrecisionEscalation, PrecisionMode, build_target_description,
-};
-use crate::sign::{CertifiedTriSign, TriSign};
 use super::vendored;
+use crate::arithmetic::precision::{build_target_description, PrecisionEscalation, PrecisionMode};
+use crate::sign::{CertifiedTriSign, TriSign};
 
 /// Compute the 2D orientation of three points.
 ///
@@ -94,9 +92,13 @@ fn make_float64_result(det: f64) -> (CertifiedTriSign, PrecisionEscalation) {
 }
 
 fn sign_of(det: f64) -> TriSign {
-    if det > 0.0 { TriSign::Pos }
-    else if det < 0.0 { TriSign::Neg }
-    else { TriSign::Zero }
+    if det > 0.0 {
+        TriSign::Pos
+    } else if det < 0.0 {
+        TriSign::Neg
+    } else {
+        TriSign::Zero
+    }
 }
 
 #[cfg(test)]
@@ -119,7 +121,10 @@ mod tests {
     #[test]
     fn orient2d_collinear() {
         assert_eq!(
-            orient2d([0.0, 0.0], [1.0, 1.0], [2.0, 2.0]).unwrap().0.sign(),
+            orient2d([0.0, 0.0], [1.0, 1.0], [2.0, 2.0])
+                .unwrap()
+                .0
+                .sign(),
             TriSign::Zero
         );
     }
@@ -127,7 +132,10 @@ mod tests {
     #[test]
     fn orient2d_collinear_on_x_axis() {
         assert_eq!(
-            orient2d([0.0, 0.0], [1.0, 0.0], [2.0, 0.0]).unwrap().0.sign(),
+            orient2d([0.0, 0.0], [1.0, 0.0], [2.0, 0.0])
+                .unwrap()
+                .0
+                .sign(),
             TriSign::Zero
         );
     }
@@ -135,7 +143,10 @@ mod tests {
     #[test]
     fn orient2d_collinear_on_y_axis() {
         assert_eq!(
-            orient2d([0.0, 0.0], [0.0, 1.0], [0.0, 2.0]).unwrap().0.sign(),
+            orient2d([0.0, 0.0], [0.0, 1.0], [0.0, 2.0])
+                .unwrap()
+                .0
+                .sign(),
             TriSign::Zero
         );
     }

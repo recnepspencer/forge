@@ -88,7 +88,11 @@ impl FlatToleranceProvider {
     /// # Panics
     /// Panics if `tolerance` is not strictly positive.
     pub fn new(tolerance: f64) -> Self {
-        assert!(tolerance > 0.0, "FlatToleranceProvider tolerance must be > 0.0, got {}", tolerance);
+        assert!(
+            tolerance > 0.0,
+            "FlatToleranceProvider tolerance must be > 0.0, got {}",
+            tolerance
+        );
         Self { tolerance }
     }
 }

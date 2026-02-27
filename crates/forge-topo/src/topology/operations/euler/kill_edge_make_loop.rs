@@ -18,9 +18,9 @@ use forge_core::{KernelError, TopologyError};
 use crate::arena::LoopData;
 use crate::handles::{HalfEdgeId, LoopId};
 use crate::lineage::OpSignature;
+use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
-use crate::operator::{ExecutionResult, EulerDelta};
 
 /// Remove an edge to split a loop into two loops (outer + new inner).
 ///
@@ -44,7 +44,11 @@ pub struct KemlOutput {
 impl EulerOperator for KillEdgeMakeLoop {
     type Output = KemlOutput;
 
-    fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        sig: &OpSignature,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he_data = draft.arena().get_half_edge(self.edge)?;
         let twin_id = he_data.radial_next();
         let face = he_data.face();
@@ -60,7 +64,10 @@ impl EulerOperator for KillEdgeMakeLoop {
         let valence = crate::topology::queries::traverse::radial_valence(draft.arena(), self.edge)?;
         if valence != 2 {
             return Err(KernelError::InvalidInput {
-                message: format!("KEML: edge has radial valence {}, must be exactly 2", valence),
+                message: format!(
+                    "KEML: edge has radial valence {}, must be exactly 2",
+                    valence
+                ),
                 context: None,
             });
         }
@@ -71,8 +78,10 @@ impl EulerOperator for KillEdgeMakeLoop {
                 message: format!(
                     "KEML: edge halfedges must be on the same face. \
                      he ({}) on face {}, twin ({}) on face {}",
-                    self.edge.index(), face.index(),
-                    twin_id.index(), twin_face.index()
+                    self.edge.index(),
+                    face.index(),
+                    twin_id.index(),
+                    twin_face.index()
                 ),
                 context: None,
             });
@@ -88,7 +97,8 @@ impl EulerOperator for KillEdgeMakeLoop {
                 message: format!(
                     "KEML: edge ({}, {}) is a wire edge (antenna). \
                      Use KillEdgeVertex (KEV) to remove wire edges.",
-                    self.edge.index(), twin_id.index()
+                    self.edge.index(),
+                    twin_id.index()
                 ),
                 context: None,
             });
@@ -124,10 +134,16 @@ impl EulerOperator for KillEdgeMakeLoop {
 
         // ── Update outer loop entry point ───────────────────────────
         let outer_loop = draft.arena().get_face(face)?.outer_loop();
-        draft.arena_mut().get_loop_mut(outer_loop)?.set_half_edge(twin_next);
+        draft
+            .arena_mut()
+            .get_loop_mut(outer_loop)?
+            .set_half_edge(twin_next);
 
         // ── Register inner loop on face ─────────────────────────────
-        draft.arena_mut().get_face_mut(face)?.add_inner_loop(new_loop);
+        draft
+            .arena_mut()
+            .get_face_mut(face)?
+            .add_inner_loop(new_loop);
 
         // ── Remove edge and halfedges ───────────────────────────────
         draft.remove_half_edge(self.edge)?;

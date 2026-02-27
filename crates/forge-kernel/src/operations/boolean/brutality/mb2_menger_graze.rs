@@ -16,11 +16,10 @@
 //! - Queue decimator prunes redundant vertices without topology corruption
 //! - High-genus Euler audit maintains χ = 2 − 2g correctly
 
-use super::super::test_helpers::{
-    build_cube, execute_boolean_logged, euler_audit,
-    menger_sponge_subtraction_centers,
-};
 use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::test_helpers::{
+    build_cube, euler_audit, execute_boolean_logged, menger_sponge_subtraction_centers,
+};
 
 /// Build a Menger sponge at the given level by subtracting cubes.
 ///
@@ -29,21 +28,19 @@ fn build_menger_sponge(
     center: [f64; 3],
     half: f64,
     level: u32,
-) -> Option<(forge_topo::state::TopologyState, crate::geometry_state::GeometryState)> {
+) -> Option<(
+    forge_topo::state::TopologyState,
+    crate::geometry_state::GeometryState,
+)> {
     let subs = menger_sponge_subtraction_centers(center, half, level);
     let total = subs.len();
-
 
     let (mut topo, mut geom) = build_cube(center, half);
 
     for (i, (sub_center, sub_half)) in subs.into_iter().enumerate() {
         let (topo_tool, geom_tool) = build_cube(sub_center, sub_half);
 
-        let input = BooleanInput::new(
-            topo, geom,
-            topo_tool, geom_tool,
-            BooleanOp::Subtraction,
-        );
+        let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Subtraction);
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
@@ -114,7 +111,10 @@ fn menger_level3() {
     match build_menger_sponge([0.0, 0.0, 0.0], 27.0, 3) {
         Some((topo, _geom)) => {
             let (_v, _e, f, _chi) = euler_audit(topo.arena());
-            assert!(f > 1000, "Menger L3 should have thousands of faces, got {f}");
+            assert!(
+                f > 1000,
+                "Menger L3 should have thousands of faces, got {f}"
+            );
         }
         None => {
             panic!("Menger L3 construction failed");
@@ -159,11 +159,7 @@ fn menger_graze_micro_translate() {
 
     match (sponge1, sponge2) {
         (Some((topo_a, geom_a)), Some((topo_b, geom_b))) => {
-            let input = BooleanInput::new(
-                topo_a, geom_a,
-                topo_b, geom_b,
-                BooleanOp::Union,
-            );
+            let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
 
             match execute_boolean_logged(input).into_result() {
                 Ok(result) => {
@@ -203,16 +199,9 @@ fn menger_50_micro_rotated_unions() {
         let angle = step as f64 * 0.000001_f64.to_radians();
         let cos_a = angle.cos();
         let sin_a = angle.sin();
-        let (topo_tool, geom_tool) = build_cube(
-            [cos_a * 0.5, sin_a * 0.5, 0.0],
-            0.3,
-        );
+        let (topo_tool, geom_tool) = build_cube([cos_a * 0.5, sin_a * 0.5, 0.0], 0.3);
 
-        let input = BooleanInput::new(
-            topo, geom,
-            topo_tool, geom_tool,
-            BooleanOp::Union,
-        );
+        let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {

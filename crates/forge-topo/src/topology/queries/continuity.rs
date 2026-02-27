@@ -8,12 +8,12 @@
 //! - Deterministic traversal order
 
 use forge_core::KernelError;
-use forge_math::linalg::{dot, cross, normalize_checked};
+use forge_math::linalg::{cross, dot, normalize_checked};
 
 use crate::arena::TopologyArena;
 use crate::handles::{EdgeId, FaceId, VertexId};
 
-use super::traverse::{FaceEdgeIterator, radial_valence};
+use super::traverse::{radial_valence, FaceEdgeIterator};
 
 /// Compute the signed dihedral angle (radians) for a manifold edge.
 ///
@@ -144,21 +144,79 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.25 }).unwrap().into_value();
-        let se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
-        let _se3 = apply_op(&mut draft, SplitEdge { edge: se2.he_mb, parameter: 0.75 }).unwrap().into_value();
-        let outer_edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face).unwrap()
+        let se1 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.25,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let se2 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se1.he_mb,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let _se3 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se2.he_mb,
+                parameter: 0.75,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let outer_edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face)
+            .unwrap()
             .map(|r| r.unwrap())
             .collect();
-        let va = draft.arena().get_half_edge(outer_edges[0]).unwrap().origin();
-        let vb = draft.arena().get_half_edge(outer_edges[2]).unwrap().origin();
-        let mef = apply_op(&mut draft, MakeEdgeFace { face: mvf.face, vertex_a: va, vertex_b: vb }).unwrap().into_value();
+        let va = draft
+            .arena()
+            .get_half_edge(outer_edges[0])
+            .unwrap()
+            .origin();
+        let vb = draft
+            .arena()
+            .get_half_edge(outer_edges[2])
+            .unwrap()
+            .origin();
+        let mef = apply_op(
+            &mut draft,
+            MakeEdgeFace {
+                face: mvf.face,
+                vertex_a: va,
+                vertex_b: vb,
+            },
+        )
+        .unwrap()
+        .into_value();
 
         let mut positions = BTreeMap::new();
-        let v0 = draft.arena().get_half_edge(outer_edges[0]).unwrap().origin();
-        let v1 = draft.arena().get_half_edge(outer_edges[1]).unwrap().origin();
-        let v2 = draft.arena().get_half_edge(outer_edges[2]).unwrap().origin();
-        let v3 = draft.arena().get_half_edge(outer_edges[3]).unwrap().origin();
+        let v0 = draft
+            .arena()
+            .get_half_edge(outer_edges[0])
+            .unwrap()
+            .origin();
+        let v1 = draft
+            .arena()
+            .get_half_edge(outer_edges[1])
+            .unwrap()
+            .origin();
+        let v2 = draft
+            .arena()
+            .get_half_edge(outer_edges[2])
+            .unwrap()
+            .origin();
+        let v3 = draft
+            .arena()
+            .get_half_edge(outer_edges[3])
+            .unwrap()
+            .origin();
         positions.insert(v0.index(), [0.0, 0.0, 0.0]);
         positions.insert(v1.index(), [1.0, 0.0, 0.0]);
         positions.insert(v2.index(), [1.0, 1.0, 0.0]);
@@ -167,7 +225,9 @@ mod tests {
         let state = draft.commit().unwrap();
         let position_fn = |vertex: VertexId| positions.get(&vertex.index()).copied();
 
-        let angle = edge_dihedral_angle(state.arena(), &position_fn, mef.edge).unwrap().unwrap();
+        let angle = edge_dihedral_angle(state.arena(), &position_fn, mef.edge)
+            .unwrap()
+            .unwrap();
         let g1 = is_edge_g1_continuous(state.arena(), &position_fn, mef.edge, 1e-9).unwrap();
 
         assert!(angle.abs() <= 1e-9);

@@ -6,7 +6,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{DecisionId, PolicyDecisionTracePayload, ResolutionTracePayload, ReidentificationTracePayload};
+use super::{
+    DecisionId, PolicyDecisionTracePayload, ReidentificationTracePayload, ResolutionTracePayload,
+};
 
 /// Stable payload kind tag for `PolicyDecisionTracePayload`.
 pub const POLICY_DECISION_TRACE_PAYLOAD_KIND: &str = "policy_decision";
@@ -51,7 +53,11 @@ impl TraceAdjunctRecord {
 
     /// Canonical sort key used to keep adjunct ordering deterministic.
     pub fn sort_key(&self) -> (u64, &str, u32) {
-        (self.decision_id.0, self.payload_kind.as_str(), self.payload_version)
+        (
+            self.decision_id.0,
+            self.payload_kind.as_str(),
+            self.payload_version,
+        )
     }
 
     /// Build a versioned adjunct record from a typed policy payload.
@@ -91,7 +97,9 @@ impl TraceAdjunctRecord {
     }
 
     /// Decode a typed policy payload from an adjunct record.
-    pub fn as_policy_payload(&self) -> Option<Result<PolicyDecisionTracePayload, serde_json::Error>> {
+    pub fn as_policy_payload(
+        &self,
+    ) -> Option<Result<PolicyDecisionTracePayload, serde_json::Error>> {
         if self.payload_kind != POLICY_DECISION_TRACE_PAYLOAD_KIND {
             return None;
         }
@@ -99,7 +107,9 @@ impl TraceAdjunctRecord {
     }
 
     /// Decode a typed resolution payload from an adjunct record.
-    pub fn as_resolution_payload(&self) -> Option<Result<ResolutionTracePayload, serde_json::Error>> {
+    pub fn as_resolution_payload(
+        &self,
+    ) -> Option<Result<ResolutionTracePayload, serde_json::Error>> {
         if self.payload_kind != RESOLUTION_TRACE_PAYLOAD_KIND {
             return None;
         }
@@ -107,7 +117,9 @@ impl TraceAdjunctRecord {
     }
 
     /// Decode a typed re-identification payload from an adjunct record.
-    pub fn as_reidentification_payload(&self) -> Option<Result<ReidentificationTracePayload, serde_json::Error>> {
+    pub fn as_reidentification_payload(
+        &self,
+    ) -> Option<Result<ReidentificationTracePayload, serde_json::Error>> {
         if self.payload_kind != REIDENTIFICATION_TRACE_PAYLOAD_KIND {
             return None;
         }
@@ -123,7 +135,9 @@ pub struct TraceAdjunctSet {
 
 impl TraceAdjunctSet {
     pub fn new() -> Self {
-        Self { records: Vec::new() }
+        Self {
+            records: Vec::new(),
+        }
     }
 
     pub fn from_records(mut records: Vec<TraceAdjunctRecord>) -> Self {
@@ -153,13 +167,13 @@ impl TraceAdjunctSet {
 mod tests {
     use super::*;
     use crate::policy::PolicyKind;
-    use crate::tracing::{
-        CandidateValueSummary, DecisionContext, DecisionKind, DecisionTier, PolicyResolutionOutcome,
-        PolicyResolutionSource, PolicyTraceConsistencyError, TracedDecision, ResolutionCandidateSummary,
-        ResolutionMatchKind, ResolutionOutcome, ResolutionQuerySummary, ResolutionRoute,
-        ResolutionTraceConsistencyError, ResolutionTracePayload,
-    };
     use crate::provenance::SnapshotHandleRef;
+    use crate::tracing::{
+        CandidateValueSummary, DecisionContext, DecisionKind, DecisionTier,
+        PolicyResolutionOutcome, PolicyResolutionSource, PolicyTraceConsistencyError,
+        ResolutionCandidateSummary, ResolutionMatchKind, ResolutionOutcome, ResolutionQuerySummary,
+        ResolutionRoute, ResolutionTraceConsistencyError, ResolutionTracePayload, TracedDecision,
+    };
 
     fn sample_policy_payload() -> PolicyDecisionTracePayload {
         PolicyDecisionTracePayload {
@@ -204,7 +218,14 @@ mod tests {
         ));
 
         let keys: Vec<_> = set.records().iter().map(|r| r.sort_key()).collect();
-        assert_eq!(keys, vec![(3, "a_payload", 1), (3, "b_payload", 2), (9, "z_payload", 1)]);
+        assert_eq!(
+            keys,
+            vec![
+                (3, "a_payload", 1),
+                (3, "b_payload", 2),
+                (9, "z_payload", 1)
+            ]
+        );
     }
 
     #[test]
@@ -227,9 +248,13 @@ mod tests {
             serde_json::json!({"nested": {"x": 1}, "arr": [1,2,3]}),
         );
         let json = serde_json::to_string(&record).expect("serialize adjunct");
-        let restored: TraceAdjunctRecord = serde_json::from_str(&json).expect("deserialize adjunct");
+        let restored: TraceAdjunctRecord =
+            serde_json::from_str(&json).expect("deserialize adjunct");
         assert_eq!(restored, record);
-        assert!(restored.as_policy_payload().is_none(), "unknown adjunct kind remains opaque");
+        assert!(
+            restored.as_policy_payload().is_none(),
+            "unknown adjunct kind remains opaque"
+        );
     }
 
     #[test]
@@ -313,10 +338,14 @@ mod tests {
         };
         let decision = TracedDecision::new(
             DecisionId(19),
-            DecisionKind::Forced { reason: "NameResolutionAmbiguous".into() },
+            DecisionKind::Forced {
+                reason: "NameResolutionAmbiguous".into(),
+            },
             DecisionTier::Escalated,
             0.0,
-            DecisionContext::Degeneracy { description: "resolution".into() },
+            DecisionContext::Degeneracy {
+                description: "resolution".into(),
+            },
         );
         assert_eq!(
             payload.validate_against_decision(&decision),

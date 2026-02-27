@@ -19,9 +19,9 @@
 //! └── state.rs         ← OperationSpaceQuery
 //! ```
 
-pub mod tolerance;
-pub mod validation;
-pub mod policy;
 pub mod geometry;
-pub mod tracing;
+pub mod policy;
 pub mod state;
+pub mod tolerance;
+pub mod tracing;
+pub mod validation;

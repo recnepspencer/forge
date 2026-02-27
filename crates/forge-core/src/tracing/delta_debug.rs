@@ -62,10 +62,7 @@ where
 {
     if step_count < 2 {
         return Err(KernelError::InternalError {
-            message: format!(
-                "delta_debug requires at least 2 steps, got {}",
-                step_count
-            ),
+            message: format!("delta_debug requires at least 2 steps, got {}", step_count),
             context: None,
         });
     }

@@ -1,8 +1,8 @@
-use std::collections::HashSet;
-use forge_core::KernelError;
 use crate::graph::SignalGraph;
 use crate::handles::NodeId;
 use crate::schema::{Aspect, NodeState};
+use forge_core::KernelError;
+use std::collections::HashSet;
 
 /// Propagate invalidation downstream from a changed source node.
 ///
@@ -140,11 +140,7 @@ fn propagate_maybe_stale(
 
 /// Check whether `node` has a subscriber that is also in `visited` and
 /// has a dependency back on `node`, forming a true cycle.
-fn has_back_edge(
-    graph: &SignalGraph,
-    node: NodeId,
-    visited: &HashSet<NodeId>,
-) -> bool {
+fn has_back_edge(graph: &SignalGraph, node: NodeId, visited: &HashSet<NodeId>) -> bool {
     let subs = match graph.get_entry(node) {
         Ok(entry) => entry.get_subscribers().to_vec(),
         Err(_) => return false,
@@ -167,10 +163,7 @@ fn insert_all(visited: &mut HashSet<NodeId>, nodes: &[NodeId]) {
 /// Produce a structured error for a circular reference.
 fn circular_reference_error(node: NodeId) -> KernelError {
     KernelError::InvalidInput {
-        message: format!(
-            "Circular reference detected at signal node: {}",
-            node
-        ),
+        message: format!("Circular reference detected at signal node: {}", node),
         context: None,
     }
 }

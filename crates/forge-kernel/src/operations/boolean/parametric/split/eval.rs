@@ -7,29 +7,29 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use forge_core::{
-    KernelError, TracedDecision, DecisionId, DecisionKind, DecisionTier,
-    DecisionContext, EntityRef,
-};
 use forge_core::ToleranceProvider;
+use forge_core::{
+    DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, KernelError, TracedDecision,
+};
+use forge_geom::spatial::bvh::{query_overlapping_pairs, BvhNode};
 use forge_geom::Aabb;
-use forge_geom::spatial::bvh::{BvhNode, query_overlapping_pairs};
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
-use forge_topo::state::{TopologyState, MutableDraft};
+use forge_topo::state::{MutableDraft, TopologyState};
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
+use crate::core::{compute_topology_delta, ArenaSnapshot, ModelingContext};
 use crate::geometry_state::GeometryState;
-use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
 use crate::shared_ops::vertex_identity::VertexMatchKey;
 use forge_geom::primitives::plane::are_parallel_exact as planes_are_parallel;
 
-use super::schema::{
-    EdgeCutMap, ExpectedCutEndpointMap, ExpectedCutHint, ExpectedCutInterval, LocalVertexDedup, PlaneTable, SharedVertexRegistry, SplitPhaseResult, SplitConfig,
-};
 use super::cut::split_face_by_plane;
 use super::gate::compute_face_chord;
 use super::reconcile::reconcile_boundary_vertices;
+use super::schema::{
+    EdgeCutMap, ExpectedCutEndpointMap, ExpectedCutHint, ExpectedCutInterval, LocalVertexDedup,
+    PlaneTable, SharedVertexRegistry, SplitConfig, SplitPhaseResult,
+};
 
 /// Run the full split phase: find overlapping face pairs via BVH, propose cuts,
 /// and split both solids.
@@ -53,17 +53,18 @@ pub fn split_all_faces(
         &config,
     )?;
 
-    let (expected_shared_positions, target_expected_cut_endpoints, tool_expected_cut_endpoints) = collect_expected_overlap_hints(
-        &bvh_pairs,
-        target_topo.arena(),
-        &target_geom,
-        &target_face_planes,
-        tool_topo.arena(),
-        &tool_geom,
-        &tool_face_planes,
-        &plane_table,
-        &config,
-    )?;
+    let (expected_shared_positions, target_expected_cut_endpoints, tool_expected_cut_endpoints) =
+        collect_expected_overlap_hints(
+            &bvh_pairs,
+            target_topo.arena(),
+            &target_geom,
+            &target_face_planes,
+            tool_topo.arena(),
+            &tool_geom,
+            &tool_face_planes,
+            &plane_table,
+            &config,
+        )?;
 
     let (mut target_cuts, mut tool_cuts) = propose_cuts(
         &bvh_pairs,
@@ -92,7 +93,13 @@ pub fn split_all_faces(
 
     let mut shared_registry = SharedVertexRegistry::new();
 
-    let (mut target_draft, mut target_geom_out, target_splits, mut target_dedup, target_original_vids) = split_solid(
+    let (
+        mut target_draft,
+        mut target_geom_out,
+        target_splits,
+        mut target_dedup,
+        target_original_vids,
+    ) = split_solid(
         target_topo,
         target_geom,
         target_cuts,
@@ -104,17 +111,18 @@ pub fn split_all_faces(
         ctx,
     )?;
 
-    let (mut tool_draft, mut tool_geom_out, tool_splits, mut tool_dedup, tool_original_vids) = split_solid(
-        tool_topo,
-        tool_geom,
-        tool_cuts,
-        &tool_face_planes,
-        &mut plane_table,
-        &config,
-        &mut shared_registry,
-        tool_expected_cut_endpoints,
-        ctx,
-    )?;
+    let (mut tool_draft, mut tool_geom_out, tool_splits, mut tool_dedup, tool_original_vids) =
+        split_solid(
+            tool_topo,
+            tool_geom,
+            tool_cuts,
+            &tool_face_planes,
+            &mut plane_table,
+            &config,
+            &mut shared_registry,
+            tool_expected_cut_endpoints,
+            ctx,
+        )?;
 
     if std::env::var("FORGE_DEBUG_VALIDATE_PHASES").ok().as_deref() == Some("1") {
         match validate_topology(target_draft.arena(), ValidationLevel::Full) {
@@ -132,7 +140,8 @@ pub fn split_all_faces(
     // slightly separated after independent splits (especially in small-angle T2.1).
     // Use a search tolerance derived from gap-closure policy / geometry scale
     // rather than the much tighter residual verification tolerance.
-    let base_reconcile_tol = config.get_residual()
+    let base_reconcile_tol = config
+        .get_residual()
         .max(ctx.get_gap_closure().get_max_gap())
         .max(target_geom_out.global_default())
         .max(tool_geom_out.global_default());
@@ -209,14 +218,25 @@ fn collect_expected_overlap_hints(
     tool_face_planes: &BTreeMap<FaceId, usize>,
     plane_table: &PlaneTable,
     config: &crate::core::ToleranceConfig,
-) -> Result<(Vec<[f64; 3]>, ExpectedCutEndpointMap, ExpectedCutEndpointMap), KernelError> {
+) -> Result<
+    (
+        Vec<[f64; 3]>,
+        ExpectedCutEndpointMap,
+        ExpectedCutEndpointMap,
+    ),
+    KernelError,
+> {
     let mut positions = Vec::new();
     let mut target_expected: ExpectedCutEndpointMap = BTreeMap::new();
     let mut tool_expected: ExpectedCutEndpointMap = BTreeMap::new();
 
     for &(face_a, face_b) in bvh_pairs {
-        let Some(&pa) = target_face_planes.get(&face_a) else { continue };
-        let Some(&pb) = tool_face_planes.get(&face_b) else { continue };
+        let Some(&pa) = target_face_planes.get(&face_a) else {
+            continue;
+        };
+        let Some(&pb) = tool_face_planes.get(&face_b) else {
+            continue;
+        };
         let plane_a = plane_table.get(pa);
         let plane_b = plane_table.get(pb);
 
@@ -224,16 +244,26 @@ fn collect_expected_overlap_hints(
             continue;
         }
 
-        let chord_a = match compute_face_chord(target_arena, target_geom, face_a, plane_a, plane_b, config)? {
+        let chord_a = match compute_face_chord(
+            target_arena,
+            target_geom,
+            face_a,
+            plane_a,
+            plane_b,
+            config,
+        )? {
             Some(ch) => ch,
             None => continue,
         };
-        let chord_b = match compute_face_chord(tool_arena, tool_geom, face_b, plane_b, plane_a, config)? {
-            Some(ch) => ch,
-            None => continue,
-        };
+        let chord_b =
+            match compute_face_chord(tool_arena, tool_geom, face_b, plane_b, plane_a, config)? {
+                Some(ch) => ch,
+                None => continue,
+            };
 
-        if let Some((p0, p1)) = chord_overlap_segment(chord_a, chord_b, config.get_min_edge_length()) {
+        if let Some((p0, p1)) =
+            chord_overlap_segment(chord_a, chord_b, config.get_min_edge_length())
+        {
             positions.push(p0);
             positions.push(p1);
             let target_hint = target_expected.entry((face_a, pb)).or_default();
@@ -249,7 +279,11 @@ fn collect_expected_overlap_hints(
     normalize_hint_map(&mut target_expected, config.get_min_edge_length());
     normalize_hint_map(&mut tool_expected, config.get_min_edge_length());
 
-    Ok((dedup_positions(positions, config.get_min_edge_length()), target_expected, tool_expected))
+    Ok((
+        dedup_positions(positions, config.get_min_edge_length()),
+        target_expected,
+        tool_expected,
+    ))
 }
 
 fn chord_overlap_segment(
@@ -271,20 +305,26 @@ fn chord_overlap_segment(
     let origin = chord_a.0;
 
     let proj = |p: [f64; 3]| -> f64 {
-        (p[0] - origin[0]) * unit[0]
-            + (p[1] - origin[1]) * unit[1]
-            + (p[2] - origin[2]) * unit[2]
+        (p[0] - origin[0]) * unit[0] + (p[1] - origin[1]) * unit[1] + (p[2] - origin[2]) * unit[2]
     };
     let point_at = |t: f64| -> [f64; 3] {
-        [origin[0] + unit[0] * t, origin[1] + unit[1] * t, origin[2] + unit[2] * t]
+        [
+            origin[0] + unit[0] * t,
+            origin[1] + unit[1] * t,
+            origin[2] + unit[2] * t,
+        ]
     };
 
     let mut a0 = proj(chord_a.0);
     let mut a1 = proj(chord_a.1);
     let mut b0 = proj(chord_b.0);
     let mut b1 = proj(chord_b.1);
-    if a0 > a1 { std::mem::swap(&mut a0, &mut a1); }
-    if b0 > b1 { std::mem::swap(&mut b0, &mut b1); }
+    if a0 > a1 {
+        std::mem::swap(&mut a0, &mut a1);
+    }
+    if b0 > b1 {
+        std::mem::swap(&mut b0, &mut b1);
+    }
 
     let o0 = a0.max(b0);
     let o1 = a1.min(b1);
@@ -320,18 +360,15 @@ fn normalize_hint_map(map: &mut ExpectedCutEndpointMap, tol: f64) {
 }
 
 fn normalize_intervals(intervals: Vec<ExpectedCutInterval>, tol: f64) -> Vec<ExpectedCutInterval> {
-    let tol = tol.max(1e-9);
-    let tol_sq = tol * tol;
-    let mut out: Vec<ExpectedCutInterval> = Vec::new();
-
-    'outer: for mut iv in intervals {
-        if dist_sq3(&iv.p0, &iv.p1) <= tol_sq {
+        if forge_math::linalg::distance_sq(*iv.p0, *iv.p1) <= tol_sq {
             continue;
         }
         canonicalize_interval(&mut iv);
         for existing in &out {
-            let same_dir = (dist_sq3(&iv.p0, &existing.p0) <= tol_sq && dist_sq3(&iv.p1, &existing.p1) <= tol_sq)
-                || (dist_sq3(&iv.p0, &existing.p1) <= tol_sq && dist_sq3(&iv.p1, &existing.p0) <= tol_sq);
+            let same_dir = (forge_math::linalg::distance_sq(*iv.p0, *existing.p0) <= tol_sq
+                && forge_math::linalg::distance_sq(*iv.p1, *existing.p1) <= tol_sq)
+                || (forge_math::linalg::distance_sq(*iv.p0, *existing.p1) <= tol_sq
+                    && forge_math::linalg::distance_sq(*iv.p1, *existing.p0) <= tol_sq);
             if same_dir {
                 continue 'outer;
             }
@@ -357,16 +394,10 @@ fn interval_sort_key(a: &ExpectedCutInterval, b: &ExpectedCutInterval) -> std::c
 }
 
 fn point_cmp_key(a: &[f64; 3], b: &[f64; 3]) -> std::cmp::Ordering {
-    a[0].partial_cmp(&b[0]).unwrap_or(std::cmp::Ordering::Equal)
+    a[0].partial_cmp(&b[0])
+        .unwrap_or(std::cmp::Ordering::Equal)
         .then_with(|| a[1].partial_cmp(&b[1]).unwrap_or(std::cmp::Ordering::Equal))
         .then_with(|| a[2].partial_cmp(&b[2]).unwrap_or(std::cmp::Ordering::Equal))
-}
-
-fn dist_sq3(a: &[f64; 3], b: &[f64; 3]) -> f64 {
-    let dx = a[0] - b[0];
-    let dy = a[1] - b[1];
-    let dz = a[2] - b[2];
-    dx * dx + dy * dy + dz * dz
 }
 
 // ── Plane table construction ─────────────────────────────────────────────────
@@ -411,22 +442,31 @@ fn build_bvh_overlap_pairs(
     let target_aabbs = compute_face_aabbs(target_arena, target_geom, config)?;
     let tool_aabbs = compute_face_aabbs(tool_arena, tool_geom, config)?;
 
-    let target_indexed: Vec<(usize, Aabb)> = target_aabbs.iter()
-        .enumerate().map(|(i, (_, aabb))| (i, aabb.clone())).collect();
-    let tool_indexed: Vec<(usize, Aabb)> = tool_aabbs.iter()
-        .enumerate().map(|(i, (_, aabb))| (i, aabb.clone())).collect();
+    let target_indexed: Vec<(usize, Aabb)> = target_aabbs
+        .iter()
+        .enumerate()
+        .map(|(i, (_, aabb))| (i, aabb.clone()))
+        .collect();
+    let tool_indexed: Vec<(usize, Aabb)> = tool_aabbs
+        .iter()
+        .enumerate()
+        .map(|(i, (_, aabb))| (i, aabb.clone()))
+        .collect();
 
     let root_a = BvhNode::build(target_indexed).ok_or_else(|| KernelError::InternalError {
-        message: "Failed to build target BVH".into(), context: None,
+        message: "Failed to build target BVH".into(),
+        context: None,
     })?;
     let root_b = BvhNode::build(tool_indexed).ok_or_else(|| KernelError::InternalError {
-        message: "Failed to build tool BVH".into(), context: None,
+        message: "Failed to build tool BVH".into(),
+        context: None,
     })?;
 
     let mut raw_pairs = query_overlapping_pairs(&root_a, &root_b);
     raw_pairs.sort_unstable_by_key(|(a, b)| (*a, *b));
 
-    let resolved: Vec<(FaceId, FaceId)> = raw_pairs.iter()
+    let resolved: Vec<(FaceId, FaceId)> = raw_pairs
+        .iter()
         .map(|(ia, ib)| (target_aabbs[*ia].0, tool_aabbs[*ib].0))
         .collect();
 
@@ -463,12 +503,24 @@ fn propose_cuts(
                 tool_cuts.entry(face_b).or_default().push(pa);
             } else if forge_geom::primitives::plane::exact_eq(plane_a, plane_b) {
                 propagate_boundary_planes(
-                    tool_arena, face_b, pb, tool_face_planes, plane_table, plane_a,
-                    &mut target_cuts, face_a,
+                    tool_arena,
+                    face_b,
+                    pb,
+                    tool_face_planes,
+                    plane_table,
+                    plane_a,
+                    &mut target_cuts,
+                    face_a,
                 );
                 propagate_boundary_planes(
-                    target_arena, face_a, pa, target_face_planes, plane_table, plane_b,
-                    &mut tool_cuts, face_b,
+                    target_arena,
+                    face_a,
+                    pa,
+                    target_face_planes,
+                    plane_table,
+                    plane_b,
+                    &mut tool_cuts,
+                    face_b,
                 );
             }
         }
@@ -494,10 +546,11 @@ fn propagate_boundary_planes(
     dest_cuts: &mut BTreeMap<FaceId, Vec<usize>>,
     dest_face: FaceId,
 ) {
-    let adjacent_faces = match forge_topo::classification::face_adjacent_faces(source_arena, source_face) {
-        Ok(faces) => faces,
-        Err(_) => return,
-    };
+    let adjacent_faces =
+        match forge_topo::classification::face_adjacent_faces(source_arena, source_face) {
+            Ok(faces) => faces,
+            Err(_) => return,
+        };
 
     for adjacent_face in adjacent_faces {
         if let Some(&adj_plane_idx) = source_face_planes.get(&adjacent_face) {
@@ -547,13 +600,23 @@ fn supplement_cuts_exhaustive(
     let target_plane_indices: Vec<usize> = target_face_planes.values().copied().collect();
 
     added += supplement_one_direction(
-        target_arena, target_geom, target_face_planes,
-        &tool_plane_indices, plane_table, config, target_cuts,
+        target_arena,
+        target_geom,
+        target_face_planes,
+        &tool_plane_indices,
+        plane_table,
+        config,
+        target_cuts,
     )?;
 
     added += supplement_one_direction(
-        tool_arena, tool_geom, tool_face_planes,
-        &target_plane_indices, plane_table, config, tool_cuts,
+        tool_arena,
+        tool_geom,
+        tool_face_planes,
+        &target_plane_indices,
+        plane_table,
+        config,
+        tool_cuts,
     )?;
 
     dedup_cut_lists(target_cuts);
@@ -646,13 +709,28 @@ fn split_solid(
     shared_registry: &mut SharedVertexRegistry,
     mut expected_cut_endpoints: ExpectedCutEndpointMap,
     ctx: &mut ModelingContext,
-) -> Result<(MutableDraft, GeometryState, usize, LocalVertexDedup, std::collections::BTreeSet<VertexId>), KernelError> {
+) -> Result<
+    (
+        MutableDraft,
+        GeometryState,
+        usize,
+        LocalVertexDedup,
+        std::collections::BTreeSet<VertexId>,
+    ),
+    KernelError,
+> {
     let mut draft = topo.into_mutation();
     let mut splits = 0;
     let mut dedup = LocalVertexDedup::new();
     let mut edge_cut_map: EdgeCutMap = BTreeMap::new();
 
-    assign_original_vertex_provenance(draft.arena(), &mut dedup, &geom, initial_face_planes, plane_table)?;
+    assign_original_vertex_provenance(
+        draft.arena(),
+        &mut dedup,
+        &geom,
+        initial_face_planes,
+        plane_table,
+    )?;
 
     let original_vids: std::collections::BTreeSet<VertexId> =
         draft.arena().iter_vertices().map(|(vid, _)| vid).collect();
@@ -670,9 +748,18 @@ fn split_solid(
         };
 
         let result = try_split_face(
-            &mut draft, &mut geom, &mut dedup, &mut edge_cut_map,
-            fid, cut_idx, &current_face_planes,
-            plane_table, config, shared_registry, &expected_cut_endpoints, ctx,
+            &mut draft,
+            &mut geom,
+            &mut dedup,
+            &mut edge_cut_map,
+            fid,
+            cut_idx,
+            &current_face_planes,
+            plane_table,
+            config,
+            shared_registry,
+            &expected_cut_endpoints,
+            ctx,
         )?;
 
         match result {
@@ -714,9 +801,18 @@ fn split_solid(
             };
 
             let result = try_split_face(
-                &mut draft, &mut geom, &mut dedup, &mut edge_cut_map,
-                fid, cut_idx, &current_face_planes,
-                plane_table, config, shared_registry, &expected_cut_endpoints, ctx,
+                &mut draft,
+                &mut geom,
+                &mut dedup,
+                &mut edge_cut_map,
+                fid,
+                cut_idx,
+                &current_face_planes,
+                plane_table,
+                config,
+                shared_registry,
+                &expected_cut_endpoints,
+                ctx,
             )?;
 
             match result {
@@ -792,8 +888,12 @@ fn try_split_face(
     expected_cut_endpoints: &ExpectedCutEndpointMap,
     ctx: &mut ModelingContext,
 ) -> Result<SplitAttempt, KernelError> {
-    let face_plane_idx = *current_face_planes.get(&fid)
-        .ok_or(KernelError::InternalError { message: "Missing plane for face".into(), context: None })?;
+    let face_plane_idx = *current_face_planes
+        .get(&fid)
+        .ok_or(KernelError::InternalError {
+            message: "Missing plane for face".into(),
+            context: None,
+        })?;
     let cut_plane = plane_table.get(cut_idx);
     let face_plane = plane_table.get(face_plane_idx);
 
@@ -812,9 +912,18 @@ fn try_split_face(
     };
 
     let new_faces = split_face_by_plane(
-        draft, geom, dedup, edge_cut_map,
-        fid, face_plane, cut_plane, cut_idx,
-        &split_cfg, shared_registry, expected_cut_endpoints.get(&(fid, cut_idx)), ctx,
+        draft,
+        geom,
+        dedup,
+        edge_cut_map,
+        fid,
+        face_plane,
+        cut_plane,
+        cut_idx,
+        &split_cfg,
+        shared_registry,
+        expected_cut_endpoints.get(&(fid, cut_idx)),
+        ctx,
     )?;
 
     if new_faces.is_empty() {
@@ -849,7 +958,9 @@ fn try_split_face(
         DecisionContext::Degeneracy {
             description: format!(
                 "Split face {} by plane {} → {} new faces",
-                fid, cut_idx, new_faces.len()
+                fid,
+                cut_idx,
+                new_faces.len()
             ),
         },
     );
@@ -889,14 +1000,17 @@ fn assign_original_vertex_provenance(
                 symbolic_count += 1;
                 implicit_count += 1;
                 Some(VertexMatchKey::from_exact_position(
-                    exact[0].clone(), exact[1].clone(), exact[2].clone(),
+                    exact[0].clone(),
+                    exact[1].clone(),
+                    exact[2].clone(),
                 ))
             } else {
                 fallback_count += 1;
                 compute_explicit_key(geom, vid)
             }
         } else {
-            let incident = collect_incident_plane_indices(arena, vid, vdata.outgoing(), face_planes);
+            let incident =
+                collect_incident_plane_indices(arena, vid, vdata.outgoing(), face_planes);
             if incident.len() >= 3 {
                 implicit_count += 1;
                 compute_implicit_key(&incident, plane_table, geom, vid)
@@ -910,7 +1024,10 @@ fn assign_original_vertex_provenance(
             dedup.insert(vid, k);
         }
     }
-    eprintln!("[provenance] {} vertices implicit ({} from symbolic planes), {} fallback", implicit_count, symbolic_count, fallback_count);
+    eprintln!(
+        "[provenance] {} vertices implicit ({} from symbolic planes), {} fallback",
+        implicit_count, symbolic_count, fallback_count
+    );
     Ok(())
 }
 
@@ -965,7 +1082,9 @@ fn compute_implicit_key(
 
     match forge_geom::primitives::plane::intersect_three_planes_exact(p0, p1, p2) {
         Ok(exact_pos) => Some(VertexMatchKey::from_exact_position(
-            exact_pos[0].clone(), exact_pos[1].clone(), exact_pos[2].clone(),
+            exact_pos[0].clone(),
+            exact_pos[1].clone(),
+            exact_pos[2].clone(),
         )),
         Err(_) => compute_explicit_key(geom, vid),
     }
@@ -974,9 +1093,7 @@ fn compute_implicit_key(
 /// Fallback: compute VertexMatchKey from stored exact coordinates.
 fn compute_explicit_key(geom: &GeometryState, vid: VertexId) -> Option<VertexMatchKey> {
     geom.get_vertex_position_exact(vid).map(|exact| {
-        VertexMatchKey::from_exact_position(
-            exact[0].clone(), exact[1].clone(), exact[2].clone(),
-        )
+        VertexMatchKey::from_exact_position(exact[0].clone(), exact[1].clone(), exact[2].clone())
     })
 }
 
@@ -987,10 +1104,8 @@ pub fn compute_face_aabbs(
     config: &crate::core::ToleranceConfig,
 ) -> Result<Vec<(FaceId, Aabb)>, KernelError> {
     let inflation = config.get_aabb_inflation();
-    let mut list = crate::spatial::all_face_bounds(
-        arena,
-        &|vid| geom.get_vertex_position(vid).copied(),
-    )?;
+    let mut list =
+        crate::spatial::all_face_bounds(arena, &|vid| geom.get_vertex_position(vid).copied())?;
     for (_, aabb) in &mut list {
         aabb.expand(inflation);
     }

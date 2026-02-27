@@ -13,20 +13,24 @@
 //! 5. Apply counterfactual overrides if present (P3.3).
 //! 6. Record TracedDecision for every classification.
 
-use forge_core::KernelError;
-use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier, EntityRef, ToleranceProvider};
 use forge_core::tracing::TopologyDelta;
+use forge_core::KernelError;
+use forge_core::{
+    DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, ToleranceProvider,
+    TracedDecision,
+};
+use forge_geom::BvhNode;
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::FaceId;
-use forge_geom::BvhNode;
 
 use crate::core::ModelingContext;
 use crate::geometry_state::GeometryState;
+use crate::operations::boolean::classify_schema::{ClassifiedFace, FaceClassification, FaceOrigin};
 use crate::shared_ops::centroid::compute_face_centroid;
-use crate::operations::boolean::classify_schema::{FaceClassification, ClassifiedFace, FaceOrigin};
 use crate::spatial::{
-    classify_point_in_solid, classify_point_on_face, classify_point_with_perturbation,
-    PointClassification, FacePointClassification, SpatialAccelerator, all_face_bounds,
+    all_face_bounds, classify_point_in_solid, classify_point_on_face,
+    classify_point_with_perturbation, FacePointClassification, PointClassification,
+    SpatialAccelerator,
 };
 
 /// Classify all faces of one solid relative to the other solid.
@@ -41,7 +45,8 @@ pub fn classify_faces(
     let config = ctx.get_tolerance_config().clone();
 
     let accelerator_data = build_spatial_index(other_arena, other_geometry);
-    let accelerator = accelerator_data.as_deref()
+    let accelerator = accelerator_data
+        .as_deref()
         .map(|bvh| bvh as &dyn SpatialAccelerator);
 
     let origin_label = origin_to_label(origin);
@@ -49,31 +54,56 @@ pub fn classify_faces(
 
     for (face_id, _) in source_arena.iter_faces() {
         let computed = classify_single_face(
-            source_arena, source_geometry,
-            other_arena, other_geometry,
-            accelerator, face_id, &config, ctx,
+            source_arena,
+            source_geometry,
+            other_arena,
+            other_geometry,
+            accelerator,
+            face_id,
+            &config,
+            ctx,
         )?;
 
-        if std::env::var("FORGE_DEBUG_CLASSIFY_PROVENANCE").ok().as_deref() == Some("1") {
+        if std::env::var("FORGE_DEBUG_CLASSIFY_PROVENANCE")
+            .ok()
+            .as_deref()
+            == Some("1")
+        {
             let sample = compute_face_centroid(source_arena, source_geometry, face_id)
                 .unwrap_or([f64::NAN; 3]);
-            let lineage_str = source_arena.get_face(face_id)
+            let lineage_str = source_arena
+                .get_face(face_id)
                 .ok()
                 .and_then(|f| f.lineage())
-                .map(|lin| format!("{}#{}", lin.get_creation_op().get_name(), lin.get_creation_op().get_invocation_id()))
+                .map(|lin| {
+                    format!(
+                        "{}#{}",
+                        lin.get_creation_op().get_name(),
+                        lin.get_creation_op().get_invocation_id()
+                    )
+                })
                 .unwrap_or_else(|| "no-lineage".to_string());
             eprintln!(
                 "[classify-prov] {} F#{} {:?} sample=[{:.6},{:.6},{:.6}] {}",
                 origin_label,
                 face_id.index(),
                 computed,
-                sample[0], sample[1], sample[2],
+                sample[0],
+                sample[1],
+                sample[2],
                 lineage_str
             );
         }
 
         let (final_class, overridden) = apply_override(ctx, face_id, computed);
-        log_classification(ctx, face_id, &final_class, &computed, overridden, origin_label);
+        log_classification(
+            ctx,
+            face_id,
+            &final_class,
+            &computed,
+            overridden,
+            origin_label,
+        );
         classified.push(ClassifiedFace::new(face_id, final_class));
     }
 
@@ -97,10 +127,15 @@ fn classify_single_face(
     config: &crate::core::ToleranceConfig,
     ctx: &mut ModelingContext,
 ) -> Result<FaceClassification, KernelError> {
-    let sample = compute_face_centroid(source_arena, source_geometry, face_id)
-        .ok_or_else(|| KernelError::InvalidInput {
-            message: format!("Face {:?} has degenerate geometry (no vertices/area)", face_id),
-            context: None,
+    let sample =
+        compute_face_centroid(source_arena, source_geometry, face_id).ok_or_else(|| {
+            KernelError::InvalidInput {
+                message: format!(
+                    "Face {:?} has degenerate geometry (no vertices/area)",
+                    face_id
+                ),
+                context: None,
+            }
         })?;
 
     let primary = classify_point_in_solid(
@@ -124,13 +159,16 @@ fn classify_single_face(
 
     let (class, escalation) = match &classification {
         PointClassification::OnBoundary(_) => resolve_boundary_classification(
-            source_arena, source_geometry, face_id,
-            other_arena, other_geometry, accelerator,
-            &classification, config,
+            source_arena,
+            source_geometry,
+            face_id,
+            other_arena,
+            other_geometry,
+            accelerator,
+            &classification,
+            config,
         )?,
-        _ => interpret_classification(
-            classification, source_geometry, face_id, other_geometry,
-        ),
+        _ => interpret_classification(classification, source_geometry, face_id, other_geometry),
     };
 
     if let Some(esc) = escalation {
@@ -215,7 +253,10 @@ fn face_needs_multisample(source_arena: &TopologyArena, face_id: FaceId) -> bool
     let Some(lineage) = face.lineage() else {
         return false;
     };
-    lineage.get_creation_op().get_name().starts_with("make_edge_face")
+    lineage
+        .get_creation_op()
+        .get_name()
+        .starts_with("make_edge_face")
 }
 
 fn collect_interior_face_samples(
@@ -241,7 +282,13 @@ fn collect_interior_face_samples(
     let pos_fn = |v: forge_topo::handles::VertexId| geometry.get_vertex_position(v).copied();
     let mut samples: Vec<[f64; 3]> = Vec::new();
     let mut push_if_on_face = |p: [f64; 3]| -> Result<(), KernelError> {
-        match classify_point_on_face(arena, face_id, &p, &pos_fn, source_geometry_as_tol(geometry))? {
+        match classify_point_on_face(
+            arena,
+            face_id,
+            &p,
+            &pos_fn,
+            source_geometry_as_tol(geometry),
+        )? {
             FacePointClassification::OnFace => {
                 if !samples.iter().any(|q| same_point(q, &p)) {
                     samples.push(p);
@@ -258,7 +305,11 @@ fn collect_interior_face_samples(
     for i in 0..n.min(8) {
         let a = verts[i];
         let b = verts[(i + 1) % n];
-        let edge_mid = [(a[0] + b[0]) * 0.5, (a[1] + b[1]) * 0.5, (a[2] + b[2]) * 0.5];
+        let edge_mid = [
+            (a[0] + b[0]) * 0.5,
+            (a[1] + b[1]) * 0.5,
+            (a[2] + b[2]) * 0.5,
+        ];
         let inset = [
             edge_mid[0] * 0.35 + centroid[0] * 0.65,
             edge_mid[1] * 0.35 + centroid[1] * 0.65,
@@ -312,14 +363,16 @@ fn interpret_classification(
     source_geom: &GeometryState,
     source_face: FaceId,
     other_geom: &GeometryState,
-) -> (FaceClassification, Option<forge_math::arithmetic::precision::PrecisionEscalation>) {
+) -> (
+    FaceClassification,
+    Option<forge_math::arithmetic::precision::PrecisionEscalation>,
+) {
     match classification {
-        PointClassification::Inside { escalation } =>
-            (FaceClassification::Inside, escalation),
-        PointClassification::Outside { escalation } =>
-            (FaceClassification::Outside, escalation),
+        PointClassification::Inside { escalation } => (FaceClassification::Inside, escalation),
+        PointClassification::Outside { escalation } => (FaceClassification::Outside, escalation),
         PointClassification::OnBoundary(boundary_face) => {
-            let aligned = check_normal_alignment(source_geom, source_face, other_geom, boundary_face);
+            let aligned =
+                check_normal_alignment(source_geom, source_face, other_geom, boundary_face);
             let class = if aligned {
                 FaceClassification::OnBoundary
             } else {
@@ -345,20 +398,34 @@ fn resolve_boundary_classification(
     accelerator: Option<&dyn SpatialAccelerator>,
     original: &PointClassification,
     config: &crate::core::ToleranceConfig,
-) -> Result<(FaceClassification, Option<forge_math::arithmetic::precision::PrecisionEscalation>), KernelError> {
+) -> Result<
+    (
+        FaceClassification,
+        Option<forge_math::arithmetic::precision::PrecisionEscalation>,
+    ),
+    KernelError,
+> {
     let normal = match source_geometry.get_face_plane(source_face) {
         Some(plane) => plane.raw_normal(),
         None => {
             return Ok(interpret_classification(
-                original.clone(), source_geometry, source_face, other_geometry,
+                original.clone(),
+                source_geometry,
+                source_face,
+                other_geometry,
             ));
         }
     };
 
-    let centroid = compute_face_centroid(source_arena, source_geometry, source_face)
-        .ok_or_else(|| KernelError::InvalidInput {
-            message: format!("Face {:?} has degenerate geometry (no vertices/area)", source_face),
-            context: None,
+    let centroid =
+        compute_face_centroid(source_arena, source_geometry, source_face).ok_or_else(|| {
+            KernelError::InvalidInput {
+                message: format!(
+                    "Face {:?} has degenerate geometry (no vertices/area)",
+                    source_face
+                ),
+                context: None,
+            }
         })?;
     let epsilon = config.get_edge_split_degeneracy() * 100.0;
 
@@ -379,7 +446,10 @@ fn resolve_boundary_classification(
     }
 
     Ok(interpret_classification(
-        original.clone(), source_geometry, source_face, other_geometry,
+        original.clone(),
+        source_geometry,
+        source_face,
+        other_geometry,
     ))
 }
 
@@ -393,7 +463,9 @@ fn to_face_classification(pc: &PointClassification) -> FaceClassification {
 }
 
 /// Extract the escalation from a PointClassification, if any.
-fn extract_escalation(pc: &PointClassification) -> Option<forge_math::arithmetic::precision::PrecisionEscalation> {
+fn extract_escalation(
+    pc: &PointClassification,
+) -> Option<forge_math::arithmetic::precision::PrecisionEscalation> {
     match pc {
         PointClassification::Inside { escalation } => escalation.clone(),
         PointClassification::Outside { escalation } => escalation.clone(),
@@ -407,17 +479,20 @@ fn lookup_vertex_position(
     geometry: &GeometryState,
     index: u32,
 ) -> Result<[f64; 3], KernelError> {
-    let gen = arena.vertex_generation(index as usize).ok_or_else(|| {
-        KernelError::InvalidInput {
-            message: format!("No active vertex at slot index {}", index), context: None,
-        }
-    })?;
+    let gen = arena
+        .vertex_generation(index as usize)
+        .ok_or_else(|| KernelError::InvalidInput {
+            message: format!("No active vertex at slot index {}", index),
+            context: None,
+        })?;
     let vid = forge_topo::handles::VertexId::from_raw_parts(index, gen);
-    geometry.get_vertex_position(vid).copied().ok_or_else(|| {
-        KernelError::InvalidInput {
-            message: format!("No position for vertex {}", index), context: None,
-        }
-    })
+    geometry
+        .get_vertex_position(vid)
+        .copied()
+        .ok_or_else(|| KernelError::InvalidInput {
+            message: format!("No position for vertex {}", index),
+            context: None,
+        })
 }
 
 // ── Override and logging ─────────────────────────────────────────────────────
@@ -457,13 +532,19 @@ fn log_classification(
     };
 
     let mut decision = TracedDecision::new(
-        DecisionId(face_id.index() as u64), kind, tier, 1.0,
+        DecisionId(face_id.index() as u64),
+        kind,
+        tier,
+        1.0,
         DecisionContext::Classification {
             point: [0.0; 3],
             result: format!("{}:Face#{} → {}", origin_label, face_id.index(), label),
         },
     );
-    decision.set_entity_scope(EntityRef::new(forge_core::EntityKind::Face, face_id.index()));
+    decision.set_entity_scope(EntityRef::new(
+        forge_core::EntityKind::Face,
+        face_id.index(),
+    ));
     decision.set_topology_delta(TopologyDelta::default());
     ctx.get_decision_log_mut().record(decision);
 }
@@ -475,10 +556,7 @@ fn build_spatial_index(
     arena: &TopologyArena,
     geometry: &GeometryState,
 ) -> Option<Box<BvhNode<FaceId>>> {
-    let face_aabbs = all_face_bounds(
-        arena,
-        &|vid| geometry.get_vertex_position(vid).copied(),
-    ).ok();
+    let face_aabbs = all_face_bounds(arena, &|vid| geometry.get_vertex_position(vid).copied()).ok();
     face_aabbs.and_then(|aabbs| BvhNode::build(aabbs))
 }
 
@@ -491,7 +569,10 @@ fn check_normal_alignment(
     other_geom: &GeometryState,
     other_face: FaceId,
 ) -> bool {
-    match (source_geom.get_face_plane(source_face), other_geom.get_face_plane(other_face)) {
+    match (
+        source_geom.get_face_plane(source_face),
+        other_geom.get_face_plane(other_face),
+    ) {
         (Some(sp), Some(op)) => forge_geom::primitives::plane::normals_aligned_exact(sp, op),
         _ => true,
     }

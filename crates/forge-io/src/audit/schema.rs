@@ -29,7 +29,10 @@ pub struct AuditFieldLabel {
 
 impl AuditFieldLabel {
     pub fn new(field_name: impl Into<String>, scope: AuditIdentityScope) -> Self {
-        Self { field_name: field_name.into(), scope }
+        Self {
+            field_name: field_name.into(),
+            scope,
+        }
     }
 
     pub fn validate(&self) -> Result<(), AuditConventionError> {
@@ -72,10 +75,19 @@ impl AuditFieldLabel {
 /// Convention validation failure for audit schema descriptors.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AuditConventionError {
-    InvalidSchemaVersion { found: u32 },
-    InvalidOperationVersion { found: u32 },
-    InvalidOperationType { found: String },
-    FieldNameScopeMismatch { field_name: String, expected_scope: AuditIdentityScope },
+    InvalidSchemaVersion {
+        found: u32,
+    },
+    InvalidOperationVersion {
+        found: u32,
+    },
+    InvalidOperationType {
+        found: String,
+    },
+    FieldNameScopeMismatch {
+        field_name: String,
+        expected_scope: AuditIdentityScope,
+    },
 }
 
 impl fmt::Display for AuditConventionError {
@@ -88,10 +100,21 @@ impl fmt::Display for AuditConventionError {
                 write!(f, "invalid operation_version {} (must be > 0)", found)
             }
             AuditConventionError::InvalidOperationType { found } => {
-                write!(f, "invalid operation_type '{}' (use snake_case [a-z0-9_]+)", found)
+                write!(
+                    f,
+                    "invalid operation_type '{}' (use snake_case [a-z0-9_]+)",
+                    found
+                )
             }
-            AuditConventionError::FieldNameScopeMismatch { field_name, expected_scope } => {
-                write!(f, "field '{}' does not satisfy {:?} naming convention", field_name, expected_scope)
+            AuditConventionError::FieldNameScopeMismatch {
+                field_name,
+                expected_scope,
+            } => {
+                write!(
+                    f,
+                    "field '{}' does not satisfy {:?} naming convention",
+                    field_name, expected_scope
+                )
             }
         }
     }
@@ -127,14 +150,20 @@ impl<T> VersionedAuditRecord<T> {
     /// Validate cross-kernel audit schema conventions for the envelope fields.
     pub fn validate_conventions(&self) -> Result<(), AuditConventionError> {
         if self.schema_version == 0 {
-            return Err(AuditConventionError::InvalidSchemaVersion { found: self.schema_version });
+            return Err(AuditConventionError::InvalidSchemaVersion {
+                found: self.schema_version,
+            });
         }
         if self.operation_version == 0 {
-            return Err(AuditConventionError::InvalidOperationVersion { found: self.operation_version });
+            return Err(AuditConventionError::InvalidOperationVersion {
+                found: self.operation_version,
+            });
         }
         let op = self.operation_type.as_str();
         let valid = !op.is_empty()
-            && op.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_');
+            && op
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_');
         if !valid {
             return Err(AuditConventionError::InvalidOperationType {
                 found: self.operation_type.clone(),

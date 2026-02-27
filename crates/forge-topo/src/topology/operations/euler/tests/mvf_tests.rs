@@ -3,9 +3,9 @@
 //! DOMAIN: MVF is the atomic origin — every halfedge mesh starts here.
 //! These tests verify that the seed state is fully wired and stamped.
 
-use crate::state::TopologyState;
-use crate::operator::apply_op;
 use crate::euler::make_vertex_face::MakeVertexFace;
+use crate::operator::apply_op;
+use crate::state::TopologyState;
 
 use super::helpers::logged_op;
 
@@ -47,14 +47,27 @@ fn mvf_stamps_lineage_on_all_entities() {
 
     let out = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
 
-    let v_lineage  = draft.arena().get_vertex(out.vertex).unwrap().lineage().unwrap();
-    let f_lineage  = draft.arena().get_face(out.face).unwrap().lineage().unwrap();
-    let he_lineage = draft.arena().get_half_edge(out.half_edge).unwrap().lineage().unwrap();
+    let v_lineage = draft
+        .arena()
+        .get_vertex(out.vertex)
+        .unwrap()
+        .lineage()
+        .unwrap();
+    let f_lineage = draft.arena().get_face(out.face).unwrap().lineage().unwrap();
+    let he_lineage = draft
+        .arena()
+        .get_half_edge(out.half_edge)
+        .unwrap()
+        .lineage()
+        .unwrap();
 
-    assert_eq!(v_lineage.get_creation_op().get_name(),  "make_vertex_face");
-    assert_eq!(f_lineage.get_creation_op().get_name(),  "make_vertex_face");
+    assert_eq!(v_lineage.get_creation_op().get_name(), "make_vertex_face");
+    assert_eq!(f_lineage.get_creation_op().get_name(), "make_vertex_face");
     assert_eq!(he_lineage.get_creation_op().get_name(), "make_vertex_face");
 
     assert_eq!(v_lineage.get_ancestry_hash(), f_lineage.get_ancestry_hash());
-    assert_eq!(f_lineage.get_ancestry_hash(), he_lineage.get_ancestry_hash());
+    assert_eq!(
+        f_lineage.get_ancestry_hash(),
+        he_lineage.get_ancestry_hash()
+    );
 }

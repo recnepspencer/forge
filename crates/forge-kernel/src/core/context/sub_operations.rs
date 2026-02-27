@@ -3,9 +3,9 @@
 //! DOMAIN: Pulling metadata from child OperationResult envelopes into the context.
 //! INVARIANTS: Absorption is a true drain — child metadata is removed to prevent double-counting.
 
-use forge_core::{DecisionLog, DecisionId};
 use forge_core::envelope::{KernelWarning, OperationMetrics, OperationResult};
 use forge_core::tracing::{TraceAdjunctRecord, TraceAdjunctSet};
+use forge_core::{DecisionId, DecisionLog};
 
 use super::schema::{ModelingContext, SubOperationMetadata};
 
@@ -69,7 +69,7 @@ impl ModelingContext {
             let metrics = op.take_metrics();
             crate::core::tracing::KernelSpan::add_metrics(metrics.clone());
             crate::core::tracing::KernelSpan::record_lineage_delta(op.take_lineage_delta());
-            
+
             // Still accumulate the budget here for the check_budget function
             self.sub_accumulated_error_budget += op.take_accumulated_budget();
             return;

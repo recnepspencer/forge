@@ -11,9 +11,9 @@ use forge_math::sign::TriSign;
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::FaceId;
 
-use crate::geometry_state::GeometryState;
-use crate::core::ToleranceConfig;
 use super::signs::exact_sign_for_vertex;
+use crate::core::ToleranceConfig;
+use crate::geometry_state::GeometryState;
 
 /// Gate: does the cut_plane produce an interior chord segment in this face?
 ///
@@ -60,7 +60,13 @@ fn try_cyrus_beck_clip(
     let fo_b = cut_plane.offset();
     let min_chord = config.get_min_edge_length();
 
-    let (line_pt, line_dir) = match forge_geom::compute_intersection_line(fn_a, fo_a, fn_b, fo_b, config.get_degeneracy()) {
+    let (line_pt, line_dir) = match forge_geom::compute_intersection_line(
+        fn_a,
+        fo_a,
+        fn_b,
+        fo_b,
+        config.get_degeneracy(),
+    ) {
         None => return Ok(None),
         Some(l) => l,
     };
@@ -71,11 +77,7 @@ fn try_cyrus_beck_clip(
     }
 
     let chord = forge_geom::algorithms::clipping::clip_line_to_polygon(
-        line_pt,
-        line_dir,
-        &verts,
-        fn_a,
-        min_chord,
+        line_pt, line_dir, &verts, fn_a, min_chord,
     );
     if chord.is_some() {
         return Ok(chord);
@@ -83,11 +85,7 @@ fn try_cyrus_beck_clip(
 
     let fn_a_neg = [-fn_a[0], -fn_a[1], -fn_a[2]];
     Ok(forge_geom::algorithms::clipping::clip_line_to_polygon(
-        line_pt,
-        line_dir,
-        &verts,
-        fn_a_neg,
-        min_chord,
+        line_pt, line_dir, &verts, fn_a_neg, min_chord,
     ))
 }
 
@@ -115,17 +113,23 @@ fn try_sign_walk_fallback(
         let origin = outer_loop[i];
         let dest = outer_loop[(i + 1) % n];
 
-        if let (Some(p_o), Some(p_d)) = (geometry.get_vertex_position(origin), geometry.get_vertex_position(dest)) {
+        if let (Some(p_o), Some(p_d)) = (
+            geometry.get_vertex_position(origin),
+            geometry.get_vertex_position(dest),
+        ) {
             // Cut plane index is not known in try_sign_walk_fallback currently,
             // so we pass `std::usize::MAX` to bypass the symbolic check in this pure fallback context.
             let s_o = exact_sign_for_vertex(geometry, origin, p_o, cut_plane, std::usize::MAX);
             let s_d = exact_sign_for_vertex(geometry, dest, p_d, cut_plane, std::usize::MAX);
 
             let is_crossing = (s_o == TriSign::Pos && s_d == TriSign::Neg)
-                           || (s_o == TriSign::Neg && s_d == TriSign::Pos);
+                || (s_o == TriSign::Neg && s_d == TriSign::Pos);
             if is_crossing {
                 let mid = forge_geom::primitives::plane::intersect_edge_plane(
-                    cut_plane, p_o, p_d, config.get_edge_split_degeneracy(),
+                    cut_plane,
+                    p_o,
+                    p_d,
+                    config.get_edge_split_degeneracy(),
                 );
                 crossings.push(mid);
             } else if s_o == TriSign::Zero {

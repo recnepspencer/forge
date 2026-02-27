@@ -86,12 +86,7 @@ impl Default for MetalOpts {
 ///
 /// This adds a `Shape::Callback` that uses the metallic WGSL fragment shader
 /// to render a brushed-metal rectangle with gradient, highlight, and rim effects.
-pub fn paint_metal_rect(
-    ui: &mut egui::Ui,
-    rect: Rect,
-    base_color: Color32,
-    opts: &MetalOpts,
-) {
+pub fn paint_metal_rect(ui: &mut egui::Ui, rect: Rect, base_color: Color32, opts: &MetalOpts) {
     let time = ui.input(|i| i.time) as f32;
     let ppp = ui.ctx().pixels_per_point();
 
@@ -126,15 +121,10 @@ pub fn paint_metal_rect(
     // Emit the blur-capture callback first — its prepare() submits the
     // two-pass Gaussian blur before the render pass begins, so the blurred
     // backdrop texture is ready when the glass shader runs.
-    let blur_trigger = egui_wgpu::Callback::new_paint_callback(
-        rect,
-        BlurCaptureCallback,
-    );
+    let blur_trigger = egui_wgpu::Callback::new_paint_callback(rect, BlurCaptureCallback);
     ui.painter().add(blur_trigger);
 
-    let glass_callback = egui_wgpu::Callback::new_paint_callback(
-        rect,
-        MetalShaderCallback::new(uniforms),
-    );
+    let glass_callback =
+        egui_wgpu::Callback::new_paint_callback(rect, MetalShaderCallback::new(uniforms));
     ui.painter().add(glass_callback);
 }

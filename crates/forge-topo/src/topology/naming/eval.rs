@@ -52,39 +52,47 @@ pub fn resolve_selector(arena: &TopologyArena, selector: &Selector) -> Vec<Entit
 pub fn assign_name(arena: &TopologyArena, key: EntityKey) -> Result<PersistentName, KernelError> {
     let (hash, kind) = match key {
         EntityKey::Face(fid) => {
-            let lineage = arena.get_face(fid)?
-                .lineage()
-                .ok_or_else(|| KernelError::InvalidInput {
-                    message: format!("Face {:?} has no lineage for naming", fid),
-                    context: None,
-                })?;
+            let lineage =
+                arena
+                    .get_face(fid)?
+                    .lineage()
+                    .ok_or_else(|| KernelError::InvalidInput {
+                        message: format!("Face {:?} has no lineage for naming", fid),
+                        context: None,
+                    })?;
             (lineage.get_ancestry_hash(), EntityKind::Face)
         }
         EntityKey::Vertex(vid) => {
-            let lineage = arena.get_vertex(vid)?
-                .lineage()
-                .ok_or_else(|| KernelError::InvalidInput {
-                    message: format!("Vertex {:?} has no lineage for naming", vid),
-                    context: None,
-                })?;
+            let lineage =
+                arena
+                    .get_vertex(vid)?
+                    .lineage()
+                    .ok_or_else(|| KernelError::InvalidInput {
+                        message: format!("Vertex {:?} has no lineage for naming", vid),
+                        context: None,
+                    })?;
             (lineage.get_ancestry_hash(), EntityKind::Vertex)
         }
         EntityKey::Edge(eid) => {
-            let lineage = arena.get_edge(eid)?
-                .lineage()
-                .ok_or_else(|| KernelError::InvalidInput {
-                    message: format!("Edge {:?} has no lineage for naming", eid),
-                    context: None,
-                })?;
+            let lineage =
+                arena
+                    .get_edge(eid)?
+                    .lineage()
+                    .ok_or_else(|| KernelError::InvalidInput {
+                        message: format!("Edge {:?} has no lineage for naming", eid),
+                        context: None,
+                    })?;
             (lineage.get_ancestry_hash(), EntityKind::Edge)
         }
         EntityKey::Shell(sid) => {
-            let lineage = arena.get_shell(sid)?
-                .lineage()
-                .ok_or_else(|| KernelError::InvalidInput {
-                    message: format!("Shell {:?} has no lineage for naming", sid),
-                    context: None,
-                })?;
+            let lineage =
+                arena
+                    .get_shell(sid)?
+                    .lineage()
+                    .ok_or_else(|| KernelError::InvalidInput {
+                        message: format!("Shell {:?} has no lineage for naming", sid),
+                        context: None,
+                    })?;
             (lineage.get_ancestry_hash(), EntityKind::Shell)
         }
     };
@@ -96,17 +104,11 @@ pub fn assign_name(arena: &TopologyArena, key: EntityKey) -> Result<PersistentNa
 
 fn evaluate_selector(arena: &TopologyArena, sel: &Selector) -> Vec<EntityKey> {
     match sel {
-        Selector::ByAncestry { hash, kind } => {
-            collect_by_ancestry(arena, *hash, *kind)
-        }
+        Selector::ByAncestry { hash, kind } => collect_by_ancestry(arena, *hash, *kind),
 
-        Selector::ByFeature { feature_id, kind } => {
-            collect_by_feature(arena, *feature_id, *kind)
-        }
+        Selector::ByFeature { feature_id, kind } => collect_by_feature(arena, *feature_id, *kind),
 
-        Selector::ByOperation { op_name, kind } => {
-            collect_by_operation(arena, op_name, *kind)
-        }
+        Selector::ByOperation { op_name, kind } => collect_by_operation(arena, op_name, *kind),
 
         Selector::And(a, b) => {
             let left = evaluate_selector(arena, a);
@@ -114,7 +116,9 @@ fn evaluate_selector(arena: &TopologyArena, sel: &Selector) -> Vec<EntityKey> {
             // Intersection by sort key
             let right_keys: std::collections::BTreeSet<u128> =
                 right.iter().map(entity_key_sort_key).collect();
-            left.into_iter().filter(|k| right_keys.contains(&entity_key_sort_key(k))).collect()
+            left.into_iter()
+                .filter(|k| right_keys.contains(&entity_key_sort_key(k)))
+                .collect()
         }
 
         Selector::Or(a, b) => {
@@ -128,9 +132,11 @@ fn evaluate_selector(arena: &TopologyArena, sel: &Selector) -> Vec<EntityKey> {
 // ── Per-kind lineage scanners ─────────────────────────────────────────────────
 
 fn resolve_faces(arena: &TopologyArena, hash: u128) -> Vec<EntityKey> {
-    arena.iter_faces()
+    arena
+        .iter_faces()
         .filter(|(_, fdata)| {
-            fdata.lineage()
+            fdata
+                .lineage()
                 .map(|l| l.get_ancestry_hash() == hash)
                 .unwrap_or(false)
         })
@@ -139,9 +145,11 @@ fn resolve_faces(arena: &TopologyArena, hash: u128) -> Vec<EntityKey> {
 }
 
 fn resolve_vertices(arena: &TopologyArena, hash: u128) -> Vec<EntityKey> {
-    arena.iter_vertices()
+    arena
+        .iter_vertices()
         .filter(|(_, vdata)| {
-            vdata.lineage()
+            vdata
+                .lineage()
                 .map(|l| l.get_ancestry_hash() == hash)
                 .unwrap_or(false)
         })
@@ -150,9 +158,11 @@ fn resolve_vertices(arena: &TopologyArena, hash: u128) -> Vec<EntityKey> {
 }
 
 fn resolve_edges(arena: &TopologyArena, hash: u128) -> Vec<EntityKey> {
-    arena.iter_edges()
+    arena
+        .iter_edges()
         .filter(|(_, edata)| {
-            edata.lineage()
+            edata
+                .lineage()
                 .map(|l| l.get_ancestry_hash() == hash)
                 .unwrap_or(false)
         })
@@ -176,15 +186,18 @@ fn collect_by_feature(arena: &TopologyArena, feature_id: u64, kind: EntityKind) 
             .unwrap_or(false)
     };
     match kind {
-        EntityKind::Face => arena.iter_faces()
+        EntityKind::Face => arena
+            .iter_faces()
             .filter(|(_, d)| matches_feature(d.lineage()))
             .map(|(id, _)| EntityKey::Face(id))
             .collect(),
-        EntityKind::Vertex => arena.iter_vertices()
+        EntityKind::Vertex => arena
+            .iter_vertices()
             .filter(|(_, d)| matches_feature(d.lineage()))
             .map(|(id, _)| EntityKey::Vertex(id))
             .collect(),
-        EntityKind::Edge => arena.iter_edges()
+        EntityKind::Edge => arena
+            .iter_edges()
             .filter(|(_, d)| matches_feature(d.lineage()))
             .map(|(id, _)| EntityKey::Edge(id))
             .collect(),
@@ -199,15 +212,18 @@ fn collect_by_operation(arena: &TopologyArena, op_name: &str, kind: EntityKind) 
             .unwrap_or(false)
     };
     match kind {
-        EntityKind::Face => arena.iter_faces()
+        EntityKind::Face => arena
+            .iter_faces()
             .filter(|(_, d)| matches_op(d.lineage()))
             .map(|(id, _)| EntityKey::Face(id))
             .collect(),
-        EntityKind::Vertex => arena.iter_vertices()
+        EntityKind::Vertex => arena
+            .iter_vertices()
             .filter(|(_, d)| matches_op(d.lineage()))
             .map(|(id, _)| EntityKey::Vertex(id))
             .collect(),
-        EntityKind::Edge => arena.iter_edges()
+        EntityKind::Edge => arena
+            .iter_edges()
             .filter(|(_, d)| matches_op(d.lineage()))
             .map(|(id, _)| EntityKey::Edge(id))
             .collect(),
@@ -221,8 +237,8 @@ fn collect_by_operation(arena: &TopologyArena, op_name: &str, kind: EntityKind) 
 fn entity_key_sort_key(key: &EntityKey) -> u128 {
     let (kind_tag, idx) = match key {
         EntityKey::Shell(id) => (0u128, id.index()),
-        EntityKey::Face(id)   => (1u128, id.index()),
-        EntityKey::Edge(id)   => (2u128, id.index()),
+        EntityKey::Face(id) => (1u128, id.index()),
+        EntityKey::Edge(id) => (2u128, id.index()),
         EntityKey::Vertex(id) => (3u128, id.index()),
     };
     (kind_tag << 32) | (idx as u128)

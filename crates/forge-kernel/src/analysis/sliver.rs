@@ -5,10 +5,10 @@
 //!
 //! DEPENDENCIES: `forge-topo` (arena, handles), `geometry_state` (vertex positions)
 
+use crate::geometry_state::GeometryState;
 use forge_core::KernelError;
 use forge_topo::handles::FaceId;
 use forge_topo::state::TopologyState;
-use crate::geometry_state::GeometryState;
 
 /// Result of sliver analysis on a topology.
 #[derive(Debug, Clone)]
@@ -129,12 +129,11 @@ fn collect_loop_positions(
     Ok(positions)
 }
 
-
 #[cfg(test)]
 mod tests {
+    use super::analyze_slivers;
     use crate::geometry_state::GeometryState;
     use forge_topo::state::TopologyState;
-    use super::analyze_slivers;
 
     // Unit tests for polygon area are now in forge-geom.
     // We only test the integration here if needed.
@@ -153,21 +152,14 @@ mod tests {
 
     #[test]
     fn triangle_area() {
-        let verts = [
-            [0.0, 0.0, 0.0],
-            [2.0, 0.0, 0.0],
-            [0.0, 3.0, 0.0],
-        ];
+        let verts = [[0.0, 0.0, 0.0], [2.0, 0.0, 0.0], [0.0, 3.0, 0.0]];
         let area = forge_geom::primitives::polygon::compute_polygon_area(&verts);
         assert!((area - 3.0).abs() < 1e-10, "Expected 3.0, got {area}");
     }
 
     #[test]
     fn degenerate_line_has_zero_area() {
-        let verts = [
-            [0.0, 0.0, 0.0],
-            [1.0, 0.0, 0.0],
-        ];
+        let verts = [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]];
         let area = forge_geom::primitives::polygon::compute_polygon_area(&verts);
         assert!(area < 1e-15, "Expected 0, got {area}");
     }

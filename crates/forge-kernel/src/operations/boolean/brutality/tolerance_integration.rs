@@ -21,10 +21,8 @@
 
 use forge_core::DecisionKind;
 
-use super::super::test_helpers::{
-    build_cube, execute_boolean_logged, euler_audit,
-};
 use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::test_helpers::{build_cube, euler_audit, execute_boolean_logged};
 
 // ══════════════════════════════════════════════════════════════
 // §TI-1  BUDGET ACCUMULATION: CHAINED NEAR-COINCIDENT BOOLEANS
@@ -51,11 +49,7 @@ fn ti1_budget_accumulation_chained_near_coincident() {
         let offset_x = step as f64 * (2.0 - epsilon);
         let (topo_tool, geom_tool) = build_cube([offset_x, 0.0, 0.0], 1.0);
 
-        let input = BooleanInput::new(
-            topo, geom,
-            topo_tool, geom_tool,
-            BooleanOp::Union,
-        );
+        let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
 
         let envelope = execute_boolean_logged(input);
         let budget = envelope.get_accumulated_budget();
@@ -98,15 +92,13 @@ fn ti2_decision_log_records_near_boundary() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
     let (topo_b, geom_b) = build_cube([2.0, 0.0, 0.0], 1.0);
 
-    let input = BooleanInput::new(
-        topo_a, geom_a,
-        topo_b, geom_b,
-        BooleanOp::Union,
-    );
+    let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
 
     let envelope = execute_boolean_logged(input);
 
-    let near_boundary_count = envelope.get_decision_log().decisions()
+    let near_boundary_count = envelope
+        .get_decision_log()
+        .decisions()
         .filter(|d| matches!(d.get_kind(), DecisionKind::NearBoundary { .. }))
         .count();
 
@@ -140,15 +132,13 @@ fn ti3_coincidence_flush_face_merge() {
     let input_face_count = topo_a.arena().face_count() + topo_b.arena().face_count();
     assert_eq!(input_face_count, 12, "Two cubes should have 12 total faces");
 
-    let input = BooleanInput::new(
-        topo_a, geom_a,
-        topo_b, geom_b,
-        BooleanOp::Union,
-    );
+    let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
 
-    let result = execute_boolean_logged(input).into_result().unwrap_or_else(|e| {
-        panic!("TI-3 boolean failed: {e:?}");
-    });
+    let result = execute_boolean_logged(input)
+        .into_result()
+        .unwrap_or_else(|e| {
+            panic!("TI-3 boolean failed: {e:?}");
+        });
 
     let (_v, _e, f, chi) = euler_audit(result.topology().arena());
     assert_eq!(chi, 2, "TI-3 Euler violation: χ={chi}");
@@ -182,23 +172,21 @@ fn ti4_gap_measurement_on_boolean_cavity() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 3.0);
     let (topo_b, geom_b) = build_cube([0.0, 0.0, 0.0], 1.0);
 
-    let input = BooleanInput::new(
-        topo_a, geom_a,
-        topo_b, geom_b,
-        BooleanOp::Subtraction,
-    );
+    let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Subtraction);
 
-    let result = execute_boolean_logged(input).into_result().unwrap_or_else(|e| {
-        panic!("TI-4 subtraction failed: {e:?}");
-    });
+    let result = execute_boolean_logged(input)
+        .into_result()
+        .unwrap_or_else(|e| {
+            panic!("TI-4 subtraction failed: {e:?}");
+        });
 
     let (topo_result, geom_result, _) = result.into_states();
 
     // Find the +X outer face (normal ≈ [1,0,0], offset ≈ 3)
     let outer_face = topo_result.arena().iter_faces().find(|(f, _)| {
-        geom_result.get_face_plane(*f).map_or(false, |p| {
-            p.normal()[0] > 0.9 && p.offset().abs() > 2.5
-        })
+        geom_result
+            .get_face_plane(*f)
+            .map_or(false, |p| p.normal()[0] > 0.9 && p.offset().abs() > 2.5)
     });
 
     // Find the +X inner face (normal ≈ [-1,0,0] or [1,0,0], offset ≈ 1)
@@ -211,16 +199,24 @@ fn ti4_gap_measurement_on_boolean_cavity() {
     if let (Some((face_outer, _)), Some((face_inner, _))) = (outer_face, inner_face) {
         let mut ctx = ModelingContext::new();
         let report = measure_gap(
-            face_outer, &topo_result, &geom_result,
-            face_inner, &topo_result, &geom_result,
+            face_outer,
+            &topo_result,
+            &geom_result,
+            face_inner,
+            &topo_result,
+            &geom_result,
             GapSampleDensity::Medium,
             &mut ctx,
-        ).into_value().unwrap_or_else(|e| {
+        )
+        .into_value()
+        .unwrap_or_else(|e| {
             panic!("TI-4 gap measurement failed: {e:?}");
         });
 
-        eprintln!("[TI-4] Gap between outer/inner +X faces: min={:.6} max={:.6} mean={:.6}",
-            report.min_gap_mm, report.max_gap_mm, report.mean_gap_mm);
+        eprintln!(
+            "[TI-4] Gap between outer/inner +X faces: min={:.6} max={:.6} mean={:.6}",
+            report.min_gap_mm, report.max_gap_mm, report.mean_gap_mm
+        );
 
         assert!(
             !report.has_overlap,
@@ -232,8 +228,10 @@ fn ti4_gap_measurement_on_boolean_cavity() {
             report.mean_gap_mm
         );
     } else {
-        eprintln!("[TI-4] Could not locate distinct outer/inner +X faces — \
-                   subtraction may have merged them. Skipping gap check.");
+        eprintln!(
+            "[TI-4] Could not locate distinct outer/inner +X faces — \
+                   subtraction may have merged them. Skipping gap check."
+        );
     }
 }
 
@@ -258,11 +256,7 @@ fn ti5_deterministic_tolerance_decisions() {
         let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
         let (topo_b, geom_b) = build_cube([1.5, 0.0, 0.0], 1.0);
 
-        let input = BooleanInput::new(
-            topo_a, geom_a,
-            topo_b, geom_b,
-            BooleanOp::Union,
-        );
+        let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
 
         let envelope = execute_boolean_logged(input);
         let d_count = envelope.get_decision_log().decisions().count();
@@ -298,12 +292,15 @@ fn ti5_deterministic_tolerance_decisions() {
             (budget_values[0] - budget_values[i]).abs() < 1e-15,
             "TI-5: Budget diverged between run 0 ({:.2e}) and run {i} ({:.2e}). \
              Non-deterministic accumulation!",
-            budget_values[0], budget_values[i]
+            budget_values[0],
+            budget_values[i]
         );
     }
 
-    eprintln!("[TI-5] All 5 runs identical: {} decisions, {} faces, {:.2e} budget",
-        decision_counts[0], face_counts[0], budget_values[0]);
+    eprintln!(
+        "[TI-5] All 5 runs identical: {} decisions, {} faces, {:.2e} budget",
+        decision_counts[0], face_counts[0], budget_values[0]
+    );
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -327,11 +324,7 @@ fn ti6_scale_extremes_million_ratio() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 500.0);
     let (topo_b, geom_b) = build_cube([0.0, 0.0, 0.0], 0.0005);
 
-    let input = BooleanInput::new(
-        topo_a, geom_a,
-        topo_b, geom_b,
-        BooleanOp::Subtraction,
-    );
+    let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Subtraction);
 
     let envelope = execute_boolean_logged(input);
     let budget = envelope.get_accumulated_budget();

@@ -9,8 +9,8 @@ mod tests {
     use forge_geom::Plane;
     use forge_topo::handles::{FaceId, VertexId};
 
-    use crate::core::{KernelState, KernelDraft};
-    use crate::geometry_state::{GeometryState, GeometryPatch, ExactPosition};
+    use crate::core::{KernelDraft, KernelState};
+    use crate::geometry_state::{ExactPosition, GeometryPatch, GeometryState};
 
     fn make_plane(nx: f64, ny: f64, nz: f64, d: f64) -> Plane {
         Plane::try_new([nx, ny, nz], d).unwrap()
@@ -32,7 +32,10 @@ mod tests {
         let mut patch = GeometryPatch::new(base);
         let f = face(0);
         patch.set_face_plane(f, make_plane(0.0, 0.0, 1.0, 2.0));
-        assert!(patch.get_face_plane(f).is_some(), "inserted plane must be visible in patch");
+        assert!(
+            patch.get_face_plane(f).is_some(),
+            "inserted plane must be visible in patch"
+        );
     }
 
     #[test]
@@ -63,7 +66,10 @@ mod tests {
         patch.set_face_plane(f, make_plane(1.0, 0.0, 0.0, -0.5));
 
         let committed = patch.commit();
-        assert!(committed.get_face_plane(f).is_some(), "committed state must contain inserted plane");
+        assert!(
+            committed.get_face_plane(f).is_some(),
+            "committed state must contain inserted plane"
+        );
     }
 
     #[test]
@@ -76,7 +82,10 @@ mod tests {
         patch.remove_face_plane(f);
 
         let committed = patch.commit();
-        assert!(committed.get_face_plane(f).is_none(), "committed state must not contain removed plane");
+        assert!(
+            committed.get_face_plane(f).is_none(),
+            "committed state must not contain removed plane"
+        );
     }
 
     #[test]
@@ -90,7 +99,11 @@ mod tests {
         let mut patch = GeometryPatch::new(base);
         patch.set_vertex_position(v, ExactPosition::from_f64([9.0, 9.0, 9.0]));
 
-        assert_eq!(patch.get_vertex_position(v), Some(&[9.0, 9.0, 9.0]), "patch must show mutated position");
+        assert_eq!(
+            patch.get_vertex_position(v),
+            Some(&[9.0, 9.0, 9.0]),
+            "patch must show mutated position"
+        );
 
         let recovered = patch.rollback();
         assert_eq!(
@@ -108,7 +121,10 @@ mod tests {
         patch.set_vertex_position(v, ExactPosition::from_f64([4.0, 5.0, 6.0]));
 
         let committed = patch.commit();
-        assert!(committed.get_vertex_position(v).is_some(), "committed state must contain inserted vertex");
+        assert!(
+            committed.get_vertex_position(v).is_some(),
+            "committed state must contain inserted vertex"
+        );
     }
 
     #[test]
@@ -142,7 +158,9 @@ mod tests {
         let mut draft = KernelDraft::new(state);
 
         // Mutate geometry inside draft
-        draft.geometry_mut().set_face_plane(f, make_plane(1.0, 0.0, 0.0, 99.0));
+        draft
+            .geometry_mut()
+            .set_face_plane(f, make_plane(1.0, 0.0, 0.0, 99.0));
         assert!(
             (draft.geometry().get_face_plane(f).unwrap().normal()[0] - 1.0).abs() < 1e-10,
             "mutation visible inside draft"
@@ -163,7 +181,9 @@ mod tests {
         let state = empty_kernel_state();
         let mut draft = KernelDraft::new(state);
         let f = face(3);
-        draft.geometry_mut().set_face_plane(f, make_plane(0.0, 1.0, 0.0, -1.0));
+        draft
+            .geometry_mut()
+            .set_face_plane(f, make_plane(0.0, 1.0, 0.0, -1.0));
 
         let committed = draft.commit().unwrap();
         assert!(
@@ -181,7 +201,9 @@ mod tests {
 
         let state = KernelState::new(forge_topo::state::TopologyState::empty(), base_geom);
         let mut draft = KernelDraft::new(state);
-        draft.geometry_mut().set_face_plane(f, make_plane(0.0, 0.0, 1.0, 999.0));
+        draft
+            .geometry_mut()
+            .set_face_plane(f, make_plane(0.0, 0.0, 1.0, 999.0));
 
         let restored = draft.rollback();
         let d_after = restored.geometry().get_face_plane(f).unwrap().offset();
@@ -209,8 +231,12 @@ mod tests {
         patch.set_face_plane(f_gen1, make_plane(0.0, 0.0, 1.0, 10.0));
         patch.set_face_plane(f_gen2, make_plane(1.0, 0.0, 0.0, 20.0));
 
-        let p1 = patch.get_face_plane(f_gen1).expect("gen1 face must be visible");
-        let p2 = patch.get_face_plane(f_gen2).expect("gen2 face must be visible");
+        let p1 = patch
+            .get_face_plane(f_gen1)
+            .expect("gen1 face must be visible");
+        let p2 = patch
+            .get_face_plane(f_gen2)
+            .expect("gen2 face must be visible");
 
         assert!(
             (p1.offset() - 10.0).abs() < 1e-10,
@@ -224,8 +250,14 @@ mod tests {
         );
 
         patch.remove_face_plane(f_gen1);
-        assert!(patch.get_face_plane(f_gen1).is_none(), "gen1 removed, must be invisible");
-        assert!(patch.get_face_plane(f_gen2).is_some(), "gen2 unaffected by gen1 remove");
+        assert!(
+            patch.get_face_plane(f_gen1).is_none(),
+            "gen1 removed, must be invisible"
+        );
+        assert!(
+            patch.get_face_plane(f_gen2).is_some(),
+            "gen2 unaffected by gen1 remove"
+        );
     }
 
     /// Nonzero-generation VertexId must round-trip through patch get/set/remove.
@@ -245,7 +277,11 @@ mod tests {
 
         patch.remove_vertex_position(v_gen0);
         assert!(patch.get_vertex_position(v_gen0).is_none(), "gen0 removed");
-        assert_eq!(patch.get_vertex_position(v_gen1), Some(&[0.0, 1.0, 0.0]), "gen1 unaffected");
+        assert_eq!(
+            patch.get_vertex_position(v_gen1),
+            Some(&[0.0, 1.0, 0.0]),
+            "gen1 unaffected"
+        );
     }
 
     // ─── Adversarial: mixed base+patch ABA ambiguity ────────────────────────
@@ -340,17 +376,26 @@ mod tests {
 
         let mut draft = KernelDraft::new(state);
         let sentinel_face = face(99);
-        draft.geometry_mut().set_face_plane(sentinel_face, make_plane(1.0, 0.0, 0.0, 42.0));
-        draft.geometry_mut().set_face_plane(f, make_plane(0.0, 1.0, 0.0, 55.0));
+        draft
+            .geometry_mut()
+            .set_face_plane(sentinel_face, make_plane(1.0, 0.0, 0.0, 42.0));
+        draft
+            .geometry_mut()
+            .set_face_plane(f, make_plane(0.0, 1.0, 0.0, 55.0));
 
         let rolled_back = draft.rollback();
 
         assert!(
-            rolled_back.geometry().get_face_plane(sentinel_face).is_none(),
+            rolled_back
+                .geometry()
+                .get_face_plane(sentinel_face)
+                .is_none(),
             "D3/PR3 regression: sentinel geometry mutation bled through rollback",
         );
 
-        let restored_plane = rolled_back.geometry().get_face_plane(f)
+        let restored_plane = rolled_back
+            .geometry()
+            .get_face_plane(f)
             .expect("original face plane must survive rollback");
 
         assert!(
@@ -429,7 +474,11 @@ mod tests {
         }
 
         assert_eq!(a & 0xFFFF_FFFF, 0, "index 0 should be in low 32 bits");
-        assert_eq!(a >> 32, u32::MAX as u64, "gen u32::MAX should be in high 32 bits");
+        assert_eq!(
+            a >> 32,
+            u32::MAX as u64,
+            "gen u32::MAX should be in high 32 bits"
+        );
     }
 
     /// Face index at gen=u32::MAX must roundtrip through patch get/set/remove.
@@ -445,7 +494,7 @@ mod tests {
         let f_gen0 = FaceId::from_raw_parts(0, 0);
 
         patch.set_face_plane(f_gen0, make_plane(0.0, 1.0, 0.0, 10.0));
-        patch.set_face_plane(f_max,  make_plane(0.0, 0.0, 1.0, 99.0));
+        patch.set_face_plane(f_max, make_plane(0.0, 0.0, 1.0, 99.0));
 
         // Two live entries for index 0 → ABA error
         let result = patch.get_plane(0);
@@ -485,7 +534,8 @@ mod tests {
         patch.remove_face_plane(f);
         patch.set_face_plane(f, make_plane(0.0, 0.0, 1.0, 99.0));
 
-        let plane = patch.get_face_plane(f)
+        let plane = patch
+            .get_face_plane(f)
             .expect("re-inserted face must be visible after remove+set");
         assert!(
             (plane.offset() - 99.0).abs() < 1e-10,
@@ -522,8 +572,14 @@ mod tests {
         patch1.set_face_plane(f_gen1, make_plane(1.0, 0.0, 0.0, 2.0));
         let after_commit1 = patch1.commit();
 
-        assert!(after_commit1.get_face_plane(f_gen0).is_none(), "gen0 gone after commit1");
-        assert!(after_commit1.get_face_plane(f_gen1).is_some(), "gen1 visible after commit1");
+        assert!(
+            after_commit1.get_face_plane(f_gen0).is_none(),
+            "gen0 gone after commit1"
+        );
+        assert!(
+            after_commit1.get_face_plane(f_gen1).is_some(),
+            "gen1 visible after commit1"
+        );
 
         // get_plane must resolve unambiguously
         assert!(
@@ -534,7 +590,10 @@ mod tests {
         // Draft 2: read-only, must see clean base
         let patch2 = GeometryPatch::new(after_commit1);
         assert!(patch2.get_face_plane(f_gen1).is_some(), "draft2 sees gen1");
-        assert!(patch2.get_face_plane(f_gen0).is_none(), "draft2 does not see gen0 ghost");
+        assert!(
+            patch2.get_face_plane(f_gen0).is_none(),
+            "draft2 does not see gen0 ghost"
+        );
     }
 
     // ─── Production scenario: commit of removes actually cleans the base ─────
@@ -557,7 +616,10 @@ mod tests {
 
         let mut patch = GeometryPatch::new(base);
         patch.remove_face_plane(f);
-        assert!(patch.get_face_plane(f).is_none(), "remove must shadow entry in patch view");
+        assert!(
+            patch.get_face_plane(f).is_none(),
+            "remove must shadow entry in patch view"
+        );
 
         let committed = patch.commit();
         assert!(

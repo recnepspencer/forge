@@ -1,7 +1,7 @@
 use forge_topo::state::TopologyState;
 
-use crate::geometry_state::GeometryState;
 use crate::brep::state::BrepState;
+use crate::geometry_state::GeometryState;
 
 /// Owned topology + geometry state bundle.
 ///

@@ -188,17 +188,14 @@ mod tests {
     fn intersection_line_of_xz_and_yz_planes() {
         // Plane X=0 (normal [1,0,0], offset=0) ∩ Plane Y=0 ([0,1,0], offset=0)
         // Intersection is the Z axis: dir=[0,0,1], point=[0,0,0].
-        let (pt, dir) = compute_intersection_line(
-            [1.0, 0.0, 0.0], 0.0,
-            [0.0, 1.0, 0.0], 0.0,
-            1e-12,
-        ).unwrap();
+        let (pt, dir) =
+            compute_intersection_line([1.0, 0.0, 0.0], 0.0, [0.0, 1.0, 0.0], 0.0, 1e-12).unwrap();
         assert!((dir[0]).abs() < TOL, "dir[0]={}", dir[0]);
         assert!((dir[1]).abs() < TOL, "dir[1]={}", dir[1]);
         assert!((dir[2].abs() - 1.0).abs() < TOL, "dir[2]={}", dir[2]);
         // Point must satisfy both plane equations.
-        let da = pt[0];    // x*1 + 0
-        let db = pt[1];    // y*1 + 0
+        let da = pt[0]; // x*1 + 0
+        let db = pt[1]; // y*1 + 0
         assert!(da.abs() < TOL, "point not on plane A: {}", da);
         assert!(db.abs() < TOL, "point not on plane B: {}", db);
     }
@@ -206,11 +203,7 @@ mod tests {
     #[test]
     fn parallel_planes_return_none() {
         // Two Z-planes at different offsets — parallel.
-        let result = compute_intersection_line(
-            [0.0, 0.0, 1.0], -5.0,
-            [0.0, 0.0, 1.0], -3.0,
-            1e-12,
-        );
+        let result = compute_intersection_line([0.0, 0.0, 1.0], -5.0, [0.0, 0.0, 1.0], -3.0, 1e-12);
         assert!(result.is_none());
     }
 
@@ -229,23 +222,19 @@ mod tests {
             [0.0, 1.0, 0.0],
         ];
         let face_normal = [0.0, 0.0, 1.0f64];
-        let (line_pt, line_dir) = compute_intersection_line(
-            [0.0, 0.0, 1.0], 0.0,
-            [1.0, 0.0, 0.0], -0.5,
-            1e-12,
-        ).unwrap();
-        let (p_start, p_end) = clip_line_to_face_polygon(
-            line_pt, line_dir, &verts, face_normal, MIN_CHORD,
-        ).unwrap();
+        let (line_pt, line_dir) =
+            compute_intersection_line([0.0, 0.0, 1.0], 0.0, [1.0, 0.0, 0.0], -0.5, 1e-12).unwrap();
+        let (p_start, p_end) =
+            clip_line_to_face_polygon(line_pt, line_dir, &verts, face_normal, MIN_CHORD).unwrap();
         // Both endpoints should have x=0.5 and z=0.
         assert!((p_start[0] - 0.5).abs() < TOL, "start.x={}", p_start[0]);
-        assert!((p_end[0]   - 0.5).abs() < TOL, "end.x={}",   p_end[0]);
+        assert!((p_end[0] - 0.5).abs() < TOL, "end.x={}", p_end[0]);
         assert!(p_start[2].abs() < TOL);
         assert!(p_end[2].abs() < TOL);
         // y coords should bracket [0, 1].
         let y_min = p_start[1].min(p_end[1]);
         let y_max = p_start[1].max(p_end[1]);
-        assert!(y_min < TOL,           "y_min={}", y_min);
+        assert!(y_min < TOL, "y_min={}", y_min);
         assert!((y_max - 1.0).abs() < TOL, "y_max={}", y_max);
     }
 
@@ -259,14 +248,9 @@ mod tests {
             [0.0, 1.0, 0.0],
         ];
         let face_normal = [0.0, 0.0, 1.0f64];
-        let (line_pt, line_dir) = compute_intersection_line(
-            [0.0, 0.0, 1.0], 0.0,
-            [1.0, 0.0, 0.0], -2.0,
-            1e-12,
-        ).unwrap();
-        let result = clip_line_to_face_polygon(
-            line_pt, line_dir, &verts, face_normal, MIN_CHORD,
-        );
+        let (line_pt, line_dir) =
+            compute_intersection_line([0.0, 0.0, 1.0], 0.0, [1.0, 0.0, 0.0], -2.0, 1e-12).unwrap();
+        let result = clip_line_to_face_polygon(line_pt, line_dir, &verts, face_normal, MIN_CHORD);
         assert!(result.is_none(), "Should miss outside face");
     }
 
@@ -284,14 +268,12 @@ mod tests {
             [0.0, 1.0, 0.0],
         ];
         let face_normal = [0.0, 0.0, 1.0f64];
-        let (line_pt, line_dir) = compute_intersection_line(
-            [0.0, 0.0, 1.0], 0.0,
-            [1.0, 0.0, 0.0], 0.0,
-            1e-12,
-        ).unwrap();
-        let result = clip_line_to_face_polygon(
-            line_pt, line_dir, &verts, face_normal, 1e-9,
+        let (line_pt, line_dir) =
+            compute_intersection_line([0.0, 0.0, 1.0], 0.0, [1.0, 0.0, 0.0], 0.0, 1e-12).unwrap();
+        let result = clip_line_to_face_polygon(line_pt, line_dir, &verts, face_normal, 1e-9);
+        assert!(
+            result.is_some(),
+            "Boundary chord at X=0 should be returned (length=1.0)"
         );
-        assert!(result.is_some(), "Boundary chord at X=0 should be returned (length=1.0)");
     }
 }

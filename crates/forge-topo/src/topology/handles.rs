@@ -35,8 +35,6 @@ use serde::{Deserialize, Serialize};
 /// ```
 macro_rules! define_handle {
     ($name:ident) => {
-
-
         /// A typed, generational handle for a topology entity.
         ///
         /// - `index`: slot position in the arena
@@ -44,7 +42,9 @@ macro_rules! define_handle {
         ///
         /// Handles are `Copy` (cheap to pass around) and safe (stale handles
         /// are detected by generation mismatch).
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+        #[derive(
+            Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize,
+        )]
         pub struct $name {
             index: u32,
             generation: u32,
@@ -78,7 +78,13 @@ macro_rules! define_handle {
 
         impl std::fmt::Display for $name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{}({}:gen{})", stringify!($name), self.index, self.generation)
+                write!(
+                    f,
+                    "{}({}:gen{})",
+                    stringify!($name),
+                    self.index,
+                    self.generation
+                )
             }
         }
     };

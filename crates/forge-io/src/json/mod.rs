@@ -10,13 +10,13 @@
 //! - `eval` — `save_model`, `load_model` functions
 //! - `diff` — Model diffing for version control
 
-pub mod schema;
-pub mod eval;
 pub mod diff;
+pub mod eval;
+pub mod schema;
 
 #[cfg(test)]
 pub(crate) mod tests;
 
+pub use diff::{diff_models, ModelChange};
+pub use eval::{load_model, save_model};
 pub use schema::{VersionedModel, SCHEMA_VERSION};
-pub use eval::{save_model, load_model};
-pub use diff::{ModelChange, diff_models};

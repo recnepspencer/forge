@@ -11,8 +11,8 @@
 //!               `forge-kernel::core` (ModelingContext),
 //!               `forge-core` (tracing types)
 
-use forge_core::{DecisionKind, DecisionTier, ToleranceProvider};
 use forge_core::policy::PolicyKind;
+use forge_core::{DecisionKind, DecisionTier, ToleranceProvider};
 use forge_geom::primitives::vertex_geom::VertexGeom;
 use forge_topo::handles::VertexId;
 
@@ -69,7 +69,6 @@ pub fn snap_or_coalesce_vertex(
     ctx: &mut ModelingContext,
     coalescence_threshold: f64,
 ) -> CoalescenceResult {
-
     let dx = candidate_pos[0] - existing_pos[0];
     let dy = candidate_pos[1] - existing_pos[1];
     let dz = candidate_pos[2] - existing_pos[2];
@@ -116,8 +115,8 @@ pub fn snap_or_coalesce_vertex(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use forge_core::ToleranceProvider;
     use crate::geometry_state::GeometryState;
+    use forge_core::ToleranceProvider;
 
     #[test]
     fn snap_when_inside_tolerance_sphere() {
@@ -162,7 +161,11 @@ mod tests {
         );
 
         match result {
-            CoalescenceResult::Coalesced { merged_tolerance, gap, .. } => {
+            CoalescenceResult::Coalesced {
+                merged_tolerance,
+                gap,
+                ..
+            } => {
                 assert!(merged_tolerance > 1e-10);
                 assert!((gap - 1e-6).abs() < 1e-12);
             }
@@ -214,7 +217,9 @@ mod tests {
         );
 
         match result {
-            CoalescenceResult::Coalesced { merged_tolerance, .. } => {
+            CoalescenceResult::Coalesced {
+                merged_tolerance, ..
+            } => {
                 assert!(merged_tolerance > 5e-9);
             }
             other => panic!("Expected Coalesced, got {:?}", other),

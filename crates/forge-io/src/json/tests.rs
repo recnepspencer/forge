@@ -5,11 +5,11 @@ mod tests {
     use std::fs::File;
     use std::io::{BufReader, BufWriter};
 
-    use crate::json::{save_model, load_model, VersionedModel, SCHEMA_VERSION};
+    use crate::json::{load_model, save_model, VersionedModel, SCHEMA_VERSION};
     use crate::IoError;
+    use forge_kernel::boolean::BooleanOp;
     use forge_kernel::engine::tree::{FeatureTree, NativeFeature};
     use forge_kernel::engine::wrappers::{BooleanFeature, MakeCubeFeature};
-    use forge_kernel::boolean::BooleanOp;
     use tempfile::tempdir;
 
     #[test]
@@ -17,10 +17,14 @@ mod tests {
         let mut tree = FeatureTree::new();
 
         let cube = MakeCubeFeature::new("Cube", [0.0, 0.0, 0.0], 10.0);
-        let cube_id = tree.register_feature(NativeFeature::MakeCube(cube)).unwrap();
+        let cube_id = tree
+            .register_feature(NativeFeature::MakeCube(cube))
+            .unwrap();
 
         let tool = MakeCubeFeature::new("Tool", [5.0, 5.0, 5.0], 5.0);
-        let tool_id = tree.register_feature(NativeFeature::MakeCube(tool)).unwrap();
+        let tool_id = tree
+            .register_feature(NativeFeature::MakeCube(tool))
+            .unwrap();
 
         let cut = BooleanFeature::new("Cut", BooleanOp::Subtraction, cube_id, tool_id);
         let _cut_id = tree.register_feature(NativeFeature::Boolean(cut)).unwrap();
@@ -43,9 +47,8 @@ mod tests {
         let path = dir.path().join("versioned.json");
         save_model(&tree, &path).expect("Failed to save");
 
-        let raw: serde_json::Value = serde_json::from_reader(
-            BufReader::new(File::open(&path).unwrap())
-        ).unwrap();
+        let raw: serde_json::Value =
+            serde_json::from_reader(BufReader::new(File::open(&path).unwrap())).unwrap();
 
         assert_eq!(raw["version"], SCHEMA_VERSION);
         assert!(raw["tree"].is_object());
@@ -54,10 +57,7 @@ mod tests {
     #[test]
     fn future_version_rejected() {
         let tree = FeatureTree::new();
-        let future_envelope = VersionedModel {
-            version: 999,
-            tree,
-        };
+        let future_envelope = VersionedModel { version: 999, tree };
 
         let dir = tempdir().unwrap();
         let path = dir.path().join("future.json");
@@ -90,7 +90,8 @@ mod tests {
     fn tc02_single_cube_round_trip() {
         let mut tree = FeatureTree::new();
         let cube = MakeCubeFeature::new("Box1", [1.0, 2.0, 3.0], 4.0);
-        tree.register_feature(NativeFeature::MakeCube(cube)).unwrap();
+        tree.register_feature(NativeFeature::MakeCube(cube))
+            .unwrap();
 
         let dir = tempdir().unwrap();
         let path = dir.path().join("tc02.json");
@@ -107,9 +108,11 @@ mod tests {
     fn tc03_two_features_round_trip() {
         let mut tree = FeatureTree::new();
         let cube = MakeCubeFeature::new("Base", [0.0, 0.0, 0.0], 10.0);
-        tree.register_feature(NativeFeature::MakeCube(cube)).unwrap();
+        tree.register_feature(NativeFeature::MakeCube(cube))
+            .unwrap();
         let tool = MakeCubeFeature::new("Cutter", [3.0, 3.0, 3.0], 5.0);
-        tree.register_feature(NativeFeature::MakeCube(tool)).unwrap();
+        tree.register_feature(NativeFeature::MakeCube(tool))
+            .unwrap();
 
         let dir = tempdir().unwrap();
         let path = dir.path().join("tc03.json");
@@ -127,9 +130,13 @@ mod tests {
     fn tc04_boolean_subtraction_round_trip() {
         let mut tree = FeatureTree::new();
         let cube = MakeCubeFeature::new("Body", [0.0, 0.0, 0.0], 10.0);
-        let cube_id = tree.register_feature(NativeFeature::MakeCube(cube)).unwrap();
+        let cube_id = tree
+            .register_feature(NativeFeature::MakeCube(cube))
+            .unwrap();
         let tool = MakeCubeFeature::new("Hole", [2.0, 2.0, 2.0], 4.0);
-        let tool_id = tree.register_feature(NativeFeature::MakeCube(tool)).unwrap();
+        let tool_id = tree
+            .register_feature(NativeFeature::MakeCube(tool))
+            .unwrap();
         let cut = BooleanFeature::new("Pocket", BooleanOp::Subtraction, cube_id, tool_id);
         tree.register_feature(NativeFeature::Boolean(cut)).unwrap();
 
@@ -150,9 +157,13 @@ mod tests {
     fn tc05_diffability_byte_identical() {
         let mut tree = FeatureTree::new();
         let cube = MakeCubeFeature::new("Part", [1.0, 2.0, 3.0], 7.0);
-        let cube_id = tree.register_feature(NativeFeature::MakeCube(cube)).unwrap();
+        let cube_id = tree
+            .register_feature(NativeFeature::MakeCube(cube))
+            .unwrap();
         let tool = MakeCubeFeature::new("Drill", [2.0, 3.0, 4.0], 3.0);
-        let tool_id = tree.register_feature(NativeFeature::MakeCube(tool)).unwrap();
+        let tool_id = tree
+            .register_feature(NativeFeature::MakeCube(tool))
+            .unwrap();
         let cut = BooleanFeature::new("Op", BooleanOp::Intersection, cube_id, tool_id);
         tree.register_feature(NativeFeature::Boolean(cut)).unwrap();
 
@@ -165,6 +176,9 @@ mod tests {
 
         let bytes_a = std::fs::read(&path_a).unwrap();
         let bytes_b = std::fs::read(&path_b).unwrap();
-        assert_eq!(bytes_a, bytes_b, "Two serializations of the same model must be byte-identical");
+        assert_eq!(
+            bytes_a, bytes_b,
+            "Two serializations of the same model must be byte-identical"
+        );
     }
 }

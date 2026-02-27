@@ -22,20 +22,23 @@
 
 use std::collections::HashMap;
 
-use forge_core::KernelError;
 use forge_core::tracing::{DecisionKind, DecisionTier};
-use forge_geom::Plane;
+use forge_core::KernelError;
 use forge_geom::spatial::bsp::{BspConfig, BspSolid, ConvexCell};
-use forge_topo::arena::{BodyData, LumpData, RegionData, FaceData, HalfEdgeData, VertexData, LoopData, ShellData, EdgeData, ShellKind, ShellOrientation};
+use forge_geom::Plane;
+use forge_topo::arena::{
+    BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
+    ShellKind, ShellOrientation, VertexData,
+};
 use forge_topo::bitset::EntityBitset;
-use forge_topo::handles::{FaceId, HalfEdgeId, VertexId, LoopId, ShellId, EdgeId};
-use forge_topo::state::{TopologyState, MutableDraft};
+use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
+use forge_topo::state::{MutableDraft, TopologyState};
 
+use super::checkpoint::validate_checkpoint;
+use crate::brep::state::BrepState;
 use crate::check_tolerance;
 use crate::core::ModelingContext;
 use crate::geometry_state::GeometryState;
-use crate::brep::state::BrepState;
-use super::checkpoint::validate_checkpoint;
 
 /// Convert a BspSolid into a halfedge mesh.
 ///
@@ -46,11 +49,12 @@ pub fn bsp_to_mesh(
     ctx: &mut ModelingContext,
 ) -> Result<(TopologyState, GeometryState, BrepState), KernelError> {
     let config = BspConfig::default();
-    let cells = forge_geom::spatial::bsp::extract_boundary_cells(solid, &config)
-        .map_err(|e| KernelError::InternalError {
+    let cells = forge_geom::spatial::bsp::extract_boundary_cells(solid, &config).map_err(|e| {
+        KernelError::InternalError {
             message: format!("BSP boundary extraction failed: {e}"),
             context: None,
-        })?;
+        }
+    })?;
 
     ctx.log_decision(
         DecisionKind::Exact,
@@ -61,7 +65,11 @@ pub fn bsp_to_mesh(
     );
 
     if cells.is_empty() {
-        return Ok((TopologyState::empty(), GeometryState::new(), BrepState::new()));
+        return Ok((
+            TopologyState::empty(),
+            GeometryState::new(),
+            BrepState::new(),
+        ));
     }
 
     if cells.len() == 1 {
@@ -100,8 +108,13 @@ fn build_multi_cell_mesh(
         let cell_planes = cell.planes();
 
         let cell_vertex_ids = insert_cell_vertices(
-            &mut draft, &mut geometry, &mut vertex_pool,
-            cell, cell_planes, tolerance, ctx,
+            &mut draft,
+            &mut geometry,
+            &mut vertex_pool,
+            cell,
+            cell_planes,
+            tolerance,
+            ctx,
         )?;
 
         let lump = draft.insert_lump(LumpData::new(body));
@@ -116,13 +129,25 @@ fn build_multi_cell_mesh(
         draft.arena_mut().get_region_mut(region)?.add_shell(shell);
 
         insert_cell_faces(
-            &mut draft, &mut geometry, &mut edge_map, &mut face_plane_map,
-            cell, &cell_vertex_ids, cell_planes, bsp_plane_indices,
-            shell, sentinel_he, sentinel_loop,
+            &mut draft,
+            &mut geometry,
+            &mut edge_map,
+            &mut face_plane_map,
+            cell,
+            &cell_vertex_ids,
+            cell_planes,
+            bsp_plane_indices,
+            shell,
+            sentinel_he,
+            sentinel_loop,
         )?;
-        
+
         if let Some((first_face, _)) = draft.arena().iter_faces().last() {
-             draft.arena_mut().get_shell_mut(shell).ok().map(|s| s.set_representative_face(first_face));
+            draft
+                .arena_mut()
+                .get_shell_mut(shell)
+                .ok()
+                .map(|s| s.set_representative_face(first_face));
         }
     }
 
@@ -191,15 +216,28 @@ fn insert_cell_vertices(
 
         if let Some((existing_vid, existing_pos)) = existing {
             let dist = forge_math::linalg::norm(forge_math::linalg::sub(pos, *existing_pos));
-            check_tolerance!(ctx, tolerance, dist, pos, DecisionKind::NearBoundary { threshold: tolerance });
+            check_tolerance!(
+                ctx,
+                tolerance,
+                dist,
+                pos,
+                DecisionKind::NearBoundary {
+                    threshold: tolerance
+                }
+            );
             cell_vertex_ids.push(*existing_vid);
         } else {
             let vid = draft.insert_vertex(VertexData::new(sentinel_he));
 
             let [pa, pb, pc] = vert.plane_indices();
-            let stored_exact = if pa < cell_planes.len() && pb < cell_planes.len() && pc < cell_planes.len() {
+            let stored_exact = if pa < cell_planes.len()
+                && pb < cell_planes.len()
+                && pc < cell_planes.len()
+            {
                 match forge_geom::primitives::plane::intersect_three_planes_exact(
-                    &cell_planes[pa], &cell_planes[pb], &cell_planes[pc],
+                    &cell_planes[pa],
+                    &cell_planes[pb],
+                    &cell_planes[pc],
                 ) {
                     Ok(exact_pos) => {
                         geometry.set_vertex_position_symbolic(vid, exact_pos, pos, [pa, pb, pc]);
@@ -245,10 +283,7 @@ fn insert_cell_faces(
 
         let face_id = draft.insert_face(FaceData::new(sentinel_loop, shell));
 
-        let loop_id = draft.insert_loop(LoopData::new(
-            sentinel_he,
-            face_id,
-        ));
+        let loop_id = draft.insert_loop(LoopData::new(sentinel_he, face_id));
 
         let local_plane_idx = cell_face.plane_idx();
         if local_plane_idx < cell_planes.len() {
@@ -284,12 +319,12 @@ fn insert_cell_faces(
                 origin,
                 EdgeId::from_raw_parts(u32::MAX, 0),
             ));
-            
-            // Allocate a temporary edge for this half-edge. 
+
+            // Allocate a temporary edge for this half-edge.
             // The cross-plane stitcher will merge these.
             let edge = draft.insert_edge(EdgeData::new(he_id));
             draft.arena_mut().get_half_edge_mut(he_id)?.set_edge(edge);
-            
+
             he_ids.push(he_id);
         }
 
@@ -303,15 +338,27 @@ fn insert_cell_faces(
 
             let origin_a = cell_vertex_ids[face_verts[i]];
             let origin_b = cell_vertex_ids[face_verts[next_i]];
-            edge_map.entry((origin_a, origin_b)).or_default().push(he_ids[i]);
+            edge_map
+                .entry((origin_a, origin_b))
+                .or_default()
+                .push(he_ids[i]);
         }
 
-        draft.arena_mut().get_face_mut(face_id)?.set_outer_loop(loop_id);
-        draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(he_ids[0]);
+        draft
+            .arena_mut()
+            .get_face_mut(face_id)?
+            .set_outer_loop(loop_id);
+        draft
+            .arena_mut()
+            .get_loop_mut(loop_id)?
+            .set_half_edge(he_ids[0]);
 
         for &he_id in &he_ids {
             let origin = draft.arena().get_half_edge(he_id)?.origin();
-            draft.arena_mut().get_vertex_mut(origin)?.set_outgoing(he_id);
+            draft
+                .arena_mut()
+                .get_vertex_mut(origin)?
+                .set_outgoing(he_id);
         }
     }
 
@@ -330,7 +377,6 @@ fn stitch_twins_cross_plane(
     edge_map: &HashMap<(VertexId, VertexId), Vec<HalfEdgeId>>,
     face_plane_map: &HashMap<FaceId, usize>,
 ) -> Result<(), KernelError> {
-
     for (&(a, b), fwd_ids) in edge_map {
         // Only process each edge pair once (a < b direction)
         if a.index() > b.index() {
@@ -350,8 +396,14 @@ fn stitch_twins_cross_plane(
         };
 
         if fwd_ids.len() == 1 && rev_ids.len() == 1 {
-            draft.arena_mut().get_half_edge_mut(fwd_ids[0])?.set_radial_next(rev_ids[0]);
-            draft.arena_mut().get_half_edge_mut(rev_ids[0])?.set_radial_next(fwd_ids[0]);
+            draft
+                .arena_mut()
+                .get_half_edge_mut(fwd_ids[0])?
+                .set_radial_next(rev_ids[0]);
+            draft
+                .arena_mut()
+                .get_half_edge_mut(rev_ids[0])?
+                .set_radial_next(fwd_ids[0]);
             continue;
         }
 
@@ -367,18 +419,18 @@ fn stitch_twins_cross_plane(
 
         // Get BSP plane for each halfedge's face
         let get_plane = |he_id: HalfEdgeId| -> usize {
-            draft.arena().get_half_edge(he_id)
+            draft
+                .arena()
+                .get_half_edge(he_id)
                 .ok()
                 .and_then(|he| face_plane_map.get(&he.face()).copied())
                 .unwrap_or(usize::MAX)
         };
 
-        let mut fwd_remaining: Vec<(HalfEdgeId, usize)> = fwd_ids.iter()
-            .map(|&id| (id, get_plane(id)))
-            .collect();
-        let mut rev_remaining: Vec<(HalfEdgeId, usize)> = rev_ids.iter()
-            .map(|&id| (id, get_plane(id)))
-            .collect();
+        let mut fwd_remaining: Vec<(HalfEdgeId, usize)> =
+            fwd_ids.iter().map(|&id| (id, get_plane(id))).collect();
+        let mut rev_remaining: Vec<(HalfEdgeId, usize)> =
+            rev_ids.iter().map(|&id| (id, get_plane(id))).collect();
 
         // Phase 1: pair cross-plane (forward plane != reverse plane)
         let mut i = 0;
@@ -387,8 +439,14 @@ fn stitch_twins_cross_plane(
             if let Some(rev_idx) = rev_remaining.iter().position(|(_, p)| *p != fwd_plane) {
                 let (fwd_id, _) = fwd_remaining.remove(i);
                 let (rev_id, _) = rev_remaining.remove(rev_idx);
-                draft.arena_mut().get_half_edge_mut(fwd_id)?.set_radial_next(rev_id);
-                draft.arena_mut().get_half_edge_mut(rev_id)?.set_radial_next(fwd_id);
+                draft
+                    .arena_mut()
+                    .get_half_edge_mut(fwd_id)?
+                    .set_radial_next(rev_id);
+                draft
+                    .arena_mut()
+                    .get_half_edge_mut(rev_id)?
+                    .set_radial_next(fwd_id);
             } else {
                 i += 1;
             }
@@ -398,28 +456,36 @@ fn stitch_twins_cross_plane(
         for i in 0..fwd_remaining.len().min(rev_remaining.len()) {
             let (fwd_id, _) = fwd_remaining[i];
             let (rev_id, _) = rev_remaining[i];
-            draft.arena_mut().get_half_edge_mut(fwd_id)?.set_radial_next(rev_id);
-            draft.arena_mut().get_half_edge_mut(rev_id)?.set_radial_next(fwd_id);
+            draft
+                .arena_mut()
+                .get_half_edge_mut(fwd_id)?
+                .set_radial_next(rev_id);
+            draft
+                .arena_mut()
+                .get_half_edge_mut(rev_id)?
+                .set_radial_next(fwd_id);
         }
 
         // Phase 3: Edge management. For all pairs created in this edge set,
         // merge their Edge entities so they share a single EdgeId.
         for (&(a, b), fwd_ids) in edge_map {
-             if a.index() > b.index() { continue; }
-             let rev_ids = edge_map.get(&(b, a)).unwrap();
-             for (&f_he, &r_he) in fwd_ids.iter().zip(rev_ids.iter()) {
-                  let f_data = draft.arena().get_half_edge(f_he)?;
-                  let r_data = draft.arena().get_half_edge(r_he)?;
-                  if f_data.radial_next() == r_he {
-                       let f_edge = f_data.edge();
-                       let r_edge = r_data.edge();
-                       if f_edge != r_edge {
-                            // Merge Edge entities: remove r_edge, update r_he to use f_edge
-                            draft.remove_edge(r_edge)?;
-                            draft.arena_mut().get_half_edge_mut(r_he)?.set_edge(f_edge);
-                       }
-                  }
-             }
+            if a.index() > b.index() {
+                continue;
+            }
+            let rev_ids = edge_map.get(&(b, a)).unwrap();
+            for (&f_he, &r_he) in fwd_ids.iter().zip(rev_ids.iter()) {
+                let f_data = draft.arena().get_half_edge(f_he)?;
+                let r_data = draft.arena().get_half_edge(r_he)?;
+                if f_data.radial_next() == r_he {
+                    let f_edge = f_data.edge();
+                    let r_edge = r_data.edge();
+                    if f_edge != r_edge {
+                        // Merge Edge entities: remove r_edge, update r_he to use f_edge
+                        draft.remove_edge(r_edge)?;
+                        draft.arena_mut().get_half_edge_mut(r_he)?.set_edge(f_edge);
+                    }
+                }
+            }
         }
     }
 
@@ -462,12 +528,18 @@ fn detect_coplanar_twin_faces(
         loop {
             let he = match draft.arena().get_half_edge(current) {
                 Ok(h) => h,
-                Err(_) => { all_coplanar = false; break; }
+                Err(_) => {
+                    all_coplanar = false;
+                    break;
+                }
             };
             let twin_id = he.radial_next();
             let twin_he = match draft.arena().get_half_edge(twin_id) {
                 Ok(h) => h,
-                Err(_) => { all_coplanar = false; break; }
+                Err(_) => {
+                    all_coplanar = false;
+                    break;
+                }
             };
             let twin_fid = twin_he.face();
             let twin_plane = face_plane_map.get(&twin_fid).copied().unwrap_or(usize::MAX);
@@ -479,7 +551,9 @@ fn detect_coplanar_twin_faces(
             twin_face = Some(twin_fid);
 
             current = he.next();
-            if current == first_he { break; }
+            if current == first_he {
+                break;
+            }
         }
 
         if all_coplanar {
@@ -505,7 +579,6 @@ fn remove_stitched_faces(
     draft: &mut MutableDraft,
     faces_to_remove: &[FaceId],
 ) -> Result<(), KernelError> {
-
     for &face_id in faces_to_remove {
         let face = draft.arena().get_face(face_id)?;
         let loop_id = face.outer_loop();
@@ -516,7 +589,9 @@ fn remove_stitched_faces(
         loop {
             he_ids.push(current);
             current = draft.arena().get_half_edge(current)?.next();
-            if current == first_he { break; }
+            if current == first_he {
+                break;
+            }
         }
 
         for he_id in he_ids {
@@ -560,8 +635,12 @@ fn merge_coplanar_neighbors(
         }
 
         for face_id in face_ids {
-            if removed.contains(face_id.index())? { continue; }
-            if draft.arena().get_face(face_id).is_err() { continue; }
+            if removed.contains(face_id.index())? {
+                continue;
+            }
+            if draft.arena().get_face(face_id).is_err() {
+                continue;
+            }
 
             let plane_a = match geometry.get_face_plane(face_id) {
                 Some(p) => p.clone(),
@@ -589,7 +668,9 @@ fn merge_coplanar_neighbors(
                 }
 
                 current = he.next();
-                if current == first_he { break; }
+                if current == first_he {
+                    break;
+                }
             }
 
             if let Some(he_id) = dissolve_target {
@@ -613,10 +694,7 @@ fn merge_coplanar_neighbors(
 /// - Remove he, twin, face B, and loop B
 ///
 /// Returns the FaceId of the absorbed (removed) face.
-fn dissolve_edge(
-    draft: &mut MutableDraft,
-    he_id: HalfEdgeId,
-) -> Result<FaceId, KernelError> {
+fn dissolve_edge(draft: &mut MutableDraft, he_id: HalfEdgeId) -> Result<FaceId, KernelError> {
     let he = draft.arena().get_half_edge(he_id)?;
     let twin_id = he.radial_next();
     let face_a = he.face();
@@ -632,12 +710,24 @@ fn dissolve_edge(
 
     // Reconnect: skip over he and twin in their respective loops
     // prev(he) → next(twin)  (both at vertex u)
-    draft.arena_mut().get_half_edge_mut(he_prev)?.set_next(twin_next);
-    draft.arena_mut().get_half_edge_mut(twin_next)?.set_prev(he_prev);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(he_prev)?
+        .set_next(twin_next);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(twin_next)?
+        .set_prev(he_prev);
 
     // prev(twin) → next(he)  (both at vertex v)
-    draft.arena_mut().get_half_edge_mut(twin_prev)?.set_next(he_next);
-    draft.arena_mut().get_half_edge_mut(he_next)?.set_prev(twin_prev);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(twin_prev)?
+        .set_next(he_next);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(he_next)?
+        .set_prev(twin_prev);
 
     // Update all of face B's halfedges to point to face A
     let mut cur = twin_next;
@@ -645,22 +735,33 @@ fn dissolve_edge(
     loop {
         draft.arena_mut().get_half_edge_mut(cur)?.set_face(face_a);
         let next = draft.arena().get_half_edge(cur)?.next();
-        if cur == stop { break; }
+        if cur == stop {
+            break;
+        }
         cur = next;
     }
 
     // Update face A's loop entry to a surviving halfedge
     let loop_a = draft.arena().get_face(face_a)?.outer_loop();
-    draft.arena_mut().get_loop_mut(loop_a)?.set_half_edge(he_next);
+    draft
+        .arena_mut()
+        .get_loop_mut(loop_a)?
+        .set_half_edge(he_next);
 
     // Update vertex outgoing pointers if they point to removed halfedges
     let u_outgoing = draft.arena().get_vertex(origin_u)?.outgoing();
     if u_outgoing == he_id {
-        draft.arena_mut().get_vertex_mut(origin_u)?.set_outgoing(twin_next);
+        draft
+            .arena_mut()
+            .get_vertex_mut(origin_u)?
+            .set_outgoing(twin_next);
     }
     let v_outgoing = draft.arena().get_vertex(origin_v)?.outgoing();
     if v_outgoing == twin_id {
-        draft.arena_mut().get_vertex_mut(origin_v)?.set_outgoing(he_next);
+        draft
+            .arena_mut()
+            .get_vertex_mut(origin_v)?
+            .set_outgoing(he_next);
     }
 
     // Remove the dissolved halfedges

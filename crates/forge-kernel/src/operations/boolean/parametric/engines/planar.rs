@@ -16,17 +16,15 @@ use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::state::TopologyState;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
-use crate::core::{ModelingContext, KernelState};
+use crate::core::{KernelState, ModelingContext};
 use crate::geometry_state::GeometryState;
-use crate::shared_ops::vertex_identity::VertexMatchKey;
-use crate::operations::boolean::classify_schema::{
-    ClassifiedFace, FaceOrigin,
-};
+use crate::operations::boolean::classify_schema::{ClassifiedFace, FaceOrigin};
 use crate::operations::boolean::parametric::split::SplitPhaseResult;
 use crate::operations::boolean::parametric::traits::{
-    BooleanSplitter, BooleanClassifier, CoplanarResolver,
-    BooleanAssembler, BooleanPostprocessor, BooleanEngine,
+    BooleanAssembler, BooleanClassifier, BooleanEngine, BooleanPostprocessor, BooleanSplitter,
+    CoplanarResolver,
 };
+use crate::shared_ops::vertex_identity::VertexMatchKey;
 
 /// Planar splitter — delegates to `split_all_faces`.
 pub struct PlanarSplitter;
@@ -41,7 +39,11 @@ impl BooleanSplitter for PlanarSplitter {
         ctx: &mut ModelingContext,
     ) -> Result<SplitPhaseResult, KernelError> {
         crate::operations::boolean::parametric::split::split_all_faces(
-            target_topo, target_geom, tool_topo, tool_geom, ctx,
+            target_topo,
+            target_geom,
+            tool_topo,
+            tool_geom,
+            ctx,
         )
     }
 }
@@ -60,7 +62,12 @@ impl BooleanClassifier for RayCastClassifier {
         ctx: &mut ModelingContext,
     ) -> Result<Vec<ClassifiedFace>, KernelError> {
         crate::operations::boolean::parametric::classify::classify_faces(
-            source_arena, source_geom, other_arena, other_geom, origin, ctx,
+            source_arena,
+            source_geom,
+            other_arena,
+            other_geom,
+            origin,
+            ctx,
         )
     }
 }
@@ -79,8 +86,12 @@ impl CoplanarResolver for EmberCoplanarResolver {
         tool_geom: &GeometryState,
     ) {
         crate::operations::boolean::ember::classify::apply_ember_coplanar_overrides(
-            target_classified, tool_classified,
-            target_topo, target_geom, tool_topo, tool_geom,
+            target_classified,
+            tool_classified,
+            target_topo,
+            target_geom,
+            tool_topo,
+            tool_geom,
         );
     }
 }
@@ -120,9 +131,16 @@ impl BooleanAssembler for HalfEdgeAssembler {
         ctx: &mut ModelingContext,
     ) -> Result<KernelState, KernelError> {
         crate::operations::boolean::parametric::assemble::merge::assemble_result(
-            target_arena, target_geom, target_faces, target_prov,
-            tool_arena, tool_geom, tool_faces, tool_prov,
-            reverse_tool, ctx,
+            target_arena,
+            target_geom,
+            target_faces,
+            target_prov,
+            tool_arena,
+            tool_geom,
+            tool_faces,
+            tool_prov,
+            reverse_tool,
+            ctx,
         )
     }
 }
@@ -136,12 +154,17 @@ impl BooleanPostprocessor for StandardPostprocessor {
         state: KernelState,
         ctx: &mut ModelingContext,
     ) -> Result<KernelState, KernelError> {
-        let state = if std::env::var("FORGE_SKIP_COPLANAR_POSTPROCESS").ok().as_deref() == Some("1") {
+        let state = if std::env::var("FORGE_SKIP_COPLANAR_POSTPROCESS")
+            .ok()
+            .as_deref()
+            == Some("1")
+        {
             state
         } else {
-            let (new_state, _) = crate::operations::boolean::parametric::postprocess::merge_coplanar_faces(
-                state, ctx,
-            )?;
+            let (new_state, _) =
+                crate::operations::boolean::parametric::postprocess::merge_coplanar_faces(
+                    state, ctx,
+                )?;
             new_state
         };
         if std::env::var("FORGE_DEBUG_VALIDATE_PHASES").ok().as_deref() == Some("1") {
@@ -151,9 +174,10 @@ impl BooleanPostprocessor for StandardPostprocessor {
                 Err(e) => eprintln!("[phase-check] postprocess merge_coplanar invalid: {}", e),
             }
         }
-        let (new_state, _) = crate::operations::boolean::parametric::postprocess::remove_redundant_vertices(
-            state, ctx,
-        )?;
+        let (new_state, _) =
+            crate::operations::boolean::parametric::postprocess::remove_redundant_vertices(
+                state, ctx,
+            )?;
         let state = new_state;
         if std::env::var("FORGE_DEBUG_VALIDATE_PHASES").ok().as_deref() == Some("1") {
             let (topo, _, _) = state.as_parts();
@@ -180,9 +204,10 @@ impl BooleanPostprocessor for ConvexOnlyPostprocessor {
         state: KernelState,
         ctx: &mut ModelingContext,
     ) -> Result<KernelState, KernelError> {
-        let (new_state, _) = crate::operations::boolean::parametric::postprocess::remove_redundant_vertices(
-            state, ctx,
-        )?;
+        let (new_state, _) =
+            crate::operations::boolean::parametric::postprocess::remove_redundant_vertices(
+                state, ctx,
+            )?;
         Ok(new_state)
     }
 }

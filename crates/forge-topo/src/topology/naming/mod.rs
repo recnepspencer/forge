@@ -13,11 +13,11 @@
 //! - A `PersistentName` with ordinal > 0 was produced by a split.
 //! - `resolve_name` may return zero results (entity deleted) or many (split).
 
-pub mod schema;
 pub mod eval;
+pub mod schema;
 
 #[cfg(test)]
 mod tests;
 
+pub use eval::{assign_name, resolve_name, resolve_selector};
 pub use schema::{PersistentName, Selector};
-pub use eval::{resolve_name, resolve_selector, assign_name};

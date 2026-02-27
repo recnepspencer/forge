@@ -17,7 +17,6 @@ use crate::core::ModelingContext;
 #[derive(Debug, Clone)]
 pub struct BooleanTolerances {
     // ── Split phase ──────────────────────────────────────
-
     /// Maximum gap that the reconciliation pass will try to close.
     /// `split/eval.rs` uses this as the base for reconcile_tol computation.
     pub max_gap: f64,
@@ -31,7 +30,6 @@ pub struct BooleanTolerances {
     pub edge_split_degeneracy: f64,
 
     // ── Classify phase ───────────────────────────────────
-
     /// Inward offset from face centroid along normal for sampling.
     pub sample_inward_offset: f64,
 
@@ -48,13 +46,11 @@ pub struct BooleanTolerances {
     pub aabb_inflation: f64,
 
     // ── Assemble phase ───────────────────────────────────
-
     /// Weld floor for vertex stitching: `max_gap * 4.0`.
     /// Used by `assemble_result` to determine weld tolerance.
     pub weld_floor: f64,
 
     // ── Postprocess phase ────────────────────────────────
-
     /// Tolerance for coplanar plane normal parallelism.
     pub coplanar_angle_epsilon: f64,
 
@@ -65,7 +61,6 @@ pub struct BooleanTolerances {
     pub collinearity_dot_tolerance: f64,
 
     // ── Scale-aware ──────────────────────────────────────
-
     /// Model bounding box diagonal in mm.
     pub model_scale_mm: f64,
 

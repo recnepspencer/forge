@@ -3,8 +3,8 @@
 //! DOMAIN: When the split phase produces zero cuts, classify the spatial
 //! relationship between the two solids and dispatch accordingly.
 
-mod eval;
 mod assemble;
+mod eval;
 
-pub use eval::execute_zero_split;
 pub use eval::compute_disjoint_scale;
+pub use eval::execute_zero_split;

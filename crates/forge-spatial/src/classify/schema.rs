@@ -2,8 +2,8 @@
 //!
 //! DOMAIN: Data shapes for point-in-solid and point-on-face results.
 
-use forge_topo::handles::FaceId;
 use forge_geom::{Aabb, BvhNode};
+use forge_topo::handles::FaceId;
 
 /// Result of classifying a point relative to a solid's boundary.
 #[derive(Debug, Clone, PartialEq)]

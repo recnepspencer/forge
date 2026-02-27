@@ -9,7 +9,9 @@ pub struct SearchBarProps {
 }
 
 impl SearchBarProps {
-    pub fn new(is_open: bool) -> Self { Self { is_open } }
+    pub fn new(is_open: bool) -> Self {
+        Self { is_open }
+    }
 }
 
 /// Render the search bar. Returns click response.
@@ -20,8 +22,16 @@ pub fn fg_search_bar(ui: &mut Ui, theme: &ForgeTheme, props: SearchBarProps) -> 
 
     if ui.is_rect_visible(rect) {
         let hovered = resp.hovered() || props.is_open;
-        let bg = if hovered { theme.bg_raised } else { theme.bg_base };
-        let border = if hovered { theme.border_subtle } else { theme.border_default };
+        let bg = if hovered {
+            theme.bg_raised
+        } else {
+            theme.bg_base
+        };
+        let border = if hovered {
+            theme.border_subtle
+        } else {
+            theme.border_default
+        };
         ui.painter().rect(
             rect,
             CornerRadius::same(theme.radius_md as u8),
@@ -33,9 +43,17 @@ pub fn fg_search_bar(ui: &mut Ui, theme: &ForgeTheme, props: SearchBarProps) -> 
         // Search icon
         let icon_y = rect.center().y - 6.0;
         let icon_g = ui.fonts(|f| {
-            f.layout_no_wrap("🔍".to_string(), egui::FontId::proportional(11.0), theme.text_muted)
+            f.layout_no_wrap(
+                "🔍".to_string(),
+                egui::FontId::proportional(11.0),
+                theme.text_muted,
+            )
         });
-        ui.painter().galley(egui::Pos2::new(rect.min.x + 10.0, icon_y), icon_g, theme.text_muted);
+        ui.painter().galley(
+            egui::Pos2::new(rect.min.x + 10.0, icon_y),
+            icon_g,
+            theme.text_muted,
+        );
 
         // Placeholder
         let text_g = ui.fonts(|f| {
@@ -53,7 +71,11 @@ pub fn fg_search_bar(ui: &mut Ui, theme: &ForgeTheme, props: SearchBarProps) -> 
 
         // ⌘K badge
         let badge_g = ui.fonts(|f| {
-            f.layout_no_wrap("⌘K".to_string(), egui::FontId::proportional(10.0), theme.text_muted)
+            f.layout_no_wrap(
+                "⌘K".to_string(),
+                egui::FontId::proportional(10.0),
+                theme.text_muted,
+            )
         });
         let bw = badge_g.size().x + 8.0;
         let bh = badge_g.size().y + 4.0;

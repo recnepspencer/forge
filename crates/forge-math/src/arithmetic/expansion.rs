@@ -174,10 +174,7 @@ pub fn two_product_presplit(a: f64, b: f64, bhi: f64, blo: f64) -> [f64; 2] {
 
 /// Error-free product where both inputs have already been split.
 #[inline]
-pub fn two_product_2presplit(
-    a: f64, ahi: f64, alo: f64,
-    b: f64, bhi: f64, blo: f64,
-) -> [f64; 2] {
+pub fn two_product_2presplit(a: f64, ahi: f64, alo: f64, b: f64, bhi: f64, blo: f64) -> [f64; 2] {
     let x = a * b;
     let err1 = x - ahi * bhi;
     let err2 = err1 - alo * bhi;

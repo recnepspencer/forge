@@ -6,12 +6,12 @@
 //!
 //! DEPENDENCIES: serde
 
-pub mod schema;
 pub mod eval;
+pub mod schema;
 pub mod traits;
 pub mod trim_ops;
 
-pub use schema::{SurfaceKind, SurfaceData, ParameterDomain, SurfaceRelation};
 pub use eval::classify_surface_pair;
+pub use schema::{ParameterDomain, SurfaceData, SurfaceKind, SurfaceRelation};
 pub use traits::EvaluateSurface;
 pub use trim_ops::{TrimCurveOps, TrimOverlapResult};

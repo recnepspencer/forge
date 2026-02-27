@@ -14,7 +14,7 @@
 use crate::error::MathError;
 
 pub mod sos;
-pub use sos::{orient3d_sos, orient2d_sos, SosPoint};
+pub use sos::{orient2d_sos, orient3d_sos, SosPoint};
 
 /// A detected geometric coincidence between two entities.
 ///
@@ -33,19 +33,31 @@ pub enum Coincidence {
 impl Coincidence {
     /// Create a coplanar-faces coincidence with canonical ordering.
     pub fn coplanar_faces(id_a: u64, id_b: u64) -> Self {
-        let (a, b) = if id_a <= id_b { (id_a, id_b) } else { (id_b, id_a) };
+        let (a, b) = if id_a <= id_b {
+            (id_a, id_b)
+        } else {
+            (id_b, id_a)
+        };
         Self::CoplanarFaces { a, b }
     }
 
     /// Create a collinear-edges coincidence with canonical ordering.
     pub fn collinear_edges(id_a: u64, id_b: u64) -> Self {
-        let (a, b) = if id_a <= id_b { (id_a, id_b) } else { (id_b, id_a) };
+        let (a, b) = if id_a <= id_b {
+            (id_a, id_b)
+        } else {
+            (id_b, id_a)
+        };
         Self::CollinearEdges { a, b }
     }
 
     /// Create a coincident-vertices coincidence with canonical ordering.
     pub fn coincident_vertices(id_a: u64, id_b: u64) -> Self {
-        let (a, b) = if id_a <= id_b { (id_a, id_b) } else { (id_b, id_a) };
+        let (a, b) = if id_a <= id_b {
+            (id_a, id_b)
+        } else {
+            (id_b, id_a)
+        };
         Self::CoincidentVertices { a, b }
     }
 
@@ -167,7 +179,10 @@ impl CoincidenceGraph {
     /// Resolve an entity ID to its internal index, returning an error if undeclared.
     fn resolve_index(&self, id: u64) -> Result<usize, MathError> {
         self.id_to_index.get(&id).copied().ok_or_else(|| {
-            MathError::InvalidInput(format!("Entity {} was never declared in CoincidenceGraph", id))
+            MathError::InvalidInput(format!(
+                "Entity {} was never declared in CoincidenceGraph",
+                id
+            ))
         })
     }
 
@@ -190,8 +205,7 @@ impl CoincidenceGraph {
 
         let entity_ids: Vec<u64> = self.id_to_index.keys().copied().collect();
         for id in entity_ids {
-            let rep = self.representative(id)
-                .unwrap_or(id);
+            let rep = self.representative(id).unwrap_or(id);
             cluster_map.entry(rep).or_default().push(id);
         }
 
@@ -307,7 +321,10 @@ mod tests {
         let c = Coincidence::coplanar_faces(1, 2);
         assert!(matches!(
             CoincidenceGraph::merge_action(&c),
-            MergeAction::FlushFaces { face_a: 1, face_b: 2 }
+            MergeAction::FlushFaces {
+                face_a: 1,
+                face_b: 2
+            }
         ));
     }
 

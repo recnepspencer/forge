@@ -8,8 +8,8 @@
 //! 3. Interpret result: Inside / Outside / OnBoundary / OppositeBoundary
 //! 4. Apply counterfactual overrides if present (P3.3)
 
-mod eval;
 mod coplanar;
+mod eval;
 
-pub use eval::classify_faces;
 pub(crate) use coplanar::find_coplanar_face_pairs;
+pub use eval::classify_faces;

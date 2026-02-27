@@ -74,13 +74,28 @@ impl fmt::Display for DecisionChange {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[{}]", self.id)?;
         if self.kind_changed {
-            write!(f, " kind: {} → {}", self.before.get_kind(), self.after.get_kind())?;
+            write!(
+                f,
+                " kind: {} → {}",
+                self.before.get_kind(),
+                self.after.get_kind()
+            )?;
         }
         if self.tier_changed {
-            write!(f, " tier: {} → {}", self.before.get_tier(), self.after.get_tier())?;
+            write!(
+                f,
+                " tier: {} → {}",
+                self.before.get_tier(),
+                self.after.get_tier()
+            )?;
         }
         if self.margin_delta.abs() > f64::EPSILON {
-            write!(f, " margin: {:.2e} → {:.2e}", self.before.get_margin(), self.after.get_margin())?;
+            write!(
+                f,
+                " margin: {:.2e} → {:.2e}",
+                self.before.get_margin(),
+                self.after.get_margin()
+            )?;
         }
         Ok(())
     }
@@ -151,8 +166,13 @@ impl fmt::Display for DecisionDelta {
         if self.is_empty() {
             return write!(f, "DecisionDelta: no changes");
         }
-        writeln!(f, "DecisionDelta: {} added, {} removed, {} changed",
-            self.added.len(), self.removed.len(), self.changed.len())?;
+        writeln!(
+            f,
+            "DecisionDelta: {} added, {} removed, {} changed",
+            self.added.len(),
+            self.removed.len(),
+            self.changed.len()
+        )?;
         for d in &self.added {
             writeln!(f, "  + {}", d)?;
         }

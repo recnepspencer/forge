@@ -22,17 +22,17 @@
 //! Ok(draft.commit()?)
 //! ```
 
-use std::time::Instant;
-use forge_core::{
-    KernelError, OperationResult, OperationMetrics, LineageDelta,
-    TopologyError, ErrorContext, ErrorScope,
-};
-use forge_core::{
-    TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier, DecisionLog,
-};
-use crate::state::MutableDraft;
 use crate::lineage::OpSignature;
+use crate::state::MutableDraft;
 use crate::validate::{self, ValidationLevel};
+use forge_core::{
+    DecisionContext, DecisionId, DecisionKind, DecisionLog, DecisionTier, TracedDecision,
+};
+use forge_core::{
+    ErrorContext, ErrorScope, KernelError, LineageDelta, OperationMetrics, OperationResult,
+    TopologyError,
+};
+use std::time::Instant;
 
 /// A topology mutation that can be applied to a `MutableDraft`.
 ///
@@ -80,7 +80,11 @@ pub trait EulerOperator: std::fmt::Debug {
     /// - Stamp `Lineage` on every created/modified entity
     /// - Return `ExecutionResult` with the correct `declared_delta`
     /// - Return structured errors, never panic
-    fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError>;
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        sig: &OpSignature,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError>;
 
     /// A unique signature identifying this operation type.
     ///
@@ -220,7 +224,8 @@ pub fn apply_op<O: EulerOperator>(
         let expected_edges_after = edge_count_before as i64 + declared_delta.edges as i64;
         let expected_faces_after = face_count_before as i64 + declared_delta.faces as i64;
         let expected_chi = expected_vertices_after - expected_edges_after + expected_faces_after;
-        let actual_chi = vertex_count_after as i64 - edge_count_after as i64 + face_count_after as i64;
+        let actual_chi =
+            vertex_count_after as i64 - edge_count_after as i64 + face_count_after as i64;
 
         return Err(KernelError::TopologyViolation {
             err: TopologyError::EulerFormulaViolation {
@@ -250,23 +255,22 @@ pub fn apply_op<O: EulerOperator>(
 
     // ── Per-op structural validation + reciprocity checks ────────────
     if draft.config().per_op_validation {
-        validate::validate_topology(draft.arena(), ValidationLevel::Full)
-            .map_err(|e| {
-                KernelError::TopologyViolation {
-                    err: TopologyError::BrokenLoop {
-                        face_index: 0,
-                        starting_halfedge: 0,
+        validate::validate_topology(draft.arena(), ValidationLevel::Full).map_err(|e| {
+            KernelError::TopologyViolation {
+                err: TopologyError::BrokenLoop {
+                    face_index: 0,
+                    starting_halfedge: 0,
+                },
+                context: Some(ErrorContext {
+                    scope: ErrorScope::Operation {
+                        op_name: op_name.clone(),
+                        invocation_id: invocation_id as u64,
                     },
-                    context: Some(ErrorContext {
-                        scope: ErrorScope::Operation {
-                            op_name: op_name.clone(),
-                            invocation_id: invocation_id as u64,
-                        },
-                        suggested_fixes: vec![],
-                        detail: format!("Per-op validation failed after {}: {}", op_name, e),
-                    }),
-                }
-            })?;
+                    suggested_fixes: vec![],
+                    detail: format!("Per-op validation failed after {}: {}", op_name, e),
+                }),
+            }
+        })?;
 
         validate_halfedge_reciprocity(draft, &op_name, invocation_id as u64)?;
     }
@@ -288,10 +292,20 @@ pub fn apply_op<O: EulerOperator>(
     let shells_deleted = shell_count_before.saturating_sub(shell_count_after) as u32;
     let solids_deleted = body_count_before.saturating_sub(body_count_after) as u32;
 
-    let entities_created = faces_created + vertices_created + half_edges_created
-        + loops_created + edges_created + shells_created + solids_created;
-    let entities_deleted = faces_deleted + vertices_deleted + half_edges_deleted
-        + loops_deleted + edges_deleted + shells_deleted + solids_deleted;
+    let entities_created = faces_created
+        + vertices_created
+        + half_edges_created
+        + loops_created
+        + edges_created
+        + shells_created
+        + solids_created;
+    let entities_deleted = faces_deleted
+        + vertices_deleted
+        + half_edges_deleted
+        + loops_deleted
+        + edges_deleted
+        + shells_deleted
+        + solids_deleted;
 
     let metrics = OperationMetrics {
         duration: start.elapsed(),
@@ -327,9 +341,14 @@ pub fn apply_op<O: EulerOperator>(
         DecisionContext::Degeneracy {
             description: format!(
                 "EulerOp({}) #{}: +{}F +{}V +{}HE -{}F -{}V -{}HE in {:.0?}",
-                op_name, invocation_id,
-                faces_created, vertices_created, half_edges_created,
-                faces_deleted, vertices_deleted, half_edges_deleted,
+                op_name,
+                invocation_id,
+                faces_created,
+                vertices_created,
+                half_edges_created,
+                faces_deleted,
+                vertices_deleted,
+                half_edges_deleted,
                 start.elapsed(),
             ),
         },
@@ -424,10 +443,24 @@ mod tests {
     impl EulerOperator for NoOp {
         type Output = ();
 
-        fn execute(&self, _draft: &mut MutableDraft, _sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
+        fn execute(
+            &self,
+            _draft: &mut MutableDraft,
+            _sig: &OpSignature,
+        ) -> Result<ExecutionResult<Self::Output>, KernelError> {
             Ok(ExecutionResult {
                 value: (),
-                declared_delta: EulerDelta { vertices: 0, half_edges: 0, faces: 0, loops: 0, edges: 0, shells: 0, solids: 0, lumps: 0, regions: 0 },
+                declared_delta: EulerDelta {
+                    vertices: 0,
+                    half_edges: 0,
+                    faces: 0,
+                    loops: 0,
+                    edges: 0,
+                    shells: 0,
+                    solids: 0,
+                    lumps: 0,
+                    regions: 0,
+                },
             })
         }
 
@@ -443,7 +476,11 @@ mod tests {
     impl EulerOperator for FailOp {
         type Output = ();
 
-        fn execute(&self, _draft: &mut MutableDraft, _sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
+        fn execute(
+            &self,
+            _draft: &mut MutableDraft,
+            _sig: &OpSignature,
+        ) -> Result<ExecutionResult<Self::Output>, KernelError> {
             Err(KernelError::InvalidInput {
                 message: "test failure".to_string(),
                 context: None,

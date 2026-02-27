@@ -7,17 +7,21 @@
 //! INVARIANTS: Each pass removes at most one entity, then re-enters
 //! with fresh topology. This avoids invalidating arena handles mid-pass.
 
-use forge_core::KernelError;
-use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
 use forge_core::tracing::TopologyDelta;
-use forge_topo::state::TopologyState;
+use forge_core::KernelError;
+use forge_core::{
+    DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, TracedDecision,
+};
+use forge_topo::euler::join_faces::JoinFaces;
 use forge_topo::handles::HalfEdgeId;
 use forge_topo::operator::apply_op;
-use forge_topo::euler::join_faces::JoinFaces;
+use forge_topo::state::TopologyState;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
-use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta, KernelState, KernelDraft};
-use crate::geometry_state::{GeometryState, GeometryPatch};
+use crate::core::{
+    compute_topology_delta, ArenaSnapshot, KernelDraft, KernelState, ModelingContext,
+};
+use crate::geometry_state::{GeometryPatch, GeometryState};
 
 use super::run_iterative_pass;
 
@@ -55,7 +59,10 @@ fn run_merge_pass(
         Ok(mut op_result) => {
             ctx.absorb_sub_result(&mut op_result);
             let cert = op_result.into_value();
-            !matches!(cert, forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::Rejected { .. })
+            !matches!(
+                cert,
+                forge_geom::algorithms::boundary_cert::schema::WeakSimpleCertificate::Rejected { .. }
+            )
         }
         Err(_) => false,
     };
@@ -93,14 +100,21 @@ fn run_merge_pass(
 fn find_coplanar_merge_candidate(
     arena: &forge_topo::arena::TopologyArena,
     geom: &GeometryState,
-) -> Option<(HalfEdgeId, forge_topo::handles::FaceId, forge_topo::handles::FaceId)> {
-    arena.iter_half_edges()
+) -> Option<(
+    HalfEdgeId,
+    forge_topo::handles::FaceId,
+    forge_topo::handles::FaceId,
+)> {
+    arena
+        .iter_half_edges()
         .filter(|(he_id, he)| he.radial_next() >= *he_id)
         .find_map(|(he_id, he)| {
             let twin = arena.get_half_edge(he.radial_next()).ok()?;
             let face_a = he.face();
             let face_b = twin.face();
-            if face_a == face_b { return None; }
+            if face_a == face_b {
+                return None;
+            }
 
             let plane_a = geom.get_face_plane(face_a)?;
             let plane_b = geom.get_face_plane(face_b)?;
@@ -122,13 +136,24 @@ fn log_merge(
 ) {
     let mut decision = TracedDecision::new(
         DecisionId(he_id.index() as u64),
-        DecisionKind::PolicyApplied { policy: forge_core::PolicyKind::CoincidentGeometry, default_used: true },
-        DecisionTier::Deterministic, 1.0,
+        DecisionKind::PolicyApplied {
+            policy: forge_core::PolicyKind::CoincidentGeometry,
+            default_used: true,
+        },
+        DecisionTier::Deterministic,
+        1.0,
         DecisionContext::Degeneracy {
-            description: format!("Merged coplanar faces #{} and #{}", face_a.index(), face_b.index()),
+            description: format!(
+                "Merged coplanar faces #{} and #{}",
+                face_a.index(),
+                face_b.index()
+            ),
         },
     );
-    decision.set_entity_scope(EntityRef::new(forge_core::EntityKind::HalfEdge, he_id.index()));
+    decision.set_entity_scope(EntityRef::new(
+        forge_core::EntityKind::HalfEdge,
+        he_id.index(),
+    ));
     decision.set_topology_delta(delta);
     ctx.get_decision_log_mut().record(decision);
 }

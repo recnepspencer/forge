@@ -17,7 +17,7 @@
 
 #![forbid(unsafe_code)]
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// The current schema version. Bump on breaking changes.
 pub const SCHEMA_VERSION: &str = "0.1.0";

@@ -7,8 +7,8 @@
 //! PV-27: Exactly-degenerate geometry cascades all the way to Rational.
 
 use forge_math::arithmetic::precision::PrecisionMode;
-use forge_math::predicates::orient3d::orient3d;
 use forge_math::predicates::orient2d::orient2d;
+use forge_math::predicates::orient3d::orient3d;
 use forge_math::sign::TriSign;
 
 /// PV-25: Standard cases resolve at Float64 — no unnecessary escalation.
@@ -17,25 +17,53 @@ use forge_math::sign::TriSign;
 /// higher precision. Every resolved_at must be Float64.
 #[test]
 fn pv_25_standard_cases_resolve_at_float64() {
-    let test_cases: Vec<([f64;3], [f64;3], [f64;3], [f64;3])> = vec![
-        ([0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]),
-        ([0.0, 0.0, 0.0], [10.0, 0.0, 0.0], [0.0, 10.0, 0.0], [0.0, 0.0, -5.0]),
-        ([1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 10.0], [0.0, 0.0, 0.0]),
-        ([-1.0, -1.0, -1.0], [1.0, -1.0, -1.0], [-1.0, 1.0, -1.0], [-1.0, -1.0, 1.0]),
-        ([100.0, 200.0, 300.0], [101.0, 200.0, 300.0], [100.0, 201.0, 300.0], [100.0, 200.0, 301.0]),
+    let test_cases: Vec<([f64; 3], [f64; 3], [f64; 3], [f64; 3])> = vec![
+        (
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ),
+        (
+            [0.0, 0.0, 0.0],
+            [10.0, 0.0, 0.0],
+            [0.0, 10.0, 0.0],
+            [0.0, 0.0, -5.0],
+        ),
+        (
+            [1.0, 2.0, 3.0],
+            [4.0, 5.0, 6.0],
+            [7.0, 8.0, 10.0],
+            [0.0, 0.0, 0.0],
+        ),
+        (
+            [-1.0, -1.0, -1.0],
+            [1.0, -1.0, -1.0],
+            [-1.0, 1.0, -1.0],
+            [-1.0, -1.0, 1.0],
+        ),
+        (
+            [100.0, 200.0, 300.0],
+            [101.0, 200.0, 300.0],
+            [100.0, 201.0, 300.0],
+            [100.0, 200.0, 301.0],
+        ),
     ];
 
     for (i, (a, b, c, d)) in test_cases.iter().enumerate() {
         let (sign, esc) = orient3d(*a, *b, *c, *d).unwrap();
         assert_eq!(
-            esc.get_resolved_at(), PrecisionMode::Float64,
+            esc.get_resolved_at(),
+            PrecisionMode::Float64,
             "Case {} should resolve at Float64, got {:?} (sign={:?})",
-            i, esc.get_resolved_at(), sign.sign()
+            i,
+            esc.get_resolved_at(),
+            sign.sign()
         );
         assert!(esc.get_float_agreed(), "Case {} Float64 should agree", i);
     }
 
-    let orient2d_cases: Vec<([f64;2], [f64;2], [f64;2])> = vec![
+    let orient2d_cases: Vec<([f64; 2], [f64; 2], [f64; 2])> = vec![
         ([0.0, 0.0], [1.0, 0.0], [0.0, 1.0]),
         ([-5.0, -5.0], [5.0, -5.0], [0.0, 5.0]),
         ([100.0, 100.0], [200.0, 100.0], [100.0, 200.0]),
@@ -44,9 +72,12 @@ fn pv_25_standard_cases_resolve_at_float64() {
     for (i, (a, b, c)) in orient2d_cases.iter().enumerate() {
         let (sign, esc) = orient2d(*a, *b, *c).unwrap();
         assert_eq!(
-            esc.get_resolved_at(), PrecisionMode::Float64,
+            esc.get_resolved_at(),
+            PrecisionMode::Float64,
             "orient2d case {} should resolve at Float64, got {:?} (sign={:?})",
-            i, esc.get_resolved_at(), sign.sign()
+            i,
+            esc.get_resolved_at(),
+            sign.sign()
         );
     }
 }
@@ -77,12 +108,16 @@ fn pv_26_near_degenerate_escalates_beyond_float64() {
 
         assert!(
             !sign_plus.sign().is_zero(),
-            "Non-zero offset +{} must produce definite sign", offset
+            "Non-zero offset +{} must produce definite sign",
+            offset
         );
         assert_ne!(
-            sign_plus.sign(), sign_minus.sign(),
+            sign_plus.sign(),
+            sign_minus.sign(),
             "Flipping offset {} must flip sign: +={:?}, -={:?}",
-            offset, sign_plus.sign(), sign_minus.sign()
+            offset,
+            sign_plus.sign(),
+            sign_minus.sign()
         );
 
         if esc_plus.get_resolved_at() > PrecisionMode::Float64 {
@@ -98,7 +133,11 @@ fn pv_26_near_degenerate_escalates_beyond_float64() {
         "At least one large-coordinate near-degenerate case should escalate beyond Float64"
     );
 
-    eprintln!("PV-26: {} escalations out of {} calls", escalation_count, near_degenerate_offsets.len() * 2);
+    eprintln!(
+        "PV-26: {} escalations out of {} calls",
+        escalation_count,
+        near_degenerate_offsets.len() * 2
+    );
 }
 
 /// PV-27: Exactly-degenerate at large scale forces full escalation chain.
@@ -110,26 +149,40 @@ fn pv_26_near_degenerate_escalates_beyond_float64() {
 /// these particular coordinates.
 #[test]
 fn pv_27_exactly_degenerate_reaches_beyond_float64() {
-    let exactly_degenerate_cases: Vec<(f64, [f64;3], [f64;3], [f64;3], [f64;3])> = vec![
-        (1e12,
-         [1e12, 0.0, 0.0], [0.0, 1e12, 0.0], [0.0, 0.0, 0.0],
-         [5e11, 5e11, 0.0]),
-        (1e8,
-         [1e8, 0.0, 0.0], [0.0, 1e8, 0.0], [0.0, 0.0, 0.0],
-         [5e7, 5e7, 0.0]),
+    let exactly_degenerate_cases: Vec<(f64, [f64; 3], [f64; 3], [f64; 3], [f64; 3])> = vec![
+        (
+            1e12,
+            [1e12, 0.0, 0.0],
+            [0.0, 1e12, 0.0],
+            [0.0, 0.0, 0.0],
+            [5e11, 5e11, 0.0],
+        ),
+        (
+            1e8,
+            [1e8, 0.0, 0.0],
+            [0.0, 1e8, 0.0],
+            [0.0, 0.0, 0.0],
+            [5e7, 5e7, 0.0],
+        ),
     ];
 
     for (i, (scale, a, b, c, d)) in exactly_degenerate_cases.iter().enumerate() {
         let (sign, esc) = orient3d(*a, *b, *c, *d).unwrap();
         assert_eq!(
-            sign.sign(), TriSign::Zero,
+            sign.sign(),
+            TriSign::Zero,
             "Case {} (scale={}) should be exactly Zero, got {:?} (resolved_at={:?})",
-            i, scale, sign.sign(), esc.get_resolved_at()
+            i,
+            scale,
+            sign.sign(),
+            esc.get_resolved_at()
         );
         assert!(
             esc.get_resolved_at() > PrecisionMode::Float64,
             "Case {} (scale={}) must escalate past Float64, got {:?}",
-            i, scale, esc.get_resolved_at()
+            i,
+            scale,
+            esc.get_resolved_at()
         );
     }
 }
@@ -148,6 +201,7 @@ fn pv_27_orient2d_collinear_at_large_scale() {
     assert!(
         esc.get_resolved_at() > PrecisionMode::Float64,
         "Collinear at M={} must escalate past Float64, got {:?}",
-        m, esc.get_resolved_at()
+        m,
+        esc.get_resolved_at()
     );
 }

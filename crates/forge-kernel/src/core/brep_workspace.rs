@@ -8,12 +8,12 @@
 //! INVARIANTS: Functions destructure via `as_parts_mut()` and pass individual
 //! borrows to leaf functions — BRepWorkspace is NOT a parameter bag.
 
-use forge_topo::state::{TopologyState, MutableDraft};
+use forge_topo::state::{MutableDraft, TopologyState};
 
-use crate::core::{KernelDraft, KernelState};
-use crate::geometry_state::{GeometryState, GeometryPatch};
-use crate::brep::patch::BrepPatch;
 use super::ModelingContext;
+use crate::brep::patch::BrepPatch;
+use crate::core::{KernelDraft, KernelState};
+use crate::geometry_state::{GeometryPatch, GeometryState};
 
 /// Lifecycle wrapper for kernel operations that need draft + geometry + context.
 ///
@@ -28,11 +28,21 @@ pub struct BRepWorkspace {
 impl BRepWorkspace {
     /// Create a workspace from an existing `KernelState`.
     pub fn new(state: KernelState, ctx: ModelingContext) -> Self {
-        Self { draft: KernelDraft::new(state), ctx }
+        Self {
+            draft: KernelDraft::new(state),
+            ctx,
+        }
     }
 
     /// Destructure for use — pass individual borrows to leaf functions.
-    pub fn as_parts_mut(&mut self) -> (&mut MutableDraft, &mut GeometryPatch, &mut BrepPatch, &mut ModelingContext) {
+    pub fn as_parts_mut(
+        &mut self,
+    ) -> (
+        &mut MutableDraft,
+        &mut GeometryPatch,
+        &mut BrepPatch,
+        &mut ModelingContext,
+    ) {
         let (draft, geom, brep) = self.draft.as_parts_mut();
         (draft, geom, brep, &mut self.ctx)
     }

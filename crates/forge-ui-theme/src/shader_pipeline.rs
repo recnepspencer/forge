@@ -34,7 +34,7 @@ pub struct MetalUniforms {
 /// Contains the render pipeline and the group-0 BGL (uniforms).
 /// Group-1 BGL and bind group come from `BackdropManager`.
 pub struct MetalPipeline {
-    pipeline:          wgpu::RenderPipeline,
+    pipeline: wgpu::RenderPipeline,
     bind_group_layout: wgpu::BindGroupLayout,
 }
 
@@ -54,33 +54,29 @@ impl MetalPipeline {
         });
 
         // Group 0: uniforms
-        let bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("glass_uniforms_bgl"),
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: Some(
-                            std::num::NonZeroU64::new(
-                                std::mem::size_of::<MetalUniforms>() as u64,
-                            )
+        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("glass_uniforms_bgl"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: Some(
+                        std::num::NonZeroU64::new(std::mem::size_of::<MetalUniforms>() as u64)
                             .expect("MetalUniforms is not zero-sized"),
-                        ),
-                    },
-                    count: None,
-                }],
-            });
+                    ),
+                },
+                count: None,
+            }],
+        });
 
-        let pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("glass_pipeline_layout"),
-                // group 0 = uniforms, group 1 = blurred backdrop texture
-                bind_group_layouts: &[&bind_group_layout, backdrop_bgl],
-                push_constant_ranges: &[],
-            });
+        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("glass_pipeline_layout"),
+            // group 0 = uniforms, group 1 = blurred backdrop texture
+            bind_group_layouts: &[&bind_group_layout, backdrop_bgl],
+            push_constant_ranges: &[],
+        });
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("glass_pipeline"),
@@ -111,7 +107,10 @@ impl MetalPipeline {
             cache: None,
         });
 
-        Self { pipeline, bind_group_layout }
+        Self {
+            pipeline,
+            bind_group_layout,
+        }
     }
 }
 
@@ -135,7 +134,10 @@ pub struct MetalShaderCallback {
 
 impl MetalShaderCallback {
     pub fn new(uniforms: MetalUniforms) -> Self {
-        Self { uniforms, per_draw: Mutex::new(None) }
+        Self {
+            uniforms,
+            per_draw: Mutex::new(None),
+        }
     }
 }
 
@@ -181,15 +183,15 @@ impl egui_wgpu::CallbackTrait for MetalShaderCallback {
         render_pass: &mut wgpu::RenderPass<'static>,
         callback_resources: &'a egui_wgpu::CallbackResources,
     ) {
-        let pipeline: &MetalPipeline = callback_resources
-            .get()
-            .expect("MetalPipeline missing");
+        let pipeline: &MetalPipeline = callback_resources.get().expect("MetalPipeline missing");
         let backdrop: &BackdropManager = callback_resources
             .get()
             .expect("BackdropManager missing from CallbackResources");
 
         let guard = self.per_draw.lock().expect("per_draw lock poisoned");
-        let draw = guard.as_ref().expect("prepare() was not called before paint()");
+        let draw = guard
+            .as_ref()
+            .expect("prepare() was not called before paint()");
 
         render_pass.set_pipeline(&pipeline.pipeline);
         render_pass.set_bind_group(0, &draw.uniforms_bind_group, &[]);
@@ -250,11 +252,7 @@ pub fn register_metal_pipeline(render_state: &egui_wgpu::RenderState) {
 }
 
 /// Register with explicit initial screen size (physical pixels).
-pub fn register_with_size(
-    render_state: &egui_wgpu::RenderState,
-    width: u32,
-    height: u32,
-) {
+pub fn register_with_size(render_state: &egui_wgpu::RenderState, width: u32, height: u32) {
     let backdrop = BackdropManager::new(
         &render_state.device,
         render_state.target_format,

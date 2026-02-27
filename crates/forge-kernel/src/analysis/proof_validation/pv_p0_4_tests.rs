@@ -4,12 +4,12 @@
 //! - PV-11: Constructed non-manifold edge → validator rejects
 //! - PV-12: Valid cube passes manifold check (positive control)
 
-use forge_core::{KernelError, TopologyError};
-use forge_topo::validate::{validate_topology, ValidationLevel};
-use forge_topo::state::{TopologyState, DraftConfig};
-use forge_topo::arena::{FaceData, HalfEdgeData, VertexData, LoopData};
-use forge_topo::handles::{FaceId, HalfEdgeId};
 use crate::mesh_builder::make_cube;
+use forge_core::{KernelError, TopologyError};
+use forge_topo::arena::{FaceData, HalfEdgeData, LoopData, VertexData};
+use forge_topo::handles::{FaceId, HalfEdgeId};
+use forge_topo::state::{DraftConfig, TopologyState};
+use forge_topo::validate::{validate_topology, ValidationLevel};
 
 /// PV-11: A non-manifold edge (3+ halfedges sharing a canonical key) is detected.
 ///
@@ -28,7 +28,8 @@ fn pv_11_non_manifold_edge_detected() {
     let arena = draft.arena_mut();
 
     let (he_id, he_twin, he_face, he_origin) = {
-        let (id, data) = arena.iter_half_edges()
+        let (id, data) = arena
+            .iter_half_edges()
             .filter(|(id, d)| *id != d.radial_next())
             .next()
             .unwrap();
@@ -39,8 +40,22 @@ fn pv_11_non_manifold_edge_detected() {
     let twin_face = twin_data.face();
     let twin_origin = twin_data.origin();
 
-    let extra_a = HalfEdgeData::new(he_twin, he_id, he_id, he_face, he_origin, forge_topo::handles::EdgeId::from_raw_parts(0, 0));
-    let extra_b = HalfEdgeData::new(he_id, he_twin, he_twin, twin_face, twin_origin, forge_topo::handles::EdgeId::from_raw_parts(0, 0));
+    let extra_a = HalfEdgeData::new(
+        he_twin,
+        he_id,
+        he_id,
+        he_face,
+        he_origin,
+        forge_topo::handles::EdgeId::from_raw_parts(0, 0),
+    );
+    let extra_b = HalfEdgeData::new(
+        he_id,
+        he_twin,
+        he_twin,
+        twin_face,
+        twin_origin,
+        forge_topo::handles::EdgeId::from_raw_parts(0, 0),
+    );
     let (extra_a_id, extra_b_id) = arena.insert_radial_pair(extra_a, extra_b, None);
 
     let _ = extra_a_id;
@@ -58,5 +73,9 @@ fn pv_12_valid_cube_passes_manifold() {
     let arena = topo.arena();
 
     let result = validate_topology(arena, ValidationLevel::Full);
-    assert!(result.is_ok(), "Valid cube should pass manifold check: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Valid cube should pass manifold check: {:?}",
+        result.err()
+    );
 }

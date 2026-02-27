@@ -11,10 +11,10 @@ use forge_core::KernelError;
 use forge_topo::arena::TopologyArena;
 use forge_topo::bitset::EntityBitset;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
-use forge_topo::traverse::{FaceEdgeIterator, edge_faces};
+use forge_topo::traverse::{edge_faces, FaceEdgeIterator};
 
-use crate::geometry_state::GeometryState;
 use super::schema::{ExtractedRegion, SerializedHalfEdge, SerializedPlane};
+use crate::geometry_state::GeometryState;
 
 /// Extract the N-ring neighborhood of a seed face from the arena.
 ///
@@ -40,10 +40,12 @@ pub fn extract_n_ring(
         for _ in 0..frontier_size {
             let face = match frontier.pop_front() {
                 Some(f) => f,
-                None => return Err(KernelError::InternalError {
-                    message: "BFS frontier unexpectedly empty".into(),
-                    context: None,
-                }),
+                None => {
+                    return Err(KernelError::InternalError {
+                        message: "BFS frontier unexpectedly empty".into(),
+                        context: None,
+                    })
+                }
             };
 
             let neighbor_faces = collect_adjacent_faces(arena, face)?;
@@ -123,10 +125,7 @@ pub fn extract_n_ring(
 }
 
 /// Collect all faces adjacent to `face` via shared edges.
-fn collect_adjacent_faces(
-    arena: &TopologyArena,
-    face: FaceId,
-) -> Result<Vec<FaceId>, KernelError> {
+fn collect_adjacent_faces(arena: &TopologyArena, face: FaceId) -> Result<Vec<FaceId>, KernelError> {
     let mut neighbors = Vec::new();
     let iter = match FaceEdgeIterator::new(arena, face) {
         Ok(it) => it,

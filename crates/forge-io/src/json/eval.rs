@@ -11,8 +11,8 @@ use serde::Serialize;
 
 use forge_kernel::engine::tree::FeatureTree;
 
-use crate::IoError;
 use super::schema::{VersionedModel, SCHEMA_VERSION};
+use crate::IoError;
 
 /// Save a FeatureTree model to a versioned JSON file.
 pub fn save_model<P: AsRef<Path>>(model: &FeatureTree, path: P) -> Result<(), IoError> {

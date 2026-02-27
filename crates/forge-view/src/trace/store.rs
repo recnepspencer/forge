@@ -6,8 +6,8 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use forge_core::{DecisionLog, TraceEvent, SpanSummaryEntry, TracedDecision, DecisionTier};
 use forge_core::tracing::TraceAdjunctRecord;
+use forge_core::{DecisionLog, DecisionTier, SpanSummaryEntry, TraceEvent, TracedDecision};
 use serde::{Deserialize, Serialize};
 
 /// Metadata stored alongside each trace file.
@@ -136,7 +136,9 @@ impl TraceStore {
         entries.sort_by_key(|e| e.file_name());
 
         for entry in &entries {
-            let Ok(content) = std::fs::read_to_string(entry.path()) else { continue };
+            let Ok(content) = std::fs::read_to_string(entry.path()) else {
+                continue;
+            };
 
             if let Ok(trace_files) = serde_json::from_str::<Vec<TraceFile>>(&content) {
                 for trace_file in trace_files {
@@ -155,7 +157,10 @@ impl TraceStore {
         let id = trace_file.name.replace("::", "_");
 
         let interesting_count = trace_file.log.interesting_only().len();
-        let span_count = trace_file.log.get_events().iter()
+        let span_count = trace_file
+            .log
+            .get_events()
+            .iter()
             .filter(|e| matches!(e, TraceEvent::StartSpan { .. }))
             .count();
         let total_decisions = trace_file.log.decisions().count();
@@ -171,11 +176,14 @@ impl TraceStore {
             status: trace_file.status,
         };
 
-        self.traces.insert(id, StoredTrace {
-            meta,
-            log: trace_file.log,
-            adjuncts: trace_file.adjuncts,
-        });
+        self.traces.insert(
+            id,
+            StoredTrace {
+                meta,
+                log: trace_file.log,
+                adjuncts: trace_file.adjuncts,
+            },
+        );
     }
 
     /// List all traces (summary only, no decisions).
@@ -188,13 +196,16 @@ impl TraceStore {
         let stored = self.traces.get(id)?;
         let span_summaries = compute_span_summaries_from_log(&stored.log);
 
-        let spans: Vec<SpanView> = span_summaries.iter().map(|ss| SpanView {
-            span_id: ss.span_id.0,
-            name: ss.name.clone(),
-            total_decisions: ss.total_decisions,
-            max_tier: format!("{}", ss.max_tier),
-            duration_micros: ss.duration_micros,
-        }).collect();
+        let spans: Vec<SpanView> = span_summaries
+            .iter()
+            .map(|ss| SpanView {
+                span_id: ss.span_id.0,
+                name: ss.name.clone(),
+                total_decisions: ss.total_decisions,
+                max_tier: format!("{}", ss.max_tier),
+                duration_micros: ss.duration_micros,
+            })
+            .collect();
 
         Some(TraceOverview {
             meta: stored.meta.clone(),
@@ -206,7 +217,9 @@ impl TraceStore {
     /// Get decisions within a specific span.
     pub fn get_span_decisions(&self, trace_id: &str, span_id: u64) -> Option<Vec<DecisionView>> {
         let stored = self.traces.get(trace_id)?;
-        let decisions: Vec<DecisionView> = stored.log.decisions()
+        let decisions: Vec<DecisionView> = stored
+            .log
+            .decisions()
             .filter(|d| d.get_span_id().map(|s| s.0 == span_id).unwrap_or(false))
             .map(decision_to_view)
             .collect();
@@ -216,7 +229,11 @@ impl TraceStore {
     /// Get a single decision by its index in the full event stream.
     pub fn get_decision(&self, trace_id: &str, decision_idx: usize) -> Option<DecisionView> {
         let stored = self.traces.get(trace_id)?;
-        stored.log.decisions().nth(decision_idx).map(decision_to_view)
+        stored
+            .log
+            .decisions()
+            .nth(decision_idx)
+            .map(decision_to_view)
     }
 
     /// Get the raw DecisionLog JSON for a trace.
@@ -238,12 +255,12 @@ impl TraceStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use forge_core::{
-        CandidateValueSummary, DecisionContext, DecisionId, DecisionKind, DecisionLog, DecisionTier,
-        PolicyDecisionTracePayload, PolicyKind, PolicyResolutionOutcome, PolicyResolutionSource,
-        TracedDecision,
-    };
     use forge_core::tracing::TraceAdjunctRecord;
+    use forge_core::{
+        CandidateValueSummary, DecisionContext, DecisionId, DecisionKind, DecisionLog,
+        DecisionTier, PolicyDecisionTracePayload, PolicyKind, PolicyResolutionOutcome,
+        PolicyResolutionSource, TracedDecision,
+    };
 
     #[test]
     fn trace_store_preserves_unknown_and_known_adjuncts_on_reload() {
@@ -256,7 +273,9 @@ mod tests {
             DecisionKind::Exact,
             DecisionTier::Deterministic,
             0.0,
-            DecisionContext::Degeneracy { description: "fixture".into() },
+            DecisionContext::Degeneracy {
+                description: "fixture".into(),
+            },
         ));
 
         let known = TraceAdjunctRecord::from_policy_payload(&PolicyDecisionTracePayload {
@@ -291,8 +310,11 @@ mod tests {
             log,
             adjuncts: vec![unknown.clone(), known.clone()],
         }];
-        std::fs::write(&trace_path, serde_json::to_string_pretty(&file).expect("serialize trace file"))
-            .expect("write trace file");
+        std::fs::write(
+            &trace_path,
+            serde_json::to_string_pretty(&file).expect("serialize trace file"),
+        )
+        .expect("write trace file");
 
         let mut store = TraceStore::new(dir.path().to_path_buf());
         assert_eq!(store.reload(), 1);
@@ -346,7 +368,11 @@ fn compute_span_summaries_from_log(log: &DecisionLog) -> Vec<SpanSummaryEntry> {
     }
 
     for event in log.get_events() {
-        if let TraceEvent::EndSpan { id, duration_micros } = event {
+        if let TraceEvent::EndSpan {
+            id,
+            duration_micros,
+        } = event
+        {
             if let Some(entry) = spans.iter_mut().find(|s| s.span_id == *id) {
                 entry.duration_micros = *duration_micros;
             }

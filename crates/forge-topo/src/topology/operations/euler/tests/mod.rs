@@ -19,17 +19,17 @@
 
 mod helpers;
 
-mod mvf_tests;
-mod mef_tests;
-mod mev_tests;
-mod mekl_keml_tests;
-mod split_edge_tests;
-mod join_faces_tests;
+mod brutality_tests;
+mod integration_tests;
+pub(crate) mod invariant_checker;
 mod join_faces_nmt_tests;
+mod join_faces_tests;
 mod kill_edge_vertex_tests;
 mod lineage_tests;
-mod integration_tests;
-mod shell_edge_tests;
+mod mef_tests;
+mod mekl_keml_tests;
+mod mev_tests;
+mod mvf_tests;
 mod sew_edge_tests;
-mod brutality_tests;
-pub(crate) mod invariant_checker;
+mod shell_edge_tests;
+mod split_edge_tests;

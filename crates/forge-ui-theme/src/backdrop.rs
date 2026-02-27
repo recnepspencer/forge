@@ -13,29 +13,29 @@ use wgpu::util::DeviceExt;
 pub struct BackdropManager {
     /// Full-screen capture of the previous rendered frame.
     pub backdrop_texture: wgpu::Texture,
-    pub backdrop_view:    wgpu::TextureView,
+    pub backdrop_view: wgpu::TextureView,
 
     /// Intermediate texture for the horizontal blur pass.
     blur_temp_texture: wgpu::Texture,
-    blur_temp_view:    wgpu::TextureView,
+    blur_temp_view: wgpu::TextureView,
 
     /// Fully blurred output — sampled by the glass shader.
     pub blurred_texture: wgpu::Texture,
-    pub blurred_view:    wgpu::TextureView,
+    pub blurred_view: wgpu::TextureView,
 
     /// Linear-clamp sampler shared by all blur operations.
     pub sampler: wgpu::Sampler,
 
     /// Render pipeline for a single blur pass (horiz or vert unified by uniform).
     blur_pipeline: wgpu::RenderPipeline,
-    blur_bgl:      wgpu::BindGroupLayout,
+    blur_bgl: wgpu::BindGroupLayout,
 
     /// Bind group layout for the glass shader's texture input (group 1).
     pub glass_bgl: wgpu::BindGroupLayout,
     /// Bind group used by the glass shader to sample the blurred result.
     pub glass_bind_group: wgpu::BindGroup,
 
-    width:  u32,
+    width: u32,
     height: u32,
 }
 
@@ -46,7 +46,11 @@ impl BackdropManager {
         width: u32,
         height: u32,
     ) -> Self {
-        let size = wgpu::Extent3d { width, height, depth_or_array_layers: 1 };
+        let size = wgpu::Extent3d {
+            width,
+            height,
+            depth_or_array_layers: 1,
+        };
         let texture_usage = wgpu::TextureUsages::TEXTURE_BINDING
             | wgpu::TextureUsages::RENDER_ATTACHMENT
             | wgpu::TextureUsages::COPY_DST
@@ -65,13 +69,13 @@ impl BackdropManager {
             })
         };
 
-        let backdrop_texture  = make_texture("backdrop_capture");
+        let backdrop_texture = make_texture("backdrop_capture");
         let blur_temp_texture = make_texture("blur_temp");
-        let blurred_texture   = make_texture("blurred_output");
+        let blurred_texture = make_texture("blurred_output");
 
-        let backdrop_view  = backdrop_texture.create_view(&Default::default());
+        let backdrop_view = backdrop_texture.create_view(&Default::default());
         let blur_temp_view = blur_temp_texture.create_view(&Default::default());
-        let blurred_view   = blurred_texture.create_view(&Default::default());
+        let blurred_view = blurred_texture.create_view(&Default::default());
 
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("backdrop_sampler"),
@@ -103,9 +107,8 @@ impl BackdropManager {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
                         min_binding_size: Some(
-                            std::num::NonZeroU64::new(
-                                std::mem::size_of::<BlurUniforms>() as u64
-                            ).unwrap(),
+                            std::num::NonZeroU64::new(std::mem::size_of::<BlurUniforms>() as u64)
+                                .unwrap(),
                         ),
                     },
                     count: None,
@@ -131,12 +134,11 @@ impl BackdropManager {
             ],
         });
 
-        let blur_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("blur_pipeline_layout"),
-                bind_group_layouts: &[&blur_bgl],
-                push_constant_ranges: &[],
-            });
+        let blur_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("blur_pipeline_layout"),
+            bind_group_layouts: &[&blur_bgl],
+            push_constant_ranges: &[],
+        });
 
         let blur_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("blur_pipeline"),
@@ -195,8 +197,14 @@ impl BackdropManager {
             label: Some("glass_texture_bg"),
             layout: &glass_bgl,
             entries: &[
-                wgpu::BindGroupEntry { binding: 0, resource: wgpu::BindingResource::TextureView(&blurred_view) },
-                wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::Sampler(&sampler) },
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&blurred_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
             ],
         });
 
@@ -229,7 +237,11 @@ impl BackdropManager {
         encoder.copy_texture_to_texture(
             source_texture.as_image_copy(),
             self.backdrop_texture.as_image_copy(),
-            wgpu::Extent3d { width: self.width, height: self.height, depth_or_array_layers: 1 },
+            wgpu::Extent3d {
+                width: self.width,
+                height: self.height,
+                depth_or_array_layers: 1,
+            },
         );
     }
 
@@ -244,8 +256,14 @@ impl BackdropManager {
     ) -> Vec<wgpu::CommandBuffer> {
         let texel_size = [1.0 / self.width as f32, 1.0 / self.height as f32];
 
-        let h_uniforms = BlurUniforms { direction: [1.0, 0.0], texel_size };
-        let v_uniforms = BlurUniforms { direction: [0.0, 1.0], texel_size };
+        let h_uniforms = BlurUniforms {
+            direction: [1.0, 0.0],
+            texel_size,
+        };
+        let v_uniforms = BlurUniforms {
+            direction: [0.0, 1.0],
+            texel_size,
+        };
 
         let make_buf = |data: &BlurUniforms| {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -263,9 +281,18 @@ impl BackdropManager {
                 label: Some("blur_bg"),
                 layout: &self.blur_bgl,
                 entries: &[
-                    wgpu::BindGroupEntry { binding: 0, resource: buf.as_entire_binding() },
-                    wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(input) },
-                    wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::Sampler(&self.sampler) },
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: buf.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::TextureView(input),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: wgpu::BindingResource::Sampler(&self.sampler),
+                    },
                 ],
             })
         };
@@ -351,16 +378,16 @@ pub struct BlurUniforms {
 /// Register the BackdropManager with egui-wgpu's callback resources.
 ///
 /// Called once at startup from `ForgeApp::new()`.
-pub fn register_backdrop_manager(
-    render_state: &egui_wgpu::RenderState,
-    width: u32,
-    height: u32,
-) {
+pub fn register_backdrop_manager(render_state: &egui_wgpu::RenderState, width: u32, height: u32) {
     let manager = BackdropManager::new(
         &render_state.device,
         render_state.target_format,
         width,
         height,
     );
-    render_state.renderer.write().callback_resources.insert(manager);
+    render_state
+        .renderer
+        .write()
+        .callback_resources
+        .insert(manager);
 }

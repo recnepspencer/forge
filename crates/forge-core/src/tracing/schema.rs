@@ -260,7 +260,10 @@ impl fmt::Display for DecisionKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DecisionKind::Exact => write!(f, "Exact"),
-            DecisionKind::PolicyApplied { policy, default_used } => {
+            DecisionKind::PolicyApplied {
+                policy,
+                default_used,
+            } => {
                 write!(f, "PolicyApplied({:?}, default={})", policy, default_used)
             }
             DecisionKind::NearBoundary { threshold } => {
@@ -323,23 +326,36 @@ impl fmt::Display for DecisionContext {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DecisionContext::Classification { point, result } => {
-                write!(f, "Classification [{:.4}, {:.4}, {:.4}] → {}",
-                    point[0], point[1], point[2], result)
+                write!(
+                    f,
+                    "Classification [{:.4}, {:.4}, {:.4}] → {}",
+                    point[0], point[1], point[2], result
+                )
             }
             DecisionContext::Coincidence { entity_a, entity_b } => {
                 write!(f, "Coincidence {} ↔ {}", entity_a, entity_b)
             }
-            DecisionContext::Tolerance { measured, threshold } => {
-                write!(f, "Tolerance measured={:.2e} threshold={:.2e}", measured, threshold)
+            DecisionContext::Tolerance {
+                measured,
+                threshold,
+            } => {
+                write!(
+                    f,
+                    "Tolerance measured={:.2e} threshold={:.2e}",
+                    measured, threshold
+                )
             }
             DecisionContext::Degeneracy { description } => {
                 write!(f, "Degeneracy: {}", description)
             }
             DecisionContext::PrecisionEscalation { escalation } => {
-                write!(f, "Escalation to {:?}: Δ={:.2e} [{}]", 
-                    escalation.resolved_at, 
+                write!(
+                    f,
+                    "Escalation to {:?}: Δ={:.2e} [{}]",
+                    escalation.resolved_at,
                     escalation.disagreement_magnitude.unwrap_or(0.0),
-                    escalation.target_triple)
+                    escalation.target_triple
+                )
             }
         }
     }
@@ -425,9 +441,21 @@ impl fmt::Display for TopologyDelta {
         let he_diff = self.created_halfedges.len() as isize - self.deleted_halfedges.len() as isize;
         let v_diff = self.created_vertices.len() as isize - self.deleted_vertices.len() as isize;
 
-        if f_diff > 0 { parts.push(format!("+{}F", f_diff)); } else if f_diff < 0 { parts.push(format!("{}F", f_diff)); }
-        if he_diff > 0 { parts.push(format!("+{}HE", he_diff)); } else if he_diff < 0 { parts.push(format!("{}HE", he_diff)); }
-        if v_diff > 0 { parts.push(format!("+{}V", v_diff)); } else if v_diff < 0 { parts.push(format!("{}V", v_diff)); }
+        if f_diff > 0 {
+            parts.push(format!("+{}F", f_diff));
+        } else if f_diff < 0 {
+            parts.push(format!("{}F", f_diff));
+        }
+        if he_diff > 0 {
+            parts.push(format!("+{}HE", he_diff));
+        } else if he_diff < 0 {
+            parts.push(format!("{}HE", he_diff));
+        }
+        if v_diff > 0 {
+            parts.push(format!("+{}V", v_diff));
+        } else if v_diff < 0 {
+            parts.push(format!("{}V", v_diff));
+        }
 
         if parts.is_empty() {
             write!(f, "Δ changed")
@@ -569,7 +597,11 @@ impl TracedDecision {
 
 impl fmt::Display for TracedDecision {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "[{}] [{}] {} margin={:.2e}", self.id, self.tier, self.kind, self.margin)?;
+        write!(
+            f,
+            "[{}] [{}] {} margin={:.2e}",
+            self.id, self.tier, self.kind, self.margin
+        )?;
         if let Some(span) = self.span_id {
             write!(f, " {}", span)?;
         }

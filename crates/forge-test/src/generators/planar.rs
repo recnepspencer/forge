@@ -7,10 +7,10 @@
 use forge_core::KernelError;
 use forge_geom::spatial::bsp::{build_convex_polyhedron, BspConfig};
 use forge_geom::Plane;
-use forge_kernel::operations::boolean::{BooleanInput, BooleanOp};
 use forge_kernel::core::ModelingContext;
 use forge_kernel::geometry_state::GeometryState;
 use forge_kernel::mesh_builder::build_halfedge_mesh;
+use forge_kernel::operations::boolean::{BooleanInput, BooleanOp};
 use forge_topo::state::TopologyState;
 
 /// Deterministic PRNG (xorshift64). No external dependencies.
@@ -49,9 +49,7 @@ impl Xorshift64 {
 ///
 /// Generates 4–10 planes with random normals and offsets,
 /// then constructs via BSP + halfedge mesh builder.
-pub fn random_convex_solid(
-    seed: u64,
-) -> Result<(TopologyState, GeometryState), KernelError> {
+pub fn random_convex_solid(seed: u64) -> Result<(TopologyState, GeometryState), KernelError> {
     let mut rng = Xorshift64::new(seed);
     let num_planes = rng.next_usize_range(4, 10);
 
@@ -93,17 +91,35 @@ pub fn build_cube_at(
 ) -> Result<(TopologyState, GeometryState), KernelError> {
     let planes = vec![
         Plane::from_point_normal([center[0] + half, center[1], center[2]], [1.0, 0.0, 0.0])
-            .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
+            .map_err(|e| KernelError::InternalError {
+                message: format!("{e}"),
+                context: None,
+            })?,
         Plane::from_point_normal([center[0] - half, center[1], center[2]], [-1.0, 0.0, 0.0])
-            .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
+            .map_err(|e| KernelError::InternalError {
+                message: format!("{e}"),
+                context: None,
+            })?,
         Plane::from_point_normal([center[0], center[1] + half, center[2]], [0.0, 1.0, 0.0])
-            .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
+            .map_err(|e| KernelError::InternalError {
+                message: format!("{e}"),
+                context: None,
+            })?,
         Plane::from_point_normal([center[0], center[1] - half, center[2]], [0.0, -1.0, 0.0])
-            .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
+            .map_err(|e| KernelError::InternalError {
+                message: format!("{e}"),
+                context: None,
+            })?,
         Plane::from_point_normal([center[0], center[1], center[2] + half], [0.0, 0.0, 1.0])
-            .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
+            .map_err(|e| KernelError::InternalError {
+                message: format!("{e}"),
+                context: None,
+            })?,
         Plane::from_point_normal([center[0], center[1], center[2] - half], [0.0, 0.0, -1.0])
-            .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
+            .map_err(|e| KernelError::InternalError {
+                message: format!("{e}"),
+                context: None,
+            })?,
     ];
 
     let cell = build_convex_polyhedron(&planes, &BspConfig::default())?;
@@ -113,27 +129,49 @@ pub fn build_cube_at(
 }
 
 /// Build a cube at a random position with random half-size.
-pub fn random_cube(
-    rng: &mut Xorshift64,
-) -> Result<(TopologyState, GeometryState), KernelError> {
+pub fn random_cube(rng: &mut Xorshift64) -> Result<(TopologyState, GeometryState), KernelError> {
     let cx = rng.next_f64_range(-5.0, 5.0);
     let cy = rng.next_f64_range(-5.0, 5.0);
     let cz = rng.next_f64_range(-5.0, 5.0);
     let half = rng.next_f64_range(0.5, 4.0);
 
     let planes = vec![
-        Plane::from_point_normal([cx + half, cy, cz], [1.0, 0.0, 0.0])
-            .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
-        Plane::from_point_normal([cx - half, cy, cz], [-1.0, 0.0, 0.0])
-            .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
-        Plane::from_point_normal([cx, cy + half, cz], [0.0, 1.0, 0.0])
-            .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
-        Plane::from_point_normal([cx, cy - half, cz], [0.0, -1.0, 0.0])
-            .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
-        Plane::from_point_normal([cx, cy, cz + half], [0.0, 0.0, 1.0])
-            .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
-        Plane::from_point_normal([cx, cy, cz - half], [0.0, 0.0, -1.0])
-            .map_err(|e| KernelError::InternalError { message: format!("{e}"), context: None })?,
+        Plane::from_point_normal([cx + half, cy, cz], [1.0, 0.0, 0.0]).map_err(|e| {
+            KernelError::InternalError {
+                message: format!("{e}"),
+                context: None,
+            }
+        })?,
+        Plane::from_point_normal([cx - half, cy, cz], [-1.0, 0.0, 0.0]).map_err(|e| {
+            KernelError::InternalError {
+                message: format!("{e}"),
+                context: None,
+            }
+        })?,
+        Plane::from_point_normal([cx, cy + half, cz], [0.0, 1.0, 0.0]).map_err(|e| {
+            KernelError::InternalError {
+                message: format!("{e}"),
+                context: None,
+            }
+        })?,
+        Plane::from_point_normal([cx, cy - half, cz], [0.0, -1.0, 0.0]).map_err(|e| {
+            KernelError::InternalError {
+                message: format!("{e}"),
+                context: None,
+            }
+        })?,
+        Plane::from_point_normal([cx, cy, cz + half], [0.0, 0.0, 1.0]).map_err(|e| {
+            KernelError::InternalError {
+                message: format!("{e}"),
+                context: None,
+            }
+        })?,
+        Plane::from_point_normal([cx, cy, cz - half], [0.0, 0.0, -1.0]).map_err(|e| {
+            KernelError::InternalError {
+                message: format!("{e}"),
+                context: None,
+            }
+        })?,
     ];
 
     let cell = build_convex_polyhedron(&planes, &BspConfig::default())?;

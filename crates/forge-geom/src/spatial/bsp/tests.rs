@@ -1,7 +1,7 @@
 //! Tests for BSP convex polyhedron construction.
 
+use crate::primitives::plane::{signed_distance, Plane};
 use crate::spatial::bsp::{build_convex_polyhedron, BspConfig, ConvexCell};
-use crate::primitives::plane::{Plane, signed_distance};
 
 const TEST_TOLERANCE: f64 = 1e-8;
 const TEST_DEGENERACY: f64 = 1e-14;
@@ -9,7 +9,10 @@ const TEST_DEGENERACY: f64 = 1e-14;
 /// Helper: count only the faces corresponding to user-supplied planes
 /// (not the bounding-box planes, which are indices 0..5).
 fn count_user_faces(cell: &ConvexCell, bbox_plane_count: usize) -> usize {
-    cell.faces().iter().filter(|f| f.plane_idx() >= bbox_plane_count).count()
+    cell.faces()
+        .iter()
+        .filter(|f| f.plane_idx() >= bbox_plane_count)
+        .count()
 }
 
 /// Helper: verify Euler formula V - E + F = 2 for a convex polyhedron.
@@ -104,10 +107,7 @@ fn hexagonal_prism_from_eight_planes() {
 
     let mut planes = Vec::new();
     for n in &hex_normals {
-        planes.push(Plane::from_point_normal(
-            [n[0], n[1], 0.0],
-            *n,
-        ).unwrap());
+        planes.push(Plane::from_point_normal([n[0], n[1], 0.0], *n).unwrap());
     }
     planes.push(Plane::from_point_normal([0.0, 0.0, 1.0], [0.0, 0.0, 1.0]).unwrap());
     planes.push(Plane::from_point_normal([0.0, 0.0, -1.0], [0.0, 0.0, -1.0]).unwrap());
@@ -160,14 +160,16 @@ fn contradictory_planes_return_error() {
 #[test]
 fn bsp_output_is_deterministic() {
     let config = BspConfig::default();
-    let make_planes = || vec![
-        Plane::from_point_normal([1.0, 0.0, 0.0], [1.0, 0.0, 0.0]).unwrap(),
-        Plane::from_point_normal([-1.0, 0.0, 0.0], [-1.0, 0.0, 0.0]).unwrap(),
-        Plane::from_point_normal([0.0, 1.0, 0.0], [0.0, 1.0, 0.0]).unwrap(),
-        Plane::from_point_normal([0.0, -1.0, 0.0], [0.0, -1.0, 0.0]).unwrap(),
-        Plane::from_point_normal([0.0, 0.0, 1.0], [0.0, 0.0, 1.0]).unwrap(),
-        Plane::from_point_normal([0.0, 0.0, -1.0], [0.0, 0.0, -1.0]).unwrap(),
-    ];
+    let make_planes = || {
+        vec![
+            Plane::from_point_normal([1.0, 0.0, 0.0], [1.0, 0.0, 0.0]).unwrap(),
+            Plane::from_point_normal([-1.0, 0.0, 0.0], [-1.0, 0.0, 0.0]).unwrap(),
+            Plane::from_point_normal([0.0, 1.0, 0.0], [0.0, 1.0, 0.0]).unwrap(),
+            Plane::from_point_normal([0.0, -1.0, 0.0], [0.0, -1.0, 0.0]).unwrap(),
+            Plane::from_point_normal([0.0, 0.0, 1.0], [0.0, 0.0, 1.0]).unwrap(),
+            Plane::from_point_normal([0.0, 0.0, -1.0], [0.0, 0.0, -1.0]).unwrap(),
+        ]
+    };
 
     let c1 = build_convex_polyhedron(&make_planes(), &config).unwrap();
     let c2 = build_convex_polyhedron(&make_planes(), &config).unwrap();

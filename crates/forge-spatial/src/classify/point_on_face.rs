@@ -9,9 +9,11 @@
 //!               forge-geom (dominant_projection_axes, scanline_edge_crossing).
 
 use forge_core::{KernelError, ToleranceProvider};
-use forge_geom::{dominant_projection_axes, resolve_zero_edge, scanline_edge_crossing, EdgeTieBreaker};
-use forge_math::sign::TriSign;
+use forge_geom::{
+    dominant_projection_axes, resolve_zero_edge, scanline_edge_crossing, EdgeTieBreaker,
+};
 use forge_math::predicates::orient2d;
+use forge_math::sign::TriSign;
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::traverse::FaceEdgeIterator;
@@ -47,7 +49,10 @@ pub fn classify_point_on_face(
         let he = arena.get_half_edge(he_id)?;
         let v = he.origin();
         let pos = position_fn(v).ok_or_else(|| KernelError::InvalidInput {
-            message: format!("classify_point_on_face: no position for vertex {}", v.index()),
+            message: format!(
+                "classify_point_on_face: no position for vertex {}",
+                v.index()
+            ),
             context: None,
         })?;
         boundary.push((he_id, v, pos));
@@ -63,7 +68,7 @@ pub fn classify_point_on_face(
         let dx = point[0] - pos[0];
         let dy = point[1] - pos[1];
         let dz = point[2] - pos[2];
-        if dx*dx + dy*dy + dz*dz <= tol_sq {
+        if dx * dx + dy * dy + dz * dz <= tol_sq {
             return Ok(FacePointClassification::OnVertex(v));
         }
     }
@@ -76,35 +81,36 @@ pub fn classify_point_on_face(
         let edge_id = he.edge();
         let etol = tolerance_provider.edge_tolerance(edge_id.index(), edge_id.generation());
         let tol_sq = etol * etol;
-        let ab = [b[0]-a[0], b[1]-a[1], b[2]-a[2]];
-        let ap = [point[0]-a[0], point[1]-a[1], point[2]-a[2]];
-        let t_num = ap[0]*ab[0] + ap[1]*ab[1] + ap[2]*ab[2];
-        let t_den = ab[0]*ab[0] + ab[1]*ab[1] + ab[2]*ab[2];
+        let ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+        let ap = [point[0] - a[0], point[1] - a[1], point[2] - a[2]];
+        let t_num = ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2];
+        let t_den = ab[0] * ab[0] + ab[1] * ab[1] + ab[2] * ab[2];
         if t_den > 0.0 {
             let t = (t_num / t_den).clamp(0.0, 1.0);
-            let closest = [a[0]+t*ab[0], a[1]+t*ab[1], a[2]+t*ab[2]];
-            let dx = point[0]-closest[0];
-            let dy = point[1]-closest[1];
-            let dz = point[2]-closest[2];
-            if dx*dx + dy*dy + dz*dz <= tol_sq {
+            let closest = [a[0] + t * ab[0], a[1] + t * ab[1], a[2] + t * ab[2]];
+            let dx = point[0] - closest[0];
+            let dy = point[1] - closest[1];
+            let dz = point[2] - closest[2];
+            if dx * dx + dy * dy + dz * dz <= tol_sq {
                 return Ok(FacePointClassification::OnEdge(he_id));
             }
         }
     }
 
-    let min_vtol = boundary.iter().map(|&(_, v, _)| {
-        tolerance_provider.vertex_tolerance(v.index(), v.generation())
-    }).fold(f64::MAX, f64::min);
+    let min_vtol = boundary
+        .iter()
+        .map(|&(_, v, _)| tolerance_provider.vertex_tolerance(v.index(), v.generation()))
+        .fold(f64::MAX, f64::min);
 
     let positions: Vec<[f64; 3]> = boundary.iter().map(|&(_, _, p)| p).collect();
     let normal = compute_newell_normal(&positions);
-    let mag_sq = normal[0]*normal[0] + normal[1]*normal[1] + normal[2]*normal[2];
+    let mag_sq = normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2];
     if mag_sq > 0.0 {
         let mag = mag_sq.sqrt();
-        let n_unit = [normal[0]/mag, normal[1]/mag, normal[2]/mag];
+        let n_unit = [normal[0] / mag, normal[1] / mag, normal[2] / mag];
         let p0 = positions[0];
-        let d = -(n_unit[0]*p0[0] + n_unit[1]*p0[1] + n_unit[2]*p0[2]);
-        let dist = (n_unit[0]*point[0] + n_unit[1]*point[1] + n_unit[2]*point[2] + d).abs();
+        let d = -(n_unit[0] * p0[0] + n_unit[1] * p0[1] + n_unit[2] * p0[2]);
+        let dist = (n_unit[0] * point[0] + n_unit[1] * point[1] + n_unit[2] * point[2] + d).abs();
         if dist > min_vtol {
             return Ok(FacePointClassification::Outside);
         }
@@ -125,9 +131,17 @@ pub fn classify_point_on_face(
 fn point_in_projected_polygon(
     hit: &[f64; 3],
     verts: &[[f64; 3]],
-) -> Result<(bool, Option<forge_math::arithmetic::precision::PrecisionEscalation>), KernelError> {
+) -> Result<
+    (
+        bool,
+        Option<forge_math::arithmetic::precision::PrecisionEscalation>,
+    ),
+    KernelError,
+> {
     let n = verts.len();
-    if n < 3 { return Ok((false, None)); }
+    if n < 3 {
+        return Ok((false, None));
+    }
 
     let (u_axis, v_axis) = dominant_projection_axes(verts);
     let hit_u = hit[u_axis];
@@ -143,17 +157,17 @@ fn point_in_projected_polygon(
         let vj_u = verts[j][u_axis];
         let vj_v = verts[j][v_axis];
 
-        let (orient, esc) = orient2d(
-            [vi_u, vi_v],
-            [vj_u, vj_v],
-            [hit_u, hit_v],
-        ).map_err(|e| KernelError::InternalError {
-            message: format!("orient2d error: {e}"),
-            context: None,
+        let (orient, esc) = orient2d([vi_u, vi_v], [vj_u, vj_v], [hit_u, hit_v]).map_err(|e| {
+            KernelError::InternalError {
+                message: format!("orient2d error: {e}"),
+                context: None,
+            }
         })?;
 
         if let Some(e) = &max_escalation {
-            if esc.resolved_at > e.resolved_at { max_escalation = Some(esc); }
+            if esc.resolved_at > e.resolved_at {
+                max_escalation = Some(esc);
+            }
         } else {
             max_escalation = Some(esc);
         }
@@ -167,9 +181,9 @@ fn point_in_projected_polygon(
         };
 
         match scanline_edge_crossing(vi_v, vj_v, hit_v, sign) {
-            Some(true)  => winding += 1,
+            Some(true) => winding += 1,
             Some(false) => winding -= 1,
-            None        => {}
+            None => {}
         }
     }
 

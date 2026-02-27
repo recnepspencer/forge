@@ -6,9 +6,9 @@
 //!
 //! DEPENDENCIES: `forge-topo` (arena traversal), `geometry_state` (positions)
 
-pub mod sliver;
-pub mod proof_validation;
-pub mod region_extractor;
 pub mod causal_chain;
 pub mod counterfactual;
 pub mod gap;
+pub mod proof_validation;
+pub mod region_extractor;
+pub mod sliver;

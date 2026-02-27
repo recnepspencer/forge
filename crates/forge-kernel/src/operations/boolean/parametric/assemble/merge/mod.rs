@@ -2,8 +2,10 @@
 //!
 //! DOMAIN: Orchestrate the full boolean pipeline and wrap results.
 
-mod eval;
 mod assemble;
+mod eval;
 
-pub use eval::{execute_boolean_direct, execute_boolean_with_overrides, execute_boolean_with_engine};
 pub(crate) use assemble::assemble_result;
+pub use eval::{
+    execute_boolean_direct, execute_boolean_with_engine, execute_boolean_with_overrides,
+};

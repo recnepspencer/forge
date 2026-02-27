@@ -1,16 +1,16 @@
 //! Rebuild a topological face from an ordered list of vertices.
 //!
 //! DOMAIN: Create a new face by converting a sequence of VertexIds into
-//! a closed loop using exclusively Euler operators (MVF + MEV... + MEF). 
+//! a closed loop using exclusively Euler operators (MVF + MEV... + MEF).
 
 use forge_core::KernelError;
-use forge_topo::handles::{FaceId, VertexId, HalfEdgeId};
-use forge_topo::state::MutableDraft;
-use forge_topo::operator::apply_op;
 use forge_topo::euler::make_face_in_shell_from_vertices::MakeFaceInShellFromVertices;
 use forge_topo::euler::make_loop_in_face_from_vertices::MakeLoopInFaceFromVertices;
-use forge_topo::lineage::OpSignature;
 use forge_topo::handles::ShellId;
+use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
+use forge_topo::lineage::OpSignature;
+use forge_topo::operator::apply_op;
+use forge_topo::state::MutableDraft;
 
 /// Output of a rebuilt face.
 pub struct RebuildFaceOutput {
@@ -33,8 +33,8 @@ pub struct RebuildLoopOutput {
 
 /// Rebuild a closed face from a sequence of vertices using Euler operators.
 ///
-/// Converts a list of pre-existing `VertexId`s into a fully closed 
-/// topological face. This correctly establishes the `Face`, `Loop`, 
+/// Converts a list of pre-existing `VertexId`s into a fully closed
+/// topological face. This correctly establishes the `Face`, `Loop`,
 /// `HalfEdge`, and `Edge` entities without raw arena insertions.
 ///
 /// # Returns
@@ -46,13 +46,19 @@ pub fn rebuild_face_from_vertices(
     _sig: OpSignature,
 ) -> Result<RebuildFaceOutput, KernelError> {
     if vertices.len() < 3 {
-        return Err(KernelError::InvalidInput { 
-            message: format!("Cannot rebuild face from {} vertices (minimum 3 required)", vertices.len()),
-            context: None 
+        return Err(KernelError::InvalidInput {
+            message: format!(
+                "Cannot rebuild face from {} vertices (minimum 3 required)",
+                vertices.len()
+            ),
+            context: None,
         });
     }
 
-    let op = MakeFaceInShellFromVertices { shell, vertices: vertices.to_vec() };
+    let op = MakeFaceInShellFromVertices {
+        shell,
+        vertices: vertices.to_vec(),
+    };
     match apply_op(draft, op) {
         Ok(res) => {
             let val = res.into_value();
@@ -75,12 +81,18 @@ pub fn rebuild_inner_loop_from_vertices(
 ) -> Result<RebuildLoopOutput, KernelError> {
     if vertices.len() < 3 {
         return Err(KernelError::InvalidInput {
-            message: format!("Cannot rebuild loop from {} vertices (minimum 3 required)", vertices.len()),
+            message: format!(
+                "Cannot rebuild loop from {} vertices (minimum 3 required)",
+                vertices.len()
+            ),
             context: None,
         });
     }
 
-    let op = MakeLoopInFaceFromVertices { face, vertices: vertices.to_vec() };
+    let op = MakeLoopInFaceFromVertices {
+        face,
+        vertices: vertices.to_vec(),
+    };
     match apply_op(draft, op) {
         Ok(res) => {
             let val = res.into_value();

@@ -7,8 +7,8 @@
 //! DEPENDENCIES: `forge_math::linalg` for vector operations.
 //! INVARIANTS: Deterministic ordering — ties broken by edge index.
 
+use forge_math::linalg::{norm_sq, sub};
 use std::collections::BTreeMap;
-use forge_math::linalg::{sub, norm_sq};
 
 /// A directed edge with an ID, origin position, and destination position.
 #[derive(Clone, Debug)]
@@ -75,7 +75,13 @@ impl EdgeMatcher {
             dest_grid.entry(key).or_default().push(idx);
         }
 
-        Self { cell_size, inv_cell_size, tolerance_sq, dest_grid, edges }
+        Self {
+            cell_size,
+            inv_cell_size,
+            tolerance_sq,
+            dest_grid,
+            edges,
+        }
     }
 
     /// Find all reverse-oriented edge pairs within tolerance.
@@ -164,16 +170,21 @@ impl EdgeMatcher {
                                         MatchMode::FullEndpoint => {
                                             compute_full_distance(edge_a, edge_b, self.tolerance_sq)
                                         }
-                                        MatchMode::SingleVertex => {
-                                            compute_single_vertex_distance(edge_a, edge_b, self.tolerance_sq)
-                                        }
+                                        MatchMode::SingleVertex => compute_single_vertex_distance(
+                                            edge_a,
+                                            edge_b,
+                                            self.tolerance_sq,
+                                        ),
                                     };
 
                                     if let Some(dist_sq) = candidate {
                                         let is_better = match &best {
                                             None => true,
-                                            Some(prev) => dist_sq < prev.distance_sq
-                                                || (dist_sq == prev.distance_sq && edge_b.id < prev.edge_b),
+                                            Some(prev) => {
+                                                dist_sq < prev.distance_sq
+                                                    || (dist_sq == prev.distance_sq
+                                                        && edge_b.id < prev.edge_b)
+                                            }
                                         };
                                         if is_better {
                                             best = Some(EdgeMatch {
@@ -223,11 +234,19 @@ pub fn fuzzy_match_edges(
 /// Returns `Some(total_dist_sq)` if `norm_sq(oA - dB) + norm_sq(dA - oB) ≤ tol`.
 fn compute_full_distance(a: &DirectedEdge, b: &DirectedEdge, tol_sq: f64) -> Option<f64> {
     let d_od = norm_sq(sub(a.origin, b.dest));
-    if d_od > tol_sq { return None; }
+    if d_od > tol_sq {
+        return None;
+    }
     let d_do = norm_sq(sub(a.dest, b.origin));
-    if d_do > tol_sq { return None; }
+    if d_do > tol_sq {
+        return None;
+    }
     let total = d_od + d_do;
-    if total <= tol_sq { Some(total) } else { None }
+    if total <= tol_sq {
+        Some(total)
+    } else {
+        None
+    }
 }
 
 /// Compute single-vertex-match distance (pass 4 style).
@@ -239,10 +258,18 @@ fn compute_single_vertex_distance(a: &DirectedEdge, b: &DirectedEdge, tol_sq: f6
 
     if origin_match && !dest_match {
         let dsq = norm_sq(sub(a.dest, b.origin));
-        if dsq <= tol_sq { Some(dsq) } else { None }
+        if dsq <= tol_sq {
+            Some(dsq)
+        } else {
+            None
+        }
     } else if !origin_match && dest_match {
         let dsq = norm_sq(sub(a.origin, b.dest));
-        if dsq <= tol_sq { Some(dsq) } else { None }
+        if dsq <= tol_sq {
+            Some(dsq)
+        } else {
+            None
+        }
     } else {
         None
     }
@@ -262,15 +289,32 @@ mod tests {
     use super::*;
 
     fn make_edge(id: u32, group: Option<u32>, origin: [f64; 3], dest: [f64; 3]) -> DirectedEdge {
-        DirectedEdge { id, group, origin_index: None, dest_index: None, origin, dest }
+        DirectedEdge {
+            id,
+            group,
+            origin_index: None,
+            dest_index: None,
+            origin,
+            dest,
+        }
     }
 
     fn make_edge_with_indices(
-        id: u32, group: Option<u32>,
-        oi: u32, di: u32,
-        origin: [f64; 3], dest: [f64; 3],
+        id: u32,
+        group: Option<u32>,
+        oi: u32,
+        di: u32,
+        origin: [f64; 3],
+        dest: [f64; 3],
     ) -> DirectedEdge {
-        DirectedEdge { id, group, origin_index: Some(oi), dest_index: Some(di), origin, dest }
+        DirectedEdge {
+            id,
+            group,
+            origin_index: Some(oi),
+            dest_index: Some(di),
+            origin,
+            dest,
+        }
     }
 
     #[test]

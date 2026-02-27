@@ -27,20 +27,20 @@
 //!
 //! DEPENDENCIES: `arena` (entity storage), `lineage` (provenance), `handles` (typed IDs)
 
-pub mod make_vertex_face;
-pub mod make_edge_face;
-pub mod make_edge_vertex;
-pub mod make_edge_kill_loop;
-pub mod split_edge;
 pub mod join_faces;
 pub mod join_faces_nmt;
-pub mod kill_edge_vertex;
 pub mod kill_edge_make_loop;
-pub mod sew_edge;
-pub mod unsew_edge;
-pub mod make_shell_face;
+pub mod kill_edge_vertex;
 pub mod kill_shell_face;
 pub mod kill_vertex_face;
+pub mod make_edge_face;
+pub mod make_edge_kill_loop;
+pub mod make_edge_vertex;
+pub mod make_shell_face;
+pub mod make_vertex_face;
+pub mod sew_edge;
+pub mod split_edge;
+pub mod unsew_edge;
 
 #[cfg(test)]
 pub mod tests;

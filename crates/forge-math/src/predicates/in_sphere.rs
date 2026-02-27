@@ -4,9 +4,7 @@
 //! ALGORITHM: Shewchuk adaptive cascade (vendored from geometry-predicates).
 //! DEPENDENCIES: `vendored`, `precision`, `CertifiedTriSign`.
 
-use crate::arithmetic::precision::{
-    PrecisionEscalation, PrecisionMode, build_target_description,
-};
+use crate::arithmetic::precision::{build_target_description, PrecisionEscalation, PrecisionMode};
 use crate::sign::{CertifiedTriSign, TriSign};
 
 /// Input to [`in_sphere`]: five 3D points.
@@ -47,9 +45,13 @@ pub fn in_sphere(
 }
 
 fn sign_of(det: f64) -> TriSign {
-    if det > 0.0 { TriSign::Pos }
-    else if det < 0.0 { TriSign::Neg }
-    else { TriSign::Zero }
+    if det > 0.0 {
+        TriSign::Pos
+    } else if det < 0.0 {
+        TriSign::Neg
+    } else {
+        TriSign::Zero
+    }
 }
 
 #[cfg(test)]
@@ -65,7 +67,8 @@ mod tests {
             [0.0, 1.0, 0.707],
             [0.0, -1.0, 0.707],
             [0.0, 0.0, 0.0],
-        ).unwrap();
+        )
+        .unwrap();
         assert!(!result.is_zero());
     }
 
@@ -77,7 +80,8 @@ mod tests {
             [0.0, 0.0, 1.0],
             [-1.0, 0.0, 0.0],
             [0.0, -1.0, 0.0],
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(result.sign(), TriSign::Zero);
     }
 
@@ -89,21 +93,35 @@ mod tests {
             [0.0, 0.0, 1.0],
             [-1.0, 0.0, 0.0],
             [10.0, 10.0, 10.0],
-        ).unwrap();
+        )
+        .unwrap();
         assert!(!result.is_zero());
     }
 
     #[test]
     fn oracle_cross_validation_basic() {
         let cases = [
-            ([1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 0.0, 0.0], [0.0, -1.0, 0.0]),
-            ([1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 0.0, 0.0], [10.0, 10.0, 10.0]),
+            (
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+                [-1.0, 0.0, 0.0],
+                [0.0, -1.0, 0.0],
+            ),
+            (
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+                [-1.0, 0.0, 0.0],
+                [10.0, 10.0, 10.0],
+            ),
         ];
         for (pa, pb, pc, pd, pe) in cases {
             let our_det = super::super::vendored::insphere(pa, pb, pc, pd, pe);
             let oracle_det = geometry_predicates::insphere(pa, pb, pc, pd, pe);
             assert_eq!(
-                our_det.signum(), oracle_det.signum(),
+                our_det.signum(),
+                oracle_det.signum(),
                 "Oracle mismatch for insphere"
             );
         }

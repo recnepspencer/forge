@@ -14,12 +14,12 @@
 //!
 //! DEPENDENCIES: `euler::make_edge_face`
 
-use forge_core::KernelError;
 use crate::handles::{FaceId, HalfEdgeId};
-use crate::state::MutableDraft;
 use crate::operator::apply_op;
+use crate::state::MutableDraft;
 use crate::topology::operations::euler::make_edge_face::MakeEdgeFace;
 use crate::topology::queries::traverse::FaceEdgeIterator;
+use forge_core::KernelError;
 
 /// Output of the triangulate_face algorithm.
 pub struct TriangulateOutput {
@@ -63,7 +63,11 @@ pub fn triangulate_face(
 
     if n < 3 {
         return Err(KernelError::InvalidInput {
-            message: format!("triangulate_face: face {} has only {} vertices", face.index(), n),
+            message: format!(
+                "triangulate_face: face {} has only {} vertices",
+                face.index(),
+                n
+            ),
             context: None,
         });
     }
@@ -83,11 +87,15 @@ pub fn triangulate_face(
     for i in 2..(n - 1) {
         let target = verts[i];
 
-        let mef = apply_op(draft, MakeEdgeFace {
-            face: current_face,
-            vertex_a: anchor,
-            vertex_b: target,
-        })?.into_value();
+        let mef = apply_op(
+            draft,
+            MakeEdgeFace {
+                face: current_face,
+                vertex_a: anchor,
+                vertex_b: target,
+            },
+        )?
+        .into_value();
 
         new_edges.push(mef.half_edge_ab);
         new_faces.push(mef.new_face);
@@ -117,10 +125,10 @@ fn collect_face_vertices(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::TopologyState;
-    use crate::operator::apply_op;
     use crate::euler::make_vertex_face::MakeVertexFace;
     use crate::euler::split_edge::SplitEdge;
+    use crate::operator::apply_op;
+    use crate::state::TopologyState;
     use crate::topology::queries::traverse::FaceEdgeIterator;
 
     #[test]
@@ -129,9 +137,33 @@ mod tests {
         let mut draft = state.into_mutation();
 
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.25 }).unwrap().into_value();
-        let se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.5 }).unwrap().into_value();
-        let _se3 = apply_op(&mut draft, SplitEdge { edge: se2.he_mb, parameter: 0.75 }).unwrap().into_value();
+        let se1 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.25,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let se2 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se1.he_mb,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let _se3 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se2.he_mb,
+                parameter: 0.75,
+            },
+        )
+        .unwrap()
+        .into_value();
 
         assert_eq!(draft.arena().face_count(), 1);
         assert_eq!(draft.arena().vertex_count(), 4);
@@ -143,7 +175,8 @@ mod tests {
         assert_eq!(draft.arena().face_count(), 2);
 
         for (face_id, _) in draft.arena().iter_faces() {
-            let count: usize = FaceEdgeIterator::new(draft.arena(), face_id).unwrap()
+            let count: usize = FaceEdgeIterator::new(draft.arena(), face_id)
+                .unwrap()
                 .map(|r| r.unwrap())
                 .count();
             assert_eq!(count, 3, "Each face must be a triangle after triangulation");
@@ -156,10 +189,42 @@ mod tests {
         let mut draft = state.into_mutation();
 
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.2 }).unwrap().into_value();
-        let se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.4 }).unwrap().into_value();
-        let se3 = apply_op(&mut draft, SplitEdge { edge: se2.he_mb, parameter: 0.6 }).unwrap().into_value();
-        let _se4 = apply_op(&mut draft, SplitEdge { edge: se3.he_mb, parameter: 0.8 }).unwrap().into_value();
+        let se1 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.2,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let se2 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se1.he_mb,
+                parameter: 0.4,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let se3 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se2.he_mb,
+                parameter: 0.6,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let _se4 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se3.he_mb,
+                parameter: 0.8,
+            },
+        )
+        .unwrap()
+        .into_value();
 
         assert_eq!(draft.arena().vertex_count(), 5);
 
@@ -176,8 +241,24 @@ mod tests {
         let mut draft = state.into_mutation();
 
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.3 }).unwrap().into_value();
-        let _se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_mb, parameter: 0.6 }).unwrap().into_value();
+        let se1 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.3,
+            },
+        )
+        .unwrap()
+        .into_value();
+        let _se2 = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: se1.he_mb,
+                parameter: 0.6,
+            },
+        )
+        .unwrap()
+        .into_value();
 
         assert_eq!(draft.arena().vertex_count(), 3);
 

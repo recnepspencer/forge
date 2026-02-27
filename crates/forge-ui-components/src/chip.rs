@@ -11,8 +11,13 @@ pub struct FgChip<'a> {
 }
 
 impl<'a> FgChip<'a> {
-    pub fn new(label: &'a str) -> Self { Self { label, dot: None } }
-    pub fn dot(mut self, color: egui::Color32) -> Self { self.dot = Some(color); self }
+    pub fn new(label: &'a str) -> Self {
+        Self { label, dot: None }
+    }
+    pub fn dot(mut self, color: egui::Color32) -> Self {
+        self.dot = Some(color);
+        self
+    }
 }
 
 /// Render a chip pill. Returns the response for click detection.
@@ -21,7 +26,12 @@ pub fn fg_chip(ui: &mut Ui, theme: &ForgeTheme, props: FgChip<'_>) -> Response {
         .fill(theme.bg_raised)
         .stroke(Stroke::new(1.0, theme.border_default))
         .corner_radius(CornerRadius::same(theme.radius_sm as u8))
-        .inner_margin(egui::Margin { left: 10, right: 10, top: 3, bottom: 3 })
+        .inner_margin(egui::Margin {
+            left: 10,
+            right: 10,
+            top: 3,
+            bottom: 3,
+        })
         .show(ui, |ui| {
             ui.horizontal(|ui| {
                 if let Some(dot_col) = props.dot {

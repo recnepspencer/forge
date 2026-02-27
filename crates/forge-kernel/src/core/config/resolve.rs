@@ -5,9 +5,9 @@
 
 use forge_core::KernelError;
 
-use super::schema::KernelConfig;
 use super::overrides::ConfigOverride;
 use super::provenance::{ConfigProvenance, ConfigScope, ConfigSource};
+use super::schema::KernelConfig;
 
 /// Frozen, fully-resolved configuration for the current scope.
 #[derive(Debug, Clone)]
@@ -63,7 +63,7 @@ impl ResolvedConfig {
         // Then validate cross-section/cross-field invariants.
         let tol = &self.config.tolerance;
         let ambiguity_limit = tol.spatial_tolerance * tol.ambiguity_band_factor;
-        
+
         // Legacy defaults support: GAP_CLOSURE_MAX is 1e-4, while ambiguity_limit is 1e-5.
         // We relax by GAP_CLOSURE_RELAXATION_FACTOR to account for floating point errors.
         let relaxed_limit = ambiguity_limit * super::defaults::GAP_CLOSURE_RELAXATION_FACTOR;
@@ -92,15 +92,45 @@ macro_rules! cascade {
         $feat:expr,
         $model:expr
     ) => {
-        if let Some(val) = $op.as_ref().and_then(|(o, _)| o.$section_ident.as_ref()).and_then(|s| s.$field_ident.clone()) {
+        if let Some(val) = $op
+            .as_ref()
+            .and_then(|(o, _)| o.$section_ident.as_ref())
+            .and_then(|s| s.$field_ident.clone())
+        {
             $resolved.$section_ident.$field_ident = val;
-            $provenance.record($field_path_str, ConfigSource::new(ConfigScope::OperationOverride, $op.as_ref().unwrap().1.clone()));
-        } else if let Some(val) = $feat.as_ref().and_then(|(o, _)| o.$section_ident.as_ref()).and_then(|s| s.$field_ident.clone()) {
+            $provenance.record(
+                $field_path_str,
+                ConfigSource::new(
+                    ConfigScope::OperationOverride,
+                    $op.as_ref().unwrap().1.clone(),
+                ),
+            );
+        } else if let Some(val) = $feat
+            .as_ref()
+            .and_then(|(o, _)| o.$section_ident.as_ref())
+            .and_then(|s| s.$field_ident.clone())
+        {
             $resolved.$section_ident.$field_ident = val;
-            $provenance.record($field_path_str, ConfigSource::new(ConfigScope::FeatureOverride, $feat.as_ref().unwrap().1.clone()));
-        } else if let Some(val) = $model.as_ref().and_then(|(o, _)| o.$section_ident.as_ref()).and_then(|s| s.$field_ident.clone()) {
+            $provenance.record(
+                $field_path_str,
+                ConfigSource::new(
+                    ConfigScope::FeatureOverride,
+                    $feat.as_ref().unwrap().1.clone(),
+                ),
+            );
+        } else if let Some(val) = $model
+            .as_ref()
+            .and_then(|(o, _)| o.$section_ident.as_ref())
+            .and_then(|s| s.$field_ident.clone())
+        {
             $resolved.$section_ident.$field_ident = val;
-            $provenance.record($field_path_str, ConfigSource::new(ConfigScope::ModelOverride, $model.as_ref().unwrap().1.clone()));
+            $provenance.record(
+                $field_path_str,
+                ConfigSource::new(
+                    ConfigScope::ModelOverride,
+                    $model.as_ref().unwrap().1.clone(),
+                ),
+            );
         } else {
             $provenance.record($field_path_str, ConfigSource::session());
         }
@@ -128,50 +158,282 @@ pub fn resolve_config(
     let oo = &operation;
 
     // Tolerance fields
-    cascade!(resolved, provenance, "tolerance.unit_system", tolerance.unit_system, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.spatial_tolerance", tolerance.spatial_tolerance, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.angular_tolerance", tolerance.angular_tolerance, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.min_transversal_angle", tolerance.min_transversal_angle, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.max_tangent_gap", tolerance.max_tangent_gap, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.min_face_area", tolerance.min_face_area, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.max_slivers_per_op", tolerance.max_slivers_per_op, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.max_gap_closure", tolerance.max_gap_closure, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.residual", tolerance.residual, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.degeneracy", tolerance.degeneracy, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.sample_inward_offset", tolerance.sample_inward_offset, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.ray_extent", tolerance.ray_extent, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.coplanar_angle_epsilon", tolerance.coplanar_angle_epsilon, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.coplanar_offset_epsilon", tolerance.coplanar_offset_epsilon, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.edge_split_degeneracy", tolerance.edge_split_degeneracy, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.min_edge_length", tolerance.min_edge_length, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.collinearity_dot_tolerance", tolerance.collinearity_dot_tolerance, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.aabb_inflation", tolerance.aabb_inflation, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.model_scale_mm", tolerance.model_scale_mm, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.error_budget_mm", tolerance.error_budget_mm, oo, fo, mo);
-    cascade!(resolved, provenance, "tolerance.ambiguity_band_factor", tolerance.ambiguity_band_factor, oo, fo, mo);
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.unit_system",
+        tolerance.unit_system,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.spatial_tolerance",
+        tolerance.spatial_tolerance,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.angular_tolerance",
+        tolerance.angular_tolerance,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.min_transversal_angle",
+        tolerance.min_transversal_angle,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.max_tangent_gap",
+        tolerance.max_tangent_gap,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.min_face_area",
+        tolerance.min_face_area,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.max_slivers_per_op",
+        tolerance.max_slivers_per_op,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.max_gap_closure",
+        tolerance.max_gap_closure,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.residual",
+        tolerance.residual,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.degeneracy",
+        tolerance.degeneracy,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.sample_inward_offset",
+        tolerance.sample_inward_offset,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.ray_extent",
+        tolerance.ray_extent,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.coplanar_angle_epsilon",
+        tolerance.coplanar_angle_epsilon,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.coplanar_offset_epsilon",
+        tolerance.coplanar_offset_epsilon,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.edge_split_degeneracy",
+        tolerance.edge_split_degeneracy,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.min_edge_length",
+        tolerance.min_edge_length,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.collinearity_dot_tolerance",
+        tolerance.collinearity_dot_tolerance,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.aabb_inflation",
+        tolerance.aabb_inflation,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.model_scale_mm",
+        tolerance.model_scale_mm,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.error_budget_mm",
+        tolerance.error_budget_mm,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "tolerance.ambiguity_band_factor",
+        tolerance.ambiguity_band_factor,
+        oo,
+        fo,
+        mo
+    );
 
     // Solver fields
-    cascade!(resolved, provenance, "solver.max_iterations", solver.max_iterations, oo, fo, mo);
-    cascade!(resolved, provenance, "solver.convergence_tolerance", solver.convergence_tolerance, oo, fo, mo);
-    cascade!(resolved, provenance, "solver.divergence_threshold", solver.divergence_threshold, oo, fo, mo);
+    cascade!(
+        resolved,
+        provenance,
+        "solver.max_iterations",
+        solver.max_iterations,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "solver.convergence_tolerance",
+        solver.convergence_tolerance,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "solver.divergence_threshold",
+        solver.divergence_threshold,
+        oo,
+        fo,
+        mo
+    );
 
     // Validation fields
-    cascade!(resolved, provenance, "validation.checkpoints", validation.checkpoints, oo, fo, mo);
-    cascade!(resolved, provenance, "validation.include_geometric", validation.include_geometric, oo, fo, mo);
-    cascade!(resolved, provenance, "validation.entity_limit", validation.entity_limit, oo, fo, mo);
+    cascade!(
+        resolved,
+        provenance,
+        "validation.checkpoints",
+        validation.checkpoints,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "validation.include_geometric",
+        validation.include_geometric,
+        oo,
+        fo,
+        mo
+    );
+    cascade!(
+        resolved,
+        provenance,
+        "validation.entity_limit",
+        validation.entity_limit,
+        oo,
+        fo,
+        mo
+    );
 
     // Policy fields
-    cascade!(resolved, provenance, "policy.fallback_rules", policy.fallback_rules, oo, fo, mo);
+    cascade!(
+        resolved,
+        provenance,
+        "policy.fallback_rules",
+        policy.fallback_rules,
+        oo,
+        fo,
+        mo
+    );
 
     // Precision fields
-    cascade!(resolved, provenance, "precision.bit_length_threshold", precision.bit_length_threshold, oo, fo, mo);
+    cascade!(
+        resolved,
+        provenance,
+        "precision.bit_length_threshold",
+        precision.bit_length_threshold,
+        oo,
+        fo,
+        mo
+    );
 
     let rc = ResolvedConfig {
         config: resolved,
         provenance,
     };
-    
+
     rc.cross_validate()?;
-    
+
     Ok(rc)
 }

@@ -89,7 +89,10 @@ mod tests {
     #[test]
     fn extrude_spec_construction() {
         let spec = PrimitiveSpec::ExtrudedProfile {
-            profile: ProfileSpec::Rectangle { width: 10.0, height: 5.0 },
+            profile: ProfileSpec::Rectangle {
+                width: 10.0,
+                height: 5.0,
+            },
             direction: [0.0, 0.0, 1.0],
             depth: 20.0,
         };
@@ -110,7 +113,10 @@ mod tests {
     #[test]
     fn boolean_spec_nesting() {
         let block = PrimitiveSpec::ExtrudedProfile {
-            profile: ProfileSpec::Rectangle { width: 10.0, height: 10.0 },
+            profile: ProfileSpec::Rectangle {
+                width: 10.0,
+                height: 10.0,
+            },
             direction: [0.0, 0.0, 1.0],
             depth: 5.0,
         };

@@ -2,9 +2,9 @@
 //!
 //! Builds convex polyhedra by iteratively clipping a bounding box with planes.
 
+use super::schema::{CellFace, CellVertex, ConvexCell};
+use crate::primitives::plane::{intersect_three_planes, signed_distance, Plane};
 use forge_math::MathError;
-use crate::primitives::plane::{Plane, signed_distance, intersect_three_planes};
-use super::schema::{ConvexCell, CellFace, CellVertex};
 
 /// Threshold for triggering coordinate centering (to avoid numerical issues).
 const CENTERING_THRESHOLD: f64 = 1e4;
@@ -41,14 +41,20 @@ impl Default for BspConfig {
 /// Each plane defines a half-space: points with `n·x + d < 0` are inside.
 /// The result is the intersection of all half-spaces, bounded by a
 /// large axis-aligned bounding box.
-pub fn build_convex_polyhedron(input_planes: &[Plane], config: &BspConfig) -> Result<ConvexCell, MathError> {
+pub fn build_convex_polyhedron(
+    input_planes: &[Plane],
+    config: &BspConfig,
+) -> Result<ConvexCell, MathError> {
     let center = estimate_centroid(input_planes);
-    let needs_centering = center[0].abs() > CENTERING_THRESHOLD 
-        || center[1].abs() > CENTERING_THRESHOLD 
+    let needs_centering = center[0].abs() > CENTERING_THRESHOLD
+        || center[1].abs() > CENTERING_THRESHOLD
         || center[2].abs() > CENTERING_THRESHOLD;
 
     let centered_planes: Vec<Plane> = if needs_centering {
-        input_planes.iter().map(|p| translate_plane(p, &center)).collect::<Result<_, _>>()?
+        input_planes
+            .iter()
+            .map(|p| translate_plane(p, &center))
+            .collect::<Result<_, _>>()?
     } else {
         input_planes.to_vec()
     };
@@ -83,11 +89,20 @@ pub fn build_convex_polyhedron(input_planes: &[Plane], config: &BspConfig) -> Re
     }
 
     if needs_centering {
-        let shifted_verts: Vec<CellVertex> = cell.vertices().iter().map(|v| {
-            let pos = v.position();
-            let shifted_pos = [pos[0] + center[0], pos[1] + center[1], pos[2] + center[2]];
-            CellVertex::new(v.plane_indices()[0], v.plane_indices()[1], v.plane_indices()[2], shifted_pos)
-        }).collect();
+        let shifted_verts: Vec<CellVertex> = cell
+            .vertices()
+            .iter()
+            .map(|v| {
+                let pos = v.position();
+                let shifted_pos = [pos[0] + center[0], pos[1] + center[1], pos[2] + center[2]];
+                CellVertex::new(
+                    v.plane_indices()[0],
+                    v.plane_indices()[1],
+                    v.plane_indices()[2],
+                    shifted_pos,
+                )
+            })
+            .collect();
 
         let original_and_bbox: Vec<Plane> = {
             let mut ps = Vec::with_capacity(all_planes.len());
@@ -100,9 +115,17 @@ pub fn build_convex_polyhedron(input_planes: &[Plane], config: &BspConfig) -> Re
             ps
         };
 
-        Ok(ConvexCell::new(original_and_bbox, shifted_verts, cell.faces().to_vec()))
+        Ok(ConvexCell::new(
+            original_and_bbox,
+            shifted_verts,
+            cell.faces().to_vec(),
+        ))
     } else {
-        Ok(ConvexCell::new(all_planes, cell.vertices().to_vec(), cell.faces().to_vec()))
+        Ok(ConvexCell::new(
+            all_planes,
+            cell.vertices().to_vec(),
+            cell.faces().to_vec(),
+        ))
     }
 }
 
@@ -157,7 +180,9 @@ pub fn clip_cell_by_plane(
 ) -> Result<ConvexCell, MathError> {
     let clip_plane = &planes[clip_plane_idx];
 
-    let distances: Vec<f64> = cell.vertices().iter()
+    let distances: Vec<f64> = cell
+        .vertices()
+        .iter()
         .map(|v| signed_distance(clip_plane, v.position()))
         .collect();
 
@@ -201,9 +226,11 @@ pub fn clip_cell_by_plane(
             let vj_inside = dj < config.on_plane_eps;
 
             if vi_inside {
-                let mapped = old_to_new[vi].ok_or_else(|| MathError::InternalError(
-                    "BSP clip: inside vertex missing from old_to_new map".to_string(),
-                ))?;
+                let mapped = old_to_new[vi].ok_or_else(|| {
+                    MathError::InternalError(
+                        "BSP clip: inside vertex missing from old_to_new map".to_string(),
+                    )
+                })?;
                 clipped_face_verts.push(mapped);
             }
 
@@ -232,7 +259,8 @@ pub fn clip_cell_by_plane(
     clip_face_vertices.dedup();
 
     if clip_face_vertices.len() >= 3 {
-        let ordered = order_clip_face_vertices(planes, &new_vertices, &clip_face_vertices, clip_plane_idx);
+        let ordered =
+            order_clip_face_vertices(planes, &new_vertices, &clip_face_vertices, clip_plane_idx);
         new_faces.push(CellFace::new(clip_plane_idx, ordered));
     }
 
@@ -286,7 +314,8 @@ fn find_shared_plane(v_i: &CellVertex, v_j: &CellVertex, exclude_plane: usize) -
     let planes_i = v_i.plane_indices();
     let planes_j = v_j.plane_indices();
 
-    planes_i.iter()
+    planes_i
+        .iter()
         .filter(|pi| **pi != exclude_plane)
         .find(|pi| planes_j.contains(pi))
         .copied()
@@ -316,16 +345,19 @@ fn order_clip_face_vertices(
 
     let perp = cross(&clip_normal, &ref_dir);
 
-    let mut indexed: Vec<(usize, f64)> = vert_indices.iter().map(|&idx| {
-        let pos = vertices[idx].position();
-        let dx = pos[0] - centroid[0];
-        let dy = pos[1] - centroid[1];
-        let dz = pos[2] - centroid[2];
-        let cos_component = dx * ref_dir[0] + dy * ref_dir[1] + dz * ref_dir[2];
-        let sin_component = dx * perp[0] + dy * perp[1] + dz * perp[2];
-        let angle = sin_component.atan2(cos_component);
-        (idx, angle)
-    }).collect();
+    let mut indexed: Vec<(usize, f64)> = vert_indices
+        .iter()
+        .map(|&idx| {
+            let pos = vertices[idx].position();
+            let dx = pos[0] - centroid[0];
+            let dy = pos[1] - centroid[1];
+            let dz = pos[2] - centroid[2];
+            let cos_component = dx * ref_dir[0] + dy * ref_dir[1] + dz * ref_dir[2];
+            let sin_component = dx * perp[0] + dy * perp[1] + dz * perp[2];
+            let angle = sin_component.atan2(cos_component);
+            (idx, angle)
+        })
+        .collect();
 
     indexed.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
 
@@ -396,7 +428,9 @@ fn build_initial_cube(planes: &[Plane], config: &BspConfig) -> Result<ConvexCell
 
     let mut faces = Vec::new();
     for plane_idx in 0..n {
-        let face_verts: Vec<usize> = vertices.iter().enumerate()
+        let face_verts: Vec<usize> = vertices
+            .iter()
+            .enumerate()
             .filter(|(_, v)| v.is_on_plane(plane_idx))
             .map(|(i, _)| i)
             .collect();

@@ -27,7 +27,7 @@
     dead_code,
     unused_variables,
     unused_mut,
-    unused_assignments,
+    unused_assignments
 )]
 
 /// Returns the absolute value of the given number.

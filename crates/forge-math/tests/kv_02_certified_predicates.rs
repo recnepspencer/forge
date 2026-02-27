@@ -6,7 +6,7 @@
 //! - All results are `CertifiedTriSign` (type-level guarantee)
 //! - `PrecisionEscalation` metadata is returned with every result
 
-use forge_math::predicates::{orient2d, orient3d, in_sphere};
+use forge_math::predicates::{in_sphere, orient2d, orient3d};
 use forge_math::sign::TriSign;
 
 #[test]
@@ -58,7 +58,8 @@ fn kv02_orient3d_coplanar_xy_plane() {
         [1.0, 0.0, 0.0],
         [0.0, 1.0, 0.0],
         [1.0, 1.0, 0.0],
-    ).unwrap();
+    )
+    .unwrap();
     assert_eq!(result.sign(), TriSign::Zero);
 }
 
@@ -69,7 +70,8 @@ fn kv02_orient3d_coplanar_xz_plane() {
         [1.0, 0.0, 0.0],
         [0.0, 0.0, 1.0],
         [1.0, 0.0, 1.0],
-    ).unwrap();
+    )
+    .unwrap();
     assert_eq!(result.sign(), TriSign::Zero);
 }
 
@@ -80,7 +82,8 @@ fn kv02_orient3d_coplanar_diagonal_plane() {
         [0.0, 1.0, 0.0],
         [0.0, 0.0, 1.0],
         [0.5, 0.5, 0.0],
-    ).unwrap();
+    )
+    .unwrap();
     assert_eq!(result.sign(), TriSign::Zero);
 }
 
@@ -91,7 +94,8 @@ fn kv02_orient3d_near_coplanar_above() {
         [1.0, 0.0, 0.0],
         [0.0, 1.0, 0.0],
         [0.5, 0.5, 1e-15],
-    ).unwrap();
+    )
+    .unwrap();
     assert!(result.sign() != TriSign::Zero);
 }
 
@@ -102,7 +106,8 @@ fn kv02_orient3d_near_coplanar_below() {
         [1.0, 0.0, 0.0],
         [0.0, 1.0, 0.0],
         [0.5, 0.5, -1e-15],
-    ).unwrap();
+    )
+    .unwrap();
     assert!(result.sign() != TriSign::Zero);
 }
 
@@ -114,14 +119,23 @@ fn kv02_in_sphere_on_circumsphere() {
         [0.0, 0.0, 1.0],
         [-1.0, 0.0, 0.0],
         [0.0, -1.0, 0.0],
-    ).unwrap();
+    )
+    .unwrap();
     assert_eq!(result.sign(), TriSign::Zero);
 }
 
 macro_rules! repeat_10 {
     ($expr:expr) => {
-        $expr; $expr; $expr; $expr; $expr;
-        $expr; $expr; $expr; $expr; $expr;
+        $expr;
+        $expr;
+        $expr;
+        $expr;
+        $expr;
+        $expr;
+        $expr;
+        $expr;
+        $expr;
+        $expr;
     };
 }
 

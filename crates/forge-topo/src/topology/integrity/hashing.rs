@@ -20,8 +20,6 @@
 //!
 //! DEPENDENCIES: `arena` (entity data), `lineage` (inline provenance)
 
-
-
 use crate::arena::TopologyArena;
 use crate::lineage::Lineage;
 use forge_core::EntityKind;
@@ -42,9 +40,9 @@ pub fn compute_entity_hash(
 ) -> u64 {
     let kind_hash = fnv_mix(FNV_OFFSET, entity_kind_discriminant(entity_kind));
 
-    let connectivity_hash = connectivity.iter().fold(kind_hash, |h, &conn| {
-        fnv_mix(h, conn)
-    });
+    let connectivity_hash = connectivity
+        .iter()
+        .fold(kind_hash, |h, &conn| fnv_mix(h, conn));
 
     match lineage {
         Some(lin) => {
@@ -64,13 +62,15 @@ pub fn compute_solid_hash(entity_hashes: &[u64]) -> u128 {
     let mut sorted = entity_hashes.to_vec();
     sorted.sort_unstable();
 
-    let hash_lo = sorted.iter().fold(FNV_OFFSET, |h, &entity_hash| {
-        fnv_mix(h, entity_hash)
-    });
+    let hash_lo = sorted
+        .iter()
+        .fold(FNV_OFFSET, |h, &entity_hash| fnv_mix(h, entity_hash));
 
-    let hash_hi = sorted.iter().fold(0x517cc1b727220a95_u64, |h, &entity_hash| {
-        fnv_mix(h, entity_hash.rotate_left(17))
-    });
+    let hash_hi = sorted
+        .iter()
+        .fold(0x517cc1b727220a95_u64, |h, &entity_hash| {
+            fnv_mix(h, entity_hash.rotate_left(17))
+        });
 
     ((hash_hi as u128) << 64) | (hash_lo as u128)
 }
@@ -160,7 +160,7 @@ pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
                 })
                 .collect()
         } else {
-             Vec::new()
+            Vec::new()
         };
         sig.sort_unstable();
         let hash = compute_entity_hash(EntityKind::Face, &sig, None);
@@ -176,18 +176,34 @@ pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
         let origin_idx = he.origin().index() as usize;
         let face_idx = he.face().index() as usize;
 
-        let origin_deg = if origin_idx < vertex_degree.len() { vertex_degree[origin_idx] } else { 0 };
-        let my_face_sz = if face_idx < face_size.len() { face_size[face_idx] } else { 0 };
+        let origin_deg = if origin_idx < vertex_degree.len() {
+            vertex_degree[origin_idx]
+        } else {
+            0
+        };
+        let my_face_sz = if face_idx < face_size.len() {
+            face_size[face_idx]
+        } else {
+            0
+        };
 
         let (twin_origin_deg, twin_face_sz) = match arena.get_half_edge(he.radial_next()) {
             Ok(twin) => {
                 let t_origin_idx = twin.origin().index() as usize;
                 let t_face_idx = twin.face().index() as usize;
                 (
-                    if t_origin_idx < vertex_degree.len() { vertex_degree[t_origin_idx] } else { 0 },
-                    if t_face_idx < face_size.len() { face_size[t_face_idx] } else { 0 }
+                    if t_origin_idx < vertex_degree.len() {
+                        vertex_degree[t_origin_idx]
+                    } else {
+                        0
+                    },
+                    if t_face_idx < face_size.len() {
+                        face_size[t_face_idx]
+                    } else {
+                        0
+                    },
                 )
-            },
+            }
             Err(_) => (0, 0),
         };
         let connectivity = [origin_deg, twin_origin_deg, my_face_sz, twin_face_sz];
@@ -230,12 +246,17 @@ pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
         if f_idx < face_size.len() {
             sz = face_size[f_idx];
         }
-        shell_face_sizes.entry(face_data.shell().index()).or_insert_with(Vec::new).push(sz);
+        shell_face_sizes
+            .entry(face_data.shell().index())
+            .or_insert_with(Vec::new)
+            .push(sz);
     }
 
     // ── Step 5: Shell and Edge hashes ───────────────────────────
     for (shell_id, _) in arena.iter_shells() {
-        let mut sig = shell_face_sizes.remove(&shell_id.index()).unwrap_or_default();
+        let mut sig = shell_face_sizes
+            .remove(&shell_id.index())
+            .unwrap_or_default();
         sig.sort_unstable();
         let hash = compute_entity_hash(EntityKind::Shell, &sig, None);
         entity_hashes.push(hash);
@@ -245,11 +266,19 @@ pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
         let mut sig = Vec::new();
         if let Ok(he) = arena.get_half_edge(edge.half_edge()) {
             let origin_idx = he.origin().index() as usize;
-            sig.push(if origin_idx < vertex_degree.len() { vertex_degree[origin_idx] } else { 0 });
-            
+            sig.push(if origin_idx < vertex_degree.len() {
+                vertex_degree[origin_idx]
+            } else {
+                0
+            });
+
             if let Ok(twin) = arena.get_half_edge(he.radial_next()) {
                 let twin_origin_idx = twin.origin().index() as usize;
-                sig.push(if twin_origin_idx < vertex_degree.len() { vertex_degree[twin_origin_idx] } else { 0 });
+                sig.push(if twin_origin_idx < vertex_degree.len() {
+                    vertex_degree[twin_origin_idx]
+                } else {
+                    0
+                });
             }
         }
         sig.sort_unstable();
@@ -278,7 +307,9 @@ pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
     }
 
     for (_, lump_data) in arena.iter_lumps() {
-        let mut sig: Vec<u64> = lump_data.regions().iter()
+        let mut sig: Vec<u64> = lump_data
+            .regions()
+            .iter()
             .map(|r| r.index() as u64)
             .collect();
         sig.sort_unstable();
@@ -287,9 +318,7 @@ pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
     }
 
     for (_, body_data) in arena.iter_bodies() {
-        let mut sig: Vec<u64> = body_data.lumps().iter()
-            .map(|l| l.index() as u64)
-            .collect();
+        let mut sig: Vec<u64> = body_data.lumps().iter().map(|l| l.index() as u64).collect();
         sig.sort_unstable();
         let hash = compute_entity_hash(EntityKind::Body, &sig, None);
         entity_hashes.push(hash);
@@ -299,7 +328,7 @@ pub fn compute_arena_topology_hash(arena: &TopologyArena) -> u128 {
 }
 
 /// Extract the canonical loop of halfedge indices for a face.
-/// 
+///
 /// Traverses the face loop, finds the halfedge with the minimum index,
 /// and returns the sequence starting from there. This ensures that
 /// the hash is independent of which halfedge is the "first" in the list.
@@ -317,26 +346,24 @@ fn canonical_face_loop(arena: &TopologyArena, face_id: crate::handles::FaceId) -
                 return Vec::new();
             }
             // Find the index of the halfedge with the minimum ID
-            let min_pos = match edges.iter()
-                .enumerate()
-                .min_by_key(|(_, he)| he.index()) {
-                    Some((pos, _)) => pos,
-                    None => return Vec::new(),
-                };
-            
+            let min_pos = match edges.iter().enumerate().min_by_key(|(_, he)| he.index()) {
+                Some((pos, _)) => pos,
+                None => return Vec::new(),
+            };
+
             // Reorder: elements from min_pos to end, then 0 to min_pos
             let mut canonical = Vec::with_capacity(edges.len());
             for i in 0..edges.len() {
                 canonical.push(edges[(min_pos + i) % edges.len()].index() as u64);
             }
             canonical
-        },
+        }
         Err(_) => Vec::new(),
     }
 }
 
 /// Extract the canonical ring of outgoing halfedges for a vertex.
-/// 
+///
 /// Traverses the vertex star, finds the halfedge with the minimum index,
 /// and returns the sequence starting from there.
 #[allow(dead_code)]
@@ -351,30 +378,29 @@ fn canonical_vertex_ring(arena: &TopologyArena, vertex_id: crate::handles::Verte
             if edges.is_empty() {
                 return Vec::new();
             }
-             // Find the index of the halfedge with the minimum ID
-             let min_pos = match edges.iter()
-                .enumerate()
-                .min_by_key(|(_, he)| he.index()) {
-                    Some((pos, _)) => pos,
-                    None => return Vec::new(),
-                };
-         
-             // Reorder: elements from min_pos to end, then 0 to min_pos
-             let mut canonical = Vec::with_capacity(edges.len());
-             for i in 0..edges.len() {
-                 canonical.push(edges[(min_pos + i) % edges.len()].index() as u64);
-             }
-             canonical
-        },
+            // Find the index of the halfedge with the minimum ID
+            let min_pos = match edges.iter().enumerate().min_by_key(|(_, he)| he.index()) {
+                Some((pos, _)) => pos,
+                None => return Vec::new(),
+            };
+
+            // Reorder: elements from min_pos to end, then 0 to min_pos
+            let mut canonical = Vec::with_capacity(edges.len());
+            for i in 0..edges.len() {
+                canonical.push(edges[(min_pos + i) % edges.len()].index() as u64);
+            }
+            canonical
+        }
         Err(_) => Vec::new(),
     }
 }
 
 /// FNV-1a mixing step.
 fn fnv_mix(hash: u64, value: u64) -> u64 {
-    value.to_le_bytes().iter().fold(hash, |h, &byte| {
-        (h ^ byte as u64).wrapping_mul(FNV_PRIME)
-    })
+    value
+        .to_le_bytes()
+        .iter()
+        .fold(hash, |h, &byte| (h ^ byte as u64).wrapping_mul(FNV_PRIME))
 }
 
 /// Map entity kind to a discriminant for hashing.

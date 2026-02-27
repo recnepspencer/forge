@@ -21,4 +21,4 @@ mod traits;
 mod tests;
 
 pub use schema::TriangleMesh;
-pub use traits::{Viewable, Tessellatable};
+pub use traits::{Tessellatable, Viewable};

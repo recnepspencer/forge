@@ -50,8 +50,11 @@ fn kv07_multiple_escalations_recorded() {
     }
     r = budget.enforce(r);
 
-    assert_eq!(budget.escalation_count(), 2,
-        "Two rounds of 20 multiply-divide cycles must produce two escalations");
+    assert_eq!(
+        budget.escalation_count(),
+        2,
+        "Two rounds of 20 multiply-divide cycles must produce two escalations"
+    );
 }
 
 #[test]

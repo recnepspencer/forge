@@ -1,7 +1,5 @@
 //! Axis-Aligned Bounding Box (AABB) for spatial indexing.
 
-
-
 /// An axis-aligned bounding box defined by min and max points.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Aabb {
@@ -14,16 +12,8 @@ impl Aabb {
     ///
     /// Automatically ensures min <= max per component.
     pub fn new(p1: [f64; 3], p2: [f64; 3]) -> Self {
-        let min = [
-            p1[0].min(p2[0]),
-            p1[1].min(p2[1]),
-            p1[2].min(p2[2]),
-        ];
-        let max = [
-            p1[0].max(p2[0]),
-            p1[1].max(p2[1]),
-            p1[2].max(p2[2]),
-        ];
+        let min = [p1[0].min(p2[0]), p1[1].min(p2[1]), p1[2].min(p2[2])];
+        let max = [p1[0].max(p2[0]), p1[1].max(p2[1]), p1[2].max(p2[2])];
         Self { min, max }
     }
 
@@ -39,8 +29,12 @@ impl Aabb {
 
         for p in &points[1..] {
             for i in 0..3 {
-                if p[i] < min[i] { min[i] = p[i]; }
-                if p[i] > max[i] { max[i] = p[i]; }
+                if p[i] < min[i] {
+                    min[i] = p[i];
+                }
+                if p[i] > max[i] {
+                    max[i] = p[i];
+                }
             }
         }
         Some(Self { min, max })
@@ -56,9 +50,12 @@ impl Aabb {
 
     /// Check if this AABB intersects another AABB.
     pub fn intersects(&self, other: &Aabb) -> bool {
-        self.min[0] <= other.max[0] && self.max[0] >= other.min[0] &&
-        self.min[1] <= other.max[1] && self.max[1] >= other.min[1] &&
-        self.min[2] <= other.max[2] && self.max[2] >= other.min[2]
+        self.min[0] <= other.max[0]
+            && self.max[0] >= other.min[0]
+            && self.min[1] <= other.max[1]
+            && self.max[1] >= other.min[1]
+            && self.min[2] <= other.max[2]
+            && self.max[2] >= other.min[2]
     }
 
     /// Union of two AABBs.
@@ -136,9 +133,13 @@ impl Aabb {
         let dx = self.max[0] - self.min[0];
         let dy = self.max[1] - self.min[1];
         let dz = self.max[2] - self.min[2];
-        if dx >= dy && dx >= dz { 0 }
-        else if dy >= dz { 1 }
-        else { 2 }
+        if dx >= dy && dx >= dz {
+            0
+        } else if dy >= dz {
+            1
+        } else {
+            2
+        }
     }
 }
 

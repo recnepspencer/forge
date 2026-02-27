@@ -68,7 +68,12 @@ fn compute_radial_key(
     let ref_cross_edge = linalg::cross(reference, edge);
     let y = linalg::dot(ref_cross_edge, normal);
     let quadrant = assign_quadrant(x, y);
-    RadialKey { x, y, quadrant, index }
+    RadialKey {
+        x,
+        y,
+        quadrant,
+        index,
+    }
 }
 
 /// Assign a quadrant (0–3) from the signs of local X and Y.
@@ -152,10 +157,7 @@ mod tests {
     fn sort_collinear_same_quadrant_stable() {
         let normal = [0.0, 0.0, 1.0];
         let reference = [1.0, 0.0, 0.0];
-        let edges = [
-            [2.0, 1.0, 0.0],
-            [4.0, 2.0, 0.0],
-        ];
+        let edges = [[2.0, 1.0, 0.0], [4.0, 2.0, 0.0]];
         let order = sort_edges_radially(&edges, normal, reference);
         assert_eq!(order, vec![0, 1]);
     }

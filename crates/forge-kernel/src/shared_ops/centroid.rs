@@ -1,8 +1,8 @@
 //! Shared utility for computing face centroids.
 
+use crate::geometry_state::GeometryState;
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::FaceId;
-use crate::geometry_state::GeometryState;
 
 /// Compute the centroid of a face using its vertices.
 pub fn compute_face_centroid(

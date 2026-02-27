@@ -34,7 +34,10 @@ impl QuantizedSpace {
         let mut min_pos = [f64::INFINITY; 3];
         let mut max_pos = [f64::NEG_INFINITY; 3];
 
-        for pos in target_geom.iter_vertex_positions().chain(tool_geom.iter_vertex_positions()) {
+        for pos in target_geom
+            .iter_vertex_positions()
+            .chain(tool_geom.iter_vertex_positions())
+        {
             for i in 0..3 {
                 min_pos[i] = min_pos[i].min(pos[i]);
                 max_pos[i] = max_pos[i].max(pos[i]);
@@ -52,7 +55,11 @@ impl QuantizedSpace {
             .max(max_pos[2] - min_pos[2]);
 
         let grid_max = (1i64 << 30) as f64;
-        let scale_factor = if max_dim > 1e-15 { grid_max / max_dim } else { 1.0 };
+        let scale_factor = if max_dim > 1e-15 {
+            grid_max / max_dim
+        } else {
+            1.0
+        };
 
         Self {
             origin_offset: center,
@@ -107,8 +114,13 @@ mod tests {
         let restored = space.restore(&grid);
 
         for i in 0..3 {
-            assert!((original[i] - restored[i]).abs() < 1e-9,
-                "axis {}: {} vs {}", i, original[i], restored[i]);
+            assert!(
+                (original[i] - restored[i]).abs() < 1e-9,
+                "axis {}: {} vs {}",
+                i,
+                original[i],
+                restored[i]
+            );
         }
     }
 
@@ -123,8 +135,11 @@ mod tests {
         let a = [0.1, 0.2, 0.3];
         let b = [0.1 + 1e-15, 0.2 - 1e-15, 0.3 + 1e-15];
 
-        assert_eq!(space.quantize(&a), space.quantize(&b),
-            "Points 1e-15 apart should snap to the same grid coordinate");
+        assert_eq!(
+            space.quantize(&a),
+            space.quantize(&b),
+            "Points 1e-15 apart should snap to the same grid coordinate"
+        );
     }
 
     #[test]

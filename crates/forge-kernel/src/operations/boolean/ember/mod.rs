@@ -18,14 +18,14 @@
 //!   - Vertices are 3-plane intersections until mesh extraction
 //!   - Never delegates to parametric split-classify-stitch pipeline
 
-pub mod schema;
-pub mod quantize;
-pub mod orchestrate;
-pub mod classify;
 pub mod checkpoint;
+pub mod classify;
 pub mod mesh;
+pub mod orchestrate;
+pub mod quantize;
+pub mod schema;
 #[cfg(test)]
 mod tests;
 
+pub use orchestrate::{execute_boolean_adaptive, execute_ember_boolean, EmberError};
 pub use schema::QuantizedSpace;
-pub use orchestrate::{execute_ember_boolean, execute_boolean_adaptive, EmberError};

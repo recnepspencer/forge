@@ -13,11 +13,25 @@ pub struct FgTextArea<'a> {
 
 impl<'a> FgTextArea<'a> {
     pub fn new(value: &'a mut String) -> Self {
-        Self { label: None, placeholder: "", value, rows: 4 }
+        Self {
+            label: None,
+            placeholder: "",
+            value,
+            rows: 4,
+        }
     }
-    pub fn label(mut self, l: &'a str) -> Self { self.label = Some(l); self }
-    pub fn placeholder(mut self, p: &'a str) -> Self { self.placeholder = p; self }
-    pub fn rows(mut self, r: usize) -> Self { self.rows = r; self }
+    pub fn label(mut self, l: &'a str) -> Self {
+        self.label = Some(l);
+        self
+    }
+    pub fn placeholder(mut self, p: &'a str) -> Self {
+        self.placeholder = p;
+        self
+    }
+    pub fn rows(mut self, r: usize) -> Self {
+        self.rows = r;
+        self
+    }
 }
 
 /// Render a styled multiline text area. Returns the TextEdit response.
@@ -35,7 +49,12 @@ pub fn fg_textarea(ui: &mut Ui, theme: &ForgeTheme, props: FgTextArea<'_>) -> Re
         .fill(theme.bg_base)
         .stroke(Stroke::new(1.0, theme.border_default))
         .corner_radius(CornerRadius::same(theme.radius_sm as u8))
-        .inner_margin(egui::Margin { left: 10, right: 10, top: 8, bottom: 8 })
+        .inner_margin(egui::Margin {
+            left: 10,
+            right: 10,
+            top: 8,
+            bottom: 8,
+        })
         .show(ui, |ui| {
             ui.add(
                 egui::TextEdit::multiline(props.value)

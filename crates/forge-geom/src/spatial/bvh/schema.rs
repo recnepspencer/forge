@@ -4,10 +4,7 @@ use crate::primitives::aabb::Aabb;
 #[derive(Debug, Clone)]
 pub enum BvhNode<T> {
     /// Leaf node containing an item and its AABB.
-    Leaf {
-        item: T,
-        aabb: Aabb,
-    },
+    Leaf { item: T, aabb: Aabb },
     /// Internal node containing the union AABB and two children.
     Internal {
         aabb: Aabb,

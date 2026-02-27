@@ -10,10 +10,10 @@
 //! DEPENDENCIES: `forge-topo` (validate, arena), `forge-core` (KernelError)
 
 use forge_core::{KernelError, ToleranceProvider};
+use forge_spatial::integrity::validate_geometric_invariants;
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::VertexId;
 use forge_topo::validate::{validate_topology, ValidationLevel};
-use forge_spatial::integrity::validate_geometric_invariants;
 use serde::{Deserialize, Serialize};
 
 /// Checkpoints where invariant validation can be triggered.

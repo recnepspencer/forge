@@ -9,10 +9,10 @@ use forge_core::KernelError;
 use forge_signal::handles::NodeId;
 use forge_topo::state::TopologyState;
 
-use crate::core::config::resolve::ResolvedConfig;
-use crate::geometry_state::GeometryState;
 use crate::brep::state::BrepState;
+use crate::core::config::resolve::ResolvedConfig;
 use crate::engine::contract::{FeatureContract, FeatureInputs};
+use crate::geometry_state::GeometryState;
 
 /// The output of a feature evaluation.
 ///
@@ -70,10 +70,17 @@ pub trait Feature: FeatureContract + std::fmt::Debug + Any {
     type Inputs: FeatureInputs;
 
     /// Parse raw dependency outputs into typed inputs.
-    fn parse_inputs(&self, raw: &HashMap<NodeId, FeatureOutput>) -> Result<Self::Inputs, KernelError>;
+    fn parse_inputs(
+        &self,
+        raw: &HashMap<NodeId, FeatureOutput>,
+    ) -> Result<Self::Inputs, KernelError>;
 
     /// Execute the feature's business logic with typed inputs and the resolved configuration.
-    fn execute_typed(&self, inputs: &Self::Inputs, config: &ResolvedConfig) -> Result<FeatureOutput, KernelError>;
+    fn execute_typed(
+        &self,
+        inputs: &Self::Inputs,
+        config: &ResolvedConfig,
+    ) -> Result<FeatureOutput, KernelError>;
 
     /// Return the list of input dependencies (NodeIds).
     fn dependencies(&self) -> Vec<NodeId>;

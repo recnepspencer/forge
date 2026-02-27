@@ -9,14 +9,14 @@
 //! - `server` — Axum REST API for hierarchical drill-down
 //! - `viewer` — Native egui trace viewer app
 
-pub mod store;
 #[cfg(feature = "server")]
 pub mod server;
+pub mod store;
 #[cfg(feature = "gui")]
 pub mod viewer;
 
-pub use store::{TraceStore, TraceFile, TraceMeta, TraceOverview, SpanView, DecisionView};
 #[cfg(feature = "server")]
 pub use server::{build_router, AppState};
+pub use store::{DecisionView, SpanView, TraceFile, TraceMeta, TraceOverview, TraceStore};
 #[cfg(feature = "gui")]
 pub use viewer::TraceViewerApp;

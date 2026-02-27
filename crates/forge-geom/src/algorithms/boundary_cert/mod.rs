@@ -11,10 +11,10 @@
 //! DEPENDENCIES: `forge-math` (Shewchuk orient2d exact predicates)
 //! INVARIANTS: Stateless, pure. No topology, no policy, no thresholds.
 
-pub mod schema;
-pub mod exact_intersect;
-pub mod split;
 pub mod eval;
+pub mod exact_intersect;
+pub mod schema;
+pub mod split;
 
 #[cfg(test)]
 mod tests;

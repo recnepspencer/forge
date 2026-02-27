@@ -4,8 +4,8 @@
 //! INVARIANTS: All defaults are suitable for unit-scale CAD (meters).
 //! DEPENDENCIES: serde (serialization)
 
-use serde::{Deserialize, Serialize};
 use super::config::defaults;
+use serde::{Deserialize, Serialize};
 
 /// Spatial tolerance policy for coincidence detection.
 #[derive(Debug, Clone)]
@@ -53,7 +53,6 @@ impl Default for TolerancePolicy {
     }
 }
 
-
 /// Policy for handling near-tangent surface intersections.
 #[derive(Debug, Clone)]
 pub struct TangencyPolicy {
@@ -99,7 +98,6 @@ impl Default for TangencyPolicy {
         }
     }
 }
-
 
 /// Policy for sliver face detection and removal.
 #[derive(Debug, Clone)]
@@ -147,7 +145,6 @@ impl Default for SliverPolicy {
     }
 }
 
-
 /// Policy for automatic gap closure during sewing.
 #[derive(Debug, Clone)]
 pub struct GapClosurePolicy {
@@ -179,7 +176,6 @@ impl Default for GapClosurePolicy {
     }
 }
 
-
 /// Policy for precision escalation (Milestone 0.2.3).
 #[derive(Debug, Clone)]
 pub struct PrecisionEscalationPolicy {
@@ -189,7 +185,9 @@ pub struct PrecisionEscalationPolicy {
 impl PrecisionEscalationPolicy {
     /// Create a precision escalation policy with explicit value.
     pub fn new(bit_length_threshold: u32) -> Self {
-        Self { bit_length_threshold }
+        Self {
+            bit_length_threshold,
+        }
     }
 
     /// Bit-length threshold before escalating.
@@ -210,7 +208,6 @@ impl Default for PrecisionEscalationPolicy {
         }
     }
 }
-
 
 /// Hard floor — no tolerance may be tighter than this regardless of model scale.
 ///
@@ -495,7 +492,6 @@ impl Default for ToleranceConfig {
 fn default_error_budget() -> f64 {
     f64::INFINITY
 }
-
 
 /// Serde default helper for `ambiguity_band_factor`.
 fn default_ambiguity_band_factor() -> f64 {

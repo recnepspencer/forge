@@ -137,7 +137,8 @@ impl PolicyDecisionTracePayload {
             {
                 return Err(PolicyTraceConsistencyError::SourceDefaultMismatch);
             }
-            PolicyResolutionSource::ForcedSafeFallback | PolicyResolutionSource::NonOverridableRule => {
+            PolicyResolutionSource::ForcedSafeFallback
+            | PolicyResolutionSource::NonOverridableRule => {
                 // `default_used` may be false or true depending on how the caller models
                 // forced/non-overridable handling. Phase 2 will tighten this once the
                 // policy registry + operation finalization contract is in place.
@@ -151,18 +152,36 @@ impl PolicyDecisionTracePayload {
             | (PolicyResolutionSource::NonOverridableRule, Some(_)) => {
                 return Err(PolicyTraceConsistencyError::SourceScopeMismatch);
             }
-            (PolicyResolutionSource::SessionUserOverride, Some(PolicyResolutionScopeRef::SessionUser { .. }))
-            | (PolicyResolutionSource::ModelSpecOverride, Some(PolicyResolutionScopeRef::ModelSpec { .. }))
-            | (PolicyResolutionSource::FeatureOverride, Some(PolicyResolutionScopeRef::Feature { .. }))
-            | (PolicyResolutionSource::OperationOverride, Some(PolicyResolutionScopeRef::Operation { .. })) => {}
-            (PolicyResolutionSource::SessionUserOverride
-            | PolicyResolutionSource::ModelSpecOverride
-            | PolicyResolutionSource::FeatureOverride
-            | PolicyResolutionSource::OperationOverride, None) => {}
-            (PolicyResolutionSource::SessionUserOverride
-            | PolicyResolutionSource::ModelSpecOverride
-            | PolicyResolutionSource::FeatureOverride
-            | PolicyResolutionSource::OperationOverride, Some(_)) => {
+            (
+                PolicyResolutionSource::SessionUserOverride,
+                Some(PolicyResolutionScopeRef::SessionUser { .. }),
+            )
+            | (
+                PolicyResolutionSource::ModelSpecOverride,
+                Some(PolicyResolutionScopeRef::ModelSpec { .. }),
+            )
+            | (
+                PolicyResolutionSource::FeatureOverride,
+                Some(PolicyResolutionScopeRef::Feature { .. }),
+            )
+            | (
+                PolicyResolutionSource::OperationOverride,
+                Some(PolicyResolutionScopeRef::Operation { .. }),
+            ) => {}
+            (
+                PolicyResolutionSource::SessionUserOverride
+                | PolicyResolutionSource::ModelSpecOverride
+                | PolicyResolutionSource::FeatureOverride
+                | PolicyResolutionSource::OperationOverride,
+                None,
+            ) => {}
+            (
+                PolicyResolutionSource::SessionUserOverride
+                | PolicyResolutionSource::ModelSpecOverride
+                | PolicyResolutionSource::FeatureOverride
+                | PolicyResolutionSource::OperationOverride,
+                Some(_),
+            ) => {
                 return Err(PolicyTraceConsistencyError::SourceScopeMismatch);
             }
             _ => {}
@@ -173,7 +192,10 @@ impl PolicyDecisionTracePayload {
         }
 
         match decision.get_context() {
-            DecisionContext::Tolerance { measured, threshold } => {
+            DecisionContext::Tolerance {
+                measured,
+                threshold,
+            } => {
                 if self.measured_margin.to_bits() != measured.to_bits() {
                     return Err(PolicyTraceConsistencyError::MarginMismatch);
                 }
@@ -192,7 +214,10 @@ impl PolicyDecisionTracePayload {
         match self.outcome {
             PolicyResolutionOutcome::AcceptedPotentialValue => {
                 match decision.get_kind() {
-                    DecisionKind::PolicyApplied { policy, default_used } => {
+                    DecisionKind::PolicyApplied {
+                        policy,
+                        default_used,
+                    } => {
                         if *policy != self.policy_kind || *default_used != self.default_used {
                             return Err(PolicyTraceConsistencyError::PolicyKindMismatch);
                         }
@@ -203,7 +228,8 @@ impl PolicyDecisionTracePayload {
                     return Err(PolicyTraceConsistencyError::DecisionTierMismatch);
                 }
             }
-            PolicyResolutionOutcome::RejectedPotentialValue | PolicyResolutionOutcome::EscalatedError => {
+            PolicyResolutionOutcome::RejectedPotentialValue
+            | PolicyResolutionOutcome::EscalatedError => {
                 match decision.get_kind() {
                     DecisionKind::Ambiguous { .. } | DecisionKind::Forced { .. } => {}
                     _ => return Err(PolicyTraceConsistencyError::DecisionKindMismatch),
@@ -240,26 +266,26 @@ mod tests {
             outcome: PolicyResolutionOutcome::AcceptedPotentialValue,
             source,
             source_scope: match source {
-                PolicyResolutionSource::SessionUserOverride => Some(
-                    PolicyResolutionScopeRef::SessionUser {
+                PolicyResolutionSource::SessionUserOverride => {
+                    Some(PolicyResolutionScopeRef::SessionUser {
                         scope_id: Some("session-user".to_string()),
-                    },
-                ),
-                PolicyResolutionSource::ModelSpecOverride => Some(
-                    PolicyResolutionScopeRef::ModelSpec {
+                    })
+                }
+                PolicyResolutionSource::ModelSpecOverride => {
+                    Some(PolicyResolutionScopeRef::ModelSpec {
                         policy_key: "merge.coincident_geometry".to_string(),
-                    },
-                ),
-                PolicyResolutionSource::FeatureOverride => Some(
-                    PolicyResolutionScopeRef::Feature {
+                    })
+                }
+                PolicyResolutionSource::FeatureOverride => {
+                    Some(PolicyResolutionScopeRef::Feature {
                         feature_id: "feature-42".to_string(),
-                    },
-                ),
-                PolicyResolutionSource::OperationOverride => Some(
-                    PolicyResolutionScopeRef::Operation {
+                    })
+                }
+                PolicyResolutionSource::OperationOverride => {
+                    Some(PolicyResolutionScopeRef::Operation {
                         operation_id: "sheet_region_merge".to_string(),
-                    },
-                ),
+                    })
+                }
                 _ => None,
             },
             default_used: matches!(source, PolicyResolutionSource::DefaultPolicy),

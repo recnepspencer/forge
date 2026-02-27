@@ -15,12 +15,12 @@
 
 use forge_core::{KernelError, TopologyError};
 
-use crate::arena::{HalfEdgeData, EdgeData};
+use crate::arena::{EdgeData, HalfEdgeData};
 use crate::handles::{HalfEdgeId, LoopId};
 use crate::lineage::{Lineage, OpSignature};
+use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
-use crate::operator::{ExecutionResult, EulerDelta};
 
 /// Merge two loops on the same face by inserting an edge between them.
 ///
@@ -55,7 +55,11 @@ pub struct MeklOutput {
 impl EulerOperator for MakeEdgeKillLoop {
     type Output = MeklOutput;
 
-    fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        sig: &OpSignature,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let face_a = draft.arena().get_half_edge(self.he_a)?.face();
         let face_b = draft.arena().get_half_edge(self.he_b)?.face();
 
@@ -63,7 +67,8 @@ impl EulerOperator for MakeEdgeKillLoop {
             return Err(KernelError::InvalidInput {
                 message: format!(
                     "MEKL: he_a (face {}) and he_b (face {}) must be on the same face",
-                    face_a.index(), face_b.index()
+                    face_a.index(),
+                    face_b.index()
                 ),
                 context: None,
             });
@@ -85,7 +90,8 @@ impl EulerOperator for MakeEdgeKillLoop {
             return Err(KernelError::InvalidInput {
                 message: format!(
                     "MEKL: he_a ({}) must be on the outer loop of face {}",
-                    self.he_a.index(), face.index()
+                    self.he_a.index(),
+                    face.index()
                 ),
                 context: None,
             });
@@ -106,16 +112,14 @@ impl EulerOperator for MakeEdgeKillLoop {
         // ── Create edge + halfedge pair ─────────────────────────────
         let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
 
-        let new_edge = draft.insert_edge(EdgeData::with_lineage(
-            placeholder_he,
-            Some(edge_lineage),
-        ));
+        let new_edge =
+            draft.insert_edge(EdgeData::with_lineage(placeholder_he, Some(edge_lineage)));
 
         let (he_ab, he_ba) = draft.insert_radial_pair(
             HalfEdgeData::with_lineage(
-                placeholder_he,  // twin (fixed below by insert_half_edge_pair)
-                self.he_b,       // next → into inner loop
-                prev_a,          // prev → was before he_a
+                placeholder_he, // twin (fixed below by insert_half_edge_pair)
+                self.he_b,      // next → into inner loop
+                prev_a,         // prev → was before he_a
                 face,
                 vertex_a,
                 new_edge,
@@ -123,8 +127,8 @@ impl EulerOperator for MakeEdgeKillLoop {
             ),
             HalfEdgeData::with_lineage(
                 placeholder_he,
-                self.he_a,       // next → back to outer loop
-                prev_b,          // prev → was before he_b
+                self.he_a, // next → back to outer loop
+                prev_b,    // prev → was before he_b
                 face,
                 vertex_b,
                 new_edge,
@@ -224,8 +228,7 @@ fn find_loop_containing(
         return Ok(outer_loop);
     }
 
-    let inner_loops: Vec<LoopId> = draft.arena().get_face(face)?
-        .inner_loops().to_vec();
+    let inner_loops: Vec<LoopId> = draft.arena().get_face(face)?.inner_loops().to_vec();
 
     for loop_id in inner_loops {
         if is_halfedge_on_loop(draft, loop_id, target_he)? {
@@ -236,7 +239,8 @@ fn find_loop_containing(
     Err(KernelError::InvalidInput {
         message: format!(
             "MEKL: halfedge {} not found in any loop of face {}",
-            target_he.index(), face.index()
+            target_he.index(),
+            face.index()
         ),
         context: None,
     })

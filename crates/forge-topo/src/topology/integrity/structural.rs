@@ -16,14 +16,14 @@
 //!
 //! DEPENDENCIES: `arena` (entity data), `handles` (typed IDs), `queries/traverse` (FaceEdgeIterator)
 
-use std::collections::{BTreeSet, VecDeque};
 use crate::topology::bitset::EntityBitset;
+use std::collections::{BTreeSet, VecDeque};
 
-use forge_core::KernelError;
 use crate::arena::TopologyArena;
 use crate::handles::FaceId;
 use crate::topology::queries::traverse::FaceEdgeIterator;
 use crate::validate::ValidationLevel;
+use forge_core::KernelError;
 
 /// Validate the topology of an arena with the specified strictness.
 ///
@@ -79,7 +79,6 @@ pub fn validate_topology_with_mode(
     Ok(())
 }
 
-
 /// Validate radial rings: every halfedge must belong to a closed `.radial_next()` cycle.
 fn validate_radial_rings(arena: &TopologyArena) -> Result<(), KernelError> {
     for (start_he, _) in arena.iter_half_edges() {
@@ -87,10 +86,15 @@ fn validate_radial_rings(arena: &TopologyArena) -> Result<(), KernelError> {
         let mut count = 0;
         let limit = 100_000;
         loop {
-            let data = arena.get_half_edge(current_he).map_err(|_| KernelError::TopologyViolation {
-                err: forge_core::TopologyError::MissingTwin { halfedge_index: current_he.index() },
-                context: None,
-            })?;
+            let data =
+                arena
+                    .get_half_edge(current_he)
+                    .map_err(|_| KernelError::TopologyViolation {
+                        err: forge_core::TopologyError::MissingTwin {
+                            halfedge_index: current_he.index(),
+                        },
+                        context: None,
+                    })?;
             current_he = data.radial_next();
             count += 1;
             if current_he == start_he {
@@ -106,7 +110,10 @@ fn validate_radial_rings(arena: &TopologyArena) -> Result<(), KernelError> {
                         entity_bound: limit,
                     },
                     context: Some(forge_core::ErrorContext {
-                        scope: forge_core::ErrorScope::Entity { entity_kind: "HalfEdge".to_string(), index: start_he.index() },
+                        scope: forge_core::ErrorScope::Entity {
+                            entity_kind: "HalfEdge".to_string(),
+                            index: start_he.index(),
+                        },
                         suggested_fixes: vec![],
                         detail: "Radial ring failed to cycle back to start within limit".into(),
                     }),
@@ -160,8 +167,10 @@ pub(crate) fn validate_radial_edge_consistency(arena: &TopologyArena) -> Result<
                             "Radial ring edge-entity inconsistency: he[{}].edge = {} \
                              but ring seed he[{}].edge = {}. All members of a radial \
                              ring must reference the same geometric edge.",
-                            curr.index(), curr_data.edge().index(),
-                            start_he.index(), expected_edge.index(),
+                            curr.index(),
+                            curr_data.edge().index(),
+                            start_he.index(),
+                            expected_edge.index(),
                         ),
                     }),
                 });
@@ -212,7 +221,7 @@ pub(crate) fn validate_vertex_continuity(arena: &TopologyArena) -> Result<(), Ke
         }
 
         checked_halfedges.insert(he_id.index())?;
-        
+
         // Unify the edge explicitly for the error message, even though
         // validate_radial_edge_consistency ensures it's uniform per ring.
         let edge_id = he_data.edge();
@@ -228,7 +237,9 @@ pub(crate) fn validate_vertex_continuity(arena: &TopologyArena) -> Result<(), Ke
             endpoints.insert(next_data.origin().index())?;
 
             curr = curr_data.radial_next();
-            if curr == he_id { break; }
+            if curr == he_id {
+                break;
+            }
         }
 
         // A well-formed edge should have at most 2 distinct endpoint vertices
@@ -240,11 +251,15 @@ pub(crate) fn validate_vertex_continuity(arena: &TopologyArena) -> Result<(), Ke
                     face_index: he_data.face().index(),
                 },
                 context: Some(forge_core::ErrorContext {
-                    scope: forge_core::ErrorScope::Entity { entity_kind: "Edge".to_string(), index: edge_id.index() },
+                    scope: forge_core::ErrorScope::Entity {
+                        entity_kind: "Edge".to_string(),
+                        index: edge_id.index(),
+                    },
                     suggested_fixes: Vec::new(),
                     detail: format!(
                         "Edge {} has {} distinct endpoint vertices (expected 1 or 2)",
-                        edge_id.index(), endpoints.count()
+                        edge_id.index(),
+                        endpoints.count()
                     ),
                 }),
             });
@@ -258,22 +273,27 @@ fn validate_vertex_outgoing(arena: &TopologyArena) -> Result<(), KernelError> {
     for (vid, v_data) in arena.iter_vertices() {
         let out = v_data.outgoing();
 
-        let out_data = arena.get_half_edge(out).map_err(|_| {
-            KernelError::TopologyViolation {
+        let out_data = arena
+            .get_half_edge(out)
+            .map_err(|_| KernelError::TopologyViolation {
                 err: forge_core::TopologyError::BrokenLoop {
                     starting_halfedge: out.index(),
                     face_index: 0,
                 },
                 context: Some(forge_core::ErrorContext {
-                    scope: forge_core::ErrorScope::Entity { entity_kind: "Vertex".to_string(), index: vid.index() },
+                    scope: forge_core::ErrorScope::Entity {
+                        entity_kind: "Vertex".to_string(),
+                        index: vid.index(),
+                    },
                     suggested_fixes: Vec::new(),
                     detail: format!(
                         "Vertex {} outgoing halfedge {}(gen{}) is stale/deleted",
-                        vid.index(), out.index(), out.generation()
+                        vid.index(),
+                        out.index(),
+                        out.generation()
                     ),
                 }),
-            }
-        })?;
+            })?;
 
         if out_data.origin() != vid {
             return Err(KernelError::TopologyViolation {
@@ -282,11 +302,17 @@ fn validate_vertex_outgoing(arena: &TopologyArena) -> Result<(), KernelError> {
                     face_index: 0,
                 },
                 context: Some(forge_core::ErrorContext {
-                    scope: forge_core::ErrorScope::Entity { entity_kind: "Vertex".to_string(), index: vid.index() },
+                    scope: forge_core::ErrorScope::Entity {
+                        entity_kind: "Vertex".to_string(),
+                        index: vid.index(),
+                    },
                     suggested_fixes: Vec::new(),
                     detail: format!(
                         "Vertex {} outgoing halfedge {} has origin {} (should be {})",
-                        vid.index(), out.index(), out_data.origin().index(), vid.index()
+                        vid.index(),
+                        out.index(),
+                        out_data.origin().index(),
+                        vid.index()
                     ),
                 }),
             });
@@ -310,11 +336,16 @@ fn validate_loops(arena: &TopologyArena) -> Result<(), KernelError> {
                         face_index: face_id.index(),
                     },
                     context: Some(forge_core::ErrorContext {
-                        scope: forge_core::ErrorScope::Entity { entity_kind: "Face".to_string(), index: face_id.index() },
+                        scope: forge_core::ErrorScope::Entity {
+                            entity_kind: "Face".to_string(),
+                            index: face_id.index(),
+                        },
                         suggested_fixes: Vec::new(),
                         detail: format!(
                             "Halfedge {} in outer loop of face {} belongs to face {} instead",
-                            he_id.index(), face_id.index(), he_data.face().index()
+                            he_id.index(),
+                            face_id.index(),
+                            he_data.face().index()
                         ),
                     }),
                 });
@@ -349,7 +380,9 @@ fn validate_loops(arena: &TopologyArena) -> Result<(), KernelError> {
                 }
                 let next = he_data.next();
                 current = next;
-                if current == start { break; }
+                if current == start {
+                    break;
+                }
                 steps += 1;
                 if steps > bound {
                     return Err(KernelError::TopologyViolation {
@@ -369,7 +402,6 @@ fn validate_loops(arena: &TopologyArena) -> Result<(), KernelError> {
     Ok(())
 }
 
-
 /// Collect halfedge IDs for a face's loop and find neighbor faces via twins.
 ///
 /// Returns `(neighbor_faces, edge_keys, vertex_indices)` for the face.
@@ -388,7 +420,9 @@ fn collect_shell_data_for_face(
         vertex_indices.push(he_data.origin().index());
         edge_keys.push(he_data.edge().index());
 
-        for neighbor_res in crate::topology::queries::traverse::RadialEdgeIterator::new(arena, he_id)? {
+        for neighbor_res in
+            crate::topology::queries::traverse::RadialEdgeIterator::new(arena, he_id)?
+        {
             let neighbor_he = neighbor_res?;
             if neighbor_he != he_id {
                 let neighbor_data = arena.get_half_edge(neighbor_he)?;
@@ -459,7 +493,8 @@ fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
             let sf = shell_faces.count() as i64;
             let euler_char = sv - se + sf;
 
-            let rings: usize = shell_faces.iter_ones()
+            let rings: usize = shell_faces
+                .iter_ones()
                 .filter_map(|idx| {
                     let fid = face_by_index.get(&idx)?;
                     arena.get_face(*fid).ok()
@@ -467,9 +502,14 @@ fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
                 .map(|face_data| face_data.inner_loop_count())
                 .sum();
 
-            let shell_id = face_by_index.get(&shell_faces.iter_ones().next().unwrap()).unwrap();
+            let shell_id = face_by_index
+                .get(&shell_faces.iter_ones().next().unwrap())
+                .unwrap();
             let shell_kind = arena.get_face(*shell_id).unwrap().shell();
-            if !matches!(arena.get_shell(shell_kind).unwrap().kind(), crate::arena::ShellKind::Solid(_)) {
+            if !matches!(
+                arena.get_shell(shell_kind).unwrap().kind(),
+                crate::arena::ShellKind::Solid(_)
+            ) {
                 shell_index += 1;
                 continue;
             }
@@ -515,9 +555,13 @@ fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
 /// Returns 0 for genus-0 (sphere-like), 1 for torus, etc.
 /// Returns `Err` if genus is non-integer or negative — this indicates
 /// structural damage in the shell rather than valid higher-genus topology.
-fn compute_shell_genus(euler_char: i64, rings: usize, shell_index: usize) -> Result<usize, KernelError> {
+fn compute_shell_genus(
+    euler_char: i64,
+    rings: usize,
+    shell_index: usize,
+) -> Result<usize, KernelError> {
     let twice_genus = 2 - euler_char + rings as i64;
-    
+
     if twice_genus < 0 {
         return Err(KernelError::TopologyViolation {
             err: forge_core::TopologyError::GeneralizedEulerViolation {
@@ -572,7 +616,8 @@ fn validate_shell_consistency(arena: &TopologyArena) -> Result<(), KernelError> 
         if matches!(shell_data.kind(), crate::arena::ShellKind::Solid(_)) {
             for (face_id, face_data) in arena.iter_faces() {
                 if face_data.shell() == shell_id {
-                    let iter = crate::topology::queries::traverse::FaceEdgeIterator::new(arena, face_id)?;
+                    let iter =
+                        crate::topology::queries::traverse::FaceEdgeIterator::new(arena, face_id)?;
                     for he_res in iter {
                         let he_id = he_res?;
                         if crate::topology::queries::traverse::is_boundary_edge(arena, he_id)? {
@@ -625,7 +670,7 @@ fn validate_manifold_edges(arena: &TopologyArena) -> Result<(), KernelError> {
 
         let edge_id = he_data.edge();
         let valence = crate::topology::queries::traverse::radial_valence(arena, he_id)?;
-        
+
         let mut curr = he_data.radial_next();
         while curr != he_id {
             checked_halfedges.insert(curr.index())?;
@@ -659,14 +704,14 @@ fn validate_manifold_edges(arena: &TopologyArena) -> Result<(), KernelError> {
                 detail: format!(
                     "Edge {} has radial valence {} (max allowed: 2). \
                      Doctrine D8 requires 2-manifold topology at commit time.",
-                    edge_id.index(), valence
+                    edge_id.index(),
+                    valence
                 ),
             }),
         });
     }
     Ok(())
 }
-
 
 /// Validate orientation consistency across twin edge pairs (P0.3).
 ///
@@ -687,9 +732,15 @@ fn validate_orientation_consistency(arena: &TopologyArena) -> Result<(), KernelE
 
     let mut checked: BTreeSet<(u32, u32)> = BTreeSet::new();
 
-    for (he_id, he_data) in arena.iter_half_edges().filter(|(id, d)| *id != d.radial_next()) {
+    for (he_id, he_data) in arena
+        .iter_half_edges()
+        .filter(|(id, d)| *id != d.radial_next())
+    {
         let twin_id = he_data.radial_next();
-        let canonical = (he_id.index().min(twin_id.index()), he_id.index().max(twin_id.index()));
+        let canonical = (
+            he_id.index().min(twin_id.index()),
+            he_id.index().max(twin_id.index()),
+        );
 
         if checked.insert(canonical) {
             let twin_data = arena.get_half_edge(twin_id)?;
@@ -722,119 +773,147 @@ fn validate_hierarchy(arena: &TopologyArena) -> Result<(), KernelError> {
 
     for (face_id, face_data) in arena.iter_faces() {
         let shell_id = face_data.shell();
-        arena.get_shell(shell_id).map_err(|_| KernelError::TopologyViolation {
-            err: forge_core::TopologyError::HierarchyViolation {
-                parent_kind: "Shell".to_string(),
-                parent_index: shell_id.index(),
-                child_kind: "Face".to_string(),
-                child_index: face_id.index(),
-                detail: format!(
-                    "Face {} references shell {}(gen{}) which is stale or deleted",
-                    face_id.index(), shell_id.index(), shell_id.generation()
-                ),
-            },
-            context: None,
-        })?;
-    }
-
-    for (shell_id, shell_data) in arena.iter_shells() {
-        let region_id = shell_data.region();
-        arena.get_region(region_id).map_err(|_| KernelError::TopologyViolation {
-            err: forge_core::TopologyError::HierarchyViolation {
-                parent_kind: "Region".to_string(),
-                parent_index: region_id.index(),
-                child_kind: "Shell".to_string(),
-                child_index: shell_id.index(),
-                detail: format!(
-                    "Shell {} references region {}(gen{}) which is stale or deleted",
-                    shell_id.index(), region_id.index(), region_id.generation()
-                ),
-            },
-            context: None,
-        })?;
-    }
-
-    for (region_id, region_data) in arena.iter_regions() {
-        let lump_id = region_data.lump();
-        arena.get_lump(lump_id).map_err(|_| KernelError::TopologyViolation {
-            err: forge_core::TopologyError::HierarchyViolation {
-                parent_kind: "Lump".to_string(),
-                parent_index: lump_id.index(),
-                child_kind: "Region".to_string(),
-                child_index: region_id.index(),
-                detail: format!(
-                    "Region {} references lump {}(gen{}) which is stale or deleted",
-                    region_id.index(), lump_id.index(), lump_id.generation()
-                ),
-            },
-            context: None,
-        })?;
-
-        if let Some(outer) = region_data.outer_shell() {
-            arena.get_shell(outer).map_err(|_| KernelError::TopologyViolation {
+        arena
+            .get_shell(shell_id)
+            .map_err(|_| KernelError::TopologyViolation {
                 err: forge_core::TopologyError::HierarchyViolation {
-                    parent_kind: "Region".to_string(),
-                    parent_index: region_id.index(),
-                    child_kind: "Shell".to_string(),
-                    child_index: outer.index(),
+                    parent_kind: "Shell".to_string(),
+                    parent_index: shell_id.index(),
+                    child_kind: "Face".to_string(),
+                    child_index: face_id.index(),
                     detail: format!(
-                        "Region {} outer shell {}(gen{}) is stale or deleted",
-                        region_id.index(), outer.index(), outer.generation()
+                        "Face {} references shell {}(gen{}) which is stale or deleted",
+                        face_id.index(),
+                        shell_id.index(),
+                        shell_id.generation()
                     ),
                 },
                 context: None,
             })?;
-        }
+    }
 
-        for shell_id in region_data.inner_shells() {
-            arena.get_shell(*shell_id).map_err(|_| KernelError::TopologyViolation {
+    for (shell_id, shell_data) in arena.iter_shells() {
+        let region_id = shell_data.region();
+        arena
+            .get_region(region_id)
+            .map_err(|_| KernelError::TopologyViolation {
                 err: forge_core::TopologyError::HierarchyViolation {
                     parent_kind: "Region".to_string(),
                     parent_index: region_id.index(),
                     child_kind: "Shell".to_string(),
                     child_index: shell_id.index(),
                     detail: format!(
-                        "Region {} inner shell {}(gen{}) is stale or deleted",
-                        region_id.index(), shell_id.index(), shell_id.generation()
+                        "Shell {} references region {}(gen{}) which is stale or deleted",
+                        shell_id.index(),
+                        region_id.index(),
+                        region_id.generation()
                     ),
                 },
                 context: None,
             })?;
+    }
+
+    for (region_id, region_data) in arena.iter_regions() {
+        let lump_id = region_data.lump();
+        arena
+            .get_lump(lump_id)
+            .map_err(|_| KernelError::TopologyViolation {
+                err: forge_core::TopologyError::HierarchyViolation {
+                    parent_kind: "Lump".to_string(),
+                    parent_index: lump_id.index(),
+                    child_kind: "Region".to_string(),
+                    child_index: region_id.index(),
+                    detail: format!(
+                        "Region {} references lump {}(gen{}) which is stale or deleted",
+                        region_id.index(),
+                        lump_id.index(),
+                        lump_id.generation()
+                    ),
+                },
+                context: None,
+            })?;
+
+        if let Some(outer) = region_data.outer_shell() {
+            arena
+                .get_shell(outer)
+                .map_err(|_| KernelError::TopologyViolation {
+                    err: forge_core::TopologyError::HierarchyViolation {
+                        parent_kind: "Region".to_string(),
+                        parent_index: region_id.index(),
+                        child_kind: "Shell".to_string(),
+                        child_index: outer.index(),
+                        detail: format!(
+                            "Region {} outer shell {}(gen{}) is stale or deleted",
+                            region_id.index(),
+                            outer.index(),
+                            outer.generation()
+                        ),
+                    },
+                    context: None,
+                })?;
+        }
+
+        for shell_id in region_data.inner_shells() {
+            arena
+                .get_shell(*shell_id)
+                .map_err(|_| KernelError::TopologyViolation {
+                    err: forge_core::TopologyError::HierarchyViolation {
+                        parent_kind: "Region".to_string(),
+                        parent_index: region_id.index(),
+                        child_kind: "Shell".to_string(),
+                        child_index: shell_id.index(),
+                        detail: format!(
+                            "Region {} inner shell {}(gen{}) is stale or deleted",
+                            region_id.index(),
+                            shell_id.index(),
+                            shell_id.generation()
+                        ),
+                    },
+                    context: None,
+                })?;
         }
     }
 
     for (lump_id, lump_data) in arena.iter_lumps() {
         let body_id = lump_data.body();
-        arena.get_body(body_id).map_err(|_| KernelError::TopologyViolation {
-            err: forge_core::TopologyError::HierarchyViolation {
-                parent_kind: "Body".to_string(),
-                parent_index: body_id.index(),
-                child_kind: "Lump".to_string(),
-                child_index: lump_id.index(),
-                detail: format!(
-                    "Lump {} references solid {}(gen{}) which is stale or deleted",
-                    lump_id.index(), body_id.index(), body_id.generation()
-                ),
-            },
-            context: None,
-        })?;
-    }
-
-    for (body_id, solid_data) in arena.iter_bodies() {
-        for lump_id in solid_data.lumps() {
-            arena.get_lump(*lump_id).map_err(|_| KernelError::TopologyViolation {
+        arena
+            .get_body(body_id)
+            .map_err(|_| KernelError::TopologyViolation {
                 err: forge_core::TopologyError::HierarchyViolation {
                     parent_kind: "Body".to_string(),
                     parent_index: body_id.index(),
                     child_kind: "Lump".to_string(),
                     child_index: lump_id.index(),
                     detail: format!(
-                        "Solid {} lists lump {}(gen{}) which is stale or deleted",
-                        body_id.index(), lump_id.index(), lump_id.generation()
+                        "Lump {} references solid {}(gen{}) which is stale or deleted",
+                        lump_id.index(),
+                        body_id.index(),
+                        body_id.generation()
                     ),
                 },
                 context: None,
             })?;
+    }
+
+    for (body_id, solid_data) in arena.iter_bodies() {
+        for lump_id in solid_data.lumps() {
+            arena
+                .get_lump(*lump_id)
+                .map_err(|_| KernelError::TopologyViolation {
+                    err: forge_core::TopologyError::HierarchyViolation {
+                        parent_kind: "Body".to_string(),
+                        parent_index: body_id.index(),
+                        child_kind: "Lump".to_string(),
+                        child_index: lump_id.index(),
+                        detail: format!(
+                            "Solid {} lists lump {}(gen{}) which is stale or deleted",
+                            body_id.index(),
+                            lump_id.index(),
+                            lump_id.generation()
+                        ),
+                    },
+                    context: None,
+                })?;
         }
     }
 
@@ -857,7 +936,10 @@ fn validate_hierarchy(arena: &TopologyArena) -> Result<(), KernelError> {
                     parent_index: u32::MAX,
                     child_kind: "Shell".to_string(),
                     child_index: shell_id.index(),
-                    detail: format!("Orphaned shell {}: not owned by any region", shell_id.index()),
+                    detail: format!(
+                        "Orphaned shell {}: not owned by any region",
+                        shell_id.index()
+                    ),
                 },
                 context: None,
             });
@@ -878,7 +960,10 @@ fn validate_hierarchy(arena: &TopologyArena) -> Result<(), KernelError> {
                     parent_index: u32::MAX,
                     child_kind: "Region".to_string(),
                     child_index: region_id.index(),
-                    detail: format!("Orphaned region {}: not owned by any lump", region_id.index()),
+                    detail: format!(
+                        "Orphaned region {}: not owned by any lump",
+                        region_id.index()
+                    ),
                 },
                 context: None,
             });

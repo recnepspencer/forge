@@ -10,8 +10,8 @@
 use crate::sign::TriSign;
 use num_bigint::BigInt;
 use num_rational::BigRational;
-use num_traits::{Signed, ToPrimitive, Zero, One};
-use serde::{Deserialize, Serialize, Serializer, Deserializer, de};
+use num_traits::{One, Signed, ToPrimitive, Zero};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
@@ -52,15 +52,25 @@ impl<'de> Deserialize<'de> for Rational {
                 E: de::Error,
             {
                 if let Some((n, d)) = value.split_once('/') {
-                    let numer: BigInt = n.parse().map_err(|e| E::custom(format!("bad numerator: {e}")))?;
-                    let denom: BigInt = d.parse().map_err(|e| E::custom(format!("bad denominator: {e}")))?;
+                    let numer: BigInt = n
+                        .parse()
+                        .map_err(|e| E::custom(format!("bad numerator: {e}")))?;
+                    let denom: BigInt = d
+                        .parse()
+                        .map_err(|e| E::custom(format!("bad denominator: {e}")))?;
                     if denom.is_zero() {
                         return Err(E::custom("denominator is zero"));
                     }
-                    Ok(Rational { inner: BigRational::new(numer, denom) })
+                    Ok(Rational {
+                        inner: BigRational::new(numer, denom),
+                    })
                 } else {
-                    let n: BigInt = value.parse().map_err(|e| E::custom(format!("bad integer: {e}")))?;
-                    Ok(Rational { inner: BigRational::from(n) })
+                    let n: BigInt = value
+                        .parse()
+                        .map_err(|e| E::custom(format!("bad integer: {e}")))?;
+                    Ok(Rational {
+                        inner: BigRational::from(n),
+                    })
                 }
             }
         }
@@ -172,7 +182,11 @@ impl Rational {
         let numer = self.inner.numer().to_f64().unwrap_or(f64::INFINITY);
         let denom = self.inner.denom().to_f64().unwrap_or(f64::INFINITY);
         if denom == 0.0 {
-            if numer >= 0.0 { f64::INFINITY } else { f64::NEG_INFINITY }
+            if numer >= 0.0 {
+                f64::INFINITY
+            } else {
+                f64::NEG_INFINITY
+            }
         } else {
             numer / denom
         }
@@ -232,49 +246,63 @@ impl Rational {
 impl Add for Rational {
     type Output = Self;
     fn add(self, rhs: Self) -> Self {
-        Self { inner: self.inner + rhs.inner }
+        Self {
+            inner: self.inner + rhs.inner,
+        }
     }
 }
 
 impl Sub for Rational {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self {
-        Self { inner: self.inner - rhs.inner }
+        Self {
+            inner: self.inner - rhs.inner,
+        }
     }
 }
 
 impl Mul for Rational {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
-        Self { inner: self.inner * rhs.inner }
+        Self {
+            inner: self.inner * rhs.inner,
+        }
     }
 }
 
 impl Div for Rational {
     type Output = Self;
     fn div(self, rhs: Self) -> Self {
-        Self { inner: self.inner / rhs.inner }
+        Self {
+            inner: self.inner / rhs.inner,
+        }
     }
 }
 
 impl Add for &Rational {
     type Output = Rational;
     fn add(self, rhs: Self) -> Rational {
-        Rational { inner: &self.inner + &rhs.inner }
+        Rational {
+            inner: &self.inner + &rhs.inner,
+        }
     }
 }
 
 impl Sub for &Rational {
     type Output = Rational;
     fn sub(self, rhs: Self) -> Rational {
-        Rational { inner: &self.inner - &rhs.inner }
+        Rational {
+            inner: &self.inner - &rhs.inner,
+        }
     }
 }
 
 impl Mul for &Rational {
     type Output = Rational;
     fn mul(self, rhs: Self) -> Rational {
-        Rational { inner: &self.inner * &rhs.inner }
+        Rational {
+            inner: &self.inner * &rhs.inner,
+        }
     }
 }
 
@@ -294,7 +322,9 @@ impl Neg for Rational {
 impl Neg for &Rational {
     type Output = Rational;
     fn neg(self) -> Rational {
-        Rational { inner: -&self.inner }
+        Rational {
+            inner: -&self.inner,
+        }
     }
 }
 
@@ -339,17 +369,26 @@ mod tests {
 
     #[test]
     fn f64_exact_conversion_integer() {
-        assert_eq!(Rational::try_from_f64(3.0).unwrap(), Rational::from_integer(3));
+        assert_eq!(
+            Rational::try_from_f64(3.0).unwrap(),
+            Rational::from_integer(3)
+        );
     }
 
     #[test]
     fn f64_exact_conversion_half() {
-        assert_eq!(Rational::try_from_f64(0.5).unwrap(), Rational::try_from_fraction(1, 2).unwrap());
+        assert_eq!(
+            Rational::try_from_f64(0.5).unwrap(),
+            Rational::try_from_fraction(1, 2).unwrap()
+        );
     }
 
     #[test]
     fn f64_exact_conversion_negative() {
-        assert_eq!(Rational::try_from_f64(-2.5).unwrap(), Rational::try_from_fraction(-5, 2).unwrap());
+        assert_eq!(
+            Rational::try_from_f64(-2.5).unwrap(),
+            Rational::try_from_fraction(-5, 2).unwrap()
+        );
     }
 
     #[test]
@@ -391,6 +430,6 @@ mod tests {
     fn to_f64_approx_accuracy() {
         let r = Rational::try_from_fraction(1, 3).unwrap();
         let approx = r.to_f64_approx();
-        assert!((approx - 1.0/3.0).abs() < 1e-15);
+        assert!((approx - 1.0 / 3.0).abs() < 1e-15);
     }
 }

@@ -27,8 +27,14 @@ impl ExactParam {
     ///
     /// Only call this with `Rational::zero()` or `Rational::one()`. All
     /// computed parameters from intersection logic must use `try_new`.
-    pub(crate) fn zero() -> Self { Self { t: Rational::zero() } }
-    pub(crate) fn one() -> Self { Self { t: Rational::one() } }
+    pub(crate) fn zero() -> Self {
+        Self {
+            t: Rational::zero(),
+        }
+    }
+    pub(crate) fn one() -> Self {
+        Self { t: Rational::one() }
+    }
 
     /// Checked constructor for computed intersection parameters.
     ///
@@ -96,17 +102,28 @@ pub enum ExactIntersection {
 ///
 /// This evaluates purely in exact rational arithmetic and guarantees correct
 /// classification and parameter values regardless of degeneracy.
-pub fn intersect_segments_exact(seg_a: &Segment2D, seg_b: &Segment2D) -> Result<ExactIntersection, BoundaryCertError> {
+pub fn intersect_segments_exact(
+    seg_a: &Segment2D,
+    seg_b: &Segment2D,
+) -> Result<ExactIntersection, BoundaryCertError> {
     let pa1 = seg_a.get_start();
     let pa2 = seg_a.get_end();
     let pb1 = seg_b.get_start();
     let pb2 = seg_b.get_end();
 
     // Evaluate exact orientations
-    let o_a1_a2_b1 = orient2d(pa1, pa2, pb1).map_err(|_| BoundaryCertError::PredicateFailure)?.0;
-    let o_a1_a2_b2 = orient2d(pa1, pa2, pb2).map_err(|_| BoundaryCertError::PredicateFailure)?.0;
-    let o_b1_b2_a1 = orient2d(pb1, pb2, pa1).map_err(|_| BoundaryCertError::PredicateFailure)?.0;
-    let o_b1_b2_a2 = orient2d(pb1, pb2, pa2).map_err(|_| BoundaryCertError::PredicateFailure)?.0;
+    let o_a1_a2_b1 = orient2d(pa1, pa2, pb1)
+        .map_err(|_| BoundaryCertError::PredicateFailure)?
+        .0;
+    let o_a1_a2_b2 = orient2d(pa1, pa2, pb2)
+        .map_err(|_| BoundaryCertError::PredicateFailure)?
+        .0;
+    let o_b1_b2_a1 = orient2d(pb1, pb2, pa1)
+        .map_err(|_| BoundaryCertError::PredicateFailure)?
+        .0;
+    let o_b1_b2_a2 = orient2d(pb1, pb2, pa2)
+        .map_err(|_| BoundaryCertError::PredicateFailure)?
+        .0;
 
     // Collinear Overlap
     if o_a1_a2_b1.sign() == TriSign::Zero && o_a1_a2_b2.sign() == TriSign::Zero {
@@ -123,20 +140,36 @@ pub fn intersect_segments_exact(seg_a: &Segment2D, seg_b: &Segment2D) -> Result<
     let a2_eq_b2 = pa2 == pb2;
 
     if a1_eq_b1 {
-        return Ok(ExactIntersection::SharedEndpoint { shared_a: EndpointSide::Start, shared_b: EndpointSide::Start });
+        return Ok(ExactIntersection::SharedEndpoint {
+            shared_a: EndpointSide::Start,
+            shared_b: EndpointSide::Start,
+        });
     }
     if a1_eq_b2 {
-        return Ok(ExactIntersection::SharedEndpoint { shared_a: EndpointSide::Start, shared_b: EndpointSide::End });
+        return Ok(ExactIntersection::SharedEndpoint {
+            shared_a: EndpointSide::Start,
+            shared_b: EndpointSide::End,
+        });
     }
     if a2_eq_b1 {
-        return Ok(ExactIntersection::SharedEndpoint { shared_a: EndpointSide::End, shared_b: EndpointSide::Start });
+        return Ok(ExactIntersection::SharedEndpoint {
+            shared_a: EndpointSide::End,
+            shared_b: EndpointSide::Start,
+        });
     }
     if a2_eq_b2 {
-        return Ok(ExactIntersection::SharedEndpoint { shared_a: EndpointSide::End, shared_b: EndpointSide::End });
+        return Ok(ExactIntersection::SharedEndpoint {
+            shared_a: EndpointSide::End,
+            shared_b: EndpointSide::End,
+        });
     }
 
-    let b_straddles_a = o_a1_a2_b1 != o_a1_a2_b2 && o_a1_a2_b1.sign() != TriSign::Zero && o_a1_a2_b2.sign() != TriSign::Zero;
-    let a_straddles_b = o_b1_b2_a1 != o_b1_b2_a2 && o_b1_b2_a1.sign() != TriSign::Zero && o_b1_b2_a2.sign() != TriSign::Zero;
+    let b_straddles_a = o_a1_a2_b1 != o_a1_a2_b2
+        && o_a1_a2_b1.sign() != TriSign::Zero
+        && o_a1_a2_b2.sign() != TriSign::Zero;
+    let a_straddles_b = o_b1_b2_a1 != o_b1_b2_a2
+        && o_b1_b2_a1.sign() != TriSign::Zero
+        && o_b1_b2_a2.sign() != TriSign::Zero;
 
     // Strict transverse crossing
     if b_straddles_a && a_straddles_b {
@@ -150,35 +183,64 @@ pub fn intersect_segments_exact(seg_a: &Segment2D, seg_b: &Segment2D) -> Result<
     // Check for endpoint touches
     if o_a1_a2_b1.sign() == TriSign::Zero && is_point_on_segment(pb1, pa1, pa2)? {
         let t = compute_t_projection(pb1, pa1, pa2)?;
-        return Ok(ExactIntersection::EndpointTouch { touching_seg: 1, at_endpoint: EndpointSide::Start, t_on_other: ExactParam::try_new(t)? });
+        return Ok(ExactIntersection::EndpointTouch {
+            touching_seg: 1,
+            at_endpoint: EndpointSide::Start,
+            t_on_other: ExactParam::try_new(t)?,
+        });
     }
     if o_a1_a2_b2.sign() == TriSign::Zero && is_point_on_segment(pb2, pa1, pa2)? {
         let t = compute_t_projection(pb2, pa1, pa2)?;
-        return Ok(ExactIntersection::EndpointTouch { touching_seg: 1, at_endpoint: EndpointSide::End, t_on_other: ExactParam::try_new(t)? });
+        return Ok(ExactIntersection::EndpointTouch {
+            touching_seg: 1,
+            at_endpoint: EndpointSide::End,
+            t_on_other: ExactParam::try_new(t)?,
+        });
     }
     if o_b1_b2_a1.sign() == TriSign::Zero && is_point_on_segment(pa1, pb1, pb2)? {
         let t = compute_t_projection(pa1, pb1, pb2)?;
-        return Ok(ExactIntersection::EndpointTouch { touching_seg: 0, at_endpoint: EndpointSide::Start, t_on_other: ExactParam::try_new(t)? });
+        return Ok(ExactIntersection::EndpointTouch {
+            touching_seg: 0,
+            at_endpoint: EndpointSide::Start,
+            t_on_other: ExactParam::try_new(t)?,
+        });
     }
     if o_b1_b2_a2.sign() == TriSign::Zero && is_point_on_segment(pa2, pb1, pb2)? {
         let t = compute_t_projection(pa2, pb1, pb2)?;
-        return Ok(ExactIntersection::EndpointTouch { touching_seg: 0, at_endpoint: EndpointSide::End, t_on_other: ExactParam::try_new(t)? });
+        return Ok(ExactIntersection::EndpointTouch {
+            touching_seg: 0,
+            at_endpoint: EndpointSide::End,
+            t_on_other: ExactParam::try_new(t)?,
+        });
     }
 
     Ok(ExactIntersection::Disjoint)
 }
 
 /// Compute exact segment crossing parameters t_a and t_b using rational coefficients.
-fn compute_crossing_parameters(pa1: [f64; 2], pa2: [f64; 2], pb1: [f64; 2], pb2: [f64; 2]) -> Result<(Rational, Rational), BoundaryCertError> {
-    let r_pa1_x = Rational::try_from_f64(pa1[0]).map_err(|_| BoundaryCertError::PredicateFailure)?;
-    let r_pa1_y = Rational::try_from_f64(pa1[1]).map_err(|_| BoundaryCertError::PredicateFailure)?;
-    let r_pa2_x = Rational::try_from_f64(pa2[0]).map_err(|_| BoundaryCertError::PredicateFailure)?;
-    let r_pa2_y = Rational::try_from_f64(pa2[1]).map_err(|_| BoundaryCertError::PredicateFailure)?;
+fn compute_crossing_parameters(
+    pa1: [f64; 2],
+    pa2: [f64; 2],
+    pb1: [f64; 2],
+    pb2: [f64; 2],
+) -> Result<(Rational, Rational), BoundaryCertError> {
+    let r_pa1_x =
+        Rational::try_from_f64(pa1[0]).map_err(|_| BoundaryCertError::PredicateFailure)?;
+    let r_pa1_y =
+        Rational::try_from_f64(pa1[1]).map_err(|_| BoundaryCertError::PredicateFailure)?;
+    let r_pa2_x =
+        Rational::try_from_f64(pa2[0]).map_err(|_| BoundaryCertError::PredicateFailure)?;
+    let r_pa2_y =
+        Rational::try_from_f64(pa2[1]).map_err(|_| BoundaryCertError::PredicateFailure)?;
 
-    let r_pb1_x = Rational::try_from_f64(pb1[0]).map_err(|_| BoundaryCertError::PredicateFailure)?;
-    let r_pb1_y = Rational::try_from_f64(pb1[1]).map_err(|_| BoundaryCertError::PredicateFailure)?;
-    let r_pb2_x = Rational::try_from_f64(pb2[0]).map_err(|_| BoundaryCertError::PredicateFailure)?;
-    let r_pb2_y = Rational::try_from_f64(pb2[1]).map_err(|_| BoundaryCertError::PredicateFailure)?;
+    let r_pb1_x =
+        Rational::try_from_f64(pb1[0]).map_err(|_| BoundaryCertError::PredicateFailure)?;
+    let r_pb1_y =
+        Rational::try_from_f64(pb1[1]).map_err(|_| BoundaryCertError::PredicateFailure)?;
+    let r_pb2_x =
+        Rational::try_from_f64(pb2[0]).map_err(|_| BoundaryCertError::PredicateFailure)?;
+    let r_pb2_y =
+        Rational::try_from_f64(pb2[1]).map_err(|_| BoundaryCertError::PredicateFailure)?;
 
     let v_a_x = r_pa2_x.clone() - r_pa1_x.clone();
     let v_a_y = r_pa2_y.clone() - r_pa1_y.clone();
@@ -204,10 +266,14 @@ fn compute_crossing_parameters(pa1: [f64; 2], pa2: [f64; 2], pb1: [f64; 2], pb2:
 }
 
 /// Compute 1D projection parameter t for point p on collinear segment [s1, s2].
-fn compute_t_projection(p: [f64; 2], s1: [f64; 2], s2: [f64; 2]) -> Result<Rational, BoundaryCertError> {
+fn compute_t_projection(
+    p: [f64; 2],
+    s1: [f64; 2],
+    s2: [f64; 2],
+) -> Result<Rational, BoundaryCertError> {
     let dx = s2[0] - s1[0];
     let dy = s2[1] - s1[1];
-    
+
     // Pick the dominant axis for stable 1D projection parameter calculation
     let r_p;
     let r_s1;
@@ -248,7 +314,12 @@ fn bbox_overlap(pa1: [f64; 2], pa2: [f64; 2], pb1: [f64; 2], pb2: [f64; 2]) -> b
 }
 
 /// Compute exact overlap intervals for two collinear overlapping segments.
-fn compute_collinear_overlap(pa1: [f64; 2], pa2: [f64; 2], pb1: [f64; 2], pb2: [f64; 2]) -> Result<ExactIntersection, BoundaryCertError> {
+fn compute_collinear_overlap(
+    pa1: [f64; 2],
+    pa2: [f64; 2],
+    pb1: [f64; 2],
+    pb2: [f64; 2],
+) -> Result<ExactIntersection, BoundaryCertError> {
     if !bbox_overlap(pa1, pa2, pb1, pb2) {
         return Ok(ExactIntersection::Disjoint);
     }
@@ -259,8 +330,12 @@ fn compute_collinear_overlap(pa1: [f64; 2], pa2: [f64; 2], pb1: [f64; 2], pb2: [
     let t_a_min = Rational::zero();
     let t_a_max = Rational::one();
 
-    let overlap_a_start = t_a_min.clone().max(t_b_on_a_1.clone().min(t_b_on_a_2.clone()));
-    let overlap_a_end = t_a_max.clone().min(t_b_on_a_1.clone().max(t_b_on_a_2.clone()));
+    let overlap_a_start = t_a_min
+        .clone()
+        .max(t_b_on_a_1.clone().min(t_b_on_a_2.clone()));
+    let overlap_a_end = t_a_max
+        .clone()
+        .min(t_b_on_a_1.clone().max(t_b_on_a_2.clone()));
 
     if overlap_a_start >= overlap_a_end {
         return Ok(ExactIntersection::Disjoint);
@@ -272,12 +347,20 @@ fn compute_collinear_overlap(pa1: [f64; 2], pa2: [f64; 2], pb1: [f64; 2], pb2: [
     let t_b_min = Rational::zero();
     let t_b_max = Rational::one();
 
-    let overlap_b_start = t_b_min.clone().max(t_a_on_b_1.clone().min(t_a_on_b_2.clone()));
+    let overlap_b_start = t_b_min
+        .clone()
+        .max(t_a_on_b_1.clone().min(t_a_on_b_2.clone()));
     let overlap_b_end = t_b_max.clone().min(t_a_on_b_1.max(t_a_on_b_2));
 
     Ok(ExactIntersection::Overlap {
-        t_a_range: [ExactParam::try_new(overlap_a_start)?, ExactParam::try_new(overlap_a_end)?],
-        t_b_range: [ExactParam::try_new(overlap_b_start)?, ExactParam::try_new(overlap_b_end)?],
+        t_a_range: [
+            ExactParam::try_new(overlap_a_start)?,
+            ExactParam::try_new(overlap_a_end)?,
+        ],
+        t_b_range: [
+            ExactParam::try_new(overlap_b_start)?,
+            ExactParam::try_new(overlap_b_end)?,
+        ],
     })
 }
 #[cfg(test)]
@@ -292,7 +375,10 @@ mod tests {
     fn exact_intersect_disjoint() {
         let s1 = Segment2D::new([0.0, 0.0], [2.0, 2.0], 1);
         let s2 = Segment2D::new([0.0, 2.0], [1.0, 3.0], 2);
-        assert_eq!(intersect_segments_exact(&s1, &s2), Ok(ExactIntersection::Disjoint));
+        assert_eq!(
+            intersect_segments_exact(&s1, &s2),
+            Ok(ExactIntersection::Disjoint)
+        );
     }
 
     #[test]
@@ -300,7 +386,7 @@ mod tests {
         // X-crossing at exactly (1, 1), t = 0.5 for both
         let s1 = Segment2D::new([0.0, 0.0], [2.0, 2.0], 1);
         let s2 = Segment2D::new([0.0, 2.0], [2.0, 0.0], 2);
-        
+
         match intersect_segments_exact(&s1, &s2) {
             Ok(ExactIntersection::Crossing { t_a, t_b }) => {
                 assert_eq!(t_a.as_rational(), &r(0.5));
@@ -334,10 +420,13 @@ mod tests {
     fn exact_intersect_shared_endpoint() {
         let s1 = Segment2D::new([0.0, 0.0], [2.0, 2.0], 1);
         let s2 = Segment2D::new([2.0, 2.0], [4.0, 0.0], 2);
-        assert_eq!(intersect_segments_exact(&s1, &s2), Ok(ExactIntersection::SharedEndpoint {
-            shared_a: EndpointSide::End,
-            shared_b: EndpointSide::Start,
-        }));
+        assert_eq!(
+            intersect_segments_exact(&s1, &s2),
+            Ok(ExactIntersection::SharedEndpoint {
+                shared_a: EndpointSide::End,
+                shared_b: EndpointSide::Start,
+            })
+        );
     }
 
     #[test]
@@ -347,7 +436,11 @@ mod tests {
         let s2 = Segment2D::new([1.0, 1.0], [1.0, 3.0], 2); // Vertical upwards
 
         match intersect_segments_exact(&s1, &s2) {
-            Ok(ExactIntersection::EndpointTouch { touching_seg, at_endpoint, t_on_other }) => {
+            Ok(ExactIntersection::EndpointTouch {
+                touching_seg,
+                at_endpoint,
+                t_on_other,
+            }) => {
                 // seg 2's start point touches seg 1 at t=0.5
                 assert_eq!(touching_seg, 1); // s2
                 assert_eq!(at_endpoint, EndpointSide::Start);
@@ -364,12 +457,15 @@ mod tests {
         let s2 = Segment2D::new([1.0, 0.0], [5.0, 0.0], 2);
 
         match intersect_segments_exact(&s1, &s2) {
-            Ok(ExactIntersection::Overlap { t_a_range, t_b_range }) => {
+            Ok(ExactIntersection::Overlap {
+                t_a_range,
+                t_b_range,
+            }) => {
                 // Overlap is from x=1 to x=4
                 // On s1: t from 1/4 to 4/4 = [0.25, 1.0]
                 assert_eq!(t_a_range[0].as_rational(), &r(0.25));
                 assert_eq!(t_a_range[1].as_rational(), &r(1.0));
-                
+
                 // On s2: t from (1-1)/4 to (4-1)/4 = [0.0, 0.75]
                 assert_eq!(t_b_range[0].as_rational(), &r(0.0));
                 assert_eq!(t_b_range[1].as_rational(), &r(0.75));
@@ -382,6 +478,9 @@ mod tests {
     fn exact_intersect_collinear_disjoint() {
         let s1 = Segment2D::new([0.0, 0.0], [2.0, 0.0], 1);
         let s2 = Segment2D::new([3.0, 0.0], [5.0, 0.0], 2);
-        assert_eq!(intersect_segments_exact(&s1, &s2), Ok(ExactIntersection::Disjoint));
+        assert_eq!(
+            intersect_segments_exact(&s1, &s2),
+            Ok(ExactIntersection::Disjoint)
+        );
     }
 }

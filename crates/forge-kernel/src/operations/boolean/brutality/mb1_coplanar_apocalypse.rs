@@ -17,10 +17,8 @@
 //! - Coplanar face merge pass must not create T-junctions
 //! - Orientation consistency across touching coplanar regions
 
-use super::super::test_helpers::{
-    build_cube, execute_boolean_ember, euler_audit,
-};
 use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::test_helpers::{build_cube, euler_audit, execute_boolean_ember};
 
 /// Build a complex solid by unioning cubes in a 4×4×4 grid.
 ///
@@ -31,7 +29,10 @@ fn build_coplanar_grid_solid(
     origin: [f64; 3],
     cube_half: f64,
     grid_dim: usize,
-) -> Option<(forge_topo::state::TopologyState, crate::geometry_state::GeometryState)> {
+) -> Option<(
+    forge_topo::state::TopologyState,
+    crate::geometry_state::GeometryState,
+)> {
     let step = cube_half * 2.0;
     let (mut topo, mut geom) = build_cube(origin, cube_half);
 
@@ -41,7 +42,9 @@ fn build_coplanar_grid_solid(
     for ix in 0..grid_dim {
         for iy in 0..grid_dim {
             for iz in 0..grid_dim {
-                if ix == 0 && iy == 0 && iz == 0 { continue; }
+                if ix == 0 && iy == 0 && iz == 0 {
+                    continue;
+                }
                 let center = [
                     origin[0] + ix as f64 * step,
                     origin[1] + iy as f64 * step,
@@ -49,14 +52,17 @@ fn build_coplanar_grid_solid(
                 ];
                 let (topo_tool, geom_tool) = build_cube(center, cube_half);
 
-                let input = BooleanInput::new(
-                    topo, geom,
-                    topo_tool, geom_tool,
-                    BooleanOp::Union,
-                );
+                let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
 
-                eprintln!("\n[chain] step {}/{} — Union at [{:.1}, {:.1}, {:.1}] ({}F in)",
-                    step_count, total_steps, center[0], center[1], center[2], input.target_topology().arena().face_count());
+                eprintln!(
+                    "\n[chain] step {}/{} — Union at [{:.1}, {:.1}, {:.1}] ({}F in)",
+                    step_count,
+                    total_steps,
+                    center[0],
+                    center[1],
+                    center[2],
+                    input.target_topology().arena().face_count()
+                );
 
                 match execute_boolean_ember(input).into_result() {
                     Ok(result) => {
@@ -118,23 +124,27 @@ fn coplanar_grid_4x4x4() {
 fn coplanar_partial_overlap_12_regions() {
     let (mut topo, mut geom) = build_cube([0.0, 0.0, 0.0], 1.0);
 
-    let positions: Vec<[f64; 3]> = (0..12).map(|i| {
-        let angle = (i as f64) * std::f64::consts::PI / 6.0;
-        let r = 1.0;
-        [r * angle.cos(), r * angle.sin(), 0.0]
-    }).collect();
+    let positions: Vec<[f64; 3]> = (0..12)
+        .map(|i| {
+            let angle = (i as f64) * std::f64::consts::PI / 6.0;
+            let r = 1.0;
+            [r * angle.cos(), r * angle.sin(), 0.0]
+        })
+        .collect();
 
     for (i, pos) in positions.iter().enumerate() {
         let (topo_tool, geom_tool) = build_cube(*pos, 1.0);
 
-        let input = BooleanInput::new(
-            topo, geom,
-            topo_tool, geom_tool,
-            BooleanOp::Union,
-        );
+        let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
 
-        eprintln!("\n[chain] step {}/12 — Union at [{:.1}, {:.1}, {:.1}] ({}F in)",
-            i + 1, pos[0], pos[1], pos[2], input.target_topology().arena().face_count());
+        eprintln!(
+            "\n[chain] step {}/12 — Union at [{:.1}, {:.1}, {:.1}] ({}F in)",
+            i + 1,
+            pos[0],
+            pos[1],
+            pos[2],
+            input.target_topology().arena().face_count()
+        );
 
         match execute_boolean_ember(input).into_result() {
             Ok(result) => {
@@ -169,16 +179,10 @@ fn coplanar_graze_at_1e14() {
     match solid {
         Some((topo, geom)) => {
             let epsilon = 1e-14;
-            let (topo_graze, geom_graze) = build_cube(
-                [1.5, 1.5, epsilon],
-                3.0,
-            );
+            let (topo_graze, geom_graze) = build_cube([1.5, 1.5, epsilon], 3.0);
 
-            let input = BooleanInput::new(
-                topo, geom,
-                topo_graze, geom_graze,
-                BooleanOp::Subtraction,
-            );
+            let input =
+                BooleanInput::new(topo, geom, topo_graze, geom_graze, BooleanOp::Subtraction);
 
             match execute_boolean_ember(input).into_result() {
                 Ok(result) => {
@@ -212,11 +216,7 @@ fn collinear_point_storm_50() {
         let offset = i as f64 * epsilon;
         let (topo_tool, geom_tool) = build_cube([1.0 + offset, 0.0, 0.0], 1.0);
 
-        let input = BooleanInput::new(
-            topo, geom,
-            topo_tool, geom_tool,
-            BooleanOp::Union,
-        );
+        let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
 
         match execute_boolean_ember(input).into_result() {
             Ok(result) => {

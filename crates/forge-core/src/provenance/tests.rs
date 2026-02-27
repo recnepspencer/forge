@@ -80,7 +80,10 @@ fn boundary_segment_provenance_validate_detects_tampered_hash_mode_mismatch() {
 
     assert!(matches!(
         p.validate(),
-        Err(ProvenanceValidationError::TransportHashMismatch { directed: false, .. })
+        Err(ProvenanceValidationError::TransportHashMismatch {
+            directed: false,
+            ..
+        })
     ));
 }
 

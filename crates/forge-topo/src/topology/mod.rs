@@ -1,18 +1,17 @@
-pub mod state;
-pub mod handles;
 pub mod attributes;
 pub mod bitset;
+pub mod handles;
 pub mod integrity;
+pub mod state;
 pub(crate) mod tests;
 
-pub mod operations;
-pub mod queries;
 pub mod history;
 pub mod naming;
-
+pub mod operations;
+pub mod queries;
 
 // Re-exports for cleaner access
-pub use state::{TopologyState, MutableDraft};
-pub use handles::{FaceId, VertexId, HalfEdgeId, LoopId, ShellId, EdgeId};
-pub use operations::operator::EulerOperator;
+pub use handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
 pub use history::lineage::Lineage;
+pub use operations::operator::EulerOperator;
+pub use state::{MutableDraft, TopologyState};

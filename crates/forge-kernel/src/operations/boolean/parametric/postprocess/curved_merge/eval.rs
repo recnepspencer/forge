@@ -27,9 +27,9 @@
 //! All decisions MUST be emitted as TracedDecisions in the
 //! OperationResult's DecisionLog.
 
-use forge_core::{KernelError, OperationResult};
-use crate::core::KernelState;
 use super::schema::CurvedMergeSelection;
+use crate::core::KernelState;
+use forge_core::{KernelError, OperationResult};
 
 /// Execute a curved same-support surface merge.
 ///

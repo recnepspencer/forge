@@ -30,7 +30,11 @@ pub struct CausalChain {
 impl CausalChain {
     /// Construct a new causal chain.
     pub fn new(target: EntityRef, steps: Vec<CausalStep>, summary: ChainSummary) -> Self {
-        Self { target, steps, summary }
+        Self {
+            target,
+            steps,
+            summary,
+        }
     }
 
     /// The entity whose history we're tracing.
@@ -137,7 +141,12 @@ impl ChainSummary {
         min_margin: f64,
         narrative: String,
     ) -> Self {
-        Self { total_steps, decision_steps, min_margin, narrative }
+        Self {
+            total_steps,
+            decision_steps,
+            min_margin,
+            narrative,
+        }
     }
 
     /// Total steps in the chain.

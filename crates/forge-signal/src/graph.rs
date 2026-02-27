@@ -143,8 +143,7 @@ impl SignalGraph {
 
         self.get_entry_mut(downstream)?
             .remove_dependencies_on(upstream);
-        self.get_entry_mut(upstream)?
-            .remove_subscriber(downstream);
+        self.get_entry_mut(upstream)?.remove_subscriber(downstream);
         Ok(())
     }
 
@@ -179,10 +178,7 @@ impl SignalGraph {
 
     /// The total number of active (non-tombstoned, occupied) nodes.
     pub fn active_node_count(&self) -> usize {
-        self.nodes
-            .iter()
-            .filter(|s| s.is_occupied())
-            .count()
+        self.nodes.iter().filter(|s| s.is_occupied()).count()
     }
 
     /// The number of allocated slots (including vacant ones).
@@ -290,10 +286,7 @@ impl SignalGraph {
 /// Produce a structured error for a stale or invalid node handle.
 fn stale_error(id: NodeId) -> KernelError {
     KernelError::InvalidInput {
-        message: format!(
-            "Stale or invalid signal node handle: {}",
-            id
-        ),
+        message: format!("Stale or invalid signal node handle: {}", id),
         context: None,
     }
 }

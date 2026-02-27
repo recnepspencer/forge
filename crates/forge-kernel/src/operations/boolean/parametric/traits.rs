@@ -21,13 +21,11 @@ use forge_topo::arena::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::state::TopologyState;
 
-use crate::core::{ModelingContext, KernelState};
+use crate::core::{KernelState, ModelingContext};
 use crate::geometry_state::GeometryState;
-use crate::shared_ops::vertex_identity::VertexMatchKey;
-use crate::operations::boolean::classify_schema::{
-    ClassifiedFace, FaceOrigin,
-};
+use crate::operations::boolean::classify_schema::{ClassifiedFace, FaceOrigin};
 use crate::operations::boolean::parametric::split::SplitPhaseResult;
+use crate::shared_ops::vertex_identity::VertexMatchKey;
 
 /// Split both solids along their mutual intersections.
 ///
@@ -131,21 +129,37 @@ impl BooleanEngine {
         assembler: Box<dyn BooleanAssembler>,
         postprocessor: Box<dyn BooleanPostprocessor>,
     ) -> Self {
-        Self { splitter, classifier, coplanar_resolver, assembler, postprocessor }
+        Self {
+            splitter,
+            classifier,
+            coplanar_resolver,
+            assembler,
+            postprocessor,
+        }
     }
 
     /// The split phase implementation.
-    pub fn splitter(&self) -> &dyn BooleanSplitter { &*self.splitter }
+    pub fn splitter(&self) -> &dyn BooleanSplitter {
+        &*self.splitter
+    }
 
     /// The classify phase implementation.
-    pub fn classifier(&self) -> &dyn BooleanClassifier { &*self.classifier }
+    pub fn classifier(&self) -> &dyn BooleanClassifier {
+        &*self.classifier
+    }
 
     /// The coplanar resolution implementation.
-    pub fn coplanar_resolver(&self) -> &dyn CoplanarResolver { &*self.coplanar_resolver }
+    pub fn coplanar_resolver(&self) -> &dyn CoplanarResolver {
+        &*self.coplanar_resolver
+    }
 
     /// The assemble phase implementation.
-    pub fn assembler(&self) -> &dyn BooleanAssembler { &*self.assembler }
+    pub fn assembler(&self) -> &dyn BooleanAssembler {
+        &*self.assembler
+    }
 
     /// The postprocess phase implementation.
-    pub fn postprocessor(&self) -> &dyn BooleanPostprocessor { &*self.postprocessor }
+    pub fn postprocessor(&self) -> &dyn BooleanPostprocessor {
+        &*self.postprocessor
+    }
 }

@@ -2,13 +2,13 @@
 //!
 //! DOMAIN: Thread-local and cross-thread operation tracking.
 
-use std::sync::{Arc, Mutex};
 use std::cell::RefCell;
+use std::sync::{Arc, Mutex};
 
-use forge_core::{DecisionLog, TracedDecision, DecisionKind, OperationMetrics};
+use crate::core::config::resolve::ResolvedConfig;
 use forge_core::envelope::{KernelWarning, LineageDelta};
 use forge_core::tracing::SpanId;
-use crate::core::config::resolve::ResolvedConfig;
+use forge_core::{DecisionKind, DecisionLog, OperationMetrics, TracedDecision};
 
 /// Output collected from a completed `KernelSpan`.
 #[derive(Debug, Clone)]
@@ -47,7 +47,7 @@ impl KernelSpan {
     pub fn enter(name: &str) -> KernelSpanGuard {
         let _ = name; // Could be used in tracing or nested span context building.
         let collector = Arc::new(Mutex::new(SpanCollector::default()));
-        
+
         // Stash the old collector to support nested spans on the same thread
         let previous = CURRENT_SPAN.with(|cs| {
             let mut current = cs.borrow_mut();
@@ -95,7 +95,7 @@ impl KernelSpan {
 
     /// Update lineage delta for the active span.
     pub fn record_lineage_delta(delta: LineageDelta) {
-         CURRENT_SPAN.with(|cs| {
+        CURRENT_SPAN.with(|cs| {
             if let Some(collector) = cs.borrow().as_ref() {
                 if let Ok(mut lock) = collector.lock() {
                     lock.lineage_delta.faces_created += delta.faces_created;
@@ -119,7 +119,7 @@ impl KernelSpan {
 
     /// Merge an entire DecisionLog into the active span.
     pub fn merge_decision_log(log: DecisionLog) {
-         CURRENT_SPAN.with(|cs| {
+        CURRENT_SPAN.with(|cs| {
             if let Some(collector) = cs.borrow().as_ref() {
                 if let Ok(mut lock) = collector.lock() {
                     lock.decision_log.merge(log);
@@ -130,7 +130,7 @@ impl KernelSpan {
 
     /// Extend the active span warnings with a batch.
     pub fn extend_warnings<I: IntoIterator<Item = KernelWarning>>(warnings: I) {
-         CURRENT_SPAN.with(|cs| {
+        CURRENT_SPAN.with(|cs| {
             if let Some(collector) = cs.borrow().as_ref() {
                 if let Ok(mut lock) = collector.lock() {
                     lock.warnings.extend(warnings);
@@ -141,7 +141,7 @@ impl KernelSpan {
 
     /// Add metrics to the active span.
     pub fn add_metrics(metrics: OperationMetrics) {
-         CURRENT_SPAN.with(|cs| {
+        CURRENT_SPAN.with(|cs| {
             if let Some(collector) = cs.borrow().as_ref() {
                 if let Ok(mut lock) = collector.lock() {
                     lock.metrics.duration += metrics.duration;
@@ -157,7 +157,7 @@ impl KernelSpan {
 
     /// Set the config snapshot for the active span.
     pub fn set_config_snapshot(config: ResolvedConfig) {
-         CURRENT_SPAN.with(|cs| {
+        CURRENT_SPAN.with(|cs| {
             if let Some(collector) = cs.borrow().as_ref() {
                 if let Ok(mut lock) = collector.lock() {
                     lock.config_snapshot = Some(config);
@@ -208,7 +208,11 @@ impl KernelSpan {
 
     /// Get a handle to the currently active span, suitable for sending to worker threads.
     pub fn current_handle() -> Option<KernelSpanHandle> {
-        CURRENT_SPAN.with(|cs| cs.borrow().as_ref().map(|c| KernelSpanHandle { collector: Arc::clone(c) }))
+        CURRENT_SPAN.with(|cs| {
+            cs.borrow().as_ref().map(|c| KernelSpanHandle {
+                collector: Arc::clone(c),
+            })
+        })
     }
 
     /// Attach an existing span handle on a worker thread.
@@ -240,12 +244,15 @@ impl KernelSpanGuard {
     /// Extract the accumulated DecisionLog + metrics + warnings.
     /// Should only be called on the guard that was created by `enter`.
     pub fn finish(mut self) -> SpanOutput {
-        debug_assert!(!self.is_attached, "finish() must not be called on an attached worker guard");
-        
+        debug_assert!(
+            !self.is_attached,
+            "finish() must not be called on an attached worker guard"
+        );
+
         // Take previous so Drop doesn't overwrite if we want to immediately clear.
         // Actually, let Drop handle restoring previous.
         let mut inner = self.collector.lock().unwrap_or_else(|e| e.into_inner());
-        
+
         SpanOutput {
             decision_log: std::mem::take(&mut inner.decision_log),
             warnings: std::mem::take(&mut inner.warnings),

@@ -13,8 +13,8 @@
 
 use forge_math::MathError;
 
+use super::schema::{BspNode, BspOp, BspSolid};
 use crate::Plane;
-use super::schema::{BspNode, BspSolid, BspOp};
 
 /// Merge two BSP solids under a boolean operation.
 ///
@@ -46,10 +46,12 @@ fn merge_nodes(
     planes: &[Plane],
 ) -> Result<BspNode, MathError> {
     match a {
-        BspNode::Leaf { solid } => {
-            Ok(select_leaf(op, b, *solid, true))
-        }
-        BspNode::Internal { plane_idx, neg, pos } => {
+        BspNode::Leaf { solid } => Ok(select_leaf(op, b, *solid, true)),
+        BspNode::Internal {
+            plane_idx,
+            neg,
+            pos,
+        } => {
             let (b_neg, b_pos) = partition_node(b, *plane_idx, planes)?;
 
             let neg_result = merge_nodes(neg, &b_neg, op, planes)?;
@@ -112,10 +114,12 @@ fn partition_node(
     planes: &[Plane],
 ) -> Result<(BspNode, BspNode), MathError> {
     match node {
-        BspNode::Leaf { .. } => {
-            Ok((node.clone(), node.clone()))
-        }
-        BspNode::Internal { plane_idx, neg, pos } => {
+        BspNode::Leaf { .. } => Ok((node.clone(), node.clone())),
+        BspNode::Internal {
+            plane_idx,
+            neg,
+            pos,
+        } => {
             if *plane_idx == split_plane_idx {
                 return Ok((*neg.clone(), *pos.clone()));
             }
@@ -123,7 +127,9 @@ fn partition_node(
             let relation = classify_plane_pair(planes, *plane_idx, split_plane_idx)?;
 
             match relation {
-                PlaneRelation::AllNegative | PlaneRelation::AllPositive | PlaneRelation::Spanning => {
+                PlaneRelation::AllNegative
+                | PlaneRelation::AllPositive
+                | PlaneRelation::Spanning => {
                     let (neg_neg, neg_pos) = partition_node(neg, split_plane_idx, planes)?;
                     let (pos_neg, pos_pos) = partition_node(pos, split_plane_idx, planes)?;
 
@@ -132,12 +138,8 @@ fn partition_node(
 
                     Ok((neg_half, pos_half))
                 }
-                PlaneRelation::Coplanar => {
-                    Ok((*neg.clone(), *pos.clone()))
-                }
-                PlaneRelation::AntiCoplanar => {
-                    Ok((*pos.clone(), *neg.clone()))
-                }
+                PlaneRelation::Coplanar => Ok((*neg.clone(), *pos.clone())),
+                PlaneRelation::AntiCoplanar => Ok((*pos.clone(), *neg.clone())),
             }
         }
     }
@@ -214,9 +216,13 @@ fn classify_plane_pair(
                     return Ok(PlaneRelation::Coplanar);
                 }
                 // Determine which side: pick the first non-zero scale check.
-                let representative = if !scale_a.is_zero() { scale_a }
-                    else if !scale_b.is_zero() { scale_b }
-                    else { scale_c };
+                let representative = if !scale_a.is_zero() {
+                    scale_a
+                } else if !scale_b.is_zero() {
+                    scale_b
+                } else {
+                    scale_c
+                };
                 match representative.sign() {
                     TriSign::Pos => return Ok(PlaneRelation::AllPositive),
                     TriSign::Neg => return Ok(PlaneRelation::AllNegative),
@@ -232,9 +238,13 @@ fn classify_plane_pair(
                 if scale_a.is_zero() && scale_b.is_zero() && scale_c.is_zero() {
                     return Ok(PlaneRelation::AntiCoplanar);
                 }
-                let representative = if !scale_a.is_zero() { scale_a }
-                    else if !scale_b.is_zero() { scale_b }
-                    else { scale_c };
+                let representative = if !scale_a.is_zero() {
+                    scale_a
+                } else if !scale_b.is_zero() {
+                    scale_b
+                } else {
+                    scale_c
+                };
                 match representative.sign() {
                     TriSign::Pos => return Ok(PlaneRelation::AllPositive),
                     TriSign::Neg => return Ok(PlaneRelation::AllNegative),
@@ -259,13 +269,15 @@ fn classify_plane_pair(
 fn remap_indices(node: &BspNode, offset: usize) -> BspNode {
     match node {
         BspNode::Leaf { solid } => BspNode::Leaf { solid: *solid },
-        BspNode::Internal { plane_idx, neg, pos } => {
-            BspNode::Internal {
-                plane_idx: plane_idx + offset,
-                neg: Box::new(remap_indices(neg, offset)),
-                pos: Box::new(remap_indices(pos, offset)),
-            }
-        }
+        BspNode::Internal {
+            plane_idx,
+            neg,
+            pos,
+        } => BspNode::Internal {
+            plane_idx: plane_idx + offset,
+            neg: Box::new(remap_indices(neg, offset)),
+            pos: Box::new(remap_indices(pos, offset)),
+        },
     }
 }
 
@@ -298,15 +310,17 @@ mod tests {
             planes.push(axis_plane(axis, -1, center[axis] - half));
         }
 
-        let root = BspNode::split(0,
-            BspNode::split(1,
-                BspNode::split(2,
-                    BspNode::split(3,
-                        BspNode::split(4,
-                            BspNode::split(5,
-                                BspNode::solid(),
-                                BspNode::empty(),
-                            ),
+        let root = BspNode::split(
+            0,
+            BspNode::split(
+                1,
+                BspNode::split(
+                    2,
+                    BspNode::split(
+                        3,
+                        BspNode::split(
+                            4,
+                            BspNode::split(5, BspNode::solid(), BspNode::empty()),
                             BspNode::empty(),
                         ),
                         BspNode::empty(),
@@ -374,8 +388,10 @@ mod tests {
 
         let result = merge_bsp(&a, &b, BspOp::Union).unwrap();
         assert_eq!(result.plane_count(), 12);
-        assert!(result.root().solid_leaf_count() >= 2,
-            "Disjoint union should have at least 2 solid regions");
+        assert!(
+            result.root().solid_leaf_count() >= 2,
+            "Disjoint union should have at least 2 solid regions"
+        );
     }
 
     #[test]
@@ -384,12 +400,18 @@ mod tests {
         let b = make_bsp_box([5.0, 0.0, 0.0], 1.0);
 
         let result = merge_bsp(&a, &b, BspOp::Intersection).unwrap();
-        assert!(!result.classify_point([0.0, 0.0, 0.0]),
-            "Center of A should be outside disjoint intersection");
-        assert!(!result.classify_point([5.0, 0.0, 0.0]),
-            "Center of B should be outside disjoint intersection");
-        assert!(!result.classify_point([2.5, 0.0, 0.0]),
-            "Midpoint should be outside disjoint intersection");
+        assert!(
+            !result.classify_point([0.0, 0.0, 0.0]),
+            "Center of A should be outside disjoint intersection"
+        );
+        assert!(
+            !result.classify_point([5.0, 0.0, 0.0]),
+            "Center of B should be outside disjoint intersection"
+        );
+        assert!(
+            !result.classify_point([2.5, 0.0, 0.0]),
+            "Midpoint should be outside disjoint intersection"
+        );
     }
 
     #[test]
@@ -398,8 +420,10 @@ mod tests {
         let b = make_bsp_box([0.5, 0.0, 0.0], 1.0);
 
         let result = merge_bsp(&a, &b, BspOp::Union).unwrap();
-        assert!(result.root().solid_leaf_count() >= 1,
-            "Overlapping union should have solid regions");
+        assert!(
+            result.root().solid_leaf_count() >= 1,
+            "Overlapping union should have solid regions"
+        );
     }
 
     #[test]
@@ -408,12 +432,16 @@ mod tests {
         let small = make_bsp_box([0.0, 0.0, 0.0], 1.0);
 
         let result = merge_bsp(&big, &small, BspOp::Subtraction).unwrap();
-        assert!(result.root().solid_leaf_count() >= 1,
-            "Subtracting interior cube should leave solid shell");
+        assert!(
+            result.root().solid_leaf_count() >= 1,
+            "Subtracting interior cube should leave solid shell"
+        );
 
         let inner = merge_bsp(&big, &small, BspOp::Intersection).unwrap();
-        assert!(inner.root().solid_leaf_count() >= 1,
-            "Interior intersection should be the small cube");
+        assert!(
+            inner.root().solid_leaf_count() >= 1,
+            "Interior intersection should be the small cube"
+        );
     }
 
     #[test]
@@ -421,10 +449,14 @@ mod tests {
         let a = make_bsp_box([0.0, 0.0, 0.0], 1.0);
         let result = merge_bsp(&a, &a, BspOp::Union).unwrap();
 
-        assert!(result.classify_point([0.0, 0.0, 0.0]),
-            "Center should be inside self-union");
-        assert!(!result.classify_point([5.0, 0.0, 0.0]),
-            "Outside point should be outside self-union");
+        assert!(
+            result.classify_point([0.0, 0.0, 0.0]),
+            "Center should be inside self-union"
+        );
+        assert!(
+            !result.classify_point([5.0, 0.0, 0.0]),
+            "Outside point should be outside self-union"
+        );
     }
 
     #[test]
@@ -432,8 +464,10 @@ mod tests {
         let a = make_bsp_box([0.0, 0.0, 0.0], 1.0);
         let result = merge_bsp(&a, &a, BspOp::Intersection).unwrap();
 
-        assert!(result.root().solid_leaf_count() >= 1,
-            "Self-intersection should be the same cube");
+        assert!(
+            result.root().solid_leaf_count() >= 1,
+            "Self-intersection should be the same cube"
+        );
     }
 
     #[test]
@@ -441,8 +475,10 @@ mod tests {
         let a = make_bsp_box([0.0, 0.0, 0.0], 1.0);
         let result = merge_bsp(&a, &a, BspOp::Subtraction).unwrap();
 
-        assert!(!result.classify_point([0.0, 0.0, 0.0]),
-            "Center should be outside self-subtraction");
+        assert!(
+            !result.classify_point([0.0, 0.0, 0.0]),
+            "Center should be outside self-subtraction"
+        );
     }
 
     #[test]
@@ -454,14 +490,22 @@ mod tests {
         let ab = merge_bsp(&a, &b, BspOp::Union).unwrap();
         let abc = merge_bsp(&ab, &c, BspOp::Union).unwrap();
 
-        assert!(abc.classify_point([0.0, 0.0, 0.0]),
-            "Center of A should be inside union");
-        assert!(abc.classify_point([1.5, 0.0, 0.0]),
-            "Center of B should be inside union");
-        assert!(abc.classify_point([0.0, 1.5, 0.0]),
-            "Center of C should be inside union");
-        assert!(!abc.classify_point([5.0, 5.0, 5.0]),
-            "Far point should be outside union");
+        assert!(
+            abc.classify_point([0.0, 0.0, 0.0]),
+            "Center of A should be inside union"
+        );
+        assert!(
+            abc.classify_point([1.5, 0.0, 0.0]),
+            "Center of B should be inside union"
+        );
+        assert!(
+            abc.classify_point([0.0, 1.5, 0.0]),
+            "Center of C should be inside union"
+        );
+        assert!(
+            !abc.classify_point([5.0, 5.0, 5.0]),
+            "Far point should be outside union"
+        );
 
         let ba = merge_bsp(&b, &a, BspOp::Union).unwrap();
         let bac = merge_bsp(&ba, &c, BspOp::Union).unwrap();
@@ -481,10 +525,14 @@ mod tests {
         let ab = merge_bsp(&a, &b, BspOp::Union).unwrap();
         let result = merge_bsp(&ab, &b, BspOp::Subtraction).unwrap();
 
-        assert!(result.classify_point([0.0, 0.0, 0.0]),
-            "Center of A should still be inside after subtract-back");
-        assert!(!result.classify_point([1.5, 0.0, 0.0]),
-            "Center of B should be outside after subtract-back");
+        assert!(
+            result.classify_point([0.0, 0.0, 0.0]),
+            "Center of A should still be inside after subtract-back"
+        );
+        assert!(
+            !result.classify_point([1.5, 0.0, 0.0]),
+            "Center of B should be outside after subtract-back"
+        );
     }
 
     #[test]
@@ -493,8 +541,10 @@ mod tests {
         let b = make_bsp_box([1.0, 0.0, 0.0], 1.0);
 
         let result = merge_bsp(&a, &b, BspOp::Intersection).unwrap();
-        assert!(result.root().solid_leaf_count() >= 1,
+        assert!(
+            result.root().solid_leaf_count() >= 1,
             "Overlapping offset intersection should have solid regions, got {}",
-            result.root().solid_leaf_count());
+            result.root().solid_leaf_count()
+        );
     }
 }

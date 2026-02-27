@@ -21,9 +21,21 @@ pub struct FgCard {
 }
 
 impl FgCard {
-    pub fn flat() -> Self { Self { variant: FgCardVariant::Flat } }
-    pub fn raised() -> Self { Self { variant: FgCardVariant::Raised } }
-    pub fn accent() -> Self { Self { variant: FgCardVariant::Accent } }
+    pub fn flat() -> Self {
+        Self {
+            variant: FgCardVariant::Flat,
+        }
+    }
+    pub fn raised() -> Self {
+        Self {
+            variant: FgCardVariant::Raised,
+        }
+    }
+    pub fn accent() -> Self {
+        Self {
+            variant: FgCardVariant::Accent,
+        }
+    }
 }
 
 /// Render a card container. Returns the inner response.
@@ -34,8 +46,8 @@ pub fn fg_card<R>(
     add_contents: impl FnOnce(&mut Ui) -> R,
 ) -> InnerResponse<R> {
     let (fill, stroke_color) = match props.variant {
-        FgCardVariant::Flat   => (theme.bg_surface, theme.border_subtle),
-        FgCardVariant::Raised => (theme.bg_raised,  theme.border_default),
+        FgCardVariant::Flat => (theme.bg_surface, theme.border_subtle),
+        FgCardVariant::Raised => (theme.bg_raised, theme.border_default),
         FgCardVariant::Accent => (theme.accent_subtle, theme.accent_primary),
     };
 

@@ -5,11 +5,11 @@
 //! PV-36: Delta-debug on 100-step chain with injected failure at step 73
 //!        → finds step 73 automatically.
 
-use forge_core::tracing::delta_debug::delta_debug;
-use forge_topo::validate::{validate_topology, ValidationLevel};
-use forge_topo::state::DraftConfig;
 use crate::analysis::region_extractor::{extract_n_ring, ExtractedRegion};
 use crate::mesh_builder::make_cube;
+use forge_core::tracing::delta_debug::delta_debug;
+use forge_topo::state::DraftConfig;
+use forge_topo::validate::{validate_topology, ValidationLevel};
 
 /// PV-35: Extract 3-ring neighborhood → produces valid, serializable sub-mesh.
 ///
@@ -28,7 +28,11 @@ fn pv_35_extract_n_ring_valid_serializable() {
     let seed = all_faces[0];
 
     let ring_0 = extract_n_ring(arena, geometry, seed, 0).unwrap();
-    assert_eq!(ring_0.face_count(), 1, "Ring-0 should be just the seed face");
+    assert_eq!(
+        ring_0.face_count(),
+        1,
+        "Ring-0 should be just the seed face"
+    );
     assert!(!ring_0.is_empty());
     assert_eq!(ring_0.get_ring_depth(), 0);
     assert_eq!(ring_0.get_seed_face(), seed);
@@ -47,7 +51,10 @@ fn pv_35_extract_n_ring_valid_serializable() {
         "Ring-3 should cover all 6 faces of the cube"
     );
     assert!(ring_3.vertex_count() > 0, "Should have extracted vertices");
-    assert!(ring_3.half_edge_count() > 0, "Should have extracted halfedges");
+    assert!(
+        ring_3.half_edge_count() > 0,
+        "Should have extracted halfedges"
+    );
     assert!(
         !ring_3.get_face_planes().is_empty(),
         "Should have extracted plane geometry"
@@ -60,8 +67,8 @@ fn pv_35_extract_n_ring_valid_serializable() {
     let json = ring_3.to_json().expect("Production to_json should succeed");
     assert!(!json.is_empty(), "JSON output should not be empty");
 
-    let deserialized = ExtractedRegion::from_json(&json)
-        .expect("Production from_json should succeed");
+    let deserialized =
+        ExtractedRegion::from_json(&json).expect("Production from_json should succeed");
 
     assert_eq!(deserialized.face_count(), ring_3.face_count());
     assert_eq!(deserialized.vertex_count(), ring_3.vertex_count());
@@ -85,7 +92,10 @@ fn pv_35b_extracted_region_captures_corruption() {
     let (topo, geom) = result.into_parts();
 
     let valid_check = validate_topology(topo.arena(), ValidationLevel::Full);
-    assert!(valid_check.is_ok(), "Cube should be valid before corruption");
+    assert!(
+        valid_check.is_ok(),
+        "Cube should be valid before corruption"
+    );
 
     let mut config = DraftConfig::default();
     config.validation_level = ValidationLevel::None;
@@ -94,14 +104,18 @@ fn pv_35b_extracted_region_captures_corruption() {
     let arena = draft.arena_mut();
 
     let (he_to_corrupt, corrupted_face) = {
-        let (he_id, he_data) = arena.iter_half_edges()
+        let (he_id, he_data) = arena
+            .iter_half_edges()
             .filter(|(id, d)| *id != d.radial_next())
             .next()
             .unwrap();
         (he_id, he_data.face())
     };
 
-    arena.get_half_edge_mut(he_to_corrupt).unwrap().set_radial_next(he_to_corrupt);
+    arena
+        .get_half_edge_mut(he_to_corrupt)
+        .unwrap()
+        .set_radial_next(he_to_corrupt);
 
     let corruption_check = validate_topology(arena, ValidationLevel::Full);
     assert!(
@@ -118,7 +132,9 @@ fn pv_35b_extracted_region_captures_corruption() {
     );
 
     let region_faces = region.get_faces();
-    let contains_corrupted = region_faces.contains(corrupted_face.index()).unwrap_or(false);
+    let contains_corrupted = region_faces
+        .contains(corrupted_face.index())
+        .unwrap_or(false);
     assert!(
         contains_corrupted,
         "Extracted region must contain the corrupted face"
@@ -133,18 +149,13 @@ fn pv_35b_extracted_region_captures_corruption() {
     let roundtrip = ExtractedRegion::from_json(&json_1).expect("Production deserialization");
     let json_2 = roundtrip.to_json().expect("Second serialization");
 
-    assert_eq!(
-        json_1, json_2,
-        "Double roundtrip should be byte-identical"
-    );
+    assert_eq!(json_1, json_2, "Double roundtrip should be byte-identical");
 
-    let reconstructed_arena = roundtrip.to_arena()
+    let reconstructed_arena = roundtrip
+        .to_arena()
         .expect("Region should reconstruct into a TopologyArena");
 
-    let region_validation = validate_topology(
-        &reconstructed_arena,
-        ValidationLevel::Full,
-    );
+    let region_validation = validate_topology(&reconstructed_arena, ValidationLevel::Full);
 
     assert!(
         region_validation.is_err(),
@@ -153,7 +164,10 @@ fn pv_35b_extracted_region_captures_corruption() {
 
     let region_err = region_validation.unwrap_err();
     assert!(
-        matches!(region_err, forge_core::KernelError::TopologyViolation { .. }),
+        matches!(
+            region_err,
+            forge_core::KernelError::TopologyViolation { .. }
+        ),
         "Must be a TopologyViolation, got: {:?}",
         region_err
     );

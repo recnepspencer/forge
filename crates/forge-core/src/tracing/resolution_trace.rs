@@ -96,7 +96,8 @@ pub struct ResolutionTracePayload {
 impl ResolutionTracePayload {
     /// Keep candidate summaries in canonical order before persistence/comparison.
     pub fn canonicalize(&mut self) {
-        self.ordered_candidates.sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
+        self.ordered_candidates
+            .sort_by(|a, b| a.sort_key().cmp(&b.sort_key()));
         self.candidate_count = self.ordered_candidates.len() as u32;
     }
 
@@ -109,14 +110,24 @@ impl ResolutionTracePayload {
         }
         match (self.outcome, decision.get_kind(), decision.get_tier()) {
             (ResolutionOutcome::Resolved, DecisionKind::Exact, _) => {}
-            (ResolutionOutcome::Ambiguous, DecisionKind::Forced { .. }, DecisionTier::Escalated) => {}
+            (
+                ResolutionOutcome::Ambiguous,
+                DecisionKind::Forced { .. },
+                DecisionTier::Escalated,
+            ) => {}
             (ResolutionOutcome::Missing, DecisionKind::Forced { .. }, DecisionTier::Escalated) => {}
-            (ResolutionOutcome::Incompatible, DecisionKind::Forced { .. }, DecisionTier::Escalated) => {}
+            (
+                ResolutionOutcome::Incompatible,
+                DecisionKind::Forced { .. },
+                DecisionTier::Escalated,
+            ) => {}
             _ => return Err(ResolutionTraceConsistencyError::DecisionKindTierMismatch),
         }
         let mut clone = self.clone();
         clone.canonicalize();
-        if clone.ordered_candidates != self.ordered_candidates || clone.candidate_count != self.candidate_count {
+        if clone.ordered_candidates != self.ordered_candidates
+            || clone.candidate_count != self.candidate_count
+        {
             return Err(ResolutionTraceConsistencyError::CandidatesNotCanonical);
         }
         Ok(())
@@ -194,10 +205,14 @@ mod tests {
         };
         let decision = TracedDecision::new(
             DecisionId(7),
-            DecisionKind::Forced { reason: "ResolutionMissing".into() },
+            DecisionKind::Forced {
+                reason: "ResolutionMissing".into(),
+            },
             DecisionTier::Escalated,
             0.0,
-            DecisionContext::Degeneracy { description: "persistent_name".into() },
+            DecisionContext::Degeneracy {
+                description: "persistent_name".into(),
+            },
         );
         assert_eq!(
             payload.validate_against_decision(&decision),

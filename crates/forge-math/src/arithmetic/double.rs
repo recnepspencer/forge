@@ -28,10 +28,7 @@ pub struct Double {
 impl Double {
     /// Create a `Double` from a single `f64` (error term is zero).
     pub fn from_f64(value: f64) -> Self {
-        Self {
-            hi: value,
-            lo: 0.0,
-        }
+        Self { hi: value, lo: 0.0 }
     }
 
     /// The high-order component.
@@ -60,7 +57,10 @@ impl Double {
     pub fn two_product(a: f64, b: f64) -> Self {
         let product = a * b;
         let error = a.mul_add(b, -product);
-        Self { hi: product, lo: error }
+        Self {
+            hi: product,
+            lo: error,
+        }
     }
 
     /// Negate this value.

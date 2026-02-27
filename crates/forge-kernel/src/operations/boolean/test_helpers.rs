@@ -11,13 +11,13 @@ use std::str::FromStr;
 use forge_geom::Plane;
 use forge_topo::state::TopologyState;
 
+use super::execute_boolean;
+use super::parametric::assemble::execute_boolean_direct;
+use super::result::BooleanResult;
+use super::schema::{BooleanInput, BooleanOp};
 use crate::geometry_state::GeometryState;
 use crate::mesh_builder;
 use crate::shared_ops::centroid::compute_face_centroid;
-use super::schema::{BooleanInput, BooleanOp};
-use super::result::BooleanResult;
-use super::parametric::assemble::execute_boolean_direct;
-use super::execute_boolean;
 
 /// Boolean pipeline selection for tests.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -56,11 +56,10 @@ pub fn selected_test_pipeline() -> TestPipeline {
 }
 
 /// Build a cube mesh centered at `center` with the given `half_size`.
-pub fn build_cube(
-    center: [f64; 3],
-    half_size: f64,
-) -> (TopologyState, GeometryState) {
-    mesh_builder::make_cube(center, half_size * 2.0).unwrap().into_parts()
+pub fn build_cube(center: [f64; 3], half_size: f64) -> (TopologyState, GeometryState) {
+    mesh_builder::make_cube(center, half_size * 2.0)
+        .unwrap()
+        .into_parts()
 }
 
 /// Compute face centroid for test assertions (wraps the shared eval function).
@@ -204,39 +203,41 @@ pub fn euler_audit(arena: &forge_topo::arena::TopologyArena) -> (usize, usize, u
 }
 
 /// Asserts the topological representation follows the generalized Euler characteristic:
-/// V - E + F = 2(1 - G) 
+/// V - E + F = 2(1 - G)
 /// for every shell, adjusting for genus G.
 pub fn assert_euler_formula_per_shell(arena: &forge_topo::arena::TopologyArena) {
-    if arena.face_count() == 0 { return; }
-    
+    if arena.face_count() == 0 {
+        return;
+    }
+
     // We already have validate_euler built-in which asserts V - E + F = 2 - 2G + R
     // Just trigger it manually using the structural checker
-    if let Err(e) = forge_topo::validate::validate_topology(arena, forge_topo::validate::ValidationLevel::Full) {
+    if let Err(e) =
+        forge_topo::validate::validate_topology(arena, forge_topo::validate::ValidationLevel::Full)
+    {
         panic!("Euler formula failed: {:?}", e);
     }
 }
 
 /// Build a tetrahedron mesh from 4 planes.
-pub fn build_tetrahedron(
-    center: [f64; 3],
-    scale: f64,
-) -> (TopologyState, GeometryState) {
-    mesh_builder::make_tetrahedron(center, scale).unwrap().into_parts()
+pub fn build_tetrahedron(center: [f64; 3], scale: f64) -> (TopologyState, GeometryState) {
+    mesh_builder::make_tetrahedron(center, scale)
+        .unwrap()
+        .into_parts()
 }
 
 /// Build a convex solid from arbitrary planes.
-pub fn build_convex_solid(
-    planes: Vec<Plane>,
-) -> (TopologyState, GeometryState) {
-    mesh_builder::make_convex_solid(planes).unwrap().into_parts()
+pub fn build_convex_solid(planes: Vec<Plane>) -> (TopologyState, GeometryState) {
+    mesh_builder::make_convex_solid(planes)
+        .unwrap()
+        .into_parts()
 }
 
 /// Build a regular dodecahedron (12 pentagonal faces) from 12 planes.
-pub fn build_dodecahedron(
-    center: [f64; 3],
-    scale: f64,
-) -> (TopologyState, GeometryState) {
-    mesh_builder::make_dodecahedron(center, scale).unwrap().into_parts()
+pub fn build_dodecahedron(center: [f64; 3], scale: f64) -> (TopologyState, GeometryState) {
+    mesh_builder::make_dodecahedron(center, scale)
+        .unwrap()
+        .into_parts()
 }
 
 /// Generate Menger sponge subtraction centers for a given level.
@@ -262,9 +263,12 @@ pub fn menger_sponge_subtraction_centers(
 
     let removal_offsets: &[[i32; 3]] = &[
         [0, 0, 0],
-        [1, 0, 0], [-1, 0, 0],
-        [0, 1, 0], [0, -1, 0],
-        [0, 0, 1], [0, 0, -1],
+        [1, 0, 0],
+        [-1, 0, 0],
+        [0, 1, 0],
+        [0, -1, 0],
+        [0, 0, 1],
+        [0, 0, -1],
     ];
 
     for off in removal_offsets {
@@ -299,7 +303,9 @@ pub fn menger_sponge_subtraction_centers(
                 center[2] + off[2] as f64 * step,
             ];
             result.extend(menger_sponge_subtraction_centers(
-                sub_center, sub_half, level - 1,
+                sub_center,
+                sub_half,
+                level - 1,
             ));
         }
     }

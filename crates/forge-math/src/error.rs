@@ -70,4 +70,3 @@ impl fmt::Display for MathError {
 }
 
 impl std::error::Error for MathError {}
-

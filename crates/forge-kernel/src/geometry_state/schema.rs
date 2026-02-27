@@ -1,14 +1,14 @@
 //! Data shapes for the geometry store.
 
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 use forge_core::{KernelError, ToleranceProvider};
-use forge_math::{MathError, GeometrySource, PlaneCoefficients};
-use forge_math::arithmetic::Rational;
 use forge_geom::Plane;
-use forge_topo::handles::{FaceId, VertexId, HalfEdgeId, EdgeId};
+use forge_math::arithmetic::Rational;
+use forge_math::{GeometrySource, MathError, PlaneCoefficients};
 use forge_topo::arena::TopologyArena;
+use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, VertexId};
 
 /// Exact 3D position backed by rational coordinates with a cached f64 approximation.
 ///
@@ -46,7 +46,12 @@ impl ExactPosition {
             if raw[1].is_finite() { raw[1] } else { 0.0 },
             if raw[2].is_finite() { raw[2] } else { 0.0 },
         ];
-        Self { exact, approx, is_exact: true, symbolic_planes: None }
+        Self {
+            exact,
+            approx,
+            is_exact: true,
+            symbolic_planes: None,
+        }
     }
 
     /// Create from exact rationals with an explicit f64 fallback.
@@ -60,12 +65,18 @@ impl ExactPosition {
             exact[1].to_f64_approx(),
             exact[2].to_f64_approx(),
         ];
-        let safe_approx = if approx[0].is_finite() && approx[1].is_finite() && approx[2].is_finite() {
+        let safe_approx = if approx[0].is_finite() && approx[1].is_finite() && approx[2].is_finite()
+        {
             approx
         } else {
             fallback
         };
-        Self { exact, approx: safe_approx, is_exact: true, symbolic_planes: None }
+        Self {
+            exact,
+            approx: safe_approx,
+            is_exact: true,
+            symbolic_planes: None,
+        }
     }
 
     /// Create from f64 coordinates (lossless IEEE754 → Rational conversion).
@@ -77,7 +88,12 @@ impl ExactPosition {
             Rational::try_from_f64(pos[1]).unwrap_or_else(|_| Rational::zero()),
             Rational::try_from_f64(pos[2]).unwrap_or_else(|_| Rational::zero()),
         ];
-        Self { exact, approx: pos, is_exact: false, symbolic_planes: None }
+        Self {
+            exact,
+            approx: pos,
+            is_exact: false,
+            symbolic_planes: None,
+        }
     }
 
     /// The cached f64 approximation.
@@ -102,12 +118,18 @@ impl ExactPosition {
             exact[1].to_f64_approx(),
             exact[2].to_f64_approx(),
         ];
-        let safe_approx = if approx[0].is_finite() && approx[1].is_finite() && approx[2].is_finite() {
+        let safe_approx = if approx[0].is_finite() && approx[1].is_finite() && approx[2].is_finite()
+        {
             approx
         } else {
             fallback
         };
-        Self { exact, approx: safe_approx, is_exact: true, symbolic_planes: Some(planes) }
+        Self {
+            exact,
+            approx: safe_approx,
+            is_exact: true,
+            symbolic_planes: Some(planes),
+        }
     }
 
     /// Retrieve the symbolic bounding planes if they form a precise 3-plane intersection.
@@ -144,19 +166,22 @@ impl GeometryState {
 
     /// Associate a face with a plane.
     pub fn set_face_plane(&mut self, face: FaceId, plane: Plane) {
-        self.face_planes.insert(pack_handle(face.index(), face.generation()), plane);
+        self.face_planes
+            .insert(pack_handle(face.index(), face.generation()), plane);
     }
 
     /// Retrieve the plane for a face.
     pub fn get_face_plane(&self, face: FaceId) -> Option<&Plane> {
-        self.face_planes.get(&pack_handle(face.index(), face.generation()))
+        self.face_planes
+            .get(&pack_handle(face.index(), face.generation()))
     }
 
     /// Remove the plane binding for a killed face (spec §6.7 cleanup).
     ///
     /// Returns the plane that was removed, or `None` if no binding existed.
     pub fn remove_face_plane(&mut self, face: FaceId) -> Option<Plane> {
-        self.face_planes.remove(&pack_handle(face.index(), face.generation()))
+        self.face_planes
+            .remove(&pack_handle(face.index(), face.generation()))
     }
 
     /// Internal: commit a raw handle mapping directly.
@@ -243,7 +268,10 @@ impl GeometryState {
     ///
     /// Uses exact Rational arithmetic for plane transforms and vertex positions,
     /// preserving all precision through the inverse transformation.
-    pub fn inverse_transform(&mut self, space: &forge_geom::spatial::local_space::LocalCoordinateSpace) {
+    pub fn inverse_transform(
+        &mut self,
+        space: &forge_geom::spatial::local_space::LocalCoordinateSpace,
+    ) {
         for plane in self.face_planes.values_mut() {
             *plane = space.inverse_transform_plane_exact(plane);
         }
@@ -298,7 +326,9 @@ impl GeometryState {
     ///
     /// Used by `QuantizedSpace::build` to compute the combined AABB.
     pub fn iter_vertex_positions(&self) -> impl Iterator<Item = &[f64; 3]> {
-        self.vertex_positions.values().map(|ep: &ExactPosition| ep.approx())
+        self.vertex_positions
+            .values()
+            .map(|ep: &ExactPosition| ep.approx())
     }
 
     /// Compute the model bounding-box diagonal (mm) from all vertex positions.
@@ -314,8 +344,12 @@ impl GeometryState {
         for pos in self.iter_vertex_positions() {
             any = true;
             for i in 0..3 {
-                if pos[i] < min[i] { min[i] = pos[i]; }
-                if pos[i] > max[i] { max[i] = pos[i]; }
+                if pos[i] < min[i] {
+                    min[i] = pos[i];
+                }
+                if pos[i] > max[i] {
+                    max[i] = pos[i];
+                }
             }
         }
 
@@ -348,9 +382,15 @@ impl GeometryState {
         for &key in self.vertex_positions.keys() {
             let index = (key & 0xFFFF_FFFF) as u32;
             let gen = (key >> 32) as u32;
-            if arena.get_vertex(VertexId::from_raw_parts(index, gen)).is_err() {
+            if arena
+                .get_vertex(VertexId::from_raw_parts(index, gen))
+                .is_err()
+            {
                 return Err(KernelError::InternalError {
-                    message: format!("Dangling vertex_position binding for VertexId {}:{}", index, gen),
+                    message: format!(
+                        "Dangling vertex_position binding for VertexId {}:{}",
+                        index, gen
+                    ),
                     context: None,
                 });
             }
@@ -380,7 +420,8 @@ impl GeometryState {
                     message: format!(
                         "VertexId {}:{} has no geometry binding. \
                          Bind position and tolerance before calling draft.commit().",
-                        v.index(), v.generation(),
+                        v.index(),
+                        v.generation(),
                     ),
                     context: None,
                 });
@@ -464,9 +505,9 @@ impl GeometrySource for GeometryState {
                 found = Some(coeff);
             }
         }
-        found.ok_or_else(|| MathError::InvalidInput(
-            format!("No plane found for face index {}", index),
-        ))
+        found.ok_or_else(|| {
+            MathError::InvalidInput(format!("No plane found for face index {}", index))
+        })
     }
 }
 

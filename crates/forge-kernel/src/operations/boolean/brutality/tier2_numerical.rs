@@ -42,11 +42,10 @@
 
 use forge_geom::Plane;
 
-use super::super::test_helpers::{
-    build_cube, build_convex_solid, run_boolean, try_boolean,
-    execute_boolean_logged, euler_audit,
-};
 use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::test_helpers::{
+    build_convex_solid, build_cube, euler_audit, execute_boolean_logged, run_boolean, try_boolean,
+};
 
 // ══════════════════════════════════════════════════════════════
 // §T2.1  ITERATIVE ROTATION SHREDDER
@@ -78,14 +77,15 @@ fn iterative_rotation_shredder_10() {
         let (topo_tool, geom_tool) = build_cube([offset_x, offset_y, 0.0], 1.0);
 
         let input = BooleanInput::new(
-            accumulated.0, accumulated.1,
-            topo_tool, geom_tool,
+            accumulated.0,
+            accumulated.1,
+            topo_tool,
+            geom_tool,
             BooleanOp::Union,
         );
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
-                
                 let (v, e, f, chi) = euler_audit(result.topology().arena());
                 eprintln!("Step {step}: V={v} E={e} F={f} χ={chi}");
                 assert_eq!(
@@ -115,8 +115,10 @@ fn iterative_rotation_shredder_10() {
 #[test]
 fn scale_separator_union() {
     let result = try_boolean(
-        [0.0, 0.0, 0.0], 1000.0,
-        [0.0, 0.0, 0.0], 0.001,
+        [0.0, 0.0, 0.0],
+        1000.0,
+        [0.0, 0.0, 0.0],
+        0.001,
         BooleanOp::Union,
     );
 
@@ -125,7 +127,8 @@ fn scale_separator_union() {
             let (v, e, f, chi) = euler_audit(r.topology().arena());
             eprintln!("Scale separator: V={v} E={e} F={f} χ={chi}");
             assert_eq!(
-                r.target_faces_kept() + r.tool_faces_kept(), 6,
+                r.target_faces_kept() + r.tool_faces_kept(),
+                6,
                 "Containment union should keep 6 outer faces"
             );
         }
@@ -141,8 +144,10 @@ fn scale_separator_union() {
 #[test]
 fn scale_separator_intersection() {
     let result = try_boolean(
-        [0.0, 0.0, 0.0], 1000.0,
-        [0.0, 0.0, 0.0], 0.001,
+        [0.0, 0.0, 0.0],
+        1000.0,
+        [0.0, 0.0, 0.0],
+        0.001,
         BooleanOp::Intersection,
     );
 
@@ -150,7 +155,10 @@ fn scale_separator_intersection() {
         Ok(r) => {
             let (v, e, f, chi) = euler_audit(r.topology().arena());
             eprintln!("Scale intersection: V={v} E={e} F={f} χ={chi}");
-            assert!(f >= 6, "Intersection should produce the small cube (≥6 faces), got {f}");
+            assert!(
+                f >= 6,
+                "Intersection should produce the small cube (≥6 faces), got {f}"
+            );
         }
         Err(e) => {
             eprintln!("Scale intersection returned error (tracking): {e}");
@@ -170,8 +178,10 @@ fn scale_separator_intersection() {
 fn near_miss_graze() {
     let epsilon = 1e-10;
     let result = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [2.0 - epsilon, 0.0, 0.0], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [2.0 - epsilon, 0.0, 0.0],
+        1.0,
         BooleanOp::Union,
     );
 
@@ -192,8 +202,10 @@ fn near_miss_graze() {
 fn near_miss_sub_epsilon() {
     let epsilon = 1e-14;
     let result = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [2.0 + epsilon, 0.0, 0.0], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [2.0 + epsilon, 0.0, 0.0],
+        1.0,
         BooleanOp::Union,
     );
 
@@ -234,8 +246,10 @@ fn tangent_plane_sliver() {
     let (topo_cube, geom_cube) = build_cube([0.0, 0.0, 0.0], 1.0);
 
     let input = BooleanInput::new(
-        topo_cube, geom_cube,
-        topo_tilted, geom_tilted,
+        topo_cube,
+        geom_cube,
+        topo_tilted,
+        geom_tilted,
         BooleanOp::Intersection,
     );
 
@@ -263,8 +277,10 @@ fn tangent_plane_sliver() {
 #[test]
 fn micro_cube_subtraction() {
     let result = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [0.0, 0.0, 0.0], 1e-6,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [0.0, 0.0, 0.0],
+        1e-6,
         BooleanOp::Subtraction,
     );
 
@@ -292,8 +308,10 @@ fn micro_cube_subtraction() {
 fn coordinate_extremes() {
     let far = 1e8;
     let result = try_boolean(
-        [far, far, far], 1.0,
-        [far + 0.5, far, far], 1.0,
+        [far, far, far],
+        1.0,
+        [far + 0.5, far, far],
+        1.0,
         BooleanOp::Union,
     );
 

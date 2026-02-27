@@ -4,11 +4,11 @@
 //! not just verify the happy path. Each test targets a specific invariant from
 //! REGION_MERGE_SPEC.md §5.8.
 
-use crate::arena::{FaceData, HalfEdgeData, LoopData, VertexData, EdgeData};
-use crate::state::TopologyState;
-use crate::operator::apply_op;
+use crate::arena::{EdgeData, FaceData, HalfEdgeData, LoopData, VertexData};
 use crate::euler::join_faces_nmt::JoinFacesNmt;
 use crate::handles::HalfEdgeId;
+use crate::operator::apply_op;
+use crate::state::TopologyState;
 use forge_core::KernelError;
 
 fn ph() -> HalfEdgeId {
@@ -26,10 +26,7 @@ fn placeholder_shell() -> crate::handles::ShellId {
 /// Build a valence-N radial ring on a single shared edge.
 /// Each face is a 2-gon (lune) between v1 and v2.
 /// Returns the N forward halfedges in ring order.
-fn setup_valence_n_edge(
-    draft: &mut crate::state::MutableDraft,
-    n: usize,
-) -> Vec<HalfEdgeId> {
+fn setup_valence_n_edge(draft: &mut crate::state::MutableDraft, n: usize) -> Vec<HalfEdgeId> {
     let v1 = draft.insert_vertex(VertexData::new(ph()));
     let v2 = draft.insert_vertex(VertexData::new(ph()));
     let shared_edge = draft.insert_edge(EdgeData::new(ph()));
@@ -40,26 +37,54 @@ fn setup_valence_n_edge(
         let f = draft.insert_face(FaceData::new(placeholder_loop(), placeholder_shell()));
         let ret_edge = draft.insert_edge(EdgeData::new(ph()));
 
-        let h_fwd = draft.insert_half_edge(HalfEdgeData::new(
-            ph(), ph(), ph(), f, v1, shared_edge,
-        ));
-        let h_ret = draft.insert_half_edge(HalfEdgeData::new(
-            h_fwd, h_fwd, h_fwd, f, v2, ret_edge,
-        ));
+        let h_fwd = draft.insert_half_edge(HalfEdgeData::new(ph(), ph(), ph(), f, v1, shared_edge));
+        let h_ret = draft.insert_half_edge(HalfEdgeData::new(h_fwd, h_fwd, h_fwd, f, v2, ret_edge));
 
-        draft.arena_mut().get_half_edge_mut(h_fwd).unwrap().set_next(h_ret);
-        draft.arena_mut().get_half_edge_mut(h_fwd).unwrap().set_prev(h_ret);
-        draft.arena_mut().get_half_edge_mut(h_ret).unwrap().set_next(h_fwd);
-        draft.arena_mut().get_half_edge_mut(h_ret).unwrap().set_prev(h_fwd);
-        draft.arena_mut().get_half_edge_mut(h_ret).unwrap().set_radial_next(h_ret);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(h_fwd)
+            .unwrap()
+            .set_next(h_ret);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(h_fwd)
+            .unwrap()
+            .set_prev(h_ret);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(h_ret)
+            .unwrap()
+            .set_next(h_fwd);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(h_ret)
+            .unwrap()
+            .set_prev(h_fwd);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(h_ret)
+            .unwrap()
+            .set_radial_next(h_ret);
 
         let l = draft.insert_loop(LoopData::new(h_fwd, f));
         draft.arena_mut().get_face_mut(f).unwrap().set_outer_loop(l);
 
         if i == 0 {
-            draft.arena_mut().get_vertex_mut(v1).unwrap().set_outgoing(h_fwd);
-            draft.arena_mut().get_vertex_mut(v2).unwrap().set_outgoing(h_ret);
-            draft.arena_mut().get_edge_mut(shared_edge).unwrap().set_half_edge(h_fwd);
+            draft
+                .arena_mut()
+                .get_vertex_mut(v1)
+                .unwrap()
+                .set_outgoing(h_fwd);
+            draft
+                .arena_mut()
+                .get_vertex_mut(v2)
+                .unwrap()
+                .set_outgoing(h_ret);
+            draft
+                .arena_mut()
+                .get_edge_mut(shared_edge)
+                .unwrap()
+                .set_half_edge(h_fwd);
         }
 
         fwd_hes.push(h_fwd);
@@ -67,7 +92,10 @@ fn setup_valence_n_edge(
 
     for i in 0..n {
         let next = (i + 1) % n;
-        draft.arena_mut().get_half_edge_mut(fwd_hes[i]).unwrap()
+        draft
+            .arena_mut()
+            .get_half_edge_mut(fwd_hes[i])
+            .unwrap()
             .set_radial_next(fwd_hes[next]);
     }
 
@@ -86,10 +114,14 @@ fn rejects_manifold_edge() {
     let mut draft = state.into_mutation();
     let hes = setup_valence_n_edge(&mut draft, 2);
 
-    let err = apply_op(&mut draft, JoinFacesNmt {
-        he_survive: hes[0],
-        he_kill: hes[1],
-    }).unwrap_err();
+    let err = apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: hes[0],
+            he_kill: hes[1],
+        },
+    )
+    .unwrap_err();
     assert!(
         err.to_string().contains("must be > 2"),
         "Expected valence rejection, got: {err}",
@@ -104,10 +136,14 @@ fn rejects_same_face() {
     let mut draft = state.into_mutation();
     let hes = setup_valence_n_edge(&mut draft, 4);
 
-    let err = apply_op(&mut draft, JoinFacesNmt {
-        he_survive: hes[0],
-        he_kill: hes[0],
-    }).unwrap_err();
+    let err = apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: hes[0],
+            he_kill: hes[0],
+        },
+    )
+    .unwrap_err();
     assert!(
         err.to_string().contains("same face"),
         "Expected same-face rejection, got: {err}",
@@ -139,17 +175,45 @@ fn rejects_different_edge_ids() {
     let he_b = draft.insert_half_edge(HalfEdgeData::new(ph(), ph(), ph(), f2, v2, edge_b));
 
     // Wire minimal self-loops for validity.
-    draft.arena_mut().get_half_edge_mut(he_a).unwrap().set_next(he_a);
-    draft.arena_mut().get_half_edge_mut(he_a).unwrap().set_prev(he_a);
-    draft.arena_mut().get_half_edge_mut(he_a).unwrap().set_radial_next(he_a);
-    draft.arena_mut().get_half_edge_mut(he_b).unwrap().set_next(he_b);
-    draft.arena_mut().get_half_edge_mut(he_b).unwrap().set_prev(he_b);
-    draft.arena_mut().get_half_edge_mut(he_b).unwrap().set_radial_next(he_b);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(he_a)
+        .unwrap()
+        .set_next(he_a);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(he_a)
+        .unwrap()
+        .set_prev(he_a);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(he_a)
+        .unwrap()
+        .set_radial_next(he_a);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(he_b)
+        .unwrap()
+        .set_next(he_b);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(he_b)
+        .unwrap()
+        .set_prev(he_b);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(he_b)
+        .unwrap()
+        .set_radial_next(he_b);
 
-    let err = apply_op(&mut draft, JoinFacesNmt {
-        he_survive: he_a,
-        he_kill: he_b,
-    }).unwrap_err();
+    let err = apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: he_a,
+            he_kill: he_b,
+        },
+    )
+    .unwrap_err();
     assert!(
         err.to_string().contains("same geometric edge"),
         "Expected edge-mismatch rejection, got: {err}",
@@ -174,24 +238,34 @@ fn valence_3_protected_ring_becomes_single_element() {
     let he_k = hes[1];
     let he_protected = hes[2];
 
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: he_s,
-        he_kill: he_k,
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: he_s,
+            he_kill: he_k,
+        },
+    )
+    .unwrap();
 
     // Protected ring is now a single-element self-loop.
     assert_eq!(
-        draft.arena().get_half_edge(he_protected).unwrap().radial_next(),
+        draft
+            .arena()
+            .get_half_edge(he_protected)
+            .unwrap()
+            .radial_next(),
         he_protected,
         "Valence-3: sole protected halfedge must radial-self-loop",
     );
 
     // Slit pair is intact.
     assert_eq!(
-        draft.arena().get_half_edge(he_s).unwrap().radial_next(), he_k,
+        draft.arena().get_half_edge(he_s).unwrap().radial_next(),
+        he_k,
     );
     assert_eq!(
-        draft.arena().get_half_edge(he_k).unwrap().radial_next(), he_s,
+        draft.arena().get_half_edge(he_k).unwrap().radial_next(),
+        he_s,
     );
 
     // EdgeData.half_edge must point to the protected halfedge, NOT the slit.
@@ -218,10 +292,15 @@ fn slit_forms_registered_inner_loop() {
     let he_s = hes[1];
     let he_k = hes[2];
 
-    let out = apply_op(&mut draft, JoinFacesNmt {
-        he_survive: he_s,
-        he_kill: he_k,
-    }).unwrap().into_value();
+    let out = apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: he_s,
+            he_kill: he_k,
+        },
+    )
+    .unwrap()
+    .into_value();
 
     // Slit forms a closed 2-element loop.
     let s_data = draft.arena().get_half_edge(he_s).unwrap();
@@ -237,7 +316,11 @@ fn slit_forms_registered_inner_loop() {
     assert_eq!(k_data.face(), out.surviving_face);
 
     // The slit inner loop is registered.
-    let inner_loops = draft.arena().get_face(out.surviving_face).unwrap().inner_loops();
+    let inner_loops = draft
+        .arena()
+        .get_face(out.surviving_face)
+        .unwrap()
+        .inner_loops();
     assert!(
         !inner_loops.is_empty(),
         "Slit inner loop must be registered on surviving face",
@@ -251,7 +334,9 @@ fn slit_forms_registered_inner_loop() {
     loop {
         count += 1;
         cur = draft.arena().get_half_edge(cur).unwrap().next();
-        if cur == seed { break; }
+        if cur == seed {
+            break;
+        }
         assert!(count < 10, "Slit inner loop is not properly closed");
     }
     assert_eq!(count, 2, "Slit inner loop must have exactly 2 halfedges");
@@ -267,10 +352,14 @@ fn protected_ring_preserves_cyclic_order() {
 
     // Ring order: 0→1→2→3→0. Merge 1 and 2.
     // Protected ring should become 0→3→0 (NOT 3→0→3).
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: hes[1],
-        he_kill: hes[2],
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: hes[1],
+            he_kill: hes[2],
+        },
+    )
+    .unwrap();
 
     assert_eq!(
         draft.arena().get_half_edge(hes[0]).unwrap().radial_next(),
@@ -293,10 +382,14 @@ fn merge_wraps_around_ring_boundary() {
     let hes = setup_valence_n_edge(&mut draft, 4);
 
     // Ring: 0→1→2→3→0. Merge 0 and 3 (wrap-around).
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: hes[0],
-        he_kill: hes[3],
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: hes[0],
+            he_kill: hes[3],
+        },
+    )
+    .unwrap();
 
     // Protected ring: 1→2→1
     assert_eq!(
@@ -324,10 +417,14 @@ fn no_dangling_face_references() {
     let killed_face = draft.arena().get_half_edge(hes[1]).unwrap().face();
     let killed_loop = draft.arena().get_face(killed_face).unwrap().outer_loop();
 
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: hes[0],
-        he_kill: hes[1],
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: hes[0],
+            he_kill: hes[1],
+        },
+    )
+    .unwrap();
 
     // Arena-level removal.
     assert!(draft.arena().get_face(killed_face).is_err());
@@ -336,9 +433,11 @@ fn no_dangling_face_references() {
     // No live halfedge points to the killed face.
     for (he_id, he_data) in draft.arena().iter_half_edges() {
         assert_ne!(
-            he_data.face(), killed_face,
+            he_data.face(),
+            killed_face,
             "Halfedge {} still points to killed face {}",
-            he_id.index(), killed_face.index(),
+            he_id.index(),
+            killed_face.index(),
         );
     }
 }
@@ -359,10 +458,14 @@ fn edge_data_points_to_protected_ring_not_slit() {
     let he_s = hes[1];
     let he_k = hes[3];
 
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: he_s,
-        he_kill: he_k,
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: he_s,
+            he_kill: he_k,
+        },
+    )
+    .unwrap();
 
     let shared_edge = draft.arena().get_half_edge(he_s).unwrap().edge();
     let entry = draft.arena().get_edge(shared_edge).unwrap().half_edge();
@@ -377,10 +480,15 @@ fn edge_data_points_to_protected_ring_not_slit() {
     loop {
         count += 1;
         cur = draft.arena().get_half_edge(cur).unwrap().radial_next();
-        if cur == entry { break; }
+        if cur == entry {
+            break;
+        }
         assert!(count < 20, "Protected ring is not closed");
     }
-    assert_eq!(count, 3, "Protected ring should have 3 elements after valence-5 merge");
+    assert_eq!(
+        count, 3,
+        "Protected ring should have 3 elements after valence-5 merge"
+    );
 }
 
 // ===========================================================================
@@ -400,12 +508,21 @@ fn outer_loop_excludes_slit_and_is_closed() {
     let he_s = hes[1];
     let he_k = hes[2];
 
-    let out = apply_op(&mut draft, JoinFacesNmt {
-        he_survive: he_s,
-        he_kill: he_k,
-    }).unwrap().into_value();
+    let out = apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: he_s,
+            he_kill: he_k,
+        },
+    )
+    .unwrap()
+    .into_value();
 
-    let outer_loop = draft.arena().get_face(out.surviving_face).unwrap().outer_loop();
+    let outer_loop = draft
+        .arena()
+        .get_face(out.surviving_face)
+        .unwrap()
+        .outer_loop();
     let seed = draft.arena().get_loop(outer_loop).unwrap().half_edge();
     let mut cur = seed;
     let mut steps = 0;
@@ -413,21 +530,28 @@ fn outer_loop_excludes_slit_and_is_closed() {
     loop {
         let data = draft.arena().get_half_edge(cur).unwrap();
         assert_eq!(
-            data.face(), out.surviving_face,
-            "Outer loop halfedge {} belongs to wrong face", cur.index(),
+            data.face(),
+            out.surviving_face,
+            "Outer loop halfedge {} belongs to wrong face",
+            cur.index(),
         );
         assert_ne!(cur, he_s, "Slit halfedge he_s must NOT be in outer loop");
         assert_ne!(cur, he_k, "Slit halfedge he_k must NOT be in outer loop");
 
         cur = data.next();
         steps += 1;
-        if cur == seed { break; }
+        if cur == seed {
+            break;
+        }
         assert!(steps < 100, "Outer loop is not properly closed");
     }
 
     // Original: 2 halfedges from FaceS + 2 from FaceK = 4 total,
     // minus the 2 slit halfedges = 2 remaining in outer loop.
-    assert_eq!(steps, 2, "Outer loop should have 2 halfedges for merged 2-gon lunes");
+    assert_eq!(
+        steps, 2,
+        "Outer loop should have 2 halfedges for merged 2-gon lunes"
+    );
 }
 
 // ===========================================================================
@@ -459,20 +583,35 @@ fn vertex_outgoing_avoids_slit() {
     );
 
     // Force v1 outgoing to point to he_s (a slit halfedge).
-    draft.arena_mut().get_vertex_mut(v1).unwrap().set_outgoing(he_s);
+    draft
+        .arena_mut()
+        .get_vertex_mut(v1)
+        .unwrap()
+        .set_outgoing(he_s);
 
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: he_s,
-        he_kill: he_k,
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: he_s,
+            he_kill: he_k,
+        },
+    )
+    .unwrap();
 
     let v1_out = draft.arena().get_vertex(v1).unwrap().outgoing();
-    assert_ne!(v1_out, he_s, "Vertex v1 outgoing must not point to slit he_s");
-    assert_ne!(v1_out, he_k, "Vertex v1 outgoing must not point to slit he_k");
+    assert_ne!(
+        v1_out, he_s,
+        "Vertex v1 outgoing must not point to slit he_s"
+    );
+    assert_ne!(
+        v1_out, he_k,
+        "Vertex v1 outgoing must not point to slit he_k"
+    );
 
     // Verify the replacement has correct origin.
     assert_eq!(
-        draft.arena().get_half_edge(v1_out).unwrap().origin(), v1,
+        draft.arena().get_half_edge(v1_out).unwrap().origin(),
+        v1,
         "Vertex v1 outgoing must point to a halfedge originating at v1",
     );
 }
@@ -499,18 +638,27 @@ fn vertex_outgoing_shared_origin_he_kill_regression() {
     );
 
     // Force outgoing to he_k (NOT he_s) — this is the exact QA bug.
-    draft.arena_mut().get_vertex_mut(v1).unwrap().set_outgoing(he_k);
+    draft
+        .arena_mut()
+        .get_vertex_mut(v1)
+        .unwrap()
+        .set_outgoing(he_k);
 
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: he_s,
-        he_kill: he_k,
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: he_s,
+            he_kill: he_k,
+        },
+    )
+    .unwrap();
 
     let v1_out = draft.arena().get_vertex(v1).unwrap().outgoing();
     assert_ne!(v1_out, he_s, "Must not point to slit he_s");
     assert_ne!(v1_out, he_k, "Must not point to slit he_k");
     assert_eq!(
-        draft.arena().get_half_edge(v1_out).unwrap().origin(), v1,
+        draft.arena().get_half_edge(v1_out).unwrap().origin(),
+        v1,
         "Replacement must originate at v1",
     );
 }
@@ -534,34 +682,59 @@ fn inner_loops_transferred_from_killed_face() {
     // Create a 1-edge inner loop (degenerate but valid for structural test).
     let inner_edge = draft.insert_edge(EdgeData::new(ph()));
     let ih1 = draft.insert_half_edge(HalfEdgeData::new(
-        ph(), ph(), ph(), killed_face,
+        ph(),
+        ph(),
+        ph(),
+        killed_face,
         draft.arena().get_half_edge(hes[1]).unwrap().origin(),
         inner_edge,
     ));
-    draft.arena_mut().get_half_edge_mut(ih1).unwrap().set_next(ih1);
-    draft.arena_mut().get_half_edge_mut(ih1).unwrap().set_prev(ih1);
-    draft.arena_mut().get_half_edge_mut(ih1).unwrap().set_radial_next(ih1);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(ih1)
+        .unwrap()
+        .set_next(ih1);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(ih1)
+        .unwrap()
+        .set_prev(ih1);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(ih1)
+        .unwrap()
+        .set_radial_next(ih1);
 
     let inner_loop = draft.insert_loop(LoopData::new(ih1, killed_face));
-    draft.arena_mut().get_face_mut(killed_face).unwrap().add_inner_loop(inner_loop);
+    draft
+        .arena_mut()
+        .get_face_mut(killed_face)
+        .unwrap()
+        .add_inner_loop(inner_loop);
 
     // Now merge.
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: hes[0],
-        he_kill: hes[1],
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: hes[0],
+            he_kill: hes[1],
+        },
+    )
+    .unwrap();
 
     // The inner loop's halfedge must now point to the surviving face.
     let ih1_data = draft.arena().get_half_edge(ih1).unwrap();
     assert_eq!(
-        ih1_data.face(), surviving_face,
+        ih1_data.face(),
+        surviving_face,
         "Transferred inner loop halfedge must point to surviving face",
     );
 
     // The inner loop entity must belong to the surviving face.
     let loop_data = draft.arena().get_loop(inner_loop).unwrap();
     assert_eq!(
-        loop_data.face(), surviving_face,
+        loop_data.face(),
+        surviving_face,
         "Transferred inner loop entity must reference surviving face",
     );
 
@@ -586,10 +759,14 @@ fn sequential_merges_reduce_valence_correctly() {
     let hes = setup_valence_n_edge(&mut draft, 5);
 
     // First merge: hes[0] and hes[1]. Protected ring: [2, 3, 4] → valence 3.
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: hes[0],
-        he_kill: hes[1],
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: hes[0],
+            he_kill: hes[1],
+        },
+    )
+    .unwrap();
 
     // Verify intermediate state: protected ring has 3 elements.
     let mut count = 0;
@@ -597,16 +774,25 @@ fn sequential_merges_reduce_valence_correctly() {
     loop {
         count += 1;
         cur = draft.arena().get_half_edge(cur).unwrap().radial_next();
-        if cur == hes[2] { break; }
+        if cur == hes[2] {
+            break;
+        }
         assert!(count < 20);
     }
-    assert_eq!(count, 3, "After first merge: protected ring should have 3 elements");
+    assert_eq!(
+        count, 3,
+        "After first merge: protected ring should have 3 elements"
+    );
 
     // Second merge: hes[2] and hes[3]. Protected ring: [4] → valence 1.
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: hes[2],
-        he_kill: hes[3],
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: hes[2],
+            he_kill: hes[3],
+        },
+    )
+    .unwrap();
 
     // Verify final state.
     assert_eq!(
@@ -616,8 +802,14 @@ fn sequential_merges_reduce_valence_correctly() {
     );
 
     // Both slit pairs are intact.
-    assert_eq!(draft.arena().get_half_edge(hes[0]).unwrap().radial_next(), hes[1]);
-    assert_eq!(draft.arena().get_half_edge(hes[2]).unwrap().radial_next(), hes[3]);
+    assert_eq!(
+        draft.arena().get_half_edge(hes[0]).unwrap().radial_next(),
+        hes[1]
+    );
+    assert_eq!(
+        draft.arena().get_half_edge(hes[2]).unwrap().radial_next(),
+        hes[3]
+    );
 }
 
 // ===========================================================================
@@ -637,26 +829,38 @@ fn sequential_merges_reduce_valence_correctly() {
 /// + vertex outgoing) because our raw setup lacks hierarchy for Full.
 #[test]
 fn post_op_passes_structural_validation_minimal() {
-    use crate::validate::{ValidationLevel, TopologyMode};
     use crate::validate::validate_topology_with_mode;
+    use crate::validate::{TopologyMode, ValidationLevel};
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
     let hes = setup_valence_n_edge(&mut draft, 4);
 
     // Verify pre-op passes validation too (our setup is valid).
-    validate_topology_with_mode(draft.arena(), ValidationLevel::Minimal, TopologyMode::NmtIntermediate)
-        .expect("Pre-op topology must be valid (Minimal+NmtIntermediate)");
+    validate_topology_with_mode(
+        draft.arena(),
+        ValidationLevel::Minimal,
+        TopologyMode::NmtIntermediate,
+    )
+    .expect("Pre-op topology must be valid (Minimal+NmtIntermediate)");
 
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: hes[1],
-        he_kill: hes[2],
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: hes[1],
+            he_kill: hes[2],
+        },
+    )
+    .unwrap();
 
     // This exercises: validate_radial_rings, validate_radial_edge_consistency,
     // validate_prev_consistency, validate_vertex_continuity, validate_vertex_outgoing.
-    validate_topology_with_mode(draft.arena(), ValidationLevel::Minimal, TopologyMode::NmtIntermediate)
-        .expect("Post-op topology must pass Minimal+NmtIntermediate validation");
+    validate_topology_with_mode(
+        draft.arena(),
+        ValidationLevel::Minimal,
+        TopologyMode::NmtIntermediate,
+    )
+    .expect("Post-op topology must pass Minimal+NmtIntermediate validation");
 }
 
 /// Validate a non-adjacent merge with Minimal-level structural checks.
@@ -665,21 +869,31 @@ fn post_op_passes_structural_validation_minimal() {
 /// separate `post_op_all_loops_have_consistent_face_membership` test.
 #[test]
 fn post_op_non_adjacent_merge_passes_minimal_validation() {
-    use crate::validate::{ValidationLevel, TopologyMode};
     use crate::validate::validate_topology_with_mode;
+    use crate::validate::{TopologyMode, ValidationLevel};
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
     let hes = setup_valence_n_edge(&mut draft, 5);
 
     // Merge non-adjacent pair to stress the ring surgery.
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: hes[0],
-        he_kill: hes[3],
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: hes[0],
+            he_kill: hes[3],
+        },
+    )
+    .unwrap();
 
-    validate_topology_with_mode(draft.arena(), ValidationLevel::Minimal, TopologyMode::NmtIntermediate)
-        .expect("Post-op topology must pass Minimal+NmtIntermediate validation after non-adjacent merge");
+    validate_topology_with_mode(
+        draft.arena(),
+        ValidationLevel::Minimal,
+        TopologyMode::NmtIntermediate,
+    )
+    .expect(
+        "Post-op topology must pass Minimal+NmtIntermediate validation after non-adjacent merge",
+    );
 }
 
 /// Targeted: verify EVERY loop in the arena post-op has all its halfedges
@@ -691,10 +905,14 @@ fn post_op_all_loops_have_consistent_face_membership() {
     let mut draft = state.into_mutation();
     let hes = setup_valence_n_edge(&mut draft, 4);
 
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: hes[1],
-        he_kill: hes[2],
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: hes[1],
+            he_kill: hes[2],
+        },
+    )
+    .unwrap();
 
     // Walk every loop in the arena and verify face consistency.
     for (face_id, face_data) in draft.arena().iter_faces() {
@@ -706,14 +924,23 @@ fn post_op_all_loops_have_consistent_face_membership() {
         loop {
             let he_d = draft.arena().get_half_edge(cur).unwrap();
             assert_eq!(
-                he_d.face(), face_id,
+                he_d.face(),
+                face_id,
                 "Face {} outer loop: halfedge {} belongs to face {} instead",
-                face_id.index(), cur.index(), he_d.face().index(),
+                face_id.index(),
+                cur.index(),
+                he_d.face().index(),
             );
             cur = he_d.next();
             steps += 1;
-            if cur == outer_seed { break; }
-            assert!(steps < 200, "Outer loop of face {} is not closed", face_id.index());
+            if cur == outer_seed {
+                break;
+            }
+            assert!(
+                steps < 200,
+                "Outer loop of face {} is not closed",
+                face_id.index()
+            );
         }
 
         // Walk inner loops.
@@ -724,13 +951,19 @@ fn post_op_all_loops_have_consistent_face_membership() {
             loop {
                 let he_d = draft.arena().get_half_edge(cur).unwrap();
                 assert_eq!(
-                    he_d.face(), face_id,
+                    he_d.face(),
+                    face_id,
                     "Face {} inner loop {}: halfedge {} belongs to face {} instead",
-                    face_id.index(), il_id.index(), cur.index(), he_d.face().index(),
+                    face_id.index(),
+                    il_id.index(),
+                    cur.index(),
+                    he_d.face().index(),
                 );
                 cur = he_d.next();
                 steps += 1;
-                if cur == il_seed { break; }
+                if cur == il_seed {
+                    break;
+                }
                 assert!(steps < 200, "Inner loop {} is not closed", il_id.index());
             }
         }
@@ -758,13 +991,37 @@ fn non_trivial_killed_face_boundary() {
     let ret_e0 = draft.insert_edge(EdgeData::new(ph()));
     let h0_fwd = draft.insert_half_edge(HalfEdgeData::new(ph(), ph(), ph(), f0, v1, shared_edge));
     let h0_ret = draft.insert_half_edge(HalfEdgeData::new(h0_fwd, h0_fwd, h0_fwd, f0, v2, ret_e0));
-    draft.arena_mut().get_half_edge_mut(h0_fwd).unwrap().set_next(h0_ret);
-    draft.arena_mut().get_half_edge_mut(h0_fwd).unwrap().set_prev(h0_ret);
-    draft.arena_mut().get_half_edge_mut(h0_ret).unwrap().set_next(h0_fwd);
-    draft.arena_mut().get_half_edge_mut(h0_ret).unwrap().set_prev(h0_fwd);
-    draft.arena_mut().get_half_edge_mut(h0_ret).unwrap().set_radial_next(h0_ret);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h0_fwd)
+        .unwrap()
+        .set_next(h0_ret);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h0_fwd)
+        .unwrap()
+        .set_prev(h0_ret);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h0_ret)
+        .unwrap()
+        .set_next(h0_fwd);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h0_ret)
+        .unwrap()
+        .set_prev(h0_fwd);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h0_ret)
+        .unwrap()
+        .set_radial_next(h0_ret);
     let l0 = draft.insert_loop(LoopData::new(h0_fwd, f0));
-    draft.arena_mut().get_face_mut(f0).unwrap().set_outer_loop(l0);
+    draft
+        .arena_mut()
+        .get_face_mut(f0)
+        .unwrap()
+        .set_outer_loop(l0);
 
     // Face 1: 4-gon (quad) — v1→v2→v3→v4→v1.
     // Edge v1→v2 is shared_edge; the other 3 edges are unique.
@@ -777,81 +1034,212 @@ fn non_trivial_killed_face_boundary() {
     let h1_34 = draft.insert_half_edge(HalfEdgeData::new(ph(), ph(), ph(), f1, v3, e_34));
     let h1_41 = draft.insert_half_edge(HalfEdgeData::new(ph(), ph(), ph(), f1, v4, e_41));
     // Wire quad loop: h1_12→h1_23→h1_34→h1_41→h1_12.
-    draft.arena_mut().get_half_edge_mut(h1_12).unwrap().set_next(h1_23);
-    draft.arena_mut().get_half_edge_mut(h1_12).unwrap().set_prev(h1_41);
-    draft.arena_mut().get_half_edge_mut(h1_23).unwrap().set_next(h1_34);
-    draft.arena_mut().get_half_edge_mut(h1_23).unwrap().set_prev(h1_12);
-    draft.arena_mut().get_half_edge_mut(h1_34).unwrap().set_next(h1_41);
-    draft.arena_mut().get_half_edge_mut(h1_34).unwrap().set_prev(h1_23);
-    draft.arena_mut().get_half_edge_mut(h1_41).unwrap().set_next(h1_12);
-    draft.arena_mut().get_half_edge_mut(h1_41).unwrap().set_prev(h1_34);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h1_12)
+        .unwrap()
+        .set_next(h1_23);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h1_12)
+        .unwrap()
+        .set_prev(h1_41);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h1_23)
+        .unwrap()
+        .set_next(h1_34);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h1_23)
+        .unwrap()
+        .set_prev(h1_12);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h1_34)
+        .unwrap()
+        .set_next(h1_41);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h1_34)
+        .unwrap()
+        .set_prev(h1_23);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h1_41)
+        .unwrap()
+        .set_next(h1_12);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h1_41)
+        .unwrap()
+        .set_prev(h1_34);
     // Radial self-loops for non-shared edges.
-    draft.arena_mut().get_half_edge_mut(h1_23).unwrap().set_radial_next(h1_23);
-    draft.arena_mut().get_half_edge_mut(h1_34).unwrap().set_radial_next(h1_34);
-    draft.arena_mut().get_half_edge_mut(h1_41).unwrap().set_radial_next(h1_41);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h1_23)
+        .unwrap()
+        .set_radial_next(h1_23);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h1_34)
+        .unwrap()
+        .set_radial_next(h1_34);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h1_41)
+        .unwrap()
+        .set_radial_next(h1_41);
     let l1 = draft.insert_loop(LoopData::new(h1_12, f1));
-    draft.arena_mut().get_face_mut(f1).unwrap().set_outer_loop(l1);
+    draft
+        .arena_mut()
+        .get_face_mut(f1)
+        .unwrap()
+        .set_outer_loop(l1);
 
     // Face 2: simple 2-gon on shared_edge (v1→v2).
     let f2 = draft.insert_face(FaceData::new(placeholder_loop(), placeholder_shell()));
     let ret_e2 = draft.insert_edge(EdgeData::new(ph()));
     let h2_fwd = draft.insert_half_edge(HalfEdgeData::new(ph(), ph(), ph(), f2, v1, shared_edge));
     let h2_ret = draft.insert_half_edge(HalfEdgeData::new(h2_fwd, h2_fwd, h2_fwd, f2, v2, ret_e2));
-    draft.arena_mut().get_half_edge_mut(h2_fwd).unwrap().set_next(h2_ret);
-    draft.arena_mut().get_half_edge_mut(h2_fwd).unwrap().set_prev(h2_ret);
-    draft.arena_mut().get_half_edge_mut(h2_ret).unwrap().set_next(h2_fwd);
-    draft.arena_mut().get_half_edge_mut(h2_ret).unwrap().set_prev(h2_fwd);
-    draft.arena_mut().get_half_edge_mut(h2_ret).unwrap().set_radial_next(h2_ret);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h2_fwd)
+        .unwrap()
+        .set_next(h2_ret);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h2_fwd)
+        .unwrap()
+        .set_prev(h2_ret);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h2_ret)
+        .unwrap()
+        .set_next(h2_fwd);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h2_ret)
+        .unwrap()
+        .set_prev(h2_fwd);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h2_ret)
+        .unwrap()
+        .set_radial_next(h2_ret);
     let l2 = draft.insert_loop(LoopData::new(h2_fwd, f2));
-    draft.arena_mut().get_face_mut(f2).unwrap().set_outer_loop(l2);
+    draft
+        .arena_mut()
+        .get_face_mut(f2)
+        .unwrap()
+        .set_outer_loop(l2);
 
     // Wire radial ring: h0_fwd → h1_12 → h2_fwd → h0_fwd (valence 3).
-    draft.arena_mut().get_half_edge_mut(h0_fwd).unwrap().set_radial_next(h1_12);
-    draft.arena_mut().get_half_edge_mut(h1_12).unwrap().set_radial_next(h2_fwd);
-    draft.arena_mut().get_half_edge_mut(h2_fwd).unwrap().set_radial_next(h0_fwd);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h0_fwd)
+        .unwrap()
+        .set_radial_next(h1_12);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h1_12)
+        .unwrap()
+        .set_radial_next(h2_fwd);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h2_fwd)
+        .unwrap()
+        .set_radial_next(h0_fwd);
 
     // Vertex outgoing pointers.
-    draft.arena_mut().get_vertex_mut(v1).unwrap().set_outgoing(h0_fwd);
-    draft.arena_mut().get_vertex_mut(v2).unwrap().set_outgoing(h0_ret);
-    draft.arena_mut().get_vertex_mut(v3).unwrap().set_outgoing(h1_34);
-    draft.arena_mut().get_vertex_mut(v4).unwrap().set_outgoing(h1_41);
-    draft.arena_mut().get_edge_mut(shared_edge).unwrap().set_half_edge(h0_fwd);
+    draft
+        .arena_mut()
+        .get_vertex_mut(v1)
+        .unwrap()
+        .set_outgoing(h0_fwd);
+    draft
+        .arena_mut()
+        .get_vertex_mut(v2)
+        .unwrap()
+        .set_outgoing(h0_ret);
+    draft
+        .arena_mut()
+        .get_vertex_mut(v3)
+        .unwrap()
+        .set_outgoing(h1_34);
+    draft
+        .arena_mut()
+        .get_vertex_mut(v4)
+        .unwrap()
+        .set_outgoing(h1_41);
+    draft
+        .arena_mut()
+        .get_edge_mut(shared_edge)
+        .unwrap()
+        .set_half_edge(h0_fwd);
 
     // NOW: merge face 0 (survive) and face 1 (kill, the quad).
-    let out = apply_op(&mut draft, JoinFacesNmt {
-        he_survive: h0_fwd,
-        he_kill: h1_12,
-    }).unwrap().into_value();
+    let out = apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: h0_fwd,
+            he_kill: h1_12,
+        },
+    )
+    .unwrap()
+    .into_value();
 
     // The merged outer loop should contain:
     // - h0_ret (from face 0's boundary)
     //   PLUS the 3 non-shared edges from face 1: h1_23, h1_34, h1_41.
     //   Total: 4 halfedges in the outer loop.
-    let outer_loop = draft.arena().get_face(out.surviving_face).unwrap().outer_loop();
+    let outer_loop = draft
+        .arena()
+        .get_face(out.surviving_face)
+        .unwrap()
+        .outer_loop();
     let seed = draft.arena().get_loop(outer_loop).unwrap().half_edge();
     let mut outer_hes = vec![];
     let mut cur = seed;
     loop {
         outer_hes.push(cur);
         cur = draft.arena().get_half_edge(cur).unwrap().next();
-        if cur == seed { break; }
+        if cur == seed {
+            break;
+        }
         assert!(outer_hes.len() < 50, "Outer loop is not closed");
     }
 
     assert_eq!(
-        outer_hes.len(), 4,
+        outer_hes.len(),
+        4,
         "Merged outer loop should have 4 halfedges (1 from face0 + 3 from quad face1), got {}",
         outer_hes.len(),
     );
 
     // The slit halfedges must NOT be in the outer loop.
-    assert!(!outer_hes.contains(&h0_fwd), "Slit h0_fwd must not be in outer loop");
-    assert!(!outer_hes.contains(&h1_12), "Slit h1_12 must not be in outer loop");
+    assert!(
+        !outer_hes.contains(&h0_fwd),
+        "Slit h0_fwd must not be in outer loop"
+    );
+    assert!(
+        !outer_hes.contains(&h1_12),
+        "Slit h1_12 must not be in outer loop"
+    );
 
     // All 3 non-shared quad halfedges MUST be in the outer loop.
-    assert!(outer_hes.contains(&h1_23), "quad he h1_23 must be in outer loop");
-    assert!(outer_hes.contains(&h1_34), "quad he h1_34 must be in outer loop");
-    assert!(outer_hes.contains(&h1_41), "quad he h1_41 must be in outer loop");
+    assert!(
+        outer_hes.contains(&h1_23),
+        "quad he h1_23 must be in outer loop"
+    );
+    assert!(
+        outer_hes.contains(&h1_34),
+        "quad he h1_34 must be in outer loop"
+    );
+    assert!(
+        outer_hes.contains(&h1_41),
+        "quad he h1_41 must be in outer loop"
+    );
 
     // The surviving return edge must be in the outer loop.
     assert!(outer_hes.contains(&h0_ret), "h0_ret must be in outer loop");
@@ -861,7 +1249,8 @@ fn non_trivial_killed_face_boundary() {
         assert_eq!(
             draft.arena().get_half_edge(h).unwrap().face(),
             out.surviving_face,
-            "Halfedge {} in outer loop points to wrong face", h.index(),
+            "Halfedge {} in outer loop points to wrong face",
+            h.index(),
         );
     }
 }
@@ -871,18 +1260,22 @@ fn non_trivial_killed_face_boundary() {
 /// slit and report count=2 instead of the correct protected count.
 #[test]
 fn edge_data_entry_walks_full_protected_ring() {
-    use crate::validate::{ValidationLevel, TopologyMode};
     use crate::validate::validate_topology_with_mode;
+    use crate::validate::{TopologyMode, ValidationLevel};
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
     let hes = setup_valence_n_edge(&mut draft, 6);
 
     // Merge hes[2] and hes[4] (non-adjacent in a ring of 6).
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: hes[2],
-        he_kill: hes[4],
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: hes[2],
+            he_kill: hes[4],
+        },
+    )
+    .unwrap();
 
     let shared_edge = draft.arena().get_half_edge(hes[0]).unwrap().edge();
     let entry = draft.arena().get_edge(shared_edge).unwrap().half_edge();
@@ -897,15 +1290,29 @@ fn edge_data_entry_walks_full_protected_ring() {
     }
 
     // Protected ring: 6 original - 2 merged = 4 remaining.
-    assert_eq!(ring.len(), 4, "Protected ring must have 4 elements (6 - 2 merged)");
+    assert_eq!(
+        ring.len(),
+        4,
+        "Protected ring must have 4 elements (6 - 2 merged)"
+    );
 
     // None of the protected ring members should be hes[2] or hes[4] (the slit).
-    assert!(!ring.contains(&hes[2]), "Slit he must not be in protected ring");
-    assert!(!ring.contains(&hes[4]), "Slit he must not be in protected ring");
+    assert!(
+        !ring.contains(&hes[2]),
+        "Slit he must not be in protected ring"
+    );
+    assert!(
+        !ring.contains(&hes[4]),
+        "Slit he must not be in protected ring"
+    );
 
     // Post-op validation must pass.
-    validate_topology_with_mode(draft.arena(), ValidationLevel::Minimal, TopologyMode::NmtIntermediate)
-        .expect("Post-op topology must pass validation after non-adjacent valence-6 merge");
+    validate_topology_with_mode(
+        draft.arena(),
+        ValidationLevel::Minimal,
+        TopologyMode::NmtIntermediate,
+    )
+    .expect("Post-op topology must pass validation after non-adjacent valence-6 merge");
 }
 
 // ===========================================================================
@@ -922,7 +1329,11 @@ fn edge_data_entry_walks_full_protected_ring() {
 fn setup_antiparallel_valence_n(
     draft: &mut crate::state::MutableDraft,
     n: usize,
-) -> (Vec<HalfEdgeId>, crate::handles::VertexId, crate::handles::VertexId) {
+) -> (
+    Vec<HalfEdgeId>,
+    crate::handles::VertexId,
+    crate::handles::VertexId,
+) {
     let v1 = draft.insert_vertex(VertexData::new(ph()));
     let v2 = draft.insert_vertex(VertexData::new(ph()));
     let shared_edge = draft.insert_edge(EdgeData::new(ph()));
@@ -936,27 +1347,58 @@ fn setup_antiparallel_valence_n(
         // Alternate direction: even faces go v1→v2, odd faces go v2→v1.
         let (origin, endpoint) = if i % 2 == 0 { (v1, v2) } else { (v2, v1) };
 
-        let h_shared = draft.insert_half_edge(HalfEdgeData::new(
-            ph(), ph(), ph(), f, origin, shared_edge,
-        ));
+        let h_shared =
+            draft.insert_half_edge(HalfEdgeData::new(ph(), ph(), ph(), f, origin, shared_edge));
         let h_ret = draft.insert_half_edge(HalfEdgeData::new(
             h_shared, h_shared, h_shared, f, endpoint, ret_edge,
         ));
 
         // Wire 2-gon loop: h_shared ↔ h_ret.
-        draft.arena_mut().get_half_edge_mut(h_shared).unwrap().set_next(h_ret);
-        draft.arena_mut().get_half_edge_mut(h_shared).unwrap().set_prev(h_ret);
-        draft.arena_mut().get_half_edge_mut(h_ret).unwrap().set_next(h_shared);
-        draft.arena_mut().get_half_edge_mut(h_ret).unwrap().set_prev(h_shared);
-        draft.arena_mut().get_half_edge_mut(h_ret).unwrap().set_radial_next(h_ret);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(h_shared)
+            .unwrap()
+            .set_next(h_ret);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(h_shared)
+            .unwrap()
+            .set_prev(h_ret);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(h_ret)
+            .unwrap()
+            .set_next(h_shared);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(h_ret)
+            .unwrap()
+            .set_prev(h_shared);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(h_ret)
+            .unwrap()
+            .set_radial_next(h_ret);
 
         let l = draft.insert_loop(LoopData::new(h_shared, f));
         draft.arena_mut().get_face_mut(f).unwrap().set_outer_loop(l);
 
         if i == 0 {
-            draft.arena_mut().get_vertex_mut(v1).unwrap().set_outgoing(h_shared);
-            draft.arena_mut().get_vertex_mut(v2).unwrap().set_outgoing(h_ret);
-            draft.arena_mut().get_edge_mut(shared_edge).unwrap().set_half_edge(h_shared);
+            draft
+                .arena_mut()
+                .get_vertex_mut(v1)
+                .unwrap()
+                .set_outgoing(h_shared);
+            draft
+                .arena_mut()
+                .get_vertex_mut(v2)
+                .unwrap()
+                .set_outgoing(h_ret);
+            draft
+                .arena_mut()
+                .get_edge_mut(shared_edge)
+                .unwrap()
+                .set_half_edge(h_shared);
         }
 
         shared_hes.push(h_shared);
@@ -965,7 +1407,10 @@ fn setup_antiparallel_valence_n(
     // Wire radial ring.
     for i in 0..n {
         let next = (i + 1) % n;
-        draft.arena_mut().get_half_edge_mut(shared_hes[i]).unwrap()
+        draft
+            .arena_mut()
+            .get_half_edge_mut(shared_hes[i])
+            .unwrap()
             .set_radial_next(shared_hes[next]);
     }
 
@@ -995,17 +1440,24 @@ fn antiparallel_slit_has_two_distinct_origins() {
         "Pre-condition: antiparallel halfedges must have different origins",
     );
 
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: he_s,
-        he_kill: he_k,
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: he_s,
+            he_kill: he_k,
+        },
+    )
+    .unwrap();
 
     // Slit halfedges retain their original (different) origins.
     let s_origin = draft.arena().get_half_edge(he_s).unwrap().origin();
     let k_origin = draft.arena().get_half_edge(he_k).unwrap().origin();
     assert_eq!(s_origin, v1, "Slit he_s must retain origin v1");
     assert_eq!(k_origin, v2, "Slit he_k must retain origin v2");
-    assert_ne!(s_origin, k_origin, "Slit origins must be distinct (antiparallel)");
+    assert_ne!(
+        s_origin, k_origin,
+        "Slit origins must be distinct (antiparallel)"
+    );
 }
 
 // ===========================================================================
@@ -1025,13 +1477,25 @@ fn antiparallel_vertex_outgoing_fixes_both_endpoints() {
     let he_k = hes[1]; // origin v2
 
     // Force both vertices to point to their respective slit halfedges.
-    draft.arena_mut().get_vertex_mut(v1).unwrap().set_outgoing(he_s);
-    draft.arena_mut().get_vertex_mut(v2).unwrap().set_outgoing(he_k);
+    draft
+        .arena_mut()
+        .get_vertex_mut(v1)
+        .unwrap()
+        .set_outgoing(he_s);
+    draft
+        .arena_mut()
+        .get_vertex_mut(v2)
+        .unwrap()
+        .set_outgoing(he_k);
 
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: he_s,
-        he_kill: he_k,
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: he_s,
+            he_kill: he_k,
+        },
+    )
+    .unwrap();
 
     let v1_out = draft.arena().get_vertex(v1).unwrap().outgoing();
     let v2_out = draft.arena().get_vertex(v2).unwrap().outgoing();
@@ -1044,11 +1508,13 @@ fn antiparallel_vertex_outgoing_fixes_both_endpoints() {
 
     // Origins must be correct.
     assert_eq!(
-        draft.arena().get_half_edge(v1_out).unwrap().origin(), v1,
+        draft.arena().get_half_edge(v1_out).unwrap().origin(),
+        v1,
         "v1 outgoing must originate at v1",
     );
     assert_eq!(
-        draft.arena().get_half_edge(v2_out).unwrap().origin(), v2,
+        draft.arena().get_half_edge(v2_out).unwrap().origin(),
+        v2,
         "v2 outgoing must originate at v2",
     );
 }
@@ -1062,26 +1528,38 @@ fn antiparallel_vertex_outgoing_fixes_both_endpoints() {
 /// will see 2 distinct endpoints in the slit ring (not a degenerate self-loop).
 #[test]
 fn antiparallel_passes_structural_validation() {
-    use crate::validate::{ValidationLevel, TopologyMode};
     use crate::validate::validate_topology_with_mode;
+    use crate::validate::{TopologyMode, ValidationLevel};
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
     let (hes, _, _) = setup_antiparallel_valence_n(&mut draft, 4);
 
     // Pre-op must validate.
-    validate_topology_with_mode(draft.arena(), ValidationLevel::Minimal, TopologyMode::NmtIntermediate)
-        .expect("Pre-op antiparallel topology must be valid");
+    validate_topology_with_mode(
+        draft.arena(),
+        ValidationLevel::Minimal,
+        TopologyMode::NmtIntermediate,
+    )
+    .expect("Pre-op antiparallel topology must be valid");
 
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: hes[0],
-        he_kill: hes[1],
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: hes[0],
+            he_kill: hes[1],
+        },
+    )
+    .unwrap();
 
     // Post-op must validate. This exercises validate_vertex_continuity
     // with a 2-endpoint slit ring (not a degenerate self-loop).
-    validate_topology_with_mode(draft.arena(), ValidationLevel::Minimal, TopologyMode::NmtIntermediate)
-        .expect("Post-op antiparallel topology must pass Minimal+NmtIntermediate validation");
+    validate_topology_with_mode(
+        draft.arena(),
+        ValidationLevel::Minimal,
+        TopologyMode::NmtIntermediate,
+    )
+    .expect("Post-op antiparallel topology must pass Minimal+NmtIntermediate validation");
 }
 
 // ===========================================================================
@@ -1108,18 +1586,38 @@ fn euler_delta_matches_actual_entity_counts() {
 
     // apply_op internally validates declared delta == actual delta.
     // If this succeeds, the delta is proven correct.
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: hes[1],
-        he_kill: hes[2],
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: hes[1],
+            he_kill: hes[2],
+        },
+    )
+    .unwrap();
 
     // JoinFacesNmt should: kill 1 face, kill 1 loop, add 1 loop (slit).
     // Net: faces=-1, loops=0, vertices=0, edges=0, halfedges=0.
     assert_eq!(draft.arena().face_count(), pre_f - 1, "One face killed");
-    assert_eq!(draft.arena().loop_count(), pre_l, "One loop killed + one slit loop added = net 0");
-    assert_eq!(draft.arena().vertex_count(), pre_v, "No vertices created or killed");
-    assert_eq!(draft.arena().edge_count(), pre_e, "No edges created or killed");
-    assert_eq!(draft.arena().half_edge_count(), pre_he, "No halfedges created or killed");
+    assert_eq!(
+        draft.arena().loop_count(),
+        pre_l,
+        "One loop killed + one slit loop added = net 0"
+    );
+    assert_eq!(
+        draft.arena().vertex_count(),
+        pre_v,
+        "No vertices created or killed"
+    );
+    assert_eq!(
+        draft.arena().edge_count(),
+        pre_e,
+        "No edges created or killed"
+    );
+    assert_eq!(
+        draft.arena().half_edge_count(),
+        pre_he,
+        "No halfedges created or killed"
+    );
 }
 
 // ===========================================================================
@@ -1135,12 +1633,21 @@ fn outer_loop_bidirectional_consistency() {
     let mut draft = state.into_mutation();
     let (hes, _, _) = setup_antiparallel_valence_n(&mut draft, 4);
 
-    let out = apply_op(&mut draft, JoinFacesNmt {
-        he_survive: hes[0],
-        he_kill: hes[1],
-    }).unwrap().into_value();
+    let out = apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: hes[0],
+            he_kill: hes[1],
+        },
+    )
+    .unwrap()
+    .into_value();
 
-    let outer_loop = draft.arena().get_face(out.surviving_face).unwrap().outer_loop();
+    let outer_loop = draft
+        .arena()
+        .get_face(out.surviving_face)
+        .unwrap()
+        .outer_loop();
     let seed = draft.arena().get_loop(outer_loop).unwrap().half_edge();
 
     // Walk forward.
@@ -1149,7 +1656,9 @@ fn outer_loop_bidirectional_consistency() {
     loop {
         forward.push(cur);
         cur = draft.arena().get_half_edge(cur).unwrap().next();
-        if cur == seed { break; }
+        if cur == seed {
+            break;
+        }
         assert!(forward.len() < 100, "Forward walk not closed");
     }
 
@@ -1159,15 +1668,19 @@ fn outer_loop_bidirectional_consistency() {
     loop {
         backward.push(cur);
         cur = draft.arena().get_half_edge(cur).unwrap().prev();
-        if cur == seed { break; }
+        if cur == seed {
+            break;
+        }
         assert!(backward.len() < 100, "Backward walk not closed");
     }
 
     // Same length.
     assert_eq!(
-        forward.len(), backward.len(),
+        forward.len(),
+        backward.len(),
         "Forward and backward walks have different lengths: {} vs {}",
-        forward.len(), backward.len(),
+        forward.len(),
+        backward.len(),
     );
 
     // Backward walk should be the reverse of forward walk (rotated).
@@ -1177,7 +1690,8 @@ fn outer_loop_bidirectional_consistency() {
     let mut back_rest: Vec<_> = backward[1..].to_vec();
     back_rest.reverse();
     assert_eq!(
-        &forward[1..], &back_rest[..],
+        &forward[1..],
+        &back_rest[..],
         "Backward walk is not the reverse of forward walk",
     );
 }
@@ -1200,33 +1714,73 @@ fn surviving_face_pre_existing_inner_loops_intact() {
     let inner_edge = draft.insert_edge(EdgeData::new(ph()));
     let v_inner = draft.insert_vertex(VertexData::new(ph()));
     let ih = draft.insert_half_edge(HalfEdgeData::new(
-        ph(), ph(), ph(), surviving_face, v_inner, inner_edge,
+        ph(),
+        ph(),
+        ph(),
+        surviving_face,
+        v_inner,
+        inner_edge,
     ));
-    draft.arena_mut().get_half_edge_mut(ih).unwrap().set_next(ih);
-    draft.arena_mut().get_half_edge_mut(ih).unwrap().set_prev(ih);
-    draft.arena_mut().get_half_edge_mut(ih).unwrap().set_radial_next(ih);
-    draft.arena_mut().get_vertex_mut(v_inner).unwrap().set_outgoing(ih);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(ih)
+        .unwrap()
+        .set_next(ih);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(ih)
+        .unwrap()
+        .set_prev(ih);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(ih)
+        .unwrap()
+        .set_radial_next(ih);
+    draft
+        .arena_mut()
+        .get_vertex_mut(v_inner)
+        .unwrap()
+        .set_outgoing(ih);
 
     let pre_existing_loop = draft.insert_loop(LoopData::new(ih, surviving_face));
-    draft.arena_mut().get_face_mut(surviving_face).unwrap().add_inner_loop(pre_existing_loop);
+    draft
+        .arena_mut()
+        .get_face_mut(surviving_face)
+        .unwrap()
+        .add_inner_loop(pre_existing_loop);
 
     // Verify pre-existing inner loop is registered.
     assert_eq!(
-        draft.arena().get_face(surviving_face).unwrap().inner_loop_count(), 1,
+        draft
+            .arena()
+            .get_face(surviving_face)
+            .unwrap()
+            .inner_loop_count(),
+        1,
         "Pre-condition: surviving face must have 1 inner loop",
     );
 
     // Merge.
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: hes[0],
-        he_kill: hes[1],
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: hes[0],
+            he_kill: hes[1],
+        },
+    )
+    .unwrap();
 
     // After merge: surviving face should have 2 inner loops
     // (1 pre-existing + 1 slit).
-    let inner_loops = draft.arena().get_face(surviving_face).unwrap().inner_loops().to_vec();
+    let inner_loops = draft
+        .arena()
+        .get_face(surviving_face)
+        .unwrap()
+        .inner_loops()
+        .to_vec();
     assert_eq!(
-        inner_loops.len(), 2,
+        inner_loops.len(),
+        2,
         "Surviving face must have 2 inner loops (pre-existing + slit), got {}",
         inner_loops.len(),
     );
@@ -1240,14 +1794,16 @@ fn surviving_face_pre_existing_inner_loops_intact() {
     // Walk the pre-existing inner loop — its halfedge must point to surviving face.
     let ih_data = draft.arena().get_half_edge(ih).unwrap();
     assert_eq!(
-        ih_data.face(), surviving_face,
+        ih_data.face(),
+        surviving_face,
         "Pre-existing inner loop halfedge must still point to surviving face",
     );
 
     // The loop entity must still reference the correct face.
     let loop_data = draft.arena().get_loop(pre_existing_loop).unwrap();
     assert_eq!(
-        loop_data.face(), surviving_face,
+        loop_data.face(),
+        surviving_face,
         "Pre-existing loop entity must still reference surviving face",
     );
 }
@@ -1270,17 +1826,22 @@ fn slit_edge_and_vertex_deep_consistency() {
     let he_s = hes[0]; // origin v1
     let he_k = hes[1]; // origin v2
 
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: he_s,
-        he_kill: he_k,
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: he_s,
+            he_kill: he_k,
+        },
+    )
+    .unwrap();
 
     let s_data = draft.arena().get_half_edge(he_s).unwrap();
     let k_data = draft.arena().get_half_edge(he_k).unwrap();
 
     // Same EdgeId.
     assert_eq!(
-        s_data.edge(), k_data.edge(),
+        s_data.edge(),
+        k_data.edge(),
         "Slit halfedges must share the same EdgeId",
     );
 
@@ -1293,11 +1854,13 @@ fn slit_edge_and_vertex_deep_consistency() {
     // So he_s.next().origin() = v2 = endpoint of he_s. ✓
     // And he_k.next().origin() = v1 = endpoint of he_k. ✓
     assert_eq!(
-        draft.arena().get_half_edge(s_data.next()).unwrap().origin(), v2,
+        draft.arena().get_half_edge(s_data.next()).unwrap().origin(),
+        v2,
         "he_s.next().origin() must be v2 (endpoint of he_s)",
     );
     assert_eq!(
-        draft.arena().get_half_edge(k_data.next()).unwrap().origin(), v1,
+        draft.arena().get_half_edge(k_data.next()).unwrap().origin(),
+        v1,
         "he_k.next().origin() must be v1 (endpoint of he_k)",
     );
 
@@ -1322,18 +1885,27 @@ fn antiparallel_outgoing_he_kill_on_vertex_k() {
     let he_k = hes[1]; // origin v2
 
     // v1 points to something safe, but v2 points to he_k (the kill halfedge).
-    draft.arena_mut().get_vertex_mut(v2).unwrap().set_outgoing(he_k);
+    draft
+        .arena_mut()
+        .get_vertex_mut(v2)
+        .unwrap()
+        .set_outgoing(he_k);
 
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: he_s,
-        he_kill: he_k,
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: he_s,
+            he_kill: he_k,
+        },
+    )
+    .unwrap();
 
     let v2_out = draft.arena().get_vertex(v2).unwrap().outgoing();
     assert_ne!(v2_out, he_s, "v2 outgoing must not be slit he_s");
     assert_ne!(v2_out, he_k, "v2 outgoing must not be slit he_k");
     assert_eq!(
-        draft.arena().get_half_edge(v2_out).unwrap().origin(), v2,
+        draft.arena().get_half_edge(v2_out).unwrap().origin(),
+        v2,
         "v2 outgoing must originate at v2",
     );
 }
@@ -1352,12 +1924,20 @@ fn antiparallel_outgoing_he_survive_on_vertex_k() {
 
     // v2 points to he_s (cross-slit). This is already wrong (origin mismatch),
     // but the operator should still fix it if it detects it's a slit halfedge.
-    draft.arena_mut().get_vertex_mut(v2).unwrap().set_outgoing(he_s);
+    draft
+        .arena_mut()
+        .get_vertex_mut(v2)
+        .unwrap()
+        .set_outgoing(he_s);
 
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: he_s,
-        he_kill: he_k,
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: he_s,
+            he_kill: he_k,
+        },
+    )
+    .unwrap();
 
     let v2_out = draft.arena().get_vertex(v2).unwrap().outgoing();
     assert_ne!(v2_out, he_s, "v2 outgoing must not be slit he_s");
@@ -1374,37 +1954,56 @@ fn antiparallel_outgoing_he_survive_on_vertex_k() {
 /// ring, and validation must all be correct regardless of which is "survive".
 #[test]
 fn selector_swap_both_orderings_valid() {
-    use crate::validate::{ValidationLevel, TopologyMode};
     use crate::validate::validate_topology_with_mode;
+    use crate::validate::{TopologyMode, ValidationLevel};
 
     // Run ordering A.
     let state_a = TopologyState::empty();
     let mut draft_a = state_a.into_mutation();
     let (hes_a, _, _) = setup_antiparallel_valence_n(&mut draft_a, 4);
 
-    apply_op(&mut draft_a, JoinFacesNmt {
-        he_survive: hes_a[0],
-        he_kill: hes_a[1],
-    }).unwrap();
-    validate_topology_with_mode(draft_a.arena(), ValidationLevel::Minimal, TopologyMode::NmtIntermediate)
-        .expect("Ordering A must pass validation");
+    apply_op(
+        &mut draft_a,
+        JoinFacesNmt {
+            he_survive: hes_a[0],
+            he_kill: hes_a[1],
+        },
+    )
+    .unwrap();
+    validate_topology_with_mode(
+        draft_a.arena(),
+        ValidationLevel::Minimal,
+        TopologyMode::NmtIntermediate,
+    )
+    .expect("Ordering A must pass validation");
 
     // Run ordering B (swapped).
     let state_b = TopologyState::empty();
     let mut draft_b = state_b.into_mutation();
     let (hes_b, _, _) = setup_antiparallel_valence_n(&mut draft_b, 4);
 
-    apply_op(&mut draft_b, JoinFacesNmt {
-        he_survive: hes_b[1],
-        he_kill: hes_b[0],
-    }).unwrap();
-    validate_topology_with_mode(draft_b.arena(), ValidationLevel::Minimal, TopologyMode::NmtIntermediate)
-        .expect("Ordering B (swapped) must pass validation");
+    apply_op(
+        &mut draft_b,
+        JoinFacesNmt {
+            he_survive: hes_b[1],
+            he_kill: hes_b[0],
+        },
+    )
+    .unwrap();
+    validate_topology_with_mode(
+        draft_b.arena(),
+        ValidationLevel::Minimal,
+        TopologyMode::NmtIntermediate,
+    )
+    .expect("Ordering B (swapped) must pass validation");
 
     // Both should have same entity counts.
     assert_eq!(draft_a.arena().face_count(), draft_b.arena().face_count());
     assert_eq!(draft_a.arena().loop_count(), draft_b.arena().loop_count());
-    assert_eq!(draft_a.arena().half_edge_count(), draft_b.arena().half_edge_count());
+    assert_eq!(
+        draft_a.arena().half_edge_count(),
+        draft_b.arena().half_edge_count()
+    );
 }
 
 // ===========================================================================
@@ -1417,28 +2016,47 @@ fn selector_swap_both_orderings_valid() {
 /// validate_loops and validate_hierarchy.
 #[test]
 fn valid_hierarchy_passes_intermediate_validation() {
-    use crate::validate::{ValidationLevel, TopologyMode};
-    use crate::validate::validate_topology_with_mode;
+    use crate::euler::make_edge_face::MakeEdgeFace;
     use crate::euler::make_vertex_face::MakeVertexFace;
     use crate::euler::split_edge::SplitEdge;
-    use crate::euler::make_edge_face::MakeEdgeFace;
+    use crate::validate::validate_topology_with_mode;
+    use crate::validate::{TopologyMode, ValidationLevel};
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
     // Build a valid 3-face mesh: MVF → SE → SE → MEF → MEF.
     let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-    let se1 = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 })
-        .unwrap().into_value();
-    let se2 = apply_op(&mut draft, SplitEdge { edge: se1.he_am, parameter: 0.5 })
-        .unwrap().into_value();
+    let se1 = apply_op(
+        &mut draft,
+        SplitEdge {
+            edge: mvf.half_edge,
+            parameter: 0.5,
+        },
+    )
+    .unwrap()
+    .into_value();
+    let se2 = apply_op(
+        &mut draft,
+        SplitEdge {
+            edge: se1.he_am,
+            parameter: 0.5,
+        },
+    )
+    .unwrap()
+    .into_value();
 
     // Now we have 3 vertices. Split face to create 2 faces.
-    let mef1 = apply_op(&mut draft, MakeEdgeFace {
-        vertex_a: mvf.vertex,
-        vertex_b: se1.new_vertex,
-        face: mvf.face,
-    }).unwrap().into_value();
+    let mef1 = apply_op(
+        &mut draft,
+        MakeEdgeFace {
+            vertex_a: mvf.vertex,
+            vertex_b: se1.new_vertex,
+            face: mvf.face,
+        },
+    )
+    .unwrap()
+    .into_value();
 
     // We now have 2 faces sharing an edge. Find the shared edge.
     let shared_he = mef1.half_edge_ab;
@@ -1449,7 +2067,11 @@ fn valid_hierarchy_passes_intermediate_validation() {
     // a third face manually sharing the same edge, with the same shell.
     let shell = mvf.shell;
     let existing_face_a = draft.arena().get_half_edge(shared_he).unwrap().face();
-    let twin_he = draft.arena().get_half_edge(shared_he).unwrap().radial_next();
+    let twin_he = draft
+        .arena()
+        .get_half_edge(shared_he)
+        .unwrap()
+        .radial_next();
     let existing_face_b = draft.arena().get_half_edge(twin_he).unwrap().face();
 
     let v_a = draft.arena().get_half_edge(shared_he).unwrap().origin();
@@ -1458,34 +2080,77 @@ fn valid_hierarchy_passes_intermediate_validation() {
     // Create a third face on the same shell and edge.
     let ret_edge_3 = draft.insert_edge(EdgeData::new(ph()));
     let f3 = draft.insert_face(FaceData::new(placeholder_loop(), shell));
-    let h3_fwd = draft.insert_half_edge(HalfEdgeData::new(
-        ph(), ph(), ph(), f3, v_a, shared_edge_id,
-    ));
+    let h3_fwd =
+        draft.insert_half_edge(HalfEdgeData::new(ph(), ph(), ph(), f3, v_a, shared_edge_id));
     let h3_ret = draft.insert_half_edge(HalfEdgeData::new(
         h3_fwd, h3_fwd, h3_fwd, f3, v_b, ret_edge_3,
     ));
-    draft.arena_mut().get_half_edge_mut(h3_fwd).unwrap().set_next(h3_ret);
-    draft.arena_mut().get_half_edge_mut(h3_fwd).unwrap().set_prev(h3_ret);
-    draft.arena_mut().get_half_edge_mut(h3_ret).unwrap().set_next(h3_fwd);
-    draft.arena_mut().get_half_edge_mut(h3_ret).unwrap().set_prev(h3_fwd);
-    draft.arena_mut().get_half_edge_mut(h3_ret).unwrap().set_radial_next(h3_ret);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h3_fwd)
+        .unwrap()
+        .set_next(h3_ret);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h3_fwd)
+        .unwrap()
+        .set_prev(h3_ret);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h3_ret)
+        .unwrap()
+        .set_next(h3_fwd);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h3_ret)
+        .unwrap()
+        .set_prev(h3_fwd);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h3_ret)
+        .unwrap()
+        .set_radial_next(h3_ret);
     let l3 = draft.insert_loop(LoopData::new(h3_fwd, f3));
-    draft.arena_mut().get_face_mut(f3).unwrap().set_outer_loop(l3);
+    draft
+        .arena_mut()
+        .get_face_mut(f3)
+        .unwrap()
+        .set_outer_loop(l3);
 
     // Wire the radial ring: shared_he → twin_he → h3_fwd → shared_he (valence 3).
-    draft.arena_mut().get_half_edge_mut(shared_he).unwrap().set_radial_next(twin_he);
-    draft.arena_mut().get_half_edge_mut(twin_he).unwrap().set_radial_next(h3_fwd);
-    draft.arena_mut().get_half_edge_mut(h3_fwd).unwrap().set_radial_next(shared_he);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(shared_he)
+        .unwrap()
+        .set_radial_next(twin_he);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(twin_he)
+        .unwrap()
+        .set_radial_next(h3_fwd);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(h3_fwd)
+        .unwrap()
+        .set_radial_next(shared_he);
 
     // Now merge shared_he and twin_he.
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: shared_he,
-        he_kill: twin_he,
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: shared_he,
+            he_kill: twin_he,
+        },
+    )
+    .unwrap();
 
     // Validate at Intermediate level — exercises validate_loops AND validate_hierarchy.
-    validate_topology_with_mode(draft.arena(), ValidationLevel::Intermediate, TopologyMode::NmtIntermediate)
-        .expect("Post-op valid-hierarchy topology must pass Intermediate+NmtIntermediate validation");
+    validate_topology_with_mode(
+        draft.arena(),
+        ValidationLevel::Intermediate,
+        TopologyMode::NmtIntermediate,
+    )
+    .expect("Post-op valid-hierarchy topology must pass Intermediate+NmtIntermediate validation");
 }
 
 // ===========================================================================
@@ -1502,10 +2167,14 @@ fn sequential_merges_with_handle_rederivation() {
     let shared_edge = draft.arena().get_half_edge(hes[0]).unwrap().edge();
 
     // First merge: hes[0] and hes[1].
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: hes[0],
-        he_kill: hes[1],
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: hes[0],
+            he_kill: hes[1],
+        },
+    )
+    .unwrap();
 
     // RE-DERIVE: walk the protected ring from EdgeData to find current members.
     let entry = draft.arena().get_edge(shared_edge).unwrap().half_edge();
@@ -1516,7 +2185,11 @@ fn sequential_merges_with_handle_rederivation() {
         cur = draft.arena().get_half_edge(cur).unwrap().radial_next();
         assert!(protected_ring.len() < 20);
     }
-    assert_eq!(protected_ring.len(), 3, "After first merge: protected ring should have 3 elements");
+    assert_eq!(
+        protected_ring.len(),
+        3,
+        "After first merge: protected ring should have 3 elements"
+    );
 
     // Pick two adjacent elements from the RE-DERIVED ring for the second merge.
     let he_s2 = protected_ring[0];
@@ -1529,10 +2202,14 @@ fn sequential_merges_with_handle_rederivation() {
         "Re-derived halfedges must be on different faces",
     );
 
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: he_s2,
-        he_kill: he_k2,
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: he_s2,
+            he_kill: he_k2,
+        },
+    )
+    .unwrap();
 
     // Final protected ring should have 1 element.
     let entry2 = draft.arena().get_edge(shared_edge).unwrap().half_edge();
@@ -1556,13 +2233,18 @@ fn rejection_errors_are_typed_invalid_input() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
         let hes = setup_valence_n_edge(&mut draft, 2);
-        let err = apply_op(&mut draft, JoinFacesNmt {
-            he_survive: hes[0],
-            he_kill: hes[1],
-        }).unwrap_err();
+        let err = apply_op(
+            &mut draft,
+            JoinFacesNmt {
+                he_survive: hes[0],
+                he_kill: hes[1],
+            },
+        )
+        .unwrap_err();
         assert!(
             matches!(err, KernelError::InvalidInput { .. }),
-            "Manifold rejection must be KernelError::InvalidInput, got: {:?}", err,
+            "Manifold rejection must be KernelError::InvalidInput, got: {:?}",
+            err,
         );
     }
 
@@ -1571,13 +2253,18 @@ fn rejection_errors_are_typed_invalid_input() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
         let hes = setup_valence_n_edge(&mut draft, 4);
-        let err = apply_op(&mut draft, JoinFacesNmt {
-            he_survive: hes[0],
-            he_kill: hes[0],
-        }).unwrap_err();
+        let err = apply_op(
+            &mut draft,
+            JoinFacesNmt {
+                he_survive: hes[0],
+                he_kill: hes[0],
+            },
+        )
+        .unwrap_err();
         assert!(
             matches!(err, KernelError::InvalidInput { .. }),
-            "Same-face rejection must be KernelError::InvalidInput, got: {:?}", err,
+            "Same-face rejection must be KernelError::InvalidInput, got: {:?}",
+            err,
         );
     }
 
@@ -1593,20 +2280,49 @@ fn rejection_errors_are_typed_invalid_input() {
         let f2 = draft.insert_face(FaceData::new(placeholder_loop(), placeholder_shell()));
         let ha = draft.insert_half_edge(HalfEdgeData::new(ph(), ph(), ph(), f1, v1, edge_a));
         let hb = draft.insert_half_edge(HalfEdgeData::new(ph(), ph(), ph(), f2, v1, edge_b));
-        draft.arena_mut().get_half_edge_mut(ha).unwrap().set_next(ha);
-        draft.arena_mut().get_half_edge_mut(ha).unwrap().set_prev(ha);
-        draft.arena_mut().get_half_edge_mut(ha).unwrap().set_radial_next(ha);
-        draft.arena_mut().get_half_edge_mut(hb).unwrap().set_next(hb);
-        draft.arena_mut().get_half_edge_mut(hb).unwrap().set_prev(hb);
-        draft.arena_mut().get_half_edge_mut(hb).unwrap().set_radial_next(hb);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(ha)
+            .unwrap()
+            .set_next(ha);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(ha)
+            .unwrap()
+            .set_prev(ha);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(ha)
+            .unwrap()
+            .set_radial_next(ha);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(hb)
+            .unwrap()
+            .set_next(hb);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(hb)
+            .unwrap()
+            .set_prev(hb);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(hb)
+            .unwrap()
+            .set_radial_next(hb);
 
-        let err = apply_op(&mut draft, JoinFacesNmt {
-            he_survive: ha,
-            he_kill: hb,
-        }).unwrap_err();
+        let err = apply_op(
+            &mut draft,
+            JoinFacesNmt {
+                he_survive: ha,
+                he_kill: hb,
+            },
+        )
+        .unwrap_err();
         assert!(
             matches!(err, KernelError::InvalidInput { .. }),
-            "Edge-mismatch rejection must be KernelError::InvalidInput, got: {:?}", err,
+            "Edge-mismatch rejection must be KernelError::InvalidInput, got: {:?}",
+            err,
         );
     }
 }
@@ -1621,25 +2337,50 @@ fn rejection_messages_are_distinguishable() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
     let hes = setup_valence_n_edge(&mut draft, 2);
-    let err1 = apply_op(&mut draft, JoinFacesNmt {
-        he_survive: hes[0], he_kill: hes[1],
-    }).unwrap_err();
+    let err1 = apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: hes[0],
+            he_kill: hes[1],
+        },
+    )
+    .unwrap_err();
 
     // Same face.
     let state2 = TopologyState::empty();
     let mut draft2 = state2.into_mutation();
     let hes2 = setup_valence_n_edge(&mut draft2, 4);
-    let err2 = apply_op(&mut draft2, JoinFacesNmt {
-        he_survive: hes2[0], he_kill: hes2[0],
-    }).unwrap_err();
+    let err2 = apply_op(
+        &mut draft2,
+        JoinFacesNmt {
+            he_survive: hes2[0],
+            he_kill: hes2[0],
+        },
+    )
+    .unwrap_err();
 
     // Extract messages.
-    let msg1 = match &err1 { KernelError::InvalidInput { message, .. } => message.clone(), e => panic!("wrong type: {e:?}") };
-    let msg2 = match &err2 { KernelError::InvalidInput { message, .. } => message.clone(), e => panic!("wrong type: {e:?}") };
+    let msg1 = match &err1 {
+        KernelError::InvalidInput { message, .. } => message.clone(),
+        e => panic!("wrong type: {e:?}"),
+    };
+    let msg2 = match &err2 {
+        KernelError::InvalidInput { message, .. } => message.clone(),
+        e => panic!("wrong type: {e:?}"),
+    };
 
-    assert_ne!(msg1, msg2, "Different rejections must produce different messages");
-    assert!(msg1.contains("valence") || msg1.contains("> 2"), "Manifold message should mention valence");
-    assert!(msg2.contains("same face"), "Same-face message should mention 'same face'");
+    assert_ne!(
+        msg1, msg2,
+        "Different rejections must produce different messages"
+    );
+    assert!(
+        msg1.contains("valence") || msg1.contains("> 2"),
+        "Manifold message should mention valence"
+    );
+    assert!(
+        msg2.contains("same face"),
+        "Same-face message should mention 'same face'"
+    );
 }
 
 // ===========================================================================
@@ -1671,12 +2412,20 @@ fn shared_origin_outgoing_he_kill_is_fixed() {
     // Force v1 outgoing to he_k (the KILL halfedge). This is the exact
     // scenario the old code missed — it only checked `vs_out == he_s` in
     // the first branch, and the second branch was guarded by `vertex_k != vertex_s`.
-    draft.arena_mut().get_vertex_mut(v1).unwrap().set_outgoing(he_k);
+    draft
+        .arena_mut()
+        .get_vertex_mut(v1)
+        .unwrap()
+        .set_outgoing(he_k);
 
-    apply_op(&mut draft, JoinFacesNmt {
-        he_survive: he_s,
-        he_kill: he_k,
-    }).unwrap();
+    apply_op(
+        &mut draft,
+        JoinFacesNmt {
+            he_survive: he_s,
+            he_kill: he_k,
+        },
+    )
+    .unwrap();
 
     let v1_out = draft.arena().get_vertex(v1).unwrap().outgoing();
     assert_ne!(
@@ -1688,7 +2437,8 @@ fn shared_origin_outgoing_he_kill_is_fixed() {
         "D2 regression: v1 outgoing must not be slit he_k after shared-origin merge",
     );
     assert_eq!(
-        draft.arena().get_half_edge(v1_out).unwrap().origin(), v1,
+        draft.arena().get_half_edge(v1_out).unwrap().origin(),
+        v1,
         "D2 regression: v1 outgoing replacement must originate at v1",
     );
 }

@@ -87,7 +87,9 @@ pub enum FinalizationEmitError {
 }
 
 impl From<TracePersistenceError> for FinalizationEmitError {
-    fn from(value: TracePersistenceError) -> Self { Self::TracePersistence(value) }
+    fn from(value: TracePersistenceError) -> Self {
+        Self::TracePersistence(value)
+    }
 }
 
 impl CollectedFinalization {
@@ -138,7 +140,13 @@ impl<'a> OperationFinalizer<'a> {
         hashes: TopologyHashBoundary,
         span_output: Option<crate::core::tracing::SpanOutput>,
     ) -> Result<CollectedFinalization, FinalizationError> {
-        self.collect(FinalizationStatus::Success, envelope, adjuncts, hashes, span_output)
+        self.collect(
+            FinalizationStatus::Success,
+            envelope,
+            adjuncts,
+            hashes,
+            span_output,
+        )
     }
 
     pub fn collect_error<T>(
@@ -148,7 +156,13 @@ impl<'a> OperationFinalizer<'a> {
         hashes: TopologyHashBoundary,
         span_output: Option<crate::core::tracing::SpanOutput>,
     ) -> Result<CollectedFinalization, FinalizationError> {
-        self.collect(FinalizationStatus::Error, envelope, adjuncts, hashes, span_output)
+        self.collect(
+            FinalizationStatus::Error,
+            envelope,
+            adjuncts,
+            hashes,
+            span_output,
+        )
     }
 
     fn collect<T>(
@@ -170,12 +184,14 @@ impl<'a> OperationFinalizer<'a> {
 
         // If a span output was provided, merge its decisions, warnings, and metrics directly.
         if let Some(mut span) = span_output {
-            envelope.get_decision_log_mut().merge(std::mem::take(&mut span.decision_log));
-            
+            envelope
+                .get_decision_log_mut()
+                .merge(std::mem::take(&mut span.decision_log));
+
             for w in span.warnings {
                 envelope.add_warning(w);
             }
-            
+
             let mut current_metrics = envelope.take_metrics();
             current_metrics.duration += span.metrics.duration;
             current_metrics.entities_created += span.metrics.entities_created;
@@ -184,7 +200,7 @@ impl<'a> OperationFinalizer<'a> {
             current_metrics.exact_predicate_calls += span.metrics.exact_predicate_calls;
             current_metrics.policy_decisions_made += span.metrics.policy_decisions_made;
             envelope.set_metrics(current_metrics);
-            
+
             let mut current_lineage = envelope.take_lineage_delta();
             current_lineage.faces_created += span.lineage_delta.faces_created;
             current_lineage.faces_deleted += span.lineage_delta.faces_deleted;
@@ -304,7 +320,12 @@ mod tests {
         let mut envelope = OperationResult::new("ok");
         let mut finalizer = OperationFinalizer::new(&mut ctx);
         let first = finalizer
-            .collect_success(&mut envelope, TraceAdjunctSet::new(), TopologyHashBoundary::default(), None)
+            .collect_success(
+                &mut envelope,
+                TraceAdjunctSet::new(),
+                TopologyHashBoundary::default(),
+                None,
+            )
             .expect("first finalization");
         assert_eq!(first.summary.drained_metrics.entities_modified, 3);
         assert_eq!(envelope.get_metrics().entities_modified, 3);
@@ -326,10 +347,14 @@ mod tests {
         let mut ctx = ModelingContext::new();
         ctx.get_decision_log_mut().record(TracedDecision::new(
             DecisionId(7),
-            DecisionKind::Forced { reason: "test_error".into() },
+            DecisionKind::Forced {
+                reason: "test_error".into(),
+            },
             DecisionTier::Escalated,
             0.0,
-            DecisionContext::Degeneracy { description: "fixture".into() },
+            DecisionContext::Degeneracy {
+                description: "fixture".into(),
+            },
         ));
 
         let mut envelope: OperationResult<Result<(), forge_core::KernelError>> =
@@ -378,7 +403,12 @@ mod tests {
             ),
         ]);
         let collected = finalizer
-            .collect_success(&mut envelope, adjuncts.clone(), TopologyHashBoundary::default(), None)
+            .collect_success(
+                &mut envelope,
+                adjuncts.clone(),
+                TopologyHashBoundary::default(),
+                None,
+            )
             .expect("collect");
         let keys: Vec<_> = collected
             .adjuncts
@@ -407,7 +437,10 @@ mod tests {
             .collect_success(
                 &mut envelope,
                 TraceAdjunctSet::new(),
-                TopologyHashBoundary { before: Some(11), after: Some(22) },
+                TopologyHashBoundary {
+                    before: Some(11),
+                    after: Some(22),
+                },
                 None,
             )
             .expect("collect");

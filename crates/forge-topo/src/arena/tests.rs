@@ -1,8 +1,8 @@
 //! Unit tests for the arena module.
 
 use super::*;
-use crate::handles::{HalfEdgeId, LoopId, VertexId, FaceId};
-use crate::testing::{dummy_vertex_data, dummy_face_data, dummy_halfedge_data};
+use crate::handles::{FaceId, HalfEdgeId, LoopId, VertexId};
+use crate::testing::{dummy_face_data, dummy_halfedge_data, dummy_vertex_data};
 
 #[test]
 fn insert_and_get_vertex() {
@@ -91,7 +91,9 @@ fn paired_halfedge_insertion_sets_twins() {
 
     let (he0, he1) = arena.insert_radial_pair(
         dummy_halfedge_data(face, vertex),
-        dummy_halfedge_data(face, vertex), None);
+        dummy_halfedge_data(face, vertex),
+        None,
+    );
     assert_eq!(arena.half_edge_count(), 2);
     assert_eq!(arena.get_half_edge(he0).unwrap().radial_next(), he1);
     assert_eq!(arena.get_half_edge(he1).unwrap().radial_next(), he0);
@@ -101,10 +103,7 @@ fn paired_halfedge_insertion_sets_twins() {
 fn loop_insert_and_get() {
     let mut arena = TopologyArena::new();
     let face = arena.insert_face(dummy_face_data(), None);
-    let loop_id = arena.insert_loop(LoopData::new(
-        HalfEdgeId::new(0, 0),
-        face,
-    ), None);
+    let loop_id = arena.insert_loop(LoopData::new(HalfEdgeId::new(0, 0), face), None);
     assert_eq!(arena.loop_count(), 1);
     assert!(arena.get_loop(loop_id).is_ok());
 }

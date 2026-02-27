@@ -176,7 +176,8 @@ impl LineageStore {
     /// Returns all `LineageEvent`s that reference this entity,
     /// in chronological order.
     pub fn query_entity_history(&self, entity: &EntityRef) -> Vec<&LineageEvent> {
-        self.events.iter()
+        self.events
+            .iter()
             .filter(|e| e.get_entity() == entity)
             .collect()
     }
@@ -247,7 +248,9 @@ mod tests {
         let updated = Lineage::root(10, OpSignature::new("split"));
 
         store.record_creation(entity.clone(), original);
-        store.record_mutation(entity.clone(), updated.clone()).unwrap();
+        store
+            .record_mutation(entity.clone(), updated.clone())
+            .unwrap();
 
         let current = store.get_lineage(&entity).unwrap();
         assert_eq!(current.get_creation_op().get_name(), "split");
@@ -266,7 +269,9 @@ mod tests {
         store.record_creation_with_snapshot(entity, snapshot, lineage);
 
         match &store.events()[0] {
-            LineageEvent::EntityCreated { entity_snapshot, .. } => {
+            LineageEvent::EntityCreated {
+                entity_snapshot, ..
+            } => {
                 assert_eq!(*entity_snapshot, Some(snapshot));
             }
             _ => panic!("expected created event"),

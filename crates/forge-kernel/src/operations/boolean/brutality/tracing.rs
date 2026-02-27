@@ -5,11 +5,11 @@
 //! summaries, and diffs all work end-to-end.
 
 use crate::brep::state::BrepState;
-use forge_core::{TraceEvent, DecisionTier};
+use forge_core::{DecisionTier, TraceEvent};
 
-use super::super::test_helpers::build_cube;
 use super::super::parametric::assemble::merge::execute_boolean_direct;
 use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::test_helpers::build_cube;
 
 // ══════════════════════════════════════════════════════════════
 // §9  TRACING API INTEGRATION TESTS
@@ -25,27 +25,49 @@ fn boolean_produces_span_events() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
     let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
-    let input = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Intersection);
+    let input = BooleanInput::new(
+        topo_a,
+        geom_a,
+        BrepState::new(),
+        topo_b,
+        geom_b,
+        BrepState::new(),
+        BooleanOp::Intersection,
+    );
     let envelope = execute_boolean_direct(input);
-assert!(envelope.get_value().is_ok(), "Boolean should succeed: {:?}", envelope.get_value().as_ref().err());
+    assert!(
+        envelope.get_value().is_ok(),
+        "Boolean should succeed: {:?}",
+        envelope.get_value().as_ref().err()
+    );
 
     let log = envelope.get_decision_log();
 
-    let span_starts: Vec<&str> = log.get_events().iter().filter_map(|e| match e {
-        TraceEvent::StartSpan { name, .. } => Some(name.as_str()),
-        _ => None,
-    }).collect();
+    let span_starts: Vec<&str> = log
+        .get_events()
+        .iter()
+        .filter_map(|e| match e {
+            TraceEvent::StartSpan { name, .. } => Some(name.as_str()),
+            _ => None,
+        })
+        .collect();
 
-    let span_ends: Vec<_> = log.get_events().iter().filter(|e| matches!(e, TraceEvent::EndSpan { .. })).collect();
+    let span_ends: Vec<_> = log
+        .get_events()
+        .iter()
+        .filter(|e| matches!(e, TraceEvent::EndSpan { .. }))
+        .collect();
 
     assert!(
         span_starts.len() >= 4,
         "Expected at least 4 phase spans, got {}: {:?}",
-        span_starts.len(), span_starts,
+        span_starts.len(),
+        span_starts,
     );
 
     assert_eq!(
-        span_starts.len(), span_ends.len(),
+        span_starts.len(),
+        span_ends.len(),
         "Every StartSpan must have a matching EndSpan",
     );
 
@@ -63,14 +85,30 @@ fn span_durations_are_nonzero() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 2.0);
     let (topo_b, geom_b) = build_cube([1.0, 1.0, 1.0], 2.0);
 
-    let input = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Union);
+    let input = BooleanInput::new(
+        topo_a,
+        geom_a,
+        BrepState::new(),
+        topo_b,
+        geom_b,
+        BrepState::new(),
+        BooleanOp::Union,
+    );
     let envelope = execute_boolean_direct(input);
-assert!(envelope.get_value().is_ok(), "Boolean should succeed: {:?}", envelope.get_value().as_ref().err());
+    assert!(
+        envelope.get_value().is_ok(),
+        "Boolean should succeed: {:?}",
+        envelope.get_value().as_ref().err()
+    );
 
     let log = envelope.get_decision_log();
 
     for event in log.get_events() {
-        if let TraceEvent::EndSpan { duration_micros, id } = event {
+        if let TraceEvent::EndSpan {
+            duration_micros,
+            id,
+        } = event
+        {
             assert!(
                 *duration_micros > 0,
                 "Span {:?} ended with zero duration — scope() timing is broken",
@@ -89,15 +127,30 @@ fn decisions_carry_span_ids() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
     let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
-    let input = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Subtraction);
+    let input = BooleanInput::new(
+        topo_a,
+        geom_a,
+        BrepState::new(),
+        topo_b,
+        geom_b,
+        BrepState::new(),
+        BooleanOp::Subtraction,
+    );
     let envelope = execute_boolean_direct(input);
-assert!(envelope.get_value().is_ok(), "Boolean should succeed: {:?}", envelope.get_value().as_ref().err());
+    assert!(
+        envelope.get_value().is_ok(),
+        "Boolean should succeed: {:?}",
+        envelope.get_value().as_ref().err()
+    );
 
     let log = envelope.get_decision_log();
     let decisions: Vec<_> = log.decisions().collect();
 
     if !decisions.is_empty() {
-        let with_span: Vec<_> = decisions.iter().filter(|d| d.get_span_id().is_some()).collect();
+        let with_span: Vec<_> = decisions
+            .iter()
+            .filter(|d| d.get_span_id().is_some())
+            .collect();
 
         assert!(
             !with_span.is_empty(),
@@ -115,26 +168,45 @@ fn summary_stats_match_manual_count() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
     let (topo_b, geom_b) = build_cube([0.5, 0.5, 0.5], 1.0);
 
-    let input = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Intersection);
+    let input = BooleanInput::new(
+        topo_a,
+        geom_a,
+        BrepState::new(),
+        topo_b,
+        geom_b,
+        BrepState::new(),
+        BooleanOp::Intersection,
+    );
     let envelope = execute_boolean_direct(input);
-assert!(envelope.get_value().is_ok(), "Boolean should succeed: {:?}", envelope.get_value().as_ref().err());
+    assert!(
+        envelope.get_value().is_ok(),
+        "Boolean should succeed: {:?}",
+        envelope.get_value().as_ref().err()
+    );
 
     let log = envelope.get_decision_log();
     let summary = log.summary();
 
     let manual_total = log.decisions().count();
-    assert_eq!(summary.total, manual_total, "summary.total should match decisions().count()");
+    assert_eq!(
+        summary.total, manual_total,
+        "summary.total should match decisions().count()"
+    );
 
     // Verify kind-based counts add up to total
-    let kind_sum = summary.exact + summary.policy_applied
-        + summary.near_boundary + summary.ambiguous + summary.forced;
+    let kind_sum = summary.exact
+        + summary.policy_applied
+        + summary.near_boundary
+        + summary.ambiguous
+        + summary.forced;
     assert_eq!(
         kind_sum, summary.total,
         "Kind-based counts should sum to total",
     );
 
     // Verify tier-based interesting_only() is consistent with manual tier filtering
-    let manual_interesting = log.decisions()
+    let manual_interesting = log
+        .decisions()
         .filter(|d| d.get_tier() >= DecisionTier::NearBoundary)
         .count();
     let api_interesting = log.interesting_only().len();
@@ -154,9 +226,21 @@ fn trace_summary_from_real_boolean() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
     let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
-    let input = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Union);
+    let input = BooleanInput::new(
+        topo_a,
+        geom_a,
+        BrepState::new(),
+        topo_b,
+        geom_b,
+        BrepState::new(),
+        BooleanOp::Union,
+    );
     let envelope = execute_boolean_direct(input);
-assert!(envelope.get_value().is_ok(), "Boolean should succeed: {:?}", envelope.get_value().as_ref().err());
+    assert!(
+        envelope.get_value().is_ok(),
+        "Boolean should succeed: {:?}",
+        envelope.get_value().as_ref().err()
+    );
 
     let log = envelope.get_decision_log();
     let state_hash = envelope.get_state_hash_after();
@@ -194,22 +278,39 @@ fn trace_diff_between_different_booleans() {
     let (topo_b, geom_b) = build_cube([0.0, 0.0, 0.0], 1.0);
 
     let input1 = BooleanInput::new(
-        topo_a.clone(), geom_a.clone(), topo_b.clone(), geom_b.clone(),
+        topo_a.clone(),
+        geom_a.clone(),
+        topo_b.clone(),
+        geom_b.clone(),
         BooleanOp::Intersection,
     );
     let envelope1 = execute_boolean_direct(input1);
-    assert!(envelope1.get_value().is_ok(), "Boolean 1 (Intersection) should succeed");
+    assert!(
+        envelope1.get_value().is_ok(),
+        "Boolean 1 (Intersection) should succeed"
+    );
 
-    let input2 = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Subtraction);
+    let input2 = BooleanInput::new(
+        topo_a,
+        geom_a,
+        BrepState::new(),
+        topo_b,
+        geom_b,
+        BrepState::new(),
+        BooleanOp::Subtraction,
+    );
     let envelope2 = execute_boolean_direct(input2);
-    assert!(envelope2.get_value().is_ok(), "Boolean 2 (Subtraction) should succeed");
+    assert!(
+        envelope2.get_value().is_ok(),
+        "Boolean 2 (Subtraction) should succeed"
+    );
 
-    let summary1 = envelope1.get_decision_log().to_summary(
-        envelope1.get_state_hash_after(),
-    );
-    let summary2 = envelope2.get_decision_log().to_summary(
-        envelope2.get_state_hash_after(),
-    );
+    let summary1 = envelope1
+        .get_decision_log()
+        .to_summary(envelope1.get_state_hash_after());
+    let summary2 = envelope2
+        .get_decision_log()
+        .to_summary(envelope2.get_state_hash_after());
 
     let diff = summary2.diff(&summary1);
 
@@ -229,7 +330,15 @@ fn same_operation_produces_identical_summary() {
         let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
         let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
-        let input = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Intersection);
+        let input = BooleanInput::new(
+            topo_a,
+            geom_a,
+            BrepState::new(),
+            topo_b,
+            geom_b,
+            BrepState::new(),
+            BooleanOp::Intersection,
+        );
         execute_boolean_direct(input)
     };
 
@@ -238,20 +347,24 @@ fn same_operation_produces_identical_summary() {
     let envelope2 = run();
     assert!(envelope2.get_value().is_ok(), "Boolean should succeed");
 
-    let summary1 = envelope1.get_decision_log().to_summary(
-        envelope1.get_state_hash_after(),
-    );
-    let summary2 = envelope2.get_decision_log().to_summary(
-        envelope2.get_state_hash_after(),
-    );
+    let summary1 = envelope1
+        .get_decision_log()
+        .to_summary(envelope1.get_state_hash_after());
+    let summary2 = envelope2
+        .get_decision_log()
+        .to_summary(envelope2.get_state_hash_after());
 
     assert_eq!(
-        summary1.get_state_hash(), summary2.get_state_hash(),
+        summary1.get_state_hash(),
+        summary2.get_state_hash(),
         "Same operation should produce same topology hash",
     );
 
     let diff = summary1.diff(&summary2);
-    assert!(!diff.state_hash_changed, "State hash should not change between identical runs");
+    assert!(
+        !diff.state_hash_changed,
+        "State hash should not change between identical runs"
+    );
 }
 
 /// 9.8 — Disjoint cubes use the zero_split fast path.
@@ -264,31 +377,50 @@ fn disjoint_cubes_full_pipeline_spans() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
     let (topo_b, geom_b) = build_cube([10.0, 0.0, 0.0], 1.0);
 
-    let input = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Union);
+    let input = BooleanInput::new(
+        topo_a,
+        geom_a,
+        BrepState::new(),
+        topo_b,
+        geom_b,
+        BrepState::new(),
+        BooleanOp::Union,
+    );
     let envelope = execute_boolean_direct(input);
-assert!(envelope.get_value().is_ok(), "Disjoint union should succeed: {:?}", envelope.get_value().as_ref().err());
+    assert!(
+        envelope.get_value().is_ok(),
+        "Disjoint union should succeed: {:?}",
+        envelope.get_value().as_ref().err()
+    );
 
     let log = envelope.get_decision_log();
 
-    let span_names: Vec<&str> = log.get_events().iter().filter_map(|e| match e {
-        TraceEvent::StartSpan { name, .. } => Some(name.as_str()),
-        _ => None,
-    }).collect();
+    let span_names: Vec<&str> = log
+        .get_events()
+        .iter()
+        .filter_map(|e| match e {
+            TraceEvent::StartSpan { name, .. } => Some(name.as_str()),
+            _ => None,
+        })
+        .collect();
 
     assert!(
         span_names.contains(&"split"),
-        "Should have a split span, got: {:?}", span_names,
+        "Should have a split span, got: {:?}",
+        span_names,
     );
 
     assert!(
         span_names.contains(&"zero_split"),
-        "Disjoint cubes should use the zero_split fast path, got: {:?}", span_names,
+        "Disjoint cubes should use the zero_split fast path, got: {:?}",
+        span_names,
     );
 
     // Disjoint cubes are fully handled by zero_split — no classify/select needed
     assert!(
         !span_names.contains(&"classify"),
-        "Disjoint cubes should NOT fall through to classify (fast path handles them). Got: {:?}", span_names,
+        "Disjoint cubes should NOT fall through to classify (fast path handles them). Got: {:?}",
+        span_names,
     );
 }
 
@@ -301,15 +433,33 @@ fn display_interesting_is_not_empty() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
     let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
-    let input = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Subtraction);
+    let input = BooleanInput::new(
+        topo_a,
+        geom_a,
+        BrepState::new(),
+        topo_b,
+        geom_b,
+        BrepState::new(),
+        BooleanOp::Subtraction,
+    );
     let envelope = execute_boolean_direct(input);
-assert!(envelope.get_value().is_ok(), "Boolean should succeed: {:?}", envelope.get_value().as_ref().err());
+    assert!(
+        envelope.get_value().is_ok(),
+        "Boolean should succeed: {:?}",
+        envelope.get_value().as_ref().err()
+    );
 
     let log = envelope.get_decision_log();
     let output = log.display_interesting();
 
-    assert!(!output.is_empty(), "display_interesting() should produce output");
-    assert!(output.contains("decisions"), "Output should mention decision counts");
+    assert!(
+        !output.is_empty(),
+        "display_interesting() should produce output"
+    );
+    assert!(
+        output.contains("decisions"),
+        "Output should mention decision counts"
+    );
 }
 
 /// 9.10 — Tier filtering is consistent with event content.
@@ -321,20 +471,34 @@ fn tier_filtering_matches_event_content() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
     let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
-    let input = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Intersection);
+    let input = BooleanInput::new(
+        topo_a,
+        geom_a,
+        BrepState::new(),
+        topo_b,
+        geom_b,
+        BrepState::new(),
+        BooleanOp::Intersection,
+    );
     let envelope = execute_boolean_direct(input);
-assert!(envelope.get_value().is_ok(), "Boolean should succeed: {:?}", envelope.get_value().as_ref().err());
+    assert!(
+        envelope.get_value().is_ok(),
+        "Boolean should succeed: {:?}",
+        envelope.get_value().as_ref().err()
+    );
 
     let log = envelope.get_decision_log();
     let interesting = log.interesting_only();
     let all_decisions: Vec<_> = log.decisions().collect();
 
-    let manual_tier2_plus = all_decisions.iter()
+    let manual_tier2_plus = all_decisions
+        .iter()
         .filter(|d| d.get_tier() >= DecisionTier::NearBoundary)
         .count();
 
     assert_eq!(
-        interesting.len(), manual_tier2_plus,
+        interesting.len(),
+        manual_tier2_plus,
         "interesting_only() should match manual Tier2+ count",
     );
 }

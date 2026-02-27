@@ -6,8 +6,8 @@
 //! PV-52: Local coordinate round-trip < 1 ULP
 
 use forge_geom::spatial::local_space::{LocalCoordinateSpace, ScaleAnalysis};
-use forge_math::predicates::orient3d::orient3d;
 use forge_math::arithmetic::precision::PrecisionMode;
+use forge_math::predicates::orient3d::orient3d;
 
 /// ULP computation (mirrors forge-math's internal ulp).
 fn ulp(x: f64) -> f64 {

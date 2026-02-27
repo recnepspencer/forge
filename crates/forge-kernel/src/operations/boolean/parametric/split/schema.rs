@@ -11,8 +11,8 @@ use forge_math::arithmetic::Rational;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::state::TopologyState;
 
-use crate::geometry_state::GeometryState;
 use crate::core::ToleranceConfig;
+use crate::geometry_state::GeometryState;
 use crate::shared_ops::vertex_identity::VertexMatchKey;
 
 /// Read-only configuration for the split phase.
@@ -70,11 +70,17 @@ pub struct SplitPhaseResult {
 }
 
 impl SplitPhaseResult {
-    pub fn split_count(&self) -> usize { self.split_count }
+    pub fn split_count(&self) -> usize {
+        self.split_count
+    }
 
-    pub fn into_parts(self) -> (
-        TopologyState, GeometryState,
-        TopologyState, GeometryState,
+    pub fn into_parts(
+        self,
+    ) -> (
+        TopologyState,
+        GeometryState,
+        TopologyState,
+        GeometryState,
         BTreeMap<VertexId, VertexMatchKey>,
         BTreeMap<VertexId, VertexMatchKey>,
     ) {
@@ -111,7 +117,11 @@ pub struct ExpectedCutInterval {
 pub fn make_edge_key(v1: VertexId, v2: VertexId) -> (u32, u32) {
     let a = v1.index();
     let b = v2.index();
-    if a <= b { (a, b) } else { (b, a) }
+    if a <= b {
+        (a, b)
+    } else {
+        (b, a)
+    }
 }
 
 /// Deduplication map for a single solid's vertices.
@@ -162,7 +172,9 @@ pub struct SharedVertexRegistry {
 
 impl SharedVertexRegistry {
     pub fn new() -> Self {
-        Self { positions: BTreeMap::new() }
+        Self {
+            positions: BTreeMap::new(),
+        }
     }
 
     /// Register a position for a 3-plane key.

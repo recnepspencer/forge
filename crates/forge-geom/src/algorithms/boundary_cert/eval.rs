@@ -13,12 +13,12 @@
 //! Akitaya's recognition criteria are then applied to the resulting exact
 //! arrangement graph combinatorial strands.
 
-use forge_math::numeric::sign::TriSign;
 use forge_math::arithmetic::rational::Rational;
+use forge_math::numeric::sign::TriSign;
 
 use super::schema::{
-    BoundaryArrangement, BoundaryCertError, BoundaryRejectReason,
-    ProjectedBoundary2D, ProjectionFrame2D, Segment2D, WeakSimpleCertificate,
+    BoundaryArrangement, BoundaryCertError, BoundaryRejectReason, ProjectedBoundary2D,
+    ProjectionFrame2D, Segment2D, WeakSimpleCertificate,
 };
 
 /// Build a deterministic projection frame from a 3D plane normal.
@@ -111,9 +111,7 @@ pub fn certify_boundary(boundary: &ProjectedBoundary2D) -> WeakSimpleCertificate
         FastPathResult::Rejected { reason, witness } => {
             WeakSimpleCertificate::Rejected { reason, witness }
         }
-        FastPathResult::NeedsFallback => {
-            run_fallback_certifier(segments)
-        }
+        FastPathResult::NeedsFallback => run_fallback_certifier(segments),
     }
 }
 
@@ -208,8 +206,10 @@ enum SegmentPairClass {
 /// Propagates predicate errors as `PredicateFailure` — never silently
 /// maps them to `TriSign::Zero`.
 fn classify_segment_pair_exact(
-    a0: [f64; 2], a1: [f64; 2],
-    b0: [f64; 2], b1: [f64; 2],
+    a0: [f64; 2],
+    a1: [f64; 2],
+    b0: [f64; 2],
+    b1: [f64; 2],
 ) -> SegmentPairClass {
     let d1 = match orient2d_sign(a0, a1, b0) {
         Ok(s) => s,
@@ -253,7 +253,11 @@ fn classify_segment_pair_exact(
 ///
 /// Returns `Err` on predicate evaluation failure — callers MUST NOT
 /// silently map this to `TriSign::Zero`.
-fn orient2d_sign(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> Result<TriSign, forge_math::MathError> {
+fn orient2d_sign(
+    pa: [f64; 2],
+    pb: [f64; 2],
+    pc: [f64; 2],
+) -> Result<TriSign, forge_math::MathError> {
     let (certified, _) = forge_math::predicates::orient2d(pa, pb, pc)?;
     Ok(certified.sign())
 }
@@ -261,10 +265,7 @@ fn orient2d_sign(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> Result<TriSign, fo
 /// Approximate crossing point for witness reporting.
 ///
 /// Uses parametric line intersection. Not exact — for diagnostics only.
-fn approximate_crossing_point(
-    a0: [f64; 2], a1: [f64; 2],
-    b0: [f64; 2], b1: [f64; 2],
-) -> [f64; 2] {
+fn approximate_crossing_point(a0: [f64; 2], a1: [f64; 2], b0: [f64; 2], b1: [f64; 2]) -> [f64; 2] {
     let da = [a1[0] - a0[0], a1[1] - a0[1]];
     let db = [b1[0] - b0[0], b1[1] - b0[1]];
     let denom = da[0] * db[1] - da[1] * db[0];
@@ -365,8 +366,8 @@ fn cert_error_to_rejected(
             };
         }
         BoundaryCertError::OutOfRangeParameter => BoundaryRejectReason::DegenerateBoundary,
-        BoundaryCertError::PredicateFailure    => BoundaryRejectReason::DegenerateBoundary,
-        BoundaryCertError::DegenerateVector    => BoundaryRejectReason::DegenerateBoundary,
+        BoundaryCertError::PredicateFailure => BoundaryRejectReason::DegenerateBoundary,
+        BoundaryCertError::DegenerateVector => BoundaryRejectReason::DegenerateBoundary,
     };
 
     WeakSimpleCertificate::Rejected { reason, witness }
@@ -387,12 +388,15 @@ fn run_fallback_certifier(segments: &[Segment2D]) -> WeakSimpleCertificate {
     }
 }
 
-
 /// Build a boundary arrangement by computing exact atomic splits and vertices.
 fn build_arrangement(segments: &[Segment2D]) -> Result<BoundaryArrangement, BoundaryCertError> {
     let (atomics, vertices) = crate::algorithms::boundary_cert::split::compute_splits(segments)?;
-    
-    Ok(BoundaryArrangement::new(segments.to_vec(), atomics, vertices))
+
+    Ok(BoundaryArrangement::new(
+        segments.to_vec(),
+        atomics,
+        vertices,
+    ))
 }
 
 /// Returns the CCW quadrant [0, 3] for an exact direction vector `(dx, dy)`.
@@ -416,10 +420,14 @@ fn get_quadrant_from_exact_vec(dx: &Rational, dy: &Rational) -> Result<u8, Bound
     }
 
     if dx_pos || dx_zero {
-        if dy_pos || (dy_zero && dx_pos) { return Ok(0); }
+        if dy_pos || (dy_zero && dx_pos) {
+            return Ok(0);
+        }
         return Ok(3);
     } else {
-        if dy_pos || (dy_zero && !dx_pos) { return Ok(1); }
+        if dy_pos || (dy_zero && !dx_pos) {
+            return Ok(1);
+        }
         return Ok(2);
     }
 }
@@ -432,7 +440,9 @@ fn get_quadrant_from_exact_vec(dx: &Rational, dy: &Rational) -> Result<u8, Bound
 /// 3. Check high-valence vertices (>= 4 incident atomics)
 /// 4. Angularly sort incident edges at high-valence vertices.
 /// 5. Check interleaving pattern. ABAB = crossing (Reject), AABB = touch (Admit).
-fn classify_arrangement(arrangement: &BoundaryArrangement) -> Result<WeakSimpleCertificate, BoundaryCertError> {
+fn classify_arrangement(
+    arrangement: &BoundaryArrangement,
+) -> Result<WeakSimpleCertificate, BoundaryCertError> {
     let atomics = arrangement.get_atomic_segments();
     let vertices = arrangement.get_vertices();
 
@@ -449,8 +459,13 @@ fn classify_arrangement(arrangement: &BoundaryArrangement) -> Result<WeakSimpleC
     let n_sources = arrangement.get_source_segments().len();
     let mut ordered_tour = Vec::new();
     for src_id in 0..n_sources {
-        let mut atomics_for_src: Vec<_> = atomics.iter().enumerate().filter(|(_, a)| a.source_segment == src_id).collect();
-        atomics_for_src.sort_by(|(_, a), (_, b)| a.t_range[0].as_rational().cmp(b.t_range[0].as_rational()));
+        let mut atomics_for_src: Vec<_> = atomics
+            .iter()
+            .enumerate()
+            .filter(|(_, a)| a.source_segment == src_id)
+            .collect();
+        atomics_for_src
+            .sort_by(|(_, a), (_, b)| a.t_range[0].as_rational().cmp(b.t_range[0].as_rational()));
         for (idx, _) in atomics_for_src {
             ordered_tour.push(idx);
         }
@@ -461,7 +476,7 @@ fn classify_arrangement(arrangement: &BoundaryArrangement) -> Result<WeakSimpleC
     // Analyze each vertex in the graph
     for v in vertices {
         let incident_edges = &v.incident_atomic_edges;
-        
+
         // High-valence vertex: potential touch, crossing, or overlap
         if incident_edges.len() >= 4 {
             // Pre-compute exact outgoing direction vectors and quadrants before sorting.
@@ -500,13 +515,19 @@ fn classify_arrangement(arrangement: &BoundaryArrangement) -> Result<WeakSimpleC
             // Sort by (quadrant, then cross-product within quadrant) — both infallible
             outgoing.sort_by(|a, b| {
                 let q_cmp = a.quadrant.cmp(&b.quadrant);
-                if q_cmp != std::cmp::Ordering::Equal { return q_cmp; }
-                // Same quadrant: cross product (a x b) > 0 means a is CCW of b  
+                if q_cmp != std::cmp::Ordering::Equal {
+                    return q_cmp;
+                }
+                // Same quadrant: cross product (a x b) > 0 means a is CCW of b
                 let cross = a.dx.clone() * b.dy.clone() - a.dy.clone() * b.dx.clone();
                 let zero = Rational::zero();
-                if cross > zero { std::cmp::Ordering::Less }
-                else if cross < zero { std::cmp::Ordering::Greater }
-                else { std::cmp::Ordering::Equal }
+                if cross > zero {
+                    std::cmp::Ordering::Less
+                } else if cross < zero {
+                    std::cmp::Ordering::Greater
+                } else {
+                    std::cmp::Ordering::Equal
+                }
             });
 
             // Collinear overlap detection has been moved to compute_splits, where exact
@@ -523,7 +544,7 @@ fn classify_arrangement(arrangement: &BoundaryArrangement) -> Result<WeakSimpleC
             for k in 0..m {
                 let e_in = ordered_tour[k];
                 let e_out = ordered_tour[(k + 1) % m];
-                
+
                 if radial_pos.contains_key(&e_in) && radial_pos.contains_key(&e_out) {
                     let p_in = radial_pos[&e_in];
                     let p_out = radial_pos[&e_out];
@@ -540,12 +561,12 @@ fn classify_arrangement(arrangement: &BoundaryArrangement) -> Result<WeakSimpleC
                 for j in (i + 1)..strands.len() {
                     let (p1, p2) = strands[i];
                     let (q1, q2) = strands[j];
-                    
+
                     let (min1, max1) = if p1 < p2 { (p1, p2) } else { (p2, p1) };
-                    
+
                     let q1_in = q1 > min1 && q1 < max1;
                     let q2_in = q2 > min1 && q2 < max1;
-                    
+
                     if q1_in != q2_in {
                         crossings += 1;
                     }
@@ -558,7 +579,7 @@ fn classify_arrangement(arrangement: &BoundaryArrangement) -> Result<WeakSimpleC
                     witness: v.position,
                 });
             }
-            
+
             // Admissible touch
             touch_count += 1;
         }

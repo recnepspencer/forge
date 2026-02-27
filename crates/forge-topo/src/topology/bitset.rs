@@ -42,7 +42,8 @@ impl EntityBitset {
 
     /// Create a bitset sized for faces in the given arena.
     pub fn for_faces(arena: &crate::arena::TopologyArena) -> Self {
-        let max_index = arena.iter_faces()
+        let max_index = arena
+            .iter_faces()
             .map(|(id, _)| id.index())
             .max()
             .map(|m| m + 1)
@@ -52,7 +53,8 @@ impl EntityBitset {
 
     /// Create a bitset sized for half-edges in the given arena.
     pub fn for_half_edges(arena: &crate::arena::TopologyArena) -> Self {
-        let max_index = arena.iter_half_edges()
+        let max_index = arena
+            .iter_half_edges()
             .map(|(id, _)| id.index())
             .max()
             .map(|m| m + 1)
@@ -62,7 +64,8 @@ impl EntityBitset {
 
     /// Create a bitset sized for vertices in the given arena.
     pub fn for_vertices(arena: &crate::arena::TopologyArena) -> Self {
-        let max_index = arena.iter_vertices()
+        let max_index = arena
+            .iter_vertices()
             .map(|(id, _)| id.index())
             .max()
             .map(|m| m + 1)
@@ -72,7 +75,8 @@ impl EntityBitset {
 
     /// Create a bitset sized for edges in the given arena.
     pub fn for_edges(arena: &crate::arena::TopologyArena) -> Self {
-        let max_index = arena.iter_edges()
+        let max_index = arena
+            .iter_edges()
             .map(|(id, _)| id.index())
             .max()
             .map(|m| m + 1)
@@ -149,7 +153,11 @@ impl EntityBitset {
 
     /// Iterate over all set bit indices in ascending order.
     pub fn iter_ones(&self) -> BitsetIterator<'_> {
-        let current_word = if self.words.is_empty() { 0 } else { self.words[0] };
+        let current_word = if self.words.is_empty() {
+            0
+        } else {
+            self.words[0]
+        };
         BitsetIterator {
             words: &self.words,
             word_idx: 0,
@@ -265,7 +273,6 @@ fn word_count_for(capacity: u32) -> usize {
 fn split_index(index: u32) -> (usize, u32) {
     ((index / 64) as usize, index % 64)
 }
-
 
 #[cfg(test)]
 mod tests {

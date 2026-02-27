@@ -1,5 +1,5 @@
-use super::super::test_helpers::{build_cube, try_boolean, execute_boolean_logged};
 use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::test_helpers::{build_cube, execute_boolean_logged, try_boolean};
 use forge_topo::hashing::compute_arena_topology_hash;
 
 // ══════════════════════════════════════════════════════════════
@@ -17,17 +17,9 @@ fn hash_stability_ab_vs_ba() {
     let (topo_a2, geom_a2) = build_cube([0.0, 0.0, 0.0], 1.0);
     let (topo_b2, geom_b2) = build_cube([0.5, 0.5, 0.5], 1.0);
 
-    let input_ab = BooleanInput::new(
-        topo_a, geom_a,
-        topo_b, geom_b,
-        BooleanOp::Union,
-    );
+    let input_ab = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
 
-    let input_ba = BooleanInput::new(
-        topo_b2, geom_b2,
-        topo_a2, geom_a2,
-        BooleanOp::Union,
-    );
+    let input_ba = BooleanInput::new(topo_b2, geom_b2, topo_a2, geom_a2, BooleanOp::Union);
 
     let result_ab = execute_boolean_logged(input_ab).into_result().unwrap();
     let result_ba = execute_boolean_logged(input_ba).into_result().unwrap();
@@ -66,15 +58,51 @@ fn hash_stability_ab_vs_ba() {
 fn boolean_replay_100x() {
     let cases: Vec<([f64; 3], f64, [f64; 3], f64, BooleanOp)> = vec![
         ([0.0, 0.0, 0.0], 1.0, [0.5, 0.0, 0.0], 1.0, BooleanOp::Union),
-        ([0.0, 0.0, 0.0], 1.0, [0.5, 0.0, 0.0], 1.0, BooleanOp::Subtraction),
-        ([0.0, 0.0, 0.0], 1.0, [0.5, 0.0, 0.0], 1.0, BooleanOp::Intersection),
-        ([0.0, 0.0, 0.0], 2.0, [0.0, 0.0, 0.0], 1.0, BooleanOp::Subtraction),
-        ([0.0, 0.0, 0.0], 2.0, [0.0, 0.0, 0.0], 1.0, BooleanOp::Intersection),
+        (
+            [0.0, 0.0, 0.0],
+            1.0,
+            [0.5, 0.0, 0.0],
+            1.0,
+            BooleanOp::Subtraction,
+        ),
+        (
+            [0.0, 0.0, 0.0],
+            1.0,
+            [0.5, 0.0, 0.0],
+            1.0,
+            BooleanOp::Intersection,
+        ),
+        (
+            [0.0, 0.0, 0.0],
+            2.0,
+            [0.0, 0.0, 0.0],
+            1.0,
+            BooleanOp::Subtraction,
+        ),
+        (
+            [0.0, 0.0, 0.0],
+            2.0,
+            [0.0, 0.0, 0.0],
+            1.0,
+            BooleanOp::Intersection,
+        ),
         ([0.0, 0.0, 0.0], 1.0, [5.0, 0.0, 0.0], 1.0, BooleanOp::Union),
         ([1.0, 1.0, 1.0], 1.0, [2.0, 1.0, 1.0], 1.0, BooleanOp::Union),
         ([0.0, 0.0, 0.0], 1.0, [1.0, 1.0, 0.0], 1.0, BooleanOp::Union),
-        ([0.0, 0.0, 0.0], 3.0, [1.0, 1.0, 1.0], 1.0, BooleanOp::Subtraction),
-        ([0.0, 0.0, 0.0], 1.5, [0.5, 0.0, 0.0], 1.5, BooleanOp::Intersection),
+        (
+            [0.0, 0.0, 0.0],
+            3.0,
+            [1.0, 1.0, 1.0],
+            1.0,
+            BooleanOp::Subtraction,
+        ),
+        (
+            [0.0, 0.0, 0.0],
+            1.5,
+            [0.5, 0.0, 0.0],
+            1.5,
+            BooleanOp::Intersection,
+        ),
     ];
 
     for (case_idx, &(ca, ha, cb, hb, op)) in cases.iter().enumerate() {

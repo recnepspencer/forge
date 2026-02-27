@@ -4,8 +4,8 @@
 //! INVARIANTS: No crashes, no non-manifold output, every ambiguous case logged.
 //! DEPENDENCIES: `boolean` (execute_boolean), `geometry_state`, `mesh_builder`
 
-use super::super::test_helpers::{run_boolean, try_boolean};
 use super::super::schema::BooleanOp;
+use super::super::test_helpers::{run_boolean, try_boolean};
 
 // ──────────────────────────────────────────────────────────
 // 1. COPLANAR FACE OVERLAPS
@@ -19,11 +19,7 @@ use super::super::schema::BooleanOp;
 /// Union should NOT crash and should produce a valid result.
 #[test]
 fn coplanar_shared_face_union() {
-    let result = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [2.0, 0.0, 0.0], 1.0,
-        BooleanOp::Union,
-    );
+    let result = try_boolean([0.0, 0.0, 0.0], 1.0, [2.0, 0.0, 0.0], 1.0, BooleanOp::Union);
 
     assert!(
         result.is_ok(),
@@ -45,8 +41,10 @@ fn coplanar_shared_face_union() {
 #[test]
 fn coplanar_shared_face_subtraction() {
     let result = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [2.0, 0.0, 0.0], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [2.0, 0.0, 0.0],
+        1.0,
         BooleanOp::Subtraction,
     );
 
@@ -61,8 +59,10 @@ fn coplanar_shared_face_subtraction() {
 #[test]
 fn coplanar_shared_face_intersection() {
     let result = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [2.0, 0.0, 0.0], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [2.0, 0.0, 0.0],
+        1.0,
         BooleanOp::Intersection,
     );
 
@@ -87,11 +87,7 @@ fn coplanar_shared_face_intersection() {
 /// Shared edge at x=1, y=1, z∈[-1,1].
 #[test]
 fn edge_on_edge_union() {
-    let result = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [2.0, 2.0, 0.0], 1.0,
-        BooleanOp::Union,
-    );
+    let result = try_boolean([0.0, 0.0, 0.0], 1.0, [2.0, 2.0, 0.0], 1.0, BooleanOp::Union);
 
     assert!(
         result.is_ok(),
@@ -111,8 +107,10 @@ fn edge_on_edge_union() {
 #[test]
 fn edge_on_edge_subtraction() {
     let result = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [2.0, 2.0, 0.0], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [2.0, 2.0, 0.0],
+        1.0,
         BooleanOp::Subtraction,
     );
 
@@ -124,7 +122,8 @@ fn edge_on_edge_subtraction() {
 
     let bool_result = result.unwrap();
     assert_eq!(
-        bool_result.target_faces_kept(), 6,
+        bool_result.target_faces_kept(),
+        6,
         "Target should retain all 6 faces when tool only touches at edge"
     );
 }
@@ -143,11 +142,7 @@ fn edge_on_edge_subtraction() {
 /// this is a partial coplanar overlap (B's face is fully within A's face).
 #[test]
 fn vertex_on_face_union() {
-    let result = try_boolean(
-        [0.0, 0.0, 0.0], 2.0,
-        [3.0, 0.0, 0.0], 1.0,
-        BooleanOp::Union,
-    );
+    let result = try_boolean([0.0, 0.0, 0.0], 2.0, [3.0, 0.0, 0.0], 1.0, BooleanOp::Union);
 
     match result {
         Ok(_) => {}
@@ -162,8 +157,10 @@ fn vertex_on_face_union() {
 #[test]
 fn vertex_on_face_subtraction() {
     let result = try_boolean(
-        [0.0, 0.0, 0.0], 2.0,
-        [3.0, 0.0, 0.0], 1.0,
+        [0.0, 0.0, 0.0],
+        2.0,
+        [3.0, 0.0, 0.0],
+        1.0,
         BooleanOp::Subtraction,
     );
 
@@ -185,11 +182,7 @@ fn vertex_on_face_subtraction() {
 /// Shared vertex at (1,1,1).
 #[test]
 fn touching_vertex_union() {
-    let result = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [2.0, 2.0, 2.0], 1.0,
-        BooleanOp::Union,
-    );
+    let result = try_boolean([0.0, 0.0, 0.0], 1.0, [2.0, 2.0, 2.0], 1.0, BooleanOp::Union);
 
     assert!(
         result.is_ok(),
@@ -209,8 +202,10 @@ fn touching_vertex_union() {
 #[test]
 fn touching_vertex_subtraction() {
     let result = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [2.0, 2.0, 2.0], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [2.0, 2.0, 2.0],
+        1.0,
         BooleanOp::Subtraction,
     );
 
@@ -222,7 +217,8 @@ fn touching_vertex_subtraction() {
 
     let bool_result = result.unwrap();
     assert_eq!(
-        bool_result.target_faces_kept(), 6,
+        bool_result.target_faces_kept(),
+        6,
         "Target should retain all 6 faces when tool only touches at vertex"
     );
 }
@@ -234,11 +230,7 @@ fn touching_vertex_subtraction() {
 /// Union of two identical cubes should produce the same cube.
 #[test]
 fn identical_cubes_union() {
-    let result = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [0.0, 0.0, 0.0], 1.0,
-        BooleanOp::Union,
-    );
+    let result = try_boolean([0.0, 0.0, 0.0], 1.0, [0.0, 0.0, 0.0], 1.0, BooleanOp::Union);
 
     assert!(
         result.is_ok(),
@@ -259,8 +251,10 @@ fn identical_cubes_union() {
 #[test]
 fn identical_cubes_intersection() {
     let result = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [0.0, 0.0, 0.0], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
         BooleanOp::Intersection,
     );
 
@@ -283,15 +277,20 @@ fn identical_cubes_intersection() {
 #[test]
 fn identical_cubes_subtraction() {
     let result = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [0.0, 0.0, 0.0], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
         BooleanOp::Subtraction,
     );
 
     match result {
         Ok(r) => {
             let total = r.target_faces_kept() + r.tool_faces_kept();
-            eprintln!("Identical subtraction produced {} faces (expected 0)", total);
+            eprintln!(
+                "Identical subtraction produced {} faces (expected 0)",
+                total
+            );
         }
         Err(e) => {
             eprintln!("Identical subtraction returned error (acceptable): {:?}", e);
@@ -308,11 +307,7 @@ fn identical_cubes_subtraction() {
 /// Overlap region: [0,1]×[-1,1]^2.
 #[test]
 fn half_overlap_union() {
-    let result = run_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [1.0, 0.0, 0.0], 1.0,
-        BooleanOp::Union,
-    );
+    let result = run_boolean([0.0, 0.0, 0.0], 1.0, [1.0, 0.0, 0.0], 1.0, BooleanOp::Union);
 
     let v = result.topology().arena().vertex_count();
     let e = result.topology().arena().half_edge_count() / 2;
@@ -331,30 +326,42 @@ fn half_overlap_union() {
 #[test]
 fn half_overlap_subtraction() {
     let result = run_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [1.0, 0.0, 0.0], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [1.0, 0.0, 0.0],
+        1.0,
         BooleanOp::Subtraction,
     );
 
     let f = result.topology().arena().face_count();
     eprintln!("Half-overlap subtraction: F={}", f);
 
-    assert!(f >= 6, "Half-overlap subtraction should produce at least 6 faces, got {}", f);
+    assert!(
+        f >= 6,
+        "Half-overlap subtraction should produce at least 6 faces, got {}",
+        f
+    );
 }
 
 /// Standard half-overlap intersection.
 #[test]
 fn half_overlap_intersection() {
     let result = run_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [1.0, 0.0, 0.0], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [1.0, 0.0, 0.0],
+        1.0,
         BooleanOp::Intersection,
     );
 
     let f = result.topology().arena().face_count();
     eprintln!("Half-overlap intersection: F={}", f);
 
-    assert!(f >= 6, "Half-overlap intersection should produce at least 6 faces, got {}", f);
+    assert!(
+        f >= 6,
+        "Half-overlap intersection should produce at least 6 faces, got {}",
+        f
+    );
 }
 
 // ──────────────────────────────────────────────────────────
@@ -365,8 +372,10 @@ fn half_overlap_intersection() {
 #[test]
 fn disjoint_cubes_union_edge_case() {
     let result = run_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [10.0, 10.0, 10.0], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [10.0, 10.0, 10.0],
+        1.0,
         BooleanOp::Union,
     );
 
@@ -380,8 +389,10 @@ fn disjoint_cubes_union_edge_case() {
 #[test]
 fn disjoint_cubes_intersection_edge_case() {
     let result = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [10.0, 10.0, 10.0], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [10.0, 10.0, 10.0],
+        1.0,
         BooleanOp::Intersection,
     );
 
@@ -400,8 +411,10 @@ fn disjoint_cubes_intersection_edge_case() {
 #[test]
 fn disjoint_cubes_subtraction_edge_case() {
     let result = run_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [10.0, 10.0, 10.0], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [10.0, 10.0, 10.0],
+        1.0,
         BooleanOp::Subtraction,
     );
 
@@ -416,14 +429,11 @@ fn disjoint_cubes_subtraction_edge_case() {
 /// Union of concentric cubes: outer shell should be the result.
 #[test]
 fn concentric_union() {
-    let result = run_boolean(
-        [0.0, 0.0, 0.0], 2.0,
-        [0.0, 0.0, 0.0], 1.0,
-        BooleanOp::Union,
-    );
+    let result = run_boolean([0.0, 0.0, 0.0], 2.0, [0.0, 0.0, 0.0], 1.0, BooleanOp::Union);
 
     assert_eq!(
-        result.target_faces_kept() + result.tool_faces_kept(), 6,
+        result.target_faces_kept() + result.tool_faces_kept(),
+        6,
         "Concentric union: zero-split containment keeps outer shell (6 faces)"
     );
 }

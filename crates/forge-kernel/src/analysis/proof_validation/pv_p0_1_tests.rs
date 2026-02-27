@@ -6,12 +6,12 @@
 //! - PV-03: Inverted shell (negative signed volume)
 //! - PV-04: Degenerate loops (fewer than 3 distinct vertices)
 
-use forge_core::{KernelError, TopologyError};
-use forge_topo::validate::{validate_topology, ValidationLevel};
-use forge_topo::handles::VertexId;
-use crate::mesh_builder::make_cube;
-use crate::geometry_state::GeometryState;
 use super::test_support::{insert_test_solid_shell, validate_geometric_invariants_all_faces};
+use crate::geometry_state::GeometryState;
+use crate::mesh_builder::make_cube;
+use forge_core::{KernelError, TopologyError};
+use forge_topo::handles::VertexId;
+use forge_topo::validate::{validate_topology, ValidationLevel};
 
 /// Build a position lookup closure from a GeometryState.
 fn position_lookup(store: &GeometryState) -> impl Fn(VertexId) -> Option<[f64; 3]> + '_ {
@@ -31,14 +31,10 @@ fn pv_01_zero_area_face_detection() {
 
     let vertices: Vec<(VertexId, [f64; 3])> = arena
         .iter_vertices()
-        .filter_map(|(vid, _)| {
-            geom.get_vertex_position(vid).map(|pos| (vid, *pos))
-        })
+        .filter_map(|(vid, _)| geom.get_vertex_position(vid).map(|pos| (vid, *pos)))
         .collect();
 
-    let plus_x: Vec<_> = vertices.iter()
-        .filter(|(_, pos)| pos[0] > 0.0)
-        .collect();
+    let plus_x: Vec<_> = vertices.iter().filter(|(_, pos)| pos[0] > 0.0).collect();
 
     assert!(plus_x.len() >= 4, "Should have 4 +X face vertices");
 
@@ -51,7 +47,10 @@ fn pv_01_zero_area_face_detection() {
 
     assert!(err.is_err(), "Should detect zero-area face");
     match err.unwrap_err() {
-        KernelError::TopologyViolation { err: TopologyError::ZeroAreaFace { .. }, .. } => {}
+        KernelError::TopologyViolation {
+            err: TopologyError::ZeroAreaFace { .. },
+            ..
+        } => {}
         other => panic!("Expected ZeroAreaFace, got: {:?}", other),
     }
 }
@@ -80,7 +79,10 @@ fn pv_02_zero_length_edge_detection() {
 
     assert!(err.is_err(), "Should detect zero-length edge");
     match err.unwrap_err() {
-        KernelError::TopologyViolation { err: TopologyError::ZeroLengthEdge { .. }, .. } => {}
+        KernelError::TopologyViolation {
+            err: TopologyError::ZeroLengthEdge { .. },
+            ..
+        } => {}
         other => panic!("Expected ZeroLengthEdge, got: {:?}", other),
     }
 }
@@ -97,9 +99,7 @@ fn pv_03_inverted_shell_signed_volume() {
 
     let vertices: Vec<(VertexId, [f64; 3])> = arena
         .iter_vertices()
-        .filter_map(|(vid, _)| {
-            geom.get_vertex_position(vid).map(|pos| (vid, *pos))
-        })
+        .filter_map(|(vid, _)| geom.get_vertex_position(vid).map(|pos| (vid, *pos)))
         .collect();
 
     for (vid, pos) in &vertices {
@@ -111,7 +111,10 @@ fn pv_03_inverted_shell_signed_volume() {
 
     assert!(err.is_err(), "Should detect negative signed volume");
     match err.unwrap_err() {
-        KernelError::TopologyViolation { err: TopologyError::NegativeShellVolume { .. }, .. } => {}
+        KernelError::TopologyViolation {
+            err: TopologyError::NegativeShellVolume { .. },
+            ..
+        } => {}
         other => panic!("Expected NegativeShellVolume, got: {:?}", other),
     }
 }
@@ -122,9 +125,9 @@ fn pv_03_inverted_shell_signed_volume() {
 /// giving 3 edges but only 2 distinct vertices.
 #[test]
 fn pv_04_degenerate_loop_detection() {
-    use forge_topo::arena::{FaceData, HalfEdgeData, VertexData, LoopData};
+    use forge_topo::arena::{FaceData, HalfEdgeData, LoopData, VertexData};
     use forge_topo::handles::{FaceId, HalfEdgeId};
-    use forge_topo::state::{TopologyState, DraftConfig};
+    use forge_topo::state::{DraftConfig, TopologyState};
     use forge_topo::validate::ValidationLevel;
 
     let mut config = DraftConfig::default();
@@ -144,20 +147,47 @@ fn pv_04_degenerate_loop_detection() {
 
     let placeholder_shell = insert_test_solid_shell(arena);
     let placeholder_edge = forge_topo::handles::EdgeId::from_raw_parts(0, 0);
-    
+
     let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face), None);
     let face = arena.insert_face(FaceData::new(loop_id, placeholder_shell), None);
-    arena.get_shell_mut(placeholder_shell).unwrap().set_representative_face(face);
+    arena
+        .get_shell_mut(placeholder_shell)
+        .unwrap()
+        .set_representative_face(face);
 
-    let he0 = arena.insert_half_edge(HalfEdgeData::new(
-        placeholder_he, placeholder_he, placeholder_he, face, v0, placeholder_edge,
-    ), None);
-    let he1 = arena.insert_half_edge(HalfEdgeData::new(
-        placeholder_he, placeholder_he, placeholder_he, face, v1, placeholder_edge,
-    ), None);
-    let he2 = arena.insert_half_edge(HalfEdgeData::new(
-        placeholder_he, placeholder_he, placeholder_he, face, v0, placeholder_edge,
-    ), None);
+    let he0 = arena.insert_half_edge(
+        HalfEdgeData::new(
+            placeholder_he,
+            placeholder_he,
+            placeholder_he,
+            face,
+            v0,
+            placeholder_edge,
+        ),
+        None,
+    );
+    let he1 = arena.insert_half_edge(
+        HalfEdgeData::new(
+            placeholder_he,
+            placeholder_he,
+            placeholder_he,
+            face,
+            v1,
+            placeholder_edge,
+        ),
+        None,
+    );
+    let he2 = arena.insert_half_edge(
+        HalfEdgeData::new(
+            placeholder_he,
+            placeholder_he,
+            placeholder_he,
+            face,
+            v0,
+            placeholder_edge,
+        ),
+        None,
+    );
 
     arena.get_half_edge_mut(he0).unwrap().set_next(he1);
     arena.get_half_edge_mut(he0).unwrap().set_prev(he2);
@@ -169,15 +199,39 @@ fn pv_04_degenerate_loop_detection() {
     let loop_id2 = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face), None);
     let face2 = arena.insert_face(FaceData::new(loop_id2, placeholder_shell), None);
 
-    let twin0 = arena.insert_half_edge(HalfEdgeData::new(
-        placeholder_he, placeholder_he, placeholder_he, face2, v1, placeholder_edge,
-    ), None);
-    let twin1 = arena.insert_half_edge(HalfEdgeData::new(
-        placeholder_he, placeholder_he, placeholder_he, face2, v0, placeholder_edge,
-    ), None);
-    let twin2 = arena.insert_half_edge(HalfEdgeData::new(
-        placeholder_he, placeholder_he, placeholder_he, face2, v2, placeholder_edge,
-    ), None);
+    let twin0 = arena.insert_half_edge(
+        HalfEdgeData::new(
+            placeholder_he,
+            placeholder_he,
+            placeholder_he,
+            face2,
+            v1,
+            placeholder_edge,
+        ),
+        None,
+    );
+    let twin1 = arena.insert_half_edge(
+        HalfEdgeData::new(
+            placeholder_he,
+            placeholder_he,
+            placeholder_he,
+            face2,
+            v0,
+            placeholder_edge,
+        ),
+        None,
+    );
+    let twin2 = arena.insert_half_edge(
+        HalfEdgeData::new(
+            placeholder_he,
+            placeholder_he,
+            placeholder_he,
+            face2,
+            v2,
+            placeholder_edge,
+        ),
+        None,
+    );
 
     arena.get_half_edge_mut(twin0).unwrap().set_next(twin1);
     arena.get_half_edge_mut(twin0).unwrap().set_prev(twin2);
@@ -203,7 +257,10 @@ fn pv_04_degenerate_loop_detection() {
 
     let err = validate_topology(arena, ValidationLevel::Full);
 
-    assert!(err.is_err(), "Should detect degenerate/broken loop topology");
+    assert!(
+        err.is_err(),
+        "Should detect degenerate/broken loop topology"
+    );
     match err.unwrap_err() {
         KernelError::TopologyViolation { .. } => {}
         other => panic!("Expected TopologyViolation, got: {:?}", other),

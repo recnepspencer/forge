@@ -1,13 +1,13 @@
 //! MakeFaceInShellFromVertices — build a face in an existing shell from an existing sequence of vertices.
 //!
-//! DOMAIN: Create a new face by connecting a pre-existing ordered sequence 
+//! DOMAIN: Create a new face by connecting a pre-existing ordered sequence
 //! of isolated `VertexId`s and adding it to an existing `Shell`.
 //!
 //! INVARIANTS:
 //! - The vertices must exist in the arena.
 //! - The shell must exist in the arena.
 //! - Creates exactly N half-edges, N edges, 1 face, 1 loop.
-//! - Does NOT create a new solid, lump, region, or shell. 
+//! - Does NOT create a new solid, lump, region, or shell.
 //!
 //! DEPENDENCIES: `arena` (entity storage), `lineage` (provenance)
 
@@ -63,7 +63,10 @@ impl EulerOperator for MakeFaceInShellFromVertices {
         // Ensure the shell exists
         if draft.arena().get_shell(self.shell).is_err() {
             return Err(KernelError::InvalidInput {
-                message: format!("MakeFaceInShellFromVertices: shell {} not found", self.shell),
+                message: format!(
+                    "MakeFaceInShellFromVertices: shell {} not found",
+                    self.shell
+                ),
                 context: None,
             });
         }
@@ -91,8 +94,11 @@ impl EulerOperator for MakeFaceInShellFromVertices {
         ));
 
         let loop_id = draft.insert_loop(LoopData::new(placeholder_he, face));
-        
-        draft.arena_mut().get_face_mut(face)?.set_outer_loop(loop_id);
+
+        draft
+            .arena_mut()
+            .get_face_mut(face)?
+            .set_outer_loop(loop_id);
 
         let mut half_edges = Vec::with_capacity(n);
         let mut edges = Vec::with_capacity(n);
@@ -101,10 +107,8 @@ impl EulerOperator for MakeFaceInShellFromVertices {
             let edge_lineage = Lineage::root(6, sig.clone());
             let he_lineage = Lineage::root(7, sig.clone());
 
-            let edge = draft.insert_edge(EdgeData::with_lineage(
-                placeholder_he,
-                Some(edge_lineage),
-            ));
+            let edge =
+                draft.insert_edge(EdgeData::with_lineage(placeholder_he, Some(edge_lineage)));
             let he = draft.insert_half_edge(HalfEdgeData::with_lineage(
                 placeholder_he,
                 placeholder_he,
@@ -143,7 +147,10 @@ impl EulerOperator for MakeFaceInShellFromVertices {
             }
         }
 
-        draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(half_edges[0]);
+        draft
+            .arena_mut()
+            .get_loop_mut(loop_id)?
+            .set_half_edge(half_edges[0]);
 
         Ok(ExecutionResult {
             value: MfisOutput {

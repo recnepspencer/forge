@@ -4,11 +4,13 @@
 //! decision log, providing full traceability of which faces
 //! were kept or dropped and why.
 
-use forge_topo::handles::FaceId;
-use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier, EntityRef};
 use crate::core::ModelingContext;
+use crate::operations::boolean::classify_schema::{ClassifiedFace, FaceClassification, FaceOrigin};
 use crate::operations::boolean::schema::BooleanOp;
-use crate::operations::boolean::classify_schema::{FaceOrigin, FaceClassification, ClassifiedFace};
+use forge_core::{
+    DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, TracedDecision,
+};
+use forge_topo::handles::FaceId;
 
 /// Select faces to keep based on the Boolean operation type.
 ///
@@ -51,19 +53,21 @@ pub fn select_faces(
             // UNION
             (FaceOrigin::Target, BooleanOp::Union, FaceClassification::Outside) => true,
             (FaceOrigin::Target, BooleanOp::Union, FaceClassification::OnBoundary) => true,
-            (FaceOrigin::Tool,   BooleanOp::Union, FaceClassification::Outside) => true,
-            
+            (FaceOrigin::Tool, BooleanOp::Union, FaceClassification::Outside) => true,
+
             // INTERSECTION
             (FaceOrigin::Target, BooleanOp::Intersection, FaceClassification::Inside) => true,
             (FaceOrigin::Target, BooleanOp::Intersection, FaceClassification::OnBoundary) => true,
-            (FaceOrigin::Tool,   BooleanOp::Intersection, FaceClassification::Inside) => true,
-            
+            (FaceOrigin::Tool, BooleanOp::Intersection, FaceClassification::Inside) => true,
+
             // SUBTRACTION
             (FaceOrigin::Target, BooleanOp::Subtraction, FaceClassification::Outside) => true,
-            (FaceOrigin::Target, BooleanOp::Subtraction, FaceClassification::OppositeBoundary) => true,
-            (FaceOrigin::Tool,   BooleanOp::Subtraction, FaceClassification::Inside) => true,
-            (FaceOrigin::Tool,   BooleanOp::Subtraction, FaceClassification::Ambiguous) => true,
-            
+            (FaceOrigin::Target, BooleanOp::Subtraction, FaceClassification::OppositeBoundary) => {
+                true
+            }
+            (FaceOrigin::Tool, BooleanOp::Subtraction, FaceClassification::Inside) => true,
+            (FaceOrigin::Tool, BooleanOp::Subtraction, FaceClassification::Ambiguous) => true,
+
             _ => false,
         };
 
@@ -75,11 +79,20 @@ pub fn select_faces(
             1.0,
             DecisionContext::Classification {
                 point: [0.0; 3],
-                result: format!("Select {}:Face#{} {:?} for {:?} → {}",
-                    origin_label, f.face().index(), f.classification(), operation, action),
+                result: format!(
+                    "Select {}:Face#{} {:?} for {:?} → {}",
+                    origin_label,
+                    f.face().index(),
+                    f.classification(),
+                    operation,
+                    action
+                ),
             },
         );
-        decision.set_entity_scope(EntityRef::new(forge_core::EntityKind::Face, f.face().index()));
+        decision.set_entity_scope(EntityRef::new(
+            forge_core::EntityKind::Face,
+            f.face().index(),
+        ));
         ctx.get_decision_log_mut().record(decision);
 
         if keep {

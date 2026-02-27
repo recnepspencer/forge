@@ -15,17 +15,17 @@
 
 use std::collections::HashMap;
 
-use forge_core::KernelError;
 use forge_core::envelope::OperationResult;
 use forge_core::tracing::TraceAdjunctSet;
+use forge_core::KernelError;
 use forge_signal::handles::NodeId;
 
 use super::contract::{AuditLevel, FeatureInputs};
 use super::errors::PipelineError;
 use super::invariants::validate_invariant;
 use crate::core::finalization::{OperationFinalizer, TopologyHashBoundary};
-use crate::engine::traits::{Feature, FeatureOutput};
 use crate::core::ModelingContext;
+use crate::engine::traits::{Feature, FeatureOutput};
 
 /// Feature pipeline executor.
 ///
@@ -64,7 +64,10 @@ impl FeaturePipeline {
         let resolved_config = crate::core::config::resolve::resolve_config(
             &ctx.config,
             None,
-            feature.config_overrides().as_ref().map(|o| (o, Some(feature.feature_kind().to_string()))),
+            feature
+                .config_overrides()
+                .as_ref()
+                .map(|o| (o, Some(feature.feature_kind().to_string()))),
             None,
         )?;
 
@@ -98,13 +101,16 @@ impl FeaturePipeline {
         // 6. Post-validate invariants (success only)
         let validation_config = ctx.get_validation_config();
         for invariant in feature.post_invariants() {
-            validate_invariant(&output.topology, &output.geometry, invariant, &validation_config)?;
+            validate_invariant(
+                &output.topology,
+                &output.geometry,
+                invariant,
+                &validation_config,
+            )?;
         }
 
         // 7. Compute hash_after from the output
-        let hash_after = forge_topo::hashing::compute_arena_topology_hash(
-            output.topology.arena(),
-        );
+        let hash_after = forge_topo::hashing::compute_arena_topology_hash(output.topology.arena());
 
         // 8. Finalize — drain decisions + metadata from ctx into envelope
         let hashes = TopologyHashBoundary {
@@ -175,22 +181,23 @@ fn compute_operation_space(
 /// with per-decision detail. The span itself carries no duration (it's a
 /// metadata annotation, not a timed operation). Downstream trace viewers
 /// can filter on "audit/" spans to find audit records.
-fn emit_feature_audit<F: Feature>(
-    feature: &F,
-    envelope: &mut OperationResult<FeatureOutput>,
-) {
+fn emit_feature_audit<F: Feature>(feature: &F, envelope: &mut OperationResult<FeatureOutput>) {
     let decision_count = envelope.get_decision_log().len();
     let warning_count = envelope.get_warnings().len();
 
     // Build per-decision breakdown summary.
-    let decision_details: Vec<String> = envelope.get_decision_log().decisions().map(|d| {
-        format!(
-            "{:?}/tier={:?}/margin={:.2e}",
-            d.get_kind(),
-            d.get_tier(),
-            d.get_margin(),
-        )
-    }).collect();
+    let decision_details: Vec<String> = envelope
+        .get_decision_log()
+        .decisions()
+        .map(|d| {
+            format!(
+                "{:?}/tier={:?}/margin={:.2e}",
+                d.get_kind(),
+                d.get_tier(),
+                d.get_margin(),
+            )
+        })
+        .collect();
 
     let detail = format!(
         "full: {} decisions, {} warnings | [{}]",
@@ -215,10 +222,7 @@ fn emit_feature_audit<F: Feature>(
 /// Per-decision detail is still available in the envelope's decision log
 /// but the `AuditLevel::Summary` contract signals that downstream
 /// consumers should not rely on per-decision inspection.
-fn emit_feature_summary<F: Feature>(
-    feature: &F,
-    envelope: &mut OperationResult<FeatureOutput>,
-) {
+fn emit_feature_summary<F: Feature>(feature: &F, envelope: &mut OperationResult<FeatureOutput>) {
     let summary = format!(
         "summary: {} decisions, {} warnings",
         envelope.get_decision_log().len(),
@@ -232,4 +236,3 @@ fn emit_feature_summary<F: Feature>(
 
     envelope.add_extra_summary(summary);
 }
-

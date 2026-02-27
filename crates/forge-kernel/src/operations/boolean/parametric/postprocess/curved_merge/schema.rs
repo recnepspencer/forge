@@ -6,8 +6,8 @@
 //!
 //! DEPENDENCIES: forge-topo handles, forge-geom surface types
 
-use forge_topo::handles::{FaceId, SurfaceRef, CoedgeRef, CurveRef};
-use serde::{Serialize, Deserialize};
+use forge_topo::handles::{CoedgeRef, CurveRef, FaceId, SurfaceRef};
+use serde::{Deserialize, Serialize};
 
 /// Agent-facing merge intent for curved same-support faces.
 ///

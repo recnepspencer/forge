@@ -35,7 +35,10 @@ fn kv04_flush_faces_produce_flush_action() {
     let action = CoincidenceGraph::merge_action(&coincidence);
     assert!(matches!(
         action,
-        MergeAction::FlushFaces { face_a: 3, face_b: 7 }
+        MergeAction::FlushFaces {
+            face_a: 3,
+            face_b: 7
+        }
     ));
 }
 

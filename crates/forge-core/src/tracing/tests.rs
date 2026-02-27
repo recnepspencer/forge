@@ -1,7 +1,7 @@
 //! Tests for the tracing infrastructure.
 
-use super::schema::*;
 use super::decision_log::*;
+use super::schema::*;
 use crate::policy::PolicyKind;
 
 fn make_decision(id: u64, tier: DecisionTier, kind: DecisionKind) -> TracedDecision {
@@ -10,7 +10,10 @@ fn make_decision(id: u64, tier: DecisionTier, kind: DecisionKind) -> TracedDecis
         kind,
         tier,
         0.5,
-        DecisionContext::Tolerance { measured: 1e-8, threshold: 1e-6 },
+        DecisionContext::Tolerance {
+            measured: 1e-8,
+            threshold: 1e-6,
+        },
     )
 }
 
@@ -21,7 +24,10 @@ fn traced_decision_creation() {
         DecisionKind::Exact,
         DecisionTier::Deterministic,
         0.5,
-        DecisionContext::Tolerance { measured: 1e-8, threshold: 1e-6 },
+        DecisionContext::Tolerance {
+            measured: 1e-8,
+            threshold: 1e-6,
+        },
     );
     assert_eq!(decision.get_id(), DecisionId(1));
     assert_eq!(*decision.get_kind(), DecisionKind::Exact);
@@ -44,21 +50,32 @@ fn decision_log_query_api() {
         DecisionKind::Exact,
         DecisionTier::Deterministic,
         1.0,
-        DecisionContext::Tolerance { measured: 0.0, threshold: 1e-6 },
+        DecisionContext::Tolerance {
+            measured: 0.0,
+            threshold: 1e-6,
+        },
     ));
     log.record(TracedDecision::new(
         DecisionId(2),
-        DecisionKind::Ambiguous { fallback_applied: "snap_to_edge".to_string() },
+        DecisionKind::Ambiguous {
+            fallback_applied: "snap_to_edge".to_string(),
+        },
         DecisionTier::Escalated,
         0.001,
-        DecisionContext::Tolerance { measured: 9e-7, threshold: 1e-6 },
+        DecisionContext::Tolerance {
+            measured: 9e-7,
+            threshold: 1e-6,
+        },
     ));
     log.record(TracedDecision::new(
         DecisionId(3),
         DecisionKind::NearBoundary { threshold: 1e-6 },
         DecisionTier::NearBoundary,
         0.1,
-        DecisionContext::Tolerance { measured: 8e-7, threshold: 1e-6 },
+        DecisionContext::Tolerance {
+            measured: 8e-7,
+            threshold: 1e-6,
+        },
     ));
     log.record(TracedDecision::new(
         DecisionId(4),
@@ -101,7 +118,10 @@ fn decision_log_is_clean_when_no_ambiguous() {
         DecisionKind::Exact,
         DecisionTier::Deterministic,
         1.0,
-        DecisionContext::Tolerance { measured: 0.0, threshold: 1e-6 },
+        DecisionContext::Tolerance {
+            measured: 0.0,
+            threshold: 1e-6,
+        },
     ));
     assert!(log.is_clean());
 }
@@ -110,14 +130,26 @@ fn decision_log_is_clean_when_no_ambiguous() {
 fn decision_log_merge() {
     let mut log_a = DecisionLog::new();
     log_a.record(TracedDecision::new(
-        DecisionId(1), DecisionKind::Exact, DecisionTier::Deterministic, 1.0,
-        DecisionContext::Tolerance { measured: 0.0, threshold: 1e-6 },
+        DecisionId(1),
+        DecisionKind::Exact,
+        DecisionTier::Deterministic,
+        1.0,
+        DecisionContext::Tolerance {
+            measured: 0.0,
+            threshold: 1e-6,
+        },
     ));
 
     let mut log_b = DecisionLog::new();
     log_b.record(TracedDecision::new(
-        DecisionId(2), DecisionKind::Exact, DecisionTier::Deterministic, 0.5,
-        DecisionContext::Tolerance { measured: 0.0, threshold: 1e-6 },
+        DecisionId(2),
+        DecisionKind::Exact,
+        DecisionTier::Deterministic,
+        0.5,
+        DecisionContext::Tolerance {
+            measured: 0.0,
+            threshold: 1e-6,
+        },
     ));
 
     log_a.merge(log_b);
@@ -138,7 +170,11 @@ fn mismatched_span_close_truncates_stack() {
 
     log.end_span(outer, 100);
 
-    assert_eq!(log.active_span(), None, "Closing outer should truncate inner too");
+    assert_eq!(
+        log.active_span(),
+        None,
+        "Closing outer should truncate inner too"
+    );
 }
 
 #[test]
@@ -148,7 +184,11 @@ fn closing_unknown_span_is_harmless() {
 
     log.end_span(SpanId(999), 50);
 
-    assert_eq!(log.active_span(), Some(real), "Unknown close should not affect stack");
+    assert_eq!(
+        log.active_span(),
+        Some(real),
+        "Unknown close should not affect stack"
+    );
 
     log.end_span(real, 100);
     assert_eq!(log.active_span(), None);
@@ -165,10 +205,14 @@ fn nested_spans_record_parent_ids() {
     log.end_span(inner, 20);
     log.end_span(outer, 30);
 
-    let starts: Vec<_> = log.get_events().iter().filter_map(|e| match e {
-        TraceEvent::StartSpan { id, parent_id, .. } => Some((*id, *parent_id)),
-        _ => None,
-    }).collect();
+    let starts: Vec<_> = log
+        .get_events()
+        .iter()
+        .filter_map(|e| match e {
+            TraceEvent::StartSpan { id, parent_id, .. } => Some((*id, *parent_id)),
+            _ => None,
+        })
+        .collect();
 
     assert_eq!(starts.len(), 3);
     assert_eq!(starts[0], (outer, None));
@@ -181,10 +225,18 @@ fn decisions_stamped_with_active_span() {
     let mut log = DecisionLog::new();
     let span_a = log.start_span("phase_a");
 
-    log.record(make_decision(1, DecisionTier::Deterministic, DecisionKind::Exact));
+    log.record(make_decision(
+        1,
+        DecisionTier::Deterministic,
+        DecisionKind::Exact,
+    ));
     log.end_span(span_a, 100);
 
-    log.record(make_decision(2, DecisionTier::Deterministic, DecisionKind::Exact));
+    log.record(make_decision(
+        2,
+        DecisionTier::Deterministic,
+        DecisionKind::Exact,
+    ));
 
     let decisions: Vec<_> = log.decisions().collect();
     assert_eq!(decisions[0].get_span_id(), Some(span_a));
@@ -195,13 +247,21 @@ fn decisions_stamped_with_active_span() {
 fn serde_roundtrip_resets_ephemeral_span_counter() {
     let mut log = DecisionLog::new();
     let _span = log.start_span("test");
-    log.record(make_decision(1, DecisionTier::Deterministic, DecisionKind::Exact));
+    log.record(make_decision(
+        1,
+        DecisionTier::Deterministic,
+        DecisionKind::Exact,
+    ));
     log.end_span(_span, 100);
 
     let json = serde_json::to_string(&log).expect("serialize");
     let restored: DecisionLog = serde_json::from_str(&json).expect("deserialize");
 
-    assert_eq!(restored.active_span(), None, "span_stack is ephemeral, should be empty");
+    assert_eq!(
+        restored.active_span(),
+        None,
+        "span_stack is ephemeral, should be empty"
+    );
 
     assert_eq!(
         restored.decisions().count(),
@@ -217,12 +277,28 @@ fn serde_roundtrip_resets_ephemeral_span_counter() {
 fn tier_filtering_returns_only_tier_2_plus() {
     let mut log = DecisionLog::new();
 
-    log.record(make_decision(1, DecisionTier::Deterministic, DecisionKind::Exact));
-    log.record(make_decision(2, DecisionTier::NearBoundary,
-        DecisionKind::NearBoundary { threshold: 1e-6 }));
-    log.record(make_decision(3, DecisionTier::Escalated,
-        DecisionKind::Ambiguous { fallback_applied: "snap".into() }));
-    log.record(make_decision(4, DecisionTier::Deterministic, DecisionKind::Exact));
+    log.record(make_decision(
+        1,
+        DecisionTier::Deterministic,
+        DecisionKind::Exact,
+    ));
+    log.record(make_decision(
+        2,
+        DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 },
+    ));
+    log.record(make_decision(
+        3,
+        DecisionTier::Escalated,
+        DecisionKind::Ambiguous {
+            fallback_applied: "snap".into(),
+        },
+    ));
+    log.record(make_decision(
+        4,
+        DecisionTier::Deterministic,
+        DecisionKind::Exact,
+    ));
 
     let interesting = log.interesting_only();
     assert_eq!(interesting.len(), 2);
@@ -236,7 +312,11 @@ fn display_interesting_empty_for_boring_spans() {
 
     for i in 0..10 {
         let span = log.start_span(&format!("boring_{}", i));
-        log.record(make_decision(i, DecisionTier::Deterministic, DecisionKind::Exact));
+        log.record(make_decision(
+            i,
+            DecisionTier::Deterministic,
+            DecisionKind::Exact,
+        ));
         log.end_span(span, 10);
     }
 
@@ -250,14 +330,25 @@ fn display_interesting_empty_for_boring_spans() {
 #[test]
 fn trace_summary_diff_detects_added_decisions() {
     let mut log_old = DecisionLog::new();
-    log_old.record(make_decision(1, DecisionTier::NearBoundary,
-        DecisionKind::NearBoundary { threshold: 1e-6 }));
+    log_old.record(make_decision(
+        1,
+        DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 },
+    ));
 
     let mut log_new = DecisionLog::new();
-    log_new.record(make_decision(1, DecisionTier::NearBoundary,
-        DecisionKind::NearBoundary { threshold: 1e-6 }));
-    log_new.record(make_decision(2, DecisionTier::Escalated,
-        DecisionKind::Ambiguous { fallback_applied: "snap".into() }));
+    log_new.record(make_decision(
+        1,
+        DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 },
+    ));
+    log_new.record(make_decision(
+        2,
+        DecisionTier::Escalated,
+        DecisionKind::Ambiguous {
+            fallback_applied: "snap".into(),
+        },
+    ));
 
     let summary_old = log_old.to_summary(0xAAAA);
     let summary_new = log_new.to_summary(0xBBBB);
@@ -274,14 +365,25 @@ fn trace_summary_diff_detects_added_decisions() {
 #[test]
 fn trace_summary_diff_detects_removed_decisions() {
     let mut log_old = DecisionLog::new();
-    log_old.record(make_decision(1, DecisionTier::NearBoundary,
-        DecisionKind::NearBoundary { threshold: 1e-6 }));
-    log_old.record(make_decision(2, DecisionTier::Escalated,
-        DecisionKind::Ambiguous { fallback_applied: "snap".into() }));
+    log_old.record(make_decision(
+        1,
+        DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 },
+    ));
+    log_old.record(make_decision(
+        2,
+        DecisionTier::Escalated,
+        DecisionKind::Ambiguous {
+            fallback_applied: "snap".into(),
+        },
+    ));
 
     let mut log_new = DecisionLog::new();
-    log_new.record(make_decision(1, DecisionTier::NearBoundary,
-        DecisionKind::NearBoundary { threshold: 1e-6 }));
+    log_new.record(make_decision(
+        1,
+        DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 },
+    ));
 
     let summary_old = log_old.to_summary(0xAAAA);
     let summary_new = log_new.to_summary(0xAAAA);
@@ -297,12 +399,18 @@ fn trace_summary_diff_detects_removed_decisions() {
 #[test]
 fn trace_summary_diff_detects_changed_tier() {
     let mut log_old = DecisionLog::new();
-    log_old.record(make_decision(1, DecisionTier::NearBoundary,
-        DecisionKind::NearBoundary { threshold: 1e-6 }));
+    log_old.record(make_decision(
+        1,
+        DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 },
+    ));
 
     let mut log_new = DecisionLog::new();
-    log_new.record(make_decision(1, DecisionTier::Escalated,
-        DecisionKind::NearBoundary { threshold: 1e-6 }));
+    log_new.record(make_decision(
+        1,
+        DecisionTier::Escalated,
+        DecisionKind::NearBoundary { threshold: 1e-6 },
+    ));
 
     let summary_old = log_old.to_summary(0xAAAA);
     let summary_new = log_new.to_summary(0xAAAA);
@@ -319,17 +427,28 @@ fn trace_summary_diff_detects_changed_tier() {
 #[test]
 fn trace_summary_diff_identical_is_empty() {
     let mut log = DecisionLog::new();
-    log.record(make_decision(1, DecisionTier::NearBoundary,
-        DecisionKind::NearBoundary { threshold: 1e-6 }));
-    log.record(make_decision(2, DecisionTier::Escalated,
-        DecisionKind::Ambiguous { fallback_applied: "snap".into() }));
+    log.record(make_decision(
+        1,
+        DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 },
+    ));
+    log.record(make_decision(
+        2,
+        DecisionTier::Escalated,
+        DecisionKind::Ambiguous {
+            fallback_applied: "snap".into(),
+        },
+    ));
 
     let summary = log.to_summary(0xAAAA);
 
     let diff = summary.diff(&summary);
 
     assert!(!diff.state_hash_changed);
-    assert!(diff.is_empty(), "Diffing a summary against itself should be empty");
+    assert!(
+        diff.is_empty(),
+        "Diffing a summary against itself should be empty"
+    );
 }
 
 #[test]
@@ -351,9 +470,16 @@ use super::checkpoint_diff::{diff_decision_logs, CheckpointLog};
 fn diff_decision_logs_detects_added() {
     let before = DecisionLog::new();
     let mut after = DecisionLog::new();
-    after.record(make_decision(1, DecisionTier::Deterministic, DecisionKind::Exact));
-    after.record(make_decision(2, DecisionTier::NearBoundary,
-        DecisionKind::NearBoundary { threshold: 1e-6 }));
+    after.record(make_decision(
+        1,
+        DecisionTier::Deterministic,
+        DecisionKind::Exact,
+    ));
+    after.record(make_decision(
+        2,
+        DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 },
+    ));
 
     let delta = diff_decision_logs(&before, &after);
 
@@ -367,9 +493,16 @@ fn diff_decision_logs_detects_added() {
 #[test]
 fn diff_decision_logs_detects_removed() {
     let mut before = DecisionLog::new();
-    before.record(make_decision(1, DecisionTier::Deterministic, DecisionKind::Exact));
-    before.record(make_decision(2, DecisionTier::NearBoundary,
-        DecisionKind::NearBoundary { threshold: 1e-6 }));
+    before.record(make_decision(
+        1,
+        DecisionTier::Deterministic,
+        DecisionKind::Exact,
+    ));
+    before.record(make_decision(
+        2,
+        DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 },
+    ));
 
     let after = DecisionLog::new();
 
@@ -383,12 +516,18 @@ fn diff_decision_logs_detects_removed() {
 #[test]
 fn diff_decision_logs_detects_changed_tier() {
     let mut before = DecisionLog::new();
-    before.record(make_decision(1, DecisionTier::NearBoundary,
-        DecisionKind::NearBoundary { threshold: 1e-6 }));
+    before.record(make_decision(
+        1,
+        DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 },
+    ));
 
     let mut after = DecisionLog::new();
-    after.record(make_decision(1, DecisionTier::Escalated,
-        DecisionKind::NearBoundary { threshold: 1e-6 }));
+    after.record(make_decision(
+        1,
+        DecisionTier::Escalated,
+        DecisionKind::NearBoundary { threshold: 1e-6 },
+    ));
 
     let delta = diff_decision_logs(&before, &after);
 
@@ -403,14 +542,26 @@ fn diff_decision_logs_detects_changed_tier() {
 fn diff_decision_logs_detects_changed_margin() {
     let mut before = DecisionLog::new();
     before.record(TracedDecision::new(
-        DecisionId(1), DecisionKind::Exact, DecisionTier::Deterministic, 0.5,
-        DecisionContext::Tolerance { measured: 1e-8, threshold: 1e-6 },
+        DecisionId(1),
+        DecisionKind::Exact,
+        DecisionTier::Deterministic,
+        0.5,
+        DecisionContext::Tolerance {
+            measured: 1e-8,
+            threshold: 1e-6,
+        },
     ));
 
     let mut after = DecisionLog::new();
     after.record(TracedDecision::new(
-        DecisionId(1), DecisionKind::Exact, DecisionTier::Deterministic, 0.9,
-        DecisionContext::Tolerance { measured: 1e-8, threshold: 1e-6 },
+        DecisionId(1),
+        DecisionKind::Exact,
+        DecisionTier::Deterministic,
+        0.9,
+        DecisionContext::Tolerance {
+            measured: 1e-8,
+            threshold: 1e-6,
+        },
     ));
 
     let delta = diff_decision_logs(&before, &after);
@@ -424,15 +575,30 @@ fn diff_decision_logs_detects_changed_margin() {
 #[test]
 fn diff_decision_logs_identical_is_empty() {
     let mut log = DecisionLog::new();
-    log.record(make_decision(1, DecisionTier::Deterministic, DecisionKind::Exact));
-    log.record(make_decision(2, DecisionTier::NearBoundary,
-        DecisionKind::NearBoundary { threshold: 1e-6 }));
-    log.record(make_decision(3, DecisionTier::Escalated,
-        DecisionKind::Ambiguous { fallback_applied: "snap".into() }));
+    log.record(make_decision(
+        1,
+        DecisionTier::Deterministic,
+        DecisionKind::Exact,
+    ));
+    log.record(make_decision(
+        2,
+        DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 },
+    ));
+    log.record(make_decision(
+        3,
+        DecisionTier::Escalated,
+        DecisionKind::Ambiguous {
+            fallback_applied: "snap".into(),
+        },
+    ));
 
     let delta = diff_decision_logs(&log, &log);
 
-    assert!(delta.is_empty(), "Diffing a log against itself should be empty");
+    assert!(
+        delta.is_empty(),
+        "Diffing a log against itself should be empty"
+    );
     assert_eq!(delta.total_changes(), 0);
 }
 
@@ -441,15 +607,25 @@ fn checkpoint_log_snapshot_and_delta() {
     let mut checkpoint = CheckpointLog::new();
 
     let mut log = DecisionLog::new();
-    log.record(make_decision(1, DecisionTier::Deterministic, DecisionKind::Exact));
+    log.record(make_decision(
+        1,
+        DecisionTier::Deterministic,
+        DecisionKind::Exact,
+    ));
     checkpoint.snapshot(&log);
 
-    log.record(make_decision(2, DecisionTier::NearBoundary,
-        DecisionKind::NearBoundary { threshold: 1e-6 }));
+    log.record(make_decision(
+        2,
+        DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 },
+    ));
     checkpoint.snapshot(&log);
 
     assert_eq!(checkpoint.step_count(), 2);
-    assert!(checkpoint.delta_at(0).is_none(), "Step 0 has no predecessor");
+    assert!(
+        checkpoint.delta_at(0).is_none(),
+        "Step 0 has no predecessor"
+    );
 
     let delta = checkpoint.delta_at(1).expect("Step 1 should have a delta");
     assert_eq!(delta.get_added().len(), 1);
@@ -464,26 +640,49 @@ fn checkpoint_log_temporal_range_query() {
     let mut log = DecisionLog::new();
     checkpoint.snapshot(&log);
 
-    log.record(make_decision(1, DecisionTier::Deterministic, DecisionKind::Exact));
+    log.record(make_decision(
+        1,
+        DecisionTier::Deterministic,
+        DecisionKind::Exact,
+    ));
     checkpoint.snapshot(&log);
 
-    log.record(make_decision(2, DecisionTier::NearBoundary,
-        DecisionKind::NearBoundary { threshold: 1e-6 }));
+    log.record(make_decision(
+        2,
+        DecisionTier::NearBoundary,
+        DecisionKind::NearBoundary { threshold: 1e-6 },
+    ));
     checkpoint.snapshot(&log);
 
-    log.record(make_decision(3, DecisionTier::Escalated,
-        DecisionKind::Ambiguous { fallback_applied: "snap".into() }));
+    log.record(make_decision(
+        3,
+        DecisionTier::Escalated,
+        DecisionKind::Ambiguous {
+            fallback_applied: "snap".into(),
+        },
+    ));
     checkpoint.snapshot(&log);
 
     assert_eq!(checkpoint.step_count(), 4);
 
     let delta_0_to_3 = checkpoint.delta_between(0, 3).expect("Should have delta");
-    assert_eq!(delta_0_to_3.get_added().len(), 3, "All 3 decisions should appear as added");
+    assert_eq!(
+        delta_0_to_3.get_added().len(),
+        3,
+        "All 3 decisions should appear as added"
+    );
 
     let delta_1_to_3 = checkpoint.delta_between(1, 3).expect("Should have delta");
-    assert_eq!(delta_1_to_3.get_added().len(), 2, "Decisions 2 and 3 should appear as added");
+    assert_eq!(
+        delta_1_to_3.get_added().len(),
+        2,
+        "Decisions 2 and 3 should appear as added"
+    );
 
-    assert!(checkpoint.delta_between(0, 99).is_none(), "Out of bounds should return None");
+    assert!(
+        checkpoint.delta_between(0, 99).is_none(),
+        "Out of bounds should return None"
+    );
 }
 
 // =====================================================================
@@ -497,7 +696,10 @@ fn delta_debug_finds_exact_step() {
     let result = delta_debug(100, |step| Ok(step >= 73)).unwrap();
     assert_eq!(result.get_failing_step(), 73);
     assert_eq!(result.get_total_steps(), 100);
-    assert!(result.get_probes_used() <= 10, "Binary search on 100 steps should take ≤ 10 probes");
+    assert!(
+        result.get_probes_used() <= 10,
+        "Binary search on 100 steps should take ≤ 10 probes"
+    );
 }
 
 #[test]

@@ -11,10 +11,6 @@
 mod planar;
 
 pub use planar::{
+    build_cube_at, random_convex_pair, random_convex_solid, random_cube, random_cube_pair,
     Xorshift64,
-    random_convex_solid,
-    build_cube_at,
-    random_cube,
-    random_cube_pair,
-    random_convex_pair,
 };

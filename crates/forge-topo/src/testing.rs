@@ -37,11 +37,11 @@ pub fn dummy_halfedge_data(face: FaceId, origin: VertexId) -> HalfEdgeData {
 pub fn build_face_with_hole(
     draft: &mut MutableDraft,
 ) -> (FaceId, HalfEdgeId, HalfEdgeId, LoopId, [VertexId; 6]) {
-    let sentinel_he    = HalfEdgeId::new(u32::MAX, 0);
-    let sentinel_loop  = LoopId::new(u32::MAX, 0);
-    let sentinel_face  = FaceId::new(u32::MAX, 0);
+    let sentinel_he = HalfEdgeId::new(u32::MAX, 0);
+    let sentinel_loop = LoopId::new(u32::MAX, 0);
+    let sentinel_face = FaceId::new(u32::MAX, 0);
     let sentinel_shell = ShellId::new(u32::MAX, 0);
-    let sentinel_e     = EdgeId::new(u32::MAX, 0);
+    let sentinel_e = EdgeId::new(u32::MAX, 0);
 
     let arena = draft.arena_mut();
 
@@ -57,13 +57,40 @@ pub fn build_face_with_hole(
     // Outer halfedges (counter-clockwise)
     let (he01, _he10) = arena.insert_radial_pair(
         HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, face, v0, sentinel_e),
-        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, sentinel_face, v1, sentinel_e), None);
+        HalfEdgeData::new(
+            sentinel_he,
+            sentinel_he,
+            sentinel_he,
+            sentinel_face,
+            v1,
+            sentinel_e,
+        ),
+        None,
+    );
     let (he12, _he21) = arena.insert_radial_pair(
         HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, face, v1, sentinel_e),
-        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, sentinel_face, v2, sentinel_e), None);
+        HalfEdgeData::new(
+            sentinel_he,
+            sentinel_he,
+            sentinel_he,
+            sentinel_face,
+            v2,
+            sentinel_e,
+        ),
+        None,
+    );
     let (he20, _he02) = arena.insert_radial_pair(
         HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, face, v2, sentinel_e),
-        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, sentinel_face, v0, sentinel_e), None);
+        HalfEdgeData::new(
+            sentinel_he,
+            sentinel_he,
+            sentinel_he,
+            sentinel_face,
+            v0,
+            sentinel_e,
+        ),
+        None,
+    );
 
     let arena = draft.arena_mut();
     arena.get_half_edge_mut(he01).unwrap().set_next(he12);
@@ -86,13 +113,40 @@ pub fn build_face_with_hole(
     // Inner halfedges (clockwise around the hole)
     let (he34, _he43) = arena.insert_radial_pair(
         HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, face, v3, sentinel_e),
-        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, sentinel_face, v4, sentinel_e), None);
+        HalfEdgeData::new(
+            sentinel_he,
+            sentinel_he,
+            sentinel_he,
+            sentinel_face,
+            v4,
+            sentinel_e,
+        ),
+        None,
+    );
     let (he45, _he54) = arena.insert_radial_pair(
         HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, face, v4, sentinel_e),
-        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, sentinel_face, v5, sentinel_e), None);
+        HalfEdgeData::new(
+            sentinel_he,
+            sentinel_he,
+            sentinel_he,
+            sentinel_face,
+            v5,
+            sentinel_e,
+        ),
+        None,
+    );
     let (he53, _he35) = arena.insert_radial_pair(
         HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, face, v5, sentinel_e),
-        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, sentinel_face, v3, sentinel_e), None);
+        HalfEdgeData::new(
+            sentinel_he,
+            sentinel_he,
+            sentinel_he,
+            sentinel_face,
+            v3,
+            sentinel_e,
+        ),
+        None,
+    );
 
     let arena = draft.arena_mut();
     arena.get_half_edge_mut(he34).unwrap().set_next(he45);

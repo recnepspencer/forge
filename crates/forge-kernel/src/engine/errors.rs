@@ -5,9 +5,9 @@
 
 use std::fmt;
 
+use forge_core::errors::{ErrorContext, ErrorScope};
 use forge_core::KernelError;
 use forge_core::PolicyKind;
-use forge_core::errors::{ErrorContext, ErrorScope};
 
 use crate::engine::contract::InvariantKind;
 
@@ -18,27 +18,16 @@ use crate::engine::contract::InvariantKind;
 #[derive(Debug)]
 pub enum PipelineError {
     /// A required policy is not configured in the ModelingContext.
-    PolicyNotConfigured {
-        kind: PolicyKind,
-        feature: String,
-    },
+    PolicyNotConfigured { kind: PolicyKind, feature: String },
 
     /// A post-execution invariant was violated.
-    InvariantViolation {
-        kind: InvariantKind,
-        detail: String,
-    },
+    InvariantViolation { kind: InvariantKind, detail: String },
 
     /// Input parsing failed (missing dependency, wrong type).
-    InputParseFailure {
-        expected: String,
-        actual: String,
-    },
+    InputParseFailure { expected: String, actual: String },
 
     /// Input semantic validation failed.
-    InputValidationFailure {
-        message: String,
-    },
+    InputValidationFailure { message: String },
 
     /// A step within the operation failed.
     StepExecutionFailed {
@@ -51,13 +40,21 @@ impl fmt::Display for PipelineError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::PolicyNotConfigured { kind, feature } => {
-                write!(f, "Policy {:?} not configured for feature '{}'", kind, feature)
+                write!(
+                    f,
+                    "Policy {:?} not configured for feature '{}'",
+                    kind, feature
+                )
             }
             Self::InvariantViolation { kind, detail } => {
                 write!(f, "Invariant {:?} violated: {}", kind, detail)
             }
             Self::InputParseFailure { expected, actual } => {
-                write!(f, "Input parse failure: expected '{}', got '{}'", expected, actual)
+                write!(
+                    f,
+                    "Input parse failure: expected '{}', got '{}'",
+                    expected, actual
+                )
             }
             Self::InputValidationFailure { message } => {
                 write!(f, "Input validation failed: {}", message)

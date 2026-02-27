@@ -12,13 +12,13 @@
 //!
 //! DEPENDENCIES: `arena` (entity storage), `lineage` (provenance)
 
-use forge_core::{KernelError, ErrorContext, ErrorScope, TopologyError};
+use forge_core::{ErrorContext, ErrorScope, KernelError, TopologyError};
 
-use crate::handles::{HalfEdgeId, EdgeId};
+use crate::handles::{EdgeId, HalfEdgeId};
 use crate::lineage::OpSignature;
-use crate::operator::{ExecutionResult, EulerDelta};
-use crate::EulerOperator;
+use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
+use crate::EulerOperator;
 
 /// Close a boundary by gluing two boundary halfedges together, removing an edge entity.
 ///
@@ -43,7 +43,11 @@ pub struct SewEdgeOutput {
 impl EulerOperator for SewEdge {
     type Output = SewEdgeOutput;
 
-    fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        sig: &OpSignature,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let op_name = self.signature().get_name().to_string();
         let inv_id = sig.get_invocation_id() as u64;
 
@@ -55,22 +59,40 @@ impl EulerOperator for SewEdge {
             // Validation 1: Both must be boundaries (radial_next == self)
             if he_a_data.radial_next() != self.he_a {
                 return Err(KernelError::TopologyViolation {
-                    err: TopologyError::BoundaryEdgeInSolid { halfedge_index: self.he_a.index(), shell_index: he_a_data.face().index() },
+                    err: TopologyError::BoundaryEdgeInSolid {
+                        halfedge_index: self.he_a.index(),
+                        shell_index: he_a_data.face().index(),
+                    },
                     context: Some(ErrorContext {
-                        scope: ErrorScope::Operation { op_name: op_name.clone(), invocation_id: inv_id },
+                        scope: ErrorScope::Operation {
+                            op_name: op_name.clone(),
+                            invocation_id: inv_id,
+                        },
                         suggested_fixes: vec![],
-                        detail: format!("SewEdge requires boundary halfedges, but he_a ({}) is already sewn.", self.he_a.index())
-                    })
+                        detail: format!(
+                            "SewEdge requires boundary halfedges, but he_a ({}) is already sewn.",
+                            self.he_a.index()
+                        ),
+                    }),
                 });
             }
             if he_b_data.radial_next() != self.he_b {
                 return Err(KernelError::TopologyViolation {
-                    err: TopologyError::BoundaryEdgeInSolid { halfedge_index: self.he_b.index(), shell_index: he_b_data.face().index() },
+                    err: TopologyError::BoundaryEdgeInSolid {
+                        halfedge_index: self.he_b.index(),
+                        shell_index: he_b_data.face().index(),
+                    },
                     context: Some(ErrorContext {
-                        scope: ErrorScope::Operation { op_name: op_name.clone(), invocation_id: inv_id },
+                        scope: ErrorScope::Operation {
+                            op_name: op_name.clone(),
+                            invocation_id: inv_id,
+                        },
                         suggested_fixes: vec![],
-                        detail: format!("SewEdge requires boundary halfedges, but he_b ({}) is already sewn.", self.he_b.index())
-                    })
+                        detail: format!(
+                            "SewEdge requires boundary halfedges, but he_b ({}) is already sewn.",
+                            self.he_b.index()
+                        ),
+                    }),
                 });
             }
 
@@ -92,15 +114,29 @@ impl EulerOperator for SewEdge {
                 });
             }
 
-            (he_a_data.edge(), he_b_data.edge(), he_a_data.face(), he_b_data.face())
+            (
+                he_a_data.edge(),
+                he_b_data.edge(),
+                he_a_data.face(),
+                he_b_data.face(),
+            )
         };
 
         // 1. Sew the radial pointers
-        draft.arena_mut().get_half_edge_mut(self.he_a)?.set_radial_next(self.he_b);
-        draft.arena_mut().get_half_edge_mut(self.he_b)?.set_radial_next(self.he_a);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(self.he_a)?
+            .set_radial_next(self.he_b);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(self.he_b)?
+            .set_radial_next(self.he_a);
 
         // 2. Point he_b to the surviving edge
-        draft.arena_mut().get_half_edge_mut(self.he_b)?.set_edge(edge_to_keep);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(self.he_b)?
+            .set_edge(edge_to_keep);
 
         // 3. Remove the obsolete edge entity
         draft.remove_edge(edge_to_remove)?;
@@ -114,7 +150,17 @@ impl EulerOperator for SewEdge {
                 edge: edge_to_keep,
                 removed_edge: edge_to_remove,
             },
-            declared_delta: EulerDelta { vertices: 0, half_edges: 0, faces: 0, loops: 0, edges: -1, shells: 0, solids: 0, lumps: 0, regions: 0 },
+            declared_delta: EulerDelta {
+                vertices: 0,
+                half_edges: 0,
+                faces: 0,
+                loops: 0,
+                edges: -1,
+                shells: 0,
+                solids: 0,
+                lumps: 0,
+                regions: 0,
+            },
         })
     }
 

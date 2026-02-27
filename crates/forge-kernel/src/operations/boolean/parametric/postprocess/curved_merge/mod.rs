@@ -15,10 +15,10 @@
 //! - GeometryPatch stages all binding updates (face→surface, he→coedge, edge→curve)
 //! - On failure, KernelDraft drop discards all mutations atomically
 
-pub mod schema;
 pub mod eval;
+pub mod schema;
 #[cfg(test)]
 pub mod tests;
 
-pub use schema::{CurvedMergeSelection, CurvedMergePlan, CurvedMergeResult};
 pub use eval::execute_curved_merge;
+pub use schema::{CurvedMergePlan, CurvedMergeResult, CurvedMergeSelection};

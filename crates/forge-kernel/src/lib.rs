@@ -29,14 +29,14 @@
 
 #![forbid(unsafe_code)]
 
-pub mod prelude;
+pub mod analysis;
+pub mod brep;
 pub mod core;
 pub mod engine;
 pub mod geometry_state;
 pub mod mesh_builder;
 pub mod operations;
-pub mod analysis;
-pub mod brep;
+pub mod prelude;
 pub mod primitives;
 pub mod queries;
 pub mod shared_ops;
@@ -44,7 +44,7 @@ pub mod spatial;
 
 // Re-exports for backward compatibility
 pub use operations::boolean;
-pub use operations::boolean::{BooleanInput, BooleanOp, BooleanResult, execute_boolean};
+pub use operations::boolean::{execute_boolean, BooleanInput, BooleanOp, BooleanResult};
 
 // Phase F — gap measurement
 pub use analysis::gap::{measure_gap, GapReport, GapSampleDensity};

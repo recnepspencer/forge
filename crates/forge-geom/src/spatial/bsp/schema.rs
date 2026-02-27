@@ -1,7 +1,7 @@
 //! Data shapes for BSP convex cell construction.
 
+use forge_math::{GeometrySource, MathError, PlaneCoefficients};
 use serde::{Deserialize, Serialize};
-use forge_math::{MathError, GeometrySource, PlaneCoefficients};
 
 use crate::primitives::plane::Plane;
 
@@ -21,7 +21,12 @@ pub struct CellVertex {
 impl CellVertex {
     /// Create a new cell vertex from three plane indices and resolved position.
     pub fn new(plane_a: usize, plane_b: usize, plane_c: usize, position: [f64; 3]) -> Self {
-        Self { plane_a, plane_b, plane_c, position }
+        Self {
+            plane_a,
+            plane_b,
+            plane_c,
+            position,
+        }
     }
 
     /// The resolved 3D position.
@@ -52,7 +57,10 @@ pub struct CellFace {
 impl CellFace {
     /// Create a new cell face.
     pub fn new(plane_idx: usize, vertices: Vec<usize>) -> Self {
-        Self { plane_idx, vertices }
+        Self {
+            plane_idx,
+            vertices,
+        }
     }
 
     /// The plane index this face lies on.
@@ -80,7 +88,11 @@ pub struct ConvexCell {
 impl ConvexCell {
     /// Create a new convex cell.
     pub fn new(planes: Vec<Plane>, vertices: Vec<CellVertex>, faces: Vec<CellFace>) -> Self {
-        Self { planes, vertices, faces }
+        Self {
+            planes,
+            vertices,
+            faces,
+        }
     }
 
     /// The planes defining this cell.
@@ -185,7 +197,11 @@ impl BspNode {
     pub fn complement(&self) -> BspNode {
         match self {
             BspNode::Leaf { solid } => BspNode::Leaf { solid: !solid },
-            BspNode::Internal { plane_idx, neg, pos } => BspNode::Internal {
+            BspNode::Internal {
+                plane_idx,
+                neg,
+                pos,
+            } => BspNode::Internal {
                 plane_idx: *plane_idx,
                 neg: Box::new(neg.complement()),
                 pos: Box::new(pos.complement()),
@@ -198,7 +214,11 @@ impl BspNode {
     pub fn simplify(self) -> BspNode {
         match self {
             BspNode::Leaf { .. } => self,
-            BspNode::Internal { plane_idx, neg, pos } => {
+            BspNode::Internal {
+                plane_idx,
+                neg,
+                pos,
+            } => {
                 let neg_s = neg.simplify();
                 let pos_s = pos.simplify();
                 match (&neg_s, &pos_s) {
@@ -219,9 +239,7 @@ impl BspNode {
     pub fn node_count(&self) -> usize {
         match self {
             BspNode::Leaf { .. } => 1,
-            BspNode::Internal { neg, pos, .. } => {
-                1 + neg.node_count() + pos.node_count()
-            }
+            BspNode::Internal { neg, pos, .. } => 1 + neg.node_count() + pos.node_count(),
         }
     }
 
@@ -229,19 +247,21 @@ impl BspNode {
     pub fn leaf_count(&self) -> usize {
         match self {
             BspNode::Leaf { .. } => 1,
-            BspNode::Internal { neg, pos, .. } => {
-                neg.leaf_count() + pos.leaf_count()
-            }
+            BspNode::Internal { neg, pos, .. } => neg.leaf_count() + pos.leaf_count(),
         }
     }
 
     /// Count the number of solid leaves.
     pub fn solid_leaf_count(&self) -> usize {
         match self {
-            BspNode::Leaf { solid } => if *solid { 1 } else { 0 },
-            BspNode::Internal { neg, pos, .. } => {
-                neg.solid_leaf_count() + pos.solid_leaf_count()
+            BspNode::Leaf { solid } => {
+                if *solid {
+                    1
+                } else {
+                    0
+                }
             }
+            BspNode::Internal { neg, pos, .. } => neg.solid_leaf_count() + pos.solid_leaf_count(),
         }
     }
 
@@ -249,9 +269,7 @@ impl BspNode {
     pub fn depth(&self) -> usize {
         match self {
             BspNode::Leaf { .. } => 0,
-            BspNode::Internal { neg, pos, .. } => {
-                1 + neg.depth().max(pos.depth())
-            }
+            BspNode::Internal { neg, pos, .. } => 1 + neg.depth().max(pos.depth()),
         }
     }
 }
@@ -322,7 +340,11 @@ impl BspSolid {
 fn classify_node(node: &BspNode, planes: &[Plane], point: [f64; 3]) -> bool {
     match node {
         BspNode::Leaf { solid } => *solid,
-        BspNode::Internal { plane_idx, neg, pos } => {
+        BspNode::Internal {
+            plane_idx,
+            neg,
+            pos,
+        } => {
             let plane = &planes[*plane_idx];
             let n = plane.raw_normal();
             let d = plane.raw_offset();
@@ -354,9 +376,7 @@ impl PlaneSet {
 impl GeometrySource for PlaneSet {
     fn get_plane(&self, index: usize) -> Result<PlaneCoefficients, MathError> {
         let p = self.planes().get(index).ok_or_else(|| {
-            MathError::InvalidInput(
-                format!("Plane index {} out of bounds", index),
-            )
+            MathError::InvalidInput(format!("Plane index {} out of bounds", index))
         })?;
         let n = p.raw_normal();
         PlaneCoefficients::try_new(n[0], n[1], n[2], p.raw_offset())

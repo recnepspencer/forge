@@ -9,9 +9,9 @@
 //! DEPENDENCIES: forge-spatial (face_bounds), forge-topo (handles, state)
 
 use forge_core::KernelError;
+use forge_spatial::bounds::face::face_bounds;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::state::TopologyState;
-use forge_spatial::bounds::face::face_bounds;
 
 /// A face whose area falls below the sliver threshold.
 #[derive(Debug, Clone)]

@@ -73,8 +73,14 @@ fn excise_halfedge(
     let next_id = he_data.next();
     let prev_id = he_data.prev();
 
-    draft.arena_mut().get_half_edge_mut(prev_id)?.set_next(next_id);
-    draft.arena_mut().get_half_edge_mut(next_id)?.set_prev(prev_id);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(prev_id)?
+        .set_next(next_id);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(next_id)?
+        .set_prev(prev_id);
 
     repair_loop_pointer(draft, he_data.face(), he_id, next_id)?;
     repair_vertex_outgoing(draft, he_data.origin(), he_id, next_id)?;
@@ -92,8 +98,14 @@ fn excise_twin_halfedge(draft: &mut MutableDraft, twin_id: HalfEdgeId) -> Result
 
     let twin_next = twin.next();
     let twin_prev = twin.prev();
-    draft.arena_mut().get_half_edge_mut(twin_prev)?.set_next(twin_next);
-    draft.arena_mut().get_half_edge_mut(twin_next)?.set_prev(twin_prev);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(twin_prev)?
+        .set_next(twin_next);
+    draft
+        .arena_mut()
+        .get_half_edge_mut(twin_next)?
+        .set_prev(twin_prev);
     repair_loop_pointer(draft, twin.face(), twin_id, twin_next)?;
     repair_vertex_outgoing(draft, twin.origin(), twin_id, twin_next)?;
     Ok(())
@@ -109,7 +121,10 @@ fn repair_loop_pointer(
     let loop_id = face.outer_loop();
     let loop_he = draft.arena().get_loop(loop_id)?.half_edge();
     if loop_he == removed_he {
-        draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(replacement_he);
+        draft
+            .arena_mut()
+            .get_loop_mut(loop_id)?
+            .set_half_edge(replacement_he);
     }
     Ok(())
 }
@@ -122,7 +137,10 @@ fn repair_vertex_outgoing(
 ) -> Result<(), KernelError> {
     let outgoing = draft.arena().get_vertex(vertex_id)?.outgoing();
     if outgoing == removed_he {
-        draft.arena_mut().get_vertex_mut(vertex_id)?.set_outgoing(replacement_he);
+        draft
+            .arena_mut()
+            .get_vertex_mut(vertex_id)?
+            .set_outgoing(replacement_he);
     }
     Ok(())
 }
@@ -156,7 +174,13 @@ fn find_degenerate_faces(draft: &MutableDraft) -> Result<Vec<FaceId>, KernelErro
         let edges = collect_face_edges(draft, face_id)?;
         let unique: BTreeSet<u32> = edges
             .iter()
-            .filter_map(|&he| draft.arena().get_half_edge(he).ok().map(|d| d.origin().index()))
+            .filter_map(|&he| {
+                draft
+                    .arena()
+                    .get_half_edge(he)
+                    .ok()
+                    .map(|d| d.origin().index())
+            })
             .collect();
         if unique.len() < 3 {
             degenerate.push(face_id);
@@ -165,7 +189,10 @@ fn find_degenerate_faces(draft: &MutableDraft) -> Result<Vec<FaceId>, KernelErro
     Ok(degenerate)
 }
 
-fn collect_face_edges(draft: &MutableDraft, face_id: FaceId) -> Result<Vec<HalfEdgeId>, KernelError> {
+fn collect_face_edges(
+    draft: &MutableDraft,
+    face_id: FaceId,
+) -> Result<Vec<HalfEdgeId>, KernelError> {
     let iter = FaceAllEdgesIterator::new(draft.arena(), face_id)?;
     iter.collect::<Result<Vec<_>, _>>()
 }
@@ -180,7 +207,10 @@ fn repair_affected_vertices(
         let he = draft.arena().get_half_edge(he_id)?;
         let origin = he.origin();
         let outgoing = draft.arena().get_vertex(origin).ok().map(|v| v.outgoing());
-        if outgoing.map(|o| deleted_set.contains(&o.index())).unwrap_or(false) {
+        if outgoing
+            .map(|o| deleted_set.contains(&o.index()))
+            .unwrap_or(false)
+        {
             needs_repair.insert(origin.index());
         }
     }

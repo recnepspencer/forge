@@ -42,12 +42,10 @@ where
             continue;
         };
 
-        let group = collect_connected_face_component(
-            arena,
-            face_id,
-            &mut visited,
-            |current, neighbor| include_neighbor(&seed_state, current, neighbor),
-        )?;
+        let group =
+            collect_connected_face_component(arena, face_id, &mut visited, |current, neighbor| {
+                include_neighbor(&seed_state, current, neighbor)
+            })?;
         groups.push(group);
     }
 

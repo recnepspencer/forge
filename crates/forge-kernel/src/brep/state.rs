@@ -1,10 +1,10 @@
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
-use forge_core::KernelError;
-use forge_geom::{SurfaceData, CurveGeom, Coedge};
-use forge_topo::handles::{FaceId, HalfEdgeId, EdgeId, SurfaceRef, CurveRef, CoedgeRef};
 use crate::geometry_state::schema::pack_handle;
+use forge_core::KernelError;
+use forge_geom::{Coedge, CurveGeom, SurfaceData};
+use forge_topo::handles::{CoedgeRef, CurveRef, EdgeId, FaceId, HalfEdgeId, SurfaceRef};
 
 /// A generational slot in the B-Rep arenas.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -15,11 +15,17 @@ struct BrepSlot<T> {
 
 impl<T> BrepSlot<T> {
     fn vacant(gen: u32) -> Self {
-        Self { data: None, generation: gen }
+        Self {
+            data: None,
+            generation: gen,
+        }
     }
 
     fn occupied(data: T, gen: u32) -> Self {
-        Self { data: Some(data), generation: gen }
+        Self {
+            data: Some(data),
+            generation: gen,
+        }
     }
 }
 
@@ -69,30 +75,35 @@ impl BrepState {
 
     /// Retrieve a surface by its handle.
     pub fn get_surface(&self, r: SurfaceRef) -> Result<&SurfaceData, KernelError> {
-        let slot = self.surfaces.get(r.index() as usize)
-            .ok_or_else(|| KernelError::InternalError {
-                message: format!("SurfaceRef {} out of range", r),
-                context: None,
-            })?;
+        let slot =
+            self.surfaces
+                .get(r.index() as usize)
+                .ok_or_else(|| KernelError::InternalError {
+                    message: format!("SurfaceRef {} out of range", r),
+                    context: None,
+                })?;
         if slot.generation != r.generation() {
             return Err(KernelError::InternalError {
                 message: format!("Stale SurfaceRef {} (arena gen {})", r, slot.generation),
                 context: None,
             });
         }
-        slot.data.as_ref().ok_or_else(|| KernelError::InternalError {
-            message: format!("SurfaceRef {} points to a vacant slot", r),
-            context: None,
-        })
+        slot.data
+            .as_ref()
+            .ok_or_else(|| KernelError::InternalError {
+                message: format!("SurfaceRef {} points to a vacant slot", r),
+                context: None,
+            })
     }
 
     /// Remove a surface, returning its data.
     pub fn remove_surface(&mut self, r: SurfaceRef) -> Result<SurfaceData, KernelError> {
-        let slot = self.surfaces.get_mut(r.index() as usize)
-            .ok_or_else(|| KernelError::InternalError {
+        let slot = self.surfaces.get_mut(r.index() as usize).ok_or_else(|| {
+            KernelError::InternalError {
                 message: format!("SurfaceRef {} out of range", r),
                 context: None,
-            })?;
+            }
+        })?;
         if slot.generation != r.generation() {
             return Err(KernelError::InternalError {
                 message: format!("Stale SurfaceRef {}", r),
@@ -118,30 +129,36 @@ impl BrepState {
 
     /// Retrieve a curve geometry by its handle.
     pub fn get_curve(&self, r: CurveRef) -> Result<&CurveGeom, KernelError> {
-        let slot = self.curves.get(r.index() as usize)
-            .ok_or_else(|| KernelError::InternalError {
-                message: format!("CurveRef {} out of range", r),
-                context: None,
-            })?;
+        let slot =
+            self.curves
+                .get(r.index() as usize)
+                .ok_or_else(|| KernelError::InternalError {
+                    message: format!("CurveRef {} out of range", r),
+                    context: None,
+                })?;
         if slot.generation != r.generation() {
             return Err(KernelError::InternalError {
                 message: format!("Stale CurveRef {}", r),
                 context: None,
             });
         }
-        slot.data.as_ref().ok_or_else(|| KernelError::InternalError {
-            message: format!("CurveRef {} points to a vacant slot", r),
-            context: None,
-        })
+        slot.data
+            .as_ref()
+            .ok_or_else(|| KernelError::InternalError {
+                message: format!("CurveRef {} points to a vacant slot", r),
+                context: None,
+            })
     }
 
     /// Remove a curve geometry, returning its data.
     pub fn remove_curve(&mut self, r: CurveRef) -> Result<CurveGeom, KernelError> {
-        let slot = self.curves.get_mut(r.index() as usize)
-            .ok_or_else(|| KernelError::InternalError {
-                message: format!("CurveRef {} out of range", r),
-                context: None,
-            })?;
+        let slot =
+            self.curves
+                .get_mut(r.index() as usize)
+                .ok_or_else(|| KernelError::InternalError {
+                    message: format!("CurveRef {} out of range", r),
+                    context: None,
+                })?;
         if slot.generation != r.generation() {
             return Err(KernelError::InternalError {
                 message: format!("Stale CurveRef {}", r),
@@ -167,21 +184,25 @@ impl BrepState {
 
     /// Retrieve a coedge by its handle.
     pub fn get_coedge(&self, r: CoedgeRef) -> Result<&Coedge, KernelError> {
-        let slot = self.coedges.get(r.index() as usize)
-            .ok_or_else(|| KernelError::InternalError {
-                message: format!("CoedgeRef {} out of range", r),
-                context: None,
-            })?;
+        let slot =
+            self.coedges
+                .get(r.index() as usize)
+                .ok_or_else(|| KernelError::InternalError {
+                    message: format!("CoedgeRef {} out of range", r),
+                    context: None,
+                })?;
         if slot.generation != r.generation() {
             return Err(KernelError::InternalError {
                 message: format!("Stale CoedgeRef {}", r),
                 context: None,
             });
         }
-        slot.data.as_ref().ok_or_else(|| KernelError::InternalError {
-            message: format!("CoedgeRef {} points to a vacant slot", r),
-            context: None,
-        })
+        slot.data
+            .as_ref()
+            .ok_or_else(|| KernelError::InternalError {
+                message: format!("CoedgeRef {} points to a vacant slot", r),
+                context: None,
+            })
     }
 
     // ── Attachment APIs ──────────────────────────────────────────
@@ -193,7 +214,12 @@ impl BrepState {
     }
 
     /// Attach a coedge + direction to a halfedge.
-    pub fn attach_coedge_to_halfedge(&mut self, he: HalfEdgeId, coedge: CoedgeRef, direction: bool) {
+    pub fn attach_coedge_to_halfedge(
+        &mut self,
+        he: HalfEdgeId,
+        coedge: CoedgeRef,
+        direction: bool,
+    ) {
         let key = pack_handle(he.index(), he.generation());
         self.halfedge_coedges.insert(key, (coedge, direction));
     }
@@ -248,8 +274,14 @@ impl BrepState {
     }
 
     /// Internal: commit a raw handle mapping directly.
-    pub(crate) fn _set_halfedge_coedge_raw(&mut self, packed_key: u64, coedge: CoedgeRef, direction: bool) {
-        self.halfedge_coedges.insert(packed_key, (coedge, direction));
+    pub(crate) fn _set_halfedge_coedge_raw(
+        &mut self,
+        packed_key: u64,
+        coedge: CoedgeRef,
+        direction: bool,
+    ) {
+        self.halfedge_coedges
+            .insert(packed_key, (coedge, direction));
     }
 
     /// Internal: remove a raw handle mapping directly.

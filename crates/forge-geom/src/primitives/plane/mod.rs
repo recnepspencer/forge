@@ -8,12 +8,14 @@
 
 mod eval;
 
-pub use eval::{classify_point, classify_point_exact, signed_distance, intersect_three_planes,
-               intersect_three_planes_exact, intersect_edge_plane, to_plane_relation, exact_eq, coplanar_eq,
-               are_parallel_exact, normals_aligned_exact};
+pub use eval::{
+    are_parallel_exact, classify_point, classify_point_exact, coplanar_eq, exact_eq,
+    intersect_edge_plane, intersect_three_planes, intersect_three_planes_exact,
+    normals_aligned_exact, signed_distance, to_plane_relation,
+};
 
-use forge_math::MathError;
 use forge_math::arithmetic::Rational;
+use forge_math::MathError;
 use serde::{Deserialize, Serialize};
 
 /// A plane in 3D space defined by the equation `ax + by + cz + d = 0`.
@@ -41,7 +43,12 @@ impl Plane {
     /// Construct a plane from exact rational coefficients.
     ///
     /// Validates that the normal `(a, b, c)` is non-zero.
-    pub fn from_rationals(a: Rational, b: Rational, c: Rational, d: Rational) -> Result<Self, MathError> {
+    pub fn from_rationals(
+        a: Rational,
+        b: Rational,
+        c: Rational,
+        d: Rational,
+    ) -> Result<Self, MathError> {
         if a.is_zero() && b.is_zero() && c.is_zero() {
             return Err(MathError::InvalidInput(
                 "Plane normal must be non-zero".to_string(),
@@ -57,7 +64,14 @@ impl Plane {
         let f64_normal = [fa / len, fb / len, fc / len];
         let f64_offset = fd / len;
 
-        Ok(Self { a, b, c, d, f64_normal, f64_offset })
+        Ok(Self {
+            a,
+            b,
+            c,
+            d,
+            f64_normal,
+            f64_offset,
+        })
     }
 
     /// Construct an axis-aligned plane.
@@ -73,7 +87,12 @@ impl Plane {
         }
         let mut coeffs = [Rational::zero(), Rational::zero(), Rational::zero()];
         coeffs[axis] = Rational::from_integer(sign);
-        Self::from_rationals(coeffs[0].clone(), coeffs[1].clone(), coeffs[2].clone(), offset)
+        Self::from_rationals(
+            coeffs[0].clone(),
+            coeffs[1].clone(),
+            coeffs[2].clone(),
+            offset,
+        )
     }
 
     /// Construct from f64 normal and offset (lossless IEEE754 → Rational conversion).
@@ -101,10 +120,7 @@ impl Plane {
     /// Construct from a point on the plane and a normal direction (f64).
     ///
     /// The offset is computed as `d = -(n·p)` in exact rational arithmetic.
-    pub fn from_point_normal(
-        point: [f64; 3],
-        normal: [f64; 3],
-    ) -> Result<Self, MathError> {
+    pub fn from_point_normal(point: [f64; 3], normal: [f64; 3]) -> Result<Self, MathError> {
         let a = Rational::try_from_f64(normal[0])?;
         let b = Rational::try_from_f64(normal[1])?;
         let c = Rational::try_from_f64(normal[2])?;
@@ -132,7 +148,11 @@ impl Plane {
 
     /// The raw (un-normalized) normal as f64, for orient3d paths.
     pub fn raw_normal(&self) -> [f64; 3] {
-        [self.a.to_f64_approx(), self.b.to_f64_approx(), self.c.to_f64_approx()]
+        [
+            self.a.to_f64_approx(),
+            self.b.to_f64_approx(),
+            self.c.to_f64_approx(),
+        ]
     }
 
     /// The raw (un-normalized) offset as f64, for orient3d paths.
@@ -151,7 +171,11 @@ impl Plane {
         self.b = -self.b.clone();
         self.c = -self.c.clone();
         self.d = -self.d.clone();
-        self.f64_normal = [-self.f64_normal[0], -self.f64_normal[1], -self.f64_normal[2]];
+        self.f64_normal = [
+            -self.f64_normal[0],
+            -self.f64_normal[1],
+            -self.f64_normal[2],
+        ];
         self.f64_offset = -self.f64_offset;
     }
 }

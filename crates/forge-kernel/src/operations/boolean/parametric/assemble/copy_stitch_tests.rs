@@ -8,18 +8,20 @@
 
 use std::collections::BTreeMap;
 
-use forge_topo::state::TopologyState;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
+use forge_topo::state::TopologyState;
 
-use crate::geometry_state::GeometryState;
 use crate::brep::state::BrepState;
-use crate::operations::boolean::test_helpers::{build_cube, euler_audit};
-use crate::operations::boolean::schema::{BooleanInput, BooleanOp};
-use crate::operations::boolean::parametric::assemble::copy::{copy_faces, VertexDedup, VertexWelder};
-use crate::operations::boolean::parametric::assemble::stitch::stitch_twins;
-use crate::operations::boolean::parametric::assemble::disjoint::compute_disjoint_scale;
-use crate::operations::boolean::parametric::assemble::execute_boolean_direct;
 use crate::core::ModelingContext;
+use crate::geometry_state::GeometryState;
+use crate::operations::boolean::parametric::assemble::copy::{
+    copy_faces, VertexDedup, VertexWelder,
+};
+use crate::operations::boolean::parametric::assemble::disjoint::compute_disjoint_scale;
+use crate::operations::boolean::parametric::assemble::merge::eval::execute_boolean_direct;
+use crate::operations::boolean::parametric::assemble::stitch::stitch_twins;
+use crate::operations::boolean::schema::{BooleanInput, BooleanOp};
+use crate::operations::boolean::test_helpers::{build_cube, euler_audit};
 use crate::shared_ops::vertex_identity::VertexMatchKey;
 
 /// Helper: copy all faces from a source topology into a fresh arena and stitch.
@@ -27,7 +29,11 @@ fn copy_and_stitch(
     source_topo: &TopologyState,
     source_geom: &GeometryState,
 ) -> Result<(TopologyState, GeometryState, usize, usize), forge_core::KernelError> {
-    let faces: Vec<FaceId> = source_topo.arena().iter_faces().map(|(fid, _)| fid).collect();
+    let faces: Vec<FaceId> = source_topo
+        .arena()
+        .iter_faces()
+        .map(|(fid, _)| fid)
+        .collect();
     let src_v = source_topo.arena().vertex_count();
     let scale = compute_disjoint_scale(source_topo.arena(), source_geom, None);
 
@@ -40,13 +46,28 @@ fn copy_and_stitch(
     let mut dedup = VertexDedup::new();
 
     copy_faces(
-        &mut draft, &mut result_geom, &mut dedup, &mut he_ids,
-        &mut vertex_map, &mut spatial,
-        source_topo.arena(), source_geom, &faces, false, "test_copy", None,
+        &mut draft,
+        &mut result_geom,
+        &mut dedup,
+        &mut he_ids,
+        &mut vertex_map,
+        &mut spatial,
+        source_topo.arena(),
+        source_geom,
+        &faces,
+        false,
+        "test_copy",
+        None,
     )?;
 
     let mut ctx = ModelingContext::default();
-    let report = stitch_twins(&mut draft, &he_ids, &result_geom, spatial.weld_tolerance_sq(), &mut ctx)?;
+    let report = stitch_twins(
+        &mut draft,
+        &he_ids,
+        &result_geom,
+        spatial.weld_tolerance_sq(),
+        &mut ctx,
+    )?;
     report.require_fully_paired(&draft, &result_geom, &ctx)?;
 
     let topo = draft.commit()?;
@@ -60,7 +81,13 @@ fn plane_histogram(topo: &TopologyState, geom: &GeometryState) -> Vec<(String, u
     for (fid, _) in topo.arena().iter_faces() {
         let key = if let Some(p) = geom.get_face_plane(fid) {
             let n = p.normal();
-            format!("n=[{:.2},{:.2},{:.2}] d={:.2}", n[0], n[1], n[2], p.offset())
+            format!(
+                "n=[{:.2},{:.2},{:.2}] d={:.2}",
+                n[0],
+                n[1],
+                n[2],
+                p.offset()
+            )
         } else {
             "no-plane".to_string()
         };
@@ -92,8 +119,12 @@ fn copy_stitch_round_trip_notched_cube() {
     let (topo_b, geom_b) = build_cube([5.0, 0.0, -4.0], 0.3);
 
     let input = BooleanInput::new(
-        topo_a, geom_a, BrepState::new(),
-        topo_b, geom_b, BrepState::new(),
+        topo_a,
+        geom_a,
+        BrepState::new(),
+        topo_b,
+        geom_b,
+        BrepState::new(),
         BooleanOp::Subtraction,
     );
     let result = crate::operations::boolean::execute_boolean(input)
@@ -125,8 +156,12 @@ fn contained_subtraction_chain_2steps() {
 
         let (topo_b, geom_b) = build_cube([x, y, z], 0.3);
         let input = BooleanInput::new(
-            topo.clone(), geom.clone(), BrepState::new(),
-            topo_b, geom_b, BrepState::new(),
+            topo.clone(),
+            geom.clone(),
+            BrepState::new(),
+            topo_b,
+            geom_b,
+            BrepState::new(),
             BooleanOp::Subtraction,
         );
 
@@ -157,8 +192,12 @@ fn vertex_count_preserved_after_copy() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 5.0);
     let (topo_b, geom_b) = build_cube([5.0, 0.0, -4.0], 0.3);
     let input = BooleanInput::new(
-        topo_a, geom_a, BrepState::new(),
-        topo_b, geom_b, BrepState::new(),
+        topo_a,
+        geom_a,
+        BrepState::new(),
+        topo_b,
+        geom_b,
+        BrepState::new(),
         BooleanOp::Subtraction,
     );
     let r1 = crate::operations::boolean::execute_boolean(input)
@@ -168,8 +207,12 @@ fn vertex_count_preserved_after_copy() {
 
     let (topo_b2, geom_b2) = build_cube([4.76, 1.55, -3.6], 0.3);
     let input2 = BooleanInput::new(
-        topo_r1, geom_r1, BrepState::new(),
-        topo_b2, geom_b2, BrepState::new(),
+        topo_r1,
+        geom_r1,
+        BrepState::new(),
+        topo_b2,
+        geom_b2,
+        BrepState::new(),
         BooleanOp::Subtraction,
     );
     let r2 = crate::operations::boolean::execute_boolean(input2)
@@ -181,12 +224,19 @@ fn vertex_count_preserved_after_copy() {
 
     let (result_topo, _, _, dst_v) = copy_and_stitch(&topo, &geom).unwrap();
     let (v_dst, e_dst, f_dst, chi_dst) = euler_audit(result_topo.arena());
-    assert_eq!(src_v, dst_v,
+    assert_eq!(
+        src_v,
+        dst_v,
         "VERTEX DEDUP FAILURE: source={} → dest={} vertices (delta: +{})",
-        src_v, dst_v, dst_v - src_v);
-    assert_eq!(chi_dst, src_chi,
+        src_v,
+        dst_v,
+        dst_v - src_v
+    );
+    assert_eq!(
+        chi_dst, src_chi,
         "Euler χ changed after copy+stitch: source χ={} → dest χ={} (V={} E={} F={})",
-        src_chi, chi_dst, v_dst, e_dst, f_dst);
+        src_chi, chi_dst, v_dst, e_dst, f_dst
+    );
 }
 
 // ── Test 5: Legacy chain bisection with vertex identity diagnostics ──────────
@@ -211,8 +261,12 @@ fn bisect_legacy_chain_face_shatter() {
 
         let (topo_b, geom_b) = build_cube([x, y, z], 0.3);
         let input = BooleanInput::new(
-            topo, geom, BrepState::new(),
-            topo_b, geom_b, BrepState::new(),
+            topo,
+            geom,
+            BrepState::new(),
+            topo_b,
+            geom_b,
+            BrepState::new(),
             BooleanOp::Subtraction,
         );
 
@@ -262,17 +316,23 @@ fn dump_vertex_identity(topo: &TopologyState, geom: &GeometryState) {
         }
     }
 
-    let dup_clusters: Vec<_> = pos_clusters.values()
-        .filter(|c| c.len() > 1)
-        .collect();
+    let dup_clusters: Vec<_> = pos_clusters.values().filter(|c| c.len() > 1).collect();
 
     if !dup_clusters.is_empty() {
-        eprintln!("  🔴 {} duplicate-position vertex clusters:", dup_clusters.len());
+        eprintln!(
+            "  🔴 {} duplicate-position vertex clusters:",
+            dup_clusters.len()
+        );
         for cluster in &dup_clusters {
             let pos = geom.get_vertex_position(cluster[0]).unwrap();
             let ids: Vec<String> = cluster.iter().map(|v| format!("V{}", v.index())).collect();
-            eprintln!("    pos=[{:.6},{:.6},{:.6}] ids=[{}]",
-                pos[0], pos[1], pos[2], ids.join(", "));
+            eprintln!(
+                "    pos=[{:.6},{:.6},{:.6}] ids=[{}]",
+                pos[0],
+                pos[1],
+                pos[2],
+                ids.join(", ")
+            );
         }
     } else {
         eprintln!("  ✅ No duplicate-position vertices");
@@ -289,8 +349,12 @@ fn copy_stitch_round_trip_legacy_notched_cube() {
     let (topo_b, geom_b) = build_cube([5.0, 0.0, -4.0], 0.3);
 
     let input = BooleanInput::new(
-        topo_a, geom_a, BrepState::new(),
-        topo_b, geom_b, BrepState::new(),
+        topo_a,
+        geom_a,
+        BrepState::new(),
+        topo_b,
+        geom_b,
+        BrepState::new(),
         BooleanOp::Subtraction,
     );
     let result = execute_boolean_direct(input)
@@ -300,8 +364,8 @@ fn copy_stitch_round_trip_legacy_notched_cube() {
     let (topo, geom, _) = result.into_states();
     let (_, _, _, chi_src) = euler_audit(topo.arena());
 
-    let (result_topo, _, source_verts, dest_verts) = copy_and_stitch(&topo, &geom)
-        .unwrap_or_else(|e| panic!("copy+stitch FAILED: {:?}", e));
+    let (result_topo, _, source_verts, dest_verts) =
+        copy_and_stitch(&topo, &geom).unwrap_or_else(|e| panic!("copy+stitch FAILED: {:?}", e));
 
     let (_, _, _, chi_dst) = euler_audit(result_topo.arena());
     assert_eq!(source_verts, dest_verts);
@@ -331,8 +395,8 @@ fn copy_stitch_round_trip_legacy_double_notched() {
     }
 
     let (_, _, _, src_chi) = euler_audit(topo.arena());
-    let (result_topo, _, src_v, dst_v) = copy_and_stitch(&topo, &geom)
-        .unwrap_or_else(|e| panic!("copy+stitch FAILED: {:?}", e));
+    let (result_topo, _, src_v, dst_v) =
+        copy_and_stitch(&topo, &geom).unwrap_or_else(|e| panic!("copy+stitch FAILED: {:?}", e));
 
     let (_, _, _, dst_chi) = euler_audit(result_topo.arena());
     assert_eq!(src_v, dst_v);
@@ -362,8 +426,12 @@ fn mb_n3_step4_split_forensics() {
         let z = -4.0 + (i as f64) * 0.4;
         let (topo_b, geom_b) = build_cube([x, y, z], 0.3);
         let input = BooleanInput::new(
-            topo.clone(), geom.clone(), brep.clone(),
-            topo_b, geom_b, BrepState::new(),
+            topo.clone(),
+            geom.clone(),
+            brep.clone(),
+            topo_b,
+            geom_b,
+            BrepState::new(),
             BooleanOp::Subtraction,
         );
         let result = execute_boolean_direct(input)
@@ -385,16 +453,35 @@ fn mb_n3_step4_split_forensics() {
         let n = plane.map(|p| p.raw_normal()).unwrap_or([0.0; 3]);
         let d = plane.map(|p| p.raw_offset()).unwrap_or(0.0);
         let edges: Vec<_> = FaceEdgeIterator::new(topo.arena(), fid)
-            .unwrap().collect::<Result<Vec<_>, _>>().unwrap();
+            .unwrap()
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
 
-        let verts: Vec<String> = edges.iter().map(|&he| {
-            let vid = topo.arena().get_half_edge(he).unwrap().origin();
-            let pos = geom.get_vertex_position(vid).unwrap();
-            format!("V{}[{:.4},{:.4},{:.4}]", vid.index(), pos[0], pos[1], pos[2])
-        }).collect();
+        let verts: Vec<String> = edges
+            .iter()
+            .map(|&he| {
+                let vid = topo.arena().get_half_edge(he).unwrap().origin();
+                let pos = geom.get_vertex_position(vid).unwrap();
+                format!(
+                    "V{}[{:.4},{:.4},{:.4}]",
+                    vid.index(),
+                    pos[0],
+                    pos[1],
+                    pos[2]
+                )
+            })
+            .collect();
 
-        eprintln!("  Face#{}: n=[{:.4},{:.4},{:.4}] d={:.4} edges={} verts={}",
-            fid.index(), n[0], n[1], n[2], d, edges.len(), verts.join(" → "));
+        eprintln!(
+            "  Face#{}: n=[{:.4},{:.4},{:.4}] d={:.4} edges={} verts={}",
+            fid.index(),
+            n[0],
+            n[1],
+            n[2],
+            d,
+            edges.len(),
+            verts.join(" → ")
+        );
     }
 
     let angle = 4.0 * std::f64::consts::TAU / (step_count as f64);
@@ -405,8 +492,10 @@ fn mb_n3_step4_split_forensics() {
     ];
     let notch_half = 0.3;
     eprintln!("\n=== TOOL ===");
-    eprintln!("center=[{:.6},{:.6},{:.6}] half={notch_half}",
-        tool_center[0], tool_center[1], tool_center[2]);
+    eprintln!(
+        "center=[{:.6},{:.6},{:.6}] half={notch_half}",
+        tool_center[0], tool_center[1], tool_center[2]
+    );
 
     let (tool_topo, tool_geom) = build_cube(tool_center, notch_half);
     eprintln!("\n=== Tool planes ===");
@@ -414,13 +503,24 @@ fn mb_n3_step4_split_forensics() {
         let plane = tool_geom.get_face_plane(fid);
         let n = plane.map(|p| p.raw_normal()).unwrap_or([0.0; 3]);
         let d = plane.map(|p| p.raw_offset()).unwrap_or(0.0);
-        eprintln!("  Face#{}: n=[{:.6},{:.6},{:.6}] d={:.6}", fid.index(), n[0], n[1], n[2], d);
+        eprintln!(
+            "  Face#{}: n=[{:.6},{:.6},{:.6}] d={:.6}",
+            fid.index(),
+            n[0],
+            n[1],
+            n[2],
+            d
+        );
     }
 
     eprintln!("\n=== Running step 4 boolean (expect failure) ===");
     let input = BooleanInput::new(
-        topo, geom, brep,
-        tool_topo, tool_geom, BrepState::new(),
+        topo,
+        geom,
+        brep,
+        tool_topo,
+        tool_geom,
+        BrepState::new(),
         BooleanOp::Subtraction,
     );
     match execute_boolean_direct(input).into_result() {
@@ -433,5 +533,3 @@ fn mb_n3_step4_split_forensics() {
         }
     }
 }
-
-

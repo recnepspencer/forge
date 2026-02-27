@@ -6,7 +6,7 @@
 use forge_core::KernelError;
 
 use crate::engine::contract::{
-    AuditLevel, EntityOriginKind, EulerOpKind, InvariantKind, SurfaceKind, FeatureInputs,
+    AuditLevel, EntityOriginKind, EulerOpKind, FeatureInputs, InvariantKind, SurfaceKind,
 };
 
 use super::MakePrimitiveFeature;

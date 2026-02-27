@@ -22,7 +22,7 @@ pub mod orient2d;
 pub mod orient3d;
 mod vendored;
 
-pub use grid_predicates::{orient3d_grid, orient2d_grid, classify_point_grid};
+pub use grid_predicates::{classify_point_grid, orient2d_grid, orient3d_grid};
 pub use in_sphere::{in_sphere, InSphereInput};
 pub use incircle::incircle;
 pub use orient2d::orient2d;

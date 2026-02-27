@@ -136,11 +136,17 @@ impl VertexGeom {
         parameter: f64,
         inherited_tolerance: f64,
     ) -> Self {
-        debug_assert!(inherited_tolerance > 0.0, "inherited_tolerance must be > 0.0");
+        debug_assert!(
+            inherited_tolerance > 0.0,
+            "inherited_tolerance must be > 0.0"
+        );
         Self {
             position,
             tolerance: inherited_tolerance,
-            provenance: VertexProvenance::EdgeSplit { parent_edge_index, parameter },
+            provenance: VertexProvenance::EdgeSplit {
+                parent_edge_index,
+                parameter,
+            },
             regime: ToleranceRegime::Exact,
         }
     }
@@ -167,7 +173,10 @@ impl VertexGeom {
         Self {
             position,
             tolerance: merged_tolerance,
-            provenance: VertexProvenance::Coalesced { source_count, max_gap },
+            provenance: VertexProvenance::Coalesced {
+                source_count,
+                max_gap,
+            },
             regime: ToleranceRegime::Exact,
         }
     }
@@ -206,7 +215,10 @@ mod tests {
         let vg = VertexGeom::from_coalescence([1.0, 2.0, 3.0], 5e-7, 2, 3e-7);
         assert!(matches!(
             vg.provenance,
-            VertexProvenance::Coalesced { source_count: 2, .. }
+            VertexProvenance::Coalesced {
+                source_count: 2,
+                ..
+            }
         ));
     }
 
@@ -257,7 +269,9 @@ mod tests {
         let r2: ToleranceRegime = serde_json::from_str(&s).unwrap();
         assert_eq!(r1, r2);
 
-        let r3 = ToleranceRegime::Healed { healing_tolerance_mm: 0.1 };
+        let r3 = ToleranceRegime::Healed {
+            healing_tolerance_mm: 0.1,
+        };
         let s2 = serde_json::to_string(&r3).unwrap();
         let r4: ToleranceRegime = serde_json::from_str(&s2).unwrap();
         assert_eq!(r3, r4);

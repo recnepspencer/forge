@@ -11,14 +11,14 @@
 //!
 //! DEPENDENCIES: `plane` (Plane, classify_point, intersect_three_planes)
 
-mod schema;
+pub mod convert;
 mod eval;
 pub mod merge;
-pub mod convert;
+mod schema;
 #[cfg(test)]
 mod tests;
 
-pub use schema::{ConvexCell, CellFace, CellVertex, BspNode, BspSolid, BspOp, PlaneSet};
+pub use convert::{convex_to_bsp, extract_boundary_cells};
 pub use eval::{build_convex_polyhedron, clip_cell_by_plane, BspConfig};
 pub use merge::merge_bsp;
-pub use convert::{convex_to_bsp, extract_boundary_cells};
+pub use schema::{BspNode, BspOp, BspSolid, CellFace, CellVertex, ConvexCell, PlaneSet};

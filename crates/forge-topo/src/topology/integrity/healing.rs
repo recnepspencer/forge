@@ -8,11 +8,11 @@
 
 use crate::topology::bitset::EntityBitset;
 
-use forge_core::KernelError;
+use super::shell::{compute_shell_signed_volume, discover_shell_faces};
 use crate::arena::TopologyArena;
 use crate::handles::{FaceId, HalfEdgeId, VertexId};
 use crate::topology::queries::traverse::FaceEdgeIterator;
-use super::shell::{discover_shell_faces, compute_shell_signed_volume};
+use forge_core::KernelError;
 
 /// Result of an orientation healing pass.
 #[derive(Debug, Clone)]
@@ -23,10 +23,14 @@ pub struct HealingResult {
 
 impl HealingResult {
     /// Number of connected shells examined.
-    pub fn shells_checked(&self) -> usize { self.shells_checked }
+    pub fn shells_checked(&self) -> usize {
+        self.shells_checked
+    }
 
     /// Number of shells whose winding was reversed.
-    pub fn shells_healed(&self) -> usize { self.shells_healed }
+    pub fn shells_healed(&self) -> usize {
+        self.shells_healed
+    }
 }
 
 /// Detect and heal inverted shell orientations in an arena.
@@ -44,7 +48,10 @@ pub fn heal_shell_orientation(
 ) -> Result<HealingResult, KernelError> {
     let f_total = arena.face_count();
     if f_total == 0 {
-        return Ok(HealingResult { shells_checked: 0, shells_healed: 0 });
+        return Ok(HealingResult {
+            shells_checked: 0,
+            shells_healed: 0,
+        });
     }
 
     let all_faces: Vec<FaceId> = arena.iter_faces().map(|(fid, _)| fid).collect();
@@ -72,7 +79,10 @@ pub fn heal_shell_orientation(
         flip_shell_winding(arena, shell_faces)?;
     }
 
-    Ok(HealingResult { shells_checked, shells_healed })
+    Ok(HealingResult {
+        shells_checked,
+        shells_healed,
+    })
 }
 
 /// Reverse winding direction of every face in a shell.
@@ -102,12 +112,9 @@ fn flip_shell_winding(
 /// Uses a two-phase approach (read all, then mutate all) to avoid
 /// data races where mutating one halfedge's pointers corrupts reads
 /// of the next halfedge in the loop.
-fn flip_face_winding(
-    arena: &mut TopologyArena,
-    face_id: FaceId,
-) -> Result<(), KernelError> {
-    let halfedge_ids: Vec<_> = FaceEdgeIterator::new(arena, face_id)?
-        .collect::<Result<Vec<_>, _>>()?;
+fn flip_face_winding(arena: &mut TopologyArena, face_id: FaceId) -> Result<(), KernelError> {
+    let halfedge_ids: Vec<_> =
+        FaceEdgeIterator::new(arena, face_id)?.collect::<Result<Vec<_>, _>>()?;
 
     let mut rewire_data: Vec<(HalfEdgeId, HalfEdgeId, HalfEdgeId, VertexId)> = Vec::new();
     for &he_id in &halfedge_ids {

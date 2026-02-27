@@ -12,12 +12,15 @@
 
 use forge_core::KernelError;
 
-use crate::arena::{FaceData, HalfEdgeData, LoopData, VertexData, ShellData, BodyData, LumpData, RegionData, EdgeData, ShellKind, ShellOrientation};
-use crate::handles::{HalfEdgeId, LoopId, ShellId, EdgeId, LumpId, RegionId};
+use crate::arena::{
+    BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
+    ShellKind, ShellOrientation, VertexData,
+};
+use crate::handles::{EdgeId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId};
 use crate::lineage::{Lineage, OpSignature};
-use crate::operator::{ExecutionResult, EulerDelta};
-use crate::EulerOperator;
+use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
+use crate::EulerOperator;
 
 /// Creates the topological seed: one vertex, one face, one loop, one selfloop halfedge,
 /// one shell, and one edge.
@@ -52,7 +55,11 @@ pub struct MvfOutput {
 impl EulerOperator for MakeVertexFace {
     type Output = MvfOutput;
 
-    fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        sig: &OpSignature,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
         let placeholder_loop = LoopId::new(u32::MAX, 0);
 
@@ -70,19 +77,11 @@ impl EulerOperator for MakeVertexFace {
             Some(vertex_lineage),
         ));
 
-        let solid = draft.insert_body(BodyData::with_lineage(
-            Some(body_lineage),
-        ));
+        let solid = draft.insert_body(BodyData::with_lineage(Some(body_lineage)));
 
-        let lump = draft.insert_lump(LumpData::with_lineage(
-            solid,
-            Some(lump_lineage),
-        ));
+        let lump = draft.insert_lump(LumpData::with_lineage(solid, Some(lump_lineage)));
 
-        let region = draft.insert_region(RegionData::with_lineage(
-            lump,
-            Some(region_lineage),
-        ));
+        let region = draft.insert_region(RegionData::with_lineage(lump, Some(region_lineage)));
 
         let shell = draft.insert_shell(ShellData::with_lineage(
             crate::handles::FaceId::new(u32::MAX, 0),
@@ -99,10 +98,7 @@ impl EulerOperator for MakeVertexFace {
 
         let loop_id = draft.insert_loop(LoopData::new(placeholder_he, face));
 
-        let edge = draft.insert_edge(EdgeData::with_lineage(
-            placeholder_he,
-            Some(edge_lineage),
-        ));
+        let edge = draft.insert_edge(EdgeData::with_lineage(placeholder_he, Some(edge_lineage)));
 
         let he = draft.insert_half_edge(HalfEdgeData::with_lineage(
             placeholder_he,
@@ -118,9 +114,15 @@ impl EulerOperator for MakeVertexFace {
         draft.arena_mut().get_half_edge_mut(he)?.set_next(he);
         draft.arena_mut().get_half_edge_mut(he)?.set_prev(he);
         draft.arena_mut().get_vertex_mut(vertex)?.set_outgoing(he);
-        draft.arena_mut().get_face_mut(face)?.set_outer_loop(loop_id);
+        draft
+            .arena_mut()
+            .get_face_mut(face)?
+            .set_outer_loop(loop_id);
         draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(he);
-        draft.arena_mut().get_shell_mut(shell)?.set_representative_face(face);
+        draft
+            .arena_mut()
+            .get_shell_mut(shell)?
+            .set_representative_face(face);
         draft.arena_mut().get_body_mut(solid)?.add_lump(lump);
         draft.arena_mut().get_lump_mut(lump)?.add_region(region);
         draft.arena_mut().get_region_mut(region)?.add_shell(shell);
@@ -138,7 +140,17 @@ impl EulerOperator for MakeVertexFace {
                 solid,
                 edge,
             },
-            declared_delta: EulerDelta { vertices: 1, half_edges: 1, faces: 1, loops: 1, edges: 1, shells: 1, solids: 1, lumps: 1, regions: 1 },
+            declared_delta: EulerDelta {
+                vertices: 1,
+                half_edges: 1,
+                faces: 1,
+                loops: 1,
+                edges: 1,
+                shells: 1,
+                solids: 1,
+                lumps: 1,
+                regions: 1,
+            },
         })
     }
 

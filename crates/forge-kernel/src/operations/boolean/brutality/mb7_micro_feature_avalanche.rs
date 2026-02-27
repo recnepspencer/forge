@@ -19,10 +19,8 @@
 //! - Chained subtraction of 10k cubes without topology corruption
 //! - Performance: complete within reasonable time despite 10k operations
 
-use super::super::test_helpers::{
-    build_cube, execute_boolean_logged, euler_audit,
-};
 use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::test_helpers::{build_cube, euler_audit, execute_boolean_logged};
 
 // ══════════════════════════════════════════════════════════════
 // §MB7.1  MICRO-CUBE GRID SUBTRACTION (10×10×10 = 1,000)
@@ -55,11 +53,8 @@ fn micro_cube_grid_1000() {
 
                 let (topo_micro, geom_micro) = build_cube(center, micro_half);
 
-                let input = BooleanInput::new(
-                    topo, geom,
-                    topo_micro, geom_micro,
-                    BooleanOp::Subtraction,
-                );
+                let input =
+                    BooleanInput::new(topo, geom, topo_micro, geom_micro, BooleanOp::Subtraction);
 
                 match execute_boolean_logged(input).into_result() {
                     Ok(result) => {
@@ -120,11 +115,8 @@ fn micro_cube_grid_10000() {
 
                 let (topo_micro, geom_micro) = build_cube(center, micro_half);
 
-                let input = BooleanInput::new(
-                    topo, geom,
-                    topo_micro, geom_micro,
-                    BooleanOp::Subtraction,
-                );
+                let input =
+                    BooleanInput::new(topo, geom, topo_micro, geom_micro, BooleanOp::Subtraction);
 
                 match execute_boolean_logged(input).into_result() {
                     Ok(result) => {
@@ -132,9 +124,7 @@ fn micro_cube_grid_10000() {
                         step += 1;
                         if step % 500 == 0 {
                             let (v, e, f, chi) = euler_audit(r.topology().arena());
-                            eprintln!(
-                                "MB7 micro-cube {step}/{total}: V={v} E={e} F={f} χ={chi}"
-                            );
+                            eprintln!("MB7 micro-cube {step}/{total}: V={v} E={e} F={f} χ={chi}");
                         }
                         let parts = r.into_states();
                         topo = parts.0;
@@ -150,7 +140,10 @@ fn micro_cube_grid_10000() {
 
     let (v, e, f, chi) = euler_audit(topo.arena());
     eprintln!("MB7 {total} micro-cubes final: V={v} E={e} F={f} χ={chi}");
-    assert!(f > 6, "Full micro-cube grid should have many faces, got {f}");
+    assert!(
+        f > 6,
+        "Full micro-cube grid should have many faces, got {f}"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -182,9 +175,8 @@ fn micro_cube_graze_tool() {
                     iz as f64 * spacing,
                 ];
                 let (topo_micro, geom_micro) = build_cube(center, micro_half);
-                let input = BooleanInput::new(
-                    topo, geom, topo_micro, geom_micro, BooleanOp::Subtraction,
-                );
+                let input =
+                    BooleanInput::new(topo, geom, topo_micro, geom_micro, BooleanOp::Subtraction);
                 match execute_boolean_logged(input).into_result() {
                     Ok(r) => {
                         let p = r.into_states();
@@ -198,16 +190,10 @@ fn micro_cube_graze_tool() {
     }
 
     let grid_span = grid_dim as f64 * spacing;
-    let (topo_graze, geom_graze) = build_cube(
-        [grid_span / 2.0, grid_span / 2.0, epsilon],
-        grid_span,
-    );
+    let (topo_graze, geom_graze) =
+        build_cube([grid_span / 2.0, grid_span / 2.0, epsilon], grid_span);
 
-    let input = BooleanInput::new(
-        topo, geom,
-        topo_graze, geom_graze,
-        BooleanOp::Subtraction,
-    );
+    let input = BooleanInput::new(topo, geom, topo_graze, geom_graze, BooleanOp::Subtraction);
 
     match execute_boolean_logged(input).into_result() {
         Ok(result) => {

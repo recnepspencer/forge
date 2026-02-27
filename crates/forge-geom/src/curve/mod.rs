@@ -6,7 +6,7 @@
 //!
 //! DEPENDENCIES: serde
 
-pub mod schema;
 pub mod eval;
+pub mod schema;
 
-pub use schema::{CurveKind, CurveGeom, CurveProvenance, SpCurveApproximation, SurfaceIndex};
+pub use schema::{CurveGeom, CurveKind, CurveProvenance, SpCurveApproximation, SurfaceIndex};

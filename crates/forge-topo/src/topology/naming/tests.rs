@@ -2,11 +2,11 @@
 
 use forge_core::EntityKind;
 
-use crate::state::TopologyState;
-use crate::operator::apply_op;
+use crate::euler::make_edge_face::MakeEdgeFace;
 use crate::euler::make_vertex_face::MakeVertexFace;
 use crate::euler::split_edge::SplitEdge;
-use crate::euler::make_edge_face::MakeEdgeFace;
+use crate::operator::apply_op;
+use crate::state::TopologyState;
 
 use super::eval::{assign_name, resolve_name};
 
@@ -33,11 +33,15 @@ fn name_rebuild_resolve_finds_entity() {
 
     // 3. Resolve the name from state 1 in state 2
     let matches = resolve_name(final_state2.arena(), &name);
-    
+
     assert_eq!(matches.len(), 1, "Must resolve to exactly one entity");
-    
+
     let resolved_key = matches[0];
-    assert_eq!(resolved_key, mvf2.face.into(), "Must resolve to the identically-built face");
+    assert_eq!(
+        resolved_key,
+        mvf2.face.into(),
+        "Must resolve to the identically-built face"
+    );
 }
 
 #[test]
@@ -47,17 +51,30 @@ fn name_split_produces_distinct_resolvable_hashes() {
 
     // Build seed
     let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-    
+
     // Name the original face
     let name_a = assign_name(draft.arena(), mvf.face.into()).unwrap();
 
     // Split it
-    let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).unwrap().into_value();
-    let mef = apply_op(&mut draft, MakeEdgeFace {
-        vertex_a: mvf.vertex,
-        vertex_b: se.new_vertex,
-        face: mvf.face,
-    }).unwrap().into_value();
+    let se = apply_op(
+        &mut draft,
+        SplitEdge {
+            edge: mvf.half_edge,
+            parameter: 0.5,
+        },
+    )
+    .unwrap()
+    .into_value();
+    let mef = apply_op(
+        &mut draft,
+        MakeEdgeFace {
+            vertex_a: mvf.vertex,
+            vertex_b: se.new_vertex,
+            face: mvf.face,
+        },
+    )
+    .unwrap()
+    .into_value();
 
     // Name the newly derived face
     let name_b = assign_name(draft.arena(), mef.new_face.into()).unwrap();
@@ -73,8 +90,16 @@ fn name_split_produces_distinct_resolvable_hashes() {
     let match_b = resolve_name(final_state.arena(), &name_b);
 
     assert_eq!(match_a.len(), 1, "Original face name must resolve uniquely");
-    assert_eq!(match_a[0], mvf.face.into(), "Name A must map to the original face ID");
+    assert_eq!(
+        match_a[0],
+        mvf.face.into(),
+        "Name A must map to the original face ID"
+    );
 
     assert_eq!(match_b.len(), 1, "Derived face name must resolve uniquely");
-    assert_eq!(match_b[0], mef.new_face.into(), "Name B must map to the new face ID");
+    assert_eq!(
+        match_b[0],
+        mef.new_face.into(),
+        "Name B must map to the new face ID"
+    );
 }

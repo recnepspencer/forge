@@ -6,11 +6,7 @@ mod schema;
 mod tests;
 
 pub use schema::{
+    hash_directed_snapshot_segment_transport, hash_undirected_snapshot_segment_transport,
+    BoundarySegmentProvenance, MergeStepProvenance, ProvenanceValidationError, SelectorOrigin,
     SnapshotHandleRef,
-    BoundarySegmentProvenance,
-    MergeStepProvenance,
-    ProvenanceValidationError,
-    SelectorOrigin,
-    hash_directed_snapshot_segment_transport,
-    hash_undirected_snapshot_segment_transport,
 };

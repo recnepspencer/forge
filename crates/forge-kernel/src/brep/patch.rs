@@ -1,7 +1,7 @@
-use std::collections::{HashMap, HashSet};
-use forge_topo::handles::{FaceId, HalfEdgeId, EdgeId, SurfaceRef, CurveRef, CoedgeRef};
-use crate::geometry_state::schema::pack_handle;
 use crate::brep::state::BrepState;
+use crate::geometry_state::schema::pack_handle;
+use forge_topo::handles::{CoedgeRef, CurveRef, EdgeId, FaceId, HalfEdgeId, SurfaceRef};
+use std::collections::{HashMap, HashSet};
 
 /// A transactional overlay for `BrepState`.
 ///
@@ -72,10 +72,16 @@ impl BrepPatch {
         self.base.get_halfedge_coedge(he)
     }
 
-    pub fn attach_coedge_to_halfedge(&mut self, he: HalfEdgeId, coedge: CoedgeRef, direction: bool) {
+    pub fn attach_coedge_to_halfedge(
+        &mut self,
+        he: HalfEdgeId,
+        coedge: CoedgeRef,
+        direction: bool,
+    ) {
         let key = pack_handle(he.index(), he.generation());
         self.halfedge_coedge_removes.remove(&key);
-        self.halfedge_coedge_inserts.insert(key, (coedge, direction));
+        self.halfedge_coedge_inserts
+            .insert(key, (coedge, direction));
     }
 
     pub fn remove_halfedge_coedge(&mut self, he: HalfEdgeId) {

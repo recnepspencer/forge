@@ -4,12 +4,12 @@
 //! Domain-only — audit metadata (replay, lineage, decisions) lives in
 //! the `OperationResult` envelope, not here.
 
-use serde::{Deserialize, Serialize};
-use forge_topo::state::TopologyState;
-use crate::geometry_state::GeometryState;
+use super::classify_schema::ClassifiedFace;
 use crate::brep::state::BrepState;
 use crate::core::KernelState;
-use super::classify_schema::ClassifiedFace;
+use crate::geometry_state::GeometryState;
+use forge_topo::state::TopologyState;
+use serde::{Deserialize, Serialize};
 
 /// Structured introspection data for Boolean operations.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -17,9 +17,11 @@ pub struct BooleanIntrospection {
     /// Number of split events (edges/faces split).
     pub split_count: usize,
     /// Classification counts for the target solid.
-    pub target_classification: std::collections::BTreeMap<super::classify_schema::FaceClassification, usize>,
+    pub target_classification:
+        std::collections::BTreeMap<super::classify_schema::FaceClassification, usize>,
     /// Classification counts for the tool solid.
-    pub tool_classification: std::collections::BTreeMap<super::classify_schema::FaceClassification, usize>,
+    pub tool_classification:
+        std::collections::BTreeMap<super::classify_schema::FaceClassification, usize>,
     /// Time taken for the operation in microseconds.
     pub duration_micros: u64,
 }
@@ -167,7 +169,14 @@ impl BooleanResult {
     }
 
     /// Consume and return all domain parts.
-    pub fn into_parts(self) -> (TopologyState, GeometryState, BrepState, BooleanIntrospection) {
+    pub fn into_parts(
+        self,
+    ) -> (
+        TopologyState,
+        GeometryState,
+        BrepState,
+        BooleanIntrospection,
+    ) {
         (self.topology, self.geometry, self.brep, self.introspection)
     }
 }

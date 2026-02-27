@@ -2,8 +2,8 @@
 //!
 //! DOMAIN: Forced face classifications that override computed results during replay.
 
-use forge_core::DecisionId;
 use crate::operations::boolean::FaceClassification;
+use forge_core::DecisionId;
 
 use super::schema::ModelingContext;
 
@@ -19,7 +19,8 @@ impl ModelingContext {
         decision_id: DecisionId,
         classification: FaceClassification,
     ) {
-        self.classification_overrides.insert(decision_id.0, classification);
+        self.classification_overrides
+            .insert(decision_id.0, classification);
     }
 
     /// Check if a classification override exists for a decision ID.

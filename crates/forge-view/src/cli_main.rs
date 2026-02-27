@@ -8,8 +8,8 @@
 //!
 //! This avoids context bloat — the agent reads only what it needs.
 
-use std::path::PathBuf;
 use forge_view::trace::store::TraceStore;
+use std::path::PathBuf;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -42,8 +42,12 @@ fn print_usage() {
     eprintln!("  forge-trace-cli list [DIR]             List all traces (one-line summary each)");
     eprintln!("  forge-trace-cli show <TRACE_ID> [DIR]  Show spans and stats for a trace");
     eprintln!("  forge-trace-cli decisions <TRACE_ID> [SPAN_ID] [DIR]");
-    eprintln!("                                         Show decisions (optionally filtered by span)");
-    eprintln!("  forge-trace-cli issues [DIR]            Show only traces with interesting decisions");
+    eprintln!(
+        "                                         Show decisions (optionally filtered by span)"
+    );
+    eprintln!(
+        "  forge-trace-cli issues [DIR]            Show only traces with interesting decisions"
+    );
     eprintln!();
     eprintln!("DIR defaults to ./traces");
 }
@@ -65,8 +69,10 @@ fn cmd_list(args: &[String]) {
         return;
     }
 
-    println!("{:<60} {:>6} {:>6} {:>6} {:>18}",
-        "NAME", "DEC", "SPANS", "ISSUES", "HASH");
+    println!(
+        "{:<60} {:>6} {:>6} {:>6} {:>18}",
+        "NAME", "DEC", "SPANS", "ISSUES", "HASH"
+    );
     println!("{}", "-".repeat(100));
 
     for t in traces {
@@ -78,7 +84,8 @@ fn cmd_list(args: &[String]) {
             "✅".to_string()
         };
 
-        println!("{:<60} {:>6} {:>6} {:>6} 0x{:016X}",
+        println!(
+            "{:<60} {:>6} {:>6} {:>6} 0x{:016X}",
             truncate(&t.name, 58),
             t.total_decisions,
             t.span_count,
@@ -103,12 +110,16 @@ fn cmd_show(args: &[String]) {
         Some(o) => o,
         None => {
             let traces = store.list_traces();
-            let matches: Vec<_> = traces.iter()
+            let matches: Vec<_> = traces
+                .iter()
                 .filter(|t| t.id.contains(trace_id.as_str()) || t.name.contains(trace_id.as_str()))
                 .collect();
 
             if matches.is_empty() {
-                eprintln!("Trace '{}' not found. Use 'list' to see available traces.", trace_id);
+                eprintln!(
+                    "Trace '{}' not found. Use 'list' to see available traces.",
+                    trace_id
+                );
                 std::process::exit(1);
             }
 
@@ -122,21 +133,24 @@ fn cmd_show(args: &[String]) {
 
     println!("Trace: {}", overview.meta.name);
     println!("Hash:  0x{:016X}", overview.meta.state_hash);
-    println!("Decisions: {}  Spans: {}  Issues: {}",
-        overview.meta.total_decisions,
-        overview.meta.span_count,
-        overview.meta.interesting_count);
+    println!(
+        "Decisions: {}  Spans: {}  Issues: {}",
+        overview.meta.total_decisions, overview.meta.span_count, overview.meta.interesting_count
+    );
     println!();
 
     if overview.spans.is_empty() {
         println!("No spans recorded.");
     } else {
-        println!("{:<6} {:<30} {:>6} {:>10} {:<16}",
-            "SPAN", "NAME", "DEC", "TIME", "MAX_TIER");
+        println!(
+            "{:<6} {:<30} {:>6} {:>10} {:<16}",
+            "SPAN", "NAME", "DEC", "TIME", "MAX_TIER"
+        );
         println!("{}", "-".repeat(72));
 
         for span in &overview.spans {
-            println!("{:<6} {:<30} {:>6} {:>8.1}ms {:<16}",
+            println!(
+                "{:<6} {:<30} {:>6} {:>8.1}ms {:<16}",
                 span.span_id,
                 truncate(&span.name, 28),
                 span.total_decisions,
@@ -171,7 +185,10 @@ fn cmd_decisions(args: &[String]) {
     let overview = match store.get_trace_overview(trace_id) {
         Some(o) => o,
         None => {
-            eprintln!("Trace '{}' not found. Use 'list' to see available traces.", trace_id);
+            eprintln!(
+                "Trace '{}' not found. Use 'list' to see available traces.",
+                trace_id
+            );
             std::process::exit(1);
         }
     };
@@ -205,7 +222,9 @@ fn cmd_decisions(args: &[String]) {
                         if sid == 0 {
                             println!("--- Unspanned ---");
                         } else {
-                            let span_name = overview.spans.iter()
+                            let span_name = overview
+                                .spans
+                                .iter()
                                 .find(|s| s.span_id == sid)
                                 .map(|s| s.name.as_str())
                                 .unwrap_or("?");
@@ -230,7 +249,8 @@ fn cmd_issues(args: &[String]) {
     store.reload();
 
     let traces = store.list_traces();
-    let issues: Vec<_> = traces.iter()
+    let issues: Vec<_> = traces
+        .iter()
         .filter(|t| t.interesting_count > 0 || t.status == "error")
         .collect();
 
@@ -241,12 +261,12 @@ fn cmd_issues(args: &[String]) {
 
     println!("{} trace(s) with interesting decisions:", issues.len());
     println!();
-    println!("{:<60} {:>6} {:>6} {:>18}",
-        "NAME", "DEC", "ISSUES", "ID");
+    println!("{:<60} {:>6} {:>6} {:>18}", "NAME", "DEC", "ISSUES", "ID");
     println!("{}", "-".repeat(94));
 
     for t in &issues {
-        println!("{:<60} {:>6} {:>6} {}",
+        println!(
+            "{:<60} {:>6} {:>6} {}",
             truncate(&t.name, 58),
             t.total_decisions,
             t.interesting_count,
@@ -256,8 +276,10 @@ fn cmd_issues(args: &[String]) {
 }
 
 fn print_decisions(decisions: &[forge_view::trace::store::DecisionView]) {
-    println!("{:<6} {:<20} {:<16} {:>10} {}",
-        "ID", "KIND", "TIER", "MARGIN", "ENTITY");
+    println!(
+        "{:<6} {:<20} {:<16} {:>10} {}",
+        "ID", "KIND", "TIER", "MARGIN", "ENTITY"
+    );
     println!("{}", "-".repeat(66));
 
     for d in decisions {
@@ -267,7 +289,8 @@ fn print_decisions(decisions: &[forge_view::trace::store::DecisionView]) {
             d.entity.clone()
         };
 
-        println!("{:<6} {:<20} {:<16} {:>10.6} {}",
+        println!(
+            "{:<6} {:<20} {:<16} {:>10.6} {}",
             d.id,
             truncate(&d.kind, 18),
             d.tier,

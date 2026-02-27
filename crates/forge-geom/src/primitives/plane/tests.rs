@@ -1,9 +1,9 @@
-use forge_math::sign::TriSign;
+use crate::primitives::plane::{
+    classify_point, classify_point_exact, coplanar_eq, exact_eq, intersect_three_planes,
+    intersect_three_planes_exact, signed_distance, to_plane_relation, Plane, PlaneRelation,
+};
 use forge_math::arithmetic::Rational;
-use crate::primitives::plane::{Plane, PlaneRelation, classify_point, classify_point_exact,
-                                signed_distance, intersect_three_planes,
-                                intersect_three_planes_exact, to_plane_relation, exact_eq,
-                                coplanar_eq};
+use forge_math::sign::TriSign;
 
 const TEST_DEGENERACY: f64 = 1e-15;
 const TEST_TOLERANCE: f64 = 1e-10;
@@ -127,8 +127,14 @@ fn cube_planes_produce_correct_vertex_count() {
 
     let mut valid_vertices = 0;
     let triples: [(usize, usize, usize); 8] = [
-        (0, 2, 4), (0, 2, 5), (0, 3, 4), (0, 3, 5),
-        (1, 2, 4), (1, 2, 5), (1, 3, 4), (1, 3, 5),
+        (0, 2, 4),
+        (0, 2, 5),
+        (0, 3, 4),
+        (0, 3, 5),
+        (1, 2, 4),
+        (1, 2, 5),
+        (1, 3, 4),
+        (1, 3, 5),
     ];
 
     for (i, j, k) in triples {

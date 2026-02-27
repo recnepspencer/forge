@@ -36,12 +36,8 @@ pub struct RadialUseIndex {
 ///
 /// **Snapshot-scoped**: the returned `HalfEdgeId` values are valid only for the
 /// arena snapshot at the time of this call. Re-derive after any mutation.
-pub fn radial_uses(
-    arena: &TopologyArena,
-    he: HalfEdgeId,
-) -> Result<Vec<HalfEdgeId>, KernelError> {
-    RadialEdgeIterator::new(arena, he)?
-        .collect::<Result<Vec<_>, _>>()
+pub fn radial_uses(arena: &TopologyArena, he: HalfEdgeId) -> Result<Vec<HalfEdgeId>, KernelError> {
+    RadialEdgeIterator::new(arena, he)?.collect::<Result<Vec<_>, _>>()
 }
 
 /// Collect radial uses around `he`'s ring, grouped by owning face.
@@ -69,13 +65,13 @@ pub fn radial_uses_by_face(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use forge_core::KernelError;
     use crate::arena::{FaceData, HalfEdgeData, LoopData, VertexData};
+    use crate::euler::make_vertex_face::MakeVertexFace;
+    use crate::euler::split_edge::SplitEdge;
     use crate::handles::{EdgeId, LoopId, ShellId};
     use crate::operator::apply_op;
     use crate::state::TopologyState;
-    use crate::euler::make_vertex_face::MakeVertexFace;
-    use crate::euler::split_edge::SplitEdge;
+    use forge_core::KernelError;
 
     // ── helpers ─────────────────────────────────────────────────────────
 
@@ -103,22 +99,36 @@ mod tests {
         let edge = draft.arena().get_half_edge(start).unwrap().edge();
 
         // Unify edge entity: mid must share start's edge for a valid ring.
-        draft.arena_mut().get_half_edge_mut(mid).unwrap().set_edge(edge);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(mid)
+            .unwrap()
+            .set_edge(edge);
 
         // Insert ghost halfedge to form the 3rd ring member.
         let extra = draft.insert_half_edge(HalfEdgeData::new(
             start, // radial_next sentinel — overwritten below
             start, // next (same face, safe dummy)
             start, // prev
-            face,
-            origin,
-            edge,
+            face, origin, edge,
         ));
 
         // Wire ring: start → mid → extra → start
-        draft.arena_mut().get_half_edge_mut(start).unwrap().set_radial_next(mid);
-        draft.arena_mut().get_half_edge_mut(mid).unwrap().set_radial_next(extra);
-        draft.arena_mut().get_half_edge_mut(extra).unwrap().set_radial_next(start);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(start)
+            .unwrap()
+            .set_radial_next(mid);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(mid)
+            .unwrap()
+            .set_radial_next(extra);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(extra)
+            .unwrap()
+            .set_radial_next(start);
         extra
     }
 
@@ -139,10 +149,15 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(&mut draft, SplitEdge {
-            edge: mvf.half_edge,
-            parameter: 0.5,
-        }).unwrap().into_value();
+        let se = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
         // Read both halfedge IDs before commit
         let he_am = se.he_am;
         let he_mb = se.he_mb;
@@ -170,17 +185,27 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(&mut draft, SplitEdge {
-            edge: mvf.half_edge,
-            parameter: 0.5,
-        }).unwrap().into_value();
+        let se = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
         let start = se.he_am;
         let mid = se.he_mb;
         let extra = wire_3_ring(&mut draft, start, mid);
 
         // query *before* commit to avoid ManifoldStrict rejection
         let uses = radial_uses(draft.arena(), start).unwrap();
-        assert_eq!(uses.len(), 3, "valence-3 ring must return 3 members, got {:?}", uses.len());
+        assert_eq!(
+            uses.len(),
+            3,
+            "valence-3 ring must return 3 members, got {:?}",
+            uses.len()
+        );
 
         // Ring walk must be start → mid → extra → back to start
         assert_eq!(uses[0], start);
@@ -197,10 +222,15 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(&mut draft, SplitEdge {
-            edge: mvf.half_edge,
-            parameter: 0.5,
-        }).unwrap().into_value();
+        let se = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
         let extra = wire_3_ring(&mut draft, se.he_am, se.he_mb);
 
         let uses = radial_uses(draft.arena(), se.he_am).unwrap();
@@ -209,7 +239,8 @@ mod tests {
         assert_eq!(last, extra);
         let last_data = draft.arena().get_half_edge(last).unwrap();
         assert_eq!(
-            last_data.radial_next(), se.he_am,
+            last_data.radial_next(),
+            se.he_am,
             "last ring member must point back to start — ring is not closed"
         );
     }
@@ -224,24 +255,29 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(&mut draft, SplitEdge {
-            edge: mvf.half_edge,
-            parameter: 0.5,
-        }).unwrap().into_value();
+        let se = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
         let extra = wire_3_ring(&mut draft, se.he_am, se.he_mb);
 
         let uses_from_start = radial_uses(draft.arena(), se.he_am).unwrap();
-        let uses_from_mid   = radial_uses(draft.arena(), se.he_mb).unwrap();
+        let uses_from_mid = radial_uses(draft.arena(), se.he_mb).unwrap();
         let uses_from_extra = radial_uses(draft.arena(), extra).unwrap();
 
         // Each rotation must contain all 3 members exactly once
         let expected: std::collections::BTreeSet<_> = [se.he_am, se.he_mb, extra].into();
         let set_start: std::collections::BTreeSet<_> = uses_from_start.into_iter().collect();
-        let set_mid:   std::collections::BTreeSet<_> = uses_from_mid.into_iter().collect();
+        let set_mid: std::collections::BTreeSet<_> = uses_from_mid.into_iter().collect();
         let set_extra: std::collections::BTreeSet<_> = uses_from_extra.into_iter().collect();
 
         assert_eq!(set_start, expected, "starting from start: wrong member set");
-        assert_eq!(set_mid,   expected, "starting from mid:   wrong member set");
+        assert_eq!(set_mid, expected, "starting from mid:   wrong member set");
         assert_eq!(set_extra, expected, "starting from extra: wrong member set");
     }
 
@@ -255,10 +291,15 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(&mut draft, SplitEdge {
-            edge: mvf.half_edge,
-            parameter: 0.5,
-        }).unwrap().into_value();
+        let se = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
         let extra = wire_3_ring(&mut draft, se.he_am, se.he_mb);
 
         // All three halfedges belong to the same face (no MEF was called).
@@ -266,9 +307,17 @@ mod tests {
 
         let by_face = radial_uses_by_face(draft.arena(), se.he_am).unwrap();
         // Should be one face key with 3 halfedges (slit: same face, multiple uses)
-        assert_eq!(by_face.len(), 1, "all 3 halfedges on same face: map must have 1 entry");
+        assert_eq!(
+            by_face.len(),
+            1,
+            "all 3 halfedges on same face: map must have 1 entry"
+        );
         let hes = &by_face[&face];
-        assert_eq!(hes.len(), 3, "all 3 ring members must appear under the face's entry");
+        assert_eq!(
+            hes.len(),
+            3,
+            "all 3 ring members must appear under the face's entry"
+        );
 
         // Extra check: the extra ghost halfedge must appear in the face's list
         assert!(
@@ -287,16 +336,24 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(&mut draft, SplitEdge {
-            edge: mvf.half_edge,
-            parameter: 0.5,
-        }).unwrap().into_value();
+        let se = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
         let _ = wire_3_ring(&mut draft, se.he_am, se.he_mb);
 
         // Call twice on the same arena without any mutation in between.
         let by_face_1 = radial_uses_by_face(draft.arena(), se.he_am).unwrap();
         let by_face_2 = radial_uses_by_face(draft.arena(), se.he_am).unwrap();
-        assert_eq!(by_face_1, by_face_2, "determinism violated: two calls differ");
+        assert_eq!(
+            by_face_1, by_face_2,
+            "determinism violated: two calls differ"
+        );
     }
 
     // ── 3. Error / safety cases ──────────────────────────────────────────
@@ -313,8 +370,10 @@ mod tests {
             "nonexistent handle must return Err, not Ok([])"
         );
         assert!(
-            matches!(result.unwrap_err(), KernelError::TopologyViolation { .. }
-                | KernelError::InternalError { .. }),
+            matches!(
+                result.unwrap_err(),
+                KernelError::TopologyViolation { .. } | KernelError::InternalError { .. }
+            ),
             "error kind must be TopologyViolation or InternalError"
         );
     }
@@ -332,7 +391,8 @@ mod tests {
             mvf.half_edge.index(),
             mvf.half_edge.generation().wrapping_add(1), // wrong generation
         );
-        draft.arena_mut()
+        draft
+            .arena_mut()
             .get_half_edge_mut(mvf.half_edge)
             .unwrap()
             .set_radial_next(stale);

@@ -3,10 +3,10 @@
 //! DOMAIN: Data shapes for boolean operation inputs only.
 //! Output types are in `result.rs`, classification types in `classify_schema.rs`.
 
-use serde::{Deserialize, Serialize};
-use forge_topo::state::TopologyState;
-use crate::geometry_state::GeometryState;
 use crate::brep::state::BrepState;
+use crate::geometry_state::GeometryState;
+use forge_topo::state::TopologyState;
+use serde::{Deserialize, Serialize};
 
 /// A Boolean operation type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -119,7 +119,15 @@ impl BooleanInput {
     }
 
     /// Consume and return owned parts.
-    pub fn into_parts(self) -> (TopologyState, GeometryState, TopologyState, GeometryState, BooleanOp) {
+    pub fn into_parts(
+        self,
+    ) -> (
+        TopologyState,
+        GeometryState,
+        TopologyState,
+        GeometryState,
+        BooleanOp,
+    ) {
         (
             self.target_topology,
             self.target_geometry,
@@ -131,7 +139,10 @@ impl BooleanInput {
 }
 
 /// Validate a single solid's topology for Boolean input readiness.
-fn validate_solid(arena: &forge_topo::arena::TopologyArena, label: &str) -> Result<(), forge_core::KernelError> {
+fn validate_solid(
+    arena: &forge_topo::arena::TopologyArena,
+    label: &str,
+) -> Result<(), forge_core::KernelError> {
     let face_count = arena.face_count();
     if face_count < 4 {
         return Err(forge_core::KernelError::InvalidInput {
@@ -156,15 +167,16 @@ fn validate_solid(arena: &forge_topo::arena::TopologyArena, label: &str) -> Resu
             });
         }
 
-        let twin_data = arena.get_half_edge(twin_id).map_err(|_| {
-            forge_core::KernelError::InvalidInput {
-                message: format!(
-                    "Boolean {} solid: halfedge {} twin {} is stale/deleted",
-                    label, he_id, twin_id
-                ),
-                context: None,
-            }
-        })?;
+        let twin_data =
+            arena
+                .get_half_edge(twin_id)
+                .map_err(|_| forge_core::KernelError::InvalidInput {
+                    message: format!(
+                        "Boolean {} solid: halfedge {} twin {} is stale/deleted",
+                        label, he_id, twin_id
+                    ),
+                    context: None,
+                })?;
 
         if twin_data.radial_next() != he_id {
             return Err(forge_core::KernelError::InvalidInput {

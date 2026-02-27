@@ -34,7 +34,10 @@ pub fn resolve_face_indices(
     for &idx in indices {
         // Scan arena for a live face whose index matches.
         // `iter_faces` returns only live entries (generation-checked).
-        let found = topo.arena().iter_faces().find(|(fid, _)| fid.index() == idx);
+        let found = topo
+            .arena()
+            .iter_faces()
+            .find(|(fid, _)| fid.index() == idx);
         match found {
             Some((fid, _)) => faces.push(fid),
             None => {

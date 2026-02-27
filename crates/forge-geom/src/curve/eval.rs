@@ -20,7 +20,11 @@ impl CurveKind {
                 origin[1] + t * direction[1],
                 origin[2] + t * direction[2],
             ],
-            CurveKind::Circle { center, normal, radius } => {
+            CurveKind::Circle {
+                center,
+                normal,
+                radius,
+            } => {
                 let (u_dir, v_dir) = circle_frame(normal);
                 let ct = t.cos();
                 let st = t.sin();
@@ -30,7 +34,11 @@ impl CurveKind {
                     center[2] + radius * (ct * u_dir[2] + st * v_dir[2]),
                 ]
             }
-            CurveKind::Ellipse { center, major, minor } => {
+            CurveKind::Ellipse {
+                center,
+                major,
+                minor,
+            } => {
                 let ct = t.cos();
                 let st = t.sin();
                 [
@@ -39,9 +47,12 @@ impl CurveKind {
                     center[2] + ct * major[2] + st * minor[2],
                 ]
             }
-            CurveKind::SurfaceIntersection { sp_curve_cache, .. } => {
-                evaluate_bspline_point(&sp_curve_cache.control_points, &sp_curve_cache.knots, sp_curve_cache.domain, t)
-            }
+            CurveKind::SurfaceIntersection { sp_curve_cache, .. } => evaluate_bspline_point(
+                &sp_curve_cache.control_points,
+                &sp_curve_cache.knots,
+                sp_curve_cache.domain,
+                t,
+            ),
         }
     }
 
@@ -72,8 +83,18 @@ impl CurveKind {
             }
             CurveKind::SurfaceIntersection { sp_curve_cache, .. } => {
                 let dt = 1e-8;
-                let p0 = evaluate_bspline_point(&sp_curve_cache.control_points, &sp_curve_cache.knots, sp_curve_cache.domain, t);
-                let p1 = evaluate_bspline_point(&sp_curve_cache.control_points, &sp_curve_cache.knots, sp_curve_cache.domain, t + dt);
+                let p0 = evaluate_bspline_point(
+                    &sp_curve_cache.control_points,
+                    &sp_curve_cache.knots,
+                    sp_curve_cache.domain,
+                    t,
+                );
+                let p1 = evaluate_bspline_point(
+                    &sp_curve_cache.control_points,
+                    &sp_curve_cache.knots,
+                    sp_curve_cache.domain,
+                    t + dt,
+                );
                 normalize([
                     (p1[0] - p0[0]) / dt,
                     (p1[1] - p0[1]) / dt,

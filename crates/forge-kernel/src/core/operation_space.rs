@@ -131,7 +131,11 @@ impl OperationSpace {
             LocalCoordinateSpace::identity()
         };
 
-        Self { local_space, active, condition_number }
+        Self {
+            local_space,
+            active,
+            condition_number,
+        }
     }
 }
 

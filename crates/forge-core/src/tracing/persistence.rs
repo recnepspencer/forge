@@ -5,8 +5,8 @@ use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
 
-use super::decision_log::DecisionLog;
 use super::adjunct::TraceAdjunctRecord;
+use super::decision_log::DecisionLog;
 
 /// Typed trace persistence failure for explicit emit paths.
 #[derive(Debug)]
@@ -16,11 +16,15 @@ pub enum TracePersistenceError {
 }
 
 impl From<std::io::Error> for TracePersistenceError {
-    fn from(value: std::io::Error) -> Self { Self::Io(value) }
+    fn from(value: std::io::Error) -> Self {
+        Self::Io(value)
+    }
 }
 
 impl From<serde_json::Error> for TracePersistenceError {
-    fn from(value: serde_json::Error) -> Self { Self::Serde(value) }
+    fn from(value: serde_json::Error) -> Self {
+        Self::Serde(value)
+    }
 }
 
 /// Resolve the trace output directory (cached, checked once per process).
@@ -32,22 +36,24 @@ impl From<serde_json::Error> for TracePersistenceError {
 pub fn resolve_trace_dir() -> Option<PathBuf> {
     static TRACE_DIR: OnceLock<Option<PathBuf>> = OnceLock::new();
 
-    TRACE_DIR.get_or_init(|| {
-        if let Ok(dir) = std::env::var("FORGE_TRACE_DIR") {
-            return Some(PathBuf::from(dir));
-        }
-
-        #[cfg(debug_assertions)]
-        {
-            let workspace_traces = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-                .join("../../traces");
-            if workspace_traces.exists() || std::fs::create_dir_all(&workspace_traces).is_ok() {
-                return workspace_traces.canonicalize().ok();
+    TRACE_DIR
+        .get_or_init(|| {
+            if let Ok(dir) = std::env::var("FORGE_TRACE_DIR") {
+                return Some(PathBuf::from(dir));
             }
-        }
 
-        None
-    }).clone()
+            #[cfg(debug_assertions)]
+            {
+                let workspace_traces =
+                    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../traces");
+                if workspace_traces.exists() || std::fs::create_dir_all(&workspace_traces).is_ok() {
+                    return workspace_traces.canonicalize().ok();
+                }
+            }
+
+            None
+        })
+        .clone()
 }
 
 /// Write a trace entry to `trace.json`, accumulating all traces from

@@ -12,12 +12,12 @@
 
 use forge_core::{KernelError, TopologyError};
 
-use crate::arena::{FaceData, HalfEdgeData, LoopData, EdgeData};
-use crate::handles::{FaceId, HalfEdgeId, LoopId, VertexId, EdgeId};
+use crate::arena::{EdgeData, FaceData, HalfEdgeData, LoopData};
+use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, VertexId};
 use crate::lineage::{Lineage, OpSignature};
-use crate::EulerOperator;
-use crate::operator::{ExecutionResult, EulerDelta};
+use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
+use crate::EulerOperator;
 
 /// Split a face by inserting a new edge between two of its vertices.
 ///
@@ -52,7 +52,11 @@ pub struct MefOutput {
 impl EulerOperator for MakeEdgeFace {
     type Output = MefOutput;
 
-    fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        sig: &OpSignature,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         if self.vertex_a == self.vertex_b {
             return Err(KernelError::InvalidInput {
                 message: "MakeEdgeFace: vertex_a and vertex_b cannot be the same vertex".into(),
@@ -86,10 +90,7 @@ impl EulerOperator for MakeEdgeFace {
 
         let new_loop = draft.insert_loop(LoopData::new(placeholder_he, new_face));
 
-        let edge = draft.insert_edge(EdgeData::with_lineage(
-            placeholder_he,
-            Some(edge_lineage),
-        ));
+        let edge = draft.insert_edge(EdgeData::with_lineage(placeholder_he, Some(edge_lineage)));
 
         let (he_ab, he_ba) = draft.insert_radial_pair(
             HalfEdgeData::with_lineage(
@@ -109,7 +110,8 @@ impl EulerOperator for MakeEdgeFace {
                 self.vertex_b,
                 edge,
                 Some(he_ba_lineage),
-            ));
+            ),
+        );
 
         {
             let arena = draft.arena_mut();
@@ -150,7 +152,17 @@ impl EulerOperator for MakeEdgeFace {
                 new_loop,
                 edge,
             },
-            declared_delta: EulerDelta { vertices: 0, half_edges: 2, faces: 1, loops: 1, edges: 1 + extra_edges, shells: 0, solids: 0, lumps: 0, regions: 0 },
+            declared_delta: EulerDelta {
+                vertices: 0,
+                half_edges: 2,
+                faces: 1,
+                loops: 1,
+                edges: 1 + extra_edges,
+                shells: 0,
+                solids: 0,
+                lumps: 0,
+                regions: 0,
+            },
         })
     }
 
@@ -180,7 +192,9 @@ fn find_all_halfedges_from_vertex(
             result.push(current);
         }
         current = draft.arena().get_half_edge(current)?.next();
-        if current == start { break; }
+        if current == start {
+            break;
+        }
         if step == bound {
             return Err(KernelError::TopologyViolation {
                 err: TopologyError::LoopCorruption {
@@ -197,7 +211,11 @@ fn find_all_halfedges_from_vertex(
 
     if result.is_empty() {
         return Err(KernelError::InvalidInput {
-            message: format!("Vertex {} not found on face {}", vertex.index(), face.index()),
+            message: format!(
+                "Vertex {} not found on face {}",
+                vertex.index(),
+                face.index()
+            ),
             context: None,
         });
     }
@@ -222,7 +240,9 @@ fn validate_split_pair(
     let mut steps = 0usize;
 
     while current != he_b {
-        if current == he_a { return Ok(false); }
+        if current == he_a {
+            return Ok(false);
+        }
         steps += 1;
         if steps > bound {
             return Err(KernelError::TopologyViolation {
@@ -257,23 +277,23 @@ fn find_valid_split_pair(
         }
     }
     Err(KernelError::InvalidInput {
-        message: "No valid split pair found: vertices may be adjacent or on the same sub-path".to_string(),
+        message: "No valid split pair found: vertices may be adjacent or on the same sub-path"
+            .to_string(),
         context: None,
     })
 }
 
 /// Collect all halfedge IDs in a face loop starting from `start`.
-fn collect_loop(
-    draft: &MutableDraft,
-    start: HalfEdgeId,
-) -> Result<Vec<HalfEdgeId>, KernelError> {
+fn collect_loop(draft: &MutableDraft, start: HalfEdgeId) -> Result<Vec<HalfEdgeId>, KernelError> {
     let bound = draft.arena().half_edge_count();
     let mut result = Vec::new();
     let mut current = start;
     loop {
         result.push(current);
         current = draft.arena().get_half_edge(current)?.next();
-        if current == start { break; }
+        if current == start {
+            break;
+        }
         if result.len() > bound {
             return Err(KernelError::TopologyViolation {
                 err: TopologyError::LoopCorruption {
@@ -300,8 +320,10 @@ fn reassign_face_loop(
     let mut current = start;
     let mut steps = 0usize;
     loop {
-        
-        draft.arena_mut().get_half_edge_mut(current)?.set_face(new_face);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(current)?
+            .set_face(new_face);
         let next = draft.arena().get_half_edge(current)?.next();
         current = next;
         if current == start {
@@ -387,6 +409,9 @@ fn repair_edge_after_next_change(
 fn vertex_pair(a: VertexId, b: VertexId) -> (u32, u32) {
     let ai = a.index();
     let bi = b.index();
-    if ai <= bi { (ai, bi) } else { (bi, ai) }
+    if ai <= bi {
+        (ai, bi)
+    } else {
+        (bi, ai)
+    }
 }
-

@@ -34,9 +34,7 @@ pub fn validate_invariant(
     }
 
     match kind {
-        InvariantKind::ManifoldEdges => {
-            validate_topology(topology.arena(), ValidationLevel::Full)
-        }
+        InvariantKind::ManifoldEdges => validate_topology(topology.arena(), ValidationLevel::Full),
         InvariantKind::G1Continuity => {
             // Future: validate_geometric_invariants(topology.arena(), geometry)
             // Checks face normals agree at shared edges within tangency tolerance.

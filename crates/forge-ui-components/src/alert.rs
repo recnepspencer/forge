@@ -16,16 +16,28 @@ pub struct AlertAction<'a> {
 
 impl<'a> AlertAction<'a> {
     pub fn new(label: &'a str) -> Self {
-        Self { label, variant: FgButtonVariant::Secondary }
+        Self {
+            label,
+            variant: FgButtonVariant::Secondary,
+        }
     }
     pub fn primary(label: &'a str) -> Self {
-        Self { label, variant: FgButtonVariant::Primary }
+        Self {
+            label,
+            variant: FgButtonVariant::Primary,
+        }
     }
     pub fn danger(label: &'a str) -> Self {
-        Self { label, variant: FgButtonVariant::Danger }
+        Self {
+            label,
+            variant: FgButtonVariant::Danger,
+        }
     }
     pub fn cancel(label: &'a str) -> Self {
-        Self { label, variant: FgButtonVariant::Ghost }
+        Self {
+            label,
+            variant: FgButtonVariant::Ghost,
+        }
     }
 }
 
@@ -37,7 +49,11 @@ pub struct FgAlert<'a> {
 
 impl<'a> FgAlert<'a> {
     pub fn new(title: &'a str, message: &'a str) -> Self {
-        Self { title, message, actions: Vec::new() }
+        Self {
+            title,
+            message,
+            actions: Vec::new(),
+        }
     }
 
     pub fn with_action(mut self, action: AlertAction<'a>) -> Self {
@@ -47,7 +63,13 @@ impl<'a> FgAlert<'a> {
 }
 
 /// Renders a modal alert dialog. Returns the index of the clicked action button, if any.
-pub fn fg_alert(ctx: &egui::Context, theme: &ForgeTheme, icons: &crate::IconStore, id: &str, props: FgAlert<'_>) -> Option<usize> {
+pub fn fg_alert(
+    ctx: &egui::Context,
+    theme: &ForgeTheme,
+    icons: &crate::IconStore,
+    id: &str,
+    props: FgAlert<'_>,
+) -> Option<usize> {
     let mut clicked_idx = None;
 
     // Dark scrim
@@ -58,7 +80,8 @@ pub fn fg_alert(ctx: &egui::Context, theme: &ForgeTheme, icons: &crate::IconStor
         .show(ctx, |ui| {
             let screen = ctx.screen_rect();
             let (rect, resp) = ui.allocate_exact_size(screen.size(), egui::Sense::click());
-            ui.painter().rect_filled(rect, 0.0, Color32::from_black_alpha(160));
+            ui.painter()
+                .rect_filled(rect, 0.0, Color32::from_black_alpha(160));
             resp
         });
 
@@ -80,27 +103,40 @@ pub fn fg_alert(ctx: &egui::Context, theme: &ForgeTheme, icons: &crate::IconStor
                 })
                 .show(ui, |ui| {
                     ui.set_width(320.0);
-                    
+
                     // Center title and message
                     ui.vertical_centered(|ui| {
-                        ui.label(egui::RichText::new(props.title)
-                            .color(theme.text_primary)
-                            .size(theme.font_size_lg)
-                            .strong());
+                        ui.label(
+                            egui::RichText::new(props.title)
+                                .color(theme.text_primary)
+                                .size(theme.font_size_lg)
+                                .strong(),
+                        );
                         ui.add_space(8.0);
-                        ui.label(egui::RichText::new(props.message)
-                            .color(theme.text_secondary)
-                            .size(theme.font_size_md));
+                        ui.label(
+                            egui::RichText::new(props.message)
+                                .color(theme.text_secondary)
+                                .size(theme.font_size_md),
+                        );
                     });
-                    
+
                     ui.add_space(24.0);
 
                     // Actions
                     ui.horizontal(|ui| {
-                        let btn_width = (ui.available_width() - ((props.actions.len().saturating_sub(1) as f32) * 8.0)) / (props.actions.len().max(1) as f32);
-                        
+                        let btn_width = (ui.available_width()
+                            - ((props.actions.len().saturating_sub(1) as f32) * 8.0))
+                            / (props.actions.len().max(1) as f32);
+
                         for (i, action) in props.actions.iter().enumerate() {
-                            let resp = crate::fg_button(ui, theme, icons, FgButton::new(action.label).variant(action.variant).width(btn_width));
+                            let resp = crate::fg_button(
+                                ui,
+                                theme,
+                                icons,
+                                FgButton::new(action.label)
+                                    .variant(action.variant)
+                                    .width(btn_width),
+                            );
                             if resp.clicked() {
                                 clicked_idx = Some(i);
                             }

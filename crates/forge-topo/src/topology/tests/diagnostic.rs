@@ -2,12 +2,12 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::operator::apply_op;
+    use crate::euler::make_edge_face::MakeEdgeFace;
     use crate::euler::make_vertex_face::MakeVertexFace;
     use crate::euler::split_edge::SplitEdge;
-    use crate::euler::make_edge_face::MakeEdgeFace;
-    use crate::traverse::FaceEdgeIterator;
     use crate::euler::tests::invariant_checker::{diagnose_op_chain, dump_all_wiring};
+    use crate::operator::apply_op;
+    use crate::traverse::FaceEdgeIterator;
 
     /// Trace every step of the pole fan pattern and print EXACTLY
     /// what vertex is on what face, what edge connects what, and
@@ -23,26 +23,47 @@ mod tests {
 
             for i in 0..3 {
                 let se = runner.run(&format!("SE[{}]", i), |d| {
-                    apply_op(d, SplitEdge { edge: current_edge, parameter: 0.5 }).map(|r| r.into_value())
+                    apply_op(
+                        d,
+                        SplitEdge {
+                            edge: current_edge,
+                            parameter: 0.5,
+                        },
+                    )
+                    .map(|r| r.into_value())
                 })?;
                 let face_id = runner.arena().get_half_edge(current_edge).unwrap().face();
 
                 // Print vertex→face map BEFORE MEF
                 print_vertex_face_map(runner.arena(), &format!("Before MEF[{}]", i));
 
-                let mef = runner.run(&format!("MEF[{}](V{}, V{})", i, pole.index(), se.new_vertex.index()), |d| {
-                    apply_op(d, MakeEdgeFace {
-                        vertex_a: pole,
-                        vertex_b: se.new_vertex,
-                        face: face_id,
-                    }).map(|r| r.into_value())
-                })?;
+                let mef = runner.run(
+                    &format!("MEF[{}](V{}, V{})", i, pole.index(), se.new_vertex.index()),
+                    |d| {
+                        apply_op(
+                            d,
+                            MakeEdgeFace {
+                                vertex_a: pole,
+                                vertex_b: se.new_vertex,
+                                face: face_id,
+                            },
+                        )
+                        .map(|r| r.into_value())
+                    },
+                )?;
 
                 // Print vertex→face map AFTER MEF
                 print_vertex_face_map(runner.arena(), &format!("After MEF[{}]", i));
-                println!("  mef.half_edge_ab=HE{} on F{}\n",
+                println!(
+                    "  mef.half_edge_ab=HE{} on F{}\n",
                     mef.half_edge_ab.index(),
-                    runner.arena().get_half_edge(mef.half_edge_ab).unwrap().face().index());
+                    runner
+                        .arena()
+                        .get_half_edge(mef.half_edge_ab)
+                        .unwrap()
+                        .face()
+                        .index()
+                );
 
                 current_edge = mef.half_edge_ab;
             }
@@ -72,7 +93,9 @@ mod tests {
                 }
                 let twin = hd.radial_next();
                 cur = arena.get_half_edge(twin).unwrap().next();
-                if cur == start { break; }
+                if cur == start {
+                    break;
+                }
                 if step == bound {
                     println!("    V{}: ORBIT OVERFLOW at step {}", vid.index(), step);
                     return;
@@ -80,7 +103,12 @@ mod tests {
             }
 
             let faces: Vec<_> = faces_seen.into_iter().collect();
-            println!("    V{}: faces={:?} boundary_edges={}", vid.index(), faces, boundary_count);
+            println!(
+                "    V{}: faces={:?} boundary_edges={}",
+                vid.index(),
+                faces,
+                boundary_count
+            );
         }
 
         // For each edge, show vertex pair

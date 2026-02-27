@@ -111,7 +111,10 @@ pub fn find_face_group_internal_vertices(
     }
 
     all_vertices.difference_with(&perimeter_set);
-    Ok(all_vertices.iter_ones().map(|idx| VertexId::from_raw_parts(idx, 0)).collect())
+    Ok(all_vertices
+        .iter_ones()
+        .map(|idx| VertexId::from_raw_parts(idx, 0))
+        .collect())
 }
 
 /// Merge a contiguous face group using iterative `JoinFaces` across internal edges.
@@ -186,16 +189,22 @@ pub fn merge_face_group_by_join_faces(
         }
     }
 
-    let surviving_idx = *active.iter().next().ok_or_else(|| KernelError::InternalError {
-        message: "merge_face_group_by_join_faces: no surviving face".to_string(),
-        context: None,
-    })?;
+    let surviving_idx = *active
+        .iter()
+        .next()
+        .ok_or_else(|| KernelError::InternalError {
+            message: "merge_face_group_by_join_faces: no surviving face".to_string(),
+            context: None,
+        })?;
     let surviving = draft
         .arena()
         .iter_faces()
         .find_map(|(fid, _)| (fid.index() == surviving_idx).then_some(fid))
         .ok_or_else(|| KernelError::InternalError {
-            message: format!("merge_face_group_by_join_faces: surviving face {} not found", surviving_idx),
+            message: format!(
+                "merge_face_group_by_join_faces: surviving face {} not found",
+                surviving_idx
+            ),
             context: None,
         })?;
     Ok(surviving)
@@ -209,7 +218,10 @@ fn collect_internal_group_half_edges(
     let mut candidates = Vec::new();
 
     for &face_idx in active_faces {
-        let face_id = match arena.iter_faces().find_map(|(fid, _)| (fid.index() == face_idx).then_some(fid)) {
+        let face_id = match arena
+            .iter_faces()
+            .find_map(|(fid, _)| (fid.index() == face_idx).then_some(fid))
+        {
             Some(fid) => fid,
             None => continue,
         };
@@ -229,7 +241,9 @@ fn collect_internal_group_half_edges(
             if he_data.face() == twin_data.face() {
                 continue;
             }
-            if active_faces.contains(&he_data.face().index()) && active_faces.contains(&twin_data.face().index()) {
+            if active_faces.contains(&he_data.face().index())
+                && active_faces.contains(&twin_data.face().index())
+            {
                 let canonical = if he.index() <= twin.index() { he } else { twin };
                 candidates.push(canonical);
                 let was_new = seen_edges.insert(edge_id);
@@ -328,9 +342,15 @@ mod tests {
         let mut draft = state.into_mutation();
 
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(&mut draft, SplitEdge { edge: mvf.half_edge, parameter: 0.5 })
-            .unwrap()
-            .into_value();
+        let se = apply_op(
+            &mut draft,
+            SplitEdge {
+                edge: mvf.half_edge,
+                parameter: 0.5,
+            },
+        )
+        .unwrap()
+        .into_value();
         let mef = apply_op(
             &mut draft,
             MakeEdgeFace {
@@ -343,8 +363,12 @@ mod tests {
         .into_value();
 
         let mut group = EntityBitset::for_faces(draft.arena());
-        group.insert(mvf.face.index()).expect("bitset capacity must cover fixture faces");
-        group.insert(mef.new_face.index()).expect("bitset capacity must cover fixture faces");
+        group
+            .insert(mvf.face.index())
+            .expect("bitset capacity must cover fixture faces");
+        group
+            .insert(mef.new_face.index())
+            .expect("bitset capacity must cover fixture faces");
 
         let surviving = merge_face_group_by_join_faces(&mut draft, &group).unwrap();
 

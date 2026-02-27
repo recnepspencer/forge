@@ -1,8 +1,8 @@
 //! FgIconButton — clickable icon with hover background.
 
+use crate::icons::{FgIcon, IconStore};
 use egui::{CornerRadius, Response, Ui, Vec2};
 use forge_ui_theme::ForgeTheme;
-use crate::icons::{FgIcon, IconStore};
 
 /// Props for FgIconButton.
 pub struct FgIconButton {
@@ -13,10 +13,20 @@ pub struct FgIconButton {
 
 impl FgIconButton {
     pub fn new(icon: FgIcon) -> Self {
-        Self { icon, size: 16.0, tint: None }
+        Self {
+            icon,
+            size: 16.0,
+            tint: None,
+        }
     }
-    pub fn size(mut self, s: f32) -> Self { self.size = s; self }
-    pub fn tint(mut self, c: egui::Color32) -> Self { self.tint = Some(c); self }
+    pub fn size(mut self, s: f32) -> Self {
+        self.size = s;
+        self
+    }
+    pub fn tint(mut self, c: egui::Color32) -> Self {
+        self.tint = Some(c);
+        self
+    }
 }
 
 /// Render a clickable icon button. Returns click response.
@@ -43,7 +53,10 @@ pub fn fg_icon_button(
             let icon_pos = rect.center() - Vec2::splat(props.size / 2.0);
             let sized = egui::load::SizedTexture::new(tex.id(), [props.size, props.size]);
             let img = egui::Image::from_texture(sized).tint(tint);
-            img.paint_at(ui, egui::Rect::from_min_size(icon_pos, Vec2::splat(props.size)));
+            img.paint_at(
+                ui,
+                egui::Rect::from_min_size(icon_pos, Vec2::splat(props.size)),
+            );
         } else {
             let g = ui.fonts(|f| {
                 f.layout_no_wrap(
@@ -52,11 +65,7 @@ pub fn fg_icon_button(
                     tint,
                 )
             });
-            ui.painter().galley(
-                rect.center() - g.size() / 2.0,
-                g,
-                tint,
-            );
+            ui.painter().galley(rect.center() - g.size() / 2.0, g, tint);
         }
     }
 

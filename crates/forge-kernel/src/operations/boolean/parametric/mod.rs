@@ -12,9 +12,9 @@
 //! - Operations are atomic via `MutableDraft` (D6)
 //! - Result satisfies Euler's formula (V - E + F = 2)
 
-pub(crate) mod split;
-pub(crate) mod classify;
-pub(crate) mod postprocess;
 pub mod assemble;
-pub mod traits;
+pub(crate) mod classify;
 pub mod engines;
+pub(crate) mod postprocess;
+pub(crate) mod split;
+pub mod traits;

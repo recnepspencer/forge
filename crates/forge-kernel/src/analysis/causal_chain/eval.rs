@@ -9,7 +9,7 @@
 
 use std::collections::BTreeSet;
 
-use forge_core::{DecisionTier, EntityRef, TracedDecision, DecisionLog};
+use forge_core::{DecisionLog, DecisionTier, EntityRef, TracedDecision};
 use forge_topo::lineage::{LineageEvent, OpSignature};
 use forge_topo::replay::ReplayLog;
 
@@ -32,12 +32,7 @@ pub fn query_causal_chain(
     lineage_events: &[LineageEvent],
     nring_entities: &[EntityRef],
 ) -> CausalChain {
-    let relevant_ops = find_relevant_operations(
-        target,
-        replay_log,
-        lineage_events,
-        nring_entities,
-    );
+    let relevant_ops = find_relevant_operations(target, replay_log, lineage_events, nring_entities);
 
     let steps = build_causal_steps(
         target,
@@ -60,9 +55,15 @@ pub fn query_causal_summary(
     lineage_events: &[LineageEvent],
     nring_entities: &[EntityRef],
 ) -> ChainSummary {
-    query_causal_chain(target, replay_log, decision_log, lineage_events, nring_entities)
-        .get_summary()
-        .clone()
+    query_causal_chain(
+        target,
+        replay_log,
+        decision_log,
+        lineage_events,
+        nring_entities,
+    )
+    .get_summary()
+    .clone()
 }
 
 /// Identify which operation indices in the ReplayLog are relevant.
@@ -155,17 +156,9 @@ fn build_causal_steps(
         }
         let entry = &entries[op_idx];
 
-        let matching_decisions = find_decisions_for_entity(
-            target,
-            &all_decisions,
-            nring_entities,
-        );
+        let matching_decisions = find_decisions_for_entity(target, &all_decisions, nring_entities);
 
-        let semantic = generate_semantic_summary(
-            entry.signature(),
-            target,
-            &matching_decisions,
-        );
+        let semantic = generate_semantic_summary(entry.signature(), target, &matching_decisions);
 
         let step = CausalStep::new(
             entry.signature().clone(),
@@ -196,8 +189,7 @@ fn find_decisions_for_entity(
                 let matches_target = scope.kind().as_str() == target.kind().as_str()
                     && scope.index() == target.index();
                 let matches_nring = nring_entities.iter().any(|nr| {
-                    scope.kind().as_str() == nr.kind().as_str()
-                        && scope.index() == nr.index()
+                    scope.kind().as_str() == nr.kind().as_str() && scope.index() == nr.index()
                 });
                 matches_target || matches_nring
             } else {
@@ -226,19 +218,20 @@ fn generate_semantic_summary(
         return format!("{} {} by {}", entity_kind, action, op_name);
     }
 
-    let most_significant = decisions
-        .iter()
-        .min_by(|a, b| {
-            a.get_margin()
-                .partial_cmp(&b.get_margin())
-                .unwrap_or(std::cmp::Ordering::Equal)
-        });
+    let most_significant = decisions.iter().min_by(|a, b| {
+        a.get_margin()
+            .partial_cmp(&b.get_margin())
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     match most_significant {
         Some(d) => {
             let context_hint = format!("{}", d.get_context());
             let short_context = truncate_to_words(&context_hint, 8);
-            format!("{} {} by {} ({})", entity_kind, action, op_name, short_context)
+            format!(
+                "{} {} by {} ({})",
+                entity_kind, action, op_name, short_context
+            )
         }
         None => format!("{} {} by {}", entity_kind, action, op_name),
     }
@@ -279,9 +272,9 @@ fn build_chain_summary(steps: &[CausalStep]) -> ChainSummary {
 
     for step in steps {
         let step_decisions = step.get_decisions();
-        let has_interesting = step_decisions.iter().any(|d| {
-            d.get_tier() >= DecisionTier::NearBoundary
-        });
+        let has_interesting = step_decisions
+            .iter()
+            .any(|d| d.get_tier() >= DecisionTier::NearBoundary);
 
         if has_interesting {
             decision_steps += 1;
@@ -306,9 +299,8 @@ fn build_chain_summary(steps: &[CausalStep]) -> ChainSummary {
         min_margin = 0.0;
     }
 
-    significant_summaries.sort_by(|a, b| {
-        a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal)
-    });
+    significant_summaries
+        .sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal));
 
     let top_summaries: Vec<&str> = significant_summaries
         .iter()

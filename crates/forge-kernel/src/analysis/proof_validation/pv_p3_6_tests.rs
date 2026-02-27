@@ -26,16 +26,14 @@ mod tests {
     use forge_core::DecisionContext;
     use forge_topo::hashing::compute_arena_topology_hash;
 
-    use crate::operations::boolean::test_helpers::{
-        build_cube, execute_boolean_logged, euler_audit,
-    };
-    use crate::operations::boolean::{
-        BooleanInput, BooleanOp, execute_boolean,
-    };
     use crate::analysis::causal_chain::{query_causal_chain, query_causal_summary};
-    use crate::engine::tree::{FeatureTree, NativeFeature, FeatureOutput};
-    use crate::engine::wrappers::{MakeCubeFeature, BooleanFeature};
     use crate::core::ModelingContext;
+    use crate::engine::tree::{FeatureOutput, FeatureTree, NativeFeature};
+    use crate::engine::wrappers::{BooleanFeature, MakeCubeFeature};
+    use crate::operations::boolean::test_helpers::{
+        build_cube, euler_audit, execute_boolean_logged,
+    };
+    use crate::operations::boolean::{execute_boolean, BooleanInput, BooleanOp};
 
     /// PV-37b: Disjoint cubes union → proof metadata populated on zero-split path.
     ///
@@ -48,13 +46,10 @@ mod tests {
         let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
         let (topo_b, geom_b) = build_cube([10.0, 0.0, 0.0], 1.0);
 
-        let input = BooleanInput::new(
-            topo_a, geom_a, topo_b, geom_b, BooleanOp::Union,
-        );
+        let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
 
         let envelope = execute_boolean_logged(input);
         let result = envelope.into_result().expect("Disjoint union failed");
-
 
         assert!(
             replay_log.len() >= 1,
@@ -85,7 +80,10 @@ mod tests {
 
         eprintln!(
             "PV-37b: replay={}, lineage={}, faces={}, χ={}",
-            replay_log.len(), lineage_events.len(), result_face_count, chi
+            replay_log.len(),
+            lineage_events.len(),
+            result_face_count,
+            chi
         );
     }
 
@@ -100,14 +98,17 @@ mod tests {
         let (topo_inner, geom_inner) = build_cube([0.0, 0.0, 0.0], 1.0);
 
         let input = BooleanInput::new(
-            topo_outer, geom_outer, topo_inner, geom_inner, BooleanOp::Subtraction,
+            topo_outer,
+            geom_outer,
+            topo_inner,
+            geom_inner,
+            BooleanOp::Subtraction,
         );
 
         let result = execute_boolean_logged(input);
 
         match result.into_result() {
             Ok(r) => {
-
                 assert!(
                     replay_log.len() >= 1,
                     "Contained subtraction must produce replay entries even on zero-split path, got {}",
@@ -131,7 +132,9 @@ mod tests {
 
                 eprintln!(
                     "PV-37c: replay={}, lineage={}, faces={}",
-                    replay_log.len(), lineage_events.len(), fc
+                    replay_log.len(),
+                    lineage_events.len(),
+                    fc
                 );
             }
             Err(e) => {
@@ -162,16 +165,19 @@ mod tests {
         let mut tree = FeatureTree::new();
 
         let cube_a = MakeCubeFeature::new("cube_a", [0.0, 0.0, 0.0], 1.0);
-        let node_a = tree.register_feature(NativeFeature::MakeCube(cube_a))
+        let node_a = tree
+            .register_feature(NativeFeature::MakeCube(cube_a))
             .expect("register cube_a failed");
 
         // Disjoint: offset 10.0 avoids EMBER overlapping-cubes bug
         let cube_b = MakeCubeFeature::new("cube_b", [10.0, 0.0, 0.0], 1.0);
-        let node_b = tree.register_feature(NativeFeature::MakeCube(cube_b))
+        let node_b = tree
+            .register_feature(NativeFeature::MakeCube(cube_b))
             .expect("register cube_b failed");
 
         let boolean = BooleanFeature::new("union_ab", BooleanOp::Union, node_a, node_b);
-        let node_bool = tree.register_feature(NativeFeature::Boolean(boolean))
+        let node_bool = tree
+            .register_feature(NativeFeature::Boolean(boolean))
             .expect("register boolean failed");
 
         // Use evaluate_feature_with_context to capture proof metadata in ctx
@@ -182,7 +188,8 @@ mod tests {
         tree.evaluate_feature_with_context(node_b, &mut ctx)
             .expect("eval cube_b failed");
 
-        let output = tree.evaluate_feature_with_context(node_bool, &mut ctx)
+        let output = tree
+            .evaluate_feature_with_context(node_bool, &mut ctx)
             .expect("eval boolean failed");
 
         // 1. Domain correctness: disjoint union produces two shells, χ=4
@@ -202,10 +209,13 @@ mod tests {
         //    the feature_kind (e.g. "make_cube", "boolean_op").
         let log = ctx.get_decision_log();
         let events = log.get_events();
-        let span_names: Vec<&str> = events.iter().filter_map(|e| match e {
-            forge_core::tracing::TraceEvent::StartSpan { name, .. } => Some(name.as_str()),
-            _ => None,
-        }).collect();
+        let span_names: Vec<&str> = events
+            .iter()
+            .filter_map(|e| match e {
+                forge_core::tracing::TraceEvent::StartSpan { name, .. } => Some(name.as_str()),
+                _ => None,
+            })
+            .collect();
 
         assert!(
             !span_names.is_empty(),
@@ -225,7 +235,10 @@ mod tests {
 
         eprintln!(
             "PV-37d: faces={}, χ={}, spans={:?}, decision_count={}",
-            f, chi, span_names, ctx.get_decision_count(),
+            f,
+            chi,
+            span_names,
+            ctx.get_decision_count(),
         );
     }
 
@@ -275,7 +288,8 @@ mod tests {
             let step_decisions = envelope.get_decision_log().len();
             total_decisions += step_decisions;
 
-            let result = envelope.into_result()
+            let result = envelope
+                .into_result()
                 .unwrap_or_else(|e| panic!("Chain step {} failed: {:?}", step, e));
 
             assert!(
@@ -283,7 +297,11 @@ mod tests {
                 "Step {} ({}): replay_log must have >= 1 entry, got {}. \
                  Proof metadata is being dropped on this path.",
                 step,
-                if is_disjoint { "disjoint/zero-split" } else { "overlapping/normal" },
+                if is_disjoint {
+                    "disjoint/zero-split"
+                } else {
+                    "overlapping/normal"
+                },
                 step_replay,
             );
 
@@ -291,7 +309,11 @@ mod tests {
                 "Step {} ({}): lineage_events must be non-empty, got 0. \
                  Proof metadata is being dropped on this path.",
                 step,
-                if is_disjoint { "disjoint/zero-split" } else { "overlapping/normal" },
+                if is_disjoint {
+                    "disjoint/zero-split"
+                } else {
+                    "overlapping/normal"
+                },
             );
 
             total_replay_entries += step_replay;
@@ -323,13 +345,15 @@ mod tests {
         assert!(
             total_replay_entries >= step_count,
             "Total replay entries ({}) must be >= step count ({})",
-            total_replay_entries, step_count
+            total_replay_entries,
+            step_count
         );
 
         assert!(
             total_lineage_events >= step_count,
             "Total lineage events ({}) must be >= step count ({})",
-            total_lineage_events, step_count
+            total_lineage_events,
+            step_count
         );
 
         eprintln!(
@@ -351,9 +375,7 @@ mod tests {
         let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
         let (topo_b, geom_b) = build_cube([10.0, 0.0, 0.0], 1.0);
 
-        let input = BooleanInput::new(
-            topo_a, geom_a, topo_b, geom_b, BooleanOp::Union,
-        );
+        let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
 
         let envelope = execute_boolean_logged(input);
         let decision_log = envelope.get_decision_log().clone();
@@ -369,17 +391,16 @@ mod tests {
             "Zero-split must populate lineage_events, got 0",
         );
 
-        let first_face = result.topology().arena().iter_faces().next()
+        let first_face = result
+            .topology()
+            .arena()
+            .iter_faces()
+            .next()
             .expect("Disjoint union must produce faces");
-        let face_ref = forge_core::EntityRef::new(forge_core::EntityKind::Face, first_face.0.index() as u32);
+        let face_ref =
+            forge_core::EntityRef::new(forge_core::EntityKind::Face, first_face.0.index() as u32);
 
-        let chain = query_causal_chain(
-            &face_ref,
-            replay_log,
-            &decision_log,
-            lineage_events,
-            &[],
-        );
+        let chain = query_causal_chain(&face_ref, replay_log, &decision_log, lineage_events, &[]);
 
         assert!(
             !chain.get_steps().is_empty(),
@@ -388,13 +409,8 @@ mod tests {
              enough data for causal chain reconstruction."
         );
 
-        let summary = query_causal_summary(
-            &face_ref,
-            replay_log,
-            &decision_log,
-            lineage_events,
-            &[],
-        );
+        let summary =
+            query_causal_summary(&face_ref, replay_log, &decision_log, lineage_events, &[]);
 
         assert!(
             summary.get_total_steps() >= 1,
@@ -434,45 +450,59 @@ mod tests {
         let mut tree = FeatureTree::new();
 
         let cube_a = MakeCubeFeature::new("cube_a", [0.0, 0.0, 0.0], 1.0);
-        let node_a = tree.register_feature(NativeFeature::MakeCube(cube_a))
+        let node_a = tree
+            .register_feature(NativeFeature::MakeCube(cube_a))
             .expect("register cube_a");
 
         // Disjoint offsets avoid EMBER overlapping-cubes bug
         let cube_b = MakeCubeFeature::new("cube_b", [10.0, 0.0, 0.0], 1.0);
-        let node_b = tree.register_feature(NativeFeature::MakeCube(cube_b))
+        let node_b = tree
+            .register_feature(NativeFeature::MakeCube(cube_b))
             .expect("register cube_b");
 
         let cube_c = MakeCubeFeature::new("cube_c", [20.0, 0.0, 0.0], 1.0);
-        let node_c = tree.register_feature(NativeFeature::MakeCube(cube_c))
+        let node_c = tree
+            .register_feature(NativeFeature::MakeCube(cube_c))
             .expect("register cube_c");
 
         let union_ab = BooleanFeature::new("union_ab", BooleanOp::Union, node_a, node_b);
-        let node_ab = tree.register_feature(NativeFeature::Boolean(union_ab))
+        let node_ab = tree
+            .register_feature(NativeFeature::Boolean(union_ab))
             .expect("register union_ab");
 
         let union_abc = BooleanFeature::new("union_abc", BooleanOp::Union, node_ab, node_c);
-        let node_abc = tree.register_feature(NativeFeature::Boolean(union_abc))
+        let node_abc = tree
+            .register_feature(NativeFeature::Boolean(union_abc))
             .expect("register union_abc");
 
         let mut ctx = ModelingContext::new();
 
-        tree.evaluate_feature_with_context(node_a, &mut ctx).expect("eval cube_a");
-        tree.evaluate_feature_with_context(node_b, &mut ctx).expect("eval cube_b");
-        tree.evaluate_feature_with_context(node_c, &mut ctx).expect("eval cube_c");
+        tree.evaluate_feature_with_context(node_a, &mut ctx)
+            .expect("eval cube_a");
+        tree.evaluate_feature_with_context(node_b, &mut ctx)
+            .expect("eval cube_b");
+        tree.evaluate_feature_with_context(node_c, &mut ctx)
+            .expect("eval cube_c");
 
         // After cube evaluations, decision log should have make_cube spans
-        let spans_after_cubes: Vec<&str> = ctx.get_decision_log().get_events().iter()
+        let spans_after_cubes: Vec<&str> = ctx
+            .get_decision_log()
+            .get_events()
+            .iter()
             .filter_map(|e| match e {
                 forge_core::tracing::TraceEvent::StartSpan { name, .. } => Some(name.as_str()),
                 _ => None,
-            }).collect();
+            })
+            .collect();
         assert!(
             spans_after_cubes.len() >= 3,
             "After 3 cube evals, must have >= 3 spans, got {}: {:?}",
-            spans_after_cubes.len(), spans_after_cubes,
+            spans_after_cubes.len(),
+            spans_after_cubes,
         );
 
-        let output_ab = tree.evaluate_feature_with_context(node_ab, &mut ctx)
+        let output_ab = tree
+            .evaluate_feature_with_context(node_ab, &mut ctx)
             .expect("eval union_ab");
         let (v_ab, e_ab, f_ab, chi_ab) = euler_audit(output_ab.get_value().topology.arena());
         assert_eq!(
@@ -480,7 +510,8 @@ mod tests {
             "Step 1 (A∪B) disjoint union χ must be 4: V={v_ab} E={e_ab} F={f_ab} χ={chi_ab}"
         );
 
-        let output_abc = tree.evaluate_feature_with_context(node_abc, &mut ctx)
+        let output_abc = tree
+            .evaluate_feature_with_context(node_abc, &mut ctx)
             .expect("eval union_abc");
         let (v, e, f, chi) = euler_audit(output_abc.get_value().topology.arena());
         assert_eq!(
@@ -489,33 +520,41 @@ mod tests {
         );
 
         // After full chain, decision log must have accumulated boolean spans
-        let all_spans: Vec<&str> = ctx.get_decision_log().get_events().iter()
+        let all_spans: Vec<&str> = ctx
+            .get_decision_log()
+            .get_events()
+            .iter()
             .filter_map(|e| match e {
                 forge_core::tracing::TraceEvent::StartSpan { name, .. } => Some(name.as_str()),
                 _ => None,
-            }).collect();
-
-        let boolean_spans: Vec<&&str> = all_spans.iter()
-            .filter(|n| n.contains("boolean"))
+            })
             .collect();
+
+        let boolean_spans: Vec<&&str> =
+            all_spans.iter().filter(|n| n.contains("boolean")).collect();
 
         assert!(
             boolean_spans.len() >= 2,
             "After 2 boolean evals, must have >= 2 boolean spans in decision log, \
              got {}: {:?}. Full spans: {:?}",
-            boolean_spans.len(), boolean_spans, all_spans,
+            boolean_spans.len(),
+            boolean_spans,
+            all_spans,
         );
 
         assert!(
             all_spans.len() >= 5,
             "After 3 cubes + 2 booleans, must have >= 5 total spans, got {}: {:?}",
-            all_spans.len(), all_spans,
+            all_spans.len(),
+            all_spans,
         );
 
         eprintln!(
             "MB-R9: step1 faces={f_ab}, step2 faces={f}, χ={chi}, \
              total_spans={}, boolean_spans={}, decision_count={}",
-            all_spans.len(), boolean_spans.len(), ctx.get_decision_count(),
+            all_spans.len(),
+            boolean_spans.len(),
+            ctx.get_decision_count(),
         );
     }
 }

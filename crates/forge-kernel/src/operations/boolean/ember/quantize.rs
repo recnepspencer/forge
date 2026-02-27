@@ -17,8 +17,8 @@ use forge_core::KernelError;
 use forge_topo::handles::VertexId;
 use forge_topo::state::TopologyState;
 
-use crate::geometry_state::GeometryState;
 use super::schema::QuantizedSpace;
+use crate::geometry_state::GeometryState;
 
 /// Quantized vertex identity map.
 ///
@@ -60,7 +60,8 @@ impl QuantizedVertices {
         for (&vid_idx, grid_pos) in &self.grid_positions {
             by_grid.entry(*grid_pos).or_default().push(vid_idx);
         }
-        by_grid.into_values()
+        by_grid
+            .into_values()
             .filter(|group| group.len() > 1)
             .collect()
     }
@@ -130,9 +131,7 @@ fn redirect_vertex_references(
     doomed_idx: u32,
 ) -> Result<(), KernelError> {
     let arena = draft.arena();
-    let all_he_ids: Vec<_> = arena.iter_half_edges()
-        .map(|(id, _)| id)
-        .collect();
+    let all_he_ids: Vec<_> = arena.iter_half_edges().map(|(id, _)| id).collect();
 
     let survivor_vid = find_vertex_by_index(draft.arena(), survivor_idx)?;
     let doomed_vid = find_vertex_by_index(draft.arena(), doomed_idx)?;

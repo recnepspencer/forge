@@ -86,12 +86,7 @@ fn extract_features(root: &Value) -> Option<std::collections::HashMap<String, &V
 }
 
 /// Compare two feature values field-by-field and emit changes.
-fn diff_feature_fields(
-    name: &str,
-    a: &Value,
-    b: &Value,
-    changes: &mut Vec<ModelChange>,
-) {
+fn diff_feature_fields(name: &str, a: &Value, b: &Value, changes: &mut Vec<ModelChange>) {
     if a == b {
         return;
     }
@@ -215,7 +210,9 @@ mod tests {
         });
         let changes = diff_models(&a, &b);
         assert_eq!(changes.len(), 1);
-        assert!(matches!(&changes[0], ModelChange::FeatureModified { name, field, .. }
-            if name == "Cube" && field == "size"));
+        assert!(
+            matches!(&changes[0], ModelChange::FeatureModified { name, field, .. }
+            if name == "Cube" && field == "size")
+        );
     }
 }

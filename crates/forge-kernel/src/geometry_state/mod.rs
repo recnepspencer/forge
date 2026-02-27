@@ -12,37 +12,37 @@
 //! DEPENDENCIES: `forge-math` (GeometrySource), `forge-core` (KernelError),
 //!               `forge-topo` (handles), `forge-geom` (Plane)
 
-pub(crate) mod schema;
-mod eval;
+#[cfg(test)]
+mod adversarial_tests;
 pub mod coalescence;
+mod eval;
+#[cfg(test)]
+mod patch_tests;
+pub(crate) mod schema;
 pub mod split_propagation;
 #[cfg(test)]
 mod tests;
-#[cfg(test)]
-mod adversarial_tests;
-#[cfg(test)]
-mod patch_tests;
 
 pub mod patch;
 
-pub use schema::GeometryState;
+pub use coalescence::{snap_or_coalesce_vertex, CoalescenceResult};
+pub use eval::build_position_lookup;
 pub use patch::GeometryPatch;
 pub use schema::ExactPosition;
-pub use eval::build_position_lookup;
-pub use coalescence::{snap_or_coalesce_vertex, CoalescenceResult};
+pub use schema::GeometryState;
 pub use split_propagation::propagate_curve_on_split;
 
-use forge_topo::handles::{FaceId, VertexId};
-use forge_geom::Plane;
 use forge_core::ToleranceProvider;
+use forge_geom::Plane;
 use forge_math::GeometrySource;
+use forge_topo::handles::{FaceId, VertexId};
 
 /// Read-only abstraction over geometry state to support both
 /// immutable snapshots and mid-transaction patches.
 pub trait GeometryView: ToleranceProvider + GeometrySource {
     /// Retrieve the plane for a face.
     fn get_face_plane(&self, face: FaceId) -> Option<&Plane>;
-    
+
     /// Retrieve the cached f64 position for a vertex.
     fn get_vertex_position(&self, vertex: VertexId) -> Option<&[f64; 3]>;
 }

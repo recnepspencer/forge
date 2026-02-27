@@ -42,9 +42,14 @@ pub fn bridge_polygon_hole(
         let d_v = dot(p_dest, v_axis);
 
         if let Some(t_val) = compute_ray_edge_intersection(
-            ray_origin_u, ray_origin_v,
-            o_u, o_v, d_u, d_v,
-            parallel_tol, ray_hit_tol,
+            ray_origin_u,
+            ray_origin_v,
+            o_u,
+            o_v,
+            d_u,
+            d_v,
+            parallel_tol,
+            ray_hit_tol,
         ) {
             if t_val < best_t {
                 best_t = t_val;
@@ -70,7 +75,8 @@ pub fn bridge_polygon_holes(
     parallel_tol: f64,
     ray_hit_tol: f64,
 ) -> Vec<Option<(usize, usize)>> {
-    holes.iter()
+    holes
+        .iter()
         .map(|hole| bridge_polygon_hole(outer, hole, face_normal, parallel_tol, ray_hit_tol))
         .collect()
 }
@@ -170,8 +176,18 @@ mod tests {
             [0.0, 5.0, 0.0],
         ];
         let holes = vec![
-            vec![[1.0, 1.0, 0.0], [2.0, 1.0, 0.0], [2.0, 2.0, 0.0], [1.0, 2.0, 0.0]],
-            vec![[3.0, 3.0, 0.0], [4.0, 3.0, 0.0], [4.0, 4.0, 0.0], [3.0, 4.0, 0.0]],
+            vec![
+                [1.0, 1.0, 0.0],
+                [2.0, 1.0, 0.0],
+                [2.0, 2.0, 0.0],
+                [1.0, 2.0, 0.0],
+            ],
+            vec![
+                [3.0, 3.0, 0.0],
+                [4.0, 3.0, 0.0],
+                [4.0, 4.0, 0.0],
+                [3.0, 4.0, 0.0],
+            ],
         ];
         let results = bridge_polygon_holes(&outer, &holes, [0.0, 0.0, 1.0], 1e-15, 1e-15);
         assert_eq!(results.len(), 2);

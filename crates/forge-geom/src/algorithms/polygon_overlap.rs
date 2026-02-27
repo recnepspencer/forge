@@ -175,10 +175,7 @@ fn winding_number(pt: &[f64; 2], poly: &[[f64; 2]]) -> i32 {
 /// with all four orientations being non-degenerate.
 ///
 /// Returns false for collinear, touching, or endpoint-only contact.
-pub fn segments_properly_cross(
-    a: &[f64; 2], b: &[f64; 2],
-    c: &[f64; 2], d: &[f64; 2],
-) -> bool {
+pub fn segments_properly_cross(a: &[f64; 2], b: &[f64; 2], c: &[f64; 2], d: &[f64; 2]) -> bool {
     let ab = [b[0] - a[0], b[1] - a[1]];
     let ac = [c[0] - a[0], c[1] - a[1]];
     let ad = [d[0] - a[0], d[1] - a[1]];
@@ -312,32 +309,40 @@ mod tests {
     #[test]
     fn segments_cross_basic() {
         assert!(segments_properly_cross(
-            &[0.0, 0.0], &[1.0, 1.0],
-            &[0.0, 1.0], &[1.0, 0.0],
+            &[0.0, 0.0],
+            &[1.0, 1.0],
+            &[0.0, 1.0],
+            &[1.0, 0.0],
         ));
     }
 
     #[test]
     fn segments_parallel_no_cross() {
         assert!(!segments_properly_cross(
-            &[0.0, 0.0], &[1.0, 0.0],
-            &[0.0, 1.0], &[1.0, 1.0],
+            &[0.0, 0.0],
+            &[1.0, 0.0],
+            &[0.0, 1.0],
+            &[1.0, 1.0],
         ));
     }
 
     #[test]
     fn segments_share_endpoint_no_cross() {
         assert!(!segments_properly_cross(
-            &[0.0, 0.0], &[1.0, 0.0],
-            &[1.0, 0.0], &[1.0, 1.0],
+            &[0.0, 0.0],
+            &[1.0, 0.0],
+            &[1.0, 0.0],
+            &[1.0, 1.0],
         ));
     }
 
     #[test]
     fn segments_t_junction_no_cross() {
         assert!(!segments_properly_cross(
-            &[0.0, 0.0], &[2.0, 0.0],
-            &[1.0, 0.0], &[1.0, 1.0],
+            &[0.0, 0.0],
+            &[2.0, 0.0],
+            &[1.0, 0.0],
+            &[1.0, 1.0],
         ));
     }
 

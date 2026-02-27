@@ -4,9 +4,7 @@
 //! features — ParametricBooleanFeature (split-classify-stitch) and
 //! EmberBooleanFeature (BSP merge).
 
-use crate::engine::contract::{
-    AuditLevel, EntityOriginKind, InvariantKind,
-};
+use crate::engine::contract::{AuditLevel, EntityOriginKind, InvariantKind};
 use forge_core::PolicyKind;
 
 /// Parametric boolean: split → classify → select → assemble → postprocess.
@@ -41,10 +39,7 @@ impl ParametricBooleanContract {
 
     /// Post-execution invariants to validate.
     pub fn post_invariants() -> &'static [InvariantKind] {
-        &[
-            InvariantKind::ManifoldEdges,
-            InvariantKind::NoSliverFaces,
-        ]
+        &[InvariantKind::ManifoldEdges, InvariantKind::NoSliverFaces]
     }
 
     /// Audit level for tracing/decision logging.
@@ -67,23 +62,17 @@ impl EmberBooleanContract {
 
     /// Policies this feature requires to be configured.
     pub fn required_policies() -> &'static [PolicyKind] {
-        &[
-            PolicyKind::CoincidentGeometry,
-        ]
+        &[PolicyKind::CoincidentGeometry]
     }
 
     /// Entity origin kinds produced by this feature.
     pub fn entity_origins() -> &'static [EntityOriginKind] {
-        &[
-            EntityOriginKind::EulerOperator,
-        ]
+        &[EntityOriginKind::EulerOperator]
     }
 
     /// Post-execution invariants to validate.
     pub fn post_invariants() -> &'static [InvariantKind] {
-        &[
-            InvariantKind::ManifoldEdges,
-        ]
+        &[InvariantKind::ManifoldEdges]
     }
 
     /// Audit level for tracing/decision logging.

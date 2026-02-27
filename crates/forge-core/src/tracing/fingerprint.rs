@@ -92,16 +92,22 @@ mod tests {
             DecisionKind::Exact,
             DecisionTier::Deterministic,
             0.0,
-            DecisionContext::Degeneracy { description: "a".into() },
+            DecisionContext::Degeneracy {
+                description: "a".into(),
+            },
         ));
 
         let mut b = DecisionLog::new();
         b.record(TracedDecision::new(
             DecisionId(1),
-            DecisionKind::Forced { reason: "manifold".into() },
+            DecisionKind::Forced {
+                reason: "manifold".into(),
+            },
             DecisionTier::Escalated,
             0.0,
-            DecisionContext::Degeneracy { description: "a".into() },
+            DecisionContext::Degeneracy {
+                description: "a".into(),
+            },
         ));
 
         assert_ne!(
@@ -121,4 +127,3 @@ mod tests {
         );
     }
 }
-

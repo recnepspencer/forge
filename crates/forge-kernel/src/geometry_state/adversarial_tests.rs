@@ -5,10 +5,10 @@
 //! chained operation tolerance accumulation, and post-mutation
 //! invariant preservation.
 
-use std::f64::consts::{FRAC_PI_2, PI, TAU};
-use forge_geom::{SurfaceData, SurfaceRelation, classify_surface_pair};
-use forge_geom::{CurveKind, CurveGeom, CurveProvenance, SpCurveApproximation};
+use forge_geom::{classify_surface_pair, SurfaceData, SurfaceRelation};
 use forge_geom::{Coedge, ParametricCurve2D};
+use forge_geom::{CurveGeom, CurveKind, CurveProvenance, SpCurveApproximation};
+use std::f64::consts::{FRAC_PI_2, PI, TAU};
 
 // =====================================================================
 // 1. SINGULARITIES — Points where parametric surfaces degenerate
@@ -18,7 +18,11 @@ use forge_geom::{Coedge, ParametricCurve2D};
 fn sphere_normal_at_north_pole_is_vertical() {
     let s = SurfaceData::sphere([0.0, 0.0, 0.0], 1.0);
     let n = s.normal_at(0.0, FRAC_PI_2);
-    assert!((n[2] - 1.0).abs() < 1e-10, "north pole normal z={}, expected 1.0", n[2]);
+    assert!(
+        (n[2] - 1.0).abs() < 1e-10,
+        "north pole normal z={}, expected 1.0",
+        n[2]
+    );
     assert!(n[0].abs() < 1e-10);
     assert!(n[1].abs() < 1e-10);
 }
@@ -27,7 +31,11 @@ fn sphere_normal_at_north_pole_is_vertical() {
 fn sphere_normal_at_south_pole_is_vertical() {
     let s = SurfaceData::sphere([0.0, 0.0, 0.0], 1.0);
     let n = s.normal_at(0.0, -FRAC_PI_2);
-    assert!((n[2] + 1.0).abs() < 1e-10, "south pole normal z={}, expected -1.0", n[2]);
+    assert!(
+        (n[2] + 1.0).abs() < 1e-10,
+        "south pole normal z={}, expected -1.0",
+        n[2]
+    );
 }
 
 #[test]
@@ -37,7 +45,8 @@ fn sphere_all_u_values_at_pole_give_same_point() {
     for u_frac in 1..=20 {
         let u = TAU * u_frac as f64 / 20.0;
         let p = s.point_at(u, FRAC_PI_2);
-        let dist = ((p[0] - p0[0]).powi(2) + (p[1] - p0[1]).powi(2) + (p[2] - p0[2]).powi(2)).sqrt();
+        let dist =
+            ((p[0] - p0[0]).powi(2) + (p[1] - p0[1]).powi(2) + (p[2] - p0[2]).powi(2)).sqrt();
         assert!(dist < 1e-10, "Pole is not singular: u={}, dist={}", u, dist);
     }
 }
@@ -49,8 +58,14 @@ fn cone_at_apex_all_u_values_converge() {
     for u_frac in 1..=12 {
         let u = TAU * u_frac as f64 / 12.0;
         let p = s.point_at(u, 0.0);
-        let dist = ((p[0] - p0[0]).powi(2) + (p[1] - p0[1]).powi(2) + (p[2] - p0[2]).powi(2)).sqrt();
-        assert!(dist < 1e-10, "Cone apex not singular: u={}, dist={}", u, dist);
+        let dist =
+            ((p[0] - p0[0]).powi(2) + (p[1] - p0[1]).powi(2) + (p[2] - p0[2]).powi(2)).sqrt();
+        assert!(
+            dist < 1e-10,
+            "Cone apex not singular: u={}, dist={}",
+            u,
+            dist
+        );
     }
 }
 
@@ -87,7 +102,11 @@ fn zero_minor_radius_torus_degenerates_to_circle() {
         let u = TAU * u_frac as f64 / 8.0;
         let p = s.point_at(u, 0.0);
         let r = (p[0] * p[0] + p[1] * p[1]).sqrt();
-        assert!((r - major).abs() < 1e-10, "Minor_r=0 torus not a circle: r={}", r);
+        assert!(
+            (r - major).abs() < 1e-10,
+            "Minor_r=0 torus not a circle: r={}",
+            r
+        );
         assert!(p[2].abs() < 1e-10);
     }
 }
@@ -134,29 +153,49 @@ fn sp_curve_single_control_point_is_constant() {
 fn planes_one_ulp_apart_are_still_disjoint() {
     let a = SurfaceData::plane([0.0, 0.0, 1.0], 0.0);
     let b = SurfaceData::plane([0.0, 0.0, 1.0], 1e-10);
-    assert_eq!(classify_surface_pair(&a, &b, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::Disjoint);
+    assert_eq!(
+        classify_surface_pair(&a, &b, 1e-12, 10.0)
+            .into_result_strict()
+            .unwrap(),
+        SurfaceRelation::Disjoint
+    );
 }
 
 #[test]
 fn spheres_just_touching_are_general() {
     let a = SurfaceData::sphere([0.0, 0.0, 0.0], 5.0);
     let b = SurfaceData::sphere([10.0, 0.0, 0.0], 5.0);
-    assert_eq!(classify_surface_pair(&a, &b, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::General,
-        "Spheres exactly touching should be General (tangent intersection)");
+    assert_eq!(
+        classify_surface_pair(&a, &b, 1e-12, 10.0)
+            .into_result_strict()
+            .unwrap(),
+        SurfaceRelation::General,
+        "Spheres exactly touching should be General (tangent intersection)"
+    );
 }
 
 #[test]
 fn spheres_barely_overlapping_are_general() {
     let a = SurfaceData::sphere([0.0, 0.0, 0.0], 5.0);
     let b = SurfaceData::sphere([9.999, 0.0, 0.0], 5.0);
-    assert_eq!(classify_surface_pair(&a, &b, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::General);
+    assert_eq!(
+        classify_surface_pair(&a, &b, 1e-12, 10.0)
+            .into_result_strict()
+            .unwrap(),
+        SurfaceRelation::General
+    );
 }
 
 #[test]
 fn spheres_barely_separated_are_disjoint() {
     let a = SurfaceData::sphere([0.0, 0.0, 0.0], 5.0);
     let b = SurfaceData::sphere([10.001, 0.0, 0.0], 5.0);
-    assert_eq!(classify_surface_pair(&a, &b, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::Disjoint);
+    assert_eq!(
+        classify_surface_pair(&a, &b, 1e-12, 10.0)
+            .into_result_strict()
+            .unwrap(),
+        SurfaceRelation::Disjoint
+    );
 }
 
 #[test]
@@ -167,25 +206,60 @@ fn different_surface_types_always_general() {
     let cone = SurfaceData::cone([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], PI / 4.0);
     let torus = SurfaceData::torus([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 5.0, 1.0);
 
-    assert_eq!(classify_surface_pair(&plane, &sphere, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::General);
-    assert_eq!(classify_surface_pair(&plane, &cylinder, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::General);
-    assert_eq!(classify_surface_pair(&sphere, &cylinder, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::General);
-    assert_eq!(classify_surface_pair(&cone, &torus, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::General);
-    assert_eq!(classify_surface_pair(&plane, &torus, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::General);
+    assert_eq!(
+        classify_surface_pair(&plane, &sphere, 1e-12, 10.0)
+            .into_result_strict()
+            .unwrap(),
+        SurfaceRelation::General
+    );
+    assert_eq!(
+        classify_surface_pair(&plane, &cylinder, 1e-12, 10.0)
+            .into_result_strict()
+            .unwrap(),
+        SurfaceRelation::General
+    );
+    assert_eq!(
+        classify_surface_pair(&sphere, &cylinder, 1e-12, 10.0)
+            .into_result_strict()
+            .unwrap(),
+        SurfaceRelation::General
+    );
+    assert_eq!(
+        classify_surface_pair(&cone, &torus, 1e-12, 10.0)
+            .into_result_strict()
+            .unwrap(),
+        SurfaceRelation::General
+    );
+    assert_eq!(
+        classify_surface_pair(&plane, &torus, 1e-12, 10.0)
+            .into_result_strict()
+            .unwrap(),
+        SurfaceRelation::General
+    );
 }
 
 #[test]
 fn cylinders_parallel_different_radius_are_general() {
     let a = SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 3.0);
     let b = SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 5.0);
-    assert_eq!(classify_surface_pair(&a, &b, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::General);
+    assert_eq!(
+        classify_surface_pair(&a, &b, 1e-12, 10.0)
+            .into_result_strict()
+            .unwrap(),
+        SurfaceRelation::General
+    );
 }
 
 #[test]
 fn cylinders_skew_axes_are_general() {
     let a = SurfaceData::cylinder([0.0, 0.0, 0.0], [1.0, 0.0, 0.0], 3.0);
     let b = SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 1.0, 0.0], 3.0);
-    assert_eq!(classify_surface_pair(&a, &b, 1e-12, 10.0).into_result_strict().unwrap(), SurfaceRelation::General);
+    assert_eq!(
+        classify_surface_pair(&a, &b, 1e-12, 10.0)
+            .into_result_strict()
+            .unwrap(),
+        SurfaceRelation::General
+    );
 }
 
 // =====================================================================
@@ -200,10 +274,18 @@ fn chained_coalescence_tolerance_grows_monotonically() {
     let mut tolerance = initial;
     for step in 0..20 {
         tolerance = VertexGeom::coalesced_tolerance(tolerance, initial);
-        assert!(tolerance > initial,
-            "Step {}: tolerance {} must exceed initial {}", step, tolerance, initial);
-        assert!(tolerance.is_finite(),
-            "Step {}: tolerance went to infinity", step);
+        assert!(
+            tolerance > initial,
+            "Step {}: tolerance {} must exceed initial {}",
+            step,
+            tolerance,
+            initial
+        );
+        assert!(
+            tolerance.is_finite(),
+            "Step {}: tolerance went to infinity",
+            step
+        );
     }
 }
 
@@ -216,15 +298,18 @@ fn chained_coalescence_20_steps_stays_below_1e_6() {
     for _ in 0..20 {
         tolerance = VertexGeom::coalesced_tolerance(tolerance, initial);
     }
-    assert!(tolerance < 1e-6,
-        "20 coalescence steps from 1e-10 grew to {} — would fail classification", tolerance);
+    assert!(
+        tolerance < 1e-6,
+        "20 coalescence steps from 1e-10 grew to {} — would fail classification",
+        tolerance
+    );
 }
 
 #[test]
 fn chained_snap_decisions_are_all_logged() {
-    use forge_topo::handles::VertexId;
-    use crate::geometry_state::{GeometryState, snap_or_coalesce_vertex, CoalescenceResult};
     use crate::core::ModelingContext;
+    use crate::geometry_state::{snap_or_coalesce_vertex, CoalescenceResult, GeometryState};
+    use forge_topo::handles::VertexId;
 
     let mut geom = GeometryState::new();
     let mut ctx = ModelingContext::new();
@@ -235,13 +320,26 @@ fn chained_snap_decisions_are_all_logged() {
     for i in 0..10 {
         let offset = (i as f64 + 1.0) * 1e-8;
         let result = snap_or_coalesce_vertex(
-            [offset, 0.0, 0.0], 1e-10, v, existing_pos, existing_tol, &mut ctx, 1e-4,
+            [offset, 0.0, 0.0],
+            1e-10,
+            v,
+            existing_pos,
+            existing_tol,
+            &mut ctx,
+            1e-4,
         );
-        assert!(matches!(result, CoalescenceResult::Snapped { .. }),
-            "Iteration {} should snap (offset={} < tolerance=1e-5)", i, offset);
+        assert!(
+            matches!(result, CoalescenceResult::Snapped { .. }),
+            "Iteration {} should snap (offset={} < tolerance=1e-5)",
+            i,
+            offset
+        );
     }
-    assert_eq!(ctx.get_decision_count(), 10,
-        "Every snap must produce a TracedDecision");
+    assert_eq!(
+        ctx.get_decision_count(),
+        10,
+        "Every snap must produce a TracedDecision"
+    );
 }
 
 // =====================================================================
@@ -250,8 +348,8 @@ fn chained_snap_decisions_are_all_logged() {
 
 #[test]
 fn split_line_segments_are_continuous_at_split_point() {
+    use crate::geometry_state::{propagate_curve_on_split, GeometryState};
     use forge_topo::handles::EdgeId;
-    use crate::geometry_state::{GeometryState, propagate_curve_on_split};
 
     let mut geom = GeometryState::new();
     let old_edge = EdgeId::from_raw_parts(0, 0);
@@ -259,7 +357,10 @@ fn split_line_segments_are_continuous_at_split_point() {
     let t_split = 0.4;
 
     let curve = CurveGeom::from_analytic(
-        CurveKind::Line { origin: [0.0, 0.0, 0.0], direction: [10.0, 0.0, 0.0] },
+        CurveKind::Line {
+            origin: [0.0, 0.0, 0.0],
+            direction: [10.0, 0.0, 0.0],
+        },
         [0, 1],
     );
     let cr = geom.insert_curve(curve);
@@ -274,17 +375,23 @@ fn split_line_segments_are_continuous_at_split_point() {
     let expected_split_point = [t_split * 10.0, 0.0, 0.0];
 
     let dist = ((start_of_segment_b[0] - expected_split_point[0]).powi(2)
-              + (start_of_segment_b[1] - expected_split_point[1]).powi(2)
-              + (start_of_segment_b[2] - expected_split_point[2]).powi(2)).sqrt();
-    assert!(dist < 1e-10,
+        + (start_of_segment_b[1] - expected_split_point[1]).powi(2)
+        + (start_of_segment_b[2] - expected_split_point[2]).powi(2))
+    .sqrt();
+    assert!(
+        dist < 1e-10,
         "Line split at t={}: segment B starts at {:?}, expected {:?}, dist={}",
-        t_split, start_of_segment_b, expected_split_point, dist);
+        t_split,
+        start_of_segment_b,
+        expected_split_point,
+        dist
+    );
 }
 
 #[test]
 fn split_sp_curve_domains_partition_original() {
+    use crate::geometry_state::{propagate_curve_on_split, GeometryState};
     use forge_topo::handles::EdgeId;
-    use crate::geometry_state::{GeometryState, propagate_curve_on_split};
 
     let mut geom = GeometryState::new();
     let old_edge = EdgeId::from_raw_parts(0, 0);
@@ -296,8 +403,11 @@ fn split_sp_curve_domains_partition_original() {
             surface_b: 1,
             sp_curve_cache: SpCurveApproximation {
                 control_points: vec![
-                    [0.0, 0.0, 0.0], [0.25, 0.5, 0.0], [0.5, 0.5, 0.0],
-                    [0.75, 0.5, 0.0], [1.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0],
+                    [0.25, 0.5, 0.0],
+                    [0.5, 0.5, 0.0],
+                    [0.75, 0.5, 0.0],
+                    [1.0, 0.0, 0.0],
                 ],
                 knots: vec![0.0, 0.25, 0.5, 0.75, 1.0],
                 error_bound: 1e-8,
@@ -305,7 +415,10 @@ fn split_sp_curve_domains_partition_original() {
             },
         },
         tolerance: 1e-8,
-        provenance: CurveProvenance::SsiSolver { residual: 1e-8, iterations: 5 },
+        provenance: CurveProvenance::SsiSolver {
+            residual: 1e-8,
+            iterations: 5,
+        },
     };
     let cr = geom.insert_curve(curve);
     geom.attach_curve_to_edge(old_edge, cr);
@@ -319,15 +432,25 @@ fn split_sp_curve_domains_partition_original() {
 
     match (&curve_a.kind, &curve_b.kind) {
         (
-            CurveKind::SurfaceIntersection { sp_curve_cache: ca, .. },
-            CurveKind::SurfaceIntersection { sp_curve_cache: cb, .. },
+            CurveKind::SurfaceIntersection {
+                sp_curve_cache: ca, ..
+            },
+            CurveKind::SurfaceIntersection {
+                sp_curve_cache: cb, ..
+            },
         ) => {
             assert!((ca.domain.0 - 0.0).abs() < 1e-12, "Segment A domain start");
             assert!((ca.domain.1 - 0.6).abs() < 1e-12, "Segment A domain end");
             assert!((cb.domain.0 - 0.6).abs() < 1e-12, "Segment B domain start");
             assert!((cb.domain.1 - 1.0).abs() < 1e-12, "Segment B domain end");
-            assert!(!ca.control_points.is_empty(), "Segment A should have points");
-            assert!(!cb.control_points.is_empty(), "Segment B should have points");
+            assert!(
+                !ca.control_points.is_empty(),
+                "Segment A should have points"
+            );
+            assert!(
+                !cb.control_points.is_empty(),
+                "Segment B should have points"
+            );
         }
         _ => panic!("Expected SurfaceIntersection for both segments"),
     }
@@ -339,8 +462,8 @@ fn split_sp_curve_domains_partition_original() {
 
 #[test]
 fn anti_drift_survives_curve_split_on_cylinder() {
+    use crate::geometry_state::{propagate_curve_on_split, GeometryState};
     use forge_topo::handles::EdgeId;
-    use crate::geometry_state::{GeometryState, propagate_curve_on_split};
 
     let radius = 3.0;
     let surface = SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], radius);
@@ -350,12 +473,14 @@ fn anti_drift_survives_curve_split_on_cylinder() {
     let new_edge = EdgeId::from_raw_parts(1, 0);
 
     let sp_cache = SpCurveApproximation {
-        control_points: (0..=20).map(|i| {
-            let frac = i as f64 / 20.0;
-            let u = frac * PI;
-            let v = frac * 5.0;
-            surface.point_at(u, v)
-        }).collect(),
+        control_points: (0..=20)
+            .map(|i| {
+                let frac = i as f64 / 20.0;
+                let u = frac * PI;
+                let v = frac * 5.0;
+                surface.point_at(u, v)
+            })
+            .collect(),
         knots: (0..=20).map(|i| i as f64 / 20.0).collect(),
         error_bound: 1e-12,
         domain: (0.0, 1.0),
@@ -363,11 +488,15 @@ fn anti_drift_survives_curve_split_on_cylinder() {
 
     let curve = CurveGeom {
         kind: CurveKind::SurfaceIntersection {
-            surface_a: 0, surface_b: 1,
+            surface_a: 0,
+            surface_b: 1,
             sp_curve_cache: sp_cache,
         },
         tolerance: 1e-12,
-        provenance: CurveProvenance::SsiSolver { residual: 1e-12, iterations: 10 },
+        provenance: CurveProvenance::SsiSolver {
+            residual: 1e-12,
+            iterations: 10,
+        },
     };
     let cr = geom.insert_curve(curve);
     geom.attach_curve_to_edge(old_edge, cr);
@@ -384,9 +513,15 @@ fn anti_drift_survives_curve_split_on_cylinder() {
             let t = i as f64 / 10.0;
             let p = curve.kind.point_at(t);
             let r = (p[0] * p[0] + p[1] * p[1]).sqrt();
-            assert!((r - radius).abs() < 0.1,
+            assert!(
+                (r - radius).abs() < 0.1,
                 "{}: point at t={} has r={}, expected {} (drift = {})",
-                label, t, r, radius, (r - radius).abs());
+                label,
+                t,
+                r,
+                radius,
+                (r - radius).abs()
+            );
         }
     };
 
@@ -401,10 +536,19 @@ fn anti_drift_survives_curve_split_on_cylinder() {
 #[test]
 fn normal_dot_tangent_is_zero_for_all_surfaces() {
     let surfaces = vec![
-        ("cylinder", SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 3.0)),
+        (
+            "cylinder",
+            SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 3.0),
+        ),
         ("sphere", SurfaceData::sphere([0.0, 0.0, 0.0], 5.0)),
-        ("torus", SurfaceData::torus([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 5.0, 1.0)),
-        ("cone", SurfaceData::cone([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], PI / 6.0)),
+        (
+            "torus",
+            SurfaceData::torus([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 5.0, 1.0),
+        ),
+        (
+            "cone",
+            SurfaceData::cone([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], PI / 6.0),
+        ),
     ];
 
     let dt = 1e-7;
@@ -427,10 +571,22 @@ fn normal_dot_tangent_is_zero_for_all_surfaces() {
             let n_dot_du = n[0] * du[0] + n[1] * du[1] + n[2] * du[2];
             let n_dot_dv = n[0] * dv[0] + n[1] * dv[1] + n[2] * dv[2];
 
-            assert!(n_dot_du.abs() < 1e-4,
-                "{}: normal·∂S/∂u = {} at u={}, v={}", name, n_dot_du, u, v);
-            assert!(n_dot_dv.abs() < 1e-4,
-                "{}: normal·∂S/∂v = {} at u={}, v={}", name, n_dot_dv, u, v);
+            assert!(
+                n_dot_du.abs() < 1e-4,
+                "{}: normal·∂S/∂u = {} at u={}, v={}",
+                name,
+                n_dot_du,
+                u,
+                v
+            );
+            assert!(
+                n_dot_dv.abs() < 1e-4,
+                "{}: normal·∂S/∂v = {} at u={}, v={}",
+                name,
+                n_dot_dv,
+                u,
+                v
+            );
         }
     }
 }
@@ -442,9 +598,29 @@ fn normal_dot_tangent_is_zero_for_all_surfaces() {
 #[test]
 fn curve_tangent_matches_finite_difference_for_all_types() {
     let curves: Vec<(&str, CurveKind)> = vec![
-        ("line", CurveKind::Line { origin: [1.0, 2.0, 3.0], direction: [0.0, 0.0, 1.0] }),
-        ("circle", CurveKind::Circle { center: [0.0, 0.0, 0.0], normal: [0.0, 0.0, 1.0], radius: 5.0 }),
-        ("ellipse", CurveKind::Ellipse { center: [0.0, 0.0, 0.0], major: [3.0, 0.0, 0.0], minor: [0.0, 2.0, 0.0] }),
+        (
+            "line",
+            CurveKind::Line {
+                origin: [1.0, 2.0, 3.0],
+                direction: [0.0, 0.0, 1.0],
+            },
+        ),
+        (
+            "circle",
+            CurveKind::Circle {
+                center: [0.0, 0.0, 0.0],
+                normal: [0.0, 0.0, 1.0],
+                radius: 5.0,
+            },
+        ),
+        (
+            "ellipse",
+            CurveKind::Ellipse {
+                center: [0.0, 0.0, 0.0],
+                major: [3.0, 0.0, 0.0],
+                minor: [0.0, 2.0, 0.0],
+            },
+        ),
     ];
 
     let dt = 1e-7;
@@ -458,14 +634,29 @@ fn curve_tangent_matches_finite_difference_for_all_types() {
                 (p1[1] - p0[1]) / (2.0 * dt),
                 (p1[2] - p0[2]) / (2.0 * dt),
             ];
-            let num_len = (numerical[0].powi(2) + numerical[1].powi(2) + numerical[2].powi(2)).sqrt();
-            if num_len < 1e-10 { continue; }
-            let normalized = [numerical[0] / num_len, numerical[1] / num_len, numerical[2] / num_len];
+            let num_len =
+                (numerical[0].powi(2) + numerical[1].powi(2) + numerical[2].powi(2)).sqrt();
+            if num_len < 1e-10 {
+                continue;
+            }
+            let normalized = [
+                numerical[0] / num_len,
+                numerical[1] / num_len,
+                numerical[2] / num_len,
+            ];
 
-            let dot = analytic[0] * normalized[0] + analytic[1] * normalized[1] + analytic[2] * normalized[2];
-            assert!(dot.abs() > 0.999,
+            let dot = analytic[0] * normalized[0]
+                + analytic[1] * normalized[1]
+                + analytic[2] * normalized[2];
+            assert!(
+                dot.abs() > 0.999,
                 "{}: tangent mismatch at t={}: analytic={:?} numerical={:?} dot={}",
-                name, t, analytic, normalized, dot);
+                name,
+                t,
+                analytic,
+                normalized,
+                dot
+            );
         }
     }
 }

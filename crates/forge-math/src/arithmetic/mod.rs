@@ -8,11 +8,10 @@
 pub mod double;
 pub mod expansion;
 pub mod interval;
-pub mod rational;
 pub mod precision;
+pub mod rational;
 
 pub use double::Double;
 pub use interval::Interval;
-pub use rational::Rational;
 pub use precision::{PrecisionBudget, PrecisionEscalation, PrecisionMode};
-
+pub use rational::Rational;

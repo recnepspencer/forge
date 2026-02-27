@@ -99,6 +99,9 @@ mod tests {
             advanced_from_same_seed.next_u64();
         }
 
-        assert_eq!(advanced_from_same_seed.next_u64(), replayed_from_snapshot.next_u64());
+        assert_eq!(
+            advanced_from_same_seed.next_u64(),
+            replayed_from_snapshot.next_u64()
+        );
     }
 }

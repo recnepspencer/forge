@@ -5,16 +5,16 @@
 //!
 //! DEPENDENCIES: `forge-topo` (handles, arena), `forge-geom` (Plane), serde
 
-use std::collections::BTreeSet;
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
 
 use forge_core::KernelError;
 use forge_geom::Plane;
-use forge_topo::arena::{TopologyArena, FaceData, HalfEdgeData, VertexData, LoopData};
+use forge_topo::arena::{FaceData, HalfEdgeData, LoopData, TopologyArena, VertexData};
 use forge_topo::bitset::EntityBitset;
-use forge_topo::handles::{FaceId, HalfEdgeId, LoopId, VertexId, ShellId, EdgeId};
+use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
 
 /// A self-contained topological sub-region extracted from an arena.
 ///
@@ -221,14 +221,17 @@ impl ExtractedRegion {
             arena.insert_loop(LoopData::new(placeholder_he, fid), None);
         }
         for _ in 0..=max_he {
-            arena.insert_half_edge(HalfEdgeData::new(
-                placeholder_he,
-                placeholder_he,
-                placeholder_he,
-                FaceId::from_raw_parts(0, 0),
-                VertexId::from_raw_parts(0, 0),
-                placeholder_edge,
-            ), None);
+            arena.insert_half_edge(
+                HalfEdgeData::new(
+                    placeholder_he,
+                    placeholder_he,
+                    placeholder_he,
+                    FaceId::from_raw_parts(0, 0),
+                    VertexId::from_raw_parts(0, 0),
+                    placeholder_edge,
+                ),
+                None,
+            );
         }
 
         for (&he_idx, conn) in &self.half_edge_connectivity {
@@ -242,22 +245,29 @@ impl ExtractedRegion {
         }
 
         for vtx_id in self.vertices.iter_ones() {
-            let first_outgoing = self.half_edge_connectivity.iter()
+            let first_outgoing = self
+                .half_edge_connectivity
+                .iter()
                 .find(|(_, conn)| conn.origin == vtx_id);
             if let Some((&he_idx, _)) = first_outgoing {
-                arena.get_vertex_mut(VertexId::from_raw_parts(vtx_id, 0))?
+                arena
+                    .get_vertex_mut(VertexId::from_raw_parts(vtx_id, 0))?
                     .set_outgoing(HalfEdgeId::from_raw_parts(he_idx, 0));
             }
         }
 
         for face_id in self.faces.iter_ones() {
-            let first_he = self.half_edge_connectivity.iter()
+            let first_he = self
+                .half_edge_connectivity
+                .iter()
                 .find(|(_, conn)| conn.face == face_id);
             if let Some((&he_idx, _)) = first_he {
                 let loop_id = LoopId::from_raw_parts(face_id, 0);
-                arena.get_loop_mut(loop_id)?
+                arena
+                    .get_loop_mut(loop_id)?
                     .set_half_edge(HalfEdgeId::from_raw_parts(he_idx, 0));
-                arena.get_face_mut(FaceId::from_raw_parts(face_id, 0))?
+                arena
+                    .get_face_mut(FaceId::from_raw_parts(face_id, 0))?
                     .set_outer_loop(loop_id);
             }
         }

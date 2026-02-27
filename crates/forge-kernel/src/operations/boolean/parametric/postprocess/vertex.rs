@@ -5,14 +5,16 @@
 //!
 //! DEPENDENCIES: forge_topo (KillEdgeVertex), GeometryState.
 
-use forge_core::KernelError;
-use forge_core::{TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
 use forge_core::tracing::TopologyDelta;
-use forge_topo::state::TopologyState;
+use forge_core::KernelError;
+use forge_core::{
+    DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, TracedDecision,
+};
 use forge_topo::handles::VertexId;
+use forge_topo::state::TopologyState;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
-use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta, KernelState};
+use crate::core::{compute_topology_delta, ArenaSnapshot, KernelState, ModelingContext};
 use crate::geometry_state::GeometryState;
 
 use super::run_iterative_pass;
@@ -22,7 +24,9 @@ pub fn remove_redundant_vertices(
     ctx: &mut ModelingContext,
 ) -> Result<(KernelState, usize), KernelError> {
     let config = crate::core::ToleranceConfig::default();
-    run_iterative_pass(state, |current| run_vertex_cleanup_pass(current, &config, ctx))
+    run_iterative_pass(state, |current| {
+        run_vertex_cleanup_pass(current, &config, ctx)
+    })
 }
 
 /// Find and remove one redundant collinear vertex.
@@ -85,8 +89,12 @@ fn find_collinear_vertex_candidate(
 fn log_vertex_removal(vid: VertexId, delta: TopologyDelta, ctx: &mut ModelingContext) {
     let mut decision = TracedDecision::new(
         DecisionId(vid.index() as u64),
-        DecisionKind::PolicyApplied { policy: forge_core::PolicyKind::CoincidentGeometry, default_used: true },
-        DecisionTier::Deterministic, 1.0,
+        DecisionKind::PolicyApplied {
+            policy: forge_core::PolicyKind::CoincidentGeometry,
+            default_used: true,
+        },
+        DecisionTier::Deterministic,
+        1.0,
         DecisionContext::Degeneracy {
             description: format!("Removed redundant collinear vertex #{}", vid.index()),
         },

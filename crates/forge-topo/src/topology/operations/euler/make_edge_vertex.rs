@@ -13,12 +13,12 @@
 
 use forge_core::KernelError;
 
-use crate::arena::{HalfEdgeData, VertexData, EdgeData};
-use crate::handles::{HalfEdgeId, VertexId, EdgeId};
+use crate::arena::{EdgeData, HalfEdgeData, VertexData};
+use crate::handles::{EdgeId, HalfEdgeId, VertexId};
 use crate::lineage::{Lineage, OpSignature};
-use crate::EulerOperator;
-use crate::operator::{ExecutionResult, EulerDelta};
+use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
+use crate::EulerOperator;
 
 /// Extend a vertex by sprouting a new edge and vertex (antenna).
 ///
@@ -58,7 +58,11 @@ pub struct MevOutput {
 impl EulerOperator for MakeEdgeVertex {
     type Output = MevOutput;
 
-    fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        sig: &OpSignature,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let anchor = self.anchor;
         let anchor_data = draft.arena().get_half_edge(anchor)?;
 
@@ -120,8 +124,14 @@ impl EulerOperator for MakeEdgeVertex {
         arena.get_half_edge_mut(anchor)?.set_prev(he_back);
 
         // ── Entity ownership pointers ───────────────────────────────
-        draft.arena_mut().get_vertex_mut(new_vertex)?.set_outgoing(he_back);
-        draft.arena_mut().get_edge_mut(new_edge)?.set_half_edge(he_out);
+        draft
+            .arena_mut()
+            .get_vertex_mut(new_vertex)?
+            .set_outgoing(he_back);
+        draft
+            .arena_mut()
+            .get_edge_mut(new_edge)?
+            .set_half_edge(he_out);
 
         // ── Face version bump ───────────────────────────────────────
         draft.arena_mut().bump_face_version(face)?;
@@ -133,7 +143,17 @@ impl EulerOperator for MakeEdgeVertex {
                 he_back,
                 edge: new_edge,
             },
-            declared_delta: EulerDelta { vertices: 1, half_edges: 2, faces: 0, loops: 0, edges: 1, shells: 0, solids: 0, lumps: 0, regions: 0 },
+            declared_delta: EulerDelta {
+                vertices: 1,
+                half_edges: 2,
+                faces: 0,
+                loops: 0,
+                edges: 1,
+                shells: 0,
+                solids: 0,
+                lumps: 0,
+                regions: 0,
+            },
         })
     }
 

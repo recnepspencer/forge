@@ -20,9 +20,9 @@ use forge_core::{KernelError, TopologyError};
 
 use crate::handles::{HalfEdgeId, LoopId};
 use crate::lineage::{Lineage, OpSignature};
-use crate::EulerOperator;
-use crate::operator::{ExecutionResult, EulerDelta};
+use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
+use crate::EulerOperator;
 
 /// NMT-compatible face merge that leaves a topological slit.
 ///
@@ -47,7 +47,11 @@ pub struct JfNmtOutput {
 impl EulerOperator for JoinFacesNmt {
     type Output = JfNmtOutput;
 
-    fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        sig: &OpSignature,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he_s = self.he_survive;
         let he_k = self.he_kill;
 
@@ -85,13 +89,16 @@ impl EulerOperator for JoinFacesNmt {
         loop {
             ring.push(curr);
             curr = draft.arena().get_half_edge(curr)?.radial_next();
-            if curr == he_s { break; }
+            if curr == he_s {
+                break;
+            }
         }
 
         // Validate that he_k is actually in this ring (implied by edge_id equality and structure, but double-check).
         if !ring.contains(&he_k) {
             return Err(KernelError::InvalidInput {
-                message: "JoinFacesNmt: he_kill is not in the same radial ring as he_survive.".into(),
+                message: "JoinFacesNmt: he_kill is not in the same radial ring as he_survive."
+                    .into(),
                 context: None,
             });
         }
@@ -99,24 +106,39 @@ impl EulerOperator for JoinFacesNmt {
         // 1. Surgery on the protected radial ring.
         // We must remove he_s and he_k from the cyclic list, while keeping the rest intact.
         // The simplest way: filter out he_s and he_k, and wire the remaining ones in order.
-        let protected: Vec<HalfEdgeId> = ring.into_iter().filter(|&h| h != he_s && h != he_k).collect();
+        let protected: Vec<HalfEdgeId> = ring
+            .into_iter()
+            .filter(|&h| h != he_s && h != he_k)
+            .collect();
         if !protected.is_empty() {
             for i in 0..protected.len() {
                 let this = protected[i];
                 let next = protected[(i + 1) % protected.len()];
-                draft.arena_mut().get_half_edge_mut(this)?.set_radial_next(next);
+                draft
+                    .arena_mut()
+                    .get_half_edge_mut(this)?
+                    .set_radial_next(next);
             }
         }
 
         // 2. Wire the slit pair to each other.
-        draft.arena_mut().get_half_edge_mut(he_s)?.set_radial_next(he_k);
-        draft.arena_mut().get_half_edge_mut(he_k)?.set_radial_next(he_s);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(he_s)?
+            .set_radial_next(he_k);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(he_k)?
+            .set_radial_next(he_s);
 
         // 3. Lineage merge.
         let survive_lineage = draft.arena().get_face(face_survive)?.lineage().cloned();
         let kill_lineage = draft.arena().get_face(face_kill)?.lineage().cloned();
         let merged_lineage = Lineage::merge(&survive_lineage, &kill_lineage, sig);
-        draft.arena_mut().get_face_mut(face_survive)?.set_lineage(Some(merged_lineage));
+        draft
+            .arena_mut()
+            .get_face_mut(face_survive)?
+            .set_lineage(Some(merged_lineage));
 
         // 4. Reassign killed face's outer boundary halfedges to surviving face.
         // Wait: `he_k`'s next() loop gives us the outer boundary of the killed face.
@@ -127,9 +149,18 @@ impl EulerOperator for JoinFacesNmt {
         let inner_loops: Vec<LoopId> = draft.arena().get_face(face_kill)?.inner_loops().to_vec();
         for il_id in inner_loops {
             let inner_start = draft.arena().get_loop(il_id)?.half_edge();
-            draft.arena_mut().get_face_mut(face_kill)?.remove_inner_loop(il_id);
-            draft.arena_mut().get_face_mut(face_survive)?.add_inner_loop(il_id);
-            draft.arena_mut().get_loop_mut(il_id)?.set_face(face_survive);
+            draft
+                .arena_mut()
+                .get_face_mut(face_kill)?
+                .remove_inner_loop(il_id);
+            draft
+                .arena_mut()
+                .get_face_mut(face_survive)?
+                .add_inner_loop(il_id);
+            draft
+                .arena_mut()
+                .get_loop_mut(il_id)?
+                .set_face(face_survive);
             reassign_face(draft, inner_start, face_survive)?;
         }
 
@@ -146,11 +177,23 @@ impl EulerOperator for JoinFacesNmt {
         let he_k_next = draft.arena().get_half_edge(he_k)?.next();
 
         // Bypass the slit in the outer boundary.
-        draft.arena_mut().get_half_edge_mut(he_s_prev)?.set_next(he_k_next);
-        draft.arena_mut().get_half_edge_mut(he_k_next)?.set_prev(he_s_prev);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(he_s_prev)?
+            .set_next(he_k_next);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(he_k_next)?
+            .set_prev(he_s_prev);
 
-        draft.arena_mut().get_half_edge_mut(he_k_prev)?.set_next(he_s_next);
-        draft.arena_mut().get_half_edge_mut(he_s_next)?.set_prev(he_k_prev);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(he_k_prev)?
+            .set_next(he_s_next);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(he_s_next)?
+            .set_prev(he_k_prev);
 
         // Wire the slit as a 2-element closed loop.
         draft.arena_mut().get_half_edge_mut(he_s)?.set_next(he_k);
@@ -175,14 +218,21 @@ impl EulerOperator for JoinFacesNmt {
         for &target_vertex in &[vertex_s, vertex_k] {
             let current_out = draft.arena().get_vertex(target_vertex)?.outgoing();
             if current_out == he_s || current_out == he_k {
-                let replacement = find_non_slit_outgoing(draft, target_vertex, he_s, he_k, &protected)?;
-                draft.arena_mut().get_vertex_mut(target_vertex)?.set_outgoing(replacement);
+                let replacement =
+                    find_non_slit_outgoing(draft, target_vertex, he_s, he_k, &protected)?;
+                draft
+                    .arena_mut()
+                    .get_vertex_mut(target_vertex)?
+                    .set_outgoing(replacement);
             }
         }
 
         // 7. Register the slit as a new inner loop on the surviving face.
         let new_inner_loop = draft.insert_loop(crate::arena::LoopData::new(he_s, face_survive));
-        draft.arena_mut().get_face_mut(face_survive)?.add_inner_loop(new_inner_loop);
+        draft
+            .arena_mut()
+            .get_face_mut(face_survive)?
+            .add_inner_loop(new_inner_loop);
 
         // 7b. Fix EdgeData.half_edge pointer.
         // After slit creation, the EdgeData may point to he_s or he_k (now in the
@@ -190,7 +240,10 @@ impl EulerOperator for JoinFacesNmt {
         // (e.g. continuity queries) would see only the 2-element slit instead of
         // the protected ring. Point it to a protected-ring halfedge.
         if !protected.is_empty() {
-            draft.arena_mut().get_edge_mut(edge_id)?.set_half_edge(protected[0]);
+            draft
+                .arena_mut()
+                .get_edge_mut(edge_id)?
+                .set_half_edge(protected[0]);
         }
 
         // 8. Remove the killed face and its outer loop.
@@ -200,7 +253,10 @@ impl EulerOperator for JoinFacesNmt {
 
         // 9. Ensure the surviving face's outer loop points into the merged ring.
         let loop_survive = draft.arena().get_face(face_survive)?.outer_loop();
-        draft.arena_mut().get_loop_mut(loop_survive)?.set_half_edge(he_s_next);
+        draft
+            .arena_mut()
+            .get_loop_mut(loop_survive)?
+            .set_half_edge(he_s_next);
 
         Ok(ExecutionResult {
             value: JfNmtOutput {
@@ -212,16 +268,16 @@ impl EulerOperator for JoinFacesNmt {
             // Edges: 0
             // Faces: -1
             // Loops: 0 (Outer loop of killed face destroyed, inner loop for slit created)
-            declared_delta: EulerDelta { 
-                vertices: 0, 
-                half_edges: 0, 
-                faces: -1, 
-                loops: 0, 
-                edges: 0, 
-                shells: 0, 
-                solids: 0, 
-                lumps: 0, 
-                regions: 0 
+            declared_delta: EulerDelta {
+                vertices: 0,
+                half_edges: 0,
+                faces: -1,
+                loops: 0,
+                edges: 0,
+                shells: 0,
+                solids: 0,
+                lumps: 0,
+                regions: 0,
             },
         })
     }
@@ -243,7 +299,10 @@ fn reassign_face(
     let mut current = start;
     let mut steps = 0usize;
     loop {
-        draft.arena_mut().get_half_edge_mut(current)?.set_face(new_face);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(current)?
+            .set_face(new_face);
         let next = draft.arena().get_half_edge(current)?.next();
         current = next;
         if current == start {

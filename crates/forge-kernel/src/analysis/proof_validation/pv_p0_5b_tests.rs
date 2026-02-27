@@ -5,12 +5,10 @@
 //! - PipelineDiagnostic reports unpaired twins accurately
 //! - run_checkpoint with position_fn enables geometric checks
 
+use super::checkpoint::{run_checkpoint, ValidationCheckpoint, ValidationConfig};
 use super::diagnose_pipeline::{diagnose_arena, PipelineStage};
-use super::checkpoint::{
-    ValidationCheckpoint, ValidationConfig, run_checkpoint,
-};
-use forge_core::FlatToleranceProvider;
 use crate::mesh_builder::make_cube;
+use forge_core::FlatToleranceProvider;
 
 /// Valid cube arena produces a healthy diagnostic.
 #[test]
@@ -37,12 +35,15 @@ fn diagnose_broken_twins_detected() {
 
     let mut draft = topo.into_mutation();
 
-    let first_he = draft.arena().iter_half_edges()
+    let first_he = draft
+        .arena()
+        .iter_half_edges()
         .next()
         .map(|(id, _)| id)
         .expect("cube should have halfedges");
 
-    draft.arena_mut()
+    draft
+        .arena_mut()
         .get_half_edge_mut(first_he)
         .unwrap()
         .set_radial_next(first_he);
@@ -63,9 +64,13 @@ fn checkpoint_with_position_fn() {
     let pos_fn = |vid| geom.get_vertex_position(vid).copied();
     let flat = FlatToleranceProvider::new(1e-10);
     let vr = run_checkpoint(
-        topo.arena(), &config, ValidationCheckpoint::PostBoolean,
-        Some(&pos_fn), &flat,
-    ).unwrap();
+        topo.arena(),
+        &config,
+        ValidationCheckpoint::PostBoolean,
+        Some(&pos_fn),
+        &flat,
+    )
+    .unwrap();
 
     assert!(vr.is_passed());
     assert!(vr.included_geometric());

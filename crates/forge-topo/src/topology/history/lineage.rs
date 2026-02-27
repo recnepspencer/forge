@@ -6,12 +6,11 @@
 //! - **Replay**: every operation sequence is fully reproducible
 //! - **Debugging**: trace any entity back to the operation that created it
 
-
 use serde::{Deserialize, Serialize};
 use smallvec::{smallvec, SmallVec};
 
-use forge_core::EntityRef;
 use forge_core::EntityKind;
+use forge_core::EntityRef;
 
 use crate::handles::{BodyId, EdgeId, FaceId, HalfEdgeId, LumpId, RegionId, ShellId, VertexId};
 
@@ -38,7 +37,11 @@ pub struct LineageEntityRef {
 
 impl LineageEntityRef {
     pub fn new(kind: EntityKind, index: u32, generation: u32) -> Self {
-        Self { kind, index, generation }
+        Self {
+            kind,
+            index,
+            generation,
+        }
     }
 
     pub fn kind(self) -> EntityKind {
@@ -343,9 +346,15 @@ impl LineageEvent {
     /// events that did not capture generation.
     pub fn get_entity_snapshot(&self) -> Option<LineageEntityRef> {
         match self {
-            LineageEvent::EntityCreated { entity_snapshot, .. }
-            | LineageEvent::EntityDeleted { entity_snapshot, .. }
-            | LineageEvent::EntityModified { entity_snapshot, .. } => *entity_snapshot,
+            LineageEvent::EntityCreated {
+                entity_snapshot, ..
+            }
+            | LineageEvent::EntityDeleted {
+                entity_snapshot, ..
+            }
+            | LineageEvent::EntityModified {
+                entity_snapshot, ..
+            } => *entity_snapshot,
         }
     }
 }
@@ -407,28 +416,45 @@ mod tests {
         let child = Lineage::derive(&root, OpSignature::with_id("split_edge", 2));
 
         assert_eq!(child.get_parent_linkage_mode(), ParentLinkageMode::Single);
-        assert_eq!(child.get_parent_ancestry_hashes(), &[root.get_ancestry_hash()]);
+        assert_eq!(
+            child.get_parent_ancestry_hashes(),
+            &[root.get_ancestry_hash()]
+        );
     }
 
     #[test]
     fn merge_records_compound_parent_hash_linkage_sorted_and_deduped() {
         let a = Lineage::root(1, OpSignature::with_id("a", 1));
         let b = Lineage::root(2, OpSignature::with_id("b", 2));
-        let merged = Lineage::merge(&Some(a.clone()), &Some(b.clone()), &OpSignature::with_id("merge", 3));
+        let merged = Lineage::merge(
+            &Some(a.clone()),
+            &Some(b.clone()),
+            &OpSignature::with_id("merge", 3),
+        );
 
         let mut expected = vec![a.get_ancestry_hash(), b.get_ancestry_hash()];
         expected.sort_unstable();
-        assert_eq!(merged.get_parent_linkage_mode(), ParentLinkageMode::Compound);
+        assert_eq!(
+            merged.get_parent_linkage_mode(),
+            ParentLinkageMode::Compound
+        );
         assert_eq!(merged.get_parent_ancestry_hashes(), expected.as_slice());
     }
 
     #[test]
     fn merge_same_parent_collapses_to_single_parent_linkage_mode() {
         let a = Lineage::root(1, OpSignature::with_id("a", 1));
-        let merged = Lineage::merge(&Some(a.clone()), &Some(a.clone()), &OpSignature::with_id("merge", 3));
+        let merged = Lineage::merge(
+            &Some(a.clone()),
+            &Some(a.clone()),
+            &OpSignature::with_id("merge", 3),
+        );
 
         assert_eq!(merged.get_parent_linkage_mode(), ParentLinkageMode::Single);
-        assert_eq!(merged.get_parent_ancestry_hashes(), &[a.get_ancestry_hash()]);
+        assert_eq!(
+            merged.get_parent_ancestry_hashes(),
+            &[a.get_ancestry_hash()]
+        );
     }
 
     #[test]
@@ -447,7 +473,9 @@ mod tests {
 
         let ev: LineageEvent = serde_json::from_value(payload).unwrap();
         match ev {
-            LineageEvent::EntityCreated { entity_snapshot, .. } => {
+            LineageEvent::EntityCreated {
+                entity_snapshot, ..
+            } => {
                 assert_eq!(entity_snapshot, None);
             }
             _ => panic!("expected EntityCreated"),

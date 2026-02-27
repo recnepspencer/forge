@@ -22,4 +22,4 @@
 //! - `compact` — summary + high-level decisions, no Euler ops (default)
 //! - `full`    — everything including Euler operator decisions
 
-pub use forge_core::{LogLevel, log_level, log_result, log_decision_log};
+pub use forge_core::{log_decision_log, log_level, log_result, LogLevel};

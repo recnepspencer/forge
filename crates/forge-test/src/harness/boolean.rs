@@ -6,8 +6,8 @@
 //! DEPENDENCIES: `forge-kernel` (execute_boolean), `forge-topo` (classify, validate)
 
 use forge_core::{KernelError, ToleranceProvider};
-use forge_kernel::operations::boolean::{BooleanInput, BooleanOp, BooleanResult, execute_boolean};
 use forge_kernel::geometry_state::GeometryState;
+use forge_kernel::operations::boolean::{execute_boolean, BooleanInput, BooleanOp, BooleanResult};
 use forge_topo::classify::{classify_point_in_solid, PointClassification};
 use forge_topo::handles::VertexId;
 use forge_topo::state::TopologyState;
@@ -61,9 +61,12 @@ pub fn run_single_case(input: BooleanInput) -> FuzzOutcome {
     };
 
     if let Err(msg) = check_point_consistency(
-        &bool_result, op,
-        &target_topo, &target_geom,
-        &tool_topo, &tool_geom,
+        &bool_result,
+        op,
+        &target_topo,
+        &target_geom,
+        &tool_topo,
+        &tool_geom,
     ) {
         return FuzzOutcome::ConsistencyFailure(msg);
     }
@@ -122,30 +125,36 @@ fn check_point_consistency(
 }
 
 /// Classify a point as inside (true) or outside (false) a solid.
-fn classify_in_solid(
-    topo: &TopologyState,
-    geom: &GeometryState,
-    point: &[f64; 3],
-) -> bool {
+fn classify_in_solid(topo: &TopologyState, geom: &GeometryState, point: &[f64; 3]) -> bool {
     let arena = topo.arena();
     let vertex_lookup = |index: u32| -> Result<[f64; 3], KernelError> {
-        let gen = arena.vertex_generation(index as usize).ok_or_else(|| {
-            KernelError::InvalidInput {
-                message: format!("No active vertex at slot index {index}"),
-                context: None,
-            }
-        })?;
+        let gen =
+            arena
+                .vertex_generation(index as usize)
+                .ok_or_else(|| KernelError::InvalidInput {
+                    message: format!("No active vertex at slot index {index}"),
+                    context: None,
+                })?;
         let vid = VertexId::from_raw_parts(index, gen);
-        geom.get_vertex_position(vid).copied().ok_or_else(|| {
-            KernelError::InvalidInput {
+        geom.get_vertex_position(vid)
+            .copied()
+            .ok_or_else(|| KernelError::InvalidInput {
                 message: format!("No position for vertex {index}"),
                 context: None,
-            }
-        })
+            })
     };
 
-    let result = classify_point_in_solid(arena, &vertex_lookup, None, point, geom as &dyn ToleranceProvider);
-    matches!(result, Ok(PointClassification::Inside { .. } | PointClassification::OnBoundary(_)))
+    let result = classify_point_in_solid(
+        arena,
+        &vertex_lookup,
+        None,
+        point,
+        geom as &dyn ToleranceProvider,
+    );
+    matches!(
+        result,
+        Ok(PointClassification::Inside { .. } | PointClassification::OnBoundary(_))
+    )
 }
 
 /// Merge two bounding boxes into their union.
@@ -153,24 +162,13 @@ fn merge_bounding_boxes(
     a: &([f64; 3], [f64; 3]),
     b: &([f64; 3], [f64; 3]),
 ) -> ([f64; 3], [f64; 3]) {
-    let min_bb = [
-        a.0[0].min(b.0[0]),
-        a.0[1].min(b.0[1]),
-        a.0[2].min(b.0[2]),
-    ];
-    let max_bb = [
-        a.1[0].max(b.1[0]),
-        a.1[1].max(b.1[1]),
-        a.1[2].max(b.1[2]),
-    ];
+    let min_bb = [a.0[0].min(b.0[0]), a.0[1].min(b.0[1]), a.0[2].min(b.0[2])];
+    let max_bb = [a.1[0].max(b.1[0]), a.1[1].max(b.1[1]), a.1[2].max(b.1[2])];
     (min_bb, max_bb)
 }
 
 /// Generate a 3D grid of sample points within a bounding box.
-fn generate_sample_grid_from_bb(
-    bb: &([f64; 3], [f64; 3]),
-    grid_size: usize,
-) -> Vec<[f64; 3]> {
+fn generate_sample_grid_from_bb(bb: &([f64; 3], [f64; 3]), grid_size: usize) -> Vec<[f64; 3]> {
     let margin = 0.5;
     let lo = [bb.0[0] - margin, bb.0[1] - margin, bb.0[2] - margin];
     let hi = [bb.1[0] + margin, bb.1[1] + margin, bb.1[2] + margin];
@@ -194,10 +192,7 @@ fn generate_sample_grid_from_bb(
 }
 
 /// Compute axis-aligned bounding box from topology vertex positions.
-fn compute_bounding_box(
-    topo: &TopologyState,
-    geom: &GeometryState,
-) -> ([f64; 3], [f64; 3]) {
+fn compute_bounding_box(topo: &TopologyState, geom: &GeometryState) -> ([f64; 3], [f64; 3]) {
     let mut min_bb = [f64::MAX; 3];
     let mut max_bb = [f64::MIN; 3];
 
@@ -225,11 +220,7 @@ fn compute_bounding_box(
 ///
 /// Uses the provided `generator_fn` to create each `BooleanInput` from a seed.
 /// Reports overall pass/fail/error statistics.
-pub fn run_fuzz_corpus<F>(
-    count: usize,
-    base_seed: u64,
-    generator_fn: F,
-) -> FuzzReport
+pub fn run_fuzz_corpus<F>(count: usize, base_seed: u64, generator_fn: F) -> FuzzReport
 where
     F: Fn(u64) -> Result<BooleanInput, KernelError>,
 {

@@ -5,9 +5,9 @@
 //! 2. Parametric updates (changing upstream parameter -> downstream re-eval).
 //! 3. Observability of feature outputs.
 
+use forge_kernel::boolean::BooleanOp;
 use forge_kernel::engine::tree::{FeatureTree, NativeFeature};
 use forge_kernel::engine::wrappers::{BooleanFeature, MakeCubeFeature};
-use forge_kernel::boolean::BooleanOp;
 
 #[test]
 fn tc01_parametric_update_flow() {
@@ -15,35 +15,32 @@ fn tc01_parametric_update_flow() {
 
     // 1. Create Base Block (Target)
     // Simulates "Sketch + Extrude"
-    let base_cube = MakeCubeFeature::new(
-        "BaseCube",
-        [0.0, 0.0, 0.0],
-        10.0
-    );
-    let base_id = tree.register_feature(NativeFeature::MakeCube(base_cube)).unwrap();
+    let base_cube = MakeCubeFeature::new("BaseCube", [0.0, 0.0, 0.0], 10.0);
+    let base_id = tree
+        .register_feature(NativeFeature::MakeCube(base_cube))
+        .unwrap();
 
     // 2. Create Tool Block (Drill)
     // Simulates a cutting tool
     let tool_cube = MakeCubeFeature::new(
         "ToolCube",
         [2.5, 2.5, 2.5], // Offset to create a corner cut
-        5.0
+        5.0,
     );
-    let tool_id = tree.register_feature(NativeFeature::MakeCube(tool_cube)).unwrap();
+    let tool_id = tree
+        .register_feature(NativeFeature::MakeCube(tool_cube))
+        .unwrap();
 
     // 3. Create Boolean Operation (Cut)
-    let cut_op = BooleanFeature::new(
-        "CornerCut",
-        BooleanOp::Subtraction,
-        base_id,
-        tool_id
-    );
-    let cut_id = tree.register_feature(NativeFeature::Boolean(cut_op)).unwrap();
+    let cut_op = BooleanFeature::new("CornerCut", BooleanOp::Subtraction, base_id, tool_id);
+    let cut_id = tree
+        .register_feature(NativeFeature::Boolean(cut_op))
+        .unwrap();
 
     // 4. Evaluate initial state
     println!("Evaluating initial state...");
     let result = tree.evaluate_feature(cut_id).expect("Evaluation failed");
-    
+
     // Check face count (Cube 6 faces - 1 + 3 internal + remaining... exact count depends on overlap)
     // Base 10x10x10. Tool 5x5x5 at 2.5,2.5,2.5.
     // Tool is fully inside the first octant of the base?
@@ -57,22 +54,23 @@ fn tc01_parametric_update_flow() {
 
     // 5. Parametric Update
     println!("Modifying tool size...");
-    
+
     // Change tool to be larger (covering more of the base)
     let new_tool_cube = MakeCubeFeature::new(
         "ToolCube_Large",
         [2.5, 2.5, 2.5],
-        8.0 // Increased size
+        8.0, // Increased size
     );
-    
-    tree.replace_feature(tool_id, NativeFeature::MakeCube(new_tool_cube)).unwrap();
-    
+
+    tree.replace_feature(tool_id, NativeFeature::MakeCube(new_tool_cube))
+        .unwrap();
+
     // 6. Re-evaluate
     let new_result = tree.evaluate_feature(cut_id).expect("Re-evaluation failed");
     let new_faces = new_result.topology.arena().face_count();
     println!("New face count: {}", new_faces);
 
-    // Exact face count might be hard to predict without robust math, 
+    // Exact face count might be hard to predict without robust math,
     // but it should definitely be valid and likely different or same topology but different geometry.
     // If usage of "MakeCube" is robust, we should get a valid result.
     assert!(new_faces > 0);
@@ -82,8 +80,10 @@ fn tc01_parametric_update_flow() {
 fn feature_registration_wiring() {
     let mut tree = FeatureTree::new();
     let root = MakeCubeFeature::new("Root", [0.0, 0.0, 0.0], 1.0);
-    let root_id = tree.register_feature(NativeFeature::MakeCube(root)).unwrap();
-    
+    let root_id = tree
+        .register_feature(NativeFeature::MakeCube(root))
+        .unwrap();
+
     assert!(tree.get_node_by_name("Root").is_some());
     assert_eq!(tree.get_node_by_name("Root").unwrap(), root_id);
 }

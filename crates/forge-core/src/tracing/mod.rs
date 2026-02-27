@@ -10,66 +10,56 @@
 //!
 //! DEPENDENCIES: serde, serde_json (persistence)
 
-mod schema;
-mod decision_log;
+pub mod adjunct;
 pub mod checkpoint_diff;
+mod decision_log;
 pub mod delta_debug;
 pub mod divergence;
-mod persistence;
-mod logging;
-pub mod policy_trace;
-pub mod resolution_trace;
-pub mod reidentification_trace;
 pub mod fingerprint;
-pub mod adjunct;
+mod logging;
+mod persistence;
+pub mod policy_trace;
+pub mod reidentification_trace;
+pub mod resolution_trace;
+mod schema;
 
 #[cfg(test)]
 mod tests;
 
 pub use schema::{
-    EntityRef, EntityKind, SpanId, DecisionTier, TraceEvent,
-    DecisionKind, DecisionContext, DecisionId, TracedDecision,
-    TopologyDelta,
-    EULER_OP_FEATURE_SCOPE,
+    DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityKind, EntityRef, SpanId,
+    TopologyDelta, TraceEvent, TracedDecision, EULER_OP_FEATURE_SCOPE,
 };
 
-pub use decision_log::{
-    DecisionLog, DecisionSummary, SpanSummaryEntry,
-    TraceSummary, TraceDiff,
-};
+pub use decision_log::{DecisionLog, DecisionSummary, SpanSummaryEntry, TraceDiff, TraceSummary};
 
-pub use checkpoint_diff::{
-    DecisionDelta, DecisionChange, CheckpointLog, diff_decision_logs,
-};
+pub use checkpoint_diff::{diff_decision_logs, CheckpointLog, DecisionChange, DecisionDelta};
 
-pub use divergence::{
-    DivergenceReport, DivergenceDetail, scan_for_divergences,
-};
+pub use divergence::{scan_for_divergences, DivergenceDetail, DivergenceReport};
 
 pub use persistence::{
-    resolve_trace_dir, write_trace_file, write_trace_file_with_adjuncts,
-    try_write_trace_file_with_adjuncts, TracePersistenceError,
+    resolve_trace_dir, try_write_trace_file_with_adjuncts, write_trace_file,
+    write_trace_file_with_adjuncts, TracePersistenceError,
 };
 
-pub use logging::{LogLevel, log_level, log_result, log_decision_log, log_error};
-pub use policy_trace::{
-    PolicyResolutionSource, PolicyResolutionOutcome, CandidateValueSummary,
-    PolicyDecisionTracePayload, PolicyTraceConsistencyError, PolicyResolutionScopeRef,
+pub use adjunct::{
+    TraceAdjunctRecord, TraceAdjunctSet, POLICY_DECISION_TRACE_PAYLOAD_KIND,
+    POLICY_DECISION_TRACE_PAYLOAD_VERSION, REIDENTIFICATION_TRACE_PAYLOAD_KIND,
+    REIDENTIFICATION_TRACE_PAYLOAD_VERSION, RESOLUTION_TRACE_PAYLOAD_KIND,
+    RESOLUTION_TRACE_PAYLOAD_VERSION,
 };
-pub use resolution_trace::{
-    ResolutionOutcome, ResolutionRoute, ResolutionMatchKind,
-    ResolutionQuerySummary, ResolutionCandidateSummary, ResolutionTracePayload,
-    ResolutionTraceConsistencyError,
+pub use fingerprint::{compute_trace_fingerprint, TraceFingerprint};
+pub use logging::{log_decision_log, log_error, log_level, log_result, LogLevel};
+pub use policy_trace::{
+    CandidateValueSummary, PolicyDecisionTracePayload, PolicyResolutionOutcome,
+    PolicyResolutionScopeRef, PolicyResolutionSource, PolicyTraceConsistencyError,
 };
 pub use reidentification_trace::{
-    ReidentificationOutcome, ReidentificationModeSummary, ReidentificationOriginKindSummary,
     ReidentificationCompatibilitySummary, ReidentificationFailureCauseSummary,
-    ReidentificationTracePayload, ReidentificationTraceConsistencyError,
+    ReidentificationModeSummary, ReidentificationOriginKindSummary, ReidentificationOutcome,
+    ReidentificationTraceConsistencyError, ReidentificationTracePayload,
 };
-pub use fingerprint::{TraceFingerprint, compute_trace_fingerprint};
-pub use adjunct::{
-    TraceAdjunctRecord, TraceAdjunctSet,
-    POLICY_DECISION_TRACE_PAYLOAD_KIND, POLICY_DECISION_TRACE_PAYLOAD_VERSION,
-    RESOLUTION_TRACE_PAYLOAD_KIND, RESOLUTION_TRACE_PAYLOAD_VERSION,
-    REIDENTIFICATION_TRACE_PAYLOAD_KIND, REIDENTIFICATION_TRACE_PAYLOAD_VERSION,
+pub use resolution_trace::{
+    ResolutionCandidateSummary, ResolutionMatchKind, ResolutionOutcome, ResolutionQuerySummary,
+    ResolutionRoute, ResolutionTraceConsistencyError, ResolutionTracePayload,
 };

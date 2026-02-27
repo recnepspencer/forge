@@ -11,8 +11,8 @@
 //! - `CausalChain`, `CausalStep`, `ChainSummary` — data shapes
 //! - `query_causal_chain`, `query_causal_summary` — agent API
 
-pub mod schema;
 pub mod eval;
+pub mod schema;
 
-pub use schema::{CausalChain, CausalStep, ChainSummary};
 pub use eval::{query_causal_chain, query_causal_summary};
+pub use schema::{CausalChain, CausalStep, ChainSummary};

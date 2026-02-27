@@ -125,7 +125,10 @@ fn clean_version_skip_on_unchanged_upstream() {
     evaluate(&mut graph, b, &mut recompute).unwrap();
     evaluate(&mut graph, c, &mut recompute).unwrap();
 
-    assert!(eval_count <= 2, "node c should have skipped recomputation (MaybeStale with unchanged topo)");
+    assert!(
+        eval_count <= 2,
+        "node c should have skipped recomputation (MaybeStale with unchanged topo)"
+    );
 }
 
 #[test]
@@ -414,9 +417,7 @@ fn kv64_parallel_branches_deterministic() {
     for _ in 0..5 {
         let mut branch = Vec::new();
         let first = graph.create_node();
-        graph
-            .add_dependency(first, root, Aspect::Geometry)
-            .unwrap();
+        graph.add_dependency(first, root, Aspect::Geometry).unwrap();
         branch.push(first);
 
         for j in 1..10 {
@@ -485,7 +486,11 @@ fn evaluation_context_tracks_deps() {
     ctx.read(&graph, upstream_a, Aspect::Topology).unwrap();
 
     let deps = ctx.finalize();
-    assert_eq!(deps.len(), 2, "Duplicate reads should not create duplicate deps");
+    assert_eq!(
+        deps.len(),
+        2,
+        "Duplicate reads should not create duplicate deps"
+    );
     assert_eq!(deps[0].source(), upstream_a);
     assert_eq!(deps[0].aspect(), Aspect::Topology);
     assert_eq!(deps[1].source(), upstream_b);

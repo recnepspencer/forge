@@ -19,15 +19,9 @@ pub enum ErrorScope {
     /// Error occurred while processing a specific feature.
     Feature { feature_id: u64 },
     /// Error occurred on a specific topological entity.
-    Entity {
-        entity_kind: String,
-        index: u32,
-    },
+    Entity { entity_kind: String, index: u32 },
     /// Error occurred during a specific Euler operation.
-    Operation {
-        op_name: String,
-        invocation_id: u64,
-    },
+    Operation { op_name: String, invocation_id: u64 },
 }
 
 /// Machine-actionable remediation hints for an error.
@@ -56,11 +50,27 @@ pub enum SuggestedFix {
 impl fmt::Display for SuggestedFix {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SuggestedFix::IncreaseThreshold { parameter, current, suggested } => {
-                write!(f, "Increase {} from {:.2e} to {:.2e}", parameter, current, suggested)
+            SuggestedFix::IncreaseThreshold {
+                parameter,
+                current,
+                suggested,
+            } => {
+                write!(
+                    f,
+                    "Increase {} from {:.2e} to {:.2e}",
+                    parameter, current, suggested
+                )
             }
-            SuggestedFix::ReduceValue { parameter, current, max_allowed } => {
-                write!(f, "Reduce {} from {:.2e} to at most {:.2e}", parameter, current, max_allowed)
+            SuggestedFix::ReduceValue {
+                parameter,
+                current,
+                max_allowed,
+            } => {
+                write!(
+                    f,
+                    "Reduce {} from {:.2e} to at most {:.2e}",
+                    parameter, current, max_allowed
+                )
             }
             SuggestedFix::RetryWithPolicy { policy_kind } => {
                 write!(f, "Retry with explicit policy: {:?}", policy_kind)
@@ -138,10 +148,7 @@ pub enum KernelError {
     },
 
     /// Invalid configuration parameter provided to a solver or policy.
-    InvalidConfig {
-        field: String,
-        reason: String,
-    },
+    InvalidConfig { field: String, reason: String },
 
     /// A diagnostic failure wrapping another error with replay context.
     DiagnosticFailure {
@@ -177,8 +184,11 @@ impl fmt::Display for KernelError {
         match self {
             KernelError::TopologyViolation { err, .. } => write!(f, "Topology violation: {}", err),
             KernelError::AmbiguousResult { result, .. } => {
-                write!(f, "Ambiguous result at [{:.6}, {:.6}, {:.6}]: {}", 
-                    result.location[0], result.location[1], result.location[2], result.context)
+                write!(
+                    f,
+                    "Ambiguous result at [{:.6}, {:.6}, {:.6}]: {}",
+                    result.location[0], result.location[1], result.location[2], result.context
+                )
             }
             KernelError::ToleranceExceeded {
                 location,
@@ -215,7 +225,9 @@ impl fmt::Display for KernelError {
                     payload.operation, payload.state_hash, payload.seed, source
                 )
             }
-            KernelError::ReplayMismatch { expected, actual, .. } => {
+            KernelError::ReplayMismatch {
+                expected, actual, ..
+            } => {
                 write!(
                     f,
                     "Replay architecture mismatch: log recorded on '{}', current process is '{}'",
@@ -307,13 +319,13 @@ impl From<forge_math::MathError> for KernelError {
                 threshold,
                 context: None,
             },
-            forge_math::MathError::InvalidInput(msg) => KernelError::InvalidInput { 
-                message: msg, 
-                context: None 
+            forge_math::MathError::InvalidInput(msg) => KernelError::InvalidInput {
+                message: msg,
+                context: None,
             },
-            forge_math::MathError::InternalError(msg) => KernelError::InternalError { 
-                message: msg, 
-                context: None 
+            forge_math::MathError::InternalError(msg) => KernelError::InternalError {
+                message: msg,
+                context: None,
             },
             forge_math::MathError::Ambiguous {
                 location,
@@ -339,9 +351,7 @@ impl From<forge_math::MathError> for KernelError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TopologyError {
     /// A halfedge is missing its twin (non-manifold or broken mesh)
-    MissingTwin {
-        halfedge_index: u32,
-    },
+    MissingTwin { halfedge_index: u32 },
     /// A face loop doesn't close (following `next` doesn't return to start)
     BrokenLoop {
         face_index: u32,
@@ -356,10 +366,7 @@ pub enum TopologyError {
         actual_chi: i64,
     },
     /// A non-manifold edge was detected (more than 2 faces sharing an edge)
-    NonManifoldEdge {
-        edge_index: u32,
-        valence: usize,
-    },
+    NonManifoldEdge { edge_index: u32, valence: usize },
     /// Generalized Euler formula violation for genus-aware validation.
     GeneralizedEulerViolation {
         shell_index: u32,
@@ -372,9 +379,7 @@ pub enum TopologyError {
         actual_chi: i64,
     },
     /// Orientation inconsistency detected (D4 violation)
-    OrientationInconsistency {
-        face_index: u32,
-    },
+    OrientationInconsistency { face_index: u32 },
     /// An entity was referenced by a stale or invalid handle
     StaleHandle {
         entity_kind: String,
@@ -418,15 +423,10 @@ pub enum TopologyError {
         entity_bound: usize,
     },
     /// A vertex referenced by a face has no geometry (position) available.
-    MissingVertexPosition {
-        vertex_index: u32,
-        face_index: u32,
-    },
+    MissingVertexPosition { vertex_index: u32, face_index: u32 },
     /// A shell has non-orientable surface topology (Möbius strip, Klein bottle).
     /// The kernel targets orientable 2-manifolds only.
-    NonOrientableSurface {
-        shell_index: u32,
-    },
+    NonOrientableSurface { shell_index: u32 },
     /// A boundary edge (self-radial, no face across the gap) was found in a
     /// solid shell. Solid shells must be watertight.
     /// A boundary edge (self-radial, no face across the gap) was found in a
@@ -436,9 +436,7 @@ pub enum TopologyError {
         shell_index: u32,
     },
     /// An operation attempted something topologically invalid.
-    InvalidOperation {
-        detail: String,
-    },
+    InvalidOperation { detail: String },
     /// A parent-child hierarchy invariant was violated (Solid→Lump→Region→Shell).
     HierarchyViolation {
         /// The kind of the parent entity (e.g. "Region", "Lump", "Body").
@@ -473,8 +471,15 @@ impl fmt::Display for TopologyError {
             TopologyError::MissingTwin { halfedge_index } => {
                 write!(f, "Halfedge index {} is missing its twin", halfedge_index)
             }
-            TopologyError::BrokenLoop { face_index, starting_halfedge } => {
-                write!(f, "Face {} has a broken loop starting at halfedge {}", face_index, starting_halfedge)
+            TopologyError::BrokenLoop {
+                face_index,
+                starting_halfedge,
+            } => {
+                write!(
+                    f,
+                    "Face {} has a broken loop starting at halfedge {}",
+                    face_index, starting_halfedge
+                )
             }
             TopologyError::EulerFormulaViolation {
                 vertices,
@@ -489,11 +494,25 @@ impl fmt::Display for TopologyError {
                     vertices, edges, faces, actual_chi, expected_chi
                 )
             }
-            TopologyError::NonManifoldEdge { edge_index, valence } => {
-                write!(f, "Edge index {} is non-manifold (valence {})", edge_index, valence)
+            TopologyError::NonManifoldEdge {
+                edge_index,
+                valence,
+            } => {
+                write!(
+                    f,
+                    "Edge index {} is non-manifold (valence {})",
+                    edge_index, valence
+                )
             }
             TopologyError::GeneralizedEulerViolation {
-                shell_index, vertices, edges, faces, genus, rings, expected_chi, actual_chi,
+                shell_index,
+                vertices,
+                edges,
+                faces,
+                genus,
+                rings,
+                expected_chi,
+                actual_chi,
             } => {
                 write!(
                     f,
@@ -504,50 +523,116 @@ impl fmt::Display for TopologyError {
             TopologyError::OrientationInconsistency { face_index } => {
                 write!(f, "Face {} has inconsistent orientation", face_index)
             }
-            TopologyError::StaleHandle { entity_kind, index, expected_generation, actual_generation } => {
-                write!(f, "Stale {} handle at index {} (expected gen {}, got gen {})", 
-                    entity_kind, index, expected_generation, actual_generation)
+            TopologyError::StaleHandle {
+                entity_kind,
+                index,
+                expected_generation,
+                actual_generation,
+            } => {
+                write!(
+                    f,
+                    "Stale {} handle at index {} (expected gen {}, got gen {})",
+                    entity_kind, index, expected_generation, actual_generation
+                )
             }
-            TopologyError::ZeroAreaFace { face_index, computed_area, threshold } => {
-                write!(f, "Face {} has near-zero area {:.2e} (threshold: {:.2e})",
-                    face_index, computed_area, threshold)
+            TopologyError::ZeroAreaFace {
+                face_index,
+                computed_area,
+                threshold,
+            } => {
+                write!(
+                    f,
+                    "Face {} has near-zero area {:.2e} (threshold: {:.2e})",
+                    face_index, computed_area, threshold
+                )
             }
-            TopologyError::ZeroLengthEdge { halfedge_index, computed_length, threshold } => {
-                write!(f, "Edge {} has near-zero length {:.2e} (threshold: {:.2e})",
-                    halfedge_index, computed_length, threshold)
+            TopologyError::ZeroLengthEdge {
+                halfedge_index,
+                computed_length,
+                threshold,
+            } => {
+                write!(
+                    f,
+                    "Edge {} has near-zero length {:.2e} (threshold: {:.2e})",
+                    halfedge_index, computed_length, threshold
+                )
             }
-            TopologyError::NegativeShellVolume { shell_index, signed_volume } => {
-                write!(f, "Shell {} has negative signed volume {:.6e} (normals point inward)",
-                    shell_index, signed_volume)
+            TopologyError::NegativeShellVolume {
+                shell_index,
+                signed_volume,
+            } => {
+                write!(
+                    f,
+                    "Shell {} has negative signed volume {:.6e} (normals point inward)",
+                    shell_index, signed_volume
+                )
             }
-            TopologyError::DegenerateLoop { face_index, distinct_vertices } => {
-                write!(f, "Face {} has degenerate loop with only {} distinct vertices (need >= 3)",
-                    face_index, distinct_vertices)
+            TopologyError::DegenerateLoop {
+                face_index,
+                distinct_vertices,
+            } => {
+                write!(
+                    f,
+                    "Face {} has degenerate loop with only {} distinct vertices (need >= 3)",
+                    face_index, distinct_vertices
+                )
             }
-            TopologyError::LoopCorruption { walk_kind, seed_index, last_visited_index, steps_taken, entity_bound } => {
-                write!(f, "Loop corruption in {}: seed={}, last={}, steps={}/{}",
-                    walk_kind, seed_index, last_visited_index, steps_taken, entity_bound)
+            TopologyError::LoopCorruption {
+                walk_kind,
+                seed_index,
+                last_visited_index,
+                steps_taken,
+                entity_bound,
+            } => {
+                write!(
+                    f,
+                    "Loop corruption in {}: seed={}, last={}, steps={}/{}",
+                    walk_kind, seed_index, last_visited_index, steps_taken, entity_bound
+                )
             }
-            TopologyError::MissingVertexPosition { vertex_index, face_index } => {
-                write!(f, "Vertex {} referenced by face {} has no position",
-                    vertex_index, face_index)
+            TopologyError::MissingVertexPosition {
+                vertex_index,
+                face_index,
+            } => {
+                write!(
+                    f,
+                    "Vertex {} referenced by face {} has no position",
+                    vertex_index, face_index
+                )
             }
             TopologyError::NonOrientableSurface { shell_index } => {
                 write!(f, "Shell {} has non-orientable surface topology (kernel targets orientable 2-manifolds only)",
                     shell_index)
             }
-            TopologyError::BoundaryEdgeInSolid { halfedge_index, shell_index } => {
+            TopologyError::BoundaryEdgeInSolid {
+                halfedge_index,
+                shell_index,
+            } => {
                 write!(f, "Halfedge {} is a boundary edge in solid shell {} (solid shells must be watertight)",
                     halfedge_index, shell_index)
             }
             TopologyError::InvalidOperation { detail } => {
                 write!(f, "Invalid operation: {}", detail)
             }
-            TopologyError::HierarchyViolation { parent_kind, parent_index, child_kind, child_index, detail } => {
-                write!(f, "Hierarchy violation: {} {} → {} {}: {}",
-                    parent_kind, parent_index, child_kind, child_index, detail)
+            TopologyError::HierarchyViolation {
+                parent_kind,
+                parent_index,
+                child_kind,
+                child_index,
+                detail,
+            } => {
+                write!(
+                    f,
+                    "Hierarchy violation: {} {} → {} {}: {}",
+                    parent_kind, parent_index, child_kind, child_index, detail
+                )
             }
-            TopologyError::RadialEdgeInconsistency { halfedge_index, actual_edge, seed_halfedge_index, expected_edge } => {
+            TopologyError::RadialEdgeInconsistency {
+                halfedge_index,
+                actual_edge,
+                seed_halfedge_index,
+                expected_edge,
+            } => {
                 write!(f, "Radial ring edge-entity inconsistency: he[{}].edge = {} but ring seed he[{}].edge = {}",
                     halfedge_index, actual_edge, seed_halfedge_index, expected_edge)
             }
@@ -613,7 +698,10 @@ pub enum MergeError {
     /// `face_index`: the protected face that conflicts.
     /// `edge_index`: the edge where the conflict was detected, or `None` if
     /// detected at input validation (selected ∩ protected overlap).
-    ProtectedUseConflict { face_index: u32, edge_index: Option<u32> },
+    ProtectedUseConflict {
+        face_index: u32,
+        edge_index: Option<u32>,
+    },
 
     /// Merging the selected face group would disconnect the sheet topology.
     WouldDisconnectSheet { face_index: u32 },
@@ -629,7 +717,10 @@ pub enum MergeError {
     ///
     /// `step_index: None`    — rejected during plan construction, before execution began.
     /// `step_index: Some(n)` — rejected at execution step `n` (0-indexed).
-    PartialMergePlanRejected { step_index: Option<u32>, reason: String },
+    PartialMergePlanRejected {
+        step_index: Option<u32>,
+        reason: String,
+    },
 
     /// Persistent reference resolution returned zero matches for a required merge role.
     PersistentResolutionMissing {
@@ -666,13 +757,22 @@ pub enum PersistentResolutionRole {
 /// Typed incompatibility reported by persistent resolution adapters.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PersistentResolutionIncompatibility {
-    UnsupportedEntityKind { requested: crate::EntityKind },
+    UnsupportedEntityKind {
+        requested: crate::EntityKind,
+    },
     MissingLineageStore,
     SubstrateUnavailable,
-    UnsupportedEntityOrigin { origin: PersistentResolutionOriginKind },
+    UnsupportedEntityOrigin {
+        origin: PersistentResolutionOriginKind,
+    },
     UnsupportedLineageFallback,
-    SchemaVersionMismatch { expected: u32, actual: u32 },
-    Other { code: String },
+    SchemaVersionMismatch {
+        expected: u32,
+        actual: u32,
+    },
+    Other {
+        code: String,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -686,7 +786,10 @@ pub enum PersistentResolutionOriginKind {
 impl fmt::Display for MergeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            MergeError::AmbiguousRadialSelection { edge_index, valence } => {
+            MergeError::AmbiguousRadialSelection {
+                edge_index,
+                valence,
+            } => {
                 write!(
                     f,
                     "Ambiguous radial selection at edge {}: valence {} requires explicit RadialUseSelector",
@@ -694,44 +797,65 @@ impl fmt::Display for MergeError {
                 )
             }
             MergeError::SelectedUsesNotSheetLike { edge_index } => {
-                write!(f, "Selected radial uses at edge {} are not sheet-like", edge_index)
+                write!(
+                    f,
+                    "Selected radial uses at edge {} are not sheet-like",
+                    edge_index
+                )
             }
-            MergeError::ProtectedUseConflict { face_index, edge_index } => {
-                match edge_index {
-                    Some(ei) => write!(f, "Protected face {} conflicts with merge at edge {}", face_index, ei),
-                    None => write!(f, "Protected face {} is in both selected and protected sets", face_index),
-                }
-            }
+            MergeError::ProtectedUseConflict {
+                face_index,
+                edge_index,
+            } => match edge_index {
+                Some(ei) => write!(
+                    f,
+                    "Protected face {} conflicts with merge at edge {}",
+                    face_index, ei
+                ),
+                None => write!(
+                    f,
+                    "Protected face {} is in both selected and protected sets",
+                    face_index
+                ),
+            },
             MergeError::WouldDisconnectSheet { face_index } => {
                 write!(f, "Merging face {} would disconnect the sheet", face_index)
             }
-            MergeError::BoundaryCertificationFailed { reason, witness } => {
-                match witness {
-                    Some(w) => write!(
-                        f,
-                        "Boundary certification failed at [{:.6}, {:.6}]: {}",
-                        w[0], w[1], reason
-                    ),
-                    None => write!(f, "Boundary certification failed: {}", reason),
-                }
-            }
-            MergeError::PartialMergePlanRejected { step_index, reason } => {
-                match step_index {
-                    Some(n) => write!(f, "Merge plan rejected at step {}: {}", n, reason),
-                    None => write!(f, "Merge plan rejected during construction: {}", reason),
-                }
-            }
+            MergeError::BoundaryCertificationFailed { reason, witness } => match witness {
+                Some(w) => write!(
+                    f,
+                    "Boundary certification failed at [{:.6}, {:.6}]: {}",
+                    w[0], w[1], reason
+                ),
+                None => write!(f, "Boundary certification failed: {}", reason),
+            },
+            MergeError::PartialMergePlanRejected { step_index, reason } => match step_index {
+                Some(n) => write!(f, "Merge plan rejected at step {}: {}", n, reason),
+                None => write!(f, "Merge plan rejected during construction: {}", reason),
+            },
             MergeError::PersistentResolutionMissing { role, query } => {
-                write!(f, "Persistent resolution missing for {:?}: {:?}", role, query)
+                write!(
+                    f,
+                    "Persistent resolution missing for {:?}: {:?}",
+                    role, query
+                )
             }
-            MergeError::PersistentResolutionAmbiguous { role, candidate_count, query } => {
+            MergeError::PersistentResolutionAmbiguous {
+                role,
+                candidate_count,
+                query,
+            } => {
                 write!(
                     f,
                     "Persistent resolution ambiguous for {:?} ({} candidates): {:?}",
                     role, candidate_count, query
                 )
             }
-            MergeError::PersistentResolutionIncompatible { role, incompatibility, query } => {
+            MergeError::PersistentResolutionIncompatible {
+                role,
+                incompatibility,
+                query,
+            } => {
                 write!(
                     f,
                     "Persistent resolution incompatible for {:?}: {:?} (query={:?})",
@@ -739,7 +863,10 @@ impl fmt::Display for MergeError {
                 )
             }
             MergeError::UnsupportedPersistentNmtOutput => {
-                write!(f, "Persistent NMT output is not supported in this milestone")
+                write!(
+                    f,
+                    "Persistent NMT output is not supported in this milestone"
+                )
             }
         }
     }

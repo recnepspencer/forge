@@ -11,19 +11,21 @@
 
 use std::collections::BTreeMap;
 
-use forge_core::{KernelError, TracedDecision, DecisionId, DecisionKind, DecisionTier, DecisionContext, EntityRef};
-use forge_topo::state::TopologyState;
-use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
-use crate::core::{ModelingContext, ArenaSnapshot, compute_topology_delta};
-use crate::geometry_state::GeometryState;
-use crate::operations::boolean::parametric::classify::find_coplanar_face_pairs;
-use crate::shared_ops::vertex_identity::VertexMatchKey;
-use crate::operations::boolean::schema::BooleanOp;
-use crate::operations::boolean::result::{BooleanResult, BooleanIntrospection};
+use super::super::cleanup::cleanup_degenerate_topology;
 use super::super::copy::{copy_faces, VertexDedup, VertexWelder};
 use super::super::stitch::stitch_twins;
-use super::super::cleanup::cleanup_degenerate_topology;
 use super::eval::{are_solids_coincident, compute_disjoint_scale};
+use crate::core::{compute_topology_delta, ArenaSnapshot, ModelingContext};
+use crate::geometry_state::GeometryState;
+use crate::operations::boolean::parametric::classify::find_coplanar_face_pairs;
+use crate::operations::boolean::result::{BooleanIntrospection, BooleanResult};
+use crate::operations::boolean::schema::BooleanOp;
+use crate::shared_ops::vertex_identity::VertexMatchKey;
+use forge_core::{
+    DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, KernelError, TracedDecision,
+};
+use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
+use forge_topo::state::TopologyState;
 
 // ── Contained ────────────────────────────────────────────────────────────────
 
@@ -65,9 +67,8 @@ pub(super) fn execute_contained_boolean(
             if are_solids_coincident(target_topo, target_geom, tool_topo, tool_geom)? {
                 return Ok(empty_result());
             }
-            let mut r = splice_tool_into_target(
-                target_topo, target_geom, tool_topo, tool_geom, ctx,
-            )?;
+            let mut r =
+                splice_tool_into_target(target_topo, target_geom, tool_topo, tool_geom, ctx)?;
             r.set_face_counts(target_fc, tool_fc);
             Ok(r)
         }
@@ -87,11 +88,13 @@ pub(super) fn execute_disjoint_boolean(
     ctx: &mut ModelingContext,
 ) -> Result<BooleanResult, KernelError> {
     match operation {
-        BooleanOp::Union => splice_two_shells(
-            target_topo, target_geom, tool_topo, tool_geom, false, ctx,
-        ),
+        BooleanOp::Union => {
+            splice_two_shells(target_topo, target_geom, tool_topo, tool_geom, false, ctx)
+        }
         BooleanOp::Intersection => Ok(empty_result()),
-        BooleanOp::Subtraction => pass_through_shell(target_topo, target_geom, "disjoint_subtraction"),
+        BooleanOp::Subtraction => {
+            pass_through_shell(target_topo, target_geom, "disjoint_subtraction")
+        }
     }
 }
 
@@ -112,13 +115,17 @@ pub(super) fn execute_touching_boolean(
 ) -> Result<BooleanResult, KernelError> {
     if operation != BooleanOp::Union {
         return execute_disjoint_boolean(
-            target_topo, target_geom, tool_topo, tool_geom, operation, ctx,
+            target_topo,
+            target_geom,
+            tool_topo,
+            tool_geom,
+            operation,
+            ctx,
         );
     }
 
-    let (excluded_target, excluded_tool) = find_coplanar_face_pairs(
-        target_topo, target_geom, tool_topo, tool_geom,
-    );
+    let (excluded_target, excluded_tool) =
+        find_coplanar_face_pairs(target_topo, target_geom, tool_topo, tool_geom);
 
     let target_faces = filter_faces(target_topo, &excluded_target);
     let tool_faces = filter_faces(tool_topo, &excluded_tool);
@@ -126,7 +133,8 @@ pub(super) fn execute_touching_boolean(
     let tool_count = tool_faces.len();
 
     let scale = compute_disjoint_scale(
-        target_topo.arena(), target_geom,
+        target_topo.arena(),
+        target_geom,
         Some((tool_topo.arena(), tool_geom)),
     );
 
@@ -140,9 +148,15 @@ pub(super) fn execute_touching_boolean(
     let pre_target = ArenaSnapshot::capture(draft.arena());
 
     copy_shell(
-        &mut draft, &mut result_geom, &mut all_he_ids,
-        &mut global_vertex_map, &mut spatial_index,
-        target_topo.arena(), target_geom, &target_faces, false,
+        &mut draft,
+        &mut result_geom,
+        &mut all_he_ids,
+        &mut global_vertex_map,
+        &mut spatial_index,
+        target_topo.arena(),
+        target_geom,
+        &target_faces,
+        false,
     )?;
 
     let target_delta = compute_topology_delta(&pre_target, draft.arena());
@@ -169,9 +183,15 @@ pub(super) fn execute_touching_boolean(
     let pre_tool = ArenaSnapshot::capture(draft.arena());
 
     copy_shell(
-        &mut draft, &mut result_geom, &mut all_he_ids,
-        &mut global_vertex_map, &mut spatial_index,
-        tool_topo.arena(), tool_geom, &tool_faces, false,
+        &mut draft,
+        &mut result_geom,
+        &mut all_he_ids,
+        &mut global_vertex_map,
+        &mut spatial_index,
+        tool_topo.arena(),
+        tool_geom,
+        &tool_faces,
+        false,
     )?;
 
     let tool_delta = compute_topology_delta(&pre_tool, draft.arena());
@@ -196,12 +216,22 @@ pub(super) fn execute_touching_boolean(
     }
 
     cleanup_degenerate_topology(&mut draft, &result_geom)?;
-    let report = stitch_twins(&mut draft, &all_he_ids, &result_geom, spatial_index.weld_tolerance_sq(), ctx)?;
+    let report = stitch_twins(
+        &mut draft,
+        &all_he_ids,
+        &result_geom,
+        spatial_index.weld_tolerance_sq(),
+        ctx,
+    )?;
     report.require_fully_paired(&draft, &result_geom, ctx)?;
 
     let topo = draft.commit()?;
     Ok(BooleanResult::new(
-        topo, result_geom, crate::brep::state::BrepState::new(), target_count, tool_count,
+        topo,
+        result_geom,
+        crate::brep::state::BrepState::new(),
+        target_count,
+        tool_count,
         BooleanIntrospection::default(),
     ))
 }
@@ -221,7 +251,11 @@ fn pass_through_shell(
 ) -> Result<BooleanResult, KernelError> {
     let face_count = topo.arena().face_count();
     Ok(BooleanResult::new(
-        topo.clone(), geom.clone(), crate::brep::state::BrepState::new(), face_count, 0,
+        topo.clone(),
+        geom.clone(),
+        crate::brep::state::BrepState::new(),
+        face_count,
+        0,
         BooleanIntrospection::default(),
     ))
 }
@@ -243,7 +277,8 @@ fn splice_two_shells(
     let secondary_count = secondary_topo.arena().face_count();
 
     let scale = compute_disjoint_scale(
-        primary_topo.arena(), primary_geom,
+        primary_topo.arena(),
+        primary_geom,
         Some((secondary_topo.arena(), secondary_geom)),
     );
 
@@ -252,8 +287,11 @@ fn splice_two_shells(
 
     let mut spatial = VertexWelder::new(scale);
 
-    let secondary_faces: Vec<FaceId> = secondary_topo.arena().iter_faces()
-        .map(|(fid, _)| fid).collect();
+    let secondary_faces: Vec<FaceId> = secondary_topo
+        .arena()
+        .iter_faces()
+        .map(|(fid, _)| fid)
+        .collect();
     let mut sec_he: Vec<HalfEdgeId> = Vec::new();
     let mut sec_vm: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
     let mut dedup = VertexDedup::new();
@@ -261,9 +299,18 @@ fn splice_two_shells(
     let pre_sec = ArenaSnapshot::capture(draft.arena());
 
     copy_faces(
-        &mut draft, &mut result_geom, &mut dedup, &mut sec_he,
-        &mut sec_vm, &mut spatial,
-        secondary_topo.arena(), secondary_geom, &secondary_faces, reverse_secondary, "secondary", None,
+        &mut draft,
+        &mut result_geom,
+        &mut dedup,
+        &mut sec_he,
+        &mut sec_vm,
+        &mut spatial,
+        secondary_topo.arena(),
+        secondary_geom,
+        &secondary_faces,
+        reverse_secondary,
+        "secondary",
+        None,
     )?;
 
     let sec_delta = compute_topology_delta(&pre_sec, draft.arena());
@@ -287,12 +334,22 @@ fn splice_two_shells(
         ctx.get_decision_log_mut().record(decision);
     }
 
-    let report = stitch_twins(&mut draft, &sec_he, &result_geom, spatial.weld_tolerance_sq(), ctx)?;
+    let report = stitch_twins(
+        &mut draft,
+        &sec_he,
+        &result_geom,
+        spatial.weld_tolerance_sq(),
+        ctx,
+    )?;
     report.require_fully_paired(&draft, &result_geom, ctx)?;
 
     let topo = draft.commit()?;
     Ok(BooleanResult::new(
-        topo, result_geom, crate::brep::state::BrepState::new(), primary_count, secondary_count,
+        topo,
+        result_geom,
+        crate::brep::state::BrepState::new(),
+        primary_count,
+        secondary_count,
         BooleanIntrospection::default(),
     ))
 }
@@ -314,7 +371,8 @@ fn splice_tool_into_target(
     let tool_fc = tool_topo.arena().face_count();
 
     let scale = compute_disjoint_scale(
-        target_topo.arena(), target_geom,
+        target_topo.arena(),
+        target_geom,
         Some((tool_topo.arena(), tool_geom)),
     );
 
@@ -323,8 +381,7 @@ fn splice_tool_into_target(
 
     let mut spatial = VertexWelder::new(scale);
 
-    let tool_faces: Vec<FaceId> = tool_topo.arena().iter_faces()
-        .map(|(fid, _)| fid).collect();
+    let tool_faces: Vec<FaceId> = tool_topo.arena().iter_faces().map(|(fid, _)| fid).collect();
     let mut tool_he: Vec<HalfEdgeId> = Vec::new();
     let mut tool_vm: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
     let mut dedup = VertexDedup::new();
@@ -332,9 +389,18 @@ fn splice_tool_into_target(
     let pre_tool = ArenaSnapshot::capture(draft.arena());
 
     copy_faces(
-        &mut draft, &mut result_geom, &mut dedup, &mut tool_he,
-        &mut tool_vm, &mut spatial,
-        tool_topo.arena(), tool_geom, &tool_faces, true, "tool", None,
+        &mut draft,
+        &mut result_geom,
+        &mut dedup,
+        &mut tool_he,
+        &mut tool_vm,
+        &mut spatial,
+        tool_topo.arena(),
+        tool_geom,
+        &tool_faces,
+        true,
+        "tool",
+        None,
     )?;
 
     let tool_delta = compute_topology_delta(&pre_tool, draft.arena());
@@ -358,12 +424,22 @@ fn splice_tool_into_target(
         ctx.get_decision_log_mut().record(decision);
     }
 
-    let report = stitch_twins(&mut draft, &tool_he, &result_geom, spatial.weld_tolerance_sq(), ctx)?;
+    let report = stitch_twins(
+        &mut draft,
+        &tool_he,
+        &result_geom,
+        spatial.weld_tolerance_sq(),
+        ctx,
+    )?;
     report.require_fully_paired(&draft, &result_geom, ctx)?;
 
     let topo = draft.commit()?;
     Ok(BooleanResult::new(
-        topo, result_geom, crate::brep::state::BrepState::new(), target_fc, tool_fc,
+        topo,
+        result_geom,
+        crate::brep::state::BrepState::new(),
+        target_fc,
+        tool_fc,
         BooleanIntrospection::default(),
     ))
 }
@@ -382,9 +458,18 @@ fn copy_shell(
 ) -> Result<(), KernelError> {
     let mut dedup = VertexDedup::new();
     copy_faces(
-        draft, result_geom, &mut dedup, he_ids,
-        vertex_map, spatial,
-        source_arena, source_geom, faces, reverse, "copy_shell", None,
+        draft,
+        result_geom,
+        &mut dedup,
+        he_ids,
+        vertex_map,
+        spatial,
+        source_arena,
+        source_geom,
+        faces,
+        reverse,
+        "copy_shell",
+        None,
     )
 }
 
@@ -393,19 +478,19 @@ fn copy_shell(
 /// Create an empty BooleanResult.
 fn empty_result() -> BooleanResult {
     BooleanResult::new(
-        TopologyState::empty(), GeometryState::new(), crate::brep::state::BrepState::new(), 0, 0,
+        TopologyState::empty(),
+        GeometryState::new(),
+        crate::brep::state::BrepState::new(),
+        0,
+        0,
         BooleanIntrospection::default(),
     )
 }
 
-
-
 /// Filter faces, excluding those with indices in the exclusion set.
-fn filter_faces(
-    topo: &TopologyState,
-    excluded: &std::collections::BTreeSet<u32>,
-) -> Vec<FaceId> {
-    topo.arena().iter_faces()
+fn filter_faces(topo: &TopologyState, excluded: &std::collections::BTreeSet<u32>) -> Vec<FaceId> {
+    topo.arena()
+        .iter_faces()
         .map(|(fid, _)| fid)
         .filter(|fid| !excluded.contains(&fid.index()))
         .collect()

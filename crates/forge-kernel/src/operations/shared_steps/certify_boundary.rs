@@ -43,10 +43,7 @@ pub fn certify_boundary(
 
     if n < 3 {
         return Err(KernelError::InvalidInput {
-            message: format!(
-                "certify_boundary: loop has only {} vertices (need ≥ 3)",
-                n
-            ),
+            message: format!("certify_boundary: loop has only {} vertices (need ≥ 3)", n),
             context: None,
         });
     }
@@ -113,5 +110,9 @@ fn dot3(a: &[f64; 3], b: &[f64; 3]) -> f64 {
 
 fn normalize(v: [f64; 3]) -> [f64; 3] {
     let len = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
-    if len < 1e-300 { v } else { [v[0] / len, v[1] / len, v[2] / len] }
+    if len < 1e-300 {
+        v
+    } else {
+        [v[0] / len, v[1] / len, v[2] / len]
+    }
 }

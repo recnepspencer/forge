@@ -9,11 +9,11 @@
 
 use std::collections::VecDeque;
 
-use forge_core::KernelError;
 use crate::arena::TopologyArena;
 use crate::handles::{FaceId, VertexId};
 use crate::topology::bitset::EntityBitset;
 use crate::topology::queries::traverse::FaceEdgeIterator;
+use forge_core::KernelError;
 
 /// Discover all faces in a connected shell via BFS from a seed face.
 ///
@@ -35,7 +35,9 @@ pub(crate) fn discover_shell_faces(
 
         for he_result in FaceEdgeIterator::new(arena, face_id)? {
             let he_id = he_result?;
-            for neighbor_res in crate::topology::queries::traverse::RadialEdgeIterator::new(arena, he_id)? {
+            for neighbor_res in
+                crate::topology::queries::traverse::RadialEdgeIterator::new(arena, he_id)?
+            {
                 let neighbor_id = neighbor_res?;
                 if neighbor_id != he_id {
                     let neighbor_data = arena.get_half_edge(neighbor_id)?;
@@ -95,14 +97,12 @@ pub(crate) fn collect_face_positions(
     for he_result in FaceEdgeIterator::new(arena, face_id)? {
         let he_id = he_result?;
         let he_data = arena.get_half_edge(he_id)?;
-        let pos = position_fn(he_data.origin()).ok_or_else(|| {
-            KernelError::TopologyViolation {
-                err: forge_core::TopologyError::MissingVertexPosition {
-                    vertex_index: he_data.origin().index(),
-                    face_index: face_id.index(),
-                },
-                context: None,
-            }
+        let pos = position_fn(he_data.origin()).ok_or_else(|| KernelError::TopologyViolation {
+            err: forge_core::TopologyError::MissingVertexPosition {
+                vertex_index: he_data.origin().index(),
+                face_index: face_id.index(),
+            },
+            context: None,
         })?;
         positions.push(pos);
     }

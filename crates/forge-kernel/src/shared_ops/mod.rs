@@ -15,6 +15,7 @@
 pub use centroid::compute_face_centroid;
 pub use coincidence::build_face_coincidence_prepass;
 
-pub mod vertex_identity;
-pub mod coincidence;
 pub mod centroid;
+pub mod coincidence;
+pub mod fragment;
+pub mod vertex_identity;

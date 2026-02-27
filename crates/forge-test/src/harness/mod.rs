@@ -10,9 +10,4 @@
 
 mod boolean;
 
-pub use boolean::{
-    FuzzOutcome,
-    FuzzReport,
-    run_single_case,
-    run_fuzz_corpus,
-};
+pub use boolean::{run_fuzz_corpus, run_single_case, FuzzOutcome, FuzzReport};

@@ -14,9 +14,9 @@ use forge_core::{KernelError, TopologyError};
 
 use crate::handles::{HalfEdgeId, LoopId};
 use crate::lineage::{Lineage, OpSignature};
-use crate::EulerOperator;
-use crate::operator::{ExecutionResult, EulerDelta};
+use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
+use crate::EulerOperator;
 
 /// Merge two faces by removing a shared edge.
 ///
@@ -38,7 +38,11 @@ pub struct JfOutput {
 impl EulerOperator for JoinFaces {
     type Output = JfOutput;
 
-    fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        sig: &OpSignature,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he = self.edge;
         let he_data = draft.arena().get_half_edge(he)?;
         let he_twin = he_data.radial_next();
@@ -60,11 +64,14 @@ impl EulerOperator for JoinFaces {
                 context: None,
             });
         }
-        
+
         let valence = crate::topology::queries::traverse::radial_valence(draft.arena(), he)?;
         if valence != 2 {
             return Err(KernelError::InvalidInput {
-                message: format!("JoinFaces: edge has radial valence {}, must be exactly 2 for joining", valence),
+                message: format!(
+                    "JoinFaces: edge has radial valence {}, must be exactly 2 for joining",
+                    valence
+                ),
                 context: None,
             });
         }
@@ -72,31 +79,64 @@ impl EulerOperator for JoinFaces {
         let survive_lineage = draft.arena().get_face(face_survive)?.lineage().cloned();
         let remove_lineage = draft.arena().get_face(face_remove)?.lineage().cloned();
         let merged_lineage = Lineage::merge(&survive_lineage, &remove_lineage, sig);
-        draft.arena_mut().get_half_edge_mut(he_prev)?.set_next(twin_next);
-        draft.arena_mut().get_half_edge_mut(twin_next)?.set_prev(he_prev);
-        draft.arena_mut().get_half_edge_mut(twin_prev)?.set_next(he_next);
-        draft.arena_mut().get_half_edge_mut(he_next)?.set_prev(twin_prev);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(he_prev)?
+            .set_next(twin_next);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(twin_next)?
+            .set_prev(he_prev);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(twin_prev)?
+            .set_next(he_next);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(he_next)?
+            .set_prev(twin_prev);
 
         reassign_face(draft, twin_next, face_survive)?;
         let loop_id = draft.arena().get_face(face_survive)?.outer_loop();
-        draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(he_next);
-        draft.arena_mut().get_face_mut(face_survive)?.set_lineage(Some(merged_lineage));
+        draft
+            .arena_mut()
+            .get_loop_mut(loop_id)?
+            .set_half_edge(he_next);
+        draft
+            .arena_mut()
+            .get_face_mut(face_survive)?
+            .set_lineage(Some(merged_lineage));
 
         // P10: Transfer inner loops from face_remove to face_survive
         let inner_loops: Vec<LoopId> = draft.arena().get_face(face_remove)?.inner_loops().to_vec();
         for il_id in inner_loops {
             let inner_start = draft.arena().get_loop(il_id)?.half_edge();
-            draft.arena_mut().get_face_mut(face_remove)?.remove_inner_loop(il_id);
-            draft.arena_mut().get_face_mut(face_survive)?.add_inner_loop(il_id);
-            draft.arena_mut().get_loop_mut(il_id)?.set_face(face_survive);
+            draft
+                .arena_mut()
+                .get_face_mut(face_remove)?
+                .remove_inner_loop(il_id);
+            draft
+                .arena_mut()
+                .get_face_mut(face_survive)?
+                .add_inner_loop(il_id);
+            draft
+                .arena_mut()
+                .get_loop_mut(il_id)?
+                .set_face(face_survive);
             reassign_face(draft, inner_start, face_survive)?;
         }
 
         if draft.arena().get_vertex(vertex_a)?.outgoing() == he {
-            draft.arena_mut().get_vertex_mut(vertex_a)?.set_outgoing(twin_next);
+            draft
+                .arena_mut()
+                .get_vertex_mut(vertex_a)?
+                .set_outgoing(twin_next);
         }
         if draft.arena().get_vertex(vertex_b)?.outgoing() == he_twin {
-            draft.arena_mut().get_vertex_mut(vertex_b)?.set_outgoing(he_next);
+            draft
+                .arena_mut()
+                .get_vertex_mut(vertex_b)?
+                .set_outgoing(he_next);
         }
 
         let remove_loop = draft.arena().get_face(face_remove)?.outer_loop();
@@ -110,7 +150,17 @@ impl EulerOperator for JoinFaces {
             value: JfOutput {
                 surviving_face: face_survive,
             },
-            declared_delta: EulerDelta { vertices: 0, half_edges: -2, faces: -1, loops: -1, edges: -1, shells: 0, solids: 0, lumps: 0, regions: 0 },
+            declared_delta: EulerDelta {
+                vertices: 0,
+                half_edges: -2,
+                faces: -1,
+                loops: -1,
+                edges: -1,
+                shells: 0,
+                solids: 0,
+                lumps: 0,
+                regions: 0,
+            },
         })
     }
 
@@ -131,7 +181,10 @@ fn reassign_face(
     let mut current = start;
     let mut steps = 0usize;
     loop {
-        draft.arena_mut().get_half_edge_mut(current)?.set_face(new_face);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(current)?
+            .set_face(new_face);
         let next = draft.arena().get_half_edge(current)?.next();
         current = next;
         if current == start {

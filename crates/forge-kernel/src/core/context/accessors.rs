@@ -5,8 +5,8 @@
 
 use crate::analysis::proof_validation::checkpoint::ValidationConfig;
 use crate::core::tolerance::{
-    TolerancePolicy, TangencyPolicy, SliverPolicy,
-    GapClosurePolicy, PrecisionEscalationPolicy, ToleranceConfig,
+    GapClosurePolicy, PrecisionEscalationPolicy, SliverPolicy, TangencyPolicy, ToleranceConfig,
+    TolerancePolicy,
 };
 
 use super::schema::ModelingContext;

@@ -13,7 +13,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::handles::{FaceId, HalfEdgeId, VertexId, EdgeId, ShellId};
+use crate::handles::{EdgeId, FaceId, HalfEdgeId, ShellId, VertexId};
 
 /// The key into the attribute store — identifies which entity owns a tag set.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -29,16 +29,24 @@ pub enum EntityKey {
 }
 
 impl From<ShellId> for EntityKey {
-    fn from(id: ShellId) -> Self { Self::Shell(id) }
+    fn from(id: ShellId) -> Self {
+        Self::Shell(id)
+    }
 }
 impl From<FaceId> for EntityKey {
-    fn from(id: FaceId) -> Self { Self::Face(id) }
+    fn from(id: FaceId) -> Self {
+        Self::Face(id)
+    }
 }
 impl From<EdgeId> for EntityKey {
-    fn from(id: EdgeId) -> Self { Self::Edge(id) }
+    fn from(id: EdgeId) -> Self {
+        Self::Edge(id)
+    }
 }
 impl From<VertexId> for EntityKey {
-    fn from(id: VertexId) -> Self { Self::Vertex(id) }
+    fn from(id: VertexId) -> Self {
+        Self::Vertex(id)
+    }
 }
 
 /// A single attribute value attached to an entity.
@@ -83,10 +91,7 @@ impl AttributeStore {
 
     /// Set a single tag on an entity (creates the tag set if needed).
     pub fn set_tag(&mut self, key: EntityKey, tag_name: String, value: TagValue) {
-        self.tags
-            .entry(key)
-            .or_default()
-            .insert(tag_name, value);
+        self.tags.entry(key).or_default().insert(tag_name, value);
     }
 
     /// Remove a single tag from an entity. Returns the removed value.
@@ -133,7 +138,11 @@ mod tests {
         let mut store = AttributeStore::new();
         let face = EntityKey::Face(FaceId::new(0, 0));
 
-        store.set_tag(face, "material".to_string(), TagValue::Text("AL_6061".to_string()));
+        store.set_tag(
+            face,
+            "material".to_string(),
+            TagValue::Text("AL_6061".to_string()),
+        );
 
         let tags = store.get_tags(face);
         assert!(tags.is_some());
@@ -148,7 +157,11 @@ mod tests {
         let mut store = AttributeStore::new();
         let face = EntityKey::Face(FaceId::new(0, 0));
 
-        store.set_tag(face, "material".to_string(), TagValue::Text("steel".to_string()));
+        store.set_tag(
+            face,
+            "material".to_string(),
+            TagValue::Text("steel".to_string()),
+        );
         store.remove_tag(face, "material");
 
         assert!(store.get_tags(face).is_none());
@@ -162,8 +175,16 @@ mod tests {
         let f1 = EntityKey::Face(FaceId::new(1, 0));
         let v0 = EntityKey::Vertex(VertexId::new(0, 0));
 
-        store.set_tag(f0, "material".to_string(), TagValue::Text("AL_6061".to_string()));
-        store.set_tag(f1, "material".to_string(), TagValue::Text("steel".to_string()));
+        store.set_tag(
+            f0,
+            "material".to_string(),
+            TagValue::Text("AL_6061".to_string()),
+        );
+        store.set_tag(
+            f1,
+            "material".to_string(),
+            TagValue::Text("steel".to_string()),
+        );
         store.set_tag(v0, "datum".to_string(), TagValue::Flag(true));
 
         let with_material = store.get_entities_by_tag("material");
@@ -178,8 +199,16 @@ mod tests {
         let mut store = AttributeStore::new();
         let face = EntityKey::Face(FaceId::new(5, 2));
 
-        store.set_tag(face, "material".to_string(), TagValue::Text("AL_6061".to_string()));
-        store.set_tag(face, "tolerance_class".to_string(), TagValue::Text("fine".to_string()));
+        store.set_tag(
+            face,
+            "material".to_string(),
+            TagValue::Text("AL_6061".to_string()),
+        );
+        store.set_tag(
+            face,
+            "tolerance_class".to_string(),
+            TagValue::Text("fine".to_string()),
+        );
         store.set_tag(face, "roughness_ra".to_string(), TagValue::Number(1.6));
 
         let tags = store.get_tags(face).unwrap();

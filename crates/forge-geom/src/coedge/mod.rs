@@ -7,8 +7,8 @@
 //!
 //! DEPENDENCIES: serde
 
-use serde::{Deserialize, Serialize};
 use super::curve::SurfaceIndex;
+use serde::{Deserialize, Serialize};
 
 /// A 2D parametric curve in surface parameter space.
 ///
@@ -57,7 +57,12 @@ impl ParametricCurve2D {
                 start[0] + t * (end[0] - start[0]),
                 start[1] + t * (end[1] - start[1]),
             ],
-            ParametricCurve2D::Circle { center, radius, start_angle, end_angle } => {
+            ParametricCurve2D::Circle {
+                center,
+                radius,
+                start_angle,
+                end_angle,
+            } => {
                 let angle = start_angle + t * (end_angle - start_angle);
                 [
                     center[0] + radius * angle.cos(),
@@ -187,8 +192,13 @@ mod tests {
             let uv = coedge.uv_at(t);
             let p = surface.point_at(uv[0], uv[1]);
             let r = (p[0] * p[0] + p[1] * p[1]).sqrt();
-            assert!((r - radius).abs() < 1e-10,
-                "Point at t={} not on cylinder: r={}, expected={}", t, r, radius);
+            assert!(
+                (r - radius).abs() < 1e-10,
+                "Point at t={} not on cylinder: r={}, expected={}",
+                t,
+                r,
+                radius
+            );
         }
     }
 
@@ -213,8 +223,13 @@ mod tests {
             let dy = p[1] - 2.0;
             let dz = p[2] - 3.0;
             let r = (dx * dx + dy * dy + dz * dz).sqrt();
-            assert!((r - radius).abs() < 1e-10,
-                "Point at t={} not on sphere: r={}, expected={}", t, r, radius);
+            assert!(
+                (r - radius).abs() < 1e-10,
+                "Point at t={} not on sphere: r={}, expected={}",
+                t,
+                r,
+                radius
+            );
         }
     }
 
@@ -239,8 +254,13 @@ mod tests {
 
             let xy_r = (p[0] * p[0] + p[1] * p[1]).sqrt();
             let dist_to_ring_center = ((xy_r - major).powi(2) + p[2].powi(2)).sqrt();
-            assert!((dist_to_ring_center - minor).abs() < 1e-10,
-                "Point at t={} not on torus: dist_to_tube_center={}, expected={}", t, dist_to_ring_center, minor);
+            assert!(
+                (dist_to_ring_center - minor).abs() < 1e-10,
+                "Point at t={} not on torus: dist_to_tube_center={}, expected={}",
+                t,
+                dist_to_ring_center,
+                minor
+            );
         }
     }
 }

@@ -6,19 +6,19 @@
 //! 3. Stitching twins between adjacent faces via shared-edge matching
 //! 4. Registering face planes and vertex positions in GeometryState
 
-
-
-
-use forge_core::{KernelError, DecisionKind};
+use forge_core::{DecisionKind, KernelError};
 use forge_geom::spatial::bsp::ConvexCell;
-use forge_topo::arena::{BodyData, LumpData, RegionData, FaceData, HalfEdgeData, VertexData, LoopData, ShellData, EdgeData, ShellKind, ShellOrientation};
-use forge_topo::handles::{HalfEdgeId, VertexId, LoopId, ShellId, EdgeId};
-use forge_topo::state::{TopologyState, MutableDraft};
+use forge_topo::arena::{
+    BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
+    ShellKind, ShellOrientation, VertexData,
+};
+use forge_topo::handles::{EdgeId, HalfEdgeId, LoopId, ShellId, VertexId};
+use forge_topo::state::{MutableDraft, TopologyState};
 
+use crate::brep::state::BrepState;
 use crate::check_tolerance;
 use crate::core::ModelingContext;
 use crate::geometry_state::GeometryState;
-use crate::brep::state::BrepState;
 
 /// Result of building a halfedge mesh from a ConvexCell.
 pub struct MeshBuildResult {
@@ -66,7 +66,10 @@ impl MeshBuildResult {
 /// 2. For each face, create a loop of halfedges connecting its vertices
 /// 3. Stitch twin pointers by matching shared directed edges
 /// 4. Register geometry (positions, planes)
-pub fn build_halfedge_mesh(cell: &ConvexCell, ctx: &mut ModelingContext) -> Result<MeshBuildResult, KernelError> {
+pub fn build_halfedge_mesh(
+    cell: &ConvexCell,
+    ctx: &mut ModelingContext,
+) -> Result<MeshBuildResult, KernelError> {
     validate_cell(cell)?;
 
     let tolerance = ctx.get_tolerance().get_spatial_tolerance();
@@ -82,13 +85,11 @@ pub fn build_halfedge_mesh(cell: &ConvexCell, ctx: &mut ModelingContext) -> Resu
     let region = draft.insert_region(RegionData::new(lump));
     draft.arena_mut().get_body_mut(body)?.add_lump(lump);
     draft.arena_mut().get_lump_mut(lump)?.add_region(region);
-    let shell = draft.insert_shell(
-        ShellData::new(
-            forge_topo::handles::FaceId::from_raw_parts(u32::MAX, 0),
-            ShellKind::Solid(ShellOrientation::Outer),
-            region,
-        )
-    );
+    let shell = draft.insert_shell(ShellData::new(
+        forge_topo::handles::FaceId::from_raw_parts(u32::MAX, 0),
+        ShellKind::Solid(ShellOrientation::Outer),
+        region,
+    ));
     draft.arena_mut().get_region_mut(region)?.add_shell(shell);
 
     let edge_map = insert_faces_and_loops(&mut draft, &mut geometry, cell, &vertex_ids, shell)?;
@@ -97,7 +98,10 @@ pub fn build_halfedge_mesh(cell: &ConvexCell, ctx: &mut ModelingContext) -> Resu
 
     let first_face = draft.arena().iter_faces().next().map(|(fid, _)| fid);
     if let Some(fid) = first_face {
-        draft.arena_mut().get_shell_mut(shell)?.set_representative_face(fid);
+        draft
+            .arena_mut()
+            .get_shell_mut(shell)?
+            .set_representative_face(fid);
     }
 
     let topology = draft.commit()?;
@@ -157,17 +161,28 @@ fn insert_vertices(
         let existing = find_coincident_vertex(&inserted, &pos, tolerance);
 
         if let Some((existing_vid, dist)) = existing {
-            check_tolerance!(ctx, tolerance, dist, pos, DecisionKind::NearBoundary { threshold: tolerance });
+            check_tolerance!(
+                ctx,
+                tolerance,
+                dist,
+                pos,
+                DecisionKind::NearBoundary {
+                    threshold: tolerance
+                }
+            );
             vertex_ids.push(existing_vid);
         } else {
-            let vid = draft.insert_vertex(VertexData::new(
-                placeholder_he,
-            ));
+            let vid = draft.insert_vertex(VertexData::new(placeholder_he));
 
             let [pa, pb, pc] = vert.plane_indices();
-            let stored_exact = if pa < cell_planes.len() && pb < cell_planes.len() && pc < cell_planes.len() {
+            let stored_exact = if pa < cell_planes.len()
+                && pb < cell_planes.len()
+                && pc < cell_planes.len()
+            {
                 match forge_geom::primitives::plane::intersect_three_planes_exact(
-                    &cell_planes[pa], &cell_planes[pb], &cell_planes[pc],
+                    &cell_planes[pa],
+                    &cell_planes[pb],
+                    &cell_planes[pc],
                 ) {
                     Ok(exact_pos) => {
                         geometry.set_vertex_position_symbolic(vid, exact_pos, pos, [pa, pb, pc]);
@@ -236,15 +251,9 @@ fn insert_faces_and_loops(
             continue;
         }
 
-        let face_id = draft.insert_face(FaceData::new(
-            placeholder_loop,
-            shell,
-        ));
+        let face_id = draft.insert_face(FaceData::new(placeholder_loop, shell));
 
-        let loop_id = draft.insert_loop(LoopData::new(
-            placeholder_he,
-            face_id,
-        ));
+        let loop_id = draft.insert_loop(LoopData::new(placeholder_he, face_id));
 
         let plane_idx = cell_face.plane_idx();
         if plane_idx < cell_planes.len() {
@@ -275,18 +284,24 @@ fn insert_faces_and_loops(
             arena.get_half_edge_mut(he_ids[i])?.set_next(he_ids[next_i]);
             arena.get_half_edge_mut(he_ids[i])?.set_prev(he_ids[prev_i]);
 
-            edge_map.insert(
-                face_verts[i], face_verts[next_i],
-                he_ids[i],
-            );
+            edge_map.insert(face_verts[i], face_verts[next_i], he_ids[i]);
         }
 
-        draft.arena_mut().get_face_mut(face_id)?.set_outer_loop(loop_id);
-        draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(he_ids[0]);
+        draft
+            .arena_mut()
+            .get_face_mut(face_id)?
+            .set_outer_loop(loop_id);
+        draft
+            .arena_mut()
+            .get_loop_mut(loop_id)?
+            .set_half_edge(he_ids[0]);
 
         for &he_id in &he_ids {
             let origin = draft.arena().get_half_edge(he_id)?.origin();
-            draft.arena_mut().get_vertex_mut(origin)?.set_outgoing(he_id);
+            draft
+                .arena_mut()
+                .get_vertex_mut(origin)?
+                .set_outgoing(he_id);
         }
     }
 
@@ -337,16 +352,19 @@ impl EdgeMap {
 ///
 /// For each directed edge (a→b), find the matching (b→a) and set twins.
 /// Iterates in deterministic ascending order by vertex-pair key.
-fn stitch_twins(
-    draft: &mut MutableDraft,
-    edge_map: &EdgeMap,
-) -> Result<(), KernelError> {
+fn stitch_twins(draft: &mut MutableDraft, edge_map: &EdgeMap) -> Result<(), KernelError> {
     for (a, b, he_id) in edge_map.iter_ascending() {
         if a < b {
             if let Some(twin_id) = edge_map.get(b, a) {
                 let edge = draft.insert_edge(EdgeData::new(he_id));
-                draft.arena_mut().get_half_edge_mut(he_id)?.set_radial_next(twin_id);
-                draft.arena_mut().get_half_edge_mut(twin_id)?.set_radial_next(he_id);
+                draft
+                    .arena_mut()
+                    .get_half_edge_mut(he_id)?
+                    .set_radial_next(twin_id);
+                draft
+                    .arena_mut()
+                    .get_half_edge_mut(twin_id)?
+                    .set_radial_next(he_id);
                 draft.arena_mut().get_half_edge_mut(he_id)?.set_edge(edge);
                 draft.arena_mut().get_half_edge_mut(twin_id)?.set_edge(edge);
             } else {
@@ -365,37 +383,29 @@ fn stitch_twins(
 /// Build a convex solid from arbitrary planes.
 ///
 /// General-purpose constructor: planes → BSP → halfedge mesh.
-pub fn make_convex_solid(
-    planes: Vec<forge_geom::Plane>,
-) -> Result<MeshBuildResult, KernelError> {
-    let cell = forge_geom::spatial::bsp::build_convex_polyhedron(&planes, &forge_geom::spatial::bsp::BspConfig::default())?;
+pub fn make_convex_solid(planes: Vec<forge_geom::Plane>) -> Result<MeshBuildResult, KernelError> {
+    let cell = forge_geom::spatial::bsp::build_convex_polyhedron(
+        &planes,
+        &forge_geom::spatial::bsp::BspConfig::default(),
+    )?;
     let mut ctx = ModelingContext::new();
     build_halfedge_mesh(&cell, &mut ctx)
 }
 
 /// Create a cube centered at `center` with side length `size`.
-pub fn make_cube(
-    center: [f64; 3],
-    size: f64,
-) -> Result<MeshBuildResult, KernelError> {
+pub fn make_cube(center: [f64; 3], size: f64) -> Result<MeshBuildResult, KernelError> {
     let planes = forge_geom::primitives::shapes::cube(center, size / 2.0);
     make_convex_solid(planes)
 }
 
 /// Create a regular tetrahedron centered at `center` with the given `scale`.
-pub fn make_tetrahedron(
-    center: [f64; 3],
-    scale: f64,
-) -> Result<MeshBuildResult, KernelError> {
+pub fn make_tetrahedron(center: [f64; 3], scale: f64) -> Result<MeshBuildResult, KernelError> {
     let planes = forge_geom::primitives::shapes::tetrahedron(center, scale);
     make_convex_solid(planes)
 }
 
 /// Create a regular dodecahedron centered at `center` with the given `scale`.
-pub fn make_dodecahedron(
-    center: [f64; 3],
-    scale: f64,
-) -> Result<MeshBuildResult, KernelError> {
+pub fn make_dodecahedron(center: [f64; 3], scale: f64) -> Result<MeshBuildResult, KernelError> {
     let planes = forge_geom::primitives::shapes::dodecahedron(center, scale);
     make_convex_solid(planes)
 }

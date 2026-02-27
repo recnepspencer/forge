@@ -4,10 +4,10 @@
 //! split phase. Uses AABB overlap (BVH) to find candidates, then
 //! exact rational coplanarity confirmation (D3-compliant).
 
-use forge_geom::Plane;
 use forge_geom::primitives::aabb::Aabb;
-use forge_geom::spatial::bvh::{BvhNode, query_overlapping_pairs};
+use forge_geom::spatial::bvh::{query_overlapping_pairs, BvhNode};
 use forge_geom::spatial::coincidence::{CoincidenceGraph, CoincidenceKind};
+use forge_geom::Plane;
 use forge_topo::handles::FaceId;
 
 /// Pack a `FaceId` into a raw `u64` handle for use in `CoincidenceGraph` edges.
@@ -55,23 +55,21 @@ pub fn build_face_coincidence_prepass(
 ) -> CoincidenceGraph {
     let mut graph = CoincidenceGraph::new();
 
-    let target_items: Vec<(u64, Aabb)> = crate::spatial::all_face_bounds(
-        target_arena,
-        &|vid| target_geom.get_vertex_position(vid).copied(),
-    )
-        .unwrap_or_default()
-        .into_iter()
-        .map(|(fid, aabb)| (pack_face_id(fid, false), aabb))
-        .collect();
+    let target_items: Vec<(u64, Aabb)> = crate::spatial::all_face_bounds(target_arena, &|vid| {
+        target_geom.get_vertex_position(vid).copied()
+    })
+    .unwrap_or_default()
+    .into_iter()
+    .map(|(fid, aabb)| (pack_face_id(fid, false), aabb))
+    .collect();
 
-    let tool_items: Vec<(u64, Aabb)> = crate::spatial::all_face_bounds(
-        tool_arena,
-        &|vid| tool_geom.get_vertex_position(vid).copied(),
-    )
-        .unwrap_or_default()
-        .into_iter()
-        .map(|(fid, aabb)| (pack_face_id(fid, true), aabb))
-        .collect();
+    let tool_items: Vec<(u64, Aabb)> = crate::spatial::all_face_bounds(tool_arena, &|vid| {
+        tool_geom.get_vertex_position(vid).copied()
+    })
+    .unwrap_or_default()
+    .into_iter()
+    .map(|(fid, aabb)| (pack_face_id(fid, true), aabb))
+    .collect();
 
     let target_bvh = match BvhNode::build(target_items) {
         Some(tree) => tree,
@@ -86,10 +84,14 @@ pub fn build_face_coincidence_prepass(
 
     for (target_raw, tool_raw) in candidates {
         let target_fid = unpack_face_id(target_raw);
-        let tool_fid   = unpack_face_id(tool_raw);
+        let tool_fid = unpack_face_id(tool_raw);
 
-        let Some(plane_a) = target_geom.get_face_plane(target_fid) else { continue };
-        let Some(plane_b) = tool_geom.get_face_plane(tool_fid)   else { continue };
+        let Some(plane_a) = target_geom.get_face_plane(target_fid) else {
+            continue;
+        };
+        let Some(plane_b) = tool_geom.get_face_plane(tool_fid) else {
+            continue;
+        };
 
         if !forge_geom::primitives::plane::coplanar_eq(plane_a, plane_b) {
             continue;

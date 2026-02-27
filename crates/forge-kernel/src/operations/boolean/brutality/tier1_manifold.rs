@@ -33,10 +33,10 @@
 //!    as input to another boolean, vertex provenance must be preserved or
 //!    re-derived so the split phase can match vertices across solids.
 
-use super::super::test_helpers::{
-    build_cube, run_boolean, try_boolean, execute_boolean_logged, euler_audit,
-};
 use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::test_helpers::{
+    build_cube, euler_audit, execute_boolean_logged, run_boolean, try_boolean,
+};
 
 // ══════════════════════════════════════════════════════════════
 // §T1.1  EULER-POINCARÉ AUDITS
@@ -47,11 +47,7 @@ use super::super::schema::{BooleanInput, BooleanOp};
 /// Two cubes with half-overlap: the result is a single closed shell.
 #[test]
 fn euler_poincare_basic_union() {
-    let result = run_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [1.0, 0.0, 0.0], 1.0,
-        BooleanOp::Union,
-    );
+    let result = run_boolean([0.0, 0.0, 0.0], 1.0, [1.0, 0.0, 0.0], 1.0, BooleanOp::Union);
     let (v, e, f, chi) = euler_audit(result.topology().arena());
     assert_eq!(chi, 2, "Union Euler violation: V={v} E={e} F={f} χ={chi}");
 }
@@ -62,24 +58,34 @@ fn euler_poincare_basic_union() {
 #[test]
 fn euler_poincare_subtraction() {
     let result = run_boolean(
-        [0.0, 0.0, 0.0], 2.0,
-        [1.5, 0.0, 0.0], 1.0,
+        [0.0, 0.0, 0.0],
+        2.0,
+        [1.5, 0.0, 0.0],
+        1.0,
         BooleanOp::Subtraction,
     );
     let (v, e, f, chi) = euler_audit(result.topology().arena());
-    assert_eq!(chi, 2, "Subtraction Euler violation: V={v} E={e} F={f} χ={chi}");
+    assert_eq!(
+        chi, 2,
+        "Subtraction Euler violation: V={v} E={e} F={f} χ={chi}"
+    );
 }
 
 /// T1.1c — Euler χ = 2 after intersection.
 #[test]
 fn euler_poincare_intersection() {
     let result = run_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [0.5, 0.5, 0.0], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [0.5, 0.5, 0.0],
+        1.0,
         BooleanOp::Intersection,
     );
     let (v, e, f, chi) = euler_audit(result.topology().arena());
-    assert_eq!(chi, 2, "Intersection Euler violation: V={v} E={e} F={f} χ={chi}");
+    assert_eq!(
+        chi, 2,
+        "Intersection Euler violation: V={v} E={e} F={f} χ={chi}"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -93,15 +99,20 @@ fn euler_poincare_intersection() {
 #[test]
 fn multi_shell_disjoint_union() {
     let result = run_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [10.0, 0.0, 0.0], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [10.0, 0.0, 0.0],
+        1.0,
         BooleanOp::Union,
     );
     let arena = result.topology().arena();
     let (v, e, f, chi) = euler_audit(arena);
     assert_eq!(f, 12, "Disjoint union should have 12 faces, got {f}");
     assert_eq!(v, 16, "Disjoint union should have 16 vertices, got {v}");
-    assert_eq!(chi, 4, "Disjoint union (2 shells) Euler χ should be 4, got {chi}");
+    assert_eq!(
+        chi, 4,
+        "Disjoint union (2 shells) Euler χ should be 4, got {chi}"
+    );
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -114,8 +125,10 @@ fn multi_shell_disjoint_union() {
 #[test]
 fn identical_subtraction_produces_empty() {
     let result = try_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [0.0, 0.0, 0.0], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
         BooleanOp::Subtraction,
     );
 
@@ -142,8 +155,10 @@ fn identical_subtraction_produces_empty() {
 #[test]
 fn nested_containment_subtraction() {
     let inner_result = try_boolean(
-        [0.0, 0.0, 0.0], 2.0,
-        [0.0, 0.0, 0.0], 0.5,
+        [0.0, 0.0, 0.0],
+        2.0,
+        [0.0, 0.0, 0.0],
+        0.5,
         BooleanOp::Subtraction,
     );
 
@@ -153,8 +168,10 @@ fn nested_containment_subtraction() {
             let (topo_large, geom_large) = build_cube([0.0, 0.0, 0.0], 4.0);
 
             let input = BooleanInput::new(
-                topo_large, geom_large,
-                topo_ms, geom_ms,
+                topo_large,
+                geom_large,
+                topo_ms,
+                geom_ms,
                 BooleanOp::Subtraction,
             );
             let outer_result = execute_boolean_logged(input);
@@ -184,27 +201,25 @@ fn nested_containment_subtraction() {
 /// Traverses every halfedge in the result and verifies twin reciprocity.
 #[test]
 fn halfedge_twin_reciprocity_audit() {
-    let result = run_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [0.8, 0.3, 0.0], 1.0,
-        BooleanOp::Union,
-    );
+    let result = run_boolean([0.0, 0.0, 0.0], 1.0, [0.8, 0.3, 0.0], 1.0, BooleanOp::Union);
     let arena = result.topology().arena();
 
     for (he_id, he_data) in arena.iter_half_edges() {
         let twin_id = he_data.radial_next();
-        assert_ne!(
-            he_id, twin_id,
-            "Halfedge {he_id} has self-referencing twin"
-        );
+        assert_ne!(he_id, twin_id, "Halfedge {he_id} has self-referencing twin");
 
-        let twin_data = arena.get_half_edge(twin_id)
+        let twin_data = arena
+            .get_half_edge(twin_id)
             .unwrap_or_else(|_| panic!("Twin {twin_id} of {he_id} is stale"));
 
         assert_eq!(
-            twin_data.radial_next(), he_id,
+            twin_data.radial_next(),
+            he_id,
             "Twin reciprocity violated: he[{}].twin={}, but he[{}].twin={}",
-            he_id.index(), twin_id.index(), twin_id.index(), twin_data.radial_next().index()
+            he_id.index(),
+            twin_id.index(),
+            twin_id.index(),
+            twin_data.radial_next().index()
         );
     }
 }
@@ -220,8 +235,10 @@ fn halfedge_twin_reciprocity_audit() {
 #[test]
 fn vertex_valence_audit() {
     let result = run_boolean(
-        [0.0, 0.0, 0.0], 1.0,
-        [0.5, 0.5, 0.5], 1.0,
+        [0.0, 0.0, 0.0],
+        1.0,
+        [0.5, 0.5, 0.5],
+        1.0,
         BooleanOp::Intersection,
     );
     let arena = result.topology().arena();

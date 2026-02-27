@@ -14,19 +14,17 @@
 //! - `policy_resolution`  — `resolve_policy_query`, registry snapshot, cascade
 //! - `topology_delta`     — `ArenaSnapshot`, `compute_topology_delta`
 
-mod schema;
 mod accessors;
-mod decision_logging;
-mod sub_operations;
 mod counterfactual;
+mod decision_logging;
 mod policy_resolution;
+mod schema;
+mod sub_operations;
 mod topology_delta;
 
 #[cfg(test)]
 mod tests;
 
+pub use policy_resolution::{ResolvedPolicyDecision, ResolvedPolicySource};
 pub use schema::{ModelingContext, SubOperationMetadata};
-pub use policy_resolution::{
-    ResolvedPolicySource, ResolvedPolicyDecision,
-};
-pub use topology_delta::{ArenaSnapshot, compute_topology_delta};
+pub use topology_delta::{compute_topology_delta, ArenaSnapshot};

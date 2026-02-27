@@ -7,11 +7,11 @@
 //! fan-triangulates each face, sums signed tetrahedra volumes via the
 //! divergence theorem. All traversal uses the public forge-topo API only.
 
-use std::collections::{BTreeSet, VecDeque};
 use forge_core::KernelError;
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::traverse::{FaceEdgeIterator, RadialEdgeIterator};
+use std::collections::{BTreeSet, VecDeque};
 
 /// Validate that all closed shells have positive signed volume.
 pub fn validate_signed_volume(
@@ -75,7 +75,9 @@ fn bfs_shell(
             let he_id = he_res?;
             for radial_res in RadialEdgeIterator::new(arena, he_id)? {
                 let twin_id = radial_res?;
-                if twin_id == he_id { continue; }
+                if twin_id == he_id {
+                    continue;
+                }
                 let neighbor = arena.get_half_edge(twin_id)?.face();
                 if visited.insert(neighbor.index()) {
                     queue.push_back(neighbor);
@@ -109,7 +111,9 @@ fn find_reference(
 ) -> [f64; 3] {
     for &face_id in faces {
         if let Ok(verts) = collect_positions(arena, face_id, position_fn) {
-            if !verts.is_empty() { return verts[0]; }
+            if !verts.is_empty() {
+                return verts[0];
+            }
         }
     }
     [0.0, 0.0, 0.0]
@@ -140,11 +144,11 @@ fn fan_volume(verts: &[[f64; 3]], ref_pt: [f64; 3]) -> f64 {
     let v0 = sub(verts[0], ref_pt);
     let mut vol = 0.0_f64;
     for i in 1..verts.len() - 1 {
-        let v1 = sub(verts[i],     ref_pt);
+        let v1 = sub(verts[i], ref_pt);
         let v2 = sub(verts[i + 1], ref_pt);
         vol += v0[0] * (v1[1] * v2[2] - v1[2] * v2[1])
-             + v0[1] * (v1[2] * v2[0] - v1[0] * v2[2])
-             + v0[2] * (v1[0] * v2[1] - v1[1] * v2[0]);
+            + v0[1] * (v1[2] * v2[0] - v1[0] * v2[2])
+            + v0[2] * (v1[0] * v2[1] - v1[1] * v2[0]);
     }
     vol
 }

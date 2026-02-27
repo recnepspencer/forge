@@ -20,10 +20,8 @@
 //! - Relative epsilon handles sub-epsilon feature geometry
 //! - Orientation consistency restoration after self-intersect repair
 
-use super::super::test_helpers::{
-    build_cube, execute_boolean_logged, euler_audit,
-};
 use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::test_helpers::{build_cube, euler_audit, execute_boolean_logged};
 
 /// Build a thin-walled labyrinth by subtracting many thin slits.
 ///
@@ -34,7 +32,10 @@ fn build_thin_labyrinth(
     outer_half: f64,
     wall_count: usize,
     wall_thickness: f64,
-) -> Option<(forge_topo::state::TopologyState, crate::geometry_state::GeometryState)> {
+) -> Option<(
+    forge_topo::state::TopologyState,
+    crate::geometry_state::GeometryState,
+)> {
     let (mut topo, mut geom) = build_cube(center, outer_half);
 
     let span = outer_half * 2.0;
@@ -57,38 +58,64 @@ fn build_thin_labyrinth(
 
         let slit_planes = vec![
             forge_geom::Plane::from_point_normal(
-                [slit_center[0] + slit_half[0], slit_center[1], slit_center[2]],
+                [
+                    slit_center[0] + slit_half[0],
+                    slit_center[1],
+                    slit_center[2],
+                ],
                 [1.0, 0.0, 0.0],
-            ).unwrap(),
+            )
+            .unwrap(),
             forge_geom::Plane::from_point_normal(
-                [slit_center[0] - slit_half[0], slit_center[1], slit_center[2]],
+                [
+                    slit_center[0] - slit_half[0],
+                    slit_center[1],
+                    slit_center[2],
+                ],
                 [-1.0, 0.0, 0.0],
-            ).unwrap(),
+            )
+            .unwrap(),
             forge_geom::Plane::from_point_normal(
-                [slit_center[0], slit_center[1] + slit_half[1], slit_center[2]],
+                [
+                    slit_center[0],
+                    slit_center[1] + slit_half[1],
+                    slit_center[2],
+                ],
                 [0.0, 1.0, 0.0],
-            ).unwrap(),
+            )
+            .unwrap(),
             forge_geom::Plane::from_point_normal(
-                [slit_center[0], slit_center[1] - slit_half[1], slit_center[2]],
+                [
+                    slit_center[0],
+                    slit_center[1] - slit_half[1],
+                    slit_center[2],
+                ],
                 [0.0, -1.0, 0.0],
-            ).unwrap(),
+            )
+            .unwrap(),
             forge_geom::Plane::from_point_normal(
-                [slit_center[0], slit_center[1], slit_center[2] + slit_half[2]],
+                [
+                    slit_center[0],
+                    slit_center[1],
+                    slit_center[2] + slit_half[2],
+                ],
                 [0.0, 0.0, 1.0],
-            ).unwrap(),
+            )
+            .unwrap(),
             forge_geom::Plane::from_point_normal(
-                [slit_center[0], slit_center[1], slit_center[2] - slit_half[2]],
+                [
+                    slit_center[0],
+                    slit_center[1],
+                    slit_center[2] - slit_half[2],
+                ],
                 [0.0, 0.0, -1.0],
-            ).unwrap(),
+            )
+            .unwrap(),
         ];
 
         let (topo_slit, geom_slit) = super::super::test_helpers::build_convex_solid(slit_planes);
 
-        let input = BooleanInput::new(
-            topo, geom,
-            topo_slit, geom_slit,
-            BooleanOp::Subtraction,
-        );
+        let input = BooleanInput::new(topo, geom, topo_slit, geom_slit, BooleanOp::Subtraction);
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
@@ -151,7 +178,10 @@ fn thin_labyrinth_5000_walls() {
         Some((topo, _geom)) => {
             let (v, e, f, chi) = euler_audit(topo.arena());
             eprintln!("MB4 labyrinth 5000: V={v} E={e} F={f} χ={chi}");
-            assert!(f > 100, "5000-wall labyrinth should have many faces, got {f}");
+            assert!(
+                f > 100,
+                "5000-wall labyrinth should have many faces, got {f}"
+            );
         }
         None => {
             panic!("MB4 5000-wall labyrinth construction failed");
@@ -183,10 +213,20 @@ fn labyrinth_complex_intersection() {
     let sin_a = angle.sin();
 
     let rotated_planes = vec![
-        forge_geom::Plane::from_point_normal([cos_a * 4.0, sin_a * 4.0, 0.0], [cos_a, sin_a, 0.0]).unwrap(),
-        forge_geom::Plane::from_point_normal([-cos_a * 4.0, -sin_a * 4.0, 0.0], [-cos_a, -sin_a, 0.0]).unwrap(),
-        forge_geom::Plane::from_point_normal([0.0, cos_a * 4.0, sin_a * 4.0], [0.0, cos_a, sin_a]).unwrap(),
-        forge_geom::Plane::from_point_normal([0.0, -cos_a * 4.0, -sin_a * 4.0], [0.0, -cos_a, -sin_a]).unwrap(),
+        forge_geom::Plane::from_point_normal([cos_a * 4.0, sin_a * 4.0, 0.0], [cos_a, sin_a, 0.0])
+            .unwrap(),
+        forge_geom::Plane::from_point_normal(
+            [-cos_a * 4.0, -sin_a * 4.0, 0.0],
+            [-cos_a, -sin_a, 0.0],
+        )
+        .unwrap(),
+        forge_geom::Plane::from_point_normal([0.0, cos_a * 4.0, sin_a * 4.0], [0.0, cos_a, sin_a])
+            .unwrap(),
+        forge_geom::Plane::from_point_normal(
+            [0.0, -cos_a * 4.0, -sin_a * 4.0],
+            [0.0, -cos_a, -sin_a],
+        )
+        .unwrap(),
         forge_geom::Plane::from_point_normal([0.0, 0.0, 4.0], [0.0, 0.0, 1.0]).unwrap(),
         forge_geom::Plane::from_point_normal([0.0, 0.0, -4.0], [0.0, 0.0, -1.0]).unwrap(),
     ];
@@ -194,8 +234,10 @@ fn labyrinth_complex_intersection() {
     let (topo_tool, geom_tool) = super::super::test_helpers::build_convex_solid(rotated_planes);
 
     let input = BooleanInput::new(
-        topo_lab, geom_lab,
-        topo_tool, geom_tool,
+        topo_lab,
+        geom_lab,
+        topo_tool,
+        geom_tool,
         BooleanOp::Intersection,
     );
 

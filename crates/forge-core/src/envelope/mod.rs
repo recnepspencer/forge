@@ -12,6 +12,4 @@ mod schema;
 #[cfg(test)]
 mod tests;
 
-pub use schema::{
-    KernelWarning, OperationMetrics, LineageDelta, OperationResult,
-};
+pub use schema::{KernelWarning, LineageDelta, OperationMetrics, OperationResult};

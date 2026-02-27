@@ -3,8 +3,8 @@
 use forge_core::{KernelError, PolicyKind};
 
 use crate::core::ModelingContext;
-use crate::operations::pipeline::step_contract::StepContract;
 use crate::operations::pipeline::builder::{OperationPipeline, PipelineBuilder};
+use crate::operations::pipeline::step_contract::StepContract;
 
 // ── Step Fixtures ────────────────────────────────────────────────────────
 
@@ -96,9 +96,7 @@ fn pipeline_builder_threads_typed_state_through_steps() {
 
     // Pipeline: u32 → String → Vec<String>
     let (result, audit) = PipelineBuilder::start(&mut ctx, 42u32)
-        .then(&SimpleStep, |n, _ctx| {
-            Ok(format!("number-{}", n))
-        })
+        .then(&SimpleStep, |n, _ctx| Ok(format!("number-{}", n)))
         .expect("step 1")
         .then(&LabelStep, |s, _ctx| {
             Ok(vec![s.clone(), format!("{}-copy", s)])
@@ -106,7 +104,10 @@ fn pipeline_builder_threads_typed_state_through_steps() {
         .expect("step 2")
         .finish();
 
-    assert_eq!(result, vec!["number-42".to_string(), "number-42-copy".to_string()]);
+    assert_eq!(
+        result,
+        vec!["number-42".to_string(), "number-42-copy".to_string()]
+    );
     assert_eq!(audit.step_count(), 2);
     assert_eq!(audit.steps[0].name, "simple_step");
     assert_eq!(audit.steps[1].name, "label_step");
@@ -147,19 +148,22 @@ fn multi_step_pipeline_sequences_audit_entries_in_order() {
 
     // Verify precision_sensitive flags
     let prec_flags: Vec<bool> = audit.steps.iter().map(|s| s.precision_sensitive).collect();
-    assert_eq!(prec_flags, vec![true, false, true, false]);}
+    assert_eq!(prec_flags, vec![true, false, true, false]);
+}
 
 #[test]
 fn pipeline_builder_propagates_error_from_step() {
     let mut ctx = ModelingContext::new();
 
-    let result = PipelineBuilder::start(&mut ctx, 100u32)
-        .then(&SimpleStep, |_n, _ctx| -> Result<u32, KernelError> {
+    let result = PipelineBuilder::start(&mut ctx, 100u32).then(
+        &SimpleStep,
+        |_n, _ctx| -> Result<u32, KernelError> {
             Err(KernelError::InvalidInput {
                 message: "intentional failure".into(),
                 context: None,
             })
-        });
+        },
+    );
 
     match result {
         Ok(_) => panic!("builder should propagate step error"),
