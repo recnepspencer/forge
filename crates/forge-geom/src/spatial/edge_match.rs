@@ -400,3 +400,24 @@ mod tests {
         assert_eq!(matches.len(), 0);
     }
 }
+
+/// Select the best candidate edge around a radial junction by sorting normal dot products.
+///
+/// `candidates` is a list of `(candidate_id, face_normal)`. The candidate with the highest
+/// dot product against `source_normal` is chosen. Ties are broken deterministically by ID.
+pub fn select_best_radial_match(
+    source_normal: [f64; 3],
+    candidates: &[(u32, [f64; 3])],
+) -> u32 {
+    let mut best_id = candidates[0].0;
+    let mut best_dot = f64::NEG_INFINITY;
+
+    for &(cand_id, cand_normal) in candidates {
+        let dot = forge_math::linalg::dot(source_normal, cand_normal);
+        if dot > best_dot || (dot == best_dot && cand_id < best_id) {
+            best_dot = dot;
+            best_id = cand_id;
+        }
+    }
+    best_id
+}

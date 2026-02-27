@@ -21,9 +21,10 @@ use crate::operations::boolean::schema::BooleanOp;
 use crate::operations::boolean::result::BooleanResult;
 
 use super::assemble::{
-    execute_contained_boolean, execute_disjoint_boolean,
-    execute_touching_boolean,
+    execute_contained_boolean, execute_disjoint_boolean, execute_touching_boolean,
 };
+use crate::shared_ops::equivalence::{are_solids_coincident, has_boundary_centroid};
+use forge_spatial::bounds::distance::{combined_solid_scale, compute_solid_centroid};
 
 /// Classification of how two non-intersecting solids relate.
 pub(super) enum Containment {
@@ -160,15 +161,7 @@ fn sample_interior_point(
     topo: &TopologyState,
     geom: &GeometryState,
 ) -> Result<[f64; 3], KernelError> {
-    let vertices: Vec<[f64; 3]> = topo.arena().iter_vertices()
-        .filter_map(|(vid, _)| geom.get_vertex_position(vid).copied())
-        .collect();
-
-    forge_geom::primitives::polygon::compute_polygon_centroid(&vertices).ok_or_else(|| {
-        KernelError::InvalidInput {
-            message: "No vertices with positions".to_string(), context: None,
-        }
-    })
+    compute_solid_centroid(topo.arena(), &|vid| geom.get_vertex_position(vid).copied())
 }
 
 // ── Coplanar overlap detection ───────────────────────────────────────────────
@@ -180,65 +173,23 @@ fn has_overlapping_coplanar_faces(
     target_geom: &GeometryState,
     tool_topo: &TopologyState,
     tool_geom: &GeometryState,
-    config: &crate::core::ToleranceConfig,
+    _config: &crate::core::ToleranceConfig,
 ) -> Result<bool, KernelError> {
-    if has_coplanar_plane_pair(target_topo, target_geom, tool_topo, tool_geom) {
+    // 1. Fast BVH check for exact rational coplanarity
+    let coincidence_graph = crate::shared_ops::coincidence::build_face_coincidence_prepass(
+        target_topo.arena(), target_geom,
+        tool_topo.arena(), tool_geom
+    );
+    if !coincidence_graph.is_empty() {
         return Ok(true);
     }
 
-    has_boundary_centroid(target_topo, target_geom, tool_topo, tool_geom, config)
+    // 2. Slower sample check for intersecting boundaries
+    has_boundary_centroid(target_topo.arena(), target_geom, tool_topo.arena(), tool_geom)
 }
 
-/// Check if any face plane from target exactly matches any from tool.
-fn has_coplanar_plane_pair(
-    target_topo: &TopologyState,
-    target_geom: &GeometryState,
-    tool_topo: &TopologyState,
-    tool_geom: &GeometryState,
-) -> bool {
-    for (face_a, _) in target_topo.arena().iter_faces() {
-        let Some(plane_a) = target_geom.get_face_plane(face_a) else { continue };
-        for (face_b, _) in tool_topo.arena().iter_faces() {
-            let Some(plane_b) = tool_geom.get_face_plane(face_b) else { continue };
-            if forge_geom::primitives::plane::exact_eq(plane_a, plane_b) {
-                return true;
-            }
-        }
-    }
-    false
-}
-
-/// Check if any target face centroid lies on the tool's boundary.
-fn has_boundary_centroid(
-    target_topo: &TopologyState,
-    target_geom: &GeometryState,
-    tool_topo: &TopologyState,
-    tool_geom: &GeometryState,
-    _config: &crate::core::ToleranceConfig,
-) -> Result<bool, KernelError> {
-    for (face_id, _) in target_topo.arena().iter_faces() {
-        let centroid = crate::shared_ops::centroid::compute_face_centroid(
-            target_topo.arena(), target_geom, face_id,
-        )
-            .ok_or_else(|| KernelError::InvalidInput {
-                message: format!("Face {:?} has degenerate geometry", face_id),
-                context: None,
-            })?;
-
-        let class = classify_point_in_solid(
-            tool_topo.arena(),
-            &|index| lookup_vertex(tool_topo, tool_geom, index),
-            None,
-            &centroid,
-            tool_geom as &dyn ToleranceProvider,
-        )?;
-
-        if is_on_boundary(&class) {
-            return Ok(true);
-        }
-    }
-    Ok(false)
-}
+// Old implementations of has_coplanar_plane_pair, are_solids_coincident,
+// and has_boundary_centroid were deleted here.
 
 // ── Dispatch and logging ─────────────────────────────────────────────────────
 
@@ -289,69 +240,23 @@ fn log_containment(containment: &Containment, operation: BooleanOp, ctx: &mut Mo
     ));
 }
 
-/// Check whether two solids are coincident (all tool faces on
-/// the target boundary). Used to detect A−A=∅ in subtraction.
-pub(super) fn are_solids_coincident(
-    target_topo: &TopologyState,
-    target_geom: &GeometryState,
-    tool_topo: &TopologyState,
-    tool_geom: &GeometryState,
-) -> Result<bool, KernelError> {
-    if target_topo.arena().face_count() != tool_topo.arena().face_count() {
-        return Ok(false);
-    }
-
-    let _config = crate::core::ToleranceConfig::default();
-
-    for (face_id, _) in tool_topo.arena().iter_faces() {
-        let centroid = crate::shared_ops::centroid::compute_face_centroid(
-            tool_topo.arena(), tool_geom, face_id,
-        )
-            .ok_or_else(|| KernelError::InvalidInput {
-                message: format!("Face {:?} has degenerate geometry", face_id),
-                context: None,
-            })?;
-
-        let class = classify_point_in_solid(
-            target_topo.arena(),
-            &|index| lookup_vertex(target_topo, target_geom, index),
-            None,
-            &centroid,
-            target_geom as &dyn ToleranceProvider,
-        )?;
-
-        if !is_on_boundary(&class) {
-            return Ok(false);
-        }
-    }
-
-    Ok(true)
-}
-
 /// Compute the characteristic scale for the disjoint assembly path.
 pub fn compute_disjoint_scale(
     primary_arena: &forge_topo::arena::TopologyArena,
     primary_geom: &GeometryState,
     secondary: Option<(&forge_topo::arena::TopologyArena, &GeometryState)>,
 ) -> f64 {
-    let mut min_pos = [f64::INFINITY; 3];
-    let mut max_pos = [f64::NEG_INFINITY; 3];
-
-    for (vid, _) in primary_arena.iter_vertices() {
-        if let Some(pos) = primary_geom.get_vertex_position(vid) {
-            min_pos = forge_math::linalg::component_min(min_pos, *pos);
-            max_pos = forge_math::linalg::component_max(max_pos, *pos);
-        }
+    let sec = secondary.map(|(a, g)| {
+        let cb: &dyn Fn(forge_topo::handles::VertexId) -> Option<[f64; 3]> = &|vid| g.get_vertex_position(vid).copied();
+        (a, cb)
+    });
+    
+    match sec {
+        Some((a, cb)) => combined_solid_scale(
+            primary_arena, &|vid| primary_geom.get_vertex_position(vid).copied(), Some((a, cb))
+        ),
+        None => combined_solid_scale(
+            primary_arena, &|vid| primary_geom.get_vertex_position(vid).copied(), None
+        )
     }
-
-    if let Some((sec_arena, sec_geom)) = secondary {
-        for (vid, _) in sec_arena.iter_vertices() {
-            if let Some(pos) = sec_geom.get_vertex_position(vid) {
-                min_pos = forge_math::linalg::component_min(min_pos, *pos);
-                max_pos = forge_math::linalg::component_max(max_pos, *pos);
-            }
-        }
-    }
-
-    forge_math::linalg::norm(forge_math::linalg::sub(max_pos, min_pos)).max(1e-15)
 }

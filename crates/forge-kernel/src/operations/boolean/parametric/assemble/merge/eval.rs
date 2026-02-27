@@ -33,7 +33,7 @@ use crate::operations::boolean::parametric::engines::planar::{planar_engine, pla
 
 use crate::operations::boolean::shared::select::select_faces;
 use super::super::disjoint::execute_zero_split;
-use super::assemble::{assemble_result, compute_characteristic_scale};
+use crate::operations::boolean::shared::assemble::assemble_result;
 
 /// Execute a Boolean operation on two solids.
 ///
@@ -212,7 +212,7 @@ fn execute_boolean_pipeline(
     let post_target_hash = compute_arena_topology_hash(target_topo.arena());
     let post_tool_hash = compute_arena_topology_hash(tool_topo.arena());
     let post_split_hash = post_target_hash ^ post_tool_hash;
-    record_replay(&mut replay, &mut seq, "boolean_split",
+    crate::shared_steps::replay::record_replay(&mut replay, &mut seq, "boolean_split",
         format!("{{\"split_count\":{split_count},\"target_hash\":\"{pre_target_hash:#x}\",\"tool_hash\":\"{pre_tool_hash:#x}\",\"post_target_hash\":\"{post_target_hash:#x}\",\"post_tool_hash\":\"{post_tool_hash:#x}\"}}"),
         pre_hash, post_split_hash, ctx, &mut prev_decision_snapshot);
 
@@ -247,7 +247,7 @@ fn execute_boolean_pipeline(
         &mut target_classified, &mut tool_classified,
         &target_topo, &target_geom, &tool_topo, &tool_geom,
     );
-    resolve_fragment_ambiguities(
+    crate::operations::boolean::shared::ambiguity::resolve_fragment_ambiguities(
         &target_topo,
         &tool_topo,
         operation,
@@ -256,7 +256,7 @@ fn execute_boolean_pipeline(
         ctx,
     );
 
-    record_replay(&mut replay, &mut seq, "classify_faces",
+    crate::shared_steps::replay::record_replay(&mut replay, &mut seq, "classify_faces",
         format!("{{\"target\":{},\"tool\":{}}}", target_classified.len(), tool_classified.len()),
         post_split_hash, post_split_hash, ctx, &mut prev_decision_snapshot);
 
@@ -285,7 +285,7 @@ fn execute_boolean_pipeline(
         );
     }
 
-    record_replay(&mut replay, &mut seq, "select_faces",
+    crate::shared_steps::replay::record_replay(&mut replay, &mut seq, "select_faces",
         format!("{{\"target_selected\":{target_face_count},\"tool_selected\":{tool_face_count}}}"),
         post_split_hash, post_split_hash, ctx, &mut prev_decision_snapshot);
 
@@ -295,7 +295,7 @@ fn execute_boolean_pipeline(
 
     // ── Empty result fast path ───────────────────────────────────────────────
     if target_face_count == 0 && tool_face_count == 0 {
-        return build_empty_result(introspection, replay, start_time);
+        return crate::operations::boolean::shared::empty::build_empty_result(introspection, replay, start_time);
     }
 
     // ── Assemble ─────────────────────────────────────────────────────────────
@@ -315,11 +315,11 @@ fn execute_boolean_pipeline(
     }
 
     let post_assemble_hash = compute_arena_topology_hash(result_topo.arena());
-    record_replay(&mut replay, &mut seq, "assemble_result",
+    crate::shared_steps::replay::record_replay(&mut replay, &mut seq, "assemble_result",
         format!("{{\"faces\":{}}}", result_topo.arena().face_count()),
         post_split_hash, post_assemble_hash, ctx, &mut prev_decision_snapshot);
 
-    let lineage_events = record_result_lineage(result_topo.arena(), seq);
+    let lineage_events = forge_topo::topology::history::bulk_stamp::record_result_lineage(result_topo.arena(), seq);
 
     // ── Postprocess ──────────────────────────────────────────────────────────
     let result_state = ctx.scope("postprocess", |ctx| {
@@ -332,7 +332,7 @@ fn execute_boolean_pipeline(
     op_space.restore_geometry(&mut result_geom);
 
     let post_pp_hash = compute_arena_topology_hash(result_topo.arena());
-    record_replay(&mut replay, &mut seq, "postprocess",
+    crate::shared_steps::replay::record_replay(&mut replay, &mut seq, "postprocess",
         format!("{{\"faces\":{}}}", result_topo.arena().face_count()),
         post_assemble_hash, post_pp_hash, ctx, &mut prev_decision_snapshot);
 
@@ -351,133 +351,12 @@ fn execute_boolean_pipeline(
         introspection,
     );
 
-    run_post_boolean_validation(&result, ctx).map_err(|e| e.with_phase("validate_result"))?;
+    crate::shared_steps::validation::run_post_boolean_validation(&result, ctx).map_err(|e| e.with_phase("validate_result"))?;
 
     Ok(result)
 }
 
-fn resolve_fragment_ambiguities(
-    target_topo: &TopologyState,
-    tool_topo: &TopologyState,
-    operation: BooleanOp,
-    target_classified: &mut [crate::operations::boolean::classify_schema::ClassifiedFace],
-    tool_classified: &mut [crate::operations::boolean::classify_schema::ClassifiedFace],
-    ctx: &mut ModelingContext,
-) {
-    if operation != BooleanOp::Subtraction {
-        return;
-    }
-    if std::env::var("FORGE_ENABLE_FRAGMENT_AMBIGUITY").ok().as_deref() != Some("1") {
-        return;
-    }
-    mark_outside_split_fragments_ambiguous(tool_topo.arena(), tool_classified, "tool", ctx);
-    let _ = target_topo;
-    let _ = target_classified;
-}
 
-fn mark_outside_split_fragments_ambiguous(
-    arena: &TopologyArena,
-    classified: &mut [crate::operations::boolean::classify_schema::ClassifiedFace],
-    label: &str,
-    ctx: &mut ModelingContext,
-) {
-    let class_map: BTreeMap<FaceId, FaceClassification> =
-        classified.iter().map(|f| (f.face(), f.classification())).collect();
-
-    for face in classified.iter_mut() {
-        if face.classification() != FaceClassification::Outside {
-            continue;
-        }
-        if !is_make_edge_face_fragment(arena, face.face()) {
-            continue;
-        }
-        let (inside_neighbors, split_neighbors) = count_split_face_neighbors(arena, face.face(), &class_map);
-        if std::env::var("FORGE_DEBUG_AMBIGUITY").ok().as_deref() == Some("1")
-            && matches!(face.face().index(), 14 | 15)
-        {
-            eprintln!(
-                "[ambiguity] probe {} F#{} class={:?} inside_neighbors={} split_neighbors={}",
-                label,
-                face.face().index(),
-                face.classification(),
-                inside_neighbors,
-                split_neighbors,
-            );
-        }
-        let bridge_like = (inside_neighbors >= 2 && split_neighbors >= 2)
-            || (inside_neighbors >= 1 && split_neighbors >= 3);
-        if !bridge_like {
-            continue;
-        }
-        face.set_classification(FaceClassification::Ambiguous);
-
-        if std::env::var("FORGE_DEBUG_SELECT_PROVENANCE").ok().as_deref() == Some("1") {
-            let lineage = arena
-                .get_face(face.face())
-                .ok()
-                .and_then(|f| f.lineage())
-                .map(|lin| format!("{}#{}", lin.get_creation_op().get_name(), lin.get_creation_op().get_invocation_id()))
-                .unwrap_or_else(|| "no-lineage".to_string());
-            eprintln!(
-                "[ambiguity] {} F#{} Outside -> Ambiguous (inside_neighbors={}, split_neighbors={}) {}",
-                label,
-                face.face().index(),
-                inside_neighbors,
-                split_neighbors,
-                lineage,
-            );
-        }
-
-        let mut decision = forge_core::TracedDecision::new(
-            forge_core::DecisionId(50_000 + face.face().index() as u64),
-            forge_core::DecisionKind::PolicyApplied { policy: forge_core::PolicyKind::CoincidentGeometry, default_used: true },
-            forge_core::DecisionTier::Deterministic,
-            1.0,
-            forge_core::DecisionContext::Classification {
-                point: [0.0; 3],
-                result: format!(
-                    "Promote {}:Face#{} Outside -> Ambiguous (split-fragment closure safeguard)",
-                    label,
-                    face.face().index()
-                ),
-            },
-        );
-        decision.set_entity_scope(forge_core::EntityRef::new(forge_core::EntityKind::Face, face.face().index()));
-        ctx.get_decision_log_mut().record(decision);
-    }
-}
-
-fn is_make_edge_face_fragment(arena: &TopologyArena, face_id: FaceId) -> bool {
-    arena.get_face(face_id)
-        .ok()
-        .and_then(|f| f.lineage())
-        .map(|lin| lin.get_creation_op().get_name().starts_with("make_edge_face"))
-        .unwrap_or(false)
-}
-
-fn count_split_face_neighbors(
-    arena: &TopologyArena,
-    face_id: FaceId,
-    class_map: &BTreeMap<FaceId, FaceClassification>,
-) -> (usize, usize) {
-    let neighbors: std::collections::BTreeSet<FaceId> =
-        forge_topo::classification::face_adjacent_faces(arena, face_id)
-            .unwrap_or_default()
-            .into_iter()
-            .collect();
-
-    let mut inside_neighbors = 0usize;
-    let mut split_neighbors = 0usize;
-    for nface in neighbors {
-        if is_make_edge_face_fragment(arena, nface) {
-            split_neighbors += 1;
-        }
-        if matches!(class_map.get(&nface), Some(FaceClassification::Inside | FaceClassification::OnBoundary | FaceClassification::OppositeBoundary)) {
-            inside_neighbors += 1;
-        }
-    }
-    (inside_neighbors, split_neighbors)
-}
 
 fn dump_selection_provenance(
     label: &str,
@@ -555,110 +434,14 @@ fn try_zero_split_early_return(
     );
 
     let post_hash = compute_arena_topology_hash(result.topology().arena());
-    record_replay(replay, seq, "assemble_result",
+    crate::shared_steps::replay::record_replay(replay, seq, "assemble_result",
         format!("{{\"path\":\"zero_split\",\"operation\":\"{operation:?}\",\"result_faces\":{}}}",
             result.topology().arena().face_count()),
         pre_hash, post_hash, ctx, prev_snapshot);
 
-    run_post_boolean_validation(&result, ctx)?;
+    crate::shared_steps::validation::run_post_boolean_validation(&result, ctx)?;
 
     Ok(Some(result))
 }
 
-/// Build an empty result when no faces are selected on either side.
-fn build_empty_result(
-    mut introspection: BooleanIntrospection,
-    _replay: ReplayLog,
-    start_time: std::time::Instant,
-) -> Result<BooleanResult, KernelError> {
-    introspection.duration_micros = start_time.elapsed().as_micros() as u64;
-    Ok(BooleanResult::new(
-        TopologyState::empty(), GeometryState::new(), crate::brep::state::BrepState::new(),
-        0, 0, introspection,
-    ))
-}
 
-/// Record lineage events for all entities in the result topology.
-fn record_result_lineage(arena: &forge_topo::arena::TopologyArena, seq: u64) -> Vec<LineageEvent> {
-    let op = OpSignature::with_id("assemble_result", seq);
-    let mut events: Vec<LineageEvent> = Vec::new();
-
-    for (fid, _) in arena.iter_faces() {
-        events.push(LineageEvent::EntityCreated {
-            entity: forge_core::EntityRef::new(forge_core::EntityKind::Face, fid.index()),
-            entity_snapshot: None,
-            lineage: Lineage::root(fid.index() as u64, op.clone()),
-        });
-    }
-
-    for (he_id, _) in arena.iter_half_edges() {
-        events.push(LineageEvent::EntityCreated {
-            entity: forge_core::EntityRef::new(forge_core::EntityKind::HalfEdge, he_id.index()),
-            entity_snapshot: None,
-            lineage: Lineage::root(he_id.index() as u64, op.clone()),
-        });
-    }
-
-    for (vid, _) in arena.iter_vertices() {
-        events.push(LineageEvent::EntityCreated {
-            entity: forge_core::EntityRef::new(forge_core::EntityKind::Vertex, vid.index()),
-            entity_snapshot: None,
-            lineage: Lineage::root(vid.index() as u64, op.clone()),
-        });
-    }
-
-    events
-}
-
-// ── Replay logging ───────────────────────────────────────────────────────────
-
-/// Record a replay entry with pre/post hashes and auto-computed decision delta.
-fn record_replay(
-    log: &mut ReplayLog,
-    seq: &mut u64,
-    name: &str,
-    payload: String,
-    pre_hash: u128,
-    post_hash: u128,
-    ctx: &ModelingContext,
-    prev_snapshot: &mut Option<DecisionLog>,
-) {
-    *seq += 1;
-    let mut entry = ReplayEntry::new(
-        OpSignature::with_id(name, *seq), payload.into_bytes(), *seq, pre_hash,
-    );
-    entry.set_post_hash(post_hash);
-
-    let current_log = ctx.get_decision_log();
-    if let Some(prev) = prev_snapshot.as_ref() {
-        let delta = diff_decision_logs(prev, current_log);
-        entry.set_decision_delta(delta);
-    }
-    *prev_snapshot = Some(current_log.clone());
-
-    log.record(entry);
-}
-
-// ── Post-boolean validation ──────────────────────────────────────────────────
-
-/// Run post-boolean topology validation.
-///
-/// This replaces the old `finalize_envelope` — validation errors are now captured
-/// in the envelope via the always-envelope pattern rather than being returned bare.
-// DEFECT(D6): No post-operation ValidationLevel::Full check is enforced.
-fn run_post_boolean_validation(
-    result: &BooleanResult,
-    ctx: &ModelingContext,
-) -> Result<(), KernelError> {
-    let geom = result.geometry();
-    let pos_fn = |vid| geom.get_vertex_position(vid).copied();
-    let _validation = run_checkpoint(
-        result.topology().arena(),
-        &ctx.get_validation_config(),
-        ValidationCheckpoint::PostBoolean,
-        Some(&pos_fn),
-        geom,
-    )?;
-
-    Ok(())
-}

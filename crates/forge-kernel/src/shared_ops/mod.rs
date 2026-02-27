@@ -17,5 +17,9 @@ pub use coincidence::build_face_coincidence_prepass;
 
 pub mod centroid;
 pub mod coincidence;
+pub mod copy;
 pub mod fragment;
+pub mod equivalence;
+pub mod rebuild_face;
+pub mod stitch;
 pub mod vertex_identity;

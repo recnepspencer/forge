@@ -14,12 +14,12 @@ use forge_topo::state::TopologyState;
 use crate::brep::state::BrepState;
 use crate::core::ModelingContext;
 use crate::geometry_state::GeometryState;
-use crate::operations::boolean::parametric::assemble::copy::{
+use crate::shared_ops::copy::{
     copy_faces, VertexDedup, VertexWelder,
 };
 use crate::operations::boolean::parametric::assemble::disjoint::compute_disjoint_scale;
 use crate::operations::boolean::parametric::assemble::merge::eval::execute_boolean_direct;
-use crate::operations::boolean::parametric::assemble::stitch::stitch_twins;
+use crate::shared_steps::stitch::stitch_twins;
 use crate::operations::boolean::schema::{BooleanInput, BooleanOp};
 use crate::operations::boolean::test_helpers::{build_cube, euler_audit};
 use crate::shared_ops::vertex_identity::VertexMatchKey;
@@ -385,7 +385,7 @@ fn copy_stitch_round_trip_legacy_double_notched() {
         let z = -4.0 + (i as f64) * 0.4;
 
         let (topo_b, geom_b) = build_cube([x, y, z], 0.3);
-        let input = BooleanInput::new(topo, geom, topo_b, geom_b, BooleanOp::Subtraction);
+        let input = BooleanInput::new(topo, geom, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Subtraction);
         let result = execute_boolean_direct(input)
             .into_result()
             .unwrap_or_else(|e| panic!("legacy step {} failed: {:?}", i, e));

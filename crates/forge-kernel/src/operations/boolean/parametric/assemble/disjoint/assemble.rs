@@ -11,15 +11,15 @@
 
 use std::collections::BTreeMap;
 
-use super::super::cleanup::cleanup_degenerate_topology;
-use super::super::copy::{copy_faces, VertexDedup, VertexWelder};
-use super::super::stitch::stitch_twins;
-use super::eval::{are_solids_coincident, compute_disjoint_scale};
+use crate::shared_ops::copy::{copy_faces, VertexDedup, VertexWelder};
+use crate::shared_steps::stitch::stitch_twins;
+use super::eval::{compute_disjoint_scale};
 use crate::core::{compute_topology_delta, ArenaSnapshot, ModelingContext};
 use crate::geometry_state::GeometryState;
 use crate::operations::boolean::parametric::classify::find_coplanar_face_pairs;
 use crate::operations::boolean::result::{BooleanIntrospection, BooleanResult};
 use crate::operations::boolean::schema::BooleanOp;
+use crate::shared_ops::equivalence::are_solids_coincident;
 use crate::shared_ops::vertex_identity::VertexMatchKey;
 use forge_core::{
     DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, KernelError, TracedDecision,
@@ -127,8 +127,8 @@ pub(super) fn execute_touching_boolean(
     let (excluded_target, excluded_tool) =
         find_coplanar_face_pairs(target_topo, target_geom, tool_topo, tool_geom);
 
-    let target_faces = filter_faces(target_topo, &excluded_target);
-    let tool_faces = filter_faces(tool_topo, &excluded_tool);
+    let target_faces = forge_topo::topology::queries::filter::exclude_faces(target_topo.arena(), &excluded_target);
+    let tool_faces = forge_topo::topology::queries::filter::exclude_faces(tool_topo.arena(), &excluded_tool);
     let target_count = target_faces.len();
     let tool_count = tool_faces.len();
 
@@ -215,7 +215,7 @@ pub(super) fn execute_touching_boolean(
         ctx.get_decision_log_mut().record(decision);
     }
 
-    cleanup_degenerate_topology(&mut draft, &result_geom)?;
+    forge_topo::algorithms::simplify::cleanup_degenerate_topology(&mut draft)?;
     let report = stitch_twins(
         &mut draft,
         &all_he_ids,
@@ -485,13 +485,4 @@ fn empty_result() -> BooleanResult {
         0,
         BooleanIntrospection::default(),
     )
-}
-
-/// Filter faces, excluding those with indices in the exclusion set.
-fn filter_faces(topo: &TopologyState, excluded: &std::collections::BTreeSet<u32>) -> Vec<FaceId> {
-    topo.arena()
-        .iter_faces()
-        .map(|(fid, _)| fid)
-        .filter(|fid| !excluded.contains(&fid.index()))
-        .collect()
 }

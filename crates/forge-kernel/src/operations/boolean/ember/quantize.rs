@@ -114,8 +114,8 @@ pub fn collapse_coincident_vertices(
     let topo_after_redirect = draft.commit()?;
 
     let mut draft = topo_after_redirect.into_mutation();
-    let _ = crate::operations::boolean::parametric::assemble::cleanup::cleanup_degenerate_topology(
-        &mut draft, geom,
+    let _ = forge_topo::algorithms::simplify::cleanup_degenerate_topology(
+        &mut draft,
     )?;
     let topo_clean = draft.commit()?;
 

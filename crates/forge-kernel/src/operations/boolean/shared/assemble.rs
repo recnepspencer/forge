@@ -13,9 +13,9 @@ use crate::core::{KernelState, ModelingContext};
 use crate::geometry_state::GeometryState;
 use crate::shared_ops::vertex_identity::VertexMatchKey;
 
-use super::super::cleanup::cleanup_degenerate_topology;
-use super::super::copy::{copy_faces, repair_vertex_identity, VertexDedup};
-use super::super::stitch::stitch_twins;
+use crate::shared_ops::copy::{copy_faces, VertexDedup};
+use crate::shared_steps::vertex_repair::repair_vertex_identity;
+use crate::shared_steps::stitch::stitch_twins;
 use crate::analysis::proof_validation::diagnose_pipeline::{diagnose_arena, PipelineStage};
 
 /// Assemble the Boolean result from selected faces of both arenas.
@@ -49,7 +49,7 @@ pub(crate) fn assemble_result(
     let mut global_vertex_map: BTreeMap<VertexMatchKey, VertexId> = BTreeMap::new();
     let weld_floor = ctx.get_gap_closure().get_max_gap() * 4.0;
     let weld_linear = (characteristic_scale.max(1e-15) * 1e-8).max(weld_floor);
-    let mut spatial_index = super::super::copy::VertexWelder::with_linear_tolerance(weld_linear);
+    let mut spatial_index = crate::shared_ops::copy::VertexWelder::with_linear_tolerance(weld_linear);
 
     let mut all_new_he_ids: Vec<HalfEdgeId> = Vec::new();
 
@@ -85,7 +85,7 @@ pub(crate) fn assemble_result(
         Some(tool_prov),
     )?;
 
-    cleanup_degenerate_topology(&mut draft, &result_geom)?;
+    forge_topo::algorithms::simplify::cleanup_degenerate_topology(&mut draft)?;
 
     repair_vertex_identity(
         &mut draft,
@@ -110,7 +110,7 @@ pub(crate) fn assemble_result(
         ctx,
     )?;
     if !report.is_fully_paired() {
-        let cleaned = cleanup_degenerate_topology(&mut draft, &result_geom)?;
+        let cleaned = forge_topo::algorithms::simplify::cleanup_degenerate_topology(&mut draft)?;
         if cleaned > 0 {
             let remaining_he: Vec<HalfEdgeId> =
                 draft.arena().iter_half_edges().map(|(id, _)| id).collect();

@@ -1,61 +1,32 @@
-//! Copy faces from one arena to another.
+//! Cross-arena face copying with vertex deduplication.
 //!
 //! DOMAIN: Transfer topology and geometry between arenas, remapping handles
 //! and deduplicating vertices via provenance keys and spatial search.
+//! This is a shared operation used by Boolean, Patterning, and Instancing.
 //!
-//! DEPENDENCIES: schema (VertexMatchKey), GeometryState, forge_topo.
+//! DEPENDENCIES: VertexMatchKey (shared_ops), GeometryState, forge_topo,
+//!   forge_geom::spatial::epsilon_weld.
 //!
 //! INVARIANTS:
-//! - Vertex dedup uses 3 layers: local → provenance key → spatial NNS → create new.
+//! - Vertex dedup uses 4 layers: local → provenance key → spatial NNS → create new.
 //! - Cross-solid vertex collisions merge lineage using `Lineage::merge` (D1).
-//! - Direct arena insertion (not Euler operators) for full halfedge control.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use forge_core::KernelError;
-use forge_topo::arena::{BodyData, LumpData, RegionData, FaceData, HalfEdgeData, LoopData, VertexData, ShellData, EdgeData};
-use forge_topo::handles::{BodyId, RegionId, FaceId, VertexId, HalfEdgeId, LoopId, ShellId, EdgeId};
+use forge_topo::arena::{BodyData, LumpData, RegionData, FaceData, LoopData, VertexData, ShellData};
+use forge_topo::handles::{BodyId, RegionId, FaceId, VertexId, HalfEdgeId, LoopId, ShellId};
 use forge_topo::lineage::{Lineage, OpSignature};
 use forge_topo::state::MutableDraft;
 
 use crate::geometry_state::GeometryState;
 use crate::shared_ops::vertex_identity::VertexMatchKey;
-use crate::operations::boolean::parametric::assemble::rebuild_face::{
+use crate::shared_ops::rebuild_face::{
     rebuild_face_from_vertices,
     rebuild_inner_loop_from_vertices,
 };
 
-/// Mutable destination state for the face-copy phase.
-///
-/// Groups the 6 destination-side objects that always travel together.
-/// Source-side `(arena, geom)` stays as separate `&` params.
-pub struct CopyContext<'a> {
-    pub draft: &'a mut MutableDraft,
-    pub geometry: &'a mut GeometryState,
-    pub vertex_dedup: &'a mut VertexDedup,
-    pub new_edges: &'a mut Vec<HalfEdgeId>,
-    pub global_vertex_map: &'a mut BTreeMap<VertexMatchKey, VertexId>,
-    pub spatial_index: &'a mut VertexWelder,
-}
-
-/// Local vertex mapping for one solid (old arena → new arena).
-pub struct VertexDedup {
-    mapping: BTreeMap<VertexId, VertexId>,
-}
-
-impl VertexDedup {
-    pub fn new() -> Self {
-        Self { mapping: BTreeMap::new() }
-    }
-
-    pub fn insert(&mut self, old: VertexId, new: VertexId) {
-        self.mapping.insert(old, new);
-    }
-
-    pub fn get(&self, old: VertexId) -> Option<VertexId> {
-        self.mapping.get(&old).copied()
-    }
-}
+// ── Vertex Welder ────────────────────────────────────────────────────────────
 
 /// Vertex position welder with Union-Find transitive clustering.
 ///
@@ -109,6 +80,42 @@ impl VertexWelder {
     }
 }
 
+// ── Vertex Dedup ─────────────────────────────────────────────────────────────
+
+/// Local vertex mapping for one solid (old arena → new arena).
+pub struct VertexDedup {
+    mapping: BTreeMap<VertexId, VertexId>,
+}
+
+impl VertexDedup {
+    pub fn new() -> Self {
+        Self { mapping: BTreeMap::new() }
+    }
+
+    pub fn insert(&mut self, old: VertexId, new: VertexId) {
+        self.mapping.insert(old, new);
+    }
+
+    pub fn get(&self, old: VertexId) -> Option<VertexId> {
+        self.mapping.get(&old).copied()
+    }
+}
+
+// ── Copy Context ─────────────────────────────────────────────────────────────
+
+/// Mutable destination state for the face-copy phase.
+///
+/// Groups the 6 destination-side objects that always travel together.
+/// Source-side `(arena, geom)` stays as separate `&` params.
+pub struct CopyContext<'a> {
+    pub draft: &'a mut MutableDraft,
+    pub geometry: &'a mut GeometryState,
+    pub vertex_dedup: &'a mut VertexDedup,
+    pub new_edges: &'a mut Vec<HalfEdgeId>,
+    pub global_vertex_map: &'a mut BTreeMap<VertexMatchKey, VertexId>,
+    pub spatial_index: &'a mut VertexWelder,
+}
+
 // ── Face copying ─────────────────────────────────────────────────────────────
 
 /// Copy a set of faces from a source arena to a destination draft.
@@ -126,7 +133,7 @@ pub fn copy_faces(
     lineage_copy_tag: &str,
     src_prov: Option<&BTreeMap<VertexId, VertexMatchKey>>,
 ) -> Result<(), KernelError> {
-    let mut shell_map: std::collections::BTreeMap<ShellId, ShellId> = std::collections::BTreeMap::new();
+    let mut shell_map: BTreeMap<ShellId, ShellId> = BTreeMap::new();
     let destination_body = ensure_destination_body(draft);
 
     for &src_face in source_faces {
@@ -178,7 +185,7 @@ fn create_destination_region(
     Ok(region)
 }
 
-/// Copy a single face via direct arena insertion.
+/// Copy a single face via rebuild from vertices.
 // DEFECT(D1): copy_single_face does raw arena insertion (insert_face/insert_half_edge) instead of using certified Euler operations.
 fn copy_single_face(
     draft: &mut MutableDraft,
@@ -202,21 +209,17 @@ fn copy_single_face(
 
     let edges = collect_loop_halfedges(source_arena, src_face_data.outer_loop())?;
 
-    debug_source_face_backtracks(source_arena, src_face, &edges)?;
-
     if edges.is_empty() {
         return insert_empty_face(draft, result_geom, new_plane);
     }
 
     let src_verts = collect_source_vertices(source_arena, &edges, reverse_orientation)?;
 
-    // 1. Resolve vertices independently
     let resolved_verts = resolve_all_vertices(
         draft, result_geom, vertex_dedup, global_vertex_map, spatial_index,
         source_arena, source_geom, &src_verts, src_prov,
     )?;
 
-    // 2. Build the face topologically using Euler operations
     let copy_op_name = if reverse_orientation {
         format!("boolean_copy_face_{}_rev", lineage_copy_tag)
     } else {
@@ -226,7 +229,6 @@ fn copy_single_face(
     
     let rebuild_output = rebuild_face_from_vertices(draft, &resolved_verts, dest_shell, copy_sig.clone())?;
     
-    // 3. Migrate the built face into the target shell and link lineage
     let face_lineage = Some(Lineage::derive_from(&src_face_lineage, copy_sig));
     draft.arena_mut().get_face_mut(rebuild_output.face)?.set_lineage(face_lineage);
 
@@ -258,37 +260,6 @@ fn copy_single_face(
     new_edges.extend_from_slice(&rebuild_output.outer_loop_halfedges);
 
     Ok(rebuild_output.face)
-}
-
-fn debug_source_face_backtracks(
-    source_arena: &forge_topo::arena::TopologyArena,
-    src_face: FaceId,
-    edges: &[HalfEdgeId],
-) -> Result<(), KernelError> {
-    let enabled = std::env::var("FORGE_DEBUG_STITCH")
-        .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
-        .unwrap_or(false);
-    if !enabled || edges.is_empty() {
-        return Ok(());
-    }
-
-    let mut directed: BTreeSet<(u32, u32)> = BTreeSet::new();
-    for &he_id in edges {
-        let he = source_arena.get_half_edge(he_id)?;
-        let next = source_arena.get_half_edge(he.next())?;
-        let key = (he.origin().index(), next.origin().index());
-        let rev = (key.1, key.0);
-        if directed.contains(&rev) {
-            eprintln!(
-                "[copy-face] source Face#{} contains reverse segment pair {:?}<->{:?}",
-                src_face.index(),
-                key,
-                rev
-            );
-        }
-        directed.insert(key);
-    }
-    Ok(())
 }
 
 /// Prepare the face plane, flipping if reverse orientation is needed.
@@ -337,32 +308,13 @@ fn collect_source_vertices(
     Ok(verts)
 }
 
-/// Collect halfedges around a specific loop.
+/// Collect halfedges around a specific loop using forge-topo's safe iterator.
 fn collect_loop_halfedges(
     source_arena: &forge_topo::arena::TopologyArena,
     loop_id: LoopId,
 ) -> Result<Vec<HalfEdgeId>, KernelError> {
-    let start = source_arena.get_loop(loop_id)?.half_edge();
-    let mut current = start;
-    let mut edges = Vec::new();
-    let bound = source_arena.half_edge_count().max(1);
-
-    for step in 0..=bound {
-        edges.push(current);
-        let next = source_arena.get_half_edge(current)?.next();
-        if next == start {
-            return Ok(edges);
-        }
-        current = next;
-        if step == bound {
-            return Err(KernelError::InternalError {
-                message: format!("Loop {} traversal exceeded bound while copying face {}", loop_id, loop_id.index()),
-                context: None,
-            });
-        }
-    }
-
-    Ok(edges)
+    forge_topo::traverse::LoopEdgeIterator::new(source_arena, loop_id)?
+        .collect()
 }
 
 /// Resolve all source vertices to destination vertices.
@@ -479,83 +431,4 @@ fn create_new_vertex(
         }
     }
     Ok(vid)
-}
-
-// ── Identity repair ──────────────────────────────────────────────────────────
-
-/// Pre-stitch identity repair: cluster vertices by position, rewrite
-/// halfedge endpoints to use the canonical (lowest-index) VertexId in
-/// each cluster.
-///
-/// This fixes "same position, different VertexId" defects that arise when
-/// faces from different sources are copied into the same arena. It's local
-/// surgery: face/edge structure is preserved, only vertex endpoints change.
-///
-/// Returns the number of vertices that were merged into canonical IDs.
-pub fn repair_vertex_identity(
-    draft: &mut MutableDraft,
-    geom: &GeometryState,
-    weld_tolerance: f64,
-    ctx: &mut crate::core::ModelingContext,
-) -> Result<usize, KernelError> {
-    let mut welder = forge_geom::spatial::epsilon_weld::EpsilonWelder::new(weld_tolerance);
-    let mut index_to_vid: Vec<VertexId> = Vec::new();
-
-    for (vid, _) in draft.arena().iter_vertices() {
-        if let Some(pos) = geom.get_vertex_position(vid) {
-            let idx = welder.add_vertex(*pos);
-            if idx >= index_to_vid.len() {
-                index_to_vid.push(vid);
-            }
-        }
-    }
-
-    let mut remap: BTreeMap<u32, VertexId> = BTreeMap::new();
-    for (vid, _) in draft.arena().iter_vertices() {
-        if let Some(pos) = geom.get_vertex_position(vid) {
-            if let Some(root) = welder.find_nearest(pos) {
-                let canonical = index_to_vid[root];
-                if canonical != vid {
-                    remap.insert(vid.index(), canonical);
-                }
-            }
-        }
-    }
-
-    if remap.is_empty() {
-        return Ok(0);
-    }
-
-    let merged_count = remap.len();
-
-    let all_he_ids: Vec<forge_topo::handles::HalfEdgeId> = draft.arena()
-        .iter_half_edges()
-        .map(|(id, _)| id)
-        .collect();
-
-    for he_id in &all_he_ids {
-        let origin = draft.arena().get_half_edge(*he_id)?.origin();
-        if let Some(&canonical) = remap.get(&origin.index()) {
-            draft.arena_mut().get_half_edge_mut(*he_id)?.set_origin(canonical);
-        }
-    }
-
-    let mut decision = forge_core::TracedDecision::new(
-        forge_core::DecisionId(merged_count as u64),
-        forge_core::DecisionKind::Forced {
-            reason: format!("Identity repair: merged {} duplicate vertices", merged_count),
-        },
-        forge_core::DecisionTier::PolicyApplied,
-        0.9,
-        forge_core::DecisionContext::Degeneracy {
-            description: format!(
-                "Pre-stitch identity repair rewrote {} vertex references",
-                merged_count,
-            ),
-        },
-    );
-    decision.set_entity_scope(forge_core::EntityRef::new(forge_core::EntityKind::Vertex, 0));
-    ctx.get_decision_log_mut().record(decision);
-
-    Ok(merged_count)
 }

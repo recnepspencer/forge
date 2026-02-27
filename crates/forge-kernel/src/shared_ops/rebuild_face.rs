@@ -2,6 +2,7 @@
 //!
 //! DOMAIN: Create a new face by converting a sequence of VertexIds into
 //! a closed loop using exclusively Euler operators (MVF + MEV... + MEF).
+//! Shared across Boolean, Shell, and other features that reconstruct faces.
 
 use forge_core::KernelError;
 use forge_topo::euler::make_face_in_shell_from_vertices::MakeFaceInShellFromVertices;
@@ -65,7 +66,7 @@ pub fn rebuild_face_from_vertices(
             Ok(RebuildFaceOutput {
                 face: val.face,
                 outer_loop_halfedges: val.half_edges,
-                shell: shell,
+                shell,
             })
         }
         Err(e) => Err(e),
