@@ -12,7 +12,8 @@
 use forge_core::{KernelError, ToleranceProvider};
 use forge_topo::arena::TopologyArena;
 use forge_topo::handles::VertexId;
-use forge_topo::validate::{validate_topology, validate_geometric_invariants, ValidationLevel};
+use forge_topo::validate::{validate_topology, ValidationLevel};
+use forge_spatial::integrity::validate_geometric_invariants;
 use serde::{Deserialize, Serialize};
 
 /// Checkpoints where invariant validation can be triggered.

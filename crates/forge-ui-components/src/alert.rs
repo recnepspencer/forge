@@ -100,12 +100,7 @@ pub fn fg_alert(ctx: &egui::Context, theme: &ForgeTheme, icons: &crate::IconStor
                         let btn_width = (ui.available_width() - ((props.actions.len().saturating_sub(1) as f32) * 8.0)) / (props.actions.len().max(1) as f32);
                         
                         for (i, action) in props.actions.iter().enumerate() {
-                            let resp = ui.add_sized(
-                                [btn_width, 0.0],
-                                |ui: &mut egui::Ui| {
-                                    crate::fg_button(ui, theme, icons, FgButton::new(action.label).variant(action.variant))
-                                }
-                            );
+                            let resp = crate::fg_button(ui, theme, icons, FgButton::new(action.label).variant(action.variant).width(btn_width));
                             if resp.clicked() {
                                 clicked_idx = Some(i);
                             }

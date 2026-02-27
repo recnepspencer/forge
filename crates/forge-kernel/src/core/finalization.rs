@@ -136,8 +136,9 @@ impl<'a> OperationFinalizer<'a> {
         envelope: &mut OperationResult<T>,
         adjuncts: TraceAdjunctSet,
         hashes: TopologyHashBoundary,
+        span_output: Option<crate::core::tracing::SpanOutput>,
     ) -> Result<CollectedFinalization, FinalizationError> {
-        self.collect(FinalizationStatus::Success, envelope, adjuncts, hashes)
+        self.collect(FinalizationStatus::Success, envelope, adjuncts, hashes, span_output)
     }
 
     pub fn collect_error<T>(
@@ -145,8 +146,9 @@ impl<'a> OperationFinalizer<'a> {
         envelope: &mut OperationResult<T>,
         adjuncts: TraceAdjunctSet,
         hashes: TopologyHashBoundary,
+        span_output: Option<crate::core::tracing::SpanOutput>,
     ) -> Result<CollectedFinalization, FinalizationError> {
-        self.collect(FinalizationStatus::Error, envelope, adjuncts, hashes)
+        self.collect(FinalizationStatus::Error, envelope, adjuncts, hashes, span_output)
     }
 
     fn collect<T>(
@@ -155,6 +157,7 @@ impl<'a> OperationFinalizer<'a> {
         envelope: &mut OperationResult<T>,
         adjuncts: TraceAdjunctSet,
         hashes: TopologyHashBoundary,
+        span_output: Option<crate::core::tracing::SpanOutput>,
     ) -> Result<CollectedFinalization, FinalizationError> {
         if self.used {
             return Err(FinalizationError::AlreadyFinalized);
@@ -164,6 +167,41 @@ impl<'a> OperationFinalizer<'a> {
         // Drain context trace first and merge into envelope exactly once.
         let ctx_log = self.ctx.take_decision_log();
         envelope.get_decision_log_mut().merge(ctx_log);
+
+        // If a span output was provided, merge its decisions, warnings, and metrics directly.
+        if let Some(mut span) = span_output {
+            envelope.get_decision_log_mut().merge(std::mem::take(&mut span.decision_log));
+            
+            for w in span.warnings {
+                envelope.add_warning(w);
+            }
+            
+            let mut current_metrics = envelope.take_metrics();
+            current_metrics.duration += span.metrics.duration;
+            current_metrics.entities_created += span.metrics.entities_created;
+            current_metrics.entities_deleted += span.metrics.entities_deleted;
+            current_metrics.entities_modified += span.metrics.entities_modified;
+            current_metrics.exact_predicate_calls += span.metrics.exact_predicate_calls;
+            current_metrics.policy_decisions_made += span.metrics.policy_decisions_made;
+            envelope.set_metrics(current_metrics);
+            
+            let mut current_lineage = envelope.take_lineage_delta();
+            current_lineage.faces_created += span.lineage_delta.faces_created;
+            current_lineage.faces_deleted += span.lineage_delta.faces_deleted;
+            current_lineage.vertices_created += span.lineage_delta.vertices_created;
+            current_lineage.vertices_deleted += span.lineage_delta.vertices_deleted;
+            current_lineage.edges_created += span.lineage_delta.edges_created;
+            current_lineage.edges_deleted += span.lineage_delta.edges_deleted;
+            current_lineage.half_edges_created += span.lineage_delta.half_edges_created;
+            current_lineage.half_edges_deleted += span.lineage_delta.half_edges_deleted;
+            current_lineage.loops_created += span.lineage_delta.loops_created;
+            current_lineage.loops_deleted += span.lineage_delta.loops_deleted;
+            current_lineage.shells_created += span.lineage_delta.shells_created;
+            current_lineage.shells_deleted += span.lineage_delta.shells_deleted;
+            current_lineage.solids_created += span.lineage_delta.solids_created;
+            current_lineage.solids_deleted += span.lineage_delta.solids_deleted;
+            envelope.set_lineage_delta(current_lineage);
+        }
 
         // Drain typed adjunct sink from the context and merge with caller-supplied adjuncts.
         let mut merged_adjunct_records = self.ctx.take_trace_adjuncts().into_records();
@@ -266,7 +304,7 @@ mod tests {
         let mut envelope = OperationResult::new("ok");
         let mut finalizer = OperationFinalizer::new(&mut ctx);
         let first = finalizer
-            .collect_success(&mut envelope, TraceAdjunctSet::new(), TopologyHashBoundary::default())
+            .collect_success(&mut envelope, TraceAdjunctSet::new(), TopologyHashBoundary::default(), None)
             .expect("first finalization");
         assert_eq!(first.summary.drained_metrics.entities_modified, 3);
         assert_eq!(envelope.get_metrics().entities_modified, 3);
@@ -276,6 +314,7 @@ mod tests {
             &mut envelope,
             TraceAdjunctSet::new(),
             TopologyHashBoundary::default(),
+            None,
         );
         assert!(matches!(second, Err(FinalizationError::AlreadyFinalized)));
         assert_eq!(envelope.get_metrics().entities_modified, 3);
@@ -307,6 +346,7 @@ mod tests {
                     before: Some(123),
                     after: None,
                 },
+                None,
             )
             .expect("error finalization");
 
@@ -338,7 +378,7 @@ mod tests {
             ),
         ]);
         let collected = finalizer
-            .collect_success(&mut envelope, adjuncts.clone(), TopologyHashBoundary::default())
+            .collect_success(&mut envelope, adjuncts.clone(), TopologyHashBoundary::default(), None)
             .expect("collect");
         let keys: Vec<_> = collected
             .adjuncts
@@ -368,6 +408,7 @@ mod tests {
                 &mut envelope,
                 TraceAdjunctSet::new(),
                 TopologyHashBoundary { before: Some(11), after: Some(22) },
+                None,
             )
             .expect("collect");
 

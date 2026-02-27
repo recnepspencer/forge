@@ -5,8 +5,8 @@
 //! 2. Parametric updates (changing upstream parameter -> downstream re-eval).
 //! 3. Observability of feature outputs.
 
-use forge_kernel::features::tree::{FeatureTree, NativeFeature};
-use forge_kernel::features::wrappers::{BooleanFeature, MakeCubeFeature};
+use forge_kernel::engine::tree::{FeatureTree, NativeFeature};
+use forge_kernel::engine::wrappers::{BooleanFeature, MakeCubeFeature};
 use forge_kernel::boolean::BooleanOp;
 
 #[test]

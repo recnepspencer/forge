@@ -5,5 +5,6 @@
 //! The `pipeline` submodule provides step-level infrastructure (Tier 2).
 
 pub mod boolean;
-pub mod ember_boolean;
 pub mod pipeline;
+pub mod shared_steps;
+

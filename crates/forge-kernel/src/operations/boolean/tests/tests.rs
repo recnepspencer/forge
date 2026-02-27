@@ -1,9 +1,10 @@
 //! Tests for Boolean operations.
 
 use super::super::test_helpers::{build_cube, execute_boolean_logged};
-use super::super::schema::{BooleanInput, BooleanOp, FaceOrigin, FaceClassification};
-use super::super::classify::classify_faces;
-use super::super::split::split_all_faces;
+use super::super::schema::{BooleanInput, BooleanOp};
+use super::super::classify_schema::{FaceOrigin, FaceClassification};
+use super::super::parametric::classify::classify_faces;
+use super::super::parametric::split::split_all_faces;
 use crate::core::ModelingContext;
 
 #[test]

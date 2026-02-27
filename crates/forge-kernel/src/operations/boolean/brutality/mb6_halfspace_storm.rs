@@ -121,7 +121,7 @@ fn halfspace_storm_80_coplanar() {
                         let (v, e, f, chi) = euler_audit(r.topology().arena());
                         eprintln!("MB6 coplanar HS {step_num}/80: V={v} E={e} F={f} χ={chi}");
                     }
-                    let parts = r.into_topo_geom();
+                    let parts = r.into_states();
                     topo = parts.0;
                     geom = parts.1;
                 }
@@ -176,7 +176,7 @@ fn halfspace_storm_60_graze() {
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
                     eprintln!("MB6 graze HS {i}/60: V={v} E={e} F={f} χ={chi}");
                 }
-                let parts = r.into_topo_geom();
+                let parts = r.into_states();
                 topo = parts.0;
                 geom = parts.1;
             }
@@ -224,7 +224,7 @@ fn halfspace_storm_60_sliver() {
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
                 let r = result;
-                let parts = r.into_topo_geom();
+                let parts = r.into_states();
                 topo = parts.0;
                 geom = parts.1;
             }
@@ -252,7 +252,7 @@ fn halfspace_storm_60_sliver() {
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
                     eprintln!("MB6 sliver pair {i}/30: V={v} E={e} F={f} χ={chi}");
                 }
-                let parts = r.into_topo_geom();
+                let parts = r.into_states();
                 topo = parts.0;
                 geom = parts.1;
             }
@@ -291,9 +291,9 @@ fn halfspace_storm_full_200() {
                 [0.0, 0.0, 1.0],
                 extent,
             );
-            let input = BooleanInput::new(topo, geom, topo_hs, geom_hs, BooleanOp::Intersection);
+            let input = BooleanInput::new(topo, geom, BrepState::new(), topo_hs, geom_hs, BrepState::new(), BooleanOp::Intersection);
             match execute_boolean_logged(input).into_result() {
-                Ok(r) => { let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
+                Ok(r) => { let p = r.into_states(); topo = p.0; geom = p.1; }
                 Err(e) => panic!("MB6 full step {step} (coplanar) failed: {e}"),
             }
             step += 1;
@@ -308,9 +308,9 @@ fn halfspace_storm_full_200() {
         let mut n = [0.0, 0.0, 0.0];
         n[axis] = sign;
         let (topo_hs, geom_hs) = build_halfspace_approx(fp, n, extent);
-        let input = BooleanInput::new(topo, geom, topo_hs, geom_hs, BooleanOp::Intersection);
+        let input = BooleanInput::new(topo, geom, BrepState::new(), topo_hs, geom_hs, BrepState::new(), BooleanOp::Intersection);
         match execute_boolean_logged(input).into_result() {
-            Ok(r) => { let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
+            Ok(r) => { let p = r.into_states(); topo = p.0; geom = p.1; }
             Err(e) => panic!("MB6 full step {step} (graze) failed: {e}"),
         }
         step += 1;
@@ -319,16 +319,16 @@ fn halfspace_storm_full_200() {
     for i in 0..30 {
         let z = -4.0 + (i as f64) * 0.25;
         let (topo_t, geom_t) = build_halfspace_approx([0.0, 0.0, z + sliver], [0.0, 0.0, -1.0], extent);
-        let input = BooleanInput::new(topo, geom, topo_t, geom_t, BooleanOp::Intersection);
+        let input = BooleanInput::new(topo, geom, BrepState::new(), topo_t, geom_t, BrepState::new(), BooleanOp::Intersection);
         match execute_boolean_logged(input).into_result() {
-            Ok(r) => { let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
+            Ok(r) => { let p = r.into_states(); topo = p.0; geom = p.1; }
             Err(e) => panic!("MB6 full step {step} (sliver-top) failed: {e}"),
         }
         step += 1;
         let (topo_b, geom_b) = build_halfspace_approx([0.0, 0.0, z], [0.0, 0.0, 1.0], extent);
-        let input2 = BooleanInput::new(topo, geom, topo_b, geom_b, BooleanOp::Intersection);
+        let input2 = BooleanInput::new(topo, geom, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Intersection);
         match execute_boolean_logged(input2).into_result() {
-            Ok(r) => { let p = r.into_topo_geom(); topo = p.0; geom = p.1; }
+            Ok(r) => { let p = r.into_states(); topo = p.0; geom = p.1; }
             Err(e) => panic!("MB6 full step {step} (sliver-bot) failed: {e}"),
         }
         step += 1;

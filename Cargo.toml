@@ -12,6 +12,7 @@ members = [
     "crates/forge-repr",
     "crates/forge-schema",
     "crates/forge-signal",
+    "crates/forge-spatial",
     # UI library stack
     "crates/forge-ui-types",
     "crates/forge-ui-theme",
@@ -39,6 +40,7 @@ forge-view = { path = "crates/forge-view" }
 forge-repr = { path = "crates/forge-repr" }
 forge-schema = { path = "crates/forge-schema" }
 forge-signal = { path = "crates/forge-signal" }
+forge-spatial = { path = "crates/forge-spatial" }
 # Internal crates — UI library stack
 forge-ui-types      = { path = "crates/forge-ui-types" }
 forge-ui-theme      = { path = "crates/forge-ui-theme" }
@@ -57,10 +59,11 @@ trybuild = "1.0"
 tracing = "0.1"
 
 # Native GUI (eframe for MVP shell; wgpu for full viewport in M5)
-eframe   = { version = "0.31", features = ["default"] }
-egui     = "0.31"
+eframe    = { version = "0.31", features = ["default", "wgpu"] }
+egui      = "0.31"
+egui-wgpu = "0.31"
 notify   = "7"
-wgpu     = "22"
+wgpu     = "24"
 winit    = "0.30"
 pollster = "0.3"
 glam     = "0.29"

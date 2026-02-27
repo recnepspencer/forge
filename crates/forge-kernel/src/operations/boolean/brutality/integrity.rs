@@ -72,7 +72,7 @@ fn union_result_shape_audit() {
         BooleanOp::Union,
     );
 
-    let (topo, _geom) = result.into_topo_geom();
+    let (topo, _geom, _) = result.into_states();
     let arena = topo.arena();
     let v = arena.vertex_count() as isize;
     let e = (arena.half_edge_count() / 2) as isize;
@@ -93,10 +93,10 @@ fn chained_union_union() {
         [1.0, 0.0, 0.0], 1.5,
         BooleanOp::Union,
     );
-    let (topo_ab, geom_ab) = result_ab.into_topo_geom();
+    let (topo_ab, geom_ab, _) = result_ab.into_states();
     let (topo_c, geom_c) = build_cube([0.5, 0.5, 0.0], 1.0);
 
-    let input = BooleanInput::new(topo_ab, geom_ab, topo_c, geom_c, BooleanOp::Union);
+    let input = BooleanInput::new(topo_ab, geom_ab, BrepState::new(), topo_c, geom_c, BrepState::new(), BooleanOp::Union);
     match execute_boolean_logged(input).into_result() {
         Ok(r) => {
             let arena = r.topology().arena();
@@ -122,7 +122,7 @@ fn vertex_provenance_audit() {
         [1.0, 0.0, 0.0], 1.5,
         BooleanOp::Union,
     );
-    let (topo_ab, geom_ab) = result_ab.into_topo_geom();
+    let (topo_ab, geom_ab, _) = result_ab.into_states();
     let arena = topo_ab.arena();
     
     // Build face-plane index map (replicate what split_all_faces does)
@@ -202,10 +202,10 @@ fn vertex_provenance_audit() {
 /// Manually runs split/classify/select to see which faces each solid has.
 #[test]
 fn split_classify_audit() {
-    use crate::operations::boolean::split::split_all_faces;
-    use crate::operations::boolean::classify::classify_faces;
-    use crate::operations::boolean::assemble::select::select_faces;
-    use crate::operations::boolean::schema::{FaceOrigin, FaceClassification};
+    use crate::operations::boolean::parametric::split::split_all_faces;
+    use crate::operations::boolean::parametric::classify::classify_faces;
+    use crate::operations::boolean::parametric::assemble::select::select_faces;
+    use crate::operations::boolean::classify_schema::{FaceOrigin, FaceClassification};
     use crate::core::ModelingContext;
     use crate::geometry_state::GeometryState;
     
@@ -214,7 +214,7 @@ fn split_classify_audit() {
         [1.0, 0.0, 0.0], 1.5,
         BooleanOp::Union,
     );
-    let (topo_ab, geom_ab) = result_ab.into_topo_geom();
+    let (topo_ab, geom_ab, _) = result_ab.into_states();
     let (topo_c, geom_c) = build_cube([0.5, 0.5, 0.0], 1.0);
     
     let mut ctx = ModelingContext::default();
@@ -324,7 +324,7 @@ fn fresh_cube_intersection_same_dims() {
     let (topo_ab, geom_ab) = build_cube([0.5, 0.0, 0.0], 2.5);
     let (topo_c, geom_c) = build_cube([0.5, 0.5, 0.0], 1.0);
 
-    let input = BooleanInput::new(topo_ab, geom_ab, topo_c, geom_c, BooleanOp::Intersection);
+    let input = BooleanInput::new(topo_ab, geom_ab, BrepState::new(), topo_c, geom_c, BrepState::new(), BooleanOp::Intersection);
     match execute_boolean_logged(input).into_result() {
         Ok(r) => {
             let arena = r.topology().arena();
@@ -349,7 +349,7 @@ fn boolean_result_intersection() {
         [1.0, 0.0, 0.0], 1.5,
         BooleanOp::Union,
     );
-    let (topo_ab, geom_ab) = result_ab.into_topo_geom();
+    let (topo_ab, geom_ab, _) = result_ab.into_states();
 
     let arena = topo_ab.arena();
     eprintln!("=== BOOLEAN RESULT ARENA FOR INTERSECTION ===");
@@ -375,7 +375,7 @@ fn boolean_result_intersection() {
 
     let (topo_c, geom_c) = build_cube([0.5, 0.5, 0.0], 1.0);
 
-    let input = BooleanInput::new(topo_ab, geom_ab, topo_c, geom_c, BooleanOp::Intersection);
+    let input = BooleanInput::new(topo_ab, geom_ab, BrepState::new(), topo_c, geom_c, BrepState::new(), BooleanOp::Intersection);
     match execute_boolean_logged(input).into_result() {
         Ok(r) => {
             let arena = r.topology().arena();
@@ -400,7 +400,7 @@ fn chained_booleans_preserve_euler() {
         BooleanOp::Union,
     );
 
-    let (topo_ab, geom_ab) = result_ab.into_topo_geom();
+    let (topo_ab, geom_ab, _) = result_ab.into_states();
     
     // ═══════════════════════════════════════════════════════════════
     // EXHAUSTIVE HANDLE AUDIT of first boolean result
@@ -475,7 +475,7 @@ fn chained_booleans_preserve_euler() {
     
     let (topo_c, geom_c) = build_cube([0.5, 0.5, 0.0], 1.0);
 
-    let input = BooleanInput::new(topo_ab, geom_ab, topo_c, geom_c, BooleanOp::Intersection);
+    let input = BooleanInput::new(topo_ab, geom_ab, BrepState::new(), topo_c, geom_c, BrepState::new(), BooleanOp::Intersection);
     let result = execute_boolean_logged(input);
 
     match result.into_result() {
@@ -545,10 +545,10 @@ fn operation_permutation_counts() {
         [0.5, 0.0, 0.0], 1.0,
         BooleanOp::Union,
     );
-    let (topo_ab, geom_ab) = result_ab.into_topo_geom();
+    let (topo_ab, geom_ab, _) = result_ab.into_states();
     let (topo_c, geom_c) = build_cube([1.0, 0.0, 0.0], 1.0);
 
-    let input_abc = BooleanInput::new(topo_ab, geom_ab, topo_c, geom_c, BooleanOp::Union);
+    let input_abc = BooleanInput::new(topo_ab, geom_ab, BrepState::new(), topo_c, geom_c, BrepState::new(), BooleanOp::Union);
     let result_abc = execute_boolean_logged(input_abc).into_result().expect("(A∪B)∪C must not fail");
 
     let result_bc = run_boolean(
@@ -556,10 +556,10 @@ fn operation_permutation_counts() {
         [1.0, 0.0, 0.0], 1.0,
         BooleanOp::Union,
     );
-    let (topo_bc, geom_bc) = result_bc.into_topo_geom();
+    let (topo_bc, geom_bc, _) = result_bc.into_states();
     let (topo_a2, geom_a2) = build_cube([0.0, 0.0, 0.0], 1.0);
 
-    let input_a_bc = BooleanInput::new(topo_a2, geom_a2, topo_bc, geom_bc, BooleanOp::Union);
+    let input_a_bc = BooleanInput::new(topo_a2, geom_a2, BrepState::new(), topo_bc, geom_bc, BrepState::new(), BooleanOp::Union);
     let result_a_bc = execute_boolean_logged(input_a_bc).into_result().expect("A∪(B∪C) must not fail");
 
     assert_eq!(

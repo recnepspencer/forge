@@ -43,6 +43,7 @@ use super::super::test_helpers::{
     build_cube, execute_boolean_logged, euler_audit,
 };
 use super::super::schema::{BooleanInput, BooleanOp};
+use crate::brep::state::BrepState;
 use forge_topo::hashing::compute_arena_topology_hash;
 
 // ══════════════════════════════════════════════════════════════
@@ -78,7 +79,7 @@ fn chain_union_10_steps() {
             "Union chain step {step} Euler violation: V={v} E={e} F={f} χ={chi}"
         );
 
-        let parts = r.into_topo_geom();
+        let parts = r.into_states();
         topo = parts.0;
         geom = parts.1;
     }
@@ -122,7 +123,7 @@ fn chain_subtract_10_steps() {
             "Subtract chain step {step} Euler violation: V={v} E={e} F={f} χ={chi}"
         );
 
-        let parts = r.into_topo_geom();
+        let parts = r.into_states();
         topo = parts.0;
         geom = parts.1;
     }
@@ -171,7 +172,7 @@ fn chain_mixed_ops_10() {
                     chi, 2,
                     "Mixed chain step {step} Euler violation: V={v} E={e} F={f} χ={chi}"
                 );
-                let parts = r.into_topo_geom();
+                let parts = r.into_states();
                 topo = parts.0;
                 geom = parts.1;
             }
@@ -226,7 +227,7 @@ fn chain_identifies_failing_step() {
                     chi, 2,
                     "Step {step} ({op:?}) Euler violation: V={v} E={e} F={f}"
                 );
-                let parts = r.into_topo_geom();
+                let parts = r.into_states();
                 topo = parts.0;
                 geom = parts.1;
             }
@@ -259,15 +260,15 @@ fn minimal_overlapping_notches() {
 
     // Step 0: first notch
     let (tool0, tool0_g) = build_cube([-4.0, 0.0, 4.5], 0.5);
-    let input0 = BooleanInput::new(topo, geom, tool0, tool0_g, BooleanOp::Subtraction);
+    let input0 = BooleanInput::new(topo, geom, BrepState::new(), tool0, tool0_g, BrepState::new(), BooleanOp::Subtraction);
     let r0 = execute_boolean_logged(input0).into_result().expect("Step 0 failed");
     let (v, e, f, chi) = euler_audit(r0.topology().arena());
     assert_eq!(chi, 2, "Step 0 Euler: V={v} E={e} F={f} χ={chi}");
-    let (topo, geom) = r0.into_topo_geom();
+    let (topo, geom, _) = r0.into_states();
 
     // Step 1: overlapping notch
     let (tool1, tool1_g) = build_cube([-3.1, 0.0, 4.5], 0.5);
-    let input1 = BooleanInput::new(topo, geom, tool1, tool1_g, BooleanOp::Subtraction);
+    let input1 = BooleanInput::new(topo, geom, BrepState::new(), tool1, tool1_g, BrepState::new(), BooleanOp::Subtraction);
     let r1 = execute_boolean_logged(input1).into_result().expect("Step 1 failed (overlapping notch)");
     let (v, e, f, chi) = euler_audit(r1.topology().arena());
     assert_eq!(chi, 2, "Step 1 Euler: V={v} E={e} F={f} χ={chi}");
@@ -284,7 +285,7 @@ fn minimal_nonoverlapping_notches() {
 
     // Step 0: first notch at x=-4
     let (tool0, tool0_g) = build_cube([-4.0, 0.0, 4.5], 0.5);
-    let input0 = BooleanInput::new(topo, geom, tool0, tool0_g, BooleanOp::Subtraction);
+    let input0 = BooleanInput::new(topo, geom, BrepState::new(), tool0, tool0_g, BrepState::new(), BooleanOp::Subtraction);
     let r0 = execute_boolean_logged(input0).into_result().expect("Step 0 failed");
     let (v, e, f, chi) = euler_audit(r0.topology().arena());
     assert_eq!(chi, 2, "Step 0 Euler: V={v} E={e} F={f} χ={chi}");
@@ -310,11 +311,11 @@ fn minimal_nonoverlapping_notches() {
     }
     eprintln!("=== END STEP 0 z=5 edges ===");
     
-    let (topo, geom) = r0.into_topo_geom();
+    let (topo, geom, _) = r0.into_states();
 
     // Step 1: NON-overlapping notch at x=+4 (far away)
     let (tool1, tool1_g) = build_cube([4.0, 0.0, 4.5], 0.5);
-    let input1 = BooleanInput::new(topo, geom, tool1, tool1_g, BooleanOp::Subtraction);
+    let input1 = BooleanInput::new(topo, geom, BrepState::new(), tool1, tool1_g, BrepState::new(), BooleanOp::Subtraction);
     let r1 = execute_boolean_logged(input1).into_result().expect("Step 1 failed (non-overlapping)");
     let (v, e, f, chi) = euler_audit(r1.topology().arena());
     assert_eq!(chi, 2, "Step 1 Euler: V={v} E={e} F={f} χ={chi}");
@@ -327,7 +328,7 @@ fn minimal_nonoverlapping_notches() {
 fn minimal_single_flush_subtraction() {
     let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
     let (tool, tool_g) = build_cube([0.0, 0.0, 4.5], 0.5);
-    let input = BooleanInput::new(topo, geom, tool, tool_g, BooleanOp::Subtraction);
+    let input = BooleanInput::new(topo, geom, BrepState::new(), tool, tool_g, BrepState::new(), BooleanOp::Subtraction);
     let r = execute_boolean_logged(input).into_result().expect("Single flush subtraction failed");
     let (v, e, f, chi) = euler_audit(r.topology().arena());
     assert_eq!(chi, 2, "Euler: V={v} E={e} F={f} χ={chi}");
@@ -342,16 +343,16 @@ fn minimal_two_interior_subtractions() {
 
     // Step 0: interior subtraction
     let (tool0, tool0_g) = build_cube([-3.0, 0.0, 0.0], 0.5);
-    let input0 = BooleanInput::new(topo, geom, tool0, tool0_g, BooleanOp::Subtraction);
+    let input0 = BooleanInput::new(topo, geom, BrepState::new(), tool0, tool0_g, BrepState::new(), BooleanOp::Subtraction);
     let r0 = execute_boolean_logged(input0).into_result().expect("Step 0 failed");
     // Interior subtraction creates a cavity: V-E+F = 4 (two shells)
     let (v, e, f, chi) = euler_audit(r0.topology().arena());
     eprintln!("Step 0: V={v} E={e} F={f} χ={chi}");
-    let (topo, geom) = r0.into_topo_geom();
+    let (topo, geom, _) = r0.into_states();
 
     // Step 1: another interior subtraction, far away
     let (tool1, tool1_g) = build_cube([3.0, 0.0, 0.0], 0.5);
-    let input1 = BooleanInput::new(topo, geom, tool1, tool1_g, BooleanOp::Subtraction);
+    let input1 = BooleanInput::new(topo, geom, BrepState::new(), tool1, tool1_g, BrepState::new(), BooleanOp::Subtraction);
     let r1 = execute_boolean_logged(input1).into_result().expect("Step 1 failed");
     let (v, e, f, chi) = euler_audit(r1.topology().arena());
     eprintln!("Step 1: V={v} E={e} F={f} χ={chi}");
@@ -376,12 +377,12 @@ fn diagnostic_epsilon_offset_notches() {
     let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
 
     let (tool0, tool0_g) = build_cube([-4.0, 0.0, 4.5], 0.5);
-    let input0 = BooleanInput::new(topo, geom, tool0, tool0_g, BooleanOp::Subtraction);
+    let input0 = BooleanInput::new(topo, geom, BrepState::new(), tool0, tool0_g, BrepState::new(), BooleanOp::Subtraction);
     let r0 = execute_boolean_logged(input0).into_result().expect("Step 0 failed");
-    let (topo, geom) = r0.into_topo_geom();
+    let (topo, geom, _) = r0.into_states();
 
     let (tool1, tool1_g) = build_cube([-3.1, 0.01, 4.5], 0.5);
-    let input1 = BooleanInput::new(topo, geom, tool1, tool1_g, BooleanOp::Subtraction);
+    let input1 = BooleanInput::new(topo, geom, BrepState::new(), tool1, tool1_g, BrepState::new(), BooleanOp::Subtraction);
 
     match execute_boolean_logged(input1).into_result() {
         Ok(r1) => {
@@ -410,7 +411,7 @@ fn diagnostic_manual_tangent_graze() {
     let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
     let (tool, tool_g) = build_cube([6.0, 6.0, 6.0], 1.0);
 
-    let input = BooleanInput::new(topo, geom, tool, tool_g, BooleanOp::Subtraction);
+    let input = BooleanInput::new(topo, geom, BrepState::new(), tool, tool_g, BrepState::new(), BooleanOp::Subtraction);
     match execute_boolean_logged(input).into_result() {
         Ok(r) => {
             let (v, e, f, chi) = euler_audit(r.topology().arena());
@@ -432,7 +433,7 @@ fn diagnostic_manual_tangent_graze() {
 fn diagnostic_vertex_provenance_survival() {
     let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
     let (tool0, tool0_g) = build_cube([-4.0, 0.0, 4.5], 0.5);
-    let input0 = BooleanInput::new(topo, geom, tool0, tool0_g, BooleanOp::Subtraction);
+    let input0 = BooleanInput::new(topo, geom, BrepState::new(), tool0, tool0_g, BrepState::new(), BooleanOp::Subtraction);
     let r0 = execute_boolean_logged(input0).into_result().expect("Step 0 failed");
 
     let result_geom = r0.geometry();
@@ -465,7 +466,7 @@ fn diagnostic_vertex_provenance_survival() {
 fn diagnostic_concave_face_audit() {
     let (topo, geom) = build_cube([0.0, 0.0, 0.0], 5.0);
     let (tool0, tool0_g) = build_cube([-4.0, 0.0, 4.5], 0.5);
-    let input0 = BooleanInput::new(topo, geom, tool0, tool0_g, BooleanOp::Subtraction);
+    let input0 = BooleanInput::new(topo, geom, BrepState::new(), tool0, tool0_g, BrepState::new(), BooleanOp::Subtraction);
     let r0 = execute_boolean_logged(input0).into_result().expect("Step 0 failed");
 
     let arena = r0.topology().arena();
@@ -626,7 +627,7 @@ fn idempotence_self_union() {
     assert_eq!(chi1, 2, "First union Euler violation: V={v1} E={e1} F={f1} χ={chi1}");
     let hash1 = compute_arena_topology_hash(r1.topology().arena());
 
-    let (topo_r1, geom_r1) = r1.into_topo_geom();
+    let (topo_r1, geom_r1, _) = r1.into_states();
 
     let input2 = BooleanInput::new(
         topo_r1, geom_r1,
@@ -686,7 +687,7 @@ fn idempotence_double_application_neutrality() {
     let (v1, e1, f1, chi1) = euler_audit(r1.topology().arena());
     assert_eq!(chi1, 2, "Union Euler violation: V={v1} E={e1} F={f1} χ={chi1}");
 
-    let (topo_r1, geom_r1) = r1.into_topo_geom();
+    let (topo_r1, geom_r1, _) = r1.into_states();
 
     let input2 = BooleanInput::new(
         topo_r1, geom_r1,
@@ -737,8 +738,8 @@ fn commutativity_order_stability() {
         let (ta2, ga2) = build_cube(*ca, *half);
         let (tb2, gb2) = build_cube(*cb, *half);
 
-        let input_ab = BooleanInput::new(ta1, ga1, tb1, gb1, BooleanOp::Union);
-        let input_ba = BooleanInput::new(tb2, gb2, ta2, ga2, BooleanOp::Union);
+        let input_ab = BooleanInput::new(ta1, ga1, BrepState::new(), tb1, gb1, BrepState::new(), BooleanOp::Union);
+        let input_ba = BooleanInput::new(tb2, gb2, BrepState::new(), ta2, ga2, BrepState::new(), BooleanOp::Union);
 
         let r_ab = execute_boolean_logged(input_ab)
             .into_result()
@@ -785,11 +786,11 @@ fn associativity_small_chain() {
         let (mut topo, mut geom) = build_cube(cubes[0].0, cubes[0].1);
         for (step, (center, half)) in cubes[1..].iter().enumerate() {
             let (t_tool, g_tool) = build_cube(*center, *half);
-            let input = BooleanInput::new(topo, geom, t_tool, g_tool, BooleanOp::Union);
+            let input = BooleanInput::new(topo, geom, BrepState::new(), t_tool, g_tool, BrepState::new(), BooleanOp::Union);
             let r = execute_boolean_logged(input)
                 .into_result()
                 .unwrap_or_else(|e| panic!("Left-fold step {step} failed: {e}"));
-            let parts = r.into_topo_geom();
+            let parts = r.into_states();
             topo = parts.0;
             geom = parts.1;
         }
@@ -801,11 +802,11 @@ fn associativity_small_chain() {
         let (mut topo, mut geom) = build_cube(cubes[last].0, cubes[last].1);
         for step in (0..last).rev() {
             let (t_tool, g_tool) = build_cube(cubes[step].0, cubes[step].1);
-            let input = BooleanInput::new(t_tool, g_tool, topo, geom, BooleanOp::Union);
+            let input = BooleanInput::new(t_tool, g_tool, BrepState::new(), topo, geom, BrepState::new(), BooleanOp::Union);
             let r = execute_boolean_logged(input)
                 .into_result()
                 .unwrap_or_else(|e| panic!("Right-fold step {} failed: {e}", last - 1 - step));
-            let parts = r.into_topo_geom();
+            let parts = r.into_states();
             topo = parts.0;
             geom = parts.1;
         }
@@ -848,7 +849,7 @@ fn plane_intern_stability() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 2.0);
     let (topo_b, geom_b) = build_cube([1.0, 0.0, 0.0], 1.0);
 
-    let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
+    let input = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Union);
     let r = execute_boolean_logged(input)
         .into_result()
         .expect("Union for plane intern test failed");
@@ -931,7 +932,7 @@ fn zero_classification_stability() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 2.0);
     let (topo_b, geom_b) = build_cube([1.0, 0.0, 0.0], 1.0);
 
-    let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
+    let input = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Union);
     let r = execute_boolean_logged(input)
         .into_result()
         .expect("Union for classification test failed");
@@ -1014,7 +1015,7 @@ fn deterministic_replay_harness() {
 
         for (step, (center, half, op)) in operations.iter().enumerate() {
             let (t_tool, g_tool) = build_cube(*center, *half);
-            let input = BooleanInput::new(topo, geom, t_tool, g_tool, *op);
+            let input = BooleanInput::new(topo, geom, BrepState::new(), t_tool, g_tool, BrepState::new(), *op);
 
             let result = match execute_boolean_logged(input).into_result() {
                 Ok(r) => r,
@@ -1088,7 +1089,7 @@ fn deterministic_replay_harness() {
                 "REPLAY [{run_label}] step {step}: V={v} E={e} F={f} χ={chi} hash={hash:#x}"
             );
 
-            let parts = result.into_topo_geom();
+            let parts = result.into_states();
             topo = parts.0;
             geom = parts.1;
         }

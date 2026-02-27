@@ -47,7 +47,7 @@ impl<'a> OperationPipeline<'a> {
         S: StepContract,
         F: FnOnce(&mut ModelingContext) -> Result<R, KernelError>,
     {
-        // 1. Auto-injection: validate policies
+        // 1. Validate required policies (fail-fast)
         for policy in step.policy_queries() {
             self.ctx.validate_policy_configured(policy)?;
         }

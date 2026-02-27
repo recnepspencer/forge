@@ -26,8 +26,7 @@ mod naming_resolution;
 pub use context::ModelingContext;
 pub use context::{ArenaSnapshot, SubOperationMetadata, compute_topology_delta};
 pub use context::{
-    ResolvedPolicySource, ResolvedPolicyDecision, ScopedPolicyValue,
-    PolicyRegistrySnapshot,
+    ResolvedPolicySource, ResolvedPolicyDecision,
 };
 pub use tolerance::{
     TolerancePolicy,

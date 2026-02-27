@@ -1,7 +1,7 @@
-use crate::features::tree::{FeatureTree, NativeFeature};
-use crate::features::wrappers::MakeCubeFeature;
+use crate::engine::tree::{FeatureTree, NativeFeature};
+use crate::engine::wrappers::MakeCubeFeature;
 use crate::operations::boolean::BooleanOp;
-use crate::features::wrappers::BooleanFeature;
+use crate::engine::wrappers::BooleanFeature;
 
 // ══════════════════════════════════════════════════════════════
 // §8  FEATURE TREE TESTS

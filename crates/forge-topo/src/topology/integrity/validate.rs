@@ -57,7 +57,9 @@ pub enum TopologyMode {
 
 pub use super::structural::validate_topology;
 pub use super::structural::validate_topology_with_mode;
-pub use super::geometric::validate_geometric_invariants;
+/// Geometric invariant validation has moved to `forge-spatial::integrity`.
+/// Build with forge-spatial as a dependency and call `forge_spatial::integrity::validate_geometric_invariants`.
+
 
 #[cfg(test)]
 mod tests {

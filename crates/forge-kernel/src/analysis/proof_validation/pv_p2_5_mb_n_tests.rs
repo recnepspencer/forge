@@ -197,7 +197,7 @@ fn mb_n3_boolean_chain_surface_notches() {
                     "Step {} must have positive even χ, got χ={} (V={} E={} F={})",
                     i, chi, v, e, f
                 );
-                let (t, g) = result.into_topo_geom();
+                let (t, g, _) = result.into_states();
                 topo = t;
                 geom = g;
                 successful_steps += 1;

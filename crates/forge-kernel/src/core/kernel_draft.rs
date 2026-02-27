@@ -4,6 +4,7 @@ use forge_topo::state::{MutableDraft, TopologyState};
 
 use crate::core::KernelState;
 use crate::geometry_state::GeometryPatch;
+use crate::brep::patch::BrepPatch;
 
 /// Transactional mutation handle for topology + geometry.
 ///
@@ -15,6 +16,7 @@ use crate::geometry_state::GeometryPatch;
 pub struct KernelDraft {
     draft: MutableDraft,
     geom_patch: GeometryPatch,
+    brep_patch: BrepPatch,
     /// The pre-mutation topology snapshot, kept for guaranteed-safe rollback.
     original_topo: TopologyState,
 }
@@ -25,11 +27,12 @@ impl KernelDraft {
     /// Stores the original topology internally so `rollback()` always pairs
     /// geometry with the correct topological snapshot.
     pub fn new(state: KernelState) -> Self {
-        let (topo, geom) = state.into_parts();
+        let (topo, geom, brep) = state.into_parts();
         let original_topo = topo.clone();
         Self {
             draft: topo.into_mutation(),
             geom_patch: GeometryPatch::new(geom),
+            brep_patch: BrepPatch::new(brep),
             original_topo,
         }
     }
@@ -59,9 +62,19 @@ impl KernelDraft {
         &mut self.geom_patch
     }
 
+    /// Read-only access to the B-Rep patch.
+    pub fn brep(&self) -> &BrepPatch {
+        &self.brep_patch
+    }
+
+    /// Mutable access to the B-Rep patch.
+    pub fn brep_mut(&mut self) -> &mut BrepPatch {
+        &mut self.brep_patch
+    }
+
     /// Destructure the draft into mutable borrows for leaf function calls.
-    pub fn as_parts_mut(&mut self) -> (&mut MutableDraft, &mut GeometryPatch) {
-        (&mut self.draft, &mut self.geom_patch)
+    pub fn as_parts_mut(&mut self) -> (&mut MutableDraft, &mut GeometryPatch, &mut BrepPatch) {
+        (&mut self.draft, &mut self.geom_patch, &mut self.brep_patch)
     }
 
     /// Discard all pending mutations and restore the pre-draft `KernelState`.
@@ -69,13 +82,13 @@ impl KernelDraft {
     /// Uses the original topology stored at construction time, guaranteeing
     /// that geometry and topology are always paired correctly.
     pub fn rollback(self) -> KernelState {
-        KernelState::new(self.original_topo, self.geom_patch.rollback())
+        KernelState::new(self.original_topo, self.geom_patch.rollback(), self.brep_patch.rollback())
     }
 
     /// Commit the transaction, finalizing all topology and geometry mutations.
     pub fn commit(self) -> Result<KernelState, KernelError> {
         let topo = self.draft.commit()?;
-        Ok(KernelState::new(topo, self.geom_patch.commit()))
+        Ok(KernelState::new(topo, self.geom_patch.commit(), self.brep_patch.commit()))
     }
 
     /// Commit with an explicit `TopologyMode`, permitting NMT-intermediate states.
@@ -89,6 +102,6 @@ impl KernelDraft {
         mode: forge_topo::validate::TopologyMode,
     ) -> Result<KernelState, KernelError> {
         let topo = self.draft.commit_with_mode(level, mode)?;
-        Ok(KernelState::new(topo, self.geom_patch.commit()))
+        Ok(KernelState::new(topo, self.geom_patch.commit(), self.brep_patch.commit()))
     }
 }

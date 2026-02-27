@@ -1,66 +1,92 @@
 #[cfg(test)]
 mod tracing_tests {
     use std::thread;
-    use forge_core::TracedDecision;
+    use forge_core::{TracedDecision, DecisionKind, DecisionTier, DecisionContext, DecisionId};
     use crate::core::tracing::span::KernelSpan;
 
+    /// Helper: build a TracedDecision with a given ID and kind.
+    fn make_decision(id: u64, kind: DecisionKind) -> TracedDecision {
+        TracedDecision::new(
+            DecisionId(id),
+            kind,
+            DecisionTier::Deterministic,
+            1.0,
+            DecisionContext::Tolerance { measured: 0.5, threshold: 1.0 },
+        )
+    }
+
     #[test]
-    fn test_single_threaded_span() {
+    fn single_threaded_span_collects_decisions() {
         assert!(!KernelSpan::is_active());
-        
+
         let guard = KernelSpan::enter("test_span");
         assert!(KernelSpan::is_active());
 
-        // We can't directly instantiate `TracedDecision` because it might have private fields,
-        // but we can use `KernelSpan::check_tolerance` as a proxy if it logged, or just verify
-        // that calling `is_active` works. We'll verify the guard returns an empty output.
+        KernelSpan::record_decision(make_decision(1, DecisionKind::Exact));
+        KernelSpan::record_decision(make_decision(2, DecisionKind::Exact));
+
         let output = guard.finish();
-        
-        assert_eq!(output.decision_log.len(), 0);
+
+        assert_eq!(output.decision_log.len(), 2, "span should contain both recorded decisions");
         assert_eq!(output.warnings.len(), 0);
         assert!(output.config_snapshot.is_none());
-
         assert!(!KernelSpan::is_active());
     }
 
     #[test]
-    fn test_nested_spans() {
-        let guard1 = KernelSpan::enter("outer");
-        assert!(KernelSpan::is_active());
-
-        let handle_outer = KernelSpan::current_handle().unwrap();
+    fn nested_spans_isolate_decisions() {
+        let outer_guard = KernelSpan::enter("outer");
+        KernelSpan::record_decision(make_decision(10, DecisionKind::Exact));
 
         {
-            let guard2 = KernelSpan::enter("inner");
+            let inner_guard = KernelSpan::enter("inner");
             assert!(KernelSpan::is_active());
-            
-            // The inner guard has a different handle internally. Let's finish inner.
-            let _output2 = guard2.finish();
+
+            KernelSpan::record_decision(make_decision(20, DecisionKind::Exact));
+            KernelSpan::record_decision(make_decision(21, DecisionKind::Exact));
+
+            let inner_output = inner_guard.finish();
+            assert_eq!(
+                inner_output.decision_log.len(), 2,
+                "inner span should capture only inner decisions"
+            );
         }
 
-        // We are back to outer span.
-        assert!(KernelSpan::is_active());
-        let _output1 = guard1.finish();
+        KernelSpan::record_decision(make_decision(11, DecisionKind::Exact));
 
+        assert!(KernelSpan::is_active(), "outer span should still be active");
+        let outer_output = outer_guard.finish();
+        assert_eq!(
+            outer_output.decision_log.len(), 2,
+            "outer span should capture only outer decisions (10 and 11)"
+        );
         assert!(!KernelSpan::is_active());
     }
 
     #[test]
-    fn test_cross_thread_attachment() {
+    fn cross_thread_attachment_routes_decisions_to_parent() {
         let guard = KernelSpan::enter("main");
-        
-        // Log something? No, let's just test handles.
-        let handle = KernelSpan::current_handle().expect("Handle must exist when span is active");
-        
+        KernelSpan::record_decision(make_decision(100, DecisionKind::Exact));
+
+        let handle = KernelSpan::current_handle()
+            .expect("handle must exist when span is active");
+
         let t = thread::spawn(move || {
-            assert!(!KernelSpan::is_active(), "New thread should have no active span initially");
+            assert!(!KernelSpan::is_active(), "new thread should have no active span");
             let _worker_guard = KernelSpan::attach(handle);
-            assert!(KernelSpan::is_active(), "Worker thread should be active after attachment");
-            // Would log a decision here, which goes to main thread's collector
+            assert!(KernelSpan::is_active(), "worker should be active after attach");
+            KernelSpan::record_decision(make_decision(
+                200,
+                DecisionKind::Forced { reason: "worker_decision".into() },
+            ));
         });
-        
+
         t.join().unwrap();
-        
-        let _output = guard.finish();
+
+        let output = guard.finish();
+        assert_eq!(
+            output.decision_log.len(), 2,
+            "parent span should contain both main-thread (100) and worker-thread (200) decisions"
+        );
     }
 }

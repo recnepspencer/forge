@@ -25,7 +25,7 @@ pub use topology::operations::operator::EulerOperator;
 pub use topology::operations::operator;
 pub use topology::operations::euler;
 pub use topology::operations::algorithms;
-pub use topology::queries::{traverse, classify, classification, bounds, continuity, hierarchy, ordering, polygon};
+pub use topology::queries::{traverse, classification, continuity, hierarchy, ordering, polygon};
 pub use topology::history::replay;
 pub use topology::integrity::{diff, validate, hashing, healing};
 pub use topology::attributes;

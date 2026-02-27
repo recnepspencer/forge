@@ -61,7 +61,7 @@ fn build_coplanar_grid_solid(
                 match execute_boolean_ember(input).into_result() {
                     Ok(result) => {
                         let r = result;
-                        let parts = r.into_topo_geom();
+                        let parts = r.into_states();
                         topo = parts.0;
                         geom = parts.1;
                         step_count += 1;
@@ -141,7 +141,7 @@ fn coplanar_partial_overlap_12_regions() {
                 let r = result;
                 let (_v, _e, _f, chi) = euler_audit(r.topology().arena());
                 assert_eq!(chi, 2, "MB1 partial step {i} Euler violation");
-                let parts = r.into_topo_geom();
+                let parts = r.into_states();
                 topo = parts.0;
                 geom = parts.1;
             }
@@ -221,7 +221,7 @@ fn collinear_point_storm_50() {
         match execute_boolean_ember(input).into_result() {
             Ok(result) => {
                 let r = result;
-                let parts = r.into_topo_geom();
+                let parts = r.into_states();
                 topo = parts.0;
                 geom = parts.1;
             }

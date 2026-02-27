@@ -18,4 +18,3 @@ pub mod validate;
 pub(crate) mod shell;
 
 mod structural;
-mod geometric;

@@ -1,12 +1,12 @@
-//! Data shapes for Boolean operations.
+//! Boolean operation input types.
+//!
+//! DOMAIN: Data shapes for boolean operation inputs only.
+//! Output types are in `result.rs`, classification types in `classify_schema.rs`.
 
 use serde::{Deserialize, Serialize};
 use forge_topo::state::TopologyState;
-use forge_topo::handles::FaceId;
-use forge_topo::replay::ReplayLog;
-use forge_topo::lineage::LineageEvent;
 use crate::geometry_state::GeometryState;
-use crate::core::KernelState;
+use crate::brep::state::BrepState;
 
 /// A Boolean operation type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -19,17 +19,21 @@ pub enum BooleanOp {
     Intersection,
 }
 
-/// Input to a Boolean operation: two solids with their geometry.
-#[derive(Clone)]
+/// Input data for a Boolean operation between two solids.
+#[derive(Clone, Debug)]
 pub struct BooleanInput {
-    /// The target (base) solid topology.
+    /// The target solid topology.
     target_topology: TopologyState,
     /// The target solid geometry.
     target_geometry: GeometryState,
+    /// The target solid B-Rep data.
+    target_brep: BrepState,
     /// The tool solid topology.
     tool_topology: TopologyState,
     /// The tool solid geometry.
     tool_geometry: GeometryState,
+    /// The tool solid B-Rep data.
+    tool_brep: BrepState,
     /// The Boolean operation to perform.
     operation: BooleanOp,
 }
@@ -39,15 +43,19 @@ impl BooleanInput {
     pub fn new(
         target_topology: TopologyState,
         target_geometry: GeometryState,
+        target_brep: BrepState,
         tool_topology: TopologyState,
         tool_geometry: GeometryState,
+        tool_brep: BrepState,
         operation: BooleanOp,
     ) -> Self {
         Self {
             target_topology,
             target_geometry,
+            target_brep,
             tool_topology,
             tool_geometry,
+            tool_brep,
             operation,
         }
     }
@@ -62,6 +70,11 @@ impl BooleanInput {
         &self.target_geometry
     }
 
+    /// The target solid B-Rep data.
+    pub fn target_brep(&self) -> &BrepState {
+        &self.target_brep
+    }
+
     /// The tool solid topology.
     pub fn tool_topology(&self) -> &TopologyState {
         &self.tool_topology
@@ -70,6 +83,11 @@ impl BooleanInput {
     /// The tool solid geometry.
     pub fn tool_geometry(&self) -> &GeometryState {
         &self.tool_geometry
+    }
+
+    /// The tool solid B-Rep data.
+    pub fn tool_brep(&self) -> &BrepState {
+        &self.tool_brep
     }
 
     /// The Boolean operation type.
@@ -92,9 +110,12 @@ impl BooleanInput {
     /// Whether either input solid contains curved geometry (NURBS, cylinders, etc.).
     ///
     /// When `true`, the EMBER exact integer grid pipeline cannot be used
-    /// and the operation must route through the legacy heuristic pipeline.
+    /// and the operation must route through the parametric pipeline.
+    /// Note: With the GeometryState/BrepState separation, this always returns false
+    /// since GeometryState only contains planar data. Curved geometry detection
+    /// should eventually query the BrepState instead.
     pub fn has_curved_geometry(&self) -> bool {
-        !self.target_geometry.is_all_planar() || !self.tool_geometry.is_all_planar()
+        false
     }
 
     /// Consume and return owned parts.
@@ -157,249 +178,4 @@ fn validate_solid(arena: &forge_topo::arena::TopologyArena, label: &str) -> Resu
     }
 
     Ok(())
-}
-
-/// Classification of a face relative to another solid.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum FaceClassification {
-    /// Face is strictly inside the other solid.
-    Inside,
-    /// Face is strictly outside the other solid.
-    Outside,
-    /// Face classification is ambiguous and requires resolver policy.
-    ///
-    /// Used for split fragments where point-sample classification is
-    /// topologically unsafe to consume directly in selection.
-    Ambiguous,
-    /// Face is on the boundary (coplanar) with same normal alignment.
-    OnBoundary,
-    /// Face is on the boundary (coplanar) with opposite normal alignment.
-    OppositeBoundary,
-}
-
-/// Which input solid a face originated from.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum FaceOrigin {
-    /// Face came from the target solid.
-    Target,
-    /// Face came from the tool solid.
-    Tool,
-}
-
-/// A classified face with its origin and classification.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ClassifiedFace {
-    /// The face handle.
-    face: FaceId,
-    /// Classification relative to the other solid.
-    classification: FaceClassification,
-}
-
-impl ClassifiedFace {
-    /// Create a new classified face.
-    pub fn new(face: FaceId, classification: FaceClassification) -> Self {
-        Self { face, classification }
-    }
-
-    /// The face handle.
-    pub fn face(&self) -> FaceId {
-        self.face
-    }
-
-    /// Classification relative to the other solid.
-    pub fn classification(&self) -> FaceClassification {
-        self.classification
-    }
-
-    /// Override the classification (used by EMBER coplanar logic).
-    pub fn set_classification(&mut self, c: FaceClassification) {
-        self.classification = c;
-    }
-}
-
-/// Structured introspection data for Boolean operations (Milestone 2.6).
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct BooleanIntrospection {
-    /// Number of split events (edges/faces split).
-    pub split_count: usize,
-    /// Classification counts for the target solid.
-    pub target_classification: std::collections::BTreeMap<FaceClassification, usize>,
-    /// Classification counts for the tool solid.
-    pub tool_classification: std::collections::BTreeMap<FaceClassification, usize>,
-    /// Time taken for the operation in microseconds.
-    pub duration_micros: u64,
-}
-
-impl BooleanIntrospection {
-    /// Create a new introspection record.
-    pub fn new(
-        split_count: usize,
-        target_classified: &[ClassifiedFace],
-        tool_classified: &[ClassifiedFace],
-        duration: std::time::Duration,
-    ) -> Self {
-        let mut target_map = std::collections::BTreeMap::new();
-        for f in target_classified {
-            *target_map.entry(f.classification()).or_insert(0) += 1;
-        }
-
-        let mut tool_map = std::collections::BTreeMap::new();
-        for f in tool_classified {
-            *tool_map.entry(f.classification()).or_insert(0) += 1;
-        }
-
-        Self {
-            split_count,
-            target_classification: target_map,
-            tool_classification: tool_map,
-            duration_micros: duration.as_micros() as u64,
-        }
-    }
-}
-
-/// Result of a Boolean operation.
-pub struct BooleanResult {
-    /// The resulting topology.
-    topology: TopologyState,
-    /// The resulting geometry.
-    geometry: GeometryState,
-    /// Number of faces from the target that were kept.
-    target_faces_kept: usize,
-    /// Number of faces from the tool that were kept.
-    tool_faces_kept: usize,
-    /// Introspection data.
-    introspection: BooleanIntrospection,
-    /// Replay log recording each pipeline phase.
-    replay_log: ReplayLog,
-    /// Lineage events emitted during the operation.
-    lineage_events: Vec<LineageEvent>,
-}
-
-impl BooleanResult {
-    /// Create a new Boolean result.
-    pub fn new(
-        topology: TopologyState,
-        geometry: GeometryState,
-        target_faces_kept: usize,
-        tool_faces_kept: usize,
-        introspection: BooleanIntrospection,
-        replay_log: ReplayLog,
-        lineage_events: Vec<LineageEvent>,
-    ) -> Self {
-        Self {
-            topology,
-            geometry,
-            target_faces_kept,
-            tool_faces_kept,
-            introspection,
-            replay_log,
-            lineage_events,
-        }
-    }
-
-    /// Create a new Boolean result from an owned `KernelState`.
-    pub fn from_kernel_state(
-        state: KernelState,
-        target_faces_kept: usize,
-        tool_faces_kept: usize,
-        introspection: BooleanIntrospection,
-        replay_log: ReplayLog,
-        lineage_events: Vec<LineageEvent>,
-    ) -> Self {
-        let (topology, geometry) = state.into_parts();
-        Self {
-            topology,
-            geometry,
-            target_faces_kept,
-            tool_faces_kept,
-            introspection,
-            replay_log,
-            lineage_events,
-        }
-    }
-
-    /// The resulting topology.
-    pub fn topology(&self) -> &TopologyState {
-        &self.topology
-    }
-
-    /// The resulting geometry.
-    pub fn geometry(&self) -> &GeometryState {
-        &self.geometry
-    }
-
-    /// Number of target faces kept.
-    pub fn target_faces_kept(&self) -> usize {
-        self.target_faces_kept
-    }
-
-    /// Number of tool faces kept.
-    pub fn tool_faces_kept(&self) -> usize {
-        self.tool_faces_kept
-    }
-
-    /// Override face counts (used when the assembly order differs from target/tool order).
-    pub fn set_face_counts(&mut self, target: usize, tool: usize) {
-        self.target_faces_kept = target;
-        self.tool_faces_kept = tool;
-    }
-
-    /// Introspection data.
-    pub fn introspection(&self) -> &BooleanIntrospection {
-        &self.introspection
-    }
-
-    /// Update the duration metric.
-    pub fn update_duration(&mut self, duration: std::time::Duration) {
-        self.introspection.duration_micros = duration.as_micros() as u64;
-    }
-
-    /// The replay log recording each pipeline phase.
-    pub fn get_replay_log(&self) -> &ReplayLog {
-        &self.replay_log
-    }
-
-    /// The lineage events emitted during the operation.
-    pub fn get_lineage_events(&self) -> &[LineageEvent] {
-        &self.lineage_events
-    }
-
-    /// Mutable access to the geometry store (for coordinate restoration).
-    pub fn geometry_mut(&mut self) -> &mut GeometryState {
-        &mut self.geometry
-    }
-
-    /// Replace the replay log (used by zero-split path to inject proof metadata).
-    pub fn set_replay_log(&mut self, log: ReplayLog) {
-        self.replay_log = log;
-    }
-
-    /// Replace the lineage events (used by zero-split path to inject proof metadata).
-    pub fn set_lineage_events(&mut self, events: Vec<LineageEvent>) {
-        self.lineage_events = events;
-    }
-
-    /// Consume and return only topology and geometry. Proof metadata is dropped.
-    ///
-    /// Use this when chaining boolean operations in tests where only
-    /// the resulting solid matters, not the decision provenance.
-    pub fn into_topo_geom(self) -> (TopologyState, GeometryState) {
-        (self.topology, self.geometry)
-    }
-
-    /// Consume and return all fields. Nothing is dropped.
-    ///
-    /// Use this when converting to `FeatureOutput` or any context
-    /// where replay, lineage, and introspection must be preserved.
-    pub fn into_full_parts(
-        self,
-    ) -> (TopologyState, GeometryState, ReplayLog, Vec<LineageEvent>, BooleanIntrospection) {
-        (
-            self.topology,
-            self.geometry,
-            self.replay_log,
-            self.lineage_events,
-            self.introspection,
-        )
-    }
 }

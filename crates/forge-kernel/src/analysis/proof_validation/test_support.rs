@@ -10,7 +10,7 @@ use forge_topo::arena::{
 };
 use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
 use forge_topo::lineage_store::LineageStore;
-use forge_topo::validate::validate_geometric_invariants;
+use forge_spatial::integrity::validate_geometric_invariants;
 
 /// Validate geometric invariants assuming all faces are planar.
 pub fn validate_geometric_invariants_all_faces(

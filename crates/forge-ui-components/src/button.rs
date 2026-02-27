@@ -52,15 +52,18 @@ pub struct FgButton<'a> {
     pub size:     FgButtonSize,
     pub disabled: bool,
     pub loading:  bool,
+    pub width:    Option<f32>,
 }
 
 impl<'a> FgButton<'a> {
     pub fn new(label: &'a str) -> Self {
-        Self { label, variant: FgButtonVariant::Primary, size: FgButtonSize::Md, disabled: false, loading: false }
+        Self { label, variant: FgButtonVariant::Primary, size: FgButtonSize::Md, disabled: false, loading: false, width: None }
     }
     pub fn variant(mut self, v: FgButtonVariant) -> Self { self.variant = v; self }
     pub fn size(mut self, s: FgButtonSize) -> Self { self.size = s; self }
     pub fn disabled(mut self, d: bool) -> Self { self.disabled = d; self }
+    pub fn loading(mut self, l: bool) -> Self { self.loading = l; self }
+    pub fn width(mut self, w: f32) -> Self { self.width = Some(w); self }
 }
 
 pub fn fg_button(ui: &mut Ui, theme: &ForgeTheme, icons: &IconStore, props: FgButton<'_>) -> Response {
@@ -86,14 +89,17 @@ pub fn fg_button(ui: &mut Ui, theme: &ForgeTheme, icons: &IconStore, props: FgBu
         f.layout_no_wrap(props.label.to_string(), egui::FontId::proportional(font_size), text_col)
     });
 
-    let mut total_width = if props.loading {
+    let mut content_width = if props.loading {
         galley.size().x + font_size + 8.0 
     } else {
         galley.size().x
     };
-    if props.label.is_empty() && props.loading { total_width = font_size; }
+    if props.label.is_empty() && props.loading { content_width = font_size; }
     
-    let size = Vec2::new(total_width + h_pad * 2.0, galley.size().y.max(font_size) + v_pad * 2.0);
+    let natural_width = content_width + h_pad * 2.0;
+    let final_width = props.width.unwrap_or(natural_width).max(natural_width);
+    
+    let size = Vec2::new(final_width, galley.size().y.max(font_size) + v_pad * 2.0);
     let (rect, mut response) = ui.allocate_exact_size(size, egui::Sense::click());
 
     if ui.is_rect_visible(rect) {
@@ -125,13 +131,52 @@ pub fn fg_button(ui: &mut Ui, theme: &ForgeTheme, icons: &IconStore, props: FgBu
         // Pressed scale-down effect: inset rect by 1px
         let draw_rect = if is_pressed { rect.shrink(1.0) } else { rect };
 
-        ui.painter().rect(draw_rect, rounding, actual_bg, egui::Stroke::new(1.0, border), egui::StrokeKind::Outside);
+        let use_metal = matches!(props.variant, FgButtonVariant::Primary | FgButtonVariant::Secondary | FgButtonVariant::Danger);
+        
+        if use_metal && !props.disabled && !props.loading {
+            use forge_ui_theme::metal::{paint_metal_rect, MetalOpts};
+            
+            let highlight_shift = if is_hovered { 0.4 } else { 0.0 };
+            
+            // Pick the best base color for the metallic effect.
+            // For Danger, we want the bright red, not the faded surface.
+            let mut base_c = actual_bg;
+            if props.variant == FgButtonVariant::Danger && !is_hovered && !is_pressed {
+                base_c = theme.danger;
+            }
+            
+            // Force full alpha for the GPU shader path
+            let metal_color = egui::Color32::from_rgb(base_c.r(), base_c.g(), base_c.b());
+            
+            paint_metal_rect(
+                ui,
+                draw_rect,
+                metal_color,
+                &MetalOpts {
+                    gradient_strength: theme.metal_gradient,
+                    highlight_shift,
+                    rim_alpha: theme.metal_rim_alpha as f32 / 255.0,
+                    rounding: theme.radius_md,
+                    pressed: is_pressed,
+                },
+            );
+        } else {
+            ui.painter().rect(draw_rect, rounding, actual_bg, egui::Stroke::new(1.0, border), egui::StrokeKind::Outside);
+        }
+        
+        let extra_space = final_width - natural_width;
+        let align_offset = Vec2::new(extra_space / 2.0, 0.0);
         
         let text_offset = if is_pressed { Vec2::new(h_pad, v_pad + 0.5) } else { Vec2::new(h_pad, v_pad) };
-        let mut content_start = draw_rect.min + text_offset;
+        let mut content_start = draw_rect.min + text_offset + align_offset;
+        
+        let content_height = galley.size().y.max(font_size);
+        let icon_y_offset = ((content_height - font_size) / 2.0).max(0.0);
+        let text_y_offset = ((content_height - galley.size().y) / 2.0).max(0.0);
         
         if props.loading {
-            let icon_rect = egui::Rect::from_min_size(content_start, Vec2::splat(font_size));
+            let icon_pos = content_start + Vec2::new(0.0, icon_y_offset);
+            let icon_rect = egui::Rect::from_min_size(icon_pos, Vec2::splat(font_size));
             ui.ctx().request_repaint(); // Needs continuous repaint for animation
             let t = ui.input(|i| i.time);
             let angle = (t * std::f64::consts::PI * 2.0) as f32; // 1 rotation per second
@@ -139,11 +184,11 @@ pub fn fg_button(ui: &mut Ui, theme: &ForgeTheme, icons: &IconStore, props: FgBu
             
             if !props.label.is_empty() {
                 content_start.x += font_size + 8.0;
-                let text_pos = content_start + Vec2::new(0.0, ((font_size - galley.size().y) / 2.0).max(0.0));
+                let text_pos = content_start + Vec2::new(0.0, text_y_offset);
                 ui.painter().galley(text_pos, galley, text_col);
             }
         } else {
-            let text_pos = content_start + Vec2::new(0.0, ((font_size - galley.size().y) / 2.0).max(0.0));
+            let text_pos = content_start + Vec2::new(0.0, text_y_offset);
             ui.painter().galley(text_pos, galley, text_col);
         }
     }

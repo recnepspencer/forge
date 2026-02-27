@@ -87,10 +87,10 @@ fn concave_union_composition() {
         BooleanOp::Union,
     );
 
-    let (topo_ab, geom_ab) = ab.into_topo_geom();
+    let (topo_ab, geom_ab, _) = ab.into_states();
     let (topo_c, geom_c) = build_cube([0.75, 1.5, 0.0], 1.0);
 
-    let input_abc = BooleanInput::new(topo_ab, geom_ab, topo_c, geom_c, BooleanOp::Union);
+    let input_abc = BooleanInput::new(topo_ab, geom_ab, BrepState::new(), topo_c, geom_c, BrepState::new(), BooleanOp::Union);
     let concave = execute_boolean_logged(input_abc);
 
     match concave.into_result() {
@@ -101,7 +101,7 @@ fn concave_union_composition() {
             let f = arena.face_count() as isize;
             assert_eq!(v - e + f, 2, "Concave solid Euler violation");
 
-            let (topo_concave, geom_concave) = r.into_topo_geom();
+            let (topo_concave, geom_concave, _) = r.into_states();
             let (topo_tool, geom_tool) = build_cube([0.75, 0.75, 0.75], 0.5);
             let input = BooleanInput::new(
                 topo_concave, geom_concave,

@@ -43,6 +43,15 @@ impl ResolvedConfig {
         }
     }
 
+    /// Scale-aware vertex tolerance following ISO 10303-42.
+    ///
+    /// Returns `1e-7 * max(model_scale_mm, 1.0)`, floored at
+    /// `ABSOLUTE_MINIMUM_TOLERANCE` to prevent underflow on sub-mm models.
+    pub fn scaled_vertex_tolerance(&self) -> f64 {
+        let scale = self.config.tolerance.model_scale_mm.max(1.0);
+        (scale * 1e-7).max(crate::core::tolerance::ABSOLUTE_MINIMUM_TOLERANCE)
+    }
+
     /// Perform cross-section invariant validation.
     ///
     /// Validates individual sections, then checks multi-field invariants
@@ -56,13 +65,14 @@ impl ResolvedConfig {
         let ambiguity_limit = tol.spatial_tolerance * tol.ambiguity_band_factor;
         
         // Legacy defaults support: GAP_CLOSURE_MAX is 1e-4, while ambiguity_limit is 1e-5.
-        // We relax this multiple to 10.1 to account for floating point errors.
-        if tol.max_gap_closure > ambiguity_limit * 10.1 {
+        // We relax by GAP_CLOSURE_RELAXATION_FACTOR to account for floating point errors.
+        let relaxed_limit = ambiguity_limit * super::defaults::GAP_CLOSURE_RELAXATION_FACTOR;
+        if tol.max_gap_closure > relaxed_limit {
             return Err(KernelError::InvalidConfig {
                 field: "max_gap_closure".into(),
                 reason: format!(
-                    "max_gap_closure ({}) cannot exceed spatial_tolerance * ambiguity_band_factor * 10 ({})",
-                    tol.max_gap_closure, ambiguity_limit * 10.0
+                    "max_gap_closure ({}) cannot exceed spatial_tolerance * ambiguity_band_factor * GAP_CLOSURE_RELAXATION_FACTOR ({})",
+                    tol.max_gap_closure, relaxed_limit
                 ),
             });
         }

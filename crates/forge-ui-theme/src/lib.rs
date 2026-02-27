@@ -4,6 +4,10 @@
 //! themes: dark and light. Custom themes are new functions returning ForgeTheme.
 //! DEPENDENCIES: egui only.
 
+pub mod backdrop;
+pub mod metal;
+pub mod shader_pipeline;
+
 use egui::Color32;
 
 /// Complete design token set for one theme.
@@ -83,6 +87,16 @@ pub struct ForgeTheme {
     pub font_size_md: f32,
     pub font_size_lg: f32,
     pub font_size_xl: f32,
+
+    // ── Metallic effect tokens ───────────────────────────────────────────
+    /// Top-to-bottom gradient strength for metallic surfaces (0.0..0.25).
+    pub metal_gradient: f32,
+    /// Inner rim highlight alpha (0..255). Higher = shinier top edge.
+    pub metal_rim_alpha: u8,
+    /// Shadow blur radius for elevated metallic elements.
+    pub metal_shadow_blur: f32,
+    /// Shadow alpha for elevated metallic elements.
+    pub metal_shadow_alpha: u8,
 }
 
 impl ForgeTheme {
@@ -185,6 +199,11 @@ pub fn dark_theme() -> ForgeTheme {
         font_size_md: 14.0,
         font_size_lg: 16.0,
         font_size_xl: 20.0,
+
+        metal_gradient: 0.35,
+        metal_rim_alpha: 100,
+        metal_shadow_blur: 6.0,
+        metal_shadow_alpha: 40,
     }
 }
 
@@ -237,5 +256,10 @@ pub fn light_theme() -> ForgeTheme {
         font_size_md: 14.0,
         font_size_lg: 16.0,
         font_size_xl: 20.0,
+
+        metal_gradient: 0.30,
+        metal_rim_alpha: 80,
+        metal_shadow_blur: 4.0,
+        metal_shadow_alpha: 30,
     }
 }

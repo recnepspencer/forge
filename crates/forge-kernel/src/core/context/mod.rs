@@ -27,7 +27,6 @@ mod tests;
 
 pub use schema::{ModelingContext, SubOperationMetadata};
 pub use policy_resolution::{
-    ResolvedPolicySource, ResolvedPolicyDecision, ScopedPolicyValue,
-    PolicyRegistrySnapshot,
+    ResolvedPolicySource, ResolvedPolicyDecision,
 };
 pub use topology_delta::{ArenaSnapshot, compute_topology_delta};

@@ -46,6 +46,8 @@ pub enum FgIcon {
     Move3d,
     Grid2x2,
     LoaderCircle,
+    Info,
+    Warning,
 }
 
 impl FgIcon {
@@ -72,6 +74,8 @@ impl FgIcon {
             FgIcon::Move3d        => Some(include_bytes!("../icons/move-3d.svg")),
             FgIcon::Grid2x2       => Some(include_bytes!("../icons/grid-2x2.svg")),
             FgIcon::LoaderCircle  => Some(include_bytes!("../icons/loader-circle.svg")),
+            FgIcon::Info          => Some(include_bytes!("../icons/info.svg")),
+            FgIcon::Warning       => Some(include_bytes!("../icons/alert-triangle.svg")),
             _ => None,
         }
     }
@@ -111,6 +115,8 @@ impl FgIcon {
             FgIcon::Move3d        => "✥",
             FgIcon::Grid2x2       => "▦",
             FgIcon::LoaderCircle  => "↻",
+            FgIcon::Info          => "ℹ",
+            FgIcon::Warning       => "⚠",
         }
     }
 }
@@ -155,6 +161,22 @@ impl IconStore {
                 egui::RichText::new(icon.glyph())
                     .color(tint)
                     .size(size * 0.85),
+            );
+        }
+    }
+
+    /// Draw an icon spanning exactly the specified rectangle.
+    pub fn draw_in_rect(&self, ui: &mut egui::Ui, icon: FgIcon, rect: egui::Rect, tint: egui::Color32) {
+        if let Some(texture) = self.textures.get(&icon) {
+            let uv = egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0));
+            ui.painter().image(texture.id(), rect, uv, tint);
+        } else {
+            ui.painter().text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                icon.glyph(),
+                egui::FontId::proportional(rect.width() * 0.85),
+                tint,
             );
         }
     }

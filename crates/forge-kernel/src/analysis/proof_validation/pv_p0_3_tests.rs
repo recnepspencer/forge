@@ -16,7 +16,7 @@ use crate::operations::boolean::{
 use crate::operations::boolean::test_helpers::{
     selected_test_pipeline, TestPipeline,
 };
-use crate::operations::boolean::assemble::execute_boolean_direct;
+use crate::operations::boolean::parametric::assemble::execute_boolean_direct;
 use crate::operations::boolean::execute_boolean;
 use forge_math::deterministic_rng::DeterministicRng;
 use super::test_support::validate_geometric_invariants_all_faces;
@@ -97,13 +97,13 @@ fn pv_09_1000_random_booleans_all_oriented() {
 
         let outcome = match pipeline {
             TestPipeline::Adaptive => execute_boolean(input),
-            TestPipeline::Legacy => execute_boolean_direct(input),
+            TestPipeline::Parametric => execute_boolean_direct(input),
             TestPipeline::Ember => crate::operations::boolean::test_helpers::execute_boolean_ember(input),
         };
 
         match outcome.into_value() {
             Ok(result) => {
-                let (result_topo, result_geom) = result.into_topo_geom();
+                let (result_topo, result_geom, _) = result.into_states();
 
                 if result_topo.arena().face_count() < 4 {
                     successes += 1;

@@ -35,168 +35,7 @@ pub struct ResolvedPolicyDecision {
     pub adjunct: TraceAdjunctRecord,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ScopedPolicyValue {
-    pub(crate) value: bool,
-    pub(crate) scope: Option<PolicyResolutionScopeRef>,
-}
-
-/// Immutable snapshot of policy registry layers visible to an operation.
-#[derive(Debug, Clone)]
-pub struct PolicyRegistrySnapshot {
-    pub defaults: BTreeMap<PolicyKind, bool>,
-    pub session_overrides: BTreeMap<PolicyKind, ScopedPolicyValue>,
-    pub model_overrides: BTreeMap<String, BTreeMap<PolicyKind, bool>>,
-    pub feature_overrides: BTreeMap<String, BTreeMap<PolicyKind, bool>>,
-    pub operation_overrides: BTreeMap<String, BTreeMap<PolicyKind, bool>>,
-    pub active_model_scope: Option<String>,
-    pub active_feature_scope: Option<String>,
-    pub active_operation_scope: Option<String>,
-}
-
-pub(crate) fn default_policy_registry() -> BTreeMap<PolicyKind, bool> {
-    let mut defaults = BTreeMap::new();
-    // Epic A/B current product semantics: weakly-simple coplanar region boundaries
-    // are accepted by default, but the decision must be traced.
-    defaults.insert(PolicyKind::CoincidentGeometry, true);
-    defaults
-}
-
-impl PolicyRegistrySnapshot {
-    /// Check if any policy scope has a configured rule for the given kind.
-    ///
-    /// Returns `true` if defaults, session, model, feature, or operation
-    /// scopes contain a rule — meaning `resolve_policy_query` will NOT
-    /// fall through to `ForcedSafeFallback`.
-    pub fn has_any_rule_for(&self, kind: &PolicyKind) -> bool {
-        self.defaults.contains_key(kind)
-            || self.session_overrides.contains_key(kind)
-            || self.active_model_scope.as_ref()
-                .and_then(|s| self.model_overrides.get(s))
-                .is_some_and(|m| m.contains_key(kind))
-            || self.active_feature_scope.as_ref()
-                .and_then(|s| self.feature_overrides.get(s))
-                .is_some_and(|m| m.contains_key(kind))
-            || self.active_operation_scope.as_ref()
-                .and_then(|s| self.operation_overrides.get(s))
-                .is_some_and(|m| m.contains_key(kind))
-    }
-}
-
 impl ModelingContext {
-    /// Get an immutable snapshot of the policy registry visible to this context.
-    pub fn policy_registry_snapshot(&self) -> PolicyRegistrySnapshot {
-        PolicyRegistrySnapshot {
-            defaults: self.policy_defaults.clone(),
-            session_overrides: self.policy_session_overrides.clone(),
-            model_overrides: self.policy_model_overrides.clone(),
-            feature_overrides: self.policy_feature_overrides.clone(),
-            operation_overrides: self.policy_operation_overrides.clone(),
-            active_model_scope: self.active_model_policy_scope.clone(),
-            active_feature_scope: self.active_feature_policy_scope.clone(),
-            active_operation_scope: self.active_operation_policy_scope.clone(),
-        }
-    }
-
-    /// Verify that a policy kind has a configured resolution strategy.
-    ///
-    /// Returns `Ok(())` if any scope has a configuration for this kind.
-    /// Returns `Err` if no scope covers it — a fail-fast pre-check so the
-    /// pipeline rejects misconfigured features before execution starts.
-    pub fn validate_policy_configured(&self, kind: &PolicyKind) -> Result<(), KernelError> {
-        let snapshot = self.policy_registry_snapshot();
-        if snapshot.has_any_rule_for(kind) {
-            Ok(())
-        } else {
-            Err(KernelError::InvalidInput {
-                message: format!(
-                    "Policy {:?} is not configured in any scope (default/session/model/feature/operation)",
-                    kind
-                ),
-                context: None,
-            })
-        }
-    }
-
-    pub fn set_policy_default(&mut self, kind: PolicyKind, accept_potential_value: bool) {
-        self.policy_defaults.insert(kind, accept_potential_value);
-    }
-
-    pub fn clear_policy_default(&mut self, kind: PolicyKind) {
-        self.policy_defaults.remove(&kind);
-    }
-
-    pub fn set_session_policy_override(
-        &mut self,
-        kind: PolicyKind,
-        accept_potential_value: bool,
-        scope_id: Option<String>,
-    ) {
-        self.policy_session_overrides.insert(
-            kind,
-            ScopedPolicyValue {
-                value: accept_potential_value,
-                scope: Some(PolicyResolutionScopeRef::SessionUser { scope_id }),
-            },
-        );
-    }
-
-    pub fn clear_session_policy_override(&mut self, kind: PolicyKind) {
-        self.policy_session_overrides.remove(&kind);
-    }
-
-    pub fn set_active_model_policy_scope(&mut self, scope: Option<String>) {
-        self.active_model_policy_scope = scope;
-    }
-
-    pub fn set_active_feature_policy_scope(&mut self, scope: Option<String>) {
-        self.active_feature_policy_scope = scope;
-    }
-
-    pub fn set_active_operation_policy_scope(&mut self, scope: Option<String>) {
-        self.active_operation_policy_scope = scope;
-    }
-
-    pub fn get_active_operation_policy_scope(&self) -> Option<&str> {
-        self.active_operation_policy_scope.as_deref()
-    }
-
-    pub fn set_model_policy_override(
-        &mut self,
-        model_policy_key: impl Into<String>,
-        kind: PolicyKind,
-        accept_potential_value: bool,
-    ) {
-        self.policy_model_overrides
-            .entry(model_policy_key.into())
-            .or_default()
-            .insert(kind, accept_potential_value);
-    }
-
-    pub fn set_feature_policy_override(
-        &mut self,
-        feature_id: impl Into<String>,
-        kind: PolicyKind,
-        accept_potential_value: bool,
-    ) {
-        self.policy_feature_overrides
-            .entry(feature_id.into())
-            .or_default()
-            .insert(kind, accept_potential_value);
-    }
-
-    pub fn set_operation_policy_override(
-        &mut self,
-        operation_id: impl Into<String>,
-        kind: PolicyKind,
-        accept_potential_value: bool,
-    ) {
-        self.policy_operation_overrides
-            .entry(operation_id.into())
-            .or_default()
-            .insert(kind, accept_potential_value);
-    }
-
     fn resolve_policy_source_for_query(
         &self,
         query: &PolicyQuery,
@@ -212,81 +51,52 @@ impl ModelingContext {
             ));
         }
 
-        if let Some(op_id) = self.active_operation_policy_scope.as_ref() {
-            if let Some(value) = self
-                .policy_operation_overrides
-                .get(op_id)
-                .and_then(|m| m.get(&query.kind))
-            {
-                return Some((
-                    *value,
-                    ResolvedPolicySource {
-                        source: PolicyResolutionSource::OperationOverride,
-                        source_scope: Some(PolicyResolutionScopeRef::Operation {
-                            operation_id: op_id.clone(),
-                        }),
-                        default_used: false,
-                    },
-                ));
-            }
-        }
+        let (config, config_source, default_used) = if crate::core::tracing::KernelSpan::is_active() {
+            if let Some(snapshot) = crate::core::tracing::KernelSpan::get_config_snapshot() {
+                let fallback_path = format!("policy.fallback_rules.{:?}", query.kind);
+                let source = snapshot.source_of(&fallback_path).cloned();
+                
+                let default_used = if let Some(src) = &source {
+                    matches!(src.scope, crate::core::config::provenance::ConfigScope::SessionDefault)
+                } else {
+                    true
+                };
 
-        if let Some(feature_id) = self.active_feature_policy_scope.as_ref() {
-            if let Some(value) = self
-                .policy_feature_overrides
-                .get(feature_id)
-                .and_then(|m| m.get(&query.kind))
-            {
-                return Some((
-                    *value,
-                    ResolvedPolicySource {
-                        source: PolicyResolutionSource::FeatureOverride,
-                        source_scope: Some(PolicyResolutionScopeRef::Feature {
-                            feature_id: feature_id.clone(),
-                        }),
-                        default_used: false,
-                    },
-                ));
+                (snapshot.config().clone(), source, default_used)
+            } else {
+                (self.config.clone(), None, true)
             }
-        }
+        } else {
+            (self.config.clone(), None, true)
+        };
 
-        if let Some(model_key) = self.active_model_policy_scope.as_ref() {
-            if let Some(value) = self
-                .policy_model_overrides
-                .get(model_key)
-                .and_then(|m| m.get(&query.kind))
-            {
-                return Some((
-                    *value,
-                    ResolvedPolicySource {
-                        source: PolicyResolutionSource::ModelSpecOverride,
-                        source_scope: Some(PolicyResolutionScopeRef::ModelSpec {
-                            policy_key: model_key.clone(),
-                        }),
-                        default_used: false,
-                    },
-                ));
-            }
-        }
-
-        if let Some(scoped) = self.policy_session_overrides.get(&query.kind) {
-            return Some((
-                scoped.value,
-                ResolvedPolicySource {
-                    source: PolicyResolutionSource::SessionUserOverride,
-                    source_scope: scoped.scope.clone(),
-                    default_used: false,
+        if let Some(value) = config.policy.fallback_rules.get(&query.kind) {
+            let (res_source, res_scope) = match config_source {
+                Some(src) => {
+                    let res_src = match src.scope {
+                        crate::core::config::provenance::ConfigScope::SessionDefault => PolicyResolutionSource::SessionUserOverride,
+                        crate::core::config::provenance::ConfigScope::ModelOverride => PolicyResolutionSource::ModelSpecOverride,
+                        crate::core::config::provenance::ConfigScope::FeatureOverride => PolicyResolutionSource::FeatureOverride,
+                        crate::core::config::provenance::ConfigScope::OperationOverride => PolicyResolutionSource::OperationOverride,
+                    };
+                    
+                    let res_scp = match src.scope {
+                        crate::core::config::provenance::ConfigScope::SessionDefault => None,
+                        crate::core::config::provenance::ConfigScope::ModelOverride => src.origin.as_deref().map(|id| PolicyResolutionScopeRef::ModelSpec { policy_key: id.to_string() }),
+                        crate::core::config::provenance::ConfigScope::FeatureOverride => src.origin.as_deref().map(|id| PolicyResolutionScopeRef::Feature { feature_id: id.to_string() }),
+                        crate::core::config::provenance::ConfigScope::OperationOverride => src.origin.as_deref().map(|id| PolicyResolutionScopeRef::Operation { operation_id: id.to_string() }),
+                    };
+                    (res_src, res_scp)
                 },
-            ));
-        }
+                None => (PolicyResolutionSource::DefaultPolicy, None) // It came from the base config defaults
+            };
 
-        if let Some(value) = self.policy_defaults.get(&query.kind) {
             return Some((
                 *value,
                 ResolvedPolicySource {
-                    source: PolicyResolutionSource::DefaultPolicy,
-                    source_scope: None,
-                    default_used: true,
+                    source: res_source,
+                    source_scope: res_scope,
+                    default_used,
                 },
             ));
         }
@@ -371,7 +181,7 @@ impl ModelingContext {
                     let payload = PolicyDecisionTracePayload {
                         decision_id,
                         policy_kind: query.kind.clone(),
-                        operation_scope_id: self.active_operation_policy_scope.clone(),
+                        operation_scope_id: None,
                         query_location: query.location,
                         measured_margin: margin,
                         threshold,
@@ -406,7 +216,7 @@ impl ModelingContext {
         let payload = PolicyDecisionTracePayload {
             decision_id,
             policy_kind: query.kind.clone(),
-            operation_scope_id: self.active_operation_policy_scope.clone(),
+            operation_scope_id: None,
             query_location: query.location,
             measured_margin: margin,
             threshold,
@@ -426,5 +236,35 @@ impl ModelingContext {
             decision_id,
             adjunct,
         })
+    }
+
+    /// Verify that a policy kind has a configured resolution strategy
+    /// (default, session override, model override, or operation override).
+    /// Returns Ok(()) if any scope has a configuration for this kind.
+    /// Returns Err(KernelError::InvalidConfig) if no scope covers it.
+    ///
+    /// This is a fail-fast pre-check — it does NOT resolve the policy,
+    /// it only verifies that resolution won't hit ForcedSafeFallback
+    /// due to total absence of configuration.
+    pub fn validate_policy_configured(&self, kind: &PolicyKind) -> Result<(), KernelError> {
+        // We use the same configuration snapshot logic as resolve_policy_source_for_query
+        let config = if crate::core::tracing::KernelSpan::is_active() {
+            if let Some(snapshot) = crate::core::tracing::KernelSpan::get_config_snapshot() {
+                snapshot.config().clone()
+            } else {
+                self.config.clone()
+            }
+        } else {
+            self.config.clone()
+        };
+
+        if config.policy.fallback_rules.contains_key(kind) {
+            Ok(())
+        } else {
+            Err(KernelError::InvalidConfig {
+                field: format!("policy.fallback_rules.{:?}", kind),
+                reason: format!("No configured policy found for {:?}", kind),
+            })
+        }
     }
 }

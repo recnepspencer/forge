@@ -247,6 +247,12 @@ pub struct ToleranceConfig {
     collinearity_dot_tolerance: f64,
     /// AABB inflation margin for BVH overlap detection (meters).
     aabb_inflation: f64,
+    /// Grid quantization scale for spatial hashing.
+    ///
+    /// Passed as-is to `forge_math::linalg::compute_spatial_hash`. A value of `1e6`
+    /// gives 1-micrometer resolution on meter-scale models. Adjust with model scale.
+    #[serde(default = "default_spatial_hash_grid_scale")]
+    spatial_hash_grid_scale: f64,
     /// Diagonal of the model bounding box in mm, set once at import / build time.
     ///
     /// Drives scale-aware tolerance defaults per ISO 10303-42:
@@ -295,6 +301,7 @@ impl ToleranceConfig {
             min_edge_length,
             collinearity_dot_tolerance,
             aabb_inflation: defaults::AABB_INFLATION,
+            spatial_hash_grid_scale: defaults::SPATIAL_HASH_GRID_SCALE,
             model_scale_mm: 0.0,
             error_budget_mm: f64::INFINITY,
             ambiguity_band_factor: defaults::AMBIGUITY_BAND_FACTOR,
@@ -434,6 +441,20 @@ impl ToleranceConfig {
         self.aabb_inflation = value;
     }
 
+    /// Grid quantization scale for deterministic spatial hashing.
+    ///
+    /// Pass this value to `forge_math::linalg::compute_spatial_hash`.
+    /// Defaults to `1e6` (1-micrometer grid on meter-unit models).
+    pub fn get_spatial_hash_grid_scale(&self) -> f64 {
+        self.spatial_hash_grid_scale
+    }
+
+    /// Set the spatial hash grid scale.
+    pub fn set_spatial_hash_grid_scale(&mut self, value: f64) {
+        debug_assert!(value > 0.0, "spatial_hash_grid_scale must be positive");
+        self.spatial_hash_grid_scale = value;
+    }
+
     /// Multiplier for the ambiguity band around tolerance boundaries.
     ///
     /// Surface classification returns `Ambiguous` when a measure falls
@@ -462,6 +483,7 @@ impl Default for ToleranceConfig {
             min_edge_length: defaults::MIN_EDGE_LENGTH,
             collinearity_dot_tolerance: defaults::COLLINEARITY_DOT_TOLERANCE,
             aabb_inflation: defaults::AABB_INFLATION,
+            spatial_hash_grid_scale: defaults::SPATIAL_HASH_GRID_SCALE,
             model_scale_mm: 0.0,
             error_budget_mm: f64::INFINITY,
             ambiguity_band_factor: defaults::AMBIGUITY_BAND_FACTOR,
@@ -478,4 +500,9 @@ fn default_error_budget() -> f64 {
 /// Serde default helper for `ambiguity_band_factor`.
 fn default_ambiguity_band_factor() -> f64 {
     defaults::AMBIGUITY_BAND_FACTOR
+}
+
+/// Serde default helper for `spatial_hash_grid_scale`.
+fn default_spatial_hash_grid_scale() -> f64 {
+    defaults::SPATIAL_HASH_GRID_SCALE
 }

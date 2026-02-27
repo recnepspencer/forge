@@ -1,6 +1,6 @@
 //! Regression tests for Boolean classification edge cases.
 
-use forge_topo::classify::{classify_point_in_solid, PointClassification};
+use crate::spatial::{classify_point_in_solid, PointClassification};
 use forge_core::{FlatToleranceProvider, KernelError};
 
 use super::super::test_helpers::{build_cube, face_centroid};

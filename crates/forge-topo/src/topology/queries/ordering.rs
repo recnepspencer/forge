@@ -71,9 +71,12 @@ pub trait DeterministicOrder {
     fn ordering_key(&self) -> OrderingKey;
 }
 
-/// Compute a spatial hash from a 3D position using the standard grid.
-pub fn compute_entity_spatial_hash(position: &[f64; 3]) -> u64 {
-    forge_math::linalg::compute_spatial_hash(position, forge_geom::GRID_SCALE)
+/// Compute a spatial hash from a 3D position.
+///
+/// `grid_scale` controls quantization resolution — pass `ToleranceConfig::get_spatial_hash_grid_scale()`
+/// from the kernel layer. Never hardcode this value.
+pub fn compute_entity_spatial_hash(position: &[f64; 3], grid_scale: f64) -> u64 {
+    forge_math::linalg::compute_spatial_hash(position, grid_scale)
 }
 
 #[cfg(test)]

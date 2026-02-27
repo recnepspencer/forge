@@ -74,7 +74,7 @@ fn ti1_budget_accumulation_chained_near_coincident() {
         let (_v, _e, _f, chi) = euler_audit(result.topology().arena());
         assert_eq!(chi, 2, "TI-1 step {step} Euler violation: χ={chi}");
 
-        let parts = result.into_topo_geom();
+        let parts = result.into_states();
         topo = parts.0;
         geom = parts.1;
     }
@@ -192,7 +192,7 @@ fn ti4_gap_measurement_on_boolean_cavity() {
         panic!("TI-4 subtraction failed: {e:?}");
     });
 
-    let (topo_result, geom_result) = result.into_topo_geom();
+    let (topo_result, geom_result, _) = result.into_states();
 
     // Find the +X outer face (normal ≈ [1,0,0], offset ≈ 3)
     let outer_face = topo_result.arena().iter_faces().find(|(f, _)| {

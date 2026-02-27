@@ -5,22 +5,25 @@
 use eframe::egui;
 use egui::{Color32, CornerRadius, Frame, Stroke, Vec2};
 use forge_ui_components::{
-    fg_button, fg_card, fg_form, fg_input, fg_modal, fg_textarea, fg_dropdown, fg_alert,
+    fg_button, fg_card, fg_form, fg_input, fg_modal, fg_textarea, fg_dropdown, fg_alert, fg_toast,
     FgButton, FgButtonVariant, FgButtonSize, FgCard, FgIcon, IconStore,
-    FgInput, FgTextArea, FgDropdown, DropdownItem, DropdownState, FgAlert, FgAlertVariant,
+    FgInput, FgTextArea, FgDropdown, DropdownItem, DropdownState, FgAlert, AlertAction, FgToast, FgToastVariant,
 };
 use forge_ui_state::AppState;
 
 /// Per-session state for the test board demos.
 /// Using a thread-local so we don't pollute AppState.
+// TestBoardState changes:
 #[derive(Default)]
 struct TestBoardState {
     show_modal: bool,
     modal_form_name: String,
     modal_form_desc: String,
 
-    alert_visible: bool,
-    alert_variant: FgAlertVariant,
+    toast_visible: bool,
+    toast_variant: FgToastVariant,
+
+    show_alert_dialog: bool,
 
     input_demo: String,
     textarea_demo: String,
@@ -63,7 +66,7 @@ pub fn draw_test_board(ctx: &egui::Context, state: &mut AppState, icons: &IconSt
                     let margin = egui::Margin { left: 32, right: 32, top: 0, bottom: 0 };
 
                     // ══════════════════════════════════════════════════════
-                    // §1 — BUTTONS (with click feedback)
+                    // §1 — BUTTONS
                     // ══════════════════════════════════════════════════════
                     section_header(ui, &t, "Buttons — Click to see pressed state");
                     Frame::new()
@@ -92,7 +95,7 @@ pub fn draw_test_board(ctx: &egui::Context, state: &mut AppState, icons: &IconSt
                                 ui.add_space(8.0);
                                 fg_button(ui, &t, icons, FgButton::new("Disabled").disabled(true));
                                 ui.add_space(8.0);
-                                fg_button(ui, &t, icons, FgButton::new("Loading").disabled(true));
+                                fg_button(ui, &t, icons, FgButton::new("Loading").loading(true));
                             });
                         });
                     ui.add_space(24.0);
@@ -106,18 +109,22 @@ pub fn draw_test_board(ctx: &egui::Context, state: &mut AppState, icons: &IconSt
                         .inner_margin(egui::Margin::same(16)).outer_margin(margin)
                         .stroke(Stroke::new(1.0, t.border_subtle))
                         .show(ui, |ui| {
-                            ui.label(egui::RichText::new("Click to open a modal with a form inside:")
-                                .color(t.text_secondary).size(t.font_size_sm));
-                            ui.add_space(8.0);
-                            let resp = fg_button(ui, &t, icons, FgButton::new("Open Modal"));
-                            if resp.clicked() { demo.show_modal = true; }
+                            ui.horizontal(|ui| {
+                                let resp = fg_button(ui, &t, icons, FgButton::new("Open Custom Modal"));
+                                if resp.clicked() { demo.show_modal = true; }
+                                
+                                ui.add_space(16.0);
+                                
+                                let alert_resp = fg_button(ui, &t, icons, FgButton::new("Trigger Alert Dialog").variant(FgButtonVariant::Danger));
+                                if alert_resp.clicked() { demo.show_alert_dialog = true; }
+                            });
                         });
                     ui.add_space(24.0);
 
                     // ══════════════════════════════════════════════════════
-                    // §3 — ALERTS DEMO
+                    // §3 — TOASTS DEMO
                     // ══════════════════════════════════════════════════════
-                    section_header(ui, &t, "Alerts");
+                    section_header(ui, &t, "Toasts");
                     Frame::new()
                         .fill(t.bg_surface).corner_radius(CornerRadius::same(t.radius_md as u8))
                         .inner_margin(egui::Margin::same(16)).outer_margin(margin)
@@ -125,38 +132,37 @@ pub fn draw_test_board(ctx: &egui::Context, state: &mut AppState, icons: &IconSt
                         .show(ui, |ui| {
                             ui.horizontal(|ui| {
                                 for (label, variant) in [
-                                    ("Show Success", FgAlertVariant::Success),
-                                    ("Show Warning", FgAlertVariant::Warning),
-                                    ("Show Error", FgAlertVariant::Error),
-                                    ("Show Info", FgAlertVariant::Info),
+                                    ("Show Success", FgToastVariant::Success),
+                                    ("Show Warning", FgToastVariant::Warning),
+                                    ("Show Error", FgToastVariant::Error),
+                                    ("Show Info", FgToastVariant::Info),
                                 ] {
                                     let v = match variant {
-                                        FgAlertVariant::Success => FgButtonVariant::Primary,
-                                        FgAlertVariant::Warning => FgButtonVariant::Secondary,
-                                        FgAlertVariant::Error   => FgButtonVariant::Danger,
-                                        FgAlertVariant::Info    => FgButtonVariant::Ghost,
+                                        FgToastVariant::Success => FgButtonVariant::Primary,
+                                        FgToastVariant::Warning => FgButtonVariant::Secondary,
+                                        FgToastVariant::Error   => FgButtonVariant::Danger,
+                                        FgToastVariant::Info    => FgButtonVariant::Ghost,
                                     };
                                     let resp = fg_button(ui, &t, icons, FgButton::new(label).variant(v));
                                     if resp.clicked() {
-                                        demo.alert_visible = true;
-                                        demo.alert_variant = variant;
+                                        demo.toast_visible = true;
+                                        demo.toast_variant = variant;
                                     }
                                     ui.add_space(4.0);
                                 }
                             });
                             ui.add_space(8.0);
-                            if demo.alert_visible {
-                                let msg = match demo.alert_variant {
-                                    FgAlertVariant::Success => "Operation completed successfully!",
-                                    FgAlertVariant::Warning => "This action may have side effects.",
-                                    FgAlertVariant::Error   => "Something went wrong. Please try again.",
-                                    FgAlertVariant::Info    => "Here is some helpful information.",
+                            if demo.toast_visible {
+                                let msg = match demo.toast_variant {
+                                    FgToastVariant::Success => "Operation completed successfully!",
+                                    FgToastVariant::Warning => "This action may have side effects.",
+                                    FgToastVariant::Error   => "Something went wrong. Please try again.",
+                                    FgToastVariant::Info    => "Here is some helpful information.",
                                 };
-                                fg_alert(ui, &t, FgAlert::new(msg).variant(demo.alert_variant));
-                                ui.add_space(4.0);
-                                let dismiss = fg_button(ui, &t, icons,
-                                    FgButton::new("Dismiss").variant(FgButtonVariant::Ghost).size(FgButtonSize::Sm));
-                                if dismiss.clicked() { demo.alert_visible = false; }
+                                let dismissed = fg_toast(ctx, &t, icons, "demo_toast", FgToast::new(msg).variant(demo.toast_variant).dismissible(true));
+                                if dismissed {
+                                    demo.toast_visible = false;
+                                }
                             }
                         });
                     ui.add_space(24.0);
@@ -382,6 +388,26 @@ pub fn draw_test_board(ctx: &egui::Context, state: &mut AppState, icons: &IconSt
                     }
                 });
             });
+        }
+
+        // ── Alert Dialog (rendered outside ScrollArea) ─────────────────
+        if demo.show_alert_dialog {
+            let clicked = fg_alert(
+                ctx, 
+                &t, 
+                icons,
+                "demo_alert_dialog", 
+                FgAlert::new(
+                    "Delete Resource?", 
+                    "Are you sure you want to delete this resource? This action cannot be undone."
+                )
+                .with_action(AlertAction::cancel("Cancel"))
+                .with_action(AlertAction::danger("Delete"))
+            );
+            
+            if clicked.is_some() {
+                demo.show_alert_dialog = false;
+            }
         }
     });
 }

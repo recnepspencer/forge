@@ -63,6 +63,12 @@ pub const AABB_INFLATION: f64 = 1e-7;
 /// Multiplier applied to spatial_tolerance to define the ambiguity band.
 pub const AMBIGUITY_BAND_FACTOR: f64 = 10.0;
 
+/// Grid scale for spatial hashing (quantization resolution).
+///
+/// `1e6` = 1-micrometer grid cells on a meter-unit model. Drives
+/// `compute_entity_spatial_hash` via `ToleranceConfig::get_spatial_hash_grid_scale`.
+pub const SPATIAL_HASH_GRID_SCALE: f64 = 1e6;
+
 /// Maximum iterations for iterative numeric solvers (e.g. Newton-Raphson).
 pub const MAX_ITERATIONS: usize = 50;
 
@@ -71,3 +77,10 @@ pub const CONVERGENCE_TOLERANCE: f64 = 1e-10;
 
 /// Bail-out threshold if an iterative solver is diverging.
 pub const DIVERGENCE_THRESHOLD: f64 = 1e2;
+
+/// Relaxation multiplier for cross-section gap closure validation.
+///
+/// When checking that `max_gap_closure ≤ spatial_tolerance × ambiguity_band_factor`,
+/// we relax by this factor to account for floating-point rounding in the legacy
+/// default combination (GAP_CLOSURE_MAX=1e-4, ambiguity_limit=1e-5).
+pub const GAP_CLOSURE_RELAXATION_FACTOR: f64 = 10.1;

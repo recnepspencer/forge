@@ -14,11 +14,11 @@ use forge_core::KernelError;
 use forge_geom::curve::schema::{CurveKind, CurveGeom, CurveProvenance, SpCurveApproximation};
 use forge_topo::handles::{EdgeId, CurveRef};
 
-use crate::geometry_state::GeometryState;
+use crate::brep::state::BrepState;
 
 /// Propagate curve geometry after a `SplitEdge` operation.
 ///
-/// If the original edge (`old_edge`) had a `CurveRef` in the geometry store,
+/// If the original edge (`old_edge`) had a `CurveRef` in the B-Rep store,
 /// subdivide the curve at parameter `t` into two segments:
 /// - `[domain_start, t]` → assigned to `old_edge`
 /// - `[t, domain_end]` → assigned to `new_edge`
@@ -31,22 +31,22 @@ pub fn propagate_curve_on_split(
     old_edge: EdgeId,
     new_edge: EdgeId,
     parameter: f64,
-    geom: &mut GeometryState,
+    brep: &mut BrepState,
 ) -> Result<(), KernelError> {
-    let curve_ref = match geom.get_edge_curve(old_edge) {
+    let curve_ref = match brep.get_edge_curve(old_edge) {
         Some(r) => r,
         None => return Ok(()),
     };
 
-    let original_curve = geom.get_curve(curve_ref)?.clone();
+    let original_curve = brep.get_curve(curve_ref)?.clone();
 
     let (segment_a, segment_b) = subdivide_curve(&original_curve, parameter);
 
-    let ref_a = geom.insert_curve(segment_a);
-    let ref_b = geom.insert_curve(segment_b);
+    let ref_a = brep.insert_curve(segment_a);
+    let ref_b = brep.insert_curve(segment_b);
 
-    geom.attach_curve_to_edge(old_edge, ref_a);
-    geom.attach_curve_to_edge(new_edge, ref_b);
+    brep.attach_curve_to_edge(old_edge, ref_a);
+    brep.attach_curve_to_edge(new_edge, ref_b);
 
     Ok(())
 }
@@ -94,7 +94,7 @@ fn subdivide_curve_kind(kind: &CurveKind, t: f64) -> (CurveKind, CurveKind) {
         }
         CurveKind::Circle { center, normal, radius } => {
             let angle_a_end = t * std::f64::consts::TAU;
-            let angle_b_start = angle_a_end;
+            let _angle_b_start = angle_a_end;
             (
                 CurveKind::Circle { center: *center, normal: *normal, radius: *radius },
                 CurveKind::Circle { center: *center, normal: *normal, radius: *radius },

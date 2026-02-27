@@ -15,7 +15,6 @@ use crate::operations::boolean::FaceClassification;
 
 use super::super::config::KernelConfig;
 
-use super::policy_resolution::{ScopedPolicyValue, default_policy_registry};
 
 /// Aggregated metadata absorbed from sub-operation envelopes.
 #[derive(Debug, Clone, Default)]
@@ -64,14 +63,7 @@ pub struct ModelingContext {
     /// phase encounters a matching decision, it uses the forced
     /// `FaceClassification` instead of the computed result.
     pub(crate) classification_overrides: BTreeMap<u64, FaceClassification>,
-    pub(crate) policy_defaults: BTreeMap<PolicyKind, bool>,
-    pub(crate) policy_session_overrides: BTreeMap<PolicyKind, ScopedPolicyValue>,
-    pub(crate) policy_model_overrides: BTreeMap<String, BTreeMap<PolicyKind, bool>>,
-    pub(crate) policy_feature_overrides: BTreeMap<String, BTreeMap<PolicyKind, bool>>,
-    pub(crate) policy_operation_overrides: BTreeMap<String, BTreeMap<PolicyKind, bool>>,
-    pub(crate) active_model_policy_scope: Option<String>,
-    pub(crate) active_feature_policy_scope: Option<String>,
-    pub(crate) active_operation_policy_scope: Option<String>,
+
     /// Local coordinate space for the current operation.
     ///
     /// Set by the feature pipeline executor after analyzing input geometry.
@@ -81,10 +73,12 @@ pub struct ModelingContext {
 }
 
 impl ModelingContext {
-    /// Create a modeling context with default policies.
+    /// Create a modeling context with default or inherited policies.
     pub fn new() -> Self {
+        let config = KernelConfig::default();
+
         Self {
-            config: KernelConfig::default(),
+            config,
             decision_log: DecisionLog::new(),
             sub_warnings: Vec::new(),
             sub_metrics: OperationMetrics::default(),
@@ -95,14 +89,7 @@ impl ModelingContext {
             auto_persist: false,
             log_drained: false,
             classification_overrides: BTreeMap::new(),
-            policy_defaults: default_policy_registry(),
-            policy_session_overrides: BTreeMap::new(),
-            policy_model_overrides: BTreeMap::new(),
-            policy_feature_overrides: BTreeMap::new(),
-            policy_operation_overrides: BTreeMap::new(),
-            active_model_policy_scope: None,
-            active_feature_policy_scope: None,
-            active_operation_policy_scope: None,
+
             operation_space: super::super::OperationSpace::identity(),
         }
     }

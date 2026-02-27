@@ -21,6 +21,8 @@ forge-ui-state      = { workspace = true }
 # UI framework
 eframe        = { workspace = true }
 egui          = { workspace = true }
+egui-wgpu     = { workspace = true }
 egui_extras   = { version = "0.31", features = ["svg", "image"] }
+wgpu          = { workspace = true }
 glam          = { workspace = true }
 image         = { version = "0.25", default-features = false, features = ["png"] }

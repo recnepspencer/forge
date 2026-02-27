@@ -229,13 +229,13 @@ fn chained_snap_decisions_are_all_logged() {
     let mut geom = GeometryState::new();
     let mut ctx = ModelingContext::new();
     let v = VertexId::from_raw_parts(0, 0);
-    geom.set_vertex_position(v, [0.0, 0.0, 0.0]);
-    geom.set_vertex_tolerance(v, 1e-5);
+    let existing_pos = [0.0, 0.0, 0.0];
+    let existing_tol = 1e-5;
 
     for i in 0..10 {
         let offset = (i as f64 + 1.0) * 1e-8;
         let result = snap_or_coalesce_vertex(
-            [offset, 0.0, 0.0], 1e-10, v, &geom, &mut ctx, 1e-4,
+            [offset, 0.0, 0.0], 1e-10, v, existing_pos, existing_tol, &mut ctx, 1e-4,
         );
         assert!(matches!(result, CoalescenceResult::Snapped { .. }),
             "Iteration {} should snap (offset={} < tolerance=1e-5)", i, offset);

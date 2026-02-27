@@ -4,7 +4,9 @@ use forge_geom::spatial::bsp::{build_convex_polyhedron, BspConfig};
 use forge_geom::Plane;
 use forge_math::predicates::orient3d::orient3d;
 use forge_math::sign::TriSign;
+use crate::brep::state::BrepState;
 use crate::core::ModelingContext;
+use crate::brep::state::BrepState;
 use crate::mesh_builder::build_halfedge_mesh;
 
 // ══════════════════════════════════════════════════════════════
@@ -140,7 +142,7 @@ fn run_large_coordinate_boolean(offset: f64, label: &str) {
 
     match (solid_a, solid_b) {
         (Ok((topo_a, geom_a)), Ok((topo_b, geom_b))) => {
-            let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
+            let input = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Union);
             match execute_boolean_logged(input).into_result() {
                 Ok(r) => {
                     let face_count = r.topology().arena().face_count();

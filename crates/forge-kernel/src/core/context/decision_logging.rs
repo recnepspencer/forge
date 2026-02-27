@@ -109,8 +109,6 @@ impl ModelingContext {
         self.trace_adjuncts = forge_core::tracing::TraceAdjunctSet::new();
         self.decision_counter = 0;
         self.log_drained = false;
-        self.policy_operation_overrides.clear();
-        self.active_operation_policy_scope = None;
     }
 
     /// Returns the number of tolerance decisions made.

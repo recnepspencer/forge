@@ -67,7 +67,7 @@ fn pinch_vertex_subtract_at_contact() {
 
     match union_result {
         Ok(union_r) => {
-            let (topo_union, geom_union) = union_r.into_topo_geom();
+            let (topo_union, geom_union, _) = union_r.into_states();
             let (topo_tool, geom_tool) = build_cube([1.0, 1.0, 1.0], 0.5);
 
             let input = BooleanInput::new(
@@ -113,7 +113,7 @@ fn cascading_near_coincidence() {
 
     match first {
         Ok(r1) => {
-            let (topo_r1, geom_r1) = r1.into_topo_geom();
+            let (topo_r1, geom_r1, _) = r1.into_states();
             let (topo_c, geom_c) = build_cube([1.0, 0.0, 0.0], 0.5);
 
             let input = BooleanInput::new(
@@ -158,7 +158,7 @@ fn triple_flush_union() {
 
     match ab_result {
         Ok(ab) => {
-            let (topo_ab, geom_ab) = ab.into_topo_geom();
+            let (topo_ab, geom_ab, _) = ab.into_states();
             let (topo_c, geom_c) = build_cube([3.0, 0.0, 0.0], 1.0);
 
             let input = BooleanInput::new(
@@ -206,7 +206,7 @@ fn concentric_triple_subtraction() {
             let (v1, e1, f1, chi1) = euler_audit(r1.topology().arena());
             eprintln!("Step 1 (Large−Med): V={v1} E={e1} F={f1} χ={chi1}");
 
-            let (topo_r1, geom_r1) = r1.into_topo_geom();
+            let (topo_r1, geom_r1, _) = r1.into_states();
             let (topo_small, geom_small) = build_cube([0.0, 0.0, 0.0], 1.0);
 
             let input = BooleanInput::new(
@@ -253,7 +253,7 @@ fn result_reuse_integrity() {
     let (v1, e1, f1, chi1) = euler_audit(r1.topology().arena());
     assert_eq!(chi1, 2, "Step 1 Euler violation: V={v1} E={e1} F={f1}");
 
-    let (topo_r1, geom_r1) = r1.into_topo_geom();
+    let (topo_r1, geom_r1, _) = r1.into_states();
     let (topo_c, geom_c) = build_cube([0.0, 0.5, 0.0], 1.0);
 
     let input2 = BooleanInput::new(
@@ -268,7 +268,7 @@ fn result_reuse_integrity() {
     let (v2, e2, f2, chi2) = euler_audit(r2.topology().arena());
     assert_eq!(chi2, 2, "Step 2 Euler violation: V={v2} E={e2} F={f2}");
 
-    let (topo_r2, geom_r2) = r2.into_topo_geom();
+    let (topo_r2, geom_r2, _) = r2.into_states();
     let (topo_d, geom_d) = build_cube([0.0, 0.0, 0.5], 1.0);
 
     let input3 = BooleanInput::new(

@@ -56,7 +56,7 @@ fn mb_r1_checkpoint_diff_pinpoints_injected_divergence() {
         let envelope = execute_boolean_logged(input);
         original_logs.push(envelope.get_decision_log().clone());
         let result = envelope.into_result().expect("Original step failed");
-        let (t, g) = result.into_topo_geom();
+        let (t, g, _) = result.into_states();
         current_topo = t;
         current_geom = g;
     }
@@ -110,7 +110,7 @@ fn mb_r1_checkpoint_diff_pinpoints_injected_divergence() {
 
         divergent_logs.push(envelope.get_decision_log().clone());
         let result = envelope.into_result().expect("Re-run step failed");
-        let (t, g) = result.into_topo_geom();
+        let (t, g, _) = result.into_states();
         current_topo = t;
         current_geom = g;
     }
@@ -158,17 +158,13 @@ fn mb_r2_geometry_perturbation_diff_catches_every_flipped_decision() {
 
     // 4. Validate invariants on both runs
     validate_all(
-        res_a.get_replay_log(),
         &log_a,
-        res_a.get_lineage_events(),
         res_a.topology().arena(),
         forge_topo::hashing::compute_arena_topology_hash(res_a.topology().arena()),
     ).expect("Original run invariants failed");
 
     validate_all(
-        res_b.get_replay_log(),
         &log_b,
-        res_b.get_lineage_events(),
         res_b.topology().arena(),
         forge_topo::hashing::compute_arena_topology_hash(res_b.topology().arena()),
     ).expect("Perturbed run invariants failed");
@@ -192,10 +188,8 @@ fn mb_r3_causal_chains_scope_decisions_to_correct_faces() {
     let f2 = forge_core::EntityRef::new(forge_core::EntityKind::Face, face_indices[1] as u32);
 
     let chain1 = query_causal_chain(
-        &f1, result.get_replay_log(), &log, result.get_lineage_events(), &[],
     );
     let chain2 = query_causal_chain(
-        &f2, result.get_replay_log(), &log, result.get_lineage_events(), &[],
     );
 
     assert!(!chain1.get_steps().is_empty(), "F1 chain must not be empty");
@@ -204,7 +198,6 @@ fn mb_r3_causal_chains_scope_decisions_to_correct_faces() {
     // Verify querying a non-existent face returns an empty chain
     let missing_face = forge_core::EntityRef::new(forge_core::EntityKind::Face, 999999);
     let empty_chain = query_causal_chain(
-        &missing_face, result.get_replay_log(), &log, result.get_lineage_events(), &[],
     );
     assert!(empty_chain.get_steps().is_empty(), "Non-existent face must return empty chain");
 }
@@ -292,8 +285,6 @@ fn mb_r6_serialized_proof_metadata_enables_cross_session_detection() {
 
     let original_decision = env.get_decision_log().clone();
     let result = env.into_result().expect("Boolean failed");
-    let original_replay = result.get_replay_log();
-    let original_lineage = result.get_lineage_events();
 
     let json_replay = serde_json::to_string(&original_replay).unwrap();
     let json_decision = serde_json::to_string(&original_decision).unwrap();

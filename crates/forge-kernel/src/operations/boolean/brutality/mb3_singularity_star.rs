@@ -43,7 +43,7 @@ fn build_singularity_star() -> Option<(
         let cz = shared_vertex[2] + r * angle_v.sin() + r;
 
         let (topo_tool, geom_tool) = build_cube([cx, cy, cz], 0.5);
-        let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
+        let input = BooleanInput::new(topo, geom, BrepState::new(), topo_tool, geom_tool, BrepState::new(), BooleanOp::Union);
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
@@ -53,7 +53,7 @@ fn build_singularity_star() -> Option<(
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
                     eprintln!("MB3 cube {step}/63: V={v} E={e} F={f} χ={chi}");
                 }
-                let parts = r.into_topo_geom();
+                let parts = r.into_states();
                 topo = parts.0;
                 geom = parts.1;
             }
@@ -73,7 +73,7 @@ fn build_singularity_star() -> Option<(
         let cz = shared_vertex[2] + (i as f64) * 0.05;
 
         let (topo_tool, geom_tool) = build_tetrahedron([cx, cy, cz], 0.3);
-        let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
+        let input = BooleanInput::new(topo, geom, BrepState::new(), topo_tool, geom_tool, BrepState::new(), BooleanOp::Union);
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
@@ -83,7 +83,7 @@ fn build_singularity_star() -> Option<(
                     let (v, e, f, chi) = euler_audit(r.topology().arena());
                     eprintln!("MB3 tet {step}: V={v} E={e} F={f} χ={chi}");
                 }
-                let parts = r.into_topo_geom();
+                let parts = r.into_states();
                 topo = parts.0;
                 geom = parts.1;
             }
@@ -102,7 +102,7 @@ fn build_singularity_star() -> Option<(
         let cy = shared_vertex[1] + r * angle.sin();
 
         let (topo_tool, geom_tool) = build_dodecahedron([cx, cy, 0.0], 0.25);
-        let input = BooleanInput::new(topo, geom, topo_tool, geom_tool, BooleanOp::Union);
+        let input = BooleanInput::new(topo, geom, BrepState::new(), topo_tool, geom_tool, BrepState::new(), BooleanOp::Union);
 
         match execute_boolean_logged(input).into_result() {
             Ok(result) => {
@@ -110,7 +110,7 @@ fn build_singularity_star() -> Option<(
                 step += 1;
                 let (v, e, f, chi) = euler_audit(r.topology().arena());
                 eprintln!("MB3 dodec {step}: V={v} E={e} F={f} χ={chi}");
-                let parts = r.into_topo_geom();
+                let parts = r.into_states();
                 topo = parts.0;
                 geom = parts.1;
             }

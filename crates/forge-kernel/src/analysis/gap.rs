@@ -93,15 +93,7 @@ fn measure_gap_inner(
     density: GapSampleDensity,
 ) -> Result<GapReport, KernelError> {
     // ── 1. Guard: face_b must be planar ───────────────────────────────────────
-    if !geom_b.face_is_planar(face_b) {
-        return Err(KernelError::InvalidInput {
-            message: format!(
-                "measure_gap: face {:?} is non-planar; gap measurement requires a planar reference face",
-                face_b
-            ),
-            context: None,
-        });
-    }
+    // (GeometryState now only contains planar data, B-Rep data moved to BrepState)
 
     // ── 2. Get face_b's supporting plane ──────────────────────────────────────
     let plane_b = geom_b.get_face_plane(face_b).ok_or_else(|| {

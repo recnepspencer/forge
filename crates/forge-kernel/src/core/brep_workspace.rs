@@ -12,6 +12,7 @@ use forge_topo::state::{TopologyState, MutableDraft};
 
 use crate::core::{KernelDraft, KernelState};
 use crate::geometry_state::{GeometryState, GeometryPatch};
+use crate::brep::patch::BrepPatch;
 use super::ModelingContext;
 
 /// Lifecycle wrapper for kernel operations that need draft + geometry + context.
@@ -31,9 +32,9 @@ impl BRepWorkspace {
     }
 
     /// Destructure for use — pass individual borrows to leaf functions.
-    pub fn as_parts_mut(&mut self) -> (&mut MutableDraft, &mut GeometryPatch, &mut ModelingContext) {
-        let (draft, geom) = self.draft.as_parts_mut();
-        (draft, geom, &mut self.ctx)
+    pub fn as_parts_mut(&mut self) -> (&mut MutableDraft, &mut GeometryPatch, &mut BrepPatch, &mut ModelingContext) {
+        let (draft, geom, brep) = self.draft.as_parts_mut();
+        (draft, geom, brep, &mut self.ctx)
     }
 
     /// Mut access to the draft.
@@ -49,6 +50,11 @@ impl BRepWorkspace {
     /// Read-only access to the modeling context.
     pub fn get_ctx(&self) -> &ModelingContext {
         &self.ctx
+    }
+
+    /// Read-only access to B-Rep data.
+    pub fn get_brep(&self) -> &BrepPatch {
+        self.draft.brep()
     }
 
     /// Finish: commit topology and return everything.

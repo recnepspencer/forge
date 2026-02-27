@@ -16,7 +16,7 @@ use forge_core::policy::PolicyKind;
 use forge_geom::primitives::vertex_geom::VertexGeom;
 use forge_topo::handles::VertexId;
 
-use crate::geometry_state::GeometryState;
+// Removed geometry_state dependency
 use crate::core::ModelingContext;
 
 /// Result of attempting to snap or coalesce a candidate vertex position
@@ -64,17 +64,11 @@ pub fn snap_or_coalesce_vertex(
     candidate_pos: [f64; 3],
     candidate_tol: f64,
     existing: VertexId,
-    geom: &GeometryState,
+    existing_pos: [f64; 3],
+    existing_tol: f64,
     ctx: &mut ModelingContext,
     coalescence_threshold: f64,
 ) -> CoalescenceResult {
-    let existing_pos = match geom.get_vertex_position(existing) {
-        Some(p) => *p,
-        None => return CoalescenceResult::NewVertex,
-    };
-
-    let existing_tol = geom.get_vertex_tolerance(existing)
-        .unwrap_or_else(|| geom.global_default());
 
     let dx = candidate_pos[0] - existing_pos[0];
     let dy = candidate_pos[1] - existing_pos[1];
@@ -123,6 +117,7 @@ pub fn snap_or_coalesce_vertex(
 mod tests {
     use super::*;
     use forge_core::ToleranceProvider;
+    use crate::geometry_state::GeometryState;
 
     #[test]
     fn snap_when_inside_tolerance_sphere() {
@@ -130,14 +125,15 @@ mod tests {
         let mut ctx = ModelingContext::new();
 
         let v = VertexId::from_raw_parts(0, 0);
-        geom.set_vertex_position(v, [0.0, 0.0, 0.0]);
-        geom.set_vertex_tolerance(v, 1e-6);
+        let existing_pos = [0.0, 0.0, 0.0];
+        let existing_tol = 1e-6;
 
         let result = snap_or_coalesce_vertex(
             [1e-8, 0.0, 0.0],
             1e-6,
             v,
-            &geom,
+            existing_pos,
+            existing_tol,
             &mut ctx,
             1e-4,
         );
@@ -152,14 +148,15 @@ mod tests {
         let mut ctx = ModelingContext::new();
 
         let v = VertexId::from_raw_parts(0, 0);
-        geom.set_vertex_position(v, [0.0, 0.0, 0.0]);
-        geom.set_vertex_tolerance(v, 1e-10);
+        let existing_pos = [0.0, 0.0, 0.0];
+        let existing_tol = 1e-10;
 
         let result = snap_or_coalesce_vertex(
             [1e-6, 0.0, 0.0],
             1e-10,
             v,
-            &geom,
+            existing_pos,
+            existing_tol,
             &mut ctx,
             1e-4,
         );
@@ -180,14 +177,15 @@ mod tests {
         let mut ctx = ModelingContext::new();
 
         let v = VertexId::from_raw_parts(0, 0);
-        geom.set_vertex_position(v, [0.0, 0.0, 0.0]);
-        geom.set_vertex_tolerance(v, 1e-10);
+        let existing_pos = [0.0, 0.0, 0.0];
+        let existing_tol = 1e-10;
 
         let result = snap_or_coalesce_vertex(
             [1.0, 0.0, 0.0],
             1e-10,
             v,
-            &geom,
+            existing_pos,
+            existing_tol,
             &mut ctx,
             1e-4,
         );
@@ -202,14 +200,15 @@ mod tests {
         let mut ctx = ModelingContext::new();
 
         let v = VertexId::from_raw_parts(0, 0);
-        geom.set_vertex_position(v, [0.0, 0.0, 0.0]);
-        geom.set_vertex_tolerance(v, 5e-9);
+        let existing_pos = [0.0, 0.0, 0.0];
+        let existing_tol = 5e-9;
 
         let result = snap_or_coalesce_vertex(
             [1e-6, 0.0, 0.0],
             5e-9,
             v,
-            &geom,
+            existing_pos,
+            existing_tol,
             &mut ctx,
             1e-4,
         );

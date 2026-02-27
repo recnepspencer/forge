@@ -13,21 +13,25 @@ use forge_topo::state::TopologyState;
 
 use crate::geometry_state::GeometryState;
 use crate::mesh_builder;
-use super::eval::compute_face_centroid;
-use super::schema::{BooleanInput, BooleanOp, BooleanResult};
-use super::assemble::execute_boolean_direct;
+use crate::shared_ops::centroid::compute_face_centroid;
+use super::schema::{BooleanInput, BooleanOp};
+use super::result::BooleanResult;
+use super::parametric::assemble::execute_boolean_direct;
 use super::execute_boolean;
 
 /// Boolean pipeline selection for tests.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TestPipeline {
-    /// Production router (`execute_boolean`) with adaptive EMBER/legacy selection.
+    /// Production router (`execute_boolean`) with adaptive EMBER/parametric selection.
     Adaptive,
-    /// Legacy/standard planar pipeline (`execute_boolean_direct`).
-    Legacy,
+    /// Standard parametric pipeline (`execute_boolean_direct`).
+    Parametric,
     /// Forced EMBER planar engine (`execute_boolean_ember`).
     Ember,
 }
+
+/// Change this constant to switch the pipeline used for all integration tests.
+pub const TARGET_PIPELINE: TestPipeline = TestPipeline::Parametric;
 
 impl FromStr for TestPipeline {
     type Err = ();
@@ -35,22 +39,20 @@ impl FromStr for TestPipeline {
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value.trim().to_ascii_lowercase().as_str() {
             "adaptive" | "auto" | "router" => Ok(Self::Adaptive),
-            "legacy" | "standard" => Ok(Self::Legacy),
+            "parametric" | "standard" | "legacy" => Ok(Self::Parametric),
             "ember" => Ok(Self::Ember),
             _ => Err(()),
         }
     }
 }
 
-/// Read the test pipeline from `FORGE_TEST_PIPELINE`.
-///
-/// Accepted values: `adaptive`, `legacy`, `ember`.
-/// Defaults to `Legacy` to preserve existing test helper behavior.
+/// Read the test pipeline from the const TARGET_PIPELINE.
+/// Environment variable overrides are still supported for CI but default to the const.
 pub fn selected_test_pipeline() -> TestPipeline {
     std::env::var("FORGE_TEST_PIPELINE")
         .ok()
         .and_then(|value| TestPipeline::from_str(&value).ok())
-        .unwrap_or(TestPipeline::Legacy)
+        .unwrap_or(TARGET_PIPELINE)
 }
 
 /// Build a cube mesh centered at `center` with the given `half_size`.
@@ -172,7 +174,7 @@ pub fn execute_boolean_logged_with_pipeline(
 ) -> forge_core::OperationResult<Result<BooleanResult, forge_core::KernelError>> {
     match pipeline {
         TestPipeline::Adaptive => execute_boolean(input),
-        TestPipeline::Legacy => execute_boolean_direct(input),
+        TestPipeline::Parametric => execute_boolean_direct(input),
         TestPipeline::Ember => execute_boolean_ember(input),
     }
 }
@@ -184,8 +186,8 @@ pub fn execute_boolean_logged_with_pipeline(
 pub fn execute_boolean_ember(
     input: BooleanInput,
 ) -> forge_core::OperationResult<Result<BooleanResult, forge_core::KernelError>> {
-    use super::assemble::execute_boolean_with_engine;
-    use super::engines::planar::planar_engine;
+    use super::parametric::assemble::execute_boolean_with_engine;
+    use super::parametric::engines::planar::planar_engine;
     execute_boolean_with_engine(input, planar_engine())
 }
 

@@ -1,11 +1,12 @@
-//! DOMAIN: Planar Boolean Operations (CSG)
+//! DOMAIN: Boolean Operations (CSG)
 //!
-//! Implements union, intersection, and subtraction on planar-faced
-//! polyhedra using exact predicates (D3). The pipeline:
+//! Implements union, intersection, and subtraction on polyhedra
+//! using exact predicates (D3). Two pipeline implementations:
 //!
-//! 1. **Split** — Split faces of both solids along their mutual intersections
-//! 2. **Classify** — Label each split face as inside/outside the other solid
-//! 3. **Assemble** — Collect the correct faces based on operation type
+//! - **Parametric** (`parametric/`) — split → classify → select → assemble → postprocess
+//!   Handles all geometry types (planar, NURBS, analytic).
+//! - **EMBER** (`ember/`) — BSP convert → merge → extract → mesh
+//!   Fast exact pipeline for planar polyhedra only.
 //!
 //! INVARIANTS:
 //! - All topology decisions use `CertifiedTriSign` (D3)
@@ -14,15 +15,23 @@
 //!
 //! DEPENDENCIES: `forge-geom` (planes, predicates), `forge-topo` (arena, operators),
 //!               `geometry_state` (GeometryState), `mesh_builder` (mesh construction)
+//!
+//! FILES:
+//! - `schema.rs` — Input types (BooleanInput, BooleanOp)
+//! - `result.rs` — Output types (BooleanResult, BooleanIntrospection)
+//! - `classify_schema.rs` — Classification types (FaceClassification, ClassifiedFace)
+//! - `contract.rs` — Feature contracts for both pipelines
+//! - `adapters.rs` — BooleanTolerances adapter
+//! - `parametric/` — Parametric pipeline (split, classify, assemble, postprocess)
 
 pub(crate) mod schema;
-pub mod eval;
-mod split;
-mod classify;
-mod postprocess;
-pub mod assemble;
-pub mod traits;
-pub mod engines;
+pub mod result;
+pub mod classify_schema;
+pub mod contract;
+pub mod adapters;
+pub mod parametric;
+pub mod ember;
+pub(crate) mod shared;
 #[cfg(test)]
 pub mod test_helpers;
 #[cfg(test)]
@@ -31,21 +40,23 @@ mod tests;
 mod brutality;
 mod debug;
 
-pub use schema::{BooleanInput, BooleanOp, BooleanResult, FaceClassification, ClassifiedFace};
-pub use assemble::execute_boolean_direct;
-pub use assemble::execute_boolean_with_overrides;
+pub use schema::{BooleanInput, BooleanOp};
+pub use result::{BooleanResult, BooleanIntrospection};
+pub use classify_schema::{FaceClassification, ClassifiedFace, FaceOrigin};
+pub use parametric::assemble::execute_boolean_direct;
+pub use parametric::assemble::execute_boolean_with_overrides;
 
 /// Execute a Boolean operation — the production entry point.
 ///
 /// Routes to the appropriate pipeline:
 /// - **Planar geometry** → EMBER (integer grid quantization + standard pipeline)
-/// - **Curved geometry** → Standard pipeline directly
-/// - **EMBER failure** → Automatic standard pipeline fallback
+/// - **Curved geometry** → Parametric pipeline directly
+/// - **EMBER failure** → Automatic parametric pipeline fallback
 ///
 /// This ensures every Boolean gets the best available pipeline without
 /// callers needing to know about EMBER.
 pub fn execute_boolean(
     input: BooleanInput,
 ) -> forge_core::OperationResult<Result<BooleanResult, forge_core::KernelError>> {
-    crate::operations::ember_boolean::execute_boolean_adaptive(input)
+    crate::operations::boolean::ember::execute_boolean_adaptive(input)
 }

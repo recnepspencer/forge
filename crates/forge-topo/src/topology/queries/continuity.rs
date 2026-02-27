@@ -8,6 +8,7 @@
 //! - Deterministic traversal order
 
 use forge_core::KernelError;
+use forge_math::linalg::{dot, cross, normalize_checked};
 
 use crate::arena::TopologyArena;
 use crate::handles::{EdgeId, FaceId, VertexId};
@@ -56,12 +57,12 @@ pub fn edge_dihedral_angle(
     };
 
     let edge_vec = [p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]];
-    let Some(edge_dir) = normalize(edge_vec) else {
+    let Some(edge_dir) = normalize_checked(edge_vec) else {
         return Ok(None);
     };
 
-    let cross = cross(normal_a, normal_b);
-    let sin_term = dot(edge_dir, cross);
+    let cross_n = cross(normal_a, normal_b);
+    let sin_term = dot(edge_dir, cross_n);
     let cos_term = dot(normal_a, normal_b).clamp(-1.0, 1.0);
     Ok(Some(sin_term.atan2(cos_term)))
 }
@@ -111,28 +112,7 @@ fn face_normal_from_outer_loop(
         nz += (current[0] - next[0]) * (current[1] + next[1]);
     }
 
-    normalize([nx, ny, nz]).map_or(Ok(None), |normal| Ok(Some(normal)))
-}
-
-fn dot(a: [f64; 3], b: [f64; 3]) -> f64 {
-    a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
-}
-
-fn cross(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
-    [
-        a[1] * b[2] - a[2] * b[1],
-        a[2] * b[0] - a[0] * b[2],
-        a[0] * b[1] - a[1] * b[0],
-    ]
-}
-
-fn normalize(v: [f64; 3]) -> Option<[f64; 3]> {
-    let len_sq = dot(v, v);
-    if len_sq <= 0.0 {
-        return None;
-    }
-    let len = len_sq.sqrt();
-    Some([v[0] / len, v[1] / len, v[2] / len])
+    normalize_checked([nx, ny, nz]).map_or(Ok(None), |normal| Ok(Some(normal)))
 }
 
 #[cfg(test)]

@@ -7,8 +7,8 @@ mod tests {
 
     use crate::json::{save_model, load_model, VersionedModel, SCHEMA_VERSION};
     use crate::IoError;
-    use forge_kernel::features::tree::{FeatureTree, NativeFeature};
-    use forge_kernel::features::wrappers::{BooleanFeature, MakeCubeFeature};
+    use forge_kernel::engine::tree::{FeatureTree, NativeFeature};
+    use forge_kernel::engine::wrappers::{BooleanFeature, MakeCubeFeature};
     use forge_kernel::boolean::BooleanOp;
     use tempfile::tempdir;
 

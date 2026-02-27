@@ -5,7 +5,8 @@
       "Bash(export PATH=\"$HOME/.cargo/bin:$PATH\")",
       "Bash(cargo test:*)",
       "Bash(git stash:*)",
-      "Bash(export:*)"
+      "Bash(export:*)",
+      "Bash(ls:*)"
     ]
   }
 }

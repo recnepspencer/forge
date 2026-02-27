@@ -2,7 +2,7 @@
   OPERATION: Intersection (half-overlap cubes)
 ============================================================
 
-Duration: 7.42475ms
+Duration: 4.79775ms
 State hash: 0xD59B9DD40A90DBDB9D02FDC9E287E1CE
 Faces in result: 6
 
@@ -180,11 +180,11 @@ Faces in result: 6
   PER-SPAN STATS (TraceSummary)
 ============================================================
 
-  split — 94 decisions, max_tier=deterministic, 5430µs
-  classify — 20 decisions, max_tier=deterministic, 1417µs
+  split — 94 decisions, max_tier=deterministic, 3018µs
+  classify — 20 decisions, max_tier=deterministic, 1281µs
   select — 20 decisions, max_tier=deterministic, 8µs
-  assemble — 12 decisions, max_tier=deterministic, 149µs
-  postprocess — 0 decisions, max_tier=deterministic, 30µs
+  assemble — 12 decisions, max_tier=deterministic, 228µs
+  postprocess — 0 decisions, max_tier=deterministic, 7µs
 
 
 ============================================================
@@ -2059,7 +2059,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 1,
-        "duration_micros": 5430
+        "duration_micros": 3018
       }
     },
     {
@@ -2672,7 +2672,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 2,
-        "duration_micros": 1417
+        "duration_micros": 1281
       }
     },
     {
@@ -3374,7 +3374,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 4,
-        "duration_micros": 149
+        "duration_micros": 228
       }
     },
     {
@@ -3387,7 +3387,7 @@ Faces in result: 6
     {
       "EndSpan": {
         "id": 5,
-        "duration_micros": 30
+        "duration_micros": 7
       }
     }
   ]

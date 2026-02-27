@@ -18,6 +18,7 @@ use forge_topo::state::{TopologyState, MutableDraft};
 use crate::check_tolerance;
 use crate::core::ModelingContext;
 use crate::geometry_state::GeometryState;
+use crate::brep::state::BrepState;
 
 /// Result of building a halfedge mesh from a ConvexCell.
 pub struct MeshBuildResult {
@@ -25,6 +26,8 @@ pub struct MeshBuildResult {
     topology: TopologyState,
     /// The associated geometry store.
     geometry: GeometryState,
+    /// The associated B-Rep data.
+    brep: BrepState,
 }
 
 impl MeshBuildResult {
@@ -38,9 +41,14 @@ impl MeshBuildResult {
         &self.geometry
     }
 
-    /// Consume and return owned parts.
-    pub fn into_parts(self) -> (TopologyState, GeometryState) {
-        (self.topology, self.geometry)
+    /// The associated B-Rep data.
+    pub fn brep(&self) -> &BrepState {
+        &self.brep
+    }
+
+    /// Consume and return parts.
+    pub fn into_parts(self) -> (TopologyState, GeometryState, BrepState) {
+        (self.topology, self.geometry, self.brep)
     }
 }
 
@@ -94,7 +102,11 @@ pub fn build_halfedge_mesh(cell: &ConvexCell, ctx: &mut ModelingContext) -> Resu
 
     let topology = draft.commit()?;
 
-    Ok(MeshBuildResult { topology, geometry })
+    Ok(MeshBuildResult {
+        topology,
+        geometry,
+        brep: BrepState::new(),
+    })
 }
 
 /// Validate that the ConvexCell has enough structure for a valid polyhedron.

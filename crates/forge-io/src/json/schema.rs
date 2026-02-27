@@ -4,7 +4,7 @@
 //! DEPENDENCIES: `serde`, `forge-kernel` (FeatureTree)
 
 use serde::{Deserialize, Serialize};
-use forge_kernel::features::tree::FeatureTree;
+use forge_kernel::engine::tree::FeatureTree;
 
 /// Current schema version for forward compatibility.
 pub const SCHEMA_VERSION: u32 = 1;

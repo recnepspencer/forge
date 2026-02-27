@@ -2,7 +2,8 @@
 //!
 //! Verifies that Boolean operations return structured metadata.
 
-use crate::operations::boolean::schema::{BooleanOp, FaceClassification};
+use crate::operations::boolean::schema::BooleanOp;
+use crate::operations::boolean::classify_schema::FaceClassification;
 use crate::operations::boolean::test_helpers::run_boolean;
 
 #[test]

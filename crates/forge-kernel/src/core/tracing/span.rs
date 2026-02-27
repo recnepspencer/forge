@@ -166,6 +166,18 @@ impl KernelSpan {
         });
     }
 
+    /// Get the config snapshot for the active span, if any.
+    pub fn get_config_snapshot() -> Option<ResolvedConfig> {
+        CURRENT_SPAN.with(|cs| {
+            if let Some(collector) = cs.borrow().as_ref() {
+                if let Ok(lock) = collector.lock() {
+                    return lock.config_snapshot.clone();
+                }
+            }
+            None
+        })
+    }
+
     /// Record a span start in the active trace.
     pub fn start_span(name: &'static str) -> SpanId {
         CURRENT_SPAN.with(|cs| {
@@ -232,7 +244,7 @@ impl KernelSpanGuard {
         
         // Take previous so Drop doesn't overwrite if we want to immediately clear.
         // Actually, let Drop handle restoring previous.
-        let mut inner = self.collector.lock().unwrap();
+        let mut inner = self.collector.lock().unwrap_or_else(|e| e.into_inner());
         
         SpanOutput {
             decision_log: std::mem::take(&mut inner.decision_log),

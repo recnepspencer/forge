@@ -6,7 +6,7 @@
 use std::io::Write;
 
 use super::super::test_helpers::build_cube;
-use super::super::assemble::merge::execute_boolean_direct;
+use super::super::parametric::assemble::merge::execute_boolean_direct;
 use super::super::schema::{BooleanInput, BooleanOp};
 
 fn write_section(file: &mut std::fs::File, header: &str, content: &str) {
@@ -32,7 +32,7 @@ fn dump_trace_intersection() {
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 1.0);
     let (topo_b, geom_b) = build_cube([0.5, 0.0, 0.0], 1.0);
 
-    let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Intersection);
+    let input = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Intersection);
     let envelope = execute_boolean_direct(input);
     assert!(envelope.get_value().is_ok(), "Boolean should succeed: {:?}", envelope.get_value().as_ref().err());
 

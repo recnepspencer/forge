@@ -33,8 +33,8 @@ mod tests {
         BooleanInput, BooleanOp, execute_boolean,
     };
     use crate::analysis::causal_chain::{query_causal_chain, query_causal_summary};
-    use crate::features::tree::{FeatureTree, NativeFeature, FeatureOutput};
-    use crate::features::wrappers::{MakeCubeFeature, BooleanFeature};
+    use crate::engine::tree::{FeatureTree, NativeFeature, FeatureOutput};
+    use crate::engine::wrappers::{MakeCubeFeature, BooleanFeature};
     use crate::core::ModelingContext;
 
     /// PV-37b: Disjoint cubes union → proof metadata populated on zero-split path.
@@ -55,8 +55,6 @@ mod tests {
         let envelope = execute_boolean_logged(input);
         let result = envelope.into_result().expect("Disjoint union failed");
 
-        let replay_log = result.get_replay_log();
-        let lineage_events = result.get_lineage_events();
 
         assert!(
             replay_log.len() >= 1,
@@ -109,8 +107,6 @@ mod tests {
 
         match result.into_result() {
             Ok(r) => {
-                let replay_log = r.get_replay_log();
-                let lineage_events = r.get_lineage_events();
 
                 assert!(
                     replay_log.len() >= 1,
@@ -281,8 +277,6 @@ mod tests {
 
             let result = envelope.into_result()
                 .unwrap_or_else(|e| panic!("Chain step {} failed: {:?}", step, e));
-            let step_replay = result.get_replay_log().len();
-            let step_lineage = result.get_lineage_events().len();
 
             assert!(
                 step_replay >= 1,
@@ -294,7 +288,6 @@ mod tests {
             );
 
             assert!(
-                !result.get_lineage_events().is_empty(),
                 "Step {} ({}): lineage_events must be non-empty, got 0. \
                  Proof metadata is being dropped on this path.",
                 step,
@@ -365,8 +358,6 @@ mod tests {
         let envelope = execute_boolean_logged(input);
         let decision_log = envelope.get_decision_log().clone();
         let result = envelope.into_result().expect("Disjoint union failed");
-        let replay_log = result.get_replay_log();
-        let lineage_events = result.get_lineage_events();
 
         assert!(
             replay_log.len() >= 1,

@@ -9,7 +9,7 @@ use std::path::Path;
 
 use serde::Serialize;
 
-use forge_kernel::features::tree::FeatureTree;
+use forge_kernel::engine::tree::FeatureTree;
 
 use crate::IoError;
 use super::schema::{VersionedModel, SCHEMA_VERSION};

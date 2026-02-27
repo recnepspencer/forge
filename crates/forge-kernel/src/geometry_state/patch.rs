@@ -6,7 +6,7 @@ use forge_math::{MathError, GeometrySource, PlaneCoefficients};
 
 use crate::geometry_state::{GeometryState, ExactPosition};
 use crate::geometry_state::schema::pack_handle;
-use forge_topo::handles::{FaceId, VertexId, HalfEdgeId, EdgeId, SurfaceRef, CoedgeRef, CurveRef};
+use forge_topo::handles::{FaceId, VertexId};
 use forge_geom::Plane;
 
 /// Transactional mutation handle for geometry.
@@ -28,18 +28,9 @@ pub struct GeometryPatch {
     vertex_position_inserts: HashMap<u64, ExactPosition>,
     vertex_position_removes: HashSet<u64>,
     
-    vertex_tolerance_inserts: HashMap<u64, f64>,
-    vertex_tolerance_removes: HashSet<u64>,
+    // Local tolerances moved to AttributeStore
 
-    // -- Phase 4 Curved Entity Data --
-    face_surface_inserts: HashMap<u64, SurfaceRef>,
-    face_surface_removes: HashSet<u64>,
-
-    halfedge_coedge_inserts: HashMap<u64, (CoedgeRef, bool)>,
-    halfedge_coedge_removes: HashSet<u64>,
-
-    edge_curve_inserts: HashMap<u64, CurveRef>,
-    edge_curve_removes: HashSet<u64>,
+    // Phase 4 Curved Entity Data moved to BrepPatch.
 }
 
 impl GeometryPatch {
@@ -51,14 +42,8 @@ impl GeometryPatch {
             face_plane_removes: HashSet::new(),
             vertex_position_inserts: HashMap::new(),
             vertex_position_removes: HashSet::new(),
-            vertex_tolerance_inserts: HashMap::new(),
-            vertex_tolerance_removes: HashSet::new(),
-            face_surface_inserts: HashMap::new(),
-            face_surface_removes: HashSet::new(),
-            halfedge_coedge_inserts: HashMap::new(),
-            halfedge_coedge_removes: HashSet::new(),
-            edge_curve_inserts: HashMap::new(),
-            edge_curve_removes: HashSet::new(),
+            // Local tolerances moved to AttributeStore
+            // Phase 4 Curved Entity Data moved to BrepPatch.
         }
     }
 
@@ -119,95 +104,7 @@ impl GeometryPatch {
         self.vertex_position_removes.insert(key);
     }
 
-    // ─── Vertex Tolerance Layer ─────────────────────────────────
-
-    pub fn get_vertex_tolerance(&self, vertex: VertexId) -> Option<f64> {
-        let key = pack_handle(vertex.index(), vertex.generation());
-        if self.vertex_tolerance_removes.contains(&key) {
-            return None;
-        }
-        if let Some(tol) = self.vertex_tolerance_inserts.get(&key) {
-            return Some(*tol);
-        }
-        Some(self.base.vertex_tolerance(vertex.index(), vertex.generation()))
-    }
-
-    pub fn set_vertex_tolerance(&mut self, vertex: VertexId, tolerance: f64) {
-        let key = pack_handle(vertex.index(), vertex.generation());
-        self.vertex_tolerance_removes.remove(&key);
-        self.vertex_tolerance_inserts.insert(key, tolerance);
-    }
-
-    // ─── Phase 4 Curved Entity Layer ────────────────────────────
-
-    pub fn get_face_surface(&self, face: FaceId) -> Option<SurfaceRef> {
-        let key = pack_handle(face.index(), face.generation());
-        if self.face_surface_removes.contains(&key) {
-            return None;
-        }
-        if let Some(r) = self.face_surface_inserts.get(&key) {
-            return Some(*r);
-        }
-        self.base.get_face_surface(face)
-    }
-
-    pub fn set_face_surface(&mut self, face: FaceId, surface_ref: SurfaceRef) {
-        let key = pack_handle(face.index(), face.generation());
-        self.face_surface_removes.remove(&key);
-        self.face_surface_inserts.insert(key, surface_ref);
-    }
-
-    pub fn remove_face_surface(&mut self, face: FaceId) {
-        let key = pack_handle(face.index(), face.generation());
-        self.face_surface_inserts.remove(&key);
-        self.face_surface_removes.insert(key);
-    }
-
-    pub fn get_halfedge_coedge(&self, he: HalfEdgeId) -> Option<(CoedgeRef, bool)> {
-        let key = pack_handle(he.index(), he.generation());
-        if self.halfedge_coedge_removes.contains(&key) {
-            return None;
-        }
-        if let Some(r) = self.halfedge_coedge_inserts.get(&key) {
-            return Some(*r);
-        }
-        self.base.get_halfedge_coedge(he)
-    }
-
-    pub fn set_halfedge_coedge(&mut self, he: HalfEdgeId, coedge_ref: CoedgeRef, direction: bool) {
-        let key = pack_handle(he.index(), he.generation());
-        self.halfedge_coedge_removes.remove(&key);
-        self.halfedge_coedge_inserts.insert(key, (coedge_ref, direction));
-    }
-
-    pub fn remove_halfedge_coedge(&mut self, he: HalfEdgeId) {
-        let key = pack_handle(he.index(), he.generation());
-        self.halfedge_coedge_inserts.remove(&key);
-        self.halfedge_coedge_removes.insert(key);
-    }
-
-    pub fn get_edge_curve(&self, edge: EdgeId) -> Option<CurveRef> {
-        let key = pack_handle(edge.index(), edge.generation());
-        if self.edge_curve_removes.contains(&key) {
-            return None;
-        }
-        if let Some(r) = self.edge_curve_inserts.get(&key) {
-            return Some(*r);
-        }
-        self.base.get_edge_curve(edge)
-    }
-
-    pub fn set_edge_curve(&mut self, edge: EdgeId, curve_ref: CurveRef) {
-        let key = pack_handle(edge.index(), edge.generation());
-        self.edge_curve_removes.remove(&key);
-        self.edge_curve_inserts.insert(key, curve_ref);
-    }
-
-    pub fn remove_edge_curve(&mut self, edge: EdgeId) {
-        let key = pack_handle(edge.index(), edge.generation());
-        self.edge_curve_inserts.remove(&key);
-        self.edge_curve_removes.insert(key);
-    }
+    // ─── Phase 4 Curved Entity Layer moved to BrepPatch ─────────
 
     // ─── Lifecycle ──────────────────────────────────────────────
     
@@ -229,34 +126,9 @@ impl GeometryPatch {
         for v_idx in self.vertex_position_removes {
             self.base._remove_vertex_position_raw(v_idx);
         }
+        // Local tolerances moved to AttributeStore
 
-        for (v_packed, tol) in self.vertex_tolerance_inserts {
-            self.base._set_vertex_tolerance_raw(v_packed, tol);
-        }
-        for v_packed in self.vertex_tolerance_removes {
-            self.base._remove_vertex_tolerance_raw(v_packed);
-        }
-
-        for (packed_key, s_ref) in self.face_surface_inserts {
-            self.base._set_face_surface_raw(packed_key, s_ref);
-        }
-        for packed_key in self.face_surface_removes {
-            self.base._remove_face_surface_raw(packed_key);
-        }
-
-        for (packed_key, (c_ref, dir)) in self.halfedge_coedge_inserts {
-            self.base._set_halfedge_coedge_raw(packed_key, c_ref, dir);
-        }
-        for packed_key in self.halfedge_coedge_removes {
-            self.base._remove_halfedge_coedge_raw(packed_key);
-        }
-
-        for (packed_key, c_ref) in self.edge_curve_inserts {
-            self.base._set_edge_curve_raw(packed_key, c_ref);
-        }
-        for packed_key in self.edge_curve_removes {
-            self.base._remove_edge_curve_raw(packed_key);
-        }
+        // Phase 4 bindings moved to BrepPatch.
 
         self.base
     }
@@ -270,15 +142,9 @@ impl GeometryPatch {
 // ─── Trait Implementations ──────────────────────────────────────
 
 impl ToleranceProvider for GeometryPatch {
-    fn vertex_tolerance(&self, vertex_index: u32, vertex_generation: u32) -> f64 {
-        let key = pack_handle(vertex_index, vertex_generation);
-        if self.vertex_tolerance_removes.contains(&key) {
-            return self.base.global_default();
-        }
-        if let Some(tol) = self.vertex_tolerance_inserts.get(&key) {
-            return *tol;
-        }
-        self.base.vertex_tolerance(vertex_index, vertex_generation)
+    fn vertex_tolerance(&self, _vertex_index: u32, _vertex_generation: u32) -> f64 {
+        // Tolerances moved to AttributeStore. Provide fallback.
+        self.global_default()
     }
 
     fn edge_tolerance(&self, edge_index: u32, edge_generation: u32) -> f64 {

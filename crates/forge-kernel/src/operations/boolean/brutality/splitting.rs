@@ -2,8 +2,11 @@ use super::super::test_helpers::{run_boolean, try_boolean, execute_boolean_logge
 use super::super::schema::{BooleanInput, BooleanOp};
 use forge_geom::spatial::bsp::{build_convex_polyhedron, BspConfig};
 use forge_geom::Plane;
+use crate::brep::state::BrepState;
 use forge_topo::hashing::compute_arena_topology_hash;
+use crate::brep::state::BrepState;
 use crate::core::ModelingContext;
+use crate::brep::state::BrepState;
 use crate::mesh_builder::build_halfedge_mesh;
 
 // ══════════════════════════════════════════════════════════════
@@ -183,7 +186,7 @@ fn massive_face_count_boolean() {
     eprintln!("Massive boolean: A has {face_count_a} faces, B has {face_count_b} faces");
 
     let start = std::time::Instant::now();
-    let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, BooleanOp::Union);
+    let input = BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), BooleanOp::Union);
     let result = execute_boolean_logged(input);
     let elapsed = start.elapsed();
 

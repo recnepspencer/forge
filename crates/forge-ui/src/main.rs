@@ -26,6 +26,7 @@ pub enum Page {
 
 fn main() -> eframe::Result<()> {
     let native_options = eframe::NativeOptions {
+        renderer: eframe::Renderer::Wgpu,
         viewport: egui::ViewportBuilder::default()
             .with_title("Forge")
             .with_inner_size([1400.0, 900.0])
@@ -54,6 +55,11 @@ impl ForgeApp {
         let state = AppState::new();
         state.theme.apply_to_egui(&cc.egui_ctx);
         egui_extras::install_image_loaders(&cc.egui_ctx);
+
+        // Register the metallic shader pipeline with the wgpu backend
+        if let Some(render_state) = cc.wgpu_render_state.as_ref() {
+            forge_ui_theme::shader_pipeline::register_metal_pipeline(render_state);
+        }
 
         Self {
             icons:    IconStore::load(&cc.egui_ctx),

@@ -7,8 +7,7 @@ use forge_core::{KernelError, ToleranceProvider};
 use forge_math::{MathError, GeometrySource, PlaneCoefficients};
 use forge_math::arithmetic::Rational;
 use forge_geom::Plane;
-use forge_geom::{SurfaceData, SurfaceKind, CurveGeom, Coedge};
-use forge_topo::handles::{FaceId, VertexId, HalfEdgeId, EdgeId, SurfaceRef, CurveRef, CoedgeRef};
+use forge_topo::handles::{FaceId, VertexId, HalfEdgeId, EdgeId};
 use forge_topo::arena::TopologyArena;
 
 /// Exact 3D position backed by rational coordinates with a cached f64 approximation.
@@ -132,45 +131,6 @@ pub struct GeometryState {
     pub(crate) face_planes: HashMap<u64, Plane>,
     /// Map from vertex handle to its exact 3D position.
     pub(crate) vertex_positions: HashMap<u64, ExactPosition>,
-    /// Per-vertex tolerance spheres (certified uncertainty radii).
-    ///
-    /// Keyed by packed `(generation << 32 | index)`. When a key is absent the
-    /// `ToleranceProvider` implementation returns `global_default()` as a safe
-    /// conservative fallback instead of panicking.
-    pub(crate) vertex_tolerances: HashMap<u64, f64>,
-
-    // ── Phase 4: Geometry entity arenas ──────────────────────────────────
-
-    /// Parametric surface definitions (indexed by `SurfaceRef`).
-    surfaces: Vec<GeomSlot<SurfaceData>>,
-    /// 3D edge curve geometries (indexed by `CurveRef`).
-    curves: Vec<GeomSlot<CurveGeom>>,
-    /// UV trim curves / coedges (indexed by `CoedgeRef`).
-    coedges: Vec<GeomSlot<Coedge>>,
-
-    /// Map from face handle → `SurfaceRef` for faces with attached surfaces.
-    face_surfaces: HashMap<u64, SurfaceRef>,
-    /// Map from halfedge handle → `(CoedgeRef, direction)` for curved halfedges.
-    halfedge_coedges: HashMap<u64, (CoedgeRef, bool)>,
-    /// Map from edge handle → `CurveRef` for edges with attached curves.
-    edge_curves: HashMap<u64, CurveRef>,
-}
-
-/// A generational slot in the geometry arenas.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-struct GeomSlot<T> {
-    data: Option<T>,
-    generation: u32,
-}
-
-impl<T> GeomSlot<T> {
-    fn vacant(gen: u32) -> Self {
-        Self { data: None, generation: gen }
-    }
-
-    fn occupied(data: T, gen: u32) -> Self {
-        Self { data: Some(data), generation: gen }
-    }
 }
 
 impl GeometryState {
@@ -179,13 +139,6 @@ impl GeometryState {
         Self {
             face_planes: HashMap::new(),
             vertex_positions: HashMap::new(),
-            vertex_tolerances: HashMap::new(),
-            surfaces: Vec::new(),
-            curves: Vec::new(),
-            coedges: Vec::new(),
-            face_surfaces: HashMap::new(),
-            halfedge_coedges: HashMap::new(),
-            edge_curves: HashMap::new(),
         }
     }
 
@@ -345,7 +298,7 @@ impl GeometryState {
     ///
     /// Used by `QuantizedSpace::build` to compute the combined AABB.
     pub fn iter_vertex_positions(&self) -> impl Iterator<Item = &[f64; 3]> {
-        self.vertex_positions.values().map(|ep| ep.approx())
+        self.vertex_positions.values().map(|ep: &ExactPosition| ep.approx())
     }
 
     /// Compute the model bounding-box diagonal (mm) from all vertex positions.
@@ -375,233 +328,7 @@ impl GeometryState {
         (dx * dx + dy * dy + dz * dz).sqrt()
     }
 
-    /// Whether a face has a planar surface (or no surface attached yet).
-    ///
-    /// Returns `false` for faces with an attached non-planar `SurfaceRef`.
-    /// Returns `true` for faces with no surface (planar-only phase) or
-    /// faces with an attached `SurfaceKind::Plane`.
-    pub fn face_is_planar(&self, face: FaceId) -> bool {
-        let key = pack_handle(face.index(), face.generation());
-        match self.face_surfaces.get(&key) {
-            None => true,
-            Some(surface_ref) => {
-                match self.get_surface(*surface_ref) {
-                    Ok(data) => matches!(data.kind, SurfaceKind::Plane { .. }),
-                    Err(_) => true,
-                }
-            }
-        }
-    }
-
-    // ── Phase 4: Surface CRUD ────────────────────────────────────────────
-
-    /// Insert a new surface, returning its `SurfaceRef` handle.
-    pub fn insert_surface(&mut self, data: SurfaceData) -> SurfaceRef {
-        let index = self.surfaces.len() as u32;
-        self.surfaces.push(GeomSlot::occupied(data, 0));
-        SurfaceRef::from_raw_parts(index, 0)
-    }
-
-    /// Retrieve a surface by its handle.
-    pub fn get_surface(&self, r: SurfaceRef) -> Result<&SurfaceData, KernelError> {
-        let slot = self.surfaces.get(r.index() as usize)
-            .ok_or_else(|| KernelError::InternalError {
-                message: format!("SurfaceRef {} out of range", r),
-                context: None,
-            })?;
-        if slot.generation != r.generation() {
-            return Err(KernelError::InternalError {
-                message: format!("Stale SurfaceRef {} (arena gen {})", r, slot.generation),
-                context: None,
-            });
-        }
-        slot.data.as_ref().ok_or_else(|| KernelError::InternalError {
-            message: format!("SurfaceRef {} points to a vacant slot", r),
-            context: None,
-        })
-    }
-
-    /// Remove a surface, returning its data.
-    pub fn remove_surface(&mut self, r: SurfaceRef) -> Result<SurfaceData, KernelError> {
-        let slot = self.surfaces.get_mut(r.index() as usize)
-            .ok_or_else(|| KernelError::InternalError {
-                message: format!("SurfaceRef {} out of range", r),
-                context: None,
-            })?;
-        if slot.generation != r.generation() {
-            return Err(KernelError::InternalError {
-                message: format!("Stale SurfaceRef {}", r),
-                context: None,
-            });
-        }
-        let data = slot.data.take().ok_or_else(|| KernelError::InternalError {
-            message: format!("SurfaceRef {} already vacant", r),
-            context: None,
-        })?;
-        slot.generation += 1;
-        Ok(data)
-    }
-
-    // ── Phase 4: Curve CRUD ──────────────────────────────────────────────
-
-    /// Insert a new curve geometry, returning its `CurveRef` handle.
-    pub fn insert_curve(&mut self, data: CurveGeom) -> CurveRef {
-        let index = self.curves.len() as u32;
-        self.curves.push(GeomSlot::occupied(data, 0));
-        CurveRef::from_raw_parts(index, 0)
-    }
-
-    /// Retrieve a curve geometry by its handle.
-    pub fn get_curve(&self, r: CurveRef) -> Result<&CurveGeom, KernelError> {
-        let slot = self.curves.get(r.index() as usize)
-            .ok_or_else(|| KernelError::InternalError {
-                message: format!("CurveRef {} out of range", r),
-                context: None,
-            })?;
-        if slot.generation != r.generation() {
-            return Err(KernelError::InternalError {
-                message: format!("Stale CurveRef {}", r),
-                context: None,
-            });
-        }
-        slot.data.as_ref().ok_or_else(|| KernelError::InternalError {
-            message: format!("CurveRef {} points to a vacant slot", r),
-            context: None,
-        })
-    }
-
-    /// Remove a curve geometry, returning its data.
-    pub fn remove_curve(&mut self, r: CurveRef) -> Result<CurveGeom, KernelError> {
-        let slot = self.curves.get_mut(r.index() as usize)
-            .ok_or_else(|| KernelError::InternalError {
-                message: format!("CurveRef {} out of range", r),
-                context: None,
-            })?;
-        if slot.generation != r.generation() {
-            return Err(KernelError::InternalError {
-                message: format!("Stale CurveRef {}", r),
-                context: None,
-            });
-        }
-        let data = slot.data.take().ok_or_else(|| KernelError::InternalError {
-            message: format!("CurveRef {} already vacant", r),
-            context: None,
-        })?;
-        slot.generation += 1;
-        Ok(data)
-    }
-
-    // ── Phase 4: Coedge CRUD ─────────────────────────────────────────────
-
-    /// Insert a new coedge (UV trim curve), returning its `CoedgeRef` handle.
-    pub fn insert_coedge(&mut self, data: Coedge) -> CoedgeRef {
-        let index = self.coedges.len() as u32;
-        self.coedges.push(GeomSlot::occupied(data, 0));
-        CoedgeRef::from_raw_parts(index, 0)
-    }
-
-    /// Retrieve a coedge by its handle.
-    pub fn get_coedge(&self, r: CoedgeRef) -> Result<&Coedge, KernelError> {
-        let slot = self.coedges.get(r.index() as usize)
-            .ok_or_else(|| KernelError::InternalError {
-                message: format!("CoedgeRef {} out of range", r),
-                context: None,
-            })?;
-        if slot.generation != r.generation() {
-            return Err(KernelError::InternalError {
-                message: format!("Stale CoedgeRef {}", r),
-                context: None,
-            });
-        }
-        slot.data.as_ref().ok_or_else(|| KernelError::InternalError {
-            message: format!("CoedgeRef {} points to a vacant slot", r),
-            context: None,
-        })
-    }
-
-    // ── Phase 4: Attachment APIs ──────────────────────────────────────────
-
-    /// Attach a surface to a face. Does NOT go through Euler operators
-    /// (geometry attachment ≠ topology change).
-    pub fn attach_surface_to_face(&mut self, face: FaceId, surface: SurfaceRef) {
-        let key = pack_handle(face.index(), face.generation());
-        self.face_surfaces.insert(key, surface);
-    }
-
-    /// Attach a coedge + direction to a halfedge.
-    pub fn attach_coedge_to_halfedge(&mut self, he: HalfEdgeId, coedge: CoedgeRef, direction: bool) {
-        let key = pack_handle(he.index(), he.generation());
-        self.halfedge_coedges.insert(key, (coedge, direction));
-    }
-
-    /// Attach a curve to an edge.
-    pub fn attach_curve_to_edge(&mut self, edge: EdgeId, curve: CurveRef) {
-        let key = pack_handle(edge.index(), edge.generation());
-        self.edge_curves.insert(key, curve);
-    }
-
-    /// Retrieve the surface attached to a face, if any.
-    pub fn get_face_surface(&self, face: FaceId) -> Option<SurfaceRef> {
-        let key = pack_handle(face.index(), face.generation());
-        self.face_surfaces.get(&key).copied()
-    }
-
-    /// Retrieve the coedge + direction attached to a halfedge, if any.
-    pub fn get_halfedge_coedge(&self, he: HalfEdgeId) -> Option<(CoedgeRef, bool)> {
-        let key = pack_handle(he.index(), he.generation());
-        self.halfedge_coedges.get(&key).copied()
-    }
-
-    /// Retrieve the curve attached to an edge, if any.
-    pub fn get_edge_curve(&self, edge: EdgeId) -> Option<CurveRef> {
-        let key = pack_handle(edge.index(), edge.generation());
-        self.edge_curves.get(&key).copied()
-    }
-
-    /// Number of active surfaces.
-    pub fn surface_count(&self) -> usize {
-        self.surfaces.iter().filter(|s| s.data.is_some()).count()
-    }
-
-    /// Number of active curves.
-    pub fn curve_count(&self) -> usize {
-        self.curves.iter().filter(|s| s.data.is_some()).count()
-    }
-
-    /// Number of active coedges.
-    pub fn coedge_count(&self) -> usize {
-        self.coedges.iter().filter(|s| s.data.is_some()).count()
-    }
-
-    /// Internal: commit a raw handle mapping directly.
-    pub(crate) fn _set_face_surface_raw(&mut self, packed_key: u64, surface: SurfaceRef) {
-        self.face_surfaces.insert(packed_key, surface);
-    }
-
-    /// Internal: remove a raw handle mapping directly.
-    pub(crate) fn _remove_face_surface_raw(&mut self, packed_key: u64) {
-        self.face_surfaces.remove(&packed_key);
-    }
-
-    /// Internal: commit a raw handle mapping directly.
-    pub(crate) fn _set_halfedge_coedge_raw(&mut self, packed_key: u64, coedge: CoedgeRef, direction: bool) {
-        self.halfedge_coedges.insert(packed_key, (coedge, direction));
-    }
-
-    /// Internal: remove a raw handle mapping directly.
-    pub(crate) fn _remove_halfedge_coedge_raw(&mut self, packed_key: u64) {
-        self.halfedge_coedges.remove(&packed_key);
-    }
-
-    /// Internal: commit a raw handle mapping directly.
-    pub(crate) fn _set_edge_curve_raw(&mut self, packed_key: u64, curve: CurveRef) {
-        self.edge_curves.insert(packed_key, curve);
-    }
-
-    /// Internal: remove a raw handle mapping directly.
-    pub(crate) fn _remove_edge_curve_raw(&mut self, packed_key: u64) {
-        self.edge_curves.remove(&packed_key);
-    }
+    // B-Rep entity queries moved to BrepState.
 
     // ── Phase 4: Validation ──────────────────────────────────────────────
 
@@ -629,135 +356,14 @@ impl GeometryState {
             }
         }
 
-        for &key in self.vertex_tolerances.keys() {
-            let index = (key & 0xFFFF_FFFF) as u32;
-            let gen = (key >> 32) as u32;
-            if arena.get_vertex(VertexId::from_raw_parts(index, gen)).is_err() {
-                return Err(KernelError::InternalError {
-                    message: format!("Dangling vertex_tolerance binding for VertexId {}:{}", index, gen),
-                    context: None,
-                });
-            }
-        }
+        // Removed loop over vertex_tolerances
 
-        // Phase 4: Curved entity bindings
-        for (&key, &surface_ref) in &self.face_surfaces {
-            let index = (key & 0xFFFF_FFFF) as u32;
-            let gen = (key >> 32) as u32;
-            if arena.get_face(FaceId::from_raw_parts(index, gen)).is_err() {
-                return Err(KernelError::InternalError {
-                    message: format!("Dangling face_surface topology handle for FaceId {}:{}", index, gen),
-                    context: None,
-                });
-            }
-            if self.get_surface(surface_ref).is_err() {
-                return Err(KernelError::InternalError {
-                    message: format!("FaceId {}:{} has a dangling SurfaceRef {}", index, gen, surface_ref),
-                    context: None,
-                });
-            }
-        }
-
-        for (&key, &(coedge_ref, _)) in &self.halfedge_coedges {
-            let index = (key & 0xFFFF_FFFF) as u32;
-            let gen = (key >> 32) as u32;
-            if arena.get_half_edge(HalfEdgeId::from_raw_parts(index, gen)).is_err() {
-                return Err(KernelError::InternalError {
-                    message: format!("Dangling halfedge_coedge topology handle for HalfEdgeId {}:{}", index, gen),
-                    context: None,
-                });
-            }
-            if self.get_coedge(coedge_ref).is_err() {
-                return Err(KernelError::InternalError {
-                    message: format!("HalfEdgeId {}:{} has a dangling CoedgeRef {}", index, gen, coedge_ref),
-                    context: None,
-                });
-            }
-        }
-
-        for (&key, &curve_ref) in &self.edge_curves {
-            let index = (key & 0xFFFF_FFFF) as u32;
-            let gen = (key >> 32) as u32;
-            if arena.get_edge(EdgeId::from_raw_parts(index, gen)).is_err() {
-                return Err(KernelError::InternalError {
-                    message: format!("Dangling edge_curve topology handle for EdgeId {}:{}", index, gen),
-                    context: None,
-                });
-            }
-            if self.get_curve(curve_ref).is_err() {
-                return Err(KernelError::InternalError {
-                    message: format!("EdgeId {}:{} has a dangling CurveRef {}", index, gen, curve_ref),
-                    context: None,
-                });
-            }
-        }
+        // Phase 4: Curved entity bindings moved to BrepState.
 
         Ok(())
     }
 
-    /// Insert a new vertex with a position derived from its provenance.
-    ///
-    /// Dispatches on `provenance` to compute the certified tolerance:
-    /// - `ThreePlaneIntersection` → uses `global_default()` (conservative pre-SSI)
-    /// - `EdgeSplit` → `VertexGeom::split_tolerance(origin, target)` caller must supply
-    ///   pre-computed inherited tolerance via the `tolerance` parameter
-    /// - `Imported` → `healing_tolerance` from the provenance record
-    /// - `Coalesced` → `VertexGeom::coalesced_tolerance(a, b)` caller must supply
-    ///   pre-computed RSS via the `tolerance` parameter
-    ///
-    /// For `ThreePlaneIntersection` and other variants where the caller must
-    /// supply the tolerance, pass it in the `tolerance` parameter. The helper
-    /// will always use `Imported::healing_tolerance` when available.
-    pub fn insert_vertex_with_provenance(
-        &mut self,
-        vertex: VertexId,
-        position: [f64; 3],
-        tolerance: f64,
-        provenance: &forge_geom::primitives::vertex_geom::VertexProvenance,
-    ) {
-        use forge_geom::primitives::vertex_geom::VertexProvenance;
-        let certified_tol = match provenance {
-            VertexProvenance::Imported { healing_tolerance } => *healing_tolerance,
-            _ => tolerance,
-        };
-        debug_assert!(certified_tol > 0.0, "insert_vertex_with_provenance: tolerance must be > 0.0");
-        self.set_vertex_position(vertex, position);
-        self.set_vertex_tolerance(vertex, certified_tol);
-    }
-
-    /// Set the per-vertex tolerance sphere radius.
-    ///
-    /// Must be strictly positive. This is the certified uncertainty bound for
-    /// the vertex's 3D position — used by `ToleranceProvider::vertex_tolerance`.
-    ///
-    /// # Panics
-    /// Panics in debug builds if `tolerance <= 0.0`.
-    pub fn set_vertex_tolerance(&mut self, vertex: VertexId, tolerance: f64) {
-        debug_assert!(tolerance > 0.0, "vertex tolerance must be > 0.0, got {}", tolerance);
-        self.vertex_tolerances.insert(
-            pack_handle(vertex.index(), vertex.generation()),
-            tolerance,
-        );
-    }
-
-    /// Internal: commit a raw handle tolerance directly.
-    pub(crate) fn _set_vertex_tolerance_raw(&mut self, packed_key: u64, tolerance: f64) {
-        self.vertex_tolerances.insert(packed_key, tolerance);
-    }
-
-    /// Internal: remove a raw handle tolerance directly.
-    pub(crate) fn _remove_vertex_tolerance_raw(&mut self, packed_key: u64) {
-        self.vertex_tolerances.remove(&packed_key);
-    }
-
-    /// Retrieve the per-vertex tolerance sphere radius, or `None` if not yet bound.
-    ///
-    /// A `None` return means the vertex was created by a Euler op but the kernel
-    /// has not yet decorated it with geometry. Callers should use `global_default()`
-    /// rather than treating `None` as `0.0`.
-    pub fn get_vertex_tolerance(&self, vertex: VertexId) -> Option<f64> {
-        self.vertex_tolerances.get(&pack_handle(vertex.index(), vertex.generation())).copied()
-    }
+    // Local tolerance accessors removed: tolerances now live in AttributeStore.
 
     /// Check that every VertexId in the provided iterator has a tolerance bound.
     ///
@@ -769,7 +375,7 @@ impl GeometryState {
         I: IntoIterator<Item = VertexId>,
     {
         for v in vertex_ids {
-            if self.get_vertex_tolerance(v).is_none() || self.get_vertex_position(v).is_none() {
+            if self.get_vertex_position(v).is_none() {
                 return Err(KernelError::InternalError {
                     message: format!(
                         "VertexId {}:{} has no geometry binding. \
@@ -783,13 +389,7 @@ impl GeometryState {
         Ok(())
     }
 
-    /// Whether all face geometry is planar (no curved surfaces).
-    pub fn is_all_planar(&self) -> bool {
-        self.surfaces.iter()
-            .filter_map(|s| s.data.as_ref())
-            .all(|s| matches!(s.kind, SurfaceKind::Plane { .. }))
-            && self.face_surfaces.is_empty()
-    }
+    // is_all_planar moved to BrepState
 }
 
 impl Default for GeometryState {
@@ -813,12 +413,11 @@ impl Default for GeometryState {
 pub const PLANAR_VERTEX_TOLERANCE: f64 = 1e-10;
 
 impl ToleranceProvider for GeometryState {
-    fn vertex_tolerance(&self, vertex_index: u32, vertex_generation: u32) -> f64 {
-        let key = pack_handle(vertex_index, vertex_generation);
-        self.vertex_tolerances
-            .get(&key)
-            .copied()
-            .unwrap_or_else(|| self.global_default())
+    fn vertex_tolerance(&self, _vertex_index: u32, _vertex_generation: u32) -> f64 {
+        // Vertex tolerances have moved to the AttributeStore in forge-topo.
+        // GeometryState alone can only provide the global default now.
+        // If exact per-vertex tolerance is required, query AttributeStore.
+        self.global_default()
     }
 
     /// Tolerance used in point-on-edge classification.
