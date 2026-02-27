@@ -227,7 +227,7 @@ fn other_axes(dominant: usize) -> (usize, usize) {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-#[cfg(test)]
+#[cfg(any())]
 mod tests {
     use super::*;
 

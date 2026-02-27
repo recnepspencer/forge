@@ -13,7 +13,8 @@ use forge_schema::{Command, EntityRef};
 use forge_signal::handles::NodeId;
 
 use crate::engine::tree::{FeatureTree, NativeFeature};
-use crate::engine::wrappers::{BooleanFeature, MakeCubeFeature};
+use crate::engine::wrappers::BooleanFeature;
+use crate::primitives::MakePrimitiveFeature;
 use crate::operations::boolean::BooleanOp;
 
 /// Bridges `forge-schema::Command` variants to `FeatureTree` registration.
@@ -47,7 +48,7 @@ impl<'a> CommandDispatcher<'a> {
                     origin[2] + dimensions[2] / 2.0,
                 ];
                 let size = dimensions[0];
-                let feature = NativeFeature::MakeCube(MakeCubeFeature::new("block", center, size));
+                let feature = NativeFeature::MakePrimitive(MakePrimitiveFeature::cube("block", center, size));
                 self.tree.register_feature(feature)?
             }
             Command::AddHole { .. } => {

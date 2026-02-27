@@ -53,7 +53,9 @@ pub use forge_geom::primitives::implicit_vertex::{orient3d_symbolic, PlaneRef, V
 
 // ── Shapes ───────────────────────────────────────────────────────────────────
 pub mod shapes {
-    pub use forge_geom::primitives::shapes::{cube, tetrahedron, dodecahedron};
+    pub use forge_geom::primitives::shapes::{
+        block, cube, dodecahedron, prism, pyramid, tetrahedron, wedge,
+    };
 }
 
 // ── AABB ─────────────────────────────────────────────────────────────────────

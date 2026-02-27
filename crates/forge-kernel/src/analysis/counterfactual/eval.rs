@@ -15,13 +15,22 @@ use forge_core::{
 use forge_topo::hashing::compute_arena_topology_hash;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
-use crate::operations::boolean::{
-    execute_boolean_with_overrides, BooleanInput, FaceClassification,
-};
+use crate::operations::boolean::{BooleanInput, FaceClassification};
 
 use super::schema::{
     CounterfactualResult, CounterfactualValidation, DecisionOverride, EntityDelta,
 };
+
+/// Stub: deprecated pipeline removed from compilation.
+fn execute_boolean_with_overrides(
+    _input: BooleanInput,
+    _overrides: &[(forge_core::DecisionId, FaceClassification)],
+) -> forge_core::OperationResult<Result<crate::operations::boolean::BooleanResult, KernelError>> {
+    forge_core::OperationResult::new(Err(KernelError::InternalError {
+        message: "execute_boolean_with_overrides: deprecated pipeline removed".into(),
+        context: None,
+    }))
+}
 
 /// Replay a Boolean operation with a single classification override.
 ///

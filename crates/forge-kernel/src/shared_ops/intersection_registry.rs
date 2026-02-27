@@ -12,7 +12,7 @@
 //! registered its position is immutable.
 
 use std::collections::BTreeMap;
-use crate::shared_ops::vertex_identity::VertexMatchKey;
+use crate::shared_ops::vertex::identity::VertexMatchKey;
 
 /// Canonical position store for multi-solid intersection points.
 ///

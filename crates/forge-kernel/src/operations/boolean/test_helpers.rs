@@ -1,59 +1,53 @@
+#![cfg(any())]
 //! Shared test fixtures for Boolean operation tests.
 //!
-//! Shape construction delegates to `crate::mesh_builder` which is the
-//! single source of truth for planes → BSP → halfedge mesh.
+//! DOMAIN: Shape construction, pipeline selection, and common assertions
+//! for Boolean integration tests. All shape builders delegate to
+//! `crate::mesh_builder` as the single source of truth.
 //!
-//! Traces are persisted automatically by `OperationResult::into_value()`
-//! when `FORGE_TRACE_DIR` is set. No manual wiring needed.
-
-use std::str::FromStr;
+//! DEPENDENCIES: `schema` (BooleanInput, BooleanOp), `result` (BooleanResult),
+//!               `router` (adaptive dispatch), `parametric` (direct dispatch)
 
 use crate::geom_facade::Plane;
-use forge_topo::state::TopologyState;
-
-use super::execute_boolean;
-use super::parametric::assemble::execute_boolean_direct;
-use super::result::BooleanResult;
-use super::schema::{BooleanInput, BooleanOp};
 use crate::geometry_state::GeometryState;
 use crate::mesh_builder;
-use crate::shared_ops::centroid::compute_face_centroid;
+use crate::shared_ops::vertex::centroid::compute_face_centroid;
+use forge_topo::state::TopologyState;
+
+use super::result::BooleanResult;
+use super::schema::{BooleanInput, BooleanOp};
 
 /// Boolean pipeline selection for tests.
+///
+/// Controls which execution path integration tests exercise.
+/// Switch `DEFAULT_PIPELINE` or set `FORGE_TEST_PIPELINE` env var.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TestPipeline {
-    /// Production router (`execute_boolean`) with adaptive EMBER/parametric selection.
+    /// Production router (`execute_boolean_adaptive`) — routes to best pipeline.
     Adaptive,
-    /// Standard parametric pipeline (`execute_boolean_direct`).
+    /// Parametric pipeline directly (`parametric::execute`) — bypasses EMBER.
     Parametric,
-    /// Forced EMBER planar engine (`execute_boolean_ember`).
-    Ember,
+    // Future: Ember — when the EMBER pipeline is rebuilt
 }
 
-/// Change this constant to switch the pipeline used for all integration tests.
-pub const TARGET_PIPELINE: TestPipeline = TestPipeline::Parametric;
+/// Default pipeline for all integration tests.
+///
+/// Change this constant to switch all tests at once.
+pub const DEFAULT_PIPELINE: TestPipeline = TestPipeline::Parametric;
 
-impl FromStr for TestPipeline {
-    type Err = ();
-
-    fn from_str(value: &str) -> Result<Self, Self::Err> {
-        match value.trim().to_ascii_lowercase().as_str() {
-            "adaptive" | "auto" | "router" => Ok(Self::Adaptive),
-            "parametric" | "standard" | "legacy" => Ok(Self::Parametric),
-            "ember" => Ok(Self::Ember),
-            _ => Err(()),
-        }
-    }
-}
-
-/// Read the test pipeline from the const TARGET_PIPELINE.
-/// Environment variable overrides are still supported for CI but default to the const.
+/// Get the active test pipeline (env override or default).
 pub fn selected_test_pipeline() -> TestPipeline {
     std::env::var("FORGE_TEST_PIPELINE")
         .ok()
-        .and_then(|value| TestPipeline::from_str(&value).ok())
-        .unwrap_or(TARGET_PIPELINE)
+        .and_then(|v| match v.trim().to_ascii_lowercase().as_str() {
+            "adaptive" | "auto" | "router" => Some(TestPipeline::Adaptive),
+            "parametric" | "standard" => Some(TestPipeline::Parametric),
+            _ => None,
+        })
+        .unwrap_or(DEFAULT_PIPELINE)
 }
+
+// ── Shape builders ────────────────────────────────────────────────────────
 
 /// Build a cube mesh centered at `center` with the given `half_size`.
 pub fn build_cube(center: [f64; 3], half_size: f64) -> (TopologyState, GeometryState) {
@@ -62,164 +56,7 @@ pub fn build_cube(center: [f64; 3], half_size: f64) -> (TopologyState, GeometryS
         .into_parts()
 }
 
-/// Compute face centroid for test assertions (wraps the shared eval function).
-pub fn face_centroid(
-    arena: &forge_topo::arena::TopologyArena,
-    geom: &GeometryState,
-    face: forge_topo::handles::FaceId,
-) -> [f64; 3] {
-    compute_face_centroid(arena, geom, face).unwrap()
-}
-
-/// Execute a boolean and return the result, panicking with context on failure.
-///
-/// Logs a compact `DecisionLog` to stderr by default.
-/// Set `FORGE_LOG=full` to include Euler operator decisions.
-/// Traces auto-persist via `OperationResult::into_value()` when
-/// `FORGE_TRACE_DIR` is set.
-pub fn run_boolean(
-    center_a: [f64; 3],
-    half_a: f64,
-    center_b: [f64; 3],
-    half_b: f64,
-    op: BooleanOp,
-) -> BooleanResult {
-    run_boolean_with_pipeline(
-        center_a,
-        half_a,
-        center_b,
-        half_b,
-        op,
-        selected_test_pipeline(),
-    )
-}
-
-/// Execute a boolean via the selected test pipeline.
-pub fn run_boolean_with_pipeline(
-    center_a: [f64; 3],
-    half_a: f64,
-    center_b: [f64; 3],
-    half_b: f64,
-    op: BooleanOp,
-    pipeline: TestPipeline,
-) -> BooleanResult {
-    let (topo_a, geom_a) = build_cube(center_a, half_a);
-    let (topo_b, geom_b) = build_cube(center_b, half_b);
-
-    let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, op);
-    let envelope = execute_boolean_logged_with_pipeline(input, pipeline);
-    let result = envelope.into_result().unwrap_or_else(|e| {
-        panic!("Boolean {:?} failed: {:?}", op, e);
-    });
-    assert_euler_formula_per_shell(result.topology().arena());
-    result
-}
-
-/// Attempt a boolean, returning the Result for tests that expect errors.
-///
-/// Traces and error logging are handled automatically by `into_result()`.
-// DEFECT(D9): Tests assert `try_boolean(...).is_ok()` without inspecting invariants.
-pub fn try_boolean(
-    center_a: [f64; 3],
-    half_a: f64,
-    center_b: [f64; 3],
-    half_b: f64,
-    op: BooleanOp,
-) -> Result<BooleanResult, forge_core::KernelError> {
-    try_boolean_with_pipeline(
-        center_a,
-        half_a,
-        center_b,
-        half_b,
-        op,
-        selected_test_pipeline(),
-    )
-}
-
-/// Attempt a boolean via the selected test pipeline.
-pub fn try_boolean_with_pipeline(
-    center_a: [f64; 3],
-    half_a: f64,
-    center_b: [f64; 3],
-    half_b: f64,
-    op: BooleanOp,
-    pipeline: TestPipeline,
-) -> Result<BooleanResult, forge_core::KernelError> {
-    let (topo_a, geom_a) = build_cube(center_a, half_a);
-    let (topo_b, geom_b) = build_cube(center_b, half_b);
-
-    let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, op);
-    let result = execute_boolean_logged_with_pipeline(input, pipeline).into_result();
-    if let Ok(ref res) = result {
-        assert_euler_formula_per_shell(res.topology().arena());
-    }
-    result
-}
-
-/// Execute a boolean from a pre-built `BooleanInput`, returning the full envelope.
-///
-/// Uses the standard pipeline (no EMBER coplanar resolution).
-/// For tests that need EMBER coplanar resolution, use `execute_boolean_ember`.
-pub fn execute_boolean_logged(
-    input: BooleanInput,
-) -> forge_core::OperationResult<Result<BooleanResult, forge_core::KernelError>> {
-    execute_boolean_logged_with_pipeline(input, selected_test_pipeline())
-}
-
-/// Execute a boolean using a specific test pipeline.
-pub fn execute_boolean_logged_with_pipeline(
-    input: BooleanInput,
-    pipeline: TestPipeline,
-) -> forge_core::OperationResult<Result<BooleanResult, forge_core::KernelError>> {
-    match pipeline {
-        TestPipeline::Adaptive => execute_boolean(input),
-        TestPipeline::Parametric => execute_boolean_direct(input),
-        TestPipeline::Ember => execute_boolean_ember(input),
-    }
-}
-
-/// Execute a boolean with the EMBER engine (coplanar resolution enabled).
-///
-/// Uses `planar_engine()` which includes `EmberCoplanarResolver` for
-/// exact coplanar face detection. Use this in MB1/coplanar tests.
-pub fn execute_boolean_ember(
-    input: BooleanInput,
-) -> forge_core::OperationResult<Result<BooleanResult, forge_core::KernelError>> {
-    use super::parametric::assemble::execute_boolean_with_engine;
-    use super::parametric::engines::planar::planar_engine;
-    execute_boolean_with_engine(input, planar_engine())
-}
-
-/// Euler characteristic audit: returns (V, E, F, χ).
-///
-/// χ = V − E + F. For a single closed manifold shell, χ = 2.
-/// Panics with a descriptive message if the arena has no faces.
-pub fn euler_audit(arena: &forge_topo::arena::TopologyArena) -> (usize, usize, usize, isize) {
-    let v = arena.vertex_count();
-    let e = arena.half_edge_count() / 2;
-    let f = arena.face_count();
-    let chi = v as isize - e as isize + f as isize;
-    (v, e, f, chi)
-}
-
-/// Asserts the topological representation follows the generalized Euler characteristic:
-/// V - E + F = 2(1 - G)
-/// for every shell, adjusting for genus G.
-pub fn assert_euler_formula_per_shell(arena: &forge_topo::arena::TopologyArena) {
-    if arena.face_count() == 0 {
-        return;
-    }
-
-    // We already have validate_euler built-in which asserts V - E + F = 2 - 2G + R
-    // Just trigger it manually using the structural checker
-    if let Err(e) =
-        forge_topo::validate::validate_topology(arena, forge_topo::validate::ValidationLevel::Full)
-    {
-        panic!("Euler formula failed: {:?}", e);
-    }
-}
-
-/// Build a tetrahedron mesh from 4 planes.
+/// Build a tetrahedron mesh.
 pub fn build_tetrahedron(center: [f64; 3], scale: f64) -> (TopologyState, GeometryState) {
     mesh_builder::make_tetrahedron(center, scale)
         .unwrap()
@@ -233,82 +70,112 @@ pub fn build_convex_solid(planes: Vec<Plane>) -> (TopologyState, GeometryState) 
         .into_parts()
 }
 
-/// Build a regular dodecahedron (12 pentagonal faces) from 12 planes.
+/// Build a regular dodecahedron (12 pentagonal faces).
 pub fn build_dodecahedron(center: [f64; 3], scale: f64) -> (TopologyState, GeometryState) {
     mesh_builder::make_dodecahedron(center, scale)
         .unwrap()
         .into_parts()
 }
 
-/// Generate Menger sponge subtraction centers for a given level.
-///
-/// For a cube centered at `center` with half-size `half`, returns
-/// the centers and half-sizes of all sub-cubes to subtract at all
-/// levels up to `level`.
-///
-/// Level 1: 7 subtractions. Level 2: 147. Level 3: 2,947.
-/// Level 4: ~59,000 (intentionally brutal).
-pub fn menger_sponge_subtraction_centers(
-    center: [f64; 3],
-    half: f64,
-    level: u32,
-) -> Vec<([f64; 3], f64)> {
-    if level == 0 {
-        return vec![];
-    }
+// ── Execution helpers ─────────────────────────────────────────────────────
 
-    let sub_half = half / 3.0;
-    let step = sub_half * 2.0;
-    let mut result = Vec::new();
+/// Execute a boolean from two cubes, panicking on failure.
+pub fn run_boolean(
+    center_a: [f64; 3],
+    half_a: f64,
+    center_b: [f64; 3],
+    half_b: f64,
+    op: BooleanOp,
+) -> BooleanResult {
+    run_boolean_with_pipeline(center_a, half_a, center_b, half_b, op, selected_test_pipeline())
+}
 
-    let removal_offsets: &[[i32; 3]] = &[
-        [0, 0, 0],
-        [1, 0, 0],
-        [-1, 0, 0],
-        [0, 1, 0],
-        [0, -1, 0],
-        [0, 0, 1],
-        [0, 0, -1],
-    ];
+/// Execute a boolean from two cubes via a specific pipeline.
+pub fn run_boolean_with_pipeline(
+    center_a: [f64; 3],
+    half_a: f64,
+    center_b: [f64; 3],
+    half_b: f64,
+    op: BooleanOp,
+    pipeline: TestPipeline,
+) -> BooleanResult {
+    let (topo_a, geom_a) = build_cube(center_a, half_a);
+    let (topo_b, geom_b) = build_cube(center_b, half_b);
 
-    for off in removal_offsets {
-        let c = [
-            center[0] + off[0] as f64 * step,
-            center[1] + off[1] as f64 * step,
-            center[2] + off[2] as f64 * step,
-        ];
-        result.push((c, sub_half));
-    }
-
-    if level > 1 {
-        let keep_offsets: Vec<[i32; 3]> = {
-            let mut v = Vec::new();
-            for x in -1..=1 {
-                for y in -1..=1 {
-                    for z in -1..=1 {
-                        let zeros = (x == 0) as u8 + (y == 0) as u8 + (z == 0) as u8;
-                        if zeros < 2 {
-                            v.push([x, y, z]);
-                        }
-                    }
-                }
-            }
-            v
-        };
-
-        for off in &keep_offsets {
-            let sub_center = [
-                center[0] + off[0] as f64 * step,
-                center[1] + off[1] as f64 * step,
-                center[2] + off[2] as f64 * step,
-            ];
-            result.extend(menger_sponge_subtraction_centers(
-                sub_center,
-                sub_half,
-                level - 1,
-            ));
-        }
-    }
-
+    let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, op);
+    let envelope = dispatch(input, pipeline);
+    let result = envelope.into_result().unwrap_or_else(|e| {
+        panic!("Boolean {:?} failed: {:?}", op, e);
+    });
+    assert_euler_formula_per_shell(result.topology().arena());
     result
+}
+
+/// Attempt a boolean, returning the Result for tests that expect errors.
+pub fn try_boolean(
+    center_a: [f64; 3],
+    half_a: f64,
+    center_b: [f64; 3],
+    half_b: f64,
+    op: BooleanOp,
+) -> Result<BooleanResult, forge_core::KernelError> {
+    let (topo_a, geom_a) = build_cube(center_a, half_a);
+    let (topo_b, geom_b) = build_cube(center_b, half_b);
+
+    let input = BooleanInput::new(topo_a, geom_a, topo_b, geom_b, op);
+    let result = dispatch(input, selected_test_pipeline()).into_result();
+    if let Ok(ref res) = result {
+        assert_euler_formula_per_shell(res.topology().arena());
+    }
+    result
+}
+
+/// Execute a boolean from a pre-built `BooleanInput`, returning the full envelope.
+pub fn execute_boolean_logged(
+    input: BooleanInput,
+) -> forge_core::OperationResult<Result<BooleanResult, forge_core::KernelError>> {
+    dispatch(input, selected_test_pipeline())
+}
+
+/// Dispatch to the selected pipeline.
+fn dispatch(
+    input: BooleanInput,
+    pipeline: TestPipeline,
+) -> forge_core::OperationResult<Result<BooleanResult, forge_core::KernelError>> {
+    match pipeline {
+        TestPipeline::Adaptive => super::router::execute_boolean_adaptive(input),
+        TestPipeline::Parametric => super::parametric::execute(input),
+    }
+}
+
+// ── Assertions ────────────────────────────────────────────────────────────
+
+/// Euler characteristic audit: returns (V, E, F, χ).
+pub fn euler_audit(arena: &forge_topo::arena::TopologyArena) -> (usize, usize, usize, isize) {
+    let v = arena.vertex_count();
+    let e = arena.half_edge_count() / 2;
+    let f = arena.face_count();
+    let chi = v as isize - e as isize + f as isize;
+    (v, e, f, chi)
+}
+
+/// Assert Euler formula holds per shell via forge-topo's structural validator.
+pub fn assert_euler_formula_per_shell(arena: &forge_topo::arena::TopologyArena) {
+    if arena.face_count() == 0 {
+        return;
+    }
+    if let Err(e) =
+        forge_topo::validate::validate_topology(arena, forge_topo::validate::ValidationLevel::Full)
+    {
+        panic!("Euler formula failed: {:?}", e);
+    }
+}
+
+/// Compute face centroid for test assertions.
+pub fn face_centroid(
+    arena: &forge_topo::arena::TopologyArena,
+    geom: &GeometryState,
+    face: forge_topo::handles::FaceId,
+) -> [f64; 3] {
+    compute_face_centroid(arena, geom, face).unwrap()
 }

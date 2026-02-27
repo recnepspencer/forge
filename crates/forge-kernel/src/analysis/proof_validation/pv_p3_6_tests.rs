@@ -29,7 +29,8 @@ mod tests {
     use crate::analysis::causal_chain::{query_causal_chain, query_causal_summary};
     use crate::core::ModelingContext;
     use crate::engine::tree::{FeatureOutput, FeatureTree, NativeFeature};
-    use crate::engine::wrappers::{BooleanFeature, MakeCubeFeature};
+    use crate::engine::wrappers::BooleanFeature;
+    use crate::primitives::MakePrimitiveFeature;
     use crate::operations::boolean::test_helpers::{
         build_cube, euler_audit, execute_boolean_logged,
     };
@@ -164,15 +165,15 @@ mod tests {
     fn pv_37d_feature_tree_preserves_proof_metadata() {
         let mut tree = FeatureTree::new();
 
-        let cube_a = MakeCubeFeature::new("cube_a", [0.0, 0.0, 0.0], 1.0);
+        let cube_a = MakePrimitiveFeature::cube("cube_a", [0.0, 0.0, 0.0], 1.0);
         let node_a = tree
-            .register_feature(NativeFeature::MakeCube(cube_a))
+            .register_feature(NativeFeature::MakePrimitive(cube_a))
             .expect("register cube_a failed");
 
         // Disjoint: offset 10.0 avoids EMBER overlapping-cubes bug
-        let cube_b = MakeCubeFeature::new("cube_b", [10.0, 0.0, 0.0], 1.0);
+        let cube_b = MakePrimitiveFeature::cube("cube_b", [10.0, 0.0, 0.0], 1.0);
         let node_b = tree
-            .register_feature(NativeFeature::MakeCube(cube_b))
+            .register_feature(NativeFeature::MakePrimitive(cube_b))
             .expect("register cube_b failed");
 
         let boolean = BooleanFeature::new("union_ab", BooleanOp::Union, node_a, node_b);
@@ -449,20 +450,20 @@ mod tests {
     fn mb_r9_feature_tree_chain_proof_accumulation() {
         let mut tree = FeatureTree::new();
 
-        let cube_a = MakeCubeFeature::new("cube_a", [0.0, 0.0, 0.0], 1.0);
+        let cube_a = MakePrimitiveFeature::cube("cube_a", [0.0, 0.0, 0.0], 1.0);
         let node_a = tree
-            .register_feature(NativeFeature::MakeCube(cube_a))
+            .register_feature(NativeFeature::MakePrimitive(cube_a))
             .expect("register cube_a");
 
         // Disjoint offsets avoid EMBER overlapping-cubes bug
-        let cube_b = MakeCubeFeature::new("cube_b", [10.0, 0.0, 0.0], 1.0);
+        let cube_b = MakePrimitiveFeature::cube("cube_b", [10.0, 0.0, 0.0], 1.0);
         let node_b = tree
-            .register_feature(NativeFeature::MakeCube(cube_b))
+            .register_feature(NativeFeature::MakePrimitive(cube_b))
             .expect("register cube_b");
 
-        let cube_c = MakeCubeFeature::new("cube_c", [20.0, 0.0, 0.0], 1.0);
+        let cube_c = MakePrimitiveFeature::cube("cube_c", [20.0, 0.0, 0.0], 1.0);
         let node_c = tree
-            .register_feature(NativeFeature::MakeCube(cube_c))
+            .register_feature(NativeFeature::MakePrimitive(cube_c))
             .expect("register cube_c");
 
         let union_ab = BooleanFeature::new("union_ab", BooleanOp::Union, node_a, node_b);

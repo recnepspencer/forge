@@ -8,7 +8,8 @@ use crate::core::ModelingContext;
 use crate::engine::executor::FeaturePipeline;
 use crate::engine::traits::FeatureOutput;
 use crate::engine::tree::FeatureTree;
-use crate::engine::wrappers::{BooleanFeature, MakeCubeFeature};
+use crate::engine::wrappers::BooleanFeature;
+use crate::primitives::MakePrimitiveFeature;
 use forge_core::PolicyKind;
 use forge_schema::{Command, EntityRef};
 use forge_signal::handles::NodeId;
@@ -289,7 +290,7 @@ fn pipeline_validates_inputs_before_execution() {
 
 #[test]
 fn pipeline_executes_make_cube_through_full_pipeline() {
-    let feature = MakeCubeFeature::new("test_cube", [0.0, 0.0, 0.0], 2.0);
+    let feature = MakePrimitiveFeature::cube("test_cube", [0.0, 0.0, 0.0], 2.0);
     let inputs = HashMap::new();
     let mut ctx = ModelingContext::new();
 
@@ -484,7 +485,7 @@ fn pipeline_validates_post_invariants_after_execution() {
     );
 
     // Now test with a real cube — ManifoldEdges should also pass for valid topology.
-    let cube = MakeCubeFeature::new("cube", [0.0, 0.0, 0.0], 1.0);
+    let cube = MakePrimitiveFeature::cube("cube", [0.0, 0.0, 0.0], 1.0);
     let cube_result = FeaturePipeline::execute(&cube, &inputs, &mut ctx);
     assert!(
         cube_result.is_ok(),

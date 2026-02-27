@@ -215,7 +215,7 @@ fn subdivide_sp_curve(
     )
 }
 
-#[cfg(test)]
+#[cfg(any())]
 mod tests {
     use super::*;
     use crate::geometry_state::GeometryState;

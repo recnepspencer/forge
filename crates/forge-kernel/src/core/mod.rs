@@ -23,6 +23,9 @@ mod operation_space;
 pub mod tolerance;
 pub mod tracing;
 
+#[cfg(test)]
+mod architecture_guard_tests;
+
 pub use brep_workspace::BRepWorkspace;
 pub use context::ModelingContext;
 pub use context::{compute_topology_delta, ArenaSnapshot, SubOperationMetadata};

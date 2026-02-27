@@ -16,7 +16,7 @@ use crate::geom_facade::{fuzzy_match_edges, DirectedEdge, FuzzyMatchMode, select
 use crate::core::ModelingContext;
 use crate::declare_step;
 use crate::geometry_state::GeometryState;
-use crate::shared_ops::stitch::StitchReport;
+use crate::shared_ops::assembly::stitch::StitchReport;
 
 fn debug_stitch_enabled() -> bool {
     std::env::var("FORGE_DEBUG_STITCH")

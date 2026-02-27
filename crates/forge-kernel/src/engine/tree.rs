@@ -24,7 +24,7 @@ use forge_signal::schema::{Aspect, AspectVersion};
 
 use super::executor::FeaturePipeline;
 pub use super::traits::{Feature, FeatureOutput};
-use super::wrappers::{BooleanFeature, MakeCubeFeature};
+use super::wrappers::BooleanFeature;
 use crate::core::ModelingContext;
 use crate::primitives::MakePrimitiveFeature;
 
@@ -38,7 +38,6 @@ use crate::primitives::MakePrimitiveFeature;
 /// `Feature` impl via `execute_via_pipeline`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NativeFeature {
-    MakeCube(MakeCubeFeature),
     MakePrimitive(MakePrimitiveFeature),
     Boolean(BooleanFeature),
 }
@@ -56,7 +55,6 @@ impl NativeFeature {
         ctx: &mut ModelingContext,
     ) -> Result<OperationResult<FeatureOutput>, KernelError> {
         match self {
-            NativeFeature::MakeCube(f) => FeaturePipeline::execute(f, inputs, ctx),
             NativeFeature::MakePrimitive(f) => FeaturePipeline::execute(f, inputs, ctx),
             NativeFeature::Boolean(f) => FeaturePipeline::execute(f, inputs, ctx),
         }
@@ -65,7 +63,6 @@ impl NativeFeature {
     /// Return the dependencies of the inner feature.
     pub fn dependencies(&self) -> Vec<NodeId> {
         match self {
-            NativeFeature::MakeCube(f) => f.dependencies(),
             NativeFeature::MakePrimitive(f) => f.dependencies(),
             NativeFeature::Boolean(f) => f.dependencies(),
         }
@@ -74,7 +71,6 @@ impl NativeFeature {
     /// Return the name of the inner feature.
     pub fn name(&self) -> &str {
         match self {
-            NativeFeature::MakeCube(f) => f.name(),
             NativeFeature::MakePrimitive(f) => f.name(),
             NativeFeature::Boolean(f) => f.name(),
         }

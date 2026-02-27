@@ -9,15 +9,16 @@
 //! - Every face has a closed halfedge loop
 //! - Every vertex position matches the ConvexCell source
 //! - Every face plane is registered in the GeometryState
+//! - Geometry bindings validated post-commit
 //!
 //! DEPENDENCIES: `forge-geom` (ConvexCell, Plane), `forge-topo` (arena, operators),
-//!               `geometry_state` (GeometryState)
+//!               `geometry_state` (GeometryState), `core::config` (ResolvedConfig)
 
 mod eval;
 #[cfg(test)]
 mod tests;
 
 pub use eval::{
-    build_halfedge_mesh, make_convex_solid, make_cube, make_dodecahedron, make_tetrahedron,
-    MeshBuildResult,
+    build_halfedge_mesh, make_block, make_convex_solid, make_cube, make_dodecahedron,
+    make_prism, make_pyramid, make_tetrahedron, make_wedge, MeshBuildResult,
 };

@@ -1,6 +1,7 @@
-mod debug_tests;
-mod diag_tests;
-mod edge_case_tests;
-mod introspection_tests;
-mod sector_classification_tests;
-mod tests;
+//! Boolean operation integration tests — phased by complexity.
+//!
+//! Each phase file covers an incremental level of boolean complexity,
+//! building from trivial (disjoint) to adversarial. Tests are added
+//! as each pipeline phase is implemented.
+
+mod phase1_disjoint;

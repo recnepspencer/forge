@@ -29,10 +29,17 @@ use crate::core::ModelingContext;
 use crate::geom_facade::BvhNode;
 use crate::geometry_state::GeometryState;
 use crate::operations::boolean::classify_schema::{ClassifiedFace, FaceClassification, FaceOrigin};
-use crate::operations::boolean::shared::coplanar::is_intersection_face;
-use crate::shared_ops::centroid::compute_face_centroid;
-use crate::shared_ops::normal_alignment::faces_have_aligned_normals;
-use crate::shared_ops::vertex_lookup::lookup_vertex_position_by_slot;
+
+/// True when this face was created by a `make_edge_face` Euler operator
+/// during the Boolean split phase.
+fn is_intersection_face(arena: &TopologyArena, face_id: FaceId) -> bool {
+    let Some(face) = arena.get_face(face_id).ok() else { return false };
+    let Some(lineage) = face.lineage() else { return false };
+    lineage.get_creation_op().get_name().starts_with("make_edge_face")
+}
+use crate::shared_ops::vertex::centroid::compute_face_centroid;
+use crate::shared_ops::spatial::normal_alignment::faces_have_aligned_normals;
+use crate::shared_ops::vertex::lookup::lookup_vertex_position_by_slot;
 use crate::spatial::{
     all_face_bounds, classify_point_in_solid, classify_point_with_perturbation,
     face_interior_samples, FacePointClassification, PointClassification, SpatialAccelerator,

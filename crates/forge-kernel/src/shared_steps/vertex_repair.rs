@@ -13,7 +13,7 @@ use forge_topo::handles::VertexId;
 use forge_topo::state::MutableDraft;
 
 use crate::geometry_state::GeometryState;
-use crate::shared_ops::copy::VertexWelder;
+use crate::shared_ops::assembly::copy::VertexWelder;
 
 /// Pre-stitch identity repair: cluster vertices by position, rewrite
 /// halfedge endpoints to use the canonical (lowest-index) VertexId in

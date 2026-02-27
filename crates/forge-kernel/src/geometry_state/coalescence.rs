@@ -115,12 +115,8 @@ pub fn snap_or_coalesce_vertex(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::geometry_state::GeometryState;
-    use forge_core::ToleranceProvider;
-
     #[test]
     fn snap_when_inside_tolerance_sphere() {
-        let mut geom = GeometryState::new();
         let mut ctx = ModelingContext::new();
 
         let v = VertexId::from_raw_parts(0, 0);
@@ -143,7 +139,6 @@ mod tests {
 
     #[test]
     fn coalesce_when_near_but_outside_tolerance() {
-        let mut geom = GeometryState::new();
         let mut ctx = ModelingContext::new();
 
         let v = VertexId::from_raw_parts(0, 0);
@@ -176,7 +171,6 @@ mod tests {
 
     #[test]
     fn new_vertex_when_far_away() {
-        let mut geom = GeometryState::new();
         let mut ctx = ModelingContext::new();
 
         let v = VertexId::from_raw_parts(0, 0);
@@ -199,7 +193,6 @@ mod tests {
 
     #[test]
     fn coalesced_tolerance_exceeds_both_inputs() {
-        let mut geom = GeometryState::new();
         let mut ctx = ModelingContext::new();
 
         let v = VertexId::from_raw_parts(0, 0);

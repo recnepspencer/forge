@@ -5,6 +5,7 @@
 //! 2. Building face loops with properly wired halfedges
 //! 3. Stitching twins between adjacent faces via shared-edge matching
 //! 4. Registering face planes and vertex positions in GeometryState
+//! 5. Validating geometry bindings post-commit
 
 use forge_core::{DecisionKind, KernelError};
 use crate::geom_facade::ConvexCell;
@@ -17,6 +18,7 @@ use forge_topo::state::{MutableDraft, TopologyState};
 
 use crate::brep::state::BrepState;
 use crate::check_tolerance;
+use crate::core::config::resolve::ResolvedConfig;
 use crate::core::ModelingContext;
 use crate::geometry_state::GeometryState;
 
@@ -57,7 +59,7 @@ impl MeshBuildResult {
 /// Uses direct arena insertion rather than Euler operators to ensure
 /// correct face loops and twin stitching for arbitrary convex polyhedra.
 ///
-/// Spatially-coincident vertices (within `ModelingContext.tolerance.spatial_tolerance`)
+/// Spatially-coincident vertices (within `config.config().tolerance.spatial_tolerance`)
 /// are deduplicated and logged as `DecisionKind::NearBoundary` (D2).
 ///
 /// # Algorithm
@@ -66,19 +68,21 @@ impl MeshBuildResult {
 /// 2. For each face, create a loop of halfedges connecting its vertices
 /// 3. Stitch twin pointers by matching shared directed edges
 /// 4. Register geometry (positions, planes)
+/// 5. Validate geometry bindings (every face has a plane, every vertex a position)
 pub fn build_halfedge_mesh(
     cell: &ConvexCell,
-    ctx: &mut ModelingContext,
+    config: &ResolvedConfig,
 ) -> Result<MeshBuildResult, KernelError> {
     validate_cell(cell)?;
 
-    let tolerance = ctx.get_tolerance().get_spatial_tolerance();
+    let tolerance = config.scaled_vertex_tolerance();
+    let mut ctx = ModelingContext::new();
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
     let mut geometry = GeometryState::new();
 
-    let vertex_ids = insert_vertices(&mut draft, &mut geometry, cell, tolerance, ctx)?;
+    let vertex_ids = insert_vertices(&mut draft, &mut geometry, cell, tolerance, &mut ctx)?;
 
     let body = draft.insert_body(BodyData::new());
     let lump = draft.insert_lump(LumpData::new(body));
@@ -105,6 +109,8 @@ pub fn build_halfedge_mesh(
     }
 
     let topology = draft.commit()?;
+
+    geometry.validate_geometry_bindings(topology.arena())?;
 
     Ok(MeshBuildResult {
         topology,
@@ -208,18 +214,21 @@ fn insert_vertices(
 
 /// Find an already-inserted vertex within `tolerance` of `pos`.
 ///
-/// Returns the matching VertexId and the distance if found.
+/// Uses the geometry facade's `is_same_point_within` for coincidence
+/// detection (L∞ per-axis check). Computes L2 distance only in the
+/// merge path for decision logging.
 fn find_coincident_vertex(
     inserted: &[(VertexId, [f64; 3])],
     pos: &[f64; 3],
     tolerance: f64,
 ) -> Option<(VertexId, f64)> {
-    let tol_sq = tolerance * tolerance;
     for (vid, existing_pos) in inserted {
-        let diff = forge_math::linalg::sub(*pos, *existing_pos);
-        let dist_sq = forge_math::linalg::norm_sq(diff);
-        if dist_sq < tol_sq {
-            return Some((*vid, dist_sq.sqrt()));
+        if crate::geom_facade::is_same_point_within(pos, existing_pos, tolerance) {
+            let dx = pos[0] - existing_pos[0];
+            let dy = pos[1] - existing_pos[1];
+            let dz = pos[2] - existing_pos[2];
+            let dist = (dx * dx + dy * dy + dz * dz).sqrt();
+            return Some((*vid, dist));
         }
     }
     None
@@ -380,32 +389,193 @@ fn stitch_twins(draft: &mut MutableDraft, edge_map: &EdgeMap) -> Result<(), Kern
     }
     Ok(())
 }
+
+/// Safety margin: dimensions smaller than this multiple of the spatial
+/// tolerance will be rejected as too small to produce reliable topology.
+const DIMENSION_TOLERANCE_SAFETY_FACTOR: f64 = 10.0;
+
+/// Validate a primitive dimension is usable.
+///
+/// - **Hard reject**: NaN, Inf, or ≤ 0.
+/// - **Policy reject**: Finite positive but smaller than
+///   `vertex_tolerance × DIMENSION_TOLERANCE_SAFETY_FACTOR`. The BSP
+///   would merge all vertices and produce degenerate topology.
+fn validate_dimension(
+    value: f64,
+    name: &str,
+    config: &ResolvedConfig,
+) -> Result<(), KernelError> {
+    if value.is_nan() || value.is_infinite() {
+        return Err(KernelError::InvalidInput {
+            message: format!("{name} must be finite, got {value}"),
+            context: None,
+        });
+    }
+    if value <= 0.0 {
+        return Err(KernelError::InvalidInput {
+            message: format!("{name} must be > 0, got {value}"),
+            context: None,
+        });
+    }
+
+    let min_usable = config.scaled_vertex_tolerance() * DIMENSION_TOLERANCE_SAFETY_FACTOR;
+    if value < min_usable {
+        return Err(KernelError::InvalidInput {
+            message: format!(
+                "{name} = {value:.2e} is smaller than the minimum usable dimension \
+                 ({min_usable:.2e} = {DIMENSION_TOLERANCE_SAFETY_FACTOR}× vertex tolerance). \
+                 BSP would produce degenerate topology."
+            ),
+            context: None,
+        });
+    }
+    Ok(())
+}
+
+/// Validate that a coordinate is finite (not NaN or ±Inf).
+fn validate_coordinate(value: f64, name: &str) -> Result<(), KernelError> {
+    if value.is_nan() || value.is_infinite() {
+        return Err(KernelError::InvalidInput {
+            message: format!("{name} must be finite, got {value}"),
+            context: None,
+        });
+    }
+    Ok(())
+}
+
+/// Validate center coordinates and a single size dimension.
+fn validate_center_and_size(
+    center: [f64; 3],
+    size: f64,
+    config: &ResolvedConfig,
+) -> Result<(), KernelError> {
+    validate_coordinate(center[0], "center[0]")?;
+    validate_coordinate(center[1], "center[1]")?;
+    validate_coordinate(center[2], "center[2]")?;
+    validate_dimension(size, "size", config)
+}
+
 /// Build a convex solid from arbitrary planes.
 ///
 /// General-purpose constructor: planes → BSP → halfedge mesh.
-pub fn make_convex_solid(planes: Vec<crate::geom_facade::Plane>) -> Result<MeshBuildResult, KernelError> {
+pub fn make_convex_solid(
+    planes: Vec<crate::geom_facade::Plane>,
+    config: &ResolvedConfig,
+) -> Result<MeshBuildResult, KernelError> {
     let cell = crate::geom_facade::build_convex_polyhedron(
         &planes,
         &crate::geom_facade::BspConfig::default(),
     )?;
-    let mut ctx = ModelingContext::new();
-    build_halfedge_mesh(&cell, &mut ctx)
+    build_halfedge_mesh(&cell, config)
 }
 
 /// Create a cube centered at `center` with side length `size`.
-pub fn make_cube(center: [f64; 3], size: f64) -> Result<MeshBuildResult, KernelError> {
-    let planes = crate::geom_facade::shapes::cube(center, size / 2.0);
-    make_convex_solid(planes)
+pub fn make_cube(
+    center: [f64; 3],
+    size: f64,
+    config: &ResolvedConfig,
+) -> Result<MeshBuildResult, KernelError> {
+    validate_center_and_size(center, size, config)?;
+    let planes = crate::geom_facade::shapes::cube(center, size / 2.0)?;
+    make_convex_solid(planes, config)
 }
 
 /// Create a regular tetrahedron centered at `center` with the given `scale`.
-pub fn make_tetrahedron(center: [f64; 3], scale: f64) -> Result<MeshBuildResult, KernelError> {
-    let planes = crate::geom_facade::shapes::tetrahedron(center, scale);
-    make_convex_solid(planes)
+pub fn make_tetrahedron(
+    center: [f64; 3],
+    scale: f64,
+    config: &ResolvedConfig,
+) -> Result<MeshBuildResult, KernelError> {
+    validate_center_and_size(center, scale, config)?;
+    let planes = crate::geom_facade::shapes::tetrahedron(center, scale)?;
+    make_convex_solid(planes, config)
 }
 
 /// Create a regular dodecahedron centered at `center` with the given `scale`.
-pub fn make_dodecahedron(center: [f64; 3], scale: f64) -> Result<MeshBuildResult, KernelError> {
-    let planes = crate::geom_facade::shapes::dodecahedron(center, scale);
-    make_convex_solid(planes)
+pub fn make_dodecahedron(
+    center: [f64; 3],
+    scale: f64,
+    config: &ResolvedConfig,
+) -> Result<MeshBuildResult, KernelError> {
+    validate_center_and_size(center, scale, config)?;
+    let planes = crate::geom_facade::shapes::dodecahedron(center, scale)?;
+    make_convex_solid(planes, config)
+}
+
+/// Create an axis-aligned block with independent half-extents.
+pub fn make_block(
+    center: [f64; 3],
+    half_extents: [f64; 3],
+    config: &ResolvedConfig,
+) -> Result<MeshBuildResult, KernelError> {
+    validate_coordinate(center[0], "center[0]")?;
+    validate_coordinate(center[1], "center[1]")?;
+    validate_coordinate(center[2], "center[2]")?;
+    validate_dimension(half_extents[0], "half_extents[0]", config)?;
+    validate_dimension(half_extents[1], "half_extents[1]", config)?;
+    validate_dimension(half_extents[2], "half_extents[2]", config)?;;
+    let planes = crate::geom_facade::shapes::block(center, half_extents)?;
+    make_convex_solid(planes, config)
+}
+
+/// Create a regular prism (n-gon extrusion) centered at `center`.
+pub fn make_prism(
+    center: [f64; 3],
+    sides: u32,
+    radius: f64,
+    height: f64,
+    config: &ResolvedConfig,
+) -> Result<MeshBuildResult, KernelError> {
+    validate_coordinate(center[0], "center[0]")?;
+    validate_coordinate(center[1], "center[1]")?;
+    validate_coordinate(center[2], "center[2]")?;
+    validate_dimension(radius, "radius", config)?;
+    validate_dimension(height, "height", config)?;;
+    if sides < 3 {
+        return Err(KernelError::InvalidInput {
+            message: format!("prism needs at least 3 sides, got {sides}"),
+            context: None,
+        });
+    }
+    let planes = crate::geom_facade::shapes::prism(center, sides, radius, height)?;
+    make_convex_solid(planes, config)
+}
+
+/// Create a regular pyramid (n-gon base with apex) centered at `center`.
+pub fn make_pyramid(
+    center: [f64; 3],
+    sides: u32,
+    radius: f64,
+    height: f64,
+    config: &ResolvedConfig,
+) -> Result<MeshBuildResult, KernelError> {
+    validate_coordinate(center[0], "center[0]")?;
+    validate_coordinate(center[1], "center[1]")?;
+    validate_coordinate(center[2], "center[2]")?;
+    validate_dimension(radius, "radius", config)?;
+    validate_dimension(height, "height", config)?;;
+    if sides < 3 {
+        return Err(KernelError::InvalidInput {
+            message: format!("pyramid needs at least 3 sides, got {sides}"),
+            context: None,
+        });
+    }
+    let planes = crate::geom_facade::shapes::pyramid(center, sides, radius, height)?;
+    make_convex_solid(planes, config)
+}
+
+/// Create a wedge (triangular cross-section extrusion) centered at `center`.
+pub fn make_wedge(
+    center: [f64; 3],
+    dimensions: [f64; 3],
+    config: &ResolvedConfig,
+) -> Result<MeshBuildResult, KernelError> {
+    validate_coordinate(center[0], "center[0]")?;
+    validate_coordinate(center[1], "center[1]")?;
+    validate_coordinate(center[2], "center[2]")?;
+    validate_dimension(dimensions[0], "width", config)?;
+    validate_dimension(dimensions[1], "depth", config)?;
+    validate_dimension(dimensions[2], "height", config)?;
+    let planes = crate::geom_facade::shapes::wedge(center, dimensions)?;
+    make_convex_solid(planes, config)
 }
