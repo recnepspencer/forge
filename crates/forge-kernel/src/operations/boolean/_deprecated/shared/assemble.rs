@@ -16,7 +16,7 @@ use crate::shared_ops::vertex::identity::VertexMatchKey;
 use crate::shared_ops::assembly::copy::{copy_faces, VertexDedup};
 use crate::shared_steps::vertex_repair::repair_vertex_identity;
 use crate::shared_steps::stitch::stitch_twins;
-use crate::analysis::proof_validation::diagnose_pipeline::{diagnose_arena, PipelineStage};
+use crate::proof::checkpoint::diagnose::{diagnose_arena, PipelineStage};
 
 /// Assemble the Boolean result from selected faces of both arenas.
 pub(crate) fn assemble_result(

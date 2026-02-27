@@ -6,7 +6,7 @@ use forge_core::KernelError;
 
 use crate::core::ModelingContext;
 use crate::operations::boolean::result::BooleanResult;
-use crate::analysis::proof_validation::checkpoint::{run_checkpoint, ValidationCheckpoint};
+use crate::proof::checkpoint::schema::{run_checkpoint, ValidationCheckpoint};
 
 /// Run post-boolean topology validation.
 ///

@@ -19,7 +19,7 @@ use forge_topo::hashing::compute_arena_topology_hash;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 use forge_topo::arena::TopologyArena;
 
-use crate::analysis::proof_validation::checkpoint::{run_checkpoint, ValidationCheckpoint};
+use crate::proof::checkpoint::schema::{run_checkpoint, ValidationCheckpoint};
 use crate::core::{ModelingContext, OperationSpace, OperationFinalizer, TopologyHashBoundary};
 use crate::geometry_state::GeometryState;
 use crate::operations::boolean::schema::{

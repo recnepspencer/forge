@@ -13,9 +13,9 @@ use forge_core::tracing::checkpoint_diff::diff_decision_logs;
 use forge_core::tracing::delta_debug::delta_debug;
 use forge_core::{DecisionTier, KernelError};
 
-use crate::analysis::causal_chain::query_causal_chain;
-use crate::analysis::counterfactual::{replay_all_near_boundary, CounterfactualValidation};
-use crate::analysis::proof_validation::proof_invariants::validate_all;
+use crate::proof::causal_chain::query_causal_chain;
+use crate::proof::counterfactual::{replay_all_near_boundary, CounterfactualValidation};
+use crate::proof::invariants::validate_all;
 use crate::operations::boolean::test_helpers::{
     build_cube, execute_boolean_logged, menger_sponge_subtraction_centers,
 };

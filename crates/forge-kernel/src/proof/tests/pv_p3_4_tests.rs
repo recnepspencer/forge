@@ -13,7 +13,7 @@ mod tests {
     use forge_core::{DecisionId, DecisionKind, DecisionTier};
     use forge_topo::hashing::compute_arena_topology_hash;
 
-    use crate::analysis::counterfactual::{
+    use crate::proof::counterfactual::{
         replay_all_near_boundary, replay_decision, DecisionOverride,
     };
     use crate::operations::boolean::test_helpers::{

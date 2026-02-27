@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-use forge_kernel::analysis::gap::{measure_gap, GapSampleDensity};
 use forge_kernel::mesh_builder::make_cube;
+use forge_spatial::integrity::gap::{measure_gap, GapSampleDensity};
 
 /// Benchmarks the execution of `measure_gap` using Halton sampling with
 /// various precision density presets.
@@ -34,54 +34,50 @@ fn bench_gap_measurement(c: &mut Criterion) {
         .unwrap()
         .0;
 
-    // We reuse this context. It tracks operations implicitly but for
-    // raw execution time we accept the minor allocation/write overhead
-    // or we can recreate it per-iteration (which we do for accuracy below).
+    let arena_a = topo_a.arena();
+    let position_fn = |v: forge_topo::handles::VertexId| -> Option<[f64; 3]> {
+        geom_a.get_vertex_position(v).copied()
+    };
+    let plane_fn =
+        |f: forge_topo::handles::FaceId| -> Option<forge_geom::primitives::plane::Plane> {
+            geom_b.get_face_plane(f).cloned()
+        };
 
     group.bench_function("density_coarse", |b| {
         b.iter(|| {
-            let mut ctx = forge_kernel::core::ModelingContext::new();
             black_box(measure_gap(
                 face_a,
-                &topo_a,
-                &geom_a,
+                arena_a,
                 face_b,
-                &topo_b,
-                &geom_b,
+                &position_fn,
+                &plane_fn,
                 GapSampleDensity::Coarse,
-                &mut ctx,
             ));
         });
     });
 
     group.bench_function("density_medium", |b| {
         b.iter(|| {
-            let mut ctx = forge_kernel::core::ModelingContext::new();
             black_box(measure_gap(
                 face_a,
-                &topo_a,
-                &geom_a,
+                arena_a,
                 face_b,
-                &topo_b,
-                &geom_b,
+                &position_fn,
+                &plane_fn,
                 GapSampleDensity::Medium,
-                &mut ctx,
             ));
         });
     });
 
     group.bench_function("density_fine", |b| {
         b.iter(|| {
-            let mut ctx = forge_kernel::core::ModelingContext::new();
             black_box(measure_gap(
                 face_a,
-                &topo_a,
-                &geom_a,
+                arena_a,
                 face_b,
-                &topo_b,
-                &geom_b,
+                &position_fn,
+                &plane_fn,
                 GapSampleDensity::Fine,
-                &mut ctx,
             ));
         });
     });

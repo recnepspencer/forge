@@ -99,7 +99,7 @@ crate::declare_step!(ValidateManifold,
 
 /// Detect sliver faces below the area threshold.
 ///
-/// Wraps: forge_kernel::analysis::sliver::analyze_slivers
+/// Wraps: forge_spatial::integrity::sliver::analyze_slivers
 pub struct DetectSlivers;
 
 crate::declare_step!(DetectSlivers,

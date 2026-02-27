@@ -4,7 +4,7 @@
 //! INVARIANTS: Each section can be validated independently. Cross-section
 //! consistency is enforced by `KernelConfig::cross_validate()`.
 
-use crate::analysis::proof_validation::checkpoint::ValidationCheckpoint;
+use crate::proof::checkpoint::schema::ValidationCheckpoint;
 use forge_core::{KernelError, PolicyKind};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::collections::BTreeMap;

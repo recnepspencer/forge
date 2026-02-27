@@ -123,7 +123,7 @@ pub fn build_stitch_failure_error(
 
         let face_id = forge_topo::handles::FaceId::from_raw_parts(face_index, 0);
         if let Ok(region) =
-            crate::analysis::region_extractor::extract_n_ring(draft.arena(), geom, face_id, 2)
+            crate::proof::region_extractor::extract_n_ring(draft.arena(), geom, face_id, 2)
         {
             detail_lines.push(format!(
                 "  2-ring: {}F {}HE {}V",

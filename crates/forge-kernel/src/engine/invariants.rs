@@ -11,7 +11,7 @@ use forge_core::KernelError;
 use forge_topo::state::TopologyState;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
-use crate::analysis::proof_validation::checkpoint::{ValidationCheckpoint, ValidationConfig};
+use crate::proof::checkpoint::schema::{ValidationCheckpoint, ValidationConfig};
 use crate::engine::contract::InvariantKind;
 use crate::geometry_state::GeometryState;
 

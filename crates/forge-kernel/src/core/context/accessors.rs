@@ -3,7 +3,7 @@
 //! DOMAIN: Getters and setters for tolerance, tangency, sliver, gap, precision,
 //! validation, and operation space configuration.
 
-use crate::analysis::proof_validation::checkpoint::ValidationConfig;
+use crate::proof::checkpoint::schema::ValidationConfig;
 use crate::core::tolerance::{
     GapClosurePolicy, PrecisionEscalationPolicy, SliverPolicy, TangencyPolicy, ToleranceConfig,
     TolerancePolicy,

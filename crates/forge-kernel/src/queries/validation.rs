@@ -4,7 +4,7 @@
 //! Used by the pipeline executor and boolean assemble to check whether
 //! post-feature or post-step validation is active.
 
-use crate::analysis::proof_validation::checkpoint::ValidationConfig;
+use crate::proof::checkpoint::schema::ValidationConfig;
 use crate::core::ModelingContext;
 
 /// Validation checkpoint configuration access.

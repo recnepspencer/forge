@@ -13,7 +13,7 @@
 //! ├── features/      ← feature-sliced domain modules (Bento Box)
 //! ├── geometry_state/ ← data adapter
 //! ├── mesh_builder/  ← construction service
-//! ├── analysis/      ← queries & diagnostics
+//! ├── proof/          ← proof infrastructure (causal chain, counterfactual, region extractor)
 //! ├── operations/    ← all modeling operations
 //! │   └── boolean/   ← Boolean operations
 //! └── brep/          ← future B-rep abstractions
@@ -29,7 +29,7 @@
 
 #![forbid(unsafe_code)]
 
-pub mod analysis;
+pub mod proof;
 pub mod brep;
 pub mod core;
 pub mod engine;
@@ -47,9 +47,6 @@ pub mod spatial;
 // Re-exports for backward compatibility
 pub use operations::boolean;
 pub use operations::boolean::{execute_boolean, BooleanInput, BooleanOp, BooleanResult};
-
-// Phase F — gap measurement
-pub use analysis::gap::{measure_gap, GapReport, GapSampleDensity};
 
 #[cfg(test)]
 mod tests {

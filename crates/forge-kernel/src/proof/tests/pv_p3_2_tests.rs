@@ -5,7 +5,7 @@
 //! PV-36: Delta-debug on 100-step chain with injected failure at step 73
 //!        → finds step 73 automatically.
 
-use crate::analysis::region_extractor::{extract_n_ring, ExtractedRegion};
+use crate::proof::region_extractor::{extract_n_ring, ExtractedRegion};
 use crate::mesh_builder::make_cube;
 use forge_core::tracing::delta_debug::delta_debug;
 use forge_topo::state::DraftConfig;

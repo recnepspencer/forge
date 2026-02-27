@@ -36,12 +36,15 @@
 forge-math          Pure math: Rational, linalg, orient3d
     ↓
 forge-core          Shared types: errors, policy, tracing, envelope, tolerance
+    ↓               TracedDecision, DecisionLog, DecisionId (proof substrate)
     ↓              ↘
 forge-geom          forge-topo    Topology: arena, handles, state, draft, lineage, attributes
-Geometry solvers        ↓
+Geometry solvers        ↓         ReplayLog, LineageEvent, OpSignature (operation history)
     ↓           forge-spatial     Spatial queries: point-in-solid, AABB bounds, geometric validation
+    ↘               ↘             integrity/ (gap, sliver, area, volume), classify/ (dual-path)
     ↘               ↘
 forge-kernel        Feature pipeline, operations, geometry/brep stores
+    ↓               proof/ (causal chain, counterfactual, region extractor, checkpoints)
     ↓
 forge-io            Import/export (JSON, STEP)
 forge-test          Integration tests
@@ -77,6 +80,8 @@ which is forbidden.
 | `integrity/area.rs`          | Zero-area face detection (using `compute_polygon_area`)                           |
 | `integrity/edge_length.rs`   | Zero-length edge detection                                                        |
 | `integrity/volume.rs`        | Shell signed-volume validation (outward-normal enforcement)                       |
+| `integrity/sliver.rs`        | Sliver face detection — area below threshold (wraps `compute_polygon_area`)       |
+| `integrity/gap.rs`           | Face-to-face gap measurement via Halton-sampled point projection                  |
 
 **Rule: forge-topo vs forge-spatial**
 
@@ -1043,7 +1048,22 @@ forge-kernel/src/
 │   ├── loft/                        ← (placeholder)
 │   └── sweep/                       ← (placeholder)
 │
-├── analysis/                        ← Queries & diagnostics
+├── proof/                           ← Decision query & replay infrastructure
+│   ├── causal_chain/                ← Causal chain reconstruction from decision + lineage logs
+│   │   ├── schema.rs                ← CausalChain, CausalStep, ChainSummary
+│   │   └── eval.rs                  ← query_causal_chain, query_causal_summary
+│   ├── counterfactual/              ← Decision replay with forced overrides
+│   │   ├── schema.rs                ← CounterfactualResult, DecisionOverride, EntityDelta
+│   │   └── eval.rs                  ← replay_decision, replay_all_near_boundary
+│   ├── region_extractor/            ← N-ring BFS extraction for minimal repro cases
+│   │   ├── schema.rs                ← ExtractedRegion, SerializedPlane, SerializedHalfEdge
+│   │   └── eval.rs                  ← extract_n_ring
+│   ├── checkpoint/                  ← P0.5 invariant checkpoint system
+│   │   ├── schema.rs                ← ValidationConfig, ValidationCheckpoint, ValidationResult
+│   │   └── diagnose.rs              ← PipelineStage, PipelineDiagnostic (non-fatal mid-pipeline)
+│   ├── invariants.rs                ← Structural proof validators (INV-1/2/3: hash chain, lineage, causal)
+│   └── tests/                       ← PV suites (pv_p0_*, pv_p2_*, pv_p3_*)
+│
 ├── mesh_builder/                    ← Primitive construction
 ├── primitives/                      ← Primitive features
 └── queries/                         ← Spatial queries
@@ -1051,16 +1071,23 @@ forge-kernel/src/
 
 ### Where New Code Goes
 
-| Scenario                            | Location                                                                     |
-| ----------------------------------- | ---------------------------------------------------------------------------- |
-| New feature (e.g. Fillet)           | `operations/fillet/` with `contract.rs`, `eval.rs`, `tests.rs`               |
-| Algorithm shared by 2+ features     | `shared_ops/` — pure function, no step contract                              |
-| Pipeline step shared by 2+ features | `operations/pipeline/steps.rs` (or `shared_steps/` when the file gets large) |
-| Boolean-internal algorithm          | `operations/boolean/shared/` — not exported                                  |
-| New policy kind                     | `forge-core/src/policy/schema.rs` — compiler forces all match arms           |
-| New invariant kind                  | `engine/contract.rs` + one match arm in `engine/invariants.rs`               |
-| New error variant                   | `forge-core/src/errors/schema.rs` with `ErrorContext`                        |
-| New config section                  | `core/config/schema.rs` + `core/config/defaults.rs`                          |
+| Scenario                             | Location                                                                     |
+| ------------------------------------ | ---------------------------------------------------------------------------- |
+| New feature (e.g. Fillet)            | `operations/fillet/` with `contract.rs`, `eval.rs`, `tests.rs`               |
+| Algorithm shared by 2+ features      | `shared_ops/` — pure function, no step contract                              |
+| Pipeline step shared by 2+ features  | `operations/pipeline/steps.rs` (or `shared_steps/` when the file gets large) |
+| Boolean-internal algorithm           | `operations/boolean/shared/` — not exported                                  |
+| New policy kind                      | `forge-core/src/policy/schema.rs` — compiler forces all match arms           |
+| New invariant kind                   | `engine/contract.rs` + one match arm in `engine/invariants.rs`               |
+| New error variant                    | `forge-core/src/errors/schema.rs` with `ErrorContext`                        |
+| New config section                   | `core/config/schema.rs` + `core/config/defaults.rs`                          |
+| New proof layer validator            | `proof/invariants.rs` — pure validation function                             |
+| New checkpoint type                  | `proof/checkpoint/schema.rs` — add `ValidationCheckpoint` variant            |
+| Proof query/reconstruction tool      | `proof/` subdirectory with `schema.rs` + `eval.rs`                           |
+| Proof validation test suite (PV)     | `proof/tests/` — PV-prefixed test files                                      |
+| Operation-specific replay logic      | `operations/{feature}/shared/counterfactual.rs`                              |
+| Spatial integrity query (gap/sliver) | `forge-spatial/integrity/` — **not** in kernel                               |
+| Dual-path classifier                 | `forge-spatial/classify/` — winding number, cross-check                      |
 
 ---
 
@@ -1102,6 +1129,18 @@ forge-kernel/src/
 - **DO:** `KernelConfig` and `ConfigOverride` are `Serialize + Deserialize`
 - **DO:** `ResolvedConfig` tracks provenance
 - **DON'T:** Serialize `ResolvedConfig` — serialize the inputs (config + overrides)
+
+### Proof Infrastructure
+
+- **DO:** Treat the `DecisionLog` as the universal proof substrate — all proof layers consume it
+- **DO:** Put proof schemas (`CausalChain`, `CounterfactualResult`, etc.) in `proof/` subdirectory `schema.rs` files — keep types importable without pulling in algorithms
+- **DO:** Make counterfactual replay generic — accept operation-specific replay functions as closures, not hardcoded boolean-only logic
+- **DO:** Run proof checkpoints through the existing `InvariantKind` + `ValidationConfig` system
+- **DO:** Put spatial measurement queries (gap, sliver, area) in `forge-spatial/integrity/`
+- **DON'T:** Build operation-specific replay logic into the generic counterfactual module — each feature provides its own `ReplayFn`
+- **DON'T:** Run manifold invariants at NMT-intermediate checkpoints — respect `TopologyMode`
+- **DON'T:** Store proof metadata in the topology arena — proof results flow through `OperationResult<T>`
+- **DON'T:** Put proof query infrastructure (causal chain, counterfactual, region extractor) in a generic "analysis" directory — it is first-class proof infrastructure
 
 ### Clean Breaks
 
@@ -1191,7 +1230,136 @@ converges toward. `FeatureTree` + `OperationResult` + `KernelSpan` +
 
 ---
 
-## 15. Edge Cases
+## 15. Proof System Architecture
+
+The proof system transforms the kernel's write-only decision log into a
+**queryable, replayable, and certifiable** evidence chain. It serves three
+audiences with the same infrastructure: kernel engineers (debug + regression),
+aerospace/defense (compliance audit trail), and AI agents (self-inspection +
+trust). The `DecisionLog` and `TracedDecision` (already in `forge-core`) are
+the substrate; everything else is built on top.
+
+### 15.1 Five-Layer Model
+
+Proof is layered — each layer validates orthogonal properties with independent
+algorithms. A failure in one layer does not invalidate the others.
+
+| Layer | Name                      | Primary Crate(s)                        | What It Validates                                                |
+| ----- | ------------------------- | --------------------------------------- | ---------------------------------------------------------------- |
+| 1     | Topological Invariants    | `forge-topo` + `forge-kernel/proof/`    | Euler formula, manifoldness, orientation, loop closure           |
+| 2     | Dual-Path Verification    | `forge-spatial/classify/`               | Independent algorithm agreement (ray casting vs. winding number) |
+| 3     | Redundant Numerical Modes | `forge-math` + `forge-kernel` (policy)  | Float vs. interval vs. rational result comparison                |
+| 4     | Causal Replay & Witnesses | `forge-kernel/proof/`                   | Decision trace queries, counterfactual replay, region extraction |
+| 5     | Self-Consistency Fuzzing  | `forge-kernel/proof/tests/` (MB series) | Algebraic identity testing at scale (A∪B=B∪A, A∩∅=∅)             |
+
+**Layer independence is an invariant.** Layer 4 (causal replay) must never
+depend on Layer 2 (dual-path), and vice versa. Each layer can be tested,
+disabled, and extended in isolation.
+
+### 15.2 How Proof Maps to the Crate Hierarchy
+
+Proof types are **distributed across layers** because the layering rules
+demand it — lower crates never import higher crates. This is intentional,
+not accidental:
+
+| Type                                          | Lives In              | Why                                                    |
+| --------------------------------------------- | --------------------- | ------------------------------------------------------ |
+| `TracedDecision`, `DecisionLog`, `DecisionId` | `forge-core`          | Universal proof substrate — used by every layer        |
+| `ReplayLog`, `LineageEvent`, `OpSignature`    | `forge-topo`          | Topology operation history — topo owns its own lineage |
+| `CausalChain`, `CausalStep`, `ChainSummary`   | `forge-kernel/proof/` | Bridges topo lineage + core decisions                  |
+| `ExtractedRegion`                             | `forge-kernel/proof/` | Uses `GeometryState` (kernel-owned)                    |
+| `CounterfactualResult`, `DecisionOverride`    | `forge-kernel/proof/` | Uses `BooleanInput` (kernel-owned)                     |
+| `ValidationConfig`, `ValidationCheckpoint`    | `forge-kernel/proof/` | Configuration is kernel-level                          |
+| `ValidationResult`                            | `forge-kernel/proof/` | Pipeline-coupled result type                           |
+
+### 15.3 Pipeline Integration — Checkpoints
+
+Proof validation hooks into the feature pipeline through `ValidationCheckpoint` +
+`ValidationConfig`. The checkpoint system is config-driven:
+
+```rust
+pub enum ValidationCheckpoint {
+    PostCommit,       // After every topology commit
+    PostBoolean,      // After boolean operations
+    PostImport,       // After STEP/JSON import
+    OnDemand,         // Explicit API call
+}
+
+pub struct ValidationConfig {
+    checkpoints: Vec<ValidationCheckpoint>,  // Which checkpoints are active
+    include_geometric: bool,                 // Include expensive geometric checks?
+    entity_limit: usize,                     // Skip validation on large models (0=no limit)
+}
+```
+
+`ValidationResult` entries flow into `OperationResult<T>.validation_results` —
+the existing envelope absorbs proof data without structural changes.
+
+**Critical rule — NMT-intermediate checkpoints:**
+
+> Proof checkpoints must respect the current topology mode. Layer 1 manifold
+> invariants are enforced only at manifold-strict checkpoints (post-commit on
+> final results, post-import). NMT-intermediate checkpoints validate only
+> structural invariants (twin reciprocity, loop closure, Euler formula per-shell).
+> Running manifold checks during boolean intermediates produces false positives.
+
+The `diagnose_arena()` function exists specifically for this: it runs non-fatal
+structural diagnostics at intermediate pipeline stages without aborting.
+
+### 15.4 Causal Chain — Provenance Reconstruction
+
+`query_causal_chain(target, replay_log, decision_log, lineage_events)` walks
+the operation history from present to origin, collecting every `CausalStep`
+that created or modified the target entity. The result is:
+
+- An ordered list of `CausalStep` entries with operation signatures, decisions, and topology hashes
+- A `ChainSummary` budgeted to < 200 tokens for agent consumption
+- The tightest margin across all decisions (the riskiest judgment in the entity's history)
+
+This is the query layer that makes the decision log _useful_ — it transforms
+a flat log into entity-centric provenance graphs.
+
+### 15.5 Counterfactual Replay — "What If?"
+
+`replay_decision(input, original_log, original_hash, override)` re-executes
+an operation with a forced classification override and compares the result:
+
+- `DecisionOverride` specifies which decision to flip (e.g., Inside→Outside)
+- The replay produces a `CounterfactualResult` with the original and counterfactual topology hashes
+- `EntityDelta` reports how many faces/edges/vertices changed
+- `CounterfactualValidation` reports whether the counterfactual topology is structurally valid
+
+**Architectural note:** Counterfactual replay is currently boolean-specific
+(it imports `BooleanInput`). As features grow, the replay mechanism should
+become generic — accept an operation-specific `ReplayFn` closure rather than
+hardcoding boolean logic. Each feature provides its own replay implementation.
+
+### 15.6 Region Extraction — Minimal Reproduction
+
+`extract_n_ring(arena, geometry_state, seed_face, depth)` BFS-expands from a
+seed face through edge adjacency, collecting all faces, halfedges, vertices,
+and their geometry into a self-contained, serializable `ExtractedRegion`.
+
+This enables:
+
+- **Delta-debug:** Shrink a failing 1000-face model down to the 5-face neighborhood around the bug
+- **Standalone test cases:** Serialize the region to JSON, reconstruct a `TopologyArena`, replay
+- **Fuzzer isolation:** Extract the minimal region that reproduces a fuzzer-found failure
+
+### 15.7 What Grows Additively
+
+| Growth                       | Mechanism                                          |
+| ---------------------------- | -------------------------------------------------- |
+| New proof layer              | New subdirectory under `proof/`, new PV test suite |
+| New checkpoint type          | `ValidationCheckpoint` variant + one match arm     |
+| New structural invariant     | New `validate_*` function in `proof/invariants.rs` |
+| New operation's replay logic | `operations/{feature}/shared/counterfactual.rs`    |
+| New MetaBoss test series     | New PV test file in `proof/tests/`                 |
+| Dual-path classifier         | New file in `forge-spatial/classify/`              |
+
+---
+
+## 16. Edge Cases
 
 | Edge Case             | Mitigation                                                                              |
 | --------------------- | --------------------------------------------------------------------------------------- |
@@ -1206,7 +1374,7 @@ converges toward. `FeatureTree` + `OperationResult` + `KernelSpan` +
 
 ---
 
-## 16. Performance
+## 17. Performance
 
 Pipeline overhead per step: <100ns (one policy lookup + one checkpoint +
 one `Vec::push`). Less than 4 `orient3d` predicate calls. Negligible even
@@ -1214,7 +1382,7 @@ for NURBS operations with 50+ steps.
 
 ---
 
-## 17. What Was Replaced
+## 18. What Was Replaced
 
 | Before                                      | After                                                                   |
 | ------------------------------------------- | ----------------------------------------------------------------------- |

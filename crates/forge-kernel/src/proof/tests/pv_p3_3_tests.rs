@@ -17,7 +17,7 @@
 mod tests {
     use forge_core::{DecisionContext, EntityRef};
 
-    use crate::analysis::causal_chain::{query_causal_chain, query_causal_summary};
+    use crate::proof::causal_chain::{query_causal_chain, query_causal_summary};
     use crate::operations::boolean::test_helpers::{build_cube, execute_boolean_logged};
     use crate::operations::boolean::{BooleanInput, BooleanOp};
 

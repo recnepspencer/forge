@@ -26,7 +26,7 @@ mod tests {
     use forge_core::DecisionContext;
     use forge_topo::hashing::compute_arena_topology_hash;
 
-    use crate::analysis::causal_chain::{query_causal_chain, query_causal_summary};
+    use crate::proof::causal_chain::{query_causal_chain, query_causal_summary};
     use crate::core::ModelingContext;
     use crate::engine::tree::{FeatureOutput, FeatureTree, NativeFeature};
     use crate::engine::wrappers::BooleanFeature;

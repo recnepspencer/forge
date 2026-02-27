@@ -17,7 +17,7 @@ use forge_topo::hashing::compute_arena_topology_hash;
 use forge_topo::lineage::LineageEvent;
 use forge_topo::replay::ReplayLog;
 
-use crate::analysis::causal_chain::query_causal_chain;
+use crate::proof::causal_chain::query_causal_chain;
 
 /// INV-1: Verify that replay entries form an unbroken hash chain.
 ///

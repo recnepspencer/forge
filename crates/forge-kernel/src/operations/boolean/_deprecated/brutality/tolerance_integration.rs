@@ -166,8 +166,7 @@ fn ti3_coincidence_flush_face_merge() {
 /// not just standalone cubes.
 #[test]
 fn ti4_gap_measurement_on_boolean_cavity() {
-    use crate::analysis::gap::{measure_gap, GapSampleDensity};
-    use crate::core::ModelingContext;
+    use forge_spatial::integrity::gap::{measure_gap, GapSampleDensity};
 
     let (topo_a, geom_a) = build_cube([0.0, 0.0, 0.0], 3.0);
     let (topo_b, geom_b) = build_cube([0.0, 0.0, 0.0], 1.0);
@@ -181,51 +180,55 @@ fn ti4_gap_measurement_on_boolean_cavity() {
         });
 
     let (topo_result, geom_result, _) = result.into_states();
+    let arena = topo_result.arena();
+
+    let position_fn = |v: forge_topo::handles::VertexId| -> Option<[f64; 3]> {
+        geom_result.get_vertex_position(v).copied()
+    };
+    let plane_fn = |f: forge_topo::handles::FaceId| -> Option<forge_geom::primitives::plane::Plane> {
+        geom_result.get_face_plane(f).cloned()
+    };
 
     // Find the +X outer face (normal ≈ [1,0,0], offset ≈ 3)
-    let outer_face = topo_result.arena().iter_faces().find(|(f, _)| {
+    let outer_face = arena.iter_faces().find(|(f, _)| {
         geom_result
             .get_face_plane(*f)
             .map_or(false, |p| p.normal()[0] > 0.9 && p.offset().abs() > 2.5)
     });
 
     // Find the +X inner face (normal ≈ [-1,0,0] or [1,0,0], offset ≈ 1)
-    let inner_face = topo_result.arena().iter_faces().find(|(f, _)| {
+    let inner_face = arena.iter_faces().find(|(f, _)| {
         geom_result.get_face_plane(*f).map_or(false, |p| {
             p.normal()[0].abs() > 0.9 && p.offset().abs() < 1.5 && p.offset().abs() > 0.5
         })
     });
 
     if let (Some((face_outer, _)), Some((face_inner, _))) = (outer_face, inner_face) {
-        let mut ctx = ModelingContext::new();
         let report = measure_gap(
             face_outer,
-            &topo_result,
-            &geom_result,
+            arena,
             face_inner,
-            &topo_result,
-            &geom_result,
+            &position_fn,
+            &plane_fn,
             GapSampleDensity::Medium,
-            &mut ctx,
         )
-        .into_value()
         .unwrap_or_else(|e| {
             panic!("TI-4 gap measurement failed: {e:?}");
         });
 
         eprintln!(
             "[TI-4] Gap between outer/inner +X faces: min={:.6} max={:.6} mean={:.6}",
-            report.min_gap_mm, report.max_gap_mm, report.mean_gap_mm
+            report.get_min_gap_mm(), report.get_max_gap_mm(), report.get_mean_gap_mm()
         );
 
         assert!(
-            !report.has_overlap,
+            !report.has_overlap(),
             "TI-4: Outer and inner faces should NOT overlap"
         );
         assert!(
-            report.mean_gap_mm > 0.5,
+            report.get_mean_gap_mm() > 0.5,
             "TI-4: Gap should be positive (cavity exists), got {:.6}",
-            report.mean_gap_mm
+            report.get_mean_gap_mm()
         );
     } else {
         eprintln!(

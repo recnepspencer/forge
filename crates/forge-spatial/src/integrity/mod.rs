@@ -1,14 +1,17 @@
 //! Geometric invariant validation for topology arenas.
 //!
 //! DOMAIN: Position-dependent integrity checks — zero-area faces,
-//!         zero-length edges, and inverted shell orientation.
+//!         zero-length edges, inverted shell orientation, sliver face
+//!         detection, and face-to-face gap measurement.
 //!
 //! DEPENDENCIES: forge-topo (arena, handles, traversal),
-//!               forge-geom (polygon area), forge-core (KernelError, ToleranceProvider).
+//!               forge-geom (polygon area, plane), forge-core (KernelError, ToleranceProvider).
 //! INVARIANTS: No topology mutation. Requires a position callback.
 
 pub mod area;
 pub mod edge_length;
+pub mod gap;
+pub mod sliver;
 pub mod volume;
 
 use forge_core::{KernelError, ToleranceProvider};
