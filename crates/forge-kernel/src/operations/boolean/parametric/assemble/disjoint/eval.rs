@@ -24,7 +24,7 @@ use super::assemble::{
     execute_contained_boolean, execute_disjoint_boolean, execute_touching_boolean,
 };
 use crate::shared_ops::equivalence::{are_solids_coincident, has_boundary_centroid};
-use forge_spatial::bounds::distance::{combined_solid_scale, compute_solid_centroid};
+use crate::spatial::{combined_solid_scale, compute_solid_centroid};
 
 /// Classification of how two non-intersecting solids relate.
 pub(super) enum Containment {

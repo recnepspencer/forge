@@ -17,5 +17,6 @@ pub use forge_spatial::classify::point_in_solid::{
 
 pub use forge_spatial::bounds::face::{all_face_bounds, face_bounds};
 pub use forge_spatial::bounds::solid::{lump_bounds, region_bounds, shell_bounds, solid_bounds};
+pub use forge_spatial::bounds::distance::{combined_solid_scale, compute_solid_centroid};
 
 pub use forge_spatial::integrity::validate_geometric_invariants;

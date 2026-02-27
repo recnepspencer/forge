@@ -33,6 +33,7 @@ pub mod analysis;
 pub mod brep;
 pub mod core;
 pub mod engine;
+pub mod geom;
 pub mod geometry_state;
 pub mod mesh_builder;
 pub mod operations;
@@ -40,6 +41,7 @@ pub mod prelude;
 pub mod primitives;
 pub mod queries;
 pub mod shared_ops;
+pub mod shared_steps;
 pub mod spatial;
 
 // Re-exports for backward compatibility

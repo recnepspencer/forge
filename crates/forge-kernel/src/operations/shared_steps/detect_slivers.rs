@@ -9,7 +9,7 @@
 //! DEPENDENCIES: forge-spatial (face_bounds), forge-topo (handles, state)
 
 use forge_core::KernelError;
-use forge_spatial::bounds::face::face_bounds;
+use crate::spatial::face_bounds;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::state::TopologyState;
 

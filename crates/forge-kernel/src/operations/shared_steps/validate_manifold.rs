@@ -53,7 +53,7 @@ pub fn validate_geometry(
     is_planar: &dyn Fn(forge_topo::handles::FaceId) -> bool,
     tolerance_provider: &dyn ToleranceProvider,
 ) -> Result<(), KernelError> {
-    forge_spatial::integrity::validate_geometric_invariants(
+    crate::spatial::validate_geometric_invariants(
         topo.arena(),
         position_fn,
         is_planar,

@@ -4,7 +4,7 @@
 //! stable wrappers around arena mutation methods and geometric validation calls.
 
 use forge_core::{FlatToleranceProvider, KernelError};
-use forge_spatial::integrity::validate_geometric_invariants;
+use crate::spatial::validate_geometric_invariants;
 use forge_topo::arena::{
     BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
     ShellKind, ShellOrientation, TopologyArena, VertexData,
