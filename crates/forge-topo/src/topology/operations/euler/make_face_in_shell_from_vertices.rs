@@ -85,7 +85,6 @@ impl EulerOperator for MakeFaceInShellFromVertices {
         let placeholder_loop = LoopId::new(u32::MAX, 0);
 
         let face_lineage = Lineage::root(0, sig.clone());
-        let loop_lineage = Lineage::root(1, sig.clone());
 
         let face = draft.insert_face(FaceData::with_lineage(
             placeholder_loop,
@@ -103,9 +102,9 @@ impl EulerOperator for MakeFaceInShellFromVertices {
         let mut half_edges = Vec::with_capacity(n);
         let mut edges = Vec::with_capacity(n);
 
-        for _ in 0..n {
-            let edge_lineage = Lineage::root(6, sig.clone());
-            let he_lineage = Lineage::root(7, sig.clone());
+        for i in 0..n {
+            let edge_lineage = Lineage::root(6 + 2 * (i as u64), sig.clone());
+            let he_lineage = Lineage::root(7 + 2 * (i as u64), sig.clone());
 
             let edge =
                 draft.insert_edge(EdgeData::with_lineage(placeholder_he, Some(edge_lineage)));

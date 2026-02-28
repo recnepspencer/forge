@@ -629,12 +629,8 @@ mod tests {
 
     // ══════════════════════════════════════════════════════════════
     // CATEGORY 4: Topological Predicates & Classification
+    // Tests moved to forge-spatial/src/classify/point_in_solid_tests.rs
     // ══════════════════════════════════════════════════════════════
-    //
-    // Tests classify_l1_point_inside_solid, classify_l2_point_on_edge_boundary,
-    // and classify_l3_near_boundary_mass have been moved to forge-test
-    // (src/topology/classify_stress_tests.rs) because classify_point_in_solid
-    // lives in forge-spatial, which is above forge-topo in the dependency tree.
 
     // ══════════════════════════════════════════════════════════════
     // CATEGORY 4B: Structural Validation on Mesh Topology

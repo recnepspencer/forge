@@ -131,9 +131,9 @@ impl EulerOperator for MakeFaceFromVertices {
         let mut half_edges = Vec::with_capacity(n);
         let mut edges = Vec::with_capacity(n);
 
-        for _ in 0..n {
-            let edge_lineage = Lineage::root(6, sig.clone());
-            let he_lineage = Lineage::root(7, sig.clone());
+        for i in 0..n {
+            let edge_lineage = Lineage::root(6 + 2 * (i as u64), sig.clone());
+            let he_lineage = Lineage::root(7 + 2 * (i as u64), sig.clone());
 
             let edge = draft.insert_edge(EdgeData::with_lineage(sentinel_he, Some(edge_lineage)));
             let he = draft.insert_half_edge(HalfEdgeData::with_lineage(
