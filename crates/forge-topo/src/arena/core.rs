@@ -4,6 +4,7 @@
 //! and free-lists for all topology entity types.
 
 use serde::{Deserialize, Serialize};
+use smallvec::SmallVec;
 use std::collections::BTreeMap;
 
 use crate::attributes::AttributeStore;
@@ -68,12 +69,13 @@ pub struct TopologyArena {
     pub(crate) active_edge_count: usize,
 
     // ── O(1) Reverse Indexes (derived, not serialized) ──────────
+    // SmallVec inline storage avoids heap allocation for typical valence.
     #[serde(skip)]
-    pub(crate) shell_faces: BTreeMap<ShellId, Vec<FaceId>>,
+    pub(crate) shell_faces: BTreeMap<ShellId, SmallVec<[FaceId; 8]>>,
     #[serde(skip)]
-    pub(crate) face_halfedges: BTreeMap<FaceId, Vec<HalfEdgeId>>,
+    pub(crate) face_halfedges: BTreeMap<FaceId, SmallVec<[HalfEdgeId; 6]>>,
     #[serde(skip)]
-    pub(crate) vertex_halfedges: BTreeMap<VertexId, Vec<HalfEdgeId>>,
+    pub(crate) vertex_halfedges: BTreeMap<VertexId, SmallVec<[HalfEdgeId; 6]>>,
 }
 
 impl TopologyArena {
