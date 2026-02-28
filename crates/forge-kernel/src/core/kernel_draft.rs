@@ -98,22 +98,4 @@ impl KernelDraft {
             self.brep_patch.commit(),
         ))
     }
-
-    /// Commit with an explicit `TopologyMode`, permitting NMT-intermediate states.
-    ///
-    /// Use `ManifoldStrict` for final output (default). Use `NmtIntermediate`
-    /// only for internal pipeline checkpoints where valence > 2 is expected.
-    /// The named skip-list is enforced by `MutableDraft::commit_with_mode`.
-    pub fn commit_with_mode(
-        self,
-        level: forge_topo::validate::ValidationLevel,
-        mode: forge_topo::validate::TopologyMode,
-    ) -> Result<KernelState, KernelError> {
-        let topo = self.draft.commit_with_mode(level, mode)?;
-        Ok(KernelState::new(
-            topo,
-            self.geom_patch.commit(),
-            self.brep_patch.commit(),
-        ))
-    }
 }

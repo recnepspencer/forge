@@ -16,6 +16,10 @@
 //! - integration_tests : multi-operator sequences, traversal, validation guard
 //! - shell_edge_tests : Shell/Edge entity lifecycle and referential integrity
 //! - brutality_tests : domain-specific stress tests (high-valence, sliver churn, DAG)
+//! - mfv_test       : MakeFaceVertex — disjoint face+vertex in existing shell
+//! - kfv_test       : KillFaceVertex — inverse of MFV
+//! - mfkrh_kfmrh_test : MakeFaceKillRingHole + KillFaceMakeRingHole — hole promotion/demotion
+//! - kve_test       : KillVertexEdge — edge merge (stub)
 
 mod helpers;
 
@@ -24,15 +28,20 @@ mod integration_tests;
 pub(crate) mod invariant_checker;
 mod join_faces_nmt_tests;
 mod join_faces_tests;
+mod kfv_test;
 mod kill_edge_vertex_tests;
+mod kve_test;
 mod lineage_tests;
 mod mef_tests;
 mod mekl_keml_tests;
 mod mev_tests;
 mod mffv_tests;
 mod mfis_tests;
+mod mfkrh_kfmrh_test;
+mod mfv_test;
 mod mlifv_tests;
 mod mvf_tests;
 mod sew_edge_tests;
 mod shell_edge_tests;
 mod split_edge_tests;
+

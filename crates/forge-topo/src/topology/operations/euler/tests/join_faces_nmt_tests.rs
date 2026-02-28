@@ -829,18 +829,17 @@ fn sequential_merges_reduce_valence_correctly() {
 /// + vertex outgoing) because our raw setup lacks hierarchy for Full.
 #[test]
 fn post_op_passes_structural_validation_minimal() {
-    use crate::validate::validate_topology_with_mode;
-    use crate::validate::{TopologyMode, ValidationLevel};
+    
+    use crate::validate::{validate_topology, ValidationLevel};
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
     let hes = setup_valence_n_edge(&mut draft, 4);
 
     // Verify pre-op passes validation too (our setup is valid).
-    validate_topology_with_mode(
+    validate_topology(
         draft.arena(),
         ValidationLevel::Minimal,
-        TopologyMode::NmtIntermediate,
     )
     .expect("Pre-op topology must be valid (Minimal+NmtIntermediate)");
 
@@ -855,10 +854,9 @@ fn post_op_passes_structural_validation_minimal() {
 
     // This exercises: validate_radial_rings, validate_radial_edge_consistency,
     // validate_prev_consistency, validate_vertex_continuity, validate_vertex_outgoing.
-    validate_topology_with_mode(
+    validate_topology(
         draft.arena(),
         ValidationLevel::Minimal,
-        TopologyMode::NmtIntermediate,
     )
     .expect("Post-op topology must pass Minimal+NmtIntermediate validation");
 }
@@ -869,8 +867,8 @@ fn post_op_passes_structural_validation_minimal() {
 /// separate `post_op_all_loops_have_consistent_face_membership` test.
 #[test]
 fn post_op_non_adjacent_merge_passes_minimal_validation() {
-    use crate::validate::validate_topology_with_mode;
-    use crate::validate::{TopologyMode, ValidationLevel};
+    
+    use crate::validate::{validate_topology, ValidationLevel};
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
@@ -886,10 +884,9 @@ fn post_op_non_adjacent_merge_passes_minimal_validation() {
     )
     .unwrap();
 
-    validate_topology_with_mode(
+    validate_topology(
         draft.arena(),
         ValidationLevel::Minimal,
-        TopologyMode::NmtIntermediate,
     )
     .expect(
         "Post-op topology must pass Minimal+NmtIntermediate validation after non-adjacent merge",
@@ -1260,8 +1257,8 @@ fn non_trivial_killed_face_boundary() {
 /// slit and report count=2 instead of the correct protected count.
 #[test]
 fn edge_data_entry_walks_full_protected_ring() {
-    use crate::validate::validate_topology_with_mode;
-    use crate::validate::{TopologyMode, ValidationLevel};
+    
+    use crate::validate::{validate_topology, ValidationLevel};
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
@@ -1307,10 +1304,9 @@ fn edge_data_entry_walks_full_protected_ring() {
     );
 
     // Post-op validation must pass.
-    validate_topology_with_mode(
+    validate_topology(
         draft.arena(),
         ValidationLevel::Minimal,
-        TopologyMode::NmtIntermediate,
     )
     .expect("Post-op topology must pass validation after non-adjacent valence-6 merge");
 }
@@ -1528,18 +1524,17 @@ fn antiparallel_vertex_outgoing_fixes_both_endpoints() {
 /// will see 2 distinct endpoints in the slit ring (not a degenerate self-loop).
 #[test]
 fn antiparallel_passes_structural_validation() {
-    use crate::validate::validate_topology_with_mode;
-    use crate::validate::{TopologyMode, ValidationLevel};
+    
+    use crate::validate::{validate_topology, ValidationLevel};
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
     let (hes, _, _) = setup_antiparallel_valence_n(&mut draft, 4);
 
     // Pre-op must validate.
-    validate_topology_with_mode(
+    validate_topology(
         draft.arena(),
         ValidationLevel::Minimal,
-        TopologyMode::NmtIntermediate,
     )
     .expect("Pre-op antiparallel topology must be valid");
 
@@ -1554,10 +1549,9 @@ fn antiparallel_passes_structural_validation() {
 
     // Post-op must validate. This exercises validate_vertex_continuity
     // with a 2-endpoint slit ring (not a degenerate self-loop).
-    validate_topology_with_mode(
+    validate_topology(
         draft.arena(),
         ValidationLevel::Minimal,
-        TopologyMode::NmtIntermediate,
     )
     .expect("Post-op antiparallel topology must pass Minimal+NmtIntermediate validation");
 }
@@ -1954,8 +1948,8 @@ fn antiparallel_outgoing_he_survive_on_vertex_k() {
 /// ring, and validation must all be correct regardless of which is "survive".
 #[test]
 fn selector_swap_both_orderings_valid() {
-    use crate::validate::validate_topology_with_mode;
-    use crate::validate::{TopologyMode, ValidationLevel};
+    
+    use crate::validate::{validate_topology, ValidationLevel};
 
     // Run ordering A.
     let state_a = TopologyState::empty();
@@ -1970,10 +1964,9 @@ fn selector_swap_both_orderings_valid() {
         },
     )
     .unwrap();
-    validate_topology_with_mode(
+    validate_topology(
         draft_a.arena(),
         ValidationLevel::Minimal,
-        TopologyMode::NmtIntermediate,
     )
     .expect("Ordering A must pass validation");
 
@@ -1990,10 +1983,9 @@ fn selector_swap_both_orderings_valid() {
         },
     )
     .unwrap();
-    validate_topology_with_mode(
+    validate_topology(
         draft_b.arena(),
         ValidationLevel::Minimal,
-        TopologyMode::NmtIntermediate,
     )
     .expect("Ordering B (swapped) must pass validation");
 
@@ -2019,8 +2011,8 @@ fn valid_hierarchy_passes_intermediate_validation() {
     use crate::euler::make_edge_face::MakeEdgeFace;
     use crate::euler::make_vertex_face::MakeVertexFace;
     use crate::euler::split_edge::SplitEdge;
-    use crate::validate::validate_topology_with_mode;
-    use crate::validate::{TopologyMode, ValidationLevel};
+    
+    use crate::validate::{validate_topology, ValidationLevel};
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
@@ -2145,10 +2137,9 @@ fn valid_hierarchy_passes_intermediate_validation() {
     .unwrap();
 
     // Validate at Intermediate level — exercises validate_loops AND validate_hierarchy.
-    validate_topology_with_mode(
+    validate_topology(
         draft.arena(),
         ValidationLevel::Intermediate,
-        TopologyMode::NmtIntermediate,
     )
     .expect("Post-op valid-hierarchy topology must pass Intermediate+NmtIntermediate validation");
 }

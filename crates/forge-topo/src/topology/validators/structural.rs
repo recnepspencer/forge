@@ -25,35 +25,12 @@ use crate::topology::queries::traverse::FaceEdgeIterator;
 use crate::validate::ValidationLevel;
 use forge_core::KernelError;
 
-/// Validate the topology of an arena with the specified strictness.
+/// Validate structural topology of an arena with the specified strictness.
 ///
-/// Called automatically by `MutableDraft::commit()`. Runs checks based on `level`.
+/// Called automatically by `MutableDraft::commit()`. Runs structural checks
+/// (pointer coherence, loop closure, hierarchy, Euler formula) and
+/// shell-kind-aware manifold enforcement (Solid shells require valence ≤ 2).
 pub fn validate_topology(arena: &TopologyArena, level: ValidationLevel) -> Result<(), KernelError> {
-    validate_topology_with_mode(arena, level, super::validate::TopologyMode::ManifoldStrict)
-}
-
-/// Validate the topology of an arena with explicit manifold policy.
-///
-/// `level` controls breadth/depth of checks.
-/// `mode` controls what topology is semantically permitted.
-///
-/// **NmtIntermediate skip-list (exhaustive):**
-/// - SKIP: `validate_manifold_edges` (valence > 2 permitted)
-///
-/// All other checks run regardless of mode. Any extension to this skip-list
-/// requires a named spec amendment and dedicated tests.
-pub fn validate_topology_with_mode(
-    arena: &TopologyArena,
-    level: ValidationLevel,
-    mode: super::validate::TopologyMode,
-) -> Result<(), KernelError> {
-    // D8 — Manifold enforcement is unconditional. It runs BEFORE the level
-    // gate because it is a hard phase-boundary invariant, not a diagnostic.
-    // ValidationLevel::None bypasses diagnostics, NOT semantic policy.
-    if mode == super::validate::TopologyMode::ManifoldStrict {
-        validate_manifold_edges(arena)?;
-    }
-
     if level == ValidationLevel::None {
         return Ok(());
     }
@@ -73,6 +50,7 @@ pub fn validate_topology_with_mode(
     if level == ValidationLevel::Full {
         validate_euler(arena)?;
         validate_shell_consistency(arena)?;
+        validate_manifold_edges(arena)?;
         validate_orientation_consistency(arena)?;
     }
 
@@ -647,18 +625,15 @@ fn validate_shell_consistency(arena: &TopologyArena) -> Result<(), KernelError> 
     Ok(())
 }
 
-/// Validate the 2-manifold invariant (Doctrine D8).
+/// Validate manifold edges per shell kind.
 ///
-/// Every edge in every shell must have radial valence ≤ 2.
-/// - **Solid shells**: valence must be exactly 2 (watertight).
-/// - **Open shells**: valence 1 (boundary) or 2 (manifold) is valid.
-/// - **Wire edges** (same-face twin pair from `MakeEdgeVertex`) are exempted
-///   — they are valid topological construction features.
+/// - **Solid shells**: every edge must have radial valence exactly 2 (watertight).
+/// - **Sheet shells**: valence 1 (boundary) or 2 (interior) is valid.
+/// - **Wire shells**: no face-level valence constraints.
 ///
-/// This is the commit-time enforcement of the NMT-aware data structure:
-/// `radial_next` supports arbitrary-length rings during construction,
-/// but `validate_manifold_edges` rejects valence > 2 at commit.
-fn validate_manifold_edges(arena: &TopologyArena) -> Result<(), KernelError> {
+/// This is object-driven, not config-driven: the shell's `ShellKind` determines
+/// what valence is valid for its edges. No global `TopologyMode` is needed.
+pub fn validate_manifold_edges(arena: &TopologyArena) -> Result<(), KernelError> {
     let mut checked_halfedges = EntityBitset::for_half_edges(arena);
 
     for (he_id, he_data) in arena.iter_half_edges() {
@@ -677,38 +652,61 @@ fn validate_manifold_edges(arena: &TopologyArena) -> Result<(), KernelError> {
             curr = arena.get_half_edge(curr)?.radial_next();
         }
 
-        // Valence 1: self-radial wire edge (boundary halfedge). Valid.
-        // Valence 2: manifold interior edge. Valid.
-        // Valence > 2: non-manifold. Always rejected under ManifoldStrict.
-        //
-        // NOTE: The former same-face exemption ("is this a wire edge?") was
-        // removed here because valence > 2 is unconditionally non-manifold —
-        // wire edges are already excluded by the valence <= 2 guard (they are
-        // self-radial, valence 1). If the first pair of a 3+ ring shares a face,
-        // that is still a structural violation, not a wire edge.
-        if valence <= 2 {
-            continue;
-        }
+        let face_id = he_data.face();
+        let shell_id = arena.get_face(face_id)?.shell();
+        let shell_kind = arena.get_shell(shell_id)?.kind();
 
-        return Err(KernelError::TopologyViolation {
-            err: forge_core::TopologyError::NonManifoldEdge {
-                edge_index: edge_id.index(),
-                valence,
-            },
-            context: Some(forge_core::ErrorContext {
-                scope: forge_core::ErrorScope::Entity {
-                    entity_kind: "Edge".to_string(),
-                    index: edge_id.index(),
-                },
-                suggested_fixes: Vec::new(),
-                detail: format!(
-                    "Edge {} has radial valence {} (max allowed: 2). \
-                     Doctrine D8 requires 2-manifold topology at commit time.",
-                    edge_id.index(),
-                    valence
-                ),
-            }),
-        });
+        match shell_kind {
+            crate::arena::ShellKind::Solid(_) => {
+                if valence > 2 {
+                    return Err(KernelError::TopologyViolation {
+                        err: forge_core::TopologyError::NonManifoldEdge {
+                            edge_index: edge_id.index(),
+                            valence,
+                        },
+                        context: Some(forge_core::ErrorContext {
+                            scope: forge_core::ErrorScope::Entity {
+                                entity_kind: "Edge".to_string(),
+                                index: edge_id.index(),
+                            },
+                            suggested_fixes: Vec::new(),
+                            detail: format!(
+                                "Solid shell {} edge {} has radial valence {} (max allowed: 2 for solid shells).",
+                                shell_id.index(),
+                                edge_id.index(),
+                                valence
+                            ),
+                        }),
+                    });
+                }
+            }
+            crate::arena::ShellKind::Sheet => {
+                if valence > 2 {
+                    return Err(KernelError::TopologyViolation {
+                        err: forge_core::TopologyError::NonManifoldEdge {
+                            edge_index: edge_id.index(),
+                            valence,
+                        },
+                        context: Some(forge_core::ErrorContext {
+                            scope: forge_core::ErrorScope::Entity {
+                                entity_kind: "Edge".to_string(),
+                                index: edge_id.index(),
+                            },
+                            suggested_fixes: Vec::new(),
+                            detail: format!(
+                                "Sheet shell {} edge {} has radial valence {} (max allowed: 2 for sheet shells).",
+                                shell_id.index(),
+                                edge_id.index(),
+                                valence
+                            ),
+                        }),
+                    });
+                }
+            }
+            crate::arena::ShellKind::Wire => {
+                // Wire shells have no face-level manifold constraints.
+            }
+        }
     }
     Ok(())
 }
