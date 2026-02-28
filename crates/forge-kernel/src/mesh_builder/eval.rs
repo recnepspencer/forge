@@ -14,6 +14,7 @@ use forge_topo::arena::{
     ShellKind, ShellOrientation, VertexData,
 };
 use forge_topo::handles::{EdgeId, HalfEdgeId, LoopId, ShellId, VertexId};
+use forge_topo::lineage::{Lineage, OpSignature};
 use forge_topo::state::{MutableDraft, TopologyState};
 
 use crate::brep::state::BrepState;
@@ -77,28 +78,39 @@ pub fn build_halfedge_mesh(
 
     let tolerance = config.scaled_vertex_tolerance();
     let mut ctx = ModelingContext::new();
+    let sig = OpSignature::new("build_halfedge_mesh");
+    let mut ordinal: u64 = 0;
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
     let mut geometry = GeometryState::new();
 
-    let vertex_ids = insert_vertices(&mut draft, &mut geometry, cell, tolerance, &mut ctx)?;
+    let vertex_ids = insert_vertices(
+        &mut draft, &mut geometry, cell, tolerance, &mut ctx, &sig, &mut ordinal,
+    )?;
 
-    let body = draft.insert_body(BodyData::new());
-    let lump = draft.insert_lump(LumpData::new(body));
-    let region = draft.insert_region(RegionData::new(lump));
+    let body = draft.insert_body(BodyData::with_lineage(Some(Lineage::root(ordinal, sig.clone()))));
+    ordinal += 1;
+    let lump = draft.insert_lump(LumpData::with_lineage(body, Some(Lineage::root(ordinal, sig.clone()))));
+    ordinal += 1;
+    let region = draft.insert_region(RegionData::with_lineage(lump, Some(Lineage::root(ordinal, sig.clone()))));
+    ordinal += 1;
     draft.arena_mut().get_body_mut(body)?.add_lump(lump);
     draft.arena_mut().get_lump_mut(lump)?.add_region(region);
-    let shell = draft.insert_shell(ShellData::new(
+    let shell = draft.insert_shell(ShellData::with_lineage(
         forge_topo::handles::FaceId::from_raw_parts(u32::MAX, 0),
         ShellKind::Solid(ShellOrientation::Outer),
         region,
+        Some(Lineage::root(ordinal, sig.clone())),
     ));
+    ordinal += 1;
     draft.arena_mut().get_region_mut(region)?.add_shell(shell);
 
-    let edge_map = insert_faces_and_loops(&mut draft, &mut geometry, cell, &vertex_ids, shell)?;
+    let edge_map = insert_faces_and_loops(
+        &mut draft, &mut geometry, cell, &vertex_ids, shell, &sig, &mut ordinal,
+    )?;
 
-    stitch_twins(&mut draft, &edge_map)?;
+    stitch_twins(&mut draft, &edge_map, &sig, &mut ordinal)?;
 
     let first_face = draft.arena().iter_faces().next().map(|(fid, _)| fid);
     if let Some(fid) = first_face {
@@ -111,6 +123,7 @@ pub fn build_halfedge_mesh(
     let topology = draft.commit()?;
 
     geometry.validate_geometry_bindings(topology.arena())?;
+    geometry.validate_geometry_completeness(topology.arena())?;
 
     Ok(MeshBuildResult {
         topology,
@@ -155,6 +168,8 @@ fn insert_vertices(
     cell: &ConvexCell,
     tolerance: f64,
     ctx: &mut ModelingContext,
+    sig: &OpSignature,
+    ordinal: &mut u64,
 ) -> Result<Vec<VertexId>, KernelError> {
     let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
     let mut vertex_ids = Vec::with_capacity(cell.vertex_count());
@@ -178,7 +193,11 @@ fn insert_vertices(
             );
             vertex_ids.push(existing_vid);
         } else {
-            let vid = draft.insert_vertex(VertexData::new(placeholder_he));
+            let vid = draft.insert_vertex(VertexData::with_lineage(
+                placeholder_he,
+                Some(Lineage::root(*ordinal, sig.clone())),
+            ));
+            *ordinal += 1;
 
             let [pa, pb, pc] = vert.plane_indices();
             let stored_exact = if pa < cell_planes.len()
@@ -245,6 +264,8 @@ fn insert_faces_and_loops(
     cell: &ConvexCell,
     vertex_ids: &[VertexId],
     shell: ShellId,
+    sig: &OpSignature,
+    ordinal: &mut u64,
 ) -> Result<EdgeMap, KernelError> {
     let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
     let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
@@ -260,7 +281,12 @@ fn insert_faces_and_loops(
             continue;
         }
 
-        let face_id = draft.insert_face(FaceData::new(placeholder_loop, shell));
+        let face_id = draft.insert_face(FaceData::with_lineage(
+            placeholder_loop,
+            shell,
+            Some(Lineage::root(*ordinal, sig.clone())),
+        ));
+        *ordinal += 1;
 
         let loop_id = draft.insert_loop(LoopData::new(placeholder_he, face_id));
 
@@ -274,14 +300,16 @@ fn insert_faces_and_loops(
 
         for &cell_vert_idx in face_verts {
             let origin = vertex_ids[cell_vert_idx];
-            let he_id = draft.insert_half_edge(HalfEdgeData::new(
+            let he_id = draft.insert_half_edge(HalfEdgeData::with_lineage(
                 placeholder_he,
                 placeholder_he,
                 placeholder_he,
                 face_id,
                 origin,
                 placeholder_edge,
+                Some(Lineage::root(*ordinal, sig.clone())),
             ));
+            *ordinal += 1;
             he_ids.push(he_id);
         }
 
@@ -361,11 +389,20 @@ impl EdgeMap {
 ///
 /// For each directed edge (a→b), find the matching (b→a) and set twins.
 /// Iterates in deterministic ascending order by vertex-pair key.
-fn stitch_twins(draft: &mut MutableDraft, edge_map: &EdgeMap) -> Result<(), KernelError> {
+fn stitch_twins(
+    draft: &mut MutableDraft,
+    edge_map: &EdgeMap,
+    sig: &OpSignature,
+    ordinal: &mut u64,
+) -> Result<(), KernelError> {
     for (a, b, he_id) in edge_map.iter_ascending() {
         if a < b {
             if let Some(twin_id) = edge_map.get(b, a) {
-                let edge = draft.insert_edge(EdgeData::new(he_id));
+                let edge = draft.insert_edge(EdgeData::with_lineage(
+                    he_id,
+                    Some(Lineage::root(*ordinal, sig.clone())),
+                ));
+                *ordinal += 1;
                 draft
                     .arena_mut()
                     .get_half_edge_mut(he_id)?

@@ -11,6 +11,7 @@ forge-math.workspace = true
 forge-topo.workspace = true
 forge-geom.workspace = true
 forge-kernel.workspace = true
+forge-spatial.workspace = true
 forge-io.workspace = true
 
 [lints]

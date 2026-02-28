@@ -14,3 +14,6 @@ pub mod point_in_solid;
 pub mod point_on_face;
 pub mod schema;
 pub mod sos;
+
+#[cfg(test)]
+mod point_in_solid_tests;

@@ -7,11 +7,18 @@
 use forge_core::KernelError;
 use forge_geom::spatial::bsp::{build_convex_polyhedron, BspConfig};
 use forge_geom::Plane;
-use forge_kernel::core::ModelingContext;
+use forge_kernel::brep::state::BrepState;
+use forge_kernel::core::config::resolve::{resolve_config, ResolvedConfig};
+use forge_kernel::core::config::schema::KernelConfig;
 use forge_kernel::geometry_state::GeometryState;
 use forge_kernel::mesh_builder::build_halfedge_mesh;
 use forge_kernel::operations::boolean::{BooleanInput, BooleanOp};
 use forge_topo::state::TopologyState;
+
+/// Build a default `ResolvedConfig` for test generators.
+fn test_config() -> ResolvedConfig {
+    resolve_config(&KernelConfig::default(), None, None, None).unwrap()
+}
 
 /// Deterministic PRNG (xorshift64). No external dependencies.
 pub struct Xorshift64 {
@@ -79,9 +86,10 @@ pub fn random_convex_solid(seed: u64) -> Result<(TopologyState, GeometryState), 
     }
 
     let cell = build_convex_polyhedron(&planes, &BspConfig::default())?;
-    let mut ctx = ModelingContext::new();
-    let result = build_halfedge_mesh(&cell, &mut ctx)?;
-    Ok(result.into_parts())
+    let cfg = test_config();
+    let result = build_halfedge_mesh(&cell, &cfg)?;
+    let (topo, geom, _brep) = result.into_parts();
+    Ok((topo, geom))
 }
 
 /// Build a cube at a specific position with a given half-size.
@@ -123,9 +131,10 @@ pub fn build_cube_at(
     ];
 
     let cell = build_convex_polyhedron(&planes, &BspConfig::default())?;
-    let mut ctx = ModelingContext::new();
-    let result = build_halfedge_mesh(&cell, &mut ctx)?;
-    Ok(result.into_parts())
+    let cfg = test_config();
+    let result = build_halfedge_mesh(&cell, &cfg)?;
+    let (topo, geom, _brep) = result.into_parts();
+    Ok((topo, geom))
 }
 
 /// Build a cube at a random position with random half-size.
@@ -175,9 +184,10 @@ pub fn random_cube(rng: &mut Xorshift64) -> Result<(TopologyState, GeometryState
     ];
 
     let cell = build_convex_polyhedron(&planes, &BspConfig::default())?;
-    let mut ctx = ModelingContext::new();
-    let result = build_halfedge_mesh(&cell, &mut ctx)?;
-    Ok(result.into_parts())
+    let cfg = test_config();
+    let result = build_halfedge_mesh(&cell, &cfg)?;
+    let (topo, geom, _brep) = result.into_parts();
+    Ok((topo, geom))
 }
 
 /// Pick a random BooleanOp.
@@ -195,7 +205,7 @@ pub fn random_cube_pair(seed: u64) -> Result<BooleanInput, KernelError> {
     let (topo_a, geom_a) = random_cube(&mut rng)?;
     let (topo_b, geom_b) = random_cube(&mut rng)?;
     let op = random_op(&mut rng);
-    Ok(BooleanInput::new(topo_a, geom_a, topo_b, geom_b, op))
+    Ok(BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), op))
 }
 
 /// Generate a random Boolean pair from two convex solids.
@@ -209,7 +219,7 @@ pub fn random_convex_pair(seed: u64) -> Result<BooleanInput, KernelError> {
     let (topo_a, geom_a) = random_convex_solid(seed_a)?;
     let (topo_b, geom_b) = random_convex_solid(seed_b)?;
 
-    Ok(BooleanInput::new(topo_a, geom_a, topo_b, geom_b, op))
+    Ok(BooleanInput::new(topo_a, geom_a, BrepState::new(), topo_b, geom_b, BrepState::new(), op))
 }
 
 #[cfg(test)]

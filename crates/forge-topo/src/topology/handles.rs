@@ -51,8 +51,8 @@ macro_rules! define_handle {
         }
 
         impl $name {
-            /// Create a handle. Arena-internal only.
-            pub(crate) fn new(index: u32, generation: u32) -> Self {
+            /// Create a handle from an index and generation pair.
+            pub fn new(index: u32, generation: u32) -> Self {
                 Self { index, generation }
             }
 
@@ -61,8 +61,9 @@ macro_rules! define_handle {
             /// Use this when deserializing handles or reconstructing them
             /// from arena iteration results. Prefer obtaining handles through
             /// Euler operators (`apply_op`) for normal topology construction.
+            #[deprecated(since = "0.1.0", note = "Use Handle::new() instead")]
             pub fn from_raw_parts(index: u32, generation: u32) -> Self {
-                Self { index, generation }
+                Self::new(index, generation)
             }
 
             /// The slot index in the arena.

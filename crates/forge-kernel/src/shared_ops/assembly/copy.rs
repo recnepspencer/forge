@@ -18,6 +18,11 @@ use forge_topo::arena::{BodyData, LumpData, RegionData, FaceData, LoopData, Vert
 use forge_topo::handles::{BodyId, RegionId, FaceId, VertexId, HalfEdgeId, LoopId, ShellId};
 use forge_topo::lineage::{Lineage, OpSignature};
 use forge_topo::state::MutableDraft;
+use forge_topo::operator::apply_op;
+use forge_topo::euler::make_solid::MakeSolid;
+use forge_topo::euler::make_lump_region::MakeLumpRegion;
+use forge_topo::euler::make_empty_shell::MakeEmptyShell;
+use forge_topo::euler::make_isolated_vertex::MakeIsolatedVertex;
 
 use crate::geometry_state::GeometryState;
 use crate::shared_ops::vertex::identity::VertexMatchKey;
@@ -134,7 +139,7 @@ pub fn copy_faces(
     src_prov: Option<&BTreeMap<VertexId, VertexMatchKey>>,
 ) -> Result<(), KernelError> {
     let mut shell_map: BTreeMap<ShellId, ShellId> = BTreeMap::new();
-    let destination_body = ensure_destination_body(draft);
+    let destination_body = ensure_destination_body(draft)?;
 
     for &src_face in source_faces {
         let src_shell = source_arena.get_face(src_face)?.shell();
@@ -145,12 +150,7 @@ pub fn copy_faces(
                 .map(|s| s.kind())
                 .unwrap_or(forge_topo::arena::ShellKind::Solid(forge_topo::arena::ShellOrientation::Outer));
             let region = create_destination_region(draft, destination_body)?;
-            let shell = draft.insert_shell(ShellData::new(
-                FaceId::from_raw_parts(u32::MAX, 0),
-                kind,
-                region,
-            ));
-            draft.arena_mut().get_region_mut(region)?.add_shell(shell);
+            let shell = apply_op(draft, MakeEmptyShell { region, kind })?.into_value().shell;
             shell_map.insert(src_shell, shell);
             shell
         };
@@ -166,27 +166,24 @@ pub fn copy_faces(
     Ok(())
 }
 
-fn ensure_destination_body(draft: &mut MutableDraft) -> BodyId {
+fn ensure_destination_body(draft: &mut MutableDraft) -> Result<BodyId, KernelError> {
     if let Some((body_id, _)) = draft.arena().iter_bodies().next() {
-        return body_id;
+        return Ok(body_id);
     }
-    draft.insert_body(BodyData::new())
+    let res = apply_op(draft, MakeSolid)?.into_value();
+    Ok(res.body)
 }
 
-// DEFECT(D7): Region/Lump/Body hierarchy created manually instead of via MakeLumpRegion.
 fn create_destination_region(
     draft: &mut MutableDraft,
     body: BodyId,
 ) -> Result<RegionId, KernelError> {
-    let lump = draft.insert_lump(LumpData::new(body));
-    let region = draft.insert_region(RegionData::new(lump));
-    draft.arena_mut().get_body_mut(body)?.add_lump(lump);
-    draft.arena_mut().get_lump_mut(lump)?.add_region(region);
-    Ok(region)
+    let res = apply_op(draft, MakeLumpRegion { body })?.into_value();
+    Ok(res.region)
 }
 
 /// Copy a single face via rebuild from vertices.
-// DEFECT(D1): copy_single_face does raw arena insertion (insert_face/insert_half_edge) instead of using certified Euler operations.
+// DEFECT(D1): copy_single_face uses raw arena insertion for insert_empty_face.
 fn copy_single_face(
     draft: &mut MutableDraft,
     result_geom: &mut GeometryState,
@@ -418,10 +415,12 @@ fn create_new_vertex(
     src_vertex: VertexId,
     pos: &[f64; 3],
 ) -> Result<VertexId, KernelError> {
-    let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
+    let vid = apply_op(draft, MakeIsolatedVertex)?.into_value().vertex;
     let src_lineage = source_arena.get_vertex(src_vertex)
         .ok().and_then(|v| v.lineage().cloned());
-    let vid = draft.insert_vertex(VertexData::with_lineage(placeholder_he, src_lineage));
+    if let Some(lineage) = src_lineage {
+        draft.arena_mut().get_vertex_mut(vid)?.set_lineage(Some(lineage));
+    }
     result_geom.set_vertex_position(vid, *pos);
     if let Some(exact) = source_geom.get_vertex_position_exact(src_vertex) {
         if let Some(planes) = source_geom.get_vertex_symbolic_planes(src_vertex) {

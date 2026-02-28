@@ -84,6 +84,8 @@ pub enum EntityOriginKind {
     MergeOperator,
     /// Copies entities from one solid to another.
     CopyOperator,
+    /// Batch-inserts entities via direct arena insertion (no Euler ops).
+    DirectInsertion,
 }
 
 /// Specific Euler operators invoked by a feature.
@@ -93,7 +95,8 @@ pub enum EulerOpKind {
     MakeEdgeFace,
     SplitEdge,
     SweepFace,
-    // Add more as needed
+    /// Direct arena insertion — bypasses Euler operator framework.
+    DirectInsertion,
 }
 
 /// Geometric surface types handled by a feature.

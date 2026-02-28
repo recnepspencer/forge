@@ -1492,6 +1492,7 @@ dependencies = [
  "forge-io",
  "forge-kernel",
  "forge-math",
+ "forge-spatial",
  "forge-topo",
 ]
 

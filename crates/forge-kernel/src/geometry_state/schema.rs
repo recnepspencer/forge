@@ -402,6 +402,47 @@ impl GeometryState {
         Ok(())
     }
 
+    /// Validate that every topology entity has geometry assigned (completeness).
+    ///
+    /// This is the reverse of `validate_geometry_bindings`: instead of checking
+    /// for dangling geometry refs that point to deleted entities, it checks that
+    /// every live entity has the geometry it needs.
+    ///
+    /// Intended for use after batch construction (e.g. `build_halfedge_mesh`)
+    /// where the caller is responsible for assigning geometry to every entity.
+    pub fn validate_geometry_completeness(
+        &self,
+        arena: &TopologyArena,
+    ) -> Result<(), KernelError> {
+        for (face_id, _) in arena.iter_faces() {
+            if self.get_face_plane(face_id).is_none() {
+                return Err(KernelError::InternalError {
+                    message: format!(
+                        "Face {}:{} has no plane binding in GeometryState",
+                        face_id.index(),
+                        face_id.generation()
+                    ),
+                    context: None,
+                });
+            }
+        }
+
+        for (vert_id, _) in arena.iter_vertices() {
+            if self.get_vertex_position(vert_id).is_none() {
+                return Err(KernelError::InternalError {
+                    message: format!(
+                        "Vertex {}:{} has no position binding in GeometryState",
+                        vert_id.index(),
+                        vert_id.generation()
+                    ),
+                    context: None,
+                });
+            }
+        }
+
+        Ok(())
+    }
+
     // Local tolerance accessors removed: tolerances now live in AttributeStore.
 
     /// Check that every VertexId in the provided iterator has a tolerance bound.

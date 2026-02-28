@@ -9,21 +9,22 @@ mod tests {
     use crate::IoError;
     use forge_kernel::boolean::BooleanOp;
     use forge_kernel::engine::tree::{FeatureTree, NativeFeature};
-    use forge_kernel::engine::wrappers::{BooleanFeature, MakeCubeFeature};
+    use forge_kernel::engine::wrappers::BooleanFeature;
+    use forge_kernel::primitives::MakePrimitiveFeature;
     use tempfile::tempdir;
 
     #[test]
     fn round_trip_preserves_structure() {
         let mut tree = FeatureTree::new();
 
-        let cube = MakeCubeFeature::new("Cube", [0.0, 0.0, 0.0], 10.0);
+        let cube = MakePrimitiveFeature::cube("Cube", [0.0, 0.0, 0.0], 10.0);
         let cube_id = tree
-            .register_feature(NativeFeature::MakeCube(cube))
+            .register_feature(NativeFeature::MakePrimitive(cube))
             .unwrap();
 
-        let tool = MakeCubeFeature::new("Tool", [5.0, 5.0, 5.0], 5.0);
+        let tool = MakePrimitiveFeature::cube("Tool", [5.0, 5.0, 5.0], 5.0);
         let tool_id = tree
-            .register_feature(NativeFeature::MakeCube(tool))
+            .register_feature(NativeFeature::MakePrimitive(tool))
             .unwrap();
 
         let cut = BooleanFeature::new("Cut", BooleanOp::Subtraction, cube_id, tool_id);
@@ -89,8 +90,8 @@ mod tests {
     #[test]
     fn tc02_single_cube_round_trip() {
         let mut tree = FeatureTree::new();
-        let cube = MakeCubeFeature::new("Box1", [1.0, 2.0, 3.0], 4.0);
-        tree.register_feature(NativeFeature::MakeCube(cube))
+        let cube = MakePrimitiveFeature::cube("Box1", [1.0, 2.0, 3.0], 4.0);
+        tree.register_feature(NativeFeature::MakePrimitive(cube))
             .unwrap();
 
         let dir = tempdir().unwrap();
@@ -107,11 +108,11 @@ mod tests {
     #[test]
     fn tc03_two_features_round_trip() {
         let mut tree = FeatureTree::new();
-        let cube = MakeCubeFeature::new("Base", [0.0, 0.0, 0.0], 10.0);
-        tree.register_feature(NativeFeature::MakeCube(cube))
+        let cube = MakePrimitiveFeature::cube("Base", [0.0, 0.0, 0.0], 10.0);
+        tree.register_feature(NativeFeature::MakePrimitive(cube))
             .unwrap();
-        let tool = MakeCubeFeature::new("Cutter", [3.0, 3.0, 3.0], 5.0);
-        tree.register_feature(NativeFeature::MakeCube(tool))
+        let tool = MakePrimitiveFeature::cube("Cutter", [3.0, 3.0, 3.0], 5.0);
+        tree.register_feature(NativeFeature::MakePrimitive(tool))
             .unwrap();
 
         let dir = tempdir().unwrap();
@@ -129,13 +130,13 @@ mod tests {
     #[test]
     fn tc04_boolean_subtraction_round_trip() {
         let mut tree = FeatureTree::new();
-        let cube = MakeCubeFeature::new("Body", [0.0, 0.0, 0.0], 10.0);
+        let cube = MakePrimitiveFeature::cube("Body", [0.0, 0.0, 0.0], 10.0);
         let cube_id = tree
-            .register_feature(NativeFeature::MakeCube(cube))
+            .register_feature(NativeFeature::MakePrimitive(cube))
             .unwrap();
-        let tool = MakeCubeFeature::new("Hole", [2.0, 2.0, 2.0], 4.0);
+        let tool = MakePrimitiveFeature::cube("Hole", [2.0, 2.0, 2.0], 4.0);
         let tool_id = tree
-            .register_feature(NativeFeature::MakeCube(tool))
+            .register_feature(NativeFeature::MakePrimitive(tool))
             .unwrap();
         let cut = BooleanFeature::new("Pocket", BooleanOp::Subtraction, cube_id, tool_id);
         tree.register_feature(NativeFeature::Boolean(cut)).unwrap();
@@ -156,13 +157,13 @@ mod tests {
     #[test]
     fn tc05_diffability_byte_identical() {
         let mut tree = FeatureTree::new();
-        let cube = MakeCubeFeature::new("Part", [1.0, 2.0, 3.0], 7.0);
+        let cube = MakePrimitiveFeature::cube("Part", [1.0, 2.0, 3.0], 7.0);
         let cube_id = tree
-            .register_feature(NativeFeature::MakeCube(cube))
+            .register_feature(NativeFeature::MakePrimitive(cube))
             .unwrap();
-        let tool = MakeCubeFeature::new("Drill", [2.0, 3.0, 4.0], 3.0);
+        let tool = MakePrimitiveFeature::cube("Drill", [2.0, 3.0, 4.0], 3.0);
         let tool_id = tree
-            .register_feature(NativeFeature::MakeCube(tool))
+            .register_feature(NativeFeature::MakePrimitive(tool))
             .unwrap();
         let cut = BooleanFeature::new("Op", BooleanOp::Intersection, cube_id, tool_id);
         tree.register_feature(NativeFeature::Boolean(cut)).unwrap();
@@ -182,3 +183,4 @@ mod tests {
         );
     }
 }
+

@@ -1,6 +1,6 @@
 use crate::engine::tree::{FeatureTree, NativeFeature};
 use crate::engine::wrappers::BooleanFeature;
-use crate::engine::wrappers::MakeCubeFeature;
+use crate::primitives::MakePrimitiveFeature;
 use crate::operations::boolean::BooleanOp;
 
 // ══════════════════════════════════════════════════════════════
@@ -15,17 +15,17 @@ use crate::operations::boolean::BooleanOp;
 fn topology_firewall_dimension_change() {
     let mut tree = FeatureTree::new();
 
-    let base = MakeCubeFeature::new("Base", [0.0, 0.0, 0.0], 2.0);
+    let base = MakePrimitiveFeature::cube("Base", [0.0, 0.0, 0.0], 2.0);
     let base_id = tree
-        .register_feature(NativeFeature::MakeCube(base))
+        .register_feature(NativeFeature::MakePrimitive(base))
         .unwrap();
 
     let result1 = tree.evaluate_feature(base_id).expect("Initial eval failed");
     let fc1 = result1.topology.arena().face_count();
     assert_eq!(fc1, 6, "Cube should have 6 faces");
 
-    let new_base = MakeCubeFeature::new("Base", [0.0, 0.0, 0.0], 3.0);
-    tree.replace_feature(base_id, NativeFeature::MakeCube(new_base))
+    let new_base = MakePrimitiveFeature::cube("Base", [0.0, 0.0, 0.0], 3.0);
+    tree.replace_feature(base_id, NativeFeature::MakePrimitive(new_base))
         .unwrap();
 
     let result2 = tree.evaluate_feature(base_id).expect("Re-eval failed");
@@ -40,14 +40,14 @@ fn topology_firewall_dimension_change() {
 fn topology_change_propagation() {
     let mut tree = FeatureTree::new();
 
-    let base = MakeCubeFeature::new("Base", [0.0, 0.0, 0.0], 5.0);
+    let base = MakePrimitiveFeature::cube("Base", [0.0, 0.0, 0.0], 5.0);
     let base_id = tree
-        .register_feature(NativeFeature::MakeCube(base))
+        .register_feature(NativeFeature::MakePrimitive(base))
         .unwrap();
 
-    let tool = MakeCubeFeature::new("Tool", [2.0, 2.0, 2.0], 2.0);
+    let tool = MakePrimitiveFeature::cube("Tool", [2.0, 2.0, 2.0], 2.0);
     let tool_id = tree
-        .register_feature(NativeFeature::MakeCube(tool))
+        .register_feature(NativeFeature::MakePrimitive(tool))
         .unwrap();
 
     let cut = BooleanFeature::new("Cut", BooleanOp::Subtraction, base_id, tool_id);
@@ -57,8 +57,8 @@ fn topology_change_propagation() {
     let initial_faces = result.topology.arena().face_count();
     assert!(initial_faces > 6, "Subtraction should add faces");
 
-    let big_tool = MakeCubeFeature::new("Tool", [0.0, 0.0, 0.0], 3.0);
-    tree.replace_feature(tool_id, NativeFeature::MakeCube(big_tool))
+    let big_tool = MakePrimitiveFeature::cube("Tool", [0.0, 0.0, 0.0], 3.0);
+    tree.replace_feature(tool_id, NativeFeature::MakePrimitive(big_tool))
         .unwrap();
 
     let result2 = tree
@@ -76,9 +76,9 @@ fn topology_change_propagation() {
 fn trace_summary_retained_after_evaluation() {
     let mut tree = FeatureTree::new();
 
-    let base = MakeCubeFeature::new("Base", [0.0, 0.0, 0.0], 1.0);
+    let base = MakePrimitiveFeature::cube("Base", [0.0, 0.0, 0.0], 1.0);
     let base_id = tree
-        .register_feature(NativeFeature::MakeCube(base))
+        .register_feature(NativeFeature::MakePrimitive(base))
         .unwrap();
 
     let result = tree.evaluate_feature(base_id).expect("Eval failed");

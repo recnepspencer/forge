@@ -7,7 +7,8 @@
 
 use forge_kernel::boolean::BooleanOp;
 use forge_kernel::engine::tree::{FeatureTree, NativeFeature};
-use forge_kernel::engine::wrappers::{BooleanFeature, MakeCubeFeature};
+use forge_kernel::engine::wrappers::BooleanFeature;
+use forge_kernel::primitives::MakePrimitiveFeature;
 
 #[test]
 fn tc01_parametric_update_flow() {
@@ -15,20 +16,20 @@ fn tc01_parametric_update_flow() {
 
     // 1. Create Base Block (Target)
     // Simulates "Sketch + Extrude"
-    let base_cube = MakeCubeFeature::new("BaseCube", [0.0, 0.0, 0.0], 10.0);
+    let base_cube = MakePrimitiveFeature::cube("BaseCube", [0.0, 0.0, 0.0], 10.0);
     let base_id = tree
-        .register_feature(NativeFeature::MakeCube(base_cube))
+        .register_feature(NativeFeature::MakePrimitive(base_cube))
         .unwrap();
 
     // 2. Create Tool Block (Drill)
     // Simulates a cutting tool
-    let tool_cube = MakeCubeFeature::new(
+    let tool_cube = MakePrimitiveFeature::cube(
         "ToolCube",
         [2.5, 2.5, 2.5], // Offset to create a corner cut
         5.0,
     );
     let tool_id = tree
-        .register_feature(NativeFeature::MakeCube(tool_cube))
+        .register_feature(NativeFeature::MakePrimitive(tool_cube))
         .unwrap();
 
     // 3. Create Boolean Operation (Cut)
@@ -56,13 +57,13 @@ fn tc01_parametric_update_flow() {
     println!("Modifying tool size...");
 
     // Change tool to be larger (covering more of the base)
-    let new_tool_cube = MakeCubeFeature::new(
+    let new_tool_cube = MakePrimitiveFeature::cube(
         "ToolCube_Large",
         [2.5, 2.5, 2.5],
         8.0, // Increased size
     );
 
-    tree.replace_feature(tool_id, NativeFeature::MakeCube(new_tool_cube))
+    tree.replace_feature(tool_id, NativeFeature::MakePrimitive(new_tool_cube))
         .unwrap();
 
     // 6. Re-evaluate
@@ -79,9 +80,9 @@ fn tc01_parametric_update_flow() {
 #[test]
 fn feature_registration_wiring() {
     let mut tree = FeatureTree::new();
-    let root = MakeCubeFeature::new("Root", [0.0, 0.0, 0.0], 1.0);
+    let root = MakePrimitiveFeature::cube("Root", [0.0, 0.0, 0.0], 1.0);
     let root_id = tree
-        .register_feature(NativeFeature::MakeCube(root))
+        .register_feature(NativeFeature::MakePrimitive(root))
         .unwrap();
 
     assert!(tree.get_node_by_name("Root").is_some());
