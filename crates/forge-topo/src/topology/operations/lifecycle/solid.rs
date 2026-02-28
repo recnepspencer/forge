@@ -135,6 +135,3 @@ impl EulerOperator for DestroyBody {
         })
     }
 }
-
-/// Alias for MakeSolid (operators-list.md §B1 name).
-pub type CreateBody = MakeSolid;

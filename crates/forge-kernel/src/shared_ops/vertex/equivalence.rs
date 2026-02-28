@@ -95,7 +95,7 @@ fn lookup_vertex(
             context: None,
         }
     })?;
-    let vid = VertexId::from_raw_parts(index, gen);
+    let vid = VertexId::new(index, gen);
     geom.get_vertex_position(vid).copied().ok_or_else(|| {
         KernelError::InvalidInput {
             message: format!("No position for vertex {}", index),

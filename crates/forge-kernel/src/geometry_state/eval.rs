@@ -25,7 +25,7 @@ pub fn build_position_lookup<'a>(
                     message: format!("No active vertex at slot index {}", index),
                     context: None,
                 })?;
-        let vertex_id = VertexId::from_raw_parts(index, gen);
+        let vertex_id = VertexId::new(index, gen);
         store
             .get_vertex_position(vertex_id)
             .copied()

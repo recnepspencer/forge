@@ -363,7 +363,7 @@ mod tests {
     #[test]
     fn radial_uses_nonexistent_handle_returns_err() {
         let arena = TopologyArena::new();
-        let bad = HalfEdgeId::from_raw_parts(99_999, 0);
+        let bad = HalfEdgeId::new(99_999, 0);
         let result = radial_uses(&arena, bad);
         assert!(
             result.is_err(),
@@ -387,7 +387,7 @@ mod tests {
         let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
 
         // Point radial_next to a slot with the wrong generation — stale handle
-        let stale = HalfEdgeId::from_raw_parts(
+        let stale = HalfEdgeId::new(
             mvf.half_edge.index(),
             mvf.half_edge.generation().wrapping_add(1), // wrong generation
         );
@@ -408,7 +408,7 @@ mod tests {
     #[test]
     fn radial_uses_by_face_bad_handle_returns_err() {
         let arena = TopologyArena::new();
-        let bad = HalfEdgeId::from_raw_parts(0, 0);
+        let bad = HalfEdgeId::new(0, 0);
         assert!(radial_uses_by_face(&arena, bad).is_err());
     }
 }

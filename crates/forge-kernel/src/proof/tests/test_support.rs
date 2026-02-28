@@ -50,7 +50,7 @@ pub fn insert_test_solid_shell(arena: &mut TopologyArena) -> ShellId {
     let shell = TopologyArena::insert_shell(
         arena,
         ShellData::new(
-            FaceId::from_raw_parts(u32::MAX, 0),
+            FaceId::new(u32::MAX, 0),
             ShellKind::Solid(ShellOrientation::Outer),
             region,
         ),

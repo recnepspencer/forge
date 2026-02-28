@@ -15,7 +15,7 @@ fn curved_merge_selection_is_serializable() {
     let selection = CurvedMergeSelection {
         selected_faces: vec![],
         protected_faces: vec![],
-        surviving_face: FaceId::from_raw_parts(0, 0),
+        surviving_face: FaceId::new(0, 0),
         policy_overrides: CurvedMergePolicyOverrides::default(),
     };
     let json = serde_json::to_string(&selection).unwrap();

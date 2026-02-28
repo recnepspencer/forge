@@ -223,8 +223,8 @@ mod tests {
     #[test]
     fn no_op_when_edge_has_no_curve() {
         let mut geom = GeometryState::new();
-        let old_edge = EdgeId::from_raw_parts(0, 0);
-        let new_edge = EdgeId::from_raw_parts(1, 0);
+        let old_edge = EdgeId::new(0, 0);
+        let new_edge = EdgeId::new(1, 0);
 
         let result = propagate_curve_on_split(old_edge, new_edge, 0.5, &mut geom);
         assert!(result.is_ok());
@@ -235,8 +235,8 @@ mod tests {
     #[test]
     fn line_curve_propagates_to_both_segments() {
         let mut geom = GeometryState::new();
-        let old_edge = EdgeId::from_raw_parts(0, 0);
-        let new_edge = EdgeId::from_raw_parts(1, 0);
+        let old_edge = EdgeId::new(0, 0);
+        let new_edge = EdgeId::new(1, 0);
 
         let curve = CurveGeom::from_analytic(
             CurveKind::Line {
@@ -271,8 +271,8 @@ mod tests {
     #[test]
     fn surface_intersection_preserves_symbolic_references() {
         let mut geom = GeometryState::new();
-        let old_edge = EdgeId::from_raw_parts(0, 0);
-        let new_edge = EdgeId::from_raw_parts(1, 0);
+        let old_edge = EdgeId::new(0, 0);
+        let new_edge = EdgeId::new(1, 0);
 
         let sp_cache = SpCurveApproximation {
             control_points: vec![[0.0, 0.0, 0.0], [0.5, 0.5, 0.0], [1.0, 1.0, 0.0]],
@@ -328,8 +328,8 @@ mod tests {
     #[test]
     fn split_provenance_has_correct_parameter_ranges() {
         let mut geom = GeometryState::new();
-        let old_edge = EdgeId::from_raw_parts(0, 0);
-        let new_edge = EdgeId::from_raw_parts(1, 0);
+        let old_edge = EdgeId::new(0, 0);
+        let new_edge = EdgeId::new(1, 0);
 
         let curve = CurveGeom::from_analytic(
             CurveKind::Circle {

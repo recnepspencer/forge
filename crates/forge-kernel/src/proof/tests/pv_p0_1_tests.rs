@@ -137,8 +137,8 @@ fn pv_04_degenerate_loop_detection() {
     let mut draft = state.into_mutation_with(config);
     let arena = draft.arena_mut();
 
-    let placeholder_he = HalfEdgeId::from_raw_parts(0, 0);
-    let placeholder_face = FaceId::from_raw_parts(0, 0);
+    let placeholder_he = HalfEdgeId::new(0, 0);
+    let placeholder_face = FaceId::new(0, 0);
 
     let v0 = arena.insert_vertex(VertexData::new(placeholder_he));
     let v1 = arena.insert_vertex(VertexData::new(placeholder_he));
@@ -146,7 +146,7 @@ fn pv_04_degenerate_loop_detection() {
     let v2 = arena.insert_vertex(VertexData::new(placeholder_he));
 
     let placeholder_shell = insert_test_solid_shell(arena);
-    let placeholder_edge = forge_topo::handles::EdgeId::from_raw_parts(0, 0);
+    let placeholder_edge = forge_topo::handles::EdgeId::new(0, 0);
 
     let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
     let face = arena.insert_face(FaceData::new(loop_id, placeholder_shell));

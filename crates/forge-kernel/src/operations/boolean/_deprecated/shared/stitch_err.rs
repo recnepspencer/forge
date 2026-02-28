@@ -85,7 +85,7 @@ pub fn build_stitch_failure_error(
                 .arena()
                 .get_half_edge(he_id)
                 .map(|he| he.edge())
-                .unwrap_or(forge_topo::handles::EdgeId::from_raw_parts(0, 0));
+                .unwrap_or(forge_topo::handles::EdgeId::new(0, 0));
             if let Ok((origin, dest)) = draft.arena().get_edge_endpoints(edge_id) {
                 let p0 = geom.get_vertex_position(origin);
                 let p1 = geom.get_vertex_position(dest);
@@ -121,7 +121,7 @@ pub fn build_stitch_failure_error(
             }
         }
 
-        let face_id = forge_topo::handles::FaceId::from_raw_parts(face_index, 0);
+        let face_id = forge_topo::handles::FaceId::new(face_index, 0);
         if let Ok(region) =
             crate::proof::region_extractor::extract_n_ring(draft.arena(), geom, face_id, 2)
         {

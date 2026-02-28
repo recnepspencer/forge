@@ -116,6 +116,3 @@ impl EulerOperator for DestroyLump {
         })
     }
 }
-
-/// Alias for MakeLumpRegion.
-pub type CreateLump = MakeLumpRegion;

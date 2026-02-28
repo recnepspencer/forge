@@ -461,7 +461,7 @@ fn link_record_to_live_candidate(
 ) -> Option<ReidentificationCandidate> {
     match record.child_snapshot.kind {
         EntityKind::Face => {
-            let id = FaceId::from_raw_parts(
+            let id = FaceId::new(
                 record.child_snapshot.index,
                 record.child_snapshot.generation,
             );
@@ -475,7 +475,7 @@ fn link_record_to_live_candidate(
             ))
         }
         EntityKind::Edge => {
-            let id = EdgeId::from_raw_parts(
+            let id = EdgeId::new(
                 record.child_snapshot.index,
                 record.child_snapshot.generation,
             );
@@ -487,7 +487,7 @@ fn link_record_to_live_candidate(
             ))
         }
         EntityKind::Vertex => {
-            let id = VertexId::from_raw_parts(
+            let id = VertexId::new(
                 record.child_snapshot.index,
                 record.child_snapshot.generation,
             );
@@ -499,7 +499,7 @@ fn link_record_to_live_candidate(
             ))
         }
         EntityKind::HalfEdge => {
-            let id = HalfEdgeId::from_raw_parts(
+            let id = HalfEdgeId::new(
                 record.child_snapshot.index,
                 record.child_snapshot.generation,
             );

@@ -70,7 +70,7 @@ impl BrepState {
     pub fn insert_surface(&mut self, data: SurfaceData) -> SurfaceRef {
         let index = self.surfaces.len() as u32;
         self.surfaces.push(BrepSlot::occupied(data, 0));
-        SurfaceRef::from_raw_parts(index, 0)
+        SurfaceRef::new(index, 0)
     }
 
     /// Retrieve a surface by its handle.
@@ -124,7 +124,7 @@ impl BrepState {
     pub fn insert_curve(&mut self, data: CurveGeom) -> CurveRef {
         let index = self.curves.len() as u32;
         self.curves.push(BrepSlot::occupied(data, 0));
-        CurveRef::from_raw_parts(index, 0)
+        CurveRef::new(index, 0)
     }
 
     /// Retrieve a curve geometry by its handle.
@@ -179,7 +179,7 @@ impl BrepState {
     pub fn insert_coedge(&mut self, data: Coedge) -> CoedgeRef {
         let index = self.coedges.len() as u32;
         self.coedges.push(BrepSlot::occupied(data, 0));
-        CoedgeRef::from_raw_parts(index, 0)
+        CoedgeRef::new(index, 0)
     }
 
     /// Retrieve a coedge by its handle.

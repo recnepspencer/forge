@@ -17,11 +17,11 @@ mod tests {
     }
 
     fn face(idx: u32) -> FaceId {
-        FaceId::from_raw_parts(idx, 0)
+        FaceId::new(idx, 0)
     }
 
     fn vertex(idx: u32) -> VertexId {
-        VertexId::from_raw_parts(idx, 0)
+        VertexId::new(idx, 0)
     }
 
     // ─── GeometryPatch unit tests ───────────────────────────────────────────
@@ -225,8 +225,8 @@ mod tests {
         let base = GeometryState::new();
         let mut patch = GeometryPatch::new(base);
 
-        let f_gen1 = FaceId::from_raw_parts(7, 1);
-        let f_gen2 = FaceId::from_raw_parts(7, 2);
+        let f_gen1 = FaceId::new(7, 1);
+        let f_gen2 = FaceId::new(7, 2);
 
         patch.set_face_plane(f_gen1, make_plane(0.0, 0.0, 1.0, 10.0));
         patch.set_face_plane(f_gen2, make_plane(1.0, 0.0, 0.0, 20.0));
@@ -266,8 +266,8 @@ mod tests {
         let base = GeometryState::new();
         let mut patch = GeometryPatch::new(base);
 
-        let v_gen0 = VertexId::from_raw_parts(3, 0);
-        let v_gen1 = VertexId::from_raw_parts(3, 1);
+        let v_gen0 = VertexId::new(3, 0);
+        let v_gen1 = VertexId::new(3, 1);
 
         patch.set_vertex_position(v_gen0, ExactPosition::from_f64([1.0, 0.0, 0.0]));
         patch.set_vertex_position(v_gen1, ExactPosition::from_f64([0.0, 1.0, 0.0]));
@@ -294,11 +294,11 @@ mod tests {
         use forge_math::GeometrySource;
 
         let mut base = GeometryState::new();
-        let f_gen0 = FaceId::from_raw_parts(5, 0);
+        let f_gen0 = FaceId::new(5, 0);
         base.set_face_plane(f_gen0, make_plane(0.0, 0.0, 1.0, 0.0));
 
         let mut patch = GeometryPatch::new(base);
-        let f_gen1 = FaceId::from_raw_parts(5, 1); // Same index, different generation
+        let f_gen1 = FaceId::new(5, 1); // Same index, different generation
         patch.set_face_plane(f_gen1, make_plane(1.0, 0.0, 0.0, 5.0));
 
         let result = patch.get_plane(5);
@@ -322,11 +322,11 @@ mod tests {
         use forge_math::GeometrySource;
 
         let mut base = GeometryState::new();
-        let f_gen0 = FaceId::from_raw_parts(5, 0);
+        let f_gen0 = FaceId::new(5, 0);
         base.set_face_plane(f_gen0, make_plane(0.0, 0.0, 1.0, 0.0));
 
         let mut patch = GeometryPatch::new(base);
-        let f_gen1 = FaceId::from_raw_parts(5, 1);
+        let f_gen1 = FaceId::new(5, 1);
         patch.set_face_plane(f_gen1, make_plane(1.0, 0.0, 0.0, 5.0));
 
         // Resolve by removing the stale base entry through the patch
@@ -348,8 +348,8 @@ mod tests {
         let base = GeometryState::new();
         let mut patch = GeometryPatch::new(base);
 
-        let f_gen0 = FaceId::from_raw_parts(9, 0);
-        let f_gen1 = FaceId::from_raw_parts(9, 1);
+        let f_gen0 = FaceId::new(9, 0);
+        let f_gen1 = FaceId::new(9, 1);
         patch.set_face_plane(f_gen0, make_plane(0.0, 0.0, 1.0, 1.0));
         patch.set_face_plane(f_gen1, make_plane(0.0, 1.0, 0.0, 2.0));
 
@@ -426,8 +426,8 @@ mod tests {
         let base = GeometryState::new();
         let mut patch = GeometryPatch::new(base);
 
-        let f_gen0 = FaceId::from_raw_parts(5, 0);
-        let f_gen1 = FaceId::from_raw_parts(5, 1);
+        let f_gen0 = FaceId::new(5, 0);
+        let f_gen1 = FaceId::new(5, 1);
         patch.set_face_plane(f_gen0, make_plane(0.0, 0.0, 1.0, 1.0));
         patch.set_face_plane(f_gen1, make_plane(1.0, 0.0, 0.0, 2.0));
 
@@ -490,8 +490,8 @@ mod tests {
         let base = GeometryState::new();
         let mut patch = GeometryPatch::new(base);
 
-        let f_max = FaceId::from_raw_parts(0, u32::MAX);
-        let f_gen0 = FaceId::from_raw_parts(0, 0);
+        let f_max = FaceId::new(0, u32::MAX);
+        let f_gen0 = FaceId::new(0, 0);
 
         patch.set_face_plane(f_gen0, make_plane(0.0, 1.0, 0.0, 10.0));
         patch.set_face_plane(f_max, make_plane(0.0, 0.0, 1.0, 99.0));
@@ -529,7 +529,7 @@ mod tests {
         let base = GeometryState::new();
         let mut patch = GeometryPatch::new(base);
 
-        let f = FaceId::from_raw_parts(3, 0);
+        let f = FaceId::new(3, 0);
         patch.set_face_plane(f, make_plane(1.0, 0.0, 0.0, 5.0));
         patch.remove_face_plane(f);
         patch.set_face_plane(f, make_plane(0.0, 0.0, 1.0, 99.0));
@@ -562,12 +562,12 @@ mod tests {
         use forge_math::GeometrySource;
 
         let mut initial = GeometryState::new();
-        let f_gen0 = FaceId::from_raw_parts(5, 0);
+        let f_gen0 = FaceId::new(5, 0);
         initial.set_face_plane(f_gen0, make_plane(0.0, 0.0, 1.0, 1.0));
 
         // Draft 1: remove gen=0, insert gen=1 (ABA reallocation)
         let mut patch1 = GeometryPatch::new(initial);
-        let f_gen1 = FaceId::from_raw_parts(5, 1);
+        let f_gen1 = FaceId::new(5, 1);
         patch1.remove_face_plane(f_gen0);
         patch1.set_face_plane(f_gen1, make_plane(1.0, 0.0, 0.0, 2.0));
         let after_commit1 = patch1.commit();
@@ -608,7 +608,7 @@ mod tests {
         use forge_math::GeometrySource;
 
         let mut base = GeometryState::new();
-        let f = FaceId::from_raw_parts(7, 0);
+        let f = FaceId::new(7, 0);
         base.set_face_plane(f, make_plane(0.0, 1.0, 0.0, 3.0));
 
         assert!(base.get_face_plane(f).is_some());

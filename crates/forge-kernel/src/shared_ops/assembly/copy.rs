@@ -276,8 +276,8 @@ fn insert_empty_face(
     geom: &mut GeometryState,
     plane: crate::geom_facade::Plane,
 ) -> Result<FaceId, KernelError> {
-    let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
-    let placeholder_shell = ShellId::from_raw_parts(u32::MAX, 0);
+    let placeholder_loop = LoopId::new(u32::MAX, 0);
+    let placeholder_shell = ShellId::new(u32::MAX, 0);
     let face_id = draft.insert_face(FaceData::new(placeholder_loop, placeholder_shell));
     geom.set_face_plane(face_id, plane);
     Ok(face_id)

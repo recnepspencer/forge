@@ -32,7 +32,7 @@ fn unpack_face_id(raw: u64) -> FaceId {
     let raw = raw & !COINCIDENCE_SIDE_TAG_BIT;
     let idx = (raw & 0xFFFF_FFFF) as u32;
     let gen = (raw >> 32) as u32;
-    FaceId::from_raw_parts(idx, gen)
+    FaceId::new(idx, gen)
 }
 
 /// Build a `CoincidenceGraph` for two solids using a BVH-accelerated face prepass.

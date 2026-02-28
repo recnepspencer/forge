@@ -127,7 +127,7 @@ fn lookup_vertex(
             message: format!("No active vertex at slot index {}", index), context: None,
         }
     })?;
-    let vid = forge_topo::handles::VertexId::from_raw_parts(index, gen);
+    let vid = forge_topo::handles::VertexId::new(index, gen);
     geom.get_vertex_position(vid).copied().ok_or_else(|| {
         KernelError::InvalidInput {
             message: format!("No position for vertex {}", index), context: None,

@@ -235,10 +235,8 @@ impl EulerOperator for CloneBody {
                 for &old_shell in &all_shells_list {
                     let kind = draft.arena().get_shell(old_shell)?.kind();
 
-                    let shell_faces: Vec<crate::handles::FaceId> = draft.arena().iter_faces()
-                        .filter(|(_, f)| f.shell() == old_shell)
-                        .map(|(id, _)| id)
-                        .collect();
+                    let shell_faces: Vec<crate::handles::FaceId> =
+                        draft.arena().faces_of_shell(old_shell).to_vec();
 
                     let mut face_infos = Vec::new();
                     for &old_face in &shell_faces {
@@ -263,11 +261,11 @@ impl EulerOperator for CloneBody {
                         });
                     }
 
-                    // Collect halfedges for this shell
-                    let shell_he_ids: Vec<crate::handles::HalfEdgeId> = draft.arena().iter_half_edges()
-                        .filter(|(_, he)| shell_faces.contains(&he.face()))
-                        .map(|(id, _)| id)
-                        .collect();
+                    // Collect halfedges for this shell via face→halfedges index
+                    let mut shell_he_ids = Vec::new();
+                    for &face in &shell_faces {
+                        shell_he_ids.extend_from_slice(draft.arena().halfedges_of_face(face));
+                    }
 
                     let mut he_infos = Vec::new();
                     let mut vertex_infos = Vec::new();
@@ -507,18 +505,3 @@ impl EulerOperator for CloneBody {
         })
     }
 }
-
-// ── DetachBody ──────────────────────────────────────────────────────
-
-/// Detach lumps from a body into a new independent body.
-///
-/// This is equivalent to SplitBody — provided as an alias
-/// for the operators-list naming convention.
-pub type DetachBody = SplitBody;
-
-// ── AttachBody ──────────────────────────────────────────────────────
-
-/// Attach (merge) a detached body back into a target body.
-///
-/// This is equivalent to MergeBodies — provided as an alias.
-pub type AttachBody = MergeBodies;

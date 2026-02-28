@@ -8,7 +8,7 @@ use forge_topo::handles::{FaceId, VertexId};
 #[test]
 fn store_and_retrieve_vertex_position() {
     let mut store = GeometryState::new();
-    let vertex = VertexId::from_raw_parts(0, 0);
+    let vertex = VertexId::new(0, 0);
     let position = [1.0, 2.0, 3.0];
 
     store.set_vertex_position(vertex, position);
@@ -20,7 +20,7 @@ fn store_and_retrieve_vertex_position() {
 #[test]
 fn store_and_retrieve_face_plane() {
     let mut store = GeometryState::new();
-    let face = FaceId::from_raw_parts(0, 0);
+    let face = FaceId::new(0, 0);
     let plane = Plane::try_new([0.0, 0.0, 1.0], 0.0).unwrap();
 
     store.set_face_plane(face, plane);
@@ -34,22 +34,22 @@ fn store_and_retrieve_face_plane() {
 #[test]
 fn missing_vertex_returns_none() {
     let store = GeometryState::new();
-    let vertex = VertexId::from_raw_parts(99, 0);
+    let vertex = VertexId::new(99, 0);
     assert_eq!(store.get_vertex_position(vertex));
 }
 
 #[test]
 fn missing_face_returns_none() {
     let store = GeometryState::new();
-    let face = FaceId::from_raw_parts(99, 0);
+    let face = FaceId::new(99, 0);
     assert!(store.get_face_plane(face).is_none());
 }
 
 #[test]
 fn stale_generation_returns_none() {
     let mut store = GeometryState::new();
-    let vertex_gen0 = VertexId::from_raw_parts(0, 0);
-    let vertex_gen1 = VertexId::from_raw_parts(0, 1);
+    let vertex_gen0 = VertexId::new(0, 0);
+    let vertex_gen1 = VertexId::new(0, 1);
 
     store.set_vertex_position(vertex_gen0, [1.0, 2.0, 3.0]);
 
@@ -67,11 +67,11 @@ fn counts_reflect_insertions() {
     assert_eq!(store.vertex_position_count(), 0);
 
     store.set_face_plane(
-        FaceId::from_raw_parts(0, 0),
+        FaceId::new(0, 0),
         Plane::try_new([1.0, 0.0, 0.0], 0.0).unwrap(),
     );
-    store.set_vertex_position(VertexId::from_raw_parts(0, 0), [0.0, 0.0, 0.0]);
-    store.set_vertex_position(VertexId::from_raw_parts(1, 0), [1.0, 0.0, 0.0]);
+    store.set_vertex_position(VertexId::new(0, 0), [0.0, 0.0, 0.0]);
+    store.set_vertex_position(VertexId::new(1, 0), [1.0, 0.0, 0.0]);
 
     assert_eq!(store.face_plane_count(), 1);
     assert_eq!(store.vertex_position_count(), 2);
@@ -83,7 +83,7 @@ fn geometry_source_trait_returns_plane() {
 
     let mut store = GeometryState::new();
     let plane = Plane::try_new([0.0, 1.0, 0.0], -5.0).unwrap();
-    store.set_face_plane(FaceId::from_raw_parts(0, 0), plane);
+    store.set_face_plane(FaceId::new(0, 0), plane);
 
     let result = store.get_plane(0);
     assert!(result.is_ok());
@@ -119,8 +119,8 @@ fn one_meter_cube_produces_correct_tolerance() {
     let mut store = GeometryState::new();
     // 1 m = 1000 mm cube — diagonal ≈ 1732 mm.
     // global_default = 1e-7 * 1732 ≈ 1.732e-4.
-    let v0 = VertexId::from_raw_parts(0, 0);
-    let v1 = VertexId::from_raw_parts(1, 0);
+    let v0 = VertexId::new(0, 0);
+    let v1 = VertexId::new(1, 0);
     store.set_vertex_position(v0, [0.0, 0.0, 0.0]);
     store.set_vertex_position(v1, [1000.0, 1000.0, 1000.0]); // mm
     let tol = store.global_default();
@@ -153,8 +153,8 @@ fn edge_tolerance_is_capped_at_1e_6_for_large_models() {
     let mut store = GeometryState::new();
     // A 10 km model (diameter 1e7 mm) would give global_default ≈ 1e0, but
     // edge_tolerance must stay ≤ 1e-6 for classification snap safety.
-    let v0 = VertexId::from_raw_parts(0, 0);
-    let v1 = VertexId::from_raw_parts(1, 0);
+    let v0 = VertexId::new(0, 0);
+    let v1 = VertexId::new(1, 0);
     store.set_vertex_position(v0, [0.0, 0.0, 0.0]);
     store.set_vertex_position(v1, [1.0e7, 0.0, 0.0]); // 1e7 mm = 10 km
     let et = store.edge_tolerance(0, 0);
@@ -270,7 +270,7 @@ fn attach_surface_to_face_round_trip() {
     use crate::geom_facade::SurfaceData;
     use forge_topo::handles::SurfaceRef;
     let mut store = GeometryState::new();
-    let face = FaceId::from_raw_parts(0, 0);
+    let face = FaceId::new(0, 0);
     let sr = store.insert_surface(SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 2.0));
     store.attach_surface_to_face(face, sr);
     assert_eq!(store.get_face_surface(face), Some(sr));
@@ -281,7 +281,7 @@ fn attach_coedge_to_halfedge_round_trip() {
     use crate::geom_facade::{Coedge, ParametricCurve2D};
     use forge_topo::handles::{CoedgeRef, HalfEdgeId};
     let mut store = GeometryState::new();
-    let he = HalfEdgeId::from_raw_parts(0, 0);
+    let he = HalfEdgeId::new(0, 0);
     let coedge = Coedge {
         uv_curve: ParametricCurve2D::Line {
             start: [0.0, 0.0],
@@ -299,7 +299,7 @@ fn attach_curve_to_edge_round_trip() {
     use crate::geom_facade::{CurveGeom, CurveKind};
     use forge_topo::handles::{CurveRef, EdgeId};
     let mut store = GeometryState::new();
-    let edge = EdgeId::from_raw_parts(0, 0);
+    let edge = EdgeId::new(0, 0);
     let curve = CurveGeom::from_analytic(
         CurveKind::Circle {
             center: [0.0, 0.0, 0.0],
@@ -318,7 +318,7 @@ fn attach_curve_to_edge_round_trip() {
 #[test]
 fn face_is_planar_true_when_no_surface_attached() {
     let store = GeometryState::new();
-    let face = FaceId::from_raw_parts(0, 0);
+    let face = FaceId::new(0, 0);
     assert!(store.face_is_planar(face));
 }
 
@@ -326,7 +326,7 @@ fn face_is_planar_true_when_no_surface_attached() {
 fn face_is_planar_true_when_plane_surface_attached() {
     use crate::geom_facade::SurfaceData;
     let mut store = GeometryState::new();
-    let face = FaceId::from_raw_parts(0, 0);
+    let face = FaceId::new(0, 0);
     let sr = store.insert_surface(SurfaceData::plane([0.0, 0.0, 1.0], 0.0));
     store.attach_surface_to_face(face, sr);
     assert!(store.face_is_planar(face));
@@ -336,7 +336,7 @@ fn face_is_planar_true_when_plane_surface_attached() {
 fn face_is_planar_false_when_cylinder_surface_attached() {
     use crate::geom_facade::SurfaceData;
     let mut store = GeometryState::new();
-    let face = FaceId::from_raw_parts(0, 0);
+    let face = FaceId::new(0, 0);
     let sr = store.insert_surface(SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], 2.0));
     store.attach_surface_to_face(face, sr);
     assert!(!store.face_is_planar(face));
@@ -353,7 +353,7 @@ fn validate_bindings_passes_when_all_refs_live() {
     let mut store = GeometryState::new();
     let mut arena = TopologyArena::new();
     let face = arena.insert_face(
-        FaceData::new(LoopId::from_raw_parts(0, 0), ShellId::from_raw_parts(0, 0)),
+        FaceData::new(LoopId::new(0, 0), ShellId::new(0, 0)),
         None,
     );
 
@@ -371,7 +371,7 @@ fn validate_bindings_fails_on_dangling_surface_ref() {
     let mut store = GeometryState::new();
     let mut arena = TopologyArena::new();
     let face = arena.insert_face(
-        FaceData::new(LoopId::from_raw_parts(0, 0), ShellId::from_raw_parts(0, 0)),
+        FaceData::new(LoopId::new(0, 0), ShellId::new(0, 0)),
         None,
     );
 

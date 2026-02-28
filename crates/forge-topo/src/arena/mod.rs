@@ -10,17 +10,29 @@
 //! DEPENDENCIES: `handles` (typed IDs)
 //!
 //! SUBMODULES:
-//! - `schema`: Data shapes (`FaceData`, `HalfEdgeData`, `VertexData`, `LoopData`, `Slot`)
-//! - `eval`: `TopologyArena` struct and all arena operations
+//! - `slot`: Generational slot wrapper and validation helpers
+//! - `core`: TopologyArena struct definition and constructor
+//! - `mesh_schema`: Data shapes for Face, HalfEdge, Vertex, Loop, Edge
+//! - `containment_schema`: Data shapes for Body, Lump, Region, Shell
+//! - `mesh_crud`: CRUD operations for mesh entities
+//! - `containment_crud`: CRUD operations for containment entities
 
-mod eval;
-pub(crate) mod schema;
+pub(crate) mod slot;
+pub(crate) mod core;
+pub(crate) mod mesh_schema;
+pub(crate) mod containment_schema;
+mod mesh_crud;
+mod containment_crud;
+mod indexes;
 
 #[cfg(test)]
 mod tests;
 
-pub use eval::TopologyArena;
-pub use schema::{
-    BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
-    ShellKind, ShellOrientation, VertexData,
+pub use core::TopologyArena;
+pub use mesh_schema::{
+    FaceData, HalfEdgeData, VertexData, LoopData, EdgeData,
+};
+pub use containment_schema::{
+    BodyData, LumpData, RegionData, ShellData,
+    ShellKind, ShellOrientation,
 };

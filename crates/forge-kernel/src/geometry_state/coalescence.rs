@@ -119,7 +119,7 @@ mod tests {
     fn snap_when_inside_tolerance_sphere() {
         let mut ctx = ModelingContext::new();
 
-        let v = VertexId::from_raw_parts(0, 0);
+        let v = VertexId::new(0, 0);
         let existing_pos = [0.0, 0.0, 0.0];
         let existing_tol = 1e-6;
 
@@ -141,7 +141,7 @@ mod tests {
     fn coalesce_when_near_but_outside_tolerance() {
         let mut ctx = ModelingContext::new();
 
-        let v = VertexId::from_raw_parts(0, 0);
+        let v = VertexId::new(0, 0);
         let existing_pos = [0.0, 0.0, 0.0];
         let existing_tol = 1e-10;
 
@@ -173,7 +173,7 @@ mod tests {
     fn new_vertex_when_far_away() {
         let mut ctx = ModelingContext::new();
 
-        let v = VertexId::from_raw_parts(0, 0);
+        let v = VertexId::new(0, 0);
         let existing_pos = [0.0, 0.0, 0.0];
         let existing_tol = 1e-10;
 
@@ -195,7 +195,7 @@ mod tests {
     fn coalesced_tolerance_exceeds_both_inputs() {
         let mut ctx = ModelingContext::new();
 
-        let v = VertexId::from_raw_parts(0, 0);
+        let v = VertexId::new(0, 0);
         let existing_pos = [0.0, 0.0, 0.0];
         let existing_tol = 5e-9;
 

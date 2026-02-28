@@ -8,7 +8,7 @@ fn weakly_simple_gate_uses_registry_backed_policy_resolution() {
     selected.insert(0).expect("bitset capacity");
     let protected = EntityBitset::with_capacity(4);
     let selection =
-        MergeRegionSelection::new(selected, protected, FaceId::from_raw_parts(0, 0));
+        MergeRegionSelection::new(selected, protected, FaceId::new(0, 0));
 
     let mut ctx = ModelingContext::new();
     ctx.config

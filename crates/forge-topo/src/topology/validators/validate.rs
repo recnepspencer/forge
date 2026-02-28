@@ -182,7 +182,7 @@ mod tests {
         .unwrap()
         .into_value();
 
-        let stale = HalfEdgeId::from_raw_parts(99_999, 0);
+        let stale = HalfEdgeId::new(99_999, 0);
         draft.arena_mut().get_half_edge_mut(se.he_am).unwrap().set_radial_next(stale);
 
         let result = validate_topology(draft.arena(), ValidationLevel::Minimal);

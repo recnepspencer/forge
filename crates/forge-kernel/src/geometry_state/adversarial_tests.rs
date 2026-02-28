@@ -313,7 +313,7 @@ fn chained_snap_decisions_are_all_logged() {
 
     let mut geom = GeometryState::new();
     let mut ctx = ModelingContext::new();
-    let v = VertexId::from_raw_parts(0, 0);
+    let v = VertexId::new(0, 0);
     let existing_pos = [0.0, 0.0, 0.0];
     let existing_tol = 1e-5;
 
@@ -352,8 +352,8 @@ fn split_line_segments_are_continuous_at_split_point() {
     use forge_topo::handles::EdgeId;
 
     let mut geom = GeometryState::new();
-    let old_edge = EdgeId::from_raw_parts(0, 0);
-    let new_edge = EdgeId::from_raw_parts(1, 0);
+    let old_edge = EdgeId::new(0, 0);
+    let new_edge = EdgeId::new(1, 0);
     let t_split = 0.4;
 
     let curve = CurveGeom::from_analytic(
@@ -394,8 +394,8 @@ fn split_sp_curve_domains_partition_original() {
     use forge_topo::handles::EdgeId;
 
     let mut geom = GeometryState::new();
-    let old_edge = EdgeId::from_raw_parts(0, 0);
-    let new_edge = EdgeId::from_raw_parts(1, 0);
+    let old_edge = EdgeId::new(0, 0);
+    let new_edge = EdgeId::new(1, 0);
 
     let curve = CurveGeom {
         kind: CurveKind::SurfaceIntersection {
@@ -469,8 +469,8 @@ fn anti_drift_survives_curve_split_on_cylinder() {
     let surface = SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], radius);
 
     let mut geom = GeometryState::new();
-    let old_edge = EdgeId::from_raw_parts(0, 0);
-    let new_edge = EdgeId::from_raw_parts(1, 0);
+    let old_edge = EdgeId::new(0, 0);
+    let new_edge = EdgeId::new(1, 0);
 
     let sp_cache = SpCurveApproximation {
         control_points: (0..=20)

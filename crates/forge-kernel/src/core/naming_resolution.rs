@@ -541,7 +541,7 @@ mod tests {
 
     #[test]
     fn snapshot_ref_conversion_preserves_generation() {
-        let face = FaceId::from_raw_parts(42, 9);
+        let face = FaceId::new(42, 9);
         let snap = snapshot_ref_from_entity_key(EntityKey::Face(face));
         assert_eq!(snap.kind, EntityKind::Face);
         assert_eq!(snap.index, 42);

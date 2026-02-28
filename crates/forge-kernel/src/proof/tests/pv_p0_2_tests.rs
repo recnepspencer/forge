@@ -31,8 +31,8 @@ fn pv_05_genus_1_passes_generalized_euler() {
     let mut draft = state.into_mutation_with(config);
     let arena = draft.arena_mut();
 
-    let placeholder_he = HalfEdgeId::from_raw_parts(0, 0);
-    let placeholder_face = FaceId::from_raw_parts(0, 0);
+    let placeholder_he = HalfEdgeId::new(0, 0);
+    let placeholder_face = FaceId::new(0, 0);
 
     let mut verts: Vec<VertexId> = Vec::new();
     for _i in 0..9 {
@@ -46,7 +46,7 @@ fn pv_05_genus_1_passes_generalized_euler() {
     let mut all_he_ids: Vec<Vec<HalfEdgeId>> = Vec::new();
 
     let placeholder_shell = insert_test_solid_shell(arena);
-    let placeholder_edge = forge_topo::handles::EdgeId::from_raw_parts(0, 0);
+    let placeholder_edge = forge_topo::handles::EdgeId::new(0, 0);
 
     for row in 0..3 {
         for col in 0..3 {
@@ -223,8 +223,8 @@ fn pv_06_through_hole_passes_euler() {
     let mut draft = state.into_mutation_with(config);
     let arena = draft.arena_mut();
 
-    let placeholder_he = HalfEdgeId::from_raw_parts(0, 0);
-    let placeholder_face = FaceId::from_raw_parts(0, 0);
+    let placeholder_he = HalfEdgeId::new(0, 0);
+    let placeholder_face = FaceId::new(0, 0);
 
     let mut verts: Vec<VertexId> = Vec::new();
     for _ in 0..16 {
@@ -261,7 +261,7 @@ fn pv_06_through_hole_passes_euler() {
         let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
         let face = arena.insert_face(FaceData::new(loop_id, shell_id));
         if arena.get_shell(shell_id).unwrap().representative_face()
-            == FaceId::from_raw_parts(u32::MAX, 0)
+            == FaceId::new(u32::MAX, 0)
         {
             arena
                 .get_shell_mut(shell_id)
@@ -278,7 +278,7 @@ fn pv_06_through_hole_passes_euler() {
                     placeholder_he,
                     face,
                     verts[0],
-                    forge_topo::handles::EdgeId::from_raw_parts(0, 0),
+                    forge_topo::handles::EdgeId::new(0, 0),
                 ),
                 None,
             );
@@ -341,7 +341,7 @@ fn pv_06_through_hole_passes_euler() {
                     placeholder_he,
                     top_face,
                     verts[0],
-                    forge_topo::handles::EdgeId::from_raw_parts(0, 0),
+                    forge_topo::handles::EdgeId::new(0, 0),
                 ),
                 None,
             );
@@ -385,7 +385,7 @@ fn pv_06_through_hole_passes_euler() {
                     placeholder_he,
                     bot_face,
                     verts[0],
-                    forge_topo::handles::EdgeId::from_raw_parts(0, 0),
+                    forge_topo::handles::EdgeId::new(0, 0),
                 ),
                 None,
             );

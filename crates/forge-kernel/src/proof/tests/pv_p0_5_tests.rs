@@ -70,10 +70,10 @@ fn pv_14_50k_entities_under_100ms() {
     let mut draft = base.into_mutation_with(config);
     let dst = draft.arena_mut();
 
-    let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
-    let placeholder_face = FaceId::from_raw_parts(u32::MAX, 0);
-    let placeholder_vertex = VertexId::from_raw_parts(u32::MAX, 0);
-    let placeholder_edge = EdgeId::from_raw_parts(u32::MAX, 0);
+    let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
+    let placeholder_face = FaceId::new(u32::MAX, 0);
+    let placeholder_vertex = VertexId::new(u32::MAX, 0);
+    let placeholder_edge = EdgeId::new(u32::MAX, 0);
 
     let cube_count = 1_320;
 

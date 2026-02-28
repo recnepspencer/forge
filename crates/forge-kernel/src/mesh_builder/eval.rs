@@ -98,7 +98,7 @@ pub fn build_halfedge_mesh(
     draft.arena_mut().get_body_mut(body)?.add_lump(lump);
     draft.arena_mut().get_lump_mut(lump)?.add_region(region);
     let shell = draft.insert_shell(ShellData::new(
-        forge_topo::handles::FaceId::from_raw_parts(u32::MAX, 0),
+        forge_topo::handles::FaceId::new(u32::MAX, 0),
         ShellKind::Solid(ShellOrientation::Outer),
         region,
     ));
@@ -170,7 +170,7 @@ fn insert_vertices(
     sig: &OpSignature,
     ordinal: &mut u64,
 ) -> Result<Vec<VertexId>, KernelError> {
-    let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
+    let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
     let mut vertex_ids = Vec::with_capacity(cell.vertex_count());
     let mut inserted: Vec<(VertexId, [f64; 3])> = Vec::with_capacity(cell.vertex_count());
     let cell_planes = cell.planes();
@@ -263,9 +263,9 @@ fn insert_faces_and_loops(
     sig: &OpSignature,
     ordinal: &mut u64,
 ) -> Result<EdgeMap, KernelError> {
-    let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
-    let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
-    let placeholder_edge = EdgeId::from_raw_parts(u32::MAX, 0);
+    let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
+    let placeholder_loop = LoopId::new(u32::MAX, 0);
+    let placeholder_edge = EdgeId::new(u32::MAX, 0);
     let cell_planes = cell.planes();
 
     let vertex_count = vertex_ids.len();

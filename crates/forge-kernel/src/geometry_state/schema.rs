@@ -370,7 +370,7 @@ impl GeometryState {
         for &key in self.face_planes.keys() {
             let index = (key & 0xFFFF_FFFF) as u32;
             let gen = (key >> 32) as u32;
-            if arena.get_face(FaceId::from_raw_parts(index, gen)).is_err() {
+            if arena.get_face(FaceId::new(index, gen)).is_err() {
                 return Err(KernelError::InternalError {
                     message: format!("Dangling face_plane binding for FaceId {}:{}", index, gen),
                     context: None,
@@ -382,7 +382,7 @@ impl GeometryState {
             let index = (key & 0xFFFF_FFFF) as u32;
             let gen = (key >> 32) as u32;
             if arena
-                .get_vertex(VertexId::from_raw_parts(index, gen))
+                .get_vertex(VertexId::new(index, gen))
                 .is_err()
             {
                 return Err(KernelError::InternalError {

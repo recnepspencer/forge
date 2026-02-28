@@ -53,13 +53,8 @@ impl EulerOperator for KillVertexEdge {
             });
         }
 
-        // Collect ALL halfedges originating from M.
-        let mut from_m: Vec<HalfEdgeId> = Vec::new();
-        for (id, data) in draft.arena().iter_half_edges() {
-            if data.origin() == vertex_m {
-                from_m.push(id);
-            }
-        }
+        // Collect ALL halfedges originating from M via vertex index.
+        let from_m: Vec<HalfEdgeId> = draft.arena().halfedges_from_vertex(vertex_m).to_vec();
 
         if from_m.is_empty() {
             return Err(KernelError::InvalidInput {
@@ -79,21 +74,16 @@ impl EulerOperator for KillVertexEdge {
             }
         }
 
-        // Also collect edges from halfedges arriving at M (their prev originates somewhere,
-        // and they themselves have origin != M but their next has origin M).
-        // Actually, the edges of halfedges whose .next().origin() == M
+        // Derive halfedges arriving at M from prev pointers of from_m halfedges.
         let mut arriving_at_m: Vec<HalfEdgeId> = Vec::new();
-        for (id, data) in draft.arena().iter_half_edges() {
-            if data.origin() != vertex_m {
-                let next_he = draft.arena().get_half_edge(data.next())?;
-                if next_he.origin() == vertex_m {
-                    // This halfedge (A→M in the chain) has next = one of our from_m halfedges
-                    // but it itself arrives at M
-                    arriving_at_m.push(id);
-                    let e = data.edge();
-                    if !edge_set.contains(&e) {
-                        edge_set.push(e);
-                    }
+        for &h in &from_m {
+            let prev = draft.arena().get_half_edge(h)?.prev();
+            let prev_data = draft.arena().get_half_edge(prev)?;
+            if prev_data.origin() != vertex_m {
+                arriving_at_m.push(prev);
+                let e = prev_data.edge();
+                if !edge_set.contains(&e) {
+                    edge_set.push(e);
                 }
             }
         }

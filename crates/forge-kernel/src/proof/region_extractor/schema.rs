@@ -211,10 +211,10 @@ impl ExtractedRegion {
         let max_face = self.faces.iter_ones().max().unwrap_or(0);
         let max_he = self.half_edges.iter_ones().max().unwrap_or(0);
 
-        let placeholder_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
-        let placeholder_loop = LoopId::from_raw_parts(u32::MAX, 0);
-        let placeholder_shell = ShellId::from_raw_parts(u32::MAX, 0);
-        let placeholder_edge = EdgeId::from_raw_parts(u32::MAX, 0);
+        let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
+        let placeholder_loop = LoopId::new(u32::MAX, 0);
+        let placeholder_shell = ShellId::new(u32::MAX, 0);
+        let placeholder_edge = EdgeId::new(u32::MAX, 0);
 
         for _ in 0..=max_vtx {
             draft.insert_vertex(VertexData::new(placeholder_he));
@@ -229,21 +229,21 @@ impl ExtractedRegion {
                     placeholder_he,
                     placeholder_he,
                     placeholder_he,
-                    FaceId::from_raw_parts(0, 0),
-                    VertexId::from_raw_parts(0, 0),
+                    FaceId::new(0, 0),
+                    VertexId::new(0, 0),
                     placeholder_edge,
                 ),
             );
         }
 
         for (&he_idx, conn) in &self.half_edge_connectivity {
-            let he_id = HalfEdgeId::from_raw_parts(he_idx, 0);
+            let he_id = HalfEdgeId::new(he_idx, 0);
             let he_mut = draft.arena_mut().get_half_edge_mut(he_id)?;
-            he_mut.set_radial_next(HalfEdgeId::from_raw_parts(conn.twin, 0));
-            he_mut.set_next(HalfEdgeId::from_raw_parts(conn.next, 0));
-            he_mut.set_prev(HalfEdgeId::from_raw_parts(conn.prev, 0));
-            he_mut.set_face(FaceId::from_raw_parts(conn.face, 0));
-            he_mut.set_origin(VertexId::from_raw_parts(conn.origin, 0));
+            he_mut.set_radial_next(HalfEdgeId::new(conn.twin, 0));
+            he_mut.set_next(HalfEdgeId::new(conn.next, 0));
+            he_mut.set_prev(HalfEdgeId::new(conn.prev, 0));
+            he_mut.set_face(FaceId::new(conn.face, 0));
+            he_mut.set_origin(VertexId::new(conn.origin, 0));
         }
 
         for vtx_id in self.vertices.iter_ones() {
@@ -253,8 +253,8 @@ impl ExtractedRegion {
                 .find(|(_, conn)| conn.origin == vtx_id);
             if let Some((&he_idx, _)) = first_outgoing {
                 draft.arena_mut()
-                    .get_vertex_mut(VertexId::from_raw_parts(vtx_id, 0))?
-                    .set_outgoing(HalfEdgeId::from_raw_parts(he_idx, 0));
+                    .get_vertex_mut(VertexId::new(vtx_id, 0))?
+                    .set_outgoing(HalfEdgeId::new(he_idx, 0));
             }
         }
 
@@ -264,12 +264,12 @@ impl ExtractedRegion {
                 .iter()
                 .find(|(_, conn)| conn.face == face_id);
             if let Some((&he_idx, _)) = first_he {
-                let loop_id = LoopId::from_raw_parts(face_id, 0);
+                let loop_id = LoopId::new(face_id, 0);
                 draft.arena_mut()
                     .get_loop_mut(loop_id)?
-                    .set_half_edge(HalfEdgeId::from_raw_parts(he_idx, 0));
+                    .set_half_edge(HalfEdgeId::new(he_idx, 0));
                 draft.arena_mut()
-                    .get_face_mut(FaceId::from_raw_parts(face_id, 0))?
+                    .get_face_mut(FaceId::new(face_id, 0))?
                     .set_outer_loop(loop_id);
             }
         }

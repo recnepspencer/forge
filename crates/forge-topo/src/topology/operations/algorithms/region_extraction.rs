@@ -65,7 +65,7 @@ pub fn collect_face_group_edges(
     let mut result = Vec::new();
 
     for face_idx in group.iter_ones() {
-        let face_id = FaceId::from_raw_parts(face_idx, 0);
+        let face_id = FaceId::new(face_idx, 0);
         for he_res in FaceAllEdgesIterator::new(arena, face_id)? {
             let current = he_res?;
             let he = arena.get_half_edge(current)?;
@@ -102,7 +102,7 @@ pub fn find_face_group_internal_vertices(
     let mut all_vertices = EntityBitset::for_vertices(arena);
 
     for face_idx in group.iter_ones() {
-        let face_id = FaceId::from_raw_parts(face_idx, 0);
+        let face_id = FaceId::new(face_idx, 0);
         for he_res in FaceAllEdgesIterator::new(arena, face_id)? {
             let current = he_res?;
             let he = arena.get_half_edge(current)?;
@@ -113,7 +113,7 @@ pub fn find_face_group_internal_vertices(
     all_vertices.difference_with(&perimeter_set);
     Ok(all_vertices
         .iter_ones()
-        .map(|idx| VertexId::from_raw_parts(idx, 0))
+        .map(|idx| VertexId::new(idx, 0))
         .collect())
 }
 
@@ -265,7 +265,7 @@ fn find_group_boundary_edge(
     group: &EntityBitset,
 ) -> Result<HalfEdgeId, KernelError> {
     for face_idx in group.iter_ones() {
-        let face_id = FaceId::from_raw_parts(face_idx, 0);
+        let face_id = FaceId::new(face_idx, 0);
         for he_res in FaceAllEdgesIterator::new(arena, face_id)? {
             let he_id = he_res?;
             if is_face_group_boundary_half_edge(arena, group, he_id)? {

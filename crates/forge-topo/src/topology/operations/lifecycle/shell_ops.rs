@@ -99,7 +99,6 @@ impl EulerOperator for ExtractShell {
 // ── InsertShell ─────────────────────────────────────────────────────
 
 /// Insert a shell into a region (same as RehomeShell).
-pub type InsertShell = RehomeShell;
 
 // ── SplitShell ──────────────────────────────────────────────────────
 
@@ -159,7 +158,7 @@ impl EulerOperator for SplitShell {
                     context: None,
                 });
             }
-            draft.arena_mut().get_face_mut(face)?.set_shell(new_shell);
+            draft.arena_mut().reassign_face_shell(face, new_shell)?;
         }
 
         Ok(ExecutionResult {
@@ -201,13 +200,11 @@ impl EulerOperator for MergeShells {
 
         let source_region = draft.arena().get_shell(self.source)?.region();
 
-        let faces_to_move: Vec<crate::handles::FaceId> = draft.arena().iter_faces()
-            .filter(|(_, f)| f.shell() == self.source)
-            .map(|(id, _)| id)
-            .collect();
+        let faces_to_move: Vec<crate::handles::FaceId> =
+            draft.arena().faces_of_shell(self.source).to_vec();
 
         for &face in &faces_to_move {
-            draft.arena_mut().get_face_mut(face)?.set_shell(self.target);
+            draft.arena_mut().reassign_face_shell(face, self.target)?;
         }
 
         draft.arena_mut().get_region_mut(source_region)?.remove_shell(self.source);

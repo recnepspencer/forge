@@ -125,7 +125,7 @@ pub(crate) fn resolve_single_face_ref(
     }
 
     match result {
-        ResolutionResult::Resolved { value, .. } => Ok(FaceId::from_raw_parts(
+        ResolutionResult::Resolved { value, .. } => Ok(FaceId::new(
             value.snapshot_ref.index,
             value.snapshot_ref.generation,
         )),

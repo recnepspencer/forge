@@ -81,9 +81,7 @@ impl EulerOperator for DestroyShell {
         let region = draft.arena().get_shell(self.shell)?.region();
 
         // Validate shell is empty (no faces reference it)
-        let face_count = draft.arena().iter_faces()
-            .filter(|(_, f)| f.shell() == self.shell)
-            .count();
+        let face_count = draft.arena().faces_of_shell(self.shell).len();
 
         if face_count > 0 {
             return Err(KernelError::InvalidInput {
@@ -114,6 +112,3 @@ impl EulerOperator for DestroyShell {
         })
     }
 }
-
-/// Alias for MakeEmptyShell.
-pub type CreateShell = MakeEmptyShell;

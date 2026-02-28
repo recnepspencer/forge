@@ -177,9 +177,9 @@ mod tests {
 
     #[test]
     fn segment_provenance_hash_changes_with_generation() {
-        let a0 = VertexId::from_raw_parts(12, 0);
-        let a1 = VertexId::from_raw_parts(12, 1);
-        let b0 = VertexId::from_raw_parts(34, 0);
+        let a0 = VertexId::new(12, 0);
+        let a1 = VertexId::new(12, 1);
+        let b0 = VertexId::new(34, 0);
 
         let h0 = hash_directed_segment_provenance(a0, b0);
         let h1 = hash_directed_segment_provenance(a1, b0);
@@ -192,9 +192,9 @@ mod tests {
 
     #[test]
     fn segment_provenance_hash_uses_both_endpoints() {
-        let a = VertexId::from_raw_parts(10, 2);
-        let b = VertexId::from_raw_parts(20, 3);
-        let c = VertexId::from_raw_parts(21, 3);
+        let a = VertexId::new(10, 2);
+        let b = VertexId::new(20, 3);
+        let c = VertexId::new(21, 3);
 
         let ab = hash_directed_segment_provenance(a, b);
         let ac = hash_directed_segment_provenance(a, c);

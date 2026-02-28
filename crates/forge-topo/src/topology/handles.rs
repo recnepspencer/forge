@@ -56,16 +56,6 @@ macro_rules! define_handle {
                 Self { index, generation }
             }
 
-            /// Reconstruct a handle from raw index and generation values.
-            ///
-            /// Use this when deserializing handles or reconstructing them
-            /// from arena iteration results. Prefer obtaining handles through
-            /// Euler operators (`apply_op`) for normal topology construction.
-            #[deprecated(since = "0.1.0", note = "Use Handle::new() instead")]
-            pub fn from_raw_parts(index: u32, generation: u32) -> Self {
-                Self::new(index, generation)
-            }
-
             /// The slot index in the arena.
             pub fn index(self) -> u32 {
                 self.index

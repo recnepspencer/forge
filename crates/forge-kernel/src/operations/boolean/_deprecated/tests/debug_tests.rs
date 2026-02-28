@@ -43,7 +43,7 @@ fn count_faces_inside(
                         message: format!("No vertex at index {}", index),
                         context: None,
                     })?;
-                let vid = forge_topo::handles::VertexId::from_raw_parts(index, gen);
+                let vid = forge_topo::handles::VertexId::new(index, gen);
                 target_geom
                     .get_vertex_position(vid)
                     .copied()

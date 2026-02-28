@@ -99,8 +99,8 @@ fn build_multi_cell_mesh(
     let mut edge_map: HashMap<(VertexId, VertexId), Vec<HalfEdgeId>> = HashMap::new();
     let mut face_plane_map: HashMap<FaceId, usize> = HashMap::new();
 
-    let sentinel_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
-    let sentinel_loop = LoopId::from_raw_parts(u32::MAX, 0);
+    let sentinel_he = HalfEdgeId::new(u32::MAX, 0);
+    let sentinel_loop = LoopId::new(u32::MAX, 0);
 
     let body = draft.insert_body(BodyData::new());
 
@@ -122,7 +122,7 @@ fn build_multi_cell_mesh(
         draft.arena_mut().get_body_mut(body)?.add_lump(lump);
         draft.arena_mut().get_lump_mut(lump)?.add_region(region);
         let shell = draft.insert_shell(ShellData::new(
-            FaceId::from_raw_parts(u32::MAX, 0),
+            FaceId::new(u32::MAX, 0),
             ShellKind::Solid(ShellOrientation::Outer),
             region,
         ));
@@ -202,7 +202,7 @@ fn insert_cell_vertices(
     tolerance: f64,
     ctx: &mut ModelingContext,
 ) -> Result<Vec<VertexId>, KernelError> {
-    let sentinel_he = HalfEdgeId::from_raw_parts(u32::MAX, 0);
+    let sentinel_he = HalfEdgeId::new(u32::MAX, 0);
     let tol_sq = tolerance * tolerance;
     let mut cell_vertex_ids = Vec::with_capacity(cell.vertex_count());
 
@@ -317,7 +317,7 @@ fn insert_cell_faces(
                 sentinel_he,
                 face_id,
                 origin,
-                EdgeId::from_raw_parts(u32::MAX, 0),
+                EdgeId::new(u32::MAX, 0),
             ));
 
             // Allocate a temporary edge for this half-edge.

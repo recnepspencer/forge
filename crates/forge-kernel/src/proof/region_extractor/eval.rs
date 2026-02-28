@@ -62,7 +62,7 @@ pub fn extract_n_ring(
     let mut half_edge_connectivity: BTreeMap<u32, SerializedHalfEdge> = BTreeMap::new();
 
     for face_idx in visited_faces.iter_ones() {
-        let face = FaceId::from_raw_parts(face_idx, 0);
+        let face = FaceId::new(face_idx, 0);
         let iter = match FaceEdgeIterator::new(arena, face) {
             Ok(it) => it,
             Err(_) => continue, // Skip entirely broken faces
@@ -98,7 +98,7 @@ pub fn extract_n_ring(
 
     let mut face_planes: BTreeMap<u32, SerializedPlane> = BTreeMap::new();
     for face_idx in visited_faces.iter_ones() {
-        let face = FaceId::from_raw_parts(face_idx, 0);
+        let face = FaceId::new(face_idx, 0);
         if let Some(plane) = geometry_state.get_face_plane(face) {
             face_planes.insert(face.index(), SerializedPlane::from_plane(plane));
         }
@@ -106,7 +106,7 @@ pub fn extract_n_ring(
 
     let mut vertex_positions: BTreeMap<u32, [f64; 3]> = BTreeMap::new();
     for vtx_idx in vertices.iter_ones() {
-        let vtx = VertexId::from_raw_parts(vtx_idx, 0);
+        let vtx = VertexId::new(vtx_idx, 0);
         if let Some(&pos) = geometry_state.get_vertex_position(vtx) {
             vertex_positions.insert(vtx.index(), pos);
         }

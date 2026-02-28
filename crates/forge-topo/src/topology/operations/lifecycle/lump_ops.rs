@@ -106,7 +106,6 @@ impl EulerOperator for ExtractLump {
 /// Insert a lump into a body (from another body).
 ///
 /// Same as RehomeLump — provided as an alias.
-pub type InsertLump = RehomeLump;
 
 // ── SplitLump ───────────────────────────────────────────────────────
 

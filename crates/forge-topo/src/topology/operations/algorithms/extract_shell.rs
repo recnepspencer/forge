@@ -73,7 +73,7 @@ fn find_boundary_pairs(
     let mut seen_edges = BTreeSet::new();
 
     for face_idx in faces.iter_ones() {
-        let face_id = FaceId::from_raw_parts(face_idx, 0);
+        let face_id = FaceId::new(face_idx, 0);
         for he_result in FaceAllEdgesIterator::new(draft.arena(), face_id)? {
             let he_id = he_result?;
             let he_data = draft.arena().get_half_edge(he_id)?;

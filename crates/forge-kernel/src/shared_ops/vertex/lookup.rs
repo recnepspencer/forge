@@ -35,7 +35,7 @@ pub fn lookup_vertex_position_by_slot(
             message: format!("No active vertex at slot index {}", slot_index),
             context: None,
         })?;
-    let vid = VertexId::from_raw_parts(slot_index, gen);
+    let vid = VertexId::new(slot_index, gen);
     geometry
         .get_vertex_position(vid)
         .copied()

@@ -538,8 +538,8 @@ fn generation_reuse_does_not_cause_stale_snapshot_leakage() {
 
     // Build an arena that has ONLY gen=2 alive at slot 0 (gen=1 is dead)
     let mut arena = forge_topo::arena::TopologyArena::new();
-    let ph_loop = forge_topo::handles::LoopId::from_raw_parts(u32::MAX, 0);
-    let ph_shell = forge_topo::handles::ShellId::from_raw_parts(u32::MAX, 0);
+    let ph_loop = forge_topo::handles::LoopId::new(u32::MAX, 0);
+    let ph_shell = forge_topo::handles::ShellId::new(u32::MAX, 0);
 
     // First insert → slot 0, gen=0 (arena starts at 0)
     let f_first = arena.insert_face(forge_topo::arena::FaceData::new(ph_loop, ph_shell));
