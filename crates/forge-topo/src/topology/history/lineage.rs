@@ -86,34 +86,37 @@ impl_lineage_entity_ref_from_handle!(RegionId, EntityKind::Region);
 /// Parameters are NOT currently included in the hash. This is sufficient
 /// for the current replay system where invocation IDs are unique per draft.
 /// Phase 9 persistent naming may require adding a `param_hash` field.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+///
+/// Uses `&'static str` for the operation name to eliminate heap allocations
+/// on clone. All operator names are string literals.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct OpSignature {
     /// Human-readable operation name (e.g., "split_edge", "join_faces").
-    name: String,
+    name: &'static str,
     /// Unique invocation counter (assigned by the draft).
     invocation_id: u64,
 }
 
 impl OpSignature {
     /// Create a new operation signature with a zeroed invocation ID.
-    pub fn new(name: &str) -> Self {
+    pub fn new(name: &'static str) -> Self {
         Self {
-            name: name.to_string(),
+            name,
             invocation_id: 0,
         }
     }
 
     /// Create a signature with a specific invocation ID.
-    pub fn with_id(name: &str, id: u64) -> Self {
+    pub fn with_id(name: &'static str, id: u64) -> Self {
         Self {
-            name: name.to_string(),
+            name,
             invocation_id: id,
         }
     }
 
     /// The operation name.
-    pub fn get_name(&self) -> &str {
-        &self.name
+    pub fn get_name(&self) -> &'static str {
+        self.name
     }
 
     /// The invocation counter.
@@ -124,6 +127,31 @@ impl OpSignature {
     /// Set the invocation counter (used by the operator runner).
     pub fn set_invocation_id(&mut self, id: u64) {
         self.invocation_id = id;
+    }
+}
+
+impl Serialize for OpSignature {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        use serde::ser::SerializeStruct;
+        let mut s = serializer.serialize_struct("OpSignature", 2)?;
+        s.serialize_field("name", self.name)?;
+        s.serialize_field("invocation_id", &self.invocation_id)?;
+        s.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for OpSignature {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        #[derive(Deserialize)]
+        struct Helper {
+            name: String,
+            invocation_id: u64,
+        }
+        let h = Helper::deserialize(deserializer)?;
+        Ok(Self {
+            name: Box::leak(h.name.into_boxed_str()),
+            invocation_id: h.invocation_id,
+        })
     }
 }
 
