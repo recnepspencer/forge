@@ -1502,6 +1502,7 @@ version = "0.1.0"
 dependencies = [
  "forge-core",
  "forge-math",
+ "paste",
  "serde",
  "serde_json",
  "smallvec",
