@@ -8,7 +8,7 @@ use std::collections::BTreeSet;
 use forge_core::KernelError;
 
 use crate::handles::{FaceId, HalfEdgeId, VertexId};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::topology::queries::traverse::FaceAllEdgesIterator;
 
 /// Remove degenerate faces and zero-length edges from the draft.
@@ -68,7 +68,7 @@ fn find_zero_length_edges(draft: &MutableDraft) -> Result<Vec<HalfEdgeId>, Kerne
 fn excise_halfedge(
     draft: &mut MutableDraft,
     he_id: HalfEdgeId,
-    he_data: &crate::arena::HalfEdgeData,
+    he_data: &crate::b_rep::HalfEdgeData,
 ) -> Result<(), KernelError> {
     let next_id = he_data.next();
     let prev_id = he_data.prev();

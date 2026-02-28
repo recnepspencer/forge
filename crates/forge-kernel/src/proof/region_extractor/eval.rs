@@ -8,7 +8,7 @@
 use std::collections::{BTreeMap, VecDeque};
 
 use forge_core::KernelError;
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::bitset::EntityBitset;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::traverse::{edge_faces, FaceEdgeIterator};

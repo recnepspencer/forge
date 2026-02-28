@@ -7,9 +7,9 @@
 use std::collections::BTreeMap;
 
 use forge_core::KernelError;
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 use crate::geometry_state::GeometryState;
 use crate::shared_ops::vertex::identity::VertexMatchKey;

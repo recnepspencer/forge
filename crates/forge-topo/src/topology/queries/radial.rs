@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 
 use forge_core::KernelError;
 
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use crate::handles::{FaceId, HalfEdgeId};
 use crate::topology::queries::traverse::RadialEdgeIterator;
 
@@ -65,11 +65,11 @@ pub fn radial_uses_by_face(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arena::{FaceData, HalfEdgeData, LoopData, VertexData};
+    use crate::b_rep::{FaceData, HalfEdgeData, LoopData, VertexData};
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::entity_lifecycle::split_edge::SplitEdge;
     use crate::handles::{EdgeId, LoopId, ShellId};
-    use crate::state::TopologyState;
+    use crate::transactions::TopologyState;
     use forge_core::KernelError;
 
     // ── helpers ─────────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ mod tests {
     /// Caller must ensure the arena is in a MutableDraft and the halfedges
     /// already have valid pointers for all fields except radial_next.
     fn wire_3_ring(
-        draft: &mut crate::state::MutableDraft,
+        draft: &mut crate::transactions::MutableDraft,
         start: HalfEdgeId,
         mid: HalfEdgeId,
     ) -> HalfEdgeId {

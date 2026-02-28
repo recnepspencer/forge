@@ -4,7 +4,7 @@
 //! When persistent naming or lineage lands, add new assertions here —
 //! all tests pick them up automatically.
 
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::FaceId;
 
 /// Expected entity counts for assertion.

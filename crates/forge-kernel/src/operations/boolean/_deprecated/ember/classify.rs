@@ -17,9 +17,9 @@
 
 use std::collections::BTreeSet;
 
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::FaceId;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 use crate::geometry_state::GeometryState;
 use crate::operations::boolean::{ClassifiedFace, FaceClassification};

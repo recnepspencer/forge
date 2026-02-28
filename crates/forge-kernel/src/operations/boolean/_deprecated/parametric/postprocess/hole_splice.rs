@@ -18,7 +18,7 @@ use forge_core::KernelError;
 use forge_core::{DecisionContext, DecisionId, DecisionKind, DecisionTier, TracedDecision};
 use forge_topo::algorithms::bridge_edge::bridge_edge;
 use forge_topo::handles::{FaceId, HalfEdgeId, LoopId, VertexId};
-use forge_topo::state::{MutableDraft, TopologyState};
+use forge_topo::transactions::{MutableDraft, TopologyState};
 
 use crate::core::{compute_topology_delta, ArenaSnapshot, ModelingContext};
 use crate::geometry_state::GeometryState;
@@ -67,7 +67,7 @@ pub fn splice_inner_holes(
 }
 
 /// Find all face IDs that have at least one inner loop.
-fn find_faces_with_holes(arena: &forge_topo::arena::TopologyArena) -> Vec<FaceId> {
+fn find_faces_with_holes(arena: &forge_topo::b_rep::TopologyArena) -> Vec<FaceId> {
     arena
         .iter_faces()
         .filter(|(_, face_data)| face_data.inner_loop_count() > 0)

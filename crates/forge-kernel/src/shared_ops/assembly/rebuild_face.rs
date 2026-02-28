@@ -10,7 +10,7 @@ use forge_topo::boundary_editing::make_loop_in_face_from_vertices::MakeLoopInFac
 use forge_topo::handles::ShellId;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::lineage::OpSignature;
-use forge_topo::state::MutableDraft;
+use forge_topo::transactions::MutableDraft;
 
 /// Output of a rebuilt face.
 pub struct RebuildFaceOutput {

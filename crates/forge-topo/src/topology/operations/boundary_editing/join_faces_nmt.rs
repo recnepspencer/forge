@@ -20,7 +20,7 @@ use forge_core::{KernelError, TopologyError};
 
 use crate::handles::{HalfEdgeId, LoopId};
 use crate::operator::{EulerDelta, ExecutionResult};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
 
 
@@ -223,7 +223,7 @@ impl TopoOperator for JoinFacesNmt {
         }
 
         // 7. Register the slit as a new inner loop on the surviving face.
-        let new_inner_loop = draft.insert_loop(crate::arena::LoopData::new(he_s, face_survive));
+        let new_inner_loop = draft.insert_loop(crate::b_rep::LoopData::new(he_s, face_survive));
         draft
             .arena_mut()
             .get_face_mut(face_survive)?

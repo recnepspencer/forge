@@ -5,10 +5,10 @@
 
 use forge_core::KernelError;
 
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use crate::topology::operations::entity_lifecycle::kill_edge_vertex::KillEdgeVertex;
 use crate::handles::{HalfEdgeId, VertexId};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 
 /// Find the first valence-2 vertex whose adjacent edges are collinear.
 ///

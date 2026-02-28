@@ -22,7 +22,7 @@ fn topology_state_json_roundtrip() {
     let json = serde_json::to_string(result.topology())
         .expect("TopologyState serialization must not fail");
 
-    let deserialized: forge_topo::state::TopologyState =
+    let deserialized: forge_topo::transactions::TopologyState =
         serde_json::from_str(&json).expect("TopologyState deserialization must not fail");
 
     let roundtrip_hash = compute_arena_topology_hash(deserialized.arena());
@@ -78,7 +78,7 @@ fn multiple_boolean_results_roundtrip() {
             let topo = r.topology();
             let json = serde_json::to_string(topo).expect("Serialization must not fail");
 
-            let deser: forge_topo::state::TopologyState =
+            let deser: forge_topo::transactions::TopologyState =
                 serde_json::from_str(&json).expect("Deserialization must not fail");
 
             let arena = deser.arena();

@@ -7,7 +7,7 @@
 //! INVARIANTS: All functions are read-only — no topology or geometry mutation.
 
 use forge_core::KernelError;
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::FaceId;
 
 use crate::geom_facade::{query_overlapping_pairs, Aabb, BvhNode};

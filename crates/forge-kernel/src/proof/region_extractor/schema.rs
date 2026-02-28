@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use forge_core::KernelError;
 use crate::geom_facade::Plane;
-use forge_topo::arena::{FaceData, HalfEdgeData, LoopData, TopologyArena, VertexData};
+use forge_topo::b_rep::{FaceData, HalfEdgeData, LoopData, TopologyArena, VertexData};
 use forge_topo::bitset::EntityBitset;
 use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
 
@@ -87,7 +87,7 @@ pub struct SerializedHalfEdge {
 
 impl SerializedHalfEdge {
     /// Construct from arena halfedge data.
-    pub fn from_half_edge_data(he: &forge_topo::arena::HalfEdgeData) -> Self {
+    pub fn from_half_edge_data(he: &forge_topo::b_rep::HalfEdgeData) -> Self {
         Self {
             twin: he.radial_next().index(),
             next: he.next().index(),
@@ -202,7 +202,7 @@ impl ExtractedRegion {
     /// connectivity. Uses index-based slot pre-allocation so that handles
     /// from the original arena remain valid in the reconstructed one.
     pub fn to_arena(&self) -> Result<TopologyArena, KernelError> {
-        use forge_topo::state::TopologyState;
+        use forge_topo::transactions::TopologyState;
 
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();

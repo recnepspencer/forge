@@ -13,9 +13,9 @@
 
 use forge_core::KernelError;
 
-use crate::arena::FaceData;
+use crate::b_rep::FaceData;
 use crate::handles::{FaceId, LoopId};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 

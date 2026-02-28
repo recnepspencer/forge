@@ -25,7 +25,7 @@ use forge_core::{
     DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, KernelError, TracedDecision,
 };
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 // ── Contained ────────────────────────────────────────────────────────────────
 
@@ -446,12 +446,12 @@ fn splice_tool_into_target(
 
 /// Copy faces from a source arena into a draft (shared helper for all paths).
 fn copy_shell(
-    draft: &mut forge_topo::state::MutableDraft,
+    draft: &mut forge_topo::transactions::MutableDraft,
     result_geom: &mut GeometryState,
     he_ids: &mut Vec<HalfEdgeId>,
     vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
     spatial: &mut VertexWelder,
-    source_arena: &forge_topo::arena::TopologyArena,
+    source_arena: &forge_topo::b_rep::TopologyArena,
     source_geom: &GeometryState,
     faces: &[FaceId],
     reverse: bool,

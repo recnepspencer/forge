@@ -66,16 +66,16 @@ fn build_cube_with_valence_3_edge() -> (
 
     let extra_face = draft
         .draft_mut()
-        .insert_face(forge_topo::arena::FaceData::new(ph_loop, shell));
+        .insert_face(forge_topo::b_rep::FaceData::new(ph_loop, shell));
     let extra_edge = draft
         .draft_mut()
-        .insert_edge(forge_topo::arena::EdgeData::new(
+        .insert_edge(forge_topo::b_rep::EdgeData::new(
             HalfEdgeId::new(u32::MAX, 0),
         ));
 
     let he_fwd = draft
         .draft_mut()
-        .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
+        .insert_half_edge(forge_topo::b_rep::HalfEdgeData::new(
             HalfEdgeId::new(u32::MAX, 0),
             HalfEdgeId::new(u32::MAX, 0),
             HalfEdgeId::new(u32::MAX, 0),
@@ -85,7 +85,7 @@ fn build_cube_with_valence_3_edge() -> (
         ));
     let he_ret = draft
         .draft_mut()
-        .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
+        .insert_half_edge(forge_topo::b_rep::HalfEdgeData::new(
             he_fwd, he_fwd, he_fwd, extra_face, v_b, extra_edge,
         ));
 
@@ -131,7 +131,7 @@ fn build_cube_with_valence_3_edge() -> (
         .set_radial_next(entry_he);
 
     // Create a loop for the extra face.
-    let extra_loop = dm.insert_loop(forge_topo::arena::LoopData::new(he_fwd, extra_face));
+    let extra_loop = dm.insert_loop(forge_topo::b_rep::LoopData::new(he_fwd, extra_face));
     dm.arena_mut()
         .get_face_mut(extra_face)
         .unwrap()
@@ -212,15 +212,15 @@ fn valence_4_rejects_without_radial_selector() {
 
     let face_4 = draft
         .draft_mut()
-        .insert_face(forge_topo::arena::FaceData::new(ph_loop, shell));
+        .insert_face(forge_topo::b_rep::FaceData::new(ph_loop, shell));
     let edge_4 = draft
         .draft_mut()
-        .insert_edge(forge_topo::arena::EdgeData::new(
+        .insert_edge(forge_topo::b_rep::EdgeData::new(
             HalfEdgeId::new(u32::MAX, 0),
         ));
     let he4_fwd = draft
         .draft_mut()
-        .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
+        .insert_half_edge(forge_topo::b_rep::HalfEdgeData::new(
             HalfEdgeId::new(u32::MAX, 0),
             HalfEdgeId::new(u32::MAX, 0),
             HalfEdgeId::new(u32::MAX, 0),
@@ -230,7 +230,7 @@ fn valence_4_rejects_without_radial_selector() {
         ));
     let he4_ret = draft
         .draft_mut()
-        .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
+        .insert_half_edge(forge_topo::b_rep::HalfEdgeData::new(
             he4_fwd, he4_fwd, he4_fwd, face_4, v_b, edge_4,
         ));
 
@@ -280,7 +280,7 @@ fn valence_4_rejects_without_radial_selector() {
         .unwrap()
         .set_radial_next(entry_he);
 
-    let l4 = dm.insert_loop(forge_topo::arena::LoopData::new(he4_fwd, face_4));
+    let l4 = dm.insert_loop(forge_topo::b_rep::LoopData::new(he4_fwd, face_4));
     dm.arena_mut()
         .get_face_mut(face_4)
         .unwrap()
@@ -343,15 +343,15 @@ fn planner_pre_gate_valence_4_rejects_without_radial_selector() {
 
     let face_4 = draft
         .draft_mut()
-        .insert_face(forge_topo::arena::FaceData::new(ph_loop, shell));
+        .insert_face(forge_topo::b_rep::FaceData::new(ph_loop, shell));
     let edge_4 = draft
         .draft_mut()
-        .insert_edge(forge_topo::arena::EdgeData::new(
+        .insert_edge(forge_topo::b_rep::EdgeData::new(
             HalfEdgeId::new(u32::MAX, 0),
         ));
     let he4_fwd = draft
         .draft_mut()
-        .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
+        .insert_half_edge(forge_topo::b_rep::HalfEdgeData::new(
             HalfEdgeId::new(u32::MAX, 0),
             HalfEdgeId::new(u32::MAX, 0),
             HalfEdgeId::new(u32::MAX, 0),
@@ -361,7 +361,7 @@ fn planner_pre_gate_valence_4_rejects_without_radial_selector() {
         ));
     let he4_ret = draft
         .draft_mut()
-        .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
+        .insert_half_edge(forge_topo::b_rep::HalfEdgeData::new(
             he4_fwd, he4_fwd, he4_fwd, face_4, v_b, edge_4,
         ));
 
@@ -409,7 +409,7 @@ fn planner_pre_gate_valence_4_rejects_without_radial_selector() {
         .get_half_edge_mut(he4_fwd)
         .unwrap()
         .set_radial_next(entry_he);
-    let l4 = dm.insert_loop(forge_topo::arena::LoopData::new(he4_fwd, face_4));
+    let l4 = dm.insert_loop(forge_topo::b_rep::LoopData::new(he4_fwd, face_4));
     dm.arena_mut()
         .get_face_mut(face_4)
         .unwrap()
@@ -463,16 +463,16 @@ fn disconnected_faces_fail_connectivity() {
     let ph_loop = forge_topo::handles::LoopId::new(u32::MAX, 0);
     let orphan_face = draft
         .draft_mut()
-        .insert_face(forge_topo::arena::FaceData::new(ph_loop, shell));
+        .insert_face(forge_topo::b_rep::FaceData::new(ph_loop, shell));
     let orphan_v = draft
         .draft_mut()
-        .insert_vertex(forge_topo::arena::VertexData::new(ph_he));
+        .insert_vertex(forge_topo::b_rep::VertexData::new(ph_he));
     let orphan_edge = draft
         .draft_mut()
-        .insert_edge(forge_topo::arena::EdgeData::new(ph_he));
+        .insert_edge(forge_topo::b_rep::EdgeData::new(ph_he));
     let orphan_he = draft
         .draft_mut()
-        .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
+        .insert_half_edge(forge_topo::b_rep::HalfEdgeData::new(
             ph_he,
             ph_he,
             ph_he,
@@ -503,7 +503,7 @@ fn disconnected_faces_fail_connectivity() {
         .unwrap()
         .set_half_edge(orphan_he);
 
-    let orphan_loop = dm.insert_loop(forge_topo::arena::LoopData::new(orphan_he, orphan_face));
+    let orphan_loop = dm.insert_loop(forge_topo::b_rep::LoopData::new(orphan_he, orphan_face));
     dm.arena_mut()
         .get_face_mut(orphan_face)
         .unwrap()
@@ -558,16 +558,16 @@ fn connectivity_validator_rejects_disconnected_faces_pre_gate() {
     let ph_loop = forge_topo::handles::LoopId::new(u32::MAX, 0);
     let orphan_face = draft
         .draft_mut()
-        .insert_face(forge_topo::arena::FaceData::new(ph_loop, shell));
+        .insert_face(forge_topo::b_rep::FaceData::new(ph_loop, shell));
     let orphan_v = draft
         .draft_mut()
-        .insert_vertex(forge_topo::arena::VertexData::new(ph_he));
+        .insert_vertex(forge_topo::b_rep::VertexData::new(ph_he));
     let orphan_edge = draft
         .draft_mut()
-        .insert_edge(forge_topo::arena::EdgeData::new(ph_he));
+        .insert_edge(forge_topo::b_rep::EdgeData::new(ph_he));
     let orphan_he = draft
         .draft_mut()
-        .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
+        .insert_half_edge(forge_topo::b_rep::HalfEdgeData::new(
             ph_he,
             ph_he,
             ph_he,
@@ -596,7 +596,7 @@ fn connectivity_validator_rejects_disconnected_faces_pre_gate() {
         .get_edge_mut(orphan_edge)
         .unwrap()
         .set_half_edge(orphan_he);
-    let orphan_loop = dm.insert_loop(forge_topo::arena::LoopData::new(orphan_he, orphan_face));
+    let orphan_loop = dm.insert_loop(forge_topo::b_rep::LoopData::new(orphan_he, orphan_face));
     dm.arena_mut()
         .get_face_mut(orphan_face)
         .unwrap()
@@ -770,15 +770,15 @@ fn valence_4_with_explicit_radial_selector_succeeds() {
 
     let face_4 = draft
         .draft_mut()
-        .insert_face(forge_topo::arena::FaceData::new(ph_loop, shell));
+        .insert_face(forge_topo::b_rep::FaceData::new(ph_loop, shell));
     let edge_4 = draft
         .draft_mut()
-        .insert_edge(forge_topo::arena::EdgeData::new(
+        .insert_edge(forge_topo::b_rep::EdgeData::new(
             HalfEdgeId::new(u32::MAX, 0),
         ));
     let he4_fwd = draft
         .draft_mut()
-        .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
+        .insert_half_edge(forge_topo::b_rep::HalfEdgeData::new(
             HalfEdgeId::new(u32::MAX, 0),
             HalfEdgeId::new(u32::MAX, 0),
             HalfEdgeId::new(u32::MAX, 0),
@@ -788,7 +788,7 @@ fn valence_4_with_explicit_radial_selector_succeeds() {
         ));
     let he4_ret = draft
         .draft_mut()
-        .insert_half_edge(forge_topo::arena::HalfEdgeData::new(
+        .insert_half_edge(forge_topo::b_rep::HalfEdgeData::new(
             he4_fwd, he4_fwd, he4_fwd, face_4, v_b, edge_4,
         ));
 
@@ -837,7 +837,7 @@ fn valence_4_with_explicit_radial_selector_succeeds() {
         .unwrap()
         .set_radial_next(entry_he);
 
-    let l4 = dm.insert_loop(forge_topo::arena::LoopData::new(he4_fwd, face_4));
+    let l4 = dm.insert_loop(forge_topo::b_rep::LoopData::new(he4_fwd, face_4));
     dm.arena_mut()
         .get_face_mut(face_4)
         .unwrap()

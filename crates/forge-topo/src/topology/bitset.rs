@@ -41,7 +41,7 @@ impl EntityBitset {
     }
 
     /// Create a bitset sized for faces in the given arena.
-    pub fn for_faces(arena: &crate::arena::TopologyArena) -> Self {
+    pub fn for_faces(arena: &crate::b_rep::TopologyArena) -> Self {
         let max_index = arena
             .iter_faces()
             .map(|(id, _)| id.index())
@@ -52,7 +52,7 @@ impl EntityBitset {
     }
 
     /// Create a bitset sized for half-edges in the given arena.
-    pub fn for_half_edges(arena: &crate::arena::TopologyArena) -> Self {
+    pub fn for_half_edges(arena: &crate::b_rep::TopologyArena) -> Self {
         let max_index = arena
             .iter_half_edges()
             .map(|(id, _)| id.index())
@@ -63,7 +63,7 @@ impl EntityBitset {
     }
 
     /// Create a bitset sized for vertices in the given arena.
-    pub fn for_vertices(arena: &crate::arena::TopologyArena) -> Self {
+    pub fn for_vertices(arena: &crate::b_rep::TopologyArena) -> Self {
         let max_index = arena
             .iter_vertices()
             .map(|(id, _)| id.index())
@@ -74,7 +74,7 @@ impl EntityBitset {
     }
 
     /// Create a bitset sized for edges in the given arena.
-    pub fn for_edges(arena: &crate::arena::TopologyArena) -> Self {
+    pub fn for_edges(arena: &crate::b_rep::TopologyArena) -> Self {
         let max_index = arena
             .iter_edges()
             .map(|(id, _)| id.index())

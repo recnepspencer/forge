@@ -11,7 +11,7 @@ use forge_core::{
     DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, TracedDecision,
 };
 use forge_topo::handles::VertexId;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
 use crate::core::{compute_topology_delta, ArenaSnapshot, KernelState, ModelingContext};
@@ -70,7 +70,7 @@ fn run_vertex_cleanup_pass(
 
 /// Find the first valence-2 vertex whose adjacent edges are collinear.
 fn find_collinear_vertex_candidate(
-    arena: &forge_topo::arena::TopologyArena,
+    arena: &forge_topo::b_rep::TopologyArena,
     geom: &GeometryState,
     config: &crate::core::ToleranceConfig,
 ) -> Option<VertexId> {

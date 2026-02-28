@@ -22,7 +22,7 @@ use forge_core::{
     DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, ToleranceProvider,
     TracedDecision,
 };
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::FaceId;
 
 use crate::core::ModelingContext;

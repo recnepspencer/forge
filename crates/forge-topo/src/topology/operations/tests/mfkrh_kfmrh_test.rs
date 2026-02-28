@@ -7,7 +7,7 @@
 
 use crate::boundary_editing::kill_face_make_ring_hole::KillFaceMakeRingHole;
 use crate::boundary_editing::make_face_kill_ring_hole::MakeFaceKillRingHole;
-use crate::state::TopologyState;
+use crate::transactions::TopologyState;
 use crate::testing::build_face_with_hole;
 
 /// MFKRH on a face with one inner loop promotes it to a new face.

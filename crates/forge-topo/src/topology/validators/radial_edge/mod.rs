@@ -13,7 +13,7 @@
 //!
 //! DEPENDENCIES: `arena`, `handles`, `queries::radial`
 
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use crate::topology::bitset::EntityBitset;
 use forge_core::KernelError;
 

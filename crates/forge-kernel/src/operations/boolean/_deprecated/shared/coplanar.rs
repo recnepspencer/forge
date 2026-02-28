@@ -13,7 +13,7 @@
 use std::collections::BTreeSet;
 
 use forge_topo::handles::FaceId;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 use crate::geometry_state::GeometryState;
 use crate::shared_ops::spatial::coincidence::build_face_coincidence_prepass;
@@ -28,7 +28,7 @@ use crate::geom_facade::CoincidenceKind;
 ///
 /// This predicate is private to the Boolean pipeline — no other feature
 /// has a concept of intersection-derived faces.
-pub(crate) fn is_intersection_face(arena: &forge_topo::arena::TopologyArena, face_id: FaceId) -> bool {
+pub(crate) fn is_intersection_face(arena: &forge_topo::b_rep::TopologyArena, face_id: FaceId) -> bool {
     let Some(face) = arena.get_face(face_id).ok() else {
         return false;
     };

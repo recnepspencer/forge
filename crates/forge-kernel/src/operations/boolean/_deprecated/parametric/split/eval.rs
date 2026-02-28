@@ -12,7 +12,7 @@ use std::collections::BTreeMap;
 use forge_core::ToleranceProvider;
 use forge_core::KernelError;
 use forge_topo::handles::FaceId;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
 use crate::geometry_state::GeometryState;
@@ -162,10 +162,10 @@ pub fn split_all_faces(
 /// during reconciliation, filtering out chord-tail vertices from one-sided splits.
 fn collect_expected_overlap_hints(
     bvh_pairs: &[(FaceId, FaceId)],
-    target_arena: &forge_topo::arena::TopologyArena,
+    target_arena: &forge_topo::b_rep::TopologyArena,
     target_geom: &GeometryState,
     target_face_planes: &BTreeMap<FaceId, usize>,
-    tool_arena: &forge_topo::arena::TopologyArena,
+    tool_arena: &forge_topo::b_rep::TopologyArena,
     tool_geom: &GeometryState,
     tool_face_planes: &BTreeMap<FaceId, usize>,
     plane_table: &PlaneTable,
@@ -218,7 +218,7 @@ fn collect_expected_overlap_hints(
 
 // ── Validation helper ────────────────────────────────────────────────────────
 
-fn log_validation(label: &str, draft: &forge_topo::state::MutableDraft) {
+fn log_validation(label: &str, draft: &forge_topo::transactions::MutableDraft) {
     match validate_topology(draft.arena(), ValidationLevel::Full) {
         Ok(()) => eprintln!("[phase-check] {} valid", label),
         Err(e) => eprintln!("[phase-check] {} invalid: {}", label, e),

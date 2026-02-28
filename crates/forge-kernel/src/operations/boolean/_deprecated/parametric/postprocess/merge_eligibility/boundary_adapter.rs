@@ -8,7 +8,7 @@
 
 use forge_core::KernelError;
 use forge_topo::algorithms::region_extraction::walk_face_group_boundary_perimeter;
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::bitset::EntityBitset;
 use forge_topo::handles::VertexId;
 

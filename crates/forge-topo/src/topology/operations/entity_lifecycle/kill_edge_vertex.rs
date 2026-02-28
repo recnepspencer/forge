@@ -14,7 +14,7 @@ use forge_core::{KernelError, TopologyError};
 
 use crate::handles::HalfEdgeId;
 use crate::operator::{EulerDelta, ExecutionResult};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
 
 

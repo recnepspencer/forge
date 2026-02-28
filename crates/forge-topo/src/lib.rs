@@ -1,7 +1,13 @@
 #![forbid(unsafe_code)]
 
+pub mod b_rep;
 pub mod arena;
 pub use arena::TopologyArena;
+pub mod semantic_attributes;
+pub mod provenance;
+pub mod persistent_naming;
+pub mod change_detection;
+pub mod transactions;
 pub mod prelude;
 pub mod topology;
 

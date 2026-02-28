@@ -7,7 +7,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use forge_core::{
     KernelError, DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, TracedDecision
 };
-use forge_topo::state::MutableDraft;
+use forge_topo::transactions::MutableDraft;
 use forge_topo::handles::HalfEdgeId;
 use forge_topo::non_manifold::sew_edge::SewEdge;
 use crate::geom_facade::{fuzzy_match_edges, DirectedEdge, FuzzyMatchMode, select_best_radial_match};

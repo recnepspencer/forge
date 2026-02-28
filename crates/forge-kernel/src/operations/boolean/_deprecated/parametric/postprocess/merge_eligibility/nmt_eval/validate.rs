@@ -93,7 +93,7 @@ pub(crate) fn validate_protected_faces(selection: &MergeRegionSelection) -> Resu
 /// share at least one edge. All selected faces must be reachable from
 /// the surviving face.
 pub(crate) fn validate_connectivity(
-    arena: &forge_topo::arena::TopologyArena,
+    arena: &forge_topo::b_rep::TopologyArena,
     selection: &MergeRegionSelection,
 ) -> Result<(), KernelError> {
     let selected = selection.get_selected_faces();

@@ -6,7 +6,7 @@
 use crate::entity_lifecycle::kill_vertex_edge::KillVertexEdge;
 use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::entity_lifecycle::split_edge::SplitEdge;
-use crate::state::TopologyState;
+use crate::transactions::TopologyState;
 
 /// SplitEdge then KVE restores the original entity counts.
 #[test]
@@ -48,7 +48,7 @@ fn kve_rejects_isolated_vertex() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let v = draft.insert_vertex(crate::arena::VertexData::new(
+    let v = draft.insert_vertex(crate::b_rep::VertexData::new(
         crate::handles::HalfEdgeId::new(u32::MAX, 0),
     ));
 

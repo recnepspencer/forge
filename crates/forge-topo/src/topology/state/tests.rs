@@ -110,7 +110,7 @@ fn topology_state_serde_round_trip_preserves_reidentification_index() {
         topology_version: 1,
         geometry_version: 0,
         topology_hash: 0,
-        arena: Arc::new(crate::arena::TopologyArena::new()),
+        arena: Arc::new(crate::b_rep::TopologyArena::new()),
         lineage_events: Arc::new(Vec::new()),
         reidentification_link_index: Arc::new(crate::topology::history::lineage_link::ReidentificationLinkIndex {
             schema_version: crate::topology::history::lineage_link::LinkSchemaVersion::V1,

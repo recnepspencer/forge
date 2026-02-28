@@ -12,10 +12,10 @@
 
 use forge_core::{ErrorContext, ErrorScope, KernelError, TopologyError};
 
-use crate::arena::EdgeData;
+use crate::b_rep::EdgeData;
 use crate::handles::{EdgeId, HalfEdgeId};
 use crate::operator::{EulerDelta, ExecutionResult};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
 
 
@@ -117,7 +117,7 @@ impl TopoOperator for UnsewEdge {
 #[cfg(test)]
 mod tests {
     use super::UnsewEdge;
-    use crate::state::TopologyState;
+    use crate::transactions::TopologyState;
     use crate::topology::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::topology::operations::non_manifold::sew_edge::SewEdge;
     use crate::topology::operations::entity_lifecycle::split_edge::SplitEdge;

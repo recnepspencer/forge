@@ -33,7 +33,7 @@ use super::super::test_helpers::{
 /// to serve as the base for the ultimate test. Uses fewer solids
 /// than MB3 to leave room for subsequent phases.
 fn build_star_base() -> Option<(
-    forge_topo::state::TopologyState,
+    forge_topo::transactions::TopologyState,
     crate::geometry_state::GeometryState,
 )> {
     let (mut topo, mut geom) = build_cube([0.5, 0.5, 0.5], 0.5);
@@ -129,10 +129,10 @@ fn build_star_base() -> Option<(
 
 /// Layer 12 coplanar-overlap cubes onto the star base.
 fn add_coplanar_overlaps(
-    mut topo: forge_topo::state::TopologyState,
+    mut topo: forge_topo::transactions::TopologyState,
     mut geom: crate::geometry_state::GeometryState,
 ) -> Option<(
-    forge_topo::state::TopologyState,
+    forge_topo::transactions::TopologyState,
     crate::geometry_state::GeometryState,
 )> {
     for i in 0..12 {
@@ -168,10 +168,10 @@ fn add_coplanar_overlaps(
 
 /// Carve Menger-level-1 tunnels into the solid.
 fn add_menger_tunnels(
-    mut topo: forge_topo::state::TopologyState,
+    mut topo: forge_topo::transactions::TopologyState,
     mut geom: crate::geometry_state::GeometryState,
 ) -> Option<(
-    forge_topo::state::TopologyState,
+    forge_topo::transactions::TopologyState,
     crate::geometry_state::GeometryState,
 )> {
     let subs = menger_sponge_subtraction_centers([0.0, 0.0, 0.0], 1.5, 1);
@@ -207,10 +207,10 @@ fn add_menger_tunnels(
 
 /// Run 200-step chain with micro-features and an orientation flip at step 100.
 fn run_chain_with_flip(
-    mut topo: forge_topo::state::TopologyState,
+    mut topo: forge_topo::transactions::TopologyState,
     mut geom: crate::geometry_state::GeometryState,
 ) -> Option<(
-    forge_topo::state::TopologyState,
+    forge_topo::transactions::TopologyState,
     crate::geometry_state::GeometryState,
 )> {
     let ops = [

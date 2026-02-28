@@ -1,13 +1,13 @@
 #[cfg(test)]
 mod tests {
-    use crate::state::TopologyState;
+    use crate::transactions::TopologyState;
     use crate::boundary_editing::make_loop_in_face_from_vertices::MakeLoopInFaceFromVertices;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::handles::{VertexId, HalfEdgeId};
-    use crate::arena::VertexData;
+    use crate::b_rep::VertexData;
     use forge_core::KernelError;
 
-    fn setup_vertices(draft: &mut crate::state::MutableDraft, count: usize) -> Vec<VertexId> {
+    fn setup_vertices(draft: &mut crate::transactions::MutableDraft, count: usize) -> Vec<VertexId> {
         let mut verts = Vec::new();
         let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
         for _ in 0..count {

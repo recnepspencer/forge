@@ -15,7 +15,7 @@
 //!
 //! DEPENDENCIES: `arena` (entity storage), `handles` (typed IDs)
 
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use forge_core::KernelError;
 
 /// Validate the parent-child hierarchy: Face→Shell→Region→Lump→Solid.

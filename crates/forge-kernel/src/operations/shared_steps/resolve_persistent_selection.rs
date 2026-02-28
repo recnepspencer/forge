@@ -8,7 +8,7 @@
 
 use forge_core::KernelError;
 use forge_topo::handles::FaceId;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 /// A resolved face selection ready for downstream pipeline steps.
 #[derive(Debug, Clone)]

@@ -12,7 +12,7 @@
 use forge_core::KernelError;
 use forge_math::linalg::{plane_cut_direction, sort_points_along_direction};
 use forge_topo::handles::{FaceId, VertexId};
-use forge_topo::state::MutableDraft;
+use forge_topo::transactions::MutableDraft;
 
 use crate::geom_facade::Plane;
 use crate::core::ModelingContext;

@@ -1,6 +1,6 @@
 use forge_core::KernelError;
-use forge_topo::arena::TopologyArena;
-use forge_topo::state::{MutableDraft, TopologyState};
+use forge_topo::b_rep::TopologyArena;
+use forge_topo::transactions::{MutableDraft, TopologyState};
 
 use crate::brep::patch::BrepPatch;
 use crate::core::KernelState;

@@ -8,7 +8,7 @@
 //! INVARIANTS: Functions destructure via `as_parts_mut()` and pass individual
 //! borrows to leaf functions — BRepWorkspace is NOT a parameter bag.
 
-use forge_topo::state::{MutableDraft, TopologyState};
+use forge_topo::transactions::{MutableDraft, TopologyState};
 
 use super::ModelingContext;
 use crate::brep::patch::BrepPatch;

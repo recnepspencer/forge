@@ -9,7 +9,7 @@
 //! lookups will use the same slot-index bridge — this function grows with them.
 
 use forge_core::KernelError;
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::VertexId;
 
 use crate::geometry_state::GeometryState;

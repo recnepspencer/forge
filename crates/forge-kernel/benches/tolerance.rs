@@ -1,12 +1,12 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 use forge_kernel::geometry_store::GeometryStore;
-use forge_topo::arena::{
+use forge_topo::b_rep::{
     EdgeData, FaceData, HalfEdgeData, LoopData, ShellData, ShellKind, ShellOrientation, VertexData,
 };
 use forge_topo::handles::HalfEdgeId;
 use forge_topo::handles::{EdgeId, FaceId, LoopId, ShellId, VertexId};
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 /// Benchmarks the evaluation of `compute_model_scale` dynamically on a GeometryStore
 /// populated with representative numbers of vertices.

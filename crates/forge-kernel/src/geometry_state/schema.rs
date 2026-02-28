@@ -7,7 +7,7 @@ use forge_core::{KernelError, ToleranceProvider};
 use crate::geom_facade::Plane;
 use forge_math::arithmetic::Rational;
 use forge_math::{GeometrySource, MathError, PlaneCoefficients};
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, VertexId};
 
 /// Exact 3D position backed by rational coordinates with a cached f64 approximation.

@@ -6,9 +6,9 @@
 
 use crate::mesh_builder::make_cube;
 use forge_core::{KernelError, TopologyError};
-use forge_topo::arena::{FaceData, HalfEdgeData, LoopData, VertexData};
+use forge_topo::b_rep::{FaceData, HalfEdgeData, LoopData, VertexData};
 use forge_topo::handles::{FaceId, HalfEdgeId};
-use forge_topo::state::{DraftConfig, TopologyState};
+use forge_topo::transactions::{DraftConfig, TopologyState};
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
 /// PV-11: A non-manifold edge (3+ halfedges sharing a canonical key) is detected.

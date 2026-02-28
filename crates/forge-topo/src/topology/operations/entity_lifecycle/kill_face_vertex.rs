@@ -15,7 +15,7 @@ use forge_core::KernelError;
 
 use crate::handles::FaceId;
 use crate::operator::{EulerDelta, ExecutionResult};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
 
 /// Removes a disjoint face and its single vertex from a shell.

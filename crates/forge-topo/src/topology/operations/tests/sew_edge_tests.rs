@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::handles::{FaceId, HalfEdgeId, LoopId, VertexId};
-    use crate::state::TopologyState;
+    use crate::transactions::TopologyState;
     use crate::topology::operations::entity_lifecycle::make_edge_face::MakeEdgeFace;
     use crate::topology::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::topology::operations::non_manifold::sew_edge::SewEdge;
@@ -9,7 +9,7 @@ mod tests {
     use crate::operator::TopoOperator;
     use forge_core::TopologyError;
 
-    fn build_test_state() -> (crate::state::MutableDraft, HalfEdgeId, HalfEdgeId) {
+    fn build_test_state() -> (crate::transactions::MutableDraft, HalfEdgeId, HalfEdgeId) {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 

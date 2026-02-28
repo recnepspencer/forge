@@ -10,7 +10,7 @@ use super::super::schema::{MergePlan, MergeRegionSelection, MergeStepPlan};
 /// halfedge pair are in the selected set, creates a `MergeStepPlan`.
 /// Steps are sorted by `edge_index` for determinism.
 pub(crate) fn build_merge_plan(
-    arena: &forge_topo::arena::TopologyArena,
+    arena: &forge_topo::b_rep::TopologyArena,
     selection: &MergeRegionSelection,
 ) -> Result<MergePlan, KernelError> {
     let selected = selection.get_selected_faces();
@@ -111,7 +111,7 @@ pub(crate) fn build_merge_plan(
 /// on the survive and kill faces. Returns `PartialMergePlanRejected` if
 /// the edge no longer exists or faces don't match.
 pub(crate) fn rederive_halfedges_for_step(
-    arena: &forge_topo::arena::TopologyArena,
+    arena: &forge_topo::b_rep::TopologyArena,
     step: &MergeStepPlan,
     step_idx: usize,
 ) -> Result<(HalfEdgeId, HalfEdgeId, FaceId), KernelError> {
@@ -164,7 +164,7 @@ pub(crate) fn rederive_halfedges_for_step(
 
 /// Find a FaceId by its arena index.
 pub(crate) fn find_face_by_index(
-    arena: &forge_topo::arena::TopologyArena,
+    arena: &forge_topo::b_rep::TopologyArena,
     index: u32,
 ) -> Result<FaceId, KernelError> {
     for (face_id, _) in arena.iter_faces() {
@@ -179,7 +179,7 @@ pub(crate) fn find_face_by_index(
 }
 
 /// Find an EdgeId by its arena index.
-pub(crate) fn find_edge_by_index(arena: &forge_topo::arena::TopologyArena, index: u32) -> Option<EdgeId> {
+pub(crate) fn find_edge_by_index(arena: &forge_topo::b_rep::TopologyArena, index: u32) -> Option<EdgeId> {
     for (edge_id, _) in arena.iter_edges() {
         if edge_id.index() == index {
             return Some(edge_id);

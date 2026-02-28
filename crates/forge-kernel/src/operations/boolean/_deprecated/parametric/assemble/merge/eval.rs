@@ -11,13 +11,13 @@ use forge_core::{KernelError, OperationResult, OperationMetrics};
 use forge_core::tracing::checkpoint_diff::diff_decision_logs;
 use forge_core::tracing::TraceAdjunctSet;
 use forge_core::DecisionLog;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::replay::{ReplayLog, ReplayEntry};
 use forge_topo::lineage::{LineageEvent, Lineage, OpSignature};
 use forge_topo::hashing::compute_arena_topology_hash;
 use forge_topo::validate::{validate_topology, ValidationLevel};
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 
 use crate::proof::checkpoint::schema::{run_checkpoint, ValidationCheckpoint};
 use crate::core::{ModelingContext, OperationSpace, OperationFinalizer, TopologyHashBoundary};

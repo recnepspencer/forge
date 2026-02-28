@@ -15,7 +15,7 @@ use forge_core::{
     DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, KernelError, TracedDecision,
 };
 use forge_topo::handles::{FaceId, VertexId};
-use forge_topo::state::{MutableDraft, TopologyState};
+use forge_topo::transactions::{MutableDraft, TopologyState};
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
 use crate::core::{compute_topology_delta, ArenaSnapshot, ModelingContext};

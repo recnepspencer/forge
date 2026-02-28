@@ -48,9 +48,9 @@ fn unpack_face_id(raw: u64) -> FaceId {
 /// Faces without registered geometry are silently skipped (not a fatal error —
 /// they will be processed normally by the intersection pipeline).
 pub fn build_face_coincidence_prepass(
-    target_arena: &forge_topo::arena::TopologyArena,
+    target_arena: &forge_topo::b_rep::TopologyArena,
     target_geom: &crate::geometry_state::GeometryState,
-    tool_arena: &forge_topo::arena::TopologyArena,
+    tool_arena: &forge_topo::b_rep::TopologyArena,
     tool_geom: &crate::geometry_state::GeometryState,
 ) -> CoincidenceGraph {
     let mut graph = CoincidenceGraph::new();

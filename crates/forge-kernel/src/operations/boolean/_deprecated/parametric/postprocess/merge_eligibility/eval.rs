@@ -10,7 +10,7 @@ use forge_core::tracing::{
     DecisionContext, DecisionId, DecisionKind, DecisionTier, TracedDecision,
 };
 use forge_core::{KernelError, OperationResult};
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::bitset::EntityBitset;
 
 use crate::geom_facade::certify_boundary;

@@ -30,7 +30,7 @@ fn build_coplanar_grid_solid(
     cube_half: f64,
     grid_dim: usize,
 ) -> Option<(
-    forge_topo::state::TopologyState,
+    forge_topo::transactions::TopologyState,
     crate::geometry_state::GeometryState,
 )> {
     let step = cube_half * 2.0;

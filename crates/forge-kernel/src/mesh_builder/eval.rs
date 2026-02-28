@@ -9,13 +9,13 @@
 
 use forge_core::{DecisionKind, KernelError};
 use crate::geom_facade::ConvexCell;
-use forge_topo::arena::{
+use forge_topo::b_rep::{
     BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
     ShellKind, ShellOrientation, VertexData,
 };
 use forge_topo::handles::{EdgeId, HalfEdgeId, LoopId, ShellId, VertexId};
 use forge_topo::lineage::OpSignature;
-use forge_topo::state::{MutableDraft, TopologyState};
+use forge_topo::transactions::{MutableDraft, TopologyState};
 
 use crate::brep::state::BrepState;
 use crate::check_tolerance;

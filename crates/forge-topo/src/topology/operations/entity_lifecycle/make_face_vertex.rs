@@ -10,10 +10,10 @@
 
 use forge_core::KernelError;
 
-use crate::arena::{EdgeData, FaceData, HalfEdgeData, LoopData, VertexData};
+use crate::b_rep::{EdgeData, FaceData, HalfEdgeData, LoopData, VertexData};
 use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
 use crate::operator::{EulerDelta, ExecutionResult};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
 
 /// Creates a new face with a single vertex inside an existing shell.

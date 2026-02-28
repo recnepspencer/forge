@@ -25,7 +25,7 @@ use super::super::test_helpers::{
 
 /// Build the singularity star: union 64+32+16 solids all touching one vertex.
 fn build_singularity_star() -> Option<(
-    forge_topo::state::TopologyState,
+    forge_topo::transactions::TopologyState,
     crate::geometry_state::GeometryState,
 )> {
     let shared_vertex = [0.0, 0.0, 0.0];

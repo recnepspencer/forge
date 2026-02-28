@@ -14,14 +14,14 @@
 #[cfg(test)]
 mod tests {
     use crate::algorithms::bridge_edge::bridge_edge;
-    use crate::arena::{FaceData, HalfEdgeData, LoopData, TopologyArena, VertexData};
+    use crate::b_rep::{FaceData, HalfEdgeData, LoopData, TopologyArena, VertexData};
     use crate::boundary_editing::join_faces::JoinFaces;
     use crate::entity_lifecycle::kill_edge_vertex::KillEdgeVertex;
     use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::entity_lifecycle::split_edge::SplitEdge;
     use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
-    use crate::state::TopologyState;
+    use crate::transactions::TopologyState;
     use crate::testing::build_face_with_hole;
     use crate::traverse::{FaceEdgeIterator, VertexRingIterator};
     use crate::validate::{validate_topology, ValidationLevel};
@@ -33,7 +33,7 @@ mod tests {
 
     /// Build a quad face via MVF + 3×SE. Returns (mvf_output, edge_list).
     fn build_quad(
-        draft: &mut crate::state::MutableDraft,
+        draft: &mut crate::transactions::MutableDraft,
     ) -> (crate::entity_lifecycle::make_vertex_face::MvfOutput, Vec<HalfEdgeId>) {
         let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
         let se1 = draft.execute(

@@ -14,9 +14,9 @@
 //! println!("{}", report.summary());
 //! ```
 
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use crate::handles::{FaceId, HalfEdgeId};
-use crate::state::{MutableDraft, TopologyState};
+use crate::transactions::{MutableDraft, TopologyState};
 use forge_core::KernelError;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;

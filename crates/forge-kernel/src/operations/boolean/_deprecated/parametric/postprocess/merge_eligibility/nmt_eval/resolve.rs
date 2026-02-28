@@ -89,7 +89,7 @@ pub fn resolve_merge_region_selection_persistent(
 }
 
 pub(crate) fn resolve_single_face_ref(
-    topo_state: &forge_topo::state::TopologyState,
+    topo_state: &forge_topo::transactions::TopologyState,
     pref: &PersistentFaceRef,
     role: PersistentResolutionRole,
     fallback: FaceResolutionFallbackPipeline,
@@ -158,7 +158,7 @@ pub(crate) fn resolve_single_face_ref(
 }
 
 pub(crate) fn resolve_face_ref_result(
-    topo_state: &forge_topo::state::TopologyState,
+    topo_state: &forge_topo::transactions::TopologyState,
     pref: &PersistentFaceRef,
     fallback: FaceResolutionFallbackPipeline,
 ) -> ResolutionResult<ResolutionCandidate> {
@@ -173,7 +173,7 @@ pub(crate) fn resolve_face_ref_result(
 }
 
 pub(crate) fn resolve_face_ref_direct(
-    arena: &forge_topo::arena::TopologyArena,
+    arena: &forge_topo::b_rep::TopologyArena,
     pref: &PersistentFaceRef,
 ) -> ResolutionResult<ResolutionCandidate> {
     let (query, keys): (ResolutionQuery, Vec<EntityKey>) = match pref {
@@ -249,7 +249,7 @@ pub(crate) fn resolve_face_ref_direct(
 }
 
 fn resolve_face_ref_lineage_fallback(
-    topo_state: &forge_topo::state::TopologyState,
+    topo_state: &forge_topo::transactions::TopologyState,
     pref: &PersistentFaceRef,
     direct_missing: ResolutionResult<ResolutionCandidate>,
 ) -> ResolutionResult<ResolutionCandidate> {
@@ -532,7 +532,7 @@ fn map_topo_origin_kind_to_persistent(
 }
 
 fn build_reidentification_trace_payload(
-    topo_state: &forge_topo::state::TopologyState,
+    topo_state: &forge_topo::transactions::TopologyState,
     pref: &PersistentFaceRef,
     fallback: FaceResolutionFallbackPipeline,
     decision_id: DecisionId,

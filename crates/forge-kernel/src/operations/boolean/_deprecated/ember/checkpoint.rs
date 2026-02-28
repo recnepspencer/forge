@@ -13,7 +13,7 @@
 
 use forge_core::tracing::{DecisionKind, DecisionTier};
 use forge_core::KernelError;
-use forge_topo::state::MutableDraft;
+use forge_topo::transactions::MutableDraft;
 
 use crate::core::ModelingContext;
 
@@ -126,7 +126,7 @@ pub fn validate_checkpoint(
 }
 
 /// Check twin reciprocity: he.twin.twin == he for all non-self-twin halfedges.
-fn check_twin_reciprocity(arena: &forge_topo::arena::TopologyArena) -> Result<(), String> {
+fn check_twin_reciprocity(arena: &forge_topo::b_rep::TopologyArena) -> Result<(), String> {
     for (he_id, he_data) in arena.iter_half_edges() {
         let twin_id = he_data.radial_next();
         if he_id == twin_id {
@@ -159,7 +159,7 @@ fn check_twin_reciprocity(arena: &forge_topo::arena::TopologyArena) -> Result<()
 }
 
 /// Check twin orientation: twin pairs must belong to different faces.
-fn check_twin_orientation(arena: &forge_topo::arena::TopologyArena) -> Result<(), String> {
+fn check_twin_orientation(arena: &forge_topo::b_rep::TopologyArena) -> Result<(), String> {
     for (he_id, he_data) in arena.iter_half_edges() {
         let twin_id = he_data.radial_next();
         if he_id == twin_id {
@@ -187,7 +187,7 @@ fn check_twin_orientation(arena: &forge_topo::arena::TopologyArena) -> Result<()
 }
 
 /// Check loop closure: prev(he).next == he for all halfedges.
-fn check_loop_closure(arena: &forge_topo::arena::TopologyArena) -> Result<(), String> {
+fn check_loop_closure(arena: &forge_topo::b_rep::TopologyArena) -> Result<(), String> {
     for (he_id, he_data) in arena.iter_half_edges() {
         let prev_data = match arena.get_half_edge(he_data.prev()) {
             Ok(d) => d,
@@ -214,7 +214,7 @@ fn check_loop_closure(arena: &forge_topo::arena::TopologyArena) -> Result<(), St
 }
 
 /// Check manifold edges: every geometric edge shared by exactly 2 faces.
-fn check_manifold_edges(arena: &forge_topo::arena::TopologyArena) -> Result<(), String> {
+fn check_manifold_edges(arena: &forge_topo::b_rep::TopologyArena) -> Result<(), String> {
     let mut edge_counts: std::collections::BTreeMap<(u32, u32), usize> =
         std::collections::BTreeMap::new();
 

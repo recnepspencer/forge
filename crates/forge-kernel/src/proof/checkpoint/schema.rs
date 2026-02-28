@@ -11,7 +11,7 @@
 
 use forge_core::{KernelError, ToleranceProvider};
 use crate::spatial::validate_geometric_invariants;
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::VertexId;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 use serde::{Deserialize, Serialize};

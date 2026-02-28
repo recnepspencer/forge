@@ -14,7 +14,7 @@ use forge_core::KernelError;
 use forge_math::deterministic_rng::DeterministicRng;
 use forge_topo::handles::VertexId;
 use forge_topo::healing::{heal_shell_orientation, HealingResult};
-use forge_topo::state::DraftConfig;
+use forge_topo::transactions::DraftConfig;
 use forge_topo::validate::ValidationLevel;
 use std::env;
 

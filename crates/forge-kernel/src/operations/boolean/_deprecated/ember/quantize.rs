@@ -15,7 +15,7 @@ use std::collections::BTreeMap;
 
 use forge_core::KernelError;
 use forge_topo::handles::VertexId;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 use super::schema::QuantizedSpace;
 use crate::geometry_state::GeometryState;
@@ -126,7 +126,7 @@ pub fn collapse_coincident_vertices(
 
 /// Redirect all half-edge origins from `doomed` vertex to `survivor` vertex.
 fn redirect_vertex_references(
-    draft: &mut forge_topo::state::MutableDraft,
+    draft: &mut forge_topo::transactions::MutableDraft,
     survivor_idx: u32,
     doomed_idx: u32,
 ) -> Result<(), KernelError> {
@@ -168,7 +168,7 @@ fn redirect_vertex_references(
 
 /// Find a VertexId by its index in the arena.
 fn find_vertex_by_index(
-    arena: &forge_topo::arena::TopologyArena,
+    arena: &forge_topo::b_rep::TopologyArena,
     target_idx: u32,
 ) -> Result<VertexId, KernelError> {
     for (vid, _) in arena.iter_vertices() {

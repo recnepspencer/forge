@@ -4,7 +4,7 @@
 //! the fundamental B-Rep invariants: Euler formula, manifold edges,
 //! twin reciprocity, closed loops, outward normals, and complete geometry.
 
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use crate::mesh_builder::{MeshBuildResult, make_cube, make_tetrahedron, make_dodecahedron};
 use crate::geometry_state::GeometryState;
 

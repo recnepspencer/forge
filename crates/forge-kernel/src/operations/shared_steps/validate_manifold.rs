@@ -12,7 +12,7 @@
 
 use forge_core::{KernelError, ToleranceProvider};
 use forge_topo::handles::VertexId;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 /// Run structural manifold validation on a topology state.
 ///

@@ -5,7 +5,7 @@
 //! This module acts as a dispatcher, calling category-specific validators
 //! defined in the subdirectories of `topology/validators`.
 
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use crate::topology::validators::validate::ValidationLevel;
 use forge_core::KernelError;
 

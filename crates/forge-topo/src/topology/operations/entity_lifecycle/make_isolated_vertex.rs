@@ -4,10 +4,10 @@
 
 use forge_core::KernelError;
 
-use crate::arena::VertexData;
+use crate::b_rep::VertexData;
 use crate::handles::{HalfEdgeId, VertexId};
 use crate::operator::{EulerDelta, ExecutionResult};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
 
 

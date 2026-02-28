@@ -347,7 +347,7 @@ fn face_is_planar_false_when_cylinder_surface_attached() {
 #[test]
 fn validate_bindings_passes_when_all_refs_live() {
     use crate::geom_facade::SurfaceData;
-    use forge_topo::arena::{FaceData, TopologyArena};
+    use forge_topo::b_rep::{FaceData, TopologyArena};
     use forge_topo::handles::{LoopId, ShellId};
 
     let mut store = GeometryState::new();
@@ -365,7 +365,7 @@ fn validate_bindings_passes_when_all_refs_live() {
 #[test]
 fn validate_bindings_fails_on_dangling_surface_ref() {
     use crate::geom_facade::SurfaceData;
-    use forge_topo::arena::{FaceData, TopologyArena};
+    use forge_topo::b_rep::{FaceData, TopologyArena};
     use forge_topo::handles::{LoopId, ShellId};
 
     let mut store = GeometryState::new();

@@ -14,10 +14,10 @@
 
 use forge_core::KernelError;
 
-use crate::arena::{EdgeData, FaceData, HalfEdgeData, LoopData, ShellData, ShellKind, VertexData};
+use crate::b_rep::{EdgeData, FaceData, HalfEdgeData, LoopData, ShellData, ShellKind, VertexData};
 use crate::handles::{EdgeId, HalfEdgeId, LoopId, RegionId, ShellId};
 use crate::operator::{EulerDelta, ExecutionResult};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
 
 
@@ -136,7 +136,7 @@ impl TopoOperator for MakeShellFace {
 #[cfg(test)]
 mod tests {
     use super::MakeShellFace;
-    use crate::state::TopologyState;
+    use crate::transactions::TopologyState;
     use crate::topology::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::operator::TopoOperator;
 

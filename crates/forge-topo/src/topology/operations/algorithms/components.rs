@@ -9,7 +9,7 @@
 
 use forge_core::KernelError;
 
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use crate::handles::FaceId;
 use crate::topology::bitset::EntityBitset;
 use crate::topology::operations::algorithms::bfs::collect_connected_face_component;

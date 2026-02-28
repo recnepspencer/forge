@@ -14,7 +14,7 @@ use forge_math::arithmetic::Rational;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 use forge_topo::operator::apply_op;
-use forge_topo::state::MutableDraft;
+use forge_topo::transactions::MutableDraft;
 use forge_topo::traverse::FaceAllEdgesIterator;
 use forge_math::sign::is_sign_crossing;
 
@@ -34,7 +34,7 @@ use crate::shared_ops::intersection_registry::IntersectionRegistry;
 /// - Origin vertex with `Zero` sign → `CutPoint::Existing`
 /// - Edge with `Pos↔Neg` signs → `CutPoint::NewOnEdge`
 pub(super) fn find_cut_points_provenance(
-    arena: &forge_topo::arena::TopologyArena,
+    arena: &forge_topo::b_rep::TopologyArena,
     geometry: &GeometryState,
     face: FaceId,
     cut_plane: &Plane,
@@ -94,7 +94,7 @@ pub(super) fn find_cut_points_provenance(
 /// plane. On failure or same-plane twin, falls back to f64 edge-plane
 /// intersection with Rational promotion.
 fn compute_crossing_cut_point(
-    arena: &forge_topo::arena::TopologyArena,
+    arena: &forge_topo::b_rep::TopologyArena,
     he: HalfEdgeId,
     face: FaceId,
     cut_plane: &Plane,

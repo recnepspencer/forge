@@ -10,7 +10,7 @@
 
 use forge_core::KernelError;
 
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use crate::handles::{FaceId, RegionId, ShellId};
 
 /// Return all faces that belong to a shell.
@@ -46,7 +46,7 @@ pub fn region_shells(arena: &TopologyArena, region: RegionId) -> Result<Vec<Shel
 mod tests {
     use super::*;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
-    use crate::state::TopologyState;
+    use crate::transactions::TopologyState;
 
     #[test]
     fn seed_region_and_shell_queries_return_seed_face() {

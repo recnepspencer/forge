@@ -2,7 +2,7 @@
 
 use super::schema::GeometryState;
 use forge_core::KernelError;
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::VertexId;
 
 /// Create a position lookup function for use with `classify_point_in_solid`.

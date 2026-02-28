@@ -1,4 +1,4 @@
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 use crate::brep::state::BrepState;
 use crate::geometry_state::GeometryState;

@@ -70,7 +70,7 @@ mod tests {
         println!("\n{}", report.summary());
     }
 
-    fn print_vertex_face_map(arena: &crate::arena::TopologyArena, label: &str) {
+    fn print_vertex_face_map(arena: &crate::b_rep::TopologyArena, label: &str) {
         println!("  === {} ===", label);
 
         // For each vertex, list which faces it appears on

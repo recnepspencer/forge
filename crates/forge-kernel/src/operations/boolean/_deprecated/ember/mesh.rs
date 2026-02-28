@@ -26,13 +26,13 @@ use forge_core::tracing::{DecisionKind, DecisionTier};
 use forge_core::KernelError;
 use crate::geom_facade::{BspConfig, BspSolid, ConvexCell};
 use crate::geom_facade::Plane;
-use forge_topo::arena::{
+use forge_topo::b_rep::{
     BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
     ShellKind, ShellOrientation, VertexData,
 };
 use forge_topo::bitset::EntityBitset;
 use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
-use forge_topo::state::{MutableDraft, TopologyState};
+use forge_topo::transactions::{MutableDraft, TopologyState};
 
 use super::checkpoint::validate_checkpoint;
 use crate::brep::state::BrepState;

@@ -4,7 +4,7 @@
 //! These tests verify that the seed state is fully wired and stamped.
 
 use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
-use crate::state::TopologyState;
+use crate::transactions::TopologyState;
 
 use super::helpers::logged_op;
 

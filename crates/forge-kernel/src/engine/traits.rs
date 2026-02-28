@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use forge_core::KernelError;
 use forge_signal::handles::NodeId;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 use crate::brep::state::BrepState;
 use crate::core::config::resolve::ResolvedConfig;

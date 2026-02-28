@@ -13,7 +13,7 @@ use forge_core::KernelError;
 use forge_topo::entity_lifecycle::make_edge_face::MakeEdgeFace;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::operator::apply_op;
-use forge_topo::state::MutableDraft;
+use forge_topo::transactions::MutableDraft;
 use forge_topo::topology::queries::polygon::face_adjacent_vertex_pairs;
 
 use crate::geom_facade::Plane;

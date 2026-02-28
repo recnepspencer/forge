@@ -48,15 +48,15 @@ fn pv_13_checkpoint_activation() {
 /// 1,320 cubes → 50,160 entities (≥ 50K).
 #[test]
 fn pv_14_50k_entities_under_100ms() {
-    use forge_topo::arena::{
+    use forge_topo::b_rep::{
         BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
         VertexData,
     };
-    use forge_topo::arena::{ShellKind, ShellOrientation};
+    use forge_topo::b_rep::{ShellKind, ShellOrientation};
     use forge_topo::handles::{
         BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
     };
-    use forge_topo::state::{DraftConfig, TopologyState};
+    use forge_topo::transactions::{DraftConfig, TopologyState};
     use std::collections::BTreeMap;
 
     let template = make_cube([0.0, 0.0, 0.0], 2.0).unwrap();

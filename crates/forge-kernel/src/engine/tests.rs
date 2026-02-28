@@ -310,7 +310,7 @@ fn pipeline_skips_audit_at_none_level() {
     use crate::engine::contract::*;
     use crate::engine::traits::Feature;
     use crate::geometry_state::GeometryState;
-    use forge_topo::state::TopologyState;
+    use forge_topo::transactions::TopologyState;
 
     #[derive(Debug)]
     struct NoAuditFeature;
@@ -407,7 +407,7 @@ fn pipeline_validates_post_invariants_after_execution() {
     use crate::engine::contract::*;
     use crate::engine::traits::Feature;
     use crate::geometry_state::GeometryState;
-    use forge_topo::state::TopologyState;
+    use forge_topo::transactions::TopologyState;
 
     /// Feature that produces an empty topology but declares ManifoldEdges
     /// as a post-invariant. An empty arena passes validation (no edges to
@@ -499,7 +499,7 @@ fn pipeline_emits_audit_at_full_level() {
     use crate::engine::contract::*;
     use crate::engine::traits::Feature;
     use crate::geometry_state::GeometryState;
-    use forge_topo::state::TopologyState;
+    use forge_topo::transactions::TopologyState;
 
     #[derive(Debug)]
     struct FullAuditFeature;

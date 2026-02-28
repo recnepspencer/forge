@@ -15,7 +15,7 @@
 //!
 //! DEPENDENCIES: `arena`, `handles`, `queries::traverse`
 
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use crate::topology::bitset::EntityBitset;
 use crate::topology::queries::traverse::FaceEdgeIterator;
 use forge_core::KernelError;

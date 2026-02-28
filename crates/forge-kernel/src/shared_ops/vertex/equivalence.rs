@@ -4,7 +4,7 @@
 //! Used by boolean fast-paths to detect `A - A = Ø` or touching contact.
 
 use forge_core::{KernelError, ToleranceProvider};
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::VertexId;
 
 use crate::geometry_state::GeometryState;

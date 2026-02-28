@@ -9,7 +9,7 @@ use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
 use crate::entity_lifecycle::make_edge_vertex::MakeEdgeVertex;
 use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::entity_lifecycle::split_edge::SplitEdge;
-use crate::state::{MutableDraft, TopologyState};
+use crate::transactions::{MutableDraft, TopologyState};
 use crate::traverse::FaceEdgeIterator;
 
 /// MEV on the MVF seed produces a 3-halfedge loop: V=2, HE=3, E=2.

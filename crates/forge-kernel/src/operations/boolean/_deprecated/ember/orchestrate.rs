@@ -18,7 +18,7 @@ use forge_core::tracing::{DecisionKind, DecisionTier, TraceAdjunctSet};
 use forge_core::{KernelError, OperationMetrics, OperationResult};
 use crate::geom_facade::{merge_bsp, BspNode, BspOp, BspSolid};
 use crate::geom_facade::Plane;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 use super::mesh::bsp_to_mesh;
 use crate::core::{FinalizationError, ModelingContext, OperationFinalizer, TopologyHashBoundary};

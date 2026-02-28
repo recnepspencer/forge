@@ -14,7 +14,7 @@
 
 use forge_core::{DecisionContext, DecisionId, DecisionLog, KernelError, TracedDecision};
 use forge_topo::hashing::compute_arena_topology_hash;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
 use super::schema::{

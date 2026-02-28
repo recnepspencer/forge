@@ -7,7 +7,7 @@ use std::collections::BTreeSet;
 
 use forge_core::KernelError;
 
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use crate::handles::{FaceId, VertexId};
 use crate::topology::queries::traverse::FaceLoopsIterator;
 use crate::topology::queries::traverse::LoopEdgeIterator;

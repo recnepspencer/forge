@@ -9,7 +9,7 @@
 use crate::topology::bitset::EntityBitset;
 
 use crate::topology::queries::shell::{compute_shell_signed_volume, discover_shell_faces};
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use crate::handles::{FaceId, HalfEdgeId, VertexId};
 use crate::topology::queries::traverse::FaceEdgeIterator;
 use forge_core::KernelError;

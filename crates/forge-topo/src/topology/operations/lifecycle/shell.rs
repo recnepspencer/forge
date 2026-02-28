@@ -4,10 +4,10 @@
 
 use forge_core::KernelError;
 
-use crate::arena::{ShellData, ShellKind};
+use crate::b_rep::{ShellData, ShellKind};
 use crate::handles::{FaceId, RegionId, ShellId};
 use crate::operator::{EulerDelta, ExecutionResult};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
 
 

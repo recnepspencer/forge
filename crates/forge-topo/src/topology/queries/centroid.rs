@@ -6,7 +6,7 @@
 //! geometry-agnostic (no dependency on GeometryState or GeometryStore).
 
 use super::polygon::face_loop_vertices;
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use crate::handles::{FaceId, VertexId};
 use forge_core::KernelError;
 

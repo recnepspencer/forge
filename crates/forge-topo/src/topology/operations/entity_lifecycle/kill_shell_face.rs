@@ -19,7 +19,7 @@ use forge_core::{ErrorContext, ErrorScope, KernelError, TopologyError};
 use crate::handles::{FaceId, VertexId};
 
 use crate::operator::{EulerDelta, ExecutionResult};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
 
 /// Destroys a disconnected shell within an existing solid.
@@ -157,7 +157,7 @@ impl TopoOperator for KillShellFace {
 #[cfg(test)]
 mod tests {
     use super::KillShellFace;
-    use crate::state::TopologyState;
+    use crate::transactions::TopologyState;
     use crate::topology::operations::entity_lifecycle::make_shell_face::MakeShellFace;
     use crate::topology::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::operator::TopoOperator;

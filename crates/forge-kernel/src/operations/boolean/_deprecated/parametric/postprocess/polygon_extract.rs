@@ -14,9 +14,9 @@ use forge_topo::bitset::EntityBitset;
 use forge_core::tracing::TopologyDelta;
 use forge_core::KernelError;
 use forge_core::{DecisionContext, DecisionId, DecisionKind, DecisionTier, TracedDecision};
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::FaceId;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 use crate::core::{
     compute_topology_delta, ArenaSnapshot, KernelDraft, KernelState, ModelingContext,

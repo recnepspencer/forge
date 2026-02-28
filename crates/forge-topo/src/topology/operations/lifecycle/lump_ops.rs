@@ -6,10 +6,10 @@
 
 use forge_core::KernelError;
 
-use crate::arena::{LumpData, RegionData};
+use crate::b_rep::{LumpData, RegionData};
 use crate::handles::{BodyId, LumpId, RegionId};
 use crate::operator::{EulerDelta, ExecutionResult};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
 
 // ── RehomeLump ──────────────────────────────────────────────────────
@@ -86,7 +86,7 @@ impl TopoOperator for ExtractLump {
             });
         }
 
-        let new_body = draft.insert_body(crate::arena::BodyData::new());
+        let new_body = draft.insert_body(crate::b_rep::BodyData::new());
         draft.arena_mut().get_body_mut(old_body)?.remove_lump(self.lump);
         draft.arena_mut().get_lump_mut(self.lump)?.set_body(new_body);
         draft.arena_mut().get_body_mut(new_body)?.add_lump(self.lump);

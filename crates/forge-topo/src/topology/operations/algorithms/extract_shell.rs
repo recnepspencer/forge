@@ -14,7 +14,7 @@
 use std::collections::BTreeSet;
 
 use crate::handles::{FaceId, HalfEdgeId};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::topology::bitset::EntityBitset;
 use crate::topology::operations::algorithms::region_extraction::is_face_group_boundary_half_edge;
 use crate::topology::operations::non_manifold::unsew_edge::UnsewEdge;
@@ -107,7 +107,7 @@ mod tests {
     use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::entity_lifecycle::split_edge::SplitEdge;
-    use crate::state::TopologyState;
+    use crate::transactions::TopologyState;
     use crate::topology::queries::traverse::FaceEdgeIterator;
 
     #[test]

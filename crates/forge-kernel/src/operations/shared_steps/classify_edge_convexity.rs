@@ -15,7 +15,7 @@
 
 use forge_core::KernelError;
 use crate::geom_facade::Plane;
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, HalfEdgeId};
 
 /// Convexity classification for a boundary edge.

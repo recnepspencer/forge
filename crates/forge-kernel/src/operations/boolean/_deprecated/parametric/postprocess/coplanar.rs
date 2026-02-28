@@ -15,7 +15,7 @@ use forge_core::{
 use forge_topo::boundary_editing::join_faces::JoinFaces;
 use forge_topo::handles::HalfEdgeId;
 use forge_topo::operator::apply_op;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
 use crate::core::{
@@ -98,7 +98,7 @@ fn run_merge_pass(
 
 /// Find the first edge separating two coplanar faces.
 fn find_coplanar_merge_candidate(
-    arena: &forge_topo::arena::TopologyArena,
+    arena: &forge_topo::b_rep::TopologyArena,
     geom: &GeometryState,
 ) -> Option<(
     HalfEdgeId,

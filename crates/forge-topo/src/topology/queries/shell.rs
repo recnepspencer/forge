@@ -9,7 +9,7 @@
 
 use std::collections::VecDeque;
 
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use crate::handles::{FaceId, VertexId};
 use crate::topology::bitset::EntityBitset;
 use crate::topology::queries::traverse::FaceEdgeIterator;

@@ -11,7 +11,7 @@
 //!
 //! DEPENDENCIES: `arena`, `handles`, `queries::shell`
 
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use crate::handles::FaceId;
 use crate::topology::bitset::EntityBitset;
 use forge_core::KernelError;
@@ -91,7 +91,7 @@ pub(crate) fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
             let shell_kind = arena.get_face(*shell_id).unwrap().shell();
             if !matches!(
                 arena.get_shell(shell_kind).unwrap().kind(),
-                crate::arena::ShellKind::Solid(_)
+                crate::b_rep::ShellKind::Solid(_)
             ) {
                 shell_index += 1;
                 continue;

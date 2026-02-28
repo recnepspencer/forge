@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 
 use forge_core::KernelError;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 use crate::core::{KernelState, ModelingContext};
 use crate::geometry_state::GeometryState;
@@ -20,11 +20,11 @@ use crate::proof::checkpoint::diagnose::{diagnose_arena, PipelineStage};
 
 /// Assemble the Boolean result from selected faces of both arenas.
 pub(crate) fn assemble_result(
-    target_arena: &forge_topo::arena::TopologyArena,
+    target_arena: &forge_topo::b_rep::TopologyArena,
     target_geom: &GeometryState,
     target_faces: &[FaceId],
     target_prov: &BTreeMap<VertexId, VertexMatchKey>,
-    tool_arena: &forge_topo::arena::TopologyArena,
+    tool_arena: &forge_topo::b_rep::TopologyArena,
     tool_geom: &GeometryState,
     tool_faces: &[FaceId],
     tool_prov: &BTreeMap<VertexId, VertexMatchKey>,

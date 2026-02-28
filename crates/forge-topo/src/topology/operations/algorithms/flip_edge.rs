@@ -9,7 +9,7 @@
 //! DEPENDENCIES: `boundary_editing::join_faces`, `entity_lifecycle::make_edge_face`
 
 use crate::handles::{HalfEdgeId, VertexId};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::topology::operations::boundary_editing::join_faces::JoinFaces;
 use crate::topology::operations::entity_lifecycle::make_edge_face::MakeEdgeFace;
 use crate::topology::queries::traverse::FaceEdgeIterator;
@@ -139,7 +139,7 @@ mod tests {
     use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::entity_lifecycle::split_edge::SplitEdge;
-    use crate::state::TopologyState;
+    use crate::transactions::TopologyState;
     use crate::topology::queries::traverse::FaceEdgeIterator;
 
     #[test]

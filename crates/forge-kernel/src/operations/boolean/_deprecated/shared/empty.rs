@@ -3,7 +3,7 @@
 //! DOMAIN: Create a trivial result when no faces are selected from either solid.
 
 use forge_core::KernelError;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 use forge_topo::replay::ReplayLog;
 
 use crate::geometry_state::GeometryState;

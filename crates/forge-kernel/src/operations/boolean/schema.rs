@@ -5,7 +5,7 @@
 
 use crate::brep::state::BrepState;
 use crate::geometry_state::GeometryState;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 use serde::{Deserialize, Serialize};
 
 /// A Boolean operation type.
@@ -140,7 +140,7 @@ impl BooleanInput {
 
 /// Validate a single solid's topology for Boolean input readiness.
 fn validate_solid(
-    arena: &forge_topo::arena::TopologyArena,
+    arena: &forge_topo::b_rep::TopologyArena,
     label: &str,
 ) -> Result<(), forge_core::KernelError> {
     let face_count = arena.face_count();

@@ -5,7 +5,7 @@
 //! update these builders once — all tests absorb the change automatically.
 
 use forge_core::KernelError;
-use forge_topo::state::{MutableDraft, TopologyState};
+use forge_topo::transactions::{MutableDraft, TopologyState};
 use forge_topo::handles::{BodyId, FaceId, HalfEdgeId, ShellId, VertexId};
 
 use crate::core::config::resolve::{resolve_config, ResolvedConfig};
@@ -98,7 +98,7 @@ pub fn tetrahedron() -> Result<(TopologyState, TetraHandles), KernelError> {
 ///
 /// Traverses the face's halfedge list via the index to find a starting halfedge.
 pub fn first_halfedge_of_face(
-    arena: &forge_topo::arena::TopologyArena,
+    arena: &forge_topo::b_rep::TopologyArena,
     face: FaceId,
 ) -> Result<HalfEdgeId, KernelError> {
     let hes = arena.halfedges_of_face(face);
@@ -113,7 +113,7 @@ pub fn first_halfedge_of_face(
 
 /// Collect all halfedge IDs around a face loop by walking `next` pointers.
 pub fn collect_face_loop(
-    arena: &forge_topo::arena::TopologyArena,
+    arena: &forge_topo::b_rep::TopologyArena,
     start_he: HalfEdgeId,
 ) -> Result<Vec<HalfEdgeId>, KernelError> {
     let mut result = vec![start_he];

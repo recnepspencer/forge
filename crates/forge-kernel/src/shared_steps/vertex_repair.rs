@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 
 use forge_core::KernelError;
 use forge_topo::handles::VertexId;
-use forge_topo::state::MutableDraft;
+use forge_topo::transactions::MutableDraft;
 
 use crate::geometry_state::GeometryState;
 use crate::shared_ops::assembly::copy::VertexWelder;

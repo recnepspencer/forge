@@ -13,7 +13,7 @@
 //!
 //! DEPENDENCIES: `arena`, `handles`
 
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use forge_core::KernelError;
 
 /// Validate that every vertex's outgoing halfedge is valid and points back to the vertex.

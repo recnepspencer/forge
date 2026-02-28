@@ -7,7 +7,7 @@
 use crate::entity_lifecycle::kill_face_vertex::KillFaceVertex;
 use crate::entity_lifecycle::make_face_vertex::MakeFaceVertex;
 use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
-use crate::state::TopologyState;
+use crate::transactions::TopologyState;
 
 /// KFV destroys exactly 1 face, 1 vertex, 1 halfedge, 1 loop, 1 edge.
 #[test]

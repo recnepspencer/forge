@@ -6,7 +6,7 @@
 
 use crate::boundary_editing::kill_edge_make_loop::KillEdgeMakeLoop;
 use crate::boundary_editing::make_edge_kill_loop::MakeEdgeKillLoop;
-use crate::state::TopologyState;
+use crate::transactions::TopologyState;
 use crate::testing::build_face_with_hole;
 use crate::traverse::FaceEdgeIterator;
 
@@ -284,12 +284,12 @@ fn mekl_keml_on_multi_hole_face() {
     let placeholder_e = crate::handles::EdgeId::new(u32::MAX, 0);
     let arena = draft.arena_mut();
 
-    let v6 = arena.insert_vertex(crate::arena::VertexData::new(placeholder_he));
-    let v7 = arena.insert_vertex(crate::arena::VertexData::new(placeholder_he));
-    let v8 = arena.insert_vertex(crate::arena::VertexData::new(placeholder_he));
+    let v6 = arena.insert_vertex(crate::b_rep::VertexData::new(placeholder_he));
+    let v7 = arena.insert_vertex(crate::b_rep::VertexData::new(placeholder_he));
+    let v8 = arena.insert_vertex(crate::b_rep::VertexData::new(placeholder_he));
 
     let (he67, _he76) = arena.insert_radial_pair(
-        crate::arena::HalfEdgeData::new(
+        crate::b_rep::HalfEdgeData::new(
             placeholder_he,
             placeholder_he,
             placeholder_he,
@@ -297,7 +297,7 @@ fn mekl_keml_on_multi_hole_face() {
             v6,
             placeholder_e,
         ),
-        crate::arena::HalfEdgeData::new(
+        crate::b_rep::HalfEdgeData::new(
             placeholder_he,
             placeholder_he,
             placeholder_he,
@@ -307,7 +307,7 @@ fn mekl_keml_on_multi_hole_face() {
         ),
     );
     let (he78, _he87) = arena.insert_radial_pair(
-        crate::arena::HalfEdgeData::new(
+        crate::b_rep::HalfEdgeData::new(
             placeholder_he,
             placeholder_he,
             placeholder_he,
@@ -315,7 +315,7 @@ fn mekl_keml_on_multi_hole_face() {
             v7,
             placeholder_e,
         ),
-        crate::arena::HalfEdgeData::new(
+        crate::b_rep::HalfEdgeData::new(
             placeholder_he,
             placeholder_he,
             placeholder_he,
@@ -325,7 +325,7 @@ fn mekl_keml_on_multi_hole_face() {
         ),
     );
     let (he86, _he68) = arena.insert_radial_pair(
-        crate::arena::HalfEdgeData::new(
+        crate::b_rep::HalfEdgeData::new(
             placeholder_he,
             placeholder_he,
             placeholder_he,
@@ -333,7 +333,7 @@ fn mekl_keml_on_multi_hole_face() {
             v8,
             placeholder_e,
         ),
-        crate::arena::HalfEdgeData::new(
+        crate::b_rep::HalfEdgeData::new(
             placeholder_he,
             placeholder_he,
             placeholder_he,
@@ -354,7 +354,7 @@ fn mekl_keml_on_multi_hole_face() {
     arena.get_vertex_mut(v7).unwrap().set_outgoing(he78);
     arena.get_vertex_mut(v8).unwrap().set_outgoing(he86);
 
-    let inner_loop2 = arena.insert_loop(crate::arena::LoopData::new(he67, face));
+    let inner_loop2 = arena.insert_loop(crate::b_rep::LoopData::new(he67, face));
     arena
         .get_face_mut(face)
         .unwrap()

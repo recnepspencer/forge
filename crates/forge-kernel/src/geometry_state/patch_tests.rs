@@ -144,7 +144,7 @@ mod tests {
     // ─── KernelDraft integration tests ─────────────────────────────────────
 
     fn empty_kernel_state() -> KernelState {
-        use forge_topo::state::TopologyState;
+        use forge_topo::transactions::TopologyState;
         KernelState::new(TopologyState::empty(), GeometryState::new())
     }
 
@@ -154,7 +154,7 @@ mod tests {
         let f = face(0);
         base_geom.set_face_plane(f, make_plane(0.0, 0.0, 1.0, 0.0));
 
-        let state = KernelState::new(forge_topo::state::TopologyState::empty(), base_geom);
+        let state = KernelState::new(forge_topo::transactions::TopologyState::empty(), base_geom);
         let mut draft = KernelDraft::new(state);
 
         // Mutate geometry inside draft
@@ -199,7 +199,7 @@ mod tests {
         base_geom.set_face_plane(f, make_plane(0.0, 0.0, 1.0, 1.0));
         let original_d = base_geom.get_face_plane(f).unwrap().offset();
 
-        let state = KernelState::new(forge_topo::state::TopologyState::empty(), base_geom);
+        let state = KernelState::new(forge_topo::transactions::TopologyState::empty(), base_geom);
         let mut draft = KernelDraft::new(state);
         draft
             .geometry_mut()
@@ -372,7 +372,7 @@ mod tests {
         let mut base_geom = GeometryState::new();
         let f = face(0);
         base_geom.set_face_plane(f, make_plane(0.0, 0.0, 1.0, 1.0));
-        let state = KernelState::new(forge_topo::state::TopologyState::empty(), base_geom);
+        let state = KernelState::new(forge_topo::transactions::TopologyState::empty(), base_geom);
 
         let mut draft = KernelDraft::new(state);
         let sentinel_face = face(99);

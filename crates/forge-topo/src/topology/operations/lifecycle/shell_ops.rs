@@ -6,10 +6,10 @@
 
 use forge_core::KernelError;
 
-use crate::arena::ShellKind;
+use crate::b_rep::ShellKind;
 use crate::handles::{RegionId, ShellId};
 use crate::operator::{EulerDelta, ExecutionResult};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
 
 // ── RehomeShell ─────────────────────────────────────────────────────
@@ -79,7 +79,7 @@ impl TopoOperator for ExtractShell {
         let old_region = draft.arena().get_shell(self.shell)?.region();
         let lump = draft.arena().get_region(old_region)?.lump();
 
-        let new_region = draft.insert_region(crate::arena::RegionData::new(lump));
+        let new_region = draft.insert_region(crate::b_rep::RegionData::new(lump));
         draft.arena_mut().get_lump_mut(lump)?.add_region(new_region);
 
         draft.arena_mut().get_region_mut(old_region)?.remove_shell(self.shell);
@@ -140,7 +140,7 @@ impl TopoOperator for SplitShell {
         let region = draft.arena().get_shell(self.shell)?.region();
         let kind = draft.arena().get_shell(self.shell)?.kind();
 
-        let new_shell = draft.insert_shell(crate::arena::ShellData::new(
+        let new_shell = draft.insert_shell(crate::b_rep::ShellData::new(
             self.faces_to_move[0],
             kind,
             region,

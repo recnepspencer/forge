@@ -23,7 +23,7 @@
 //! Ok(draft.commit()?)
 //! ```
 
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use forge_core::{
     ErrorContext, ErrorScope, KernelError, TopologyError,
 };
@@ -203,7 +203,7 @@ pub(crate) fn validate_halfedge_reciprocity(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::TopologyState;
+    use crate::transactions::TopologyState;
 
     /// A trivial operator for testing the runner
     #[derive(Debug)]

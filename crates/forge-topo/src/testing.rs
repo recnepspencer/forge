@@ -4,9 +4,9 @@
 //! Since Euler operators don't natively create disconnected loops, these
 //! manual constructions are necessary to test topological edge cases.
 
-use crate::arena::{FaceData, HalfEdgeData, LoopData, VertexData};
+use crate::b_rep::{FaceData, HalfEdgeData, LoopData, VertexData};
 use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 
 /// Returns a VertexData with a sentinel outgoing halfedge.
 pub fn dummy_vertex_data() -> VertexData {

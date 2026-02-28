@@ -11,7 +11,7 @@ use forge_core::KernelError;
 use forge_core::{
     TracedDecision, DecisionId, DecisionKind, DecisionContext, DecisionTier, ToleranceProvider,
 };
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 use crate::spatial::{classify_point_in_solid, PointClassification};
 
@@ -242,9 +242,9 @@ fn log_containment(containment: &Containment, operation: BooleanOp, ctx: &mut Mo
 
 /// Compute the characteristic scale for the disjoint assembly path.
 pub fn compute_disjoint_scale(
-    primary_arena: &forge_topo::arena::TopologyArena,
+    primary_arena: &forge_topo::b_rep::TopologyArena,
     primary_geom: &GeometryState,
-    secondary: Option<(&forge_topo::arena::TopologyArena, &GeometryState)>,
+    secondary: Option<(&forge_topo::b_rep::TopologyArena, &GeometryState)>,
 ) -> f64 {
     let primary_pos = |vid| primary_geom.get_vertex_position(vid).copied();
     

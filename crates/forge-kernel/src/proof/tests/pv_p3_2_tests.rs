@@ -8,7 +8,7 @@
 use crate::proof::region_extractor::{extract_n_ring, ExtractedRegion};
 use crate::mesh_builder::make_cube;
 use forge_core::tracing::delta_debug::delta_debug;
-use forge_topo::state::DraftConfig;
+use forge_topo::transactions::DraftConfig;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
 /// PV-35: Extract 3-ring neighborhood → produces valid, serializable sub-mesh.

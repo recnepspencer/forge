@@ -4,7 +4,7 @@
 //! the set of entities created between two snapshots.
 
 use forge_core::TopologyDelta;
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 
 /// A lightweight snapshot of arena slot counts at a point in time.
 ///

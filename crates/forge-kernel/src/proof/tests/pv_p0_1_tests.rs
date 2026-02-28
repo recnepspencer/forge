@@ -129,9 +129,9 @@ fn pv_03_inverted_shell_signed_volume() {
 /// giving 3 edges but only 2 distinct vertices.
 #[test]
 fn pv_04_degenerate_loop_detection() {
-    use forge_topo::arena::{FaceData, HalfEdgeData, LoopData, VertexData};
+    use forge_topo::b_rep::{FaceData, HalfEdgeData, LoopData, VertexData};
     use forge_topo::handles::{FaceId, HalfEdgeId};
-    use forge_topo::state::{DraftConfig, TopologyState};
+    use forge_topo::transactions::{DraftConfig, TopologyState};
     use forge_topo::validate::ValidationLevel;
 
     let mut config = DraftConfig::default();

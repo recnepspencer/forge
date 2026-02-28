@@ -6,7 +6,7 @@
 //!
 //! DEPENDENCIES: `forge-topo` (arena, validate), `forge-core` (KernelError)
 
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 use serde::{Deserialize, Serialize};
 

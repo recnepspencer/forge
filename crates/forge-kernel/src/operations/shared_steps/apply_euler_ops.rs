@@ -11,7 +11,7 @@
 //! DEPENDENCIES: forge-topo (MutableDraft), forge-core (KernelError)
 
 use forge_core::KernelError;
-use forge_topo::state::MutableDraft;
+use forge_topo::transactions::MutableDraft;
 
 /// Execute a sequence of Euler operators on an open `MutableDraft`.
 ///

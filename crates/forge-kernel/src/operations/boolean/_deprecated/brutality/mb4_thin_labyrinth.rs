@@ -33,7 +33,7 @@ fn build_thin_labyrinth(
     wall_count: usize,
     wall_thickness: f64,
 ) -> Option<(
-    forge_topo::state::TopologyState,
+    forge_topo::transactions::TopologyState,
     crate::geometry_state::GeometryState,
 )> {
     let (mut topo, mut geom) = build_cube(center, outer_half);

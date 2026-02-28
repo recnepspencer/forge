@@ -4,7 +4,7 @@
 
 use forge_core::{EntityRef, KernelError, ToleranceProvider};
 use forge_topo::handles::HalfEdgeId;
-use forge_topo::state::MutableDraft;
+use forge_topo::transactions::MutableDraft;
 
 use crate::core::ModelingContext;
 use crate::geometry_state::GeometryState;

@@ -15,7 +15,7 @@
 //!
 //! DEPENDENCIES: `arena`, `handles`, `queries::shell`
 
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use crate::handles::FaceId;
 use crate::topology::bitset::EntityBitset;
 use crate::topology::queries::traverse::FaceEdgeIterator;
@@ -56,7 +56,7 @@ pub(crate) fn collect_shell_data_for_face(
 /// Validate shell consistency: Solid shells must not contain boundary edges.
 pub(crate) fn validate_shell_consistency(arena: &TopologyArena) -> Result<(), KernelError> {
     for (shell_id, shell_data) in arena.iter_shells() {
-        if matches!(shell_data.kind(), crate::arena::ShellKind::Solid(_)) {
+        if matches!(shell_data.kind(), crate::b_rep::ShellKind::Solid(_)) {
             for (face_id, face_data) in arena.iter_faces() {
                 if face_data.shell() == shell_id {
                     let iter =

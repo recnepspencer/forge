@@ -9,7 +9,7 @@
 use std::str::FromStr;
 
 use crate::geom_facade::Plane;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 use super::execute_boolean;
 use super::parametric::assemble::execute_boolean_direct;
@@ -64,7 +64,7 @@ pub fn build_cube(center: [f64; 3], half_size: f64) -> (TopologyState, GeometryS
 
 /// Compute face centroid for test assertions (wraps the shared eval function).
 pub fn face_centroid(
-    arena: &forge_topo::arena::TopologyArena,
+    arena: &forge_topo::b_rep::TopologyArena,
     geom: &GeometryState,
     face: forge_topo::handles::FaceId,
 ) -> [f64; 3] {
@@ -194,7 +194,7 @@ pub fn execute_boolean_ember(
 ///
 /// χ = V − E + F. For a single closed manifold shell, χ = 2.
 /// Panics with a descriptive message if the arena has no faces.
-pub fn euler_audit(arena: &forge_topo::arena::TopologyArena) -> (usize, usize, usize, isize) {
+pub fn euler_audit(arena: &forge_topo::b_rep::TopologyArena) -> (usize, usize, usize, isize) {
     let v = arena.vertex_count();
     let e = arena.half_edge_count() / 2;
     let f = arena.face_count();
@@ -205,7 +205,7 @@ pub fn euler_audit(arena: &forge_topo::arena::TopologyArena) -> (usize, usize, u
 /// Asserts the topological representation follows the generalized Euler characteristic:
 /// V - E + F = 2(1 - G)
 /// for every shell, adjusting for genus G.
-pub fn assert_euler_formula_per_shell(arena: &forge_topo::arena::TopologyArena) {
+pub fn assert_euler_formula_per_shell(arena: &forge_topo::b_rep::TopologyArena) {
     if arena.face_count() == 0 {
         return;
     }

@@ -41,11 +41,11 @@ pub use super::structural::validate_topology;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::arena::TopologyArena;
+    use crate::b_rep::TopologyArena;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::entity_lifecycle::split_edge::SplitEdge;
     use crate::handles::HalfEdgeId;
-    use crate::state::TopologyState;
+    use crate::transactions::TopologyState;
     use crate::topology::validators::loop_wiring::validate_vertex_continuity;
     use crate::topology::validators::radial_edge::validate_radial_edge_consistency;
     use forge_core::KernelError;
@@ -105,7 +105,7 @@ mod tests {
 
         draft.arena_mut().get_half_edge_mut(he_mb).unwrap().set_edge(edge);
 
-        let ghost = draft.insert_half_edge(crate::arena::HalfEdgeData::new(
+        let ghost = draft.insert_half_edge(crate::b_rep::HalfEdgeData::new(
             he_am, he_mb, he_am, face, orig, edge,
         ));
         draft.arena_mut().get_half_edge_mut(he_am).unwrap().set_next(ghost);
@@ -145,7 +145,7 @@ mod tests {
 
         draft.arena_mut().get_half_edge_mut(he_mb).unwrap().set_edge(edge);
 
-        let ghost = draft.insert_half_edge(crate::arena::HalfEdgeData::new(
+        let ghost = draft.insert_half_edge(crate::b_rep::HalfEdgeData::new(
             he_am, he_mb, he_am, face, orig, edge,
         ));
         draft.arena_mut().get_half_edge_mut(he_am).unwrap().set_next(ghost);
@@ -257,7 +257,7 @@ mod tests {
 
         draft.arena_mut().get_half_edge_mut(he_mb).unwrap().set_edge(edge);
 
-        let ghost = draft.insert_half_edge(crate::arena::HalfEdgeData::new(
+        let ghost = draft.insert_half_edge(crate::b_rep::HalfEdgeData::new(
             he_am, he_mb, he_am, face, orig, edge,
         ));
         draft.arena_mut().get_half_edge_mut(he_am).unwrap().set_next(ghost);
@@ -353,7 +353,7 @@ mod tests {
         draft.arena_mut().get_half_edge_mut(he2_am).unwrap().set_edge(shared_edge_id);
         draft.arena_mut().get_half_edge_mut(he2_mb).unwrap().set_edge(shared_edge_id);
 
-        let ghost = draft.insert_half_edge(crate::arena::HalfEdgeData::new(
+        let ghost = draft.insert_half_edge(crate::b_rep::HalfEdgeData::new(
             he2_am, he2_mb, he2_am, face2, orig2, shared_edge_id,
         ));
         draft.arena_mut().get_half_edge_mut(he2_am).unwrap().set_next(ghost);

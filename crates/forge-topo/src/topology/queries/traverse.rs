@@ -9,7 +9,7 @@
 //!
 //! DEPENDENCIES: `arena` (entity data), `handles` (typed IDs)
 
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use crate::handles::{FaceId, HalfEdgeId, LoopId, VertexId};
 use forge_core::KernelError;
 
@@ -643,7 +643,7 @@ mod tests {
     use crate::boundary_editing::make_loop_in_face_from_vertices::MakeLoopInFaceFromVertices;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::entity_lifecycle::split_edge::SplitEdge;
-    use crate::state::TopologyState;
+    use crate::transactions::TopologyState;
 
     #[test]
     fn face_edges_on_seed() {

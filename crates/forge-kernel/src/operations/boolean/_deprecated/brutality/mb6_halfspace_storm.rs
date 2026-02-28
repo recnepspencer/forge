@@ -31,7 +31,7 @@ fn build_halfspace_approx(
     normal: [f64; 3],
     extent: f64,
 ) -> (
-    forge_topo::state::TopologyState,
+    forge_topo::transactions::TopologyState,
     crate::geometry_state::GeometryState,
 ) {
     let len = (normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]).sqrt();

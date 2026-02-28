@@ -6,9 +6,9 @@
 use std::collections::BTreeMap;
 
 use forge_core::{DecisionContext, DecisionId, DecisionKind, DecisionTier, TracedDecision, PolicyKind, EntityRef, EntityKind};
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::FaceId;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 use crate::core::ModelingContext;
 use crate::operations::boolean::schema::BooleanOp;

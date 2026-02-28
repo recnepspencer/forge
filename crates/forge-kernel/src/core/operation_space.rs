@@ -10,7 +10,7 @@
 //! operations — calling both is a no-op within floating-point ULP.
 
 use crate::geom_facade::{LocalCoordinateSpace, ScaleAnalysis};
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 use crate::geometry_state::GeometryState;
 

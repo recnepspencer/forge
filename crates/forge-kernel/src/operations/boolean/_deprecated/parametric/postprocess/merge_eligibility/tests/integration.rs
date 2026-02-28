@@ -108,7 +108,7 @@ fn merge_removes_killed_face_plane_bindings() {
 /// Returns the topology, geometry, and the exact two-face selection bitset
 /// for direct `certify_merge_boundary` integration tests.
 fn build_two_face_coplanar_sheet_fixture() -> (
-    forge_topo::state::TopologyState,
+    forge_topo::transactions::TopologyState,
     GeometryState,
     forge_topo::bitset::EntityBitset,
 ) {
@@ -116,7 +116,7 @@ fn build_two_face_coplanar_sheet_fixture() -> (
     use forge_topo::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use forge_topo::entity_lifecycle::split_edge::SplitEdge;
     use forge_topo::operator::apply_op;
-    use forge_topo::state::TopologyState;
+    use forge_topo::transactions::TopologyState;
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
@@ -205,7 +205,7 @@ fn build_two_face_coplanar_sheet_fixture() -> (
 }
 
 fn build_ambiguous_face_persistent_name_fixture(
-) -> (forge_topo::state::TopologyState, PersistentName) {
+) -> (forge_topo::transactions::TopologyState, PersistentName) {
     let (topo, _geom, group) = build_two_face_coplanar_sheet_fixture();
     let mut face_ids = Vec::new();
     for (fid, _) in topo.arena().iter_faces() {
@@ -519,7 +519,7 @@ fn lineage_fallback_legacy_history_returns_typed_incompatible_not_missing() {
         forge_topo::lineage::OpSignature::with_id("split_face", 2),
     );
 
-    let mut draft = forge_topo::state::TopologyState::empty().into_mutation();
+    let mut draft = forge_topo::transactions::TopologyState::empty().into_mutation();
     draft.log_lineage_event(forge_topo::lineage::LineageEvent::EntityCreated {
         entity: forge_core::EntityRef::new(forge_core::EntityKind::Face, 0),
         entity_snapshot: None, // legacy/index-only lineage evidence

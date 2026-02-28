@@ -4,10 +4,10 @@
 //! not just verify the happy path. Each test targets a specific invariant from
 //! REGION_MERGE_SPEC.md §5.8.
 
-use crate::arena::{EdgeData, FaceData, HalfEdgeData, LoopData, VertexData};
+use crate::b_rep::{EdgeData, FaceData, HalfEdgeData, LoopData, VertexData};
 use crate::boundary_editing::join_faces_nmt::JoinFacesNmt;
 use crate::handles::HalfEdgeId;
-use crate::state::TopologyState;
+use crate::transactions::TopologyState;
 use forge_core::KernelError;
 
 fn ph() -> HalfEdgeId {
@@ -25,7 +25,7 @@ fn placeholder_shell() -> crate::handles::ShellId {
 /// Build a valence-N radial ring on a single shared edge.
 /// Each face is a 2-gon (lune) between v1 and v2.
 /// Returns the N forward halfedges in ring order.
-fn setup_valence_n_edge(draft: &mut crate::state::MutableDraft, n: usize) -> Vec<HalfEdgeId> {
+fn setup_valence_n_edge(draft: &mut crate::transactions::MutableDraft, n: usize) -> Vec<HalfEdgeId> {
     let v1 = draft.insert_vertex(VertexData::new(ph()));
     let v2 = draft.insert_vertex(VertexData::new(ph()));
     let shared_edge = draft.insert_edge(EdgeData::new(ph()));
@@ -1302,7 +1302,7 @@ fn edge_data_entry_walks_full_protected_ring() {
 ///
 /// Each face is a 2-gon (lune). Returns the N shared-edge halfedges.
 fn setup_antiparallel_valence_n(
-    draft: &mut crate::state::MutableDraft,
+    draft: &mut crate::transactions::MutableDraft,
     n: usize,
 ) -> (
     Vec<HalfEdgeId>,

@@ -12,7 +12,7 @@
 //! DEPENDENCIES: `arena` (entity storage)
 
 use crate::handles::HalfEdgeId;
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::topology::operations::boundary_editing::make_edge_kill_loop::MakeEdgeKillLoop;
 use forge_core::KernelError;
 
@@ -61,7 +61,7 @@ pub fn bridge_edge(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::TopologyState;
+    use crate::transactions::TopologyState;
     use crate::testing::build_face_with_hole;
 
     #[test]

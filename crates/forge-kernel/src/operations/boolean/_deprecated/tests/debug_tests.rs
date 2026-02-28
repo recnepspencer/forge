@@ -24,9 +24,9 @@ fn all_inner_faces_classify_inside_outer() {
 }
 
 fn count_faces_inside(
-    source_topo: &forge_topo::state::TopologyState,
+    source_topo: &forge_topo::transactions::TopologyState,
     source_geom: &crate::geometry_state::GeometryState,
-    target_topo: &forge_topo::state::TopologyState,
+    target_topo: &forge_topo::transactions::TopologyState,
     target_geom: &crate::geometry_state::GeometryState,
 ) -> usize {
     source_topo

@@ -7,7 +7,7 @@ use crate::boundary_editing::join_faces::JoinFaces;
 use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
 use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::entity_lifecycle::split_edge::SplitEdge;
-use crate::state::TopologyState;
+use crate::transactions::TopologyState;
 
 /// JoinFaces reduces face count by 1 and leaves a valid surviving face.
 #[test]
@@ -62,7 +62,7 @@ fn join_faces_merges_two_adjacent_faces() {
 /// does not corrupt the outer topology.
 #[test]
 fn join_faces_preserves_inner_loops() {
-    use crate::arena::{HalfEdgeData, LoopData, VertexData};
+    use crate::b_rep::{HalfEdgeData, LoopData, VertexData};
     use crate::handles::{EdgeId, HalfEdgeId};
 
     let state = TopologyState::empty();

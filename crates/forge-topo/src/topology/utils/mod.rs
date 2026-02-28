@@ -1,9 +1,4 @@
-//! Topology utilities — derived data and comparison.
-//!
-//! DOMAIN: Non-mutating utilities that don't fit as validators or queries.
-//!
-//! - `diff`: Model diffing utilities
-//! - `hashing`: Structural hashing
+//! Compatibility shim — re-exports from `change_detection` and `transactions` components.
 
-pub mod diff;
-pub mod hashing;
+pub use crate::change_detection::logic::diff_engine as diff;
+pub use crate::transactions::logic::structural_signature as hashing;

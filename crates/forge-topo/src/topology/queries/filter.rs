@@ -3,7 +3,7 @@
 //! DOMAIN: Utility functions for filtering collections of topology handles.
 
 use std::collections::BTreeSet;
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use crate::handles::FaceId;
 
 /// Return all active faces in the arena excluding the provided set of index integers.

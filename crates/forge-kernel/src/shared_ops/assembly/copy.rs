@@ -14,10 +14,10 @@
 use std::collections::BTreeMap;
 
 use forge_core::KernelError;
-use forge_topo::arena::{BodyData, LumpData, RegionData, FaceData, LoopData, VertexData, ShellData};
+use forge_topo::b_rep::{BodyData, LumpData, RegionData, FaceData, LoopData, VertexData, ShellData};
 use forge_topo::handles::{BodyId, RegionId, FaceId, VertexId, HalfEdgeId, LoopId, ShellId};
 use forge_topo::lineage::{Lineage, OpSignature};
-use forge_topo::state::MutableDraft;
+use forge_topo::transactions::MutableDraft;
 use forge_topo::lifecycle::solid::MakeSolid;
 use forge_topo::lifecycle::lump::MakeLumpRegion;
 use forge_topo::lifecycle::shell::MakeEmptyShell;
@@ -130,7 +130,7 @@ pub fn copy_faces(
     new_edges: &mut Vec<HalfEdgeId>,
     global_vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
     spatial_index: &mut VertexWelder,
-    source_arena: &forge_topo::arena::TopologyArena,
+    source_arena: &forge_topo::b_rep::TopologyArena,
     source_geom: &GeometryState,
     source_faces: &[FaceId],
     reverse_orientation: bool,
@@ -147,7 +147,7 @@ pub fn copy_faces(
         } else {
             let kind = source_arena.get_shell(src_shell)
                 .map(|s| s.kind())
-                .unwrap_or(forge_topo::arena::ShellKind::Solid(forge_topo::arena::ShellOrientation::Outer));
+                .unwrap_or(forge_topo::b_rep::ShellKind::Solid(forge_topo::b_rep::ShellOrientation::Outer));
             let region = create_destination_region(draft, destination_body)?;
             let shell = draft.execute(MakeEmptyShell { region, kind })?.into_value().shell;
             shell_map.insert(src_shell, shell);
@@ -190,7 +190,7 @@ fn copy_single_face(
     new_edges: &mut Vec<HalfEdgeId>,
     global_vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
     spatial_index: &mut VertexWelder,
-    source_arena: &forge_topo::arena::TopologyArena,
+    source_arena: &forge_topo::b_rep::TopologyArena,
     source_geom: &GeometryState,
     src_face: FaceId,
     reverse_orientation: bool,
@@ -284,7 +284,7 @@ fn insert_empty_face(
 
 /// Collect source vertex IDs in winding order (reversed if needed).
 fn collect_source_vertices(
-    source_arena: &forge_topo::arena::TopologyArena,
+    source_arena: &forge_topo::b_rep::TopologyArena,
     edges: &[HalfEdgeId],
     reverse: bool,
 ) -> Result<Vec<VertexId>, KernelError> {
@@ -303,7 +303,7 @@ fn collect_source_vertices(
 
 /// Collect halfedges around a specific loop using forge-topo's safe iterator.
 fn collect_loop_halfedges(
-    source_arena: &forge_topo::arena::TopologyArena,
+    source_arena: &forge_topo::b_rep::TopologyArena,
     loop_id: LoopId,
 ) -> Result<Vec<HalfEdgeId>, KernelError> {
     forge_topo::traverse::LoopEdgeIterator::new(source_arena, loop_id)?
@@ -317,7 +317,7 @@ fn resolve_all_vertices(
     vertex_dedup: &mut VertexDedup,
     global_vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
     spatial_index: &mut VertexWelder,
-    source_arena: &forge_topo::arena::TopologyArena,
+    source_arena: &forge_topo::b_rep::TopologyArena,
     source_geom: &GeometryState,
     src_verts: &[VertexId],
     src_prov: Option<&BTreeMap<VertexId, VertexMatchKey>>,
@@ -345,7 +345,7 @@ fn resolve_vertex(
     vertex_dedup: &mut VertexDedup,
     global_vertex_map: &mut BTreeMap<VertexMatchKey, VertexId>,
     spatial_index: &mut VertexWelder,
-    source_arena: &forge_topo::arena::TopologyArena,
+    source_arena: &forge_topo::b_rep::TopologyArena,
     source_geom: &GeometryState,
     src_vertex: VertexId,
     src_prov: Option<&BTreeMap<VertexId, VertexMatchKey>>,
@@ -387,7 +387,7 @@ fn resolve_vertex(
 
 fn merge_vertex_lineage(
     _draft: &mut MutableDraft,
-    _source_arena: &forge_topo::arena::TopologyArena,
+    _source_arena: &forge_topo::b_rep::TopologyArena,
     _src_vertex: VertexId,
     _dest_vertex: VertexId,
     _op_name: &'static str,
@@ -400,7 +400,7 @@ fn merge_vertex_lineage(
 fn create_new_vertex(
     draft: &mut MutableDraft,
     result_geom: &mut GeometryState,
-    source_arena: &forge_topo::arena::TopologyArena,
+    source_arena: &forge_topo::b_rep::TopologyArena,
     source_geom: &GeometryState,
     src_vertex: VertexId,
     pos: &[f64; 3],

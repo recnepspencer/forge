@@ -22,7 +22,7 @@ use forge_core::{ErrorContext, ErrorScope, KernelError, TopologyError};
 use crate::handles::{FaceId, VertexId};
 
 use crate::operator::{EulerDelta, ExecutionResult};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
 
 /// Destroys an isolated topological seed.
@@ -161,7 +161,7 @@ impl TopoOperator for KillVertexFace {
 #[cfg(test)]
 mod tests {
     use super::KillVertexFace;
-    use crate::state::TopologyState;
+    use crate::transactions::TopologyState;
     use crate::topology::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::topology::operations::entity_lifecycle::split_edge::SplitEdge;
     use crate::operator::TopoOperator;

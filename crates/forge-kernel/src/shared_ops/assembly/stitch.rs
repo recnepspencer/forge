@@ -4,7 +4,7 @@
 //! This is a pure data structure with no policy or audit awareness.
 
 use forge_core::KernelError;
-use forge_topo::state::MutableDraft;
+use forge_topo::transactions::MutableDraft;
 use forge_topo::handles::HalfEdgeId;
 use crate::geometry_state::GeometryState;
 use crate::core::ModelingContext;

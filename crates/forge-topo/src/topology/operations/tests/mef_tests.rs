@@ -6,7 +6,7 @@
 use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
 use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::entity_lifecycle::split_edge::SplitEdge;
-use crate::state::TopologyState;
+use crate::transactions::TopologyState;
 use crate::traverse::edge_faces;
 
 /// MEF produces exactly 2 faces, 2 loops, and 4 halfedges.

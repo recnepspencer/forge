@@ -17,7 +17,7 @@ use forge_core::{ErrorContext, ErrorScope, KernelError, TopologyError};
 use crate::handles::{EdgeId, HalfEdgeId};
 
 use crate::operator::{EulerDelta, ExecutionResult};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
 
 /// Close a boundary by gluing two boundary halfedges together, removing an edge entity.

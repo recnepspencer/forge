@@ -1,17 +1,8 @@
-//! Epoch-versioned topology state with transactional mutation.
-//!
-//! DOMAIN: `TopologyState` is immutable. The ONLY way to mutate topology
-//! is through `MutableDraft`, which auto-rolls back if dropped without
-//! committing.
-//!
-//! SUBMODULES:
-//! - `draft_config`: DraftConfig for transaction options
-//! - `topology_state`: TopologyState immutable snapshot
-//! - `draft`: MutableDraft transactional wrapper
+//! Compatibility shim — re-exports from `transactions` component.
 
-mod draft_config;
-mod topology_state;
-pub(crate) mod draft;
+pub use crate::transactions::data::draft_configuration as draft_config;
+pub use crate::transactions::data::versioned_snapshot as topology_state;
+pub use crate::transactions::logic::mutable_draft as draft;
 
 #[cfg(test)]
 mod tests;

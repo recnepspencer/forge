@@ -9,9 +9,9 @@ use super::test_support::{insert_test_solid_shell, materialize_edge_entities_fro
 use crate::mesh_builder::make_cube;
 use crate::integration_tests::harness::shapes::test_config;
 use forge_core::{KernelError, TopologyError};
-use forge_topo::arena::{FaceData, HalfEdgeData, LoopData, VertexData};
+use forge_topo::b_rep::{FaceData, HalfEdgeData, LoopData, VertexData};
 use forge_topo::handles::{FaceId, HalfEdgeId, LoopId, VertexId};
-use forge_topo::state::{DraftConfig, TopologyState};
+use forge_topo::transactions::{DraftConfig, TopologyState};
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
 /// PV-05: A genus-1 topology passes the generalized Euler formula.
@@ -215,7 +215,7 @@ fn pv_08_removed_edge_fails_euler() {
 /// Generalized Euler: V-E+F = 2-2G+R = 2-2(1)+2 = 2.
 #[test]
 fn pv_06_through_hole_passes_euler() {
-    use forge_topo::arena::LoopData;
+    use forge_topo::b_rep::LoopData;
     use std::collections::BTreeMap;
 
     let mut config = DraftConfig::default();
@@ -255,7 +255,7 @@ fn pv_06_through_hole_passes_euler() {
     let mut edge_map: BTreeMap<(u32, u32), HalfEdgeId> = BTreeMap::new();
     let shell_id = insert_test_solid_shell(&mut draft);
 
-    let mut build_face_loop = |arena: &mut forge_topo::arena::TopologyArena,
+    let mut build_face_loop = |arena: &mut forge_topo::b_rep::TopologyArena,
                                face_verts: &[usize],
                                edge_map: &mut BTreeMap<(u32, u32), HalfEdgeId>|
      -> (FaceId, LoopId) {

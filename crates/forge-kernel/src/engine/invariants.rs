@@ -8,7 +8,7 @@
 //! proof_validation::checkpoint (ValidationConfig, ValidationCheckpoint)
 
 use forge_core::KernelError;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
 use crate::proof::checkpoint::schema::{ValidationCheckpoint, ValidationConfig};

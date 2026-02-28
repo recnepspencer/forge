@@ -19,14 +19,14 @@ pub(super) struct NmtEvalTestApi;
 
 impl NmtEvalTestApi {
     pub fn resolve_face_ref_direct(
-        arena: &forge_topo::arena::TopologyArena,
+        arena: &forge_topo::b_rep::TopologyArena,
         pref: &PersistentFaceRef,
     ) -> ResolutionResult<ResolutionCandidate> {
         resolve_face_ref_direct(arena, pref)
     }
 
     pub fn resolve_face_ref_with_lineage_fallback(
-        topo: &forge_topo::state::TopologyState,
+        topo: &forge_topo::transactions::TopologyState,
         pref: &PersistentFaceRef,
     ) -> ResolutionResult<ResolutionCandidate> {
         resolve_face_ref_result(
@@ -43,14 +43,14 @@ impl NmtEvalTestApi {
     }
 
     pub fn build_merge_plan(
-        arena: &forge_topo::arena::TopologyArena,
+        arena: &forge_topo::b_rep::TopologyArena,
         selection: &MergeRegionSelection,
     ) -> Result<MergePlan, KernelError> {
         build_merge_plan(arena, selection)
     }
 
     pub fn validate_connectivity(
-        arena: &forge_topo::arena::TopologyArena,
+        arena: &forge_topo::b_rep::TopologyArena,
         selection: &MergeRegionSelection,
     ) -> Result<(), KernelError> {
         validate_connectivity(arena, selection)

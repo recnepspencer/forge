@@ -10,7 +10,7 @@
 use forge_core::KernelError;
 use forge_math::linalg::{cross, dot, normalize_checked};
 
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use crate::handles::{EdgeId, FaceId, VertexId};
 
 use super::traverse::{radial_valence, FaceEdgeIterator};
@@ -121,7 +121,7 @@ mod tests {
     use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::entity_lifecycle::split_edge::SplitEdge;
-    use crate::state::TopologyState;
+    use crate::transactions::TopologyState;
     use crate::traverse::FaceEdgeIterator;
     use std::collections::BTreeMap;
 

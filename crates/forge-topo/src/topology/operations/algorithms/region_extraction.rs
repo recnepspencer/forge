@@ -12,9 +12,9 @@ use std::collections::BTreeSet;
 
 use forge_core::KernelError;
 
-use crate::arena::TopologyArena;
+use crate::b_rep::TopologyArena;
 use crate::handles::{FaceId, HalfEdgeId, VertexId};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::topology::bitset::EntityBitset;
 use crate::topology::operations::boundary_editing::join_faces::JoinFaces;
 use crate::topology::queries::traverse::FaceAllEdgesIterator;
@@ -332,7 +332,7 @@ mod tests {
     use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::entity_lifecycle::split_edge::SplitEdge;
-    use crate::state::TopologyState;
+    use crate::transactions::TopologyState;
 
     #[test]
     fn merge_face_group_by_join_faces_merges_two_faces() {

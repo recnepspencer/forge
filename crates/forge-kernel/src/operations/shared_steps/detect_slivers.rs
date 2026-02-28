@@ -11,7 +11,7 @@
 use forge_core::KernelError;
 use crate::spatial::face_bounds;
 use forge_topo::handles::{FaceId, VertexId};
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 /// A face whose area falls below the sliver threshold.
 #[derive(Debug, Clone)]
@@ -66,7 +66,7 @@ pub fn detect_slivers(
 /// Uses `forge-topo`'s `FaceAllEdgesIterator` for loop traversal,
 /// and `position_fn` for vertex positions — no direct geometry store access.
 fn compute_face_area_via_bounds(
-    arena: &forge_topo::arena::TopologyArena,
+    arena: &forge_topo::b_rep::TopologyArena,
     position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
     face_id: FaceId,
 ) -> Result<f64, KernelError> {

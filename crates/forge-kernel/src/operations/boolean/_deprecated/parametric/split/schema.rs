@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 use crate::geom_facade::Plane;
 use forge_math::arithmetic::Rational;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 use crate::core::ToleranceConfig;
 use crate::geometry_state::GeometryState;

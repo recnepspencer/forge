@@ -7,10 +7,10 @@
 
 use forge_core::KernelError;
 
-use crate::arena::{BodyData, LumpData, RegionData};
+use crate::b_rep::{BodyData, LumpData, RegionData};
 use crate::handles::{BodyId, LumpId, RegionId, ShellId};
 use crate::operator::{EulerDelta, ExecutionResult};
-use crate::state::MutableDraft;
+use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
 
 // ── SplitBody ───────────────────────────────────────────────────────
@@ -190,7 +190,7 @@ impl TopoOperator for CloneBody {
 
         struct ShellInfo {
             old_shell: ShellId,
-            kind: crate::arena::ShellKind,
+            kind: crate::b_rep::ShellKind,
             faces: Vec<FaceInfo>,
             halfedges: Vec<HeInfo>,
             vertices: Vec<VertexInfo>,
@@ -349,7 +349,7 @@ impl TopoOperator for CloneBody {
                 draft.arena_mut().get_lump_mut(new_lump)?.add_region(new_region);
 
                 for shell_info in &region_info.shells {
-                    let new_shell = draft.insert_shell(crate::arena::ShellData::new(
+                    let new_shell = draft.insert_shell(crate::b_rep::ShellData::new(
                         crate::handles::FaceId::new(u32::MAX, 0),
                         shell_info.kind,
                         new_region,
@@ -360,14 +360,14 @@ impl TopoOperator for CloneBody {
 
                     // Create faces and loops
                     for fi in &shell_info.faces {
-                        let new_loop = draft.insert_loop(crate::arena::LoopData::new(
+                        let new_loop = draft.insert_loop(crate::b_rep::LoopData::new(
                             crate::handles::HalfEdgeId::new(u32::MAX, 0),
                             crate::handles::FaceId::new(u32::MAX, 0),
                         ));
                         loop_map.insert(fi.old_outer_loop, new_loop);
                         total_loops += 1;
 
-                        let new_face = draft.insert_face(crate::arena::FaceData::new(
+                        let new_face = draft.insert_face(crate::b_rep::FaceData::new(
                             new_loop,
                             new_shell,
                         ));
@@ -375,7 +375,7 @@ impl TopoOperator for CloneBody {
                         total_faces += 1;
 
                         for &old_inner in &fi.old_inner_loops {
-                            let new_inner = draft.insert_loop(crate::arena::LoopData::new(
+                            let new_inner = draft.insert_loop(crate::b_rep::LoopData::new(
                                 crate::handles::HalfEdgeId::new(u32::MAX, 0),
                                 crate::handles::FaceId::new(u32::MAX, 0),
                             ));
@@ -388,7 +388,7 @@ impl TopoOperator for CloneBody {
                     // Create vertices
                     for vi in &shell_info.vertices {
                         if !vertex_map.contains_key(&vi.old_vertex) {
-                            let new_v = draft.insert_vertex(crate::arena::VertexData::new(
+                            let new_v = draft.insert_vertex(crate::b_rep::VertexData::new(
                                 crate::handles::HalfEdgeId::new(u32::MAX, 0),
                             ));
                             if let Some(bp) = vi.birth_parameter {
@@ -402,7 +402,7 @@ impl TopoOperator for CloneBody {
                     // Create edges
                     for ei in &shell_info.edges {
                         if !edge_map.contains_key(&ei.old_edge) {
-                            let new_e = draft.insert_edge(crate::arena::EdgeData::new(
+                            let new_e = draft.insert_edge(crate::b_rep::EdgeData::new(
                                 crate::handles::HalfEdgeId::new(u32::MAX, 0),
                             ));
                             edge_map.insert(ei.old_edge, new_e);
@@ -416,7 +416,7 @@ impl TopoOperator for CloneBody {
                         let new_origin = vertex_map[&hi.old_origin];
                         let new_edge = edge_map[&hi.old_edge];
 
-                        let new_he = draft.insert_half_edge(crate::arena::HalfEdgeData::new(
+                        let new_he = draft.insert_half_edge(crate::b_rep::HalfEdgeData::new(
                             crate::handles::HalfEdgeId::new(u32::MAX, 0),
                             crate::handles::HalfEdgeId::new(u32::MAX, 0),
                             crate::handles::HalfEdgeId::new(u32::MAX, 0),
