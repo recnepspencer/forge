@@ -17,7 +17,7 @@
 use crate::handles::{FaceId, HalfEdgeId};
 use crate::operator::apply_op;
 use crate::state::MutableDraft;
-use crate::topology::operations::euler::make_edge_face::MakeEdgeFace;
+use crate::topology::operations::entity_lifecycle::make_edge_face::MakeEdgeFace;
 use crate::topology::queries::traverse::FaceEdgeIterator;
 use forge_core::KernelError;
 

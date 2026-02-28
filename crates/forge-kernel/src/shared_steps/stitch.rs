@@ -10,7 +10,7 @@ use forge_core::{
 use forge_topo::state::MutableDraft;
 use forge_topo::handles::HalfEdgeId;
 use forge_topo::operator::apply_op;
-use forge_topo::euler::sew_edge::SewEdge;
+use forge_topo::non_manifold::sew_edge::SewEdge;
 use crate::geom_facade::{fuzzy_match_edges, DirectedEdge, FuzzyMatchMode, select_best_radial_match};
 
 use crate::core::ModelingContext;

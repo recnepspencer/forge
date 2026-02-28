@@ -5,8 +5,8 @@
 //! Shared across Boolean, Shell, and other features that reconstruct faces.
 
 use forge_core::KernelError;
-use forge_topo::euler::make_face_in_shell_from_vertices::MakeFaceInShellFromVertices;
-use forge_topo::euler::make_loop_in_face_from_vertices::MakeLoopInFaceFromVertices;
+use forge_topo::boundary_editing::make_face_in_shell_from_vertices::MakeFaceInShellFromVertices;
+use forge_topo::boundary_editing::make_loop_in_face_from_vertices::MakeLoopInFaceFromVertices;
 use forge_topo::handles::ShellId;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::lineage::OpSignature;

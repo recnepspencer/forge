@@ -17,7 +17,7 @@ use crate::handles::{FaceId, HalfEdgeId, VertexId};
 use crate::operator::apply_op;
 use crate::state::MutableDraft;
 use crate::topology::bitset::EntityBitset;
-use crate::topology::operations::euler::join_faces::JoinFaces;
+use crate::topology::operations::boundary_editing::join_faces::JoinFaces;
 use crate::topology::queries::traverse::FaceAllEdgesIterator;
 
 /// Walk the boundary perimeter of a face group and collect perimeter vertices.

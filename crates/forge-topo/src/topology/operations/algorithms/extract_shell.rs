@@ -18,7 +18,7 @@ use crate::operator::apply_op;
 use crate::state::MutableDraft;
 use crate::topology::bitset::EntityBitset;
 use crate::topology::operations::algorithms::region_extraction::is_face_group_boundary_half_edge;
-use crate::topology::operations::euler::unsew_edge::UnsewEdge;
+use crate::topology::operations::non_manifold::unsew_edge::UnsewEdge;
 use crate::topology::queries::traverse::FaceAllEdgesIterator;
 use forge_core::KernelError;
 

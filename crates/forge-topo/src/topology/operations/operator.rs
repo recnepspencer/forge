@@ -24,7 +24,7 @@
 
 use crate::lineage::OpSignature;
 use crate::state::MutableDraft;
-use crate::validate::{self, ValidationLevel};
+use crate::topology::validators::validate::ValidationLevel;
 use forge_core::{
     DecisionContext, DecisionId, DecisionKind, DecisionLog, DecisionTier, TracedDecision,
 };
@@ -255,7 +255,7 @@ pub fn apply_op<O: EulerOperator>(
 
     // ── Per-op structural validation + reciprocity checks ────────────
     if draft.config().per_op_validation {
-        validate::validate_topology(draft.arena(), ValidationLevel::Full).map_err(|e| {
+        crate::topology::validators::structural::validate_topology(draft.arena(), ValidationLevel::Full).map_err(|e| {
             KernelError::TopologyViolation {
                 err: TopologyError::BrokenLoop {
                     face_index: 0,

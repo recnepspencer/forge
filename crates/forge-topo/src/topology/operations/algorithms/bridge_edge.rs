@@ -14,7 +14,7 @@
 use crate::handles::HalfEdgeId;
 use crate::operator::apply_op;
 use crate::state::MutableDraft;
-use crate::topology::operations::euler::make_edge_kill_loop::MakeEdgeKillLoop;
+use crate::topology::operations::boundary_editing::make_edge_kill_loop::MakeEdgeKillLoop;
 use forge_core::KernelError;
 
 /// Output of the bridge_edge algorithm.

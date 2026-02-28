@@ -10,3 +10,7 @@
 //! - B4: CreateShell, DestroyShell, SplitShell, MergeShells, ExtractShell, InsertShell, PromoteShell, DemoteShell, RehomeShell
 //!
 //! DEPENDENCIES: `euler` (primitives), `arena` (entity storage)
+
+pub mod solid;
+pub mod lump;
+pub mod shell;

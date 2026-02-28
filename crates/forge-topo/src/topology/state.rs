@@ -30,7 +30,7 @@ use crate::lineage::{LineageEvent, OpSignature};
 use crate::lineage_store::LineageStore;
 use crate::replay::{ReplayEntry, ReplayLog};
 use crate::topology::history::lineage_link::ReidentificationLinkIndex;
-use crate::validate::{self, ValidationLevel};
+use crate::topology::validators::validate::ValidationLevel;
 use forge_core::KernelError;
 
 /// Configuration for a mutable draft transaction.
@@ -372,7 +372,7 @@ impl MutableDraft {
     pub fn commit(mut self) -> Result<TopologyState, KernelError> {
         self.committed = true;
 
-        validate::validate_topology(&self.arena, self.config.validation_level)?;
+        crate::topology::validators::structural::validate_topology(&self.arena, self.config.validation_level)?;
 
         let topology_hash = self.compute_topology_hash();
         let committed_arena = std::mem::take(&mut self.arena);
@@ -399,6 +399,8 @@ impl MutableDraft {
             reidentification_link_index: Arc::new(reid_index),
         })
     }
+
+
 
 
     /// Compute the structural topology hash from the arena.
