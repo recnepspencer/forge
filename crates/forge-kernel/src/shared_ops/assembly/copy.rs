@@ -19,10 +19,10 @@ use forge_topo::handles::{BodyId, RegionId, FaceId, VertexId, HalfEdgeId, LoopId
 use forge_topo::lineage::{Lineage, OpSignature};
 use forge_topo::state::MutableDraft;
 use forge_topo::operator::apply_op;
-use forge_topo::euler::make_solid::MakeSolid;
-use forge_topo::euler::make_lump_region::MakeLumpRegion;
-use forge_topo::euler::make_empty_shell::MakeEmptyShell;
-use forge_topo::euler::make_isolated_vertex::MakeIsolatedVertex;
+use forge_topo::lifecycle::solid::MakeSolid;
+use forge_topo::lifecycle::lump::MakeLumpRegion;
+use forge_topo::lifecycle::shell::MakeEmptyShell;
+use forge_topo::entity_lifecycle::make_isolated_vertex::MakeIsolatedVertex;
 
 use crate::geometry_state::GeometryState;
 use crate::shared_ops::vertex::identity::VertexMatchKey;

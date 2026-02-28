@@ -26,9 +26,11 @@
 //! - `persistent_naming`: Persistent naming/selector
 //! - `import_sanity`: Import sanity/soup recovery
 
+pub(crate) mod structural;
 pub mod validate;
 
-pub(crate) mod structural;
+#[cfg(test)]
+mod tests;
 
 pub mod reference_integrity;
 pub mod loop_wiring;

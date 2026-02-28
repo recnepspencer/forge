@@ -25,11 +25,15 @@ pub use topology::bitset;
 pub use topology::history::replay;
 pub use topology::validators::validate;
 pub use topology::utils::{diff, hashing};
-pub use topology::operations::healing;
+pub use topology::operations::healing::orientation::*;
 pub use topology::operations::algorithms;
 pub use topology::operations::euler;
 pub use topology::operations::operator;
 pub use topology::operations::operator::EulerOperator;
+pub use topology::operations::lifecycle;
+pub use topology::operations::entity_lifecycle;
+pub use topology::operations::boundary_editing;
+pub use topology::operations::non_manifold;
 pub use topology::queries;
 pub use topology::queries::{classification, continuity, hierarchy, ordering, polygon, traverse};
 

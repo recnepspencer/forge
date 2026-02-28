@@ -10,3 +10,23 @@
 //! - C4: CreateLoop, DestroyLoop, CloneLoop, SplitLoop, MergeLoops, DetachLoop, AttachLoop, ReverseLoop
 //!
 //! DEPENDENCIES: `euler` (primitives), `arena` (entity storage)
+
+pub mod make_isolated_vertex;
+pub mod make_shell_face;
+pub mod kill_shell_face;
+pub mod kill_vertex_face;
+pub mod make_vertex_face;
+pub mod make_edge_vertex;
+pub mod kill_edge_vertex;
+pub mod split_edge;
+pub mod make_edge_face;
+
+pub use make_isolated_vertex::*;
+pub use make_shell_face::*;
+pub use kill_shell_face::*;
+pub use kill_vertex_face::*;
+pub use make_vertex_face::*;
+pub use make_edge_vertex::*;
+pub use kill_edge_vertex::*;
+pub use split_edge::*;
+pub use make_edge_face::*;

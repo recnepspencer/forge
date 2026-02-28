@@ -21,16 +21,22 @@
 //! - `healing`: Sewing/healing/repair (§K)
 //! - `construction`: Feature-level modeling (§L)
 //! - `global_editing`: Global topology operations (§M)
-//! - `transform`: Transform/copy/pattern (§N)
+//! - `transform`: Transform/copy// --- NEW STRUCTURE ---
 
 pub mod algorithms;
-pub mod euler;
 pub mod operator;
 
+// Entity creation and destruction
 pub mod lifecycle;
 pub mod entity_lifecycle;
+
+// Boundary modifications
 pub mod boundary_editing;
+
+// Non-manifold gluing
 pub mod non_manifold;
+
+// Scaffolding for remaining categories
 pub mod regions;
 pub mod sheets_wires;
 pub mod brep_coupling;
@@ -40,3 +46,8 @@ pub mod healing;
 pub mod construction;
 pub mod global_editing;
 pub mod transform;
+
+// --- LEGACY (Will be removed once fully migrated) ---
+pub mod euler;
+
+pub use euler::*;

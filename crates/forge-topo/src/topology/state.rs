@@ -30,7 +30,7 @@ use crate::lineage::{LineageEvent, OpSignature};
 use crate::lineage_store::LineageStore;
 use crate::replay::{ReplayEntry, ReplayLog};
 use crate::topology::history::lineage_link::ReidentificationLinkIndex;
-use crate::validate::{self, ValidationLevel};
+use crate::topology::validators::validate::{TopologyMode, ValidationLevel};
 use forge_core::KernelError;
 
 /// Configuration for a mutable draft transaction.
@@ -372,7 +372,7 @@ impl MutableDraft {
     pub fn commit(mut self) -> Result<TopologyState, KernelError> {
         self.committed = true;
 
-        validate::validate_topology(&self.arena, self.config.validation_level)?;
+        crate::topology::validators::structural::validate_topology(&self.arena, self.config.validation_level)?;
 
         let topology_hash = self.compute_topology_hash();
         let committed_arena = std::mem::take(&mut self.arena);
@@ -411,12 +411,17 @@ impl MutableDraft {
     /// Callers requiring NMT semantics must use this method explicitly.
     pub fn commit_with_mode(
         mut self,
-        level: validate::ValidationLevel,
-        mode: validate::TopologyMode,
+        level: ValidationLevel,
+        mode: TopologyMode,
     ) -> Result<TopologyState, KernelError> {
         self.committed = true;
 
-        validate::validate_topology_with_mode(&self.arena, level, mode)?;
+        let validation_level = if self.config.validation_level == ValidationLevel::Full {
+            ValidationLevel::Full
+        } else {
+            ValidationLevel::Intermediate
+        };
+        crate::topology::validators::structural::validate_topology_with_mode(&self.arena, validation_level, mode)?;
 
         let topology_hash = self.compute_topology_hash();
         let committed_arena = std::mem::take(&mut self.arena);

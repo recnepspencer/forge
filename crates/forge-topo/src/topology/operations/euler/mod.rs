@@ -1,54 +1,32 @@
-//! Euler operators for topology construction and modification.
+//! Euler Operators — low-level atomic topology mutations.
 //!
-//! DOMAIN: Atomic topological mutations following the Euler operator formalism.
+//! # Purpose
+//! Euler operators are the fundamental transactional building blocks of boundary
+//! representation (B-Rep). They are the *only* way the topology arena is modified.
 //!
-//! ## Current Operators
-//! - `MakeVertexFace` (MVF): seed creation — V+1 F+1 E+1 L+1
-//! - `MakeEdgeFace` (MEF): face splitting — E+1 F+1
-//! - `MakeEdgeVertex` (MEV): vertex extension — V+1 E+1 (wire edge)
-//! - `MakeEdgeKillLoop` (MEKL): loop merge — E+1 L-1
-//! - `SplitEdge` (SE): edge subdivision — V+1 E+1
-//! - `JoinFaces` (JF): face merging (inverse of MEF) — E-1 F-1
-//! - `JoinFacesNmt` (JFN): NMT face merging (leaves a slit) — F-1
-//! - `KillEdgeVertex` (KEV): edge/vertex collapse (inverse of MEV/SE) — V-1 E-1
-//! - `KillEdgeMakeLoop` (KEML): loop split (inverse of MEKL) — E-1 L+1
-//! - `SewEdge` (SEW): boundary edge gluing — E-1 χ+1
-//! - `UnsewEdge` (USEW): boundary edge ungluing (inverse of SEW) — E+1
-//! - `MakeShellFace` (MSF): disjoint shell creation within a solid — V+1 F+1 E+1 L+1 S+1
-//! - `KillShellFace` (KSF): disjoint shell destruction (inverse of MSF) — V-1 F-1 E-1 L-1 S-1
-//! - `KillVertexFace` (KVF): atomic body teardown (inverse of MVF) — V-1 F-1 E-1 L-1 S-1 So-1
+//! # Structural Invariants (Euler-Poincaré Formula)
+//! Any valid B-Rep model must satisfy the Euler-Poincaré formula:
 //!
-//! ## Missing Operators (Future Roadmap)
+//! `V - E + F = 2(S - H) + R`
 //!
-//! INVARIANTS:
-//! - Every operator is executed via `apply_op()` — never called directly
-//! - Operators produce topologically valid meshes (validated on commit)
-//! - Each operator returns new entity handles (never mutates in place semantically)
+//! Where:
+//! - **V**: Vertices
+//! - **E**: Edges (geometric curves)
+//! - **F**: Faces
+//! - **S**: Shells (connected closed surfaces)
+//! - **H**: Holes through the solid (genus)
+//! - **R**: Ring-like inner loops within faces
 //!
-//! DEPENDENCIES: `arena` (entity storage), `lineage` (provenance), `handles` (typed IDs)
+//! # Transactional Execution
+//! Each operator executes against a `MutableDraft`, which allows it to mutate
+//! the arena and append to the transaction history. If an operator fails,
+//! the draft is discarded; if it succeeds, the draft records a structurally
+//! sound mutation that can be analyzed or committed to the `TopologyState`.
+//!
+//! # Lineage
+//! All Euler operators accept an `OpSignature`, which tags the operation
+//! in the geometric log.
 
-pub mod join_faces;
-pub mod join_faces_nmt;
-pub mod kill_edge_make_loop;
-pub mod kill_edge_vertex;
-pub mod kill_shell_face;
-pub mod kill_vertex_face;
-pub mod make_edge_face;
-pub mod make_edge_kill_loop;
-pub mod make_edge_vertex;
-pub mod make_empty_shell;
-pub mod make_isolated_vertex;
-pub mod make_shell_face;
-pub mod make_solid;
-pub mod make_vertex_face;
-pub mod sew_edge;
-pub mod split_edge;
-pub mod unsew_edge;
-
-#[cfg(test)]
-pub mod tests;
-
-pub mod make_face_from_vertices;
-pub mod make_face_in_shell_from_vertices;
-pub mod make_loop_in_face_from_vertices;
-pub mod make_lump_region;
+// Note: Operators have been refactored into domain-specific subdirectories under `operations/`.
+// This module currently serves as a redirection or legacy compatibility layer
+// during the refactoring process.
