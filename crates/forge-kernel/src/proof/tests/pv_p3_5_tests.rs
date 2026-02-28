@@ -181,14 +181,14 @@ fn mb_r2_geometry_perturbation_diff_catches_every_flipped_decision() {
     validate_all(
         &log_a,
         res_a.topology().arena(),
-        forge_topo::hashing::compute_arena_topology_hash(res_a.topology().arena()),
+        forge_topo::transactions::compute_arena_topology_hash(res_a.topology().arena()),
     )
     .expect("Original run invariants failed");
 
     validate_all(
         &log_b,
         res_b.topology().arena(),
-        forge_topo::hashing::compute_arena_topology_hash(res_b.topology().arena()),
+        forge_topo::transactions::compute_arena_topology_hash(res_b.topology().arena()),
     )
     .expect("Perturbed run invariants failed");
 }
@@ -322,9 +322,9 @@ fn mb_r6_serialized_proof_metadata_enables_cross_session_detection() {
     let json_decision = serde_json::to_string(&original_decision).unwrap();
     let json_lineage = serde_json::to_string(&original_lineage).unwrap();
 
-    let decoded_replay: forge_topo::replay::ReplayLog = serde_json::from_str(&json_replay).unwrap();
+    let decoded_replay: forge_topo::provenance::ReplayLog = serde_json::from_str(&json_replay).unwrap();
     let decoded_decision: forge_core::DecisionLog = serde_json::from_str(&json_decision).unwrap();
-    let decoded_lineage: Vec<forge_topo::lineage::LineageEvent> =
+    let decoded_lineage: Vec<forge_topo::provenance::LineageEvent> =
         serde_json::from_str(&json_lineage).unwrap();
 
     // Verify determinism checks
@@ -339,7 +339,7 @@ fn mb_r6_serialized_proof_metadata_enables_cross_session_detection() {
         &decoded_decision,
         &decoded_lineage,
         result.topology().arena(),
-        forge_topo::hashing::compute_arena_topology_hash(result.topology().arena()),
+        forge_topo::transactions::compute_arena_topology_hash(result.topology().arena()),
     )
     .expect("Invariants failed on deserialized data");
 

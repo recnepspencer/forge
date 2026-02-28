@@ -12,11 +12,11 @@ use forge_core::EntityKind as TraceEntityKind;
 use forge_core::KernelError;
 use forge_topo::attributes::EntityKey;
 use forge_topo::handles::FaceId;
-use forge_topo::topology::history::lineage_link::{
+use forge_topo::provenance::{
     PersistentNameRef, ReidentificationCompatibility, ReidentificationMode, ReidentificationQuery,
     ReidentificationQueryResult,
 };
-use forge_topo::topology::naming::{resolve_name, resolve_selector};
+use forge_topo::persistent_naming::{resolve_name, resolve_selector};
 
 use crate::core::ModelingContext;
 use crate::core::{
@@ -292,7 +292,7 @@ fn resolve_face_ref_lineage_fallback(
                 },
                 mode: ReidentificationMode::Descendants,
             };
-            match forge_topo::topology::history::lineage_link::resolve_reidentification_query_v1(
+            match forge_topo::provenance::resolve_reidentification_query_v1(
                 arena,
                 topo_state.lineage_events(),
                 topo_state.reidentification_link_index(),
@@ -324,7 +324,7 @@ fn resolve_face_ref_lineage_fallback(
                         ReidentificationCompatibility::MissingLinkage { .. }
                     ) {
                         // Differentiate pure "no descendants" vs legacy/index-only history by suspected cause.
-                        if matches!(topo_ev.suspected_cause, Some(forge_topo::topology::history::lineage_link::ReidentificationFailureCause::SubstrateNotBuilt)) {
+                        if matches!(topo_ev.suspected_cause, Some(forge_topo::provenance::ReidentificationFailureCause::SubstrateNotBuilt)) {
                             return ResolutionResult::Incompatible {
                                 query,
                                 incompatibility: ResolutionIncompatibility::LegacyIndexOnlyLineageHistory,
@@ -376,7 +376,7 @@ fn resolve_face_ref_lineage_fallback(
 
 fn topology_reid_candidate_to_kernel_face_candidate(
     pref: &PersistentFaceRef,
-    record: forge_topo::topology::history::lineage_link::ReidentificationCandidate,
+    record: forge_topo::provenance::ReidentificationCandidate,
 ) -> ResolutionCandidate {
     ResolutionCandidate {
         entity_kind: TraceEntityKind::Face,
@@ -400,7 +400,7 @@ fn topology_reid_candidate_to_kernel_face_candidate(
 
 fn topology_reid_candidate_to_kernel_face_candidate_checked(
     pref: &PersistentFaceRef,
-    record: forge_topo::topology::history::lineage_link::ReidentificationCandidate,
+    record: forge_topo::provenance::ReidentificationCandidate,
 ) -> Option<ResolutionCandidate> {
     if record.snapshot_ref.kind != forge_core::EntityKind::Face {
         return None;
@@ -513,19 +513,19 @@ pub(crate) fn map_resolution_incompatibility(
 }
 
 fn map_topo_origin_kind_to_persistent(
-    origin: forge_topo::topology::history::lineage_link::EntityOriginKind,
+    origin: forge_topo::provenance::EntityOriginKind,
 ) -> forge_core::errors::PersistentResolutionOriginKind {
     match origin {
-        forge_topo::topology::history::lineage_link::EntityOriginKind::TopoOperator => {
+        forge_topo::provenance::EntityOriginKind::TopoOperator => {
             forge_core::errors::PersistentResolutionOriginKind::TopoOperator
         }
-        forge_topo::topology::history::lineage_link::EntityOriginKind::GeometricIntersection => {
+        forge_topo::provenance::EntityOriginKind::GeometricIntersection => {
             forge_core::errors::PersistentResolutionOriginKind::GeometricIntersection
         }
-        forge_topo::topology::history::lineage_link::EntityOriginKind::ConstraintSolver => {
+        forge_topo::provenance::EntityOriginKind::ConstraintSolver => {
             forge_core::errors::PersistentResolutionOriginKind::ConstraintSolver
         }
-        forge_topo::topology::history::lineage_link::EntityOriginKind::Unknown => {
+        forge_topo::provenance::EntityOriginKind::Unknown => {
             forge_core::errors::PersistentResolutionOriginKind::Unknown
         }
     }
@@ -565,7 +565,7 @@ fn build_reidentification_trace_payload(
         mode: ReidentificationMode::Descendants,
     };
     let topo_result =
-        forge_topo::topology::history::lineage_link::resolve_reidentification_query_v1(
+        forge_topo::provenance::resolve_reidentification_query_v1(
             topo_state.arena(),
             topo_state.lineage_events(),
             topo_state.reidentification_link_index(),
@@ -607,70 +607,70 @@ fn build_reidentification_trace_payload(
 }
 
 fn map_topo_reid_mode(
-    mode: forge_topo::topology::history::lineage_link::ReidentificationMode,
+    mode: forge_topo::provenance::ReidentificationMode,
 ) -> ReidentificationModeSummary {
     match mode {
-        forge_topo::topology::history::lineage_link::ReidentificationMode::Descendants => {
+        forge_topo::provenance::ReidentificationMode::Descendants => {
             ReidentificationModeSummary::Descendants
         }
-        forge_topo::topology::history::lineage_link::ReidentificationMode::Ancestors => {
+        forge_topo::provenance::ReidentificationMode::Ancestors => {
             ReidentificationModeSummary::Ancestors
         }
-        forge_topo::topology::history::lineage_link::ReidentificationMode::Hybrid => {
+        forge_topo::provenance::ReidentificationMode::Hybrid => {
             ReidentificationModeSummary::Hybrid
         }
     }
 }
 
 fn map_topo_origin_kind(
-    origin: forge_topo::topology::history::lineage_link::EntityOriginKind,
+    origin: forge_topo::provenance::EntityOriginKind,
 ) -> forge_core::tracing::ReidentificationOriginKindSummary {
     match origin {
-        forge_topo::topology::history::lineage_link::EntityOriginKind::TopoOperator => {
+        forge_topo::provenance::EntityOriginKind::TopoOperator => {
             forge_core::tracing::ReidentificationOriginKindSummary::TopoOperator
         }
-        forge_topo::topology::history::lineage_link::EntityOriginKind::GeometricIntersection => {
+        forge_topo::provenance::EntityOriginKind::GeometricIntersection => {
             forge_core::tracing::ReidentificationOriginKindSummary::GeometricIntersection
         }
-        forge_topo::topology::history::lineage_link::EntityOriginKind::ConstraintSolver => {
+        forge_topo::provenance::EntityOriginKind::ConstraintSolver => {
             forge_core::tracing::ReidentificationOriginKindSummary::ConstraintSolver
         }
-        forge_topo::topology::history::lineage_link::EntityOriginKind::Unknown => {
+        forge_topo::provenance::EntityOriginKind::Unknown => {
             forge_core::tracing::ReidentificationOriginKindSummary::Unknown
         }
     }
 }
 
 fn map_topo_reid_compatibility(
-    c: &forge_topo::topology::history::lineage_link::ReidentificationCompatibility,
+    c: &forge_topo::provenance::ReidentificationCompatibility,
 ) -> ReidentificationCompatibilitySummary {
     match c {
-        forge_topo::topology::history::lineage_link::ReidentificationCompatibility::Available => ReidentificationCompatibilitySummary::Available,
-        forge_topo::topology::history::lineage_link::ReidentificationCompatibility::Unavailable => ReidentificationCompatibilitySummary::Unavailable,
-        forge_topo::topology::history::lineage_link::ReidentificationCompatibility::SchemaVersionMismatch { recorded, supported } => {
+        forge_topo::provenance::ReidentificationCompatibility::Available => ReidentificationCompatibilitySummary::Available,
+        forge_topo::provenance::ReidentificationCompatibility::Unavailable => ReidentificationCompatibilitySummary::Unavailable,
+        forge_topo::provenance::ReidentificationCompatibility::SchemaVersionMismatch { recorded, supported } => {
             ReidentificationCompatibilitySummary::SchemaVersionMismatch { recorded: *recorded, supported: *supported }
         }
-        forge_topo::topology::history::lineage_link::ReidentificationCompatibility::MissingLinkage { kind } => {
+        forge_topo::provenance::ReidentificationCompatibility::MissingLinkage { kind } => {
             ReidentificationCompatibilitySummary::MissingLinkage { kind: *kind }
         }
-        forge_topo::topology::history::lineage_link::ReidentificationCompatibility::UnsupportedMode { mode } => {
+        forge_topo::provenance::ReidentificationCompatibility::UnsupportedMode { mode } => {
             ReidentificationCompatibilitySummary::UnsupportedMode { mode: map_topo_reid_mode(*mode) }
         }
-        forge_topo::topology::history::lineage_link::ReidentificationCompatibility::UnsupportedEntityOrigin { origin } => {
+        forge_topo::provenance::ReidentificationCompatibility::UnsupportedEntityOrigin { origin } => {
             ReidentificationCompatibilitySummary::UnsupportedEntityOrigin { origin: map_topo_origin_kind(origin.clone()) }
         }
     }
 }
 
 fn map_topo_reid_failure_cause(
-    c: &forge_topo::topology::history::lineage_link::ReidentificationFailureCause,
+    c: &forge_topo::provenance::ReidentificationFailureCause,
 ) -> ReidentificationFailureCauseSummary {
     match c {
-        forge_topo::topology::history::lineage_link::ReidentificationFailureCause::EntityDeleted => ReidentificationFailureCauseSummary::EntityDeleted,
-        forge_topo::topology::history::lineage_link::ReidentificationFailureCause::ToleranceSnapVariant => ReidentificationFailureCauseSummary::ToleranceSnapVariant,
-        forge_topo::topology::history::lineage_link::ReidentificationFailureCause::UnsupportedOriginClass { origin } => {
+        forge_topo::provenance::ReidentificationFailureCause::EntityDeleted => ReidentificationFailureCauseSummary::EntityDeleted,
+        forge_topo::provenance::ReidentificationFailureCause::ToleranceSnapVariant => ReidentificationFailureCauseSummary::ToleranceSnapVariant,
+        forge_topo::provenance::ReidentificationFailureCause::UnsupportedOriginClass { origin } => {
             ReidentificationFailureCauseSummary::UnsupportedOriginClass { origin: map_topo_origin_kind(origin.clone()) }
         }
-        forge_topo::topology::history::lineage_link::ReidentificationFailureCause::SubstrateNotBuilt => ReidentificationFailureCauseSummary::SubstrateNotBuilt,
+        forge_topo::provenance::ReidentificationFailureCause::SubstrateNotBuilt => ReidentificationFailureCauseSummary::SubstrateNotBuilt,
     }
 }

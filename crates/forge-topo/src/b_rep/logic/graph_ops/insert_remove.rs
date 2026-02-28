@@ -13,14 +13,14 @@ macro_rules! define_plain_crud {
         paste::paste! {
             impl TopologyArena {
                 #[doc = concat!("Insert a new ", $label, ", returning its handle.")]
-                pub(crate) fn [<insert_ $m>](&mut self, data: $data) -> $id {
+                pub fn [<insert_ $m>](&mut self, data: $data) -> $id {
                     let (index, gen) = Self::insert_slot(&mut self.$slots, &mut self.$free_head, data);
                     self.$count += 1;
                     <$id>::new(index, gen)
                 }
 
                 #[doc = concat!("Remove a ", $label, ", bumping the slot generation.")]
-                pub(crate) fn [<remove_ $m>](&mut self, id: $id) -> Result<$data, KernelError> {
+                pub fn [<remove_ $m>](&mut self, id: $id) -> Result<$data, KernelError> {
                     let slot = self.$slots.get_mut(id.index() as usize)
                         .ok_or_else(|| cold_err_bounds($label, id.index(), id.generation()))?;
                     validate_generation(slot.generation, id.generation(), $label, id.index())?;
@@ -49,14 +49,14 @@ define_plain_crud!(@standard body,   "Body",   BodyId,     BodyData,     body_sl
 // Loop — keyword-safe insert/remove
 impl TopologyArena {
     /// Insert a new loop, returning its handle.
-    pub(crate) fn insert_loop(&mut self, data: LoopData) -> LoopId {
+    pub fn insert_loop(&mut self, data: LoopData) -> LoopId {
         let (index, gen) = Self::insert_slot(&mut self.loop_slots, &mut self.free_loop_head, data);
         self.active_loop_count += 1;
         LoopId::new(index, gen)
     }
 
     /// Remove a loop, bumping the slot generation.
-    pub(crate) fn remove_loop(&mut self, id: LoopId) -> Result<LoopData, KernelError> {
+    pub fn remove_loop(&mut self, id: LoopId) -> Result<LoopData, KernelError> {
         let slot = self.loop_slots.get_mut(id.index() as usize)
             .ok_or_else(|| cold_err_bounds("Loop", id.index(), id.generation()))?;
         validate_generation(slot.generation, id.generation(), "Loop", id.index())?;
@@ -74,7 +74,7 @@ impl TopologyArena {
 
 impl TopologyArena {
     /// Insert a new face, returning its handle. Updates shell→faces index.
-    pub(crate) fn insert_face(&mut self, data: FaceData) -> FaceId {
+    pub fn insert_face(&mut self, data: FaceData) -> FaceId {
         let shell = data.shell();
         let (index, gen) = Self::insert_slot(&mut self.face_slots, &mut self.free_face_head, data);
         self.active_face_count += 1;
@@ -84,7 +84,7 @@ impl TopologyArena {
     }
 
     /// Remove a face, bumping the slot generation. Updates shell→faces index.
-    pub(crate) fn remove_face(&mut self, id: FaceId) -> Result<FaceData, KernelError> {
+    pub fn remove_face(&mut self, id: FaceId) -> Result<FaceData, KernelError> {
         let slot = self.face_slots.get_mut(id.index() as usize)
             .ok_or_else(|| cold_err_bounds("Face", id.index(), id.generation()))?;
         validate_generation(slot.generation, id.generation(), "Face", id.index())?;
@@ -99,7 +99,7 @@ impl TopologyArena {
     }
 
     /// Insert a new halfedge, returning its handle. Updates indexes.
-    pub(crate) fn insert_half_edge(&mut self, data: HalfEdgeData) -> HalfEdgeId {
+    pub fn insert_half_edge(&mut self, data: HalfEdgeData) -> HalfEdgeId {
         let face = data.face();
         let origin = data.origin();
         let (index, gen) = Self::insert_slot(&mut self.half_edge_slots, &mut self.free_half_edge_head, data);
@@ -110,7 +110,7 @@ impl TopologyArena {
     }
 
     /// Remove a halfedge, bumping the slot generation. Updates indexes.
-    pub(crate) fn remove_half_edge(&mut self, id: HalfEdgeId) -> Result<HalfEdgeData, KernelError> {
+    pub fn remove_half_edge(&mut self, id: HalfEdgeId) -> Result<HalfEdgeData, KernelError> {
         let slot = self.half_edge_slots.get_mut(id.index() as usize)
             .ok_or_else(|| cold_err_bounds("HalfEdge", id.index(), id.generation()))?;
         validate_generation(slot.generation, id.generation(), "HalfEdge", id.index())?;

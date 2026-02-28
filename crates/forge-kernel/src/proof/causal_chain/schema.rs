@@ -9,7 +9,7 @@
 use serde::{Deserialize, Serialize};
 
 use forge_core::{EntityRef, TracedDecision};
-use forge_topo::lineage::OpSignature;
+use forge_topo::provenance::OpSignature;
 
 /// Complete causal chain for a single topological entity.
 ///

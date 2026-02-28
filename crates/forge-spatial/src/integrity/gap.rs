@@ -12,7 +12,7 @@
 
 use forge_core::KernelError;
 use forge_geom::primitives::plane::{signed_distance, Plane};
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::traverse::FaceEdgeIterator;
 

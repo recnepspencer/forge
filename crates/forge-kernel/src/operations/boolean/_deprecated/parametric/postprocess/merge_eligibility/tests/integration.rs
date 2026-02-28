@@ -13,8 +13,8 @@ use super::super::super::nmt_eval::{
 use super::super::super::schema::{MergeRegionSelectionPersistent, PersistentFaceRef};
 use crate::core::ModelingContext;
 use crate::geometry_state::GeometryState;
-use forge_topo::topology::naming::Selector;
-use forge_topo::topology::naming::{assign_name, PersistentName};
+use forge_topo::persistent_naming::Selector;
+use forge_topo::persistent_naming::{assign_name, PersistentName};
 use crate::lineage::{LineageEvent, OpSignature};
 
 fn env_test_lock() -> &'static Mutex<()> {
@@ -535,7 +535,7 @@ fn lineage_fallback_legacy_history_returns_typed_incompatible_not_missing() {
         0,
     ));
     assert!(
-        forge_topo::topology::naming::resolve_name(
+        forge_topo::persistent_naming::resolve_name(
             topo.arena(),
             match &missing { PersistentFaceRef::Name(name) => name, _ => unreachable!() }
         ).is_empty(),
@@ -568,7 +568,7 @@ fn lineage_fallback_with_no_descendants_stays_typed_missing() {
     ));
 
     assert!(
-        forge_topo::topology::naming::resolve_name(
+        forge_topo::persistent_naming::resolve_name(
             topo.arena(),
             match &missing {
                 PersistentFaceRef::Name(name) => name,

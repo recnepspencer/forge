@@ -1,5 +1,5 @@
-pub use crate::topology::handles::{
+pub use crate::handles::{
     BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
 };
-pub use crate::topology::operations::operator::TopoOperator;
+pub use crate::operations::operator::TopoOperator;
 pub use crate::transactions::{MutableDraft, TopologyState};

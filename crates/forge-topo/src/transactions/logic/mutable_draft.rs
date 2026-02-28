@@ -11,13 +11,13 @@ use crate::b_rep::TopologyArena;
 use crate::handles::{
     BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
 };
-use crate::hashing::compute_arena_topology_hash;
-use crate::lineage::{Lineage, LineageEvent, OpSignature};
-use crate::lineage_store::LineageStore;
-use crate::replay::{ReplayEntry, ReplayLog};
-use crate::topology::history::lineage_link::ReidentificationLinkIndex;
-use crate::topology::operations::operator::TopoOperator;
-use crate::topology::validators::validate::ValidationLevel;
+use crate::transactions::compute_arena_topology_hash;
+use crate::provenance::{Lineage, LineageEvent, OpSignature};
+use crate::provenance::LineageStore;
+use crate::provenance::{ReplayEntry, ReplayLog};
+use crate::provenance::ReidentificationLinkIndex;
+use crate::operations::operator::TopoOperator;
+use crate::validators::validate::ValidationLevel;
 use forge_core::{
     DecisionContext, DecisionId, DecisionKind, DecisionLog, DecisionTier, TracedDecision,
 };
@@ -190,7 +190,7 @@ impl MutableDraft {
     pub fn commit(mut self) -> Result<TopologyState, KernelError> {
         self.committed = true;
 
-        crate::topology::validators::structural::validate_topology(&self.arena, self.config.validation_level)?;
+        crate::validators::structural::validate_topology(&self.arena, self.config.validation_level)?;
 
         let topology_hash = self.compute_topology_hash();
         let committed_arena = std::mem::take(&mut self.arena);
@@ -260,7 +260,7 @@ impl MutableDraft {
         &mut self,
         op: O,
     ) -> Result<OperationResult<O::Output>, KernelError> {
-        use crate::topology::operations::operator::{EulerDelta, validate_halfedge_reciprocity};
+        use crate::operations::operator::{EulerDelta, validate_halfedge_reciprocity};
         use std::time::Instant;
 
         let start = Instant::now();
@@ -358,7 +358,7 @@ impl MutableDraft {
         }
 
         if self.config.per_op_validation {
-            crate::topology::validators::structural::validate_topology(&self.arena, ValidationLevel::Full).map_err(|e| {
+            crate::validators::structural::validate_topology(&self.arena, ValidationLevel::Full).map_err(|e| {
                 KernelError::TopologyViolation {
                     err: TopologyError::BrokenLoop {
                         face_index: 0,

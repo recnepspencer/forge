@@ -5,9 +5,9 @@
 
 use forge_core::KernelError;
 use forge_geom::Aabb;
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{BodyId, LumpId, RegionId, ShellId, VertexId};
-use forge_topo::topology::queries::hierarchy::shell_faces;
+use forge_topo::queries::hierarchy::shell_faces;
 
 use super::face::face_bounds;
 

@@ -21,7 +21,7 @@
 //! DEPENDENCIES: `arena` (entity data), `lineage` (inline provenance)
 
 use crate::b_rep::TopologyArena;
-use crate::lineage::Lineage;
+use crate::provenance::Lineage;
 use forge_core::EntityKind;
 
 /// FNV-1a constants for hash computation.
@@ -421,7 +421,7 @@ fn entity_kind_discriminant(kind: EntityKind) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lineage::OpSignature;
+    use crate::provenance::OpSignature;
     #[test]
     fn same_entity_produces_same_hash() {
         let h1 = compute_entity_hash(EntityKind::Face, &[1, 2, 3], None);

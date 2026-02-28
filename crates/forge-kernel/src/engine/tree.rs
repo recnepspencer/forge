@@ -241,10 +241,10 @@ impl FeatureTree {
 
                 // Build the trace summary from the envelope's decision log —
                 // NOT from ctx, which was drained by the OperationFinalizer.
-                let state_hash = forge_topo::hashing::compute_arena_topology_hash(
+                let hash = forge_topo::transactions::compute_arena_topology_hash(
                     envelope.get_value().topology.arena(),
                 );
-                let summary = envelope.get_decision_log().to_summary(state_hash);
+                let summary = envelope.get_decision_log().to_summary(hash);
                 pending_traces.insert(id, summary);
 
                 // Store the full envelope — metadata is preserved.

@@ -70,7 +70,7 @@ fn compute_face_area_via_bounds(
     position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
     face_id: FaceId,
 ) -> Result<f64, KernelError> {
-    use forge_topo::topology::queries::traverse::FaceAllEdgesIterator;
+    use forge_topo::queries::traverse::FaceAllEdgesIterator;
 
     let mut positions: Vec<[f64; 3]> = Vec::new();
 

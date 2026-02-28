@@ -5,3 +5,5 @@
 
 mod graph_ops;
 mod topo_ops;
+
+pub use graph_ops::membership_tracker::EntityBitset;

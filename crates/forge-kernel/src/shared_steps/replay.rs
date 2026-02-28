@@ -3,8 +3,8 @@
 //! DOMAIN: Generic utilities for tracking and validating pipeline replay snapshots.
 
 use forge_core::DecisionLog;
-use forge_topo::lineage::OpSignature;
-use forge_topo::replay::{ReplayLog, ReplayEntry};
+use forge_topo::provenance::OpSignature;
+use forge_topo::provenance::{ReplayLog, ReplayEntry};
 
 use crate::core::ModelingContext;
 

@@ -13,7 +13,7 @@ use forge_kernel::core::config::schema::KernelConfig;
 use forge_kernel::geometry_state::GeometryState;
 use forge_kernel::mesh_builder::build_halfedge_mesh;
 use forge_kernel::operations::boolean::{BooleanInput, BooleanOp};
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 /// Build a default `ResolvedConfig` for test generators.
 fn test_config() -> ResolvedConfig {

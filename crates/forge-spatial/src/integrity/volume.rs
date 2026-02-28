@@ -8,7 +8,7 @@
 //! divergence theorem. All traversal uses the public forge-topo API only.
 
 use forge_core::KernelError;
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::traverse::{FaceEdgeIterator, RadialEdgeIterator};
 use std::collections::{BTreeSet, VecDeque};

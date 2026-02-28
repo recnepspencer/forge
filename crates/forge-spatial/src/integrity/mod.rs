@@ -15,7 +15,7 @@ pub mod sliver;
 pub mod volume;
 
 use forge_core::{KernelError, ToleranceProvider};
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::VertexId;
 
 /// Validate all geometric invariants that require vertex positions.

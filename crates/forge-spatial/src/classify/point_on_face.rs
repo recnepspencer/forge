@@ -14,7 +14,7 @@ use forge_geom::{
 };
 use forge_math::predicates::orient2d;
 use forge_math::sign::TriSign;
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::traverse::FaceEdgeIterator;
 

@@ -9,8 +9,8 @@ use forge_core::EntityKind;
 
 use crate::b_rep::TopologyArena;
 use crate::handles::{EdgeId, FaceId, HalfEdgeId, VertexId};
-use crate::lineage::{Lineage, LineageEntityRef, LineageEvent, ParentLinkageMode};
-use crate::lineage_store::LineageStore;
+use crate::provenance::{Lineage, LineageEntityRef, LineageEvent, ParentLinkageMode};
+use crate::provenance::LineageStore;
 
 /// Schema version for re-identification linkage records/indexes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -582,7 +582,7 @@ fn link_record_sort_key(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::topology::history::lineage::{Lineage, LineageEntityRef, OpSignature};
+    use crate::provenance::{Lineage, LineageEntityRef, OpSignature};
     use std::collections::BTreeSet;
 
     #[test]

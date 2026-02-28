@@ -11,7 +11,7 @@
 #[cfg(test)]
 mod tests {
     use forge_core::{DecisionId, DecisionKind, DecisionTier};
-    use forge_topo::hashing::compute_arena_topology_hash;
+    use forge_topo::transactions::compute_arena_topology_hash;
 
     use crate::proof::counterfactual::{
         replay_all_near_boundary, replay_decision, DecisionOverride,

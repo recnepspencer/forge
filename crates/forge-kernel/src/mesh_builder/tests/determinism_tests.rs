@@ -1,6 +1,6 @@
 //! Determinism tests — same inputs must produce identical topology hash.
 
-use forge_topo::hashing::compute_arena_topology_hash;
+use forge_topo::transactions::compute_arena_topology_hash;
 use crate::mesh_builder::{make_cube, make_tetrahedron, make_dodecahedron};
 use super::test_config;
 

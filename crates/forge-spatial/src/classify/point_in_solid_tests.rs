@@ -4,7 +4,7 @@
 //! Tests cover interior, exterior, boundary, near-boundary, and mass classification.
 
 use forge_core::{FlatToleranceProvider, KernelError};
-use forge_topo::arena::{FaceData, HalfEdgeData, LoopData, TopologyArena, VertexData};
+use forge_topo::b_rep::{FaceData, HalfEdgeData, LoopData, TopologyArena, VertexData};
 use forge_topo::handles::{EdgeId, HalfEdgeId, LoopId, ShellId};
 
 use super::point_in_solid::classify_point_in_solid;
@@ -31,7 +31,7 @@ fn build_cube_arena() -> (TopologyArena, Vec<[f64; 3]>) {
 
     let mut verts = Vec::new();
     for _ in 0..8 {
-        verts.push(arena.insert_vertex(VertexData::new(placeholder_he), None));
+        verts.push(arena.insert_vertex(VertexData::new(placeholder_he)));
     }
 
     let quad_faces: [[usize; 4]; 6] = [
@@ -45,8 +45,8 @@ fn build_cube_arena() -> (TopologyArena, Vec<[f64; 3]>) {
 
     for quad in &quad_faces {
         let face =
-            arena.insert_face(FaceData::new(placeholder_loop, placeholder_shell_q), None);
-        let loop_id = arena.insert_loop(LoopData::new(placeholder_he, face), None);
+            arena.insert_face(FaceData::new(placeholder_loop, placeholder_shell_q));
+        let loop_id = arena.insert_loop(LoopData::new(placeholder_he, face));
         arena.get_face_mut(face).unwrap().set_outer_loop(loop_id);
 
         let mut he_ids = Vec::new();
@@ -61,7 +61,6 @@ fn build_cube_arena() -> (TopologyArena, Vec<[f64; 3]>) {
                     origin,
                     placeholder_e_q,
                 ),
-                None,
             );
             he_ids.push(he);
         }

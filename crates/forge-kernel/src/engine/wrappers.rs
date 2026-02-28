@@ -11,7 +11,7 @@ use crate::operations::boolean::{BooleanInput, BooleanOp};
 use forge_core::DecisionLog;
 use forge_core::KernelError;
 use forge_signal::handles::NodeId;
-use forge_topo::replay::ReplayLog;
+use forge_topo::provenance::ReplayLog;
 
 use super::contract::{AuditLevel, EntityOriginKind, FeatureInputs, InvariantKind};
 use super::traits::{Feature, FeatureOutput};

@@ -12,7 +12,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::lineage::OpSignature;
+use crate::provenance::OpSignature;
 use forge_core::DecisionDelta;
 
 /// A single entry in the replay log.
@@ -216,7 +216,7 @@ impl ReplayLog {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lineage::OpSignature;
+    use crate::provenance::OpSignature;
 
     fn make_op_sig(name: &'static str) -> OpSignature {
         OpSignature::new(name)

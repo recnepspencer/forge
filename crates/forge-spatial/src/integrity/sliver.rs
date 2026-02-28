@@ -9,7 +9,7 @@
 
 use forge_core::KernelError;
 use forge_geom::primitives::polygon::compute_polygon_area;
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::traverse::FaceEdgeIterator;
 

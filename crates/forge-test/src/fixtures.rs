@@ -12,7 +12,7 @@
 //! let state = fixtures::build_empty_state();
 //! ```
 
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 /// Build an empty topology state (epoch 0, no geometry).
 pub fn build_empty_state() -> TopologyState {

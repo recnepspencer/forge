@@ -9,7 +9,7 @@
 use forge_geom::algorithms::boundary_cert::schema::{
     ProjectedBoundary2D, ProjectionFrame2D, Segment2D,
 };
-use forge_topo::bitset::EntityBitset;
+use forge_topo::b_rep::EntityBitset;
 
 /// Deterministic simple square boundary (strictly simple).
 pub fn simple_square_boundary_2d() -> ProjectedBoundary2D {

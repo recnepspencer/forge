@@ -11,12 +11,12 @@ use crate::b_rep::TopologyArena;
 use crate::handles::{
     BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
 };
-use crate::hashing::compute_arena_topology_hash;
-use crate::lineage::{Lineage, LineageEvent, OpSignature};
-use crate::lineage_store::LineageStore;
-use crate::replay::{ReplayEntry, ReplayLog};
-use crate::topology::history::lineage_link::ReidentificationLinkIndex;
-use crate::topology::validators::validate::ValidationLevel;
+use crate::transactions::compute_arena_topology_hash;
+use crate::provenance::{Lineage, LineageEvent, OpSignature};
+use crate::provenance::LineageStore;
+use crate::provenance::{ReplayEntry, ReplayLog};
+use crate::provenance::ReidentificationLinkIndex;
+use crate::validators::validate::ValidationLevel;
 use forge_core::KernelError;
 
 use crate::transactions::data::draft_configuration::DraftConfig;

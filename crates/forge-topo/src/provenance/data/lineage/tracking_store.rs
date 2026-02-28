@@ -206,7 +206,7 @@ impl LineageStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lineage::OpSignature;
+    use crate::provenance::OpSignature;
     use forge_core::EntityKind;
 
     #[test]

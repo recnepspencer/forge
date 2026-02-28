@@ -10,7 +10,7 @@ use forge_kernel::geometry_state::GeometryState;
 use forge_kernel::operations::boolean::{execute_boolean, BooleanInput, BooleanOp, BooleanResult};
 use forge_spatial::{classify_point_in_solid, PointClassification};
 use forge_topo::handles::VertexId;
-use forge_topo::state::TopologyState;
+use forge_topo::transactions::TopologyState;
 
 /// Outcome of a single fuzz case.
 #[derive(Debug)]

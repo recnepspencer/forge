@@ -14,7 +14,7 @@
 use forge_core::{EntityKind, KernelError};
 
 use crate::b_rep::TopologyArena;
-use crate::topology::attributes::EntityKey;
+use crate::semantic_attributes::EntityKey;
 
 use crate::persistent_naming::data::naming_schema::{PersistentName, Selector};
 
@@ -113,7 +113,7 @@ fn collect_by_ancestry(arena: &TopologyArena, hash: u128, kind: EntityKind) -> V
 }
 
 fn collect_by_feature(arena: &TopologyArena, feature_id: u64, kind: EntityKind) -> Vec<EntityKey> {
-    let _matches_feature = |lineage: Option<&crate::lineage::Lineage>| -> bool {
+    let _matches_feature = |lineage: Option<&crate::provenance::Lineage>| -> bool {
         lineage
             .map(|l| l.get_origin_features().contains(&feature_id))
             .unwrap_or(false)
@@ -136,7 +136,7 @@ fn collect_by_feature(arena: &TopologyArena, feature_id: u64, kind: EntityKind) 
 }
 
 fn collect_by_operation(arena: &TopologyArena, op_name: &str, kind: EntityKind) -> Vec<EntityKey> {
-    let _matches_op = |lineage: Option<&crate::lineage::Lineage>| -> bool {
+    let _matches_op = |lineage: Option<&crate::provenance::Lineage>| -> bool {
         lineage
             .map(|l| l.get_creation_op().get_name() == op_name)
             .unwrap_or(false)

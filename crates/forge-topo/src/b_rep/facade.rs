@@ -19,3 +19,6 @@ pub use super::data::containment::shell::{ShellData, ShellKind, ShellOrientation
 // ── Core Storage ──────────────────────────────────────────────────────
 pub use super::data::storage::arena::TopologyArena;
 pub use super::data::entity_kind::EntityKind;
+
+// ── Membership Tracking ──────────────────────────────────────────────
+pub use super::logic::EntityBitset;

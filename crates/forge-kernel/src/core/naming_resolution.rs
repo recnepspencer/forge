@@ -7,8 +7,8 @@ use forge_core::tracing::{
     ResolutionCandidateSummary, ResolutionMatchKind, ResolutionOutcome, ResolutionQuerySummary,
     ResolutionRoute, ResolutionTracePayload, TracedDecision,
 };
-use forge_topo::topology::attributes::EntityKey;
-use forge_topo::topology::naming::{PersistentName, Selector};
+use forge_topo::semantic_attributes::EntityKey;
+use forge_topo::persistent_naming::{PersistentName, Selector};
 
 /// Typed query input for persistent-name/selector resolution.
 #[derive(Debug, Clone, Serialize, Deserialize)]

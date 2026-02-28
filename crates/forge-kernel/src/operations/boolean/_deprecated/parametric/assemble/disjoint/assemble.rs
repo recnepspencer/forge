@@ -127,8 +127,8 @@ pub(super) fn execute_touching_boolean(
     let (excluded_target, excluded_tool) =
         find_coplanar_face_pairs(target_topo, target_geom, tool_topo, tool_geom);
 
-    let target_faces = forge_topo::topology::queries::filter::exclude_faces(target_topo.arena(), &excluded_target);
-    let tool_faces = forge_topo::topology::queries::filter::exclude_faces(tool_topo.arena(), &excluded_tool);
+    let target_faces = forge_topo::queries::filter::exclude_faces(target_topo.arena(), &excluded_target);
+    let tool_faces = forge_topo::queries::filter::exclude_faces(tool_topo.arena(), &excluded_tool);
     let target_count = target_faces.len();
     let tool_count = tool_faces.len();
 

@@ -10,8 +10,8 @@
 use std::collections::BTreeSet;
 
 use forge_core::{DecisionLog, DecisionTier, EntityRef, TracedDecision};
-use forge_topo::lineage::{LineageEvent, OpSignature};
-use forge_topo::replay::ReplayLog;
+use forge_topo::provenance::{LineageEvent, OpSignature};
+use forge_topo::provenance::ReplayLog;
 
 use super::schema::{CausalChain, CausalStep, ChainSummary};
 

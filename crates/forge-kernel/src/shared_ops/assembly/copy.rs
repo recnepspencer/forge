@@ -16,7 +16,7 @@ use std::collections::BTreeMap;
 use forge_core::KernelError;
 use forge_topo::b_rep::{BodyData, LumpData, RegionData, FaceData, LoopData, VertexData, ShellData};
 use forge_topo::handles::{BodyId, RegionId, FaceId, VertexId, HalfEdgeId, LoopId, ShellId};
-use forge_topo::lineage::{Lineage, OpSignature};
+use forge_topo::provenance::{Lineage, OpSignature};
 use forge_topo::transactions::MutableDraft;
 use forge_topo::lifecycle::solid::MakeSolid;
 use forge_topo::lifecycle::lump::MakeLumpRegion;

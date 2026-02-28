@@ -12,7 +12,7 @@
 
 use forge_topo::bitset::EntityBitset;
 use forge_topo::handles::FaceId;
-use forge_topo::topology::naming::{PersistentName, Selector};
+use forge_topo::persistent_naming::{PersistentName, Selector};
 use serde::{Deserialize, Serialize};
 
 use crate::core::KernelState;

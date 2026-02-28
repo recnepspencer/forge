@@ -14,7 +14,7 @@ use forge_topo::b_rep::{
     ShellKind, ShellOrientation, VertexData,
 };
 use forge_topo::handles::{EdgeId, HalfEdgeId, LoopId, ShellId, VertexId};
-use forge_topo::lineage::OpSignature;
+use forge_topo::provenance::OpSignature;
 use forge_topo::transactions::{MutableDraft, TopologyState};
 
 use crate::brep::state::BrepState;

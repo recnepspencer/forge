@@ -13,9 +13,9 @@ use std::collections::BTreeSet;
 
 use forge_core::{DecisionLog, EntityRef};
 use forge_topo::b_rep::TopologyArena;
-use forge_topo::hashing::compute_arena_topology_hash;
-use forge_topo::lineage::LineageEvent;
-use forge_topo::replay::ReplayLog;
+use forge_topo::transactions::compute_arena_topology_hash;
+use forge_topo::provenance::LineageEvent;
+use forge_topo::provenance::ReplayLog;
 
 use crate::proof::causal_chain::query_causal_chain;
 

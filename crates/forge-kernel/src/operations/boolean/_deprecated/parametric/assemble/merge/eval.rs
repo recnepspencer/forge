@@ -320,7 +320,7 @@ fn execute_boolean_pipeline(
         format!("{{\"faces\":{}}}", result_topo.arena().face_count()),
         post_split_hash, post_assemble_hash, ctx, &mut prev_decision_snapshot);
 
-    let lineage_events = forge_topo::topology::history::bulk_stamp::record_result_lineage(result_topo.arena(), seq);
+    let lineage_events = forge_topo::provenance::record_result_lineage(result_topo.arena(), seq);
 
     // ── Postprocess ──────────────────────────────────────────────────────────
     let result_state = ctx.scope("postprocess", |ctx| {

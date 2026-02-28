@@ -1,6 +1,6 @@
 //! Configuration for mutable draft transactions.
 
-use crate::topology::validators::validate::ValidationLevel;
+use crate::validators::validate::ValidationLevel;
 
 /// Configuration for a mutable draft transaction.
 ///

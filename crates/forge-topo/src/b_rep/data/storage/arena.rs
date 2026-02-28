@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::collections::BTreeMap;
 
-use crate::attributes::AttributeStore;
+use crate::semantic_attributes::AttributeStore;
 use crate::b_rep::data::storage::slot::Slot;
 use crate::b_rep::data::mesh::{FaceData, HalfEdgeData, VertexData, LoopData, EdgeData};
 use crate::b_rep::data::containment::{BodyData, LumpData, RegionData, ShellData};

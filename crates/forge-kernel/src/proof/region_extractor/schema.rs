@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use forge_core::KernelError;
 use crate::geom_facade::Plane;
 use forge_topo::b_rep::{FaceData, HalfEdgeData, LoopData, TopologyArena, VertexData};
-use forge_topo::bitset::EntityBitset;
+use forge_topo::b_rep::EntityBitset;
 use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
 
 /// A self-contained topological sub-region extracted from an arena.

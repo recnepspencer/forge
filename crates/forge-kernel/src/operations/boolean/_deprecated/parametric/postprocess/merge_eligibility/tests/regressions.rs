@@ -505,8 +505,8 @@ fn generation_reuse_does_not_cause_stale_snapshot_leakage() {
     //   returns StaleHandle — the ABA guard in link_record_to_live_candidate
     //   filters it out. This is the critical generational safety gate.
 
-    use forge_topo::topology::history::lineage::{Lineage, LineageEntityRef, OpSignature};
-    use forge_topo::topology::history::lineage_link::{
+    use forge_topo::provenance::{Lineage, LineageEntityRef, OpSignature};
+    use forge_topo::provenance::{
         PersistentNameRef, ReidentificationCandidateState, ReidentificationLinkIndex,
         ReidentificationMode, ReidentificationQuery, ReidentificationQueryResult,
     };
@@ -577,7 +577,7 @@ fn generation_reuse_does_not_cause_stale_snapshot_leakage() {
         mode: ReidentificationMode::Descendants,
     };
 
-    let result = forge_topo::topology::history::lineage_link::resolve_reidentification_query_v1(
+    let result = forge_topo::provenance::resolve_reidentification_query_v1(
         &arena, &events, &index, &query,
     );
 

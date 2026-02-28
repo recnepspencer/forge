@@ -110,7 +110,7 @@ impl FeaturePipeline {
         }
 
         // 7. Compute hash_after from the output
-        let hash_after = forge_topo::hashing::compute_arena_topology_hash(output.topology.arena());
+        let hash_after = forge_topo::transactions::compute_arena_topology_hash(output.topology.arena());
 
         // 8. Finalize — drain decisions + metadata from ctx into envelope
         let hashes = TopologyHashBoundary {
@@ -146,7 +146,7 @@ impl FeaturePipeline {
 fn compute_input_hash(inputs: &HashMap<NodeId, FeatureOutput>) -> u128 {
     let mut combined: u128 = 0;
     for output in inputs.values() {
-        let h = forge_topo::hashing::compute_arena_topology_hash(output.topology.arena());
+        let h = forge_topo::transactions::compute_arena_topology_hash(output.topology.arena());
         combined = combined.wrapping_add(h);
     }
     combined

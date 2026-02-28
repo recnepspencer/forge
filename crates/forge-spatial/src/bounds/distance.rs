@@ -4,7 +4,7 @@
 //!         for entire solids or sub-components.
 
 use forge_core::KernelError;
-use forge_topo::arena::TopologyArena;
+use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::VertexId;
 
 /// Compute the centroid of a solid by averaging all of its vertex positions.
@@ -73,7 +73,7 @@ pub fn combined_solid_scale(
 ///
 /// Returns `default_extent` when the arena is empty or unbounded.
 pub fn compute_solid_ray_extent(
-    arena: &forge_topo::arena::TopologyArena,
+    arena: &forge_topo::b_rep::TopologyArena,
     position_fn: &dyn Fn(forge_topo::handles::VertexId) -> Option<[f64; 3]>,
     scale_factor: f64,
     default_extent: f64,
