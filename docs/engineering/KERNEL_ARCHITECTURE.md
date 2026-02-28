@@ -144,6 +144,23 @@ Opaque geometry references (`SurfaceRef`, `CurveRef`, `CoedgeRef`) on topology
 entities maintain the D3 firewall — topology knows _that_ geometry is attached,
 not _what_ it contains.
 
+**CRUD infrastructure:** Entity accessors (`get_*`, `get_*_mut`, `iter_*`,
+`count`), plain insert/remove, and `MutableDraft` proxy methods are generated
+by three macros in `arena/crud_macro.rs`:
+
+- `define_entity_accessors!` — read-only access, iteration, counts
+- `define_plain_crud!` — insert/remove with free-list management
+- `define_draft_proxies!` — `MutableDraft::insert_*()` / `remove_*()` proxies
+
+`Face` and `HalfEdge` use hooked insert/remove instead of `define_plain_crud!`
+to maintain O(1) reverse indexes (`shell_faces`, `face_halfedges`,
+`vertex_halfedges`). `Loop` methods are spelled out explicitly due to the
+`loop` keyword conflict in Rust.
+
+All topology operators use `draft.insert_*()` / `draft.remove_*()` /
+`draft.arena_mut().get_*_mut()` for mutations inside `TopoOperator::execute()`.
+See `ADDING_AN_OPERATOR.md` in the `forge-topo` crate root for the full recipe.
+
 ### 3.3 EntityBitset — Cache-Friendly Visited Sets (forge-topo)
 
 Dense bitset over entity indices for O(1) membership testing:
@@ -165,20 +182,22 @@ Every entity carries a `Lineage` from birth:
 
 ```rust
 pub struct Lineage {
-    pub ancestry_hash: u64,           // Merkle-DAG deterministic hash
-    pub creation_op: OpSignature,     // Which operation created this entity
-    pub origin_features: Vec<String>, // Feature chain (e.g. ["cube_1", "fillet_2"])
-    pub parent_ancestry_hashes: Vec<u64>,
+    pub ancestry_hash: u128,                       // Merkle-DAG deterministic hash
+    pub creation_op: OpSignature,                   // Which operation created this entity
+    pub origin_features: SmallVec<[u64; 2]>,        // Feature IDs (compound for merged entities)
+    pub parent_ancestry_hashes: SmallVec<[u128; 2]>,// Sorted, deduplicated parent hashes
+    pub parent_linkage_mode: ParentLinkageMode,     // None | Single | Compound
 }
 ```
 
-- `OpSignature` = (operation_name, invocation_id) — unique per operation call
+- `OpSignature` = `(name: &'static str, invocation_id: u64)` — heap-free cloning, unique per draft
 - `LineageEvent` enum tracks entity creation/deletion/modification events
 - `LineageStore` maps `EntityRef → Lineage` during a draft (live mutable state)
 - `ReplayLog` + `ReplayEntry` enable deterministic replay with pre/post hash verification
 
-Ancestry hashes are Merkle-DAG style: a child's hash incorporates its parents'.
-This enables persistent naming (section 3.5) and replay verification (D1).
+Ancestry hashes are 128-bit Merkle-DAG style: a child's hash incorporates its
+parents' via FNV-1a mixing. This enables persistent naming (section 3.5) and
+replay verification (D1).
 
 ### 3.5 Persistent Naming (forge-topo)
 
@@ -186,13 +205,13 @@ Stable entity references that survive parametric rebuild:
 
 ```rust
 pub struct PersistentName {
-    pub ancestry_hash: u64,    // From Lineage at time-of-naming
+    pub ancestry_hash: u128,   // From Lineage at time-of-naming
     pub kind: EntityKind,
     pub ordinal: u32,          // Disambiguates splits
 }
 
 pub enum Selector {
-    ByAncestry(u64),
+    ByAncestry(u128),
     ByFeature(String),
     ByOperation(OpSignature),
     And(Box<Selector>, Box<Selector>),
@@ -395,8 +414,9 @@ solids. **No geometric data whatsoever.** This is Doctrine D0 in action.
 
 - Lives in `forge-topo` — the lowest layer that can be used independently
 - Handles are generational (`FaceId`, `VertexId`, etc.) for safe slot reuse
-- Mutations go through `MutableDraft` → `commit()` (D6 atomic transactions)
-- Validation at commit: Euler formula, edge uses, manifold checks
+- Topology operators implement `TopoOperator` and are invoked via `draft.execute(op)` (D6 atomic transactions)
+- `MutableDraft::execute()` is the single choke point: assigns invocation IDs, verifies `EulerDelta`, records replay entries, and emits `OperationResult<T>`
+- `commit()` validates structural invariants: Euler formula, twin reciprocity, manifold edges
 
 ### 4.2 GeometryState — Planar Foundation (forge-kernel)
 
