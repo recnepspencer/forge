@@ -14,10 +14,10 @@ use forge_core::KernelError;
 
 use crate::arena::{EdgeData, HalfEdgeData, VertexData};
 use crate::handles::{EdgeId, HalfEdgeId};
-use crate::lineage::{Lineage, OpSignature};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
+
 
 /// Split an existing edge by inserting a midpoint vertex.
 ///
@@ -68,19 +68,19 @@ impl SplitEdgeOutput {
 impl EulerOperator for SplitEdge {
     type Output = SplitEdgeOutput;
 
+    const NAME: &'static str = "split_edge";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he_ab = self.edge;
-        let (vertex_a, vertex_b, ab_lineage) = {
+        let (vertex_a, vertex_b) = {
             let ab_data = draft.arena().get_half_edge(he_ab)?;
             let ab_next = draft.arena().get_half_edge(ab_data.next())?;
             (
                 ab_data.origin(),
                 ab_next.origin(),
-                ab_data.lineage().cloned(),
             )
         };
 
@@ -89,20 +89,16 @@ impl EulerOperator for SplitEdge {
                 .collect::<Result<_, _>>()?;
         let old_edge = draft.arena().get_half_edge(he_ab)?.edge();
         let is_closed_edge = vertex_a == vertex_b;
-
-        let vertex_lineage = Lineage::derive_from(&ab_lineage, sig.clone());
-        let new_vertex = draft.insert_vertex(VertexData::with_lineage(
+        let new_vertex = draft.insert_vertex(VertexData::new(
             HalfEdgeId::new(u32::MAX, 0), // sentinel
-            Some(vertex_lineage),
         ));
         draft
             .arena_mut()
             .get_vertex_mut(new_vertex)?
             .set_birth_parameter(Some(self.parameter));
 
-        let new_edge = draft.insert_edge(EdgeData::with_lineage(
+        let new_edge = draft.insert_edge(EdgeData::new(
             HalfEdgeId::new(u32::MAX, 0),
-            Some(Lineage::derive_from(&ab_lineage, sig.clone())),
         ));
 
         let mut e_old_list = Vec::new();
@@ -110,12 +106,11 @@ impl EulerOperator for SplitEdge {
         let mut new_ids = std::collections::HashMap::new();
 
         for (radial_index, &h) in chain.iter().enumerate() {
-            let (h_face, h_orig, h_lineage, h_next) = {
+            let (h_face, h_orig, h_next) = {
                 let h_data = draft.arena().get_half_edge(h)?;
                 (
                     h_data.face(),
                     h_data.origin(),
-                    h_data.lineage().cloned(),
                     h_data.next(),
                 )
             };
@@ -145,16 +140,13 @@ impl EulerOperator for SplitEdge {
                     context: None,
                 });
             }
-
-            let new_h_lineage = Lineage::derive_from(&h_lineage, sig.clone());
-            let h_new = draft.insert_half_edge(HalfEdgeData::with_lineage(
+            let h_new = draft.insert_half_edge(HalfEdgeData::new(
                 HalfEdgeId::new(u32::MAX, 0), // radial_next
                 HalfEdgeId::new(u32::MAX, 0), // next
                 HalfEdgeId::new(u32::MAX, 0), // prev
                 h_face,
                 new_vertex,               // H_new ALWAYS originates at M
                 EdgeId::new(u32::MAX, 0), // sentinel edge
-                Some(new_h_lineage),
             ));
 
             new_ids.insert(h, h_new);
@@ -260,7 +252,5 @@ impl EulerOperator for SplitEdge {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("split_edge")
-    }
+
 }

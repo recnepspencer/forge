@@ -17,10 +17,10 @@ use forge_core::{KernelError, TopologyError};
 
 use crate::arena::{EdgeData, HalfEdgeData};
 use crate::handles::{HalfEdgeId, LoopId};
-use crate::lineage::{Lineage, OpSignature};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
+
 
 /// Merge two loops on the same face by inserting an edge between them.
 ///
@@ -55,10 +55,11 @@ pub struct MeklOutput {
 impl EulerOperator for MakeEdgeKillLoop {
     type Output = MeklOutput;
 
+    const NAME: &'static str = "make_edge_kill_loop";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let face_a = draft.arena().get_half_edge(self.he_a)?.face();
         let face_b = draft.arena().get_half_edge(self.he_b)?.face();
@@ -104,35 +105,28 @@ impl EulerOperator for MakeEdgeKillLoop {
         let vertex_b = draft.arena().get_half_edge(self.he_b)?.origin();
 
         // ── Derive lineage ──────────────────────────────────────────
-        let face_lineage = draft.arena().get_face(face)?.lineage().cloned();
-        let he_ab_lineage = Lineage::derive_from(&face_lineage, sig.clone());
-        let he_ba_lineage = Lineage::derive_from(&face_lineage, sig.clone());
-        let edge_lineage = Lineage::derive_from(&face_lineage, sig.clone());
-
         // ── Create edge + halfedge pair ─────────────────────────────
         let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
 
         let new_edge =
-            draft.insert_edge(EdgeData::with_lineage(placeholder_he, Some(edge_lineage)));
+            draft.insert_edge(EdgeData::new(placeholder_he));
 
         let (he_ab, he_ba) = draft.insert_radial_pair(
-            HalfEdgeData::with_lineage(
+            HalfEdgeData::new(
                 placeholder_he, // twin (fixed below by insert_half_edge_pair)
                 self.he_b,      // next → into inner loop
                 prev_a,         // prev → was before he_a
                 face,
                 vertex_a,
                 new_edge,
-                Some(he_ab_lineage),
             ),
-            HalfEdgeData::with_lineage(
+            HalfEdgeData::new(
                 placeholder_he,
                 self.he_a, // next → back to outer loop
                 prev_b,    // prev → was before he_b
                 face,
                 vertex_b,
                 new_edge,
-                Some(he_ba_lineage),
             ),
         );
 
@@ -177,9 +171,7 @@ impl EulerOperator for MakeEdgeKillLoop {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("make_edge_kill_loop")
-    }
+
 }
 
 /// Walk a loop to check if a specific halfedge belongs to it.

@@ -13,11 +13,11 @@
 //!
 //! DEPENDENCIES: `arena`, `handles`, `lineage`, `operator`
 
-use forge_core::{KernelError, TopologyError};
+use forge_core::KernelError;
 
 use crate::arena::LoopData;
 use crate::handles::{HalfEdgeId, LoopId};
-use crate::lineage::OpSignature;
+
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
@@ -44,10 +44,11 @@ pub struct KemlOutput {
 impl EulerOperator for KillEdgeMakeLoop {
     type Output = KemlOutput;
 
+    const NAME: &'static str = "kill_edge_make_loop";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he_data = draft.arena().get_half_edge(self.edge)?;
         let twin_id = he_data.radial_next();
@@ -166,7 +167,5 @@ impl EulerOperator for KillEdgeMakeLoop {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("kill_edge_make_loop")
-    }
+
 }

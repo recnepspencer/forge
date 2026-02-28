@@ -13,10 +13,10 @@
 use forge_core::{KernelError, TopologyError};
 
 use crate::handles::{HalfEdgeId, LoopId};
-use crate::lineage::{Lineage, OpSignature};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
+
 
 /// Merge two faces by removing a shared edge.
 ///
@@ -38,10 +38,11 @@ pub struct JfOutput {
 impl EulerOperator for JoinFaces {
     type Output = JfOutput;
 
+    const NAME: &'static str = "join_faces";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he = self.edge;
         let he_data = draft.arena().get_half_edge(he)?;
@@ -76,9 +77,6 @@ impl EulerOperator for JoinFaces {
             });
         }
 
-        let survive_lineage = draft.arena().get_face(face_survive)?.lineage().cloned();
-        let remove_lineage = draft.arena().get_face(face_remove)?.lineage().cloned();
-        let merged_lineage = Lineage::merge(&survive_lineage, &remove_lineage, sig);
         draft
             .arena_mut()
             .get_half_edge_mut(he_prev)?
@@ -102,10 +100,6 @@ impl EulerOperator for JoinFaces {
             .arena_mut()
             .get_loop_mut(loop_id)?
             .set_half_edge(he_next);
-        draft
-            .arena_mut()
-            .get_face_mut(face_survive)?
-            .set_lineage(Some(merged_lineage));
 
         // P10: Transfer inner loops from face_remove to face_survive
         let inner_loops: Vec<LoopId> = draft.arena().get_face(face_remove)?.inner_loops().to_vec();
@@ -164,9 +158,7 @@ impl EulerOperator for JoinFaces {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("join_faces")
-    }
+
 }
 
 /// Reassign all halfedges starting from `start` to `new_face`.

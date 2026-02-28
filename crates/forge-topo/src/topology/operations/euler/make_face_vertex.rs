@@ -12,7 +12,6 @@ use forge_core::KernelError;
 
 use crate::arena::{EdgeData, FaceData, HalfEdgeData, LoopData, VertexData};
 use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
-use crate::lineage::{Lineage, OpSignature};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
@@ -41,42 +40,38 @@ pub struct MfvOutput {
 impl EulerOperator for MakeFaceVertex {
     type Output = MfvOutput;
 
+    const NAME: &'static str = "make_face_vertex";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
         let placeholder_loop = LoopId::new(u32::MAX, 0);
 
-        let vertex_lineage = Lineage::root(0, sig.clone());
-        let face_lineage = Lineage::root(1, sig.clone());
-        let he_lineage = Lineage::root(2, sig.clone());
-        let edge_lineage = Lineage::root(3, sig.clone());
 
-        let vertex = draft.insert_vertex(VertexData::with_lineage(
+
+
+        let vertex = draft.insert_vertex(VertexData::new(
             placeholder_he,
-            Some(vertex_lineage),
         ));
 
-        let face = draft.insert_face(FaceData::with_lineage(
+        let face = draft.insert_face(FaceData::new(
             placeholder_loop,
             self.shell,
-            Some(face_lineage),
         ));
 
         let loop_id = draft.insert_loop(LoopData::new(placeholder_he, face));
 
-        let edge = draft.insert_edge(EdgeData::with_lineage(placeholder_he, Some(edge_lineage)));
+        let edge = draft.insert_edge(EdgeData::new(placeholder_he));
 
-        let he = draft.insert_half_edge(HalfEdgeData::with_lineage(
+        let he = draft.insert_half_edge(HalfEdgeData::new(
             placeholder_he,
             placeholder_he,
             placeholder_he,
             face,
             vertex,
             edge,
-            Some(he_lineage),
         ));
 
         draft.arena_mut().get_half_edge_mut(he)?.set_radial_next(he);
@@ -112,7 +107,5 @@ impl EulerOperator for MakeFaceVertex {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("make_face_vertex")
-    }
+
 }

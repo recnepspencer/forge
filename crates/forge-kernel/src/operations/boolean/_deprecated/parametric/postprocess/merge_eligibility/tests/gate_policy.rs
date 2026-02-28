@@ -37,8 +37,8 @@ fn weakly_simple_gate_uses_registry_backed_policy_resolution() {
         payload.source,
         forge_core::PolicyResolutionSource::DefaultPolicy
     );
-    assert_eq!(payload.source_scope, None);
-    assert_eq!(payload.operation_scope_id, None);
+    assert_eq!(payload.source_scope);
+    assert_eq!(payload.operation_scope_id);
     assert_eq!(
         payload.outcome,
         forge_core::PolicyResolutionOutcome::RejectedPotentialValue

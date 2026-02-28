@@ -20,7 +20,7 @@
 use forge_core::{ErrorContext, ErrorScope, KernelError, TopologyError};
 
 use crate::handles::{FaceId, VertexId};
-use crate::lineage::OpSignature;
+
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
@@ -39,13 +39,14 @@ pub struct KillVertexFace {
 impl EulerOperator for KillVertexFace {
     type Output = ();
 
+    const NAME: &'static str = "kill_vertex_face";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
-        let op_name = self.signature().get_name().to_string();
-        let inv_id = sig.get_invocation_id() as u64;
+        let op_name = Self::NAME.to_string();
+        let inv_id = 0 as u64;
 
         // 1. Gather entities and validate isolation
         let (loop_id, he_id, edge_id, shell_id, region_id, lump_id, body_id) = {
@@ -154,9 +155,7 @@ impl EulerOperator for KillVertexFace {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("kill_vertex_face")
-    }
+
 }
 
 #[cfg(test)]

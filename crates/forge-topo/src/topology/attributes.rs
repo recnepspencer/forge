@@ -13,7 +13,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::handles::{EdgeId, FaceId, HalfEdgeId, ShellId, VertexId};
+use crate::handles::{EdgeId, FaceId, ShellId, VertexId};
 
 /// The key into the attribute store — identifies which entity owns a tag set.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

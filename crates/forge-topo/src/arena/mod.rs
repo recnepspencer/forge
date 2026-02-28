@@ -7,7 +7,7 @@
 //! - Slots are reusable after deletion (generation is bumped)
 //! - All accessors validate generation before returning data
 //!
-//! DEPENDENCIES: `handles` (typed IDs), `lineage` (inline provenance)
+//! DEPENDENCIES: `handles` (typed IDs)
 //!
 //! SUBMODULES:
 //! - `schema`: Data shapes (`FaceData`, `HalfEdgeData`, `VertexData`, `LoopData`, `Slot`)

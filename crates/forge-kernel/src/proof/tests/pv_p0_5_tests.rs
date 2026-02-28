@@ -89,17 +89,17 @@ fn pv_14_50k_entities_under_100ms() {
         let mut loop_map: BTreeMap<u32, LoopId> = BTreeMap::new();
 
         for (bid, _bdata) in src.iter_bodies() {
-            let new_bid = dst.insert_body(BodyData::new(), None);
+            let new_bid = dst.insert_body(BodyData::new());
             body_map.insert(bid.index(), new_bid);
         }
 
         for (lid, ldata) in src.iter_lumps() {
-            let new_lid = dst.insert_lump(LumpData::new(body_map[&ldata.body().index()]), None);
+            let new_lid = dst.insert_lump(LumpData::new(body_map[&ldata.body().index()]));
             lump_map.insert(lid.index(), new_lid);
         }
 
         for (rid, rdata) in src.iter_regions() {
-            let new_rid = dst.insert_region(RegionData::new(lump_map[&rdata.lump().index()]), None);
+            let new_rid = dst.insert_region(RegionData::new(lump_map[&rdata.lump().index()]));
             region_map.insert(rid.index(), new_rid);
         }
 
@@ -122,12 +122,12 @@ fn pv_14_50k_entities_under_100ms() {
         }
 
         for (vid, _vdata) in src.iter_vertices() {
-            let new_vid = dst.insert_vertex(VertexData::new(placeholder_he), None);
+            let new_vid = dst.insert_vertex(VertexData::new(placeholder_he));
             vert_map.insert(vid.index(), new_vid);
         }
 
         for (lid, _ldata) in src.iter_loops() {
-            let new_lid = dst.insert_loop(LoopData::new(placeholder_he, placeholder_face), None);
+            let new_lid = dst.insert_loop(LoopData::new(placeholder_he, placeholder_face));
             loop_map.insert(lid.index(), new_lid);
         }
 
@@ -156,7 +156,7 @@ fn pv_14_50k_entities_under_100ms() {
         }
 
         for (eid, edata) in src.iter_edges() {
-            let new_eid = dst.insert_edge(EdgeData::new(he_map[&edata.half_edge().index()]), None);
+            let new_eid = dst.insert_edge(EdgeData::new(he_map[&edata.half_edge().index()]));
             edge_map.insert(eid.index(), new_eid);
         }
 

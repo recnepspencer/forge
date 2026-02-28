@@ -16,7 +16,7 @@
 //! DEPENDENCIES: `arena`, `handles`, `queries::shell`
 
 use crate::arena::TopologyArena;
-use crate::handles::{FaceId, HalfEdgeId};
+use crate::handles::FaceId;
 use crate::topology::bitset::EntityBitset;
 use crate::topology::queries::traverse::FaceEdgeIterator;
 use forge_core::KernelError;

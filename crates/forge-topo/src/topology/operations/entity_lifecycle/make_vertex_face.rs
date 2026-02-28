@@ -14,13 +14,13 @@ use forge_core::KernelError;
 
 use crate::arena::{
     BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
-    ShellKind, ShellOrientation, VertexData,
+    ShellKind, VertexData,
 };
 use crate::handles::{EdgeId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId};
-use crate::lineage::{Lineage, OpSignature};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
+
 
 /// Creates the topological seed: one vertex, one face, one loop, one selfloop halfedge,
 /// one shell, and one edge.
@@ -55,59 +55,54 @@ pub struct MvfOutput {
 impl EulerOperator for MakeVertexFace {
     type Output = MvfOutput;
 
+    const NAME: &'static str = "make_vertex_face";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
         let placeholder_loop = LoopId::new(u32::MAX, 0);
 
-        let vertex_lineage = Lineage::root(0, sig.clone());
-        let face_lineage = Lineage::root(1, sig.clone());
-        let he_lineage = Lineage::root(2, sig.clone());
-        let shell_lineage = Lineage::root(3, sig.clone());
-        let body_lineage = Lineage::root(4, sig.clone());
-        let edge_lineage = Lineage::root(5, sig.clone());
-        let lump_lineage = Lineage::root(6, sig.clone());
-        let region_lineage = Lineage::root(7, sig.clone());
 
-        let vertex = draft.insert_vertex(VertexData::with_lineage(
+
+
+
+
+
+
+        let vertex = draft.insert_vertex(VertexData::new(
             placeholder_he,
-            Some(vertex_lineage),
         ));
 
-        let solid = draft.insert_body(BodyData::with_lineage(Some(body_lineage)));
+        let solid = draft.insert_body(BodyData::new());
 
-        let lump = draft.insert_lump(LumpData::with_lineage(solid, Some(lump_lineage)));
+        let lump = draft.insert_lump(LumpData::new(solid));
 
-        let region = draft.insert_region(RegionData::with_lineage(lump, Some(region_lineage)));
+        let region = draft.insert_region(RegionData::new(lump));
 
-        let shell = draft.insert_shell(ShellData::with_lineage(
+        let shell = draft.insert_shell(ShellData::new(
             crate::handles::FaceId::new(u32::MAX, 0),
             ShellKind::Sheet,
             region,
-            Some(shell_lineage),
         ));
 
-        let face = draft.insert_face(FaceData::with_lineage(
+        let face = draft.insert_face(FaceData::new(
             placeholder_loop,
             shell,
-            Some(face_lineage),
         ));
 
         let loop_id = draft.insert_loop(LoopData::new(placeholder_he, face));
 
-        let edge = draft.insert_edge(EdgeData::with_lineage(placeholder_he, Some(edge_lineage)));
+        let edge = draft.insert_edge(EdgeData::new(placeholder_he));
 
-        let he = draft.insert_half_edge(HalfEdgeData::with_lineage(
+        let he = draft.insert_half_edge(HalfEdgeData::new(
             placeholder_he,
             placeholder_he,
             placeholder_he,
             face,
             vertex,
             edge,
-            Some(he_lineage),
         ));
 
         draft.arena_mut().get_half_edge_mut(he)?.set_radial_next(he);
@@ -154,7 +149,5 @@ impl EulerOperator for MakeVertexFace {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("make_vertex_face")
-    }
+
 }

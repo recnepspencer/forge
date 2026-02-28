@@ -36,7 +36,7 @@ fn pv_05_genus_1_passes_generalized_euler() {
 
     let mut verts: Vec<VertexId> = Vec::new();
     for _i in 0..9 {
-        let v = arena.insert_vertex(VertexData::new(placeholder_he), None);
+        let v = arena.insert_vertex(VertexData::new(placeholder_he));
         verts.push(v);
     }
 
@@ -50,8 +50,8 @@ fn pv_05_genus_1_passes_generalized_euler() {
 
     for row in 0..3 {
         for col in 0..3 {
-            let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face), None);
-            let face = arena.insert_face(FaceData::new(loop_id, placeholder_shell), None);
+            let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
+            let face = arena.insert_face(FaceData::new(loop_id, placeholder_shell));
             if faces.is_empty() {
                 arena
                     .get_shell_mut(placeholder_shell)
@@ -193,8 +193,8 @@ fn pv_08_removed_edge_fails_euler() {
     let first_he = arena.iter_half_edges().next().unwrap().0;
     let twin_id = arena.get_half_edge(first_he).unwrap().radial_next();
 
-    let _ = arena.remove_half_edge(first_he, None);
-    let _ = arena.remove_half_edge(twin_id, None);
+    let _ = arena.remove_half_edge(first_he);
+    let _ = arena.remove_half_edge(twin_id);
 
     let err = validate_topology(arena, ValidationLevel::Full);
     assert!(err.is_err(), "Should fail after edge removal");
@@ -258,8 +258,8 @@ fn pv_06_through_hole_passes_euler() {
                                edge_map: &mut BTreeMap<(u32, u32), HalfEdgeId>|
      -> (FaceId, LoopId) {
         let n = face_verts.len();
-        let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face), None);
-        let face = arena.insert_face(FaceData::new(loop_id, shell_id), None);
+        let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
+        let face = arena.insert_face(FaceData::new(loop_id, shell_id));
         if arena.get_shell(shell_id).unwrap().representative_face()
             == FaceId::from_raw_parts(u32::MAX, 0)
         {
@@ -331,7 +331,7 @@ fn pv_06_through_hole_passes_euler() {
 
     let top_inner_loop = {
         let n = top_inner.len();
-        let il_loop_id = arena.insert_loop(LoopData::new(placeholder_he, top_face), None);
+        let il_loop_id = arena.insert_loop(LoopData::new(placeholder_he, top_face));
         let mut il_he_ids: Vec<HalfEdgeId> = Vec::new();
         for _ in 0..n {
             let he = arena.insert_half_edge(
@@ -375,7 +375,7 @@ fn pv_06_through_hole_passes_euler() {
 
     let bot_inner_loop = {
         let n = bot_inner.len();
-        let il_loop_id = arena.insert_loop(LoopData::new(placeholder_he, bot_face), None);
+        let il_loop_id = arena.insert_loop(LoopData::new(placeholder_he, bot_face));
         let mut il_he_ids: Vec<HalfEdgeId> = Vec::new();
         for _ in 0..n {
             let he = arena.insert_half_edge(

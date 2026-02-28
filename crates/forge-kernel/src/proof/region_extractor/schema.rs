@@ -202,7 +202,10 @@ impl ExtractedRegion {
     /// connectivity. Uses index-based slot pre-allocation so that handles
     /// from the original arena remain valid in the reconstructed one.
     pub fn to_arena(&self) -> Result<TopologyArena, KernelError> {
-        let mut arena = TopologyArena::new();
+        use forge_topo::state::TopologyState;
+
+        let state = TopologyState::empty();
+        let mut draft = state.into_mutation();
 
         let max_vtx = self.vertices.iter_ones().max().unwrap_or(0);
         let max_face = self.faces.iter_ones().max().unwrap_or(0);
@@ -214,14 +217,14 @@ impl ExtractedRegion {
         let placeholder_edge = EdgeId::from_raw_parts(u32::MAX, 0);
 
         for _ in 0..=max_vtx {
-            arena.insert_vertex(VertexData::new(placeholder_he), None);
+            draft.insert_vertex(VertexData::new(placeholder_he));
         }
         for _ in 0..=max_face {
-            let fid = arena.insert_face(FaceData::new(placeholder_loop, placeholder_shell), None);
-            arena.insert_loop(LoopData::new(placeholder_he, fid), None);
+            let fid = draft.insert_face(FaceData::new(placeholder_loop, placeholder_shell));
+            draft.insert_loop(LoopData::new(placeholder_he, fid));
         }
         for _ in 0..=max_he {
-            arena.insert_half_edge(
+            draft.insert_half_edge(
                 HalfEdgeData::new(
                     placeholder_he,
                     placeholder_he,
@@ -230,13 +233,12 @@ impl ExtractedRegion {
                     VertexId::from_raw_parts(0, 0),
                     placeholder_edge,
                 ),
-                None,
             );
         }
 
         for (&he_idx, conn) in &self.half_edge_connectivity {
             let he_id = HalfEdgeId::from_raw_parts(he_idx, 0);
-            let he_mut = arena.get_half_edge_mut(he_id)?;
+            let he_mut = draft.arena_mut().get_half_edge_mut(he_id)?;
             he_mut.set_radial_next(HalfEdgeId::from_raw_parts(conn.twin, 0));
             he_mut.set_next(HalfEdgeId::from_raw_parts(conn.next, 0));
             he_mut.set_prev(HalfEdgeId::from_raw_parts(conn.prev, 0));
@@ -250,7 +252,7 @@ impl ExtractedRegion {
                 .iter()
                 .find(|(_, conn)| conn.origin == vtx_id);
             if let Some((&he_idx, _)) = first_outgoing {
-                arena
+                draft.arena_mut()
                     .get_vertex_mut(VertexId::from_raw_parts(vtx_id, 0))?
                     .set_outgoing(HalfEdgeId::from_raw_parts(he_idx, 0));
             }
@@ -263,15 +265,17 @@ impl ExtractedRegion {
                 .find(|(_, conn)| conn.face == face_id);
             if let Some((&he_idx, _)) = first_he {
                 let loop_id = LoopId::from_raw_parts(face_id, 0);
-                arena
+                draft.arena_mut()
                     .get_loop_mut(loop_id)?
                     .set_half_edge(HalfEdgeId::from_raw_parts(he_idx, 0));
-                arena
+                draft.arena_mut()
                     .get_face_mut(FaceId::from_raw_parts(face_id, 0))?
                     .set_outer_loop(loop_id);
             }
         }
 
-        Ok(arena)
+        // Clone the arena directly — this is a test reconstruction that
+        // cannot pass commit validation (no shells, bodies, etc.)
+        Ok(draft.arena().clone())
     }
 }

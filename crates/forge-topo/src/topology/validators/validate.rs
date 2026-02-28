@@ -47,6 +47,8 @@ mod tests {
     use crate::handles::HalfEdgeId;
     use crate::operator::apply_op;
     use crate::state::TopologyState;
+    use crate::topology::validators::loop_wiring::validate_vertex_continuity;
+    use crate::topology::validators::radial_edge::validate_radial_edge_consistency;
     use forge_core::KernelError;
 
     #[test]
@@ -304,7 +306,7 @@ mod tests {
         let orig2 = draft.arena().get_half_edge(se2.he_am).unwrap().origin();
         assert_ne!(orig1, orig2, "Test precondition: different origin vertices");
 
-        let result = crate::topology::validators::structural::validate_vertex_continuity(draft.arena());
+        let result = validate_vertex_continuity(draft.arena());
         assert!(result.is_err(), "Cross-edge radial ring must be caught by validate_vertex_continuity");
     }
 
@@ -324,14 +326,14 @@ mod tests {
         assert_ne!(face1, face2);
         assert_eq!(draft.arena().face_count(), 2);
 
-        draft.arena_mut().remove_face(face1, None).unwrap();
+        draft.arena_mut().remove_face(face1).unwrap();
 
         assert_eq!(draft.arena().face_count(), 1, "One face remains");
 
         let bs = EntityBitset::for_faces(draft.arena());
         assert!(bs.capacity() > face2.index(), "Bitset capacity must cover remaining face index");
 
-        let result = crate::topology::validators::structural::validate_radial_edge_consistency(draft.arena());
+        let result = validate_radial_edge_consistency(draft.arena());
         assert!(result.is_ok(), "Validation should not panic on missing indices");
     }
 

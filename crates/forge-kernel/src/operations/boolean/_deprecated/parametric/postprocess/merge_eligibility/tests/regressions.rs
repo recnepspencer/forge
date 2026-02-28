@@ -1,4 +1,5 @@
 use super::*;
+use crate::lineage::{LineageEvent, OpSignature};
 // =====================================================================
 // SECTION 4: Defect regression tests (D1, D3, D4, D5)
 // =====================================================================
@@ -541,11 +542,11 @@ fn generation_reuse_does_not_cause_stale_snapshot_leakage() {
     let ph_shell = forge_topo::handles::ShellId::from_raw_parts(u32::MAX, 0);
 
     // First insert → slot 0, gen=0 (arena starts at 0)
-    let f_first = arena.insert_face(forge_topo::arena::FaceData::new(ph_loop, ph_shell), None);
+    let f_first = arena.insert_face(forge_topo::arena::FaceData::new(ph_loop, ph_shell));
     // Remove to free the slot
     arena.remove_face(f_first, None).unwrap();
     // Second insert → slot 0, gen=1 (the "stale" face)
-    let f_stale = arena.insert_face(forge_topo::arena::FaceData::new(ph_loop, ph_shell), None);
+    let f_stale = arena.insert_face(forge_topo::arena::FaceData::new(ph_loop, ph_shell));
     arena
         .get_face_mut(f_stale)
         .unwrap()
@@ -553,7 +554,7 @@ fn generation_reuse_does_not_cause_stale_snapshot_leakage() {
     // Remove again
     arena.remove_face(f_stale, None).unwrap();
     // Third insert → slot 0, gen=2 (the "live" face)
-    let f_live = arena.insert_face(forge_topo::arena::FaceData::new(ph_loop, ph_shell), None);
+    let f_live = arena.insert_face(forge_topo::arena::FaceData::new(ph_loop, ph_shell));
     arena
         .get_face_mut(f_live)
         .unwrap()

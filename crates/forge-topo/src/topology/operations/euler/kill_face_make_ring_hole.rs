@@ -14,7 +14,6 @@
 use forge_core::KernelError;
 
 use crate::handles::FaceId;
-use crate::lineage::OpSignature;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
@@ -34,10 +33,11 @@ pub struct KfmrhOutput {}
 impl EulerOperator for KillFaceMakeRingHole {
     type Output = KfmrhOutput;
 
+    const NAME: &'static str = "kill_face_make_ring_hole";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        _sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let killed_face_data = draft.arena().get_face(self.face_to_kill)?;
         let target_face_data = draft.arena().get_face(self.target_face)?;
@@ -106,7 +106,5 @@ impl EulerOperator for KillFaceMakeRingHole {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("kill_face_make_ring_hole")
-    }
+
 }

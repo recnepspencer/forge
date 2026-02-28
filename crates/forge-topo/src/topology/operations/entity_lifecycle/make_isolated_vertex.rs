@@ -6,10 +6,10 @@ use forge_core::KernelError;
 
 use crate::arena::VertexData;
 use crate::handles::{HalfEdgeId, VertexId};
-use crate::lineage::{Lineage, OpSignature};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
+
 
 /// Creates an isolated vertex not attached to any half-edge.
 #[derive(Debug)]
@@ -24,16 +24,15 @@ pub struct MakeIsolatedVertexOutput {
 impl EulerOperator for MakeIsolatedVertex {
     type Output = MakeIsolatedVertexOutput;
 
+    const NAME: &'static str = "make_isolated_vertex";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
-        let v_lineage = Lineage::root(0, sig.clone());
 
-        let vertex = draft.insert_vertex(VertexData::with_lineage(
+        let vertex = draft.insert_vertex(VertexData::new(
             HalfEdgeId::new(u32::MAX, 0),
-            Some(v_lineage),
         ));
 
         Ok(ExecutionResult {
@@ -52,7 +51,5 @@ impl EulerOperator for MakeIsolatedVertex {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("make_isolated_vertex")
-    }
+
 }

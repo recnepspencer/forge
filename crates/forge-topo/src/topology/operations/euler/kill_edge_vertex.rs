@@ -12,11 +12,10 @@
 
 use forge_core::{KernelError, TopologyError};
 
-use crate::handles::{EdgeId, HalfEdgeId};
-use crate::lineage::{Lineage, OpSignature};
-use crate::operator::{EulerDelta, ExecutionResult};
+use crate::handles::HalfEdgeId;
 use crate::state::MutableDraft;
 use crate::EulerOperator;
+use crate::operator::{EulerDelta, ExecutionResult};
 
 /// Collapse an edge by removing it and merging its target vertex into the origin.
 ///
@@ -44,10 +43,11 @@ pub struct KevOutput {
 impl EulerOperator for KillEdgeVertex {
     type Output = KevOutput;
 
+    const NAME: &'static str = "kill_edge_vertex";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he = self.edge;
         let he_data = draft.arena().get_half_edge(he)?;
@@ -68,10 +68,6 @@ impl EulerOperator for KillEdgeVertex {
         let chain: Vec<HalfEdgeId> =
             crate::topology::queries::traverse::RadialEdgeIterator::new(draft.arena(), he)?
                 .collect::<Result<_, _>>()?;
-
-        let v_a_lineage = draft.arena().get_vertex(vertex_a)?.lineage().cloned();
-        let v_b_lineage = draft.arena().get_vertex(vertex_b)?.lineage().cloned();
-        let merged_lineage = Lineage::merge(&v_a_lineage, &v_b_lineage, sig);
 
         // 1. Maintain outer_loop for faces
         for &h in &chain {
@@ -169,10 +165,6 @@ impl EulerOperator for KillEdgeVertex {
             });
         }
 
-        draft
-            .arena_mut()
-            .get_vertex_mut(vertex_a)?
-            .set_lineage(Some(merged_lineage));
 
         // 5. Bump face versions and clean up
         let num_half_edges_removed = chain.len() as i32;
@@ -204,7 +196,5 @@ impl EulerOperator for KillEdgeVertex {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("kill_edge_vertex")
-    }
+
 }

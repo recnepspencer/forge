@@ -35,7 +35,7 @@ fn store_and_retrieve_face_plane() {
 fn missing_vertex_returns_none() {
     let store = GeometryState::new();
     let vertex = VertexId::from_raw_parts(99, 0);
-    assert_eq!(store.get_vertex_position(vertex), None);
+    assert_eq!(store.get_vertex_position(vertex));
 }
 
 #[test]
@@ -57,7 +57,7 @@ fn stale_generation_returns_none() {
         store.get_vertex_position(vertex_gen0),
         Some(&[1.0, 2.0, 3.0])
     );
-    assert_eq!(store.get_vertex_position(vertex_gen1), None);
+    assert_eq!(store.get_vertex_position(vertex_gen1));
 }
 
 #[test]

@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 
 use forge_core::EntityRef;
 
-use super::lineage::{Lineage, LineageEntityRef, LineageEvent, OpSignature};
+use super::lineage::{Lineage, LineageEntityRef, LineageEvent};
 use forge_core::KernelError;
 
 /// Live mapping from entity handles to their current lineage.
@@ -206,6 +206,7 @@ impl LineageStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::lineage::OpSignature;
     use forge_core::EntityKind;
 
     #[test]

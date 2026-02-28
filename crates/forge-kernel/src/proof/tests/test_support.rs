@@ -44,9 +44,9 @@ fn all_faces_planar(_face: FaceId) -> bool {
 /// Returns the created `ShellId` and wires:
 /// `Body -> Lump -> Region -> Shell`.
 pub fn insert_test_solid_shell(arena: &mut TopologyArena) -> ShellId {
-    let body = TopologyArena::insert_body(arena, BodyData::new(), None);
-    let lump = TopologyArena::insert_lump(arena, LumpData::new(body), None);
-    let region = TopologyArena::insert_region(arena, RegionData::new(lump), None);
+    let body = TopologyArena::insert_body(arena, BodyData::new());
+    let lump = TopologyArena::insert_lump(arena, LumpData::new(body));
+    let region = TopologyArena::insert_region(arena, RegionData::new(lump));
     let shell = TopologyArena::insert_shell(
         arena,
         ShellData::new(
@@ -100,7 +100,7 @@ pub fn materialize_edge_entities_from_radials(
             }
         }
 
-        let edge_id = TopologyArena::insert_edge(arena, EdgeData::new(seed), None);
+        let edge_id = TopologyArena::insert_edge(arena, EdgeData::new(seed));
         assign_edge_to_cycle(arena, &cycle, edge_id)?;
     }
 

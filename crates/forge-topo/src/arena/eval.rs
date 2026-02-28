@@ -2,8 +2,6 @@ use serde::{Deserialize, Serialize};
 
 use forge_core::{KernelError, TopologyError, ErrorContext, ErrorScope};
 use crate::attributes::AttributeStore;
-use crate::lineage_store::LineageStore;
-use forge_core::{EntityRef, EntityKind};
 use crate::handles::{FaceId, HalfEdgeId, VertexId, LoopId, ShellId, BodyId, LumpId, RegionId, EdgeId};
 
 use super::schema::{Slot, FaceData, HalfEdgeData, VertexData, LoopData, ShellData, BodyData, LumpData, RegionData, EdgeData};
@@ -130,47 +128,34 @@ impl TopologyArena {
     }
 
     /// Insert a new face, returning its handle.
-    pub fn insert_face(&mut self, data: FaceData, mut ls: Option<&mut LineageStore>) -> FaceId {
+    pub(crate) fn insert_face(&mut self, data: FaceData) -> FaceId {
         let (index, gen) = Self::insert_slot(&mut self.face_slots, &mut self.free_face_head, data);
         self.active_face_count += 1;
-        let id = FaceId::new(index, gen);
-        if let Some(store) = ls.as_deref_mut() {
-            if let Some(lin) = self.face_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
-                store.record_creation_with_snapshot(EntityRef::new(EntityKind::Face, id.index()), id.into(), lin);
-            }
-        }
-        id
+        FaceId::new(index, gen)
     }
 
     /// Insert a single halfedge, returning its handle.
     ///
     /// The caller is responsible for setting the `radial_next` field correctly.
-    pub fn insert_half_edge(&mut self, data: HalfEdgeData, mut ls: Option<&mut LineageStore>) -> HalfEdgeId {
+    pub(crate) fn insert_half_edge(&mut self, data: HalfEdgeData) -> HalfEdgeId {
         let (index, gen) = Self::insert_slot(&mut self.half_edge_slots, &mut self.free_half_edge_head, data);
         self.active_half_edge_count += 1;
-        let id = HalfEdgeId::new(index, gen);
-        if let Some(store) = ls.as_deref_mut() {
-            if let Some(lin) = self.half_edge_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
-                store.record_creation_with_snapshot(EntityRef::new(EntityKind::HalfEdge, id.index()), id.into(), lin);
-            }
-        }
-        id
+        HalfEdgeId::new(index, gen)
     }
 
     /// Insert a pair of radial halfedges and wire their `radial_next` fields reciprocally.
     ///
     /// Returns `(he_a, he_b)` where `he_a.radial_next == he_b` and `he_b.radial_next == he_a`.
-    pub fn insert_radial_pair(
+    pub(crate) fn insert_radial_pair(
         &mut self,
         mut data_a: HalfEdgeData,
         mut data_b: HalfEdgeData,
-        mut ls: Option<&mut LineageStore>,
     ) -> (HalfEdgeId, HalfEdgeId) {
         data_a.set_radial_next(HalfEdgeId::new(u32::MAX, 0));
         data_b.set_radial_next(HalfEdgeId::new(u32::MAX, 0));
 
-        let he_a_id = self.insert_half_edge(data_a, ls.as_deref_mut());
-        let he_b_id = self.insert_half_edge(data_b, ls);
+        let he_a_id = self.insert_half_edge(data_a);
+        let he_b_id = self.insert_half_edge(data_b);
 
         if let Some(he_a) = self.half_edge_slots[he_a_id.index() as usize].data.as_mut() {
             he_a.set_radial_next(he_b_id);
@@ -183,20 +168,14 @@ impl TopologyArena {
     }
 
     /// Insert a new vertex, returning its handle.
-    pub fn insert_vertex(&mut self, data: VertexData, mut ls: Option<&mut LineageStore>) -> VertexId {
+    pub(crate) fn insert_vertex(&mut self, data: VertexData) -> VertexId {
         let (index, gen) = Self::insert_slot(&mut self.vertex_slots, &mut self.free_vertex_head, data);
         self.active_vertex_count += 1;
-        let id = VertexId::new(index, gen);
-        if let Some(store) = ls.as_deref_mut() {
-            if let Some(lin) = self.vertex_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
-                store.record_creation_with_snapshot(EntityRef::new(EntityKind::Vertex, id.index()), id.into(), lin);
-            }
-        }
-        id
+        VertexId::new(index, gen)
     }
 
     /// Insert a new loop, returning its handle.
-    pub fn insert_loop(&mut self, data: LoopData, mut ls: Option<&mut LineageStore>) -> LoopId {
+    pub(crate) fn insert_loop(&mut self, data: LoopData) -> LoopId {
         let (index, gen) = Self::insert_slot(&mut self.loop_slots, &mut self.free_loop_head, data);
         self.active_loop_count += 1;
         LoopId::new(index, gen)
@@ -452,7 +431,7 @@ impl TopologyArena {
     }
 
     /// Remove a face, bumping the generation of its slot.
-    pub fn remove_face(&mut self, id: FaceId, mut ls: Option<&mut LineageStore>) -> Result<FaceData, KernelError> {
+    pub(crate) fn remove_face(&mut self, id: FaceId) -> Result<FaceData, KernelError> {
         let slot = self.face_slots.get_mut(id.index() as usize)
             .ok_or_else(|| cold_err_bounds("Face", id.index(), id.generation()))?;
         validate_generation(slot.generation, id.generation(), "Face", id.index())?;
@@ -462,14 +441,11 @@ impl TopologyArena {
         slot.next_free = self.free_face_head;
         self.free_face_head = Some(id.index());
         self.active_face_count -= 1;
-        if let Some(store) = ls.as_deref_mut() {
-            let _ = store.record_deletion_with_snapshot(EntityRef::new(EntityKind::Face, id.index()), id.into());
-        }
         Ok(data)
     }
 
     /// Remove a vertex, bumping the generation of its slot.
-    pub fn remove_vertex(&mut self, id: VertexId, mut ls: Option<&mut LineageStore>) -> Result<VertexData, KernelError> {
+    pub(crate) fn remove_vertex(&mut self, id: VertexId) -> Result<VertexData, KernelError> {
         let slot = self.vertex_slots.get_mut(id.index() as usize)
             .ok_or_else(|| cold_err_bounds("Vertex", id.index(), id.generation()))?;
         validate_generation(slot.generation, id.generation(), "Vertex", id.index())?;
@@ -479,14 +455,11 @@ impl TopologyArena {
         slot.next_free = self.free_vertex_head;
         self.free_vertex_head = Some(id.index());
         self.active_vertex_count -= 1;
-        if let Some(store) = ls.as_deref_mut() {
-            let _ = store.record_deletion_with_snapshot(EntityRef::new(EntityKind::Vertex, id.index()), id.into());
-        }
         Ok(data)
     }
 
     /// Remove a halfedge, bumping the generation of its slot.
-    pub fn remove_half_edge(&mut self, id: HalfEdgeId, mut ls: Option<&mut LineageStore>) -> Result<HalfEdgeData, KernelError> {
+    pub(crate) fn remove_half_edge(&mut self, id: HalfEdgeId) -> Result<HalfEdgeData, KernelError> {
         let slot = self.half_edge_slots.get_mut(id.index() as usize)
             .ok_or_else(|| cold_err_bounds("HalfEdge", id.index(), id.generation()))?;
         validate_generation(slot.generation, id.generation(), "HalfEdge", id.index())?;
@@ -496,14 +469,11 @@ impl TopologyArena {
         slot.next_free = self.free_half_edge_head;
         self.free_half_edge_head = Some(id.index());
         self.active_half_edge_count -= 1;
-        if let Some(store) = ls.as_deref_mut() {
-            let _ = store.record_deletion_with_snapshot(EntityRef::new(EntityKind::HalfEdge, id.index()), id.into());
-        }
         Ok(data)
     }
 
     /// Remove a loop, bumping the generation of its slot.
-    pub fn remove_loop(&mut self, id: LoopId, mut ls: Option<&mut LineageStore>) -> Result<LoopData, KernelError> {
+    pub(crate) fn remove_loop(&mut self, id: LoopId) -> Result<LoopData, KernelError> {
         let slot = self.loop_slots.get_mut(id.index() as usize)
             .ok_or_else(|| cold_err_bounds("Loop", id.index(), id.generation()))?;
         validate_generation(slot.generation, id.generation(), "Loop", id.index())?;
@@ -604,16 +574,10 @@ impl TopologyArena {
     // ── Shell CRUD ──────────────────────────────────────────────────
 
     /// Insert a new shell, returning its handle.
-    pub fn insert_shell(&mut self, data: ShellData, mut ls: Option<&mut LineageStore>) -> ShellId {
+    pub(crate) fn insert_shell(&mut self, data: ShellData) -> ShellId {
         let (index, gen) = Self::insert_slot(&mut self.shell_slots, &mut self.free_shell_head, data);
         self.active_shell_count += 1;
-        let id = ShellId::new(index, gen);
-        if let Some(store) = ls.as_deref_mut() {
-            if let Some(lin) = self.shell_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
-                store.record_creation_with_snapshot(EntityRef::new(EntityKind::Shell, id.index()), id.into(), lin);
-            }
-        }
-        id
+        ShellId::new(index, gen)
     }
 
     /// Get a shell by handle, validating the generation.
@@ -638,7 +602,7 @@ impl TopologyArena {
     }
 
     /// Remove a shell, bumping the generation of its slot.
-    pub fn remove_shell(&mut self, id: ShellId, mut ls: Option<&mut LineageStore>) -> Result<ShellData, KernelError> {
+    pub(crate) fn remove_shell(&mut self, id: ShellId) -> Result<ShellData, KernelError> {
         let slot = self.shell_slots.get_mut(id.index() as usize)
             .ok_or_else(|| cold_err_bounds("Shell", id.index(), id.generation()))?;
         validate_generation(slot.generation, id.generation(), "Shell", id.index())?;
@@ -648,9 +612,6 @@ impl TopologyArena {
         slot.next_free = self.free_shell_head;
         self.free_shell_head = Some(id.index());
         self.active_shell_count -= 1;
-        if let Some(store) = ls.as_deref_mut() {
-            let _ = store.record_deletion_with_snapshot(EntityRef::new(EntityKind::Shell, id.index()), id.into());
-        }
         Ok(data)
     }
 
@@ -665,16 +626,10 @@ impl TopologyArena {
     // ── Solid CRUD ──────────────────────────────────────────────────
 
     /// Insert a new solid, returning its handle.
-    pub fn insert_body(&mut self, data: BodyData, mut ls: Option<&mut LineageStore>) -> BodyId {
+    pub(crate) fn insert_body(&mut self, data: BodyData) -> BodyId {
         let (index, gen) = Self::insert_slot(&mut self.body_slots, &mut self.free_body_head, data);
         self.active_body_count += 1;
-        let id = BodyId::new(index, gen);
-        if let Some(store) = ls.as_deref_mut() {
-            if let Some(lin) = self.body_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
-                store.record_creation_with_snapshot(EntityRef::new(EntityKind::Body, id.index()), id.into(), lin);
-            }
-        }
-        id
+        BodyId::new(index, gen)
     }
 
     /// Get a solid by handle, validating the generation.
@@ -699,7 +654,7 @@ impl TopologyArena {
     }
 
     /// Remove a solid, bumping the generation of its slot.
-    pub fn remove_body(&mut self, id: BodyId, mut ls: Option<&mut LineageStore>) -> Result<BodyData, KernelError> {
+    pub(crate) fn remove_body(&mut self, id: BodyId) -> Result<BodyData, KernelError> {
         let slot = self.body_slots.get_mut(id.index() as usize)
             .ok_or_else(|| cold_err_bounds("Body", id.index(), id.generation()))?;
         validate_generation(slot.generation, id.generation(), "Body", id.index())?;
@@ -709,9 +664,6 @@ impl TopologyArena {
         slot.next_free = self.free_body_head;
         self.free_body_head = Some(id.index());
         self.active_body_count -= 1;
-        if let Some(store) = ls.as_deref_mut() {
-            let _ = store.record_deletion_with_snapshot(EntityRef::new(EntityKind::Body, id.index()), id.into());
-        }
         Ok(data)
     }
 
@@ -726,16 +678,10 @@ impl TopologyArena {
     // ── Lump CRUD ──────────────────────────────────────────────────────────
 
     /// Insert a new lump, returning its handle.
-    pub fn insert_lump(&mut self, data: LumpData, mut ls: Option<&mut LineageStore>) -> LumpId {
+    pub(crate) fn insert_lump(&mut self, data: LumpData) -> LumpId {
         let (index, gen) = Self::insert_slot(&mut self.lump_slots, &mut self.free_lump_head, data);
         self.active_lump_count += 1;
-        let id = LumpId::new(index, gen);
-        if let Some(store) = ls.as_deref_mut() {
-            if let Some(lin) = self.lump_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
-                store.record_creation_with_snapshot(EntityRef::new(EntityKind::Lump, id.index()), id.into(), lin);
-            }
-        }
-        id
+        LumpId::new(index, gen)
     }
 
     /// Get a lump by handle, validating the generation.
@@ -760,7 +706,7 @@ impl TopologyArena {
     }
 
     /// Remove a lump, bumping the generation of its slot.
-    pub fn remove_lump(&mut self, id: LumpId, mut ls: Option<&mut LineageStore>) -> Result<LumpData, KernelError> {
+    pub(crate) fn remove_lump(&mut self, id: LumpId) -> Result<LumpData, KernelError> {
         let slot = self.lump_slots.get_mut(id.index() as usize)
             .ok_or_else(|| cold_err_bounds("Lump", id.index(), id.generation()))?;
         validate_generation(slot.generation, id.generation(), "Lump", id.index())?;
@@ -770,9 +716,6 @@ impl TopologyArena {
         slot.next_free = self.free_lump_head;
         self.free_lump_head = Some(id.index());
         self.active_lump_count -= 1;
-        if let Some(store) = ls.as_deref_mut() {
-            let _ = store.record_deletion_with_snapshot(EntityRef::new(EntityKind::Lump, id.index()), id.into());
-        }
         Ok(data)
     }
 
@@ -803,16 +746,10 @@ impl TopologyArena {
     // ── Region CRUD ────────────────────────────────────────────────────────
 
     /// Insert a new region, returning its handle.
-    pub fn insert_region(&mut self, data: RegionData, mut ls: Option<&mut LineageStore>) -> RegionId {
+    pub(crate) fn insert_region(&mut self, data: RegionData) -> RegionId {
         let (index, gen) = Self::insert_slot(&mut self.region_slots, &mut self.free_region_head, data);
         self.active_region_count += 1;
-        let id = RegionId::new(index, gen);
-        if let Some(store) = ls.as_deref_mut() {
-            if let Some(lin) = self.region_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
-                store.record_creation_with_snapshot(EntityRef::new(EntityKind::Region, id.index()), id.into(), lin);
-            }
-        }
-        id
+        RegionId::new(index, gen)
     }
 
     /// Get a region by handle, validating the generation.
@@ -837,7 +774,7 @@ impl TopologyArena {
     }
 
     /// Remove a region, bumping the generation of its slot.
-    pub fn remove_region(&mut self, id: RegionId, mut ls: Option<&mut LineageStore>) -> Result<RegionData, KernelError> {
+    pub(crate) fn remove_region(&mut self, id: RegionId) -> Result<RegionData, KernelError> {
         let slot = self.region_slots.get_mut(id.index() as usize)
             .ok_or_else(|| cold_err_bounds("Region", id.index(), id.generation()))?;
         validate_generation(slot.generation, id.generation(), "Region", id.index())?;
@@ -847,9 +784,6 @@ impl TopologyArena {
         slot.next_free = self.free_region_head;
         self.free_region_head = Some(id.index());
         self.active_region_count -= 1;
-        if let Some(store) = ls.as_deref_mut() {
-            let _ = store.record_deletion_with_snapshot(EntityRef::new(EntityKind::Region, id.index()), id.into());
-        }
         Ok(data)
     }
 
@@ -880,16 +814,10 @@ impl TopologyArena {
     // ── Edge CRUD ───────────────────────────────────────────────────────────
 
     /// Insert a new edge, returning its handle.
-    pub fn insert_edge(&mut self, data: EdgeData, mut ls: Option<&mut LineageStore>) -> EdgeId {
+    pub(crate) fn insert_edge(&mut self, data: EdgeData) -> EdgeId {
         let (index, gen) = Self::insert_slot(&mut self.edge_slots, &mut self.free_edge_head, data);
         self.active_edge_count += 1;
-        let id = EdgeId::new(index, gen);
-        if let Some(store) = ls.as_deref_mut() {
-            if let Some(lin) = self.edge_slots[index as usize].data.as_ref().unwrap().lineage().cloned() {
-                store.record_creation_with_snapshot(EntityRef::new(EntityKind::Edge, id.index()), id.into(), lin);
-            }
-        }
-        id
+        EdgeId::new(index, gen)
     }
 
     /// Get an edge by handle, validating the generation.
@@ -914,7 +842,7 @@ impl TopologyArena {
     }
 
     /// Remove an edge, bumping the generation of its slot.
-    pub fn remove_edge(&mut self, id: EdgeId, mut ls: Option<&mut LineageStore>) -> Result<EdgeData, KernelError> {
+    pub(crate) fn remove_edge(&mut self, id: EdgeId) -> Result<EdgeData, KernelError> {
         let slot = self.edge_slots.get_mut(id.index() as usize)
             .ok_or_else(|| cold_err_bounds("Edge", id.index(), id.generation()))?;
         validate_generation(slot.generation, id.generation(), "Edge", id.index())?;
@@ -924,9 +852,6 @@ impl TopologyArena {
         slot.next_free = self.free_edge_head;
         self.free_edge_head = Some(id.index());
         self.active_edge_count -= 1;
-        if let Some(store) = ls.as_deref_mut() {
-            let _ = store.record_deletion_with_snapshot(EntityRef::new(EntityKind::Edge, id.index()), id.into());
-        }
         Ok(data)
     }
 

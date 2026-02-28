@@ -15,10 +15,10 @@ use forge_core::KernelError;
 
 use crate::arena::{EdgeData, HalfEdgeData, VertexData};
 use crate::handles::{EdgeId, HalfEdgeId, VertexId};
-use crate::lineage::{Lineage, OpSignature};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
+
 
 /// Extend a vertex by sprouting a new edge and vertex (antenna).
 ///
@@ -58,10 +58,11 @@ pub struct MevOutput {
 impl EulerOperator for MakeEdgeVertex {
     type Output = MevOutput;
 
+    const NAME: &'static str = "make_edge_vertex";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let anchor = self.anchor;
         let anchor_data = draft.arena().get_half_edge(anchor)?;
@@ -69,43 +70,32 @@ impl EulerOperator for MakeEdgeVertex {
         let origin = anchor_data.origin();
         let face = anchor_data.face();
         let prev = anchor_data.prev();
-        let anchor_lineage = anchor_data.lineage().cloned();
-
-        let vertex_lineage = Lineage::derive_from(&anchor_lineage, sig.clone());
-        let he_out_lineage = Lineage::derive_from(&anchor_lineage, sig.clone());
-        let he_back_lineage = Lineage::derive_from(&anchor_lineage, sig.clone());
-        let edge_lineage = Lineage::derive_from(&anchor_lineage, sig.clone());
-
-        let new_vertex = draft.insert_vertex(VertexData::with_lineage(
+        let new_vertex = draft.insert_vertex(VertexData::new(
             HalfEdgeId::new(u32::MAX, 0),
-            Some(vertex_lineage),
         ));
 
-        let new_edge = draft.insert_edge(EdgeData::with_lineage(
+        let new_edge = draft.insert_edge(EdgeData::new(
             HalfEdgeId::new(u32::MAX, 0),
-            Some(edge_lineage),
         ));
 
         let sentinel = HalfEdgeId::new(u32::MAX, 0);
 
         let (he_out, he_back) = draft.insert_radial_pair(
-            HalfEdgeData::with_lineage(
+            HalfEdgeData::new(
                 sentinel, // twin → set below
                 sentinel, // next → set below
                 sentinel, // prev → set below
                 face,
                 origin,
                 new_edge,
-                Some(he_out_lineage),
             ),
-            HalfEdgeData::with_lineage(
+            HalfEdgeData::new(
                 sentinel, // twin → set below
                 sentinel, // next → set below
                 sentinel, // prev → set below
                 face,
                 new_vertex,
                 new_edge,
-                Some(he_back_lineage),
             ),
         );
 
@@ -157,7 +147,5 @@ impl EulerOperator for MakeEdgeVertex {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("make_edge_vertex")
-    }
+
 }

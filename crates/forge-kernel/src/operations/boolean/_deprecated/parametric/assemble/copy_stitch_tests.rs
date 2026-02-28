@@ -35,7 +35,7 @@ fn copy_and_stitch(
         .map(|(fid, _)| fid)
         .collect();
     let src_v = source_topo.arena().vertex_count();
-    let scale = compute_disjoint_scale(source_topo.arena(), source_geom, None);
+    let scale = compute_disjoint_scale(source_topo.arena(), source_geom);
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();

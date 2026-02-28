@@ -827,7 +827,7 @@ mod tests {
 
         let mut verts = Vec::new();
         for _ in 0..8 {
-            verts.push(arena.insert_vertex(VertexData::new(placeholder_he), None));
+            verts.push(arena.insert_vertex(VertexData::new(placeholder_he)));
         }
 
         let quad_faces: [[usize; 4]; 6] = [
@@ -843,8 +843,8 @@ mod tests {
             let placeholder_shell_q = crate::handles::ShellId::new(u32::MAX, 0);
             let placeholder_e_q = crate::handles::EdgeId::new(u32::MAX, 0);
             let face =
-                arena.insert_face(FaceData::new(placeholder_loop, placeholder_shell_q), None);
-            let loop_id = arena.insert_loop(LoopData::new(placeholder_he, face), None);
+                arena.insert_face(FaceData::new(placeholder_loop, placeholder_shell_q));
+            let loop_id = arena.insert_loop(LoopData::new(placeholder_he, face));
             arena.get_face_mut(face).unwrap().set_outer_loop(loop_id);
 
             let mut he_ids = Vec::new();
@@ -859,7 +859,6 @@ mod tests {
                         origin,
                         placeholder_e_q,
                     ),
-                    None,
                 );
                 he_ids.push(he);
             }

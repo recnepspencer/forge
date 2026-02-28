@@ -54,14 +54,12 @@ use std::time::Instant;
 /// impl EulerOperator for SplitEdge {
 ///     type Output = (HalfEdgeId, HalfEdgeId, VertexId);
 ///
-///     fn execute(&self, draft: &mut MutableDraft, sig: &OpSignature) -> Result<Self::Output, KernelError> {
-///         // Pure topology manipulation + lineage stamping
+///     fn execute(&self, draft: &mut MutableDraft) -> Result<ExecutionResult<Self::Output>, KernelError> {
+///         // Pure topology manipulation
 ///         panic!("example stub")
 ///     }
 ///
-///     fn signature(&self) -> OpSignature {
-///         OpSignature::new("split_edge")
-///     }
+///     const NAME: &'static str = "split_edge";
 /// }
 /// ```
 pub trait EulerOperator: std::fmt::Debug {
@@ -77,24 +75,22 @@ pub trait EulerOperator: std::fmt::Debug {
     ///
     /// This method contains the pure topology logic. It should:
     /// - Read/write topology data in the draft
-    /// - Stamp `Lineage` on every created/modified entity
     /// - Return `ExecutionResult` with the correct `declared_delta`
     /// - Return structured errors, never panic
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError>;
 
     /// A unique signature identifying this operation type.
     ///
     /// Used for lineage tracking and replay. The invocation ID is
     /// assigned by the runner (you don't need to set it).
-    fn signature(&self) -> OpSignature;
+    const NAME: &'static str;
 }
 
 /// Declared Euler formula delta for an operator.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct EulerDelta {
     /// Expected change in vertex count.
     pub vertices: i32,
@@ -171,7 +167,7 @@ pub fn apply_op<O: EulerOperator>(
     let region_count_before = draft.arena().region_count();
 
     let invocation_id = draft.next_op_id();
-    let mut signature = op.signature();
+    let mut signature = OpSignature::new(O::NAME);
     signature.set_invocation_id(invocation_id);
 
     let op_name = signature.get_name().to_string();
@@ -183,7 +179,7 @@ pub fn apply_op<O: EulerOperator>(
     );
     draft.log_operation_start(&signature);
 
-    let exec_result = op.execute(draft, &signature)?;
+    let exec_result = op.execute(draft)?;
     let declared_delta = exec_result.declared_delta;
     let result = exec_result.value;
 
@@ -446,7 +442,6 @@ mod tests {
         fn execute(
             &self,
             _draft: &mut MutableDraft,
-            _sig: &OpSignature,
         ) -> Result<ExecutionResult<Self::Output>, KernelError> {
             Ok(ExecutionResult {
                 value: (),
@@ -464,9 +459,7 @@ mod tests {
             })
         }
 
-        fn signature(&self) -> OpSignature {
-            OpSignature::new("no_op")
-        }
+        const NAME: &'static str = "no_op";
     }
 
     /// An operator that always fails
@@ -479,7 +472,6 @@ mod tests {
         fn execute(
             &self,
             _draft: &mut MutableDraft,
-            _sig: &OpSignature,
         ) -> Result<ExecutionResult<Self::Output>, KernelError> {
             Err(KernelError::InvalidInput {
                 message: "test failure".to_string(),
@@ -487,9 +479,7 @@ mod tests {
             })
         }
 
-        fn signature(&self) -> OpSignature {
-            OpSignature::new("fail_op")
-        }
+        const NAME: &'static str = "fail_op";
     }
 
     #[test]

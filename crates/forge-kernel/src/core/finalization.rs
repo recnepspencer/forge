@@ -377,7 +377,7 @@ mod tests {
 
         assert_eq!(collected.summary.status, FinalizationStatus::Error);
         assert_eq!(collected.summary.topology_state_hash_before, Some(123));
-        assert_eq!(collected.summary.topology_state_hash_after, None);
+        assert_eq!(collected.summary.topology_state_hash_after);
         assert_eq!(envelope.get_state_hash_before(), 123);
         assert_eq!(envelope.get_state_hash_after(), 0);
         assert_eq!(envelope.get_decision_log().len(), 1);

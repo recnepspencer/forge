@@ -3,7 +3,7 @@
 //! DOMAIN: System-wide provenance (Phase 3 causality).
 
 use crate::arena::TopologyArena;
-use crate::topology::history::lineage::{Lineage, LineageEvent, OpSignature};
+use crate::lineage::{Lineage, LineageEvent, OpSignature};
 use forge_core::{EntityKind, EntityRef};
 
 /// Record lineage events for all entities in the result topology.

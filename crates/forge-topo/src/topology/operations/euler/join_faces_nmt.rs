@@ -19,10 +19,10 @@
 use forge_core::{KernelError, TopologyError};
 
 use crate::handles::{HalfEdgeId, LoopId};
-use crate::lineage::{Lineage, OpSignature};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
+
 
 /// NMT-compatible face merge that leaves a topological slit.
 ///
@@ -47,10 +47,11 @@ pub struct JfNmtOutput {
 impl EulerOperator for JoinFacesNmt {
     type Output = JfNmtOutput;
 
+    const NAME: &'static str = "join_faces_nmt";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he_s = self.he_survive;
         let he_k = self.he_kill;
@@ -132,13 +133,7 @@ impl EulerOperator for JoinFacesNmt {
             .set_radial_next(he_s);
 
         // 3. Lineage merge.
-        let survive_lineage = draft.arena().get_face(face_survive)?.lineage().cloned();
-        let kill_lineage = draft.arena().get_face(face_kill)?.lineage().cloned();
-        let merged_lineage = Lineage::merge(&survive_lineage, &kill_lineage, sig);
-        draft
-            .arena_mut()
-            .get_face_mut(face_survive)?
-            .set_lineage(Some(merged_lineage));
+
 
         // 4. Reassign killed face's outer boundary halfedges to surviving face.
         // Wait: `he_k`'s next() loop gives us the outer boundary of the killed face.
@@ -276,9 +271,7 @@ impl EulerOperator for JoinFacesNmt {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("join_faces_nmt")
-    }
+
 }
 
 /// Reassign all halfedges starting from `start` to `new_face`.

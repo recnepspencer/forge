@@ -14,7 +14,6 @@
 use forge_core::KernelError;
 
 use crate::handles::FaceId;
-use crate::lineage::OpSignature;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
@@ -32,10 +31,11 @@ pub struct KfvOutput {}
 impl EulerOperator for KillFaceVertex {
     type Output = KfvOutput;
 
+    const NAME: &'static str = "kill_face_vertex";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        _sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let face_data = draft.arena().get_face(self.face)?;
         let loop_id = face_data.outer_loop();
@@ -91,7 +91,5 @@ impl EulerOperator for KillFaceVertex {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("kill_face_vertex")
-    }
+
 }

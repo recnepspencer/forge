@@ -20,10 +20,10 @@ use crate::arena::{
 use crate::handles::{
     BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
 };
-use crate::lineage::{Lineage, OpSignature};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
+
 
 /// Creates a new face by connecting a sequence of existing vertices.
 ///
@@ -59,10 +59,11 @@ pub struct MffvOutput {
 impl EulerOperator for MakeFaceFromVertices {
     type Output = MffvOutput;
 
+    const NAME: &'static str = "make_face_from_vertices";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let n = self.vertices.len();
         if n < 3 {
@@ -78,30 +79,25 @@ impl EulerOperator for MakeFaceFromVertices {
         let sentinel_he = HalfEdgeId::new(u32::MAX, 0);
         let sentinel_loop = LoopId::new(u32::MAX, 0);
 
-        let face_lineage = Lineage::root(0, sig.clone());
-        let loop_lineage = Lineage::root(1, sig.clone()); // Assuming loops don't need explicit lineage tracking right now, but keeping parity with MVF
-        let shell_lineage = Lineage::root(2, sig.clone());
-        let region_lineage = Lineage::root(3, sig.clone());
-        let lump_lineage = Lineage::root(4, sig.clone());
-        let solid_lineage = Lineage::root(5, sig.clone());
 
-        let solid = draft.insert_body(BodyData::with_lineage(Some(solid_lineage)));
 
-        let lump = draft.insert_lump(LumpData::with_lineage(solid, Some(lump_lineage)));
 
-        let region = draft.insert_region(RegionData::with_lineage(lump, Some(region_lineage)));
 
-        let shell = draft.insert_shell(ShellData::with_lineage(
+        let solid = draft.insert_body(BodyData::new());
+
+        let lump = draft.insert_lump(LumpData::new(solid));
+
+        let region = draft.insert_region(RegionData::new(lump));
+
+        let shell = draft.insert_shell(ShellData::new(
             FaceId::new(u32::MAX, 0),
             ShellKind::Sheet,
             region,
-            Some(shell_lineage),
         ));
 
-        let face = draft.insert_face(FaceData::with_lineage(
+        let face = draft.insert_face(FaceData::new(
             sentinel_loop,
             shell,
-            Some(face_lineage),
         ));
 
         let loop_id = draft.insert_loop(LoopData::new(sentinel_he, face));
@@ -131,19 +127,17 @@ impl EulerOperator for MakeFaceFromVertices {
         let mut half_edges = Vec::with_capacity(n);
         let mut edges = Vec::with_capacity(n);
 
-        for i in 0..n {
-            let edge_lineage = Lineage::root(6 + 2 * (i as u64), sig.clone());
-            let he_lineage = Lineage::root(7 + 2 * (i as u64), sig.clone());
+        for _i in 0..n {
 
-            let edge = draft.insert_edge(EdgeData::with_lineage(sentinel_he, Some(edge_lineage)));
-            let he = draft.insert_half_edge(HalfEdgeData::with_lineage(
+
+            let edge = draft.insert_edge(EdgeData::new(sentinel_he));
+            let he = draft.insert_half_edge(HalfEdgeData::new(
                 sentinel_he,
                 sentinel_he,
                 sentinel_he,
                 face,
                 VertexId::new(u32::MAX, 0),
                 edge,
-                Some(he_lineage),
             ));
 
             draft.arena_mut().get_edge_mut(edge)?.set_half_edge(he);
@@ -212,7 +206,5 @@ impl EulerOperator for MakeFaceFromVertices {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("make_face_from_vertices")
-    }
+
 }

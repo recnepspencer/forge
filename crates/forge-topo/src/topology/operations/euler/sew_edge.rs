@@ -15,7 +15,7 @@
 use forge_core::{ErrorContext, ErrorScope, KernelError, TopologyError};
 
 use crate::handles::{EdgeId, HalfEdgeId};
-use crate::lineage::OpSignature;
+
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
@@ -43,13 +43,14 @@ pub struct SewEdgeOutput {
 impl EulerOperator for SewEdge {
     type Output = SewEdgeOutput;
 
+    const NAME: &'static str = "sew_edge";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
-        let op_name = self.signature().get_name().to_string();
-        let inv_id = sig.get_invocation_id() as u64;
+        let op_name = Self::NAME.to_string();
+        let inv_id = 0u64;
 
         // Validate inputs and extract necessary handles first
         let (edge_to_keep, edge_to_remove, face_a, face_b) = {
@@ -164,7 +165,5 @@ impl EulerOperator for SewEdge {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("sew_edge")
-    }
+
 }

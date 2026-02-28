@@ -1,15 +1,15 @@
-//! MakeEmptyShell — creates an empty shell in a region.
+//! MakeEmptyShell / DestroyShell — creates and destroys Shells inside Regions.
 //!
-//! DOMAIN: Extents an existing Region by adding a new Shell with no geometry.
+//! DOMAIN: Extends/shrinks an existing Region by adding/removing a Shell.
 
 use forge_core::KernelError;
 
 use crate::arena::{ShellData, ShellKind};
 use crate::handles::{FaceId, RegionId, ShellId};
-use crate::lineage::{Lineage, OpSignature};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
+
 
 /// Creates an empty shell attached to a region.
 #[derive(Debug)]
@@ -29,18 +29,16 @@ pub struct MakeEmptyShellOutput {
 impl EulerOperator for MakeEmptyShell {
     type Output = MakeEmptyShellOutput;
 
+    const NAME: &'static str = "make_empty_shell";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
-        let shell_lineage = Lineage::root(0, sig.clone());
-
-        let shell = draft.insert_shell(ShellData::with_lineage(
+        let shell = draft.insert_shell(ShellData::new(
             FaceId::new(u32::MAX, 0),
             self.kind,
             self.region,
-            Some(shell_lineage),
         ));
 
         draft.arena_mut().get_region_mut(self.region)?.add_shell(shell);
@@ -60,8 +58,62 @@ impl EulerOperator for MakeEmptyShell {
             },
         })
     }
+}
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("make_empty_shell")
+/// Destroys an empty Shell, removing it from its parent Region.
+///
+/// The shell must have no faces (representative_face must be sentinels).
+#[derive(Debug)]
+pub struct DestroyShell {
+    /// The shell to destroy.
+    pub shell: ShellId,
+}
+
+impl EulerOperator for DestroyShell {
+    type Output = ();
+
+    const NAME: &'static str = "destroy_shell";
+
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+        let region = draft.arena().get_shell(self.shell)?.region();
+
+        // Validate shell is empty (no faces reference it)
+        let face_count = draft.arena().iter_faces()
+            .filter(|(_, f)| f.shell() == self.shell)
+            .count();
+
+        if face_count > 0 {
+            return Err(KernelError::InvalidInput {
+                message: format!(
+                    "DestroyShell: shell still has {} faces",
+                    face_count
+                ),
+                context: None,
+            });
+        }
+
+        draft.arena_mut().get_region_mut(region)?.remove_shell(self.shell);
+        draft.remove_shell(self.shell)?;
+
+        Ok(ExecutionResult {
+            value: (),
+            declared_delta: EulerDelta {
+                vertices: 0,
+                half_edges: 0,
+                faces: 0,
+                loops: 0,
+                edges: 0,
+                shells: -1,
+                solids: 0,
+                lumps: 0,
+                regions: 0,
+            },
+        })
     }
 }
+
+/// Alias for MakeEmptyShell.
+pub type CreateShell = MakeEmptyShell;

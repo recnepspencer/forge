@@ -201,7 +201,6 @@ fn copy_single_face(
 ) -> Result<FaceId, KernelError> {
     let new_plane = prepare_face_plane(source_geom, src_face, reverse_orientation)?;
     let src_face_data = source_arena.get_face(src_face)?;
-    let src_face_lineage = src_face_data.lineage().cloned();
     let src_inner_loops = src_face_data.inner_loops().to_vec();
 
     let edges = collect_loop_halfedges(source_arena, src_face_data.outer_loop())?;
@@ -226,8 +225,6 @@ fn copy_single_face(
 
     let rebuild_output = rebuild_face_from_vertices(draft, &resolved_verts, dest_shell, copy_sig)?;
 
-    let face_lineage = Some(Lineage::derive_from(&src_face_lineage, copy_sig));
-    draft.arena_mut().get_face_mut(rebuild_output.face)?.set_lineage(face_lineage);
 
     for (inner_idx, inner_loop_id) in src_inner_loops.into_iter().enumerate() {
         let inner_edges = collect_loop_halfedges(source_arena, inner_loop_id)?;
@@ -389,20 +386,14 @@ fn resolve_vertex(
     Ok(vid)
 }
 
-/// Merge lineage from a source vertex into an existing destination vertex.
 fn merge_vertex_lineage(
-    draft: &mut MutableDraft,
-    source_arena: &forge_topo::arena::TopologyArena,
-    src_vertex: VertexId,
-    dest_vertex: VertexId,
-    op_name: &'static str,
+    _draft: &mut MutableDraft,
+    _source_arena: &forge_topo::arena::TopologyArena,
+    _src_vertex: VertexId,
+    _dest_vertex: VertexId,
+    _op_name: &'static str,
 ) -> Result<(), KernelError> {
-    let src_lineage = source_arena.get_vertex(src_vertex)
-        .ok().and_then(|v| v.lineage().cloned());
-    let existing_lineage = draft.arena().get_vertex(dest_vertex)
-        .ok().and_then(|v| v.lineage().cloned());
-    let merged = Lineage::merge(&existing_lineage, &src_lineage, &OpSignature::new(op_name));
-    draft.arena_mut().get_vertex_mut(dest_vertex)?.set_lineage(Some(merged));
+    // TODO(lineage-phase-3): Re-implement via MutableDraft lineage recording
     Ok(())
 }
 
@@ -416,11 +407,7 @@ fn create_new_vertex(
     pos: &[f64; 3],
 ) -> Result<VertexId, KernelError> {
     let vid = apply_op(draft, MakeIsolatedVertex)?.into_value().vertex;
-    let src_lineage = source_arena.get_vertex(src_vertex)
-        .ok().and_then(|v| v.lineage().cloned());
-    if let Some(lineage) = src_lineage {
-        draft.arena_mut().get_vertex_mut(vid)?.set_lineage(Some(lineage));
-    }
+    // TODO(lineage-phase-3): Re-implement lineage transfer via MutableDraft
     result_geom.set_vertex_position(vid, *pos);
     if let Some(exact) = source_geom.get_vertex_position_exact(src_vertex) {
         if let Some(planes) = source_geom.get_vertex_symbolic_planes(src_vertex) {

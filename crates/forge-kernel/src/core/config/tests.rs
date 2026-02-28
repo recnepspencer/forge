@@ -15,7 +15,7 @@ mod cascade_tests {
         );
         let src = resolved.source_of("tolerance.spatial_tolerance").unwrap();
         assert_eq!(src.scope, ConfigScope::SessionDefault);
-        assert_eq!(src.origin, None);
+        assert_eq!(src.origin);
     }
 
     #[test]
@@ -71,7 +71,7 @@ mod cascade_tests {
 
         let src_slivers = resolved.source_of("tolerance.max_slivers_per_op").unwrap();
         assert_eq!(src_slivers.scope, ConfigScope::SessionDefault);
-        assert_eq!(src_slivers.origin, None);
+        assert_eq!(src_slivers.origin);
     }
 
     #[test]

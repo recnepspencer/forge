@@ -14,10 +14,10 @@ use forge_core::{KernelError, TopologyError};
 
 use crate::arena::{EdgeData, FaceData, HalfEdgeData, LoopData};
 use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, VertexId};
-use crate::lineage::{Lineage, OpSignature};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
+
 
 /// Split a face by inserting a new edge between two of its vertices.
 ///
@@ -52,10 +52,11 @@ pub struct MefOutput {
 impl EulerOperator for MakeEdgeFace {
     type Output = MefOutput;
 
+    const NAME: &'static str = "make_edge_face";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         if self.vertex_a == self.vertex_b {
             return Err(KernelError::InvalidInput {
@@ -72,44 +73,36 @@ impl EulerOperator for MakeEdgeFace {
         let prev_a = draft.arena().get_half_edge(he_from_a)?.prev();
         let prev_b = draft.arena().get_half_edge(he_from_b)?.prev();
 
-        let face_lineage = draft.arena().get_face(self.face)?.lineage().cloned();
         let source_shell = draft.arena().get_face(self.face)?.shell();
-        let he_ab_lineage = Lineage::derive_from(&face_lineage, sig.clone());
-        let he_ba_lineage = Lineage::derive_from(&face_lineage, sig.clone());
-        let new_face_lineage = Lineage::derive_from(&face_lineage, sig.clone());
-        let edge_lineage = Lineage::derive_from(&face_lineage, sig.clone());
 
         let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
         let placeholder_loop = LoopId::new(u32::MAX, 0);
 
-        let new_face = draft.insert_face(FaceData::with_lineage(
+        let new_face = draft.insert_face(FaceData::new(
             placeholder_loop,
             source_shell,
-            Some(new_face_lineage),
         ));
 
         let new_loop = draft.insert_loop(LoopData::new(placeholder_he, new_face));
 
-        let edge = draft.insert_edge(EdgeData::with_lineage(placeholder_he, Some(edge_lineage)));
+        let edge = draft.insert_edge(EdgeData::new(placeholder_he));
 
         let (he_ab, he_ba) = draft.insert_radial_pair(
-            HalfEdgeData::with_lineage(
+            HalfEdgeData::new(
                 placeholder_he,
                 he_from_b,
                 prev_a,
                 self.face,
                 self.vertex_a,
                 edge,
-                Some(he_ab_lineage),
             ),
-            HalfEdgeData::with_lineage(
+            HalfEdgeData::new(
                 placeholder_he,
                 he_from_a,
                 prev_b,
                 new_face,
                 self.vertex_b,
                 edge,
-                Some(he_ba_lineage),
             ),
         );
 
@@ -130,7 +123,7 @@ impl EulerOperator for MakeEdgeFace {
         let loop_b = collect_loop(draft, he_ba)?;
         let mut extra_edges = 0i32;
         for &he in loop_a.iter().chain(loop_b.iter()) {
-            if repair_edge_after_next_change(draft, he, sig)? {
+            if repair_edge_after_next_change(draft, he)? {
                 extra_edges += 1;
             }
         }
@@ -166,9 +159,7 @@ impl EulerOperator for MakeEdgeFace {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("make_edge_face")
-    }
+
 }
 
 /// Collect all halfedges originating from `vertex` that lie on `face`.
@@ -362,7 +353,6 @@ fn reassign_face_loop(
 fn repair_edge_after_next_change(
     draft: &mut MutableDraft,
     he: HalfEdgeId,
-    sig: &OpSignature,
 ) -> Result<bool, KernelError> {
     let he_data = draft.arena().get_half_edge(he)?;
     let twin = he_data.radial_next();
@@ -390,11 +380,7 @@ fn repair_edge_after_next_change(
     // The twin gets a new Edge entity and becomes self-radial.
     let old_edge = he_data.edge();
 
-    let he_lineage = he_data.lineage().cloned();
-    let new_edge = draft.insert_edge(EdgeData::with_lineage(
-        twin,
-        Some(Lineage::derive_from(&he_lineage, sig.clone())),
-    ));
+    let new_edge = draft.insert_edge(EdgeData::new(twin));
 
     let arena = draft.arena_mut();
     arena.get_half_edge_mut(he)?.set_radial_next(he);

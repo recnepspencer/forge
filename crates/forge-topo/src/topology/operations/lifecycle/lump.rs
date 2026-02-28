@@ -1,15 +1,15 @@
-//! MakeLumpRegion — creates a new Lump and Region inside an existing Body.
+//! MakeLumpRegion / DestroyLump — creates and destroys Lumps inside Bodies.
 //!
-//! DOMAIN: Extends an existing Body by adding a Lump containing a Region.
+//! DOMAIN: Extends/shrinks an existing Body by adding/removing a Lump+Region.
 
 use forge_core::KernelError;
 
 use crate::arena::{LumpData, RegionData};
 use crate::handles::{BodyId, LumpId, RegionId};
-use crate::lineage::{Lineage, OpSignature};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
+
 
 /// Creates a new Lump and Region inside an existing Body.
 #[derive(Debug)]
@@ -29,16 +29,14 @@ pub struct MakeLumpRegionOutput {
 impl EulerOperator for MakeLumpRegion {
     type Output = MakeLumpRegionOutput;
 
+    const NAME: &'static str = "make_lump_region";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
-        let lump_lineage = Lineage::root(0, sig.clone());
-        let region_lineage = Lineage::root(1, sig.clone());
-
-        let lump = draft.insert_lump(LumpData::with_lineage(self.body, Some(lump_lineage)));
-        let region = draft.insert_region(RegionData::with_lineage(lump, Some(region_lineage)));
+        let lump = draft.insert_lump(LumpData::new(self.body));
+        let region = draft.insert_region(RegionData::new(lump));
 
         draft.arena_mut().get_body_mut(self.body)?.add_lump(lump);
         draft.arena_mut().get_lump_mut(lump)?.add_region(region);
@@ -58,8 +56,66 @@ impl EulerOperator for MakeLumpRegion {
             },
         })
     }
+}
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("make_lump_region")
+/// Destroys an empty Lump and its single Region, removing it from its parent Body.
+///
+/// The lump must have exactly one region with no shells.
+#[derive(Debug)]
+pub struct DestroyLump {
+    /// The lump to destroy.
+    pub lump: LumpId,
+}
+
+impl EulerOperator for DestroyLump {
+    type Output = ();
+
+    const NAME: &'static str = "destroy_lump";
+
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+        let body = draft.arena().get_lump(self.lump)?.body();
+        let regions: Vec<RegionId> = draft.arena().get_lump(self.lump)?.regions().to_vec();
+
+        if regions.len() != 1 {
+            return Err(KernelError::InvalidInput {
+                message: format!(
+                    "DestroyLump: lump must have exactly 1 region, has {}",
+                    regions.len()
+                ),
+                context: None,
+            });
+        }
+        let region = regions[0];
+        if draft.arena().get_region(region)?.shell_count() > 0 {
+            return Err(KernelError::InvalidInput {
+                message: "DestroyLump: region must have no shells".to_string(),
+                context: None,
+            });
+        }
+
+        draft.arena_mut().get_body_mut(body)?.remove_lump(self.lump);
+        draft.remove_region(region)?;
+        draft.remove_lump(self.lump)?;
+
+        Ok(ExecutionResult {
+            value: (),
+            declared_delta: EulerDelta {
+                vertices: 0,
+                half_edges: 0,
+                faces: 0,
+                loops: 0,
+                edges: 0,
+                shells: 0,
+                solids: 0,
+                lumps: -1,
+                regions: -1,
+            },
+        })
     }
 }
+
+/// Alias for MakeLumpRegion.
+pub type CreateLump = MakeLumpRegion;

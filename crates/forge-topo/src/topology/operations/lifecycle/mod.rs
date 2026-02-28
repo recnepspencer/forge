@@ -5,7 +5,6 @@
 //!
 //! OPERATORS (from operators-list.md §B):
 //! - B1: CreateBody, DestroyBody, CloneBody, DetachBody, AttachBody, SplitBody, MergeBodies
-//! - B2: CreateComponent, DestroyComponent, SplitComponent, MergeComponents, ExtractComponent, ReattachComponent
 //! - B3: CreateLump, DestroyLump, SplitLump, MergeLumps, ExtractLump, InsertLump, RehomeLump
 //! - B4: CreateShell, DestroyShell, SplitShell, MergeShells, ExtractShell, InsertShell, PromoteShell, DemoteShell, RehomeShell
 //!
@@ -14,3 +13,6 @@
 pub mod solid;
 pub mod lump;
 pub mod shell;
+pub mod body_ops;
+pub mod lump_ops;
+pub mod shell_ops;

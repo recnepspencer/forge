@@ -21,6 +21,7 @@ use crate::operations::boolean::test_helpers::{
 };
 use crate::operations::boolean::BooleanInput;
 use crate::operations::boolean::{BooleanOp, FaceClassification};
+use crate::lineage::{LineageEvent};
 
 /// MB-R1: Checkpoint diff pinpoints injected divergence in a chain.
 ///

@@ -14,10 +14,10 @@ use forge_core::{ErrorContext, ErrorScope, KernelError, TopologyError};
 
 use crate::arena::EdgeData;
 use crate::handles::{EdgeId, HalfEdgeId};
-use crate::lineage::{Lineage, OpSignature};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
+
 
 /// Open a boundary by ungluing two halfedges, creating a new edge entity.
 ///
@@ -42,13 +42,14 @@ pub struct UnsewEdgeOutput {
 impl EulerOperator for UnsewEdge {
     type Output = UnsewEdgeOutput;
 
+    const NAME: &'static str = "unsew_edge";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
-        let op_name = self.signature().get_name().to_string();
-        let inv_id = sig.get_invocation_id() as u64;
+        let op_name = Self::NAME.to_string();
+        let inv_id = 0u64;
 
         // Validate inputs and extract necessary handles first
         let (original_edge, face_a, face_b) = {
@@ -69,10 +70,7 @@ impl EulerOperator for UnsewEdge {
 
             (he_a_data.edge(), he_a_data.face(), he_b_data.face())
         };
-
-        let original_edge_lineage = draft.arena().get_edge(original_edge)?.lineage().cloned();
-        let edge_lineage = Lineage::derive_from(&original_edge_lineage, sig.clone());
-        let new_edge = draft.insert_edge(EdgeData::with_lineage(self.he_b, Some(edge_lineage)));
+        let new_edge = draft.insert_edge(EdgeData::new(self.he_b));
 
         // 1. Unsew the radial pointers (they become their own twins = boundaries)
         draft
@@ -113,9 +111,7 @@ impl EulerOperator for UnsewEdge {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("unsew_edge")
-    }
+
 }
 
 #[cfg(test)]

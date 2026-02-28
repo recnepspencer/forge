@@ -7,7 +7,7 @@ use crate::testing::{dummy_face_data, dummy_halfedge_data, dummy_vertex_data};
 #[test]
 fn insert_and_get_vertex() {
     let mut arena = TopologyArena::new();
-    let id = arena.insert_vertex(dummy_vertex_data(), None);
+    let id = arena.insert_vertex(dummy_vertex_data());
     let vertex = arena.get_vertex(id);
     assert!(vertex.is_ok());
 }
@@ -15,7 +15,7 @@ fn insert_and_get_vertex() {
 #[test]
 fn insert_and_get_face() {
     let mut arena = TopologyArena::new();
-    let id = arena.insert_face(dummy_face_data(), None);
+    let id = arena.insert_face(dummy_face_data());
     let face = arena.get_face(id);
     assert!(face.is_ok());
 }
@@ -23,8 +23,8 @@ fn insert_and_get_face() {
 #[test]
 fn stale_handle_returns_error() {
     let mut arena = TopologyArena::new();
-    let id = arena.insert_vertex(dummy_vertex_data(), None);
-    arena.remove_vertex(id, None).unwrap();
+    let id = arena.insert_vertex(dummy_vertex_data());
+    arena.remove_vertex(id).unwrap();
     let result = arena.get_vertex(id);
     assert!(result.is_err());
 }
@@ -35,9 +35,9 @@ fn entity_counts() {
     assert_eq!(arena.vertex_count(), 0);
     assert_eq!(arena.face_count(), 0);
 
-    arena.insert_vertex(dummy_vertex_data(), None);
-    arena.insert_vertex(dummy_vertex_data(), None);
-    arena.insert_face(dummy_face_data(), None);
+    arena.insert_vertex(dummy_vertex_data());
+    arena.insert_vertex(dummy_vertex_data());
+    arena.insert_face(dummy_face_data());
 
     assert_eq!(arena.vertex_count(), 2);
     assert_eq!(arena.face_count(), 1);
@@ -46,9 +46,9 @@ fn entity_counts() {
 #[test]
 fn remove_decrements_count() {
     let mut arena = TopologyArena::new();
-    let id = arena.insert_vertex(dummy_vertex_data(), None);
+    let id = arena.insert_vertex(dummy_vertex_data());
     assert_eq!(arena.vertex_count(), 1);
-    arena.remove_vertex(id, None).unwrap();
+    arena.remove_vertex(id).unwrap();
     assert_eq!(arena.vertex_count(), 0);
 }
 
@@ -63,10 +63,10 @@ fn out_of_bounds_handle_returns_error() {
 #[test]
 fn clone_is_independent() {
     let mut arena = TopologyArena::new();
-    let id = arena.insert_vertex(dummy_vertex_data(), None);
+    let id = arena.insert_vertex(dummy_vertex_data());
 
     let arena_clone = arena.clone();
-    arena.remove_vertex(id, None).unwrap();
+    arena.remove_vertex(id).unwrap();
 
     assert_eq!(arena.vertex_count(), 0);
     assert_eq!(arena_clone.vertex_count(), 1);
@@ -75,10 +75,10 @@ fn clone_is_independent() {
 #[test]
 fn singular_halfedge_insertion() {
     let mut arena = TopologyArena::new();
-    let face = arena.insert_face(dummy_face_data(), None);
-    let vertex = arena.insert_vertex(dummy_vertex_data(), None);
+    let face = arena.insert_face(dummy_face_data());
+    let vertex = arena.insert_vertex(dummy_vertex_data());
 
-    let he_id = arena.insert_half_edge(dummy_halfedge_data(face, vertex), None);
+    let he_id = arena.insert_half_edge(dummy_halfedge_data(face, vertex));
     assert_eq!(he_id.index(), 0);
     assert_eq!(arena.half_edge_count(), 1);
 }
@@ -86,13 +86,12 @@ fn singular_halfedge_insertion() {
 #[test]
 fn paired_halfedge_insertion_sets_twins() {
     let mut arena = TopologyArena::new();
-    let face = arena.insert_face(dummy_face_data(), None);
-    let vertex = arena.insert_vertex(dummy_vertex_data(), None);
+    let face = arena.insert_face(dummy_face_data());
+    let vertex = arena.insert_vertex(dummy_vertex_data());
 
     let (he0, he1) = arena.insert_radial_pair(
         dummy_halfedge_data(face, vertex),
         dummy_halfedge_data(face, vertex),
-        None,
     );
     assert_eq!(arena.half_edge_count(), 2);
     assert_eq!(arena.get_half_edge(he0).unwrap().radial_next(), he1);
@@ -102,8 +101,8 @@ fn paired_halfedge_insertion_sets_twins() {
 #[test]
 fn loop_insert_and_get() {
     let mut arena = TopologyArena::new();
-    let face = arena.insert_face(dummy_face_data(), None);
-    let loop_id = arena.insert_loop(LoopData::new(HalfEdgeId::new(0, 0), face), None);
+    let face = arena.insert_face(dummy_face_data());
+    let loop_id = arena.insert_loop(LoopData::new(HalfEdgeId::new(0, 0), face));
     assert_eq!(arena.loop_count(), 1);
     assert!(arena.get_loop(loop_id).is_ok());
 }
@@ -112,11 +111,11 @@ fn loop_insert_and_get() {
 fn removed_vertex_slot_is_reused() {
     let mut arena = TopologyArena::new();
 
-    let v0 = arena.insert_vertex(dummy_vertex_data(), None);
-    arena.remove_vertex(v0, None).unwrap();
+    let v0 = arena.insert_vertex(dummy_vertex_data());
+    arena.remove_vertex(v0).unwrap();
     let slot_count_after_remove = arena.vertex_slot_count();
 
-    let v1 = arena.insert_vertex(dummy_vertex_data(), None);
+    let v1 = arena.insert_vertex(dummy_vertex_data());
 
     assert_eq!(v1.index(), v0.index());
     assert_ne!(v1.generation(), v0.generation());

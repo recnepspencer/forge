@@ -15,6 +15,7 @@ use crate::core::ModelingContext;
 use crate::geometry_state::GeometryState;
 use forge_topo::topology::naming::Selector;
 use forge_topo::topology::naming::{assign_name, PersistentName};
+use crate::lineage::{LineageEvent, OpSignature};
 
 fn env_test_lock() -> &'static Mutex<()> {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
@@ -226,12 +227,6 @@ fn build_ambiguous_face_persistent_name_fixture(
     .expect("assign source face name");
 
     let mut draft = topo.into_mutation();
-    let source_lineage = draft
-        .arena()
-        .get_face(source_face)
-        .expect("source face exists")
-        .lineage()
-        .cloned()
         .expect("source face lineage");
     draft
         .arena_mut()
@@ -491,7 +486,7 @@ fn selector_based_persistent_resolution_uses_typed_contract_and_fails_closed() {
                 evidence,
                 query,
             }
-            .to_trace_payload(forge_core::DecisionId(1), None, None);
+            .to_trace_payload(forge_core::DecisionId(1), None);
 
             match payload.query {
                 forge_core::tracing::ResolutionQuerySummary::Selector {

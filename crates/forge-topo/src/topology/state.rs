@@ -26,7 +26,7 @@ use crate::handles::{
     BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
 };
 use crate::hashing::compute_arena_topology_hash;
-use crate::lineage::{LineageEvent, OpSignature};
+use crate::lineage::{Lineage, LineageEvent, OpSignature};
 use crate::lineage_store::LineageStore;
 use crate::replay::{ReplayEntry, ReplayLog};
 use crate::topology::history::lineage_link::ReidentificationLinkIndex;
@@ -407,21 +407,20 @@ impl MutableDraft {
     pub(crate) fn compute_topology_hash(&self) -> u128 {
         compute_arena_topology_hash(&self.arena)
     }
-    // ── Proxy CRUD Methods (Option B Lineage Hooks) ────────────────
+    // ── Proxy CRUD Methods ───────────────────────────────────────────
+    // Arena is pure storage. Lineage recording (Phase 3) will be added
+    // as a separate step after the arena call returns the handle/data.
 
     pub fn insert_face(&mut self, data: crate::arena::FaceData) -> FaceId {
-        let (arena, store) = self.unbundle_mut();
-        arena.insert_face(data, Some(store))
+        self.arena.insert_face(data)
     }
 
     pub fn remove_face(&mut self, id: FaceId) -> Result<crate::arena::FaceData, KernelError> {
-        let (arena, store) = self.unbundle_mut();
-        arena.remove_face(id, Some(store))
+        self.arena.remove_face(id)
     }
 
     pub fn insert_half_edge(&mut self, data: crate::arena::HalfEdgeData) -> HalfEdgeId {
-        let (arena, store) = self.unbundle_mut();
-        arena.insert_half_edge(data, Some(store))
+        self.arena.insert_half_edge(data)
     }
 
     pub fn insert_radial_pair(
@@ -429,86 +428,70 @@ impl MutableDraft {
         data_a: crate::arena::HalfEdgeData,
         data_b: crate::arena::HalfEdgeData,
     ) -> (HalfEdgeId, HalfEdgeId) {
-        let (arena, store) = self.unbundle_mut();
-        arena.insert_radial_pair(data_a, data_b, Some(store))
+        self.arena.insert_radial_pair(data_a, data_b)
     }
 
     pub fn remove_half_edge(
         &mut self,
         id: HalfEdgeId,
     ) -> Result<crate::arena::HalfEdgeData, KernelError> {
-        let (arena, store) = self.unbundle_mut();
-        arena.remove_half_edge(id, Some(store))
+        self.arena.remove_half_edge(id)
     }
 
     pub fn insert_vertex(&mut self, data: crate::arena::VertexData) -> VertexId {
-        let (arena, store) = self.unbundle_mut();
-        arena.insert_vertex(data, Some(store))
+        self.arena.insert_vertex(data)
     }
 
     pub fn remove_vertex(&mut self, id: VertexId) -> Result<crate::arena::VertexData, KernelError> {
-        let (arena, store) = self.unbundle_mut();
-        arena.remove_vertex(id, Some(store))
+        self.arena.remove_vertex(id)
     }
 
     pub fn insert_loop(&mut self, data: crate::arena::LoopData) -> LoopId {
-        let (arena, store) = self.unbundle_mut();
-        arena.insert_loop(data, Some(store))
+        self.arena.insert_loop(data)
     }
 
     pub fn remove_loop(&mut self, id: LoopId) -> Result<crate::arena::LoopData, KernelError> {
-        let (arena, store) = self.unbundle_mut();
-        arena.remove_loop(id, Some(store))
+        self.arena.remove_loop(id)
     }
 
     pub fn insert_shell(&mut self, data: crate::arena::ShellData) -> ShellId {
-        let (arena, store) = self.unbundle_mut();
-        arena.insert_shell(data, Some(store))
+        self.arena.insert_shell(data)
     }
 
     pub fn remove_shell(&mut self, id: ShellId) -> Result<crate::arena::ShellData, KernelError> {
-        let (arena, store) = self.unbundle_mut();
-        arena.remove_shell(id, Some(store))
+        self.arena.remove_shell(id)
     }
 
     pub fn insert_body(&mut self, data: crate::arena::BodyData) -> BodyId {
-        let (arena, store) = self.unbundle_mut();
-        arena.insert_body(data, Some(store))
+        self.arena.insert_body(data)
     }
 
     pub fn remove_body(&mut self, id: BodyId) -> Result<crate::arena::BodyData, KernelError> {
-        let (arena, store) = self.unbundle_mut();
-        arena.remove_body(id, Some(store))
+        self.arena.remove_body(id)
     }
 
     pub fn insert_lump(&mut self, data: crate::arena::LumpData) -> LumpId {
-        let (arena, store) = self.unbundle_mut();
-        arena.insert_lump(data, Some(store))
+        self.arena.insert_lump(data)
     }
 
     pub fn remove_lump(&mut self, id: LumpId) -> Result<crate::arena::LumpData, KernelError> {
-        let (arena, store) = self.unbundle_mut();
-        arena.remove_lump(id, Some(store))
+        self.arena.remove_lump(id)
     }
 
     pub fn insert_region(&mut self, data: crate::arena::RegionData) -> RegionId {
-        let (arena, store) = self.unbundle_mut();
-        arena.insert_region(data, Some(store))
+        self.arena.insert_region(data)
     }
 
     pub fn remove_region(&mut self, id: RegionId) -> Result<crate::arena::RegionData, KernelError> {
-        let (arena, store) = self.unbundle_mut();
-        arena.remove_region(id, Some(store))
+        self.arena.remove_region(id)
     }
 
     pub fn insert_edge(&mut self, data: crate::arena::EdgeData) -> EdgeId {
-        let (arena, store) = self.unbundle_mut();
-        arena.insert_edge(data, Some(store))
+        self.arena.insert_edge(data)
     }
 
     pub fn remove_edge(&mut self, id: EdgeId) -> Result<crate::arena::EdgeData, KernelError> {
-        let (arena, store) = self.unbundle_mut();
-        arena.remove_edge(id, Some(store))
+        self.arena.remove_edge(id)
     }
 }
 
@@ -539,7 +522,7 @@ impl std::fmt::Debug for MutableDraft {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lineage::{Lineage, LineageEntityRef};
+    use crate::lineage::LineageEntityRef;
     use forge_core::{EntityKind, EntityRef};
     use serde_json::Value;
 

@@ -1,5 +1,6 @@
 use super::super::schema::{BooleanInput, BooleanOp};
 use super::super::test_helpers::{build_cube, execute_boolean_logged, run_boolean};
+use crate::lineage::{OpSignature};
 
 // ══════════════════════════════════════════════════════════════
 // §4  TOPOLOGY INTEGRITY TORTURE

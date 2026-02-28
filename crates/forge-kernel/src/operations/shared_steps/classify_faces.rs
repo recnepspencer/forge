@@ -32,10 +32,11 @@ use crate::operations::boolean::classify_schema::{ClassifiedFace, FaceClassifica
 
 /// True when this face was created by a `make_edge_face` Euler operator
 /// during the Boolean split phase.
-fn is_intersection_face(arena: &TopologyArena, face_id: FaceId) -> bool {
-    let Some(face) = arena.get_face(face_id).ok() else { return false };
-    let Some(lineage) = face.lineage() else { return false };
-    lineage.get_creation_op().get_name().starts_with("make_edge_face")
+///
+/// TODO(lineage-phase-3): Re-implement once MutableDraft lineage is wired.
+fn is_intersection_face(_arena: &TopologyArena, _face_id: FaceId) -> bool {
+    // Lineage was stripped from FaceData; this needs MutableDraft-based lookup.
+    false
 }
 use crate::shared_ops::vertex::centroid::compute_face_centroid;
 use crate::shared_ops::spatial::normal_alignment::faces_have_aligned_normals;
@@ -86,18 +87,7 @@ pub fn classify_faces(
         {
             let sample = compute_face_centroid(source_arena, source_geometry, face_id)
                 .unwrap_or([f64::NAN; 3]);
-            let lineage_str = source_arena
-                .get_face(face_id)
-                .ok()
-                .and_then(|f| f.lineage())
-                .map(|lin| {
-                    format!(
-                        "{}#{}",
-                        lin.get_creation_op().get_name(),
-                        lin.get_creation_op().get_invocation_id()
-                    )
-                })
-                .unwrap_or_else(|| "no-lineage".to_string());
+            let lineage_str = "no-lineage".to_string();
             eprintln!(
                 "[classify-prov] {} F#{} {:?} sample=[{:.6},{:.6},{:.6}] {}",
                 origin_label,

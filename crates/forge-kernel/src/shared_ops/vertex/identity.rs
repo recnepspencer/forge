@@ -25,6 +25,8 @@
 
 use forge_math::arithmetic::Rational;
 
+
+
 /// Transient geometric match key for cross-solid vertex deduplication.
 ///
 /// Keyed by the exact rational `[x, y, z]` position of the vertex.

@@ -15,10 +15,9 @@ use forge_core::KernelError;
 
 use crate::arena::FaceData;
 use crate::handles::{FaceId, LoopId};
-use crate::lineage::{Lineage, OpSignature};
-use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
+use crate::operator::{EulerDelta, ExecutionResult};
 
 /// Promotes an inner loop (hole) into the outer loop of a new face.
 #[derive(Debug)]
@@ -36,10 +35,11 @@ pub struct MfkrhOutput {
 impl EulerOperator for MakeFaceKillRingHole {
     type Output = MfkrhOutput;
 
+    const NAME: &'static str = "make_face_kill_ring_hole";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let loop_data = draft.arena().get_loop(self.loop_id)?;
         let old_face = loop_data.face();
@@ -67,14 +67,9 @@ impl EulerOperator for MakeFaceKillRingHole {
         }
 
         let shell = old_face_data.shell();
-        let parent_lineage = old_face_data.lineage().cloned();
-
-        let face_lineage = Lineage::derive_from(&parent_lineage, sig.clone());
-
-        let new_face = draft.insert_face(FaceData::with_lineage(
+        let new_face = draft.insert_face(FaceData::new(
             self.loop_id,
             shell,
-            Some(face_lineage),
         ));
 
         draft
@@ -122,7 +117,5 @@ impl EulerOperator for MakeFaceKillRingHole {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("make_face_kill_ring_hole")
-    }
+
 }

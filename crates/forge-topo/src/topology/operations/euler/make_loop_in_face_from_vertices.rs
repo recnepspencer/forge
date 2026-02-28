@@ -15,10 +15,9 @@ use forge_core::KernelError;
 
 use crate::arena::{EdgeData, HalfEdgeData, LoopData};
 use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, VertexId};
-use crate::lineage::{Lineage, OpSignature};
-use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
 use crate::EulerOperator;
+use crate::operator::{EulerDelta, ExecutionResult};
 
 /// Creates a new inner loop on an existing face by connecting a sequence of vertices.
 #[derive(Debug)]
@@ -42,10 +41,11 @@ pub struct MlifvOutput {
 impl EulerOperator for MakeLoopInFaceFromVertices {
     type Output = MlifvOutput;
 
+    const NAME: &'static str = "make_loop_in_face_from_vertices";
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
-        sig: &OpSignature,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let n = self.vertices.len();
         if n < 3 {
@@ -75,9 +75,6 @@ impl EulerOperator for MakeLoopInFaceFromVertices {
         }
 
         let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
-
-        let face_lineage = draft.arena().get_face(self.face)?.lineage().cloned();
-
         let loop_id = draft.insert_loop(LoopData::new(placeholder_he, self.face));
         draft
             .arena_mut()
@@ -88,19 +85,17 @@ impl EulerOperator for MakeLoopInFaceFromVertices {
         let mut edges = Vec::with_capacity(n);
 
         for _ in 0..n {
-            let edge_lineage = Lineage::derive_from(&face_lineage, sig.clone());
-            let he_lineage = Lineage::derive_from(&face_lineage, sig.clone());
+
 
             let edge =
-                draft.insert_edge(EdgeData::with_lineage(placeholder_he, Some(edge_lineage)));
-            let he = draft.insert_half_edge(HalfEdgeData::with_lineage(
+                draft.insert_edge(EdgeData::new(placeholder_he));
+            let he = draft.insert_half_edge(HalfEdgeData::new(
                 placeholder_he,
                 placeholder_he,
                 placeholder_he,
                 self.face,
                 VertexId::new(u32::MAX, 0),
                 edge,
-                Some(he_lineage),
             ));
 
             draft.arena_mut().get_edge_mut(edge)?.set_half_edge(he);
@@ -154,7 +149,5 @@ impl EulerOperator for MakeLoopInFaceFromVertices {
         })
     }
 
-    fn signature(&self) -> OpSignature {
-        OpSignature::new("make_loop_in_face_from_vertices")
-    }
+
 }

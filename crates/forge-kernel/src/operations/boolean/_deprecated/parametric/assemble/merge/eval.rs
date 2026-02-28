@@ -34,6 +34,7 @@ use crate::operations::boolean::_deprecated::parametric::engines::planar::{plana
 use crate::operations::boolean::_deprecated::shared::select::select_faces;
 use super::super::disjoint::execute_zero_split;
 use crate::operations::boolean::_deprecated::shared::assemble::assemble_result;
+use crate::lineage::{LineageEvent, OpSignature};
 
 /// Execute a Boolean operation on two solids.
 ///

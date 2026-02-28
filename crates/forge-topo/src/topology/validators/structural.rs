@@ -51,6 +51,4 @@ pub fn validate_topology(arena: &TopologyArena, level: ValidationLevel) -> Resul
 /// Re-export for external callers that need manifold checks directly.
 pub use shell_closure::validate_manifold_edges;
 
-pub use loop_wiring::validate_vertex_continuity;
 
-pub use radial_edge::validate_radial_edge_consistency;

@@ -140,16 +140,16 @@ fn pv_04_degenerate_loop_detection() {
     let placeholder_he = HalfEdgeId::from_raw_parts(0, 0);
     let placeholder_face = FaceId::from_raw_parts(0, 0);
 
-    let v0 = arena.insert_vertex(VertexData::new(placeholder_he), None);
-    let v1 = arena.insert_vertex(VertexData::new(placeholder_he), None);
+    let v0 = arena.insert_vertex(VertexData::new(placeholder_he));
+    let v1 = arena.insert_vertex(VertexData::new(placeholder_he));
 
-    let v2 = arena.insert_vertex(VertexData::new(placeholder_he), None);
+    let v2 = arena.insert_vertex(VertexData::new(placeholder_he));
 
     let placeholder_shell = insert_test_solid_shell(arena);
     let placeholder_edge = forge_topo::handles::EdgeId::from_raw_parts(0, 0);
 
-    let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face), None);
-    let face = arena.insert_face(FaceData::new(loop_id, placeholder_shell), None);
+    let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
+    let face = arena.insert_face(FaceData::new(loop_id, placeholder_shell));
     arena
         .get_shell_mut(placeholder_shell)
         .unwrap()
@@ -196,8 +196,8 @@ fn pv_04_degenerate_loop_detection() {
     arena.get_half_edge_mut(he2).unwrap().set_next(he0);
     arena.get_half_edge_mut(he2).unwrap().set_prev(he1);
 
-    let loop_id2 = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face), None);
-    let face2 = arena.insert_face(FaceData::new(loop_id2, placeholder_shell), None);
+    let loop_id2 = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
+    let face2 = arena.insert_face(FaceData::new(loop_id2, placeholder_shell));
 
     let twin0 = arena.insert_half_edge(
         HalfEdgeData::new(

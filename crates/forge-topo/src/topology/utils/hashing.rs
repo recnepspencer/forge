@@ -421,8 +421,7 @@ fn entity_kind_discriminant(kind: EntityKind) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lineage::{Lineage, OpSignature};
-
+    use crate::lineage::OpSignature;
     #[test]
     fn same_entity_produces_same_hash() {
         let h1 = compute_entity_hash(EntityKind::Face, &[1, 2, 3], None);
