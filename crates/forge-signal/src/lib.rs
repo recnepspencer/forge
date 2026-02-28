@@ -31,16 +31,11 @@
 
 #![forbid(unsafe_code)]
 
-pub mod evaluation;
-pub mod graph;
-pub mod handles;
-pub mod prelude;
-pub mod schema;
+mod data;
+mod logic;
+mod presentation;
 
-pub use evaluation::{evaluate, mark_dirty, EvaluationContext};
-pub use graph::SignalGraph;
-pub use handles::NodeId;
-pub use schema::{Aspect, DependencyEdge};
+pub mod facade;
 
 #[cfg(test)]
 mod tests;

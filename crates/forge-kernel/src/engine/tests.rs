@@ -12,7 +12,7 @@ use crate::engine::wrappers::BooleanFeature;
 use crate::primitives::MakePrimitiveFeature;
 use forge_core::PolicyKind;
 use forge_schema::{Command, EntityRef};
-use forge_signal::handles::NodeId;
+use forge_signal::facade::NodeId;
 
 // ── Tier 0: Command Dispatch ─────────────────────────────────────────────
 
@@ -660,7 +660,7 @@ fn typed_inputs_reject_missing_dependency() {
 
     // Create a fake NodeId that won't exist in the input map.
     let fake_id = {
-        let mut graph = forge_signal::graph::SignalGraph::new();
+        let mut graph = forge_signal::facade::SignalGraph::new();
         graph.create_node()
     };
 

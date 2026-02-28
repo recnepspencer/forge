@@ -9,10 +9,7 @@
 //!
 //! DEPENDENCIES: All forge-signal modules
 
-use crate::evaluation::context::EvaluationContext;
-use crate::evaluation::{evaluate, mark_dirty};
-use crate::graph::SignalGraph;
-use crate::schema::{Aspect, AspectVersion, NodeState};
+use crate::facade::*;
 
 // =========================================================================
 // Milestone 1C.1 — Signal Graph Core & State Transitions
@@ -134,7 +131,7 @@ fn clean_version_skip_on_unchanged_upstream() {
 #[test]
 fn chain_1000_minimal_recomputation() {
     let mut graph = SignalGraph::new();
-    let mut chain: Vec<crate::handles::NodeId> = Vec::with_capacity(1000);
+    let mut chain: Vec<crate::facade::NodeId> = Vec::with_capacity(1000);
 
     let first = graph.create_node();
     chain.push(first);
@@ -167,7 +164,7 @@ fn chain_1000_minimal_recomputation() {
 #[test]
 fn push_perf_10k_nodes() {
     let mut graph = SignalGraph::new();
-    let mut chain: Vec<crate::handles::NodeId> = Vec::with_capacity(10_000);
+    let mut chain: Vec<crate::facade::NodeId> = Vec::with_capacity(10_000);
 
     let first = graph.create_node();
     chain.push(first);
@@ -413,7 +410,7 @@ fn kv64_parallel_branches_deterministic() {
     let mut graph = SignalGraph::new();
     let root = graph.create_node();
 
-    let mut branches: Vec<Vec<crate::handles::NodeId>> = Vec::new();
+    let mut branches: Vec<Vec<crate::facade::NodeId>> = Vec::new();
     for _ in 0..5 {
         let mut branch = Vec::new();
         let first = graph.create_node();

@@ -10,7 +10,7 @@
 
 use forge_core::KernelError;
 use forge_schema::{Command, EntityRef};
-use forge_signal::handles::NodeId;
+use forge_signal::facade::NodeId;
 
 use crate::engine::tree::{FeatureTree, NativeFeature};
 use crate::engine::wrappers::BooleanFeature;

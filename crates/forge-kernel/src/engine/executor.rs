@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use forge_core::envelope::OperationResult;
 use forge_core::tracing::TraceAdjunctSet;
 use forge_core::KernelError;
-use forge_signal::handles::NodeId;
+use forge_signal::facade::NodeId;
 
 use super::contract::{AuditLevel, FeatureInputs};
 use super::errors::PipelineError;

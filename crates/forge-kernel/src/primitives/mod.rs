@@ -21,7 +21,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use forge_core::KernelError;
-use forge_signal::handles::NodeId;
+use forge_signal::facade::NodeId;
 
 use crate::core::config::resolve::ResolvedConfig;
 use crate::engine::traits::{Feature, FeatureOutput};

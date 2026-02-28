@@ -18,9 +18,9 @@ use serde::{Deserialize, Serialize};
 
 use forge_core::envelope::OperationResult;
 use forge_core::KernelError;
-use forge_signal::graph::SignalGraph;
-use forge_signal::handles::NodeId;
-use forge_signal::schema::{Aspect, AspectVersion};
+use forge_signal::facade::SignalGraph;
+use forge_signal::facade::NodeId;
+use forge_signal::facade::{Aspect, AspectVersion};
 
 use super::executor::FeaturePipeline;
 pub use super::traits::{Feature, FeatureOutput};
@@ -135,8 +135,8 @@ impl FeatureTree {
 
         self.features.insert(node_id, feature);
 
-        forge_signal::evaluation::mark_dirty(&mut self.graph, node_id, Aspect::Topology)?;
-        forge_signal::evaluation::mark_dirty(&mut self.graph, node_id, Aspect::Geometry)?;
+        forge_signal::facade::mark_dirty(&mut self.graph, node_id, Aspect::Topology)?;
+        forge_signal::facade::mark_dirty(&mut self.graph, node_id, Aspect::Geometry)?;
 
         Ok(node_id)
     }
@@ -178,8 +178,8 @@ impl FeatureTree {
                 .add_dependency(node_id, dep_id, Aspect::Geometry)?;
         }
 
-        forge_signal::evaluation::mark_dirty(&mut self.graph, node_id, Aspect::Topology)?;
-        forge_signal::evaluation::mark_dirty(&mut self.graph, node_id, Aspect::Geometry)?;
+        forge_signal::facade::mark_dirty(&mut self.graph, node_id, Aspect::Topology)?;
+        forge_signal::facade::mark_dirty(&mut self.graph, node_id, Aspect::Geometry)?;
 
         Ok(())
     }
@@ -253,7 +253,7 @@ impl FeatureTree {
                 Ok(AspectVersion::new(1, 1))
             };
 
-        forge_signal::evaluation::evaluate(graph, node_id, &mut compute)?;
+        forge_signal::facade::evaluate(graph, node_id, &mut compute)?;
 
         for (id, summary) in pending_traces {
             if let Ok(entry) = graph.get_entry_mut(id) {

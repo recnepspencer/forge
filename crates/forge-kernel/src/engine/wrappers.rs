@@ -10,7 +10,7 @@ use crate::operations::boolean::execute_boolean;
 use crate::operations::boolean::{BooleanInput, BooleanOp};
 use forge_core::DecisionLog;
 use forge_core::KernelError;
-use forge_signal::handles::NodeId;
+use forge_signal::facade::NodeId;
 use forge_topo::provenance::ReplayLog;
 
 use super::contract::{AuditLevel, EntityOriginKind, FeatureInputs, InvariantKind};

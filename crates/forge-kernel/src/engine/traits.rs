@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use forge_core::KernelError;
-use forge_signal::handles::NodeId;
+use forge_signal::facade::NodeId;
 use forge_topo::transactions::TopologyState;
 
 use crate::brep::state::BrepState;
@@ -41,7 +41,7 @@ pub struct FeatureOutput {
 /// use forge_kernel::features::pipeline::contract::FeatureInputs;
 /// use forge_kernel::core::config::resolve::ResolvedConfig;
 /// use forge_core::KernelError;
-/// use forge_signal::handles::NodeId;
+/// use forge_signal::facade::NodeId;
 /// use std::collections::HashMap;
 ///
 /// #[derive(Debug)]
