@@ -11,3 +11,10 @@
 rustflags = [
     "-C", "overflow-checks=on",
 ]
+
+# Trace output verbosity (force = false → your override wins):
+#   RUST_LOG=info   cargo test   → display_interesting() summary (default)
+#   RUST_LOG=debug  cargo test   → every decision, line by line
+#   RUST_LOG=off    cargo test   → silent (CI-friendly)
+[env]
+RUST_LOG = { value = "info", force = false }

@@ -49,11 +49,6 @@ pub struct ModelingContext {
     /// Typed adjunct payloads produced alongside traced decisions.
     pub(crate) trace_adjuncts: TraceAdjunctSet,
     pub(crate) decision_counter: u64,
-    /// When true, Drop persists the DecisionLog as an error trace
-    /// if take_decision_log() was never called (i.e. the operation failed).
-    pub(crate) auto_persist: bool,
-    /// Set by take_decision_log() to indicate the success path was taken.
-    pub(crate) log_drained: bool,
     /// Forced classification overrides for counterfactual replay.
     ///
     /// Keyed by `DecisionId` raw value (face index). When the classify
@@ -83,40 +78,9 @@ impl ModelingContext {
             sub_accumulated_error_budget: 0.0,
             trace_adjuncts: TraceAdjunctSet::new(),
             decision_counter: 0,
-            auto_persist: false,
-            log_drained: false,
             classification_overrides: BTreeMap::new(),
-
             operation_space: super::super::OperationSpace::identity(),
         }
-    }
-
-    /// Enable auto-persist on Drop. Call this on contexts used by
-    /// top-level operations (e.g. `execute_boolean`) so that error
-    /// traces are captured when the operation fails.
-    pub fn enable_auto_persist(&mut self) {
-        self.auto_persist = true;
-    }
-}
-
-impl Drop for ModelingContext {
-    /// Auto-persist the DecisionLog on error or panic.
-    ///
-    /// Only fires when `auto_persist` is enabled (top-level operations)
-    /// AND `take_decision_log()` was never called (the error path).
-    fn drop(&mut self) {
-        if !self.auto_persist || self.log_drained || self.decision_log.is_empty() {
-            return;
-        }
-
-        let dir = match forge_core::resolve_trace_dir() {
-            Some(d) => d,
-            None => return,
-        };
-
-        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            forge_core::write_trace_file(&dir, &self.decision_log, 0, "error");
-        }));
     }
 }
 

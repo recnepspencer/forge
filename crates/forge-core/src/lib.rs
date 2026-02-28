@@ -37,11 +37,11 @@ pub use errors::{
 pub use policy::{PolicyKind, PolicyQuery, PolicyResult};
 
 pub use tracing::{
-    compute_trace_fingerprint, diff_decision_logs, log_decision_log, log_error, log_level,
-    log_result, resolve_trace_dir, scan_for_divergences, write_trace_file, CandidateValueSummary,
+    compute_trace_fingerprint, diff_decision_logs, log_decision_log, log_error,
+    log_result, scan_for_divergences, CandidateValueSummary,
     CheckpointLog, DecisionChange, DecisionContext, DecisionDelta, DecisionId, DecisionKind,
     DecisionLog, DecisionSummary, DecisionTier, DivergenceDetail, DivergenceReport, EntityKind,
-    EntityRef, LogLevel, PolicyDecisionTracePayload, PolicyResolutionOutcome,
+    EntityRef, PolicyDecisionTracePayload, PolicyResolutionOutcome,
     PolicyResolutionScopeRef, PolicyResolutionSource, PolicyTraceConsistencyError,
     ReidentificationCompatibilitySummary, ReidentificationFailureCauseSummary,
     ReidentificationModeSummary, ReidentificationOriginKindSummary, ReidentificationOutcome,

@@ -8,7 +8,7 @@ members = [
     "crates/forge-kernel",
     "crates/forge-io",
     "crates/forge-test",
-    "crates/forge-view",
+
     "crates/forge-repr",
     "crates/forge-schema",
     "crates/forge-signal",
@@ -36,7 +36,7 @@ forge-geom = { path = "crates/forge-geom" }
 forge-kernel = { path = "crates/forge-kernel" }
 forge-io = { path = "crates/forge-io" }
 forge-test = { path = "crates/forge-test" }
-forge-view = { path = "crates/forge-view" }
+
 forge-repr = { path = "crates/forge-repr" }
 forge-schema = { path = "crates/forge-schema" }
 forge-signal = { path = "crates/forge-signal" }

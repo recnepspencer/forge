@@ -2,13 +2,12 @@
 //!
 //! DOMAIN: Span-based decision tracing protocol. Every kernel decision
 //! is recorded as a `TracedDecision` within a `DecisionLog`, organized
-//! into `TraceEvent` spans. The log is queryable, serializable, diffable,
-//! and auto-persistable to disk.
+//! into `TraceEvent` spans. The log is queryable, serializable, and diffable.
 //!
 //! - `checkpoint_diff`: Checkpoint diffing for causal replay (P3.1)
 //! - `delta_debug`: Binary search for minimal failure-inducing step (P3.2)
 //!
-//! DEPENDENCIES: serde, serde_json (persistence)
+//! DEPENDENCIES: serde, tracing
 
 pub mod adjunct;
 pub mod checkpoint_diff;
@@ -17,7 +16,6 @@ pub mod delta_debug;
 pub mod divergence;
 pub mod fingerprint;
 mod logging;
-mod persistence;
 pub mod policy_trace;
 pub mod reidentification_trace;
 pub mod resolution_trace;
@@ -37,11 +35,6 @@ pub use checkpoint_diff::{diff_decision_logs, CheckpointLog, DecisionChange, Dec
 
 pub use divergence::{scan_for_divergences, DivergenceDetail, DivergenceReport};
 
-pub use persistence::{
-    resolve_trace_dir, try_write_trace_file_with_adjuncts, write_trace_file,
-    write_trace_file_with_adjuncts, TracePersistenceError,
-};
-
 pub use adjunct::{
     TraceAdjunctRecord, TraceAdjunctSet, POLICY_DECISION_TRACE_PAYLOAD_KIND,
     POLICY_DECISION_TRACE_PAYLOAD_VERSION, REIDENTIFICATION_TRACE_PAYLOAD_KIND,
@@ -49,7 +42,7 @@ pub use adjunct::{
     RESOLUTION_TRACE_PAYLOAD_VERSION,
 };
 pub use fingerprint::{compute_trace_fingerprint, TraceFingerprint};
-pub use logging::{log_decision_log, log_error, log_level, log_result, LogLevel};
+pub use logging::{log_decision_log, log_error, log_result};
 pub use policy_trace::{
     CandidateValueSummary, PolicyDecisionTracePayload, PolicyResolutionOutcome,
     PolicyResolutionScopeRef, PolicyResolutionSource, PolicyTraceConsistencyError,

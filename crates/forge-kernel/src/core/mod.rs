@@ -40,7 +40,7 @@ pub use kernel_state::KernelState;
 
 pub mod kernel_draft;
 pub use finalization::{
-    CollectedFinalization, FinalizationEmitOptions, FinalizationError, FinalizationStatus,
+    CollectedFinalization, FinalizationError, FinalizationStatus,
     FinalizationSummary, OperationFinalizer, TopologyHashBoundary,
 };
 pub use kernel_draft::KernelDraft;

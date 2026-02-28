@@ -105,11 +105,7 @@ impl ModelingContext {
         self.sub_accumulated_error_budget += op.take_accumulated_budget();
     }
 
-    /// Take ownership of the decision log, replacing it with an empty one.
-    ///
-    /// Marks the log as drained so `Drop` knows the success path was taken.
     pub fn take_decision_log(&mut self) -> DecisionLog {
-        self.log_drained = true;
         std::mem::take(&mut self.decision_log)
     }
 }

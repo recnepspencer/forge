@@ -4,8 +4,8 @@
 //! INVARIANTS: Consistent output format across all crates. Never panics.
 //! DEPENDENCIES: `forge-core` (DecisionLog, OperationResult)
 //!
-//! This module re-exports the logging helpers from `forge-core::result`
-//! for convenience. All crates can use either path:
+//! This module re-exports the logging helpers from `forge-core`.
+//! All crates can use either path:
 //!
 //! ```ignore
 //! // From forge-core (available everywhere):
@@ -17,9 +17,9 @@
 //!
 //! # Verbosity Control
 //!
-//! Set the `FORGE_LOG` environment variable:
-//! - `off`     — no output (CI-friendly)
-//! - `compact` — summary + high-level decisions, no Euler ops (default)
-//! - `full`    — everything including Euler operator decisions
+//! Set the `RUST_LOG` environment variable (auto-defaulted to `info` in `.cargo/config.toml`):
+//! - `info`  — display_interesting() summary (default)
+//! - `debug` — every decision, line by line
+//! - `off`   — silent (CI-friendly)
 
-pub use forge_core::{log_decision_log, log_level, log_result, LogLevel};
+pub use forge_core::{log_decision_log, log_error, log_result};

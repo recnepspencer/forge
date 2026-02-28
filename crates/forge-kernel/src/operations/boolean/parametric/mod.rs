@@ -38,7 +38,6 @@ pub fn execute(
     input: BooleanInput,
 ) -> OperationResult<Result<BooleanResult, KernelError>> {
     let mut ctx = ModelingContext::default();
-    ctx.enable_auto_persist();
     let start = std::time::Instant::now();
 
     let inner_result = execute_core(&input, &mut ctx);

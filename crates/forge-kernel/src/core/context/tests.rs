@@ -140,9 +140,8 @@ mod context_tests {
     }
 
     #[test]
-    fn reset_for_new_operation_clears_log_drained_and_sub_metadata_sink() {
+    fn reset_for_new_operation_clears_sub_metadata_sink() {
         let mut ctx = ModelingContext::new();
-        ctx.enable_auto_persist();
 
         ctx.log_decision(
             DecisionKind::Exact,
@@ -152,10 +151,6 @@ mod context_tests {
             1.0,
         );
         let _ = ctx.take_decision_log();
-        assert!(
-            ctx.log_drained,
-            "take_decision_log sets success-path drain flag"
-        );
 
         let mut sub = OperationResult::new(());
         sub.add_warning(forge_core::KernelWarning::AutoDecision {
@@ -170,10 +165,6 @@ mod context_tests {
 
         ctx.reset_for_new_operation();
 
-        assert!(
-            !ctx.log_drained,
-            "new operation must not inherit prior success-path drain state"
-        );
         assert_eq!(ctx.get_decision_count(), 0);
         assert!(ctx.get_sub_warnings().is_empty());
         assert_eq!(ctx.get_sub_metrics().entities_deleted, 0);

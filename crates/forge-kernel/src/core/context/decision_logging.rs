@@ -96,12 +96,10 @@ impl ModelingContext {
     /// Resets:
     /// - decision log
     /// - decision ID counter (next decision restarts at 1)
-    /// - success-path drain flag (`log_drained`)
     /// - absorbed sub-operation metadata sink
     ///
     /// Preserves:
     /// - policy/tolerance/validation configuration
-    /// - auto-persist capability flag
     /// - classification overrides (counterfactual replay control)
     pub fn reset_for_new_operation(&mut self) {
         self.decision_log = DecisionLog::new();
@@ -111,7 +109,6 @@ impl ModelingContext {
         self.sub_accumulated_error_budget = 0.0;
         self.trace_adjuncts = forge_core::tracing::TraceAdjunctSet::new();
         self.decision_counter = 0;
-        self.log_drained = false;
     }
 
     /// Returns the number of tolerance decisions made.

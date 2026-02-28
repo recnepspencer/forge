@@ -1,18 +1,15 @@
 //! Operation finalization contract (Phase 2).
 //!
-//! Collector/emit split for top-level operation boundary handling:
+//! Collector split for top-level operation boundary handling:
 //! - drain `ModelingContext` decision/sub-op metadata exactly once
 //! - merge into `OperationResult`
 //! - attach typed trace adjuncts (deterministically ordered)
 //! - set explicit topology hash boundary fields
-//! - optionally emit trace artifacts
-
-use std::path::PathBuf;
 
 use forge_core::envelope::{LineageDelta, OperationMetrics, OperationResult};
 use forge_core::tracing::{
-    compute_trace_fingerprint, try_write_trace_file_with_adjuncts, TraceAdjunctSet,
-    TraceFingerprint, TracePersistenceError,
+    compute_trace_fingerprint, TraceAdjunctSet,
+    TraceFingerprint,
 };
 
 use super::ModelingContext;
@@ -43,11 +40,7 @@ pub struct TopologyHashBoundary {
     pub after: Option<u128>,
 }
 
-/// Options controlling emission side effects after deterministic collection.
-#[derive(Debug, Clone, Default)]
-pub struct FinalizationEmitOptions {
-    pub trace_dir: Option<PathBuf>,
-}
+
 
 /// Aggregate counts/drained summaries captured during finalization.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -80,41 +73,7 @@ pub struct CollectedFinalization {
     adjuncts: TraceAdjunctSet,
 }
 
-/// Typed emit failure for finalization sinks.
-#[derive(Debug)]
-pub enum FinalizationEmitError {
-    TracePersistence(TracePersistenceError),
-}
 
-impl From<TracePersistenceError> for FinalizationEmitError {
-    fn from(value: TracePersistenceError) -> Self {
-        Self::TracePersistence(value)
-    }
-}
-
-impl CollectedFinalization {
-    /// Emit trace artifacts (optional) using explicit sink options.
-    ///
-    /// This does not mutate the collected summary; callers may clone/update their
-    /// own bookkeeping if they need to record emit success separately.
-    pub fn emit(&self, options: &FinalizationEmitOptions) -> Result<(), FinalizationEmitError> {
-        if let Some(dir) = &options.trace_dir {
-            let state_hash = self
-                .summary
-                .topology_state_hash_after
-                .or(self.summary.topology_state_hash_before)
-                .unwrap_or(0);
-            try_write_trace_file_with_adjuncts(
-                dir,
-                &self.decision_log,
-                self.adjuncts.records(),
-                state_hash,
-                self.summary.status.as_trace_status(),
-            )?;
-        }
-        Ok(())
-    }
-}
 
 /// Finalizer reuse error.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -295,9 +254,6 @@ impl<'a> OperationFinalizer<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::fs::File;
-    use std::time::{SystemTime, UNIX_EPOCH};
-
     use super::*;
     use forge_core::{DecisionContext, DecisionId, DecisionKind, DecisionTier, TracedDecision};
 
@@ -421,7 +377,7 @@ mod tests {
     }
 
     #[test]
-    fn emit_failure_does_not_corrupt_collected_finalization_or_redrain_context() {
+    fn collect_preserves_topology_hashes_and_fingerprint() {
         let mut ctx = ModelingContext::new();
         ctx.log_decision(
             DecisionKind::Exact,
@@ -445,31 +401,11 @@ mod tests {
             )
             .expect("collect");
 
-        let tmp = std::env::temp_dir();
-        let uniq = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("clock")
-            .as_nanos();
-        let file_path = tmp.join(format!("forge-finalizer-emit-failure-{uniq}.tmp"));
-        File::create(&file_path).expect("create temp file");
-
-        let err = collected
-            .emit(&FinalizationEmitOptions {
-                trace_dir: Some(file_path.clone()),
-            })
-            .expect_err("emit must fail when trace_dir points to a file");
-
-        match err {
-            FinalizationEmitError::TracePersistence(_) => {}
-        }
-
-        // Collected payload remains intact after emit failure.
         assert_eq!(collected.summary.topology_state_hash_before, Some(11));
         assert_eq!(collected.summary.topology_state_hash_after, Some(22));
         assert_eq!(collected.summary.trace_fingerprint.decision_ids, vec![1]);
         assert_eq!(envelope.get_decision_log().len(), 1);
 
-        // Context was already drained at collect time; emit failure must not reintroduce state.
         assert!(ctx.get_decision_log_mut().is_empty());
         let sub = ctx.take_sub_metadata();
         assert!(sub.warnings.is_empty());
@@ -479,7 +415,5 @@ mod tests {
         assert_eq!(sub.metrics.entities_modified, 0);
         assert_eq!(sub.metrics.exact_predicate_calls, 0);
         assert_eq!(sub.metrics.policy_decisions_made, 0);
-
-        let _ = std::fs::remove_file(file_path);
     }
 }

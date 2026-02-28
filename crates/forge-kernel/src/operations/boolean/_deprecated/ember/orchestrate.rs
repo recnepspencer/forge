@@ -72,7 +72,6 @@ pub fn execute_ember_boolean(
         input.target_topology().topology_hash() ^ input.tool_topology().topology_hash();
 
     let mut ctx = ModelingContext::default();
-    ctx.enable_auto_persist();
     let start_time = std::time::Instant::now();
 
     let inner_result = execute_pipeline(input, &mut ctx, start_time);

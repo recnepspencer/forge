@@ -48,7 +48,6 @@ use crate::lineage::{LineageEvent, OpSignature};
 /// metrics, and replay data — even when the inner operation fails.
 pub fn execute_boolean_direct(input: BooleanInput) -> OperationResult<Result<BooleanResult, KernelError>> {
     let mut ctx = ModelingContext::default();
-    ctx.enable_auto_persist();
     let use_ember = std::env::var("FORGE_DIRECT_USE_EMBER").ok().as_deref() == Some("1");
     if use_ember {
         execute_boolean_core(input, ctx, planar_engine())
@@ -67,7 +66,6 @@ pub fn execute_boolean_with_engine(
     engine: BooleanEngine,
 ) -> OperationResult<Result<BooleanResult, KernelError>> {
     let mut ctx = ModelingContext::default();
-    ctx.enable_auto_persist();
     execute_boolean_core(input, ctx, engine)
 }
 
@@ -81,7 +79,6 @@ pub fn execute_boolean_with_overrides(
     overrides: &[(forge_core::DecisionId, FaceClassification)],
 ) -> OperationResult<Result<BooleanResult, KernelError>> {
     let mut ctx = ModelingContext::default();
-    ctx.enable_auto_persist();
     for &(decision_id, classification) in overrides {
         ctx.set_classification_override(decision_id, classification);
     }
