@@ -12,7 +12,6 @@
 
 use forge_core::{KernelError, TopologyError};
 
-use crate::arena::{EdgeData, HalfEdgeData};
 use crate::handles::{EdgeId, HalfEdgeId};
 use crate::lineage::{Lineage, OpSignature};
 use crate::operator::{EulerDelta, ExecutionResult};

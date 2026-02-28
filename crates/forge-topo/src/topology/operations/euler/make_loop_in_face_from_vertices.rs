@@ -77,7 +77,6 @@ impl EulerOperator for MakeLoopInFaceFromVertices {
         let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
 
         let face_lineage = draft.arena().get_face(self.face)?.lineage().cloned();
-        let _loop_lineage = Lineage::derive_from(&face_lineage, sig.clone());
 
         let loop_id = draft.insert_loop(LoopData::new(placeholder_he, self.face));
         draft

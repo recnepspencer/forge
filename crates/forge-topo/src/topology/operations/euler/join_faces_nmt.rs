@@ -262,12 +262,6 @@ impl EulerOperator for JoinFacesNmt {
             value: JfNmtOutput {
                 surviving_face: face_survive,
             },
-            // Deltas: 0 vertices, 0 halfedges, -1 face, 0 loops (killed 1, created 1 inner loop)
-            // Wait, we didn't kill any edges or halfedges.
-            // Vertices: 0
-            // Edges: 0
-            // Faces: -1
-            // Loops: 0 (Outer loop of killed face destroyed, inner loop for slit created)
             declared_delta: EulerDelta {
                 vertices: 0,
                 half_edges: 0,
