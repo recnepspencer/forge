@@ -16,7 +16,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use forge_core::KernelError;
-use forge_topo::euler::split_edge::SplitEdge;
+use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 use forge_topo::handles::{HalfEdgeId, VertexId};
 use forge_topo::operator::apply_op;
 use forge_topo::queries::edge_endpoint_ids;

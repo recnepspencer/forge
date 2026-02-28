@@ -17,7 +17,7 @@ use crate::arena::{EdgeData, FaceData, HalfEdgeData, LoopData};
 use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 
 /// Creates a new face in an existing shell by connecting a sequence of existing vertices.
@@ -41,7 +41,7 @@ pub struct MfisOutput {
     pub edges: Vec<EdgeId>,
 }
 
-impl EulerOperator for MakeFaceInShellFromVertices {
+impl TopoOperator for MakeFaceInShellFromVertices {
     type Output = MfisOutput;
 
     const NAME: &'static str = "make_face_in_shell_from_vertices";

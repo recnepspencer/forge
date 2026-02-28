@@ -6,10 +6,9 @@
 //!
 //! This is a compound algorithm: JoinFaces + MakeEdgeFace.
 //!
-//! DEPENDENCIES: `euler::join_faces`, `euler::make_edge_face`
+//! DEPENDENCIES: `boundary_editing::join_faces`, `entity_lifecycle::make_edge_face`
 
 use crate::handles::{HalfEdgeId, VertexId};
-use crate::operator::apply_op;
 use crate::state::MutableDraft;
 use crate::topology::operations::boundary_editing::join_faces::JoinFaces;
 use crate::topology::operations::entity_lifecycle::make_edge_face::MakeEdgeFace;
@@ -74,11 +73,10 @@ pub fn flip_edge(
     let vertex_a = find_opposite_vertex(draft, face_a, edge)?;
     let vertex_b = find_opposite_vertex(draft, face_b, twin)?;
 
-    let jf = apply_op(draft, JoinFaces { edge })?.into_value();
+    let jf = draft.execute(JoinFaces { edge })?.into_value();
     let merged_face = jf.surviving_face;
 
-    let mef = apply_op(
-        draft,
+    let mef = draft.execute(
         MakeEdgeFace {
             face: merged_face,
             vertex_a,
@@ -138,10 +136,9 @@ fn find_opposite_vertex(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::euler::make_edge_face::MakeEdgeFace;
-    use crate::euler::make_vertex_face::MakeVertexFace;
-    use crate::euler::split_edge::SplitEdge;
-    use crate::operator::apply_op;
+    use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
+    use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use crate::entity_lifecycle::split_edge::SplitEdge;
     use crate::state::TopologyState;
     use crate::topology::queries::traverse::FaceEdgeIterator;
 
@@ -150,9 +147,8 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.25,
@@ -160,8 +156,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let se2 = apply_op(
-            &mut draft,
+        let se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
                 parameter: 0.5,
@@ -169,8 +164,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let _se3 = apply_op(
-            &mut draft,
+        let _se3 = draft.execute(
             SplitEdge {
                 edge: se2.he_mb,
                 parameter: 0.75,
@@ -188,8 +182,7 @@ mod tests {
         let v1 = draft.arena().get_half_edge(edges[1]).unwrap().origin();
         let v3 = draft.arena().get_half_edge(edges[3]).unwrap().origin();
 
-        let mef = apply_op(
-            &mut draft,
+        let mef = draft.execute(
             MakeEdgeFace {
                 face: mvf.face,
                 vertex_a: v1,

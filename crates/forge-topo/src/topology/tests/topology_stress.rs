@@ -15,13 +15,12 @@
 mod tests {
     use crate::algorithms::bridge_edge::bridge_edge;
     use crate::arena::{FaceData, HalfEdgeData, LoopData, TopologyArena, VertexData};
-    use crate::euler::join_faces::JoinFaces;
-    use crate::euler::kill_edge_vertex::KillEdgeVertex;
-    use crate::euler::make_edge_face::MakeEdgeFace;
-    use crate::euler::make_vertex_face::MakeVertexFace;
-    use crate::euler::split_edge::SplitEdge;
+    use crate::boundary_editing::join_faces::JoinFaces;
+    use crate::entity_lifecycle::kill_edge_vertex::KillEdgeVertex;
+    use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
+    use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use crate::entity_lifecycle::split_edge::SplitEdge;
     use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
-    use crate::operator::apply_op;
     use crate::state::TopologyState;
     use crate::testing::build_face_with_hole;
     use crate::traverse::{FaceEdgeIterator, VertexRingIterator};
@@ -35,10 +34,9 @@ mod tests {
     /// Build a quad face via MVF + 3×SE. Returns (mvf_output, edge_list).
     fn build_quad(
         draft: &mut crate::state::MutableDraft,
-    ) -> (crate::euler::make_vertex_face::MvfOutput, Vec<HalfEdgeId>) {
-        let mvf = apply_op(draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(
-            draft,
+    ) -> (crate::entity_lifecycle::make_vertex_face::MvfOutput, Vec<HalfEdgeId>) {
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.25,
@@ -46,8 +44,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let se2 = apply_op(
-            draft,
+        let se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
                 parameter: 0.5,
@@ -55,8 +52,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let _se3 = apply_op(
-            draft,
+        let _se3 = draft.execute(
             SplitEdge {
                 edge: se2.he_mb,
                 parameter: 0.75,
@@ -94,13 +90,12 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
         let pole = mvf.vertex;
         let mut current_edge = mvf.half_edge;
 
         for _ in 0..10 {
-            let se = apply_op(
-                &mut draft,
+            let se = draft.execute(
                 SplitEdge {
                     edge: current_edge,
                     parameter: 0.5,
@@ -110,8 +105,7 @@ mod tests {
             .into_value();
 
             let face_id = draft.arena().get_half_edge(current_edge).unwrap().face();
-            let mef = apply_op(
-                &mut draft,
+            let mef = draft.execute(
                 MakeEdgeFace {
                     vertex_a: pole,
                     vertex_b: se.new_vertex,
@@ -155,8 +149,7 @@ mod tests {
         let v1 = draft.arena().get_half_edge(edges[1]).unwrap().origin();
         let v3 = draft.arena().get_half_edge(edges[3]).unwrap().origin();
 
-        let mef = apply_op(
-            &mut draft,
+        let mef = draft.execute(
             MakeEdgeFace {
                 face: mvf.face,
                 vertex_a: v1,
@@ -170,8 +163,7 @@ mod tests {
         let verts_before_kev = draft.arena().vertex_count();
         assert_eq!(faces_before_kev, 2);
 
-        let kev = apply_op(
-            &mut draft,
+        let kev = draft.execute(
             KillEdgeVertex {
                 edge: mef.half_edge_ab,
             },
@@ -207,9 +199,8 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.5,
@@ -217,8 +208,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let se2 = apply_op(
-            &mut draft,
+        let se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
                 parameter: 0.5,
@@ -226,8 +216,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let _se3 = apply_op(
-            &mut draft,
+        let _se3 = draft.execute(
             SplitEdge {
                 edge: se2.he_mb,
                 parameter: 0.5,
@@ -273,11 +262,10 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
         let center = mvf.vertex;
 
-        let se1 = apply_op(
-            &mut draft,
+        let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.2,
@@ -285,8 +273,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let se2 = apply_op(
-            &mut draft,
+        let se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
                 parameter: 0.3,
@@ -294,8 +281,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let se3 = apply_op(
-            &mut draft,
+        let se3 = draft.execute(
             SplitEdge {
                 edge: se2.he_mb,
                 parameter: 0.4,
@@ -303,8 +289,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let se4 = apply_op(
-            &mut draft,
+        let se4 = draft.execute(
             SplitEdge {
                 edge: se3.he_mb,
                 parameter: 0.5,
@@ -312,8 +297,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let _se5 = apply_op(
-            &mut draft,
+        let _se5 = draft.execute(
             SplitEdge {
                 edge: se4.he_mb,
                 parameter: 0.5,
@@ -330,8 +314,7 @@ mod tests {
         let v_at_2 = draft.arena().get_half_edge(edges[2]).unwrap().origin();
         let v_at_4 = draft.arena().get_half_edge(edges[4]).unwrap().origin();
 
-        let _mef1 = apply_op(
-            &mut draft,
+        let _mef1 = draft.execute(
             MakeEdgeFace {
                 face: mvf.face,
                 vertex_a: center,
@@ -341,8 +324,7 @@ mod tests {
         .unwrap()
         .into_value();
 
-        let _mef2 = apply_op(
-            &mut draft,
+        let _mef2 = draft.execute(
             MakeEdgeFace {
                 face: mvf.face,
                 vertex_a: center,
@@ -384,13 +366,12 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
         let center = mvf.vertex;
         let mut current_edge = mvf.half_edge;
 
         for _ in 0..20 {
-            let se = apply_op(
-                &mut draft,
+            let se = draft.execute(
                 SplitEdge {
                     edge: current_edge,
                     parameter: 0.5,
@@ -400,8 +381,7 @@ mod tests {
             .into_value();
 
             let face_id = draft.arena().get_half_edge(current_edge).unwrap().face();
-            let mef = apply_op(
-                &mut draft,
+            let mef = draft.execute(
                 MakeEdgeFace {
                     vertex_a: center,
                     vertex_b: se.new_vertex,
@@ -439,9 +419,8 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.5,
@@ -475,20 +454,19 @@ mod tests {
     /// Uses MVF → SE → SewEdge to seamlessly glue an open surface into a manifold.
     #[test]
     fn validity_l1_sphere_euler() {
-        use crate::topology::operations::euler::sew_edge::SewEdge;
+        use crate::topology::operations::non_manifold::sew_edge::SewEdge;
 
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
         // 1. Create a single face F0 with self-loop halfedge (v0->v0) at v0.
         //    Open surface, boundaries=1, χ=1.
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
 
         // 2. Split the boundary edge, creating v1.
         //    Now we have a digon on F0: v0->v1 and v1->v0.
         //    Both are still boundary halfedges on the same face.
-        let se1 = apply_op(
-            &mut draft,
+        let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.5,
@@ -501,8 +479,7 @@ mod tests {
         //    This glues the digon shut, eliminating the boundary and leaving a closed sphere.
         let he_v0_v1 = mvf.half_edge;
         let he_v1_v0 = se1.he_mb;
-        apply_op(
-            &mut draft,
+        draft.execute(
             SewEdge {
                 he_a: he_v0_v1,
                 he_b: he_v1_v0,
@@ -584,9 +561,8 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.3,
@@ -594,8 +570,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let _se2 = apply_op(
-            &mut draft,
+        let _se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
                 parameter: 0.5,
@@ -941,9 +916,8 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.5,
@@ -951,8 +925,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let se2 = apply_op(
-            &mut draft,
+        let se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
                 parameter: 0.5,
@@ -960,8 +933,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let _se3 = apply_op(
-            &mut draft,
+        let _se3 = draft.execute(
             SplitEdge {
                 edge: se2.he_mb,
                 parameter: 0.5,
@@ -981,8 +953,7 @@ mod tests {
         let v1 = draft.arena().get_half_edge(edges[1]).unwrap().origin();
         let v3 = draft.arena().get_half_edge(edges[3]).unwrap().origin();
 
-        let mef = apply_op(
-            &mut draft,
+        let mef = draft.execute(
             MakeEdgeFace {
                 face: mvf.face,
                 vertex_a: v1,
@@ -1047,9 +1018,8 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.5,
@@ -1089,13 +1059,12 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
         let center = mvf.vertex;
         let mut current_edge = mvf.half_edge;
 
         for _ in 0..50 {
-            let se = apply_op(
-                &mut draft,
+            let se = draft.execute(
                 SplitEdge {
                     edge: current_edge,
                     parameter: 0.5,
@@ -1105,8 +1074,7 @@ mod tests {
             .into_value();
 
             let face_id = draft.arena().get_half_edge(current_edge).unwrap().face();
-            let mef = apply_op(
-                &mut draft,
+            let mef = draft.execute(
                 MakeEdgeFace {
                     vertex_a: center,
                     vertex_b: se.new_vertex,
@@ -1155,9 +1123,8 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf1 = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let _se1 = apply_op(
-            &mut draft,
+        let mvf1 = draft.execute(MakeVertexFace).unwrap().into_value();
+        let _se1 = draft.execute(
             SplitEdge {
                 edge: mvf1.half_edge,
                 parameter: 0.5,
@@ -1166,9 +1133,8 @@ mod tests {
         .unwrap()
         .into_value();
 
-        let mvf2 = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let _se2 = apply_op(
-            &mut draft,
+        let mvf2 = draft.execute(MakeVertexFace).unwrap().into_value();
+        let _se2 = draft.execute(
             SplitEdge {
                 edge: mvf2.half_edge,
                 parameter: 0.5,
@@ -1209,14 +1175,13 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
         let center = mvf.vertex;
         let mut current_edge = mvf.half_edge;
         let mut mef_edges: Vec<HalfEdgeId> = Vec::new();
 
         for _ in 0..100 {
-            let se = apply_op(
-                &mut draft,
+            let se = draft.execute(
                 SplitEdge {
                     edge: current_edge,
                     parameter: 0.5,
@@ -1226,8 +1191,7 @@ mod tests {
             .into_value();
 
             let face_id = draft.arena().get_half_edge(current_edge).unwrap().face();
-            let mef = apply_op(
-                &mut draft,
+            let mef = draft.execute(
                 MakeEdgeFace {
                     vertex_a: center,
                     vertex_b: se.new_vertex,
@@ -1256,7 +1220,7 @@ mod tests {
         for edge in mef_edges.iter().rev().take(50) {
             let he_data = draft2.arena().get_half_edge(*edge);
             if he_data.is_ok() {
-                let result = apply_op(&mut draft2, JoinFaces { edge: *edge });
+                let result = draft2.execute(JoinFaces { edge: *edge });
                 if result.is_ok() {
                     merged += 1;
                 }

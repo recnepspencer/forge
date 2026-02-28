@@ -6,11 +6,13 @@
 use forge_core::{FlatToleranceProvider, KernelError};
 use crate::spatial::validate_geometric_invariants;
 use forge_topo::arena::{
-    BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
-    ShellKind, ShellOrientation, TopologyArena, VertexData,
+    EdgeData, FaceData, HalfEdgeData, LoopData, TopologyArena, VertexData,
+};
+use forge_topo::arena::{
+    BodyData, LumpData, RegionData, ShellData, ShellKind, ShellOrientation,
 };
 use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
-use forge_topo::lineage_store::LineageStore;
+use forge_topo::state::{MutableDraft, TopologyState};
 
 /// Validate geometric invariants assuming all faces are planar.
 pub fn validate_geometric_invariants_all_faces(
@@ -39,26 +41,22 @@ fn all_faces_planar(_face: FaceId) -> bool {
     true
 }
 
-/// Create a valid test shell hierarchy in a raw `TopologyArena`.
+/// Create a valid test shell hierarchy via MutableDraft.
 ///
-/// Returns the created `ShellId` and wires:
+/// Returns the MutableDraft with the created shell wired into:
 /// `Body -> Lump -> Region -> Shell`.
-pub fn insert_test_solid_shell(arena: &mut TopologyArena) -> ShellId {
-    let body = TopologyArena::insert_body(arena, BodyData::new());
-    let lump = TopologyArena::insert_lump(arena, LumpData::new(body));
-    let region = TopologyArena::insert_region(arena, RegionData::new(lump));
-    let shell = TopologyArena::insert_shell(
-        arena,
-        ShellData::new(
-            FaceId::new(u32::MAX, 0),
-            ShellKind::Solid(ShellOrientation::Outer),
-            region,
-        ),
-        None,
-    );
-    arena.get_body_mut(body).unwrap().add_lump(lump);
-    arena.get_lump_mut(lump).unwrap().add_region(region);
-    arena.get_region_mut(region).unwrap().add_shell(shell);
+pub fn insert_test_solid_shell(draft: &mut MutableDraft) -> ShellId {
+    let body = draft.insert_body(BodyData::new());
+    let lump = draft.insert_lump(LumpData::new(body));
+    let region = draft.insert_region(RegionData::new(lump));
+    let shell = draft.insert_shell(ShellData::new(
+        FaceId::new(u32::MAX, 0),
+        ShellKind::Solid(ShellOrientation::Outer),
+        region,
+    ));
+    draft.arena_mut().get_body_mut(body).unwrap().add_lump(lump);
+    draft.arena_mut().get_lump_mut(lump).unwrap().add_region(region);
+    draft.arena_mut().get_region_mut(region).unwrap().add_shell(shell);
     shell
 }
 
@@ -69,9 +67,9 @@ pub fn insert_test_solid_shell(arena: &mut TopologyArena) -> ShellId {
 /// synthetic arenas must also create first-class `EdgeData` and assign each
 /// halfedge to the edge for its radial cycle.
 pub fn materialize_edge_entities_from_radials(
-    arena: &mut TopologyArena,
+    draft: &mut MutableDraft,
 ) -> Result<(), KernelError> {
-    let halfedge_ids: Vec<HalfEdgeId> = arena.iter_half_edges().map(|(id, _)| id).collect();
+    let halfedge_ids: Vec<HalfEdgeId> = draft.arena().iter_half_edges().map(|(id, _)| id).collect();
     let mut visited: std::collections::BTreeSet<u32> = std::collections::BTreeSet::new();
 
     for seed in halfedge_ids {
@@ -80,8 +78,8 @@ pub fn materialize_edge_entities_from_radials(
         }
 
         let mut cycle: Vec<HalfEdgeId> = vec![seed];
-        let mut current = arena.get_half_edge(seed)?.radial_next();
-        let bound = arena.half_edge_count().max(1);
+        let mut current = draft.arena().get_half_edge(seed)?.radial_next();
+        let bound = draft.arena().half_edge_count().max(1);
         let mut steps = 0usize;
 
         while current != seed {
@@ -89,7 +87,7 @@ pub fn materialize_edge_entities_from_radials(
                 break;
             }
             cycle.push(current);
-            current = arena.get_half_edge(current)?.radial_next();
+            current = draft.arena().get_half_edge(current)?.radial_next();
             steps += 1;
             if steps > bound {
                 return Err(KernelError::InternalError {
@@ -100,8 +98,8 @@ pub fn materialize_edge_entities_from_radials(
             }
         }
 
-        let edge_id = TopologyArena::insert_edge(arena, EdgeData::new(seed));
-        assign_edge_to_cycle(arena, &cycle, edge_id)?;
+        let edge_id = draft.insert_edge(EdgeData::new(seed));
+        assign_edge_to_cycle(draft.arena_mut(), &cycle, edge_id)?;
     }
 
     Ok(())
@@ -119,11 +117,11 @@ fn assign_edge_to_cycle(
     Ok(())
 }
 
-/// Back-compat test-only extension methods for `TopologyArena`.
+/// Back-compat test-only extension methods for `MutableDraft`.
 ///
-/// These helpers preserve the older no-lineage call style in tests while the
-/// arena now requires an optional `LineageStore`.
-pub trait ArenaTestExt {
+/// These helpers preserve the older call style in tests while the
+/// insert methods are now `pub(crate)` on `TopologyArena`.
+pub trait DraftTestExt {
     fn insert_face(&mut self, data: FaceData) -> FaceId;
     fn insert_half_edge(&mut self, data: HalfEdgeData) -> HalfEdgeId;
     fn insert_radial_pair(
@@ -136,13 +134,13 @@ pub trait ArenaTestExt {
     fn remove_half_edge(&mut self, id: HalfEdgeId) -> Result<HalfEdgeData, KernelError>;
 }
 
-impl ArenaTestExt for TopologyArena {
+impl DraftTestExt for MutableDraft {
     fn insert_face(&mut self, data: FaceData) -> FaceId {
-        TopologyArena::insert_face(self, data, no_lineage())
+        MutableDraft::insert_face(self, data)
     }
 
     fn insert_half_edge(&mut self, data: HalfEdgeData) -> HalfEdgeId {
-        TopologyArena::insert_half_edge(self, data, no_lineage())
+        MutableDraft::insert_half_edge(self, data)
     }
 
     fn insert_radial_pair(
@@ -150,22 +148,18 @@ impl ArenaTestExt for TopologyArena {
         data_a: HalfEdgeData,
         data_b: HalfEdgeData,
     ) -> (HalfEdgeId, HalfEdgeId) {
-        TopologyArena::insert_radial_pair(self, data_a, data_b, no_lineage())
+        MutableDraft::insert_radial_pair(self, data_a, data_b)
     }
 
     fn insert_vertex(&mut self, data: VertexData) -> VertexId {
-        TopologyArena::insert_vertex(self, data, no_lineage())
+        MutableDraft::insert_vertex(self, data)
     }
 
     fn insert_loop(&mut self, data: LoopData) -> LoopId {
-        TopologyArena::insert_loop(self, data, no_lineage())
+        MutableDraft::insert_loop(self, data)
     }
 
     fn remove_half_edge(&mut self, id: HalfEdgeId) -> Result<HalfEdgeData, KernelError> {
-        TopologyArena::remove_half_edge(self, id, no_lineage())
+        MutableDraft::remove_half_edge(self, id)
     }
-}
-
-fn no_lineage() -> Option<&'static mut LineageStore> {
-    None
 }

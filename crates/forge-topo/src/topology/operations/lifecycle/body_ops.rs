@@ -11,7 +11,7 @@ use crate::arena::{BodyData, LumpData, RegionData};
 use crate::handles::{BodyId, LumpId, RegionId, ShellId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 // ── SplitBody ───────────────────────────────────────────────────────
 
@@ -30,7 +30,7 @@ pub struct SplitBodyOutput {
     pub new_body: BodyId,
 }
 
-impl EulerOperator for SplitBody {
+impl TopoOperator for SplitBody {
     type Output = SplitBodyOutput;
 
     const NAME: &'static str = "split_body";
@@ -95,7 +95,7 @@ pub struct MergeBodies {
     pub source: BodyId,
 }
 
-impl EulerOperator for MergeBodies {
+impl TopoOperator for MergeBodies {
     type Output = ();
 
     const NAME: &'static str = "merge_bodies";
@@ -146,7 +146,7 @@ pub struct CloneBodyOutput {
     pub cloned_body: BodyId,
 }
 
-impl EulerOperator for CloneBody {
+impl TopoOperator for CloneBody {
     type Output = CloneBodyOutput;
 
     const NAME: &'static str = "clone_body";

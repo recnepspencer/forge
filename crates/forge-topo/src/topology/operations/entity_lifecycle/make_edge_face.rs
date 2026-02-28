@@ -16,7 +16,7 @@ use crate::arena::{EdgeData, FaceData, HalfEdgeData, LoopData};
 use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, VertexId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 
 /// Split a face by inserting a new edge between two of its vertices.
@@ -49,7 +49,7 @@ pub struct MefOutput {
     pub edge: EdgeId,
 }
 
-impl EulerOperator for MakeEdgeFace {
+impl TopoOperator for MakeEdgeFace {
     type Output = MefOutput;
 
     const NAME: &'static str = "make_edge_face";
@@ -313,8 +313,7 @@ fn reassign_face_loop(
     loop {
         draft
             .arena_mut()
-            .get_half_edge_mut(current)?
-            .set_face(new_face);
+            .reassign_halfedge_face(current, new_face)?;
         let next = draft.arena().get_half_edge(current)?.next();
         current = next;
         if current == start {

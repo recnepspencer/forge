@@ -20,7 +20,7 @@ use crate::handles::{HalfEdgeId, LoopId};
 
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 /// Remove an edge to split a loop into two loops (outer + new inner).
 ///
@@ -41,7 +41,7 @@ pub struct KemlOutput {
     pub new_loop: LoopId,
 }
 
-impl EulerOperator for KillEdgeMakeLoop {
+impl TopoOperator for KillEdgeMakeLoop {
     type Output = KemlOutput;
 
     const NAME: &'static str = "kill_edge_make_loop";

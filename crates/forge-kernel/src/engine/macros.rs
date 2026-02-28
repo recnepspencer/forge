@@ -12,7 +12,7 @@
 /// declare_feature!(MakeCubeFeature,
 ///     kind: "make_cube",
 ///     policies: [],
-///     origins: [EntityOriginKind::EulerOperator],
+///     origins: [EntityOriginKind::TopoOperator],
 ///     invariants: [InvariantKind::ManifoldEdges],
 ///     audit: AuditLevel::Summary,
 /// );

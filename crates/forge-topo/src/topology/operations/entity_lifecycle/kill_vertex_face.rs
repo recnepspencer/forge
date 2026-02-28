@@ -23,7 +23,7 @@ use crate::handles::{FaceId, VertexId};
 
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 /// Destroys an isolated topological seed.
 ///
@@ -36,7 +36,7 @@ pub struct KillVertexFace {
     pub vertex: VertexId,
 }
 
-impl EulerOperator for KillVertexFace {
+impl TopoOperator for KillVertexFace {
     type Output = ();
 
     const NAME: &'static str = "kill_vertex_face";
@@ -161,18 +161,17 @@ impl EulerOperator for KillVertexFace {
 #[cfg(test)]
 mod tests {
     use super::KillVertexFace;
-    use crate::operator::apply_op;
     use crate::state::TopologyState;
-    use crate::topology::operations::euler::make_vertex_face::MakeVertexFace;
-    use crate::topology::operations::euler::split_edge::SplitEdge;
-    use crate::EulerOperator;
+    use crate::topology::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use crate::topology::operations::entity_lifecycle::split_edge::SplitEdge;
+    use crate::operator::TopoOperator;
 
     #[test]
     fn kill_vertex_face_destroys_isolated_seed() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
 
         assert_eq!(draft.arena().face_count(), 1);
         assert_eq!(draft.arena().vertex_count(), 1);
@@ -182,8 +181,7 @@ mod tests {
         assert_eq!(draft.arena().shell_count(), 1);
         assert_eq!(draft.arena().body_count(), 1);
 
-        apply_op(
-            &mut draft,
+        draft.execute(
             KillVertexFace {
                 face: mvf.face,
                 vertex: mvf.vertex,
@@ -206,11 +204,10 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
 
         // Split the edge to make it non-isolated
-        apply_op(
-            &mut draft,
+        draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.5,
@@ -218,8 +215,7 @@ mod tests {
         )
         .unwrap();
 
-        let res = apply_op(
-            &mut draft,
+        let res = draft.execute(
             KillVertexFace {
                 face: mvf.face,
                 vertex: mvf.vertex,

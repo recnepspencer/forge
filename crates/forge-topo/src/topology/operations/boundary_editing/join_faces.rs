@@ -15,7 +15,7 @@ use forge_core::{KernelError, TopologyError};
 use crate::handles::{HalfEdgeId, LoopId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 
 /// Merge two faces by removing a shared edge.
@@ -35,7 +35,7 @@ pub struct JfOutput {
     pub surviving_face: crate::handles::FaceId,
 }
 
-impl EulerOperator for JoinFaces {
+impl TopoOperator for JoinFaces {
     type Output = JfOutput;
 
     const NAME: &'static str = "join_faces";
@@ -164,6 +164,7 @@ impl EulerOperator for JoinFaces {
 /// Reassign all halfedges starting from `start` to `new_face`.
 ///
 /// Walks the loop via `next()` until returning to `start`.
+/// Uses `reassign_halfedge_face` to keep the reverse index in sync.
 fn reassign_face(
     draft: &mut MutableDraft,
     start: HalfEdgeId,
@@ -175,8 +176,7 @@ fn reassign_face(
     loop {
         draft
             .arena_mut()
-            .get_half_edge_mut(current)?
-            .set_face(new_face);
+            .reassign_halfedge_face(current, new_face)?;
         let next = draft.arena().get_half_edge(current)?.next();
         current = next;
         if current == start {
@@ -198,3 +198,4 @@ fn reassign_face(
     }
     Ok(())
 }
+

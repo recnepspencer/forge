@@ -9,7 +9,6 @@ use forge_core::{
 };
 use forge_topo::state::MutableDraft;
 use forge_topo::handles::HalfEdgeId;
-use forge_topo::operator::apply_op;
 use forge_topo::non_manifold::sew_edge::SewEdge;
 use crate::geom_facade::{fuzzy_match_edges, DirectedEdge, FuzzyMatchMode, select_best_radial_match};
 
@@ -234,8 +233,7 @@ fn run_stitch_pass(
                         select_best_twin(draft, geom, he_id, &unpaired)
                     };
 
-                    let _ = apply_op(
-                        draft,
+                    let _ = draft.execute(
                         SewEdge {
                             he_a: he_id,
                             he_b: best,
@@ -470,7 +468,7 @@ fn apply_match(
         return Ok(());
     }
 
-    if let Err(err) = apply_op(draft, SewEdge { he_a, he_b }) {
+    if let Err(err) = draft.execute(SewEdge { he_a, he_b }) {
         if debug_stitch_enabled() {
             eprintln!(
                 "[stitch-fallback] rejected {} <-> {} ({}): {}",

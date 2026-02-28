@@ -17,7 +17,7 @@ use crate::arena::{EdgeData, HalfEdgeData, LoopData};
 use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, VertexId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 
 /// Creates a new inner loop on an existing face by connecting a sequence of vertices.
@@ -39,7 +39,7 @@ pub struct MlifvOutput {
     pub edges: Vec<EdgeId>,
 }
 
-impl EulerOperator for MakeLoopInFaceFromVertices {
+impl TopoOperator for MakeLoopInFaceFromVertices {
     type Output = MlifvOutput;
 
     const NAME: &'static str = "make_loop_in_face_from_vertices";

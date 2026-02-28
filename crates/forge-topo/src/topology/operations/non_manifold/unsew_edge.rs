@@ -16,7 +16,7 @@ use crate::arena::EdgeData;
 use crate::handles::{EdgeId, HalfEdgeId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 
 /// Open a boundary by ungluing two halfedges, creating a new edge entity.
@@ -39,7 +39,7 @@ pub struct UnsewEdgeOutput {
     pub original_edge: EdgeId,
 }
 
-impl EulerOperator for UnsewEdge {
+impl TopoOperator for UnsewEdge {
     type Output = UnsewEdgeOutput;
 
     const NAME: &'static str = "unsew_edge";
@@ -117,21 +117,19 @@ impl EulerOperator for UnsewEdge {
 #[cfg(test)]
 mod tests {
     use super::UnsewEdge;
-    use crate::operator::apply_op;
     use crate::state::TopologyState;
-    use crate::topology::operations::euler::make_vertex_face::MakeVertexFace;
-    use crate::topology::operations::euler::sew_edge::SewEdge;
-    use crate::topology::operations::euler::split_edge::SplitEdge;
-    use crate::EulerOperator;
+    use crate::topology::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use crate::topology::operations::non_manifold::sew_edge::SewEdge;
+    use crate::topology::operations::entity_lifecycle::split_edge::SplitEdge;
+    use crate::operator::TopoOperator;
 
     #[test]
     fn unsew_edge_separates_glued_boundaries() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.5,
@@ -144,8 +142,7 @@ mod tests {
         let he_v1_v0 = se.he_mb;
 
         // Sew them first
-        let sew_res = apply_op(
-            &mut draft,
+        let sew_res = draft.execute(
             SewEdge {
                 he_a: he_v0_v1,
                 he_b: he_v1_v0,
@@ -156,8 +153,7 @@ mod tests {
         assert_eq!(draft.arena().edge_count(), 1);
 
         // Now unsew
-        let unsew_res = apply_op(
-            &mut draft,
+        let unsew_res = draft.execute(
             UnsewEdge {
                 he_a: he_v0_v1,
                 he_b: he_v1_v0,
@@ -189,9 +185,8 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.5,
@@ -204,8 +199,7 @@ mod tests {
         let he_v1_v0 = se.he_mb;
 
         // Try unsewing them before they are sewn
-        let res = apply_op(
-            &mut draft,
+        let res = draft.execute(
             UnsewEdge {
                 he_a: he_v0_v1,
                 he_b: he_v1_v0,

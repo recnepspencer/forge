@@ -1,7 +1,7 @@
 use forge_core::tracing::{DecisionContext, DecisionId, DecisionKind, DecisionTier, TraceAdjunctSet, TracedDecision};
 use forge_core::{KernelError, OperationResult};
-use forge_topo::euler::join_faces::JoinFaces;
-use forge_topo::euler::join_faces_nmt::JoinFacesNmt;
+use forge_topo::boundary_editing::join_faces::JoinFaces;
+use forge_topo::boundary_editing::join_faces_nmt::JoinFacesNmt;
 use forge_topo::handles::FaceId;
 use forge_topo::operator::apply_op;
 use forge_topo::traverse::radial_valence;

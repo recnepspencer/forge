@@ -126,7 +126,7 @@ fn topology_state_serde_round_trip_preserves_reidentification_index() {
                 parent_ancestry_hashes: vec![7],
                 parent_linkage_mode: crate::lineage::ParentLinkageMode::Single,
                 parent_snapshot: None,
-                origin_kind: crate::topology::history::lineage_link::EntityOriginKind::EulerOperator,
+                origin_kind: crate::topology::history::lineage_link::EntityOriginKind::TopoOperator,
                 creation_op_name: "make_face".to_string(),
                 creation_op_invocation: 1,
                 epoch: 1,

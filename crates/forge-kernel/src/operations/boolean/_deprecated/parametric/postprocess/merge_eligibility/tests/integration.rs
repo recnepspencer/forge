@@ -112,16 +112,16 @@ fn build_two_face_coplanar_sheet_fixture() -> (
     GeometryState,
     forge_topo::bitset::EntityBitset,
 ) {
-    use forge_topo::euler::make_edge_face::MakeEdgeFace;
-    use forge_topo::euler::make_vertex_face::MakeVertexFace;
-    use forge_topo::euler::split_edge::SplitEdge;
+    use forge_topo::entity_lifecycle::make_edge_face::MakeEdgeFace;
+    use forge_topo::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use forge_topo::entity_lifecycle::split_edge::SplitEdge;
     use forge_topo::operator::apply_op;
     use forge_topo::state::TopologyState;
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
     let se1 = apply_op(
         &mut draft,
         SplitEdge {

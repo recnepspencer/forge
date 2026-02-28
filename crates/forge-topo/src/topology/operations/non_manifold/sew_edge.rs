@@ -18,7 +18,7 @@ use crate::handles::{EdgeId, HalfEdgeId};
 
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 /// Close a boundary by gluing two boundary halfedges together, removing an edge entity.
 ///
@@ -40,7 +40,7 @@ pub struct SewEdgeOutput {
     pub removed_edge: EdgeId,
 }
 
-impl EulerOperator for SewEdge {
+impl TopoOperator for SewEdge {
     type Output = SewEdgeOutput;
 
     const NAME: &'static str = "sew_edge";

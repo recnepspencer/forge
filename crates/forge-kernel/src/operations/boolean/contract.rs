@@ -67,7 +67,7 @@ impl EmberBooleanContract {
 
     /// Entity origin kinds produced by this feature.
     pub fn entity_origins() -> &'static [EntityOriginKind] {
-        &[EntityOriginKind::EulerOperator]
+        &[EntityOriginKind::TopoOperator]
     }
 
     /// Post-execution invariants to validate.

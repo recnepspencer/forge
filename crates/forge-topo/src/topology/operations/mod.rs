@@ -1,42 +1,25 @@
 //! Topology operations — all mutation primitives and composite algorithms.
 //!
-//! DOMAIN: Topology mutation through Euler operators, compound algorithms,
-//! and category-specific operator families.
+//! DOMAIN: Topology mutation through operators organized by category.
 //!
-//! Core infrastructure (always at top level):
-//! - `operator`: `EulerOperator` trait and `apply_op` runner
-//! - `euler`: Classic Euler operator primitives (MVF, SplitEdge, etc.)
-//! - `algorithms`: Compound algorithms built from Euler primitives
+//! Core infrastructure:
+//! - `operator`: `TopoOperator` trait and `MutableDraft::execute()` runner
+//! - `algorithms`: Compound algorithms built from operator primitives
 //!
-//! Category subdirectories (from operators-list.md §B–§N):
-//! - `lifecycle`: Body/component/lump/shell lifecycle (§B)
-//! - `entity_lifecycle`: Face/loop/edge/vertex lifecycle (§C)
-//! - `boundary_editing`: Loop wiring primitives (§D)
-//! - `non_manifold`: Radial-edge/uses, NMT sewing/gluing (§E)
-//! - `regions`: Region/cellular topology (§F)
-//! - `sheets_wires`: Sheet/wire/laminar topology (§G)
-//! - `brep_coupling`: Parametric B-Rep coupling (§H)
-//! - `degeneracy`: Degeneracy/collapse/singularity (§I)
-//! - `boolean`: Boolean/imprint/intersection surgery (§J)
-//! - `healing`: Sewing/healing/repair (§K)
-//! - `construction`: Feature-level modeling (§L)
-//! - `global_editing`: Global topology operations (§M)
-//! - `transform`: Transform/copy// --- NEW STRUCTURE ---
+//! Category subdirectories:
+//! - `lifecycle`: Body/component/lump/shell lifecycle
+//! - `entity_lifecycle`: Face/loop/edge/vertex lifecycle + Euler primitives
+//! - `boundary_editing`: Loop wiring, face merging, ring/hole operators
+//! - `non_manifold`: Radial-edge sewing/unsewing
 
 pub mod algorithms;
 pub mod operator;
 
-// Entity creation and destruction
 pub mod lifecycle;
 pub mod entity_lifecycle;
-
-// Boundary modifications
 pub mod boundary_editing;
-
-// Non-manifold gluing
 pub mod non_manifold;
 
-// Scaffolding for remaining categories
 pub mod regions;
 pub mod sheets_wires;
 pub mod brep_coupling;
@@ -47,7 +30,21 @@ pub mod construction;
 pub mod global_editing;
 pub mod transform;
 
-// --- LEGACY (Will be removed once fully migrated) ---
-pub mod euler;
+#[cfg(test)]
+pub(crate) mod tests;
 
-pub use euler::*;
+/// Standard Euler Operator type aliases.
+pub type MVFS = entity_lifecycle::make_vertex_face::MakeVertexFace;
+pub type KVFS = entity_lifecycle::kill_vertex_face::KillVertexFace;
+pub type MEV = entity_lifecycle::make_edge_vertex::MakeEdgeVertex;
+pub type KEV = entity_lifecycle::kill_edge_vertex::KillEdgeVertex;
+pub type MVE = entity_lifecycle::split_edge::SplitEdge;
+pub type KVE = entity_lifecycle::kill_vertex_edge::KillVertexEdge;
+pub type MEF = entity_lifecycle::make_edge_face::MakeEdgeFace;
+pub type KEF = boundary_editing::join_faces::JoinFaces;
+pub type MEKR = boundary_editing::make_edge_kill_loop::MakeEdgeKillLoop;
+pub type KEMR = boundary_editing::kill_edge_make_loop::KillEdgeMakeLoop;
+pub type MFKRH = boundary_editing::make_face_kill_ring_hole::MakeFaceKillRingHole;
+pub type KFMRH = boundary_editing::kill_face_make_ring_hole::KillFaceMakeRingHole;
+pub type MFV = entity_lifecycle::make_face_vertex::MakeFaceVertex;
+pub type KFV = entity_lifecycle::kill_face_vertex::KillFaceVertex;

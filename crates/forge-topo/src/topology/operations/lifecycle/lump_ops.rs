@@ -10,7 +10,7 @@ use crate::arena::{LumpData, RegionData};
 use crate::handles::{BodyId, LumpId, RegionId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 // ── RehomeLump ──────────────────────────────────────────────────────
 
@@ -23,7 +23,7 @@ pub struct RehomeLump {
     pub target_body: BodyId,
 }
 
-impl EulerOperator for RehomeLump {
+impl TopoOperator for RehomeLump {
     type Output = ();
 
     const NAME: &'static str = "rehome_lump";
@@ -67,7 +67,7 @@ pub struct ExtractLumpOutput {
     pub new_body: BodyId,
 }
 
-impl EulerOperator for ExtractLump {
+impl TopoOperator for ExtractLump {
     type Output = ExtractLumpOutput;
 
     const NAME: &'static str = "extract_lump";
@@ -124,7 +124,7 @@ pub struct SplitLumpOutput {
     pub new_lump: LumpId,
 }
 
-impl EulerOperator for SplitLump {
+impl TopoOperator for SplitLump {
     type Output = SplitLumpOutput;
 
     const NAME: &'static str = "split_lump";
@@ -179,7 +179,7 @@ pub struct MergeLumps {
     pub source: LumpId,
 }
 
-impl EulerOperator for MergeLumps {
+impl TopoOperator for MergeLumps {
     type Output = ();
 
     const NAME: &'static str = "merge_lumps";

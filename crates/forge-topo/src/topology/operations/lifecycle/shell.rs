@@ -8,7 +8,7 @@ use crate::arena::{ShellData, ShellKind};
 use crate::handles::{FaceId, RegionId, ShellId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 
 /// Creates an empty shell attached to a region.
@@ -26,7 +26,7 @@ pub struct MakeEmptyShellOutput {
     pub shell: ShellId,
 }
 
-impl EulerOperator for MakeEmptyShell {
+impl TopoOperator for MakeEmptyShell {
     type Output = MakeEmptyShellOutput;
 
     const NAME: &'static str = "make_empty_shell";
@@ -69,7 +69,7 @@ pub struct DestroyShell {
     pub shell: ShellId,
 }
 
-impl EulerOperator for DestroyShell {
+impl TopoOperator for DestroyShell {
     type Output = ();
 
     const NAME: &'static str = "destroy_shell";

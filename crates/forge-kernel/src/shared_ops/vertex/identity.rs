@@ -19,7 +19,7 @@
 //! - Emits `LineageEvent::EntityMerged` automatically
 //! - Is testable in isolation
 //!
-//! See `forge-topo::euler::kill_edge_vertex` for the closest existing operator.
+//! See `forge-topo::entity_lifecycle::kill_edge_vertex` for the closest existing operator.
 //! The key difference: KEV requires an edge between A and B, whereas vertex
 //! identity resolution happens *before* cross-solid edges exist.
 

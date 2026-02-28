@@ -2,11 +2,10 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::euler::make_edge_face::MakeEdgeFace;
-    use crate::euler::make_vertex_face::MakeVertexFace;
-    use crate::euler::split_edge::SplitEdge;
-    use crate::euler::tests::invariant_checker::{diagnose_op_chain, dump_all_wiring};
-    use crate::operator::apply_op;
+    use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
+    use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use crate::entity_lifecycle::split_edge::SplitEdge;
+    use crate::topology::operations::tests::invariant_checker::{diagnose_op_chain, dump_all_wiring};
     use crate::traverse::FaceEdgeIterator;
 
     /// Trace every step of the pole fan pattern and print EXACTLY
@@ -16,15 +15,14 @@ mod tests {
     fn diagnose_pole_fan() {
         let report = diagnose_op_chain(|runner| {
             let mvf = runner.run("MVF", |d| {
-                apply_op(d, MakeVertexFace).map(|r| r.into_value())
+                d.execute(MakeVertexFace).map(|r| r.into_value())
             })?;
             let pole = mvf.vertex;
             let mut current_edge = mvf.half_edge;
 
             for i in 0..3 {
                 let se = runner.run(&format!("SE[{}]", i), |d| {
-                    apply_op(
-                        d,
+                    d.execute(
                         SplitEdge {
                             edge: current_edge,
                             parameter: 0.5,
@@ -40,8 +38,7 @@ mod tests {
                 let mef = runner.run(
                     &format!("MEF[{}](V{}, V{})", i, pole.index(), se.new_vertex.index()),
                     |d| {
-                        apply_op(
-                            d,
+                        d.execute(
                             MakeEdgeFace {
                                 vertex_a: pole,
                                 vertex_b: se.new_vertex,

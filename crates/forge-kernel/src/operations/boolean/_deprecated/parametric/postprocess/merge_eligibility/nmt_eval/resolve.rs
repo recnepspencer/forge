@@ -516,8 +516,8 @@ fn map_topo_origin_kind_to_persistent(
     origin: forge_topo::topology::history::lineage_link::EntityOriginKind,
 ) -> forge_core::errors::PersistentResolutionOriginKind {
     match origin {
-        forge_topo::topology::history::lineage_link::EntityOriginKind::EulerOperator => {
-            forge_core::errors::PersistentResolutionOriginKind::EulerOperator
+        forge_topo::topology::history::lineage_link::EntityOriginKind::TopoOperator => {
+            forge_core::errors::PersistentResolutionOriginKind::TopoOperator
         }
         forge_topo::topology::history::lineage_link::EntityOriginKind::GeometricIntersection => {
             forge_core::errors::PersistentResolutionOriginKind::GeometricIntersection
@@ -626,8 +626,8 @@ fn map_topo_origin_kind(
     origin: forge_topo::topology::history::lineage_link::EntityOriginKind,
 ) -> forge_core::tracing::ReidentificationOriginKindSummary {
     match origin {
-        forge_topo::topology::history::lineage_link::EntityOriginKind::EulerOperator => {
-            forge_core::tracing::ReidentificationOriginKindSummary::EulerOperator
+        forge_topo::topology::history::lineage_link::EntityOriginKind::TopoOperator => {
+            forge_core::tracing::ReidentificationOriginKindSummary::TopoOperator
         }
         forge_topo::topology::history::lineage_link::EntityOriginKind::GeometricIntersection => {
             forge_core::tracing::ReidentificationOriginKindSummary::GeometricIntersection

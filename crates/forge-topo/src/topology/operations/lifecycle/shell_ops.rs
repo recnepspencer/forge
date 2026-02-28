@@ -10,7 +10,7 @@ use crate::arena::ShellKind;
 use crate::handles::{RegionId, ShellId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 // ── RehomeShell ─────────────────────────────────────────────────────
 
@@ -23,7 +23,7 @@ pub struct RehomeShell {
     pub target_region: RegionId,
 }
 
-impl EulerOperator for RehomeShell {
+impl TopoOperator for RehomeShell {
     type Output = ();
 
     const NAME: &'static str = "rehome_shell";
@@ -67,7 +67,7 @@ pub struct ExtractShellOutput {
     pub new_region: RegionId,
 }
 
-impl EulerOperator for ExtractShell {
+impl TopoOperator for ExtractShell {
     type Output = ExtractShellOutput;
 
     const NAME: &'static str = "extract_shell";
@@ -121,7 +121,7 @@ pub struct SplitShellOutput {
     pub new_shell: ShellId,
 }
 
-impl EulerOperator for SplitShell {
+impl TopoOperator for SplitShell {
     type Output = SplitShellOutput;
 
     const NAME: &'static str = "split_shell";
@@ -182,7 +182,7 @@ pub struct MergeShells {
     pub source: ShellId,
 }
 
-impl EulerOperator for MergeShells {
+impl TopoOperator for MergeShells {
     type Output = ();
 
     const NAME: &'static str = "merge_shells";
@@ -232,7 +232,7 @@ pub struct PromoteShell {
     pub shell: ShellId,
 }
 
-impl EulerOperator for PromoteShell {
+impl TopoOperator for PromoteShell {
     type Output = ();
 
     const NAME: &'static str = "promote_shell";
@@ -282,7 +282,7 @@ pub struct DemoteShell {
     pub region: RegionId,
 }
 
-impl EulerOperator for DemoteShell {
+impl TopoOperator for DemoteShell {
     type Output = ();
 
     const NAME: &'static str = "demote_shell";

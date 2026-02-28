@@ -10,7 +10,6 @@ use forge_topo::boundary_editing::make_loop_in_face_from_vertices::MakeLoopInFac
 use forge_topo::handles::ShellId;
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::lineage::OpSignature;
-use forge_topo::operator::apply_op;
 use forge_topo::state::MutableDraft;
 
 /// Output of a rebuilt face.
@@ -60,7 +59,7 @@ pub fn rebuild_face_from_vertices(
         shell,
         vertices: vertices.to_vec(),
     };
-    match apply_op(draft, op) {
+    match draft.execute(op) {
         Ok(res) => {
             let val = res.into_value();
             Ok(RebuildFaceOutput {
@@ -94,7 +93,7 @@ pub fn rebuild_inner_loop_from_vertices(
         face,
         vertices: vertices.to_vec(),
     };
-    match apply_op(draft, op) {
+    match draft.execute(op) {
         Ok(res) => {
             let val = res.into_value();
             Ok(RebuildLoopOutput {

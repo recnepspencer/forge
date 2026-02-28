@@ -49,7 +49,7 @@ impl From<LineageEntityRef> for TopoSnapshotHandleRef {
 /// Classification of how an entity came to exist.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum EntityOriginKind {
-    EulerOperator,
+    TopoOperator,
     GeometricIntersection,
     ConstraintSolver,
     Unknown,
@@ -352,7 +352,7 @@ pub fn resolve_reidentification_query_v1(
     };
 
     if let Some(origin) = records.iter().find_map(|record| match &record.origin_kind {
-        EntityOriginKind::EulerOperator => None,
+        EntityOriginKind::TopoOperator => None,
         other => Some(other.clone()),
     }) {
         evidence.compatibility = ReidentificationCompatibility::UnsupportedEntityOrigin {
@@ -447,7 +447,7 @@ fn record_from_creation(
         // Parent snapshots are not reconstructible from V1 lineage events alone.
         parent_snapshot: None,
         // Topology lineage events currently originate from Euler / topology ops.
-        origin_kind: EntityOriginKind::EulerOperator,
+        origin_kind: EntityOriginKind::TopoOperator,
         creation_op_name: lineage.get_creation_op().get_name().to_string(),
         creation_op_invocation: lineage.get_creation_op().get_invocation_id(),
         epoch,

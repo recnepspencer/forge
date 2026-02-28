@@ -13,7 +13,7 @@ use crate::arena::{BodyData, LumpData, RegionData};
 use crate::handles::{BodyId, LumpId, RegionId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 
 /// Creates a new, empty solid hierarchy.
@@ -30,7 +30,7 @@ pub struct MakeSolidOutput {
     pub region: RegionId,
 }
 
-impl EulerOperator for MakeSolid {
+impl TopoOperator for MakeSolid {
     type Output = MakeSolidOutput;
 
     const NAME: &'static str = "make_solid";
@@ -77,7 +77,7 @@ pub struct DestroyBody {
     pub body: BodyId,
 }
 
-impl EulerOperator for DestroyBody {
+impl TopoOperator for DestroyBody {
     type Output = ();
 
     const NAME: &'static str = "destroy_body";

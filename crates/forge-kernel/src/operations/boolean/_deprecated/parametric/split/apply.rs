@@ -10,7 +10,7 @@
 use std::collections::BTreeSet;
 
 use forge_core::KernelError;
-use forge_topo::euler::make_edge_face::MakeEdgeFace;
+use forge_topo::entity_lifecycle::make_edge_face::MakeEdgeFace;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::operator::apply_op;
 use forge_topo::state::MutableDraft;

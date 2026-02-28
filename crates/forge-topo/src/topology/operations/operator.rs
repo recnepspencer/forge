@@ -1,49 +1,44 @@
-//! Euler operator trait and the `apply_op` runner.
+//! Topology operator trait and supporting types.
 //!
 //! # Architecture
 //!
-//! Every topology mutation implements the `EulerOperator` trait.
-//! Operators are never called directly — they go through `apply_op()`,
-//! which is the single choke point for:
+//! Every topology mutation implements the `TopoOperator` trait.
+//! Operators are never called directly — they go through
+//! `MutableDraft::execute()`, which is the single choke point for:
 //! - Lineage tracking (every entity knows its provenance)
 //! - Operation logging (for replay and debugging)
+//! - Euler delta verification (declared vs actual entity counts)
 //! - Consistent error handling
 //!
 //! # Example
 //! ```ignore
 //! let mut draft = state.into_mutation();
 //!
-//! // Always use apply_op — never call op.execute() directly
-//! let (edge_a, edge_b, vertex) = apply_op(&mut draft, SplitEdge {
+//! // Always use draft.execute() — never call op.execute() directly
+//! let (edge_a, edge_b, vertex) = draft.execute(SplitEdge {
 //!     edge: my_edge,
 //!     parameter: 0.5,
-//! })?;
+//! })?.into_value();
 //!
 //! Ok(draft.commit()?)
 //! ```
 
-use crate::lineage::OpSignature;
 use crate::state::MutableDraft;
-use crate::topology::validators::validate::ValidationLevel;
 use forge_core::{
-    DecisionContext, DecisionId, DecisionKind, DecisionLog, DecisionTier, TracedDecision,
+    ErrorContext, ErrorScope, KernelError, TopologyError,
 };
-use forge_core::{
-    ErrorContext, ErrorScope, KernelError, LineageDelta, OperationMetrics, OperationResult,
-    TopologyError,
-};
-use std::time::Instant;
 
 /// A topology mutation that can be applied to a `MutableDraft`.
 ///
-/// Every Euler operator must implement this trait. The `apply_op` runner
-/// handles lineage, logging, and error propagation automatically.
+/// Every topology operator must implement this trait. The
+/// `MutableDraft::execute()` runner handles lineage, logging,
+/// Euler delta verification, and error propagation automatically.
 ///
 /// # Implementing a New Operator
 ///
 /// 1. Define a struct with the operation's parameters
-/// 2. Implement `EulerOperator` for it
-/// 3. Call it via `apply_op(draft, MyOp { ... })` — never directly
+/// 2. Implement `TopoOperator` for it
+/// 3. Call it via `draft.execute(MyOp { ... })` — never directly
 ///
 /// ```ignore
 /// pub struct SplitEdge {
@@ -51,7 +46,7 @@ use std::time::Instant;
 ///     pub parameter: f64,
 /// }
 ///
-/// impl EulerOperator for SplitEdge {
+/// impl TopoOperator for SplitEdge {
 ///     type Output = (HalfEdgeId, HalfEdgeId, VertexId);
 ///
 ///     fn execute(&self, draft: &mut MutableDraft) -> Result<ExecutionResult<Self::Output>, KernelError> {
@@ -62,7 +57,7 @@ use std::time::Instant;
 ///     const NAME: &'static str = "split_edge";
 /// }
 /// ```
-pub trait EulerOperator: std::fmt::Debug {
+pub trait TopoOperator: std::fmt::Debug {
     /// The result type produced by this operation.
     type Output;
 
@@ -82,11 +77,21 @@ pub trait EulerOperator: std::fmt::Debug {
         draft: &mut MutableDraft,
     ) -> Result<ExecutionResult<Self::Output>, KernelError>;
 
-    /// A unique signature identifying this operation type.
+    /// A unique name identifying this operation type.
     ///
     /// Used for lineage tracking and replay. The invocation ID is
     /// assigned by the runner (you don't need to set it).
     const NAME: &'static str;
+
+    /// Human-readable semantic summary of this operation with its parameters.
+    ///
+    /// Override this to provide a meaningful description for lineage chains.
+    /// Default uses the Debug repr. When P3.3 semantic summarization is
+    /// implemented, `MutableDraft::execute()` will record this alongside
+    /// the raw Euler delta to produce < 200 token causal narratives.
+    fn semantic_summary(&self) -> String {
+        format!("{:?}", self)
+    }
 }
 
 /// Declared Euler formula delta for an operator.
@@ -112,11 +117,12 @@ pub struct EulerDelta {
     pub regions: i32,
 }
 
-/// Result of an Euler operator execution.
+/// Result of a topology operator execution.
 ///
 /// Wraps the operator output with the Euler delta that this specific
-/// code path **intended** to produce. The `apply_op` runner compares
-/// this against actual arena count changes to catch wiring bugs.
+/// code path **intended** to produce. The `MutableDraft::execute()`
+/// runner compares this against actual arena count changes to catch
+/// wiring bugs.
 ///
 /// Each branch in an operator (e.g. self-loop vs normal in SplitEdge)
 /// declares its own delta, giving "what should have happened?" vs
@@ -128,239 +134,6 @@ pub struct ExecutionResult<T> {
     pub declared_delta: EulerDelta,
 }
 
-/// Apply an Euler operator through the formalized runner.
-///
-/// This is the ONLY correct way to execute topology mutations.
-/// It handles:
-/// 1. **Logging**: Records the operation start for replay (D1)
-/// 2. **Execution**: Calls the operator's `execute()` method
-/// 3. **Lineage**: Updates ancestry tracking for affected entities
-/// 4. **Tracing**: Records a `TracedDecision` for every execution
-///
-/// # Errors
-///
-/// Returns whatever error the operator produces. The draft remains
-/// valid after an error — you can apply more ops or drop it.
-///
-/// # Example
-/// ```ignore
-/// let mut draft = state.into_mutation();
-/// let result = apply_op(&mut draft, MyOperator { ... })?;
-/// // draft is still valid — you can apply more ops
-/// let result2 = apply_op(&mut draft, AnotherOp { ... })?;
-/// Ok(draft.commit()?)
-/// ```
-pub fn apply_op<O: EulerOperator>(
-    draft: &mut MutableDraft,
-    op: O,
-) -> Result<OperationResult<O::Output>, KernelError> {
-    let start = Instant::now();
-
-    let face_count_before = draft.arena().face_count();
-    let vertex_count_before = draft.arena().vertex_count();
-    let halfedge_count_before = draft.arena().half_edge_count();
-    let loop_count_before = draft.arena().loop_count();
-    let edge_count_before = draft.arena().edge_count();
-    let shell_count_before = draft.arena().shell_count();
-    let body_count_before = draft.arena().body_count();
-    let lump_count_before = draft.arena().lump_count();
-    let region_count_before = draft.arena().region_count();
-
-    let invocation_id = draft.next_op_id();
-    let mut signature = OpSignature::new(O::NAME);
-    signature.set_invocation_id(invocation_id);
-
-    let op_name = signature.get_name().to_string();
-
-    tracing::debug!(
-        op = ?op,
-        invocation_id = invocation_id,
-        "Applying Euler operator"
-    );
-    draft.log_operation_start(&signature);
-
-    let exec_result = op.execute(draft)?;
-    let declared_delta = exec_result.declared_delta;
-    let result = exec_result.value;
-
-    draft.apply_lineage(&signature);
-
-    draft.bump_topology_version();
-
-    if draft.config().per_op_hashing {
-        let post_hash = draft.compute_topology_hash();
-        draft.set_topology_hash(post_hash);
-        draft.replay_log_mut().finalize_last(post_hash);
-    }
-
-    let face_count_after = draft.arena().face_count();
-    let vertex_count_after = draft.arena().vertex_count();
-    let halfedge_count_after = draft.arena().half_edge_count();
-    let loop_count_after = draft.arena().loop_count();
-    let edge_count_after = draft.arena().edge_count();
-    let shell_count_after = draft.arena().shell_count();
-    let body_count_after = draft.arena().body_count();
-    let lump_count_after = draft.arena().lump_count();
-    let region_count_after = draft.arena().region_count();
-
-    // ── Euler invariant enforcement: declared intent vs actual reality ──
-    let actual_delta = EulerDelta {
-        vertices: vertex_count_after as i32 - vertex_count_before as i32,
-        half_edges: halfedge_count_after as i32 - halfedge_count_before as i32,
-        faces: face_count_after as i32 - face_count_before as i32,
-        loops: loop_count_after as i32 - loop_count_before as i32,
-        edges: edge_count_after as i32 - edge_count_before as i32,
-        shells: shell_count_after as i32 - shell_count_before as i32,
-        solids: body_count_after as i32 - body_count_before as i32,
-        lumps: lump_count_after as i32 - lump_count_before as i32,
-        regions: region_count_after as i32 - region_count_before as i32,
-    };
-    if actual_delta != declared_delta {
-        let expected_vertices_after = vertex_count_before as i64 + declared_delta.vertices as i64;
-        let expected_edges_after = edge_count_before as i64 + declared_delta.edges as i64;
-        let expected_faces_after = face_count_before as i64 + declared_delta.faces as i64;
-        let expected_chi = expected_vertices_after - expected_edges_after + expected_faces_after;
-        let actual_chi =
-            vertex_count_after as i64 - edge_count_after as i64 + face_count_after as i64;
-
-        return Err(KernelError::TopologyViolation {
-            err: TopologyError::EulerFormulaViolation {
-                vertices: vertex_count_after,
-                edges: edge_count_after,
-                faces: face_count_after,
-                expected_chi,
-                actual_chi,
-            },
-            context: Some(ErrorContext {
-                scope: ErrorScope::Operation {
-                    op_name: op_name.clone(),
-                    invocation_id: invocation_id as u64,
-                },
-                suggested_fixes: vec![],
-                detail: format!(
-                    "{} declared Euler delta V={} HE={} F={} L={} E={} S={} So={} but actual was V={} HE={} F={} L={} E={} S={} So={}",
-                    op_name,
-                    declared_delta.vertices, declared_delta.half_edges, declared_delta.faces, declared_delta.loops,
-                    declared_delta.edges, declared_delta.shells, declared_delta.solids,
-                    actual_delta.vertices, actual_delta.half_edges, actual_delta.faces, actual_delta.loops,
-                    actual_delta.edges, actual_delta.shells, actual_delta.solids,
-                ),
-            }),
-        });
-    }
-
-    // ── Per-op structural validation + reciprocity checks ────────────
-    if draft.config().per_op_validation {
-        crate::topology::validators::structural::validate_topology(draft.arena(), ValidationLevel::Full).map_err(|e| {
-            KernelError::TopologyViolation {
-                err: TopologyError::BrokenLoop {
-                    face_index: 0,
-                    starting_halfedge: 0,
-                },
-                context: Some(ErrorContext {
-                    scope: ErrorScope::Operation {
-                        op_name: op_name.clone(),
-                        invocation_id: invocation_id as u64,
-                    },
-                    suggested_fixes: vec![],
-                    detail: format!("Per-op validation failed after {}: {}", op_name, e),
-                }),
-            }
-        })?;
-
-        validate_halfedge_reciprocity(draft, &op_name, invocation_id as u64)?;
-    }
-
-    // ── P2: Accurate metrics from arena count deltas ────────────────
-    let faces_created = face_count_after.saturating_sub(face_count_before) as u32;
-    let vertices_created = vertex_count_after.saturating_sub(vertex_count_before) as u32;
-    let half_edges_created = halfedge_count_after.saturating_sub(halfedge_count_before) as u32;
-    let loops_created = loop_count_after.saturating_sub(loop_count_before) as u32;
-    let edges_created = edge_count_after.saturating_sub(edge_count_before) as u32;
-    let shells_created = shell_count_after.saturating_sub(shell_count_before) as u32;
-    let solids_created = body_count_after.saturating_sub(body_count_before) as u32;
-
-    let faces_deleted = face_count_before.saturating_sub(face_count_after) as u32;
-    let vertices_deleted = vertex_count_before.saturating_sub(vertex_count_after) as u32;
-    let half_edges_deleted = halfedge_count_before.saturating_sub(halfedge_count_after) as u32;
-    let loops_deleted = loop_count_before.saturating_sub(loop_count_after) as u32;
-    let edges_deleted = edge_count_before.saturating_sub(edge_count_after) as u32;
-    let shells_deleted = shell_count_before.saturating_sub(shell_count_after) as u32;
-    let solids_deleted = body_count_before.saturating_sub(body_count_after) as u32;
-
-    let entities_created = faces_created
-        + vertices_created
-        + half_edges_created
-        + loops_created
-        + edges_created
-        + shells_created
-        + solids_created;
-    let entities_deleted = faces_deleted
-        + vertices_deleted
-        + half_edges_deleted
-        + loops_deleted
-        + edges_deleted
-        + shells_deleted
-        + solids_deleted;
-
-    let metrics = OperationMetrics {
-        duration: start.elapsed(),
-        entities_created,
-        entities_deleted,
-        entities_modified: 0,
-        exact_predicate_calls: 0,
-        policy_decisions_made: 0,
-    };
-
-    let lineage_delta = LineageDelta {
-        faces_created,
-        faces_deleted,
-        half_edges_created,
-        half_edges_deleted,
-        vertices_created,
-        vertices_deleted,
-        loops_created,
-        loops_deleted,
-        edges_created,
-        edges_deleted,
-        shells_created,
-        shells_deleted,
-        solids_created,
-        solids_deleted,
-    };
-
-    let mut decision = TracedDecision::new(
-        DecisionId(invocation_id as u64),
-        DecisionKind::Exact,
-        DecisionTier::Deterministic,
-        1.0,
-        DecisionContext::Degeneracy {
-            description: format!(
-                "EulerOp({}) #{}: +{}F +{}V +{}HE -{}F -{}V -{}HE in {:.0?}",
-                op_name,
-                invocation_id,
-                faces_created,
-                vertices_created,
-                half_edges_created,
-                faces_deleted,
-                vertices_deleted,
-                half_edges_deleted,
-                start.elapsed(),
-            ),
-        },
-    );
-    decision.set_feature_scope(u64::MAX);
-    let mut log = DecisionLog::new();
-    log.record(decision);
-
-    let mut op_result = OperationResult::new(result);
-    op_result.set_metrics(metrics);
-    op_result.set_lineage_delta(lineage_delta);
-    op_result.set_decision_log(log);
-
-    Ok(op_result)
-}
-
 /// Per-op post-condition: twin reciprocity and next/prev reciprocity.
 ///
 /// For every halfedge in the arena, checks:
@@ -370,7 +143,7 @@ pub fn apply_op<O: EulerOperator>(
 /// These catch silent wiring bugs where operators set the wrong
 /// next/prev/twin pointers — these pass structural validation but
 /// produce incorrect geometry under traversal.
-fn validate_halfedge_reciprocity(
+pub(crate) fn validate_halfedge_reciprocity(
     draft: &MutableDraft,
     op_name: &str,
     invocation_id: u64,
@@ -436,7 +209,7 @@ mod tests {
     #[derive(Debug)]
     struct NoOp;
 
-    impl EulerOperator for NoOp {
+    impl TopoOperator for NoOp {
         type Output = ();
 
         fn execute(
@@ -466,7 +239,7 @@ mod tests {
     #[derive(Debug)]
     struct FailOp;
 
-    impl EulerOperator for FailOp {
+    impl TopoOperator for FailOp {
         type Output = ();
 
         fn execute(
@@ -483,33 +256,30 @@ mod tests {
     }
 
     #[test]
-    fn apply_op_succeeds_for_noop() {
+    fn execute_succeeds_for_noop() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let result = apply_op(&mut draft, NoOp);
+        let result = draft.execute(NoOp);
         assert!(result.is_ok());
     }
 
     #[test]
-    fn apply_op_propagates_errors() {
+    fn execute_propagates_errors() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let result = apply_op(&mut draft, FailOp);
+        let result = draft.execute(FailOp);
         assert!(result.is_err());
     }
 
     #[test]
-    fn apply_op_assigns_unique_ids() {
+    fn execute_assigns_unique_ids() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        // Apply multiple ops — each gets a unique invocation ID
-        apply_op(&mut draft, NoOp).unwrap().into_value();
-        apply_op(&mut draft, NoOp).unwrap().into_value();
-        apply_op(&mut draft, NoOp).unwrap().into_value();
+        draft.execute(NoOp).unwrap().into_value();
+        draft.execute(NoOp).unwrap().into_value();
+        draft.execute(NoOp).unwrap().into_value();
 
-        // The draft state should reflect 3 operations
-        // (verified by the commit succeeding with correct topology version)
         let new_state = draft.commit().unwrap();
         assert!(new_state.topology_version() > 0);
     }
@@ -519,12 +289,10 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        // One op succeeds, one fails, then commit
-        apply_op(&mut draft, NoOp).unwrap().into_value();
-        let _ = apply_op(&mut draft, FailOp); // Error, but draft is still valid
-        apply_op(&mut draft, NoOp).unwrap().into_value();
+        draft.execute(NoOp).unwrap().into_value();
+        let _ = draft.execute(FailOp);
+        draft.execute(NoOp).unwrap().into_value();
 
-        // Draft can still commit (the failed op did nothing)
         assert!(draft.commit().is_ok());
     }
 }

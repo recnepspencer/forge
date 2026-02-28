@@ -18,7 +18,7 @@ use crate::arena::{EdgeData, FaceData, HalfEdgeData, LoopData, ShellData, ShellK
 use crate::handles::{EdgeId, HalfEdgeId, LoopId, RegionId, ShellId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 
 /// Creates a new, disjoint shell within an existing solid.
@@ -44,7 +44,7 @@ pub struct MsfOutput {
     pub edge: EdgeId,
 }
 
-impl EulerOperator for MakeShellFace {
+impl TopoOperator for MakeShellFace {
     type Output = MsfOutput;
 
     const NAME: &'static str = "make_shell_face";
@@ -136,24 +136,23 @@ impl EulerOperator for MakeShellFace {
 #[cfg(test)]
 mod tests {
     use super::MakeShellFace;
-    use crate::operator::apply_op;
     use crate::state::TopologyState;
-    use crate::topology::operations::euler::make_vertex_face::MakeVertexFace;
-    use crate::EulerOperator;
+    use crate::topology::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use crate::operator::TopoOperator;
 
     #[test]
     fn make_shell_face_creates_new_shell_in_solid() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
 
         assert_eq!(draft.arena().face_count(), 1);
         assert_eq!(draft.arena().shell_count(), 1);
         assert_eq!(draft.arena().body_count(), 1);
 
         let region = draft.arena().get_shell(mvf.shell).unwrap().region();
-        let msf = apply_op(&mut draft, MakeShellFace { region })
+        let msf = draft.execute(MakeShellFace { region })
             .unwrap()
             .into_value();
 

@@ -12,7 +12,6 @@
 //! DEPENDENCIES: `arena` (entity storage)
 
 use crate::handles::HalfEdgeId;
-use crate::operator::apply_op;
 use crate::state::MutableDraft;
 use crate::topology::operations::boundary_editing::make_edge_kill_loop::MakeEdgeKillLoop;
 use forge_core::KernelError;
@@ -39,8 +38,7 @@ pub fn bridge_edge(
     outer_he: HalfEdgeId,
     inner_he: HalfEdgeId,
 ) -> Result<BridgeEdgeOutput, KernelError> {
-    let mekl = apply_op(
-        draft,
+    let mekl = draft.execute(
         MakeEdgeKillLoop {
             he_a: outer_he,
             he_b: inner_he,

@@ -22,7 +22,7 @@ use crate::handles::{
 };
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 
 /// Creates a new face by connecting a sequence of existing vertices.
@@ -56,7 +56,7 @@ pub struct MffvOutput {
     pub edges: Vec<EdgeId>,
 }
 
-impl EulerOperator for MakeFaceFromVertices {
+impl TopoOperator for MakeFaceFromVertices {
     type Output = MffvOutput;
 
     const NAME: &'static str = "make_face_from_vertices";

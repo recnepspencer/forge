@@ -17,7 +17,7 @@ use crate::arena::{EdgeData, HalfEdgeData, VertexData};
 use crate::handles::{EdgeId, HalfEdgeId, VertexId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 
 /// Extend a vertex by sprouting a new edge and vertex (antenna).
@@ -55,7 +55,7 @@ pub struct MevOutput {
     pub edge: EdgeId,
 }
 
-impl EulerOperator for MakeEdgeVertex {
+impl TopoOperator for MakeEdgeVertex {
     type Output = MevOutput;
 
     const NAME: &'static str = "make_edge_vertex";

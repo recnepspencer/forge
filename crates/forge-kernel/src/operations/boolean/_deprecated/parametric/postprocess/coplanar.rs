@@ -12,7 +12,7 @@ use forge_core::KernelError;
 use forge_core::{
     DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, TracedDecision,
 };
-use forge_topo::euler::join_faces::JoinFaces;
+use forge_topo::boundary_editing::join_faces::JoinFaces;
 use forge_topo::handles::HalfEdgeId;
 use forge_topo::operator::apply_op;
 use forge_topo::state::TopologyState;

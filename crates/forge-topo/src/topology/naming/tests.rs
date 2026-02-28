@@ -2,10 +2,9 @@
 
 use forge_core::EntityKind;
 
-use crate::euler::make_edge_face::MakeEdgeFace;
-use crate::euler::make_vertex_face::MakeVertexFace;
-use crate::euler::split_edge::SplitEdge;
-use crate::operator::apply_op;
+use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
+use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+use crate::entity_lifecycle::split_edge::SplitEdge;
 use crate::state::TopologyState;
 
 use super::eval::{assign_name, resolve_name};
@@ -15,7 +14,7 @@ fn name_rebuild_resolve_finds_entity() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
     let original_face = mvf.face;
 
     // 1. Assign name to the created face
@@ -28,7 +27,7 @@ fn name_rebuild_resolve_finds_entity() {
     // 2. Rebuild the exact same topology from scratch
     let state2 = TopologyState::empty();
     let mut draft2 = state2.into_mutation();
-    let mvf2 = apply_op(&mut draft2, MakeVertexFace).unwrap().into_value();
+    let mvf2 = draft2.execute(MakeVertexFace).unwrap().into_value();
     let final_state2 = draft2.commit().unwrap();
 
     // 3. Resolve the name from state 1 in state 2
@@ -50,14 +49,13 @@ fn name_split_produces_distinct_resolvable_hashes() {
     let mut draft = state.into_mutation();
 
     // Build seed
-    let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
 
     // Name the original face
     let name_a = assign_name(draft.arena(), mvf.face.into()).unwrap();
 
     // Split it
-    let se = apply_op(
-        &mut draft,
+    let se = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
             parameter: 0.5,
@@ -65,8 +63,7 @@ fn name_split_produces_distinct_resolvable_hashes() {
     )
     .unwrap()
     .into_value();
-    let mef = apply_op(
-        &mut draft,
+    let mef = draft.execute(
         MakeEdgeFace {
             vertex_a: mvf.vertex,
             vertex_b: se.new_vertex,

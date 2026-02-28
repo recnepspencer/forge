@@ -663,9 +663,9 @@ fn chained_booleans_preserve_euler() {
 /// Build a cube, split edges, verify Euler holds after each split.
 #[test]
 fn random_edge_split_storm() {
-    use forge_topo::euler::split_edge::SplitEdge;
+    use forge_topo::entity_lifecycle::split_edge::SplitEdge;
     use forge_topo::lineage::OpSignature;
-    use forge_topo::operator::EulerOperator;
+    use forge_topo::operator::TopoOperator;
 
     let (topo, _geom) = build_cube([0.0, 0.0, 0.0], 1.0);
     // Use clone to test iteration while keeping topo for reference if needed (though here it isn't used after).

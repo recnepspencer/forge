@@ -11,8 +11,6 @@ pub mod naming;
 pub mod operations;
 pub mod queries;
 
-// Re-exports for cleaner access
 pub use handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
 pub use history::lineage::Lineage;
-pub use operations::operator::EulerOperator;
 pub use state::{MutableDraft, TopologyState};

@@ -8,7 +8,7 @@ use crate::arena::{LumpData, RegionData};
 use crate::handles::{BodyId, LumpId, RegionId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 
 /// Creates a new Lump and Region inside an existing Body.
@@ -26,7 +26,7 @@ pub struct MakeLumpRegionOutput {
     pub region: RegionId,
 }
 
-impl EulerOperator for MakeLumpRegion {
+impl TopoOperator for MakeLumpRegion {
     type Output = MakeLumpRegionOutput;
 
     const NAME: &'static str = "make_lump_region";
@@ -67,7 +67,7 @@ pub struct DestroyLump {
     pub lump: LumpId,
 }
 
-impl EulerOperator for DestroyLump {
+impl TopoOperator for DestroyLump {
     type Output = ();
 
     const NAME: &'static str = "destroy_lump";

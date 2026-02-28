@@ -777,7 +777,7 @@ pub enum PersistentResolutionIncompatibility {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PersistentResolutionOriginKind {
-    EulerOperator,
+    TopoOperator,
     GeometricIntersection,
     ConstraintSolver,
     Unknown,

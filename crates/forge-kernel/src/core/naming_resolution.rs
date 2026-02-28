@@ -533,7 +533,7 @@ mod tests {
             },
         };
         let payload =
-            result.to_trace_payload(DecisionId(5), Some("sheet_region_merge".into()));
+            result.to_trace_payload(DecisionId(5), Some("sheet_region_merge".into()), None);
         assert_eq!(payload.ordered_candidates[0].persistent_ref, "face:a");
         assert_eq!(payload.candidate_count, 2);
         assert!(payload.candidate_set_hash.is_some());

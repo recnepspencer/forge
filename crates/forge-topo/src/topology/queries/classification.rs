@@ -106,11 +106,10 @@ pub fn is_inner_loop(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::euler::make_edge_face::MakeEdgeFace;
-    use crate::euler::make_loop_in_face_from_vertices::MakeLoopInFaceFromVertices;
-    use crate::euler::make_vertex_face::MakeVertexFace;
-    use crate::euler::split_edge::SplitEdge;
-    use crate::operator::apply_op;
+    use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
+    use crate::boundary_editing::make_loop_in_face_from_vertices::MakeLoopInFaceFromVertices;
+    use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use crate::entity_lifecycle::split_edge::SplitEdge;
     use crate::state::TopologyState;
     use crate::traverse::FaceEdgeIterator;
 
@@ -118,7 +117,7 @@ mod tests {
     fn seed_edge_and_vertex_classification_is_boundary_and_manifold_vertex() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
         let state = draft.commit().unwrap();
 
         assert!(is_boundary_edge(state.arena(), mvf.half_edge).unwrap());
@@ -136,9 +135,8 @@ mod tests {
     fn face_adjacency_detects_split_faces() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.25,
@@ -146,8 +144,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let se2 = apply_op(
-            &mut draft,
+        let se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
                 parameter: 0.5,
@@ -155,8 +152,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let _se3 = apply_op(
-            &mut draft,
+        let _se3 = draft.execute(
             SplitEdge {
                 edge: se2.he_mb,
                 parameter: 0.75,
@@ -178,8 +174,7 @@ mod tests {
             .get_half_edge(outer_edges[2])
             .unwrap()
             .origin();
-        let mef = apply_op(
-            &mut draft,
+        let mef = draft.execute(
             MakeEdgeFace {
                 face: mvf.face,
                 vertex_a: va,
@@ -204,9 +199,8 @@ mod tests {
     fn loop_classification_distinguishes_outer_and_inner() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.25,
@@ -214,8 +208,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let se2 = apply_op(
-            &mut draft,
+        let se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
                 parameter: 0.5,
@@ -223,8 +216,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let _se3 = apply_op(
-            &mut draft,
+        let _se3 = draft.execute(
             SplitEdge {
                 edge: se2.he_mb,
                 parameter: 0.75,
@@ -251,8 +243,7 @@ mod tests {
             .get_half_edge(outer_edges[2])
             .unwrap()
             .origin();
-        let inner = apply_op(
-            &mut draft,
+        let inner = draft.execute(
             MakeLoopInFaceFromVertices {
                 face: mvf.face,
                 vertices: vec![v0, v1, v2],

@@ -19,7 +19,7 @@ use crate::arena::{EdgeData, HalfEdgeData};
 use crate::handles::{HalfEdgeId, LoopId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 
 /// Merge two loops on the same face by inserting an edge between them.
@@ -52,7 +52,7 @@ pub struct MeklOutput {
     pub killed_loop: LoopId,
 }
 
-impl EulerOperator for MakeEdgeKillLoop {
+impl TopoOperator for MakeEdgeKillLoop {
     type Output = MeklOutput;
 
     const NAME: &'static str = "make_edge_kill_loop";

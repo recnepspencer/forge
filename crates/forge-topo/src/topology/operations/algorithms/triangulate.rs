@@ -12,10 +12,9 @@
 //! Curved faces are rejected here because topological fan diagonals may not
 //! be valid trim curves in parametric space.
 //!
-//! DEPENDENCIES: `euler::make_edge_face`
+//! DEPENDENCIES: `entity_lifecycle::make_edge_face`
 
 use crate::handles::{FaceId, HalfEdgeId};
-use crate::operator::apply_op;
 use crate::state::MutableDraft;
 use crate::topology::operations::entity_lifecycle::make_edge_face::MakeEdgeFace;
 use crate::topology::queries::traverse::FaceEdgeIterator;
@@ -87,8 +86,7 @@ pub fn triangulate_face(
     for i in 2..(n - 1) {
         let target = verts[i];
 
-        let mef = apply_op(
-            draft,
+        let mef = draft.execute(
             MakeEdgeFace {
                 face: current_face,
                 vertex_a: anchor,
@@ -125,9 +123,8 @@ fn collect_face_vertices(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::euler::make_vertex_face::MakeVertexFace;
-    use crate::euler::split_edge::SplitEdge;
-    use crate::operator::apply_op;
+    use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use crate::entity_lifecycle::split_edge::SplitEdge;
     use crate::state::TopologyState;
     use crate::topology::queries::traverse::FaceEdgeIterator;
 
@@ -136,9 +133,8 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.25,
@@ -146,8 +142,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let se2 = apply_op(
-            &mut draft,
+        let se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
                 parameter: 0.5,
@@ -155,8 +150,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let _se3 = apply_op(
-            &mut draft,
+        let _se3 = draft.execute(
             SplitEdge {
                 edge: se2.he_mb,
                 parameter: 0.75,
@@ -188,9 +182,8 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.2,
@@ -198,8 +191,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let se2 = apply_op(
-            &mut draft,
+        let se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
                 parameter: 0.4,
@@ -207,8 +199,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let se3 = apply_op(
-            &mut draft,
+        let se3 = draft.execute(
             SplitEdge {
                 edge: se2.he_mb,
                 parameter: 0.6,
@@ -216,8 +207,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let _se4 = apply_op(
-            &mut draft,
+        let _se4 = draft.execute(
             SplitEdge {
                 edge: se3.he_mb,
                 parameter: 0.8,
@@ -240,9 +230,8 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.3,
@@ -250,8 +239,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let _se2 = apply_op(
-            &mut draft,
+        let _se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
                 parameter: 0.6,

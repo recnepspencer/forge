@@ -8,7 +8,7 @@ use crate::arena::VertexData;
 use crate::handles::{HalfEdgeId, VertexId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 
 /// Creates an isolated vertex not attached to any half-edge.
@@ -21,7 +21,7 @@ pub struct MakeIsolatedVertexOutput {
     pub vertex: VertexId,
 }
 
-impl EulerOperator for MakeIsolatedVertex {
+impl TopoOperator for MakeIsolatedVertex {
     type Output = MakeIsolatedVertexOutput;
 
     const NAME: &'static str = "make_isolated_vertex";

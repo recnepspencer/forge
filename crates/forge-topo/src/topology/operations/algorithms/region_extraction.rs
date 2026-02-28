@@ -14,7 +14,6 @@ use forge_core::KernelError;
 
 use crate::arena::TopologyArena;
 use crate::handles::{FaceId, HalfEdgeId, VertexId};
-use crate::operator::apply_op;
 use crate::state::MutableDraft;
 use crate::topology::bitset::EntityBitset;
 use crate::topology::operations::boundary_editing::join_faces::JoinFaces;
@@ -159,7 +158,7 @@ pub fn merge_face_group_by_join_faces(
                 continue;
             }
 
-            match apply_op(draft, JoinFaces { edge: he }) {
+            match draft.execute(JoinFaces { edge: he }) {
                 Ok(exec) => {
                     let out = exec.into_value();
                     let removed = active.remove(&face_remove.index());
@@ -330,10 +329,9 @@ fn advance_to_group_boundary(
 mod tests {
     use super::merge_face_group_by_join_faces;
     use crate::bitset::EntityBitset;
-    use crate::euler::make_edge_face::MakeEdgeFace;
-    use crate::euler::make_vertex_face::MakeVertexFace;
-    use crate::euler::split_edge::SplitEdge;
-    use crate::operator::apply_op;
+    use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
+    use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use crate::entity_lifecycle::split_edge::SplitEdge;
     use crate::state::TopologyState;
 
     #[test]
@@ -341,9 +339,8 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.5,
@@ -351,8 +348,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let mef = apply_op(
-            &mut draft,
+        let mef = draft.execute(
             MakeEdgeFace {
                 vertex_a: mvf.vertex,
                 vertex_b: se.new_vertex,

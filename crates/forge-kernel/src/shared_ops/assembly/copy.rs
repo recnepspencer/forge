@@ -18,7 +18,6 @@ use forge_topo::arena::{BodyData, LumpData, RegionData, FaceData, LoopData, Vert
 use forge_topo::handles::{BodyId, RegionId, FaceId, VertexId, HalfEdgeId, LoopId, ShellId};
 use forge_topo::lineage::{Lineage, OpSignature};
 use forge_topo::state::MutableDraft;
-use forge_topo::operator::apply_op;
 use forge_topo::lifecycle::solid::MakeSolid;
 use forge_topo::lifecycle::lump::MakeLumpRegion;
 use forge_topo::lifecycle::shell::MakeEmptyShell;
@@ -150,7 +149,7 @@ pub fn copy_faces(
                 .map(|s| s.kind())
                 .unwrap_or(forge_topo::arena::ShellKind::Solid(forge_topo::arena::ShellOrientation::Outer));
             let region = create_destination_region(draft, destination_body)?;
-            let shell = apply_op(draft, MakeEmptyShell { region, kind })?.into_value().shell;
+            let shell = draft.execute(MakeEmptyShell { region, kind })?.into_value().shell;
             shell_map.insert(src_shell, shell);
             shell
         };
@@ -170,7 +169,7 @@ fn ensure_destination_body(draft: &mut MutableDraft) -> Result<BodyId, KernelErr
     if let Some((body_id, _)) = draft.arena().iter_bodies().next() {
         return Ok(body_id);
     }
-    let res = apply_op(draft, MakeSolid)?.into_value();
+    let res = draft.execute(MakeSolid)?.into_value();
     Ok(res.body)
 }
 
@@ -178,7 +177,7 @@ fn create_destination_region(
     draft: &mut MutableDraft,
     body: BodyId,
 ) -> Result<RegionId, KernelError> {
-    let res = apply_op(draft, MakeLumpRegion { body })?.into_value();
+    let res = draft.execute(MakeLumpRegion { body })?.into_value();
     Ok(res.region)
 }
 
@@ -406,7 +405,7 @@ fn create_new_vertex(
     src_vertex: VertexId,
     pos: &[f64; 3],
 ) -> Result<VertexId, KernelError> {
-    let vid = apply_op(draft, MakeIsolatedVertex)?.into_value().vertex;
+    let vid = draft.execute(MakeIsolatedVertex)?.into_value().vertex;
     // TODO(lineage-phase-3): Re-implement lineage transfer via MutableDraft
     result_geom.set_vertex_position(vid, *pos);
     if let Some(exact) = source_geom.get_vertex_position_exact(src_vertex) {

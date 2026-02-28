@@ -9,12 +9,11 @@
 //!
 //! This is a compound algorithm: walk + repeated UnsewEdge.
 //!
-//! DEPENDENCIES: `euler::unsew_edge`
+//! DEPENDENCIES: `non_manifold::unsew_edge`
 
 use std::collections::BTreeSet;
 
 use crate::handles::{FaceId, HalfEdgeId};
-use crate::operator::apply_op;
 use crate::state::MutableDraft;
 use crate::topology::bitset::EntityBitset;
 use crate::topology::operations::algorithms::region_extraction::is_face_group_boundary_half_edge;
@@ -47,8 +46,7 @@ pub fn extract_shell(
 
     let mut unsewn_pairs = Vec::new();
     for (he_inside, he_outside) in boundary_pairs {
-        apply_op(
-            draft,
+        draft.execute(
             UnsewEdge {
                 he_a: he_inside,
                 he_b: he_outside,
@@ -106,10 +104,9 @@ fn find_boundary_pairs(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::euler::make_edge_face::MakeEdgeFace;
-    use crate::euler::make_vertex_face::MakeVertexFace;
-    use crate::euler::split_edge::SplitEdge;
-    use crate::operator::apply_op;
+    use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
+    use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use crate::entity_lifecycle::split_edge::SplitEdge;
     use crate::state::TopologyState;
     use crate::topology::queries::traverse::FaceEdgeIterator;
 
@@ -118,9 +115,8 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se1 = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.25,
@@ -128,8 +124,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let se2 = apply_op(
-            &mut draft,
+        let se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
                 parameter: 0.5,
@@ -137,8 +132,7 @@ mod tests {
         )
         .unwrap()
         .into_value();
-        let _se3 = apply_op(
-            &mut draft,
+        let _se3 = draft.execute(
             SplitEdge {
                 edge: se2.he_mb,
                 parameter: 0.75,
@@ -154,8 +148,7 @@ mod tests {
         let v1 = draft.arena().get_half_edge(edges[1]).unwrap().origin();
         let v3 = draft.arena().get_half_edge(edges[3]).unwrap().origin();
 
-        let mef = apply_op(
-            &mut draft,
+        let mef = draft.execute(
             MakeEdgeFace {
                 face: mvf.face,
                 vertex_a: v1,
@@ -194,7 +187,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let _mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+        let _mvf = draft.execute(MakeVertexFace).unwrap().into_value();
 
         let subset = EntityBitset::for_faces(draft.arena());
         let result = extract_shell(&mut draft, &subset).unwrap();

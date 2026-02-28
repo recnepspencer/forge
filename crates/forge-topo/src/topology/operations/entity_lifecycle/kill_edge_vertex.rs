@@ -15,7 +15,7 @@ use forge_core::{KernelError, TopologyError};
 use crate::handles::HalfEdgeId;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 
 /// Collapse an edge by removing it and merging its target vertex into the origin.
@@ -41,7 +41,7 @@ pub struct KevOutput {
     pub is_degenerate: bool,
 }
 
-impl EulerOperator for KillEdgeVertex {
+impl TopoOperator for KillEdgeVertex {
     type Output = KevOutput;
 
     const NAME: &'static str = "kill_edge_vertex";

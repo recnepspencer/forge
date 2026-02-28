@@ -66,10 +66,9 @@ pub fn radial_uses_by_face(
 mod tests {
     use super::*;
     use crate::arena::{FaceData, HalfEdgeData, LoopData, VertexData};
-    use crate::euler::make_vertex_face::MakeVertexFace;
-    use crate::euler::split_edge::SplitEdge;
+    use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use crate::entity_lifecycle::split_edge::SplitEdge;
     use crate::handles::{EdgeId, LoopId, ShellId};
-    use crate::operator::apply_op;
     use crate::state::TopologyState;
     use forge_core::KernelError;
 
@@ -79,7 +78,7 @@ mod tests {
     fn seed_state() -> (TopologyState, HalfEdgeId) {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
         let state = draft.commit().unwrap();
         (state, mvf.half_edge)
     }
@@ -148,9 +147,8 @@ mod tests {
     fn radial_uses_split_result_is_still_self_radial() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.5,
@@ -184,9 +182,8 @@ mod tests {
     fn radial_uses_valence_3_ring_returns_all_three_members() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.5,
@@ -221,9 +218,8 @@ mod tests {
     fn radial_uses_valence_3_ring_is_closed() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.5,
@@ -254,9 +250,8 @@ mod tests {
     fn radial_uses_result_is_invariant_to_start_member() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.5,
@@ -290,9 +285,8 @@ mod tests {
     fn radial_uses_by_face_detects_same_face_slit() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.5,
@@ -335,9 +329,8 @@ mod tests {
     fn radial_uses_by_face_is_deterministic() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
-        let se = apply_op(
-            &mut draft,
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
                 parameter: 0.5,
@@ -384,7 +377,7 @@ mod tests {
     fn radial_uses_stale_radial_next_returns_err_on_iteration() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
 
         // Point radial_next to a slot with the wrong generation — stale handle
         let stale = HalfEdgeId::new(

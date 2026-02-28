@@ -16,7 +16,7 @@ use crate::arena::{EdgeData, HalfEdgeData, VertexData};
 use crate::handles::{EdgeId, HalfEdgeId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 
 /// Split an existing edge by inserting a midpoint vertex.
@@ -65,7 +65,7 @@ impl SplitEdgeOutput {
     }
 }
 
-impl EulerOperator for SplitEdge {
+impl TopoOperator for SplitEdge {
     type Output = SplitEdgeOutput;
 
     const NAME: &'static str = "split_edge";

@@ -9,6 +9,7 @@
 use super::test_support::{insert_test_solid_shell, validate_geometric_invariants_all_faces};
 use crate::geometry_state::GeometryState;
 use crate::mesh_builder::make_cube;
+use crate::integration_tests::harness::shapes::test_config;
 use forge_core::{KernelError, TopologyError};
 use forge_topo::handles::VertexId;
 use forge_topo::validate::{validate_topology, ValidationLevel};
@@ -25,8 +26,9 @@ fn position_lookup(store: &GeometryState) -> impl Fn(VertexId) -> Option<[f64; 3
 /// have non-zero length).
 #[test]
 fn pv_01_zero_area_face_detection() {
-    let result = make_cube([0.0, 0.0, 0.0], 2.0).unwrap();
-    let (topo, mut geom) = result.into_parts();
+    let config = test_config();
+    let result = make_cube([0.0, 0.0, 0.0], 2.0, &config).unwrap();
+    let (topo, mut geom, _brep) = result.into_parts();
     let arena = topo.arena();
 
     let vertices: Vec<(VertexId, [f64; 3])> = arena
@@ -61,8 +63,9 @@ fn pv_01_zero_area_face_detection() {
 /// to the same point.
 #[test]
 fn pv_02_zero_length_edge_detection() {
-    let result = make_cube([0.0, 0.0, 0.0], 2.0).unwrap();
-    let (topo, mut geom) = result.into_parts();
+    let config = test_config();
+    let result = make_cube([0.0, 0.0, 0.0], 2.0, &config).unwrap();
+    let (topo, mut geom, _brep) = result.into_parts();
     let arena = topo.arena();
 
     let he_id = arena.iter_half_edges().next().unwrap().0;
@@ -93,8 +96,9 @@ fn pv_02_zero_length_edge_detection() {
 /// the origin to invert the winding order without changing face loops.
 #[test]
 fn pv_03_inverted_shell_signed_volume() {
-    let result = make_cube([0.0, 0.0, 0.0], 2.0).unwrap();
-    let (topo, mut geom) = result.into_parts();
+    let config = test_config();
+    let result = make_cube([0.0, 0.0, 0.0], 2.0, &config).unwrap();
+    let (topo, mut geom, _brep) = result.into_parts();
     let arena = topo.arena();
 
     let vertices: Vec<(VertexId, [f64; 3])> = arena
@@ -135,27 +139,28 @@ fn pv_04_degenerate_loop_detection() {
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation_with(config);
-    let arena = draft.arena_mut();
 
     let placeholder_he = HalfEdgeId::new(0, 0);
     let placeholder_face = FaceId::new(0, 0);
 
-    let v0 = arena.insert_vertex(VertexData::new(placeholder_he));
-    let v1 = arena.insert_vertex(VertexData::new(placeholder_he));
+    let v0 = draft.insert_vertex(VertexData::new(placeholder_he));
+    let v1 = draft.insert_vertex(VertexData::new(placeholder_he));
 
-    let v2 = arena.insert_vertex(VertexData::new(placeholder_he));
+    let v2 = draft.insert_vertex(VertexData::new(placeholder_he));
 
-    let placeholder_shell = insert_test_solid_shell(arena);
+    let placeholder_shell = insert_test_solid_shell(&mut draft);
+    let arena = draft.arena_mut();
     let placeholder_edge = forge_topo::handles::EdgeId::new(0, 0);
 
-    let loop_id = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
-    let face = arena.insert_face(FaceData::new(loop_id, placeholder_shell));
+    let loop_id = draft.insert_loop(LoopData::new(placeholder_he, placeholder_face));
+    let face = draft.insert_face(FaceData::new(loop_id, placeholder_shell));
+    let arena = draft.arena_mut();
     arena
         .get_shell_mut(placeholder_shell)
         .unwrap()
         .set_representative_face(face);
 
-    let he0 = arena.insert_half_edge(
+    let he0 = draft.insert_half_edge(
         HalfEdgeData::new(
             placeholder_he,
             placeholder_he,
@@ -164,9 +169,8 @@ fn pv_04_degenerate_loop_detection() {
             v0,
             placeholder_edge,
         ),
-        None,
     );
-    let he1 = arena.insert_half_edge(
+    let he1 = draft.insert_half_edge(
         HalfEdgeData::new(
             placeholder_he,
             placeholder_he,
@@ -175,9 +179,8 @@ fn pv_04_degenerate_loop_detection() {
             v1,
             placeholder_edge,
         ),
-        None,
     );
-    let he2 = arena.insert_half_edge(
+    let he2 = draft.insert_half_edge(
         HalfEdgeData::new(
             placeholder_he,
             placeholder_he,
@@ -186,8 +189,8 @@ fn pv_04_degenerate_loop_detection() {
             v0,
             placeholder_edge,
         ),
-        None,
     );
+    let arena = draft.arena_mut();
 
     arena.get_half_edge_mut(he0).unwrap().set_next(he1);
     arena.get_half_edge_mut(he0).unwrap().set_prev(he2);
@@ -196,10 +199,10 @@ fn pv_04_degenerate_loop_detection() {
     arena.get_half_edge_mut(he2).unwrap().set_next(he0);
     arena.get_half_edge_mut(he2).unwrap().set_prev(he1);
 
-    let loop_id2 = arena.insert_loop(LoopData::new(placeholder_he, placeholder_face));
-    let face2 = arena.insert_face(FaceData::new(loop_id2, placeholder_shell));
+    let loop_id2 = draft.insert_loop(LoopData::new(placeholder_he, placeholder_face));
+    let face2 = draft.insert_face(FaceData::new(loop_id2, placeholder_shell));
 
-    let twin0 = arena.insert_half_edge(
+    let twin0 = draft.insert_half_edge(
         HalfEdgeData::new(
             placeholder_he,
             placeholder_he,
@@ -208,9 +211,8 @@ fn pv_04_degenerate_loop_detection() {
             v1,
             placeholder_edge,
         ),
-        None,
     );
-    let twin1 = arena.insert_half_edge(
+    let twin1 = draft.insert_half_edge(
         HalfEdgeData::new(
             placeholder_he,
             placeholder_he,
@@ -219,9 +221,8 @@ fn pv_04_degenerate_loop_detection() {
             v0,
             placeholder_edge,
         ),
-        None,
     );
-    let twin2 = arena.insert_half_edge(
+    let twin2 = draft.insert_half_edge(
         HalfEdgeData::new(
             placeholder_he,
             placeholder_he,
@@ -230,8 +231,8 @@ fn pv_04_degenerate_loop_detection() {
             v2,
             placeholder_edge,
         ),
-        None,
     );
+    let arena = draft.arena_mut();
 
     arena.get_half_edge_mut(twin0).unwrap().set_next(twin1);
     arena.get_half_edge_mut(twin0).unwrap().set_prev(twin2);
@@ -270,8 +271,9 @@ fn pv_04_degenerate_loop_detection() {
 /// Positive control: A valid cube passes all geometric invariants.
 #[test]
 fn valid_cube_passes_geometric_invariants() {
-    let result = make_cube([0.0, 0.0, 0.0], 2.0).unwrap();
-    let (topo, geom) = result.into_parts();
+    let config = test_config();
+    let result = make_cube([0.0, 0.0, 0.0], 2.0, &config).unwrap();
+    let (topo, geom, _brep) = result.into_parts();
     let arena = topo.arena();
 
     let lookup = position_lookup(&geom);

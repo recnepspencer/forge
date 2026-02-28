@@ -20,7 +20,7 @@ use crate::handles::{FaceId, VertexId};
 
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 /// Destroys a disconnected shell within an existing solid.
 #[derive(Debug)]
@@ -31,7 +31,7 @@ pub struct KillShellFace {
     pub vertex: VertexId,
 }
 
-impl EulerOperator for KillShellFace {
+impl TopoOperator for KillShellFace {
     type Output = ();
 
     const NAME: &'static str = "kill_shell_face";
@@ -157,21 +157,20 @@ impl EulerOperator for KillShellFace {
 #[cfg(test)]
 mod tests {
     use super::KillShellFace;
-    use crate::operator::apply_op;
     use crate::state::TopologyState;
-    use crate::topology::operations::euler::make_shell_face::MakeShellFace;
-    use crate::topology::operations::euler::make_vertex_face::MakeVertexFace;
-    use crate::EulerOperator;
+    use crate::topology::operations::entity_lifecycle::make_shell_face::MakeShellFace;
+    use crate::topology::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use crate::operator::TopoOperator;
 
     #[test]
     fn kill_shell_face_destroys_isolated_shell() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = apply_op(&mut draft, MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
 
         let region = draft.arena().get_shell(mvf.shell).unwrap().region();
-        let msf = apply_op(&mut draft, MakeShellFace { region })
+        let msf = draft.execute(MakeShellFace { region })
             .unwrap()
             .into_value();
 
@@ -186,8 +185,7 @@ mod tests {
         let region_data = draft.arena().get_region(region).unwrap();
         assert_eq!(region_data.shell_count(), 2);
 
-        apply_op(
-            &mut draft,
+        draft.execute(
             KillShellFace {
                 face: msf.face,
                 vertex: msf.vertex,

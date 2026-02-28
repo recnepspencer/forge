@@ -19,7 +19,7 @@ use crate::arena::{
 use crate::handles::{EdgeId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 
 /// Creates the topological seed: one vertex, one face, one loop, one selfloop halfedge,
@@ -52,7 +52,7 @@ pub struct MvfOutput {
     pub edge: EdgeId,
 }
 
-impl EulerOperator for MakeVertexFace {
+impl TopoOperator for MakeVertexFace {
     type Output = MvfOutput;
 
     const NAME: &'static str = "make_vertex_face";

@@ -8,7 +8,6 @@ use forge_core::KernelError;
 use crate::arena::TopologyArena;
 use crate::topology::operations::entity_lifecycle::kill_edge_vertex::KillEdgeVertex;
 use crate::handles::{HalfEdgeId, VertexId};
-use crate::operator::apply_op;
 use crate::state::MutableDraft;
 
 /// Find the first valence-2 vertex whose adjacent edges are collinear.
@@ -73,7 +72,7 @@ where
         return Ok(None);
     };
 
-    if apply_op(draft, KillEdgeVertex { edge: incoming_he }).is_err() {
+    if draft.execute(KillEdgeVertex { edge: incoming_he }).is_err() {
         return Ok(None);
     }
     Ok(Some((vid, incoming_he)))

@@ -19,7 +19,7 @@ pub enum ReidentificationModeSummary {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ReidentificationOriginKindSummary {
-    EulerOperator,
+    TopoOperator,
     GeometricIntersection,
     ConstraintSolver,
     Unknown,

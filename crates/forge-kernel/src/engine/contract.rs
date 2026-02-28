@@ -77,7 +77,7 @@ pub enum InvariantKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EntityOriginKind {
     /// Creates entities via MEV/MEF/MVF etc.
-    EulerOperator,
+    TopoOperator,
     /// Splits existing entities (boolean split phase).
     SplitOperator,
     /// Merges entities (region merge, join_faces).

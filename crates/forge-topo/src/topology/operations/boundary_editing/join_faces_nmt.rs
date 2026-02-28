@@ -21,7 +21,7 @@ use forge_core::{KernelError, TopologyError};
 use crate::handles::{HalfEdgeId, LoopId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
-use crate::EulerOperator;
+use crate::operator::TopoOperator;
 
 
 /// NMT-compatible face merge that leaves a topological slit.
@@ -44,7 +44,7 @@ pub struct JfNmtOutput {
     pub surviving_face: crate::handles::FaceId,
 }
 
-impl EulerOperator for JoinFacesNmt {
+impl TopoOperator for JoinFacesNmt {
     type Output = JfNmtOutput;
 
     const NAME: &'static str = "join_faces_nmt";
@@ -288,8 +288,7 @@ fn reassign_face(
     loop {
         draft
             .arena_mut()
-            .get_half_edge_mut(current)?
-            .set_face(new_face);
+            .reassign_halfedge_face(current, new_face)?;
         let next = draft.arena().get_half_edge(current)?.next();
         current = next;
         if current == start {
