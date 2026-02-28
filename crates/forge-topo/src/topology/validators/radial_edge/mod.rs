@@ -71,7 +71,7 @@ pub(crate) fn validate_radial_rings(arena: &TopologyArena) -> Result<(), KernelE
 /// two distinct geometric edges into one cycle.
 ///
 /// This is a Tier 1a invariant (same level as radial ring closure).
-pub(crate) fn validate_radial_edge_consistency(arena: &TopologyArena) -> Result<(), KernelError> {
+pub fn validate_radial_edge_consistency(arena: &TopologyArena) -> Result<(), KernelError> {
     let mut checked = EntityBitset::for_half_edges(arena);
 
     for (start_he, start_data) in arena.iter_half_edges() {

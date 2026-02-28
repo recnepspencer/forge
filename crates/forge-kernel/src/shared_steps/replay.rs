@@ -12,7 +12,7 @@ use crate::core::ModelingContext;
 pub fn record_replay(
     log: &mut ReplayLog,
     seq: &mut u64,
-    name: &str,
+    name: &'static str,
     payload: String,
     pre_hash: u128,
     post_hash: u128,

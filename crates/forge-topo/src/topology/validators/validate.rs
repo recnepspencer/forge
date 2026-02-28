@@ -32,8 +32,8 @@ impl Default for ValidationLevel {
     }
 }
 
-pub(crate) use super::structural::validate_manifold_edges;
-pub(crate) use super::structural::validate_topology;
+pub use super::structural::validate_manifold_edges;
+pub use super::structural::validate_topology;
 
 /// Geometric invariant validation has moved to `forge-spatial::integrity`.
 /// Build with forge-spatial as a dependency and call `forge_spatial::integrity::validate_geometric_invariants`.

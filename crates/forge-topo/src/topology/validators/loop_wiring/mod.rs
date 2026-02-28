@@ -57,7 +57,7 @@ pub(crate) fn validate_prev_consistency(arena: &TopologyArena) -> Result<(), Ker
 /// for geometric self-loops).
 ///
 /// This catches the "spaghetti topology" bug where edges are mis-wired.
-pub(crate) fn validate_vertex_continuity(arena: &TopologyArena) -> Result<(), KernelError> {
+pub fn validate_vertex_continuity(arena: &TopologyArena) -> Result<(), KernelError> {
     let mut checked_halfedges = EntityBitset::for_half_edges(arena);
 
     for (he_id, he_data) in arena.iter_half_edges() {

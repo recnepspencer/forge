@@ -102,7 +102,7 @@ pub(crate) fn validate_shell_consistency(arena: &TopologyArena) -> Result<(), Ke
 /// This is the commit-time enforcement of the NMT-aware data structure:
 /// `radial_next` supports arbitrary-length rings during construction,
 /// but `validate_manifold_edges` rejects valence > 2 at commit.
-pub(crate) fn validate_manifold_edges(arena: &TopologyArena) -> Result<(), KernelError> {
+pub fn validate_manifold_edges(arena: &TopologyArena) -> Result<(), KernelError> {
     let mut checked_halfedges = EntityBitset::for_half_edges(arena);
 
     for (he_id, he_data) in arena.iter_half_edges() {

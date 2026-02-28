@@ -217,15 +217,15 @@ fn copy_single_face(
         source_arena, source_geom, &src_verts, src_prov,
     )?;
 
-    let copy_op_name = if reverse_orientation {
-        format!("boolean_copy_face_{}_rev", lineage_copy_tag)
+    let copy_op_name: &'static str = if reverse_orientation {
+        "boolean_copy_face_rev"
     } else {
-        format!("boolean_copy_face_{}_fwd", lineage_copy_tag)
+        "boolean_copy_face_fwd"
     };
-    let copy_sig = OpSignature::with_id(&copy_op_name, src_face.index() as u64);
-    
-    let rebuild_output = rebuild_face_from_vertices(draft, &resolved_verts, dest_shell, copy_sig.clone())?;
-    
+    let copy_sig = OpSignature::with_id(copy_op_name, src_face.index() as u64);
+
+    let rebuild_output = rebuild_face_from_vertices(draft, &resolved_verts, dest_shell, copy_sig)?;
+
     let face_lineage = Some(Lineage::derive_from(&src_face_lineage, copy_sig));
     draft.arena_mut().get_face_mut(rebuild_output.face)?.set_lineage(face_lineage);
 
@@ -240,7 +240,7 @@ fn copy_single_face(
             source_arena, source_geom, &inner_src_verts, src_prov,
         )?;
         let inner_sig = OpSignature::with_id(
-            &format!("{}_inner_loop", copy_op_name),
+            "boolean_copy_inner_loop",
             ((src_face.index() as u64) << 16) | inner_idx as u64,
         );
         let inner_output = rebuild_inner_loop_from_vertices(
@@ -395,7 +395,7 @@ fn merge_vertex_lineage(
     source_arena: &forge_topo::arena::TopologyArena,
     src_vertex: VertexId,
     dest_vertex: VertexId,
-    op_name: &str,
+    op_name: &'static str,
 ) -> Result<(), KernelError> {
     let src_lineage = source_arena.get_vertex(src_vertex)
         .ok().and_then(|v| v.lineage().cloned());
