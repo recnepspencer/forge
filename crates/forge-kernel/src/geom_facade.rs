@@ -93,7 +93,7 @@ pub use cert::{certify_boundary, project_boundary_to_2d, WeakSimpleCertificate};
 
 // ── Polygon algorithms ───────────────────────────────────────────────────────
 pub mod polygon {
-    pub use forge_geom::algorithms::polygon::bridge_polygon_hole;
+    pub use forge_geom::algorithms::polygon::polygon::bridge_polygon_hole;
     pub use forge_geom::algorithms::polygon_overlap::polygons_overlap_3d;
     pub use forge_geom::primitives::polygon::compute_polygon_area;
 }
@@ -108,7 +108,7 @@ pub mod clipping {
 }
 
 pub use clipping::{clip_line_to_face_polygon, clip_line_to_polygon, compute_intersection_line};
-pub use forge_geom::algorithms::segment::point_on_segment;
+pub use forge_geom::algorithms::polygon::segment::point_on_segment;
 
 // ── Traits ───────────────────────────────────────────────────────────────────
 pub use forge_geom::traits::EvaluateNormal;

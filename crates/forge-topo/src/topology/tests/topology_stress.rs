@@ -998,7 +998,7 @@ mod tests {
         let committed = draft.commit().unwrap();
 
         let mut visited = crate::topology::bitset::EntityBitset::for_faces(committed.arena());
-        let shell = crate::topology::integrity::shell::discover_shell_faces(
+        let shell = crate::topology::queries::shell::discover_shell_faces(
             committed.arena(),
             mvf.face,
             &mut visited,
@@ -1134,7 +1134,7 @@ mod tests {
         );
 
         let mut visited = crate::topology::bitset::EntityBitset::for_faces(committed.arena());
-        let shell = crate::topology::integrity::shell::discover_shell_faces(
+        let shell = crate::topology::queries::shell::discover_shell_faces(
             committed.arena(),
             mvf.face,
             &mut visited,
@@ -1183,13 +1183,13 @@ mod tests {
         let committed = draft.commit().unwrap();
 
         let mut visited = crate::topology::bitset::EntityBitset::for_faces(committed.arena());
-        let shell1 = crate::topology::integrity::shell::discover_shell_faces(
+        let shell1 = crate::topology::queries::shell::discover_shell_faces(
             committed.arena(),
             mvf1.face,
             &mut visited,
         )
         .unwrap();
-        let shell2 = crate::topology::integrity::shell::discover_shell_faces(
+        let shell2 = crate::topology::queries::shell::discover_shell_faces(
             committed.arena(),
             mvf2.face,
             &mut visited,

@@ -23,7 +23,9 @@ pub use topology::{
 pub use topology::attributes;
 pub use topology::bitset;
 pub use topology::history::replay;
-pub use topology::integrity::{diff, hashing, healing, validate};
+pub use topology::validators::validate;
+pub use topology::utils::{diff, hashing};
+pub use topology::operations::healing;
 pub use topology::operations::algorithms;
 pub use topology::operations::euler;
 pub use topology::operations::operator;

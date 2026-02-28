@@ -8,7 +8,7 @@
 
 use crate::topology::bitset::EntityBitset;
 
-use super::shell::{compute_shell_signed_volume, discover_shell_faces};
+use crate::topology::queries::shell::{compute_shell_signed_volume, discover_shell_faces};
 use crate::arena::TopologyArena;
 use crate::handles::{FaceId, HalfEdgeId, VertexId};
 use crate::topology::queries::traverse::FaceEdgeIterator;

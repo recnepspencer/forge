@@ -10,7 +10,7 @@
 //! - Grid cell size = 2·tolerance so all ε-neighbors are in adjacent cells
 
 use std::collections::BTreeMap;
-use super::union_find::UnionFind;
+use crate::spatial::union_find::UnionFind;
 
 /// Spatial hash grid + Union-Find for epsilon-tolerance vertex welding.
 pub struct EpsilonWelder {

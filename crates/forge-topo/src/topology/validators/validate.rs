@@ -623,7 +623,7 @@ mod tests {
         // It should reject because the single edge entity for se1 now appears
         // to have endpoints from both se1 and se2 (total endpoints > 2).
         let result =
-            crate::topology::integrity::structural::validate_vertex_continuity(draft.arena());
+            crate::topology::validators::structural::validate_vertex_continuity(draft.arena());
         assert!(
             result.is_err(),
             "Cross-edge radial ring must be caught by validate_vertex_continuity — \
@@ -670,7 +670,7 @@ mod tests {
 
         // Manual check of the trait implementation directly against the arena gap.
         let result =
-            crate::topology::integrity::structural::validate_radial_edge_consistency(draft.arena());
+            crate::topology::validators::structural::validate_radial_edge_consistency(draft.arena());
         assert!(
             result.is_ok(),
             "Validation should not panic on missing indices"
