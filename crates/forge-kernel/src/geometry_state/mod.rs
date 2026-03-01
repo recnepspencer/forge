@@ -16,6 +16,7 @@
 // mod adversarial_tests; // Broken tests blocking compilation
 pub mod coalescence;
 mod eval;
+pub mod facade;
 // #[cfg(test)]
 // mod patch_tests; // Broken tests blocking compilation
 pub(crate) mod schema;

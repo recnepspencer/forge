@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
-use crate::core::config::resolve::ResolvedConfig;
+use crate::configuration::facade::ResolvedConfig;
 use crate::engine::traits::{Feature, FeatureOutput};
 
 pub use contract::PrimitiveInputs;

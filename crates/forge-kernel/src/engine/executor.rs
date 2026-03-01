@@ -11,7 +11,7 @@
 //! - `OperationResult` is the canonical metadata transport
 //!
 //! DEPENDENCIES: forge-core (KernelError, OperationResult, DecisionLog),
-//! contract types, features/traits, core/context, core/finalization
+//! contract types, features/traits, context, finalization
 
 use std::collections::HashMap;
 
@@ -23,8 +23,10 @@ use forge_signal::facade::NodeId;
 use super::contract::{AuditLevel, FeatureInputs};
 use super::errors::PipelineError;
 use super::invariants::validate_invariant;
-use crate::core::finalization::{OperationFinalizer, TopologyHashBoundary};
-use crate::core::ModelingContext;
+use crate::configuration::facade::{resolve_config, ResolvedConfig};
+use crate::context::facade::ModelingContext;
+use crate::finalization::facade::{OperationFinalizer, OperationSpace, TopologyHashBoundary};
+use crate::observability::facade::KernelSpan;
 use crate::engine::traits::{Feature, FeatureOutput};
 
 /// Feature pipeline executor.
@@ -61,7 +63,7 @@ impl FeaturePipeline {
         ctx: &mut ModelingContext,
     ) -> Result<OperationResult<FeatureOutput>, KernelError> {
         // 1. Resolve configuration (needed for policy pre-check and execution)
-        let resolved_config = crate::core::config::resolve::resolve_config(
+        let resolved_config = resolve_config(
             &ctx.config,
             None,
             feature
@@ -84,15 +86,15 @@ impl FeaturePipeline {
         let hash_before = compute_input_hash(raw_inputs);
 
         // 5. Execute business logic with trace span
-        let _span_guard = crate::core::tracing::KernelSpan::enter(feature.feature_kind());
-        crate::core::tracing::KernelSpan::set_config_snapshot(resolved_config.clone());
-        let _span_id = crate::core::tracing::KernelSpan::start_span(feature.feature_kind());
+        let _span_guard = KernelSpan::enter(feature.feature_kind());
+        KernelSpan::set_config_snapshot(resolved_config.clone());
+        let _span_id = KernelSpan::start_span(feature.feature_kind());
 
         let start = std::time::Instant::now();
         let result = feature.execute_typed(&inputs, &resolved_config);
         let duration_micros = start.elapsed().as_micros() as u64;
 
-        crate::core::tracing::KernelSpan::end_span(_span_id, duration_micros);
+        KernelSpan::end_span(_span_id, duration_micros);
         let span_output = _span_guard.finish();
 
         // Propagate execution errors before finalization
@@ -158,8 +160,8 @@ fn compute_input_hash(inputs: &HashMap<NodeId, FeatureOutput>) -> u128 {
 /// whether a local coordinate transform is needed for numerical safety.
 fn compute_operation_space(
     inputs: &HashMap<NodeId, FeatureOutput>,
-    config: &crate::core::config::resolve::ResolvedConfig,
-) -> crate::core::OperationSpace {
+    config: &ResolvedConfig,
+) -> OperationSpace {
     let mut all_points: Vec<[f64; 3]> = Vec::new();
     for output in inputs.values() {
         for (v_id, _) in output.topology.arena().iter_vertices() {
@@ -169,10 +171,10 @@ fn compute_operation_space(
         }
     }
     if all_points.is_empty() {
-        return crate::core::OperationSpace::identity();
+        return OperationSpace::identity();
     }
     let feature_tol = config.scaled_vertex_tolerance();
-    crate::core::OperationSpace::from_points(&all_points, feature_tol)
+    OperationSpace::from_points(&all_points, feature_tol)
 }
 
 /// Emit a full audit trace for the feature execution.

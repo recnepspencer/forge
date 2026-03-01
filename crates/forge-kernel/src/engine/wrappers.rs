@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use crate::core::config::resolve::ResolvedConfig;
+use crate::configuration::facade::ResolvedConfig;
 use crate::operations::boolean::execute_boolean;
 use crate::operations::boolean::{BooleanInput, BooleanOp};
 use forge_core::DecisionLog;

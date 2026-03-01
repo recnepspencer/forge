@@ -307,7 +307,7 @@ fn chained_coalescence_20_steps_stays_below_1e_6() {
 
 #[test]
 fn chained_snap_decisions_are_all_logged() {
-    use crate::core::ModelingContext;
+    use crate::context::facade::ModelingContext;
     use crate::geometry_state::{snap_or_coalesce_vertex, CoalescenceResult, GeometryState};
     use forge_topo::handles::VertexId;
 

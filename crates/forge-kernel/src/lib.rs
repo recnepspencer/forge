@@ -9,7 +9,8 @@
 //! forge-kernel/src/
 //! ├── lib.rs         ← this file (Table of Contents only)
 //! ├── prelude.rs     ← convenient imports
-//! ├── core/          ← shared infrastructure (ModelingContext, policies)
+//! ├── configuration/ ← config schema + resolution + overrides
+//! ├── observability/ ← tracing/span telemetry
 //! ├── features/      ← feature-sliced domain modules (Bento Box)
 //! ├── geometry_state/ ← data adapter
 //! ├── mesh_builder/  ← construction service
@@ -31,22 +32,22 @@
 
 pub mod proof;
 pub mod brep;
-pub mod core;
+pub mod configuration;
+pub mod context;
 pub mod engine;
+pub mod finalization;
 pub mod geom_facade;
 pub mod geometry_state;
 pub mod mesh_builder;
+pub mod observability;
 pub mod operations;
+pub mod naming;
 pub mod prelude;
 pub mod primitives;
 pub mod queries;
 pub mod shared_ops;
-pub mod shared_steps;
 pub mod spatial;
-
-// Re-exports for backward compatibility
-pub use operations::boolean;
-pub use operations::boolean::{execute_boolean, BooleanInput, BooleanOp, BooleanResult};
+pub mod tolerance;
 
 #[cfg(test)]
 mod tests {
@@ -58,3 +59,6 @@ mod tests {
 
 #[cfg(test)]
 mod integration_tests;
+
+#[cfg(test)]
+mod architecture_guard_tests;

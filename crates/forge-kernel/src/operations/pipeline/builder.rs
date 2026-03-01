@@ -15,7 +15,7 @@
 use forge_core::KernelError;
 
 use super::step_contract::{OperationAuditRecord, StepAuditEntry, StepContract};
-use crate::core::ModelingContext;
+use crate::context::facade::ModelingContext;
 
 /// Sequential operation pipeline with step-scoped audit.
 ///

@@ -9,7 +9,7 @@ mod tests {
     use crate::geom_facade::Plane;
     use forge_topo::handles::{FaceId, VertexId};
 
-    use crate::core::{KernelDraft, KernelState};
+    use crate::finalization::facade::{KernelDraft, KernelState};
     use crate::geometry_state::{ExactPosition, GeometryPatch, GeometryState};
 
     fn make_plane(nx: f64, ny: f64, nz: f64, d: f64) -> Plane {

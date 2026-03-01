@@ -12,7 +12,7 @@
 //! - Geometry bindings validated post-commit
 //!
 //! DEPENDENCIES: `forge-geom` (ConvexCell, Plane), `forge-topo` (arena, operators),
-//!               `geometry_state` (GeometryState), `core::config` (ResolvedConfig)
+//!               `geometry_state` (GeometryState), `configuration` (ResolvedConfig)
 
 mod eval;
 #[cfg(test)]

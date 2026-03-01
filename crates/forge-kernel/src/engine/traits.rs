@@ -10,7 +10,7 @@ use forge_signal::facade::NodeId;
 use forge_topo::transactions::TopologyState;
 
 use crate::brep::state::BrepState;
-use crate::core::config::resolve::ResolvedConfig;
+use crate::configuration::facade::ResolvedConfig;
 use crate::engine::contract::{FeatureContract, FeatureInputs};
 use crate::geometry_state::GeometryState;
 
@@ -39,7 +39,7 @@ pub struct FeatureOutput {
 /// ```compile_fail
 /// use forge_kernel::features::traits::{Feature, FeatureOutput};
 /// use forge_kernel::features::pipeline::contract::FeatureInputs;
-/// use forge_kernel::core::config::resolve::ResolvedConfig;
+/// use forge_kernel::configuration::facade::ResolvedConfig;
 /// use forge_core::KernelError;
 /// use forge_signal::facade::NodeId;
 /// use std::collections::HashMap;

@@ -3,7 +3,7 @@
 //! DOMAIN: Named interfaces for recording traced decisions and scoping
 //! operations within named spans during feature execution.
 
-use crate::core::ModelingContext;
+use crate::context::facade::ModelingContext;
 use forge_core::{DecisionKind, DecisionLog, DecisionTier};
 
 /// Decision recording access.

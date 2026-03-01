@@ -5,7 +5,7 @@
 //! post-feature or post-step validation is active.
 
 use crate::proof::checkpoint::schema::ValidationConfig;
-use crate::core::ModelingContext;
+use crate::context::facade::ModelingContext;
 
 /// Validation checkpoint configuration access.
 ///

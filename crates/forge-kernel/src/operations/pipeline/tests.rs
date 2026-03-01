@@ -2,7 +2,7 @@
 
 use forge_core::{KernelError, PolicyKind};
 
-use crate::core::ModelingContext;
+use crate::context::facade::ModelingContext;
 use crate::operations::pipeline::builder::{OperationPipeline, PipelineBuilder};
 use crate::operations::pipeline::step_contract::StepContract;
 

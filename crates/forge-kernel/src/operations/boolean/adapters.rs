@@ -7,7 +7,7 @@
 //! Each boolean phase takes `&BooleanTolerances` instead of
 //! `&mut ModelingContext`, making tolerance access explicit and testable.
 
-use crate::core::ModelingContext;
+use crate::context::facade::ModelingContext;
 
 /// Tolerance values used by boolean operations.
 ///

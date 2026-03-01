@@ -41,7 +41,7 @@ pub trait FeatureContract {
 
     /// Config overrides this feature requires.
     /// Default: no overrides (use cascade defaults).
-    fn config_overrides(&self) -> Option<crate::core::config::overrides::ConfigOverride> {
+    fn config_overrides(&self) -> Option<crate::configuration::facade::ConfigOverride> {
         None
     }
 }

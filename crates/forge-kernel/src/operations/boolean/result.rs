@@ -6,7 +6,7 @@
 
 use super::classify_schema::ClassifiedFace;
 use crate::brep::state::BrepState;
-use crate::core::KernelState;
+use crate::finalization::facade::KernelState;
 use crate::geometry_state::GeometryState;
 use forge_topo::transactions::TopologyState;
 use serde::{Deserialize, Serialize};

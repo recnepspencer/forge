@@ -27,7 +27,7 @@ use forge_core::{KernelError, OperationResult};
 
 use super::result::{BooleanIntrospection, BooleanResult};
 use super::schema::BooleanInput;
-use crate::core::ModelingContext;
+use crate::context::facade::ModelingContext;
 
 /// Execute a Boolean operation via the parametric pipeline.
 ///

@@ -7,7 +7,7 @@
 //! Each feature's `adapters.rs` can narrow these further into
 //! domain-specific interfaces (e.g. `WeldToleranceProvider`).
 
-use crate::core::ModelingContext;
+use crate::context::facade::ModelingContext;
 
 /// Spatial coincidence and angular tolerances.
 ///

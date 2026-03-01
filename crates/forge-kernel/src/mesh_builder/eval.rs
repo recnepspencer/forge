@@ -19,8 +19,8 @@ use forge_topo::transactions::{MutableDraft, TopologyState};
 
 use crate::brep::state::BrepState;
 use crate::check_tolerance;
-use crate::core::config::resolve::ResolvedConfig;
-use crate::core::ModelingContext;
+use crate::configuration::facade::ResolvedConfig;
+use crate::context::facade::ModelingContext;
 use crate::geometry_state::GeometryState;
 
 /// Result of building a halfedge mesh from a ConvexCell.

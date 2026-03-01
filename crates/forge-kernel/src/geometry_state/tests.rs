@@ -135,13 +135,13 @@ fn one_meter_cube_produces_correct_tolerance() {
 
 #[test]
 fn sub_millimeter_model_is_floored_at_absolute_minimum() {
-    use crate::core::tolerance::ABSOLUTE_MINIMUM_TOLERANCE;
+    use crate::tolerance::facade::ABSOLUTE_MINIMUM_TOLERANCE;
     let mut store = GeometryState::new();
     // 0.001 mm model — scale = 0.001, max(0.001, 1.0) = 1.0, so tol = 1e-7.
     // The floor 1e-13 cannot kick in here because 1e-7 > 1e-13, but let's
     // confirm the floor is respected when scale would underflow:
     // (Directly via ToleranceConfig, not GeometryState.)
-    let mut cfg = crate::core::tolerance::ToleranceConfig::default();
+    let mut cfg = crate::tolerance::facade::ToleranceConfig::default();
     cfg.set_model_scale_mm(0.0); // edge case: effectively 1.0 clamp.
     let t = cfg.scaled_vertex_tolerance();
     assert!(t >= ABSOLUTE_MINIMUM_TOLERANCE);
@@ -167,7 +167,7 @@ fn edge_tolerance_is_capped_at_1e_6_for_large_models() {
 
 #[test]
 fn scaled_vertex_tolerance_on_tolerance_config() {
-    use crate::core::tolerance::ToleranceConfig;
+    use crate::tolerance::facade::ToleranceConfig;
     use forge_math::arithmetic::rational::Rational;
 
     let mut cfg = ToleranceConfig::default();

@@ -6,8 +6,8 @@
 use forge_core::KernelError;
 use forge_topo::transactions::MutableDraft;
 use forge_topo::handles::HalfEdgeId;
+use crate::context::facade::ModelingContext;
 use crate::geometry_state::GeometryState;
-use crate::core::ModelingContext;
 
 /// Structured result from stitching — callers decide if unpaired is acceptable.
 pub struct StitchReport {

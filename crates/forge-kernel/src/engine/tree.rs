@@ -25,7 +25,7 @@ use forge_signal::facade::{Aspect, AspectVersion};
 use super::executor::FeaturePipeline;
 pub use super::traits::{Feature, FeatureOutput};
 use super::wrappers::BooleanFeature;
-use crate::core::ModelingContext;
+use crate::context::facade::ModelingContext;
 use crate::primitives::MakePrimitiveFeature;
 
 /// A concrete enum implementation of all supported features for serialization.

@@ -17,7 +17,7 @@ use crate::geom_facade::VertexGeom;
 use forge_topo::handles::VertexId;
 
 // Removed geometry_state dependency
-use crate::core::ModelingContext;
+use crate::context::facade::ModelingContext;
 
 /// Result of attempting to snap or coalesce a candidate vertex position
 /// against an existing vertex.

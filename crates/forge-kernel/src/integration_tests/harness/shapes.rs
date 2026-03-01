@@ -8,8 +8,7 @@ use forge_core::KernelError;
 use forge_topo::transactions::{MutableDraft, TopologyState};
 use forge_topo::handles::{BodyId, FaceId, HalfEdgeId, ShellId, VertexId};
 
-use crate::core::config::resolve::{resolve_config, ResolvedConfig};
-use crate::core::config::schema::KernelConfig;
+use crate::configuration::facade::{resolve_config, KernelConfig, ResolvedConfig};
 use crate::mesh_builder;
 
 /// Handles extracted from a cube solid.

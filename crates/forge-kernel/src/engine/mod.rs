@@ -29,6 +29,7 @@ pub mod contract;
 pub mod dispatch;
 pub mod errors;
 pub mod executor;
+pub mod facade;
 pub mod intent;
 pub mod invariants;
 pub mod macros;

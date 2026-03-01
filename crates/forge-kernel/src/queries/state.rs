@@ -3,8 +3,8 @@
 //! DOMAIN: Named interfaces for accessing the operation coordinate frame
 //! and transactional kernel state bundles.
 
-use crate::core::ModelingContext;
-use crate::core::OperationSpace;
+use crate::context::facade::ModelingContext;
+use crate::finalization::facade::OperationSpace;
 
 /// Operation space (local coordinate frame) access.
 ///

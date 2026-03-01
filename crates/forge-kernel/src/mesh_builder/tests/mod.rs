@@ -9,8 +9,7 @@ mod edge_cases_tests;
 mod determinism_tests;
 mod geometric_fidelity_tests;
 
-use crate::core::config::resolve::{resolve_config, ResolvedConfig};
-use crate::core::config::schema::KernelConfig;
+use crate::configuration::facade::{resolve_config, KernelConfig, ResolvedConfig};
 
 /// Build a default `ResolvedConfig` for tests.
 pub(super) fn test_config() -> ResolvedConfig {
