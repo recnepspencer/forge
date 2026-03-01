@@ -6,23 +6,12 @@
 //!
 //! ## Modules
 //!
-//! - `schema`             — `ModelingContext` struct definition + Default + Drop
-//! - `accessors`          — config/policy getters and setters
-//! - `decision_logging`   — `log_decision`, `log_escalation`, `scope`, reset
-//! - `sub_operations`     — sub-operation absorption and metadata draining
-//! - `counterfactual`     — classification overrides for replay
-//! - `policy_resolution`  — `resolve_policy_query`, registry snapshot, cascade
-//! - `topology_delta`     — `ArenaSnapshot`, `compute_topology_delta`
+//! - `data`               — struct definitions and constructors
+//! - `logic`              — behavior and orchestration
+//! - `facade`             — stable exports for external callers
 
-mod accessors;
-mod counterfactual;
-mod decision_logging;
+mod data;
 pub mod facade;
-mod policy_resolution;
-mod schema;
-mod sub_operations;
-mod topology_delta;
+mod logic;
 
-pub use policy_resolution::{ResolvedPolicyDecision, ResolvedPolicySource};
-pub use schema::{ModelingContext, SubOperationMetadata};
-pub use topology_delta::{compute_topology_delta, ArenaSnapshot};
+pub use data::{ModelingContext, ResolvedPolicyDecision, ResolvedPolicySource, SubOperationMetadata};

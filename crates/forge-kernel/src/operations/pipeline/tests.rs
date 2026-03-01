@@ -2,9 +2,9 @@
 
 use forge_core::{KernelError, PolicyKind};
 
-use crate::context::facade::ModelingContext;
+use crate::configuration::facade::{resolve_config, KernelConfig, ResolvedConfig};
 use crate::operations::pipeline::builder::{OperationPipeline, PipelineBuilder};
-use crate::operations::pipeline::step_contract::StepContract;
+use crate::observability::facade::KernelSpan;
 
 // ── Step Fixtures ────────────────────────────────────────────────────────
 
@@ -46,12 +46,18 @@ crate::declare_step!(PrecisionStep,
 
 // ── Tests ────────────────────────────────────────────────────────────────
 
+fn resolved_test_config() -> ResolvedConfig {
+    resolve_config(&KernelConfig::default(), None, None, None)
+        .expect("default config should resolve in pipeline tests")
+}
+
 #[test]
 fn run_step_rejects_missing_policy_before_execution() {
-    let mut ctx = ModelingContext::new();
-    let mut pipeline = OperationPipeline::new(&mut ctx);
+    let config = resolved_test_config();
+    let _guard = KernelSpan::enter("pipeline_test_missing_policy");
+    let mut pipeline = OperationPipeline::new(&config);
 
-    let result: Result<(), KernelError> = pipeline.run_step(&PolicyRequiringStep, |_ctx| {
+    let result: Result<(), KernelError> = pipeline.run_step(&PolicyRequiringStep, |_config| {
         unreachable!("step should not execute with missing policy")
     });
 
@@ -66,17 +72,18 @@ fn run_step_rejects_missing_policy_before_execution() {
 
 #[test]
 fn run_step_collects_step_scoped_decision_counts() {
-    let mut ctx = ModelingContext::new();
-    let mut pipeline = OperationPipeline::new(&mut ctx);
+    let config = resolved_test_config();
+    let _guard = KernelSpan::enter("pipeline_test_step_counts");
+    let mut pipeline = OperationPipeline::new(&config);
 
     // Step 1: no decisions
     pipeline
-        .run_step(&SimpleStep, |_ctx| Ok(42u32))
+        .run_step(&SimpleStep, |_config| Ok(42u32))
         .expect("simple step should succeed");
 
     // Step 2: also no decisions (but records the entry)
     pipeline
-        .run_step(&LabelStep, |_ctx| Ok("labeled"))
+        .run_step(&LabelStep, |_config| Ok("labeled"))
         .expect("label step should succeed");
 
     let audit = pipeline.finalize();
@@ -92,13 +99,14 @@ fn run_step_collects_step_scoped_decision_counts() {
 
 #[test]
 fn pipeline_builder_threads_typed_state_through_steps() {
-    let mut ctx = ModelingContext::new();
+    let config = resolved_test_config();
+    let _guard = KernelSpan::enter("pipeline_test_builder_typed");
 
     // Pipeline: u32 → String → Vec<String>
-    let (result, audit) = PipelineBuilder::start(&mut ctx, 42u32)
-        .then(&SimpleStep, |n, _ctx| Ok(format!("number-{}", n)))
+    let (result, audit) = PipelineBuilder::start(&config, 42u32)
+        .then(&SimpleStep, |n, _config| Ok(format!("number-{}", n)))
         .expect("step 1")
-        .then(&LabelStep, |s, _ctx| {
+        .then(&LabelStep, |s, _config| {
             Ok(vec![s.clone(), format!("{}-copy", s)])
         })
         .expect("step 2")
@@ -115,8 +123,9 @@ fn pipeline_builder_threads_typed_state_through_steps() {
 
 #[test]
 fn multi_step_pipeline_sequences_audit_entries_in_order() {
-    let mut ctx = ModelingContext::new();
-    let mut pipeline = OperationPipeline::new(&mut ctx);
+    let config = resolved_test_config();
+    let _guard = KernelSpan::enter("pipeline_test_sequence");
+    let mut pipeline = OperationPipeline::new(&config);
 
     // Use distinct step structs for each name
     struct AlphaStep;
@@ -128,10 +137,10 @@ fn multi_step_pipeline_sequences_audit_entries_in_order() {
     struct DeltaStep;
     crate::declare_step!(DeltaStep, name: "delta", policies: [], precision_sensitive: false);
 
-    pipeline.run_step(&AlphaStep, |_ctx| Ok(())).expect("alpha");
-    pipeline.run_step(&BetaStep, |_ctx| Ok(())).expect("beta");
-    pipeline.run_step(&GammaStep, |_ctx| Ok(())).expect("gamma");
-    pipeline.run_step(&DeltaStep, |_ctx| Ok(())).expect("delta");
+    pipeline.run_step(&AlphaStep, |_config| Ok(())).expect("alpha");
+    pipeline.run_step(&BetaStep, |_config| Ok(())).expect("beta");
+    pipeline.run_step(&GammaStep, |_config| Ok(())).expect("gamma");
+    pipeline.run_step(&DeltaStep, |_config| Ok(())).expect("delta");
 
     let audit = pipeline.finalize();
 
@@ -153,11 +162,12 @@ fn multi_step_pipeline_sequences_audit_entries_in_order() {
 
 #[test]
 fn pipeline_builder_propagates_error_from_step() {
-    let mut ctx = ModelingContext::new();
+    let config = resolved_test_config();
+    let _guard = KernelSpan::enter("pipeline_test_error");
 
-    let result = PipelineBuilder::start(&mut ctx, 100u32).then(
+    let result = PipelineBuilder::start(&config, 100u32).then(
         &SimpleStep,
-        |_n, _ctx| -> Result<u32, KernelError> {
+        |_n, _config| -> Result<u32, KernelError> {
             Err(KernelError::InvalidInput {
                 message: "intentional failure".into(),
                 context: None,
@@ -180,37 +190,38 @@ fn pipeline_builder_propagates_error_from_step() {
 
 #[test]
 fn pipeline_builder_six_step_chain_compiles_and_runs() {
-    let mut ctx = ModelingContext::new();
+    let config = resolved_test_config();
+    let _guard = KernelSpan::enter("pipeline_test_six_step");
 
     // Simulate a fillet-like 6-step pipeline with type changes at each step
-    let (result, audit) = PipelineBuilder::start(&mut ctx, vec![1u32, 2, 3])
-        .then(&SimpleStep, |edges, _ctx| {
+    let (result, audit) = PipelineBuilder::start(&config, vec![1u32, 2, 3])
+        .then(&SimpleStep, |edges, _config| {
             // Step 1: "resolve selection"
             Ok(edges.len())
         })
         .expect("resolve")
-        .then(&PrecisionStep, |count, _ctx| {
+        .then(&PrecisionStep, |count, _config| {
             // Step 2: "classify convexity"
             Ok((count, true)) // (edge_count, all_convex)
         })
         .expect("classify")
-        .then(&PrecisionStep, |(_count, convex), _ctx| {
+        .then(&PrecisionStep, |(_count, convex), _config| {
             // Step 3: "construct surface"
             Ok(format!("surface-convex={}", convex))
         })
         .expect("construct")
-        .then(&SimpleStep, |surface, _ctx| {
+        .then(&SimpleStep, |surface, _config| {
             // Step 4: "apply euler ops"
             Ok((surface, 12usize)) // (surface, face_count)
         })
         .expect("euler")
-        .then(&LabelStep, |(_surface, faces), _ctx| {
+        .then(&LabelStep, |(_surface, faces), _config| {
             // Step 5: "validate manifold"
             assert!(faces > 0);
             Ok(faces)
         })
         .expect("validate")
-        .then(&PrecisionStep, |faces, _ctx| {
+        .then(&PrecisionStep, |faces, _config| {
             // Step 6: "detect slivers"
             Ok(format!("{} faces, 0 slivers", faces))
         })

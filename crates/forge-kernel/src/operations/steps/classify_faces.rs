@@ -25,10 +25,11 @@ use forge_core::{
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::FaceId;
 
-use crate::context::facade::ModelingContext;
-use crate::tolerance::facade::ToleranceConfig;
+use crate::configuration::facade::{ResolvedConfig, ToleranceConfig};
 use crate::geom_facade::BvhNode;
 use crate::geometry_state::GeometryState;
+use crate::observability::facade::KernelSpan;
+use crate::operations::boolean::counterfactual::CounterfactualOverrides;
 use crate::operations::boolean::classify_schema::{ClassifiedFace, FaceClassification, FaceOrigin};
 
 /// True when this face was created by a `make_edge_face` Euler operator
@@ -44,8 +45,7 @@ use crate::shared_ops::spatial::normal_alignment::faces_have_aligned_normals;
 use crate::shared_ops::vertex::lookup::lookup_vertex_position_by_slot;
 use crate::spatial::{
     all_face_bounds, classify_point_in_solid, classify_point_with_perturbation,
-    face_interior_samples, FacePointClassification, PointClassification, SpatialAccelerator,
-    classify_point_on_face,
+    face_interior_samples, PointClassification, SpatialAccelerator,
 };
 
 /// Classify all faces of one solid relative to the other solid.
@@ -54,11 +54,12 @@ pub fn classify_faces(
     source_geometry: &GeometryState,
     other_arena: &TopologyArena,
     other_geometry: &GeometryState,
+    config: &ResolvedConfig,
     origin: FaceOrigin,
-    ctx: &mut ModelingContext,
+    overrides: &CounterfactualOverrides,
 ) -> Result<Vec<ClassifiedFace>, KernelError> {
-    let config = ctx.get_tolerance_config().clone();
-    let point_coincidence_tol = ctx.get_tolerance().get_spatial_tolerance();
+    let tolerance = config.tolerance_config();
+    let point_coincidence_tol = config.spatial_tolerance();
 
     let accelerator_data = build_spatial_index(other_arena, other_geometry);
     let accelerator = accelerator_data
@@ -76,9 +77,8 @@ pub fn classify_faces(
             other_geometry,
             accelerator,
             face_id,
-            &config,
+            &tolerance,
             point_coincidence_tol,
-            ctx,
         )?;
 
         if std::env::var("FORGE_DEBUG_CLASSIFY_PROVENANCE")
@@ -101,15 +101,8 @@ pub fn classify_faces(
             );
         }
 
-        let (final_class, overridden) = apply_override(ctx, face_id, computed);
-        log_classification(
-            ctx,
-            face_id,
-            &final_class,
-            &computed,
-            overridden,
-            origin_label,
-        );
+        let (final_class, overridden) = apply_override(overrides, face_id, computed);
+        log_classification(face_id, &final_class, &computed, overridden, origin_label);
         classified.push(ClassifiedFace::new(face_id, final_class));
     }
 
@@ -128,7 +121,6 @@ fn classify_single_face(
     face_id: FaceId,
     config: &ToleranceConfig,
     point_coincidence_tol: f64,
-    ctx: &mut ModelingContext,
 ) -> Result<FaceClassification, KernelError> {
     let sample =
         compute_face_centroid(source_arena, source_geometry, face_id).ok_or_else(|| {
@@ -179,7 +171,7 @@ fn classify_single_face(
     };
 
     if let Some(esc) = escalation {
-        ctx.log_escalation(esc);
+        log_escalation(face_id, esc);
     }
 
     Ok(class)
@@ -194,7 +186,7 @@ fn maybe_multisample_refine(
     face_id: FaceId,
     centroid: [f64; 3],
     primary: PointClassification,
-    config: &ToleranceConfig,
+    _config: &ToleranceConfig,
     point_coincidence_tol: f64,
 ) -> Result<PointClassification, KernelError> {
     if matches!(primary, PointClassification::OnBoundary(_)) {
@@ -376,19 +368,18 @@ fn extract_escalation(
 // ── Override and logging ─────────────────────────────────────────────────────
 
 fn apply_override(
-    ctx: &ModelingContext,
+    overrides: &CounterfactualOverrides,
     face_id: FaceId,
     computed: FaceClassification,
 ) -> (FaceClassification, bool) {
     let decision_id = DecisionId(face_id.index() as u64);
-    match ctx.get_classification_override(decision_id) {
+    match overrides.get(decision_id) {
         Some(forced) => (forced, true),
         None => (computed, false),
     }
 }
 
 fn log_classification(
-    ctx: &mut ModelingContext,
     face_id: FaceId,
     final_class: &FaceClassification,
     computed_class: &FaceClassification,
@@ -422,7 +413,25 @@ fn log_classification(
         face_id.index(),
     ));
     decision.set_topology_delta(TopologyDelta::default());
-    ctx.get_decision_log_mut().record(decision);
+    KernelSpan::record_decision(decision);
+}
+
+fn log_escalation(
+    face_id: FaceId,
+    escalation: forge_math::arithmetic::precision::PrecisionEscalation,
+) {
+    if escalation.resolved_at <= forge_math::arithmetic::precision::PrecisionMode::Float64 {
+        return;
+    }
+
+    let decision = TracedDecision::new(
+        DecisionId((face_id.index() as u64) << 32 | 0xE5C4_1A7E),
+        DecisionKind::Exact,
+        DecisionTier::Escalated,
+        escalation.disagreement_magnitude.unwrap_or(0.0),
+        DecisionContext::PrecisionEscalation { escalation },
+    );
+    KernelSpan::record_decision(decision);
 }
 
 // ── Spatial indexing ─────────────────────────────────────────────────────────

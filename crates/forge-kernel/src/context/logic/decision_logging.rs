@@ -8,9 +8,8 @@ use forge_core::{
     DecisionContext, DecisionId, DecisionKind, DecisionLog, DecisionTier, TracedDecision,
 };
 
+use crate::context::data::ModelingContext;
 use crate::observability::facade::KernelSpan;
-
-use super::schema::ModelingContext;
 
 impl ModelingContext {
     /// Record a tolerance decision, auto-assigning a unique ID.
@@ -102,7 +101,6 @@ impl ModelingContext {
     ///
     /// Preserves:
     /// - policy/tolerance/validation configuration
-    /// - classification overrides (counterfactual replay control)
     pub fn reset_for_new_operation(&mut self) {
         self.decision_log = DecisionLog::new();
         self.sub_warnings.clear();

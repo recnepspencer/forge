@@ -2,8 +2,7 @@
 //!
 //! DOMAIN: Data structures representing partial overrides of the kernel configuration.
 
-use crate::proof::checkpoint::schema::ValidationCheckpoint;
-use forge_core::PolicyKind;
+use forge_core::{PolicyKind, ValidationCheckpoint};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 

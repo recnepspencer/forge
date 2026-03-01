@@ -7,9 +7,8 @@ use forge_core::envelope::{KernelWarning, OperationMetrics, OperationResult};
 use forge_core::tracing::{TraceAdjunctRecord, TraceAdjunctSet};
 use forge_core::DecisionLog;
 
+use crate::context::data::{ModelingContext, SubOperationMetadata};
 use crate::observability::facade::KernelSpan;
-
-use super::schema::{ModelingContext, SubOperationMetadata};
 
 impl ModelingContext {
     /// Warnings absorbed from sub-operation envelopes.

@@ -10,26 +10,12 @@
 //! DEPENDENCIES: `forge-topo` (validate, arena), `forge-core` (KernelError)
 
 use forge_core::{KernelError, ToleranceProvider};
+pub use forge_core::ValidationCheckpoint;
 use crate::spatial::validate_geometric_invariants;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::VertexId;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 use serde::{Deserialize, Serialize};
-
-/// Checkpoints where invariant validation can be triggered.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum ValidationCheckpoint {
-    /// After MutableDraft::commit() — structural invariants.
-    PostCommit,
-    /// After every Boolean operation.
-    PostBoolean,
-    /// After every feature evaluation.
-    PostFeature,
-    /// After STEP/IGES import healing.
-    PostImport,
-    /// On explicit request only.
-    OnDemand,
-}
 
 /// Configuration for the invariant checkpoint system.
 ///

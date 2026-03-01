@@ -25,7 +25,7 @@ use forge_signal::facade::{Aspect, AspectVersion};
 use super::executor::FeaturePipeline;
 pub use super::traits::{Feature, FeatureOutput};
 use super::wrappers::BooleanFeature;
-use crate::context::facade::ModelingContext;
+use crate::configuration::facade::KernelConfig;
 use crate::primitives::MakePrimitiveFeature;
 
 /// A concrete enum implementation of all supported features for serialization.
@@ -52,11 +52,11 @@ impl NativeFeature {
     fn execute_via_pipeline(
         &self,
         inputs: &HashMap<NodeId, FeatureOutput>,
-        ctx: &mut ModelingContext,
+        session_config: &KernelConfig,
     ) -> Result<OperationResult<FeatureOutput>, KernelError> {
         match self {
-            NativeFeature::MakePrimitive(f) => FeaturePipeline::execute(f, inputs, ctx),
-            NativeFeature::Boolean(f) => FeaturePipeline::execute(f, inputs, ctx),
+            NativeFeature::MakePrimitive(f) => FeaturePipeline::execute(f, inputs, session_config),
+            NativeFeature::Boolean(f) => FeaturePipeline::execute(f, inputs, session_config),
         }
     }
 
@@ -190,8 +190,8 @@ impl FeatureTree {
     /// default `ModelingContext`. Returns only the `FeatureOutput` — callers
     /// that need the full envelope should use `evaluate_feature_with_context`.
     pub fn evaluate_feature(&mut self, node_id: NodeId) -> Result<FeatureOutput, KernelError> {
-        let mut ctx = ModelingContext::new();
-        let envelope = self.evaluate_feature_with_context(node_id, &mut ctx)?;
+        let session = KernelConfig::default();
+        let envelope = self.evaluate_feature_with_config(node_id, &session)?;
         Ok(envelope.into_value())
     }
 
@@ -204,10 +204,10 @@ impl FeatureTree {
     /// The envelope stored per-node is the canonical metadata record — the
     /// `ModelingContext`'s decision log is drained into each envelope by the
     /// `OperationFinalizer` during pipeline execution.
-    pub fn evaluate_feature_with_context(
+    pub fn evaluate_feature_with_config(
         &mut self,
         node_id: NodeId,
-        ctx: &mut ModelingContext,
+        session_config: &KernelConfig,
     ) -> Result<OperationResult<FeatureOutput>, KernelError> {
         let graph = &mut self.graph;
         let features = &self.features;
@@ -237,7 +237,7 @@ impl FeatureTree {
                     }
                 }
 
-                let envelope = feature.execute_via_pipeline(&input_map, ctx)?;
+                let envelope = feature.execute_via_pipeline(&input_map, session_config)?;
 
                 // Build the trace summary from the envelope's decision log —
                 // NOT from ctx, which was drained by the OperationFinalizer.

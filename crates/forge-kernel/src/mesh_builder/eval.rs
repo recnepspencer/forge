@@ -7,7 +7,9 @@
 //! 4. Registering face planes and vertex positions in GeometryState
 //! 5. Validating geometry bindings post-commit
 
-use forge_core::{DecisionKind, KernelError};
+use forge_core::{
+    DecisionContext, DecisionId, DecisionKind, DecisionTier, KernelError, TracedDecision,
+};
 use crate::geom_facade::ConvexCell;
 use forge_topo::b_rep::{
     BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
@@ -18,10 +20,9 @@ use forge_topo::provenance::OpSignature;
 use forge_topo::transactions::{MutableDraft, TopologyState};
 
 use crate::brep::state::BrepState;
-use crate::check_tolerance;
 use crate::configuration::facade::ResolvedConfig;
-use crate::context::facade::ModelingContext;
 use crate::geometry_state::GeometryState;
+use crate::observability::facade::KernelSpan;
 
 /// Result of building a halfedge mesh from a ConvexCell.
 pub struct MeshBuildResult {
@@ -77,7 +78,6 @@ pub fn build_halfedge_mesh(
     validate_cell(cell)?;
 
     let tolerance = config.scaled_vertex_tolerance();
-    let mut ctx = ModelingContext::new();
     let sig = OpSignature::new("build_halfedge_mesh");
     let mut ordinal: u64 = 0;
 
@@ -86,7 +86,7 @@ pub fn build_halfedge_mesh(
     let mut geometry = GeometryState::new();
 
     let vertex_ids = insert_vertices(
-        &mut draft, &mut geometry, cell, tolerance, &mut ctx, &sig, &mut ordinal,
+        &mut draft, &mut geometry, cell, tolerance, &sig, &mut ordinal,
     )?;
 
     let body = draft.insert_body(BodyData::new());
@@ -158,7 +158,7 @@ fn validate_cell(cell: &ConvexCell) -> Result<(), KernelError> {
 ///
 /// Performs position-based deduplication: if two BSP vertices resolve
 /// to positions within `tolerance` of each other, the later one reuses
-/// the earlier's `VertexId`. Each merge is logged via `check_tolerance!`.
+/// the earlier's `VertexId`. Each merge emits a `NearBoundary` decision.
 ///
 /// Returns a mapping from ConvexCell vertex index to VertexId.
 fn insert_vertices(
@@ -166,8 +166,7 @@ fn insert_vertices(
     geometry: &mut GeometryState,
     cell: &ConvexCell,
     tolerance: f64,
-    ctx: &mut ModelingContext,
-    sig: &OpSignature,
+    _sig: &OpSignature,
     ordinal: &mut u64,
 ) -> Result<Vec<VertexId>, KernelError> {
     let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
@@ -181,15 +180,19 @@ fn insert_vertices(
         let existing = find_coincident_vertex(&inserted, &pos, tolerance);
 
         if let Some((existing_vid, dist)) = existing {
-            check_tolerance!(
-                ctx,
-                tolerance,
-                dist,
-                pos,
+            let decision = TracedDecision::new(
+                DecisionId((existing_vid.index() as u64) << 32 | 0xD15A_11CE),
                 DecisionKind::NearBoundary {
-                    threshold: tolerance
-                }
+                    threshold: tolerance,
+                },
+                DecisionTier::NearBoundary,
+                dist,
+                DecisionContext::Tolerance {
+                    measured: dist,
+                    threshold: tolerance,
+                },
             );
+            KernelSpan::record_decision(decision);
             vertex_ids.push(existing_vid);
         } else {
             let vid = draft.insert_vertex(VertexData::new(placeholder_he));
@@ -260,7 +263,7 @@ fn insert_faces_and_loops(
     cell: &ConvexCell,
     vertex_ids: &[VertexId],
     shell: ShellId,
-    sig: &OpSignature,
+    _sig: &OpSignature,
     ordinal: &mut u64,
 ) -> Result<EdgeMap, KernelError> {
     let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
@@ -378,7 +381,7 @@ impl EdgeMap {
 fn stitch_twins(
     draft: &mut MutableDraft,
     edge_map: &EdgeMap,
-    sig: &OpSignature,
+    _sig: &OpSignature,
     ordinal: &mut u64,
 ) -> Result<(), KernelError> {
     for (a, b, he_id) in edge_map.iter_ascending() {
@@ -535,7 +538,7 @@ pub fn make_block(
     validate_coordinate(center[2], "center[2]")?;
     validate_dimension(half_extents[0], "half_extents[0]", config)?;
     validate_dimension(half_extents[1], "half_extents[1]", config)?;
-    validate_dimension(half_extents[2], "half_extents[2]", config)?;;
+    validate_dimension(half_extents[2], "half_extents[2]", config)?;
     let planes = crate::geom_facade::shapes::block(center, half_extents)?;
     make_convex_solid(planes, config)
 }
@@ -552,7 +555,7 @@ pub fn make_prism(
     validate_coordinate(center[1], "center[1]")?;
     validate_coordinate(center[2], "center[2]")?;
     validate_dimension(radius, "radius", config)?;
-    validate_dimension(height, "height", config)?;;
+    validate_dimension(height, "height", config)?;
     if sides < 3 {
         return Err(KernelError::InvalidInput {
             message: format!("prism needs at least 3 sides, got {sides}"),
@@ -575,7 +578,7 @@ pub fn make_pyramid(
     validate_coordinate(center[1], "center[1]")?;
     validate_coordinate(center[2], "center[2]")?;
     validate_dimension(radius, "radius", config)?;
-    validate_dimension(height, "height", config)?;;
+    validate_dimension(height, "height", config)?;
     if sides < 3 {
         return Err(KernelError::InvalidInput {
             message: format!("pyramid needs at least 3 sides, got {sides}"),

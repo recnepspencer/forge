@@ -34,7 +34,7 @@ pub use errors::{
     SourceErrorSummary, SuggestedFix, TopologyError, TopologyErrorSummary,
 };
 
-pub use policy::{PolicyKind, PolicyQuery, PolicyResult};
+pub use policy::{PolicyKind, PolicyQuery, PolicyResult, ValidationCheckpoint};
 
 pub use tracing::{
     compute_trace_fingerprint, diff_decision_logs, log_decision_log, log_error,

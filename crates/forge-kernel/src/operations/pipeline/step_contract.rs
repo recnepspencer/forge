@@ -15,7 +15,7 @@ use forge_core::PolicyKind;
 /// - Whether it uses floating-point geometry (for precision escalation)
 pub trait StepContract {
     /// Machine-readable step name (e.g. "classify_surface_pair").
-    fn step_name(&self) -> &str;
+    fn step_name(&self) -> &'static str;
 
     /// Policy kinds that must be configured before this step can execute.
     fn policy_queries(&self) -> &[PolicyKind];
@@ -76,7 +76,7 @@ macro_rules! declare_step {
         precision_sensitive: $prec:expr $(,)?
     ) => {
         impl $crate::operations::pipeline::step_contract::StepContract for $step_ty {
-            fn step_name(&self) -> &str {
+            fn step_name(&self) -> &'static str {
                 $name
             }
 

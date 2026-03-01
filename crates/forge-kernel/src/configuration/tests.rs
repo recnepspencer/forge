@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod cascade_tests {
-    use super::super::{
+    use super::super::facade::{
         resolve_config, ConfigOverride, ConfigScope, KernelConfig, ToleranceOverride,
     };
 

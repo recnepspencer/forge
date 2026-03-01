@@ -8,16 +8,17 @@
 //! auditable, overridable, and replayable (Doctrine D2).
 //!
 //! DEPENDENCIES: `forge-kernel::geometry_state` (GeometryState),
-//!               `forge-kernel::core` (ModelingContext),
+//!               `forge-kernel::observability` (KernelSpan),
 //!               `forge-core` (tracing types)
 
 use forge_core::policy::PolicyKind;
-use forge_core::{DecisionKind, DecisionTier, ToleranceProvider};
+use forge_core::{
+    DecisionContext, DecisionId, DecisionKind, DecisionTier, TracedDecision,
+};
 use crate::geom_facade::VertexGeom;
 use forge_topo::handles::VertexId;
 
-// Removed geometry_state dependency
-use crate::context::facade::ModelingContext;
+use crate::observability::facade::KernelSpan;
 
 /// Result of attempting to snap or coalesce a candidate vertex position
 /// against an existing vertex.
@@ -66,7 +67,6 @@ pub fn snap_or_coalesce_vertex(
     existing: VertexId,
     existing_pos: [f64; 3],
     existing_tol: f64,
-    ctx: &mut ModelingContext,
     coalescence_threshold: f64,
 ) -> CoalescenceResult {
     let dx = candidate_pos[0] - existing_pos[0];
@@ -75,31 +75,18 @@ pub fn snap_or_coalesce_vertex(
     let gap = (dx * dx + dy * dy + dz * dz).sqrt();
 
     if gap < existing_tol {
-        ctx.log_decision(
-            DecisionKind::PolicyApplied {
-                policy: PolicyKind::CoincidentGeometry,
-                default_used: true,
-            },
-            DecisionTier::Resolved,
-            candidate_pos,
-            gap,
-            existing_tol,
-        );
+        record_coalescence_decision(existing, gap, existing_tol, DecisionTier::Resolved);
         return CoalescenceResult::Snapped { existing };
     }
 
     if gap < coalescence_threshold {
         let merged_tolerance = VertexGeom::coalesced_tolerance(existing_tol, candidate_tol);
 
-        ctx.log_decision(
-            DecisionKind::PolicyApplied {
-                policy: PolicyKind::CoincidentGeometry,
-                default_used: true,
-            },
-            DecisionTier::PolicyApplied,
-            candidate_pos,
+        record_coalescence_decision(
+            existing,
             gap,
             coalescence_threshold,
+            DecisionTier::PolicyApplied,
         );
 
         return CoalescenceResult::Coalesced {
@@ -112,12 +99,29 @@ pub fn snap_or_coalesce_vertex(
     CoalescenceResult::NewVertex
 }
 
+fn record_coalescence_decision(existing: VertexId, gap: f64, threshold: f64, tier: DecisionTier) {
+    let decision = TracedDecision::new(
+        DecisionId((existing.index() as u64) << 32 | 0xC0A1_E5CE),
+        DecisionKind::PolicyApplied {
+            policy: PolicyKind::CoincidentGeometry,
+            default_used: true,
+        },
+        tier,
+        gap,
+        DecisionContext::Tolerance {
+            measured: gap,
+            threshold,
+        },
+    );
+    KernelSpan::record_decision(decision);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
     fn snap_when_inside_tolerance_sphere() {
-        let mut ctx = ModelingContext::new();
+        let guard = KernelSpan::enter("coalescence_test_snap");
 
         let v = VertexId::new(0, 0);
         let existing_pos = [0.0, 0.0, 0.0];
@@ -129,17 +133,17 @@ mod tests {
             v,
             existing_pos,
             existing_tol,
-            &mut ctx,
             1e-4,
         );
 
         assert!(matches!(result, CoalescenceResult::Snapped { .. }));
-        assert_eq!(ctx.get_decision_count(), 1);
+        let output = guard.finish();
+        assert_eq!(output.decision_log.len(), 1);
     }
 
     #[test]
     fn coalesce_when_near_but_outside_tolerance() {
-        let mut ctx = ModelingContext::new();
+        let guard = KernelSpan::enter("coalescence_test_coalesce");
 
         let v = VertexId::new(0, 0);
         let existing_pos = [0.0, 0.0, 0.0];
@@ -151,7 +155,6 @@ mod tests {
             v,
             existing_pos,
             existing_tol,
-            &mut ctx,
             1e-4,
         );
 
@@ -166,12 +169,13 @@ mod tests {
             }
             other => panic!("Expected Coalesced, got {:?}", other),
         }
-        assert_eq!(ctx.get_decision_count(), 1);
+        let output = guard.finish();
+        assert_eq!(output.decision_log.len(), 1);
     }
 
     #[test]
     fn new_vertex_when_far_away() {
-        let mut ctx = ModelingContext::new();
+        let guard = KernelSpan::enter("coalescence_test_new");
 
         let v = VertexId::new(0, 0);
         let existing_pos = [0.0, 0.0, 0.0];
@@ -183,17 +187,17 @@ mod tests {
             v,
             existing_pos,
             existing_tol,
-            &mut ctx,
             1e-4,
         );
 
         assert!(matches!(result, CoalescenceResult::NewVertex));
-        assert_eq!(ctx.get_decision_count(), 0);
+        let output = guard.finish();
+        assert_eq!(output.decision_log.len(), 0);
     }
 
     #[test]
     fn coalesced_tolerance_exceeds_both_inputs() {
-        let mut ctx = ModelingContext::new();
+        let _guard = KernelSpan::enter("coalescence_test_tolerance");
 
         let v = VertexId::new(0, 0);
         let existing_pos = [0.0, 0.0, 0.0];
@@ -205,7 +209,6 @@ mod tests {
             v,
             existing_pos,
             existing_tol,
-            &mut ctx,
             1e-4,
         );
 

@@ -25,22 +25,27 @@ pub mod steps;
 
 use forge_core::{KernelError, OperationResult};
 
-use super::result::{BooleanIntrospection, BooleanResult};
+use super::result::BooleanResult;
 use super::schema::BooleanInput;
-use crate::context::facade::ModelingContext;
+use crate::configuration::facade::{resolve_config, KernelConfig, ResolvedConfig};
+use crate::operations::boolean::counterfactual::CounterfactualOverrides;
 
 /// Execute a Boolean operation via the parametric pipeline.
 ///
 /// This is the main entry point — called by the router or directly by tests.
-/// Sets up a `ModelingContext`, validates inputs, then runs the pipeline phases
+/// Resolves config, validates inputs, then runs the pipeline phases
 /// through `OperationPipeline` with auto-injected tracing and policy checks.
 pub fn execute(
     input: BooleanInput,
 ) -> OperationResult<Result<BooleanResult, KernelError>> {
-    let mut ctx = ModelingContext::default();
+    let session = KernelConfig::default();
+    let resolved = match resolve_config(&session, None, None, None) {
+        Ok(cfg) => cfg,
+        Err(err) => return OperationResult::new(Err(err)),
+    };
     let start = std::time::Instant::now();
 
-    let inner_result = execute_core(&input, &mut ctx);
+    let inner_result = execute_core(&input, &resolved);
 
     let metrics = forge_core::OperationMetrics {
         duration: start.elapsed(),
@@ -59,14 +64,15 @@ pub fn execute(
 /// each with its own `StepContract` for policy pre-validation and tracing.
 fn execute_core(
     input: &BooleanInput,
-    ctx: &mut ModelingContext,
+    config: &ResolvedConfig,
 ) -> Result<BooleanResult, KernelError> {
     use crate::operations::pipeline::builder::OperationPipeline;
 
-    let mut pipeline = OperationPipeline::new(ctx);
+    let _overrides = CounterfactualOverrides::new();
+    let mut pipeline = OperationPipeline::new(config);
 
     // Phase 1: Validate inputs
-    pipeline.run_step(&steps::ValidateInputs, |_ctx| {
+    pipeline.run_step(&steps::ValidateInputs, |_config| {
         input.validate()
     })?;
 
@@ -82,14 +88,11 @@ fn execute_core(
     })
 }
 
-/// Execute with explicit `ModelingContext` for test injection.
-///
-/// Allows tests to provide a pre-configured context (custom tolerances,
-/// specific policies, decision log capture).
+/// Execute with explicit resolved config for test injection.
 #[cfg(test)]
 pub fn execute_with_context(
     input: &BooleanInput,
-    ctx: &mut ModelingContext,
+    config: &ResolvedConfig,
 ) -> Result<BooleanResult, KernelError> {
-    execute_core(input, ctx)
+    execute_core(input, config)
 }

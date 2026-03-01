@@ -21,12 +21,12 @@ use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
 use super::contract::{AuditLevel, FeatureInputs};
-use super::errors::PipelineError;
 use super::invariants::validate_invariant;
-use crate::configuration::facade::{resolve_config, ResolvedConfig};
+use crate::configuration::facade::{resolve_config, KernelConfig, ResolvedConfig};
 use crate::context::facade::ModelingContext;
 use crate::finalization::facade::{OperationFinalizer, OperationSpace, TopologyHashBoundary};
 use crate::observability::facade::KernelSpan;
+use crate::proof::checkpoint::schema::ValidationConfig;
 use crate::engine::traits::{Feature, FeatureOutput};
 
 /// Feature pipeline executor.
@@ -60,11 +60,13 @@ impl FeaturePipeline {
     pub fn execute<F: Feature>(
         feature: &F,
         raw_inputs: &HashMap<NodeId, FeatureOutput>,
-        ctx: &mut ModelingContext,
+        session_config: &KernelConfig,
     ) -> Result<OperationResult<FeatureOutput>, KernelError> {
+        let mut ctx = ModelingContext::from_config(session_config.clone());
+
         // 1. Resolve configuration (needed for policy pre-check and execution)
         let resolved_config = resolve_config(
-            &ctx.config,
+            session_config,
             None,
             feature
                 .config_overrides()
@@ -75,7 +77,7 @@ impl FeaturePipeline {
 
         // 2. Pre-validate required policies (fail-fast before any mutation)
         for policy in feature.required_policies() {
-            ctx.validate_policy_configured(policy)?;
+            resolved_config.validate_policy_configured(policy)?;
         }
 
         // 3. Parse + validate typed inputs
@@ -101,7 +103,11 @@ impl FeaturePipeline {
         let output = result?;
 
         // 6. Post-validate invariants (success only)
-        let validation_config = ctx.get_validation_config();
+        let validation_config = ValidationConfig {
+            checkpoints: resolved_config.config().validation.checkpoints.clone(),
+            include_geometric: resolved_config.config().validation.include_geometric,
+            entity_limit: resolved_config.config().validation.entity_limit,
+        };
         for invariant in feature.post_invariants() {
             validate_invariant(
                 &output.topology,
@@ -121,7 +127,7 @@ impl FeaturePipeline {
         };
         let mut envelope = OperationResult::new(output);
         {
-            let mut finalizer = OperationFinalizer::new(ctx);
+            let mut finalizer = OperationFinalizer::new(&mut ctx);
             let _finalization = finalizer.collect_success(
                 &mut envelope,
                 TraceAdjunctSet::new(),

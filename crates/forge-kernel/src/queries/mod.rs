@@ -16,12 +16,11 @@
 //! ├── policy.rs        ← PolicyQuery: policy pre-validation
 //! ├── geometry.rs      ← FaceGeometryQuery, VertexGeometryQuery
 //! ├── tracing.rs       ← DecisionQuery, WarningQuery
-//! └── state.rs         ← OperationSpaceQuery
+//! └── tracing.rs       ← DecisionQuery, WarningQuery
 //! ```
 
 pub mod geometry;
 pub mod policy;
-pub mod state;
 pub mod tolerance;
 pub mod tracing;
 pub mod validation;

@@ -15,26 +15,8 @@ use forge_core::{
 };
 
 use crate::configuration::facade::ConfigScope;
+use crate::context::data::{ModelingContext, ResolvedPolicyDecision, ResolvedPolicySource};
 use crate::observability::facade::KernelSpan;
-
-use super::schema::ModelingContext;
-
-/// Value source metadata chosen by policy precedence resolution.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ResolvedPolicySource {
-    pub source: PolicyResolutionSource,
-    pub source_scope: Option<PolicyResolutionScopeRef>,
-    pub default_used: bool,
-}
-
-/// Resolved policy decision for an ambiguous query.
-#[derive(Debug, Clone)]
-pub struct ResolvedPolicyDecision {
-    pub accept_potential_value: bool,
-    pub source: ResolvedPolicySource,
-    pub decision_id: DecisionId,
-    pub adjunct: TraceAdjunctRecord,
-}
 
 impl ModelingContext {
     fn resolve_policy_source_for_query(
@@ -58,10 +40,7 @@ impl ModelingContext {
                 let source = snapshot.source_of(&fallback_path).cloned();
 
                 let default_used = if let Some(src) = &source {
-                    matches!(
-                        src.scope,
-                        ConfigScope::SessionDefault
-                    )
+                    matches!(src.scope, ConfigScope::SessionDefault)
                 } else {
                     true
                 };
@@ -78,18 +57,10 @@ impl ModelingContext {
             let (res_source, res_scope) = match config_source {
                 Some(src) => {
                     let res_src = match src.scope {
-                        ConfigScope::SessionDefault => {
-                            PolicyResolutionSource::SessionUserOverride
-                        }
-                        ConfigScope::ModelOverride => {
-                            PolicyResolutionSource::ModelSpecOverride
-                        }
-                        ConfigScope::FeatureOverride => {
-                            PolicyResolutionSource::FeatureOverride
-                        }
-                        ConfigScope::OperationOverride => {
-                            PolicyResolutionSource::OperationOverride
-                        }
+                        ConfigScope::SessionDefault => PolicyResolutionSource::SessionUserOverride,
+                        ConfigScope::ModelOverride => PolicyResolutionSource::ModelSpecOverride,
+                        ConfigScope::FeatureOverride => PolicyResolutionSource::FeatureOverride,
+                        ConfigScope::OperationOverride => PolicyResolutionSource::OperationOverride,
                     };
 
                     let res_scp = match src.scope {
@@ -100,18 +71,16 @@ impl ModelingContext {
                             .map(|id| PolicyResolutionScopeRef::ModelSpec {
                                 policy_key: id.to_string(),
                             }),
-                        ConfigScope::FeatureOverride => src
-                            .origin
-                            .as_deref()
-                            .map(|id| PolicyResolutionScopeRef::Feature {
+                        ConfigScope::FeatureOverride => src.origin.as_deref().map(|id| {
+                            PolicyResolutionScopeRef::Feature {
                                 feature_id: id.to_string(),
-                            }),
-                        ConfigScope::OperationOverride => src
-                            .origin
-                            .as_deref()
-                            .map(|id| PolicyResolutionScopeRef::Operation {
+                            }
+                        }),
+                        ConfigScope::OperationOverride => src.origin.as_deref().map(|id| {
+                            PolicyResolutionScopeRef::Operation {
                                 operation_id: id.to_string(),
-                            }),
+                            }
+                        }),
                     };
                     (res_src, res_scp)
                 }

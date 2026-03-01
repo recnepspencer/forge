@@ -34,6 +34,7 @@ pub mod proof;
 pub mod brep;
 pub mod configuration;
 pub mod context;
+pub mod diff;
 pub mod engine;
 pub mod finalization;
 pub mod geom_facade;
@@ -47,7 +48,9 @@ pub mod primitives;
 pub mod queries;
 pub mod shared_ops;
 pub mod spatial;
-pub mod tolerance;
+
+// Backward-compatible module path used by downstream crates (`forge_kernel::boolean::...`).
+pub use operations::boolean;
 
 #[cfg(test)]
 mod tests {

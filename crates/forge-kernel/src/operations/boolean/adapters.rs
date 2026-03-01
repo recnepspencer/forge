@@ -1,13 +1,13 @@
 //! Boolean tolerance adapters.
 //!
 //! DOMAIN: Extract the specific tolerance values that boolean operations
-//! need from `ModelingContext` (today) or `ResolvedConfig` (future).
-//! This decouples boolean algorithms from the full context surface area.
+//! need from `ResolvedConfig`.
+//! This decouples boolean algorithms from broader execution context state.
 //!
 //! Each boolean phase takes `&BooleanTolerances` instead of
-//! `&mut ModelingContext`, making tolerance access explicit and testable.
+//! config/context bags, making tolerance access explicit and testable.
 
-use crate::context::facade::ModelingContext;
+use crate::configuration::facade::ResolvedConfig;
 
 /// Tolerance values used by boolean operations.
 ///
@@ -75,14 +75,10 @@ pub struct BooleanTolerances {
 }
 
 impl BooleanTolerances {
-    /// Extract tolerances from the current `ModelingContext`.
-    ///
-    /// This is the bridge from the old `&mut ctx` pattern to the new
-    /// explicit tolerance pattern. When `ResolvedConfig` lands, this
-    /// constructor changes to `from_config(&ResolvedConfig)`.
-    pub fn from_context(ctx: &ModelingContext) -> Self {
-        let tc = ctx.get_tolerance_config();
-        let gap = ctx.get_gap_closure().get_max_gap();
+    /// Extract tolerances from the resolved operation config.
+    pub fn from_config(config: &ResolvedConfig) -> Self {
+        let tc = config.tolerance_config();
+        let gap = config.config().tolerance.max_gap_closure;
 
         Self {
             max_gap: gap,
@@ -99,7 +95,7 @@ impl BooleanTolerances {
             collinearity_dot_tolerance: tc.get_collinearity_dot_tolerance(),
             model_scale_mm: tc.get_model_scale_mm(),
             scaled_vertex_tolerance: tc.scaled_vertex_tolerance(),
-            spatial_tolerance: ctx.get_tolerance().get_spatial_tolerance(),
+            spatial_tolerance: config.spatial_tolerance(),
             ambiguity_band_factor: tc.get_ambiguity_band_factor(),
         }
     }

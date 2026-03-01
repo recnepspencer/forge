@@ -4,11 +4,10 @@ use std::collections::HashMap;
 
 use super::dispatch::CommandDispatcher;
 use crate::brep::state::BrepState;
-use crate::context::facade::ModelingContext;
+use crate::configuration::facade::KernelConfig;
 use crate::engine::executor::FeaturePipeline;
 use crate::engine::traits::FeatureOutput;
 use crate::engine::tree::FeatureTree;
-use crate::engine::wrappers::BooleanFeature;
 use crate::primitives::MakePrimitiveFeature;
 use forge_core::PolicyKind;
 use forge_schema::{Command, EntityRef};
@@ -189,9 +188,7 @@ fn pipeline_rejects_feature_with_missing_policy_configuration() {
 
     let feature = PolicyHungryFeature;
     let inputs = HashMap::new();
-    let mut ctx = ModelingContext::new();
-
-    let result = FeaturePipeline::execute(&feature, &inputs, &mut ctx);
+    let result = FeaturePipeline::execute(&feature, &inputs, &KernelConfig::default());
     assert!(
         result.is_err(),
         "pipeline should reject feature with missing policy"
@@ -272,9 +269,7 @@ fn pipeline_validates_inputs_before_execution() {
 
     let feature = StrictInputFeature;
     let inputs = HashMap::new();
-    let mut ctx = ModelingContext::new();
-
-    let result = FeaturePipeline::execute(&feature, &inputs, &mut ctx);
+    let result = FeaturePipeline::execute(&feature, &inputs, &KernelConfig::default());
     assert!(
         result.is_err(),
         "pipeline should reject feature with invalid inputs"
@@ -292,9 +287,7 @@ fn pipeline_validates_inputs_before_execution() {
 fn pipeline_executes_make_cube_through_full_pipeline() {
     let feature = MakePrimitiveFeature::cube("test_cube", [0.0, 0.0, 0.0], 2.0);
     let inputs = HashMap::new();
-    let mut ctx = ModelingContext::new();
-
-    let envelope = FeaturePipeline::execute(&feature, &inputs, &mut ctx)
+    let envelope = FeaturePipeline::execute(&feature, &inputs, &KernelConfig::default())
         .expect("MakeCube through pipeline should succeed");
 
     let output = envelope.get_value();
@@ -375,9 +368,7 @@ fn pipeline_skips_audit_at_none_level() {
 
     let feature = NoAuditFeature;
     let inputs = HashMap::new();
-    let mut ctx = ModelingContext::new();
-
-    let result = FeaturePipeline::execute(&feature, &inputs, &mut ctx);
+    let result = FeaturePipeline::execute(&feature, &inputs, &KernelConfig::default());
     assert!(
         result.is_ok(),
         "no-audit feature should execute successfully"
@@ -475,10 +466,8 @@ fn pipeline_validates_post_invariants_after_execution() {
 
     let feature = InvariantFeature;
     let inputs = HashMap::new();
-    let mut ctx = ModelingContext::new();
-
     // With an empty topology, ManifoldEdges passes (no edges to violate).
-    let result = FeaturePipeline::execute(&feature, &inputs, &mut ctx);
+    let result = FeaturePipeline::execute(&feature, &inputs, &KernelConfig::default());
     assert!(
         result.is_ok(),
         "feature with ManifoldEdges invariant on empty topo should succeed"
@@ -486,7 +475,7 @@ fn pipeline_validates_post_invariants_after_execution() {
 
     // Now test with a real cube — ManifoldEdges should also pass for valid topology.
     let cube = MakePrimitiveFeature::cube("cube", [0.0, 0.0, 0.0], 1.0);
-    let cube_result = FeaturePipeline::execute(&cube, &inputs, &mut ctx);
+    let cube_result = FeaturePipeline::execute(&cube, &inputs, &KernelConfig::default());
     assert!(
         cube_result.is_ok(),
         "MakeCube with ManifoldEdges invariant should pass: {:?}",
@@ -564,9 +553,7 @@ fn pipeline_emits_audit_at_full_level() {
 
     let feature = FullAuditFeature;
     let inputs = HashMap::new();
-    let mut ctx = ModelingContext::new();
-
-    let envelope = FeaturePipeline::execute(&feature, &inputs, &mut ctx)
+    let envelope = FeaturePipeline::execute(&feature, &inputs, &KernelConfig::default())
         .expect("full-audit feature should succeed");
 
     // AuditLevel::Full should produce an audit span in the envelope's log.
@@ -667,8 +654,7 @@ fn typed_inputs_reject_missing_dependency() {
     let feature = NeedyFeature { dep_id: fake_id };
     let inputs = HashMap::new(); // Empty — no dependencies provided
 
-    let mut ctx = ModelingContext::new();
-    let result = FeaturePipeline::execute(&feature, &inputs, &mut ctx);
+    let result = FeaturePipeline::execute(&feature, &inputs, &KernelConfig::default());
 
     assert!(
         result.is_err(),

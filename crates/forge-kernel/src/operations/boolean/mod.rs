@@ -31,6 +31,7 @@
 pub mod adapters;
 pub mod classify_schema;
 pub mod contract;
+pub mod counterfactual;
 pub mod parametric;
 pub mod result;
 pub mod router;
@@ -44,6 +45,7 @@ pub mod test_helpers;
 mod tests;
 
 pub use classify_schema::{ClassifiedFace, FaceClassification, FaceOrigin};
+pub use counterfactual::CounterfactualOverrides;
 pub use result::{BooleanIntrospection, BooleanResult};
 pub use router::execute_boolean_direct;
 pub use schema::{BooleanInput, BooleanOp};

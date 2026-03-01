@@ -1,15 +1,15 @@
 //! Config and policy accessors for ModelingContext.
 //!
 //! DOMAIN: Getters and setters for tolerance, tangency, sliver, gap, precision,
-//! validation, and operation space configuration.
+//! and validation configuration.
 
-use crate::tolerance::facade::{
+use crate::configuration::facade::{
     GapClosurePolicy, PrecisionEscalationPolicy, SliverPolicy, TangencyPolicy, ToleranceConfig,
     TolerancePolicy,
 };
 use crate::proof::checkpoint::schema::ValidationConfig;
 
-use super::schema::ModelingContext;
+use crate::context::data::ModelingContext;
 
 impl ModelingContext {
     /// Get the spatial tolerance policy.
@@ -125,21 +125,5 @@ impl ModelingContext {
         self.config.validation.checkpoints = config.checkpoints;
         self.config.validation.include_geometric = config.include_geometric;
         self.config.validation.entity_limit = config.entity_limit;
-    }
-
-    /// Get the operation space for the current feature evaluation.
-    ///
-    /// Steps use this to read world-space coordinates in local frame
-    /// via `op_space().to_local(point)` — geometry stays immutable.
-    pub fn get_operation_space(&self) -> &crate::finalization::facade::OperationSpace {
-        &self.operation_space
-    }
-
-    /// Set the operation space for the current feature evaluation.
-    ///
-    /// Called by the feature pipeline executor after analyzing input
-    /// geometry scale. Resets to `OperationSpace::identity()` between features.
-    pub fn set_operation_space(&mut self, space: crate::finalization::facade::OperationSpace) {
-        self.operation_space = space;
     }
 }

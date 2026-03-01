@@ -3,24 +3,11 @@
 //! DOMAIN: The core struct that holds all policy configuration and tracing state.
 //! INVARIANTS: Default construction provides sensible defaults for all policies.
 
-use std::collections::BTreeMap;
-
 use forge_core::envelope::{KernelWarning, LineageDelta, OperationMetrics};
 use forge_core::tracing::TraceAdjunctSet;
-use forge_core::{DecisionLog, KernelError, PolicyKind};
-
-use crate::operations::boolean::FaceClassification;
+use forge_core::DecisionLog;
 
 use crate::configuration::facade::KernelConfig;
-
-/// Aggregated metadata absorbed from sub-operation envelopes.
-#[derive(Debug, Clone, Default)]
-pub struct SubOperationMetadata {
-    pub warnings: Vec<KernelWarning>,
-    pub metrics: OperationMetrics,
-    pub lineage_delta: LineageDelta,
-    pub accumulated_error_budget: f64,
-}
 
 /// The modeling context that governs all policy decisions.
 ///
@@ -49,26 +36,16 @@ pub struct ModelingContext {
     /// Typed adjunct payloads produced alongside traced decisions.
     pub(crate) trace_adjuncts: TraceAdjunctSet,
     pub(crate) decision_counter: u64,
-    /// Forced classification overrides for counterfactual replay.
-    ///
-    /// Keyed by `DecisionId` raw value (face index). When the classify
-    /// phase encounters a matching decision, it uses the forced
-    /// `FaceClassification` instead of the computed result.
-    pub(crate) classification_overrides: BTreeMap<u64, FaceClassification>,
-
-    /// Local coordinate space for the current operation.
-    ///
-    /// Set by the feature pipeline executor after analyzing input geometry.
-    /// Steps read coordinates through `op_space().to_local()` / `to_world()`
-    /// — geometry stays immutable in world space.
-    pub(crate) operation_space: crate::finalization::facade::OperationSpace,
 }
 
 impl ModelingContext {
     /// Create a modeling context with default or inherited policies.
     pub fn new() -> Self {
-        let config = KernelConfig::default();
+        Self::from_config(KernelConfig::default())
+    }
 
+    /// Create a modeling context from an explicit base config.
+    pub fn from_config(config: KernelConfig) -> Self {
         Self {
             config,
             decision_log: DecisionLog::new(),
@@ -78,8 +55,6 @@ impl ModelingContext {
             sub_accumulated_error_budget: 0.0,
             trace_adjuncts: TraceAdjunctSet::new(),
             decision_counter: 0,
-            classification_overrides: BTreeMap::new(),
-            operation_space: crate::finalization::facade::OperationSpace::identity(),
         }
     }
 }

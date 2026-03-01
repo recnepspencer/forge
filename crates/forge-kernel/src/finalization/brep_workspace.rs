@@ -3,7 +3,7 @@
 //! DOMAIN: Manages the create → work → commit lifecycle of topology mutation.
 //!
 //! DEPENDENCIES: `forge-topo` (TopologyState, MutableDraft), GeometryState,
-//! ModelingContext.
+//! ResolvedConfig.
 //!
 //! INVARIANTS: Functions destructure via `as_parts_mut()` and pass individual
 //! borrows to leaf functions — BRepWorkspace is NOT a parameter bag.
@@ -11,7 +11,7 @@
 use forge_topo::transactions::MutableDraft;
 
 use crate::brep::patch::BrepPatch;
-use crate::context::facade::ModelingContext;
+use crate::configuration::facade::ResolvedConfig;
 use crate::geometry_state::GeometryPatch;
 
 use super::{kernel_draft::KernelDraft, kernel_state::KernelState};
@@ -23,15 +23,15 @@ use super::{kernel_draft::KernelDraft, kernel_state::KernelState};
 /// everything prevents simultaneous `arena()` reads and `draft()` writes.
 pub struct BRepWorkspace {
     draft: KernelDraft,
-    ctx: ModelingContext,
+    config: ResolvedConfig,
 }
 
 impl BRepWorkspace {
     /// Create a workspace from an existing `KernelState`.
-    pub fn new(state: KernelState, ctx: ModelingContext) -> Self {
+    pub fn new(state: KernelState, config: ResolvedConfig) -> Self {
         Self {
             draft: KernelDraft::new(state),
-            ctx,
+            config,
         }
     }
 
@@ -42,10 +42,10 @@ impl BRepWorkspace {
         &mut MutableDraft,
         &mut GeometryPatch,
         &mut BrepPatch,
-        &mut ModelingContext,
+        &ResolvedConfig,
     ) {
         let (draft, geom, brep) = self.draft.as_parts_mut();
-        (draft, geom, brep, &mut self.ctx)
+        (draft, geom, brep, &self.config)
     }
 
     /// Mut access to the draft.
@@ -58,9 +58,9 @@ impl BRepWorkspace {
         self.draft.geometry()
     }
 
-    /// Read-only access to the modeling context.
-    pub fn get_ctx(&self) -> &ModelingContext {
-        &self.ctx
+    /// Read-only access to the resolved config.
+    pub fn get_config(&self) -> &ResolvedConfig {
+        &self.config
     }
 
     /// Read-only access to B-Rep data.
@@ -69,8 +69,8 @@ impl BRepWorkspace {
     }
 
     /// Finish: commit topology and return everything.
-    pub fn commit(self) -> Result<(KernelState, ModelingContext), forge_core::KernelError> {
+    pub fn commit(self) -> Result<(KernelState, ResolvedConfig), forge_core::KernelError> {
         let state = self.draft.commit()?;
-        Ok((state, self.ctx))
+        Ok((state, self.config))
     }
 }

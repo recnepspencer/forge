@@ -15,7 +15,8 @@
 use forge_core::KernelError;
 
 use super::step_contract::{OperationAuditRecord, StepAuditEntry, StepContract};
-use crate::context::facade::ModelingContext;
+use crate::configuration::facade::ResolvedConfig;
+use crate::observability::facade::KernelSpan;
 
 /// Sequential operation pipeline with step-scoped audit.
 ///
@@ -23,15 +24,15 @@ use crate::context::facade::ModelingContext;
 /// Each `run_step` call validates policies, executes the step closure,
 /// and records audit metadata.
 pub struct OperationPipeline<'a> {
-    ctx: &'a mut ModelingContext,
+    config: &'a ResolvedConfig,
     steps_executed: Vec<StepAuditEntry>,
 }
 
 impl<'a> OperationPipeline<'a> {
-    /// Create a new pipeline bound to a `ModelingContext`.
-    pub fn new(ctx: &'a mut ModelingContext) -> Self {
+    /// Create a new pipeline bound to resolved config.
+    pub fn new(config: &'a ResolvedConfig) -> Self {
         Self {
-            ctx,
+            config,
             steps_executed: Vec::new(),
         }
     }
@@ -45,27 +46,26 @@ impl<'a> OperationPipeline<'a> {
     pub fn run_step<S, R, F>(&mut self, step: &S, execute: F) -> Result<R, KernelError>
     where
         S: StepContract,
-        F: FnOnce(&mut ModelingContext) -> Result<R, KernelError>,
+        F: FnOnce(&ResolvedConfig) -> Result<R, KernelError>,
     {
         // 1. Validate required policies (fail-fast)
         for policy in step.policy_queries() {
-            self.ctx.validate_policy_configured(policy)?;
+            self.config.validate_policy_configured(policy)?;
         }
 
         // 2. Checkpoint for step-scoped audit
-        let checkpoint = self.ctx.get_decision_count();
+        let checkpoint = KernelSpan::current_decision_count().unwrap_or(0);
 
         // 3. Execute with trace span
-        let span_id = self.ctx.get_decision_log_mut().start_span(step.step_name());
+        let span_id = KernelSpan::start_span(step.step_name());
         let start = std::time::Instant::now();
-        let result = execute(self.ctx);
+        let result = execute(self.config);
         let duration_micros = start.elapsed().as_micros() as u64;
-        self.ctx
-            .get_decision_log_mut()
-            .end_span(span_id, duration_micros);
+        KernelSpan::end_span(span_id, duration_micros);
 
         // 4. Collect step audit (regardless of success/failure)
-        let decisions_count = self.ctx.get_decision_count() - checkpoint;
+        let decision_count_after = KernelSpan::current_decision_count().unwrap_or(checkpoint);
+        let decisions_count = decision_count_after.saturating_sub(checkpoint);
         self.steps_executed.push(StepAuditEntry {
             name: step.step_name().to_string(),
             decision_count: decisions_count,
@@ -103,9 +103,9 @@ pub struct PipelineBuilder<'a, State> {
 
 impl<'a, State> PipelineBuilder<'a, State> {
     /// Start a new typed pipeline with initial state.
-    pub fn start(ctx: &'a mut ModelingContext, initial: State) -> Self {
+    pub fn start(config: &'a ResolvedConfig, initial: State) -> Self {
         Self {
-            pipeline: OperationPipeline::new(ctx),
+            pipeline: OperationPipeline::new(config),
             state: initial,
         }
     }
@@ -122,10 +122,12 @@ impl<'a, State> PipelineBuilder<'a, State> {
     ) -> Result<PipelineBuilder<'a, NextState>, KernelError>
     where
         S: StepContract,
-        F: FnOnce(State, &mut ModelingContext) -> Result<NextState, KernelError>,
+        F: FnOnce(State, &ResolvedConfig) -> Result<NextState, KernelError>,
     {
         let state = self.state;
-        let next = self.pipeline.run_step(step, |ctx| transform(state, ctx))?;
+        let next = self
+            .pipeline
+            .run_step(step, |config| transform(state, config))?;
         Ok(PipelineBuilder {
             pipeline: self.pipeline,
             state: next,

@@ -206,6 +206,18 @@ impl KernelSpan {
         CURRENT_SPAN.with(|cs| cs.borrow().is_some())
     }
 
+    /// Current decision count in the active span, if any.
+    pub fn current_decision_count() -> Option<usize> {
+        CURRENT_SPAN.with(|cs| {
+            cs.borrow().as_ref().and_then(|collector| {
+                collector
+                    .lock()
+                    .ok()
+                    .map(|lock| lock.decision_log.len())
+            })
+        })
+    }
+
     /// Get a handle to the currently active span, suitable for sending to worker threads.
     pub fn current_handle() -> Option<KernelSpanHandle> {
         CURRENT_SPAN.with(|cs| {
@@ -243,7 +255,7 @@ pub struct KernelSpanGuard {
 impl KernelSpanGuard {
     /// Extract the accumulated DecisionLog + metrics + warnings.
     /// Should only be called on the guard that was created by `enter`.
-    pub fn finish(mut self) -> SpanOutput {
+    pub fn finish(self) -> SpanOutput {
         debug_assert!(
             !self.is_attached,
             "finish() must not be called on an attached worker guard"

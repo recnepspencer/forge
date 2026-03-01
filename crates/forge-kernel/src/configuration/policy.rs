@@ -1,13 +1,13 @@
-//! Tolerance policies and configuration.
+//! Convenience policy sub-views built from `ResolvedConfig`.
 //!
-//! DOMAIN: All numeric thresholds and policy structs for geometry-layer computations.
-//! INVARIANTS: All defaults are suitable for unit-scale CAD (meters).
-//! DEPENDENCIES: serde (serialization)
+//! DOMAIN: Thin, read-only accessors that present focused slices of the
+//! resolved configuration to lower-layer callers. Each struct groups
+//! related tolerance thresholds into a domain-specific policy object.
 
-use crate::configuration::defaults;
+use super::defaults;
+use super::resolved::ABSOLUTE_MINIMUM_TOLERANCE;
+use super::schema::KernelConfig;
 use serde::{Deserialize, Serialize};
-mod macros;
-pub mod facade;
 
 /// Spatial tolerance policy for coincidence detection.
 #[derive(Debug, Clone)]
@@ -17,6 +17,14 @@ pub struct TolerancePolicy {
 }
 
 impl TolerancePolicy {
+    /// Build from a resolved config.
+    pub fn from_config(config: &KernelConfig) -> Self {
+        Self {
+            spatial_tolerance: config.tolerance.spatial_tolerance,
+            angular_tolerance: config.tolerance.angular_tolerance,
+        }
+    }
+
     /// Create a tolerance policy with explicit values.
     pub fn new(spatial_tolerance: f64, angular_tolerance: f64) -> Self {
         Self {
@@ -63,6 +71,14 @@ pub struct TangencyPolicy {
 }
 
 impl TangencyPolicy {
+    /// Build from a resolved config.
+    pub fn from_config(config: &KernelConfig) -> Self {
+        Self {
+            min_transversal_angle: config.tolerance.min_transversal_angle,
+            max_tangent_gap: config.tolerance.max_tangent_gap,
+        }
+    }
+
     /// Create a tangency policy with explicit values.
     pub fn new(min_transversal_angle: f64, max_tangent_gap: f64) -> Self {
         Self {
@@ -109,6 +125,14 @@ pub struct SliverPolicy {
 }
 
 impl SliverPolicy {
+    /// Build from a resolved config.
+    pub fn from_config(config: &KernelConfig) -> Self {
+        Self {
+            min_face_area: config.tolerance.min_face_area,
+            max_slivers_per_op: config.tolerance.max_slivers_per_op,
+        }
+    }
+
     /// Create a sliver policy with explicit values.
     pub fn new(min_face_area: f64, max_slivers_per_op: usize) -> Self {
         Self {
@@ -154,6 +178,13 @@ pub struct GapClosurePolicy {
 }
 
 impl GapClosurePolicy {
+    /// Build from a resolved config.
+    pub fn from_config(config: &KernelConfig) -> Self {
+        Self {
+            max_gap: config.tolerance.max_gap_closure,
+        }
+    }
+
     /// Create a gap closure policy with explicit value.
     pub fn new(max_gap: f64) -> Self {
         Self { max_gap }
@@ -178,13 +209,20 @@ impl Default for GapClosurePolicy {
     }
 }
 
-/// Policy for precision escalation (Milestone 0.2.3).
+/// Policy for precision escalation.
 #[derive(Debug, Clone)]
 pub struct PrecisionEscalationPolicy {
     bit_length_threshold: u32,
 }
 
 impl PrecisionEscalationPolicy {
+    /// Build from a resolved config.
+    pub fn from_config(config: &KernelConfig) -> Self {
+        Self {
+            bit_length_threshold: config.precision.bit_length_threshold,
+        }
+    }
+
     /// Create a precision escalation policy with explicit value.
     pub fn new(bit_length_threshold: u32) -> Self {
         Self {
@@ -211,19 +249,11 @@ impl Default for PrecisionEscalationPolicy {
     }
 }
 
-/// Hard floor — no tolerance may be tighter than this regardless of model scale.
-///
-/// Prevents floating-point underflow when the model bounding box diagonal is
-/// sub-millimeter. IEEE-754 double precision loses meaningful digits below ~1e-15,
-/// so 1e-13 gives a comfortable two-decade margin.
-pub const ABSOLUTE_MINIMUM_TOLERANCE: f64 = 1e-13;
-
 /// Configurable thresholds for geometry-layer computations.
 ///
 /// These values are used by `forge-geom` functions that accept tolerance
 /// parameters (plane intersection degeneracy, overconstrained residual, etc.).
-/// Defaults are suitable for unit-scale CAD (meters). Adjust for different
-/// model scales or import pipeline tolerance.
+/// Defaults are suitable for unit-scale CAD (meters).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToleranceConfig {
     /// Maximum acceptable residual for overconstrained vertex verification.
@@ -247,31 +277,15 @@ pub struct ToleranceConfig {
     /// AABB inflation margin for BVH overlap detection (meters).
     aabb_inflation: f64,
     /// Grid quantization scale for spatial hashing.
-    ///
-    /// Passed as-is to `forge_math::linalg::compute_spatial_hash`. A value of `1e6`
-    /// gives 1-micrometer resolution on meter-scale models. Adjust with model scale.
     #[serde(default = "default_spatial_hash_grid_scale")]
     spatial_hash_grid_scale: f64,
-    /// Diagonal of the model bounding box in mm, set once at import / build time.
-    ///
-    /// Drives scale-aware tolerance defaults per ISO 10303-42:
-    /// `global_default = 1e-7 * max(model_scale_mm, 1.0)`.
-    /// Zero (the default) causes the formula to use `max(0, 1.0) = 1.0`,
-    /// giving the conservative fallback `1e-7`.
+    /// Diagonal of the model bounding box in mm.
     #[serde(default)]
     model_scale_mm: f64,
     /// Maximum acceptable accumulated error across an operation chain (mm).
-    ///
-    /// When the sum of per-vertex tolerance deltas exceeds this threshold,
-    /// `check_budget()` emits a `KernelWarning::ErrorBudgetExceeded`.
-    /// Default is `f64::INFINITY` (budget warnings disabled).
     #[serde(default = "default_error_budget")]
     error_budget_mm: f64,
     /// Multiplier defining the ambiguity band around tolerance boundaries.
-    ///
-    /// When a surface classification measure falls in `tol..tol*factor`,
-    /// `classify_surface_pair` returns `PolicyResult::Ambiguous` instead
-    /// of making a crisp decision. Default is 10.0 (one decade).
     #[serde(default = "default_ambiguity_band_factor")]
     ambiguity_band_factor: f64,
 }
@@ -308,9 +322,6 @@ impl ToleranceConfig {
     }
 
     /// Scale-aware vertex tolerance following ISO 10303-42.
-    ///
-    /// Returns `1e-7 * max(model_scale_mm, 1.0)`, floored at
-    /// `ABSOLUTE_MINIMUM_TOLERANCE` to prevent underflow on sub-mm models.
     pub fn scaled_vertex_tolerance(&self) -> f64 {
         let scale = self.model_scale_mm.max(1.0);
         (scale * 1e-7).max(ABSOLUTE_MINIMUM_TOLERANCE)
@@ -322,9 +333,6 @@ impl ToleranceConfig {
     }
 
     /// Set the model bounding box diagonal (mm).
-    ///
-    /// Call once at import or build time so that `global_default()` and
-    /// `scaled_vertex_tolerance()` reflect the actual model scale.
     pub fn set_model_scale_mm(&mut self, value: f64) {
         debug_assert!(value >= 0.0, "model_scale_mm must be non-negative");
         self.model_scale_mm = value;
@@ -441,9 +449,6 @@ impl ToleranceConfig {
     }
 
     /// Grid quantization scale for deterministic spatial hashing.
-    ///
-    /// Pass this value to `forge_math::linalg::compute_spatial_hash`.
-    /// Defaults to `1e6` (1-micrometer grid on meter-unit models).
     pub fn get_spatial_hash_grid_scale(&self) -> f64 {
         self.spatial_hash_grid_scale
     }
@@ -455,9 +460,6 @@ impl ToleranceConfig {
     }
 
     /// Multiplier for the ambiguity band around tolerance boundaries.
-    ///
-    /// Surface classification returns `Ambiguous` when a measure falls
-    /// in `tol..tol*factor`. Default 10.0 (one decade).
     pub fn get_ambiguity_band_factor(&self) -> f64 {
         self.ambiguity_band_factor
     }
@@ -490,7 +492,7 @@ impl Default for ToleranceConfig {
     }
 }
 
-/// Serde default helper for `error_budget_mm` (returns `f64::INFINITY`).
+/// Serde default helper for `error_budget_mm`.
 fn default_error_budget() -> f64 {
     f64::INFINITY
 }

@@ -307,12 +307,12 @@ fn chained_coalescence_20_steps_stays_below_1e_6() {
 
 #[test]
 fn chained_snap_decisions_are_all_logged() {
-    use crate::context::facade::ModelingContext;
     use crate::geometry_state::{snap_or_coalesce_vertex, CoalescenceResult, GeometryState};
+    use crate::observability::facade::KernelSpan;
     use forge_topo::handles::VertexId;
 
     let mut geom = GeometryState::new();
-    let mut ctx = ModelingContext::new();
+    let guard = KernelSpan::enter("adversarial_coalescence_chain");
     let v = VertexId::new(0, 0);
     let existing_pos = [0.0, 0.0, 0.0];
     let existing_tol = 1e-5;
@@ -325,7 +325,6 @@ fn chained_snap_decisions_are_all_logged() {
             v,
             existing_pos,
             existing_tol,
-            &mut ctx,
             1e-4,
         );
         assert!(
@@ -335,11 +334,8 @@ fn chained_snap_decisions_are_all_logged() {
             offset
         );
     }
-    assert_eq!(
-        ctx.get_decision_count(),
-        10,
-        "Every snap must produce a TracedDecision"
-    );
+    let output = guard.finish();
+    assert_eq!(output.decision_log.len(), 10, "Every snap must produce a TracedDecision");
 }
 
 // =====================================================================
