@@ -4,7 +4,7 @@
 //! features — ParametricBooleanFeature (split-classify-stitch) and
 //! EmberBooleanFeature (BSP merge).
 
-use crate::engine::contract::{AuditLevel, EntityOriginKind, InvariantKind};
+use crate::engine::facade::{AuditLevel, EntityOriginKind, InvariantKind};
 use forge_core::PolicyKind;
 
 /// Parametric boolean: split → classify → select → assemble → postprocess.

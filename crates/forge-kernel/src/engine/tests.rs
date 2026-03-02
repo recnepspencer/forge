@@ -2,12 +2,12 @@
 
 use std::collections::HashMap;
 
-use super::dispatch::CommandDispatcher;
-use crate::brep::state::BrepState;
+use crate::registry::facade::CommandDispatcher;
+use crate::geometry::facade::GeometryStore;
 use crate::configuration::facade::KernelConfig;
-use crate::engine::executor::FeaturePipeline;
-use crate::engine::traits::FeatureOutput;
-use crate::engine::tree::FeatureTree;
+use crate::engine::facade::FeaturePipeline;
+use crate::engine::facade::FeatureOutput;
+use crate::engine::facade::FeatureTree;
 use crate::primitives::MakePrimitiveFeature;
 use forge_core::PolicyKind;
 use forge_schema::{Command, EntityRef};
@@ -125,8 +125,8 @@ fn dispatch_unknown_entity_ref_returns_error() {
 
 #[test]
 fn pipeline_rejects_feature_with_missing_policy_configuration() {
-    use crate::engine::contract::*;
-    use crate::engine::traits::Feature;
+    use crate::engine::facade::*;
+    use crate::engine::facade::Feature;
 
     /// Test feature that requires a non-existent policy.
     #[derive(Debug)]
@@ -149,10 +149,10 @@ fn pipeline_rejects_feature_with_missing_policy_configuration() {
         fn entity_origins(&self) -> &[EntityOriginKind] {
             &[]
         }
-        fn euler_ops(&self) -> &[crate::engine::contract::EulerOpKind] {
+        fn euler_ops(&self) -> &[crate::engine::facade::EulerOpKind] {
             &[]
         }
-        fn surface_types(&self) -> &[crate::engine::contract::SurfaceKind] {
+        fn surface_types(&self) -> &[crate::engine::facade::SurfaceKind] {
             &[]
         }
         fn post_invariants(&self) -> &[InvariantKind] {
@@ -204,8 +204,8 @@ fn pipeline_rejects_feature_with_missing_policy_configuration() {
 
 #[test]
 fn pipeline_validates_inputs_before_execution() {
-    use crate::engine::contract::*;
-    use crate::engine::traits::Feature;
+    use crate::engine::facade::*;
+    use crate::engine::facade::Feature;
 
     #[derive(Debug)]
     struct StrictInputFeature;
@@ -230,10 +230,10 @@ fn pipeline_validates_inputs_before_execution() {
         fn entity_origins(&self) -> &[EntityOriginKind] {
             &[]
         }
-        fn euler_ops(&self) -> &[crate::engine::contract::EulerOpKind] {
+        fn euler_ops(&self) -> &[crate::engine::facade::EulerOpKind] {
             &[]
         }
-        fn surface_types(&self) -> &[crate::engine::contract::SurfaceKind] {
+        fn surface_types(&self) -> &[crate::engine::facade::SurfaceKind] {
             &[]
         }
         fn post_invariants(&self) -> &[InvariantKind] {
@@ -300,9 +300,9 @@ fn pipeline_executes_make_cube_through_full_pipeline() {
 
 #[test]
 fn pipeline_skips_audit_at_none_level() {
-    use crate::engine::contract::*;
-    use crate::engine::traits::Feature;
-    use crate::geometry_state::GeometryState;
+    use crate::engine::facade::*;
+    use crate::engine::facade::Feature;
+
     use forge_topo::transactions::TopologyState;
 
     #[derive(Debug)]
@@ -325,10 +325,10 @@ fn pipeline_skips_audit_at_none_level() {
         fn entity_origins(&self) -> &[EntityOriginKind] {
             &[]
         }
-        fn euler_ops(&self) -> &[crate::engine::contract::EulerOpKind] {
+        fn euler_ops(&self) -> &[crate::engine::facade::EulerOpKind] {
             &[]
         }
-        fn surface_types(&self) -> &[crate::engine::contract::SurfaceKind] {
+        fn surface_types(&self) -> &[crate::engine::facade::SurfaceKind] {
             &[]
         }
         fn post_invariants(&self) -> &[InvariantKind] {
@@ -354,8 +354,7 @@ fn pipeline_skips_audit_at_none_level() {
         ) -> Result<FeatureOutput, forge_core::KernelError> {
             Ok(FeatureOutput {
                 topology: TopologyState::empty(),
-                geometry: GeometryState::new(),
-                brep: BrepState::new(),
+                geometry: GeometryStore::default(),
             })
         }
         fn dependencies(&self) -> Vec<NodeId> {
@@ -395,9 +394,9 @@ fn pipeline_skips_audit_at_none_level() {
 
 #[test]
 fn pipeline_validates_post_invariants_after_execution() {
-    use crate::engine::contract::*;
-    use crate::engine::traits::Feature;
-    use crate::geometry_state::GeometryState;
+    use crate::engine::facade::*;
+    use crate::engine::facade::Feature;
+
     use forge_topo::transactions::TopologyState;
 
     /// Feature that produces an empty topology but declares ManifoldEdges
@@ -423,10 +422,10 @@ fn pipeline_validates_post_invariants_after_execution() {
         fn entity_origins(&self) -> &[EntityOriginKind] {
             &[]
         }
-        fn euler_ops(&self) -> &[crate::engine::contract::EulerOpKind] {
+        fn euler_ops(&self) -> &[crate::engine::facade::EulerOpKind] {
             &[]
         }
-        fn surface_types(&self) -> &[crate::engine::contract::SurfaceKind] {
+        fn surface_types(&self) -> &[crate::engine::facade::SurfaceKind] {
             &[]
         }
         fn post_invariants(&self) -> &[InvariantKind] {
@@ -452,8 +451,7 @@ fn pipeline_validates_post_invariants_after_execution() {
         ) -> Result<FeatureOutput, forge_core::KernelError> {
             Ok(FeatureOutput {
                 topology: TopologyState::empty(),
-                geometry: GeometryState::new(),
-                brep: BrepState::new(),
+                geometry: GeometryStore::default(),
             })
         }
         fn dependencies(&self) -> Vec<NodeId> {
@@ -485,9 +483,9 @@ fn pipeline_validates_post_invariants_after_execution() {
 
 #[test]
 fn pipeline_emits_audit_at_full_level() {
-    use crate::engine::contract::*;
-    use crate::engine::traits::Feature;
-    use crate::geometry_state::GeometryState;
+    use crate::engine::facade::*;
+    use crate::engine::facade::Feature;
+
     use forge_topo::transactions::TopologyState;
 
     #[derive(Debug)]
@@ -510,10 +508,10 @@ fn pipeline_emits_audit_at_full_level() {
         fn entity_origins(&self) -> &[EntityOriginKind] {
             &[]
         }
-        fn euler_ops(&self) -> &[crate::engine::contract::EulerOpKind] {
+        fn euler_ops(&self) -> &[crate::engine::facade::EulerOpKind] {
             &[]
         }
-        fn surface_types(&self) -> &[crate::engine::contract::SurfaceKind] {
+        fn surface_types(&self) -> &[crate::engine::facade::SurfaceKind] {
             &[]
         }
         fn post_invariants(&self) -> &[InvariantKind] {
@@ -576,8 +574,8 @@ fn pipeline_emits_audit_at_full_level() {
 
 #[test]
 fn typed_inputs_reject_missing_dependency() {
-    use crate::engine::contract::*;
-    use crate::engine::traits::Feature;
+    use crate::engine::facade::*;
+    use crate::engine::facade::Feature;
 
     /// Feature that requires a dependency but the input map is empty.
     #[derive(Debug)]
@@ -602,10 +600,10 @@ fn typed_inputs_reject_missing_dependency() {
         fn entity_origins(&self) -> &[EntityOriginKind] {
             &[]
         }
-        fn euler_ops(&self) -> &[crate::engine::contract::EulerOpKind] {
+        fn euler_ops(&self) -> &[crate::engine::facade::EulerOpKind] {
             &[]
         }
-        fn surface_types(&self) -> &[crate::engine::contract::SurfaceKind] {
+        fn surface_types(&self) -> &[crate::engine::facade::SurfaceKind] {
             &[]
         }
         fn post_invariants(&self) -> &[InvariantKind] {

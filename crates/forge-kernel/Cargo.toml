@@ -13,7 +13,7 @@ forge-geom.workspace = true
 forge-signal.workspace = true
 forge-schema.workspace = true
 forge-spatial.workspace = true
-serde = { workspace = true, features = ["derive"] }
+serde = { workspace = true, features = ["derive", "rc"] }
 serde_json.workspace = true
 
 [dev-dependencies]

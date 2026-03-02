@@ -9,7 +9,7 @@
 use forge_core::KernelError;
 
 use crate::configuration::facade::ResolvedConfig;
-use crate::engine::traits::FeatureOutput;
+use crate::engine::facade::FeatureOutput;
 
 use super::PrimitiveParams;
 

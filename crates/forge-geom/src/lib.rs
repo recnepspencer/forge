@@ -8,6 +8,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod facade;
 pub mod prelude;
 pub mod traits;
 

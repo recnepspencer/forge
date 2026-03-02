@@ -1,7 +1,7 @@
 //! Save and load operations for JSON model files.
 //!
 //! DOMAIN: File I/O for versioned JSON feature tree serialization.
-//! DEPENDENCIES: `serde_json`, `forge-kernel` (FeatureTree), `IoError`
+//! DEPENDENCIES: `serde_json`, `forge-kernel` (FeatureTree<NativeFeature>), `IoError`
 
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
@@ -9,17 +9,18 @@ use std::path::Path;
 
 use serde::Serialize;
 
-use forge_kernel::engine::tree::FeatureTree;
+use forge_kernel::engine::facade::FeatureTree;
+use forge_kernel::registry::facade::NativeFeature;
 
 use super::schema::{VersionedModel, SCHEMA_VERSION};
 use crate::IoError;
 
 /// Save a FeatureTree model to a versioned JSON file.
-pub fn save_model<P: AsRef<Path>>(model: &FeatureTree, path: P) -> Result<(), IoError> {
+pub fn save_model<P: AsRef<Path>>(model: &FeatureTree<NativeFeature>, path: P) -> Result<(), IoError> {
     #[derive(Serialize)]
     struct Envelope<'a> {
         version: u32,
-        tree: &'a FeatureTree,
+        tree: &'a FeatureTree<NativeFeature>,
     }
 
     let file = File::create(path)?;
@@ -36,7 +37,7 @@ pub fn save_model<P: AsRef<Path>>(model: &FeatureTree, path: P) -> Result<(), Io
 ///
 /// Returns `IoError::VersionMismatch` if the file's schema version
 /// exceeds what this build supports.
-pub fn load_model<P: AsRef<Path>>(path: P) -> Result<FeatureTree, IoError> {
+pub fn load_model<P: AsRef<Path>>(path: P) -> Result<FeatureTree<NativeFeature>, IoError> {
     let file = File::open(path)?;
     let reader = BufReader::new(file);
     let envelope: VersionedModel = serde_json::from_reader(reader)?;

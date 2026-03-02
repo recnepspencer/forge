@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tracing_tests {
-    use crate::observability::span::KernelSpan;
+    use crate::observability::facade::KernelSpan;
     use forge_core::{DecisionContext, DecisionId, DecisionKind, DecisionTier, TracedDecision};
     use std::thread;
 

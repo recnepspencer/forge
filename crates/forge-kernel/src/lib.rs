@@ -7,20 +7,20 @@
 //!
 //! ```text
 //! forge-kernel/src/
-//! ├── lib.rs         ← this file (Table of Contents only)
-//! ├── prelude.rs     ← convenient imports
-//! ├── configuration/ ← config schema + resolution + overrides
-//! ├── observability/ ← tracing/span telemetry
-//! ├── features/      ← feature-sliced domain modules (Bento Box)
-//! ├── geometry_state/ ← data adapter
-//! ├── mesh_builder/  ← construction service
-//! ├── proof/          ← proof infrastructure (causal chain, counterfactual, region extractor)
-//! ├── operations/    ← all modeling operations
-//! │   └── boolean/   ← Boolean operations
-//! └── brep/          ← future B-rep abstractions
+//! ├── lib.rs           ← this file (Table of Contents only)
+//! ├── prelude.rs       ← convenient imports
+//! ├── configuration/   ← config schema + resolution + overrides
+//! ├── engine/          ← feature tree, pipeline, contracts
+//! ├── registry/        ← feature catalog, command dispatch, handlers
+//! ├── operations/      ← modeling operations (boolean, fillet, etc.)
+//! ├── primitives/      ← parameterized shape generation
+//! ├── geometry/        ← unified geometry store (PropertyLayer pattern)
+//! ├── geometry_state/  ← [DEPRECATED] old side-car geometry storage
+//! ├── mesh_builder/    ← BSP → halfedge construction
+//! ├── proof/           ← proof infrastructure
+//! ├── brep/            ← [DEPRECATED] old B-rep state
+//! └── observability/   ← tracing/span telemetry
 //! ```
-//!
-//! See `CONVENTIONS.md` for coding rules and `docs/FILE_NAMING.md` for naming.
 //!
 //! ## Doctrine Enforcement
 //!
@@ -36,21 +36,14 @@ pub mod configuration;
 pub mod context;
 pub mod diff;
 pub mod engine;
-pub mod finalization;
-pub mod geom_facade;
+pub mod registry;
+pub mod geometry;
 pub mod geometry_state;
 pub mod mesh_builder;
 pub mod observability;
 pub mod operations;
-pub mod naming;
 pub mod prelude;
 pub mod primitives;
-pub mod queries;
-pub mod shared_ops;
-pub mod spatial;
-
-// Backward-compatible module path used by downstream crates (`forge_kernel::boolean::...`).
-pub use operations::boolean;
 
 #[cfg(test)]
 mod tests {

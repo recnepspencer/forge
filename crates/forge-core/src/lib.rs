@@ -21,6 +21,7 @@ pub mod envelope;
 pub mod errors;
 pub mod policy;
 pub mod provenance;
+pub mod storage;
 pub mod tolerance;
 pub mod tracing;
 
@@ -59,22 +60,4 @@ pub use provenance::{
     SelectorOrigin, SnapshotHandleRef,
 };
 pub use tolerance::{FlatToleranceProvider, ToleranceProvider};
-
-// =========================================================================
-// GEOMETRY SOURCE (Data-access trait, Rule 3.1)
-// =========================================================================
-
-/// Anonymous data-access trait for geometry solvers (Rule 3.1).
-///
-/// The geometry layer cannot import topology types (`FaceId`, etc.),
-/// so it accepts `&dyn GeometrySource` for plane lookups. The kernel
-/// layer provides the concrete implementation that bridges typed handles
-/// to raw plane coefficients.
-///
-/// Use `PlaneSet` (in `forge-geom`) as the lightweight test double.
-pub trait GeometrySource: std::fmt::Debug {
-    /// Number of planes available.
-    fn plane_count(&self) -> usize;
-    /// Retrieve the plane coefficients [a, b, c, d] for a given index.
-    fn get_plane(&self, index: usize) -> [f64; 4];
-}
+pub use storage::{PropertyLayer, PropertyPatch};

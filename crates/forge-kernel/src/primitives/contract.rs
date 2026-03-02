@@ -5,7 +5,7 @@
 
 use forge_core::KernelError;
 
-use crate::engine::contract::{
+use crate::engine::facade::{
     AuditLevel, EntityOriginKind, EulerOpKind, FeatureInputs, InvariantKind, SurfaceKind,
 };
 

@@ -418,28 +418,10 @@ impl<T> OperationResult<T> {
         self.warnings.extend(std::mem::take(&mut other.warnings));
 
         let other_metrics = std::mem::take(&mut other.metrics);
-        self.metrics.duration += other_metrics.duration;
-        self.metrics.entities_created += other_metrics.entities_created;
-        self.metrics.entities_deleted += other_metrics.entities_deleted;
-        self.metrics.entities_modified += other_metrics.entities_modified;
-        self.metrics.exact_predicate_calls += other_metrics.exact_predicate_calls;
-        self.metrics.policy_decisions_made += other_metrics.policy_decisions_made;
+        self.metrics.accumulate(&other_metrics);
 
         let other_lineage = std::mem::take(&mut other.lineage_delta);
-        self.lineage_delta.faces_created += other_lineage.faces_created;
-        self.lineage_delta.faces_deleted += other_lineage.faces_deleted;
-        self.lineage_delta.half_edges_created += other_lineage.half_edges_created;
-        self.lineage_delta.half_edges_deleted += other_lineage.half_edges_deleted;
-        self.lineage_delta.vertices_created += other_lineage.vertices_created;
-        self.lineage_delta.vertices_deleted += other_lineage.vertices_deleted;
-        self.lineage_delta.loops_created += other_lineage.loops_created;
-        self.lineage_delta.loops_deleted += other_lineage.loops_deleted;
-        self.lineage_delta.edges_created += other_lineage.edges_created;
-        self.lineage_delta.edges_deleted += other_lineage.edges_deleted;
-        self.lineage_delta.shells_created += other_lineage.shells_created;
-        self.lineage_delta.shells_deleted += other_lineage.shells_deleted;
-        self.lineage_delta.solids_created += other_lineage.solids_created;
-        self.lineage_delta.solids_deleted += other_lineage.solids_deleted;
+        self.lineage_delta.accumulate(&other_lineage);
 
         self.validation_results
             .extend(std::mem::take(&mut other.validation_results));

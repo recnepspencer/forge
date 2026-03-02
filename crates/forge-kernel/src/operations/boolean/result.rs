@@ -5,9 +5,8 @@
 //! the `OperationResult` envelope, not here.
 
 use super::classify_schema::ClassifiedFace;
-use crate::brep::state::BrepState;
-use crate::finalization::facade::KernelState;
-use crate::geometry_state::GeometryState;
+use crate::engine::facade::KernelState;
+use crate::geometry::facade::GeometryStore;
 use forge_topo::transactions::TopologyState;
 use serde::{Deserialize, Serialize};
 
@@ -62,10 +61,8 @@ impl BooleanIntrospection {
 pub struct BooleanResult {
     /// The resulting topology.
     topology: TopologyState,
-    /// The resulting geometry.
-    geometry: GeometryState,
-    /// The resulting B-Rep data.
-    brep: BrepState,
+    /// The resulting unified geometry.
+    geometry: GeometryStore,
     /// Number of faces from the target that were kept.
     target_faces_kept: usize,
     /// Number of faces from the tool that were kept.
@@ -78,8 +75,7 @@ impl BooleanResult {
     /// Create a new Boolean result.
     pub fn new(
         topology: TopologyState,
-        geometry: GeometryState,
-        brep: BrepState,
+        geometry: GeometryStore,
         target_faces_kept: usize,
         tool_faces_kept: usize,
         introspection: BooleanIntrospection,
@@ -87,7 +83,6 @@ impl BooleanResult {
         Self {
             topology,
             geometry,
-            brep,
             target_faces_kept,
             tool_faces_kept,
             introspection,
@@ -101,11 +96,10 @@ impl BooleanResult {
         tool_faces_kept: usize,
         introspection: BooleanIntrospection,
     ) -> Self {
-        let (topology, geometry, brep) = state.into_parts();
+        let (topology, geometry) = state.into_parts();
         Self {
             topology,
             geometry,
-            brep,
             target_faces_kept,
             tool_faces_kept,
             introspection,
@@ -118,13 +112,8 @@ impl BooleanResult {
     }
 
     /// The resulting geometry.
-    pub fn geometry(&self) -> &GeometryState {
+    pub fn geometry(&self) -> &GeometryStore {
         &self.geometry
-    }
-
-    /// The resulting B-Rep data.
-    pub fn brep(&self) -> &BrepState {
-        &self.brep
     }
 
     /// Number of target faces kept.
@@ -154,18 +143,13 @@ impl BooleanResult {
     }
 
     /// Mutable access to the geometry store (for coordinate restoration).
-    pub fn geometry_mut(&mut self) -> &mut GeometryState {
+    pub fn geometry_mut(&mut self) -> &mut GeometryStore {
         &mut self.geometry
     }
 
-    /// Mutable access to B-Rep store.
-    pub fn brep_mut(&mut self) -> &mut BrepState {
-        &mut self.brep
-    }
-
     /// Consume and return state components.
-    pub fn into_states(self) -> (TopologyState, GeometryState, BrepState) {
-        (self.topology, self.geometry, self.brep)
+    pub fn into_states(self) -> (TopologyState, GeometryStore) {
+        (self.topology, self.geometry)
     }
 
     /// Consume and return all domain parts.
@@ -173,10 +157,9 @@ impl BooleanResult {
         self,
     ) -> (
         TopologyState,
-        GeometryState,
-        BrepState,
+        GeometryStore,
         BooleanIntrospection,
     ) {
-        (self.topology, self.geometry, self.brep, self.introspection)
+        (self.topology, self.geometry, self.introspection)
     }
 }

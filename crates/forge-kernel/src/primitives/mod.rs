@@ -24,7 +24,7 @@ use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
 use crate::configuration::facade::ResolvedConfig;
-use crate::engine::traits::{Feature, FeatureOutput};
+use crate::engine::facade::{Feature, FeatureOutput};
 
 pub use contract::PrimitiveInputs;
 
@@ -91,6 +91,21 @@ impl MakePrimitiveFeature {
     /// Convenience constructor for a non-uniform box.
     pub fn block(name: &str, center: [f64; 3], half_extents: [f64; 3]) -> Self {
         Self::new(name, PrimitiveParams::Block { half_extents }, center)
+    }
+
+    /// Convenience constructor from origin + dimensions (schema-native parameters).
+    ///
+    /// Computes the center from `origin + dimensions / 2` and uses the first
+    /// dimension as the cube side length. This keeps the dispatch handler
+    /// zero-logic — the feature owns its own parameter normalization.
+    pub fn block_from_origin(name: &str, origin: [f64; 3], dimensions: [f64; 3]) -> Self {
+        let center = [
+            origin[0] + dimensions[0] / 2.0,
+            origin[1] + dimensions[1] / 2.0,
+            origin[2] + dimensions[2] / 2.0,
+        ];
+        let size = dimensions[0];
+        Self::cube(name, center, size)
     }
 
     /// Convenience constructor for a tetrahedron.

@@ -13,15 +13,11 @@
 //! - `forge-core` (`KernelError`, `PolicyKind`, `ValidationCheckpoint`, `DecisionTier`)
 //! - `serde` (serialization)
 
-pub mod defaults;
+mod data;
+mod logic;
+mod policy;
 pub mod facade;
 mod macros;
-pub mod overrides;
-pub mod policy;
-pub mod provenance;
-pub mod resolve;
-pub mod resolved;
-pub mod schema;
 
 #[cfg(test)]
 mod tests;

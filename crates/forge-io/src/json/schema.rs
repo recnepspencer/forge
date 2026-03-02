@@ -3,7 +3,8 @@
 //! DOMAIN: Data shapes for the JSON serialization envelope.
 //! DEPENDENCIES: `serde`, `forge-kernel` (FeatureTree)
 
-use forge_kernel::engine::tree::FeatureTree;
+use forge_kernel::engine::facade::FeatureTree;
+use forge_kernel::registry::facade::NativeFeature;
 use serde::{Deserialize, Serialize};
 
 /// Current schema version for forward compatibility.
@@ -18,12 +19,12 @@ pub struct VersionedModel {
     /// Schema version (monotonically increasing).
     pub(crate) version: u32,
     /// The feature tree payload.
-    pub(crate) tree: FeatureTree,
+    pub(crate) tree: FeatureTree<NativeFeature>,
 }
 
 impl VersionedModel {
     /// Wrap a feature tree with the current schema version.
-    pub fn wrap(tree: FeatureTree) -> Self {
+    pub fn wrap(tree: FeatureTree<NativeFeature>) -> Self {
         Self {
             version: SCHEMA_VERSION,
             tree,
@@ -36,7 +37,7 @@ impl VersionedModel {
     }
 
     /// Consume and return the inner feature tree.
-    pub fn into_tree(self) -> FeatureTree {
+    pub fn into_tree(self) -> FeatureTree<NativeFeature> {
         self.tree
     }
 }

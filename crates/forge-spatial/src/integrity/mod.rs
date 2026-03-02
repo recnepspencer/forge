@@ -9,6 +9,7 @@
 //! INVARIANTS: No topology mutation. Requires a position callback.
 
 pub mod area;
+pub mod completeness;
 pub mod edge_length;
 pub mod gap;
 pub mod sliver;

@@ -1,17 +1,15 @@
 //! Public API for the configuration domain.
 
-pub use super::overrides::{
-    ConfigOverride, PolicyOverride, PrecisionOverride, SolverOverride, ToleranceOverride,
-    ValidationOverride,
+pub use super::data::{
+    ConfigOverride, ConfigSection, KernelConfig, PolicyOverride, PolicySection, PrecisionOverride,
+    PrecisionSection, SolverOverride, SolverSection, ToleranceOverride, ToleranceSection,
+    UnitSystem, ValidationOverride, ValidationSection,
 };
+pub use super::data::defaults;
+pub use super::logic::provenance::{ConfigProvenance, ConfigScope, ConfigSource};
+pub use super::logic::resolve::resolve_config;
+pub use super::logic::resolved::{ResolvedConfig, ABSOLUTE_MINIMUM_TOLERANCE};
 pub use super::policy::{
-    GapClosurePolicy, PrecisionEscalationPolicy, SliverPolicy, TangencyPolicy,
-    ToleranceConfig, TolerancePolicy,
-};
-pub use super::provenance::{ConfigProvenance, ConfigScope, ConfigSource};
-pub use super::resolve::resolve_config;
-pub use super::resolved::{ResolvedConfig, ABSOLUTE_MINIMUM_TOLERANCE};
-pub use super::schema::{
-    ConfigSection, KernelConfig, PolicySection, PrecisionSection, SolverSection,
-    ToleranceSection, UnitSystem, ValidationSection,
+    GapClosurePolicy, PrecisionEscalationPolicy, SliverPolicy, TangencyPolicy, ToleranceConfig,
+    TolerancePolicy,
 };

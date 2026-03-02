@@ -26,3 +26,4 @@ pub use classify::point_on_face::{classify_point_on_face, FacePointClassificatio
 /// Crate-level re-exports for the most commonly used spatial query types.
 pub use classify::schema::{PointClassification, SpatialAccelerator};
 pub use integrity::validate_geometric_invariants;
+pub use integrity::completeness::validate_geometry_completeness;
