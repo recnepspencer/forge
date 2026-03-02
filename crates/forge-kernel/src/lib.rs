@@ -16,7 +16,6 @@
 //! ├── operations/      ← modeling operations (boolean, primitives, etc.)
 //! ├── geometry/        ← unified geometry store (PropertyLayer pattern)
 //! ├── proof/           ← causal replay, invariants, checkpoints
-//! └── observability/   ← tracing/span telemetry
 //! ```
 //!
 //! ## Doctrine Enforcement
@@ -33,7 +32,7 @@ pub mod context;
 pub mod engine;
 pub mod registry;
 pub mod geometry;
-pub mod observability;
+
 pub mod operations;
 pub mod prelude;
 

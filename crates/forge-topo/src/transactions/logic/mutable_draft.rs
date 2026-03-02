@@ -18,9 +18,7 @@ use crate::provenance::{ReplayEntry, ReplayLog};
 use crate::provenance::ReidentificationLinkIndex;
 use crate::operations::operator::TopoOperator;
 use crate::validators::validate::ValidationLevel;
-use forge_core::{
-    DecisionContext, DecisionId, DecisionKind, DecisionLog, DecisionTier, TracedDecision,
-};
+
 use forge_core::{
     ErrorContext, ErrorScope, KernelError, LineageDelta, OperationMetrics, OperationResult,
     TopologyError,
@@ -247,7 +245,6 @@ impl MutableDraft {
     /// 2. **Execution**: Calls the operator's `execute()` method
     /// 3. **Euler delta verification**: Compares declared vs actual entity counts
     /// 4. **Lineage**: Updates ancestry tracking (stub — Phase 3)
-    /// 5. **Tracing**: Records a `TracedDecision` for every execution
     ///
     /// # Example
     /// ```ignore
@@ -435,34 +432,9 @@ impl MutableDraft {
             solids_deleted,
         };
 
-        let mut decision = TracedDecision::new(
-            DecisionId(invocation_id as u64),
-            DecisionKind::Exact,
-            DecisionTier::Deterministic,
-            1.0,
-            DecisionContext::Degeneracy {
-                description: format!(
-                    "TopoOp({}) #{}: +{}F +{}V +{}HE -{}F -{}V -{}HE in {:.0?}",
-                    op_name,
-                    invocation_id,
-                    faces_created,
-                    vertices_created,
-                    half_edges_created,
-                    faces_deleted,
-                    vertices_deleted,
-                    half_edges_deleted,
-                    start.elapsed(),
-                ),
-            },
-        );
-        decision.set_feature_scope(u64::MAX);
-        let mut log = DecisionLog::new();
-        log.record(decision);
-
         let mut op_result = OperationResult::new(result);
         op_result.set_metrics(metrics);
         op_result.set_lineage_delta(lineage_delta);
-        op_result.set_decision_log(log);
 
         Ok(op_result)
     }

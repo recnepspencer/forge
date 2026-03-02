@@ -174,7 +174,7 @@ fn pipeline_rejects_feature_with_missing_policy_configuration() {
         fn execute_typed(
             &self,
             _inputs: &EmptyInputs,
-            _config: &crate::configuration::facade::ResolvedConfig,
+            _scope: &mut crate::context::scope::OperationScope<'_>,
         ) -> Result<FeatureOutput, forge_core::KernelError> {
             unreachable!("should not reach execution with missing policy")
         }
@@ -255,7 +255,7 @@ fn pipeline_validates_inputs_before_execution() {
         fn execute_typed(
             &self,
             _inputs: &StrictInputs,
-            _config: &crate::configuration::facade::ResolvedConfig,
+            _scope: &mut crate::context::scope::OperationScope<'_>,
         ) -> Result<FeatureOutput, forge_core::KernelError> {
             unreachable!("should not reach execution with failed validation")
         }
@@ -350,7 +350,7 @@ fn pipeline_skips_audit_at_none_level() {
         fn execute_typed(
             &self,
             _inputs: &EmptyInputs,
-            _config: &crate::configuration::facade::ResolvedConfig,
+            _scope: &mut crate::context::scope::OperationScope<'_>,
         ) -> Result<FeatureOutput, forge_core::KernelError> {
             Ok(FeatureOutput {
                 topology: TopologyState::empty(),
@@ -447,7 +447,7 @@ fn pipeline_validates_post_invariants_after_execution() {
         fn execute_typed(
             &self,
             _inputs: &EmptyInputs,
-            _config: &crate::configuration::facade::ResolvedConfig,
+            _scope: &mut crate::context::scope::OperationScope<'_>,
         ) -> Result<FeatureOutput, forge_core::KernelError> {
             Ok(FeatureOutput {
                 topology: TopologyState::empty(),
@@ -533,7 +533,7 @@ fn pipeline_emits_audit_at_full_level() {
         fn execute_typed(
             &self,
             _inputs: &EmptyInputs,
-            _config: &crate::configuration::facade::ResolvedConfig,
+            _scope: &mut crate::context::scope::OperationScope<'_>,
         ) -> Result<FeatureOutput, forge_core::KernelError> {
             Ok(FeatureOutput {
                 topology: TopologyState::empty(),
@@ -630,7 +630,7 @@ fn typed_inputs_reject_missing_dependency() {
         fn execute_typed(
             &self,
             _inputs: &NeedyInputs,
-            _config: &crate::configuration::facade::ResolvedConfig,
+            _scope: &mut crate::context::scope::OperationScope<'_>,
         ) -> Result<FeatureOutput, forge_core::KernelError> {
             unreachable!("should not reach execution with missing dependency")
         }

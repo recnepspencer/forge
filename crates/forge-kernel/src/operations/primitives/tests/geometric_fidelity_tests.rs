@@ -2,14 +2,16 @@
 
 use crate::geometry::facade::GeometryView;
 use crate::operations::primitives::make_cube;
-use super::test_config;
+use super::{test_config, OperationScope};
 
 #[test]
 fn cube_vertex_positions_are_corners() {
     let cfg = test_config();
+    let mut null = OperationScope::null_sink();
+    let mut scope = OperationScope::new(&cfg, &mut null);
     let size = 2.0;
     let hs = size / 2.0;
-    let r = make_cube([0.0; 3], size, &cfg).unwrap();
+    let r = make_cube([0.0; 3], size, &mut scope).unwrap();
 
     let mut corners: Vec<[f64; 3]> = Vec::new();
     for (vid, _) in r.topology().arena().iter_vertices() {
@@ -29,7 +31,9 @@ fn cube_vertex_positions_are_corners() {
 #[test]
 fn cube_vertices_have_symbolic_planes() {
     let cfg = test_config();
-    let r = make_cube([0.0; 3], 2.0, &cfg).unwrap();
+    let mut null = OperationScope::null_sink();
+    let mut scope = OperationScope::new(&cfg, &mut null);
+    let r = make_cube([0.0; 3], 2.0, &mut scope).unwrap();
     for (vid, _) in r.topology().arena().iter_vertices() {
         assert!(
             r.geometry().get_vertex_exact(vid)
@@ -42,10 +46,12 @@ fn cube_vertices_have_symbolic_planes() {
 #[test]
 fn cube_offset_vertex_positions_correct() {
     let cfg = test_config();
+    let mut null = OperationScope::null_sink();
+    let mut scope = OperationScope::new(&cfg, &mut null);
     let center = [5.0, -3.0, 7.0];
     let size = 4.0;
     let hs = size / 2.0;
-    let r = make_cube(center, size, &cfg).unwrap();
+    let r = make_cube(center, size, &mut scope).unwrap();
 
     for (vid, _) in r.topology().arena().iter_vertices() {
         let pos = r.geometry().get_vertex_position(vid).unwrap();

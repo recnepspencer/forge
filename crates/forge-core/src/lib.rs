@@ -51,6 +51,7 @@ pub use tracing::{
     ResolutionRoute, ResolutionTraceConsistencyError, ResolutionTracePayload, SpanId,
     SpanSummaryEntry, TopologyDelta, TraceDiff, TraceEvent, TraceFingerprint, TraceSummary,
     TracedDecision, EULER_OP_FEATURE_SCOPE,
+    DecisionSink, DecisionSinkHandle, NullSink, TestSink,
 };
 
 pub use envelope::{KernelWarning, LineageDelta, OperationMetrics, OperationResult};

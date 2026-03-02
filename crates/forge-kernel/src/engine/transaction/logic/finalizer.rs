@@ -12,7 +12,6 @@ use forge_core::envelope::OperationResult;
 use forge_core::tracing::{compute_trace_fingerprint, TraceAdjunctSet};
 
 use crate::context::facade::ModelingContext;
-use crate::observability::facade::SpanOutput;
 
 use super::super::data::summary::{
     CollectedFinalization, DrainedMetadataCounts, FinalizationError, FinalizationStatus,
@@ -35,14 +34,13 @@ impl<'a> OperationFinalizer<'a> {
         envelope: &mut OperationResult<T>,
         adjuncts: TraceAdjunctSet,
         hashes: TopologyHashBoundary,
-        span_output: Option<SpanOutput>,
+        _span_output: Option<()>,
     ) -> Result<CollectedFinalization, FinalizationError> {
         self.collect(
             FinalizationStatus::Success,
             envelope,
             adjuncts,
             hashes,
-            span_output,
         )
     }
 
@@ -51,14 +49,13 @@ impl<'a> OperationFinalizer<'a> {
         envelope: &mut OperationResult<T>,
         adjuncts: TraceAdjunctSet,
         hashes: TopologyHashBoundary,
-        span_output: Option<SpanOutput>,
+        _span_output: Option<()>,
     ) -> Result<CollectedFinalization, FinalizationError> {
         self.collect(
             FinalizationStatus::Error,
             envelope,
             adjuncts,
             hashes,
-            span_output,
         )
     }
 
@@ -68,7 +65,6 @@ impl<'a> OperationFinalizer<'a> {
         envelope: &mut OperationResult<T>,
         adjuncts: TraceAdjunctSet,
         hashes: TopologyHashBoundary,
-        span_output: Option<SpanOutput>,
     ) -> Result<CollectedFinalization, FinalizationError> {
         if self.used {
             return Err(FinalizationError::AlreadyFinalized);
@@ -78,25 +74,6 @@ impl<'a> OperationFinalizer<'a> {
         // Drain context trace first and merge into envelope exactly once.
         let ctx_log = self.ctx.take_decision_log();
         envelope.get_decision_log_mut().merge(ctx_log);
-
-        // If a span output was provided, merge its decisions, warnings, and metrics directly.
-        if let Some(mut span) = span_output {
-            envelope
-                .get_decision_log_mut()
-                .merge(std::mem::take(&mut span.decision_log));
-
-            for w in span.warnings {
-                envelope.add_warning(w);
-            }
-
-            let mut current_metrics = envelope.take_metrics();
-            current_metrics.accumulate(&span.metrics);
-            envelope.set_metrics(current_metrics);
-
-            let mut current_lineage = envelope.take_lineage_delta();
-            current_lineage.accumulate(&span.lineage_delta);
-            envelope.set_lineage_delta(current_lineage);
-        }
 
         // Drain typed adjunct sink from the context and merge with caller-supplied adjuncts.
         let mut merged_adjunct_records = self.ctx.take_trace_adjuncts().into_records();

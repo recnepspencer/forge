@@ -26,7 +26,7 @@ use serde::{Deserialize, Serialize};
 use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
-use crate::configuration::facade::ResolvedConfig;
+use crate::context::scope::OperationScope;
 use crate::engine::facade::{Feature, FeatureOutput};
 
 pub use contract::PrimitiveInputs;
@@ -188,9 +188,9 @@ impl Feature for MakePrimitiveFeature {
     fn execute_typed(
         &self,
         _inputs: &PrimitiveInputs,
-        config: &ResolvedConfig,
+        scope: &mut OperationScope<'_>,
     ) -> Result<FeatureOutput, KernelError> {
-        generate::generate_primitive(&self.params, self.center, config)
+        generate::generate_primitive(&self.params, self.center, scope)
     }
 
     fn dependencies(&self) -> Vec<NodeId> {

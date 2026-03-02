@@ -9,6 +9,7 @@ use forge_topo::transactions::{MutableDraft, TopologyState};
 use forge_topo::handles::{BodyId, FaceId, HalfEdgeId, ShellId, VertexId};
 
 use crate::configuration::facade::{resolve_config, KernelConfig, ResolvedConfig};
+use crate::context::scope::OperationScope;
 use crate::operations::primitives;
 
 /// Handles extracted from a cube solid.
@@ -40,7 +41,9 @@ pub fn test_config() -> ResolvedConfig {
 /// Call `state.into_mutation()` to get a MutableDraft for applying operators.
 pub fn unit_cube() -> Result<(TopologyState, CubeHandles), KernelError> {
     let config = test_config();
-    let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, &config)?;
+    let mut null = OperationScope::null_sink();
+    let mut scope = OperationScope::new(&config, &mut null);
+    let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, &mut scope)?;
     let (topo, _geom) = result.into_parts();
 
     let arena = topo.arena();
@@ -69,7 +72,9 @@ pub fn unit_cube() -> Result<(TopologyState, CubeHandles), KernelError> {
 /// Returns a committed TopologyState and extracted handles.
 pub fn tetrahedron() -> Result<(TopologyState, TetraHandles), KernelError> {
     let config = test_config();
-    let result = primitives::make_tetrahedron([0.0, 0.0, 0.0], 1.0, &config)?;
+    let mut null = OperationScope::null_sink();
+    let mut scope = OperationScope::new(&config, &mut null);
+    let result = primitives::make_tetrahedron([0.0, 0.0, 0.0], 1.0, &mut scope)?;
     let (topo, _geom) = result.into_parts();
 
     let arena = topo.arena();

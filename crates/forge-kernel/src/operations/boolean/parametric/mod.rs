@@ -27,7 +27,8 @@ use forge_core::{KernelError, OperationResult};
 
 use super::result::BooleanResult;
 use super::schema::BooleanInput;
-use crate::configuration::facade::{resolve_config, KernelConfig, ResolvedConfig};
+use crate::configuration::facade::{resolve_config, KernelConfig};
+use crate::context::scope::OperationScope;
 use crate::operations::boolean::counterfactual::CounterfactualOverrides;
 
 /// Execute a Boolean operation via the parametric pipeline.
@@ -43,9 +44,12 @@ pub fn execute(
         Ok(cfg) => cfg,
         Err(err) => return OperationResult::new(Err(err)),
     };
+    let mut null = OperationScope::null_sink();
+    let mut scope = OperationScope::new(&resolved, &mut null);
+
     let start = std::time::Instant::now();
 
-    let inner_result = execute_core(&input, &resolved);
+    let inner_result = execute_core(&input, &mut scope);
 
     let metrics = forge_core::OperationMetrics {
         duration: start.elapsed(),
@@ -64,15 +68,15 @@ pub fn execute(
 /// each with its own `StepContract` for policy pre-validation and tracing.
 fn execute_core(
     input: &BooleanInput,
-    config: &ResolvedConfig,
+    scope: &mut OperationScope<'_>,
 ) -> Result<BooleanResult, KernelError> {
     use crate::operations::pipeline::builder::OperationPipeline;
 
     let _overrides = CounterfactualOverrides::new();
-    let mut pipeline = OperationPipeline::new(config);
+    let mut pipeline = OperationPipeline::new(scope);
 
     // Phase 1: Validate inputs
-    pipeline.run_step(&steps::ValidateInputs, |_config| {
+    pipeline.run_step(&steps::ValidateInputs, |_scope| {
         input.validate()
     })?;
 
@@ -88,11 +92,11 @@ fn execute_core(
     })
 }
 
-/// Execute with explicit resolved config for test injection.
+/// Execute with explicit scope for test injection.
 #[cfg(test)]
 pub fn execute_with_context(
     input: &BooleanInput,
-    config: &ResolvedConfig,
+    scope: &mut OperationScope<'_>,
 ) -> Result<BooleanResult, KernelError> {
-    execute_core(input, config)
+    execute_core(input, scope)
 }

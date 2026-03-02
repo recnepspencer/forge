@@ -9,8 +9,8 @@
 //! DEPENDENCIES: `proof_invariants` (the oracle), `counterfactual`,
 //! `causal_chain`, `checkpoint_diff`, `delta_debug`.
 
-use forge_core::tracing::checkpoint_diff::diff_decision_logs;
-use forge_core::tracing::delta_debug::delta_debug;
+use forge_core::tracing::replay::checkpoint_diff::diff_decision_logs;
+use forge_core::tracing::replay::delta_debug::delta_debug;
 use forge_core::{DecisionTier, KernelError};
 
 use crate::proof::causal_chain::query_causal_chain;

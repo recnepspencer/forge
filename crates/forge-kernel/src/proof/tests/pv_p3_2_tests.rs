@@ -7,7 +7,7 @@
 
 use crate::proof::region_extractor::{extract_n_ring, ExtractedRegion};
 use crate::operations::primitives::make_cube;
-use forge_core::tracing::delta_debug::delta_debug;
+use forge_core::tracing::replay::delta_debug::delta_debug;
 use forge_topo::transactions::DraftConfig;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 

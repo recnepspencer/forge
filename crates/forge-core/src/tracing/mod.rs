@@ -16,6 +16,7 @@ pub mod decision;
 pub mod decision_log;
 pub mod payload;
 pub mod replay;
+pub mod sink;
 
 #[cfg(test)]
 mod tests;
@@ -51,4 +52,8 @@ pub use replay::{
     diff_decision_logs, CheckpointLog, DecisionChange, DecisionDelta,
     delta_debug, DeltaDebugResult,
     scan_for_divergences, DivergenceDetail, DivergenceReport,
+};
+
+pub use sink::{
+    DecisionSink, DecisionSinkHandle, NullSink, TestSink,
 };

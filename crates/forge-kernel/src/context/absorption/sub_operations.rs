@@ -8,7 +8,6 @@ use forge_core::tracing::{TraceAdjunctRecord, TraceAdjunctSet};
 use forge_core::DecisionLog;
 
 use crate::context::state::ModelingContext;
-use crate::observability::facade::KernelSpan;
 
 use super::metadata::SubOperationMetadata;
 
@@ -66,18 +65,6 @@ impl ModelingContext {
     /// This is a true drain: absorbed metadata is removed from `op` to prevent
     /// accidental double-counting if the caller reuses the child envelope.
     pub fn absorb_sub_result<U>(&mut self, op: &mut OperationResult<U>) {
-        if KernelSpan::is_active() {
-            KernelSpan::merge_decision_log(op.take_decision_log());
-            KernelSpan::extend_warnings(op.take_warnings());
-            let metrics = op.take_metrics();
-            KernelSpan::add_metrics(metrics.clone());
-            KernelSpan::record_lineage_delta(op.take_lineage_delta());
-
-            // Still accumulate the budget here for the check_budget function
-            self.sub_accumulated_error_budget += op.take_accumulated_budget();
-            return;
-        }
-
         self.decision_log.merge(op.take_decision_log());
         self.sub_warnings.extend(op.take_warnings());
 

@@ -8,7 +8,7 @@
 
 use forge_core::KernelError;
 
-use crate::configuration::facade::ResolvedConfig;
+use crate::context::scope::OperationScope;
 use crate::engine::facade::FeatureOutput;
 
 use super::PrimitiveParams;
@@ -20,29 +20,29 @@ use super::PrimitiveParams;
 pub fn generate_primitive(
     params: &PrimitiveParams,
     center: [f64; 3],
-    config: &ResolvedConfig,
+    scope: &mut OperationScope<'_>,
 ) -> Result<FeatureOutput, KernelError> {
     let result = match params {
         PrimitiveParams::Cube { size } => {
-            super::make_cube(center, *size, config)?
+            super::make_cube(center, *size, scope)?
         }
         PrimitiveParams::Block { half_extents } => {
-            super::make_block(center, *half_extents, config)?
+            super::make_block(center, *half_extents, scope)?
         }
         PrimitiveParams::Tetrahedron { scale } => {
-            super::make_tetrahedron(center, *scale, config)?
+            super::make_tetrahedron(center, *scale, scope)?
         }
         PrimitiveParams::Dodecahedron { scale } => {
-            super::make_dodecahedron(center, *scale, config)?
+            super::make_dodecahedron(center, *scale, scope)?
         }
         PrimitiveParams::Prism { sides, radius, height } => {
-            super::make_prism(center, *sides, *radius, *height, config)?
+            super::make_prism(center, *sides, *radius, *height, scope)?
         }
         PrimitiveParams::Pyramid { sides, radius, height } => {
-            super::make_pyramid(center, *sides, *radius, *height, config)?
+            super::make_pyramid(center, *sides, *radius, *height, scope)?
         }
         PrimitiveParams::Wedge { dimensions } => {
-            super::make_wedge(center, *dimensions, config)?
+            super::make_wedge(center, *dimensions, scope)?
         }
     };
 

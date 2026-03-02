@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
-use crate::configuration::facade::ResolvedConfig;
+use crate::context::scope::OperationScope;
 use super::contract::{FeatureContract, FeatureInputs};
 use super::super::output::feature_output::FeatureOutput;
 
@@ -44,7 +44,7 @@ use super::super::output::feature_output::FeatureOutput;
 ///     fn parse_inputs(&self, _: &HashMap<NodeId, FeatureOutput>) -> Result<EmptyInputs, KernelError> {
 ///         Ok(EmptyInputs)
 ///     }
-///     fn execute_typed(&self, _: &EmptyInputs, _: &ResolvedConfig) -> Result<FeatureOutput, KernelError> {
+///     fn execute_typed(&self, _: &EmptyInputs, _: &mut OperationScope<'_>) -> Result<FeatureOutput, KernelError> {
 ///         unimplemented!()
 ///     }
 ///     fn dependencies(&self) -> Vec<NodeId> { vec![] }
@@ -61,11 +61,12 @@ pub trait Feature: FeatureContract + std::fmt::Debug + Any {
         raw: &HashMap<NodeId, FeatureOutput>,
     ) -> Result<Self::Inputs, KernelError>;
 
-    /// Execute the feature's business logic with typed inputs and the resolved configuration.
+    /// Execute the feature's business logic with typed inputs and an operation scope
+    /// that provides both configuration and a decision recording sink.
     fn execute_typed(
         &self,
         inputs: &Self::Inputs,
-        config: &ResolvedConfig,
+        scope: &mut OperationScope<'_>,
     ) -> Result<FeatureOutput, KernelError>;
 
     /// Return the list of input dependencies (NodeIds).

@@ -4,7 +4,7 @@
 //! PV-33b: Union of sequential diffs exactly reconstructs the final DecisionLog.
 //! PV-34: Identical operation re-run → diff is empty.
 
-use forge_core::tracing::checkpoint_diff::{diff_decision_logs, CheckpointLog};
+use forge_core::tracing::replay::checkpoint_diff::{diff_decision_logs, CheckpointLog};
 use forge_core::{
     DecisionContext, DecisionId, DecisionKind, DecisionLog, DecisionTier, TracedDecision,
 };

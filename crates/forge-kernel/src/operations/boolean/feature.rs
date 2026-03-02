@@ -8,7 +8,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::configuration::facade::ResolvedConfig;
+use crate::context::scope::OperationScope;
 use crate::engine::facade::{Feature, FeatureOutput, FeatureInputs};
 use crate::engine::facade::{AuditLevel, EntityOriginKind, InvariantKind};
 use forge_core::KernelError;
@@ -106,7 +106,7 @@ impl Feature for BooleanFeature {
     fn execute_typed(
         &self,
         inputs: &BooleanInputs,
-        _config: &ResolvedConfig,
+        _scope: &mut OperationScope<'_>,
     ) -> Result<FeatureOutput, KernelError> {
         let input = BooleanInput::new(
             inputs.target.topology.clone(),

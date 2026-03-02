@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use crate::geometry::facade::GeometryView;
 
 use forge_core::envelope::OperationResult;
-use forge_core::tracing::TraceAdjunctSet;
+use forge_core::tracing::{DecisionSink, TraceAdjunctSet};
 use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
@@ -28,8 +28,8 @@ use super::super::output::feature_output::FeatureOutput;
 use super::invariants::validate_invariant;
 use crate::configuration::facade::{resolve_config, KernelConfig, ResolvedConfig};
 use crate::context::facade::ModelingContext;
+use crate::context::scope::OperationScope;
 use super::super::facade::{OperationFinalizer, OperationSpace, TopologyHashBoundary};
-use crate::observability::facade::KernelSpan;
 use crate::proof::checkpoint::schema::ValidationConfig;
 
 /// Feature pipeline executor.
@@ -91,16 +91,16 @@ impl FeaturePipeline {
         let hash_before = compute_input_hash(raw_inputs);
 
         // 5. Execute business logic with trace span
-        let _span_guard = KernelSpan::enter(feature.feature_kind());
-        KernelSpan::set_config_snapshot(resolved_config.clone());
-        let _span_id = KernelSpan::start_span(feature.feature_kind());
+        let span_id = ctx.start_span(feature.feature_kind());
 
         let start = std::time::Instant::now();
-        let result = feature.execute_typed(&inputs, &resolved_config);
+        let result = {
+            let mut scope = OperationScope::new(&resolved_config, &mut ctx);
+            feature.execute_typed(&inputs, &mut scope)
+        };
         let duration_micros = start.elapsed().as_micros() as u64;
 
-        KernelSpan::end_span(_span_id, duration_micros);
-        let span_output = _span_guard.finish();
+        ctx.end_span(span_id, duration_micros);
 
         // Propagate execution errors before finalization
         let output = result?;
@@ -135,7 +135,7 @@ impl FeaturePipeline {
                 &mut envelope,
                 TraceAdjunctSet::new(),
                 hashes,
-                Some(span_output),
+                None,
             );
         }
 
@@ -144,8 +144,11 @@ impl FeaturePipeline {
             AuditLevel::None => {
                 envelope.set_decision_log(forge_core::DecisionLog::new());
             }
-            AuditLevel::Summary | AuditLevel::Full => {
-                // Keep everything (Summary trimming is a future optimization)
+            AuditLevel::Summary => {
+                emit_feature_summary(feature, &mut envelope);
+            }
+            AuditLevel::Full => {
+                emit_feature_audit(feature, &mut envelope);
             }
         }
 

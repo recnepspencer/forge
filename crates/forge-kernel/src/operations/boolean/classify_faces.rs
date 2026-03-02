@@ -16,19 +16,18 @@
 //! 6. Apply P3.3 counterfactual override if present.
 //! 7. Log TracedDecision.
 
-use forge_core::tracing::TopologyDelta;
+
 use forge_core::KernelError;
-use forge_core::{
-    DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityRef, ToleranceProvider,
-    TracedDecision,
-};
+use forge_core::tracing::DecisionSink;
+use forge_core::{DecisionId, ToleranceProvider};
+use forge_math::arithmetic::precision::{PrecisionEscalation, PrecisionMode};
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::FaceId;
 
 use crate::configuration::facade::{ResolvedConfig, ToleranceConfig};
 use forge_geom::facade::{BvhNode, Plane};
 use crate::geometry::facade::GeometryView;
-use crate::observability::facade::KernelSpan;
+
 use crate::operations::boolean::counterfactual::CounterfactualOverrides;
 use crate::operations::boolean::classify_schema::{ClassifiedFace, FaceClassification, FaceOrigin};
 
@@ -118,6 +117,7 @@ pub fn classify_faces(
     config: &ResolvedConfig,
     origin: FaceOrigin,
     overrides: &CounterfactualOverrides,
+    sink: &mut dyn DecisionSink,
 ) -> Result<Vec<ClassifiedFace>, KernelError> {
     let tolerance = config.tolerance_config();
     let point_coincidence_tol = config.spatial_tolerance();
@@ -131,7 +131,7 @@ pub fn classify_faces(
     let mut classified = Vec::new();
 
     for (face_id, _) in source_arena.iter_faces() {
-        let computed = classify_single_face(
+        let (computed, escalation) = classify_single_face(
             source_arena,
             source_geometry,
             other_arena,
@@ -163,7 +163,10 @@ pub fn classify_faces(
         }
 
         let (final_class, overridden) = apply_override(overrides, face_id, computed);
-        log_classification(face_id, &final_class, &computed, overridden, origin_label);
+        log_classification(face_id, &final_class, &computed, overridden, origin_label, sink);
+        if let Some(esc) = escalation {
+            log_escalation(face_id, esc, sink);
+        }
         classified.push(ClassifiedFace::new(face_id, final_class));
     }
 
@@ -173,6 +176,9 @@ pub fn classify_faces(
 // ── Per-face classification ──────────────────────────────────────────────────
 
 /// Classify a single face by ray-casting its centroid into the other solid.
+///
+/// Returns `(classification, optional_escalation)` — pure computation,
+/// no side effects. The caller handles any decision logging.
 fn classify_single_face(
     source_arena: &TopologyArena,
     source_geometry: &impl GeometryView,
@@ -182,7 +188,7 @@ fn classify_single_face(
     face_id: FaceId,
     config: &ToleranceConfig,
     point_coincidence_tol: f64,
-) -> Result<FaceClassification, KernelError> {
+) -> Result<(FaceClassification, Option<PrecisionEscalation>), KernelError> {
     let sample =
         compute_face_centroid(source_arena, source_geometry, face_id).ok_or_else(|| {
             KernelError::InvalidInput {
@@ -232,11 +238,7 @@ fn classify_single_face(
         _ => interpret_classification(classification, source_geometry, face_id, other_geometry),
     };
 
-    if let Some(esc) = escalation {
-        log_escalation(face_id, esc);
-    }
-
-    Ok(class)
+    Ok((class, escalation))
 }
 
 fn maybe_multisample_refine(
@@ -328,7 +330,7 @@ fn interpret_classification(
     other_geom: &impl GeometryView,
 ) -> (
     FaceClassification,
-    Option<forge_math::arithmetic::precision::PrecisionEscalation>,
+    Option<PrecisionEscalation>,
 ) {
     match classification {
         PointClassification::Inside { escalation } => (FaceClassification::Inside, escalation),
@@ -357,7 +359,7 @@ fn resolve_boundary_classification(
 ) -> Result<
     (
         FaceClassification,
-        Option<forge_math::arithmetic::precision::PrecisionEscalation>,
+        Option<PrecisionEscalation>,
     ),
     KernelError,
 > {
@@ -422,7 +424,7 @@ fn to_face_classification(pc: &PointClassification) -> FaceClassification {
 
 fn extract_escalation(
     pc: &PointClassification,
-) -> Option<forge_math::arithmetic::precision::PrecisionEscalation> {
+) -> Option<PrecisionEscalation> {
     match pc {
         PointClassification::Inside { escalation } => escalation.clone(),
         PointClassification::Outside { escalation } => escalation.clone(),
@@ -450,53 +452,39 @@ fn log_classification(
     computed_class: &FaceClassification,
     overridden: bool,
     origin_label: &str,
+    sink: &mut dyn DecisionSink,
 ) {
     let label = classification_label(final_class);
-    let (kind, tier) = if overridden {
-        (
-            DecisionKind::Forced {
-                reason: format!("{} → {}", classification_label(computed_class), label),
-            },
-            DecisionTier::Escalated,
-        )
+    if overridden {
+        let reason = format!("{} → {}", classification_label(computed_class), label);
+        sink.record_forced(
+            &reason,
+            face_id.index(),
+            1.0,
+        );
     } else {
-        (DecisionKind::Exact, DecisionTier::Deterministic)
-    };
-
-    let mut decision = TracedDecision::new(
-        DecisionId(face_id.index() as u64),
-        kind,
-        tier,
-        1.0,
-        DecisionContext::Classification {
-            point: [0.0; 3],
-            result: format!("{}:Face#{} → {}", origin_label, face_id.index(), label),
-        },
-    );
-    decision.set_entity_scope(EntityRef::new(
-        forge_core::EntityKind::Face,
-        face_id.index(),
-    ));
-    decision.set_topology_delta(TopologyDelta::default());
-    KernelSpan::record_decision(decision);
+        let result = format!("{}:Face#{} → {}", origin_label, face_id.index(), label);
+        sink.record_classification(
+            face_id.index(),
+            &result,
+            forge_core::DecisionTier::Deterministic,
+        );
+    }
 }
 
 fn log_escalation(
     face_id: FaceId,
-    escalation: forge_math::arithmetic::precision::PrecisionEscalation,
+    escalation: PrecisionEscalation,
+    sink: &mut dyn DecisionSink,
 ) {
-    if escalation.resolved_at <= forge_math::arithmetic::precision::PrecisionMode::Float64 {
+    if escalation.resolved_at <= PrecisionMode::Float64 {
         return;
     }
 
-    let decision = TracedDecision::new(
-        DecisionId((face_id.index() as u64) << 32 | 0xE5C4_1A7E),
-        DecisionKind::Exact,
-        DecisionTier::Escalated,
-        escalation.disagreement_magnitude.unwrap_or(0.0),
-        DecisionContext::PrecisionEscalation { escalation },
+    sink.record_escalation(
+        face_id.index(),
+        &escalation,
     );
-    KernelSpan::record_decision(decision);
 }
 
 // ── Spatial indexing ─────────────────────────────────────────────────────────

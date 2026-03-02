@@ -5,7 +5,7 @@
 //! PV-29: Near-degenerate operation → non-zero divergence rate
 //! PV-30: Report is serializable and parseable
 
-use forge_core::tracing::divergence::{scan_for_divergences, DivergenceReport};
+use forge_core::tracing::replay::divergence::{scan_for_divergences, DivergenceReport};
 use forge_core::{
     DecisionContext, DecisionId, DecisionKind, DecisionLog, DecisionTier, EntityRef, TracedDecision,
 };

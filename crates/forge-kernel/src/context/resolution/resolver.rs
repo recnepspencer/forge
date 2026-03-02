@@ -16,7 +16,7 @@ use forge_core::{
 
 use crate::configuration::facade::ConfigScope;
 use crate::context::state::ModelingContext;
-use crate::observability::facade::KernelSpan;
+
 
 use super::policy_decision::{ResolvedPolicyDecision, ResolvedPolicySource};
 
@@ -36,65 +36,15 @@ impl ModelingContext {
             ));
         }
 
-        let (config, config_source, default_used) = if KernelSpan::is_active() {
-            if let Some(snapshot) = KernelSpan::get_config_snapshot() {
-                let fallback_path = format!("policy.fallback_rules.{:?}", query.kind);
-                let source = snapshot.source_of(&fallback_path).cloned();
-
-                let default_used = if let Some(src) = &source {
-                    matches!(src.scope, ConfigScope::SessionDefault)
-                } else {
-                    true
-                };
-
-                (snapshot.config().clone(), source, default_used)
-            } else {
-                (self.config.clone(), None, true)
-            }
-        } else {
-            (self.config.clone(), None, true)
-        };
+        let config = self.config.clone();
 
         if let Some(value) = config.policy.fallback_rules.get(&query.kind) {
-            let (res_source, res_scope) = match config_source {
-                Some(src) => {
-                    let res_src = match src.scope {
-                        ConfigScope::SessionDefault => PolicyResolutionSource::SessionUserOverride,
-                        ConfigScope::ModelOverride => PolicyResolutionSource::ModelSpecOverride,
-                        ConfigScope::FeatureOverride => PolicyResolutionSource::FeatureOverride,
-                        ConfigScope::OperationOverride => PolicyResolutionSource::OperationOverride,
-                    };
-
-                    let res_scp = match src.scope {
-                        ConfigScope::SessionDefault => None,
-                        ConfigScope::ModelOverride => src
-                            .origin
-                            .as_deref()
-                            .map(|id| PolicyResolutionScopeRef::ModelSpec {
-                                policy_key: id.to_string(),
-                            }),
-                        ConfigScope::FeatureOverride => src.origin.as_deref().map(|id| {
-                            PolicyResolutionScopeRef::Feature {
-                                feature_id: id.to_string(),
-                            }
-                        }),
-                        ConfigScope::OperationOverride => src.origin.as_deref().map(|id| {
-                            PolicyResolutionScopeRef::Operation {
-                                operation_id: id.to_string(),
-                            }
-                        }),
-                    };
-                    (res_src, res_scp)
-                }
-                None => (PolicyResolutionSource::DefaultPolicy, None), // It came from the base config defaults
-            };
-
             return Some((
                 *value,
                 ResolvedPolicySource {
-                    source: res_source,
-                    source_scope: res_scope,
-                    default_used,
+                    source: PolicyResolutionSource::DefaultPolicy,
+                    source_scope: None,
+                    default_used: true,
                 },
             ));
         }
@@ -241,15 +191,7 @@ impl ModelingContext {
     /// due to total absence of configuration.
     pub fn validate_policy_configured(&self, kind: &PolicyKind) -> Result<(), KernelError> {
         // Use the same configuration snapshot logic as resolve_policy_source_for_query.
-        let config = if KernelSpan::is_active() {
-            if let Some(snapshot) = KernelSpan::get_config_snapshot() {
-                snapshot.config().clone()
-            } else {
-                self.config.clone()
-            }
-        } else {
-            self.config.clone()
-        };
+        let config = self.config.clone();
 
         if config.policy.fallback_rules.contains_key(kind) {
             Ok(())

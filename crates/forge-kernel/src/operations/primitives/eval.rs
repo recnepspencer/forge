@@ -7,9 +7,8 @@
 //! 4. Registering face planes and vertex positions in GeometryStore
 //! 5. Validating geometry bindings post-commit
 
-use forge_core::{
-    DecisionContext, DecisionId, DecisionKind, DecisionTier, KernelError, TracedDecision,
-};
+use forge_core::tracing::DecisionSink;
+use forge_core::KernelError;
 use forge_geom::spatial::bsp::{build_convex_polyhedron, BspConfig, ConvexCell};
 use forge_geom::primitives::point::is_same_point_within;
 use forge_geom::primitives::plane::intersect_three_planes_exact;
@@ -22,8 +21,9 @@ use forge_topo::provenance::OpSignature;
 use forge_topo::transactions::{MutableDraft, TopologyState};
 
 use crate::configuration::facade::ResolvedConfig;
+use crate::context::scope::OperationScope;
 use crate::geometry::facade::{ExactPosition, GeometryStore};
-use crate::observability::facade::KernelSpan;
+
 
 /// Result of building a halfedge mesh from a ConvexCell.
 pub struct MeshBuildResult {
@@ -67,11 +67,11 @@ impl MeshBuildResult {
 /// 5. Validate geometry bindings (every face has a plane, every vertex a position)
 pub fn build_halfedge_mesh(
     cell: &ConvexCell,
-    config: &ResolvedConfig,
+    scope: &mut OperationScope<'_>,
 ) -> Result<MeshBuildResult, KernelError> {
     validate_cell(cell)?;
 
-    let tolerance = config.scaled_vertex_tolerance();
+    let tolerance = scope.config.scaled_vertex_tolerance();
     let sig = OpSignature::new("build_halfedge_mesh");
     let mut ordinal: u64 = 0;
 
@@ -80,7 +80,7 @@ pub fn build_halfedge_mesh(
     let mut geometry = GeometryStore::default();
 
     let vertex_ids = insert_vertices(
-        &mut draft, &mut geometry, cell, tolerance, &sig, &mut ordinal,
+        &mut draft, &mut geometry, cell, tolerance, &sig, &mut ordinal, scope.sink,
     )?;
 
     let body = draft.insert_body(BodyData::new());
@@ -165,6 +165,7 @@ fn insert_vertices(
     tolerance: f64,
     _sig: &OpSignature,
     ordinal: &mut u64,
+    sink: &mut dyn DecisionSink,
 ) -> Result<Vec<VertexId>, KernelError> {
     let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
     let mut vertex_ids = Vec::with_capacity(cell.vertex_count());
@@ -177,19 +178,7 @@ fn insert_vertices(
         let existing = find_coincident_vertex(&inserted, &pos, tolerance);
 
         if let Some((existing_vid, dist)) = existing {
-            let decision = TracedDecision::new(
-                DecisionId((existing_vid.index() as u64) << 32 | 0xD15A_11CE),
-                DecisionKind::NearBoundary {
-                    threshold: tolerance,
-                },
-                DecisionTier::NearBoundary,
-                dist,
-                DecisionContext::Tolerance {
-                    measured: dist,
-                    threshold: tolerance,
-                },
-            );
-            KernelSpan::record_decision(decision);
+            sink.record_near_boundary(existing_vid.index(), dist, tolerance);
             vertex_ids.push(existing_vid);
         } else {
             let vid = draft.insert_vertex(VertexData::new(placeholder_he));
@@ -482,62 +471,62 @@ fn validate_center_and_size(
 /// General-purpose constructor: planes → BSP → halfedge mesh.
 pub fn make_convex_solid(
     planes: Vec<forge_geom::facade::Plane>,
-    config: &ResolvedConfig,
+    scope: &mut OperationScope<'_>,
 ) -> Result<MeshBuildResult, KernelError> {
     let cell = build_convex_polyhedron(
         &planes,
         &BspConfig::default(),
     )?;
-    build_halfedge_mesh(&cell, config)
+    build_halfedge_mesh(&cell, scope)
 }
 
 /// Create a cube centered at `center` with side length `size`.
 pub fn make_cube(
     center: [f64; 3],
     size: f64,
-    config: &ResolvedConfig,
+    scope: &mut OperationScope<'_>,
 ) -> Result<MeshBuildResult, KernelError> {
-    validate_center_and_size(center, size, config)?;
+    validate_center_and_size(center, size, scope.config)?;
     let planes = forge_geom::primitives::shapes::cube(center, size / 2.0)?;
-    make_convex_solid(planes, config)
+    make_convex_solid(planes, scope)
 }
 
 /// Create a regular tetrahedron centered at `center` with the given `scale`.
 pub fn make_tetrahedron(
     center: [f64; 3],
     scale: f64,
-    config: &ResolvedConfig,
+    scope: &mut OperationScope<'_>,
 ) -> Result<MeshBuildResult, KernelError> {
-    validate_center_and_size(center, scale, config)?;
+    validate_center_and_size(center, scale, scope.config)?;
     let planes = forge_geom::primitives::shapes::tetrahedron(center, scale)?;
-    make_convex_solid(planes, config)
+    make_convex_solid(planes, scope)
 }
 
 /// Create a regular dodecahedron centered at `center` with the given `scale`.
 pub fn make_dodecahedron(
     center: [f64; 3],
     scale: f64,
-    config: &ResolvedConfig,
+    scope: &mut OperationScope<'_>,
 ) -> Result<MeshBuildResult, KernelError> {
-    validate_center_and_size(center, scale, config)?;
+    validate_center_and_size(center, scale, scope.config)?;
     let planes = forge_geom::primitives::shapes::dodecahedron(center, scale)?;
-    make_convex_solid(planes, config)
+    make_convex_solid(planes, scope)
 }
 
 /// Create an axis-aligned block with independent half-extents.
 pub fn make_block(
     center: [f64; 3],
     half_extents: [f64; 3],
-    config: &ResolvedConfig,
+    scope: &mut OperationScope<'_>,
 ) -> Result<MeshBuildResult, KernelError> {
     validate_coordinate(center[0], "center[0]")?;
     validate_coordinate(center[1], "center[1]")?;
     validate_coordinate(center[2], "center[2]")?;
-    validate_dimension(half_extents[0], "half_extents[0]", config)?;
-    validate_dimension(half_extents[1], "half_extents[1]", config)?;
-    validate_dimension(half_extents[2], "half_extents[2]", config)?;
+    validate_dimension(half_extents[0], "half_extents[0]", scope.config)?;
+    validate_dimension(half_extents[1], "half_extents[1]", scope.config)?;
+    validate_dimension(half_extents[2], "half_extents[2]", scope.config)?;
     let planes = forge_geom::primitives::shapes::block(center, half_extents)?;
-    make_convex_solid(planes, config)
+    make_convex_solid(planes, scope)
 }
 
 /// Create a regular prism (n-gon extrusion) centered at `center`.
@@ -546,13 +535,13 @@ pub fn make_prism(
     sides: u32,
     radius: f64,
     height: f64,
-    config: &ResolvedConfig,
+    scope: &mut OperationScope<'_>,
 ) -> Result<MeshBuildResult, KernelError> {
     validate_coordinate(center[0], "center[0]")?;
     validate_coordinate(center[1], "center[1]")?;
     validate_coordinate(center[2], "center[2]")?;
-    validate_dimension(radius, "radius", config)?;
-    validate_dimension(height, "height", config)?;
+    validate_dimension(radius, "radius", scope.config)?;
+    validate_dimension(height, "height", scope.config)?;
     if sides < 3 {
         return Err(KernelError::InvalidInput {
             message: format!("prism needs at least 3 sides, got {sides}"),
@@ -560,7 +549,7 @@ pub fn make_prism(
         });
     }
     let planes = forge_geom::primitives::shapes::prism(center, sides, radius, height)?;
-    make_convex_solid(planes, config)
+    make_convex_solid(planes, scope)
 }
 
 /// Create a regular pyramid (n-gon base with apex) centered at `center`.
@@ -569,13 +558,13 @@ pub fn make_pyramid(
     sides: u32,
     radius: f64,
     height: f64,
-    config: &ResolvedConfig,
+    scope: &mut OperationScope<'_>,
 ) -> Result<MeshBuildResult, KernelError> {
     validate_coordinate(center[0], "center[0]")?;
     validate_coordinate(center[1], "center[1]")?;
     validate_coordinate(center[2], "center[2]")?;
-    validate_dimension(radius, "radius", config)?;
-    validate_dimension(height, "height", config)?;
+    validate_dimension(radius, "radius", scope.config)?;
+    validate_dimension(height, "height", scope.config)?;
     if sides < 3 {
         return Err(KernelError::InvalidInput {
             message: format!("pyramid needs at least 3 sides, got {sides}"),
@@ -583,21 +572,21 @@ pub fn make_pyramid(
         });
     }
     let planes = forge_geom::primitives::shapes::pyramid(center, sides, radius, height)?;
-    make_convex_solid(planes, config)
+    make_convex_solid(planes, scope)
 }
 
 /// Create a wedge (triangular cross-section extrusion) centered at `center`.
 pub fn make_wedge(
     center: [f64; 3],
     dimensions: [f64; 3],
-    config: &ResolvedConfig,
+    scope: &mut OperationScope<'_>,
 ) -> Result<MeshBuildResult, KernelError> {
     validate_coordinate(center[0], "center[0]")?;
     validate_coordinate(center[1], "center[1]")?;
     validate_coordinate(center[2], "center[2]")?;
-    validate_dimension(dimensions[0], "width", config)?;
-    validate_dimension(dimensions[1], "depth", config)?;
-    validate_dimension(dimensions[2], "height", config)?;
+    validate_dimension(dimensions[0], "width", scope.config)?;
+    validate_dimension(dimensions[1], "depth", scope.config)?;
+    validate_dimension(dimensions[2], "height", scope.config)?;
     let planes = forge_geom::primitives::shapes::wedge(center, dimensions)?;
-    make_convex_solid(planes, config)
+    make_convex_solid(planes, scope)
 }

@@ -10,8 +10,10 @@ mod determinism_tests;
 mod geometric_fidelity_tests;
 
 use crate::configuration::facade::{resolve_config, KernelConfig, ResolvedConfig};
+pub(super) use crate::context::scope::OperationScope;
 
 /// Build a default `ResolvedConfig` for tests.
 pub(super) fn test_config() -> ResolvedConfig {
     resolve_config(&KernelConfig::default(), None, None, None).unwrap()
 }
+

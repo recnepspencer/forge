@@ -2,13 +2,15 @@
 
 use forge_topo::transactions::compute_arena_topology_hash;
 use crate::operations::primitives::{make_cube, make_tetrahedron, make_dodecahedron};
-use super::test_config;
+use super::{test_config, OperationScope};
 
 #[test]
 fn cube_deterministic_hash() {
     let cfg = test_config();
     let hashes: Vec<u128> = (0..10).map(|_| {
-        compute_arena_topology_hash(make_cube([0.0; 3], 2.0, &cfg).unwrap().topology().arena())
+        let mut null = OperationScope::null_sink();
+        let mut scope = OperationScope::new(&cfg, &mut null);
+        compute_arena_topology_hash(make_cube([0.0; 3], 2.0, &mut scope).unwrap().topology().arena())
     }).collect();
     for (i, h) in hashes.iter().enumerate() {
         assert_eq!(*h, hashes[0], "Run {i}: hash {h:#x} != first {:#x}", hashes[0]);
@@ -19,7 +21,9 @@ fn cube_deterministic_hash() {
 fn tetrahedron_deterministic_hash() {
     let cfg = test_config();
     let hashes: Vec<u128> = (0..10).map(|_| {
-        compute_arena_topology_hash(make_tetrahedron([0.0; 3], 1.0, &cfg).unwrap().topology().arena())
+        let mut null = OperationScope::null_sink();
+        let mut scope = OperationScope::new(&cfg, &mut null);
+        compute_arena_topology_hash(make_tetrahedron([0.0; 3], 1.0, &mut scope).unwrap().topology().arena())
     }).collect();
     for (i, h) in hashes.iter().enumerate() {
         assert_eq!(*h, hashes[0], "Run {i}: hash {h:#x} != first {:#x}", hashes[0]);
@@ -30,7 +34,9 @@ fn tetrahedron_deterministic_hash() {
 fn dodecahedron_deterministic_hash() {
     let cfg = test_config();
     let hashes: Vec<u128> = (0..10).map(|_| {
-        compute_arena_topology_hash(make_dodecahedron([0.0; 3], 1.0, &cfg).unwrap().topology().arena())
+        let mut null = OperationScope::null_sink();
+        let mut scope = OperationScope::new(&cfg, &mut null);
+        compute_arena_topology_hash(make_dodecahedron([0.0; 3], 1.0, &mut scope).unwrap().topology().arena())
     }).collect();
     for (i, h) in hashes.iter().enumerate() {
         assert_eq!(*h, hashes[0], "Run {i}: hash {h:#x} != first {:#x}", hashes[0]);
