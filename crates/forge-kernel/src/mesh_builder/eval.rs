@@ -4,13 +4,15 @@
 //! 1. Creating all vertices via direct arena insertion (with spatial dedup)
 //! 2. Building face loops with properly wired halfedges
 //! 3. Stitching twins between adjacent faces via shared-edge matching
-//! 4. Registering face planes and vertex positions in GeometryState
+//! 4. Registering face planes and vertex positions in GeometryStore
 //! 5. Validating geometry bindings post-commit
 
 use forge_core::{
     DecisionContext, DecisionId, DecisionKind, DecisionTier, KernelError, TracedDecision,
 };
-use crate::geom_facade::ConvexCell;
+use forge_geom::spatial::bsp::{build_convex_polyhedron, BspConfig, ConvexCell};
+use forge_geom::primitives::point::is_same_point_within;
+use forge_geom::primitives::plane::intersect_three_planes_exact;
 use forge_topo::b_rep::{
     BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
     ShellKind, ShellOrientation, VertexData,
@@ -19,19 +21,16 @@ use forge_topo::handles::{EdgeId, HalfEdgeId, LoopId, ShellId, VertexId};
 use forge_topo::provenance::OpSignature;
 use forge_topo::transactions::{MutableDraft, TopologyState};
 
-use crate::brep::state::BrepState;
 use crate::configuration::facade::ResolvedConfig;
-use crate::geometry_state::GeometryState;
+use crate::geometry::facade::{ExactPosition, GeometryStore};
 use crate::observability::facade::KernelSpan;
 
 /// Result of building a halfedge mesh from a ConvexCell.
 pub struct MeshBuildResult {
     /// The committed topology state.
     topology: TopologyState,
-    /// The associated geometry store.
-    geometry: GeometryState,
-    /// The associated B-Rep data.
-    brep: BrepState,
+    /// The associated unified geometry store.
+    geometry: GeometryStore,
 }
 
 impl MeshBuildResult {
@@ -41,18 +40,13 @@ impl MeshBuildResult {
     }
 
     /// The associated geometry store.
-    pub fn geometry(&self) -> &GeometryState {
+    pub fn geometry(&self) -> &GeometryStore {
         &self.geometry
     }
 
-    /// The associated B-Rep data.
-    pub fn brep(&self) -> &BrepState {
-        &self.brep
-    }
-
     /// Consume and return parts.
-    pub fn into_parts(self) -> (TopologyState, GeometryState, BrepState) {
-        (self.topology, self.geometry, self.brep)
+    pub fn into_parts(self) -> (TopologyState, GeometryStore) {
+        (self.topology, self.geometry)
     }
 }
 
@@ -83,7 +77,7 @@ pub fn build_halfedge_mesh(
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
-    let mut geometry = GeometryState::new();
+    let mut geometry = GeometryStore::default();
 
     let vertex_ids = insert_vertices(
         &mut draft, &mut geometry, cell, tolerance, &sig, &mut ordinal,
@@ -121,13 +115,16 @@ pub fn build_halfedge_mesh(
 
     let topology = draft.commit()?;
 
-    geometry.validate_geometry_bindings(topology.arena())?;
-    geometry.validate_geometry_completeness(topology.arena())?;
+    crate::geometry::facade::validate_bindings(&geometry, topology.arena())?;
+    forge_spatial::validate_geometry_completeness(
+        topology.arena(),
+        &|f| geometry.planes.contains(f),
+        &|v| geometry.positions.contains(v),
+    )?;
 
     Ok(MeshBuildResult {
         topology,
         geometry,
-        brep: BrepState::new(),
     })
 }
 
@@ -163,7 +160,7 @@ fn validate_cell(cell: &ConvexCell) -> Result<(), KernelError> {
 /// Returns a mapping from ConvexCell vertex index to VertexId.
 fn insert_vertices(
     draft: &mut MutableDraft,
-    geometry: &mut GeometryState,
+    geometry: &mut GeometryStore,
     cell: &ConvexCell,
     tolerance: f64,
     _sig: &OpSignature,
@@ -203,13 +200,13 @@ fn insert_vertices(
                 && pb < cell_planes.len()
                 && pc < cell_planes.len()
             {
-                match crate::geom_facade::intersect_three_planes_exact(
+                match intersect_three_planes_exact(
                     &cell_planes[pa],
                     &cell_planes[pb],
                     &cell_planes[pc],
                 ) {
                     Ok(exact_pos) => {
-                        geometry.set_vertex_position_symbolic(vid, exact_pos, pos, [pa, pb, pc]);
+                        geometry.positions.set(vid, ExactPosition::from_symbolic(exact_pos, pos, [pa, pb, pc]));
                         true
                     }
                     Err(_) => false,
@@ -219,7 +216,7 @@ fn insert_vertices(
             };
 
             if !stored_exact {
-                geometry.set_vertex_position(vid, pos);
+                geometry.positions.set(vid, ExactPosition::from_f64(pos));
             }
 
             inserted.push((vid, pos));
@@ -241,7 +238,7 @@ fn find_coincident_vertex(
     tolerance: f64,
 ) -> Option<(VertexId, f64)> {
     for (vid, existing_pos) in inserted {
-        if crate::geom_facade::is_same_point_within(pos, existing_pos, tolerance) {
+        if is_same_point_within(pos, existing_pos, tolerance) {
             let dx = pos[0] - existing_pos[0];
             let dy = pos[1] - existing_pos[1];
             let dz = pos[2] - existing_pos[2];
@@ -259,7 +256,7 @@ fn find_coincident_vertex(
 /// used by [`stitch_twins`] to pair up twin halfedges.
 fn insert_faces_and_loops(
     draft: &mut MutableDraft,
-    geometry: &mut GeometryState,
+    geometry: &mut GeometryStore,
     cell: &ConvexCell,
     vertex_ids: &[VertexId],
     shell: ShellId,
@@ -289,7 +286,7 @@ fn insert_faces_and_loops(
 
         let plane_idx = cell_face.plane_idx();
         if plane_idx < cell_planes.len() {
-            geometry.set_face_plane(face_id, cell_planes[plane_idx].clone());
+            geometry.planes.set(face_id, cell_planes[plane_idx].clone());
         }
 
         let vert_count = face_verts.len();
@@ -484,12 +481,12 @@ fn validate_center_and_size(
 ///
 /// General-purpose constructor: planes → BSP → halfedge mesh.
 pub fn make_convex_solid(
-    planes: Vec<crate::geom_facade::Plane>,
+    planes: Vec<forge_geom::facade::Plane>,
     config: &ResolvedConfig,
 ) -> Result<MeshBuildResult, KernelError> {
-    let cell = crate::geom_facade::build_convex_polyhedron(
+    let cell = build_convex_polyhedron(
         &planes,
-        &crate::geom_facade::BspConfig::default(),
+        &BspConfig::default(),
     )?;
     build_halfedge_mesh(&cell, config)
 }
@@ -501,7 +498,7 @@ pub fn make_cube(
     config: &ResolvedConfig,
 ) -> Result<MeshBuildResult, KernelError> {
     validate_center_and_size(center, size, config)?;
-    let planes = crate::geom_facade::shapes::cube(center, size / 2.0)?;
+    let planes = forge_geom::primitives::shapes::cube(center, size / 2.0)?;
     make_convex_solid(planes, config)
 }
 
@@ -512,7 +509,7 @@ pub fn make_tetrahedron(
     config: &ResolvedConfig,
 ) -> Result<MeshBuildResult, KernelError> {
     validate_center_and_size(center, scale, config)?;
-    let planes = crate::geom_facade::shapes::tetrahedron(center, scale)?;
+    let planes = forge_geom::primitives::shapes::tetrahedron(center, scale)?;
     make_convex_solid(planes, config)
 }
 
@@ -523,7 +520,7 @@ pub fn make_dodecahedron(
     config: &ResolvedConfig,
 ) -> Result<MeshBuildResult, KernelError> {
     validate_center_and_size(center, scale, config)?;
-    let planes = crate::geom_facade::shapes::dodecahedron(center, scale)?;
+    let planes = forge_geom::primitives::shapes::dodecahedron(center, scale)?;
     make_convex_solid(planes, config)
 }
 
@@ -539,7 +536,7 @@ pub fn make_block(
     validate_dimension(half_extents[0], "half_extents[0]", config)?;
     validate_dimension(half_extents[1], "half_extents[1]", config)?;
     validate_dimension(half_extents[2], "half_extents[2]", config)?;
-    let planes = crate::geom_facade::shapes::block(center, half_extents)?;
+    let planes = forge_geom::primitives::shapes::block(center, half_extents)?;
     make_convex_solid(planes, config)
 }
 
@@ -562,7 +559,7 @@ pub fn make_prism(
             context: None,
         });
     }
-    let planes = crate::geom_facade::shapes::prism(center, sides, radius, height)?;
+    let planes = forge_geom::primitives::shapes::prism(center, sides, radius, height)?;
     make_convex_solid(planes, config)
 }
 
@@ -585,7 +582,7 @@ pub fn make_pyramid(
             context: None,
         });
     }
-    let planes = crate::geom_facade::shapes::pyramid(center, sides, radius, height)?;
+    let planes = forge_geom::primitives::shapes::pyramid(center, sides, radius, height)?;
     make_convex_solid(planes, config)
 }
 
@@ -601,6 +598,6 @@ pub fn make_wedge(
     validate_dimension(dimensions[0], "width", config)?;
     validate_dimension(dimensions[1], "depth", config)?;
     validate_dimension(dimensions[2], "height", config)?;
-    let planes = crate::geom_facade::shapes::wedge(center, dimensions)?;
+    let planes = forge_geom::primitives::shapes::wedge(center, dimensions)?;
     make_convex_solid(planes, config)
 }

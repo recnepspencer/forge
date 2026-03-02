@@ -44,14 +44,14 @@ fn dodecahedron_counts() {
 fn octahedron_from_eight_planes_generates() {
     let cfg = test_config();
     let planes = vec![
-        crate::geom_facade::Plane::from_point_normal([1.0, 1.0, 1.0], [1.0, 1.0, 1.0]).unwrap(),
-        crate::geom_facade::Plane::from_point_normal([1.0, 1.0, -1.0], [1.0, 1.0, -1.0]).unwrap(),
-        crate::geom_facade::Plane::from_point_normal([1.0, -1.0, 1.0], [1.0, -1.0, 1.0]).unwrap(),
-        crate::geom_facade::Plane::from_point_normal([1.0, -1.0, -1.0], [1.0, -1.0, -1.0]).unwrap(),
-        crate::geom_facade::Plane::from_point_normal([-1.0, 1.0, 1.0], [-1.0, 1.0, 1.0]).unwrap(),
-        crate::geom_facade::Plane::from_point_normal([-1.0, 1.0, -1.0], [-1.0, 1.0, -1.0]).unwrap(),
-        crate::geom_facade::Plane::from_point_normal([-1.0, -1.0, 1.0], [-1.0, -1.0, 1.0]).unwrap(),
-        crate::geom_facade::Plane::from_point_normal([-1.0, -1.0, -1.0], [-1.0, -1.0, -1.0]).unwrap(),
+        forge_geom::facade::Plane::from_point_normal([1.0, 1.0, 1.0], [1.0, 1.0, 1.0]).unwrap(),
+        forge_geom::facade::Plane::from_point_normal([1.0, 1.0, -1.0], [1.0, 1.0, -1.0]).unwrap(),
+        forge_geom::facade::Plane::from_point_normal([1.0, -1.0, 1.0], [1.0, -1.0, 1.0]).unwrap(),
+        forge_geom::facade::Plane::from_point_normal([1.0, -1.0, -1.0], [1.0, -1.0, -1.0]).unwrap(),
+        forge_geom::facade::Plane::from_point_normal([-1.0, 1.0, 1.0], [-1.0, 1.0, 1.0]).unwrap(),
+        forge_geom::facade::Plane::from_point_normal([-1.0, 1.0, -1.0], [-1.0, 1.0, -1.0]).unwrap(),
+        forge_geom::facade::Plane::from_point_normal([-1.0, -1.0, 1.0], [-1.0, -1.0, 1.0]).unwrap(),
+        forge_geom::facade::Plane::from_point_normal([-1.0, -1.0, -1.0], [-1.0, -1.0, -1.0]).unwrap(),
     ];
     let r = make_convex_solid(planes, &cfg).unwrap();
     let a = r.topology().arena();
@@ -61,14 +61,14 @@ fn octahedron_from_eight_planes_generates() {
 #[test]
 fn truncated_cube_fourteen_faces() {
     let cfg = test_config();
-    let mut planes = crate::geom_facade::shapes::cube([0.0; 3], 2.0).unwrap();
+    let mut planes = forge_geom::primitives::shapes::cube([0.0; 3], 2.0).unwrap();
     let corners: [[f64; 3]; 8] = [
         [1.0, 1.0, 1.0], [1.0, 1.0, -1.0], [1.0, -1.0, 1.0], [1.0, -1.0, -1.0],
         [-1.0, 1.0, 1.0], [-1.0, 1.0, -1.0], [-1.0, -1.0, 1.0], [-1.0, -1.0, -1.0],
     ];
     for n in &corners {
         let pt = [n[0] * 2.5, n[1] * 2.5, n[2] * 2.5];
-        planes.push(crate::geom_facade::Plane::from_point_normal(pt, *n).unwrap());
+        planes.push(forge_geom::facade::Plane::from_point_normal(pt, *n).unwrap());
     }
     let r = make_convex_solid(planes, &cfg).unwrap();
     assert_eq!(r.topology().arena().face_count(), 14, "truncated cube: expected 14 faces");
@@ -107,7 +107,7 @@ fn prism_hexagonal_counts() {
 #[test]
 fn pyramid_quad_generates() {
     let cfg = test_config();
-    let planes = crate::geom_facade::shapes::pyramid([0.0; 3], 4, 1.0, 2.0).unwrap();
+    let planes = forge_geom::primitives::shapes::pyramid([0.0; 3], 4, 1.0, 2.0).unwrap();
     assert_eq!(planes.len(), 5, "pyramid(4) should produce 5 planes");
 }
 

@@ -15,6 +15,8 @@
 
 use std::collections::HashMap;
 
+use crate::geometry::facade::GeometryView;
+
 use forge_core::envelope::OperationResult;
 use forge_core::tracing::TraceAdjunctSet;
 use forge_core::KernelError;

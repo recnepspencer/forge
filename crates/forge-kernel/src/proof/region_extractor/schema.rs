@@ -11,7 +11,7 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize};
 
 use forge_core::KernelError;
-use crate::geom_facade::Plane;
+use forge_geom::facade::Plane;
 use forge_topo::b_rep::{FaceData, HalfEdgeData, LoopData, TopologyArena, VertexData};
 use forge_topo::b_rep::EntityBitset;
 use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};

@@ -57,7 +57,7 @@ pub fn validate_bindings(
     }
 
     for &he in store.coedges.keys() {
-        if arena.get_halfedge(he).is_err() {
+        if arena.get_half_edge(he).is_err() {
             return Err(KernelError::InternalError {
                 message: format!("Dangling coedge binding for {}", he),
                 context: None,

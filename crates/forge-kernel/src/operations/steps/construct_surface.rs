@@ -7,7 +7,7 @@
 //! DEPENDENCIES: forge-geom (Plane), forge-core (KernelError)
 
 use forge_core::KernelError;
-use crate::geom_facade::Plane;
+use forge_geom::facade::Plane;
 
 /// A surface constructed from geometric inputs.
 #[derive(Debug, Clone)]

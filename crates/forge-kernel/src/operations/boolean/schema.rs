@@ -3,8 +3,7 @@
 //! DOMAIN: Data shapes for boolean operation inputs only.
 //! Output types are in `result.rs`, classification types in `classify_schema.rs`.
 
-use crate::brep::state::BrepState;
-use crate::geometry_state::GeometryState;
+use crate::geometry::facade::GeometryStore;
 use forge_topo::transactions::TopologyState;
 use serde::{Deserialize, Serialize};
 
@@ -25,15 +24,11 @@ pub struct BooleanInput {
     /// The target solid topology.
     target_topology: TopologyState,
     /// The target solid geometry.
-    target_geometry: GeometryState,
-    /// The target solid B-Rep data.
-    target_brep: BrepState,
+    target_geometry: GeometryStore,
     /// The tool solid topology.
     tool_topology: TopologyState,
     /// The tool solid geometry.
-    tool_geometry: GeometryState,
-    /// The tool solid B-Rep data.
-    tool_brep: BrepState,
+    tool_geometry: GeometryStore,
     /// The Boolean operation to perform.
     operation: BooleanOp,
 }
@@ -42,20 +37,16 @@ impl BooleanInput {
     /// Create a new Boolean input.
     pub fn new(
         target_topology: TopologyState,
-        target_geometry: GeometryState,
-        target_brep: BrepState,
+        target_geometry: GeometryStore,
         tool_topology: TopologyState,
-        tool_geometry: GeometryState,
-        tool_brep: BrepState,
+        tool_geometry: GeometryStore,
         operation: BooleanOp,
     ) -> Self {
         Self {
             target_topology,
             target_geometry,
-            target_brep,
             tool_topology,
             tool_geometry,
-            tool_brep,
             operation,
         }
     }
@@ -66,13 +57,8 @@ impl BooleanInput {
     }
 
     /// The target solid geometry.
-    pub fn target_geometry(&self) -> &GeometryState {
+    pub fn target_geometry(&self) -> &GeometryStore {
         &self.target_geometry
-    }
-
-    /// The target solid B-Rep data.
-    pub fn target_brep(&self) -> &BrepState {
-        &self.target_brep
     }
 
     /// The tool solid topology.
@@ -81,13 +67,8 @@ impl BooleanInput {
     }
 
     /// The tool solid geometry.
-    pub fn tool_geometry(&self) -> &GeometryState {
+    pub fn tool_geometry(&self) -> &GeometryStore {
         &self.tool_geometry
-    }
-
-    /// The tool solid B-Rep data.
-    pub fn tool_brep(&self) -> &BrepState {
-        &self.tool_brep
     }
 
     /// The Boolean operation type.
@@ -111,9 +92,7 @@ impl BooleanInput {
     ///
     /// When `true`, the EMBER exact integer grid pipeline cannot be used
     /// and the operation must route through the parametric pipeline.
-    /// Note: With the GeometryState/BrepState separation, this always returns false
-    /// since GeometryState only contains planar data. Curved geometry detection
-    /// should eventually query the BrepState instead.
+    /// Note: GeometryStore only contains planar data, so this always returns false.
     pub fn has_curved_geometry(&self) -> bool {
         false
     }
@@ -123,9 +102,9 @@ impl BooleanInput {
         self,
     ) -> (
         TopologyState,
-        GeometryState,
+        GeometryStore,
         TopologyState,
-        GeometryState,
+        GeometryStore,
         BooleanOp,
     ) {
         (

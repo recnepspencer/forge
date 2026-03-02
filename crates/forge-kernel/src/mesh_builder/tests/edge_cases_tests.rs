@@ -7,8 +7,8 @@ use super::test_config;
 fn two_planes_rejected() {
     let cfg = test_config();
     let planes = vec![
-        crate::geom_facade::Plane::try_new([1.0, 0.0, 0.0], 1.0).unwrap(),
-        crate::geom_facade::Plane::try_new([-1.0, 0.0, 0.0], 1.0).unwrap(),
+        forge_geom::facade::Plane::try_new([1.0, 0.0, 0.0], 1.0).unwrap(),
+        forge_geom::facade::Plane::try_new([-1.0, 0.0, 0.0], 1.0).unwrap(),
     ];
     assert!(make_convex_solid(planes, &cfg).is_err(), "2 planes cannot form a polyhedron");
 }
@@ -17,9 +17,9 @@ fn two_planes_rejected() {
 fn three_planes_rejected() {
     let cfg = test_config();
     let planes = vec![
-        crate::geom_facade::Plane::try_new([1.0, 0.0, 0.0], 1.0).unwrap(),
-        crate::geom_facade::Plane::try_new([-1.0, 0.0, 0.0], 1.0).unwrap(),
-        crate::geom_facade::Plane::try_new([0.0, 1.0, 0.0], 1.0).unwrap(),
+        forge_geom::facade::Plane::try_new([1.0, 0.0, 0.0], 1.0).unwrap(),
+        forge_geom::facade::Plane::try_new([-1.0, 0.0, 0.0], 1.0).unwrap(),
+        forge_geom::facade::Plane::try_new([0.0, 1.0, 0.0], 1.0).unwrap(),
     ];
     assert!(make_convex_solid(planes, &cfg).is_err(), "3 planes cannot form a closed polyhedron");
 }

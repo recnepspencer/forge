@@ -46,11 +46,10 @@ pub fn generate_primitive(
         }
     };
 
-    let (topo, geom, brep) = result.into_parts();
+    let (topo, geom) = result.into_parts();
 
     Ok(FeatureOutput {
         topology: topo,
         geometry: geom,
-        brep,
     })
 }

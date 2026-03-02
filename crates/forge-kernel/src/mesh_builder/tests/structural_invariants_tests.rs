@@ -6,7 +6,7 @@
 
 use forge_topo::b_rep::TopologyArena;
 use crate::mesh_builder::{MeshBuildResult, make_cube, make_tetrahedron, make_dodecahedron};
-use crate::geometry_state::GeometryState;
+use crate::geometry::facade::GeometryView;
 
 fn assert_euler(arena: &TopologyArena, label: &str) {
     let v = arena.vertex_count() as i64;
@@ -49,7 +49,7 @@ fn assert_closed_loops(arena: &TopologyArena, label: &str) {
     }
 }
 
-fn assert_geometry_complete(arena: &TopologyArena, geom: &GeometryState, label: &str) {
+fn assert_geometry_complete(arena: &TopologyArena, geom: &impl GeometryView, label: &str) {
     for (face_id, _) in arena.iter_faces() {
         assert!(geom.get_face_plane(face_id).is_some(), "{label}: F#{} missing plane", face_id.index());
     }
@@ -58,7 +58,7 @@ fn assert_geometry_complete(arena: &TopologyArena, geom: &GeometryState, label: 
     }
 }
 
-fn compute_mesh_centroid(arena: &TopologyArena, geom: &GeometryState) -> [f64; 3] {
+fn compute_mesh_centroid(arena: &TopologyArena, geom: &impl GeometryView) -> [f64; 3] {
     let mut sum = [0.0; 3];
     let mut count = 0;
     for (vid, _) in arena.iter_vertices() {
@@ -72,7 +72,7 @@ fn compute_mesh_centroid(arena: &TopologyArena, geom: &GeometryState) -> [f64; 3
 }
 
 fn compute_face_centroid(
-    arena: &TopologyArena, geom: &GeometryState, face_id: forge_topo::handles::FaceId,
+    arena: &TopologyArena, geom: &impl GeometryView, face_id: forge_topo::handles::FaceId,
 ) -> [f64; 3] {
     let face_data = arena.get_face(face_id).unwrap();
     let loop_data = arena.get_loop(face_data.outer_loop()).unwrap();
@@ -93,7 +93,7 @@ fn compute_face_centroid(
     [sum[0] / count as f64, sum[1] / count as f64, sum[2] / count as f64]
 }
 
-fn assert_outward_normals(arena: &TopologyArena, geom: &GeometryState, label: &str) {
+fn assert_outward_normals(arena: &TopologyArena, geom: &impl GeometryView, label: &str) {
     let centroid = compute_mesh_centroid(arena, geom);
     for (face_id, _) in arena.iter_faces() {
         let plane = geom.get_face_plane(face_id).unwrap();

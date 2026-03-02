@@ -111,21 +111,18 @@ impl Feature for BooleanFeature {
         let input = BooleanInput::new(
             inputs.target.topology.clone(),
             inputs.target.geometry.clone(),
-            inputs.target.brep.clone(),
             inputs.tool.topology.clone(),
             inputs.tool.geometry.clone(),
-            inputs.tool.brep.clone(),
             self.op,
         );
 
         let envelope = execute_boolean(input);
         let result = envelope.into_result()?;
-        let (topo, geom, brep) = result.into_states();
+        let (topo, geom) = result.into_states();
 
         Ok(FeatureOutput {
             topology: topo,
             geometry: geom,
-            brep,
         })
     }
 

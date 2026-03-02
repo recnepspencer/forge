@@ -15,10 +15,7 @@
 //! ├── operations/      ← modeling operations (boolean, fillet, etc.)
 //! ├── primitives/      ← parameterized shape generation
 //! ├── geometry/        ← unified geometry store (PropertyLayer pattern)
-//! ├── geometry_state/  ← [DEPRECATED] old side-car geometry storage
 //! ├── mesh_builder/    ← BSP → halfedge construction
-//! ├── proof/           ← proof infrastructure
-//! ├── brep/            ← [DEPRECATED] old B-rep state
 //! └── observability/   ← tracing/span telemetry
 //! ```
 //!
@@ -31,14 +28,12 @@
 #![forbid(unsafe_code)]
 
 pub mod proof;
-pub mod brep;
 pub mod configuration;
 pub mod context;
 pub mod diff;
 pub mod engine;
 pub mod registry;
 pub mod geometry;
-pub mod geometry_state;
 pub mod mesh_builder;
 pub mod observability;
 pub mod operations;

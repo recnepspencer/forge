@@ -14,7 +14,7 @@ use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::traverse::{edge_faces, FaceEdgeIterator};
 
 use super::schema::{ExtractedRegion, SerializedHalfEdge, SerializedPlane};
-use crate::geometry_state::GeometryState;
+use crate::geometry::facade::GeometryView;
 
 /// Extract the N-ring neighborhood of a seed face from the arena.
 ///
@@ -25,7 +25,7 @@ use crate::geometry_state::GeometryState;
 /// Ring 0 = seed face only. Ring 1 = seed + all edge-adjacent faces. Etc.
 pub fn extract_n_ring(
     arena: &TopologyArena,
-    geometry_state: &GeometryState,
+    geometry_state: &impl GeometryView,
     seed_face: FaceId,
     depth: usize,
 ) -> Result<ExtractedRegion, KernelError> {
