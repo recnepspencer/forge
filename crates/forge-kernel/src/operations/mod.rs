@@ -7,4 +7,4 @@
 pub mod boolean;
 pub mod facade;
 pub mod pipeline;
-pub(crate) mod steps;
+pub mod primitives;

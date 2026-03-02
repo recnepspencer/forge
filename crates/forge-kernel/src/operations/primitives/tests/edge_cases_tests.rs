@@ -1,6 +1,6 @@
 //! Edge case tests — degenerate inputs that must be cleanly rejected.
 
-use crate::mesh_builder::{make_convex_solid, make_cube, make_block, make_prism, make_pyramid};
+use crate::operations::primitives::{make_convex_solid, make_cube, make_block, make_prism, make_pyramid};
 use super::test_config;
 
 #[test]

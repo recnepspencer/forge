@@ -3,7 +3,7 @@
 //! Validates that mesh_builder produces valid output across extreme
 //! scales and arbitrary translations.
 
-use crate::mesh_builder::{make_cube, make_tetrahedron, make_dodecahedron};
+use crate::operations::primitives::{make_cube, make_tetrahedron, make_dodecahedron};
 use super::structural_invariants_tests::assert_valid_solid;
 use super::test_config;
 

@@ -5,7 +5,7 @@
 //! owns its own parameter normalization.
 
 use super::super::native_feature::NativeFeature;
-use crate::primitives::MakePrimitiveFeature;
+use crate::operations::primitives::MakePrimitiveFeature;
 
 /// Create a block feature from origin + dimensions.
 ///

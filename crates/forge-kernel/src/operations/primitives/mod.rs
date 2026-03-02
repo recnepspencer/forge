@@ -1,8 +1,7 @@
-//! Primitive shape feature.
+//! Primitive shape generation and mesh construction.
 //!
 //! DOMAIN: Parameterized convex primitive generation (cube, block, tetrahedron,
-//! dodecahedron, prism, pyramid, wedge). All variants share the same internal
-//! pipeline: plane generation → BSP → halfedge mesh.
+//! dodecahedron, prism, pyramid, wedge) and the BSP → halfedge mesh pipeline.
 //!
 //! INVARIANTS:
 //! - Output satisfies Euler's formula (V - E + F = 2)
@@ -10,11 +9,15 @@
 //! - Every edge has a twin (manifold)
 //! - All inputs validated (no NaN, Inf, or ≤0 dimensions)
 //!
-//! DEPENDENCIES: forge-geom (shapes, BSP), mesh_builder (make_convex_solid),
-//! pipeline (FeatureContract, Feature)
+//! DEPENDENCIES: forge-geom (shapes, BSP, ConvexCell, Plane),
+//!               forge-topo (arena, operators), geometry (GeometryStore),
+//!               configuration (ResolvedConfig)
 
 mod contract;
+mod eval;
 mod generate;
+#[cfg(test)]
+mod tests;
 
 use std::collections::HashMap;
 
@@ -27,6 +30,12 @@ use crate::configuration::facade::ResolvedConfig;
 use crate::engine::facade::{Feature, FeatureOutput};
 
 pub use contract::PrimitiveInputs;
+
+// Re-export mesh construction API (used by boolean test helpers and integration tests)
+pub use eval::{
+    build_halfedge_mesh, make_block, make_convex_solid, make_cube, make_dodecahedron,
+    make_prism, make_pyramid, make_tetrahedron, make_wedge, MeshBuildResult,
+};
 
 /// Shape-specific parameters for each primitive variant.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -94,10 +103,6 @@ impl MakePrimitiveFeature {
     }
 
     /// Convenience constructor from origin + dimensions (schema-native parameters).
-    ///
-    /// Computes the center from `origin + dimensions / 2` and uses the first
-    /// dimension as the cube side length. This keeps the dispatch handler
-    /// zero-logic — the feature owns its own parameter normalization.
     pub fn block_from_origin(name: &str, origin: [f64; 3], dimensions: [f64; 3]) -> Self {
         let center = [
             origin[0] + dimensions[0] / 2.0,

@@ -1,6 +1,6 @@
 //! Geometric fidelity tests — vertex positions and symbolic planes.
 
-use crate::mesh_builder::make_cube;
+use crate::operations::primitives::make_cube;
 use super::test_config;
 
 #[test]

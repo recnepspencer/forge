@@ -8,7 +8,7 @@
 
 use super::test_support::{insert_test_solid_shell, validate_geometric_invariants_all_faces};
 use crate::geometry_state::GeometryState;
-use crate::mesh_builder::make_cube;
+use crate::operations::primitives::make_cube;
 use crate::integration_tests::harness::shapes::test_config;
 use forge_core::{KernelError, TopologyError};
 use forge_topo::handles::VertexId;

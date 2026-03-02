@@ -20,7 +20,7 @@ use forge_signal::facade::NodeId;
 use crate::configuration::facade::KernelConfig;
 use crate::engine::facade::{FeatureOutput, FeatureRegistry};
 use crate::operations::boolean::{BooleanFeature, BooleanOp};
-use crate::primitives::MakePrimitiveFeature;
+use crate::operations::primitives::MakePrimitiveFeature;
 
 use super::catalog::FeatureKind;
 

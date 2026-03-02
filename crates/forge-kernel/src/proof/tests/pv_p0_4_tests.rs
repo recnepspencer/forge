@@ -4,7 +4,7 @@
 //! - PV-11: Constructed non-manifold edge → validator rejects
 //! - PV-12: Valid cube passes manifold check (positive control)
 
-use crate::mesh_builder::make_cube;
+use crate::operations::primitives::make_cube;
 use forge_core::{KernelError, TopologyError};
 use forge_topo::b_rep::{FaceData, HalfEdgeData, LoopData, VertexData};
 use forge_topo::handles::{FaceId, HalfEdgeId};

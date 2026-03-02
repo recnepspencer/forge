@@ -24,25 +24,25 @@ pub fn generate_primitive(
 ) -> Result<FeatureOutput, KernelError> {
     let result = match params {
         PrimitiveParams::Cube { size } => {
-            crate::mesh_builder::make_cube(center, *size, config)?
+            super::make_cube(center, *size, config)?
         }
         PrimitiveParams::Block { half_extents } => {
-            crate::mesh_builder::make_block(center, *half_extents, config)?
+            super::make_block(center, *half_extents, config)?
         }
         PrimitiveParams::Tetrahedron { scale } => {
-            crate::mesh_builder::make_tetrahedron(center, *scale, config)?
+            super::make_tetrahedron(center, *scale, config)?
         }
         PrimitiveParams::Dodecahedron { scale } => {
-            crate::mesh_builder::make_dodecahedron(center, *scale, config)?
+            super::make_dodecahedron(center, *scale, config)?
         }
         PrimitiveParams::Prism { sides, radius, height } => {
-            crate::mesh_builder::make_prism(center, *sides, *radius, *height, config)?
+            super::make_prism(center, *sides, *radius, *height, config)?
         }
         PrimitiveParams::Pyramid { sides, radius, height } => {
-            crate::mesh_builder::make_pyramid(center, *sides, *radius, *height, config)?
+            super::make_pyramid(center, *sides, *radius, *height, config)?
         }
         PrimitiveParams::Wedge { dimensions } => {
-            crate::mesh_builder::make_wedge(center, *dimensions, config)?
+            super::make_wedge(center, *dimensions, config)?
         }
     };
 

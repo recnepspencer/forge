@@ -13,6 +13,7 @@ pub use super::logic::executor::FeaturePipeline;
 pub use super::logic::feature_tree::FeatureTree;
 pub use super::logic::invariants::validate_invariant;
 pub use super::logic::operation_space::OperationSpace;
+pub use super::data::topology_delta::{ArenaSnapshot, compute_topology_delta};
 
 // Transaction lifecycle types
 pub use super::transaction::facade::{

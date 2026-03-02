@@ -10,12 +10,10 @@
 //! ├── lib.rs           ← this file (Table of Contents only)
 //! ├── prelude.rs       ← convenient imports
 //! ├── configuration/   ← config schema + resolution + overrides
-//! ├── engine/          ← feature tree, pipeline, contracts
+//! ├── engine/          ← feature tree, pipeline, contracts, diff
 //! ├── registry/        ← feature catalog, command dispatch, handlers
-//! ├── operations/      ← modeling operations (boolean, fillet, etc.)
-//! ├── primitives/      ← parameterized shape generation
+//! ├── operations/      ← modeling operations (boolean, primitives, etc.)
 //! ├── geometry/        ← unified geometry store (PropertyLayer pattern)
-//! ├── mesh_builder/    ← BSP → halfedge construction
 //! └── observability/   ← tracing/span telemetry
 //! ```
 //!
@@ -30,15 +28,12 @@
 pub mod proof;
 pub mod configuration;
 pub mod context;
-pub mod diff;
 pub mod engine;
 pub mod registry;
 pub mod geometry;
-pub mod mesh_builder;
 pub mod observability;
 pub mod operations;
 pub mod prelude;
-pub mod primitives;
 
 #[cfg(test)]
 mod tests {

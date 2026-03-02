@@ -5,7 +5,7 @@
 //! twin reciprocity, closed loops, outward normals, and complete geometry.
 
 use forge_topo::b_rep::TopologyArena;
-use crate::mesh_builder::{MeshBuildResult, make_cube, make_tetrahedron, make_dodecahedron};
+use crate::operations::primitives::{MeshBuildResult, make_cube, make_tetrahedron, make_dodecahedron};
 use crate::geometry::facade::GeometryView;
 
 fn assert_euler(arena: &TopologyArena, label: &str) {

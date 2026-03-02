@@ -7,7 +7,7 @@
 //! - run_checkpoint against a valid arena
 
 use super::checkpoint::{run_checkpoint, ValidationCheckpoint, ValidationConfig, ValidationResult};
-use crate::mesh_builder::make_cube;
+use crate::operations::primitives::make_cube;
 use forge_core::FlatToleranceProvider;
 use forge_topo::validate::ValidationLevel;
 

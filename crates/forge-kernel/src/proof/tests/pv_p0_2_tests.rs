@@ -6,7 +6,7 @@
 //! - PV-08: Shell with removed edge → fails validation
 
 use super::test_support::{insert_test_solid_shell, materialize_edge_entities_from_radials};
-use crate::mesh_builder::make_cube;
+use crate::operations::primitives::make_cube;
 use crate::integration_tests::harness::shapes::test_config;
 use forge_core::{KernelError, TopologyError};
 use forge_topo::b_rep::{FaceData, HalfEdgeData, LoopData, VertexData};

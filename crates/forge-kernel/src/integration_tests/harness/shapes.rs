@@ -9,7 +9,7 @@ use forge_topo::transactions::{MutableDraft, TopologyState};
 use forge_topo::handles::{BodyId, FaceId, HalfEdgeId, ShellId, VertexId};
 
 use crate::configuration::facade::{resolve_config, KernelConfig, ResolvedConfig};
-use crate::mesh_builder;
+use crate::operations::primitives;
 
 /// Handles extracted from a cube solid.
 #[derive(Debug, Clone)]

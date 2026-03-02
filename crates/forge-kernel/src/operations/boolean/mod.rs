@@ -38,6 +38,15 @@ pub mod result;
 pub mod router;
 pub(crate) mod schema;
 
+// Step implementations (moved from operations/steps/)
+pub(crate) mod apply_euler_ops;
+pub(crate) mod certify_boundary;
+pub(crate) mod classify_edge_convexity;
+pub(crate) mod classify_faces;
+pub(crate) mod classify_surface_pair;
+pub(crate) mod construct_surface;
+pub(crate) mod resolve_persistent_selection;
+
 // _deprecated/ directory remains on disk as reference but is excluded from compilation.
 
 #[cfg(test)]

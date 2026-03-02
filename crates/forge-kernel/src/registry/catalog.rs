@@ -59,6 +59,6 @@ macro_rules! feature_catalog {
 // One line per feature kind:
 
 feature_catalog! {
-    MakePrimitive(crate::primitives::MakePrimitiveFeature),
+    MakePrimitive(crate::operations::primitives::MakePrimitiveFeature),
     Boolean(crate::operations::boolean::BooleanFeature),
 }

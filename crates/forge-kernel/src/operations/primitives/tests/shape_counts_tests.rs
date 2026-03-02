@@ -3,7 +3,7 @@
 //! Validates exact V/E/F counts for each primitive, plus custom
 //! plane sets (octahedron, truncated cube) and new shapes.
 
-use crate::mesh_builder::{
+use crate::operations::primitives::{
     make_block, make_convex_solid, make_cube, make_dodecahedron, make_prism, make_pyramid,
     make_tetrahedron, make_wedge,
 };

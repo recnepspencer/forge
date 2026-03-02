@@ -5,7 +5,7 @@
 
 use super::test_support::validate_geometric_invariants_all_faces;
 use crate::geometry_state::GeometryState;
-use crate::mesh_builder::make_cube;
+use crate::operations::primitives::make_cube;
 use crate::operations::boolean::execute_boolean;
 use crate::operations::boolean::parametric::assemble::merge::eval::execute_boolean_direct;
 use crate::operations::boolean::test_helpers::{selected_test_pipeline, TestPipeline};

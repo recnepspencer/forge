@@ -8,7 +8,7 @@ use crate::configuration::facade::KernelConfig;
 use crate::engine::facade::FeaturePipeline;
 use crate::engine::facade::FeatureOutput;
 use crate::engine::facade::FeatureTree;
-use crate::primitives::MakePrimitiveFeature;
+use crate::operations::primitives::MakePrimitiveFeature;
 use forge_core::PolicyKind;
 use forge_schema::{Command, EntityRef};
 use forge_signal::facade::NodeId;

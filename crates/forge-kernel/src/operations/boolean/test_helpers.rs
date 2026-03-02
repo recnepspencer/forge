@@ -3,14 +3,14 @@
 //!
 //! DOMAIN: Shape construction, pipeline selection, and common assertions
 //! for Boolean integration tests. All shape builders delegate to
-//! `crate::mesh_builder` as the single source of truth.
+//! `crate::operations::primitives` as the single source of truth.
 //!
 //! DEPENDENCIES: `schema` (BooleanInput, BooleanOp), `result` (BooleanResult),
 //!               `router` (adaptive dispatch), `parametric` (direct dispatch)
 
 use crate::geom_facade::Plane;
 use crate::geometry_state::GeometryState;
-use crate::mesh_builder;
+use crate::operations::primitives;
 use crate::shared_ops::vertex::centroid::compute_face_centroid;
 use forge_topo::transactions::TopologyState;
 

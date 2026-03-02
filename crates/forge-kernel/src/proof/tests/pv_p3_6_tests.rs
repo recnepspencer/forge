@@ -29,7 +29,7 @@ mod tests {
     use crate::proof::causal_chain::{query_causal_chain, query_causal_summary};
     use crate::context::facade::ModelingContext;
     use crate::engine::facade::{FeatureOutput, FeatureTree}; use crate::registry::facade::NativeFeature;
-    use crate::primitives::MakePrimitiveFeature;
+    use crate::operations::primitives::MakePrimitiveFeature;
     use crate::operations::boolean::test_helpers::{
         build_cube, euler_audit, execute_boolean_logged,
     };

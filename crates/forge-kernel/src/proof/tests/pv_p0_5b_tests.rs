@@ -7,7 +7,7 @@
 
 use super::checkpoint::{run_checkpoint, ValidationCheckpoint, ValidationConfig};
 use super::diagnose_pipeline::{diagnose_arena, PipelineStage};
-use crate::mesh_builder::make_cube;
+use crate::operations::primitives::make_cube;
 use forge_core::FlatToleranceProvider;
 
 /// Valid cube arena produces a healthy diagnostic.
