@@ -37,22 +37,8 @@ pub use errors::{
 
 pub use policy::{PolicyKind, PolicyQuery, PolicyResult, ValidationCheckpoint};
 
-pub use tracing::{
-    compute_trace_fingerprint, diff_decision_logs, log_decision_log, log_error,
-    log_result, scan_for_divergences, CandidateValueSummary,
-    CheckpointLog, DecisionChange, DecisionContext, DecisionDelta, DecisionId, DecisionKind,
-    DecisionLog, DecisionSummary, DecisionTier, DivergenceDetail, DivergenceReport, EntityKind,
-    EntityRef, PolicyDecisionTracePayload, PolicyResolutionOutcome,
-    PolicyResolutionScopeRef, PolicyResolutionSource, PolicyTraceConsistencyError,
-    ReidentificationCompatibilitySummary, ReidentificationFailureCauseSummary,
-    ReidentificationModeSummary, ReidentificationOriginKindSummary, ReidentificationOutcome,
-    ReidentificationTraceConsistencyError, ReidentificationTracePayload,
-    ResolutionCandidateSummary, ResolutionMatchKind, ResolutionOutcome, ResolutionQuerySummary,
-    ResolutionRoute, ResolutionTraceConsistencyError, ResolutionTracePayload, SpanId,
-    SpanSummaryEntry, TopologyDelta, TraceDiff, TraceEvent, TraceFingerprint, TraceSummary,
-    TracedDecision, EULER_OP_FEATURE_SCOPE,
-    DecisionSink, DecisionSinkHandle, NullSink, TestSink,
-};
+// Tracing — all exports routed through `tracing::facade`
+pub use tracing::*;
 
 pub use envelope::{KernelWarning, LineageDelta, OperationMetrics, OperationResult};
 

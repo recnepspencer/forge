@@ -98,11 +98,11 @@ pub fn snap_or_coalesce_vertex<S: DecisionSink>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use forge_core::tracing::sink::TestSink;
+    use crate::context::ModelingContext;
 
     #[test]
     fn snap_when_inside_tolerance_sphere() {
-        let mut sink = TestSink::new();
+        let mut ctx = ModelingContext::new();
         let v = VertexId::new(0, 0);
         let existing_pos = [0.0, 0.0, 0.0];
         let existing_tol = 1e-6;
@@ -114,16 +114,16 @@ mod tests {
             existing_pos,
             existing_tol,
             1e-4,
-            &mut sink,
+            &mut ctx,
         );
 
         assert!(matches!(result, CoalescenceResult::Snapped { .. }));
-        assert_eq!(sink.len(), 1);
+        assert_eq!(ctx.get_decision_count(), 1);
     }
 
     #[test]
     fn coalesce_when_near_but_outside_tolerance() {
-        let mut sink = TestSink::new();
+        let mut ctx = ModelingContext::new();
         let v = VertexId::new(0, 0);
         let existing_pos = [0.0, 0.0, 0.0];
         let existing_tol = 1e-10;
@@ -135,7 +135,7 @@ mod tests {
             existing_pos,
             existing_tol,
             1e-4,
-            &mut sink,
+            &mut ctx,
         );
 
         match result {
@@ -149,12 +149,12 @@ mod tests {
             }
             other => panic!("Expected Coalesced, got {:?}", other),
         }
-        assert_eq!(sink.len(), 1);
+        assert_eq!(ctx.get_decision_count(), 1);
     }
 
     #[test]
     fn new_vertex_when_far_away() {
-        let mut sink = TestSink::new();
+        let mut ctx = ModelingContext::new();
         let v = VertexId::new(0, 0);
         let existing_pos = [0.0, 0.0, 0.0];
         let existing_tol = 1e-10;
@@ -166,16 +166,16 @@ mod tests {
             existing_pos,
             existing_tol,
             1e-4,
-            &mut sink,
+            &mut ctx,
         );
 
         assert!(matches!(result, CoalescenceResult::NewVertex));
-        assert_eq!(sink.len(), 0);
+        assert_eq!(ctx.get_decision_count(), 0);
     }
 
     #[test]
     fn coalesced_tolerance_exceeds_both_inputs() {
-        let mut sink = TestSink::new();
+        let mut ctx = ModelingContext::new();
         let v = VertexId::new(0, 0);
         let existing_pos = [0.0, 0.0, 0.0];
         let existing_tol = 5e-9;
@@ -187,7 +187,7 @@ mod tests {
             existing_pos,
             existing_tol,
             1e-4,
-            &mut sink,
+            &mut ctx,
         );
 
         match result {

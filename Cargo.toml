@@ -7,7 +7,7 @@ members = [
     "crates/forge-geom",
     "crates/forge-kernel",
     "crates/forge-io",
-    "crates/forge-test",
+
 
     "crates/forge-repr",
     "crates/forge-schema",
@@ -35,7 +35,7 @@ forge-topo = { path = "crates/forge-topo" }
 forge-geom = { path = "crates/forge-geom" }
 forge-kernel = { path = "crates/forge-kernel" }
 forge-io = { path = "crates/forge-io" }
-forge-test = { path = "crates/forge-test" }
+
 
 forge-repr = { path = "crates/forge-repr" }
 forge-schema = { path = "crates/forge-schema" }
@@ -57,6 +57,7 @@ trybuild = "1.0"
 
 # Observability
 tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Native GUI (eframe for MVP shell; wgpu for full viewport in M5)
 eframe    = { version = "0.31", features = ["default", "wgpu"] }

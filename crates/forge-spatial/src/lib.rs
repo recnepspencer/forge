@@ -12,18 +12,14 @@
 //! - Geometry is always received via caller-provided position callbacks.
 //! - No topology mutation occurs in this crate.
 //! - All public functions are deterministic for identical inputs.
+//!
+//! PUBLIC API: All external access goes through the façades.
+//! Internal modules are organized into `operations/` (spatial queries)
+//! and `validators/` (geometric invariant checks).
 
-pub mod bounds;
-pub mod classify;
-pub mod integrity;
+pub mod operations;
+pub mod validators;
 
-pub use bounds::distance::{combined_solid_scale, compute_solid_centroid, compute_solid_ray_extent};
-pub use bounds::face::{all_face_bounds, face_bounds, face_vertex_positions};
-pub use bounds::solid::{lump_bounds, region_bounds, shell_bounds, solid_bounds};
-pub use classify::face_sampling::face_interior_samples;
-pub use classify::point_in_solid::{classify_point_in_solid, classify_point_with_perturbation};
-pub use classify::point_on_face::{classify_point_on_face, FacePointClassification};
-/// Crate-level re-exports for the most commonly used spatial query types.
-pub use classify::schema::{PointClassification, SpatialAccelerator};
-pub use integrity::validate_geometric_invariants;
-pub use integrity::completeness::validate_geometry_completeness;
+// ── Public API — re-exports routed through façades ───────────────────────────
+pub use operations::facade::*;
+pub use validators::facade::*;

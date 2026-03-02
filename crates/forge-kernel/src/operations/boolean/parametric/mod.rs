@@ -23,43 +23,23 @@
 
 pub mod steps;
 
-use forge_core::{KernelError, OperationResult};
+use forge_core::KernelError;
 
 use super::result::BooleanResult;
 use super::schema::BooleanInput;
-use crate::configuration::facade::{resolve_config, KernelConfig};
 use crate::context::scope::OperationScope;
 use crate::operations::boolean::counterfactual::CounterfactualOverrides;
 
 /// Execute a Boolean operation via the parametric pipeline.
 ///
-/// This is the main entry point — called by the router or directly by tests.
-/// Resolves config, validates inputs, then runs the pipeline phases
-/// through `OperationPipeline` with auto-injected tracing and policy checks.
+/// Callers must provide a real `OperationScope` — all decisions are recorded
+/// through the scope's `DecisionSink`. No internal scope or config resolution
+/// is performed here; that is the caller's responsibility.
 pub fn execute(
-    input: BooleanInput,
-) -> OperationResult<Result<BooleanResult, KernelError>> {
-    let session = KernelConfig::default();
-    let resolved = match resolve_config(&session, None, None, None) {
-        Ok(cfg) => cfg,
-        Err(err) => return OperationResult::new(Err(err)),
-    };
-    let mut null = OperationScope::null_sink();
-    let mut scope = OperationScope::new(&resolved, &mut null);
-
-    let start = std::time::Instant::now();
-
-    let inner_result = execute_core(&input, &mut scope);
-
-    let metrics = forge_core::OperationMetrics {
-        duration: start.elapsed(),
-        ..forge_core::OperationMetrics::default()
-    };
-
-    let mut envelope = OperationResult::new(inner_result);
-    envelope.set_metrics(metrics);
-
-    envelope
+    input: &BooleanInput,
+    scope: &mut OperationScope<'_>,
+) -> Result<BooleanResult, KernelError> {
+    execute_core(input, scope)
 }
 
 /// Core pipeline execution — separated for testability.
@@ -70,7 +50,7 @@ fn execute_core(
     input: &BooleanInput,
     scope: &mut OperationScope<'_>,
 ) -> Result<BooleanResult, KernelError> {
-    use crate::operations::pipeline::builder::OperationPipeline;
+    use crate::operations::pipeline::facade::OperationPipeline;
 
     let _overrides = CounterfactualOverrides::new();
     let mut pipeline = OperationPipeline::new(scope);

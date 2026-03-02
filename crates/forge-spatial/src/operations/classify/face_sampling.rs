@@ -23,7 +23,7 @@ use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::queries::polygon::face_loop_vertices;
 
-use crate::classify::point_on_face::{classify_point_on_face, FacePointClassification};
+use crate::operations::classify::point_on_face::{classify_point_on_face, FacePointClassification};
 use forge_core::ToleranceProvider;
 
 /// Generate interior sample points for a polygon face.

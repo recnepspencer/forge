@@ -1,5 +1,6 @@
 //! Determinism tests — same inputs must produce identical topology hash.
 
+use crate::context::ModelingContext;
 use forge_topo::transactions::compute_arena_topology_hash;
 use crate::operations::primitives::{make_cube, make_tetrahedron, make_dodecahedron};
 use super::{test_config, OperationScope};
@@ -8,8 +9,8 @@ use super::{test_config, OperationScope};
 fn cube_deterministic_hash() {
     let cfg = test_config();
     let hashes: Vec<u128> = (0..10).map(|_| {
-        let mut null = OperationScope::null_sink();
-        let mut scope = OperationScope::new(&cfg, &mut null);
+        let mut ctx = ModelingContext::new();
+        let mut scope = OperationScope::new(&cfg, &mut ctx);
         compute_arena_topology_hash(make_cube([0.0; 3], 2.0, &mut scope).unwrap().topology().arena())
     }).collect();
     for (i, h) in hashes.iter().enumerate() {
@@ -21,8 +22,8 @@ fn cube_deterministic_hash() {
 fn tetrahedron_deterministic_hash() {
     let cfg = test_config();
     let hashes: Vec<u128> = (0..10).map(|_| {
-        let mut null = OperationScope::null_sink();
-        let mut scope = OperationScope::new(&cfg, &mut null);
+        let mut ctx = ModelingContext::new();
+        let mut scope = OperationScope::new(&cfg, &mut ctx);
         compute_arena_topology_hash(make_tetrahedron([0.0; 3], 1.0, &mut scope).unwrap().topology().arena())
     }).collect();
     for (i, h) in hashes.iter().enumerate() {
@@ -34,8 +35,8 @@ fn tetrahedron_deterministic_hash() {
 fn dodecahedron_deterministic_hash() {
     let cfg = test_config();
     let hashes: Vec<u128> = (0..10).map(|_| {
-        let mut null = OperationScope::null_sink();
-        let mut scope = OperationScope::new(&cfg, &mut null);
+        let mut ctx = ModelingContext::new();
+        let mut scope = OperationScope::new(&cfg, &mut ctx);
         compute_arena_topology_hash(make_dodecahedron([0.0; 3], 1.0, &mut scope).unwrap().topology().arena())
     }).collect();
     for (i, h) in hashes.iter().enumerate() {

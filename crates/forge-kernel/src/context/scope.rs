@@ -9,7 +9,7 @@
 //!
 //! DEPENDENCIES: `forge-core` (DecisionSink), `configuration` (ResolvedConfig)
 
-use forge_core::tracing::{DecisionSink, NullSink};
+use forge_core::tracing::DecisionSink;
 
 use crate::configuration::facade::ResolvedConfig;
 
@@ -33,20 +33,6 @@ impl<'a> OperationScope<'a> {
         Self { config, sink }
     }
 
-    /// Create a scope with a NullSink for testing.
-    ///
-    /// Returns a `(NullSink, OperationScope)` pair — the caller must keep
-    /// the `NullSink` alive for the scope's lifetime.
-    ///
-    /// # Example
-    /// ```ignore
-    /// let cfg = resolve_config(&KernelConfig::default(), None, None, None).unwrap();
-    /// let mut null = NullSink;
-    /// let mut scope = OperationScope::new(&cfg, &mut null);
-    /// make_cube([0.0; 3], 1.0, &mut scope).unwrap();
-    /// ```
-    pub fn null_sink() -> NullSink {
-        NullSink
-    }
+
 }
 

@@ -1,5 +1,6 @@
 //! Acceptance tests for the operation pipeline (Tier 2).
 
+use crate::context::ModelingContext;
 use forge_core::{KernelError, PolicyKind};
 
 use crate::configuration::facade::{resolve_config, KernelConfig, ResolvedConfig};
@@ -55,8 +56,8 @@ fn resolved_test_config() -> ResolvedConfig {
 #[test]
 fn run_step_rejects_missing_policy_before_execution() {
     let config = resolved_test_config();
-    let mut null = OperationScope::null_sink();
-    let mut scope = OperationScope::new(&config, &mut null);
+    let mut ctx = ModelingContext::new();
+    let mut scope = OperationScope::new(&config, &mut ctx);
     let mut pipeline = OperationPipeline::new(&mut scope);
 
     let result: Result<(), KernelError> = pipeline.run_step(&PolicyRequiringStep, |_scope| {
@@ -75,8 +76,8 @@ fn run_step_rejects_missing_policy_before_execution() {
 #[test]
 fn run_step_collects_step_scoped_decision_counts() {
     let config = resolved_test_config();
-    let mut null = OperationScope::null_sink();
-    let mut scope = OperationScope::new(&config, &mut null);
+    let mut ctx = ModelingContext::new();
+    let mut scope = OperationScope::new(&config, &mut ctx);
 
     let mut pipeline = OperationPipeline::new(&mut scope);
 
@@ -104,8 +105,8 @@ fn run_step_collects_step_scoped_decision_counts() {
 #[test]
 fn pipeline_builder_threads_typed_state_through_steps() {
     let config = resolved_test_config();
-    let mut null = OperationScope::null_sink();
-    let mut scope = OperationScope::new(&config, &mut null);
+    let mut ctx = ModelingContext::new();
+    let mut scope = OperationScope::new(&config, &mut ctx);
 
     // Pipeline: u32 → String → Vec<String>
     let (result, audit) = PipelineBuilder::start(&mut scope, 42u32)
@@ -129,8 +130,8 @@ fn pipeline_builder_threads_typed_state_through_steps() {
 #[test]
 fn multi_step_pipeline_sequences_audit_entries_in_order() {
     let config = resolved_test_config();
-    let mut null = OperationScope::null_sink();
-    let mut scope = OperationScope::new(&config, &mut null);
+    let mut ctx = ModelingContext::new();
+    let mut scope = OperationScope::new(&config, &mut ctx);
 
     let mut pipeline = OperationPipeline::new(&mut scope);
 
@@ -170,8 +171,8 @@ fn multi_step_pipeline_sequences_audit_entries_in_order() {
 #[test]
 fn pipeline_builder_propagates_error_from_step() {
     let config = resolved_test_config();
-    let mut null = OperationScope::null_sink();
-    let mut scope = OperationScope::new(&config, &mut null);
+    let mut ctx = ModelingContext::new();
+    let mut scope = OperationScope::new(&config, &mut ctx);
 
     let result = PipelineBuilder::start(&mut scope, 100u32).then(
         &SimpleStep,
@@ -199,8 +200,8 @@ fn pipeline_builder_propagates_error_from_step() {
 #[test]
 fn pipeline_builder_six_step_chain_compiles_and_runs() {
     let config = resolved_test_config();
-    let mut null = OperationScope::null_sink();
-    let mut scope = OperationScope::new(&config, &mut null);
+    let mut ctx = ModelingContext::new();
+    let mut scope = OperationScope::new(&config, &mut ctx);
 
     // Simulate a fillet-like 6-step pipeline with type changes at each step
     let (result, audit) = PipelineBuilder::start(&mut scope, vec![1u32, 2, 3])

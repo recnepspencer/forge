@@ -24,6 +24,8 @@ use serde::{Deserialize, Serialize};
 /// Each handle is a `(index, generation)` pair. The index identifies the
 /// slot in the arena; the generation prevents stale references.
 ///
+/// Serializes as `"index:generation"` strings for JSON map-key compatibility.
+///
 /// # Example
 /// ```ignore
 /// define_handle!(FaceId);
@@ -42,8 +44,11 @@ macro_rules! define_handle {
         ///
         /// Handles are `Copy` (cheap to pass around) and safe (stale handles
         /// are detected by generation mismatch).
+        ///
+        /// Serializes as `"index:generation"` (e.g. `"5:2"`) for JSON
+        /// map-key compatibility.
         #[derive(
-            Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize,
+            Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord,
         )]
         pub struct $name {
             index: u32,
@@ -76,6 +81,28 @@ macro_rules! define_handle {
                     self.index,
                     self.generation
                 )
+            }
+        }
+
+        impl Serialize for $name {
+            fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+                let s = format!("{}:{}", self.index, self.generation);
+                serializer.serialize_str(&s)
+            }
+        }
+
+        impl<'de> Deserialize<'de> for $name {
+            fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+                let s = String::deserialize(deserializer)?;
+                let parts: Vec<&str> = s.split(':').collect();
+                if parts.len() != 2 {
+                    return Err(serde::de::Error::custom(
+                        format!("expected 'index:generation', got '{}'", s)
+                    ));
+                }
+                let index = parts[0].parse::<u32>().map_err(serde::de::Error::custom)?;
+                let generation = parts[1].parse::<u32>().map_err(serde::de::Error::custom)?;
+                Ok(Self { index, generation })
             }
         }
     };

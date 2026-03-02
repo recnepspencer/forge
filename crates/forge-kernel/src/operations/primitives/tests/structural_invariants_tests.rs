@@ -4,6 +4,7 @@
 //! the fundamental B-Rep invariants: Euler formula, manifold edges,
 //! twin reciprocity, closed loops, outward normals, and complete geometry.
 
+use crate::context::ModelingContext;
 use forge_topo::b_rep::TopologyArena;
 use crate::operations::primitives::{MeshBuildResult, make_cube, make_tetrahedron, make_dodecahedron};
 use crate::geometry::facade::GeometryView;
@@ -121,23 +122,23 @@ pub(super) fn assert_valid_solid(result: &MeshBuildResult, label: &str) {
 #[test]
 fn cube_structural_invariants() {
     let cfg = test_config();
-    let mut null = OperationScope::null_sink();
-    let mut scope = OperationScope::new(&cfg, &mut null);
+    let mut ctx = ModelingContext::new();
+    let mut scope = OperationScope::new(&cfg, &mut ctx);
     assert_valid_solid(&make_cube([0.0; 3], 2.0, &mut scope).unwrap(), "cube");
 }
 
 #[test]
 fn tetrahedron_structural_invariants() {
     let cfg = test_config();
-    let mut null = OperationScope::null_sink();
-    let mut scope = OperationScope::new(&cfg, &mut null);
+    let mut ctx = ModelingContext::new();
+    let mut scope = OperationScope::new(&cfg, &mut ctx);
     assert_valid_solid(&make_tetrahedron([0.0; 3], 1.0, &mut scope).unwrap(), "tet");
 }
 
 #[test]
 fn dodecahedron_structural_invariants() {
     let cfg = test_config();
-    let mut null = OperationScope::null_sink();
-    let mut scope = OperationScope::new(&cfg, &mut null);
+    let mut ctx = ModelingContext::new();
+    let mut scope = OperationScope::new(&cfg, &mut ctx);
     assert_valid_solid(&make_dodecahedron([0.0; 3], 1.0, &mut scope).unwrap(), "dodec");
 }

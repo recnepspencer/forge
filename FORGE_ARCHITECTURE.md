@@ -56,29 +56,31 @@ PERSISTENCE & INTERFACE
                            │
 KERNEL                     │
 ┌──────────────────────────┼──────────────────────────────┐
-│ forge-kernel       Features, Booleans, fillets          │
-│                    The "application" crate that          │
-│                    orchestrates everything below         │
-│                          │                              │
-│ forge-decision     Tracing, policy, replay, causal      │
-│                    chains, counterfactual engine         │
-│                          │                              │
-│ forge-signal       Reactive dependency graph,           │
-│                    topology/geometry firewall            │
-└──────────────────────────┬──────────────────────────────┘
-                           │
-FOUNDATION                 │
-┌──────────────────────────┼──────────────────────────────┐
-│ forge-topo         Halfedge mesh, Euler operators,      │
-│                    immutable state, generational IDs     │
-│                                                         │
-│ forge-geom         Surfaces, curves, intersections,     │
-│                    coedges, tolerant entities,           │
-│                    analytic arbitration                  │
-│                                                         │
-│ forge-math         Predicates, filtered arithmetic,     │
-│                    interval, rational, certified signs   │
-└─────────────────────────────────────────────────────────┘
+                  ┌──────────────────────┐
+                  │      forge-math      │ (Predicates, exact math)
+                  └─────┬──────────┬─────┘
+                        │          │
+                  ┌─────▼──────────▼─────┐
+                  │      forge-core      │ (Tracing, envelopes, context)
+                  └─────┬──────────┬─────┘
+                        │          │
+   ┌────────────────────┼──────────┼────────────────────┐
+   │                    │          │                    │
+┌──▼─────────┐   ┌──────▼───┐  ┌───▼──────┐   ┌─────────▼──┐
+│forge-signal│   │forge-topo◄──►forge-geom│   │forge-schema│
+└──┬─────────┘   └──────┬───┘  └──┬───────┘   └─────────┬──┘
+   │                    │          │                    │
+   │                    │  ┌───────▼─────┐              │
+   │                    ├──►forge-spatial├──────────────┤
+   │                    │  └───────┬─────┘              │
+   │                    │          │                    │
+   │             ┌──────▼──────────▼──────┐             │
+   └────────────►│      forge-kernel      │◄────────────┘
+                 └──────┬──────────┬──────┘
+                        │          │
+                 ┌──────▼───┐  ┌───▼──────┐
+                 │ forge-io │  │  ...     │
+                 └──────────┘  └──────────┘
 ```
 
 Dependency rule: arrows point down only. Nothing in foundation knows about
@@ -252,7 +254,28 @@ pub struct HalfEdgeId(pub(crate) thunderdome::Index);
 pub struct LoopId(pub(crate) thunderdome::Index);
 ```
 
-**Entity data (what's stored per entity):**
+\*\*Entity data (what's stoHere is the full entity set:
+
+| Entity            | Meaning                                                                                      |
+| ----------------- | -------------------------------------------------------------------------------------------- |
+| **Arena**         | The flat array allocator that gives out generational IDs.                                    |
+| **TopologyState** | Arc<Arena>. Cheaply cloneable snapshot.                                                      |
+| **MutableDraft**  | Write wrapper around an Arena.                                                               |
+| **Body**          | A top-level solid (e.g., a complete part).                                                   |
+| **Lump**          | A connected component of a body.                                                             |
+| **Region**        | A volume defined by an outer shell and optional inner shells (voids).                        |
+| **Shell**         | A connected manifold surface mesh. Can be open (sheet body) or closed (solid body boundary). |
+| **Face**          | A bounded surface patch.                                                                     |
+| **Loop**          | A boundary of a face. Faces have one outer loop and zero-to-many inner loops (holes).        |
+| **HalfEdge**      | A directed traversal segment around a loop.                                                  |
+| **Vertex**        | A topological 0-cell. Handles connectivity, but geometry handles position.                   |
+
+### Manifold Logic, Open Shells, and NMT
+
+`forge-topo` actively supports staging and open surfaces:
+
+- **Open Shells:** Handled natively. An open shell does not enclose a volume (Euler validation distinguishes closed vs open). Sheet bodies are first-class residents.
+- **Non-Manifold Topology (NMT):** Supported via explicit `TopologyMode` policy (e.g., `ManifoldStrict` vs `NmtIntermediate`). Intermediate boolean assembly steps safely use NMT configurations before final manifold extraction.
 
 ```rust
 pub struct FaceData {
@@ -696,15 +719,20 @@ is organized by how hard it is:
 
 ---
 
-## 4.4 forge-decision
+## 4.4 forge-core (Tracing, Policy, and Context Envelope)
 
-**Purpose:** The tracing, policy, and replay engine. This is separate from
-forge-core because it's substantial — it's not just an error enum, it's a
-full causal reasoning system.
+**Purpose:** This crate holds the foundation layer for operation orchestration, observability, and policy enforcement. Commercial kernels are black boxes; they make thousands of silent tolerance decisions during a Boolean operation. When they fail, you cannot know why. `forge-core` exists to make every decision visible, replayable, and governed by explicit policy.
 
-**Depends on:** `forge-math` (for precision certificates)
+**Depends on:** `forge-math`
 
-**This is what you sell to Lockheed, and what powers the agent debug loop.**
+### OperationScope and DecisionSink
+
+Tracing is facilitated through explicitly threaded contextual objects rather than implicit ambient state:
+
+- **`OperationScope`:** Bundles configuration (`ResolvedConfig`) and observability (`DecisionSink`) for a specific execution scope.
+- **`DecisionSink`:** The trait implemented by logs to record structured tracing events.
+
+The result of any geometric operation is wrapped in a structured envelope:
 
 ### Tiered Tracing
 
@@ -1217,12 +1245,12 @@ operations create it implicitly.
 
 ### The Four Levels
 
-| Level      | Meaning                                                                                                                                                | Status                                             |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
-| **Solid**  | A complete mechanical solid — what the user thinks of as "one part". Corresponds to a STEP `MANIFOLD_SOLID_BREP` or a Forge `Feature` output.          | ✅ `BodyData` / `BodyId` in `forge-topo` arena     |
-| **Lump**   | A maximal connected volume of material. A Solid has ≥ 1 Lumps. After a boolean difference that separates geometry, each fragment becomes its own Lump. | ✅ `LumpData` / `LumpId` in `forge-topo` arena     |
-| **Region** | A bounded volume defined by shells. One outer Shell (bounds solid material) + zero or more inner Shells (cavity walls).                                | ✅ `RegionData` / `RegionId` in `forge-topo` arena |
-| **Shell**  | A maximal connected manifold surface mesh. Outer shells have `ShellOrientation::Outer`; inner cavity walls have `ShellOrientation::Inner`.             | ✅ `ShellData` / `ShellId` in `forge-topo` arena   |
+| Level      | Meaning                                                                                                                                 | Status                                             |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| **Solid**  | A complete mechanical solid — what the user thinks of as "one part". Corresponds to a STEP `MANIFOLD_SOLID_BREP`.                       | ✅ `BodyData` / `BodyId` in `forge-topo` arena     |
+| **Lump**   | A maximal connected volume of material. A Solid has ≥ 1 Lumps.                                                                          | ✅ `LumpData` / `LumpId` in `forge-topo` arena     |
+| **Region** | A bounded volume defined by shells. One outer Shell (bounds solid material) + zero or more inner Shells (cavity walls).                 | ✅ `RegionData` / `RegionId` in `forge-topo` arena |
+| **Shell**  | A maximal connected surface mesh. Outer shells (`ShellOrientation::Outer`); inner cavity walls (`ShellOrientation::Inner`); open sheet. | ✅ `ShellData` / `ShellId` in `forge-topo` arena   |
 
 ### Ownership: All Levels Live in `forge-topo`
 
@@ -1594,23 +1622,17 @@ What gets built first, what depends on what, and why.
 
 ## 8.1 Dependency Graph
 
-```
-forge-math           (leaf — no deps)
-    ↓
-forge-topo           (depends on forge-math)
-    ↓
-forge-geom           (depends on forge-math)
-    ↓
-forge-decision       (depends on forge-math)
-    ↓
-forge-signal         (depends on forge-topo)
-    ↓
-forge-kernel         (depends on all above)
-    ↓
-forge-io             (depends on forge-kernel, forge-geom)
-forge-persist        (depends on forge-kernel)
-forge-cli            (depends on everything)
-```
+| Crate           | Dependency                                                                                  | Role |
+| --------------- | ------------------------------------------------------------------------------------------- | ---- |
+| `forge-math`    | Exact predicates (BigInt / Shewchuk), exact rational numbers, matrices. Zero deps.          |
+| `forge-core`    | Foundation. Tracing, policy, errors, operation envelopes, `OperationScope`, `DecisionSink`. |
+| `forge-topo`    | Immutable half-edge data structure, undo/redo transactions, Euler operators. Generational.  |
+| `forge-geom`    | Surface types, curve types, tolerance coalescence, Coedges.                                 |
+| `forge-spatial` | Bounding Volume Hierarchies (BVH), AABB trees, fast point-in-solid classification.          |
+| `forge-signal`  | Reactive dependency graph. Smart invalidation, evaluation scheduling.                       |
+| `forge-kernel`  | The Boolean algorithms that combine all the above. The actual orchestrator.                 |
+| `forge-persist` | JSON serialization of the spec graph, semantic git merge driver.                            |
+| `forge-io`      | STEP / IGES / 3MF / STL import and export.                                                  |
 
 Note: `forge-topo` and `forge-geom` are siblings, not parent-child. They
 communicate through opaque IDs. `forge-kernel` is the first crate that
@@ -1755,31 +1777,32 @@ decision and its resolution for reference.
 
 Mapping existing code to this architecture:
 
-| Component                        | Status         | Notes                                      |
-| -------------------------------- | -------------- | ------------------------------------------ |
-| `KernelError` taxonomy           | ✔ Exists       | Structured variants, machine-actionable    |
-| `PolicyResult<T>`                | ✔ Exists       | Three-state: Ok / Ambiguous / Err          |
-| `TracedDecision`                 | ✔ Exists       | Has DecisionId, Kind, Tier, Context        |
-| `DecisionLog`                    | ✔ Exists       | Queryable, diffable                        |
-| `OperationResult<T>`             | ✔ Exists       | Envelope with metrics, lineage, decisions  |
-| `TopologyState`                  | ✔ Exists       | Immutable, epoch-versioned, Arc<Arena>     |
-| `MutableDraft`                   | ✔ Exists       | Transactional commit/rollback              |
-| `TopologyArena`                  | ✔ Exists       | thunderdome-backed generational handles    |
-| Entity handles                   | ✔ Exists       | FaceId, VertexId, HalfEdgeId, LoopId       |
-| `EulerOperator` + `apply_op()`   | ✔ Exists       | Trait + runner pattern                     |
-| `Lineage`                        | ✔ Exists       | Origin feature, creation op, ancestry hash |
-| **Filtered predicates**          | ❌ Needs build | forge-math core                            |
-| **CertifiedTriSign**             | ❌ Needs build | The certified sign newtype                 |
-| **Interval arithmetic**          | ❌ Needs build | For curved geometry                        |
-| **Geometry Store**               | ❌ Needs build | forge-geom (surfaces, curves)              |
-| **Coedges**                      | ❌ Needs build | UV-space anchoring                         |
-| **Tolerant vertices**            | ❌ Needs build | Write-once localized epsilon               |
-| **Analytic arbitration**         | ❌ Needs build | Surface comparison before solving          |
-| **Surface-surface intersection** | ❌ Needs build | The hard problem                           |
-| **Signal graph**                 | ❌ Needs build | forge-signal                               |
-| **Boolean pipeline**             | ❌ Needs build | forge-kernel core                          |
-| **Spec graph serialization**     | ❌ Needs build | forge-persist                              |
-| **CLI**                          | ❌ Needs build | forge-cli                                  |
+| Component                        | Status         | Notes                                        |
+| -------------------------------- | -------------- | -------------------------------------------- |
+| `KernelError` taxonomy           | ✔ Exists       | Structured variants, machine-actionable      |
+| `PolicyResult<T>`                | ✔ Exists       | Three-state: Ok / Ambiguous / Err            |
+| `TracedDecision`                 | ✔ Exists       | Has DecisionId, Kind, Tier, Context          |
+| `DecisionLog`                    | ✔ Exists       | Queryable, diffable                          |
+| `OperationResult<T>`             | ✔ Exists       | Envelope with metrics, warnings              |
+| `TopologyState`                  | ✔ Exists       | Immutable, epoch-versioned, Arc<Arena>       |
+| `MutableDraft`                   | ✔ Exists       | Transactional commit/rollback                |
+| `TopologyArena`                  | ✔ Exists       | thunderdome-backed generational handles      |
+| Entity handles                   | ✔ Exists       | FaceId, VertexId, HalfEdgeId, LoopId         |
+| `EulerOperator` + `apply_op()`   | ✔ Exists       | Trait + runner pattern                       |
+| `Lineage`                        | ✔ Exists       | Origin feature, creation op, ancestry hash   |
+| **Filtered predicates**          | ✔ Exists       | `orient2d/3d`, `in_sphere` ported to Rust    |
+| **CertifiedTriSign**             | ✔ Exists       | Strict exact-evaluated signs                 |
+| **Interval arithmetic**          | ❌ Needs build | For curved geometry precision escalation     |
+| **Geometry Store**               | ✔ Exists       | forge-kernel (surfaces, curves, etc)         |
+| **Coedges**                      | ❌ Needs build | UV-space anchoring                           |
+| **Tolerant vertices**            | ⚠️ Partial     | Position tracking exists, coalescence needed |
+| **Analytic arbitration**         | ❌ Needs build | Surface comparison before solving            |
+| **Surface-surface intersection** | ❌ Needs build | The hard problem                             |
+| **Signal graph**                 | ✔ Exists       | forge-signal (push-pull evaluations)         |
+| **Boolean pipeline**             | ⚠️ Partial     | Phase steps defined; Split/Intersect missing |
+| **Spec graph serialization**     | ❌ Needs build | forge-persist                                |
+| **Spatial Indexing (BVH)**       | ✔ Exists       | forge-spatial                                |
+| **CLI**                          | ❌ Needs build | forge-cli                                    |
 
 ---
 

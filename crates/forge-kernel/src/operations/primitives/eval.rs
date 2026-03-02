@@ -7,14 +7,11 @@
 //! 4. Registering face planes and vertex positions in GeometryStore
 //! 5. Validating geometry bindings post-commit
 
-use forge_core::tracing::DecisionSink;
 use forge_core::KernelError;
 use forge_geom::spatial::bsp::{build_convex_polyhedron, BspConfig, ConvexCell};
-use forge_geom::primitives::point::is_same_point_within;
-use forge_geom::primitives::plane::intersect_three_planes_exact;
 use forge_topo::b_rep::{
     BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
-    ShellKind, ShellOrientation, VertexData,
+    ShellKind, ShellOrientation,
 };
 use forge_topo::handles::{EdgeId, HalfEdgeId, LoopId, ShellId, VertexId};
 use forge_topo::provenance::OpSignature;
@@ -22,7 +19,9 @@ use forge_topo::transactions::{MutableDraft, TopologyState};
 
 use crate::configuration::facade::ResolvedConfig;
 use crate::context::scope::OperationScope;
-use crate::geometry::facade::{ExactPosition, GeometryStore};
+use crate::geometry::facade::GeometryStore;
+use crate::operations::shared_operations::facade::{place_vertex_exact, PlacementRegistry};
+
 
 
 /// Result of building a halfedge mesh from a ConvexCell.
@@ -70,6 +69,9 @@ pub fn build_halfedge_mesh(
     scope: &mut OperationScope<'_>,
 ) -> Result<MeshBuildResult, KernelError> {
     validate_cell(cell)?;
+
+    let span = scope.sink.start_span("build_halfedge_mesh");
+    let start = std::time::Instant::now();
 
     let tolerance = scope.config.scaled_vertex_tolerance();
     let sig = OpSignature::new("build_halfedge_mesh");
@@ -122,6 +124,8 @@ pub fn build_halfedge_mesh(
         &|v| geometry.positions.contains(v),
     )?;
 
+    scope.sink.end_span(span, start.elapsed().as_micros() as u64);
+
     Ok(MeshBuildResult {
         topology,
         geometry,
@@ -153,9 +157,9 @@ fn validate_cell(cell: &ConvexCell) -> Result<(), KernelError> {
 
 /// Insert all ConvexCell vertices into the arena and geometry store.
 ///
-/// Performs position-based deduplication: if two BSP vertices resolve
-/// to positions within `tolerance` of each other, the later one reuses
-/// the earlier's `VertexId`. Each merge emits a `NearBoundary` decision.
+/// Thin adapter: iterates ConvexCell vertices and delegates each placement
+/// to `shared::placement::place_vertex_exact`, which handles deduplication,
+/// exact position storage, and `NearBoundary` decision recording.
 ///
 /// Returns a mapping from ConvexCell vertex index to VertexId.
 fn insert_vertices(
@@ -165,77 +169,30 @@ fn insert_vertices(
     tolerance: f64,
     _sig: &OpSignature,
     ordinal: &mut u64,
-    sink: &mut dyn DecisionSink,
+    sink: &mut dyn forge_core::tracing::DecisionSink,
 ) -> Result<Vec<VertexId>, KernelError> {
-    let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
     let mut vertex_ids = Vec::with_capacity(cell.vertex_count());
-    let mut inserted: Vec<(VertexId, [f64; 3])> = Vec::with_capacity(cell.vertex_count());
-    let cell_planes = cell.planes();
+    let mut registry = PlacementRegistry::with_capacity(cell.vertex_count());
+    let planes = cell.planes();
 
     for vert in cell.vertices() {
         let pos = *vert.position();
-
-        let existing = find_coincident_vertex(&inserted, &pos, tolerance);
-
-        if let Some((existing_vid, dist)) = existing {
-            sink.record_near_boundary(existing_vid.index(), dist, tolerance);
-            vertex_ids.push(existing_vid);
-        } else {
-            let vid = draft.insert_vertex(VertexData::new(placeholder_he));
-            *ordinal += 1;
-
-            let [pa, pb, pc] = vert.plane_indices();
-            let stored_exact = if pa < cell_planes.len()
-                && pb < cell_planes.len()
-                && pc < cell_planes.len()
-            {
-                match intersect_three_planes_exact(
-                    &cell_planes[pa],
-                    &cell_planes[pb],
-                    &cell_planes[pc],
-                ) {
-                    Ok(exact_pos) => {
-                        geometry.positions.set(vid, ExactPosition::from_symbolic(exact_pos, pos, [pa, pb, pc]));
-                        true
-                    }
-                    Err(_) => false,
-                }
-            } else {
-                false
-            };
-
-            if !stored_exact {
-                geometry.positions.set(vid, ExactPosition::from_f64(pos));
-            }
-
-            inserted.push((vid, pos));
-            vertex_ids.push(vid);
-        }
+        let plane_indices = vert.plane_indices();
+        let vid = place_vertex_exact(
+            draft,
+            geometry,
+            &mut registry,
+            pos,
+            plane_indices,
+            planes,
+            tolerance,
+            sink,
+        )?;
+        *ordinal += 1;
+        vertex_ids.push(vid);
     }
 
     Ok(vertex_ids)
-}
-
-/// Find an already-inserted vertex within `tolerance` of `pos`.
-///
-/// Uses the geometry facade's `is_same_point_within` for coincidence
-/// detection (L∞ per-axis check). Computes L2 distance only in the
-/// merge path for decision logging.
-fn find_coincident_vertex(
-    inserted: &[(VertexId, [f64; 3])],
-    pos: &[f64; 3],
-    tolerance: f64,
-) -> Option<(VertexId, f64)> {
-    for (vid, existing_pos) in inserted {
-        if is_same_point_within(pos, existing_pos, tolerance) {
-            let dx = pos[0] - existing_pos[0];
-            let dy = pos[1] - existing_pos[1];
-            let dz = pos[2] - existing_pos[2];
-            let dist = (dx * dx + dy * dy + dz * dz).sqrt();
-            return Some((*vid, dist));
-        }
-    }
-    None
 }
 
 /// Create faces, loops, and halfedge chains for each ConvexCell face.

@@ -9,9 +9,11 @@
 //!
 //! CONSUMERS: operations/boolean, operations/fillet, operations/chamfer, etc.
 
-pub mod builder;
-pub mod step_contract;
-pub mod steps;
+pub mod facade;
+
+pub(crate) mod builder;
+pub(crate) mod step_contract;
+pub(crate) mod steps;
 
 #[cfg(test)]
 mod tests;

@@ -1,21 +1,10 @@
-//! Adaptive Boolean operation router.
-//!
-//! DOMAIN: Single entry point that selects the optimal pipeline for a
-//! given Boolean operation: EMBER (BSP merge) for planar solids, or
-//! parametric (split → classify → assemble) for general geometry.
-//!
-//! DEPENDENCIES: `schema` (BooleanInput), `result` (BooleanResult),
-//!               `parametric` (parametric pipeline execution)
-//!
-//! INVARIANTS:
-//! - Curved geometry always routes to parametric (EMBER is planar-only)
-//! - EMBER failure triggers automatic parametric fallback
-//! - The router itself adds no topology decisions — it only dispatches
-
 use forge_core::{KernelError, OperationResult};
 
 use super::result::BooleanResult;
 use super::schema::BooleanInput;
+use crate::configuration::facade::{resolve_config, KernelConfig};
+use crate::context::scope::OperationScope;
+use crate::context::ModelingContext;
 
 /// Execute a Boolean via the adaptive router — the production entry point.
 ///
@@ -28,17 +17,24 @@ use super::schema::BooleanInput;
 pub fn execute_boolean_adaptive(
     input: BooleanInput,
 ) -> OperationResult<Result<BooleanResult, KernelError>> {
-    // Future: EMBER fast-path for planar solids
-    // if !input.has_curved_geometry() {
-    //     match ember::try_execute(&input) {
-    //         Ok(result) => return result,
-    //         Err(EmberError::CurvedGeometry) | Err(EmberError::PipelineError(_)) => {
-    //             // fall through to parametric
-    //         }
-    //     }
-    // }
+    let session = KernelConfig::default();
+    let resolved = match resolve_config(&session, None, None, None) {
+        Ok(cfg) => cfg,
+        Err(err) => return OperationResult::new(Err(err)),
+    };
+    let mut ctx = ModelingContext::new();
+    let mut scope = OperationScope::new(&resolved, &mut ctx);
 
-    super::parametric::execute(input)
+    let start = std::time::Instant::now();
+    let inner_result = super::parametric::execute(&input, &mut scope);
+    let metrics = forge_core::OperationMetrics {
+        duration: start.elapsed(),
+        ..forge_core::OperationMetrics::default()
+    };
+
+    let mut envelope = OperationResult::new(inner_result);
+    envelope.set_metrics(metrics);
+    envelope
 }
 
 /// Execute directly via the parametric pipeline (bypasses EMBER).
@@ -48,5 +44,6 @@ pub fn execute_boolean_adaptive(
 pub fn execute_boolean_direct(
     input: BooleanInput,
 ) -> OperationResult<Result<BooleanResult, KernelError>> {
-    super::parametric::execute(input)
+    execute_boolean_adaptive(input)
 }
+

@@ -8,6 +8,7 @@
 //!               forge-geom (polygon area, plane), forge-core (KernelError, ToleranceProvider).
 //! INVARIANTS: No topology mutation. Requires a position callback.
 
+pub mod facade;
 pub mod area;
 pub mod completeness;
 pub mod edge_length;

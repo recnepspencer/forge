@@ -1,5 +1,6 @@
 //! Geometric fidelity tests — vertex positions and symbolic planes.
 
+use crate::context::ModelingContext;
 use crate::geometry::facade::GeometryView;
 use crate::operations::primitives::make_cube;
 use super::{test_config, OperationScope};
@@ -7,8 +8,8 @@ use super::{test_config, OperationScope};
 #[test]
 fn cube_vertex_positions_are_corners() {
     let cfg = test_config();
-    let mut null = OperationScope::null_sink();
-    let mut scope = OperationScope::new(&cfg, &mut null);
+    let mut ctx = ModelingContext::new();
+    let mut scope = OperationScope::new(&cfg, &mut ctx);
     let size = 2.0;
     let hs = size / 2.0;
     let r = make_cube([0.0; 3], size, &mut scope).unwrap();
@@ -31,8 +32,8 @@ fn cube_vertex_positions_are_corners() {
 #[test]
 fn cube_vertices_have_symbolic_planes() {
     let cfg = test_config();
-    let mut null = OperationScope::null_sink();
-    let mut scope = OperationScope::new(&cfg, &mut null);
+    let mut ctx = ModelingContext::new();
+    let mut scope = OperationScope::new(&cfg, &mut ctx);
     let r = make_cube([0.0; 3], 2.0, &mut scope).unwrap();
     for (vid, _) in r.topology().arena().iter_vertices() {
         assert!(
@@ -46,8 +47,8 @@ fn cube_vertices_have_symbolic_planes() {
 #[test]
 fn cube_offset_vertex_positions_correct() {
     let cfg = test_config();
-    let mut null = OperationScope::null_sink();
-    let mut scope = OperationScope::new(&cfg, &mut null);
+    let mut ctx = ModelingContext::new();
+    let mut scope = OperationScope::new(&cfg, &mut ctx);
     let center = [5.0, -3.0, 7.0];
     let size = 4.0;
     let hs = size / 2.0;

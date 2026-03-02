@@ -11,49 +11,19 @@
 //! - `replay`:       Causal replay & diagnosis tooling (P3)
 //!
 //! DEPENDENCIES: serde, tracing
+//!
+//! PUBLIC API: All external access goes through `facade`. Internal modules
+//! are `pub(crate)` — only the facade is `pub`.
 
-pub mod decision;
-pub mod decision_log;
-pub mod payload;
-pub mod replay;
+pub(crate) mod decision;
+pub(crate) mod decision_log;
+pub mod facade;
+pub(crate) mod payload;
+pub(crate) mod replay;
 pub mod sink;
 
 #[cfg(test)]
 mod tests;
 
-// ── Stable re-exports (preserves all existing public API paths) ──────────
-
-pub use decision::{
-    DecisionContext, DecisionId, DecisionKind, DecisionTier, EntityKind, EntityRef, SpanId,
-    TopologyDelta, TraceEvent, TracedDecision, EULER_OP_FEATURE_SCOPE,
-};
-
-pub use decision_log::{
-    DecisionLog, DecisionSummary, SpanSummaryEntry, TraceDiff, TraceSummary,
-    compute_trace_fingerprint, TraceFingerprint,
-    log_decision_log, log_error, log_result,
-};
-
-pub use payload::{
-    TraceAdjunctRecord, TraceAdjunctSet, POLICY_DECISION_TRACE_PAYLOAD_KIND,
-    POLICY_DECISION_TRACE_PAYLOAD_VERSION, REIDENTIFICATION_TRACE_PAYLOAD_KIND,
-    REIDENTIFICATION_TRACE_PAYLOAD_VERSION, RESOLUTION_TRACE_PAYLOAD_KIND,
-    RESOLUTION_TRACE_PAYLOAD_VERSION,
-    CandidateValueSummary, PolicyDecisionTracePayload, PolicyResolutionOutcome,
-    PolicyResolutionScopeRef, PolicyResolutionSource, PolicyTraceConsistencyError,
-    ReidentificationCompatibilitySummary, ReidentificationFailureCauseSummary,
-    ReidentificationModeSummary, ReidentificationOriginKindSummary, ReidentificationOutcome,
-    ReidentificationTraceConsistencyError, ReidentificationTracePayload,
-    ResolutionCandidateSummary, ResolutionMatchKind, ResolutionOutcome, ResolutionQuerySummary,
-    ResolutionRoute, ResolutionTraceConsistencyError, ResolutionTracePayload,
-};
-
-pub use replay::{
-    diff_decision_logs, CheckpointLog, DecisionChange, DecisionDelta,
-    delta_debug, DeltaDebugResult,
-    scan_for_divergences, DivergenceDetail, DivergenceReport,
-};
-
-pub use sink::{
-    DecisionSink, DecisionSinkHandle, NullSink, TestSink,
-};
+// ── Public API — all re-exports routed through the facade ────────────────────
+pub use facade::*;

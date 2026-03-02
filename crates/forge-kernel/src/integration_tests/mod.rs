@@ -9,3 +9,4 @@ pub mod harness;
 
 mod entity_lifecycle;
 mod boundary_editing;
+mod observability;
