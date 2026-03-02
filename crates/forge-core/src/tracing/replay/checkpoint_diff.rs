@@ -11,8 +11,8 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use super::decision_log::{DecisionLog, DecisionSummary};
-use super::schema::{DecisionId, TracedDecision};
+use crate::tracing::decision_log::{DecisionLog, DecisionSummary};
+use crate::tracing::decision::{DecisionId, TracedDecision};
 
 // =========================================================================
 // DECISION CHANGE
@@ -254,7 +254,7 @@ pub fn diff_decision_logs(before: &DecisionLog, after: &DecisionLog) -> Decision
 /// `delta_between()` for temporal queries.
 ///
 /// ```
-/// use forge_core::tracing::checkpoint_diff::CheckpointLog;
+/// use forge_core::tracing::replay::checkpoint_diff::CheckpointLog;
 /// use forge_core::DecisionLog;
 ///
 /// let mut checkpoint_log = CheckpointLog::new();

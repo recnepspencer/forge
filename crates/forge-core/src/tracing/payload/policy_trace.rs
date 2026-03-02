@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::policy::PolicyKind;
 
-use super::{DecisionContext, DecisionId, DecisionKind, DecisionTier, TracedDecision};
+use crate::tracing::{DecisionContext, DecisionId, DecisionKind, DecisionTier, TracedDecision};
 
 /// Where the policy resolution came from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

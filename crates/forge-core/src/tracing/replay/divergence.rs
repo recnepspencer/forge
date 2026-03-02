@@ -11,8 +11,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::decision_log::DecisionLog;
-use super::schema::{DecisionContext, DecisionId, DecisionTier, EntityRef, TracedDecision};
+use crate::tracing::decision_log::DecisionLog;
+use crate::tracing::decision::{DecisionContext, DecisionId, DecisionTier, EntityRef, TracedDecision};
 use forge_math::arithmetic::precision::PrecisionMode;
 use forge_math::sign::TriSign;
 
@@ -248,7 +248,7 @@ fn extract_exact_sign(decision: &TracedDecision) -> TriSign {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::tracing::schema::{DecisionKind, DecisionTier, EntityKind};
+    use crate::tracing::decision::{DecisionKind, DecisionTier, EntityKind};
     use forge_math::arithmetic::precision::{build_target_description, PrecisionEscalation};
 
     fn make_clean_escalation() -> PrecisionEscalation {

@@ -1,7 +1,7 @@
 //! Tests for the tracing infrastructure.
 
 use super::decision_log::*;
-use super::schema::*;
+use super::decision::*;
 use crate::policy::PolicyKind;
 
 fn make_decision(id: u64, tier: DecisionTier, kind: DecisionKind) -> TracedDecision {
@@ -464,7 +464,7 @@ fn empty_log_to_summary_is_empty() {
 // Phase P3.1: Checkpoint Diffing Tests
 // =====================================================================
 
-use super::checkpoint_diff::{diff_decision_logs, CheckpointLog};
+use super::replay::checkpoint_diff::{diff_decision_logs, CheckpointLog};
 
 #[test]
 fn diff_decision_logs_detects_added() {
@@ -689,7 +689,7 @@ fn checkpoint_log_temporal_range_query() {
 // Phase P3.2: Delta-Debug Tests
 // =====================================================================
 
-use super::delta_debug::delta_debug;
+use super::replay::delta_debug::delta_debug;
 
 #[test]
 fn delta_debug_finds_exact_step() {

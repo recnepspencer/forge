@@ -5,7 +5,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::{DecisionLog, TraceEvent};
+use super::decision_log::DecisionLog;
+use crate::tracing::decision::TraceEvent;
 
 /// Compact fingerprint summary for a `DecisionLog`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
