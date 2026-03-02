@@ -1,5 +1,6 @@
 //! Geometric fidelity tests — vertex positions and symbolic planes.
 
+use crate::geometry::facade::GeometryView;
 use crate::operations::primitives::make_cube;
 use super::test_config;
 
@@ -31,7 +32,8 @@ fn cube_vertices_have_symbolic_planes() {
     let r = make_cube([0.0; 3], 2.0, &cfg).unwrap();
     for (vid, _) in r.topology().arena().iter_vertices() {
         assert!(
-            r.geometry().get_vertex_symbolic_planes(vid).is_some(),
+            r.geometry().get_vertex_exact(vid)
+                .and_then(|ep| ep.symbolic_planes()).is_some(),
             "V#{} should have symbolic plane indices", vid.index()
         );
     }

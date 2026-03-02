@@ -12,20 +12,23 @@
 //!
 //! ```text
 //! engine/
-//! ├── mod.rs           ← this file (Table of Contents)
-//! ├── data/            ← FeatureOutput struct
-//! ├── contracts/       ← Feature, FeatureContract, FeatureInputs, FeatureRegistry traits
-//! ├── logic/           ← FeaturePipeline, FeatureTree<R>, invariants, OperationSpace
-//! ├── transaction/     ← KernelState, KernelDraft, BRepWorkspace, OperationFinalizer
-//! ├── macros.rs        ← declare_feature! macro (#[macro_export])
-//! ├── facade.rs        ← public API
-//! └── tests.rs         ← feature tests
+//! ├── contracts/        ← Feature, FeatureContract, FeatureInputs, FeatureRegistry traits
+//! ├── pipeline/         ← FeaturePipeline executor, post-invariant validation
+//! ├── operation_space/  ← Numerical conditioning (local coordinate transforms)
+//! ├── output/           ← FeatureOutput, ArenaSnapshot, TopologyDelta
+//! ├── transaction/      ← KernelState, KernelDraft, BRepWorkspace, OperationFinalizer
+//! ├── feature_tree.rs   ← FeatureTree<R> signal-graph manager
+//! ├── macros.rs         ← declare_feature! macro (#[macro_export])
+//! ├── facade.rs         ← public API
+//! └── tests.rs          ← feature tests
 //! ```
 
-mod data;
 mod contracts;
-mod logic;
+mod pipeline;
+mod operation_space;
+mod output;
 pub(crate) mod transaction;
+mod feature_tree;
 
 // Re-export contract types at stable crate paths for the `declare_feature!` macro.
 // The macro expands in caller scope and references `$crate::engine::contract::*`,

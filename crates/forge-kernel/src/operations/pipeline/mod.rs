@@ -2,7 +2,7 @@
 //!
 //! DOMAIN: Step contracts and typed pipeline builders for multi-step
 //! operations like fillet, chamfer, and boolean. Mirrors the feature-level
-//! pipeline in `features/pipeline/` but at a finer granularity — each
+//! pipeline in `engine/pipeline/` but at a finer granularity — each
 //! step within an operation declares its own policies and precision needs.
 //!
 //! DEPENDENCIES: forge-core (PolicyKind, KernelError), core/context

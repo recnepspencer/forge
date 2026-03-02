@@ -12,7 +12,7 @@ use forge_signal::facade::NodeId;
 
 use crate::configuration::facade::ResolvedConfig;
 use super::contract::{FeatureContract, FeatureInputs};
-use super::super::data::feature_output::FeatureOutput;
+use super::super::output::feature_output::FeatureOutput;
 
 /// A parametric feature that can be evaluated.
 ///

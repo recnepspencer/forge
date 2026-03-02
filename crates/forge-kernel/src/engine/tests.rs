@@ -537,8 +537,7 @@ fn pipeline_emits_audit_at_full_level() {
         ) -> Result<FeatureOutput, forge_core::KernelError> {
             Ok(FeatureOutput {
                 topology: TopologyState::empty(),
-                geometry: GeometryState::new(),
-                brep: BrepState::new(),
+                geometry: GeometryStore::default(),
             })
         }
         fn dependencies(&self) -> Vec<NodeId> {

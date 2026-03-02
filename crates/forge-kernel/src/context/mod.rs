@@ -2,16 +2,22 @@
 //!
 //! DOMAIN: The context governs all policy decisions and decision tracing.
 //! INVARIANTS: Every tolerance decision is logged (Doctrine D2).
-//! DEPENDENCIES: `forge-core` (DecisionLog, TracedDecision), `tolerance` (policy structs)
+//! DEPENDENCIES: `forge-core` (DecisionLog, TracedDecision), configuration (policy structs)
 //!
-//! ## Modules
+//! ## Slices
 //!
-//! - `data`               — struct definitions and constructors
-//! - `logic`              — behavior and orchestration
-//! - `facade`             — stable exports for external callers
+//! - `state`       — ModelingContext struct, constructors, config accessors
+//! - `resolution`  — Policy cascade engine and decision types
+//! - `tracing`     — Decision logging, span management, budget checking
+//! - `absorption`  — Sub-operation envelope metadata ingestion
 
-mod data;
+pub mod state;
+mod resolution;
+mod tracing;
+mod absorption;
+
 pub mod facade;
-mod logic;
 
-pub use data::{ModelingContext, ResolvedPolicyDecision, ResolvedPolicySource, SubOperationMetadata};
+pub use state::ModelingContext;
+pub use resolution::{ResolvedPolicyDecision, ResolvedPolicySource};
+pub use absorption::SubOperationMetadata;

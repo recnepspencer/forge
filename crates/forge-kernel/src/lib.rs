@@ -10,10 +10,12 @@
 //! ├── lib.rs           ← this file (Table of Contents only)
 //! ├── prelude.rs       ← convenient imports
 //! ├── configuration/   ← config schema + resolution + overrides
+//! ├── context/         ← modeling context, policy resolution, decision tracing
 //! ├── engine/          ← feature tree, pipeline, contracts, diff
 //! ├── registry/        ← feature catalog, command dispatch, handlers
 //! ├── operations/      ← modeling operations (boolean, primitives, etc.)
 //! ├── geometry/        ← unified geometry store (PropertyLayer pattern)
+//! ├── proof/           ← causal replay, invariants, checkpoints
 //! └── observability/   ← tracing/span telemetry
 //! ```
 //!

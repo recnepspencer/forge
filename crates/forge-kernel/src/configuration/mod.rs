@@ -4,7 +4,7 @@
 //! provenance tracking, tolerance policies, and the `check_tolerance!` macro.
 //!
 //! INVARIANTS:
-//! - Every configuration field has a named default in `defaults`.
+//! - Every configuration field has a named default co-located with its section.
 //! - All sections can be validated independently; cross-section invariants
 //!   are enforced by `ResolvedConfig::cross_validate()`.
 //! - Provenance tracks the cascade source of every resolved field.
@@ -13,9 +13,20 @@
 //! - `forge-core` (`KernelError`, `PolicyKind`, `ValidationCheckpoint`, `DecisionTier`)
 //! - `serde` (serialization)
 
-mod data;
-mod logic;
-mod policy;
+// ── Vertical slices ──────────────────────────────────────────────────
+mod tolerance;
+mod solver;
+mod validation;
+mod policy_rules;
+mod precision;
+
+// ── Cross-cutting root ───────────────────────────────────────────────
+mod kernel_config;
+mod config_override;
+mod resolve;
+pub mod resolved;
+mod provenance;
+
 pub mod facade;
 mod macros;
 

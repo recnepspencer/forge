@@ -13,7 +13,7 @@ use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
 use crate::configuration::facade::KernelConfig;
-use super::super::data::feature_output::FeatureOutput;
+use super::super::output::feature_output::FeatureOutput;
 
 /// Trait that concrete feature enums must implement to be used with `FeatureTree`.
 ///

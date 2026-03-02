@@ -33,8 +33,8 @@ fn is_code_line(line: &str) -> bool {
     true
 }
 
-/// No `forge_math::linalg::` calls allowed in forge-kernel source outside
-/// `geom_facade.rs` (which is the authorized single crossing point).
+/// No direct `forge_math::linalg::` calls allowed in non-deprecated kernel code.
+/// Any allowed crossing point should be explicitly exempted in this test.
 ///
 /// The `_deprecated/` directories are exempt since they are being phased out.
 #[test]
@@ -53,6 +53,8 @@ fn no_forge_math_linalg_bypass() {
         if rel_path.contains("_deprecated") {
             continue;
         }
+        // Legacy allowlist slot: keep this exemption if a dedicated geometry
+        // facade file is reintroduced as the single crossing point.
         if rel_path.ends_with("geom_facade.rs") {
             continue;
         }
@@ -79,10 +81,10 @@ fn no_forge_math_linalg_bypass() {
 
     if !violations.is_empty() {
         panic!(
-            "\n\nARCHITECTURE VIOLATION: forge_math::linalg:: must be accessed through \
-             crate::geom_facade, not imported directly.\n\
+            "\n\nARCHITECTURE VIOLATION: direct forge_math::linalg access is not allowed in \
+             non-deprecated kernel modules.\n\
              Violations found:\n{}\n\n\
-             Fix: use the equivalent function from crate::geom_facade:: instead.\n",
+             Fix: route calls through the approved kernel geometry abstraction layer.\n",
             violations.join("\n")
         );
     }
