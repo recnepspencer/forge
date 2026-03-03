@@ -58,6 +58,7 @@ fn dodecahedron_5_run_determinism() {
 /// Build a cube, split an edge, MEF — must be deterministic.
 #[test]
 fn split_then_mef_chain_is_deterministic() {
+    use forge_core::OperationResult;
     use crate::integration_tests::harness::shapes::{
         collect_face_loop, first_halfedge_of_face,
     };
@@ -65,9 +66,9 @@ fn split_then_mef_chain_is_deterministic() {
     use forge_topo::entity_lifecycle::make_edge_face::MakeEdgeFace;
 
     assert_deterministic(|| {
-        let env = shapes::unit_cube()?;
-        let faces = env.faces().to_vec();
-        let (mut draft, geom) = env.into_draft();
+        let env_res = shapes::unit_cube()?;
+        let faces = env_res.get_value().faces().to_vec();
+        let (mut draft, geom): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
         let face = faces[0];
         let start_he = first_halfedge_of_face(draft.arena(), face)?;
@@ -87,6 +88,6 @@ fn split_then_mef_chain_is_deterministic() {
         })?;
 
         let topo = draft.commit()?;
-        Ok(crate::engine::facade::SolidEnvelope::new(topo, geom))
+        Ok(OperationResult::new(crate::engine::facade::SolidEnvelope::new(topo, geom)))
     });
 }

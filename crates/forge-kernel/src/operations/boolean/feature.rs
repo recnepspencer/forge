@@ -107,7 +107,7 @@ impl Feature for BooleanFeature {
         &self,
         inputs: &BooleanInputs,
         _scope: &mut OperationScope<'_>,
-    ) -> Result<SolidEnvelope, KernelError> {
+    ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, KernelError> {
         let input = BooleanInput::new(
             inputs.target.topology().clone(),
             inputs.target.geometry().clone(),
@@ -120,7 +120,7 @@ impl Feature for BooleanFeature {
         let result = envelope.into_result()?;
         let (topo, geom) = result.into_states();
 
-        Ok(SolidEnvelope::new(topo, geom))
+        Ok(forge_core::envelope::OperationResult::new(SolidEnvelope::new(topo, geom)))
     }
 
     fn dependencies(&self) -> Vec<NodeId> {

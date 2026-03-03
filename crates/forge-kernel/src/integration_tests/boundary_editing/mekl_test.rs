@@ -22,9 +22,9 @@ use forge_topo::boundary_editing::kill_edge_make_loop::KillEdgeMakeLoop;
 /// The face valence should increase by 2 (the bridge edge adds 2 halfedges).
 #[test]
 fn kfmrh_then_mekl_bridges_hole() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face_to_kill = faces[0];
     let target_face = faces[1];
@@ -81,9 +81,9 @@ fn kfmrh_then_mekl_bridges_hole() {
 /// MEKL rejects halfedges that are on different faces.
 #[test]
 fn mekl_rejects_cross_face_halfedges() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let ha = first_halfedge_of_face(draft.arena(), faces[0]).unwrap();
     let hb = first_halfedge_of_face(draft.arena(), faces[1]).unwrap();
@@ -99,9 +99,9 @@ fn mekl_rejects_cross_face_halfedges() {
 /// KFMRH → MEKL → KEML roundtrip restores inner loop.
 #[test]
 fn mekl_keml_roundtrip() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face_to_kill = faces[0];
     let target_face = faces[1];

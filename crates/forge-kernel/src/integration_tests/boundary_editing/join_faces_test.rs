@@ -17,9 +17,9 @@ use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 /// The surviving face should be a quad again.
 #[test]
 fn split_then_rejoin_is_identity() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -60,9 +60,9 @@ fn split_then_rejoin_is_identity() {
 /// The surviving face should have 6 halfedges (two quads merged minus shared edge).
 #[test]
 fn join_two_adjacent_cube_faces() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face_a = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face_a).unwrap();
@@ -92,9 +92,9 @@ fn join_two_adjacent_cube_faces() {
 /// cube face to create a 5-gon.
 #[test]
 fn split_mef_then_join_neighbor() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();

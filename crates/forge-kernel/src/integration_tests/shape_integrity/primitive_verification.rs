@@ -18,7 +18,7 @@ use crate::integration_tests::harness::shapes;
 /// unit_cube() → make_cube([0;3], 1.0) → side=1.0, half-extent=0.5, V=1.0
 #[test]
 fn cube_topology_and_volume() {
-    let env = shapes::unit_cube().unwrap();
+    let env = shapes::unit_cube().expect("unit cube should succeed").into_value();
     verify(&env)
         .named("cube")
         .faces(6).vertices(8).edges(12)
@@ -33,7 +33,7 @@ fn cube_topology_and_volume() {
 /// V−E+F = 4−6+4 = 2 ✓
 #[test]
 fn tetrahedron_topology() {
-    let env = shapes::tetrahedron().unwrap();
+    let env = shapes::tetrahedron().expect("tetrahedron should succeed").into_value();
     verify(&env)
         .named("tetrahedron")
         .faces(4).vertices(4).edges(6)
@@ -47,7 +47,7 @@ fn tetrahedron_topology() {
 #[test]
 fn tetrahedron_volume_regression() {
     use crate::geometry::facade::solid_volume;
-    let env = shapes::tetrahedron().unwrap();
+    let env = shapes::tetrahedron().expect("tetrahedron should succeed").into_value();
     let vol = solid_volume(env.topology().arena(), env.geometry());
     // Lock the exact value from production (23.303639...)
     assert!((vol - 23.303639).abs() < 0.001,
@@ -59,7 +59,7 @@ fn tetrahedron_volume_regression() {
 /// V−E+F = 20−30+12 = 2 ✓
 #[test]
 fn dodecahedron_topology() {
-    let env = shapes::dodecahedron([0.0; 3], 1.0).unwrap();
+    let env = shapes::dodecahedron([0.0; 3], 1.0).expect("dodecahedron should succeed").into_value();
     verify(&env)
         .named("dodecahedron")
         .faces(12).vertices(20).edges(30)
@@ -72,7 +72,7 @@ fn dodecahedron_topology() {
 /// Triangular prism: 2 caps + 3 sides = 5 faces. V−E+F = 6−9+5 = 2 ✓
 #[test]
 fn triangular_prism_topology() {
-    let env = shapes::prism([0.0; 3], 3, 1.0, 2.0).unwrap();
+    let env = shapes::prism([0.0; 3], 3, 1.0, 2.0).expect("prism should succeed").into_value();
     verify(&env)
         .named("prism_3")
         .faces(5).vertices(6).edges(9)
@@ -83,7 +83,7 @@ fn triangular_prism_topology() {
 /// Hexagonal prism: 2 caps + 6 sides = 8 faces. V−E+F = 12−18+8 = 2 ✓
 #[test]
 fn hexagonal_prism_topology() {
-    let env = shapes::prism([0.0; 3], 6, 1.0, 2.0).unwrap();
+    let env = shapes::prism([0.0; 3], 6, 1.0, 2.0).expect("prism should succeed").into_value();
     verify(&env)
         .named("prism_6")
         .faces(8).vertices(12).edges(18)
@@ -96,7 +96,7 @@ fn hexagonal_prism_topology() {
 /// block(half_extents=[1,2,3]) → dimensions 2×4×6 → V=48
 #[test]
 fn block_non_uniform_topology_and_volume() {
-    let env = shapes::block([0.0; 3], [1.0, 2.0, 3.0]).unwrap();
+    let env = shapes::block([0.0; 3], [1.0, 2.0, 3.0]).expect("block should succeed").into_value();
     verify(&env)
         .named("block")
         .faces(6).vertices(8).edges(12)
@@ -113,7 +113,7 @@ fn block_non_uniform_topology_and_volume() {
 /// V−E+F = 8−12+6 = 2 ✓
 #[test]
 fn wedge_topology_and_volume() {
-    let env = shapes::wedge([0.0; 3], [1.0, 1.0, 1.0]).unwrap();
+    let env = shapes::wedge([0.0; 3], [1.0, 1.0, 1.0]).expect("wedge should succeed").into_value();
     verify(&env)
         .named("wedge")
         .faces(6).vertices(8).edges(12)
@@ -127,7 +127,7 @@ fn wedge_topology_and_volume() {
 /// Triangular pyramid (3 sides) should produce a valid solid.
 #[test]
 fn triangular_pyramid_topology() {
-    let env = shapes::pyramid([0.0; 3], 3, 1.0, 2.0).unwrap();
+    let env = shapes::pyramid([0.0; 3], 3, 1.0, 2.0).expect("pyramid should succeed").into_value();
     verify(&env)
         .named("pyramid_3")
         .shells(1).bodies(1)
@@ -138,7 +138,7 @@ fn triangular_pyramid_topology() {
 /// V−E+F = 5−8+5 = 2 ✓
 #[test]
 fn quad_pyramid_topology_and_volume() {
-    let env = shapes::pyramid([0.0; 3], 4, 1.0, 2.0).unwrap();
+    let env = shapes::pyramid([0.0; 3], 4, 1.0, 2.0).expect("pyramid should succeed").into_value();
     verify(&env)
         .named("pyramid_4")
         .faces(5).vertices(5).edges(8)
@@ -151,7 +151,7 @@ fn quad_pyramid_topology_and_volume() {
 /// Large cube: cube(size=100) → 100³ = 1_000_000 volume
 #[test]
 fn large_cube_scale_invariant() {
-    let env = shapes::cube([0.0; 3], 100.0).unwrap();
+    let env = shapes::cube([0.0; 3], 100.0).expect("large cube should succeed").into_value();
     verify(&env)
         .named("large_cube")
         .faces(6).vertices(8).edges(12)
@@ -162,7 +162,7 @@ fn large_cube_scale_invariant() {
 /// Same topology and volume regardless of position.
 #[test]
 fn offset_cube_position_invariant() {
-    let env = shapes::cube([500.0, 500.0, 500.0], 1.0).unwrap();
+    let env = shapes::cube([500.0, 500.0, 500.0], 1.0).expect("offset cube should succeed").into_value();
     verify(&env)
         .named("offset_cube")
         .faces(6).vertices(8).edges(12)

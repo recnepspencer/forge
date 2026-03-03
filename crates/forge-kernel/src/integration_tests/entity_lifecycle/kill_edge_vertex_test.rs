@@ -13,9 +13,9 @@ use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 /// SplitEdge then KEV is a roundtrip — counts should match original.
 #[test]
 fn split_then_kev_roundtrip() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -51,9 +51,9 @@ fn split_then_kev_roundtrip() {
 /// collapsing them all should restore original counts.
 #[test]
 fn split_all_face_edges_then_kev_all() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -86,9 +86,9 @@ fn split_all_face_edges_then_kev_all() {
 /// KEV on a 2-split chain: split edge twice, then collapse both midpoints.
 #[test]
 fn double_split_then_double_kev() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();

@@ -4,6 +4,7 @@
 //! that calls `validate_topology` (production validator) after every step.
 //! These catch pointer rot from chained mutations.
 
+use forge_core::OperationResult;
 use crate::engine::facade::SolidEnvelope;
 use crate::integration_tests::harness::chains::OpChain;
 use crate::integration_tests::harness::shapes;
@@ -19,9 +20,9 @@ use forge_topo::boundary_editing::join_faces::JoinFaces;
 fn commit_draft(
     draft: forge_topo::transactions::MutableDraft,
     geometry: crate::geometry::facade::GeometryStore,
-) -> Result<SolidEnvelope, forge_core::KernelError> {
+) -> Result<OperationResult<SolidEnvelope>, forge_core::KernelError> {
     let topo = draft.commit()?;
-    Ok(SolidEnvelope::new(topo, geometry))
+    Ok(OperationResult::new(SolidEnvelope::new(topo, geometry)))
 }
 
 /// Split every edge of a cube face, then MEF the midpoints.
@@ -29,10 +30,10 @@ fn commit_draft(
 /// 4 splits + 4 MEFs = 8 steps, each validated by production `validate_topology`.
 #[test]
 fn chain_split_all_then_mef() {
-    let env = shapes::unit_cube().unwrap();
-    let faces = env.faces().to_vec();
+    let env_res = shapes::unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
 
-    let result = OpChain::new(env)
+    let result = OpChain::new(env_res)
         .apply("split_edge_0", |env, _scope| {
             let (mut draft, geom) = env.into_draft();
             let he = first_halfedge_of_face(draft.arena(), faces[0])?;
@@ -50,7 +51,7 @@ fn chain_split_all_then_mef() {
         .assert_valid()
         .finish();
 
-    let arena = result.topology().arena();
+    let arena = result.get_value().topology().arena();
     assert_eq!(arena.face_count(), 6, "No new faces from splits");
     assert_eq!(arena.vertex_count(), 10, "2 splits = 2 new vertices");
 }
@@ -58,10 +59,10 @@ fn chain_split_all_then_mef() {
 /// MEF then JoinFaces roundtrip through OpChain — validates at every step.
 #[test]
 fn chain_mef_then_join_roundtrip() {
-    let env = shapes::unit_cube().unwrap();
-    let faces = env.faces().to_vec();
+    let env_res = shapes::unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
 
-    let result = OpChain::new(env)
+    let result = OpChain::new(env_res)
         .apply("mef_diagonal", |env, _scope| {
             let (mut draft, geom) = env.into_draft();
             let face = faces[0];
@@ -82,7 +83,7 @@ fn chain_mef_then_join_roundtrip() {
         .assert_valid()
         .finish();
 
-    let arena = result.topology().arena();
+    let arena = result.get_value().topology().arena();
     assert_eq!(arena.face_count(), 6);
     assert_eq!(arena.vertex_count(), 8);
     assert_eq!(arena.edge_count(), 12);
@@ -92,10 +93,10 @@ fn chain_mef_then_join_roundtrip() {
 /// Tests that pointer rewiring doesn't corrupt across independent faces.
 #[test]
 fn chain_four_splits_independent_faces() {
-    let env = shapes::unit_cube().unwrap();
-    let faces = env.faces().to_vec();
+    let env_res = shapes::unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
 
-    let mut chain = OpChain::new(env);
+    let mut chain = OpChain::new(env_res);
 
     for (i, &face) in faces.iter().take(4).enumerate() {
         let step_name = format!("split_face_{}", i);
@@ -108,7 +109,7 @@ fn chain_four_splits_independent_faces() {
     }
 
     let result = chain.finish_validated();
-    let arena = result.topology().arena();
+    let arena = result.get_value().topology().arena();
     assert_eq!(arena.vertex_count(), 12, "4 splits = 4 new vertices");
     assert_eq!(arena.edge_count(), 16, "4 splits = 4 new edges");
 }

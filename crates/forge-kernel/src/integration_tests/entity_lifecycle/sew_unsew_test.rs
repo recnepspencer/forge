@@ -16,9 +16,9 @@ use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 /// After SplitEdge, the new edge (M→B / B→M) should also have exactly 2.
 #[test]
 fn split_edge_creates_proper_radial_pair() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -54,10 +54,12 @@ fn split_edge_creates_proper_radial_pair() {
 /// Verify by walking radial_next for every halfedge.
 #[test]
 fn cube_all_edges_are_2_manifold() {
-    let envelope = unit_cube().unwrap();
-    let arena = envelope.topology().arena();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let arena = env_res.get_value().topology().arena();
 
     for (he_id, he_data) in arena.iter_half_edges() {
+        let he_id: forge_topo::handles::HalfEdgeId = he_id;
+        let he_data: &forge_topo::b_rep::HalfEdgeData = he_data;
         let twin = he_data.radial_next();
         assert_ne!(
             he_id, twin,
@@ -90,8 +92,8 @@ fn cube_all_edges_are_2_manifold() {
 /// exactly 2-valent radial chains and no boundary edges exist.
 #[test]
 fn split_all_edges_preserves_2_manifold() {
-    let envelope = unit_cube().unwrap();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let edges: Vec<_> = draft.arena().iter_edges()
         .map(|(id, _)| id).collect();
@@ -102,6 +104,8 @@ fn split_all_edges_preserves_2_manifold() {
     }
 
     for (he_id, he_data) in draft.arena().iter_half_edges() {
+        let he_id: forge_topo::handles::HalfEdgeId = he_id;
+        let he_data: &forge_topo::b_rep::HalfEdgeData = he_data;
         let twin = he_data.radial_next();
         assert_ne!(
             he_id, twin,

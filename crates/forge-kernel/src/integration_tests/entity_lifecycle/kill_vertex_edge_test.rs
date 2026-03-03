@@ -13,9 +13,9 @@ use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 /// SplitEdge creates a valence-2 vertex, then KVE merges it back.
 #[test]
 fn split_edge_then_kve_roundtrip() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -48,9 +48,9 @@ fn split_edge_then_kve_roundtrip() {
 /// Split two separate edges, KVE both back — independent roundtrips.
 #[test]
 fn two_independent_kve_roundtrips() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -86,9 +86,9 @@ fn two_independent_kve_roundtrips() {
 /// Double split on same edge, then KVE both midpoints back.
 #[test]
 fn double_split_then_kve_both() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();

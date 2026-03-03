@@ -8,7 +8,8 @@
 
 use forge_core::KernelError;
 
-use crate::context::scope::OperationScope;
+use crate::configuration::facade::ResolvedConfig;
+use forge_core::envelope::OperationResult;
 use crate::engine::facade::SolidEnvelope;
 
 use super::PrimitiveParams;
@@ -20,29 +21,29 @@ use super::PrimitiveParams;
 pub fn generate_primitive(
     params: &PrimitiveParams,
     center: [f64; 3],
-    scope: &mut OperationScope<'_>,
-) -> Result<SolidEnvelope, KernelError> {
+    config: &ResolvedConfig,
+) -> Result<OperationResult<SolidEnvelope>, KernelError> {
     match params {
         PrimitiveParams::Cube { size } => {
-            super::make_cube(center, *size, scope)
+            super::make_cube(center, *size, config)
         }
         PrimitiveParams::Block { half_extents } => {
-            super::make_block(center, *half_extents, scope)
+            super::make_block(center, *half_extents, config)
         }
         PrimitiveParams::Tetrahedron { scale } => {
-            super::make_tetrahedron(center, *scale, scope)
+            super::make_tetrahedron(center, *scale, config)
         }
         PrimitiveParams::Dodecahedron { scale } => {
-            super::make_dodecahedron(center, *scale, scope)
+            super::make_dodecahedron(center, *scale, config)
         }
         PrimitiveParams::Prism { sides, radius, height } => {
-            super::make_prism(center, *sides, *radius, *height, scope)
+            super::make_prism(center, *sides, *radius, *height, config)
         }
         PrimitiveParams::Pyramid { sides, radius, height } => {
-            super::make_pyramid(center, *sides, *radius, *height, scope)
+            super::make_pyramid(center, *sides, *radius, *height, config)
         }
         PrimitiveParams::Wedge { dimensions } => {
-            super::make_wedge(center, *dimensions, scope)
+            super::make_wedge(center, *dimensions, config)
         }
     }
 }

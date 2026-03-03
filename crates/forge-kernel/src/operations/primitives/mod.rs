@@ -189,8 +189,9 @@ impl Feature for MakePrimitiveFeature {
         &self,
         _inputs: &PrimitiveInputs,
         scope: &mut OperationScope<'_>,
-    ) -> Result<SolidEnvelope, KernelError> {
-        generate::generate_primitive(&self.params, self.center, scope)
+    ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, KernelError> {
+        let sub_result = generate::generate_primitive(&self.params, self.center, scope.config)?;
+        Ok(sub_result)
     }
 
     fn dependencies(&self) -> Vec<NodeId> {

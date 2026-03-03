@@ -12,9 +12,9 @@ use forge_topo::entity_lifecycle::make_edge_vertex::MakeEdgeVertex;
 /// MEV on a cube face sprouts a wire edge, adding 1 vertex, 1 edge, 2 halfedges.
 #[test]
 fn mev_sprouts_wire_from_cube_vertex() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face = faces[0];
     let anchor = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -36,9 +36,9 @@ fn mev_sprouts_wire_from_cube_vertex() {
 /// MEV then KEV roundtrip — should restore original counts.
 #[test]
 fn mev_then_kev_roundtrip() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face = faces[0];
     let anchor = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -68,9 +68,9 @@ fn mev_then_kev_roundtrip() {
 /// Chain MEV: sprout two wire edges from the same vertex.
 #[test]
 fn chain_mev_two_wires_from_same_vertex() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face = faces[0];
     let anchor = first_halfedge_of_face(draft.arena(), face).unwrap();

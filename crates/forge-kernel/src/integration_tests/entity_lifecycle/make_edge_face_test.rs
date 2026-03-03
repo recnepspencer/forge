@@ -15,9 +15,9 @@ use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 /// insert an edge between them. Result: 2 triangular faces.
 #[test]
 fn split_cube_face_into_two_triangles() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -55,9 +55,9 @@ fn split_cube_face_into_two_triangles() {
 /// Creates a 5-sided face, then splits it into a triangle and a quad.
 #[test]
 fn split_edge_then_mef_through_midpoint() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -101,9 +101,9 @@ fn split_edge_then_mef_through_midpoint() {
 /// don't interfere with each other.
 #[test]
 fn mef_on_two_different_cube_faces() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face_a = faces[0];
     let face_b = faces[1];

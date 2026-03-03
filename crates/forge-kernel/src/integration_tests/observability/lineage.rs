@@ -7,14 +7,14 @@
 //! in `build_halfedge_mesh`. The `LineageStore` infrastructure exists in
 //! `forge-topo` but primitive generation doesn't populate it yet.
 
-use crate::integration_tests::harness::shapes::unit_cube_traced;
+use crate::integration_tests::harness::shapes::unit_cube;
 
 /// Every face born during make_cube must have a lineage entry.
 #[test]
 #[ignore = "Phase 1.2: LineageStore not yet populated during primitive generation"]
 fn test_make_block_lineage_covers_all_entities() {
-    let (envelope, _ctx) = unit_cube_traced().expect("unit cube should succeed");
-    let topo = envelope.topology();
+    let result = unit_cube().expect("unit cube should succeed");
+    let topo = result.get_value().topology();
     let _arena = topo.arena();
 
     // After Phase 1.2 wiring, the draft's lineage_store will be committed
@@ -42,7 +42,7 @@ fn test_make_block_lineage_covers_all_entities() {
 #[test]
 #[ignore = "Phase 1.2: LineageStore not yet populated during primitive generation"]
 fn test_lineage_event_log_chronological() {
-    let (_envelope, _ctx) = unit_cube_traced().expect("unit cube should succeed");
+    let _result = unit_cube().expect("unit cube should succeed");
 
     // When implemented:
     // let lineage = result.topology.lineage_store();
@@ -63,7 +63,7 @@ fn test_lineage_event_log_chronological() {
 #[test]
 #[ignore = "Phase 1.2: LineageStore not yet populated during primitive generation"]
 fn test_lineage_root_contains_operation_attribution() {
-    let (_envelope, _ctx) = unit_cube_traced().expect("unit cube should succeed");
+    let _result = unit_cube().expect("unit cube should succeed");
 
     // When implemented:
     // let lineage = result.topology.lineage_store();

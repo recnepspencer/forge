@@ -15,8 +15,6 @@
 
 use std::collections::HashMap;
 
-use crate::geometry::facade::GeometryView;
-
 use forge_core::envelope::OperationResult;
 use forge_core::tracing::{DecisionSink, TraceAdjunctSet};
 use forge_core::KernelError;
@@ -26,10 +24,10 @@ use super::super::contracts::contract::{AuditLevel, FeatureInputs};
 use super::super::contracts::feature_trait::Feature;
 use super::super::output::solid_envelope::SolidEnvelope;
 use super::invariants::validate_invariant;
-use crate::configuration::facade::{resolve_config, KernelConfig, ResolvedConfig};
+use crate::configuration::facade::{resolve_config, KernelConfig};
 use crate::context::facade::ModelingContext;
 use crate::context::scope::OperationScope;
-use super::super::facade::{OperationFinalizer, OperationSpace, TopologyHashBoundary};
+use super::super::facade::{OperationFinalizer, TopologyHashBoundary};
 use crate::proof::checkpoint::schema::ValidationConfig;
 
 /// Feature pipeline executor.
@@ -103,7 +101,7 @@ impl FeaturePipeline {
         ctx.end_span(span_id, duration_micros);
 
         // Propagate execution errors before finalization
-        let output = result?;
+        let mut sub_envelope = result?;
 
         // 6. Post-validate invariants (success only)
         let validation_config = ValidationConfig {
@@ -113,26 +111,25 @@ impl FeaturePipeline {
         };
         for invariant in feature.post_invariants() {
             validate_invariant(
-                output.topology(),
-                output.geometry(),
+                sub_envelope.get_value().topology(),
+                sub_envelope.get_value().geometry(),
                 invariant,
                 &validation_config,
             )?;
         }
 
         // 7. Compute hash_after from the output
-        let hash_after = forge_topo::transactions::compute_arena_topology_hash(output.topology().arena());
+        let hash_after = forge_topo::transactions::compute_arena_topology_hash(sub_envelope.get_value().topology().arena());
 
         // 8. Finalize — drain decisions + metadata from ctx into envelope
         let hashes = TopologyHashBoundary {
             before: Some(hash_before),
             after: Some(hash_after),
         };
-        let mut envelope = OperationResult::new(output);
         {
             let mut finalizer = OperationFinalizer::new(&mut ctx);
             let _finalization = finalizer.collect_success(
-                &mut envelope,
+                &mut sub_envelope,
                 TraceAdjunctSet::new(),
                 hashes,
                 None,
@@ -142,17 +139,17 @@ impl FeaturePipeline {
         // 9. Audit-level filtering
         match feature.audit_level() {
             AuditLevel::None => {
-                envelope.set_decision_log(forge_core::DecisionLog::new());
+                sub_envelope.set_decision_log(forge_core::DecisionLog::new());
             }
             AuditLevel::Summary => {
-                emit_feature_summary(feature, &mut envelope);
+                emit_feature_summary(feature, &mut sub_envelope);
             }
             AuditLevel::Full => {
-                emit_feature_audit(feature, &mut envelope);
+                emit_feature_audit(feature, &mut sub_envelope);
             }
         }
 
-        Ok(envelope)
+        Ok(sub_envelope)
     }
 }
 
@@ -164,29 +161,6 @@ fn compute_input_hash(inputs: &HashMap<NodeId, SolidEnvelope>) -> u128 {
         combined = combined.wrapping_add(h);
     }
     combined
-}
-
-/// Compute the OperationSpace from feature inputs.
-///
-/// Collects all vertex positions from input geometry and analyzes
-/// whether a local coordinate transform is needed for numerical safety.
-fn compute_operation_space(
-    inputs: &HashMap<NodeId, SolidEnvelope>,
-    config: &ResolvedConfig,
-) -> OperationSpace {
-    let mut all_points: Vec<[f64; 3]> = Vec::new();
-    for output in inputs.values() {
-        for (v_id, _) in output.topology().arena().iter_vertices() {
-            if let Some(pos) = output.geometry().get_vertex_position(v_id) {
-                all_points.push(*pos);
-            }
-        }
-    }
-    if all_points.is_empty() {
-        return OperationSpace::identity();
-    }
-    let feature_tol = config.scaled_vertex_tolerance();
-    OperationSpace::from_points(&all_points, feature_tol)
 }
 
 /// Emit a full audit trace for the feature execution.

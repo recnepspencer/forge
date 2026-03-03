@@ -4,7 +4,8 @@
 //! the fundamental B-Rep invariants: Euler formula, manifold edges,
 //! twin reciprocity, closed loops, outward normals, and complete geometry.
 
-use crate::context::ModelingContext;
+// use crate::context::ModelingContext; (removed intentionally)
+// struct removed
 use forge_topo::b_rep::TopologyArena;
 use crate::engine::facade::SolidEnvelope;
 use crate::operations::primitives::{make_cube, make_tetrahedron, make_dodecahedron};
@@ -123,23 +124,20 @@ pub(super) fn assert_valid_solid(result: &SolidEnvelope, label: &str) {
 #[test]
 fn cube_structural_invariants() {
     let cfg = test_config();
-    let mut ctx = ModelingContext::new();
-    let mut scope = OperationScope::new(&cfg, &mut ctx);
-    assert_valid_solid(&make_cube([0.0; 3], 2.0, &mut scope).unwrap(), "cube");
+    let res = make_cube([0.0; 3], 2.0, &cfg).unwrap();
+    assert_valid_solid(res.get_value(), "cube");
 }
 
 #[test]
 fn tetrahedron_structural_invariants() {
     let cfg = test_config();
-    let mut ctx = ModelingContext::new();
-    let mut scope = OperationScope::new(&cfg, &mut ctx);
-    assert_valid_solid(&make_tetrahedron([0.0; 3], 1.0, &mut scope).unwrap(), "tet");
+    let res = make_tetrahedron([0.0; 3], 1.0, &cfg).unwrap();
+    assert_valid_solid(res.get_value(), "tet");
 }
 
 #[test]
 fn dodecahedron_structural_invariants() {
     let cfg = test_config();
-    let mut ctx = ModelingContext::new();
-    let mut scope = OperationScope::new(&cfg, &mut ctx);
-    assert_valid_solid(&make_dodecahedron([0.0; 3], 1.0, &mut scope).unwrap(), "dodec");
+    let res = make_dodecahedron([0.0; 3], 1.0, &cfg).unwrap();
+    assert_valid_solid(res.get_value(), "dodec");
 }

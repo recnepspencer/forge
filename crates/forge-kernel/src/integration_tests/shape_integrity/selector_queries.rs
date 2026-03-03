@@ -12,7 +12,7 @@ use crate::integration_tests::harness::shapes;
 #[test]
 fn cube_has_one_top_face() {
     let env = shapes::unit_cube().unwrap();
-    let top = select(&env)
+    let top = select(env.get_value())
         .faces()
         .where_normal_near([0.0, 0.0, 1.0], 0.01)
         .one();
@@ -23,7 +23,7 @@ fn cube_has_one_top_face() {
 #[test]
 fn cube_has_one_bottom_face() {
     let env = shapes::unit_cube().unwrap();
-    let bottom = select(&env)
+    let bottom = select(env.get_value())
         .faces()
         .where_normal_near([0.0, 0.0, -1.0], 0.01)
         .one();
@@ -41,7 +41,7 @@ fn cube_six_axis_aligned_faces() {
         [0.0, 0.0, 1.0], [0.0, 0.0, -1.0],
     ];
     for normal in &normals {
-        let count = select(&env)
+        let count = select(env.get_value())
             .faces()
             .where_normal_near(*normal, 0.01)
             .count();
@@ -61,7 +61,7 @@ fn cube_six_axis_aligned_faces() {
 #[test]
 fn tetrahedron_has_one_top_face() {
     let env = shapes::tetrahedron().unwrap();
-    let count = select(&env)
+    let count = select(env.get_value())
         .faces()
         .where_normal_near([0.0, 0.0, 1.0], 0.01)
         .count();
@@ -74,7 +74,7 @@ fn tetrahedron_has_one_top_face() {
 #[test]
 fn cube_corner_vertex() {
     let env = shapes::unit_cube().unwrap();
-    let corner = select(&env)
+    let corner = select(env.get_value())
         .vertices()
         .where_near([0.5, 0.5, 0.5], 0.01)
         .one();
@@ -92,7 +92,7 @@ fn cube_all_eight_vertices_findable() {
         [-0.5, -0.5,  0.5], [-0.5, -0.5, -0.5],
     ];
     for corner in &corners {
-        let count = select(&env)
+        let count = select(env.get_value())
             .vertices()
             .where_near(*corner, 0.01)
             .count();
@@ -111,7 +111,7 @@ fn cube_all_eight_vertices_findable() {
 #[test]
 fn cube_all_edges_same_length() {
     let env = shapes::unit_cube().unwrap();
-    let long_edges = select(&env)
+    let long_edges = select(env.get_value())
         .edges()
         .where_length_above(0.9)
         .all();
@@ -122,7 +122,7 @@ fn cube_all_edges_same_length() {
 #[test]
 fn cube_no_edges_above_diagonal() {
     let env = shapes::unit_cube().unwrap();
-    let too_long = select(&env)
+    let too_long = select(env.get_value())
         .edges()
         .where_length_above(1.1)
         .all();
@@ -135,13 +135,13 @@ fn cube_no_edges_above_diagonal() {
 #[test]
 fn top_face_has_four_vertices() {
     let env = shapes::unit_cube().unwrap();
-    let top = select(&env)
+    let top = select(env.get_value())
         .faces()
         .where_normal_near([0.0, 0.0, 1.0], 0.01)
         .one()
         .unwrap();
 
-    let verts = select(&env).vertices_of(top).all();
+    let verts = select(env.get_value()).vertices_of(top).all();
     assert_eq!(verts.len(), 4, "Top face should have 4 vertices");
 }
 
@@ -149,12 +149,12 @@ fn top_face_has_four_vertices() {
 #[test]
 fn top_face_has_four_edges() {
     let env = shapes::unit_cube().unwrap();
-    let top = select(&env)
+    let top = select(env.get_value())
         .faces()
         .where_normal_near([0.0, 0.0, 1.0], 0.01)
         .one()
         .unwrap();
 
-    let edges = select(&env).edges_of(top).all();
+    let edges = select(env.get_value()).edges_of(top).all();
     assert_eq!(edges.len(), 4, "Top face should have 4 edges");
 }

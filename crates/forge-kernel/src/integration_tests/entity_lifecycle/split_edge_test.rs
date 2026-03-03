@@ -12,9 +12,9 @@ use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 /// Two adjacent faces go from 4-sided to 5-sided.
 #[test]
 fn split_single_cube_edge() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -44,9 +44,9 @@ fn split_single_cube_edge() {
 /// A cube face has 4 edges; splitting each adds 1 vertex and 1 edge per split.
 #[test]
 fn split_all_edges_of_one_face() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face = faces[0];
 
@@ -82,9 +82,9 @@ fn split_all_edges_of_one_face() {
 /// Tests that the output handles from the first split are still valid.
 #[test]
 fn split_same_edge_twice() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -119,8 +119,8 @@ fn split_same_edge_twice() {
 /// Tests massive rewiring with all 24 halfedges affected.
 #[test]
 fn split_all_cube_edges() {
-    let envelope = unit_cube().unwrap();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let all_edges: Vec<_> = draft.arena().iter_edges()
         .map(|(id, _)| id)

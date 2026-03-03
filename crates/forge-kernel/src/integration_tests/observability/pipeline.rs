@@ -6,9 +6,12 @@
 use forge_core::KernelError;
 use forge_topo::transactions::TopologyState;
 
+use crate::context::ModelingContext;
 use crate::context::scope::OperationScope;
-use crate::integration_tests::harness::shapes::traced_scope;
+use crate::integration_tests::harness::builders::configs::test_config;
 use crate::operations::primitives;
+use forge_core::envelope::OperationResult;
+use crate::prelude::SolidEnvelope;
 use crate::operations::pipeline::facade::{PipelineBuilder, StepContract};
 
 /// Minimal step contract for pipeline tests.
@@ -36,11 +39,10 @@ impl StepContract for TestStep {
     }
 }
 
-/// Two-step pipeline: make_cube → verify handles.
-/// Proves state threads through pipeline steps.
 #[test]
 fn test_two_step_pipeline_threads_state() {
-    let (config, mut ctx) = traced_scope();
+    let config = test_config();
+    let mut ctx = ModelingContext::new();
     let mut scope = OperationScope::new(&config, &mut ctx);
 
     let step1 = TestStep::new("make_primitive");
@@ -50,13 +52,14 @@ fn test_two_step_pipeline_threads_state() {
 
     // Step 1: generate the cube
     let builder = builder.then(&step1, |_state, step_scope| {
-        let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope)?;
+        let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope.config)?;
         Ok(result)
     }).expect("step 1 should succeed");
 
     // Step 2: verify we got the cube
-    let builder = builder.then(&step2, |mesh_result, _step_scope| {
-        let (topo, _geom) = mesh_result.into_parts();
+    let builder = builder.then(&step2, |mesh_result: OperationResult<SolidEnvelope>, _step_scope| {
+        let (topo, _geom) = mesh_result.into_value().into_parts();
+        let topo: forge_topo::transactions::TopologyState = topo;
         let vertex_count = topo.arena().iter_vertices().count();
         assert_eq!(vertex_count, 8, "Cube should have 8 vertices");
         Ok(topo)
@@ -75,7 +78,8 @@ fn test_two_step_pipeline_threads_state() {
 /// Decisions from both steps should be visible in the ModelingContext.
 #[test]
 fn test_pipeline_accumulates_decisions() {
-    let (config, mut ctx) = traced_scope();
+    let config = test_config();
+    let mut ctx = ModelingContext::new();
     let mut scope = OperationScope::new(&config, &mut ctx);
 
     let step1 = TestStep::new("make_cube_a");
@@ -85,30 +89,30 @@ fn test_pipeline_accumulates_decisions() {
     let builder = PipelineBuilder::start(&mut scope, ());
 
     let builder = builder.then(&step1, |_state, step_scope| {
-        let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope)?;
-        Ok(result.into_parts())
+        let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope.config)?;
+        Ok(result)
     }).expect("step 1 should succeed");
 
-    let builder = builder.then(&step2, |_state, step_scope| {
-        let result = primitives::make_cube([10.0, 0.0, 0.0], 1.0, step_scope)?;
-        Ok(result.into_parts())
+    let builder = builder.then(&step2, |_prev, step_scope| {
+        let result = primitives::make_cube([10.0, 0.0, 0.0], 1.0, step_scope.config)?;
+        Ok(result)
     }).expect("step 2 should succeed");
 
-    let (_, audit) = builder.finish();
-    assert_eq!(audit.steps.len(), 2);
+    let (_final_result, audit) = builder.finish();
 
-    // The final DecisionLog should contain decisions from both steps.
+    // The pipeline audit should record 2 steps.
+    assert_eq!(audit.steps.len(), 2, "Pipeline should have 2 step audit entries");
+
+    // The pipeline's context (ModelingContext) records the step spans.
+    // Each `run_step` wraps execution in a span, so we should see 2 step spans.
     let log = ctx.get_decision_log();
-
-    // If the pipeline accumulates correctly, we should see span events
-    // from both steps in the log.
     let events = log.get_events();
     let span_count = events.iter()
         .filter(|e| matches!(e, forge_core::TraceEvent::StartSpan { .. }))
         .count();
     assert_eq!(
-        span_count, 4,
-        "Expected 4 span starts (2 from pipeline steps + 2 from underlying primitive operations), got {}", span_count
+        span_count, 2,
+        "Expected 2 span starts (one per pipeline step), got {}", span_count
     );
 }
 
@@ -116,15 +120,17 @@ fn test_pipeline_accumulates_decisions() {
 #[test]
 fn test_pipeline_determinism() {
     fn run_pipeline() -> (u128, usize) {
-        let (config, mut ctx) = traced_scope();
+        let config = test_config();
+        let mut ctx = ModelingContext::new();
         let mut scope = OperationScope::new(&config, &mut ctx);
 
         let step = TestStep::new("make_cube");
         let builder = PipelineBuilder::start(&mut scope, ());
 
         let builder = builder.then(&step, |_state, step_scope| {
-            let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope)?;
-            let (topo, _geom) = result.into_parts();
+            let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope.config)?;
+            let (topo, _geom) = result.into_value().into_parts();
+            let topo: forge_topo::transactions::TopologyState = topo;
             Ok(topo)
         }).expect("make_cube should succeed");
 
@@ -149,7 +155,8 @@ fn test_pipeline_determinism() {
 /// Pipeline step failure must not corrupt earlier state.
 #[test]
 fn test_pipeline_failure_preserves_prior_state() {
-    let (config, mut ctx) = traced_scope();
+    let config = test_config();
+    let mut ctx = ModelingContext::new();
     let mut scope = OperationScope::new(&config, &mut ctx);
 
     let step1 = TestStep::new("make_cube");
@@ -159,8 +166,8 @@ fn test_pipeline_failure_preserves_prior_state() {
 
     // Step 1: generate cube
     let builder = builder.then(&step1, |_state, step_scope| {
-        let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope)?;
-        let (topo, _geom) = result.into_parts();
+        let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope.config)?;
+        let (topo, _geom) = result.into_value().into_parts();
         Ok(topo)
     }).expect("step 1 should succeed");
 

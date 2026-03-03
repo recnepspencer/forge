@@ -174,7 +174,7 @@ fn pipeline_rejects_feature_with_missing_policy_configuration() {
             &self,
             _inputs: &EmptyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
-        ) -> Result<SolidEnvelope, forge_core::KernelError> {
+        ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError> {
             unreachable!("should not reach execution with missing policy")
         }
         fn dependencies(&self) -> Vec<NodeId> {
@@ -255,7 +255,7 @@ fn pipeline_validates_inputs_before_execution() {
             &self,
             _inputs: &StrictInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
-        ) -> Result<SolidEnvelope, forge_core::KernelError> {
+        ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError> {
             unreachable!("should not reach execution with failed validation")
         }
         fn dependencies(&self) -> Vec<NodeId> {
@@ -350,11 +350,11 @@ fn pipeline_skips_audit_at_none_level() {
             &self,
             _inputs: &EmptyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
-        ) -> Result<SolidEnvelope, forge_core::KernelError> {
-            Ok(SolidEnvelope::new(
+        ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError> {
+            Ok(forge_core::envelope::OperationResult::new(SolidEnvelope::new(
                 TopologyState::empty(),
                 GeometryStore::default(),
-            ))
+            )))
         }
         fn dependencies(&self) -> Vec<NodeId> {
             Vec::new()
@@ -447,11 +447,11 @@ fn pipeline_validates_post_invariants_after_execution() {
             &self,
             _inputs: &EmptyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
-        ) -> Result<SolidEnvelope, forge_core::KernelError> {
-            Ok(SolidEnvelope::new(
+        ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError> {
+            Ok(forge_core::envelope::OperationResult::new(SolidEnvelope::new(
                 TopologyState::empty(),
                 GeometryStore::default(),
-            ))
+            )))
         }
         fn dependencies(&self) -> Vec<NodeId> {
             Vec::new()
@@ -533,11 +533,11 @@ fn pipeline_emits_audit_at_full_level() {
             &self,
             _inputs: &EmptyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
-        ) -> Result<SolidEnvelope, forge_core::KernelError> {
-            Ok(SolidEnvelope::new(
+        ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError> {
+            Ok(forge_core::envelope::OperationResult::new(SolidEnvelope::new(
                 TopologyState::empty(),
                 GeometryStore::default(),
-            ))
+            )))
         }
         fn dependencies(&self) -> Vec<NodeId> {
             Vec::new()
@@ -630,7 +630,7 @@ fn typed_inputs_reject_missing_dependency() {
             &self,
             _inputs: &NeedyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
-        ) -> Result<SolidEnvelope, forge_core::KernelError> {
+        ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError> {
             unreachable!("should not reach execution with missing dependency")
         }
         fn dependencies(&self) -> Vec<NodeId> {

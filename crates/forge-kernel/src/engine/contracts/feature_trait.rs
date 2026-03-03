@@ -67,7 +67,7 @@ pub trait Feature: FeatureContract + std::fmt::Debug + Any {
         &self,
         inputs: &Self::Inputs,
         scope: &mut OperationScope<'_>,
-    ) -> Result<SolidEnvelope, KernelError>;
+    ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, KernelError>;
 
     /// Return the list of input dependencies (NodeIds).
     fn dependencies(&self) -> Vec<NodeId>;

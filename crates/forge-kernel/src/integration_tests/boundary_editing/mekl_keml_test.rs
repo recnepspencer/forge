@@ -14,9 +14,9 @@ use forge_topo::entity_lifecycle::make_edge_face::MakeEdgeFace;
 /// Verify full count restoration AND that vertex adjacency is intact.
 #[test]
 fn mef_then_join_roundtrip_restores_all_counts() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -55,9 +55,9 @@ fn mef_then_join_roundtrip_restores_all_counts() {
 /// This tests that MEF doesn't corrupt adjacent face topology.
 #[test]
 fn mef_two_faces_then_join_adjacent_pair() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face_a = faces[0];
     let face_b = faces[2];

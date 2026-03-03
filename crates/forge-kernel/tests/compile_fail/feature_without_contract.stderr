@@ -1,36 +1,38 @@
 error[E0277]: the trait bound `NakedFeature: FeatureContract` is not satisfied
-  --> tests/compile_fail/feature_without_contract.rs:20:18
+  --> tests/compile_fail/feature_without_contract.rs:19:18
    |
-20 | impl Feature for NakedFeature {
+19 | impl Feature for NakedFeature {
    |                  ^^^^^^^^^^^^ unsatisfied trait bound
    |
 help: the trait `FeatureContract` is not implemented for `NakedFeature`
-  --> tests/compile_fail/feature_without_contract.rs:12:1
+  --> tests/compile_fail/feature_without_contract.rs:11:1
    |
-12 | struct NakedFeature;
+11 | struct NakedFeature;
    | ^^^^^^^^^^^^^^^^^^^
 help: the following other types implement trait `FeatureContract`
-  --> src/features/wrappers.rs
+  --> src/operations/boolean/feature.rs
    |
-   | / crate::declare_feature!(MakeCubeFeature,
-   | |     kind: "make_cube",
-   | |     policies: [],
-   | |     origins: [EntityOriginKind::EulerOperator],
-   | |     invariants: [InvariantKind::ManifoldEdges],
-   | |     audit: AuditLevel::Summary,
-   | | );
-   | |_^ `MakeCubeFeature`
-...
    | / crate::declare_feature!(BooleanFeature,
    | |     kind: "boolean",
    | |     policies: [
    | |         forge_core::PolicyKind::CoincidentGeometry,
 ...  |
-   | |     audit: AuditLevel::Full,
+   | |     persistent: true,
    | | );
    | |_^ `BooleanFeature`
-note: required by a bound in `forge_kernel::features::traits::Feature`
-  --> src/features/traits.rs
+   |
+  ::: src/operations/primitives/contract.rs
+   |
+   | / crate::declare_feature!(MakePrimitiveFeature,
+   | |     kind: "make_primitive",
+   | |     policies: [],
+   | |     origins: [EntityOriginKind::DirectInsertion],
+...  |
+   | |     persistent: true,
+   | | );
+   | |_^ `MakePrimitiveFeature`
+note: required by a bound in `forge_kernel::engine::facade::Feature`
+  --> src/engine/contracts/feature_trait.rs
    |
    | pub trait Feature: FeatureContract + std::fmt::Debug + Any {
    |                    ^^^^^^^^^^^^^^^ required by this bound in `Feature`

@@ -20,9 +20,9 @@ use forge_topo::boundary_editing::kill_edge_make_loop::KillEdgeMakeLoop;
 /// - The outer loop shrinks by the inner loop's halfedges + 2 bridge HEs
 #[test]
 fn keml_splits_bridge_into_two_loops() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let face_to_kill = faces[0];
     let target_face = faces[1];
@@ -76,9 +76,9 @@ fn keml_splits_bridge_into_two_loops() {
 /// KEML rejects an edge whose halfedges are on different faces.
 #[test]
 fn keml_rejects_cross_face_edge() {
-    let envelope = unit_cube().unwrap();
-    let faces = envelope.faces().to_vec();
-    let (mut draft, _geometry) = envelope.into_draft();
+    let env_res = unit_cube().expect("unit cube should succeed");
+    let faces = env_res.get_value().faces().to_vec();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
 
     let he = first_halfedge_of_face(draft.arena(), faces[0]).unwrap();
 

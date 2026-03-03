@@ -4,7 +4,7 @@
 //! `make_block`/`make_cube` runs through the production path.
 
 
-use crate::integration_tests::harness::shapes::{unit_cube_traced, unit_block_traced};
+use crate::integration_tests::harness::shapes::{unit_cube, block};
 use forge_core::DecisionKind;
 
 /// Build a unit cube with ModelingContext and verify decisions are recorded.
@@ -13,8 +13,8 @@ use forge_core::DecisionKind;
 /// decision for every vertex placement — both merges and clean inserts.
 #[test]
 fn test_make_block_produces_decisions() {
-    let (_envelope, ctx) = unit_cube_traced().expect("unit cube should succeed");
-    let log = ctx.get_decision_log();
+    let result = unit_cube().expect("unit cube should succeed");
+    let log = result.get_decision_log();
 
     assert!(
         !log.is_empty(),
@@ -22,7 +22,7 @@ fn test_make_block_produces_decisions() {
     );
 
 
-    let has_near_boundary = log.decisions().any(|d| {
+    let has_near_boundary = log.decisions().any(|d: &forge_core::TracedDecision| {
         matches!(d.get_kind(), DecisionKind::NearBoundary { .. })
     });
     assert!(
@@ -36,15 +36,15 @@ fn test_make_block_produces_decisions() {
 /// All decisions should be NearBoundary with large margins (clean inserts).
 #[test]
 fn test_large_block_no_spurious_decisions() {
-    let (_envelope, ctx) = unit_block_traced(
+    let result = block(
         [0.0, 0.0, 0.0],
         [50.0, 50.0, 50.0],
     ).expect("large block should succeed");
-    let log = ctx.get_decision_log();
+    let log = result.get_decision_log();
 
     // Every vertex should produce a NearBoundary decision.
     let near_boundary_count = log.decisions()
-        .filter(|d| matches!(d.get_kind(), DecisionKind::NearBoundary { .. }))
+        .filter(|d: &&forge_core::TracedDecision| matches!(d.get_kind(), DecisionKind::NearBoundary { .. }))
         .count();
     assert!(
         near_boundary_count > 0,
@@ -53,6 +53,7 @@ fn test_large_block_no_spurious_decisions() {
 
     // For well-separated vertices, all margins should be large (> tolerance).
     for d in log.decisions() {
+        let d: &forge_core::TracedDecision = d;
         if matches!(d.get_kind(), DecisionKind::NearBoundary { .. }) {
             let margin = d.get_margin();
             assert!(
@@ -67,8 +68,8 @@ fn test_large_block_no_spurious_decisions() {
 /// Build a block through the pipeline path and verify span timing is recorded.
 #[test]
 fn test_pipeline_span_timing_recorded() {
-    let (_envelope, ctx) = unit_cube_traced().expect("unit cube should succeed");
-    let log = ctx.get_decision_log();
+    let result = unit_cube().expect("unit cube should succeed");
+    let log = result.get_decision_log();
 
     let events = log.get_events();
     let has_span = events.iter().any(|e| {

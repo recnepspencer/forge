@@ -14,9 +14,8 @@
 //! ```
 
 use crate::configuration::facade::ResolvedConfig;
-use crate::context::ModelingContext;
-use crate::context::scope::OperationScope;
 use crate::engine::facade::SolidEnvelope;
+use forge_core::envelope::OperationResult;
 use crate::operations::primitives;
 use forge_core::KernelError;
 
@@ -101,34 +100,32 @@ impl SceneBuilder {
     // ── Build ────────────────────────────────────────────────────────────
 
     /// Build all shapes and return them as a vector.
-    pub fn build(self) -> Result<Vec<SolidEnvelope>, KernelError> {
+    pub fn build(self) -> Result<Vec<OperationResult<SolidEnvelope>>, KernelError> {
         let config = self.config.unwrap_or_else(test_config);
         let mut results = Vec::with_capacity(self.shapes.len());
 
         for shape in self.shapes {
-            let mut ctx = ModelingContext::new();
-            let mut scope = OperationScope::new(&config, &mut ctx);
             let envelope = match shape {
                 PendingShape::Cube { center, size } => {
-                    primitives::make_cube(center, size, &mut scope)?
+                    primitives::make_cube(center, size, &config)?
                 }
                 PendingShape::Block { center, half_extents } => {
-                    primitives::make_block(center, half_extents, &mut scope)?
+                    primitives::make_block(center, half_extents, &config)?
                 }
                 PendingShape::Tetrahedron { center, scale } => {
-                    primitives::make_tetrahedron(center, scale, &mut scope)?
+                    primitives::make_tetrahedron(center, scale, &config)?
                 }
                 PendingShape::Dodecahedron { center, radius } => {
-                    primitives::make_dodecahedron(center, radius, &mut scope)?
+                    primitives::make_dodecahedron(center, radius, &config)?
                 }
                 PendingShape::Prism { center, sides, radius, height } => {
-                    primitives::make_prism(center, sides, radius, height, &mut scope)?
+                    primitives::make_prism(center, sides, radius, height, &config)?
                 }
                 PendingShape::Pyramid { center, sides, radius, height } => {
-                    primitives::make_pyramid(center, sides, radius, height, &mut scope)?
+                    primitives::make_pyramid(center, sides, radius, height, &config)?
                 }
                 PendingShape::Wedge { center, half_extents } => {
-                    primitives::make_wedge(center, half_extents, &mut scope)?
+                    primitives::make_wedge(center, half_extents, &config)?
                 }
             };
             results.push(envelope);
@@ -138,7 +135,7 @@ impl SceneBuilder {
     }
 
     /// Build all shapes and return them as a pair (convenience for 2-solid scenes).
-    pub fn build_pair(self) -> Result<(SolidEnvelope, SolidEnvelope), KernelError> {
+    pub fn build_pair(self) -> Result<(OperationResult<SolidEnvelope>, OperationResult<SolidEnvelope>), KernelError> {
         let mut solids = self.build()?;
         if solids.len() != 2 {
             return Err(KernelError::InvalidInput {

@@ -3,13 +3,13 @@
 //! Proves: TopologyState, GeometryStore, and DecisionLog survive
 //! serialization round-trips with structural identity preserved.
 
-use crate::integration_tests::harness::shapes::unit_cube_traced;
+use crate::integration_tests::harness::shapes::unit_cube;
 
 /// TopologyState serialization round-trip preserves hash and entity counts.
 #[test]
 fn test_topology_state_roundtrip() {
-    let (envelope, _ctx) = unit_cube_traced().expect("unit cube should succeed");
-    let topo = envelope.topology();
+    let result = unit_cube().expect("unit cube should succeed");
+    let topo = result.get_value().topology();
 
     let serialized = serde_json::to_vec(topo).expect("TopologyState should serialize");
     let deserialized: forge_topo::transactions::TopologyState =
@@ -33,7 +33,8 @@ fn test_topology_state_roundtrip() {
 /// GeometryStore serialization round-trip preserves planes and positions.
 #[test]
 fn test_geometry_store_roundtrip() {
-    let (envelope, _ctx) = unit_cube_traced().expect("unit cube should succeed");
+    let result = unit_cube().expect("unit cube should succeed");
+    let envelope = result.get_value();
     let geom = envelope.geometry();
 
     let serialized = serde_json::to_vec(geom).expect("GeometryStore should serialize");
@@ -58,8 +59,8 @@ fn test_geometry_store_roundtrip() {
 /// DecisionLog serialization round-trip preserves decision count and kinds.
 #[test]
 fn test_decision_log_roundtrip() {
-    let (_envelope, ctx) = unit_cube_traced().expect("unit cube should succeed");
-    let log = ctx.get_decision_log();
+    let result = unit_cube().expect("unit cube should succeed");
+    let log = result.get_decision_log();
 
     let serialized = serde_json::to_vec(log).expect("DecisionLog should serialize");
     let deserialized: forge_core::DecisionLog =
@@ -73,10 +74,10 @@ fn test_decision_log_roundtrip() {
 
     // Verify decision kinds match.
     let original_kinds: Vec<_> = log.decisions()
-        .map(|d| std::mem::discriminant(d.get_kind()))
+        .map(|d: &forge_core::TracedDecision| std::mem::discriminant(d.get_kind()))
         .collect();
     let deser_kinds: Vec<_> = deserialized.decisions()
-        .map(|d| std::mem::discriminant(d.get_kind()))
+        .map(|d: &forge_core::TracedDecision| std::mem::discriminant(d.get_kind()))
         .collect();
     assert_eq!(
         original_kinds, deser_kinds,
@@ -88,9 +89,9 @@ fn test_decision_log_roundtrip() {
 #[test]
 fn test_replay_same_inputs_same_topology() {
     fn build_cube() -> (u128, usize) {
-        let (envelope, ctx) = unit_cube_traced().expect("unit cube should succeed");
-        let hash = envelope.topology().topology_hash();
-        let decision_count = ctx.get_decision_count();
+        let result = unit_cube().expect("unit cube should succeed");
+        let hash = result.get_value().topology().topology_hash();
+        let decision_count = result.get_decision_log().len();
         (hash, decision_count)
     }
 

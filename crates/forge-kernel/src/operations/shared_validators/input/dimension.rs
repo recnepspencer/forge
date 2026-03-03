@@ -23,7 +23,7 @@ const DIMENSION_TOLERANCE_SAFETY_FACTOR: f64 = 10.0;
 pub fn validate_dimension(
     value: f64,
     name: &str,
-    config: &ResolvedConfig,
+    config: &crate::configuration::facade::KernelConfig,
 ) -> Result<(), KernelError> {
     if value.is_nan() || value.is_infinite() {
         return Err(KernelError::InvalidInput {
@@ -38,7 +38,7 @@ pub fn validate_dimension(
         });
     }
 
-    let min_usable = config.scaled_vertex_tolerance() * DIMENSION_TOLERANCE_SAFETY_FACTOR;
+    let min_usable = config.tolerance.spatial_tolerance * DIMENSION_TOLERANCE_SAFETY_FACTOR;
     if value < min_usable {
         return Err(KernelError::InvalidInput {
             message: format!(
@@ -67,7 +67,7 @@ pub fn validate_coordinate(value: f64, name: &str) -> Result<(), KernelError> {
 pub fn validate_center_and_size(
     center: [f64; 3],
     size: f64,
-    config: &ResolvedConfig,
+    config: &crate::configuration::facade::KernelConfig,
 ) -> Result<(), KernelError> {
     validate_coordinate(center[0], "center[0]")?;
     validate_coordinate(center[1], "center[1]")?;
