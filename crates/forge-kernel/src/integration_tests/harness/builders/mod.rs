@@ -5,3 +5,6 @@
 //! narratives that compose factories.
 
 pub mod configs;
+pub mod scenes;
+pub mod seeders;
+pub mod shapes;

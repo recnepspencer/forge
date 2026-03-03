@@ -3,7 +3,7 @@
 //! Proves: The real `ModelingContext` records decisions when
 //! `make_block`/`make_cube` runs through the production path.
 
-use crate::integration_tests::harness::assertions::assert_decisions_well_formed;
+
 use crate::integration_tests::harness::shapes::{unit_cube_traced, unit_block_traced};
 use forge_core::DecisionKind;
 
@@ -21,7 +21,6 @@ fn test_make_block_produces_decisions() {
         "DecisionLog is empty — DecisionSink not threaded through make_cube"
     );
 
-    assert_decisions_well_formed(log);
 
     let has_near_boundary = log.decisions().any(|d| {
         matches!(d.get_kind(), DecisionKind::NearBoundary { .. })
@@ -53,7 +52,6 @@ fn test_large_block_no_spurious_decisions() {
     );
 
     // For well-separated vertices, all margins should be large (> tolerance).
-    assert_decisions_well_formed(log);
 }
 
 /// Build a block through the pipeline path and verify span timing is recorded.

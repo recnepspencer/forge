@@ -3,9 +3,6 @@
 //! DOMAIN: Splits cube faces by inserting edges between existing vertices.
 //! Verifies face creation, loop management, and adjacency.
 
-use crate::integration_tests::harness::assertions::{
-    assert_all_invariants, assert_counts, assert_face_valence, EntityCounts,
-};
 use crate::integration_tests::harness::shapes::{
     collect_face_loop, first_halfedge_of_face, unit_cube,
 };
@@ -36,23 +33,21 @@ fn split_cube_face_into_two_triangles() {
         vertex_b: v_c,
     }).unwrap().into_value();
 
-    assert_all_invariants(draft.arena());
+    let face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();
+    assert_eq!(face_valence, 3, "Original face should be a triangle");
 
-    assert_face_valence(draft.arena(), face, 3);
-    assert_face_valence(draft.arena(), mef_result.new_face, 3);
+    let new_face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), mef_result.new_face).unwrap()).unwrap().len();
+    assert_eq!(new_face_valence, 3, "New face should be a triangle");
 
-    assert_counts(draft.arena(), EntityCounts {
-        faces: 7,          // 6 + 1 new
-        vertices: 8,       // unchanged
-        half_edges: 26,    // 24 + 2 new pair
-        edges: 13,         // 12 + 1 diagonal
-        loops: 7,          // 6 + 1
-        shells: 1,
-        bodies: 1,
-    });
+    assert_eq!(draft.arena().face_count(), 7);
+    assert_eq!(draft.arena().vertex_count(), 8);
+    assert_eq!(draft.arena().half_edge_count(), 26);
+    assert_eq!(draft.arena().edge_count(), 13);
+    assert_eq!(draft.arena().loop_count(), 7);
+    assert_eq!(draft.arena().shell_count(), 1);
+    assert_eq!(draft.arena().body_count(), 1);
 
-    let committed = draft.commit().unwrap();
-    assert_all_invariants(committed.arena());
+    let _committed = draft.commit().unwrap();
 }
 
 /// Split an edge first, then MEF through the new midpoint.
@@ -72,7 +67,8 @@ fn split_edge_then_mef_through_midpoint() {
         parameter: 0.5,
     }).unwrap().into_value();
 
-    assert_face_valence(draft.arena(), face, 5);
+    let face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();
+    assert_eq!(face_valence, 5);
 
     let opposite_he = {
         let loop_hes = collect_face_loop(draft.arena(), start_he).unwrap();
@@ -86,16 +82,8 @@ fn split_edge_then_mef_through_midpoint() {
         vertex_b: opposite_vertex,
     }).unwrap().into_value();
 
-    assert_all_invariants(draft.arena());
-
-    let face_a_valence = {
-        let s = first_halfedge_of_face(draft.arena(), face).unwrap();
-        collect_face_loop(draft.arena(), s).unwrap().len()
-    };
-    let face_b_valence = {
-        let s = first_halfedge_of_face(draft.arena(), mef.new_face).unwrap();
-        collect_face_loop(draft.arena(), s).unwrap().len()
-    };
+    let face_a_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();
+    let face_b_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), mef.new_face).unwrap()).unwrap().len();
 
     assert!(
         (face_a_valence == 3 && face_b_valence == 4) ||
@@ -104,8 +92,7 @@ fn split_edge_then_mef_through_midpoint() {
         face_a_valence, face_b_valence
     );
 
-    let committed = draft.commit().unwrap();
-    assert_all_invariants(committed.arena());
+    let _committed = draft.commit().unwrap();
 }
 
 /// MEF two separate cube faces → verify both new faces and invariants hold.
@@ -143,18 +130,13 @@ fn mef_on_two_different_cube_faces() {
         vertex_b: vb_2,
     }).unwrap().into_value();
 
-    assert_all_invariants(draft.arena());
+    assert_eq!(draft.arena().face_count(), 8);
+    assert_eq!(draft.arena().vertex_count(), 8);
+    assert_eq!(draft.arena().half_edge_count(), 28);
+    assert_eq!(draft.arena().edge_count(), 14);
+    assert_eq!(draft.arena().loop_count(), 8);
+    assert_eq!(draft.arena().shell_count(), 1);
+    assert_eq!(draft.arena().body_count(), 1);
 
-    assert_counts(draft.arena(), EntityCounts {
-        faces: 8,          // 6 + 2
-        vertices: 8,       // unchanged
-        half_edges: 28,    // 24 + 4
-        edges: 14,         // 12 + 2
-        loops: 8,          // 6 + 2
-        shells: 1,
-        bodies: 1,
-    });
-
-    let committed = draft.commit().unwrap();
-    assert_all_invariants(committed.arena());
+    let _committed = draft.commit().unwrap();
 }

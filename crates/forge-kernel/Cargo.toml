@@ -18,6 +18,7 @@ serde_json.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
+proptest = "1"
 trybuild = "1"
 tracing.workspace = true
 tracing-subscriber.workspace = true

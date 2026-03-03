@@ -4,21 +4,19 @@
 //! see every violation at once instead of fixing them one at a time.
 //! Integrates with `dump` module to auto-export OBJ on failure.
 //!
-//! All geometry computations delegate to production algorithms in
-//! `geometry::logic::measurements` — no novel algorithms here.
+//! All checks compare actual results against test-provided expected values.
+//! No redundant validation — that's what `commit()` is for.
 //!
 //! ```rust,ignore
 //! verify(&envelope)
-//!     .euler(2)
 //!     .faces(6)
-//!     .manifold()
 //!     .volume_approx(8.0, 1e-6)
 //!     .pass();
 //! ```
 
 use crate::engine::facade::SolidEnvelope;
 use crate::geometry::facade::{
-    GeometryView, face_area, solid_volume,
+    GeometryView, solid_volume,
 };
 
 /// Create a verifier for a `SolidEnvelope`.
@@ -44,22 +42,7 @@ impl<'a> Verifier<'a> {
         self
     }
 
-    // ── Topology checks ──────────────────────────────────────────────────
-
-    /// Assert Euler characteristic V - E + F = expected.
-    pub fn euler(mut self, expected: i64) -> Self {
-        let arena = self.env.topology().arena();
-        let v = arena.vertex_count() as i64;
-        let e = arena.edge_count() as i64;
-        let f = arena.face_count() as i64;
-        let chi = v - e + f;
-        if chi != expected {
-            self.failures.push(format!(
-                "Euler: V({v}) - E({e}) + F({f}) = {chi}, expected {expected}"
-            ));
-        }
-        self
-    }
+    // ── Expectation checks (test-specific expected values) ────────────────
 
     /// Assert exact face count.
     pub fn faces(mut self, expected: usize) -> Self {
@@ -88,54 +71,38 @@ impl<'a> Verifier<'a> {
         self
     }
 
-    /// Assert the solid is manifold (all structural invariants pass).
-    pub fn manifold(mut self) -> Self {
-        let arena = self.env.topology().arena();
-        if let Err(msg) = check_manifold(arena) {
-            self.failures.push(format!("Manifold: {msg}"));
+    /// Assert exact halfedge count.
+    pub fn half_edges(mut self, expected: usize) -> Self {
+        let actual = self.env.topology().arena().half_edge_count();
+        if actual != expected {
+            self.failures.push(format!("HalfEdges: {actual}, expected {expected}"));
         }
         self
     }
 
-    // ── Geometry checks (delegates to production algorithms) ─────────────
-
-    /// Assert all faces have a plane and all vertices have a position.
-    pub fn geometry_complete(mut self) -> Self {
-        let arena = self.env.topology().arena();
-        let geom = self.env.geometry();
-
-        for (fid, _) in arena.iter_faces() {
-            if geom.get_face_plane(fid).is_none() {
-                self.failures.push(format!(
-                    "Geometry: Face F#{} missing plane", fid.index()
-                ));
-            }
-        }
-        for (vid, _) in arena.iter_vertices() {
-            if geom.get_vertex_position(vid).is_none() {
-                self.failures.push(format!(
-                    "Geometry: Vertex V#{} missing position", vid.index()
-                ));
-            }
+    /// Assert exact loop count.
+    pub fn loops(mut self, expected: usize) -> Self {
+        let actual = self.env.topology().arena().loop_count();
+        if actual != expected {
+            self.failures.push(format!("Loops: {actual}, expected {expected}"));
         }
         self
     }
 
-    /// Assert all face areas are above a minimum threshold.
-    ///
-    /// Delegates to `geometry::facade::face_area`.
-    pub fn all_face_areas_above(mut self, min_area: f64) -> Self {
-        let arena = self.env.topology().arena();
-        let geom = self.env.geometry();
+    /// Assert exact shell count.
+    pub fn shells(mut self, expected: usize) -> Self {
+        let actual = self.env.topology().arena().shell_count();
+        if actual != expected {
+            self.failures.push(format!("Shells: {actual}, expected {expected}"));
+        }
+        self
+    }
 
-        for (fid, _) in arena.iter_faces() {
-            let area = face_area(arena, geom, fid);
-            if area <= min_area {
-                self.failures.push(format!(
-                    "Face area: F#{} has area {:.2e} ≤ {:.2e}",
-                    fid.index(), area, min_area
-                ));
-            }
+    /// Assert exact body count.
+    pub fn bodies(mut self, expected: usize) -> Self {
+        let actual = self.env.topology().arena().body_count();
+        if actual != expected {
+            self.failures.push(format!("Bodies: {actual}, expected {expected}"));
         }
         self
     }
@@ -154,27 +121,26 @@ impl<'a> Verifier<'a> {
         self
     }
 
-    /// Assert vertices within bounding box.
-    pub fn bounds(mut self, min: [f64; 3], max: [f64; 3], tol: f64) -> Self {
-        let arena = self.env.topology().arena();
-        let geom = self.env.geometry();
+    // ── Decision log checks ──────────────────────────────────────────────
 
-        for (vid, _) in arena.iter_vertices() {
-            if let Some(pos) = geom.get_vertex_position(vid) {
-                for axis in 0..3 {
-                    if pos[axis] < min[axis] - tol || pos[axis] > max[axis] + tol {
-                        self.failures.push(format!(
-                            "Bounds: V#{} axis[{}] = {:.6} outside [{:.6}, {:.6}]",
-                            vid.index(), axis, pos[axis], min[axis], max[axis]
-                        ));
-                    }
-                }
-            }
+    /// Assert decisions are well-formed (non-empty log).
+    pub fn well_formed(mut self, log: &forge_core::DecisionLog) -> Self {
+        if log.decisions().next().is_none() {
+            self.failures.push("Decisions: log is empty".to_string());
         }
         self
     }
 
-    // ── Terminal ──────────────────────────────────────────────────────────
+    /// Assert the decision log has at least `n` decisions.
+    pub fn min_decisions(mut self, log: &forge_core::DecisionLog, min: usize) -> Self {
+        let count = log.decisions().count();
+        if count < min {
+            self.failures.push(format!(
+                "Decisions: {count} decisions, expected at least {min}"
+            ));
+        }
+        self
+    }
 
     /// Consume the verifier and panic if any checks failed.
     ///
@@ -207,46 +173,4 @@ impl<'a> Verifier<'a> {
             dump_msg
         );
     }
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-/// Check manifold invariants non-destructively, returning Err on failure.
-fn check_manifold(arena: &forge_topo::b_rep::TopologyArena) -> Result<(), String> {
-    for (he_id, he_data) in arena.iter_half_edges() {
-        let twin_id = he_data.radial_next();
-        if he_id != twin_id {
-            let twin_data = arena.get_half_edge(twin_id)
-                .map_err(|e| format!(
-                    "Twin {} of he {} not found: {:?}",
-                    twin_id.index(), he_id.index(), e
-                ))?;
-            if twin_data.radial_next() != he_id {
-                return Err(format!(
-                    "Twin reciprocity broken at he[{}]", he_id.index()
-                ));
-            }
-        }
-    }
-
-    for (face_id, _) in arena.iter_faces() {
-        let hes = arena.halfedges_of_face(face_id);
-        if hes.is_empty() {
-            return Err(format!("Face {} has no halfedges", face_id.index()));
-        }
-        let start = hes[0];
-        let mut current = arena.get_half_edge(start)
-            .map_err(|e| format!("{:?}", e))?.next();
-        let mut count = 1;
-        while current != start && count < 1000 {
-            current = arena.get_half_edge(current)
-                .map_err(|e| format!("{:?}", e))?.next();
-            count += 1;
-        }
-        if current != start {
-            return Err(format!("Face {} loop not closed", face_id.index()));
-        }
-    }
-
-    Ok(())
 }

@@ -98,7 +98,7 @@ impl<'a> FaceQuery<'a> {
         self.candidates.retain(|&fid| {
             if let Some(plane) = geom.get_face_plane(fid) {
                 let n = plane.normal();
-                let dot = n[0] * target[0] + n[1] * target[1] + n[2] * target[2];
+                let dot = forge_math::linalg::dot(n, target);
                 (dot - 1.0).abs() < tolerance
             } else {
                 false
@@ -214,10 +214,7 @@ impl<'a> VertexQuery<'a> {
         let geom = self.env.geometry();
         self.candidates.retain(|&vid| {
             if let Some(pos) = geom.get_vertex_position(vid) {
-                let dist = ((pos[0] - target[0]).powi(2)
-                    + (pos[1] - target[1]).powi(2)
-                    + (pos[2] - target[2]).powi(2))
-                .sqrt();
+                let dist = forge_geom::facade::distance(pos, &target);
                 dist <= radius
             } else {
                 false

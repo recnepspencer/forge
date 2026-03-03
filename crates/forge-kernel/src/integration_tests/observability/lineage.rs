@@ -15,7 +15,7 @@ use crate::integration_tests::harness::shapes::unit_cube_traced;
 fn test_make_block_lineage_covers_all_entities() {
     let (envelope, _ctx) = unit_cube_traced().expect("unit cube should succeed");
     let topo = envelope.topology();
-    let arena = topo.arena();
+    let _arena = topo.arena();
 
     // After Phase 1.2 wiring, the draft's lineage_store will be committed
     // into TopologyState. For now we verify the plumbing exists.

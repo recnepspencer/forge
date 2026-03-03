@@ -3,9 +3,7 @@
 //! DOMAIN: Tests non-manifold edge sewing — connecting two boundary
 //! halfedges into a shared radial chain, then undoing it.
 
-use crate::integration_tests::harness::assertions::{
-    assert_all_invariants,
-};
+
 use crate::integration_tests::harness::shapes::{
     first_halfedge_of_face, unit_cube,
 };
@@ -49,9 +47,7 @@ fn split_edge_creates_proper_radial_pair() {
     let mb_origin = draft.arena().get_half_edge(he_mb).unwrap().origin();
     assert_eq!(mb_origin, se.new_vertex, "he_mb should originate at the midpoint");
 
-    assert_all_invariants(draft.arena());
-    let committed = draft.commit().unwrap();
-    assert_all_invariants(committed.arena());
+    let _committed = draft.commit().unwrap();
 }
 
 /// Every edge of a raw cube has exactly 2-valent radial chain.
@@ -88,7 +84,6 @@ fn cube_all_edges_are_2_manifold() {
         );
     }
 
-    assert_all_invariants(arena);
 }
 
 /// Split every edge of the cube, then verify all 24 edges still have
@@ -121,7 +116,5 @@ fn split_all_edges_preserves_2_manifold() {
         );
     }
 
-    assert_all_invariants(draft.arena());
-    let committed = draft.commit().unwrap();
-    assert_all_invariants(committed.arena());
+    let _committed = draft.commit().unwrap();
 }

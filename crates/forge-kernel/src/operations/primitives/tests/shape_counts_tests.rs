@@ -7,11 +7,24 @@
 //! via `assert_vertex_decisions` from the test harness.
 
 use crate::context::ModelingContext;
-use crate::integration_tests::harness::assertions::assert_vertex_decisions;
 use crate::operations::primitives::{
     make_block, make_convex_solid, make_cube, make_dodecahedron, make_prism,
     make_tetrahedron, make_wedge,
 };
+
+/// Thin wrapper: logs decisions, then delegates to the production validator.
+fn assert_vertex_decisions(
+    label: &str,
+    log: &forge_core::DecisionLog,
+    expected_vertices: usize,
+    tolerance: f64,
+) {
+    forge_core::tracing::log_decision_log(label, log);
+    crate::operations::shared_validators::facade::validate_vertex_decisions(
+        log, expected_vertices, tolerance,
+    )
+    .unwrap_or_else(|e| panic!("{label}: {e}"));
+}
 use super::structural_invariants_tests::assert_valid_solid;
 use super::{init_test_tracing, test_config, OperationScope};
 

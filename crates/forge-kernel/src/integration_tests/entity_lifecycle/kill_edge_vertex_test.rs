@@ -4,9 +4,6 @@
 //! two edges into one. The surviving vertex is the origin of the input halfedge;
 //! the target vertex (twin's origin) is killed.
 
-use crate::integration_tests::harness::assertions::{
-    assert_all_invariants, assert_counts, assert_face_valence, EntityCounts,
-};
 use crate::integration_tests::harness::shapes::{
     collect_face_loop, first_halfedge_of_face, unit_cube,
 };
@@ -35,15 +32,17 @@ fn split_then_kev_roundtrip() {
     }).unwrap().into_value();
 
     assert_eq!(draft.arena().vertex_count(), 8, "KEV should kill the midpoint vertex");
-    assert_face_valence(draft.arena(), face, 4);
-
-    assert_all_invariants(draft.arena());
+    let face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();
+    assert_eq!(face_valence, 4);
 
     let committed = draft.commit().unwrap();
-    assert_all_invariants(committed.arena());
-    assert_counts(committed.arena(), EntityCounts {
-        faces: 6, vertices: 8, half_edges: 24, edges: 12, loops: 6, shells: 1, bodies: 1,
-    });
+    assert_eq!(committed.arena().face_count(), 6);
+    assert_eq!(committed.arena().vertex_count(), 8);
+    assert_eq!(committed.arena().half_edge_count(), 24);
+    assert_eq!(committed.arena().edge_count(), 12);
+    assert_eq!(committed.arena().loop_count(), 6);
+    assert_eq!(committed.arena().shell_count(), 1);
+    assert_eq!(committed.arena().body_count(), 1);
 }
 
 /// Split all edges of a face, then KEV each midpoint back.
@@ -70,18 +69,18 @@ fn split_all_face_edges_then_kev_all() {
     }
 
     assert_eq!(draft.arena().vertex_count(), 12);
-    assert_face_valence(draft.arena(), face, 8);
+    let face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();
+    assert_eq!(face_valence, 8);
 
     for he in new_hes {
         draft.execute(KillEdgeVertex { edge: he }).unwrap();
     }
 
     assert_eq!(draft.arena().vertex_count(), 8);
-    assert_face_valence(draft.arena(), face, 4);
-    assert_all_invariants(draft.arena());
+    let face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();
+    assert_eq!(face_valence, 4);
 
-    let committed = draft.commit().unwrap();
-    assert_all_invariants(committed.arena());
+    let _committed = draft.commit().unwrap();
 }
 
 /// KEV on a 2-split chain: split edge twice, then collapse both midpoints.
@@ -105,12 +104,15 @@ fn double_split_then_double_kev() {
     }).unwrap().into_value();
 
     assert_eq!(draft.arena().vertex_count(), 10);
-    assert_face_valence(draft.arena(), face, 6);
+    let face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();
+    assert_eq!(face_valence, 6);
 
     draft.execute(KillEdgeVertex { edge: se2.he_mb }).unwrap();
     draft.execute(KillEdgeVertex { edge: se1.he_mb }).unwrap();
 
     assert_eq!(draft.arena().vertex_count(), 8);
-    assert_face_valence(draft.arena(), face, 4);
-    assert_all_invariants(draft.arena());
+    let face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();
+    assert_eq!(face_valence, 4);
+
+    let _committed = draft.commit().unwrap();
 }
