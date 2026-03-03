@@ -24,6 +24,8 @@ use super::super::contracts::contract::{AuditLevel, ConditioningMode, FeatureInp
 use super::super::contracts::feature_trait::Feature;
 use super::super::output::solid_envelope::SolidEnvelope;
 use super::super::operation_space::operation_space::OperationSpace;
+use super::conditioning_guard::ConditioningGuard;
+use super::fingerprint::compute_pipeline_fingerprint;
 use super::invariants::validate_invariant;
 use crate::configuration::facade::{resolve_config, KernelConfig};
 use crate::context::facade::ModelingContext;
@@ -82,13 +84,22 @@ impl FeaturePipeline {
             resolved_config.validate_policy_configured(policy)?;
         }
 
-        // 3. Snapshot topology hash before execution (before conditioning modifies geometry)
-        let hash_before = compute_input_hash(&raw_inputs);
+        // 3. Compute pipeline fingerprint (before conditioning modifies geometry)
+        let conditioning_mode = feature.conditioning_mode();
+        let hash_before = compute_pipeline_fingerprint(
+            &raw_inputs,
+            feature.feature_kind(),
+            conditioning_mode,
+            resolved_config.config().tolerance.spatial_tolerance,
+            resolved_config.config().tolerance.model_scale_mm,
+            resolved_config.config().tolerance.min_edge_length,
+            resolved_config.config().diagnostics.fingerprint_detail,
+        );
 
         // 4. Numerical conditioning (pipeline-managed, zero-copy)
-        //    Analyzes input geometry scale, emits a TracedDecision, and transforms
-        //    geometry in-place. Features execute in local coordinates without knowing.
-        let op_space = match feature.conditioning_mode() {
+        //    Analyzes input geometry scale, transforms geometry in-place.
+        //    Features execute in local coordinates without knowing.
+        let op_space = match conditioning_mode {
             ConditioningMode::None => OperationSpace::identity(),
             ConditioningMode::UnaryAnalysis | ConditioningMode::BinaryAnalysis => {
                 let space = OperationSpace::analyze_envelopes(
@@ -100,7 +111,6 @@ impl FeaturePipeline {
                         space.transform_store(env.geometry_mut());
                     }
                 }
-                // TODO: Emit TracedDecision recording condition_number, activation, threshold
                 space
             }
         };
@@ -124,9 +134,10 @@ impl FeaturePipeline {
         // Propagate execution errors before finalization
         let mut sub_envelope = result?;
 
-        // 7. Restore world coordinates (inverse of step 4)
-        if op_space.is_active() {
-            op_space.restore_store(sub_envelope.get_value_mut().geometry_mut());
+        // 7. Restore world coordinates via RAII guard (inverse of step 4)
+        //    Guard calls restore_store on defuse() or Drop — panic-safe.
+        if let Some(guard) = ConditioningGuard::new(&op_space, sub_envelope.get_value_mut().geometry_mut()) {
+            guard.defuse();
         }
 
         // 8. Compute hash_after from the output
@@ -181,25 +192,7 @@ impl FeaturePipeline {
     }
 }
 
-/// Compute a combined topology hash from all input SolidEnvelopes.
-///
-/// Uses `wrapping_add` for combination — this is **commutative** (a + b = b + a),
-/// making the hash independent of `HashMap` iteration order. This is intentional:
-/// a feature that takes `(target, tool)` should produce the same pre-hash regardless
-/// of which input is iterated first.
-///
-/// Trade-off: commutative hashing loses the ability to distinguish permuted inputs
-/// (e.g., `hash(A, B) == hash(B, A)`). This is acceptable because the hash is used
-/// for change detection, not input identity — the feature tree structure already
-/// encodes which NodeId is "target" vs "tool".
-fn compute_input_hash(inputs: &HashMap<NodeId, SolidEnvelope>) -> u128 {
-    let mut combined: u128 = 0;
-    for output in inputs.values() {
-        let h = forge_topo::transactions::compute_arena_topology_hash(output.topology().arena());
-        combined = combined.wrapping_add(h);
-    }
-    combined
-}
+
 
 /// Emit a full audit trace for the feature execution.
 ///

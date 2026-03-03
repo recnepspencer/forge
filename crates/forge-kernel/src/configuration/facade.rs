@@ -11,6 +11,7 @@ pub use super::solver::{SolverSection, SolverOverride};
 pub use super::validation::{ValidationSection, ValidationOverride};
 pub use super::policy_rules::{PolicySection, PolicyOverride};
 pub use super::precision::{PrecisionSection, PrecisionOverride, PrecisionEscalationPolicy};
+pub use super::diagnostics::{DiagnosticsSection, FingerprintDetail, TraceVerbosity, GeometryValidationDepth};
 pub use super::provenance::{ConfigProvenance, ConfigScope, ConfigSource};
 pub use super::resolve::resolve_config;
 pub use super::resolved::{ResolvedConfig, ABSOLUTE_MINIMUM_TOLERANCE};

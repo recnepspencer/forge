@@ -12,6 +12,7 @@ use super::solver::SolverSection;
 use super::validation::ValidationSection;
 use super::policy_rules::PolicySection;
 use super::precision::PrecisionSection;
+use super::diagnostics::DiagnosticsSection;
 
 /// Trait for a sub-section of the unified configuration.
 ///
@@ -38,6 +39,7 @@ pub struct KernelConfig {
     pub validation: ValidationSection,
     pub policy: PolicySection,
     pub precision: PrecisionSection,
+    pub diagnostics: DiagnosticsSection,
 }
 
 impl Default for KernelConfig {
@@ -48,6 +50,7 @@ impl Default for KernelConfig {
             validation: ValidationSection::defaults(),
             policy: PolicySection::defaults(),
             precision: PrecisionSection::defaults(),
+            diagnostics: DiagnosticsSection::defaults(),
         }
     }
 }
@@ -64,6 +67,7 @@ impl KernelConfig {
         self.validation.validate()?;
         self.policy.validate()?;
         self.precision.validate()?;
+        self.diagnostics.validate()?;
         Ok(())
     }
 }

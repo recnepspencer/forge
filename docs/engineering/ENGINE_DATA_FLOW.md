@@ -59,7 +59,9 @@ FeaturePipeline::execute(&feature, raw_inputs, config)
   ┌────┴────────────────────────────────────────────────────────┐
   │  1. Resolve config (cascade: global → feature overrides)    │
   │  2. Pre-validate policies (fail-fast, no mutations yet)     │
-  │  3. Hash inputs (wrapping_add, order-independent)           │
+  │  3. Pipeline fingerprint (configurable detail level)        │
+  │     └─ Standard: topology + kind + conditioning + tolerances│
+  │     └─ Full: + vertex positions + face plane normals        │
   │                                                             │
   │  4. CONDITIONING (pipeline-managed)                         │
   │     ├─ ConditioningMode::None → identity (zero cost)        │
@@ -74,7 +76,7 @@ FeaturePipeline::execute(&feature, raw_inputs, config)
   │     └─ scope carries: config, DecisionSink, &OperationSpace │
   │     └─ feature does its work, returns OperationResult       │
   │                                                             │
-  │  7. Restore world coordinates (inverse of step 4)           │
+  │  7. RAII restore (ConditioningGuard — panic-safe)            │
   │  8. Hash output topology                                    │
   │  9. Finalize — drain ModelingContext → envelope              │
   │     (decisions, metrics, lineage all move into envelope)     │

@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use forge_topo::handles::{BodyId, EdgeId, FaceId, ShellId, VertexId};
 use forge_topo::transactions::TopologyState;
 
-use crate::geometry::facade::GeometryStore;
+use crate::geometry::facade::{GeometryStore, GeometryView};
 
 /// The complete, queryable result of any solid-producing operation.
 ///
@@ -166,6 +166,56 @@ impl SolidEnvelope {
         let ss = self.shells();
         assert_eq!(ss.len(), 1, "SolidEnvelope::shell() requires exactly 1 shell, found {}", ss.len());
         ss[0]
+    }
+
+    // ── Fingerprinting ────────────────────────────────────────────────
+
+    /// Topology-only fingerprint (structural hash).
+    ///
+    /// Hashes the arena adjacency structure. Fast, but won't detect
+    /// geometry-only changes (moved vertices, rotated planes).
+    pub fn topology_fingerprint(&self) -> u128 {
+        forge_topo::transactions::compute_arena_topology_hash(self.topology.arena())
+    }
+
+    /// Full deterministic fingerprint (topology + geometry).
+    ///
+    /// Hashes topology arena, all vertex positions (f64 bit-exact),
+    /// and all face plane normals + offsets. This is the single source
+    /// of truth for envelope-level equality.
+    ///
+    /// # Performance
+    ///
+    /// O(V + F) — iterates all vertices and faces. Use for:
+    /// - Determinism verification in test harnesses
+    /// - Serialization checksums
+    /// - Undo/redo diffing
+    /// - Full-detail pipeline fingerprinting
+    ///
+    /// For hot-path change detection, use `topology_fingerprint()` instead.
+    pub fn full_fingerprint(&self) -> u128 {
+        let mut hash = self.topology_fingerprint();
+
+        // Vertex positions (f64 bit-exact)
+        for (v_id, _) in self.topology.arena().iter_vertices() {
+            if let Some(pos) = self.geometry.get_vertex_position(v_id) {
+                for coord in pos {
+                    hash = hash.wrapping_mul(31).wrapping_add(coord.to_bits() as u128);
+                }
+            }
+        }
+
+        // Face plane normals + offsets
+        for (f_id, _) in self.topology.arena().iter_faces() {
+            if let Some(plane) = self.geometry.get_face_plane(f_id) {
+                for coord in plane.normal() {
+                    hash = hash.wrapping_mul(31).wrapping_add(coord.to_bits() as u128);
+                }
+                hash = hash.wrapping_mul(31).wrapping_add(plane.offset().to_bits() as u128);
+            }
+        }
+
+        hash
     }
 
     // ── Lifecycle / decomposition ─────────────────────────────────────

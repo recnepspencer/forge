@@ -49,6 +49,12 @@ pub struct FeatureTree<R: FeatureRegistry> {
     envelopes: HashMap<NodeId, OperationResult<SolidEnvelope>>,
     /// Map of names to NodeIds (optional, for lookup).
     names: HashMap<String, NodeId>,
+    /// Monotonic sequence counter for deterministic feature naming.
+    ///
+    /// Only increments, never resets — survives serialization, undo/redo,
+    /// and multiple dispatcher lifetimes. Used by `CommandDispatcher` to
+    /// generate unique names like `block_3`, `boolean_union_7`.
+    next_feature_seq: u64,
 }
 
 impl<R: FeatureRegistry> Default for FeatureTree<R> {
@@ -65,7 +71,19 @@ impl<R: FeatureRegistry> FeatureTree<R> {
             features: HashMap::new(),
             envelopes: HashMap::new(),
             names: HashMap::new(),
+            next_feature_seq: 0,
         }
+    }
+
+    /// Return the next monotonic sequence number and increment.
+    ///
+    /// Used by dispatchers to generate deterministic, unique feature names.
+    /// The counter is owned by the tree (not the dispatcher) so it survives
+    /// dispatcher recreation, undo/redo, and serialization round-trips.
+    pub fn next_seq(&mut self) -> u64 {
+        let seq = self.next_feature_seq;
+        self.next_feature_seq += 1;
+        seq
     }
 
     /// Register a new feature in the tree.

@@ -41,7 +41,7 @@ impl<'a> CommandDispatcher<'a> {
     /// Execute a schema command: resolve targets, construct the feature,
     /// insert into tree, and return the new node's ID.
     pub fn dispatch(&mut self, cmd: &Command) -> Result<NodeId, KernelError> {
-        let seq = self.insertion_order.len();
+        let seq = self.tree.next_seq();
         let feature = match cmd {
             Command::AddBlock { origin, dimensions } => {
                 let name = format!("block_{}", seq);

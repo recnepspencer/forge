@@ -19,6 +19,7 @@ mod solver;
 mod validation;
 mod policy_rules;
 mod precision;
+mod diagnostics;
 
 // ── Cross-cutting root ───────────────────────────────────────────────
 mod kernel_config;
