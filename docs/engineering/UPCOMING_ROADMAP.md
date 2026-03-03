@@ -14,7 +14,7 @@ _Before we can trust geometry, we must be able to observe, trace, and replay dec
 
 ### 1. Tracing Pipeline — DecisionSink Collection [K-1]
 
-Replace the `NullSink` dummy implementations. Thread `&mut dyn DecisionSink` into every predicate and topology operator so that every choice is recorded with its scalar margin.
+Thread `DecisionSink` into every predicate and topology operator so that every choice is recorded with its scalar margin. The production sink is `ModelingContext`, which collects decisions and gets threaded through `OperationScope`. `NullSink` exists in `forge-core` for unit-testing but is banned in production code.
 
 - **Difficulty:** 🟡 Medium | **Size:** ~2-3 PRs
 - **Test:** Run `make_block`, assert `DecisionLog` contains entries with `DecisionKind::NearBoundary` and `margin() > 0.0`.
@@ -30,33 +30,38 @@ Every primitive operation must generate a Merkle causal chain linking the result
 
 Deterministic parametric chains (`MakeBox → Fillet → Cut → Result`) where the `SolidEnvelope` output of step N feeds into step N+1, accumulating unified `DecisionLog` and `LineageStore`. Each `SolidEnvelope` carries both topology and geometry as a single immutable unit.
 
-The pipeline should compose as a **trait-based middleware chain** — each operation step is wrapped in a uniform sequence:
+The pipeline is implemented as `FeaturePipeline::execute(feature, inputs, config)` — a single entry point with 11 internal stages:
 
-1. **Pre-validation** — structural/geometric invariants on the input state
-2. **Operation** — the actual topological transformation
-3. **Post-proof** — decision log verification + lineage recording
-4. **Snapshot** — commit the immutable topology epoch
-
-This unifies Items 1 (DecisionSink), 2 (Lineage), and 3 (Pipeline) into a single composable execution model:
+1. **Resolve config** — cascade global → feature overrides
+2. **Pre-validate policies** — fail-fast before mutation
+3. **Pipeline fingerprint** — configurable `FingerprintDetail` (Standard/Full)
+4. **Conditioning** — `OperationSpace` analyze → transform (pipeline-managed)
+5. **Parse + validate** — typed inputs with ownership transfer
+6. **Execute** — feature business logic with `OperationScope`
+7. **RAII restore** — `ConditioningGuard` (panic-safe)
+8. **Hash output** — topology structural hash
+9. **Finalize** — drain `ModelingContext` → envelope
+10. **Invariants** — post-execution validation
+11. **Audit** — trace emission (None/Summary/Full)
 
 ```rust
-Pipeline::new(solid)
-    .with_validation(ValidationLevel::Full)   // pre-check (configurable)
-    .apply("fillet", fillet_op)                // operation
-    .apply("cut", cut_op)                      // chained step
-    .with_proof(ProofLevel::Certified)         // post-check
-    .commit()?;                                // lineage + snapshot
+FeaturePipeline::execute(&feature, inputs, &session_config)?;
+// Returns OperationResult<SolidEnvelope> with full audit trail
 ```
 
+This unifies Items 1 (DecisionSink via `ModelingContext`), 2 (Lineage), and 3 (Pipeline) into a single composable execution model.
+
 - **Difficulty:** 🟡 Medium | **Size:** ~2 PRs
-- **Test:** Evaluate a 3-step pipeline twice, assert identical topology hashes and trace span counts. Assert `DecisionLog` contains entries from all three steps. Assert `LineageStore` links each output face back through the chain.
+- **Test:** Evaluate a 3-step pipeline twice, assert identical `full_fingerprint()` values and trace span counts. Assert `DecisionLog` contains entries from all three steps. Assert `LineageStore` links each output face back through the chain.
 
 ### 4. Replay Determinism & Serialization Round-Trip [P3.5-lite]
 
-Serialize a `SolidEnvelope` (topology + geometry) to bytes, deserialize, and assert bit-identical result. Also serialize a `ReplayLog`, replay in a fresh context, assert identical `SolidEnvelope`.
+Serialize a `SolidEnvelope` (topology + geometry) to bytes, deserialize, and assert bit-identical result. Also serialize a `ReplayLog` (via `forge-topo`'s `MutableDraft`), replay in a fresh context, assert identical `SolidEnvelope`.
+
+Determinism verification uses `SolidEnvelope::full_fingerprint()` which hashes topology arenas, vertex positions (f64 bit-exact), and face plane normals + offsets. The harness (`assert_deterministic`, `assert_deterministic_n`) diagnoses whether divergence is structural (topology) or geometric (vertex positions / face planes).
 
 - **Difficulty:** ✅ Easy | **Size:** ~1 PR
-- **Test:** Generate a cube, serialize, deserialize, assert `topology_hash` is identical.
+- **Test:** Generate a cube, serialize, deserialize, assert `full_fingerprint()` is identical.
 
 ---
 
@@ -175,14 +180,14 @@ _Proving that our transactional foundation is truly robust._
 
 ### 17. Undo/Redo System
 
-Snapshot-based undo/redo using `SolidEnvelope` epochs. Each committed state is an immutable snapshot carrying topology + geometry; undo pops to the previous epoch, redo replays forward. Validates that serialization, lineage, and replay all survive round-trips through the undo stack.
+Snapshot-based undo/redo using `SolidEnvelope` epochs. Each committed state is an immutable snapshot carrying topology + geometry; undo pops to the previous epoch, redo replays forward. Validates that serialization, lineage, and replay all survive round-trips through the undo stack. Feature naming uses a monotonic `next_feature_seq` counter in `FeatureTree` that survives undo/redo and serialization.
 
 - **Difficulty:** 🟡 Medium | **Size:** ~3-4 PRs
 - **Test:**
   1. Create box (epoch 1).
   2. Split an edge (epoch 2).
-  3. Undo → assert `topology_hash` matches epoch 1 exactly.
-  4. Redo → assert `topology_hash` matches epoch 2 exactly.
+  3. Undo → assert `full_fingerprint()` matches epoch 1 exactly.
+  4. Redo → assert `full_fingerprint()` matches epoch 2 exactly.
   5. Assert lineage and replay logs are correctly restored at each epoch.
 
 ---
@@ -193,10 +198,10 @@ _Final preparation for extreme-scale operations._
 
 ### 18. Scale-Invariant Local Coordinates [P2.4]
 
-Mandatory local coordinate transforms before geometric operations to prevent f64 quantization errors at extreme (1e12) coordinates.
+Pipeline-managed local coordinate transforms before geometric operations to prevent f64 quantization errors at extreme (1e12) coordinates. Features declare conditioning needs via `ConditioningMode` (`None`, `UnaryAnalysis`, `BinaryAnalysis`). The pipeline uses `OperationSpace` to analyze input geometry scale, transforms in-place, executes the feature in local coordinates, and restores via `ConditioningGuard` (RAII, panic-safe). Features are unaware of the transform.
 
 - **Difficulty:** 🟡 Medium | **Size:** ~2-3 PRs
-- **Test:** Generate a 1×1×1 cube at `(1e12, 1e12, 1e12)`. Assert internal coordinate magnitudes are `~1.0`. Assert global-space query round-trips correctly.
+- **Test:** Generate a 1×1×1 cube at `(1e12, 1e12, 1e12)`. Assert internal coordinate magnitudes are `~1.0`. Assert global-space query round-trips correctly via `full_fingerprint()`.
 
 ---
 
