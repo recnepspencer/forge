@@ -41,9 +41,11 @@ impl<'a> CommandDispatcher<'a> {
     /// Execute a schema command: resolve targets, construct the feature,
     /// insert into tree, and return the new node's ID.
     pub fn dispatch(&mut self, cmd: &Command) -> Result<NodeId, KernelError> {
+        let seq = self.insertion_order.len();
         let feature = match cmd {
             Command::AddBlock { origin, dimensions } => {
-                handlers::add_block::add_block(*origin, *dimensions)
+                let name = format!("block_{}", seq);
+                handlers::add_block::add_block(&name, *origin, *dimensions)
             }
             Command::AddHole { .. } => {
                 return Err(KernelError::InvalidInput {
@@ -60,12 +62,14 @@ impl<'a> CommandDispatcher<'a> {
             Command::BooleanUnion { target, tool } => {
                 let target_id = self.resolve_entity_ref(target)?;
                 let tool_id = self.resolve_entity_ref(tool)?;
-                handlers::boolean::boolean("boolean_union", BooleanOp::Union, target_id, tool_id)
+                let name = format!("boolean_union_{}", seq);
+                handlers::boolean::boolean(&name, BooleanOp::Union, target_id, tool_id)
             }
             Command::BooleanSubtract { target, tool } => {
                 let target_id = self.resolve_entity_ref(target)?;
                 let tool_id = self.resolve_entity_ref(tool)?;
-                handlers::boolean::boolean("boolean_subtract", BooleanOp::Subtraction, target_id, tool_id)
+                let name = format!("boolean_subtract_{}", seq);
+                handlers::boolean::boolean(&name, BooleanOp::Subtraction, target_id, tool_id)
             }
             Command::SetAttribute { .. } => {
                 return Err(KernelError::InvalidInput {

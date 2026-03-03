@@ -27,7 +27,8 @@ macro_rules! declare_feature {
         surfaces: [$($surface:expr),* $(,)?],
         invariants: [$($inv:expr),* $(,)?],
         audit: $audit:expr,
-        persistent: $persistent:expr $(,)?
+        persistent: $persistent:expr,
+        conditioning: $conditioning:expr $(,)?
     ) => {
         impl $crate::engine::contract::FeatureContract for $feature_ty {
             fn feature_kind(&self) -> &'static str {
@@ -60,6 +61,10 @@ macro_rules! declare_feature {
 
             fn persistent_output(&self) -> bool {
                 $persistent
+            }
+
+            fn conditioning_mode(&self) -> $crate::engine::contract::ConditioningMode {
+                $conditioning
             }
         }
     };

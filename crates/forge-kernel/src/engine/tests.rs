@@ -166,13 +166,13 @@ fn pipeline_rejects_feature_with_missing_policy_configuration() {
         type Inputs = EmptyInputs;
         fn parse_inputs(
             &self,
-            _raw: &HashMap<NodeId, SolidEnvelope>,
+            _raw: HashMap<NodeId, SolidEnvelope>,
         ) -> Result<EmptyInputs, forge_core::KernelError> {
             Ok(EmptyInputs)
         }
         fn execute_typed(
             &self,
-            _inputs: &EmptyInputs,
+            _inputs: EmptyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
         ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError> {
             unreachable!("should not reach execution with missing policy")
@@ -187,7 +187,7 @@ fn pipeline_rejects_feature_with_missing_policy_configuration() {
 
     let feature = PolicyHungryFeature;
     let inputs = HashMap::new();
-    let result = FeaturePipeline::execute(&feature, &inputs, &KernelConfig::default());
+    let result = FeaturePipeline::execute(&feature, inputs, &KernelConfig::default());
     assert!(
         result.is_err(),
         "pipeline should reject feature with missing policy"
@@ -247,13 +247,13 @@ fn pipeline_validates_inputs_before_execution() {
         type Inputs = StrictInputs;
         fn parse_inputs(
             &self,
-            _raw: &HashMap<NodeId, SolidEnvelope>,
+            _raw: HashMap<NodeId, SolidEnvelope>,
         ) -> Result<StrictInputs, forge_core::KernelError> {
             Ok(StrictInputs)
         }
         fn execute_typed(
             &self,
-            _inputs: &StrictInputs,
+            _inputs: StrictInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
         ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError> {
             unreachable!("should not reach execution with failed validation")
@@ -268,7 +268,7 @@ fn pipeline_validates_inputs_before_execution() {
 
     let feature = StrictInputFeature;
     let inputs = HashMap::new();
-    let result = FeaturePipeline::execute(&feature, &inputs, &KernelConfig::default());
+    let result = FeaturePipeline::execute(&feature, inputs, &KernelConfig::default());
     assert!(
         result.is_err(),
         "pipeline should reject feature with invalid inputs"
@@ -286,7 +286,7 @@ fn pipeline_validates_inputs_before_execution() {
 fn pipeline_executes_make_cube_through_full_pipeline() {
     let feature = MakePrimitiveFeature::cube("test_cube", [0.0, 0.0, 0.0], 2.0);
     let inputs = HashMap::new();
-    let envelope = FeaturePipeline::execute(&feature, &inputs, &KernelConfig::default())
+    let envelope = FeaturePipeline::execute(&feature, inputs, &KernelConfig::default())
         .expect("MakeCube through pipeline should succeed");
 
     let output = envelope.get_value();
@@ -342,13 +342,13 @@ fn pipeline_skips_audit_at_none_level() {
         type Inputs = EmptyInputs;
         fn parse_inputs(
             &self,
-            _raw: &HashMap<NodeId, SolidEnvelope>,
+            _raw: HashMap<NodeId, SolidEnvelope>,
         ) -> Result<EmptyInputs, forge_core::KernelError> {
             Ok(EmptyInputs)
         }
         fn execute_typed(
             &self,
-            _inputs: &EmptyInputs,
+            _inputs: EmptyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
         ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError> {
             Ok(forge_core::envelope::OperationResult::new(SolidEnvelope::new(
@@ -366,7 +366,7 @@ fn pipeline_skips_audit_at_none_level() {
 
     let feature = NoAuditFeature;
     let inputs = HashMap::new();
-    let result = FeaturePipeline::execute(&feature, &inputs, &KernelConfig::default());
+    let result = FeaturePipeline::execute(&feature, inputs, &KernelConfig::default());
     assert!(
         result.is_ok(),
         "no-audit feature should execute successfully"
@@ -439,13 +439,13 @@ fn pipeline_validates_post_invariants_after_execution() {
         type Inputs = EmptyInputs;
         fn parse_inputs(
             &self,
-            _raw: &HashMap<NodeId, SolidEnvelope>,
+            _raw: HashMap<NodeId, SolidEnvelope>,
         ) -> Result<EmptyInputs, forge_core::KernelError> {
             Ok(EmptyInputs)
         }
         fn execute_typed(
             &self,
-            _inputs: &EmptyInputs,
+            _inputs: EmptyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
         ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError> {
             Ok(forge_core::envelope::OperationResult::new(SolidEnvelope::new(
@@ -464,7 +464,7 @@ fn pipeline_validates_post_invariants_after_execution() {
     let feature = InvariantFeature;
     let inputs = HashMap::new();
     // With an empty topology, ManifoldEdges passes (no edges to violate).
-    let result = FeaturePipeline::execute(&feature, &inputs, &KernelConfig::default());
+    let result = FeaturePipeline::execute(&feature, inputs, &KernelConfig::default());
     assert!(
         result.is_ok(),
         "feature with ManifoldEdges invariant on empty topo should succeed"
@@ -472,7 +472,7 @@ fn pipeline_validates_post_invariants_after_execution() {
 
     // Now test with a real cube — ManifoldEdges should also pass for valid topology.
     let cube = MakePrimitiveFeature::cube("cube", [0.0, 0.0, 0.0], 1.0);
-    let cube_result = FeaturePipeline::execute(&cube, &inputs, &KernelConfig::default());
+    let cube_result = FeaturePipeline::execute(&cube, HashMap::new(), &KernelConfig::default());
     assert!(
         cube_result.is_ok(),
         "MakeCube with ManifoldEdges invariant should pass: {:?}",
@@ -525,13 +525,13 @@ fn pipeline_emits_audit_at_full_level() {
         type Inputs = EmptyInputs;
         fn parse_inputs(
             &self,
-            _raw: &HashMap<NodeId, SolidEnvelope>,
+            _raw: HashMap<NodeId, SolidEnvelope>,
         ) -> Result<EmptyInputs, forge_core::KernelError> {
             Ok(EmptyInputs)
         }
         fn execute_typed(
             &self,
-            _inputs: &EmptyInputs,
+            _inputs: EmptyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
         ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError> {
             Ok(forge_core::envelope::OperationResult::new(SolidEnvelope::new(
@@ -549,7 +549,7 @@ fn pipeline_emits_audit_at_full_level() {
 
     let feature = FullAuditFeature;
     let inputs = HashMap::new();
-    let envelope = FeaturePipeline::execute(&feature, &inputs, &KernelConfig::default())
+    let envelope = FeaturePipeline::execute(&feature, inputs, &KernelConfig::default())
         .expect("full-audit feature should succeed");
 
     // AuditLevel::Full should produce an audit span in the envelope's log.
@@ -616,7 +616,7 @@ fn typed_inputs_reject_missing_dependency() {
         type Inputs = NeedyInputs;
         fn parse_inputs(
             &self,
-            raw: &HashMap<NodeId, SolidEnvelope>,
+            raw: HashMap<NodeId, SolidEnvelope>,
         ) -> Result<NeedyInputs, forge_core::KernelError> {
             if !raw.contains_key(&self.dep_id) {
                 return Err(forge_core::KernelError::InvalidInput {
@@ -628,7 +628,7 @@ fn typed_inputs_reject_missing_dependency() {
         }
         fn execute_typed(
             &self,
-            _inputs: &NeedyInputs,
+            _inputs: NeedyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
         ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError> {
             unreachable!("should not reach execution with missing dependency")
@@ -650,7 +650,7 @@ fn typed_inputs_reject_missing_dependency() {
     let feature = NeedyFeature { dep_id: fake_id };
     let inputs = HashMap::new(); // Empty — no dependencies provided
 
-    let result = FeaturePipeline::execute(&feature, &inputs, &KernelConfig::default());
+    let result = FeaturePipeline::execute(&feature, inputs, &KernelConfig::default());
 
     assert!(
         result.is_err(),

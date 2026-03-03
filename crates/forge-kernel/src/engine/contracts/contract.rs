@@ -44,6 +44,33 @@ pub trait FeatureContract {
     fn config_overrides(&self) -> Option<crate::configuration::facade::ConfigOverride> {
         None
     }
+
+    /// Numerical conditioning mode for this feature.
+    ///
+    /// Controls whether the pipeline computes an `OperationSpace` and
+    /// transforms input geometry into local coordinates before execution.
+    /// Default: `None` (identity transform, zero cost).
+    fn conditioning_mode(&self) -> ConditioningMode {
+        ConditioningMode::None
+    }
+}
+
+/// Numerical conditioning mode for a feature.
+///
+/// Declared in the feature contract, enforced by the pipeline.
+/// The pipeline computes the `OperationSpace`, emits a `TracedDecision`
+/// recording condition number and activation state, and transforms
+/// input geometry in-place before calling `execute_typed`.
+///
+/// Features never see the transform — they execute in conditioned space.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConditioningMode {
+    /// No conditioning needed. Identity `OperationSpace`. (primitives, simple ops)
+    None,
+    /// Single-solid analysis. (fillet, extrude on existing solid)
+    UnaryAnalysis,
+    /// Two-or-more-solid analysis. (boolean, merge)
+    BinaryAnalysis,
 }
 
 /// How much audit metadata the pipeline emits for a feature.

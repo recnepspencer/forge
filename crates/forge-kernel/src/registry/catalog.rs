@@ -40,9 +40,12 @@ macro_rules! feature_catalog {
             ///
             /// Each variant delegates to `FeaturePipeline::execute` with its
             /// concrete `Feature` impl — the macro generates the match arms.
+            ///
+            /// Takes ownership of inputs for pipeline-managed coordinate
+            /// conditioning (zero-copy transforms before feature execution).
             pub fn execute_via_pipeline(
                 &self,
-                inputs: &HashMap<NodeId, SolidEnvelope>,
+                inputs: HashMap<NodeId, SolidEnvelope>,
                 session_config: &KernelConfig,
             ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
                 match self {

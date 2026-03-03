@@ -310,6 +310,14 @@ impl<T> OperationResult<T> {
         self.value
     }
 
+    /// Mutable reference to the inner value.
+    ///
+    /// Used by the pipeline to perform coordinate restoration on the
+    /// output `SolidEnvelope`'s geometry after feature execution.
+    pub fn get_value_mut(&mut self) -> &mut T {
+        &mut self.value
+    }
+
     /// Non-fatal warnings emitted during the operation.
     pub fn get_warnings(&self) -> &[KernelWarning] {
         &self.warnings

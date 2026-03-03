@@ -15,6 +15,7 @@ use forge_topo::transactions::TopologyState;
 
 use crate::geometry::facade::{GeometryStore, GeometryView};
 use crate::geometry::facade::{transform_geometry, inverse_transform_geometry};
+use crate::engine::output::solid_envelope::SolidEnvelope;
 
 /// Local coordinate transform lifecycle for multi-solid operations.
 ///
@@ -48,6 +49,22 @@ impl OperationSpace {
     ) -> Self {
         let mut points = collect_vertex_positions(target_topo, target_geom);
         points.extend(collect_vertex_positions(tool_topo, tool_geom));
+        Self::from_points(&points, feature_tolerance)
+    }
+
+    /// Analyze all input solids and compute a shared local coordinate space.
+    ///
+    /// Used by the pipeline for `ConditioningMode::BinaryAnalysis` and
+    /// `ConditioningMode::UnaryAnalysis`. Collects vertex positions from
+    /// all input envelopes and computes a single `OperationSpace`.
+    pub fn analyze_envelopes<'a>(
+        inputs: impl Iterator<Item = &'a SolidEnvelope>,
+        feature_tolerance: f64,
+    ) -> Self {
+        let mut points = Vec::new();
+        for env in inputs {
+            points.extend(collect_vertex_positions(env.topology(), env.geometry()));
+        }
         Self::from_points(&points, feature_tolerance)
     }
 

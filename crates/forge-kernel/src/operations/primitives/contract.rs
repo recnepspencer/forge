@@ -6,7 +6,7 @@
 use forge_core::KernelError;
 
 use crate::engine::facade::{
-    AuditLevel, EntityOriginKind, EulerOpKind, FeatureInputs, InvariantKind, SurfaceKind,
+    AuditLevel, ConditioningMode, EntityOriginKind, EulerOpKind, FeatureInputs, InvariantKind, SurfaceKind,
 };
 
 use super::MakePrimitiveFeature;
@@ -22,6 +22,7 @@ crate::declare_feature!(MakePrimitiveFeature,
     invariants: [InvariantKind::ManifoldEdges],
     audit: AuditLevel::Summary,
     persistent: true,
+    conditioning: ConditioningMode::None,
 );
 
 // ── Typed Inputs ─────────────────────────────────────────────────────────

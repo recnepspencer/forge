@@ -33,6 +33,19 @@ impl ArenaSnapshot {
 ///
 /// Any slot indices in `[snapshot.X_slots .. arena.X_slot_count())` are
 /// entities created since the snapshot was taken.
+///
+/// # Limitations
+///
+/// This function only tracks **created** entities — it scans slot indices
+/// above the snapshot's watermark. It does **not** detect:
+/// - **Deletions**: entities removed during the operation (the arena may
+///   mark them as dead, but this function doesn't enumerate them).
+/// - **Recycled slots**: if the arena reuses a slot index below the
+///   watermark, it won't appear as "created."
+/// - **Modifications**: changes to existing entities (e.g., moved vertices,
+///   re-linked half-edges) are invisible to this delta.
+///
+/// For full mutation tracking, use the lineage/provenance system instead.
 pub fn compute_topology_delta(snapshot: &ArenaSnapshot, arena: &TopologyArena) -> TopologyDelta {
     let created_faces: Vec<u32> = (snapshot.face_slots..arena.face_slot_count())
         .filter(|&i| arena.face_generation(i).is_some())

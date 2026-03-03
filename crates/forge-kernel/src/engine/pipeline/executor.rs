@@ -20,9 +20,10 @@ use forge_core::tracing::{DecisionSink, TraceAdjunctSet};
 use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
-use super::super::contracts::contract::{AuditLevel, FeatureInputs};
+use super::super::contracts::contract::{AuditLevel, ConditioningMode, FeatureInputs};
 use super::super::contracts::feature_trait::Feature;
 use super::super::output::solid_envelope::SolidEnvelope;
+use super::super::operation_space::operation_space::OperationSpace;
 use super::invariants::validate_invariant;
 use crate::configuration::facade::{resolve_config, KernelConfig};
 use crate::context::facade::ModelingContext;
@@ -60,7 +61,7 @@ impl FeaturePipeline {
     /// violations.
     pub fn execute<F: Feature>(
         feature: &F,
-        raw_inputs: &HashMap<NodeId, SolidEnvelope>,
+        mut raw_inputs: HashMap<NodeId, SolidEnvelope>,
         session_config: &KernelConfig,
     ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
         let mut ctx = ModelingContext::from_config(session_config.clone());
@@ -81,20 +82,40 @@ impl FeaturePipeline {
             resolved_config.validate_policy_configured(policy)?;
         }
 
-        // 3. Parse + validate typed inputs
+        // 3. Snapshot topology hash before execution (before conditioning modifies geometry)
+        let hash_before = compute_input_hash(&raw_inputs);
+
+        // 4. Numerical conditioning (pipeline-managed, zero-copy)
+        //    Analyzes input geometry scale, emits a TracedDecision, and transforms
+        //    geometry in-place. Features execute in local coordinates without knowing.
+        let op_space = match feature.conditioning_mode() {
+            ConditioningMode::None => OperationSpace::identity(),
+            ConditioningMode::UnaryAnalysis | ConditioningMode::BinaryAnalysis => {
+                let space = OperationSpace::analyze_envelopes(
+                    raw_inputs.values(),
+                    resolved_config.tolerance_config().get_min_edge_length(),
+                );
+                if space.is_active() {
+                    for env in raw_inputs.values_mut() {
+                        space.transform_store(env.geometry_mut());
+                    }
+                }
+                // TODO: Emit TracedDecision recording condition_number, activation, threshold
+                space
+            }
+        };
+
+        // 5. Parse + validate typed inputs (ownership transfers to feature)
         let inputs = feature.parse_inputs(raw_inputs)?;
         inputs.validate()?;
 
-        // 4. Snapshot topology hash before execution
-        let hash_before = compute_input_hash(raw_inputs);
-
-        // 5. Execute business logic with trace span
+        // 6. Execute business logic with trace span
         let span_id = ctx.start_span(feature.feature_kind());
 
         let start = std::time::Instant::now();
         let result = {
-            let mut scope = OperationScope::new(&resolved_config, &mut ctx);
-            feature.execute_typed(&inputs, &mut scope)
+            let mut scope = OperationScope::with_conditioning(&resolved_config, &mut ctx, &op_space);
+            feature.execute_typed(inputs, &mut scope)
         };
         let duration_micros = start.elapsed().as_micros() as u64;
 
@@ -103,25 +124,17 @@ impl FeaturePipeline {
         // Propagate execution errors before finalization
         let mut sub_envelope = result?;
 
-        // 6. Post-validate invariants (success only)
-        let validation_config = ValidationConfig {
-            checkpoints: resolved_config.config().validation.checkpoints.clone(),
-            include_geometric: resolved_config.config().validation.include_geometric,
-            entity_limit: resolved_config.config().validation.entity_limit,
-        };
-        for invariant in feature.post_invariants() {
-            validate_invariant(
-                sub_envelope.get_value().topology(),
-                sub_envelope.get_value().geometry(),
-                invariant,
-                &validation_config,
-            )?;
+        // 7. Restore world coordinates (inverse of step 4)
+        if op_space.is_active() {
+            op_space.restore_store(sub_envelope.get_value_mut().geometry_mut());
         }
 
-        // 7. Compute hash_after from the output
+        // 8. Compute hash_after from the output
         let hash_after = forge_topo::transactions::compute_arena_topology_hash(sub_envelope.get_value().topology().arena());
 
-        // 8. Finalize — drain decisions + metadata from ctx into envelope
+        // 9. Finalize — drain decisions + metadata from ctx into envelope
+        //    Finalization happens BEFORE invariants so invariant checkers
+        //    can emit traced decisions into the already-finalized envelope.
         let hashes = TopologyHashBoundary {
             before: Some(hash_before),
             after: Some(hash_after),
@@ -136,7 +149,22 @@ impl FeaturePipeline {
             );
         }
 
-        // 9. Audit-level filtering
+        // 10. Post-validate invariants (success only, after finalization)
+        let validation_config = ValidationConfig {
+            checkpoints: resolved_config.config().validation.checkpoints.clone(),
+            include_geometric: resolved_config.config().validation.include_geometric,
+            entity_limit: resolved_config.config().validation.entity_limit,
+        };
+        for invariant in feature.post_invariants() {
+            validate_invariant(
+                sub_envelope.get_value().topology(),
+                sub_envelope.get_value().geometry(),
+                invariant,
+                &validation_config,
+            )?;
+        }
+
+        // 11. Audit-level filtering
         match feature.audit_level() {
             AuditLevel::None => {
                 sub_envelope.set_decision_log(forge_core::DecisionLog::new());
@@ -154,6 +182,16 @@ impl FeaturePipeline {
 }
 
 /// Compute a combined topology hash from all input SolidEnvelopes.
+///
+/// Uses `wrapping_add` for combination — this is **commutative** (a + b = b + a),
+/// making the hash independent of `HashMap` iteration order. This is intentional:
+/// a feature that takes `(target, tool)` should produce the same pre-hash regardless
+/// of which input is iterated first.
+///
+/// Trade-off: commutative hashing loses the ability to distinguish permuted inputs
+/// (e.g., `hash(A, B) == hash(B, A)`). This is acceptable because the hash is used
+/// for change detection, not input identity — the feature tree structure already
+/// encodes which NodeId is "target" vs "tool".
 fn compute_input_hash(inputs: &HashMap<NodeId, SolidEnvelope>) -> u128 {
     let mut combined: u128 = 0;
     for output in inputs.values() {

@@ -77,6 +77,7 @@ crate::declare_feature!(BooleanFeature,
     invariants: [],
     audit: AuditLevel::Full,
     persistent: true,
+    conditioning: crate::engine::facade::ConditioningMode::BinaryAnalysis,
 );
 
 impl Feature for BooleanFeature {
@@ -84,28 +85,26 @@ impl Feature for BooleanFeature {
 
     fn parse_inputs(
         &self,
-        raw: &HashMap<NodeId, SolidEnvelope>,
+        mut raw: HashMap<NodeId, SolidEnvelope>,
     ) -> Result<BooleanInputs, KernelError> {
         let target = raw
-            .get(&self.target)
+            .remove(&self.target)
             .ok_or(KernelError::InvalidInput {
                 message: "Missing target input".into(),
                 context: None,
-            })?
-            .clone();
+            })?;
         let tool = raw
-            .get(&self.tool)
+            .remove(&self.tool)
             .ok_or(KernelError::InvalidInput {
                 message: "Missing tool input".into(),
                 context: None,
-            })?
-            .clone();
+            })?;
         Ok(BooleanInputs { target, tool })
     }
 
     fn execute_typed(
         &self,
-        inputs: &BooleanInputs,
+        inputs: BooleanInputs,
         _scope: &mut OperationScope<'_>,
     ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, KernelError> {
         let input = BooleanInput::new(

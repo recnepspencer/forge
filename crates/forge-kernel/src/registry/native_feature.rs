@@ -71,7 +71,7 @@ impl NativeFeature {
 impl FeatureRegistry for NativeFeature {
     fn execute_via_pipeline(
         &self,
-        inputs: &HashMap<NodeId, SolidEnvelope>,
+        inputs: HashMap<NodeId, SolidEnvelope>,
         session_config: &KernelConfig,
     ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
         self.kind.execute_via_pipeline(inputs, session_config)

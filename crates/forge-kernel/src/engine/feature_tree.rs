@@ -83,10 +83,20 @@ impl<R: FeatureRegistry> FeatureTree<R> {
             self.graph
                 .add_dependency(node_id, dep_id, Aspect::Geometry)?;
         }
-
-        if let Some(name) = feature.name().split('/').last() {
-            self.names.insert(name.to_string(), node_id);
+        // Enforce feature name uniqueness — full path, not trailing segment.
+        // Previous code used split('/').last() which silently overwrote
+        // features sharing a trailing name segment.
+        let name = feature.name().to_string();
+        if self.names.contains_key(&name) {
+            return Err(KernelError::InvalidInput {
+                message: format!(
+                    "Duplicate feature name '{}'. Feature names must be unique.",
+                    name
+                ),
+                context: None,
+            });
         }
+        self.names.insert(name, node_id);
 
         self.features.insert(node_id, feature);
 
@@ -177,9 +187,10 @@ impl<R: FeatureRegistry> FeatureTree<R> {
                     context: None,
                 })?;
 
-                // Build input map by borrowing SolidEnvelope from stored envelopes.
-                // The clone is at the input boundary — necessary because
-                // parse_inputs takes &HashMap<NodeId, SolidEnvelope>.
+                // Build input map by cloning SolidEnvelope from stored envelopes.
+                // This is the single, unavoidable clone — the signal graph cache
+                // owns the canonical data, features need their own copy. Topology
+                // is Arc (O(1) clone), geometry is the real cost (O(V+F)).
                 let mut input_map = HashMap::new();
                 for dep_id in feature.dependencies() {
                     if let Some(envelope) = envelopes.get(&dep_id) {
@@ -192,7 +203,7 @@ impl<R: FeatureRegistry> FeatureTree<R> {
                     }
                 }
 
-                let envelope = feature.execute_via_pipeline(&input_map, session_config)?;
+                let envelope = feature.execute_via_pipeline(input_map, session_config)?;
 
                 // Build the trace summary from the envelope's decision log —
                 // NOT from ctx, which was drained by the OperationFinalizer.

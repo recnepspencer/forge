@@ -23,6 +23,17 @@ use crate::geometry::facade::GeometryStore;
 ///
 /// Audit metadata (decisions, metrics, lineage) lives in the
 /// `OperationResult<SolidEnvelope>` envelope that wraps this, not here.
+///
+/// # Cache Invalidation Safety
+///
+/// The `OnceCell` handle caches derive from `topology`, which is immutable
+/// after construction. There is no `topology_mut()` accessor — only
+/// `geometry_mut()` exists (for pipeline coordinate conditioning). Since
+/// geometry changes don't affect handle lists (which depend only on arena
+/// adjacency), the caches can never become stale.
+///
+/// If topology mutation were ever added, these caches would need to be
+/// invalidated or replaced with a versioned lookup.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SolidEnvelope {
     /// Committed topology snapshot.

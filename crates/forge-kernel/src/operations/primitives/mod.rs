@@ -180,14 +180,14 @@ impl Feature for MakePrimitiveFeature {
 
     fn parse_inputs(
         &self,
-        _raw: &HashMap<NodeId, SolidEnvelope>,
+        _raw: HashMap<NodeId, SolidEnvelope>,
     ) -> Result<PrimitiveInputs, KernelError> {
         Ok(PrimitiveInputs)
     }
 
     fn execute_typed(
         &self,
-        _inputs: &PrimitiveInputs,
+        _inputs: PrimitiveInputs,
         scope: &mut OperationScope<'_>,
     ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, KernelError> {
         let sub_result = generate::generate_primitive(&self.params, self.center, scope.config)?;

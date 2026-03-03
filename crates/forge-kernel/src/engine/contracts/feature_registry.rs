@@ -23,9 +23,12 @@ use super::super::output::solid_envelope::SolidEnvelope;
 /// through this trait.
 pub trait FeatureRegistry: Debug + Clone + Serialize + DeserializeOwned {
     /// Execute this feature through the pipeline.
+    ///
+    /// Takes ownership of inputs — the pipeline performs coordinate
+    /// conditioning on the owned geometry before passing to the feature.
     fn execute_via_pipeline(
         &self,
-        inputs: &HashMap<NodeId, SolidEnvelope>,
+        inputs: HashMap<NodeId, SolidEnvelope>,
         session_config: &KernelConfig,
     ) -> Result<OperationResult<SolidEnvelope>, KernelError>;
 

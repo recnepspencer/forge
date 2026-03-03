@@ -3,8 +3,8 @@
 //! External code should prefer these exports over deep engine internals.
 
 pub use super::contracts::contract::{
-    AuditLevel, EntityOriginKind, EulerOpKind, FeatureContract, FeatureInputs, InvariantKind,
-    SurfaceKind,
+    AuditLevel, ConditioningMode, EntityOriginKind, EulerOpKind, FeatureContract, FeatureInputs,
+    InvariantKind, SurfaceKind,
 };
 pub use super::contracts::feature_trait::Feature;
 pub use super::contracts::feature_registry::FeatureRegistry;

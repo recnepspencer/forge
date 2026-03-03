@@ -56,16 +56,23 @@ pub trait Feature: FeatureContract + std::fmt::Debug + Any {
     type Inputs: FeatureInputs;
 
     /// Parse raw dependency outputs into typed inputs.
+    ///
+    /// Takes ownership of the input map — the pipeline has already
+    /// performed coordinate conditioning on the geometry. Features
+    /// can use `.remove()` to move data out without cloning.
     fn parse_inputs(
         &self,
-        raw: &HashMap<NodeId, SolidEnvelope>,
+        raw: HashMap<NodeId, SolidEnvelope>,
     ) -> Result<Self::Inputs, KernelError>;
 
     /// Execute the feature's business logic with typed inputs and an operation scope
     /// that provides both configuration and a decision recording sink.
+    ///
+    /// Takes ownership of inputs — features that need to mutate geometry
+    /// (e.g., boolean operations) can do so in-place without cloning.
     fn execute_typed(
         &self,
-        inputs: &Self::Inputs,
+        inputs: Self::Inputs,
         scope: &mut OperationScope<'_>,
     ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, KernelError>;
 
