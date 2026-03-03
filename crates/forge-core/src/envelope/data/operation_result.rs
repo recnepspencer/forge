@@ -17,7 +17,7 @@ use super::operation_metrics::OperationMetrics;
 ///
 /// # Example
 /// ```
-/// use forge_core::envelope::{OperationResult, OperationMetrics, LineageDelta};
+/// use forge_core::{OperationResult, OperationMetrics, LineageDelta};
 ///
 /// let result: OperationResult<i32> = OperationResult::new(42);
 /// assert_eq!(*result.get_value(), 42);
@@ -27,23 +27,23 @@ use super::operation_metrics::OperationMetrics;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OperationResult<T> {
     /// The primary return value.
-    pub(crate) value: T,
+    pub(in crate::envelope) value: T,
     /// Non-fatal warnings emitted during the operation.
-    pub(crate) warnings: Vec<KernelWarning>,
+    pub(in crate::envelope) warnings: Vec<KernelWarning>,
     /// Full decision trace for this operation.
-    pub(crate) decision_log: DecisionLog,
+    pub(in crate::envelope) decision_log: DecisionLog,
     /// Performance and accounting metrics.
-    pub(crate) metrics: OperationMetrics,
+    pub(in crate::envelope) metrics: OperationMetrics,
     /// Summary of lineage changes.
-    pub(crate) lineage_delta: LineageDelta,
+    pub(in crate::envelope) lineage_delta: LineageDelta,
     /// Topology hash before the operation.
-    pub(crate) state_hash_before: u128,
+    pub(in crate::envelope) state_hash_before: u128,
     /// Topology hash after the operation.
-    pub(crate) state_hash_after: u128,
+    pub(in crate::envelope) state_hash_after: u128,
     /// Checkpoint validation results logged during this operation.
-    pub(crate) validation_results: Vec<String>,
+    pub(in crate::envelope) validation_results: Vec<String>,
     /// Extra summary lines to print during compact logging (e.g., replay or lineage stats).
-    pub(crate) extra_summaries: Vec<String>,
+    pub(in crate::envelope) extra_summaries: Vec<String>,
     /// Accumulated floating-point error budget consumed by this operation chain (mm).
     ///
     /// Increases by `max(new_vertex_tolerance) - global_default()` after each
@@ -51,5 +51,6 @@ pub struct OperationResult<T> {
     /// `ToleranceConfig::error_budget_mm`, `check_budget()` emits
     /// `KernelWarning::ErrorBudgetExceeded`. Defaults to `0.0`.
     #[serde(default)]
-    pub(crate) accumulated_error_budget: f64,
+    pub(in crate::envelope) accumulated_error_budget: f64,
 }
+

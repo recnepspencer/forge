@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::tracing::DecisionId;
 
 /// Non-fatal warning emitted during an operation.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum KernelWarning {
     /// A sliver face was created (area below threshold).
     SliverFaceCreated {

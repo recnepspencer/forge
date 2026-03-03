@@ -17,5 +17,5 @@ use std::hash::Hash;
 /// Values must be `Serialize + Deserialize` if the layer will be persisted.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PropertyLayer<K: Eq + Hash, V> {
-    pub(crate) data: HashMap<K, V>,
+    pub(in crate::storage) data: HashMap<K, V>,
 }

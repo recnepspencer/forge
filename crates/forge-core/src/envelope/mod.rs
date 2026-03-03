@@ -2,19 +2,18 @@
 //!
 //! DOMAIN: Universal return type wrapping every kernel operation's
 //! result alongside decision logs, warnings, metrics, and lineage.
-//! An AI agent can reconstruct the full state transition from
-//! the `OperationResult<T>` envelope alone.
-//!
-//! DEPENDENCIES: serde
 //!
 //! STRUCTURE:
-//!   data/  — Type definitions (enums, structs)
-//!   logic/ — Behavioral impls (Display, methods)
+//!   facade.rs — Public API surface (§7)
+//!   data/     — Type definitions (enums, structs)
+//!   logic/    — Behavioral impls (Display, methods)
 
-pub(crate) mod data;
+mod data;
 mod logic;
+
+pub mod facade;
 
 #[cfg(test)]
 mod tests;
 
-pub use data::{KernelWarning, LineageDelta, OperationMetrics, OperationResult};
+pub use facade::*;

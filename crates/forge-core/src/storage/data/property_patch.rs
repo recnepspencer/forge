@@ -11,7 +11,7 @@ use super::property_layer::PropertyLayer;
 /// into the base layer. On `drop` (without commit), mutations are
 /// silently discarded (rollback).
 pub struct PropertyPatch<K: Eq + Hash, V> {
-    pub(crate) base: PropertyLayer<K, V>,
-    pub(crate) inserts: HashMap<K, V>,
-    pub(crate) removes: HashSet<K>,
+    pub(in crate::storage) base: PropertyLayer<K, V>,
+    pub(in crate::storage) inserts: HashMap<K, V>,
+    pub(in crate::storage) removes: HashSet<K>,
 }

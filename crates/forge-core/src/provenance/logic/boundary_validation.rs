@@ -27,6 +27,29 @@ impl BoundarySegmentProvenance {
         }
     }
 
+    /// Create an undirected boundary segment provenance.
+    ///
+    /// Uses order-invariant hashing so `(a, b)` and `(b, a)` produce the
+    /// same `transport_hash`. Prefer this over creating a directed segment
+    /// and toggling `directed = false` manually.
+    pub fn new_undirected(
+        start_vertex_snapshot: SnapshotHandleRef,
+        end_vertex_snapshot: SnapshotHandleRef,
+    ) -> Self {
+        Self {
+            transport_hash: hash_undirected_snapshot_segment_transport(
+                start_vertex_snapshot,
+                end_vertex_snapshot,
+            ),
+            start_vertex_snapshot,
+            end_vertex_snapshot,
+            source_halfedge_snapshot: None,
+            source_edge_snapshot: None,
+            source_face_snapshot: None,
+            directed: false,
+        }
+    }
+
     /// Validate payload invariants for audit/replay use.
     pub fn validate(&self) -> Result<(), ProvenanceValidationError> {
         if self.start_vertex_snapshot.kind != EntityKind::Vertex {
