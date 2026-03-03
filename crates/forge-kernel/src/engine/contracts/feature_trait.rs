@@ -12,7 +12,7 @@ use forge_signal::facade::NodeId;
 
 use crate::context::scope::OperationScope;
 use super::contract::{FeatureContract, FeatureInputs};
-use super::super::output::feature_output::FeatureOutput;
+use super::super::output::solid_envelope::SolidEnvelope;
 
 /// A parametric feature that can be evaluated.
 ///
@@ -23,7 +23,7 @@ use super::super::output::feature_output::FeatureOutput;
 /// # Compile-Fail: Feature without Contract
 ///
 /// ```compile_fail
-/// use forge_kernel::engine::facade::{Feature, FeatureOutput};
+/// use forge_kernel::engine::facade::{Feature, SolidEnvelope};
 /// use forge_kernel::engine::facade::FeatureInputs;
 /// use forge_kernel::configuration::facade::ResolvedConfig;
 /// use forge_core::KernelError;
@@ -41,10 +41,10 @@ use super::super::output::feature_output::FeatureOutput;
 /// // This should fail because NakedFeature does NOT implement FeatureContract.
 /// impl Feature for NakedFeature {
 ///     type Inputs = EmptyInputs;
-///     fn parse_inputs(&self, _: &HashMap<NodeId, FeatureOutput>) -> Result<EmptyInputs, KernelError> {
+///     fn parse_inputs(&self, _: &HashMap<NodeId, SolidEnvelope>) -> Result<EmptyInputs, KernelError> {
 ///         Ok(EmptyInputs)
 ///     }
-///     fn execute_typed(&self, _: &EmptyInputs, _: &mut OperationScope<'_>) -> Result<FeatureOutput, KernelError> {
+///     fn execute_typed(&self, _: &EmptyInputs, _: &mut OperationScope<'_>) -> Result<SolidEnvelope, KernelError> {
 ///         unimplemented!()
 ///     }
 ///     fn dependencies(&self) -> Vec<NodeId> { vec![] }
@@ -58,7 +58,7 @@ pub trait Feature: FeatureContract + std::fmt::Debug + Any {
     /// Parse raw dependency outputs into typed inputs.
     fn parse_inputs(
         &self,
-        raw: &HashMap<NodeId, FeatureOutput>,
+        raw: &HashMap<NodeId, SolidEnvelope>,
     ) -> Result<Self::Inputs, KernelError>;
 
     /// Execute the feature's business logic with typed inputs and an operation scope
@@ -67,7 +67,7 @@ pub trait Feature: FeatureContract + std::fmt::Debug + Any {
         &self,
         inputs: &Self::Inputs,
         scope: &mut OperationScope<'_>,
-    ) -> Result<FeatureOutput, KernelError>;
+    ) -> Result<SolidEnvelope, KernelError>;
 
     /// Return the list of input dependencies (NodeIds).
     fn dependencies(&self) -> Vec<NodeId>;

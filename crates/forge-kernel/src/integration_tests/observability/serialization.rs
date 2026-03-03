@@ -8,8 +8,8 @@ use crate::integration_tests::harness::shapes::unit_cube_traced;
 /// TopologyState serialization round-trip preserves hash and entity counts.
 #[test]
 fn test_topology_state_roundtrip() {
-    let result = unit_cube_traced().expect("unit cube should succeed");
-    let topo = &result.topology;
+    let (envelope, _ctx) = unit_cube_traced().expect("unit cube should succeed");
+    let topo = envelope.topology();
 
     let serialized = serde_json::to_vec(topo).expect("TopologyState should serialize");
     let deserialized: forge_topo::transactions::TopologyState =
@@ -33,8 +33,8 @@ fn test_topology_state_roundtrip() {
 /// GeometryStore serialization round-trip preserves planes and positions.
 #[test]
 fn test_geometry_store_roundtrip() {
-    let result = unit_cube_traced().expect("unit cube should succeed");
-    let geom = &result.geometry;
+    let (envelope, _ctx) = unit_cube_traced().expect("unit cube should succeed");
+    let geom = envelope.geometry();
 
     let serialized = serde_json::to_vec(geom).expect("GeometryStore should serialize");
     let deserialized: crate::geometry::facade::GeometryStore =
@@ -58,8 +58,8 @@ fn test_geometry_store_roundtrip() {
 /// DecisionLog serialization round-trip preserves decision count and kinds.
 #[test]
 fn test_decision_log_roundtrip() {
-    let result = unit_cube_traced().expect("unit cube should succeed");
-    let log = result.ctx.get_decision_log();
+    let (_envelope, ctx) = unit_cube_traced().expect("unit cube should succeed");
+    let log = ctx.get_decision_log();
 
     let serialized = serde_json::to_vec(log).expect("DecisionLog should serialize");
     let deserialized: forge_core::DecisionLog =
@@ -88,9 +88,9 @@ fn test_decision_log_roundtrip() {
 #[test]
 fn test_replay_same_inputs_same_topology() {
     fn build_cube() -> (u128, usize) {
-        let result = unit_cube_traced().expect("unit cube should succeed");
-        let hash = result.topology.topology_hash();
-        let decision_count = result.ctx.get_decision_count();
+        let (envelope, ctx) = unit_cube_traced().expect("unit cube should succeed");
+        let hash = envelope.topology().topology_hash();
+        let decision_count = ctx.get_decision_count();
         (hash, decision_count)
     }
 

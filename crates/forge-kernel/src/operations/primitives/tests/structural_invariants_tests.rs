@@ -6,7 +6,8 @@
 
 use crate::context::ModelingContext;
 use forge_topo::b_rep::TopologyArena;
-use crate::operations::primitives::{MeshBuildResult, make_cube, make_tetrahedron, make_dodecahedron};
+use crate::engine::facade::SolidEnvelope;
+use crate::operations::primitives::{make_cube, make_tetrahedron, make_dodecahedron};
 use crate::geometry::facade::GeometryView;
 
 use super::{test_config, OperationScope};
@@ -109,7 +110,7 @@ fn assert_outward_normals(arena: &TopologyArena, geom: &impl GeometryView, label
 }
 
 /// Run full invariant suite. Exported for reuse by other test modules.
-pub(super) fn assert_valid_solid(result: &MeshBuildResult, label: &str) {
+pub(super) fn assert_valid_solid(result: &SolidEnvelope, label: &str) {
     let arena = result.topology().arena();
     let geom = result.geometry();
     assert_euler(arena, label);

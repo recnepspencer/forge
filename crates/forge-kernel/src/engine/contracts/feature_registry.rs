@@ -13,7 +13,7 @@ use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
 use crate::configuration::facade::KernelConfig;
-use super::super::output::feature_output::FeatureOutput;
+use super::super::output::solid_envelope::SolidEnvelope;
 
 /// Trait that concrete feature enums must implement to be used with `FeatureTree`.
 ///
@@ -25,9 +25,9 @@ pub trait FeatureRegistry: Debug + Clone + Serialize + DeserializeOwned {
     /// Execute this feature through the pipeline.
     fn execute_via_pipeline(
         &self,
-        inputs: &HashMap<NodeId, FeatureOutput>,
+        inputs: &HashMap<NodeId, SolidEnvelope>,
         session_config: &KernelConfig,
-    ) -> Result<OperationResult<FeatureOutput>, KernelError>;
+    ) -> Result<OperationResult<SolidEnvelope>, KernelError>;
 
     /// Return the NodeIds this feature depends on.
     fn dependencies(&self) -> Vec<NodeId>;

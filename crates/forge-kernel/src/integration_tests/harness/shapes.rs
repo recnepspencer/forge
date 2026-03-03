@@ -1,39 +1,20 @@
 //! Shape builders for integration tests.
 //!
-//! DOMAIN: Creates real BSP-generated solids and returns either lightweight
-//! handles (ModelingContext path — all tests use real sinks) or full context envelopes
-//! (ModelingContext path for observability tests).
+//! DOMAIN: Creates real BSP-generated solids and returns `SolidEnvelope`
+//! (handles extracted lazily via `OnceCell`) for structural tests, or
+//! `(SolidEnvelope, ModelingContext)` for observability tests.
 //!
 //! When lineage or persistent naming lands, update these builders once —
 //! all tests absorb the change automatically.
 
 use crate::context::ModelingContext;
 use forge_core::KernelError;
-use forge_topo::transactions::{MutableDraft, TopologyState};
-use forge_topo::handles::{BodyId, FaceId, HalfEdgeId, ShellId, VertexId};
+use forge_topo::handles::{FaceId, HalfEdgeId};
 
 use crate::configuration::facade::{resolve_config, KernelConfig, ResolvedConfig};
 use crate::context::scope::OperationScope;
-use crate::geometry::facade::GeometryStore;
+use crate::engine::facade::SolidEnvelope;
 use crate::operations::primitives;
-
-/// Handles extracted from a cube solid.
-#[derive(Debug, Clone)]
-pub struct CubeHandles {
-    pub body: BodyId,
-    pub shell: ShellId,
-    pub faces: Vec<FaceId>,
-    pub vertices: Vec<VertexId>,
-}
-
-/// Handles extracted from a tetrahedron solid.
-#[derive(Debug, Clone)]
-pub struct TetraHandles {
-    pub body: BodyId,
-    pub shell: ShellId,
-    pub faces: Vec<FaceId>,
-    pub vertices: Vec<VertexId>,
-}
 
 /// Build a default test config.
 pub fn test_config() -> ResolvedConfig {
@@ -42,65 +23,23 @@ pub fn test_config() -> ResolvedConfig {
 
 /// Build a unit cube centered at origin.
 ///
-/// Returns a committed TopologyState and extracted handles.
-/// Call `state.into_mutation()` to get a MutableDraft for applying operators.
-pub fn unit_cube() -> Result<(TopologyState, CubeHandles), KernelError> {
+/// Returns a `SolidEnvelope` with lazily-extracted handles.
+/// Access `envelope.body()`, `envelope.faces()`, etc. for handle inspection.
+pub fn unit_cube() -> Result<SolidEnvelope, KernelError> {
     let config = test_config();
     let mut ctx = ModelingContext::new();
     let mut scope = OperationScope::new(&config, &mut ctx);
-    let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, &mut scope)?;
-    let (topo, _geom) = result.into_parts();
-
-    let arena = topo.arena();
-
-    let bodies: Vec<BodyId> = arena.iter_bodies().map(|(id, _)| id).collect();
-    let body = bodies[0];
-
-    let shells: Vec<ShellId> = arena.iter_shells().map(|(id, _)| id).collect();
-    let shell = shells[0];
-
-    let faces: Vec<FaceId> = arena.iter_faces().map(|(id, _)| id).collect();
-    let vertices: Vec<VertexId> = arena.iter_vertices().map(|(id, _)| id).collect();
-
-    let handles = CubeHandles {
-        body,
-        shell,
-        faces,
-        vertices,
-    };
-
-    Ok((topo, handles))
+    primitives::make_cube([0.0, 0.0, 0.0], 1.0, &mut scope)
 }
 
 /// Build a tetrahedron centered at origin.
 ///
-/// Returns a committed TopologyState and extracted handles.
-pub fn tetrahedron() -> Result<(TopologyState, TetraHandles), KernelError> {
+/// Returns a `SolidEnvelope` with lazily-extracted handles.
+pub fn tetrahedron() -> Result<SolidEnvelope, KernelError> {
     let config = test_config();
     let mut ctx = ModelingContext::new();
     let mut scope = OperationScope::new(&config, &mut ctx);
-    let result = primitives::make_tetrahedron([0.0, 0.0, 0.0], 1.0, &mut scope)?;
-    let (topo, _geom) = result.into_parts();
-
-    let arena = topo.arena();
-
-    let bodies: Vec<BodyId> = arena.iter_bodies().map(|(id, _)| id).collect();
-    let body = bodies[0];
-
-    let shells: Vec<ShellId> = arena.iter_shells().map(|(id, _)| id).collect();
-    let shell = shells[0];
-
-    let faces: Vec<FaceId> = arena.iter_faces().map(|(id, _)| id).collect();
-    let vertices: Vec<VertexId> = arena.iter_vertices().map(|(id, _)| id).collect();
-
-    let handles = TetraHandles {
-        body,
-        shell,
-        faces,
-        vertices,
-    };
-
-    Ok((topo, handles))
+    primitives::make_tetrahedron([0.0, 0.0, 0.0], 1.0, &mut scope)
 }
 
 /// Find the first halfedge of a given face by traversal.
@@ -146,75 +85,33 @@ pub fn collect_face_loop(
 
 // ── Traced builders (production-grade observability tests) ──────────────────
 
-/// Full context envelope returned by traced shape builders.
-///
-/// Contains everything needed to assert on any dimension of the operation:
-/// topology, geometry, decisions, and (eventually) lineage.
-pub struct TracedResult {
-    pub topology: TopologyState,
-    pub geometry: GeometryStore,
-    pub ctx: ModelingContext,
-    pub handles: CubeHandles,
-}
-
 /// Build a unit cube with `ModelingContext` (real `DecisionSink`).
 ///
-/// Returns the full context envelope so observability tests can assert
-/// on `DecisionLog`, lineage, spans — everything the production path produces.
-pub fn unit_cube_traced() -> Result<TracedResult, KernelError> {
+/// Returns `(SolidEnvelope, ModelingContext)` so observability tests can
+/// assert on `DecisionLog`, lineage, spans — everything the production
+/// path produces.
+pub fn unit_cube_traced() -> Result<(SolidEnvelope, ModelingContext), KernelError> {
     let config = test_config();
     let mut ctx = ModelingContext::new();
-    let mut scope = OperationScope::new(&config, &mut ctx);
-    let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, &mut scope)?;
-    let (topo, geom) = result.into_parts();
-
-    let arena = topo.arena();
-    let bodies: Vec<BodyId> = arena.iter_bodies().map(|(id, _)| id).collect();
-    let shells: Vec<ShellId> = arena.iter_shells().map(|(id, _)| id).collect();
-    let faces: Vec<FaceId> = arena.iter_faces().map(|(id, _)| id).collect();
-    let vertices: Vec<VertexId> = arena.iter_vertices().map(|(id, _)| id).collect();
-
-    Ok(TracedResult {
-        topology: topo,
-        geometry: geom,
-        ctx,
-        handles: CubeHandles {
-            body: bodies[0],
-            shell: shells[0],
-            faces,
-            vertices,
-        },
-    })
+    let envelope = {
+        let mut scope = OperationScope::new(&config, &mut ctx);
+        primitives::make_cube([0.0, 0.0, 0.0], 1.0, &mut scope)?
+    };
+    Ok((envelope, ctx))
 }
 
 /// Build an axis-aligned block with `ModelingContext` (real `DecisionSink`).
 pub fn unit_block_traced(
     center: [f64; 3],
     half_extents: [f64; 3],
-) -> Result<TracedResult, KernelError> {
+) -> Result<(SolidEnvelope, ModelingContext), KernelError> {
     let config = test_config();
     let mut ctx = ModelingContext::new();
-    let mut scope = OperationScope::new(&config, &mut ctx);
-    let result = primitives::make_block(center, half_extents, &mut scope)?;
-    let (topo, geom) = result.into_parts();
-
-    let arena = topo.arena();
-    let bodies: Vec<BodyId> = arena.iter_bodies().map(|(id, _)| id).collect();
-    let shells: Vec<ShellId> = arena.iter_shells().map(|(id, _)| id).collect();
-    let faces: Vec<FaceId> = arena.iter_faces().map(|(id, _)| id).collect();
-    let vertices: Vec<VertexId> = arena.iter_vertices().map(|(id, _)| id).collect();
-
-    Ok(TracedResult {
-        topology: topo,
-        geometry: geom,
-        ctx,
-        handles: CubeHandles {
-            body: bodies[0],
-            shell: shells[0],
-            faces,
-            vertices,
-        },
-    })
+    let envelope = {
+        let mut scope = OperationScope::new(&config, &mut ctx);
+        primitives::make_block(center, half_extents, &mut scope)?
+    };
+    Ok((envelope, ctx))
 }
 
 /// Create a fresh `(ResolvedConfig, ModelingContext)` pair for manual pipeline tests.

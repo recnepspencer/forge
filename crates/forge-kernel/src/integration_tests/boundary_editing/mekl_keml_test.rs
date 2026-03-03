@@ -5,7 +5,7 @@
 //! surviving face valence after merge.
 
 use crate::integration_tests::harness::assertions::{
-    assert_all_invariants, assert_reciprocity, assert_euler_formula,
+    assert_reciprocity, assert_euler_formula,
     assert_counts, assert_face_valence, EntityCounts,
 };
 use crate::integration_tests::harness::shapes::{
@@ -18,10 +18,11 @@ use forge_topo::entity_lifecycle::make_edge_face::MakeEdgeFace;
 /// Verify full count restoration AND that vertex adjacency is intact.
 #[test]
 fn mef_then_join_roundtrip_restores_all_counts() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face = handles.faces[0];
+    let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
     let loop_hes = collect_face_loop(draft.arena(), start_he).unwrap();
 
@@ -58,11 +59,12 @@ fn mef_then_join_roundtrip_restores_all_counts() {
 /// This tests that MEF doesn't corrupt adjacent face topology.
 #[test]
 fn mef_two_faces_then_join_adjacent_pair() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face_a = handles.faces[0];
-    let face_b = handles.faces[2];
+    let face_a = faces[0];
+    let face_b = faces[2];
 
     let he_a = first_halfedge_of_face(draft.arena(), face_a).unwrap();
     let loop_a = collect_face_loop(draft.arena(), he_a).unwrap();
@@ -89,7 +91,7 @@ fn mef_two_faces_then_join_adjacent_pair() {
     assert_eq!(draft.arena().face_count(), 8);
     assert_reciprocity(draft.arena());
 
-    let jf_he = first_halfedge_of_face(draft.arena(), handles.faces[3]).unwrap();
+    let jf_he = first_halfedge_of_face(draft.arena(), faces[3]).unwrap();
     let jf = draft.execute(JoinFaces {
         edge: jf_he,
     }).unwrap().into_value();

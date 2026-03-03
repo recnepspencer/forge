@@ -16,7 +16,7 @@ use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
 use crate::configuration::facade::KernelConfig;
-use crate::engine::facade::{FeatureOutput, FeaturePipeline};
+use crate::engine::facade::{SolidEnvelope, FeaturePipeline};
 
 /// Generates the `FeatureKind` enum and its `execute_via_pipeline` dispatch.
 ///
@@ -42,9 +42,9 @@ macro_rules! feature_catalog {
             /// concrete `Feature` impl — the macro generates the match arms.
             pub fn execute_via_pipeline(
                 &self,
-                inputs: &HashMap<NodeId, FeatureOutput>,
+                inputs: &HashMap<NodeId, SolidEnvelope>,
                 session_config: &KernelConfig,
-            ) -> Result<OperationResult<FeatureOutput>, KernelError> {
+            ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
                 match self {
                     $(FeatureKind::$variant(f) => FeaturePipeline::execute(f, inputs, session_config)),*
                 }

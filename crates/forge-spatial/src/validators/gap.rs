@@ -11,7 +11,7 @@
 //!   - `has_overlap = min_gap_mm < 0` (negative = penetration).
 
 use forge_core::KernelError;
-use forge_geom::primitives::plane::{signed_distance, Plane};
+use forge_geom::{signed_distance, Plane};
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::traverse::FaceEdgeIterator;

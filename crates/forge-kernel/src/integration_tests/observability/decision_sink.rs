@@ -13,8 +13,8 @@ use forge_core::DecisionKind;
 /// decision for every vertex placement — both merges and clean inserts.
 #[test]
 fn test_make_block_produces_decisions() {
-    let result = unit_cube_traced().expect("unit cube should succeed");
-    let log = result.ctx.get_decision_log();
+    let (_envelope, ctx) = unit_cube_traced().expect("unit cube should succeed");
+    let log = ctx.get_decision_log();
 
     assert!(
         !log.is_empty(),
@@ -37,11 +37,11 @@ fn test_make_block_produces_decisions() {
 /// All decisions should be NearBoundary with large margins (clean inserts).
 #[test]
 fn test_large_block_no_spurious_decisions() {
-    let result = unit_block_traced(
+    let (_envelope, ctx) = unit_block_traced(
         [0.0, 0.0, 0.0],
         [50.0, 50.0, 50.0],
     ).expect("large block should succeed");
-    let log = result.ctx.get_decision_log();
+    let log = ctx.get_decision_log();
 
     // Every vertex should produce a NearBoundary decision.
     let near_boundary_count = log.decisions()
@@ -59,8 +59,8 @@ fn test_large_block_no_spurious_decisions() {
 /// Build a block through the pipeline path and verify span timing is recorded.
 #[test]
 fn test_pipeline_span_timing_recorded() {
-    let result = unit_cube_traced().expect("unit cube should succeed");
-    let log = result.ctx.get_decision_log();
+    let (_envelope, ctx) = unit_cube_traced().expect("unit cube should succeed");
+    let log = ctx.get_decision_log();
 
     let events = log.get_events();
     let has_span = events.iter().any(|e| {

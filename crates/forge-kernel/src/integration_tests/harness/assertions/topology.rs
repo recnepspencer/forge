@@ -1,12 +1,12 @@
-//! Structural assertion helpers for integration tests.
+//! Topology wiring assertions for B-Rep structures.
 //!
-//! DOMAIN: Reusable invariant checks that every integration test calls.
-//! When persistent naming or lineage lands, add new assertions here —
-//! all tests pick them up automatically.
+//! DOMAIN: Validates that the combinatorial structure of a B-Rep
+//! solid is internally consistent — pointers match, orbits close,
+//! Euler's formula holds. These assertions operate on `TopologyArena`
+//! directly, independent of geometry.
 
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::FaceId;
-use forge_core::DecisionLog;
 
 /// Expected entity counts for assertion.
 #[derive(Debug, Clone)]
@@ -314,40 +314,4 @@ pub fn assert_face_valence(arena: &TopologyArena, face: FaceId, expected: usize)
         "Face {} has {} halfedges (expected {})",
         face.index(), count, expected
     );
-}
-
-/// Assert every decision in a `DecisionLog` is well-formed.
-///
-/// Validates:
-/// - Non-negative margin on every decision
-/// - Populated context (not a zero-default)
-///
-/// This is the observability equivalent of `assert_all_invariants` —
-/// call it after any traced operation to catch garbage decision payloads.
-pub fn assert_decisions_well_formed(log: &DecisionLog) {
-    for decision in log.decisions() {
-        assert!(
-            decision.get_margin() >= 0.0,
-            "Decision {:?} has negative margin: {}",
-            decision.get_id(), decision.get_margin()
-        );
-    }
-}
-
-/// Assert vertex placement decisions are valid.
-///
-/// Thin test wrapper around the production validator in
-/// `operations::shared_validators::facade::validate_vertex_decisions`.
-/// Emits the decision summary via tracing, then delegates.
-pub fn assert_vertex_decisions(
-    label: &str,
-    log: &DecisionLog,
-    expected_vertices: usize,
-    tolerance: f64,
-) {
-    forge_core::tracing::log_decision_log(label, log);
-    crate::operations::shared_validators::facade::validate_vertex_decisions(
-        log, expected_vertices, tolerance,
-    )
-    .unwrap_or_else(|e| panic!("{label}: {e}"));
 }

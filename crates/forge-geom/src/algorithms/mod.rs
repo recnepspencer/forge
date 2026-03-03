@@ -9,6 +9,7 @@
 
 pub mod boundary_cert;
 pub mod intersection;
+pub mod measurement;
 pub mod polygon;
 pub mod sorting;
 pub mod triangulation;

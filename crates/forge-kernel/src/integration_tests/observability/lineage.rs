@@ -13,8 +13,8 @@ use crate::integration_tests::harness::shapes::unit_cube_traced;
 #[test]
 #[ignore = "Phase 1.2: LineageStore not yet populated during primitive generation"]
 fn test_make_block_lineage_covers_all_entities() {
-    let result = unit_cube_traced().expect("unit cube should succeed");
-    let topo = &result.topology;
+    let (envelope, _ctx) = unit_cube_traced().expect("unit cube should succeed");
+    let topo = envelope.topology();
     let arena = topo.arena();
 
     // After Phase 1.2 wiring, the draft's lineage_store will be committed
@@ -42,7 +42,7 @@ fn test_make_block_lineage_covers_all_entities() {
 #[test]
 #[ignore = "Phase 1.2: LineageStore not yet populated during primitive generation"]
 fn test_lineage_event_log_chronological() {
-    let result = unit_cube_traced().expect("unit cube should succeed");
+    let (_envelope, _ctx) = unit_cube_traced().expect("unit cube should succeed");
 
     // When implemented:
     // let lineage = result.topology.lineage_store();
@@ -63,7 +63,7 @@ fn test_lineage_event_log_chronological() {
 #[test]
 #[ignore = "Phase 1.2: LineageStore not yet populated during primitive generation"]
 fn test_lineage_root_contains_operation_attribution() {
-    let result = unit_cube_traced().expect("unit cube should succeed");
+    let (_envelope, _ctx) = unit_cube_traced().expect("unit cube should succeed");
 
     // When implemented:
     // let lineage = result.topology.lineage_store();

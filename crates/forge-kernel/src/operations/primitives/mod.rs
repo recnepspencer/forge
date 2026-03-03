@@ -27,14 +27,14 @@ use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
 use crate::context::scope::OperationScope;
-use crate::engine::facade::{Feature, FeatureOutput};
+use crate::engine::facade::{Feature, SolidEnvelope};
 
 pub use contract::PrimitiveInputs;
 
 // Re-export mesh construction API (used by boolean test helpers and integration tests)
 pub use eval::{
     build_halfedge_mesh, make_block, make_convex_solid, make_cube, make_dodecahedron,
-    make_prism, make_pyramid, make_tetrahedron, make_wedge, MeshBuildResult,
+    make_prism, make_pyramid, make_tetrahedron, make_wedge,
 };
 
 /// Shape-specific parameters for each primitive variant.
@@ -180,7 +180,7 @@ impl Feature for MakePrimitiveFeature {
 
     fn parse_inputs(
         &self,
-        _raw: &HashMap<NodeId, FeatureOutput>,
+        _raw: &HashMap<NodeId, SolidEnvelope>,
     ) -> Result<PrimitiveInputs, KernelError> {
         Ok(PrimitiveInputs)
     }
@@ -189,7 +189,7 @@ impl Feature for MakePrimitiveFeature {
         &self,
         _inputs: &PrimitiveInputs,
         scope: &mut OperationScope<'_>,
-    ) -> Result<FeatureOutput, KernelError> {
+    ) -> Result<SolidEnvelope, KernelError> {
         generate::generate_primitive(&self.params, self.center, scope)
     }
 

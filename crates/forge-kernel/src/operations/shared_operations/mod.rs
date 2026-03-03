@@ -7,4 +7,5 @@
 //!       it calls through here — it does not duplicate the logic.
 
 pub mod facade;
+pub(crate) mod mesh_building;
 pub(crate) mod placement;

@@ -18,7 +18,7 @@ use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
 use crate::configuration::facade::KernelConfig;
-use crate::engine::facade::{Feature, FeatureOutput, FeatureRegistry};
+use crate::engine::facade::{Feature, SolidEnvelope, FeatureRegistry};
 use crate::operations::boolean::{BooleanFeature, BooleanOp};
 use crate::operations::primitives::MakePrimitiveFeature;
 
@@ -71,9 +71,9 @@ impl NativeFeature {
 impl FeatureRegistry for NativeFeature {
     fn execute_via_pipeline(
         &self,
-        inputs: &HashMap<NodeId, FeatureOutput>,
+        inputs: &HashMap<NodeId, SolidEnvelope>,
         session_config: &KernelConfig,
-    ) -> Result<OperationResult<FeatureOutput>, KernelError> {
+    ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
         self.kind.execute_via_pipeline(inputs, session_config)
     }
 

@@ -15,7 +15,7 @@
 //! ├── contracts/        ← Feature, FeatureContract, FeatureInputs, FeatureRegistry traits
 //! ├── pipeline/         ← FeaturePipeline executor, post-invariant validation
 //! ├── operation_space/  ← Numerical conditioning (local coordinate transforms)
-//! ├── output/           ← FeatureOutput, ArenaSnapshot, TopologyDelta
+//! ├── output/           ← SolidEnvelope, ArenaSnapshot, TopologyDelta
 //! ├── transaction/      ← KernelState, KernelDraft, BRepWorkspace, OperationFinalizer
 //! ├── feature_tree.rs   ← FeatureTree<R> signal-graph manager
 //! ├── macros.rs         ← declare_feature! macro (#[macro_export])

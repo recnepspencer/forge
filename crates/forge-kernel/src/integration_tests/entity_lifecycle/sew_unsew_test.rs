@@ -4,10 +4,10 @@
 //! halfedges into a shared radial chain, then undoing it.
 
 use crate::integration_tests::harness::assertions::{
-    assert_all_invariants, assert_counts, assert_face_valence, EntityCounts,
+    assert_all_invariants,
 };
 use crate::integration_tests::harness::shapes::{
-    collect_face_loop, first_halfedge_of_face, unit_cube,
+    first_halfedge_of_face, unit_cube,
 };
 use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 
@@ -18,15 +18,16 @@ use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 /// After SplitEdge, the new edge (M→B / B→M) should also have exactly 2.
 #[test]
 fn split_edge_creates_proper_radial_pair() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face = handles.faces[0];
+    let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
 
-    let he_face_before = draft.arena().get_half_edge(start_he).unwrap().face();
+    let _he_face_before = draft.arena().get_half_edge(start_he).unwrap().face();
     let he_twin = draft.arena().get_half_edge(start_he).unwrap().radial_next();
-    let twin_face_before = draft.arena().get_half_edge(he_twin).unwrap().face();
+    let _twin_face_before = draft.arena().get_half_edge(he_twin).unwrap().face();
 
     let se = draft.execute(SplitEdge {
         edge: start_he,
@@ -57,8 +58,8 @@ fn split_edge_creates_proper_radial_pair() {
 /// Verify by walking radial_next for every halfedge.
 #[test]
 fn cube_all_edges_are_2_manifold() {
-    let (topo, _handles) = unit_cube().unwrap();
-    let arena = topo.arena();
+    let envelope = unit_cube().unwrap();
+    let arena = envelope.topology().arena();
 
     for (he_id, he_data) in arena.iter_half_edges() {
         let twin = he_data.radial_next();
@@ -94,8 +95,8 @@ fn cube_all_edges_are_2_manifold() {
 /// exactly 2-valent radial chains and no boundary edges exist.
 #[test]
 fn split_all_edges_preserves_2_manifold() {
-    let (topo, _handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let (mut draft, _geometry) = envelope.into_draft();
 
     let edges: Vec<_> = draft.arena().iter_edges()
         .map(|(id, _)| id).collect();

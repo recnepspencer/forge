@@ -18,10 +18,11 @@ use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 /// insert an edge between them. Result: 2 triangular faces.
 #[test]
 fn split_cube_face_into_two_triangles() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face = handles.faces[0];
+    let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
     let loop_hes = collect_face_loop(draft.arena(), start_he).unwrap();
     assert_eq!(loop_hes.len(), 4, "Cube face must have 4 halfedges");
@@ -59,10 +60,11 @@ fn split_cube_face_into_two_triangles() {
 /// Creates a 5-sided face, then splits it into a triangle and a quad.
 #[test]
 fn split_edge_then_mef_through_midpoint() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face = handles.faces[0];
+    let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
 
     let se = draft.execute(SplitEdge {
@@ -112,11 +114,12 @@ fn split_edge_then_mef_through_midpoint() {
 /// don't interfere with each other.
 #[test]
 fn mef_on_two_different_cube_faces() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face_a = handles.faces[0];
-    let face_b = handles.faces[1];
+    let face_a = faces[0];
+    let face_b = faces[1];
 
     let he_a = first_halfedge_of_face(draft.arena(), face_a).unwrap();
     let loop_a = collect_face_loop(draft.arena(), he_a).unwrap();

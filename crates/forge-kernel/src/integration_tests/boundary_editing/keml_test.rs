@@ -5,7 +5,7 @@
 //! This is the inverse of MEKL.
 
 use crate::integration_tests::harness::assertions::{
-    assert_reciprocity, assert_euler_formula, assert_structural_invariants,
+    assert_structural_invariants,
 };
 use crate::integration_tests::harness::shapes::{
     collect_face_loop, first_halfedge_of_face, unit_cube,
@@ -22,11 +22,12 @@ use forge_topo::boundary_editing::kill_edge_make_loop::KillEdgeMakeLoop;
 /// - The outer loop shrinks by the inner loop's halfedges + 2 bridge HEs
 #[test]
 fn keml_splits_bridge_into_two_loops() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face_to_kill = handles.faces[0];
-    let target_face = handles.faces[1];
+    let face_to_kill = faces[0];
+    let target_face = faces[1];
 
     draft.execute(KillFaceMakeRingHole {
         face_to_kill,
@@ -46,11 +47,11 @@ fn keml_splits_bridge_into_two_loops() {
     }).unwrap().into_value();
 
     let merged_he = draft.arena().get_loop(outer_loop).unwrap().half_edge();
-    let merged_valence = collect_face_loop(draft.arena(), merged_he).unwrap().len();
+    let _merged_valence = collect_face_loop(draft.arena(), merged_he).unwrap().len();
 
     let loop_count_before_keml = draft.arena().loop_count();
 
-    let keml = draft.execute(KillEdgeMakeLoop {
+    let _keml = draft.execute(KillEdgeMakeLoop {
         edge: mekl.he_ab,
     }).unwrap().into_value();
 
@@ -79,10 +80,11 @@ fn keml_splits_bridge_into_two_loops() {
 /// KEML rejects an edge whose halfedges are on different faces.
 #[test]
 fn keml_rejects_cross_face_edge() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let he = first_halfedge_of_face(draft.arena(), handles.faces[0]).unwrap();
+    let he = first_halfedge_of_face(draft.arena(), faces[0]).unwrap();
 
     let result = draft.execute(KillEdgeMakeLoop { edge: he });
 

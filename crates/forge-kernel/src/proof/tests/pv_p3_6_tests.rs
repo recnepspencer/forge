@@ -28,7 +28,7 @@ mod tests {
 
     use crate::proof::causal_chain::{query_causal_chain, query_causal_summary};
     use crate::context::facade::ModelingContext;
-    use crate::engine::facade::{FeatureOutput, FeatureTree}; use crate::registry::facade::NativeFeature;
+    use crate::engine::facade::{SolidEnvelope, FeatureTree}; use crate::registry::facade::NativeFeature;
     use crate::operations::primitives::MakePrimitiveFeature;
     use crate::operations::boolean::test_helpers::{
         build_cube, euler_audit, execute_boolean_logged,
@@ -192,7 +192,7 @@ mod tests {
             .expect("eval boolean failed");
 
         // 1. Domain correctness: disjoint union produces two shells, χ=4
-        let (v, e, f, chi) = euler_audit(output.get_value().topology.arena());
+        let (v, e, f, chi) = euler_audit(output.get_value().topology().arena());
         assert_eq!(
             chi, 4,
             "Disjoint union Euler χ must be 4 (two shells): V={v} E={e} F={f} χ={chi}"
@@ -501,7 +501,7 @@ mod tests {
         let output_ab = tree
             .evaluate_feature_with_context(node_ab, &mut ctx)
             .expect("eval union_ab");
-        let (v_ab, e_ab, f_ab, chi_ab) = euler_audit(output_ab.get_value().topology.arena());
+        let (v_ab, e_ab, f_ab, chi_ab) = euler_audit(output_ab.get_value().topology().arena());
         assert_eq!(
             chi_ab, 4,
             "Step 1 (A∪B) disjoint union χ must be 4: V={v_ab} E={e_ab} F={f_ab} χ={chi_ab}"
@@ -510,7 +510,7 @@ mod tests {
         let output_abc = tree
             .evaluate_feature_with_context(node_abc, &mut ctx)
             .expect("eval union_abc");
-        let (v, e, f, chi) = euler_audit(output_abc.get_value().topology.arena());
+        let (v, e, f, chi) = euler_audit(output_abc.get_value().topology().arena());
         assert_eq!(
             chi, 6,
             "3-cube disjoint union chain χ must be 6 (three shells): V={v} E={e} F={f} χ={chi}"

@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::context::scope::OperationScope;
-use crate::engine::facade::{Feature, FeatureOutput, FeatureInputs};
+use crate::engine::facade::{Feature, SolidEnvelope, FeatureInputs};
 use crate::engine::facade::{AuditLevel, EntityOriginKind, InvariantKind};
 use forge_core::KernelError;
 use forge_signal::facade::NodeId;
@@ -38,19 +38,19 @@ impl BooleanFeature {
 
 /// Typed inputs for Boolean — target and tool feature outputs.
 pub struct BooleanInputs {
-    pub target: FeatureOutput,
-    pub tool: FeatureOutput,
+    pub target: SolidEnvelope,
+    pub tool: SolidEnvelope,
 }
 
 impl FeatureInputs for BooleanInputs {
     fn validate(&self) -> Result<(), KernelError> {
-        if self.target.topology.arena().face_count() == 0 {
+        if self.target.topology().arena().face_count() == 0 {
             return Err(KernelError::InvalidInput {
                 message: "Boolean target has no faces".into(),
                 context: None,
             });
         }
-        if self.tool.topology.arena().face_count() == 0 {
+        if self.tool.topology().arena().face_count() == 0 {
             return Err(KernelError::InvalidInput {
                 message: "Boolean tool has no faces".into(),
                 context: None,
@@ -84,7 +84,7 @@ impl Feature for BooleanFeature {
 
     fn parse_inputs(
         &self,
-        raw: &HashMap<NodeId, FeatureOutput>,
+        raw: &HashMap<NodeId, SolidEnvelope>,
     ) -> Result<BooleanInputs, KernelError> {
         let target = raw
             .get(&self.target)
@@ -107,12 +107,12 @@ impl Feature for BooleanFeature {
         &self,
         inputs: &BooleanInputs,
         _scope: &mut OperationScope<'_>,
-    ) -> Result<FeatureOutput, KernelError> {
+    ) -> Result<SolidEnvelope, KernelError> {
         let input = BooleanInput::new(
-            inputs.target.topology.clone(),
-            inputs.target.geometry.clone(),
-            inputs.tool.topology.clone(),
-            inputs.tool.geometry.clone(),
+            inputs.target.topology().clone(),
+            inputs.target.geometry().clone(),
+            inputs.tool.topology().clone(),
+            inputs.tool.geometry().clone(),
             self.op,
         );
 
@@ -120,10 +120,7 @@ impl Feature for BooleanFeature {
         let result = envelope.into_result()?;
         let (topo, geom) = result.into_states();
 
-        Ok(FeatureOutput {
-            topology: topo,
-            geometry: geom,
-        })
+        Ok(SolidEnvelope::new(topo, geom))
     }
 
     fn dependencies(&self) -> Vec<NodeId> {

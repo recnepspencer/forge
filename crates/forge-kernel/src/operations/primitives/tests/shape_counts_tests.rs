@@ -9,7 +9,7 @@
 use crate::context::ModelingContext;
 use crate::integration_tests::harness::assertions::assert_vertex_decisions;
 use crate::operations::primitives::{
-    make_block, make_convex_solid, make_cube, make_dodecahedron, make_prism, make_pyramid,
+    make_block, make_convex_solid, make_cube, make_dodecahedron, make_prism,
     make_tetrahedron, make_wedge,
 };
 use super::structural_invariants_tests::assert_valid_solid;
@@ -68,14 +68,14 @@ fn octahedron_from_eight_planes_generates() {
     let mut ctx = ModelingContext::new();
     let mut scope = OperationScope::new(&cfg, &mut ctx);
     let planes = vec![
-        forge_geom::facade::Plane::from_point_normal([1.0, 1.0, 1.0], [1.0, 1.0, 1.0]).unwrap(),
-        forge_geom::facade::Plane::from_point_normal([1.0, 1.0, -1.0], [1.0, 1.0, -1.0]).unwrap(),
-        forge_geom::facade::Plane::from_point_normal([1.0, -1.0, 1.0], [1.0, -1.0, 1.0]).unwrap(),
-        forge_geom::facade::Plane::from_point_normal([1.0, -1.0, -1.0], [1.0, -1.0, -1.0]).unwrap(),
-        forge_geom::facade::Plane::from_point_normal([-1.0, 1.0, 1.0], [-1.0, 1.0, 1.0]).unwrap(),
-        forge_geom::facade::Plane::from_point_normal([-1.0, 1.0, -1.0], [-1.0, 1.0, -1.0]).unwrap(),
-        forge_geom::facade::Plane::from_point_normal([-1.0, -1.0, 1.0], [-1.0, -1.0, 1.0]).unwrap(),
-        forge_geom::facade::Plane::from_point_normal([-1.0, -1.0, -1.0], [-1.0, -1.0, -1.0]).unwrap(),
+        forge_geom::Plane::from_point_normal([1.0, 1.0, 1.0], [1.0, 1.0, 1.0]).unwrap(),
+        forge_geom::Plane::from_point_normal([1.0, 1.0, -1.0], [1.0, 1.0, -1.0]).unwrap(),
+        forge_geom::Plane::from_point_normal([1.0, -1.0, 1.0], [1.0, -1.0, 1.0]).unwrap(),
+        forge_geom::Plane::from_point_normal([1.0, -1.0, -1.0], [1.0, -1.0, -1.0]).unwrap(),
+        forge_geom::Plane::from_point_normal([-1.0, 1.0, 1.0], [-1.0, 1.0, 1.0]).unwrap(),
+        forge_geom::Plane::from_point_normal([-1.0, 1.0, -1.0], [-1.0, 1.0, -1.0]).unwrap(),
+        forge_geom::Plane::from_point_normal([-1.0, -1.0, 1.0], [-1.0, -1.0, 1.0]).unwrap(),
+        forge_geom::Plane::from_point_normal([-1.0, -1.0, -1.0], [-1.0, -1.0, -1.0]).unwrap(),
     ];
     let r = make_convex_solid(planes, &mut scope).unwrap();
     let a = r.topology().arena();
@@ -90,7 +90,7 @@ fn truncated_cube_fourteen_faces() {
     let tolerance = cfg.scaled_vertex_tolerance();
     let mut ctx = ModelingContext::new();
     let mut scope = OperationScope::new(&cfg, &mut ctx);
-    let mut planes = forge_geom::primitives::shapes::cube([0.0; 3], 2.0).unwrap();
+    let mut planes = forge_geom::cube([0.0; 3], 2.0).unwrap();
     let corners: [[f64; 3]; 8] = [
         [1.0, 1.0, 1.0], [1.0, 1.0, -1.0], [1.0, -1.0, 1.0], [1.0, -1.0, -1.0],
         [-1.0, 1.0, 1.0], [-1.0, 1.0, -1.0], [-1.0, -1.0, 1.0], [-1.0, -1.0, -1.0],
@@ -98,7 +98,7 @@ fn truncated_cube_fourteen_faces() {
     // Cutting planes at 1.5 × corner normal — inside the cube (corners at ±2.0)
     for n in &corners {
         let pt = [n[0] * 1.5, n[1] * 1.5, n[2] * 1.5];
-        planes.push(forge_geom::facade::Plane::from_point_normal(pt, *n).unwrap());
+        planes.push(forge_geom::Plane::from_point_normal(pt, *n).unwrap());
     }
     let r = make_convex_solid(planes, &mut scope).unwrap();
     let a = r.topology().arena();
@@ -153,8 +153,7 @@ fn prism_hexagonal_counts() {
 
 #[test]
 fn pyramid_quad_generates() {
-    let cfg = test_config();
-    let planes = forge_geom::primitives::shapes::pyramid([0.0; 3], 4, 1.0, 2.0).unwrap();
+    let planes = forge_geom::pyramid([0.0; 3], 4, 1.0, 2.0).unwrap();
     assert_eq!(planes.len(), 5, "pyramid(4) should produce 5 planes");
 }
 

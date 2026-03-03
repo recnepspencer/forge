@@ -7,7 +7,7 @@
 //! - Dependencies are tracked via `forge-signal`
 //! - Topology is immutable (passed as snapshots)
 //! - `FeatureTree<R>` is generic over the feature registry `R`
-//! - Per-node `OperationResult<FeatureOutput>` envelopes are the
+//! - Per-node `OperationResult<SolidEnvelope>` envelopes are the
 //!   canonical storage — they carry the full decision log, metrics,
 //!   lineage, and warnings from each feature evaluation
 
@@ -22,7 +22,7 @@ use forge_signal::facade::NodeId;
 use forge_signal::facade::{Aspect, AspectVersion};
 
 use super::contracts::feature_registry::FeatureRegistry;
-use super::output::feature_output::FeatureOutput;
+use super::output::solid_envelope::SolidEnvelope;
 use crate::configuration::facade::KernelConfig;
 
 /// The Feature Tree manager.
@@ -31,7 +31,7 @@ use crate::configuration::facade::KernelConfig;
 /// Generic over `R: FeatureRegistry` — the concrete feature enum
 /// is provided by the `registry` domain (e.g., `NativeFeature`).
 ///
-/// Each evaluated node stores an `OperationResult<FeatureOutput>` envelope
+/// Each evaluated node stores an `OperationResult<SolidEnvelope>` envelope
 /// containing the domain output (topology + geometry) plus the full audit
 /// trail (decision log, metrics, lineage, warnings). This is the canonical
 /// metadata storage — no separate `Arc<DecisionLog>` fields needed.
@@ -46,7 +46,7 @@ pub struct FeatureTree<R: FeatureRegistry> {
     /// Map from NodeId to the Feature implementation.
     features: HashMap<NodeId, R>,
     /// Cached envelopes carrying both domain output and audit metadata.
-    envelopes: HashMap<NodeId, OperationResult<FeatureOutput>>,
+    envelopes: HashMap<NodeId, OperationResult<SolidEnvelope>>,
     /// Map of names to NodeIds (optional, for lookup).
     names: HashMap<String, NodeId>,
 }
@@ -142,9 +142,9 @@ impl<R: FeatureRegistry> FeatureTree<R> {
     /// Evaluate a specific feature (and its dependencies) to get the latest output.
     ///
     /// Convenience wrapper over `evaluate_feature_with_context` that uses a
-    /// default `ModelingContext`. Returns only the `FeatureOutput` — callers
+    /// default `ModelingContext`. Returns only the `SolidEnvelope` — callers
     /// that need the full envelope should use `evaluate_feature_with_context`.
-    pub fn evaluate_feature(&mut self, node_id: NodeId) -> Result<FeatureOutput, KernelError> {
+    pub fn evaluate_feature(&mut self, node_id: NodeId) -> Result<SolidEnvelope, KernelError> {
         let session = KernelConfig::default();
         let envelope = self.evaluate_feature_with_config(node_id, &session)?;
         Ok(envelope.into_value())
@@ -152,7 +152,7 @@ impl<R: FeatureRegistry> FeatureTree<R> {
 
     /// Evaluate a feature with an explicit `KernelConfig`.
     ///
-    /// Returns the full `OperationResult<FeatureOutput>` envelope so callers
+    /// Returns the full `OperationResult<SolidEnvelope>` envelope so callers
     /// can inspect the decision log, warnings, metrics, and lineage alongside
     /// the domain output.
     ///
@@ -163,7 +163,7 @@ impl<R: FeatureRegistry> FeatureTree<R> {
         &mut self,
         node_id: NodeId,
         session_config: &KernelConfig,
-    ) -> Result<OperationResult<FeatureOutput>, KernelError> {
+    ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
         let graph = &mut self.graph;
         let features = &self.features;
         let envelopes = &mut self.envelopes;
@@ -177,9 +177,9 @@ impl<R: FeatureRegistry> FeatureTree<R> {
                     context: None,
                 })?;
 
-                // Build input map by borrowing FeatureOutput from stored envelopes.
+                // Build input map by borrowing SolidEnvelope from stored envelopes.
                 // The clone is at the input boundary — necessary because
-                // parse_inputs takes &HashMap<NodeId, FeatureOutput>.
+                // parse_inputs takes &HashMap<NodeId, SolidEnvelope>.
                 let mut input_map = HashMap::new();
                 for dep_id in feature.dependencies() {
                     if let Some(envelope) = envelopes.get(&dep_id) {
@@ -197,7 +197,7 @@ impl<R: FeatureRegistry> FeatureTree<R> {
                 // Build the trace summary from the envelope's decision log —
                 // NOT from ctx, which was drained by the OperationFinalizer.
                 let hash = forge_topo::transactions::compute_arena_topology_hash(
-                    envelope.get_value().topology.arena(),
+                    envelope.get_value().topology().arena(),
                 );
                 let summary = envelope.get_decision_log().to_summary(hash);
                 pending_traces.insert(id, summary);
@@ -236,7 +236,7 @@ impl<R: FeatureRegistry> FeatureTree<R> {
     }
 
     /// Read-only access to a stored envelope (for external audit inspection).
-    pub fn get_envelope(&self, node_id: NodeId) -> Option<&OperationResult<FeatureOutput>> {
+    pub fn get_envelope(&self, node_id: NodeId) -> Option<&OperationResult<SolidEnvelope>> {
         self.envelopes.get(&node_id)
     }
 }

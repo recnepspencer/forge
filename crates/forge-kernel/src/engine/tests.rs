@@ -6,7 +6,6 @@ use crate::registry::facade::CommandDispatcher;
 use crate::geometry::facade::GeometryStore;
 use crate::configuration::facade::KernelConfig;
 use crate::engine::facade::FeaturePipeline;
-use crate::engine::facade::FeatureOutput;
 use crate::engine::facade::FeatureTree;
 use crate::operations::primitives::MakePrimitiveFeature;
 use forge_core::PolicyKind;
@@ -32,7 +31,7 @@ fn dispatch_add_block_creates_make_cube_feature() {
         .expect("evaluation should succeed");
 
     assert!(
-        output.topology.arena().face_count() > 0,
+        output.topology().arena().face_count() > 0,
         "block should produce faces"
     );
 }
@@ -167,7 +166,7 @@ fn pipeline_rejects_feature_with_missing_policy_configuration() {
         type Inputs = EmptyInputs;
         fn parse_inputs(
             &self,
-            _raw: &HashMap<NodeId, FeatureOutput>,
+            _raw: &HashMap<NodeId, SolidEnvelope>,
         ) -> Result<EmptyInputs, forge_core::KernelError> {
             Ok(EmptyInputs)
         }
@@ -175,7 +174,7 @@ fn pipeline_rejects_feature_with_missing_policy_configuration() {
             &self,
             _inputs: &EmptyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
-        ) -> Result<FeatureOutput, forge_core::KernelError> {
+        ) -> Result<SolidEnvelope, forge_core::KernelError> {
             unreachable!("should not reach execution with missing policy")
         }
         fn dependencies(&self) -> Vec<NodeId> {
@@ -248,7 +247,7 @@ fn pipeline_validates_inputs_before_execution() {
         type Inputs = StrictInputs;
         fn parse_inputs(
             &self,
-            _raw: &HashMap<NodeId, FeatureOutput>,
+            _raw: &HashMap<NodeId, SolidEnvelope>,
         ) -> Result<StrictInputs, forge_core::KernelError> {
             Ok(StrictInputs)
         }
@@ -256,7 +255,7 @@ fn pipeline_validates_inputs_before_execution() {
             &self,
             _inputs: &StrictInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
-        ) -> Result<FeatureOutput, forge_core::KernelError> {
+        ) -> Result<SolidEnvelope, forge_core::KernelError> {
             unreachable!("should not reach execution with failed validation")
         }
         fn dependencies(&self) -> Vec<NodeId> {
@@ -292,7 +291,7 @@ fn pipeline_executes_make_cube_through_full_pipeline() {
 
     let output = envelope.get_value();
     assert_eq!(
-        output.topology.arena().face_count(),
+        output.topology().arena().face_count(),
         6,
         "Cube must have 6 faces"
     );
@@ -343,7 +342,7 @@ fn pipeline_skips_audit_at_none_level() {
         type Inputs = EmptyInputs;
         fn parse_inputs(
             &self,
-            _raw: &HashMap<NodeId, FeatureOutput>,
+            _raw: &HashMap<NodeId, SolidEnvelope>,
         ) -> Result<EmptyInputs, forge_core::KernelError> {
             Ok(EmptyInputs)
         }
@@ -351,11 +350,11 @@ fn pipeline_skips_audit_at_none_level() {
             &self,
             _inputs: &EmptyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
-        ) -> Result<FeatureOutput, forge_core::KernelError> {
-            Ok(FeatureOutput {
-                topology: TopologyState::empty(),
-                geometry: GeometryStore::default(),
-            })
+        ) -> Result<SolidEnvelope, forge_core::KernelError> {
+            Ok(SolidEnvelope::new(
+                TopologyState::empty(),
+                GeometryStore::default(),
+            ))
         }
         fn dependencies(&self) -> Vec<NodeId> {
             Vec::new()
@@ -440,7 +439,7 @@ fn pipeline_validates_post_invariants_after_execution() {
         type Inputs = EmptyInputs;
         fn parse_inputs(
             &self,
-            _raw: &HashMap<NodeId, FeatureOutput>,
+            _raw: &HashMap<NodeId, SolidEnvelope>,
         ) -> Result<EmptyInputs, forge_core::KernelError> {
             Ok(EmptyInputs)
         }
@@ -448,11 +447,11 @@ fn pipeline_validates_post_invariants_after_execution() {
             &self,
             _inputs: &EmptyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
-        ) -> Result<FeatureOutput, forge_core::KernelError> {
-            Ok(FeatureOutput {
-                topology: TopologyState::empty(),
-                geometry: GeometryStore::default(),
-            })
+        ) -> Result<SolidEnvelope, forge_core::KernelError> {
+            Ok(SolidEnvelope::new(
+                TopologyState::empty(),
+                GeometryStore::default(),
+            ))
         }
         fn dependencies(&self) -> Vec<NodeId> {
             Vec::new()
@@ -526,7 +525,7 @@ fn pipeline_emits_audit_at_full_level() {
         type Inputs = EmptyInputs;
         fn parse_inputs(
             &self,
-            _raw: &HashMap<NodeId, FeatureOutput>,
+            _raw: &HashMap<NodeId, SolidEnvelope>,
         ) -> Result<EmptyInputs, forge_core::KernelError> {
             Ok(EmptyInputs)
         }
@@ -534,11 +533,11 @@ fn pipeline_emits_audit_at_full_level() {
             &self,
             _inputs: &EmptyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
-        ) -> Result<FeatureOutput, forge_core::KernelError> {
-            Ok(FeatureOutput {
-                topology: TopologyState::empty(),
-                geometry: GeometryStore::default(),
-            })
+        ) -> Result<SolidEnvelope, forge_core::KernelError> {
+            Ok(SolidEnvelope::new(
+                TopologyState::empty(),
+                GeometryStore::default(),
+            ))
         }
         fn dependencies(&self) -> Vec<NodeId> {
             Vec::new()
@@ -617,7 +616,7 @@ fn typed_inputs_reject_missing_dependency() {
         type Inputs = NeedyInputs;
         fn parse_inputs(
             &self,
-            raw: &HashMap<NodeId, FeatureOutput>,
+            raw: &HashMap<NodeId, SolidEnvelope>,
         ) -> Result<NeedyInputs, forge_core::KernelError> {
             if !raw.contains_key(&self.dep_id) {
                 return Err(forge_core::KernelError::InvalidInput {
@@ -631,7 +630,7 @@ fn typed_inputs_reject_missing_dependency() {
             &self,
             _inputs: &NeedyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
-        ) -> Result<FeatureOutput, forge_core::KernelError> {
+        ) -> Result<SolidEnvelope, forge_core::KernelError> {
             unreachable!("should not reach execution with missing dependency")
         }
         fn dependencies(&self) -> Vec<NodeId> {

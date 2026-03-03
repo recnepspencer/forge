@@ -21,10 +21,11 @@ use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 /// The surviving face should be a quad again.
 #[test]
 fn split_then_rejoin_is_identity() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face = handles.faces[0];
+    let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
     let loop_hes = collect_face_loop(draft.arena(), start_he).unwrap();
 
@@ -67,10 +68,11 @@ fn split_then_rejoin_is_identity() {
 /// The surviving face should have 6 halfedges (two quads merged minus shared edge).
 #[test]
 fn join_two_adjacent_cube_faces() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face_a = handles.faces[0];
+    let face_a = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face_a).unwrap();
 
     let jf = draft.execute(JoinFaces {
@@ -102,10 +104,11 @@ fn join_two_adjacent_cube_faces() {
 /// cube face to create a 5-gon.
 #[test]
 fn split_mef_then_join_neighbor() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face = handles.faces[0];
+    let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
 
     let se = draft.execute(SplitEdge {
@@ -139,7 +142,7 @@ fn split_mef_then_join_neighbor() {
     assert!(neighbor_he.is_some(), "New face must have a neighbor other than original");
     let neighbor_he = neighbor_he.unwrap();
 
-    let jf = draft.execute(JoinFaces {
+    let _jf = draft.execute(JoinFaces {
         edge: neighbor_he,
     }).unwrap().into_value();
 

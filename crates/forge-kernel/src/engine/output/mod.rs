@@ -1,7 +1,7 @@
 //! Output vertical slice.
 //!
-//! DOMAIN: Result types from feature evaluation — feature output
+//! DOMAIN: Result types from feature evaluation — solid envelope
 //! and topology delta computation.
 
-pub mod feature_output;
+pub mod solid_envelope;
 pub mod topology_delta;

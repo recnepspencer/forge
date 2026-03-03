@@ -10,8 +10,8 @@ fn two_planes_rejected() {
     let mut ctx = ModelingContext::new();
     let mut scope = OperationScope::new(&cfg, &mut ctx);
     let planes = vec![
-        forge_geom::facade::Plane::try_new([1.0, 0.0, 0.0], 1.0).unwrap(),
-        forge_geom::facade::Plane::try_new([-1.0, 0.0, 0.0], 1.0).unwrap(),
+        forge_geom::Plane::try_new([1.0, 0.0, 0.0], 1.0).unwrap(),
+        forge_geom::Plane::try_new([-1.0, 0.0, 0.0], 1.0).unwrap(),
     ];
     assert!(make_convex_solid(planes, &mut scope).is_err(), "2 planes cannot form a polyhedron");
 }
@@ -22,9 +22,9 @@ fn three_planes_rejected() {
     let mut ctx = ModelingContext::new();
     let mut scope = OperationScope::new(&cfg, &mut ctx);
     let planes = vec![
-        forge_geom::facade::Plane::try_new([1.0, 0.0, 0.0], 1.0).unwrap(),
-        forge_geom::facade::Plane::try_new([-1.0, 0.0, 0.0], 1.0).unwrap(),
-        forge_geom::facade::Plane::try_new([0.0, 1.0, 0.0], 1.0).unwrap(),
+        forge_geom::Plane::try_new([1.0, 0.0, 0.0], 1.0).unwrap(),
+        forge_geom::Plane::try_new([-1.0, 0.0, 0.0], 1.0).unwrap(),
+        forge_geom::Plane::try_new([0.0, 1.0, 0.0], 1.0).unwrap(),
     ];
     assert!(make_convex_solid(planes, &mut scope).is_err(), "3 planes cannot form a closed polyhedron");
 }

@@ -16,10 +16,11 @@ use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 /// SplitEdge creates a valence-2 vertex, then KVE merges it back.
 #[test]
 fn split_edge_then_kve_roundtrip() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face = handles.faces[0];
+    let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
 
     let se = draft.execute(SplitEdge {
@@ -29,7 +30,7 @@ fn split_edge_then_kve_roundtrip() {
 
     assert_eq!(draft.arena().vertex_count(), 9);
 
-    let kve = draft.execute(KillVertexEdge {
+    let _kve = draft.execute(KillVertexEdge {
         vertex: se.new_vertex,
     }).unwrap().into_value();
 
@@ -47,10 +48,11 @@ fn split_edge_then_kve_roundtrip() {
 /// Split two separate edges, KVE both back — independent roundtrips.
 #[test]
 fn two_independent_kve_roundtrips() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face = handles.faces[0];
+    let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
     let loop_hes = collect_face_loop(draft.arena(), start_he).unwrap();
 
@@ -81,10 +83,11 @@ fn two_independent_kve_roundtrips() {
 /// Double split on same edge, then KVE both midpoints back.
 #[test]
 fn double_split_then_kve_both() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face = handles.faces[0];
+    let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
 
     let se1 = draft.execute(SplitEdge {

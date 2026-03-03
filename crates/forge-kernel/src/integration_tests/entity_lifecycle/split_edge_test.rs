@@ -15,10 +15,11 @@ use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 /// Two adjacent faces go from 4-sided to 5-sided.
 #[test]
 fn split_single_cube_edge() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face = handles.faces[0];
+    let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
 
     let result = draft.execute(SplitEdge {
@@ -50,10 +51,11 @@ fn split_single_cube_edge() {
 /// A cube face has 4 edges; splitting each adds 1 vertex and 1 edge per split.
 #[test]
 fn split_all_edges_of_one_face() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face = handles.faces[0];
+    let face = faces[0];
 
     let loop_hes = {
         let start = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -91,10 +93,11 @@ fn split_all_edges_of_one_face() {
 /// Tests that the output handles from the first split are still valid.
 #[test]
 fn split_same_edge_twice() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face = handles.faces[0];
+    let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
 
     let first_split = draft.execute(SplitEdge {
@@ -132,8 +135,8 @@ fn split_same_edge_twice() {
 /// Tests massive rewiring with all 24 halfedges affected.
 #[test]
 fn split_all_cube_edges() {
-    let (topo, _handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let (mut draft, _geometry) = envelope.into_draft();
 
     let all_edges: Vec<_> = draft.arena().iter_edges()
         .map(|(id, _)| id)

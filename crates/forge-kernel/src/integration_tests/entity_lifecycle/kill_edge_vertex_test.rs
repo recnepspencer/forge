@@ -16,10 +16,11 @@ use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 /// SplitEdge then KEV is a roundtrip — counts should match original.
 #[test]
 fn split_then_kev_roundtrip() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face = handles.faces[0];
+    let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
 
     let se = draft.execute(SplitEdge {
@@ -29,7 +30,7 @@ fn split_then_kev_roundtrip() {
 
     assert_eq!(draft.arena().vertex_count(), 9);
 
-    let kev = draft.execute(KillEdgeVertex {
+    let _kev = draft.execute(KillEdgeVertex {
         edge: se.he_mb,
     }).unwrap().into_value();
 
@@ -51,10 +52,11 @@ fn split_then_kev_roundtrip() {
 /// collapsing them all should restore original counts.
 #[test]
 fn split_all_face_edges_then_kev_all() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face = handles.faces[0];
+    let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
     let loop_hes = collect_face_loop(draft.arena(), start_he).unwrap();
 
@@ -85,10 +87,11 @@ fn split_all_face_edges_then_kev_all() {
 /// KEV on a 2-split chain: split edge twice, then collapse both midpoints.
 #[test]
 fn double_split_then_double_kev() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face = handles.faces[0];
+    let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
 
     let se1 = draft.execute(SplitEdge {

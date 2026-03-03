@@ -15,8 +15,7 @@
 
 use forge_core::tracing::DecisionSink;
 use forge_core::KernelError;
-use forge_geom::facade::Plane;
-use forge_geom::primitives::plane::intersect_three_planes_exact;
+use forge_geom::{intersect_three_planes_exact, Plane};
 use forge_topo::b_rep::VertexData;
 use forge_topo::handles::{HalfEdgeId, VertexId};
 use forge_topo::transactions::MutableDraft;

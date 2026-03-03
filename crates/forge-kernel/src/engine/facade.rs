@@ -8,7 +8,7 @@ pub use super::contracts::contract::{
 };
 pub use super::contracts::feature_trait::Feature;
 pub use super::contracts::feature_registry::FeatureRegistry;
-pub use super::output::feature_output::FeatureOutput;
+pub use super::output::solid_envelope::SolidEnvelope;
 pub use super::pipeline::executor::FeaturePipeline;
 pub use super::feature_tree::FeatureTree;
 pub use super::pipeline::invariants::validate_invariant;

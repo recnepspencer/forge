@@ -8,4 +8,5 @@
 //!       Production code can handle errors gracefully.
 
 pub mod facade;
+pub(crate) mod input;
 pub(crate) mod placement;

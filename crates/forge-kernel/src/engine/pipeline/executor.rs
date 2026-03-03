@@ -24,7 +24,7 @@ use forge_signal::facade::NodeId;
 
 use super::super::contracts::contract::{AuditLevel, FeatureInputs};
 use super::super::contracts::feature_trait::Feature;
-use super::super::output::feature_output::FeatureOutput;
+use super::super::output::solid_envelope::SolidEnvelope;
 use super::invariants::validate_invariant;
 use crate::configuration::facade::{resolve_config, KernelConfig, ResolvedConfig};
 use crate::context::facade::ModelingContext;
@@ -38,7 +38,7 @@ use crate::proof::checkpoint::schema::ValidationConfig;
 /// Even features with no policies or invariants go through this —
 /// the pipeline degrades to a no-op for simple cases (adapter-by-default).
 ///
-/// Returns `OperationResult<FeatureOutput>` — the envelope carries all
+/// Returns `OperationResult<SolidEnvelope>` — the envelope carries all
 /// audit metadata (decisions, warnings, metrics, lineage, hashes) while
 /// the inner value is the domain result.  Pre-execution failures
 /// (missing policy, invalid inputs) short-circuit with `Err(KernelError)`.
@@ -62,9 +62,9 @@ impl FeaturePipeline {
     /// violations.
     pub fn execute<F: Feature>(
         feature: &F,
-        raw_inputs: &HashMap<NodeId, FeatureOutput>,
+        raw_inputs: &HashMap<NodeId, SolidEnvelope>,
         session_config: &KernelConfig,
-    ) -> Result<OperationResult<FeatureOutput>, KernelError> {
+    ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
         let mut ctx = ModelingContext::from_config(session_config.clone());
 
         // 1. Resolve configuration (needed for policy pre-check and execution)
@@ -113,15 +113,15 @@ impl FeaturePipeline {
         };
         for invariant in feature.post_invariants() {
             validate_invariant(
-                &output.topology,
-                &output.geometry,
+                output.topology(),
+                output.geometry(),
                 invariant,
                 &validation_config,
             )?;
         }
 
         // 7. Compute hash_after from the output
-        let hash_after = forge_topo::transactions::compute_arena_topology_hash(output.topology.arena());
+        let hash_after = forge_topo::transactions::compute_arena_topology_hash(output.topology().arena());
 
         // 8. Finalize — drain decisions + metadata from ctx into envelope
         let hashes = TopologyHashBoundary {
@@ -156,11 +156,11 @@ impl FeaturePipeline {
     }
 }
 
-/// Compute a combined topology hash from all input FeatureOutputs.
-fn compute_input_hash(inputs: &HashMap<NodeId, FeatureOutput>) -> u128 {
+/// Compute a combined topology hash from all input SolidEnvelopes.
+fn compute_input_hash(inputs: &HashMap<NodeId, SolidEnvelope>) -> u128 {
     let mut combined: u128 = 0;
     for output in inputs.values() {
-        let h = forge_topo::transactions::compute_arena_topology_hash(output.topology.arena());
+        let h = forge_topo::transactions::compute_arena_topology_hash(output.topology().arena());
         combined = combined.wrapping_add(h);
     }
     combined
@@ -171,13 +171,13 @@ fn compute_input_hash(inputs: &HashMap<NodeId, FeatureOutput>) -> u128 {
 /// Collects all vertex positions from input geometry and analyzes
 /// whether a local coordinate transform is needed for numerical safety.
 fn compute_operation_space(
-    inputs: &HashMap<NodeId, FeatureOutput>,
+    inputs: &HashMap<NodeId, SolidEnvelope>,
     config: &ResolvedConfig,
 ) -> OperationSpace {
     let mut all_points: Vec<[f64; 3]> = Vec::new();
     for output in inputs.values() {
-        for (v_id, _) in output.topology.arena().iter_vertices() {
-            if let Some(pos) = output.geometry.get_vertex_position(v_id) {
+        for (v_id, _) in output.topology().arena().iter_vertices() {
+            if let Some(pos) = output.geometry().get_vertex_position(v_id) {
                 all_points.push(*pos);
             }
         }
@@ -195,7 +195,7 @@ fn compute_operation_space(
 /// with per-decision detail. The span itself carries no duration (it's a
 /// metadata annotation, not a timed operation). Downstream trace viewers
 /// can filter on "audit/" spans to find audit records.
-fn emit_feature_audit<F: Feature>(feature: &F, envelope: &mut OperationResult<FeatureOutput>) {
+fn emit_feature_audit<F: Feature>(feature: &F, envelope: &mut OperationResult<SolidEnvelope>) {
     let decision_count = envelope.get_decision_log().len();
     let warning_count = envelope.get_warnings().len();
 
@@ -236,7 +236,7 @@ fn emit_feature_audit<F: Feature>(feature: &F, envelope: &mut OperationResult<Fe
 /// Per-decision detail is still available in the envelope's decision log
 /// but the `AuditLevel::Summary` contract signals that downstream
 /// consumers should not rely on per-decision inspection.
-fn emit_feature_summary<F: Feature>(feature: &F, envelope: &mut OperationResult<FeatureOutput>) {
+fn emit_feature_summary<F: Feature>(feature: &F, envelope: &mut OperationResult<SolidEnvelope>) {
     let summary = format!(
         "summary: {} decisions, {} warnings",
         envelope.get_decision_log().len(),

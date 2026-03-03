@@ -8,7 +8,7 @@
 //! 2. Then MEKL to bridge the hole back to the outer loop.
 
 use crate::integration_tests::harness::assertions::{
-    assert_reciprocity, assert_euler_formula, assert_structural_invariants, assert_face_valence,
+    assert_structural_invariants,
 };
 use crate::integration_tests::harness::shapes::{
     collect_face_loop, first_halfedge_of_face, unit_cube,
@@ -24,11 +24,12 @@ use forge_topo::boundary_editing::kill_edge_make_loop::KillEdgeMakeLoop;
 /// The face valence should increase by 2 (the bridge edge adds 2 halfedges).
 #[test]
 fn kfmrh_then_mekl_bridges_hole() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face_to_kill = handles.faces[0];
-    let target_face = handles.faces[1];
+    let face_to_kill = faces[0];
+    let target_face = faces[1];
 
     let target_shell = draft.arena().get_face(target_face).unwrap().shell();
     let kill_shell = draft.arena().get_face(face_to_kill).unwrap().shell();
@@ -38,7 +39,7 @@ fn kfmrh_then_mekl_bridges_hole() {
     assert_eq!(inner_loops_before, 0);
 
     let face_count_before = draft.arena().face_count();
-    let loop_count_before = draft.arena().loop_count();
+    let _loop_count_before = draft.arena().loop_count();
 
     draft.execute(KillFaceMakeRingHole {
         face_to_kill,
@@ -59,7 +60,7 @@ fn kfmrh_then_mekl_bridges_hole() {
     let outer_valence = collect_face_loop(draft.arena(), he_outer).unwrap().len();
     let inner_valence = collect_face_loop(draft.arena(), he_inner).unwrap().len();
 
-    let mekl = draft.execute(MakeEdgeKillLoop {
+    let _mekl = draft.execute(MakeEdgeKillLoop {
         he_a: he_outer,
         he_b: he_inner,
     }).unwrap().into_value();
@@ -84,11 +85,12 @@ fn kfmrh_then_mekl_bridges_hole() {
 /// MEKL rejects halfedges that are on different faces.
 #[test]
 fn mekl_rejects_cross_face_halfedges() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let ha = first_halfedge_of_face(draft.arena(), handles.faces[0]).unwrap();
-    let hb = first_halfedge_of_face(draft.arena(), handles.faces[1]).unwrap();
+    let ha = first_halfedge_of_face(draft.arena(), faces[0]).unwrap();
+    let hb = first_halfedge_of_face(draft.arena(), faces[1]).unwrap();
 
     let result = draft.execute(MakeEdgeKillLoop {
         he_a: ha,
@@ -101,11 +103,12 @@ fn mekl_rejects_cross_face_halfedges() {
 /// KFMRH → MEKL → KEML roundtrip restores inner loop.
 #[test]
 fn mekl_keml_roundtrip() {
-    let (topo, handles) = unit_cube().unwrap();
-    let mut draft = topo.into_mutation();
+    let envelope = unit_cube().unwrap();
+    let faces = envelope.faces().to_vec();
+    let (mut draft, _geometry) = envelope.into_draft();
 
-    let face_to_kill = handles.faces[0];
-    let target_face = handles.faces[1];
+    let face_to_kill = faces[0];
+    let target_face = faces[1];
 
     draft.execute(KillFaceMakeRingHole {
         face_to_kill,
@@ -125,7 +128,7 @@ fn mekl_keml_roundtrip() {
 
     assert_eq!(draft.arena().get_face(target_face).unwrap().inner_loops().len(), 0);
 
-    let keml = draft.execute(KillEdgeMakeLoop {
+    let _keml = draft.execute(KillEdgeMakeLoop {
         edge: mekl.he_ab,
     }).unwrap().into_value();
 
