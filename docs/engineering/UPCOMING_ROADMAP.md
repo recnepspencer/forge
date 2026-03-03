@@ -28,7 +28,7 @@ Every primitive operation must generate a Merkle causal chain linking the result
 
 ### 3. Pipeline Infrastructure — Middleware-Chain State Threading [K-6]
 
-Deterministic parametric chains (`MakeBox → Fillet → Cut → Result`) where `TopologyState` output of step N forks into step N+1, accumulating unified `DecisionLog` and `LineageStore`.
+Deterministic parametric chains (`MakeBox → Fillet → Cut → Result`) where the `SolidEnvelope` output of step N feeds into step N+1, accumulating unified `DecisionLog` and `LineageStore`. Each `SolidEnvelope` carries both topology and geometry as a single immutable unit.
 
 The pipeline should compose as a **trait-based middleware chain** — each operation step is wrapped in a uniform sequence:
 
@@ -53,7 +53,7 @@ Pipeline::new(solid)
 
 ### 4. Replay Determinism & Serialization Round-Trip [P3.5-lite]
 
-Serialize a `TopologyState` to bytes, deserialize, and assert bit-identical result. Also serialize a `ReplayLog`, replay in a fresh context, assert identical `TopologyState`.
+Serialize a `SolidEnvelope` (topology + geometry) to bytes, deserialize, and assert bit-identical result. Also serialize a `ReplayLog`, replay in a fresh context, assert identical `SolidEnvelope`.
 
 - **Difficulty:** ✅ Easy | **Size:** ~1 PR
 - **Test:** Generate a cube, serialize, deserialize, assert `topology_hash` is identical.
@@ -175,7 +175,7 @@ _Proving that our transactional foundation is truly robust._
 
 ### 17. Undo/Redo System
 
-Snapshot-based undo/redo using `TopologyState` epochs. Each committed state is an immutable snapshot; undo pops to the previous epoch, redo replays forward. Validates that serialization, lineage, and replay all survive round-trips through the undo stack.
+Snapshot-based undo/redo using `SolidEnvelope` epochs. Each committed state is an immutable snapshot carrying topology + geometry; undo pops to the previous epoch, redo replays forward. Validates that serialization, lineage, and replay all survive round-trips through the undo stack.
 
 - **Difficulty:** 🟡 Medium | **Size:** ~3-4 PRs
 - **Test:**

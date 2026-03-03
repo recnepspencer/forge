@@ -52,6 +52,16 @@ fn test_large_block_no_spurious_decisions() {
     );
 
     // For well-separated vertices, all margins should be large (> tolerance).
+    for d in log.decisions() {
+        if matches!(d.get_kind(), DecisionKind::NearBoundary { .. }) {
+            let margin = d.get_margin();
+            assert!(
+                margin > 0.0,
+                "Expected margin > 0.0 for clean inserts in large block, got {}",
+                margin
+            );
+        }
+    }
 }
 
 /// Build a block through the pipeline path and verify span timing is recorded.
