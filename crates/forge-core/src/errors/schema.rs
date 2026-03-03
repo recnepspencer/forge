@@ -304,6 +304,47 @@ impl KernelError {
         }
         self
     }
+
+    /// Fill in `ErrorContext` only when the error has `context: None`.
+    ///
+    /// Designed to be called by operation runners (e.g. `MutableDraft::execute`)
+    /// so that operators don't need to manually stamp operation scope on every
+    /// error site. Operators that provide their own context are left untouched.
+    ///
+    /// `op_debug` should be the `Debug` representation of the operator struct,
+    /// which naturally contains all input entity IDs.
+    pub fn ensure_operation_context(
+        mut self,
+        op_name: &str,
+        invocation_id: u64,
+        op_debug: &str,
+    ) -> Self {
+        match &mut self {
+            KernelError::TopologyViolation { context, .. }
+            | KernelError::AmbiguousResult { context, .. }
+            | KernelError::ToleranceExceeded { context, .. }
+            | KernelError::PrecisionEscalation { context, .. }
+            | KernelError::InvalidInput { context, .. }
+            | KernelError::InternalError { context, .. }
+            | KernelError::ReplayMismatch { context, .. } => {
+                if context.is_none() {
+                    *context = Some(ErrorContext {
+                        scope: ErrorScope::Operation {
+                            op_name: op_name.to_string(),
+                            invocation_id,
+                        },
+                        suggested_fixes: vec![],
+                        detail: op_debug.to_string(),
+                    });
+                }
+            }
+            // These variants have no ErrorContext field or are self-describing.
+            KernelError::InvalidConfig { .. }
+            | KernelError::DiagnosticFailure { .. }
+            | KernelError::MergeFailure(_) => {}
+        }
+        self
+    }
 }
 
 impl std::error::Error for KernelError {}

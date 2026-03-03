@@ -293,7 +293,10 @@ impl MutableDraft {
         );
         self.log_operation_start(&signature, summary);
 
-        let exec_result = op.execute(self)?;
+        let exec_result = op.execute(self).map_err(|e| {
+            // Only format the Debug repr on the error path — zero cost on success.
+            e.ensure_operation_context(&op_name, invocation_id as u64, &format!("{:?}", op))
+        })?;
         let declared_delta = exec_result.declared_delta;
         let result = exec_result.value;
 
