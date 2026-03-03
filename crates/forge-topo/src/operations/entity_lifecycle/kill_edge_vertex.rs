@@ -46,6 +46,10 @@ impl TopoOperator for KillEdgeVertex {
 
     const NAME: &'static str = "kill_edge_vertex";
 
+    fn semantic_summary(&self) -> String {
+        format!("Collapse edge at halfedge {}, merging target vertex into origin", self.edge.index())
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,

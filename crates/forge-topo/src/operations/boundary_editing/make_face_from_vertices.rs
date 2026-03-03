@@ -61,6 +61,10 @@ impl TopoOperator for MakeFaceFromVertices {
 
     const NAME: &'static str = "make_face_from_vertices";
 
+    fn semantic_summary(&self) -> String {
+        format!("Create {}-sided face from existing vertices", self.vertices.len())
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
@@ -76,8 +80,8 @@ impl TopoOperator for MakeFaceFromVertices {
             });
         }
 
-        let sentinel_he = HalfEdgeId::new(u32::MAX, 0);
-        let sentinel_loop = LoopId::new(u32::MAX, 0);
+        let sentinel_he = HalfEdgeId::DANGLING;
+        let sentinel_loop = LoopId::DANGLING;
 
 
 
@@ -90,7 +94,7 @@ impl TopoOperator for MakeFaceFromVertices {
         let region = draft.insert_region(RegionData::new(lump));
 
         let shell = draft.insert_shell(ShellData::new(
-            FaceId::new(u32::MAX, 0),
+            FaceId::DANGLING,
             ShellKind::Sheet,
             region,
         ));
@@ -136,7 +140,7 @@ impl TopoOperator for MakeFaceFromVertices {
                 sentinel_he,
                 sentinel_he,
                 face,
-                VertexId::new(u32::MAX, 0),
+                VertexId::DANGLING,
                 edge,
             ));
 
@@ -171,7 +175,7 @@ impl TopoOperator for MakeFaceFromVertices {
 
             // Standard topological assignment: if vertex outgoing is max, set it.
             let orig_out = arena.get_vertex(v)?.outgoing();
-            if orig_out == HalfEdgeId::new(u32::MAX, 0) {
+            if orig_out == HalfEdgeId::DANGLING {
                 arena.get_vertex_mut(v)?.set_outgoing(he);
             }
         }

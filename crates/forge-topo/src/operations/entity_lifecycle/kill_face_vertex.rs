@@ -33,6 +33,10 @@ impl TopoOperator for KillFaceVertex {
 
     const NAME: &'static str = "kill_face_vertex";
 
+    fn semantic_summary(&self) -> String {
+        format!("Destroy face {} and its isolated vertex", self.face.index())
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,

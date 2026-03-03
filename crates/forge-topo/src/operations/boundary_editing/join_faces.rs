@@ -40,6 +40,10 @@ impl TopoOperator for JoinFaces {
 
     const NAME: &'static str = "join_faces";
 
+    fn semantic_summary(&self) -> String {
+        format!("Join two faces by removing edge at halfedge {}", self.edge.index())
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,

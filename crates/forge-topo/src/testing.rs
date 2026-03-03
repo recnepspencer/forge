@@ -10,24 +10,24 @@ use crate::transactions::MutableDraft;
 
 /// Returns a VertexData with a sentinel outgoing halfedge.
 pub fn dummy_vertex_data() -> VertexData {
-    VertexData::new(HalfEdgeId::new(u32::MAX, 0))
+    VertexData::new(HalfEdgeId::DANGLING)
 }
 
 /// Returns a FaceData with a sentinel outer loop and shell.
 pub fn dummy_face_data() -> FaceData {
-    FaceData::new(LoopId::new(u32::MAX, 0), ShellId::new(u32::MAX, 0))
+    FaceData::new(LoopId::DANGLING, ShellId::DANGLING)
 }
 
 /// Returns a HalfEdgeData pointing to the given face and origin,
 /// with sentinels for all other links.
 pub fn dummy_halfedge_data(face: FaceId, origin: VertexId) -> HalfEdgeData {
     HalfEdgeData::new(
-        HalfEdgeId::new(u32::MAX, 0),
-        HalfEdgeId::new(u32::MAX, 0),
-        HalfEdgeId::new(u32::MAX, 0),
+        HalfEdgeId::DANGLING,
+        HalfEdgeId::DANGLING,
+        HalfEdgeId::DANGLING,
         face,
         origin,
-        EdgeId::new(u32::MAX, 0),
+        EdgeId::DANGLING,
     )
 }
 
@@ -37,11 +37,11 @@ pub fn dummy_halfedge_data(face: FaceId, origin: VertexId) -> HalfEdgeData {
 pub fn build_face_with_hole(
     draft: &mut MutableDraft,
 ) -> (FaceId, HalfEdgeId, HalfEdgeId, LoopId, [VertexId; 6]) {
-    let sentinel_he = HalfEdgeId::new(u32::MAX, 0);
-    let sentinel_loop = LoopId::new(u32::MAX, 0);
-    let sentinel_face = FaceId::new(u32::MAX, 0);
-    let sentinel_shell = ShellId::new(u32::MAX, 0);
-    let sentinel_e = EdgeId::new(u32::MAX, 0);
+    let sentinel_he = HalfEdgeId::DANGLING;
+    let sentinel_loop = LoopId::DANGLING;
+    let sentinel_face = FaceId::DANGLING;
+    let sentinel_shell = ShellId::DANGLING;
+    let sentinel_e = EdgeId::DANGLING;
 
     let arena = draft.arena_mut();
 

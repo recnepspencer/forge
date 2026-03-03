@@ -31,12 +31,16 @@ impl TopoOperator for MakeEmptyShell {
 
     const NAME: &'static str = "make_empty_shell";
 
+    fn semantic_summary(&self) -> String {
+        format!("Create empty shell in region {} (kind: {:?})", self.region.index(), self.kind)
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let shell = draft.insert_shell(ShellData::new(
-            FaceId::new(u32::MAX, 0),
+            FaceId::DANGLING,
             self.kind,
             self.region,
         ));
@@ -73,6 +77,10 @@ impl TopoOperator for DestroyShell {
     type Output = ();
 
     const NAME: &'static str = "destroy_shell";
+
+    fn semantic_summary(&self) -> String {
+        format!("Destroy shell {}", self.shell.index())
+    }
 
     fn execute(
         &self,

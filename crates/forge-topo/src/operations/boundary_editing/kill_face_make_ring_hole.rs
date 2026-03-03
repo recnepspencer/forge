@@ -35,6 +35,13 @@ impl TopoOperator for KillFaceMakeRingHole {
 
     const NAME: &'static str = "kill_face_make_ring_hole";
 
+    fn semantic_summary(&self) -> String {
+        format!(
+            "Demote face {} to inner hole of face {}",
+            self.face_to_kill.index(), self.target_face.index()
+        )
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,

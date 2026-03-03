@@ -28,6 +28,10 @@ impl TopoOperator for RehomeLump {
 
     const NAME: &'static str = "rehome_lump";
 
+    fn semantic_summary(&self) -> String {
+        format!("Move lump {} to body {}", self.lump.index(), self.target_body.index())
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
@@ -71,6 +75,10 @@ impl TopoOperator for ExtractLump {
     type Output = ExtractLumpOutput;
 
     const NAME: &'static str = "extract_lump";
+
+    fn semantic_summary(&self) -> String {
+        format!("Extract lump {} into its own body", self.lump.index())
+    }
 
     fn execute(
         &self,
@@ -129,6 +137,13 @@ impl TopoOperator for SplitLump {
 
     const NAME: &'static str = "split_lump";
 
+    fn semantic_summary(&self) -> String {
+        format!(
+            "Split lump {} by moving {} regions to new lump",
+            self.lump.index(), self.regions_to_move.len()
+        )
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
@@ -183,6 +198,10 @@ impl TopoOperator for MergeLumps {
     type Output = ();
 
     const NAME: &'static str = "merge_lumps";
+
+    fn semantic_summary(&self) -> String {
+        format!("Merge lump {} into lump {}", self.source.index(), self.target.index())
+    }
 
     fn execute(
         &self,

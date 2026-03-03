@@ -280,8 +280,8 @@ fn mekl_keml_on_multi_hole_face() {
 
     assert_eq!(draft.arena().get_face(face).unwrap().inner_loop_count(), 1);
 
-    let placeholder_he = crate::handles::HalfEdgeId::new(u32::MAX, 0);
-    let placeholder_e = crate::handles::EdgeId::new(u32::MAX, 0);
+    let placeholder_he = crate::handles::HalfEdgeId::DANGLING;
+    let placeholder_e = crate::handles::EdgeId::DANGLING;
     let arena = draft.arena_mut();
 
     let v6 = arena.insert_vertex(crate::b_rep::VertexData::new(placeholder_he));
@@ -301,7 +301,7 @@ fn mekl_keml_on_multi_hole_face() {
             placeholder_he,
             placeholder_he,
             placeholder_he,
-            crate::handles::FaceId::new(u32::MAX, 0),
+            crate::handles::FaceId::DANGLING,
             v7,
             placeholder_e,
         ),
@@ -319,7 +319,7 @@ fn mekl_keml_on_multi_hole_face() {
             placeholder_he,
             placeholder_he,
             placeholder_he,
-            crate::handles::FaceId::new(u32::MAX, 0),
+            crate::handles::FaceId::DANGLING,
             v8,
             placeholder_e,
         ),
@@ -337,7 +337,7 @@ fn mekl_keml_on_multi_hole_face() {
             placeholder_he,
             placeholder_he,
             placeholder_he,
-            crate::handles::FaceId::new(u32::MAX, 0),
+            crate::handles::FaceId::DANGLING,
             v6,
             placeholder_e,
         ),

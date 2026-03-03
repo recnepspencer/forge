@@ -60,6 +60,10 @@ impl TopoOperator for MakeEdgeVertex {
 
     const NAME: &'static str = "make_edge_vertex";
 
+    fn semantic_summary(&self) -> String {
+        format!("Sprout antenna at anchor halfedge {}", self.anchor.index())
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
@@ -71,14 +75,14 @@ impl TopoOperator for MakeEdgeVertex {
         let face = anchor_data.face();
         let prev = anchor_data.prev();
         let new_vertex = draft.insert_vertex(VertexData::new(
-            HalfEdgeId::new(u32::MAX, 0),
+            HalfEdgeId::DANGLING,
         ));
 
         let new_edge = draft.insert_edge(EdgeData::new(
-            HalfEdgeId::new(u32::MAX, 0),
+            HalfEdgeId::DANGLING,
         ));
 
-        let sentinel = HalfEdgeId::new(u32::MAX, 0);
+        let sentinel = HalfEdgeId::DANGLING;
 
         let (he_out, he_back) = draft.insert_radial_pair(
             HalfEdgeData::new(

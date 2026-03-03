@@ -11,15 +11,15 @@ use crate::transactions::TopologyState;
 use forge_core::KernelError;
 
 fn ph() -> HalfEdgeId {
-    HalfEdgeId::new(u32::MAX, 0)
+    HalfEdgeId::DANGLING
 }
 
 fn placeholder_loop() -> crate::handles::LoopId {
-    crate::handles::LoopId::new(u32::MAX, 0)
+    crate::handles::LoopId::DANGLING
 }
 
 fn placeholder_shell() -> crate::handles::ShellId {
-    crate::handles::ShellId::new(u32::MAX, 0)
+    crate::handles::ShellId::DANGLING
 }
 
 /// Build a valence-N radial ring on a single shared edge.

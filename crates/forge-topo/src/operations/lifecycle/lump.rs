@@ -31,6 +31,10 @@ impl TopoOperator for MakeLumpRegion {
 
     const NAME: &'static str = "make_lump_region";
 
+    fn semantic_summary(&self) -> String {
+        format!("Create lump with region in body {}", self.body.index())
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
@@ -71,6 +75,10 @@ impl TopoOperator for DestroyLump {
     type Output = ();
 
     const NAME: &'static str = "destroy_lump";
+
+    fn semantic_summary(&self) -> String {
+        format!("Destroy lump {} and its region", self.lump.index())
+    }
 
     fn execute(
         &self,

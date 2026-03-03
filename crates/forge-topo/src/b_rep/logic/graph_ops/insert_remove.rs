@@ -123,6 +123,93 @@ impl TopologyArena {
         self.index_remove_halfedge(id, data.face(), data.origin());
         Ok(data)
     }
+
+    // ── Two-phase reserve/populate for circular wiring ──────────────
+
+    /// Reserve a halfedge slot, returning its ID. The slot has no data yet.
+    ///
+    /// Use `populate_half_edge` to fill it after all circular IDs are known.
+    pub fn reserve_half_edge(&mut self) -> HalfEdgeId {
+        let (index, gen) = Self::reserve_slot(
+            &mut self.half_edge_slots,
+            &mut self.free_half_edge_head,
+        );
+        self.active_half_edge_count += 1;
+        HalfEdgeId::new(index, gen)
+    }
+
+    /// Fill a previously reserved halfedge slot with data. Updates indexes.
+    ///
+    /// # Panics
+    /// Debug-panics if the slot is already occupied.
+    pub fn populate_half_edge(&mut self, id: HalfEdgeId, data: HalfEdgeData) {
+        let face = data.face();
+        let origin = data.origin();
+        Self::populate_slot(&mut self.half_edge_slots, id.index(), data);
+        self.index_add_halfedge(id, face, origin);
+    }
+
+    /// Reserve a face slot, returning its ID.
+    pub fn reserve_face(&mut self) -> FaceId {
+        let (index, gen) = Self::reserve_slot(
+            &mut self.face_slots,
+            &mut self.free_face_head,
+        );
+        self.active_face_count += 1;
+        FaceId::new(index, gen)
+    }
+
+    /// Fill a previously reserved face slot with data. Updates indexes.
+    pub fn populate_face(&mut self, id: FaceId, data: FaceData) {
+        let shell = data.shell();
+        Self::populate_slot(&mut self.face_slots, id.index(), data);
+        self.index_add_face(id, shell);
+    }
+
+    /// Reserve a loop slot, returning its ID.
+    pub fn reserve_loop(&mut self) -> LoopId {
+        let (index, gen) = Self::reserve_slot(
+            &mut self.loop_slots,
+            &mut self.free_loop_head,
+        );
+        self.active_loop_count += 1;
+        LoopId::new(index, gen)
+    }
+
+    /// Fill a previously reserved loop slot with data.
+    pub fn populate_loop(&mut self, id: LoopId, data: LoopData) {
+        Self::populate_slot(&mut self.loop_slots, id.index(), data);
+    }
+
+    /// Reserve a vertex slot, returning its ID.
+    pub fn reserve_vertex(&mut self) -> VertexId {
+        let (index, gen) = Self::reserve_slot(
+            &mut self.vertex_slots,
+            &mut self.free_vertex_head,
+        );
+        self.active_vertex_count += 1;
+        VertexId::new(index, gen)
+    }
+
+    /// Fill a previously reserved vertex slot with data.
+    pub fn populate_vertex(&mut self, id: VertexId, data: VertexData) {
+        Self::populate_slot(&mut self.vertex_slots, id.index(), data);
+    }
+
+    /// Reserve an edge slot, returning its ID.
+    pub fn reserve_edge(&mut self) -> EdgeId {
+        let (index, gen) = Self::reserve_slot(
+            &mut self.edge_slots,
+            &mut self.free_edge_head,
+        );
+        self.active_edge_count += 1;
+        EdgeId::new(index, gen)
+    }
+
+    /// Fill a previously reserved edge slot with data.
+    pub fn populate_edge(&mut self, id: EdgeId, data: EdgeData) {
+        Self::populate_slot(&mut self.edge_slots, id.index(), data);
+    }
 }
 
 // Imports needed by the macro-generated code

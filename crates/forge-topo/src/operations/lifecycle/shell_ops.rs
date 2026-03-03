@@ -28,6 +28,10 @@ impl TopoOperator for RehomeShell {
 
     const NAME: &'static str = "rehome_shell";
 
+    fn semantic_summary(&self) -> String {
+        format!("Move shell {} to region {}", self.shell.index(), self.target_region.index())
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
@@ -71,6 +75,10 @@ impl TopoOperator for ExtractShell {
     type Output = ExtractShellOutput;
 
     const NAME: &'static str = "extract_shell";
+
+    fn semantic_summary(&self) -> String {
+        format!("Extract shell {} into its own region", self.shell.index())
+    }
 
     fn execute(
         &self,
@@ -125,6 +133,13 @@ impl TopoOperator for SplitShell {
     type Output = SplitShellOutput;
 
     const NAME: &'static str = "split_shell";
+
+    fn semantic_summary(&self) -> String {
+        format!(
+            "Split shell {} by moving {} faces to new shell",
+            self.shell.index(), self.faces_to_move.len()
+        )
+    }
 
     fn execute(
         &self,
@@ -187,6 +202,10 @@ impl TopoOperator for MergeShells {
 
     const NAME: &'static str = "merge_shells";
 
+    fn semantic_summary(&self) -> String {
+        format!("Merge shell {} into shell {}", self.source.index(), self.target.index())
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
@@ -237,6 +256,10 @@ impl TopoOperator for PromoteShell {
 
     const NAME: &'static str = "promote_shell";
 
+    fn semantic_summary(&self) -> String {
+        format!("Promote inner shell {} to outer shell", self.shell.index())
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
@@ -286,6 +309,10 @@ impl TopoOperator for DemoteShell {
     type Output = ();
 
     const NAME: &'static str = "demote_shell";
+
+    fn semantic_summary(&self) -> String {
+        format!("Demote outer shell of region {} to inner shell", self.region.index())
+    }
 
     fn execute(
         &self,

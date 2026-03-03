@@ -4,8 +4,8 @@
 //! and free-lists for all topology entity types.
 
 use serde::{Deserialize, Serialize};
+use indexmap::IndexMap;
 use smallvec::SmallVec;
-use std::collections::BTreeMap;
 
 use crate::semantic_attributes::AttributeStore;
 use crate::b_rep::data::storage::slot::Slot;
@@ -71,11 +71,11 @@ pub struct TopologyArena {
     // ── O(1) Reverse Indexes (derived, not serialized) ──────────
     // SmallVec inline storage avoids heap allocation for typical valence.
     #[serde(skip)]
-    pub(crate) shell_faces: BTreeMap<ShellId, SmallVec<[FaceId; 8]>>,
+    pub(crate) shell_faces: IndexMap<ShellId, SmallVec<[FaceId; 8]>>,
     #[serde(skip)]
-    pub(crate) face_halfedges: BTreeMap<FaceId, SmallVec<[HalfEdgeId; 6]>>,
+    pub(crate) face_halfedges: IndexMap<FaceId, SmallVec<[HalfEdgeId; 6]>>,
     #[serde(skip)]
-    pub(crate) vertex_halfedges: BTreeMap<VertexId, SmallVec<[HalfEdgeId; 6]>>,
+    pub(crate) vertex_halfedges: IndexMap<VertexId, SmallVec<[HalfEdgeId; 6]>>,
 }
 
 impl TopologyArena {
@@ -110,9 +110,9 @@ impl TopologyArena {
             active_lump_count: 0,
             active_region_count: 0,
             active_edge_count: 0,
-            shell_faces: BTreeMap::new(),
-            face_halfedges: BTreeMap::new(),
-            vertex_halfedges: BTreeMap::new(),
+            shell_faces: IndexMap::new(),
+            face_halfedges: IndexMap::new(),
+            vertex_halfedges: IndexMap::new(),
         }
     }
 
@@ -133,6 +133,40 @@ impl TopologyArena {
         let generation = slot.occupy(data);
         slots.push(slot);
         (index, generation)
+    }
+
+    /// Reserve a slot without data. Returns `(index, generation)`.
+    ///
+    /// The slot exists but has `data = None` until `populate_slot` fills it.
+    /// This allows circular references to be wired before any data is stored.
+    pub(crate) fn reserve_slot<T: Clone>(
+        slots: &mut Vec<Slot<T>>,
+        free_head: &mut Option<u32>,
+    ) -> (u32, u32) {
+        if let Some(index) = *free_head {
+            let slot = &mut slots[index as usize];
+            *free_head = slot.next_free;
+            slot.next_free = None;
+            return (index, slot.generation);
+        }
+        let index = slots.len() as u32;
+        slots.push(Slot::empty());
+        (index, 0)
+    }
+
+    /// Populate a previously reserved slot with data.
+    ///
+    /// # Panics
+    /// Panics if the slot is already occupied.
+    pub(crate) fn populate_slot<T: Clone>(
+        slots: &mut Vec<Slot<T>>,
+        index: u32,
+        data: T,
+    ) {
+        let slot = &mut slots[index as usize];
+        debug_assert!(slot.data.is_none(), "populate_slot called on occupied slot {index}");
+        slot.data = Some(data);
+        slot.version = 0;
     }
 
     /// Read-only access to the attribute store.

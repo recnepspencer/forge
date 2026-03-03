@@ -37,6 +37,10 @@ impl TopoOperator for MakeFaceKillRingHole {
 
     const NAME: &'static str = "make_face_kill_ring_hole";
 
+    fn semantic_summary(&self) -> String {
+        format!("Promote inner loop {} to its own face", self.loop_id.index())
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,

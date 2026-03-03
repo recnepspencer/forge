@@ -45,6 +45,13 @@ impl TopoOperator for SewEdge {
 
     const NAME: &'static str = "sew_edge";
 
+    fn semantic_summary(&self) -> String {
+        format!(
+            "Sew boundary halfedges {} and {} into shared edge",
+            self.he_a.index(), self.he_b.index()
+        )
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,

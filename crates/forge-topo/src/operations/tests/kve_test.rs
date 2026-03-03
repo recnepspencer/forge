@@ -49,7 +49,7 @@ fn kve_rejects_isolated_vertex() {
     let mut draft = state.into_mutation();
 
     let v = draft.insert_vertex(crate::b_rep::VertexData::new(
-        crate::handles::HalfEdgeId::new(u32::MAX, 0),
+        crate::handles::HalfEdgeId::DANGLING,
     ));
 
     let result = draft.execute(KillVertexEdge { vertex: v });

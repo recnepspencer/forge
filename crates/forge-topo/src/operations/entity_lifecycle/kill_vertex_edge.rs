@@ -39,6 +39,10 @@ impl TopoOperator for KillVertexEdge {
 
     const NAME: &'static str = "kill_vertex_edge";
 
+    fn semantic_summary(&self) -> String {
+        format!("Remove vertex {} by merging its incident edges", self.vertex.index())
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
@@ -46,7 +50,7 @@ impl TopoOperator for KillVertexEdge {
         let vertex_m = self.vertex;
 
         let outgoing_he = draft.arena().get_vertex(vertex_m)?.outgoing();
-        if outgoing_he == HalfEdgeId::new(u32::MAX, 0) {
+        if outgoing_he == HalfEdgeId::DANGLING {
             return Err(KernelError::InvalidInput {
                 message: "KillVertexEdge: vertex has no outgoing halfedge".to_string(),
                 context: None,

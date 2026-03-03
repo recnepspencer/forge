@@ -44,6 +44,13 @@ impl TopoOperator for UnsewEdge {
 
     const NAME: &'static str = "unsew_edge";
 
+    fn semantic_summary(&self) -> String {
+        format!(
+            "Unsew halfedges {} and {} into separate boundary edges",
+            self.he_a.index(), self.he_b.index()
+        )
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,

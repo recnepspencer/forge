@@ -1,15 +1,11 @@
 //! Cache and index consistency validators.
 //!
-//! DOMAIN: AABB tree coverage, BVH refit correctness, spatial cache
-//! staleness flags, adjacency cache ground-truth matching, and
-//! curvature/mass-property cache staleness.
+//! DOMAIN: Validates that reverse indexes (face→halfedges,
+//! shell→faces, vertex→halfedges) match loop-walked ground truth.
 //!
 //! VALIDATORS (from validators.md §13):
-//! - ValidateAABBTreeCoversAllEntities
-//! - ValidateBVHRefitCorrectness
-//! - ValidateSpatialCacheStalenessFlags
 //! - ValidateAdjacencyCacheMatchesGroundTruth
-//! - ValidateCurvatureCacheStaleness
-//! - ValidateMassPropsCacheStaleness
-//!
-//! DEPENDENCIES: `arena`, `forge-geom` (spatial)
+
+mod index_coherence;
+
+pub(crate) use index_coherence::validate_index_coherence;

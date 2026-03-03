@@ -57,6 +57,13 @@ impl TopoOperator for MakeEdgeKillLoop {
 
     const NAME: &'static str = "make_edge_kill_loop";
 
+    fn semantic_summary(&self) -> String {
+        format!(
+            "Bridge outer halfedge {} to inner halfedge {}, killing inner loop",
+            self.he_a.index(), self.he_b.index()
+        )
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
@@ -106,7 +113,7 @@ impl TopoOperator for MakeEdgeKillLoop {
 
         // ── Derive lineage ──────────────────────────────────────────
         // ── Create edge + halfedge pair ─────────────────────────────
-        let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
+        let placeholder_he = HalfEdgeId::DANGLING;
 
         let new_edge =
             draft.insert_edge(EdgeData::new(placeholder_he));

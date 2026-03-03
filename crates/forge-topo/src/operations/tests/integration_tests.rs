@@ -67,7 +67,7 @@ fn kv15_validation_catches_broken_twins() {
         .arena_mut()
         .get_half_edge_mut(mvf.half_edge)
         .unwrap()
-        .set_radial_next(crate::handles::HalfEdgeId::new(u32::MAX, 0));
+        .set_radial_next(crate::handles::HalfEdgeId::DANGLING);
 
     let result = draft.commit();
     assert!(result.is_err());

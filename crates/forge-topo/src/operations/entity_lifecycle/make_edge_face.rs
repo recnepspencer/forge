@@ -54,6 +54,13 @@ impl TopoOperator for MakeEdgeFace {
 
     const NAME: &'static str = "make_edge_face";
 
+    fn semantic_summary(&self) -> String {
+        format!(
+            "Split face {} by inserting edge between vertices {} and {}",
+            self.face.index(), self.vertex_a.index(), self.vertex_b.index()
+        )
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
@@ -75,8 +82,8 @@ impl TopoOperator for MakeEdgeFace {
 
         let source_shell = draft.arena().get_face(self.face)?.shell();
 
-        let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
-        let placeholder_loop = LoopId::new(u32::MAX, 0);
+        let placeholder_he = HalfEdgeId::DANGLING;
+        let placeholder_loop = LoopId::DANGLING;
 
         let new_face = draft.insert_face(FaceData::new(
             placeholder_loop,

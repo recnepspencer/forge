@@ -2,33 +2,76 @@
 //!
 //! DOMAIN: Insert a pair of halfedges and wire their radial_next
 //! fields reciprocally for manifold edge creation.
+//!
+//! Uses the two-phase reserve/populate API to eliminate sentinel handles:
+//! both IDs are known before either halfedge's data is populated.
 
 use crate::b_rep::data::storage::arena::TopologyArena;
 use crate::b_rep::data::mesh::half_edge::HalfEdgeData;
 use crate::handles::HalfEdgeId;
 
 impl TopologyArena {
-    /// Insert a pair of radial halfedges and wire their `radial_next` fields reciprocally.
+    /// Insert a pair of radial halfedges with their `radial_next` fields
+    /// correctly wired from the start — no sentinel handles needed.
     ///
-    /// Returns `(he_a, he_b)` where `he_a.radial_next == he_b` and `he_b.radial_next == he_a`.
+    /// Returns `(he_a, he_b)` where `he_a.radial_next == he_b` and vice versa.
     pub(crate) fn insert_radial_pair(
         &mut self,
         mut data_a: HalfEdgeData,
         mut data_b: HalfEdgeData,
     ) -> (HalfEdgeId, HalfEdgeId) {
-        data_a.set_radial_next(HalfEdgeId::new(u32::MAX, 0));
-        data_b.set_radial_next(HalfEdgeId::new(u32::MAX, 0));
+        // Phase 1: Reserve both slots to learn their IDs
+        let he_a_id = self.reserve_half_edge();
+        let he_b_id = self.reserve_half_edge();
 
-        let he_a_id = self.insert_half_edge(data_a);
-        let he_b_id = self.insert_half_edge(data_b);
+        // Phase 2: Wire radial_next with real IDs, then populate
+        data_a.set_radial_next(he_b_id);
+        data_b.set_radial_next(he_a_id);
 
-        if let Some(he_a) = self.half_edge_slots[he_a_id.index() as usize].data.as_mut() {
-            he_a.set_radial_next(he_b_id);
-        }
-        if let Some(he_b) = self.half_edge_slots[he_b_id.index() as usize].data.as_mut() {
-            he_b.set_radial_next(he_a_id);
-        }
+        self.populate_half_edge(he_a_id, data_a);
+        self.populate_half_edge(he_b_id, data_b);
 
         (he_a_id, he_b_id)
+    }
+
+    /// Returns the twin halfedge if and only if the edge is manifold
+    /// (exactly 2 uses sharing the same geometric edge).
+    ///
+    /// Returns `None` for:
+    /// - Boundary edges (`radial_next == self`)
+    /// - NMT edges (3+ halfedges in the radial ring)
+    pub fn twin_if_manifold(&self, he: HalfEdgeId) -> Option<HalfEdgeId> {
+        let data = self.get_half_edge(he).ok()?;
+        let partner = data.radial_next();
+        if partner == he {
+            return None; // boundary edge
+        }
+        let partner_data = self.get_half_edge(partner).ok()?;
+        if partner_data.radial_next() == he {
+            Some(partner) // manifold: ring of exactly 2
+        } else {
+            None // NMT: ring > 2
+        }
+    }
+
+    /// Iterate all halfedges in the radial ring around the same geometric edge.
+    ///
+    /// For manifold edges, returns `[he, twin]`.
+    /// For boundary edges, returns `[he]`.
+    /// For NMT edges, returns the full ring.
+    pub fn radial_ring(&self, he: HalfEdgeId) -> Vec<HalfEdgeId> {
+        let mut ring = vec![he];
+        let mut current = match self.get_half_edge(he) {
+            Ok(d) => d.radial_next(),
+            Err(_) => return ring,
+        };
+        while current != he {
+            ring.push(current);
+            current = match self.get_half_edge(current) {
+                Ok(d) => d.radial_next(),
+                Err(_) => break,
+            };
+        }
+        ring
     }
 }

@@ -93,8 +93,8 @@ fn join_faces_preserves_inner_loops() {
     .into_value();
 
     let target_face = mef.new_face;
-    let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
-    let placeholder_e = EdgeId::new(u32::MAX, 0);
+    let placeholder_he = HalfEdgeId::DANGLING;
+    let placeholder_e = EdgeId::DANGLING;
 
     let (inner_loop, ihe01, ihe12, ihe20) = {
         let arena = draft.arena_mut();

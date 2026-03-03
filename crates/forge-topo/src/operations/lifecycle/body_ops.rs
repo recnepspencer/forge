@@ -35,6 +35,13 @@ impl TopoOperator for SplitBody {
 
     const NAME: &'static str = "split_body";
 
+    fn semantic_summary(&self) -> String {
+        format!(
+            "Split body {} by moving {} lumps to new body",
+            self.body.index(), self.lumps_to_move.len()
+        )
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
@@ -100,6 +107,10 @@ impl TopoOperator for MergeBodies {
 
     const NAME: &'static str = "merge_bodies";
 
+    fn semantic_summary(&self) -> String {
+        format!("Merge body {} into body {}", self.source.index(), self.target.index())
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
@@ -150,6 +161,10 @@ impl TopoOperator for CloneBody {
     type Output = CloneBodyOutput;
 
     const NAME: &'static str = "clone_body";
+
+    fn semantic_summary(&self) -> String {
+        format!("Deep clone body {}", self.body.index())
+    }
 
     fn execute(
         &self,
@@ -350,7 +365,7 @@ impl TopoOperator for CloneBody {
 
                 for shell_info in &region_info.shells {
                     let new_shell = draft.insert_shell(crate::b_rep::ShellData::new(
-                        crate::handles::FaceId::new(u32::MAX, 0),
+                        crate::handles::FaceId::DANGLING,
                         shell_info.kind,
                         new_region,
                     ));
@@ -361,8 +376,8 @@ impl TopoOperator for CloneBody {
                     // Create faces and loops
                     for fi in &shell_info.faces {
                         let new_loop = draft.insert_loop(crate::b_rep::LoopData::new(
-                            crate::handles::HalfEdgeId::new(u32::MAX, 0),
-                            crate::handles::FaceId::new(u32::MAX, 0),
+                            crate::handles::HalfEdgeId::DANGLING,
+                            crate::handles::FaceId::DANGLING,
                         ));
                         loop_map.insert(fi.old_outer_loop, new_loop);
                         total_loops += 1;
@@ -376,8 +391,8 @@ impl TopoOperator for CloneBody {
 
                         for &old_inner in &fi.old_inner_loops {
                             let new_inner = draft.insert_loop(crate::b_rep::LoopData::new(
-                                crate::handles::HalfEdgeId::new(u32::MAX, 0),
-                                crate::handles::FaceId::new(u32::MAX, 0),
+                                crate::handles::HalfEdgeId::DANGLING,
+                                crate::handles::FaceId::DANGLING,
                             ));
                             loop_map.insert(old_inner, new_inner);
                             draft.arena_mut().get_face_mut(new_face)?.add_inner_loop(new_inner);
@@ -389,7 +404,7 @@ impl TopoOperator for CloneBody {
                     for vi in &shell_info.vertices {
                         if !vertex_map.contains_key(&vi.old_vertex) {
                             let new_v = draft.insert_vertex(crate::b_rep::VertexData::new(
-                                crate::handles::HalfEdgeId::new(u32::MAX, 0),
+                                crate::handles::HalfEdgeId::DANGLING,
                             ));
                             if let Some(bp) = vi.birth_parameter {
                                 draft.arena_mut().get_vertex_mut(new_v)?.set_birth_parameter(Some(bp));
@@ -403,7 +418,7 @@ impl TopoOperator for CloneBody {
                     for ei in &shell_info.edges {
                         if !edge_map.contains_key(&ei.old_edge) {
                             let new_e = draft.insert_edge(crate::b_rep::EdgeData::new(
-                                crate::handles::HalfEdgeId::new(u32::MAX, 0),
+                                crate::handles::HalfEdgeId::DANGLING,
                             ));
                             edge_map.insert(ei.old_edge, new_e);
                             total_edges += 1;
@@ -417,9 +432,9 @@ impl TopoOperator for CloneBody {
                         let new_edge = edge_map[&hi.old_edge];
 
                         let new_he = draft.insert_half_edge(crate::b_rep::HalfEdgeData::new(
-                            crate::handles::HalfEdgeId::new(u32::MAX, 0),
-                            crate::handles::HalfEdgeId::new(u32::MAX, 0),
-                            crate::handles::HalfEdgeId::new(u32::MAX, 0),
+                            crate::handles::HalfEdgeId::DANGLING,
+                            crate::handles::HalfEdgeId::DANGLING,
+                            crate::handles::HalfEdgeId::DANGLING,
                             new_face,
                             new_origin,
                             new_edge,

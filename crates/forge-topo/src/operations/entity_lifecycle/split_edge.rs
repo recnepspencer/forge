@@ -70,6 +70,10 @@ impl TopoOperator for SplitEdge {
 
     const NAME: &'static str = "split_edge";
 
+    fn semantic_summary(&self) -> String {
+        format!("Split edge at halfedge {} (t={:.2})", self.edge.index(), self.parameter)
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
@@ -90,7 +94,7 @@ impl TopoOperator for SplitEdge {
         let old_edge = draft.arena().get_half_edge(he_ab)?.edge();
         let is_closed_edge = vertex_a == vertex_b;
         let new_vertex = draft.insert_vertex(VertexData::new(
-            HalfEdgeId::new(u32::MAX, 0), // sentinel
+            HalfEdgeId::DANGLING, // sentinel
         ));
         draft
             .arena_mut()
@@ -98,7 +102,7 @@ impl TopoOperator for SplitEdge {
             .set_birth_parameter(Some(self.parameter));
 
         let new_edge = draft.insert_edge(EdgeData::new(
-            HalfEdgeId::new(u32::MAX, 0),
+            HalfEdgeId::DANGLING,
         ));
 
         let mut e_old_list = Vec::new();
@@ -141,12 +145,12 @@ impl TopoOperator for SplitEdge {
                 });
             }
             let h_new = draft.insert_half_edge(HalfEdgeData::new(
-                HalfEdgeId::new(u32::MAX, 0), // radial_next
-                HalfEdgeId::new(u32::MAX, 0), // next
-                HalfEdgeId::new(u32::MAX, 0), // prev
+                HalfEdgeId::DANGLING, // radial_next
+                HalfEdgeId::DANGLING, // next
+                HalfEdgeId::DANGLING, // prev
                 h_face,
                 new_vertex,               // H_new ALWAYS originates at M
-                EdgeId::new(u32::MAX, 0), // sentinel edge
+                EdgeId::DANGLING, // sentinel edge
             ));
 
             new_ids.insert(h, h_new);

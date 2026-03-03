@@ -429,7 +429,7 @@ mod tests {
         .unwrap()
         .into_value();
 
-        let bogus_he = HalfEdgeId::new(u32::MAX, 0);
+        let bogus_he = HalfEdgeId::DANGLING;
         draft
             .arena_mut()
             .get_half_edge_mut(se.he_am)
@@ -797,8 +797,8 @@ mod tests {
             [-1.0, 1.0, 1.0],   // 7
         ];
 
-        let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
-        let placeholder_loop = LoopId::new(u32::MAX, 0);
+        let placeholder_he = HalfEdgeId::DANGLING;
+        let placeholder_loop = LoopId::DANGLING;
 
         let mut verts = Vec::new();
         for _ in 0..8 {
@@ -815,8 +815,8 @@ mod tests {
         ];
 
         for quad in &quad_faces {
-            let placeholder_shell_q = crate::handles::ShellId::new(u32::MAX, 0);
-            let placeholder_e_q = crate::handles::EdgeId::new(u32::MAX, 0);
+            let placeholder_shell_q = crate::handles::ShellId::DANGLING;
+            let placeholder_e_q = crate::handles::EdgeId::DANGLING;
             let face =
                 arena.insert_face(FaceData::new(placeholder_loop, placeholder_shell_q));
             let loop_id = arena.insert_loop(LoopData::new(placeholder_he, face));

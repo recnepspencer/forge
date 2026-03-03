@@ -49,6 +49,13 @@ impl TopoOperator for JoinFacesNmt {
 
     const NAME: &'static str = "join_faces_nmt";
 
+    fn semantic_summary(&self) -> String {
+        format!(
+            "Join non-manifold faces via halfedges {} (survive) and {} (kill)",
+            self.he_survive.index(), self.he_kill.index()
+        )
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,

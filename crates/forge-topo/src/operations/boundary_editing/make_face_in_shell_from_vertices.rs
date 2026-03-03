@@ -46,6 +46,13 @@ impl TopoOperator for MakeFaceInShellFromVertices {
 
     const NAME: &'static str = "make_face_in_shell_from_vertices";
 
+    fn semantic_summary(&self) -> String {
+        format!(
+            "Create {}-sided face in shell {} from existing vertices",
+            self.vertices.len(), self.shell.index()
+        )
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
@@ -82,8 +89,8 @@ impl TopoOperator for MakeFaceInShellFromVertices {
             }
         }
 
-        let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
-        let placeholder_loop = LoopId::new(u32::MAX, 0);
+        let placeholder_he = HalfEdgeId::DANGLING;
+        let placeholder_loop = LoopId::DANGLING;
 
         let face = draft.insert_face(FaceData::new(
             placeholder_loop,
@@ -110,7 +117,7 @@ impl TopoOperator for MakeFaceInShellFromVertices {
                 placeholder_he,
                 placeholder_he,
                 face,
-                VertexId::new(u32::MAX, 0),
+                VertexId::DANGLING,
                 edge,
             ));
 
@@ -137,7 +144,7 @@ impl TopoOperator for MakeFaceInShellFromVertices {
 
             // Standard topological assignment: if vertex outgoing is max, set it.
             let orig_out = arena.get_vertex(v)?.outgoing();
-            if orig_out == HalfEdgeId::new(u32::MAX, 0) {
+            if orig_out == HalfEdgeId::DANGLING {
                 arena.get_vertex_mut(v)?.set_outgoing(he);
             }
         }

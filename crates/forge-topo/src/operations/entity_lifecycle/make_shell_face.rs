@@ -49,12 +49,16 @@ impl TopoOperator for MakeShellFace {
 
     const NAME: &'static str = "make_shell_face";
 
+    fn semantic_summary(&self) -> String {
+        format!("Create new shell with seed vertex-face in region {}", self.region.index())
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
-        let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
-        let placeholder_loop = LoopId::new(u32::MAX, 0);
+        let placeholder_he = HalfEdgeId::DANGLING;
+        let placeholder_loop = LoopId::DANGLING;
 
 
 
@@ -65,7 +69,7 @@ impl TopoOperator for MakeShellFace {
         ));
 
         let shell = draft.insert_shell(ShellData::new(
-            crate::handles::FaceId::new(u32::MAX, 0),
+            crate::handles::FaceId::DANGLING,
             ShellKind::Sheet,
             self.region,
         ));

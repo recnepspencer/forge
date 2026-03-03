@@ -44,6 +44,13 @@ impl TopoOperator for MakeLoopInFaceFromVertices {
 
     const NAME: &'static str = "make_loop_in_face_from_vertices";
 
+    fn semantic_summary(&self) -> String {
+        format!(
+            "Create {}-sided inner loop (hole) in face {}",
+            self.vertices.len(), self.face.index()
+        )
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
@@ -75,7 +82,7 @@ impl TopoOperator for MakeLoopInFaceFromVertices {
             }
         }
 
-        let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
+        let placeholder_he = HalfEdgeId::DANGLING;
         let loop_id = draft.insert_loop(LoopData::new(placeholder_he, self.face));
         draft
             .arena_mut()
@@ -95,7 +102,7 @@ impl TopoOperator for MakeLoopInFaceFromVertices {
                 placeholder_he,
                 placeholder_he,
                 self.face,
-                VertexId::new(u32::MAX, 0),
+                VertexId::DANGLING,
                 edge,
             ));
 
@@ -120,7 +127,7 @@ impl TopoOperator for MakeLoopInFaceFromVertices {
             arena.get_half_edge_mut(he)?.set_prev(prev_he);
 
             let orig_out = arena.get_vertex(v)?.outgoing();
-            if orig_out == HalfEdgeId::new(u32::MAX, 0) {
+            if orig_out == HalfEdgeId::DANGLING {
                 arena.get_vertex_mut(v)?.set_outgoing(he);
             }
         }

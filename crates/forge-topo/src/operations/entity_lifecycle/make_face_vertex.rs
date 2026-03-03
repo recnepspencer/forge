@@ -42,12 +42,16 @@ impl TopoOperator for MakeFaceVertex {
 
     const NAME: &'static str = "make_face_vertex";
 
+    fn semantic_summary(&self) -> String {
+        format!("Create isolated vertex-face in shell {}", self.shell.index())
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
-        let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
-        let placeholder_loop = LoopId::new(u32::MAX, 0);
+        let placeholder_he = HalfEdgeId::DANGLING;
+        let placeholder_loop = LoopId::DANGLING;
 
 
 

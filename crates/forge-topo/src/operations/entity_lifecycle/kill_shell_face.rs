@@ -36,6 +36,13 @@ impl TopoOperator for KillShellFace {
 
     const NAME: &'static str = "kill_shell_face";
 
+    fn semantic_summary(&self) -> String {
+        format!(
+            "Destroy shell containing face {} and vertex {}",
+            self.face.index(), self.vertex.index()
+        )
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,

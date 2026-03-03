@@ -8,7 +8,7 @@ mod tests {
 
     fn setup_vertices(draft: &mut crate::transactions::MutableDraft, count: usize) -> Vec<VertexId> {
         let mut verts = Vec::new();
-        let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
+        let placeholder_he = HalfEdgeId::DANGLING;
         for _ in 0..count {
             verts.push(draft.insert_vertex(VertexData::new(placeholder_he)));
         }

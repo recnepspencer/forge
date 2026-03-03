@@ -57,12 +57,16 @@ impl TopoOperator for MakeVertexFace {
 
     const NAME: &'static str = "make_vertex_face";
 
+    fn semantic_summary(&self) -> String {
+        "Create initial vertex-face-shell scaffold (seed topology)".into()
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
-        let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
-        let placeholder_loop = LoopId::new(u32::MAX, 0);
+        let placeholder_he = HalfEdgeId::DANGLING;
+        let placeholder_loop = LoopId::DANGLING;
 
 
 
@@ -82,7 +86,7 @@ impl TopoOperator for MakeVertexFace {
         let region = draft.insert_region(RegionData::new(lump));
 
         let shell = draft.insert_shell(ShellData::new(
-            crate::handles::FaceId::new(u32::MAX, 0),
+            crate::handles::FaceId::DANGLING,
             ShellKind::Sheet,
             region,
         ));

@@ -56,9 +56,22 @@ macro_rules! define_handle {
         }
 
         impl $name {
+            /// A sentinel handle that does not refer to any valid entity.
+            ///
+            /// Used as a placeholder during multi-step insertions where
+            /// the real target isn't known yet. Code that encounters a
+            /// `DANGLING` handle must treat it as uninitialized — never
+            /// dereference it via `get_*` accessors.
+            pub const DANGLING: Self = Self { index: u32::MAX, generation: 0 };
+
             /// Create a handle from an index and generation pair.
             pub fn new(index: u32, generation: u32) -> Self {
                 Self { index, generation }
+            }
+
+            /// Returns `true` if this handle is the `DANGLING` sentinel.
+            pub fn is_dangling(self) -> bool {
+                self.index == u32::MAX && self.generation == 0
             }
 
             /// The slot index in the arena.

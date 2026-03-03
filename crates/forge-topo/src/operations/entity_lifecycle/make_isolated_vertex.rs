@@ -26,13 +26,17 @@ impl TopoOperator for MakeIsolatedVertex {
 
     const NAME: &'static str = "make_isolated_vertex";
 
+    fn semantic_summary(&self) -> String {
+        "Create isolated vertex (no face, no shell)".into()
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
 
         let vertex = draft.insert_vertex(VertexData::new(
-            HalfEdgeId::new(u32::MAX, 0),
+            HalfEdgeId::DANGLING,
         ));
 
         Ok(ExecutionResult {

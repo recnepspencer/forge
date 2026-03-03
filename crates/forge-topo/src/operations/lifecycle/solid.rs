@@ -35,6 +35,10 @@ impl TopoOperator for MakeSolid {
 
     const NAME: &'static str = "make_solid";
 
+    fn semantic_summary(&self) -> String {
+        "Create new solid (body + lump + region hierarchy)".into()
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,
@@ -81,6 +85,10 @@ impl TopoOperator for DestroyBody {
     type Output = ();
 
     const NAME: &'static str = "destroy_body";
+
+    fn semantic_summary(&self) -> String {
+        format!("Destroy body {} and all its lumps/regions", self.body.index())
+    }
 
     fn execute(
         &self,

@@ -1,6 +1,6 @@
 //! O(1) reverse indexes for parent→child entity lookups.
 //!
-//! DOMAIN: Maintains BTreeMap indexes that map container entities
+//! DOMAIN: Maintains IndexMap indexes that map container entities
 //! to their contained entities. These are derived data, rebuilt
 //! from entity fields on deserialization.
 //!
@@ -71,43 +71,33 @@ impl TopologyArena {
     }
 
     /// Rebuild all indexes from entity data. Called after deserialization.
+    ///
+    /// Collects only the needed fields (not full entity clones) to avoid
+    /// unnecessary allocation at scale.
     pub fn rebuild_indexes(&mut self) {
         self.shell_faces.clear();
         self.face_halfedges.clear();
         self.vertex_halfedges.clear();
 
-        for (face_id, face_data) in self.iter_faces_raw() {
-            self.shell_faces
-                .entry(face_data.shell())
-                .or_default()
-                .push(face_id);
+        // Collect (face_id, shell) — no FaceData clone
+        let face_shells: Vec<_> = self.face_slots.iter().enumerate().filter_map(|(i, slot)| {
+            let data = slot.data.as_ref()?;
+            Some((FaceId::new(i as u32, slot.generation), data.shell()))
+        }).collect();
+
+        for (face_id, shell) in face_shells {
+            self.shell_faces.entry(shell).or_default().push(face_id);
         }
 
-        for (he_id, he_data) in self.iter_half_edges_raw() {
-            self.face_halfedges
-                .entry(he_data.face())
-                .or_default()
-                .push(he_id);
-            self.vertex_halfedges
-                .entry(he_data.origin())
-                .or_default()
-                .push(he_id);
+        // Collect (he_id, face, origin) — no HalfEdgeData clone
+        let he_refs: Vec<_> = self.half_edge_slots.iter().enumerate().filter_map(|(i, slot)| {
+            let data = slot.data.as_ref()?;
+            Some((HalfEdgeId::new(i as u32, slot.generation), data.face(), data.origin()))
+        }).collect();
+
+        for (he_id, face, origin) in he_refs {
+            self.face_halfedges.entry(face).or_default().push(he_id);
+            self.vertex_halfedges.entry(origin).or_default().push(he_id);
         }
-    }
-
-    /// Raw face iteration for index rebuilding (avoids borrow conflicts).
-    fn iter_faces_raw(&self) -> Vec<(FaceId, crate::b_rep::data::mesh::face::FaceData)> {
-        self.face_slots.iter().enumerate().filter_map(|(i, slot)| {
-            let data = slot.data.as_ref()?;
-            Some((FaceId::new(i as u32, slot.generation), data.clone()))
-        }).collect()
-    }
-
-    /// Raw halfedge iteration for index rebuilding (avoids borrow conflicts).
-    fn iter_half_edges_raw(&self) -> Vec<(HalfEdgeId, crate::b_rep::data::mesh::half_edge::HalfEdgeData)> {
-        self.half_edge_slots.iter().enumerate().filter_map(|(i, slot)| {
-            let data = slot.data.as_ref()?;
-            Some((HalfEdgeId::new(i as u32, slot.generation), data.clone()))
-        }).collect()
     }
 }

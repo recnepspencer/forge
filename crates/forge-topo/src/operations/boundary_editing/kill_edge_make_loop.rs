@@ -46,6 +46,10 @@ impl TopoOperator for KillEdgeMakeLoop {
 
     const NAME: &'static str = "kill_edge_make_loop";
 
+    fn semantic_summary(&self) -> String {
+        format!("Remove edge at halfedge {} and create inner loop (hole)", self.edge.index())
+    }
+
     fn execute(
         &self,
         draft: &mut MutableDraft,

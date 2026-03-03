@@ -94,9 +94,15 @@ impl MutableDraft {
     ///
     /// Records the current topology hash as `pre_hash` and computes a
     /// deterministic seed from the config's base seed + op counter.
-    pub fn log_operation_start(&mut self, signature: &OpSignature) {
+    pub fn log_operation_start(&mut self, signature: &OpSignature, semantic_summary: String) {
         let seed = self.config.deterministic_seed.wrapping_add(self.op_counter);
-        let entry = ReplayEntry::new(signature.clone(), Vec::new(), seed, self.topology_hash);
+        let entry = ReplayEntry::new(
+            signature.clone(),
+            Vec::new(),
+            seed,
+            self.topology_hash,
+            semantic_summary,
+        );
         self.replay_log.record(entry);
     }
 
@@ -277,13 +283,15 @@ impl MutableDraft {
         signature.set_invocation_id(invocation_id);
 
         let op_name = signature.get_name().to_string();
+        let summary = op.semantic_summary();
 
         tracing::debug!(
             op = ?op,
             invocation_id = invocation_id,
+            summary = %summary,
             "Applying topology operator"
         );
-        self.log_operation_start(&signature);
+        self.log_operation_start(&signature, summary);
 
         let exec_result = op.execute(self)?;
         let declared_delta = exec_result.declared_delta;

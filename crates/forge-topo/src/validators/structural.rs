@@ -15,6 +15,7 @@ use super::vertex_disk;
 use super::shell_closure;
 use super::euler_genus;
 use super::reference_integrity;
+use super::cache_index;
 
 /// Validate structural topology of an arena with the specified strictness.
 ///
@@ -43,6 +44,7 @@ pub fn validate_topology(arena: &TopologyArena, level: ValidationLevel) -> Resul
         shell_closure::validate_shell_consistency(arena)?;
         shell_closure::validate_manifold_edges(arena)?;
         shell_closure::validate_orientation_consistency(arena)?;
+        cache_index::validate_index_coherence(arena)?;
     }
 
     Ok(())

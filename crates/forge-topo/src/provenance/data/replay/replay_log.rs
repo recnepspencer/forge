@@ -34,11 +34,20 @@ pub struct ReplayEntry {
     post_hash: u128,
     /// Decision delta relative to the previous step (P3.1).
     decision_delta: Option<DecisionDelta>,
+    /// Human-readable description of what this operator did with its parameters.
+    /// e.g. "Split edge 3 at parameter 0.50" rather than raw Debug output.
+    semantic_summary: String,
 }
 
 impl ReplayEntry {
     /// Create a new replay entry.
-    pub fn new(signature: OpSignature, parameters: Vec<u8>, seed: u64, pre_hash: u128) -> Self {
+    pub fn new(
+        signature: OpSignature,
+        parameters: Vec<u8>,
+        seed: u64,
+        pre_hash: u128,
+        semantic_summary: String,
+    ) -> Self {
         Self {
             signature,
             parameters,
@@ -46,6 +55,7 @@ impl ReplayEntry {
             pre_hash,
             post_hash: 0,
             decision_delta: None,
+            semantic_summary,
         }
     }
 
@@ -87,6 +97,11 @@ impl ReplayEntry {
     /// Set the decision delta for this entry.
     pub fn set_decision_delta(&mut self, delta: DecisionDelta) {
         self.decision_delta = Some(delta);
+    }
+
+    /// Human-readable semantic summary of what this operator did.
+    pub fn semantic_summary(&self) -> &str {
+        &self.semantic_summary
     }
 }
 
@@ -232,7 +247,7 @@ mod tests {
     #[test]
     fn record_and_retrieve() {
         let mut log = ReplayLog::new();
-        log.record(ReplayEntry::new(make_op_sig("test_op"), vec![], 42, 100));
+        log.record(ReplayEntry::new(make_op_sig("test_op"), vec![], 42, 100, String::new()));
 
         assert_eq!(log.len(), 1);
         assert_eq!(log.entries()[0].seed(), 42);
@@ -242,7 +257,7 @@ mod tests {
     #[test]
     fn finalize_sets_post_hash() {
         let mut log = ReplayLog::new();
-        log.record(ReplayEntry::new(make_op_sig("op"), vec![], 1, 0));
+        log.record(ReplayEntry::new(make_op_sig("op"), vec![], 1, 0, String::new()));
         log.finalize_last(999);
         assert_eq!(log.entries()[0].post_hash(), 999);
     }
@@ -254,7 +269,7 @@ mod tests {
 
         for i in 0..5 {
             let entry =
-                ReplayEntry::new(make_op_sig("op"), vec![i as u8], i as u64, i as u128 * 10);
+                ReplayEntry::new(make_op_sig("op"), vec![i as u8], i as u64, i as u128 * 10, String::new());
             a.record(entry.clone());
             b.record(entry);
         }
@@ -267,8 +282,8 @@ mod tests {
         let mut a = ReplayLog::new();
         let mut b = ReplayLog::new();
 
-        a.record(ReplayEntry::new(make_op_sig("op"), vec![], 1, 0));
-        b.record(ReplayEntry::new(make_op_sig("op"), vec![], 2, 0));
+        a.record(ReplayEntry::new(make_op_sig("op"), vec![], 1, 0, String::new()));
+        b.record(ReplayEntry::new(make_op_sig("op"), vec![], 2, 0, String::new()));
 
         assert!(!a.verify_determinism(&b));
     }
@@ -278,7 +293,7 @@ mod tests {
         let mut a = ReplayLog::new();
         let b = ReplayLog::new();
 
-        a.record(ReplayEntry::new(make_op_sig("op"), vec![], 1, 0));
+        a.record(ReplayEntry::new(make_op_sig("op"), vec![], 1, 0, String::new()));
 
         assert!(!a.verify_determinism(&b));
     }
