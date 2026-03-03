@@ -1,6 +1,6 @@
 //! Unit tests for PropertyLayer and PropertyPatch.
 
-use super::schema::{PropertyLayer, PropertyPatch};
+use super::*;
 
 /// Local test handle — avoids dependency on forge-topo.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]

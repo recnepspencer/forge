@@ -6,7 +6,15 @@
 //! and the kernel layer applies the appropriate policy.
 //!
 //! DEPENDENCIES: serde
+//!
+//! STRUCTURE:
+//!   data/  — Type definitions (enums, structs)
+//!   logic/ — Behavioral impls (methods, conversions)
 
-mod schema;
+pub(crate) mod data;
+mod logic;
 
-pub use schema::{PolicyKind, PolicyQuery, PolicyResult, ValidationCheckpoint};
+#[cfg(test)]
+mod tests;
+
+pub use data::{PolicyKind, PolicyQuery, PolicyResult, ValidationCheckpoint};

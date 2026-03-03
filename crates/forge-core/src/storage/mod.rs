@@ -7,9 +7,15 @@
 //! INVARIANTS:
 //! - `PropertyPatch::commit()` is idempotent per key.
 //! - `PropertyPatch::rollback()` is a no-op that drops pending mutations.
+//!
+//! STRUCTURE:
+//!   data/  — Type definitions (structs)
+//!   logic/ — Behavioral impls (methods, Default)
 
-mod schema;
+pub(crate) mod data;
+mod logic;
+
 #[cfg(test)]
 mod tests;
 
-pub use schema::{PropertyLayer, PropertyPatch};
+pub use data::{PropertyLayer, PropertyPatch};

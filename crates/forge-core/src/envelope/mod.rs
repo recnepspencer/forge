@@ -6,10 +6,15 @@
 //! the `OperationResult<T>` envelope alone.
 //!
 //! DEPENDENCIES: serde
+//!
+//! STRUCTURE:
+//!   data/  — Type definitions (enums, structs)
+//!   logic/ — Behavioral impls (Display, methods)
 
-mod schema;
+pub(crate) mod data;
+mod logic;
 
 #[cfg(test)]
 mod tests;
 
-pub use schema::{KernelWarning, LineageDelta, OperationMetrics, OperationResult};
+pub use data::{KernelWarning, LineageDelta, OperationMetrics, OperationResult};

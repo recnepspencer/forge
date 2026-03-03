@@ -164,3 +164,73 @@ fn operation_result_map_preserves_metadata() {
     assert_eq!(mapped.get_state_hash_after(), 0xBB);
     assert!(mapped.has_warnings());
 }
+
+#[test]
+fn budget_tracking_accumulates_correctly() {
+    let mut envelope = OperationResult::new(42);
+    assert_eq!(envelope.get_accumulated_budget(), 0.0);
+
+    envelope.consume_budget(1e-7);
+    assert_eq!(envelope.get_accumulated_budget(), 1e-7);
+
+    envelope.consume_budget(3e-8);
+    assert!((envelope.get_accumulated_budget() - 1.3e-7).abs() < 1e-15);
+
+    let warning = KernelWarning::ErrorBudgetExceeded {
+        accumulated_mm: envelope.get_accumulated_budget(),
+        threshold_mm: 1e-7,
+    };
+    envelope.add_warning(warning);
+    assert_eq!(envelope.get_warnings().len(), 1);
+    assert!(matches!(
+        envelope.get_warnings()[0],
+        KernelWarning::ErrorBudgetExceeded { .. }
+    ));
+}
+
+#[test]
+fn absorb_metadata_merges_suboperation_audit_data() {
+    let mut parent = OperationResult::new("parent");
+    let mut child = OperationResult::new("child");
+
+    child.add_warning(KernelWarning::AutoDecision {
+        decision_id: DecisionId(7),
+    });
+    child
+        .get_decision_log_mut()
+        .record(crate::TracedDecision::new(
+            DecisionId(1),
+            crate::DecisionKind::Exact,
+            crate::DecisionTier::Deterministic,
+            1.0,
+            crate::DecisionContext::Degeneracy {
+                description: "sub-op".into(),
+            },
+        ));
+    child.metrics.entities_modified = 3;
+    child.metrics.policy_decisions_made = 1;
+    child.lineage_delta.faces_deleted = 2;
+    child.add_validation_result("ok".into());
+    child.add_extra_summary("summary".into());
+    child.consume_budget(1e-6);
+
+    parent.absorb_metadata(&mut child);
+
+    assert_eq!(parent.get_warnings().len(), 1);
+    assert_eq!(parent.get_decision_log().len(), 1);
+    assert_eq!(parent.get_metrics().entities_modified, 3);
+    assert_eq!(parent.get_metrics().policy_decisions_made, 1);
+    assert_eq!(parent.get_lineage_delta().faces_deleted, 2);
+    assert_eq!(parent.get_validation_results().len(), 1);
+    assert_eq!(parent.get_extra_summaries().len(), 1);
+    assert!(parent.get_accumulated_budget() > 0.0);
+
+    assert!(child.get_decision_log().is_empty());
+    assert!(child.get_warnings().is_empty());
+    assert_eq!(child.get_metrics().entities_modified, 0);
+    assert_eq!(child.get_metrics().policy_decisions_made, 0);
+    assert_eq!(child.get_lineage_delta().faces_deleted, 0);
+    assert_eq!(child.get_accumulated_budget(), 0.0);
+    assert!(child.get_validation_results().is_empty());
+    assert!(child.get_extra_summaries().is_empty());
+}

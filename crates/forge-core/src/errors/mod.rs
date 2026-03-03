@@ -6,14 +6,20 @@
 //! machine-actionable diagnostic context.
 //!
 //! DEPENDENCIES: forge-math (MathError conversion), serde
+//!
+//! STRUCTURE:
+//!   data/    — Type definitions (enums, structs)
+//!   logic/   — Behavioral impls (Display, From, methods)
+//!   summary/ — Serializable audit-artifact projections
 
-mod schema;
-mod summary;
+pub(crate) mod data;
+mod logic;
+pub(crate) mod summary;
 
 #[cfg(test)]
 mod tests;
 
-pub use schema::{
+pub use data::{
     AmbiguousResult, DiagnosticPayload, ErrorContext, ErrorScope, KernelError, MergeError,
     PersistentResolutionIncompatibility, PersistentResolutionOriginKind, PersistentResolutionRole,
     SuggestedFix, TopologyError,
