@@ -5,6 +5,7 @@
 //! selectors). No theatre — every assertion uses production code.
 
 mod primitive_verification;
+mod volume_oracle;
 mod determinism;
 mod euler_deltas;
 mod selector_queries;

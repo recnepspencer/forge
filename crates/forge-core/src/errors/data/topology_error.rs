@@ -116,4 +116,12 @@ pub enum TopologyError {
         /// The edge entity on the ring seed.
         expected_edge: u32,
     },
+    /// A validator detected a structural invariant violation.
+    /// Generic variant for new validators that don't warrant dedicated enums.
+    ValidatorFailure {
+        /// Short identifier of the validator that failed.
+        validator: String,
+        /// Human-readable description of the violation.
+        detail: String,
+    },
 }

@@ -175,6 +175,9 @@ impl fmt::Display for TopologyError {
                 write!(f, "Radial ring edge-entity inconsistency: he[{}].edge = {} but ring seed he[{}].edge = {}",
                     halfedge_index, actual_edge, seed_halfedge_index, expected_edge)
             }
+            TopologyError::ValidatorFailure { validator, detail } => {
+                write!(f, "Validator '{}' failed: {}", validator, detail)
+            }
         }
     }
 }

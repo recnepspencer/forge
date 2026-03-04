@@ -96,6 +96,10 @@ pub enum TopologyErrorSummary {
         seed_halfedge_index: u32,
         expected_edge: u32,
     },
+    ValidatorFailure {
+        validator: String,
+        detail: String,
+    },
 }
 
 impl From<&TopologyError> for TopologyErrorSummary {
@@ -254,6 +258,10 @@ impl From<&TopologyError> for TopologyErrorSummary {
                 actual_edge: *actual_edge,
                 seed_halfedge_index: *seed_halfedge_index,
                 expected_edge: *expected_edge,
+            },
+            TopologyError::ValidatorFailure { validator, detail } => Self::ValidatorFailure {
+                validator: validator.clone(),
+                detail: detail.clone(),
             },
         }
     }

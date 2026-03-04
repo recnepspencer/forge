@@ -111,6 +111,33 @@ Wire `forge-math` predicates into a dynamic Float → Interval → Rational esca
 - **Difficulty:** 🟡 Medium | **Size:** ~3-4 PRs
 - **Test:** Query `point_vs_plane` with point `1e-15` off plane, assert `PrecisionEscalation { resolved_at: Interval, float_agreed: false }`.
 
+### 10.5. B-Rep Validator Hardening [K-4.5]
+
+_We discovered severe blind spots where Euler operators corrupted inner/outer loop assignments, shell pointers, and vertex wiring — but validators only checked cycle continuity. 26 new semantic validators are being added in 5 batches, each with mandatory "poison tests" (see `VALIDATOR_QA.md`)._
+
+**Batch 1 — Pure Pointer Checks (8 validators, ✅ Easy, ~1 PR)**
+Iterate entities, check referenced handles exist and are symmetric. Same pattern as `validate_prev_consistency`.
+`ValidateNoDanglingHalfEdgeRefs`, `ValidateGenerationalIdFreshness`, `ValidateBidirectionalLinks`, `ValidateFaceHasAtLeastOneLoop`, `ValidateLoopMinimumCardinality`, `ValidateNoDuplicateCoedgesInLoop`, `ValidateFaceLoopMembershipComplete`, `ValidateRadialCycleUniqueness`
+
+**Batch 2 — Ownership & Orphan Tracking (5 validators, 🟡 Medium, ~1 PR)**
+Build ownership sets, check for double-ownership and unreachable entities.
+`ValidateSingleOwnerPerLoop`, `ValidateNoOrphanHalfEdges`, `ValidateAcyclicContainment`, `ValidateEdgeEndpointsMatchLoopVertices`, `ValidateInnerOuterLoopConsistency`
+
+**Batch 3 — Face & Shell Adjacency (6 validators, 🟡 Medium, ~1-2 PRs)**
+Walk face boundaries, check cross-face agreement and shell closure.
+`ValidateFaceAdjacencyConsistency`, `ValidateNoFaceWithBrokenBoundary`, `ValidateShellWatertightness`, `ValidateBoundaryEdgesLaminarOnly`, `ValidateRadialNeighborConsistency`, `ValidateNoBrokenRadialSplices`
+
+**Batch 4 — Vertex Disk & Component Euler (4 validators, 🟡 Medium, ~1 PR)**
+Component-aware graph traversal.
+`ValidateVertexDiskPartition`, `ValidateDiskClosure`, `ValidateNoCrossDiskCoedges`, `ValidatePerComponentEuler`
+
+**Batch 5 — Geometry-Dependent (5 validators, 🔴 Hard, ~2 PRs)**
+Requires cross-crate access to vertex positions/normals via `forge-spatial`.
+`ValidateLoopOrientationConsistentWithFaceSense`, `ValidateConsistentShellOrientation`, `ValidateNoInsideOutShells`, `ValidateNoZeroLengthEdges`, `ValidateNoZeroAreaFaces`
+
+- **Total:** 28 validators across 5 batches | ~6-7 PRs
+- **Test:** Each validator gets ≥2 poison tests per `VALIDATOR_QA.md` contract.
+
 ---
 
 ## 🕸️ Phase 3: Topological Complexity & Naming
