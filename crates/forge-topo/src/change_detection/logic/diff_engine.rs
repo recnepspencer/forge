@@ -323,7 +323,6 @@ mod tests {
         let _se = draft2.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()

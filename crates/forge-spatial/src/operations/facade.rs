@@ -14,3 +14,18 @@ pub use super::classify::face_sampling::face_interior_samples;
 pub use super::classify::point_in_solid::{classify_point_in_solid, classify_point_with_perturbation};
 pub use super::classify::point_on_face::{classify_point_on_face, FacePointClassification};
 pub use super::classify::schema::{PointClassification, SpatialAccelerator};
+
+// Continuity
+pub use super::continuity::{edge_dihedral_angle, find_g1_chain, is_edge_g1_continuous};
+
+// Centroid
+pub use super::centroid::face_centroid;
+
+// Volume
+pub use super::volume::{collect_face_positions, compute_shell_signed_volume};
+
+// Healing
+pub use super::healing::{heal_shell_orientation, HealingResult};
+
+// Simplify
+pub use super::simplify::{consolidate_one_collinear_vertex, find_collinear_vertex_candidate};

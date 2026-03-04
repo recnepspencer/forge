@@ -529,112 +529,6 @@ pub fn edge_endpoint_ids(
 ///
 /// # Arguments
 /// - `arena`: topology arena
-/// - `start_edge`: the first halfedge of the chain
-/// - `position_fn`: maps vertex index → 3D world position (needed for normals)
-/// - `angle_threshold`: maximum dihedral angle (radians) to consider G1-continuous
-///
-/// Returns the ordered list of halfedge IDs forming the G1 chain.
-pub fn find_g1_chain(
-    arena: &TopologyArena,
-    start_edge: HalfEdgeId,
-    position_fn: &dyn Fn(crate::handles::VertexId) -> Option<[f64; 3]>,
-    angle_threshold: f64,
-    degeneracy_tol: f64,
-) -> Result<Vec<HalfEdgeId>, KernelError> {
-    let cos_threshold = angle_threshold.cos();
-    let max_iter = arena.half_edge_count().max(1);
-    let mut chain = vec![start_edge];
-    let mut current = start_edge;
-
-    for _ in 0..max_iter {
-        let he_data = arena.get_half_edge(current)?;
-
-        // Advance: twin of current → next of that twin → candidate next edge.
-        let twin_id = he_data.radial_next();
-        let twin_data = arena.get_half_edge(twin_id)?;
-        let candidate = twin_data.next();
-
-        // Stop if we've looped back to the start.
-        if candidate == start_edge {
-            break;
-        }
-
-        // Skip bridge halfedges — they are synthetic and should not be filleted.
-        let candidate_data = arena.get_half_edge(candidate)?;
-        if candidate_data.is_bridge() {
-            break;
-        }
-
-        // Compute dihedral angle between the face of `current` and the face of `candidate`.
-        let face_a = he_data.face();
-        let face_b = candidate_data.face();
-
-        if face_a == face_b {
-            // Same face — the chain has folded back; stop.
-            break;
-        }
-
-        let normal_a = face_normal_from_loop(arena, face_a, position_fn, degeneracy_tol)?;
-        let normal_b = face_normal_from_loop(arena, face_b, position_fn, degeneracy_tol)?;
-
-        if let (Some(na), Some(nb)) = (normal_a, normal_b) {
-            let dot = na[0] * nb[0] + na[1] * nb[1] + na[2] * nb[2];
-            if dot < cos_threshold {
-                // Dihedral angle exceeds threshold — chain ends here.
-                break;
-            }
-        } else {
-            // Degenerate face — cannot compute normal, stop cascading.
-            break;
-        }
-
-        chain.push(candidate);
-        current = candidate;
-    }
-
-    Ok(chain)
-}
-
-/// Compute the face normal from the first three non-collinear vertices in the loop.
-///
-/// Returns `None` for degenerate (collinear) faces.
-fn face_normal_from_loop(
-    arena: &TopologyArena,
-    face: FaceId,
-    position_fn: &dyn Fn(crate::handles::VertexId) -> Option<[f64; 3]>,
-    degeneracy_tol: f64,
-) -> Result<Option<[f64; 3]>, KernelError> {
-    let mut positions: Vec<[f64; 3]> = Vec::new();
-    for he_res in FaceEdgeIterator::new(arena, face)? {
-        let he_id = he_res?;
-        let v = arena.get_half_edge(he_id)?.origin();
-        if let Some(pos) = position_fn(v) {
-            positions.push(pos);
-            if positions.len() >= 3 {
-                break;
-            }
-        }
-    }
-
-    if positions.len() < 3 {
-        return Ok(None);
-    }
-
-    let a = positions[0];
-    let b = positions[1];
-    let c = positions[2];
-    let ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-    let ac = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
-    let nx = ab[1] * ac[2] - ab[2] * ac[1];
-    let ny = ab[2] * ac[0] - ab[0] * ac[2];
-    let nz = ab[0] * ac[1] - ab[1] * ac[0];
-    let len = (nx * nx + ny * ny + nz * nz).sqrt();
-    if len < degeneracy_tol {
-        return Ok(None);
-    }
-    Ok(Some([nx / len, ny / len, nz / len]))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -669,7 +563,6 @@ mod tests {
         let _se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -692,7 +585,6 @@ mod tests {
         let _se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -719,7 +611,6 @@ mod tests {
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.25,
             },
         )
         .unwrap()
@@ -727,7 +618,6 @@ mod tests {
         let se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -735,7 +625,6 @@ mod tests {
         let _se3 = draft.execute(
             SplitEdge {
                 edge: se2.he_mb,
-                parameter: 0.75,
             },
         )
         .unwrap()
@@ -805,7 +694,6 @@ mod tests {
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.25,
             },
         )
         .unwrap()
@@ -813,7 +701,6 @@ mod tests {
         let se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -821,7 +708,6 @@ mod tests {
         let _se3 = draft.execute(
             SplitEdge {
                 edge: se2.he_mb,
-                parameter: 0.75,
             },
         )
         .unwrap()
@@ -885,7 +771,6 @@ mod tests {
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.25,
             },
         )
         .unwrap()
@@ -893,7 +778,6 @@ mod tests {
         let se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -901,7 +785,6 @@ mod tests {
         let _se3 = draft.execute(
             SplitEdge {
                 edge: se2.he_mb,
-                parameter: 0.75,
             },
         )
         .unwrap()
@@ -976,7 +859,6 @@ mod tests {
         let se1a = draft.execute(
             SplitEdge {
                 edge: mvf1.half_edge,
-                parameter: 0.3,
             },
         )
         .unwrap()
@@ -984,7 +866,6 @@ mod tests {
         let _se1b = draft.execute(
             SplitEdge {
                 edge: se1a.he_mb,
-                parameter: 0.6,
             },
         )
         .unwrap()
@@ -994,7 +875,6 @@ mod tests {
         let se2a = draft.execute(
             SplitEdge {
                 edge: mvf2.half_edge,
-                parameter: 0.4,
             },
         )
         .unwrap()
@@ -1002,7 +882,6 @@ mod tests {
         let _se2b = draft.execute(
             SplitEdge {
                 edge: se2a.he_mb,
-                parameter: 0.7,
             },
         )
         .unwrap()
@@ -1068,7 +947,6 @@ mod tests {
             let se = draft.execute(
                 SplitEdge {
                     edge: current_edge,
-                    parameter: 0.5,
                 },
             )
             .unwrap()
@@ -1123,7 +1001,6 @@ mod tests {
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.25,
             },
         )
         .unwrap()
@@ -1131,7 +1008,6 @@ mod tests {
         let se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -1139,7 +1015,6 @@ mod tests {
         let _se3 = draft.execute(
             SplitEdge {
                 edge: se2.he_mb,
-                parameter: 0.75,
             },
         )
         .unwrap()

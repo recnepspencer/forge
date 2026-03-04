@@ -44,7 +44,7 @@ fn run_vertex_cleanup_pass(
     let mut draft = topo.into_mutation();
 
     let pre_snapshot = ArenaSnapshot::capture(draft.arena());
-    match forge_topo::algorithms::simplify::consolidate_one_collinear_vertex(
+    match forge_spatial::operations::facade::consolidate_one_collinear_vertex(
         &mut draft,
         |v| geom.get_vertex_position(v).copied(),
         config.get_min_edge_length(),
@@ -74,7 +74,7 @@ fn find_collinear_vertex_candidate(
     geom: &GeometryState,
     config: &crate::core::ToleranceConfig,
 ) -> Option<VertexId> {
-    forge_topo::algorithms::simplify::find_collinear_vertex_candidate(
+    forge_spatial::operations::facade::find_collinear_vertex_candidate(
         arena,
         |v| geom.get_vertex_position(v).copied(),
         config.get_min_edge_length(),

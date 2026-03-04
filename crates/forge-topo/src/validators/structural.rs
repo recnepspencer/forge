@@ -73,6 +73,9 @@ pub fn validate_topology(arena: &TopologyArena, level: ValidationLevel) -> Resul
         shell_closure::validate_boundary_edges_laminar_only(arena)?;
         radial_edge::validate_radial_neighbor_consistency(arena)?;
         radial_edge::validate_no_broken_radial_splices(arena)?;
+
+        // Batch 4: Vertex disk completeness
+        vertex_disk::validate_vertex_outgoing_reachability(arena)?;
     }
 
     Ok(())

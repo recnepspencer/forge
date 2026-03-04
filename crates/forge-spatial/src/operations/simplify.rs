@@ -1,18 +1,15 @@
 //! Collinear degree-2 vertex consolidation.
 //!
 //! DOMAIN: Detect and optionally collapse valence-2 vertices whose adjacent
-//! edges are collinear, using `KillEdgeVertex`.
+//! edges are collinear.
 
 use forge_core::KernelError;
-
-use crate::b_rep::TopologyArena;
-use crate::operations::entity_lifecycle::kill_edge_vertex::KillEdgeVertex;
-use crate::handles::{HalfEdgeId, VertexId};
-use crate::transactions::MutableDraft;
+use forge_topo::b_rep::TopologyArena;
+use forge_topo::handles::{HalfEdgeId, VertexId};
+use forge_topo::entity_lifecycle::kill_edge_vertex::KillEdgeVertex;
+use forge_topo::transactions::MutableDraft;
 
 /// Find the first valence-2 vertex whose adjacent edges are collinear.
-///
-/// `position_fn` returns the vertex position in global coordinates.
 pub fn find_collinear_vertex_candidate<F>(
     arena: &TopologyArena,
     mut position_fn: F,
@@ -51,8 +48,6 @@ where
 }
 
 /// Attempt to consolidate one collinear degree-2 vertex.
-///
-/// Returns `Ok(Some((vertex, edge)))` when a collapse is applied.
 pub fn consolidate_one_collinear_vertex<F>(
     draft: &mut MutableDraft,
     position_fn: F,
@@ -87,9 +82,7 @@ fn compute_vertex_degree(
     let mut edges = Vec::new();
 
     loop {
-        if count > 100 {
-            return None;
-        }
+        if count > 100 { return None; }
         count += 1;
         edges.push(curr);
 

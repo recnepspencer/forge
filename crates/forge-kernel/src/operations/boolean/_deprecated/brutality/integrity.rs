@@ -679,7 +679,6 @@ fn random_edge_split_storm() {
     for &he_id in half_edges.iter().take(24) {
         let op = SplitEdge {
             edge: he_id,
-            parameter: 0.5,
         };
         let result = op.execute(&mut draft, &sig);
         if result.is_ok() {

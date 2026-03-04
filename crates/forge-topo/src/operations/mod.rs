@@ -25,7 +25,6 @@ pub mod sheets_wires;
 pub mod brep_coupling;
 pub mod degeneracy;
 pub mod boolean;
-pub mod healing;
 pub mod construction;
 pub mod global_editing;
 pub mod transform;

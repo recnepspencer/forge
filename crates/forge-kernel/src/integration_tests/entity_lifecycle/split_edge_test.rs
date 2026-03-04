@@ -21,7 +21,6 @@ fn split_single_cube_edge() {
 
     let result = draft.execute(SplitEdge {
         edge: start_he,
-        parameter: 0.5,
     }).unwrap().into_value();
 
     assert_eq!(draft.arena().face_count(), 6);
@@ -60,7 +59,6 @@ fn split_all_edges_of_one_face() {
     for he in &loop_hes {
         draft.execute(SplitEdge {
             edge: *he,
-            parameter: 0.5,
         }).unwrap().into_value();
     }
 
@@ -91,12 +89,10 @@ fn split_same_edge_twice() {
 
     let first_split = draft.execute(SplitEdge {
         edge: start_he,
-        parameter: 0.5,
     }).unwrap().into_value();
 
     let second_split = draft.execute(SplitEdge {
         edge: first_split.he_mb,
-        parameter: 0.5,
     }).unwrap().into_value();
 
     assert_ne!(
@@ -132,7 +128,6 @@ fn split_all_cube_edges() {
         let he_id = draft.arena().get_edge(*edge_id).unwrap().half_edge();
         draft.execute(SplitEdge {
             edge: he_id,
-            parameter: 0.5,
         }).unwrap().into_value();
     }
 

@@ -157,7 +157,7 @@ fn test_euler_operator_produces_lineage() {
         .expect("Parent halfedge must have lineage").get_ancestry_hash();
 
     // SplitEdge: creates 1 vertex, 1 edge, 2 half-edges.
-    let se = draft.execute(SplitEdge { edge: he, parameter: 0.5 })
+    let se = draft.execute(SplitEdge { edge: he })
         .unwrap().into_value();
 
     // New vertex must have lineage.
@@ -234,7 +234,7 @@ fn test_lineage_integrity_survives_multi_step_chain() {
         // Step 1: SplitEdge on face[0].
         let face0 = faces[0];
         let he0 = first_halfedge_of_face(draft.arena(), face0).unwrap();
-        draft.execute(SplitEdge { edge: he0, parameter: 0.5 }).unwrap();
+        draft.execute(SplitEdge { edge: he0 }).unwrap();
 
         // Step 2: MakeEdgeFace on face[1].
         let face1 = faces[1];

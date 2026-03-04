@@ -27,14 +27,13 @@ pub use handles::{
 };
 
 pub use validators::validate;
-pub use operations::healing::orientation::*;
 pub use operations::algorithms;
 pub use operations::operator;
 pub use operations::lifecycle;
 pub use operations::entity_lifecycle;
 pub use operations::boundary_editing;
 pub use operations::non_manifold;
-pub use queries::{classification, continuity, hierarchy, ordering, polygon, traverse};
+pub use queries::{classification, hierarchy, ordering, polygon, traverse};
 
 #[cfg(test)]
 pub mod testing;

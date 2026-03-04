@@ -17,7 +17,6 @@
 //! // Always use draft.execute() — never call op.execute() directly
 //! let (edge_a, edge_b, vertex) = draft.execute(SplitEdge {
 //!     edge: my_edge,
-//!     parameter: 0.5,
 //! })?.into_value();
 //!
 //! Ok(draft.commit()?)
@@ -43,7 +42,6 @@ use forge_core::{
 /// ```ignore
 /// pub struct SplitEdge {
 ///     pub edge: HalfEdgeId,
-///     pub parameter: f64,
 /// }
 ///
 /// impl TopoOperator for SplitEdge {

@@ -126,7 +126,6 @@ fn build_two_face_coplanar_sheet_fixture() -> (
         &mut draft,
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.25,
         },
     )
     .unwrap()
@@ -135,7 +134,6 @@ fn build_two_face_coplanar_sheet_fixture() -> (
         &mut draft,
         SplitEdge {
             edge: se1.he_am,
-            parameter: 0.50,
         },
     )
     .unwrap()
@@ -144,7 +142,6 @@ fn build_two_face_coplanar_sheet_fixture() -> (
         &mut draft,
         SplitEdge {
             edge: se1.he_mb,
-            parameter: 0.50,
         },
     )
     .unwrap()

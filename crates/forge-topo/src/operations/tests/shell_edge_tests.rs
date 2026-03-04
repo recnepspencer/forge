@@ -63,7 +63,6 @@ fn mef_inherits_shell_does_not_create_new_one() {
     let se = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap()
@@ -113,7 +112,6 @@ fn twin_halfedges_share_edge_id() {
     let se = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap()
@@ -158,7 +156,6 @@ fn mef_then_join_faces_is_exact_inverse() {
     let se = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap()
@@ -227,7 +224,6 @@ fn split_edge_then_kev_is_exact_inverse() {
     let se1 = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap()
@@ -238,7 +234,6 @@ fn split_edge_then_kev_is_exact_inverse() {
     let se2 = draft.execute(
         SplitEdge {
             edge: se1.he_am,
-            parameter: 0.5,
         },
     )
     .unwrap()

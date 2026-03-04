@@ -162,7 +162,6 @@ pub fn resolve_cut_point(
                 draft,
                 SplitEdge {
                     edge: *half_edge,
-                    parameter: 0.5,
                 },
             )?;
             let v = res.get_value().new_vertex;

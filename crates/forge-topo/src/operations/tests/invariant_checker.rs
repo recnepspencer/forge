@@ -8,7 +8,7 @@
 //! ```ignore
 //! let report = diagnose_op_chain(|runner| {
 //!     let mvf = runner.run("MVF", |d| d.execute(MakeVertexFace).map(|r| r.into_value()))?;
-//!     runner.run("SE1", |d| d.execute(SplitEdge { edge: mvf.half_edge, parameter: 0.5 }).map(|r| r.into_value()))?;
+//!     runner.run("SE1", |d| d.execute(SplitEdge { edge: mvf.half_edge }).map(|r| r.into_value()))?;
 //!     Ok(())
 //! });
 //! println!("{}", report.summary());

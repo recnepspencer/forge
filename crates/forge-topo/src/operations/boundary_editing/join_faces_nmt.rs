@@ -218,7 +218,7 @@ impl TopoOperator for JoinFacesNmt {
             let current_out = draft.arena().get_vertex(target_vertex)?.outgoing();
             if current_out == he_s || current_out == he_k {
                 let replacement =
-                    find_non_slit_outgoing(draft, target_vertex, he_s, he_k, &protected)?;
+                    find_non_slit_outgoing(draft, target_vertex, he_s, he_k, &protected, face_survive)?;
                 draft
                     .arena_mut()
                     .get_vertex_mut(target_vertex)?
@@ -318,31 +318,63 @@ fn reassign_face(
 
 /// Find a non-slit halfedge originating at `target_vertex`.
 ///
-/// Searches the protected ring first, then walks the merged outer loop.
+/// Searches the protected radial ring first, then walks the surviving
+/// face's loop structure (outer + inner loops). Never searches the
+/// global arena — that would violate spatial locality by potentially
+/// picking a half-edge from a disconnected shell.
 fn find_non_slit_outgoing(
     draft: &MutableDraft,
     target_vertex: crate::handles::VertexId,
     slit_a: HalfEdgeId,
     slit_b: HalfEdgeId,
     protected: &[HalfEdgeId],
+    surviving_face: crate::handles::FaceId,
 ) -> Result<HalfEdgeId, KernelError> {
+    // 1. Check the protected radial ring first (fastest path).
     for &p in protected {
         if draft.arena().get_half_edge(p)?.origin() == target_vertex {
             return Ok(p);
         }
     }
 
-    // Fallback: walk all halfedges to find one with the correct origin.
-    for (he_id, he_data) in draft.arena().iter_half_edges() {
-        if he_id != slit_a && he_id != slit_b && he_data.origin() == target_vertex {
-            return Ok(he_id);
+    // 2. Walk the surviving face's loops (outer + inner) to find a
+    //    non-slit half-edge with the correct origin. This restricts the
+    //    search to the local topological neighborhood.
+    let face_data = draft.arena().get_face(surviving_face)?;
+    let outer_loop = face_data.outer_loop();
+    let inner_loops: Vec<crate::handles::LoopId> = face_data.inner_loops().to_vec();
+
+    let mut loops_to_search = vec![outer_loop];
+    loops_to_search.extend(inner_loops);
+
+    let bound = draft.arena().half_edge_count().max(1);
+
+    for loop_id in loops_to_search {
+        let start = draft.arena().get_loop(loop_id)?.half_edge();
+        let mut current = start;
+        for step in 0..=bound {
+            if current != slit_a
+                && current != slit_b
+                && draft.arena().get_half_edge(current)?.origin() == target_vertex
+            {
+                return Ok(current);
+            }
+            current = draft.arena().get_half_edge(current)?.next();
+            if current == start {
+                break;
+            }
+            if step == bound {
+                break; // Safety: loop didn't close, try next loop
+            }
         }
     }
 
     Err(KernelError::InvalidInput {
         message: format!(
-            "JoinFacesNmt: cannot find non-slit outgoing halfedge for vertex {}",
-            target_vertex.index()
+            "JoinFacesNmt: cannot find non-slit outgoing halfedge for vertex {} \
+             within surviving face {}",
+            target_vertex.index(),
+            surviving_face.index(),
         ),
         context: None,
     })

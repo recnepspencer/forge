@@ -75,7 +75,6 @@ fn split_then_mef_chain_is_deterministic() {
 
         let se = draft.execute(SplitEdge {
             edge: start_he,
-            parameter: 0.5,
         })?.into_value();
 
         let loop_hes = collect_face_loop(draft.arena(), start_he)?;

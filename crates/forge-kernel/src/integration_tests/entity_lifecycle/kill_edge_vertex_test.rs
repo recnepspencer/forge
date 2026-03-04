@@ -22,7 +22,6 @@ fn split_then_kev_roundtrip() {
 
     let se = draft.execute(SplitEdge {
         edge: start_he,
-        parameter: 0.5,
     }).unwrap().into_value();
 
     assert_eq!(draft.arena().vertex_count(), 9);
@@ -63,7 +62,6 @@ fn split_all_face_edges_then_kev_all() {
     for &he in &loop_hes {
         let se = draft.execute(SplitEdge {
             edge: he,
-            parameter: 0.5,
         }).unwrap().into_value();
         new_hes.push(se.he_mb);
     }
@@ -95,12 +93,10 @@ fn double_split_then_double_kev() {
 
     let se1 = draft.execute(SplitEdge {
         edge: start_he,
-        parameter: 0.5,
     }).unwrap().into_value();
 
     let se2 = draft.execute(SplitEdge {
         edge: se1.he_mb,
-        parameter: 0.5,
     }).unwrap().into_value();
 
     assert_eq!(draft.arena().vertex_count(), 10);

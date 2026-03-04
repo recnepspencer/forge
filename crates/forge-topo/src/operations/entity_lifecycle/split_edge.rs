@@ -31,8 +31,6 @@ use crate::operator::TopoOperator;
 pub struct SplitEdge {
     /// The halfedge to split.
     pub edge: HalfEdgeId,
-    /// Parameter along the edge (0.0 = at A, 1.0 = at B). Used for geometry.
-    pub parameter: f64,
 }
 
 /// Output of the SplitEdge operator.
@@ -71,7 +69,7 @@ impl TopoOperator for SplitEdge {
     const NAME: &'static str = "split_edge";
 
     fn semantic_summary(&self) -> String {
-        format!("Split edge at halfedge {} (t={:.2})", self.edge.index(), self.parameter)
+        format!("Split edge at halfedge {}", self.edge.index())
     }
 
     fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
@@ -93,10 +91,6 @@ impl TopoOperator for SplitEdge {
         let new_vertex = draft.insert_vertex(VertexData::new(
             HalfEdgeId::DANGLING, // sentinel
         ));
-        draft
-            .arena_mut()
-            .get_vertex_mut(new_vertex)?
-            .set_birth_parameter(Some(self.parameter));
 
         let new_edge = draft.insert_edge(EdgeData::new(
             HalfEdgeId::DANGLING,

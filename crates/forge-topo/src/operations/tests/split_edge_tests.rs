@@ -26,7 +26,6 @@ fn split_degenerate_creates_proper_edge() {
         draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         ),
     )
@@ -64,7 +63,6 @@ fn split_normal_edge_adds_vertex() {
     let se1 = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap()
@@ -84,7 +82,6 @@ fn split_normal_edge_adds_vertex() {
     let se2 = draft.execute(
         SplitEdge {
             edge: mef.half_edge_ab,
-            parameter: 0.5,
         },
     )
     .unwrap()
@@ -114,7 +111,6 @@ fn invariant_check_tetrahedron_sequence() {
     let se1 = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap()
@@ -138,7 +134,6 @@ fn invariant_check_tetrahedron_sequence() {
     let se2 = draft.execute(
         SplitEdge {
             edge: mef1.half_edge_ab,
-            parameter: 0.5,
         },
     )
     .unwrap()

@@ -274,7 +274,6 @@ fn inject_orphans_into_solid(
                     draft,
                     SplitEdge {
                         edge: current_he,
-                        parameter: local_t,
                     },
                 )?;
                 let new_vertex = result.get_value().new_vertex;

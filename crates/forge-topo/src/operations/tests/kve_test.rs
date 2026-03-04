@@ -23,7 +23,6 @@ fn split_then_kve_restores_original() {
     let se = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap()
@@ -96,7 +95,6 @@ fn double_split_double_kve_restores() {
     let se1 = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.3,
         },
     )
     .unwrap()
@@ -105,7 +103,6 @@ fn double_split_double_kve_restores() {
     let se2 = draft.execute(
         SplitEdge {
             edge: se1.he_mb,
-            parameter: 0.5,
         },
     )
     .unwrap()

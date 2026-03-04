@@ -2000,7 +2000,6 @@ fn valid_hierarchy_passes_intermediate_validation() {
     let se1 = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap()
@@ -2008,7 +2007,6 @@ fn valid_hierarchy_passes_intermediate_validation() {
     let se2 = draft.execute(
         SplitEdge {
             edge: se1.he_am,
-            parameter: 0.5,
         },
     )
     .unwrap()

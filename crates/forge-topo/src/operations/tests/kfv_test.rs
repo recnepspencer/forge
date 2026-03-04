@@ -87,7 +87,6 @@ fn kfv_rejects_non_isolated_face() {
     draft.execute(
         crate::entity_lifecycle::split_edge::SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap();

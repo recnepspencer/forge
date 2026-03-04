@@ -19,7 +19,6 @@ fn kill_edge_vertex_collapses_vertex() {
     let se1 = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap()
@@ -36,7 +35,6 @@ fn kill_edge_vertex_collapses_vertex() {
     let se2 = draft.execute(
         SplitEdge {
             edge: mef.half_edge_ab,
-            parameter: 0.5,
         },
     )
     .unwrap()

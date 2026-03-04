@@ -31,7 +31,6 @@ fn brutal_bio_mesh_high_valence_pole_and_megaloop() {
         let se = draft.execute(
             SplitEdge {
                 edge: current_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -82,7 +81,6 @@ fn brutal_aerospace_sliver_churn_generational_integrity() {
             draft.execute(
                 SplitEdge {
                     edge: boundary_edge,
-                    parameter: 0.1,
                 },
             ),
         )
@@ -151,7 +149,6 @@ fn brutal_dag_determinism_path_independence() {
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -169,7 +166,6 @@ fn brutal_dag_determinism_path_independence() {
         let _se_top = draft.execute(
             SplitEdge {
                 edge: mef1.half_edge_ab,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -177,7 +173,6 @@ fn brutal_dag_determinism_path_independence() {
         let _se_bottom = draft.execute(
             SplitEdge {
                 edge: mef1.half_edge_ba,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -192,7 +187,6 @@ fn brutal_dag_determinism_path_independence() {
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -210,7 +204,6 @@ fn brutal_dag_determinism_path_independence() {
         let _se_bottom = draft.execute(
             SplitEdge {
                 edge: mef1.half_edge_ba,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -218,7 +211,6 @@ fn brutal_dag_determinism_path_independence() {
         let _se_top = draft.execute(
             SplitEdge {
                 edge: mef1.half_edge_ab,
-                parameter: 0.5,
             },
         )
         .unwrap()

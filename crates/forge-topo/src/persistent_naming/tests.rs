@@ -61,7 +61,6 @@ fn name_split_produces_distinct_resolvable_hashes() {
     let se = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap()

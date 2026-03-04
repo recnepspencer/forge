@@ -1,6 +1,4 @@
-pub mod centroid;
 pub mod classification;
-pub mod continuity;
 pub mod hierarchy;
 pub mod filter;
 pub mod ordering;

@@ -23,7 +23,6 @@ fn build_sphere_via_euler_operators() {
     let se1 = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap()
@@ -56,7 +55,6 @@ fn kv15_validation_catches_broken_twins() {
     let _se = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap()
@@ -89,7 +87,6 @@ fn traversal_face_edges_counts_correctly() {
     let _se = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap()
@@ -127,7 +124,6 @@ fn join_then_rebuild_same_hash() {
         let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()

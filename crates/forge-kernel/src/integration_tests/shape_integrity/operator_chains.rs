@@ -37,7 +37,7 @@ fn chain_split_all_then_mef() {
         .apply("split_edge_0", |env, _scope| {
             let (mut draft, geom) = env.into_draft();
             let he = first_halfedge_of_face(draft.arena(), faces[0])?;
-            draft.execute(SplitEdge { edge: he, parameter: 0.5 })?;
+            draft.execute(SplitEdge { edge: he })?;
             commit_draft(draft, geom)
         })
         .apply("split_edge_1", |env, _scope| {
@@ -45,7 +45,7 @@ fn chain_split_all_then_mef() {
             let (mut draft, geom) = env.into_draft();
             let he = first_halfedge_of_face(draft.arena(), face)?;
             let loop_hes = collect_face_loop(draft.arena(), he)?;
-            draft.execute(SplitEdge { edge: loop_hes[2], parameter: 0.5 })?;
+            draft.execute(SplitEdge { edge: loop_hes[2] })?;
             commit_draft(draft, geom)
         })
         .assert_valid()
@@ -103,7 +103,7 @@ fn chain_four_splits_independent_faces() {
         chain = chain.apply(&step_name, move |env, _scope| {
             let (mut draft, geom) = env.into_draft();
             let he = first_halfedge_of_face(draft.arena(), face)?;
-            draft.execute(SplitEdge { edge: he, parameter: 0.5 })?;
+            draft.execute(SplitEdge { edge: he })?;
             commit_draft(draft, geom)
         });
     }

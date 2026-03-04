@@ -64,7 +64,6 @@ fn split_edge_then_mef_through_midpoint() {
 
     let se = draft.execute(SplitEdge {
         edge: start_he,
-        parameter: 0.5,
     }).unwrap().into_value();
 
     let face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();

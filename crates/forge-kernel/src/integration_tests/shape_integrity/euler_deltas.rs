@@ -27,7 +27,7 @@ fn split_edge_delta() {
 
     let face = faces[0];
     let he = first_halfedge_of_face(draft.arena(), face).unwrap();
-    draft.execute(SplitEdge { edge: he, parameter: 0.5 }).unwrap();
+    draft.execute(SplitEdge { edge: he }).unwrap();
 
     snap.assert_delta(draft.arena(), Delta {
         faces: 0, vertices: 1, edges: 1, half_edges: 2,
@@ -95,7 +95,7 @@ fn split_then_kev_roundtrip_delta() {
     let face = faces[0];
     let he = first_halfedge_of_face(draft.arena(), face).unwrap();
 
-    let se = draft.execute(SplitEdge { edge: he, parameter: 0.5 }).unwrap().into_value();
+    let se = draft.execute(SplitEdge { edge: he }).unwrap().into_value();
     draft.execute(KillEdgeVertex { edge: se.he_mb }).unwrap();
 
     snap.assert_unchanged(draft.arena());
@@ -113,7 +113,7 @@ fn split_then_kve_roundtrip_delta() {
     let face = faces[0];
     let he = first_halfedge_of_face(draft.arena(), face).unwrap();
 
-    let se = draft.execute(SplitEdge { edge: he, parameter: 0.5 }).unwrap().into_value();
+    let se = draft.execute(SplitEdge { edge: he }).unwrap().into_value();
     draft.execute(KillVertexEdge { vertex: se.new_vertex }).unwrap();
 
     snap.assert_unchanged(draft.arena());

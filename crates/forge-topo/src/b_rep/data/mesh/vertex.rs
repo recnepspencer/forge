@@ -17,11 +17,6 @@ use crate::handles::HalfEdgeId;
 pub struct VertexData {
     outgoing: HalfEdgeId,
     provenance: Option<[usize; 3]>,
-    /// The curve parameter `t` at which this vertex was born during a
-    /// `SplitEdge` operation. `None` for vertices not created by splitting.
-    /// The geometry layer uses this to locate the vertex on its parent curve
-    /// (e.g., a NURBS edge) without re-deriving the parameter from position.
-    birth_parameter: Option<f64>,
 }
 
 impl VertexData {
@@ -30,7 +25,6 @@ impl VertexData {
         Self {
             outgoing,
             provenance: None,
-            birth_parameter: None,
         }
     }
 
@@ -44,10 +38,6 @@ impl VertexData {
         self.provenance.as_ref()
     }
 
-    /// The birth parameter `t` at which this vertex was inserted during `SplitEdge`.
-    pub fn birth_parameter(&self) -> Option<f64> {
-        self.birth_parameter
-    }
 
     /// Set the outgoing halfedge.
     pub fn set_outgoing(&mut self, id: HalfEdgeId) {
@@ -59,8 +49,4 @@ impl VertexData {
         self.provenance = provenance;
     }
 
-    /// Set the curve birth parameter (stored during `SplitEdge`).
-    pub fn set_birth_parameter(&mut self, t: Option<f64>) {
-        self.birth_parameter = t;
-    }
 }

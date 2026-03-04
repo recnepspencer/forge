@@ -101,7 +101,6 @@ fn split_mef_then_join_neighbor() {
 
     let se = draft.execute(SplitEdge {
         edge: start_he,
-        parameter: 0.5,
     }).unwrap().into_value();
 
     let new_loop = collect_face_loop(draft.arena(), start_he).unwrap();

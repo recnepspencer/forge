@@ -2,12 +2,12 @@
 //!
 //! DOMAIN: Compute the centroid of a face's outer loop. Uses
 //! `face_loop_vertices` for topology traversal and a caller-provided
-//! position resolver for coordinate lookup. This keeps forge-topo
+//! position resolver for coordinate lookup. This keeps the function
 //! geometry-agnostic (no dependency on GeometryState or GeometryStore).
 
-use super::polygon::face_loop_vertices;
-use crate::b_rep::TopologyArena;
-use crate::handles::{FaceId, VertexId};
+use forge_topo::queries::polygon::face_loop_vertices;
+use forge_topo::b_rep::TopologyArena;
+use forge_topo::handles::{FaceId, VertexId};
 use forge_core::KernelError;
 
 /// Compute the centroid of a face's outer loop.

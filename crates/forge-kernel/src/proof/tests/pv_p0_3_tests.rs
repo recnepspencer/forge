@@ -13,9 +13,9 @@ use crate::operations::boolean::{BooleanInput, BooleanOp};
 use forge_core::KernelError;
 use forge_math::deterministic_rng::DeterministicRng;
 use forge_topo::handles::VertexId;
-use forge_topo::healing::{heal_shell_orientation, HealingResult};
 use forge_topo::transactions::DraftConfig;
-use forge_topo::validate::ValidationLevel;
+use forge_topo::validators::validate::ValidationLevel;
+use forge_spatial::operations::facade::{heal_shell_orientation, HealingResult};
 use std::env;
 
 /// Build a position lookup closure from a GeometryState.

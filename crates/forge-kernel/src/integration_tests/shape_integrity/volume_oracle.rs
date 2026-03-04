@@ -129,7 +129,7 @@ fn invariance_split_edge_preserves_cube_volume() {
         .apply("split_edge", |env, _scope| {
             let (mut draft, geom) = env.into_draft();
             let he = first_halfedge_of_face(draft.arena(), faces[0])?;
-            draft.execute(SplitEdge { edge: he, parameter: 0.5 })?;
+            draft.execute(SplitEdge { edge: he })?;
             commit_draft(draft, geom)
         })
         .finish_validated();
@@ -154,14 +154,14 @@ fn invariance_double_split_preserves_volume() {
         .apply("split_face_0", |env, _scope| {
             let (mut draft, geom) = env.into_draft();
             let he = first_halfedge_of_face(draft.arena(), faces[0])?;
-            draft.execute(SplitEdge { edge: he, parameter: 0.3 })?;
+            draft.execute(SplitEdge { edge: he })?;
             commit_draft(draft, geom)
         })
         .apply("split_face_1", |env, _scope| {
             let face = env.faces()[1];
             let (mut draft, geom) = env.into_draft();
             let he = first_halfedge_of_face(draft.arena(), face)?;
-            draft.execute(SplitEdge { edge: he, parameter: 0.7 })?;
+            draft.execute(SplitEdge { edge: he })?;
             commit_draft(draft, geom)
         })
         .finish_validated();
@@ -268,7 +268,7 @@ fn invariance_four_splits_dodecahedron() {
         chain = chain.apply(&step_name, move |env, _scope| {
             let (mut draft, geom) = env.into_draft();
             let he = first_halfedge_of_face(draft.arena(), face)?;
-            draft.execute(SplitEdge { edge: he, parameter: 0.5 })?;
+            draft.execute(SplitEdge { edge: he })?;
             commit_draft(draft, geom)
         });
     }
@@ -293,21 +293,21 @@ fn invariance_triple_split_on_prism() {
         .apply("split_prism_edge_0", |env, _scope| {
             let (mut draft, geom) = env.into_draft();
             let he = first_halfedge_of_face(draft.arena(), faces[0])?;
-            draft.execute(SplitEdge { edge: he, parameter: 0.5 })?;
+            draft.execute(SplitEdge { edge: he })?;
             commit_draft(draft, geom)
         })
         .apply("split_prism_edge_1", |env, _scope| {
             let face = env.faces()[1];
             let (mut draft, geom) = env.into_draft();
             let he = first_halfedge_of_face(draft.arena(), face)?;
-            draft.execute(SplitEdge { edge: he, parameter: 0.3 })?;
+            draft.execute(SplitEdge { edge: he })?;
             commit_draft(draft, geom)
         })
         .apply("split_prism_edge_2", |env, _scope| {
             let face = env.faces()[2];
             let (mut draft, geom) = env.into_draft();
             let he = first_halfedge_of_face(draft.arena(), face)?;
-            draft.execute(SplitEdge { edge: he, parameter: 0.7 })?;
+            draft.execute(SplitEdge { edge: he })?;
             commit_draft(draft, geom)
         })
         .finish_validated();
@@ -356,7 +356,7 @@ proptest! {
             .apply("fuzz_split", |env, _scope| {
                 let (mut draft, geom) = env.into_draft();
                 let he = first_halfedge_of_face(draft.arena(), faces[0])?;
-                draft.execute(SplitEdge { edge: he, parameter: split_param })?;
+                draft.execute(SplitEdge { edge: he })?;
                 commit_draft(draft, geom)
             })
             .finish_validated();

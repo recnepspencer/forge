@@ -25,7 +25,6 @@ mod tests {
                     d.execute(
                         SplitEdge {
                             edge: current_edge,
-                            parameter: 0.5,
                         },
                     )
                     .map(|r| r.into_value())

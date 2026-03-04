@@ -73,7 +73,6 @@ mod tests {
         let _se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -91,7 +90,6 @@ mod tests {
         let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -139,7 +137,6 @@ mod tests {
         let _se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -162,7 +159,6 @@ mod tests {
         let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -188,7 +184,6 @@ mod tests {
         let _se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -206,7 +201,6 @@ mod tests {
         let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -234,7 +228,6 @@ mod tests {
         let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -277,10 +270,10 @@ mod tests {
         let mut draft = state.into_mutation();
 
         let mvf1 = draft.execute(MakeVertexFace).unwrap().into_value();
-        let se1 = draft.execute(SplitEdge { edge: mvf1.half_edge, parameter: 0.5 }).unwrap().into_value();
+        let se1 = draft.execute(SplitEdge { edge: mvf1.half_edge }).unwrap().into_value();
 
         let mvf2 = draft.execute(MakeVertexFace).unwrap().into_value();
-        let se2 = draft.execute(SplitEdge { edge: mvf2.half_edge, parameter: 0.5 }).unwrap().into_value();
+        let se2 = draft.execute(SplitEdge { edge: mvf2.half_edge }).unwrap().into_value();
 
         draft.arena_mut().get_half_edge_mut(se1.he_am).unwrap().set_radial_next(se2.he_am);
         draft.arena_mut().get_half_edge_mut(se2.he_am).unwrap().set_radial_next(se1.he_am);
@@ -326,7 +319,7 @@ mod tests {
         let mut draft = state.into_mutation();
 
         let mvf1 = draft.execute(MakeVertexFace).unwrap().into_value();
-        let se1 = draft.execute(SplitEdge { edge: mvf1.half_edge, parameter: 0.5 }).unwrap().into_value();
+        let se1 = draft.execute(SplitEdge { edge: mvf1.half_edge }).unwrap().into_value();
 
         let shared_edge_id = draft.arena().get_half_edge(se1.he_am).unwrap().edge();
         draft.arena_mut().get_half_edge_mut(se1.he_mb).unwrap().set_edge(shared_edge_id);
@@ -334,7 +327,7 @@ mod tests {
         draft.arena_mut().get_half_edge_mut(se1.he_mb).unwrap().set_radial_next(se1.he_am);
 
         let mvf2 = draft.execute(MakeVertexFace).unwrap().into_value();
-        let se2 = draft.execute(SplitEdge { edge: mvf2.half_edge, parameter: 0.5 }).unwrap().into_value();
+        let se2 = draft.execute(SplitEdge { edge: mvf2.half_edge }).unwrap().into_value();
 
         let he2_am = se2.he_am;
         let he2_mb = se2.he_mb;
@@ -375,7 +368,6 @@ mod tests {
         let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
         let se = draft.execute(SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         }).unwrap().into_value();
         let face = draft.arena().get_half_edge(se.he_am).unwrap().face();
         (draft, face, se.he_am, se.he_mb)
@@ -690,13 +682,11 @@ mod tests {
         let mvf1 = draft.execute(MakeVertexFace).unwrap().into_value();
         let se1 = draft.execute(SplitEdge {
             edge: mvf1.half_edge,
-            parameter: 0.5,
         }).unwrap().into_value();
 
         let mvf2 = draft.execute(MakeVertexFace).unwrap().into_value();
         let se2 = draft.execute(SplitEdge {
             edge: mvf2.half_edge,
-            parameter: 0.5,
         }).unwrap().into_value();
 
         // Pre-condition: valid
@@ -769,7 +759,6 @@ mod tests {
         let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
         let se = draft.execute(SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         }).unwrap().into_value();
 
         let mef = draft.execute(MakeEdgeFace {
@@ -821,7 +810,6 @@ mod tests {
         let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
         let se = draft.execute(SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         }).unwrap().into_value();
 
         let mef = draft.execute(MakeEdgeFace {

@@ -186,7 +186,6 @@ impl TopoOperator for CloneBody {
         struct VertexInfo {
             old_vertex: crate::handles::VertexId,
             old_outgoing: crate::handles::HalfEdgeId,
-            birth_parameter: Option<f64>,
         }
 
         struct EdgeInfo {
@@ -294,7 +293,6 @@ impl TopoOperator for CloneBody {
                             vertex_infos.push(VertexInfo {
                                 old_vertex: hd.origin(),
                                 old_outgoing: vd.outgoing(),
-                                birth_parameter: vd.birth_parameter(),
                             });
                             seen_vertices.insert(hd.origin());
                         }
@@ -397,9 +395,6 @@ impl TopoOperator for CloneBody {
                             let new_v = draft.insert_vertex(crate::b_rep::VertexData::new(
                                 crate::handles::HalfEdgeId::DANGLING,
                             ));
-                            if let Some(bp) = vi.birth_parameter {
-                                draft.arena_mut().get_vertex_mut(new_v)?.set_birth_parameter(Some(bp));
-                            }
                             vertex_map.insert(vi.old_vertex, new_v);
                             total_vertices += 1;
                         }

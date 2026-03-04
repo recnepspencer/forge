@@ -93,7 +93,6 @@ fn mev_from_polygon_vertex() {
     let se1 = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap()
@@ -110,7 +109,6 @@ fn mev_from_polygon_vertex() {
     let se2 = draft.execute(
         SplitEdge {
             edge: mef1.half_edge_ab,
-            parameter: 0.5,
         },
     )
     .unwrap()
@@ -180,7 +178,6 @@ fn mev_wedge_ambiguity_resolved() {
     let se = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap()
@@ -260,7 +257,6 @@ fn mev_inverse_via_kev() {
     let se1 = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap()
@@ -309,7 +305,6 @@ fn mev_double_antenna_same_vertex() {
     let se1 = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap()

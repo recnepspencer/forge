@@ -40,7 +40,6 @@ mod tests {
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.25,
             },
         )
         .unwrap()
@@ -48,7 +47,6 @@ mod tests {
         let se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -56,7 +54,6 @@ mod tests {
         let _se3 = draft.execute(
             SplitEdge {
                 edge: se2.he_mb,
-                parameter: 0.75,
             },
         )
         .unwrap()
@@ -146,7 +143,6 @@ mod tests {
         let _se = seed_draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -161,7 +157,6 @@ mod tests {
         let _se = seed_draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -181,14 +176,12 @@ mod tests {
         draft_a.execute(
             SplitEdge {
                 edge: e1,
-                parameter: 0.3,
             },
         )
         .unwrap();
         draft_a.execute(
             SplitEdge {
                 edge: e2,
-                parameter: 0.7,
             },
         )
         .unwrap();
@@ -199,14 +192,12 @@ mod tests {
         draft_b.execute(
             SplitEdge {
                 edge: e2,
-                parameter: 0.7,
             },
         )
         .unwrap();
         draft_b.execute(
             SplitEdge {
                 edge: e1,
-                parameter: 0.3,
             },
         )
         .unwrap();
@@ -251,7 +242,6 @@ mod tests {
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -259,7 +249,6 @@ mod tests {
         let se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -267,7 +256,6 @@ mod tests {
         let _se3 = draft.execute(
             SplitEdge {
                 edge: se2.he_mb,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -352,7 +340,6 @@ mod tests {
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -360,7 +347,6 @@ mod tests {
         let se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -368,7 +354,6 @@ mod tests {
         let _se3 = draft.execute(
             SplitEdge {
                 edge: se2.he_mb,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -442,7 +427,6 @@ mod tests {
             let se = draft.execute(
                 SplitEdge {
                     edge: current_edge,
-                    parameter: 0.5,
                 },
             )
             .unwrap()
@@ -498,7 +482,6 @@ mod tests {
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -506,7 +489,6 @@ mod tests {
         let se2 = draft.execute(
             SplitEdge {
                 edge: se1.he_mb,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -514,7 +496,6 @@ mod tests {
         let _se3 = draft.execute(
             SplitEdge {
                 edge: se2.he_mb,
-                parameter: 0.5,
             },
         )
         .unwrap()
@@ -541,7 +522,6 @@ mod tests {
             draft_mod.execute(
                 SplitEdge {
                     edge: e,
-                    parameter: 0.5,
                 },
             )
             .unwrap();

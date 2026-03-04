@@ -19,7 +19,6 @@ fn join_faces_merges_two_adjacent_faces() {
     let se = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.5,
         },
     )
     .unwrap()
@@ -75,7 +74,6 @@ fn join_faces_preserves_inner_loops() {
     let se1 = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
-            parameter: 0.33,
         },
     )
     .unwrap()

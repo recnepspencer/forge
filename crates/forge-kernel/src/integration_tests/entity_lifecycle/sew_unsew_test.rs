@@ -29,7 +29,6 @@ fn split_edge_creates_proper_radial_pair() {
 
     let se = draft.execute(SplitEdge {
         edge: start_he,
-        parameter: 0.5,
     }).unwrap().into_value();
 
     let he_mb = se.he_mb;
@@ -100,7 +99,7 @@ fn split_all_edges_preserves_2_manifold() {
 
     for eid in &edges {
         let he = draft.arena().get_edge(*eid).unwrap().half_edge();
-        draft.execute(SplitEdge { edge: he, parameter: 0.5 }).unwrap();
+        draft.execute(SplitEdge { edge: he }).unwrap();
     }
 
     for (he_id, he_data) in draft.arena().iter_half_edges() {
