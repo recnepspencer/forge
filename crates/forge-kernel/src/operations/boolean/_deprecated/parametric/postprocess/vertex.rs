@@ -99,7 +99,7 @@ fn log_vertex_removal(vid: VertexId, delta: TopologyDelta, ctx: &mut ModelingCon
             description: format!("Removed redundant collinear vertex #{}", vid.index()),
         },
     );
-    decision.set_entity_scope(EntityRef::new(forge_core::EntityKind::Vertex, vid.index()));
+    decision.set_entity_scope(EntityRef::new(forge_core::EntityKind::Vertex, vid.index(), 0));
     decision.set_topology_delta(delta);
     ctx.get_decision_log_mut().record(decision);
 }

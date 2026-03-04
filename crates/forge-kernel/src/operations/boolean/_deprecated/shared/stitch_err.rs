@@ -37,13 +37,14 @@ pub fn build_stitch_failure_error(
 
     for &he_id in unpaired.iter().take(max_report) {
         let he_ref = EntityRef::new(forge_core::EntityKind::HalfEdge, he_id.index());
+        let he_ref = EntityRef::new(forge_core::EntityKind::HalfEdge, he_id.index(), 0);
         let face_index = draft
             .arena()
             .get_half_edge(he_id)
             .map(|he| he.face().index())
             .unwrap_or(u32::MAX);
         let face_id_opt = draft.arena().get_half_edge(he_id).ok().map(|he| he.face());
-        let face_ref = EntityRef::new(forge_core::EntityKind::Face, face_index);
+        let face_ref = EntityRef::new(forge_core::EntityKind::Face, face_index, 0);
 
         let related_decisions: Vec<String> = decision_log
             .decisions()

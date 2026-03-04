@@ -30,14 +30,16 @@ impl TopoOperator for MakeIsolatedVertex {
         "Create isolated vertex (no face, no shell)".into()
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
 
         let vertex = draft.insert_vertex(VertexData::new(
             HalfEdgeId::DANGLING,
         ));
+
+        // ── Provenance Stamping (Root — no parent) ─────────────────────
+        use forge_core::{EntityRef, EntityKind};
+        let store = draft.lineage_store_mut();
+        _recorder.stamp(store, EntityRef::new(EntityKind::Vertex, vertex.index(), vertex.generation()));
 
         Ok(ExecutionResult {
             value: MakeIsolatedVertexOutput { vertex },

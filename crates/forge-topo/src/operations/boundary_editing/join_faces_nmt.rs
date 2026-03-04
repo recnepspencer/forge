@@ -56,10 +56,7 @@ impl TopoOperator for JoinFacesNmt {
         )
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he_s = self.he_survive;
         let he_k = self.he_kill;
 
@@ -250,6 +247,7 @@ impl TopoOperator for JoinFacesNmt {
 
         // 8. Remove the killed face and its outer loop.
         let loop_kill = draft.arena().get_face(face_kill)?.outer_loop();
+
         draft.remove_loop(loop_kill)?;
         draft.remove_face(face_kill)?;
 
@@ -285,7 +283,7 @@ impl TopoOperator for JoinFacesNmt {
 ///
 /// Walks the loop via `next()` until returning to `start`.
 fn reassign_face(
-    draft: &mut MutableDraft,
+    draft: &mut MutableDraft, 
     start: HalfEdgeId,
     new_face: crate::handles::FaceId,
 ) -> Result<(), KernelError> {

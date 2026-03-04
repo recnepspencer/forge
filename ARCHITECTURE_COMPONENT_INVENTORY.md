@@ -108,7 +108,7 @@ Single list of implemented architectural systems/components (no "known vs missed
 - Immutable topology snapshot: `TopologyState` (`crates/forge-topo/src/topology/state.rs`)
 - Transactional topology mutations: `MutableDraft`, `DraftConfig` (`crates/forge-topo/src/topology/state.rs`)
 - Committed re-identification index on topology snapshots: `TopologyState::reidentification_link_index` (`crates/forge-topo/src/topology/state.rs`)
-- Dual lineage commit channels (manual `lineage_log` + `LineageStore` events) merged at commit (`crates/forge-topo/src/topology/state.rs`)
+- Single lineage channel via `LineageStore` — all provenance events flow through `LineageStore::apply()` invariant-enforcing choke point (`crates/forge-topo/src/provenance/data/lineage/tracking_store.rs`)
 - Replay logging: `ReplayLog`, `ReplayEntry` (`crates/forge-topo/src/topology/history/replay.rs`)
 - Provenance/lineage: `OpSignature`, `Lineage`, `LineageEvent` (`crates/forge-topo/src/topology/history/lineage.rs`)
 - Live lineage registry: `LineageStore` (`crates/forge-topo/src/topology/history/lineage_store.rs`)

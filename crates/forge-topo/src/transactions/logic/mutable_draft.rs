@@ -12,10 +12,12 @@ use crate::handles::{
     BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
 };
 use crate::transactions::compute_arena_topology_hash;
+use crate::transactions::data::mutation_journal::MutationJournal;
 use crate::provenance::{Lineage, LineageEvent, OpSignature};
 use crate::provenance::LineageStore;
 use crate::provenance::{ReplayEntry, ReplayLog};
 use crate::provenance::ReidentificationLinkIndex;
+use crate::provenance::{LineageRecorder, LineageMode, OperationLineageContext, FEATURE_ID_SYSTEM};
 use crate::operations::operator::TopoOperator;
 use crate::validators::validate::ValidationLevel;
 
@@ -46,8 +48,6 @@ pub struct MutableDraft {
     pub(crate) topology_version: u64,
     /// Current geometry version (may be bumped during mutations)
     pub(crate) geometry_version: u64,
-    /// Lineage events recorded during this draft
-    pub(crate) lineage_log: Vec<LineageEvent>,
     /// Counter for assigning unique operation IDs within this draft
     pub(crate) op_counter: u64,
     /// Whether commit() was called
@@ -64,6 +64,8 @@ pub struct MutableDraft {
     pub(crate) lineage_store: LineageStore,
     /// Lineage events inherited from the prior committed state.
     pub(crate) prior_lineage_events: Vec<LineageEvent>,
+    /// Per-operation mutation journal — records every insert/remove automatically.
+    pub(crate) mutation_journal: MutationJournal,
 }
 
 impl MutableDraft {
@@ -72,17 +74,7 @@ impl MutableDraft {
         self.topology_hash
     }
 
-    /// Record a lineage event during mutation on the explicit/manual lineage channel.
-    ///
-    /// Forge currently has two lineage event sources in a draft:
-    /// - `lineage_store`: live arena-driven provenance events emitted by topology mutations
-    /// - `lineage_log`: explicit/manual events emitted by higher-level orchestration/tests
-    ///
-    /// Commit semantics must persist both channels into the committed chronology.
-    /// This method exists for the explicit/manual channel.
-    pub fn log_lineage_event(&mut self, event: LineageEvent) {
-        self.lineage_log.push(event);
-    }
+
 
     /// Get the next unique operation ID for this draft.
     pub fn next_op_id(&mut self) -> u64 {
@@ -106,10 +98,33 @@ impl MutableDraft {
         self.replay_log.record(entry);
     }
 
-    /// Apply lineage tracking for the completed operation (called by `execute()` method).
+    /// Debug-only guard: assert that every entity in the arena has lineage.
     ///
-    /// Currently a stub — expanded in Milestone 1.2 (Euler Lineage Tracking).
-    pub fn apply_lineage(&mut self, _signature: &OpSignature) {}
+    /// Fires at the end of `execute()` to catch missing stamps immediately
+    /// rather than six operations later.
+    #[cfg(debug_assertions)]
+    pub fn validate_lineage_coverage(&self, signature: &OpSignature) {
+        let arena_count = self.arena.face_count()
+            + self.arena.vertex_count()
+            + self.arena.half_edge_count()
+            + self.arena.edge_count()
+            + self.arena.loop_count()
+            + self.arena.shell_count()
+            + self.arena.body_count()
+            + self.arena.lump_count()
+            + self.arena.region_count();
+        let lineage_count = self.lineage_store.active_count();
+        // Only assert if lineage store is non-empty (i.e., lineage wiring is active).
+        // This avoids false positives during the migration period where not all
+        // code paths stamp lineage yet.
+        if lineage_count > 0 {
+            debug_assert_eq!(
+                arena_count, lineage_count,
+                "Lineage coverage gap after {}: arena has {} entities, lineage tracks {}",
+                signature, arena_count, lineage_count
+            );
+        }
+    }
 
     /// The draft's configuration.
     pub fn config(&self) -> &DraftConfig {
@@ -126,10 +141,7 @@ impl MutableDraft {
         self.geometry_version += 1;
     }
 
-    /// The lineage events recorded during this draft.
-    pub fn lineage_log(&self) -> &[LineageEvent] {
-        &self.lineage_log
-    }
+
 
     /// The replay log recorded during this draft (Milestone 0.4).
     pub fn replay_log(&self) -> &ReplayLog {
@@ -174,6 +186,94 @@ impl MutableDraft {
         (&mut self.arena, &mut self.lineage_store)
     }
 
+    // ── Provenance Stamping API ─────────────────────────────────────────
+    //
+    // These methods are the production-grade API for Euler operators to
+    // declare lineage. They handle the borrow-splitting internally so
+    // operators don't have to juggle `lineage_store()` vs `lineage_store_mut()`.
+
+    /// Stamp multiple child entities as derived from a single parent.
+    ///
+    /// Used by creation operators (SplitEdge, MakeEdgeFace, MakeEdgeVertex, etc.)
+    /// to declare: "these new entities were born from this parent entity."
+    ///
+    /// # Panics (debug builds)
+    ///
+    /// Panics if the parent entity has no lineage in the store. After
+    /// `build_halfedge_mesh` completes, every entity MUST have lineage.
+    /// A missing parent indicates a wiring bug upstream, not a recoverable condition.
+    pub fn stamp_children_of(
+        &mut self,
+        recorder: &mut LineageRecorder,
+        parent: forge_core::EntityRef,
+        children: &[forge_core::EntityRef],
+    ) {
+        let parent_lineage = self.lineage_store.get_lineage(&parent).cloned();
+        debug_assert!(
+            parent_lineage.is_some(),
+            "stamp_children_of: parent {:?} has no lineage — wiring bug upstream",
+            parent
+        );
+        if let Some(ref lineage) = parent_lineage {
+            for &child in children {
+                recorder.stamp_derived(&mut self.lineage_store, child, lineage);
+            }
+        }
+    }
+
+    /// Stamp multiple child entities as merged from multiple parents.
+    ///
+    /// Used by Boolean operations where a new entity derives from entities
+    /// on two (or more) different bodies.
+    ///
+    /// # Panics (debug builds)
+    ///
+    /// Panics if any parent entity has no lineage in the store.
+    pub fn stamp_merged_children_of(
+        &mut self,
+        recorder: &mut LineageRecorder,
+        parents: &[forge_core::EntityRef],
+        children: &[forge_core::EntityRef],
+    ) {
+        let parent_lineages: Vec<_> = parents.iter()
+            .map(|p| {
+                let lineage = self.lineage_store.get_lineage(p).cloned();
+                debug_assert!(
+                    lineage.is_some(),
+                    "stamp_merged_children_of: parent {:?} has no lineage — wiring bug upstream",
+                    p
+                );
+                lineage
+            })
+            .flatten()
+            .collect();
+
+        if parent_lineages.len() != parents.len() {
+            return; // release-mode graceful degradation
+        }
+
+        let mode = LineageMode::Merged { parents: parent_lineages.into() };
+        for &child in children {
+            let context = OperationLineageContext {
+                feature_id: recorder.feature_id(),
+                op_name: recorder.op_name(),
+                mode: mode.clone(),
+            };
+            let mut merge_recorder = LineageRecorder::new(context, recorder.invocation_id());
+            merge_recorder.stamp(&mut self.lineage_store, child);
+        }
+    }
+
+    /// Read-only access to the mutation journal for the current operation.
+    pub fn mutation_journal(&self) -> &MutationJournal {
+        &self.mutation_journal
+    }
+
+    /// Mutable access to the mutation journal (for testing and runner internals).
+    pub(crate) fn mutation_journal_mut(&mut self) -> &mut MutationJournal {
+        &mut self.mutation_journal
+    }
+
     /// Take ownership of the lineage store, replacing it with an empty one.
     ///
     /// Use this to extract lineage data before commit (or on error paths
@@ -199,13 +299,9 @@ impl MutableDraft {
         let topology_hash = self.compute_topology_hash();
         let committed_arena = std::mem::take(&mut self.arena);
 
-        // Drain lineage sources and append to the prior history.
-        //
-        // `lineage_log` is the explicit/manual lineage channel used by some
-        // callers and tests; `lineage_store` is the live arena-driven lineage
-        // event source. Both are part of the committed chronology.
-        let mut new_events = std::mem::take(&mut self.lineage_log);
-        new_events.extend(self.lineage_store.drain_events());
+        // Drain lineage from the single source of truth (LineageStore)
+        // and append to the prior history.
+        let new_events = self.lineage_store.drain_events();
         let mut all_events = std::mem::take(&mut self.prior_lineage_events);
         all_events.extend(new_events);
         let reid_index =
@@ -240,7 +336,10 @@ impl MutableDraft {
         data_a: crate::b_rep::HalfEdgeData,
         data_b: crate::b_rep::HalfEdgeData,
     ) -> (HalfEdgeId, HalfEdgeId) {
-        self.arena.insert_radial_pair(data_a, data_b)
+        let (a, b) = self.arena.insert_radial_pair(data_a, data_b);
+        self.mutation_journal.record_creation(forge_core::EntityRef::from(a));
+        self.mutation_journal.record_creation(forge_core::EntityRef::from(b));
+        (a, b)
     }
 
     /// Execute a topology operator through the formalized runner.
@@ -284,6 +383,7 @@ impl MutableDraft {
 
         let op_name = signature.get_name().to_string();
         let summary = op.semantic_summary();
+        let lineage_count_before = self.lineage_store.active_count();
 
         tracing::debug!(
             op = ?op,
@@ -293,14 +393,41 @@ impl MutableDraft {
         );
         self.log_operation_start(&signature, summary);
 
-        let exec_result = op.execute(self).map_err(|e| {
+        // Reset the mutation journal before execution — ensures a clean per-op record.
+        self.mutation_journal.reset();
+
+        let mut recorder = crate::provenance::LineageRecorder::new(
+            crate::provenance::OperationLineageContext {
+                feature_id: crate::provenance::FEATURE_ID_SYSTEM,
+                op_name: O::NAME,
+                mode: crate::provenance::LineageMode::Root, // overwritten when operator calls stamp_derived
+            },
+            invocation_id as u64,
+        );
+
+        let exec_result = op.execute(self, &mut recorder).map_err(|e| {
             // Only format the Debug repr on the error path — zero cost on success.
             e.ensure_operation_context(&op_name, invocation_id as u64, &format!("{:?}", op))
         })?;
         let declared_delta = exec_result.declared_delta;
-        let result = exec_result.value;
 
-        self.apply_lineage(&signature);
+        // ── Compute journal counts BEFORE draining ────────────────────
+        // The journal records every insert/remove that happened during op.execute().
+        // We snapshot the gross counts now, before drain_destroyed() empties the list.
+        let created = self.mutation_journal.count_created();
+        let deleted = self.mutation_journal.count_destroyed();
+
+        // ── Auto-stamp deletion lineage from the journal ──────────────
+        // The MutationJournal recorded every entity that was removed during
+        // op.execute(). We stamp their deletion into the lineage store
+        // automatically — operators never need to call stamp_deletions.
+        let destroyed = self.mutation_journal.drain_destroyed();
+        for entity in &destroyed {
+            // stamp_deletion may fail if the entity had no lineage entry
+            // (e.g. internal structural entities). Ignore gracefully.
+            let _ = recorder.stamp_deletion(&mut self.lineage_store, *entity);
+        }
+        let result = exec_result.value;
 
         self.bump_topology_version();
 
@@ -310,6 +437,7 @@ impl MutableDraft {
             self.replay_log.finalize_last(post_hash);
         }
 
+        // ── EulerDelta verification (net change — topological invariant) ──
         let face_count_after = self.arena.face_count();
         let vertex_count_after = self.arena.vertex_count();
         let halfedge_count_after = self.arena.half_edge_count();
@@ -365,82 +493,87 @@ impl MutableDraft {
             });
         }
 
+        // ── Journal–Arena cross-check (debug only) ────────────────────
+        // Catches silently missing proxy hooks: if someone adds a new entity
+        // type without updating the draft proxy macro, the journal's net delta
+        // will disagree with the arena's objective net delta.
+        #[cfg(debug_assertions)]
+        {
+            debug_assert_eq!(
+                created.vertices as i32 - deleted.vertices as i32, actual_delta.vertices,
+                "Journal/arena vertex count mismatch — draft proxy hook may be missing"
+            );
+            debug_assert_eq!(
+                created.faces as i32 - deleted.faces as i32, actual_delta.faces,
+                "Journal/arena face count mismatch — draft proxy hook may be missing"
+            );
+            debug_assert_eq!(
+                created.half_edges as i32 - deleted.half_edges as i32, actual_delta.half_edges,
+                "Journal/arena half-edge count mismatch — draft proxy hook may be missing"
+            );
+            debug_assert_eq!(
+                created.loops as i32 - deleted.loops as i32, actual_delta.loops,
+                "Journal/arena loop count mismatch — draft proxy hook may be missing"
+            );
+            debug_assert_eq!(
+                created.edges as i32 - deleted.edges as i32, actual_delta.edges,
+                "Journal/arena edge count mismatch — draft proxy hook may be missing"
+            );
+            debug_assert_eq!(
+                created.shells as i32 - deleted.shells as i32, actual_delta.shells,
+                "Journal/arena shell count mismatch — draft proxy hook may be missing"
+            );
+            debug_assert_eq!(
+                created.bodies as i32 - deleted.bodies as i32, actual_delta.solids,
+                "Journal/arena body count mismatch — draft proxy hook may be missing"
+            );
+            debug_assert_eq!(
+                created.lumps as i32 - deleted.lumps as i32, actual_delta.lumps,
+                "Journal/arena lump count mismatch — draft proxy hook may be missing"
+            );
+            debug_assert_eq!(
+                created.regions as i32 - deleted.regions as i32, actual_delta.regions,
+                "Journal/arena region count mismatch — draft proxy hook may be missing"
+            );
+        }
+
         if self.config.per_op_validation {
             crate::validators::structural::validate_topology(&self.arena, ValidationLevel::Full).map_err(|e| {
-                KernelError::TopologyViolation {
-                    err: TopologyError::BrokenLoop {
-                        face_index: 0,
-                        starting_halfedge: 0,
-                    },
-                    context: Some(ErrorContext {
-                        scope: ErrorScope::Operation {
-                            op_name: op_name.clone(),
-                            invocation_id: invocation_id as u64,
-                        },
-                        suggested_fixes: vec![],
-                        detail: format!("Per-op validation failed after {}: {}", op_name, e),
-                    }),
-                }
+                e.ensure_operation_context(&op_name, invocation_id as u64, &format!("Per-op validation failed after {}", op_name))
             })?;
 
             validate_halfedge_reciprocity(self, &op_name, invocation_id as u64)?;
         }
 
-        let faces_created = face_count_after.saturating_sub(face_count_before) as u32;
-        let vertices_created = vertex_count_after.saturating_sub(vertex_count_before) as u32;
-        let half_edges_created = halfedge_count_after.saturating_sub(halfedge_count_before) as u32;
-        let loops_created = loop_count_after.saturating_sub(loop_count_before) as u32;
-        let edges_created = edge_count_after.saturating_sub(edge_count_before) as u32;
-        let shells_created = shell_count_after.saturating_sub(shell_count_before) as u32;
-        let solids_created = body_count_after.saturating_sub(body_count_before) as u32;
-
-        let faces_deleted = face_count_before.saturating_sub(face_count_after) as u32;
-        let vertices_deleted = vertex_count_before.saturating_sub(vertex_count_after) as u32;
-        let half_edges_deleted = halfedge_count_before.saturating_sub(halfedge_count_after) as u32;
-        let loops_deleted = loop_count_before.saturating_sub(loop_count_after) as u32;
-        let edges_deleted = edge_count_before.saturating_sub(edge_count_after) as u32;
-        let shells_deleted = shell_count_before.saturating_sub(shell_count_after) as u32;
-        let solids_deleted = body_count_before.saturating_sub(body_count_after) as u32;
-
-        let entities_created = faces_created
-            + vertices_created
-            + half_edges_created
-            + loops_created
-            + edges_created
-            + shells_created
-            + solids_created;
-        let entities_deleted = faces_deleted
-            + vertices_deleted
-            + half_edges_deleted
-            + loops_deleted
-            + edges_deleted
-            + shells_deleted
-            + solids_deleted;
-
+        // ── Build LineageDelta + OperationMetrics from journal (gross counts) ──
         let metrics = OperationMetrics {
             duration: start.elapsed(),
-            entities_created,
-            entities_deleted,
+            entities_created: created.total(),
+            entities_deleted: deleted.total(),
             entities_modified: 0,
             exact_predicate_calls: 0,
             policy_decisions_made: 0,
         };
 
         let lineage_delta = LineageDelta {
-            faces_created,
-            faces_deleted,
-            half_edges_created,
-            half_edges_deleted,
-            vertices_created,
-            vertices_deleted,
-            loops_created,
-            loops_deleted,
-            edges_created,
-            edges_deleted,
-            shells_created,
-            shells_deleted,
-            solids_created,
-            solids_deleted,
+            faces_created: created.faces,
+            faces_deleted: deleted.faces,
+            half_edges_created: created.half_edges,
+            half_edges_deleted: deleted.half_edges,
+            vertices_created: created.vertices,
+            vertices_deleted: deleted.vertices,
+            loops_created: created.loops,
+            loops_deleted: deleted.loops,
+            edges_created: created.edges,
+            edges_deleted: deleted.edges,
+            shells_created: created.shells,
+            shells_deleted: deleted.shells,
+            solids_created: created.bodies,
+            solids_deleted: deleted.bodies,
+            lumps_created: created.lumps,
+            lumps_deleted: deleted.lumps,
+            regions_created: created.regions,
+            regions_deleted: deleted.regions,
         };
 
         let mut op_result = OperationResult::new(result);

@@ -12,13 +12,14 @@
 //! `attributes::EntityKey`, `forge_core::KernelError`
 
 use forge_core::{EntityKind, KernelError};
-
-use crate::b_rep::TopologyArena;
 use crate::semantic_attributes::EntityKey;
 
 use crate::persistent_naming::data::naming_schema::{PersistentName, Selector};
 
 // ── Public API ────────────────────────────────────────────────────────────────
+
+use crate::provenance::LineageStore;
+use forge_core::EntityRef;
 
 /// Resolve a `PersistentName` against the current topology.
 ///
@@ -26,11 +27,11 @@ use crate::persistent_naming::data::naming_schema::{PersistentName, Selector};
 /// - **0 entries** — the named entity was deleted or was never built.
 /// - **1 entry** — the normal case (no split since naming).
 /// - **2+ entries** — the entity was split since naming.
-pub fn resolve_name(arena: &TopologyArena, name: &PersistentName) -> Vec<EntityKey> {
+pub fn resolve_name(store: &LineageStore, name: &PersistentName) -> Vec<EntityKey> {
     match name.get_kind() {
-        EntityKind::Face => resolve_faces(arena, name.get_ancestry_hash()),
-        EntityKind::Vertex => resolve_vertices(arena, name.get_ancestry_hash()),
-        EntityKind::Edge => resolve_edges(arena, name.get_ancestry_hash()),
+        EntityKind::Face => resolve_faces(store, name.get_ancestry_hash()),
+        EntityKind::Vertex => resolve_vertices(store, name.get_ancestry_hash()),
+        EntityKind::Edge => resolve_edges(store, name.get_ancestry_hash()),
         _ => Vec::new(),
     }
 }
@@ -38,37 +39,54 @@ pub fn resolve_name(arena: &TopologyArena, name: &PersistentName) -> Vec<EntityK
 /// Resolve a `Selector` query against the current topology.
 ///
 /// Returns every `EntityKey` that matches the selector expression.
-pub fn resolve_selector(arena: &TopologyArena, selector: &Selector) -> Vec<EntityKey> {
-    let mut keys = evaluate_selector(arena, selector);
+pub fn resolve_selector(store: &LineageStore, selector: &Selector) -> Vec<EntityKey> {
+    let mut keys = evaluate_selector(store, selector);
     keys.sort_by_key(entity_key_sort_key);
     keys.dedup();
     keys
 }
 
+// ... assign_name is already here ... // Oops I replaced it with a comment literally. Let's put it back.
+
 /// Assign a persistent name to the entity identified by `key`.
 ///
 /// Reads the `Lineage` from the entity and captures its `ancestry_hash`.
 /// Returns `KernelError::InvalidInput` if the entity has no lineage.
-pub fn assign_name(_arena: &TopologyArena, _key: EntityKey) -> Result<PersistentName, KernelError> {
-    Err(KernelError::InternalError {
-        message: "Naming resolution in Phase 2 requires LineageStore lookup (not yet implemented here)".to_string(),
-        context: None,
-    })
+pub fn assign_name(store: &LineageStore, key: EntityKey) -> Result<PersistentName, KernelError> {
+    let eref = match key {
+        EntityKey::Face(id) => EntityRef::new(EntityKind::Face, id.index(), id.generation()),
+        EntityKey::Vertex(id) => EntityRef::new(EntityKind::Vertex, id.index(), id.generation()),
+        EntityKey::Edge(id) => EntityRef::new(EntityKind::Edge, id.index(), id.generation()),
+        EntityKey::Shell(id) => EntityRef::new(EntityKind::Shell, id.index(), id.generation()),
+    };
+
+    let lineage = store.get_lineage(&eref).ok_or_else(|| {
+        KernelError::InvalidInput {
+            message: format!("Cannot assign name: no lineage found for entity {:?}", key),
+            context: None,
+        }
+    })?;
+
+    Ok(PersistentName::new(
+        lineage.get_ancestry_hash(),
+        eref.kind(),
+        0,
+    ))
 }
 
 // ── Selector evaluation ───────────────────────────────────────────────────────
 
-fn evaluate_selector(arena: &TopologyArena, sel: &Selector) -> Vec<EntityKey> {
+fn evaluate_selector(store: &LineageStore, sel: &Selector) -> Vec<EntityKey> {
     match sel {
-        Selector::ByAncestry { hash, kind } => collect_by_ancestry(arena, *hash, *kind),
+        Selector::ByAncestry { hash, kind } => collect_by_ancestry(store, *hash, *kind),
 
-        Selector::ByFeature { feature_id, kind } => collect_by_feature(arena, *feature_id, *kind),
+        Selector::ByFeature { feature_id, kind } => collect_by_feature(store, *feature_id, *kind),
 
-        Selector::ByOperation { op_name, kind } => collect_by_operation(arena, op_name, *kind),
+        Selector::ByOperation { op_name, kind } => collect_by_operation(store, op_name, *kind),
 
         Selector::And(a, b) => {
-            let left = evaluate_selector(arena, a);
-            let right = evaluate_selector(arena, b);
+            let left = evaluate_selector(store, a);
+            let right = evaluate_selector(store, b);
             // Intersection by sort key
             let right_keys: std::collections::BTreeSet<u128> =
                 right.iter().map(entity_key_sort_key).collect();
@@ -78,8 +96,8 @@ fn evaluate_selector(arena: &TopologyArena, sel: &Selector) -> Vec<EntityKey> {
         }
 
         Selector::Or(a, b) => {
-            let mut result = evaluate_selector(arena, a);
-            result.extend(evaluate_selector(arena, b));
+            let mut result = evaluate_selector(store, a);
+            result.extend(evaluate_selector(store, b));
             result
         }
     }
@@ -87,75 +105,93 @@ fn evaluate_selector(arena: &TopologyArena, sel: &Selector) -> Vec<EntityKey> {
 
 // ── Per-kind lineage scanners ─────────────────────────────────────────────────
 
-fn resolve_faces(_arena: &TopologyArena, _hash: u128) -> Vec<EntityKey> {
-    // TODO: Phase 2 SoA: Persistent naming requires LineageStore lookup.
-    // For now, return empty to allow compilation.
-    Vec::new()
+fn resolve_faces(store: &LineageStore, hash: u128) -> Vec<EntityKey> {
+    let mut matches = Vec::new();
+    for eref in store.active_entities() {
+        if eref.kind() == EntityKind::Face {
+            if let Some(lineage) = store.get_lineage(eref) {
+                if lineage.get_ancestry_hash() == hash {
+                    matches.push(EntityKey::Face(crate::handles::FaceId::new(eref.index(), eref.generation())));
+                }
+            }
+        }
+    }
+    matches
 }
 
-fn resolve_vertices(_arena: &TopologyArena, _hash: u128) -> Vec<EntityKey> {
-    // TODO: Phase 2 SoA
-    Vec::new()
+fn resolve_vertices(store: &LineageStore, hash: u128) -> Vec<EntityKey> {
+    let mut matches = Vec::new();
+    for eref in store.active_entities() {
+        if eref.kind() == EntityKind::Vertex {
+            if let Some(lineage) = store.get_lineage(eref) {
+                if lineage.get_ancestry_hash() == hash {
+                    matches.push(EntityKey::Vertex(crate::handles::VertexId::new(eref.index(), eref.generation())));
+                }
+            }
+        }
+    }
+    matches
 }
 
-fn resolve_edges(_arena: &TopologyArena, _hash: u128) -> Vec<EntityKey> {
-    // TODO: Phase 2 SoA
-    Vec::new()
+fn resolve_edges(store: &LineageStore, hash: u128) -> Vec<EntityKey> {
+    let mut matches = Vec::new();
+    for eref in store.active_entities() {
+        if eref.kind() == EntityKind::Edge {
+            if let Some(lineage) = store.get_lineage(eref) {
+                if lineage.get_ancestry_hash() == hash {
+                    matches.push(EntityKey::Edge(crate::handles::EdgeId::new(eref.index(), eref.generation())));
+                }
+            }
+        }
+    }
+    matches
 }
 
-fn collect_by_ancestry(arena: &TopologyArena, hash: u128, kind: EntityKind) -> Vec<EntityKey> {
+fn collect_by_ancestry(store: &LineageStore, hash: u128, kind: EntityKind) -> Vec<EntityKey> {
     match kind {
-        EntityKind::Face => resolve_faces(arena, hash),
-        EntityKind::Vertex => resolve_vertices(arena, hash),
-        EntityKind::Edge => resolve_edges(arena, hash),
+        EntityKind::Face => resolve_faces(store, hash),
+        EntityKind::Vertex => resolve_vertices(store, hash),
+        EntityKind::Edge => resolve_edges(store, hash),
         _ => Vec::new(),
     }
 }
 
-fn collect_by_feature(arena: &TopologyArena, feature_id: u64, kind: EntityKind) -> Vec<EntityKey> {
-    let _matches_feature = |lineage: Option<&crate::provenance::Lineage>| -> bool {
-        lineage
-            .map(|l| l.get_origin_features().contains(&feature_id))
-            .unwrap_or(false)
-    };
-    match kind {
-        EntityKind::Face => arena
-            .iter_faces()
-            .map(|(id, _)| EntityKey::Face(id))
-            .collect(),
-        EntityKind::Vertex => arena
-            .iter_vertices()
-            .map(|(id, _)| EntityKey::Vertex(id))
-            .collect(),
-        EntityKind::Edge => arena
-            .iter_edges()
-            .map(|(id, _)| EntityKey::Edge(id))
-            .collect(),
-        _ => Vec::new(),
+fn collect_by_feature(store: &LineageStore, feature_id: u64, kind: EntityKind) -> Vec<EntityKey> {
+    let mut matches = Vec::new();
+    for eref in store.active_entities() {
+        if eref.kind() == kind {
+            if let Some(lineage) = store.get_lineage(eref) {
+                if lineage.get_origin_features().contains(&feature_id) {
+                    match kind {
+                        EntityKind::Face => matches.push(EntityKey::Face(crate::handles::FaceId::new(eref.index(), eref.generation()))),
+                        EntityKind::Vertex => matches.push(EntityKey::Vertex(crate::handles::VertexId::new(eref.index(), eref.generation()))),
+                        EntityKind::Edge => matches.push(EntityKey::Edge(crate::handles::EdgeId::new(eref.index(), eref.generation()))),
+                        _ => {}
+                    }
+                }
+            }
+        }
     }
+    matches
 }
 
-fn collect_by_operation(arena: &TopologyArena, op_name: &str, kind: EntityKind) -> Vec<EntityKey> {
-    let _matches_op = |lineage: Option<&crate::provenance::Lineage>| -> bool {
-        lineage
-            .map(|l| l.get_creation_op().get_name() == op_name)
-            .unwrap_or(false)
-    };
-    match kind {
-        EntityKind::Face => arena
-            .iter_faces()
-            .map(|(id, _)| EntityKey::Face(id))
-            .collect(),
-        EntityKind::Vertex => arena
-            .iter_vertices()
-            .map(|(id, _)| EntityKey::Vertex(id))
-            .collect(),
-        EntityKind::Edge => arena
-            .iter_edges()
-            .map(|(id, _)| EntityKey::Edge(id))
-            .collect(),
-        _ => Vec::new(),
+fn collect_by_operation(store: &LineageStore, op_name: &str, kind: EntityKind) -> Vec<EntityKey> {
+    let mut matches = Vec::new();
+    for eref in store.active_entities() {
+        if eref.kind() == kind {
+            if let Some(lineage) = store.get_lineage(eref) {
+                if lineage.get_creation_op().get_name() == op_name {
+                    match kind {
+                        EntityKind::Face => matches.push(EntityKey::Face(crate::handles::FaceId::new(eref.index(), eref.generation()))),
+                        EntityKind::Vertex => matches.push(EntityKey::Vertex(crate::handles::VertexId::new(eref.index(), eref.generation()))),
+                        EntityKind::Edge => matches.push(EntityKey::Edge(crate::handles::EdgeId::new(eref.index(), eref.generation()))),
+                        _ => {}
+                    }
+                }
+            }
+        }
     }
+    matches
 }
 
 /// Map an `EntityKey` to a u128 for deterministic dedup/intersection.

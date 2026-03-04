@@ -100,7 +100,7 @@ fn mark_outside_split_fragments_ambiguous(
                 ),
             },
         );
-        decision.set_entity_scope(EntityRef::new(EntityKind::Face, face.face().index()));
+        decision.set_entity_scope(EntityRef::new(EntityKind::Face, face.face().index(), 0));
         ctx.get_decision_log_mut().record(decision);
     }
 }

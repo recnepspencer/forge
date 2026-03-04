@@ -185,3 +185,56 @@ fn test_pipeline_failure_preserves_prior_state() {
 
     assert!(result.is_err(), "Bad step should propagate error");
 }
+
+/// Pipeline step output must carry lineage events forward.
+#[test]
+fn test_pipeline_accumulates_lineage() {
+    use forge_topo::provenance::LineageStore;
+
+    let config = test_config();
+    let mut ctx = ModelingContext::new();
+    let mut scope = OperationScope::new(&config, &mut ctx);
+
+    let step1 = TestStep::new("make_primitive");
+    let step2 = TestStep::new("inspect_lineage");
+
+    let builder = PipelineBuilder::start(&mut scope, ());
+
+    // Step 1: generate the cube — this populates lineage events.
+    let builder = builder.then(&step1, |_state, step_scope| {
+        let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope.config)?;
+        Ok(result)
+    }).expect("step 1 should succeed");
+
+    // Step 2: extract topology and verify lineage survived.
+    let builder = builder.then(&step2, |mesh_result: OperationResult<SolidEnvelope>, _step_scope| {
+        let topo = mesh_result.into_value().topology().clone();
+        let events = topo.lineage_events();
+        assert!(!events.is_empty(), "Lineage events must survive pipeline threading");
+
+        let store = LineageStore::from_prior_events(events);
+        let arena = topo.arena();
+
+        // Full coverage check.
+        let arena_count = arena.face_count()
+            + arena.vertex_count()
+            + arena.half_edge_count()
+            + arena.edge_count()
+            + arena.loop_count()
+            + arena.shell_count()
+            + arena.body_count()
+            + arena.lump_count()
+            + arena.region_count();
+
+        assert_eq!(
+            store.active_count(), arena_count,
+            "Pipeline lineage coverage gap: store={}, arena={}",
+            store.active_count(), arena_count
+        );
+
+        Ok(topo)
+    }).expect("step 2 should succeed");
+
+    let (_final_topo, audit) = builder.finish();
+    assert_eq!(audit.steps.len(), 2);
+}

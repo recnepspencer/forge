@@ -35,10 +35,7 @@ impl TopoOperator for MakeLumpRegion {
         format!("Create lump with region in body {}", self.body.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let lump = draft.insert_lump(LumpData::new(self.body));
         let region = draft.insert_region(RegionData::new(lump));
 
@@ -80,10 +77,7 @@ impl TopoOperator for DestroyLump {
         format!("Destroy lump {} and its region", self.lump.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let body = draft.arena().get_lump(self.lump)?.body();
         let regions: Vec<RegionId> = draft.arena().get_lump(self.lump)?.regions().to_vec();
 

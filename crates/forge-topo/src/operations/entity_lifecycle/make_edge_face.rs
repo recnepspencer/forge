@@ -61,10 +61,7 @@ impl TopoOperator for MakeEdgeFace {
         )
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         if self.vertex_a == self.vertex_b {
             return Err(KernelError::InvalidInput {
                 message: "MakeEdgeFace: vertex_a and vertex_b cannot be the same vertex".into(),
@@ -143,6 +140,20 @@ impl TopoOperator for MakeEdgeFace {
         arena.get_face_mut(new_face)?.set_outer_loop(new_loop);
         arena.get_loop_mut(new_loop)?.set_half_edge(he_ba);
         arena.get_edge_mut(edge)?.set_half_edge(he_ab);
+
+        // ── Provenance Stamping (O(1)) ─────────────────────────────────
+        use forge_core::{EntityRef, EntityKind};
+        draft.stamp_children_of(
+            _recorder,
+            EntityRef::new(EntityKind::Face, self.face.index(), self.face.generation()),
+            &[
+                EntityRef::new(EntityKind::Face, new_face.index(), new_face.generation()),
+                EntityRef::new(EntityKind::Loop, new_loop.index(), new_loop.generation()),
+                EntityRef::new(EntityKind::Edge, edge.index(), edge.generation()),
+                EntityRef::new(EntityKind::HalfEdge, he_ab.index(), he_ab.generation()),
+                EntityRef::new(EntityKind::HalfEdge, he_ba.index(), he_ba.generation()),
+            ],
+        );
 
         Ok(ExecutionResult {
             value: MefOutput {

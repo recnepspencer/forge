@@ -1,3 +1,31 @@
+error[E0053]: method `parse_inputs` has an incompatible type for trait
+  --> tests/compile_fail/feature_without_contract.rs:21:31
+   |
+21 |     fn parse_inputs(&self, _: &HashMap<NodeId, SolidEnvelope>) -> Result<EmptyInputs, KernelError> {
+   |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `HashMap<NodeId, SolidEnvelope>`, found `&HashMap<NodeId, SolidEnvelope>`
+   |
+   = note: expected signature `fn(&NakedFeature, HashMap<NodeId, SolidEnvelope>) -> Result<EmptyInputs, KernelError>`
+              found signature `fn(&NakedFeature, &HashMap<NodeId, SolidEnvelope>) -> Result<EmptyInputs, KernelError>`
+help: change the parameter type to match the trait
+   |
+21 -     fn parse_inputs(&self, _: &HashMap<NodeId, SolidEnvelope>) -> Result<EmptyInputs, KernelError> {
+21 +     fn parse_inputs(&self, _: HashMap<NodeId, SolidEnvelope>) -> Result<EmptyInputs, KernelError> {
+   |
+
+error[E0053]: method `execute_typed` has an incompatible type for trait
+  --> tests/compile_fail/feature_without_contract.rs:24:32
+   |
+24 |     fn execute_typed(&self, _: &EmptyInputs, _: &mut OperationScope<'_>) -> Result<forge_core::envelope::OperationResult<SolidEnvelo...
+   |                                ^^^^^^^^^^^^ expected `EmptyInputs`, found `&EmptyInputs`
+   |
+   = note: expected signature `fn(&NakedFeature, EmptyInputs, &mut OperationScope<'_>) -> Result<OperationResult<SolidEnvelope>, KernelError>`
+              found signature `fn(&NakedFeature, &EmptyInputs, &mut OperationScope<'_>) -> Result<OperationResult<SolidEnvelope>, KernelError>`
+help: change the parameter type to match the trait
+   |
+24 -     fn execute_typed(&self, _: &EmptyInputs, _: &mut OperationScope<'_>) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, KernelError> {
+24 +     fn execute_typed(&self, _: EmptyInputs, _: &mut OperationScope<'_>) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, KernelError> {
+   |
+
 error[E0277]: the trait bound `NakedFeature: FeatureContract` is not satisfied
   --> tests/compile_fail/feature_without_contract.rs:19:18
    |
@@ -17,7 +45,7 @@ help: the following other types implement trait `FeatureContract`
    | |     policies: [
    | |         forge_core::PolicyKind::CoincidentGeometry,
 ...  |
-   | |     persistent: true,
+   | |     conditioning: crate::engine::facade::ConditioningMode::BinaryAnalysis,
    | | );
    | |_^ `BooleanFeature`
    |
@@ -28,7 +56,7 @@ help: the following other types implement trait `FeatureContract`
    | |     policies: [],
    | |     origins: [EntityOriginKind::DirectInsertion],
 ...  |
-   | |     persistent: true,
+   | |     conditioning: ConditioningMode::None,
    | | );
    | |_^ `MakePrimitiveFeature`
 note: required by a bound in `forge_kernel::engine::facade::Feature`

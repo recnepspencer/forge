@@ -107,3 +107,57 @@ fn test_replay_same_inputs_same_topology() {
         "Identical inputs must produce identical decision count"
     );
 }
+
+/// Lineage events must survive TopologyState serialization round-trip.
+#[test]
+fn test_lineage_events_survive_serialization() {
+    use forge_topo::provenance::{LineageEvent, LineageStore};
+
+    let result = unit_cube().expect("unit cube should succeed");
+    let topo = result.get_value().topology();
+    let original_events = topo.lineage_events();
+
+    assert!(!original_events.is_empty(), "Lineage events should be non-empty");
+
+    // Serialize and deserialize the entire TopologyState.
+    let serialized = serde_json::to_vec(topo).expect("TopologyState should serialize");
+    let deserialized: forge_topo::transactions::TopologyState =
+        serde_json::from_slice(&serialized).expect("TopologyState should deserialize");
+
+    let deser_events = deserialized.lineage_events();
+
+    // Same event count.
+    assert_eq!(
+        original_events.len(), deser_events.len(),
+        "Lineage event count must survive round-trip"
+    );
+
+    // Rebuild stores from both and compare active counts.
+    let orig_store = LineageStore::from_prior_events(original_events);
+    let deser_store = LineageStore::from_prior_events(deser_events);
+
+    assert_eq!(
+        orig_store.active_count(), deser_store.active_count(),
+        "Lineage active count must survive round-trip"
+    );
+
+    // All events should be EntityCreated for a fresh primitive.
+    for (i, event) in deser_events.iter().enumerate() {
+        assert!(
+            matches!(event, LineageEvent::EntityCreated { .. }),
+            "Deserialized event {} should be EntityCreated, got {:?}", i, event
+        );
+    }
+
+    // Op attribution preserved.
+    for eref in orig_store.tracked_entities() {
+        let orig_lineage = orig_store.get_lineage(eref).unwrap();
+        let deser_lineage = deser_store.get_lineage(eref)
+            .expect("Deserialized store should track same entity");
+        assert_eq!(
+            orig_lineage.get_creation_op().get_name(),
+            deser_lineage.get_creation_op().get_name(),
+            "Op name must survive round-trip for {:?}", eref
+        );
+    }
+}

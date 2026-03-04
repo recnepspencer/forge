@@ -15,4 +15,7 @@ pub use super::data::reidentification_link::{
     build_link_records_from_events, build_link_records_from_store,
     resolve_reidentification_query_v1,
 };
-pub use super::logic::bulk_stamping::record_result_lineage;
+pub use super::logic::lineage_recorder::{
+    LineageRecorder, LineageMode, OperationLineageContext,
+    FEATURE_ID_UNSET, FEATURE_ID_SYSTEM,
+};

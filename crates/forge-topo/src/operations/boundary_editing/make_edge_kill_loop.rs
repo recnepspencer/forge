@@ -64,10 +64,7 @@ impl TopoOperator for MakeEdgeKillLoop {
         )
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let face_a = draft.arena().get_half_edge(self.he_a)?.face();
         let face_b = draft.arena().get_half_edge(self.he_b)?.face();
 

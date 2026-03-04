@@ -42,10 +42,7 @@ impl TopoOperator for KillFaceMakeRingHole {
         )
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let killed_face_data = draft.arena().get_face(self.face_to_kill)?;
         let target_face_data = draft.arena().get_face(self.target_face)?;
 

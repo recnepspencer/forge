@@ -12,7 +12,7 @@
 use forge_core::KernelError;
 use forge_geom::{build_convex_polyhedron, BspConfig, ConvexCell, Plane};
 use forge_topo::handles::VertexId;
-use forge_topo::provenance::OpSignature;
+use forge_topo::provenance::{LineageRecorder, LineageMode, OperationLineageContext, FEATURE_ID_SYSTEM};
 use crate::engine::facade::TopologyHashBoundary;
 use forge_topo::transactions::{MutableDraft, TopologyState};
 
@@ -54,8 +54,15 @@ pub fn build_halfedge_mesh(
     let start = std::time::Instant::now();
 
     let tolerance = scope.config.scaled_vertex_tolerance();
-    let sig = OpSignature::new("build_halfedge_mesh");
-    let mut ordinal: u64 = 0;
+
+    // Create a LineageRecorder for this primitive construction.
+    // Uses FEATURE_ID_SYSTEM because build_halfedge_mesh is infrastructure,
+    // not a user-facing feature. Pipeline-level features override this.
+    let mut recorder = LineageRecorder::new(OperationLineageContext {
+        feature_id: forge_topo::provenance::FEATURE_ID_SYSTEM,
+        op_name: "build_halfedge_mesh",
+        mode: LineageMode::Root,
+    }, 1);
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
@@ -63,19 +70,19 @@ pub fn build_halfedge_mesh(
 
     // 1. Insert vertices (dedup + exact positions)
     let vertex_ids = insert_vertices(
-        &mut draft, &mut geometry, cell, tolerance, &sig, &mut ordinal, scope.sink,
+        &mut draft, &mut geometry, cell, tolerance, scope.sink, &mut recorder,
     )?;
 
     // 2. Create containment hierarchy
-    let hierarchy = make_solid_hierarchy(&mut draft, &mut ordinal)?;
+    let hierarchy = make_solid_hierarchy(&mut draft, &mut recorder)?;
 
     // 3. Build faces, loops, halfedges
     let edge_map = insert_faces_and_loops(
-        &mut draft, &mut geometry, cell, &vertex_ids, hierarchy.shell, &sig, &mut ordinal,
+        &mut draft, &mut geometry, cell, &vertex_ids, hierarchy.shell, &mut recorder,
     )?;
 
     // 4. Stitch twin pointers
-    stitch_twins(&mut draft, &edge_map, &sig, &mut ordinal)?;
+    stitch_twins(&mut draft, &edge_map, &mut recorder)?;
 
     // 5. Set representative face on shell
     let first_face = draft.arena().iter_faces().next().map(|(fid, _)| fid);
@@ -115,9 +122,8 @@ fn insert_vertices(
     geometry: &mut GeometryStore,
     cell: &ConvexCell,
     tolerance: f64,
-    _sig: &OpSignature,
-    ordinal: &mut u64,
     sink: &mut dyn forge_core::tracing::DecisionSink,
+    recorder: &mut LineageRecorder,
 ) -> Result<Vec<VertexId>, KernelError> {
     let mut vertex_ids = Vec::with_capacity(cell.vertex_count());
     let mut registry = PlacementRegistry::with_capacity(cell.vertex_count());
@@ -127,9 +133,8 @@ fn insert_vertices(
         let pos = *vert.position();
         let plane_indices = vert.plane_indices();
         let vid = place_vertex_exact(
-            draft, geometry, &mut registry, pos, plane_indices, planes, tolerance, sink,
+            draft, geometry, &mut registry, pos, plane_indices, planes, tolerance, sink, recorder,
         )?;
-        *ordinal += 1;
         vertex_ids.push(vid);
     }
 

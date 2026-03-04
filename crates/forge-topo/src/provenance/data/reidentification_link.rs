@@ -606,7 +606,7 @@ mod tests {
     fn build_link_records_skips_legacy_index_only_events() {
         let lineage = Lineage::root(1, OpSignature::with_id("make_face", 1));
         let events = vec![LineageEvent::EntityCreated {
-            entity: forge_core::EntityRef::new(EntityKind::Face, 1),
+            entity: forge_core::EntityRef::new(EntityKind::Face, 1, 0),
             entity_snapshot: None,
             lineage,
         }];
@@ -630,7 +630,7 @@ mod tests {
             &OpSignature::with_id("join_faces_nmt", 3),
         );
         let ev = LineageEvent::EntityCreated {
-            entity: forge_core::EntityRef::new(EntityKind::Face, 9),
+            entity: forge_core::EntityRef::new(EntityKind::Face, 9, 0),
             entity_snapshot: Some(LineageEntityRef::new(EntityKind::Face, 9, 4)),
             lineage: merged.clone(),
         };
@@ -658,12 +658,12 @@ mod tests {
         let child_edge = Lineage::derive(&parent, OpSignature::with_id("split_edge", 3));
         let events = vec![
             LineageEvent::EntityCreated {
-                entity: forge_core::EntityRef::new(EntityKind::Face, 1),
+                entity: forge_core::EntityRef::new(EntityKind::Face, 1, 0),
                 entity_snapshot: Some(LineageEntityRef::new(EntityKind::Face, 1, 1)),
                 lineage: child_face.clone(),
             },
             LineageEvent::EntityCreated {
-                entity: forge_core::EntityRef::new(EntityKind::Edge, 2),
+                entity: forge_core::EntityRef::new(EntityKind::Edge, 2, 0),
                 entity_snapshot: Some(LineageEntityRef::new(EntityKind::Edge, 2, 1)),
                 lineage: child_edge,
             },
@@ -683,12 +683,12 @@ mod tests {
         let child = Lineage::derive(&root, OpSignature::with_id("derive", 2));
         let mut events = vec![
             LineageEvent::EntityCreated {
-                entity: forge_core::EntityRef::new(EntityKind::Face, 20),
+                entity: forge_core::EntityRef::new(EntityKind::Face, 20, 0),
                 entity_snapshot: Some(LineageEntityRef::new(EntityKind::Face, 20, 2)),
                 lineage: child.clone(),
             },
             LineageEvent::EntityCreated {
-                entity: forge_core::EntityRef::new(EntityKind::Face, 10),
+                entity: forge_core::EntityRef::new(EntityKind::Face, 10, 0),
                 entity_snapshot: Some(LineageEntityRef::new(EntityKind::Face, 10, 1)),
                 lineage: child.clone(),
             },
@@ -707,12 +707,12 @@ mod tests {
         let legacy_child = Lineage::derive(&root, OpSignature::with_id("split_edge", 3));
         let events = vec![
             LineageEvent::EntityCreated {
-                entity: forge_core::EntityRef::new(EntityKind::Edge, 1),
+                entity: forge_core::EntityRef::new(EntityKind::Edge, 1, 0),
                 entity_snapshot: None,
                 lineage: legacy_child,
             },
             LineageEvent::EntityCreated {
-                entity: forge_core::EntityRef::new(EntityKind::Edge, 1),
+                entity: forge_core::EntityRef::new(EntityKind::Edge, 1, 0),
                 entity_snapshot: Some(LineageEntityRef::new(EntityKind::Edge, 1, 9)),
                 lineage: child_live.clone(),
             },
@@ -733,12 +733,12 @@ mod tests {
             5,
             &[
                 LineageEvent::EntityCreated {
-                    entity: forge_core::EntityRef::new(EntityKind::Face, 7),
+                    entity: forge_core::EntityRef::new(EntityKind::Face, 7, 0),
                     entity_snapshot: Some(LineageEntityRef::new(EntityKind::Face, 7, 1)),
                     lineage: child_a.clone(),
                 },
                 LineageEvent::EntityCreated {
-                    entity: forge_core::EntityRef::new(EntityKind::Face, 7),
+                    entity: forge_core::EntityRef::new(EntityKind::Face, 7, 0),
                     entity_snapshot: Some(LineageEntityRef::new(EntityKind::Face, 7, 2)),
                     lineage: child_b.clone(),
                 },
@@ -758,7 +758,7 @@ mod tests {
         let root = Lineage::root(10, OpSignature::with_id("root", 1));
         let child = Lineage::derive(&root, OpSignature::with_id("split_face", 2));
         let events = vec![LineageEvent::EntityCreated {
-            entity: forge_core::EntityRef::new(EntityKind::Face, 4),
+            entity: forge_core::EntityRef::new(EntityKind::Face, 4, 0),
             entity_snapshot: Some(LineageEntityRef::new(EntityKind::Face, 4, 1)),
             lineage: child,
         }];

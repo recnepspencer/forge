@@ -32,10 +32,7 @@ impl TopoOperator for RehomeLump {
         format!("Move lump {} to body {}", self.lump.index(), self.target_body.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let old_body = draft.arena().get_lump(self.lump)?.body();
 
         if old_body == self.target_body {
@@ -80,10 +77,7 @@ impl TopoOperator for ExtractLump {
         format!("Extract lump {} into its own body", self.lump.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let old_body = draft.arena().get_lump(self.lump)?.body();
 
         let remaining = draft.arena().get_body(old_body)?.lumps().len();
@@ -144,10 +138,7 @@ impl TopoOperator for SplitLump {
         )
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         if self.regions_to_move.is_empty() {
             return Err(KernelError::InvalidInput {
                 message: "SplitLump: must move at least one region".to_string(),
@@ -203,10 +194,7 @@ impl TopoOperator for MergeLumps {
         format!("Merge lump {} into lump {}", self.source.index(), self.target.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         if self.target == self.source {
             return Err(KernelError::InvalidInput {
                 message: "MergeLumps: cannot merge a lump with itself".to_string(),

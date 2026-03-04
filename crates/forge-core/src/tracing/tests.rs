@@ -86,8 +86,8 @@ fn decision_log_query_api() {
         DecisionTier::PolicyApplied,
         0.05,
         DecisionContext::Coincidence {
-            entity_a: EntityRef::new(EntityKind::Vertex, 0),
-            entity_b: EntityRef::new(EntityKind::Vertex, 1),
+            entity_a: EntityRef::new(EntityKind::Vertex, 0, 0),
+            entity_b: EntityRef::new(EntityKind::Vertex, 1, 0),
         },
     ));
 

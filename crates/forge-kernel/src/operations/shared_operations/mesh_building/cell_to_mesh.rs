@@ -15,7 +15,7 @@ use forge_core::KernelError;
 use forge_geom::ConvexCell;
 use forge_topo::b_rep::{EdgeData, FaceData, HalfEdgeData, LoopData};
 use forge_topo::handles::{EdgeId, HalfEdgeId, LoopId, ShellId, VertexId};
-use forge_topo::provenance::OpSignature;
+use forge_topo::provenance::LineageRecorder;
 use forge_topo::transactions::MutableDraft;
 
 use crate::geometry::facade::GeometryStore;
@@ -55,8 +55,7 @@ pub(crate) fn insert_faces_and_loops(
     cell: &ConvexCell,
     vertex_ids: &[VertexId],
     shell: ShellId,
-    _sig: &OpSignature,
-    ordinal: &mut u64,
+    recorder: &mut LineageRecorder,
 ) -> Result<EdgeMap, KernelError> {
     let placeholder_he = HalfEdgeId::new(u32::MAX, 0);
     let placeholder_loop = LoopId::new(u32::MAX, 0);
@@ -87,9 +86,10 @@ pub(crate) fn insert_faces_and_loops(
         }
 
         let face_id = draft.insert_face(FaceData::new(placeholder_loop, shell));
-        *ordinal += 1;
+        recorder.stamp(draft.lineage_store_mut(), face_id);
 
         let loop_id = draft.insert_loop(LoopData::new(placeholder_he, face_id));
+        recorder.stamp(draft.lineage_store_mut(), loop_id);
 
         let plane_idx = cell_face.plane_idx();
         if plane_idx < cell_planes.len() {
@@ -102,7 +102,7 @@ pub(crate) fn insert_faces_and_loops(
             let he_id = draft.insert_half_edge(HalfEdgeData::new(
                 placeholder_he, placeholder_he, placeholder_he, face_id, origin, placeholder_edge
             ));
-            *ordinal += 1;
+            recorder.stamp(draft.lineage_store_mut(), he_id);
             he_ids.push(he_id);
         }
 
@@ -138,8 +138,7 @@ pub(crate) fn insert_faces_and_loops(
 pub(crate) fn stitch_twins(
     draft: &mut MutableDraft,
     edge_map: &EdgeMap,
-    _sig: &OpSignature,
-    ordinal: &mut u64,
+    recorder: &mut LineageRecorder,
 ) -> Result<(), KernelError> {
     for (a, b, he_id) in edge_map.iter_ascending() {
         if a < b {
@@ -147,7 +146,7 @@ pub(crate) fn stitch_twins(
                 let edge = draft.insert_edge(EdgeData::new(
                     he_id,
                 ));
-                *ordinal += 1;
+                recorder.stamp(draft.lineage_store_mut(), edge);
                 draft
                     .arena_mut()
                     .get_half_edge_mut(he_id)?

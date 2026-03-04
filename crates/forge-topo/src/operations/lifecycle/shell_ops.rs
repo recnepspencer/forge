@@ -32,10 +32,7 @@ impl TopoOperator for RehomeShell {
         format!("Move shell {} to region {}", self.shell.index(), self.target_region.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let old_region = draft.arena().get_shell(self.shell)?.region();
 
         if old_region == self.target_region {
@@ -80,10 +77,7 @@ impl TopoOperator for ExtractShell {
         format!("Extract shell {} into its own region", self.shell.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let old_region = draft.arena().get_shell(self.shell)?.region();
         let lump = draft.arena().get_region(old_region)?.lump();
 
@@ -141,10 +135,7 @@ impl TopoOperator for SplitShell {
         )
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         if self.faces_to_move.is_empty() {
             return Err(KernelError::InvalidInput {
                 message: "SplitShell: must move at least one face".to_string(),
@@ -206,10 +197,7 @@ impl TopoOperator for MergeShells {
         format!("Merge shell {} into shell {}", self.source.index(), self.target.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         if self.target == self.source {
             return Err(KernelError::InvalidInput {
                 message: "MergeShells: cannot merge a shell with itself".to_string(),
@@ -260,10 +248,7 @@ impl TopoOperator for PromoteShell {
         format!("Promote inner shell {} to outer shell", self.shell.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let region = draft.arena().get_shell(self.shell)?.region();
 
         let inner_shells: Vec<ShellId> = draft.arena().get_region(region)?.inner_shells().to_vec();
@@ -314,10 +299,7 @@ impl TopoOperator for DemoteShell {
         format!("Demote outer shell of region {} to inner shell", self.region.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let outer = draft.arena().get_region(self.region)?.outer_shell();
 
         match outer {

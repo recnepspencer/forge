@@ -61,10 +61,7 @@ impl TopoOperator for MakeVertexFace {
         "Create initial vertex-face-shell scaffold (seed topology)".into()
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let placeholder_he = HalfEdgeId::DANGLING;
         let placeholder_loop = LoopId::DANGLING;
 
@@ -126,6 +123,19 @@ impl TopoOperator for MakeVertexFace {
         draft.arena_mut().get_lump_mut(lump)?.add_region(region);
         draft.arena_mut().get_region_mut(region)?.add_shell(shell);
         draft.arena_mut().get_edge_mut(edge)?.set_half_edge(he);
+
+        // ── Provenance Stamping (Root — seed operator) ─────────────────
+        use forge_core::{EntityRef, EntityKind};
+        let store = draft.lineage_store_mut();
+        _recorder.stamp(store, EntityRef::new(EntityKind::Vertex, vertex.index(), vertex.generation()));
+        _recorder.stamp(store, EntityRef::new(EntityKind::Face, face.index(), face.generation()));
+        _recorder.stamp(store, EntityRef::new(EntityKind::Loop, loop_id.index(), loop_id.generation()));
+        _recorder.stamp(store, EntityRef::new(EntityKind::HalfEdge, he.index(), he.generation()));
+        _recorder.stamp(store, EntityRef::new(EntityKind::Edge, edge.index(), edge.generation()));
+        _recorder.stamp(store, EntityRef::new(EntityKind::Shell, shell.index(), shell.generation()));
+        _recorder.stamp(store, EntityRef::new(EntityKind::Body, solid.index(), solid.generation()));
+        _recorder.stamp(store, EntityRef::new(EntityKind::Lump, lump.index(), lump.generation()));
+        _recorder.stamp(store, EntityRef::new(EntityKind::Region, region.index(), region.generation()));
 
         Ok(ExecutionResult {
             value: MvfOutput {

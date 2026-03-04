@@ -36,6 +36,7 @@ impl DecisionSink for ModelingContext {
         decision.set_entity_scope(forge_core::EntityRef::new(
             forge_core::EntityKind::Vertex,
             entity_index,
+            0,
         ));
         self.decision_log.record(decision);
     }
@@ -57,6 +58,7 @@ impl DecisionSink for ModelingContext {
         decision.set_entity_scope(forge_core::EntityRef::new(
             forge_core::EntityKind::Vertex,
             entity_index,
+            0,
         ));
         self.decision_log.record(decision);
     }
@@ -81,6 +83,7 @@ impl DecisionSink for ModelingContext {
         decision.set_entity_scope(forge_core::EntityRef::new(
             forge_core::EntityKind::Face,
             entity_index,
+            0,
         ));
         self.decision_log.record(decision);
     }
@@ -102,6 +105,7 @@ impl DecisionSink for ModelingContext {
             decision.set_entity_scope(forge_core::EntityRef::new(
                 forge_core::EntityKind::Vertex,
                 entity_index,
+                0,
             ));
             self.decision_log.record(decision);
         }
@@ -158,6 +162,7 @@ impl DecisionSink for ModelingContext {
         decision.set_entity_scope(forge_core::EntityRef::new(
             forge_core::EntityKind::Vertex,
             entity_index,
+            0,
         ));
         self.decision_log.record(decision);
     }

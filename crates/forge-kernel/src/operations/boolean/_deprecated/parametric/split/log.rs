@@ -54,6 +54,6 @@ pub(super) fn log_split_success(
             ),
         },
     );
-    decision.set_entity_scope(EntityRef::new(forge_core::EntityKind::Face, face.index()));
+    decision.set_entity_scope(EntityRef::new(forge_core::EntityKind::Face, face.index(), 0));
     ctx.get_decision_log_mut().record(decision);
 }

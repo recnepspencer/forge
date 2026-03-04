@@ -37,10 +37,7 @@ impl TopoOperator for KillFaceVertex {
         format!("Destroy face {} and its isolated vertex", self.face.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let face_data = draft.arena().get_face(self.face)?;
         let loop_id = face_data.outer_loop();
 
@@ -72,7 +69,6 @@ impl TopoOperator for KillFaceVertex {
                 context: None,
             });
         }
-
         draft.remove_half_edge(he_id)?;
         draft.remove_edge(edge_id)?;
         draft.remove_loop(loop_id)?;

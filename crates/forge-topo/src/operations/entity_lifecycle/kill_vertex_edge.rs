@@ -43,10 +43,7 @@ impl TopoOperator for KillVertexEdge {
         format!("Remove vertex {} by merging its incident edges", self.vertex.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let vertex_m = self.vertex;
 
         let outgoing_he = draft.arena().get_vertex(vertex_m)?.outgoing();

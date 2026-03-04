@@ -64,10 +64,7 @@ impl TopoOperator for MakeEdgeVertex {
         format!("Sprout antenna at anchor halfedge {}", self.anchor.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let anchor = self.anchor;
         let anchor_data = draft.arena().get_half_edge(anchor)?;
 
@@ -129,6 +126,19 @@ impl TopoOperator for MakeEdgeVertex {
 
         // ── Face version bump ───────────────────────────────────────
         draft.arena_mut().bump_face_version(face)?;
+
+        // ── Provenance Stamping (O(1)) ─────────────────────────────────
+        use forge_core::{EntityRef, EntityKind};
+        draft.stamp_children_of(
+            _recorder,
+            EntityRef::new(EntityKind::HalfEdge, self.anchor.index(), self.anchor.generation()),
+            &[
+                EntityRef::new(EntityKind::Vertex, new_vertex.index(), new_vertex.generation()),
+                EntityRef::new(EntityKind::Edge, new_edge.index(), new_edge.generation()),
+                EntityRef::new(EntityKind::HalfEdge, he_out.index(), he_out.generation()),
+                EntityRef::new(EntityKind::HalfEdge, he_back.index(), he_back.generation()),
+            ],
+        );
 
         Ok(ExecutionResult {
             value: MevOutput {

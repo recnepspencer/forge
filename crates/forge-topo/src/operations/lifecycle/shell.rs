@@ -35,10 +35,7 @@ impl TopoOperator for MakeEmptyShell {
         format!("Create empty shell in region {} (kind: {:?})", self.region.index(), self.kind)
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let shell = draft.insert_shell(ShellData::new(
             FaceId::DANGLING,
             self.kind,
@@ -82,10 +79,7 @@ impl TopoOperator for DestroyShell {
         format!("Destroy shell {}", self.shell.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let region = draft.arena().get_shell(self.shell)?.region();
 
         // Validate shell is empty (no faces reference it)

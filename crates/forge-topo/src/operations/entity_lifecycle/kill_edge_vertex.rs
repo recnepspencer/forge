@@ -50,10 +50,7 @@ impl TopoOperator for KillEdgeVertex {
         format!("Collapse edge at halfedge {}, merging target vertex into origin", self.edge.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he = self.edge;
         let he_data = draft.arena().get_half_edge(he)?;
         let vertex_a = he_data.origin();
@@ -169,7 +166,6 @@ impl TopoOperator for KillEdgeVertex {
                 context: None,
             });
         }
-
 
         // 5. Bump face versions and clean up
         let num_half_edges_removed = chain.len() as i32;

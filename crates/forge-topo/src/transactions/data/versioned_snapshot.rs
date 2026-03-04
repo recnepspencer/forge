@@ -140,15 +140,15 @@ impl TopologyState {
             next_epoch: self.epoch + 1,
             topology_version: self.topology_version,
             geometry_version: self.geometry_version,
-            lineage_log: Vec::new(),
             op_counter: 0,
             committed: false,
             replay_log: ReplayLog::new(),
             topology_hash: self.topology_hash,
             config,
             arena,
-            lineage_store: LineageStore::new(),
+            lineage_store: LineageStore::from_prior_events(&prior_events),
             prior_lineage_events: prior_events,
+            mutation_journal: crate::transactions::data::mutation_journal::MutationJournal::new(),
         }
     }
 }

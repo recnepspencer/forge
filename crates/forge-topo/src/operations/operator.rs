@@ -49,7 +49,7 @@ use forge_core::{
 /// impl TopoOperator for SplitEdge {
 ///     type Output = (HalfEdgeId, HalfEdgeId, VertexId);
 ///
-///     fn execute(&self, draft: &mut MutableDraft) -> Result<ExecutionResult<Self::Output>, KernelError> {
+///     fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
 ///         // Pure topology manipulation
 ///         panic!("example stub")
 ///     }
@@ -72,10 +72,7 @@ pub trait TopoOperator: std::fmt::Debug {
     /// - Read/write topology data in the draft
     /// - Return `ExecutionResult` with the correct `declared_delta`
     /// - Return structured errors, never panic
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError>;
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError>;
 
     /// A unique name identifying this operation type.
     ///
@@ -215,6 +212,7 @@ mod tests {
         fn execute(
             &self,
             _draft: &mut MutableDraft,
+            _recorder: &mut crate::provenance::LineageRecorder,
         ) -> Result<ExecutionResult<Self::Output>, KernelError> {
             Ok(ExecutionResult {
                 value: (),
@@ -245,6 +243,7 @@ mod tests {
         fn execute(
             &self,
             _draft: &mut MutableDraft,
+            _recorder: &mut crate::provenance::LineageRecorder,
         ) -> Result<ExecutionResult<Self::Output>, KernelError> {
             Err(KernelError::InvalidInput {
                 message: "test failure".to_string(),

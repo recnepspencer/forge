@@ -41,10 +41,7 @@ impl TopoOperator for MakeFaceKillRingHole {
         format!("Promote inner loop {} to its own face", self.loop_id.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let loop_data = draft.arena().get_loop(self.loop_id)?;
         let old_face = loop_data.face();
         let start_he = loop_data.half_edge();

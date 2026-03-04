@@ -92,6 +92,7 @@ pub fn select_faces(
         decision.set_entity_scope(EntityRef::new(
             forge_core::EntityKind::Face,
             f.face().index(),
+            0,
         ));
         ctx.get_decision_log_mut().record(decision);
 

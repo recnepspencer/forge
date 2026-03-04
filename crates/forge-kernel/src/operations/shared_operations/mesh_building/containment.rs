@@ -11,6 +11,7 @@ use forge_topo::b_rep::{
     BodyData, LumpData, RegionData, ShellData, ShellKind, ShellOrientation,
 };
 use forge_topo::handles::{FaceId, ShellId};
+use forge_topo::provenance::LineageRecorder;
 use forge_topo::transactions::MutableDraft;
 
 /// Result of creating a solid containment hierarchy.
@@ -27,14 +28,14 @@ pub struct SolidHierarchy {
 /// The shell's representative face must be set after faces are created.
 pub fn make_solid_hierarchy(
     draft: &mut MutableDraft,
-    ordinal: &mut u64,
+    recorder: &mut LineageRecorder,
 ) -> Result<SolidHierarchy, KernelError> {
     let body = draft.insert_body(BodyData::new());
-    *ordinal += 1;
+    recorder.stamp(draft.lineage_store_mut(), body);
     let lump = draft.insert_lump(LumpData::new(body));
-    *ordinal += 1;
+    recorder.stamp(draft.lineage_store_mut(), lump);
     let region = draft.insert_region(RegionData::new(lump));
-    *ordinal += 1;
+    recorder.stamp(draft.lineage_store_mut(), region);
     draft.arena_mut().get_body_mut(body)?.add_lump(lump);
     draft.arena_mut().get_lump_mut(lump)?.add_region(region);
 
@@ -43,8 +44,9 @@ pub fn make_solid_hierarchy(
         ShellKind::Solid(ShellOrientation::Outer),
         region,
     ));
-    *ordinal += 1;
+    recorder.stamp(draft.lineage_store_mut(), shell);
     draft.arena_mut().get_region_mut(region)?.add_shell(shell);
 
     Ok(SolidHierarchy { shell })
 }
+

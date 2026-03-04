@@ -7,10 +7,17 @@
 //! When a new cross-cutting concern is added (caching, undo, lineage),
 //! add a field here. Zero downstream signature changes.
 //!
+//! See `docs/engineering/CROSS_CUTTING_LIFECYCLE.md` for the recorder
+//! lifecycle protocol that governs how recorders are created from scope.
+//!
 //! DEPENDENCIES: `forge-core` (DecisionSink), `configuration` (ResolvedConfig),
-//! `engine` (OperationSpace)
+//! `engine` (OperationSpace), `forge-topo` (LineageRecorder)
 
 use forge_core::tracing::DecisionSink;
+use forge_topo::provenance::{
+    LineageRecorder, LineageMode, OperationLineageContext,
+    FEATURE_ID_UNSET,
+};
 
 use crate::configuration::facade::ResolvedConfig;
 use crate::engine::facade::OperationSpace;
@@ -34,6 +41,11 @@ pub struct OperationScope<'a> {
     /// Features can use `scope.op_space.to_local()` / `scope.op_space.to_world()`
     /// for per-point transforms during execution.
     pub op_space: &'a OperationSpace,
+    /// The originating feature's identity for lineage recording.
+    ///
+    /// Set by the pipeline before execution. Default `0` (FEATURE_ID_UNSET)
+    /// triggers a debug assertion if `lineage_recorder()` is called.
+    pub feature_id: u64,
 }
 
 /// Static identity OperationSpace used as the default when no conditioning is needed.
@@ -50,6 +62,7 @@ impl<'a> OperationScope<'a> {
             config,
             sink,
             op_space: &IDENTITY_OP_SPACE,
+            feature_id: FEATURE_ID_UNSET,
         }
     }
 
@@ -66,6 +79,31 @@ impl<'a> OperationScope<'a> {
             config,
             sink,
             op_space,
+            feature_id: FEATURE_ID_UNSET,
         }
     }
+
+    /// Create a `LineageRecorder` for this operation.
+    ///
+    /// Enforces the recorder lifecycle protocol:
+    /// - One recorder per operation invocation
+    /// - `feature_id` must be set (debug assertion)
+    /// - The recorder's mode determines stamp semantics
+    ///
+    /// # Panics (debug builds)
+    /// Panics if `feature_id == FEATURE_ID_UNSET` (0). Pipeline must set
+    /// `scope.feature_id` before calling this.
+    pub fn lineage_recorder(&self, op_name: &'static str, mode: LineageMode) -> LineageRecorder {
+        debug_assert!(
+            self.feature_id != FEATURE_ID_UNSET,
+            "OperationScope::lineage_recorder called with unset feature_id. \
+             Pipeline must set scope.feature_id before execution."
+        );
+        LineageRecorder::new(OperationLineageContext {
+            feature_id: self.feature_id,
+            op_name,
+            mode,
+        }, 1)
+    }
 }
+

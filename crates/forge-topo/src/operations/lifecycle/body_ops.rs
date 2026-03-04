@@ -42,10 +42,7 @@ impl TopoOperator for SplitBody {
         )
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         if self.lumps_to_move.is_empty() {
             return Err(KernelError::InvalidInput {
                 message: "SplitBody: must move at least one lump".to_string(),
@@ -111,10 +108,7 @@ impl TopoOperator for MergeBodies {
         format!("Merge body {} into body {}", self.source.index(), self.target.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         if self.target == self.source {
             return Err(KernelError::InvalidInput {
                 message: "MergeBodies: cannot merge a body with itself".to_string(),
@@ -166,10 +160,7 @@ impl TopoOperator for CloneBody {
         format!("Deep clone body {}", self.body.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         use std::collections::BTreeMap;
 
         // ── Phase 1: Collect ALL source data (immutable borrows) ────

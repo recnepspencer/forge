@@ -46,10 +46,7 @@ impl TopoOperator for MakeFaceVertex {
         format!("Create isolated vertex-face in shell {}", self.shell.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let placeholder_he = HalfEdgeId::DANGLING;
         let placeholder_loop = LoopId::DANGLING;
 
@@ -88,6 +85,20 @@ impl TopoOperator for MakeFaceVertex {
             .set_outer_loop(loop_id);
         draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(he);
         draft.arena_mut().get_edge_mut(edge)?.set_half_edge(he);
+
+        // ── Provenance Stamping (O(1)) ─────────────────────────────────
+        use forge_core::{EntityRef, EntityKind};
+        draft.stamp_children_of(
+            _recorder,
+            EntityRef::new(EntityKind::Shell, self.shell.index(), self.shell.generation()),
+            &[
+                EntityRef::new(EntityKind::Vertex, vertex.index(), vertex.generation()),
+                EntityRef::new(EntityKind::Face, face.index(), face.generation()),
+                EntityRef::new(EntityKind::Loop, loop_id.index(), loop_id.generation()),
+                EntityRef::new(EntityKind::HalfEdge, he.index(), he.generation()),
+                EntityRef::new(EntityKind::Edge, edge.index(), edge.generation()),
+            ],
+        );
 
         Ok(ExecutionResult {
             value: MfvOutput {

@@ -132,6 +132,29 @@ define_handle!(RegionId);
 define_handle!(ShellId);
 define_handle!(EdgeId);
 
+// ── Handle → EntityRef conversions ───────────────────────────────────────
+// Enables `recorder.stamp(store, face_id)` without manual conversion.
+
+macro_rules! impl_entity_ref_from_handle {
+    ($handle:ty, $kind:expr) => {
+        impl From<$handle> for forge_core::EntityRef {
+            fn from(id: $handle) -> Self {
+                forge_core::EntityRef::new($kind, id.index(), id.generation())
+            }
+        }
+    };
+}
+
+impl_entity_ref_from_handle!(FaceId, forge_core::EntityKind::Face);
+impl_entity_ref_from_handle!(HalfEdgeId, forge_core::EntityKind::HalfEdge);
+impl_entity_ref_from_handle!(VertexId, forge_core::EntityKind::Vertex);
+impl_entity_ref_from_handle!(LoopId, forge_core::EntityKind::Loop);
+impl_entity_ref_from_handle!(BodyId, forge_core::EntityKind::Body);
+impl_entity_ref_from_handle!(LumpId, forge_core::EntityKind::Lump);
+impl_entity_ref_from_handle!(RegionId, forge_core::EntityKind::Region);
+impl_entity_ref_from_handle!(ShellId, forge_core::EntityKind::Shell);
+impl_entity_ref_from_handle!(EdgeId, forge_core::EntityKind::Edge);
+
 /// Opaque cross-crate reference to a curve in `forge-geom::CurveGeom`.
 ///
 /// This handle is stored in `EdgeData.curve` so that the topology arena can

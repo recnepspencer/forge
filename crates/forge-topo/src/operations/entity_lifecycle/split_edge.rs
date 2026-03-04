@@ -74,10 +74,7 @@ impl TopoOperator for SplitEdge {
         format!("Split edge at halfedge {} (t={:.2})", self.edge.index(), self.parameter)
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he_ab = self.edge;
         let (vertex_a, vertex_b) = {
             let ab_data = draft.arena().get_half_edge(he_ab)?;
@@ -223,7 +220,6 @@ impl TopoOperator for SplitEdge {
             .get_edge_mut(new_edge)?
             .set_half_edge(e_new_he);
 
-        // Construct output
         let he_twin = chain[1 % chain.len()];
         let he_mb = *new_ids.get(&he_ab).unwrap();
 
@@ -233,6 +229,18 @@ impl TopoOperator for SplitEdge {
             let twin_new = *new_ids.get(&he_twin).unwrap();
             (he_twin, twin_new)
         };
+
+        // ── Provenance Stamping (O(1)) ─────────────────────────────────
+        use forge_core::{EntityRef, EntityKind};
+        let parent = EntityRef::new(EntityKind::HalfEdge, self.edge.index(), self.edge.generation());
+        let mut children: Vec<EntityRef> = vec![
+            EntityRef::new(EntityKind::Vertex, new_vertex.index(), new_vertex.generation()),
+            EntityRef::new(EntityKind::Edge, new_edge.index(), new_edge.generation()),
+        ];
+        for &h_new in new_ids.values() {
+            children.push(EntityRef::new(EntityKind::HalfEdge, h_new.index(), h_new.generation()));
+        }
+        draft.stamp_children_of(_recorder, parent, &children);
 
         Ok(ExecutionResult {
             value: SplitEdgeOutput {

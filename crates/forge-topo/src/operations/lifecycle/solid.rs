@@ -39,10 +39,7 @@ impl TopoOperator for MakeSolid {
         "Create new solid (body + lump + region hierarchy)".into()
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let body = draft.insert_body(BodyData::new());
         let lump = draft.insert_lump(LumpData::new(body));
         let region = draft.insert_region(RegionData::new(lump));
@@ -90,10 +87,7 @@ impl TopoOperator for DestroyBody {
         format!("Destroy body {} and all its lumps/regions", self.body.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let lumps: Vec<LumpId> = draft.arena().get_body(self.body)?.lumps().to_vec();
         if lumps.len() != 1 {
             return Err(KernelError::InvalidInput {

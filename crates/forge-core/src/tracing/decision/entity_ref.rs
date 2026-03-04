@@ -84,9 +84,13 @@ impl fmt::Display for EntityKind {
 
 /// Crate-neutral reference to a topological entity.
 ///
-/// Packed as a single `u64`: `[8-bit EntityKind tag | 56-bit index]`.
+/// Packed as a single `u64`: `[8-bit EntityKind tag | 24-bit generation | 32-bit index]`.
 /// This eliminates heap allocation (no `String`) and enables O(1)
-/// hashing/comparison. Maximum addressable index: 2^56 - 1 ≈ 72 quadrillion.
+/// hashing/comparison.
+///
+/// - **Index**: 32-bit slot address (4 billion entities per kind)
+/// - **Generation**: 24-bit reuse counter (16 million reuses per slot)
+/// - **Kind**: 8-bit entity type discriminant
 ///
 /// Used in `TracedDecision`, `LineageStore`, and `DecisionContext` to
 /// scope decisions to specific entities without importing typed handles
@@ -95,10 +99,15 @@ impl fmt::Display for EntityKind {
 pub struct EntityRef(u64);
 
 impl EntityRef {
-    /// Create a new entity reference from kind and arena index.
-    pub fn new(kind: EntityKind, index: u32) -> Self {
+    /// Create a new entity reference from kind, index, and generation.
+    ///
+    /// This is the preferred constructor — it preserves the full generational
+    /// identity so that stale handles produce `None` from `LineageStore`
+    /// lookups rather than silently returning wrong data.
+    pub fn new(kind: EntityKind, index: u32, generation: u32) -> Self {
         let tag = kind as u64;
-        Self((tag << 56) | (index as u64))
+        let gen = (generation as u64) & 0x00FF_FFFF; // 24-bit generation
+        Self((tag << 56) | (gen << 32) | (index as u64))
     }
 
     /// The entity kind.
@@ -107,20 +116,29 @@ impl EntityRef {
         EntityKind::from_tag(tag).expect("invalid EntityRef tag")
     }
 
-    /// The arena index.
+    /// The arena index (slot position).
     pub fn index(self) -> u32 {
-        (self.0 & 0x00FF_FFFF_FFFF_FFFF) as u32
+        (self.0 & 0xFFFF_FFFF) as u32
+    }
+
+    /// The generation counter for stale-handle detection.
+    ///
+    /// Truncated to 24 bits when packed. Returns 0 for legacy refs
+    /// that were created before generational packing was introduced.
+    pub fn generation(self) -> u32 {
+        ((self.0 >> 32) & 0x00FF_FFFF) as u32
     }
 }
 
 impl fmt::Debug for EntityRef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "EntityRef({}#{})", self.kind().as_str(), self.index())
+        write!(f, "EntityRef({}#{}:gen{})", self.kind().as_str(), self.index(), self.generation())
     }
 }
 
 impl fmt::Display for EntityRef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}#{}", self.kind().as_str(), self.index())
+        write!(f, "{}#{}:gen{}", self.kind().as_str(), self.index(), self.generation())
     }
 }
+

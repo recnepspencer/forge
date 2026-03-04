@@ -57,7 +57,12 @@ impl LineageEntityRef {
     }
 
     pub fn as_entity_ref(self) -> EntityRef {
-        EntityRef::new(self.kind, self.index)
+        EntityRef::new(self.kind, self.index, 0)
+    }
+
+    /// Convert to a `LineageEntityRef` (includes generation).
+    pub fn to_snapshot(&self, generation: u32) -> LineageEntityRef {
+        LineageEntityRef::new(self.kind, self.index, generation)
     }
 }
 
@@ -488,7 +493,7 @@ mod tests {
     #[test]
     fn lineage_event_legacy_deserialize_without_entity_snapshot_preserves_none() {
         let ev = LineageEvent::EntityCreated {
-            entity: EntityRef::new(EntityKind::Face, 42),
+            entity: EntityRef::new(EntityKind::Face, 42, 0),
             entity_snapshot: Some(LineageEntityRef::new(EntityKind::Face, 42, 9)),
             lineage: json_safe_lineage(),
         };
@@ -513,7 +518,7 @@ mod tests {
     #[test]
     fn lineage_event_round_trip_preserves_generational_snapshot_identity() {
         let ev = LineageEvent::EntityCreated {
-            entity: EntityRef::new(EntityKind::Face, 42),
+            entity: EntityRef::new(EntityKind::Face, 42, 0),
             entity_snapshot: Some(LineageEntityRef::new(EntityKind::Face, 42, 9)),
             lineage: json_safe_lineage(),
         };

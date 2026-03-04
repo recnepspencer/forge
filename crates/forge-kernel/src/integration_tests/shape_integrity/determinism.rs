@@ -91,3 +91,27 @@ fn split_then_mef_chain_is_deterministic() {
         Ok(OperationResult::new(crate::engine::facade::SolidEnvelope::new(topo, geom)))
     });
 }
+
+// ── Serialization Round-Trip ─────────────────────────────────────────────────
+
+/// Serialize a SolidEnvelope (topology + geometry) to bytes, deserialize,
+/// and assert a bit-identical full fingerprint result.
+#[test]
+fn cube_serialization_round_trip_is_deterministic() {
+    let original = shapes::unit_cube().expect("Failed to build cube").into_value();
+    let original_hash = original.full_fingerprint();
+
+    // Serialize to bytes
+    let bytes = serde_json::to_vec(&original).expect("Serialization failed");
+
+    // Deserialize from bytes
+    let restored: crate::engine::facade::SolidEnvelope = 
+        serde_json::from_slice(&bytes).expect("Deserialization failed");
+
+    let restored_hash = restored.full_fingerprint();
+
+    assert_eq!(
+        original_hash, restored_hash,
+        "SolidEnvelope must perfectly survive serialization round-trip (topology + geometry)"
+    );
+}

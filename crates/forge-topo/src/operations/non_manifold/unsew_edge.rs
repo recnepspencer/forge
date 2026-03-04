@@ -51,10 +51,7 @@ impl TopoOperator for UnsewEdge {
         )
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let op_name = Self::NAME.to_string();
         let inv_id = 0u64;
 

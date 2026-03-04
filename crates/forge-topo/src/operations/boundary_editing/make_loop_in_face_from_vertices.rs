@@ -51,10 +51,7 @@ impl TopoOperator for MakeLoopInFaceFromVertices {
         )
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let n = self.vertices.len();
         if n < 3 {
             return Err(KernelError::InvalidInput {

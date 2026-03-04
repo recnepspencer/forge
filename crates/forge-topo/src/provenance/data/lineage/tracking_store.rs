@@ -30,7 +30,7 @@ use forge_core::KernelError;
 pub struct LineageStore {
     /// Active entity → lineage mapping, ordered for deterministic iteration.
     entries: BTreeMap<EntityRef, Lineage>,
-    /// Chronological event log (mirrors MutableDraft::lineage_log).
+    /// Chronological event log — single source of truth for lineage events.
     events: Vec<LineageEvent>,
 }
 
@@ -43,16 +43,98 @@ impl LineageStore {
         }
     }
 
+    /// Rebuild active entity tracking from a prior event history.
+    ///
+    /// Replays the given events to reconstruct the live `entries` map,
+    /// without re-recording them in `events` (they're already persisted).
+    /// Used when creating a `MutableDraft` from a committed state.
+    pub fn from_prior_events(prior: &[LineageEvent]) -> Self {
+        let mut entries = BTreeMap::new();
+        for event in prior {
+            match event {
+                LineageEvent::EntityCreated { entity, lineage, .. } => {
+                    entries.insert(entity.clone(), lineage.clone());
+                }
+                LineageEvent::EntityDeleted { entity, .. } => {
+                    entries.remove(entity);
+                }
+                LineageEvent::EntityModified { entity, new_lineage, .. } => {
+                    entries.insert(entity.clone(), new_lineage.clone());
+                }
+            }
+        }
+        Self {
+            entries,
+            events: Vec::new(),
+        }
+    }
+
+    /// Apply a pre-constructed lineage event.
+    ///
+    /// This is the single invariant-enforcing choke point for all lineage mutations.
+    /// `LineageRecorder` constructs events (emission); `LineageStore` applies them
+    /// (persistence). Debug builds enforce strict preconditions.
+    ///
+    /// When Booleans need atomic multi-event batches, use `apply_batch()`.
+    pub fn apply(&mut self, event: LineageEvent) {
+        #[cfg(debug_assertions)]
+        match &event {
+            LineageEvent::EntityCreated { entity, .. } => {
+                debug_assert!(
+                    !self.entries.contains_key(entity),
+                    "LineageStore::apply: EntityCreated for already-tracked {:?}",
+                    entity
+                );
+            }
+            LineageEvent::EntityDeleted { entity, .. } => {
+                debug_assert!(
+                    self.entries.contains_key(entity),
+                    "LineageStore::apply: EntityDeleted for untracked {:?}",
+                    entity
+                );
+            }
+            LineageEvent::EntityModified { entity, .. } => {
+                debug_assert!(
+                    self.entries.contains_key(entity),
+                    "LineageStore::apply: EntityModified for untracked {:?}",
+                    entity
+                );
+            }
+        }
+
+        match &event {
+            LineageEvent::EntityCreated { entity, lineage, .. } => {
+                self.entries.insert(entity.clone(), lineage.clone());
+            }
+            LineageEvent::EntityDeleted { entity, .. } => {
+                self.entries.remove(entity);
+            }
+            LineageEvent::EntityModified { entity, new_lineage, .. } => {
+                self.entries.insert(entity.clone(), new_lineage.clone());
+            }
+        }
+        self.events.push(event);
+    }
+
+    /// Check whether the lineage store is tracking the given entity.
+    pub fn contains_entity(&self, entity: &EntityRef) -> bool {
+        self.entries.contains_key(entity)
+    }
+
+    /// Iterate over all currently tracked entity references.
+    pub fn tracked_entities(&self) -> impl Iterator<Item = &EntityRef> {
+        self.entries.keys()
+    }
+
     /// Record the creation of a new entity with the given lineage.
     ///
-    /// Inserts into the live map and appends an `EntityCreated` event.
+    /// Convenience wrapper around `apply()`.
     pub fn record_creation(&mut self, entity: EntityRef, lineage: Lineage) {
-        self.events.push(LineageEvent::EntityCreated {
-            entity: entity.clone(),
+        self.apply(LineageEvent::EntityCreated {
+            entity,
             entity_snapshot: None,
-            lineage: lineage.clone(),
+            lineage,
         });
-        self.entries.insert(entity, lineage);
     }
 
     /// Record creation with a generational snapshot identity.
@@ -212,7 +294,7 @@ mod tests {
     #[test]
     fn creation_and_query() {
         let mut store = LineageStore::new();
-        let entity = EntityRef::new(EntityKind::Face, 42);
+        let entity = EntityRef::new(EntityKind::Face, 42, 0);
         let lineage = Lineage::root(42, OpSignature::new("make_face"));
 
         store.record_creation(entity.clone(), lineage.clone());
@@ -227,7 +309,7 @@ mod tests {
     #[test]
     fn deletion_removes_from_live_map() {
         let mut store = LineageStore::new();
-        let entity = EntityRef::new(EntityKind::HalfEdge, 117);
+        let entity = EntityRef::new(EntityKind::HalfEdge, 117, 0);
         let lineage = Lineage::root(117, OpSignature::new("split_edge"));
 
         store.record_creation(entity.clone(), lineage);
@@ -244,7 +326,7 @@ mod tests {
     #[test]
     fn mutation_updates_lineage() {
         let mut store = LineageStore::new();
-        let entity = EntityRef::new(EntityKind::Face, 10);
+        let entity = EntityRef::new(EntityKind::Face, 10, 0);
         let original = Lineage::root(10, OpSignature::new("create"));
         let updated = Lineage::root(10, OpSignature::new("split"));
 
@@ -263,7 +345,7 @@ mod tests {
     #[test]
     fn creation_with_snapshot_preserves_generation() {
         let mut store = LineageStore::new();
-        let entity = EntityRef::new(EntityKind::Face, 42);
+        let entity = EntityRef::new(EntityKind::Face, 42, 0);
         let snapshot = LineageEntityRef::new(EntityKind::Face, 42, 7);
         let lineage = Lineage::root(42, OpSignature::new("make_face"));
 

@@ -33,6 +33,14 @@ pub struct LineageDelta {
     pub solids_created: u32,
     /// Number of solids deleted.
     pub solids_deleted: u32,
+    /// Number of lumps created.
+    pub lumps_created: u32,
+    /// Number of lumps deleted.
+    pub lumps_deleted: u32,
+    /// Number of regions created.
+    pub regions_created: u32,
+    /// Number of regions deleted.
+    pub regions_deleted: u32,
 }
 
 impl LineageDelta {
@@ -56,5 +64,9 @@ impl LineageDelta {
         self.shells_deleted += other.shells_deleted;
         self.solids_created += other.solids_created;
         self.solids_deleted += other.solids_deleted;
+        self.lumps_created += other.lumps_created;
+        self.lumps_deleted += other.lumps_deleted;
+        self.regions_created += other.regions_created;
+        self.regions_deleted += other.regions_deleted;
     }
 }

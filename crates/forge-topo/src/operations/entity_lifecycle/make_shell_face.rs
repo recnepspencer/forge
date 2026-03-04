@@ -53,10 +53,7 @@ impl TopoOperator for MakeShellFace {
         format!("Create new shell with seed vertex-face in region {}", self.region.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let placeholder_he = HalfEdgeId::DANGLING;
         let placeholder_loop = LoopId::DANGLING;
 
@@ -110,6 +107,21 @@ impl TopoOperator for MakeShellFace {
             .get_region_mut(self.region)?
             .add_shell(shell);
         draft.arena_mut().get_edge_mut(edge)?.set_half_edge(he);
+
+        // ── Provenance Stamping (O(1)) ─────────────────────────────────
+        use forge_core::{EntityRef, EntityKind};
+        draft.stamp_children_of(
+            _recorder,
+            EntityRef::new(EntityKind::Region, self.region.index(), self.region.generation()),
+            &[
+                EntityRef::new(EntityKind::Vertex, vertex.index(), vertex.generation()),
+                EntityRef::new(EntityKind::Face, face.index(), face.generation()),
+                EntityRef::new(EntityKind::Loop, loop_id.index(), loop_id.generation()),
+                EntityRef::new(EntityKind::HalfEdge, he.index(), he.generation()),
+                EntityRef::new(EntityKind::Edge, edge.index(), edge.generation()),
+                EntityRef::new(EntityKind::Shell, shell.index(), shell.generation()),
+            ],
+        );
 
         Ok(ExecutionResult {
             value: MsfOutput {

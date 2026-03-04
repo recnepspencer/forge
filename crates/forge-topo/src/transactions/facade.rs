@@ -1,4 +1,5 @@
 pub use super::data::draft_configuration::DraftConfig;
+pub use super::data::mutation_journal::MutationJournal;
 pub use super::data::versioned_snapshot::TopologyState;
 pub use super::logic::mutable_draft::MutableDraft;
 pub use super::logic::structural_signature::{

@@ -50,10 +50,7 @@ impl TopoOperator for KillEdgeMakeLoop {
         format!("Remove edge at halfedge {} and create inner loop (hole)", self.edge.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he_data = draft.arena().get_half_edge(self.edge)?;
         let twin_id = he_data.radial_next();
         let face = he_data.face();

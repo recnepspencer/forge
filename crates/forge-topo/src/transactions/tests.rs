@@ -89,7 +89,7 @@ fn commit_builds_reidentification_index_from_generational_lineage_events() {
 
     let lineage = Lineage::root(7, OpSignature::with_id("make_face", 1));
     draft.lineage_store.record_creation_with_snapshot(
-        EntityRef::new(EntityKind::Face, 42),
+        EntityRef::new(EntityKind::Face, 42, 3),
         LineageEntityRef::new(EntityKind::Face, 42, 3),
         lineage.clone(),
     );
@@ -163,12 +163,12 @@ fn commit_level_reidentification_index_order_is_deterministic_despite_event_inse
         let root = Lineage::root(1, OpSignature::with_id("root", 1));
         let child = Lineage::derive(&root, OpSignature::with_id("derive", 2));
         draft.lineage_store.record_creation_with_snapshot(
-            EntityRef::new(EntityKind::Face, first.0),
+            EntityRef::new(EntityKind::Face, first.0, first.1),
             LineageEntityRef::new(EntityKind::Face, first.0, first.1),
             child.clone(),
         );
         draft.lineage_store.record_creation_with_snapshot(
-            EntityRef::new(EntityKind::Face, second.0),
+            EntityRef::new(EntityKind::Face, second.0, second.1),
             LineageEntityRef::new(EntityKind::Face, second.0, second.1),
             child.clone(),
         );
@@ -195,17 +195,16 @@ fn commit_level_reidentification_index_order_is_deterministic_despite_event_inse
 }
 
 #[test]
-fn commit_persists_manual_lineage_log_events() {
+fn commit_persists_lineage_store_events() {
     let mut draft = TopologyState::empty().into_mutation();
     let root = Lineage::root(1, OpSignature::with_id("root", 1));
     let child = Lineage::derive(&root, OpSignature::with_id("child", 2));
-    draft.log_lineage_event(LineageEvent::EntityCreated {
-        entity: EntityRef::new(EntityKind::Face, 42),
-        entity_snapshot: None,
-        lineage: child.clone(),
-    });
+    draft.lineage_store.record_creation(
+        EntityRef::new(EntityKind::Face, 42, 0),
+        child.clone(),
+    );
 
-    let committed = draft.commit().expect("manual lineage log event commit");
+    let committed = draft.commit().expect("lineage store event commit");
     assert_eq!(committed.lineage_events().len(), 1);
     match &committed.lineage_events()[0] {
         LineageEvent::EntityCreated {
@@ -223,46 +222,32 @@ fn commit_persists_manual_lineage_log_events() {
 }
 
 #[test]
-fn commit_persists_both_lineage_channels_deterministically() {
+fn commit_persists_lineage_store_events_with_snapshots() {
     let mut draft = TopologyState::empty().into_mutation();
-
-    let manual_root = Lineage::root(10, OpSignature::with_id("manual_root", 1));
-    let manual_child = Lineage::derive(&manual_root, OpSignature::with_id("manual_child", 2));
-    draft.log_lineage_event(LineageEvent::EntityCreated {
-        entity: EntityRef::new(EntityKind::Face, 100),
-        entity_snapshot: None,
-        lineage: manual_child.clone(),
-    });
 
     let store_root = Lineage::root(20, OpSignature::with_id("store_root", 1));
     let store_child = Lineage::derive(&store_root, OpSignature::with_id("store_child", 2));
     draft.lineage_store.record_creation_with_snapshot(
-        EntityRef::new(EntityKind::Face, 200),
+        EntityRef::new(EntityKind::Face, 200, 7),
         LineageEntityRef::new(EntityKind::Face, 200, 7),
         store_child.clone(),
     );
 
-    let committed = draft.commit().expect("mixed lineage channels commit");
-    let events = committed.lineage_events();
-    assert_eq!(events.len(), 2, "both lineage channels must be persisted");
+    let plain_root = Lineage::root(10, OpSignature::with_id("plain_root", 1));
+    let plain_child = Lineage::derive(&plain_root, OpSignature::with_id("plain_child", 2));
+    draft.lineage_store.record_creation(
+        EntityRef::new(EntityKind::Face, 100, 0),
+        plain_child.clone(),
+    );
 
-    let mut manual_seen = false;
-    let mut store_seen = false;
+    let committed = draft.commit().expect("mixed lineage events commit");
+    let events = committed.lineage_events();
+    assert_eq!(events.len(), 2, "single-channel lineage must persist all events");
+
+    let mut snapshot_seen = false;
+    let mut plain_seen = false;
     for ev in events {
         match ev {
-            LineageEvent::EntityCreated {
-                entity,
-                entity_snapshot,
-                lineage,
-            } if lineage.get_ancestry_hash() == manual_child.get_ancestry_hash() => {
-                assert_eq!(entity.kind(), EntityKind::Face);
-                assert_eq!(entity.index(), 100);
-                assert!(
-                    entity_snapshot.is_none(),
-                    "manual channel event should remain explicit legacy/none"
-                );
-                manual_seen = true;
-            }
             LineageEvent::EntityCreated {
                 entity,
                 entity_snapshot,
@@ -275,13 +260,235 @@ fn commit_persists_both_lineage_channels_deterministically() {
                     Some(LineageEntityRef::new(EntityKind::Face, 200, 7)),
                     "lineage_store event must preserve generational snapshot"
                 );
-                store_seen = true;
+                snapshot_seen = true;
+            }
+            LineageEvent::EntityCreated {
+                entity,
+                entity_snapshot,
+                lineage,
+            } if lineage.get_ancestry_hash() == plain_child.get_ancestry_hash() => {
+                assert_eq!(entity.kind(), EntityKind::Face);
+                assert_eq!(entity.index(), 100);
+                assert!(
+                    entity_snapshot.is_none(),
+                    "plain record_creation should have no snapshot"
+                );
+                plain_seen = true;
             }
             _ => {}
         }
     }
     assert!(
-        manual_seen && store_seen,
-        "must persist one event from each lineage channel"
+        snapshot_seen && plain_seen,
+        "must persist events from both record_creation and record_creation_with_snapshot"
     );
+}
+
+// =====================================================================
+// MutationJournal Adversarial Tests
+// =====================================================================
+
+use crate::handles::{
+    HalfEdgeId, LoopId, ShellId, FaceId, VertexId, EdgeId, RegionId, LumpId, BodyId,
+};
+use crate::b_rep::{
+    FaceData, HalfEdgeData, VertexData, LoopData, EdgeData,
+    ShellData, ShellKind, ShellOrientation, RegionData, LumpData, BodyData,
+};
+
+/// Helper: insert one of each entity type into the draft via proxy hooks.
+/// Returns all 9 handles in a tuple for removal tests.
+fn insert_all_entity_kinds(
+    draft: &mut MutableDraft,
+) -> (FaceId, HalfEdgeId, VertexId, LoopId, EdgeId, ShellId, RegionId, LumpId, BodyId) {
+    // Use DANGLING sentinels for cross-references — we only care that
+    // the proxy hooks fire, not that the topology is valid.
+    let b1 = draft.insert_body(BodyData::new());
+    let lu1 = draft.insert_lump(LumpData::new(b1));
+    let f1 = draft.insert_face(FaceData::new(LoopId::DANGLING, ShellId::DANGLING));
+    let r1 = draft.insert_region(RegionData::new(lu1));
+    let s1 = draft.insert_shell(ShellData::new(
+        f1,
+        ShellKind::Solid(ShellOrientation::Outer),
+        r1,
+    ));
+    let v1 = draft.insert_vertex(VertexData::new(HalfEdgeId::DANGLING));
+    let e1 = draft.insert_edge(EdgeData::new(HalfEdgeId::DANGLING));
+    let l1 = draft.insert_loop(LoopData::new(HalfEdgeId::DANGLING, f1));
+    let he1 = draft.insert_half_edge(HalfEdgeData::new(
+        HalfEdgeId::DANGLING,
+        HalfEdgeId::DANGLING,
+        HalfEdgeId::DANGLING,
+        f1,
+        v1,
+        e1,
+    ));
+    (f1, he1, v1, l1, e1, s1, r1, lu1, b1)
+}
+
+#[test]
+fn journal_records_all_creations() {
+    let state = TopologyState::empty();
+    let mut draft = state.into_mutation();
+
+    // Create one of every entity kind through the draft proxy.
+    let _ = insert_all_entity_kinds(&mut draft);
+
+    let created = draft.mutation_journal().count_created();
+
+    assert_eq!(created.faces, 1);
+    assert_eq!(created.half_edges, 1);
+    assert_eq!(created.vertices, 1);
+    assert_eq!(created.loops, 1);
+    assert_eq!(created.edges, 1);
+    assert_eq!(created.shells, 1);
+    assert_eq!(created.regions, 1);
+    assert_eq!(created.lumps, 1);
+    assert_eq!(created.bodies, 1);
+    assert_eq!(created.total(), 9);
+
+    // Ensure no destructions were inadvertently recorded.
+    assert_eq!(draft.mutation_journal().count_destroyed().total(), 0);
+}
+
+#[test]
+fn journal_records_all_destructions() {
+    let state = TopologyState::empty();
+    let mut draft = state.into_mutation();
+
+    let (f1, he1, v1, l1, e1, s1, r1, lu1, b1) = insert_all_entity_kinds(&mut draft);
+
+    // Reset so we only observe destructions from this point forward.
+    draft.mutation_journal_mut().reset();
+
+    // Destroy everything.
+    let _ = draft.remove_half_edge(he1);
+    let _ = draft.remove_loop(l1);
+    let _ = draft.remove_face(f1);
+    let _ = draft.remove_vertex(v1);
+    let _ = draft.remove_edge(e1);
+    let _ = draft.remove_shell(s1);
+    let _ = draft.remove_region(r1);
+    let _ = draft.remove_lump(lu1);
+    let _ = draft.remove_body(b1);
+
+    let destroyed = draft.mutation_journal().count_destroyed();
+
+    assert_eq!(destroyed.faces, 1);
+    assert_eq!(destroyed.half_edges, 1);
+    assert_eq!(destroyed.vertices, 1);
+    assert_eq!(destroyed.loops, 1);
+    assert_eq!(destroyed.edges, 1);
+    assert_eq!(destroyed.shells, 1);
+    assert_eq!(destroyed.regions, 1);
+    assert_eq!(destroyed.lumps, 1);
+    assert_eq!(destroyed.bodies, 1);
+    assert_eq!(destroyed.total(), 9);
+
+    assert_eq!(draft.mutation_journal().count_created().total(), 0);
+}
+
+#[derive(Debug, Clone)]
+struct MockVertexCreator;
+impl crate::operations::operator::TopoOperator for MockVertexCreator {
+    type Output = ();
+    const NAME: &'static str = "mock_vertex_creator";
+
+    fn semantic_summary(&self) -> String {
+        "Create one vertex".into()
+    }
+
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<crate::operations::operator::ExecutionResult<Self::Output>, forge_core::KernelError> {
+        let _v = draft.insert_vertex(VertexData::new(HalfEdgeId::DANGLING));
+        Ok(crate::operations::operator::ExecutionResult {
+            value: (),
+            declared_delta: crate::operations::operator::EulerDelta {
+                vertices: 1,
+                ..Default::default()
+            },
+        })
+    }
+}
+
+#[test]
+fn journal_resets_between_operations() {
+    let state = TopologyState::empty();
+    let mut draft = state.into_mutation();
+
+    assert_eq!(draft.mutation_journal().creation_count(), 0);
+
+    // First operation: creates 1 vertex.
+    let _ = draft.execute(MockVertexCreator).unwrap();
+
+    // After execute, `created` is still populated (only `destroyed` was drained
+    // for auto-stamping). We can read the journal to confirm:
+    assert_eq!(draft.mutation_journal().creation_count(), 1);
+
+    // The start of the NEXT execute calls `reset()`.
+    // Verify reset zeroes both vectors.
+    draft.mutation_journal_mut().reset();
+    assert_eq!(draft.mutation_journal().creation_count(), 0);
+    assert_eq!(draft.mutation_journal().destruction_count(), 0);
+}
+
+#[test]
+fn journal_counts_match_arena_delta() {
+    let state = TopologyState::empty();
+    let mut draft = state.into_mutation();
+
+    let vertices_before = draft.arena().vertex_count();
+
+    let v1 = draft.insert_vertex(VertexData::new(HalfEdgeId::DANGLING));
+    let _v2 = draft.insert_vertex(VertexData::new(HalfEdgeId::DANGLING));
+    let _ = draft.remove_vertex(v1);
+
+    let vertices_after = draft.arena().vertex_count();
+    let arena_net = vertices_after as i32 - vertices_before as i32;
+
+    let j_created = draft.mutation_journal().count_created().vertices as i32;
+    let j_destroyed = draft.mutation_journal().count_destroyed().vertices as i32;
+    let journal_net = j_created - j_destroyed;
+
+    // 2 created, 1 deleted → net +1.
+    assert_eq!(j_created, 2);
+    assert_eq!(j_destroyed, 1);
+    assert_eq!(arena_net, 1);
+    assert_eq!(
+        journal_net, arena_net,
+        "Journal net delta must precisely track the arena's objective delta"
+    );
+}
+
+#[test]
+fn radial_pair_records_two_creations() {
+    let state = TopologyState::empty();
+    let mut draft = state.into_mutation();
+
+    let f = draft.insert_face(FaceData::new(LoopId::DANGLING, ShellId::DANGLING));
+    let v = draft.insert_vertex(VertexData::new(HalfEdgeId::DANGLING));
+    let e = draft.insert_edge(EdgeData::new(HalfEdgeId::DANGLING));
+
+    // Reset: we only want to count the radial pair insertion.
+    draft.mutation_journal_mut().reset();
+
+    let _ = draft.insert_radial_pair(
+        HalfEdgeData::new(
+            HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f, v, e,
+        ),
+        HalfEdgeData::new(
+            HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f, v, e,
+        ),
+    );
+
+    let counts = draft.mutation_journal().count_created();
+
+    assert_eq!(
+        counts.half_edges, 2,
+        "insert_radial_pair must record BOTH halfedges in the mutation journal"
+    );
+    assert_eq!(counts.total(), 2);
 }

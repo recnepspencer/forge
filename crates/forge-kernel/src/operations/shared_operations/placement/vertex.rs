@@ -18,6 +18,7 @@ use forge_core::KernelError;
 use forge_geom::{intersect_three_planes_exact, Plane};
 use forge_topo::b_rep::VertexData;
 use forge_topo::handles::{HalfEdgeId, VertexId};
+use forge_topo::provenance::LineageRecorder;
 use forge_topo::transactions::MutableDraft;
 
 use crate::geometry::facade::{ExactPosition, GeometryStore};
@@ -48,14 +49,22 @@ pub fn place_vertex(
     pos: [f64; 3],
     tolerance: f64,
     sink: &mut dyn DecisionSink,
+    recorder: &mut LineageRecorder,
 ) -> VertexId {
     let result = forge_spatial::find_coincident_vertex(registry, &pos, tolerance);
 
     let vid = if let Some((existing, _)) = result.coincident {
+        // PROVENANCE CONTRACT: Deduped vertex retains its original lineage.
+        // No event emitted — the vertex has lineage from first creation.
+        //
+        // FUTURE (Boolean vertex merging, Phase 3+): When dedup occurs across
+        // different feature origins, emit EntityModified with
+        // Lineage::merge(original, incoming) to capture shared provenance.
         existing
     } else {
         let placeholder = HalfEdgeId::new(u32::MAX, 0);
         let vid = draft.insert_vertex(VertexData::new(placeholder));
+        recorder.stamp(draft.lineage_store_mut(), vid);
         registry.push((vid, pos));
         vid
     };
@@ -90,14 +99,17 @@ pub fn place_vertex_exact(
     planes: &[Plane],
     tolerance: f64,
     sink: &mut dyn DecisionSink,
+    recorder: &mut LineageRecorder,
 ) -> Result<VertexId, KernelError> {
     let result = forge_spatial::find_coincident_vertex(registry, &pos, tolerance);
 
     let vid = if let Some((existing, _)) = result.coincident {
+        // PROVENANCE CONTRACT: Deduped vertex retains its original lineage.
         existing
     } else {
         let placeholder = HalfEdgeId::new(u32::MAX, 0);
         let vid = draft.insert_vertex(VertexData::new(placeholder));
+        recorder.stamp(draft.lineage_store_mut(), vid);
 
         let [pa, pb, pc] = plane_indices;
         let stored_exact = if pa < planes.len() && pb < planes.len() && pc < planes.len() {

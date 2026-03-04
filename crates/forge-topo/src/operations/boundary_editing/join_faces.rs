@@ -44,10 +44,7 @@ impl TopoOperator for JoinFaces {
         format!("Join two faces by removing edge at halfedge {}", self.edge.index())
     }
 
-    fn execute(
-        &self,
-        draft: &mut MutableDraft,
-    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he = self.edge;
         let he_data = draft.arena().get_half_edge(he)?;
         let he_twin = he_data.radial_next();
@@ -138,6 +135,7 @@ impl TopoOperator for JoinFaces {
         }
 
         let remove_loop = draft.arena().get_face(face_remove)?.outer_loop();
+
         draft.remove_half_edge(he)?;
         draft.remove_half_edge(he_twin)?;
         draft.remove_loop(remove_loop)?;
@@ -170,7 +168,7 @@ impl TopoOperator for JoinFaces {
 /// Walks the loop via `next()` until returning to `start`.
 /// Uses `reassign_halfedge_face` to keep the reverse index in sync.
 fn reassign_face(
-    draft: &mut MutableDraft,
+    draft: &mut MutableDraft, 
     start: HalfEdgeId,
     new_face: crate::handles::FaceId,
 ) -> Result<(), KernelError> {

@@ -77,20 +77,7 @@ impl ModelingContext {
         self.sub_metrics.policy_decisions_made += metrics.policy_decisions_made;
 
         let lineage = op.take_lineage_delta();
-        self.sub_lineage_delta.faces_created += lineage.faces_created;
-        self.sub_lineage_delta.faces_deleted += lineage.faces_deleted;
-        self.sub_lineage_delta.half_edges_created += lineage.half_edges_created;
-        self.sub_lineage_delta.half_edges_deleted += lineage.half_edges_deleted;
-        self.sub_lineage_delta.vertices_created += lineage.vertices_created;
-        self.sub_lineage_delta.vertices_deleted += lineage.vertices_deleted;
-        self.sub_lineage_delta.loops_created += lineage.loops_created;
-        self.sub_lineage_delta.loops_deleted += lineage.loops_deleted;
-        self.sub_lineage_delta.edges_created += lineage.edges_created;
-        self.sub_lineage_delta.edges_deleted += lineage.edges_deleted;
-        self.sub_lineage_delta.shells_created += lineage.shells_created;
-        self.sub_lineage_delta.shells_deleted += lineage.shells_deleted;
-        self.sub_lineage_delta.solids_created += lineage.solids_created;
-        self.sub_lineage_delta.solids_deleted += lineage.solids_deleted;
+        self.sub_lineage_delta.accumulate(&lineage);
 
         self.sub_accumulated_error_budget += op.take_accumulated_budget();
     }

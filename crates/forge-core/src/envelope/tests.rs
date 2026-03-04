@@ -86,8 +86,8 @@ fn serde_roundtrip_operation_result() {
         DecisionTier::PolicyApplied,
         0.42,
         DecisionContext::Coincidence {
-            entity_a: EntityRef::new(EntityKind::Vertex, 10),
-            entity_b: EntityRef::new(EntityKind::Vertex, 20),
+            entity_a: EntityRef::new(EntityKind::Vertex, 10, 0),
+            entity_b: EntityRef::new(EntityKind::Vertex, 20, 0),
         },
     ));
     log.record(TracedDecision::new(
