@@ -48,15 +48,16 @@ pub struct SplitEdgeOutput {
 
 Three items:
 
-| Item                                                                                                | Purpose                                                 |
-| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `type Output`                                                                                       | The output struct from step 2                           |
-| `const NAME: &'static str`                                                                          | String literal for lineage/replay (e.g. `"split_edge"`) |
-| `fn execute(&self, draft: &mut MutableDraft) -> Result<ExecutionResult<Self::Output>, KernelError>` | The topology mutation                                   |
+| Item                                                                                         | Purpose                                                 |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `type Output`                                                                                | The output struct from step 2                           |
+| `const NAME: &'static str`                                                                   | String literal for lineage/replay (e.g. `"split_edge"`) |
+| `fn execute(&self, draft: &mut MutableDraft, recorder: &mut LineageRecorder) -> Result<...>` | The topology mutation                                   |
 
 ```rust
 use crate::operator::{TopoOperator, EulerDelta, ExecutionResult};
 use crate::state::MutableDraft;
+use crate::provenance::LineageRecorder;
 use forge_core::KernelError;
 
 impl TopoOperator for SplitEdge {
@@ -67,6 +68,7 @@ impl TopoOperator for SplitEdge {
     fn execute(
         &self,
         draft: &mut MutableDraft,
+        recorder: &mut LineageRecorder,
     ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         // — topology mutations go here —
 
@@ -132,11 +134,12 @@ let removed_data = draft.remove_half_edge(he_id)?;
 
 ### Accessing the lineage store
 
-When you need both the arena and the lineage store simultaneously (e.g.
-to stamp lineage on newly created entities), use `unbundle_mut()`:
+When you need to interact with the lineage store manually (e.g.
+to stamp lineage on newly created entities), use the provided `recorder`:
 
 ```rust
-let (arena, lineage_store) = draft.unbundle_mut();
+use forge_core::{EntityRef, EntityKind};
+recorder.stamp(draft.lineage_store_mut(), EntityRef::new(EntityKind::Vertex, vertex.index(), vertex.generation()));
 ```
 
 ### Placeholder handles

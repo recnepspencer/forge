@@ -16,14 +16,14 @@ _Before we can trust geometry, we must be able to observe, trace, and replay dec
 
 Thread `DecisionSink` into every predicate and topology operator so that every choice is recorded with its scalar margin. The production sink is `ModelingContext`, which collects decisions and gets threaded through `OperationScope`. `NullSink` exists in `forge-core` for unit-testing but is banned in production code.
 
-- **Difficulty:** 🟡 Medium | **Size:** ~2-3 PRs
+- **Difficulty:** ✅ Done | **Size:** ~2-3 PRs
 - **Test:** Run `make_block`, assert `DecisionLog` contains entries with `DecisionKind::NearBoundary` and `margin() > 0.0`.
 
 ### 2. Lineage DAG Wiring [P3.3]
 
 Every primitive operation must generate a Merkle causal chain linking the resulting topology back to the original `feature_id`.
 
-- **Difficulty:** 🟡 Medium | **Size:** ~3-4 PRs
+- **Difficulty:** ✅ Done | **Size:** ~3-4 PRs
 - **Test:** Run `make_block`, query `LineageStore` for a face, assert its `Lineage::Root` contains the exact `feature_id` from `OperationScope`.
 
 ### 3. Pipeline Infrastructure — Middleware-Chain State Threading [K-6]
@@ -51,7 +51,7 @@ FeaturePipeline::execute(&feature, inputs, &session_config)?;
 
 This unifies Items 1 (DecisionSink via `ModelingContext`), 2 (Lineage), and 3 (Pipeline) into a single composable execution model.
 
-- **Difficulty:** 🟡 Medium | **Size:** ~2 PRs
+- **Difficulty:** ✅ Done | **Size:** ~2 PRs
 - **Test:** Evaluate a 3-step pipeline twice, assert identical `full_fingerprint()` values and trace span counts. Assert `DecisionLog` contains entries from all three steps. Assert `LineageStore` links each output face back through the chain.
 
 ### 4. Replay Determinism & Serialization Round-Trip [P3.5-lite]
@@ -60,7 +60,7 @@ Serialize a `SolidEnvelope` (topology + geometry) to bytes, deserialize, and ass
 
 Determinism verification uses `SolidEnvelope::full_fingerprint()` which hashes topology arenas, vertex positions (f64 bit-exact), and face plane normals + offsets. The harness (`assert_deterministic`, `assert_deterministic_n`) diagnoses whether divergence is structural (topology) or geometric (vertex positions / face planes).
 
-- **Difficulty:** ✅ Easy | **Size:** ~1 PR
+- **Difficulty:** ✅ Done | **Size:** ~1 PR
 - **Test:** Generate a cube, serialize, deserialize, assert `full_fingerprint()` is identical.
 
 ---
@@ -213,9 +213,9 @@ Pipeline-managed local coordinate transforms before geometric operations to prev
 
 | #   | Item                               | Diff | PRs        | Phase |
 | --- | ---------------------------------- | ---- | ---------- | ----- |
-| 1   | DecisionSink threading             | �    | 2-3        | 1     |
-| 2   | Lineage DAG wiring                 | 🟡   | 3-4        | 1     |
-| 3   | Pipeline state threading           | 🟡   | 2          | 1     |
+| 1   | DecisionSink threading             | ✅   | 2-3        | 1     |
+| 2   | Lineage DAG wiring                 | ✅   | 3-4        | 1     |
+| 3   | Pipeline state threading           | ✅   | 2          | 1     |
 | 4   | Replay determinism + serialization | ✅   | 1          | 1     |
 | 5   | Volume Oracle                      | ✅   | 1-2        | 2     |
 | 6   | Face Normal Computation            | ✅   | 1          | 2     |
