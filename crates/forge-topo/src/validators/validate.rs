@@ -1037,6 +1037,248 @@ mod tests {
         );
     }
 
+    // ── Batch 3 tests ───────────────────────────────────────────────
+
+    #[test]
+    fn positive_face_adjacency_consistency_valid() {
+        let (draft, _, _, _) = valid_mvf_se_draft();
+        assert!(crate::validators::shell_closure::validate_face_adjacency_consistency(draft.arena()).is_ok());
+    }
+
+    #[test]
+    fn poison_face_adjacency_consistency_mismatch() {
+        let state = TopologyState::empty();
+        let mut draft = state.into_mutation();
+        use crate::b_rep::{EdgeData, FaceData, HalfEdgeData, ShellData};
+        use crate::handles::{FaceId, EdgeId, LoopId, HalfEdgeId, ShellId, VertexId, RegionId};
+        
+        let s1 = draft.insert_shell(ShellData::new(FaceId::DANGLING, crate::b_rep::ShellKind::Solid(crate::b_rep::ShellOrientation::Outer), RegionId::DANGLING));
+        let s2 = draft.insert_shell(ShellData::new(FaceId::DANGLING, crate::b_rep::ShellKind::Solid(crate::b_rep::ShellOrientation::Outer), RegionId::DANGLING));
+        
+        let f1 = draft.insert_face(FaceData::new(LoopId::DANGLING, s1));
+        let f2 = draft.insert_face(FaceData::new(LoopId::DANGLING, s2));
+        
+        let e = draft.insert_edge(EdgeData::new(HalfEdgeId::DANGLING));
+        let he1 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f1, VertexId::DANGLING, e));
+        let he2 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f2, VertexId::DANGLING, e));
+        
+        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_radial_next(he2);
+        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_radial_next(he1);
+        
+        let res = crate::validators::shell_closure::validate_face_adjacency_consistency(draft.arena());
+        assert!(res.is_err());
+        assert!(format!("{:?}", res).contains("face_adjacency_consistency"));
+    }
+
+    #[test]
+    fn positive_broken_face_boundary_valid() {
+        let (draft, _, _, _) = valid_mvf_se_draft();
+        assert!(crate::validators::shell_closure::validate_no_broken_face_boundary(draft.arena()).is_ok());
+    }
+
+    #[test]
+    fn poison_broken_face_boundary_wrong_face() {
+        let state = TopologyState::empty();
+        let mut draft = state.into_mutation();
+        use crate::b_rep::{FaceData, HalfEdgeData, LoopData};
+        use crate::handles::{FaceId, LoopId, HalfEdgeId, ShellId, VertexId, EdgeId};
+        
+        let f1 = draft.insert_face(FaceData::new(LoopId::DANGLING, ShellId::DANGLING));
+        let f2 = draft.insert_face(FaceData::new(LoopId::DANGLING, ShellId::DANGLING)); // wrong face
+        
+        let he1 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f1, VertexId::DANGLING, EdgeId::DANGLING));
+        let he2 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f2, VertexId::DANGLING, EdgeId::DANGLING));
+        // link them
+        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_next(he2);
+        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_next(he1);
+        
+        let l1 = draft.insert_loop(LoopData::new(he1, f1));
+        draft.arena_mut().get_face_mut(f1).unwrap().set_outer_loop(l1);
+        
+        let res = crate::validators::shell_closure::validate_no_broken_face_boundary(draft.arena());
+        assert!(res.is_err());
+        assert!(format!("{:?}", res).contains("boundary mismatch"));
+    }
+
+    #[test]
+    fn poison_broken_face_boundary_unclosed() {
+        let state = TopologyState::empty();
+        let mut draft = state.into_mutation();
+        use crate::b_rep::{FaceData, HalfEdgeData, LoopData};
+        use crate::handles::{FaceId, LoopId, HalfEdgeId, ShellId, VertexId, EdgeId};
+        
+        let f1 = draft.insert_face(FaceData::new(LoopId::DANGLING, ShellId::DANGLING));
+        
+        let he1 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f1, VertexId::DANGLING, EdgeId::DANGLING));
+        
+        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_next(he1);
+        
+        let l1 = draft.insert_loop(LoopData::new(he1, f1));
+        draft.arena_mut().get_face_mut(f1).unwrap().set_outer_loop(l1);
+
+        // Break closure: point to itself but then change nothing?
+        // Wait, loop walk will close. We must make it NOT close.
+        let he2 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f1, VertexId::DANGLING, EdgeId::DANGLING));
+        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_next(he2);
+        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_next(he2); // never returns to he1!
+        
+        let res = crate::validators::shell_closure::validate_no_broken_face_boundary(draft.arena());
+        assert!(res.is_err());
+        assert!(format!("{:?}", res).contains("did not close within"));
+    }
+
+    #[test]
+    fn positive_shell_watertightness_valid() {
+        let (draft, _, _, _) = valid_mvf_se_draft();
+        // solid shell MVF+SE is closed sphere
+        assert!(crate::validators::shell_closure::validate_shell_consistency(draft.arena()).is_ok());
+    }
+
+    #[test]
+    fn poison_shell_watertightness_boundary_edge() {
+        let state = TopologyState::empty();
+        let mut draft = state.into_mutation();
+        use crate::b_rep::{EdgeData, FaceData, HalfEdgeData, ShellData, LoopData};
+        use crate::handles::{FaceId, LoopId, HalfEdgeId, ShellId, VertexId, EdgeId, RegionId};
+        
+        let s = draft.insert_shell(ShellData::new(FaceId::DANGLING, crate::b_rep::ShellKind::Solid(crate::b_rep::ShellOrientation::Outer), RegionId::DANGLING));
+        let f = draft.insert_face(FaceData::new(LoopId::DANGLING, s));
+        
+        let e = draft.insert_edge(EdgeData::new(HalfEdgeId::DANGLING));
+        let he = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f, VertexId::DANGLING, e));
+        
+        draft.arena_mut().get_half_edge_mut(he).unwrap().set_radial_next(he);
+        draft.arena_mut().get_half_edge_mut(he).unwrap().set_next(he);
+        draft.arena_mut().get_edge_mut(e).unwrap().set_half_edge(he);
+
+        let l = draft.insert_loop(LoopData::new(he, f));
+        draft.arena_mut().get_face_mut(f).unwrap().set_outer_loop(l);
+        
+        let res = crate::validators::shell_closure::validate_shell_consistency(draft.arena());
+        assert!(res.is_err(), "validator passed unexpectedly");
+        assert!(format!("{:?}", res).contains("watertight"), "Unexpected error: {:?}", res);
+    }
+
+    #[test]
+    fn positive_boundary_edges_laminar_valid() {
+        let state = TopologyState::empty();
+        let mut draft = state.into_mutation();
+        use crate::b_rep::{EdgeData, FaceData, HalfEdgeData, ShellData, LoopData};
+        use crate::handles::{FaceId, LoopId, HalfEdgeId, ShellId, VertexId, EdgeId, RegionId};
+        
+        let s = draft.insert_shell(ShellData::new(FaceId::DANGLING, crate::b_rep::ShellKind::Sheet, RegionId::DANGLING));
+        let f = draft.insert_face(FaceData::new(LoopId::DANGLING, s));
+        
+        let e = draft.insert_edge(EdgeData::new(HalfEdgeId::DANGLING));
+        let he = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f, VertexId::DANGLING, e));
+        
+        draft.arena_mut().get_half_edge_mut(he).unwrap().set_radial_next(he); // valence 1
+        draft.arena_mut().get_half_edge_mut(he).unwrap().set_next(he);
+        draft.arena_mut().get_edge_mut(e).unwrap().set_half_edge(he);
+
+        let l = draft.insert_loop(LoopData::new(he, f));
+        draft.arena_mut().get_face_mut(f).unwrap().set_outer_loop(l);
+        
+        let res = crate::validators::shell_closure::validate_boundary_edges_laminar_only(draft.arena());
+        assert!(res.is_ok(), "validator failed: {:?}", res);
+    }
+
+    #[test]
+    fn poison_boundary_edges_laminar_valence_3() {
+        let state = TopologyState::empty();
+        let mut draft = state.into_mutation();
+        use crate::b_rep::{EdgeData, FaceData, HalfEdgeData, ShellData, LoopData};
+        use crate::handles::{FaceId, LoopId, HalfEdgeId, ShellId, VertexId, EdgeId, RegionId};
+        
+        let s = draft.insert_shell(ShellData::new(FaceId::DANGLING, crate::b_rep::ShellKind::Sheet, RegionId::DANGLING));
+        let f1 = draft.insert_face(FaceData::new(LoopId::DANGLING, s));
+        let f2 = draft.insert_face(FaceData::new(LoopId::DANGLING, s));
+        let f3 = draft.insert_face(FaceData::new(LoopId::DANGLING, s));
+        
+        let e = draft.insert_edge(EdgeData::new(HalfEdgeId::DANGLING));
+        let he1 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f1, VertexId::DANGLING, e));
+        let he2 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f2, VertexId::DANGLING, e));
+        let he3 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f3, VertexId::DANGLING, e));
+        
+        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_radial_next(he2);
+        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_next(he1);
+        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_radial_next(he3);
+        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_next(he2);
+        draft.arena_mut().get_half_edge_mut(he3).unwrap().set_radial_next(he1); // valence 3
+        draft.arena_mut().get_half_edge_mut(he3).unwrap().set_next(he3);
+        draft.arena_mut().get_edge_mut(e).unwrap().set_half_edge(he1);
+        
+        let l1 = draft.insert_loop(LoopData::new(he1, f1));
+        draft.arena_mut().get_face_mut(f1).unwrap().set_outer_loop(l1);
+        let l2 = draft.insert_loop(LoopData::new(he2, f2));
+        draft.arena_mut().get_face_mut(f2).unwrap().set_outer_loop(l2);
+        let l3 = draft.insert_loop(LoopData::new(he3, f3));
+        draft.arena_mut().get_face_mut(f3).unwrap().set_outer_loop(l3);
+
+        let res = crate::validators::shell_closure::validate_boundary_edges_laminar_only(draft.arena());
+        assert!(res.is_err(), "validator passed unexpectedly");
+        assert!(format!("{:?}", res).contains("boundary_edges_laminar"), "Unexpected err: {:?}", res);
+    }
+
+    #[test]
+    fn positive_radial_neighbor_consistency_valid() {
+        let (draft, _, _, _) = valid_mvf_se_draft();
+        assert!(crate::validators::radial_edge::validate_radial_neighbor_consistency(draft.arena()).is_ok());
+    }
+
+    #[test]
+    fn poison_radial_neighbor_consistency_same_origin() {
+        let state = TopologyState::empty();
+        let mut draft = state.into_mutation();
+        use crate::b_rep::{HalfEdgeData};
+        use crate::handles::{HalfEdgeId, FaceId, EdgeId, VertexId};
+        
+        // Two halves, valence 2, SAME ORIGIN!
+        let v = VertexId::new(1, 0);
+        let he1 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, FaceId::DANGLING, v, EdgeId::DANGLING));
+        let he2 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, FaceId::DANGLING, v, EdgeId::DANGLING));
+        
+        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_radial_next(he2);
+        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_radial_next(he1);
+        
+        let res = crate::validators::radial_edge::validate_radial_neighbor_consistency(draft.arena());
+        assert!(res.is_err());
+        assert!(format!("{:?}", res).contains("radial_neighbor_consistency"));
+    }
+
+    #[test]
+    fn positive_no_broken_radial_splices_valid() {
+        let (draft, _, _, _) = valid_mvf_se_draft();
+        assert!(crate::validators::radial_edge::validate_no_broken_radial_splices(draft.arena()).is_ok());
+    }
+
+    #[test]
+    fn poison_no_broken_radial_splices_disjoint() {
+        let state = TopologyState::empty();
+        let mut draft = state.into_mutation();
+        use crate::b_rep::{EdgeData, HalfEdgeData};
+        use crate::handles::{HalfEdgeId, FaceId, EdgeId, VertexId};
+        
+        let e = draft.insert_edge(EdgeData::new(HalfEdgeId::DANGLING));
+        let he1 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, FaceId::DANGLING, VertexId::DANGLING, e));
+        let he2 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, FaceId::DANGLING, VertexId::DANGLING, e));
+        let he3 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, FaceId::DANGLING, VertexId::DANGLING, e));
+        
+        draft.arena_mut().get_edge_mut(e).unwrap().set_half_edge(he1);
+        
+        // Ring 1: he1 <-> he2
+        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_radial_next(he2);
+        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_radial_next(he1);
+        
+        // disjoint Ring 2: he3
+        draft.arena_mut().get_half_edge_mut(he3).unwrap().set_radial_next(he3);
+        
+        // Total claimed = 3. actual ring = 2.
+        let res = crate::validators::radial_edge::validate_no_broken_radial_splices(draft.arena());
+        assert!(res.is_err());
+        assert!(format!("{:?}", res).contains("no_broken_radial_splices"));
+    }
+
     // ── Integrated smoke test: full pipeline on valid topology ──────
 
     #[test]
