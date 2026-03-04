@@ -11,6 +11,7 @@ use crate::handles::{RegionId, ShellId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 // ── RehomeShell ─────────────────────────────────────────────────────
 
@@ -27,6 +28,8 @@ impl TopoOperator for RehomeShell {
     type Output = ();
 
     const NAME: &'static str = "rehome_shell";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!("Move shell {} to region {}", self.shell.index(), self.target_region.index())
@@ -72,6 +75,8 @@ impl TopoOperator for ExtractShell {
     type Output = ExtractShellOutput;
 
     const NAME: &'static str = "extract_shell";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!("Extract shell {} into its own region", self.shell.index())
@@ -127,6 +132,8 @@ impl TopoOperator for SplitShell {
     type Output = SplitShellOutput;
 
     const NAME: &'static str = "split_shell";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!(
@@ -193,6 +200,8 @@ impl TopoOperator for MergeShells {
 
     const NAME: &'static str = "merge_shells";
 
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+
     fn semantic_summary(&self) -> String {
         format!("Merge shell {} into shell {}", self.source.index(), self.target.index())
     }
@@ -244,6 +253,8 @@ impl TopoOperator for PromoteShell {
 
     const NAME: &'static str = "promote_shell";
 
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+
     fn semantic_summary(&self) -> String {
         format!("Promote inner shell {} to outer shell", self.shell.index())
     }
@@ -294,6 +305,8 @@ impl TopoOperator for DemoteShell {
     type Output = ();
 
     const NAME: &'static str = "demote_shell";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!("Demote outer shell of region {} to inner shell", self.region.index())

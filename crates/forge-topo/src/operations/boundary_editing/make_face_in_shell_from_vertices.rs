@@ -18,6 +18,7 @@ use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 
 /// Creates a new face in an existing shell by connecting a sequence of existing vertices.
@@ -45,6 +46,8 @@ impl TopoOperator for MakeFaceInShellFromVertices {
     type Output = MfisOutput;
 
     const NAME: &'static str = "make_face_in_shell_from_vertices";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!(

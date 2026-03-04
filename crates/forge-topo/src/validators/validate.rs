@@ -1192,12 +1192,119 @@ mod tests {
         assert!(format!("{:?}", res).contains("no_broken_radial_splices"));
     }
 
-    // ── Integrated smoke test: full pipeline on valid topology ──────
+
+
+    #[test]
+    fn poison_disk_closure_unclosed_cycle() {
+        let (mut draft, _face, he_am, _) = valid_mvf_se_draft();
+        
+        // We will assert it fails.
+        // If we set he_am's radial_next to DANGLING, it fails trying to fetch.
+        draft.arena_mut().get_half_edge_mut(he_am).unwrap().set_radial_next(HalfEdgeId::DANGLING);
+        
+        let res = crate::validators::vertex_disk::validate_disk_closure(draft.arena());
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn poison_vertex_disk_partition_leak() {
+        let mut draft = TopologyState::empty().into_mutation();
+        
+        let v1 = draft.insert_vertex(crate::b_rep::VertexData::new(HalfEdgeId::DANGLING));
+        let v2 = draft.insert_vertex(crate::b_rep::VertexData::new(HalfEdgeId::DANGLING));
+        
+        let f = draft.insert_face(crate::b_rep::FaceData::new(crate::handles::LoopId::DANGLING, crate::handles::ShellId::DANGLING));
+        let e = draft.insert_edge(crate::b_rep::EdgeData::new(HalfEdgeId::DANGLING));
+        
+        let he1 = draft.insert_half_edge(crate::b_rep::HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f, v1, e));
+        let he2 = draft.insert_half_edge(crate::b_rep::HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f, v2, e));
+        let he3 = draft.insert_half_edge(crate::b_rep::HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f, v1, e));
+        
+        draft.arena_mut().get_vertex_mut(v1).unwrap().set_outgoing(he1);
+        draft.arena_mut().get_vertex_mut(v2).unwrap().set_outgoing(he2);
+        
+        // Wire in a circle: HE1 -> HE2 -> HE3 -> HE1
+        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_radial_next(he2);
+        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_radial_next(he3);
+        draft.arena_mut().get_half_edge_mut(he3).unwrap().set_radial_next(he1);
+        
+        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_next(he2);
+        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_next(he3);
+        draft.arena_mut().get_half_edge_mut(he3).unwrap().set_next(he1);
+        
+        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_prev(he3);
+        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_prev(he1);
+        draft.arena_mut().get_half_edge_mut(he3).unwrap().set_prev(he2);
+        
+        let res = crate::validators::vertex_disk::validate_vertex_disk_partition(draft.arena());
+        assert!(res.is_err(), "Expected partition leak error, got {:?}", res);
+    }
+
+    #[test]
+    fn poison_cross_disk_coedges() {
+        let (draft, _, _, _) = valid_mvf_se_draft();
+        let res = crate::validators::vertex_disk::validate_no_cross_disk_coedges(draft.arena());
+        assert!(res.is_ok(), "Valid topology must pass cross-disk check: {:?}", res);
+    }
+
+    #[test]
+    fn poison_per_component_euler_invalid_genus() {
+        let mut draft = TopologyState::empty().into_mutation();
+        let s1 = draft.insert_shell(crate::b_rep::ShellData::new(
+            crate::handles::FaceId::DANGLING,
+            crate::b_rep::ShellKind::Solid(crate::b_rep::ShellOrientation::Outer),
+            crate::handles::RegionId::DANGLING
+        ));
+        let f1 = draft.insert_face(crate::b_rep::FaceData::new(crate::handles::LoopId::DANGLING, s1));
+        let v1 = draft.insert_vertex(crate::b_rep::VertexData::new(HalfEdgeId::DANGLING));
+        let e1 = draft.insert_edge(crate::b_rep::EdgeData::new(HalfEdgeId::DANGLING));
+        
+        // V=1, E=1, F=1
+        let he1 = draft.insert_half_edge(crate::b_rep::HalfEdgeData::new(
+            HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f1, v1, e1
+        ));
+        
+        draft.arena_mut().get_vertex_mut(v1).unwrap().set_outgoing(he1);
+        draft.arena_mut().get_edge_mut(e1).unwrap().set_half_edge(he1);
+        
+        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_next(he1);
+        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_prev(he1);
+        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_radial_next(he1);
+
+        let res = crate::validators::euler_genus::validate_per_component_euler(draft.arena());
+        assert!(res.is_err(), "Expected Euler violation, got {:?}", res);
+    }
 
     #[test]
     fn full_validation_passes_on_valid_topology() {
         let (draft, _, _, _) = valid_mvf_se_draft();
         assert!(validate_topology(draft.arena(), ValidationLevel::Full).is_ok(),
             "Full validation must pass on uncorrupted MVF+SE topology");
+    }
+
+    #[test]
+    fn diag_dump_mvf_se_wiring() {
+        let (draft, _face, he_am, he_mb) = valid_mvf_se_draft();
+        let arena = draft.arena();
+        
+        eprintln!("=== VERTICES ===");
+        for (vid, vd) in arena.iter_vertices() {
+            eprintln!("  V{} outgoing=HE{}", vid.index(), vd.outgoing().index());
+        }
+        eprintln!("=== HALF-EDGES ===");
+        for (heid, hed) in arena.iter_half_edges() {
+            eprintln!("  HE{}: origin=V{} next=HE{} prev=HE{} radial_next=HE{} face=F{} edge=E{}", 
+                heid.index(), hed.origin().index(), hed.next().index(), hed.prev().index(),
+                hed.radial_next().index(), hed.face().index(), hed.edge().index());
+        }
+        eprintln!("=== EDGES ===");
+        for (eid, ed) in arena.iter_edges() {
+            eprintln!("  E{}: half_edge=HE{}", eid.index(), ed.half_edge().index());
+        }
+        eprintln!("=== SHELLS ===");
+        for (sid, sd) in arena.iter_shells() {
+            eprintln!("  S{}: kind={:?}", sid.index(), sd.kind());
+        }
+        eprintln!("he_am=HE{}, he_mb=HE{}", he_am.index(), he_mb.index());
     }
 }

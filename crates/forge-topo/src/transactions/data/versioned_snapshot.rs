@@ -108,7 +108,7 @@ impl TopologyState {
     ///
     /// # Example
     /// ```
-    /// use forge_topo::state::TopologyState;
+    /// use forge_topo::transactions::TopologyState;
     ///
     /// let state = TopologyState::empty();
     /// let draft = state.into_mutation();

@@ -16,6 +16,7 @@ use crate::handles::{EdgeId, HalfEdgeId, VertexId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 /// Merges two edges by removing their shared vertex.
 ///
@@ -38,6 +39,8 @@ impl TopoOperator for KillVertexEdge {
     type Output = KveOutput;
 
     const NAME: &'static str = "kill_vertex_edge";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!("Remove vertex {} by merging its incident edges", self.vertex.index())

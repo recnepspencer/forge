@@ -17,6 +17,7 @@ use crate::handles::{EdgeId, HalfEdgeId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 
 /// Open a boundary by ungluing two halfedges, creating a new edge entity.
@@ -43,6 +44,8 @@ impl TopoOperator for UnsewEdge {
     type Output = UnsewEdgeOutput;
 
     const NAME: &'static str = "unsew_edge";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!(

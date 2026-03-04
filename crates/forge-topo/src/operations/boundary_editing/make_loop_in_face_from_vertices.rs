@@ -18,6 +18,7 @@ use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, VertexId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 
 /// Creates a new inner loop on an existing face by connecting a sequence of vertices.
@@ -43,6 +44,8 @@ impl TopoOperator for MakeLoopInFaceFromVertices {
     type Output = MlifvOutput;
 
     const NAME: &'static str = "make_loop_in_face_from_vertices";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!(

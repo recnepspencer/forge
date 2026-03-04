@@ -25,6 +25,8 @@
 //!   import_sanity/       — Import sanity/soup recovery
 
 pub mod facade;
+pub mod invariant_id;
+pub mod invariant_group;
 
 pub(crate) mod shared;
 pub(crate) mod structural;

@@ -5,6 +5,7 @@
 
 mod accessors;
 mod insert_remove;
+mod view_factory;
 pub mod draft_proxy;
 pub mod membership_tracker;
 mod adjacency_index;

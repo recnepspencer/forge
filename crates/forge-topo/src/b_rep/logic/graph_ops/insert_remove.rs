@@ -1,13 +1,23 @@
 //! Insert and remove operations for all topology entity types.
 //!
-//! DOMAIN: Slot allocation/deallocation with index hook integration
-//! for Face and HalfEdge entities.
+//! DOMAIN: Slot allocation/deallocation with side-car + index hook integration.
+//!
+//! Entity types fall into two categories:
+//!
+//! - **Mesh entities** (face, halfedge, vertex, edge, loop): explicit impls
+//!   with side-car growth/clear and index hooks.
+//! - **Containment entities** (shell, region, lump, body): macro-generated
+//!   pure CRUD with no hooks.
 
 use forge_core::KernelError;
 use crate::b_rep::data::storage::slot::{validate_generation, cold_err_bounds, cold_err_deleted};
 use crate::b_rep::data::storage::arena::TopologyArena;
 
-/// Generate insert/remove for entities WITHOUT index hooks.
+// ════════════════════════════════════════════════════════════════════
+// Containment entities — pure CRUD, no hooks
+// ════════════════════════════════════════════════════════════════════
+
+/// Generate insert/remove for entities WITHOUT side-car or index hooks.
 macro_rules! define_plain_crud {
     (@standard $m:ident, $label:expr, $id:ty, $data:ty, $slots:ident, $free_head:ident, $count:ident) => {
         paste::paste! {
@@ -37,16 +47,17 @@ macro_rules! define_plain_crud {
     };
 }
 
-// ── Insert/Remove for plain entities (no index hooks) ──────────────
-
-define_plain_crud!(@standard vertex, "Vertex", VertexId,   VertexData,   vertex_slots,    free_vertex_head,    active_vertex_count);
-define_plain_crud!(@standard edge,   "Edge",   EdgeId,     EdgeData,     edge_slots,      free_edge_head,      active_edge_count);
 define_plain_crud!(@standard shell,  "Shell",  ShellId,    ShellData,    shell_slots,     free_shell_head,     active_shell_count);
 define_plain_crud!(@standard region, "Region", RegionId,   RegionData,   region_slots,    free_region_head,    active_region_count);
 define_plain_crud!(@standard lump,   "Lump",   LumpId,     LumpData,     lump_slots,      free_lump_head,      active_lump_count);
 define_plain_crud!(@standard body,   "Body",   BodyId,     BodyData,     body_slots,      free_body_head,      active_body_count);
 
-// Loop — keyword-safe insert/remove
+// ════════════════════════════════════════════════════════════════════
+// Mesh entities — explicit impls with side-car + index hooks
+// ════════════════════════════════════════════════════════════════════
+
+// ── Loop (keyword-safe, no side-car) ────────────────────────────────
+
 impl TopologyArena {
     /// Insert a new loop, returning its handle.
     pub fn insert_loop(&mut self, data: LoopData) -> LoopId {
@@ -70,7 +81,63 @@ impl TopologyArena {
     }
 }
 
-// ── Hooked insert/remove for Face and HalfEdge ─────────────────────
+// ── Vertex (side-car: vertex_provenance) ────────────────────────────
+
+impl TopologyArena {
+    /// Insert a new vertex, returning its handle. Grows vertex side-cars.
+    pub fn insert_vertex(&mut self, data: VertexData) -> VertexId {
+        let (index, gen) = Self::insert_slot(&mut self.vertex_slots, &mut self.free_vertex_head, data);
+        self.active_vertex_count += 1;
+        self.grow_vertex_sidecars(self.vertex_slots.len());
+        self.clear_vertex_sidecar(index as usize);
+        VertexId::new(index, gen)
+    }
+
+    /// Remove a vertex, bumping the slot generation. Clears vertex side-cars.
+    pub fn remove_vertex(&mut self, id: VertexId) -> Result<VertexData, KernelError> {
+        let slot = self.vertex_slots.get_mut(id.index() as usize)
+            .ok_or_else(|| cold_err_bounds("Vertex", id.index(), id.generation()))?;
+        validate_generation(slot.generation, id.generation(), "Vertex", id.index())?;
+        let data = slot.data.take()
+            .ok_or_else(|| cold_err_deleted("Vertex", id.index(), id.generation(), slot.generation))?;
+        slot.generation += 1;
+        slot.next_free = self.free_vertex_head;
+        self.free_vertex_head = Some(id.index());
+        self.active_vertex_count -= 1;
+        self.clear_vertex_sidecar(id.index() as usize);
+        Ok(data)
+    }
+}
+
+// ── Edge (side-car: edge_curves) ────────────────────────────────────
+
+impl TopologyArena {
+    /// Insert a new edge, returning its handle. Grows edge side-cars.
+    pub fn insert_edge(&mut self, data: EdgeData) -> EdgeId {
+        let (index, gen) = Self::insert_slot(&mut self.edge_slots, &mut self.free_edge_head, data);
+        self.active_edge_count += 1;
+        self.grow_edge_sidecars(self.edge_slots.len());
+        self.clear_edge_sidecar(index as usize);
+        EdgeId::new(index, gen)
+    }
+
+    /// Remove an edge, bumping the slot generation. Clears edge side-cars.
+    pub fn remove_edge(&mut self, id: EdgeId) -> Result<EdgeData, KernelError> {
+        let slot = self.edge_slots.get_mut(id.index() as usize)
+            .ok_or_else(|| cold_err_bounds("Edge", id.index(), id.generation()))?;
+        validate_generation(slot.generation, id.generation(), "Edge", id.index())?;
+        let data = slot.data.take()
+            .ok_or_else(|| cold_err_deleted("Edge", id.index(), id.generation(), slot.generation))?;
+        slot.generation += 1;
+        slot.next_free = self.free_edge_head;
+        self.free_edge_head = Some(id.index());
+        self.active_edge_count -= 1;
+        self.clear_edge_sidecar(id.index() as usize);
+        Ok(data)
+    }
+}
+
+// ── Face (index hooks: shell→faces) ─────────────────────────────────
 
 impl TopologyArena {
     /// Insert a new face, returning its handle. Updates shell→faces index.
@@ -97,8 +164,12 @@ impl TopologyArena {
         self.index_remove_face(id, data.shell());
         Ok(data)
     }
+}
 
-    /// Insert a new halfedge, returning its handle. Updates indexes.
+// ── HalfEdge (side-car: bridge_flags + coedge_data, index hooks) ────
+
+impl TopologyArena {
+    /// Insert a new halfedge, returning its handle. Updates indexes + side-cars.
     pub fn insert_half_edge(&mut self, data: HalfEdgeData) -> HalfEdgeId {
         let face = data.face();
         let origin = data.origin();
@@ -106,10 +177,12 @@ impl TopologyArena {
         self.active_half_edge_count += 1;
         let id = HalfEdgeId::new(index, gen);
         self.index_add_halfedge(id, face, origin);
+        self.grow_halfedge_sidecars(self.half_edge_slots.len());
+        self.clear_halfedge_sidecar(index as usize);
         id
     }
 
-    /// Remove a halfedge, bumping the slot generation. Updates indexes.
+    /// Remove a halfedge, bumping the slot generation. Updates indexes + side-cars.
     pub fn remove_half_edge(&mut self, id: HalfEdgeId) -> Result<HalfEdgeData, KernelError> {
         let slot = self.half_edge_slots.get_mut(id.index() as usize)
             .ok_or_else(|| cold_err_bounds("HalfEdge", id.index(), id.generation()))?;
@@ -121,6 +194,7 @@ impl TopologyArena {
         self.free_half_edge_head = Some(id.index());
         self.active_half_edge_count -= 1;
         self.index_remove_halfedge(id, data.face(), data.origin());
+        self.clear_halfedge_sidecar(id.index() as usize);
         Ok(data)
     }
 
@@ -135,6 +209,7 @@ impl TopologyArena {
             &mut self.free_half_edge_head,
         );
         self.active_half_edge_count += 1;
+        self.grow_halfedge_sidecars(self.half_edge_slots.len());
         HalfEdgeId::new(index, gen)
     }
 
@@ -147,6 +222,7 @@ impl TopologyArena {
         let origin = data.origin();
         Self::populate_slot(&mut self.half_edge_slots, id.index(), data);
         self.index_add_halfedge(id, face, origin);
+        self.clear_halfedge_sidecar(id.index() as usize);
     }
 
     /// Reserve a face slot, returning its ID.
@@ -181,34 +257,38 @@ impl TopologyArena {
         Self::populate_slot(&mut self.loop_slots, id.index(), data);
     }
 
-    /// Reserve a vertex slot, returning its ID.
+    /// Reserve a vertex slot, returning its ID. Grows vertex side-cars.
     pub fn reserve_vertex(&mut self) -> VertexId {
         let (index, gen) = Self::reserve_slot(
             &mut self.vertex_slots,
             &mut self.free_vertex_head,
         );
         self.active_vertex_count += 1;
+        self.grow_vertex_sidecars(self.vertex_slots.len());
         VertexId::new(index, gen)
     }
 
     /// Fill a previously reserved vertex slot with data.
     pub fn populate_vertex(&mut self, id: VertexId, data: VertexData) {
         Self::populate_slot(&mut self.vertex_slots, id.index(), data);
+        self.clear_vertex_sidecar(id.index() as usize);
     }
 
-    /// Reserve an edge slot, returning its ID.
+    /// Reserve an edge slot, returning its ID. Grows edge side-cars.
     pub fn reserve_edge(&mut self) -> EdgeId {
         let (index, gen) = Self::reserve_slot(
             &mut self.edge_slots,
             &mut self.free_edge_head,
         );
         self.active_edge_count += 1;
+        self.grow_edge_sidecars(self.edge_slots.len());
         EdgeId::new(index, gen)
     }
 
     /// Fill a previously reserved edge slot with data.
     pub fn populate_edge(&mut self, id: EdgeId, data: EdgeData) {
         Self::populate_slot(&mut self.edge_slots, id.index(), data);
+        self.clear_edge_sidecar(id.index() as usize);
     }
 }
 
@@ -219,3 +299,4 @@ use crate::handles::{
 };
 use crate::b_rep::data::mesh::{FaceData, HalfEdgeData, VertexData, LoopData, EdgeData};
 use crate::b_rep::data::containment::{ShellData, RegionData, LumpData, BodyData};
+

@@ -23,6 +23,7 @@ use crate::handles::{
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 
 /// Creates a new face by connecting a sequence of existing vertices.
@@ -60,6 +61,8 @@ impl TopoOperator for MakeFaceFromVertices {
     type Output = MffvOutput;
 
     const NAME: &'static str = "make_face_from_vertices";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!("Create {}-sided face from existing vertices", self.vertices.len())

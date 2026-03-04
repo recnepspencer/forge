@@ -5,5 +5,6 @@
 
 mod graph_ops;
 mod topo_ops;
+pub(crate) mod views;
 
 pub use graph_ops::membership_tracker::EntityBitset;

@@ -15,6 +15,7 @@ use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 /// Creates a new face with a single vertex inside an existing shell.
 #[derive(Debug)]
@@ -41,6 +42,8 @@ impl TopoOperator for MakeFaceVertex {
     type Output = MfvOutput;
 
     const NAME: &'static str = "make_face_vertex";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!("Create isolated vertex-face in shell {}", self.shell.index())

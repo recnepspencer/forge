@@ -16,6 +16,7 @@ use crate::handles::{HalfEdgeId, LoopId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 
 /// Merge two faces by removing a shared edge.
@@ -39,6 +40,8 @@ impl TopoOperator for JoinFaces {
     type Output = JfOutput;
 
     const NAME: &'static str = "join_faces";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!("Join two faces by removing edge at halfedge {}", self.edge.index())

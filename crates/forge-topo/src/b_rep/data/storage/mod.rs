@@ -4,5 +4,6 @@
 
 pub(crate) mod slot;
 pub(crate) mod arena;
+pub(crate) mod sidecar_accessors;
 
 pub(crate) use arena::TopologyArena;

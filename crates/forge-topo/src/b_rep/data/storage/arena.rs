@@ -9,9 +9,9 @@ use smallvec::SmallVec;
 
 use crate::semantic_attributes::AttributeStore;
 use crate::b_rep::data::storage::slot::Slot;
-use crate::b_rep::data::mesh::{FaceData, HalfEdgeData, VertexData, LoopData, EdgeData};
+use crate::b_rep::data::mesh::{FaceData, HalfEdgeData, VertexData, LoopData, EdgeData, CoedgeInfo};
 use crate::b_rep::data::containment::{BodyData, LumpData, RegionData, ShellData};
-use crate::handles::{FaceId, HalfEdgeId, ShellId, VertexId};
+use crate::handles::{FaceId, HalfEdgeId, ShellId, VertexId, CurveRef};
 
 /// Entity storage for the halfedge mesh.
 ///
@@ -68,6 +68,23 @@ pub struct TopologyArena {
     pub(crate) active_region_count: usize,
     pub(crate) active_edge_count: usize,
 
+    // ── Side-car vectors (parallel to entity slot vectors) ───────
+    // Metadata stripped from entity structs to keep them pure connectivity.
+    // Grow in lockstep with entity slots via insert_remove.rs hooks.
+
+    /// Bridge flag per halfedge slot (synthetic zero-width bridge from BridgeEdge).
+    #[serde(default)]
+    pub(crate) bridge_flags: Vec<bool>,
+    /// Coedge metadata per halfedge slot (UV trim curve + direction sense).
+    #[serde(default)]
+    pub(crate) coedge_data: Vec<Option<CoedgeInfo>>,
+    /// 3D curve reference per edge slot.
+    #[serde(default)]
+    pub(crate) edge_curves: Vec<Option<CurveRef>>,
+    /// 3-plane intersection provenance per vertex slot.
+    #[serde(default)]
+    pub(crate) vertex_provenance: Vec<Option<[usize; 3]>>,
+
     // ── O(1) Reverse Indexes (derived, not serialized) ──────────
     // SmallVec inline storage avoids heap allocation for typical valence.
     #[serde(skip)]
@@ -110,6 +127,10 @@ impl TopologyArena {
             active_lump_count: 0,
             active_region_count: 0,
             active_edge_count: 0,
+            bridge_flags: Vec::new(),
+            coedge_data: Vec::new(),
+            edge_curves: Vec::new(),
+            vertex_provenance: Vec::new(),
             shell_faces: IndexMap::new(),
             face_halfedges: IndexMap::new(),
             vertex_halfedges: IndexMap::new(),

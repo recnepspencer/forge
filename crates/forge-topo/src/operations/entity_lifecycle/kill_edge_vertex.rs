@@ -16,6 +16,7 @@ use crate::handles::HalfEdgeId;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 
 /// Collapse an edge by removing it and merging its target vertex into the origin.
@@ -45,6 +46,8 @@ impl TopoOperator for KillEdgeVertex {
     type Output = KevOutput;
 
     const NAME: &'static str = "kill_edge_vertex";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!("Collapse edge at halfedge {}, merging target vertex into origin", self.edge.index())

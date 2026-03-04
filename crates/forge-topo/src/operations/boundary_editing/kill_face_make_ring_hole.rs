@@ -17,6 +17,7 @@ use crate::handles::FaceId;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 /// Demotes a face's outer loop into an inner loop (hole) of another face.
 #[derive(Debug)]
@@ -34,6 +35,8 @@ impl TopoOperator for KillFaceMakeRingHole {
     type Output = KfmrhOutput;
 
     const NAME: &'static str = "kill_face_make_ring_hole";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!(

@@ -21,6 +21,7 @@ use crate::handles::{FaceId, VertexId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 /// Destroys a disconnected shell within an existing solid.
 #[derive(Debug)]
@@ -35,6 +36,8 @@ impl TopoOperator for KillShellFace {
     type Output = ();
 
     const NAME: &'static str = "kill_shell_face";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!(

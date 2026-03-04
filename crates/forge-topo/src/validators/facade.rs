@@ -7,3 +7,9 @@ pub use super::validate::{validate_topology, ValidationLevel};
 pub use super::shell_closure::validate_manifold_edges;
 pub use super::radial_edge::validate_radial_edge_consistency;
 pub use super::loop_wiring::validate_vertex_continuity;
+
+pub use super::invariant_id::{
+    InvariantId, InvariantRelation, InvariantContract,
+    ValidatorCost, ValidatorEntry, validator_for,
+};
+pub use super::invariant_group::InvariantGroup;

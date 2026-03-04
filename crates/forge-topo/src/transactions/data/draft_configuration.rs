@@ -4,8 +4,8 @@ use crate::validators::validate::ValidationLevel;
 
 /// Configuration for a mutable draft transaction.
 ///
-/// Controls opt-in features like per-operation structural hashing
-/// and deterministic seeding for reproducible operation sequences.
+/// Controls opt-in features like per-operation structural hashing,
+/// deterministic seeding, and invariant validation behavior.
 #[derive(Debug, Clone)]
 pub struct DraftConfig {
     /// When true, compute and record the arena's structural signature
@@ -25,10 +25,22 @@ pub struct DraftConfig {
     ///
     /// Default: `Full` in Debug, `Minimal` in Release.
     pub validation_level: ValidationLevel,
-    /// When true, verify twin/next/prev consistency after every Euler op.
+    /// Debug override: run ALL invariant validators after every `execute()`
+    /// call, regardless of operator contracts.
     ///
-    /// Expensive — use only in dev/CI. Default: `false`.
-    pub per_op_validation: bool,
+    /// Catches misclassified `Unrelated`/`Preserves` that should be `MayBreak`.
+    /// Expensive — use only in dev/CI.
+    ///
+    /// Default: `false`.
+    pub validate_all_invariants_per_op: bool,
+    /// Macro-op suppression: skip all per-op invariant checks.
+    ///
+    /// For massive compound operations (booleans, imports) where even
+    /// cheap per-op validation adds unacceptable overhead. Defers all
+    /// checks to commit-time validation.
+    ///
+    /// Default: `false`.
+    pub suppress_per_op_validation: bool,
 }
 
 impl Default for DraftConfig {
@@ -37,7 +49,8 @@ impl Default for DraftConfig {
             per_op_hashing: false,
             deterministic_seed: 0,
             validation_level: ValidationLevel::default(),
-            per_op_validation: false,
+            validate_all_invariants_per_op: false,
+            suppress_per_op_validation: false,
         }
     }
 }

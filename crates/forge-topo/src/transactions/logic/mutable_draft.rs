@@ -554,12 +554,55 @@ impl MutableDraft {
             );
         }
 
-        if self.config.per_op_validation {
-            crate::validators::structural::validate_topology(&self.arena, ValidationLevel::Full).map_err(|e| {
-                e.ensure_operation_context(&op_name, invocation_id as u64, &format!("Per-op validation failed after {}", op_name))
-            })?;
+        // ── Contract-driven invariant checking ──────────────────────
+        // Runs after every op unless suppressed. Cost-tier aware:
+        //   Normal mode:  Cheap validators for MayBreak invariants only
+        //   Debug override: ALL validators for ALL invariants
+        //   Suppressed: skip everything (macro-op batch mode)
+        if !self.config.suppress_per_op_validation {
+            use crate::validators::invariant_id::{
+                InvariantId, ValidatorCost, validator_for,
+            };
 
-            validate_halfedge_reciprocity(self, &op_name, invocation_id as u64)?;
+            let max_cost = if self.config.validate_all_invariants_per_op {
+                ValidatorCost::Expensive
+            } else {
+                ValidatorCost::Cheap
+            };
+
+            let invariants_to_check: Vec<InvariantId> = if self.config.validate_all_invariants_per_op {
+                // Debug override: check ALL invariants
+                InvariantId::ALL.to_vec()
+            } else {
+                // Normal: only MayBreak invariants from operator contract
+                O::INVARIANT_CONTRACT.may_break().collect()
+            };
+
+            for id in invariants_to_check {
+                let entry = validator_for(id);
+                if entry.cost <= max_cost {
+                    let check_result = (entry.check)(&self.arena);
+                    let passed = check_result.is_ok();
+
+                    tracing::info!(
+                        invariant = ?id,
+                        operator = O::NAME,
+                        invocation = invocation_id,
+                        cost = ?entry.cost,
+                        passed = passed,
+                        "invariant_check"
+                    );
+
+                    if let Err(e) = check_result {
+                        self.poisoned = true;
+                        return Err(e.ensure_operation_context(
+                            &op_name,
+                            invocation_id as u64,
+                            &format!("Invariant {:?} violated after {}", id, op_name),
+                        ));
+                    }
+                }
+            }
         }
 
         // ── Build LineageDelta + OperationMetrics from journal (gross counts) ──

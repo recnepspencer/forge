@@ -17,6 +17,7 @@ use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, VertexId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 
 /// Split a face by inserting a new edge between two of its vertices.
@@ -53,6 +54,8 @@ impl TopoOperator for MakeEdgeFace {
     type Output = MefOutput;
 
     const NAME: &'static str = "make_edge_face";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!(

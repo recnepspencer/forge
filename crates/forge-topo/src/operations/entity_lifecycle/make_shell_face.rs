@@ -19,6 +19,7 @@ use crate::handles::{EdgeId, HalfEdgeId, LoopId, RegionId, ShellId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 
 /// Creates a new, disjoint shell within an existing solid.
@@ -48,6 +49,8 @@ impl TopoOperator for MakeShellFace {
     type Output = MsfOutput;
 
     const NAME: &'static str = "make_shell_face";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!("Create new shell with seed vertex-face in region {}", self.region.index())

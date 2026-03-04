@@ -20,6 +20,7 @@ use crate::handles::{HalfEdgeId, LoopId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 
 /// Merge two loops on the same face by inserting an edge between them.
@@ -56,6 +57,8 @@ impl TopoOperator for MakeEdgeKillLoop {
     type Output = MeklOutput;
 
     const NAME: &'static str = "make_edge_kill_loop";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!(

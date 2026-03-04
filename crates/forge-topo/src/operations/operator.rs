@@ -23,6 +23,7 @@
 //! ```
 
 use crate::transactions::MutableDraft;
+use crate::validators::invariant_id::{InvariantContract, InvariantRelation, InvariantId};
 use forge_core::{
     ErrorContext, ErrorScope, KernelError, TopologyError,
 };
@@ -87,6 +88,13 @@ pub trait TopoOperator: std::fmt::Debug {
     fn semantic_summary(&self) -> String {
         format!("{:?}", self)
     }
+
+    /// Invariant contract: how this operator relates to every structural
+    /// invariant. Must use an exhaustive match on `InvariantId`.
+    ///
+    /// Adding a new `InvariantId` variant without updating this const
+    /// in every operator = **compile error**.
+    const INVARIANT_CONTRACT: InvariantContract;
 }
 
 /// Declared Euler formula delta for an operator.
@@ -229,6 +237,38 @@ mod tests {
         }
 
         const NAME: &'static str = "no_op";
+
+        const INVARIANT_CONTRACT: InvariantContract = InvariantContract {
+            relation: |id| match id {
+                InvariantId::RadialReciprocity => InvariantRelation::Unrelated,
+                InvariantId::NextPrevReciprocity => InvariantRelation::Unrelated,
+                InvariantId::NoDanglingRefs => InvariantRelation::Unrelated,
+                InvariantId::GenerationalFreshness => InvariantRelation::Unrelated,
+                InvariantId::FaceHasLoop => InvariantRelation::Unrelated,
+                InvariantId::LoopMinCardinality => InvariantRelation::Unrelated,
+                InvariantId::NoDuplicateCoedges => InvariantRelation::Unrelated,
+                InvariantId::FaceLoopMembership => InvariantRelation::Unrelated,
+                InvariantId::VertexContinuity => InvariantRelation::Unrelated,
+                InvariantId::EdgeEndpointsMatch => InvariantRelation::Unrelated,
+                InvariantId::SingleLoopOwner => InvariantRelation::Unrelated,
+                InvariantId::NoOrphanHalfEdges => InvariantRelation::Unrelated,
+                InvariantId::AcyclicContainment => InvariantRelation::Unrelated,
+                InvariantId::InnerOuterConsistency => InvariantRelation::Unrelated,
+                InvariantId::RadialCycleUniqueness => InvariantRelation::Unrelated,
+                InvariantId::RadialNeighborConsistency => InvariantRelation::Unrelated,
+                InvariantId::NoBrokenRadialSplices => InvariantRelation::Unrelated,
+                InvariantId::FaceAdjacencyConsistency => InvariantRelation::Unrelated,
+                InvariantId::NoBrokenFaceBoundary => InvariantRelation::Unrelated,
+                InvariantId::BoundaryEdgesLaminar => InvariantRelation::Unrelated,
+                InvariantId::DiskEntriesAlive => InvariantRelation::Unrelated,
+                InvariantId::DiskPartitionCorrect => InvariantRelation::Unrelated,
+                InvariantId::DiskClosure => InvariantRelation::Unrelated,
+                InvariantId::NoCrossDiskCoedges => InvariantRelation::Unrelated,
+                InvariantId::PerComponentEuler => InvariantRelation::Unrelated,
+                InvariantId::SideCarCoherence => InvariantRelation::Unrelated,
+                InvariantId::IndexCoherence => InvariantRelation::Unrelated,
+            },
+        };
     }
 
     /// An operator that always fails
@@ -250,6 +290,38 @@ mod tests {
         }
 
         const NAME: &'static str = "fail_op";
+
+        const INVARIANT_CONTRACT: InvariantContract = InvariantContract {
+            relation: |id| match id {
+                InvariantId::RadialReciprocity => InvariantRelation::Unrelated,
+                InvariantId::NextPrevReciprocity => InvariantRelation::Unrelated,
+                InvariantId::NoDanglingRefs => InvariantRelation::Unrelated,
+                InvariantId::GenerationalFreshness => InvariantRelation::Unrelated,
+                InvariantId::FaceHasLoop => InvariantRelation::Unrelated,
+                InvariantId::LoopMinCardinality => InvariantRelation::Unrelated,
+                InvariantId::NoDuplicateCoedges => InvariantRelation::Unrelated,
+                InvariantId::FaceLoopMembership => InvariantRelation::Unrelated,
+                InvariantId::VertexContinuity => InvariantRelation::Unrelated,
+                InvariantId::EdgeEndpointsMatch => InvariantRelation::Unrelated,
+                InvariantId::SingleLoopOwner => InvariantRelation::Unrelated,
+                InvariantId::NoOrphanHalfEdges => InvariantRelation::Unrelated,
+                InvariantId::AcyclicContainment => InvariantRelation::Unrelated,
+                InvariantId::InnerOuterConsistency => InvariantRelation::Unrelated,
+                InvariantId::RadialCycleUniqueness => InvariantRelation::Unrelated,
+                InvariantId::RadialNeighborConsistency => InvariantRelation::Unrelated,
+                InvariantId::NoBrokenRadialSplices => InvariantRelation::Unrelated,
+                InvariantId::FaceAdjacencyConsistency => InvariantRelation::Unrelated,
+                InvariantId::NoBrokenFaceBoundary => InvariantRelation::Unrelated,
+                InvariantId::BoundaryEdgesLaminar => InvariantRelation::Unrelated,
+                InvariantId::DiskEntriesAlive => InvariantRelation::Unrelated,
+                InvariantId::DiskPartitionCorrect => InvariantRelation::Unrelated,
+                InvariantId::DiskClosure => InvariantRelation::Unrelated,
+                InvariantId::NoCrossDiskCoedges => InvariantRelation::Unrelated,
+                InvariantId::PerComponentEuler => InvariantRelation::Unrelated,
+                InvariantId::SideCarCoherence => InvariantRelation::Unrelated,
+                InvariantId::IndexCoherence => InvariantRelation::Unrelated,
+            },
+        };
     }
 
     #[test]

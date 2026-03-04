@@ -393,6 +393,7 @@ struct MockVertexCreator;
 impl crate::operations::operator::TopoOperator for MockVertexCreator {
     type Output = ();
     const NAME: &'static str = "mock_vertex_creator";
+    const INVARIANT_CONTRACT: crate::validators::invariant_id::InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         "Create one vertex".into()

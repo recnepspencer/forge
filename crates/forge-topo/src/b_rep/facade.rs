@@ -9,6 +9,10 @@ pub use super::data::mesh::half_edge::HalfEdgeData;
 pub use super::data::mesh::vertex::VertexData;
 pub use super::data::mesh::boundary_loop::LoopData;
 pub use super::data::mesh::edge::EdgeData;
+pub use super::data::mesh::coedge_info::CoedgeInfo;
+
+// ── Entity Views (connectivity + side-car metadata) ───────────────────
+pub use super::logic::views::{HalfEdgeView, VertexView, EdgeView};
 
 // ── Containment Entities (The Volumetric Hierarchy) ───────────────────
 pub use super::data::containment::body::BodyData;
@@ -22,3 +26,4 @@ pub use super::data::entity_kind::EntityKind;
 
 // ── Membership Tracking ──────────────────────────────────────────────
 pub use super::logic::EntityBitset;
+

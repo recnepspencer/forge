@@ -11,6 +11,7 @@ use crate::handles::{BodyId, LumpId, RegionId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 // ── RehomeLump ──────────────────────────────────────────────────────
 
@@ -27,6 +28,8 @@ impl TopoOperator for RehomeLump {
     type Output = ();
 
     const NAME: &'static str = "rehome_lump";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!("Move lump {} to body {}", self.lump.index(), self.target_body.index())
@@ -72,6 +75,8 @@ impl TopoOperator for ExtractLump {
     type Output = ExtractLumpOutput;
 
     const NAME: &'static str = "extract_lump";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!("Extract lump {} into its own body", self.lump.index())
@@ -131,6 +136,8 @@ impl TopoOperator for SplitLump {
 
     const NAME: &'static str = "split_lump";
 
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+
     fn semantic_summary(&self) -> String {
         format!(
             "Split lump {} by moving {} regions to new lump",
@@ -189,6 +196,8 @@ impl TopoOperator for MergeLumps {
     type Output = ();
 
     const NAME: &'static str = "merge_lumps";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!("Merge lump {} into lump {}", self.source.index(), self.target.index())

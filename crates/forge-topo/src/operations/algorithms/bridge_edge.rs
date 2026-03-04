@@ -48,8 +48,8 @@ pub fn bridge_edge(
 
     {
         let arena = draft.arena_mut();
-        arena.get_half_edge_mut(mekl.he_ab)?.set_bridge(true);
-        arena.get_half_edge_mut(mekl.he_ba)?.set_bridge(true);
+        arena.set_bridge(mekl.he_ab, true);
+        arena.set_bridge(mekl.he_ba, true);
     }
 
     Ok(BridgeEdgeOutput {
@@ -88,8 +88,8 @@ mod tests {
             he_in,
         );
 
-        assert!(draft.arena().get_half_edge(he_in).unwrap().is_bridge());
-        assert!(draft.arena().get_half_edge(he_out).unwrap().is_bridge());
+        assert!(draft.arena().is_bridge(he_in));
+        assert!(draft.arena().is_bridge(he_out));
     }
 
     #[test]

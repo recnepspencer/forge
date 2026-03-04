@@ -20,6 +20,7 @@ use crate::handles::{EdgeId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 
 /// Creates the topological seed: one vertex, one face, one loop, one selfloop halfedge,
@@ -56,6 +57,8 @@ impl TopoOperator for MakeVertexFace {
     type Output = MvfOutput;
 
     const NAME: &'static str = "make_vertex_face";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         "Create initial vertex-face-shell scaffold (seed topology)".into()

@@ -21,6 +21,7 @@ use crate::handles::{HalfEdgeId, LoopId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 /// Remove an edge to split a loop into two loops (outer + new inner).
 ///
@@ -45,6 +46,8 @@ impl TopoOperator for KillEdgeMakeLoop {
     type Output = KemlOutput;
 
     const NAME: &'static str = "kill_edge_make_loop";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!("Remove edge at halfedge {} and create inner loop (hole)", self.edge.index())

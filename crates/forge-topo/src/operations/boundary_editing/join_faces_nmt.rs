@@ -22,6 +22,7 @@ use crate::handles::{HalfEdgeId, LoopId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 
 /// NMT-compatible face merge that leaves a topological slit.
@@ -48,6 +49,8 @@ impl TopoOperator for JoinFacesNmt {
     type Output = JfNmtOutput;
 
     const NAME: &'static str = "join_faces_nmt";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!(
@@ -218,7 +221,7 @@ impl TopoOperator for JoinFacesNmt {
             let current_out = draft.arena().get_vertex(target_vertex)?.outgoing();
             if current_out == he_s || current_out == he_k {
                 let replacement =
-                    find_non_slit_outgoing(draft, target_vertex, he_s, he_k, &protected, face_survive)?;
+                    find_non_slit_outgoing(draft, target_vertex, he_s, he_k, &protected, &[he_s_next, he_k_next])?;
                 draft
                     .arena_mut()
                     .get_vertex_mut(target_vertex)?
@@ -318,17 +321,20 @@ fn reassign_face(
 
 /// Find a non-slit halfedge originating at `target_vertex`.
 ///
-/// Searches the protected radial ring first, then walks the surviving
-/// face's loop structure (outer + inner loops). Never searches the
-/// global arena — that would violate spatial locality by potentially
-/// picking a half-edge from a disconnected shell.
+/// Searches the protected radial ring first, then walks the chains
+/// starting from the supplied `chain_starts`. These should be the
+/// bypass half-edges (he_s_next, he_k_next) that were just wired,
+/// which are guaranteed to be reachable in the merged topology.
+///
+/// Never searches the global arena — that would violate spatial locality
+/// by potentially picking a half-edge from a disconnected shell.
 fn find_non_slit_outgoing(
     draft: &MutableDraft,
     target_vertex: crate::handles::VertexId,
     slit_a: HalfEdgeId,
     slit_b: HalfEdgeId,
     protected: &[HalfEdgeId],
-    surviving_face: crate::handles::FaceId,
+    chain_starts: &[HalfEdgeId],
 ) -> Result<HalfEdgeId, KernelError> {
     // 1. Check the protected radial ring first (fastest path).
     for &p in protected {
@@ -337,20 +343,15 @@ fn find_non_slit_outgoing(
         }
     }
 
-    // 2. Walk the surviving face's loops (outer + inner) to find a
-    //    non-slit half-edge with the correct origin. This restricts the
-    //    search to the local topological neighborhood.
-    let face_data = draft.arena().get_face(surviving_face)?;
-    let outer_loop = face_data.outer_loop();
-    let inner_loops: Vec<crate::handles::LoopId> = face_data.inner_loops().to_vec();
-
-    let mut loops_to_search = vec![outer_loop];
-    loops_to_search.extend(inner_loops);
-
+    // 2. Walk the chains from known-good starting points. These are the
+    //    bypass half-edges that form the merged outer loop. Walking via
+    //    next() will traverse the full merged boundary.
     let bound = draft.arena().half_edge_count().max(1);
 
-    for loop_id in loops_to_search {
-        let start = draft.arena().get_loop(loop_id)?.half_edge();
+    for &start in chain_starts {
+        if start == slit_a || start == slit_b {
+            continue;
+        }
         let mut current = start;
         for step in 0..=bound {
             if current != slit_a
@@ -364,7 +365,7 @@ fn find_non_slit_outgoing(
                 break;
             }
             if step == bound {
-                break; // Safety: loop didn't close, try next loop
+                break; // Safety: chain didn't close, try next start
             }
         }
     }
@@ -372,10 +373,10 @@ fn find_non_slit_outgoing(
     Err(KernelError::InvalidInput {
         message: format!(
             "JoinFacesNmt: cannot find non-slit outgoing halfedge for vertex {} \
-             within surviving face {}",
+             in the merged boundary chains",
             target_vertex.index(),
-            surviving_face.index(),
         ),
         context: None,
     })
 }
+

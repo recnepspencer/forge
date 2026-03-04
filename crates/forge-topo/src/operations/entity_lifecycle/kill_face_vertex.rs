@@ -17,6 +17,7 @@ use crate::handles::FaceId;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 /// Removes a disjoint face and its single vertex from a shell.
 #[derive(Debug)]
@@ -32,6 +33,8 @@ impl TopoOperator for KillFaceVertex {
     type Output = KfvOutput;
 
     const NAME: &'static str = "kill_face_vertex";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!("Destroy face {} and its isolated vertex", self.face.index())

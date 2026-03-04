@@ -1,27 +1,21 @@
 //! Data shape for the Edge entity.
 //!
 //! DOMAIN: An undirected geometric edge shared by a radial ring of halfedges.
+//!
+//! Connectivity only — the 3D curve reference lives in a slot-parallel
+//! side-car vector on `TopologyArena`.
 
 use serde::{Deserialize, Serialize};
 
-use crate::handles::{CurveRef, HalfEdgeId};
+use crate::handles::HalfEdgeId;
 
-/// Data stored for each undirected edge — owns a representative halfedge.
+/// Data stored for each undirected edge — 1 connectivity pointer, nothing else.
 ///
 /// All halfedges around this geometric edge form a radial ring linked
 /// via `radial_next`. The representative halfedge provides an entry point.
-/// Edge-level attributes (fillet radius, crease angle, seam) live here.
-///
-/// Geometric data (3D curve + tolerance tube) lives in `forge-geom::CurveGeom`
-/// and is referenced via the opaque `curve` handle. `EdgeData` never owns
-/// or compares `f64` values (Doctrine D3).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EdgeData {
     half_edge: HalfEdgeId,
-    /// Opaque reference to the edge's 3D curve in `forge-geom::CurveGeom`.
-    /// `None` for planar edges (the edge is an implicit plane-plane intersection).
-    /// `Some` for curved edges, populated by the kernel in Phase 4+.
-    pub curve: Option<CurveRef>,
 }
 
 impl EdgeData {
@@ -29,7 +23,6 @@ impl EdgeData {
     pub fn new(half_edge: HalfEdgeId) -> Self {
         Self {
             half_edge,
-            curve: None,
         }
     }
 
@@ -38,18 +31,9 @@ impl EdgeData {
         self.half_edge
     }
 
-    /// The opaque curve reference for this edge (None = planar).
-    pub fn curve_ref(&self) -> Option<CurveRef> {
-        self.curve
-    }
-
     /// Set the representative halfedge.
     pub fn set_half_edge(&mut self, id: HalfEdgeId) {
         self.half_edge = id;
     }
-
-    /// Set the curve reference (populated by the kernel for curved edges).
-    pub fn set_curve_ref(&mut self, id: Option<CurveRef>) {
-        self.curve = id;
-    }
 }
+

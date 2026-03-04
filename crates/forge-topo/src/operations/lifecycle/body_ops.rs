@@ -12,6 +12,7 @@ use crate::handles::{BodyId, LumpId, RegionId, ShellId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::invariant_id::InvariantContract;
 
 // ── SplitBody ───────────────────────────────────────────────────────
 
@@ -34,6 +35,8 @@ impl TopoOperator for SplitBody {
     type Output = SplitBodyOutput;
 
     const NAME: &'static str = "split_body";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!(
@@ -104,6 +107,8 @@ impl TopoOperator for MergeBodies {
 
     const NAME: &'static str = "merge_bodies";
 
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+
     fn semantic_summary(&self) -> String {
         format!("Merge body {} into body {}", self.source.index(), self.target.index())
     }
@@ -155,6 +160,8 @@ impl TopoOperator for CloneBody {
     type Output = CloneBodyOutput;
 
     const NAME: &'static str = "clone_body";
+
+    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
 
     fn semantic_summary(&self) -> String {
         format!("Deep clone body {}", self.body.index())
