@@ -66,6 +66,8 @@ pub struct MutableDraft {
     pub(crate) prior_lineage_events: Vec<LineageEvent>,
     /// Per-operation mutation journal — records every insert/remove automatically.
     pub(crate) mutation_journal: MutationJournal,
+    /// If true, a previous operation failed and this draft MUST NOT be used.
+    pub(crate) poisoned: bool,
 }
 
 impl MutableDraft {
@@ -292,6 +294,12 @@ impl MutableDraft {
     /// Returns `KernelError::TopologyViolation` if the resulting topology
     /// violates any invariant (Euler formula, twin consistency, etc.).
     pub fn commit(mut self) -> Result<TopologyState, KernelError> {
+        if self.poisoned {
+            return Err(KernelError::InternalError {
+                message: "Cannot commit a poisoned draft. A previous operation failed mid-transaction.".to_string(),
+                context: None,
+            });
+        }
         self.committed = true;
 
         crate::validators::structural::validate_topology(&self.arena, self.config.validation_level)?;
@@ -362,6 +370,13 @@ impl MutableDraft {
         &mut self,
         op: O,
     ) -> Result<OperationResult<O::Output>, KernelError> {
+        if self.poisoned {
+            return Err(KernelError::InternalError {
+                message: "Draft was poisoned by a previously failed operation. Create a new MutableDraft from TopologyState.".to_string(),
+                context: None,
+            });
+        }
+
         use crate::operations::operator::{EulerDelta, validate_halfedge_reciprocity};
         use std::time::Instant;
 
@@ -406,6 +421,8 @@ impl MutableDraft {
         );
 
         let exec_result = op.execute(self, &mut recorder).map_err(|e| {
+            // Poison the draft immediately on first failure to prevent cascade corruption
+            self.poisoned = true;
             // Only format the Debug repr on the error path — zero cost on success.
             e.ensure_operation_context(&op_name, invocation_id as u64, &format!("{:?}", op))
         })?;

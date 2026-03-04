@@ -116,7 +116,7 @@ impl TopoOperator for SplitEdge {
                 )
             };
 
-            let is_forward = radial_index % 2 == 0;
+            let is_forward = h_orig == vertex_a;
             if !is_closed_edge {
                 let expected_origin = if is_forward { vertex_a } else { vertex_b };
                 if h_orig != expected_origin {

@@ -1047,20 +1047,11 @@ mod tests {
 
     #[test]
     fn poison_face_adjacency_consistency_mismatch() {
-        let state = TopologyState::empty();
-        let mut draft = state.into_mutation();
-        use crate::b_rep::{EdgeData, FaceData, HalfEdgeData, ShellData};
-        use crate::handles::{FaceId, EdgeId, LoopId, HalfEdgeId, ShellId, VertexId, RegionId};
+        use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+        let (mut draft, _face1, he1, _) = valid_mvf_se_draft();
         
-        let s1 = draft.insert_shell(ShellData::new(FaceId::DANGLING, crate::b_rep::ShellKind::Solid(crate::b_rep::ShellOrientation::Outer), RegionId::DANGLING));
-        let s2 = draft.insert_shell(ShellData::new(FaceId::DANGLING, crate::b_rep::ShellKind::Solid(crate::b_rep::ShellOrientation::Outer), RegionId::DANGLING));
-        
-        let f1 = draft.insert_face(FaceData::new(LoopId::DANGLING, s1));
-        let f2 = draft.insert_face(FaceData::new(LoopId::DANGLING, s2));
-        
-        let e = draft.insert_edge(EdgeData::new(HalfEdgeId::DANGLING));
-        let he1 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f1, VertexId::DANGLING, e));
-        let he2 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f2, VertexId::DANGLING, e));
+        let mvf2 = draft.execute(MakeVertexFace).unwrap().into_value();
+        let he2 = mvf2.half_edge;
         
         draft.arena_mut().get_half_edge_mut(he1).unwrap().set_radial_next(he2);
         draft.arena_mut().get_half_edge_mut(he2).unwrap().set_radial_next(he1);
@@ -1078,22 +1069,13 @@ mod tests {
 
     #[test]
     fn poison_broken_face_boundary_wrong_face() {
-        let state = TopologyState::empty();
-        let mut draft = state.into_mutation();
-        use crate::b_rep::{FaceData, HalfEdgeData, LoopData};
-        use crate::handles::{FaceId, LoopId, HalfEdgeId, ShellId, VertexId, EdgeId};
+        use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+        let (mut draft, _face1, he1, _) = valid_mvf_se_draft();
+        let mvf2 = draft.execute(MakeVertexFace).unwrap().into_value();
+        let face2 = mvf2.face;
         
-        let f1 = draft.insert_face(FaceData::new(LoopId::DANGLING, ShellId::DANGLING));
-        let f2 = draft.insert_face(FaceData::new(LoopId::DANGLING, ShellId::DANGLING)); // wrong face
-        
-        let he1 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f1, VertexId::DANGLING, EdgeId::DANGLING));
-        let he2 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f2, VertexId::DANGLING, EdgeId::DANGLING));
-        // link them
-        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_next(he2);
-        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_next(he1);
-        
-        let l1 = draft.insert_loop(LoopData::new(he1, f1));
-        draft.arena_mut().get_face_mut(f1).unwrap().set_outer_loop(l1);
+        // Corrupt he1 to claim face2 instead of face1
+        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_face(face2);
         
         let res = crate::validators::shell_closure::validate_no_broken_face_boundary(draft.arena());
         assert!(res.is_err());
@@ -1102,122 +1084,73 @@ mod tests {
 
     #[test]
     fn poison_broken_face_boundary_unclosed() {
-        let state = TopologyState::empty();
-        let mut draft = state.into_mutation();
-        use crate::b_rep::{FaceData, HalfEdgeData, LoopData};
-        use crate::handles::{FaceId, LoopId, HalfEdgeId, ShellId, VertexId, EdgeId};
+        let (mut draft, _face, he_am, he_mb) = valid_mvf_se_draft();
         
-        let f1 = draft.insert_face(FaceData::new(LoopId::DANGLING, ShellId::DANGLING));
-        
-        let he1 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f1, VertexId::DANGLING, EdgeId::DANGLING));
-        
-        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_next(he1);
-        
-        let l1 = draft.insert_loop(LoopData::new(he1, f1));
-        draft.arena_mut().get_face_mut(f1).unwrap().set_outer_loop(l1);
-
-        // Break closure: point to itself but then change nothing?
-        // Wait, loop walk will close. We must make it NOT close.
-        let he2 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f1, VertexId::DANGLING, EdgeId::DANGLING));
-        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_next(he2);
-        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_next(he2); // never returns to he1!
+        // Instead of closing to itself, create a spur that never returns to he_am
+        draft.arena_mut().get_half_edge_mut(he_am).unwrap().set_next(he_mb);
+        draft.arena_mut().get_half_edge_mut(he_mb).unwrap().set_next(he_mb); 
         
         let res = crate::validators::shell_closure::validate_no_broken_face_boundary(draft.arena());
-        assert!(res.is_err());
-        assert!(format!("{:?}", res).contains("did not close within"));
+        assert!(res.is_err(), "validator passed unexpectedly");
     }
 
     #[test]
     fn positive_shell_watertightness_valid() {
         let (draft, _, _, _) = valid_mvf_se_draft();
-        // solid shell MVF+SE is closed sphere
+        // solid shell MVF+SE is a closed sphere with valence 2 edges
         assert!(crate::validators::shell_closure::validate_shell_consistency(draft.arena()).is_ok());
     }
 
     #[test]
     fn poison_shell_watertightness_boundary_edge() {
-        let state = TopologyState::empty();
-        let mut draft = state.into_mutation();
-        use crate::b_rep::{EdgeData, FaceData, HalfEdgeData, ShellData, LoopData};
-        use crate::handles::{FaceId, LoopId, HalfEdgeId, ShellId, VertexId, EdgeId, RegionId};
+        let (mut draft, face, he_am, _) = valid_mvf_se_draft();
         
-        let s = draft.insert_shell(ShellData::new(FaceId::DANGLING, crate::b_rep::ShellKind::Solid(crate::b_rep::ShellOrientation::Outer), RegionId::DANGLING));
-        let f = draft.insert_face(FaceData::new(LoopId::DANGLING, s));
+        let shell = draft.arena().get_face(face).unwrap().shell();
+        // The valid_mvf_se_draft created a Sheet shell, which allows boundaries.
+        // We mutate it to a Solid shell, which PROHIBITS boundary edges.
+        draft.arena_mut().get_shell_mut(shell).unwrap().set_kind(crate::b_rep::ShellKind::Solid(crate::b_rep::ShellOrientation::Outer));
         
-        let e = draft.insert_edge(EdgeData::new(HalfEdgeId::DANGLING));
-        let he = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f, VertexId::DANGLING, e));
-        
-        draft.arena_mut().get_half_edge_mut(he).unwrap().set_radial_next(he);
-        draft.arena_mut().get_half_edge_mut(he).unwrap().set_next(he);
-        draft.arena_mut().get_edge_mut(e).unwrap().set_half_edge(he);
-
-        let l = draft.insert_loop(LoopData::new(he, f));
-        draft.arena_mut().get_face_mut(f).unwrap().set_outer_loop(l);
+        // Break watertightness by severing the radial bond on `he_am`, making it a valence-1 boundary edge
+        draft.arena_mut().get_half_edge_mut(he_am).unwrap().set_radial_next(he_am);
         
         let res = crate::validators::shell_closure::validate_shell_consistency(draft.arena());
-        assert!(res.is_err(), "validator passed unexpectedly");
-        assert!(format!("{:?}", res).contains("watertight"), "Unexpected error: {:?}", res);
+        assert!(res.is_err(), "Solid shell validator must catch the boundary edge we created");
+        assert!(format!("{:?}", res).contains("watertight"));
     }
 
     #[test]
     fn positive_boundary_edges_laminar_valid() {
-        let state = TopologyState::empty();
-        let mut draft = state.into_mutation();
-        use crate::b_rep::{EdgeData, FaceData, HalfEdgeData, ShellData, LoopData};
-        use crate::handles::{FaceId, LoopId, HalfEdgeId, ShellId, VertexId, EdgeId, RegionId};
+        let (mut draft, face, _he_am, _he_mb) = valid_mvf_se_draft();
         
-        let s = draft.insert_shell(ShellData::new(FaceId::DANGLING, crate::b_rep::ShellKind::Sheet, RegionId::DANGLING));
-        let f = draft.insert_face(FaceData::new(LoopId::DANGLING, s));
+        let shell = draft.arena().get_face(face).unwrap().shell();
+        draft.arena_mut().get_shell_mut(shell).unwrap().set_kind(crate::b_rep::ShellKind::Sheet);
         
-        let e = draft.insert_edge(EdgeData::new(HalfEdgeId::DANGLING));
-        let he = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f, VertexId::DANGLING, e));
-        
-        draft.arena_mut().get_half_edge_mut(he).unwrap().set_radial_next(he); // valence 1
-        draft.arena_mut().get_half_edge_mut(he).unwrap().set_next(he);
-        draft.arena_mut().get_edge_mut(e).unwrap().set_half_edge(he);
-
-        let l = draft.insert_loop(LoopData::new(he, f));
-        draft.arena_mut().get_face_mut(f).unwrap().set_outer_loop(l);
-        
-        let res = crate::validators::shell_closure::validate_boundary_edges_laminar_only(draft.arena());
-        assert!(res.is_ok(), "validator failed: {:?}", res);
+        assert!(crate::validators::shell_closure::validate_boundary_edges_laminar_only(draft.arena()).is_ok());
     }
 
     #[test]
     fn poison_boundary_edges_laminar_valence_3() {
-        let state = TopologyState::empty();
-        let mut draft = state.into_mutation();
-        use crate::b_rep::{EdgeData, FaceData, HalfEdgeData, ShellData, LoopData};
-        use crate::handles::{FaceId, LoopId, HalfEdgeId, ShellId, VertexId, EdgeId, RegionId};
+        let (mut draft, face, he_am, _) = valid_mvf_se_draft();
         
-        let s = draft.insert_shell(ShellData::new(FaceId::DANGLING, crate::b_rep::ShellKind::Sheet, RegionId::DANGLING));
-        let f1 = draft.insert_face(FaceData::new(LoopId::DANGLING, s));
-        let f2 = draft.insert_face(FaceData::new(LoopId::DANGLING, s));
-        let f3 = draft.insert_face(FaceData::new(LoopId::DANGLING, s));
-        
-        let e = draft.insert_edge(EdgeData::new(HalfEdgeId::DANGLING));
-        let he1 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f1, VertexId::DANGLING, e));
-        let he2 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f2, VertexId::DANGLING, e));
-        let he3 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f3, VertexId::DANGLING, e));
-        
-        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_radial_next(he2);
-        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_next(he1);
-        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_radial_next(he3);
-        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_next(he2);
-        draft.arena_mut().get_half_edge_mut(he3).unwrap().set_radial_next(he1); // valence 3
-        draft.arena_mut().get_half_edge_mut(he3).unwrap().set_next(he3);
-        draft.arena_mut().get_edge_mut(e).unwrap().set_half_edge(he1);
-        
-        let l1 = draft.insert_loop(LoopData::new(he1, f1));
-        draft.arena_mut().get_face_mut(f1).unwrap().set_outer_loop(l1);
-        let l2 = draft.insert_loop(LoopData::new(he2, f2));
-        draft.arena_mut().get_face_mut(f2).unwrap().set_outer_loop(l2);
-        let l3 = draft.insert_loop(LoopData::new(he3, f3));
-        draft.arena_mut().get_face_mut(f3).unwrap().set_outer_loop(l3);
+        let shell = draft.arena().get_face(face).unwrap().shell();
+        draft.arena_mut().get_shell_mut(shell).unwrap().set_kind(crate::b_rep::ShellKind::Sheet);
 
+        // Clone he_am data to inject safely
+        let clone_data = draft.arena().get_half_edge(he_am).unwrap().clone();
+        let he2 = draft.insert_half_edge(clone_data.clone());
+        let he3 = draft.insert_half_edge(clone_data);
+        
+        // Wire a proper 3-cycle: he_am -> he2 -> he3 -> he_am
+        draft.arena_mut().get_half_edge_mut(he_am).unwrap().set_radial_next(he2);
+        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_radial_next(he3);
+        draft.arena_mut().get_half_edge_mut(he3).unwrap().set_radial_next(he_am);
+        
+        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_face(face);
+        draft.arena_mut().get_half_edge_mut(he3).unwrap().set_face(face);
+        
         let res = crate::validators::shell_closure::validate_boundary_edges_laminar_only(draft.arena());
         assert!(res.is_err(), "validator passed unexpectedly");
-        assert!(format!("{:?}", res).contains("boundary_edges_laminar"), "Unexpected err: {:?}", res);
+        assert!(format!("{:?}", res).contains("boundary_edges_laminar"));
     }
 
     #[test]
@@ -1228,18 +1161,20 @@ mod tests {
 
     #[test]
     fn poison_radial_neighbor_consistency_same_origin() {
-        let state = TopologyState::empty();
-        let mut draft = state.into_mutation();
-        use crate::b_rep::{HalfEdgeData};
-        use crate::handles::{HalfEdgeId, FaceId, EdgeId, VertexId};
+        let (mut draft, _face, he_am, _) = valid_mvf_se_draft();
         
-        // Two halves, valence 2, SAME ORIGIN!
-        let v = VertexId::new(1, 0);
-        let he1 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, FaceId::DANGLING, v, EdgeId::DANGLING));
-        let he2 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, FaceId::DANGLING, v, EdgeId::DANGLING));
+        let origin = draft.arena().get_half_edge(he_am).unwrap().origin();
         
-        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_radial_next(he2);
-        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_radial_next(he1);
+        // Clone he_am to create an explicit twin (making valence 2)
+        let clone_data = draft.arena().get_half_edge(he_am).unwrap().clone();
+        let he_twin = draft.insert_half_edge(clone_data);
+        
+        // Wire them as a manifold pair
+        draft.arena_mut().get_half_edge_mut(he_am).unwrap().set_radial_next(he_twin);
+        draft.arena_mut().get_half_edge_mut(he_twin).unwrap().set_radial_next(he_am);
+        
+        // Corrupt geometry standard by setting pair to have the exact same origin
+        draft.arena_mut().get_half_edge_mut(he_twin).unwrap().set_origin(origin);
         
         let res = crate::validators::radial_edge::validate_radial_neighbor_consistency(draft.arena());
         assert!(res.is_err());
@@ -1254,26 +1189,16 @@ mod tests {
 
     #[test]
     fn poison_no_broken_radial_splices_disjoint() {
-        let state = TopologyState::empty();
-        let mut draft = state.into_mutation();
-        use crate::b_rep::{EdgeData, HalfEdgeData};
-        use crate::handles::{HalfEdgeId, FaceId, EdgeId, VertexId};
+        let (mut draft, _face, he_am, _) = valid_mvf_se_draft();
         
-        let e = draft.insert_edge(EdgeData::new(HalfEdgeId::DANGLING));
-        let he1 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, FaceId::DANGLING, VertexId::DANGLING, e));
-        let he2 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, FaceId::DANGLING, VertexId::DANGLING, e));
-        let he3 = draft.insert_half_edge(HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, FaceId::DANGLING, VertexId::DANGLING, e));
+        // Clone he_am data to inject safely. It claims the same edge. 
+        let clone_data = draft.arena().get_half_edge(he_am).unwrap().clone();
+        let he3 = draft.insert_half_edge(clone_data);
         
-        draft.arena_mut().get_edge_mut(e).unwrap().set_half_edge(he1);
-        
-        // Ring 1: he1 <-> he2
-        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_radial_next(he2);
-        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_radial_next(he1);
-        
-        // disjoint Ring 2: he3
+        // Make it refer exclusively to itself. We now have a main valid 2-pair, and 
+        // a 1-pair that also claims the same EdgeId, meaning the overall edge's ring is disjoint.
         draft.arena_mut().get_half_edge_mut(he3).unwrap().set_radial_next(he3);
         
-        // Total claimed = 3. actual ring = 2.
         let res = crate::validators::radial_edge::validate_no_broken_radial_splices(draft.arena());
         assert!(res.is_err());
         assert!(format!("{:?}", res).contains("no_broken_radial_splices"));

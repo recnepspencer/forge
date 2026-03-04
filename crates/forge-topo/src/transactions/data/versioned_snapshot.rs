@@ -149,6 +149,7 @@ impl TopologyState {
             lineage_store: LineageStore::from_prior_events(&prior_events),
             prior_lineage_events: prior_events,
             mutation_journal: crate::transactions::data::mutation_journal::MutationJournal::new(),
+            poisoned: false,
         }
     }
 }

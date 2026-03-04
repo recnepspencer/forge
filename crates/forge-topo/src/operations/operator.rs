@@ -284,14 +284,15 @@ mod tests {
     }
 
     #[test]
-    fn failed_op_doesnt_prevent_commit() {
+    fn failed_op_prevents_subsequent_execution_and_commit() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        draft.execute(NoOp).unwrap().into_value();
-        let _ = draft.execute(FailOp);
-        draft.execute(NoOp).unwrap().into_value();
-
-        assert!(draft.commit().is_ok());
+        assert!(draft.execute(NoOp).is_ok());
+        assert!(draft.execute(FailOp).is_err());
+        
+        // Draft is now poisoned
+        assert!(draft.execute(NoOp).is_err());
+        assert!(draft.commit().is_err());
     }
 }
