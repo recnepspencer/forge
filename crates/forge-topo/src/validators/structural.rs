@@ -55,6 +55,8 @@ pub fn validate_topology(arena: &TopologyArena, level: ValidationLevel) -> Resul
         reference_integrity::validate_single_owner_per_loop(arena)?;
         reference_integrity::validate_inner_outer_loop_consistency(arena)?;
         loop_wiring::validate_edge_endpoints_match_loop_vertices(arena)?;
+        reference_integrity::validate_no_orphan_half_edges(arena)?;
+        reference_integrity::validate_acyclic_containment(arena)?;
     }
 
     if level == ValidationLevel::Full {

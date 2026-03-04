@@ -64,6 +64,11 @@ fn setup_valence_n_edge(draft: &mut crate::transactions::MutableDraft, n: usize)
             .get_half_edge_mut(h_ret)
             .unwrap()
             .set_radial_next(h_ret);
+        draft
+            .arena_mut()
+            .get_edge_mut(ret_edge)
+            .unwrap()
+            .set_half_edge(h_ret);
 
         let l = draft.insert_loop(LoopData::new(h_fwd, f));
         draft.arena_mut().get_face_mut(f).unwrap().set_outer_loop(l);
@@ -1354,6 +1359,11 @@ fn setup_antiparallel_valence_n(
             .get_half_edge_mut(h_ret)
             .unwrap()
             .set_radial_next(h_ret);
+        draft
+            .arena_mut()
+            .get_edge_mut(ret_edge)
+            .unwrap()
+            .set_half_edge(h_ret);
 
         let l = draft.insert_loop(LoopData::new(h_shared, f));
         draft.arena_mut().get_face_mut(f).unwrap().set_outer_loop(l);
@@ -2067,6 +2077,11 @@ fn valid_hierarchy_passes_intermediate_validation() {
         .get_half_edge_mut(h3_ret)
         .unwrap()
         .set_radial_next(h3_ret);
+    draft
+        .arena_mut()
+        .get_edge_mut(ret_edge_3)
+        .unwrap()
+        .set_half_edge(h3_ret);
     let l3 = draft.insert_loop(LoopData::new(h3_fwd, f3));
     draft
         .arena_mut()

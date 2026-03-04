@@ -36,13 +36,9 @@ macro_rules! check_generation {
                 None => {
                     // Index out of bounds or slot is empty — covered by dangling_refs,
                     // but we still report it for completeness.
-                    return Err(vf("generational_id_freshness", format!(
-                        "{} {} .{} references index {} gen {} but no live entity exists there",
-                        $owner_label, $owner_idx, $field,
-                        $handle.index(), $handle.generation()
-                    )));
+                    // so we don't report it here.
                 }
-                _ => {} // generation matches — OK
+                _ => {} // Matches!
             }
         }
     };

@@ -798,6 +798,245 @@ mod tests {
         assert!(result.is_err(), "Ghost HE claiming new_face but unreachable from new_face's loops must be caught");
     }
 
+    // ══════════════════════════════════════════════════════════════════
+    //  BATCH 2 — Adversarial Poison Tests (Ownership & Orphans)
+    // ══════════════════════════════════════════════════════════════════
+
+    // ── 1. single_owner.rs — ValidateSingleOwnerPerLoop ─────────────
+
+    #[test]
+    fn positive_single_owner_passes_valid_topology() {
+        let (draft, _, _, _) = valid_mvf_se_draft();
+        assert!(crate::validators::reference_integrity::validate_single_owner_per_loop(
+            draft.arena()
+        ).is_ok());
+    }
+
+    #[test]
+    fn poison_single_owner_loop_hijack() {
+        use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
+
+        let state = TopologyState::empty();
+        let mut draft = state.into_mutation();
+        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let se = draft.execute(SplitEdge {
+            edge: mvf.half_edge,
+            parameter: 0.5,
+        }).unwrap().into_value();
+
+        let mef = draft.execute(MakeEdgeFace {
+            face: draft.arena().get_half_edge(se.he_am).unwrap().face(),
+            vertex_a: draft.arena().get_half_edge(se.he_am).unwrap().origin(),
+            vertex_b: se.new_vertex,
+        }).unwrap().into_value();
+
+        let face_a = draft.arena().get_half_edge(se.he_am).unwrap().face();
+        let face_b = mef.new_face;
+
+        // Pre-condition: valid
+        assert!(crate::validators::reference_integrity::validate_single_owner_per_loop(
+            draft.arena()
+        ).is_ok());
+
+        // Corrupt: Face B hijacks Face A's outer loop by adding it to its inner_loops
+        let loop_a = draft.arena().get_face(face_a).unwrap().outer_loop();
+        draft.arena_mut().get_face_mut(face_b).unwrap().add_inner_loop(loop_a);
+
+        let result = crate::validators::reference_integrity::validate_single_owner_per_loop(
+            draft.arena()
+        );
+        assert!(result.is_err(), "Single owner must catch loop hijacking");
+        assert!(
+            format!("{:?}", result.unwrap_err()).contains("single_owner_per_loop"),
+            "Error must come from single_owner validator"
+        );
+    }
+
+    // ── 2. inner_outer_consistency.rs — ValidateInnerOuterLoopConsistency ─
+
+    #[test]
+    fn positive_inner_outer_consistency_passes_valid() {
+        let (draft, _, _, _) = valid_mvf_se_draft();
+        assert!(crate::validators::reference_integrity::validate_inner_outer_loop_consistency(
+            draft.arena()
+        ).is_ok());
+    }
+
+    #[test]
+    fn poison_inner_outer_consistency_outer_in_inner_list() {
+        let (mut draft, face, _, _) = valid_mvf_se_draft();
+
+        // Pre-condition: valid
+        assert!(crate::validators::reference_integrity::validate_inner_outer_loop_consistency(
+            draft.arena()
+        ).is_ok());
+
+        // Corrupt: Face adds its own outer loop to its inner loops list
+        let outer_loop = draft.arena().get_face(face).unwrap().outer_loop();
+        draft.arena_mut().get_face_mut(face).unwrap().add_inner_loop(outer_loop);
+
+        let result = crate::validators::reference_integrity::validate_inner_outer_loop_consistency(
+            draft.arena()
+        );
+        assert!(result.is_err(), "Face containing outer loop in inner loops must be caught");
+        assert!(
+            format!("{:?}", result.unwrap_err()).contains("inner_outer_loop_consistency"),
+            "Error must come from inner_outer_loop_consistency validator"
+        );
+    }
+
+    // ── 3. edge_endpoints.rs — ValidateEdgeEndpointsMatchLoopVertices ─
+
+    #[test]
+    fn positive_edge_endpoints_match_valid() {
+        use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
+        let (mut draft, _, he_am, _) = valid_mvf_se_draft();
+        
+        let se_v2 = draft.arena().get_half_edge(he_am).unwrap().origin();
+        let se_v1 = draft.arena().get_half_edge(draft.arena().get_half_edge(he_am).unwrap().next()).unwrap().origin();
+        
+        let _mef = draft.execute(MakeEdgeFace {
+            face: draft.arena().get_half_edge(he_am).unwrap().face(),
+            vertex_a: se_v2,
+            vertex_b: se_v1,
+        }).unwrap().into_value();
+
+        assert!(crate::validators::loop_wiring::validate_edge_endpoints_match_loop_vertices(
+            draft.arena()
+        ).is_ok());
+    }
+
+    #[test]
+    fn poison_edge_endpoints_origin_mismatch() {
+        use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
+        let (mut draft, _, he_am, _) = valid_mvf_se_draft();
+        
+        let v_start = draft.arena().get_half_edge(he_am).unwrap().origin();
+        let he_next = draft.arena().get_half_edge(he_am).unwrap().next();
+        let v_end = draft.arena().get_half_edge(he_next).unwrap().origin();
+        
+        // This splits the face by drawing a new edge from v_start to v_end.
+        // The new edge is shared by the two faces, so its halfedges are twins.
+        let mef = draft.execute(MakeEdgeFace {
+            face: draft.arena().get_half_edge(he_am).unwrap().face(),
+            vertex_a: v_start,
+            vertex_b: v_end,
+        }).unwrap().into_value();
+
+        // mef.half_edge_ab and its twin share the new edge.
+        let he1 = mef.half_edge_ab;
+        let twin = draft.arena().get_half_edge(he1).unwrap().radial_next();
+        assert_ne!(he1, twin, "MakeEdgeFace must create an edge with two distinct halfedges");
+
+        // Pre-condition: valid
+        assert!(crate::validators::loop_wiring::validate_edge_endpoints_match_loop_vertices(
+            draft.arena()
+        ).is_ok());
+
+        // Corrupt: alter twin's origin so it no longer mathematically matches the Edge endpoints
+        let bogus_vertex = crate::handles::VertexId::new(99_999, 0);
+        draft.arena_mut().get_half_edge_mut(twin).unwrap().set_origin(bogus_vertex);
+
+        let result = crate::validators::loop_wiring::validate_edge_endpoints_match_loop_vertices(
+            draft.arena()
+        );
+        assert!(result.is_err(), "HalfEdge endpoints must strictly agree across a shared edge");
+        assert!(
+            format!("{:?}", result.unwrap_err()).contains("edge_endpoints_match"),
+            "Error must come from edge_endpoints validator"
+        );
+    }
+
+    // ── 4. orphan_half_edges.rs — ValidateNoOrphanHalfEdges ─────────
+
+    #[test]
+    fn positive_no_orphan_half_edges_valid() {
+        let (draft, _, _, _) = valid_mvf_se_draft();
+        assert!(crate::validators::reference_integrity::validate_no_orphan_half_edges(
+            draft.arena()
+        ).is_ok());
+    }
+
+    #[test]
+    fn poison_orphan_half_edges_ghost_insertion() {
+        let (mut draft, face, he_am, _) = valid_mvf_se_draft();
+        
+        // Pre-condition: valid
+        assert!(crate::validators::reference_integrity::validate_no_orphan_half_edges(
+            draft.arena()
+        ).is_ok());
+
+        // Corrupt: insert a new HalfEdge directly into the arena memory
+        // without placing it into any Face's loop.
+        let twin = draft.arena().get_half_edge(he_am).unwrap().radial_next();
+        let origin = draft.arena().get_half_edge(he_am).unwrap().origin();
+        let edge = draft.arena().get_half_edge(he_am).unwrap().edge();
+        
+        // Create a technically valid HalfEdge block (all pointers point to real data)
+        let _ghost = draft.insert_half_edge(crate::b_rep::HalfEdgeData::new(
+            he_am, twin, twin, face, origin, edge,
+        ));
+
+        let result = crate::validators::reference_integrity::validate_no_orphan_half_edges(
+            draft.arena()
+        );
+        assert!(result.is_err(), "Validator must catch disconnected HalfEdges floating in memory");
+        assert!(
+            format!("{:?}", result.unwrap_err()).contains("no_orphan_half_edges"),
+            "Error must come from no_orphan_half_edges validator"
+        );
+    }
+
+    // ── 5. acyclic_containment.rs — ValidateAcyclicContainment ──────
+
+    #[test]
+    fn positive_acyclic_containment_valid() {
+        let (draft, _, _, _) = valid_mvf_se_draft();
+        assert!(crate::validators::reference_integrity::validate_acyclic_containment(
+            draft.arena()
+        ).is_ok());
+    }
+
+    #[test]
+    fn poison_acyclic_containment_multi_parent_region() {
+        use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+        let state = TopologyState::empty();
+        let mut draft = state.into_mutation();
+
+        // Create two separate bodies
+        let mvf1 = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf2 = draft.execute(MakeVertexFace).unwrap().into_value();
+
+        let face1 = draft.arena().get_half_edge(mvf1.half_edge).unwrap().face();
+        let shell1 = draft.arena().get_face(face1).unwrap().shell();
+        let region1 = draft.arena().get_shell(shell1).unwrap().region();
+        let lump1 = draft.arena().get_region(region1).unwrap().lump();
+
+        let face2 = draft.arena().get_half_edge(mvf2.half_edge).unwrap().face();
+        let shell2 = draft.arena().get_face(face2).unwrap().shell();
+        let region2 = draft.arena().get_shell(shell2).unwrap().region();
+        let lump2 = draft.arena().get_region(region2).unwrap().lump();
+
+        assert_ne!(lump1, lump2);
+
+        // Pre-condition: valid
+        assert!(crate::validators::reference_integrity::validate_acyclic_containment(
+            draft.arena()
+        ).is_ok());
+
+        // Corrupt: insert Region 2 into Lump 1. Region 2 is now owned by Lump 1 and Lump 2.
+        draft.arena_mut().get_lump_mut(lump1).unwrap().add_region(region2);
+
+        let result = crate::validators::reference_integrity::validate_acyclic_containment(
+            draft.arena()
+        );
+        assert!(result.is_err(), "Validator must catch an entity claimed by two parents");
+        assert!(
+            format!("{:?}", result.unwrap_err()).contains("acyclic_containment"),
+            "Error must come from acyclic_containment validator"
+        );
+    }
+
     // ── Integrated smoke test: full pipeline on valid topology ──────
 
     #[test]

@@ -20,6 +20,8 @@ mod face_loop_existence;
 mod single_owner;
 mod inner_outer_consistency;
 mod generational_freshness;
+mod orphan_half_edges;
+mod acyclic_containment;
 
 use forge_core::KernelError;
 
@@ -30,5 +32,7 @@ pub(crate) use face_loop_existence::validate_face_has_at_least_one_loop;
 pub(crate) use single_owner::validate_single_owner_per_loop;
 pub(crate) use inner_outer_consistency::validate_inner_outer_loop_consistency;
 pub(crate) use generational_freshness::validate_generational_id_freshness;
+pub(crate) use orphan_half_edges::validate_no_orphan_half_edges;
+pub(crate) use acyclic_containment::validate_acyclic_containment;
 
 pub(crate) use super::shared::vf;
