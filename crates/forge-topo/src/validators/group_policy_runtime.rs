@@ -101,6 +101,168 @@ impl GroupPolicyRuntime {
 
     /// The deferred mask (for diagnostics/tracing).
     pub fn deferred_mask(&self) -> u32 { self.deferred_mask }
+
+    /// Snapshot the per-checkpoint cost ceiling array.
+    ///
+    /// Used by `into_mutation_with()` to preserve the caller's cost
+    /// settings when re-resolving the policy from shell metadata.
+    pub fn max_cost_snapshot(&self) -> [ValidatorCost; ValidationCheckpoint::COUNT] {
+        self.max_cost
+    }
+}
+
+// ── Option A: Model-derived context ────────────────────────────────────
+
+use crate::b_rep::{TopologyArena, ShellKind};
+
+/// Derive a topology context **hint** from declared `ShellKind` metadata.
+///
+/// Reads the `ShellKind` stored on each shell in the arena and computes
+/// the **widest** (most permissive) `TopologyContext`. "Widest" means:
+/// if any shell is `Solid`, the context is `Solid`; if any is `Sheet`,
+/// elevate to at least `Sheet`; otherwise `Wire`.
+///
+/// # Not structural analysis
+///
+/// This reads **declared metadata**, not graph structure. Operators that
+/// change a shell's topological character (e.g., sealing an open sheet
+/// into a closed solid) MUST update `ShellData::set_kind()`.
+///
+/// Structural correctness is verified separately at commit time by
+/// [`verify_shell_kind_matches_structure`] (debug builds only).
+///
+/// # Complexity
+///
+/// O(shells) — typically 1–4 shells per body.
+pub fn topology_context_from_shell_metadata(arena: &TopologyArena) -> TopologyContext {
+    let mut has_solid = false;
+    let mut has_sheet = false;
+    let mut has_wire = false;
+    let mut all_closed = true;
+
+    let mut shell_count = 0u32;
+
+    for (_shell_id, shell_data) in arena.iter_shells() {
+        shell_count += 1;
+        match shell_data.kind() {
+            ShellKind::Solid(_) => {
+                has_solid = true;
+                // Solid shells are closed by definition
+            }
+            ShellKind::Sheet => {
+                has_sheet = true;
+                all_closed = false; // sheets have boundary edges
+            }
+            ShellKind::Wire => {
+                has_wire = true;
+                all_closed = false;
+            }
+        }
+    }
+
+    // Empty arena → default to Solid (most conservative = runs all validators)
+    if shell_count == 0 {
+        return TopologyContext::SOLID;
+    }
+
+    // Widest kind wins
+    let kind = if has_solid {
+        TopologyKind::Solid
+    } else if has_sheet {
+        TopologyKind::Sheet
+    } else if has_wire {
+        TopologyKind::Wire
+    } else {
+        TopologyKind::Solid // unreachable, but safe default
+    };
+
+    let closure = if all_closed { Closure::Closed } else { Closure::Open };
+
+    TopologyContext {
+        kind,
+        closure,
+        manifoldness: forge_core::Manifoldness::Manifold, // default; NMT detection is separate
+        stage: CertificationStage::Uncertified,
+    }
+}
+
+/// **Debug-only**: verify that declared `ShellKind` matches structural reality.
+///
+/// Walks all half-edges in the arena (O(E)) to definitively classify shells:
+/// 1. `Solid` shells must have NO boundary edges anywhere.
+/// 2. `Wire` shells must have NO faces.
+/// 3. `Sheet` shells that have NO boundary edges trigger a debug warning
+///    (they are actually watertight solids and missed a validation promotion).
+///
+/// Fires in CI/dev (debug builds), not production.
+///
+/// # Panics
+///
+/// Panics with a descriptive message if a shell's declared kind
+/// contradicts its structural properties.
+#[cfg(debug_assertions)]
+pub fn verify_shell_kind_matches_structure(arena: &TopologyArena) {
+    use crate::queries::traverse::is_boundary_edge;
+    use std::collections::HashSet;
+
+    // First check: Wires cannot have faces
+    for (face_id, face_data) in arena.iter_faces() {
+        let shell_id = face_data.shell();
+        if let Ok(shell_data) = arena.get_shell(shell_id) {
+            debug_assert!(
+                !matches!(shell_data.kind(), ShellKind::Wire),
+                "Face {:?} belongs to Shell {:?} which claims to be a Wire. Wires cannot have faces.",
+                face_id, shell_id
+            );
+        }
+    }
+
+    // Second check: track which shells actually have boundary edges O(E) scan
+    let mut shells_with_boundaries = HashSet::new();
+
+    for (he_id, _he_data) in arena.iter_half_edges() {
+        if let Ok(is_bound) = is_boundary_edge(arena, he_id) {
+            if is_bound {
+                // Find what shell this belongs to
+                if let Ok(he) = arena.get_half_edge(he_id) {
+                    if let Ok(face) = arena.get_face(he.face()) {
+                        shells_with_boundaries.insert(face.shell());
+                    }
+                }
+            }
+        }
+    }
+
+    // Third check: Verify declared goals against reality
+    for (shell_id, shell_data) in arena.iter_shells() {
+        let has_boundaries = shells_with_boundaries.contains(&shell_id);
+
+        match shell_data.kind() {
+            ShellKind::Solid(_) => {
+                // Solid shells must have NO boundary edges anywhere.
+                debug_assert!(
+                    !has_boundaries,
+                    "Shell {:?} declared Solid but contains boundary edges! \
+                     Operator must either seal the hole or set_kind(Sheet).",
+                    shell_id
+                );
+            }
+            ShellKind::Wire => {
+                // Caught by the face iter above
+            }
+            ShellKind::Sheet => {
+                // Sheet is expected to have boundaries. If it doesn't, it's actually watertight!
+                // NOTE: We only check this if there are actually faces in the shell
+                // (an empty shell might be marked sheet temporarily).
+                debug_assert!(
+                    has_boundaries || arena.face_count() == 0,
+                    "Shell {:?} declared Sheet but is completely WATERTIGHT! \
+                     Operator forgot to promote it with set_kind(Solid), missing out on volume validation.",
+                    shell_id
+                );
+            }
+        }
+    }
 }
 
 impl Default for GroupPolicyRuntime {
@@ -117,106 +279,6 @@ impl Default for GroupPolicyRuntime {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
+#[path = "group_policy_runtime_tests.rs"]
+mod group_policy_runtime_tests;
 
-    #[test]
-    fn solid_certified_runs_everything_at_commit() {
-        let ctx = TopologyContext {
-            stage: CertificationStage::Certified,
-            ..TopologyContext::SOLID
-        };
-        let rt = GroupPolicyRuntime::resolve(0, 0,
-            [ValidatorCost::Expensive; ValidationCheckpoint::COUNT], &ctx);
-
-        for &group in InvariantGroup::ALL {
-            assert!(
-                rt.should_run(group, ValidationCheckpoint::PostCommit),
-                "Solid+Certified should run {:?} at PostCommit", group,
-            );
-        }
-    }
-
-    #[test]
-    fn solid_defers_semantic_tier_from_per_op() {
-        let rt = GroupPolicyRuntime::resolve(0, 0,
-            [ValidatorCost::Expensive; ValidationCheckpoint::COUNT],
-            &TopologyContext::SOLID);
-
-        // Semantic tier should be deferred (not per-op)
-        assert!(!rt.should_run(InvariantGroup::EulerFormula, ValidationCheckpoint::PerOp));
-        assert!(!rt.should_run(InvariantGroup::ShellClosure, ValidationCheckpoint::PerOp));
-
-        // But runs at PostCommit
-        assert!(rt.should_run(InvariantGroup::EulerFormula, ValidationCheckpoint::PostCommit));
-        assert!(rt.should_run(InvariantGroup::ShellClosure, ValidationCheckpoint::PostCommit));
-
-        // Topology tier still runs per-op
-        assert!(rt.should_run(InvariantGroup::PointerCoherence, ValidationCheckpoint::PerOp));
-        assert!(rt.should_run(InvariantGroup::CacheCoherence, ValidationCheckpoint::PerOp));
-    }
-
-    #[test]
-    fn wire_skips_face_based_groups() {
-        let rt = GroupPolicyRuntime::resolve(0, 0,
-            [ValidatorCost::Expensive; ValidationCheckpoint::COUNT],
-            &TopologyContext::WIRE);
-
-        // Wire should skip face-based groups even at PostCommit
-        assert!(!rt.should_run(InvariantGroup::LoopIntegrity, ValidationCheckpoint::PostCommit));
-        assert!(!rt.should_run(InvariantGroup::RadialEdge, ValidationCheckpoint::PostCommit));
-        assert!(!rt.should_run(InvariantGroup::ShellClosure, ValidationCheckpoint::PostCommit));
-        assert!(!rt.should_run(InvariantGroup::VertexDisk, ValidationCheckpoint::PostCommit));
-        assert!(!rt.should_run(InvariantGroup::EulerFormula, ValidationCheckpoint::PostCommit));
-
-        // Wire should still run pointer + ownership + cache
-        assert!(rt.should_run(InvariantGroup::PointerCoherence, ValidationCheckpoint::PerOp));
-        assert!(rt.should_run(InvariantGroup::Ownership, ValidationCheckpoint::PerOp));
-        assert!(rt.should_run(InvariantGroup::CacheCoherence, ValidationCheckpoint::PerOp));
-    }
-
-    #[test]
-    fn open_sheet_skips_shell_closure() {
-        let rt = GroupPolicyRuntime::resolve(0, 0,
-            [ValidatorCost::Expensive; ValidationCheckpoint::COUNT],
-            &TopologyContext::SHEET_OPEN);
-
-        assert!(!rt.should_run(InvariantGroup::ShellClosure, ValidationCheckpoint::PostCommit));
-    }
-
-    #[test]
-    fn force_per_op_overrides_deferral() {
-        let force_per_op = InvariantGroup::EulerFormula.mask();
-        let rt = GroupPolicyRuntime::resolve(0, force_per_op,
-            [ValidatorCost::Expensive; ValidationCheckpoint::COUNT],
-            &TopologyContext::SOLID);
-
-        // EulerFormula should now run at PerOp despite being Semantic tier
-        assert!(rt.should_run(InvariantGroup::EulerFormula, ValidationCheckpoint::PerOp));
-    }
-
-    #[test]
-    fn force_skip_overrides_applicability() {
-        let force_skip = InvariantGroup::PointerCoherence.mask();
-        let rt = GroupPolicyRuntime::resolve(force_skip, 0,
-            [ValidatorCost::Expensive; ValidationCheckpoint::COUNT],
-            &TopologyContext::SOLID);
-
-        assert!(!rt.should_run(InvariantGroup::PointerCoherence, ValidationCheckpoint::PerOp));
-        assert!(!rt.should_run(InvariantGroup::PointerCoherence, ValidationCheckpoint::PostCommit));
-    }
-
-    #[test]
-    fn should_run_is_o1() {
-        // Just verify it doesn't panic on all combinations
-        let rt = GroupPolicyRuntime::default();
-        for &group in InvariantGroup::ALL {
-            let _ = rt.should_run(group, ValidationCheckpoint::PerOp);
-            let _ = rt.should_run(group, ValidationCheckpoint::PostCommit);
-            let _ = rt.should_run(group, ValidationCheckpoint::PostBoolean);
-            let _ = rt.should_run(group, ValidationCheckpoint::PostFeature);
-            let _ = rt.should_run(group, ValidationCheckpoint::PostImport);
-            let _ = rt.should_run(group, ValidationCheckpoint::OnDemand);
-        }
-    }
-}

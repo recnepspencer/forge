@@ -88,8 +88,8 @@ mod tests {
             he_in,
         );
 
-        assert!(draft.arena().is_bridge(he_in));
-        assert!(draft.arena().is_bridge(he_out));
+        assert!(draft.arena().view_half_edge(he_in).unwrap().is_bridge());
+        assert!(draft.arena().view_half_edge(he_out).unwrap().is_bridge());
     }
 
     #[test]

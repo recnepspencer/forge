@@ -42,11 +42,14 @@ pub struct DraftConfig {
     ///
     /// Default: `false`.
     pub suppress_per_op_validation: bool,
-    /// Computed group-level validation policy.
+    /// Computed group-level validation policy (metadata-derived hint).
     ///
-    /// Built from `GroupPolicyConfig` (forge-kernel) + `TopologyContext`
-    /// at draft creation time. Controls which invariant groups run at
-    /// which checkpoints with O(1) bitmask dispatch.
+    /// Resolved at draft creation from declared `ShellKind` metadata on
+    /// the arena's shells — **NOT** a structural analysis of the graph.
+    /// Per-op dispatch trusts this hint for O(1) invariant filtering.
+    ///
+    /// Structural correctness is enforced at commit time by validators
+    /// and `verify_shell_kind_matches_structure()` (debug builds).
     pub group_policy: GroupPolicyRuntime,
 }
 

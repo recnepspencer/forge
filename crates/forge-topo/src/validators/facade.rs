@@ -14,3 +14,4 @@ pub use super::invariant_id::{
 };
 pub use super::invariant_group::{InvariantGroup, InvariantTier, invariant_ids};
 pub use super::group_policy_runtime::GroupPolicyRuntime;
+pub use super::group_policy_runtime::topology_context_from_shell_metadata;

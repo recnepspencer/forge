@@ -208,6 +208,46 @@ impl TopologyArena {
     pub fn get_attribute_store_mut(&mut self) -> &mut AttributeStore {
         &mut self.attribute_store
     }
+
+    /// Debug-only assertion that all side-car vectors are at least as long
+    /// as their corresponding entity slot vectors.
+    ///
+    /// Side-cars grow in lockstep via `insert_remove.rs` hooks. A mismatch
+    /// means a hook was bypassed or a new entity type was added without
+    /// updating the growth path.
+    #[cfg(debug_assertions)]
+    pub fn assert_sidecar_parity(&self) {
+        let he_len = self.half_edge_slots.len();
+        debug_assert!(
+            self.bridge_flags.len() >= he_len,
+            "bridge_flags ({}) shorter than half_edge_slots ({})",
+            self.bridge_flags.len(), he_len,
+        );
+        debug_assert!(
+            self.coedge_data.len() >= he_len,
+            "coedge_data ({}) shorter than half_edge_slots ({})",
+            self.coedge_data.len(), he_len,
+        );
+
+        let edge_len = self.edge_slots.len();
+        debug_assert!(
+            self.edge_curves.len() >= edge_len,
+            "edge_curves ({}) shorter than edge_slots ({})",
+            self.edge_curves.len(), edge_len,
+        );
+
+        let vtx_len = self.vertex_slots.len();
+        debug_assert!(
+            self.vertex_provenance.len() >= vtx_len,
+            "vertex_provenance ({}) shorter than vertex_slots ({})",
+            self.vertex_provenance.len(), vtx_len,
+        );
+        debug_assert!(
+            self.vertex_is_nmt.len() >= vtx_len,
+            "vertex_is_nmt ({}) shorter than vertex_slots ({})",
+            self.vertex_is_nmt.len(), vtx_len,
+        );
+    }
 }
 
 impl Default for TopologyArena {

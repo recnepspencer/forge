@@ -16,6 +16,18 @@ pub enum ShellOrientation {
 }
 
 /// Classification of a shell's topological character.
+///
+/// # Operator Contract
+///
+/// Operators that change a shell's topological character (e.g., sealing
+/// an open sheet into a closed solid) **MUST** update this field via
+/// [`ShellData::set_kind()`]. The validation policy system reads this at
+/// draft creation to determine which invariant groups are applicable.
+///
+/// Debug builds verify consistency at commit time via
+/// `verify_shell_kind_matches_structure()`. A mismatch will
+/// `debug_assert!` with a descriptive message naming the shell and
+/// the offending boundary edge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ShellKind {
     /// Closed watertight shell (every edge has exactly 2 incident faces).

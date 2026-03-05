@@ -120,7 +120,12 @@ impl TopologyState {
     }
 
     /// Begin a transactional mutation with explicit configuration.
-    pub fn into_mutation_with(self, config: DraftConfig) -> MutableDraft {
+    ///
+    /// The `group_policy` on `config` is auto-resolved from the arena's
+    /// declared `ShellKind` metadata (Option A: model-derived context).
+    /// If the caller has already set a custom `group_policy`, it is
+    /// overwritten — the model is the source of truth for per-op policy.
+    pub fn into_mutation_with(self, mut config: DraftConfig) -> MutableDraft {
         // CONSUME-ON-WRITE:
         // Try to unwrap the Arc. If we are the only owner, we get the Arena for free (O(1)).
         // If shared, we must clone (O(N)).
@@ -128,6 +133,15 @@ impl TopologyState {
             Ok(arena) => arena,
             Err(arc) => (*arc).clone(),
         };
+
+        // ── Option A: derive group policy from declared shell metadata ──
+        let ctx = crate::validators::group_policy_runtime::topology_context_from_shell_metadata(&arena);
+        config.group_policy = crate::validators::group_policy_runtime::GroupPolicyRuntime::resolve(
+            0, // no force-skip (would come from GroupPolicyConfig in forge-kernel)
+            0, // no force-per-op
+            config.group_policy.max_cost_snapshot(),
+            &ctx,
+        );
 
         // Carry forward the prior lineage history so new events append to it.
         let prior_events = match Arc::try_unwrap(self.lineage_events) {
