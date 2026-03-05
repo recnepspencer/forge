@@ -350,9 +350,9 @@ fn mekl_keml_on_multi_hole_face() {
     arena.get_half_edge_mut(he86).unwrap().set_next(he67);
     arena.get_half_edge_mut(he86).unwrap().set_prev(he78);
 
-    arena.get_vertex_mut(v6).unwrap().set_outgoing(he67);
-    arena.get_vertex_mut(v7).unwrap().set_outgoing(he78);
-    arena.get_vertex_mut(v8).unwrap().set_outgoing(he86);
+    arena.get_vertex_mut(v6).unwrap().set_primary_disk(he67);
+    arena.get_vertex_mut(v7).unwrap().set_primary_disk(he78);
+    arena.get_vertex_mut(v8).unwrap().set_primary_disk(he86);
 
     let inner_loop2 = arena.insert_loop(crate::b_rep::LoopData::new(he67, face));
     arena

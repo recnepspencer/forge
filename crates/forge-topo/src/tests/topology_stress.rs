@@ -835,7 +835,7 @@ mod tests {
             arena
                 .get_vertex_mut(verts[quad[0]])
                 .unwrap()
-                .set_outgoing(he_ids[0]);
+                .set_primary_disk(he_ids[0]);
         }
 
         let all_hes: Vec<(HalfEdgeId, u32, u32)> = arena
@@ -1012,7 +1012,7 @@ mod tests {
             .arena_mut()
             .get_vertex_mut(mvf.vertex)
             .unwrap()
-            .set_outgoing(wrong_he);
+            .set_primary_disk(wrong_he);
 
         let result = draft.commit();
         assert!(

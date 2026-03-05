@@ -9,17 +9,17 @@ use forge_core::KernelError;
 use super::vf;
 
 pub(crate) fn validate_bidirectional_links(arena: &TopologyArena) -> Result<(), KernelError> {
-    // Vertex → HE → Vertex
+    // Vertex primary-disk → HE → Vertex
     for (vertex_id, vertex_data) in arena.iter_vertices() {
-        let rep_he = vertex_data.outgoing();
+        let rep_he = vertex_data.primary_disk();
         let he_data = arena.get_half_edge(rep_he).map_err(|_| {
             vf("bidirectional_links", format!(
-                "Vertex {} outgoing HE {} is deleted", vertex_id.index(), rep_he.index()
+                "Vertex {} primary-disk HE {} is deleted", vertex_id.index(), rep_he.index()
             ))
         })?;
         if he_data.origin() != vertex_id {
             return Err(vf("bidirectional_links", format!(
-                "Vertex {} outgoing HE {} originates from vertex {} instead",
+                "Vertex {} primary-disk HE {} originates from vertex {} instead",
                 vertex_id.index(), rep_he.index(), he_data.origin().index()
             )));
         }

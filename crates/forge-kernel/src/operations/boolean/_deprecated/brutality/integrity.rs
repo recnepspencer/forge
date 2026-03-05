@@ -187,7 +187,7 @@ fn vertex_provenance_audit() {
 
     for (vid, _) in arena.iter_vertices() {
         let mut plane_set = HashSet::new();
-        let start_he = arena.get_vertex(vid).unwrap().outgoing();
+        let start_he = arena.get_vertex(vid).unwrap().primary_disk();
         let mut current = start_he;
         let mut faces_seen = Vec::new();
 
@@ -606,9 +606,9 @@ fn chained_booleans_preserve_euler() {
         }
     }
 
-    // Check every vertex's outgoing pointer
+    // Check every vertex's primary disk pointer
     for (vid, vdata) in arena.iter_vertices() {
-        let out = vdata.outgoing();
+        let out = vdata.primary_disk();
         if arena.get_half_edge(out).is_err() {
             eprintln!(
                 "  STALE Vertex V#{}(gen{}) -> HE#{}(gen{}): BAD",

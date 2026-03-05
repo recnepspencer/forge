@@ -6,6 +6,8 @@
 use crate::b_rep::data::storage::arena::TopologyArena;
 use crate::b_rep::data::mesh::CoedgeInfo;
 use crate::handles::{HalfEdgeId, EdgeId, VertexId, CurveRef};
+use forge_core::KernelError;
+use smallvec::{SmallVec, smallvec};
 
 impl TopologyArena {
     // ── Bridge flag (HalfEdge side-car) ─────────────────────────────
@@ -81,6 +83,82 @@ impl TopologyArena {
         self.vertex_provenance[idx] = provenance;
     }
 
+    // ── Vertex disk entries (NMT side-car) ──────────────────────────
+
+    /// Primary disk entry (always present).
+    pub fn primary_disk_entry(&self, v: VertexId) -> Result<HalfEdgeId, KernelError> {
+        Ok(self.get_vertex(v)?.primary_disk())
+    }
+
+    /// All disk entries: primary plus any NMT extras.
+    pub fn disk_entries(&self, v: VertexId) -> Result<SmallVec<[HalfEdgeId; 4]>, KernelError> {
+        let primary = self.get_vertex(v)?.primary_disk();
+        let mut entries = smallvec![primary];
+        if let Some(extras) = self.nmt_extra_disks.get(&v) {
+            entries.extend_from_slice(extras);
+        }
+        Ok(entries)
+    }
+
+    /// Number of disk entries at this vertex.
+    pub fn disk_count(&self, v: VertexId) -> usize {
+        1 + self.nmt_extra_disks.get(&v).map_or(0, |entries| entries.len())
+    }
+
+    /// Whether the vertex currently has extra NMT disk entries.
+    pub fn is_vertex_nmt(&self, v: VertexId) -> bool {
+        self.vertex_is_nmt
+            .get(v.index() as usize)
+            .copied()
+            .unwrap_or(false)
+    }
+
+    /// Append an extra disk entry, marking this vertex as NMT.
+    pub fn add_disk_entry(&mut self, v: VertexId, he: HalfEdgeId) {
+        self.nmt_extra_disks.entry(v).or_default().push(he);
+        let idx = v.index() as usize;
+        if idx >= self.vertex_is_nmt.len() {
+            self.vertex_is_nmt.resize(idx + 1, false);
+        }
+        self.vertex_is_nmt[idx] = true;
+    }
+
+    /// Remove an entry from the extra NMT disk list. Returns false if absent.
+    pub fn remove_disk_entry(&mut self, v: VertexId, he: HalfEdgeId) -> bool {
+        let Some(extras) = self.nmt_extra_disks.get_mut(&v) else {
+            return false;
+        };
+        let Some(pos) = extras.iter().position(|&entry| entry == he) else {
+            return false;
+        };
+        extras.swap_remove(pos);
+        if extras.is_empty() {
+            self.nmt_extra_disks.remove(&v);
+            if let Some(flag) = self.vertex_is_nmt.get_mut(v.index() as usize) {
+                *flag = false;
+            }
+        }
+        true
+    }
+
+    /// Replace an extra NMT disk entry value. Returns false if old entry is absent.
+    pub fn replace_disk_entry(&mut self, v: VertexId, old: HalfEdgeId, new: HalfEdgeId) -> bool {
+        let Some(extras) = self.nmt_extra_disks.get_mut(&v) else {
+            return false;
+        };
+        let Some(pos) = extras.iter().position(|&entry| entry == old) else {
+            return false;
+        };
+        extras[pos] = new;
+        true
+    }
+
+    /// Set the primary disk entry.
+    pub fn set_primary_disk_entry(&mut self, v: VertexId, he: HalfEdgeId) -> Result<(), KernelError> {
+        self.get_vertex_mut(v)?.set_primary_disk(he);
+        Ok(())
+    }
+
     // ── Lockstep growth helpers ─────────────────────────────────────
 
     /// Ensure the halfedge side-car vectors are at least `len` long.
@@ -122,12 +200,18 @@ impl TopologyArena {
         if self.vertex_provenance.len() < len {
             self.vertex_provenance.resize(len, None);
         }
+        if self.vertex_is_nmt.len() < len {
+            self.vertex_is_nmt.resize(len, false);
+        }
     }
 
     /// Clear vertex side-car data at the given slot index.
     pub(crate) fn clear_vertex_sidecar(&mut self, index: usize) {
         if index < self.vertex_provenance.len() {
             self.vertex_provenance[index] = None;
+        }
+        if index < self.vertex_is_nmt.len() {
+            self.vertex_is_nmt[index] = false;
         }
     }
 }

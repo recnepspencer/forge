@@ -83,7 +83,7 @@ fn excise_halfedge(
         .set_prev(prev_id);
 
     repair_loop_pointer(draft, he_data.face(), he_id, next_id)?;
-    repair_vertex_outgoing(draft, he_data.origin(), he_id, next_id)?;
+    repair_vertex_primary_disk(draft, he_data.origin(), he_id, next_id)?;
     Ok(())
 }
 
@@ -107,7 +107,7 @@ fn excise_twin_halfedge(draft: &mut MutableDraft, twin_id: HalfEdgeId) -> Result
         .get_half_edge_mut(twin_next)?
         .set_prev(twin_prev);
     repair_loop_pointer(draft, twin.face(), twin_id, twin_next)?;
-    repair_vertex_outgoing(draft, twin.origin(), twin_id, twin_next)?;
+    repair_vertex_primary_disk(draft, twin.origin(), twin_id, twin_next)?;
     Ok(())
 }
 
@@ -129,18 +129,18 @@ fn repair_loop_pointer(
     Ok(())
 }
 
-fn repair_vertex_outgoing(
+fn repair_vertex_primary_disk(
     draft: &mut MutableDraft,
     vertex_id: VertexId,
     removed_he: HalfEdgeId,
     replacement_he: HalfEdgeId,
 ) -> Result<(), KernelError> {
-    let outgoing = draft.arena().get_vertex(vertex_id)?.outgoing();
-    if outgoing == removed_he {
+    let primary_disk = draft.arena().get_vertex(vertex_id)?.primary_disk();
+    if primary_disk == removed_he {
         draft
             .arena_mut()
             .get_vertex_mut(vertex_id)?
-            .set_outgoing(replacement_he);
+            .set_primary_disk(replacement_he);
     }
     Ok(())
 }
@@ -206,8 +206,8 @@ fn repair_affected_vertices(
     for &he_id in edges {
         let he = draft.arena().get_half_edge(he_id)?;
         let origin = he.origin();
-        let outgoing = draft.arena().get_vertex(origin).ok().map(|v| v.outgoing());
-        if outgoing
+        let primary_disk = draft.arena().get_vertex(origin).ok().map(|v| v.primary_disk());
+        if primary_disk
             .map(|o| deleted_set.contains(&o.index()))
             .unwrap_or(false)
         {
@@ -224,7 +224,7 @@ fn repair_affected_vertices(
         .collect();
 
     for (vid, he_id) in replacements {
-        draft.arena_mut().get_vertex_mut(vid)?.set_outgoing(he_id);
+        draft.arena_mut().get_vertex_mut(vid)?.set_primary_disk(he_id);
     }
     Ok(())
 }

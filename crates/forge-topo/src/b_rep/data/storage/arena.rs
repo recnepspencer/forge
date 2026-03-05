@@ -6,6 +6,7 @@
 use serde::{Deserialize, Serialize};
 use indexmap::IndexMap;
 use smallvec::SmallVec;
+use std::collections::HashMap;
 
 use crate::semantic_attributes::AttributeStore;
 use crate::b_rep::data::storage::slot::Slot;
@@ -84,6 +85,12 @@ pub struct TopologyArena {
     /// 3-plane intersection provenance per vertex slot.
     #[serde(default)]
     pub(crate) vertex_provenance: Vec<Option<[usize; 3]>>,
+    /// Extra disk entries for non-manifold vertices (sparse side-car).
+    #[serde(default)]
+    pub(crate) nmt_extra_disks: HashMap<VertexId, SmallVec<[HalfEdgeId; 2]>>,
+    /// O(1) NMT membership bitset parallel to `vertex_slots`.
+    #[serde(default)]
+    pub(crate) vertex_is_nmt: Vec<bool>,
 
     // ── O(1) Reverse Indexes (derived, not serialized) ──────────
     // SmallVec inline storage avoids heap allocation for typical valence.
@@ -131,6 +138,8 @@ impl TopologyArena {
             coedge_data: Vec::new(),
             edge_curves: Vec::new(),
             vertex_provenance: Vec::new(),
+            nmt_extra_disks: HashMap::new(),
+            vertex_is_nmt: Vec::new(),
             shell_faces: IndexMap::new(),
             face_halfedges: IndexMap::new(),
             vertex_halfedges: IndexMap::new(),

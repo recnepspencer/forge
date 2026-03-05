@@ -162,9 +162,9 @@ fn join_faces_preserves_inner_loops() {
         arena.get_half_edge_mut(ihe20).unwrap().set_next(ihe01);
         arena.get_half_edge_mut(ihe20).unwrap().set_prev(ihe12);
 
-        arena.get_vertex_mut(iv0).unwrap().set_outgoing(ihe01);
-        arena.get_vertex_mut(iv1).unwrap().set_outgoing(ihe12);
-        arena.get_vertex_mut(iv2).unwrap().set_outgoing(ihe20);
+        arena.get_vertex_mut(iv0).unwrap().set_primary_disk(ihe01);
+        arena.get_vertex_mut(iv1).unwrap().set_primary_disk(ihe12);
+        arena.get_vertex_mut(iv2).unwrap().set_primary_disk(ihe20);
 
         let inner_loop = arena.insert_loop(LoopData::new(ihe01, target_face));
         arena

@@ -252,9 +252,9 @@ fn pv_04_degenerate_loop_detection() {
     arena.get_loop_mut(loop_id).unwrap().set_face(face);
     arena.get_loop_mut(loop_id2).unwrap().set_half_edge(twin0);
     arena.get_loop_mut(loop_id2).unwrap().set_face(face2);
-    arena.get_vertex_mut(v0).unwrap().set_outgoing(he0);
-    arena.get_vertex_mut(v1).unwrap().set_outgoing(he1);
-    arena.get_vertex_mut(v2).unwrap().set_outgoing(twin2);
+    arena.get_vertex_mut(v0).unwrap().set_primary_disk(he0);
+    arena.get_vertex_mut(v1).unwrap().set_primary_disk(he1);
+    arena.get_vertex_mut(v2).unwrap().set_primary_disk(twin2);
 
     let err = validate_topology(arena, ValidationLevel::Full);
 

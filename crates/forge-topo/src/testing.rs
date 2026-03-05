@@ -8,7 +8,7 @@ use crate::b_rep::{FaceData, HalfEdgeData, LoopData, VertexData};
 use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
 use crate::transactions::MutableDraft;
 
-/// Returns a VertexData with a sentinel outgoing halfedge.
+/// Returns a VertexData with a sentinel primary-disk halfedge.
 pub fn dummy_vertex_data() -> VertexData {
     VertexData::new(HalfEdgeId::DANGLING)
 }
@@ -98,9 +98,9 @@ pub fn build_face_with_hole(
     arena.get_half_edge_mut(he20).unwrap().set_prev(he12);
 
     arena.get_loop_mut(outer_loop).unwrap().set_half_edge(he01);
-    arena.get_vertex_mut(v0).unwrap().set_outgoing(he01);
-    arena.get_vertex_mut(v1).unwrap().set_outgoing(he12);
-    arena.get_vertex_mut(v2).unwrap().set_outgoing(he20);
+    arena.get_vertex_mut(v0).unwrap().set_primary_disk(he01);
+    arena.get_vertex_mut(v1).unwrap().set_primary_disk(he12);
+    arena.get_vertex_mut(v2).unwrap().set_primary_disk(he20);
 
     // Inner loop vertices
     let v3 = arena.insert_vertex(VertexData::new(sentinel_he));
@@ -150,9 +150,9 @@ pub fn build_face_with_hole(
     arena.get_half_edge_mut(he53).unwrap().set_next(he34);
     arena.get_half_edge_mut(he53).unwrap().set_prev(he45);
 
-    arena.get_vertex_mut(v3).unwrap().set_outgoing(he34);
-    arena.get_vertex_mut(v4).unwrap().set_outgoing(he45);
-    arena.get_vertex_mut(v5).unwrap().set_outgoing(he53);
+    arena.get_vertex_mut(v3).unwrap().set_primary_disk(he34);
+    arena.get_vertex_mut(v4).unwrap().set_primary_disk(he45);
+    arena.get_vertex_mut(v5).unwrap().set_primary_disk(he53);
 
     let inner_loop = arena.insert_loop(LoopData::new(he34, face));
     arena.get_face_mut(face).unwrap().add_inner_loop(inner_loop);

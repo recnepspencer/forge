@@ -442,7 +442,7 @@ mod tests {
         // Undo all 1000 splits via KEV (LIFO order)
         // Always kill the most recently created edge by refetching from the vertex
         for _ in 0..iterations {
-            let edge_to_kill = draft.arena().get_vertex(seed_vertex).unwrap().outgoing();
+            let edge_to_kill = draft.arena().get_vertex(seed_vertex).unwrap().primary_disk();
             draft.execute(KillEdgeVertex { edge: edge_to_kill }).unwrap();
         }
 

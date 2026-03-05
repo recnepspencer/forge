@@ -32,7 +32,7 @@ pub(crate) fn validate_per_component_euler(arena: &TopologyArena) -> Result<(), 
                 visited_vertices.insert(vid.index())?;
                 
                 // Traverse outgoing halfedges to find connected faces, edges, and adjacent vertices
-                let mut current = arena.get_vertex(vid)?.outgoing();
+                let mut current = arena.get_vertex(vid)?.primary_disk();
                 if current.is_dangling() {
                     continue; // Isolated vertex
                 }

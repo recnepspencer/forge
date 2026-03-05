@@ -203,7 +203,7 @@ impl TopoOperator for SplitEdge {
         draft
             .arena_mut()
             .get_vertex_mut(new_vertex)?
-            .set_outgoing(first_h_new);
+            .set_primary_disk(first_h_new);
 
         let e_old_he = e_old_list[0];
         let e_new_he = e_new_list[0];

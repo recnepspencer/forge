@@ -175,7 +175,7 @@ fn pv_14_50k_entities_under_100ms() {
             let new_vid = vert_map[&vid.index()];
             dst.get_vertex_mut(new_vid)
                 .unwrap()
-                .set_outgoing(he_map[&vdata.outgoing().index()]);
+                .set_primary_disk(he_map[&vdata.primary_disk().index()]);
         }
 
         for (lid, ldata) in src.iter_loops() {

@@ -203,29 +203,29 @@ impl TopoOperator for JoinFacesNmt {
         draft.arena_mut().get_half_edge_mut(he_k)?.set_next(he_s);
         draft.arena_mut().get_half_edge_mut(he_s)?.set_prev(he_k);
 
-        // 6. Fix vertex outgoing pointers away from the slit.
+        // 6. Fix vertex primary disk pointers away from the slit.
         //
         // vertex_s = he_s.origin(), vertex_k = he_k.origin().
         // Both he_s and he_k are now in the slit (inner loop). If a vertex's
-        // outgoing pointer points to a slit halfedge, we must replace it with
+        // primary disk pointer points to a slit halfedge, we must replace it with
         // a non-slit halfedge that has the same origin.
         //
         // Loop processes both vertices unconditionally. When vertex_s == vertex_k,
         // the second iteration is safe (no-op since the first already fixed it).
         // This avoids the asymmetry bug where the old branching code skipped
-        // vertex_k fixup when vertex_s == vertex_k and outgoing == he_k.
+        // vertex_k fixup when vertex_s == vertex_k and primary_disk == he_k.
         let vertex_s = draft.arena().get_half_edge(he_s)?.origin();
         let vertex_k = draft.arena().get_half_edge(he_k)?.origin();
 
         for &target_vertex in &[vertex_s, vertex_k] {
-            let current_out = draft.arena().get_vertex(target_vertex)?.outgoing();
+            let current_out = draft.arena().get_vertex(target_vertex)?.primary_disk();
             if current_out == he_s || current_out == he_k {
                 let replacement =
                     find_non_slit_outgoing(draft, target_vertex, he_s, he_k, &protected, &[he_s_next, he_k_next])?;
                 draft
                     .arena_mut()
                     .get_vertex_mut(target_vertex)?
-                    .set_outgoing(replacement);
+                    .set_primary_disk(replacement);
             }
         }
 

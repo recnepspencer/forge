@@ -358,7 +358,7 @@ fn insert_cell_faces(
             draft
                 .arena_mut()
                 .get_vertex_mut(origin)?
-                .set_outgoing(he_id);
+                .set_primary_disk(he_id);
         }
     }
 
@@ -749,19 +749,19 @@ fn dissolve_edge(draft: &mut MutableDraft, he_id: HalfEdgeId) -> Result<FaceId, 
         .set_half_edge(he_next);
 
     // Update vertex outgoing pointers if they point to removed halfedges
-    let u_outgoing = draft.arena().get_vertex(origin_u)?.outgoing();
+    let u_outgoing = draft.arena().get_vertex(origin_u)?.primary_disk();
     if u_outgoing == he_id {
         draft
             .arena_mut()
             .get_vertex_mut(origin_u)?
-            .set_outgoing(twin_next);
+            .set_primary_disk(twin_next);
     }
-    let v_outgoing = draft.arena().get_vertex(origin_v)?.outgoing();
+    let v_outgoing = draft.arena().get_vertex(origin_v)?.primary_disk();
     if v_outgoing == twin_id {
         draft
             .arena_mut()
             .get_vertex_mut(origin_v)?
-            .set_outgoing(he_next);
+            .set_primary_disk(he_next);
     }
 
     // Remove the dissolved halfedges

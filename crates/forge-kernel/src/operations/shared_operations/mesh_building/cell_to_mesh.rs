@@ -122,7 +122,7 @@ pub(crate) fn insert_faces_and_loops(
 
         for &he_id in &he_ids {
             let origin = draft.arena().get_half_edge(he_id)?.origin();
-            draft.arena_mut().get_vertex_mut(origin)?.set_outgoing(he_id);
+            draft.arena_mut().get_vertex_mut(origin)?.set_primary_disk(he_id);
         }
     }
 

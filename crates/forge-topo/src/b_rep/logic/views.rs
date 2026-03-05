@@ -97,9 +97,9 @@ impl<'a> VertexView<'a> {
 
     // ── Connectivity (from struct) ──────────────────────────────
 
-    /// One outgoing halfedge (for traversal entry).
-    pub fn outgoing(&self) -> HalfEdgeId {
-        self.data.outgoing()
+    /// Representative halfedge for the primary disk entry.
+    pub fn primary_disk(&self) -> HalfEdgeId {
+        self.data.primary_disk()
     }
 
     // ── Side-car metadata (from arena) ──────────────────────────

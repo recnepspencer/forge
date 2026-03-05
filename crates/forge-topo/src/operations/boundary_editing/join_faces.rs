@@ -124,17 +124,17 @@ impl TopoOperator for JoinFaces {
             reassign_face(draft, inner_start, face_survive)?;
         }
 
-        if draft.arena().get_vertex(vertex_a)?.outgoing() == he {
+        if draft.arena().get_vertex(vertex_a)?.primary_disk() == he {
             draft
                 .arena_mut()
                 .get_vertex_mut(vertex_a)?
-                .set_outgoing(twin_next);
+                .set_primary_disk(twin_next);
         }
-        if draft.arena().get_vertex(vertex_b)?.outgoing() == he_twin {
+        if draft.arena().get_vertex(vertex_b)?.primary_disk() == he_twin {
             draft
                 .arena_mut()
                 .get_vertex_mut(vertex_b)?
-                .set_outgoing(he_next);
+                .set_primary_disk(he_next);
         }
 
         let remove_loop = draft.arena().get_face(face_remove)?.outer_loop();

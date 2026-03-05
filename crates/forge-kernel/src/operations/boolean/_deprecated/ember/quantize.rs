@@ -149,12 +149,12 @@ fn redirect_vertex_references(
         arena.get_half_edge_mut(he_id)?.set_origin(survivor_vid);
     }
 
-    let survivor_outgoing = arena.get_vertex(survivor_vid)?.outgoing();
+    let survivor_outgoing = arena.get_vertex(survivor_vid)?.primary_disk();
     if arena.get_half_edge(survivor_outgoing).is_err() {
         for he_id in &all_he_ids {
             if let Ok(he) = arena.get_half_edge(*he_id) {
                 if he.origin() == survivor_vid {
-                    arena.get_vertex_mut(survivor_vid)?.set_outgoing(*he_id);
+                    arena.get_vertex_mut(survivor_vid)?.set_primary_disk(*he_id);
                     break;
                 }
             }

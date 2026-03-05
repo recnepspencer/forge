@@ -497,7 +497,7 @@ fn disconnected_faces_fail_connectivity() {
     dm.arena_mut()
         .get_vertex_mut(orphan_v)
         .unwrap()
-        .set_outgoing(orphan_he);
+        .set_primary_disk(orphan_he);
     dm.arena_mut()
         .get_edge_mut(orphan_edge)
         .unwrap()
@@ -591,7 +591,7 @@ fn connectivity_validator_rejects_disconnected_faces_pre_gate() {
     dm.arena_mut()
         .get_vertex_mut(orphan_v)
         .unwrap()
-        .set_outgoing(orphan_he);
+        .set_primary_disk(orphan_he);
     dm.arena_mut()
         .get_edge_mut(orphan_edge)
         .unwrap()

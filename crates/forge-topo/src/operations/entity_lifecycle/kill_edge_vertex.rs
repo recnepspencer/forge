@@ -150,7 +150,7 @@ impl TopoOperator for KillEdgeVertex {
                 .set_origin(vertex_a);
         }
 
-        // 4. Update vertex_a outgoing pointer
+        // 4. Ensure vertex_a has a surviving outgoing halfedge.
         // (Step 3 already migrated all vertex_b origins to vertex_a.)
         let mut v_a_survivor = None;
         for (id, data) in draft.arena().iter_half_edges() {
@@ -161,7 +161,7 @@ impl TopoOperator for KillEdgeVertex {
         }
 
         if let Some(s) = v_a_survivor {
-            draft.arena_mut().get_vertex_mut(vertex_a)?.set_outgoing(s);
+            draft.arena_mut().get_vertex_mut(vertex_a)?.set_primary_disk(s);
         } else {
             return Err(KernelError::InvalidInput {
                 message: "KillEdgeVertex would leave Vertex A isolated with no outgoing edges."
@@ -180,6 +180,27 @@ impl TopoOperator for KillEdgeVertex {
 
         draft.remove_vertex(vertex_b)?;
         draft.remove_edge(killed_edge)?;
+
+        // 6. Rebuild canonical disk entries on the survivor after collapse.
+        let rebuilt = crate::queries::vertex_disks::rebuild_disk_entries(draft.arena(), vertex_a)?;
+        if rebuilt.is_empty() {
+            return Err(KernelError::InvalidInput {
+                message: "KillEdgeVertex produced a surviving vertex with no disk entries".into(),
+                context: None,
+            });
+        }
+        let survivor_idx = vertex_a.index() as usize;
+        {
+            let arena = draft.arena_mut();
+            arena.get_vertex_mut(vertex_a)?.set_primary_disk(rebuilt[0]);
+            arena.nmt_extra_disks.remove(&vertex_a);
+            if survivor_idx < arena.vertex_is_nmt.len() {
+                arena.vertex_is_nmt[survivor_idx] = false;
+            }
+            for &entry in rebuilt.iter().skip(1) {
+                arena.add_disk_entry(vertex_a, entry);
+            }
+        }
 
         Ok(ExecutionResult {
             value: KevOutput {

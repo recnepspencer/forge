@@ -75,7 +75,7 @@ fn brutal_aerospace_sliver_churn_generational_integrity() {
     let mvf = logged_op("MVF", draft.execute(MakeVertexFace)).unwrap();
 
     for i in 0..500 {
-        let boundary_edge = draft.arena().get_vertex(mvf.vertex).unwrap().outgoing();
+        let boundary_edge = draft.arena().get_vertex(mvf.vertex).unwrap().primary_disk();
         let se = logged_op(
             &format!("SE[{i}]"),
             draft.execute(

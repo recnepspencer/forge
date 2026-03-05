@@ -101,7 +101,7 @@ fn pv_05_genus_1_passes_generalized_euler() {
                 arena
                     .get_vertex_mut(origins[k])
                     .unwrap()
-                    .set_outgoing(he_ids[k]);
+                    .set_primary_disk(he_ids[k]);
             }
 
             faces.push(face);
@@ -315,7 +315,7 @@ fn pv_06_through_hole_passes_euler() {
             arena
                 .get_vertex_mut(verts[face_verts[k]])
                 .unwrap()
-                .set_outgoing(he_ids[k]);
+                .set_primary_disk(he_ids[k]);
         }
 
         (face, loop_id)

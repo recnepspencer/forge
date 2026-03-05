@@ -1220,8 +1220,8 @@ mod tests {
         let he2 = draft.insert_half_edge(crate::b_rep::HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f, v2, e));
         let he3 = draft.insert_half_edge(crate::b_rep::HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f, v1, e));
         
-        draft.arena_mut().get_vertex_mut(v1).unwrap().set_outgoing(he1);
-        draft.arena_mut().get_vertex_mut(v2).unwrap().set_outgoing(he2);
+        draft.arena_mut().get_vertex_mut(v1).unwrap().set_primary_disk(he1);
+        draft.arena_mut().get_vertex_mut(v2).unwrap().set_primary_disk(he2);
         
         // Wire in a circle: HE1 -> HE2 -> HE3 -> HE1
         draft.arena_mut().get_half_edge_mut(he1).unwrap().set_radial_next(he2);
@@ -1264,7 +1264,7 @@ mod tests {
             HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f1, v1, e1
         ));
         
-        draft.arena_mut().get_vertex_mut(v1).unwrap().set_outgoing(he1);
+        draft.arena_mut().get_vertex_mut(v1).unwrap().set_primary_disk(he1);
         draft.arena_mut().get_edge_mut(e1).unwrap().set_half_edge(he1);
         
         draft.arena_mut().get_half_edge_mut(he1).unwrap().set_next(he1);
@@ -1289,7 +1289,7 @@ mod tests {
         
         eprintln!("=== VERTICES ===");
         for (vid, vd) in arena.iter_vertices() {
-            eprintln!("  V{} outgoing=HE{}", vid.index(), vd.outgoing().index());
+            eprintln!("  V{} primary_disk=HE{}", vid.index(), vd.primary_disk().index());
         }
         eprintln!("=== HALF-EDGES ===");
         for (heid, hed) in arena.iter_half_edges() {

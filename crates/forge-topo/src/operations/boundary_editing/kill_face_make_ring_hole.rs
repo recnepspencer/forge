@@ -94,6 +94,12 @@ impl TopoOperator for KillFaceMakeRingHole {
             }
         }
 
+        let shell_id = draft.arena().get_face(self.target_face)?.shell();
+        let shell_data = draft.arena().get_shell(shell_id)?;
+        if shell_data.representative_face() == self.face_to_kill {
+            draft.arena_mut().get_shell_mut(shell_id)?.set_representative_face(self.target_face);
+        }
+
         draft.remove_face(self.face_to_kill)?;
 
         Ok(ExecutionResult {

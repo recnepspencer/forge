@@ -21,21 +21,7 @@ pub(crate) fn validate_vertex_disk_partition(arena: &TopologyArena) -> Result<()
             continue;
         }
 
-        let mut all_visited = BTreeSet::new();
-        let mut disk_count = 0;
-        let mut expected_iter = expected_outgoing.iter().copied();
-
-        // Partition into disks by tracing `twin -> next`
-        while let Some(start) = expected_iter.find(|id| !all_visited.contains(id)) {
-            let (disk, _) = super::disk_walker::collect_disk(arena, start)?;
-            all_visited.extend(disk);
-            disk_count += 1;
-        }
-
-        // Validate partition covers everything. The while loop above guarantees
-        // we cover all `expected_outgoing`. We just need to ensure `outgoing()`
-        // points to a valid disk entry.
-        let out = v_data.outgoing();
+        let out = v_data.primary_disk();
         if !expected_outgoing.contains(&out) {
             return Err(KernelError::TopologyViolation {
                 err: forge_core::TopologyError::BrokenLoop {
@@ -49,17 +35,17 @@ pub(crate) fn validate_vertex_disk_partition(arena: &TopologyArena) -> Result<()
                     },
                     suggested_fixes: Vec::new(),
                     detail: format!(
-                        "Vertex {} outgoing half-edge {} does not belong to any disk at this vertex.",
+                        "Vertex {} primary disk half-edge {} does not belong to any disk at this vertex.",
                         vid.index(), out.index()
                     ),
                 }),
             });
         }
-        
-        // Furthermore, in a fully correct partition, every halfedge visited is expected.
-        let extra_visited: Vec<_> = all_visited.difference(&expected_outgoing).collect();
-        if !extra_visited.is_empty() {
-             return Err(KernelError::TopologyViolation {
+
+        let rebuilt = crate::queries::vertex_disks::rebuild_disk_entries(arena, vid)?;
+        let stored_count = arena.disk_count(vid);
+        if stored_count != rebuilt.len() {
+            return Err(KernelError::TopologyViolation {
                 err: forge_core::TopologyError::BrokenLoop {
                     starting_halfedge: out.index(),
                     face_index: 0,
@@ -71,8 +57,10 @@ pub(crate) fn validate_vertex_disk_partition(arena: &TopologyArena) -> Result<()
                     },
                     suggested_fixes: Vec::new(),
                     detail: format!(
-                        "Vertex {} disks contain half-edges that do not originate at this vertex: {:?}",
-                        vid.index(), extra_visited
+                        "Vertex {} disk count mismatch: stored={} rebuilt={}",
+                        vid.index(),
+                        stored_count,
+                        rebuilt.len()
                     ),
                 }),
             });

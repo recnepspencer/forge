@@ -12,25 +12,26 @@ use crate::handles::HalfEdgeId;
 /// Data stored for each vertex — 1 connectivity pointer, nothing else.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VertexData {
-    outgoing: HalfEdgeId,
+    #[serde(alias = "outgoing")]
+    primary_disk: HalfEdgeId,
 }
 
 impl VertexData {
-    /// Construct a new vertex with the given outgoing halfedge.
-    pub fn new(outgoing: HalfEdgeId) -> Self {
+    /// Construct a new vertex with the given primary disk entry.
+    pub fn new(primary_disk: HalfEdgeId) -> Self {
         Self {
-            outgoing,
+            primary_disk,
         }
     }
 
-    /// One outgoing halfedge (for traversal entry).
-    pub fn outgoing(&self) -> HalfEdgeId {
-        self.outgoing
+    /// Representative halfedge for this vertex's primary disk.
+    pub fn primary_disk(&self) -> HalfEdgeId {
+        self.primary_disk
     }
 
-    /// Set the outgoing halfedge.
-    pub fn set_outgoing(&mut self, id: HalfEdgeId) {
-        self.outgoing = id;
+    /// Set the primary disk entry.
+    pub fn set_primary_disk(&mut self, id: HalfEdgeId) {
+        self.primary_disk = id;
     }
 }
 

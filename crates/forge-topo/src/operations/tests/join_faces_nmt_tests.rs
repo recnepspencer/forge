@@ -78,12 +78,12 @@ fn setup_valence_n_edge(draft: &mut crate::transactions::MutableDraft, n: usize)
                 .arena_mut()
                 .get_vertex_mut(v1)
                 .unwrap()
-                .set_outgoing(h_fwd);
+                .set_primary_disk(h_fwd);
             draft
                 .arena_mut()
                 .get_vertex_mut(v2)
                 .unwrap()
-                .set_outgoing(h_ret);
+                .set_primary_disk(h_ret);
             draft
                 .arena_mut()
                 .get_edge_mut(shared_edge)
@@ -581,7 +581,7 @@ fn vertex_outgoing_avoids_slit() {
         .arena_mut()
         .get_vertex_mut(v1)
         .unwrap()
-        .set_outgoing(he_s);
+        .set_primary_disk(he_s);
 
     draft.execute(
         JoinFacesNmt {
@@ -591,7 +591,7 @@ fn vertex_outgoing_avoids_slit() {
     )
     .unwrap();
 
-    let v1_out = draft.arena().get_vertex(v1).unwrap().outgoing();
+    let v1_out = draft.arena().get_vertex(v1).unwrap().primary_disk();
     assert_ne!(
         v1_out, he_s,
         "Vertex v1 outgoing must not point to slit he_s"
@@ -635,7 +635,7 @@ fn vertex_outgoing_shared_origin_he_kill_regression() {
         .arena_mut()
         .get_vertex_mut(v1)
         .unwrap()
-        .set_outgoing(he_k);
+        .set_primary_disk(he_k);
 
     draft.execute(
         JoinFacesNmt {
@@ -645,7 +645,7 @@ fn vertex_outgoing_shared_origin_he_kill_regression() {
     )
     .unwrap();
 
-    let v1_out = draft.arena().get_vertex(v1).unwrap().outgoing();
+    let v1_out = draft.arena().get_vertex(v1).unwrap().primary_disk();
     assert_ne!(v1_out, he_s, "Must not point to slit he_s");
     assert_ne!(v1_out, he_k, "Must not point to slit he_k");
     assert_eq!(
@@ -1139,22 +1139,22 @@ fn non_trivial_killed_face_boundary() {
         .arena_mut()
         .get_vertex_mut(v1)
         .unwrap()
-        .set_outgoing(h0_fwd);
+        .set_primary_disk(h0_fwd);
     draft
         .arena_mut()
         .get_vertex_mut(v2)
         .unwrap()
-        .set_outgoing(h0_ret);
+        .set_primary_disk(h0_ret);
     draft
         .arena_mut()
         .get_vertex_mut(v3)
         .unwrap()
-        .set_outgoing(h1_34);
+        .set_primary_disk(h1_34);
     draft
         .arena_mut()
         .get_vertex_mut(v4)
         .unwrap()
-        .set_outgoing(h1_41);
+        .set_primary_disk(h1_41);
     draft
         .arena_mut()
         .get_edge_mut(shared_edge)
@@ -1373,12 +1373,12 @@ fn setup_antiparallel_valence_n(
                 .arena_mut()
                 .get_vertex_mut(v1)
                 .unwrap()
-                .set_outgoing(h_shared);
+                .set_primary_disk(h_shared);
             draft
                 .arena_mut()
                 .get_vertex_mut(v2)
                 .unwrap()
-                .set_outgoing(h_ret);
+                .set_primary_disk(h_ret);
             draft
                 .arena_mut()
                 .get_edge_mut(shared_edge)
@@ -1465,12 +1465,12 @@ fn antiparallel_vertex_outgoing_fixes_both_endpoints() {
         .arena_mut()
         .get_vertex_mut(v1)
         .unwrap()
-        .set_outgoing(he_s);
+        .set_primary_disk(he_s);
     draft
         .arena_mut()
         .get_vertex_mut(v2)
         .unwrap()
-        .set_outgoing(he_k);
+        .set_primary_disk(he_k);
 
     draft.execute(
         JoinFacesNmt {
@@ -1480,8 +1480,8 @@ fn antiparallel_vertex_outgoing_fixes_both_endpoints() {
     )
     .unwrap();
 
-    let v1_out = draft.arena().get_vertex(v1).unwrap().outgoing();
-    let v2_out = draft.arena().get_vertex(v2).unwrap().outgoing();
+    let v1_out = draft.arena().get_vertex(v1).unwrap().primary_disk();
+    let v2_out = draft.arena().get_vertex(v2).unwrap().primary_disk();
 
     // Neither vertex should point to a slit halfedge.
     assert_ne!(v1_out, he_s, "v1 outgoing must not be slit he_s");
@@ -1718,7 +1718,7 @@ fn surviving_face_pre_existing_inner_loops_intact() {
         .arena_mut()
         .get_vertex_mut(v_inner)
         .unwrap()
-        .set_outgoing(ih);
+        .set_primary_disk(ih);
 
     let pre_existing_loop = draft.insert_loop(LoopData::new(ih, surviving_face));
     draft
@@ -1865,7 +1865,7 @@ fn antiparallel_outgoing_he_kill_on_vertex_k() {
         .arena_mut()
         .get_vertex_mut(v2)
         .unwrap()
-        .set_outgoing(he_k);
+        .set_primary_disk(he_k);
 
     draft.execute(
         JoinFacesNmt {
@@ -1875,7 +1875,7 @@ fn antiparallel_outgoing_he_kill_on_vertex_k() {
     )
     .unwrap();
 
-    let v2_out = draft.arena().get_vertex(v2).unwrap().outgoing();
+    let v2_out = draft.arena().get_vertex(v2).unwrap().primary_disk();
     assert_ne!(v2_out, he_s, "v2 outgoing must not be slit he_s");
     assert_ne!(v2_out, he_k, "v2 outgoing must not be slit he_k");
     assert_eq!(
@@ -1903,7 +1903,7 @@ fn antiparallel_outgoing_he_survive_on_vertex_k() {
         .arena_mut()
         .get_vertex_mut(v2)
         .unwrap()
-        .set_outgoing(he_s);
+        .set_primary_disk(he_s);
 
     draft.execute(
         JoinFacesNmt {
@@ -1913,7 +1913,7 @@ fn antiparallel_outgoing_he_survive_on_vertex_k() {
     )
     .unwrap();
 
-    let v2_out = draft.arena().get_vertex(v2).unwrap().outgoing();
+    let v2_out = draft.arena().get_vertex(v2).unwrap().primary_disk();
     assert_ne!(v2_out, he_s, "v2 outgoing must not be slit he_s");
     assert_ne!(v2_out, he_k, "v2 outgoing must not be slit he_k");
 }
@@ -2377,7 +2377,7 @@ fn shared_origin_outgoing_he_kill_is_fixed() {
         .arena_mut()
         .get_vertex_mut(v1)
         .unwrap()
-        .set_outgoing(he_k);
+        .set_primary_disk(he_k);
 
     draft.execute(
         JoinFacesNmt {
@@ -2387,7 +2387,7 @@ fn shared_origin_outgoing_he_kill_is_fixed() {
     )
     .unwrap();
 
-    let v1_out = draft.arena().get_vertex(v1).unwrap().outgoing();
+    let v1_out = draft.arena().get_vertex(v1).unwrap().primary_disk();
     assert_ne!(
         v1_out, he_s,
         "D2 regression: v1 outgoing must not be slit he_s after shared-origin merge",

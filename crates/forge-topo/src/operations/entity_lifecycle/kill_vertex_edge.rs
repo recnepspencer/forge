@@ -49,7 +49,7 @@ impl TopoOperator for KillVertexEdge {
     fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let vertex_m = self.vertex;
 
-        let outgoing_he = draft.arena().get_vertex(vertex_m)?.outgoing();
+        let outgoing_he = draft.arena().get_vertex(vertex_m)?.primary_disk();
         if outgoing_he == HalfEdgeId::DANGLING {
             return Err(KernelError::InvalidInput {
                 message: "KillVertexEdge: vertex has no outgoing halfedge".to_string(),
@@ -182,10 +182,10 @@ impl TopoOperator for KillVertexEdge {
         // originate from various vertices — those vertices might need their outgoing updated.
         for &h in &arriving_at_m {
             let origin_v = draft.arena().get_half_edge(h)?.origin();
-            let current_out = draft.arena().get_vertex(origin_v)?.outgoing();
+            let current_out = draft.arena().get_vertex(origin_v)?.primary_disk();
             // If outgoing was pointing at a removed halfedge, fix it
             if from_m.contains(&current_out) {
-                draft.arena_mut().get_vertex_mut(origin_v)?.set_outgoing(h);
+                draft.arena_mut().get_vertex_mut(origin_v)?.set_primary_disk(h);
             }
         }
 

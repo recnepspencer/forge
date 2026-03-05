@@ -78,7 +78,7 @@ mod tests {
             let mut boundary_count = 0u32;
 
             // Walk vertex orbit
-            let start = vdata.outgoing();
+            let start = vdata.primary_disk();
             let mut cur = start;
             let bound = arena.half_edge_count();
             for step in 0..=bound {

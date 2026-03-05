@@ -120,7 +120,7 @@ Use `draft.arena_mut()` to get mutable access for pointer updates:
 draft.arena_mut().get_half_edge_mut(he)?.set_next(other_he);
 draft.arena_mut().get_half_edge_mut(he)?.set_prev(other_he);
 draft.arena_mut().get_half_edge_mut(he)?.set_radial_next(twin);
-draft.arena_mut().get_vertex_mut(vertex)?.set_outgoing(he);
+draft.arena_mut().get_vertex_mut(vertex)?.set_primary_disk(he);
 draft.arena_mut().get_face_mut(face)?.set_outer_loop(loop_id);
 draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(he);
 ```
@@ -244,7 +244,7 @@ fn split_edge_creates_correct_topology() {
 
     // Assert connectivity
     let v = draft.arena().get_vertex(result.vertex).unwrap();
-    assert_ne!(v.outgoing(), HalfEdgeId::new(u32::MAX, 0));
+    assert_ne!(v.primary_disk(), HalfEdgeId::new(u32::MAX, 0));
 
     // Assert commit (structural validation)
     assert!(draft.commit().is_ok());

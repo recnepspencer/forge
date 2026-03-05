@@ -81,7 +81,7 @@ fn build_cube_arena() -> (TopologyArena, Vec<[f64; 3]>) {
         arena
             .get_vertex_mut(verts[quad[0]])
             .unwrap()
-            .set_outgoing(he_ids[0]);
+            .set_primary_disk(he_ids[0]);
     }
 
     let all_hes: Vec<(HalfEdgeId, u32, u32)> = arena

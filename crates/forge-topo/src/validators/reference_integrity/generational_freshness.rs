@@ -57,7 +57,19 @@ pub(crate) fn validate_generational_id_freshness(arena: &TopologyArena) -> Resul
 
     // ── Vertex handles ───────────────────────────────────────────────
     for (vertex_id, vertex_data) in arena.iter_vertices() {
-        check_generation!(arena, half_edge_generation, vertex_data.outgoing(), "Vertex", vertex_id.index(), "outgoing");
+        check_generation!(arena, half_edge_generation, vertex_data.primary_disk(), "Vertex", vertex_id.index(), "primary_disk");
+        if let Some(extras) = arena.nmt_extra_disks.get(&vertex_id) {
+            for (i, &he) in extras.iter().enumerate() {
+                check_generation!(
+                    arena,
+                    half_edge_generation,
+                    he,
+                    "Vertex",
+                    vertex_id.index(),
+                    &format!("extra_disks[{i}]")
+                );
+            }
+        }
     }
 
     // ── Face handles ─────────────────────────────────────────────────

@@ -121,7 +121,7 @@ impl TopoOperator for MakeEdgeVertex {
         draft
             .arena_mut()
             .get_vertex_mut(new_vertex)?
-            .set_outgoing(he_back);
+            .set_primary_disk(he_back);
         draft
             .arena_mut()
             .get_edge_mut(new_edge)?

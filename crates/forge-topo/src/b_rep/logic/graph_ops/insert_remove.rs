@@ -105,6 +105,7 @@ impl TopologyArena {
         self.free_vertex_head = Some(id.index());
         self.active_vertex_count -= 1;
         self.clear_vertex_sidecar(id.index() as usize);
+        self.nmt_extra_disks.remove(&id);
         Ok(data)
     }
 }

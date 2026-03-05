@@ -192,7 +192,7 @@ impl TopoOperator for CloneBody {
 
         struct VertexInfo {
             old_vertex: crate::handles::VertexId,
-            old_outgoing: crate::handles::HalfEdgeId,
+            old_primary_disk: crate::handles::HalfEdgeId,
         }
 
         struct EdgeInfo {
@@ -299,7 +299,7 @@ impl TopoOperator for CloneBody {
                             let vd = draft.arena().get_vertex(hd.origin())?;
                             vertex_infos.push(VertexInfo {
                                 old_vertex: hd.origin(),
-                                old_outgoing: vd.outgoing(),
+                                old_primary_disk: vd.primary_disk(),
                             });
                             seen_vertices.insert(hd.origin());
                         }
@@ -452,11 +452,11 @@ impl TopoOperator for CloneBody {
                         }
                     }
 
-                    // Wire vertex → outgoing
+                    // Wire vertex -> primary disk
                     for vi in &shell_info.vertices {
                         if let Some(&new_v) = vertex_map.get(&vi.old_vertex) {
-                            if let Some(&new_out) = half_edge_map.get(&vi.old_outgoing) {
-                                draft.arena_mut().get_vertex_mut(new_v)?.set_outgoing(new_out);
+                            if let Some(&new_out) = half_edge_map.get(&vi.old_primary_disk) {
+                                draft.arena_mut().get_vertex_mut(new_v)?.set_primary_disk(new_out);
                             }
                         }
                     }

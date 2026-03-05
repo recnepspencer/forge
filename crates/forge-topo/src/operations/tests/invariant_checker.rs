@@ -245,9 +245,9 @@ pub fn dump_all_wiring(arena: &TopologyArena) -> String {
     }
     for (id, data) in arena.iter_vertices() {
         s.push_str(&format!(
-            "  V[{}]: outgoing=HE{}\n",
+            "  V[{}]: primary_disk=HE{}\n",
             id.index(),
-            data.outgoing().index()
+            data.primary_disk().index()
         ));
     }
     for (id, data) in arena.iter_edges() {

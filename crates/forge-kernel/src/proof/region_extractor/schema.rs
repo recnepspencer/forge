@@ -254,7 +254,7 @@ impl ExtractedRegion {
             if let Some((&he_idx, _)) = first_outgoing {
                 draft.arena_mut()
                     .get_vertex_mut(VertexId::new(vtx_id, 0))?
-                    .set_outgoing(HalfEdgeId::new(he_idx, 0));
+                    .set_primary_disk(HalfEdgeId::new(he_idx, 0));
             }
         }
 

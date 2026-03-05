@@ -174,9 +174,9 @@ impl TopoOperator for MakeFaceFromVertices {
             // and isolated before we construct the faces.
 
             // Standard topological assignment: if vertex outgoing is max, set it.
-            let orig_out = arena.get_vertex(v)?.outgoing();
+            let orig_out = arena.get_vertex(v)?.primary_disk();
             if orig_out == HalfEdgeId::DANGLING {
-                arena.get_vertex_mut(v)?.set_outgoing(he);
+                arena.get_vertex_mut(v)?.set_primary_disk(he);
             }
         }
 

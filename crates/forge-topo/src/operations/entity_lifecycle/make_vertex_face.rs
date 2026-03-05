@@ -112,7 +112,7 @@ impl TopoOperator for MakeVertexFace {
         draft.arena_mut().get_half_edge_mut(he)?.set_radial_next(he);
         draft.arena_mut().get_half_edge_mut(he)?.set_next(he);
         draft.arena_mut().get_half_edge_mut(he)?.set_prev(he);
-        draft.arena_mut().get_vertex_mut(vertex)?.set_outgoing(he);
+        draft.arena_mut().get_vertex_mut(vertex)?.set_primary_disk(he);
         draft
             .arena_mut()
             .get_face_mut(face)?

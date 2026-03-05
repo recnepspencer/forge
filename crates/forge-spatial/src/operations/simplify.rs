@@ -22,7 +22,7 @@ where
     let mut candidates: Vec<(VertexId, HalfEdgeId)> = Vec::new();
 
     for (vid, v) in arena.iter_vertices() {
-        let he_first = v.outgoing();
+        let he_first = v.primary_disk();
         let Some((degree, edges)) = compute_vertex_degree(arena, he_first) else {
             continue;
         };
