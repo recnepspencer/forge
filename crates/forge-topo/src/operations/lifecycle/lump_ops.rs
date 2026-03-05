@@ -212,6 +212,14 @@ impl TopoOperator for MergeLumps {
         }
 
         let source_body = draft.arena().get_lump(self.source)?.body();
+        let target_body = draft.arena().get_lump(self.target)?.body();
+        if source_body != target_body {
+            return Err(KernelError::InvalidInput {
+                message: "MergeLumps: source and target must belong to the same body".to_string(),
+                context: None,
+            });
+        }
+
         let source_regions: Vec<RegionId> = draft.arena().get_lump(self.source)?.regions().to_vec();
 
         for &region in &source_regions {

@@ -87,6 +87,16 @@ impl TopoOperator for DestroyShell {
 
     fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let region = draft.arena().get_shell(self.shell)?.region();
+        let kind = draft.arena().get_shell(self.shell)?.kind();
+
+        // Wire shells may contain edges not tracked via faces_of_shell.
+        // Reject destruction until Tier 2 wire edge tracking is available.
+        if matches!(kind, ShellKind::Wire) {
+            return Err(KernelError::InvalidInput {
+                message: "DestroyShell: wire shells must be emptied of edges before destruction (wire edge tracking not yet implemented)".to_string(),
+                context: None,
+            });
+        }
 
         // Validate shell is empty (no faces reference it)
         let face_count = draft.arena().faces_of_shell(self.shell).len();

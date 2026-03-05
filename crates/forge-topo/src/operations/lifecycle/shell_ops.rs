@@ -6,6 +6,8 @@
 
 use forge_core::KernelError;
 
+use crate::handles::FaceId;
+
 use crate::b_rep::ShellKind;
 use crate::handles::{RegionId, ShellId};
 use crate::operator::{EulerDelta, ExecutionResult};
@@ -85,6 +87,18 @@ impl TopoOperator for ExtractShell {
     fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let old_region = draft.arena().get_shell(self.shell)?.region();
         let lump = draft.arena().get_region(old_region)?.lump();
+
+        // Guard: reject extracting the outer shell if no inner shell can replace it.
+        let is_outer = draft.arena().get_region(old_region)?.outer_shell() == Some(self.shell);
+        if is_outer {
+            let inner_count = draft.arena().get_region(old_region)?.inner_shells().len();
+            if inner_count == 0 {
+                return Err(KernelError::InvalidInput {
+                    message: "ExtractShell: cannot extract outer shell with no inner shells to replace it".to_string(),
+                    context: None,
+                });
+            }
+        }
 
         let new_region = draft.insert_region(crate::b_rep::RegionData::new(lump));
         draft.arena_mut().get_lump_mut(lump)?.add_region(new_region);
@@ -174,6 +188,18 @@ impl TopoOperator for SplitShell {
             draft.arena_mut().reassign_face_shell(face, new_shell)?;
         }
 
+        // Fix: update source shell's representative_face if it was moved.
+        let current_rep = draft.arena().get_shell(self.shell)?.representative_face();
+        if self.faces_to_move.contains(&current_rep) {
+            let remaining = draft.arena().faces_of_shell(self.shell);
+            let new_rep = if remaining.is_empty() {
+                FaceId::DANGLING
+            } else {
+                remaining[0]
+            };
+            draft.arena_mut().get_shell_mut(self.shell)?.set_representative_face(new_rep);
+        }
+
         Ok(ExecutionResult {
             value: SplitShellOutput { new_shell },
             declared_delta: EulerDelta {
@@ -215,6 +241,13 @@ impl TopoOperator for MergeShells {
         }
 
         let source_region = draft.arena().get_shell(self.source)?.region();
+        let target_region = draft.arena().get_shell(self.target)?.region();
+        if source_region != target_region {
+            return Err(KernelError::InvalidInput {
+                message: "MergeShells: source and target must belong to the same region".to_string(),
+                context: None,
+            });
+        }
 
         let faces_to_move: Vec<crate::handles::FaceId> =
             draft.arena().faces_of_shell(self.source).to_vec();

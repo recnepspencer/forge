@@ -44,4 +44,5 @@ mod mvf_tests;
 mod sew_edge_tests;
 mod shell_edge_tests;
 mod split_edge_tests;
+mod lifecycle_container_tests;
 
