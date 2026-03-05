@@ -5,6 +5,7 @@
 use forge_core::{KernelError, ValidationCheckpoint};
 use serde::{Deserialize, Serialize};
 
+use super::group_policy::GroupPolicyConfig;
 use super::super::kernel_config::ConfigSection;
 
 /// Invariant validation checkpoints and settings.
@@ -13,6 +14,9 @@ pub struct ValidationSection {
     pub checkpoints: Vec<ValidationCheckpoint>,
     pub include_geometric: bool,
     pub entity_limit: usize,
+    /// Group-level validation policy configuration.
+    /// Merged with `TopologyContext` at draft creation to produce `GroupPolicyRuntime`.
+    pub group_policy: GroupPolicyConfig,
 }
 
 impl ConfigSection for ValidationSection {
@@ -27,6 +31,7 @@ impl ConfigSection for ValidationSection {
                 ],
                 include_geometric: true,
                 entity_limit: 0,
+                group_policy: GroupPolicyConfig::default(),
             }
         } else {
             Self {
@@ -36,6 +41,7 @@ impl ConfigSection for ValidationSection {
                 ],
                 include_geometric: false,
                 entity_limit: 50_000,
+                group_policy: GroupPolicyConfig::default(),
             }
         }
     }

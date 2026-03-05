@@ -35,7 +35,18 @@ pub use errors::{
     SourceErrorSummary, SuggestedFix, TopologyError, TopologyErrorSummary,
 };
 
-pub use policy::{PolicyKind, PolicyQuery, PolicyResult, ValidationCheckpoint};
+pub use policy::{
+    // Invariant validation contract types
+    InvariantGroup, InvariantTier, ValidatorCost,
+    APPLICABLE_BY_KIND, CLOSED_SHEET_EXTRA, DEFER_SEMANTIC_TIER, DEFER_UNCERTIFIED,
+    applicable_mask_for, deferred_mask_for,
+    // Policy types
+    PolicyKind, PolicyQuery, PolicyResult,
+    // Topology classification
+    CertificationStage, Closure, Manifoldness, TopologyContext, TopologyKind,
+    // Validation checkpoints
+    ValidationCheckpoint,
+};
 
 // Tracing — all exports routed through `tracing::facade`
 pub use tracing::*;

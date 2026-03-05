@@ -45,7 +45,7 @@ impl TopoOperator for UnsewEdge {
 
     const NAME: &'static str = "unsew_edge";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::RADIAL_SPLICE;
 
     fn semantic_summary(&self) -> String {
         format!(

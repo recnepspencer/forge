@@ -47,7 +47,7 @@ impl TopoOperator for KillEdgeMakeLoop {
 
     const NAME: &'static str = "kill_edge_make_loop";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         format!("Remove edge at halfedge {} and create inner loop (hole)", self.edge.index())

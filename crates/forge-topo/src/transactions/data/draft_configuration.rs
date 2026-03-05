@@ -1,6 +1,7 @@
 //! Configuration for mutable draft transactions.
 
 use crate::validators::validate::ValidationLevel;
+use crate::validators::group_policy_runtime::GroupPolicyRuntime;
 
 /// Configuration for a mutable draft transaction.
 ///
@@ -41,6 +42,12 @@ pub struct DraftConfig {
     ///
     /// Default: `false`.
     pub suppress_per_op_validation: bool,
+    /// Computed group-level validation policy.
+    ///
+    /// Built from `GroupPolicyConfig` (forge-kernel) + `TopologyContext`
+    /// at draft creation time. Controls which invariant groups run at
+    /// which checkpoints with O(1) bitmask dispatch.
+    pub group_policy: GroupPolicyRuntime,
 }
 
 impl Default for DraftConfig {
@@ -51,6 +58,8 @@ impl Default for DraftConfig {
             validation_level: ValidationLevel::default(),
             validate_all_invariants_per_op: false,
             suppress_per_op_validation: false,
+            group_policy: GroupPolicyRuntime::default(),
         }
     }
 }
+

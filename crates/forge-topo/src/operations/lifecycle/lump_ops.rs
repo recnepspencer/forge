@@ -29,7 +29,7 @@ impl TopoOperator for RehomeLump {
 
     const NAME: &'static str = "rehome_lump";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
         format!("Move lump {} to body {}", self.lump.index(), self.target_body.index())
@@ -76,7 +76,7 @@ impl TopoOperator for ExtractLump {
 
     const NAME: &'static str = "extract_lump";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
         format!("Extract lump {} into its own body", self.lump.index())
@@ -136,7 +136,7 @@ impl TopoOperator for SplitLump {
 
     const NAME: &'static str = "split_lump";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
         format!(
@@ -197,7 +197,7 @@ impl TopoOperator for MergeLumps {
 
     const NAME: &'static str = "merge_lumps";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
         format!("Merge lump {} into lump {}", self.source.index(), self.target.index())

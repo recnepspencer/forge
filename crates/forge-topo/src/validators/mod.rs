@@ -27,6 +27,7 @@
 pub mod facade;
 pub mod invariant_id;
 pub mod invariant_group;
+pub mod group_policy_runtime;
 
 pub(crate) mod shared;
 pub(crate) mod structural;
@@ -45,6 +46,7 @@ pub mod intersection_graph;
 pub mod numerical_predicate;
 pub mod determinism;
 pub mod cache_index;
+pub mod contract_registry;
 pub mod persistent_naming;
 pub mod import_sanity;
 

@@ -27,7 +27,7 @@ impl TopoOperator for MakeIsolatedVertex {
 
     const NAME: &'static str = "make_isolated_vertex";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::ISOLATED_VERTEX;
 
     fn semantic_summary(&self) -> String {
         "Create isolated vertex (no face, no shell)".into()

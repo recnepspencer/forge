@@ -8,7 +8,9 @@
 //! Adding a new `InvariantId` variant without updating both = **compile error**.
 
 use crate::b_rep::TopologyArena;
+use crate::validators::invariant_group::InvariantGroup;
 use forge_core::KernelError;
+pub use forge_core::ValidatorCost;
 
 /// Every structural B-Rep invariant in the system.
 ///
@@ -88,6 +90,44 @@ pub enum InvariantId {
 }
 
 impl InvariantId {
+    /// Resolves this invariant back to its higher-level group.
+    /// 
+    /// Adding a new `InvariantId` will cause a compile error here,
+    /// forcing it to be assigned the correct group.
+    pub const fn group(&self) -> InvariantGroup {
+        match self {
+            Self::RadialReciprocity | Self::NextPrevReciprocity
+            | Self::NoDanglingRefs | Self::GenerationalFreshness
+                => InvariantGroup::PointerCoherence,
+            
+            Self::FaceHasLoop | Self::LoopMinCardinality
+            | Self::NoDuplicateCoedges | Self::FaceLoopMembership
+            | Self::VertexContinuity | Self::EdgeEndpointsMatch
+                => InvariantGroup::LoopIntegrity,
+            
+            Self::SingleLoopOwner | Self::NoOrphanHalfEdges
+            | Self::AcyclicContainment | Self::InnerOuterConsistency
+                => InvariantGroup::Ownership,
+            
+            Self::RadialCycleUniqueness | Self::RadialNeighborConsistency
+            | Self::NoBrokenRadialSplices
+                => InvariantGroup::RadialEdge,
+            
+            Self::FaceAdjacencyConsistency | Self::NoBrokenFaceBoundary
+            | Self::BoundaryEdgesLaminar
+                => InvariantGroup::ShellClosure,
+            
+            Self::DiskEntriesAlive | Self::DiskPartitionCorrect
+            | Self::DiskClosure | Self::NoCrossDiskCoedges
+                => InvariantGroup::VertexDisk,
+            
+            Self::PerComponentEuler
+                => InvariantGroup::EulerFormula,
+            
+            Self::SideCarCoherence | Self::IndexCoherence
+                => InvariantGroup::CacheCoherence,
+        }
+    }
     /// All invariant variants, listed exhaustively.
     ///
     /// Used by `may_break()`, `requires()`, and CI gate tests.
@@ -229,19 +269,8 @@ macro_rules! conservative_contract {
     };
 }
 
-/// Algorithmic cost classification for a validator.
-///
-/// Drives the cost-tier filtering: cheap validators always run per-op,
-/// expensive validators only run at commit time or in debug override.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum ValidatorCost {
-    /// O(n) single pass — always safe to run per-op.
-    Cheap,
-    /// O(n log n) or requires secondary data structures.
-    Medium,
-    /// O(n²) or global analysis (Euler, shell closure).
-    Expensive,
-}
+// ValidatorCost is re-exported from forge-core (see top of file).
+// It was moved there so forge-kernel's GroupPolicyConfig can reference it.
 
 /// Registry entry mapping an `InvariantId` to its checker function and cost.
 pub struct ValidatorEntry {

@@ -58,7 +58,7 @@ impl TopoOperator for MakeEdgeKillLoop {
 
     const NAME: &'static str = "make_edge_kill_loop";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         format!(

@@ -38,7 +38,7 @@ impl TopoOperator for MakeFaceKillRingHole {
 
     const NAME: &'static str = "make_face_kill_ring_hole";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         format!("Promote inner loop {} to its own face", self.loop_id.index())

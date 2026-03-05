@@ -36,7 +36,7 @@ impl TopoOperator for SplitBody {
 
     const NAME: &'static str = "split_body";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
         format!(
@@ -107,7 +107,7 @@ impl TopoOperator for MergeBodies {
 
     const NAME: &'static str = "merge_bodies";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
         format!("Merge body {} into body {}", self.source.index(), self.target.index())
@@ -161,7 +161,7 @@ impl TopoOperator for CloneBody {
 
     const NAME: &'static str = "clone_body";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
         format!("Deep clone body {}", self.body.index())

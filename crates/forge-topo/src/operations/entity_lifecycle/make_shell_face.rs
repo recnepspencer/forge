@@ -50,7 +50,7 @@ impl TopoOperator for MakeShellFace {
 
     const NAME: &'static str = "make_shell_face";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         format!("Create new shell with seed vertex-face in region {}", self.region.index())

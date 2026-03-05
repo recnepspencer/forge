@@ -69,7 +69,7 @@ impl TopoOperator for SplitEdge {
 
     const NAME: &'static str = "split_edge";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         format!("Split edge at halfedge {}", self.edge.index())

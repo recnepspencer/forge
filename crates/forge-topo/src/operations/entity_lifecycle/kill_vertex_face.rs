@@ -42,7 +42,7 @@ impl TopoOperator for KillVertexFace {
 
     const NAME: &'static str = "kill_vertex_face";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         format!("Destroy isolated face {} and vertex {}", self.face.index(), self.vertex.index())

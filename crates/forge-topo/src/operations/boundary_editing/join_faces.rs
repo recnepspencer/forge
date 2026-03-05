@@ -41,7 +41,7 @@ impl TopoOperator for JoinFaces {
 
     const NAME: &'static str = "join_faces";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         format!("Join two faces by removing edge at halfedge {}", self.edge.index())

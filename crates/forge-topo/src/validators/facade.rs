@@ -12,4 +12,5 @@ pub use super::invariant_id::{
     InvariantId, InvariantRelation, InvariantContract,
     ValidatorCost, ValidatorEntry, validator_for,
 };
-pub use super::invariant_group::InvariantGroup;
+pub use super::invariant_group::{InvariantGroup, InvariantTier, invariant_ids};
+pub use super::group_policy_runtime::GroupPolicyRuntime;

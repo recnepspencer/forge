@@ -14,6 +14,7 @@ use crate::handles::{BodyId, LumpId, RegionId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::contract_registry;
 use crate::validators::invariant_id::InvariantContract;
 
 
@@ -36,7 +37,7 @@ impl TopoOperator for MakeSolid {
 
     const NAME: &'static str = "make_solid";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
         "Create new solid (body + lump + region hierarchy)".into()
@@ -86,7 +87,7 @@ impl TopoOperator for DestroyBody {
 
     const NAME: &'static str = "destroy_body";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
         format!("Destroy body {} and all its lumps/regions", self.body.index())

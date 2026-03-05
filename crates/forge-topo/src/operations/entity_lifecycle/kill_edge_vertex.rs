@@ -47,7 +47,7 @@ impl TopoOperator for KillEdgeVertex {
 
     const NAME: &'static str = "kill_edge_vertex";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         format!("Collapse edge at halfedge {}, merging target vertex into origin", self.edge.index())

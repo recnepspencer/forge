@@ -1,99 +1,68 @@
-//! Invariant groups — named subsets of `InvariantId` for feature-level
-//! and validation-level composition.
+//! Invariant groups — bridge between forge-core `InvariantGroup` contract type
+//! and forge-topo `InvariantId` variants.
 //!
-//! DOMAIN: Feature contracts and validation levels reference groups
-//! instead of individual invariants. This is the bridge between
-//! operator-level `InvariantContract` and feature-level `FeatureContract`.
+//! DOMAIN: The `InvariantGroup` enum lives in `forge-core` (shared contract type).
+//! This module re-exports it and provides the `invariant_ids()` free function
+//! that resolves groups to their constituent `InvariantId`s.
 //!
-//! Replaces `InvariantKind` from forge-kernel (migration deferred to post-M0).
+//! `invariant_ids()` is a free function (not a method) because Rust orphan rules
+//! prevent adding inherent methods to types from external crates.
+
+pub use forge_core::InvariantGroup;
+pub use forge_core::InvariantTier;
 
 use super::invariant_id::InvariantId;
 
-/// Named subsets of `InvariantId` for higher-level consumers.
+/// Resolve a group to its constituent `InvariantId` variants.
 ///
-/// Features declare groups; the pipeline resolves them to individual
-/// `InvariantId`s and dispatches through `validator_for()`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum InvariantGroup {
-    /// Radial/next/prev reciprocity, dangling refs, generational freshness.
-    PointerCoherence,
-    /// Face-has-loop, loop cardinality, duplicates, membership, continuity, endpoints.
-    LoopIntegrity,
-    /// Single loop owner, no orphan HEs, acyclic containment, inner/outer consistency.
-    Ownership,
-    /// Radial cycle uniqueness, neighbor consistency, no broken splices.
-    RadialEdge,
-    /// Face adjacency symmetry, closed boundaries, laminar boundary edges.
-    ShellClosure,
-    /// Disk entries alive, partition correct, closure, no cross-disk coedges.
-    VertexDisk,
-    /// Per-component Euler formula.
-    EulerFormula,
-    /// Side-car and index coherence.
-    CacheCoherence,
-}
-
-impl InvariantGroup {
-    /// Resolve this group to its constituent `InvariantId` variants.
-    pub fn invariant_ids(&self) -> &[InvariantId] {
-        match self {
-            Self::PointerCoherence => &[
-                InvariantId::RadialReciprocity,
-                InvariantId::NextPrevReciprocity,
-                InvariantId::NoDanglingRefs,
-                InvariantId::GenerationalFreshness,
-            ],
-            Self::LoopIntegrity => &[
-                InvariantId::FaceHasLoop,
-                InvariantId::LoopMinCardinality,
-                InvariantId::NoDuplicateCoedges,
-                InvariantId::FaceLoopMembership,
-                InvariantId::VertexContinuity,
-                InvariantId::EdgeEndpointsMatch,
-            ],
-            Self::Ownership => &[
-                InvariantId::SingleLoopOwner,
-                InvariantId::NoOrphanHalfEdges,
-                InvariantId::AcyclicContainment,
-                InvariantId::InnerOuterConsistency,
-            ],
-            Self::RadialEdge => &[
-                InvariantId::RadialCycleUniqueness,
-                InvariantId::RadialNeighborConsistency,
-                InvariantId::NoBrokenRadialSplices,
-            ],
-            Self::ShellClosure => &[
-                InvariantId::FaceAdjacencyConsistency,
-                InvariantId::NoBrokenFaceBoundary,
-                InvariantId::BoundaryEdgesLaminar,
-            ],
-            Self::VertexDisk => &[
-                InvariantId::DiskEntriesAlive,
-                InvariantId::DiskPartitionCorrect,
-                InvariantId::DiskClosure,
-                InvariantId::NoCrossDiskCoedges,
-            ],
-            Self::EulerFormula => &[
-                InvariantId::PerComponentEuler,
-            ],
-            Self::CacheCoherence => &[
-                InvariantId::SideCarCoherence,
-                InvariantId::IndexCoherence,
-            ],
-        }
+/// This is the topo-specific mapping. `InvariantId` is defined in forge-topo,
+/// so this function must live here rather than on `InvariantGroup` in forge-core.
+pub fn invariant_ids(group: InvariantGroup) -> &'static [InvariantId] {
+    match group {
+        InvariantGroup::PointerCoherence => &[
+            InvariantId::RadialReciprocity,
+            InvariantId::NextPrevReciprocity,
+            InvariantId::NoDanglingRefs,
+            InvariantId::GenerationalFreshness,
+        ],
+        InvariantGroup::LoopIntegrity => &[
+            InvariantId::FaceHasLoop,
+            InvariantId::LoopMinCardinality,
+            InvariantId::NoDuplicateCoedges,
+            InvariantId::FaceLoopMembership,
+            InvariantId::VertexContinuity,
+            InvariantId::EdgeEndpointsMatch,
+        ],
+        InvariantGroup::Ownership => &[
+            InvariantId::SingleLoopOwner,
+            InvariantId::NoOrphanHalfEdges,
+            InvariantId::AcyclicContainment,
+            InvariantId::InnerOuterConsistency,
+        ],
+        InvariantGroup::RadialEdge => &[
+            InvariantId::RadialCycleUniqueness,
+            InvariantId::RadialNeighborConsistency,
+            InvariantId::NoBrokenRadialSplices,
+        ],
+        InvariantGroup::ShellClosure => &[
+            InvariantId::FaceAdjacencyConsistency,
+            InvariantId::NoBrokenFaceBoundary,
+            InvariantId::BoundaryEdgesLaminar,
+        ],
+        InvariantGroup::VertexDisk => &[
+            InvariantId::DiskEntriesAlive,
+            InvariantId::DiskPartitionCorrect,
+            InvariantId::DiskClosure,
+            InvariantId::NoCrossDiskCoedges,
+        ],
+        InvariantGroup::EulerFormula => &[
+            InvariantId::PerComponentEuler,
+        ],
+        InvariantGroup::CacheCoherence => &[
+            InvariantId::SideCarCoherence,
+            InvariantId::IndexCoherence,
+        ],
     }
-
-    /// All groups.
-    pub const ALL: &[InvariantGroup] = &[
-        Self::PointerCoherence,
-        Self::LoopIntegrity,
-        Self::Ownership,
-        Self::RadialEdge,
-        Self::ShellClosure,
-        Self::VertexDisk,
-        Self::EulerFormula,
-        Self::CacheCoherence,
-    ];
 }
 
 #[cfg(test)]
@@ -104,7 +73,7 @@ mod tests {
     #[test]
     fn all_groups_resolve_to_invariants() {
         for &group in InvariantGroup::ALL {
-            let ids = group.invariant_ids();
+            let ids = invariant_ids(group);
             assert!(
                 !ids.is_empty(),
                 "Group {:?} resolves to zero invariants",
@@ -118,7 +87,7 @@ mod tests {
     fn groups_cover_all_invariant_ids() {
         let mut covered = std::collections::HashSet::new();
         for &group in InvariantGroup::ALL {
-            for &id in group.invariant_ids() {
+            for &id in invariant_ids(group) {
                 covered.insert(id);
             }
         }
@@ -128,6 +97,45 @@ mod tests {
                 "InvariantId::{:?} is not covered by any InvariantGroup",
                 id,
             );
+        }
+    }
+
+    /// `InvariantId::group()` round-trips correctly through `invariant_ids()`.
+    /// This ensures that the two match statements stay perfectly in sync.
+    #[test]
+    fn group_roundtrips_with_invariant_ids() {
+        for &id in InvariantId::ALL {
+            let group = id.group();
+            let ids = invariant_ids(group);
+            assert!(
+                ids.contains(&id),
+                "InvariantId::{:?} claims to be in InvariantGroup::{:?}, but the group does not list it.",
+                id, group
+            );
+        }
+    }
+
+    /// Every InvariantGroup has a valid tier.
+    #[test]
+    fn all_groups_have_tiers() {
+        for &group in InvariantGroup::ALL {
+            let tier = group.tier();
+            // Just verify it doesn't panic and the tier is one of the expected values
+            match tier {
+                InvariantTier::Topology | InvariantTier::Semantic | InvariantTier::Cache => {}
+            }
+        }
+    }
+
+    /// Bitmask round-trips: each group has a unique, non-zero mask.
+    #[test]
+    fn bitmask_uniqueness() {
+        let mut seen = 0u32;
+        for &group in InvariantGroup::ALL {
+            let mask = group.mask();
+            assert_ne!(mask, 0, "Group {:?} has zero mask", group);
+            assert_eq!(seen & mask, 0, "Group {:?} mask collides", group);
+            seen |= mask;
         }
     }
 }

@@ -555,27 +555,28 @@ impl MutableDraft {
         }
 
         // ── Contract-driven invariant checking ──────────────────────
-        // Runs after every op unless suppressed. Cost-tier aware:
-        //   Normal mode:  Cheap validators for MayBreak invariants only
+        // Runs after every op unless suppressed. Policy-aware:
+        //   Normal mode:  Group policy + cost ceiling filter
         //   Debug override: ALL validators for ALL invariants
         //   Suppressed: skip everything (macro-op batch mode)
         if !self.config.suppress_per_op_validation {
             use crate::validators::invariant_id::{
                 InvariantId, ValidatorCost, validator_for,
             };
+            use forge_core::ValidationCheckpoint;
 
-            let max_cost = if self.config.validate_all_invariants_per_op {
-                ValidatorCost::Expensive
-            } else {
-                ValidatorCost::Cheap
-            };
+            let policy = &self.config.group_policy;
+            let checkpoint = ValidationCheckpoint::PerOp;
+            let max_cost = policy.max_cost_at(checkpoint);
 
             let invariants_to_check: Vec<InvariantId> = if self.config.validate_all_invariants_per_op {
-                // Debug override: check ALL invariants
+                // Debug override: check ALL invariants regardless of policy
                 InvariantId::ALL.to_vec()
             } else {
-                // Normal: only MayBreak invariants from operator contract
-                O::INVARIANT_CONTRACT.may_break().collect()
+                // Normal: operator contract filtered by group policy
+                O::INVARIANT_CONTRACT.may_break()
+                    .filter(|id| policy.should_run(id.group(), checkpoint))
+                    .collect()
             };
 
             for id in invariants_to_check {

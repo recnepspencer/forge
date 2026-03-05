@@ -58,7 +58,7 @@ impl TopoOperator for MakeVertexFace {
 
     const NAME: &'static str = "make_vertex_face";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         "Create initial vertex-face-shell scaffold (seed topology)".into()

@@ -9,6 +9,7 @@ use crate::handles::{BodyId, LumpId, RegionId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::contract_registry;
 use crate::validators::invariant_id::InvariantContract;
 
 
@@ -32,7 +33,7 @@ impl TopoOperator for MakeLumpRegion {
 
     const NAME: &'static str = "make_lump_region";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
         format!("Create lump with region in body {}", self.body.index())
@@ -76,7 +77,7 @@ impl TopoOperator for DestroyLump {
 
     const NAME: &'static str = "destroy_lump";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
         format!("Destroy lump {} and its region", self.lump.index())

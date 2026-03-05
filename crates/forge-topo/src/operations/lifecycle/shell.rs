@@ -9,6 +9,7 @@ use crate::handles::{FaceId, RegionId, ShellId};
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
+use crate::validators::contract_registry;
 use crate::validators::invariant_id::InvariantContract;
 
 
@@ -32,7 +33,7 @@ impl TopoOperator for MakeEmptyShell {
 
     const NAME: &'static str = "make_empty_shell";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
         format!("Create empty shell in region {} (kind: {:?})", self.region.index(), self.kind)
@@ -78,7 +79,7 @@ impl TopoOperator for DestroyShell {
 
     const NAME: &'static str = "destroy_shell";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
         format!("Destroy shell {}", self.shell.index())

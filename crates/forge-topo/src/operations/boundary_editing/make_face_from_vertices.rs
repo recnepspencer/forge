@@ -62,7 +62,7 @@ impl TopoOperator for MakeFaceFromVertices {
 
     const NAME: &'static str = "make_face_from_vertices";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::conservative_contract!();
+    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         format!("Create {}-sided face from existing vertices", self.vertices.len())
