@@ -1,278 +1,28 @@
 //! Invariant contract system types and compile-time enforcement.
 //!
-//! DOMAIN: The single registry of all structural B-Rep invariants.
-//! Two exhaustive match statements enforce completeness at compile time:
-//! 1. Every `TopoOperator`'s `INVARIANT_CONTRACT` closure
-//! 2. The `validator_for()` dispatch function
+//! DOMAIN: Re-exports the shared invariant types from `forge-core` and provides
+//! the `forge-topo`–specific `ValidatorEntry` + `validator_for()` dispatch.
 //!
-//! Adding a new `InvariantId` variant without updating both = **compile error**.
+//! The `InvariantId`, `InvariantRelation`, and `InvariantContract` types live in
+//! `forge-core` so both `forge-topo` and `forge-spatial` share one contract system.
+//! This module re-exports them for backward-compatible import paths and adds the
+//! topo-specific dispatcher.
 
 use crate::b_rep::TopologyArena;
-use crate::validators::invariant_group::InvariantGroup;
 use forge_core::KernelError;
-pub use forge_core::ValidatorCost;
 
-/// Every structural B-Rep invariant in the system.
-///
-/// Rust's exhaustive pattern matching guarantees that every operator
-/// acknowledges every invariant and every invariant has a validator.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum InvariantId {
-    // ── Pointer coherence ───────────────────────────────────────
-    /// `radial_next∘radial_next == id` for every half-edge.
-    RadialReciprocity,
-    /// `next∘prev == id` and `prev∘next == id` for every half-edge.
-    NextPrevReciprocity,
-    /// No half-edge references point to deleted entities.
-    NoDanglingRefs,
-    /// No references point to recycled (generation-bumped) slots.
-    GenerationalFreshness,
-
-    // ── Loop structure ──────────────────────────────────────────
-    /// Every face has at least one loop.
-    FaceHasLoop,
-    /// Every loop has at least 1 half-edge (self-loop ok).
-    LoopMinCardinality,
-    /// No duplicate half-edges within a single loop.
-    NoDuplicateCoedges,
-    /// All half-edges in a loop reference their owning face.
-    FaceLoopMembership,
-    /// Adjacent half-edges in a loop share a vertex.
-    VertexContinuity,
-    /// Edge endpoint vertices match the loop vertex wiring.
-    EdgeEndpointsMatch,
-
-    // ── Ownership ───────────────────────────────────────────────
-    /// Each loop belongs to exactly one face.
-    SingleLoopOwner,
-    /// Every half-edge belongs to a loop.
-    NoOrphanHalfEdges,
-    /// Containment hierarchy is a DAG (no cycles).
-    AcyclicContainment,
-    /// Inner/outer loop nesting is geometrically correct.
-    InnerOuterConsistency,
-
-    // ── Radial edge ─────────────────────────────────────────────
-    /// Radial ring has no duplicate half-edges.
-    RadialCycleUniqueness,
-    /// Radial neighbors share the same edge entity.
-    RadialNeighborConsistency,
-    /// Radial ring continuity (no broken splices).
-    NoBrokenRadialSplices,
-
-    // ── Shell closure ───────────────────────────────────────────
-    /// Face adjacency through shared edges is symmetric.
-    FaceAdjacencyConsistency,
-    /// All loops close (next-walk returns to start).
-    NoBrokenFaceBoundary,
-    /// Boundary edges only appear in non-solid shells.
-    BoundaryEdgesLaminar,
-
-    // ── Vertex disk ─────────────────────────────────────────────
-    /// Every disk entry references an alive half-edge.
-    DiskEntriesAlive,
-    /// disk_entries.len() matches the actual disk count.
-    DiskPartitionCorrect,
-    /// Each disk cycle closes upon itself.
-    DiskClosure,
-    /// No co-edges cross disk boundaries.
-    NoCrossDiskCoedges,
-
-    // ── Euler formula ───────────────────────────────────────────
-    /// V − E + F = 2(S − G) per connected component.
-    PerComponentEuler,
-
-    // ── Side-car coherence ──────────────────────────────────────
-    /// Side-car maps don't reference deleted entities.
-    SideCarCoherence,
-    /// Cache indexes (face→halfedges, etc.) match ground truth.
-    IndexCoherence,
-}
-
-impl InvariantId {
-    /// Resolves this invariant back to its higher-level group.
-    /// 
-    /// Adding a new `InvariantId` will cause a compile error here,
-    /// forcing it to be assigned the correct group.
-    pub const fn group(&self) -> InvariantGroup {
-        match self {
-            Self::RadialReciprocity | Self::NextPrevReciprocity
-            | Self::NoDanglingRefs | Self::GenerationalFreshness
-                => InvariantGroup::PointerCoherence,
-            
-            Self::FaceHasLoop | Self::LoopMinCardinality
-            | Self::NoDuplicateCoedges | Self::FaceLoopMembership
-            | Self::VertexContinuity | Self::EdgeEndpointsMatch
-                => InvariantGroup::LoopIntegrity,
-            
-            Self::SingleLoopOwner | Self::NoOrphanHalfEdges
-            | Self::AcyclicContainment | Self::InnerOuterConsistency
-                => InvariantGroup::Ownership,
-            
-            Self::RadialCycleUniqueness | Self::RadialNeighborConsistency
-            | Self::NoBrokenRadialSplices
-                => InvariantGroup::RadialEdge,
-            
-            Self::FaceAdjacencyConsistency | Self::NoBrokenFaceBoundary
-            | Self::BoundaryEdgesLaminar
-                => InvariantGroup::ShellClosure,
-            
-            Self::DiskEntriesAlive | Self::DiskPartitionCorrect
-            | Self::DiskClosure | Self::NoCrossDiskCoedges
-                => InvariantGroup::VertexDisk,
-            
-            Self::PerComponentEuler
-                => InvariantGroup::EulerFormula,
-            
-            Self::SideCarCoherence | Self::IndexCoherence
-                => InvariantGroup::CacheCoherence,
-        }
-    }
-    /// All invariant variants, listed exhaustively.
-    ///
-    /// Used by `may_break()`, `requires()`, and CI gate tests.
-    pub const ALL: &[InvariantId] = &[
-        Self::RadialReciprocity,
-        Self::NextPrevReciprocity,
-        Self::NoDanglingRefs,
-        Self::GenerationalFreshness,
-        Self::FaceHasLoop,
-        Self::LoopMinCardinality,
-        Self::NoDuplicateCoedges,
-        Self::FaceLoopMembership,
-        Self::VertexContinuity,
-        Self::EdgeEndpointsMatch,
-        Self::SingleLoopOwner,
-        Self::NoOrphanHalfEdges,
-        Self::AcyclicContainment,
-        Self::InnerOuterConsistency,
-        Self::RadialCycleUniqueness,
-        Self::RadialNeighborConsistency,
-        Self::NoBrokenRadialSplices,
-        Self::FaceAdjacencyConsistency,
-        Self::NoBrokenFaceBoundary,
-        Self::BoundaryEdgesLaminar,
-        Self::DiskEntriesAlive,
-        Self::DiskPartitionCorrect,
-        Self::DiskClosure,
-        Self::NoCrossDiskCoedges,
-        Self::PerComponentEuler,
-        Self::SideCarCoherence,
-        Self::IndexCoherence,
-    ];
-}
-
-/// Declares how an operator relates to a specific invariant.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum InvariantRelation {
-    /// Doesn't read or write state relevant to this invariant.
-    Unrelated,
-
-    /// Precondition: assumes the invariant holds on entry.
-    Requires,
-
-    /// Postcondition: guarantees the invariant holds on exit.
-    Ensures,
-
-    /// Temporarily violates during execution but restores before
-    /// returning. Implies both Requires and Ensures.
-    TemporarilyViolatesButEnsures,
-
-    /// May leave this invariant violated after execution.
-    /// The validator MUST check it post-op.
-    MayBreak,
-}
-
-/// Compile-time invariant contract for a `TopoOperator`.
-///
-/// The `relation` function must use an exhaustive `match` on `InvariantId`.
-/// Adding a new variant without covering it = compile error.
-pub struct InvariantContract {
-    /// Maps every invariant to this operator's relation with it.
-    pub relation: fn(InvariantId) -> InvariantRelation,
-}
-
-impl InvariantContract {
-    /// Invariants this operator may leave violated (require post-op validation).
-    pub fn may_break(&self) -> impl Iterator<Item = InvariantId> + '_ {
-        InvariantId::ALL.iter().copied()
-            .filter(|id| matches!((self.relation)(*id), InvariantRelation::MayBreak))
-    }
-
-    /// Invariants this operator requires as preconditions.
-    pub fn requires(&self) -> impl Iterator<Item = InvariantId> + '_ {
-        InvariantId::ALL.iter().copied()
-            .filter(|id| matches!(
-                (self.relation)(*id),
-                InvariantRelation::Requires
-                    | InvariantRelation::TemporarilyViolatesButEnsures
-            ))
-    }
-
-    /// Invariants this operator guarantees on exit.
-    pub fn ensures(&self) -> impl Iterator<Item = InvariantId> + '_ {
-        InvariantId::ALL.iter().copied()
-            .filter(|id| matches!(
-                (self.relation)(*id),
-                InvariantRelation::Ensures
-                    | InvariantRelation::TemporarilyViolatesButEnsures
-            ))
-    }
-}
-
-/// Generate a conservative `InvariantContract` that maps every invariant
-/// to `MayBreak`.
-///
-/// **Phase 1 scaffold**: Use this for operators whose precise invariant
-/// relations haven't been analyzed yet. In Phase 2, replace with an
-/// explicit exhaustive match per operator.
-///
-/// Adding a new `InvariantId` variant will cause a compile error here,
-/// forcing the macro to be updated — preserving exhaustiveness.
-#[macro_export]
-macro_rules! conservative_contract {
-    () => {
-        $crate::validators::invariant_id::InvariantContract {
-            relation: |id| {
-                match id {
-                    $crate::validators::invariant_id::InvariantId::RadialReciprocity
-                    | $crate::validators::invariant_id::InvariantId::NextPrevReciprocity
-                    | $crate::validators::invariant_id::InvariantId::NoDanglingRefs
-                    | $crate::validators::invariant_id::InvariantId::GenerationalFreshness
-                    | $crate::validators::invariant_id::InvariantId::FaceHasLoop
-                    | $crate::validators::invariant_id::InvariantId::LoopMinCardinality
-                    | $crate::validators::invariant_id::InvariantId::NoDuplicateCoedges
-                    | $crate::validators::invariant_id::InvariantId::FaceLoopMembership
-                    | $crate::validators::invariant_id::InvariantId::VertexContinuity
-                    | $crate::validators::invariant_id::InvariantId::EdgeEndpointsMatch
-                    | $crate::validators::invariant_id::InvariantId::SingleLoopOwner
-                    | $crate::validators::invariant_id::InvariantId::NoOrphanHalfEdges
-                    | $crate::validators::invariant_id::InvariantId::AcyclicContainment
-                    | $crate::validators::invariant_id::InvariantId::InnerOuterConsistency
-                    | $crate::validators::invariant_id::InvariantId::RadialCycleUniqueness
-                    | $crate::validators::invariant_id::InvariantId::RadialNeighborConsistency
-                    | $crate::validators::invariant_id::InvariantId::NoBrokenRadialSplices
-                    | $crate::validators::invariant_id::InvariantId::FaceAdjacencyConsistency
-                    | $crate::validators::invariant_id::InvariantId::NoBrokenFaceBoundary
-                    | $crate::validators::invariant_id::InvariantId::BoundaryEdgesLaminar
-                    | $crate::validators::invariant_id::InvariantId::DiskEntriesAlive
-                    | $crate::validators::invariant_id::InvariantId::DiskPartitionCorrect
-                    | $crate::validators::invariant_id::InvariantId::DiskClosure
-                    | $crate::validators::invariant_id::InvariantId::NoCrossDiskCoedges
-                    | $crate::validators::invariant_id::InvariantId::PerComponentEuler
-                    | $crate::validators::invariant_id::InvariantId::SideCarCoherence
-                    | $crate::validators::invariant_id::InvariantId::IndexCoherence
-                    => $crate::validators::invariant_id::InvariantRelation::MayBreak,
-                }
-            },
-        }
-    };
-}
-
-// ValidatorCost is re-exported from forge-core (see top of file).
-// It was moved there so forge-kernel's GroupPolicyConfig can reference it.
+// Re-export contract types from forge-core.
+// Existing code importing `crate::validators::invariant_id::{InvariantId, ...}` works unchanged.
+pub use forge_core::{
+    InvariantId, InvariantRelation, InvariantContract,
+    ValidatorCost,
+};
 
 /// Registry entry mapping an `InvariantId` to its checker function and cost.
+///
+/// This is the `forge-topo` dispatcher — only structural (combinatorial) validators.
+/// Geometry-dependent invariants return no-op entries here; they are dispatched
+/// through `forge-spatial::spatial_validator_for()` instead.
 pub struct ValidatorEntry {
     /// Algorithmic cost of running this validator.
     pub cost: ValidatorCost,
@@ -295,12 +45,21 @@ impl ValidatorEntry {
     pub const fn expensive(check: fn(&TopologyArena) -> Result<(), KernelError>) -> Self {
         Self { cost: ValidatorCost::Expensive, check }
     }
+
+    /// No-op validator entry for invariants validated elsewhere (e.g. forge-spatial).
+    const fn noop() -> Self {
+        Self { cost: ValidatorCost::Cheap, check: |_| Ok(()) }
+    }
 }
 
 /// Dispatch every `InvariantId` to its validator function and cost tier.
 ///
 /// Exhaustive match — adding an `InvariantId` variant without a validator
 /// is a compile error.
+///
+/// Geometry-dependent invariants (`NoZeroLengthEdges`, etc.) return no-ops
+/// here because they require vertex positions and are dispatched through
+/// `forge-spatial::spatial_validator_for()` instead.
 pub fn validator_for(id: InvariantId) -> ValidatorEntry {
     use super::cache_index;
     use super::euler_genus;
@@ -376,12 +135,18 @@ pub fn validator_for(id: InvariantId) -> ValidatorEntry {
             ValidatorEntry::expensive(euler_genus::validate_per_component_euler),
 
         // ── Side-car coherence ──────────────────────────────────
-        // SideCarCoherence uses IndexCoherence as a proxy until M1
-        // introduces dedicated side-car maps.
         InvariantId::SideCarCoherence =>
             ValidatorEntry::cheap(cache_index::validate_index_coherence),
         InvariantId::IndexCoherence =>
             ValidatorEntry::cheap(cache_index::validate_index_coherence),
+
+        // ── Geometry-dependent (dispatched via forge-spatial) ───
+        InvariantId::NoZeroLengthEdges
+        | InvariantId::NoZeroAreaFaces
+        | InvariantId::NoInsideOutShells
+        | InvariantId::LoopOrientationConsistency
+        | InvariantId::ShellOrientationConsistency =>
+            ValidatorEntry::noop(),
     }
 }
 
@@ -405,8 +170,8 @@ mod tests {
     fn all_constant_covers_every_variant() {
         assert_eq!(
             InvariantId::ALL.len(),
-            27,
-            "ALL should contain all 27 InvariantId variants"
+            32,
+            "ALL should contain all 32 InvariantId variants (27 structural + 5 geometric)"
         );
     }
 
@@ -419,29 +184,7 @@ mod tests {
                 InvariantId::NextPrevReciprocity => InvariantRelation::MayBreak,
                 InvariantId::NoDanglingRefs => InvariantRelation::Ensures,
                 InvariantId::GenerationalFreshness => InvariantRelation::Ensures,
-                InvariantId::FaceHasLoop => InvariantRelation::Unrelated,
-                InvariantId::LoopMinCardinality => InvariantRelation::Unrelated,
-                InvariantId::NoDuplicateCoedges => InvariantRelation::Unrelated,
-                InvariantId::FaceLoopMembership => InvariantRelation::Unrelated,
-                InvariantId::VertexContinuity => InvariantRelation::Unrelated,
-                InvariantId::EdgeEndpointsMatch => InvariantRelation::Unrelated,
-                InvariantId::SingleLoopOwner => InvariantRelation::Unrelated,
-                InvariantId::NoOrphanHalfEdges => InvariantRelation::Unrelated,
-                InvariantId::AcyclicContainment => InvariantRelation::Unrelated,
-                InvariantId::InnerOuterConsistency => InvariantRelation::Unrelated,
-                InvariantId::RadialCycleUniqueness => InvariantRelation::Unrelated,
-                InvariantId::RadialNeighborConsistency => InvariantRelation::Unrelated,
-                InvariantId::NoBrokenRadialSplices => InvariantRelation::Unrelated,
-                InvariantId::FaceAdjacencyConsistency => InvariantRelation::Unrelated,
-                InvariantId::NoBrokenFaceBoundary => InvariantRelation::Unrelated,
-                InvariantId::BoundaryEdgesLaminar => InvariantRelation::Unrelated,
-                InvariantId::DiskEntriesAlive => InvariantRelation::Unrelated,
-                InvariantId::DiskPartitionCorrect => InvariantRelation::Unrelated,
-                InvariantId::DiskClosure => InvariantRelation::Unrelated,
-                InvariantId::NoCrossDiskCoedges => InvariantRelation::Unrelated,
-                InvariantId::PerComponentEuler => InvariantRelation::Unrelated,
-                InvariantId::SideCarCoherence => InvariantRelation::Unrelated,
-                InvariantId::IndexCoherence => InvariantRelation::Unrelated,
+                _ => InvariantRelation::Unrelated,
             },
         };
 

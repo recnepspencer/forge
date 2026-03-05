@@ -15,8 +15,9 @@ use super::invariant_id::InvariantId;
 
 /// Resolve a group to its constituent `InvariantId` variants.
 ///
-/// This is the topo-specific mapping. `InvariantId` is defined in forge-topo,
-/// so this function must live here rather than on `InvariantGroup` in forge-core.
+/// `InvariantId` now lives in `forge-core` (shared contract type).
+/// This function maps groups to their constituent IDs for the
+/// topo-specific scheduling and validation scheduling.
 pub fn invariant_ids(group: InvariantGroup) -> &'static [InvariantId] {
     match group {
         InvariantGroup::PointerCoherence => &[
@@ -61,6 +62,13 @@ pub fn invariant_ids(group: InvariantGroup) -> &'static [InvariantId] {
         InvariantGroup::CacheCoherence => &[
             InvariantId::SideCarCoherence,
             InvariantId::IndexCoherence,
+        ],
+        InvariantGroup::Geometry => &[
+            InvariantId::NoZeroLengthEdges,
+            InvariantId::NoZeroAreaFaces,
+            InvariantId::NoInsideOutShells,
+            InvariantId::LoopOrientationConsistency,
+            InvariantId::ShellOrientationConsistency,
         ],
     }
 }

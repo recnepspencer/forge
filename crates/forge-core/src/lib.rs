@@ -38,6 +38,7 @@ pub use errors::{
 pub use policy::{
     // Invariant validation contract types
     InvariantGroup, InvariantTier, ValidatorCost,
+    InvariantId, InvariantRelation, InvariantContract,
     APPLICABLE_BY_KIND, CLOSED_SHEET_EXTRA, DEFER_SEMANTIC_TIER, DEFER_UNCERTIFIED,
     applicable_mask_for, deferred_mask_for,
     // Policy types

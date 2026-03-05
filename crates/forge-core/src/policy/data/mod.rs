@@ -1,6 +1,7 @@
 //! Policy data shapes for the Forge geometry kernel.
 
 pub mod invariant_group;
+pub mod invariant_id;
 pub mod policy_kind;
 pub mod policy_query;
 pub mod policy_result;
@@ -11,6 +12,9 @@ pub use invariant_group::{
     InvariantGroup, InvariantTier, ValidatorCost,
     APPLICABLE_BY_KIND, CLOSED_SHEET_EXTRA, DEFER_SEMANTIC_TIER, DEFER_UNCERTIFIED,
     applicable_mask_for, deferred_mask_for,
+};
+pub use invariant_id::{
+    InvariantId, InvariantRelation, InvariantContract,
 };
 pub use policy_kind::PolicyKind;
 pub use policy_query::PolicyQuery;

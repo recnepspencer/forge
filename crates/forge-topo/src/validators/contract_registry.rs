@@ -2,6 +2,9 @@
 //!
 //! Every `TopoOperator` references a profile from this file.
 //! This is the single place to understand what any family of operators may break.
+//!
+//! Topology operators are `Unrelated` to all `Geometry` invariants — those
+//! are validated by `forge-spatial`, not `forge-topo`.
 
 use crate::validators::invariant_id::{InvariantContract, InvariantRelation};
 use crate::validators::invariant_group::InvariantGroup;
@@ -32,6 +35,8 @@ pub const FULL_TOPO_WIRING: InvariantContract = InvariantContract {
         // Topo wiring operators typically preserve these:
         InvariantGroup::ShellClosure     => InvariantRelation::Unrelated,
         InvariantGroup::EulerFormula     => InvariantRelation::Unrelated,
+        // Geometry invariants validated by forge-spatial:
+        InvariantGroup::Geometry         => InvariantRelation::Unrelated,
     },
 };
 
@@ -51,6 +56,8 @@ pub const RADIAL_SPLICE: InvariantContract = InvariantContract {
         InvariantGroup::VertexDisk       => InvariantRelation::Unrelated,
         InvariantGroup::ShellClosure     => InvariantRelation::Unrelated,
         InvariantGroup::EulerFormula     => InvariantRelation::Unrelated,
+        // Geometry invariants validated by forge-spatial:
+        InvariantGroup::Geometry         => InvariantRelation::Unrelated,
     },
 };
 
@@ -70,5 +77,7 @@ pub const ISOLATED_VERTEX: InvariantContract = InvariantContract {
         InvariantGroup::Ownership        => InvariantRelation::Unrelated,
         InvariantGroup::ShellClosure     => InvariantRelation::Unrelated,
         InvariantGroup::EulerFormula     => InvariantRelation::Unrelated,
+        // Geometry invariants validated by forge-spatial:
+        InvariantGroup::Geometry         => InvariantRelation::Unrelated,
     },
 };

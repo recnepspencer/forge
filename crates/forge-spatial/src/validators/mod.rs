@@ -4,10 +4,16 @@
 //!         zero-length edges, inverted shell orientation, sliver face
 //!         detection, and face-to-face gap measurement.
 //!
+//! ARCHITECTURE: Uses the shared `InvariantId` contract from `forge-core`.
+//! `dispatch::spatial_validator_for()` maps each `InvariantId` to its
+//! geometry-dependent checker — the spatial counterpart to
+//! `forge-topo::validator_for()`.
+//!
 //! DEPENDENCIES: forge-topo (arena, handles, traversal),
 //!               forge-geom (polygon area, plane), forge-core (KernelError, ToleranceProvider).
 //! INVARIANTS: No topology mutation. Requires a position callback.
 
+pub mod dispatch;
 pub mod facade;
 pub mod area;
 pub mod completeness;

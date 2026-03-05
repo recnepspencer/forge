@@ -41,10 +41,11 @@ pub enum InvariantGroup {
     EulerFormula = 6,
     /// Cache coherence — side-car and index coherence.
     CacheCoherence = 7,
+    /// Geometry-dependent — zero-length edges, zero-area faces, shell volume, orientation.
+    Geometry = 10,
     // ── Future (reserved bit positions) ─────────────────────────────
     // WireIntegrity       = 8,   // junction valence, chain closure (Wire only)
     // ParametricBinding   = 9,   // pcurve/3D curve consistency
-    // DegeneracyFlags     = 10,  // zero-length edges, zero-area faces
     // Determinism         = 11,  // canonical ordering, hash stability
     // PersistentNaming    = 12,  // name survival through split/merge
     // IntersectionGraph   = 13,  // imprint graph connectivity (boolean)
@@ -53,7 +54,7 @@ pub enum InvariantGroup {
 
 impl InvariantGroup {
     /// Number of currently defined groups.
-    pub const COUNT: usize = 8;
+    pub const COUNT: usize = 9;
 
     /// All currently defined groups.
     pub const ALL: &[Self] = &[
@@ -65,6 +66,7 @@ impl InvariantGroup {
         Self::VertexDisk,
         Self::EulerFormula,
         Self::CacheCoherence,
+        Self::Geometry,
     ];
 
     /// Bitmask for this group (for `GroupPolicy` bitset operations).
@@ -81,7 +83,8 @@ impl InvariantGroup {
             | Self::RadialEdge
             | Self::VertexDisk => InvariantTier::Topology,
 
-            Self::ShellClosure | Self::EulerFormula => InvariantTier::Semantic,
+            Self::ShellClosure | Self::EulerFormula | Self::Geometry
+                => InvariantTier::Semantic,
 
             Self::CacheCoherence => InvariantTier::Cache,
         }
@@ -152,7 +155,8 @@ pub const APPLICABLE_BY_KIND: [u32; 4] = [
         | InvariantGroup::RadialEdge.mask()
         | InvariantGroup::VertexDisk.mask()
         | InvariantGroup::EulerFormula.mask()
-        | InvariantGroup::CacheCoherence.mask(),
+        | InvariantGroup::CacheCoherence.mask()
+        | InvariantGroup::Geometry.mask(),
 
     // Solid (3D): everything
     InvariantGroup::PointerCoherence.mask()
@@ -162,7 +166,8 @@ pub const APPLICABLE_BY_KIND: [u32; 4] = [
         | InvariantGroup::ShellClosure.mask()
         | InvariantGroup::VertexDisk.mask()
         | InvariantGroup::EulerFormula.mask()
-        | InvariantGroup::CacheCoherence.mask(),
+        | InvariantGroup::CacheCoherence.mask()
+        | InvariantGroup::Geometry.mask(),
 ];
 
 /// Additional groups for closed sheets (ShellClosure becomes applicable).
@@ -173,8 +178,12 @@ pub const DEFER_UNCERTIFIED: u32 =
     InvariantGroup::ShellClosure.mask() | InvariantGroup::EulerFormula.mask();
 
 /// Groups deferred to PostCommit by Semantic tier default.
+/// Geometry checks are deferred because they require vertex positions
+/// (available only at commit time via forge-spatial).
 pub const DEFER_SEMANTIC_TIER: u32 =
-    InvariantGroup::ShellClosure.mask() | InvariantGroup::EulerFormula.mask();
+    InvariantGroup::ShellClosure.mask()
+    | InvariantGroup::EulerFormula.mask()
+    | InvariantGroup::Geometry.mask();
 
 /// Compute the full applicable mask for a given topology context.
 pub fn applicable_mask_for(ctx: &TopologyContext) -> u32 {
