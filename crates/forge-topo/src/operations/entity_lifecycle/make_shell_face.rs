@@ -27,6 +27,10 @@ use crate::validators::invariant_id::InvariantContract;
 pub struct MakeShellFace {
     /// The parent region that will own the new shell.
     pub region: RegionId,
+    /// The kind of shell to create. Use `ShellKind::Sheet` for open surfaces,
+    /// `ShellKind::Solid(Inner)` for internal void boundaries, or
+    /// `ShellKind::Solid(Outer)` for solid boundaries.
+    pub kind: ShellKind,
 }
 
 /// Output of the MakeShellFace operator.
@@ -63,14 +67,13 @@ impl TopoOperator for MakeShellFace {
 
 
 
-
         let vertex = draft.insert_vertex(VertexData::new(
             placeholder_he,
         ));
 
         let shell = draft.insert_shell(ShellData::new(
             crate::handles::FaceId::DANGLING,
-            ShellKind::Sheet,
+            self.kind,
             self.region,
         ));
 
@@ -158,20 +161,21 @@ mod tests {
     use crate::transactions::TopologyState;
     use crate::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::operator::TopoOperator;
+    use crate::b_rep::ShellKind;
 
     #[test]
     fn make_shell_face_creates_new_shell_in_solid() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
 
         assert_eq!(draft.arena().face_count(), 1);
         assert_eq!(draft.arena().shell_count(), 1);
         assert_eq!(draft.arena().body_count(), 1);
 
         let region = draft.arena().get_shell(mvf.shell).unwrap().region();
-        let msf = draft.execute(MakeShellFace { region })
+        let msf = draft.execute(MakeShellFace { region, kind: ShellKind::Sheet })
             .unwrap()
             .into_value();
 

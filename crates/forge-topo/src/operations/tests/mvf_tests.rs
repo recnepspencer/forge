@@ -7,6 +7,7 @@ use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::transactions::TopologyState;
 
 use super::helpers::logged_op;
+use crate::b_rep::ShellKind;
 
 /// MVF creates exactly 1 face, 1 vertex, 1 halfedge, 1 loop.
 ///
@@ -17,7 +18,7 @@ fn mvf_creates_single_vertex_and_face() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let out = logged_op("MVF", draft.execute(MakeVertexFace)).unwrap();
+    let out = logged_op("MVF", draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet })).unwrap();
 
     assert_eq!(draft.arena().vertex_count(), 1);
     assert_eq!(draft.arena().face_count(), 1);

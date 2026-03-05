@@ -274,6 +274,7 @@ pub fn compute_diff(
 
 #[cfg(test)]
 mod tests {
+    use crate::b_rep::ShellKind;
     use super::*;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::entity_lifecycle::split_edge::SplitEdge;
@@ -293,7 +294,7 @@ mod tests {
         let before_arena = state.arena().clone();
 
         let mut draft = state.into_mutation();
-        let _mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let _mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let after_state = draft.commit().unwrap();
 
         let diff = compute_diff(&before_arena, after_state.arena(), 0, 1);
@@ -309,7 +310,7 @@ mod tests {
     fn diff_detects_growth_after_split() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let state_1 = draft.commit().unwrap();
 
         let before_arena = state_1.arena().clone();

@@ -8,6 +8,7 @@ use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::entity_lifecycle::split_edge::SplitEdge;
 use crate::transactions::TopologyState;
 use crate::traverse::edge_faces;
+use crate::b_rep::ShellKind;
 
 /// MEF produces exactly 2 faces, 2 loops, and 4 halfedges.
 ///
@@ -18,7 +19,7 @@ fn mef_splits_face_creating_two_faces() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let se = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,

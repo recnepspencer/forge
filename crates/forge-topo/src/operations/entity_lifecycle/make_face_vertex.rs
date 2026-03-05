@@ -89,6 +89,13 @@ impl TopoOperator for MakeFaceVertex {
         draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(he);
         draft.arena_mut().get_edge_mut(edge)?.set_half_edge(he);
 
+        // Update shell representative_face if it's currently DANGLING
+        // (i.e., this is the first face in a previously empty shell).
+        let shell_repr = draft.arena().get_shell(self.shell)?.representative_face();
+        if shell_repr.is_dangling() {
+            draft.arena_mut().get_shell_mut(self.shell)?.set_representative_face(face);
+        }
+
         // ── Provenance Stamping (O(1)) ─────────────────────────────────
         use forge_core::{EntityRef, EntityKind};
         draft.stamp_children_of(

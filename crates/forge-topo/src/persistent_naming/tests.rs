@@ -1,6 +1,7 @@
 //! Persistent naming unit tests.
 
 use forge_core::EntityKind;
+use crate::b_rep::ShellKind;
 
 use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
 use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
@@ -16,7 +17,7 @@ fn name_rebuild_resolve_finds_entity() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let original_face = mvf.face;
 
     // 1. Assign name to the created face
@@ -29,7 +30,7 @@ fn name_rebuild_resolve_finds_entity() {
     // 2. Rebuild the exact same topology from scratch
     let state2 = TopologyState::empty();
     let mut draft2 = state2.into_mutation();
-    let mvf2 = draft2.execute(MakeVertexFace).unwrap().into_value();
+    let mvf2 = draft2.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let final_state2 = draft2.commit().unwrap();
 
     // 3. Resolve the name from state 1 in state 2
@@ -52,7 +53,7 @@ fn name_split_produces_distinct_resolvable_hashes() {
     let mut draft = state.into_mutation();
 
     // Build seed
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
 
     // Name the original face
     let name_a = assign_name(draft.lineage_store(), mvf.face.into()).unwrap();

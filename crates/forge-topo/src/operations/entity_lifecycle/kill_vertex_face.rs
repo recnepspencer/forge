@@ -53,7 +53,8 @@ impl TopoOperator for KillVertexFace {
         let inv_id = 0 as u64;
 
         // 1. Gather entities and validate isolation
-        let (loop_id, he_id, edge_id, shell_id, region_id, lump_id, body_id) = {
+        let (loop_id, he_id, edge_id, shell_id, region_id, lump_id, body_id,
+             region_shell_count, lump_region_count, body_lump_count) = {
             let face_data = draft.arena().get_face(self.face)?;
 
             // Must have exactly one loop
@@ -115,33 +116,53 @@ impl TopoOperator for KillVertexFace {
             let lump_data = draft.arena().get_lump(lump_id)?;
             let body_id = lump_data.body();
 
-            let solid_data = draft.arena().get_body(body_id)?;
-            if solid_data.lump_count() > 1 {
-                return Err(KernelError::TopologyViolation {
-                    err: TopologyError::InvalidOperation { detail: "Solid has multiple lumps".to_string() },
-                    context: Some(ErrorContext {
-                        scope: ErrorScope::Operation { op_name: op_name.clone(), invocation_id: inv_id },
-                        suggested_fixes: vec![],
-                        detail: format!("KillVertexFace: Solid {} contains multiple lumps, so destroying the solid is invalid.", body_id.index())
-                    })
-                });
-            }
+            // Check how many children each container has to determine
+            // how far up the hierarchy to cascade destruction.
+            let region_shell_count = region_data.shell_count();
+            let lump_region_count = lump_data.region_count();
+            let body_lump_count = draft.arena().get_body(body_id)?.lump_count();
 
             (
                 loop_id, he_id, edge_id, shell_id, region_id, lump_id, body_id,
+                region_shell_count, lump_region_count, body_lump_count,
             )
         };
 
-        // 2. Destroy everything
+        // 2. Destroy the face and its immediate entities (always happens)
         draft.remove_face(self.face)?;
         draft.remove_vertex(self.vertex)?;
         draft.remove_half_edge(he_id)?;
         draft.remove_loop(loop_id)?;
         draft.remove_edge(edge_id)?;
         draft.remove_shell(shell_id)?;
-        draft.remove_region(region_id)?;
-        draft.remove_lump(lump_id)?;
-        draft.remove_body(body_id)?;
+
+        // 3. Cascade up the hierarchy only when each container has exactly 1 child.
+        let mut delta_regions = 0i32;
+        let mut delta_lumps = 0i32;
+        let mut delta_solids = 0i32;
+
+        if region_shell_count <= 1 {
+            // Region has no other shells — safe to destroy
+            draft.arena_mut().get_lump_mut(lump_id)?.remove_region(region_id);
+            draft.remove_region(region_id)?;
+            delta_regions = -1;
+
+            if lump_region_count <= 1 {
+                // Lump has no other regions — safe to destroy
+                draft.arena_mut().get_body_mut(body_id)?.remove_lump(lump_id);
+                draft.remove_lump(lump_id)?;
+                delta_lumps = -1;
+
+                if body_lump_count <= 1 {
+                    // Body has no other lumps — safe to destroy
+                    draft.remove_body(body_id)?;
+                    delta_solids = -1;
+                }
+            }
+        } else {
+            // Region has other shells — just unlink this shell, don't cascade
+            draft.arena_mut().get_region_mut(region_id)?.remove_shell(shell_id);
+        }
 
         Ok(ExecutionResult {
             value: (),
@@ -152,9 +173,9 @@ impl TopoOperator for KillVertexFace {
                 loops: -1,
                 edges: -1,
                 shells: -1,
-                solids: -1,
-                lumps: -1,
-                regions: -1,
+                solids: delta_solids,
+                lumps: delta_lumps,
+                regions: delta_regions,
             },
         })
     }
@@ -164,6 +185,7 @@ impl TopoOperator for KillVertexFace {
 
 #[cfg(test)]
 mod tests {
+    use crate::b_rep::ShellKind;
     use super::KillVertexFace;
     use crate::transactions::TopologyState;
     use crate::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
@@ -175,7 +197,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
 
         assert_eq!(draft.arena().face_count(), 1);
         assert_eq!(draft.arena().vertex_count(), 1);
@@ -208,7 +230,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
 
         // Split the edge to make it non-isolated
         draft.execute(

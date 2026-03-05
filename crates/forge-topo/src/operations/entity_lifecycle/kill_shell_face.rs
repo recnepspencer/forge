@@ -84,6 +84,27 @@ impl TopoOperator for KillShellFace {
                 });
             }
 
+            // Guard: verify the shell contains ONLY this face.
+            // Prevents mass-orphaning of other faces in an NMT/sheet context.
+            // (Uses face_data.shell() to get shell_id before formal destructuring)
+            let face_shell = face_data.shell();
+            let shell_faces = draft.arena().faces_of_shell(face_shell);
+            if shell_faces.len() > 1 {
+                return Err(KernelError::TopologyViolation {
+                    err: TopologyError::InvalidOperation {
+                        detail: "Shell contains multiple faces".to_string(),
+                    },
+                    context: Some(ErrorContext {
+                        scope: ErrorScope::Operation { op_name: op_name.clone(), invocation_id: inv_id },
+                        suggested_fixes: vec![],
+                        detail: format!(
+                            "KillShellFace: Shell {} contains {} faces. Only isolated single-face shells can be destroyed.",
+                            face_shell.index(), shell_faces.len()
+                        ),
+                    }),
+                });
+            }
+
             if he_data.origin() != self.vertex {
                 return Err(KernelError::TopologyViolation {
                     err: TopologyError::InvalidOperation {
@@ -168,16 +189,17 @@ mod tests {
     use crate::operations::entity_lifecycle::make_shell_face::MakeShellFace;
     use crate::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::operator::TopoOperator;
+    use crate::b_rep::ShellKind;
 
     #[test]
     fn kill_shell_face_destroys_isolated_shell() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
 
         let region = draft.arena().get_shell(mvf.shell).unwrap().region();
-        let msf = draft.execute(MakeShellFace { region })
+        let msf = draft.execute(MakeShellFace { region, kind: ShellKind::Sheet })
             .unwrap()
             .into_value();
 

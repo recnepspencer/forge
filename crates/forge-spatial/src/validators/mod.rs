@@ -19,6 +19,8 @@ pub mod area;
 pub mod completeness;
 pub mod edge_length;
 pub mod gap;
+pub mod loop_orientation;
+pub mod shell_orientation;
 pub mod sliver;
 pub mod volume;
 

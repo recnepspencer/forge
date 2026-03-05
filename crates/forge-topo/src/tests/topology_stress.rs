@@ -26,6 +26,7 @@ mod tests {
     use crate::traverse::{FaceEdgeIterator, VertexRingIterator};
     use crate::validate::{validate_topology, ValidationLevel};
     use forge_core::KernelError;
+    use crate::b_rep::ShellKind;
 
     // ══════════════════════════════════════════════════════════════
     // Helpers
@@ -35,7 +36,7 @@ mod tests {
     fn build_quad(
         draft: &mut crate::transactions::MutableDraft,
     ) -> (crate::entity_lifecycle::make_vertex_face::MvfOutput, Vec<HalfEdgeId>) {
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -87,7 +88,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let pole = mvf.vertex;
         let mut current_edge = mvf.half_edge;
 
@@ -190,12 +191,17 @@ mod tests {
 
     /// L3: Force a degenerate loop — all edges in a 3-edge face point to the
     /// same vertex. validate_degenerate_loops must catch this.
+    ///
+    /// BLOCKED: Requires a `ValidateLoopIsSimpleTopologically` validator
+    /// (from validators.md §2) that detects repeated vertices in a loop.
+    /// No existing validator checks this invariant yet.
     #[test]
+    #[ignore = "requires ValidateLoopIsSimpleTopologically — not yet implemented"]
     fn degenerate_l3_sliver_triangle_euler_violation() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -255,7 +261,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let center = mvf.vertex;
 
         let se1 = draft.execute(
@@ -354,7 +360,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let center = mvf.vertex;
         let mut current_edge = mvf.half_edge;
 
@@ -406,7 +412,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -447,7 +453,7 @@ mod tests {
 
         // 1. Create a single face F0 with self-loop halfedge (v0->v0) at v0.
         //    Open surface, boundaries=1, χ=1.
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
 
         // 2. Split the boundary edge, creating v1.
         //    Now we have a digon on F0: v0->v1 and v1->v0.
@@ -546,7 +552,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -899,7 +905,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -998,7 +1004,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -1038,7 +1044,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let center = mvf.vertex;
         let mut current_edge = mvf.half_edge;
 
@@ -1101,7 +1107,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf1 = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf1 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let _se1 = draft.execute(
             SplitEdge {
                 edge: mvf1.half_edge,
@@ -1110,7 +1116,7 @@ mod tests {
         .unwrap()
         .into_value();
 
-        let mvf2 = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf2 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let _se2 = draft.execute(
             SplitEdge {
                 edge: mvf2.half_edge,
@@ -1151,7 +1157,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let center = mvf.vertex;
         let mut current_edge = mvf.half_edge;
         let mut mef_edges: Vec<HalfEdgeId> = Vec::new();

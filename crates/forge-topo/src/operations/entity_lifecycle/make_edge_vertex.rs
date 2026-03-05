@@ -128,7 +128,10 @@ impl TopoOperator for MakeEdgeVertex {
             .set_half_edge(he_out);
 
         // ── Face version bump ───────────────────────────────────────
-        draft.arena_mut().bump_face_version(face)?;
+        // Guard against DANGLING face (wireframe/wire edges).
+        if !face.is_dangling() {
+            draft.arena_mut().bump_face_version(face)?;
+        }
 
         // ── Provenance Stamping (O(1)) ─────────────────────────────────
         use forge_core::{EntityRef, EntityKind};

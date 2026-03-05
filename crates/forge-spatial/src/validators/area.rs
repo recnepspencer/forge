@@ -83,3 +83,4 @@ fn collect_face_positions(
     }
     Ok(positions)
 }
+

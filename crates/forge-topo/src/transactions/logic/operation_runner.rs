@@ -259,11 +259,32 @@ impl MutableDraft {
 
                         if let Err(e) = check_result {
                             self.poisoned = true;
+
+                            // Emit a structured tracing event at ERROR level.
+                            // This is the ONLY place where validator failures are
+                            // reported — it MUST include enough context to diagnose
+                            // the root cause without patching in println! hacks.
+                            tracing::error!(
+                                invariant = ?id,
+                                operator = O::NAME,
+                                invocation = invocation_id,
+                                error = %e,
+                                error_debug = ?e,
+                                "INVARIANT VIOLATION: {:?} failed after {} (invocation {})",
+                                id, op_name, invocation_id,
+                            );
+
+                            // Force-stamp operation context. We use with_phase
+                            // instead of ensure_operation_context because the
+                            // latter is a no-op when context is already Some
+                            // (e.g. StaleHandle errors from arena lookups carry
+                            // their own Entity context, which loses the invariant
+                            // name entirely).
                             return Err(e.ensure_operation_context(
                                 &op_name,
                                 invocation_id as u64,
                                 &format!("Invariant {:?} violated after {}", id, op_name),
-                            ));
+                            ).with_phase(&format!("invariant_check({:?})", id)));
                         }
                     }
                 }

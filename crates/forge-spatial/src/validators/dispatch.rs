@@ -97,6 +97,24 @@ fn check_signed_volume(
     super::volume::validate_signed_volume(arena, position_fn)
 }
 
+fn check_loop_orientation(
+    arena: &TopologyArena,
+    position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
+    is_planar: &dyn Fn(FaceId) -> bool,
+    _tolerance_provider: &dyn ToleranceProvider,
+) -> Result<(), KernelError> {
+    super::loop_orientation::validate_loop_orientation(arena, position_fn, is_planar)
+}
+
+fn check_shell_orientation(
+    arena: &TopologyArena,
+    position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
+    _is_planar: &dyn Fn(FaceId) -> bool,
+    _tolerance_provider: &dyn ToleranceProvider,
+) -> Result<(), KernelError> {
+    super::shell_orientation::validate_shell_orientation(arena, position_fn)
+}
+
 /// Dispatch a single `InvariantId` to its spatial validator.
 ///
 /// Exhaustive match — adding an `InvariantId` variant without coverage
@@ -110,12 +128,10 @@ pub fn spatial_validator_for(id: InvariantId) -> SpatialValidatorEntry {
             SpatialValidatorEntry::new(ValidatorCost::Medium, check_zero_area_faces),
         InvariantId::NoInsideOutShells =>
             SpatialValidatorEntry::new(ValidatorCost::Expensive, check_signed_volume),
-
-        // Orientation validators — not yet implemented (Batch 5B)
         InvariantId::LoopOrientationConsistency =>
-            SpatialValidatorEntry::noop(),
+            SpatialValidatorEntry::new(ValidatorCost::Medium, check_loop_orientation),
         InvariantId::ShellOrientationConsistency =>
-            SpatialValidatorEntry::noop(),
+            SpatialValidatorEntry::new(ValidatorCost::Medium, check_shell_orientation),
 
         // ── Structural invariants (dispatched by forge-topo) ───
         InvariantId::RadialReciprocity
@@ -182,8 +198,7 @@ mod tests {
         }
     }
 
-    /// Geometry group invariants resolve to non-noop spatial validators
-    /// (except the two orientation validators not yet implemented).
+    /// Geometry group invariants all resolve to non-noop spatial validators.
     #[test]
     fn geometry_invariants_have_real_validators() {
         let check = spatial_validator_for(InvariantId::NoZeroLengthEdges);
@@ -191,6 +206,10 @@ mod tests {
         let check = spatial_validator_for(InvariantId::NoZeroAreaFaces);
         assert!(check.check.is_some());
         let check = spatial_validator_for(InvariantId::NoInsideOutShells);
+        assert!(check.check.is_some());
+        let check = spatial_validator_for(InvariantId::LoopOrientationConsistency);
+        assert!(check.check.is_some());
+        let check = spatial_validator_for(InvariantId::ShellOrientationConsistency);
         assert!(check.check.is_some());
     }
 

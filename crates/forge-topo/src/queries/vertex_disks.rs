@@ -175,6 +175,7 @@ pub fn rebuild_disk_entries(
 
 #[cfg(test)]
 mod tests {
+    use crate::b_rep::ShellKind;
     use super::*;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::entity_lifecycle::split_edge::SplitEdge;
@@ -185,7 +186,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let _se = draft.execute(SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
 
         let entries = rebuild_disk_entries(draft.arena(), mvf.vertex).unwrap();
@@ -198,8 +199,8 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let a = draft.execute(MakeVertexFace).unwrap().into_value();
-        let b = draft.execute(MakeVertexFace).unwrap().into_value();
+        let a = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+        let b = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
 
         let second_ring: Vec<_> = draft
             .arena()

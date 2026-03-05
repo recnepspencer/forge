@@ -53,6 +53,10 @@ pub struct SplitEdgeOutput {
     pub he_ma: HalfEdgeId,
     /// The newly created midpoint vertex.
     pub new_vertex: crate::handles::VertexId,
+    /// Complete mapping of (original_halfedge → newly_created_halfedge) for
+    /// every radial member. On NMT edges with 3+ faces this is the only way
+    /// to obtain handles to all new halfedges.
+    pub all_new_halfedges: Vec<(HalfEdgeId, HalfEdgeId)>,
 }
 
 impl SplitEdgeOutput {
@@ -91,6 +95,26 @@ impl TopoOperator for SplitEdge {
                 .collect::<Result<_, _>>()?;
         let old_edge = draft.arena().get_half_edge(he_ab)?.edge();
         let is_closed_edge = vertex_a == vertex_b;
+
+        // For closed edges (vertex_a == vertex_b), origin-based direction
+        // detection fails because ALL halfedges originate at the same vertex.
+        // Instead, build an explicit forward set: he_ab is forward, and on a
+        // manifold edge its radial_next is backward, then forward again, etc.
+        // For NMT edges we walk the radial ring and alternate.
+        let forward_set: std::collections::HashSet<HalfEdgeId> = if is_closed_edge {
+            let mut fwd = std::collections::HashSet::new();
+            // The seed halfedge is always forward (A→B direction).
+            // On a manifold edge, radial order alternates: fwd, bwd, fwd, bwd...
+            for (i, &h) in chain.iter().enumerate() {
+                if i % 2 == 0 {
+                    fwd.insert(h);
+                }
+            }
+            fwd
+        } else {
+            std::collections::HashSet::new()
+        };
+
         let new_vertex = draft.insert_vertex(VertexData::new(
             HalfEdgeId::DANGLING, // sentinel
         ));
@@ -102,6 +126,7 @@ impl TopoOperator for SplitEdge {
         let mut e_old_list = Vec::new();
         let mut e_new_list = Vec::new();
         let mut new_ids = std::collections::HashMap::new();
+        let mut all_new_halfedges = Vec::new();
 
         for (radial_index, &h) in chain.iter().enumerate() {
             let (h_face, h_orig, h_next) = {
@@ -113,7 +138,16 @@ impl TopoOperator for SplitEdge {
                 )
             };
 
-            let is_forward = h_orig == vertex_a;
+            // For non-closed edges, direction is determined by origin vertex.
+            // For closed edges, direction is determined by membership in the
+            // pre-computed forward set (origin comparison is useless since
+            // vertex_a == vertex_b and ALL halfedges share the same origin).
+            let is_forward = if is_closed_edge {
+                forward_set.contains(&h)
+            } else {
+                h_orig == vertex_a
+            };
+
             if !is_closed_edge {
                 let expected_origin = if is_forward { vertex_a } else { vertex_b };
                 if h_orig != expected_origin {
@@ -148,6 +182,7 @@ impl TopoOperator for SplitEdge {
             ));
 
             new_ids.insert(h, h_new);
+            all_new_halfedges.push((h, h_new));
 
             if is_forward {
                 // h is A->M (on E_old), h_new is M->B (on E_new)
@@ -175,7 +210,10 @@ impl TopoOperator for SplitEdge {
             draft.arena_mut().get_half_edge_mut(h_next)?.set_prev(h_new);
             draft.arena_mut().get_half_edge_mut(h)?.set_next(h_new);
 
-            draft.arena_mut().bump_face_version(h_face)?;
+            // Guard against DANGLING face (wireframe/wire edges).
+            if !h_face.is_dangling() {
+                draft.arena_mut().bump_face_version(h_face)?;
+            }
         }
 
         // Wire radial next loops
@@ -246,6 +284,7 @@ impl TopoOperator for SplitEdge {
                 he_bm,
                 he_ma,
                 new_vertex,
+                all_new_halfedges,
             },
             declared_delta: EulerDelta {
                 vertices: 1,

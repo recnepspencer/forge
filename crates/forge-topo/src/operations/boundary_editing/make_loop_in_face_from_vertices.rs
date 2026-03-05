@@ -128,7 +128,14 @@ impl TopoOperator for MakeLoopInFaceFromVertices {
 
             let orig_out = arena.get_vertex(v)?.primary_disk();
             if orig_out == HalfEdgeId::DANGLING {
+                // First use of this vertex — set as primary disk entry.
                 arena.get_vertex_mut(v)?.set_primary_disk(he);
+            } else {
+                // Vertex already has outgoing HEs in a different loop.
+                // This creates a topological pinch (NMT vertex): the new
+                // inner-loop HE forms a separate disk component that must
+                // be registered so that DiskEntriesAlive can verify coverage.
+                arena.add_disk_entry(v, he);
             }
         }
 

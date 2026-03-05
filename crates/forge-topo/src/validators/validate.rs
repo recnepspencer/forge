@@ -40,6 +40,7 @@ pub use super::structural::validate_topology;
 
 #[cfg(test)]
 mod tests {
+    use crate::b_rep::ShellKind;
     use super::*;
     use crate::b_rep::TopologyArena;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
@@ -60,7 +61,7 @@ mod tests {
     fn seed_validates() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let _mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let _mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let state = draft.commit().unwrap();
         assert!(validate_topology(state.arena(), ValidationLevel::Full).is_ok());
     }
@@ -69,7 +70,7 @@ mod tests {
     fn split_validates() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let _se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -86,7 +87,7 @@ mod tests {
     fn sheet_shell_rejects_valence_3_edge() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -133,7 +134,7 @@ mod tests {
     fn intermediate_level_passes_valid_topology() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let _se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -155,7 +156,7 @@ mod tests {
     fn broken_radial_ring_rejected_at_minimal() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -180,7 +181,7 @@ mod tests {
     fn default_commit_passes_valid_topology() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let _se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -197,7 +198,7 @@ mod tests {
     fn adversarial_edge_entity_inconsistency_in_radial_ring() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -224,7 +225,7 @@ mod tests {
     fn validate_manifold_edges_catches_valence_3_directly() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -269,10 +270,10 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf1 = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf1 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se1 = draft.execute(SplitEdge { edge: mvf1.half_edge }).unwrap().into_value();
 
-        let mvf2 = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf2 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se2 = draft.execute(SplitEdge { edge: mvf2.half_edge }).unwrap().into_value();
 
         draft.arena_mut().get_half_edge_mut(se1.he_am).unwrap().set_radial_next(se2.he_am);
@@ -293,8 +294,8 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf1 = draft.execute(MakeVertexFace).unwrap().into_value();
-        let mvf2 = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf1 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+        let mvf2 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
 
         let face1 = draft.arena().get_half_edge(mvf1.half_edge).unwrap().face();
         let face2 = draft.arena().get_half_edge(mvf2.half_edge).unwrap().face();
@@ -318,16 +319,18 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf1 = draft.execute(MakeVertexFace).unwrap().into_value();
+        // Create two separate topologies FIRST, before any manual corruption.
+        let mvf1 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se1 = draft.execute(SplitEdge { edge: mvf1.half_edge }).unwrap().into_value();
 
+        let mvf2 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+        let se2 = draft.execute(SplitEdge { edge: mvf2.half_edge }).unwrap().into_value();
+
+        // Now corrupt: force both topologies to share the same EdgeId
         let shared_edge_id = draft.arena().get_half_edge(se1.he_am).unwrap().edge();
         draft.arena_mut().get_half_edge_mut(se1.he_mb).unwrap().set_edge(shared_edge_id);
         draft.arena_mut().get_half_edge_mut(se1.he_am).unwrap().set_radial_next(se1.he_mb);
         draft.arena_mut().get_half_edge_mut(se1.he_mb).unwrap().set_radial_next(se1.he_am);
-
-        let mvf2 = draft.execute(MakeVertexFace).unwrap().into_value();
-        let se2 = draft.execute(SplitEdge { edge: mvf2.half_edge }).unwrap().into_value();
 
         let he2_am = se2.he_am;
         let he2_mb = se2.he_mb;
@@ -365,7 +368,7 @@ mod tests {
     fn valid_mvf_se_draft() -> (crate::transactions::MutableDraft, crate::handles::FaceId, HalfEdgeId, HalfEdgeId) {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se = draft.execute(SplitEdge {
             edge: mvf.half_edge,
         }).unwrap().into_value();
@@ -585,7 +588,7 @@ mod tests {
         // MVF creates a 1-HE self-loop — this is legitimately valid
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let _mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let _mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         assert!(crate::validators::loop_wiring::validate_loop_minimum_cardinality(
             draft.arena()
         ).is_ok(), "1-HE self-loop from MVF must be accepted");
@@ -679,12 +682,12 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf1 = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf1 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se1 = draft.execute(SplitEdge {
             edge: mvf1.half_edge,
         }).unwrap().into_value();
 
-        let mvf2 = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf2 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se2 = draft.execute(SplitEdge {
             edge: mvf2.half_edge,
         }).unwrap().into_value();
@@ -756,7 +759,7 @@ mod tests {
 
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se = draft.execute(SplitEdge {
             edge: mvf.half_edge,
         }).unwrap().into_value();
@@ -807,7 +810,7 @@ mod tests {
 
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se = draft.execute(SplitEdge {
             edge: mvf.half_edge,
         }).unwrap().into_value();
@@ -992,8 +995,8 @@ mod tests {
         let mut draft = state.into_mutation();
 
         // Create two separate bodies
-        let mvf1 = draft.execute(MakeVertexFace).unwrap().into_value();
-        let mvf2 = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf1 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+        let mvf2 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
 
         let face1 = draft.arena().get_half_edge(mvf1.half_edge).unwrap().face();
         let shell1 = draft.arena().get_face(face1).unwrap().shell();
@@ -1038,7 +1041,7 @@ mod tests {
         use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
         let (mut draft, _face1, he1, _) = valid_mvf_se_draft();
         
-        let mvf2 = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf2 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let he2 = mvf2.half_edge;
         
         draft.arena_mut().get_half_edge_mut(he1).unwrap().set_radial_next(he2);
@@ -1059,7 +1062,7 @@ mod tests {
     fn poison_broken_face_boundary_wrong_face() {
         use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
         let (mut draft, _face1, he1, _) = valid_mvf_se_draft();
-        let mvf2 = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf2 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let face2 = mvf2.face;
         
         // Corrupt he1 to claim face2 instead of face1
@@ -1208,34 +1211,30 @@ mod tests {
 
     #[test]
     fn poison_vertex_disk_partition_leak() {
-        let mut draft = TopologyState::empty().into_mutation();
-        
-        let v1 = draft.insert_vertex(crate::b_rep::VertexData::new(HalfEdgeId::DANGLING));
-        let v2 = draft.insert_vertex(crate::b_rep::VertexData::new(HalfEdgeId::DANGLING));
-        
-        let f = draft.insert_face(crate::b_rep::FaceData::new(crate::handles::LoopId::DANGLING, crate::handles::ShellId::DANGLING));
-        let e = draft.insert_edge(crate::b_rep::EdgeData::new(HalfEdgeId::DANGLING));
-        
-        let he1 = draft.insert_half_edge(crate::b_rep::HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f, v1, e));
-        let he2 = draft.insert_half_edge(crate::b_rep::HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f, v2, e));
-        let he3 = draft.insert_half_edge(crate::b_rep::HalfEdgeData::new(HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f, v1, e));
-        
-        draft.arena_mut().get_vertex_mut(v1).unwrap().set_primary_disk(he1);
-        draft.arena_mut().get_vertex_mut(v2).unwrap().set_primary_disk(he2);
-        
-        // Wire in a circle: HE1 -> HE2 -> HE3 -> HE1
-        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_radial_next(he2);
-        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_radial_next(he3);
-        draft.arena_mut().get_half_edge_mut(he3).unwrap().set_radial_next(he1);
-        
-        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_next(he2);
-        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_next(he3);
-        draft.arena_mut().get_half_edge_mut(he3).unwrap().set_next(he1);
-        
-        draft.arena_mut().get_half_edge_mut(he1).unwrap().set_prev(he3);
-        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_prev(he1);
-        draft.arena_mut().get_half_edge_mut(he3).unwrap().set_prev(he2);
-        
+        // Create two separate topologies via Euler operators, then manually
+        // move the second topology's HEs to share the same origin vertex as
+        // the first, without registering NMT disk entries. This creates a
+        // genuine 2-disk partition (separate edges, separate radial rings)
+        // that the validator should detect.
+        let state = TopologyState::empty();
+        let mut draft = state.into_mutation();
+
+        let mvf1 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+        let mvf2 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+
+        // Pre-condition: mvf2's vertex has its own outgoing HE
+        let v1 = mvf1.vertex;
+        let v2 = mvf2.vertex;
+        assert_ne!(v1, v2);
+
+        // Corrupt: reassign mvf2's HE origin to v1, creating a disjoint disk
+        // at v1 without registering the NMT extra disk entry.
+        let he2 = mvf2.half_edge;
+        draft.arena_mut().get_half_edge_mut(he2).unwrap().set_origin(v1);
+
+        // Now v1 has two outgoing HEs (mvf1.half_edge and he2), on separate
+        // edges with separate radial rings → 2 disk components.
+        // But disk_count(v1) is still 1 (no add_disk_entry was called).
         let res = crate::validators::vertex_disk::validate_vertex_disk_partition(draft.arena());
         assert!(res.is_err(), "Expected partition leak error, got {:?}", res);
     }

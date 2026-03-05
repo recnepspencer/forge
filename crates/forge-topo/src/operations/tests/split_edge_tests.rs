@@ -11,6 +11,7 @@ use crate::transactions::TopologyState;
 
 use super::helpers::logged_op;
 use super::invariant_checker::check_all_invariants;
+use crate::b_rep::ShellKind;
 
 /// Splitting the degenerate seed (self-twin) produces two properly-twinned halfedges.
 ///
@@ -20,7 +21,7 @@ fn split_degenerate_creates_proper_edge() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = logged_op("MVF", draft.execute(MakeVertexFace)).unwrap();
+    let mvf = logged_op("MVF", draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet })).unwrap();
     let se = logged_op(
         "SplitEdge",
         draft.execute(
@@ -59,7 +60,7 @@ fn split_normal_edge_adds_vertex() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let se1 = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
@@ -103,7 +104,7 @@ fn invariant_check_tetrahedron_sequence() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let check = check_all_invariants(draft.arena());
     assert!(check.is_ok(), "After MVF: {}", check.summary());
 

@@ -72,11 +72,31 @@ impl TopoOperator for KillFaceVertex {
                 context: None,
             });
         }
+
+        // Capture the parent shell before removing the face.
+        let shell_id = draft.arena().get_face(self.face)?.shell();
+
         draft.remove_half_edge(he_id)?;
         draft.remove_edge(edge_id)?;
         draft.remove_loop(loop_id)?;
         draft.remove_vertex(vertex_id)?;
         draft.remove_face(self.face)?;
+
+        // Update shell representative_face if we just removed it.
+        let shell_data = draft.arena().get_shell(shell_id)?;
+        if shell_data.representative_face() == self.face {
+            let remaining = draft.arena().faces_of_shell(shell_id);
+            if let Some(&new_repr) = remaining.first() {
+                draft.arena_mut().get_shell_mut(shell_id)?.set_representative_face(new_repr);
+            } else {
+                // Shell is now empty — the caller should use KillShellFace
+                // or KillVertexFace to properly tear down the hierarchy.
+                return Err(KernelError::InvalidInput {
+                    message: "KillFaceVertex left shell empty. Use KillShellFace to destroy the shell.".to_string(),
+                    context: None,
+                });
+            }
+        }
 
         Ok(ExecutionResult {
             value: KfvOutput {},

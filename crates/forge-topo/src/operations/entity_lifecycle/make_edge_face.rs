@@ -66,8 +66,11 @@ impl TopoOperator for MakeEdgeFace {
 
     fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         if self.vertex_a == self.vertex_b {
+            // TODO: Closed-loop edges (e.g., cylinder seams) are topologically
+            // valid but require special split-pair logic where both sub-loops
+            // start and end at the same vertex. Support deferred.
             return Err(KernelError::InvalidInput {
-                message: "MakeEdgeFace: vertex_a and vertex_b cannot be the same vertex".into(),
+                message: "MakeEdgeFace: closed-edge splitting (vertex_a == vertex_b) is not yet supported".into(),
                 context: None,
             });
         }
@@ -135,6 +138,17 @@ impl TopoOperator for MakeEdgeFace {
             }
         }
 
+        // TODO(MEKL): If he_from_a and he_from_b belong to DIFFERENT loops
+        // on the same face (e.g., bridging a hole to the outer boundary),
+        // the correct Euler operator is MEKL (Make Edge Kill Loop), which
+        // merges two loops into one. For now, this case is implicitly
+        // handled as a face split — callers should verify loop membership.
+
+        // TODO(hole-redistribution): After splitting, inner loops (holes)
+        // remain on the original face. A correct kernel must reassign each
+        // hole to whichever resulting face geometrically contains it via
+        // Point-In-Polygon checks. This belongs in forge-spatial.
+
         reassign_face_loop(draft, he_ba, new_face)?;
 
         let original_loop = draft.arena().get_face(self.face)?.outer_loop();
@@ -185,39 +199,44 @@ impl TopoOperator for MakeEdgeFace {
 
 /// Collect all halfedges originating from `vertex` that lie on `face`.
 ///
-/// Walks the face boundary loop (O(face_size)) to find all halfedges
-/// from `vertex`. This is robust against boundary edges (self-radial)
-/// that can disconnect the vertex orbit from certain faces.
+/// Walks ALL loops on the face (outer + inner) to find halfedges from
+/// `vertex`. This correctly handles vertices on hole boundaries.
 fn find_all_halfedges_from_vertex(
     draft: &MutableDraft,
     face: FaceId,
     vertex: VertexId,
 ) -> Result<Vec<HalfEdgeId>, KernelError> {
-    let outer_loop = draft.arena().get_face(face)?.outer_loop();
-    let start = draft.arena().get_loop(outer_loop)?.half_edge();
-    let mut current = start;
+    let face_data = draft.arena().get_face(face)?;
+    let mut all_loops = vec![face_data.outer_loop()];
+    all_loops.extend_from_slice(face_data.inner_loops());
+
     let mut result = Vec::new();
     let bound = draft.arena().half_edge_count();
 
-    for step in 0..=bound {
-        if draft.arena().get_half_edge(current)?.origin() == vertex {
-            result.push(current);
-        }
-        current = draft.arena().get_half_edge(current)?.next();
-        if current == start {
-            break;
-        }
-        if step == bound {
-            return Err(KernelError::TopologyViolation {
-                err: TopologyError::LoopCorruption {
-                    walk_kind: "face_loop_vertex_search".into(),
-                    seed_index: start.index(),
-                    last_visited_index: current.index(),
-                    steps_taken: step,
-                    entity_bound: bound,
-                },
-                context: None,
-            });
+    for loop_id in all_loops {
+        let start = draft.arena().get_loop(loop_id)?.half_edge();
+        let mut current = start;
+
+        for step in 0..=bound {
+            if draft.arena().get_half_edge(current)?.origin() == vertex {
+                result.push(current);
+            }
+            current = draft.arena().get_half_edge(current)?.next();
+            if current == start {
+                break;
+            }
+            if step == bound {
+                return Err(KernelError::TopologyViolation {
+                    err: TopologyError::LoopCorruption {
+                        walk_kind: "face_loop_vertex_search".into(),
+                        seed_index: start.index(),
+                        last_visited_index: current.index(),
+                        steps_taken: step,
+                        entity_bound: bound,
+                    },
+                    context: None,
+                });
+            }
         }
     }
 

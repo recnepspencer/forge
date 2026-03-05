@@ -112,7 +112,7 @@ mod tests {
         // Build a square face, volume 0 (planar)
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         
         let se1 = draft.execute(SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
         let se2 = draft.execute(SplitEdge { edge: se1.he_mb }).unwrap().into_value();

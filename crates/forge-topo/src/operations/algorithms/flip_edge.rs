@@ -135,6 +135,7 @@ fn find_opposite_vertex(
 
 #[cfg(test)]
 mod tests {
+    use crate::b_rep::ShellKind;
     use super::*;
     use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
@@ -147,7 +148,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,

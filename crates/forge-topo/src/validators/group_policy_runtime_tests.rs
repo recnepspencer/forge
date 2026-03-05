@@ -231,7 +231,7 @@ fn draft_auto_derives_policy_from_shell_metadata() {
     // MVF creates a single face in a Sheet shell (once operators are fixed)
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
-    let _mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let _mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let state = draft.commit().unwrap();
 
     // Re-open for mutation — should pick up the Sheet context
@@ -268,7 +268,7 @@ fn verify_catches_stale_solid_kind_on_open_topology() {
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let _se = draft.execute(SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
 
     // Force the shell to be declared Solid even though it has boundary edges
@@ -295,7 +295,7 @@ fn verify_catches_hidden_hole_on_solid() {
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
-    let mvf1 = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf1 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     
     let face_data = draft.arena().get_face(mvf1.face).unwrap();
     let shell_id = face_data.shell();

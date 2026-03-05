@@ -11,6 +11,7 @@ use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::entity_lifecycle::split_edge::SplitEdge;
 use crate::transactions::{MutableDraft, TopologyState};
 use crate::traverse::FaceEdgeIterator;
+use crate::b_rep::ShellKind;
 
 /// MEV on the MVF seed produces a 3-halfedge loop: V=2, HE=3, E=2.
 ///
@@ -20,7 +21,7 @@ fn mev_from_seed_sprouts_antenna() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let mev = draft.execute(
         MakeEdgeVertex {
             anchor: mvf.half_edge,
@@ -89,7 +90,7 @@ fn mev_from_polygon_vertex() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let se1 = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
@@ -174,7 +175,7 @@ fn mev_wedge_ambiguity_resolved() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let se = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
@@ -253,7 +254,7 @@ fn mev_inverse_via_kev() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let se1 = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
@@ -301,7 +302,7 @@ fn mev_double_antenna_same_vertex() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let se1 = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
@@ -386,7 +387,7 @@ fn mev_commits_and_validates() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     draft.execute(
         MakeEdgeVertex {
             anchor: mvf.half_edge,

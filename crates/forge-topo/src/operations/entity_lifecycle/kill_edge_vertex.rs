@@ -74,32 +74,66 @@ impl TopoOperator for KillEdgeVertex {
             crate::queries::traverse::RadialEdgeIterator::new(draft.arena(), he)?
                 .collect::<Result<_, _>>()?;
 
-        // 1. Maintain outer_loop for faces
+        // 1. Maintain loop representative pointers for faces.
+        // Must search ALL loops (outer + inner) to find which loop
+        // contains the halfedge being killed — not just outer_loop.
         for &h in &chain {
             let face = draft.arena().get_half_edge(h)?.face();
-            let loop_id = draft.arena().get_face(face)?.outer_loop();
-            let start = draft.arena().get_loop(loop_id)?.half_edge();
-
-            let mut survivor = None;
-            let mut curr = start;
-            for _ in 0..draft.arena().half_edge_count() {
-                if !chain.contains(&curr) {
-                    survivor = Some(curr);
-                    break;
-                }
-                curr = draft.arena().get_half_edge(curr)?.next();
-                if curr == start {
-                    break;
-                }
+            // Wire edges have DANGLING face — skip face/loop maintenance.
+            if face.is_dangling() {
+                continue;
             }
 
-            if let Some(s) = survivor {
-                draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(s);
-            } else {
-                return Err(KernelError::InvalidInput {
-                    message: "Cannot KillEdgeVertex if it destroys an entire face loop. Use KillVertexFace instead.".into(),
-                    context: None,
-                });
+            // Collect all loops on this face (outer + inner)
+            let face_data = draft.arena().get_face(face)?;
+            let mut all_loops = vec![face_data.outer_loop()];
+            all_loops.extend_from_slice(face_data.inner_loops());
+
+            for loop_id in all_loops {
+                let start = draft.arena().get_loop(loop_id)?.half_edge();
+                // Only update if this loop's representative is in the chain
+                let mut needs_update = false;
+                let mut curr = start;
+                for _ in 0..draft.arena().half_edge_count() {
+                    if chain.contains(&curr) {
+                        if curr == start {
+                            needs_update = true;
+                        }
+                        // Even if start is not in chain, we still might need
+                        // to check — but we only need to update the loop
+                        // pointer if the current representative IS in the chain.
+                        break;
+                    }
+                    curr = draft.arena().get_half_edge(curr)?.next();
+                    if curr == start {
+                        break;
+                    }
+                }
+
+                if !needs_update && !chain.contains(&start) {
+                    continue;
+                }
+
+                // Find a surviving halfedge in this loop
+                let mut survivor = None;
+                let mut curr = start;
+                for _ in 0..draft.arena().half_edge_count() {
+                    if !chain.contains(&curr) {
+                        survivor = Some(curr);
+                        break;
+                    }
+                    curr = draft.arena().get_half_edge(curr)?.next();
+                    if curr == start {
+                        break;
+                    }
+                }
+
+                if let Some(s) = survivor {
+                    draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(s);
+                }
+                // If no survivor in this loop, it means all halfedges in
+                // this loop are being killed — this is OK, the loop will
+                // be cleaned up by a higher-level operator.
             }
         }
 
@@ -136,29 +170,37 @@ impl TopoOperator for KillEdgeVertex {
             draft.arena_mut().get_half_edge_mut(nxt)?.set_prev(prv);
         }
 
-        // 3. Migrate origins from V_b to V_a
-        let mut edges_from_b = Vec::new();
-        for (id, data) in draft.arena().iter_half_edges() {
-            if data.origin() == vertex_b && !chain.contains(&id) {
-                edges_from_b.push(id);
-            }
-        }
-        for edge_id in edges_from_b {
+        // 3. Migrate origins from V_b to V_a using O(1) index lookup.
+        //    IMPORTANT: set_origin() only updates entity data — the adjacency
+        //    index (vertex_halfedges) must be updated separately.
+        let edges_from_b: Vec<(HalfEdgeId, crate::handles::FaceId)> = draft
+            .arena()
+            .halfedges_from_vertex(vertex_b)
+            .iter()
+            .filter(|id| !chain.contains(id))
+            .map(|&id| {
+                let face = draft.arena().get_half_edge(id).map(|d| d.face()).unwrap_or(crate::handles::FaceId::DANGLING);
+                (id, face)
+            })
+            .collect();
+        for (edge_id, face) in &edges_from_b {
             draft
                 .arena_mut()
-                .get_half_edge_mut(edge_id)?
+                .get_half_edge_mut(*edge_id)?
                 .set_origin(vertex_a);
+            // Update adjacency index: remove from vertex_b, add to vertex_a
+            draft.arena_mut().index_remove_halfedge(*edge_id, *face, vertex_b);
+            draft.arena_mut().index_add_halfedge(*edge_id, *face, vertex_a);
         }
 
         // 4. Ensure vertex_a has a surviving outgoing halfedge.
         // (Step 3 already migrated all vertex_b origins to vertex_a.)
-        let mut v_a_survivor = None;
-        for (id, data) in draft.arena().iter_half_edges() {
-            if data.origin() == vertex_a && !chain.contains(&id) {
-                v_a_survivor = Some(id);
-                break;
-            }
-        }
+        // Use O(1) index lookup instead of scanning the entire arena.
+        let v_a_halfedges = draft.arena().halfedges_from_vertex(vertex_a);
+        let v_a_survivor = v_a_halfedges
+            .iter()
+            .find(|id| !chain.contains(id))
+            .copied();
 
         if let Some(s) = v_a_survivor {
             draft.arena_mut().get_vertex_mut(vertex_a)?.set_primary_disk(s);
@@ -174,7 +216,10 @@ impl TopoOperator for KillEdgeVertex {
         let num_half_edges_removed = chain.len() as i32;
         for &h in &chain {
             let f = draft.arena().get_half_edge(h)?.face();
-            draft.arena_mut().bump_face_version(f)?;
+            // Guard against DANGLING face (wireframe/wire edges).
+            if !f.is_dangling() {
+                draft.arena_mut().bump_face_version(f)?;
+            }
             draft.remove_half_edge(h)?;
         }
 

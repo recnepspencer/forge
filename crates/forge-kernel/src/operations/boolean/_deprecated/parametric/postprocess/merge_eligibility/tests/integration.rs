@@ -121,7 +121,7 @@ fn build_two_face_coplanar_sheet_fixture() -> (
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let se1 = apply_op(
         &mut draft,
         SplitEdge {

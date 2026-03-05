@@ -1,7 +1,20 @@
-//! MakeIsolatedVertex — creates a standalone vertex.
+//! MakeIsolatedVertex — create a standalone vertex with no topological container.
 //!
-//! DOMAIN: Create a single vertex not attached to any half-edge.
-
+//! DOMAIN: Creates a raw vertex that is not part of any shell, region,
+//! lump, or body hierarchy.
+//!
+//! TODO(Acorn Shell): A production kernel needs a minimal container
+//! structure (e.g., "Point Lump" or "Acorn Shell") to host isolated
+//! vertices. Without one, the vertex is invisible to spatial indexing,
+//! serialization, and bounding-box traversal. This operator is
+//! intentionally minimal for construction use — the containment
+//! gap must be addressed when idle/floater vertex support is added.
+//!
+//! INVARIANTS:
+//! - ΔV=+1, no other entities created
+//! - The vertex has DANGLING primary_disk
+//!
+//! DEPENDENCIES: `arena` (entity storage)
 use forge_core::KernelError;
 
 use crate::b_rep::VertexData;

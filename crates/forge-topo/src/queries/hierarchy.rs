@@ -44,6 +44,7 @@ pub fn region_shells(arena: &TopologyArena, region: RegionId) -> Result<Vec<Shel
 
 #[cfg(test)]
 mod tests {
+    use crate::b_rep::ShellKind;
     use super::*;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::transactions::TopologyState;
@@ -52,7 +53,7 @@ mod tests {
     fn seed_region_and_shell_queries_return_seed_face() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let state = draft.commit().unwrap();
 
         let shells = region_shells(state.arena(), mvf.region).unwrap();

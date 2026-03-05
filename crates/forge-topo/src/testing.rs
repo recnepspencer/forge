@@ -1,12 +1,16 @@
 //! Shared unit test utilities for `forge-topo`.
 //!
-//! Provides sentinel generation and manual structural wiring helpers.
-//! Since Euler operators don't natively create disconnected loops, these
-//! manual constructions are necessary to test topological edge cases.
+//! Provides pre-built topological configurations for operator and validator
+//! tests. All helpers use Euler operators exclusively to ensure every entity
+//! carries a valid Shell/Region/Lump/Body hierarchy and correct wiring.
 
-use crate::b_rep::{FaceData, HalfEdgeData, LoopData, VertexData};
+use crate::b_rep::{EdgeData, FaceData, HalfEdgeData, VertexData};
+use crate::boundary_editing::make_face_from_vertices::MakeFaceFromVertices;
+use crate::boundary_editing::make_loop_in_face_from_vertices::MakeLoopInFaceFromVertices;
 use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
 use crate::transactions::MutableDraft;
+
+// ── Raw arena helpers (used by b_rep/tests.rs, NOT for operator tests) ──
 
 /// Returns a VertexData with a sentinel primary-disk halfedge.
 pub fn dummy_vertex_data() -> VertexData {
@@ -31,131 +35,51 @@ pub fn dummy_halfedge_data(face: FaceId, origin: VertexId) -> HalfEdgeData {
     )
 }
 
-/// Build a face with an outer triangle (v0→v1→v2) and an inner triangle hole (v3→v4→v5).
+/// Build a face with an outer triangle (v0→v1→v2) and an inner triangle
+/// hole (v3→v4→v5).
+///
+/// All entities are created through Euler operators (`MakeFaceFromVertices`
+/// and `MakeLoopInFaceFromVertices`), ensuring:
+/// - Full Shell/Region/Lump/Body hierarchy (no DANGLING sentinels)
+/// - Correct next/prev/radial wiring
+/// - Proper NMT vertex disk registration (if vertices are shared)
+/// - Valid edge entities for every half-edge pair
 ///
 /// Returns: `(face_id, outer_he_01, inner_he_34, outer_loop_id, [v0..v5])`.
 pub fn build_face_with_hole(
     draft: &mut MutableDraft,
 ) -> (FaceId, HalfEdgeId, HalfEdgeId, LoopId, [VertexId; 6]) {
+    // ── Create 6 isolated vertices ──────────────────────────────────
     let sentinel_he = HalfEdgeId::DANGLING;
-    let sentinel_loop = LoopId::DANGLING;
-    let sentinel_face = FaceId::DANGLING;
-    let sentinel_shell = ShellId::DANGLING;
-    let sentinel_e = EdgeId::DANGLING;
+    let v0 = draft.insert_vertex(VertexData::new(sentinel_he));
+    let v1 = draft.insert_vertex(VertexData::new(sentinel_he));
+    let v2 = draft.insert_vertex(VertexData::new(sentinel_he));
+    let v3 = draft.insert_vertex(VertexData::new(sentinel_he));
+    let v4 = draft.insert_vertex(VertexData::new(sentinel_he));
+    let v5 = draft.insert_vertex(VertexData::new(sentinel_he));
 
-    let arena = draft.arena_mut();
+    // ── Build outer triangle face via Euler operator ────────────────
+    let mffv = draft
+        .execute(MakeFaceFromVertices {
+            vertices: vec![v0, v1, v2],
+        })
+        .unwrap()
+        .into_value();
 
-    let face = arena.insert_face(FaceData::new(sentinel_loop, sentinel_shell));
-    let outer_loop = arena.insert_loop(LoopData::new(sentinel_he, face));
-    arena.get_face_mut(face).unwrap().set_outer_loop(outer_loop);
+    let face = mffv.face;
+    let outer_loop = mffv.loop_id;
+    let outer_he = mffv.half_edges[0]; // he: v0→v1
 
-    // Outer loop vertices
-    let v0 = arena.insert_vertex(VertexData::new(sentinel_he));
-    let v1 = arena.insert_vertex(VertexData::new(sentinel_he));
-    let v2 = arena.insert_vertex(VertexData::new(sentinel_he));
+    // ── Build inner hole loop via Euler operator ────────────────────
+    let mlifv = draft
+        .execute(MakeLoopInFaceFromVertices {
+            face,
+            vertices: vec![v3, v4, v5],
+        })
+        .unwrap()
+        .into_value();
 
-    // Outer halfedges (counter-clockwise)
-    let (he01, _he10) = arena.insert_radial_pair(
-        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, face, v0, sentinel_e),
-        HalfEdgeData::new(
-            sentinel_he,
-            sentinel_he,
-            sentinel_he,
-            sentinel_face,
-            v1,
-            sentinel_e,
-        ),
-    );
-    let (he12, _he21) = arena.insert_radial_pair(
-        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, face, v1, sentinel_e),
-        HalfEdgeData::new(
-            sentinel_he,
-            sentinel_he,
-            sentinel_he,
-            sentinel_face,
-            v2,
-            sentinel_e,
-        ),
-    );
-    let (he20, _he02) = arena.insert_radial_pair(
-        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, face, v2, sentinel_e),
-        HalfEdgeData::new(
-            sentinel_he,
-            sentinel_he,
-            sentinel_he,
-            sentinel_face,
-            v0,
-            sentinel_e,
-        ),
-    );
+    let inner_he = mlifv.half_edges[0]; // he: v3→v4
 
-    let arena = draft.arena_mut();
-    arena.get_half_edge_mut(he01).unwrap().set_next(he12);
-    arena.get_half_edge_mut(he01).unwrap().set_prev(he20);
-    arena.get_half_edge_mut(he12).unwrap().set_next(he20);
-    arena.get_half_edge_mut(he12).unwrap().set_prev(he01);
-    arena.get_half_edge_mut(he20).unwrap().set_next(he01);
-    arena.get_half_edge_mut(he20).unwrap().set_prev(he12);
-
-    arena.get_loop_mut(outer_loop).unwrap().set_half_edge(he01);
-    arena.get_vertex_mut(v0).unwrap().set_primary_disk(he01);
-    arena.get_vertex_mut(v1).unwrap().set_primary_disk(he12);
-    arena.get_vertex_mut(v2).unwrap().set_primary_disk(he20);
-
-    // Inner loop vertices
-    let v3 = arena.insert_vertex(VertexData::new(sentinel_he));
-    let v4 = arena.insert_vertex(VertexData::new(sentinel_he));
-    let v5 = arena.insert_vertex(VertexData::new(sentinel_he));
-
-    // Inner halfedges (clockwise around the hole)
-    let (he34, _he43) = arena.insert_radial_pair(
-        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, face, v3, sentinel_e),
-        HalfEdgeData::new(
-            sentinel_he,
-            sentinel_he,
-            sentinel_he,
-            sentinel_face,
-            v4,
-            sentinel_e,
-        ),
-    );
-    let (he45, _he54) = arena.insert_radial_pair(
-        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, face, v4, sentinel_e),
-        HalfEdgeData::new(
-            sentinel_he,
-            sentinel_he,
-            sentinel_he,
-            sentinel_face,
-            v5,
-            sentinel_e,
-        ),
-    );
-    let (he53, _he35) = arena.insert_radial_pair(
-        HalfEdgeData::new(sentinel_he, sentinel_he, sentinel_he, face, v5, sentinel_e),
-        HalfEdgeData::new(
-            sentinel_he,
-            sentinel_he,
-            sentinel_he,
-            sentinel_face,
-            v3,
-            sentinel_e,
-        ),
-    );
-
-    let arena = draft.arena_mut();
-    arena.get_half_edge_mut(he34).unwrap().set_next(he45);
-    arena.get_half_edge_mut(he34).unwrap().set_prev(he53);
-    arena.get_half_edge_mut(he45).unwrap().set_next(he53);
-    arena.get_half_edge_mut(he45).unwrap().set_prev(he34);
-    arena.get_half_edge_mut(he53).unwrap().set_next(he34);
-    arena.get_half_edge_mut(he53).unwrap().set_prev(he45);
-
-    arena.get_vertex_mut(v3).unwrap().set_primary_disk(he34);
-    arena.get_vertex_mut(v4).unwrap().set_primary_disk(he45);
-    arena.get_vertex_mut(v5).unwrap().set_primary_disk(he53);
-
-    let inner_loop = arena.insert_loop(LoopData::new(he34, face));
-    arena.get_face_mut(face).unwrap().add_inner_loop(inner_loop);
-
-    (face, he01, he34, outer_loop, [v0, v1, v2, v3, v4, v5])
+    (face, outer_he, inner_he, outer_loop, [v0, v1, v2, v3, v4, v5])
 }

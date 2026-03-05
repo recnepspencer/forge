@@ -130,30 +130,51 @@ impl TopoOperator for KillVertexEdge {
                 draft.arena_mut().get_half_edge_mut(h_prev)?.set_edge(surviving_edge);
             }
 
-            // If loop's representative halfedge was h, update it
-            let loop_id = draft.arena().get_face(h_face)?.outer_loop();
-            let loop_he = draft.arena().get_loop(loop_id)?.half_edge();
-            if loop_he == h {
-                draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(h_next);
-            }
-            // Check inner loops too
-            let inner_loops: Vec<_> = draft.arena().get_face(h_face)?.inner_loops().to_vec();
-            for il in inner_loops {
-                let il_he = draft.arena().get_loop(il)?.half_edge();
-                if il_he == h {
-                    draft.arena_mut().get_loop_mut(il)?.set_half_edge(h_next);
+            // Guard against DANGLING face (wireframe/wire edges).
+            if !h_face.is_dangling() {
+                // If loop's representative halfedge was h, update it
+                let loop_id = draft.arena().get_face(h_face)?.outer_loop();
+                let loop_he = draft.arena().get_loop(loop_id)?.half_edge();
+                if loop_he == h {
+                    draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(h_next);
                 }
-            }
+                // Check inner loops too
+                let inner_loops: Vec<_> = draft.arena().get_face(h_face)?.inner_loops().to_vec();
+                for il in inner_loops {
+                    let il_he = draft.arena().get_loop(il)?.half_edge();
+                    if il_he == h {
+                        draft.arena_mut().get_loop_mut(il)?.set_half_edge(h_next);
+                    }
+                }
 
-            draft.arena_mut().bump_face_version(h_face)?;
+                draft.arena_mut().bump_face_version(h_face)?;
+            }
         }
 
-        // Merge radial rings: all surviving halfedges that were on killed_edge
-        // need to be reassigned to surviving_edge and spliced into its radial ring.
+        // Merge radial rings: collect surviving halfedges by walking arriving
+        // halfedges (which are the predecessors we already captured). These
+        // are the A→M halfedges that have been rewired to skip M (now A→B).
+        // This preserves the original radial ordering instead of scrambling it.
         let mut surviving_radials: Vec<HalfEdgeId> = Vec::new();
-        for (id, data) in draft.arena().iter_half_edges() {
-            if data.edge() == surviving_edge && !from_m.contains(&id) {
-                surviving_radials.push(id);
+        for &h in &arriving_at_m {
+            if !from_m.contains(&h) {
+                surviving_radials.push(h);
+            }
+        }
+        // Also add any halfedges already on surviving_edge that aren't from_m
+        // (these are the original survivors that didn't go through M).
+        // Walk the original radial ring of the surviving edge's representative.
+        let surv_repr = draft.arena().get_edge(surviving_edge)?.half_edge();
+        if !from_m.contains(&surv_repr) && !surviving_radials.contains(&surv_repr) {
+            surviving_radials.push(surv_repr);
+            let mut r = draft.arena().get_half_edge(surv_repr)?.radial_next();
+            let bound = draft.arena().half_edge_count();
+            for _ in 0..bound {
+                if r == surv_repr { break; }
+                if !from_m.contains(&r) && !surviving_radials.contains(&r) {
+                    surviving_radials.push(r);
+                }
+                r = draft.arena().get_half_edge(r)?.radial_next();
             }
         }
 

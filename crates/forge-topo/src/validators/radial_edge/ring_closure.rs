@@ -6,7 +6,23 @@ use crate::b_rep::TopologyArena;
 use forge_core::KernelError;
 
 pub(crate) fn validate_radial_rings(arena: &TopologyArena) -> Result<(), KernelError> {
-    for (start_he, _) in arena.iter_half_edges() {
+    for (start_he, start_data) in arena.iter_half_edges() {
+        // Sentinel detection: radial_next pointing to DANGLING means
+        // the halfedge was never properly wired into a radial ring.
+        if start_data.radial_next() == crate::handles::HalfEdgeId::DANGLING {
+            return Err(super::vf(
+                "radial_ring_closure",
+                format!(
+                    "HE[{}].radial_next is DANGLING (u32::MAX) — halfedge was never wired. \
+                     Edge: {}, Face: {}, Origin: {}",
+                    start_he.index(),
+                    start_data.edge().index(),
+                    start_data.face().index(),
+                    start_data.origin().index(),
+                ),
+            ));
+        }
+
         let mut current_he = start_he;
         let mut count = 0;
         let limit = 100_000;

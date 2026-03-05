@@ -11,6 +11,7 @@ use crate::entity_lifecycle::split_edge::SplitEdge;
 use crate::transactions::TopologyState;
 
 use super::helpers::logged_op;
+use crate::b_rep::ShellKind;
 
 /// Bio-mesh: 15,000-edge high-valence pole.
 ///
@@ -23,7 +24,7 @@ fn brutal_bio_mesh_high_valence_pole_and_megaloop() {
     let state = TopologyState::empty();
     let mut draft = state.clone().into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let center_vertex = mvf.vertex;
     let mut current_edge = mvf.half_edge;
 
@@ -72,7 +73,7 @@ fn brutal_aerospace_sliver_churn_generational_integrity() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = logged_op("MVF", draft.execute(MakeVertexFace)).unwrap();
+    let mvf = logged_op("MVF", draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet })).unwrap();
 
     for i in 0..500 {
         let boundary_edge = draft.arena().get_vertex(mvf.vertex).unwrap().primary_disk();
@@ -145,7 +146,7 @@ fn brutal_dag_determinism_path_independence() {
     let path_a_hash = {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -183,7 +184,7 @@ fn brutal_dag_determinism_path_independence() {
     let path_b_hash = {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,

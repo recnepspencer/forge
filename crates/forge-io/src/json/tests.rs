@@ -9,7 +9,6 @@ mod tests {
     use crate::IoError;
     use forge_kernel::boolean::BooleanOp;
     use forge_kernel::engine::facade::FeatureTree; use forge_kernel::registry::facade::NativeFeature;
-    use forge_kernel::operations::boolean::BooleanFeature;
     use forge_kernel::primitives::MakePrimitiveFeature;
     use tempfile::tempdir;
 
@@ -19,16 +18,15 @@ mod tests {
 
         let cube = MakePrimitiveFeature::cube("Cube", [0.0, 0.0, 0.0], 10.0);
         let cube_id = tree
-            .register_feature(NativeFeature::MakePrimitive(cube))
+            .register_feature(NativeFeature::primitive("Cube", cube))
             .unwrap();
 
         let tool = MakePrimitiveFeature::cube("Tool", [5.0, 5.0, 5.0], 5.0);
         let tool_id = tree
-            .register_feature(NativeFeature::MakePrimitive(tool))
+            .register_feature(NativeFeature::primitive("Tool", tool))
             .unwrap();
 
-        let cut = BooleanFeature::new("Cut", BooleanOp::Subtraction, cube_id, tool_id);
-        let _cut_id = tree.register_feature(NativeFeature::Boolean(cut)).unwrap();
+        let _cut_id = tree.register_feature(NativeFeature::boolean("Cut", BooleanOp::Subtraction, cube_id, tool_id)).unwrap();
 
         let dir = tempdir().unwrap();
         let path = dir.path().join("model.json");
@@ -91,7 +89,7 @@ mod tests {
     fn tc02_single_cube_round_trip() {
         let mut tree = FeatureTree::new();
         let cube = MakePrimitiveFeature::cube("Box1", [1.0, 2.0, 3.0], 4.0);
-        tree.register_feature(NativeFeature::MakePrimitive(cube))
+        tree.register_feature(NativeFeature::primitive("Box1", cube))
             .unwrap();
 
         let dir = tempdir().unwrap();
@@ -109,10 +107,10 @@ mod tests {
     fn tc03_two_features_round_trip() {
         let mut tree = FeatureTree::new();
         let cube = MakePrimitiveFeature::cube("Base", [0.0, 0.0, 0.0], 10.0);
-        tree.register_feature(NativeFeature::MakePrimitive(cube))
+        tree.register_feature(NativeFeature::primitive("Base", cube))
             .unwrap();
         let tool = MakePrimitiveFeature::cube("Cutter", [3.0, 3.0, 3.0], 5.0);
-        tree.register_feature(NativeFeature::MakePrimitive(tool))
+        tree.register_feature(NativeFeature::primitive("Cutter", tool))
             .unwrap();
 
         let dir = tempdir().unwrap();
@@ -132,14 +130,13 @@ mod tests {
         let mut tree = FeatureTree::new();
         let cube = MakePrimitiveFeature::cube("Body", [0.0, 0.0, 0.0], 10.0);
         let cube_id = tree
-            .register_feature(NativeFeature::MakePrimitive(cube))
+            .register_feature(NativeFeature::primitive("Body", cube))
             .unwrap();
         let tool = MakePrimitiveFeature::cube("Hole", [2.0, 2.0, 2.0], 4.0);
         let tool_id = tree
-            .register_feature(NativeFeature::MakePrimitive(tool))
+            .register_feature(NativeFeature::primitive("Hole", tool))
             .unwrap();
-        let cut = BooleanFeature::new("Pocket", BooleanOp::Subtraction, cube_id, tool_id);
-        tree.register_feature(NativeFeature::Boolean(cut)).unwrap();
+        tree.register_feature(NativeFeature::boolean("Pocket", BooleanOp::Subtraction, cube_id, tool_id)).unwrap();
 
         let dir = tempdir().unwrap();
         let path = dir.path().join("tc04.json");
@@ -159,14 +156,13 @@ mod tests {
         let mut tree = FeatureTree::new();
         let cube = MakePrimitiveFeature::cube("Part", [1.0, 2.0, 3.0], 7.0);
         let cube_id = tree
-            .register_feature(NativeFeature::MakePrimitive(cube))
+            .register_feature(NativeFeature::primitive("Part", cube))
             .unwrap();
         let tool = MakePrimitiveFeature::cube("Drill", [2.0, 3.0, 4.0], 3.0);
         let tool_id = tree
-            .register_feature(NativeFeature::MakePrimitive(tool))
+            .register_feature(NativeFeature::primitive("Drill", tool))
             .unwrap();
-        let cut = BooleanFeature::new("Op", BooleanOp::Intersection, cube_id, tool_id);
-        tree.register_feature(NativeFeature::Boolean(cut)).unwrap();
+        tree.register_feature(NativeFeature::boolean("Op", BooleanOp::Intersection, cube_id, tool_id)).unwrap();
 
         let dir = tempdir().unwrap();
         let path_a = dir.path().join("diff_a.json");

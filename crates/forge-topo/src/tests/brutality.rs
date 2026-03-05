@@ -15,6 +15,7 @@ mod tests {
     use crate::entity_lifecycle::split_edge::SplitEdge;
     use crate::transactions::TopologyState;
     use crate::traverse::{FaceEdgeIterator, VertexRingIterator};
+    use crate::b_rep::ShellKind;
 
     // ─────────────────────────────────────────────────────────────────
     // 1. The "Bowtie" Vertex (Non-Manifold Resistance)
@@ -36,7 +37,7 @@ mod tests {
         // MVF creates a self-loop (1 edge). SE1 on self-loop → digon (2 edges).
         // SE2 on non-self-loop → quad (4 edges), because both new half-edges
         // belong to the same face in a single-face topology.
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -137,7 +138,7 @@ mod tests {
 
         // Build seed: a face with 2 edges
         let mut seed_draft = state.into_mutation();
-        let mvf = seed_draft.execute(MakeVertexFace)
+        let mvf = seed_draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet })
             .unwrap()
             .into_value();
         let _se = seed_draft.execute(
@@ -151,7 +152,7 @@ mod tests {
 
         let state = TopologyState::empty();
         let mut seed_draft = state.into_mutation();
-        let mvf = seed_draft.execute(MakeVertexFace)
+        let mvf = seed_draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet })
             .unwrap()
             .into_value();
         let _se = seed_draft.execute(
@@ -238,7 +239,7 @@ mod tests {
 
         // Build a quad: MVF → self-loop (1 edge), SE1 → digon (2 edges),
         // SE2 → quad (4 edges, because both new half-edges are on the same face).
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -336,7 +337,7 @@ mod tests {
 
         // Build a quad: MVF + 2×SE gives 4 edges but only 3 distinct vertices.
         // Vertices at edges[0] and edges[2] are the SAME vertex (V2).
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -413,7 +414,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
 
         let initial_face_count = draft.arena().face_count();
         let initial_vertex_count = draft.arena().vertex_count();
@@ -478,7 +479,7 @@ mod tests {
         let mut draft = state.into_mutation();
 
         // Build a hexagon (6 half-edges in single-face topology)
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,

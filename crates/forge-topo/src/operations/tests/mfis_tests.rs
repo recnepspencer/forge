@@ -6,6 +6,7 @@ mod tests {
     use crate::handles::{VertexId, HalfEdgeId};
     use crate::b_rep::VertexData;
     use forge_core::KernelError;
+    use crate::b_rep::ShellKind;
 
     fn setup_vertices(draft: &mut crate::transactions::MutableDraft, count: usize) -> Vec<VertexId> {
         let mut verts = Vec::new();
@@ -21,7 +22,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
         
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let shell_id = draft.arena().get_face(mvf.face).unwrap().shell();
         
         let verts = setup_vertices(&mut draft, 4);

@@ -8,8 +8,8 @@
 
 pub(crate) mod test_support;
 
-// #[cfg(test)]
-// mod pv_p0_1_tests;
+#[cfg(test)]
+mod pv_p0_1_tests;
 // #[cfg(test)]
 // mod pv_p0_2_tests;
 // #[cfg(test)]

@@ -123,6 +123,7 @@ impl TopoOperator for UnsewEdge {
 
 #[cfg(test)]
 mod tests {
+    use crate::b_rep::ShellKind;
     use super::UnsewEdge;
     use crate::transactions::TopologyState;
     use crate::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
@@ -135,7 +136,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -191,7 +192,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,

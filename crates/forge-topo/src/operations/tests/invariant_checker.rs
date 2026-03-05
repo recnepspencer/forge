@@ -7,7 +7,7 @@
 //!
 //! ```ignore
 //! let report = diagnose_op_chain(|runner| {
-//!     let mvf = runner.run("MVF", |d| d.execute(MakeVertexFace).map(|r| r.into_value()))?;
+//!     let mvf = runner.run("MVF", |d| d.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).map(|r| r.into_value()))?;
 //!     runner.run("SE1", |d| d.execute(SplitEdge { edge: mvf.half_edge }).map(|r| r.into_value()))?;
 //!     Ok(())
 //! });

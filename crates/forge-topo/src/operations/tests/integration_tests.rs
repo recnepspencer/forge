@@ -12,6 +12,7 @@ use crate::entity_lifecycle::split_edge::SplitEdge;
 use crate::transactions::TopologyState;
 use crate::traverse::{face_edge_count, FaceEdgeIterator, VertexRingIterator};
 use forge_core::KernelError;
+use crate::b_rep::ShellKind;
 
 /// Building a closed sphere via Euler operators produces V=2, E=1, F=1.
 #[test]
@@ -19,7 +20,7 @@ fn build_sphere_via_euler_operators() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let se1 = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
@@ -51,7 +52,7 @@ fn kv15_validation_catches_broken_twins() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let _se = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
@@ -81,7 +82,7 @@ fn traversal_face_edges_counts_correctly() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     assert_eq!(face_edge_count(draft.arena(), mvf.face).unwrap(), 1);
 
     let _se = draft.execute(
@@ -100,8 +101,8 @@ fn traversal_vertex_ring_for_seed() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let _mvf1 = draft.execute(MakeVertexFace).unwrap().into_value();
-    let mvf2 = draft.execute(MakeVertexFace).unwrap().into_value();
+    let _mvf1 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+    let mvf2 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
 
     let ring: Vec<_> = VertexRingIterator::new(draft.arena(), mvf2.vertex)
         .unwrap()
@@ -120,7 +121,7 @@ fn join_then_rebuild_same_hash() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,

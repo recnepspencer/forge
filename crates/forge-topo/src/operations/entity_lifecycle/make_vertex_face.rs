@@ -29,7 +29,12 @@ use crate::validators::invariant_id::InvariantContract;
 /// This is always the first operator applied to an empty draft.
 /// The halfedge is a degenerate self-loop: `twin == next == prev == self`.
 #[derive(Debug)]
-pub struct MakeVertexFace;
+pub struct MakeVertexFace {
+    /// The kind of shell to create for the seed.
+    /// Use `ShellKind::Sheet` for sheet-modeling, or
+    /// `ShellKind::Solid(Outer)` for solid-modeling workflows.
+    pub shell_kind: ShellKind,
+}
 
 /// Output of the MakeVertexFace operator.
 pub struct MvfOutput {
@@ -87,7 +92,7 @@ impl TopoOperator for MakeVertexFace {
 
         let shell = draft.insert_shell(ShellData::new(
             crate::handles::FaceId::DANGLING,
-            ShellKind::Sheet,
+            self.shell_kind,
             region,
         ));
 

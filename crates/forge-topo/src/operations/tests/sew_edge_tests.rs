@@ -8,6 +8,7 @@ mod tests {
     use crate::operations::entity_lifecycle::split_edge::SplitEdge;
     use crate::operator::TopoOperator;
     use forge_core::TopologyError;
+    use crate::b_rep::ShellKind;
 
     fn build_test_state() -> (crate::transactions::MutableDraft, HalfEdgeId, HalfEdgeId) {
         let state = TopologyState::empty();
@@ -16,7 +17,7 @@ mod tests {
         // MVF: creates v0, F0, self-loop he0 (v0->v0)
         // SE: splits he0 into two halfedges: he0 (v0->v1) and he_mb (v1->v0)
         // Both are self-radial boundary edges on the same face, each on its own Edge.
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,
@@ -89,7 +90,7 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
         let se1 = draft.execute(
             SplitEdge {
                 edge: mvf.half_edge,

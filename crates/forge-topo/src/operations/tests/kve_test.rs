@@ -7,6 +7,7 @@ use crate::entity_lifecycle::kill_vertex_edge::KillVertexEdge;
 use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::entity_lifecycle::split_edge::SplitEdge;
 use crate::transactions::TopologyState;
+use crate::b_rep::ShellKind;
 
 /// SplitEdge then KVE restores the original entity counts.
 #[test]
@@ -14,7 +15,7 @@ fn split_then_kve_restores_original() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
 
     let v_before = draft.arena().vertex_count();
     let he_before = draft.arena().half_edge_count();
@@ -65,7 +66,7 @@ fn kve_rejects_non_2_valent_vertex() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
 
     // The MFV vertex connects only 1 edge (self-loop), should be rejected
     let result = draft.execute(
@@ -86,7 +87,7 @@ fn double_split_double_kve_restores() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
 
     let v_before = draft.arena().vertex_count();
     let he_before = draft.arena().half_edge_count();

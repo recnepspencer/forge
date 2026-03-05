@@ -11,3 +11,4 @@ mod entity_lifecycle;
 mod boundary_editing;
 mod shape_integrity;
 mod observability;
+mod spatial_validators;

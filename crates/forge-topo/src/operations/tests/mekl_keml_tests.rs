@@ -268,11 +268,13 @@ fn mekl_keml_roundtrip() {
     );
 }
 
-/// MEKL on a face with two holes: bridge the second hole, verify first remains.
+/// MEKL on a face with two holes: bridge the first hole, verify second remains.
 ///
-/// Exercises multi-hole management and confirms KEML restores the second hole.
+/// Exercises multi-hole management and confirms KEML restores the first hole.
 #[test]
 fn mekl_keml_on_multi_hole_face() {
+    use crate::boundary_editing::make_loop_in_face_from_vertices::MakeLoopInFaceFromVertices;
+
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
@@ -280,85 +282,20 @@ fn mekl_keml_on_multi_hole_face() {
 
     assert_eq!(draft.arena().get_face(face).unwrap().inner_loop_count(), 1);
 
-    let placeholder_he = crate::handles::HalfEdgeId::DANGLING;
-    let placeholder_e = crate::handles::EdgeId::DANGLING;
-    let arena = draft.arena_mut();
+    // Create 3 new isolated vertices for the second hole
+    let sentinel_he = crate::handles::HalfEdgeId::DANGLING;
+    let v6 = draft.insert_vertex(crate::b_rep::VertexData::new(sentinel_he));
+    let v7 = draft.insert_vertex(crate::b_rep::VertexData::new(sentinel_he));
+    let v8 = draft.insert_vertex(crate::b_rep::VertexData::new(sentinel_he));
 
-    let v6 = arena.insert_vertex(crate::b_rep::VertexData::new(placeholder_he));
-    let v7 = arena.insert_vertex(crate::b_rep::VertexData::new(placeholder_he));
-    let v8 = arena.insert_vertex(crate::b_rep::VertexData::new(placeholder_he));
-
-    let (he67, _he76) = arena.insert_radial_pair(
-        crate::b_rep::HalfEdgeData::new(
-            placeholder_he,
-            placeholder_he,
-            placeholder_he,
+    // Create the second hole via Euler operator
+    let _hole2 = draft
+        .execute(MakeLoopInFaceFromVertices {
             face,
-            v6,
-            placeholder_e,
-        ),
-        crate::b_rep::HalfEdgeData::new(
-            placeholder_he,
-            placeholder_he,
-            placeholder_he,
-            crate::handles::FaceId::DANGLING,
-            v7,
-            placeholder_e,
-        ),
-    );
-    let (he78, _he87) = arena.insert_radial_pair(
-        crate::b_rep::HalfEdgeData::new(
-            placeholder_he,
-            placeholder_he,
-            placeholder_he,
-            face,
-            v7,
-            placeholder_e,
-        ),
-        crate::b_rep::HalfEdgeData::new(
-            placeholder_he,
-            placeholder_he,
-            placeholder_he,
-            crate::handles::FaceId::DANGLING,
-            v8,
-            placeholder_e,
-        ),
-    );
-    let (he86, _he68) = arena.insert_radial_pair(
-        crate::b_rep::HalfEdgeData::new(
-            placeholder_he,
-            placeholder_he,
-            placeholder_he,
-            face,
-            v8,
-            placeholder_e,
-        ),
-        crate::b_rep::HalfEdgeData::new(
-            placeholder_he,
-            placeholder_he,
-            placeholder_he,
-            crate::handles::FaceId::DANGLING,
-            v6,
-            placeholder_e,
-        ),
-    );
-
-    arena.get_half_edge_mut(he67).unwrap().set_next(he78);
-    arena.get_half_edge_mut(he67).unwrap().set_prev(he86);
-    arena.get_half_edge_mut(he78).unwrap().set_next(he86);
-    arena.get_half_edge_mut(he78).unwrap().set_prev(he67);
-    arena.get_half_edge_mut(he86).unwrap().set_next(he67);
-    arena.get_half_edge_mut(he86).unwrap().set_prev(he78);
-
-    arena.get_vertex_mut(v6).unwrap().set_primary_disk(he67);
-    arena.get_vertex_mut(v7).unwrap().set_primary_disk(he78);
-    arena.get_vertex_mut(v8).unwrap().set_primary_disk(he86);
-
-    let inner_loop2 = arena.insert_loop(crate::b_rep::LoopData::new(he67, face));
-    arena
-        .get_face_mut(face)
+            vertices: vec![v6, v7, v8],
+        })
         .unwrap()
-        .add_inner_loop(inner_loop2);
+        .into_value();
 
     assert_eq!(
         draft.arena().get_face(face).unwrap().inner_loop_count(),
@@ -391,3 +328,4 @@ fn mekl_keml_on_multi_hole_face() {
         "after KEML, both inner loops must be restored"
     );
 }
+

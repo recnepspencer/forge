@@ -7,6 +7,7 @@ use crate::entity_lifecycle::make_face_vertex::MakeFaceVertex;
 use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::transactions::TopologyState;
 use crate::provenance::{OpSignature};
+use crate::b_rep::ShellKind;
 
 /// MFV creates exactly 1 face, 1 vertex, 1 halfedge, 1 loop, 1 edge
 /// without creating any new shell or solid.
@@ -15,7 +16,7 @@ fn mfv_creates_face_vertex_in_shell() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
 
     let v_before = draft.arena().vertex_count();
     let f_before = draft.arena().face_count();

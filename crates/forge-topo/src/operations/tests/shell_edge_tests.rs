@@ -11,6 +11,7 @@ use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
 use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::entity_lifecycle::split_edge::SplitEdge;
 use crate::transactions::TopologyState;
+use crate::b_rep::ShellKind;
 
 /// MVF produces exactly 1 Shell and 1 Edge, both properly referenced.
 ///
@@ -25,7 +26,7 @@ fn mvf_shell_and_edge_are_live_and_wired() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let out = draft.execute(MakeVertexFace).unwrap().into_value();
+    let out = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
 
     assert_eq!(draft.arena().shell_count(), 1);
     assert_eq!(draft.arena().edge_count(), 1);
@@ -59,7 +60,7 @@ fn mef_inherits_shell_does_not_create_new_one() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let se = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
@@ -108,7 +109,7 @@ fn twin_halfedges_share_edge_id() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let se = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
@@ -152,7 +153,7 @@ fn mef_then_join_faces_is_exact_inverse() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let se = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,
@@ -220,7 +221,7 @@ fn split_edge_then_kev_is_exact_inverse() {
     let mut draft = state.into_mutation();
 
     // Build a real (two-vertex) edge to split
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let se1 = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,

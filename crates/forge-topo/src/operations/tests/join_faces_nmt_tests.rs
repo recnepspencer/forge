@@ -9,6 +9,7 @@ use crate::boundary_editing::join_faces_nmt::JoinFacesNmt;
 use crate::handles::HalfEdgeId;
 use crate::transactions::TopologyState;
 use forge_core::KernelError;
+use crate::b_rep::ShellKind;
 
 fn ph() -> HalfEdgeId {
     HalfEdgeId::DANGLING
@@ -1996,7 +1997,7 @@ fn valid_hierarchy_passes_intermediate_validation() {
     let mut draft = state.into_mutation();
 
     // Build a valid 3-face mesh: MVF → SE → SE → MEF → MEF.
-    let mvf = draft.execute(MakeVertexFace).unwrap().into_value();
+    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
     let se1 = draft.execute(
         SplitEdge {
             edge: mvf.half_edge,

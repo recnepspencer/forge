@@ -135,16 +135,16 @@ Catches bugs in batch face constructors (MFFV/MFIS/MLIFV) and NMT operators.
 | `ValidatePerComponentEuler`         | ✅ Done | Per-component Euler formula         |
 | Fix: scope `find_non_slit_outgoing` | ✅ Done | NMT global arena fallback bug       |
 
-**Batch 5 — Geometry-Dependent (5 validators, ⬜ Planned, ~2 PRs)**
+**Batch 5 — Geometry-Dependent (5 validators, ✅ Done)**
 Requires cross-crate access to vertex positions/normals via `forge-spatial`.
 
-| Item                                             | Catches                                   |
-| :----------------------------------------------- | :---------------------------------------- |
-| `ValidateLoopOrientationConsistentWithFaceSense` | Inside-out faces from MFKRH               |
-| `ValidateConsistentShellOrientation`             | Inverted shells from outer loop hijacking |
-| `ValidateNoInsideOutShells`                      | Shells with negative signed volume        |
-| `ValidateNoZeroLengthEdges`                      | Degenerate edges from bad splits          |
-| `ValidateNoZeroAreaFaces`                        | Collapsed faces from bad merges           |
+| Item                                             | Catches                                   | Status  |
+| :----------------------------------------------- | :---------------------------------------- | :-----: |
+| `ValidateLoopOrientationConsistentWithFaceSense` | Inside-out faces from MFKRH               | ✅ Done |
+| `ValidateConsistentShellOrientation`             | Inverted shells from outer loop hijacking | ✅ Done |
+| `ValidateNoInsideOutShells`                      | Shells with negative signed volume        | ✅ Done |
+| `ValidateNoZeroLengthEdges`                      | Degenerate edges from bad splits          | ✅ Done |
+| `ValidateNoZeroAreaFaces`                        | Collapsed faces from bad merges           | ✅ Done |
 
 - **Total:** 24 validators + 1 operator fix across 5 batches | ~6-7 PRs
 - **Test:** Each validator gets ≥2 poison tests per `VALIDATOR_QA.md` contract.
