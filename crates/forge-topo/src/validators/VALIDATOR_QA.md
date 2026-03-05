@@ -27,6 +27,25 @@ When a validator is written in response to a discovered operator bug, a third te
 
 Validators are pure read-only functions: `fn(&TopologyArena) -> Result<(), KernelError>`. They must not depend on each other, must not mutate state, and must not require geometry unless explicitly in the geometry-dependent batch.
 
-### Rule 5: Wire Into Dispatcher
+### Rule 5: Wire Into the Invariant System
 
-Every new validator must be registered in `structural.rs::validate_topology()` at the appropriate `ValidationLevel` tier. If it is not wired into the dispatcher, it does not exist.
+Every new validator must be registered through the **compile-enforced** invariant pipeline:
+
+1. Add a new variant to `InvariantId` in `invariant_id.rs`
+2. Assign it to an `InvariantGroup` in the `group()` match — compile error if missing
+3. Add a `ValidatorEntry` in `validator_for()` — compile error if missing
+4. Update `InvariantId::ALL` to include the new variant — `all_constant_covers_every_variant` CI test catches omissions
+
+`structural.rs::validate_topology()` automatically picks up the new validator via the `validator_for()` dispatch loop — **no manual wiring in structural.rs is needed**.
+
+### Rule 6: Declare a Cost Tier
+
+Every `ValidatorEntry` must specify a `ValidatorCost`:
+
+| Cost        | Meaning               | Runs at `ValidationLevel`   |
+| :---------- | :-------------------- | :-------------------------- |
+| `Cheap`     | O(n) per-entity scan  | Minimal, Intermediate, Full |
+| `Medium`    | O(n log n) or set ops | Intermediate, Full          |
+| `Expensive` | O(n²) or global       | Full only                   |
+
+Choose the tier that matches your validator's algorithmic complexity. This determines when it runs at commit time.

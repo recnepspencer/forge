@@ -3,7 +3,7 @@
 End-to-end guide for adding a topology operator to `forge-topo`.
 
 **Reference implementation:** `MakeVertexFace` in
-`topology/operations/entity_lifecycle/make_vertex_face.rs` — the simplest
+`operations/entity_lifecycle/make_vertex_face.rs` — the simplest
 operator, creates the topological seed.
 
 ---
@@ -16,7 +16,6 @@ The struct holds the operation's parameters. It must implement `Debug`.
 #[derive(Debug)]
 pub struct SplitEdge {
     pub edge: HalfEdgeId,
-    pub parameter: f64,
 }
 ```
 
@@ -46,24 +45,30 @@ pub struct SplitEdgeOutput {
 
 ## 3. Implement `TopoOperator`
 
-Three items:
+Four required items:
 
-| Item                                                                                         | Purpose                                                 |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `type Output`                                                                                | The output struct from step 2                           |
-| `const NAME: &'static str`                                                                   | String literal for lineage/replay (e.g. `"split_edge"`) |
-| `fn execute(&self, draft: &mut MutableDraft, recorder: &mut LineageRecorder) -> Result<...>` | The topology mutation                                   |
+| Item                       | Purpose                                                 |
+| -------------------------- | ------------------------------------------------------- |
+| `type Output`              | The output struct from step 2                           |
+| `const NAME`               | String literal for lineage/replay (e.g. `"split_edge"`) |
+| `const INVARIANT_CONTRACT` | Declares relationship to every structural invariant     |
+| `fn execute()`             | The topology mutation                                   |
 
 ```rust
-use crate::operator::{TopoOperator, EulerDelta, ExecutionResult};
-use crate::state::MutableDraft;
+use crate::operations::operator::{TopoOperator, EulerDelta, ExecutionResult};
+use crate::transactions::MutableDraft;
 use crate::provenance::LineageRecorder;
+use crate::validators::invariant_id::{InvariantContract, InvariantRelation};
 use forge_core::KernelError;
 
 impl TopoOperator for SplitEdge {
     type Output = SplitEdgeOutput;
 
     const NAME: &'static str = "split_edge";
+
+    // Use a named profile from contract_registry.rs
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn execute(
         &self,
@@ -89,6 +94,24 @@ impl TopoOperator for SplitEdge {
     }
 }
 ```
+
+---
+
+## 3b. Choosing an `INVARIANT_CONTRACT`
+
+The `INVARIANT_CONTRACT` tells the validation system which invariants
+your operator may break. Use one of the **named profiles** from
+`validators/contract_registry.rs`:
+
+| Profile               | Use when your operator…                                      |
+| --------------------- | ------------------------------------------------------------ |
+| `FULL_TOPO_WIRING`    | Rewires connectivity (edges, loops, faces)                   |
+| `CONTAINER_LIFECYCLE` | Creates/destroys containers (bodies, shells, regions, lumps) |
+| `RADIAL_SPLICE`       | Splices or unsplices radial rings (sew/unsew)                |
+| `ISOLATED_VERTEX`     | Only touches isolated vertices                               |
+
+If none of these profiles fit, define a custom `InvariantContract` with
+an exhaustive match on `InvariantId` — the compiler enforces completeness.
 
 ---
 
@@ -172,10 +195,10 @@ EulerDelta { vertices: 1, half_edges: 1, edges: 1, ..Default::default() }
 ## 6. Register the Operator
 
 Add your operator file to the appropriate directory under
-`topology/operations/` and re-export from `mod.rs`:
+`operations/` and re-export from `mod.rs`:
 
 ```
-topology/operations/entity_lifecycle/
+operations/entity_lifecycle/
 ├── mod.rs                  ← add `pub mod split_edge;`
 ├── make_vertex_face.rs
 ├── make_edge_face.rs
@@ -203,7 +226,7 @@ let result = draft.execute(MakeVertexFace)?;
 let mvf = result.into_value();
 
 let result2 = draft.execute(MakeEdgeVertex {
-    face: mvf.face,
+    target_face: mvf.face,
     // ...
 })?;
 let mev = result2.into_value();
@@ -219,8 +242,8 @@ carries `DecisionLog`, `OperationMetrics`, and `LineageDelta`.
 
 ## 8. Testing
 
-Write unit tests in the `entity_lifecycle/tests/` directory (or alongside
-the operator file). Each test should:
+Write unit tests in the `operations/tests/` directory (or a dedicated
+test file for the operator). Each test should:
 
 1. Create a `TopologyState::empty()` and `into_mutation()`
 2. Execute the operator (and any prerequisite operators)
@@ -264,7 +287,8 @@ fn split_edge_creates_correct_topology() {
 
 - [ ] Operator struct defined with `#[derive(Debug)]`
 - [ ] Output struct defined
-- [ ] `TopoOperator` implemented (`execute`, `const NAME`)
+- [ ] `TopoOperator` implemented (`execute`, `const NAME`, `const INVARIANT_CONTRACT`)
+- [ ] `INVARIANT_CONTRACT` uses an appropriate profile from `contract_registry.rs`
 - [ ] Every code path returns correct `EulerDelta`
 - [ ] No raw `f64` comparisons (pure connectivity)
 - [ ] Registered in `mod.rs`
