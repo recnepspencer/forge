@@ -46,12 +46,22 @@ impl TopoOperator for RehomeLump {
         }
 
         draft.arena_mut().get_body_mut(old_body)?.remove_lump(self.lump);
+        
+        let mut delta_solids = 0;
+        if draft.arena().get_body(old_body)?.lumps().is_empty() {
+            draft.remove_body(old_body)?;
+            delta_solids = -1;
+        }
+
         draft.arena_mut().get_lump_mut(self.lump)?.set_body(self.target_body);
         draft.arena_mut().get_body_mut(self.target_body)?.add_lump(self.lump);
 
         Ok(ExecutionResult {
             value: (),
-            declared_delta: EulerDelta::default(),
+            declared_delta: EulerDelta {
+                solids: delta_solids,
+                ..EulerDelta::default()
+            },
         })
     }
 }

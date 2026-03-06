@@ -60,11 +60,13 @@ impl TopoOperator for KillEdgeMakeLoop {
         let he_prev = he_data.prev();
         let he_next = he_data.next();
         let edge_id = he_data.edge();
+        let vertex_a = he_data.origin();
 
         let twin_data = draft.arena().get_half_edge(twin_id)?;
         let twin_face = twin_data.face();
         let twin_prev = twin_data.prev();
         let twin_next = twin_data.next();
+        let vertex_b = twin_data.origin();
 
         let valence = crate::queries::traverse::radial_valence(draft.arena(), self.edge)?;
         if valence != 2 {
@@ -139,10 +141,13 @@ impl TopoOperator for KillEdgeMakeLoop {
 
         // ── Update outer loop entry point ───────────────────────────
         let outer_loop = draft.arena().get_face(face)?.outer_loop();
-        draft
-            .arena_mut()
-            .get_loop_mut(outer_loop)?
-            .set_half_edge(twin_next);
+        let loop_he = draft.arena().get_loop(outer_loop)?.half_edge();
+        if loop_he == self.edge || loop_he == twin_id {
+            draft
+                .arena_mut()
+                .get_loop_mut(outer_loop)?
+                .set_half_edge(twin_next);
+        }
 
         // ── Register inner loop on face ─────────────────────────────
         draft
@@ -150,7 +155,25 @@ impl TopoOperator for KillEdgeMakeLoop {
             .get_face_mut(face)?
             .add_inner_loop(new_loop);
 
-        // ── Remove edge and halfedges ───────────────────────────────
+        // ── Repair vertex disks ─────────────────────────────────────
+        if draft.arena().get_vertex(vertex_a)?.primary_disk() == self.edge {
+            draft
+                .arena_mut()
+                .get_vertex_mut(vertex_a)?
+                .set_primary_disk(twin_next); // he_prev.next() which is twin_next
+        }
+        if draft.arena().get_vertex(vertex_b)?.primary_disk() == twin_id {
+            draft
+                .arena_mut()
+                .get_vertex_mut(vertex_b)?
+                .set_primary_disk(he_next); // twin_prev.next() which is he_next
+        }
+
+        // ── Remove edge entities ────────────────────────────────────
+        // Guard against DANGLING face (wireframe/wire edges).
+        if !face.is_dangling() {
+            draft.arena_mut().bump_face_version(face)?;
+        }
         draft.remove_half_edge(self.edge)?;
         draft.remove_half_edge(twin_id)?;
         draft.remove_edge(edge_id)?;

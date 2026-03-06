@@ -47,7 +47,6 @@ macro_rules! define_plain_crud {
     };
 }
 
-define_plain_crud!(@standard shell,  "Shell",  ShellId,    ShellData,    shell_slots,     free_shell_head,     active_shell_count);
 define_plain_crud!(@standard region, "Region", RegionId,   RegionData,   region_slots,    free_region_head,    active_region_count);
 define_plain_crud!(@standard lump,   "Lump",   LumpId,     LumpData,     lump_slots,      free_lump_head,      active_lump_count);
 define_plain_crud!(@standard body,   "Body",   BodyId,     BodyData,     body_slots,      free_body_head,      active_body_count);
@@ -55,6 +54,34 @@ define_plain_crud!(@standard body,   "Body",   BodyId,     BodyData,     body_sl
 // ════════════════════════════════════════════════════════════════════
 // Mesh entities — explicit impls with side-car + index hooks
 // ════════════════════════════════════════════════════════════════════
+
+// ── Shell (side-car: shell_entry_edges) ─────────────────────────────
+
+impl TopologyArena {
+    /// Insert a new shell, returning its handle. Grows shell side-cars.
+    pub fn insert_shell(&mut self, data: ShellData) -> ShellId {
+        let (index, gen) = Self::insert_slot(&mut self.shell_slots, &mut self.free_shell_head, data);
+        self.active_shell_count += 1;
+        self.grow_shell_sidecars(self.shell_slots.len());
+        self.clear_shell_sidecar(index as usize);
+        ShellId::new(index, gen)
+    }
+
+    /// Remove a shell, bumping the slot generation. Clears shell side-cars.
+    pub fn remove_shell(&mut self, id: ShellId) -> Result<ShellData, KernelError> {
+        let slot = self.shell_slots.get_mut(id.index() as usize)
+            .ok_or_else(|| cold_err_bounds("Shell", id.index(), id.generation()))?;
+        validate_generation(slot.generation, id.generation(), "Shell", id.index())?;
+        let data = slot.data.take()
+            .ok_or_else(|| cold_err_deleted("Shell", id.index(), id.generation(), slot.generation))?;
+        slot.generation += 1;
+        slot.next_free = self.free_shell_head;
+        self.free_shell_head = Some(id.index());
+        self.active_shell_count -= 1;
+        self.clear_shell_sidecar(id.index() as usize);
+        Ok(data)
+    }
+}
 
 // ── Loop (keyword-safe, no side-car) ────────────────────────────────
 

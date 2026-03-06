@@ -37,6 +37,12 @@ fn build_sphere_via_euler_operators() {
     )
     .unwrap();
 
+    // The sphere is now watertight — promote shell from Sheet to Solid.
+    let face = draft.arena().get_half_edge(mvf.half_edge).unwrap().face();
+    let shell = draft.arena().get_face(face).unwrap().shell();
+    draft.arena_mut().get_shell_mut(shell).unwrap()
+        .set_kind(crate::b_rep::ShellKind::Solid(crate::b_rep::ShellOrientation::Outer));
+
     let arena = draft.arena();
     assert_eq!(arena.vertex_count(), 2);
     assert_eq!(arena.edge_count(), 1);

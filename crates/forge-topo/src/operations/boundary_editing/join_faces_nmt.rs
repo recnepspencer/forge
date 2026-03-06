@@ -17,6 +17,7 @@
 //! DEPENDENCIES: `arena`, `lineage`
 
 use forge_core::{KernelError, TopologyError};
+use tracing;
 
 use crate::handles::{HalfEdgeId, LoopId};
 use crate::operator::{EulerDelta, ExecutionResult};
@@ -111,6 +112,12 @@ impl TopoOperator for JoinFacesNmt {
             });
         }
 
+        tracing::info!(
+            "join_faces_nmt: radial_ring={:?} he_survive={} he_kill={} valence={}",
+            ring.iter().map(|h| h.index()).collect::<Vec<_>>(),
+            he_s.index(), he_k.index(), valence,
+        );
+
         // 1. Surgery on the protected radial ring.
         // We must remove he_s and he_k from the cyclic list, while keeping the rest intact.
         // The simplest way: filter out he_s and he_k, and wire the remaining ones in order.
@@ -138,6 +145,24 @@ impl TopoOperator for JoinFacesNmt {
             .arena_mut()
             .get_half_edge_mut(he_k)?
             .set_radial_next(he_s);
+
+        // 2b. Allocate a NEW EdgeId for the slit pair (Option B per Weiler/ACIS).
+        //
+        // The slit is a separate topological entity — its radial ring must be
+        // disjoint from the protected ring. Giving it its own EdgeId means:
+        //   - broken_splices validator sees two distinct edges, each with a valid ring.
+        //   - radial_neighbor_consistency sees a valid valence-2 slit edge.
+        //   - EdgeData.half_edge on the original edge enters the protected ring only.
+        let slit_edge = draft.insert_edge(crate::b_rep::EdgeData::new(he_s));
+        draft.arena_mut().get_half_edge_mut(he_s)?.set_edge(slit_edge);
+        draft.arena_mut().get_half_edge_mut(he_k)?.set_edge(slit_edge);
+
+        tracing::info!(
+            "join_faces_nmt: slit_edge={} protected={:?} original_edge={}",
+            slit_edge.index(),
+            protected.iter().map(|h| h.index()).collect::<Vec<_>>(),
+            edge_id.index(),
+        );
 
         // 3. Lineage merge.
 
@@ -229,6 +254,49 @@ impl TopoOperator for JoinFacesNmt {
             }
         }
 
+        // 6b. Rebuild NMT disk entries after the merge.
+        //
+        // The merge changes disk component structure at the slit vertices:
+        //   - he_s and he_k are now in the SAME disk component (slit inner loop)
+        //   - he_k_next and he_s_next may now share a disk component in the merged
+        //     outer loop at their origin vertex
+        //
+        // Rather than trying to incrementally patch, we rebuild entries for the
+        // affected vertices from scratch using the canonical rebuild query.
+        let affected_vertices = {
+            let mut verts = vec![vertex_s, vertex_k];
+            let v_k_next = draft.arena().get_half_edge(he_k_next)?.origin();
+            let v_s_next = draft.arena().get_half_edge(he_s_next)?.origin();
+            verts.push(v_k_next);
+            if v_s_next != v_k_next {
+                verts.push(v_s_next);
+            }
+            verts.sort_by_key(|v| v.index());
+            verts.dedup();
+            verts
+        };
+
+        for &v in &affected_vertices {
+            let rebuilt = crate::queries::vertex_disks::rebuild_disk_entries(draft.arena(), v)?;
+            // Clear existing NMT extras for this vertex
+            if let Some(extras) = draft.arena_mut().nmt_extra_disks.get_mut(&v) {
+                extras.clear();
+            }
+            // Set primary to first entry, rest as extras
+            if !rebuilt.is_empty() {
+                draft.arena_mut().get_vertex_mut(v)?.set_primary_disk(rebuilt[0]);
+                for &entry in &rebuilt[1..] {
+                    draft.arena_mut().add_disk_entry(v, entry);
+                }
+                // If we cleared extras but there are none to add back, update nmt flag
+                if rebuilt.len() == 1 {
+                    if let Some(flag) = draft.arena_mut().vertex_is_nmt.get_mut(v.index() as usize) {
+                        *flag = false;
+                    }
+                }
+            }
+        }
+
         // 7. Register the slit as a new inner loop on the surviving face.
         let new_inner_loop = draft.insert_loop(crate::b_rep::LoopData::new(he_s, face_survive));
         draft
@@ -236,17 +304,20 @@ impl TopoOperator for JoinFacesNmt {
             .get_face_mut(face_survive)?
             .add_inner_loop(new_inner_loop);
 
-        // 7b. Fix EdgeData.half_edge pointer.
-        // After slit creation, the EdgeData may point to he_s or he_k (now in the
-        // slit ring). Code that enters the radial ring via EdgeData.half_edge()
-        // (e.g. continuity queries) would see only the 2-element slit instead of
-        // the protected ring. Point it to a protected-ring halfedge.
+        // 7b. Fix EdgeData.half_edge pointer on the ORIGINAL edge.
+        // After slit creation, the original EdgeData may still point to he_s or he_k
+        // (now on the slit edge). Point it to a protected-ring halfedge.
         if !protected.is_empty() {
             draft
                 .arena_mut()
                 .get_edge_mut(edge_id)?
                 .set_half_edge(protected[0]);
         }
+
+        tracing::debug!(
+            "join_faces_nmt: vertex_fixup vertex_s={} vertex_k={}",
+            vertex_s.index(), vertex_k.index(),
+        );
 
         // 8. Remove the killed face and its outer loop.
         let loop_kill = draft.arena().get_face(face_kill)?.outer_loop();
@@ -261,6 +332,11 @@ impl TopoOperator for JoinFacesNmt {
             .get_loop_mut(loop_survive)?
             .set_half_edge(he_s_next);
 
+        tracing::info!(
+            "join_faces_nmt: killed_face={} slit_loop={} slit_edge={}",
+            face_kill.index(), new_inner_loop.index(), slit_edge.index(),
+        );
+
         Ok(ExecutionResult {
             value: JfNmtOutput {
                 surviving_face: face_survive,
@@ -270,7 +346,7 @@ impl TopoOperator for JoinFacesNmt {
                 half_edges: 0,
                 faces: -1,
                 loops: 0,
-                edges: 0,
+                edges: 1,  // slit creates a new edge entity
                 shells: 0,
                 solids: 0,
                 lumps: 0,

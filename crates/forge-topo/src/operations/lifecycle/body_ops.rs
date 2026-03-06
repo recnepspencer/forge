@@ -193,6 +193,7 @@ impl TopoOperator for CloneBody {
         struct VertexInfo {
             old_vertex: crate::handles::VertexId,
             old_primary_disk: crate::handles::HalfEdgeId,
+            old_extra_disks: Vec<crate::handles::HalfEdgeId>,
         }
 
         struct EdgeInfo {
@@ -207,11 +208,13 @@ impl TopoOperator for CloneBody {
             halfedges: Vec<HeInfo>,
             vertices: Vec<VertexInfo>,
             edges: Vec<EdgeInfo>,
+            entry_he: Option<crate::handles::HalfEdgeId>,
         }
 
         struct LoopInfo {
             old_loop: crate::handles::LoopId,
             old_he: crate::handles::HalfEdgeId,
+            old_face: crate::handles::FaceId,
         }
 
         struct RegionInfo {
@@ -258,11 +261,11 @@ impl TopoOperator for CloneBody {
 
                         // Collect loop info
                         let loop_he = draft.arena().get_loop(old_outer_loop)?.half_edge();
-                        all_loops.push(LoopInfo { old_loop: old_outer_loop, old_he: loop_he });
+                        all_loops.push(LoopInfo { old_loop: old_outer_loop, old_he: loop_he, old_face });
 
                         for &il in &old_inner_loops {
                             let ilhe = draft.arena().get_loop(il)?.half_edge();
-                            all_loops.push(LoopInfo { old_loop: il, old_he: ilhe });
+                            all_loops.push(LoopInfo { old_loop: il, old_he: ilhe, old_face });
                         }
 
                         face_infos.push(FaceInfo {
@@ -277,6 +280,25 @@ impl TopoOperator for CloneBody {
                     let mut shell_he_ids = Vec::new();
                     for &face in &shell_faces {
                         shell_he_ids.extend_from_slice(draft.arena().halfedges_of_face(face));
+                    }
+                    
+                    let entry_he_id = draft.arena().shell_entry_edge(old_shell)
+                        .and_then(|e| draft.arena().get_edge(e).ok())
+                        .map(|e_data| e_data.half_edge());
+
+                    if let Some(entry_he) = entry_he_id {
+                        let mut curr = entry_he;
+                        let mut steps = 0;
+                        let bound = draft.arena().half_edge_count();
+                        loop {
+                            if !shell_he_ids.contains(&curr) {
+                                shell_he_ids.push(curr);
+                            }
+                            curr = draft.arena().get_half_edge(curr)?.next();
+                            if curr == entry_he { break; }
+                            steps += 1;
+                            if steps > bound { break; } // safety break
+                        }
                     }
 
                     let mut he_infos = Vec::new();
@@ -297,9 +319,16 @@ impl TopoOperator for CloneBody {
 
                         if !seen_vertices.contains(&hd.origin()) {
                             let vd = draft.arena().get_vertex(hd.origin())?;
+                            let old_extra_disks = draft.arena()
+                                .nmt_extra_disks
+                                .get(&hd.origin())
+                                .map(|v| v.to_vec())
+                                .unwrap_or_default();
+                                
                             vertex_infos.push(VertexInfo {
                                 old_vertex: hd.origin(),
                                 old_primary_disk: vd.primary_disk(),
+                                old_extra_disks,
                             });
                             seen_vertices.insert(hd.origin());
                         }
@@ -321,6 +350,7 @@ impl TopoOperator for CloneBody {
                         halfedges: he_infos,
                         vertices: vertex_infos,
                         edges: edge_infos,
+                        entry_he: entry_he_id,
                     });
                 }
 
@@ -414,6 +444,9 @@ impl TopoOperator for CloneBody {
                                 crate::handles::HalfEdgeId::DANGLING,
                             ));
                             edge_map.insert(ei.old_edge, new_e);
+                            if shell_info.kind == crate::b_rep::ShellKind::Wire {
+                                draft.arena_mut().set_edge_shell(new_e, Some(new_shell));
+                            }
                             total_edges += 1;
                         }
                     }
@@ -458,6 +491,11 @@ impl TopoOperator for CloneBody {
                             if let Some(&new_out) = half_edge_map.get(&vi.old_primary_disk) {
                                 draft.arena_mut().get_vertex_mut(new_v)?.set_primary_disk(new_out);
                             }
+                            for &old_extra in &vi.old_extra_disks {
+                                if let Some(&new_extra) = half_edge_map.get(&old_extra) {
+                                    draft.arena_mut().add_disk_entry(new_v, new_extra);
+                                }
+                            }
                         }
                     }
 
@@ -470,10 +508,18 @@ impl TopoOperator for CloneBody {
                         }
                     }
 
-                    // Wire shell → representative face
+                    // Wire shell → representative face and entry edges
                     if let Some(fi) = shell_info.faces.first() {
                         let new_face = face_map[&fi.old_face];
                         draft.arena_mut().get_shell_mut(new_shell)?.set_representative_face(new_face);
+                    }
+                    if let Some(old_entry) = shell_info.entry_he {
+                        if let Some(&new_entry_he) = half_edge_map.get(&old_entry) {
+                            if let Ok(he_data) = draft.arena().get_half_edge(new_entry_he) {
+                                let new_entry_edge = he_data.edge();
+                                draft.arena_mut().set_shell_entry_edge(new_shell, Some(new_entry_edge));
+                            }
+                        }
                     }
                 }
 
@@ -482,6 +528,9 @@ impl TopoOperator for CloneBody {
                     if let Some(&new_loop) = loop_map.get(&li.old_loop) {
                         if let Some(&new_he) = half_edge_map.get(&li.old_he) {
                             draft.arena_mut().get_loop_mut(new_loop)?.set_half_edge(new_he);
+                        }
+                        if let Some(&new_face) = face_map.get(&li.old_face) {
+                            draft.arena_mut().get_loop_mut(new_loop)?.set_face(new_face);
                         }
                     }
                 }

@@ -127,6 +127,17 @@ impl TopoOperator for MakeEdgeVertex {
             .get_edge_mut(new_edge)?
             .set_half_edge(he_out);
 
+        // ── Wire Context Edge Case Check ────────────────────────────
+        // It's illegal for a halfedge to be DANGLING, except for standalone
+        // wire edges. Ensure if face is DANGLING, the original anchor isn't
+        // accidentally malformed (it must be part of a real wire context).
+        if face.is_dangling() && draft.arena().get_half_edge(prev)?.face() != face {
+             return Err(KernelError::InvalidInput {
+                message: "MakeEdgeVertex: anchor face mismatch in wire context".into(),
+                context: None,
+             });
+        }
+
         // ── Face version bump ───────────────────────────────────────
         // Guard against DANGLING face (wireframe/wire edges).
         if !face.is_dangling() {

@@ -20,6 +20,12 @@ use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
 
 /// Demotes a face's outer loop into an inner loop (hole) of another face.
+///
+/// # Normal Inversion
+/// This topological operator simply moves the loop pointer to the new face.
+/// It does NOT reverse the orientation (halfedge `next`/`prev` pointers) of the loop.
+/// The caller (e.g., `forge-spatial`) is responsible for reversing the loop if the
+/// hole requires opposite traversal to maintain consistent face normal parity.
 #[derive(Debug)]
 pub struct KillFaceMakeRingHole {
     /// The face to destroy (its outer loop becomes a hole).
@@ -48,6 +54,13 @@ impl TopoOperator for KillFaceMakeRingHole {
     fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let killed_face_data = draft.arena().get_face(self.face_to_kill)?;
         let target_face_data = draft.arena().get_face(self.target_face)?;
+
+        if self.face_to_kill == self.target_face {
+            return Err(KernelError::InvalidInput {
+                message: "KillFaceMakeRingHole: cannot demote a face into a hole of itself".to_string(),
+                context: None,
+            });
+        }
 
         if killed_face_data.shell() != target_face_data.shell() {
             return Err(KernelError::InvalidInput {

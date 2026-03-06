@@ -138,11 +138,10 @@ impl TopoOperator for MakeEdgeFace {
             }
         }
 
-        // TODO(MEKL): If he_from_a and he_from_b belong to DIFFERENT loops
-        // on the same face (e.g., bridging a hole to the outer boundary),
-        // the correct Euler operator is MEKL (Make Edge Kill Loop), which
-        // merges two loops into one. For now, this case is implicitly
-        // handled as a face split — callers should verify loop membership.
+        // Input validation ensures he_from_a and he_from_b belong to the SAME loop.
+        // If they belonged to different loops on the same face (e.g., bridging a 
+        // hole to the outer boundary), the correct Euler operator is MEKL (Make 
+        // Edge Kill Loop), which merges two loops into one.
 
         // TODO(hole-redistribution): After splitting, inner loops (holes)
         // remain on the original face. A correct kernel must reassign each
@@ -300,16 +299,41 @@ fn find_valid_split_pair(
     candidates_a: &[HalfEdgeId],
     candidates_b: &[HalfEdgeId],
 ) -> Result<(HalfEdgeId, HalfEdgeId), KernelError> {
+    let mut any_different_loop = false;
     for &he_a in candidates_a {
         for &he_b in candidates_b {
-            if validate_split_pair(draft, he_a, he_b)? {
-                return Ok((he_a, he_b));
+            let mut curr = draft.arena().get_half_edge(he_a)?.next();
+            let mut same_loop = false;
+            let bound = draft.arena().half_edge_count();
+            let mut steps = 0usize;
+            while curr != he_a {
+                if curr == he_b {
+                    same_loop = true;
+                    break;
+                }
+                curr = draft.arena().get_half_edge(curr)?.next();
+                steps += 1;
+                if steps > bound { break; }
+            }
+            if same_loop {
+                if validate_split_pair(draft, he_a, he_b)? {
+                    return Ok((he_a, he_b));
+                }
+            } else {
+                any_different_loop = true;
             }
         }
     }
+    
+    if any_different_loop {
+        return Err(KernelError::InvalidInput {
+            message: "MakeEdgeFace: vertices belong to different face loops. Use MakeEdgeKillLoop instead.".to_string(),
+            context: None,
+        });
+    }
+
     Err(KernelError::InvalidInput {
-        message: "No valid split pair found: vertices may be adjacent or on the same sub-path"
-            .to_string(),
+        message: "No valid split pair found: vertices may be adjacent or on the same sub-path".to_string(),
         context: None,
     })
 }

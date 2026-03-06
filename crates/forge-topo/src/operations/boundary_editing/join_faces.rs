@@ -69,6 +69,12 @@ impl TopoOperator for JoinFaces {
                 context: None,
             });
         }
+        if draft.arena().get_face(face_survive)?.shell() != draft.arena().get_face(face_remove)?.shell() {
+            return Err(KernelError::InvalidInput {
+                message: "JoinFaces: faces belong to different shells".to_string(),
+                context: None,
+            });
+        }
 
         let valence = crate::queries::traverse::radial_valence(draft.arena(), he)?;
         if valence != 2 {
@@ -100,10 +106,13 @@ impl TopoOperator for JoinFaces {
 
         reassign_face(draft, twin_next, face_survive)?;
         let loop_id = draft.arena().get_face(face_survive)?.outer_loop();
-        draft
-            .arena_mut()
-            .get_loop_mut(loop_id)?
-            .set_half_edge(he_next);
+        let loop_he = draft.arena().get_loop(loop_id)?.half_edge();
+        if loop_he == he || loop_he == he_twin {
+            draft
+                .arena_mut()
+                .get_loop_mut(loop_id)?
+                .set_half_edge(he_next);
+        }
 
         // P10: Transfer inner loops from face_remove to face_survive
         let inner_loops: Vec<LoopId> = draft.arena().get_face(face_remove)?.inner_loops().to_vec();
@@ -125,16 +134,18 @@ impl TopoOperator for JoinFaces {
         }
 
         if draft.arena().get_vertex(vertex_a)?.primary_disk() == he {
+            let next_a = if twin_next == he_twin { he_next } else { twin_next };
             draft
                 .arena_mut()
                 .get_vertex_mut(vertex_a)?
-                .set_primary_disk(twin_next);
+                .set_primary_disk(next_a);
         }
         if draft.arena().get_vertex(vertex_b)?.primary_disk() == he_twin {
+            let next_b = if he_next == he { twin_next } else { he_next };
             draft
                 .arena_mut()
                 .get_vertex_mut(vertex_b)?
-                .set_primary_disk(he_next);
+                .set_primary_disk(next_b);
         }
 
         let remove_loop = draft.arena().get_face(face_remove)?.outer_loop();

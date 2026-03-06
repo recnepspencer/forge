@@ -97,6 +97,10 @@ impl TopoOperator for MakeFaceInShellFromVertices {
             self.shell,
         ));
 
+        if draft.arena().get_shell(self.shell)?.representative_face() == FaceId::DANGLING {
+            draft.arena_mut().get_shell_mut(self.shell)?.set_representative_face(face);
+        }
+
         let loop_id = draft.insert_loop(LoopData::new(placeholder_he, face));
 
         draft
@@ -146,6 +150,8 @@ impl TopoOperator for MakeFaceInShellFromVertices {
             let orig_out = arena.get_vertex(v)?.primary_disk();
             if orig_out == HalfEdgeId::DANGLING {
                 arena.get_vertex_mut(v)?.set_primary_disk(he);
+            } else {
+                arena.add_disk_entry(v, he);
             }
         }
 

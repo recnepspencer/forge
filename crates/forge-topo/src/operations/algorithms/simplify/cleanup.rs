@@ -45,6 +45,9 @@ fn remove_zero_length_edges(draft: &mut MutableDraft) -> Result<usize, KernelErr
         if draft.arena().get_half_edge(he.radial_next()).is_ok() {
             draft.remove_half_edge(he.radial_next())?;
         }
+        if draft.arena().get_edge(he.edge()).is_ok() {
+            draft.remove_edge(he.edge())?;
+        }
 
         processed.insert(he_id.index());
         processed.insert(he.radial_next().index());
@@ -54,6 +57,11 @@ fn remove_zero_length_edges(draft: &mut MutableDraft) -> Result<usize, KernelErr
     Ok(removed)
 }
 
+/// Find zero-length edges (where origin == dest).
+/// 
+/// Note: In pure combinatorial topology, self-loops are perfectly valid.
+/// This cleanup algorithm is specifically for triangulated mesh geometry, 
+/// not analytic B-Reps.
 fn find_zero_length_edges(draft: &MutableDraft) -> Result<Vec<HalfEdgeId>, KernelError> {
     let mut result = Vec::new();
     for (he_id, he) in draft.arena().iter_half_edges() {
@@ -166,6 +174,11 @@ fn remove_degenerate_faces(draft: &mut MutableDraft) -> Result<usize, KernelErro
     Ok(removed)
 }
 
+/// Find faces with fewer than 3 unique vertices.
+///
+/// Note: In pure combinatorial topology, 1-gons (droplets) and 2-gons (lunes) 
+/// are perfectly valid. This cleanup algorithm is specifically for 
+/// triangulated mesh geometry, not analytic B-Reps.
 fn find_degenerate_faces(draft: &MutableDraft) -> Result<Vec<FaceId>, KernelError> {
     let faces: Vec<FaceId> = draft.arena().iter_faces().map(|(fid, _)| fid).collect();
     let mut degenerate = Vec::new();
@@ -235,6 +248,15 @@ fn remove_face_topology(
     edges: &[HalfEdgeId],
 ) -> Result<(), KernelError> {
     for &he_id in edges {
+        let he = draft.arena().get_half_edge(he_id)?.clone();
+        if he.radial_next() != he_id {
+            // Sever this half-edge from its radial ring before deleting it
+            let mut prev_radial = he.radial_next();
+            while draft.arena().get_half_edge(prev_radial)?.radial_next() != he_id {
+                prev_radial = draft.arena().get_half_edge(prev_radial)?.radial_next();
+            }
+            draft.arena_mut().get_half_edge_mut(prev_radial)?.set_radial_next(he.radial_next());
+        }
         draft.remove_half_edge(he_id)?;
     }
     let loop_id = draft.arena().get_face(face_id)?.outer_loop();

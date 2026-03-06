@@ -177,6 +177,8 @@ impl TopoOperator for MakeFaceFromVertices {
             let orig_out = arena.get_vertex(v)?.primary_disk();
             if orig_out == HalfEdgeId::DANGLING {
                 arena.get_vertex_mut(v)?.set_primary_disk(he);
+            } else {
+                arena.add_disk_entry(v, he);
             }
         }
 

@@ -23,6 +23,12 @@ use crate::queries::traverse::FaceAllEdgesIterator;
 ///
 /// A half-edge is a group-boundary half-edge when its radial-adjacent face is
 /// outside `group` (or the edge is globally boundary/self-radial).
+///
+/// # Hole & Multiple Boundary Blindness
+/// This function finds the *first* boundary half-edge and loops until it closes.
+/// If the face group contains internal holes or multiple disconnected outer
+/// boundaries (e.g., an open cylinder), this algorithm will return only one
+/// perimeter loop and silently drop the rest.
 pub fn walk_face_group_boundary_perimeter(
     arena: &TopologyArena,
     group: &EntityBitset,

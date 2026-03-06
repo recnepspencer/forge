@@ -12,7 +12,7 @@ use crate::semantic_attributes::AttributeStore;
 use crate::b_rep::data::storage::slot::Slot;
 use crate::b_rep::data::mesh::{FaceData, HalfEdgeData, VertexData, LoopData, EdgeData, CoedgeInfo};
 use crate::b_rep::data::containment::{BodyData, LumpData, RegionData, ShellData};
-use crate::handles::{FaceId, HalfEdgeId, ShellId, VertexId, CurveRef};
+use crate::handles::{FaceId, HalfEdgeId, ShellId, VertexId, CurveRef, EdgeId};
 
 /// Entity storage for the halfedge mesh.
 ///
@@ -92,6 +92,14 @@ pub struct TopologyArena {
     #[serde(default)]
     pub(crate) vertex_is_nmt: Vec<bool>,
 
+    // ── Wire Topology side-cars ──────────────────────────────────
+    /// Representative entry edge for wire shells (side-car).
+    #[serde(default)]
+    pub(crate) shell_entry_edges: Vec<Option<EdgeId>>,
+    /// Parent shell reference for orphaned wire edges (side-car).
+    #[serde(default)]
+    pub(crate) edge_shells: Vec<Option<ShellId>>,
+
     // ── O(1) Reverse Indexes (derived, not serialized) ──────────
     // SmallVec inline storage avoids heap allocation for typical valence.
     #[serde(skip)]
@@ -140,6 +148,8 @@ impl TopologyArena {
             vertex_provenance: Vec::new(),
             nmt_extra_disks: HashMap::new(),
             vertex_is_nmt: Vec::new(),
+            shell_entry_edges: Vec::new(),
+            edge_shells: Vec::new(),
             shell_faces: IndexMap::new(),
             face_halfedges: IndexMap::new(),
             vertex_halfedges: IndexMap::new(),
@@ -234,6 +244,18 @@ impl TopologyArena {
             self.edge_curves.len() >= edge_len,
             "edge_curves ({}) shorter than edge_slots ({})",
             self.edge_curves.len(), edge_len,
+        );
+        debug_assert!(
+            self.edge_shells.len() >= edge_len,
+            "edge_shells ({}) shorter than edge_slots ({})",
+            self.edge_shells.len(), edge_len,
+        );
+
+        let shell_len = self.shell_slots.len();
+        debug_assert!(
+            self.shell_entry_edges.len() >= shell_len,
+            "shell_entry_edges ({}) shorter than shell_slots ({})",
+            self.shell_entry_edges.len(), shell_len,
         );
 
         let vtx_len = self.vertex_slots.len();

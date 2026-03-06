@@ -5,7 +5,7 @@
 
 use crate::b_rep::data::storage::arena::TopologyArena;
 use crate::b_rep::data::mesh::CoedgeInfo;
-use crate::handles::{HalfEdgeId, EdgeId, VertexId, CurveRef};
+use crate::handles::{HalfEdgeId, EdgeId, VertexId, CurveRef, ShellId};
 use forge_core::KernelError;
 use smallvec::{SmallVec, smallvec};
 
@@ -63,6 +63,52 @@ impl TopologyArena {
             self.edge_curves.resize(idx + 1, None);
         }
         self.edge_curves[idx] = curve;
+    }
+
+    // ── Wire Topology (Edge / Shell side-cars) ──────────────────────
+
+    pub(crate) fn grow_shell_sidecars(&mut self, capacity: usize) {
+        if self.shell_entry_edges.len() < capacity {
+            self.shell_entry_edges.resize(capacity, None);
+        }
+    }
+
+    pub(crate) fn clear_shell_sidecar(&mut self, index: usize) {
+        if index < self.shell_entry_edges.len() {
+            self.shell_entry_edges[index] = None;
+        }
+    }
+
+    /// The parent shell for this wire-body edge, if any.
+    pub fn edge_shell(&self, id: EdgeId) -> Option<ShellId> {
+        self.edge_shells
+            .get(id.index() as usize)
+            .and_then(|opt| *opt)
+    }
+
+    /// Set or clear the parent shell for this wire-body edge.
+    pub fn set_edge_shell(&mut self, id: EdgeId, shell: Option<ShellId>) {
+        let idx = id.index() as usize;
+        if idx >= self.edge_shells.len() {
+            self.edge_shells.resize(idx + 1, None);
+        }
+        self.edge_shells[idx] = shell;
+    }
+
+    /// The representative entry edge for this wire shell, if any.
+    pub fn shell_entry_edge(&self, id: ShellId) -> Option<EdgeId> {
+        self.shell_entry_edges
+            .get(id.index() as usize)
+            .and_then(|opt| *opt)
+    }
+
+    /// Set or clear the representative entry edge for this wire shell.
+    pub fn set_shell_entry_edge(&mut self, id: ShellId, edge: Option<EdgeId>) {
+        let idx = id.index() as usize;
+        if idx >= self.shell_entry_edges.len() {
+            self.shell_entry_edges.resize(idx + 1, None);
+        }
+        self.shell_entry_edges[idx] = edge;
     }
 
     // ── 3-plane intersection provenance (Vertex side-car) ───────────
@@ -186,12 +232,18 @@ impl TopologyArena {
         if self.edge_curves.len() < len {
             self.edge_curves.resize(len, None);
         }
+        if self.edge_shells.len() < len {
+            self.edge_shells.resize(len, None);
+        }
     }
 
     /// Clear edge side-car data at the given slot index.
     pub(crate) fn clear_edge_sidecar(&mut self, index: usize) {
         if index < self.edge_curves.len() {
             self.edge_curves[index] = None;
+        }
+        if index < self.edge_shells.len() {
+            self.edge_shells[index] = None;
         }
     }
 

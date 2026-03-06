@@ -478,6 +478,12 @@ mod tests {
         )
         .unwrap();
 
+        // The sphere is now watertight — promote shell from Sheet to Solid.
+        let face = draft.arena().get_half_edge(he_v0_v1).unwrap().face();
+        let shell = draft.arena().get_face(face).unwrap().shell();
+        draft.arena_mut().get_shell_mut(shell).unwrap()
+            .set_kind(crate::b_rep::ShellKind::Solid(crate::b_rep::ShellOrientation::Outer));
+
         let arena = draft.arena();
         let v = arena.vertex_count();
         let e = arena.edge_count();

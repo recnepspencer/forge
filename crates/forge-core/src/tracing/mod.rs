@@ -19,7 +19,7 @@ pub(crate) mod decision;
 pub(crate) mod decision_log;
 pub mod facade;
 pub(crate) mod payload;
-pub(crate) mod replay;
+pub mod replay;
 pub mod sink;
 
 #[cfg(test)]

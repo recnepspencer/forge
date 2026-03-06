@@ -5,9 +5,9 @@
 //! an inner loop, absorbing the inner loop into the outer boundary.
 //!
 //! INVARIANTS:
-//! - `he_a` must originate from a vertex on the face's outer loop
+//! - `he_a` must originate from a vertex on the face's outer OR inner loop
 //! - `he_b` must originate from a vertex on one of the face's inner loops
-//! - Both halfedges must belong to the same face
+//! - Both halfedges must belong to the same face but different loops
 //! - Creates: 2 halfedges, 1 edge.  Kills: 1 loop.
 //! - Euler delta: V=0, HE+2, E+1, L-1, F=0
 //!
@@ -25,19 +25,19 @@ use crate::validators::invariant_id::InvariantContract;
 
 /// Merge two loops on the same face by inserting an edge between them.
 ///
-/// `he_a` is the anchor on the **outer** loop: the new edge's halfedge
+/// `he_a` is the anchor on any loop (outer or inner). The new edge's halfedge
 /// `he_ab` will be spliced immediately before `he_a` in the loop order.
 ///
-/// `he_b` is the anchor on an **inner** loop: the new edge's halfedge
+/// `he_b` is the anchor on an **inner** loop. The new edge's halfedge
 /// `he_ba` will be spliced immediately before `he_b` in the loop order.
 ///
-/// After execution, the inner loop is killed and its halfedges become
-/// part of the outer loop.
+/// After execution, the inner loop `he_b` belonged to is killed and its
+/// halfedges become part of the loop containing `he_a`.
 #[derive(Debug)]
 pub struct MakeEdgeKillLoop {
-    /// Half-edge on the outer loop (anchor for the outer splice point).
+    /// Half-edge on the surviving loop (anchor for the outer/first splice point).
     pub he_a: HalfEdgeId,
-    /// Half-edge on an inner loop (anchor for the inner splice point).
+    /// Half-edge on an inner loop (anchor for the second splice point, loop will be killed).
     pub he_b: HalfEdgeId,
 }
 
@@ -84,23 +84,19 @@ impl TopoOperator for MakeEdgeKillLoop {
 
         let face = face_a;
         let outer_loop = draft.arena().get_face(face)?.outer_loop();
-        let inner_loop_id = find_loop_containing(draft, face, self.he_b)?;
+        let loop_a_id = find_loop_containing(draft, face, self.he_a)?;
+        let loop_b_id = find_loop_containing(draft, face, self.he_b)?;
 
-        if inner_loop_id == outer_loop {
+        if loop_a_id == loop_b_id {
             return Err(KernelError::InvalidInput {
-                message: "MEKL: he_b must be on an inner loop, not the outer loop".into(),
+                message: "MEKL: he_a and he_b must be on DIFFERENT loops of the same face. (Use MakeEdgeFace for splitting a single loop)".into(),
                 context: None,
             });
         }
 
-        let he_a_on_outer = is_halfedge_on_loop(draft, outer_loop, self.he_a)?;
-        if !he_a_on_outer {
+        if loop_b_id == outer_loop {
             return Err(KernelError::InvalidInput {
-                message: format!(
-                    "MEKL: he_a ({}) must be on the outer loop of face {}",
-                    self.he_a.index(),
-                    face.index()
-                ),
+                message: "MEKL: he_b must be on an inner loop, so it can be safely killed.".into(),
                 context: None,
             });
         }
@@ -149,20 +145,20 @@ impl TopoOperator for MakeEdgeKillLoop {
             // ── Update edge representative ──────────────────────────────
             arena.get_edge_mut(new_edge)?.set_half_edge(he_ab);
 
-            // ── Update outer loop entry point (may have been prev_a) ────
-            arena.get_loop_mut(outer_loop)?.set_half_edge(he_ab);
+            // ── Update surviving loop entry point (may have been prev_a) ────
+            arena.get_loop_mut(loop_a_id)?.set_half_edge(he_ab);
 
             // ── Kill inner loop ─────────────────────────────────────────
-            arena.get_face_mut(face)?.remove_inner_loop(inner_loop_id);
+            arena.get_face_mut(face)?.remove_inner_loop(loop_b_id);
         }
-        draft.remove_loop(inner_loop_id)?;
+        draft.remove_loop(loop_b_id)?;
 
         Ok(ExecutionResult {
             value: MeklOutput {
                 he_ab,
                 he_ba,
                 edge: new_edge,
-                killed_loop: inner_loop_id,
+                killed_loop: loop_b_id,
             },
             declared_delta: EulerDelta {
                 vertices: 0,

@@ -33,6 +33,16 @@ pub struct TriangulateOutput {
 /// The face must have no inner loops (bridge them first).
 /// For a face with N edges, this creates N-3 new edges and N-2 total
 /// triangles (the original face becomes one of them).
+///
+/// # Loop State Tracking
+/// This algorithm assumes that `MakeEdgeFace` retains the "remaining polygon"
+/// on the original `face` ID and assigns the sliced triangle to `new_face`.
+///
+/// # Pinch-Vertex Degeneracy
+/// If the face contains a Non-Manifold Topology (NMT) pinch (i.e., the same
+/// vertex appears twice in the outer loop), the naive fan triangulation from
+/// `verts[0]` may attempt to connect a vertex to itself, generating a fatal
+/// zero-length edge.
 pub fn triangulate_face(
     draft: &mut MutableDraft,
     face: FaceId,

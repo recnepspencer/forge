@@ -37,7 +37,6 @@ fn disk_component(
     disk.insert(seed);
 
     let bound = arena.half_edge_count().max(1);
-    println!("DEBUG: disk_component seed={} vertex={} out_set={:?}", seed.index(), vertex.index(), outgoing_set.iter().map(|h| h.index()).collect::<Vec<_>>());
 
     while let Some(curr) = queue.pop_front() {
         let curr_data = arena.get_half_edge(curr)?;
@@ -49,7 +48,6 @@ fn disk_component(
         // The corner is formed by the incoming half-edge and the outgoing half-edge.
         let out_he = curr;
         let in_he = curr_data.prev();
-        println!("DEBUG:   curr={} in_he={}", out_he.index(), in_he.index());
 
         // 1. Walk the entire radial ring of the outgoing edge
         let mut r = out_he;

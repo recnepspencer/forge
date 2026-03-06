@@ -21,6 +21,13 @@ use crate::operator::{EulerDelta, ExecutionResult};
 use crate::validators::invariant_id::InvariantContract;
 
 /// Promotes an inner loop (hole) into the outer loop of a new face.
+///
+/// # Disjoint Shell Violation
+/// This operator extracts the hole into an independent face but topologically
+/// leaves it within the **same** `Shell` entity. Because a `Shell` is defined
+/// as a single contiguous component, this operation temporarily puts the B-Rep
+/// in an invalid "disjoint shell" state. The caller must subsequently use
+/// `SplitShell` to move the newly created disjoint face into its own `Shell`.
 #[derive(Debug)]
 pub struct MakeFaceKillRingHole {
     /// The inner loop (hole) to promote.

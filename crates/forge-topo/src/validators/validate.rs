@@ -1150,6 +1150,9 @@ mod tests {
         assert!(crate::validators::radial_edge::validate_radial_neighbor_consistency(draft.arena()).is_ok());
     }
 
+    /// In an NMT-capable kernel, co-directional valence-2 pairs are demoted
+    /// to a tracing::warn (geometric concern, not topological). This test
+    /// verifies the validator does NOT reject them as errors.
     #[test]
     fn poison_radial_neighbor_consistency_same_origin() {
         let (mut draft, _face, he_am, _) = valid_mvf_se_draft();
@@ -1164,12 +1167,13 @@ mod tests {
         draft.arena_mut().get_half_edge_mut(he_am).unwrap().set_radial_next(he_twin);
         draft.arena_mut().get_half_edge_mut(he_twin).unwrap().set_radial_next(he_am);
         
-        // Corrupt geometry standard by setting pair to have the exact same origin
+        // Set same origin (co-directional) — now a warning, not error
         draft.arena_mut().get_half_edge_mut(he_twin).unwrap().set_origin(origin);
         
         let res = crate::validators::radial_edge::validate_radial_neighbor_consistency(draft.arena());
-        assert!(res.is_err());
-        assert!(format!("{:?}", res).contains("radial_neighbor_consistency"));
+        // In an NMT kernel, co-directional pairs are topologically valid
+        // (face-orientation is a geometric concern handled by forge-spatial).
+        assert!(res.is_ok(), "Co-directional pairs should warn, not error: {:?}", res);
     }
 
     #[test]

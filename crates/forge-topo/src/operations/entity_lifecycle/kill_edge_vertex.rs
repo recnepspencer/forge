@@ -23,6 +23,12 @@ use crate::validators::invariant_id::InvariantContract;
 ///
 /// `edge` is a halfedge A→B. Vertex B is removed; all references to B
 /// become references to A. The edge (both halfedges) is removed.
+///
+/// # 1-Gon Face Deletion Parity
+/// This operator explicitly refuses to collapse an edge where `vertex_a == vertex_b`
+/// (a self-loop or 1-gon). Collapsing a 1-gon would annihilate the loop entirely,
+/// leaving a Face with no boundary. To destroy a 1-gon face, higher-level
+/// algorithms should use operations like `KillFaceVertex` or simply `RemoveFace`.
 #[derive(Debug)]
 pub struct KillEdgeVertex {
     /// The halfedge to kill. Its target vertex (twin's origin) is collapsed.

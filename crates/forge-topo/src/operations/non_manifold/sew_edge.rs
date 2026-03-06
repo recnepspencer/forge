@@ -60,7 +60,14 @@ impl TopoOperator for SewEdge {
         let inv_id = 0u64;
 
         // Validate inputs and extract necessary handles first
-        let (edge_to_keep, edge_to_remove, face_a, face_b) = {
+        if self.he_a == self.he_b {
+            return Err(KernelError::InvalidInput {
+                message: "SewEdge cannot sew a halfedge to itself.".to_string(),
+                context: None,
+            });
+        }
+
+        let (edge_to_keep, edge_to_remove, face_a, face_b, v1, v2) = {
             let he_a_data = draft.arena().get_half_edge(self.he_a)?;
             let he_b_data = draft.arena().get_half_edge(self.he_b)?;
 
@@ -127,6 +134,8 @@ impl TopoOperator for SewEdge {
                 he_b_data.edge(),
                 he_a_data.face(),
                 he_b_data.face(),
+                v1,
+                v2,
             )
         };
 
@@ -148,6 +157,25 @@ impl TopoOperator for SewEdge {
 
         // 3. Remove the obsolete edge entity
         draft.remove_edge(edge_to_remove)?;
+
+        // 4. Rebuild vertex disks (sewing merges two boundary disks)
+        for &v in &[v1, v2] {
+            let entries = crate::queries::vertex_disks::rebuild_disk_entries(draft.arena(), v)?;
+            if let Some((&first, rest)) = entries.split_first() {
+                let arena = draft.arena_mut();
+                arena.get_vertex_mut(v)?.set_primary_disk(first);
+                // Clear existing NMT extras
+                arena.nmt_extra_disks.remove(&v);
+                let idx = v.index() as usize;
+                if idx < arena.vertex_is_nmt.len() {
+                    arena.vertex_is_nmt[idx] = false;
+                }
+                // Add back any remaining extras
+                for &he in rest {
+                    arena.add_disk_entry(v, he);
+                }
+            }
+        }
 
         // 4. Face version bumps
         draft.arena_mut().bump_face_version(face_a)?;

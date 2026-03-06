@@ -63,14 +63,14 @@ impl TopoOperator for UnsewEdge {
             let he_a_data = draft.arena().get_half_edge(self.he_a)?;
             let he_b_data = draft.arena().get_half_edge(self.he_b)?;
 
-            // Validation 1: Both must be sewn to each other
-            if he_a_data.radial_next() != self.he_b || he_b_data.radial_next() != self.he_a {
+            // Validation 1: Both must belong to the same edge, and the edge must have valence >= 2
+            if he_a_data.edge() != he_b_data.edge() || self.he_a == self.he_b {
                 return Err(KernelError::TopologyViolation {
                     err: TopologyError::BoundaryEdgeInSolid { halfedge_index: self.he_a.index(), shell_index: he_a_data.face().index() }, // borrowing this error kind for now
                     context: Some(ErrorContext {
                         scope: ErrorScope::Operation { op_name: op_name.clone(), invocation_id: inv_id },
                         suggested_fixes: vec![],
-                        detail: format!("UnsewEdge requires two halfedges sewn together, but {} and {} are not radial twins.", self.he_a.index(), self.he_b.index())
+                        detail: format!("UnsewEdge requires two distinct halfedges on the same edge, but {} and {} are not.", self.he_a.index(), self.he_b.index())
                     })
                 });
             }
@@ -79,11 +79,18 @@ impl TopoOperator for UnsewEdge {
         };
         let new_edge = draft.insert_edge(EdgeData::new(self.he_b));
 
-        // 1. Unsew the radial pointers (they become their own twins = boundaries)
+        // 1. Unsew the radial pointers (he_b is spliced out of the ring)
+        let mut prev_radial = self.he_b;
+        while draft.arena().get_half_edge(prev_radial)?.radial_next() != self.he_b {
+            prev_radial = draft.arena().get_half_edge(prev_radial)?.radial_next();
+        }
+        let he_b_next_radial = draft.arena().get_half_edge(self.he_b)?.radial_next();
+        
         draft
             .arena_mut()
-            .get_half_edge_mut(self.he_a)?
-            .set_radial_next(self.he_a);
+            .get_half_edge_mut(prev_radial)?
+            .set_radial_next(he_b_next_radial);
+
         draft
             .arena_mut()
             .get_half_edge_mut(self.he_b)?
@@ -95,7 +102,33 @@ impl TopoOperator for UnsewEdge {
             .get_half_edge_mut(self.he_b)?
             .set_edge(new_edge);
 
-        // 3. Face version bumps
+        if draft.arena().get_edge(original_edge)?.half_edge() == self.he_b {
+            draft
+                .arena_mut()
+                .get_edge_mut(original_edge)?
+                .set_half_edge(self.he_a);
+        }
+
+        // 3. Rebuild vertex disks (unsewing splits a boundary disk)
+        let v1 = draft.arena().get_half_edge(self.he_b)?.origin();
+        let v2 = draft.arena().get_half_edge(self.he_a)?.origin();
+        for &v in &[v1, v2] {
+            let entries = crate::queries::vertex_disks::rebuild_disk_entries(draft.arena(), v)?;
+            if let Some((&first, rest)) = entries.split_first() {
+                let arena = draft.arena_mut();
+                arena.get_vertex_mut(v)?.set_primary_disk(first);
+                arena.nmt_extra_disks.remove(&v);
+                let idx = v.index() as usize;
+                if idx < arena.vertex_is_nmt.len() {
+                    arena.vertex_is_nmt[idx] = false;
+                }
+                for &he in rest {
+                    arena.add_disk_entry(v, he);
+                }
+            }
+        }
+
+        // 4. Face version bumps
         draft.arena_mut().bump_face_version(face_a)?;
         draft.arena_mut().bump_face_version(face_b)?;
 

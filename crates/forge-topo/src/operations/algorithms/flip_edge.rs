@@ -32,6 +32,12 @@ pub struct FlipEdgeOutput {
 /// The two faces adjacent to `edge` must each have exactly 3 edges
 /// (triangles). After flipping, the shared edge connects the two
 /// vertices that were previously NOT connected.
+///
+/// # Non-Convex Inversion
+/// This function performs a purely topological diagonal flip. If the quadrilateral
+/// formed by the two triangles in geometric space is non-convex, the new diagonal
+/// will physically lie outside the face boundary, causing self-intersecting B-Reps.
+/// Topological operations must be supplemented with geometric validation.
 pub fn flip_edge(
     draft: &mut MutableDraft,
     edge: HalfEdgeId,

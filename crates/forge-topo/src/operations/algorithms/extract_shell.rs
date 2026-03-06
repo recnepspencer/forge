@@ -32,6 +32,13 @@ pub struct ExtractShellOutput {
 /// Walks every face in `faces`, finds halfedges whose radial twin
 /// belongs to a face NOT in the set, and unsews them. After this call,
 /// the face subset is topologically disconnected.
+///
+/// # NMT Boundary Blindness
+/// This algorithm assumes manifold or simple boundary topologies.
+/// Specifically, `find_boundary_pairs` relies on checking a single twin via
+/// `he.radial_next()`. On a non-manifold edge (valence 3+), this checks only
+/// one adjacent twin and may completely miss face group boundaries,
+/// leaving the extracted shell partially sewn to the main body.
 pub fn extract_shell(
     draft: &mut MutableDraft,
     faces: &EntityBitset,

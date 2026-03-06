@@ -88,16 +88,13 @@ impl TopoOperator for ExtractShell {
         let old_region = draft.arena().get_shell(self.shell)?.region();
         let lump = draft.arena().get_region(old_region)?.lump();
 
-        // Guard: reject extracting the outer shell if no inner shell can replace it.
+        // Guard: reject extracting the outer shell. The outer boundary defines the region.
         let is_outer = draft.arena().get_region(old_region)?.outer_shell() == Some(self.shell);
         if is_outer {
-            let inner_count = draft.arena().get_region(old_region)?.inner_shells().len();
-            if inner_count == 0 {
-                return Err(KernelError::InvalidInput {
-                    message: "ExtractShell: cannot extract outer shell with no inner shells to replace it".to_string(),
-                    context: None,
-                });
-            }
+            return Err(KernelError::InvalidInput {
+                message: "ExtractShell: cannot extract outer shell; outer boundary defines the region".to_string(),
+                context: None,
+            });
         }
 
         let new_region = draft.insert_region(crate::b_rep::RegionData::new(lump));
@@ -188,22 +185,25 @@ impl TopoOperator for SplitShell {
             draft.arena_mut().reassign_face_shell(face, new_shell)?;
         }
 
-        // Fix: update source shell's representative_face if it was moved.
+        // Fix: update source shell's representative_face if it was moved,
+        // and garbage collect the shell if it is now completely empty.
+        let mut delta_shells = 1;
         let current_rep = draft.arena().get_shell(self.shell)?.representative_face();
         if self.faces_to_move.contains(&current_rep) {
-            let remaining = draft.arena().faces_of_shell(self.shell);
-            let new_rep = if remaining.is_empty() {
-                FaceId::DANGLING
+            let remaining = draft.arena().faces_of_shell(self.shell).to_vec();
+            if remaining.is_empty() {
+                draft.arena_mut().get_region_mut(region)?.remove_shell(self.shell);
+                draft.remove_shell(self.shell)?;
+                delta_shells = 0;
             } else {
-                remaining[0]
-            };
-            draft.arena_mut().get_shell_mut(self.shell)?.set_representative_face(new_rep);
+                draft.arena_mut().get_shell_mut(self.shell)?.set_representative_face(remaining[0]);
+            }
         }
 
         Ok(ExecutionResult {
             value: SplitShellOutput { new_shell },
             declared_delta: EulerDelta {
-                shells: 1,
+                shells: delta_shells,
                 ..EulerDelta::default()
             },
         })
