@@ -347,7 +347,7 @@ fn insert_cell_faces(
         draft
             .arena_mut()
             .get_face_mut(face_id)?
-            .set_outer_loop(loop_id);
+            .loops.set_outer(loop_id);
         draft
             .arena_mut()
             .get_loop_mut(loop_id)?
@@ -516,7 +516,7 @@ fn detect_coplanar_twin_faces(
             Ok(f) => f,
             Err(_) => continue,
         };
-        let loop_id = face.outer_loop();
+        let loop_id = face.loops.outer();
         let first_he = match draft.arena().get_loop(loop_id) {
             Ok(l) => l.half_edge(),
             Err(_) => continue,
@@ -581,7 +581,7 @@ fn remove_stitched_faces(
 ) -> Result<(), KernelError> {
     for &face_id in faces_to_remove {
         let face = draft.arena().get_face(face_id)?;
-        let loop_id = face.outer_loop();
+        let loop_id = face.loops.outer();
         let first_he = draft.arena().get_loop(loop_id)?.half_edge();
 
         let mut he_ids = Vec::new();
@@ -647,7 +647,7 @@ fn merge_coplanar_neighbors(
                 None => continue,
             };
 
-            let loop_id = draft.arena().get_face(face_id)?.outer_loop();
+            let loop_id = draft.arena().get_face(face_id)?.loops.outer();
             let first_he = draft.arena().get_loop(loop_id)?.half_edge();
 
             let mut dissolve_target = None;
@@ -742,7 +742,7 @@ fn dissolve_edge(draft: &mut MutableDraft, he_id: HalfEdgeId) -> Result<FaceId, 
     }
 
     // Update face A's loop entry to a surviving halfedge
-    let loop_a = draft.arena().get_face(face_a)?.outer_loop();
+    let loop_a = draft.arena().get_face(face_a)?.loops.outer();
     draft
         .arena_mut()
         .get_loop_mut(loop_a)?
@@ -769,7 +769,7 @@ fn dissolve_edge(draft: &mut MutableDraft, he_id: HalfEdgeId) -> Result<FaceId, 
     draft.remove_half_edge(twin_id)?;
 
     // Remove face B and its loop
-    let loop_b = draft.arena().get_face(face_b)?.outer_loop();
+    let loop_b = draft.arena().get_face(face_b)?.loops.outer();
     draft.remove_loop(loop_b)?;
     draft.remove_face(face_b)?;
 

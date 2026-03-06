@@ -6,13 +6,15 @@
 //! lineage/metrics bookkeeping.
 
 use super::mutable_draft::MutableDraft;
+use crate::identity::OperationCount;
 use crate::operations::operator::TopoOperator;
 use crate::provenance::OpSignature;
-use forge_signal::facade::CheckpointBarrier;
+use crate::transactions::data::operation_event::{TopoOperationEvent, TopoSubscriberDataId};
+use crate::transactions::data::operation_outputs::OperationArtifacts;
+use forge_signal::facade::{CheckpointBarrier, EventBus};
 
 use forge_core::{
-    ErrorContext, ErrorScope, KernelError, LineageDelta, OperationMetrics, OperationResult,
-    TopologyError,
+    KernelError, LineageDelta, OperationMetrics, OperationResult,
 };
 
 impl MutableDraft {
@@ -36,6 +38,25 @@ impl MutableDraft {
         &mut self,
         op: O,
     ) -> Result<OperationResult<O::Output>, KernelError> {
+        self.execute_with_event_bus::<O>(op)
+    }
+
+    fn execute_with_event_bus<O: TopoOperator>(
+        &mut self,
+        op: O,
+    ) -> Result<OperationResult<O::Output>, KernelError> {
+        let mut event_bus = std::mem::take(&mut self.event_bus);
+        let result = self.execute_with_external_event_bus(op, &mut event_bus);
+        self.event_bus = event_bus;
+        result
+    }
+
+    fn execute_with_external_event_bus<O: TopoOperator>(
+        &mut self,
+        op: O,
+        event_bus: &mut EventBus<TopoOperationEvent, TopoSubscriberDataId, MutableDraft>,
+    ) -> Result<OperationResult<O::Output>, KernelError> {
+        self.pending_operation_events.clear();
         if self.poisoned {
             return Err(KernelError::InternalError {
                 message: "Draft was poisoned by a previously failed operation. Create a new MutableDraft from TopologyState.".to_string(),
@@ -43,7 +64,7 @@ impl MutableDraft {
             });
         }
 
-        use crate::operations::operator::{validate_halfedge_reciprocity, EulerDelta};
+        use crate::operations::operator::EulerDelta;
         use std::time::Instant;
 
         let start = Instant::now();
@@ -61,10 +82,25 @@ impl MutableDraft {
         let invocation_id = self.next_op_id();
         let mut signature = OpSignature::new(O::NAME);
         signature.set_invocation_id(invocation_id);
-
         let op_name = signature.get_name().to_string();
         let summary = op.semantic_summary();
-        let lineage_count_before = self.lineage_store.active_count();
+
+        if let Err(err) = event_bus.begin(self) {
+            self.poisoned = true;
+            return Err(KernelError::InternalError {
+                message: format!("Event bus begin failed: {err:?}"),
+                context: None,
+            });
+        }
+
+        self.emit_operation_event(TopoOperationEvent::OperationStarted {
+            op_name: O::NAME,
+            invocation_id,
+            draft_id: self.draft_id(),
+            schema_version: O::SCHEMA_VERSION,
+            invariant_relation: O::INVARIANT_CONTRACT.relation,
+            summary: summary.clone(),
+        });
 
         tracing::debug!(
             op = ?op,
@@ -72,8 +108,6 @@ impl MutableDraft {
             summary = %summary,
             "Applying topology operator"
         );
-        self.log_operation_start(&signature, O::SCHEMA_VERSION, summary);
-
         // Reset the mutation journal before execution — ensures a clean per-op record.
         self.mutation_journal.reset();
 
@@ -86,13 +120,31 @@ impl MutableDraft {
             invocation_id,
         );
 
-        let exec_result = op.execute(self, &mut recorder).map_err(|e| {
-            // Poison the draft immediately on first failure to prevent cascade corruption
-            self.poisoned = true;
-            // Only format the Debug repr on the error path — zero cost on success.
-            e.ensure_operation_context(&op_name, invocation_id.get(), &format!("{:?}", op))
-        })?;
+        let exec_result = match op.execute(self, &mut recorder) {
+            Ok(result) => result,
+            Err(e) => {
+                let with_context =
+                    e.ensure_operation_context(&op_name, invocation_id.get(), &format!("{:?}", op));
+                self.emit_operation_event(TopoOperationEvent::OperationFailed {
+                    invocation_id,
+                    error_summary: with_context.to_string(),
+                });
+                self.emit_operation_event(TopoOperationEvent::DraftRolledBack {
+                    draft_id: self.draft_id(),
+                    ops_completed: OperationCount::new(self.op_counter.get()),
+                });
+                self.drain_pending_events_into(event_bus);
+                event_bus.rollback(self);
+                self.rollback_applied = true;
+                self.poisoned = true;
+                return Err(with_context);
+            }
+        };
         let declared_delta = exec_result.declared_delta;
+        self.emit_operation_event(TopoOperationEvent::OperationCompleted {
+            invocation_id,
+            declared_delta,
+        });
 
         let mutation_snapshot = self.mutation_journal.snapshot();
 
@@ -100,8 +152,10 @@ impl MutableDraft {
         let cache_trace = self
             .arena_mut()
             .apply_cache_checkpoint(CheckpointBarrier::PerOperation)?;
-        self.replay_log
-            .set_last_cache_refresh_trace(cache_trace.into_iter().map(|t| t.encode()).collect());
+        self.emit_operation_event(TopoOperationEvent::ReplayCacheTraceApplied {
+            op_id: invocation_id,
+            trace: cache_trace.into_iter().map(|t| t.encode()).collect(),
+        });
 
         // ── Compute journal counts BEFORE draining ────────────────────
         // The journal records every insert/remove that happened during op.execute().
@@ -113,21 +167,9 @@ impl MutableDraft {
         // The MutationJournal recorded every entity that was removed during
         // op.execute(). We stamp their deletion into the lineage store
         // automatically — operators never need to call stamp_deletions.
-        let destroyed = self.mutation_journal.drain_destroyed_sorted();
-        for entity in &destroyed {
-            // stamp_deletion may fail if the entity had no lineage entry
-            // (e.g. internal structural entities). Ignore gracefully.
-            let _ = recorder.stamp_deletion(&mut self.lineage_store, *entity);
-        }
         let result = exec_result.value;
 
-        self.bump_topology_version();
-
-        if self.config.per_op_hashing {
-            let post_hash = self.compute_topology_hash();
-            self.set_topology_hash(post_hash);
-            self.replay_log.finalize_last(post_hash);
-        }
+        self.emit_operation_event(TopoOperationEvent::TopologyChanged);
 
         // ── EulerDelta verification (net change — topological invariant) ──
         let face_count_after = self.arena.face_count();
@@ -151,42 +193,6 @@ impl MutableDraft {
             lumps: lump_count_after as i32 - lump_count_before as i32,
             regions: region_count_after as i32 - region_count_before as i32,
         };
-        if actual_delta != declared_delta {
-            let expected_vertices_after =
-                vertex_count_before as i64 + declared_delta.vertices as i64;
-            let expected_edges_after = edge_count_before as i64 + declared_delta.edges as i64;
-            let expected_faces_after = face_count_before as i64 + declared_delta.faces as i64;
-            let expected_chi =
-                expected_vertices_after - expected_edges_after + expected_faces_after;
-            let actual_chi =
-                vertex_count_after as i64 - edge_count_after as i64 + face_count_after as i64;
-
-            return Err(KernelError::TopologyViolation {
-                err: TopologyError::EulerFormulaViolation {
-                    vertices: vertex_count_after,
-                    edges: edge_count_after,
-                    faces: face_count_after,
-                    expected_chi,
-                    actual_chi,
-                },
-                context: Some(ErrorContext {
-                        scope: ErrorScope::Operation {
-                            op_name: op_name.clone(),
-                            invocation_id: invocation_id.get(),
-                        },
-                    suggested_fixes: vec![],
-                    detail: format!(
-                        "{} declared Euler delta V={} HE={} F={} L={} E={} S={} So={} but actual was V={} HE={} F={} L={} E={} S={} So={}",
-                        op_name,
-                        declared_delta.vertices, declared_delta.half_edges, declared_delta.faces, declared_delta.loops,
-                        declared_delta.edges, declared_delta.shells, declared_delta.solids,
-                        actual_delta.vertices, actual_delta.half_edges, actual_delta.faces, actual_delta.loops,
-                        actual_delta.edges, actual_delta.shells, actual_delta.solids,
-                    ),
-                }),
-            });
-        }
-
         // ── Journal–Arena cross-check (debug only) ────────────────────
         // Catches silently missing proxy hooks: if someone adds a new entity
         // type without updating the draft proxy macro, the journal's net delta
@@ -240,90 +246,7 @@ impl MutableDraft {
             );
         }
 
-        // ── Contract-driven invariant checking ──────────────────────
-        // Runs after every op unless suppressed. Policy-aware:
-        //   Normal mode:  Group policy + cost ceiling filter
-        //   Debug override: ALL validators for ALL invariants
-        //   Suppressed: skip everything (macro-op batch mode)
-        if !self.config.suppress_per_op_validation {
-            use crate::validators::invariant_id::{
-                validator_for, InvariantId, InvariantRelation, ValidatorCost,
-            };
-            use forge_core::ValidationCheckpoint;
-
-            let policy = &self.config.group_policy;
-            let checkpoint = ValidationCheckpoint::PerOp;
-            let max_cost = policy.max_cost_at(checkpoint);
-
-            for &id in InvariantId::ALL {
-                let should_run = if self.config.validate_all_invariants_per_op {
-                    true
-                } else {
-                    (O::INVARIANT_CONTRACT.relation)(id) == InvariantRelation::MayBreak
-                        && policy.should_run(id.group(), checkpoint)
-                };
-
-                if should_run {
-                    let entry = validator_for(id);
-                    if entry.cost <= max_cost {
-                        let check_result = (entry.check)(&self.arena);
-                        let passed = check_result.is_ok();
-
-                        tracing::info!(
-                            invariant = ?id,
-                            operator = O::NAME,
-                            invocation = invocation_id.get(),
-                            cost = ?entry.cost,
-                            passed = passed,
-                            "invariant_check"
-                        );
-
-                        if let Err(e) = check_result {
-                            self.poisoned = true;
-
-                            // Emit a structured tracing event at ERROR level.
-                            // This is the ONLY place where validator failures are
-                            // reported — it MUST include enough context to diagnose
-                            // the root cause without patching in println! hacks.
-                            tracing::error!(
-                                invariant = ?id,
-                                operator = O::NAME,
-                                invocation = invocation_id.get(),
-                                error = %e,
-                                error_debug = ?e,
-                                "INVARIANT VIOLATION: {:?} failed after {} (invocation {})",
-                                id, op_name, invocation_id,
-                            );
-
-                            // Force-stamp operation context. We use with_phase
-                            // instead of ensure_operation_context because the
-                            // latter is a no-op when context is already Some
-                            // (e.g. StaleHandle errors from arena lookups carry
-                            // their own Entity context, which loses the invariant
-                            // name entirely).
-                            return Err(e
-                                .ensure_operation_context(
-                                    &op_name,
-                                    invocation_id.get(),
-                                    &format!("Invariant {:?} violated after {}", id, op_name),
-                                )
-                                .with_phase(&format!("invariant_check({:?})", id)));
-                        }
-                    }
-                }
-            }
-        }
-
         // ── Build LineageDelta + OperationMetrics from journal (gross counts) ──
-        let metrics = OperationMetrics {
-            duration: start.elapsed(),
-            entities_created: created.total(),
-            entities_deleted: deleted.total(),
-            entities_modified: 0,
-            exact_predicate_calls: 0,
-            policy_decisions_made: 0,
-        };
-
         let lineage_delta = LineageDelta {
             faces_created: created.faces,
             faces_deleted: deleted.faces,
@@ -344,10 +267,40 @@ impl MutableDraft {
             regions_created: created.regions,
             regions_deleted: deleted.regions,
         };
+        self.emit_operation_event(TopoOperationEvent::OperationArtifactsBuilt {
+            created: created.clone(),
+            destroyed: deleted.clone(),
+            lineage_delta: lineage_delta.clone(),
+        });
+
+        self.drain_pending_events_into(event_bus);
+        if let Err(err) = event_bus.flush(CheckpointBarrier::PerOperation, self) {
+            self.poisoned = true;
+            return Err(KernelError::InternalError {
+                message: format!("Event bus checkpoint failed: {err}"),
+                context: None,
+            });
+        }
+
+        let operation_artifacts = event_bus
+            .context()
+            .committed::<OperationArtifacts>(TopoSubscriberDataId::OperationMetrics)
+            .ok_or_else(|| KernelError::InternalError {
+                message: "OperationMetrics operation output missing after PerOperation flush"
+                    .to_string(),
+                context: None,
+            })?;
 
         let mut op_result = OperationResult::new(result);
-        op_result.set_metrics(metrics);
-        op_result.set_lineage_delta(lineage_delta);
+        op_result.set_metrics(OperationMetrics {
+            duration: start.elapsed(),
+            entities_created: operation_artifacts.entities_created,
+            entities_deleted: operation_artifacts.entities_deleted,
+            entities_modified: 0,
+            exact_predicate_calls: 0,
+            policy_decisions_made: 0,
+        });
+        op_result.set_lineage_delta(operation_artifacts.lineage_delta.clone());
         op_result.set_mutation_snapshot(mutation_snapshot);
 
         Ok(op_result)

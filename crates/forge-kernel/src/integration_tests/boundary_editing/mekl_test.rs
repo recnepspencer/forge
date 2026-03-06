@@ -37,7 +37,7 @@ fn kfmrh_then_mekl_bridges_hole() {
         .arena()
         .get_face(target_face)
         .unwrap()
-        .inner_loops()
+        .loops.inners()
         .len();
     assert_eq!(inner_loops_before, 0);
 
@@ -61,12 +61,12 @@ fn kfmrh_then_mekl_bridges_hole() {
         .arena()
         .get_face(target_face)
         .unwrap()
-        .inner_loops()
+        .loops.inners()
         .len();
     assert_eq!(inner_loops_after, 1, "KFMRH should create 1 inner loop");
 
-    let outer_loop = draft.arena().get_face(target_face).unwrap().outer_loop();
-    let inner_loop = draft.arena().get_face(target_face).unwrap().inner_loops()[0];
+    let outer_loop = draft.arena().get_face(target_face).unwrap().loops.outer();
+    let inner_loop = draft.arena().get_face(target_face).unwrap().loops.inners()[0];
     assert_ne!(outer_loop, inner_loop);
 
     let he_outer = draft.arena().get_loop(outer_loop).unwrap().half_edge();
@@ -87,7 +87,7 @@ fn kfmrh_then_mekl_bridges_hole() {
         .arena()
         .get_face(target_face)
         .unwrap()
-        .inner_loops()
+        .loops.inners()
         .len();
     assert_eq!(inner_loops_after_mekl, 0, "MEKL should kill the inner loop");
 
@@ -139,8 +139,8 @@ fn mekl_keml_roundtrip() {
         })
         .unwrap();
 
-    let outer_loop = draft.arena().get_face(target_face).unwrap().outer_loop();
-    let inner_loop = draft.arena().get_face(target_face).unwrap().inner_loops()[0];
+    let outer_loop = draft.arena().get_face(target_face).unwrap().loops.outer();
+    let inner_loop = draft.arena().get_face(target_face).unwrap().loops.inners()[0];
 
     let he_outer = draft.arena().get_loop(outer_loop).unwrap().half_edge();
     let he_inner = draft.arena().get_loop(inner_loop).unwrap().half_edge();
@@ -158,7 +158,7 @@ fn mekl_keml_roundtrip() {
             .arena()
             .get_face(target_face)
             .unwrap()
-            .inner_loops()
+            .loops.inners()
             .len(),
         0
     );
@@ -173,7 +173,7 @@ fn mekl_keml_roundtrip() {
             .arena()
             .get_face(target_face)
             .unwrap()
-            .inner_loops()
+            .loops.inners()
             .len(),
         1,
         "KEML should restore the inner loop"

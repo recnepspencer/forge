@@ -34,6 +34,20 @@ impl OperationId {
     }
 }
 
+/// Typed count of completed operations in a draft lifecycle.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct OperationCount(u64);
+
+impl OperationCount {
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+}
+
 impl From<u64> for DraftId {
     fn from(value: u64) -> Self {
         Self::new(value)
@@ -41,6 +55,12 @@ impl From<u64> for DraftId {
 }
 
 impl From<u64> for OperationId {
+    fn from(value: u64) -> Self {
+        Self::new(value)
+    }
+}
+
+impl From<u64> for OperationCount {
     fn from(value: u64) -> Self {
         Self::new(value)
     }
@@ -55,5 +75,11 @@ impl std::fmt::Display for DraftId {
 impl std::fmt::Display for OperationId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "op-{}", self.0)
+    }
+}
+
+impl std::fmt::Display for OperationCount {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ops-{}", self.0)
     }
 }

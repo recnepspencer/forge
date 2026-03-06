@@ -36,6 +36,12 @@ jobs:
       - name: Delivery guards
         run: python3 scripts/ci/check_delivery_guards.py
 
+      - name: Determinism guards
+        run: python3 scripts/ci/check_determinism_guards.py
+
+      - name: Subscriber discipline guards
+        run: python3 scripts/ci/check_subscriber_discipline.py
+
       - name: Build workspace
         run: cargo build --workspace
 

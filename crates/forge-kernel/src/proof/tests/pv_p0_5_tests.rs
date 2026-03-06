@@ -132,7 +132,7 @@ fn pv_14_50k_entities_under_100ms() {
         }
 
         for (fid, fdata) in src.iter_faces() {
-            let new_loop = loop_map[&fdata.outer_loop().index()];
+            let new_loop = loop_map[&fdata.loops.outer().index()];
             let new_fid = dst.insert_face(
                 FaceData::new(new_loop, shell_map[&fdata.shell().index()]),
                 None,
@@ -188,10 +188,10 @@ fn pv_14_50k_entities_under_100ms() {
         for (fid, fdata) in src.iter_faces() {
             let new_fid = face_map[&fid.index()];
             let f_mut = dst.get_face_mut(new_fid).unwrap();
-            f_mut.set_outer_loop(loop_map[&fdata.outer_loop().index()]);
+            f_mut.loops.set_outer(loop_map[&fdata.loops.outer().index()]);
             f_mut.set_shell(shell_map[&fdata.shell().index()]);
-            for inner in fdata.inner_loops() {
-                f_mut.add_inner_loop(loop_map[&inner.index()]);
+            for inner in fdata.loops.inners() {
+                f_mut.loops.add_inner(loop_map[&inner.index()]);
             }
         }
 

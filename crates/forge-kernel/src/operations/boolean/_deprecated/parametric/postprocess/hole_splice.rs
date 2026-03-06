@@ -78,7 +78,7 @@ fn find_faces_with_holes(arena: &forge_topo::b_rep::TopologyArena) -> Vec<FaceId
 /// Get the inner loop IDs for a face (snapshot before mutation).
 fn get_face_inner_loops(draft: &MutableDraft, face: FaceId) -> Result<Vec<LoopId>, KernelError> {
     let face_data = draft.arena().get_face(face)?;
-    Ok(face_data.inner_loops().to_vec())
+    Ok(face_data.loops.inners().to_vec())
 }
 
 /// Splice one inner hole into the outer boundary of a face.
@@ -92,7 +92,7 @@ fn splice_one_hole(
         Some(p) => p,
         None => return Ok(false),
     };
-    let outer_loop = draft.arena().get_face(face)?.outer_loop();
+    let outer_loop = draft.arena().get_face(face)?.loops.outer();
 
     let inner_he_start = draft.arena().get_loop(inner_loop)?.half_edge();
     let outer_he_start = draft.arena().get_loop(outer_loop)?.half_edge();

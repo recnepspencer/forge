@@ -12,13 +12,28 @@ use super::test_support::{insert_test_solid_shell, validate_geometric_invariants
 use crate::geometry::facade::{ExactPosition, GeometryStore, GeometryView};
 use crate::integration_tests::harness::builders::configs::test_config;
 use crate::operations::primitives::make_cube;
-use forge_core::{KernelError, TopologyError};
-use forge_topo::handles::VertexId;
+use forge_core::{FlatToleranceProvider, KernelError, TopologyError};
+use forge_spatial::{validate_geometric_invariants, GeometryContext};
+use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
 /// Build a position lookup closure from a GeometryStore.
 fn position_lookup(store: &GeometryStore) -> impl Fn(VertexId) -> Option<[f64; 3]> + '_ {
     |vertex_id| store.get_vertex_position(vertex_id).copied()
+}
+
+/// Build a face-plane lookup closure from a GeometryStore.
+fn plane_lookup(
+    store: &GeometryStore,
+) -> impl Fn(FaceId) -> Option<forge_geom::facade::Plane> + '_ {
+    |face_id| store.planes.get(face_id).cloned()
+}
+
+/// Build an edge-curve-kind lookup closure from a GeometryStore.
+fn curve_lookup(
+    store: &GeometryStore,
+) -> impl Fn(forge_topo::handles::EdgeId) -> Option<forge_geom::facade::CurveKind> + '_ {
+    |edge_id| store.curves.get(edge_id).map(|curve| curve.kind.clone())
 }
 
 /// PV-01: A face collapsed to zero area must be detected.
@@ -273,7 +288,17 @@ fn valid_cube_passes_geometric_invariants() {
     let arena = topo.arena();
 
     let lookup = position_lookup(&geom);
-    let result = validate_geometric_invariants_all_faces(arena, &lookup, 1e-10, 1e-12);
+    let planes = plane_lookup(&geom);
+    let curves = curve_lookup(&geom);
+    let tol = FlatToleranceProvider::new((1e-10f64).sqrt().max(1e-12));
+    let ctx = GeometryContext {
+        position_fn: &lookup,
+        plane_fn: &planes,
+        is_planar: &|_| true,
+        curve_fn: &curves,
+        tolerance_provider: &tol,
+    };
+    let result = validate_geometric_invariants(arena, &ctx);
     assert!(result.is_ok(), "Valid cube should pass: {:?}", result.err());
 }
 
@@ -336,7 +361,7 @@ fn pv_05_inner_loop_wrong_orientation() {
         arena
             .get_face_mut(face)
             .unwrap()
-            .add_inner_loop(inner_loop_id);
+            .loops.add_inner(inner_loop_id);
         arena
             .get_shell_mut(placeholder_shell)
             .unwrap()

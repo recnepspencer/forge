@@ -125,7 +125,7 @@ impl MutationJournal {
 }
 
 /// Per-`EntityKind` tallies derived from a journal's entity lists.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct EntityKindCounts {
     pub faces: u32,
     pub half_edges: u32,

@@ -34,8 +34,8 @@ fn keml_splits_bridge_into_two_loops() {
         })
         .unwrap();
 
-    let outer_loop = draft.arena().get_face(target_face).unwrap().outer_loop();
-    let inner_loop = draft.arena().get_face(target_face).unwrap().inner_loops()[0];
+    let outer_loop = draft.arena().get_face(target_face).unwrap().loops.outer();
+    let inner_loop = draft.arena().get_face(target_face).unwrap().loops.inners()[0];
     let he_outer = draft.arena().get_loop(outer_loop).unwrap().half_edge();
     let he_inner = draft.arena().get_loop(inner_loop).unwrap().half_edge();
 
@@ -69,14 +69,14 @@ fn keml_splits_bridge_into_two_loops() {
         .arena()
         .get_face(target_face)
         .unwrap()
-        .inner_loops()
+        .loops.inners()
         .len();
     assert_eq!(
         inner_count, 1,
         "KEML should add 1 inner loop to target face"
     );
 
-    let restored_inner = draft.arena().get_face(target_face).unwrap().inner_loops()[0];
+    let restored_inner = draft.arena().get_face(target_face).unwrap().loops.inners()[0];
     let restored_inner_he = draft.arena().get_loop(restored_inner).unwrap().half_edge();
     let restored_inner_valence = collect_face_loop(draft.arena(), restored_inner_he)
         .unwrap()

@@ -99,7 +99,7 @@ fn compute_face_aabb(
     face: FaceId,
 ) -> Option<FaceAabb> {
     let face_data = arena.get_face(face).ok()?;
-    let loop_data = arena.get_loop(face_data.outer_loop()).ok()?;
+    let loop_data = arena.get_loop(face_data.loops.outer()).ok()?;
     let first_he = loop_data.half_edge();
     let mut he = first_he;
     let mut min = [f64::MAX; 3];

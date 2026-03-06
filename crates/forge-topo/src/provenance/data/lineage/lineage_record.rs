@@ -457,7 +457,7 @@ mod tests {
     #[test]
     fn op_signature_display() {
         let op = OpSignature::with_id("split_edge", 42);
-        assert_eq!(format!("{}", op), "split_edge#42");
+        assert_eq!(format!("{}", op), "split_edge#op-42");
     }
 
     #[test]

@@ -145,7 +145,7 @@ pub fn find_g1_chain(
         }
 
         let candidate_data = arena.get_half_edge(candidate)?;
-        if arena.is_bridge(candidate) {
+        if arena.view_half_edge(candidate)?.is_bridge() {
             break;
         }
 

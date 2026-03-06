@@ -19,7 +19,7 @@
 //! └── facade.rs
 //! ```
 
-mod data;
-mod logic;
+pub(crate) mod data;
+pub(crate) mod logic;
 
 pub mod facade;

@@ -825,7 +825,13 @@ mod tests {
         let _ = arena.faces_of_shell_fresh(shell).unwrap();
 
         assert!(
-            arena.cache_runtime.runtime.dirty().dirty_domains().next().is_none(),
+            arena
+                .cache_runtime
+                .runtime
+                .dirty()
+                .dirty_domains()
+                .next()
+                .is_none(),
             "on-demand fresh reads should drain pending dirty domains"
         );
     }

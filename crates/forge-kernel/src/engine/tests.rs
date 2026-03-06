@@ -9,6 +9,7 @@ use crate::geometry::facade::GeometryStore;
 use crate::operations::primitives::MakePrimitiveFeature;
 use crate::registry::facade::CommandDispatcher;
 use forge_core::PolicyKind;
+use forge_core::tracing::TraceEvent;
 use forge_schema::{Command, EntityRef};
 use forge_signal::facade::NodeId;
 
@@ -570,6 +571,82 @@ fn pipeline_emits_audit_at_full_level() {
         "AuditLevel::Full should produce at least one audit span, got none. Events: {:?}",
         events,
     );
+}
+
+#[test]
+fn pipeline_make_cube_is_deterministic_across_runs() {
+    let feature = MakePrimitiveFeature::cube("det_cube", [0.0, 0.0, 0.0], 2.0);
+    let run_a = FeaturePipeline::execute(&feature, HashMap::new(), &KernelConfig::default())
+        .expect("first pipeline run should succeed");
+    let run_b = FeaturePipeline::execute(&feature, HashMap::new(), &KernelConfig::default())
+        .expect("second pipeline run should succeed");
+
+    let topo_hash_a =
+        forge_topo::transactions::compute_arena_topology_hash(run_a.get_value().topology().arena());
+    let topo_hash_b =
+        forge_topo::transactions::compute_arena_topology_hash(run_b.get_value().topology().arena());
+    assert_eq!(topo_hash_a, topo_hash_b, "topology hash drift across runs");
+
+    assert_eq!(
+        run_a.get_state_hash_before(),
+        run_b.get_state_hash_before(),
+        "state_hash_before drift across runs"
+    );
+    assert_eq!(
+        run_a.get_state_hash_after(),
+        run_b.get_state_hash_after(),
+        "state_hash_after drift across runs"
+    );
+    assert_eq!(
+        run_a.get_decision_log().summary(),
+        run_b.get_decision_log().summary(),
+        "decision summary drift across runs"
+    );
+    assert_eq!(
+        run_a.get_extra_summaries(),
+        run_b.get_extra_summaries(),
+        "audit summary drift across runs"
+    );
+}
+
+#[test]
+fn pipeline_nested_tiers_emit_ordered_summaries() {
+    let feature = MakePrimitiveFeature::cube("audit_order_cube", [0.0, 0.0, 0.0], 2.0);
+    let envelope = FeaturePipeline::execute(&feature, HashMap::new(), &KernelConfig::default())
+        .expect("pipeline execution should succeed");
+    let summaries = envelope.get_extra_summaries();
+    assert!(
+        summaries.len() >= 2,
+        "expected nested-tier summaries (primitive + feature), got {:?}",
+        summaries
+    );
+
+    let parse_count = |s: &str| -> Option<usize> {
+        let (_, rest) = s.split_once("summary: ")?;
+        let (num, _) = rest.split_once(" decisions")?;
+        num.parse::<usize>().ok()
+    };
+    let primitive_count =
+        parse_count(&summaries[0]).expect("first summary should include decision count");
+    let feature_count =
+        parse_count(&summaries[1]).expect("second summary should include decision count");
+
+    assert!(
+        primitive_count > 0,
+        "primitive-tier summary should contain decisions, got {}",
+        primitive_count
+    );
+    assert_eq!(
+        feature_count, 0,
+        "feature-tier summary should reflect no direct feature-scope decisions"
+    );
+
+    let events = envelope.get_decision_log().get_events();
+    let audit_spans = events
+        .iter()
+        .filter(|e| matches!(e, TraceEvent::StartSpan { name, .. } if name.starts_with("audit/")))
+        .count();
+    assert!(audit_spans >= 1, "expected at least one audit span");
 }
 
 #[test]

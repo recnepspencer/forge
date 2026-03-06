@@ -794,3 +794,509 @@ fn determinism_golden_pipeline_roundtrip_preserves_replay_hash_and_lineage_order
         "determinism pipeline must not rely on global cache invalidation"
     );
 }
+
+#[test]
+fn event_bus_wiring_with_real_operator_emits_lifecycle_events() {
+    use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use crate::transactions::{TopoOperationEvent, TopoSubscriberDataId};
+    use forge_signal::facade::{EventSubscriber, SubscriberContext, SubscriberId};
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+
+    struct CountingSubscriber {
+        started: Arc<AtomicUsize>,
+        completed: Arc<AtomicUsize>,
+        checkpoints: Arc<AtomicUsize>,
+    }
+
+    impl EventSubscriber for CountingSubscriber {
+        type Event = TopoOperationEvent;
+        type DataId = TopoSubscriberDataId;
+        type RuntimeContext = crate::transactions::logic::mutable_draft::MutableDraft;
+
+        fn id(&self) -> SubscriberId {
+            SubscriberId::new(10)
+        }
+
+        fn name(&self) -> &'static str {
+            "counting_subscriber"
+        }
+
+        fn requires(&self) -> &'static [TopoSubscriberDataId] {
+            &[]
+        }
+
+        fn provides(&self) -> &'static [TopoSubscriberDataId] {
+            &[]
+        }
+
+        fn on_event(&mut self, event: &Self::Event) {
+            match event {
+                TopoOperationEvent::OperationStarted { .. } => {
+                    self.started.fetch_add(1, Ordering::SeqCst);
+                }
+                TopoOperationEvent::OperationCompleted { .. } => {
+                    self.completed.fetch_add(1, Ordering::SeqCst);
+                }
+                _ => {}
+            }
+        }
+
+        fn on_checkpoint(
+            &mut self,
+            _barrier: forge_signal::facade::CheckpointBarrier,
+            _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
+                    _runtime: &mut Self::RuntimeContext,
+        ) -> Result<(), forge_core::KernelError> {
+            self.checkpoints.fetch_add(1, Ordering::SeqCst);
+            Ok(())
+        }
+    }
+
+    let started = Arc::new(AtomicUsize::new(0));
+    let completed = Arc::new(AtomicUsize::new(0));
+    let checkpoints = Arc::new(AtomicUsize::new(0));
+
+    let mut draft = TopologyState::empty().into_mutation();
+    draft
+        .event_bus_mut()
+        .subscribe(Box::new(CountingSubscriber {
+            started: started.clone(),
+            completed: completed.clone(),
+            checkpoints: checkpoints.clone(),
+        }))
+        .unwrap();
+
+    draft
+        .execute(MakeVertexFace {
+            shell_kind: crate::b_rep::ShellKind::Sheet,
+        })
+        .expect("operator should execute under event bus wiring");
+    let _committed = draft.commit().expect("commit should succeed");
+
+    assert_eq!(started.load(Ordering::SeqCst), 1);
+    assert_eq!(completed.load(Ordering::SeqCst), 1);
+    assert!(
+        checkpoints.load(Ordering::SeqCst) >= 1,
+        "at least one checkpoint flush should have occurred"
+    );
+}
+
+#[test]
+fn operation_subscribers_stage_expected_outputs_after_execute() {
+    use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use crate::transactions::{
+        EulerDeltaCheck, LineageSummary, MutationCounts,
+        OperationArtifacts, ReplayStats, ValidationSummary,
+        VersionCounters,
+    };
+
+    let mut draft = TopologyState::empty().into_mutation();
+    draft
+        .execute(MakeVertexFace {
+            shell_kind: crate::b_rep::ShellKind::Sheet,
+        })
+        .expect("operator should execute");
+
+    let journal_created = draft.mutation_journal().count_created();
+    let journal_deleted = draft.mutation_journal().count_destroyed();
+    let context = draft.event_bus_mut().context();
+    let mutation = context
+        .committed::<MutationCounts>(
+            crate::transactions::TopoSubscriberDataId::MutationCounts,
+        )
+        .expect("missing mutation operation output");
+    assert_eq!(mutation.created, journal_created);
+    assert_eq!(mutation.destroyed, journal_deleted);
+
+    let versions = context
+        .committed::<VersionCounters>(
+            crate::transactions::TopoSubscriberDataId::VersionCounters,
+        )
+        .expect("missing version operation output");
+    assert_eq!(versions.topology_bumps, 1);
+    assert_eq!(versions.geometry_bumps, 0);
+
+    let replay = context
+        .committed::<ReplayStats>(
+            crate::transactions::TopoSubscriberDataId::ReplayEntryFinalization,
+        )
+        .expect("missing replay operation output");
+    assert_eq!(replay.op_starts, 1);
+    assert_eq!(replay.entry_records, 1);
+    assert_eq!(replay.cache_trace_updates, 1);
+
+    let euler = context
+        .committed::<EulerDeltaCheck>(
+            crate::transactions::TopoSubscriberDataId::EulerDeltaResult,
+        )
+        .expect("missing euler operation output");
+    assert!(euler.matched);
+
+    let validation = context
+        .committed::<ValidationSummary>(
+            crate::transactions::TopoSubscriberDataId::ValidationResult,
+        )
+        .expect("missing validation operation output");
+    assert_eq!(validation.checks_failed, 0);
+
+    let lineage = context
+        .committed::<LineageSummary>(crate::transactions::TopoSubscriberDataId::LineageEvents)
+        .expect("missing lineage operation output");
+    assert_eq!(lineage.deletions_seen, 0);
+    assert_eq!(lineage.deletions_stamped, 0);
+
+    let artifacts = context
+        .committed::<OperationArtifacts>(
+            crate::transactions::TopoSubscriberDataId::OperationMetrics,
+        )
+        .expect("missing operation-artifacts operation output");
+    assert_eq!(artifacts.entities_created, journal_created.total());
+    assert_eq!(artifacts.entities_deleted, journal_deleted.total());
+}
+
+#[test]
+fn operation_result_artifacts_are_sourced_from_subscriber_outputs() {
+    use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+
+    let mut draft = TopologyState::empty().into_mutation();
+    let op_result = draft
+        .execute(MakeVertexFace {
+            shell_kind: crate::b_rep::ShellKind::Sheet,
+        })
+        .expect("operator should execute");
+
+    let created = draft.mutation_journal().count_created();
+    let deleted = draft.mutation_journal().count_destroyed();
+    let metrics = op_result.get_metrics();
+    let lineage_delta = op_result.get_lineage_delta();
+
+    assert_eq!(metrics.entities_created, created.total());
+    assert_eq!(metrics.entities_deleted, deleted.total());
+    assert_eq!(lineage_delta.faces_created, created.faces);
+    assert_eq!(lineage_delta.faces_deleted, deleted.faces);
+}
+
+#[test]
+fn subscriber_checkpoint_failure_poisons_draft_and_drop_is_safe() {
+    use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use crate::transactions::{TopoOperationEvent, TopoSubscriberDataId};
+    use forge_signal::facade::{EventSubscriber, SubscriberContext, SubscriberId};
+
+    struct FailingSubscriber;
+
+    impl EventSubscriber for FailingSubscriber {
+        type Event = TopoOperationEvent;
+        type DataId = TopoSubscriberDataId;
+        type RuntimeContext = crate::transactions::logic::mutable_draft::MutableDraft;
+
+        fn id(&self) -> SubscriberId {
+            SubscriberId::new(11)
+        }
+
+        fn name(&self) -> &'static str {
+            "failing_subscriber"
+        }
+
+        fn requires(&self) -> &'static [TopoSubscriberDataId] {
+            &[]
+        }
+
+        fn provides(&self) -> &'static [TopoSubscriberDataId] {
+            &[]
+        }
+
+        fn on_event(&mut self, _event: &Self::Event) {}
+
+        fn on_checkpoint(
+            &mut self,
+            _barrier: forge_signal::facade::CheckpointBarrier,
+            _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
+                    _runtime: &mut Self::RuntimeContext,
+        ) -> Result<(), forge_core::KernelError> {
+            Err(forge_core::KernelError::InternalError {
+                message: "intentional subscriber failure".to_string(),
+                context: None,
+            })
+        }
+    }
+
+    let mut draft = TopologyState::empty().into_mutation();
+    draft
+        .event_bus_mut()
+        .subscribe(Box::new(FailingSubscriber))
+        .unwrap();
+
+    let err = match draft.execute(MakeVertexFace {
+        shell_kind: crate::b_rep::ShellKind::Sheet,
+    }) {
+        Ok(_) => panic!("expected subscriber checkpoint failure"),
+        Err(err) => err,
+    };
+    let err_msg = err.to_string();
+    assert!(
+        err_msg.contains("Event bus checkpoint failed"),
+        "unexpected error message: {err_msg}"
+    );
+
+    // Subsequent execution is blocked by poison flag.
+    let second = draft.execute(MakeVertexFace {
+        shell_kind: crate::b_rep::ShellKind::Sheet,
+    });
+    assert!(second.is_err());
+
+    // Drop occurs at end of scope; test passes if no panic.
+}
+
+#[test]
+fn rollback_callbacks_fire_once_when_execute_fails_then_draft_drops() {
+    use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use crate::transactions::{TopoOperationEvent, TopoSubscriberDataId};
+    use forge_signal::facade::{EventSubscriber, SubscriberContext, SubscriberId};
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+
+    struct RollbackCounter {
+        rollbacks: Arc<AtomicUsize>,
+    }
+
+    impl EventSubscriber for RollbackCounter {
+        type Event = TopoOperationEvent;
+        type DataId = TopoSubscriberDataId;
+        type RuntimeContext = crate::transactions::logic::mutable_draft::MutableDraft;
+
+        fn id(&self) -> SubscriberId {
+            SubscriberId::new(12)
+        }
+
+        fn name(&self) -> &'static str {
+            "rollback_counter"
+        }
+
+        fn requires(&self) -> &'static [TopoSubscriberDataId] {
+            &[]
+        }
+
+        fn provides(&self) -> &'static [TopoSubscriberDataId] {
+            &[]
+        }
+
+        fn on_event(&mut self, _event: &Self::Event) {}
+
+        fn on_checkpoint(
+            &mut self,
+            _barrier: forge_signal::facade::CheckpointBarrier,
+            _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
+                    _runtime: &mut Self::RuntimeContext,
+        ) -> Result<(), forge_core::KernelError> {
+            Err(forge_core::KernelError::InternalError {
+                message: "force rollback".to_string(),
+                context: None,
+            })
+        }
+
+        fn on_rollback(&mut self, _runtime: &mut Self::RuntimeContext) {
+            self.rollbacks.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    let rollback_count = Arc::new(AtomicUsize::new(0));
+    {
+        let mut draft = TopologyState::empty().into_mutation();
+        draft
+            .event_bus_mut()
+            .subscribe(Box::new(RollbackCounter {
+                rollbacks: rollback_count.clone(),
+            }))
+            .unwrap();
+
+        let result = draft.execute(MakeVertexFace {
+            shell_kind: crate::b_rep::ShellKind::Sheet,
+        });
+        assert!(result.is_err(), "subscriber failure should fail execute");
+        // Draft drops here without commit.
+    }
+
+    assert_eq!(
+        rollback_count.load(Ordering::SeqCst),
+        1,
+        "rollback callbacks must run exactly once per failed draft lifecycle"
+    );
+}
+
+#[test]
+fn topo_event_bus_rollback_honors_reverse_dependency_order() {
+    use crate::transactions::{TopoOperationEvent, TopoSubscriberDataId};
+    use forge_signal::facade::{
+        CheckpointBarrier, EventBus, EventSubscriber, SubscriberContext, SubscriberId,
+    };
+    use std::sync::{Arc, Mutex};
+
+    struct OrderedRollback {
+        id: SubscriberId,
+        name: &'static str,
+        requires: &'static [TopoSubscriberDataId],
+        provides: &'static [TopoSubscriberDataId],
+        out: Arc<Mutex<Vec<&'static str>>>,
+    }
+
+    impl EventSubscriber for OrderedRollback {
+        type Event = TopoOperationEvent;
+        type DataId = TopoSubscriberDataId;
+        type RuntimeContext = ();
+
+        fn id(&self) -> SubscriberId {
+            self.id
+        }
+
+        fn name(&self) -> &'static str {
+            self.name
+        }
+
+        fn requires(&self) -> &'static [TopoSubscriberDataId] {
+            self.requires
+        }
+
+        fn provides(&self) -> &'static [TopoSubscriberDataId] {
+            self.provides
+        }
+
+        fn on_event(&mut self, _event: &Self::Event) {}
+
+        fn on_checkpoint(
+            &mut self,
+            _barrier: CheckpointBarrier,
+            _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
+                    _runtime: &mut Self::RuntimeContext,
+        ) -> Result<(), forge_core::KernelError> {
+            Ok(())
+        }
+
+        fn on_rollback(&mut self, _runtime: &mut Self::RuntimeContext) {
+            self.out
+                .lock()
+                .expect("rollback log poisoned")
+                .push(self.name);
+        }
+    }
+
+    let log: Arc<Mutex<Vec<&'static str>>> = Arc::new(Mutex::new(Vec::new()));
+    let mut bus: EventBus<TopoOperationEvent, TopoSubscriberDataId> = EventBus::new();
+    bus.subscribe(Box::new(OrderedRollback {
+        id: SubscriberId::new(1001),
+        name: "a",
+        requires: &[],
+        provides: &[TopoSubscriberDataId::MutationCounts],
+        out: log.clone(),
+    }))
+    .expect("register a");
+    bus.subscribe(Box::new(OrderedRollback {
+        id: SubscriberId::new(1002),
+        name: "b",
+        requires: &[TopoSubscriberDataId::MutationCounts],
+        provides: &[TopoSubscriberDataId::VersionCounters],
+        out: log.clone(),
+    }))
+    .expect("register b");
+    bus.subscribe(Box::new(OrderedRollback {
+        id: SubscriberId::new(1003),
+        name: "c",
+        requires: &[TopoSubscriberDataId::VersionCounters],
+        provides: &[TopoSubscriberDataId::TopologyHash],
+        out: log.clone(),
+    }))
+    .expect("register c");
+
+    bus.finalize_registration()
+        .expect("dependency DAG should be valid");
+    let mut runtime = ();
+    bus.rollback(&mut runtime);
+
+    assert_eq!(
+        &*log.lock().expect("rollback log poisoned"),
+        &["c", "b", "a"]
+    );
+}
+
+#[test]
+fn rollback_failure_keeps_previous_committed_operation_outputs_intact() {
+    use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use crate::transactions::{MutationCounts, TopoOperationEvent, TopoSubscriberDataId};
+    use forge_signal::facade::{EventSubscriber, SubscriberContext, SubscriberId};
+
+    struct FailingSubscriber;
+
+    impl EventSubscriber for FailingSubscriber {
+        type Event = TopoOperationEvent;
+        type DataId = TopoSubscriberDataId;
+        type RuntimeContext = crate::transactions::logic::mutable_draft::MutableDraft;
+
+        fn id(&self) -> SubscriberId {
+            SubscriberId::new(2000)
+        }
+
+        fn name(&self) -> &'static str {
+            "failing_after_first_success"
+        }
+
+        fn requires(&self) -> &'static [TopoSubscriberDataId] {
+            &[]
+        }
+
+        fn provides(&self) -> &'static [TopoSubscriberDataId] {
+            &[]
+        }
+
+        fn on_event(&mut self, _event: &Self::Event) {}
+
+        fn on_checkpoint(
+            &mut self,
+            _barrier: forge_signal::facade::CheckpointBarrier,
+            _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
+                    _runtime: &mut Self::RuntimeContext,
+        ) -> Result<(), forge_core::KernelError> {
+            Err(forge_core::KernelError::InternalError {
+                message: "force rollback on checkpoint".to_string(),
+                context: None,
+            })
+        }
+    }
+
+    let mut draft = TopologyState::empty().into_mutation();
+    draft
+        .execute(MakeVertexFace {
+            shell_kind: crate::b_rep::ShellKind::Sheet,
+        })
+        .expect("first operation must succeed");
+    let baseline_output = draft
+        .event_bus_mut()
+        .context()
+        .committed::<MutationCounts>(TopoSubscriberDataId::MutationCounts)
+        .expect("baseline mutation output missing")
+        .clone();
+
+    draft
+        .event_bus_mut()
+        .subscribe(Box::new(FailingSubscriber))
+        .expect("register failing subscriber");
+
+    let result = draft.execute(MakeVertexFace {
+        shell_kind: crate::b_rep::ShellKind::Sheet,
+    });
+    assert!(
+        result.is_err(),
+        "second operation should fail at checkpoint"
+    );
+
+    let post_failure_output = draft
+        .event_bus_mut()
+        .context()
+        .committed::<MutationCounts>(TopoSubscriberDataId::MutationCounts)
+        .expect("post-failure mutation output missing")
+        .clone();
+
+    assert_eq!(
+        post_failure_output, baseline_output,
+        "rollback path must not mutate last committed operation outputs"
+    );
+}

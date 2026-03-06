@@ -135,7 +135,7 @@ fn build_cube_with_valence_3_edge() -> (
     dm.arena_mut()
         .get_face_mut(extra_face)
         .unwrap()
-        .set_outer_loop(extra_loop);
+        .loops.set_outer(extra_loop);
 
     // Give the extra face a plane binding.
     draft.geometry_mut().set_face_plane(extra_face, plane_a);
@@ -284,7 +284,7 @@ fn valence_4_rejects_without_radial_selector() {
     dm.arena_mut()
         .get_face_mut(face_4)
         .unwrap()
-        .set_outer_loop(l4);
+        .loops.set_outer(l4);
 
     let state_v4 = draft
         .commit_with_mode(
@@ -413,7 +413,7 @@ fn planner_pre_gate_valence_4_rejects_without_radial_selector() {
     dm.arena_mut()
         .get_face_mut(face_4)
         .unwrap()
-        .set_outer_loop(l4);
+        .loops.set_outer(l4);
 
     let state_v4 = draft
         .commit_with_mode(
@@ -507,7 +507,7 @@ fn disconnected_faces_fail_connectivity() {
     dm.arena_mut()
         .get_face_mut(orphan_face)
         .unwrap()
-        .set_outer_loop(orphan_loop);
+        .loops.set_outer(orphan_loop);
 
     let state = draft
         .commit_with_mode(
@@ -600,7 +600,7 @@ fn connectivity_validator_rejects_disconnected_faces_pre_gate() {
     dm.arena_mut()
         .get_face_mut(orphan_face)
         .unwrap()
-        .set_outer_loop(orphan_loop);
+        .loops.set_outer(orphan_loop);
 
     let state = draft
         .commit_with_mode(
@@ -841,7 +841,7 @@ fn valence_4_with_explicit_radial_selector_succeeds() {
     dm.arena_mut()
         .get_face_mut(face_4)
         .unwrap()
-        .set_outer_loop(l4);
+        .loops.set_outer(l4);
 
     let state_v4 = draft
         .commit_with_mode(

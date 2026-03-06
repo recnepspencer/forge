@@ -150,7 +150,7 @@ impl TopologyState {
             Err(arc) => (*arc).clone(),
         };
 
-        MutableDraft {
+        let mut draft = MutableDraft {
             draft_id: crate::identity::DraftId::new(self.epoch + 1),
             base_epoch: self.epoch,
             next_epoch: self.epoch + 1,
@@ -166,6 +166,14 @@ impl TopologyState {
             prior_lineage_events: prior_events,
             mutation_journal: crate::transactions::data::mutation_journal::MutationJournal::new(),
             poisoned: false,
-        }
+            rollback_applied: false,
+            event_bus: forge_signal::facade::EventBus::new(),
+            pending_operation_events: Vec::new(),
+        };
+
+        crate::transactions::logic::subscribers::register_operation_subscribers(&mut draft.event_bus)
+            .expect("topo operation subscribers must register with valid deterministic DAG");
+
+        draft
     }
 }

@@ -274,7 +274,7 @@ fn extract_face_polygon(
     face_id: forge_topo::handles::FaceId,
 ) -> Result<Vec<[f64; 3]>, KernelError> {
     let face_data = topo.arena().get_face(face_id)?;
-    let loop_id = face_data.outer_loop();
+    let loop_id = face_data.loops.outer();
     let loop_data = topo.arena().get_loop(loop_id)?;
     let start_he = loop_data.half_edge();
 

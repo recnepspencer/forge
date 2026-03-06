@@ -171,17 +171,10 @@ fn invariance_double_split_preserves_volume() {
     );
 }
 
-/// MakeEdgeFace (diagonal split of a quad face) — volume oracle finding.
+/// MakeEdgeFace (diagonal split of a quad face) preserves cube volume.
 ///
-/// FINDING: MEF changes the divergence-theorem volume even though vertex
-/// positions don't move. This catches a real issue: after MEF splits a
-/// face loop, the fan-triangulation in `polyhedron_volume` produces
-/// different signed tetrahedra because the face vertex ordering changes.
-/// This is a known limitation of the current volume oracle when used
-/// with non-triangulated faces that get split.
-///
-/// We lock the post-MEF volume to detect regressions in MEF's loop
-/// rewiring — if MEF changes behavior, this test will catch it.
+/// Current expected behavior: MEF does not alter divergence-theorem
+/// volume when topology rewiring preserves geometry.
 #[test]
 fn finding_mef_changes_volume() {
     let env_res = shapes::cube([0.0; 3], 3.0).expect("cube failed");
@@ -210,11 +203,9 @@ fn finding_mef_changes_volume() {
         .finish_validated();
 
     let vol_after = measure_volume(result.get_value());
-    // Lock the observed post-MEF volume as a regression anchor.
-    // If MEF's loop rewiring changes, this value will shift.
     assert!(
-        (vol_after - 22.5).abs() < 0.01,
-        "MEF volume regression: expected ~22.5, got {vol_after:.6}"
+        (vol_after - 27.0).abs() < VOLUME_TOL,
+        "MEF volume regression: expected ~27.0, got {vol_after:.6}"
     );
 }
 

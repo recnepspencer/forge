@@ -578,7 +578,7 @@ fn chained_booleans_preserve_euler() {
 
     // Check every face's loop pointer
     for (fid, fdata) in arena.iter_faces() {
-        let loop_id = fdata.outer_loop();
+        let loop_id = fdata.loops.outer();
         if arena.get_loop(loop_id).is_err() {
             eprintln!(
                 "  STALE Face F#{}(gen{}) -> Loop L#{}(gen{}): BAD",

@@ -9,13 +9,16 @@ pub use crate::data::dependency::DependencyEdge;
 pub use crate::data::dirty_set::{BatchedDirtySet, DomainImpact};
 pub use crate::data::effect_mapping::EffectMapping;
 pub use crate::data::evaluator::CheckpointEvaluator;
+pub use crate::data::event_subscriber::{EventSubscriber, SubscriberId};
 pub use crate::data::graph::SignalGraph;
 pub use crate::data::handle::NodeId;
 pub use crate::data::node::NodeState;
+pub use crate::data::subscriber_context::{SubscriberContext, SubscriberContextError};
 pub use crate::data::tier::EvaluationTier;
 
 // Re-export Logic constructs
 pub use crate::logic::checkpoint_runtime::CheckpointRuntime;
 pub use crate::logic::context::EvaluationContext;
 pub use crate::logic::evaluation::evaluate;
+pub use crate::logic::event_bus::{EventBus, EventFlushError, SubscriberRegistryError};
 pub use crate::logic::invalidation::mark_dirty;

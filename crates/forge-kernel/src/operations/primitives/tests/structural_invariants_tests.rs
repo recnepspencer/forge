@@ -53,7 +53,7 @@ fn assert_manifold_twins(arena: &TopologyArena, label: &str) {
 
 fn assert_closed_loops(arena: &TopologyArena, label: &str) {
     for (face_id, face_data) in arena.iter_faces() {
-        let loop_data = arena.get_loop(face_data.outer_loop()).unwrap();
+        let loop_data = arena.get_loop(face_data.loops.outer()).unwrap();
         let start_he = loop_data.half_edge();
         let mut current = start_he;
         let mut count = 0;
@@ -121,7 +121,7 @@ fn compute_face_centroid(
     face_id: forge_topo::handles::FaceId,
 ) -> [f64; 3] {
     let face_data = arena.get_face(face_id).unwrap();
-    let loop_data = arena.get_loop(face_data.outer_loop()).unwrap();
+    let loop_data = arena.get_loop(face_data.loops.outer()).unwrap();
     let start_he = loop_data.half_edge();
     let mut sum = [0.0; 3];
     let mut count = 0;

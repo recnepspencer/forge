@@ -44,6 +44,7 @@ BAN_HASH_PATTERNS = [
 
 BAN_RADIAL_SET_PATTERN = re.compile(r"\.set_radial_next\s*\(")
 BAN_GLOBAL_INVALIDATE_PATTERN = re.compile(r"\bTopoCacheEffect::GlobalInvalidate\b")
+BAN_RAW_EVENT_ID_PATTERN = re.compile(r":\s*(u64|usize)\b")
 
 RADIAL_SET_ALLOWED_SUFFIXES = [
     "/crates/forge-topo/src/b_rep/data/mesh/half_edge.rs",
@@ -141,6 +142,13 @@ def main() -> int:
                 failures.append(
                     f"{rel(path)}:{line_no}: TopoCacheEffect::GlobalInvalidate is banned outside sanctioned cache runtime paths"
                 )
+
+            # Topo operation lifecycle events must use typed IDs.
+            if str(path).endswith("/crates/forge-topo/src/transactions/data/operation_event.rs"):
+                if BAN_RAW_EVENT_ID_PATTERN.search(code_only):
+                    failures.append(
+                        f"{rel(path)}:{line_no}: raw numeric ID type in TopoOperationEvent payload is banned; use typed IDs"
+                    )
 
     if failures:
         print("Determinism guards FAILED", file=sys.stderr)

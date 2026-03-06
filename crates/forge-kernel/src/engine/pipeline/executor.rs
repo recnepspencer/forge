@@ -1,74 +1,58 @@
 //! Feature pipeline executor.
 //!
 //! DOMAIN: Orchestrates the feature evaluation lifecycle:
-//! policy pre-validation → input parsing → execution →
-//! finalization → post-invariants → audit.
+//! policy pre-validation -> input parsing -> execution ->
+//! subscriber finalization -> post-invariants -> audit.
 //!
 //! INVARIANTS:
 //! - Every feature goes through the pipeline, even pass-throughs
 //! - Policy pre-checks fail fast before any topology mutation
 //! - Post-invariants only run on success
 //! - `OperationResult` is the canonical metadata transport
-//!
-//! DEPENDENCIES: forge-core (KernelError, OperationResult, DecisionLog),
-//! contract types, features/traits, context, finalization
 
 use std::collections::HashMap;
 
 use forge_core::envelope::OperationResult;
-use forge_core::tracing::{DecisionSink, TraceAdjunctSet};
+use forge_core::tracing::DecisionSink;
 use forge_core::KernelError;
-use forge_signal::facade::NodeId;
+use forge_signal::facade::{CheckpointBarrier, NodeId};
 
-use super::super::contracts::contract::{AuditLevel, ConditioningMode, FeatureInputs};
+use super::super::contracts::contract::{ConditioningMode, FeatureInputs};
 use super::super::contracts::feature_trait::Feature;
-use super::super::facade::{OperationFinalizer, TopologyHashBoundary};
 use super::super::operation_space::operation_space::OperationSpace;
 use super::super::output::solid_envelope::SolidEnvelope;
 use super::conditioning_guard::ConditioningGuard;
 use super::fingerprint::compute_pipeline_fingerprint;
 use super::invariants::validate_invariant;
 use crate::configuration::facade::{resolve_config, KernelConfig};
-use crate::context::facade::ModelingContext;
 use crate::context::scope::OperationScope;
+use crate::engine::transaction::data::feature_event::{FeatureInvocationId, KernelFeatureEvent};
+use crate::engine::transaction::data::feature_execution_config::FeatureExecutionConfig;
+use crate::engine::transaction::data::operation_outputs::OperationEnvelopeOutput;
+use crate::engine::transaction::data::subscriber_data_id::KernelSubscriberDataId;
+use crate::engine::transaction::logic::feature_event_runtime::{
+    FeatureEventRuntime, FeatureEventRuntimeContext,
+};
 use crate::proof::checkpoint::schema::ValidationConfig;
 
 /// Feature pipeline executor.
 ///
 /// Wraps every feature evaluation with compiler-enforced contract stages.
-/// Even features with no policies or invariants go through this —
+/// Even features with no policies or invariants go through this -
 /// the pipeline degrades to a no-op for simple cases (adapter-by-default).
 ///
-/// Returns `OperationResult<SolidEnvelope>` — the envelope carries all
+/// Returns `OperationResult<SolidEnvelope>` - the envelope carries all
 /// audit metadata (decisions, warnings, metrics, lineage, hashes) while
-/// the inner value is the domain result.  Pre-execution failures
-/// (missing policy, invalid inputs) short-circuit with `Err(KernelError)`.
+/// the inner value is the domain result.
 pub struct FeaturePipeline;
 
 impl FeaturePipeline {
     /// Execute a feature through the full pipeline.
-    ///
-    /// Stages:
-    /// 1. Pre-validate required policies (fail-fast)
-    /// 2. Parse + validate typed inputs
-    /// 3. Snapshot topology hash before execution
-    /// 4. Execute business logic with trace span
-    /// 5. Finalize — drain decisions + metadata into OperationResult
-    /// 6. Post-validate invariants (success only)
-    /// 7. Audit emission (based on audit level)
-    ///
-    /// Returns `Ok(OperationResult<FeatureOutput>)` on success, carrying
-    /// the full audit trail in the envelope.  Returns `Err(KernelError)`
-    /// for pre-execution failures, execution errors, or post-invariant
-    /// violations.
     pub fn execute<F: Feature>(
         feature: &F,
         mut raw_inputs: HashMap<NodeId, SolidEnvelope>,
         session_config: &KernelConfig,
     ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
-        let mut ctx = ModelingContext::from_config(session_config.clone());
-
-        // 1. Resolve configuration (needed for policy pre-check and execution)
         let resolved_config = resolve_config(
             session_config,
             None,
@@ -79,16 +63,27 @@ impl FeaturePipeline {
             None,
         )?;
 
-        // 2. Pre-validate required policies (fail-fast before any mutation)
+        let execution_config = FeatureExecutionConfig {
+            feature_kind: feature.feature_kind(),
+            audit_level: feature.audit_level(),
+            validation: ValidationConfig {
+                checkpoints: resolved_config.config().validation.checkpoints.clone(),
+                include_geometric: resolved_config.config().validation.include_geometric,
+                entity_limit: resolved_config.config().validation.entity_limit,
+            },
+        };
+
+        let mut runtime_ctx = FeatureEventRuntimeContext::from_config(session_config.clone());
+        let mut event_runtime = FeatureEventRuntime::new()?;
+
         for policy in feature.required_policies() {
             resolved_config.validate_policy_configured(policy)?;
         }
 
-        // 3. Compute pipeline fingerprint (before conditioning modifies geometry)
         let conditioning_mode = feature.conditioning_mode();
         let hash_before = compute_pipeline_fingerprint(
             &raw_inputs,
-            feature.feature_kind(),
+            execution_config.feature_kind,
             conditioning_mode,
             resolved_config.config().tolerance.spatial_tolerance,
             resolved_config.config().tolerance.model_scale_mm,
@@ -96,9 +91,6 @@ impl FeaturePipeline {
             resolved_config.config().diagnostics.fingerprint_detail,
         );
 
-        // 4. Numerical conditioning (pipeline-managed, zero-copy)
-        //    Analyzes input geometry scale, transforms geometry in-place.
-        //    Features execute in local coordinates without knowing.
         let op_space = match conditioning_mode {
             ConditioningMode::None => OperationSpace::identity(),
             ConditioningMode::UnaryAnalysis | ConditioningMode::BinaryAnalysis => {
@@ -115,142 +107,106 @@ impl FeaturePipeline {
             }
         };
 
-        // 5. Parse + validate typed inputs (ownership transfers to feature)
         let inputs = feature.parse_inputs(raw_inputs)?;
         inputs.validate()?;
 
-        // 6. Execute business logic with trace span
-        let span_id = ctx.start_span(feature.feature_kind());
+        let invocation_id = FeatureInvocationId::new(1);
+        event_runtime.begin(&mut runtime_ctx)?;
+        event_runtime.emit(KernelFeatureEvent::OperationStarted {
+            feature_kind: execution_config.feature_kind,
+            invocation_id,
+            audit_level: execution_config.audit_level,
+            state_hash_before: hash_before,
+        });
 
+        let span_id = runtime_ctx
+            .modeling_context
+            .start_span(execution_config.feature_kind);
         let start = std::time::Instant::now();
         let result = {
-            let mut scope =
-                OperationScope::with_conditioning(&resolved_config, &mut ctx, &op_space);
+            let mut scope = OperationScope::with_conditioning(
+                &resolved_config,
+                &mut runtime_ctx.modeling_context,
+                &op_space,
+            );
             feature.execute_typed(inputs, &mut scope)
         };
         let duration_micros = start.elapsed().as_micros() as u64;
+        runtime_ctx.modeling_context.end_span(span_id, duration_micros);
 
-        ctx.end_span(span_id, duration_micros);
+        let mut sub_envelope = match result {
+            Ok(value) => value,
+            Err(err) => {
+                event_runtime.emit(KernelFeatureEvent::OperationFailed {
+                    invocation_id,
+                    error_summary: err.to_string(),
+                });
+                event_runtime.rollback(&mut runtime_ctx);
+                return Err(err);
+            }
+        };
 
-        // Propagate execution errors before finalization
-        let mut sub_envelope = result?;
-
-        // 7. Restore world coordinates via RAII guard (inverse of step 4)
-        //    Guard calls restore_store on defuse() or Drop — panic-safe.
         if let Some(guard) =
             ConditioningGuard::new(&op_space, sub_envelope.get_value_mut().geometry_mut())
         {
             guard.defuse();
         }
 
-        // 8. Compute hash_after from the output
         let hash_after = forge_topo::transactions::compute_arena_topology_hash(
             sub_envelope.get_value().topology().arena(),
         );
+        event_runtime.emit(KernelFeatureEvent::OperationCompleted {
+            invocation_id,
+            duration_micros,
+            state_hash_after: hash_after,
+        });
+        event_runtime.flush(CheckpointBarrier::PerOperation, &mut runtime_ctx)?;
 
-        // 9. Finalize — drain decisions + metadata from ctx into envelope
-        //    Finalization happens BEFORE invariants so invariant checkers
-        //    can emit traced decisions into the already-finalized envelope.
-        let hashes = TopologyHashBoundary {
-            before: Some(hash_before),
-            after: Some(hash_after),
-        };
-        {
-            let mut finalizer = OperationFinalizer::new(&mut ctx);
-            let _finalization =
-                finalizer.collect_success(&mut sub_envelope, TraceAdjunctSet::new(), hashes, None);
-        }
+        let operation_output = event_runtime
+            .event_bus()
+            .context()
+            .committed::<OperationEnvelopeOutput>(KernelSubscriberDataId::OperationEnvelope)
+            .ok_or_else(|| KernelError::InternalError {
+                message: "OperationEnvelope output missing after feature event flush".to_string(),
+                context: None,
+            })?;
+        apply_operation_output(&mut sub_envelope, operation_output);
 
-        // 10. Post-validate invariants (success only, after finalization)
-        let validation_config = ValidationConfig {
-            checkpoints: resolved_config.config().validation.checkpoints.clone(),
-            include_geometric: resolved_config.config().validation.include_geometric,
-            entity_limit: resolved_config.config().validation.entity_limit,
-        };
         for invariant in feature.post_invariants() {
             validate_invariant(
                 sub_envelope.get_value().topology(),
                 sub_envelope.get_value().geometry(),
                 invariant,
-                &validation_config,
+                &execution_config.validation,
             )?;
-        }
-
-        // 11. Audit-level filtering
-        match feature.audit_level() {
-            AuditLevel::None => {
-                sub_envelope.set_decision_log(forge_core::DecisionLog::new());
-            }
-            AuditLevel::Summary => {
-                emit_feature_summary(feature, &mut sub_envelope);
-            }
-            AuditLevel::Full => {
-                emit_feature_audit(feature, &mut sub_envelope);
-            }
         }
 
         Ok(sub_envelope)
     }
 }
 
-/// Emit a full audit trace for the feature execution.
-///
-/// Records an "audit/{feature_kind}" span in the envelope's decision log
-/// with per-decision detail. The span itself carries no duration (it's a
-/// metadata annotation, not a timed operation). Downstream trace viewers
-/// can filter on "audit/" spans to find audit records.
-fn emit_feature_audit<F: Feature>(feature: &F, envelope: &mut OperationResult<SolidEnvelope>) {
-    let decision_count = envelope.get_decision_log().len();
-    let warning_count = envelope.get_warnings().len();
+fn apply_operation_output(
+    envelope: &mut OperationResult<SolidEnvelope>,
+    output: &OperationEnvelopeOutput,
+) {
+    let mut merged_log = envelope.get_decision_log().clone();
+    merged_log.merge(output.decision_log.clone());
+    envelope.set_decision_log(merged_log);
+    for warning in output.warnings.iter().cloned() {
+        envelope.add_warning(warning);
+    }
+    let mut merged_metrics = envelope.get_metrics().clone();
+    merged_metrics.accumulate(&output.metrics);
+    envelope.set_metrics(merged_metrics);
 
-    // Build per-decision breakdown summary.
-    let decision_details: Vec<String> = envelope
-        .get_decision_log()
-        .decisions()
-        .map(|d| {
-            format!(
-                "{:?}/tier={:?}/margin={:.2e}",
-                d.get_kind(),
-                d.get_tier(),
-                d.get_margin(),
-            )
-        })
-        .collect();
+    let mut merged_lineage = envelope.get_lineage_delta().clone();
+    merged_lineage.accumulate(&output.lineage_delta);
+    envelope.set_lineage_delta(merged_lineage);
 
-    let detail = format!(
-        "full: {} decisions, {} warnings | [{}]",
-        decision_count,
-        warning_count,
-        decision_details.join(", "),
-    );
-
-    // Record audit span directly in the envelope's decision log.
-    let span_name = format!("audit/{}", feature.feature_kind());
-    let log = envelope.get_decision_log_mut();
-    let span_id = log.start_span(&span_name);
-    log.end_span(span_id, 0);
-
-    // Also record as extra summary for structured access.
-    envelope.add_extra_summary(detail);
-}
-
-/// Emit a summary audit trace for the feature execution.
-///
-/// Records an "audit/{feature_kind}" span with aggregate counts only.
-/// Per-decision detail is still available in the envelope's decision log
-/// but the `AuditLevel::Summary` contract signals that downstream
-/// consumers should not rely on per-decision inspection.
-fn emit_feature_summary<F: Feature>(feature: &F, envelope: &mut OperationResult<SolidEnvelope>) {
-    let summary = format!(
-        "summary: {} decisions, {} warnings",
-        envelope.get_decision_log().len(),
-        envelope.get_warnings().len(),
-    );
-
-    let span_name = format!("audit/{}", feature.feature_kind());
-    let log = envelope.get_decision_log_mut();
-    let span_id = log.start_span(&span_name);
-    log.end_span(span_id, 0);
-
-    envelope.add_extra_summary(summary);
+    envelope.consume_budget(output.accumulated_error_budget);
+    envelope.set_state_hash_before(output.state_hash_before);
+    envelope.set_state_hash_after(output.state_hash_after);
+    for summary in output.extra_summaries.iter().cloned() {
+        envelope.add_extra_summary(summary);
+    }
 }

@@ -14,14 +14,18 @@ macro_rules! define_draft_proxies {
                 #[doc = concat!("Insert a new ", stringify!($m), ".")]
                 pub fn [<insert_ $m>](&mut self, data: $data) -> $id {
                     let id = self.arena.[<insert_ $m>](data);
-                    self.mutation_journal.record_creation(EntityRef::from(id));
+                    let entity = EntityRef::from(id);
+                    self.mutation_journal.record_creation(entity);
+                    self.emit_operation_event(crate::transactions::data::operation_event::TopoOperationEvent::EntityCreated(entity));
                     id
                 }
 
                 #[doc = concat!("Remove a ", stringify!($m), ".")]
                 pub fn [<remove_ $m>](&mut self, id: $id) -> Result<$data, KernelError> {
                     // Capture EntityRef BEFORE the arena bumps the slot generation.
-                    self.mutation_journal.record_destruction(EntityRef::from(id));
+                    let entity = EntityRef::from(id);
+                    self.mutation_journal.record_destruction(entity);
+                    self.emit_operation_event(crate::transactions::data::operation_event::TopoOperationEvent::EntityDestroyed(entity));
                     self.arena.[<remove_ $m>](id)
                 }
             }
@@ -45,15 +49,22 @@ impl crate::transactions::MutableDraft {
     /// Insert a new loop.
     pub fn insert_loop(&mut self, data: LoopData) -> LoopId {
         let id = self.arena.insert_loop(data);
-        self.mutation_journal.record_creation(EntityRef::from(id));
+        let entity = EntityRef::from(id);
+        self.mutation_journal.record_creation(entity);
+        self.emit_operation_event(
+            crate::transactions::data::operation_event::TopoOperationEvent::EntityCreated(entity),
+        );
         id
     }
 
     /// Remove a loop.
     pub fn remove_loop(&mut self, id: LoopId) -> Result<LoopData, KernelError> {
         // Capture EntityRef BEFORE the arena bumps the slot generation.
-        self.mutation_journal
-            .record_destruction(EntityRef::from(id));
+        let entity = EntityRef::from(id);
+        self.mutation_journal.record_destruction(entity);
+        self.emit_operation_event(
+            crate::transactions::data::operation_event::TopoOperationEvent::EntityDestroyed(entity),
+        );
         self.arena.remove_loop(id)
     }
 }

@@ -369,7 +369,7 @@ fn pv_06_through_hole_passes_euler() {
         arena
             .get_face_mut(top_face)
             .unwrap()
-            .add_inner_loop(il_loop_id);
+            .loops.add_inner(il_loop_id);
         il_loop_id
     };
 
@@ -413,7 +413,7 @@ fn pv_06_through_hole_passes_euler() {
         arena
             .get_face_mut(bot_face)
             .unwrap()
-            .add_inner_loop(il_loop_id);
+            .loops.add_inner(il_loop_id);
         il_loop_id
     };
 

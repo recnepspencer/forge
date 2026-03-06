@@ -140,7 +140,8 @@ pub(crate) fn insert_faces_and_loops(
         draft
             .arena_mut()
             .get_face_mut(face_id)?
-            .set_outer_loop(loop_id);
+            .loops
+            .set_outer(loop_id);
         draft
             .arena_mut()
             .get_loop_mut(loop_id)?

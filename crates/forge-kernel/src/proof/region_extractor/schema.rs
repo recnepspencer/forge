@@ -271,7 +271,8 @@ impl ExtractedRegion {
                 draft
                     .arena_mut()
                     .get_face_mut(FaceId::new(face_id, 0))?
-                    .set_outer_loop(loop_id);
+                    .loops
+                    .set_outer(loop_id);
             }
         }
 

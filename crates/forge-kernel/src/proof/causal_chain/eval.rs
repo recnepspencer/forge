@@ -134,6 +134,9 @@ fn extract_op_name_from_event(event: &LineageEvent) -> String {
         LineageEvent::EntityDeleted { lineage, .. } => {
             lineage.get_creation_op().get_name().to_string()
         }
+        LineageEvent::EntityReverted { to_lineage, .. } => {
+            to_lineage.get_creation_op().get_name().to_string()
+        }
     }
 }
 

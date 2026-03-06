@@ -11,7 +11,7 @@ use crate::b_rep::TopologyArena;
 use crate::handles::{
     BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
 };
-use crate::identity::{DraftId, OperationId};
+use crate::identity::{DraftId, OperationCount, OperationId};
 use crate::operations::operator::TopoOperator;
 use crate::provenance::LineageStore;
 use crate::provenance::ReidentificationLinkIndex;
@@ -20,13 +20,14 @@ use crate::provenance::{LineageMode, LineageRecorder, OperationLineageContext, F
 use crate::provenance::{ReplayEntry, ReplayLog};
 use crate::transactions::compute_arena_topology_hash;
 use crate::transactions::data::mutation_journal::MutationJournal;
+use crate::transactions::data::operation_event::{TopoOperationEvent, TopoSubscriberDataId};
 use crate::validators::validate::ValidationLevel;
 
 use forge_core::{
     ErrorContext, ErrorScope, KernelError, LineageDelta, OperationMetrics, OperationResult,
     TopologyError,
 };
-use forge_signal::facade::CheckpointBarrier;
+use forge_signal::facade::{CheckpointBarrier, EventBus};
 
 use crate::transactions::data::draft_configuration::DraftConfig;
 use crate::transactions::data::versioned_snapshot::TopologyState;
@@ -72,6 +73,14 @@ pub struct MutableDraft {
     pub(crate) mutation_journal: MutationJournal,
     /// If true, a previous operation failed and this draft MUST NOT be used.
     pub(crate) poisoned: bool,
+    /// True once rollback callbacks have been executed for this draft lifecycle.
+    pub(crate) rollback_applied: bool,
+    /// Signal-unified operation lifecycle runtime (subscriber wiring lands incrementally).
+    pub(crate) event_bus: EventBus<TopoOperationEvent, TopoSubscriberDataId, MutableDraft>,
+    /// Buffered per-operation events emitted by proxies/chokepoints.
+    ///
+    /// Runner drains this into the event bus at checkpoint boundaries.
+    pub(crate) pending_operation_events: Vec<TopoOperationEvent>,
 }
 
 impl MutableDraft {
@@ -91,6 +100,23 @@ impl MutableDraft {
         let op_id = OperationId::new(next);
         self.op_counter = op_id;
         op_id
+    }
+
+    /// Execute rollback callbacks exactly once for this draft.
+    pub(crate) fn apply_rollback_once(&mut self) {
+        if self.rollback_applied {
+            return;
+        }
+        self.pending_operation_events.clear();
+        self.emit_operation_event(TopoOperationEvent::DraftRolledBack {
+            draft_id: self.draft_id,
+            ops_completed: OperationCount::new(self.op_counter.get()),
+        });
+        let mut event_bus = std::mem::take(&mut self.event_bus);
+        self.drain_pending_events_into(&mut event_bus);
+        event_bus.rollback(self);
+        self.event_bus = event_bus;
+        self.rollback_applied = true;
     }
 
     /// Log the start of an operation (called by `execute()` method).
@@ -214,6 +240,28 @@ impl MutableDraft {
         &self.mutation_journal
     }
 
+    /// Mutable event bus access for subscriber registration/tests.
+    pub fn event_bus_mut(
+        &mut self,
+    ) -> &mut EventBus<TopoOperationEvent, TopoSubscriberDataId, MutableDraft> {
+        &mut self.event_bus
+    }
+
+    /// Queue one lifecycle event for the current operation.
+    pub(crate) fn emit_operation_event(&mut self, event: TopoOperationEvent) {
+        self.pending_operation_events.push(event);
+    }
+
+    /// Drain buffered operation events into an active event bus.
+    pub(crate) fn drain_pending_events_into(
+        &mut self,
+        event_bus: &mut EventBus<TopoOperationEvent, TopoSubscriberDataId, MutableDraft>,
+    ) {
+        for event in std::mem::take(&mut self.pending_operation_events) {
+            event_bus.emit(event);
+        }
+    }
+
     /// Mutable access to the mutation journal (for testing and runner internals).
     pub(crate) fn mutation_journal_mut(&mut self) -> &mut MutationJournal {
         &mut self.mutation_journal
@@ -251,8 +299,22 @@ impl MutableDraft {
         #[cfg(debug_assertions)]
         self.arena.assert_sidecar_parity();
 
+        // Enforce checkpoint progression at commit-time: direct mutation flows
+        // (that do not call `draft.execute`) still need PerOperation domains
+        // flushed before strict PerCommit freshness checks run.
+        self.arena
+            .apply_cache_checkpoint(CheckpointBarrier::PerOperation)?;
         self.arena
             .apply_cache_checkpoint(CheckpointBarrier::PerCommit)?;
+        let mut event_bus = std::mem::take(&mut self.event_bus);
+        self.drain_pending_events_into(&mut event_bus);
+        event_bus
+            .flush(CheckpointBarrier::PerCommit, &mut self)
+            .map_err(|e| KernelError::InternalError {
+                message: format!("Event bus commit checkpoint failed: {e}"),
+                context: None,
+            })?;
+        self.event_bus = event_bus;
 
         crate::validators::structural::validate_topology(
             &self.arena,
@@ -303,10 +365,12 @@ impl MutableDraft {
         data_b: crate::b_rep::HalfEdgeData,
     ) -> (HalfEdgeId, HalfEdgeId) {
         let (a, b) = self.arena.insert_radial_pair(data_a, data_b);
-        self.mutation_journal
-            .record_creation(forge_core::EntityRef::from(a));
-        self.mutation_journal
-            .record_creation(forge_core::EntityRef::from(b));
+        let entity_a = forge_core::EntityRef::from(a);
+        let entity_b = forge_core::EntityRef::from(b);
+        self.mutation_journal.record_creation(entity_a);
+        self.mutation_journal.record_creation(entity_b);
+        self.emit_operation_event(TopoOperationEvent::EntityCreated(entity_a));
+        self.emit_operation_event(TopoOperationEvent::EntityCreated(entity_b));
         (a, b)
     }
 
@@ -317,6 +381,7 @@ impl MutableDraft {
 impl Drop for MutableDraft {
     fn drop(&mut self) {
         if !self.committed {
+            self.apply_rollback_once();
             tracing::warn!(
                 base_epoch = self.base_epoch,
                 ops_applied = self.op_counter.get(),

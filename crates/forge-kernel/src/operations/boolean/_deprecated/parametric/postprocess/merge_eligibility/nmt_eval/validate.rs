@@ -127,7 +127,7 @@ pub(crate) fn validate_connectivity(
     while let Some(current_face_idx) = queue.pop() {
         let current_face_id = find_face_by_index(arena, current_face_idx)?;
 
-        let outer_loop = arena.get_face(current_face_id)?.outer_loop();
+        let outer_loop = arena.get_face(current_face_id)?.loops.outer();
         let loop_he = arena.get_loop(outer_loop)?.half_edge();
 
         let mut he = loop_he;

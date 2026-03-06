@@ -228,6 +228,13 @@ impl TracedDecision {
         self.span_id = Some(span_id);
     }
 
+    /// Reassign this decision's unique identifier.
+    ///
+    /// Used when merging logs so nested traces keep globally unique IDs.
+    pub(crate) fn set_id(&mut self, id: DecisionId) {
+        self.id = id;
+    }
+
     /// Topology entities created or deleted by this decision.
     pub fn get_topology_delta(&self) -> Option<&TopologyDelta> {
         self.topology_delta.as_ref()

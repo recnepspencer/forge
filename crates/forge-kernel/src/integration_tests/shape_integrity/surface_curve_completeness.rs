@@ -444,7 +444,7 @@ fn vertex_off_surface_detected_by_validator() {
         let arena = env.topology().arena();
         let first_face = arena.iter_faces().next().unwrap().0;
         let outer_loop = arena
-            .get_loop(arena.get_face(first_face).unwrap().outer_loop())
+            .get_loop(arena.get_face(first_face).unwrap().loops.outer())
             .unwrap();
         let first_he = outer_loop.half_edge();
         arena.get_half_edge(first_he).unwrap().origin()

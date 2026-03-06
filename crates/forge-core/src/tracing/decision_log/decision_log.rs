@@ -204,7 +204,42 @@ impl DecisionLog {
 
     /// Merge another log into this one (for aggregation across sub-operations).
     pub fn merge(&mut self, other: DecisionLog) {
-        self.events.extend(other.events);
+        let span_offset = self
+            .events
+            .iter()
+            .filter_map(|event| match event {
+                TraceEvent::StartSpan { id, .. } => Some(id.0),
+                _ => None,
+            })
+            .max()
+            .unwrap_or(0);
+        let decision_offset = self.decisions().map(|d| d.get_id().0).max().unwrap_or(0);
+
+        self.events.extend(other.events.into_iter().map(|event| match event {
+            TraceEvent::Decision(mut decision) => {
+                decision.set_id(DecisionId(decision.get_id().0 + decision_offset));
+                if let Some(span_id) = decision.get_span_id() {
+                    decision.set_span_id(SpanId(span_id.0 + span_offset));
+                }
+                TraceEvent::Decision(decision)
+            }
+            TraceEvent::StartSpan {
+                id,
+                parent_id,
+                name,
+            } => TraceEvent::StartSpan {
+                id: SpanId(id.0 + span_offset),
+                parent_id: parent_id.map(|p| SpanId(p.0 + span_offset)),
+                name,
+            },
+            TraceEvent::EndSpan {
+                id,
+                duration_micros,
+            } => TraceEvent::EndSpan {
+                id: SpanId(id.0 + span_offset),
+                duration_micros,
+            },
+        }));
         self.rebuild_indexes();
     }
 
@@ -395,6 +430,57 @@ impl DecisionLog {
                 TraceEvent::EndSpan { .. } => {}
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::tracing::{DecisionContext, DecisionKind, DecisionTier, TracedDecision};
+
+    fn make_logged_decision(log: &mut DecisionLog, id: u64, label: &str) {
+        let decision = TracedDecision::new(
+            DecisionId(id),
+            DecisionKind::Exact,
+            DecisionTier::Deterministic,
+            0.0,
+            DecisionContext::Degeneracy {
+                description: label.to_string(),
+            },
+        );
+        log.record(decision);
+    }
+
+    #[test]
+    fn merge_rebases_ids_to_avoid_collisions() {
+        let mut a = DecisionLog::new();
+        let span_a = a.start_span("a");
+        make_logged_decision(&mut a, 1, "a");
+        a.end_span(span_a, 1);
+
+        let mut b = DecisionLog::new();
+        let span_b = b.start_span("b");
+        make_logged_decision(&mut b, 1, "b");
+        b.end_span(span_b, 2);
+
+        a.merge(b);
+
+        let mut decision_ids: Vec<u64> = a.decisions().map(|d| d.get_id().0).collect();
+        decision_ids.sort_unstable();
+        decision_ids.dedup();
+        assert_eq!(decision_ids.len(), 2, "decision IDs must remain unique");
+
+        let mut span_ids: Vec<u64> = a
+            .get_events()
+            .iter()
+            .filter_map(|event| match event {
+                TraceEvent::StartSpan { id, .. } => Some(id.0),
+                _ => None,
+            })
+            .collect();
+        span_ids.sort_unstable();
+        span_ids.dedup();
+        assert_eq!(span_ids.len(), 2, "span IDs must remain unique");
     }
 }
 
