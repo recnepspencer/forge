@@ -17,6 +17,10 @@
 //! Internal modules are organized into `operations/` (spatial queries)
 //! and `validators/` (geometric invariant checks).
 
+// Direct float equality is banned workspace-wide. Use forge_core comparison
+// predicates: approximately_equal, positions_coincident, is_effectively_zero.
+#![deny(clippy::float_cmp)]
+
 pub mod operations;
 pub mod validators;
 

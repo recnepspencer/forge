@@ -15,7 +15,7 @@
 //!
 //! DEPENDENCIES: forge-topo (arena, handles, traversal), forge-core (KernelError).
 
-use forge_core::KernelError;
+use forge_core::{KernelError, ToleranceProvider};
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::VertexId;
 use forge_topo::traverse::edge_endpoint_ids;
@@ -30,6 +30,7 @@ use forge_topo::traverse::edge_endpoint_ids;
 pub fn validate_shell_orientation(
     arena: &TopologyArena,
     position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
+    tolerance_provider: &dyn ToleranceProvider,
 ) -> Result<(), KernelError> {
     // Iterate all half-edges. For manifold edges, check each pair once
     // (only check when he_id < radial_next).
@@ -68,7 +69,8 @@ pub fn validate_shell_orientation(
 
         // Check if both half-edges run in the SAME direction (both A→B).
         // This indicates incompatible face orientations.
-        let same_direction = positions_match(&pa_o, &pb_o) && positions_match(&pa_d, &pb_d);
+        let same_direction = positions_match(&pa_o, &pb_o, tolerance_provider)
+            && positions_match(&pa_d, &pb_d, tolerance_provider);
 
         if same_direction {
             return Err(KernelError::TopologyViolation {
@@ -102,10 +104,11 @@ pub fn validate_shell_orientation(
     Ok(())
 }
 
-/// Check if two positions are the same point (within floating-point tolerance).
-fn positions_match(a: &[f64; 3], b: &[f64; 3]) -> bool {
+/// Check if two positions are the same point (within geometry epsilon).
+fn positions_match(a: &[f64; 3], b: &[f64; 3], tol: &dyn ToleranceProvider) -> bool {
     let dx = a[0] - b[0];
     let dy = a[1] - b[1];
     let dz = a[2] - b[2];
-    dx * dx + dy * dy + dz * dz < 1e-20
+    let eps = tol.geometry_epsilon();
+    dx * dx + dy * dy + dz * dz < eps * eps
 }

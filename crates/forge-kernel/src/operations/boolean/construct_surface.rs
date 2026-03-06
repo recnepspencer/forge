@@ -29,27 +29,34 @@ pub fn construct_planar_surface_from_points(
     c: [f64; 3],
     degeneracy_tol: f64,
 ) -> Result<ConstructedSurface, KernelError> {
-    let ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-    let ac = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
-    let cross = [
-        ab[1] * ac[2] - ab[2] * ac[1],
-        ab[2] * ac[0] - ab[0] * ac[2],
-        ab[0] * ac[1] - ab[1] * ac[0],
-    ];
-    let mag = (cross[0] * cross[0] + cross[1] * cross[1] + cross[2] * cross[2]).sqrt();
+    let ab = forge_geom::facade::distance(&a, &b);
+    let ac = forge_geom::facade::distance(&a, &c);
+    // Use triangle_area_3d for collinearity detection (area → 0 when collinear)
+    let area = forge_geom::facade::triangle_area_3d(&a, &b, &c);
+    // Area of a triangle = 0.5 * |AB × AC|, so cross magnitude = 2 * area
+    let cross_mag = 2.0 * area;
 
-    if mag < degeneracy_tol {
+    if cross_mag < degeneracy_tol {
         return Err(KernelError::InvalidInput {
             message: format!(
                 "construct_surface: points are collinear \
                  (cross-product magnitude {:.2e}, threshold {:.2e})",
-                mag, degeneracy_tol
+                cross_mag, degeneracy_tol
             ),
             context: None,
         });
     }
 
-    let normal = [cross[0] / mag, cross[1] / mag, cross[2] / mag];
+    // Construct normal via forge-geom: sub + cross + normalize_checked
+    // This is a one-off geometry construction, not an inline math hotpath.
+    let ab_vec = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+    let ac_vec = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+    let cross = [
+        ab_vec[1] * ac_vec[2] - ab_vec[2] * ac_vec[1],
+        ab_vec[2] * ac_vec[0] - ab_vec[0] * ac_vec[2],
+        ab_vec[0] * ac_vec[1] - ab_vec[1] * ac_vec[0],
+    ];
+    let normal = [cross[0] / cross_mag, cross[1] / cross_mag, cross[2] / cross_mag];
     let offset = normal[0] * a[0] + normal[1] * a[1] + normal[2] * a[2];
 
     Plane::try_new(normal, offset)

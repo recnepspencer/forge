@@ -95,9 +95,14 @@ pub struct SpCurveApproximation {
 pub enum CurveProvenance {
     /// Curve is the exact intersection of two analytic surfaces.
     /// Tolerance is effectively zero (exact arithmetic).
+    ///
+    /// `surface_indices` is `None` when the curve's supporting surfaces
+    /// have not yet been bound (e.g. planar-phase primitives where
+    /// surface bindings exist but surface-curve cross-referencing is
+    /// deferred to Phase 4).
     AnalyticIntersection {
-        /// Indices of the two surfaces that produce this curve.
-        surface_indices: [SurfaceIndex; 2],
+        /// Indices of the two surfaces that produce this curve, if known.
+        surface_indices: Option<[SurfaceIndex; 2]>,
     },
 
     /// Curve was computed by the SSI (Surface-Surface Intersection) solver.
@@ -143,7 +148,10 @@ pub struct CurveGeom {
 
 impl CurveGeom {
     /// Create a curve geometry from an analytic intersection.
-    pub fn from_analytic(kind: CurveKind, surfaces: [SurfaceIndex; 2]) -> Self {
+    ///
+    /// `surfaces` is `None` when the supporting surface cross-references
+    /// are not yet established (planar primitives in Phase 2).
+    pub fn from_analytic(kind: CurveKind, surfaces: Option<[SurfaceIndex; 2]>) -> Self {
         Self {
             kind,
             tolerance: 0.0,
@@ -163,5 +171,29 @@ impl CurveGeom {
                 iterations,
             },
         }
+    }
+
+    /// Create a line curve from two endpoint positions.
+    ///
+    /// Returns `None` if the distance between endpoints is ≤ `min_length`,
+    /// preventing degenerate curves from being emitted. All vector math
+    /// stays in the geometry layer via `forge_math::linalg`.
+    pub fn line_from_endpoints(
+        origin: [f64; 3],
+        dest: [f64; 3],
+        min_length: f64,
+    ) -> Option<Self> {
+        let delta = forge_math::linalg::sub(dest, origin);
+        let direction = forge_math::linalg::normalize_checked(delta)?;
+        let len = forge_math::linalg::norm(delta);
+
+        if len <= min_length {
+            return None;
+        }
+
+        Some(Self::from_analytic(
+            CurveKind::Line { origin, direction },
+            None,
+        ))
     }
 }

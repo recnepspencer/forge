@@ -10,10 +10,12 @@
 //!
 //! DEPENDENCIES: forge-topo (arena, handles, traversal), forge-core (KernelError).
 
-use forge_core::KernelError;
+use forge_core::{KernelError, ToleranceProvider};
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
-use forge_topo::traverse::{FaceEdgeIterator, FaceLoopsIterator, LoopEdgeIterator};
+use forge_topo::traverse::FaceLoopsIterator;
+
+use super::utils;
 
 /// Validate that all face loops have consistent orientation.
 ///
@@ -26,6 +28,7 @@ pub fn validate_loop_orientation(
     arena: &TopologyArena,
     position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
     is_planar: &dyn Fn(FaceId) -> bool,
+    tolerance_provider: &dyn ToleranceProvider,
 ) -> Result<(), KernelError> {
     for (face_id, _face_data) in arena.iter_faces() {
         if !is_planar(face_id) {
@@ -33,14 +36,15 @@ pub fn validate_loop_orientation(
         }
 
         // Collect outer loop positions and compute Newell normal.
-        let outer_positions = collect_loop_positions(arena, face_id, position_fn, true)?;
+        let outer_positions = utils::collect_face_positions(arena, face_id, position_fn)?;
         if outer_positions.len() < 3 {
             continue;
         }
 
         let face_normal = newell_normal(&outer_positions);
         let normal_mag_sq = dot(&face_normal, &face_normal);
-        if normal_mag_sq < 1e-30 {
+        let eps = tolerance_provider.geometry_epsilon();
+        if normal_mag_sq < eps * eps {
             // Degenerate face (all vertices collinear) — skip.
             continue;
         }
@@ -76,7 +80,7 @@ pub fn validate_loop_orientation(
                 continue;
             }
 
-            let inner_positions = collect_loop_positions_for_loop(arena, loop_id, position_fn)?;
+            let inner_positions = utils::collect_loop_positions(arena, loop_id, face_id, position_fn)?;
             if inner_positions.len() < 3 {
                 loop_index += 1;
                 continue;
@@ -140,39 +144,4 @@ fn projected_signed_area(positions: &[[f64; 3]], normal: &[f64; 3]) -> f64 {
 
 fn dot(a: &[f64; 3], b: &[f64; 3]) -> f64 {
     a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
-}
-
-/// Collect vertex positions for the outer loop of a face.
-fn collect_loop_positions(
-    arena: &TopologyArena,
-    face_id: FaceId,
-    position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
-    _outer: bool,
-) -> Result<Vec<[f64; 3]>, KernelError> {
-    let mut positions = Vec::new();
-    for he_res in FaceEdgeIterator::new(arena, face_id)? {
-        let he_id = he_res?;
-        let he = arena.get_half_edge(he_id)?;
-        if let Some(pos) = position_fn(he.origin()) {
-            positions.push(pos);
-        }
-    }
-    Ok(positions)
-}
-
-/// Collect vertex positions for a specific loop.
-fn collect_loop_positions_for_loop(
-    arena: &TopologyArena,
-    loop_id: forge_topo::handles::LoopId,
-    position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
-) -> Result<Vec<[f64; 3]>, KernelError> {
-    let mut positions = Vec::new();
-    for he_res in LoopEdgeIterator::new(arena, loop_id)? {
-        let he_id = he_res?;
-        let he = arena.get_half_edge(he_id)?;
-        if let Some(pos) = position_fn(he.origin()) {
-            positions.push(pos);
-        }
-    }
-    Ok(positions)
 }

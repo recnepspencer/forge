@@ -11,11 +11,16 @@
 //!   - Halfedge next/prev chains form closed loops per face.
 //!   - Vertex outgoing pointers are set for all vertices in face loops.
 
+use std::sync::Arc;
+
 use forge_core::KernelError;
+use forge_core::tolerance::ToleranceProvider;
 use forge_geom::ConvexCell;
-use forge_topo::b_rep::{EdgeData, FaceData, HalfEdgeData, LoopData};
+use forge_geom::facade::{CurveGeom, CurveKind, SurfaceData};
+use forge_topo::b_rep::{EdgeData, FaceData, HalfEdgeData, LoopData, TopologyArena};
 use forge_topo::handles::{EdgeId, HalfEdgeId, LoopId, ShellId, VertexId};
 use forge_topo::provenance::LineageRecorder;
+use forge_topo::queries::edge_endpoint_ids;
 use forge_topo::transactions::MutableDraft;
 
 use crate::geometry::facade::GeometryStore;
@@ -93,7 +98,15 @@ pub(crate) fn insert_faces_and_loops(
 
         let plane_idx = cell_face.plane_idx();
         if plane_idx < cell_planes.len() {
-            geometry.planes.set(face_id, cell_planes[plane_idx].clone());
+            let plane = &cell_planes[plane_idx];
+            geometry.planes.set(face_id, plane.clone());
+
+            // Derive SurfaceData from the Plane's normalized f64 cache.
+            // SurfaceData is a derived projection of Plane, not a peer.
+            geometry.surfaces.set(
+                face_id,
+                Arc::new(SurfaceData::plane(plane.normal(), plane.offset())),
+            );
         }
 
         let mut he_ids = Vec::with_capacity(vert_count);
@@ -139,7 +152,8 @@ pub(crate) fn stitch_twins(
     draft: &mut MutableDraft,
     edge_map: &EdgeMap,
     recorder: &mut LineageRecorder,
-) -> Result<(), KernelError> {
+) -> Result<Vec<EdgeId>, KernelError> {
+    let mut edges_created = Vec::new();
     for (a, b, he_id) in edge_map.iter_ascending() {
         if a < b {
             if let Some(twin_id) = edge_map.get(b, a) {
@@ -157,6 +171,7 @@ pub(crate) fn stitch_twins(
                     .set_radial_next(he_id);
                 draft.arena_mut().get_half_edge_mut(he_id)?.set_edge(edge);
                 draft.arena_mut().get_half_edge_mut(twin_id)?.set_edge(edge);
+                edges_created.push(edge);
             } else {
                 return Err(KernelError::InternalError {
                     message: format!(
@@ -168,5 +183,53 @@ pub(crate) fn stitch_twins(
             }
         }
     }
+    Ok(edges_created)
+}
+
+// ── Geometry emission (decoupled from topology) ─────────────────────────
+
+/// Emit `CurveGeom` for each edge based on vertex positions.
+///
+/// This is a **post-pass** that runs after topology construction is complete.
+/// It reads positions from the geometry store and emits `CurveKind::Line`
+/// curves for edges whose length exceeds the tolerance threshold.
+///
+/// Decoupled from `stitch_twins` to keep topology wiring geometry-blind.
+/// All vector math is delegated to `CurveGeom::line_from_endpoints`
+/// (in `forge-geom`), keeping this function a pure orchestrator.
+pub(crate) fn emit_edge_curves(
+    arena: &TopologyArena,
+    geometry: &mut GeometryStore,
+    edges: &[EdgeId],
+    tol: &dyn ToleranceProvider,
+) -> Result<(), KernelError> {
+    let threshold = tol.global_default();
+
+    for &edge_id in edges {
+        let edge = arena.get_edge(edge_id)?;
+        let he_id = edge.half_edge();
+
+        let (v_origin, v_dest) = edge_endpoint_ids(arena, he_id)?;
+
+        let p_origin = geometry.positions.get(v_origin)
+            .ok_or_else(|| KernelError::InternalError {
+                message: format!("Vertex {} has no position for curve emission", v_origin),
+                context: None,
+            })?;
+        let p_dest = geometry.positions.get(v_dest)
+            .ok_or_else(|| KernelError::InternalError {
+                message: format!("Vertex {} has no position for curve emission", v_dest),
+                context: None,
+            })?;
+
+        if let Some(curve) = CurveGeom::line_from_endpoints(
+            *p_origin.approx(),
+            *p_dest.approx(),
+            threshold,
+        ) {
+            geometry.curves.set(edge_id, Arc::new(curve));
+        }
+    }
+
     Ok(())
 }

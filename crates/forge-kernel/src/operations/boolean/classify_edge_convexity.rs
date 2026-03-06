@@ -115,9 +115,7 @@ fn classify_dihedral(
 ) -> Result<EdgeConvexity, KernelError> {
     let na = plane_a.normal();
     let nb = plane_b.normal();
-    let dot = na[0] * nb[0] + na[1] * nb[1] + na[2] * nb[2];
-    let sin_sq = (1.0 - dot * dot).max(0.0);
-    let sin_angle = sin_sq.sqrt();
+    let (sin_angle, dot) = forge_geom::facade::dihedral_sine(&na, &nb);
 
     if sin_angle < tangency_tol {
         return Ok(EdgeConvexity::Smooth);

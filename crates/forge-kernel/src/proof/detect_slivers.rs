@@ -95,14 +95,7 @@ fn compute_face_area_via_bounds(
     Ok(total)
 }
 
-/// Area of a triangle via cross-product magnitude.
+/// Area of a triangle via the canonical forge-geom implementation.
 fn triangle_area(a: &[f64; 3], b: &[f64; 3], c: &[f64; 3]) -> f64 {
-    let ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-    let ac = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
-    let cross = [
-        ab[1] * ac[2] - ab[2] * ac[1],
-        ab[2] * ac[0] - ab[0] * ac[2],
-        ab[0] * ac[1] - ab[1] * ac[0],
-    ];
-    0.5 * (cross[0] * cross[0] + cross[1] * cross[1] + cross[2] * cross[2]).sqrt()
+    forge_geom::facade::triangle_area_3d(a, b, c)
 }

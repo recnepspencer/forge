@@ -10,6 +10,7 @@
 //! - Deterministic for identical floating-point inputs.
 
 pub mod face_sampling;
+pub mod normal_orientation;
 pub mod point_in_solid;
 pub mod point_on_face;
 pub mod schema;

@@ -10,7 +10,7 @@
 //! between outer and inner loops, not absolute CW/CCW orientation.
 
 use super::test_support::*;
-use forge_core::{KernelError, TopologyError};
+use forge_core::{FlatToleranceProvider, KernelError, TopologyError};
 use forge_spatial::validators::loop_orientation::validate_loop_orientation;
 use forge_topo::b_rep::{FaceData, HalfEdgeData, LoopData, VertexData};
 use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, VertexId};
@@ -32,6 +32,7 @@ fn valid_3d_planar_face_passes() {
             else { None }
         },
         &|_| true,
+        &FlatToleranceProvider::new(1e-10),
     );
     assert!(result.is_ok(), "Valid CCW triangle on 3D plane should pass");
 }
@@ -55,6 +56,7 @@ fn single_face_any_winding_passes() {
             else { None }
         },
         &|_| true,
+        &FlatToleranceProvider::new(1e-10),
     );
     assert!(result.is_ok(), "Single outer loop with CW winding is self-consistent");
 }
@@ -136,6 +138,7 @@ fn inner_loop_ccw_detected() {
             else { None }
         },
         &|_| true,
+        &FlatToleranceProvider::new(1e-10),
     );
 
     assert!(result.is_err(), "Inner loop winding CCW should be caught");
@@ -160,6 +163,7 @@ fn collinear_vertices_skipped() {
             else { None }
         },
         &|_| true,
+        &FlatToleranceProvider::new(1e-10),
     );
     assert!(result.is_ok(), "Collinear vertices (zero normal) should be skipped");
 }
@@ -179,6 +183,7 @@ fn numerical_jitter_near_zero() {
             else { None }
         },
         &|_| true,
+        &FlatToleranceProvider::new(1e-10),
     );
     assert!(result.is_ok(), "Micro-face with tiny positive area should not fail");
 }
@@ -198,6 +203,7 @@ fn non_planar_face_skipped() {
             else { None }
         },
         &|_| false, // Not planar — skip
+        &FlatToleranceProvider::new(1e-10),
     );
     assert!(result.is_ok(), "Non-planar face should be skipped even with CW geometry");
 }
@@ -218,6 +224,7 @@ fn valid_cube_passes_orientation() {
         arena,
         &|v| solid.geometry().get_vertex_position(v).copied(),
         &|_| true,
+        &FlatToleranceProvider::new(1e-10),
     );
     assert!(result.is_ok(), "All faces of a valid cube should have consistent loop orientation");
 }

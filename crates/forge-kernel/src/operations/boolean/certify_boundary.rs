@@ -83,36 +83,9 @@ pub fn certify_boundary(
 
 /// Build an orthonormal tangent frame (u, v) perpendicular to `n`.
 fn build_tangent_frame(n: &[f64; 3]) -> ([f64; 3], [f64; 3]) {
-    let abs_n = [n[0].abs(), n[1].abs(), n[2].abs()];
-    let candidate: [f64; 3] = if abs_n[0] <= abs_n[1] && abs_n[0] <= abs_n[2] {
-        [1.0, 0.0, 0.0]
-    } else if abs_n[1] <= abs_n[2] {
-        [0.0, 1.0, 0.0]
-    } else {
-        [0.0, 0.0, 1.0]
-    };
-    let u = normalize(cross3(n, &candidate));
-    let v = cross3(n, &u);
-    (u, v)
-}
-
-fn cross3(a: &[f64; 3], b: &[f64; 3]) -> [f64; 3] {
-    [
-        a[1] * b[2] - a[2] * b[1],
-        a[2] * b[0] - a[0] * b[2],
-        a[0] * b[1] - a[1] * b[0],
-    ]
+    forge_geom::facade::tangent_frame(n)
 }
 
 fn dot3(a: &[f64; 3], b: &[f64; 3]) -> f64 {
     a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
-}
-
-fn normalize(v: [f64; 3]) -> [f64; 3] {
-    let len = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
-    if len < 1e-300 {
-        v
-    } else {
-        [v[0] / len, v[1] / len, v[2] / len]
-    }
 }

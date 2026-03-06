@@ -10,5 +10,5 @@
 pub use super::placement::vertex::{place_vertex, place_vertex_exact, PlacementRegistry};
 
 // Mesh building
-pub(crate) use super::mesh_building::cell_to_mesh::{insert_faces_and_loops, stitch_twins};
+pub(crate) use super::mesh_building::cell_to_mesh::{emit_edge_curves, insert_faces_and_loops, stitch_twins};
 pub use super::mesh_building::containment::{make_solid_hierarchy, SolidHierarchy};

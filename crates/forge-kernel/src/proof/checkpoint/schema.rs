@@ -11,7 +11,7 @@
 
 use forge_core::{KernelError, ToleranceProvider};
 pub use forge_core::ValidationCheckpoint;
-use forge_spatial::validate_geometric_invariants;
+use forge_spatial::{validate_geometric_invariants, GeometryContext};
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::VertexId;
 use forge_topo::validate::{validate_topology, ValidationLevel};
@@ -278,7 +278,14 @@ pub fn run_checkpoint(
 
     if config.get_include_geometric() {
         if let Some(pos_fn) = position_fn {
-            validate_geometric_invariants(arena, pos_fn, &|_| true, tolerance_provider)?;
+            let ctx = GeometryContext {
+                position_fn: pos_fn,
+                plane_fn: &|_| None,
+                is_planar: &|_| true,
+                curve_fn: &|_| None,
+                tolerance_provider,
+            };
+            validate_geometric_invariants(arena, &ctx)?;
         }
     }
 

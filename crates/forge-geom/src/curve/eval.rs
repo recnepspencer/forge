@@ -5,6 +5,7 @@
 //! DEPENDENCIES: curve schema types
 
 use super::schema::CurveKind;
+use forge_math::linalg;
 
 impl CurveKind {
     /// Evaluate the 3D curve at parameter `t`.
@@ -69,7 +70,7 @@ impl CurveKind {
                     radius * (-st * u_dir[1] + ct * v_dir[1]),
                     radius * (-st * u_dir[2] + ct * v_dir[2]),
                 ];
-                normalize(raw)
+                linalg::normalize_checked(raw).unwrap_or([0.0; 3])
             }
             CurveKind::Ellipse { major, minor, .. } => {
                 let ct = t.cos();
@@ -79,7 +80,7 @@ impl CurveKind {
                     -st * major[1] + ct * minor[1],
                     -st * major[2] + ct * minor[2],
                 ];
-                normalize(raw)
+                linalg::normalize_checked(raw).unwrap_or([0.0; 3])
             }
             CurveKind::SurfaceIntersection { sp_curve_cache, .. } => {
                 let dt = 1e-8;
@@ -95,11 +96,11 @@ impl CurveKind {
                     sp_curve_cache.domain,
                     t + dt,
                 );
-                normalize([
+                linalg::normalize_checked([
                     (p1[0] - p0[0]) / dt,
                     (p1[1] - p0[1]) / dt,
                     (p1[2] - p0[2]) / dt,
-                ])
+                ]).unwrap_or([0.0; 3])
             }
         }
     }
@@ -112,8 +113,8 @@ fn circle_frame(normal: &[f64; 3]) -> ([f64; 3], [f64; 3]) {
     } else {
         [0.0, 1.0, 0.0]
     };
-    let u = normalize(cross(&seed, normal));
-    let v = cross(normal, &u);
+    let u = linalg::normalize_checked(linalg::cross(seed, *normal)).unwrap_or([0.0; 3]);
+    let v = linalg::cross(*normal, u);
     (u, v)
 }
 
@@ -151,21 +152,7 @@ fn evaluate_bspline_point(
     ]
 }
 
-fn cross(a: &[f64; 3], b: &[f64; 3]) -> [f64; 3] {
-    [
-        a[1] * b[2] - a[2] * b[1],
-        a[2] * b[0] - a[0] * b[2],
-        a[0] * b[1] - a[1] * b[0],
-    ]
-}
 
-fn normalize(v: [f64; 3]) -> [f64; 3] {
-    let len = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt();
-    if len < 1e-30 {
-        return [0.0, 0.0, 0.0];
-    }
-    [v[0] / len, v[1] / len, v[2] / len]
-}
 
 #[cfg(test)]
 mod tests {

@@ -65,10 +65,7 @@ pub fn snap_or_coalesce_vertex<S: DecisionSink>(
     coalescence_threshold: f64,
     sink: &mut S,
 ) -> CoalescenceResult {
-    let dx = candidate_pos[0] - existing_pos[0];
-    let dy = candidate_pos[1] - existing_pos[1];
-    let dz = candidate_pos[2] - existing_pos[2];
-    let gap = (dx * dx + dy * dy + dz * dz).sqrt();
+    let gap = forge_geom::facade::distance(&candidate_pos, &existing_pos);
 
     if gap < existing_tol {
         sink.record_tolerance_snap(existing.index(), gap, existing_tol, DecisionTier::Resolved);

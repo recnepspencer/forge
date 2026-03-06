@@ -116,6 +116,13 @@ pub enum TopologyError {
         /// The edge entity on the ring seed.
         expected_edge: u32,
     },
+    /// A vertex deviates from its face's supporting surface beyond tolerance.
+    VertexOffSurface {
+        vertex_index: u32,
+        face_index: u32,
+        deviation: f64,
+        tolerance: f64,
+    },
     /// A validator detected a structural invariant violation.
     /// Generic variant for new validators that don't warrant dedicated enums.
     ValidatorFailure {

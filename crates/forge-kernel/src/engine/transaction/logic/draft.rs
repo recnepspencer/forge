@@ -88,11 +88,27 @@ impl KernelDraft {
     }
 
     /// Commit the transaction, finalizing all topology and geometry mutations.
+    ///
+    /// Runs topology validation (via `MutableDraft::commit()`) then geometry
+    /// validation (via `validate_all_spatial_invariants` through the dispatch
+    /// system). If either fails, the `KernelState` is never constructed.
     pub fn commit(self) -> Result<KernelState, KernelError> {
         let topo = self.draft.commit()?;
-        Ok(KernelState::new(
-            topo,
-            self.geom.commit(),
-        ))
+        let geom = self.geom.commit();
+
+        // ── Geometry validation ─────────────────────────────────────────
+        // Mirrors topology validation in MutableDraft::commit(). Runs all
+        // geometry-dependent invariants through the spatial dispatch system.
+        let default_tol = forge_core::FlatToleranceProvider::new(1e-10);
+        let ctx = forge_spatial::GeometryContext {
+            position_fn: &|v| geom.positions.get(v).map(|p| *p.approx()),
+            plane_fn: &|f| geom.planes.get(f).cloned(),
+            is_planar: &|f| geom.surfaces.get(f).is_some(),
+            curve_fn: &|e| geom.curves.get(e).map(|c| c.kind.clone()),
+            tolerance_provider: &default_tol,
+        };
+        forge_spatial::validate_all_spatial_invariants(topo.arena(), &ctx)?;
+
+        Ok(KernelState::new(topo, geom))
     }
 }

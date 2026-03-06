@@ -103,6 +103,12 @@ pub enum InvariantId {
     LoopOrientationConsistency,
     /// Adjacent face normals across shared edges are compatible.
     ShellOrientationConsistency,
+    /// All vertices of a face lie on its supporting surface within tolerance.
+    NoVertexOffSurface,
+    /// Every face has plane+surface, every edge has curve, every vertex has position.
+    GeometryCompleteness,
+    /// Edge curve origin/direction/destination match vertex positions.
+    EdgeCurveConsistency,
 }
 
 impl InvariantId {
@@ -145,7 +151,8 @@ impl InvariantId {
 
             Self::NoZeroLengthEdges | Self::NoZeroAreaFaces
             | Self::NoInsideOutShells | Self::LoopOrientationConsistency
-            | Self::ShellOrientationConsistency
+            | Self::ShellOrientationConsistency | Self::NoVertexOffSurface
+            | Self::GeometryCompleteness | Self::EdgeCurveConsistency
                 => InvariantGroup::Geometry,
         }
     }
@@ -187,6 +194,9 @@ impl InvariantId {
         Self::NoInsideOutShells,
         Self::LoopOrientationConsistency,
         Self::ShellOrientationConsistency,
+        Self::NoVertexOffSurface,
+        Self::GeometryCompleteness,
+        Self::EdgeCurveConsistency,
     ];
 }
 

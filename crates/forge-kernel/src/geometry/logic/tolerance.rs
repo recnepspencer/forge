@@ -33,10 +33,7 @@ pub fn compute_model_scale(view: &impl GeometryView) -> f64 {
     }
 
     if !any { return 0.0; }
-    let dx = max[0] - min[0];
-    let dy = max[1] - min[1];
-    let dz = max[2] - min[2];
-    (dx * dx + dy * dy + dz * dz).sqrt()
+    forge_geom::facade::distance(&min, &max)
 }
 
 /// Compute a sensible global default tolerance from model scale.

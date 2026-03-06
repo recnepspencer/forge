@@ -13,6 +13,12 @@
 //!
 //! All public types are re-exported at the crate root.
 
+// ── Float safety ────────────────────────────────────────────────────────
+// Direct float equality is banned. Use forge_core comparison predicates:
+//   approximately_equal, positions_coincident, is_effectively_zero,
+//   is_degenerate_magnitude_sq — all take &dyn ToleranceProvider.
+#![deny(clippy::float_cmp)]
+
 // =========================================================================
 // DOMAIN MODULES
 // =========================================================================
@@ -58,5 +64,8 @@ pub use provenance::{
     hash_directed_snapshot_segment_transport, BoundarySegmentProvenance, MergeStepProvenance,
     SelectorOrigin, SnapshotHandleRef,
 };
-pub use tolerance::{FlatToleranceProvider, ToleranceProvider};
+pub use tolerance::{
+    FlatToleranceProvider, ToleranceProvider,
+    approximately_equal, is_degenerate_magnitude_sq, is_effectively_zero, positions_coincident,
+};
 pub use storage::{PropertyLayer, PropertyPatch};

@@ -17,8 +17,10 @@
 
 pub mod builders;
 pub mod chains;
+pub mod comparison;
 pub mod determinism;
 pub mod dump;
+pub mod oracles;
 pub mod selectors;
 pub mod snapshot;
 pub mod tolerance_sweep;

@@ -69,6 +69,16 @@ pub trait ToleranceProvider: std::fmt::Debug {
     ///
     /// Implementations derive this from `ToleranceConfig::global_default`.
     fn global_default(&self) -> f64;
+
+    /// Tolerance for geometric identity checks (position matching,
+    /// normal degeneracy, point-on-surface deviation).
+    ///
+    /// Defaults to `global_default()`. Override when geometric comparisons
+    /// need a tighter tolerance than per-entity metric thresholds (edge
+    /// length, face area).
+    fn geometry_epsilon(&self) -> f64 {
+        self.global_default()
+    }
 }
 
 /// A flat, constant-tolerance provider for tests and the planar Phase 1–2 fast path.
@@ -109,4 +119,52 @@ impl ToleranceProvider for FlatToleranceProvider {
     fn global_default(&self) -> f64 {
         self.tolerance
     }
+
+    fn geometry_epsilon(&self) -> f64 {
+        self.tolerance
+    }
+}
+
+// ── Comparison predicates ───────────────────────────────────────────────
+//
+// These are the ONLY sanctioned path for geometric comparisons.
+// Direct `<`, `>`, `==` against float values with literal tolerances is
+// banned (clippy::float_cmp + CI lint). Use these instead.
+
+/// Two 3D points are the same location within `geometry_epsilon`.
+///
+/// Uses squared-distance to avoid sqrt.
+#[inline]
+pub fn positions_coincident(
+    a: &[f64; 3],
+    b: &[f64; 3],
+    tol: &dyn ToleranceProvider,
+) -> bool {
+    let dx = a[0] - b[0];
+    let dy = a[1] - b[1];
+    let dz = a[2] - b[2];
+    let eps = tol.geometry_epsilon();
+    dx * dx + dy * dy + dz * dz < eps * eps
+}
+
+/// A scalar magnitude is effectively zero (below `geometry_epsilon`).
+#[inline]
+pub fn is_effectively_zero(value: f64, tol: &dyn ToleranceProvider) -> bool {
+    value.abs() < tol.geometry_epsilon()
+}
+
+/// A squared magnitude is degenerate (below `geometry_epsilon²`).
+///
+/// Use for checking if a normal vector or cross product is too small,
+/// without taking a sqrt.
+#[inline]
+pub fn is_degenerate_magnitude_sq(mag_sq: f64, tol: &dyn ToleranceProvider) -> bool {
+    let eps = tol.geometry_epsilon();
+    mag_sq < eps * eps
+}
+
+/// Two scalars are approximately equal within `geometry_epsilon`.
+#[inline]
+pub fn approximately_equal(a: f64, b: f64, tol: &dyn ToleranceProvider) -> bool {
+    (a - b).abs() < tol.geometry_epsilon()
 }

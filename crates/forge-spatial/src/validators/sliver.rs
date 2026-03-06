@@ -11,7 +11,8 @@ use forge_core::KernelError;
 use forge_geom::compute_polygon_area;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
-use forge_topo::traverse::FaceEdgeIterator;
+
+use super::utils;
 
 /// Result of sliver analysis on a topology.
 #[derive(Debug, Clone)]
@@ -76,7 +77,7 @@ pub fn analyze_slivers(
     let mut sliver_count = 0;
 
     for (face_id, _) in arena.iter_faces() {
-        let vertices = collect_face_positions(arena, face_id, position_fn)?;
+        let vertices = utils::collect_face_positions(arena, face_id, position_fn)?;
         if vertices.len() < 3 {
             continue;
         }
@@ -98,32 +99,4 @@ pub fn analyze_slivers(
         face_areas,
         threshold: min_face_area,
     })
-}
-
-/// Collect vertex positions around a face via halfedge traversal.
-fn collect_face_positions(
-    arena: &TopologyArena,
-    face_id: FaceId,
-    position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
-) -> Result<Vec<[f64; 3]>, KernelError> {
-    let mut positions = Vec::new();
-    let mut count = 0;
-
-    for he_res in FaceEdgeIterator::new(arena, face_id)? {
-        let he_id = he_res?;
-        let he = arena.get_half_edge(he_id)?;
-        let v = he.origin();
-        if let Some(pos) = position_fn(v) {
-            positions.push(pos);
-        }
-        count += 1;
-        if count > 10000 {
-            return Err(KernelError::InternalError {
-                message: "Face traversal exceeded 10000 edges (infinite loop?)".to_string(),
-                context: None,
-            });
-        }
-    }
-
-    Ok(positions)
 }

@@ -4,7 +4,7 @@
 //! stable wrappers around arena mutation methods and geometric validation calls.
 
 use forge_core::{FlatToleranceProvider, KernelError};
-use forge_spatial::validate_geometric_invariants;
+use forge_spatial::{validate_geometric_invariants, GeometryContext};
 use forge_topo::b_rep::{
     EdgeData, FaceData, HalfEdgeData, LoopData, TopologyArena, VertexData,
 };
@@ -22,7 +22,14 @@ pub fn validate_geometric_invariants_all_faces(
     edge_length_threshold: f64,
 ) -> Result<(), KernelError> {
     let tol = FlatToleranceProvider::new(area_threshold.sqrt().max(edge_length_threshold));
-    validate_geometric_invariants(arena, position_fn, &all_faces_planar, &tol)
+    let ctx = GeometryContext {
+        position_fn,
+        plane_fn: &|_| None,
+        is_planar: &all_faces_planar,
+        curve_fn: &|_| None,
+        tolerance_provider: &tol,
+    };
+    validate_geometric_invariants(arena, &ctx)
 }
 
 /// Validate geometric invariants with an explicit planarity predicate.
@@ -34,7 +41,14 @@ pub fn validate_geometric_invariants_with_planarity(
     edge_length_threshold: f64,
 ) -> Result<(), KernelError> {
     let tol = FlatToleranceProvider::new(area_threshold.sqrt().max(edge_length_threshold));
-    validate_geometric_invariants(arena, position_fn, is_planar, &tol)
+    let ctx = GeometryContext {
+        position_fn,
+        plane_fn: &|_| None,
+        is_planar,
+        curve_fn: &|_| None,
+        tolerance_provider: &tol,
+    };
+    validate_geometric_invariants(arena, &ctx)
 }
 
 fn all_faces_planar(_face: FaceId) -> bool {

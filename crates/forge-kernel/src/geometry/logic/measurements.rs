@@ -7,7 +7,7 @@
 //! These functions need both `TopologyArena` and `GeometryView`,
 //! which is why they live in `forge-kernel` rather than `forge-geom`.
 
-use forge_geom::facade::{compute_polygon_area, distance, polyhedron_volume};
+use forge_geom::facade::{compute_polygon_area, distance, polyhedron_centroid, polyhedron_volume};
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{EdgeId, FaceId};
 
@@ -62,6 +62,21 @@ pub fn solid_volume(arena: &TopologyArena, geom: &impl GeometryView) -> f64 {
     polyhedron_volume(&face_verts)
 }
 
+// ── Solid centroid ───────────────────────────────────────────────────────────
+
+/// Compute the volumetric centroid of a closed solid by collecting all face
+/// vertex lists and delegating to `forge_geom::polyhedron_centroid`.
+///
+/// Returns `None` if the solid has near-zero volume (degenerate).
+pub fn solid_centroid(arena: &TopologyArena, geom: &impl GeometryView) -> Option<[f64; 3]> {
+    let face_verts: Vec<Vec<[f64; 3]>> = arena
+        .iter_faces()
+        .map(|(fid, _)| collect_face_positions(arena, geom, fid))
+        .collect();
+
+    polyhedron_centroid(&face_verts)
+}
+
 // ── Bounding box ─────────────────────────────────────────────────────────────
 
 /// Axis-aligned bounding box.
@@ -93,7 +108,7 @@ pub fn bounding_box(arena: &TopologyArena, geom: &impl GeometryView) -> Option<A
 // ── Internal ─────────────────────────────────────────────────────────────────
 
 /// Collect ordered vertex positions around a face loop.
-fn collect_face_positions(
+pub fn collect_face_positions(
     arena: &TopologyArena,
     geom: &impl GeometryView,
     face: FaceId,

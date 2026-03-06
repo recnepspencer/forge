@@ -102,6 +102,7 @@ fn compute_fan_volume(vertices: &[[f64; 3]], reference: [f64; 3]) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use forge_topo::b_rep::ShellKind;
     use forge_topo::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use forge_topo::entity_lifecycle::split_edge::SplitEdge;
     use forge_topo::transactions::TopologyState;

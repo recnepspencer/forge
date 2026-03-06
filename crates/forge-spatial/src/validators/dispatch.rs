@@ -8,16 +8,34 @@
 //! dispatched through `forge-topo::validator_for()`.
 //!
 //! DEPENDENCIES: forge-core (InvariantId, ValidatorCost, KernelError, ToleranceProvider),
-//!               forge-topo (TopologyArena, handles).
+//!               forge-topo (TopologyArena, handles), forge-geom (CurveKind, Plane).
 
 use forge_core::{InvariantId, KernelError, ToleranceProvider, ValidatorCost};
+use forge_geom::facade::{CurveKind, Plane};
 use forge_topo::b_rep::TopologyArena;
-use forge_topo::handles::{FaceId, VertexId};
+use forge_topo::handles::{EdgeId, FaceId, VertexId};
+
+/// Bundles all geometry callbacks into a single parameter for spatial validators.
+///
+/// Adding a new geometry layer (e.g., coedge_fn in Phase 4) is a one-line
+/// field addition here — no signature migration across adapters or callers.
+pub struct GeometryContext<'a> {
+    /// Maps `VertexId` → exact position.
+    pub position_fn: &'a dyn Fn(VertexId) -> Option<[f64; 3]>,
+    /// Maps `FaceId` → plane equation.
+    pub plane_fn: &'a dyn Fn(FaceId) -> Option<Plane>,
+    /// Returns true for faces with planar geometry bound.
+    pub is_planar: &'a dyn Fn(FaceId) -> bool,
+    /// Maps `EdgeId` → 3D curve kind.
+    pub curve_fn: &'a dyn Fn(EdgeId) -> Option<CurveKind>,
+    /// Per-entity tolerances.
+    pub tolerance_provider: &'a dyn ToleranceProvider,
+}
 
 /// A geometry-dependent validator entry with its cost and check function.
 ///
 /// Unlike `forge-topo::ValidatorEntry` (which takes only `&TopologyArena`),
-/// spatial validators require position callbacks and tolerance providers.
+/// spatial validators require geometry callbacks bundled in `GeometryContext`.
 pub struct SpatialValidatorEntry {
     /// Algorithmic cost of running this validator.
     pub cost: ValidatorCost,
@@ -27,16 +45,11 @@ pub struct SpatialValidatorEntry {
 
 /// Function signature for spatial validators.
 ///
-/// Parameters:
-/// - `arena` — the topology snapshot
-/// - `position_fn` — maps `VertexId` → position (caller provides from GeometryState)
-/// - `is_planar` — true for faces that have planar geometry bound
-/// - `tolerance_provider` — per-entity tolerances
+/// Takes the topology arena and a `GeometryContext` containing all geometry
+/// callbacks. Adding new geometry layers doesn't change this signature.
 type SpatialCheckFn = fn(
     &TopologyArena,
-    &dyn Fn(VertexId) -> Option<[f64; 3]>,
-    &dyn Fn(FaceId) -> bool,
-    &dyn ToleranceProvider,
+    &GeometryContext<'_>,
 ) -> Result<(), KernelError>;
 
 impl SpatialValidatorEntry {
@@ -54,12 +67,10 @@ impl SpatialValidatorEntry {
     pub fn run(
         &self,
         arena: &TopologyArena,
-        position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
-        is_planar: &dyn Fn(FaceId) -> bool,
-        tolerance_provider: &dyn ToleranceProvider,
+        ctx: &GeometryContext<'_>,
     ) -> Result<(), KernelError> {
         match self.check {
-            Some(check) => check(arena, position_fn, is_planar, tolerance_provider),
+            Some(check) => check(arena, ctx),
             None => Ok(()),
         }
     }
@@ -67,52 +78,73 @@ impl SpatialValidatorEntry {
 
 // ── Adapter wrappers ────────────────────────────────────────────────────
 //
-// The existing validators have slightly different signatures (some take
-// `is_planar`, some don't). These wrappers normalize them to `SpatialCheckFn`.
+// These wrappers extract what they need from `GeometryContext` and delegate
+// to the underlying validators. Adding a new field to GeometryContext
+// requires no changes here unless an adapter actually uses it.
 
 fn check_zero_length_edges(
     arena: &TopologyArena,
-    position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
-    _is_planar: &dyn Fn(FaceId) -> bool,
-    tolerance_provider: &dyn ToleranceProvider,
+    ctx: &GeometryContext<'_>,
 ) -> Result<(), KernelError> {
-    super::edge_length::validate_zero_length_edges(arena, position_fn, tolerance_provider)
+    super::edge_length::validate_zero_length_edges(arena, ctx.position_fn, ctx.tolerance_provider)
 }
 
 fn check_zero_area_faces(
     arena: &TopologyArena,
-    position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
-    is_planar: &dyn Fn(FaceId) -> bool,
-    tolerance_provider: &dyn ToleranceProvider,
+    ctx: &GeometryContext<'_>,
 ) -> Result<(), KernelError> {
-    super::area::validate_zero_area_faces(arena, position_fn, is_planar, tolerance_provider)
+    super::area::validate_zero_area_faces(arena, ctx.position_fn, ctx.is_planar, ctx.tolerance_provider)
 }
 
 fn check_signed_volume(
     arena: &TopologyArena,
-    position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
-    _is_planar: &dyn Fn(FaceId) -> bool,
-    _tolerance_provider: &dyn ToleranceProvider,
+    ctx: &GeometryContext<'_>,
 ) -> Result<(), KernelError> {
-    super::volume::validate_signed_volume(arena, position_fn)
+    super::volume::validate_signed_volume(arena, ctx.position_fn)
 }
 
 fn check_loop_orientation(
     arena: &TopologyArena,
-    position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
-    is_planar: &dyn Fn(FaceId) -> bool,
-    _tolerance_provider: &dyn ToleranceProvider,
+    ctx: &GeometryContext<'_>,
 ) -> Result<(), KernelError> {
-    super::loop_orientation::validate_loop_orientation(arena, position_fn, is_planar)
+    super::loop_orientation::validate_loop_orientation(arena, ctx.position_fn, ctx.is_planar, ctx.tolerance_provider)
 }
 
 fn check_shell_orientation(
     arena: &TopologyArena,
-    position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
-    _is_planar: &dyn Fn(FaceId) -> bool,
-    _tolerance_provider: &dyn ToleranceProvider,
+    ctx: &GeometryContext<'_>,
 ) -> Result<(), KernelError> {
-    super::shell_orientation::validate_shell_orientation(arena, position_fn)
+    super::shell_orientation::validate_shell_orientation(arena, ctx.position_fn, ctx.tolerance_provider)
+}
+
+fn check_surface_deviation(
+    arena: &TopologyArena,
+    ctx: &GeometryContext<'_>,
+) -> Result<(), KernelError> {
+    super::surface_deviation::validate_surface_deviation(arena, ctx.position_fn, ctx.plane_fn, ctx.tolerance_provider)
+}
+
+fn check_geometry_completeness(
+    arena: &TopologyArena,
+    ctx: &GeometryContext<'_>,
+) -> Result<(), KernelError> {
+    let plane_fn = ctx.plane_fn;
+    super::completeness::validate_geometry_completeness(
+        arena,
+        &|f| plane_fn(f).is_some(),
+        &|v| (ctx.position_fn)(v).is_some(),
+        Some(&|f| plane_fn(f).is_some()),
+        Some(&|e| (ctx.curve_fn)(e).is_some()),
+    )
+}
+
+fn check_edge_curve_consistency(
+    arena: &TopologyArena,
+    ctx: &GeometryContext<'_>,
+) -> Result<(), KernelError> {
+    super::edge_curve_consistency::validate_edge_curve_consistency(
+        arena, ctx.position_fn, ctx.curve_fn, ctx.tolerance_provider,
+    )
 }
 
 /// Dispatch a single `InvariantId` to its spatial validator.
@@ -132,6 +164,12 @@ pub fn spatial_validator_for(id: InvariantId) -> SpatialValidatorEntry {
             SpatialValidatorEntry::new(ValidatorCost::Medium, check_loop_orientation),
         InvariantId::ShellOrientationConsistency =>
             SpatialValidatorEntry::new(ValidatorCost::Medium, check_shell_orientation),
+        InvariantId::NoVertexOffSurface =>
+            SpatialValidatorEntry::new(ValidatorCost::Medium, check_surface_deviation),
+        InvariantId::GeometryCompleteness =>
+            SpatialValidatorEntry::new(ValidatorCost::Cheap, check_geometry_completeness),
+        InvariantId::EdgeCurveConsistency =>
+            SpatialValidatorEntry::new(ValidatorCost::Medium, check_edge_curve_consistency),
 
         // ── Structural invariants (dispatched by forge-topo) ───
         InvariantId::RadialReciprocity
@@ -167,20 +205,18 @@ pub fn spatial_validator_for(id: InvariantId) -> SpatialValidatorEntry {
 
 /// Run all spatial (geometry-dependent) validators.
 ///
-/// This iterates through all `InvariantId` variants in the `Geometry` group
+/// Iterates through all `InvariantId` variants in the `Geometry` group
 /// and runs each one. Short-circuits on first failure.
 pub fn validate_all_spatial_invariants(
     arena: &TopologyArena,
-    position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
-    is_planar: &dyn Fn(FaceId) -> bool,
-    tolerance_provider: &dyn ToleranceProvider,
+    ctx: &GeometryContext<'_>,
 ) -> Result<(), KernelError> {
     use forge_core::InvariantGroup;
     use forge_topo::validators::invariant_group::invariant_ids;
 
     for &id in invariant_ids(InvariantGroup::Geometry) {
         let entry = spatial_validator_for(id);
-        entry.run(arena, position_fn, is_planar, tolerance_provider)?;
+        entry.run(arena, ctx)?;
     }
     Ok(())
 }
@@ -210,6 +246,10 @@ mod tests {
         let check = spatial_validator_for(InvariantId::LoopOrientationConsistency);
         assert!(check.check.is_some());
         let check = spatial_validator_for(InvariantId::ShellOrientationConsistency);
+        assert!(check.check.is_some());
+        let check = spatial_validator_for(InvariantId::GeometryCompleteness);
+        assert!(check.check.is_some());
+        let check = spatial_validator_for(InvariantId::EdgeCurveConsistency);
         assert!(check.check.is_some());
     }
 

@@ -4,7 +4,7 @@
 //! half-edge winding (compatible normals in an orientable manifold).
 
 use super::test_support::*;
-use forge_core::{KernelError, TopologyError};
+use forge_core::{FlatToleranceProvider, KernelError, TopologyError};
 use forge_spatial::validators::shell_orientation::validate_shell_orientation;
 use forge_topo::b_rep::{EdgeData, FaceData, HalfEdgeData, LoopData, VertexData};
 use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId};
@@ -79,6 +79,7 @@ fn adjacent_faces_opposite_passes() {
             else if v == vd { Some([0.0, -1.0, 0.0]) }
             else { None }
         },
+        &FlatToleranceProvider::new(1e-10),
     );
     assert!(result.is_ok(), "Opposite-direction shared edge should pass");
 }
@@ -149,6 +150,7 @@ fn same_direction_detected() {
             else if v == vd { Some([0.0, -1.0, 0.0]) }
             else { None }
         },
+        &FlatToleranceProvider::new(1e-10),
     );
     assert!(result.is_err(), "Same-direction shared edge should fail");
     match result.unwrap_err() {
@@ -182,6 +184,7 @@ fn non_manifold_touching_corner() {
             else if v == v5 { Some([0.0, -1.0, 0.0]) }
             else { None }
         },
+        &FlatToleranceProvider::new(1e-10),
     );
     assert!(result.is_ok(), "Faces touching only at a vertex (no shared edge) should pass");
 }
@@ -258,6 +261,7 @@ fn coincident_vertices_different_ids() {
             else if v == vd { Some([0.0, -1.0, 0.0]) }
             else { None }
         },
+        &FlatToleranceProvider::new(1e-10),
     );
     assert!(result.is_err(), "Coincident vertices with same-direction half-edges MUST be caught");
     match result.unwrap_err() {
@@ -354,6 +358,7 @@ fn non_manifold_shared_edge_cycle() {
             else if v == ve { Some([0.0, 0.0, 1.0]) }
             else { None }
         },
+        &FlatToleranceProvider::new(1e-10),
     );
     assert!(result.is_ok(), "Non-manifold 3-face edge cycle with alternating directions should pass");
 }
@@ -426,6 +431,7 @@ fn reversed_edge_different_lengths() {
             else if v == vd { Some([0.0, 1.0, 0.0]) }
             else { None }
         },
+        &FlatToleranceProvider::new(1e-10),
     );
     // Both h1_bc and h2_bc go B→C (same vertex B, next vertex C).
     // Origins: Pos(B)=[0,0,0] and Pos(B)=[0,0,0] — match.

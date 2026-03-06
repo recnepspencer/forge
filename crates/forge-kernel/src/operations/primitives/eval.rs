@@ -21,7 +21,7 @@ use crate::engine::facade::SolidEnvelope;
 use crate::context::scope::OperationScope;
 use crate::geometry::facade::GeometryStore;
 use crate::operations::shared_operations::facade::{
-    insert_faces_and_loops, make_solid_hierarchy, place_vertex_exact,
+    emit_edge_curves, insert_faces_and_loops, make_solid_hierarchy, place_vertex_exact,
     stitch_twins, PlacementRegistry,
 };
 use crate::context::facade::ModelingContext;
@@ -82,7 +82,11 @@ pub fn build_halfedge_mesh(
     )?;
 
     // 4. Stitch twin pointers
-    stitch_twins(&mut draft, &edge_map, &mut recorder)?;
+    let edges = stitch_twins(&mut draft, &edge_map, &mut recorder)?;
+
+    // 4b. Emit edge curves (decoupled geometry post-pass)
+    let tol_provider = forge_core::tolerance::FlatToleranceProvider::new(tolerance);
+    emit_edge_curves(draft.arena(), &mut geometry, &edges, &tol_provider)?;
 
     // 5. Set representative face on shell
     let first_face = draft.arena().iter_faces().next().map(|(fid, _)| fid);
@@ -98,6 +102,8 @@ pub fn build_halfedge_mesh(
         topology.arena(),
         &|f| geometry.planes.contains(f),
         &|v| geometry.positions.contains(v),
+        Some(&|f| geometry.surfaces.contains(f)),
+        Some(&|e| geometry.curves.contains(e)),
     )?;
 
     scope.sink.end_span(span, start.elapsed().as_micros() as u64);

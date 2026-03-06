@@ -34,6 +34,8 @@ pub use super::spatial::local_space::{LocalCoordinateSpace, ScaleAnalysis};
 
 // ── Algorithms ──────────────────────────────────────────────────────────
 pub use super::algorithms::chord::{clip_line_to_face_polygon, compute_intersection_line};
+pub use super::algorithms::measurement::area::{dihedral_sine, tangent_frame, triangle_area_3d};
+pub use super::algorithms::measurement::centroid::polyhedron_centroid;
 pub use super::algorithms::measurement::distance::{distance, distance_squared};
 pub use super::algorithms::measurement::volume::{polyhedron_volume, signed_tetra_volume_6x};
 pub use super::algorithms::polygon::segment::point_on_segment;

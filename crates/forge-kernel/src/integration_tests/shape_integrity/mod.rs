@@ -6,7 +6,10 @@
 
 mod primitive_verification;
 mod volume_oracle;
+mod volume_metamorphic;
+mod normal_correctness;
 mod determinism;
 mod euler_deltas;
 mod selector_queries;
 mod operator_chains;
+mod surface_curve_completeness;

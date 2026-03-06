@@ -20,6 +20,20 @@ pub enum PointClassification {
     OnBoundary(FaceId),
 }
 
+/// Result of classifying whether a face normal points outward.
+///
+/// Determined by probing both sides of the face with `classify_point_in_solid`.
+/// No centroid-of-solid heuristic — works for any solid topology.
+#[derive(Debug, Clone, PartialEq)]
+pub enum NormalClassification {
+    /// `p + εn` is outside AND `p - εn` is inside.
+    OutwardConfirmed,
+    /// `p + εn` is inside AND `p - εn` is outside (normal is inverted).
+    InwardDetected,
+    /// Classification was ambiguous (boundary hit, missing data, etc.)
+    Degenerate { reason: &'static str },
+}
+
 /// Trait for spatial acceleration structures.
 pub trait SpatialAccelerator {
     fn candidates(&self, aabb: &Aabb) -> Vec<FaceId>;

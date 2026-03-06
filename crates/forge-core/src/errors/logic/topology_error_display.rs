@@ -175,6 +175,18 @@ impl fmt::Display for TopologyError {
                 write!(f, "Radial ring edge-entity inconsistency: he[{}].edge = {} but ring seed he[{}].edge = {}",
                     halfedge_index, actual_edge, seed_halfedge_index, expected_edge)
             }
+            TopologyError::VertexOffSurface {
+                vertex_index,
+                face_index,
+                deviation,
+                tolerance,
+            } => {
+                write!(
+                    f,
+                    "Vertex {} on face {} deviates {:.2e} from surface (tol: {:.2e})",
+                    vertex_index, face_index, deviation, tolerance
+                )
+            }
             TopologyError::ValidatorFailure { validator, detail } => {
                 write!(f, "Validator '{}' failed: {}", validator, detail)
             }

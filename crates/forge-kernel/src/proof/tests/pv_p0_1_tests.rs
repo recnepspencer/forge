@@ -42,8 +42,11 @@ fn pv_01_zero_area_face_detection() {
 
     assert!(plus_x.len() >= 4, "Should have 4 +X face vertices");
 
-    for &(vid, _) in &plus_x {
-        geom.positions.set(*vid, ExactPosition::from_f64([1.0, 0.0, 0.0]));
+    // Place all +X face vertices along a line (collinear) so the face
+    // has zero area but edges remain non-zero-length.
+    for (i, &(vid, _)) in plus_x.iter().enumerate() {
+        let t = i as f64;
+        geom.positions.set(*vid, ExactPosition::from_f64([1.0, t, 0.0]));
     }
 
     let lookup = position_lookup(&geom);
@@ -380,6 +383,7 @@ fn pv_05_inner_loop_wrong_orientation() {
         arena,
         &lookup,
         &|_| true,
+        &forge_core::FlatToleranceProvider::new(1e-10),
     );
 
     assert!(err.is_err(), "Should detect inner loop winding CCW");
@@ -479,6 +483,7 @@ fn pv_06_shell_orientation_inconsistency() {
     let err = forge_spatial::validators::shell_orientation::validate_shell_orientation(
         arena,
         &lookup,
+        &forge_core::FlatToleranceProvider::new(1e-10),
     );
 
     assert!(err.is_err(), "Should detect parallel half-edges in shared geometry");

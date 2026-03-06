@@ -145,7 +145,10 @@ pub fn validator_for(id: InvariantId) -> ValidatorEntry {
         | InvariantId::NoZeroAreaFaces
         | InvariantId::NoInsideOutShells
         | InvariantId::LoopOrientationConsistency
-        | InvariantId::ShellOrientationConsistency =>
+        | InvariantId::ShellOrientationConsistency
+        | InvariantId::NoVertexOffSurface
+        | InvariantId::GeometryCompleteness
+        | InvariantId::EdgeCurveConsistency =>
             ValidatorEntry::noop(),
     }
 }
@@ -170,8 +173,8 @@ mod tests {
     fn all_constant_covers_every_variant() {
         assert_eq!(
             InvariantId::ALL.len(),
-            32,
-            "ALL should contain all 32 InvariantId variants (27 structural + 5 geometric)"
+            35,
+            "ALL should contain all 35 InvariantId variants (27 structural + 8 geometric)"
         );
     }
 

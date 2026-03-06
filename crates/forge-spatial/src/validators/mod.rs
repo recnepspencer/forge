@@ -22,25 +22,23 @@ pub mod gap;
 pub mod loop_orientation;
 pub mod shell_orientation;
 pub mod sliver;
+pub mod surface_deviation;
 pub mod volume;
+pub mod edge_curve_consistency;
+pub(crate) mod utils;
 
-use forge_core::{KernelError, ToleranceProvider};
+use forge_core::KernelError;
 use forge_topo::b_rep::TopologyArena;
-use forge_topo::handles::VertexId;
+
+pub use dispatch::GeometryContext;
 
 /// Validate all geometric invariants that require vertex positions.
 ///
-/// Runs zero-area face, zero-length edge, and signed-volume checks.
-/// The `is_planar` callback allows skipping area/volume checks for
-/// non-planar faces (e.g., NURBS patches).
+/// Runs zero-area face, zero-length edge, signed-volume, surface deviation,
+/// and edge-curve consistency checks via the dispatch system.
 pub fn validate_geometric_invariants(
     arena: &TopologyArena,
-    position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
-    is_planar: &dyn Fn(forge_topo::handles::FaceId) -> bool,
-    tolerance_provider: &dyn ToleranceProvider,
+    ctx: &GeometryContext<'_>,
 ) -> Result<(), KernelError> {
-    area::validate_zero_area_faces(arena, position_fn, is_planar, tolerance_provider)?;
-    edge_length::validate_zero_length_edges(arena, position_fn, tolerance_provider)?;
-    volume::validate_signed_volume(arena, position_fn)?;
-    Ok(())
+    dispatch::validate_all_spatial_invariants(arena, ctx)
 }

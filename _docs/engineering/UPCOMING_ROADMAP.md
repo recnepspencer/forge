@@ -71,45 +71,98 @@ _Before we mutate topology, ensure our math stops floating-point lies and our ge
 
 ### 5. Volume Oracle [P4.3]
 
-Divergence theorem volume computation for polyhedra (`V = (1/6) Σ |det([v1, v2, v3])|`). Ground-truth fuzzing oracle.
+Divergence theorem volume computation for polyhedra. Promoted to a first-class harness oracle (`volume_of(envelope) -> Result<f64, OracleError>`) with formal contract: preconditions (closed 2-manifold, consistent orientation), failure classification (`OpenShell`, `InconsistentOrientation`), and bounded-error comparison (never `==` on f64).
 
-- **Difficulty:** ✅ Easy | **Size:** ~1-2 PRs
-- **Test:** Generate a 10×10×10 cube, assert volume is exactly `1000.0`. Generate a tetrahedron, assert analytical match.
+Also implements mass-property centroid via tetrahedralization against reference point — not vertex averaging.
+
+Oracle architecture: thin precondition wrappers in `forge-kernel/integration_tests/harness/oracles.rs` delegating pure math to `forge-geom` (divergence theorem) and topology walking to `forge-kernel/geometry/logic/measurements.rs`. No ad-hoc math in test code.
+
+- **Difficulty:** ✅ Done | **Size:** ~2 PRs | **Status:** ✅ Done — oracle + 12 adversarial tests
+- **Test:** Analytical volume (block, cube), cubic scaling, height linearity, translation invariance, centroid at origin/offset, tetrahedron centroid exact vertex average, complex solid invariance, needle-thin box (`rel_tol=1e-10`), giant cube ($1000^3$), all-primitives-positive. Oracle precondition rejects open shells and non-manifold edges (`radial_valence ≠ 2`).
 
 ### 6. Face Normal Computation
 
-Every face needs a computable, consistently outward-pointing normal. Required by tessellation, winding number classifier, orientation checks, and UI rendering.
+Every face needs a computable, consistently outward-pointing normal. Correctness defined by inside/outside classification (not centroid heuristic): for face point `p` with normal `n`, assert `classify_point_in_solid(p + εn) == Outside` and `classify_point_in_solid(p - εn) == Inside`. Works for convex and concave geometry.
 
-- **Difficulty:** ✅ Easy | **Size:** ~1 PR
-- **Test:** Generate a cube, assert all 6 face normals point away from the centroid.
+Classification algorithm lives in `forge-spatial/operations/classify/normal_orientation.rs`. Oracle in `forge-kernel` is a thin precondition wrapper that delegates entirely to `classify_face_normal_orientation`.
 
-### 7. Geometry Completeness — Surfaces & Tolerances [K-4]
+- **Difficulty:** ✅ Done | **Size:** ~1 PR | **Status:** ✅ Done — oracle + 12 adversarial tests
+- **Test:** All 7 primitives (cube 6, tet 4, dodecahedron 12, hex prism 8, pyramid 5, wedge, tri prism 5). Unit magnitude (`‖n‖ ≈ 1.0`). Idempotency. Offset cube ($10^6$ coordinates). Large cube (size 1000, ε=1.0). Small cube (size 0.001, ε=1e-5).
 
-Every topological Face must have a `SurfaceId` (a `Plane` for now). Every Vertex must have a 3D coordinate + local tolerance bubble radius. Geometric validation asserts vertices lie on their assigned plane.
+### 7. Geometry Completeness — Surface Binding [K-4]
 
-- **Difficulty:** ✅ Easy | **Size:** ~2-3 PRs
-- **Test:** Move a vertex 10.0 units off its face plane, run geometric validation, assert `TopologyError::GeometricDeviation`.
+Full 3D surface geometry for every face. Consolidates the dual `planes` / `surfaces` layers: primitive constructors emit `SurfaceData::plane(...)` into `GeometryStore.surfaces` alongside the existing `planes` entry, making `planes` a legacy fast-path. Validators check `surfaces` (the `SurfaceData`-agnostic path), so when cylinders/spheres arrive, zero validator changes are needed.
+
+**7a. Surface Emission in Primitives**: update `build_halfedge_mesh` to emit `SurfaceData::plane(normal, offset)` into `geometry.surfaces` for each face (alongside existing `geometry.planes` write). This dual-emit preserves backward compatibility while establishing the forward-looking surface layer.
+
+**7b. Surface Completeness Validator**: every face has a `SurfaceData` entry in `geometry.surfaces` → `MissingSurfaceBinding { face_index }`
+
+**7c. Vertex-on-Surface Validator**: for each face, evaluate surface implicit equation at each vertex. For `Plane`: `signed_distance`. For `Sphere`: `|‖v-c‖ - r|`. For `Cylinder`: distance from axis minus radius. Generic: `‖v - surface.point_at(closest_uv)‖` (Phase 4+). → `GeometricDeviation { vertex_index, face_index, distance, threshold, surface_kind }`
+
+**7d. Edge-on-Surface Validator**: sample edge midpoints, verify they lie on both adjacent faces' surfaces (catches warped edges with correct endpoints). For lines+planes this is always true by linearity; for curves, sample at multiple `t` values (Phase 4+). → `EdgeSurfaceDeviation { edge_index, face_index, max_deviation, threshold }`
+
+- **Difficulty:** 🟡 Medium | **Size:** ~3 PRs | **Status:** ⏳ Deferred to Phase 2b — `GeometryStore` fields exist, emission + validators needed
+- **Test:** All primitives pass completeness. Missing surface → `MissingSurfaceBinding`. Vertex 10.0 off plane → `GeometricDeviation`. Tolerance boundary: `0.5×tol` passes, `2×tol` fails. Monotonicity: tightening tolerance never decreases failures.
 
 ### 8. Edge-Curve Association
 
-Even planar solids have edges that are lines (plane-plane intersections). Add an `EdgeCurve` trait with `Line3D` as the only implementor for now. When Booleans split faces, new edges need curves — this cannot be retrofitted.
+Every edge must have an associated `CurveGeom` stored in `GeometryStore.curves`. BSP generators currently populate `planes` and `positions` only — this item adds `CurveKind::Line` emission during primitive construction and validators for curve-topology consistency.
 
-- **Difficulty:** 🟡 Medium | **Size:** ~2 PRs
-- **Test:** Generate a cube, assert every edge has an associated `Line3D` whose endpoints match vertex positions within tolerance.
+**8a. Curve Emission in Primitives**: update `build_halfedge_mesh` to compute `CurveKind::Line { origin, direction }` from each edge's vertex positions and store in `GeometryStore.curves`.
+
+**8b. Curve Completeness Validator**: every edge has a `CurveGeom` → `MissingCurveBinding`. Endpoint positions match within tolerance → `CurveMismatch { deviation }`. Both half-edges of a shared edge reference the same underlying curve.
+
+- **Difficulty:** 🟡 Medium | **Size:** ~2-3 PRs | **Status:** ⏳ Deferred to Phase 2b — types exist in `forge-geom`, emission + validators needed
+- **Test:** All primitives pass. Missing curve → `MissingCurveBinding`. Corrupted origin → `CurveMismatch` with deviation reported. Shared-edge consistency.
 
 ### 9. Geometric Invariants [P0.1]
 
-Block degenerate primitives. Zero-area face detection, zero-length edge detection, inverted shell detection (inside-out cubes).
+Degenerate geometry detection + shell closure validation. Five geometry-dependent validators + 28 adversarial integration tests following the `VALIDATOR_QA.md` poison-test contract.
 
-- **Difficulty:** 🟡 Medium | **Size:** ~2-3 PRs
-- **Test:** Collapse two vertices to create a zero-length edge, commit, assert `TopologyError::DegenerateGeometry`.
+| Validator         | InvariantId                   | Tests | Status  |
+| :---------------- | :---------------------------- | :---: | :------ |
+| Zero-length edge  | `NoZeroLengthEdges`           |   5   | ✅ Done |
+| Zero-area face    | `NoZeroAreaFaces`             |   6   | ✅ Done |
+| Inside-out shell  | `NoInsideOutShells`           |   4   | ✅ Done |
+| Loop orientation  | `LoopOrientationConsistency`  |   7   | ✅ Done |
+| Shell orientation | `ShellOrientationConsistency` |   6   | ✅ Done |
 
-### 10. Precision Escalation Pipeline [P2.2]
+Includes adversarial cases: collinear slivers, numerical jitter near-zero, NMT edge-sharing, coincident-but-distinct vertices, sub-tolerance boundaries.
 
-Wire `forge-math` predicates into a dynamic Float → Interval → Rational escalation pipeline. Only pay exact-math cost when float margins are violated.
+**9a. Self-Intersection Detection**: Validator `ValidateNoSelfIntersection` detects face-face penetration within a single solid. Requires spatial indexing (Item 15) for production O(n log n) broad-phase. BSP convex primitives are self-intersection-free by construction.
 
-- **Difficulty:** 🟡 Medium | **Size:** ~3-4 PRs
-- **Test:** Query `point_vs_plane` with point `1e-15` off plane, assert `PrecisionEscalation { resolved_at: Interval, float_agreed: false }`.
+- **Difficulty:** ✅ Done (9) + 🟡 Medium (9a) | **Size:** ~1+ PR for 9a | **Status:** Item 9 ✅ Done | Item 9a ⏳ Deferred to Phase 3+ (requires spatial index)
+- **Test (9):** 28 integration tests, all passing. **Test (9a):** All primitives pass. Manually create intersecting faces → detected.
+
+### 10. Precision Escalation Pipeline [P2.2] ✅
+
+Shewchuk adaptive cascade for exact predicate signs: Float64 → ExpansionB → ExpansionC. `PrecisionEscalation` metadata records: what triggered escalation, what bounds were exceeded, what method resolved it. `PrecisionBudget` enforces bit-length limits.
+
+**Accepted strategy:** Shewchuk adaptive arithmetic expansions are the precision escalation layer between fast Float64 and deferred Rational/symbolic construction. This is the industry standard approach (used by CGAL, Triangle, Tetgen). The original roadmap described Float→Interval→Rational; the accepted architecture is Float→Expansion (exact sign), with Rational deferred to Phase 4 intersection/closest-point construction.
+
+**Current layer model:**
+| Layer | Scope | Status |
+| :--- | :--- | :--- |
+| Float64 fast path | All predicates | ✅ Done |
+| Shewchuk expansion exact sign | `orient2d`, `orient3d`, `incircle`, `in_sphere` | ✅ Done |
+| Rational/symbolic construction | Intersection, closest-point (Phase 4) | ⏳ Deferred |
+
+- **Difficulty:** 🟡 Medium | **Size:** ~2 PRs | **Status:** ✅ Done — predicates + expansions implemented, 27+ predicate tests + 3 divergence detection tests passing
+- **Test:** `orient3d` with near-coplanar input where f64 sign is wrong → assert expansion corrects, `float_agreed == false`. `orient3d` at `1e12` coordinates → same sign as centered version. 100× determinism.
+
+### 10.1. Tolerance Policy System
+
+`ToleranceProvider` trait with per-entity tolerances (`vertex_tolerance`, `edge_tolerance`, `global_default`, `geometry_epsilon`) — done. `FlatToleranceProvider` for planar Phase 1–2 fast path. All spatial validators use `ToleranceProvider` instead of hardcoded constants.
+
+**Deferred to Item 18 (Scale-Invariant Coordinates):** Full `ComparisonPolicy` with relative + absolute tolerance and algorithm tagging. Relative tolerance design depends on whether local coordinate transforms normalize scale before comparison. Building it now risks committing to an API that doesn't fit the final scale-invariance strategy.
+
+- **Difficulty:** 🟡 Medium | **Size:** ~1 PR | **Status:** ✅ Partial — `ToleranceProvider` + `geometry_epsilon()` done. `ComparisonPolicy` deferred to Item 18.
+
+### 10.2. Sliver Face Invariant [deferred]
+
+Wire `analyze_slivers` as a hard invariant (`InvariantId::NoSliverFaces`) through the spatial dispatch system. Requires `ComparisonPolicy` to define the "what aspect ratio is too thin?" threshold — currently `analyze_slivers` is a diagnostic report, not a committed invariant. Blocked on Item 10.1 `ComparisonPolicy` completion.
+
+- **Difficulty:** 🟢 Easy | **Size:** ~0.5 PR | **Status:** ⏳ Deferred (blocked on ComparisonPolicy)
 
 ### 10.5. B-Rep Validator Hardening [K-4.5]
 
@@ -146,7 +199,7 @@ Requires cross-crate access to vertex positions/normals via `forge-spatial`.
 | `ValidateNoZeroLengthEdges`                      | Degenerate edges from bad splits          | ✅ Done |
 | `ValidateNoZeroAreaFaces`                        | Collapsed faces from bad merges           | ✅ Done |
 
-- **Total:** 24 validators + 1 operator fix across 5 batches | ~6-7 PRs
+- **Total:** 24 structural + 5 spatial validators + 1 operator fix across 5 batches | ~6-7 PRs
 - **Test:** Each validator gets ≥2 poison tests per `VALIDATOR_QA.md` contract.
 
 ---
@@ -180,7 +233,7 @@ Given a persistent name (feature ID + differentiator), resolve it to the correct
 
 ## 🎨 Phase 4: Rendering, SDF & Spatial Queries
 
-_Making the kernel visible and queryable._
+_Making the kernel visible, queryable, and numerically robust for construction operations._
 
 ### 13. Primitive SDF (Analytical)
 
@@ -193,7 +246,7 @@ Exact signed distance field for box, sphere, cylinder, torus. Gives distance-to-
 
 Triangulate B-Rep faces into `Vec<Triangle>` for GPU rendering. Ear-clipping or monotone decomposition for planar polygons, including faces with holes (inner loops).
 
-- **Difficulty:** � Medium | **Size:** ~2-3 PRs
+- **Difficulty:** 🟡 Medium | **Size:** ~2-3 PRs
 - **Test:** Tessellate a cube, assert 12 triangles, all normals outward, total triangle area equals sum of face areas.
 
 ### 15. Spatial Indexing — Certified Face-Pair Broad Phase [K-5]
@@ -209,6 +262,15 @@ Independent solid-angle-based point-in-solid classifier. Catches ray-casting bug
 
 - **Difficulty:** 🔴 Hard | **Size:** ~3-4 PRs
 - **Test:** Query point on a dodecahedron face boundary, assert `winding_number_classify` matches ray-cast classifier.
+
+### 16.5. Rational/Symbolic Construction Arithmetic [P2.2+]
+
+_Deferred from Phase 2 — predicates have exact sign via Shewchuk expansion, but construction operations (line/plane intersection, closest-point, SSI) need exact rational or symbolic representation._
+
+Extend `PrecisionMode` to include `ExactRational` as a construction layer (not just a sign-determination layer). Implement rational line-plane and plane-plane-plane intersection. Wire into `CurveGeom` provenance tracking.
+
+- **Difficulty:** 🔴 Hard | **Size:** ~3-4 PRs
+- **Test:** Intersect three near-coplanar planes, assert rational vertex matches f64 vertex within `1e-15`, but carries certified error bound. Assert `PrecisionEscalation` records rational fallback.
 
 ---
 
@@ -249,25 +311,29 @@ Pipeline-managed local coordinate transforms before geometric operations to prev
 
 ## Summary Table
 
-| #   | Item                               | Diff | PRs        | Phase |
-| --- | ---------------------------------- | ---- | ---------- | ----- |
-| 1   | DecisionSink threading             | ✅   | 2-3        | 1     |
-| 2   | Lineage DAG wiring                 | ✅   | 3-4        | 1     |
-| 3   | Pipeline state threading           | ✅   | 2          | 1     |
-| 4   | Replay determinism + serialization | ✅   | 1          | 1     |
-| 5   | Volume Oracle                      | ✅   | 1-2        | 2     |
-| 6   | Face Normal Computation            | ✅   | 1          | 2     |
-| 7   | Geometry Completeness              | ✅   | 2-3        | 2     |
-| 8   | Edge-Curve Association             | 🟡   | 2          | 2     |
-| 9   | Geometric Invariants               | 🟡   | 2-3        | 2     |
-| 10  | Precision Escalation               | 🟡   | 3-4        | 2     |
-| 11  | Euler Operators + NMT              | 🔴   | 5-8        | 3     |
-| 12a | Persistent Naming (tagging)        | 🟡   | 2          | 3     |
-| 12b | Persistent Naming (resolution)     | 🔴   | 3          | 3     |
-| 13  | Primitive SDF                      | ✅   | 2          | 4     |
-| 14  | Tessellation                       | 🟡   | 2-3        | 4     |
-| 15  | Spatial Indexing (BVH)             | 🟡   | 2-3        | 4     |
-| 16  | Winding Number Classifier          | 🔴   | 3-4        | 4     |
-| 17  | Undo/Redo                          | 🟡   | 3-4        | 5     |
-| 18  | Scale-Invariant Coordinates        | 🟡   | 2-3        | 6     |
-|     | **Total**                          |      | **~44-50** |       |
+| #    | Item                               | Diff | PRs        | Status                      | Phase |
+| ---- | ---------------------------------- | ---- | ---------- | --------------------------- | ----- |
+| 1    | DecisionSink threading             | ✅   | 2-3        | ✅ Done                     | 1     |
+| 2    | Lineage DAG wiring                 | ✅   | 3-4        | ✅ Done                     | 1     |
+| 3    | Pipeline state threading           | ✅   | 2          | ✅ Done                     | 1     |
+| 4    | Replay determinism + serialization | ✅   | 1          | ✅ Done                     | 1     |
+| 5    | Volume Oracle + Harness Oracles    | ✅   | 2          | ✅ Done (12 tests)          | 2     |
+| 6    | Face Normal (inside/outside)       | ✅   | 1          | ✅ Done (12 tests)          | 2     |
+| 7    | Surface Completeness Validators    | ✅   | 3          | ✅ Done                     | 2     |
+| 8    | Edge-Curve Emission + Validators   | ✅   | 2-3        | ✅ Done (11 tests)          | 2     |
+| 9    | Geometric Invariants               | ✅   | —          | ✅ Done (35 invariants)     | 2     |
+| 9a   | Self-Intersection Detection        | 🟡   | 1          | ⏳ Deferred (needs Item 15) | 2     |
+| 10   | Precision Escalation (predicates)  | ✅   | 2          | ✅ Done (Shewchuk)          | 2     |
+| 10.1 | Tolerance Policy System            | ✅   | 1          | ✅ Done                     | 2     |
+| 10.5 | B-Rep Validator Hardening          | ✅   | 6-7        | ✅ Done                     | 2     |
+| 11   | Euler Operators + NMT              | 🔴   | 5-8        |                             | 3     |
+| 12a  | Persistent Naming (tagging)        | 🟡   | 2          |                             | 3     |
+| 12b  | Persistent Naming (resolution)     | 🔴   | 3          |                             | 3     |
+| 13   | Primitive SDF                      | ✅   | 2          |                             | 4     |
+| 14   | Tessellation                       | 🟡   | 2-3        |                             | 4     |
+| 15   | Spatial Indexing (BVH)             | 🟡   | 2-3        |                             | 4     |
+| 16   | Winding Number Classifier          | 🔴   | 3-4        |                             | 4     |
+| 16.5 | Rational Construction Arithmetic   | 🔴   | 3-4        |                             | 4     |
+| 17   | Undo/Redo                          | 🟡   | 3-4        |                             | 5     |
+| 18   | Scale-Invariant Coordinates        | 🟡   | 2-3        |                             | 6     |
+|      | **Total**                          |      | **~52-62** |                             |       |

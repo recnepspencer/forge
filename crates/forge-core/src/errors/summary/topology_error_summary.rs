@@ -96,6 +96,12 @@ pub enum TopologyErrorSummary {
         seed_halfedge_index: u32,
         expected_edge: u32,
     },
+    VertexOffSurface {
+        vertex_index: u32,
+        face_index: u32,
+        deviation: f64,
+        tolerance: f64,
+    },
     ValidatorFailure {
         validator: String,
         detail: String,
@@ -258,6 +264,17 @@ impl From<&TopologyError> for TopologyErrorSummary {
                 actual_edge: *actual_edge,
                 seed_halfedge_index: *seed_halfedge_index,
                 expected_edge: *expected_edge,
+            },
+            TopologyError::VertexOffSurface {
+                vertex_index,
+                face_index,
+                deviation,
+                tolerance,
+            } => Self::VertexOffSurface {
+                vertex_index: *vertex_index,
+                face_index: *face_index,
+                deviation: *deviation,
+                tolerance: *tolerance,
             },
             TopologyError::ValidatorFailure { validator, detail } => Self::ValidatorFailure {
                 validator: validator.clone(),

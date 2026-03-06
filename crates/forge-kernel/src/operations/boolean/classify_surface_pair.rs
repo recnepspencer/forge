@@ -45,14 +45,8 @@ pub fn classify_surface_pair(
     let na = plane_a.normal();
     let nb = plane_b.normal();
 
-    // dot(na, nb) — both normals are unit vectors.
-    let dot = na[0] * nb[0] + na[1] * nb[1] + na[2] * nb[2];
+    let (sin_angle, dot) = forge_geom::facade::dihedral_sine(&na, &nb);
     let abs_dot = dot.abs();
-
-    // sin(dihedral) ≈ sqrt(1 - dot²) for unit vectors.
-    // Near-tangent when sin(dihedral) < tangency_tol, i.e. abs_dot > sqrt(1 - tol²).
-    let sin_sq = (1.0 - abs_dot * abs_dot).max(0.0);
-    let sin_angle = sin_sq.sqrt();
 
     if sin_angle < tangency_tol {
         // Normals are (nearly) parallel — check offset distance for coincidence.

@@ -69,6 +69,9 @@ pub fn invariant_ids(group: InvariantGroup) -> &'static [InvariantId] {
             InvariantId::NoInsideOutShells,
             InvariantId::LoopOrientationConsistency,
             InvariantId::ShellOrientationConsistency,
+            InvariantId::NoVertexOffSurface,
+            InvariantId::GeometryCompleteness,
+            InvariantId::EdgeCurveConsistency,
         ],
     }
 }

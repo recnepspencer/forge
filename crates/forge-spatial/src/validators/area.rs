@@ -8,6 +8,8 @@ use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
 use forge_topo::traverse::FaceEdgeIterator;
 
+use super::utils;
+
 /// Validate that no planar face has area below its per-vertex tolerance squared.
 pub fn validate_zero_area_faces(
     arena: &TopologyArena,
@@ -20,7 +22,7 @@ pub fn validate_zero_area_faces(
             continue;
         }
 
-        let positions = collect_face_positions(arena, face_id, position_fn)?;
+        let positions = utils::collect_face_positions(arena, face_id, position_fn)?;
         if positions.len() < 3 {
             continue;
         }
@@ -60,27 +62,5 @@ pub fn validate_zero_area_faces(
         }
     }
     Ok(())
-}
-
-fn collect_face_positions(
-    arena: &TopologyArena,
-    face_id: FaceId,
-    position_fn: &dyn Fn(VertexId) -> Option<[f64; 3]>,
-) -> Result<Vec<[f64; 3]>, KernelError> {
-    let mut positions = Vec::new();
-    for he_res in FaceEdgeIterator::new(arena, face_id)? {
-        let he_id = he_res?;
-        let he = arena.get_half_edge(he_id)?;
-        let v = he.origin();
-        let pos = position_fn(v).ok_or_else(|| KernelError::TopologyViolation {
-            err: forge_core::TopologyError::MissingVertexPosition {
-                vertex_index: v.index(),
-                face_index: face_id.index(),
-            },
-            context: None,
-        })?;
-        positions.push(pos);
-    }
-    Ok(positions)
 }
 
