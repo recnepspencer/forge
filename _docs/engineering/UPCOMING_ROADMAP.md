@@ -4,7 +4,7 @@ This document provides the **strictly ordered** sequence of work required to bui
 
 It weaves together the Proof System (`P-` milestones) and the Kernel Foundation (`K-` milestones) into a single dependency-respecting path. Booleans are mathematically violent; if we attempt them before this foundation is solid, we will be debugging Boolean logic and structural corruption simultaneously.
 
-**Estimated total: ~47 PRs across 6 phases.**
+**Estimated total: ~65-74 PRs across 7 phases.**
 
 ---
 
@@ -204,16 +204,214 @@ Requires cross-crate access to vertex positions/normals via `forge-spatial`.
 
 ---
 
+## 🔩 Phase 2.5: Structural Hardening
+
+_Make implicit topology state explicit through types, separate arena concerns, centralize traversal logic, enforce deterministic ordering, and lay replay/persistent-naming foundations._
+
+### 10.6. Hygiene Pass
+
+Delete stale artifacts (`vertex_disks.rs.orig`, `.rej`) and remove `println!("DEBUG: ...")` from production code.
+
+- **Difficulty:** 🟢 Easy | **Size:** Fold into first PR
+
+### 10.7. Topology Classification Enums + Cached Radial Valence
+
+Replace ad-hoc `radial_next == self` / `nmt_extra_disks.contains_key()` checks with explicit `EdgeRadialClass { Boundary | Manifold | NonManifold }` and `VertexDiskClass { Single | Multi }` enums. Add `classify_half_edge()` (common call site) and `classify_edge()`. Add cached `radial_valence: Vec<u8>` sidecar updated by radial-mutating ops, with fallback recompute + `debug_assert!` consistency.
+
+- **Difficulty:** 🟡 Medium | **Size:** ~1 PR
+
+### 10.8. `FaceLoops` Struct (Compile-Enforced Invariant)
+
+Replace bare `outer_loop: LoopId` + `inner_loops: Vec<LoopId>` in `FaceData` with `pub loops: FaceLoops` struct. Constructor requires `LoopId` — a face without an outer loop is a compile error. No serde migration needed (no persisted snapshots exist). No backward-compat wrapper accessors.
+
+- **Difficulty:** 🟢 Easy | **Size:** ~1 PR
+
+### 10.9. Arena Separation of Concerns
+
+Split `TopologyArena`'s 40 fields into `ConnectivityStore` (slots, free-lists, counts), `MetadataStore` (sidecars, attributes), and `DerivedIndexes` (rebuilt caches). Keep minimal stable façade for `get_*`/`iter_*`/`count_*`; everything else is direct sub-struct access.
+
+- **Difficulty:** 🟡 Medium | **Size:** ~2 PRs
+
+### 10.10. Shared Traversal Kernel
+
+Centralize duplicated walk logic into `walk.rs`: iterator-style walkers (`walk_loop_iter`, `walk_radial_iter`, `walk_vertex_disk_iter`) for zero-allocation early-stop, plus `collect_*` helpers. All existing iterators in `traverse.rs` become thin wrappers. Single hardening point for 11a antenna guards.
+
+- **Difficulty:** 🟡 Medium | **Size:** ~1 PR
+
+### 10.11. Deterministic Container Policy + Canonical Ordering
+
+Replace `HashMap` → `BTreeMap` for `nmt_extra_disks` and audit `AttributeStore`. Add `canonical.rs` module for sorted entity lists / lineage candidates / replay payloads. Add CI enforcement: ban `println!`/`dbg!` in non-test code, ban `HashMap` iteration in observable paths, golden determinism test.
+
+- **Difficulty:** 🟡 Medium | **Size:** ~1 PR
+
+### 10.12. Immutable Per-Op Mutation Journal (Sorted, Non-Optional)
+
+Add `MutationJournalSnapshot` — frozen, sorted by `(kind, index, generation)`. Required (not `Option`) on `OperationResult`. Taken after `op.execute()`, before journal reset.
+
+- **Difficulty:** 🟢 Easy | **Size:** ~1 PR
+
+### 10.13. Schema-Versioned Operation Recording
+
+Add `op_schema_version: u32` and `payload_schema_version: u32` to `ReplayEntry`. Operators implement `const SCHEMA_VERSION: u32`. Runner stamps version when recording. Without this, replay breaks when operator structs evolve.
+
+- **Difficulty:** 🟢 Easy | **Size:** ~1 PR
+
+### 10.14. Typed `OperationId` and `DraftId`
+
+Replace plain `u64` counters with first-class typed IDs in runner/provenance/replay. Prevents cross-stream ambiguity in lineage joins.
+
+- **Difficulty:** 🟢 Easy | **Size:** ~1 PR
+
+### 10.15. Rollback Strategy Contract
+
+Codify rollback semantics (inverse-op replay vs snapshot+forward) and lineage event-sourcing boundaries before more operators are implemented. Persistent naming depends on whether rollback rewinds or appends compensating events.
+
+- **Difficulty:** 🟡 Medium | **Size:** ~1 PR
+
+### 10.16. Replay Determinism Integration Test
+
+3-step pipeline golden test: build feature chain → serialize state + replay log → deserialize in fresh context → replay same sequence → assert identical topology hash, replay bytes, lineage ordering, and mutation snapshot entity ordering.
+
+- **Difficulty:** 🟡 Medium | **Size:** ~1 PR
+
+---
+
 ## 🕸️ Phase 3: Topological Complexity & Naming
 
 _Building the complete boundary representation mutation toolkit._
 
-### 11. Full Euler Operator Suite & NMT Support [K-2]
+### 11. Full Euler Operator Suite, NMT Hardening & Pre-Boolean Foundation [K-2]
 
-Complete set of Euler-Poincaré operators (`make_vertex_face_ring`, `kill_edge_make_ring`, etc.) to support face holes, open sheets, and Non-Manifold Transitional states.
+_Every body type (wire, sheet, solid) must be constructable, traversable, and validatable without corruption. Every geometric surface type (planar, cylindrical, spherical) must be properly bound with seams and singularities handled. Validators must catch corruption at every operator step._
 
-- **Difficulty:** 🔴 Hard | **Size:** ~5-8 PRs
-- **Test:** Create a non-manifold T-junction. Assert `NmtIntermediate` validation passes and `ManifoldStrict` fails.
+**What already exists (✅ = implemented, with tests):**
+
+| Entity                         | Status | Notes                                                   |
+| :----------------------------- | :----: | :------------------------------------------------------ |
+| MVFS / KVFS                    |   ✅   | `make_vertex_face` / `kill_vertex_face`                 |
+| MEV / KEV                      |   ✅   | `make_edge_vertex` / `kill_edge_vertex`                 |
+| MVE / KVE                      |   ✅   | `split_edge` / `kill_vertex_edge`                       |
+| MEF / KEF                      |   ✅   | `make_edge_face` / `join_faces`                         |
+| MEKL / KEML                    |   ✅   | `make_edge_kill_loop` / `kill_edge_make_loop`           |
+| MFKRH / KFMRH                  |   ✅   | `make_face_kill_ring_hole` / `kill_face_make_ring_hole` |
+| SewEdge / UnsewEdge            |   ✅   | Radial splice for NMT edges                             |
+| `nmt_extra_disks` sidecar      |   ✅   | `HashMap<VertexId, SmallVec<[HalfEdgeId; 2]>>`          |
+| `compute_vertex_disks`         |   ✅   | Partition into connected disk components                |
+| `rebuild_disk_entries`         |   ✅   | Slow-but-correct recomputation                          |
+| `CoedgeInfo` sidecar           |   ✅   | UV trim curve ref + direction sense (data only)         |
+| `ShellKind` (Solid/Sheet/Wire) |   ✅   | Container metadata                                      |
+| 29 structural validators       |   ✅   | Including vertex disk partition, radial cycle, Euler    |
+
+**What's missing (ordered by dependency):**
+
+---
+
+#### 11a. Wire Body & Antenna Defense
+
+**Goal:** Make all traversal code, validators, and area/normal computators safe against wire edges (edges with no enclosing face — "antennas"). This is a prerequisite for Wire bodies and sketch support.
+
+**What to do:**
+
+- Audit every traversal that calls `.next()` / `.prev()` on HalfEdges and add explicit antenna guards. An antenna edge has `he.next == he.twin` (the half-edge folds back on itself).
+- Harden `bfs.rs`, `components.rs`, `FaceAllEdgesIterator`, `LoopEdgeIterator`, `VertexRingIterator` against antenna loops.
+- Add a `ShellKind::Wire` integration test: create a wire body via `MakeVertexFace` + `MakeEdgeVertex`, assert the shell classifies as `Wire`, assert traversal doesn't infinite-loop.
+
+> [!CAUTION]
+> **Antenna Trap:** A wire edge's two half-edges fold back on each other. `he.next` points directly to `he.twin`. If traversal code does `while current != start { current = current.next() }`, it will infinite-loop or assume it's walking a face perimeter.
+
+- **Difficulty:** 🟡 Medium | **Size:** ~1-2 PRs
+- **Test:** Create a wire body. Assert area computation returns `0.0` (not NaN/infinity). Assert BFS visits the wire edge exactly once. Assert loop iterator terminates.
+
+---
+
+#### 11b. NMT Vertex Disk Formal Operators
+
+**Goal:** Promote the existing `nmt_extra_disks` sidecar manipulation from ad-hoc inline code (scattered across `sew_edge.rs`, `unsew_edge.rs`, `kill_edge_vertex.rs`, `body_ops.rs`) into proper `TopoOperator`-conformant operators with declared Euler deltas and invariant contracts.
+
+**Operators:**
+
+1. **`SplitVertexDisk`** — Split a vertex's disk into two disconnected umbrellas (e.g., creating a pinch vertex where two cones meet at their tips).
+2. **`MergeVertexDisks`** — Merge two disks at a vertex back into one (the inverse).
+3. **`RebalanceVertexDisks`** — Recompute disk partitioning after arbitrary topology edits (wraps the existing `rebuild_disk_entries` query).
+
+> [!CAUTION]
+> **Single Umbrella Trap:** The current `VertexData` has a single `primary_disk` pointer. At a pinch vertex, there are multiple completely disconnected topological "umbrellas." If `primary_disk` only points to one, the other disks are invisible to graph traversals that start from `vertex.primary_disk()`. The existing `nmt_extra_disks` sidecar handles this, but the current inline manipulation across 5+ files is fragile and lacks invariant checking.
+
+- **Difficulty:** 🟡 Medium | **Size:** ~1-2 PRs
+- **Test:** Create a pinch vertex (two tetrahedra sharing exactly one vertex, zero edges). Assert `compute_vertex_disks` returns 2 disks. Split and merge. Assert round-trip restores original topology.
+
+---
+
+#### 11c. Laminar Topology & Sheet Sewing (Category F)
+
+**Goal:** Implement proper open-surface (sheet body) support. A sheet body's boundary edges are "laminar" — they have a face on only one side. This is required for open B-Rep surfaces, offset surfaces, and shell operations.
+
+**Operators:**
+
+1. **`MarkEdgeLaminar`** / **`UnmarkEdgeLaminar`** — Explicitly tag an edge as a boundary edge of an open sheet. This metadata lets validators distinguish "intentionally open" from "broken."
+2. **`SewLaminarEdges`** — Sew two open sheet boundaries together, checking parametric flow (U-direction) to prevent Möbius topology.
+
+> [!CAUTION]
+> **Möbius Strip Trap:** When sewing two open sheet boundaries, you must strictly check the parametric flow (U-direction) of their underlying curves. If you sew them with the wrong edge sense without reversing one, you topologically twist the surface into a Möbius strip, making "inside" and "outside" mathematically undefined. This instantly breaks Boolean classification.
+
+- **Difficulty:** 🟡 Medium | **Size:** ~1-2 PRs
+- **Test:** Create two open sheet bodies. Sew their laminar edges. Assert the result is a closed manifold (no laminar edges remain). Create a deliberately Möbius-twisted sew attempt, assert the operator rejects it.
+
+---
+
+#### 11d. Topo↔Geom Coupling Operators (Categories H & I4)
+
+**Goal:** Implement the operators that bind topology to geometry — attaching parametric curves to coedges, handling seam edges on periodic surfaces (cylinders, cones), and managing singularities (sphere poles, cone tips). These modules currently exist as documented stubs in `operations/brep_coupling/mod.rs` (§H1–H6). This sub-item implements the subset needed before Booleans.
+
+**Operators:**
+
+1. **`AttachPCurveToCoedge`** / **`DetachPCurveFromCoedge`** — Bind a 2D parametric trim curve to a coedge (halfedge). The `CoedgeInfo` sidecar data structure already exists; this operator provides the safe mutation API.
+2. **`CreateSeamEdge`** / **`RemoveSeamEdge`** — Handle periodic surfaces where a single 3D edge exists at both `U=0` and `U=2π` in parameter space. Both coedges belong to the _same_ face.
+3. **`IntroduceSpherePole`** / **`ConvertDegenerateEdgeToSingularity`** — Model singularities where a UV curve has nonzero parametric length but the 3D curve evaluates to a single point (e.g., the north pole of a sphere).
+
+> [!CAUTION]
+> **Seam Self-Intersect Trap:** On a seam edge, both coedges belong to the exact same face. Standard traversal code assumes `coedge.twin().face() != coedge.face()`. If you don't explicitly flag seam edges, traversers will bounce back into the same face and infinite-loop. The PCurve must be attached to the _Coedge_ (not the Edge) to represent the `0 → 2π` jump.
+
+> [!CAUTION]
+> **Aggressive Cleanup Trap (Singularities):** Naive simplifiers see an edge with `length == 0.0` and delete it. If you delete a sphere's pole, you rupture the B-Rep's parameterization. A pole must be explicitly modeled as a singularity — an edge with a valid 2D UV curve (length > 0) but a 3D curve that evaluates to a single point. The current `cleanup.rs` does not guard against this.
+
+- **Difficulty:** 🔴 Hard | **Size:** ~2-3 PRs
+- **Test:** Attach a PCurve to a coedge on a cylinder; verify the trim curve evaluates correctly. Create a seam edge on a cylinder, assert both coedges reference the same face with different PCurve domains. Create a sphere with pole edges, assert the pole edge has 3D length ≈ 0 but UV length > 0. Assert `cleanup_degenerate_topology` does _not_ delete pole edges.
+
+---
+
+#### 11e. Per-Step Euler-Poincaré Validation
+
+**Goal:** Implement `ValidateUseGraphIntegrity` — an automated structural integrity check that runs after every atomic Euler step in Debug builds. Currently, the `operation_runner.rs` verifies declared vs. actual Euler deltas, but does not verify the _pointer-level invariants_ after each step (it only runs the contract-gated validators).
+
+**Checks per step:**
+
+1. `he.twin().twin() == he` (half-edge involution)
+2. `he.next().prev() == he` (doubly-linked loop consistency)
+3. `he.radial_next()` eventually cycles back to `he` (radial ring closure)
+4. The Generalized Euler-Poincaré equation: `V − E + F − L = 2(S − G)` holds exactly per connected component.
+
+> [!CAUTION]
+> **End-of-Pipeline Checking Trap:** If you wait until a complex Boolean finishes to check graph validity, you will never find the bug that corrupted it. This validator must run after **every** atomic Euler step inside `MutableDraft` (in Debug builds), not just at commit time.
+
+- **Difficulty:** 🟡 Medium | **Size:** ~1 PR
+- **Test:** Intentionally corrupt a half-edge's `twin.twin` pointer after an operator step. Assert the per-step validator catches it immediately, not at commit time. Assert the Euler-Poincaré check catches a missing face.
+
+---
+
+**Implementation Order:**
+
+```mermaid
+graph TD
+    A[11a Wire & Antenna Defense] --> B[11b NMT Vertex Disk Operators]
+    A --> C[11c Laminar Sheets]
+    B --> C
+    C --> D[11d Topo↔Geom Coupling]
+    A --> E[11e Per-Step Euler Validation]
+```
+
+- **Difficulty:** 🔴 Hard | **Size:** ~6-11 PRs
+- **Test:** Full suite described per sub-item above. Integration test: build a sphere via Euler operators, sew all edges, promote to `ShellKind::Solid`, validate all 29+ structural invariants pass, validate Euler-Poincaré holds after every step.
 
 ### 12a. Persistent Naming — Semantic Tagging [P3.3+]
 
@@ -311,29 +509,40 @@ Pipeline-managed local coordinate transforms before geometric operations to prev
 
 ## Summary Table
 
-| #    | Item                               | Diff | PRs        | Status                      | Phase |
-| ---- | ---------------------------------- | ---- | ---------- | --------------------------- | ----- |
-| 1    | DecisionSink threading             | ✅   | 2-3        | ✅ Done                     | 1     |
-| 2    | Lineage DAG wiring                 | ✅   | 3-4        | ✅ Done                     | 1     |
-| 3    | Pipeline state threading           | ✅   | 2          | ✅ Done                     | 1     |
-| 4    | Replay determinism + serialization | ✅   | 1          | ✅ Done                     | 1     |
-| 5    | Volume Oracle + Harness Oracles    | ✅   | 2          | ✅ Done (12 tests)          | 2     |
-| 6    | Face Normal (inside/outside)       | ✅   | 1          | ✅ Done (12 tests)          | 2     |
-| 7    | Surface Completeness Validators    | ✅   | 3          | ✅ Done                     | 2     |
-| 8    | Edge-Curve Emission + Validators   | ✅   | 2-3        | ✅ Done (11 tests)          | 2     |
-| 9    | Geometric Invariants               | ✅   | —          | ✅ Done (35 invariants)     | 2     |
-| 9a   | Self-Intersection Detection        | 🟡   | 1          | ⏳ Deferred (needs Item 15) | 2     |
-| 10   | Precision Escalation (predicates)  | ✅   | 2          | ✅ Done (Shewchuk)          | 2     |
-| 10.1 | Tolerance Policy System            | ✅   | 1          | ✅ Done                     | 2     |
-| 10.5 | B-Rep Validator Hardening          | ✅   | 6-7        | ✅ Done                     | 2     |
-| 11   | Euler Operators + NMT              | 🔴   | 5-8        |                             | 3     |
-| 12a  | Persistent Naming (tagging)        | 🟡   | 2          |                             | 3     |
-| 12b  | Persistent Naming (resolution)     | 🔴   | 3          |                             | 3     |
-| 13   | Primitive SDF                      | ✅   | 2          |                             | 4     |
-| 14   | Tessellation                       | 🟡   | 2-3        |                             | 4     |
-| 15   | Spatial Indexing (BVH)             | 🟡   | 2-3        |                             | 4     |
-| 16   | Winding Number Classifier          | 🔴   | 3-4        |                             | 4     |
-| 16.5 | Rational Construction Arithmetic   | 🔴   | 3-4        |                             | 4     |
-| 17   | Undo/Redo                          | 🟡   | 3-4        |                             | 5     |
-| 18   | Scale-Invariant Coordinates        | 🟡   | 2-3        |                             | 6     |
-|      | **Total**                          |      | **~52-62** |                             |       |
+| #     | Item                               | Diff | PRs        | Status                      | Phase |
+| ----- | ---------------------------------- | ---- | ---------- | --------------------------- | ----- |
+| 1     | DecisionSink threading             | ✅   | 2-3        | ✅ Done                     | 1     |
+| 2     | Lineage DAG wiring                 | ✅   | 3-4        | ✅ Done                     | 1     |
+| 3     | Pipeline state threading           | ✅   | 2          | ✅ Done                     | 1     |
+| 4     | Replay determinism + serialization | ✅   | 1          | ✅ Done                     | 1     |
+| 5     | Volume Oracle + Harness Oracles    | ✅   | 2          | ✅ Done (12 tests)          | 2     |
+| 6     | Face Normal (inside/outside)       | ✅   | 1          | ✅ Done (12 tests)          | 2     |
+| 7     | Surface Completeness Validators    | ✅   | 3          | ✅ Done                     | 2     |
+| 8     | Edge-Curve Emission + Validators   | ✅   | 2-3        | ✅ Done (11 tests)          | 2     |
+| 9     | Geometric Invariants               | ✅   | —          | ✅ Done (35 invariants)     | 2     |
+| 9a    | Self-Intersection Detection        | 🟡   | 1          | ⏳ Deferred (needs Item 15) | 2     |
+| 10    | Precision Escalation (predicates)  | ✅   | 2          | ✅ Done (Shewchuk)          | 2     |
+| 10.1  | Tolerance Policy System            | ✅   | 1          | ✅ Done                     | 2     |
+| 10.5  | B-Rep Validator Hardening          | ✅   | 6-7        | ✅ Done                     | 2     |
+| 10.6  | Hygiene Pass                       | 🔴   | 0.5        |                             | 2.5   |
+| 10.7  | Classification Enums + Cache       | 🔴   | 1          |                             | 2.5   |
+| 10.8  | `FaceLoops` Struct                 | 🔴   | 1          |                             | 2.5   |
+| 10.9  | Arena Separation                   | 🔴   | 2          |                             | 2.5   |
+| 10.10 | Shared Traversal Kernel            | 🔴   | 1          |                             | 2.5   |
+| 10.11 | Determinism Policy + Canonical     | 🔴   | 1          |                             | 2.5   |
+| 10.12 | Immutable Per-Op Journal           | 🔴   | 1          |                             | 2.5   |
+| 10.13 | Schema-Versioned Replay            | 🔴   | 1          |                             | 2.5   |
+| 10.14 | Typed OperationId / DraftId        | 🔴   | 1          |                             | 2.5   |
+| 10.15 | Rollback Strategy Contract         | 🔴   | 1          |                             | 2.5   |
+| 10.16 | Replay Determinism Test            | 🔴   | 1          |                             | 2.5   |
+| 11    | Euler/NMT/Pre-Boolean Foundation   | 🔴   | 6-11       | 11a–11e sub-items           | 3     |
+| 12a   | Persistent Naming (tagging)        | 🟡   | 2          |                             | 3     |
+| 12b   | Persistent Naming (resolution)     | 🔴   | 3          |                             | 3     |
+| 13    | Primitive SDF                      | ✅   | 2          |                             | 4     |
+| 14    | Tessellation                       | 🟡   | 2-3        |                             | 4     |
+| 15    | Spatial Indexing (BVH)             | 🟡   | 2-3        |                             | 4     |
+| 16    | Winding Number Classifier          | 🔴   | 3-4        |                             | 4     |
+| 16.5  | Rational Construction Arithmetic   | 🔴   | 3-4        |                             | 4     |
+| 17    | Undo/Redo                          | 🟡   | 3-4        |                             | 5     |
+| 18    | Scale-Invariant Coordinates        | 🟡   | 2-3        |                             | 6     |
+|       | **Total**                          |      | **~65-74** |                             |       |
