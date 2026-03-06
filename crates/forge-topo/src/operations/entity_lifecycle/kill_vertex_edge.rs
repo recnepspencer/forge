@@ -13,9 +13,9 @@
 use forge_core::KernelError;
 
 use crate::handles::{EdgeId, HalfEdgeId, VertexId};
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
 
 /// Merges two edges by removing their shared vertex.
@@ -40,13 +40,21 @@ impl TopoOperator for KillVertexEdge {
 
     const NAME: &'static str = "kill_vertex_edge";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
-        format!("Remove vertex {} by merging its incident edges", self.vertex.index())
+        format!(
+            "Remove vertex {} by merging its incident edges",
+            self.vertex.index()
+        )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let vertex_m = self.vertex;
 
         let outgoing_he = draft.arena().get_vertex(vertex_m)?.primary_disk();
@@ -121,25 +129,37 @@ impl TopoOperator for KillVertexEdge {
             let h_face = draft.arena().get_half_edge(h)?.face();
 
             // Rewire prev/next to skip h
-            draft.arena_mut().get_half_edge_mut(h_prev)?.set_next(h_next);
-            draft.arena_mut().get_half_edge_mut(h_next)?.set_prev(h_prev);
+            draft
+                .arena_mut()
+                .get_half_edge_mut(h_prev)?
+                .set_next(h_next);
+            draft
+                .arena_mut()
+                .get_half_edge_mut(h_next)?
+                .set_prev(h_prev);
 
             // If h_prev was on the killed edge, reassign it to the surviving edge
             let prev_edge = draft.arena().get_half_edge(h_prev)?.edge();
             if prev_edge == killed_edge {
-                draft.arena_mut().get_half_edge_mut(h_prev)?.set_edge(surviving_edge);
+                draft
+                    .arena_mut()
+                    .get_half_edge_mut(h_prev)?
+                    .set_edge(surviving_edge);
             }
 
             // Guard against DANGLING face (wireframe/wire edges).
             if !h_face.is_dangling() {
                 // If loop's representative halfedge was h, update it
-                let loop_id = draft.arena().get_face(h_face)?.outer_loop();
+                let loop_id = draft.arena().get_face(h_face)?.loops.outer();
                 let loop_he = draft.arena().get_loop(loop_id)?.half_edge();
                 if loop_he == h {
-                    draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(h_next);
+                    draft
+                        .arena_mut()
+                        .get_loop_mut(loop_id)?
+                        .set_half_edge(h_next);
                 }
                 // Check inner loops too
-                let inner_loops: Vec<_> = draft.arena().get_face(h_face)?.inner_loops().to_vec();
+                let inner_loops: Vec<_> = draft.arena().get_face(h_face)?.loops.inners().to_vec();
                 for il in inner_loops {
                     let il_he = draft.arena().get_loop(il)?.half_edge();
                     if il_he == h {
@@ -170,7 +190,9 @@ impl TopoOperator for KillVertexEdge {
             let mut r = draft.arena().get_half_edge(surv_repr)?.radial_next();
             let bound = draft.arena().half_edge_count();
             for _ in 0..bound {
-                if r == surv_repr { break; }
+                if r == surv_repr {
+                    break;
+                }
                 if !from_m.contains(&r) && !surviving_radials.contains(&r) {
                     surviving_radials.push(r);
                 }
@@ -184,8 +206,7 @@ impl TopoOperator for KillVertexEdge {
                 let next_i = (i + 1) % surviving_radials.len();
                 draft
                     .arena_mut()
-                    .get_half_edge_mut(surviving_radials[i])?
-                    .set_radial_next(surviving_radials[next_i]);
+                    .set_half_edge_radial_next(surviving_radials[i], surviving_radials[next_i])?;
             }
         }
 
@@ -206,7 +227,10 @@ impl TopoOperator for KillVertexEdge {
             let current_out = draft.arena().get_vertex(origin_v)?.primary_disk();
             // If outgoing was pointing at a removed halfedge, fix it
             if from_m.contains(&current_out) {
-                draft.arena_mut().get_vertex_mut(origin_v)?.set_primary_disk(h);
+                draft
+                    .arena_mut()
+                    .get_vertex_mut(origin_v)?
+                    .set_primary_disk(h);
             }
         }
 
@@ -222,9 +246,7 @@ impl TopoOperator for KillVertexEdge {
         draft.remove_edge(killed_edge)?;
 
         Ok(ExecutionResult {
-            value: KveOutput {
-                surviving_edge,
-            },
+            value: KveOutput { surviving_edge },
             declared_delta: EulerDelta {
                 vertices: -1,
                 half_edges: -(num_removed as i32),

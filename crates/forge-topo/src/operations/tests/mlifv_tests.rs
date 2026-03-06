@@ -1,14 +1,17 @@
 #[cfg(test)]
 mod tests {
-    use crate::transactions::TopologyState;
+    use crate::b_rep::ShellKind;
+    use crate::b_rep::VertexData;
     use crate::boundary_editing::make_loop_in_face_from_vertices::MakeLoopInFaceFromVertices;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
-    use crate::handles::{VertexId, HalfEdgeId};
-    use crate::b_rep::VertexData;
+    use crate::handles::{HalfEdgeId, VertexId};
+    use crate::transactions::TopologyState;
     use forge_core::KernelError;
-    use crate::b_rep::ShellKind;
 
-    fn setup_vertices(draft: &mut crate::transactions::MutableDraft, count: usize) -> Vec<VertexId> {
+    fn setup_vertices(
+        draft: &mut crate::transactions::MutableDraft,
+        count: usize,
+    ) -> Vec<VertexId> {
         let mut verts = Vec::new();
         let placeholder_he = HalfEdgeId::DANGLING;
         for _ in 0..count {
@@ -21,30 +24,34 @@ mod tests {
     fn mlifv_creates_inner_loop_in_face() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
         let verts = setup_vertices(&mut draft, 3);
-        
+
         let initial_loops = draft.arena().get_face(mvf.face).unwrap().inner_loop_count();
         assert_eq!(initial_loops, 0);
-        
-        let result = draft.execute(
-            MakeLoopInFaceFromVertices {
+
+        let result = draft
+            .execute(MakeLoopInFaceFromVertices {
                 face: mvf.face,
                 vertices: verts.clone(),
-            },
-        )
-        .expect("MLIFV must succeed")
-        .into_value();
-        
+            })
+            .expect("MLIFV must succeed")
+            .into_value();
+
         let arena = draft.arena();
         let face = arena.get_face(mvf.face).unwrap();
-        
+
         assert_eq!(face.inner_loop_count(), 1);
-        
-        let inserted_loop = *face.inner_loops().first().unwrap();
+
+        let inserted_loop = *face.loops.inners().first().unwrap();
         assert_eq!(inserted_loop, result.loop_id);
-        
+
         let lp = arena.get_loop(result.loop_id).unwrap();
         assert_eq!(lp.face(), mvf.face);
     }

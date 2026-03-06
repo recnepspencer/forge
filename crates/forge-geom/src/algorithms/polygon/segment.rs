@@ -84,7 +84,10 @@ mod tests {
         let nudge = 1e-7;
         let point = [0.5, nudge, 0.0];
         let result = point_on_segment(&point, &origin, &dest, nudge * nudge * 4.0);
-        assert!(result.is_some(), "small lateral offset within tolerance should match");
+        assert!(
+            result.is_some(),
+            "small lateral offset within tolerance should match"
+        );
     }
 
     #[test]
@@ -93,7 +96,10 @@ mod tests {
         let dest = [1.0, 0.0, 0.0];
         let point = [0.5, 1.0, 0.0];
         let result = point_on_segment(&point, &origin, &dest, TOL_SQ);
-        assert!(result.is_none(), "point 1 unit off segment should not match");
+        assert!(
+            result.is_none(),
+            "point 1 unit off segment should not match"
+        );
     }
 
     #[test]
@@ -102,7 +108,10 @@ mod tests {
         let dest = [1.0, 0.0, 0.0];
         let point = [0.0, 0.0, 0.0];
         let result = point_on_segment(&point, &origin, &dest, TOL_SQ);
-        assert!(result.is_none(), "point at origin endpoint (t≈0) should return None");
+        assert!(
+            result.is_none(),
+            "point at origin endpoint (t≈0) should return None"
+        );
     }
 
     #[test]
@@ -111,7 +120,10 @@ mod tests {
         let dest = [1.0, 0.0, 0.0];
         let point = [1.0, 0.0, 0.0];
         let result = point_on_segment(&point, &origin, &dest, TOL_SQ);
-        assert!(result.is_none(), "point at dest endpoint (t≈1) should return None");
+        assert!(
+            result.is_none(),
+            "point at dest endpoint (t≈1) should return None"
+        );
     }
 
     #[test]

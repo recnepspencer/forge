@@ -1,7 +1,7 @@
 //! Configuration for mutable draft transactions.
 
-use crate::validators::validate::ValidationLevel;
 use crate::validators::group_policy_runtime::GroupPolicyRuntime;
+use crate::validators::validate::ValidationLevel;
 
 /// Configuration for a mutable draft transaction.
 ///
@@ -65,4 +65,3 @@ impl Default for DraftConfig {
         }
     }
 }
-

@@ -178,11 +178,7 @@ impl CurveGeom {
     /// Returns `None` if the distance between endpoints is ≤ `min_length`,
     /// preventing degenerate curves from being emitted. All vector math
     /// stays in the geometry layer via `forge_math::linalg`.
-    pub fn line_from_endpoints(
-        origin: [f64; 3],
-        dest: [f64; 3],
-        min_length: f64,
-    ) -> Option<Self> {
+    pub fn line_from_endpoints(origin: [f64; 3], dest: [f64; 3], min_length: f64) -> Option<Self> {
         let delta = forge_math::linalg::sub(dest, origin);
         let direction = forge_math::linalg::normalize_checked(delta)?;
         let len = forge_math::linalg::norm(delta);

@@ -59,8 +59,8 @@ pub trait GeometryView {
 
 // ── Implementations ──────────────────────────────────────────────────────
 
-use super::super::data::store::GeometryStore;
 use super::super::data::draft::GeometryDraft;
+use super::super::data::store::GeometryStore;
 
 impl GeometryView for GeometryStore {
     fn get_face_plane(&self, face: FaceId) -> Option<&Plane> {

@@ -9,8 +9,8 @@
 //! - Cluster root position is the first vertex added to that cluster
 //! - Grid cell size = 2·tolerance so all ε-neighbors are in adjacent cells
 
-use std::collections::BTreeMap;
 use crate::spatial::union_find::UnionFind;
+use std::collections::BTreeMap;
 
 /// Spatial hash grid + Union-Find for epsilon-tolerance vertex welding.
 pub struct EpsilonWelder {
@@ -176,8 +176,10 @@ mod tests {
         let c = w.add_vertex([1e-8, 0.0, 0.0]);
         assert!(w.same_cluster(a, b));
         assert!(w.same_cluster(b, c));
-        assert!(w.same_cluster(a, c),
-            "Transitive chain: A≈B and B≈C should imply A≈C");
+        assert!(
+            w.same_cluster(a, c),
+            "Transitive chain: A≈B and B≈C should imply A≈C"
+        );
     }
 
     #[test]
@@ -190,8 +192,11 @@ mod tests {
         }
         let root = w.root_id(ids[0]);
         for &id in &ids {
-            assert_eq!(w.root_id(id), root,
-                "All 100 vertices within 10^-12 should share one root");
+            assert_eq!(
+                w.root_id(id),
+                root,
+                "All 100 vertices within 10^-12 should share one root"
+            );
         }
     }
 

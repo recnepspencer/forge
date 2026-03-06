@@ -68,7 +68,10 @@ pub fn validate_surface_deviation(
                         suggested_fixes: Vec::new(),
                         detail: format!(
                             "Vertex {} on face {} deviates {:.2e} from surface (tol {:.2e})",
-                            v.index(), face_id.index(), deviation, tol
+                            v.index(),
+                            face_id.index(),
+                            deviation,
+                            tol
                         ),
                     }),
                 });

@@ -87,7 +87,14 @@ pub fn run_boolean(
     half_b: f64,
     op: BooleanOp,
 ) -> BooleanResult {
-    run_boolean_with_pipeline(center_a, half_a, center_b, half_b, op, selected_test_pipeline())
+    run_boolean_with_pipeline(
+        center_a,
+        half_a,
+        center_b,
+        half_b,
+        op,
+        selected_test_pipeline(),
+    )
 }
 
 /// Execute a boolean from two cubes via a specific pipeline.

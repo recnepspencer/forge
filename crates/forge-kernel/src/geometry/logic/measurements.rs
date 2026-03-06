@@ -23,10 +23,7 @@ pub fn face_area(arena: &TopologyArena, geom: &impl GeometryView, face: FaceId) 
 }
 
 /// Compute the areas of all faces in an arena.
-pub fn all_face_areas(
-    arena: &TopologyArena,
-    geom: &impl GeometryView,
-) -> Vec<(FaceId, f64)> {
+pub fn all_face_areas(arena: &TopologyArena, geom: &impl GeometryView) -> Vec<(FaceId, f64)> {
     arena
         .iter_faces()
         .map(|(fid, _)| (fid, face_area(arena, geom, fid)))
@@ -102,7 +99,11 @@ pub fn bounding_box(arena: &TopologyArena, geom: &impl GeometryView) -> Option<A
         }
     }
 
-    if found { Some(Aabb { min, max }) } else { None }
+    if found {
+        Some(Aabb { min, max })
+    } else {
+        None
+    }
 }
 
 // ── Internal ─────────────────────────────────────────────────────────────────

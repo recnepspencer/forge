@@ -66,4 +66,3 @@ pub(crate) fn validate_prev_consistency(arena: &TopologyArena) -> Result<(), Ker
     }
     Ok(())
 }
-

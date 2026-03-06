@@ -9,8 +9,8 @@
 use forge_core::KernelError;
 
 use crate::configuration::facade::ResolvedConfig;
-use forge_core::envelope::OperationResult;
 use crate::engine::facade::SolidEnvelope;
+use forge_core::envelope::OperationResult;
 
 use super::PrimitiveParams;
 
@@ -24,26 +24,20 @@ pub fn generate_primitive(
     config: &ResolvedConfig,
 ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
     match params {
-        PrimitiveParams::Cube { size } => {
-            super::make_cube(center, *size, config)
-        }
-        PrimitiveParams::Block { half_extents } => {
-            super::make_block(center, *half_extents, config)
-        }
-        PrimitiveParams::Tetrahedron { scale } => {
-            super::make_tetrahedron(center, *scale, config)
-        }
-        PrimitiveParams::Dodecahedron { scale } => {
-            super::make_dodecahedron(center, *scale, config)
-        }
-        PrimitiveParams::Prism { sides, radius, height } => {
-            super::make_prism(center, *sides, *radius, *height, config)
-        }
-        PrimitiveParams::Pyramid { sides, radius, height } => {
-            super::make_pyramid(center, *sides, *radius, *height, config)
-        }
-        PrimitiveParams::Wedge { dimensions } => {
-            super::make_wedge(center, *dimensions, config)
-        }
+        PrimitiveParams::Cube { size } => super::make_cube(center, *size, config),
+        PrimitiveParams::Block { half_extents } => super::make_block(center, *half_extents, config),
+        PrimitiveParams::Tetrahedron { scale } => super::make_tetrahedron(center, *scale, config),
+        PrimitiveParams::Dodecahedron { scale } => super::make_dodecahedron(center, *scale, config),
+        PrimitiveParams::Prism {
+            sides,
+            radius,
+            height,
+        } => super::make_prism(center, *sides, *radius, *height, config),
+        PrimitiveParams::Pyramid {
+            sides,
+            radius,
+            height,
+        } => super::make_pyramid(center, *sides, *radius, *height, config),
+        PrimitiveParams::Wedge { dimensions } => super::make_wedge(center, *dimensions, config),
     }
 }

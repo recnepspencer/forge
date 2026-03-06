@@ -8,8 +8,9 @@ mod tests {
     use crate::json::{load_model, save_model, VersionedModel, SCHEMA_VERSION};
     use crate::IoError;
     use forge_kernel::boolean::BooleanOp;
-    use forge_kernel::engine::facade::FeatureTree; use forge_kernel::registry::facade::NativeFeature;
+    use forge_kernel::engine::facade::FeatureTree;
     use forge_kernel::primitives::MakePrimitiveFeature;
+    use forge_kernel::registry::facade::NativeFeature;
     use tempfile::tempdir;
 
     #[test]
@@ -26,7 +27,14 @@ mod tests {
             .register_feature(NativeFeature::primitive("Tool", tool))
             .unwrap();
 
-        let _cut_id = tree.register_feature(NativeFeature::boolean("Cut", BooleanOp::Subtraction, cube_id, tool_id)).unwrap();
+        let _cut_id = tree
+            .register_feature(NativeFeature::boolean(
+                "Cut",
+                BooleanOp::Subtraction,
+                cube_id,
+                tool_id,
+            ))
+            .unwrap();
 
         let dir = tempdir().unwrap();
         let path = dir.path().join("model.json");
@@ -136,7 +144,13 @@ mod tests {
         let tool_id = tree
             .register_feature(NativeFeature::primitive("Hole", tool))
             .unwrap();
-        tree.register_feature(NativeFeature::boolean("Pocket", BooleanOp::Subtraction, cube_id, tool_id)).unwrap();
+        tree.register_feature(NativeFeature::boolean(
+            "Pocket",
+            BooleanOp::Subtraction,
+            cube_id,
+            tool_id,
+        ))
+        .unwrap();
 
         let dir = tempdir().unwrap();
         let path = dir.path().join("tc04.json");
@@ -162,7 +176,13 @@ mod tests {
         let tool_id = tree
             .register_feature(NativeFeature::primitive("Drill", tool))
             .unwrap();
-        tree.register_feature(NativeFeature::boolean("Op", BooleanOp::Intersection, cube_id, tool_id)).unwrap();
+        tree.register_feature(NativeFeature::boolean(
+            "Op",
+            BooleanOp::Intersection,
+            cube_id,
+            tool_id,
+        ))
+        .unwrap();
 
         let dir = tempdir().unwrap();
         let path_a = dir.path().join("diff_a.json");
@@ -179,4 +199,3 @@ mod tests {
         );
     }
 }
-

@@ -207,9 +207,7 @@ pub fn chord_overlap_segment(
     let origin = chord_a.0;
 
     let proj = |p: [f64; 3]| -> f64 {
-        (p[0] - origin[0]) * unit[0]
-            + (p[1] - origin[1]) * unit[1]
-            + (p[2] - origin[2]) * unit[2]
+        (p[0] - origin[0]) * unit[0] + (p[1] - origin[1]) * unit[1] + (p[2] - origin[2]) * unit[2]
     };
     let point_at = |t: f64| -> [f64; 3] {
         [
@@ -223,8 +221,12 @@ pub fn chord_overlap_segment(
     let mut a1 = proj(chord_a.1);
     let mut b0 = proj(chord_b.0);
     let mut b1 = proj(chord_b.1);
-    if a0 > a1 { std::mem::swap(&mut a0, &mut a1); }
-    if b0 > b1 { std::mem::swap(&mut b0, &mut b1); }
+    if a0 > a1 {
+        std::mem::swap(&mut a0, &mut a1);
+    }
+    if b0 > b1 {
+        std::mem::swap(&mut b0, &mut b1);
+    }
 
     let o0 = a0.max(b0);
     let o1 = a1.min(b1);

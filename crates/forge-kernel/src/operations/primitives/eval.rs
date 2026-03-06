@@ -9,31 +9,32 @@
 //!
 //! This file contains NO inline math, data structures, or validation logic.
 
+use crate::engine::facade::TopologyHashBoundary;
 use forge_core::KernelError;
 use forge_geom::{build_convex_polyhedron, BspConfig, ConvexCell, Plane};
 use forge_topo::handles::VertexId;
-use forge_topo::provenance::{LineageRecorder, LineageMode, OperationLineageContext, FEATURE_ID_SYSTEM};
-use crate::engine::facade::TopologyHashBoundary;
+use forge_topo::provenance::{
+    LineageMode, LineageRecorder, OperationLineageContext, FEATURE_ID_SYSTEM,
+};
 use forge_topo::transactions::{MutableDraft, TopologyState};
 
 use crate::engine::facade::SolidEnvelope;
 
+use crate::configuration::facade::ResolvedConfig;
+use crate::context::facade::ModelingContext;
 use crate::context::scope::OperationScope;
+use crate::engine::facade::OperationFinalizer;
 use crate::geometry::facade::GeometryStore;
 use crate::operations::shared_operations::facade::{
     emit_edge_curves, insert_faces_and_loops, make_solid_hierarchy, place_vertex_exact,
     stitch_twins, PlacementRegistry,
 };
-use crate::context::facade::ModelingContext;
-use crate::engine::facade::OperationFinalizer;
-use crate::configuration::facade::ResolvedConfig;
 use forge_core::envelope::OperationResult;
 use forge_core::tracing::TraceAdjunctSet;
 
 use crate::operations::shared_validators::facade::{
     validate_cell, validate_center_and_size, validate_coordinate, validate_dimension,
 };
-
 
 // ── Core orchestrator ────────────────────────────────────────────────────
 
@@ -58,11 +59,14 @@ pub fn build_halfedge_mesh(
     // Create a LineageRecorder for this primitive construction.
     // Uses FEATURE_ID_SYSTEM because build_halfedge_mesh is infrastructure,
     // not a user-facing feature. Pipeline-level features override this.
-    let mut recorder = LineageRecorder::new(OperationLineageContext {
-        feature_id: forge_topo::provenance::FEATURE_ID_SYSTEM,
-        op_name: "build_halfedge_mesh",
-        mode: LineageMode::Root,
-    }, 1);
+    let mut recorder = LineageRecorder::new(
+        OperationLineageContext {
+            feature_id: forge_topo::provenance::FEATURE_ID_SYSTEM,
+            op_name: "build_halfedge_mesh",
+            mode: LineageMode::Root,
+        },
+        1,
+    );
 
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
@@ -70,7 +74,12 @@ pub fn build_halfedge_mesh(
 
     // 1. Insert vertices (dedup + exact positions)
     let vertex_ids = insert_vertices(
-        &mut draft, &mut geometry, cell, tolerance, scope.sink, &mut recorder,
+        &mut draft,
+        &mut geometry,
+        cell,
+        tolerance,
+        scope.sink,
+        &mut recorder,
     )?;
 
     // 2. Create containment hierarchy
@@ -78,7 +87,12 @@ pub fn build_halfedge_mesh(
 
     // 3. Build faces, loops, halfedges
     let edge_map = insert_faces_and_loops(
-        &mut draft, &mut geometry, cell, &vertex_ids, hierarchy.shell, &mut recorder,
+        &mut draft,
+        &mut geometry,
+        cell,
+        &vertex_ids,
+        hierarchy.shell,
+        &mut recorder,
     )?;
 
     // 4. Stitch twin pointers
@@ -91,7 +105,10 @@ pub fn build_halfedge_mesh(
     // 5. Set representative face on shell
     let first_face = draft.arena().iter_faces().next().map(|(fid, _)| fid);
     if let Some(fid) = first_face {
-        draft.arena_mut().get_shell_mut(hierarchy.shell)?.set_representative_face(fid);
+        draft
+            .arena_mut()
+            .get_shell_mut(hierarchy.shell)?
+            .set_representative_face(fid);
     }
 
     let topology = draft.commit()?;
@@ -106,16 +123,26 @@ pub fn build_halfedge_mesh(
         Some(&|e| geometry.curves.contains(e)),
     )?;
 
-    scope.sink.end_span(span, start.elapsed().as_micros() as u64);
+    scope
+        .sink
+        .end_span(span, start.elapsed().as_micros() as u64);
 
     let solid = SolidEnvelope::new(topology, geometry);
     Ok(finalize_primitive(solid, &mut ctx))
 }
 
-fn finalize_primitive(solid: SolidEnvelope, ctx: &mut ModelingContext) -> OperationResult<SolidEnvelope> {
+fn finalize_primitive(
+    solid: SolidEnvelope,
+    ctx: &mut ModelingContext,
+) -> OperationResult<SolidEnvelope> {
     let mut envelope = OperationResult::new(solid);
     let mut finalizer = OperationFinalizer::new(ctx);
-    let _ = finalizer.collect_success(&mut envelope, TraceAdjunctSet::new(), TopologyHashBoundary::default(), None);
+    let _ = finalizer.collect_success(
+        &mut envelope,
+        TraceAdjunctSet::new(),
+        TopologyHashBoundary::default(),
+        None,
+    );
     envelope
 }
 
@@ -139,7 +166,15 @@ fn insert_vertices(
         let pos = *vert.position();
         let plane_indices = vert.plane_indices();
         let vid = place_vertex_exact(
-            draft, geometry, &mut registry, pos, plane_indices, planes, tolerance, sink, recorder,
+            draft,
+            geometry,
+            &mut registry,
+            pos,
+            plane_indices,
+            planes,
+            tolerance,
+            sink,
+            recorder,
         )?;
         vertex_ids.push(vid);
     }
@@ -160,7 +195,9 @@ pub fn make_convex_solid(
 
 /// Create a cube centered at `center` with side length `size`.
 pub fn make_cube(
-    center: [f64; 3], size: f64, config: &ResolvedConfig,
+    center: [f64; 3],
+    size: f64,
+    config: &ResolvedConfig,
 ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
     validate_center_and_size(center, size, config.config())?;
     make_convex_solid(forge_geom::cube(center, size / 2.0)?, config)
@@ -168,7 +205,9 @@ pub fn make_cube(
 
 /// Create a regular tetrahedron centered at `center` with the given `scale`.
 pub fn make_tetrahedron(
-    center: [f64; 3], scale: f64, config: &ResolvedConfig,
+    center: [f64; 3],
+    scale: f64,
+    config: &ResolvedConfig,
 ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
     validate_center_and_size(center, scale, config.config())?;
     make_convex_solid(forge_geom::tetrahedron(center, scale)?, config)
@@ -176,7 +215,9 @@ pub fn make_tetrahedron(
 
 /// Create a regular dodecahedron centered at `center` with the given `scale`.
 pub fn make_dodecahedron(
-    center: [f64; 3], scale: f64, config: &ResolvedConfig,
+    center: [f64; 3],
+    scale: f64,
+    config: &ResolvedConfig,
 ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
     validate_center_and_size(center, scale, config.config())?;
     make_convex_solid(forge_geom::dodecahedron(center, scale)?, config)
@@ -184,18 +225,30 @@ pub fn make_dodecahedron(
 
 /// Create an axis-aligned block with independent half-extents.
 pub fn make_block(
-    center: [f64; 3], half_extents: [f64; 3], config: &ResolvedConfig,
+    center: [f64; 3],
+    half_extents: [f64; 3],
+    config: &ResolvedConfig,
 ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
-    for (i, &v) in center.iter().enumerate() { validate_coordinate(v, &format!("center[{i}]"))?; }
-    for (i, &v) in half_extents.iter().enumerate() { validate_dimension(v, &format!("half_extents[{i}]"), config.config())?; }
+    for (i, &v) in center.iter().enumerate() {
+        validate_coordinate(v, &format!("center[{i}]"))?;
+    }
+    for (i, &v) in half_extents.iter().enumerate() {
+        validate_dimension(v, &format!("half_extents[{i}]"), config.config())?;
+    }
     make_convex_solid(forge_geom::block(center, half_extents)?, config)
 }
 
 /// Create a regular prism (n-gon extrusion) centered at `center`.
 pub fn make_prism(
-    center: [f64; 3], sides: u32, radius: f64, height: f64, config: &ResolvedConfig,
+    center: [f64; 3],
+    sides: u32,
+    radius: f64,
+    height: f64,
+    config: &ResolvedConfig,
 ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
-    for (i, &v) in center.iter().enumerate() { validate_coordinate(v, &format!("center[{i}]"))?; }
+    for (i, &v) in center.iter().enumerate() {
+        validate_coordinate(v, &format!("center[{i}]"))?;
+    }
     validate_dimension(radius, "radius", config.config())?;
     validate_dimension(height, "height", config.config())?;
     validate_minimum_sides(sides, 3, "prism")?;
@@ -204,9 +257,15 @@ pub fn make_prism(
 
 /// Create a regular pyramid (n-gon base with apex) centered at `center`.
 pub fn make_pyramid(
-    center: [f64; 3], sides: u32, radius: f64, height: f64, config: &ResolvedConfig,
+    center: [f64; 3],
+    sides: u32,
+    radius: f64,
+    height: f64,
+    config: &ResolvedConfig,
 ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
-    for (i, &v) in center.iter().enumerate() { validate_coordinate(v, &format!("center[{i}]"))?; }
+    for (i, &v) in center.iter().enumerate() {
+        validate_coordinate(v, &format!("center[{i}]"))?;
+    }
     validate_dimension(radius, "radius", config.config())?;
     validate_dimension(height, "height", config.config())?;
     validate_minimum_sides(sides, 3, "pyramid")?;
@@ -215,11 +274,17 @@ pub fn make_pyramid(
 
 /// Create a wedge (triangular cross-section extrusion) centered at `center`.
 pub fn make_wedge(
-    center: [f64; 3], dimensions: [f64; 3], config: &ResolvedConfig,
+    center: [f64; 3],
+    dimensions: [f64; 3],
+    config: &ResolvedConfig,
 ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
-    for (i, &v) in center.iter().enumerate() { validate_coordinate(v, &format!("center[{i}]"))?; }
+    for (i, &v) in center.iter().enumerate() {
+        validate_coordinate(v, &format!("center[{i}]"))?;
+    }
     let names = ["width", "depth", "height"];
-    for (i, &v) in dimensions.iter().enumerate() { validate_dimension(v, names[i], config.config())?; }
+    for (i, &v) in dimensions.iter().enumerate() {
+        validate_dimension(v, names[i], config.config())?;
+    }
     make_convex_solid(forge_geom::wedge(center, dimensions)?, config)
 }
 

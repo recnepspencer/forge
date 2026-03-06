@@ -63,4 +63,3 @@ pub fn validate_zero_area_faces(
     }
     Ok(())
 }
-

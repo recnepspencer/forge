@@ -3,8 +3,8 @@
 //! DOMAIN: Low-level arena infrastructure — the Slot wrapper and
 //! error-path functions for stale/deleted/out-of-bounds handles.
 
+use forge_core::{ErrorContext, ErrorScope, KernelError, TopologyError};
 use serde::{Deserialize, Serialize};
-use forge_core::{KernelError, TopologyError, ErrorContext, ErrorScope};
 
 /// A slot in the arena that may be occupied or vacant.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -65,7 +65,10 @@ pub(crate) fn cold_err_bounds(kind: &str, idx: u32, gen: u32) -> KernelError {
             actual_generation: 0,
         },
         context: Some(ErrorContext {
-            scope: ErrorScope::Entity { entity_kind: kind.to_string(), index: idx },
+            scope: ErrorScope::Entity {
+                entity_kind: kind.to_string(),
+                index: idx,
+            },
             suggested_fixes: Vec::new(),
             detail: format!("{} index {} out of bounds", kind, idx),
         }),
@@ -83,16 +86,27 @@ pub(crate) fn cold_err_stale(kind: &str, idx: u32, expected: u32, actual: u32) -
             actual_generation: actual,
         },
         context: Some(ErrorContext {
-            scope: ErrorScope::Entity { entity_kind: kind.to_string(), index: idx },
+            scope: ErrorScope::Entity {
+                entity_kind: kind.to_string(),
+                index: idx,
+            },
             suggested_fixes: Vec::new(),
-            detail: format!("Stale {} handle at index {} (expected gen {}, got gen {})", kind, idx, expected, actual),
+            detail: format!(
+                "Stale {} handle at index {} (expected gen {}, got gen {})",
+                kind, idx, expected, actual
+            ),
         }),
     }
 }
 
 #[cold]
 #[inline(never)]
-pub(crate) fn cold_err_deleted(kind: &str, idx: u32, expected_gen: u32, actual_gen: u32) -> KernelError {
+pub(crate) fn cold_err_deleted(
+    kind: &str,
+    idx: u32,
+    expected_gen: u32,
+    actual_gen: u32,
+) -> KernelError {
     KernelError::TopologyViolation {
         err: TopologyError::StaleHandle {
             entity_kind: kind.to_string(),
@@ -101,7 +115,10 @@ pub(crate) fn cold_err_deleted(kind: &str, idx: u32, expected_gen: u32, actual_g
             actual_generation: actual_gen,
         },
         context: Some(ErrorContext {
-            scope: ErrorScope::Entity { entity_kind: kind.to_string(), index: idx },
+            scope: ErrorScope::Entity {
+                entity_kind: kind.to_string(),
+                index: idx,
+            },
             suggested_fixes: Vec::new(),
             detail: format!("{} {} has been deleted", kind, idx),
         }),

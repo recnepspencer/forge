@@ -31,7 +31,10 @@ impl DecisionSink for ModelingContext {
             },
             tier,
             gap,
-            DecisionContext::Tolerance { measured: gap, threshold },
+            DecisionContext::Tolerance {
+                measured: gap,
+                threshold,
+            },
         );
         decision.set_entity_scope(forge_core::EntityRef::new(
             forge_core::EntityKind::Vertex,
@@ -41,19 +44,17 @@ impl DecisionSink for ModelingContext {
         self.decision_log.record(decision);
     }
 
-    fn record_near_boundary(
-        &mut self,
-        entity_index: u32,
-        margin: f64,
-        threshold: f64,
-    ) {
+    fn record_near_boundary(&mut self, entity_index: u32, margin: f64, threshold: f64) {
         self.decision_counter += 1;
         let mut decision = TracedDecision::new(
             DecisionId(self.decision_counter),
             DecisionKind::NearBoundary { threshold },
             DecisionTier::NearBoundary,
             margin,
-            DecisionContext::Tolerance { measured: margin, threshold },
+            DecisionContext::Tolerance {
+                measured: margin,
+                threshold,
+            },
         );
         decision.set_entity_scope(forge_core::EntityRef::new(
             forge_core::EntityKind::Vertex,
@@ -63,12 +64,7 @@ impl DecisionSink for ModelingContext {
         self.decision_log.record(decision);
     }
 
-    fn record_classification(
-        &mut self,
-        entity_index: u32,
-        result_label: &str,
-        tier: DecisionTier,
-    ) {
+    fn record_classification(&mut self, entity_index: u32, result_label: &str, tier: DecisionTier) {
         self.decision_counter += 1;
         let mut decision = TracedDecision::new(
             DecisionId(self.decision_counter),
@@ -100,7 +96,9 @@ impl DecisionSink for ModelingContext {
                 DecisionKind::Exact,
                 DecisionTier::Escalated,
                 escalation.disagreement_magnitude.unwrap_or(0.0),
-                DecisionContext::PrecisionEscalation { escalation: escalation.clone() },
+                DecisionContext::PrecisionEscalation {
+                    escalation: escalation.clone(),
+                },
             );
             decision.set_entity_scope(forge_core::EntityRef::new(
                 forge_core::EntityKind::Vertex,
@@ -121,43 +119,48 @@ impl DecisionSink for ModelingContext {
         self.decision_counter += 1;
         let decision = TracedDecision::new(
             DecisionId(self.decision_counter),
-            DecisionKind::PolicyApplied { policy, default_used },
+            DecisionKind::PolicyApplied {
+                policy,
+                default_used,
+            },
             DecisionTier::PolicyApplied,
             margin,
-            DecisionContext::Tolerance { measured: margin, threshold: 0.0 },
+            DecisionContext::Tolerance {
+                measured: margin,
+                threshold: 0.0,
+            },
         );
         self.decision_log.record(decision);
     }
 
-    fn record_ambiguous(
-        &mut self,
-        fallback_description: &str,
-        margin: f64,
-    ) {
+    fn record_ambiguous(&mut self, fallback_description: &str, margin: f64) {
         self.decision_counter += 1;
         let decision = TracedDecision::new(
             DecisionId(self.decision_counter),
-            DecisionKind::Ambiguous { fallback_applied: fallback_description.to_string() },
+            DecisionKind::Ambiguous {
+                fallback_applied: fallback_description.to_string(),
+            },
             DecisionTier::Escalated,
             margin,
-            DecisionContext::Degeneracy { description: fallback_description.to_string() },
+            DecisionContext::Degeneracy {
+                description: fallback_description.to_string(),
+            },
         );
         self.decision_log.record(decision);
     }
 
-    fn record_forced(
-        &mut self,
-        reason: &str,
-        entity_index: u32,
-        margin: f64,
-    ) {
+    fn record_forced(&mut self, reason: &str, entity_index: u32, margin: f64) {
         self.decision_counter += 1;
         let mut decision = TracedDecision::new(
             DecisionId(self.decision_counter),
-            DecisionKind::Forced { reason: reason.to_string() },
+            DecisionKind::Forced {
+                reason: reason.to_string(),
+            },
             DecisionTier::Escalated,
             margin,
-            DecisionContext::Degeneracy { description: format!("forced: {}", reason) },
+            DecisionContext::Degeneracy {
+                description: format!("forced: {}", reason),
+            },
         );
         decision.set_entity_scope(forge_core::EntityRef::new(
             forge_core::EntityKind::Vertex,

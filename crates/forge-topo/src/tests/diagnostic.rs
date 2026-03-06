@@ -2,12 +2,12 @@
 
 #[cfg(test)]
 mod tests {
+    use crate::b_rep::ShellKind;
     use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::entity_lifecycle::split_edge::SplitEdge;
     use crate::operations::tests::invariant_checker::{diagnose_op_chain, dump_all_wiring};
     use crate::traverse::FaceEdgeIterator;
-    use crate::b_rep::ShellKind;
 
     /// Trace every step of the pole fan pattern and print EXACTLY
     /// what vertex is on what face, what edge connects what, and
@@ -16,19 +16,18 @@ mod tests {
     fn diagnose_pole_fan() {
         let report = diagnose_op_chain(|runner| {
             let mvf = runner.run("MVF", |d| {
-                d.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).map(|r| r.into_value())
+                d.execute(MakeVertexFace {
+                    shell_kind: ShellKind::Sheet,
+                })
+                .map(|r| r.into_value())
             })?;
             let pole = mvf.vertex;
             let mut current_edge = mvf.half_edge;
 
             for i in 0..3 {
                 let se = runner.run(&format!("SE[{}]", i), |d| {
-                    d.execute(
-                        SplitEdge {
-                            edge: current_edge,
-                        },
-                    )
-                    .map(|r| r.into_value())
+                    d.execute(SplitEdge { edge: current_edge })
+                        .map(|r| r.into_value())
                 })?;
                 let face_id = runner.arena().get_half_edge(current_edge).unwrap().face();
 
@@ -38,13 +37,11 @@ mod tests {
                 let mef = runner.run(
                     &format!("MEF[{}](V{}, V{})", i, pole.index(), se.new_vertex.index()),
                     |d| {
-                        d.execute(
-                            MakeEdgeFace {
-                                vertex_a: pole,
-                                vertex_b: se.new_vertex,
-                                face: face_id,
-                            },
-                        )
+                        d.execute(MakeEdgeFace {
+                            vertex_a: pole,
+                            vertex_b: se.new_vertex,
+                            face: face_id,
+                        })
                         .map(|r| r.into_value())
                     },
                 )?;

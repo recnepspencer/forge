@@ -7,8 +7,8 @@
 //! CONSUMED BY: primitives (make_cube, make_prism, etc.), booleans,
 //!              any operation accepting user-supplied numeric parameters.
 
-use forge_core::KernelError;
 use crate::configuration::facade::ResolvedConfig;
+use forge_core::KernelError;
 
 /// Safety margin: dimensions smaller than this multiple of the spatial
 /// tolerance will be rejected as too small to produce reliable topology.

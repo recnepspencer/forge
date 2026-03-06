@@ -11,8 +11,8 @@
 //! DEPENDENCIES: `arena::TopologyArena`, `schema::{PersistentName, Selector}`,
 //! `attributes::EntityKey`, `forge_core::KernelError`
 
-use forge_core::{EntityKind, KernelError};
 use crate::semantic_attributes::EntityKey;
+use forge_core::{EntityKind, KernelError};
 
 use crate::persistent_naming::data::naming_schema::{PersistentName, Selector};
 
@@ -28,12 +28,15 @@ use forge_core::EntityRef;
 /// - **1 entry** — the normal case (no split since naming).
 /// - **2+ entries** — the entity was split since naming.
 pub fn resolve_name(store: &LineageStore, name: &PersistentName) -> Vec<EntityKey> {
-    match name.get_kind() {
+    let mut keys = match name.get_kind() {
         EntityKind::Face => resolve_faces(store, name.get_ancestry_hash()),
         EntityKind::Vertex => resolve_vertices(store, name.get_ancestry_hash()),
         EntityKind::Edge => resolve_edges(store, name.get_ancestry_hash()),
         _ => Vec::new(),
-    }
+    };
+    keys.sort_by_key(entity_key_sort_key);
+    keys.dedup();
+    keys
 }
 
 /// Resolve a `Selector` query against the current topology.
@@ -60,12 +63,12 @@ pub fn assign_name(store: &LineageStore, key: EntityKey) -> Result<PersistentNam
         EntityKey::Shell(id) => EntityRef::new(EntityKind::Shell, id.index(), id.generation()),
     };
 
-    let lineage = store.get_lineage(&eref).ok_or_else(|| {
-        KernelError::InvalidInput {
+    let lineage = store
+        .get_lineage(&eref)
+        .ok_or_else(|| KernelError::InvalidInput {
             message: format!("Cannot assign name: no lineage found for entity {:?}", key),
             context: None,
-        }
-    })?;
+        })?;
 
     Ok(PersistentName::new(
         lineage.get_ancestry_hash(),
@@ -111,7 +114,10 @@ fn resolve_faces(store: &LineageStore, hash: u128) -> Vec<EntityKey> {
         if eref.kind() == EntityKind::Face {
             if let Some(lineage) = store.get_lineage(eref) {
                 if lineage.get_ancestry_hash() == hash {
-                    matches.push(EntityKey::Face(crate::handles::FaceId::new(eref.index(), eref.generation())));
+                    matches.push(EntityKey::Face(crate::handles::FaceId::new(
+                        eref.index(),
+                        eref.generation(),
+                    )));
                 }
             }
         }
@@ -125,7 +131,10 @@ fn resolve_vertices(store: &LineageStore, hash: u128) -> Vec<EntityKey> {
         if eref.kind() == EntityKind::Vertex {
             if let Some(lineage) = store.get_lineage(eref) {
                 if lineage.get_ancestry_hash() == hash {
-                    matches.push(EntityKey::Vertex(crate::handles::VertexId::new(eref.index(), eref.generation())));
+                    matches.push(EntityKey::Vertex(crate::handles::VertexId::new(
+                        eref.index(),
+                        eref.generation(),
+                    )));
                 }
             }
         }
@@ -139,7 +148,10 @@ fn resolve_edges(store: &LineageStore, hash: u128) -> Vec<EntityKey> {
         if eref.kind() == EntityKind::Edge {
             if let Some(lineage) = store.get_lineage(eref) {
                 if lineage.get_ancestry_hash() == hash {
-                    matches.push(EntityKey::Edge(crate::handles::EdgeId::new(eref.index(), eref.generation())));
+                    matches.push(EntityKey::Edge(crate::handles::EdgeId::new(
+                        eref.index(),
+                        eref.generation(),
+                    )));
                 }
             }
         }
@@ -163,9 +175,15 @@ fn collect_by_feature(store: &LineageStore, feature_id: u64, kind: EntityKind) -
             if let Some(lineage) = store.get_lineage(eref) {
                 if lineage.get_origin_features().contains(&feature_id) {
                     match kind {
-                        EntityKind::Face => matches.push(EntityKey::Face(crate::handles::FaceId::new(eref.index(), eref.generation()))),
-                        EntityKind::Vertex => matches.push(EntityKey::Vertex(crate::handles::VertexId::new(eref.index(), eref.generation()))),
-                        EntityKind::Edge => matches.push(EntityKey::Edge(crate::handles::EdgeId::new(eref.index(), eref.generation()))),
+                        EntityKind::Face => matches.push(EntityKey::Face(
+                            crate::handles::FaceId::new(eref.index(), eref.generation()),
+                        )),
+                        EntityKind::Vertex => matches.push(EntityKey::Vertex(
+                            crate::handles::VertexId::new(eref.index(), eref.generation()),
+                        )),
+                        EntityKind::Edge => matches.push(EntityKey::Edge(
+                            crate::handles::EdgeId::new(eref.index(), eref.generation()),
+                        )),
                         _ => {}
                     }
                 }
@@ -182,9 +200,15 @@ fn collect_by_operation(store: &LineageStore, op_name: &str, kind: EntityKind) -
             if let Some(lineage) = store.get_lineage(eref) {
                 if lineage.get_creation_op().get_name() == op_name {
                     match kind {
-                        EntityKind::Face => matches.push(EntityKey::Face(crate::handles::FaceId::new(eref.index(), eref.generation()))),
-                        EntityKind::Vertex => matches.push(EntityKey::Vertex(crate::handles::VertexId::new(eref.index(), eref.generation()))),
-                        EntityKind::Edge => matches.push(EntityKey::Edge(crate::handles::EdgeId::new(eref.index(), eref.generation()))),
+                        EntityKind::Face => matches.push(EntityKey::Face(
+                            crate::handles::FaceId::new(eref.index(), eref.generation()),
+                        )),
+                        EntityKind::Vertex => matches.push(EntityKey::Vertex(
+                            crate::handles::VertexId::new(eref.index(), eref.generation()),
+                        )),
+                        EntityKind::Edge => matches.push(EntityKey::Edge(
+                            crate::handles::EdgeId::new(eref.index(), eref.generation()),
+                        )),
                         _ => {}
                     }
                 }

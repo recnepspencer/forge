@@ -12,8 +12,8 @@ use serde::{Deserialize, Serialize};
 
 use forge_core::KernelError;
 use forge_geom::facade::Plane;
-use forge_topo::b_rep::{FaceData, HalfEdgeData, LoopData, TopologyArena, VertexData};
 use forge_topo::b_rep::EntityBitset;
+use forge_topo::b_rep::{FaceData, HalfEdgeData, LoopData, TopologyArena, VertexData};
 use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
 
 /// A self-contained topological sub-region extracted from an arena.
@@ -224,16 +224,14 @@ impl ExtractedRegion {
             draft.insert_loop(LoopData::new(placeholder_he, fid));
         }
         for _ in 0..=max_he {
-            draft.insert_half_edge(
-                HalfEdgeData::new(
-                    placeholder_he,
-                    placeholder_he,
-                    placeholder_he,
-                    FaceId::new(0, 0),
-                    VertexId::new(0, 0),
-                    placeholder_edge,
-                ),
-            );
+            draft.insert_half_edge(HalfEdgeData::new(
+                placeholder_he,
+                placeholder_he,
+                placeholder_he,
+                FaceId::new(0, 0),
+                VertexId::new(0, 0),
+                placeholder_edge,
+            ));
         }
 
         for (&he_idx, conn) in &self.half_edge_connectivity {
@@ -252,7 +250,8 @@ impl ExtractedRegion {
                 .iter()
                 .find(|(_, conn)| conn.origin == vtx_id);
             if let Some((&he_idx, _)) = first_outgoing {
-                draft.arena_mut()
+                draft
+                    .arena_mut()
                     .get_vertex_mut(VertexId::new(vtx_id, 0))?
                     .set_primary_disk(HalfEdgeId::new(he_idx, 0));
             }
@@ -265,10 +264,12 @@ impl ExtractedRegion {
                 .find(|(_, conn)| conn.face == face_id);
             if let Some((&he_idx, _)) = first_he {
                 let loop_id = LoopId::new(face_id, 0);
-                draft.arena_mut()
+                draft
+                    .arena_mut()
                     .get_loop_mut(loop_id)?
                     .set_half_edge(HalfEdgeId::new(he_idx, 0));
-                draft.arena_mut()
+                draft
+                    .arena_mut()
                     .get_face_mut(FaceId::new(face_id, 0))?
                     .set_outer_loop(loop_id);
             }

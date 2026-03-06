@@ -24,4 +24,6 @@ mod schema;
 
 pub use schema::{CounterfactualResult, CounterfactualValidation, DecisionOverride, EntityDelta};
 
-pub use eval::{replay_all_near_boundary, replay_decision, ClassificationCodec, ReplayFn, ReplayOutcome};
+pub use eval::{
+    replay_all_near_boundary, replay_decision, ClassificationCodec, ReplayFn, ReplayOutcome,
+};

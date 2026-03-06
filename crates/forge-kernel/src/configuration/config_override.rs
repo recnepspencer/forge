@@ -5,11 +5,11 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::tolerance::ToleranceOverride;
-use super::solver::SolverOverride;
-use super::validation::ValidationOverride;
 use super::policy_rules::PolicyOverride;
 use super::precision::PrecisionOverride;
+use super::solver::SolverOverride;
+use super::tolerance::ToleranceOverride;
+use super::validation::ValidationOverride;
 
 /// An override container matching the structure of `KernelConfig`, but entirely sparse.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

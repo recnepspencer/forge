@@ -19,9 +19,7 @@ pub struct VertexData {
 impl VertexData {
     /// Construct a new vertex with the given primary disk entry.
     pub fn new(primary_disk: HalfEdgeId) -> Self {
-        Self {
-            primary_disk,
-        }
+        Self { primary_disk }
     }
 
     /// Representative halfedge for this vertex's primary disk.
@@ -34,4 +32,3 @@ impl VertexData {
         self.primary_disk = id;
     }
 }
-

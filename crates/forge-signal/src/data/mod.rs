@@ -1,5 +1,11 @@
 pub mod aspect;
+pub mod checkpoint;
+pub mod checkpoint_policy;
 pub mod dependency;
+pub mod dirty_set;
+pub mod effect_mapping;
+pub mod evaluator;
 pub mod graph;
 pub mod handle;
 pub mod node;
+pub mod tier;

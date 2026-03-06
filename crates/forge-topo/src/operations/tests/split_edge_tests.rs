@@ -21,14 +21,18 @@ fn split_degenerate_creates_proper_edge() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = logged_op("MVF", draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet })).unwrap();
+    let mvf = logged_op(
+        "MVF",
+        draft.execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        }),
+    )
+    .unwrap();
     let se = logged_op(
         "SplitEdge",
-        draft.execute(
-            SplitEdge {
-                edge: mvf.half_edge,
-            },
-        ),
+        draft.execute(SplitEdge {
+            edge: mvf.half_edge,
+        }),
     )
     .unwrap();
 
@@ -60,33 +64,35 @@ fn split_normal_edge_adds_vertex() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-    let se1 = draft.execute(
-        SplitEdge {
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
+    let se1 = draft
+        .execute(SplitEdge {
             edge: mvf.half_edge,
-        },
-    )
-    .unwrap()
-    .into_value();
-    let mef = draft.execute(
-        MakeEdgeFace {
+        })
+        .unwrap()
+        .into_value();
+    let mef = draft
+        .execute(MakeEdgeFace {
             vertex_a: mvf.vertex,
             vertex_b: se1.new_vertex,
             face: mvf.face,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     assert_eq!(draft.arena().half_edge_count(), 4);
 
-    let se2 = draft.execute(
-        SplitEdge {
+    let se2 = draft
+        .execute(SplitEdge {
             edge: mef.half_edge_ab,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     assert_eq!(draft.arena().vertex_count(), 3);
     assert_eq!(draft.arena().half_edge_count(), 6);
@@ -104,66 +110,66 @@ fn invariant_check_tetrahedron_sequence() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
     let check = check_all_invariants(draft.arena());
     assert!(check.is_ok(), "After MVF: {}", check.summary());
 
     let v0 = mvf.vertex;
-    let se1 = draft.execute(
-        SplitEdge {
+    let se1 = draft
+        .execute(SplitEdge {
             edge: mvf.half_edge,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
     let check = check_all_invariants(draft.arena());
     assert!(check.is_ok(), "After SE1: {}", check.summary());
 
     let v1 = se1.new_vertex;
-    let mef1 = draft.execute(
-        MakeEdgeFace {
+    let mef1 = draft
+        .execute(MakeEdgeFace {
             vertex_a: v0,
             vertex_b: v1,
             face: mvf.face,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
     let check = check_all_invariants(draft.arena());
     assert!(check.is_ok(), "After MEF1: {}", check.summary());
 
-    let se2 = draft.execute(
-        SplitEdge {
+    let se2 = draft
+        .execute(SplitEdge {
             edge: mef1.half_edge_ab,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
     let check = check_all_invariants(draft.arena());
     assert!(check.is_ok(), "After SE2: {}", check.summary());
 
     let v2 = se2.new_vertex;
-    let _mef2 = draft.execute(
-        MakeEdgeFace {
+    let _mef2 = draft
+        .execute(MakeEdgeFace {
             vertex_a: v2,
             vertex_b: v1,
             face: mef1.new_face,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
     let check = check_all_invariants(draft.arena());
     assert!(check.is_ok(), "After MEF2: {}", check.summary());
 
-    let _mef3 = draft.execute(
-        MakeEdgeFace {
+    let _mef3 = draft
+        .execute(MakeEdgeFace {
             vertex_a: v0,
             vertex_b: v2,
             face: mvf.face,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
     let check = check_all_invariants(draft.arena());
     assert!(check.is_ok(), "After MEF3: {}", check.summary());
 }

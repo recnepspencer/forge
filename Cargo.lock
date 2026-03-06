@@ -1436,6 +1436,7 @@ version = "0.1.0"
 dependencies = [
  "forge-core",
  "forge-math",
+ "forge-signal",
  "indexmap",
  "paste",
  "serde",

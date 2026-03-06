@@ -6,10 +6,10 @@
 
 // use crate::context::ModelingContext; (removed intentionally)
 // struct removed
-use forge_topo::b_rep::TopologyArena;
 use crate::engine::facade::SolidEnvelope;
-use crate::operations::primitives::{make_cube, make_tetrahedron, make_dodecahedron};
 use crate::geometry::facade::GeometryView;
+use crate::operations::primitives::{make_cube, make_dodecahedron, make_tetrahedron};
+use forge_topo::b_rep::TopologyArena;
 
 use super::{test_config, OperationScope};
 
@@ -18,22 +18,35 @@ fn assert_euler(arena: &TopologyArena, label: &str) {
     let e = (arena.half_edge_count() / 2) as i64;
     let f = arena.face_count() as i64;
     let chi = v - e + f;
-    assert_eq!(chi, 2, "{label}: Euler V={v} − E={e} + F={f} = {chi}, expected 2");
+    assert_eq!(
+        chi, 2,
+        "{label}: Euler V={v} − E={e} + F={f} = {chi}, expected 2"
+    );
 }
 
 fn assert_manifold_twins(arena: &TopologyArena, label: &str) {
     for (he_id, he_data) in arena.iter_half_edges() {
         let twin_id = he_data.radial_next();
-        assert_ne!(he_id, twin_id, "{label}: HE#{} has self-twin", he_id.index());
+        assert_ne!(
+            he_id,
+            twin_id,
+            "{label}: HE#{} has self-twin",
+            he_id.index()
+        );
         let twin_data = arena.get_half_edge(twin_id).unwrap();
         assert_ne!(
-            he_data.face(), twin_data.face(),
+            he_data.face(),
+            twin_data.face(),
             "{label}: HE#{} and twin HE#{} on same face F#{}",
-            he_id.index(), twin_id.index(), he_data.face().index()
+            he_id.index(),
+            twin_id.index(),
+            he_data.face().index()
         );
         assert_eq!(
-            twin_data.radial_next(), he_id,
-            "{label}: twin(twin(HE#{})) != self", he_id.index()
+            twin_data.radial_next(),
+            he_id,
+            "{label}: twin(twin(HE#{})) != self",
+            he_id.index()
         );
     }
 }
@@ -47,19 +60,37 @@ fn assert_closed_loops(arena: &TopologyArena, label: &str) {
         loop {
             count += 1;
             current = arena.get_half_edge(current).unwrap().next();
-            if current == start_he { break; }
-            assert!(count < 1000, "{label}: F#{} loop not closed", face_id.index());
+            if current == start_he {
+                break;
+            }
+            assert!(
+                count < 1000,
+                "{label}: F#{} loop not closed",
+                face_id.index()
+            );
         }
-        assert!(count >= 3, "{label}: F#{} loop has {count} edges (min 3)", face_id.index());
+        assert!(
+            count >= 3,
+            "{label}: F#{} loop has {count} edges (min 3)",
+            face_id.index()
+        );
     }
 }
 
 fn assert_geometry_complete(arena: &TopologyArena, geom: &impl GeometryView, label: &str) {
     for (face_id, _) in arena.iter_faces() {
-        assert!(geom.get_face_plane(face_id).is_some(), "{label}: F#{} missing plane", face_id.index());
+        assert!(
+            geom.get_face_plane(face_id).is_some(),
+            "{label}: F#{} missing plane",
+            face_id.index()
+        );
     }
     for (vert_id, _) in arena.iter_vertices() {
-        assert!(geom.get_vertex_position(vert_id).is_some(), "{label}: V#{} missing position", vert_id.index());
+        assert!(
+            geom.get_vertex_position(vert_id).is_some(),
+            "{label}: V#{} missing position",
+            vert_id.index()
+        );
     }
 }
 
@@ -68,16 +99,26 @@ fn compute_mesh_centroid(arena: &TopologyArena, geom: &impl GeometryView) -> [f6
     let mut count = 0;
     for (vid, _) in arena.iter_vertices() {
         if let Some(pos) = geom.get_vertex_position(vid) {
-            sum[0] += pos[0]; sum[1] += pos[1]; sum[2] += pos[2];
+            sum[0] += pos[0];
+            sum[1] += pos[1];
+            sum[2] += pos[2];
             count += 1;
         }
     }
-    if count == 0 { return [0.0; 3]; }
-    [sum[0] / count as f64, sum[1] / count as f64, sum[2] / count as f64]
+    if count == 0 {
+        return [0.0; 3];
+    }
+    [
+        sum[0] / count as f64,
+        sum[1] / count as f64,
+        sum[2] / count as f64,
+    ]
 }
 
 fn compute_face_centroid(
-    arena: &TopologyArena, geom: &impl GeometryView, face_id: forge_topo::handles::FaceId,
+    arena: &TopologyArena,
+    geom: &impl GeometryView,
+    face_id: forge_topo::handles::FaceId,
 ) -> [f64; 3] {
     let face_data = arena.get_face(face_id).unwrap();
     let loop_data = arena.get_loop(face_data.outer_loop()).unwrap();
@@ -88,14 +129,24 @@ fn compute_face_centroid(
     loop {
         let he = arena.get_half_edge(current).unwrap();
         if let Some(pos) = geom.get_vertex_position(he.origin()) {
-            sum[0] += pos[0]; sum[1] += pos[1]; sum[2] += pos[2];
+            sum[0] += pos[0];
+            sum[1] += pos[1];
+            sum[2] += pos[2];
             count += 1;
         }
         current = he.next();
-        if current == start_he { break; }
+        if current == start_he {
+            break;
+        }
     }
-    if count == 0 { return [0.0; 3]; }
-    [sum[0] / count as f64, sum[1] / count as f64, sum[2] / count as f64]
+    if count == 0 {
+        return [0.0; 3];
+    }
+    [
+        sum[0] / count as f64,
+        sum[1] / count as f64,
+        sum[2] / count as f64,
+    ]
 }
 
 fn assert_outward_normals(arena: &TopologyArena, geom: &impl GeometryView, label: &str) {
@@ -104,9 +155,17 @@ fn assert_outward_normals(arena: &TopologyArena, geom: &impl GeometryView, label
         let plane = geom.get_face_plane(face_id).unwrap();
         let n = plane.normal();
         let fc = compute_face_centroid(arena, geom, face_id);
-        let to_face = [fc[0] - centroid[0], fc[1] - centroid[1], fc[2] - centroid[2]];
+        let to_face = [
+            fc[0] - centroid[0],
+            fc[1] - centroid[1],
+            fc[2] - centroid[2],
+        ];
         let dot = n[0] * to_face[0] + n[1] * to_face[1] + n[2] * to_face[2];
-        assert!(dot > 0.0, "{label}: F#{} normal points inward (dot={dot:.6})", face_id.index());
+        assert!(
+            dot > 0.0,
+            "{label}: F#{} normal points inward (dot={dot:.6})",
+            face_id.index()
+        );
     }
 }
 

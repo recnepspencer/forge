@@ -10,9 +10,9 @@
 //!
 //! DEPENDENCIES: `euler` (primitives), `arena` (entity storage)
 
-pub mod solid;
-pub mod lump;
-pub mod shell;
 pub mod body_ops;
+pub mod lump;
 pub mod lump_ops;
+pub mod shell;
 pub mod shell_ops;
+pub mod solid;

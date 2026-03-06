@@ -3,8 +3,9 @@
 //! INVARIANT: Every halfedge in a `.radial_next()` ring must reference
 //! the same `EdgeId`.
 
-use crate::b_rep::TopologyArena;
 use crate::b_rep::EntityBitset;
+use crate::b_rep::TopologyArena;
+use crate::queries::walk::walk_radial_iter;
 use forge_core::KernelError;
 
 pub fn validate_radial_edge_consistency(arena: &TopologyArena) -> Result<(), KernelError> {
@@ -17,9 +18,11 @@ pub fn validate_radial_edge_consistency(arena: &TopologyArena) -> Result<(), Ker
         checked.insert(start_he.index())?;
 
         let expected_edge = start_data.edge();
-        let mut curr = start_data.radial_next();
-
-        while curr != start_he {
+        for curr_result in walk_radial_iter(arena, start_he)? {
+            let curr = curr_result?;
+            if curr == start_he {
+                continue;
+            }
             checked.insert(curr.index())?;
             let curr_data = arena.get_half_edge(curr)?;
 
@@ -49,8 +52,6 @@ pub fn validate_radial_edge_consistency(arena: &TopologyArena) -> Result<(), Ker
                     }),
                 });
             }
-
-            curr = curr_data.radial_next();
         }
     }
     Ok(())

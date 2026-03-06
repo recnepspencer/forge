@@ -13,11 +13,10 @@
 use forge_core::{KernelError, TopologyError};
 
 use crate::handles::{HalfEdgeId, LoopId};
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
-
 
 /// Merge two faces by removing a shared edge.
 ///
@@ -41,13 +40,21 @@ impl TopoOperator for JoinFaces {
 
     const NAME: &'static str = "join_faces";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
-        format!("Join two faces by removing edge at halfedge {}", self.edge.index())
+        format!(
+            "Join two faces by removing edge at halfedge {}",
+            self.edge.index()
+        )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he = self.edge;
         let he_data = draft.arena().get_half_edge(he)?;
         let he_twin = he_data.radial_next();
@@ -69,7 +76,9 @@ impl TopoOperator for JoinFaces {
                 context: None,
             });
         }
-        if draft.arena().get_face(face_survive)?.shell() != draft.arena().get_face(face_remove)?.shell() {
+        if draft.arena().get_face(face_survive)?.shell()
+            != draft.arena().get_face(face_remove)?.shell()
+        {
             return Err(KernelError::InvalidInput {
                 message: "JoinFaces: faces belong to different shells".to_string(),
                 context: None,
@@ -105,7 +114,7 @@ impl TopoOperator for JoinFaces {
             .set_prev(twin_prev);
 
         reassign_face(draft, twin_next, face_survive)?;
-        let loop_id = draft.arena().get_face(face_survive)?.outer_loop();
+        let loop_id = draft.arena().get_face(face_survive)?.loops.outer();
         let loop_he = draft.arena().get_loop(loop_id)?.half_edge();
         if loop_he == he || loop_he == he_twin {
             draft
@@ -115,17 +124,19 @@ impl TopoOperator for JoinFaces {
         }
 
         // P10: Transfer inner loops from face_remove to face_survive
-        let inner_loops: Vec<LoopId> = draft.arena().get_face(face_remove)?.inner_loops().to_vec();
+        let inner_loops: Vec<LoopId> = draft.arena().get_face(face_remove)?.loops.inners().to_vec();
         for il_id in inner_loops {
             let inner_start = draft.arena().get_loop(il_id)?.half_edge();
             draft
                 .arena_mut()
                 .get_face_mut(face_remove)?
-                .remove_inner_loop(il_id);
+                .loops
+                .remove_inner(il_id);
             draft
                 .arena_mut()
                 .get_face_mut(face_survive)?
-                .add_inner_loop(il_id);
+                .loops
+                .add_inner(il_id);
             draft
                 .arena_mut()
                 .get_loop_mut(il_id)?
@@ -134,7 +145,11 @@ impl TopoOperator for JoinFaces {
         }
 
         if draft.arena().get_vertex(vertex_a)?.primary_disk() == he {
-            let next_a = if twin_next == he_twin { he_next } else { twin_next };
+            let next_a = if twin_next == he_twin {
+                he_next
+            } else {
+                twin_next
+            };
             draft
                 .arena_mut()
                 .get_vertex_mut(vertex_a)?
@@ -148,7 +163,7 @@ impl TopoOperator for JoinFaces {
                 .set_primary_disk(next_b);
         }
 
-        let remove_loop = draft.arena().get_face(face_remove)?.outer_loop();
+        let remove_loop = draft.arena().get_face(face_remove)?.loops.outer();
 
         draft.remove_half_edge(he)?;
         draft.remove_half_edge(he_twin)?;
@@ -173,8 +188,6 @@ impl TopoOperator for JoinFaces {
             },
         })
     }
-
-
 }
 
 /// Reassign all halfedges starting from `start` to `new_face`.
@@ -182,7 +195,7 @@ impl TopoOperator for JoinFaces {
 /// Walks the loop via `next()` until returning to `start`.
 /// Uses `reassign_halfedge_face` to keep the reverse index in sync.
 fn reassign_face(
-    draft: &mut MutableDraft, 
+    draft: &mut MutableDraft,
     start: HalfEdgeId,
     new_face: crate::handles::FaceId,
 ) -> Result<(), KernelError> {
@@ -214,4 +227,3 @@ fn reassign_face(
     }
     Ok(())
 }
-

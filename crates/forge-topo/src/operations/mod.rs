@@ -15,18 +15,18 @@
 pub mod algorithms;
 pub mod operator;
 
-pub mod lifecycle;
-pub mod entity_lifecycle;
 pub mod boundary_editing;
+pub mod entity_lifecycle;
+pub mod lifecycle;
 pub mod non_manifold;
 
+pub mod boolean;
+pub mod brep_coupling;
+pub mod construction;
+pub mod degeneracy;
+pub mod global_editing;
 pub mod regions;
 pub mod sheets_wires;
-pub mod brep_coupling;
-pub mod degeneracy;
-pub mod boolean;
-pub mod construction;
-pub mod global_editing;
 pub mod transform;
 
 #[cfg(test)]

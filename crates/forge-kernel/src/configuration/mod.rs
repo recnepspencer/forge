@@ -14,19 +14,19 @@
 //! - `serde` (serialization)
 
 // ── Vertical slices ──────────────────────────────────────────────────
-mod tolerance;
-mod solver;
-mod validation;
+mod diagnostics;
 mod policy_rules;
 mod precision;
-mod diagnostics;
+mod solver;
+mod tolerance;
+mod validation;
 
 // ── Cross-cutting root ───────────────────────────────────────────────
-mod kernel_config;
 mod config_override;
+mod kernel_config;
+mod provenance;
 mod resolve;
 pub mod resolved;
-mod provenance;
 
 pub mod facade;
 mod macros;

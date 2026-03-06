@@ -132,13 +132,24 @@ impl EntityRef {
 
 impl fmt::Debug for EntityRef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "EntityRef({}#{}:gen{})", self.kind().as_str(), self.index(), self.generation())
+        write!(
+            f,
+            "EntityRef({}#{}:gen{})",
+            self.kind().as_str(),
+            self.index(),
+            self.generation()
+        )
     }
 }
 
 impl fmt::Display for EntityRef {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}#{}:gen{}", self.kind().as_str(), self.index(), self.generation())
+        write!(
+            f,
+            "{}#{}:gen{}",
+            self.kind().as_str(),
+            self.index(),
+            self.generation()
+        )
     }
 }
-

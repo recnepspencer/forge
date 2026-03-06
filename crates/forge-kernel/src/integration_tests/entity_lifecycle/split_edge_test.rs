@@ -14,14 +14,16 @@ use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 fn split_single_cube_edge() {
     let env_res = unit_cube().expect("unit cube should succeed");
     let faces = env_res.get_value().faces().to_vec();
-    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
 
-    let result = draft.execute(SplitEdge {
-        edge: start_he,
-    }).unwrap().into_value();
+    let result = draft
+        .execute(SplitEdge { edge: start_he })
+        .unwrap()
+        .into_value();
 
     assert_eq!(draft.arena().face_count(), 6);
     assert_eq!(draft.arena().vertex_count(), 9);
@@ -33,10 +35,7 @@ fn split_single_cube_edge() {
 
     let new_v = result.new_vertex;
     let v_hes = draft.arena().halfedges_from_vertex(new_v);
-    assert!(
-        !v_hes.is_empty(),
-        "New vertex has no incident halfedges"
-    );
+    assert!(!v_hes.is_empty(), "New vertex has no incident halfedges");
 }
 
 /// Split every edge of one face → that face becomes an 8-gon.
@@ -45,7 +44,8 @@ fn split_single_cube_edge() {
 fn split_all_edges_of_one_face() {
     let env_res = unit_cube().expect("unit cube should succeed");
     let faces = env_res.get_value().faces().to_vec();
-    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
     let face = faces[0];
 
@@ -57,9 +57,7 @@ fn split_all_edges_of_one_face() {
     assert_eq!(loop_hes.len(), 4, "Cube face should have 4 halfedges");
 
     for he in &loop_hes {
-        draft.execute(SplitEdge {
-            edge: *he,
-        }).unwrap().into_value();
+        draft.execute(SplitEdge { edge: *he }).unwrap().into_value();
     }
 
     assert_eq!(draft.arena().face_count(), 6);
@@ -70,7 +68,11 @@ fn split_all_edges_of_one_face() {
     assert_eq!(draft.arena().shell_count(), 1);
     assert_eq!(draft.arena().body_count(), 1);
 
-    let face_hes = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap();
+    let face_hes = collect_face_loop(
+        draft.arena(),
+        first_halfedge_of_face(draft.arena(), face).unwrap(),
+    )
+    .unwrap();
     assert_eq!(face_hes.len(), 8, "Face should be an 8-gon after 4 splits");
 
     let _committed = draft.commit().unwrap();
@@ -82,18 +84,23 @@ fn split_all_edges_of_one_face() {
 fn split_same_edge_twice() {
     let env_res = unit_cube().expect("unit cube should succeed");
     let faces = env_res.get_value().faces().to_vec();
-    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
 
-    let first_split = draft.execute(SplitEdge {
-        edge: start_he,
-    }).unwrap().into_value();
+    let first_split = draft
+        .execute(SplitEdge { edge: start_he })
+        .unwrap()
+        .into_value();
 
-    let second_split = draft.execute(SplitEdge {
-        edge: first_split.he_mb,
-    }).unwrap().into_value();
+    let second_split = draft
+        .execute(SplitEdge {
+            edge: first_split.he_mb,
+        })
+        .unwrap()
+        .into_value();
 
     assert_ne!(
         first_split.new_vertex, second_split.new_vertex,
@@ -116,19 +123,19 @@ fn split_same_edge_twice() {
 #[test]
 fn split_all_cube_edges() {
     let env_res = unit_cube().expect("unit cube should succeed");
-    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
-    let all_edges: Vec<_> = draft.arena().iter_edges()
-        .map(|(id, _)| id)
-        .collect();
+    let all_edges: Vec<_> = draft.arena().iter_edges().map(|(id, _)| id).collect();
 
     assert_eq!(all_edges.len(), 12, "Cube should have 12 edges");
 
     for edge_id in &all_edges {
         let he_id = draft.arena().get_edge(*edge_id).unwrap().half_edge();
-        draft.execute(SplitEdge {
-            edge: he_id,
-        }).unwrap().into_value();
+        draft
+            .execute(SplitEdge { edge: he_id })
+            .unwrap()
+            .into_value();
     }
 
     assert_eq!(draft.arena().face_count(), 6);

@@ -18,9 +18,7 @@ pub struct BodyData {
 impl BodyData {
     /// Construct a new empty solid.
     pub fn new() -> Self {
-        Self {
-            lumps: Vec::new(),
-        }
+        Self { lumps: Vec::new() }
     }
 
     /// The lumps belonging to this solid.

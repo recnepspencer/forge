@@ -64,9 +64,15 @@ pub fn compute_pipeline_fingerprint(
     hash = hash.wrapping_mul(31).wrapping_add(mode_tag as u128);
 
     // ── Key tolerance values ─────────────────────────────────────────
-    hash = hash.wrapping_mul(31).wrapping_add(spatial_tolerance.to_bits() as u128);
-    hash = hash.wrapping_mul(31).wrapping_add(model_scale_mm.to_bits() as u128);
-    hash = hash.wrapping_mul(31).wrapping_add(min_edge_length.to_bits() as u128);
+    hash = hash
+        .wrapping_mul(31)
+        .wrapping_add(spatial_tolerance.to_bits() as u128);
+    hash = hash
+        .wrapping_mul(31)
+        .wrapping_add(model_scale_mm.to_bits() as u128);
+    hash = hash
+        .wrapping_mul(31)
+        .wrapping_add(min_edge_length.to_bits() as u128);
 
     hash
 }
@@ -81,12 +87,22 @@ mod tests {
     fn same_inputs_same_fingerprint() {
         let inputs = HashMap::new();
         let a = compute_pipeline_fingerprint(
-            &inputs, "make_cube", ConditioningMode::None,
-            1e-7, 1.0, 1e-6, FingerprintDetail::Standard,
+            &inputs,
+            "make_cube",
+            ConditioningMode::None,
+            1e-7,
+            1.0,
+            1e-6,
+            FingerprintDetail::Standard,
         );
         let b = compute_pipeline_fingerprint(
-            &inputs, "make_cube", ConditioningMode::None,
-            1e-7, 1.0, 1e-6, FingerprintDetail::Standard,
+            &inputs,
+            "make_cube",
+            ConditioningMode::None,
+            1e-7,
+            1.0,
+            1e-6,
+            FingerprintDetail::Standard,
         );
         assert_eq!(a, b);
     }
@@ -95,12 +111,22 @@ mod tests {
     fn different_feature_kind_different_fingerprint() {
         let inputs = HashMap::new();
         let a = compute_pipeline_fingerprint(
-            &inputs, "make_cube", ConditioningMode::None,
-            1e-7, 1.0, 1e-6, FingerprintDetail::Standard,
+            &inputs,
+            "make_cube",
+            ConditioningMode::None,
+            1e-7,
+            1.0,
+            1e-6,
+            FingerprintDetail::Standard,
         );
         let b = compute_pipeline_fingerprint(
-            &inputs, "boolean", ConditioningMode::None,
-            1e-7, 1.0, 1e-6, FingerprintDetail::Standard,
+            &inputs,
+            "boolean",
+            ConditioningMode::None,
+            1e-7,
+            1.0,
+            1e-6,
+            FingerprintDetail::Standard,
         );
         assert_ne!(a, b);
     }
@@ -109,12 +135,22 @@ mod tests {
     fn different_conditioning_different_fingerprint() {
         let inputs = HashMap::new();
         let a = compute_pipeline_fingerprint(
-            &inputs, "boolean", ConditioningMode::None,
-            1e-7, 1.0, 1e-6, FingerprintDetail::Standard,
+            &inputs,
+            "boolean",
+            ConditioningMode::None,
+            1e-7,
+            1.0,
+            1e-6,
+            FingerprintDetail::Standard,
         );
         let b = compute_pipeline_fingerprint(
-            &inputs, "boolean", ConditioningMode::BinaryAnalysis,
-            1e-7, 1.0, 1e-6, FingerprintDetail::Standard,
+            &inputs,
+            "boolean",
+            ConditioningMode::BinaryAnalysis,
+            1e-7,
+            1.0,
+            1e-6,
+            FingerprintDetail::Standard,
         );
         assert_ne!(a, b);
     }
@@ -123,12 +159,22 @@ mod tests {
     fn different_tolerance_different_fingerprint() {
         let inputs = HashMap::new();
         let a = compute_pipeline_fingerprint(
-            &inputs, "make_cube", ConditioningMode::None,
-            1e-7, 1.0, 1e-6, FingerprintDetail::Standard,
+            &inputs,
+            "make_cube",
+            ConditioningMode::None,
+            1e-7,
+            1.0,
+            1e-6,
+            FingerprintDetail::Standard,
         );
         let b = compute_pipeline_fingerprint(
-            &inputs, "make_cube", ConditioningMode::None,
-            1e-6, 1.0, 1e-6, FingerprintDetail::Standard,
+            &inputs,
+            "make_cube",
+            ConditioningMode::None,
+            1e-6,
+            1.0,
+            1e-6,
+            FingerprintDetail::Standard,
         );
         assert_ne!(a, b);
     }

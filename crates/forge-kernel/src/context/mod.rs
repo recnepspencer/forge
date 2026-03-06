@@ -11,15 +11,15 @@
 //! - `tracing`     — Decision logging, span management, budget checking
 //! - `absorption`  — Sub-operation envelope metadata ingestion
 
-pub mod state;
-pub mod scope;
-mod resolution;
-mod tracing;
 mod absorption;
+mod resolution;
+pub mod scope;
+pub mod state;
+mod tracing;
 
 pub mod facade;
 
-pub use state::ModelingContext;
-pub use scope::OperationScope;
-pub use resolution::{ResolvedPolicyDecision, ResolvedPolicySource};
 pub use absorption::SubOperationMetadata;
+pub use resolution::{ResolvedPolicyDecision, ResolvedPolicySource};
+pub use scope::OperationScope;
+pub use state::ModelingContext;

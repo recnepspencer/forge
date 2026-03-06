@@ -13,11 +13,10 @@
 use forge_core::{KernelError, TopologyError};
 
 use crate::handles::HalfEdgeId;
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
-
 
 /// Collapse an edge by removing it and merging its target vertex into the origin.
 ///
@@ -53,13 +52,21 @@ impl TopoOperator for KillEdgeVertex {
 
     const NAME: &'static str = "kill_edge_vertex";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
-        format!("Collapse edge at halfedge {}, merging target vertex into origin", self.edge.index())
+        format!(
+            "Collapse edge at halfedge {}, merging target vertex into origin",
+            self.edge.index()
+        )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he = self.edge;
         let he_data = draft.arena().get_half_edge(he)?;
         let vertex_a = he_data.origin();
@@ -92,8 +99,8 @@ impl TopoOperator for KillEdgeVertex {
 
             // Collect all loops on this face (outer + inner)
             let face_data = draft.arena().get_face(face)?;
-            let mut all_loops = vec![face_data.outer_loop()];
-            all_loops.extend_from_slice(face_data.inner_loops());
+            let mut all_loops = vec![face_data.loops.outer()];
+            all_loops.extend_from_slice(face_data.loops.inners());
 
             for loop_id in all_loops {
                 let start = draft.arena().get_loop(loop_id)?.half_edge();
@@ -185,7 +192,11 @@ impl TopoOperator for KillEdgeVertex {
             .iter()
             .filter(|id| !chain.contains(id))
             .map(|&id| {
-                let face = draft.arena().get_half_edge(id).map(|d| d.face()).unwrap_or(crate::handles::FaceId::DANGLING);
+                let face = draft
+                    .arena()
+                    .get_half_edge(id)
+                    .map(|d| d.face())
+                    .unwrap_or(crate::handles::FaceId::DANGLING);
                 (id, face)
             })
             .collect();
@@ -195,21 +206,25 @@ impl TopoOperator for KillEdgeVertex {
                 .get_half_edge_mut(*edge_id)?
                 .set_origin(vertex_a);
             // Update adjacency index: remove from vertex_b, add to vertex_a
-            draft.arena_mut().index_remove_halfedge(*edge_id, *face, vertex_b);
-            draft.arena_mut().index_add_halfedge(*edge_id, *face, vertex_a);
+            draft
+                .arena_mut()
+                .index_remove_halfedge(*edge_id, *face, vertex_b);
+            draft
+                .arena_mut()
+                .index_add_halfedge(*edge_id, *face, vertex_a);
         }
 
         // 4. Ensure vertex_a has a surviving outgoing halfedge.
         // (Step 3 already migrated all vertex_b origins to vertex_a.)
         // Use O(1) index lookup instead of scanning the entire arena.
         let v_a_halfedges = draft.arena().halfedges_from_vertex(vertex_a);
-        let v_a_survivor = v_a_halfedges
-            .iter()
-            .find(|id| !chain.contains(id))
-            .copied();
+        let v_a_survivor = v_a_halfedges.iter().find(|id| !chain.contains(id)).copied();
 
         if let Some(s) = v_a_survivor {
-            draft.arena_mut().get_vertex_mut(vertex_a)?.set_primary_disk(s);
+            draft
+                .arena_mut()
+                .get_vertex_mut(vertex_a)?
+                .set_primary_disk(s);
         } else {
             return Err(KernelError::InvalidInput {
                 message: "KillEdgeVertex would leave Vertex A isolated with no outgoing edges."
@@ -240,17 +255,10 @@ impl TopoOperator for KillEdgeVertex {
                 context: None,
             });
         }
-        let survivor_idx = vertex_a.index() as usize;
         {
-            let arena = draft.arena_mut();
-            arena.get_vertex_mut(vertex_a)?.set_primary_disk(rebuilt[0]);
-            arena.nmt_extra_disks.remove(&vertex_a);
-            if survivor_idx < arena.vertex_is_nmt.len() {
-                arena.vertex_is_nmt[survivor_idx] = false;
-            }
-            for &entry in rebuilt.iter().skip(1) {
-                arena.add_disk_entry(vertex_a, entry);
-            }
+            draft
+                .arena_mut()
+                .reset_disk_entries(vertex_a, rebuilt[0], &rebuilt[1..])?;
         }
 
         Ok(ExecutionResult {
@@ -271,6 +279,4 @@ impl TopoOperator for KillEdgeVertex {
             },
         })
     }
-
-
 }

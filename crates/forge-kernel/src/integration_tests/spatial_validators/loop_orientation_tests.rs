@@ -26,10 +26,15 @@ fn valid_3d_planar_face_passes() {
     let result = validate_loop_orientation(
         arena,
         &|v| {
-            if v == v0 { Some([1.0, 0.0, 0.0]) }
-            else if v == v1 { Some([0.0, 1.0, 0.0]) }
-            else if v == v2 { Some([0.0, 0.0, 1.0]) }
-            else { None }
+            if v == v0 {
+                Some([1.0, 0.0, 0.0])
+            } else if v == v1 {
+                Some([0.0, 1.0, 0.0])
+            } else if v == v2 {
+                Some([0.0, 0.0, 1.0])
+            } else {
+                None
+            }
         },
         &|_| true,
         &FlatToleranceProvider::new(1e-10),
@@ -50,15 +55,23 @@ fn single_face_any_winding_passes() {
     let result = validate_loop_orientation(
         arena,
         &|v| {
-            if v == v0 { Some([0.0, 0.0, 0.0]) }
-            else if v == v1 { Some([0.0, 1.0, 0.0]) }
-            else if v == v2 { Some([1.0, 0.0, 0.0]) }
-            else { None }
+            if v == v0 {
+                Some([0.0, 0.0, 0.0])
+            } else if v == v1 {
+                Some([0.0, 1.0, 0.0])
+            } else if v == v2 {
+                Some([1.0, 0.0, 0.0])
+            } else {
+                None
+            }
         },
         &|_| true,
         &FlatToleranceProvider::new(1e-10),
     );
-    assert!(result.is_ok(), "Single outer loop with CW winding is self-consistent");
+    assert!(
+        result.is_ok(),
+        "Single outer loop with CW winding is self-consistent"
+    );
 }
 
 // ── Poison ──────────────────────────────────────────────────────────────
@@ -86,14 +99,56 @@ fn inner_loop_ccw_detected() {
     let face = draft.insert_face(FaceData::new(outer_loop, shell));
 
     // Outer loop: v0 → v1 → v2 (CCW)
-    let h0 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v0, placeholder_edge));
-    let h1 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v1, placeholder_edge));
-    let h2 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v2, placeholder_edge));
+    let h0 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face,
+        v0,
+        placeholder_edge,
+    ));
+    let h1 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face,
+        v1,
+        placeholder_edge,
+    ));
+    let h2 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face,
+        v2,
+        placeholder_edge,
+    ));
 
     // Inner loop: v3 → v4 → v5 (will be CCW — WRONG! should be CW)
-    let hi0 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v3, placeholder_edge));
-    let hi1 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v4, placeholder_edge));
-    let hi2 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v5, placeholder_edge));
+    let hi0 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face,
+        v3,
+        placeholder_edge,
+    ));
+    let hi1 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face,
+        v4,
+        placeholder_edge,
+    ));
+    let hi2 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face,
+        v5,
+        placeholder_edge,
+    ));
 
     {
         let arena = draft.arena_mut();
@@ -117,7 +172,10 @@ fn inner_loop_ccw_detected() {
         arena.get_loop_mut(outer_loop).unwrap().set_face(face);
         arena.get_loop_mut(inner_loop).unwrap().set_half_edge(hi0);
         arena.get_loop_mut(inner_loop).unwrap().set_face(face);
-        arena.get_shell_mut(shell).unwrap().set_representative_face(face);
+        arena
+            .get_shell_mut(shell)
+            .unwrap()
+            .set_representative_face(face);
 
         // Register inner loop on the face
         arena.get_face_mut(face).unwrap().add_inner_loop(inner_loop);
@@ -128,14 +186,23 @@ fn inner_loop_ccw_detected() {
         arena,
         &|v| {
             // Outer: large CCW triangle on XY plane
-            if v == v0 { Some([0.0, 0.0, 0.0]) }
-            else if v == v1 { Some([10.0, 0.0, 0.0]) }
-            else if v == v2 { Some([0.0, 10.0, 0.0]) }
+            if v == v0 {
+                Some([0.0, 0.0, 0.0])
+            } else if v == v1 {
+                Some([10.0, 0.0, 0.0])
+            } else if v == v2 {
+                Some([0.0, 10.0, 0.0])
+            }
             // Inner: small CCW triangle (WRONG! should be CW)
-            else if v == v3 { Some([1.0, 1.0, 0.0]) }
-            else if v == v4 { Some([2.0, 1.0, 0.0]) }
-            else if v == v5 { Some([1.0, 2.0, 0.0]) }
-            else { None }
+            else if v == v3 {
+                Some([1.0, 1.0, 0.0])
+            } else if v == v4 {
+                Some([2.0, 1.0, 0.0])
+            } else if v == v5 {
+                Some([1.0, 2.0, 0.0])
+            } else {
+                None
+            }
         },
         &|_| true,
         &FlatToleranceProvider::new(1e-10),
@@ -143,7 +210,10 @@ fn inner_loop_ccw_detected() {
 
     assert!(result.is_err(), "Inner loop winding CCW should be caught");
     match result.unwrap_err() {
-        KernelError::TopologyViolation { err: TopologyError::OrientationInconsistency { .. }, .. } => {}
+        KernelError::TopologyViolation {
+            err: TopologyError::OrientationInconsistency { .. },
+            ..
+        } => {}
         other => panic!("Expected OrientationInconsistency, got: {:?}", other),
     }
 }
@@ -157,15 +227,23 @@ fn collinear_vertices_skipped() {
     let result = validate_loop_orientation(
         arena,
         &|v| {
-            if v == v0 { Some([0.0, 0.0, 0.0]) }
-            else if v == v1 { Some([5.0, 5.0, 5.0]) }
-            else if v == v2 { Some([10.0, 10.0, 10.0]) }
-            else { None }
+            if v == v0 {
+                Some([0.0, 0.0, 0.0])
+            } else if v == v1 {
+                Some([5.0, 5.0, 5.0])
+            } else if v == v2 {
+                Some([10.0, 10.0, 10.0])
+            } else {
+                None
+            }
         },
         &|_| true,
         &FlatToleranceProvider::new(1e-10),
     );
-    assert!(result.is_ok(), "Collinear vertices (zero normal) should be skipped");
+    assert!(
+        result.is_ok(),
+        "Collinear vertices (zero normal) should be skipped"
+    );
 }
 
 #[test]
@@ -177,15 +255,23 @@ fn numerical_jitter_near_zero() {
     let result = validate_loop_orientation(
         arena,
         &|v| {
-            if v == v0 { Some([0.0, 0.0, 0.0]) }
-            else if v == v1 { Some([1e-10, 0.0, 0.0]) }
-            else if v == v2 { Some([0.0, 1e-10, 0.0]) }
-            else { None }
+            if v == v0 {
+                Some([0.0, 0.0, 0.0])
+            } else if v == v1 {
+                Some([1e-10, 0.0, 0.0])
+            } else if v == v2 {
+                Some([0.0, 1e-10, 0.0])
+            } else {
+                None
+            }
         },
         &|_| true,
         &FlatToleranceProvider::new(1e-10),
     );
-    assert!(result.is_ok(), "Micro-face with tiny positive area should not fail");
+    assert!(
+        result.is_ok(),
+        "Micro-face with tiny positive area should not fail"
+    );
 }
 
 #[test]
@@ -197,15 +283,23 @@ fn non_planar_face_skipped() {
     let result = validate_loop_orientation(
         arena,
         &|v| {
-            if v == v0 { Some([0.0, 0.0, 0.0]) }
-            else if v == v1 { Some([0.0, 1.0, 0.0]) }
-            else if v == v2 { Some([1.0, 0.0, 0.0]) }
-            else { None }
+            if v == v0 {
+                Some([0.0, 0.0, 0.0])
+            } else if v == v1 {
+                Some([0.0, 1.0, 0.0])
+            } else if v == v2 {
+                Some([1.0, 0.0, 0.0])
+            } else {
+                None
+            }
         },
         &|_| false, // Not planar — skip
         &FlatToleranceProvider::new(1e-10),
     );
-    assert!(result.is_ok(), "Non-planar face should be skipped even with CW geometry");
+    assert!(
+        result.is_ok(),
+        "Non-planar face should be skipped even with CW geometry"
+    );
 }
 
 // ── Integration ─────────────────────────────────────────────────────────
@@ -213,8 +307,8 @@ fn non_planar_face_skipped() {
 #[test]
 fn valid_cube_passes_orientation() {
     // Full cube created via make_cube — all faces should have consistent orientation.
-    use crate::integration_tests::harness::builders::shapes::unit_cube;
     use crate::geometry::facade::GeometryView;
+    use crate::integration_tests::harness::builders::shapes::unit_cube;
 
     let cube_result = unit_cube().expect("unit_cube should succeed");
     let solid = cube_result.get_value();
@@ -226,5 +320,8 @@ fn valid_cube_passes_orientation() {
         &|_| true,
         &FlatToleranceProvider::new(1e-10),
     );
-    assert!(result.is_ok(), "All faces of a valid cube should have consistent loop orientation");
+    assert!(
+        result.is_ok(),
+        "All faces of a valid cube should have consistent loop orientation"
+    );
 }

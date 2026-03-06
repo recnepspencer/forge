@@ -46,4 +46,3 @@ pub fn execute_boolean_direct(
 ) -> OperationResult<Result<BooleanResult, KernelError>> {
     execute_boolean_adaptive(input)
 }
-

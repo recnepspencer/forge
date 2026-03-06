@@ -11,12 +11,11 @@ use forge_core::KernelError;
 
 use crate::b_rep::{BodyData, LumpData, RegionData};
 use crate::handles::{BodyId, LumpId, RegionId};
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::contract_registry;
 use crate::validators::invariant_id::InvariantContract;
-
 
 /// Creates a new, empty solid hierarchy.
 #[derive(Debug)]
@@ -43,7 +42,11 @@ impl TopoOperator for MakeSolid {
         "Create new solid (body + lump + region hierarchy)".into()
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let body = draft.insert_body(BodyData::new());
         let lump = draft.insert_lump(LumpData::new(body));
         let region = draft.insert_region(RegionData::new(lump));
@@ -52,11 +55,7 @@ impl TopoOperator for MakeSolid {
         draft.arena_mut().get_lump_mut(lump)?.add_region(region);
 
         Ok(ExecutionResult {
-            value: MakeSolidOutput {
-                body,
-                lump,
-                region,
-            },
+            value: MakeSolidOutput { body, lump, region },
             declared_delta: EulerDelta {
                 vertices: 0,
                 half_edges: 0,
@@ -90,10 +89,17 @@ impl TopoOperator for DestroyBody {
     const INVARIANT_CONTRACT: InvariantContract = contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
-        format!("Destroy body {} and all its lumps/regions", self.body.index())
+        format!(
+            "Destroy body {} and all its lumps/regions",
+            self.body.index()
+        )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let lumps: Vec<LumpId> = draft.arena().get_body(self.body)?.lumps().to_vec();
         if lumps.len() != 1 {
             return Err(KernelError::InvalidInput {

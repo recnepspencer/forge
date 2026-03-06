@@ -17,11 +17,10 @@ use forge_core::{KernelError, TopologyError};
 
 use crate::b_rep::{EdgeData, HalfEdgeData};
 use crate::handles::{HalfEdgeId, LoopId};
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
-
 
 /// Merge two loops on the same face by inserting an edge between them.
 ///
@@ -58,16 +57,22 @@ impl TopoOperator for MakeEdgeKillLoop {
 
     const NAME: &'static str = "make_edge_kill_loop";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         format!(
             "Bridge outer halfedge {} to inner halfedge {}, killing inner loop",
-            self.he_a.index(), self.he_b.index()
+            self.he_a.index(),
+            self.he_b.index()
         )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let face_a = draft.arena().get_half_edge(self.he_a)?.face();
         let face_b = draft.arena().get_half_edge(self.he_b)?.face();
 
@@ -83,7 +88,7 @@ impl TopoOperator for MakeEdgeKillLoop {
         }
 
         let face = face_a;
-        let outer_loop = draft.arena().get_face(face)?.outer_loop();
+        let outer_loop = draft.arena().get_face(face)?.loops.outer();
         let loop_a_id = find_loop_containing(draft, face, self.he_a)?;
         let loop_b_id = find_loop_containing(draft, face, self.he_b)?;
 
@@ -111,8 +116,7 @@ impl TopoOperator for MakeEdgeKillLoop {
         // ── Create edge + halfedge pair ─────────────────────────────
         let placeholder_he = HalfEdgeId::DANGLING;
 
-        let new_edge =
-            draft.insert_edge(EdgeData::new(placeholder_he));
+        let new_edge = draft.insert_edge(EdgeData::new(placeholder_he));
 
         let (he_ab, he_ba) = draft.insert_radial_pair(
             HalfEdgeData::new(
@@ -149,7 +153,7 @@ impl TopoOperator for MakeEdgeKillLoop {
             arena.get_loop_mut(loop_a_id)?.set_half_edge(he_ab);
 
             // ── Kill inner loop ─────────────────────────────────────────
-            arena.get_face_mut(face)?.remove_inner_loop(loop_b_id);
+            arena.get_face_mut(face)?.loops.remove_inner(loop_b_id);
         }
         draft.remove_loop(loop_b_id)?;
 
@@ -173,8 +177,6 @@ impl TopoOperator for MakeEdgeKillLoop {
             },
         })
     }
-
-
 }
 
 /// Walk a loop to check if a specific halfedge belongs to it.
@@ -218,12 +220,12 @@ fn find_loop_containing(
     face: crate::handles::FaceId,
     target_he: HalfEdgeId,
 ) -> Result<LoopId, KernelError> {
-    let outer_loop = draft.arena().get_face(face)?.outer_loop();
+    let outer_loop = draft.arena().get_face(face)?.loops.outer();
     if is_halfedge_on_loop(draft, outer_loop, target_he)? {
         return Ok(outer_loop);
     }
 
-    let inner_loops: Vec<LoopId> = draft.arena().get_face(face)?.inner_loops().to_vec();
+    let inner_loops: Vec<LoopId> = draft.arena().get_face(face)?.loops.inners().to_vec();
 
     for loop_id in inner_loops {
         if is_halfedge_on_loop(draft, loop_id, target_he)? {

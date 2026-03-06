@@ -92,20 +92,18 @@ fn subdivide_curve_kind(kind: &CurveKind, t: f64) -> (CurveKind, CurveKind) {
             center,
             normal,
             radius,
-        } => {
-            (
-                CurveKind::Circle {
-                    center: *center,
-                    normal: *normal,
-                    radius: *radius,
-                },
-                CurveKind::Circle {
-                    center: *center,
-                    normal: *normal,
-                    radius: *radius,
-                },
-            )
-        }
+        } => (
+            CurveKind::Circle {
+                center: *center,
+                normal: *normal,
+                radius: *radius,
+            },
+            CurveKind::Circle {
+                center: *center,
+                normal: *normal,
+                radius: *radius,
+            },
+        ),
         CurveKind::Ellipse {
             center,
             major,

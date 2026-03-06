@@ -1,7 +1,7 @@
 //! Generational ID freshness validator.
 //!
 //! INVARIANT: Every handle stored inside an entity (e.g. `he.next()`,
-//! `he.face()`, `face.outer_loop()`) must have a generation that matches
+//! `he.face()`, `face.loops.outer()`) must have a generation that matches
 //! the current slot generation in the arena. A mismatch means the handle
 //! is stale — it was valid before an entity at that index was
 //! removed and the slot was reused with a bumped generation.
@@ -47,18 +47,67 @@ macro_rules! check_generation {
 pub(crate) fn validate_generational_id_freshness(arena: &TopologyArena) -> Result<(), KernelError> {
     // ── HalfEdge handles ─────────────────────────────────────────────
     for (he_id, he_data) in arena.iter_half_edges() {
-        check_generation!(arena, vertex_generation,    he_data.origin(),      "HE", he_id.index(), "origin");
-        check_generation!(arena, face_generation,      he_data.face(),        "HE", he_id.index(), "face");
-        check_generation!(arena, edge_generation,      he_data.edge(),        "HE", he_id.index(), "edge");
-        check_generation!(arena, half_edge_generation, he_data.next(),        "HE", he_id.index(), "next");
-        check_generation!(arena, half_edge_generation, he_data.prev(),        "HE", he_id.index(), "prev");
-        check_generation!(arena, half_edge_generation, he_data.radial_next(), "HE", he_id.index(), "radial_next");
+        check_generation!(
+            arena,
+            vertex_generation,
+            he_data.origin(),
+            "HE",
+            he_id.index(),
+            "origin"
+        );
+        check_generation!(
+            arena,
+            face_generation,
+            he_data.face(),
+            "HE",
+            he_id.index(),
+            "face"
+        );
+        check_generation!(
+            arena,
+            edge_generation,
+            he_data.edge(),
+            "HE",
+            he_id.index(),
+            "edge"
+        );
+        check_generation!(
+            arena,
+            half_edge_generation,
+            he_data.next(),
+            "HE",
+            he_id.index(),
+            "next"
+        );
+        check_generation!(
+            arena,
+            half_edge_generation,
+            he_data.prev(),
+            "HE",
+            he_id.index(),
+            "prev"
+        );
+        check_generation!(
+            arena,
+            half_edge_generation,
+            he_data.radial_next(),
+            "HE",
+            he_id.index(),
+            "radial_next"
+        );
     }
 
     // ── Vertex handles ───────────────────────────────────────────────
     for (vertex_id, vertex_data) in arena.iter_vertices() {
-        check_generation!(arena, half_edge_generation, vertex_data.primary_disk(), "Vertex", vertex_id.index(), "primary_disk");
-        if let Some(extras) = arena.nmt_extra_disks.get(&vertex_id) {
+        check_generation!(
+            arena,
+            half_edge_generation,
+            vertex_data.primary_disk(),
+            "Vertex",
+            vertex_id.index(),
+            "primary_disk"
+        );
+        if let Some(extras) = arena.metadata.nmt_extra_disks.get(&vertex_id) {
             for (i, &he) in extras.iter().enumerate() {
                 check_generation!(
                     arena,
@@ -74,53 +123,151 @@ pub(crate) fn validate_generational_id_freshness(arena: &TopologyArena) -> Resul
 
     // ── Face handles ─────────────────────────────────────────────────
     for (face_id, face_data) in arena.iter_faces() {
-        check_generation!(arena, loop_generation,  face_data.outer_loop(), "Face", face_id.index(), "outer_loop");
-        for (i, &il) in face_data.inner_loops().iter().enumerate() {
-            check_generation!(arena, loop_generation, il, "Face", face_id.index(), &format!("inner_loops[{}]", i));
+        check_generation!(
+            arena,
+            loop_generation,
+            face_data.loops.outer(),
+            "Face",
+            face_id.index(),
+            "outer_loop"
+        );
+        for (i, &il) in face_data.loops.inners().iter().enumerate() {
+            check_generation!(
+                arena,
+                loop_generation,
+                il,
+                "Face",
+                face_id.index(),
+                &format!("inner_loops[{}]", i)
+            );
         }
-        check_generation!(arena, shell_generation, face_data.shell(),      "Face", face_id.index(), "shell");
+        check_generation!(
+            arena,
+            shell_generation,
+            face_data.shell(),
+            "Face",
+            face_id.index(),
+            "shell"
+        );
     }
 
     // ── Loop handles ─────────────────────────────────────────────────
     for (loop_id, loop_data) in arena.iter_loops() {
-        check_generation!(arena, half_edge_generation, loop_data.half_edge(), "Loop", loop_id.index(), "half_edge");
-        check_generation!(arena, face_generation,      loop_data.face(),      "Loop", loop_id.index(), "face");
+        check_generation!(
+            arena,
+            half_edge_generation,
+            loop_data.half_edge(),
+            "Loop",
+            loop_id.index(),
+            "half_edge"
+        );
+        check_generation!(
+            arena,
+            face_generation,
+            loop_data.face(),
+            "Loop",
+            loop_id.index(),
+            "face"
+        );
     }
 
     // ── Edge handles ─────────────────────────────────────────────────
     for (edge_id, edge_data) in arena.iter_edges() {
-        check_generation!(arena, half_edge_generation, edge_data.half_edge(), "Edge", edge_id.index(), "half_edge");
+        check_generation!(
+            arena,
+            half_edge_generation,
+            edge_data.half_edge(),
+            "Edge",
+            edge_id.index(),
+            "half_edge"
+        );
     }
 
     // ── Shell handles ────────────────────────────────────────────────
     for (shell_id, shell_data) in arena.iter_shells() {
-        check_generation!(arena, face_generation, shell_data.representative_face(), "Shell", shell_id.index(), "representative_face");
-        check_generation!(arena, region_generation, shell_data.region(), "Shell", shell_id.index(), "region");
+        check_generation!(
+            arena,
+            face_generation,
+            shell_data.representative_face(),
+            "Shell",
+            shell_id.index(),
+            "representative_face"
+        );
+        check_generation!(
+            arena,
+            region_generation,
+            shell_data.region(),
+            "Shell",
+            shell_id.index(),
+            "region"
+        );
     }
 
     // ── Region handles ───────────────────────────────────────────────
     for (region_id, region_data) in arena.iter_regions() {
         if let Some(outer) = region_data.outer_shell() {
-            check_generation!(arena, shell_generation, outer, "Region", region_id.index(), "outer_shell");
+            check_generation!(
+                arena,
+                shell_generation,
+                outer,
+                "Region",
+                region_id.index(),
+                "outer_shell"
+            );
         }
         for (i, &is) in region_data.inner_shells().iter().enumerate() {
-            check_generation!(arena, shell_generation, is, "Region", region_id.index(), &format!("inner_shells[{}]", i));
+            check_generation!(
+                arena,
+                shell_generation,
+                is,
+                "Region",
+                region_id.index(),
+                &format!("inner_shells[{}]", i)
+            );
         }
-        check_generation!(arena, lump_generation, region_data.lump(), "Region", region_id.index(), "lump");
+        check_generation!(
+            arena,
+            lump_generation,
+            region_data.lump(),
+            "Region",
+            region_id.index(),
+            "lump"
+        );
     }
 
     // ── Lump handles ─────────────────────────────────────────────────
     for (lump_id, lump_data) in arena.iter_lumps() {
-        check_generation!(arena, body_generation, lump_data.body(), "Lump", lump_id.index(), "body");
+        check_generation!(
+            arena,
+            body_generation,
+            lump_data.body(),
+            "Lump",
+            lump_id.index(),
+            "body"
+        );
         for (i, &r) in lump_data.regions().iter().enumerate() {
-            check_generation!(arena, region_generation, r, "Lump", lump_id.index(), &format!("regions[{}]", i));
+            check_generation!(
+                arena,
+                region_generation,
+                r,
+                "Lump",
+                lump_id.index(),
+                &format!("regions[{}]", i)
+            );
         }
     }
 
     // ── Body handles ─────────────────────────────────────────────────
     for (body_id, body_data) in arena.iter_bodies() {
         for (i, &l) in body_data.lumps().iter().enumerate() {
-            check_generation!(arena, lump_generation, l, "Body", body_id.index(), &format!("lumps[{}]", i));
+            check_generation!(
+                arena,
+                lump_generation,
+                l,
+                "Body",
+                body_id.index(),
+                &format!("lumps[{}]", i)
+            );
         }
     }
 

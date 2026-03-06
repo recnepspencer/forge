@@ -18,9 +18,9 @@ use forge_core::{ErrorContext, ErrorScope, KernelError, TopologyError};
 
 use crate::handles::{FaceId, VertexId};
 
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
 
 /// Destroys a disconnected shell within an existing solid.
@@ -37,16 +37,22 @@ impl TopoOperator for KillShellFace {
 
     const NAME: &'static str = "kill_shell_face";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         format!(
             "Destroy shell containing face {} and vertex {}",
-            self.face.index(), self.vertex.index()
+            self.face.index(),
+            self.vertex.index()
         )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let op_name = Self::NAME.to_string();
         let inv_id = 0 as u64;
 
@@ -55,7 +61,7 @@ impl TopoOperator for KillShellFace {
             let face_data = draft.arena().get_face(self.face)?;
 
             // Must have exactly one loop
-            let loop_id = face_data.outer_loop();
+            let loop_id = face_data.loops.outer();
             let loop_data = draft.arena().get_loop(loop_id)?;
 
             // Must have exactly one halfedge
@@ -178,28 +184,35 @@ impl TopoOperator for KillShellFace {
             },
         })
     }
-
-
 }
 
 #[cfg(test)]
 mod tests {
     use super::KillShellFace;
-    use crate::transactions::TopologyState;
+    use crate::b_rep::ShellKind;
     use crate::operations::entity_lifecycle::make_shell_face::MakeShellFace;
     use crate::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::operator::TopoOperator;
-    use crate::b_rep::ShellKind;
+    use crate::transactions::TopologyState;
 
     #[test]
     fn kill_shell_face_destroys_isolated_shell() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
 
         let region = draft.arena().get_shell(mvf.shell).unwrap().region();
-        let msf = draft.execute(MakeShellFace { region, kind: ShellKind::Sheet })
+        let msf = draft
+            .execute(MakeShellFace {
+                region,
+                kind: ShellKind::Sheet,
+            })
             .unwrap()
             .into_value();
 
@@ -214,13 +227,12 @@ mod tests {
         let region_data = draft.arena().get_region(region).unwrap();
         assert_eq!(region_data.shell_count(), 2);
 
-        draft.execute(
-            KillShellFace {
+        draft
+            .execute(KillShellFace {
                 face: msf.face,
                 vertex: msf.vertex,
-            },
-        )
-        .unwrap();
+            })
+            .unwrap();
 
         assert_eq!(draft.arena().face_count(), 1);
         assert_eq!(draft.arena().vertex_count(), 1);

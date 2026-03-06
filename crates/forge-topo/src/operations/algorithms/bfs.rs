@@ -11,9 +11,9 @@ use std::collections::VecDeque;
 
 use forge_core::KernelError;
 
+use crate::b_rep::EntityBitset;
 use crate::b_rep::TopologyArena;
 use crate::handles::FaceId;
-use crate::b_rep::EntityBitset;
 use crate::queries::classification::face_adjacent_faces;
 
 /// Collect one connected face component using a caller-supplied edge relation.

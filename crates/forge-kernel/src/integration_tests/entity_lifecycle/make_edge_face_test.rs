@@ -17,7 +17,8 @@ use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 fn split_cube_face_into_two_triangles() {
     let env_res = unit_cube().expect("unit cube should succeed");
     let faces = env_res.get_value().faces().to_vec();
-    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -27,16 +28,29 @@ fn split_cube_face_into_two_triangles() {
     let v_a = draft.arena().get_half_edge(loop_hes[0]).unwrap().origin();
     let v_c = draft.arena().get_half_edge(loop_hes[2]).unwrap().origin();
 
-    let mef_result = draft.execute(MakeEdgeFace {
-        face,
-        vertex_a: v_a,
-        vertex_b: v_c,
-    }).unwrap().into_value();
+    let mef_result = draft
+        .execute(MakeEdgeFace {
+            face,
+            vertex_a: v_a,
+            vertex_b: v_c,
+        })
+        .unwrap()
+        .into_value();
 
-    let face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();
+    let face_valence = collect_face_loop(
+        draft.arena(),
+        first_halfedge_of_face(draft.arena(), face).unwrap(),
+    )
+    .unwrap()
+    .len();
     assert_eq!(face_valence, 3, "Original face should be a triangle");
 
-    let new_face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), mef_result.new_face).unwrap()).unwrap().len();
+    let new_face_valence = collect_face_loop(
+        draft.arena(),
+        first_halfedge_of_face(draft.arena(), mef_result.new_face).unwrap(),
+    )
+    .unwrap()
+    .len();
     assert_eq!(new_face_valence, 3, "New face should be a triangle");
 
     assert_eq!(draft.arena().face_count(), 7);
@@ -57,16 +71,23 @@ fn split_cube_face_into_two_triangles() {
 fn split_edge_then_mef_through_midpoint() {
     let env_res = unit_cube().expect("unit cube should succeed");
     let faces = env_res.get_value().faces().to_vec();
-    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
 
-    let se = draft.execute(SplitEdge {
-        edge: start_he,
-    }).unwrap().into_value();
+    let se = draft
+        .execute(SplitEdge { edge: start_he })
+        .unwrap()
+        .into_value();
 
-    let face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();
+    let face_valence = collect_face_loop(
+        draft.arena(),
+        first_halfedge_of_face(draft.arena(), face).unwrap(),
+    )
+    .unwrap()
+    .len();
     assert_eq!(face_valence, 5);
 
     let opposite_he = {
@@ -75,20 +96,34 @@ fn split_edge_then_mef_through_midpoint() {
     };
     let opposite_vertex = draft.arena().get_half_edge(opposite_he).unwrap().origin();
 
-    let mef = draft.execute(MakeEdgeFace {
-        face,
-        vertex_a: se.new_vertex,
-        vertex_b: opposite_vertex,
-    }).unwrap().into_value();
+    let mef = draft
+        .execute(MakeEdgeFace {
+            face,
+            vertex_a: se.new_vertex,
+            vertex_b: opposite_vertex,
+        })
+        .unwrap()
+        .into_value();
 
-    let face_a_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();
-    let face_b_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), mef.new_face).unwrap()).unwrap().len();
+    let face_a_valence = collect_face_loop(
+        draft.arena(),
+        first_halfedge_of_face(draft.arena(), face).unwrap(),
+    )
+    .unwrap()
+    .len();
+    let face_b_valence = collect_face_loop(
+        draft.arena(),
+        first_halfedge_of_face(draft.arena(), mef.new_face).unwrap(),
+    )
+    .unwrap()
+    .len();
 
     assert!(
-        (face_a_valence == 3 && face_b_valence == 4) ||
-        (face_a_valence == 4 && face_b_valence == 3),
+        (face_a_valence == 3 && face_b_valence == 4)
+            || (face_a_valence == 4 && face_b_valence == 3),
         "Expected a triangle and a quad, got {}-gon and {}-gon",
-        face_a_valence, face_b_valence
+        face_a_valence,
+        face_b_valence
     );
 
     let _committed = draft.commit().unwrap();
@@ -102,7 +137,8 @@ fn split_edge_then_mef_through_midpoint() {
 fn mef_on_two_different_cube_faces() {
     let env_res = unit_cube().expect("unit cube should succeed");
     let faces = env_res.get_value().faces().to_vec();
-    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
     let face_a = faces[0];
     let face_b = faces[1];
@@ -112,22 +148,28 @@ fn mef_on_two_different_cube_faces() {
     let va_0 = draft.arena().get_half_edge(loop_a[0]).unwrap().origin();
     let va_2 = draft.arena().get_half_edge(loop_a[2]).unwrap().origin();
 
-    draft.execute(MakeEdgeFace {
-        face: face_a,
-        vertex_a: va_0,
-        vertex_b: va_2,
-    }).unwrap().into_value();
+    draft
+        .execute(MakeEdgeFace {
+            face: face_a,
+            vertex_a: va_0,
+            vertex_b: va_2,
+        })
+        .unwrap()
+        .into_value();
 
     let he_b = first_halfedge_of_face(draft.arena(), face_b).unwrap();
     let loop_b = collect_face_loop(draft.arena(), he_b).unwrap();
     let vb_0 = draft.arena().get_half_edge(loop_b[0]).unwrap().origin();
     let vb_2 = draft.arena().get_half_edge(loop_b[2]).unwrap().origin();
 
-    draft.execute(MakeEdgeFace {
-        face: face_b,
-        vertex_a: vb_0,
-        vertex_b: vb_2,
-    }).unwrap().into_value();
+    draft
+        .execute(MakeEdgeFace {
+            face: face_b,
+            vertex_a: vb_0,
+            vertex_b: vb_2,
+        })
+        .unwrap()
+        .into_value();
 
     assert_eq!(draft.arena().face_count(), 8);
     assert_eq!(draft.arena().vertex_count(), 8);

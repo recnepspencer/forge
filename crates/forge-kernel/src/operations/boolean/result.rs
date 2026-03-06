@@ -153,13 +153,7 @@ impl BooleanResult {
     }
 
     /// Consume and return all domain parts.
-    pub fn into_parts(
-        self,
-    ) -> (
-        TopologyState,
-        GeometryStore,
-        BooleanIntrospection,
-    ) {
+    pub fn into_parts(self) -> (TopologyState, GeometryStore, BooleanIntrospection) {
         (self.topology, self.geometry, self.introspection)
     }
 }

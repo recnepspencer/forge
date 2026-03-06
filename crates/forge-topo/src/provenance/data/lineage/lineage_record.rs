@@ -13,6 +13,7 @@ use forge_core::EntityKind;
 use forge_core::EntityRef;
 
 use crate::handles::{BodyId, EdgeId, FaceId, HalfEdgeId, LumpId, RegionId, ShellId, VertexId};
+use crate::identity::OperationId;
 
 /// Shape of parent linkage recorded in lineage.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
@@ -99,7 +100,7 @@ pub struct OpSignature {
     /// Human-readable operation name (e.g., "split_edge", "join_faces").
     name: &'static str,
     /// Unique invocation counter (assigned by the draft).
-    invocation_id: u64,
+    invocation_id: OperationId,
 }
 
 impl OpSignature {
@@ -107,15 +108,15 @@ impl OpSignature {
     pub fn new(name: &'static str) -> Self {
         Self {
             name,
-            invocation_id: 0,
+            invocation_id: OperationId::new(0),
         }
     }
 
     /// Create a signature with a specific invocation ID.
-    pub fn with_id(name: &'static str, id: u64) -> Self {
+    pub fn with_id(name: &'static str, id: impl Into<OperationId>) -> Self {
         Self {
             name,
-            invocation_id: id,
+            invocation_id: id.into(),
         }
     }
 
@@ -125,13 +126,13 @@ impl OpSignature {
     }
 
     /// The invocation counter.
-    pub fn get_invocation_id(&self) -> u64 {
+    pub fn get_invocation_id(&self) -> OperationId {
         self.invocation_id
     }
 
     /// Set the invocation counter (used by the operator runner).
-    pub fn set_invocation_id(&mut self, id: u64) {
-        self.invocation_id = id;
+    pub fn set_invocation_id(&mut self, id: impl Into<OperationId>) {
+        self.invocation_id = id.into();
     }
 }
 
@@ -140,7 +141,7 @@ impl Serialize for OpSignature {
         use serde::ser::SerializeStruct;
         let mut s = serializer.serialize_struct("OpSignature", 2)?;
         s.serialize_field("name", self.name)?;
-        s.serialize_field("invocation_id", &self.invocation_id)?;
+        s.serialize_field("invocation_id", &self.invocation_id.get())?;
         s.end()
     }
 }
@@ -155,7 +156,7 @@ impl<'de> Deserialize<'de> for OpSignature {
         let h = Helper::deserialize(deserializer)?;
         Ok(Self {
             name: Box::leak(h.name.into_boxed_str()),
-            invocation_id: h.invocation_id,
+            invocation_id: OperationId::new(h.invocation_id),
         })
     }
 }
@@ -356,6 +357,18 @@ pub enum LineageEvent {
         old_lineage: Lineage,
         new_lineage: Lineage,
     },
+    /// An entity lineage/state was reverted during rollback.
+    EntityReverted {
+        /// The specific entity (kind + index)
+        entity: EntityRef,
+        /// Generational snapshot identity, if captured by the recording path.
+        #[serde(default)]
+        entity_snapshot: Option<LineageEntityRef>,
+        /// Lineage immediately before rollback restore.
+        from_lineage: Lineage,
+        /// Lineage after rollback restore.
+        to_lineage: Lineage,
+    },
 }
 
 impl LineageEvent {
@@ -364,7 +377,8 @@ impl LineageEvent {
         match self {
             LineageEvent::EntityCreated { entity, .. }
             | LineageEvent::EntityDeleted { entity, .. }
-            | LineageEvent::EntityModified { entity, .. } => entity,
+            | LineageEvent::EntityModified { entity, .. }
+            | LineageEvent::EntityReverted { entity, .. } => entity,
         }
     }
 
@@ -386,6 +400,9 @@ impl LineageEvent {
                 entity_snapshot, ..
             }
             | LineageEvent::EntityModified {
+                entity_snapshot, ..
+            }
+            | LineageEvent::EntityReverted {
                 entity_snapshot, ..
             } => *entity_snapshot,
         }

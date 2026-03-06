@@ -7,12 +7,12 @@
 use forge_core::KernelError;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use super::tolerance::ToleranceSection;
-use super::solver::SolverSection;
-use super::validation::ValidationSection;
+use super::diagnostics::DiagnosticsSection;
 use super::policy_rules::PolicySection;
 use super::precision::PrecisionSection;
-use super::diagnostics::DiagnosticsSection;
+use super::solver::SolverSection;
+use super::tolerance::ToleranceSection;
+use super::validation::ValidationSection;
 
 /// Trait for a sub-section of the unified configuration.
 ///

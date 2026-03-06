@@ -113,12 +113,28 @@ mod tests {
         // Build a square face, volume 0 (planar)
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        
-        let se1 = draft.execute(SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
-        let se2 = draft.execute(SplitEdge { edge: se1.he_mb }).unwrap().into_value();
-        let se3 = draft.execute(SplitEdge { edge: se2.he_mb }).unwrap().into_value();
-        
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+
+        let se1 = draft
+            .execute(SplitEdge {
+                edge: mvf.half_edge,
+            })
+            .unwrap()
+            .into_value();
+        let se2 = draft
+            .execute(SplitEdge { edge: se1.he_mb })
+            .unwrap()
+            .into_value();
+        let se3 = draft
+            .execute(SplitEdge { edge: se2.he_mb })
+            .unwrap()
+            .into_value();
+
         let mut positions = BTreeMap::new();
         positions.insert(mvf.vertex.index(), [0.0, 0.0, 0.0]);
         positions.insert(se1.new_vertex.index(), [1.0, 0.0, 0.0]);
@@ -127,7 +143,7 @@ mod tests {
 
         let state = draft.commit().unwrap();
         let position_fn = |vertex: VertexId| positions.get(&vertex.index()).copied();
-        
+
         // Face volume contribution to signed volume
         let vol = compute_shell_signed_volume(state.arena(), &[mvf.face], &position_fn).unwrap();
         assert_eq!(vol, 0.0);

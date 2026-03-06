@@ -15,11 +15,10 @@ use forge_core::KernelError;
 
 use crate::b_rep::{EdgeData, HalfEdgeData, VertexData};
 use crate::handles::{EdgeId, HalfEdgeId, VertexId};
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
-
 
 /// Extend a vertex by sprouting a new edge and vertex (antenna).
 ///
@@ -61,26 +60,27 @@ impl TopoOperator for MakeEdgeVertex {
 
     const NAME: &'static str = "make_edge_vertex";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         format!("Sprout antenna at anchor halfedge {}", self.anchor.index())
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let anchor = self.anchor;
         let anchor_data = draft.arena().get_half_edge(anchor)?;
 
         let origin = anchor_data.origin();
         let face = anchor_data.face();
         let prev = anchor_data.prev();
-        let new_vertex = draft.insert_vertex(VertexData::new(
-            HalfEdgeId::DANGLING,
-        ));
+        let new_vertex = draft.insert_vertex(VertexData::new(HalfEdgeId::DANGLING));
 
-        let new_edge = draft.insert_edge(EdgeData::new(
-            HalfEdgeId::DANGLING,
-        ));
+        let new_edge = draft.insert_edge(EdgeData::new(HalfEdgeId::DANGLING));
 
         let sentinel = HalfEdgeId::DANGLING;
 
@@ -89,17 +89,13 @@ impl TopoOperator for MakeEdgeVertex {
                 sentinel, // twin → set below
                 sentinel, // next → set below
                 sentinel, // prev → set below
-                face,
-                origin,
-                new_edge,
+                face, origin, new_edge,
             ),
             HalfEdgeData::new(
                 sentinel, // twin → set below
                 sentinel, // next → set below
                 sentinel, // prev → set below
-                face,
-                new_vertex,
-                new_edge,
+                face, new_vertex, new_edge,
             ),
         );
 
@@ -132,10 +128,10 @@ impl TopoOperator for MakeEdgeVertex {
         // wire edges. Ensure if face is DANGLING, the original anchor isn't
         // accidentally malformed (it must be part of a real wire context).
         if face.is_dangling() && draft.arena().get_half_edge(prev)?.face() != face {
-             return Err(KernelError::InvalidInput {
+            return Err(KernelError::InvalidInput {
                 message: "MakeEdgeVertex: anchor face mismatch in wire context".into(),
                 context: None,
-             });
+            });
         }
 
         // ── Face version bump ───────────────────────────────────────
@@ -145,12 +141,20 @@ impl TopoOperator for MakeEdgeVertex {
         }
 
         // ── Provenance Stamping (O(1)) ─────────────────────────────────
-        use forge_core::{EntityRef, EntityKind};
+        use forge_core::{EntityKind, EntityRef};
         draft.stamp_children_of(
             _recorder,
-            EntityRef::new(EntityKind::HalfEdge, self.anchor.index(), self.anchor.generation()),
+            EntityRef::new(
+                EntityKind::HalfEdge,
+                self.anchor.index(),
+                self.anchor.generation(),
+            ),
             &[
-                EntityRef::new(EntityKind::Vertex, new_vertex.index(), new_vertex.generation()),
+                EntityRef::new(
+                    EntityKind::Vertex,
+                    new_vertex.index(),
+                    new_vertex.generation(),
+                ),
                 EntityRef::new(EntityKind::Edge, new_edge.index(), new_edge.generation()),
                 EntityRef::new(EntityKind::HalfEdge, he_out.index(), he_out.generation()),
                 EntityRef::new(EntityKind::HalfEdge, he_back.index(), he_back.generation()),
@@ -177,6 +181,4 @@ impl TopoOperator for MakeEdgeVertex {
             },
         })
     }
-
-
 }

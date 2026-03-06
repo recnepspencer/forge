@@ -11,9 +11,9 @@ use forge_core::KernelError;
 use forge_topo::transactions::TopologyState;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
+use super::super::contracts::contract::InvariantKind;
 use crate::geometry::facade::GeometryView;
 use crate::proof::checkpoint::schema::{ValidationCheckpoint, ValidationConfig};
-use super::super::contracts::contract::InvariantKind;
 
 /// Validate a single post-execution invariant against the feature output.
 ///
@@ -43,8 +43,6 @@ pub fn validate_invariant(
             // Future: spatial self-intersection test via BVH
             Ok(())
         }
-        InvariantKind::NoSliverFaces => {
-            Ok(())
-        }
+        InvariantKind::NoSliverFaces => Ok(()),
     }
 }

@@ -24,8 +24,7 @@ pub fn compute_solid_centroid(
         });
     }
 
-    let coords =
-        forge_geom::compute_polygon_centroid(&vertices).unwrap_or(vertices[0]);
+    let coords = forge_geom::compute_polygon_centroid(&vertices).unwrap_or(vertices[0]);
 
     Ok(coords)
 }

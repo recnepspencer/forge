@@ -13,10 +13,10 @@ use forge_core::KernelError;
 use forge_schema::{Command, EntityRef};
 use forge_signal::facade::NodeId;
 
-use crate::engine::facade::FeatureTree;
-use crate::operations::boolean::BooleanOp;
 use super::handlers;
 use super::native_feature::NativeFeature;
+use crate::engine::facade::FeatureTree;
+use crate::operations::boolean::BooleanOp;
 
 /// Bridges `forge-schema::Command` variants to `FeatureTree` registration.
 ///

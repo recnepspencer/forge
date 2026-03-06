@@ -15,10 +15,7 @@ use forge_topo::transactions::TopologyState;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
 /// Validate topology (structural invariants).
-pub fn validate_structure(
-    topo: &TopologyState,
-    level: ValidationLevel,
-) -> Result<(), KernelError> {
+pub fn validate_structure(topo: &TopologyState, level: ValidationLevel) -> Result<(), KernelError> {
     validate_topology(topo.arena(), level)
 }
 

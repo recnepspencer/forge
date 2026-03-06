@@ -14,9 +14,9 @@
 use forge_core::KernelError;
 
 use crate::handles::FaceId;
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
 
 /// Demotes a face's outer loop into an inner loop (hole) of another face.
@@ -42,22 +42,29 @@ impl TopoOperator for KillFaceMakeRingHole {
 
     const NAME: &'static str = "kill_face_make_ring_hole";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         format!(
             "Demote face {} to inner hole of face {}",
-            self.face_to_kill.index(), self.target_face.index()
+            self.face_to_kill.index(),
+            self.target_face.index()
         )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let killed_face_data = draft.arena().get_face(self.face_to_kill)?;
         let target_face_data = draft.arena().get_face(self.target_face)?;
 
         if self.face_to_kill == self.target_face {
             return Err(KernelError::InvalidInput {
-                message: "KillFaceMakeRingHole: cannot demote a face into a hole of itself".to_string(),
+                message: "KillFaceMakeRingHole: cannot demote a face into a hole of itself"
+                    .to_string(),
                 context: None,
             });
         }
@@ -69,14 +76,14 @@ impl TopoOperator for KillFaceMakeRingHole {
             });
         }
 
-        if !killed_face_data.inner_loops().is_empty() {
+        if !killed_face_data.loops.inners().is_empty() {
             return Err(KernelError::InvalidInput {
                 message: "KillFaceMakeRingHole: face to kill must have no inner loops".to_string(),
                 context: None,
             });
         }
 
-        let loop_id = killed_face_data.outer_loop();
+        let loop_id = killed_face_data.loops.outer();
         let start_he = draft.arena().get_loop(loop_id)?.half_edge();
 
         draft
@@ -87,7 +94,8 @@ impl TopoOperator for KillFaceMakeRingHole {
         draft
             .arena_mut()
             .get_face_mut(self.target_face)?
-            .add_inner_loop(loop_id);
+            .loops
+            .add_inner(loop_id);
 
         let bound = draft.arena().half_edge_count();
         let mut current = start_he;
@@ -110,7 +118,10 @@ impl TopoOperator for KillFaceMakeRingHole {
         let shell_id = draft.arena().get_face(self.target_face)?.shell();
         let shell_data = draft.arena().get_shell(shell_id)?;
         if shell_data.representative_face() == self.face_to_kill {
-            draft.arena_mut().get_shell_mut(shell_id)?.set_representative_face(self.target_face);
+            draft
+                .arena_mut()
+                .get_shell_mut(shell_id)?
+                .set_representative_face(self.target_face);
         }
 
         draft.remove_face(self.face_to_kill)?;
@@ -130,6 +141,4 @@ impl TopoOperator for KillFaceMakeRingHole {
             },
         })
     }
-
-
 }

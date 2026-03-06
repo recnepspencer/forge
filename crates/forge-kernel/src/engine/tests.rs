@@ -2,12 +2,12 @@
 
 use std::collections::HashMap;
 
-use crate::registry::facade::CommandDispatcher;
-use crate::geometry::facade::GeometryStore;
 use crate::configuration::facade::KernelConfig;
 use crate::engine::facade::FeaturePipeline;
 use crate::engine::facade::FeatureTree;
+use crate::geometry::facade::GeometryStore;
 use crate::operations::primitives::MakePrimitiveFeature;
+use crate::registry::facade::CommandDispatcher;
 use forge_core::PolicyKind;
 use forge_schema::{Command, EntityRef};
 use forge_signal::facade::NodeId;
@@ -124,8 +124,8 @@ fn dispatch_unknown_entity_ref_returns_error() {
 
 #[test]
 fn pipeline_rejects_feature_with_missing_policy_configuration() {
-    use crate::engine::facade::*;
     use crate::engine::facade::Feature;
+    use crate::engine::facade::*;
 
     /// Test feature that requires a non-existent policy.
     #[derive(Debug)]
@@ -174,7 +174,8 @@ fn pipeline_rejects_feature_with_missing_policy_configuration() {
             &self,
             _inputs: EmptyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
-        ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError> {
+        ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError>
+        {
             unreachable!("should not reach execution with missing policy")
         }
         fn dependencies(&self) -> Vec<NodeId> {
@@ -203,8 +204,8 @@ fn pipeline_rejects_feature_with_missing_policy_configuration() {
 
 #[test]
 fn pipeline_validates_inputs_before_execution() {
-    use crate::engine::facade::*;
     use crate::engine::facade::Feature;
+    use crate::engine::facade::*;
 
     #[derive(Debug)]
     struct StrictInputFeature;
@@ -255,7 +256,8 @@ fn pipeline_validates_inputs_before_execution() {
             &self,
             _inputs: StrictInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
-        ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError> {
+        ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError>
+        {
             unreachable!("should not reach execution with failed validation")
         }
         fn dependencies(&self) -> Vec<NodeId> {
@@ -299,8 +301,8 @@ fn pipeline_executes_make_cube_through_full_pipeline() {
 
 #[test]
 fn pipeline_skips_audit_at_none_level() {
-    use crate::engine::facade::*;
     use crate::engine::facade::Feature;
+    use crate::engine::facade::*;
 
     use forge_topo::transactions::TopologyState;
 
@@ -350,11 +352,11 @@ fn pipeline_skips_audit_at_none_level() {
             &self,
             _inputs: EmptyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
-        ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError> {
-            Ok(forge_core::envelope::OperationResult::new(SolidEnvelope::new(
-                TopologyState::empty(),
-                GeometryStore::default(),
-            )))
+        ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError>
+        {
+            Ok(forge_core::envelope::OperationResult::new(
+                SolidEnvelope::new(TopologyState::empty(), GeometryStore::default()),
+            ))
         }
         fn dependencies(&self) -> Vec<NodeId> {
             Vec::new()
@@ -393,8 +395,8 @@ fn pipeline_skips_audit_at_none_level() {
 
 #[test]
 fn pipeline_validates_post_invariants_after_execution() {
-    use crate::engine::facade::*;
     use crate::engine::facade::Feature;
+    use crate::engine::facade::*;
 
     use forge_topo::transactions::TopologyState;
 
@@ -447,11 +449,11 @@ fn pipeline_validates_post_invariants_after_execution() {
             &self,
             _inputs: EmptyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
-        ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError> {
-            Ok(forge_core::envelope::OperationResult::new(SolidEnvelope::new(
-                TopologyState::empty(),
-                GeometryStore::default(),
-            )))
+        ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError>
+        {
+            Ok(forge_core::envelope::OperationResult::new(
+                SolidEnvelope::new(TopologyState::empty(), GeometryStore::default()),
+            ))
         }
         fn dependencies(&self) -> Vec<NodeId> {
             Vec::new()
@@ -482,8 +484,8 @@ fn pipeline_validates_post_invariants_after_execution() {
 
 #[test]
 fn pipeline_emits_audit_at_full_level() {
-    use crate::engine::facade::*;
     use crate::engine::facade::Feature;
+    use crate::engine::facade::*;
 
     use forge_topo::transactions::TopologyState;
 
@@ -533,11 +535,11 @@ fn pipeline_emits_audit_at_full_level() {
             &self,
             _inputs: EmptyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
-        ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError> {
-            Ok(forge_core::envelope::OperationResult::new(SolidEnvelope::new(
-                TopologyState::empty(),
-                GeometryStore::default(),
-            )))
+        ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError>
+        {
+            Ok(forge_core::envelope::OperationResult::new(
+                SolidEnvelope::new(TopologyState::empty(), GeometryStore::default()),
+            ))
         }
         fn dependencies(&self) -> Vec<NodeId> {
             Vec::new()
@@ -572,8 +574,8 @@ fn pipeline_emits_audit_at_full_level() {
 
 #[test]
 fn typed_inputs_reject_missing_dependency() {
-    use crate::engine::facade::*;
     use crate::engine::facade::Feature;
+    use crate::engine::facade::*;
 
     /// Feature that requires a dependency but the input map is empty.
     #[derive(Debug)]
@@ -630,7 +632,8 @@ fn typed_inputs_reject_missing_dependency() {
             &self,
             _inputs: NeedyInputs,
             _scope: &mut crate::context::scope::OperationScope<'_>,
-        ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError> {
+        ) -> Result<forge_core::envelope::OperationResult<SolidEnvelope>, forge_core::KernelError>
+        {
             unreachable!("should not reach execution with missing dependency")
         }
         fn dependencies(&self) -> Vec<NodeId> {

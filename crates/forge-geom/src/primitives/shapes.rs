@@ -24,30 +24,12 @@ pub fn cube(center: [f64; 3], half_size: f64) -> Result<Vec<Plane>, MathError> {
 pub fn block(center: [f64; 3], half_extents: [f64; 3]) -> Result<Vec<Plane>, MathError> {
     let [hx, hy, hz] = half_extents;
     Ok(vec![
-        Plane::from_point_normal(
-            [center[0] + hx, center[1], center[2]],
-            [1.0, 0.0, 0.0],
-        )?,
-        Plane::from_point_normal(
-            [center[0] - hx, center[1], center[2]],
-            [-1.0, 0.0, 0.0],
-        )?,
-        Plane::from_point_normal(
-            [center[0], center[1] + hy, center[2]],
-            [0.0, 1.0, 0.0],
-        )?,
-        Plane::from_point_normal(
-            [center[0], center[1] - hy, center[2]],
-            [0.0, -1.0, 0.0],
-        )?,
-        Plane::from_point_normal(
-            [center[0], center[1], center[2] + hz],
-            [0.0, 0.0, 1.0],
-        )?,
-        Plane::from_point_normal(
-            [center[0], center[1], center[2] - hz],
-            [0.0, 0.0, -1.0],
-        )?,
+        Plane::from_point_normal([center[0] + hx, center[1], center[2]], [1.0, 0.0, 0.0])?,
+        Plane::from_point_normal([center[0] - hx, center[1], center[2]], [-1.0, 0.0, 0.0])?,
+        Plane::from_point_normal([center[0], center[1] + hy, center[2]], [0.0, 1.0, 0.0])?,
+        Plane::from_point_normal([center[0], center[1] - hy, center[2]], [0.0, -1.0, 0.0])?,
+        Plane::from_point_normal([center[0], center[1], center[2] + hz], [0.0, 0.0, 1.0])?,
+        Plane::from_point_normal([center[0], center[1], center[2] - hz], [0.0, 0.0, -1.0])?,
     ])
 }
 
@@ -101,9 +83,9 @@ pub fn dodecahedron(center: [f64; 3], scale: f64) -> Result<Vec<Plane>, MathErro
     raw_normals
         .iter()
         .map(|n| {
-            let norm = forge_math::linalg::normalize_checked(*n).ok_or(
-                MathError::InvalidInput("Zero-length normal in dodecahedron".into()),
-            )?;
+            let norm = forge_math::linalg::normalize_checked(*n).ok_or(MathError::InvalidInput(
+                "Zero-length normal in dodecahedron".into(),
+            ))?;
             let pt = [
                 center[0] + norm[0] * scale,
                 center[1] + norm[1] * scale,
@@ -176,24 +158,36 @@ pub fn pyramid(
         let a0 = angle_step * i as f64;
         let a1 = angle_step * ((i + 1) % sides) as f64;
 
-        let v0 = [center[0] + a0.cos() * radius, center[1] + a0.sin() * radius, center[2]];
-        let v1 = [center[0] + a1.cos() * radius, center[1] + a1.sin() * radius, center[2]];
+        let v0 = [
+            center[0] + a0.cos() * radius,
+            center[1] + a0.sin() * radius,
+            center[2],
+        ];
+        let v1 = [
+            center[0] + a1.cos() * radius,
+            center[1] + a1.sin() * radius,
+            center[2],
+        ];
 
         let edge_a = forge_math::linalg::sub(v1, v0);
         let edge_b = forge_math::linalg::sub(apex, v0);
         let mut raw_normal = forge_math::linalg::cross(edge_a, edge_b);
 
-        let face_mid = [(v0[0] + v1[0] + apex[0]) / 3.0, (v0[1] + v1[1] + apex[1]) / 3.0, (v0[2] + v1[2] + apex[2]) / 3.0];
+        let face_mid = [
+            (v0[0] + v1[0] + apex[0]) / 3.0,
+            (v0[1] + v1[1] + apex[1]) / 3.0,
+            (v0[2] + v1[2] + apex[2]) / 3.0,
+        ];
         let to_face = forge_math::linalg::sub(face_mid, interior);
-        let dot = raw_normal[0] * to_face[0] + raw_normal[1] * to_face[1] + raw_normal[2] * to_face[2];
+        let dot =
+            raw_normal[0] * to_face[0] + raw_normal[1] * to_face[1] + raw_normal[2] * to_face[2];
         if dot < 0.0 {
             raw_normal = [-raw_normal[0], -raw_normal[1], -raw_normal[2]];
         }
 
-        let normal = forge_math::linalg::normalize_checked(raw_normal)
-            .ok_or(MathError::InvalidInput(
-                "Degenerate pyramid face normal".into(),
-            ))?;
+        let normal = forge_math::linalg::normalize_checked(raw_normal).ok_or(
+            MathError::InvalidInput("Degenerate pyramid face normal".into()),
+        )?;
 
         planes.push(Plane::from_point_normal(v0, normal)?);
     }
@@ -213,36 +207,17 @@ pub fn wedge(center: [f64; 3], dimensions: [f64; 3]) -> Result<Vec<Plane>, MathE
     let hx = wx / 2.0;
     let hy = wy / 2.0;
 
-    let slope_normal = forge_math::linalg::normalize_checked([0.0, hz, wx])
-        .ok_or(MathError::InvalidInput(
-            "Degenerate wedge slope normal".into(),
-        ))?;
+    let slope_normal = forge_math::linalg::normalize_checked([0.0, hz, wx]).ok_or(
+        MathError::InvalidInput("Degenerate wedge slope normal".into()),
+    )?;
 
     Ok(vec![
-        Plane::from_point_normal(
-            [center[0], center[1], center[2]],
-            [0.0, 0.0, -1.0],
-        )?,
-        Plane::from_point_normal(
-            [center[0] + hx, center[1], center[2]],
-            [1.0, 0.0, 0.0],
-        )?,
-        Plane::from_point_normal(
-            [center[0] - hx, center[1], center[2]],
-            [-1.0, 0.0, 0.0],
-        )?,
-        Plane::from_point_normal(
-            [center[0], center[1] - hy, center[2]],
-            [0.0, -1.0, 0.0],
-        )?,
-        Plane::from_point_normal(
-            [center[0], center[1] + hy, center[2]],
-            [0.0, 1.0, 0.0],
-        )?,
-        Plane::from_point_normal(
-            [center[0], center[1], center[2] + hz],
-            slope_normal,
-        )?,
+        Plane::from_point_normal([center[0], center[1], center[2]], [0.0, 0.0, -1.0])?,
+        Plane::from_point_normal([center[0] + hx, center[1], center[2]], [1.0, 0.0, 0.0])?,
+        Plane::from_point_normal([center[0] - hx, center[1], center[2]], [-1.0, 0.0, 0.0])?,
+        Plane::from_point_normal([center[0], center[1] - hy, center[2]], [0.0, -1.0, 0.0])?,
+        Plane::from_point_normal([center[0], center[1] + hy, center[2]], [0.0, 1.0, 0.0])?,
+        Plane::from_point_normal([center[0], center[1], center[2] + hz], slope_normal)?,
     ])
 }
 

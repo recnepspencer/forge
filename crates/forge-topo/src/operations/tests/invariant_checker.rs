@@ -348,7 +348,7 @@ fn check_edge_vertex_consistency(arena: &TopologyArena, violations: &mut Vec<Vio
 /// INV-2: Every face loop must close (walking next returns to start).
 fn check_loop_closure(arena: &TopologyArena, violations: &mut Vec<Violation>) {
     for (face_id, face_data) in arena.iter_faces() {
-        let loop_data = match arena.get_loop(face_data.outer_loop()) {
+        let loop_data = match arena.get_loop(face_data.loops.outer()) {
             Ok(l) => l,
             Err(_) => {
                 violations.push(Violation {

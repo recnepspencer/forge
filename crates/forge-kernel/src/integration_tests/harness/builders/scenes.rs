@@ -15,21 +15,46 @@
 
 use crate::configuration::facade::ResolvedConfig;
 use crate::engine::facade::SolidEnvelope;
-use forge_core::envelope::OperationResult;
 use crate::operations::primitives;
+use forge_core::envelope::OperationResult;
 use forge_core::KernelError;
 
 use super::configs::test_config;
 
 /// A pending shape to build.
 enum PendingShape {
-    Cube { center: [f64; 3], size: f64 },
-    Block { center: [f64; 3], half_extents: [f64; 3] },
-    Tetrahedron { center: [f64; 3], scale: f64 },
-    Dodecahedron { center: [f64; 3], radius: f64 },
-    Prism { center: [f64; 3], sides: u32, radius: f64, height: f64 },
-    Pyramid { center: [f64; 3], sides: u32, radius: f64, height: f64 },
-    Wedge { center: [f64; 3], half_extents: [f64; 3] },
+    Cube {
+        center: [f64; 3],
+        size: f64,
+    },
+    Block {
+        center: [f64; 3],
+        half_extents: [f64; 3],
+    },
+    Tetrahedron {
+        center: [f64; 3],
+        scale: f64,
+    },
+    Dodecahedron {
+        center: [f64; 3],
+        radius: f64,
+    },
+    Prism {
+        center: [f64; 3],
+        sides: u32,
+        radius: f64,
+        height: f64,
+    },
+    Pyramid {
+        center: [f64; 3],
+        sides: u32,
+        radius: f64,
+        height: f64,
+    },
+    Wedge {
+        center: [f64; 3],
+        half_extents: [f64; 3],
+    },
 }
 
 /// Fluent builder for composing multi-solid test scenes.
@@ -63,37 +88,55 @@ impl SceneBuilder {
 
     /// Add a block to the scene.
     pub fn block(mut self, center: [f64; 3], half_extents: [f64; 3]) -> Self {
-        self.shapes.push(PendingShape::Block { center, half_extents });
+        self.shapes.push(PendingShape::Block {
+            center,
+            half_extents,
+        });
         self
     }
 
     /// Add a tetrahedron to the scene.
     pub fn tetrahedron(mut self, center: [f64; 3], scale: f64) -> Self {
-        self.shapes.push(PendingShape::Tetrahedron { center, scale });
+        self.shapes
+            .push(PendingShape::Tetrahedron { center, scale });
         self
     }
 
     /// Add a dodecahedron to the scene.
     pub fn dodecahedron(mut self, center: [f64; 3], radius: f64) -> Self {
-        self.shapes.push(PendingShape::Dodecahedron { center, radius });
+        self.shapes
+            .push(PendingShape::Dodecahedron { center, radius });
         self
     }
 
     /// Add a prism to the scene.
     pub fn prism(mut self, center: [f64; 3], sides: u32, radius: f64, height: f64) -> Self {
-        self.shapes.push(PendingShape::Prism { center, sides, radius, height });
+        self.shapes.push(PendingShape::Prism {
+            center,
+            sides,
+            radius,
+            height,
+        });
         self
     }
 
     /// Add a pyramid to the scene.
     pub fn pyramid(mut self, center: [f64; 3], sides: u32, radius: f64, height: f64) -> Self {
-        self.shapes.push(PendingShape::Pyramid { center, sides, radius, height });
+        self.shapes.push(PendingShape::Pyramid {
+            center,
+            sides,
+            radius,
+            height,
+        });
         self
     }
 
     /// Add a wedge to the scene.
     pub fn wedge(mut self, center: [f64; 3], half_extents: [f64; 3]) -> Self {
-        self.shapes.push(PendingShape::Wedge { center, half_extents });
+        self.shapes.push(PendingShape::Wedge {
+            center,
+            half_extents,
+        });
         self
     }
 
@@ -109,24 +152,32 @@ impl SceneBuilder {
                 PendingShape::Cube { center, size } => {
                     primitives::make_cube(center, size, &config)?
                 }
-                PendingShape::Block { center, half_extents } => {
-                    primitives::make_block(center, half_extents, &config)?
-                }
+                PendingShape::Block {
+                    center,
+                    half_extents,
+                } => primitives::make_block(center, half_extents, &config)?,
                 PendingShape::Tetrahedron { center, scale } => {
                     primitives::make_tetrahedron(center, scale, &config)?
                 }
                 PendingShape::Dodecahedron { center, radius } => {
                     primitives::make_dodecahedron(center, radius, &config)?
                 }
-                PendingShape::Prism { center, sides, radius, height } => {
-                    primitives::make_prism(center, sides, radius, height, &config)?
-                }
-                PendingShape::Pyramid { center, sides, radius, height } => {
-                    primitives::make_pyramid(center, sides, radius, height, &config)?
-                }
-                PendingShape::Wedge { center, half_extents } => {
-                    primitives::make_wedge(center, half_extents, &config)?
-                }
+                PendingShape::Prism {
+                    center,
+                    sides,
+                    radius,
+                    height,
+                } => primitives::make_prism(center, sides, radius, height, &config)?,
+                PendingShape::Pyramid {
+                    center,
+                    sides,
+                    radius,
+                    height,
+                } => primitives::make_pyramid(center, sides, radius, height, &config)?,
+                PendingShape::Wedge {
+                    center,
+                    half_extents,
+                } => primitives::make_wedge(center, half_extents, &config)?,
             };
             results.push(envelope);
         }
@@ -135,11 +186,22 @@ impl SceneBuilder {
     }
 
     /// Build all shapes and return them as a pair (convenience for 2-solid scenes).
-    pub fn build_pair(self) -> Result<(OperationResult<SolidEnvelope>, OperationResult<SolidEnvelope>), KernelError> {
+    pub fn build_pair(
+        self,
+    ) -> Result<
+        (
+            OperationResult<SolidEnvelope>,
+            OperationResult<SolidEnvelope>,
+        ),
+        KernelError,
+    > {
         let mut solids = self.build()?;
         if solids.len() != 2 {
             return Err(KernelError::InvalidInput {
-                message: format!("build_pair() requires exactly 2 shapes, got {}", solids.len()),
+                message: format!(
+                    "build_pair() requires exactly 2 shapes, got {}",
+                    solids.len()
+                ),
                 context: None,
             });
         }

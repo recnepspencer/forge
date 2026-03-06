@@ -4,11 +4,11 @@
 //! Tests cover: entity count deltas, rejection of non-isolated faces,
 //! and the MFV→KFV roundtrip.
 
+use crate::b_rep::ShellKind;
 use crate::entity_lifecycle::kill_face_vertex::KillFaceVertex;
 use crate::entity_lifecycle::make_face_vertex::MakeFaceVertex;
 use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::transactions::TopologyState;
-use crate::b_rep::ShellKind;
 
 /// KFV destroys exactly 1 face, 1 vertex, 1 halfedge, 1 loop, 1 edge.
 #[test]
@@ -16,15 +16,17 @@ fn kfv_destroys_face_vertex() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
 
-    let mfv = draft.execute(
-        MakeFaceVertex {
-            shell: mvf.shell,
-        },
-    )
-    .unwrap()
-    .into_value();
+    let mfv = draft
+        .execute(MakeFaceVertex { shell: mvf.shell })
+        .unwrap()
+        .into_value();
 
     let v_before = draft.arena().vertex_count();
     let f_before = draft.arena().face_count();
@@ -32,7 +34,8 @@ fn kfv_destroys_face_vertex() {
     let l_before = draft.arena().loop_count();
     let e_before = draft.arena().edge_count();
 
-    draft.execute(KillFaceVertex { face: mfv.face })
+    draft
+        .execute(KillFaceVertex { face: mfv.face })
         .unwrap()
         .into_value();
 
@@ -49,7 +52,12 @@ fn mfv_kfv_roundtrip() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
 
     let v_before = draft.arena().vertex_count();
     let f_before = draft.arena().face_count();
@@ -57,15 +65,13 @@ fn mfv_kfv_roundtrip() {
     let l_before = draft.arena().loop_count();
     let e_before = draft.arena().edge_count();
 
-    let mfv = draft.execute(
-        MakeFaceVertex {
-            shell: mvf.shell,
-        },
-    )
-    .unwrap()
-    .into_value();
+    let mfv = draft
+        .execute(MakeFaceVertex { shell: mvf.shell })
+        .unwrap()
+        .into_value();
 
-    draft.execute(KillFaceVertex { face: mfv.face })
+    draft
+        .execute(KillFaceVertex { face: mfv.face })
         .unwrap()
         .into_value();
 
@@ -82,15 +88,19 @@ fn kfv_rejects_non_isolated_face() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
 
     // Split the seed edge to make it non-isolated
-    draft.execute(
-        crate::entity_lifecycle::split_edge::SplitEdge {
+    draft
+        .execute(crate::entity_lifecycle::split_edge::SplitEdge {
             edge: mvf.half_edge,
-        },
-    )
-    .unwrap();
+        })
+        .unwrap();
 
     let result = draft.execute(KillFaceVertex { face: mvf.face });
     assert!(

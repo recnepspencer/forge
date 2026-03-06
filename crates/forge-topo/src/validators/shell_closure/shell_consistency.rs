@@ -10,8 +10,7 @@ pub(crate) fn validate_shell_consistency(arena: &TopologyArena) -> Result<(), Ke
         if matches!(shell_data.kind(), crate::b_rep::ShellKind::Solid(_)) {
             for (face_id, face_data) in arena.iter_faces() {
                 if face_data.shell() == shell_id {
-                    let iter =
-                        crate::queries::traverse::FaceEdgeIterator::new(arena, face_id)?;
+                    let iter = crate::queries::traverse::FaceEdgeIterator::new(arena, face_id)?;
                     for he_res in iter {
                         let he_id = he_res?;
                         if crate::queries::traverse::is_boundary_edge(arena, he_id)? {

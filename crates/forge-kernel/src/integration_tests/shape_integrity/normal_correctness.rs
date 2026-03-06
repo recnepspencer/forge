@@ -108,12 +108,14 @@ fn triangular_prism_all_5_normals_outward() {
 
 #[test]
 fn normal_magnitudes_are_unit() {
-    use forge_topo::handles::VertexId;
-    use forge_spatial::operations::facade::face_normal_from_outer_loop;
     use crate::geometry::facade::GeometryView;
+    use forge_spatial::operations::facade::face_normal_from_outer_loop;
+    use forge_topo::handles::VertexId;
 
     let policy = unit_normal();
-    let env = shapes::cube([0.0; 3], 2.0).expect("cube failed").into_value();
+    let env = shapes::cube([0.0; 3], 2.0)
+        .expect("cube failed")
+        .into_value();
 
     for &face_id in env.faces() {
         let pos_fn = |v: VertexId| env.geometry().get_vertex_position(v).copied();
@@ -121,8 +123,14 @@ fn normal_magnitudes_are_unit() {
             .expect("topology error")
             .expect("face has no normal");
 
-        let magnitude = (normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]).sqrt();
-        assert_geo_eq(magnitude, 1.0, &policy, &format!("normal magnitude face {:?}", face_id));
+        let magnitude =
+            (normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]).sqrt();
+        assert_geo_eq(
+            magnitude,
+            1.0,
+            &policy,
+            &format!("normal magnitude face {:?}", face_id),
+        );
     }
 }
 

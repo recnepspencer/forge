@@ -13,10 +13,10 @@
 
 use std::sync::Arc;
 
-use forge_core::KernelError;
 use forge_core::tolerance::ToleranceProvider;
-use forge_geom::ConvexCell;
+use forge_core::KernelError;
 use forge_geom::facade::{CurveGeom, CurveKind, SurfaceData};
+use forge_geom::ConvexCell;
 use forge_topo::b_rep::{EdgeData, FaceData, HalfEdgeData, LoopData, TopologyArena};
 use forge_topo::handles::{EdgeId, HalfEdgeId, LoopId, ShellId, VertexId};
 use forge_topo::provenance::LineageRecorder;
@@ -36,7 +36,9 @@ pub(crate) struct EdgeMap {
 
 impl EdgeMap {
     fn new(_vertex_count: usize) -> Self {
-        Self { data: BTreeMap::new() }
+        Self {
+            data: BTreeMap::new(),
+        }
     }
 
     fn insert(&mut self, a: VertexId, b: VertexId, he: HalfEdgeId) {
@@ -72,7 +74,7 @@ pub(crate) fn insert_faces_and_loops(
 
     for cell_face in cell.faces() {
         let face_verts = cell_face.vertices();
-        
+
         // Map to VertexIds and deduplicate adjacent identical vertices.
         let mut clean_vids = Vec::with_capacity(face_verts.len());
         for &cv_idx in face_verts {
@@ -113,7 +115,12 @@ pub(crate) fn insert_faces_and_loops(
 
         for &origin in &clean_vids {
             let he_id = draft.insert_half_edge(HalfEdgeData::new(
-                placeholder_he, placeholder_he, placeholder_he, face_id, origin, placeholder_edge
+                placeholder_he,
+                placeholder_he,
+                placeholder_he,
+                face_id,
+                origin,
+                placeholder_edge,
             ));
             recorder.stamp(draft.lineage_store_mut(), he_id);
             he_ids.push(he_id);
@@ -130,12 +137,21 @@ pub(crate) fn insert_faces_and_loops(
             edge_map.insert(clean_vids[i], clean_vids[next_i], he_ids[i]);
         }
 
-        draft.arena_mut().get_face_mut(face_id)?.set_outer_loop(loop_id);
-        draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(he_ids[0]);
+        draft
+            .arena_mut()
+            .get_face_mut(face_id)?
+            .set_outer_loop(loop_id);
+        draft
+            .arena_mut()
+            .get_loop_mut(loop_id)?
+            .set_half_edge(he_ids[0]);
 
         for &he_id in &he_ids {
             let origin = draft.arena().get_half_edge(he_id)?.origin();
-            draft.arena_mut().get_vertex_mut(origin)?.set_primary_disk(he_id);
+            draft
+                .arena_mut()
+                .get_vertex_mut(origin)?
+                .set_primary_disk(he_id);
         }
     }
 
@@ -157,9 +173,7 @@ pub(crate) fn stitch_twins(
     for (a, b, he_id) in edge_map.iter_ascending() {
         if a < b {
             if let Some(twin_id) = edge_map.get(b, a) {
-                let edge = draft.insert_edge(EdgeData::new(
-                    he_id,
-                ));
+                let edge = draft.insert_edge(EdgeData::new(he_id));
                 recorder.stamp(draft.lineage_store_mut(), edge);
                 draft
                     .arena_mut()
@@ -211,22 +225,25 @@ pub(crate) fn emit_edge_curves(
 
         let (v_origin, v_dest) = edge_endpoint_ids(arena, he_id)?;
 
-        let p_origin = geometry.positions.get(v_origin)
-            .ok_or_else(|| KernelError::InternalError {
-                message: format!("Vertex {} has no position for curve emission", v_origin),
-                context: None,
-            })?;
-        let p_dest = geometry.positions.get(v_dest)
+        let p_origin =
+            geometry
+                .positions
+                .get(v_origin)
+                .ok_or_else(|| KernelError::InternalError {
+                    message: format!("Vertex {} has no position for curve emission", v_origin),
+                    context: None,
+                })?;
+        let p_dest = geometry
+            .positions
+            .get(v_dest)
             .ok_or_else(|| KernelError::InternalError {
                 message: format!("Vertex {} has no position for curve emission", v_dest),
                 context: None,
             })?;
 
-        if let Some(curve) = CurveGeom::line_from_endpoints(
-            *p_origin.approx(),
-            *p_dest.approx(),
-            threshold,
-        ) {
+        if let Some(curve) =
+            CurveGeom::line_from_endpoints(*p_origin.approx(), *p_dest.approx(), threshold)
+        {
             geometry.curves.set(edge_id, Arc::new(curve));
         }
     }

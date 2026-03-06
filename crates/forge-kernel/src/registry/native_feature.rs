@@ -18,7 +18,7 @@ use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
 use crate::configuration::facade::KernelConfig;
-use crate::engine::facade::{Feature, SolidEnvelope, FeatureRegistry};
+use crate::engine::facade::{Feature, FeatureRegistry, SolidEnvelope};
 use crate::operations::boolean::{BooleanFeature, BooleanOp};
 use crate::operations::primitives::MakePrimitiveFeature;
 

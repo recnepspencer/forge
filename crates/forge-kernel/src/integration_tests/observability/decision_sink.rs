@@ -3,8 +3,7 @@
 //! Proves: The real `ModelingContext` records decisions when
 //! `make_block`/`make_cube` runs through the production path.
 
-
-use crate::integration_tests::harness::shapes::{unit_cube, block};
+use crate::integration_tests::harness::shapes::{block, unit_cube};
 use forge_core::DecisionKind;
 
 /// Build a unit cube with ModelingContext and verify decisions are recorded.
@@ -21,7 +20,6 @@ fn test_make_block_produces_decisions() {
         "DecisionLog is empty — DecisionSink not threaded through make_cube"
     );
 
-
     let has_near_boundary = log.decisions().any(|d: &forge_core::TracedDecision| {
         matches!(d.get_kind(), DecisionKind::NearBoundary { .. })
     });
@@ -36,15 +34,15 @@ fn test_make_block_produces_decisions() {
 /// All decisions should be NearBoundary with large margins (clean inserts).
 #[test]
 fn test_large_block_no_spurious_decisions() {
-    let result = block(
-        [0.0, 0.0, 0.0],
-        [50.0, 50.0, 50.0],
-    ).expect("large block should succeed");
+    let result = block([0.0, 0.0, 0.0], [50.0, 50.0, 50.0]).expect("large block should succeed");
     let log = result.get_decision_log();
 
     // Every vertex should produce a NearBoundary decision.
-    let near_boundary_count = log.decisions()
-        .filter(|d: &&forge_core::TracedDecision| matches!(d.get_kind(), DecisionKind::NearBoundary { .. }))
+    let near_boundary_count = log
+        .decisions()
+        .filter(|d: &&forge_core::TracedDecision| {
+            matches!(d.get_kind(), DecisionKind::NearBoundary { .. })
+        })
         .count();
     assert!(
         near_boundary_count > 0,

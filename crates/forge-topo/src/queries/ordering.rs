@@ -69,8 +69,6 @@ pub trait DeterministicOrder {
     fn ordering_key(&self) -> OrderingKey;
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;

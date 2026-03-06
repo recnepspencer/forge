@@ -10,9 +10,9 @@ use std::collections::HashMap;
 use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
-use crate::context::scope::OperationScope;
-use super::contract::{FeatureContract, FeatureInputs};
 use super::super::output::solid_envelope::SolidEnvelope;
+use super::contract::{FeatureContract, FeatureInputs};
+use crate::context::scope::OperationScope;
 
 /// A parametric feature that can be evaluated.
 ///

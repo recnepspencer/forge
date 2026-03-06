@@ -9,9 +9,9 @@ use forge_core::KernelError;
 
 use crate::b_rep::{BodyData, LumpData, RegionData};
 use crate::handles::{BodyId, LumpId, RegionId, ShellId};
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
 
 // ── SplitBody ───────────────────────────────────────────────────────
@@ -36,16 +36,22 @@ impl TopoOperator for SplitBody {
 
     const NAME: &'static str = "split_body";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::CONTAINER_LIFECYCLE;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
         format!(
             "Split body {} by moving {} lumps to new body",
-            self.body.index(), self.lumps_to_move.len()
+            self.body.index(),
+            self.lumps_to_move.len()
         )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         if self.lumps_to_move.is_empty() {
             return Err(KernelError::InvalidInput {
                 message: "SplitBody: must move at least one lump".to_string(),
@@ -56,7 +62,8 @@ impl TopoOperator for SplitBody {
         let existing_lumps: Vec<LumpId> = draft.arena().get_body(self.body)?.lumps().to_vec();
         if self.lumps_to_move.len() >= existing_lumps.len() {
             return Err(KernelError::InvalidInput {
-                message: "SplitBody: cannot move all lumps — original body would be empty".to_string(),
+                message: "SplitBody: cannot move all lumps — original body would be empty"
+                    .to_string(),
                 context: None,
             });
         }
@@ -66,7 +73,8 @@ impl TopoOperator for SplitBody {
                 return Err(KernelError::InvalidInput {
                     message: format!(
                         "SplitBody: lump {} does not belong to body {}",
-                        lump.index(), self.body.index()
+                        lump.index(),
+                        self.body.index()
                     ),
                     context: None,
                 });
@@ -107,13 +115,22 @@ impl TopoOperator for MergeBodies {
 
     const NAME: &'static str = "merge_bodies";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::CONTAINER_LIFECYCLE;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
-        format!("Merge body {} into body {}", self.source.index(), self.target.index())
+        format!(
+            "Merge body {} into body {}",
+            self.source.index(),
+            self.target.index()
+        )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         if self.target == self.source {
             return Err(KernelError::InvalidInput {
                 message: "MergeBodies: cannot merge a body with itself".to_string(),
@@ -124,7 +141,10 @@ impl TopoOperator for MergeBodies {
         let source_lumps: Vec<LumpId> = draft.arena().get_body(self.source)?.lumps().to_vec();
 
         for &lump in &source_lumps {
-            draft.arena_mut().get_body_mut(self.source)?.remove_lump(lump);
+            draft
+                .arena_mut()
+                .get_body_mut(self.source)?
+                .remove_lump(lump);
             draft.arena_mut().get_lump_mut(lump)?.set_body(self.target);
             draft.arena_mut().get_body_mut(self.target)?.add_lump(lump);
         }
@@ -161,13 +181,18 @@ impl TopoOperator for CloneBody {
 
     const NAME: &'static str = "clone_body";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::CONTAINER_LIFECYCLE;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
         format!("Deep clone body {}", self.body.index())
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         use std::collections::BTreeMap;
 
         // ── Phase 1: Collect ALL source data (immutable borrows) ────
@@ -256,16 +281,24 @@ impl TopoOperator for CloneBody {
                     let mut face_infos = Vec::new();
                     for &old_face in &shell_faces {
                         let fd = draft.arena().get_face(old_face)?;
-                        let old_outer_loop = fd.outer_loop();
-                        let old_inner_loops = fd.inner_loops().to_vec();
+                        let old_outer_loop = fd.loops.outer();
+                        let old_inner_loops = fd.loops.inners().to_vec();
 
                         // Collect loop info
                         let loop_he = draft.arena().get_loop(old_outer_loop)?.half_edge();
-                        all_loops.push(LoopInfo { old_loop: old_outer_loop, old_he: loop_he, old_face });
+                        all_loops.push(LoopInfo {
+                            old_loop: old_outer_loop,
+                            old_he: loop_he,
+                            old_face,
+                        });
 
                         for &il in &old_inner_loops {
                             let ilhe = draft.arena().get_loop(il)?.half_edge();
-                            all_loops.push(LoopInfo { old_loop: il, old_he: ilhe, old_face });
+                            all_loops.push(LoopInfo {
+                                old_loop: il,
+                                old_he: ilhe,
+                                old_face,
+                            });
                         }
 
                         face_infos.push(FaceInfo {
@@ -281,8 +314,13 @@ impl TopoOperator for CloneBody {
                     for &face in &shell_faces {
                         shell_he_ids.extend_from_slice(draft.arena().halfedges_of_face(face));
                     }
-                    
-                    let entry_he_id = draft.arena().shell_entry_edge(old_shell)
+
+                    let entry_he_id = draft
+                        .arena()
+                        .metadata
+                        .shell_entry_edges
+                        .get(old_shell.index() as usize)
+                        .and_then(|opt| *opt)
                         .and_then(|e| draft.arena().get_edge(e).ok())
                         .map(|e_data| e_data.half_edge());
 
@@ -295,9 +333,13 @@ impl TopoOperator for CloneBody {
                                 shell_he_ids.push(curr);
                             }
                             curr = draft.arena().get_half_edge(curr)?.next();
-                            if curr == entry_he { break; }
+                            if curr == entry_he {
+                                break;
+                            }
                             steps += 1;
-                            if steps > bound { break; } // safety break
+                            if steps > bound {
+                                break;
+                            } // safety break
                         }
                     }
 
@@ -319,12 +361,14 @@ impl TopoOperator for CloneBody {
 
                         if !seen_vertices.contains(&hd.origin()) {
                             let vd = draft.arena().get_vertex(hd.origin())?;
-                            let old_extra_disks = draft.arena()
+                            let old_extra_disks = draft
+                                .arena()
+                                .metadata
                                 .nmt_extra_disks
                                 .get(&hd.origin())
                                 .map(|v| v.to_vec())
                                 .unwrap_or_default();
-                                
+
                             vertex_infos.push(VertexInfo {
                                 old_vertex: hd.origin(),
                                 old_primary_disk: vd.primary_disk(),
@@ -361,17 +405,24 @@ impl TopoOperator for CloneBody {
                 });
             }
 
-            lump_infos.push(LumpInfo { regions: region_infos });
+            lump_infos.push(LumpInfo {
+                regions: region_infos,
+            });
         }
 
         // ── Phase 2: Create all new entities (mutable borrows) ──────
         let new_body = draft.insert_body(BodyData::new());
 
-        let mut vertex_map: BTreeMap<crate::handles::VertexId, crate::handles::VertexId> = BTreeMap::new();
-        let mut edge_map: BTreeMap<crate::handles::EdgeId, crate::handles::EdgeId> = BTreeMap::new();
-        let mut half_edge_map: BTreeMap<crate::handles::HalfEdgeId, crate::handles::HalfEdgeId> = BTreeMap::new();
-        let mut face_map: BTreeMap<crate::handles::FaceId, crate::handles::FaceId> = BTreeMap::new();
-        let mut loop_map: BTreeMap<crate::handles::LoopId, crate::handles::LoopId> = BTreeMap::new();
+        let mut vertex_map: BTreeMap<crate::handles::VertexId, crate::handles::VertexId> =
+            BTreeMap::new();
+        let mut edge_map: BTreeMap<crate::handles::EdgeId, crate::handles::EdgeId> =
+            BTreeMap::new();
+        let mut half_edge_map: BTreeMap<crate::handles::HalfEdgeId, crate::handles::HalfEdgeId> =
+            BTreeMap::new();
+        let mut face_map: BTreeMap<crate::handles::FaceId, crate::handles::FaceId> =
+            BTreeMap::new();
+        let mut loop_map: BTreeMap<crate::handles::LoopId, crate::handles::LoopId> =
+            BTreeMap::new();
         let mut shell_map: BTreeMap<ShellId, ShellId> = BTreeMap::new();
 
         let mut total_shells = 0i32;
@@ -387,7 +438,10 @@ impl TopoOperator for CloneBody {
 
             for region_info in &lump_info.regions {
                 let new_region = draft.insert_region(RegionData::new(new_lump));
-                draft.arena_mut().get_lump_mut(new_lump)?.add_region(new_region);
+                draft
+                    .arena_mut()
+                    .get_lump_mut(new_lump)?
+                    .add_region(new_region);
 
                 for shell_info in &region_info.shells {
                     let new_shell = draft.insert_shell(crate::b_rep::ShellData::new(
@@ -396,7 +450,10 @@ impl TopoOperator for CloneBody {
                         new_region,
                     ));
                     shell_map.insert(shell_info.old_shell, new_shell);
-                    draft.arena_mut().get_region_mut(new_region)?.add_shell(new_shell);
+                    draft
+                        .arena_mut()
+                        .get_region_mut(new_region)?
+                        .add_shell(new_shell);
                     total_shells += 1;
 
                     // Create faces and loops
@@ -408,10 +465,8 @@ impl TopoOperator for CloneBody {
                         loop_map.insert(fi.old_outer_loop, new_loop);
                         total_loops += 1;
 
-                        let new_face = draft.insert_face(crate::b_rep::FaceData::new(
-                            new_loop,
-                            new_shell,
-                        ));
+                        let new_face =
+                            draft.insert_face(crate::b_rep::FaceData::new(new_loop, new_shell));
                         face_map.insert(fi.old_face, new_face);
                         total_faces += 1;
 
@@ -421,7 +476,11 @@ impl TopoOperator for CloneBody {
                                 crate::handles::FaceId::DANGLING,
                             ));
                             loop_map.insert(old_inner, new_inner);
-                            draft.arena_mut().get_face_mut(new_face)?.add_inner_loop(new_inner);
+                            draft
+                                .arena_mut()
+                                .get_face_mut(new_face)?
+                                .loops
+                                .add_inner(new_inner);
                             total_loops += 1;
                         }
                     }
@@ -445,7 +504,11 @@ impl TopoOperator for CloneBody {
                             ));
                             edge_map.insert(ei.old_edge, new_e);
                             if shell_info.kind == crate::b_rep::ShellKind::Wire {
-                                draft.arena_mut().set_edge_shell(new_e, Some(new_shell));
+                                let idx = new_e.index() as usize;
+                                if idx >= draft.arena().metadata.edge_shells.len() {
+                                    draft.arena_mut().metadata.edge_shells.resize(idx + 1, None);
+                                }
+                                draft.arena_mut().metadata.edge_shells[idx] = Some(new_shell);
                             }
                             total_edges += 1;
                         }
@@ -473,15 +536,25 @@ impl TopoOperator for CloneBody {
                     for hi in &shell_info.halfedges {
                         let new_he = half_edge_map[&hi.old_he];
                         if let Some(&new_next) = half_edge_map.get(&hi.old_next) {
-                            draft.arena_mut().get_half_edge_mut(new_he)?.set_next(new_next);
+                            draft
+                                .arena_mut()
+                                .get_half_edge_mut(new_he)?
+                                .set_next(new_next);
                         }
                         if let Some(&new_prev) = half_edge_map.get(&hi.old_prev) {
-                            draft.arena_mut().get_half_edge_mut(new_he)?.set_prev(new_prev);
+                            draft
+                                .arena_mut()
+                                .get_half_edge_mut(new_he)?
+                                .set_prev(new_prev);
                         }
                         if let Some(&new_radial) = half_edge_map.get(&hi.old_radial) {
-                            draft.arena_mut().get_half_edge_mut(new_he)?.set_radial_next(new_radial);
+                            draft
+                                .arena_mut()
+                                .set_half_edge_radial_next(new_he, new_radial)?;
                         } else {
-                            draft.arena_mut().get_half_edge_mut(new_he)?.set_radial_next(new_he);
+                            draft
+                                .arena_mut()
+                                .set_half_edge_radial_next(new_he, new_he)?;
                         }
                     }
 
@@ -489,7 +562,10 @@ impl TopoOperator for CloneBody {
                     for vi in &shell_info.vertices {
                         if let Some(&new_v) = vertex_map.get(&vi.old_vertex) {
                             if let Some(&new_out) = half_edge_map.get(&vi.old_primary_disk) {
-                                draft.arena_mut().get_vertex_mut(new_v)?.set_primary_disk(new_out);
+                                draft
+                                    .arena_mut()
+                                    .get_vertex_mut(new_v)?
+                                    .set_primary_disk(new_out);
                             }
                             for &old_extra in &vi.old_extra_disks {
                                 if let Some(&new_extra) = half_edge_map.get(&old_extra) {
@@ -511,13 +587,25 @@ impl TopoOperator for CloneBody {
                     // Wire shell → representative face and entry edges
                     if let Some(fi) = shell_info.faces.first() {
                         let new_face = face_map[&fi.old_face];
-                        draft.arena_mut().get_shell_mut(new_shell)?.set_representative_face(new_face);
+                        draft
+                            .arena_mut()
+                            .get_shell_mut(new_shell)?
+                            .set_representative_face(new_face);
                     }
                     if let Some(old_entry) = shell_info.entry_he {
                         if let Some(&new_entry_he) = half_edge_map.get(&old_entry) {
                             if let Ok(he_data) = draft.arena().get_half_edge(new_entry_he) {
                                 let new_entry_edge = he_data.edge();
-                                draft.arena_mut().set_shell_entry_edge(new_shell, Some(new_entry_edge));
+                                let idx = new_shell.index() as usize;
+                                if idx >= draft.arena().metadata.shell_entry_edges.len() {
+                                    draft
+                                        .arena_mut()
+                                        .metadata
+                                        .shell_entry_edges
+                                        .resize(idx + 1, None);
+                                }
+                                draft.arena_mut().metadata.shell_entry_edges[idx] =
+                                    Some(new_entry_edge);
                             }
                         }
                     }
@@ -527,7 +615,10 @@ impl TopoOperator for CloneBody {
                 for li in &all_loops {
                     if let Some(&new_loop) = loop_map.get(&li.old_loop) {
                         if let Some(&new_he) = half_edge_map.get(&li.old_he) {
-                            draft.arena_mut().get_loop_mut(new_loop)?.set_half_edge(new_he);
+                            draft
+                                .arena_mut()
+                                .get_loop_mut(new_loop)?
+                                .set_half_edge(new_he);
                         }
                         if let Some(&new_face) = face_map.get(&li.old_face) {
                             draft.arena_mut().get_loop_mut(new_loop)?.set_face(new_face);
@@ -538,16 +629,24 @@ impl TopoOperator for CloneBody {
                 // Wire region outer shell
                 if let Some(os) = region_info.outer_shell {
                     if let Some(&ns) = shell_map.get(&os) {
-                        draft.arena_mut().get_region_mut(new_region)?.set_outer_shell(ns);
+                        draft
+                            .arena_mut()
+                            .get_region_mut(new_region)?
+                            .set_outer_shell(ns);
                     }
                 }
             }
         }
 
-        let total_regions = lump_infos.iter().map(|l| l.regions.len() as i32).sum::<i32>();
+        let total_regions = lump_infos
+            .iter()
+            .map(|l| l.regions.len() as i32)
+            .sum::<i32>();
 
         Ok(ExecutionResult {
-            value: CloneBodyOutput { cloned_body: new_body },
+            value: CloneBodyOutput {
+                cloned_body: new_body,
+            },
             declared_delta: EulerDelta {
                 vertices: total_vertices,
                 half_edges: total_half_edges,

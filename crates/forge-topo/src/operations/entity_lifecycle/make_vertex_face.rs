@@ -17,11 +17,10 @@ use crate::b_rep::{
     ShellKind, VertexData,
 };
 use crate::handles::{EdgeId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId};
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
-
 
 /// Creates the topological seed: one vertex, one face, one loop, one selfloop halfedge,
 /// one shell, and one edge.
@@ -63,26 +62,22 @@ impl TopoOperator for MakeVertexFace {
 
     const NAME: &'static str = "make_vertex_face";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         "Create initial vertex-face-shell scaffold (seed topology)".into()
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let placeholder_he = HalfEdgeId::DANGLING;
         let placeholder_loop = LoopId::DANGLING;
 
-
-
-
-
-
-
-
-        let vertex = draft.insert_vertex(VertexData::new(
-            placeholder_he,
-        ));
+        let vertex = draft.insert_vertex(VertexData::new(placeholder_he));
 
         let solid = draft.insert_body(BodyData::new());
 
@@ -96,10 +91,7 @@ impl TopoOperator for MakeVertexFace {
             region,
         ));
 
-        let face = draft.insert_face(FaceData::new(
-            placeholder_loop,
-            shell,
-        ));
+        let face = draft.insert_face(FaceData::new(placeholder_loop, shell));
 
         let loop_id = draft.insert_loop(LoopData::new(placeholder_he, face));
 
@@ -114,14 +106,18 @@ impl TopoOperator for MakeVertexFace {
             edge,
         ));
 
-        draft.arena_mut().get_half_edge_mut(he)?.set_radial_next(he);
+        draft.arena_mut().set_half_edge_radial_next(he, he)?;
         draft.arena_mut().get_half_edge_mut(he)?.set_next(he);
         draft.arena_mut().get_half_edge_mut(he)?.set_prev(he);
-        draft.arena_mut().get_vertex_mut(vertex)?.set_primary_disk(he);
+        draft
+            .arena_mut()
+            .get_vertex_mut(vertex)?
+            .set_primary_disk(he);
         draft
             .arena_mut()
             .get_face_mut(face)?
-            .set_outer_loop(loop_id);
+            .loops
+            .set_outer(loop_id);
         draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(he);
         draft
             .arena_mut()
@@ -133,17 +129,44 @@ impl TopoOperator for MakeVertexFace {
         draft.arena_mut().get_edge_mut(edge)?.set_half_edge(he);
 
         // ── Provenance Stamping (Root — seed operator) ─────────────────
-        use forge_core::{EntityRef, EntityKind};
+        use forge_core::{EntityKind, EntityRef};
         let store = draft.lineage_store_mut();
-        _recorder.stamp(store, EntityRef::new(EntityKind::Vertex, vertex.index(), vertex.generation()));
-        _recorder.stamp(store, EntityRef::new(EntityKind::Face, face.index(), face.generation()));
-        _recorder.stamp(store, EntityRef::new(EntityKind::Loop, loop_id.index(), loop_id.generation()));
-        _recorder.stamp(store, EntityRef::new(EntityKind::HalfEdge, he.index(), he.generation()));
-        _recorder.stamp(store, EntityRef::new(EntityKind::Edge, edge.index(), edge.generation()));
-        _recorder.stamp(store, EntityRef::new(EntityKind::Shell, shell.index(), shell.generation()));
-        _recorder.stamp(store, EntityRef::new(EntityKind::Body, solid.index(), solid.generation()));
-        _recorder.stamp(store, EntityRef::new(EntityKind::Lump, lump.index(), lump.generation()));
-        _recorder.stamp(store, EntityRef::new(EntityKind::Region, region.index(), region.generation()));
+        _recorder.stamp(
+            store,
+            EntityRef::new(EntityKind::Vertex, vertex.index(), vertex.generation()),
+        );
+        _recorder.stamp(
+            store,
+            EntityRef::new(EntityKind::Face, face.index(), face.generation()),
+        );
+        _recorder.stamp(
+            store,
+            EntityRef::new(EntityKind::Loop, loop_id.index(), loop_id.generation()),
+        );
+        _recorder.stamp(
+            store,
+            EntityRef::new(EntityKind::HalfEdge, he.index(), he.generation()),
+        );
+        _recorder.stamp(
+            store,
+            EntityRef::new(EntityKind::Edge, edge.index(), edge.generation()),
+        );
+        _recorder.stamp(
+            store,
+            EntityRef::new(EntityKind::Shell, shell.index(), shell.generation()),
+        );
+        _recorder.stamp(
+            store,
+            EntityRef::new(EntityKind::Body, solid.index(), solid.generation()),
+        );
+        _recorder.stamp(
+            store,
+            EntityRef::new(EntityKind::Lump, lump.index(), lump.generation()),
+        );
+        _recorder.stamp(
+            store,
+            EntityRef::new(EntityKind::Region, region.index(), region.generation()),
+        );
 
         Ok(ExecutionResult {
             value: MvfOutput {
@@ -170,6 +193,4 @@ impl TopoOperator for MakeVertexFace {
             },
         })
     }
-
-
 }

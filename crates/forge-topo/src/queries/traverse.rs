@@ -9,8 +9,9 @@
 //!
 //! DEPENDENCIES: `arena` (entity data), `handles` (typed IDs)
 
-use crate::b_rep::TopologyArena;
+use crate::b_rep::{EdgeRadialClass, TopologyArena};
 use crate::handles::{FaceId, HalfEdgeId, LoopId, VertexId};
+use crate::queries::walk::{walk_loop_iter, walk_radial_iter, LoopWalkIter, RadialWalkIter};
 use forge_core::KernelError;
 
 // =========================================================================
@@ -23,27 +24,16 @@ use forge_core::KernelError;
 /// Returns `Err` if the loop exceeds `MAX_ITER` (corrupted topology) or if
 /// a handle is stale.
 pub struct LoopEdgeIterator<'a> {
-    arena: &'a TopologyArena,
-    start: HalfEdgeId,
-    current: Option<HalfEdgeId>,
-    steps: usize,
-    finished: bool,
+    inner: LoopWalkIter<'a>,
 }
 
 impl<'a> LoopEdgeIterator<'a> {
-    const MAX_ITER: usize = 100_000;
-
     /// Create a new iterator around a loop.
     pub fn new(arena: &'a TopologyArena, loop_id: LoopId) -> Result<Self, KernelError> {
         let loop_data = arena.get_loop(loop_id)?;
         let start = loop_data.half_edge();
-
         Ok(Self {
-            arena,
-            start,
-            current: Some(start),
-            steps: 0,
-            finished: false,
+            inner: walk_loop_iter(arena, start)?,
         })
     }
 }
@@ -52,45 +42,7 @@ impl<'a> Iterator for LoopEdgeIterator<'a> {
     type Item = Result<HalfEdgeId, KernelError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.finished {
-            return None;
-        }
-
-        let curr_id = match self.current {
-            Some(id) => id,
-            None => {
-                self.finished = true;
-                return None;
-            }
-        };
-
-        self.steps += 1;
-        if self.steps >= Self::MAX_ITER {
-            self.finished = true;
-            return Some(Err(KernelError::InternalError {
-                message: format!(
-                    "Loop traversal exceeded {} iterations — likely corrupted",
-                    Self::MAX_ITER
-                ),
-                context: None,
-            }));
-        }
-
-        match self.arena.get_half_edge(curr_id) {
-            Ok(he_data) => {
-                let next_id = he_data.next();
-                if next_id == self.start {
-                    self.current = None;
-                } else {
-                    self.current = Some(next_id);
-                }
-                Some(Ok(curr_id))
-            }
-            Err(e) => {
-                self.finished = true;
-                Some(Err(e))
-            }
-        }
+        self.inner.next()
     }
 }
 
@@ -100,26 +52,17 @@ impl<'a> Iterator for LoopEdgeIterator<'a> {
 /// Returns `Err` if the loop exceeds `MAX_ITER` (corrupted topology) or if
 /// a handle is stale.
 pub struct FaceEdgeIterator<'a> {
-    arena: &'a TopologyArena,
-    start: HalfEdgeId,
-    current: Option<HalfEdgeId>,
-    steps: usize,
-    finished: bool,
+    inner: LoopWalkIter<'a>,
 }
 
 impl<'a> FaceEdgeIterator<'a> {
     /// Create a new iterator around a face.
     pub fn new(arena: &'a TopologyArena, face: FaceId) -> Result<Self, KernelError> {
         let face_data = arena.get_face(face)?;
-        let outer_loop = face_data.outer_loop();
-        let loop_iter = LoopEdgeIterator::new(arena, outer_loop)?;
-
+        let outer_loop = face_data.loops.outer();
+        let start = arena.get_loop(outer_loop)?.half_edge();
         Ok(Self {
-            arena,
-            start: loop_iter.start,
-            current: loop_iter.current,
-            steps: loop_iter.steps,
-            finished: loop_iter.finished,
+            inner: walk_loop_iter(arena, start)?,
         })
     }
 }
@@ -128,47 +71,7 @@ impl<'a> Iterator for FaceEdgeIterator<'a> {
     type Item = Result<HalfEdgeId, KernelError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.finished {
-            return None;
-        }
-
-        let curr_id = match self.current {
-            Some(id) => id,
-            None => {
-                self.finished = true;
-                return None;
-            }
-        };
-
-        // Cycle guard
-        self.steps += 1;
-        if self.steps >= LoopEdgeIterator::MAX_ITER {
-            self.finished = true;
-            return Some(Err(KernelError::InternalError {
-                message: format!(
-                    "Face loop exceeded {} iterations — likely corrupted",
-                    LoopEdgeIterator::MAX_ITER
-                ),
-                context: None,
-            }));
-        }
-
-        // Fetch data for next step
-        match self.arena.get_half_edge(curr_id) {
-            Ok(he_data) => {
-                let next_id = he_data.next();
-                if next_id == self.start {
-                    self.current = None; // Finishes after this yield
-                } else {
-                    self.current = Some(next_id);
-                }
-                Some(Ok(curr_id))
-            }
-            Err(e) => {
-                self.finished = true;
-                Some(Err(e))
-            }
-        }
+        self.inner.next()
     }
 }
 
@@ -396,25 +299,14 @@ pub fn vertex_neighborhood_orbits(
 ///
 /// Follows `radial_next` to circle the edge.
 pub struct RadialEdgeIterator<'a> {
-    arena: &'a TopologyArena,
-    start: HalfEdgeId,
-    current: HalfEdgeId,
-    first: bool,
-    iter_count: usize,
+    inner: RadialWalkIter<'a>,
 }
 
 impl<'a> RadialEdgeIterator<'a> {
-    const MAX_ITER: usize = 100_000;
-
     /// Create a new iterator around an edge's radial ring.
     pub fn new(arena: &'a TopologyArena, start: HalfEdgeId) -> Result<Self, KernelError> {
-        arena.get_half_edge(start)?; // validate existence
         Ok(Self {
-            arena,
-            start,
-            current: start,
-            first: true,
-            iter_count: 0,
+            inner: walk_radial_iter(arena, start)?,
         })
     }
 }
@@ -423,31 +315,7 @@ impl<'a> Iterator for RadialEdgeIterator<'a> {
     type Item = Result<HalfEdgeId, KernelError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.iter_count > Self::MAX_ITER {
-            return Some(Err(KernelError::InternalError {
-                message: format!(
-                    "Radial loop traversal exceeded {} iterations (corrupted topology)",
-                    Self::MAX_ITER
-                ),
-                context: None,
-            }));
-        }
-
-        if !self.first && self.current == self.start {
-            return None; // Loop completed
-        }
-
-        let he_data = match self.arena.get_half_edge(self.current) {
-            Ok(h) => h,
-            Err(e) => return Some(Err(e)),
-        };
-
-        let result = self.current;
-        self.current = he_data.radial_next();
-        self.first = false;
-        self.iter_count += 1;
-
-        Some(Ok(result))
+        self.inner.next()
     }
 }
 
@@ -468,16 +336,18 @@ pub fn face_edge_count(arena: &TopologyArena, face: FaceId) -> Result<usize, Ker
 /// Collect all loops on a face (outer loop first, then inner loops).
 pub fn face_loops(arena: &TopologyArena, face: FaceId) -> Result<Vec<LoopId>, KernelError> {
     let face_data = arena.get_face(face)?;
-    let mut loops = Vec::with_capacity(1 + face_data.inner_loops().len());
-    loops.push(face_data.outer_loop());
-    loops.extend_from_slice(face_data.inner_loops());
+    let mut loops = Vec::with_capacity(1 + face_data.loops.inners().len());
+    loops.push(face_data.loops.outer());
+    loops.extend_from_slice(face_data.loops.inners());
     Ok(loops)
 }
 
 /// Check if an edge is a boundary edge (self-radial, valence 1).
 pub fn is_boundary_edge(arena: &TopologyArena, he: HalfEdgeId) -> Result<bool, KernelError> {
-    let he_data = arena.get_half_edge(he)?;
-    Ok(he_data.radial_next() == he)
+    Ok(matches!(
+        arena.classify_half_edge(he)?,
+        EdgeRadialClass::Boundary
+    ))
 }
 
 /// Count the number of faces sharing a geometric edge (radial valence).
@@ -515,7 +385,6 @@ pub fn edge_endpoint_ids(
     Ok((origin, dest))
 }
 
-
 /// Walk a G1-continuous (tangent-continuous) edge chain starting at `start_edge`.
 ///
 /// Fillet operations act on edge *chains* — sequences of edges that share vertices
@@ -531,11 +400,11 @@ pub fn edge_endpoint_ids(
 /// - `arena`: topology arena
 #[cfg(test)]
 mod tests {
-    use crate::b_rep::ShellKind;
     use super::*;
+    use crate::b_rep::ShellKind;
+    use crate::boundary_editing::make_loop_in_face_from_vertices::MakeLoopInFaceFromVertices;
     use crate::entity_lifecycle::kill_edge_vertex::KillEdgeVertex;
     use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
-    use crate::boundary_editing::make_loop_in_face_from_vertices::MakeLoopInFaceFromVertices;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::entity_lifecycle::split_edge::SplitEdge;
     use crate::transactions::TopologyState;
@@ -544,7 +413,12 @@ mod tests {
     fn face_edges_on_seed() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
         let state = draft.commit().unwrap();
 
         let edges: Vec<HalfEdgeId> = FaceEdgeIterator::new(state.arena(), mvf.face)
@@ -560,14 +434,18 @@ mod tests {
     fn face_edges_after_split() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let _se = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let _se = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
         let state = draft.commit().unwrap();
 
         let edges: Vec<HalfEdgeId> = FaceEdgeIterator::new(state.arena(), mvf.face)
@@ -582,14 +460,18 @@ mod tests {
     fn loop_edges_match_face_outer_loop_edges() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let _se = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let _se = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
         let state = draft.commit().unwrap();
 
         let face_edges: Vec<HalfEdgeId> = FaceEdgeIterator::new(state.arena(), mvf.face)
@@ -608,28 +490,26 @@ mod tests {
     fn face_all_edges_includes_inner_loop_edges() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se1 = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se1 = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let se2 = draft.execute(
-            SplitEdge {
-                edge: se1.he_mb,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let _se3 = draft.execute(
-            SplitEdge {
-                edge: se2.he_mb,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
+        let se2 = draft
+            .execute(SplitEdge { edge: se1.he_mb })
+            .unwrap()
+            .into_value();
+        let _se3 = draft
+            .execute(SplitEdge { edge: se2.he_mb })
+            .unwrap()
+            .into_value();
 
         let outer_edges_before: Vec<HalfEdgeId> = FaceEdgeIterator::new(draft.arena(), mvf.face)
             .unwrap()
@@ -652,14 +532,13 @@ mod tests {
             .unwrap()
             .origin();
 
-        let inner = draft.execute(
-            MakeLoopInFaceFromVertices {
+        let inner = draft
+            .execute(MakeLoopInFaceFromVertices {
                 face: mvf.face,
                 vertices: vec![v0, v1, v2],
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
 
         let state = draft.commit().unwrap();
 
@@ -691,28 +570,26 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se1 = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se1 = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let se2 = draft.execute(
-            SplitEdge {
-                edge: se1.he_mb,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let _se3 = draft.execute(
-            SplitEdge {
-                edge: se2.he_mb,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
+        let se2 = draft
+            .execute(SplitEdge { edge: se1.he_mb })
+            .unwrap()
+            .into_value();
+        let _se3 = draft
+            .execute(SplitEdge { edge: se2.he_mb })
+            .unwrap()
+            .into_value();
 
         let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face)
             .unwrap()
@@ -723,15 +600,14 @@ mod tests {
         let v1 = draft.arena().get_half_edge(edges[1]).unwrap().origin();
         let v3 = draft.arena().get_half_edge(edges[3]).unwrap().origin();
 
-        let _mef = draft.execute(
-            MakeEdgeFace {
+        let _mef = draft
+            .execute(MakeEdgeFace {
                 face: mvf.face,
                 vertex_a: v1,
                 vertex_b: v3,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
 
         let orbits = vertex_neighborhood_orbits(draft.arena(), v1).unwrap();
         assert_eq!(
@@ -768,28 +644,26 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se1 = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se1 = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let se2 = draft.execute(
-            SplitEdge {
-                edge: se1.he_mb,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let _se3 = draft.execute(
-            SplitEdge {
-                edge: se2.he_mb,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
+        let se2 = draft
+            .execute(SplitEdge { edge: se1.he_mb })
+            .unwrap()
+            .into_value();
+        let _se3 = draft
+            .execute(SplitEdge { edge: se2.he_mb })
+            .unwrap()
+            .into_value();
 
         let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face)
             .unwrap()
@@ -802,15 +676,14 @@ mod tests {
         let v2 = draft.arena().get_half_edge(edges[2]).unwrap().origin();
         let v3 = draft.arena().get_half_edge(edges[3]).unwrap().origin();
 
-        let _mef = draft.execute(
-            MakeEdgeFace {
+        let _mef = draft
+            .execute(MakeEdgeFace {
                 face: mvf.face,
                 vertex_a: v1,
                 vertex_b: v3,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
 
         let boundary_vertex = v0;
         let orbits = vertex_neighborhood_orbits(draft.arena(), boundary_vertex).unwrap();
@@ -820,10 +693,9 @@ mod tests {
             .map(|r| r.unwrap())
             .collect();
 
-        let has_boundary_edge = total_outgoing.iter().any(|&he| {
-            let data = draft.arena().get_half_edge(he).unwrap();
-            data.radial_next() == he
-        });
+        let has_boundary_edge = total_outgoing
+            .iter()
+            .any(|&he| is_boundary_edge(draft.arena(), he).unwrap());
         assert!(
             has_boundary_edge,
             "Test setup: boundary vertex v0 must have at least one self-radial (boundary) edge"
@@ -856,37 +728,39 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf1 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se1a = draft.execute(
-            SplitEdge {
+        let mvf1 = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se1a = draft
+            .execute(SplitEdge {
                 edge: mvf1.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let _se1b = draft.execute(
-            SplitEdge {
-                edge: se1a.he_mb,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
+        let _se1b = draft
+            .execute(SplitEdge { edge: se1a.he_mb })
+            .unwrap()
+            .into_value();
 
-        let mvf2 = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se2a = draft.execute(
-            SplitEdge {
+        let mvf2 = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se2a = draft
+            .execute(SplitEdge {
                 edge: mvf2.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let _se2b = draft.execute(
-            SplitEdge {
-                edge: se2a.he_mb,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
+        let _se2b = draft
+            .execute(SplitEdge { edge: se2a.he_mb })
+            .unwrap()
+            .into_value();
 
         let shared_vertex = mvf1.vertex;
         let victim_vertex = mvf2.vertex;
@@ -940,29 +814,30 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
         let pole = mvf.vertex;
         let mut current_edge = mvf.half_edge;
 
         for _ in 0..20 {
-            let se = draft.execute(
-                SplitEdge {
-                    edge: current_edge,
-                },
-            )
-            .unwrap()
-            .into_value();
+            let se = draft
+                .execute(SplitEdge { edge: current_edge })
+                .unwrap()
+                .into_value();
 
             let face_id = draft.arena().get_half_edge(current_edge).unwrap().face();
-            let mef = draft.execute(
-                MakeEdgeFace {
+            let mef = draft
+                .execute(MakeEdgeFace {
                     vertex_a: pole,
                     vertex_b: se.new_vertex,
                     face: face_id,
-                },
-            )
-            .unwrap()
-            .into_value();
+                })
+                .unwrap()
+                .into_value();
 
             current_edge = mef.half_edge_ab;
         }
@@ -998,28 +873,26 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se1 = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se1 = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let se2 = draft.execute(
-            SplitEdge {
-                edge: se1.he_mb,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let _se3 = draft.execute(
-            SplitEdge {
-                edge: se2.he_mb,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
+        let se2 = draft
+            .execute(SplitEdge { edge: se1.he_mb })
+            .unwrap()
+            .into_value();
+        let _se3 = draft
+            .execute(SplitEdge { edge: se2.he_mb })
+            .unwrap()
+            .into_value();
 
         let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face)
             .unwrap()
@@ -1028,23 +901,21 @@ mod tests {
         let v1 = draft.arena().get_half_edge(edges[1]).unwrap().origin();
         let v3 = draft.arena().get_half_edge(edges[3]).unwrap().origin();
 
-        let mef = draft.execute(
-            MakeEdgeFace {
+        let mef = draft
+            .execute(MakeEdgeFace {
                 face: mvf.face,
                 vertex_a: v1,
                 vertex_b: v3,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
 
-        let kev = draft.execute(
-            KillEdgeVertex {
+        let kev = draft
+            .execute(KillEdgeVertex {
                 edge: mef.half_edge_ab,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
 
         let orbits = vertex_neighborhood_orbits(draft.arena(), kev.surviving_vertex).unwrap();
 

@@ -3,15 +3,29 @@
 //! External components depend ONLY on this facade.
 
 pub use super::data::{
-    // Invariant validation contract types
-    InvariantGroup, InvariantTier, ValidatorCost,
-    InvariantId, InvariantRelation, InvariantContract,
-    APPLICABLE_BY_KIND, CLOSED_SHEET_EXTRA, DEFER_SEMANTIC_TIER, DEFER_UNCERTIFIED,
-    applicable_mask_for, deferred_mask_for,
-    // Policy types
-    PolicyKind, PolicyQuery, PolicyResult,
+    applicable_mask_for,
+    deferred_mask_for,
     // Topology classification
-    CertificationStage, Closure, Manifoldness, TopologyContext, TopologyKind,
+    CertificationStage,
+    Closure,
+    InvariantContract,
+    // Invariant validation contract types
+    InvariantGroup,
+    InvariantId,
+    InvariantRelation,
+    InvariantTier,
+    Manifoldness,
+    // Policy types
+    PolicyKind,
+    PolicyQuery,
+    PolicyResult,
+    TopologyContext,
+    TopologyKind,
     // Validation checkpoints
     ValidationCheckpoint,
+    ValidatorCost,
+    APPLICABLE_BY_KIND,
+    CLOSED_SHEET_EXTRA,
+    DEFER_SEMANTIC_TIER,
+    DEFER_UNCERTIFIED,
 };

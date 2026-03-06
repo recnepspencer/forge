@@ -11,20 +11,22 @@ use crate::b_rep::TopologyArena;
 use crate::handles::{
     BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
 };
+use crate::identity::{DraftId, OperationId};
+use crate::operations::operator::TopoOperator;
+use crate::provenance::LineageStore;
+use crate::provenance::ReidentificationLinkIndex;
+use crate::provenance::{Lineage, LineageEvent, OpSignature};
+use crate::provenance::{LineageMode, LineageRecorder, OperationLineageContext, FEATURE_ID_SYSTEM};
+use crate::provenance::{ReplayEntry, ReplayLog};
 use crate::transactions::compute_arena_topology_hash;
 use crate::transactions::data::mutation_journal::MutationJournal;
-use crate::provenance::{Lineage, LineageEvent, OpSignature};
-use crate::provenance::LineageStore;
-use crate::provenance::{ReplayEntry, ReplayLog};
-use crate::provenance::ReidentificationLinkIndex;
-use crate::provenance::{LineageRecorder, LineageMode, OperationLineageContext, FEATURE_ID_SYSTEM};
-use crate::operations::operator::TopoOperator;
 use crate::validators::validate::ValidationLevel;
 
 use forge_core::{
     ErrorContext, ErrorScope, KernelError, LineageDelta, OperationMetrics, OperationResult,
     TopologyError,
 };
+use forge_signal::facade::CheckpointBarrier;
 
 use crate::transactions::data::draft_configuration::DraftConfig;
 use crate::transactions::data::versioned_snapshot::TopologyState;
@@ -40,6 +42,8 @@ use crate::transactions::data::versioned_snapshot::TopologyState;
 /// This mirrors your Angular `createOptimisticMutation` pattern:
 /// try the operation, rollback on failure, commit on success.
 pub struct MutableDraft {
+    /// Unique identity of this draft transaction.
+    pub(crate) draft_id: DraftId,
     /// The epoch of the state we forked from
     pub(crate) base_epoch: u64,
     /// The epoch this draft will produce if committed
@@ -49,7 +53,7 @@ pub struct MutableDraft {
     /// Current geometry version (may be bumped during mutations)
     pub(crate) geometry_version: u64,
     /// Counter for assigning unique operation IDs within this draft
-    pub(crate) op_counter: u64,
+    pub(crate) op_counter: OperationId,
     /// Whether commit() was called
     pub(crate) committed: bool,
     /// Replay log for this draft (Milestone 0.4)
@@ -76,23 +80,38 @@ impl MutableDraft {
         self.topology_hash
     }
 
-
+    /// Unique identity of this draft transaction.
+    pub fn draft_id(&self) -> DraftId {
+        self.draft_id
+    }
 
     /// Get the next unique operation ID for this draft.
-    pub fn next_op_id(&mut self) -> u64 {
-        self.op_counter += 1;
-        self.op_counter
+    pub fn next_op_id(&mut self) -> OperationId {
+        let next = self.op_counter.get() + 1;
+        let op_id = OperationId::new(next);
+        self.op_counter = op_id;
+        op_id
     }
 
     /// Log the start of an operation (called by `execute()` method).
     ///
     /// Records the current topology hash as `pre_hash` and computes a
     /// deterministic seed from the config's base seed + op counter.
-    pub fn log_operation_start(&mut self, signature: &OpSignature, semantic_summary: String) {
-        let seed = self.config.deterministic_seed.wrapping_add(self.op_counter);
+    pub fn log_operation_start(
+        &mut self,
+        signature: &OpSignature,
+        op_schema_version: u32,
+        semantic_summary: String,
+    ) {
+        let op_id = signature.get_invocation_id();
+        let seed = self.config.deterministic_seed.wrapping_add(op_id.get());
         let entry = ReplayEntry::new(
+            self.draft_id,
+            op_id,
             signature.clone(),
             Vec::new(),
+            op_schema_version,
+            1,
             seed,
             self.topology_hash,
             semantic_summary,
@@ -142,8 +161,6 @@ impl MutableDraft {
     pub fn bump_geometry_version(&mut self) {
         self.geometry_version += 1;
     }
-
-
 
     /// The replay log recorded during this draft (Milestone 0.4).
     pub fn replay_log(&self) -> &ReplayLog {
@@ -222,7 +239,9 @@ impl MutableDraft {
     pub fn commit(mut self) -> Result<TopologyState, KernelError> {
         if self.poisoned {
             return Err(KernelError::InternalError {
-                message: "Cannot commit a poisoned draft. A previous operation failed mid-transaction.".to_string(),
+                message:
+                    "Cannot commit a poisoned draft. A previous operation failed mid-transaction."
+                        .to_string(),
                 context: None,
             });
         }
@@ -232,7 +251,13 @@ impl MutableDraft {
         #[cfg(debug_assertions)]
         self.arena.assert_sidecar_parity();
 
-        crate::validators::structural::validate_topology(&self.arena, self.config.validation_level)?;
+        self.arena
+            .apply_cache_checkpoint(CheckpointBarrier::PerCommit)?;
+
+        crate::validators::structural::validate_topology(
+            &self.arena,
+            self.config.validation_level,
+        )?;
 
         // ── Debug: verify declared ShellKind matches structural reality ──
         // Catches operators that change topology character without updating
@@ -262,9 +287,6 @@ impl MutableDraft {
         })
     }
 
-
-
-
     /// Compute the structural topology hash from the arena.
     pub(crate) fn compute_topology_hash(&self) -> u128 {
         compute_arena_topology_hash(&self.arena)
@@ -281,8 +303,10 @@ impl MutableDraft {
         data_b: crate::b_rep::HalfEdgeData,
     ) -> (HalfEdgeId, HalfEdgeId) {
         let (a, b) = self.arena.insert_radial_pair(data_a, data_b);
-        self.mutation_journal.record_creation(forge_core::EntityRef::from(a));
-        self.mutation_journal.record_creation(forge_core::EntityRef::from(b));
+        self.mutation_journal
+            .record_creation(forge_core::EntityRef::from(a));
+        self.mutation_journal
+            .record_creation(forge_core::EntityRef::from(b));
         (a, b)
     }
 
@@ -290,13 +314,12 @@ impl MutableDraft {
     // See `operation_runner.rs` for `execute()`.
 }
 
-
 impl Drop for MutableDraft {
     fn drop(&mut self) {
         if !self.committed {
             tracing::warn!(
                 base_epoch = self.base_epoch,
-                ops_applied = self.op_counter,
+                ops_applied = self.op_counter.get(),
                 "MutableDraft dropped without commit. Topology rolled back."
             );
         }

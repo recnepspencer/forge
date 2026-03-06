@@ -80,7 +80,8 @@ pub fn validate_loop_orientation(
                 continue;
             }
 
-            let inner_positions = utils::collect_loop_positions(arena, loop_id, face_id, position_fn)?;
+            let inner_positions =
+                utils::collect_loop_positions(arena, loop_id, face_id, position_fn)?;
             if inner_positions.len() < 3 {
                 loop_index += 1;
                 continue;

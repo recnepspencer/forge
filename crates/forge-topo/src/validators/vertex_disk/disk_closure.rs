@@ -24,7 +24,7 @@ pub(crate) fn validate_disk_closure(arena: &TopologyArena) -> Result<(), KernelE
         // A disk must be closed unless it contains an open boundary (valence 1 or NMT outer edges).
         // Since `collect_disk` handles open boundaries gracefully, if it returns, it's valid.
         // Wait, the validator says "Every vertex disk must form a closed cycle when walking twin -> next."
-        // But for sheet shells, they are legitimately open. So we just rely on `collect_disk` 
+        // But for sheet shells, they are legitimately open. So we just rely on `collect_disk`
         // to not return a BrokenLoop error. If it completes, it's structurally sound.
         if !closed {
             // It's an open disk. This is allowed for sheet boundaries.

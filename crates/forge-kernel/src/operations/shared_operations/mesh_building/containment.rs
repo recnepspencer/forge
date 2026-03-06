@@ -7,9 +7,7 @@
 //! CONSUMED BY: primitives, booleans, Euler operators.
 
 use forge_core::KernelError;
-use forge_topo::b_rep::{
-    BodyData, LumpData, RegionData, ShellData, ShellKind, ShellOrientation,
-};
+use forge_topo::b_rep::{BodyData, LumpData, RegionData, ShellData, ShellKind, ShellOrientation};
 use forge_topo::handles::{FaceId, ShellId};
 use forge_topo::provenance::LineageRecorder;
 use forge_topo::transactions::MutableDraft;
@@ -49,4 +47,3 @@ pub fn make_solid_hierarchy(
 
     Ok(SolidHierarchy { shell })
 }
-

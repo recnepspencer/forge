@@ -6,8 +6,9 @@
 //! Uses the two-phase reserve/populate API to eliminate sentinel handles:
 //! both IDs are known before either halfedge's data is populated.
 
-use crate::b_rep::data::storage::arena::TopologyArena;
 use crate::b_rep::data::mesh::half_edge::HalfEdgeData;
+use crate::b_rep::data::mesh::EdgeRadialClass;
+use crate::b_rep::data::storage::arena::TopologyArena;
 use crate::handles::HalfEdgeId;
 
 impl TopologyArena {
@@ -41,17 +42,12 @@ impl TopologyArena {
     /// - Boundary edges (`radial_next == self`)
     /// - NMT edges (3+ halfedges in the radial ring)
     pub fn twin_if_manifold(&self, he: HalfEdgeId) -> Option<HalfEdgeId> {
+        if !matches!(self.classify_half_edge(he).ok()?, EdgeRadialClass::Manifold) {
+            return None;
+        }
         let data = self.get_half_edge(he).ok()?;
         let partner = data.radial_next();
-        if partner == he {
-            return None; // boundary edge
-        }
-        let partner_data = self.get_half_edge(partner).ok()?;
-        if partner_data.radial_next() == he {
-            Some(partner) // manifold: ring of exactly 2
-        } else {
-            None // NMT: ring > 2
-        }
+        Some(partner)
     }
 
     /// Iterate all halfedges in the radial ring around the same geometric edge.

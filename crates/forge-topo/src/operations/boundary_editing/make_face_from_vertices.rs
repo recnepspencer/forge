@@ -20,11 +20,10 @@ use crate::b_rep::{
 use crate::handles::{
     BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
 };
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
-
 
 /// Creates a new face by connecting a sequence of existing vertices.
 ///
@@ -62,13 +61,21 @@ impl TopoOperator for MakeFaceFromVertices {
 
     const NAME: &'static str = "make_face_from_vertices";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
-        format!("Create {}-sided face from existing vertices", self.vertices.len())
+        format!(
+            "Create {}-sided face from existing vertices",
+            self.vertices.len()
+        )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let n = self.vertices.len();
         if n < 3 {
             return Err(KernelError::InvalidInput {
@@ -83,26 +90,15 @@ impl TopoOperator for MakeFaceFromVertices {
         let sentinel_he = HalfEdgeId::DANGLING;
         let sentinel_loop = LoopId::DANGLING;
 
-
-
-
-
         let solid = draft.insert_body(BodyData::new());
 
         let lump = draft.insert_lump(LumpData::new(solid));
 
         let region = draft.insert_region(RegionData::new(lump));
 
-        let shell = draft.insert_shell(ShellData::new(
-            FaceId::DANGLING,
-            ShellKind::Sheet,
-            region,
-        ));
+        let shell = draft.insert_shell(ShellData::new(FaceId::DANGLING, ShellKind::Sheet, region));
 
-        let face = draft.insert_face(FaceData::new(
-            sentinel_loop,
-            shell,
-        ));
+        let face = draft.insert_face(FaceData::new(sentinel_loop, shell));
 
         let loop_id = draft.insert_loop(LoopData::new(sentinel_he, face));
 
@@ -113,7 +109,8 @@ impl TopoOperator for MakeFaceFromVertices {
         draft
             .arena_mut()
             .get_face_mut(face)?
-            .set_outer_loop(loop_id);
+            .loops
+            .set_outer(loop_id);
         draft.arena_mut().get_body_mut(solid)?.add_lump(lump);
         draft.arena_mut().get_lump_mut(lump)?.add_region(region);
         draft.arena_mut().get_region_mut(region)?.add_shell(shell);
@@ -132,8 +129,6 @@ impl TopoOperator for MakeFaceFromVertices {
         let mut edges = Vec::with_capacity(n);
 
         for _i in 0..n {
-
-
             let edge = draft.insert_edge(EdgeData::new(sentinel_he));
             let he = draft.insert_half_edge(HalfEdgeData::new(
                 sentinel_he,
@@ -161,7 +156,7 @@ impl TopoOperator for MakeFaceFromVertices {
 
             let arena = draft.arena_mut();
             arena.get_half_edge_mut(he)?.set_origin(v);
-            arena.get_half_edge_mut(he)?.set_radial_next(he); // Boundaries are self-radial
+            arena.set_half_edge_radial_next(he, he)?; // Boundaries are self-radial
             arena.get_half_edge_mut(he)?.set_next(next_he);
             arena.get_half_edge_mut(he)?.set_prev(prev_he);
 
@@ -211,6 +206,4 @@ impl TopoOperator for MakeFaceFromVertices {
             },
         })
     }
-
-
 }

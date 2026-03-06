@@ -42,8 +42,7 @@ pub fn cross(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
 
 /// Determinant of a 3×3 matrix given its three row vectors.
 pub fn det3_rows(r0: [f64; 3], r1: [f64; 3], r2: [f64; 3]) -> f64 {
-    r0[0] * (r1[1] * r2[2] - r1[2] * r2[1])
-        - r0[1] * (r1[0] * r2[2] - r1[2] * r2[0])
+    r0[0] * (r1[1] * r2[2] - r1[2] * r2[1]) - r0[1] * (r1[0] * r2[2] - r1[2] * r2[0])
         + r0[2] * (r1[0] * r2[1] - r1[1] * r2[0])
 }
 
@@ -173,14 +172,8 @@ pub fn sort_points_along_direction<T: Clone>(
 pub fn compare_points_lex(a: &[f64; 3], b: &[f64; 3]) -> std::cmp::Ordering {
     a[0].partial_cmp(&b[0])
         .unwrap_or(std::cmp::Ordering::Equal)
-        .then_with(|| {
-            a[1].partial_cmp(&b[1])
-                .unwrap_or(std::cmp::Ordering::Equal)
-        })
-        .then_with(|| {
-            a[2].partial_cmp(&b[2])
-                .unwrap_or(std::cmp::Ordering::Equal)
-        })
+        .then_with(|| a[1].partial_cmp(&b[1]).unwrap_or(std::cmp::Ordering::Equal))
+        .then_with(|| a[2].partial_cmp(&b[2]).unwrap_or(std::cmp::Ordering::Equal))
 }
 
 #[cfg(test)]
@@ -220,21 +213,13 @@ mod tests {
 
     #[test]
     fn det3_identity_rows() {
-        let result = det3_rows(
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0],
-        );
+        let result = det3_rows([1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]);
         assert!((result - 1.0).abs() < 1e-15);
     }
 
     #[test]
     fn det3_singular_is_zero() {
-        let result = det3_rows(
-            [1.0, 0.0, 0.0],
-            [2.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0],
-        );
+        let result = det3_rows([1.0, 0.0, 0.0], [2.0, 0.0, 0.0], [0.0, 0.0, 1.0]);
         assert!((result).abs() < 1e-15);
     }
 

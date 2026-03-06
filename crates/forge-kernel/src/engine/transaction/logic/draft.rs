@@ -81,10 +81,7 @@ impl KernelDraft {
     /// Uses the original topology stored at construction time, guaranteeing
     /// that geometry and topology are always paired correctly.
     pub fn rollback(self) -> KernelState {
-        KernelState::new(
-            self.original_topo,
-            self.geom.rollback(),
-        )
+        KernelState::new(self.original_topo, self.geom.rollback())
     }
 
     /// Commit the transaction, finalizing all topology and geometry mutations.

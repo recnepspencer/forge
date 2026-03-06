@@ -13,8 +13,8 @@ use forge_topo::transactions::MutableDraft;
 use crate::configuration::facade::ResolvedConfig;
 use crate::geometry::facade::GeometryDraft;
 
-use super::draft::KernelDraft;
 use super::super::data::state::KernelState;
+use super::draft::KernelDraft;
 
 /// Lifecycle wrapper for kernel operations that need draft + geometry + context.
 ///
@@ -36,13 +36,7 @@ impl BRepWorkspace {
     }
 
     /// Destructure for use — pass individual borrows to leaf functions.
-    pub fn as_parts_mut(
-        &mut self,
-    ) -> (
-        &mut MutableDraft,
-        &mut GeometryDraft,
-        &ResolvedConfig,
-    ) {
+    pub fn as_parts_mut(&mut self) -> (&mut MutableDraft, &mut GeometryDraft, &ResolvedConfig) {
         let (draft, geom) = self.draft.as_parts_mut();
         (draft, geom, &self.config)
     }

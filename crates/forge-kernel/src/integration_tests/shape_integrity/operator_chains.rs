@@ -4,17 +4,15 @@
 //! that calls `validate_topology` (production validator) after every step.
 //! These catch pointer rot from chained mutations.
 
-use forge_core::OperationResult;
 use crate::engine::facade::SolidEnvelope;
 use crate::integration_tests::harness::chains::OpChain;
 use crate::integration_tests::harness::shapes;
-use crate::integration_tests::harness::shapes::{
-    collect_face_loop, first_halfedge_of_face,
-};
+use crate::integration_tests::harness::shapes::{collect_face_loop, first_halfedge_of_face};
+use forge_core::OperationResult;
 
-use forge_topo::entity_lifecycle::split_edge::SplitEdge;
-use forge_topo::entity_lifecycle::make_edge_face::MakeEdgeFace;
 use forge_topo::boundary_editing::join_faces::JoinFaces;
+use forge_topo::entity_lifecycle::make_edge_face::MakeEdgeFace;
+use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 
 /// Reassemble a SolidEnvelope after draft mutation.
 fn commit_draft(
@@ -70,7 +68,11 @@ fn chain_mef_then_join_roundtrip() {
             let loop_hes = collect_face_loop(draft.arena(), he)?;
             let v_a = draft.arena().get_half_edge(loop_hes[0])?.origin();
             let v_c = draft.arena().get_half_edge(loop_hes[2])?.origin();
-            draft.execute(MakeEdgeFace { face, vertex_a: v_a, vertex_b: v_c })?;
+            draft.execute(MakeEdgeFace {
+                face,
+                vertex_a: v_a,
+                vertex_b: v_c,
+            })?;
             commit_draft(draft, geom)
         })
         .apply("join_back", |env, _scope| {

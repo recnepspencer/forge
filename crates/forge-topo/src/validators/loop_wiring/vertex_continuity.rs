@@ -3,8 +3,9 @@
 //! INVARIANT: Each edge in a radial ring must have at most 2 distinct
 //! endpoint vertices (1 for geometric self-loops, 2 for normal edges).
 
-use crate::b_rep::TopologyArena;
 use crate::b_rep::EntityBitset;
+use crate::b_rep::TopologyArena;
+use crate::queries::walk::walk_radial_iter;
 use forge_core::KernelError;
 
 pub fn validate_vertex_continuity(arena: &TopologyArena) -> Result<(), KernelError> {
@@ -20,18 +21,13 @@ pub fn validate_vertex_continuity(arena: &TopologyArena) -> Result<(), KernelErr
         let edge_id = he_data.edge();
 
         let mut endpoints = EntityBitset::for_vertices(arena);
-        let mut curr = he_id;
-        loop {
+        for curr_result in walk_radial_iter(arena, he_id)? {
+            let curr = curr_result?;
             checked_halfedges.insert(curr.index())?;
             let curr_data = arena.get_half_edge(curr)?;
             let next_data = arena.get_half_edge(curr_data.next())?;
             endpoints.insert(curr_data.origin().index())?;
             endpoints.insert(next_data.origin().index())?;
-
-            curr = curr_data.radial_next();
-            if curr == he_id {
-                break;
-            }
         }
 
         if endpoints.count() > 2 {

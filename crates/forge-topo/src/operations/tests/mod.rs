@@ -31,6 +31,7 @@ mod join_faces_tests;
 mod kfv_test;
 mod kill_edge_vertex_tests;
 mod kve_test;
+mod lifecycle_container_tests;
 mod lineage_tests;
 mod mef_tests;
 mod mekl_keml_tests;
@@ -44,5 +45,3 @@ mod mvf_tests;
 mod sew_edge_tests;
 mod shell_edge_tests;
 mod split_edge_tests;
-mod lifecycle_container_tests;
-

@@ -5,7 +5,7 @@
 //! `ValidationSection`. Merged with `TopologyContext` at draft
 //! creation time to produce `GroupPolicyRuntime`.
 
-use forge_core::{InvariantGroup, ValidatorCost, ValidationCheckpoint};
+use forge_core::{InvariantGroup, ValidationCheckpoint, ValidatorCost};
 use serde::{Deserialize, Serialize};
 
 /// User-facing validation policy configuration.

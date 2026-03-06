@@ -95,7 +95,10 @@ pub fn validate_shell_orientation(
                     detail: format!(
                         "Reverse the winding of face {} or {} to restore orientation consistency",
                         he_data.face().index(),
-                        arena.get_half_edge(radial).map(|r| r.face().index()).unwrap_or(u32::MAX),
+                        arena
+                            .get_half_edge(radial)
+                            .map(|r| r.face().index())
+                            .unwrap_or(u32::MAX),
                     ),
                 }),
             });

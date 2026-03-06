@@ -14,11 +14,12 @@
 
 use forge_core::{ErrorContext, ErrorScope, KernelError, TopologyError};
 
+use crate::b_rep::EdgeRadialClass;
 use crate::handles::{EdgeId, HalfEdgeId};
 
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
 
 /// Close a boundary by gluing two boundary halfedges together, removing an edge entity.
@@ -46,16 +47,22 @@ impl TopoOperator for SewEdge {
 
     const NAME: &'static str = "sew_edge";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::RADIAL_SPLICE;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::RADIAL_SPLICE;
 
     fn semantic_summary(&self) -> String {
         format!(
             "Sew boundary halfedges {} and {} into shared edge",
-            self.he_a.index(), self.he_b.index()
+            self.he_a.index(),
+            self.he_b.index()
         )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let op_name = Self::NAME.to_string();
         let inv_id = 0u64;
 
@@ -72,7 +79,10 @@ impl TopoOperator for SewEdge {
             let he_b_data = draft.arena().get_half_edge(self.he_b)?;
 
             // Validation 1: Both must be boundaries (radial_next == self)
-            if he_a_data.radial_next() != self.he_a {
+            if !matches!(
+                draft.arena().classify_half_edge(self.he_a)?,
+                EdgeRadialClass::Boundary
+            ) {
                 return Err(KernelError::TopologyViolation {
                     err: TopologyError::BoundaryEdgeInSolid {
                         halfedge_index: self.he_a.index(),
@@ -91,7 +101,10 @@ impl TopoOperator for SewEdge {
                     }),
                 });
             }
-            if he_b_data.radial_next() != self.he_b {
+            if !matches!(
+                draft.arena().classify_half_edge(self.he_b)?,
+                EdgeRadialClass::Boundary
+            ) {
                 return Err(KernelError::TopologyViolation {
                     err: TopologyError::BoundaryEdgeInSolid {
                         halfedge_index: self.he_b.index(),
@@ -142,12 +155,13 @@ impl TopoOperator for SewEdge {
         // 1. Sew the radial pointers
         draft
             .arena_mut()
-            .get_half_edge_mut(self.he_a)?
-            .set_radial_next(self.he_b);
+            .set_half_edge_radial_next(self.he_a, self.he_b)?;
         draft
             .arena_mut()
-            .get_half_edge_mut(self.he_b)?
-            .set_radial_next(self.he_a);
+            .set_half_edge_radial_next(self.he_b, self.he_a)?;
+        draft
+            .arena_mut()
+            .refresh_cached_radial_valence_for_ring(self.he_a)?;
 
         // 2. Point he_b to the surviving edge
         draft
@@ -162,18 +176,7 @@ impl TopoOperator for SewEdge {
         for &v in &[v1, v2] {
             let entries = crate::queries::vertex_disks::rebuild_disk_entries(draft.arena(), v)?;
             if let Some((&first, rest)) = entries.split_first() {
-                let arena = draft.arena_mut();
-                arena.get_vertex_mut(v)?.set_primary_disk(first);
-                // Clear existing NMT extras
-                arena.nmt_extra_disks.remove(&v);
-                let idx = v.index() as usize;
-                if idx < arena.vertex_is_nmt.len() {
-                    arena.vertex_is_nmt[idx] = false;
-                }
-                // Add back any remaining extras
-                for &he in rest {
-                    arena.add_disk_entry(v, he);
-                }
+                draft.arena_mut().reset_disk_entries(v, first, rest)?;
             }
         }
 
@@ -199,6 +202,4 @@ impl TopoOperator for SewEdge {
             },
         })
     }
-
-
 }

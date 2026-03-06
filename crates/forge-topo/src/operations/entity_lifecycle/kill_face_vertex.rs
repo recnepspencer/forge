@@ -14,9 +14,9 @@
 use forge_core::KernelError;
 
 use crate::handles::FaceId;
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
 
 /// Removes a disjoint face and its single vertex from a shell.
@@ -34,17 +34,22 @@ impl TopoOperator for KillFaceVertex {
 
     const NAME: &'static str = "kill_face_vertex";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         format!("Destroy face {} and its isolated vertex", self.face.index())
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let face_data = draft.arena().get_face(self.face)?;
-        let loop_id = face_data.outer_loop();
+        let loop_id = face_data.loops.outer();
 
-        if !face_data.inner_loops().is_empty() {
+        if !face_data.loops.inners().is_empty() {
             return Err(KernelError::InvalidInput {
                 message: "KillFaceVertex: face must have no inner loops".to_string(),
                 context: None,
@@ -60,8 +65,8 @@ impl TopoOperator for KillFaceVertex {
 
         if he_data.next() != he_id || he_data.prev() != he_id {
             return Err(KernelError::InvalidInput {
-                message:
-                    "KillFaceVertex: face must contain exactly one self-loop halfedge".to_string(),
+                message: "KillFaceVertex: face must contain exactly one self-loop halfedge"
+                    .to_string(),
                 context: None,
             });
         }
@@ -87,12 +92,17 @@ impl TopoOperator for KillFaceVertex {
         if shell_data.representative_face() == self.face {
             let remaining = draft.arena().faces_of_shell(shell_id);
             if let Some(&new_repr) = remaining.first() {
-                draft.arena_mut().get_shell_mut(shell_id)?.set_representative_face(new_repr);
+                draft
+                    .arena_mut()
+                    .get_shell_mut(shell_id)?
+                    .set_representative_face(new_repr);
             } else {
                 // Shell is now empty — the caller should use KillShellFace
                 // or KillVertexFace to properly tear down the hierarchy.
                 return Err(KernelError::InvalidInput {
-                    message: "KillFaceVertex left shell empty. Use KillShellFace to destroy the shell.".to_string(),
+                    message:
+                        "KillFaceVertex left shell empty. Use KillShellFace to destroy the shell."
+                            .to_string(),
                     context: None,
                 });
             }
@@ -113,6 +123,4 @@ impl TopoOperator for KillFaceVertex {
             },
         })
     }
-
-
 }

@@ -4,12 +4,12 @@
 //! the harness infrastructure (verify, snapshot, determinism, chains,
 //! selectors). No theatre — every assertion uses production code.
 
-mod primitive_verification;
-mod volume_oracle;
-mod volume_metamorphic;
-mod normal_correctness;
 mod determinism;
 mod euler_deltas;
-mod selector_queries;
+mod normal_correctness;
 mod operator_chains;
+mod primitive_verification;
+mod selector_queries;
 mod surface_curve_completeness;
+mod volume_metamorphic;
+mod volume_oracle;

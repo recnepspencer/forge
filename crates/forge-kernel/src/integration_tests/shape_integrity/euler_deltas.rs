@@ -7,21 +7,22 @@
 use crate::integration_tests::harness::shapes::{
     collect_face_loop, first_halfedge_of_face, unit_cube,
 };
-use crate::integration_tests::harness::snapshot::{Snapshot, Delta};
+use crate::integration_tests::harness::snapshot::{Delta, Snapshot};
 
-use forge_topo::entity_lifecycle::split_edge::SplitEdge;
-use forge_topo::entity_lifecycle::make_edge_face::MakeEdgeFace;
-use forge_topo::entity_lifecycle::make_edge_vertex::MakeEdgeVertex;
+use forge_topo::boundary_editing::join_faces::JoinFaces;
 use forge_topo::entity_lifecycle::kill_edge_vertex::KillEdgeVertex;
 use forge_topo::entity_lifecycle::kill_vertex_edge::KillVertexEdge;
-use forge_topo::boundary_editing::join_faces::JoinFaces;
+use forge_topo::entity_lifecycle::make_edge_face::MakeEdgeFace;
+use forge_topo::entity_lifecycle::make_edge_vertex::MakeEdgeVertex;
+use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 
 /// SplitEdge: +1 vertex, +1 edge, +2 halfedges, 0 faces/loops/shells/bodies.
 #[test]
 fn split_edge_delta() {
     let env_res = unit_cube().expect("unit cube should succeed");
     let faces = env_res.get_value().faces().to_vec();
-    let (mut draft, _geom): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geom): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
     let snap = Snapshot::capture(draft.arena());
 
@@ -29,10 +30,18 @@ fn split_edge_delta() {
     let he = first_halfedge_of_face(draft.arena(), face).unwrap();
     draft.execute(SplitEdge { edge: he }).unwrap();
 
-    snap.assert_delta(draft.arena(), Delta {
-        faces: 0, vertices: 1, edges: 1, half_edges: 2,
-        loops: 0, shells: 0, bodies: 0,
-    });
+    snap.assert_delta(
+        draft.arena(),
+        Delta {
+            faces: 0,
+            vertices: 1,
+            edges: 1,
+            half_edges: 2,
+            loops: 0,
+            shells: 0,
+            bodies: 0,
+        },
+    );
 }
 
 /// MakeEdgeFace: +1 face, +1 edge, +2 halfedges, +1 loop, 0 vertices.
@@ -40,7 +49,8 @@ fn split_edge_delta() {
 fn make_edge_face_delta() {
     let env_res = unit_cube().expect("unit cube should succeed");
     let faces = env_res.get_value().faces().to_vec();
-    let (mut draft, _geom): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geom): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
     let face = faces[0];
     let he = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -51,16 +61,26 @@ fn make_edge_face_delta() {
 
     let snap = Snapshot::capture(draft.arena());
 
-    draft.execute(MakeEdgeFace {
-        face,
-        vertex_a: v_a,
-        vertex_b: v_c,
-    }).unwrap();
+    draft
+        .execute(MakeEdgeFace {
+            face,
+            vertex_a: v_a,
+            vertex_b: v_c,
+        })
+        .unwrap();
 
-    snap.assert_delta(draft.arena(), Delta {
-        faces: 1, vertices: 0, edges: 1, half_edges: 2,
-        loops: 1, shells: 0, bodies: 0,
-    });
+    snap.assert_delta(
+        draft.arena(),
+        Delta {
+            faces: 1,
+            vertices: 0,
+            edges: 1,
+            half_edges: 2,
+            loops: 1,
+            shells: 0,
+            bodies: 0,
+        },
+    );
 }
 
 /// MakeEdgeVertex: +1 vertex, +1 edge, +2 halfedges, 0 faces.
@@ -68,7 +88,8 @@ fn make_edge_face_delta() {
 fn make_edge_vertex_delta() {
     let env_res = unit_cube().expect("unit cube should succeed");
     let faces = env_res.get_value().faces().to_vec();
-    let (mut draft, _geom): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geom): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
     let face = faces[0];
     let anchor = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -77,10 +98,18 @@ fn make_edge_vertex_delta() {
 
     draft.execute(MakeEdgeVertex { anchor }).unwrap();
 
-    snap.assert_delta(draft.arena(), Delta {
-        faces: 0, vertices: 1, edges: 1, half_edges: 2,
-        loops: 0, shells: 0, bodies: 0,
-    });
+    snap.assert_delta(
+        draft.arena(),
+        Delta {
+            faces: 0,
+            vertices: 1,
+            edges: 1,
+            half_edges: 2,
+            loops: 0,
+            shells: 0,
+            bodies: 0,
+        },
+    );
 }
 
 /// SplitEdge then KillEdgeVertex is a roundtrip — net delta is zero.
@@ -88,7 +117,8 @@ fn make_edge_vertex_delta() {
 fn split_then_kev_roundtrip_delta() {
     let env_res = unit_cube().expect("unit cube should succeed");
     let faces = env_res.get_value().faces().to_vec();
-    let (mut draft, _geom): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geom): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
     let snap = Snapshot::capture(draft.arena());
 
@@ -106,7 +136,8 @@ fn split_then_kev_roundtrip_delta() {
 fn split_then_kve_roundtrip_delta() {
     let env_res = unit_cube().expect("unit cube should succeed");
     let faces = env_res.get_value().faces().to_vec();
-    let (mut draft, _geom): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geom): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
     let snap = Snapshot::capture(draft.arena());
 
@@ -114,7 +145,11 @@ fn split_then_kve_roundtrip_delta() {
     let he = first_halfedge_of_face(draft.arena(), face).unwrap();
 
     let se = draft.execute(SplitEdge { edge: he }).unwrap().into_value();
-    draft.execute(KillVertexEdge { vertex: se.new_vertex }).unwrap();
+    draft
+        .execute(KillVertexEdge {
+            vertex: se.new_vertex,
+        })
+        .unwrap();
 
     snap.assert_unchanged(draft.arena());
 }
@@ -124,7 +159,8 @@ fn split_then_kve_roundtrip_delta() {
 fn mef_then_join_roundtrip_delta() {
     let env_res = unit_cube().expect("unit cube should succeed");
     let faces = env_res.get_value().faces().to_vec();
-    let (mut draft, _geom): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geom): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
     let face = faces[0];
     let he = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -135,13 +171,20 @@ fn mef_then_join_roundtrip_delta() {
 
     let snap = Snapshot::capture(draft.arena());
 
-    let mef = draft.execute(MakeEdgeFace {
-        face,
-        vertex_a: v_a,
-        vertex_b: v_c,
-    }).unwrap().into_value();
+    let mef = draft
+        .execute(MakeEdgeFace {
+            face,
+            vertex_a: v_a,
+            vertex_b: v_c,
+        })
+        .unwrap()
+        .into_value();
 
-    draft.execute(JoinFaces { edge: mef.half_edge_ab }).unwrap();
+    draft
+        .execute(JoinFaces {
+            edge: mef.half_edge_ab,
+        })
+        .unwrap();
 
     snap.assert_unchanged(draft.arena());
 }

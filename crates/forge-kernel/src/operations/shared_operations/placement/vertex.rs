@@ -142,4 +142,3 @@ pub fn place_vertex_exact(
 
     Ok(vid)
 }
-

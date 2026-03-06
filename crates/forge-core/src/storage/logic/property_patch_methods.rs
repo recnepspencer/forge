@@ -74,9 +74,11 @@ impl<K: Eq + Hash + Copy, V> PropertyPatch<K, V> {
 
     /// Iterate over all (key, value) pairs visible from the patch.
     pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
-        let base_entries = self.base.data.iter().filter(move |(k, _)| {
-            !self.removes.contains(k) && !self.inserts.contains_key(k)
-        });
+        let base_entries = self
+            .base
+            .data
+            .iter()
+            .filter(move |(k, _)| !self.removes.contains(k) && !self.inserts.contains_key(k));
         let insert_entries = self.inserts.iter();
         base_entries.chain(insert_entries)
     }

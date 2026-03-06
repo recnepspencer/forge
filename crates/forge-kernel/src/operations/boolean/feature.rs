@@ -9,8 +9,8 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::context::scope::OperationScope;
-use crate::engine::facade::{Feature, SolidEnvelope, FeatureInputs};
 use crate::engine::facade::{AuditLevel, EntityOriginKind, InvariantKind};
+use crate::engine::facade::{Feature, FeatureInputs, SolidEnvelope};
 use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
@@ -87,18 +87,14 @@ impl Feature for BooleanFeature {
         &self,
         mut raw: HashMap<NodeId, SolidEnvelope>,
     ) -> Result<BooleanInputs, KernelError> {
-        let target = raw
-            .remove(&self.target)
-            .ok_or(KernelError::InvalidInput {
-                message: "Missing target input".into(),
-                context: None,
-            })?;
-        let tool = raw
-            .remove(&self.tool)
-            .ok_or(KernelError::InvalidInput {
-                message: "Missing tool input".into(),
-                context: None,
-            })?;
+        let target = raw.remove(&self.target).ok_or(KernelError::InvalidInput {
+            message: "Missing target input".into(),
+            context: None,
+        })?;
+        let tool = raw.remove(&self.tool).ok_or(KernelError::InvalidInput {
+            message: "Missing tool input".into(),
+            context: None,
+        })?;
         Ok(BooleanInputs { target, tool })
     }
 
@@ -119,7 +115,9 @@ impl Feature for BooleanFeature {
         let result = envelope.into_result()?;
         let (topo, geom) = result.into_states();
 
-        Ok(forge_core::envelope::OperationResult::new(SolidEnvelope::new(topo, geom)))
+        Ok(forge_core::envelope::OperationResult::new(
+            SolidEnvelope::new(topo, geom),
+        ))
     }
 
     fn dependencies(&self) -> Vec<NodeId> {

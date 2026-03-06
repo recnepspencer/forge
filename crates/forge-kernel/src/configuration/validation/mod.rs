@@ -4,9 +4,9 @@
 //! and overrides.
 
 mod group_policy;
-mod validation_section;
 mod validation_override;
+mod validation_section;
 
 pub use group_policy::GroupPolicyConfig;
-pub use validation_section::ValidationSection;
 pub use validation_override::ValidationOverride;
+pub use validation_section::ValidationSection;

@@ -12,9 +12,9 @@ use forge_core::KernelError;
 
 use crate::b_rep::{EdgeData, FaceData, HalfEdgeData, LoopData, VertexData};
 use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
 
 /// Creates a new face with a single vertex inside an existing shell.
@@ -43,27 +43,27 @@ impl TopoOperator for MakeFaceVertex {
 
     const NAME: &'static str = "make_face_vertex";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
-        format!("Create isolated vertex-face in shell {}", self.shell.index())
+        format!(
+            "Create isolated vertex-face in shell {}",
+            self.shell.index()
+        )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let placeholder_he = HalfEdgeId::DANGLING;
         let placeholder_loop = LoopId::DANGLING;
 
+        let vertex = draft.insert_vertex(VertexData::new(placeholder_he));
 
-
-
-        let vertex = draft.insert_vertex(VertexData::new(
-            placeholder_he,
-        ));
-
-        let face = draft.insert_face(FaceData::new(
-            placeholder_loop,
-            self.shell,
-        ));
+        let face = draft.insert_face(FaceData::new(placeholder_loop, self.shell));
 
         let loop_id = draft.insert_loop(LoopData::new(placeholder_he, face));
 
@@ -78,14 +78,18 @@ impl TopoOperator for MakeFaceVertex {
             edge,
         ));
 
-        draft.arena_mut().get_half_edge_mut(he)?.set_radial_next(he);
+        draft.arena_mut().set_half_edge_radial_next(he, he)?;
         draft.arena_mut().get_half_edge_mut(he)?.set_next(he);
         draft.arena_mut().get_half_edge_mut(he)?.set_prev(he);
-        draft.arena_mut().get_vertex_mut(vertex)?.set_primary_disk(he);
+        draft
+            .arena_mut()
+            .get_vertex_mut(vertex)?
+            .set_primary_disk(he);
         draft
             .arena_mut()
             .get_face_mut(face)?
-            .set_outer_loop(loop_id);
+            .loops
+            .set_outer(loop_id);
         draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(he);
         draft.arena_mut().get_edge_mut(edge)?.set_half_edge(he);
 
@@ -93,14 +97,21 @@ impl TopoOperator for MakeFaceVertex {
         // (i.e., this is the first face in a previously empty shell).
         let shell_repr = draft.arena().get_shell(self.shell)?.representative_face();
         if shell_repr.is_dangling() {
-            draft.arena_mut().get_shell_mut(self.shell)?.set_representative_face(face);
+            draft
+                .arena_mut()
+                .get_shell_mut(self.shell)?
+                .set_representative_face(face);
         }
 
         // ── Provenance Stamping (O(1)) ─────────────────────────────────
-        use forge_core::{EntityRef, EntityKind};
+        use forge_core::{EntityKind, EntityRef};
         draft.stamp_children_of(
             _recorder,
-            EntityRef::new(EntityKind::Shell, self.shell.index(), self.shell.generation()),
+            EntityRef::new(
+                EntityKind::Shell,
+                self.shell.index(),
+                self.shell.generation(),
+            ),
             &[
                 EntityRef::new(EntityKind::Vertex, vertex.index(), vertex.generation()),
                 EntityRef::new(EntityKind::Face, face.index(), face.generation()),
@@ -131,6 +142,4 @@ impl TopoOperator for MakeFaceVertex {
             },
         })
     }
-
-
 }

@@ -7,6 +7,4 @@
 mod diagnostics_section;
 
 pub use diagnostics_section::DiagnosticsSection;
-pub use diagnostics_section::{
-    FingerprintDetail, TraceVerbosity, GeometryValidationDepth,
-};
+pub use diagnostics_section::{FingerprintDetail, GeometryValidationDepth, TraceVerbosity};

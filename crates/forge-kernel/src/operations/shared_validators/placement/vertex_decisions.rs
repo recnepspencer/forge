@@ -54,9 +54,7 @@ pub fn validate_vertex_decisions(
             }
             other => {
                 return Err(KernelError::InvalidInput {
-                    message: format!(
-                        "decision {i} expected NearBoundary, got {other:?}"
-                    ),
+                    message: format!("decision {i} expected NearBoundary, got {other:?}"),
                     context: None,
                 });
             }
@@ -83,10 +81,7 @@ pub fn validate_vertex_decisions(
 
         if d.get_margin() < 0.0 {
             return Err(KernelError::InvalidInput {
-                message: format!(
-                    "decision {i} has negative margin={:.2e}",
-                    d.get_margin()
-                ),
+                message: format!("decision {i} has negative margin={:.2e}", d.get_margin()),
                 context: None,
             });
         }

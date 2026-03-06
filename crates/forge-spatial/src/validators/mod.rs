@@ -13,19 +13,19 @@
 //!               forge-geom (polygon area, plane), forge-core (KernelError, ToleranceProvider).
 //! INVARIANTS: No topology mutation. Requires a position callback.
 
-pub mod dispatch;
-pub mod facade;
 pub mod area;
 pub mod completeness;
+pub mod dispatch;
+pub mod edge_curve_consistency;
 pub mod edge_length;
+pub mod facade;
 pub mod gap;
 pub mod loop_orientation;
 pub mod shell_orientation;
 pub mod sliver;
 pub mod surface_deviation;
-pub mod volume;
-pub mod edge_curve_consistency;
 pub(crate) mod utils;
+pub mod volume;
 
 use forge_core::KernelError;
 use forge_topo::b_rep::TopologyArena;

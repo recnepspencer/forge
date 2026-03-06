@@ -14,11 +14,10 @@ use forge_core::KernelError;
 
 use crate::b_rep::{EdgeData, HalfEdgeData, VertexData};
 use crate::handles::{EdgeId, HalfEdgeId};
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
-
 
 /// Split an existing edge by inserting a midpoint vertex.
 ///
@@ -73,21 +72,23 @@ impl TopoOperator for SplitEdge {
 
     const NAME: &'static str = "split_edge";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         format!("Split edge at halfedge {}", self.edge.index())
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he_ab = self.edge;
         let (vertex_a, vertex_b) = {
             let ab_data = draft.arena().get_half_edge(he_ab)?;
             let ab_next = draft.arena().get_half_edge(ab_data.next())?;
-            (
-                ab_data.origin(),
-                ab_next.origin(),
-            )
+            (ab_data.origin(), ab_next.origin())
         };
 
         let chain: Vec<HalfEdgeId> =
@@ -119,9 +120,7 @@ impl TopoOperator for SplitEdge {
             HalfEdgeId::DANGLING, // sentinel
         ));
 
-        let new_edge = draft.insert_edge(EdgeData::new(
-            HalfEdgeId::DANGLING,
-        ));
+        let new_edge = draft.insert_edge(EdgeData::new(HalfEdgeId::DANGLING));
 
         let mut e_old_list = Vec::new();
         let mut e_new_list = Vec::new();
@@ -131,11 +130,7 @@ impl TopoOperator for SplitEdge {
         for (radial_index, &h) in chain.iter().enumerate() {
             let (h_face, h_orig, h_next) = {
                 let h_data = draft.arena().get_half_edge(h)?;
-                (
-                    h_data.face(),
-                    h_data.origin(),
-                    h_data.next(),
-                )
+                (h_data.face(), h_data.origin(), h_data.next())
             };
 
             // For non-closed edges, direction is determined by origin vertex.
@@ -177,7 +172,7 @@ impl TopoOperator for SplitEdge {
                 HalfEdgeId::DANGLING, // next
                 HalfEdgeId::DANGLING, // prev
                 h_face,
-                new_vertex,               // H_new ALWAYS originates at M
+                new_vertex,       // H_new ALWAYS originates at M
                 EdgeId::DANGLING, // sentinel edge
             ));
 
@@ -221,19 +216,13 @@ impl TopoOperator for SplitEdge {
             let next_i = (i + 1) % e_old_list.len();
             let curr = e_old_list[i];
             let nxt = e_old_list[next_i];
-            draft
-                .arena_mut()
-                .get_half_edge_mut(curr)?
-                .set_radial_next(nxt);
+            draft.arena_mut().set_half_edge_radial_next(curr, nxt)?;
         }
         for i in 0..e_new_list.len() {
             let next_i = (i + 1) % e_new_list.len();
             let curr = e_new_list[i];
             let nxt = e_new_list[next_i];
-            draft
-                .arena_mut()
-                .get_half_edge_mut(curr)?
-                .set_radial_next(nxt);
+            draft.arena_mut().set_half_edge_radial_next(curr, nxt)?;
         }
 
         // Wire vertices and edges
@@ -266,14 +255,26 @@ impl TopoOperator for SplitEdge {
         };
 
         // ── Provenance Stamping (O(1)) ─────────────────────────────────
-        use forge_core::{EntityRef, EntityKind};
-        let parent = EntityRef::new(EntityKind::HalfEdge, self.edge.index(), self.edge.generation());
+        use forge_core::{EntityKind, EntityRef};
+        let parent = EntityRef::new(
+            EntityKind::HalfEdge,
+            self.edge.index(),
+            self.edge.generation(),
+        );
         let mut children: Vec<EntityRef> = vec![
-            EntityRef::new(EntityKind::Vertex, new_vertex.index(), new_vertex.generation()),
+            EntityRef::new(
+                EntityKind::Vertex,
+                new_vertex.index(),
+                new_vertex.generation(),
+            ),
             EntityRef::new(EntityKind::Edge, new_edge.index(), new_edge.generation()),
         ];
         for &h_new in new_ids.values() {
-            children.push(EntityRef::new(EntityKind::HalfEdge, h_new.index(), h_new.generation()));
+            children.push(EntityRef::new(
+                EntityKind::HalfEdge,
+                h_new.index(),
+                h_new.generation(),
+            ));
         }
         draft.stamp_children_of(_recorder, parent, &children);
 
@@ -299,6 +300,4 @@ impl TopoOperator for SplitEdge {
             },
         })
     }
-
-
 }

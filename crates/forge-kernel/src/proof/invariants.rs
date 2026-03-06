@@ -120,7 +120,11 @@ pub fn validate_causal_reachability(
     let mut faces_with_orphan_ops = Vec::new();
 
     for (fid, _) in arena.iter_faces() {
-        let face_ref = EntityRef::new(forge_core::EntityKind::Face, fid.index() as u32, fid.generation());
+        let face_ref = EntityRef::new(
+            forge_core::EntityKind::Face,
+            fid.index() as u32,
+            fid.generation(),
+        );
         let chain = query_causal_chain(&face_ref, replay, decisions, lineage, &[]);
 
         if chain.get_steps().is_empty() {

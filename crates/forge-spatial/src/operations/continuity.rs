@@ -174,4 +174,3 @@ pub fn find_g1_chain(
 
     Ok(chain)
 }
-

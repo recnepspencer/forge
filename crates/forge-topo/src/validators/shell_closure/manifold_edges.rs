@@ -2,8 +2,9 @@
 //!
 //! INVARIANT: Every edge must have radial valence ≤ 2.
 
-use crate::b_rep::TopologyArena;
 use crate::b_rep::EntityBitset;
+use crate::b_rep::TopologyArena;
+use crate::queries::walk::walk_radial_iter;
 use forge_core::KernelError;
 
 pub fn validate_manifold_edges(arena: &TopologyArena) -> Result<(), KernelError> {
@@ -19,10 +20,12 @@ pub fn validate_manifold_edges(arena: &TopologyArena) -> Result<(), KernelError>
         let edge_id = he_data.edge();
         let valence = crate::queries::traverse::radial_valence(arena, he_id)?;
 
-        let mut curr = he_data.radial_next();
-        while curr != he_id {
+        for curr_result in walk_radial_iter(arena, he_id)? {
+            let curr = curr_result?;
+            if curr == he_id {
+                continue;
+            }
             checked_halfedges.insert(curr.index())?;
-            curr = arena.get_half_edge(curr)?.radial_next();
         }
 
         if valence <= 2 {

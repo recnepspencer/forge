@@ -9,9 +9,9 @@
 
 use forge_core::KernelError;
 
+use crate::b_rep::EntityBitset;
 use crate::b_rep::TopologyArena;
 use crate::handles::FaceId;
-use crate::b_rep::EntityBitset;
 use crate::operations::algorithms::bfs::collect_connected_face_component;
 
 /// Collect connected face components across the arena using caller predicates.

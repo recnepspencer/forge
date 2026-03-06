@@ -2,20 +2,22 @@
 //!
 //! DOMAIN: Side-car metadata map for manufacturing data.
 
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use crate::semantic_attributes::data::semantic_tag::{EntityKey, SemanticTag, TagValue};
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 /// Side-car attribute storage for the topology arena.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AttributeStore {
-    tags: HashMap<EntityKey, SemanticTag>,
+    tags: BTreeMap<EntityKey, SemanticTag>,
 }
 
 impl AttributeStore {
     /// Create an empty attribute store.
     pub fn new() -> Self {
-        Self { tags: HashMap::new() }
+        Self {
+            tags: BTreeMap::new(),
+        }
     }
 
     /// Get all tags for an entity, if any exist.
@@ -45,11 +47,14 @@ impl AttributeStore {
 
     /// Find all entities that have a specific tag name.
     pub fn get_entities_by_tag(&self, tag_name: &str) -> Vec<EntityKey> {
-        self.tags
+        let mut entities: Vec<_> = self
+            .tags
             .iter()
             .filter(|(_, tags)| tags.contains_key(tag_name))
             .map(|(key, _)| *key)
-            .collect()
+            .collect();
+        entities.sort();
+        entities
     }
 
     /// Returns the number of entities with attributes.
@@ -72,17 +77,28 @@ mod tests {
     fn set_and_get_tag() {
         let mut store = AttributeStore::new();
         let face = EntityKey::Face(FaceId::new(0, 0));
-        store.set_tag(face, "material".to_string(), TagValue::Text("AL_6061".to_string()));
+        store.set_tag(
+            face,
+            "material".to_string(),
+            TagValue::Text("AL_6061".to_string()),
+        );
         let tags = store.get_tags(face);
         assert!(tags.is_some());
-        assert_eq!(tags.unwrap().get("material"), Some(&TagValue::Text("AL_6061".to_string())));
+        assert_eq!(
+            tags.unwrap().get("material"),
+            Some(&TagValue::Text("AL_6061".to_string()))
+        );
     }
 
     #[test]
     fn remove_tag_cleans_up_empty_entry() {
         let mut store = AttributeStore::new();
         let face = EntityKey::Face(FaceId::new(0, 0));
-        store.set_tag(face, "material".to_string(), TagValue::Text("steel".to_string()));
+        store.set_tag(
+            face,
+            "material".to_string(),
+            TagValue::Text("steel".to_string()),
+        );
         store.remove_tag(face, "material");
         assert!(store.get_tags(face).is_none());
         assert!(store.is_empty());
@@ -94,8 +110,16 @@ mod tests {
         let f0 = EntityKey::Face(FaceId::new(0, 0));
         let f1 = EntityKey::Face(FaceId::new(1, 0));
         let v0 = EntityKey::Vertex(VertexId::new(0, 0));
-        store.set_tag(f0, "material".to_string(), TagValue::Text("AL_6061".to_string()));
-        store.set_tag(f1, "material".to_string(), TagValue::Text("steel".to_string()));
+        store.set_tag(
+            f0,
+            "material".to_string(),
+            TagValue::Text("AL_6061".to_string()),
+        );
+        store.set_tag(
+            f1,
+            "material".to_string(),
+            TagValue::Text("steel".to_string()),
+        );
         store.set_tag(v0, "datum".to_string(), TagValue::Flag(true));
         assert_eq!(store.get_entities_by_tag("material").len(), 2);
         assert_eq!(store.get_entities_by_tag("datum").len(), 1);
@@ -105,8 +129,16 @@ mod tests {
     fn multiple_tags_on_same_entity() {
         let mut store = AttributeStore::new();
         let face = EntityKey::Face(FaceId::new(5, 2));
-        store.set_tag(face, "material".to_string(), TagValue::Text("AL_6061".to_string()));
-        store.set_tag(face, "tolerance_class".to_string(), TagValue::Text("fine".to_string()));
+        store.set_tag(
+            face,
+            "material".to_string(),
+            TagValue::Text("AL_6061".to_string()),
+        );
+        store.set_tag(
+            face,
+            "tolerance_class".to_string(),
+            TagValue::Text("fine".to_string()),
+        );
         store.set_tag(face, "roughness_ra".to_string(), TagValue::Number(1.6));
         assert_eq!(store.get_tags(face).unwrap().len(), 3);
     }

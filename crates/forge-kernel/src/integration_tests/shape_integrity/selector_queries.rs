@@ -36,9 +36,12 @@ fn cube_has_one_bottom_face() {
 fn cube_six_axis_aligned_faces() {
     let env = shapes::unit_cube().unwrap();
     let normals: [[f64; 3]; 6] = [
-        [1.0, 0.0, 0.0], [-1.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0], [0.0, -1.0, 0.0],
-        [0.0, 0.0, 1.0], [0.0, 0.0, -1.0],
+        [1.0, 0.0, 0.0],
+        [-1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [0.0, -1.0, 0.0],
+        [0.0, 0.0, 1.0],
+        [0.0, 0.0, -1.0],
     ];
     for normal in &normals {
         let count = select(env.get_value())
@@ -65,9 +68,11 @@ fn tetrahedron_has_one_top_face() {
         .faces()
         .where_normal_near([0.0, 0.0, 1.0], 0.01)
         .count();
-    assert_eq!(count, 1, "Tetrahedron should have exactly 1 +Z face (its top)");
+    assert_eq!(
+        count, 1,
+        "Tetrahedron should have exactly 1 +Z face (its top)"
+    );
 }
-
 
 /// unit_cube (size=1.0) has vertices at ±0.5 on each axis.
 /// Verify we can find the vertex at (+0.5, +0.5, +0.5).
@@ -78,7 +83,10 @@ fn cube_corner_vertex() {
         .vertices()
         .where_near([0.5, 0.5, 0.5], 0.01)
         .one();
-    assert!(corner.is_ok(), "Cube should have exactly one vertex near (0.5, 0.5, 0.5)");
+    assert!(
+        corner.is_ok(),
+        "Cube should have exactly one vertex near (0.5, 0.5, 0.5)"
+    );
 }
 
 /// All 8 cube vertices should be findable at known positions (±0.5).
@@ -86,10 +94,14 @@ fn cube_corner_vertex() {
 fn cube_all_eight_vertices_findable() {
     let env = shapes::unit_cube().unwrap();
     let corners: [[f64; 3]; 8] = [
-        [ 0.5,  0.5,  0.5], [ 0.5,  0.5, -0.5],
-        [ 0.5, -0.5,  0.5], [ 0.5, -0.5, -0.5],
-        [-0.5,  0.5,  0.5], [-0.5,  0.5, -0.5],
-        [-0.5, -0.5,  0.5], [-0.5, -0.5, -0.5],
+        [0.5, 0.5, 0.5],
+        [0.5, 0.5, -0.5],
+        [0.5, -0.5, 0.5],
+        [0.5, -0.5, -0.5],
+        [-0.5, 0.5, 0.5],
+        [-0.5, 0.5, -0.5],
+        [-0.5, -0.5, 0.5],
+        [-0.5, -0.5, -0.5],
     ];
     for corner in &corners {
         let count = select(env.get_value())

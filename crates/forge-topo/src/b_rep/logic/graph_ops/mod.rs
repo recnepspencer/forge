@@ -4,9 +4,9 @@
 //! draft proxies, reverse indexes, and entity reassignment.
 
 mod accessors;
-mod insert_remove;
-mod view_factory;
-pub mod draft_proxy;
-pub mod membership_tracker;
 mod adjacency_index;
+pub mod draft_proxy;
+mod insert_remove;
+pub mod membership_tracker;
 mod reassignment;
+mod view_factory;

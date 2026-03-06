@@ -12,11 +12,12 @@ use std::collections::BTreeSet;
 
 use forge_core::KernelError;
 
+use crate::b_rep::EdgeRadialClass;
 use crate::b_rep::TopologyArena;
 use crate::handles::{FaceId, HalfEdgeId, LoopId, VertexId};
 
 use super::traverse::{
-    face_loops, is_boundary_edge, radial_valence, vertex_neighborhood_orbits, FaceAllEdgesIterator,
+    face_loops, is_boundary_edge, vertex_neighborhood_orbits, FaceAllEdgesIterator,
     VertexRingIterator,
 };
 
@@ -58,12 +59,18 @@ pub fn vertex_faces(arena: &TopologyArena, vertex: VertexId) -> Result<Vec<FaceI
 
 /// True when the radial valence of the edge is exactly 2.
 pub fn is_manifold_edge(arena: &TopologyArena, he: HalfEdgeId) -> Result<bool, KernelError> {
-    Ok(radial_valence(arena, he)? == 2)
+    Ok(matches!(
+        arena.classify_half_edge(he)?,
+        EdgeRadialClass::Manifold
+    ))
 }
 
 /// True when the radial valence of the edge is greater than 2.
 pub fn is_non_manifold_edge(arena: &TopologyArena, he: HalfEdgeId) -> Result<bool, KernelError> {
-    Ok(radial_valence(arena, he)? > 2)
+    Ok(matches!(
+        arena.classify_half_edge(he)?,
+        EdgeRadialClass::NonManifold
+    ))
 }
 
 /// Alias for boundary-edge classification (valence 1).
@@ -83,7 +90,7 @@ pub fn is_outer_loop(
     face: FaceId,
     loop_id: LoopId,
 ) -> Result<bool, KernelError> {
-    Ok(arena.get_face(face)?.outer_loop() == loop_id)
+    Ok(arena.get_face(face)?.loops.outer() == loop_id)
 }
 
 /// True when `loop_id` is one of the face inner loops.
@@ -105,10 +112,10 @@ pub fn is_inner_loop(
 
 #[cfg(test)]
 mod tests {
-    use crate::b_rep::ShellKind;
     use super::*;
-    use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
+    use crate::b_rep::ShellKind;
     use crate::boundary_editing::make_loop_in_face_from_vertices::MakeLoopInFaceFromVertices;
+    use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::entity_lifecycle::split_edge::SplitEdge;
     use crate::transactions::TopologyState;
@@ -118,7 +125,12 @@ mod tests {
     fn seed_edge_and_vertex_classification_is_boundary_and_manifold_vertex() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
         let state = draft.commit().unwrap();
 
         assert!(is_boundary_edge(state.arena(), mvf.half_edge).unwrap());
@@ -136,28 +148,26 @@ mod tests {
     fn face_adjacency_detects_split_faces() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se1 = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se1 = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let se2 = draft.execute(
-            SplitEdge {
-                edge: se1.he_mb,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let _se3 = draft.execute(
-            SplitEdge {
-                edge: se2.he_mb,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
+        let se2 = draft
+            .execute(SplitEdge { edge: se1.he_mb })
+            .unwrap()
+            .into_value();
+        let _se3 = draft
+            .execute(SplitEdge { edge: se2.he_mb })
+            .unwrap()
+            .into_value();
         let outer_edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face)
             .unwrap()
             .map(|r| r.unwrap())
@@ -172,15 +182,14 @@ mod tests {
             .get_half_edge(outer_edges[2])
             .unwrap()
             .origin();
-        let mef = draft.execute(
-            MakeEdgeFace {
+        let mef = draft
+            .execute(MakeEdgeFace {
                 face: mvf.face,
                 vertex_a: va,
                 vertex_b: vb,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
         let state = draft.commit().unwrap();
 
         assert_eq!(
@@ -197,28 +206,26 @@ mod tests {
     fn loop_classification_distinguishes_outer_and_inner() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se1 = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se1 = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let se2 = draft.execute(
-            SplitEdge {
-                edge: se1.he_mb,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let _se3 = draft.execute(
-            SplitEdge {
-                edge: se2.he_mb,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
+        let se2 = draft
+            .execute(SplitEdge { edge: se1.he_mb })
+            .unwrap()
+            .into_value();
+        let _se3 = draft
+            .execute(SplitEdge { edge: se2.he_mb })
+            .unwrap()
+            .into_value();
         let outer_edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face)
             .unwrap()
             .map(|r| r.unwrap())
@@ -238,14 +245,13 @@ mod tests {
             .get_half_edge(outer_edges[2])
             .unwrap()
             .origin();
-        let inner = draft.execute(
-            MakeLoopInFaceFromVertices {
+        let inner = draft
+            .execute(MakeLoopInFaceFromVertices {
                 face: mvf.face,
                 vertices: vec![v0, v1, v2],
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
         let state = draft.commit().unwrap();
 
         assert!(is_outer_loop(state.arena(), mvf.face, mvf.loop_id).unwrap());

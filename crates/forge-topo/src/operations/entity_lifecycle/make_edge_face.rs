@@ -14,11 +14,10 @@ use forge_core::{KernelError, TopologyError};
 
 use crate::b_rep::{EdgeData, FaceData, HalfEdgeData, LoopData};
 use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, VertexId};
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
-
 
 /// Split a face by inserting a new edge between two of its vertices.
 ///
@@ -55,16 +54,23 @@ impl TopoOperator for MakeEdgeFace {
 
     const NAME: &'static str = "make_edge_face";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         format!(
             "Split face {} by inserting edge between vertices {} and {}",
-            self.face.index(), self.vertex_a.index(), self.vertex_b.index()
+            self.face.index(),
+            self.vertex_a.index(),
+            self.vertex_b.index()
         )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         if self.vertex_a == self.vertex_b {
             // TODO: Closed-loop edges (e.g., cylinder seams) are topologically
             // valid but require special split-pair logic where both sub-loops
@@ -88,10 +94,7 @@ impl TopoOperator for MakeEdgeFace {
         let placeholder_he = HalfEdgeId::DANGLING;
         let placeholder_loop = LoopId::DANGLING;
 
-        let new_face = draft.insert_face(FaceData::new(
-            placeholder_loop,
-            source_shell,
-        ));
+        let new_face = draft.insert_face(FaceData::new(placeholder_loop, source_shell));
 
         let new_loop = draft.insert_loop(LoopData::new(placeholder_he, new_face));
 
@@ -139,8 +142,8 @@ impl TopoOperator for MakeEdgeFace {
         }
 
         // Input validation ensures he_from_a and he_from_b belong to the SAME loop.
-        // If they belonged to different loops on the same face (e.g., bridging a 
-        // hole to the outer boundary), the correct Euler operator is MEKL (Make 
+        // If they belonged to different loops on the same face (e.g., bridging a
+        // hole to the outer boundary), the correct Euler operator is MEKL (Make
         // Edge Kill Loop), which merges two loops into one.
 
         // TODO(hole-redistribution): After splitting, inner loops (holes)
@@ -150,15 +153,15 @@ impl TopoOperator for MakeEdgeFace {
 
         reassign_face_loop(draft, he_ba, new_face)?;
 
-        let original_loop = draft.arena().get_face(self.face)?.outer_loop();
+        let original_loop = draft.arena().get_face(self.face)?.loops.outer();
         let arena = draft.arena_mut();
         arena.get_loop_mut(original_loop)?.set_half_edge(he_ab);
-        arena.get_face_mut(new_face)?.set_outer_loop(new_loop);
+        arena.get_face_mut(new_face)?.loops.set_outer(new_loop);
         arena.get_loop_mut(new_loop)?.set_half_edge(he_ba);
         arena.get_edge_mut(edge)?.set_half_edge(he_ab);
 
         // ── Provenance Stamping (O(1)) ─────────────────────────────────
-        use forge_core::{EntityRef, EntityKind};
+        use forge_core::{EntityKind, EntityRef};
         draft.stamp_children_of(
             _recorder,
             EntityRef::new(EntityKind::Face, self.face.index(), self.face.generation()),
@@ -192,8 +195,6 @@ impl TopoOperator for MakeEdgeFace {
             },
         })
     }
-
-
 }
 
 /// Collect all halfedges originating from `vertex` that lie on `face`.
@@ -206,8 +207,8 @@ fn find_all_halfedges_from_vertex(
     vertex: VertexId,
 ) -> Result<Vec<HalfEdgeId>, KernelError> {
     let face_data = draft.arena().get_face(face)?;
-    let mut all_loops = vec![face_data.outer_loop()];
-    all_loops.extend_from_slice(face_data.inner_loops());
+    let mut all_loops = vec![face_data.loops.outer()];
+    all_loops.extend_from_slice(face_data.loops.inners());
 
     let mut result = Vec::new();
     let bound = draft.arena().half_edge_count();
@@ -261,7 +262,7 @@ fn validate_split_pair(
     draft: &MutableDraft,
     he_a: HalfEdgeId,
     he_b: HalfEdgeId,
-    ) -> Result<bool, KernelError> {
+) -> Result<bool, KernelError> {
     if he_a == he_b {
         return Ok(false);
     }
@@ -313,7 +314,9 @@ fn find_valid_split_pair(
                 }
                 curr = draft.arena().get_half_edge(curr)?.next();
                 steps += 1;
-                if steps > bound { break; }
+                if steps > bound {
+                    break;
+                }
             }
             if same_loop {
                 if validate_split_pair(draft, he_a, he_b)? {
@@ -324,7 +327,7 @@ fn find_valid_split_pair(
             }
         }
     }
-    
+
     if any_different_loop {
         return Err(KernelError::InvalidInput {
             message: "MakeEdgeFace: vertices belong to different face loops. Use MakeEdgeKillLoop instead.".to_string(),
@@ -333,7 +336,8 @@ fn find_valid_split_pair(
     }
 
     Err(KernelError::InvalidInput {
-        message: "No valid split pair found: vertices may be adjacent or on the same sub-path".to_string(),
+        message: "No valid split pair found: vertices may be adjacent or on the same sub-path"
+            .to_string(),
         context: None,
     })
 }
@@ -446,8 +450,8 @@ fn repair_edge_after_next_change(
     let new_edge = draft.insert_edge(EdgeData::new(twin));
 
     let arena = draft.arena_mut();
-    arena.get_half_edge_mut(he)?.set_radial_next(he);
-    arena.get_half_edge_mut(twin)?.set_radial_next(twin);
+    arena.set_half_edge_radial_next(he, he)?;
+    arena.set_half_edge_radial_next(twin, twin)?;
     arena.get_half_edge_mut(twin)?.set_edge(new_edge);
     arena.get_edge_mut(old_edge)?.set_half_edge(he);
 

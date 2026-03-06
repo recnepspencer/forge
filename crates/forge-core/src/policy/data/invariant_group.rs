@@ -83,8 +83,7 @@ impl InvariantGroup {
             | Self::RadialEdge
             | Self::VertexDisk => InvariantTier::Topology,
 
-            Self::ShellClosure | Self::EulerFormula | Self::Geometry
-                => InvariantTier::Semantic,
+            Self::ShellClosure | Self::EulerFormula | Self::Geometry => InvariantTier::Semantic,
 
             Self::CacheCoherence => InvariantTier::Cache,
         }
@@ -141,13 +140,11 @@ pub enum ValidatorCost {
 pub const APPLICABLE_BY_KIND: [u32; 4] = [
     // Point (0D): only CacheCoherence
     InvariantGroup::CacheCoherence.mask(),
-
     // Wire (1D): Pointer + Ownership + Cache
     // No faces → no loops, radial, shell closure, vertex disk (face-based), euler
     InvariantGroup::PointerCoherence.mask()
         | InvariantGroup::Ownership.mask()
         | InvariantGroup::CacheCoherence.mask(),
-
     // Sheet (2D): everything except ShellClosure (added for closed sheets via CLOSED_SHEET_EXTRA)
     InvariantGroup::PointerCoherence.mask()
         | InvariantGroup::LoopIntegrity.mask()
@@ -157,7 +154,6 @@ pub const APPLICABLE_BY_KIND: [u32; 4] = [
         | InvariantGroup::EulerFormula.mask()
         | InvariantGroup::CacheCoherence.mask()
         | InvariantGroup::Geometry.mask(),
-
     // Solid (3D): everything
     InvariantGroup::PointerCoherence.mask()
         | InvariantGroup::LoopIntegrity.mask()
@@ -180,8 +176,7 @@ pub const DEFER_UNCERTIFIED: u32 =
 /// Groups deferred to PostCommit by Semantic tier default.
 /// Geometry checks are deferred because they require vertex positions
 /// (available only at commit time via forge-spatial).
-pub const DEFER_SEMANTIC_TIER: u32 =
-    InvariantGroup::ShellClosure.mask()
+pub const DEFER_SEMANTIC_TIER: u32 = InvariantGroup::ShellClosure.mask()
     | InvariantGroup::EulerFormula.mask()
     | InvariantGroup::Geometry.mask();
 

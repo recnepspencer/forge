@@ -2,13 +2,15 @@
 //!
 //! INVARIANT: Adjacent faces sharing an edge must belong to the same shell.
 
-use crate::b_rep::TopologyArena;
 use crate::b_rep::EntityBitset;
+use crate::b_rep::TopologyArena;
 use forge_core::KernelError;
 
 use super::vf;
 
-pub(crate) fn validate_face_adjacency_consistency(arena: &TopologyArena) -> Result<(), KernelError> {
+pub(crate) fn validate_face_adjacency_consistency(
+    arena: &TopologyArena,
+) -> Result<(), KernelError> {
     let mut checked = EntityBitset::for_half_edges(arena);
 
     for (he_id, he_data) in arena.iter_half_edges() {

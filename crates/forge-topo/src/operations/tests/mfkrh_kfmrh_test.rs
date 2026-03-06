@@ -7,8 +7,8 @@
 
 use crate::boundary_editing::kill_face_make_ring_hole::KillFaceMakeRingHole;
 use crate::boundary_editing::make_face_kill_ring_hole::MakeFaceKillRingHole;
-use crate::transactions::TopologyState;
 use crate::testing::build_face_with_hole;
+use crate::transactions::TopologyState;
 
 /// MFKRH on a face with one inner loop promotes it to a new face.
 #[test]
@@ -20,17 +20,24 @@ fn mfkrh_promotes_inner_loop() {
 
     assert_eq!(draft.arena().get_face(face).unwrap().inner_loop_count(), 1);
 
-    let inner_loop = draft.arena().get_face(face).unwrap().inner_loops()[0];
+    let inner_loop = draft.arena().get_face(face).unwrap().loops.inners()[0];
 
     let f_before = draft.arena().face_count();
     let l_before = draft.arena().loop_count();
 
-    let mfkrh = draft.execute(MakeFaceKillRingHole { loop_id: inner_loop })
+    let mfkrh = draft
+        .execute(MakeFaceKillRingHole {
+            loop_id: inner_loop,
+        })
         .unwrap()
         .into_value();
 
     assert_eq!(draft.arena().face_count(), f_before + 1, "ΔF = +1");
-    assert_eq!(draft.arena().loop_count(), l_before, "ΔL = 0 (loop moved, not created)");
+    assert_eq!(
+        draft.arena().loop_count(),
+        l_before,
+        "ΔL = 0 (loop moved, not created)"
+    );
 
     assert_eq!(
         draft.arena().get_face(face).unwrap().inner_loop_count(),
@@ -40,7 +47,7 @@ fn mfkrh_promotes_inner_loop() {
 
     let new_face_data = draft.arena().get_face(mfkrh.new_face).unwrap();
     assert_eq!(
-        new_face_data.outer_loop(),
+        new_face_data.loops.outer(),
         inner_loop,
         "promoted loop must be outer loop of new face"
     );
@@ -66,7 +73,9 @@ fn mfkrh_rejects_outer_loop() {
     let (face, _outer_he, _inner_he, outer_loop, _verts) = build_face_with_hole(&mut draft);
     let _ = face;
 
-    let result = draft.execute(MakeFaceKillRingHole { loop_id: outer_loop });
+    let result = draft.execute(MakeFaceKillRingHole {
+        loop_id: outer_loop,
+    });
     assert!(result.is_err(), "MFKRH must reject the outer loop");
 }
 
@@ -78,9 +87,12 @@ fn kfmrh_demotes_face_to_hole() {
 
     let (face, _outer_he, inner_he, _outer_loop, _verts) = build_face_with_hole(&mut draft);
 
-    let inner_loop = draft.arena().get_face(face).unwrap().inner_loops()[0];
+    let inner_loop = draft.arena().get_face(face).unwrap().loops.inners()[0];
 
-    let mfkrh = draft.execute(MakeFaceKillRingHole { loop_id: inner_loop })
+    let mfkrh = draft
+        .execute(MakeFaceKillRingHole {
+            loop_id: inner_loop,
+        })
         .unwrap()
         .into_value();
 
@@ -88,14 +100,13 @@ fn kfmrh_demotes_face_to_hole() {
 
     let f_before = draft.arena().face_count();
 
-    draft.execute(
-        KillFaceMakeRingHole {
+    draft
+        .execute(KillFaceMakeRingHole {
             face_to_kill: mfkrh.new_face,
             target_face: face,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     assert_eq!(draft.arena().face_count(), f_before - 1, "ΔF = -1");
     assert_eq!(
@@ -123,20 +134,22 @@ fn mfkrh_kfmrh_roundtrip() {
     let l_before = draft.arena().loop_count();
     let inner_before = draft.arena().get_face(face).unwrap().inner_loop_count();
 
-    let inner_loop = draft.arena().get_face(face).unwrap().inner_loops()[0];
+    let inner_loop = draft.arena().get_face(face).unwrap().loops.inners()[0];
 
-    let mfkrh = draft.execute(MakeFaceKillRingHole { loop_id: inner_loop })
+    let mfkrh = draft
+        .execute(MakeFaceKillRingHole {
+            loop_id: inner_loop,
+        })
         .unwrap()
         .into_value();
 
-    draft.execute(
-        KillFaceMakeRingHole {
+    draft
+        .execute(KillFaceMakeRingHole {
             face_to_kill: mfkrh.new_face,
             target_face: face,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     assert_eq!(draft.arena().face_count(), f_before, "F preserved");
     assert_eq!(draft.arena().loop_count(), l_before, "L preserved");

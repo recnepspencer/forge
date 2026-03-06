@@ -11,11 +11,11 @@ use crate::b_rep::TopologyArena;
 use crate::handles::{
     BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
 };
-use crate::transactions::compute_arena_topology_hash;
-use crate::provenance::{Lineage, LineageEvent, OpSignature};
 use crate::provenance::LineageStore;
-use crate::provenance::{ReplayEntry, ReplayLog};
 use crate::provenance::ReidentificationLinkIndex;
+use crate::provenance::{Lineage, LineageEvent, OpSignature};
+use crate::provenance::{ReplayEntry, ReplayLog};
+use crate::transactions::compute_arena_topology_hash;
 use crate::validators::validate::ValidationLevel;
 use forge_core::KernelError;
 
@@ -135,7 +135,8 @@ impl TopologyState {
         };
 
         // ── Option A: derive group policy from declared shell metadata ──
-        let ctx = crate::validators::group_policy_runtime::topology_context_from_shell_metadata(&arena);
+        let ctx =
+            crate::validators::group_policy_runtime::topology_context_from_shell_metadata(&arena);
         config.group_policy = crate::validators::group_policy_runtime::GroupPolicyRuntime::resolve(
             0, // no force-skip (would come from GroupPolicyConfig in forge-kernel)
             0, // no force-per-op
@@ -150,11 +151,12 @@ impl TopologyState {
         };
 
         MutableDraft {
+            draft_id: crate::identity::DraftId::new(self.epoch + 1),
             base_epoch: self.epoch,
             next_epoch: self.epoch + 1,
             topology_version: self.topology_version,
             geometry_version: self.geometry_version,
-            op_counter: 0,
+            op_counter: crate::identity::OperationId::new(0),
             committed: false,
             replay_log: ReplayLog::new(),
             topology_hash: self.topology_hash,

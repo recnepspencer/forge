@@ -4,7 +4,7 @@
 //! post-execution invariant validation, pipeline fingerprinting,
 //! and RAII conditioning safety.
 
-pub mod executor;
-pub mod invariants;
-pub mod fingerprint;
 pub mod conditioning_guard;
+pub mod executor;
+pub mod fingerprint;
+pub mod invariants;

@@ -65,7 +65,12 @@ impl Snapshot {
             ("faces", self.faces, now.faces, delta.faces),
             ("vertices", self.vertices, now.vertices, delta.vertices),
             ("edges", self.edges, now.edges, delta.edges),
-            ("half_edges", self.half_edges, now.half_edges, delta.half_edges),
+            (
+                "half_edges",
+                self.half_edges,
+                now.half_edges,
+                delta.half_edges,
+            ),
             ("loops", self.loops, now.loops, delta.loops),
             ("shells", self.shells, now.shells, delta.shells),
             ("bodies", self.bodies, now.bodies, delta.bodies),

@@ -6,29 +6,30 @@
 //! they differ — catching Euler operators that rewire halfedges but
 //! forget to update the reverse index.
 
-use std::collections::BTreeSet;
 use crate::b_rep::TopologyArena;
+use crate::queries::walk::collect_loop;
 use forge_core::KernelError;
+use std::collections::BTreeSet;
 
 /// Validate that `face_halfedges` index matches loop-walked halfedges.
 pub(crate) fn validate_index_coherence(arena: &TopologyArena) -> Result<(), KernelError> {
     for (face_id, face_data) in arena.iter_faces() {
-        let indexed: BTreeSet<_> = arena.halfedges_of_face(face_id)
-            .iter()
-            .copied()
-            .collect();
+        let indexed: BTreeSet<_> = arena.halfedges_of_face(face_id).iter().copied().collect();
 
         let mut walked = BTreeSet::new();
-        let bound = arena.half_edge_count();
 
         // Walk outer loop
-        let outer_loop = arena.get_loop(face_data.outer_loop())?;
-        walk_loop_into(arena, outer_loop.half_edge(), bound, &mut walked)?;
+        let outer_loop = arena.get_loop(face_data.loops.outer())?;
+        for he in collect_loop(arena, outer_loop.half_edge())? {
+            walked.insert(he);
+        }
 
         // Walk inner loops (holes)
-        for &loop_id in face_data.inner_loops() {
+        for &loop_id in face_data.loops.inners() {
             let inner_loop = arena.get_loop(loop_id)?;
-            walk_loop_into(arena, inner_loop.half_edge(), bound, &mut walked)?;
+            for he in collect_loop(arena, inner_loop.half_edge())? {
+                walked.insert(he);
+            }
         }
 
         if indexed != walked {
@@ -36,7 +37,7 @@ pub(crate) fn validate_index_coherence(arena: &TopologyArena) -> Result<(), Kern
             let in_walk_not_indexed: Vec<_> = walked.difference(&indexed).collect();
             return Err(KernelError::TopologyViolation {
                 err: forge_core::TopologyError::BrokenLoop {
-                    starting_halfedge: face_data.outer_loop().index(),
+                    starting_halfedge: face_data.loops.outer().index(),
                     face_index: face_id.index(),
                 },
                 context: Some(forge_core::ErrorContext {
@@ -56,26 +57,5 @@ pub(crate) fn validate_index_coherence(arena: &TopologyArena) -> Result<(), Kern
         }
     }
 
-    Ok(())
-}
-
-/// Walk a loop starting at `start`, inserting each visited halfedge into `out`.
-fn walk_loop_into(
-    arena: &TopologyArena,
-    start: crate::handles::HalfEdgeId,
-    bound: usize,
-    out: &mut BTreeSet<crate::handles::HalfEdgeId>,
-) -> Result<(), KernelError> {
-    let mut current = start;
-    let mut steps = 0;
-    loop {
-        out.insert(current);
-        let he = arena.get_half_edge(current)?;
-        current = he.next();
-        steps += 1;
-        if current == start || steps > bound {
-            break;
-        }
-    }
     Ok(())
 }

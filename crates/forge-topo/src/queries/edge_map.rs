@@ -8,7 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use forge_core::KernelError;
 
 use crate::b_rep::TopologyArena;
-use crate::handles::{HalfEdgeId, EdgeId, VertexId};
+use crate::handles::{EdgeId, HalfEdgeId, VertexId};
 
 /// Result of building a directed edge map.
 pub struct EdgeMapResult {

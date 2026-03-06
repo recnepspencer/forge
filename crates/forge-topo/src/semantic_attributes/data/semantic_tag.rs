@@ -2,12 +2,12 @@
 //!
 //! DOMAIN: Entity key discriminant, tag value types, and type alias.
 
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use crate::handles::{EdgeId, FaceId, ShellId, VertexId};
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 /// The key into the attribute store — identifies which entity owns a tag set.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum EntityKey {
     Shell(ShellId),
     Face(FaceId),
@@ -16,16 +16,24 @@ pub enum EntityKey {
 }
 
 impl From<ShellId> for EntityKey {
-    fn from(id: ShellId) -> Self { Self::Shell(id) }
+    fn from(id: ShellId) -> Self {
+        Self::Shell(id)
+    }
 }
 impl From<FaceId> for EntityKey {
-    fn from(id: FaceId) -> Self { Self::Face(id) }
+    fn from(id: FaceId) -> Self {
+        Self::Face(id)
+    }
 }
 impl From<EdgeId> for EntityKey {
-    fn from(id: EdgeId) -> Self { Self::Edge(id) }
+    fn from(id: EdgeId) -> Self {
+        Self::Edge(id)
+    }
 }
 impl From<VertexId> for EntityKey {
-    fn from(id: VertexId) -> Self { Self::Vertex(id) }
+    fn from(id: VertexId) -> Self {
+        Self::Vertex(id)
+    }
 }
 
 /// A single attribute value attached to an entity.
@@ -37,4 +45,4 @@ pub enum TagValue {
 }
 
 /// A collection of key-value tags for a single entity.
-pub type SemanticTag = HashMap<String, TagValue>;
+pub type SemanticTag = BTreeMap<String, TagValue>;

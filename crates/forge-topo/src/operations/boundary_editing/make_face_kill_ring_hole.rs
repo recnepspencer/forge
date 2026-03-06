@@ -15,9 +15,9 @@ use forge_core::KernelError;
 
 use crate::b_rep::FaceData;
 use crate::handles::{FaceId, LoopId};
-use crate::transactions::MutableDraft;
 use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
+use crate::transactions::MutableDraft;
 use crate::validators::invariant_id::InvariantContract;
 
 /// Promotes an inner loop (hole) into the outer loop of a new face.
@@ -45,19 +45,27 @@ impl TopoOperator for MakeFaceKillRingHole {
 
     const NAME: &'static str = "make_face_kill_ring_hole";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
-        format!("Promote inner loop {} to its own face", self.loop_id.index())
+        format!(
+            "Promote inner loop {} to its own face",
+            self.loop_id.index()
+        )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let loop_data = draft.arena().get_loop(self.loop_id)?;
         let old_face = loop_data.face();
         let start_he = loop_data.half_edge();
 
         let old_face_data = draft.arena().get_face(old_face)?;
-        if old_face_data.outer_loop() == self.loop_id {
+        if old_face_data.loops.outer() == self.loop_id {
             return Err(KernelError::InvalidInput {
                 message: "MakeFaceKillRingHole requires an inner loop, not the outer loop"
                     .to_string(),
@@ -65,7 +73,7 @@ impl TopoOperator for MakeFaceKillRingHole {
             });
         }
 
-        let is_inner = old_face_data.inner_loops().contains(&self.loop_id);
+        let is_inner = old_face_data.loops.inners().contains(&self.loop_id);
         if !is_inner {
             return Err(KernelError::InvalidInput {
                 message: format!(
@@ -78,15 +86,13 @@ impl TopoOperator for MakeFaceKillRingHole {
         }
 
         let shell = old_face_data.shell();
-        let new_face = draft.insert_face(FaceData::new(
-            self.loop_id,
-            shell,
-        ));
+        let new_face = draft.insert_face(FaceData::new(self.loop_id, shell));
 
         draft
             .arena_mut()
             .get_face_mut(old_face)?
-            .remove_inner_loop(self.loop_id);
+            .loops
+            .remove_inner(self.loop_id);
 
         draft
             .arena_mut()
@@ -126,6 +132,4 @@ impl TopoOperator for MakeFaceKillRingHole {
             },
         })
     }
-
-
 }

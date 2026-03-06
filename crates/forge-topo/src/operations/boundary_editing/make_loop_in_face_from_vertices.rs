@@ -15,11 +15,10 @@ use forge_core::KernelError;
 
 use crate::b_rep::{EdgeData, HalfEdgeData, LoopData};
 use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, VertexId};
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
-
 
 /// Creates a new inner loop on an existing face by connecting a sequence of vertices.
 #[derive(Debug)]
@@ -45,16 +44,22 @@ impl TopoOperator for MakeLoopInFaceFromVertices {
 
     const NAME: &'static str = "make_loop_in_face_from_vertices";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         format!(
             "Create {}-sided inner loop (hole) in face {}",
-            self.vertices.len(), self.face.index()
+            self.vertices.len(),
+            self.face.index()
         )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let n = self.vertices.len();
         if n < 3 {
             return Err(KernelError::InvalidInput {
@@ -87,16 +92,14 @@ impl TopoOperator for MakeLoopInFaceFromVertices {
         draft
             .arena_mut()
             .get_face_mut(self.face)?
-            .add_inner_loop(loop_id);
+            .loops
+            .add_inner(loop_id);
 
         let mut half_edges = Vec::with_capacity(n);
         let mut edges = Vec::with_capacity(n);
 
         for _ in 0..n {
-
-
-            let edge =
-                draft.insert_edge(EdgeData::new(placeholder_he));
+            let edge = draft.insert_edge(EdgeData::new(placeholder_he));
             let he = draft.insert_half_edge(HalfEdgeData::new(
                 placeholder_he,
                 placeholder_he,
@@ -122,7 +125,7 @@ impl TopoOperator for MakeLoopInFaceFromVertices {
 
             let arena = draft.arena_mut();
             arena.get_half_edge_mut(he)?.set_origin(v);
-            arena.get_half_edge_mut(he)?.set_radial_next(he);
+            arena.set_half_edge_radial_next(he, he)?;
             arena.get_half_edge_mut(he)?.set_next(next_he);
             arena.get_half_edge_mut(he)?.set_prev(prev_he);
 
@@ -163,6 +166,4 @@ impl TopoOperator for MakeLoopInFaceFromVertices {
             },
         })
     }
-
-
 }

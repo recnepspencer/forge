@@ -8,8 +8,8 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::policy::PolicyKind;
 use super::entity_ref::EntityRef;
+use crate::policy::PolicyKind;
 
 /// How a kernel decision was resolved.
 ///

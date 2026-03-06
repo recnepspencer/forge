@@ -6,5 +6,5 @@
 
 pub mod area;
 pub mod centroid;
-pub mod volume;
 pub mod distance;
+pub mod volume;

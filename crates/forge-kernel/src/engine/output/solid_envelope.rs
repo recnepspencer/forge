@@ -97,35 +97,55 @@ impl SolidEnvelope {
     /// All body handles in this solid. Computed lazily on first access.
     pub fn bodies(&self) -> &[BodyId] {
         self.bodies.get_or_init(|| {
-            self.topology.arena().iter_bodies().map(|(id, _)| id).collect()
+            self.topology
+                .arena()
+                .iter_bodies()
+                .map(|(id, _)| id)
+                .collect()
         })
     }
 
     /// All shell handles in this solid. Computed lazily on first access.
     pub fn shells(&self) -> &[ShellId] {
         self.shells.get_or_init(|| {
-            self.topology.arena().iter_shells().map(|(id, _)| id).collect()
+            self.topology
+                .arena()
+                .iter_shells()
+                .map(|(id, _)| id)
+                .collect()
         })
     }
 
     /// All face handles in this solid. Computed lazily on first access.
     pub fn faces(&self) -> &[FaceId] {
         self.faces.get_or_init(|| {
-            self.topology.arena().iter_faces().map(|(id, _)| id).collect()
+            self.topology
+                .arena()
+                .iter_faces()
+                .map(|(id, _)| id)
+                .collect()
         })
     }
 
     /// All vertex handles in this solid. Computed lazily on first access.
     pub fn vertices(&self) -> &[VertexId] {
         self.vertices.get_or_init(|| {
-            self.topology.arena().iter_vertices().map(|(id, _)| id).collect()
+            self.topology
+                .arena()
+                .iter_vertices()
+                .map(|(id, _)| id)
+                .collect()
         })
     }
 
     /// All edge handles in this solid. Computed lazily on first access.
     pub fn edges(&self) -> &[EdgeId] {
         self.edges.get_or_init(|| {
-            self.topology.arena().iter_edges().map(|(id, _)| id).collect()
+            self.topology
+                .arena()
+                .iter_edges()
+                .map(|(id, _)| id)
+                .collect()
         })
     }
 
@@ -154,7 +174,12 @@ impl SolidEnvelope {
     /// Panics if the solid contains zero or more than one body.
     pub fn body(&self) -> BodyId {
         let bs = self.bodies();
-        assert_eq!(bs.len(), 1, "SolidEnvelope::body() requires exactly 1 body, found {}", bs.len());
+        assert_eq!(
+            bs.len(),
+            1,
+            "SolidEnvelope::body() requires exactly 1 body, found {}",
+            bs.len()
+        );
         bs[0]
     }
 
@@ -164,7 +189,12 @@ impl SolidEnvelope {
     /// Panics if the solid contains zero or more than one shell.
     pub fn shell(&self) -> ShellId {
         let ss = self.shells();
-        assert_eq!(ss.len(), 1, "SolidEnvelope::shell() requires exactly 1 shell, found {}", ss.len());
+        assert_eq!(
+            ss.len(),
+            1,
+            "SolidEnvelope::shell() requires exactly 1 shell, found {}",
+            ss.len()
+        );
         ss[0]
     }
 
@@ -211,7 +241,9 @@ impl SolidEnvelope {
                 for coord in plane.normal() {
                     hash = hash.wrapping_mul(31).wrapping_add(coord.to_bits() as u128);
                 }
-                hash = hash.wrapping_mul(31).wrapping_add(plane.offset().to_bits() as u128);
+                hash = hash
+                    .wrapping_mul(31)
+                    .wrapping_add(plane.offset().to_bits() as u128);
             }
         }
 

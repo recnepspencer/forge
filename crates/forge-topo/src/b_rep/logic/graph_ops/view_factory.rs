@@ -3,10 +3,10 @@
 //! DOMAIN: Constructs read-only view wrappers that unify connectivity
 //! (from entity structs) with side-car metadata (from arena vectors).
 
-use forge_core::KernelError;
 use crate::b_rep::data::storage::arena::TopologyArena;
-use crate::b_rep::logic::views::{HalfEdgeView, VertexView, EdgeView};
-use crate::handles::{HalfEdgeId, VertexId, EdgeId};
+use crate::b_rep::logic::views::{EdgeView, HalfEdgeView, VertexView};
+use crate::handles::{EdgeId, HalfEdgeId, VertexId};
+use forge_core::KernelError;
 
 impl TopologyArena {
     /// Get a read-only view of a halfedge (connectivity + side-car metadata).

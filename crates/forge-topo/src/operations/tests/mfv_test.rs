@@ -3,11 +3,11 @@
 //! DOMAIN: MFV adds a face seed to an existing shell, without creating
 //! a new solid. Tests verify entity counts, self-loop wiring, and lineage.
 
+use crate::b_rep::ShellKind;
 use crate::entity_lifecycle::make_face_vertex::MakeFaceVertex;
 use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+use crate::provenance::OpSignature;
 use crate::transactions::TopologyState;
-use crate::provenance::{OpSignature};
-use crate::b_rep::ShellKind;
 
 /// MFV creates exactly 1 face, 1 vertex, 1 halfedge, 1 loop, 1 edge
 /// without creating any new shell or solid.
@@ -16,7 +16,12 @@ fn mfv_creates_face_vertex_in_shell() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
 
     let v_before = draft.arena().vertex_count();
     let f_before = draft.arena().face_count();
@@ -26,13 +31,10 @@ fn mfv_creates_face_vertex_in_shell() {
     let s_before = draft.arena().shell_count();
     let so_before = draft.arena().body_count();
 
-    let mfv = draft.execute(
-        MakeFaceVertex {
-            shell: mvf.shell,
-        },
-    )
-    .unwrap()
-    .into_value();
+    let mfv = draft
+        .execute(MakeFaceVertex { shell: mvf.shell })
+        .unwrap()
+        .into_value();
 
     assert_eq!(draft.arena().vertex_count(), v_before + 1, "ΔV = +1");
     assert_eq!(draft.arena().face_count(), f_before + 1, "ΔF = +1");

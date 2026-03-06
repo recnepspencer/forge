@@ -29,12 +29,12 @@
 // predicates: approximately_equal, positions_coincident, is_effectively_zero.
 #![deny(clippy::float_cmp)]
 
-pub mod proof;
 pub mod configuration;
 pub mod context;
 pub mod engine;
-pub mod registry;
 pub mod geometry;
+pub mod proof;
+pub mod registry;
 
 pub mod operations;
 pub mod prelude;

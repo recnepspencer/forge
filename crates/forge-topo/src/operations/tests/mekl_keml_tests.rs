@@ -6,8 +6,8 @@
 
 use crate::boundary_editing::kill_edge_make_loop::KillEdgeMakeLoop;
 use crate::boundary_editing::make_edge_kill_loop::MakeEdgeKillLoop;
-use crate::transactions::TopologyState;
 use crate::testing::build_face_with_hole;
+use crate::transactions::TopologyState;
 use crate::traverse::FaceEdgeIterator;
 
 /// MEKL on a face with one triangular hole absorbs the inner loop.
@@ -23,14 +23,13 @@ fn mekl_absorbs_inner_loop() {
 
     assert_eq!(draft.arena().get_face(face).unwrap().inner_loop_count(), 1);
 
-    let mekl = draft.execute(
-        MakeEdgeKillLoop {
+    let mekl = draft
+        .execute(MakeEdgeKillLoop {
             he_a: outer_he,
             he_b: inner_he,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     assert_eq!(
         draft.arena().get_face(face).unwrap().inner_loop_count(),
@@ -62,14 +61,13 @@ fn mekl_euler_delta() {
     let loop_before = draft.arena().loop_count();
     let vtx_before = draft.arena().vertex_count();
 
-    draft.execute(
-        MakeEdgeKillLoop {
+    draft
+        .execute(MakeEdgeKillLoop {
             he_a: outer_he,
             he_b: inner_he,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     assert_eq!(
         draft.arena().vertex_count(),
@@ -104,12 +102,10 @@ fn mekl_rejects_same_loop() {
 
     let outer_he_next = draft.arena().get_half_edge(outer_he).unwrap().next();
 
-    let result = draft.execute(
-        MakeEdgeKillLoop {
-            he_a: outer_he,
-            he_b: outer_he_next,
-        },
-    );
+    let result = draft.execute(MakeEdgeKillLoop {
+        he_a: outer_he,
+        he_b: outer_he_next,
+    });
 
     assert!(
         result.is_err(),
@@ -128,18 +124,18 @@ fn keml_splits_loop() {
 
     let (face, outer_he, inner_he, _inner_loop, _verts) = build_face_with_hole(&mut draft);
 
-    let mekl = draft.execute(
-        MakeEdgeKillLoop {
+    let mekl = draft
+        .execute(MakeEdgeKillLoop {
             he_a: outer_he,
             he_b: inner_he,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     assert_eq!(draft.arena().get_face(face).unwrap().inner_loop_count(), 0);
 
-    let keml = draft.execute(KillEdgeMakeLoop { edge: mekl.he_ab })
+    let keml = draft
+        .execute(KillEdgeMakeLoop { edge: mekl.he_ab })
         .unwrap()
         .into_value();
 
@@ -174,21 +170,21 @@ fn keml_euler_delta() {
 
     let (face, outer_he, inner_he, _inner_loop, _verts) = build_face_with_hole(&mut draft);
 
-    let mekl = draft.execute(
-        MakeEdgeKillLoop {
+    let mekl = draft
+        .execute(MakeEdgeKillLoop {
             he_a: outer_he,
             he_b: inner_he,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     let he_before = draft.arena().half_edge_count();
     let edge_before = draft.arena().edge_count();
     let loop_before = draft.arena().loop_count();
     let vtx_before = draft.arena().vertex_count();
 
-    draft.execute(KillEdgeMakeLoop { edge: mekl.he_ab })
+    draft
+        .execute(KillEdgeMakeLoop { edge: mekl.he_ab })
         .unwrap()
         .into_value();
 
@@ -236,16 +232,16 @@ fn mekl_keml_roundtrip() {
     let l_before = draft.arena().loop_count();
     let inner_before = draft.arena().get_face(face).unwrap().inner_loop_count();
 
-    let mekl = draft.execute(
-        MakeEdgeKillLoop {
+    let mekl = draft
+        .execute(MakeEdgeKillLoop {
             he_a: outer_he,
             he_b: inner_he,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
-    let _keml = draft.execute(KillEdgeMakeLoop { edge: mekl.he_ab })
+    let _keml = draft
+        .execute(KillEdgeMakeLoop { edge: mekl.he_ab })
         .unwrap()
         .into_value();
 
@@ -303,14 +299,13 @@ fn mekl_keml_on_multi_hole_face() {
         "face must have 2 inner loops before MEKL"
     );
 
-    let mekl = draft.execute(
-        MakeEdgeKillLoop {
+    let mekl = draft
+        .execute(MakeEdgeKillLoop {
             he_a: outer_he,
             he_b: inner_he1,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     assert_eq!(
         draft.arena().get_face(face).unwrap().inner_loop_count(),
@@ -318,7 +313,8 @@ fn mekl_keml_on_multi_hole_face() {
         "after bridging first hole, 1 inner loop must remain"
     );
 
-    let _keml = draft.execute(KillEdgeMakeLoop { edge: mekl.he_ab })
+    let _keml = draft
+        .execute(KillEdgeMakeLoop { edge: mekl.he_ab })
         .unwrap()
         .into_value();
 
@@ -328,4 +324,3 @@ fn mekl_keml_on_multi_hole_face() {
         "after KEML, both inner loops must be restored"
     );
 }
-

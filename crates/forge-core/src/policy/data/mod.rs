@@ -9,17 +9,12 @@ pub mod topology_kind;
 pub mod validation_checkpoint;
 
 pub use invariant_group::{
-    InvariantGroup, InvariantTier, ValidatorCost,
+    applicable_mask_for, deferred_mask_for, InvariantGroup, InvariantTier, ValidatorCost,
     APPLICABLE_BY_KIND, CLOSED_SHEET_EXTRA, DEFER_SEMANTIC_TIER, DEFER_UNCERTIFIED,
-    applicable_mask_for, deferred_mask_for,
 };
-pub use invariant_id::{
-    InvariantId, InvariantRelation, InvariantContract,
-};
+pub use invariant_id::{InvariantContract, InvariantId, InvariantRelation};
 pub use policy_kind::PolicyKind;
 pub use policy_query::PolicyQuery;
 pub use policy_result::PolicyResult;
-pub use topology_kind::{
-    CertificationStage, Closure, Manifoldness, TopologyContext, TopologyKind,
-};
+pub use topology_kind::{CertificationStage, Closure, Manifoldness, TopologyContext, TopologyKind};
 pub use validation_checkpoint::ValidationCheckpoint;

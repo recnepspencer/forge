@@ -11,8 +11,10 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::tracing::decision::{
+    DecisionContext, DecisionId, DecisionTier, EntityRef, TracedDecision,
+};
 use crate::tracing::decision_log::DecisionLog;
-use crate::tracing::decision::{DecisionContext, DecisionId, DecisionTier, EntityRef, TracedDecision};
 use forge_math::arithmetic::precision::PrecisionMode;
 use forge_math::sign::TriSign;
 

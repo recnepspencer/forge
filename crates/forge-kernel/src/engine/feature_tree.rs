@@ -17,8 +17,8 @@ use serde::{Deserialize, Serialize};
 
 use forge_core::envelope::OperationResult;
 use forge_core::KernelError;
-use forge_signal::facade::SignalGraph;
 use forge_signal::facade::NodeId;
+use forge_signal::facade::SignalGraph;
 use forge_signal::facade::{Aspect, AspectVersion};
 
 use super::contracts::feature_registry::FeatureRegistry;
@@ -127,11 +127,7 @@ impl<R: FeatureRegistry> FeatureTree<R> {
     /// Replace an existing feature with a new implementation.
     ///
     /// Preserves the NodeId but updates the logic and marks dependencies dirty.
-    pub fn replace_feature(
-        &mut self,
-        node_id: NodeId,
-        feature: R,
-    ) -> Result<(), KernelError> {
+    pub fn replace_feature(&mut self, node_id: NodeId, feature: R) -> Result<(), KernelError> {
         if !self.graph.is_alive(node_id) {
             return Err(KernelError::InvalidInput {
                 message: format!("Node {} is not alive", node_id),

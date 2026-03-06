@@ -16,11 +16,10 @@ use forge_core::KernelError;
 
 use crate::b_rep::{EdgeData, FaceData, HalfEdgeData, LoopData, ShellData, ShellKind, VertexData};
 use crate::handles::{EdgeId, HalfEdgeId, LoopId, RegionId, ShellId};
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
-
 
 /// Creates a new, disjoint shell within an existing solid.
 #[derive(Debug)]
@@ -54,22 +53,25 @@ impl TopoOperator for MakeShellFace {
 
     const NAME: &'static str = "make_shell_face";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
-        format!("Create new shell with seed vertex-face in region {}", self.region.index())
+        format!(
+            "Create new shell with seed vertex-face in region {}",
+            self.region.index()
+        )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let placeholder_he = HalfEdgeId::DANGLING;
         let placeholder_loop = LoopId::DANGLING;
 
-
-
-
-        let vertex = draft.insert_vertex(VertexData::new(
-            placeholder_he,
-        ));
+        let vertex = draft.insert_vertex(VertexData::new(placeholder_he));
 
         let shell = draft.insert_shell(ShellData::new(
             crate::handles::FaceId::DANGLING,
@@ -77,10 +79,7 @@ impl TopoOperator for MakeShellFace {
             self.region,
         ));
 
-        let face = draft.insert_face(FaceData::new(
-            placeholder_loop,
-            shell,
-        ));
+        let face = draft.insert_face(FaceData::new(placeholder_loop, shell));
 
         let loop_id = draft.insert_loop(LoopData::new(placeholder_he, face));
 
@@ -95,14 +94,18 @@ impl TopoOperator for MakeShellFace {
             edge,
         ));
 
-        draft.arena_mut().get_half_edge_mut(he)?.set_radial_next(he);
+        draft.arena_mut().set_half_edge_radial_next(he, he)?;
         draft.arena_mut().get_half_edge_mut(he)?.set_next(he);
         draft.arena_mut().get_half_edge_mut(he)?.set_prev(he);
-        draft.arena_mut().get_vertex_mut(vertex)?.set_primary_disk(he);
+        draft
+            .arena_mut()
+            .get_vertex_mut(vertex)?
+            .set_primary_disk(he);
         draft
             .arena_mut()
             .get_face_mut(face)?
-            .set_outer_loop(loop_id);
+            .loops
+            .set_outer(loop_id);
         draft.arena_mut().get_loop_mut(loop_id)?.set_half_edge(he);
         draft
             .arena_mut()
@@ -115,10 +118,14 @@ impl TopoOperator for MakeShellFace {
         draft.arena_mut().get_edge_mut(edge)?.set_half_edge(he);
 
         // ── Provenance Stamping (O(1)) ─────────────────────────────────
-        use forge_core::{EntityRef, EntityKind};
+        use forge_core::{EntityKind, EntityRef};
         draft.stamp_children_of(
             _recorder,
-            EntityRef::new(EntityKind::Region, self.region.index(), self.region.generation()),
+            EntityRef::new(
+                EntityKind::Region,
+                self.region.index(),
+                self.region.generation(),
+            ),
             &[
                 EntityRef::new(EntityKind::Vertex, vertex.index(), vertex.generation()),
                 EntityRef::new(EntityKind::Face, face.index(), face.generation()),
@@ -151,31 +158,38 @@ impl TopoOperator for MakeShellFace {
             },
         })
     }
-
-
 }
 
 #[cfg(test)]
 mod tests {
     use super::MakeShellFace;
-    use crate::transactions::TopologyState;
+    use crate::b_rep::ShellKind;
     use crate::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::operator::TopoOperator;
-    use crate::b_rep::ShellKind;
+    use crate::transactions::TopologyState;
 
     #[test]
     fn make_shell_face_creates_new_shell_in_solid() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
 
         assert_eq!(draft.arena().face_count(), 1);
         assert_eq!(draft.arena().shell_count(), 1);
         assert_eq!(draft.arena().body_count(), 1);
 
         let region = draft.arena().get_shell(mvf.shell).unwrap().region();
-        let msf = draft.execute(MakeShellFace { region, kind: ShellKind::Sheet })
+        let msf = draft
+            .execute(MakeShellFace {
+                region,
+                kind: ShellKind::Sheet,
+            })
             .unwrap()
             .into_value();
 

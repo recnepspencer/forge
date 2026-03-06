@@ -10,8 +10,8 @@
 use crate::engine::facade::SolidEnvelope;
 use forge_core::KernelError;
 
-use crate::integration_tests::harness::shapes;
 use crate::integration_tests::harness::builders::configs;
+use crate::integration_tests::harness::shapes;
 
 /// The hello-world. One manifold cube, fully validated.
 ///

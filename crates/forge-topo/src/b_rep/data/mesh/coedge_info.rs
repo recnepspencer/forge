@@ -3,8 +3,8 @@
 //! DOMAIN: Associates a halfedge with its parametric trim curve (coedge)
 //! and direction sense relative to the parent Edge's 3D curve.
 
-use serde::{Deserialize, Serialize};
 use crate::handles::CoedgeRef;
+use serde::{Deserialize, Serialize};
 
 /// Bundled coedge metadata (UV trim curve reference + direction sense).
 ///

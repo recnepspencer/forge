@@ -9,8 +9,8 @@
 //!
 //! DEPENDENCIES: `forge-topo` (validate, arena), `forge-core` (KernelError)
 
-use forge_core::{KernelError, ToleranceProvider};
 pub use forge_core::ValidationCheckpoint;
+use forge_core::{KernelError, ToleranceProvider};
 use forge_spatial::{validate_geometric_invariants, GeometryContext};
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::VertexId;

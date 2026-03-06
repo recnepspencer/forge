@@ -52,11 +52,17 @@ fn is_code_line(line: &str) -> bool {
 /// Whether a file path should be exempt from architecture guards.
 fn is_exempt_path(rel_path: &str) -> bool {
     // Deprecated code being phased out
-    if rel_path.contains("_deprecated") { return true; }
+    if rel_path.contains("_deprecated") {
+        return true;
+    }
     // This file itself
-    if rel_path.contains("architecture_guard") { return true; }
+    if rel_path.contains("architecture_guard") {
+        return true;
+    }
     // Proof system tests exercise math directly by design
-    if rel_path.contains("proof/tests") { return true; }
+    if rel_path.contains("proof/tests") {
+        return true;
+    }
     false
 }
 
@@ -64,15 +70,25 @@ fn is_exempt_path(rel_path: &str) -> bool {
 /// These import data types like `Rational`, `PrecisionEscalation`, etc.
 fn is_forge_math_type_import_allowed(rel_path: &str) -> bool {
     // ExactPosition stores Rational — data type, not computation
-    if rel_path.ends_with("geometry/data/position.rs") { return true; }
+    if rel_path.ends_with("geometry/data/position.rs") {
+        return true;
+    }
     // GeometryView trait uses Rational in signatures
-    if rel_path.contains("geometry/contracts/") { return true; }
+    if rel_path.contains("geometry/contracts/") {
+        return true;
+    }
     // Decision logging uses PrecisionEscalation type
-    if rel_path.contains("context/tracing/") { return true; }
+    if rel_path.contains("context/tracing/") {
+        return true;
+    }
     // GeometrySource bridge trait
-    if rel_path.ends_with("geometry/logic/source_adapter.rs") { return true; }
+    if rel_path.ends_with("geometry/logic/source_adapter.rs") {
+        return true;
+    }
     // classify_faces uses PrecisionEscalation type
-    if rel_path.ends_with("operations/boolean/classify_faces.rs") { return true; }
+    if rel_path.ends_with("operations/boolean/classify_faces.rs") {
+        return true;
+    }
     false
 }
 
@@ -93,7 +109,9 @@ fn no_forge_math_linalg_bypass() {
             .unwrap_or(file)
             .to_string_lossy();
 
-        if is_exempt_path(&rel_path) { continue; }
+        if is_exempt_path(&rel_path) {
+            continue;
+        }
 
         let content = match std::fs::read_to_string(file) {
             Ok(c) => c,
@@ -102,12 +120,7 @@ fn no_forge_math_linalg_bypass() {
 
         for (line_num, line) in content.lines().enumerate() {
             if line.contains("forge_math::linalg::") && is_code_line(line) {
-                violations.push(format!(
-                    "  {}:{}: {}",
-                    rel_path,
-                    line_num + 1,
-                    line.trim()
-                ));
+                violations.push(format!("  {}:{}: {}", rel_path, line_num + 1, line.trim()));
             }
         }
     }
@@ -140,7 +153,9 @@ fn no_forge_math_predicates_bypass() {
             .unwrap_or(file)
             .to_string_lossy();
 
-        if is_exempt_path(&rel_path) { continue; }
+        if is_exempt_path(&rel_path) {
+            continue;
+        }
 
         let content = match std::fs::read_to_string(file) {
             Ok(c) => c,
@@ -149,12 +164,7 @@ fn no_forge_math_predicates_bypass() {
 
         for (line_num, line) in content.lines().enumerate() {
             if line.contains("forge_math::predicates::") && is_code_line(line) {
-                violations.push(format!(
-                    "  {}:{}: {}",
-                    rel_path,
-                    line_num + 1,
-                    line.trim()
-                ));
+                violations.push(format!("  {}:{}: {}", rel_path, line_num + 1, line.trim()));
             }
         }
     }
@@ -187,17 +197,8 @@ fn no_adhoc_float_math() {
     // Methods that are red flags for ad-hoc geometry in orchestration code.
     // .sqrt(), .sin(), .cos(), .atan2(), .powi() etc.
     let banned_methods = [
-        ".sqrt()",
-        ".sin()",
-        ".cos()",
-        ".tan()",
-        ".asin()",
-        ".acos()",
-        ".atan(",
-        ".atan2(",
-        ".powi(",
-        ".powf(",
-        ".hypot(",
+        ".sqrt()", ".sin()", ".cos()", ".tan()", ".asin()", ".acos()", ".atan(", ".atan2(",
+        ".powi(", ".powf(", ".hypot(",
     ];
 
     let mut violations = Vec::new();
@@ -208,11 +209,17 @@ fn no_adhoc_float_math() {
             .unwrap_or(file)
             .to_string_lossy();
 
-        if is_exempt_path(&rel_path) { continue; }
+        if is_exempt_path(&rel_path) {
+            continue;
+        }
         // Integration tests exercise production code, not orchestrators
-        if rel_path.contains("integration_tests") { continue; }
+        if rel_path.contains("integration_tests") {
+            continue;
+        }
         // Configuration tolerance scaling uses simple arithmetic
-        if rel_path.contains("configuration/") { continue; }
+        if rel_path.contains("configuration/") {
+            continue;
+        }
 
         let content = match std::fs::read_to_string(file) {
             Ok(c) => c,
@@ -227,8 +234,12 @@ fn no_adhoc_float_math() {
                 in_test_cfg = true;
                 continue;
             }
-            if in_test_cfg { continue; }
-            if !is_code_line(line) { continue; }
+            if in_test_cfg {
+                continue;
+            }
+            if !is_code_line(line) {
+                continue;
+            }
 
             for method in &banned_methods {
                 if line.contains(method) {
@@ -253,4 +264,3 @@ fn no_adhoc_float_math() {
         );
     }
 }
-

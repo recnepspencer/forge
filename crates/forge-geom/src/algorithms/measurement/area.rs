@@ -37,8 +37,7 @@ pub fn dihedral_sine(na: &[f64; 3], nb: &[f64; 3]) -> (f64, f64) {
 /// initial candidate, then cross-products for the second axis.
 pub fn tangent_frame(n: &[f64; 3]) -> ([f64; 3], [f64; 3]) {
     let u = linalg::compute_perpendicular_direction(*n);
-    let u = linalg::normalize_checked(linalg::cross(*n, u))
-        .unwrap_or(u);
+    let u = linalg::normalize_checked(linalg::cross(*n, u)).unwrap_or(u);
     let v = linalg::cross(*n, u);
     (u, v)
 }
@@ -49,40 +48,26 @@ mod tests {
 
     #[test]
     fn unit_right_triangle_area() {
-        let area = triangle_area_3d(
-            &[0.0, 0.0, 0.0],
-            &[1.0, 0.0, 0.0],
-            &[0.0, 1.0, 0.0],
-        );
+        let area = triangle_area_3d(&[0.0, 0.0, 0.0], &[1.0, 0.0, 0.0], &[0.0, 1.0, 0.0]);
         assert!((area - 0.5).abs() < 1e-15);
     }
 
     #[test]
     fn degenerate_collinear_triangle() {
-        let area = triangle_area_3d(
-            &[0.0, 0.0, 0.0],
-            &[1.0, 0.0, 0.0],
-            &[2.0, 0.0, 0.0],
-        );
+        let area = triangle_area_3d(&[0.0, 0.0, 0.0], &[1.0, 0.0, 0.0], &[2.0, 0.0, 0.0]);
         assert!(area.abs() < 1e-15);
     }
 
     #[test]
     fn dihedral_perpendicular_normals() {
-        let (sin_angle, dot) = dihedral_sine(
-            &[1.0, 0.0, 0.0],
-            &[0.0, 1.0, 0.0],
-        );
+        let (sin_angle, dot) = dihedral_sine(&[1.0, 0.0, 0.0], &[0.0, 1.0, 0.0]);
         assert!((sin_angle - 1.0).abs() < 1e-15);
         assert!(dot.abs() < 1e-15);
     }
 
     #[test]
     fn dihedral_parallel_normals() {
-        let (sin_angle, _dot) = dihedral_sine(
-            &[0.0, 0.0, 1.0],
-            &[0.0, 0.0, 1.0],
-        );
+        let (sin_angle, _dot) = dihedral_sine(&[0.0, 0.0, 1.0], &[0.0, 0.0, 1.0]);
         assert!(sin_angle.abs() < 1e-15);
     }
 

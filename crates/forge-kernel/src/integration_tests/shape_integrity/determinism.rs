@@ -58,24 +58,21 @@ fn dodecahedron_5_run_determinism() {
 /// Build a cube, split an edge, MEF — must be deterministic.
 #[test]
 fn split_then_mef_chain_is_deterministic() {
+    use crate::integration_tests::harness::shapes::{collect_face_loop, first_halfedge_of_face};
     use forge_core::OperationResult;
-    use crate::integration_tests::harness::shapes::{
-        collect_face_loop, first_halfedge_of_face,
-    };
-    use forge_topo::entity_lifecycle::split_edge::SplitEdge;
     use forge_topo::entity_lifecycle::make_edge_face::MakeEdgeFace;
+    use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 
     assert_deterministic(|| {
         let env_res = shapes::unit_cube()?;
         let faces = env_res.get_value().faces().to_vec();
-        let (mut draft, geom): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+        let (mut draft, geom): (forge_topo::transactions::MutableDraft, _) =
+            env_res.into_value().into_draft();
 
         let face = faces[0];
         let start_he = first_halfedge_of_face(draft.arena(), face)?;
 
-        let se = draft.execute(SplitEdge {
-            edge: start_he,
-        })?.into_value();
+        let se = draft.execute(SplitEdge { edge: start_he })?.into_value();
 
         let loop_hes = collect_face_loop(draft.arena(), start_he)?;
         let opposite_v = draft.arena().get_half_edge(loop_hes[3])?.origin();
@@ -87,7 +84,9 @@ fn split_then_mef_chain_is_deterministic() {
         })?;
 
         let topo = draft.commit()?;
-        Ok(OperationResult::new(crate::engine::facade::SolidEnvelope::new(topo, geom)))
+        Ok(OperationResult::new(
+            crate::engine::facade::SolidEnvelope::new(topo, geom),
+        ))
     });
 }
 
@@ -97,14 +96,16 @@ fn split_then_mef_chain_is_deterministic() {
 /// and assert a bit-identical full fingerprint result.
 #[test]
 fn cube_serialization_round_trip_is_deterministic() {
-    let original = shapes::unit_cube().expect("Failed to build cube").into_value();
+    let original = shapes::unit_cube()
+        .expect("Failed to build cube")
+        .into_value();
     let original_hash = original.full_fingerprint();
 
     // Serialize to bytes
     let bytes = serde_json::to_vec(&original).expect("Serialization failed");
 
     // Deserialize from bytes
-    let restored: crate::engine::facade::SolidEnvelope = 
+    let restored: crate::engine::facade::SolidEnvelope =
         serde_json::from_slice(&bytes).expect("Deserialization failed");
 
     let restored_hash = restored.full_fingerprint();

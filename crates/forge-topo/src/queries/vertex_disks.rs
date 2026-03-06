@@ -11,7 +11,10 @@ use smallvec::SmallVec;
 use crate::b_rep::TopologyArena;
 use crate::handles::{HalfEdgeId, VertexId};
 
-fn outgoing_at_vertex(arena: &TopologyArena, vertex: VertexId) -> Result<Vec<HalfEdgeId>, KernelError> {
+fn outgoing_at_vertex(
+    arena: &TopologyArena,
+    vertex: VertexId,
+) -> Result<Vec<HalfEdgeId>, KernelError> {
     let mut outgoing = Vec::new();
 
     for (he_id, he_data) in arena.iter_half_edges() {
@@ -53,14 +56,14 @@ fn disk_component(
         let mut r = out_he;
         for step in 0..=bound {
             let r_data = arena.get_half_edge(r)?;
-            
+
             // If this half-edge is outgoing, it belongs to the disk directly
             if r_data.origin() == vertex {
                 if outgoing_set.contains(&r) && disk.insert(r) {
                     queue.push_back(r);
                 }
             }
-            
+
             // If this half-edge is incoming, its .next() is an outgoing half-edge
             let r_next = r_data.next();
             if outgoing_set.contains(&r_next) {
@@ -70,10 +73,15 @@ fn disk_component(
             }
 
             r = r_data.radial_next();
-            if r == out_he { break; }
+            if r == out_he {
+                break;
+            }
             if step == bound {
                 return Err(KernelError::TopologyViolation {
-                    err: TopologyError::BrokenLoop { starting_halfedge: out_he.index(), face_index: 0 },
+                    err: TopologyError::BrokenLoop {
+                        starting_halfedge: out_he.index(),
+                        face_index: 0,
+                    },
                     context: None,
                 });
             }
@@ -83,13 +91,13 @@ fn disk_component(
         let mut r = in_he;
         for step in 0..=bound {
             let r_data = arena.get_half_edge(r)?;
-            
+
             if r_data.origin() == vertex {
                 if outgoing_set.contains(&r) && disk.insert(r) {
                     queue.push_back(r);
                 }
             }
-            
+
             let r_next = r_data.next();
             if outgoing_set.contains(&r_next) {
                 if disk.insert(r_next) {
@@ -98,10 +106,15 @@ fn disk_component(
             }
 
             r = r_data.radial_next();
-            if r == in_he { break; }
+            if r == in_he {
+                break;
+            }
             if step == bound {
                 return Err(KernelError::TopologyViolation {
-                    err: TopologyError::BrokenLoop { starting_halfedge: in_he.index(), face_index: 0 },
+                    err: TopologyError::BrokenLoop {
+                        starting_halfedge: in_he.index(),
+                        face_index: 0,
+                    },
                     context: None,
                 });
             }
@@ -141,10 +154,7 @@ pub fn compute_vertex_disks(
 }
 
 /// Is this vertex manifold (exactly 1 disk cycle)?
-pub fn is_vertex_manifold(
-    arena: &TopologyArena,
-    vertex: VertexId,
-) -> Result<bool, KernelError> {
+pub fn is_vertex_manifold(arena: &TopologyArena, vertex: VertexId) -> Result<bool, KernelError> {
     Ok(compute_vertex_disks(arena, vertex)?.len() <= 1)
 }
 
@@ -173,8 +183,8 @@ pub fn rebuild_disk_entries(
 
 #[cfg(test)]
 mod tests {
-    use crate::b_rep::ShellKind;
     use super::*;
+    use crate::b_rep::ShellKind;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::entity_lifecycle::split_edge::SplitEdge;
     use crate::transactions::TopologyState;
@@ -184,8 +194,18 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let _se = draft.execute(SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let _se = draft
+            .execute(SplitEdge {
+                edge: mvf.half_edge,
+            })
+            .unwrap()
+            .into_value();
 
         let entries = rebuild_disk_entries(draft.arena(), mvf.vertex).unwrap();
         assert_eq!(entries.len(), 1);
@@ -197,8 +217,18 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let a = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let b = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+        let a = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let b = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
 
         let second_ring: Vec<_> = draft
             .arena()

@@ -113,4 +113,3 @@ impl HalfEdgeData {
         self.edge = id;
     }
 }
-

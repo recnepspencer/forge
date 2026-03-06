@@ -56,7 +56,11 @@ pub fn construct_planar_surface_from_points(
         ab_vec[2] * ac_vec[0] - ab_vec[0] * ac_vec[2],
         ab_vec[0] * ac_vec[1] - ab_vec[1] * ac_vec[0],
     ];
-    let normal = [cross[0] / cross_mag, cross[1] / cross_mag, cross[2] / cross_mag];
+    let normal = [
+        cross[0] / cross_mag,
+        cross[1] / cross_mag,
+        cross[2] / cross_mag,
+    ];
     let offset = normal[0] * a[0] + normal[1] * a[1] + normal[2] * a[2];
 
     Plane::try_new(normal, offset)

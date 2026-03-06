@@ -6,10 +6,10 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::tracing::decision::DecisionId;
 use super::policy_trace::PolicyDecisionTracePayload;
 use super::reidentification_trace::ReidentificationTracePayload;
 use super::resolution_trace::ResolutionTracePayload;
+use crate::tracing::decision::DecisionId;
 
 /// Stable payload kind tag for `PolicyDecisionTracePayload`.
 pub const POLICY_DECISION_TRACE_PAYLOAD_KIND: &str = "policy_decision";

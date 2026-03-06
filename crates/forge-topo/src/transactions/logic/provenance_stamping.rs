@@ -5,7 +5,7 @@
 //! `lineage_store()` vs `lineage_store_mut()`.
 
 use super::mutable_draft::MutableDraft;
-use crate::provenance::{LineageRecorder, LineageMode, OperationLineageContext};
+use crate::provenance::{LineageMode, LineageRecorder, OperationLineageContext};
 
 impl MutableDraft {
     // ── Provenance Stamping API ─────────────────────────────────────────
@@ -57,7 +57,8 @@ impl MutableDraft {
         parents: &[forge_core::EntityRef],
         children: &[forge_core::EntityRef],
     ) {
-        let parent_lineages: Vec<_> = parents.iter()
+        let parent_lineages: Vec<_> = parents
+            .iter()
             .map(|p| {
                 let lineage = self.lineage_store.get_lineage(p).cloned();
                 debug_assert!(
@@ -74,7 +75,9 @@ impl MutableDraft {
             return; // release-mode graceful degradation
         }
 
-        let mode = LineageMode::Merged { parents: parent_lineages.into() };
+        let mode = LineageMode::Merged {
+            parents: parent_lineages.into(),
+        };
         for &child in children {
             let context = OperationLineageContext {
                 feature_id: recorder.feature_id(),

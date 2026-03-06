@@ -21,9 +21,9 @@ use forge_core::{ErrorContext, ErrorScope, KernelError, TopologyError};
 
 use crate::handles::{FaceId, VertexId};
 
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
 
 /// Destroys an isolated topological seed.
@@ -42,23 +42,42 @@ impl TopoOperator for KillVertexFace {
 
     const NAME: &'static str = "kill_vertex_face";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
-        format!("Destroy isolated face {} and vertex {}", self.face.index(), self.vertex.index())
+        format!(
+            "Destroy isolated face {} and vertex {}",
+            self.face.index(),
+            self.vertex.index()
+        )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let op_name = Self::NAME.to_string();
         let inv_id = 0 as u64;
 
         // 1. Gather entities and validate isolation
-        let (loop_id, he_id, edge_id, shell_id, region_id, lump_id, body_id,
-             region_shell_count, lump_region_count, body_lump_count) = {
+        let (
+            loop_id,
+            he_id,
+            edge_id,
+            shell_id,
+            region_id,
+            lump_id,
+            body_id,
+            region_shell_count,
+            lump_region_count,
+            body_lump_count,
+        ) = {
             let face_data = draft.arena().get_face(self.face)?;
 
             // Must have exactly one loop
-            let loop_id = face_data.outer_loop();
+            let loop_id = face_data.loops.outer();
             let loop_data = draft.arena().get_loop(loop_id)?;
 
             // Must have exactly one halfedge
@@ -123,8 +142,16 @@ impl TopoOperator for KillVertexFace {
             let body_lump_count = draft.arena().get_body(body_id)?.lump_count();
 
             (
-                loop_id, he_id, edge_id, shell_id, region_id, lump_id, body_id,
-                region_shell_count, lump_region_count, body_lump_count,
+                loop_id,
+                he_id,
+                edge_id,
+                shell_id,
+                region_id,
+                lump_id,
+                body_id,
+                region_shell_count,
+                lump_region_count,
+                body_lump_count,
             )
         };
 
@@ -143,13 +170,19 @@ impl TopoOperator for KillVertexFace {
 
         if region_shell_count <= 1 {
             // Region has no other shells — safe to destroy
-            draft.arena_mut().get_lump_mut(lump_id)?.remove_region(region_id);
+            draft
+                .arena_mut()
+                .get_lump_mut(lump_id)?
+                .remove_region(region_id);
             draft.remove_region(region_id)?;
             delta_regions = -1;
 
             if lump_region_count <= 1 {
                 // Lump has no other regions — safe to destroy
-                draft.arena_mut().get_body_mut(body_id)?.remove_lump(lump_id);
+                draft
+                    .arena_mut()
+                    .get_body_mut(body_id)?
+                    .remove_lump(lump_id);
                 draft.remove_lump(lump_id)?;
                 delta_lumps = -1;
 
@@ -161,7 +194,10 @@ impl TopoOperator for KillVertexFace {
             }
         } else {
             // Region has other shells — just unlink this shell, don't cascade
-            draft.arena_mut().get_region_mut(region_id)?.remove_shell(shell_id);
+            draft
+                .arena_mut()
+                .get_region_mut(region_id)?
+                .remove_shell(shell_id);
         }
 
         Ok(ExecutionResult {
@@ -179,25 +215,28 @@ impl TopoOperator for KillVertexFace {
             },
         })
     }
-
-
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::b_rep::ShellKind;
     use super::KillVertexFace;
-    use crate::transactions::TopologyState;
+    use crate::b_rep::ShellKind;
     use crate::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::operations::entity_lifecycle::split_edge::SplitEdge;
     use crate::operator::TopoOperator;
+    use crate::transactions::TopologyState;
 
     #[test]
     fn kill_vertex_face_destroys_isolated_seed() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
 
         assert_eq!(draft.arena().face_count(), 1);
         assert_eq!(draft.arena().vertex_count(), 1);
@@ -207,13 +246,12 @@ mod tests {
         assert_eq!(draft.arena().shell_count(), 1);
         assert_eq!(draft.arena().body_count(), 1);
 
-        draft.execute(
-            KillVertexFace {
+        draft
+            .execute(KillVertexFace {
                 face: mvf.face,
                 vertex: mvf.vertex,
-            },
-        )
-        .unwrap();
+            })
+            .unwrap();
 
         // Everything should be gone
         assert_eq!(draft.arena().face_count(), 0);
@@ -230,22 +268,24 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
 
         // Split the edge to make it non-isolated
-        draft.execute(
-            SplitEdge {
+        draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap();
+            })
+            .unwrap();
 
-        let res = draft.execute(
-            KillVertexFace {
-                face: mvf.face,
-                vertex: mvf.vertex,
-            },
-        );
+        let res = draft.execute(KillVertexFace {
+            face: mvf.face,
+            vertex: mvf.vertex,
+        });
         assert!(res.is_err());
     }
 }

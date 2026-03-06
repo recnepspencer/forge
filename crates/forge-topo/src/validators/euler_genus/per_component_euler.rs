@@ -5,8 +5,8 @@
 //! equal and opposite structural failures in separate shells from masking
 //! each other in a global Euler check.
 
-use crate::b_rep::TopologyArena;
 use crate::b_rep::EntityBitset;
+use crate::b_rep::TopologyArena;
 use forge_core::KernelError;
 use std::collections::VecDeque;
 
@@ -23,28 +23,28 @@ pub(crate) fn validate_per_component_euler(arena: &TopologyArena) -> Result<(), 
             let mut comp_vertices = EntityBitset::for_vertices(arena);
             let mut comp_edges = EntityBitset::for_edges(arena);
             let mut comp_faces = EntityBitset::for_faces(arena);
-            
+
             let mut queue: VecDeque<crate::handles::VertexId> = VecDeque::new();
             queue.push_back(seed_vid);
             comp_vertices.insert(seed_vid.index())?;
 
             while let Some(vid) = queue.pop_front() {
                 visited_vertices.insert(vid.index())?;
-                
+
                 // Traverse outgoing halfedges to find connected faces, edges, and adjacent vertices
                 let mut current = arena.get_vertex(vid)?.primary_disk();
                 if current.is_dangling() {
                     continue; // Isolated vertex
                 }
-                
+
                 let start = current;
                 let bound = arena.half_edge_count().max(1);
-                
+
                 for _ in 0..=bound {
                     let he_data = arena.get_half_edge(current)?;
                     comp_edges.insert(he_data.edge().index())?;
                     comp_faces.insert(he_data.face().index())?;
-                    
+
                     // The twin halfedge takes us to adjacent vertices along the edge
                     let twin_id = he_data.radial_next();
                     if let Ok(twin_data) = arena.get_half_edge(twin_id) {
@@ -53,7 +53,7 @@ pub(crate) fn validate_per_component_euler(arena: &TopologyArena) -> Result<(), 
                             queue.push_back(adj_vid);
                         }
                     }
-                    
+
                     let next_out = arena.get_half_edge(twin_id)?.next();
                     current = next_out;
                     if current == start {
@@ -72,9 +72,10 @@ pub(crate) fn validate_per_component_euler(arena: &TopologyArena) -> Result<(), 
             // calculated genus is valid (non-negative integer).
             let mut rings = 0;
             let mut is_solid = false;
-            
+
             for f_idx in comp_faces.iter_ones() {
-                if let Ok(face_data) = arena.get_face(crate::handles::FaceId::new(f_idx as u32, 0)) {
+                if let Ok(face_data) = arena.get_face(crate::handles::FaceId::new(f_idx as u32, 0))
+                {
                     rings += face_data.inner_loop_count();
                     // Assuming all faces in the component share the same shell kind
                     if let Ok(shell_data) = arena.get_shell(face_data.shell()) {
@@ -115,7 +116,7 @@ pub(crate) fn validate_per_component_euler(arena: &TopologyArena) -> Result<(), 
                     });
                 }
             }
-            
+
             component_index += 1;
         }
     }

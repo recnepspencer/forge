@@ -3,12 +3,12 @@
 //! DOMAIN: JoinFaces removes the shared edge between two faces. The
 //! surviving face absorbs the other's topology including inner loops.
 
+use crate::b_rep::ShellKind;
 use crate::boundary_editing::join_faces::JoinFaces;
 use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
 use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::entity_lifecycle::split_edge::SplitEdge;
 use crate::transactions::TopologyState;
-use crate::b_rep::ShellKind;
 
 /// JoinFaces reduces face count by 1 and leaves a valid surviving face.
 #[test]
@@ -16,33 +16,35 @@ fn join_faces_merges_two_adjacent_faces() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-    let se = draft.execute(
-        SplitEdge {
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
+    let se = draft
+        .execute(SplitEdge {
             edge: mvf.half_edge,
-        },
-    )
-    .unwrap()
-    .into_value();
-    let mef = draft.execute(
-        MakeEdgeFace {
+        })
+        .unwrap()
+        .into_value();
+    let mef = draft
+        .execute(MakeEdgeFace {
             vertex_a: mvf.vertex,
             vertex_b: se.new_vertex,
             face: mvf.face,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     assert_eq!(draft.arena().face_count(), 2);
 
-    let jf = draft.execute(
-        JoinFaces {
+    let jf = draft
+        .execute(JoinFaces {
             edge: mef.half_edge_ab,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     assert_eq!(draft.arena().face_count(), 1);
     assert!(draft.arena().get_face(jf.surviving_face).is_ok());
@@ -68,28 +70,31 @@ fn join_faces_preserves_inner_loops() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
     let v0 = mvf.vertex;
     let face = mvf.face;
 
-    let se1 = draft.execute(
-        SplitEdge {
+    let se1 = draft
+        .execute(SplitEdge {
             edge: mvf.half_edge,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
     let v2 = se1.new_vertex;
 
-    let mef = draft.execute(
-        MakeEdgeFace {
+    let mef = draft
+        .execute(MakeEdgeFace {
             vertex_a: v0,
             vertex_b: v2,
             face,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     let target_face = mef.new_face;
     let placeholder_he = HalfEdgeId::DANGLING;
@@ -105,7 +110,11 @@ fn join_faces_preserves_inner_loops() {
             crate::handles::ShellId::DANGLING,
         ));
         let ext_loop = arena.insert_loop(LoopData::new(placeholder_he, ext_face));
-        arena.get_face_mut(ext_face).unwrap().set_outer_loop(ext_loop);
+        arena
+            .get_face_mut(ext_face)
+            .unwrap()
+            .loops
+            .set_outer(ext_loop);
 
         let iv0 = arena.insert_vertex(VertexData::new(placeholder_he));
         let iv1 = arena.insert_vertex(VertexData::new(placeholder_he));
@@ -116,16 +125,58 @@ fn join_faces_preserves_inner_loops() {
         let ie20 = arena.insert_edge(crate::b_rep::EdgeData::new(placeholder_he));
 
         let (ihe01, ihe01_t) = arena.insert_radial_pair(
-            HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, target_face, iv0, ie01),
-            HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, ext_face, iv1, ie01),
+            HalfEdgeData::new(
+                placeholder_he,
+                placeholder_he,
+                placeholder_he,
+                target_face,
+                iv0,
+                ie01,
+            ),
+            HalfEdgeData::new(
+                placeholder_he,
+                placeholder_he,
+                placeholder_he,
+                ext_face,
+                iv1,
+                ie01,
+            ),
         );
         let (ihe12, ihe12_t) = arena.insert_radial_pair(
-            HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, target_face, iv1, ie12),
-            HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, ext_face, iv2, ie12),
+            HalfEdgeData::new(
+                placeholder_he,
+                placeholder_he,
+                placeholder_he,
+                target_face,
+                iv1,
+                ie12,
+            ),
+            HalfEdgeData::new(
+                placeholder_he,
+                placeholder_he,
+                placeholder_he,
+                ext_face,
+                iv2,
+                ie12,
+            ),
         );
         let (ihe20, ihe20_t) = arena.insert_radial_pair(
-            HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, target_face, iv2, ie20),
-            HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, ext_face, iv0, ie20),
+            HalfEdgeData::new(
+                placeholder_he,
+                placeholder_he,
+                placeholder_he,
+                target_face,
+                iv2,
+                ie20,
+            ),
+            HalfEdgeData::new(
+                placeholder_he,
+                placeholder_he,
+                placeholder_he,
+                ext_face,
+                iv0,
+                ie20,
+            ),
         );
 
         arena.get_edge_mut(ie01).unwrap().set_half_edge(ihe01);
@@ -158,7 +209,8 @@ fn join_faces_preserves_inner_loops() {
         arena
             .get_face_mut(target_face)
             .unwrap()
-            .add_inner_loop(inner_loop);
+            .loops
+            .add_inner(inner_loop);
         (inner_loop, ihe01, ihe12, ihe20)
     };
 
@@ -172,13 +224,12 @@ fn join_faces_preserves_inner_loops() {
     );
     assert_eq!(draft.arena().get_face(face).unwrap().inner_loop_count(), 0);
 
-    let jf = draft.execute(
-        JoinFaces {
+    let jf = draft
+        .execute(JoinFaces {
             edge: mef.half_edge_ab,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
     let surviving = jf.surviving_face;
 
     assert_eq!(

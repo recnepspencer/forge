@@ -1,4 +1,4 @@
-use forge_core::tracing::{PolicyResolutionSource, PolicyResolutionScopeRef, TraceAdjunctRecord};
+use forge_core::tracing::{PolicyResolutionScopeRef, PolicyResolutionSource, TraceAdjunctRecord};
 use forge_core::DecisionId;
 
 /// Value source metadata chosen by policy precedence resolution.

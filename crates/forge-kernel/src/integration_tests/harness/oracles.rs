@@ -20,8 +20,7 @@ use forge_topo::handles::{FaceId, VertexId};
 
 use crate::engine::facade::SolidEnvelope;
 use crate::geometry::facade::{
-    GeometryView, GeometryToleranceProvider,
-    solid_volume, solid_centroid, collect_face_positions,
+    collect_face_positions, solid_centroid, solid_volume, GeometryToleranceProvider, GeometryView,
 };
 use forge_spatial::operations::facade::classify_face_normal_orientation;
 pub use forge_spatial::operations::facade::NormalClassification;
@@ -36,7 +35,10 @@ pub enum OracleError {
     /// Face normals are not consistently oriented.
     InconsistentOrientation { shell_index: usize },
     /// Face geometry is degenerate (e.g., collinear vertices, zero area).
-    DegenerateGeometry { face_index: u32, reason: &'static str },
+    DegenerateGeometry {
+        face_index: u32,
+        reason: &'static str,
+    },
     /// Internal topology error during oracle computation.
     TopologyError(KernelError),
     /// Position data missing for a vertex.
@@ -52,16 +54,19 @@ impl From<KernelError> for OracleError {
 impl std::fmt::Display for OracleError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::OpenShell { boundary_edge_count } =>
-                write!(f, "OpenShell: {boundary_edge_count} boundary edges"),
-            Self::InconsistentOrientation { shell_index } =>
-                write!(f, "InconsistentOrientation: shell {shell_index}"),
-            Self::DegenerateGeometry { face_index, reason } =>
-                write!(f, "DegenerateGeometry: face {face_index}: {reason}"),
-            Self::TopologyError(e) =>
-                write!(f, "TopologyError: {e}"),
-            Self::MissingPosition { vertex_index } =>
-                write!(f, "MissingPosition: vertex {vertex_index}"),
+            Self::OpenShell {
+                boundary_edge_count,
+            } => write!(f, "OpenShell: {boundary_edge_count} boundary edges"),
+            Self::InconsistentOrientation { shell_index } => {
+                write!(f, "InconsistentOrientation: shell {shell_index}")
+            }
+            Self::DegenerateGeometry { face_index, reason } => {
+                write!(f, "DegenerateGeometry: face {face_index}: {reason}")
+            }
+            Self::TopologyError(e) => write!(f, "TopologyError: {e}"),
+            Self::MissingPosition { vertex_index } => {
+                write!(f, "MissingPosition: vertex {vertex_index}")
+            }
         }
     }
 }
@@ -141,7 +146,13 @@ pub fn classify_normal_outward(
 
     // Delegate to forge-spatial
     let result = classify_face_normal_orientation(
-        arena, &position_fn, &face_position_fn, &face_verts, face_id, epsilon, &tol,
+        arena,
+        &position_fn,
+        &face_position_fn,
+        &face_verts,
+        face_id,
+        epsilon,
+        &tol,
     )?;
 
     Ok(result)
@@ -153,9 +164,9 @@ pub fn classify_normal_outward(
 fn check_closed_manifold(arena: &TopologyArena) -> Result<(), OracleError> {
     let mut boundary_count = 0;
     let mut non_manifold_count = 0;
-    
+
     // We iterate halfedges, but we only want to check the geometric edge once.
-    // So we just check radial_valence for all halfedges and divide by 2 later, 
+    // So we just check radial_valence for all halfedges and divide by 2 later,
     // or just check valence and flag any deviation.
     for (he_id, _he) in arena.iter_half_edges() {
         let valence = forge_topo::queries::traverse::radial_valence(arena, he_id).unwrap_or(0);
@@ -165,12 +176,12 @@ fn check_closed_manifold(arena: &TopologyArena) -> Result<(), OracleError> {
             non_manifold_count += 1;
         }
     }
-    
+
     if boundary_count > 0 || non_manifold_count > 0 {
-        return Err(OracleError::OpenShell { 
+        return Err(OracleError::OpenShell {
             // Halving because each edge contributes its valence number of half-edges,
             // but for errors just returning the raw half-edge count is fine for debugging.
-            boundary_edge_count: boundary_count + non_manifold_count 
+            boundary_edge_count: boundary_count + non_manifold_count,
         });
     }
     Ok(())
@@ -183,7 +194,9 @@ fn check_positions_complete(
 ) -> Result<(), OracleError> {
     for (vid, _) in arena.iter_vertices() {
         if !geom.has_vertex_position(vid) {
-            return Err(OracleError::MissingPosition { vertex_index: vid.index() });
+            return Err(OracleError::MissingPosition {
+                vertex_index: vid.index(),
+            });
         }
     }
     Ok(())
@@ -194,10 +207,7 @@ fn check_positions_complete(
 /// `classify_point_in_solid` takes `Fn(u32) -> Result<[f64;3], KernelError>`.
 /// The u32 is a raw slot index, not a generational handle. This table maps
 /// each slot to its position (or None if empty/deleted).
-fn build_position_table(
-    arena: &TopologyArena,
-    geom: &impl GeometryView,
-) -> Vec<Option<[f64; 3]>> {
+fn build_position_table(arena: &TopologyArena, geom: &impl GeometryView) -> Vec<Option<[f64; 3]>> {
     let max_slot = arena
         .iter_vertices()
         .map(|(vid, _)| vid.index() as usize)

@@ -25,8 +25,7 @@ pub(crate) fn collect_shell_data_for_face(
         vertex_indices.push(he_data.origin().index());
         edge_keys.push(he_data.edge().index());
 
-        for neighbor_res in crate::queries::traverse::RadialEdgeIterator::new(arena, he_id)?
-        {
+        for neighbor_res in crate::queries::traverse::RadialEdgeIterator::new(arena, he_id)? {
             let neighbor_he = neighbor_res?;
             if neighbor_he != he_id {
                 let neighbor_data = arena.get_half_edge(neighbor_he)?;

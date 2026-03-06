@@ -52,15 +52,15 @@ impl crate::transactions::MutableDraft {
     /// Remove a loop.
     pub fn remove_loop(&mut self, id: LoopId) -> Result<LoopData, KernelError> {
         // Capture EntityRef BEFORE the arena bumps the slot generation.
-        self.mutation_journal.record_destruction(EntityRef::from(id));
+        self.mutation_journal
+            .record_destruction(EntityRef::from(id));
         self.arena.remove_loop(id)
     }
 }
 
 // Imports needed by the macro-generated code
+use crate::b_rep::data::containment::{BodyData, LumpData, RegionData, ShellData};
+use crate::b_rep::data::mesh::{EdgeData, FaceData, HalfEdgeData, LoopData, VertexData};
 use crate::handles::{
-    FaceId, HalfEdgeId, VertexId, LoopId, EdgeId,
-    ShellId, RegionId, LumpId, BodyId,
+    BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
 };
-use crate::b_rep::data::mesh::{FaceData, HalfEdgeData, VertexData, LoopData, EdgeData};
-use crate::b_rep::data::containment::{ShellData, RegionData, LumpData, BodyData};

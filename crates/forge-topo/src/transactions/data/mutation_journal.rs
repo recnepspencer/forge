@@ -11,7 +11,8 @@
 //!
 //! DEPENDENCIES: `forge_core::EntityRef`
 
-use forge_core::EntityRef;
+use crate::canonical::sort_entity_refs;
+use forge_core::{EntityRef, MutationJournalSnapshot};
 
 /// Tracks entity mutations during a single operator execution.
 ///
@@ -72,9 +73,23 @@ impl MutationJournal {
         std::mem::take(&mut self.destroyed)
     }
 
+    /// Drain all destroyed entities in canonical `(kind, index, generation)` order.
+    pub fn drain_destroyed_sorted(&mut self) -> Vec<EntityRef> {
+        let mut destroyed = self.drain_destroyed();
+        sort_entity_refs(&mut destroyed);
+        destroyed
+    }
+
     /// Drain all created entities, leaving the list empty.
     pub fn drain_created(&mut self) -> Vec<EntityRef> {
         std::mem::take(&mut self.created)
+    }
+
+    /// Drain all created entities in canonical `(kind, index, generation)` order.
+    pub fn drain_created_sorted(&mut self) -> Vec<EntityRef> {
+        let mut created = self.drain_created();
+        sort_entity_refs(&mut created);
+        created
     }
 
     /// Total number of entities created.
@@ -95,6 +110,17 @@ impl MutationJournal {
     /// Count destroyed entities grouped by `EntityKind`.
     pub fn count_destroyed(&self) -> EntityKindCounts {
         EntityKindCounts::from_refs(&self.destroyed)
+    }
+
+    /// Freeze the journal as an immutable, canonicalized operation artifact.
+    pub fn snapshot(&self) -> MutationJournalSnapshot {
+        let mut snapshot = MutationJournalSnapshot {
+            schema_version: MutationJournalSnapshot::SCHEMA_VERSION,
+            created: self.created.clone(),
+            destroyed: self.destroyed.clone(),
+        };
+        snapshot.canonicalize();
+        snapshot
     }
 }
 
@@ -119,15 +145,15 @@ impl EntityKindCounts {
         let mut c = Self::default();
         for r in refs {
             match r.kind() {
-                EntityKind::Face     => c.faces += 1,
+                EntityKind::Face => c.faces += 1,
                 EntityKind::HalfEdge => c.half_edges += 1,
-                EntityKind::Vertex   => c.vertices += 1,
-                EntityKind::Loop     => c.loops += 1,
-                EntityKind::Edge     => c.edges += 1,
-                EntityKind::Shell    => c.shells += 1,
-                EntityKind::Body     => c.bodies += 1,
-                EntityKind::Lump     => c.lumps += 1,
-                EntityKind::Region   => c.regions += 1,
+                EntityKind::Vertex => c.vertices += 1,
+                EntityKind::Loop => c.loops += 1,
+                EntityKind::Edge => c.edges += 1,
+                EntityKind::Shell => c.shells += 1,
+                EntityKind::Body => c.bodies += 1,
+                EntityKind::Lump => c.lumps += 1,
+                EntityKind::Region => c.regions += 1,
             }
         }
         c
@@ -135,8 +161,15 @@ impl EntityKindCounts {
 
     /// Sum of all entity counts.
     pub fn total(&self) -> u32 {
-        self.faces + self.half_edges + self.vertices + self.loops
-            + self.edges + self.shells + self.bodies + self.lumps + self.regions
+        self.faces
+            + self.half_edges
+            + self.vertices
+            + self.loops
+            + self.edges
+            + self.shells
+            + self.bodies
+            + self.lumps
+            + self.regions
     }
 }
 

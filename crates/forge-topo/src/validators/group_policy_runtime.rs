@@ -7,9 +7,9 @@
 //! `GroupPolicyRuntime` (this file) is the per-draft computed result.
 
 use forge_core::{
-    InvariantGroup, TopologyContext, TopologyKind, Closure, CertificationStage,
-    ValidatorCost, ValidationCheckpoint,
-    APPLICABLE_BY_KIND, CLOSED_SHEET_EXTRA, DEFER_SEMANTIC_TIER, DEFER_UNCERTIFIED,
+    CertificationStage, Closure, InvariantGroup, TopologyContext, TopologyKind,
+    ValidationCheckpoint, ValidatorCost, APPLICABLE_BY_KIND, CLOSED_SHEET_EXTRA,
+    DEFER_SEMANTIC_TIER, DEFER_UNCERTIFIED,
 };
 
 /// Computed per-draft validation policy.
@@ -97,10 +97,14 @@ impl GroupPolicyRuntime {
     }
 
     /// The skip mask (for diagnostics/tracing).
-    pub fn skip_mask(&self) -> u32 { self.skip_mask }
+    pub fn skip_mask(&self) -> u32 {
+        self.skip_mask
+    }
 
     /// The deferred mask (for diagnostics/tracing).
-    pub fn deferred_mask(&self) -> u32 { self.deferred_mask }
+    pub fn deferred_mask(&self) -> u32 {
+        self.deferred_mask
+    }
 
     /// Snapshot the per-checkpoint cost ceiling array.
     ///
@@ -113,7 +117,7 @@ impl GroupPolicyRuntime {
 
 // ── Option A: Model-derived context ────────────────────────────────────
 
-use crate::b_rep::{TopologyArena, ShellKind};
+use crate::b_rep::{ShellKind, TopologyArena};
 
 /// Derive a topology context **hint** from declared `ShellKind` metadata.
 ///
@@ -176,7 +180,11 @@ pub fn topology_context_from_shell_metadata(arena: &TopologyArena) -> TopologyCo
         TopologyKind::Solid // unreachable, but safe default
     };
 
-    let closure = if all_closed { Closure::Closed } else { Closure::Open };
+    let closure = if all_closed {
+        Closure::Closed
+    } else {
+        Closure::Open
+    };
 
     TopologyContext {
         kind,
@@ -281,4 +289,3 @@ impl Default for GroupPolicyRuntime {
 #[cfg(test)]
 #[path = "group_policy_runtime_tests.rs"]
 mod group_policy_runtime_tests;
-

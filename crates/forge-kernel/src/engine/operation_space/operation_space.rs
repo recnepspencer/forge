@@ -13,9 +13,9 @@
 use forge_geom::facade::{LocalCoordinateSpace, Plane, ScaleAnalysis};
 use forge_topo::transactions::TopologyState;
 
-use crate::geometry::facade::{GeometryStore, GeometryView};
-use crate::geometry::facade::{transform_geometry, inverse_transform_geometry};
 use crate::engine::output::solid_envelope::SolidEnvelope;
+use crate::geometry::facade::{inverse_transform_geometry, transform_geometry};
+use crate::geometry::facade::{GeometryStore, GeometryView};
 
 /// Local coordinate transform lifecycle for multi-solid operations.
 ///
@@ -101,10 +101,7 @@ impl OperationSpace {
     }
 
     /// Transform a plane from local to world coordinates using exact arithmetic (pure function).
-    pub fn plane_to_world(
-        &self,
-        local_plane: &Plane,
-    ) -> Plane {
+    pub fn plane_to_world(&self, local_plane: &Plane) -> Plane {
         self.local_space.inverse_transform_plane_exact(local_plane)
     }
 

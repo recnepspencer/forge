@@ -5,6 +5,7 @@
 
 use crate::b_rep::TopologyArena;
 use crate::queries::traverse::FaceEdgeIterator;
+use crate::queries::walk::walk_loop_iter;
 use forge_core::KernelError;
 
 pub(crate) fn validate_loops(arena: &TopologyArena) -> Result<(), KernelError> {
@@ -38,14 +39,11 @@ pub(crate) fn validate_loops(arena: &TopologyArena) -> Result<(), KernelError> {
         }
 
         // Validate inner loops (holes)
-        let bound = arena.half_edge_count();
-        for &loop_id in face_data.inner_loops() {
+        for &loop_id in face_data.loops.inners() {
             let loop_data = arena.get_loop(loop_id)?;
             let start = loop_data.half_edge();
-            let mut current = start;
-            let mut steps = 0usize;
-
-            loop {
+            for he_result in walk_loop_iter(arena, start)? {
+                let current = he_result?;
                 let he_data = arena.get_half_edge(current)?;
                 if he_data.face() != face_id {
                     return Err(KernelError::TopologyViolation {
@@ -67,24 +65,6 @@ pub(crate) fn validate_loops(arena: &TopologyArena) -> Result<(), KernelError> {
                                 he_data.face().index()
                             ),
                         }),
-                    });
-                }
-                let next = he_data.next();
-                current = next;
-                if current == start {
-                    break;
-                }
-                steps += 1;
-                if steps > bound {
-                    return Err(KernelError::TopologyViolation {
-                        err: forge_core::TopologyError::LoopCorruption {
-                            walk_kind: "validate_inner_loop".into(),
-                            seed_index: start.index(),
-                            last_visited_index: current.index(),
-                            steps_taken: steps,
-                            entity_bound: bound,
-                        },
-                        context: None,
                     });
                 }
             }

@@ -224,5 +224,3 @@ fn find_nondegenerate_basis(
 
     Ok(None)
 }
-
-

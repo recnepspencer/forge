@@ -6,13 +6,13 @@
 use forge_core::KernelError;
 use forge_topo::transactions::TopologyState;
 
-use crate::context::ModelingContext;
 use crate::context::scope::OperationScope;
+use crate::context::ModelingContext;
 use crate::integration_tests::harness::builders::configs::test_config;
-use crate::operations::primitives;
-use forge_core::envelope::OperationResult;
-use crate::prelude::SolidEnvelope;
 use crate::operations::pipeline::facade::{PipelineBuilder, StepContract};
+use crate::operations::primitives;
+use crate::prelude::SolidEnvelope;
+use forge_core::envelope::OperationResult;
 
 /// Minimal step contract for pipeline tests.
 struct TestStep {
@@ -51,22 +51,33 @@ fn test_two_step_pipeline_threads_state() {
     let builder = PipelineBuilder::start(&mut scope, ());
 
     // Step 1: generate the cube
-    let builder = builder.then(&step1, |_state, step_scope| {
-        let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope.config)?;
-        Ok(result)
-    }).expect("step 1 should succeed");
+    let builder = builder
+        .then(&step1, |_state, step_scope| {
+            let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope.config)?;
+            Ok(result)
+        })
+        .expect("step 1 should succeed");
 
     // Step 2: verify we got the cube
-    let builder = builder.then(&step2, |mesh_result: OperationResult<SolidEnvelope>, _step_scope| {
-        let (topo, _geom) = mesh_result.into_value().into_parts();
-        let topo: forge_topo::transactions::TopologyState = topo;
-        let vertex_count = topo.arena().iter_vertices().count();
-        assert_eq!(vertex_count, 8, "Cube should have 8 vertices");
-        Ok(topo)
-    }).expect("step 2 should succeed");
+    let builder = builder
+        .then(
+            &step2,
+            |mesh_result: OperationResult<SolidEnvelope>, _step_scope| {
+                let (topo, _geom) = mesh_result.into_value().into_parts();
+                let topo: forge_topo::transactions::TopologyState = topo;
+                let vertex_count = topo.arena().iter_vertices().count();
+                assert_eq!(vertex_count, 8, "Cube should have 8 vertices");
+                Ok(topo)
+            },
+        )
+        .expect("step 2 should succeed");
 
     let (final_topo, audit) = builder.finish();
-    assert_eq!(audit.steps.len(), 2, "Pipeline should have recorded 2 steps");
+    assert_eq!(
+        audit.steps.len(),
+        2,
+        "Pipeline should have recorded 2 steps"
+    );
     assert_eq!(audit.steps[0].name, "make_primitive");
     assert_eq!(audit.steps[1].name, "verify_counts");
 
@@ -88,31 +99,41 @@ fn test_pipeline_accumulates_decisions() {
     // Both steps generate primitives, both should record decisions.
     let builder = PipelineBuilder::start(&mut scope, ());
 
-    let builder = builder.then(&step1, |_state, step_scope| {
-        let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope.config)?;
-        Ok(result)
-    }).expect("step 1 should succeed");
+    let builder = builder
+        .then(&step1, |_state, step_scope| {
+            let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope.config)?;
+            Ok(result)
+        })
+        .expect("step 1 should succeed");
 
-    let builder = builder.then(&step2, |_prev, step_scope| {
-        let result = primitives::make_cube([10.0, 0.0, 0.0], 1.0, step_scope.config)?;
-        Ok(result)
-    }).expect("step 2 should succeed");
+    let builder = builder
+        .then(&step2, |_prev, step_scope| {
+            let result = primitives::make_cube([10.0, 0.0, 0.0], 1.0, step_scope.config)?;
+            Ok(result)
+        })
+        .expect("step 2 should succeed");
 
     let (_final_result, audit) = builder.finish();
 
     // The pipeline audit should record 2 steps.
-    assert_eq!(audit.steps.len(), 2, "Pipeline should have 2 step audit entries");
+    assert_eq!(
+        audit.steps.len(),
+        2,
+        "Pipeline should have 2 step audit entries"
+    );
 
     // The pipeline's context (ModelingContext) records the step spans.
     // Each `run_step` wraps execution in a span, so we should see 2 step spans.
     let log = ctx.get_decision_log();
     let events = log.get_events();
-    let span_count = events.iter()
+    let span_count = events
+        .iter()
         .filter(|e| matches!(e, forge_core::TraceEvent::StartSpan { .. }))
         .count();
     assert_eq!(
         span_count, 2,
-        "Expected 2 span starts (one per pipeline step), got {}", span_count
+        "Expected 2 span starts (one per pipeline step), got {}",
+        span_count
     );
 }
 
@@ -127,12 +148,14 @@ fn test_pipeline_determinism() {
         let step = TestStep::new("make_cube");
         let builder = PipelineBuilder::start(&mut scope, ());
 
-        let builder = builder.then(&step, |_state, step_scope| {
-            let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope.config)?;
-            let (topo, _geom) = result.into_value().into_parts();
-            let topo: forge_topo::transactions::TopologyState = topo;
-            Ok(topo)
-        }).expect("make_cube should succeed");
+        let builder = builder
+            .then(&step, |_state, step_scope| {
+                let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope.config)?;
+                let (topo, _geom) = result.into_value().into_parts();
+                let topo: forge_topo::transactions::TopologyState = topo;
+                Ok(topo)
+            })
+            .expect("make_cube should succeed");
 
         let (topo, _audit) = builder.finish();
         let decision_count = ctx.get_decision_count();
@@ -165,23 +188,28 @@ fn test_pipeline_failure_preserves_prior_state() {
     let builder = PipelineBuilder::start(&mut scope, ());
 
     // Step 1: generate cube
-    let builder = builder.then(&step1, |_state, step_scope| {
-        let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope.config)?;
-        let (topo, _geom) = result.into_value().into_parts();
-        Ok(topo)
-    }).expect("step 1 should succeed");
+    let builder = builder
+        .then(&step1, |_state, step_scope| {
+            let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope.config)?;
+            let (topo, _geom) = result.into_value().into_parts();
+            Ok(topo)
+        })
+        .expect("step 1 should succeed");
 
     // Capture the topology hash before the bad step
     // (PipelineBuilder consumes state, so we can't peek — but we can
     // verify the error is surfaced correctly)
 
     // Step 2: always fails
-    let result = builder.then(&step2, |_topo, _step_scope| -> Result<TopologyState, KernelError> {
-        Err(KernelError::InternalError {
-            message: "intentional failure for testing".to_string(),
-            context: None,
-        })
-    });
+    let result = builder.then(
+        &step2,
+        |_topo, _step_scope| -> Result<TopologyState, KernelError> {
+            Err(KernelError::InternalError {
+                message: "intentional failure for testing".to_string(),
+                context: None,
+            })
+        },
+    );
 
     assert!(result.is_err(), "Bad step should propagate error");
 }
@@ -201,39 +229,51 @@ fn test_pipeline_accumulates_lineage() {
     let builder = PipelineBuilder::start(&mut scope, ());
 
     // Step 1: generate the cube — this populates lineage events.
-    let builder = builder.then(&step1, |_state, step_scope| {
-        let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope.config)?;
-        Ok(result)
-    }).expect("step 1 should succeed");
+    let builder = builder
+        .then(&step1, |_state, step_scope| {
+            let result = primitives::make_cube([0.0, 0.0, 0.0], 1.0, step_scope.config)?;
+            Ok(result)
+        })
+        .expect("step 1 should succeed");
 
     // Step 2: extract topology and verify lineage survived.
-    let builder = builder.then(&step2, |mesh_result: OperationResult<SolidEnvelope>, _step_scope| {
-        let topo = mesh_result.into_value().topology().clone();
-        let events = topo.lineage_events();
-        assert!(!events.is_empty(), "Lineage events must survive pipeline threading");
+    let builder = builder
+        .then(
+            &step2,
+            |mesh_result: OperationResult<SolidEnvelope>, _step_scope| {
+                let topo = mesh_result.into_value().topology().clone();
+                let events = topo.lineage_events();
+                assert!(
+                    !events.is_empty(),
+                    "Lineage events must survive pipeline threading"
+                );
 
-        let store = LineageStore::from_prior_events(events);
-        let arena = topo.arena();
+                let store = LineageStore::from_prior_events(events);
+                let arena = topo.arena();
 
-        // Full coverage check.
-        let arena_count = arena.face_count()
-            + arena.vertex_count()
-            + arena.half_edge_count()
-            + arena.edge_count()
-            + arena.loop_count()
-            + arena.shell_count()
-            + arena.body_count()
-            + arena.lump_count()
-            + arena.region_count();
+                // Full coverage check.
+                let arena_count = arena.face_count()
+                    + arena.vertex_count()
+                    + arena.half_edge_count()
+                    + arena.edge_count()
+                    + arena.loop_count()
+                    + arena.shell_count()
+                    + arena.body_count()
+                    + arena.lump_count()
+                    + arena.region_count();
 
-        assert_eq!(
-            store.active_count(), arena_count,
-            "Pipeline lineage coverage gap: store={}, arena={}",
-            store.active_count(), arena_count
-        );
+                assert_eq!(
+                    store.active_count(),
+                    arena_count,
+                    "Pipeline lineage coverage gap: store={}, arena={}",
+                    store.active_count(),
+                    arena_count
+                );
 
-        Ok(topo)
-    }).expect("step 2 should succeed");
+                Ok(topo)
+            },
+        )
+        .expect("step 2 should succeed");
 
     let (_final_topo, audit) = builder.finish();
     assert_eq!(audit.steps.len(), 2);

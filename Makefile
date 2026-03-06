@@ -63,7 +63,7 @@ kernel-check:
 test: kernel-test ui-test
 
 .PHONY: check
-check: kernel-check ui-check
+check: kernel-check ui-check determinism-guards determinism-golden
 
 # ── Trace tooling ─────────────────────────────────────────────────────────────
 
@@ -78,6 +78,14 @@ trace-issues:
 .PHONY: trace-list
 trace-list:
 	cargo run -p forge-view --bin forge-trace-cli -- list $(DIR)
+
+.PHONY: determinism-guards
+determinism-guards:
+	python3 scripts/ci/check_determinism_guards.py
+
+.PHONY: determinism-golden
+determinism-golden:
+	bash scripts/ci/check_determinism_golden.sh
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 

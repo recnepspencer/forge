@@ -5,10 +5,10 @@
 
 use forge_core::{KernelError, PolicyKind};
 
-use super::tolerance::tolerance_section;
-use super::tolerance::ToleranceConfig;
 use super::kernel_config::KernelConfig;
 use super::provenance::{ConfigProvenance, ConfigSource};
+use super::tolerance::tolerance_section;
+use super::tolerance::ToleranceConfig;
 
 /// Hard floor — no tolerance may be tighter than this regardless of model scale.
 ///

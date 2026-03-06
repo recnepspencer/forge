@@ -20,11 +20,10 @@ use forge_core::{KernelError, TopologyError};
 use tracing;
 
 use crate::handles::{HalfEdgeId, LoopId};
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
-
 
 /// NMT-compatible face merge that leaves a topological slit.
 ///
@@ -51,16 +50,22 @@ impl TopoOperator for JoinFacesNmt {
 
     const NAME: &'static str = "join_faces_nmt";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         format!(
             "Join non-manifold faces via halfedges {} (survive) and {} (kill)",
-            self.he_survive.index(), self.he_kill.index()
+            self.he_survive.index(),
+            self.he_kill.index()
         )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he_s = self.he_survive;
         let he_k = self.he_kill;
 
@@ -115,7 +120,9 @@ impl TopoOperator for JoinFacesNmt {
         tracing::info!(
             "join_faces_nmt: radial_ring={:?} he_survive={} he_kill={} valence={}",
             ring.iter().map(|h| h.index()).collect::<Vec<_>>(),
-            he_s.index(), he_k.index(), valence,
+            he_s.index(),
+            he_k.index(),
+            valence,
         );
 
         // 1. Surgery on the protected radial ring.
@@ -129,22 +136,13 @@ impl TopoOperator for JoinFacesNmt {
             for i in 0..protected.len() {
                 let this = protected[i];
                 let next = protected[(i + 1) % protected.len()];
-                draft
-                    .arena_mut()
-                    .get_half_edge_mut(this)?
-                    .set_radial_next(next);
+                draft.arena_mut().set_half_edge_radial_next(this, next)?;
             }
         }
 
         // 2. Wire the slit pair to each other.
-        draft
-            .arena_mut()
-            .get_half_edge_mut(he_s)?
-            .set_radial_next(he_k);
-        draft
-            .arena_mut()
-            .get_half_edge_mut(he_k)?
-            .set_radial_next(he_s);
+        draft.arena_mut().set_half_edge_radial_next(he_s, he_k)?;
+        draft.arena_mut().set_half_edge_radial_next(he_k, he_s)?;
 
         // 2b. Allocate a NEW EdgeId for the slit pair (Option B per Weiler/ACIS).
         //
@@ -154,8 +152,14 @@ impl TopoOperator for JoinFacesNmt {
         //   - radial_neighbor_consistency sees a valid valence-2 slit edge.
         //   - EdgeData.half_edge on the original edge enters the protected ring only.
         let slit_edge = draft.insert_edge(crate::b_rep::EdgeData::new(he_s));
-        draft.arena_mut().get_half_edge_mut(he_s)?.set_edge(slit_edge);
-        draft.arena_mut().get_half_edge_mut(he_k)?.set_edge(slit_edge);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(he_s)?
+            .set_edge(slit_edge);
+        draft
+            .arena_mut()
+            .get_half_edge_mut(he_k)?
+            .set_edge(slit_edge);
 
         tracing::info!(
             "join_faces_nmt: slit_edge={} protected={:?} original_edge={}",
@@ -166,24 +170,25 @@ impl TopoOperator for JoinFacesNmt {
 
         // 3. Lineage merge.
 
-
         // 4. Reassign killed face's outer boundary halfedges to surviving face.
         // Wait: `he_k`'s next() loop gives us the outer boundary of the killed face.
         // We must reassign EVERYTHING in that loop to `face_survive`.
         reassign_face(draft, he_k, face_survive)?;
 
         // P10: Transfer inner loops from face_kill to face_survive.
-        let inner_loops: Vec<LoopId> = draft.arena().get_face(face_kill)?.inner_loops().to_vec();
+        let inner_loops: Vec<LoopId> = draft.arena().get_face(face_kill)?.loops.inners().to_vec();
         for il_id in inner_loops {
             let inner_start = draft.arena().get_loop(il_id)?.half_edge();
             draft
                 .arena_mut()
                 .get_face_mut(face_kill)?
-                .remove_inner_loop(il_id);
+                .loops
+                .remove_inner(il_id);
             draft
                 .arena_mut()
                 .get_face_mut(face_survive)?
-                .add_inner_loop(il_id);
+                .loops
+                .add_inner(il_id);
             draft
                 .arena_mut()
                 .get_loop_mut(il_id)?
@@ -245,8 +250,14 @@ impl TopoOperator for JoinFacesNmt {
         for &target_vertex in &[vertex_s, vertex_k] {
             let current_out = draft.arena().get_vertex(target_vertex)?.primary_disk();
             if current_out == he_s || current_out == he_k {
-                let replacement =
-                    find_non_slit_outgoing(draft, target_vertex, he_s, he_k, &protected, &[he_s_next, he_k_next])?;
+                let replacement = find_non_slit_outgoing(
+                    draft,
+                    target_vertex,
+                    he_s,
+                    he_k,
+                    &protected,
+                    &[he_s_next, he_k_next],
+                )?;
                 draft
                     .arena_mut()
                     .get_vertex_mut(target_vertex)?
@@ -278,23 +289,18 @@ impl TopoOperator for JoinFacesNmt {
 
         for &v in &affected_vertices {
             let rebuilt = crate::queries::vertex_disks::rebuild_disk_entries(draft.arena(), v)?;
-            // Clear existing NMT extras for this vertex
-            if let Some(extras) = draft.arena_mut().nmt_extra_disks.get_mut(&v) {
-                extras.clear();
+            if rebuilt.is_empty() {
+                return Err(KernelError::TopologyViolation {
+                    err: TopologyError::BrokenLoop {
+                        starting_halfedge: he_s.index(),
+                        face_index: face_survive.index(),
+                    },
+                    context: None,
+                });
             }
-            // Set primary to first entry, rest as extras
-            if !rebuilt.is_empty() {
-                draft.arena_mut().get_vertex_mut(v)?.set_primary_disk(rebuilt[0]);
-                for &entry in &rebuilt[1..] {
-                    draft.arena_mut().add_disk_entry(v, entry);
-                }
-                // If we cleared extras but there are none to add back, update nmt flag
-                if rebuilt.len() == 1 {
-                    if let Some(flag) = draft.arena_mut().vertex_is_nmt.get_mut(v.index() as usize) {
-                        *flag = false;
-                    }
-                }
-            }
+            draft
+                .arena_mut()
+                .reset_disk_entries(v, rebuilt[0], &rebuilt[1..])?;
         }
 
         // 7. Register the slit as a new inner loop on the surviving face.
@@ -302,7 +308,8 @@ impl TopoOperator for JoinFacesNmt {
         draft
             .arena_mut()
             .get_face_mut(face_survive)?
-            .add_inner_loop(new_inner_loop);
+            .loops
+            .add_inner(new_inner_loop);
 
         // 7b. Fix EdgeData.half_edge pointer on the ORIGINAL edge.
         // After slit creation, the original EdgeData may still point to he_s or he_k
@@ -316,17 +323,18 @@ impl TopoOperator for JoinFacesNmt {
 
         tracing::debug!(
             "join_faces_nmt: vertex_fixup vertex_s={} vertex_k={}",
-            vertex_s.index(), vertex_k.index(),
+            vertex_s.index(),
+            vertex_k.index(),
         );
 
         // 8. Remove the killed face and its outer loop.
-        let loop_kill = draft.arena().get_face(face_kill)?.outer_loop();
+        let loop_kill = draft.arena().get_face(face_kill)?.loops.outer();
 
         draft.remove_loop(loop_kill)?;
         draft.remove_face(face_kill)?;
 
         // 9. Ensure the surviving face's outer loop points into the merged ring.
-        let loop_survive = draft.arena().get_face(face_survive)?.outer_loop();
+        let loop_survive = draft.arena().get_face(face_survive)?.loops.outer();
         draft
             .arena_mut()
             .get_loop_mut(loop_survive)?
@@ -334,7 +342,9 @@ impl TopoOperator for JoinFacesNmt {
 
         tracing::info!(
             "join_faces_nmt: killed_face={} slit_loop={} slit_edge={}",
-            face_kill.index(), new_inner_loop.index(), slit_edge.index(),
+            face_kill.index(),
+            new_inner_loop.index(),
+            slit_edge.index(),
         );
 
         Ok(ExecutionResult {
@@ -346,7 +356,7 @@ impl TopoOperator for JoinFacesNmt {
                 half_edges: 0,
                 faces: -1,
                 loops: 0,
-                edges: 1,  // slit creates a new edge entity
+                edges: 1, // slit creates a new edge entity
                 shells: 0,
                 solids: 0,
                 lumps: 0,
@@ -354,15 +364,13 @@ impl TopoOperator for JoinFacesNmt {
             },
         })
     }
-
-
 }
 
 /// Reassign all halfedges starting from `start` to `new_face`.
 ///
 /// Walks the loop via `next()` until returning to `start`.
 fn reassign_face(
-    draft: &mut MutableDraft, 
+    draft: &mut MutableDraft,
     start: HalfEdgeId,
     new_face: crate::handles::FaceId,
 ) -> Result<(), KernelError> {
@@ -455,4 +463,3 @@ fn find_non_slit_outgoing(
         context: None,
     })
 }
-

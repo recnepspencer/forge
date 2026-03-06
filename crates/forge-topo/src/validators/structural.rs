@@ -5,8 +5,8 @@
 //! which validators run at commit time.
 
 use crate::b_rep::TopologyArena;
+use crate::validators::invariant_id::{validator_for, InvariantId, ValidatorCost};
 use crate::validators::validate::ValidationLevel;
-use crate::validators::invariant_id::{InvariantId, ValidatorCost, validator_for};
 use forge_core::KernelError;
 
 /// Validate structural topology of an arena with the specified strictness.

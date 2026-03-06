@@ -73,10 +73,12 @@ fn test_decision_log_roundtrip() {
     );
 
     // Verify decision kinds match.
-    let original_kinds: Vec<_> = log.decisions()
+    let original_kinds: Vec<_> = log
+        .decisions()
         .map(|d: &forge_core::TracedDecision| std::mem::discriminant(d.get_kind()))
         .collect();
-    let deser_kinds: Vec<_> = deserialized.decisions()
+    let deser_kinds: Vec<_> = deserialized
+        .decisions()
         .map(|d: &forge_core::TracedDecision| std::mem::discriminant(d.get_kind()))
         .collect();
     assert_eq!(
@@ -117,7 +119,10 @@ fn test_lineage_events_survive_serialization() {
     let topo = result.get_value().topology();
     let original_events = topo.lineage_events();
 
-    assert!(!original_events.is_empty(), "Lineage events should be non-empty");
+    assert!(
+        !original_events.is_empty(),
+        "Lineage events should be non-empty"
+    );
 
     // Serialize and deserialize the entire TopologyState.
     let serialized = serde_json::to_vec(topo).expect("TopologyState should serialize");
@@ -128,7 +133,8 @@ fn test_lineage_events_survive_serialization() {
 
     // Same event count.
     assert_eq!(
-        original_events.len(), deser_events.len(),
+        original_events.len(),
+        deser_events.len(),
         "Lineage event count must survive round-trip"
     );
 
@@ -137,7 +143,8 @@ fn test_lineage_events_survive_serialization() {
     let deser_store = LineageStore::from_prior_events(deser_events);
 
     assert_eq!(
-        orig_store.active_count(), deser_store.active_count(),
+        orig_store.active_count(),
+        deser_store.active_count(),
         "Lineage active count must survive round-trip"
     );
 
@@ -145,19 +152,23 @@ fn test_lineage_events_survive_serialization() {
     for (i, event) in deser_events.iter().enumerate() {
         assert!(
             matches!(event, LineageEvent::EntityCreated { .. }),
-            "Deserialized event {} should be EntityCreated, got {:?}", i, event
+            "Deserialized event {} should be EntityCreated, got {:?}",
+            i,
+            event
         );
     }
 
     // Op attribution preserved.
     for eref in orig_store.tracked_entities() {
         let orig_lineage = orig_store.get_lineage(eref).unwrap();
-        let deser_lineage = deser_store.get_lineage(eref)
+        let deser_lineage = deser_store
+            .get_lineage(eref)
             .expect("Deserialized store should track same entity");
         assert_eq!(
             orig_lineage.get_creation_op().get_name(),
             deser_lineage.get_creation_op().get_name(),
-            "Op name must survive round-trip for {:?}", eref
+            "Op name must survive round-trip for {:?}",
+            eref
         );
     }
 }

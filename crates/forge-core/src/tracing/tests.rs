@@ -1,7 +1,7 @@
 //! Tests for the tracing infrastructure.
 
-use super::decision_log::*;
 use super::decision::*;
+use super::decision_log::*;
 use crate::policy::PolicyKind;
 
 fn make_decision(id: u64, tier: DecisionTier, kind: DecisionKind) -> TracedDecision {

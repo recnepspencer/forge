@@ -4,7 +4,9 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::tracing::decision::{DecisionId, DecisionKind, DecisionTier, SpanId, TraceEvent, TracedDecision};
+use crate::tracing::decision::{
+    DecisionId, DecisionKind, DecisionTier, SpanId, TraceEvent, TracedDecision,
+};
 
 // =========================================================================
 // DECISION LOG

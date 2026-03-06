@@ -24,10 +24,14 @@ pub(crate) fn validate_acyclic_containment(arena: &TopologyArena) -> Result<(), 
     for (body_id, body_data) in arena.iter_bodies() {
         for &lump_id in body_data.lumps() {
             if !claimed_lumps.insert(lump_id.index()) {
-                return Err(vf("acyclic_containment", format!(
-                    "Lump {} is claimed by multiple Bodies (or multiple times by Body {})",
-                    lump_id.index(), body_id.index()
-                )));
+                return Err(vf(
+                    "acyclic_containment",
+                    format!(
+                        "Lump {} is claimed by multiple Bodies (or multiple times by Body {})",
+                        lump_id.index(),
+                        body_id.index()
+                    ),
+                ));
             }
         }
     }
@@ -35,10 +39,14 @@ pub(crate) fn validate_acyclic_containment(arena: &TopologyArena) -> Result<(), 
     for (lump_id, lump_data) in arena.iter_lumps() {
         for &region_id in lump_data.regions() {
             if !claimed_regions.insert(region_id.index()) {
-                return Err(vf("acyclic_containment", format!(
-                    "Region {} is claimed by multiple Lumps (or multiple times by Lump {})",
-                    region_id.index(), lump_id.index()
-                )));
+                return Err(vf(
+                    "acyclic_containment",
+                    format!(
+                        "Region {} is claimed by multiple Lumps (or multiple times by Lump {})",
+                        region_id.index(),
+                        lump_id.index()
+                    ),
+                ));
             }
         }
     }
@@ -46,10 +54,14 @@ pub(crate) fn validate_acyclic_containment(arena: &TopologyArena) -> Result<(), 
     for (region_id, region_data) in arena.iter_regions() {
         for shell_id in region_data.shells() {
             if !claimed_shells.insert(shell_id.index()) {
-                return Err(vf("acyclic_containment", format!(
-                    "Shell {} is claimed by multiple Regions (or multiple times by Region {})",
-                    shell_id.index(), region_id.index()
-                )));
+                return Err(vf(
+                    "acyclic_containment",
+                    format!(
+                        "Shell {} is claimed by multiple Regions (or multiple times by Region {})",
+                        shell_id.index(),
+                        region_id.index()
+                    ),
+                ));
             }
         }
     }

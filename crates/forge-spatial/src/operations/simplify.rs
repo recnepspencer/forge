@@ -5,8 +5,8 @@
 
 use forge_core::KernelError;
 use forge_topo::b_rep::TopologyArena;
-use forge_topo::handles::{HalfEdgeId, VertexId};
 use forge_topo::entity_lifecycle::kill_edge_vertex::KillEdgeVertex;
+use forge_topo::handles::{HalfEdgeId, VertexId};
 use forge_topo::transactions::MutableDraft;
 
 /// Find the first valence-2 vertex whose adjacent edges are collinear.
@@ -82,7 +82,9 @@ fn compute_vertex_degree(
     let mut edges = Vec::new();
 
     loop {
-        if count > 100 { return None; }
+        if count > 100 {
+            return None;
+        }
         count += 1;
         edges.push(curr);
 

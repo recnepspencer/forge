@@ -13,13 +13,17 @@ pub(crate) fn validate_single_owner_per_loop(arena: &TopologyArena) -> Result<()
     let mut owner_count: BTreeMap<u32, (u32, u32)> = BTreeMap::new();
 
     for (face_id, face_data) in arena.iter_faces() {
-        let outer = face_data.outer_loop();
-        let entry = owner_count.entry(outer.index()).or_insert((0, face_id.index()));
+        let outer = face_data.loops.outer();
+        let entry = owner_count
+            .entry(outer.index())
+            .or_insert((0, face_id.index()));
         entry.0 += 1;
         entry.1 = face_id.index();
 
-        for &il in face_data.inner_loops() {
-            let entry = owner_count.entry(il.index()).or_insert((0, face_id.index()));
+        for &il in face_data.loops.inners() {
+            let entry = owner_count
+                .entry(il.index())
+                .or_insert((0, face_id.index()));
             entry.0 += 1;
             entry.1 = face_id.index();
         }
@@ -34,10 +38,14 @@ pub(crate) fn validate_single_owner_per_loop(arena: &TopologyArena) -> Result<()
                 )));
             }
             Some(&(count, _)) if count > 1 => {
-                return Err(vf("single_owner_per_loop", format!(
-                    "Loop {} is claimed by {} faces (must be exactly 1)",
-                    loop_id.index(), count
-                )));
+                return Err(vf(
+                    "single_owner_per_loop",
+                    format!(
+                        "Loop {} is claimed by {} faces (must be exactly 1)",
+                        loop_id.index(),
+                        count
+                    ),
+                ));
             }
             _ => {}
         }

@@ -16,7 +16,10 @@ use super::schema::{VersionedModel, SCHEMA_VERSION};
 use crate::IoError;
 
 /// Save a FeatureTree model to a versioned JSON file.
-pub fn save_model<P: AsRef<Path>>(model: &FeatureTree<NativeFeature>, path: P) -> Result<(), IoError> {
+pub fn save_model<P: AsRef<Path>>(
+    model: &FeatureTree<NativeFeature>,
+    path: P,
+) -> Result<(), IoError> {
     #[derive(Serialize)]
     struct Envelope<'a> {
         version: u32,

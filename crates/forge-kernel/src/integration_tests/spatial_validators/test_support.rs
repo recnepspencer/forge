@@ -2,7 +2,10 @@
 //!
 //! Provides helpers for building synthetic B-Rep topology and mock tolerance providers.
 
-use forge_topo::b_rep::{BodyData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData, ShellOrientation, VertexData};
+use forge_topo::b_rep::{
+    BodyData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData, ShellOrientation,
+    VertexData,
+};
 use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, ShellId, VertexId};
 use forge_topo::transactions::{DraftConfig, MutableDraft, TopologyState};
 use forge_topo::validate::ValidationLevel;
@@ -25,8 +28,16 @@ pub fn insert_test_solid_shell(draft: &mut MutableDraft) -> ShellId {
         region,
     ));
     draft.arena_mut().get_body_mut(body).unwrap().add_lump(lump);
-    draft.arena_mut().get_lump_mut(lump).unwrap().add_region(region);
-    draft.arena_mut().get_region_mut(region).unwrap().add_shell(shell);
+    draft
+        .arena_mut()
+        .get_lump_mut(lump)
+        .unwrap()
+        .add_region(region);
+    draft
+        .arena_mut()
+        .get_region_mut(region)
+        .unwrap()
+        .add_shell(shell);
     shell
 }
 
@@ -45,9 +56,30 @@ pub fn build_triangle_face(draft: &mut MutableDraft) -> (FaceId, VertexId, Verte
     let loop_id = draft.insert_loop(LoopData::new(placeholder_he, placeholder_face));
     let face = draft.insert_face(FaceData::new(loop_id, shell));
 
-    let h0 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v0, placeholder_edge));
-    let h1 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v1, placeholder_edge));
-    let h2 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v2, placeholder_edge));
+    let h0 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face,
+        v0,
+        placeholder_edge,
+    ));
+    let h1 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face,
+        v1,
+        placeholder_edge,
+    ));
+    let h2 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face,
+        v2,
+        placeholder_edge,
+    ));
 
     let arena = draft.arena_mut();
     arena.get_half_edge_mut(h0).unwrap().set_next(h1);
@@ -58,7 +90,10 @@ pub fn build_triangle_face(draft: &mut MutableDraft) -> (FaceId, VertexId, Verte
     arena.get_half_edge_mut(h2).unwrap().set_prev(h1);
     arena.get_loop_mut(loop_id).unwrap().set_half_edge(h0);
     arena.get_loop_mut(loop_id).unwrap().set_face(face);
-    arena.get_shell_mut(shell).unwrap().set_representative_face(face);
+    arena
+        .get_shell_mut(shell)
+        .unwrap()
+        .set_representative_face(face);
 
     (face, v0, v1, v2)
 }
@@ -73,8 +108,22 @@ pub fn build_edge(draft: &mut MutableDraft) -> (HalfEdgeId, VertexId, VertexId) 
     let v1 = draft.insert_vertex(VertexData::new(placeholder_he));
     let edge = draft.insert_edge(EdgeData::new(placeholder_he));
 
-    let h0 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v0, edge));
-    let h1 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v1, edge));
+    let h0 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        placeholder_face,
+        v0,
+        edge,
+    ));
+    let h1 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        placeholder_face,
+        v1,
+        edge,
+    ));
 
     let arena = draft.arena_mut();
     arena.get_half_edge_mut(h0).unwrap().set_next(h1);
@@ -95,8 +144,22 @@ pub fn build_self_loop(draft: &mut MutableDraft) -> (HalfEdgeId, VertexId) {
     let v0 = draft.insert_vertex(VertexData::new(placeholder_he));
     let edge = draft.insert_edge(EdgeData::new(placeholder_he));
 
-    let h0 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v0, edge));
-    let h1 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, placeholder_face, v0, edge));
+    let h0 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        placeholder_face,
+        v0,
+        edge,
+    ));
+    let h1 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        placeholder_face,
+        v0,
+        edge,
+    ));
 
     let arena = draft.arena_mut();
     arena.get_half_edge_mut(h0).unwrap().set_next(h1);
@@ -115,13 +178,21 @@ pub struct MockToleranceProvider {
 }
 
 impl forge_core::ToleranceProvider for MockToleranceProvider {
-    fn global_default(&self) -> f64 { self.default_tolerance }
-    fn vertex_tolerance(&self, _index: u32, _generation: u32) -> f64 { self.default_tolerance }
-    fn edge_tolerance(&self, _index: u32, _generation: u32) -> f64 { self.default_tolerance }
+    fn global_default(&self) -> f64 {
+        self.default_tolerance
+    }
+    fn vertex_tolerance(&self, _index: u32, _generation: u32) -> f64 {
+        self.default_tolerance
+    }
+    fn edge_tolerance(&self, _index: u32, _generation: u32) -> f64 {
+        self.default_tolerance
+    }
 }
 
 impl Default for MockToleranceProvider {
     fn default() -> Self {
-        Self { default_tolerance: 1e-6 }
+        Self {
+            default_tolerance: 1e-6,
+        }
     }
 }

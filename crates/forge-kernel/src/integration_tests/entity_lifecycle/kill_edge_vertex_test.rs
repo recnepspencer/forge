@@ -15,23 +15,35 @@ use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 fn split_then_kev_roundtrip() {
     let env_res = unit_cube().expect("unit cube should succeed");
     let faces = env_res.get_value().faces().to_vec();
-    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
 
-    let se = draft.execute(SplitEdge {
-        edge: start_he,
-    }).unwrap().into_value();
+    let se = draft
+        .execute(SplitEdge { edge: start_he })
+        .unwrap()
+        .into_value();
 
     assert_eq!(draft.arena().vertex_count(), 9);
 
-    let _kev = draft.execute(KillEdgeVertex {
-        edge: se.he_mb,
-    }).unwrap().into_value();
+    let _kev = draft
+        .execute(KillEdgeVertex { edge: se.he_mb })
+        .unwrap()
+        .into_value();
 
-    assert_eq!(draft.arena().vertex_count(), 8, "KEV should kill the midpoint vertex");
-    let face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();
+    assert_eq!(
+        draft.arena().vertex_count(),
+        8,
+        "KEV should kill the midpoint vertex"
+    );
+    let face_valence = collect_face_loop(
+        draft.arena(),
+        first_halfedge_of_face(draft.arena(), face).unwrap(),
+    )
+    .unwrap()
+    .len();
     assert_eq!(face_valence, 4);
 
     let committed = draft.commit().unwrap();
@@ -52,7 +64,8 @@ fn split_then_kev_roundtrip() {
 fn split_all_face_edges_then_kev_all() {
     let env_res = unit_cube().expect("unit cube should succeed");
     let faces = env_res.get_value().faces().to_vec();
-    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
@@ -60,14 +73,17 @@ fn split_all_face_edges_then_kev_all() {
 
     let mut new_hes = Vec::new();
     for &he in &loop_hes {
-        let se = draft.execute(SplitEdge {
-            edge: he,
-        }).unwrap().into_value();
+        let se = draft.execute(SplitEdge { edge: he }).unwrap().into_value();
         new_hes.push(se.he_mb);
     }
 
     assert_eq!(draft.arena().vertex_count(), 12);
-    let face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();
+    let face_valence = collect_face_loop(
+        draft.arena(),
+        first_halfedge_of_face(draft.arena(), face).unwrap(),
+    )
+    .unwrap()
+    .len();
     assert_eq!(face_valence, 8);
 
     for he in new_hes {
@@ -75,7 +91,12 @@ fn split_all_face_edges_then_kev_all() {
     }
 
     assert_eq!(draft.arena().vertex_count(), 8);
-    let face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();
+    let face_valence = collect_face_loop(
+        draft.arena(),
+        first_halfedge_of_face(draft.arena(), face).unwrap(),
+    )
+    .unwrap()
+    .len();
     assert_eq!(face_valence, 4);
 
     let _committed = draft.commit().unwrap();
@@ -86,28 +107,41 @@ fn split_all_face_edges_then_kev_all() {
 fn double_split_then_double_kev() {
     let env_res = unit_cube().expect("unit cube should succeed");
     let faces = env_res.get_value().faces().to_vec();
-    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
     let face = faces[0];
     let start_he = first_halfedge_of_face(draft.arena(), face).unwrap();
 
-    let se1 = draft.execute(SplitEdge {
-        edge: start_he,
-    }).unwrap().into_value();
+    let se1 = draft
+        .execute(SplitEdge { edge: start_he })
+        .unwrap()
+        .into_value();
 
-    let se2 = draft.execute(SplitEdge {
-        edge: se1.he_mb,
-    }).unwrap().into_value();
+    let se2 = draft
+        .execute(SplitEdge { edge: se1.he_mb })
+        .unwrap()
+        .into_value();
 
     assert_eq!(draft.arena().vertex_count(), 10);
-    let face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();
+    let face_valence = collect_face_loop(
+        draft.arena(),
+        first_halfedge_of_face(draft.arena(), face).unwrap(),
+    )
+    .unwrap()
+    .len();
     assert_eq!(face_valence, 6);
 
     draft.execute(KillEdgeVertex { edge: se2.he_mb }).unwrap();
     draft.execute(KillEdgeVertex { edge: se1.he_mb }).unwrap();
 
     assert_eq!(draft.arena().vertex_count(), 8);
-    let face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();
+    let face_valence = collect_face_loop(
+        draft.arena(),
+        first_halfedge_of_face(draft.arena(), face).unwrap(),
+    )
+    .unwrap()
+    .len();
     assert_eq!(face_valence, 4);
 
     let _committed = draft.commit().unwrap();

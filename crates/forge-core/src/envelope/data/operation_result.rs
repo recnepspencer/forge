@@ -6,6 +6,7 @@ use crate::tracing::DecisionLog;
 
 use super::kernel_warning::KernelWarning;
 use super::lineage_delta::LineageDelta;
+use super::mutation_journal_snapshot::MutationJournalSnapshot;
 use super::operation_metrics::OperationMetrics;
 
 /// Universal envelope wrapping every kernel operation's return value.
@@ -36,6 +37,8 @@ pub struct OperationResult<T> {
     pub(in crate::envelope) metrics: OperationMetrics,
     /// Summary of lineage changes.
     pub(in crate::envelope) lineage_delta: LineageDelta,
+    /// Immutable per-operation created/destroyed entity snapshot.
+    pub(in crate::envelope) mutation_snapshot: MutationJournalSnapshot,
     /// Topology hash before the operation.
     pub(in crate::envelope) state_hash_before: u128,
     /// Topology hash after the operation.
@@ -53,4 +56,3 @@ pub struct OperationResult<T> {
     #[serde(default)]
     pub(in crate::envelope) accumulated_error_budget: f64,
 }
-

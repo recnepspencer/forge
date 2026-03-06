@@ -1,10 +1,14 @@
 //! Tests for TopologyState and MutableDraft.
 
-use std::sync::Arc;
 use super::*;
-use crate::provenance::{Lineage, LineageEntityRef, LineageEvent, OpSignature};
+use crate::provenance::{
+    Lineage, LineageEntityRef, LineageEvent, OpSignature, RollbackContract,
+    RollbackContractVersion, RollbackLineageMode, RollbackStrategy,
+};
 use forge_core::{EntityKind, EntityRef};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::sync::Arc;
 
 #[test]
 fn empty_state_has_epoch_zero() {
@@ -12,6 +16,14 @@ fn empty_state_has_epoch_zero() {
     assert_eq!(state.epoch(), 0);
     assert_eq!(state.topology_version(), 0);
     assert_eq!(state.geometry_version(), 0);
+}
+
+#[test]
+fn rollback_contract_is_locked_to_snapshot_restore_v1() {
+    let contract = RollbackContract::CURRENT;
+    assert_eq!(contract.version, RollbackContractVersion::V1);
+    assert_eq!(contract.strategy, RollbackStrategy::SnapshotRestore);
+    assert_eq!(contract.lineage_mode, RollbackLineageMode::Reverted);
 }
 
 #[test]
@@ -199,10 +211,9 @@ fn commit_persists_lineage_store_events() {
     let mut draft = TopologyState::empty().into_mutation();
     let root = Lineage::root(1, OpSignature::with_id("root", 1));
     let child = Lineage::derive(&root, OpSignature::with_id("child", 2));
-    draft.lineage_store.record_creation(
-        EntityRef::new(EntityKind::Face, 42, 0),
-        child.clone(),
-    );
+    draft
+        .lineage_store
+        .record_creation(EntityRef::new(EntityKind::Face, 42, 0), child.clone());
 
     let committed = draft.commit().expect("lineage store event commit");
     assert_eq!(committed.lineage_events().len(), 1);
@@ -242,7 +253,11 @@ fn commit_persists_lineage_store_events_with_snapshots() {
 
     let committed = draft.commit().expect("mixed lineage events commit");
     let events = committed.lineage_events();
-    assert_eq!(events.len(), 2, "single-channel lineage must persist all events");
+    assert_eq!(
+        events.len(),
+        2,
+        "single-channel lineage must persist all events"
+    );
 
     let mut snapshot_seen = false;
     let mut plain_seen = false;
@@ -288,19 +303,29 @@ fn commit_persists_lineage_store_events_with_snapshots() {
 // MutationJournal Adversarial Tests
 // =====================================================================
 
-use crate::handles::{
-    HalfEdgeId, LoopId, ShellId, FaceId, VertexId, EdgeId, RegionId, LumpId, BodyId,
-};
 use crate::b_rep::{
-    FaceData, HalfEdgeData, VertexData, LoopData, EdgeData,
-    ShellData, ShellKind, ShellOrientation, RegionData, LumpData, BodyData,
+    BodyData, EdgeData, FaceData, HalfEdgeData, LoopData, LumpData, RegionData, ShellData,
+    ShellKind, ShellOrientation, VertexData,
+};
+use crate::handles::{
+    BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
 };
 
 /// Helper: insert one of each entity type into the draft via proxy hooks.
 /// Returns all 9 handles in a tuple for removal tests.
 fn insert_all_entity_kinds(
     draft: &mut MutableDraft,
-) -> (FaceId, HalfEdgeId, VertexId, LoopId, EdgeId, ShellId, RegionId, LumpId, BodyId) {
+) -> (
+    FaceId,
+    HalfEdgeId,
+    VertexId,
+    LoopId,
+    EdgeId,
+    ShellId,
+    RegionId,
+    LumpId,
+    BodyId,
+) {
     // Use DANGLING sentinels for cross-references — we only care that
     // the proxy hooks fire, not that the topology is valid.
     let b1 = draft.insert_body(BodyData::new());
@@ -393,7 +418,8 @@ struct MockVertexCreator;
 impl crate::operations::operator::TopoOperator for MockVertexCreator {
     type Output = ();
     const NAME: &'static str = "mock_vertex_creator";
-    const INVARIANT_CONTRACT: crate::validators::invariant_id::InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: crate::validators::invariant_id::InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
         "Create one vertex".into()
@@ -403,7 +429,8 @@ impl crate::operations::operator::TopoOperator for MockVertexCreator {
         &self,
         draft: &mut MutableDraft,
         _recorder: &mut crate::provenance::LineageRecorder,
-    ) -> Result<crate::operations::operator::ExecutionResult<Self::Output>, forge_core::KernelError> {
+    ) -> Result<crate::operations::operator::ExecutionResult<Self::Output>, forge_core::KernelError>
+    {
         let _v = draft.insert_vertex(VertexData::new(HalfEdgeId::DANGLING));
         Ok(crate::operations::operator::ExecutionResult {
             value: (),
@@ -478,10 +505,20 @@ fn radial_pair_records_two_creations() {
 
     let _ = draft.insert_radial_pair(
         HalfEdgeData::new(
-            HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f, v, e,
+            HalfEdgeId::DANGLING,
+            HalfEdgeId::DANGLING,
+            HalfEdgeId::DANGLING,
+            f,
+            v,
+            e,
         ),
         HalfEdgeData::new(
-            HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, HalfEdgeId::DANGLING, f, v, e,
+            HalfEdgeId::DANGLING,
+            HalfEdgeId::DANGLING,
+            HalfEdgeId::DANGLING,
+            f,
+            v,
+            e,
         ),
     );
 
@@ -492,4 +529,268 @@ fn radial_pair_records_two_creations() {
         "insert_radial_pair must record BOTH halfedges in the mutation journal"
     );
     assert_eq!(counts.total(), 2);
+}
+
+fn run_replay_determinism_pipeline_from_state(
+    state: TopologyState,
+) -> (
+    TopologyState,
+    crate::provenance::ReplayLog,
+    Vec<u8>,
+    u128,
+    Vec<String>,
+    crate::b_rep::data::storage::cache_runtime::TopoCacheTelemetry,
+) {
+    use crate::b_rep::ShellKind;
+    use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
+    use crate::entity_lifecycle::split_edge::SplitEdge;
+
+    let mut draft = state.into_mutation();
+
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
+    let se1 = draft
+        .execute(SplitEdge {
+            edge: mvf.half_edge,
+        })
+        .unwrap()
+        .into_value();
+    let _se2 = draft
+        .execute(SplitEdge { edge: se1.he_mb })
+        .unwrap()
+        .into_value();
+
+    let replay_log = draft.replay_log().clone();
+    let replay_bytes = serde_json::to_vec(&replay_log).unwrap();
+    let cache_telemetry = draft.arena().cache_telemetry().clone();
+    let committed = draft.commit().unwrap();
+
+    let lineage_sequence = committed
+        .lineage_events()
+        .iter()
+        .map(|ev| match ev {
+            LineageEvent::EntityCreated {
+                entity,
+                entity_snapshot,
+                lineage,
+            } => format!(
+                "C:{:?}:{}:{}:{}:{}",
+                entity.kind(),
+                entity.index(),
+                entity.generation(),
+                entity_snapshot.map(|s| s.generation()).unwrap_or(0),
+                lineage.get_ancestry_hash()
+            ),
+            LineageEvent::EntityDeleted {
+                entity,
+                entity_snapshot,
+                lineage,
+            } => format!(
+                "D:{:?}:{}:{}:{}:{}",
+                entity.kind(),
+                entity.index(),
+                entity.generation(),
+                entity_snapshot.map(|s| s.generation()).unwrap_or(0),
+                lineage.get_ancestry_hash()
+            ),
+            LineageEvent::EntityModified {
+                entity,
+                entity_snapshot,
+                old_lineage,
+                new_lineage,
+            } => format!(
+                "M:{:?}:{}:{}:{}:{}:{}",
+                entity.kind(),
+                entity.index(),
+                entity.generation(),
+                entity_snapshot.map(|s| s.generation()).unwrap_or(0),
+                old_lineage.get_ancestry_hash(),
+                new_lineage.get_ancestry_hash()
+            ),
+            LineageEvent::EntityReverted {
+                entity,
+                entity_snapshot,
+                from_lineage,
+                to_lineage,
+            } => format!(
+                "R:{:?}:{}:{}:{}:{}:{}",
+                entity.kind(),
+                entity.index(),
+                entity.generation(),
+                entity_snapshot.map(|s| s.generation()).unwrap_or(0),
+                from_lineage.get_ancestry_hash(),
+                to_lineage.get_ancestry_hash()
+            ),
+        })
+        .collect();
+
+    (
+        committed.clone(),
+        replay_log,
+        replay_bytes,
+        committed.topology_hash(),
+        lineage_sequence,
+        cache_telemetry,
+    )
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ReplayDeterminismArtifact {
+    pre_state: TopologyState,
+    post_state: TopologyState,
+    replay_log: crate::provenance::ReplayLog,
+}
+
+#[test]
+fn determinism_golden_pipeline_roundtrip_preserves_replay_hash_and_lineage_ordering() {
+    let pre = TopologyState::empty();
+    let (post_a, replay_log_a, replay_a, hash_a, lineage_a, cache_a) =
+        run_replay_determinism_pipeline_from_state(pre.clone());
+
+    let artifact = ReplayDeterminismArtifact {
+        pre_state: pre,
+        post_state: post_a.clone(),
+        replay_log: replay_log_a.clone(),
+    };
+    let blob = serde_json::to_vec(&artifact).expect("serialize determinism artifact");
+    let decoded: ReplayDeterminismArtifact =
+        serde_json::from_slice(&blob).expect("deserialize determinism artifact");
+
+    let (post_b, replay_log_b, replay_b, hash_b, lineage_b, cache_b) =
+        run_replay_determinism_pipeline_from_state(decoded.pre_state.clone());
+    let (_post_c, _replay_log_c, replay_c, hash_c, lineage_c, cache_c) =
+        run_replay_determinism_pipeline_from_state(decoded.pre_state.clone());
+
+    let replay_decoded = serde_json::to_vec(&decoded.replay_log).expect("encode decoded replay");
+    let lineage_decoded: Vec<String> = decoded
+        .post_state
+        .lineage_events()
+        .iter()
+        .map(|ev| match ev {
+            LineageEvent::EntityCreated {
+                entity,
+                entity_snapshot,
+                lineage,
+            } => format!(
+                "C:{:?}:{}:{}:{}:{}",
+                entity.kind(),
+                entity.index(),
+                entity.generation(),
+                entity_snapshot.map(|s| s.generation()).unwrap_or(0),
+                lineage.get_ancestry_hash()
+            ),
+            LineageEvent::EntityDeleted {
+                entity,
+                entity_snapshot,
+                lineage,
+            } => format!(
+                "D:{:?}:{}:{}:{}:{}",
+                entity.kind(),
+                entity.index(),
+                entity.generation(),
+                entity_snapshot.map(|s| s.generation()).unwrap_or(0),
+                lineage.get_ancestry_hash()
+            ),
+            LineageEvent::EntityModified {
+                entity,
+                entity_snapshot,
+                old_lineage,
+                new_lineage,
+            } => format!(
+                "M:{:?}:{}:{}:{}:{}:{}",
+                entity.kind(),
+                entity.index(),
+                entity.generation(),
+                entity_snapshot.map(|s| s.generation()).unwrap_or(0),
+                old_lineage.get_ancestry_hash(),
+                new_lineage.get_ancestry_hash()
+            ),
+            LineageEvent::EntityReverted {
+                entity,
+                entity_snapshot,
+                from_lineage,
+                to_lineage,
+            } => format!(
+                "R:{:?}:{}:{}:{}:{}:{}",
+                entity.kind(),
+                entity.index(),
+                entity.generation(),
+                entity_snapshot.map(|s| s.generation()).unwrap_or(0),
+                from_lineage.get_ancestry_hash(),
+                to_lineage.get_ancestry_hash()
+            ),
+        })
+        .collect();
+
+    assert_eq!(replay_a, replay_b, "Replay log bytes must be identical");
+    assert_eq!(
+        replay_a, replay_c,
+        "Replay log bytes must remain stable across repeated runs"
+    );
+    assert_eq!(
+        replay_a, replay_decoded,
+        "Serialized replay log in artifact must match rerun bytes"
+    );
+    assert_eq!(hash_a, hash_b, "Topology hash must be identical");
+    assert_eq!(
+        hash_a, hash_c,
+        "Topology hash must remain stable across repeated runs"
+    );
+    assert_eq!(
+        hash_a,
+        decoded.post_state.topology_hash(),
+        "Serialized post-state hash must match rerun hash"
+    );
+    assert!(
+        replay_log_a.verify_determinism(&replay_log_b),
+        "Replay determinism verifier must pass for reruns"
+    );
+    let cache_trace_a: Vec<Vec<String>> = replay_log_a
+        .entries()
+        .iter()
+        .map(|e| e.cache_refresh_trace().to_vec())
+        .collect();
+    let cache_trace_b: Vec<Vec<String>> = replay_log_b
+        .entries()
+        .iter()
+        .map(|e| e.cache_refresh_trace().to_vec())
+        .collect();
+    assert_eq!(
+        cache_trace_a, cache_trace_b,
+        "Cache refresh trace ordering/content must be deterministic"
+    );
+    assert!(
+        cache_trace_a.iter().all(|entry| !entry.is_empty()),
+        "Each operation should carry a non-empty cache refresh trace"
+    );
+    assert_eq!(
+        post_a.topology_hash(),
+        post_b.topology_hash(),
+        "Committed post-state hashes must match"
+    );
+    assert_eq!(
+        lineage_a, lineage_b,
+        "Lineage event ordering must be identical"
+    );
+    assert_eq!(
+        lineage_a, lineage_c,
+        "Lineage event ordering must remain stable across repeated runs"
+    );
+    assert_eq!(
+        lineage_a, lineage_decoded,
+        "Serialized post-state lineage ordering must match rerun ordering"
+    );
+    assert_eq!(cache_a.flushes_by_domain, cache_b.flushes_by_domain);
+    assert_eq!(cache_a.flushes_by_domain, cache_c.flushes_by_domain);
+    assert!(
+        cache_a
+            .global_invalidations_by_domain
+            .values()
+            .all(|count| *count == 0),
+        "determinism pipeline must not rely on global cache invalidation"
+    );
 }

@@ -16,17 +16,15 @@
 use proptest::prelude::*;
 
 use forge_core::OperationResult;
-use forge_topo::entity_lifecycle::split_edge::SplitEdge;
-use forge_topo::entity_lifecycle::make_edge_face::MakeEdgeFace;
 use forge_topo::boundary_editing::join_faces::JoinFaces;
+use forge_topo::entity_lifecycle::make_edge_face::MakeEdgeFace;
+use forge_topo::entity_lifecycle::split_edge::SplitEdge;
 
 use crate::engine::facade::SolidEnvelope;
 use crate::geometry::facade::solid_volume;
 use crate::integration_tests::harness::chains::OpChain;
 use crate::integration_tests::harness::shapes;
-use crate::integration_tests::harness::shapes::{
-    collect_face_loop, first_halfedge_of_face,
-};
+use crate::integration_tests::harness::shapes::{collect_face_loop, first_halfedge_of_face};
 use crate::integration_tests::harness::verify::verify;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -188,7 +186,10 @@ fn invariance_double_split_preserves_volume() {
 fn finding_mef_changes_volume() {
     let env_res = shapes::cube([0.0; 3], 3.0).expect("cube failed");
     let vol_before = measure_volume(env_res.get_value());
-    assert!((vol_before - 27.0).abs() < VOLUME_TOL, "Pre-MEF cube volume wrong");
+    assert!(
+        (vol_before - 27.0).abs() < VOLUME_TOL,
+        "Pre-MEF cube volume wrong"
+    );
     let faces = env_res.get_value().faces().to_vec();
 
     let result = OpChain::new(env_res)
@@ -199,7 +200,11 @@ fn finding_mef_changes_volume() {
             let loop_hes = collect_face_loop(draft.arena(), he)?;
             let v_a = draft.arena().get_half_edge(loop_hes[0])?.origin();
             let v_c = draft.arena().get_half_edge(loop_hes[2])?.origin();
-            draft.execute(MakeEdgeFace { face, vertex_a: v_a, vertex_b: v_c })?;
+            draft.execute(MakeEdgeFace {
+                face,
+                vertex_a: v_a,
+                vertex_b: v_c,
+            })?;
             commit_draft(draft, geom)
         })
         .finish_validated();
@@ -222,7 +227,10 @@ fn finding_mef_changes_volume() {
 fn finding_mef_join_roundtrip_volume() {
     let env_res = shapes::cube([0.0; 3], 4.0).expect("cube failed");
     let vol_before = measure_volume(env_res.get_value());
-    assert!((vol_before - 64.0).abs() < VOLUME_TOL, "Pre-MEF cube volume wrong");
+    assert!(
+        (vol_before - 64.0).abs() < VOLUME_TOL,
+        "Pre-MEF cube volume wrong"
+    );
     let faces = env_res.get_value().faces().to_vec();
 
     let result = OpChain::new(env_res)
@@ -233,7 +241,11 @@ fn finding_mef_join_roundtrip_volume() {
             let loop_hes = collect_face_loop(draft.arena(), he)?;
             let v_a = draft.arena().get_half_edge(loop_hes[0])?.origin();
             let v_c = draft.arena().get_half_edge(loop_hes[2])?.origin();
-            draft.execute(MakeEdgeFace { face, vertex_a: v_a, vertex_b: v_c })?;
+            draft.execute(MakeEdgeFace {
+                face,
+                vertex_a: v_a,
+                vertex_b: v_c,
+            })?;
             commit_draft(draft, geom)
         })
         .apply("join_back", |env, _scope| {

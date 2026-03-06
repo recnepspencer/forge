@@ -5,6 +5,4 @@
 //! CONSUMERS: operations/boolean, integration_tests, engine/pipeline
 
 pub use super::builder::{OperationPipeline, PipelineBuilder};
-pub use super::step_contract::{
-    OperationAuditRecord, StepAuditEntry, StepContract,
-};
+pub use super::step_contract::{OperationAuditRecord, StepAuditEntry, StepContract};

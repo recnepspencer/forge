@@ -29,26 +29,34 @@ pub fn cube(center: [f64; 3], size: f64) -> Result<OperationResult<SolidEnvelope
     primitives::make_cube(center, size, &config)
 }
 
-
 /// Build a tetrahedron centered at origin.
 pub fn tetrahedron() -> Result<OperationResult<SolidEnvelope>, KernelError> {
     tetrahedron_at([0.0; 3], 1.0)
 }
 
 /// Build a tetrahedron at a given center and scale.
-pub fn tetrahedron_at(center: [f64; 3], scale: f64) -> Result<OperationResult<SolidEnvelope>, KernelError> {
+pub fn tetrahedron_at(
+    center: [f64; 3],
+    scale: f64,
+) -> Result<OperationResult<SolidEnvelope>, KernelError> {
     let config = test_config();
     primitives::make_tetrahedron(center, scale, &config)
 }
 
 /// Build an axis-aligned block.
-pub fn block(center: [f64; 3], half_extents: [f64; 3]) -> Result<OperationResult<SolidEnvelope>, KernelError> {
+pub fn block(
+    center: [f64; 3],
+    half_extents: [f64; 3],
+) -> Result<OperationResult<SolidEnvelope>, KernelError> {
     let config = test_config();
     primitives::make_block(center, half_extents, &config)
 }
 
 /// Build a regular dodecahedron.
-pub fn dodecahedron(center: [f64; 3], radius: f64) -> Result<OperationResult<SolidEnvelope>, KernelError> {
+pub fn dodecahedron(
+    center: [f64; 3],
+    radius: f64,
+) -> Result<OperationResult<SolidEnvelope>, KernelError> {
     let config = test_config();
     primitives::make_dodecahedron(center, radius, &config)
 }

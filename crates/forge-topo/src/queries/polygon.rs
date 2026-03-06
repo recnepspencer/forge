@@ -38,10 +38,7 @@ pub fn face_loop_vertices(
 /// Several geometric algorithms (polygon overlap, CSG classification)
 /// only support single-loop faces. Use this predicate to guard those
 /// code paths before they attempt to process multi-ring polygons.
-pub fn face_has_single_loop(
-    arena: &TopologyArena,
-    face: FaceId,
-) -> Result<bool, KernelError> {
+pub fn face_has_single_loop(arena: &TopologyArena, face: FaceId) -> Result<bool, KernelError> {
     let loops = face_loop_vertices(arena, face)?;
     Ok(loops.len() == 1)
 }
@@ -66,7 +63,11 @@ pub fn face_adjacent_vertex_pairs(
         let he_data = arena.get_half_edge(he)?;
         let origin = he_data.origin().index();
         let next = arena.get_half_edge(he_data.next())?.origin().index();
-        let key = if origin <= next { (origin, next) } else { (next, origin) };
+        let key = if origin <= next {
+            (origin, next)
+        } else {
+            (next, origin)
+        };
         pairs.insert(key);
     }
     Ok(pairs)

@@ -19,11 +19,10 @@ use forge_core::KernelError;
 
 use crate::b_rep::VertexData;
 use crate::handles::{HalfEdgeId, VertexId};
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
-
 
 /// Creates an isolated vertex not attached to any half-edge.
 #[derive(Debug)]
@@ -40,22 +39,27 @@ impl TopoOperator for MakeIsolatedVertex {
 
     const NAME: &'static str = "make_isolated_vertex";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::ISOLATED_VERTEX;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::ISOLATED_VERTEX;
 
     fn semantic_summary(&self) -> String {
         "Create isolated vertex (no face, no shell)".into()
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
-
-        let vertex = draft.insert_vertex(VertexData::new(
-            HalfEdgeId::DANGLING,
-        ));
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+        let vertex = draft.insert_vertex(VertexData::new(HalfEdgeId::DANGLING));
 
         // ── Provenance Stamping (Root — no parent) ─────────────────────
-        use forge_core::{EntityRef, EntityKind};
+        use forge_core::{EntityKind, EntityRef};
         let store = draft.lineage_store_mut();
-        _recorder.stamp(store, EntityRef::new(EntityKind::Vertex, vertex.index(), vertex.generation()));
+        _recorder.stamp(
+            store,
+            EntityRef::new(EntityKind::Vertex, vertex.index(), vertex.generation()),
+        );
 
         Ok(ExecutionResult {
             value: MakeIsolatedVertexOutput { vertex },
@@ -72,6 +76,4 @@ impl TopoOperator for MakeIsolatedVertex {
             },
         })
     }
-
-
 }

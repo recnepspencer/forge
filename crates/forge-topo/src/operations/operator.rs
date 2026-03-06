@@ -23,10 +23,8 @@
 //! ```
 
 use crate::transactions::MutableDraft;
-use crate::validators::invariant_id::{InvariantContract, InvariantRelation, InvariantId};
-use forge_core::{
-    ErrorContext, ErrorScope, KernelError, TopologyError,
-};
+use crate::validators::invariant_id::{InvariantContract, InvariantId, InvariantRelation};
+use forge_core::{ErrorContext, ErrorScope, KernelError, TopologyError};
 
 /// A topology mutation that can be applied to a `MutableDraft`.
 ///
@@ -71,13 +69,22 @@ pub trait TopoOperator: std::fmt::Debug {
     /// - Read/write topology data in the draft
     /// - Return `ExecutionResult` with the correct `declared_delta`
     /// - Return structured errors, never panic
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError>;
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError>;
 
     /// A unique name identifying this operation type.
     ///
     /// Used for lineage tracking and replay. The invocation ID is
     /// assigned by the runner (you don't need to set it).
     const NAME: &'static str;
+
+    /// Version of the operator parameter schema used for replay.
+    ///
+    /// Bump this when the operator struct's serialized fields change shape.
+    const SCHEMA_VERSION: u32 = 1;
 
     /// Human-readable semantic summary of this operation with its parameters.
     ///
@@ -304,7 +311,7 @@ mod tests {
 
         assert!(draft.execute(NoOp).is_ok());
         assert!(draft.execute(FailOp).is_err());
-        
+
         // Draft is now poisoned
         assert!(draft.execute(NoOp).is_err());
         assert!(draft.commit().is_err());

@@ -5,10 +5,10 @@
 //! position resolver for coordinate lookup. This keeps the function
 //! geometry-agnostic (no dependency on GeometryState or GeometryStore).
 
-use forge_topo::queries::polygon::face_loop_vertices;
+use forge_core::KernelError;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::{FaceId, VertexId};
-use forge_core::KernelError;
+use forge_topo::queries::polygon::face_loop_vertices;
 
 /// Compute the centroid of a face's outer loop.
 ///

@@ -6,17 +6,15 @@
 //! Each test targets a specific bug found in the Gemini architectural review.
 
 use crate::b_rep::ShellKind;
+use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
 use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::entity_lifecycle::split_edge::SplitEdge;
-use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
-use crate::lifecycle::solid::MakeSolid;
 use crate::lifecycle::lump::MakeLumpRegion;
-use crate::lifecycle::shell::MakeEmptyShell;
-use crate::lifecycle::shell::DestroyShell;
-use crate::lifecycle::shell_ops::{
-    MergeShells, SplitShell, ExtractShell,
-};
 use crate::lifecycle::lump_ops::MergeLumps;
+use crate::lifecycle::shell::DestroyShell;
+use crate::lifecycle::shell::MakeEmptyShell;
+use crate::lifecycle::shell_ops::{ExtractShell, MergeShells, SplitShell};
+use crate::lifecycle::solid::MakeSolid;
 use crate::transactions::TopologyState;
 
 // ── MergeLumps ──────────────────────────────────────────────────────
@@ -34,7 +32,10 @@ fn merge_lumps_rejects_cross_body() {
     let body_b = draft.execute(MakeSolid).unwrap().into_value();
 
     // Add a second lump to body_a so the merge target isn't the last lump
-    let extra = draft.execute(MakeLumpRegion { body: body_a.body }).unwrap().into_value();
+    let extra = draft
+        .execute(MakeLumpRegion { body: body_a.body })
+        .unwrap()
+        .into_value();
 
     let result = draft.execute(MergeLumps {
         target: body_a.lump,
@@ -55,7 +56,10 @@ fn merge_lumps_succeeds_same_body() {
     let mut draft = state.into_mutation();
 
     let solid = draft.execute(MakeSolid).unwrap().into_value();
-    let extra = draft.execute(MakeLumpRegion { body: solid.body }).unwrap().into_value();
+    let extra = draft
+        .execute(MakeLumpRegion { body: solid.body })
+        .unwrap()
+        .into_value();
 
     let result = draft.execute(MergeLumps {
         target: solid.lump,
@@ -82,21 +86,33 @@ fn merge_shells_rejects_cross_region() {
     let solid = draft.execute(MakeSolid).unwrap().into_value();
 
     // Create shells in the same region — first is outer (via add_shell auto-promotion)
-    let shell_a = draft.execute(MakeEmptyShell {
-        region: solid.region,
-        kind: ShellKind::Sheet,
-    }).unwrap().into_value();
-    let shell_b = draft.execute(MakeEmptyShell {
-        region: solid.region,
-        kind: ShellKind::Sheet,
-    }).unwrap().into_value();
+    let shell_a = draft
+        .execute(MakeEmptyShell {
+            region: solid.region,
+            kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
+    let shell_b = draft
+        .execute(MakeEmptyShell {
+            region: solid.region,
+            kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
 
     // Create a second lump+region
-    let extra = draft.execute(MakeLumpRegion { body: solid.body }).unwrap().into_value();
-    let shell_c = draft.execute(MakeEmptyShell {
-        region: extra.region,
-        kind: ShellKind::Sheet,
-    }).unwrap().into_value();
+    let extra = draft
+        .execute(MakeLumpRegion { body: solid.body })
+        .unwrap()
+        .into_value();
+    let shell_c = draft
+        .execute(MakeEmptyShell {
+            region: extra.region,
+            kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
 
     // Merging shells from different regions must fail
     let result = draft.execute(MergeShells {
@@ -125,16 +141,33 @@ fn split_shell_updates_representative_face() {
     let mut draft = state.into_mutation();
 
     // Build a two-face shell: MVF → SE → MEF
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-    let se = draft.execute(SplitEdge { edge: mvf.half_edge }).unwrap().into_value();
-    let mef = draft.execute(MakeEdgeFace {
-        vertex_a: mvf.vertex,
-        vertex_b: se.new_vertex,
-        face: mvf.face,
-    }).unwrap().into_value();
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
+    let se = draft
+        .execute(SplitEdge {
+            edge: mvf.half_edge,
+        })
+        .unwrap()
+        .into_value();
+    let mef = draft
+        .execute(MakeEdgeFace {
+            vertex_a: mvf.vertex,
+            vertex_b: se.new_vertex,
+            face: mvf.face,
+        })
+        .unwrap()
+        .into_value();
 
     let shell = draft.arena().get_face(mvf.face).unwrap().shell();
-    let original_rep = draft.arena().get_shell(shell).unwrap().representative_face();
+    let original_rep = draft
+        .arena()
+        .get_shell(shell)
+        .unwrap()
+        .representative_face();
 
     // Determine which face to move — whichever is the representative
     let face_to_move = if original_rep == mvf.face {
@@ -143,13 +176,20 @@ fn split_shell_updates_representative_face() {
         mef.new_face
     };
 
-    let split_result = draft.execute(SplitShell {
-        shell,
-        faces_to_move: vec![face_to_move],
-    }).unwrap().into_value();
+    let split_result = draft
+        .execute(SplitShell {
+            shell,
+            faces_to_move: vec![face_to_move],
+        })
+        .unwrap()
+        .into_value();
 
     // The source shell's representative_face must NOT be the moved face
-    let new_rep = draft.arena().get_shell(shell).unwrap().representative_face();
+    let new_rep = draft
+        .arena()
+        .get_shell(shell)
+        .unwrap()
+        .representative_face();
     assert_ne!(
         new_rep, face_to_move,
         "Source shell's representative_face must not point to a moved face"
@@ -176,15 +216,16 @@ fn extract_shell_rejects_sole_outer() {
     let mut draft = state.into_mutation();
 
     let solid = draft.execute(MakeSolid).unwrap().into_value();
-    let shell = draft.execute(MakeEmptyShell {
-        region: solid.region,
-        kind: ShellKind::Sheet,
-    }).unwrap().into_value();
+    let shell = draft
+        .execute(MakeEmptyShell {
+            region: solid.region,
+            kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
 
     // shell.shell is the outer shell (first one added auto-promotes to outer)
-    let result = draft.execute(ExtractShell {
-        shell: shell.shell,
-    });
+    let result = draft.execute(ExtractShell { shell: shell.shell });
 
     assert!(
         result.is_err(),
@@ -204,17 +245,15 @@ fn destroy_shell_rejects_wire() {
     let mut draft = state.into_mutation();
 
     let solid = draft.execute(MakeSolid).unwrap().into_value();
-    let shell = draft.execute(MakeEmptyShell {
-        region: solid.region,
-        kind: ShellKind::Wire,
-    }).unwrap().into_value();
+    let shell = draft
+        .execute(MakeEmptyShell {
+            region: solid.region,
+            kind: ShellKind::Wire,
+        })
+        .unwrap()
+        .into_value();
 
-    let result = draft.execute(DestroyShell {
-        shell: shell.shell,
-    });
+    let result = draft.execute(DestroyShell { shell: shell.shell });
 
-    assert!(
-        result.is_err(),
-        "DestroyShell must reject wire shells"
-    );
+    assert!(result.is_err(), "DestroyShell must reject wire shells");
 }

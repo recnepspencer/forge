@@ -12,8 +12,8 @@
 //! DEPENDENCIES: `arena` (entity storage)
 
 use crate::handles::HalfEdgeId;
-use crate::transactions::MutableDraft;
 use crate::operations::boundary_editing::make_edge_kill_loop::MakeEdgeKillLoop;
+use crate::transactions::MutableDraft;
 use forge_core::KernelError;
 
 /// Output of the bridge_edge algorithm.
@@ -38,18 +38,26 @@ pub fn bridge_edge(
     outer_he: HalfEdgeId,
     inner_he: HalfEdgeId,
 ) -> Result<BridgeEdgeOutput, KernelError> {
-    let mekl = draft.execute(
-        MakeEdgeKillLoop {
+    let mekl = draft
+        .execute(MakeEdgeKillLoop {
             he_a: outer_he,
             he_b: inner_he,
-        },
-    )?
-    .into_value();
+        })?
+        .into_value();
 
     {
         let arena = draft.arena_mut();
-        arena.set_bridge(mekl.he_ab, true);
-        arena.set_bridge(mekl.he_ba, true);
+        let ab_idx = mekl.he_ab.index() as usize;
+        if ab_idx >= arena.metadata.bridge_flags.len() {
+            arena.metadata.bridge_flags.resize(ab_idx + 1, false);
+        }
+        arena.metadata.bridge_flags[ab_idx] = true;
+
+        let ba_idx = mekl.he_ba.index() as usize;
+        if ba_idx >= arena.metadata.bridge_flags.len() {
+            arena.metadata.bridge_flags.resize(ba_idx + 1, false);
+        }
+        arena.metadata.bridge_flags[ba_idx] = true;
     }
 
     Ok(BridgeEdgeOutput {
@@ -61,8 +69,8 @@ pub fn bridge_edge(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::transactions::TopologyState;
     use crate::testing::build_face_with_hole;
+    use crate::transactions::TopologyState;
 
     #[test]
     fn bridge_edge_absorbs_inner_loop() {
@@ -101,7 +109,7 @@ mod tests {
 
         let _result = bridge_edge(&mut draft, outer_he, inner_he).unwrap();
 
-        let outer_loop = draft.arena().get_face(face).unwrap().outer_loop();
+        let outer_loop = draft.arena().get_face(face).unwrap().loops.outer();
         let start_he = draft.arena().get_loop(outer_loop).unwrap().half_edge();
         let mut current = start_he;
         let mut count = 0usize;

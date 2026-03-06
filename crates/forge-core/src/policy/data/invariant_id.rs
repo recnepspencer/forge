@@ -118,42 +118,48 @@ impl InvariantId {
     /// forcing it to be assigned the correct group.
     pub const fn group(&self) -> InvariantGroup {
         match self {
-            Self::RadialReciprocity | Self::NextPrevReciprocity
-            | Self::NoDanglingRefs | Self::GenerationalFreshness
-                => InvariantGroup::PointerCoherence,
+            Self::RadialReciprocity
+            | Self::NextPrevReciprocity
+            | Self::NoDanglingRefs
+            | Self::GenerationalFreshness => InvariantGroup::PointerCoherence,
 
-            Self::FaceHasLoop | Self::LoopMinCardinality
-            | Self::NoDuplicateCoedges | Self::FaceLoopMembership
-            | Self::VertexContinuity | Self::EdgeEndpointsMatch
-                => InvariantGroup::LoopIntegrity,
+            Self::FaceHasLoop
+            | Self::LoopMinCardinality
+            | Self::NoDuplicateCoedges
+            | Self::FaceLoopMembership
+            | Self::VertexContinuity
+            | Self::EdgeEndpointsMatch => InvariantGroup::LoopIntegrity,
 
-            Self::SingleLoopOwner | Self::NoOrphanHalfEdges
-            | Self::AcyclicContainment | Self::InnerOuterConsistency
-                => InvariantGroup::Ownership,
+            Self::SingleLoopOwner
+            | Self::NoOrphanHalfEdges
+            | Self::AcyclicContainment
+            | Self::InnerOuterConsistency => InvariantGroup::Ownership,
 
-            Self::RadialCycleUniqueness | Self::RadialNeighborConsistency
-            | Self::NoBrokenRadialSplices
-                => InvariantGroup::RadialEdge,
+            Self::RadialCycleUniqueness
+            | Self::RadialNeighborConsistency
+            | Self::NoBrokenRadialSplices => InvariantGroup::RadialEdge,
 
-            Self::FaceAdjacencyConsistency | Self::NoBrokenFaceBoundary
-            | Self::BoundaryEdgesLaminar
-                => InvariantGroup::ShellClosure,
+            Self::FaceAdjacencyConsistency
+            | Self::NoBrokenFaceBoundary
+            | Self::BoundaryEdgesLaminar => InvariantGroup::ShellClosure,
 
-            Self::DiskEntriesAlive | Self::DiskPartitionCorrect
-            | Self::DiskClosure | Self::NoCrossDiskCoedges
-                => InvariantGroup::VertexDisk,
+            Self::DiskEntriesAlive
+            | Self::DiskPartitionCorrect
+            | Self::DiskClosure
+            | Self::NoCrossDiskCoedges => InvariantGroup::VertexDisk,
 
-            Self::PerComponentEuler
-                => InvariantGroup::EulerFormula,
+            Self::PerComponentEuler => InvariantGroup::EulerFormula,
 
-            Self::SideCarCoherence | Self::IndexCoherence
-                => InvariantGroup::CacheCoherence,
+            Self::SideCarCoherence | Self::IndexCoherence => InvariantGroup::CacheCoherence,
 
-            Self::NoZeroLengthEdges | Self::NoZeroAreaFaces
-            | Self::NoInsideOutShells | Self::LoopOrientationConsistency
-            | Self::ShellOrientationConsistency | Self::NoVertexOffSurface
-            | Self::GeometryCompleteness | Self::EdgeCurveConsistency
-                => InvariantGroup::Geometry,
+            Self::NoZeroLengthEdges
+            | Self::NoZeroAreaFaces
+            | Self::NoInsideOutShells
+            | Self::LoopOrientationConsistency
+            | Self::ShellOrientationConsistency
+            | Self::NoVertexOffSurface
+            | Self::GeometryCompleteness
+            | Self::EdgeCurveConsistency => InvariantGroup::Geometry,
         }
     }
 
@@ -233,27 +239,29 @@ pub struct InvariantContract {
 impl InvariantContract {
     /// Invariants this operator may leave violated (require post-op validation).
     pub fn may_break(&self) -> impl Iterator<Item = InvariantId> + '_ {
-        InvariantId::ALL.iter().copied()
+        InvariantId::ALL
+            .iter()
+            .copied()
             .filter(|id| matches!((self.relation)(*id), InvariantRelation::MayBreak))
     }
 
     /// Invariants this operator requires as preconditions.
     pub fn requires(&self) -> impl Iterator<Item = InvariantId> + '_ {
-        InvariantId::ALL.iter().copied()
-            .filter(|id| matches!(
+        InvariantId::ALL.iter().copied().filter(|id| {
+            matches!(
                 (self.relation)(*id),
-                InvariantRelation::Requires
-                    | InvariantRelation::TemporarilyViolatesButEnsures
-            ))
+                InvariantRelation::Requires | InvariantRelation::TemporarilyViolatesButEnsures
+            )
+        })
     }
 
     /// Invariants this operator guarantees on exit.
     pub fn ensures(&self) -> impl Iterator<Item = InvariantId> + '_ {
-        InvariantId::ALL.iter().copied()
-            .filter(|id| matches!(
+        InvariantId::ALL.iter().copied().filter(|id| {
+            matches!(
                 (self.relation)(*id),
-                InvariantRelation::Ensures
-                    | InvariantRelation::TemporarilyViolatesButEnsures
-            ))
+                InvariantRelation::Ensures | InvariantRelation::TemporarilyViolatesButEnsures
+            )
+        })
     }
 }

@@ -44,24 +44,21 @@ fn build_cube_arena() -> (TopologyArena, Vec<[f64; 3]>) {
     ];
 
     for quad in &quad_faces {
-        let face =
-            arena.insert_face(FaceData::new(placeholder_loop, placeholder_shell_q));
+        let face = arena.insert_face(FaceData::new(placeholder_loop, placeholder_shell_q));
         let loop_id = arena.insert_loop(LoopData::new(placeholder_he, face));
         arena.get_face_mut(face).unwrap().set_outer_loop(loop_id);
 
         let mut he_ids = Vec::new();
         for i in 0..4 {
             let origin = verts[quad[i]];
-            let he = arena.insert_half_edge(
-                HalfEdgeData::new(
-                    placeholder_he,
-                    placeholder_he,
-                    placeholder_he,
-                    face,
-                    origin,
-                    placeholder_e_q,
-                ),
-            );
+            let he = arena.insert_half_edge(HalfEdgeData::new(
+                placeholder_he,
+                placeholder_he,
+                placeholder_he,
+                face,
+                origin,
+                placeholder_e_q,
+            ));
             he_ids.push(he);
         }
         for i in 0..4 {
@@ -150,8 +147,7 @@ fn point_inside_solid_classified_inside() {
     let (arena, positions) = build_cube_arena();
     let pos_fn = position_fn(&positions);
 
-    let inside =
-        classify_point_in_solid(&arena, &pos_fn, None, &[0.0, 0.0, 0.0], &tol).unwrap();
+    let inside = classify_point_in_solid(&arena, &pos_fn, None, &[0.0, 0.0, 0.0], &tol).unwrap();
     assert!(
         matches!(inside, PointClassification::Inside { .. }),
         "Origin must be Inside, got {:?}",
@@ -173,8 +169,7 @@ fn point_on_face_classified_on_boundary() {
     let (arena, positions) = build_cube_arena();
     let pos_fn = position_fn(&positions);
 
-    let on_face =
-        classify_point_in_solid(&arena, &pos_fn, None, &[1.0, 0.0, 0.0], &tol).unwrap();
+    let on_face = classify_point_in_solid(&arena, &pos_fn, None, &[1.0, 0.0, 0.0], &tol).unwrap();
     assert!(
         matches!(on_face, PointClassification::OnBoundary(_)),
         "Face point must be OnBoundary, got {:?}",
@@ -188,8 +183,7 @@ fn point_outside_left_classified_outside() {
     let (arena, positions) = build_cube_arena();
     let pos_fn = position_fn(&positions);
 
-    let outside =
-        classify_point_in_solid(&arena, &pos_fn, None, &[-5.0, 0.0, 0.0], &tol).unwrap();
+    let outside = classify_point_in_solid(&arena, &pos_fn, None, &[-5.0, 0.0, 0.0], &tol).unwrap();
     assert!(
         matches!(outside, PointClassification::Outside { .. }),
         "Point (-5,0,0) must be Outside, got {:?}",

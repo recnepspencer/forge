@@ -3,12 +3,12 @@
 //! DOMAIN: Detects and repairs shells with inward-pointing normals
 //! (negative signed volume) by reversing face winding order.
 
-use crate::operations::volume::{compute_shell_signed_volume};
-use forge_topo::b_rep::{TopologyArena, EntityBitset};
+use crate::operations::volume::compute_shell_signed_volume;
+use forge_core::KernelError;
+use forge_topo::b_rep::{EntityBitset, TopologyArena};
 use forge_topo::handles::{FaceId, HalfEdgeId, VertexId};
 use forge_topo::queries::shell::discover_shell_faces;
 use forge_topo::traverse::FaceEdgeIterator;
-use forge_core::KernelError;
 
 /// Result of an orientation healing pass.
 #[derive(Debug, Clone)]
@@ -18,8 +18,12 @@ pub struct HealingResult {
 }
 
 impl HealingResult {
-    pub fn shells_checked(&self) -> usize { self.shells_checked }
-    pub fn shells_healed(&self) -> usize { self.shells_healed }
+    pub fn shells_checked(&self) -> usize {
+        self.shells_checked
+    }
+    pub fn shells_healed(&self) -> usize {
+        self.shells_healed
+    }
 }
 
 /// Detect and heal inverted shell orientations in an arena.
@@ -29,7 +33,10 @@ pub fn heal_shell_orientation(
 ) -> Result<HealingResult, KernelError> {
     let f_total = arena.face_count();
     if f_total == 0 {
-        return Ok(HealingResult { shells_checked: 0, shells_healed: 0 });
+        return Ok(HealingResult {
+            shells_checked: 0,
+            shells_healed: 0,
+        });
     }
 
     let all_faces: Vec<FaceId> = arena.iter_faces().map(|(fid, _)| fid).collect();
@@ -58,11 +65,15 @@ pub fn heal_shell_orientation(
         }
     }
 
-    Ok(HealingResult { shells_checked, shells_healed })
+    Ok(HealingResult {
+        shells_checked,
+        shells_healed,
+    })
 }
 
 fn flip_face_winding(arena: &mut TopologyArena, face_id: FaceId) -> Result<(), KernelError> {
-    let halfedge_ids: Vec<_> = FaceEdgeIterator::new(arena, face_id)?.collect::<Result<Vec<_>, _>>()?;
+    let halfedge_ids: Vec<_> =
+        FaceEdgeIterator::new(arena, face_id)?.collect::<Result<Vec<_>, _>>()?;
 
     let mut rewire_data: Vec<(HalfEdgeId, HalfEdgeId, HalfEdgeId, VertexId)> = Vec::new();
     for &he_id in &halfedge_ids {

@@ -47,9 +47,7 @@ macro_rules! define_handle {
         ///
         /// Serializes as `"index:generation"` (e.g. `"5:2"`) for JSON
         /// map-key compatibility.
-        #[derive(
-            Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord,
-        )]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
         pub struct $name {
             index: u32,
             generation: u32,
@@ -62,7 +60,10 @@ macro_rules! define_handle {
             /// the real target isn't known yet. Code that encounters a
             /// `DANGLING` handle must treat it as uninitialized — never
             /// dereference it via `get_*` accessors.
-            pub const DANGLING: Self = Self { index: u32::MAX, generation: 0 };
+            pub const DANGLING: Self = Self {
+                index: u32::MAX,
+                generation: 0,
+            };
 
             /// Create a handle from an index and generation pair.
             pub fn new(index: u32, generation: u32) -> Self {
@@ -109,9 +110,10 @@ macro_rules! define_handle {
                 let s = String::deserialize(deserializer)?;
                 let parts: Vec<&str> = s.split(':').collect();
                 if parts.len() != 2 {
-                    return Err(serde::de::Error::custom(
-                        format!("expected 'index:generation', got '{}'", s)
-                    ));
+                    return Err(serde::de::Error::custom(format!(
+                        "expected 'index:generation', got '{}'",
+                        s
+                    )));
                 }
                 let index = parts[0].parse::<u32>().map_err(serde::de::Error::custom)?;
                 let generation = parts[1].parse::<u32>().map_err(serde::de::Error::custom)?;

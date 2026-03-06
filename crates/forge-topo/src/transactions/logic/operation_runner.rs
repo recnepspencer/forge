@@ -8,6 +8,7 @@
 use super::mutable_draft::MutableDraft;
 use crate::operations::operator::TopoOperator;
 use crate::provenance::OpSignature;
+use forge_signal::facade::CheckpointBarrier;
 
 use forge_core::{
     ErrorContext, ErrorScope, KernelError, LineageDelta, OperationMetrics, OperationResult,
@@ -42,7 +43,7 @@ impl MutableDraft {
             });
         }
 
-        use crate::operations::operator::{EulerDelta, validate_halfedge_reciprocity};
+        use crate::operations::operator::{validate_halfedge_reciprocity, EulerDelta};
         use std::time::Instant;
 
         let start = Instant::now();
@@ -67,11 +68,11 @@ impl MutableDraft {
 
         tracing::debug!(
             op = ?op,
-            invocation_id = invocation_id,
+            invocation_id = invocation_id.get(),
             summary = %summary,
             "Applying topology operator"
         );
-        self.log_operation_start(&signature, summary);
+        self.log_operation_start(&signature, O::SCHEMA_VERSION, summary);
 
         // Reset the mutation journal before execution — ensures a clean per-op record.
         self.mutation_journal.reset();
@@ -82,16 +83,25 @@ impl MutableDraft {
                 op_name: O::NAME,
                 mode: crate::provenance::LineageMode::Root, // overwritten when operator calls stamp_derived
             },
-            invocation_id as u64,
+            invocation_id,
         );
 
         let exec_result = op.execute(self, &mut recorder).map_err(|e| {
             // Poison the draft immediately on first failure to prevent cascade corruption
             self.poisoned = true;
             // Only format the Debug repr on the error path — zero cost on success.
-            e.ensure_operation_context(&op_name, invocation_id as u64, &format!("{:?}", op))
+            e.ensure_operation_context(&op_name, invocation_id.get(), &format!("{:?}", op))
         })?;
         let declared_delta = exec_result.declared_delta;
+
+        let mutation_snapshot = self.mutation_journal.snapshot();
+
+        // Apply cache refreshes scheduled for per-operation checkpoint.
+        let cache_trace = self
+            .arena_mut()
+            .apply_cache_checkpoint(CheckpointBarrier::PerOperation)?;
+        self.replay_log
+            .set_last_cache_refresh_trace(cache_trace.into_iter().map(|t| t.encode()).collect());
 
         // ── Compute journal counts BEFORE draining ────────────────────
         // The journal records every insert/remove that happened during op.execute().
@@ -103,7 +113,7 @@ impl MutableDraft {
         // The MutationJournal recorded every entity that was removed during
         // op.execute(). We stamp their deletion into the lineage store
         // automatically — operators never need to call stamp_deletions.
-        let destroyed = self.mutation_journal.drain_destroyed();
+        let destroyed = self.mutation_journal.drain_destroyed_sorted();
         for entity in &destroyed {
             // stamp_deletion may fail if the entity had no lineage entry
             // (e.g. internal structural entities). Ignore gracefully.
@@ -142,10 +152,12 @@ impl MutableDraft {
             regions: region_count_after as i32 - region_count_before as i32,
         };
         if actual_delta != declared_delta {
-            let expected_vertices_after = vertex_count_before as i64 + declared_delta.vertices as i64;
+            let expected_vertices_after =
+                vertex_count_before as i64 + declared_delta.vertices as i64;
             let expected_edges_after = edge_count_before as i64 + declared_delta.edges as i64;
             let expected_faces_after = face_count_before as i64 + declared_delta.faces as i64;
-            let expected_chi = expected_vertices_after - expected_edges_after + expected_faces_after;
+            let expected_chi =
+                expected_vertices_after - expected_edges_after + expected_faces_after;
             let actual_chi =
                 vertex_count_after as i64 - edge_count_after as i64 + face_count_after as i64;
 
@@ -158,10 +170,10 @@ impl MutableDraft {
                     actual_chi,
                 },
                 context: Some(ErrorContext {
-                    scope: ErrorScope::Operation {
-                        op_name: op_name.clone(),
-                        invocation_id: invocation_id as u64,
-                    },
+                        scope: ErrorScope::Operation {
+                            op_name: op_name.clone(),
+                            invocation_id: invocation_id.get(),
+                        },
                     suggested_fixes: vec![],
                     detail: format!(
                         "{} declared Euler delta V={} HE={} F={} L={} E={} S={} So={} but actual was V={} HE={} F={} L={} E={} S={} So={}",
@@ -182,39 +194,48 @@ impl MutableDraft {
         #[cfg(debug_assertions)]
         {
             debug_assert_eq!(
-                created.vertices as i32 - deleted.vertices as i32, actual_delta.vertices,
+                created.vertices as i32 - deleted.vertices as i32,
+                actual_delta.vertices,
                 "Journal/arena vertex count mismatch — draft proxy hook may be missing"
             );
             debug_assert_eq!(
-                created.faces as i32 - deleted.faces as i32, actual_delta.faces,
+                created.faces as i32 - deleted.faces as i32,
+                actual_delta.faces,
                 "Journal/arena face count mismatch — draft proxy hook may be missing"
             );
             debug_assert_eq!(
-                created.half_edges as i32 - deleted.half_edges as i32, actual_delta.half_edges,
+                created.half_edges as i32 - deleted.half_edges as i32,
+                actual_delta.half_edges,
                 "Journal/arena half-edge count mismatch — draft proxy hook may be missing"
             );
             debug_assert_eq!(
-                created.loops as i32 - deleted.loops as i32, actual_delta.loops,
+                created.loops as i32 - deleted.loops as i32,
+                actual_delta.loops,
                 "Journal/arena loop count mismatch — draft proxy hook may be missing"
             );
             debug_assert_eq!(
-                created.edges as i32 - deleted.edges as i32, actual_delta.edges,
+                created.edges as i32 - deleted.edges as i32,
+                actual_delta.edges,
                 "Journal/arena edge count mismatch — draft proxy hook may be missing"
             );
             debug_assert_eq!(
-                created.shells as i32 - deleted.shells as i32, actual_delta.shells,
+                created.shells as i32 - deleted.shells as i32,
+                actual_delta.shells,
                 "Journal/arena shell count mismatch — draft proxy hook may be missing"
             );
             debug_assert_eq!(
-                created.bodies as i32 - deleted.bodies as i32, actual_delta.solids,
+                created.bodies as i32 - deleted.bodies as i32,
+                actual_delta.solids,
                 "Journal/arena body count mismatch — draft proxy hook may be missing"
             );
             debug_assert_eq!(
-                created.lumps as i32 - deleted.lumps as i32, actual_delta.lumps,
+                created.lumps as i32 - deleted.lumps as i32,
+                actual_delta.lumps,
                 "Journal/arena lump count mismatch — draft proxy hook may be missing"
             );
             debug_assert_eq!(
-                created.regions as i32 - deleted.regions as i32, actual_delta.regions,
+                created.regions as i32 - deleted.regions as i32,
+                actual_delta.regions,
                 "Journal/arena region count mismatch — draft proxy hook may be missing"
             );
         }
@@ -226,7 +247,7 @@ impl MutableDraft {
         //   Suppressed: skip everything (macro-op batch mode)
         if !self.config.suppress_per_op_validation {
             use crate::validators::invariant_id::{
-                InvariantId, ValidatorCost, validator_for, InvariantRelation,
+                validator_for, InvariantId, InvariantRelation, ValidatorCost,
             };
             use forge_core::ValidationCheckpoint;
 
@@ -251,7 +272,7 @@ impl MutableDraft {
                         tracing::info!(
                             invariant = ?id,
                             operator = O::NAME,
-                            invocation = invocation_id,
+                            invocation = invocation_id.get(),
                             cost = ?entry.cost,
                             passed = passed,
                             "invariant_check"
@@ -267,7 +288,7 @@ impl MutableDraft {
                             tracing::error!(
                                 invariant = ?id,
                                 operator = O::NAME,
-                                invocation = invocation_id,
+                                invocation = invocation_id.get(),
                                 error = %e,
                                 error_debug = ?e,
                                 "INVARIANT VIOLATION: {:?} failed after {} (invocation {})",
@@ -280,11 +301,13 @@ impl MutableDraft {
                             // (e.g. StaleHandle errors from arena lookups carry
                             // their own Entity context, which loses the invariant
                             // name entirely).
-                            return Err(e.ensure_operation_context(
-                                &op_name,
-                                invocation_id as u64,
-                                &format!("Invariant {:?} violated after {}", id, op_name),
-                            ).with_phase(&format!("invariant_check({:?})", id)));
+                            return Err(e
+                                .ensure_operation_context(
+                                    &op_name,
+                                    invocation_id.get(),
+                                    &format!("Invariant {:?} violated after {}", id, op_name),
+                                )
+                                .with_phase(&format!("invariant_check({:?})", id)));
                         }
                     }
                 }
@@ -325,6 +348,7 @@ impl MutableDraft {
         let mut op_result = OperationResult::new(result);
         op_result.set_metrics(metrics);
         op_result.set_lineage_delta(lineage_delta);
+        op_result.set_mutation_snapshot(mutation_snapshot);
 
         Ok(op_result)
     }

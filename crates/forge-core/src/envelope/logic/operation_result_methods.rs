@@ -1,7 +1,7 @@
 //! Method implementations for `OperationResult<T>`.
 
 use crate::envelope::data::{
-    KernelWarning, LineageDelta, OperationMetrics, OperationResult,
+    KernelWarning, LineageDelta, MutationJournalSnapshot, OperationMetrics, OperationResult,
 };
 use crate::tracing::DecisionLog;
 
@@ -14,6 +14,7 @@ impl<T> OperationResult<T> {
             decision_log: DecisionLog::new(),
             metrics: OperationMetrics::default(),
             lineage_delta: LineageDelta::default(),
+            mutation_snapshot: MutationJournalSnapshot::empty(),
             state_hash_before: 0,
             state_hash_after: 0,
             validation_results: Vec::new(),
@@ -38,6 +39,7 @@ impl<T> OperationResult<T> {
             decision_log,
             metrics,
             lineage_delta,
+            mutation_snapshot: MutationJournalSnapshot::empty(),
             state_hash_before,
             state_hash_after,
             validation_results: Vec::new(),
@@ -102,6 +104,24 @@ impl<T> OperationResult<T> {
     /// Take ownership of lineage delta, replacing with defaults.
     pub fn take_lineage_delta(&mut self) -> LineageDelta {
         std::mem::take(&mut self.lineage_delta)
+    }
+
+    /// Immutable per-operation mutation snapshot.
+    pub fn get_mutation_snapshot(&self) -> &MutationJournalSnapshot {
+        &self.mutation_snapshot
+    }
+
+    /// Set the immutable per-operation mutation snapshot.
+    pub fn set_mutation_snapshot(&mut self, snapshot: MutationJournalSnapshot) {
+        self.mutation_snapshot = snapshot;
+    }
+
+    /// Take ownership of mutation snapshot, replacing with an empty snapshot.
+    pub fn take_mutation_snapshot(&mut self) -> MutationJournalSnapshot {
+        std::mem::replace(
+            &mut self.mutation_snapshot,
+            MutationJournalSnapshot::empty(),
+        )
     }
 
     /// Topology hash before the operation.
@@ -176,6 +196,8 @@ impl<T> OperationResult<T> {
 
         let other_lineage = std::mem::take(&mut other.lineage_delta);
         self.lineage_delta.accumulate(&other_lineage);
+        self.mutation_snapshot
+            .absorb(other.take_mutation_snapshot());
 
         self.validation_results
             .extend(std::mem::take(&mut other.validation_results));
@@ -192,6 +214,7 @@ impl<T> OperationResult<T> {
             decision_log: self.decision_log,
             metrics: self.metrics,
             lineage_delta: self.lineage_delta,
+            mutation_snapshot: self.mutation_snapshot,
             state_hash_before: self.state_hash_before,
             state_hash_after: self.state_hash_after,
             validation_results: self.validation_results,

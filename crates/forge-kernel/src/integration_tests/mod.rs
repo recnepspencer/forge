@@ -7,8 +7,8 @@
 
 pub mod harness;
 
-mod entity_lifecycle;
 mod boundary_editing;
-mod shape_integrity;
+mod entity_lifecycle;
 mod observability;
+mod shape_integrity;
 mod spatial_validators;

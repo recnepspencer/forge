@@ -11,8 +11,8 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::tracing::decision_log::{DecisionLog, DecisionSummary};
 use crate::tracing::decision::{DecisionId, TracedDecision};
+use crate::tracing::decision_log::{DecisionLog, DecisionSummary};
 
 // =========================================================================
 // DECISION CHANGE

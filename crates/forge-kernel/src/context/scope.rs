@@ -15,8 +15,7 @@
 
 use forge_core::tracing::DecisionSink;
 use forge_topo::provenance::{
-    LineageRecorder, LineageMode, OperationLineageContext,
-    FEATURE_ID_UNSET,
+    LineageMode, LineageRecorder, OperationLineageContext, FEATURE_ID_UNSET,
 };
 
 use crate::configuration::facade::ResolvedConfig;
@@ -99,11 +98,13 @@ impl<'a> OperationScope<'a> {
             "OperationScope::lineage_recorder called with unset feature_id. \
              Pipeline must set scope.feature_id before execution."
         );
-        LineageRecorder::new(OperationLineageContext {
-            feature_id: self.feature_id,
-            op_name,
-            mode,
-        }, 1)
+        LineageRecorder::new(
+            OperationLineageContext {
+                feature_id: self.feature_id,
+                op_name,
+                mode,
+            },
+            1,
+        )
     }
 }
-

@@ -1,14 +1,14 @@
 #[cfg(test)]
 mod tests {
+    use crate::b_rep::ShellKind;
     use crate::handles::{FaceId, HalfEdgeId, LoopId, VertexId};
-    use crate::transactions::TopologyState;
     use crate::operations::entity_lifecycle::make_edge_face::MakeEdgeFace;
     use crate::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
-    use crate::operations::non_manifold::sew_edge::SewEdge;
     use crate::operations::entity_lifecycle::split_edge::SplitEdge;
+    use crate::operations::non_manifold::sew_edge::SewEdge;
     use crate::operator::TopoOperator;
+    use crate::transactions::TopologyState;
     use forge_core::TopologyError;
-    use crate::b_rep::ShellKind;
 
     fn build_test_state() -> (crate::transactions::MutableDraft, HalfEdgeId, HalfEdgeId) {
         let state = TopologyState::empty();
@@ -17,14 +17,18 @@ mod tests {
         // MVF: creates v0, F0, self-loop he0 (v0->v0)
         // SE: splits he0 into two halfedges: he0 (v0->v1) and he_mb (v1->v0)
         // Both are self-radial boundary edges on the same face, each on its own Edge.
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
 
         let he_v0_v1 = mvf.half_edge; // v0 -> v1
         let he_v1_v0 = se.he_mb; // v1 -> v0
@@ -90,21 +94,22 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se1 = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se1 = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let _se2 = draft.execute(
-            SplitEdge {
-                edge: se1.he_mb,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
+        let _se2 = draft
+            .execute(SplitEdge { edge: se1.he_mb })
+            .unwrap()
+            .into_value();
 
         // Now we have v0->v1->v2->v0.
         // If we try to sew (v0->v1) to (v1->v2), they share v1 but are not antiparallel.

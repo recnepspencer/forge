@@ -24,28 +24,29 @@ fn brutal_bio_mesh_high_valence_pole_and_megaloop() {
     let state = TopologyState::empty();
     let mut draft = state.clone().into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
     let center_vertex = mvf.vertex;
     let mut current_edge = mvf.half_edge;
 
     for _ in 0..15_000 {
-        let se = draft.execute(
-            SplitEdge {
-                edge: current_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
+        let se = draft
+            .execute(SplitEdge { edge: current_edge })
+            .unwrap()
+            .into_value();
         let face_id = draft.arena().get_half_edge(current_edge).unwrap().face();
-        let mef = draft.execute(
-            MakeEdgeFace {
+        let mef = draft
+            .execute(MakeEdgeFace {
                 vertex_a: center_vertex,
                 vertex_b: se.new_vertex,
                 face: face_id,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
         current_edge = mef.half_edge_ab;
     }
 
@@ -54,7 +55,8 @@ fn brutal_bio_mesh_high_valence_pole_and_megaloop() {
 
     assert_eq!(arena.vertex_count(), 15_001);
 
-    let _diffs = crate::change_detection::compute_diff(state.arena(), arena, 0, megamesh_state.epoch());
+    let _diffs =
+        crate::change_detection::compute_diff(state.arena(), arena, 0, megamesh_state.epoch());
     assert!(!_diffs.is_empty());
     assert_eq!(
         _diffs.total_added(),
@@ -73,30 +75,32 @@ fn brutal_aerospace_sliver_churn_generational_integrity() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = logged_op("MVF", draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet })).unwrap();
+    let mvf = logged_op(
+        "MVF",
+        draft.execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        }),
+    )
+    .unwrap();
 
     for i in 0..500 {
         let boundary_edge = draft.arena().get_vertex(mvf.vertex).unwrap().primary_disk();
         let se = logged_op(
             &format!("SE[{i}]"),
-            draft.execute(
-                SplitEdge {
-                    edge: boundary_edge,
-                },
-            ),
+            draft.execute(SplitEdge {
+                edge: boundary_edge,
+            }),
         )
         .unwrap();
 
         let face_id = draft.arena().get_half_edge(boundary_edge).unwrap().face();
         let mef = logged_op(
             &format!("MEF[{i}]"),
-            draft.execute(
-                MakeEdgeFace {
-                    vertex_a: mvf.vertex,
-                    vertex_b: se.new_vertex,
-                    face: face_id,
-                },
-            ),
+            draft.execute(MakeEdgeFace {
+                vertex_a: mvf.vertex,
+                vertex_b: se.new_vertex,
+                face: face_id,
+            }),
         )
         .unwrap();
 
@@ -105,11 +109,9 @@ fn brutal_aerospace_sliver_churn_generational_integrity() {
 
         logged_op(
             &format!("JF[{i}]"),
-            draft.execute(
-                JoinFaces {
-                    edge: mef.half_edge_ab,
-                },
-            ),
+            draft.execute(JoinFaces {
+                edge: mef.half_edge_ab,
+            }),
         )
         .unwrap();
         logged_op(
@@ -146,76 +148,78 @@ fn brutal_dag_determinism_path_independence() {
     let path_a_hash = {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se1 = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se1 = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let mef1 = draft.execute(
-            MakeEdgeFace {
+            })
+            .unwrap()
+            .into_value();
+        let mef1 = draft
+            .execute(MakeEdgeFace {
                 vertex_a: mvf.vertex,
                 vertex_b: se1.new_vertex,
                 face: mvf.face,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
 
-        let _se_top = draft.execute(
-            SplitEdge {
+        let _se_top = draft
+            .execute(SplitEdge {
                 edge: mef1.half_edge_ab,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let _se_bottom = draft.execute(
-            SplitEdge {
+            })
+            .unwrap()
+            .into_value();
+        let _se_bottom = draft
+            .execute(SplitEdge {
                 edge: mef1.half_edge_ba,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
         draft.commit().unwrap().topology_hash()
     };
 
     let path_b_hash = {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se1 = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se1 = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let mef1 = draft.execute(
-            MakeEdgeFace {
+            })
+            .unwrap()
+            .into_value();
+        let mef1 = draft
+            .execute(MakeEdgeFace {
                 vertex_a: mvf.vertex,
                 vertex_b: se1.new_vertex,
                 face: mvf.face,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
 
-        let _se_bottom = draft.execute(
-            SplitEdge {
+        let _se_bottom = draft
+            .execute(SplitEdge {
                 edge: mef1.half_edge_ba,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let _se_top = draft.execute(
-            SplitEdge {
+            })
+            .unwrap()
+            .into_value();
+        let _se_top = draft
+            .execute(SplitEdge {
                 edge: mef1.half_edge_ab,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
         draft.commit().unwrap().topology_hash()
     };
 

@@ -8,8 +8,8 @@ use std::collections::BTreeSet;
 use forge_core::KernelError;
 
 use crate::handles::{FaceId, HalfEdgeId, VertexId};
-use crate::transactions::MutableDraft;
 use crate::queries::traverse::FaceAllEdgesIterator;
+use crate::transactions::MutableDraft;
 
 /// Remove degenerate faces and zero-length edges from the draft.
 ///
@@ -58,9 +58,9 @@ fn remove_zero_length_edges(draft: &mut MutableDraft) -> Result<usize, KernelErr
 }
 
 /// Find zero-length edges (where origin == dest).
-/// 
+///
 /// Note: In pure combinatorial topology, self-loops are perfectly valid.
-/// This cleanup algorithm is specifically for triangulated mesh geometry, 
+/// This cleanup algorithm is specifically for triangulated mesh geometry,
 /// not analytic B-Reps.
 fn find_zero_length_edges(draft: &MutableDraft) -> Result<Vec<HalfEdgeId>, KernelError> {
     let mut result = Vec::new();
@@ -126,7 +126,7 @@ fn repair_loop_pointer(
     replacement_he: HalfEdgeId,
 ) -> Result<(), KernelError> {
     let face = draft.arena().get_face(face_id)?;
-    let loop_id = face.outer_loop();
+    let loop_id = face.loops.outer();
     let loop_he = draft.arena().get_loop(loop_id)?.half_edge();
     if loop_he == removed_he {
         draft
@@ -176,8 +176,8 @@ fn remove_degenerate_faces(draft: &mut MutableDraft) -> Result<usize, KernelErro
 
 /// Find faces with fewer than 3 unique vertices.
 ///
-/// Note: In pure combinatorial topology, 1-gons (droplets) and 2-gons (lunes) 
-/// are perfectly valid. This cleanup algorithm is specifically for 
+/// Note: In pure combinatorial topology, 1-gons (droplets) and 2-gons (lunes)
+/// are perfectly valid. This cleanup algorithm is specifically for
 /// triangulated mesh geometry, not analytic B-Reps.
 fn find_degenerate_faces(draft: &MutableDraft) -> Result<Vec<FaceId>, KernelError> {
     let faces: Vec<FaceId> = draft.arena().iter_faces().map(|(fid, _)| fid).collect();
@@ -219,7 +219,11 @@ fn repair_affected_vertices(
     for &he_id in edges {
         let he = draft.arena().get_half_edge(he_id)?;
         let origin = he.origin();
-        let primary_disk = draft.arena().get_vertex(origin).ok().map(|v| v.primary_disk());
+        let primary_disk = draft
+            .arena()
+            .get_vertex(origin)
+            .ok()
+            .map(|v| v.primary_disk());
         if primary_disk
             .map(|o| deleted_set.contains(&o.index()))
             .unwrap_or(false)
@@ -237,7 +241,10 @@ fn repair_affected_vertices(
         .collect();
 
     for (vid, he_id) in replacements {
-        draft.arena_mut().get_vertex_mut(vid)?.set_primary_disk(he_id);
+        draft
+            .arena_mut()
+            .get_vertex_mut(vid)?
+            .set_primary_disk(he_id);
     }
     Ok(())
 }
@@ -255,11 +262,13 @@ fn remove_face_topology(
             while draft.arena().get_half_edge(prev_radial)?.radial_next() != he_id {
                 prev_radial = draft.arena().get_half_edge(prev_radial)?.radial_next();
             }
-            draft.arena_mut().get_half_edge_mut(prev_radial)?.set_radial_next(he.radial_next());
+            draft
+                .arena_mut()
+                .set_half_edge_radial_next(prev_radial, he.radial_next())?;
         }
         draft.remove_half_edge(he_id)?;
     }
-    let loop_id = draft.arena().get_face(face_id)?.outer_loop();
+    let loop_id = draft.arena().get_face(face_id)?.loops.outer();
     draft.remove_face(face_id)?;
     draft.remove_loop(loop_id)?;
     Ok(())

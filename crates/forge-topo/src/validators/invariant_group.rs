@@ -56,13 +56,10 @@ pub fn invariant_ids(group: InvariantGroup) -> &'static [InvariantId] {
             InvariantId::DiskClosure,
             InvariantId::NoCrossDiskCoedges,
         ],
-        InvariantGroup::EulerFormula => &[
-            InvariantId::PerComponentEuler,
-        ],
-        InvariantGroup::CacheCoherence => &[
-            InvariantId::SideCarCoherence,
-            InvariantId::IndexCoherence,
-        ],
+        InvariantGroup::EulerFormula => &[InvariantId::PerComponentEuler],
+        InvariantGroup::CacheCoherence => {
+            &[InvariantId::SideCarCoherence, InvariantId::IndexCoherence]
+        }
         InvariantGroup::Geometry => &[
             InvariantId::NoZeroLengthEdges,
             InvariantId::NoZeroAreaFaces,

@@ -135,11 +135,7 @@ impl ToleranceProvider for FlatToleranceProvider {
 ///
 /// Uses squared-distance to avoid sqrt.
 #[inline]
-pub fn positions_coincident(
-    a: &[f64; 3],
-    b: &[f64; 3],
-    tol: &dyn ToleranceProvider,
-) -> bool {
+pub fn positions_coincident(a: &[f64; 3], b: &[f64; 3], tol: &dyn ToleranceProvider) -> bool {
     let dx = a[0] - b[0];
     let dy = a[1] - b[1];
     let dz = a[2] - b[2];

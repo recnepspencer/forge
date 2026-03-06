@@ -16,20 +16,19 @@
 //! 6. Apply P3.3 counterfactual override if present.
 //! 7. Log TracedDecision.
 
-
-use forge_core::KernelError;
 use forge_core::tracing::DecisionSink;
+use forge_core::KernelError;
 use forge_core::{DecisionId, ToleranceProvider};
 use forge_math::arithmetic::precision::{PrecisionEscalation, PrecisionMode};
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::FaceId;
 
 use crate::configuration::facade::{ResolvedConfig, ToleranceConfig};
-use forge_geom::facade::{BvhNode, Plane};
 use crate::geometry::facade::GeometryView;
+use forge_geom::facade::{BvhNode, Plane};
 
-use crate::operations::boolean::counterfactual::CounterfactualOverrides;
 use crate::operations::boolean::classify_schema::{ClassifiedFace, FaceClassification, FaceOrigin};
+use crate::operations::boolean::counterfactual::CounterfactualOverrides;
 
 /// True when this face was created by a `make_edge_face` Euler operator
 /// during the Boolean split phase.
@@ -67,8 +66,14 @@ fn compute_face_centroid(
             count += 1;
         }
     }
-    if count == 0 { return None; }
-    Some([sum[0] / count as f64, sum[1] / count as f64, sum[2] / count as f64])
+    if count == 0 {
+        return None;
+    }
+    Some([
+        sum[0] / count as f64,
+        sum[1] / count as f64,
+        sum[2] / count as f64,
+    ])
 }
 
 /// Check whether two faces have aligned normals (dot > 0).
@@ -78,7 +83,9 @@ fn faces_have_aligned_normals(
     geom_b: &impl GeometryView,
     face_b: FaceId,
 ) -> bool {
-    let (Some(plane_a), Some(plane_b)) = (geom_a.get_face_plane(face_a), geom_b.get_face_plane(face_b)) else {
+    let (Some(plane_a), Some(plane_b)) =
+        (geom_a.get_face_plane(face_a), geom_b.get_face_plane(face_b))
+    else {
         return false;
     };
     let na = plane_a.normal();
@@ -163,7 +170,14 @@ pub fn classify_faces(
         }
 
         let (final_class, overridden) = apply_override(overrides, face_id, computed);
-        log_classification(face_id, &final_class, &computed, overridden, origin_label, sink);
+        log_classification(
+            face_id,
+            &final_class,
+            &computed,
+            overridden,
+            origin_label,
+            sink,
+        );
         if let Some(esc) = escalation {
             log_escalation(face_id, esc, sink);
         }
@@ -203,13 +217,8 @@ fn classify_single_face(
     let pos_fn = |idx: u32| lookup_vertex_position_result(other_arena, other_geometry, idx);
 
     let tol_provider = crate::geometry::facade::GeometryToleranceProvider::new(other_geometry);
-    let primary = classify_point_in_solid(
-        other_arena,
-        &pos_fn,
-        accelerator,
-        &sample,
-        &tol_provider,
-    )?;
+    let primary =
+        classify_point_in_solid(other_arena, &pos_fn, accelerator, &sample, &tol_provider)?;
 
     let classification = maybe_multisample_refine(
         source_arena,
@@ -261,7 +270,8 @@ fn maybe_multisample_refine(
     }
 
     let tol_provider_src = crate::geometry::facade::GeometryToleranceProvider::new(source_geometry);
-    let pos_fn_src = |v: forge_topo::handles::VertexId| source_geometry.get_vertex_position(v).copied();
+    let pos_fn_src =
+        |v: forge_topo::handles::VertexId| source_geometry.get_vertex_position(v).copied();
     let samples = face_interior_samples(
         source_arena,
         &pos_fn_src,
@@ -276,7 +286,8 @@ fn maybe_multisample_refine(
     }
 
     let pos_fn_other = |idx: u32| lookup_vertex_position_result(other_arena, other_geometry, idx);
-    let tol_provider_other = crate::geometry::facade::GeometryToleranceProvider::new(other_geometry);
+    let tol_provider_other =
+        crate::geometry::facade::GeometryToleranceProvider::new(other_geometry);
     let mut inside = 0usize;
     let mut outside = 0usize;
     let mut first_boundary: Option<FaceId> = None;
@@ -328,15 +339,13 @@ fn interpret_classification(
     source_geom: &impl GeometryView,
     source_face: FaceId,
     other_geom: &impl GeometryView,
-) -> (
-    FaceClassification,
-    Option<PrecisionEscalation>,
-) {
+) -> (FaceClassification, Option<PrecisionEscalation>) {
     match classification {
         PointClassification::Inside { escalation } => (FaceClassification::Inside, escalation),
         PointClassification::Outside { escalation } => (FaceClassification::Outside, escalation),
         PointClassification::OnBoundary(boundary_face) => {
-            let aligned = faces_have_aligned_normals(source_geom, source_face, other_geom, boundary_face);
+            let aligned =
+                faces_have_aligned_normals(source_geom, source_face, other_geom, boundary_face);
             let class = if aligned {
                 FaceClassification::OnBoundary
             } else {
@@ -356,13 +365,7 @@ fn resolve_boundary_classification(
     accelerator: Option<&dyn SpatialAccelerator>,
     original: &PointClassification,
     config: &ToleranceConfig,
-) -> Result<
-    (
-        FaceClassification,
-        Option<PrecisionEscalation>,
-    ),
-    KernelError,
-> {
+) -> Result<(FaceClassification, Option<PrecisionEscalation>), KernelError> {
     let normal = match source_geometry.get_face_plane(source_face) {
         Some(plane) => plane.raw_normal(),
         None => {
@@ -422,9 +425,7 @@ fn to_face_classification(pc: &PointClassification) -> FaceClassification {
     }
 }
 
-fn extract_escalation(
-    pc: &PointClassification,
-) -> Option<PrecisionEscalation> {
+fn extract_escalation(pc: &PointClassification) -> Option<PrecisionEscalation> {
     match pc {
         PointClassification::Inside { escalation } => escalation.clone(),
         PointClassification::Outside { escalation } => escalation.clone(),
@@ -457,11 +458,7 @@ fn log_classification(
     let label = classification_label(final_class);
     if overridden {
         let reason = format!("{} → {}", classification_label(computed_class), label);
-        sink.record_forced(
-            &reason,
-            face_id.index(),
-            1.0,
-        );
+        sink.record_forced(&reason, face_id.index(), 1.0);
     } else {
         let result = format!("{}:Face#{} → {}", origin_label, face_id.index(), label);
         sink.record_classification(
@@ -472,19 +469,12 @@ fn log_classification(
     }
 }
 
-fn log_escalation(
-    face_id: FaceId,
-    escalation: PrecisionEscalation,
-    sink: &mut dyn DecisionSink,
-) {
+fn log_escalation(face_id: FaceId, escalation: PrecisionEscalation, sink: &mut dyn DecisionSink) {
     if escalation.resolved_at <= PrecisionMode::Float64 {
         return;
     }
 
-    sink.record_escalation(
-        face_id.index(),
-        &escalation,
-    );
+    sink.record_escalation(face_id.index(), &escalation);
 }
 
 // ── Spatial indexing ─────────────────────────────────────────────────────────

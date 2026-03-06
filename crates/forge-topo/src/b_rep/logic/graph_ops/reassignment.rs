@@ -10,7 +10,11 @@ use crate::handles::{FaceId, HalfEdgeId, ShellId, VertexId};
 
 impl TopologyArena {
     /// Move a face from one shell to another, updating both the entity and the index.
-    pub fn reassign_face_shell(&mut self, face: FaceId, new_shell: ShellId) -> Result<(), KernelError> {
+    pub fn reassign_face_shell(
+        &mut self,
+        face: FaceId,
+        new_shell: ShellId,
+    ) -> Result<(), KernelError> {
         let old_shell = self.get_face(face)?.shell();
         self.index_remove_face(face, old_shell);
         self.get_face_mut(face)?.set_shell(new_shell);
@@ -19,28 +23,30 @@ impl TopologyArena {
     }
 
     /// Move a halfedge to a different face, updating both the entity and the index.
-    pub fn reassign_halfedge_face(&mut self, he: HalfEdgeId, new_face: FaceId) -> Result<(), KernelError> {
+    pub fn reassign_halfedge_face(
+        &mut self,
+        he: HalfEdgeId,
+        new_face: FaceId,
+    ) -> Result<(), KernelError> {
         let old_face = self.get_half_edge(he)?.face();
-        if let Some(hes) = self.face_halfedges.get_mut(&old_face) {
-            if let Some(pos) = hes.iter().position(|&h| h == he) {
-                hes.swap_remove(pos);
-            }
-        }
+        let origin = self.get_half_edge(he)?.origin();
+        self.index_remove_halfedge(he, old_face, origin);
         self.get_half_edge_mut(he)?.set_face(new_face);
-        self.face_halfedges.entry(new_face).or_default().push(he);
+        self.index_add_halfedge(he, new_face, origin);
         Ok(())
     }
 
     /// Move a halfedge to a different origin vertex, updating both the entity and the index.
-    pub fn reassign_halfedge_origin(&mut self, he: HalfEdgeId, new_origin: VertexId) -> Result<(), KernelError> {
+    pub fn reassign_halfedge_origin(
+        &mut self,
+        he: HalfEdgeId,
+        new_origin: VertexId,
+    ) -> Result<(), KernelError> {
         let old_origin = self.get_half_edge(he)?.origin();
-        if let Some(hes) = self.vertex_halfedges.get_mut(&old_origin) {
-            if let Some(pos) = hes.iter().position(|&h| h == he) {
-                hes.swap_remove(pos);
-            }
-        }
+        let face = self.get_half_edge(he)?.face();
+        self.index_remove_halfedge(he, face, old_origin);
         self.get_half_edge_mut(he)?.set_origin(new_origin);
-        self.vertex_halfedges.entry(new_origin).or_default().push(he);
+        self.index_add_halfedge(he, face, new_origin);
         Ok(())
     }
 }

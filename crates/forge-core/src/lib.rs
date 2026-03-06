@@ -23,6 +23,7 @@
 // DOMAIN MODULES
 // =========================================================================
 
+pub mod cache;
 pub mod envelope;
 pub mod errors;
 pub mod policy;
@@ -41,31 +42,52 @@ pub use errors::{
     SourceErrorSummary, SuggestedFix, TopologyError, TopologyErrorSummary,
 };
 
+pub use cache::{
+    CacheCheckpoint, CacheDirtyState, CacheDomain, CacheRefreshMode, CacheRefreshPolicy,
+    DomainImpact,
+};
+
 pub use policy::{
-    // Invariant validation contract types
-    InvariantGroup, InvariantTier, ValidatorCost,
-    InvariantId, InvariantRelation, InvariantContract,
-    APPLICABLE_BY_KIND, CLOSED_SHEET_EXTRA, DEFER_SEMANTIC_TIER, DEFER_UNCERTIFIED,
-    applicable_mask_for, deferred_mask_for,
-    // Policy types
-    PolicyKind, PolicyQuery, PolicyResult,
+    applicable_mask_for,
+    deferred_mask_for,
     // Topology classification
-    CertificationStage, Closure, Manifoldness, TopologyContext, TopologyKind,
+    CertificationStage,
+    Closure,
+    InvariantContract,
+    // Invariant validation contract types
+    InvariantGroup,
+    InvariantId,
+    InvariantRelation,
+    InvariantTier,
+    Manifoldness,
+    // Policy types
+    PolicyKind,
+    PolicyQuery,
+    PolicyResult,
+    TopologyContext,
+    TopologyKind,
     // Validation checkpoints
     ValidationCheckpoint,
+    ValidatorCost,
+    APPLICABLE_BY_KIND,
+    CLOSED_SHEET_EXTRA,
+    DEFER_SEMANTIC_TIER,
+    DEFER_UNCERTIFIED,
 };
 
 // Tracing — all exports routed through `tracing::facade`
 pub use tracing::*;
 
-pub use envelope::{KernelWarning, LineageDelta, OperationMetrics, OperationResult};
+pub use envelope::{
+    KernelWarning, LineageDelta, MutationJournalSnapshot, OperationMetrics, OperationResult,
+};
 
 pub use provenance::{
     hash_directed_snapshot_segment_transport, BoundarySegmentProvenance, MergeStepProvenance,
     SelectorOrigin, SnapshotHandleRef,
 };
-pub use tolerance::{
-    FlatToleranceProvider, ToleranceProvider,
-    approximately_equal, is_degenerate_magnitude_sq, is_effectively_zero, positions_coincident,
-};
 pub use storage::{PropertyLayer, PropertyPatch};
+pub use tolerance::{
+    approximately_equal, is_degenerate_magnitude_sq, is_effectively_zero, positions_coincident,
+    FlatToleranceProvider, ToleranceProvider,
+};

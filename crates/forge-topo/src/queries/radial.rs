@@ -64,8 +64,8 @@ pub fn radial_uses_by_face(
 
 #[cfg(test)]
 mod tests {
-    use crate::b_rep::ShellKind;
     use super::*;
+    use crate::b_rep::ShellKind;
     use crate::b_rep::{FaceData, HalfEdgeData, LoopData, VertexData};
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::entity_lifecycle::split_edge::SplitEdge;
@@ -79,7 +79,12 @@ mod tests {
     fn seed_state() -> (TopologyState, HalfEdgeId) {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
         let state = draft.commit().unwrap();
         (state, mvf.half_edge)
     }
@@ -148,14 +153,18 @@ mod tests {
     fn radial_uses_split_result_is_still_self_radial() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
         // Read both halfedge IDs before commit
         let he_am = se.he_am;
         let he_mb = se.he_mb;
@@ -182,14 +191,18 @@ mod tests {
     fn radial_uses_valence_3_ring_returns_all_three_members() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
         let start = se.he_am;
         let mid = se.he_mb;
         let extra = wire_3_ring(&mut draft, start, mid);
@@ -217,14 +230,18 @@ mod tests {
     fn radial_uses_valence_3_ring_is_closed() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
         let extra = wire_3_ring(&mut draft, se.he_am, se.he_mb);
 
         let uses = radial_uses(draft.arena(), se.he_am).unwrap();
@@ -248,14 +265,18 @@ mod tests {
     fn radial_uses_result_is_invariant_to_start_member() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
         let extra = wire_3_ring(&mut draft, se.he_am, se.he_mb);
 
         let uses_from_start = radial_uses(draft.arena(), se.he_am).unwrap();
@@ -282,14 +303,18 @@ mod tests {
     fn radial_uses_by_face_detects_same_face_slit() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
         let extra = wire_3_ring(&mut draft, se.he_am, se.he_mb);
 
         // All three halfedges belong to the same face (no MEF was called).
@@ -325,14 +350,18 @@ mod tests {
     fn radial_uses_by_face_is_deterministic() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
         let _ = wire_3_ring(&mut draft, se.he_am, se.he_mb);
 
         // Call twice on the same arena without any mutation in between.
@@ -372,7 +401,12 @@ mod tests {
     fn radial_uses_stale_radial_next_returns_err_on_iteration() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
 
         // Point radial_next to a slot with the wrong generation — stale handle
         let stale = HalfEdgeId::new(

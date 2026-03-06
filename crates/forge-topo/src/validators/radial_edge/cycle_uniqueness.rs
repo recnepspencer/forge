@@ -2,8 +2,9 @@
 //!
 //! INVARIANT: No halfedge may appear more than once in a radial ring.
 
-use crate::b_rep::TopologyArena;
 use crate::b_rep::EntityBitset;
+use crate::b_rep::TopologyArena;
+use crate::queries::walk::walk_radial_iter;
 use forge_core::KernelError;
 
 use super::vf;
@@ -17,17 +18,19 @@ pub(crate) fn validate_radial_cycle_uniqueness(arena: &TopologyArena) -> Result<
         }
 
         let mut ring_seen = std::collections::BTreeSet::new();
-        let mut curr = start_he;
-        loop {
+        for curr_result in walk_radial_iter(arena, start_he)? {
+            let curr = curr_result?;
             global_checked.insert(curr.index())?;
             if !ring_seen.insert(curr.index()) {
-                return Err(vf("radial_cycle_uniqueness", format!(
-                    "Radial ring seeded at HE {} contains duplicate HE {} (fractured ring)",
-                    start_he.index(), curr.index()
-                )));
+                return Err(vf(
+                    "radial_cycle_uniqueness",
+                    format!(
+                        "Radial ring seeded at HE {} contains duplicate HE {} (fractured ring)",
+                        start_he.index(),
+                        curr.index()
+                    ),
+                ));
             }
-            curr = arena.get_half_edge(curr)?.radial_next();
-            if curr == start_he { break; }
         }
     }
     Ok(())

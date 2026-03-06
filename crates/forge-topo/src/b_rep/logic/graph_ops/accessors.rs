@@ -3,9 +3,9 @@
 //! DOMAIN: get, get_mut, iter, count, active_indices, generation,
 //! and version methods on TopologyArena.
 
-use forge_core::KernelError;
-use crate::b_rep::data::storage::slot::{validate_generation, cold_err_bounds, cold_err_deleted};
 use crate::b_rep::data::storage::arena::TopologyArena;
+use crate::b_rep::data::storage::slot::{cold_err_bounds, cold_err_deleted, validate_generation};
+use forge_core::KernelError;
 
 /// Generate accessor methods (get, get_mut, iter, count, indices, generation, version).
 ///
@@ -17,7 +17,7 @@ macro_rules! define_entity_accessors {
                 #[doc = concat!("Get a ", $label, " by handle, validating the generation.")]
                 #[inline]
                 pub fn [<get_ $m>](&self, id: $id) -> Result<&$data, KernelError> {
-                    let slot = self.$slots.get(id.index() as usize)
+                    let slot = self.connectivity.$slots.get(id.index() as usize)
                         .ok_or_else(|| cold_err_bounds($label, id.index(), id.generation()))?;
                     validate_generation(slot.generation, id.generation(), $label, id.index())?;
                     slot.data.as_ref()
@@ -27,7 +27,7 @@ macro_rules! define_entity_accessors {
                 #[doc = concat!("Get a mutable reference to a ", $label, " by handle.")]
                 #[inline]
                 pub fn [<get_ $m _mut>](&mut self, id: $id) -> Result<&mut $data, KernelError> {
-                    let slot = self.$slots.get_mut(id.index() as usize)
+                    let slot = self.connectivity.$slots.get_mut(id.index() as usize)
                         .ok_or_else(|| cold_err_bounds($label, id.index(), id.generation()))?;
                     validate_generation(slot.generation, id.generation(), $label, id.index())?;
                     slot.version += 1;
@@ -37,29 +37,29 @@ macro_rules! define_entity_accessors {
 
                 #[doc = concat!("Iterate over all active ", $label, "s.")]
                 pub fn [<iter_ $pl>](&self) -> impl Iterator<Item = ($id, &$data)> {
-                    self.$slots.iter().enumerate().filter_map(|(i, slot)| {
+                    self.connectivity.$slots.iter().enumerate().filter_map(|(i, slot)| {
                         let data = slot.data.as_ref()?;
                         Some((<$id>::new(i as u32, slot.generation), data))
                     })
                 }
 
                 #[doc = concat!("Count of active ", $label, "s.")]
-                pub fn [<$m _count>](&self) -> usize { self.$count }
+                pub fn [<$m _count>](&self) -> usize { self.connectivity.$count }
 
                 #[doc = concat!("Indices of all active ", $label, " slots.")]
                 pub fn [<active_ $m _indices>](&self) -> impl Iterator<Item = usize> + '_ {
-                    self.$slots.iter().enumerate()
+                    self.connectivity.$slots.iter().enumerate()
                         .filter_map(|(i, s)| s.data.as_ref().map(|_| i))
                 }
 
                 #[doc = concat!("Generation of ", $label, " at slot index.")]
                 pub fn [<$m _generation>](&self, index: usize) -> Option<u32> {
-                    self.$slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.generation))
+                    self.connectivity.$slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.generation))
                 }
 
                 #[doc = concat!("Version of ", $label, " at slot index.")]
                 pub fn [<$m _version>](&self, index: usize) -> Option<u32> {
-                    self.$slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.version))
+                    self.connectivity.$slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.version))
                 }
             }
         }
@@ -82,56 +82,78 @@ impl TopologyArena {
     /// Get a loop by handle, validating the generation.
     #[inline]
     pub fn get_loop(&self, id: LoopId) -> Result<&LoopData, KernelError> {
-        let slot = self.loop_slots.get(id.index() as usize)
+        let slot = self
+            .connectivity
+            .loop_slots
+            .get(id.index() as usize)
             .ok_or_else(|| cold_err_bounds("Loop", id.index(), id.generation()))?;
         validate_generation(slot.generation, id.generation(), "Loop", id.index())?;
-        slot.data.as_ref()
+        slot.data
+            .as_ref()
             .ok_or_else(|| cold_err_deleted("Loop", id.index(), id.generation(), slot.generation))
     }
 
     /// Get a mutable reference to a loop by handle.
     #[inline]
     pub fn get_loop_mut(&mut self, id: LoopId) -> Result<&mut LoopData, KernelError> {
-        let slot = self.loop_slots.get_mut(id.index() as usize)
+        let slot = self
+            .connectivity
+            .loop_slots
+            .get_mut(id.index() as usize)
             .ok_or_else(|| cold_err_bounds("Loop", id.index(), id.generation()))?;
         validate_generation(slot.generation, id.generation(), "Loop", id.index())?;
         slot.version += 1;
-        slot.data.as_mut()
+        slot.data
+            .as_mut()
             .ok_or_else(|| cold_err_deleted("Loop", id.index(), id.generation(), slot.generation))
     }
 
     /// Iterate over all active loops.
     pub fn iter_loops(&self) -> impl Iterator<Item = (LoopId, &LoopData)> {
-        self.loop_slots.iter().enumerate().filter_map(|(i, slot)| {
-            let data = slot.data.as_ref()?;
-            Some((LoopId::new(i as u32, slot.generation), data))
-        })
+        self.connectivity
+            .loop_slots
+            .iter()
+            .enumerate()
+            .filter_map(|(i, slot)| {
+                let data = slot.data.as_ref()?;
+                Some((LoopId::new(i as u32, slot.generation), data))
+            })
     }
 
     /// Count of active loops.
-    pub fn loop_count(&self) -> usize { self.active_loop_count }
+    pub fn loop_count(&self) -> usize {
+        self.connectivity.active_loop_count
+    }
 
     /// Indices of all active loop slots.
     pub fn active_loop_indices(&self) -> impl Iterator<Item = usize> + '_ {
-        self.loop_slots.iter().enumerate()
+        self.connectivity
+            .loop_slots
+            .iter()
+            .enumerate()
             .filter_map(|(i, s)| s.data.as_ref().map(|_| i))
     }
 
     /// Generation of loop at slot index.
     pub fn loop_generation(&self, index: usize) -> Option<u32> {
-        self.loop_slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.generation))
+        self.connectivity
+            .loop_slots
+            .get(index)
+            .and_then(|s| s.data.as_ref().map(|_| s.generation))
     }
 
     /// Version of loop at slot index.
     pub fn loop_version(&self, index: usize) -> Option<u32> {
-        self.loop_slots.get(index).and_then(|s| s.data.as_ref().map(|_| s.version))
+        self.connectivity
+            .loop_slots
+            .get(index)
+            .and_then(|s| s.data.as_ref().map(|_| s.version))
     }
 }
 
 // Imports needed by the macro-generated code
+use crate::b_rep::data::containment::{BodyData, LumpData, RegionData, ShellData};
+use crate::b_rep::data::mesh::{EdgeData, FaceData, HalfEdgeData, LoopData, VertexData};
 use crate::handles::{
-    FaceId, HalfEdgeId, VertexId, LoopId, EdgeId,
-    ShellId, RegionId, LumpId, BodyId,
+    BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
 };
-use crate::b_rep::data::mesh::{FaceData, HalfEdgeData, VertexData, LoopData, EdgeData};
-use crate::b_rep::data::containment::{ShellData, RegionData, LumpData, BodyData};

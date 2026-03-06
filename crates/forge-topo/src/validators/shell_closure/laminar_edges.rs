@@ -8,7 +8,9 @@ use forge_core::KernelError;
 
 use super::vf;
 
-pub(crate) fn validate_boundary_edges_laminar_only(arena: &TopologyArena) -> Result<(), KernelError> {
+pub(crate) fn validate_boundary_edges_laminar_only(
+    arena: &TopologyArena,
+) -> Result<(), KernelError> {
     for (shell_id, shell_data) in arena.iter_shells() {
         if !matches!(shell_data.kind(), crate::b_rep::ShellKind::Sheet) {
             continue;

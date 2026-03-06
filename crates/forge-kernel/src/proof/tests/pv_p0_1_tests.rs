@@ -9,9 +9,9 @@
 //! - PV-06: Adjacent faces with same-direction half-edges across shared edge
 
 use super::test_support::{insert_test_solid_shell, validate_geometric_invariants_all_faces};
-use crate::geometry::facade::{GeometryStore, ExactPosition, GeometryView};
-use crate::operations::primitives::make_cube;
+use crate::geometry::facade::{ExactPosition, GeometryStore, GeometryView};
 use crate::integration_tests::harness::builders::configs::test_config;
+use crate::operations::primitives::make_cube;
 use forge_core::{KernelError, TopologyError};
 use forge_topo::handles::VertexId;
 use forge_topo::validate::{validate_topology, ValidationLevel};
@@ -46,7 +46,8 @@ fn pv_01_zero_area_face_detection() {
     // has zero area but edges remain non-zero-length.
     for (i, &(vid, _)) in plus_x.iter().enumerate() {
         let t = i as f64;
-        geom.positions.set(*vid, ExactPosition::from_f64([1.0, t, 0.0]));
+        geom.positions
+            .set(*vid, ExactPosition::from_f64([1.0, t, 0.0]));
     }
 
     let lookup = position_lookup(&geom);
@@ -80,7 +81,8 @@ fn pv_02_zero_length_edge_detection() {
     let target = twin_data.origin();
 
     let origin_pos = *geom.get_vertex_position(origin).unwrap();
-    geom.positions.set(target, ExactPosition::from_f64(origin_pos));
+    geom.positions
+        .set(target, ExactPosition::from_f64(origin_pos));
 
     let lookup = position_lookup(&geom);
     let err = validate_geometric_invariants_all_faces(arena, &lookup, 1e-20, 1e-12);
@@ -112,7 +114,8 @@ fn pv_03_inverted_shell_signed_volume() {
         .collect();
 
     for (vid, pos) in &vertices {
-        geom.positions.set(*vid, ExactPosition::from_f64([-pos[0], -pos[1], -pos[2]]));
+        geom.positions
+            .set(*vid, ExactPosition::from_f64([-pos[0], -pos[1], -pos[2]]));
     }
 
     let lookup = position_lookup(&geom);
@@ -165,36 +168,30 @@ fn pv_04_degenerate_loop_detection() {
         .unwrap()
         .set_representative_face(face);
 
-    let he0 = draft.insert_half_edge(
-        HalfEdgeData::new(
-            placeholder_he,
-            placeholder_he,
-            placeholder_he,
-            face,
-            v0,
-            placeholder_edge,
-        ),
-    );
-    let he1 = draft.insert_half_edge(
-        HalfEdgeData::new(
-            placeholder_he,
-            placeholder_he,
-            placeholder_he,
-            face,
-            v1,
-            placeholder_edge,
-        ),
-    );
-    let he2 = draft.insert_half_edge(
-        HalfEdgeData::new(
-            placeholder_he,
-            placeholder_he,
-            placeholder_he,
-            face,
-            v0,
-            placeholder_edge,
-        ),
-    );
+    let he0 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face,
+        v0,
+        placeholder_edge,
+    ));
+    let he1 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face,
+        v1,
+        placeholder_edge,
+    ));
+    let he2 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face,
+        v0,
+        placeholder_edge,
+    ));
     let arena = draft.arena_mut();
 
     arena.get_half_edge_mut(he0).unwrap().set_next(he1);
@@ -207,36 +204,30 @@ fn pv_04_degenerate_loop_detection() {
     let loop_id2 = draft.insert_loop(LoopData::new(placeholder_he, placeholder_face));
     let face2 = draft.insert_face(FaceData::new(loop_id2, placeholder_shell));
 
-    let twin0 = draft.insert_half_edge(
-        HalfEdgeData::new(
-            placeholder_he,
-            placeholder_he,
-            placeholder_he,
-            face2,
-            v1,
-            placeholder_edge,
-        ),
-    );
-    let twin1 = draft.insert_half_edge(
-        HalfEdgeData::new(
-            placeholder_he,
-            placeholder_he,
-            placeholder_he,
-            face2,
-            v0,
-            placeholder_edge,
-        ),
-    );
-    let twin2 = draft.insert_half_edge(
-        HalfEdgeData::new(
-            placeholder_he,
-            placeholder_he,
-            placeholder_he,
-            face2,
-            v2,
-            placeholder_edge,
-        ),
-    );
+    let twin0 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face2,
+        v1,
+        placeholder_edge,
+    ));
+    let twin1 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face2,
+        v0,
+        placeholder_edge,
+    ));
+    let twin2 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face2,
+        v2,
+        placeholder_edge,
+    ));
     let arena = draft.arena_mut();
 
     arena.get_half_edge_mut(twin0).unwrap().set_next(twin1);
@@ -310,11 +301,14 @@ fn pv_05_inner_loop_wrong_orientation() {
     let v0 = draft.insert_vertex(VertexData::new(placeholder_he));
     let v1 = draft.insert_vertex(VertexData::new(placeholder_he));
     let v2 = draft.insert_vertex(VertexData::new(placeholder_he));
-    
+
     // Set positions CCW
-    geom.positions.set(v0, ExactPosition::from_f64([0.0, 0.0, 0.0]));
-    geom.positions.set(v1, ExactPosition::from_f64([10.0, 0.0, 0.0]));
-    geom.positions.set(v2, ExactPosition::from_f64([0.0, 10.0, 0.0]));
+    geom.positions
+        .set(v0, ExactPosition::from_f64([0.0, 0.0, 0.0]));
+    geom.positions
+        .set(v1, ExactPosition::from_f64([10.0, 0.0, 0.0]));
+    geom.positions
+        .set(v2, ExactPosition::from_f64([0.0, 10.0, 0.0]));
 
     // Inner loop vertices (winding CCW to trigger failure)
     let v3 = draft.insert_vertex(VertexData::new(placeholder_he));
@@ -322,42 +316,93 @@ fn pv_05_inner_loop_wrong_orientation() {
     let v5 = draft.insert_vertex(VertexData::new(placeholder_he));
 
     // CCW inner loop!
-    geom.positions.set(v3, ExactPosition::from_f64([2.0, 2.0, 0.0]));
-    geom.positions.set(v4, ExactPosition::from_f64([8.0, 2.0, 0.0]));
-    geom.positions.set(v5, ExactPosition::from_f64([2.0, 8.0, 0.0]));
+    geom.positions
+        .set(v3, ExactPosition::from_f64([2.0, 2.0, 0.0]));
+    geom.positions
+        .set(v4, ExactPosition::from_f64([8.0, 2.0, 0.0]));
+    geom.positions
+        .set(v5, ExactPosition::from_f64([2.0, 8.0, 0.0]));
 
     let placeholder_shell = insert_test_solid_shell(&mut draft);
-    
+
     let outer_loop_id = draft.insert_loop(LoopData::new(placeholder_he, placeholder_face));
     let inner_loop_id = draft.insert_loop(LoopData::new(placeholder_he, placeholder_face));
-    
+
     let face = draft.insert_face(FaceData::new(outer_loop_id, placeholder_shell));
-    
+
     // Manually push inner loop
     {
         let arena = draft.arena_mut();
-        arena.get_face_mut(face).unwrap().add_inner_loop(inner_loop_id);
-        arena.get_shell_mut(placeholder_shell).unwrap().set_representative_face(face);
+        arena
+            .get_face_mut(face)
+            .unwrap()
+            .add_inner_loop(inner_loop_id);
+        arena
+            .get_shell_mut(placeholder_shell)
+            .unwrap()
+            .set_representative_face(face);
         arena.get_loop_mut(outer_loop_id).unwrap().set_face(face);
         arena.get_loop_mut(inner_loop_id).unwrap().set_face(face);
     }
 
     // Outer loop halfedges
-    let ho0 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v0, placeholder_edge));
-    let ho1 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v1, placeholder_edge));
-    let ho2 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v2, placeholder_edge));
-    
+    let ho0 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face,
+        v0,
+        placeholder_edge,
+    ));
+    let ho1 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face,
+        v1,
+        placeholder_edge,
+    ));
+    let ho2 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face,
+        v2,
+        placeholder_edge,
+    ));
+
     // Inner loop halfedges
-    let hi0 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v3, placeholder_edge));
-    let hi1 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v4, placeholder_edge));
-    let hi2 = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face, v5, placeholder_edge));
+    let hi0 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face,
+        v3,
+        placeholder_edge,
+    ));
+    let hi1 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face,
+        v4,
+        placeholder_edge,
+    ));
+    let hi2 = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face,
+        v5,
+        placeholder_edge,
+    ));
 
     {
         let arena = draft.arena_mut();
         arena.get_half_edge_mut(ho0).unwrap().set_next(ho1);
         arena.get_half_edge_mut(ho1).unwrap().set_next(ho2);
         arena.get_half_edge_mut(ho2).unwrap().set_next(ho0);
-        
+
         // Ensure radial_next loops back to self (boundary edges) to pass boundary tests
         arena.get_half_edge_mut(ho0).unwrap().set_radial_next(ho0);
         arena.get_half_edge_mut(ho1).unwrap().set_radial_next(ho1);
@@ -371,8 +416,14 @@ fn pv_05_inner_loop_wrong_orientation() {
         arena.get_half_edge_mut(hi1).unwrap().set_radial_next(hi1);
         arena.get_half_edge_mut(hi2).unwrap().set_radial_next(hi2);
 
-        arena.get_loop_mut(outer_loop_id).unwrap().set_half_edge(ho0);
-        arena.get_loop_mut(inner_loop_id).unwrap().set_half_edge(hi0);
+        arena
+            .get_loop_mut(outer_loop_id)
+            .unwrap()
+            .set_half_edge(ho0);
+        arena
+            .get_loop_mut(inner_loop_id)
+            .unwrap()
+            .set_half_edge(hi0);
     }
 
     let arena = draft.arena();
@@ -419,38 +470,84 @@ fn pv_06_shell_orientation_inconsistency() {
     // The shared edge vertices
     let v_a = draft.insert_vertex(VertexData::new(placeholder_he));
     let v_b = draft.insert_vertex(VertexData::new(placeholder_he));
-    geom.positions.set(v_a, ExactPosition::from_f64([0.0, 0.0, 0.0]));
-    geom.positions.set(v_b, ExactPosition::from_f64([1.0, 0.0, 0.0]));
+    geom.positions
+        .set(v_a, ExactPosition::from_f64([0.0, 0.0, 0.0]));
+    geom.positions
+        .set(v_b, ExactPosition::from_f64([1.0, 0.0, 0.0]));
 
     // Face 1 outer vertex
     let v_c = draft.insert_vertex(VertexData::new(placeholder_he));
-    geom.positions.set(v_c, ExactPosition::from_f64([0.0, 1.0, 0.0]));
+    geom.positions
+        .set(v_c, ExactPosition::from_f64([0.0, 1.0, 0.0]));
 
-    // Face 2 outer vertex 
+    // Face 2 outer vertex
     let v_d = draft.insert_vertex(VertexData::new(placeholder_he));
-    geom.positions.set(v_d, ExactPosition::from_f64([0.0, -1.0, 0.0]));
+    geom.positions
+        .set(v_d, ExactPosition::from_f64([0.0, -1.0, 0.0]));
 
     let placeholder_shell = insert_test_solid_shell(&mut draft);
-    
+
     let loop1 = draft.insert_loop(LoopData::new(placeholder_he, placeholder_face));
     let face1 = draft.insert_face(FaceData::new(loop1, placeholder_shell));
-    
+
     let loop2 = draft.insert_loop(LoopData::new(placeholder_he, placeholder_face));
     let face2 = draft.insert_face(FaceData::new(loop2, placeholder_shell));
 
     // Face 1: A -> B -> C -> A
-    let h1_ab = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face1, v_a, placeholder_edge));
-    let h1_bc = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face1, v_b, placeholder_edge));
-    let h1_ca = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face1, v_c, placeholder_edge));
+    let h1_ab = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face1,
+        v_a,
+        placeholder_edge,
+    ));
+    let h1_bc = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face1,
+        v_b,
+        placeholder_edge,
+    ));
+    let h1_ca = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face1,
+        v_c,
+        placeholder_edge,
+    ));
 
     // Face 2: A -> B -> D -> A  (Notice A -> B is same direction as Face 1!)
-    let h2_ab = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face2, v_a, placeholder_edge));
-    let h2_bd = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face2, v_b, placeholder_edge));
-    let h2_da = draft.insert_half_edge(HalfEdgeData::new(placeholder_he, placeholder_he, placeholder_he, face2, v_d, placeholder_edge));
+    let h2_ab = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face2,
+        v_a,
+        placeholder_edge,
+    ));
+    let h2_bd = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face2,
+        v_b,
+        placeholder_edge,
+    ));
+    let h2_da = draft.insert_half_edge(HalfEdgeData::new(
+        placeholder_he,
+        placeholder_he,
+        placeholder_he,
+        face2,
+        v_d,
+        placeholder_edge,
+    ));
 
     {
         let arena = draft.arena_mut();
-        
+
         arena.get_loop_mut(loop1).unwrap().set_half_edge(h1_ab);
         arena.get_loop_mut(loop1).unwrap().set_face(face1);
         arena.get_loop_mut(loop2).unwrap().set_half_edge(h2_ab);
@@ -460,21 +557,39 @@ fn pv_06_shell_orientation_inconsistency() {
         arena.get_half_edge_mut(h1_ab).unwrap().set_next(h1_bc);
         arena.get_half_edge_mut(h1_bc).unwrap().set_next(h1_ca);
         arena.get_half_edge_mut(h1_ca).unwrap().set_next(h1_ab);
-        
+
         // Face 2 link
         arena.get_half_edge_mut(h2_ab).unwrap().set_next(h2_bd);
         arena.get_half_edge_mut(h2_bd).unwrap().set_next(h2_da);
         arena.get_half_edge_mut(h2_da).unwrap().set_next(h2_ab);
 
         // Link the shared edge radially
-        arena.get_half_edge_mut(h1_ab).unwrap().set_radial_next(h2_ab);
-        arena.get_half_edge_mut(h2_ab).unwrap().set_radial_next(h1_ab);
+        arena
+            .get_half_edge_mut(h1_ab)
+            .unwrap()
+            .set_radial_next(h2_ab);
+        arena
+            .get_half_edge_mut(h2_ab)
+            .unwrap()
+            .set_radial_next(h1_ab);
 
         // Boundary edges
-        arena.get_half_edge_mut(h1_bc).unwrap().set_radial_next(h1_bc);
-        arena.get_half_edge_mut(h1_ca).unwrap().set_radial_next(h1_ca);
-        arena.get_half_edge_mut(h2_bd).unwrap().set_radial_next(h2_bd);
-        arena.get_half_edge_mut(h2_da).unwrap().set_radial_next(h2_da);
+        arena
+            .get_half_edge_mut(h1_bc)
+            .unwrap()
+            .set_radial_next(h1_bc);
+        arena
+            .get_half_edge_mut(h1_ca)
+            .unwrap()
+            .set_radial_next(h1_ca);
+        arena
+            .get_half_edge_mut(h2_bd)
+            .unwrap()
+            .set_radial_next(h2_bd);
+        arena
+            .get_half_edge_mut(h2_da)
+            .unwrap()
+            .set_radial_next(h2_da);
     }
 
     let arena = draft.arena();
@@ -486,7 +601,10 @@ fn pv_06_shell_orientation_inconsistency() {
         &forge_core::FlatToleranceProvider::new(1e-10),
     );
 
-    assert!(err.is_err(), "Should detect parallel half-edges in shared geometry");
+    assert!(
+        err.is_err(),
+        "Should detect parallel half-edges in shared geometry"
+    );
     match err.unwrap_err() {
         KernelError::TopologyViolation {
             err: TopologyError::ValidatorFailure { .. },
@@ -495,4 +613,3 @@ fn pv_06_shell_orientation_inconsistency() {
         other => panic!("Expected ValidatorFailure, got: {:?}", other),
     }
 }
-

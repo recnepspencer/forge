@@ -25,29 +25,29 @@
 //!   import_sanity/       — Import sanity/soup recovery
 
 pub mod facade;
-pub mod invariant_id;
-pub mod invariant_group;
 pub mod group_policy_runtime;
+pub mod invariant_group;
+pub mod invariant_id;
 
 pub(crate) mod shared;
 pub(crate) mod structural;
 pub mod validate;
 
-pub mod reference_integrity;
-pub mod loop_wiring;
-pub mod radial_edge;
-pub mod vertex_disk;
-pub mod shell_closure;
-pub mod region_cellular;
-pub mod euler_genus;
-pub mod degeneracy;
-pub mod parametric_binding;
-pub mod intersection_graph;
-pub mod numerical_predicate;
-pub mod determinism;
 pub mod cache_index;
 pub mod contract_registry;
-pub mod persistent_naming;
+pub mod degeneracy;
+pub mod determinism;
+pub mod euler_genus;
 pub mod import_sanity;
+pub mod intersection_graph;
+pub mod loop_wiring;
+pub mod numerical_predicate;
+pub mod parametric_binding;
+pub mod persistent_naming;
+pub mod radial_edge;
+pub mod reference_integrity;
+pub mod region_cellular;
+pub mod shell_closure;
+pub mod vertex_disk;
 
 pub use facade::*;

@@ -12,8 +12,8 @@ use forge_core::envelope::OperationResult;
 use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
-use crate::configuration::facade::KernelConfig;
 use super::super::output::solid_envelope::SolidEnvelope;
+use crate::configuration::facade::KernelConfig;
 
 /// Trait that concrete feature enums must implement to be used with `FeatureTree`.
 ///

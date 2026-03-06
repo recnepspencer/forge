@@ -33,8 +33,8 @@ pub use contract::PrimitiveInputs;
 
 // Re-export mesh construction API (used by boolean test helpers and integration tests)
 pub use eval::{
-    build_halfedge_mesh, make_block, make_convex_solid, make_cube, make_dodecahedron,
-    make_prism, make_pyramid, make_tetrahedron, make_wedge,
+    build_halfedge_mesh, make_block, make_convex_solid, make_cube, make_dodecahedron, make_prism,
+    make_pyramid, make_tetrahedron, make_wedge,
 };
 
 /// Shape-specific parameters for each primitive variant.

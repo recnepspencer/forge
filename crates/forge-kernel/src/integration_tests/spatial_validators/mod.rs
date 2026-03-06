@@ -5,9 +5,9 @@
 //! Lives in `forge-kernel` so tests have access to `make_cube` and
 //! the full kernel test infrastructure.
 
-mod test_support;
 mod area_tests;
 mod edge_length_tests;
-mod volume_tests;
 mod loop_orientation_tests;
 mod shell_orientation_tests;
+mod test_support;
+mod volume_tests;

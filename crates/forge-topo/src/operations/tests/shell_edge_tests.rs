@@ -5,13 +5,13 @@
 //! referential integrity — every test walks at least one IDs←→arena pointer
 //! pair to catch wiring bugs that count-only assertions would miss.
 
+use crate::b_rep::ShellKind;
 use crate::boundary_editing::join_faces::JoinFaces;
 use crate::entity_lifecycle::kill_edge_vertex::KillEdgeVertex;
 use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
 use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::entity_lifecycle::split_edge::SplitEdge;
 use crate::transactions::TopologyState;
-use crate::b_rep::ShellKind;
 
 /// MVF produces exactly 1 Shell and 1 Edge, both properly referenced.
 ///
@@ -26,7 +26,12 @@ fn mvf_shell_and_edge_are_live_and_wired() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let out = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+    let out = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
 
     assert_eq!(draft.arena().shell_count(), 1);
     assert_eq!(draft.arena().edge_count(), 1);
@@ -60,26 +65,29 @@ fn mef_inherits_shell_does_not_create_new_one() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-    let se = draft.execute(
-        SplitEdge {
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
+    let se = draft
+        .execute(SplitEdge {
             edge: mvf.half_edge,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     let original_shell = draft.arena().get_face(mvf.face).unwrap().shell();
 
-    let mef = draft.execute(
-        MakeEdgeFace {
+    let mef = draft
+        .execute(MakeEdgeFace {
             vertex_a: mvf.vertex,
             vertex_b: se.new_vertex,
             face: mvf.face,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     assert_eq!(
         draft.arena().shell_count(),
@@ -109,23 +117,26 @@ fn twin_halfedges_share_edge_id() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-    let se = draft.execute(
-        SplitEdge {
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
+    let se = draft
+        .execute(SplitEdge {
             edge: mvf.half_edge,
-        },
-    )
-    .unwrap()
-    .into_value();
-    let mef = draft.execute(
-        MakeEdgeFace {
+        })
+        .unwrap()
+        .into_value();
+    let mef = draft
+        .execute(MakeEdgeFace {
             vertex_a: mvf.vertex,
             vertex_b: se.new_vertex,
             face: mvf.face,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     let ab_data = draft.arena().get_half_edge(mef.half_edge_ab).unwrap();
     let ba_data = draft.arena().get_half_edge(mef.half_edge_ba).unwrap();
@@ -153,27 +164,30 @@ fn mef_then_join_faces_is_exact_inverse() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-    let se = draft.execute(
-        SplitEdge {
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
+    let se = draft
+        .execute(SplitEdge {
             edge: mvf.half_edge,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     let edges_before = draft.arena().edge_count();
     let shells_before = draft.arena().shell_count();
 
-    let mef = draft.execute(
-        MakeEdgeFace {
+    let mef = draft
+        .execute(MakeEdgeFace {
             vertex_a: mvf.vertex,
             vertex_b: se.new_vertex,
             face: mvf.face,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     let mef_edge_id = draft
         .arena()
@@ -186,13 +200,12 @@ fn mef_then_join_faces_is_exact_inverse() {
         "MEF must add 1 Edge"
     );
 
-    draft.execute(
-        JoinFaces {
+    draft
+        .execute(JoinFaces {
             edge: mef.half_edge_ab,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     assert_eq!(
         draft.arena().edge_count(),
@@ -221,24 +234,25 @@ fn split_edge_then_kev_is_exact_inverse() {
     let mut draft = state.into_mutation();
 
     // Build a real (two-vertex) edge to split
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-    let se1 = draft.execute(
-        SplitEdge {
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
+    let se1 = draft
+        .execute(SplitEdge {
             edge: mvf.half_edge,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     let edges_before = draft.arena().edge_count();
 
-    let se2 = draft.execute(
-        SplitEdge {
-            edge: se1.he_am,
-        },
-    )
-    .unwrap()
-    .into_value();
+    let se2 = draft
+        .execute(SplitEdge { edge: se1.he_am })
+        .unwrap()
+        .into_value();
 
     let split_edge_id = draft.arena().get_half_edge(se2.he_am).unwrap().edge();
     assert_eq!(
@@ -247,7 +261,8 @@ fn split_edge_then_kev_is_exact_inverse() {
         "SplitEdge must add 1 Edge"
     );
 
-    draft.execute(KillEdgeVertex { edge: se2.he_am })
+    draft
+        .execute(KillEdgeVertex { edge: se2.he_am })
         .unwrap()
         .into_value();
 

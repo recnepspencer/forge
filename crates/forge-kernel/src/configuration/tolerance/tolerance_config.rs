@@ -4,8 +4,8 @@
 //! that accept tolerance parameters.
 //! INVARIANTS: Defaults are suitable for unit-scale CAD (meters).
 
-use super::tolerance_section;
 use super::super::resolved::ABSOLUTE_MINIMUM_TOLERANCE;
+use super::tolerance_section;
 use serde::{Deserialize, Serialize};
 
 /// Configurable thresholds for geometry-layer computations.

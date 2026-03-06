@@ -10,6 +10,6 @@
 mod euler_formula;
 mod per_component_euler;
 
-pub(crate) use euler_formula::validate_euler;
 pub(crate) use euler_formula::compute_shell_genus;
+pub(crate) use euler_formula::validate_euler;
 pub(crate) use per_component_euler::validate_per_component_euler;

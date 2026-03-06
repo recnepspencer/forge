@@ -24,6 +24,7 @@ use forge_core::{EntityRef, KernelError};
 
 use super::super::data::lineage::lineage_record::{Lineage, LineageEvent, OpSignature};
 use super::super::data::lineage::tracking_store::LineageStore;
+use crate::identity::OperationId;
 
 /// Sentinel value for unset feature IDs. Debug builds assert against this.
 pub const FEATURE_ID_UNSET: u64 = 0;
@@ -75,7 +76,7 @@ pub struct OperationLineageContext {
 #[derive(Debug)]
 pub struct LineageRecorder {
     context: OperationLineageContext,
-    invocation_id: u64,
+    invocation_id: OperationId,
     ordinal: u64,
 }
 
@@ -83,10 +84,10 @@ impl LineageRecorder {
     /// Create a new recorder with the given context.
     ///
     /// Prefer `OperationScope::lineage_recorder()` which enforces `feature_id != 0`.
-    pub fn new(context: OperationLineageContext, invocation_id: u64) -> Self {
+    pub fn new(context: OperationLineageContext, invocation_id: impl Into<OperationId>) -> Self {
         Self {
             context,
-            invocation_id,
+            invocation_id: invocation_id.into(),
             ordinal: 0,
         }
     }
@@ -110,7 +111,7 @@ impl LineageRecorder {
     ///
     /// Used by `MutableDraft::stamp_merged_children_of` to propagate the real
     /// invocation identity into sub-recorders rather than using a dummy value.
-    pub fn invocation_id(&self) -> u64 {
+    pub fn invocation_id(&self) -> OperationId {
         self.invocation_id
     }
 
@@ -128,7 +129,7 @@ impl LineageRecorder {
         self.ordinal += 1;
         OpSignature::with_id(
             self.context.op_name,
-            self.invocation_id * 10_000 + self.ordinal
+            self.invocation_id.get() * 10_000 + self.ordinal,
         )
     }
 
@@ -143,12 +144,8 @@ impl LineageRecorder {
         let sig = self.next_sig();
         let entity_ref = entity.into();
         let lineage = match &self.context.mode {
-            LineageMode::Root => {
-                Lineage::root(self.context.feature_id, sig)
-            }
-            LineageMode::Derived { parent } => {
-                Lineage::derive(parent, sig)
-            }
+            LineageMode::Root => Lineage::root(self.context.feature_id, sig),
+            LineageMode::Derived { parent } => Lineage::derive(parent, sig),
             LineageMode::Merged { parents } => {
                 // N-ary merge: fold parents pairwise using Lineage::merge
                 match parents.len() {
@@ -167,11 +164,8 @@ impl LineageRecorder {
                                 self.context.op_name,
                                 self.ordinal, // same ordinal — this is one logical creation
                             );
-                            result = Lineage::merge(
-                                &Some(result),
-                                &Some(parent.clone()),
-                                &next_sig,
-                            );
+                            result =
+                                Lineage::merge(&Some(result), &Some(parent.clone()), &next_sig);
                         }
                         result
                     }
@@ -215,15 +209,17 @@ impl LineageRecorder {
         entity: impl Into<EntityRef>,
     ) -> Result<(), KernelError> {
         let entity_ref = entity.into();
-        let lineage = store.get_lineage(&entity_ref)
-            .cloned()
-            .ok_or_else(|| KernelError::InternalError {
-                message: format!(
-                    "LineageRecorder::stamp_deletion: entity {:?} has no lineage in store",
-                    entity_ref
-                ),
-                context: None,
-            })?;
+        let lineage =
+            store
+                .get_lineage(&entity_ref)
+                .cloned()
+                .ok_or_else(|| KernelError::InternalError {
+                    message: format!(
+                        "LineageRecorder::stamp_deletion: entity {:?} has no lineage in store",
+                        entity_ref
+                    ),
+                    context: None,
+                })?;
         store.apply(LineageEvent::EntityDeleted {
             entity: entity_ref,
             entity_snapshot: None,
@@ -239,11 +235,14 @@ mod tests {
     use forge_core::EntityKind;
 
     fn make_recorder(mode: LineageMode) -> LineageRecorder {
-        LineageRecorder::new(OperationLineageContext {
-            feature_id: 42,
-            op_name: "test_op",
-            mode,
-        }, 1)
+        LineageRecorder::new(
+            OperationLineageContext {
+                feature_id: 42,
+                op_name: "test_op",
+                mode,
+            },
+            1,
+        )
     }
 
     #[test]
@@ -263,7 +262,9 @@ mod tests {
     #[test]
     fn stamp_derived_creates_child_lineage() {
         let parent = Lineage::root(42, OpSignature::with_id("parent_op", 1));
-        let mut recorder = make_recorder(LineageMode::Derived { parent: parent.clone() });
+        let mut recorder = make_recorder(LineageMode::Derived {
+            parent: parent.clone(),
+        });
         let mut store = LineageStore::new();
         let entity = EntityRef::new(EntityKind::Vertex, 5, 0);
 
@@ -271,7 +272,10 @@ mod tests {
 
         let lineage = store.get_lineage(&entity).unwrap();
         assert_eq!(lineage.get_creation_op().get_name(), "test_op");
-        assert_eq!(lineage.get_parent_ancestry_hashes(), &[parent.get_ancestry_hash()]);
+        assert_eq!(
+            lineage.get_parent_ancestry_hashes(),
+            &[parent.get_ancestry_hash()]
+        );
     }
 
     #[test]
@@ -320,7 +324,11 @@ mod tests {
 
         // All hashes should be unique (guaranteed by per-entity ordinal)
         let unique: std::collections::HashSet<_> = hashes.iter().collect();
-        assert_eq!(unique.len(), hashes.len(), "ancestry hashes must be unique per entity");
+        assert_eq!(
+            unique.len(),
+            hashes.len(),
+            "ancestry hashes must be unique per entity"
+        );
     }
 
     #[test]
@@ -334,7 +342,10 @@ mod tests {
         recorder.stamp_derived(&mut store, entity.clone(), &parent);
 
         let lineage = store.get_lineage(&entity).unwrap();
-        assert_eq!(lineage.get_parent_ancestry_hashes(), &[parent.get_ancestry_hash()]);
+        assert_eq!(
+            lineage.get_parent_ancestry_hashes(),
+            &[parent.get_ancestry_hash()]
+        );
     }
 
     #[test]

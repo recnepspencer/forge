@@ -8,9 +8,9 @@ use forge_core::KernelError;
 
 use crate::b_rep::{LumpData, RegionData};
 use crate::handles::{BodyId, LumpId, RegionId};
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
 
 // ── RehomeLump ──────────────────────────────────────────────────────
@@ -29,13 +29,22 @@ impl TopoOperator for RehomeLump {
 
     const NAME: &'static str = "rehome_lump";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::CONTAINER_LIFECYCLE;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
-        format!("Move lump {} to body {}", self.lump.index(), self.target_body.index())
+        format!(
+            "Move lump {} to body {}",
+            self.lump.index(),
+            self.target_body.index()
+        )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let old_body = draft.arena().get_lump(self.lump)?.body();
 
         if old_body == self.target_body {
@@ -45,16 +54,25 @@ impl TopoOperator for RehomeLump {
             });
         }
 
-        draft.arena_mut().get_body_mut(old_body)?.remove_lump(self.lump);
-        
+        draft
+            .arena_mut()
+            .get_body_mut(old_body)?
+            .remove_lump(self.lump);
+
         let mut delta_solids = 0;
         if draft.arena().get_body(old_body)?.lumps().is_empty() {
             draft.remove_body(old_body)?;
             delta_solids = -1;
         }
 
-        draft.arena_mut().get_lump_mut(self.lump)?.set_body(self.target_body);
-        draft.arena_mut().get_body_mut(self.target_body)?.add_lump(self.lump);
+        draft
+            .arena_mut()
+            .get_lump_mut(self.lump)?
+            .set_body(self.target_body);
+        draft
+            .arena_mut()
+            .get_body_mut(self.target_body)?
+            .add_lump(self.lump);
 
         Ok(ExecutionResult {
             value: (),
@@ -86,13 +104,18 @@ impl TopoOperator for ExtractLump {
 
     const NAME: &'static str = "extract_lump";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::CONTAINER_LIFECYCLE;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
         format!("Extract lump {} into its own body", self.lump.index())
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let old_body = draft.arena().get_lump(self.lump)?.body();
 
         let remaining = draft.arena().get_body(old_body)?.lumps().len();
@@ -104,9 +127,18 @@ impl TopoOperator for ExtractLump {
         }
 
         let new_body = draft.insert_body(crate::b_rep::BodyData::new());
-        draft.arena_mut().get_body_mut(old_body)?.remove_lump(self.lump);
-        draft.arena_mut().get_lump_mut(self.lump)?.set_body(new_body);
-        draft.arena_mut().get_body_mut(new_body)?.add_lump(self.lump);
+        draft
+            .arena_mut()
+            .get_body_mut(old_body)?
+            .remove_lump(self.lump);
+        draft
+            .arena_mut()
+            .get_lump_mut(self.lump)?
+            .set_body(new_body);
+        draft
+            .arena_mut()
+            .get_body_mut(new_body)?
+            .add_lump(self.lump);
 
         Ok(ExecutionResult {
             value: ExtractLumpOutput { new_body },
@@ -146,16 +178,22 @@ impl TopoOperator for SplitLump {
 
     const NAME: &'static str = "split_lump";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::CONTAINER_LIFECYCLE;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
         format!(
             "Split lump {} by moving {} regions to new lump",
-            self.lump.index(), self.regions_to_move.len()
+            self.lump.index(),
+            self.regions_to_move.len()
         )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         if self.regions_to_move.is_empty() {
             return Err(KernelError::InvalidInput {
                 message: "SplitLump: must move at least one region".to_string(),
@@ -166,7 +204,8 @@ impl TopoOperator for SplitLump {
         let existing_regions: Vec<RegionId> = draft.arena().get_lump(self.lump)?.regions().to_vec();
         if self.regions_to_move.len() >= existing_regions.len() {
             return Err(KernelError::InvalidInput {
-                message: "SplitLump: cannot move all regions — original lump would be empty".to_string(),
+                message: "SplitLump: cannot move all regions — original lump would be empty"
+                    .to_string(),
                 context: None,
             });
         }
@@ -176,7 +215,10 @@ impl TopoOperator for SplitLump {
         draft.arena_mut().get_body_mut(body)?.add_lump(new_lump);
 
         for &region in &self.regions_to_move {
-            draft.arena_mut().get_lump_mut(self.lump)?.remove_region(region);
+            draft
+                .arena_mut()
+                .get_lump_mut(self.lump)?
+                .remove_region(region);
             draft.arena_mut().get_region_mut(region)?.set_lump(new_lump);
             draft.arena_mut().get_lump_mut(new_lump)?.add_region(region);
         }
@@ -207,13 +249,22 @@ impl TopoOperator for MergeLumps {
 
     const NAME: &'static str = "merge_lumps";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::CONTAINER_LIFECYCLE;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
-        format!("Merge lump {} into lump {}", self.source.index(), self.target.index())
+        format!(
+            "Merge lump {} into lump {}",
+            self.source.index(),
+            self.target.index()
+        )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         if self.target == self.source {
             return Err(KernelError::InvalidInput {
                 message: "MergeLumps: cannot merge a lump with itself".to_string(),
@@ -233,12 +284,24 @@ impl TopoOperator for MergeLumps {
         let source_regions: Vec<RegionId> = draft.arena().get_lump(self.source)?.regions().to_vec();
 
         for &region in &source_regions {
-            draft.arena_mut().get_lump_mut(self.source)?.remove_region(region);
-            draft.arena_mut().get_region_mut(region)?.set_lump(self.target);
-            draft.arena_mut().get_lump_mut(self.target)?.add_region(region);
+            draft
+                .arena_mut()
+                .get_lump_mut(self.source)?
+                .remove_region(region);
+            draft
+                .arena_mut()
+                .get_region_mut(region)?
+                .set_lump(self.target);
+            draft
+                .arena_mut()
+                .get_lump_mut(self.target)?
+                .add_region(region);
         }
 
-        draft.arena_mut().get_body_mut(source_body)?.remove_lump(self.source);
+        draft
+            .arena_mut()
+            .get_body_mut(source_body)?
+            .remove_lump(self.source);
         draft.remove_lump(self.source)?;
 
         Ok(ExecutionResult {

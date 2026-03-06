@@ -15,9 +15,7 @@
 //! ```
 
 use crate::engine::facade::SolidEnvelope;
-use crate::geometry::facade::{
-    GeometryView, solid_volume,
-};
+use crate::geometry::facade::{solid_volume, GeometryView};
 
 /// Create a verifier for a `SolidEnvelope`.
 pub fn verify(env: &SolidEnvelope) -> Verifier<'_> {
@@ -48,7 +46,8 @@ impl<'a> Verifier<'a> {
     pub fn faces(mut self, expected: usize) -> Self {
         let actual = self.env.topology().arena().face_count();
         if actual != expected {
-            self.failures.push(format!("Faces: {actual}, expected {expected}"));
+            self.failures
+                .push(format!("Faces: {actual}, expected {expected}"));
         }
         self
     }
@@ -57,7 +56,8 @@ impl<'a> Verifier<'a> {
     pub fn vertices(mut self, expected: usize) -> Self {
         let actual = self.env.topology().arena().vertex_count();
         if actual != expected {
-            self.failures.push(format!("Vertices: {actual}, expected {expected}"));
+            self.failures
+                .push(format!("Vertices: {actual}, expected {expected}"));
         }
         self
     }
@@ -66,7 +66,8 @@ impl<'a> Verifier<'a> {
     pub fn edges(mut self, expected: usize) -> Self {
         let actual = self.env.topology().arena().edge_count();
         if actual != expected {
-            self.failures.push(format!("Edges: {actual}, expected {expected}"));
+            self.failures
+                .push(format!("Edges: {actual}, expected {expected}"));
         }
         self
     }
@@ -75,7 +76,8 @@ impl<'a> Verifier<'a> {
     pub fn half_edges(mut self, expected: usize) -> Self {
         let actual = self.env.topology().arena().half_edge_count();
         if actual != expected {
-            self.failures.push(format!("HalfEdges: {actual}, expected {expected}"));
+            self.failures
+                .push(format!("HalfEdges: {actual}, expected {expected}"));
         }
         self
     }
@@ -84,7 +86,8 @@ impl<'a> Verifier<'a> {
     pub fn loops(mut self, expected: usize) -> Self {
         let actual = self.env.topology().arena().loop_count();
         if actual != expected {
-            self.failures.push(format!("Loops: {actual}, expected {expected}"));
+            self.failures
+                .push(format!("Loops: {actual}, expected {expected}"));
         }
         self
     }
@@ -93,7 +96,8 @@ impl<'a> Verifier<'a> {
     pub fn shells(mut self, expected: usize) -> Self {
         let actual = self.env.topology().arena().shell_count();
         if actual != expected {
-            self.failures.push(format!("Shells: {actual}, expected {expected}"));
+            self.failures
+                .push(format!("Shells: {actual}, expected {expected}"));
         }
         self
     }
@@ -102,7 +106,8 @@ impl<'a> Verifier<'a> {
     pub fn bodies(mut self, expected: usize) -> Self {
         let actual = self.env.topology().arena().body_count();
         if actual != expected {
-            self.failures.push(format!("Bodies: {actual}, expected {expected}"));
+            self.failures
+                .push(format!("Bodies: {actual}, expected {expected}"));
         }
         self
     }

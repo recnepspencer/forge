@@ -27,12 +27,18 @@ pub fn compute_model_scale(view: &impl GeometryView) -> f64 {
     for pos in view.vertex_positions_approx() {
         any = true;
         for i in 0..3 {
-            if pos[i] < min[i] { min[i] = pos[i]; }
-            if pos[i] > max[i] { max[i] = pos[i]; }
+            if pos[i] < min[i] {
+                min[i] = pos[i];
+            }
+            if pos[i] > max[i] {
+                max[i] = pos[i];
+            }
         }
     }
 
-    if !any { return 0.0; }
+    if !any {
+        return 0.0;
+    }
     forge_geom::facade::distance(&min, &max)
 }
 

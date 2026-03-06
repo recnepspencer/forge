@@ -3,9 +3,9 @@
 //! INVARIANT: Each connected shell satisfies V − E + F = 2 − 2G + R
 //! where G = genus, R = inner loop count.
 
+use crate::b_rep::EntityBitset;
 use crate::b_rep::TopologyArena;
 use crate::handles::FaceId;
-use crate::b_rep::EntityBitset;
 use forge_core::KernelError;
 use std::collections::VecDeque;
 
@@ -34,7 +34,9 @@ pub(crate) fn validate_euler(arena: &TopologyArena) -> Result<(), KernelError> {
 
             while let Some(face_id) = queue.pop_front() {
                 let (neighbors, edge_keys, vertex_indices) =
-                    crate::validators::shell_closure::shell_data::collect_shell_data_for_face(arena, face_id)?;
+                    crate::validators::shell_closure::shell_data::collect_shell_data_for_face(
+                        arena, face_id,
+                    )?;
 
                 for vid in vertex_indices {
                     shell_vertices.insert(vid)?;

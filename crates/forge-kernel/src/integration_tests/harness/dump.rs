@@ -14,10 +14,7 @@ use crate::geometry::facade::GeometryView;
 ///
 /// Writes to `target/test-dumps/{name}.obj`. Creates the directory
 /// if it doesn't exist. Returns the path to the written file.
-pub fn dump_to_obj(
-    env: &SolidEnvelope,
-    name: &str,
-) -> Result<PathBuf, std::io::Error> {
+pub fn dump_to_obj(env: &SolidEnvelope, name: &str) -> Result<PathBuf, std::io::Error> {
     let dir = PathBuf::from("target/test-dumps");
     std::fs::create_dir_all(&dir)?;
 
@@ -36,9 +33,13 @@ fn envelope_to_obj(env: &SolidEnvelope) -> String {
 
     writeln!(obj, "# Forge test dump").unwrap();
     writeln!(
-        obj, "# Faces: {}, Vertices: {}, Edges: {}",
-        arena.face_count(), arena.vertex_count(), arena.edge_count()
-    ).unwrap();
+        obj,
+        "# Faces: {}, Vertices: {}, Edges: {}",
+        arena.face_count(),
+        arena.vertex_count(),
+        arena.edge_count()
+    )
+    .unwrap();
     writeln!(obj).unwrap();
 
     // Map VertexId → 1-based OBJ index
@@ -69,14 +70,17 @@ fn envelope_to_obj(env: &SolidEnvelope) -> String {
     let mut normal_idx = 1u32;
     for (fid, _) in arena.iter_faces() {
         let hes = arena.halfedges_of_face(fid);
-        let indices: Vec<u32> = hes.iter()
+        let indices: Vec<u32> = hes
+            .iter()
             .filter_map(|he_id| {
                 let he = arena.get_half_edge(*he_id).ok()?;
                 vid_to_idx.get(&he.origin()).copied()
             })
             .collect();
 
-        if indices.is_empty() { continue; }
+        if indices.is_empty() {
+            continue;
+        }
 
         let has_normal = geom.get_face_plane(fid).is_some();
 
@@ -90,7 +94,9 @@ fn envelope_to_obj(env: &SolidEnvelope) -> String {
         }
         writeln!(obj).unwrap();
 
-        if has_normal { normal_idx += 1; }
+        if has_normal {
+            normal_idx += 1;
+        }
     }
 
     obj

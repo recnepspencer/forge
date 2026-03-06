@@ -274,8 +274,8 @@ pub fn compute_diff(
 
 #[cfg(test)]
 mod tests {
-    use crate::b_rep::ShellKind;
     use super::*;
+    use crate::b_rep::ShellKind;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::entity_lifecycle::split_edge::SplitEdge;
     use crate::transactions::TopologyState;
@@ -294,7 +294,12 @@ mod tests {
         let before_arena = state.arena().clone();
 
         let mut draft = state.into_mutation();
-        let _mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+        let _mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
         let after_state = draft.commit().unwrap();
 
         let diff = compute_diff(&before_arena, after_state.arena(), 0, 1);
@@ -310,7 +315,12 @@ mod tests {
     fn diff_detects_growth_after_split() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
         let state_1 = draft.commit().unwrap();
 
         let before_arena = state_1.arena().clone();
@@ -321,13 +331,12 @@ mod tests {
         // We cloned `before_arena` from strict clone.
         // state_1 is consumed by into_mutation.
         let mut draft2 = state_1.into_mutation();
-        let _se = draft2.execute(
-            SplitEdge {
+        let _se = draft2
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
         let state_2 = draft2.commit().unwrap();
 
         let diff = compute_diff(&before_arena, state_2.arena(), 1, 2);

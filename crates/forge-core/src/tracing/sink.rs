@@ -16,8 +16,10 @@
 
 use std::sync::{Arc, Mutex};
 
+use super::decision::{
+    DecisionContext, DecisionId, DecisionKind, DecisionTier, SpanId, TracedDecision,
+};
 use crate::policy::PolicyKind;
-use super::decision::{DecisionContext, DecisionId, DecisionKind, DecisionTier, SpanId, TracedDecision};
 
 // ── Core trait ──────────────────────────────────────────────────────────────
 
@@ -49,22 +51,12 @@ pub trait DecisionSink {
 
     /// A value was measured near a tolerance boundary but resolved with
     /// confidence. Logged for transparency even though no policy was needed.
-    fn record_near_boundary(
-        &mut self,
-        entity_index: u32,
-        margin: f64,
-        threshold: f64,
-    );
+    fn record_near_boundary(&mut self, entity_index: u32, margin: f64, threshold: f64);
 
     // ── Classification decisions ─────────────────────────────────────
 
     /// A face or point was classified relative to another solid.
-    fn record_classification(
-        &mut self,
-        entity_index: u32,
-        result_label: &str,
-        tier: DecisionTier,
-    );
+    fn record_classification(&mut self, entity_index: u32, result_label: &str, tier: DecisionTier);
 
     // ── Precision decisions ──────────────────────────────────────────
 
@@ -89,19 +81,10 @@ pub trait DecisionSink {
     );
 
     /// An ambiguity could not be resolved — safe fallback applied.
-    fn record_ambiguous(
-        &mut self,
-        fallback_description: &str,
-        margin: f64,
-    );
+    fn record_ambiguous(&mut self, fallback_description: &str, margin: f64);
 
     /// A hard constraint forced a specific outcome.
-    fn record_forced(
-        &mut self,
-        reason: &str,
-        entity_index: u32,
-        margin: f64,
-    );
+    fn record_forced(&mut self, reason: &str, entity_index: u32, margin: f64);
 
     // ── Span management ──────────────────────────────────────────────
 
@@ -125,7 +108,13 @@ pub trait DecisionSink {
 /// Enables passing `&mut sink` to nested calls without fighting the borrow
 /// checker. Mirrors the standard library's `impl Write for &mut W`.
 impl<T: DecisionSink + ?Sized> DecisionSink for &mut T {
-    fn record_tolerance_snap(&mut self, entity_index: u32, gap: f64, threshold: f64, tier: DecisionTier) {
+    fn record_tolerance_snap(
+        &mut self,
+        entity_index: u32,
+        gap: f64,
+        threshold: f64,
+        tier: DecisionTier,
+    ) {
         (**self).record_tolerance_snap(entity_index, gap, threshold, tier)
     }
     fn record_near_boundary(&mut self, entity_index: u32, margin: f64, threshold: f64) {
@@ -134,10 +123,20 @@ impl<T: DecisionSink + ?Sized> DecisionSink for &mut T {
     fn record_classification(&mut self, entity_index: u32, result_label: &str, tier: DecisionTier) {
         (**self).record_classification(entity_index, result_label, tier)
     }
-    fn record_escalation(&mut self, entity_index: u32, escalation: &forge_math::arithmetic::precision::PrecisionEscalation) {
+    fn record_escalation(
+        &mut self,
+        entity_index: u32,
+        escalation: &forge_math::arithmetic::precision::PrecisionEscalation,
+    ) {
         (**self).record_escalation(entity_index, escalation)
     }
-    fn record_policy_applied(&mut self, policy: PolicyKind, margin: f64, default_used: bool, description: Option<&str>) {
+    fn record_policy_applied(
+        &mut self,
+        policy: PolicyKind,
+        margin: f64,
+        default_used: bool,
+        description: Option<&str>,
+    ) {
         (**self).record_policy_applied(policy, margin, default_used, description)
     }
     fn record_ambiguous(&mut self, fallback_description: &str, margin: f64) {
@@ -167,11 +166,18 @@ impl DecisionSink for NullSink {
     fn record_tolerance_snap(&mut self, _: u32, _: f64, _: f64, _: DecisionTier) {}
     fn record_near_boundary(&mut self, _: u32, _: f64, _: f64) {}
     fn record_classification(&mut self, _: u32, _: &str, _: DecisionTier) {}
-    fn record_escalation(&mut self, _: u32, _: &forge_math::arithmetic::precision::PrecisionEscalation) {}
+    fn record_escalation(
+        &mut self,
+        _: u32,
+        _: &forge_math::arithmetic::precision::PrecisionEscalation,
+    ) {
+    }
     fn record_policy_applied(&mut self, _: PolicyKind, _: f64, _: bool, _: Option<&str>) {}
     fn record_ambiguous(&mut self, _: &str, _: f64) {}
     fn record_forced(&mut self, _: &str, _: u32, _: f64) {}
-    fn start_span(&mut self, _: &'static str) -> SpanId { SpanId(0) }
+    fn start_span(&mut self, _: &'static str) -> SpanId {
+        SpanId(0)
+    }
     fn end_span(&mut self, _: SpanId, _: u64) {}
     fn record_raw(&mut self, _: TracedDecision) {}
 }
@@ -203,7 +209,13 @@ impl DecisionSinkHandle {
 }
 
 impl DecisionSink for DecisionSinkHandle {
-    fn record_tolerance_snap(&mut self, entity_index: u32, gap: f64, threshold: f64, tier: DecisionTier) {
+    fn record_tolerance_snap(
+        &mut self,
+        entity_index: u32,
+        gap: f64,
+        threshold: f64,
+        tier: DecisionTier,
+    ) {
         if let Ok(mut lock) = self.inner.lock() {
             lock.record_tolerance_snap(entity_index, gap, threshold, tier);
         }
@@ -218,12 +230,22 @@ impl DecisionSink for DecisionSinkHandle {
             lock.record_classification(entity_index, result_label, tier);
         }
     }
-    fn record_escalation(&mut self, entity_index: u32, escalation: &forge_math::arithmetic::precision::PrecisionEscalation) {
+    fn record_escalation(
+        &mut self,
+        entity_index: u32,
+        escalation: &forge_math::arithmetic::precision::PrecisionEscalation,
+    ) {
         if let Ok(mut lock) = self.inner.lock() {
             lock.record_escalation(entity_index, escalation);
         }
     }
-    fn record_policy_applied(&mut self, policy: PolicyKind, margin: f64, default_used: bool, description: Option<&str>) {
+    fn record_policy_applied(
+        &mut self,
+        policy: PolicyKind,
+        margin: f64,
+        default_used: bool,
+        description: Option<&str>,
+    ) {
         if let Ok(mut lock) = self.inner.lock() {
             lock.record_policy_applied(policy, margin, default_used, description);
         }
@@ -239,7 +261,10 @@ impl DecisionSink for DecisionSinkHandle {
         }
     }
     fn start_span(&mut self, name: &'static str) -> SpanId {
-        self.inner.lock().map(|mut l| l.start_span(name)).unwrap_or(SpanId(0))
+        self.inner
+            .lock()
+            .map(|mut l| l.start_span(name))
+            .unwrap_or(SpanId(0))
     }
     fn end_span(&mut self, id: SpanId, duration_micros: u64) {
         if let Ok(mut lock) = self.inner.lock() {
@@ -304,8 +329,13 @@ impl Default for TestSink {
 }
 
 impl DecisionSink for TestSink {
-    fn record_tolerance_snap(&mut self, entity_index: u32, gap: f64, threshold: f64, tier: DecisionTier) {
-
+    fn record_tolerance_snap(
+        &mut self,
+        entity_index: u32,
+        gap: f64,
+        threshold: f64,
+        tier: DecisionTier,
+    ) {
         let id = DecisionId(self.decisions.len() as u64 + 1);
         self.decisions.push(TracedDecision::new(
             id,
@@ -315,26 +345,30 @@ impl DecisionSink for TestSink {
             },
             tier,
             gap,
-            DecisionContext::Tolerance { measured: gap, threshold },
+            DecisionContext::Tolerance {
+                measured: gap,
+                threshold,
+            },
         ));
         let _ = entity_index; // captured in future entity_scope extension
     }
 
     fn record_near_boundary(&mut self, entity_index: u32, margin: f64, threshold: f64) {
-
         let id = DecisionId(self.decisions.len() as u64 + 1);
         self.decisions.push(TracedDecision::new(
             id,
             DecisionKind::NearBoundary { threshold },
             DecisionTier::NearBoundary,
             margin,
-            DecisionContext::Tolerance { measured: margin, threshold },
+            DecisionContext::Tolerance {
+                measured: margin,
+                threshold,
+            },
         ));
         let _ = entity_index;
     }
 
     fn record_classification(&mut self, entity_index: u32, result_label: &str, tier: DecisionTier) {
-
         let id = DecisionId(self.decisions.len() as u64 + 1);
         self.decisions.push(TracedDecision::new(
             id,
@@ -349,52 +383,73 @@ impl DecisionSink for TestSink {
         let _ = entity_index;
     }
 
-    fn record_escalation(&mut self, entity_index: u32, escalation: &forge_math::arithmetic::precision::PrecisionEscalation) {
-
+    fn record_escalation(
+        &mut self,
+        entity_index: u32,
+        escalation: &forge_math::arithmetic::precision::PrecisionEscalation,
+    ) {
         let id = DecisionId(self.decisions.len() as u64 + 1);
         self.decisions.push(TracedDecision::new(
             id,
             DecisionKind::Exact,
             DecisionTier::Escalated,
             escalation.disagreement_magnitude.unwrap_or(0.0),
-            DecisionContext::PrecisionEscalation { escalation: escalation.clone() },
+            DecisionContext::PrecisionEscalation {
+                escalation: escalation.clone(),
+            },
         ));
         let _ = entity_index;
     }
 
-    fn record_policy_applied(&mut self, policy: PolicyKind, margin: f64, default_used: bool, _description: Option<&str>) {
-
+    fn record_policy_applied(
+        &mut self,
+        policy: PolicyKind,
+        margin: f64,
+        default_used: bool,
+        _description: Option<&str>,
+    ) {
         let id = DecisionId(self.decisions.len() as u64 + 1);
         self.decisions.push(TracedDecision::new(
             id,
-            DecisionKind::PolicyApplied { policy, default_used },
+            DecisionKind::PolicyApplied {
+                policy,
+                default_used,
+            },
             DecisionTier::PolicyApplied,
             margin,
-            DecisionContext::Degeneracy { description: "policy applied".to_string() },
+            DecisionContext::Degeneracy {
+                description: "policy applied".to_string(),
+            },
         ));
     }
 
     fn record_ambiguous(&mut self, fallback_description: &str, margin: f64) {
-
         let id = DecisionId(self.decisions.len() as u64 + 1);
         self.decisions.push(TracedDecision::new(
             id,
-            DecisionKind::Ambiguous { fallback_applied: fallback_description.to_string() },
+            DecisionKind::Ambiguous {
+                fallback_applied: fallback_description.to_string(),
+            },
             DecisionTier::Escalated,
             margin,
-            DecisionContext::Degeneracy { description: fallback_description.to_string() },
+            DecisionContext::Degeneracy {
+                description: fallback_description.to_string(),
+            },
         ));
     }
 
     fn record_forced(&mut self, reason: &str, entity_index: u32, margin: f64) {
-
         let id = DecisionId(self.decisions.len() as u64 + 1);
         self.decisions.push(TracedDecision::new(
             id,
-            DecisionKind::Forced { reason: reason.to_string() },
+            DecisionKind::Forced {
+                reason: reason.to_string(),
+            },
             DecisionTier::Escalated,
             margin,
-            DecisionContext::Degeneracy { description: format!("forced: {}", reason) },
+            DecisionContext::Degeneracy {
+                description: format!("forced: {}", reason),
+            },
         ));
         let _ = entity_index;
     }

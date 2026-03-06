@@ -3,11 +3,11 @@
 //! DOMAIN: KVE is the inverse of SplitEdge (MVE). It merges two edges
 //! by removing their shared 2-valent vertex.
 
+use crate::b_rep::ShellKind;
 use crate::entity_lifecycle::kill_vertex_edge::KillVertexEdge;
 use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::entity_lifecycle::split_edge::SplitEdge;
 use crate::transactions::TopologyState;
-use crate::b_rep::ShellKind;
 
 /// SplitEdge then KVE restores the original entity counts.
 #[test]
@@ -15,27 +15,33 @@ fn split_then_kve_restores_original() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
 
     let v_before = draft.arena().vertex_count();
     let he_before = draft.arena().half_edge_count();
     let e_before = draft.arena().edge_count();
 
-    let se = draft.execute(
-        SplitEdge {
+    let se = draft
+        .execute(SplitEdge {
             edge: mvf.half_edge,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
-    let result = draft.execute(
-        KillVertexEdge {
-            vertex: se.new_vertex,
-        },
+    let result = draft.execute(KillVertexEdge {
+        vertex: se.new_vertex,
+    });
+
+    assert!(
+        result.is_ok(),
+        "KVE should succeed after SplitEdge: {:?}",
+        result.err()
     );
-
-    assert!(result.is_ok(), "KVE should succeed after SplitEdge: {:?}", result.err());
 
     assert_eq!(draft.arena().vertex_count(), v_before);
     assert_eq!(draft.arena().half_edge_count(), he_before);
@@ -66,14 +72,15 @@ fn kve_rejects_non_2_valent_vertex() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
 
     // The MFV vertex connects only 1 edge (self-loop), should be rejected
-    let result = draft.execute(
-        KillVertexEdge {
-            vertex: mvf.vertex,
-        },
-    );
+    let result = draft.execute(KillVertexEdge { vertex: mvf.vertex });
 
     assert!(
         result.is_err(),
@@ -87,44 +94,43 @@ fn double_split_double_kve_restores() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
 
     let v_before = draft.arena().vertex_count();
     let he_before = draft.arena().half_edge_count();
     let e_before = draft.arena().edge_count();
 
-    let se1 = draft.execute(
-        SplitEdge {
+    let se1 = draft
+        .execute(SplitEdge {
             edge: mvf.half_edge,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
-    let se2 = draft.execute(
-        SplitEdge {
-            edge: se1.he_mb,
-        },
-    )
-    .unwrap()
-    .into_value();
+    let se2 = draft
+        .execute(SplitEdge { edge: se1.he_mb })
+        .unwrap()
+        .into_value();
 
     // Kill in reverse order
-    draft.execute(
-        KillVertexEdge {
+    draft
+        .execute(KillVertexEdge {
             vertex: se2.new_vertex,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
-    draft.execute(
-        KillVertexEdge {
+    draft
+        .execute(KillVertexEdge {
             vertex: se1.new_vertex,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     assert_eq!(draft.arena().vertex_count(), v_before);
     assert_eq!(draft.arena().half_edge_count(), he_before);

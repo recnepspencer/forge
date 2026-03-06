@@ -21,9 +21,7 @@ pub struct EdgeData {
 impl EdgeData {
     /// Construct a new edge from one halfedge of the pair.
     pub fn new(half_edge: HalfEdgeId) -> Self {
-        Self {
-            half_edge,
-        }
+        Self { half_edge }
     }
 
     /// Representative halfedge of the radial ring.
@@ -36,4 +34,3 @@ impl EdgeData {
         self.half_edge = id;
     }
 }
-

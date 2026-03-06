@@ -18,9 +18,9 @@ use forge_core::KernelError;
 use crate::b_rep::LoopData;
 use crate::handles::{HalfEdgeId, LoopId};
 
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
 
 /// Remove an edge to split a loop into two loops (outer + new inner).
@@ -47,13 +47,21 @@ impl TopoOperator for KillEdgeMakeLoop {
 
     const NAME: &'static str = "kill_edge_make_loop";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::FULL_TOPO_WIRING;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::FULL_TOPO_WIRING;
 
     fn semantic_summary(&self) -> String {
-        format!("Remove edge at halfedge {} and create inner loop (hole)", self.edge.index())
+        format!(
+            "Remove edge at halfedge {} and create inner loop (hole)",
+            self.edge.index()
+        )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let he_data = draft.arena().get_half_edge(self.edge)?;
         let twin_id = he_data.radial_next();
         let face = he_data.face();
@@ -140,7 +148,7 @@ impl TopoOperator for KillEdgeMakeLoop {
         let new_loop = draft.insert_loop(LoopData::new(he_next, face));
 
         // ── Update outer loop entry point ───────────────────────────
-        let outer_loop = draft.arena().get_face(face)?.outer_loop();
+        let outer_loop = draft.arena().get_face(face)?.loops.outer();
         let loop_he = draft.arena().get_loop(outer_loop)?.half_edge();
         if loop_he == self.edge || loop_he == twin_id {
             draft
@@ -153,7 +161,8 @@ impl TopoOperator for KillEdgeMakeLoop {
         draft
             .arena_mut()
             .get_face_mut(face)?
-            .add_inner_loop(new_loop);
+            .loops
+            .add_inner(new_loop);
 
         // ── Repair vertex disks ─────────────────────────────────────
         if draft.arena().get_vertex(vertex_a)?.primary_disk() == self.edge {
@@ -193,6 +202,4 @@ impl TopoOperator for KillEdgeMakeLoop {
             },
         })
     }
-
-
 }

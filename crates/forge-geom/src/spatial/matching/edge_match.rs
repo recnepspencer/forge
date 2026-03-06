@@ -405,10 +405,7 @@ mod tests {
 ///
 /// `candidates` is a list of `(candidate_id, face_normal)`. The candidate with the highest
 /// dot product against `source_normal` is chosen. Ties are broken deterministically by ID.
-pub fn select_best_radial_match(
-    source_normal: [f64; 3],
-    candidates: &[(u32, [f64; 3])],
-) -> u32 {
+pub fn select_best_radial_match(source_normal: [f64; 3], candidates: &[(u32, [f64; 3])]) -> u32 {
     let mut best_id = candidates[0].0;
     let mut best_dot = f64::NEG_INFINITY;
 

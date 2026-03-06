@@ -117,10 +117,10 @@ fn patch_values_iterator_is_complete() {
     base.set(c, 3);
 
     let mut patch = PropertyPatch::new(base);
-    patch.set(b, 20);      // override
-    patch.remove(c);       // remove
+    patch.set(b, 20); // override
+    patch.remove(c); // remove
     let d = TestHandle::new(3, 0);
-    patch.set(d, 40);      // new insert
+    patch.set(d, 40); // new insert
 
     let mut values: Vec<i32> = patch.values().copied().collect();
     values.sort();

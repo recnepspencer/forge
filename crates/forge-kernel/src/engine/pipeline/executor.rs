@@ -22,15 +22,15 @@ use forge_signal::facade::NodeId;
 
 use super::super::contracts::contract::{AuditLevel, ConditioningMode, FeatureInputs};
 use super::super::contracts::feature_trait::Feature;
-use super::super::output::solid_envelope::SolidEnvelope;
+use super::super::facade::{OperationFinalizer, TopologyHashBoundary};
 use super::super::operation_space::operation_space::OperationSpace;
+use super::super::output::solid_envelope::SolidEnvelope;
 use super::conditioning_guard::ConditioningGuard;
 use super::fingerprint::compute_pipeline_fingerprint;
 use super::invariants::validate_invariant;
 use crate::configuration::facade::{resolve_config, KernelConfig};
 use crate::context::facade::ModelingContext;
 use crate::context::scope::OperationScope;
-use super::super::facade::{OperationFinalizer, TopologyHashBoundary};
 use crate::proof::checkpoint::schema::ValidationConfig;
 
 /// Feature pipeline executor.
@@ -124,7 +124,8 @@ impl FeaturePipeline {
 
         let start = std::time::Instant::now();
         let result = {
-            let mut scope = OperationScope::with_conditioning(&resolved_config, &mut ctx, &op_space);
+            let mut scope =
+                OperationScope::with_conditioning(&resolved_config, &mut ctx, &op_space);
             feature.execute_typed(inputs, &mut scope)
         };
         let duration_micros = start.elapsed().as_micros() as u64;
@@ -136,12 +137,16 @@ impl FeaturePipeline {
 
         // 7. Restore world coordinates via RAII guard (inverse of step 4)
         //    Guard calls restore_store on defuse() or Drop — panic-safe.
-        if let Some(guard) = ConditioningGuard::new(&op_space, sub_envelope.get_value_mut().geometry_mut()) {
+        if let Some(guard) =
+            ConditioningGuard::new(&op_space, sub_envelope.get_value_mut().geometry_mut())
+        {
             guard.defuse();
         }
 
         // 8. Compute hash_after from the output
-        let hash_after = forge_topo::transactions::compute_arena_topology_hash(sub_envelope.get_value().topology().arena());
+        let hash_after = forge_topo::transactions::compute_arena_topology_hash(
+            sub_envelope.get_value().topology().arena(),
+        );
 
         // 9. Finalize — drain decisions + metadata from ctx into envelope
         //    Finalization happens BEFORE invariants so invariant checkers
@@ -152,12 +157,8 @@ impl FeaturePipeline {
         };
         {
             let mut finalizer = OperationFinalizer::new(&mut ctx);
-            let _finalization = finalizer.collect_success(
-                &mut sub_envelope,
-                TraceAdjunctSet::new(),
-                hashes,
-                None,
-            );
+            let _finalization =
+                finalizer.collect_success(&mut sub_envelope, TraceAdjunctSet::new(), hashes, None);
         }
 
         // 10. Post-validate invariants (success only, after finalization)
@@ -191,8 +192,6 @@ impl FeaturePipeline {
         Ok(sub_envelope)
     }
 }
-
-
 
 /// Emit a full audit trace for the feature execution.
 ///

@@ -56,9 +56,7 @@ fn execute_core(
     let mut pipeline = OperationPipeline::new(scope);
 
     // Phase 1: Validate inputs
-    pipeline.run_step(&steps::ValidateInputs, |_scope| {
-        input.validate()
-    })?;
+    pipeline.run_step(&steps::ValidateInputs, |_scope| input.validate())?;
 
     // Phase 2: Split (TODO — incremental build)
     // Phase 3: Classify (TODO — incremental build)

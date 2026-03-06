@@ -5,7 +5,7 @@
 use forge_core::KernelError;
 
 use crate::b_rep::data::storage::arena::TopologyArena;
-use crate::b_rep::data::storage::slot::{validate_generation, cold_err_bounds};
+use crate::b_rep::data::storage::slot::{cold_err_bounds, validate_generation};
 use crate::handles::{FaceId, VertexId};
 
 impl TopologyArena {
@@ -15,7 +15,10 @@ impl TopologyArena {
     /// half-edges are rewired. This enables the diff engine to detect
     /// transitive face modifications even when `FaceData` fields are unchanged.
     pub fn bump_face_version(&mut self, id: FaceId) -> Result<(), KernelError> {
-        let slot = self.face_slots.get_mut(id.index() as usize)
+        let slot = self
+            .connectivity
+            .face_slots
+            .get_mut(id.index() as usize)
             .ok_or_else(|| cold_err_bounds("Face", id.index(), id.generation()))?;
         validate_generation(slot.generation, id.generation(), "Face", id.index())?;
         slot.version += 1;
@@ -35,11 +38,17 @@ impl TopologyArena {
     }
 
     /// Total face slot count (including vacant slots).
-    pub fn face_slot_count(&self) -> usize { self.face_slots.len() }
+    pub fn face_slot_count(&self) -> usize {
+        self.connectivity.face_slots.len()
+    }
 
     /// Total halfedge slot count (including vacant slots).
-    pub fn half_edge_slot_count(&self) -> usize { self.half_edge_slots.len() }
+    pub fn half_edge_slot_count(&self) -> usize {
+        self.connectivity.half_edge_slots.len()
+    }
 
     /// Total vertex slot count (including vacant slots).
-    pub fn vertex_slot_count(&self) -> usize { self.vertex_slots.len() }
+    pub fn vertex_slot_count(&self) -> usize {
+        self.connectivity.vertex_slots.len()
+    }
 }

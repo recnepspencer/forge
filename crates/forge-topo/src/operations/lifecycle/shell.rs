@@ -6,12 +6,11 @@ use forge_core::KernelError;
 
 use crate::b_rep::{ShellData, ShellKind};
 use crate::handles::{FaceId, RegionId, ShellId};
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::contract_registry;
 use crate::validators::invariant_id::InvariantContract;
-
 
 /// Creates an empty shell attached to a region.
 #[derive(Debug)]
@@ -36,17 +35,24 @@ impl TopoOperator for MakeEmptyShell {
     const INVARIANT_CONTRACT: InvariantContract = contract_registry::CONTAINER_LIFECYCLE;
 
     fn semantic_summary(&self) -> String {
-        format!("Create empty shell in region {} (kind: {:?})", self.region.index(), self.kind)
+        format!(
+            "Create empty shell in region {} (kind: {:?})",
+            self.region.index(),
+            self.kind
+        )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
-        let shell = draft.insert_shell(ShellData::new(
-            FaceId::DANGLING,
-            self.kind,
-            self.region,
-        ));
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
+        let shell = draft.insert_shell(ShellData::new(FaceId::DANGLING, self.kind, self.region));
 
-        draft.arena_mut().get_region_mut(self.region)?.add_shell(shell);
+        draft
+            .arena_mut()
+            .get_region_mut(self.region)?
+            .add_shell(shell);
 
         Ok(ExecutionResult {
             value: MakeEmptyShellOutput { shell },
@@ -85,7 +91,11 @@ impl TopoOperator for DestroyShell {
         format!("Destroy shell {}", self.shell.index())
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let region = draft.arena().get_shell(self.shell)?.region();
         let kind = draft.arena().get_shell(self.shell)?.kind();
 
@@ -103,15 +113,15 @@ impl TopoOperator for DestroyShell {
 
         if face_count > 0 {
             return Err(KernelError::InvalidInput {
-                message: format!(
-                    "DestroyShell: shell still has {} faces",
-                    face_count
-                ),
+                message: format!("DestroyShell: shell still has {} faces", face_count),
                 context: None,
             });
         }
 
-        draft.arena_mut().get_region_mut(region)?.remove_shell(self.shell);
+        draft
+            .arena_mut()
+            .get_region_mut(region)?
+            .remove_shell(self.shell);
         draft.remove_shell(self.shell)?;
 
         Ok(ExecutionResult {

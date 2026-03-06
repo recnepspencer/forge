@@ -8,9 +8,10 @@ use serde::{Deserialize, Serialize};
 use forge_core::EntityKind;
 
 use crate::b_rep::TopologyArena;
+use crate::canonical::lineage_snapshot_key;
 use crate::handles::{EdgeId, FaceId, HalfEdgeId, VertexId};
-use crate::provenance::{Lineage, LineageEntityRef, LineageEvent, ParentLinkageMode};
 use crate::provenance::LineageStore;
+use crate::provenance::{Lineage, LineageEntityRef, LineageEvent, ParentLinkageMode};
 
 /// Schema version for re-identification linkage records/indexes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -276,7 +277,8 @@ pub fn build_link_records_from_events(
                 ..
             }
             | LineageEvent::EntityDeleted { .. }
-            | LineageEvent::EntityModified { .. } => {}
+            | LineageEvent::EntityModified { .. }
+            | LineageEvent::EntityReverted { .. } => {}
         }
     }
     records.sort_by(link_record_sort_key);
@@ -438,20 +440,28 @@ fn record_from_creation(
     child_snapshot: LineageEntityRef,
     lineage: &Lineage,
 ) -> ReidentificationLinkRecord {
+    let mut parent_ancestry_hashes = lineage.get_parent_ancestry_hashes().to_vec();
+    parent_ancestry_hashes.sort_unstable();
+    parent_ancestry_hashes.dedup();
+
+    let mut origin_features = lineage.get_origin_features().to_vec();
+    origin_features.sort_unstable();
+    origin_features.dedup();
+
     ReidentificationLinkRecord {
         schema_version: LinkSchemaVersion::V1,
         child_snapshot: child_snapshot.into(),
         child_ancestry_hash: lineage.get_ancestry_hash(),
-        parent_ancestry_hashes: lineage.get_parent_ancestry_hashes().to_vec(),
+        parent_ancestry_hashes,
         parent_linkage_mode: lineage.get_parent_linkage_mode(),
         // Parent snapshots are not reconstructible from V1 lineage events alone.
         parent_snapshot: None,
         // Topology lineage events currently originate from Euler / topology ops.
         origin_kind: EntityOriginKind::TopoOperator,
         creation_op_name: lineage.get_creation_op().get_name().to_string(),
-        creation_op_invocation: lineage.get_creation_op().get_invocation_id(),
+        creation_op_invocation: lineage.get_creation_op().get_invocation_id().get(),
         epoch,
-        origin_features: lineage.get_origin_features().to_vec(),
+        origin_features,
     }
 }
 
@@ -466,7 +476,7 @@ fn link_record_to_live_candidate(
                 record.child_snapshot.generation,
             );
             let _live = arena.get_face(id).ok()?;
-            // TODO: In Phase 2, lineage is no longer inline. 
+            // TODO: In Phase 2, lineage is no longer inline.
             // We need to look up the lineage in the LineageStore to verify the ancestry hash match.
             // For now, we skip this check to allow compilation.
             Some(build_candidate(
@@ -519,7 +529,7 @@ fn build_candidate(
     match_kind: ReidentificationMatchKind,
 ) -> ReidentificationCandidate {
     let rank_key = CandidateRankKey {
-        kind_discriminant: stable_entity_kind_code(record.child_snapshot.kind),
+        kind_discriminant: snapshot_key(record.child_snapshot).0,
         child_hash_bytes: record.child_ancestry_hash.to_be_bytes(),
         snapshot_index: record.child_snapshot.index,
         snapshot_generation: record.child_snapshot.generation,
@@ -543,18 +553,9 @@ fn build_candidate(
     }
 }
 
-fn stable_entity_kind_code(kind: EntityKind) -> u8 {
-    match kind {
-        EntityKind::Face => 0,
-        EntityKind::HalfEdge => 1,
-        EntityKind::Vertex => 2,
-        EntityKind::Loop => 3,
-        EntityKind::Body => 4,
-        EntityKind::Shell => 5,
-        EntityKind::Edge => 6,
-        EntityKind::Lump => 7,
-        EntityKind::Region => 8,
-    }
+fn snapshot_key(snapshot: TopoSnapshotHandleRef) -> (u8, u32, u32) {
+    let lineage = LineageEntityRef::new(snapshot.kind, snapshot.index, snapshot.generation);
+    lineage_snapshot_key(lineage)
 }
 
 fn link_record_sort_key(
@@ -562,18 +563,14 @@ fn link_record_sort_key(
     b: &ReidentificationLinkRecord,
 ) -> std::cmp::Ordering {
     (
-        stable_entity_kind_code(a.child_snapshot.kind),
+        snapshot_key(a.child_snapshot),
         a.child_ancestry_hash.to_be_bytes(),
-        a.child_snapshot.index,
-        a.child_snapshot.generation,
         a.creation_op_name.as_str(),
         a.creation_op_invocation,
     )
         .cmp(&(
-            stable_entity_kind_code(b.child_snapshot.kind),
+            snapshot_key(b.child_snapshot),
             b.child_ancestry_hash.to_be_bytes(),
-            b.child_snapshot.index,
-            b.child_snapshot.generation,
             b.creation_op_name.as_str(),
             b.creation_op_invocation,
         ))

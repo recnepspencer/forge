@@ -7,7 +7,6 @@ use crate::configuration::facade::{resolve_config, KernelConfig, ResolvedConfig}
 use crate::context::scope::OperationScope;
 use crate::operations::pipeline::builder::{OperationPipeline, PipelineBuilder};
 
-
 // ── Step Fixtures ────────────────────────────────────────────────────────
 
 /// A step with no policies and no precision sensitivity.
@@ -145,10 +144,16 @@ fn multi_step_pipeline_sequences_audit_entries_in_order() {
     struct DeltaStep;
     crate::declare_step!(DeltaStep, name: "delta", policies: [], precision_sensitive: false);
 
-    pipeline.run_step(&AlphaStep, |_scope| Ok(())).expect("alpha");
+    pipeline
+        .run_step(&AlphaStep, |_scope| Ok(()))
+        .expect("alpha");
     pipeline.run_step(&BetaStep, |_scope| Ok(())).expect("beta");
-    pipeline.run_step(&GammaStep, |_scope| Ok(())).expect("gamma");
-    pipeline.run_step(&DeltaStep, |_scope| Ok(())).expect("delta");
+    pipeline
+        .run_step(&GammaStep, |_scope| Ok(()))
+        .expect("gamma");
+    pipeline
+        .run_step(&DeltaStep, |_scope| Ok(()))
+        .expect("delta");
 
     let audit = pipeline.finalize();
 

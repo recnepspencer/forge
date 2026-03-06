@@ -58,8 +58,7 @@ pub fn polyhedron_volume(face_vertices: &[Vec<[f64; 3]>]) -> f64 {
 /// the triangle (v0, v1, v2) faces away from the origin (outward
 /// normal convention).
 pub fn signed_tetra_volume_6x(v0: &[f64; 3], v1: &[f64; 3], v2: &[f64; 3]) -> f64 {
-    v0[0] * (v1[1] * v2[2] - v2[1] * v1[2])
-        - v1[0] * (v0[1] * v2[2] - v2[1] * v0[2])
+    v0[0] * (v1[1] * v2[2] - v2[1] * v1[2]) - v1[0] * (v0[1] * v2[2] - v2[1] * v0[2])
         + v2[0] * (v0[1] * v1[2] - v1[1] * v0[2])
 }
 

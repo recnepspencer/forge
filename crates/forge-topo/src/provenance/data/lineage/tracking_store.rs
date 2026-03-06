@@ -52,14 +52,25 @@ impl LineageStore {
         let mut entries = BTreeMap::new();
         for event in prior {
             match event {
-                LineageEvent::EntityCreated { entity, lineage, .. } => {
+                LineageEvent::EntityCreated {
+                    entity, lineage, ..
+                } => {
                     entries.insert(entity.clone(), lineage.clone());
                 }
                 LineageEvent::EntityDeleted { entity, .. } => {
                     entries.remove(entity);
                 }
-                LineageEvent::EntityModified { entity, new_lineage, .. } => {
+                LineageEvent::EntityModified {
+                    entity,
+                    new_lineage,
+                    ..
+                } => {
                     entries.insert(entity.clone(), new_lineage.clone());
+                }
+                LineageEvent::EntityReverted {
+                    entity, to_lineage, ..
+                } => {
+                    entries.insert(entity.clone(), to_lineage.clone());
                 }
             }
         }
@@ -100,17 +111,35 @@ impl LineageStore {
                     entity
                 );
             }
+            LineageEvent::EntityReverted { entity, .. } => {
+                debug_assert!(
+                    self.entries.contains_key(entity),
+                    "LineageStore::apply: EntityReverted for untracked {:?}",
+                    entity
+                );
+            }
         }
 
         match &event {
-            LineageEvent::EntityCreated { entity, lineage, .. } => {
+            LineageEvent::EntityCreated {
+                entity, lineage, ..
+            } => {
                 self.entries.insert(entity.clone(), lineage.clone());
             }
             LineageEvent::EntityDeleted { entity, .. } => {
                 self.entries.remove(entity);
             }
-            LineageEvent::EntityModified { entity, new_lineage, .. } => {
+            LineageEvent::EntityModified {
+                entity,
+                new_lineage,
+                ..
+            } => {
                 self.entries.insert(entity.clone(), new_lineage.clone());
+            }
+            LineageEvent::EntityReverted {
+                entity, to_lineage, ..
+            } => {
+                self.entries.insert(entity.clone(), to_lineage.clone());
             }
         }
         self.events.push(event);
@@ -248,6 +277,35 @@ impl LineageStore {
         Ok(())
     }
 
+    /// Record rollback restoration for an entity lineage.
+    ///
+    /// This is append-only: rollback does not rewrite prior lineage history.
+    pub fn record_reversion(
+        &mut self,
+        entity: EntityRef,
+        to_lineage: Lineage,
+    ) -> Result<(), KernelError> {
+        let from_lineage = self
+            .entries
+            .get(&entity)
+            .cloned()
+            .ok_or_else(|| KernelError::InternalError {
+                message: format!(
+                    "LineageStore: attempted to revert untracked entity {:?} — arena/history desync",
+                    entity
+                ),
+                context: None,
+            })?;
+        self.events.push(LineageEvent::EntityReverted {
+            entity: entity.clone(),
+            entity_snapshot: None,
+            from_lineage,
+            to_lineage: to_lineage.clone(),
+        });
+        self.entries.insert(entity, to_lineage);
+        Ok(())
+    }
+
     /// Look up the current lineage of an entity.
     pub fn get_lineage(&self, entity: &EntityRef) -> Option<&Lineage> {
         self.entries.get(entity)
@@ -340,6 +398,42 @@ mod tests {
 
         let history = store.query_entity_history(&entity);
         assert_eq!(history.len(), 2);
+    }
+
+    #[test]
+    fn reversion_appends_event_and_restores_live_lineage() {
+        let mut store = LineageStore::new();
+        let entity = EntityRef::new(EntityKind::Face, 10, 0);
+        let original = Lineage::root(10, OpSignature::new("create"));
+        let modified = Lineage::root(10, OpSignature::new("split"));
+
+        store.record_creation(entity.clone(), original.clone());
+        store
+            .record_mutation(entity.clone(), modified.clone())
+            .unwrap();
+        store
+            .record_reversion(entity.clone(), original.clone())
+            .unwrap();
+
+        let current = store.get_lineage(&entity).unwrap();
+        assert_eq!(current.get_ancestry_hash(), original.get_ancestry_hash());
+
+        let history = store.query_entity_history(&entity);
+        assert_eq!(history.len(), 3);
+        match history[2] {
+            LineageEvent::EntityReverted {
+                from_lineage,
+                to_lineage,
+                ..
+            } => {
+                assert_eq!(
+                    from_lineage.get_ancestry_hash(),
+                    modified.get_ancestry_hash()
+                );
+                assert_eq!(to_lineage.get_ancestry_hash(), original.get_ancestry_hash());
+            }
+            other => panic!("expected EntityReverted, got {:?}", other),
+        }
     }
 
     #[test]

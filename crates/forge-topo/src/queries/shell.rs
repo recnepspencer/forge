@@ -8,9 +8,9 @@
 
 use std::collections::VecDeque;
 
+use crate::b_rep::EntityBitset;
 use crate::b_rep::TopologyArena;
 use crate::handles::FaceId;
-use crate::b_rep::EntityBitset;
 use crate::queries::traverse::FaceEdgeIterator;
 use forge_core::KernelError;
 
@@ -34,9 +34,7 @@ pub fn discover_shell_faces(
 
         for he_result in FaceEdgeIterator::new(arena, face_id)? {
             let he_id = he_result?;
-            for neighbor_res in
-                crate::queries::traverse::RadialEdgeIterator::new(arena, he_id)?
-            {
+            for neighbor_res in crate::queries::traverse::RadialEdgeIterator::new(arena, he_id)? {
                 let neighbor_id = neighbor_res?;
                 if neighbor_id != he_id {
                     let neighbor_data = arena.get_half_edge(neighbor_id)?;

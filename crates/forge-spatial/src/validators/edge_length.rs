@@ -4,9 +4,9 @@
 
 use forge_core::{KernelError, ToleranceProvider};
 use forge_math::linalg::{norm, sub};
+use forge_topo::b_rep::EntityBitset;
 use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::VertexId;
-use forge_topo::b_rep::EntityBitset;
 
 /// Validate that no edge has length below the max of its endpoint tolerances.
 pub fn validate_zero_length_edges(

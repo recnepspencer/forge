@@ -14,20 +14,31 @@ use forge_topo::entity_lifecycle::make_edge_vertex::MakeEdgeVertex;
 fn mev_sprouts_wire_from_cube_vertex() {
     let env_res = unit_cube().expect("unit cube should succeed");
     let faces = env_res.get_value().faces().to_vec();
-    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
     let face = faces[0];
     let anchor = first_halfedge_of_face(draft.arena(), face).unwrap();
 
-    let _mev = draft.execute(MakeEdgeVertex {
-        anchor,
-    }).unwrap().into_value();
+    let _mev = draft
+        .execute(MakeEdgeVertex { anchor })
+        .unwrap()
+        .into_value();
 
     assert_eq!(draft.arena().vertex_count(), 9, "MEV should add 1 vertex");
     assert_eq!(draft.arena().edge_count(), 13, "MEV should add 1 edge");
-    assert_eq!(draft.arena().half_edge_count(), 26, "MEV should add 2 halfedges");
+    assert_eq!(
+        draft.arena().half_edge_count(),
+        26,
+        "MEV should add 2 halfedges"
+    );
 
-    let face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();
+    let face_valence = collect_face_loop(
+        draft.arena(),
+        first_halfedge_of_face(draft.arena(), face).unwrap(),
+    )
+    .unwrap()
+    .len();
     assert_eq!(face_valence, 6);
 
     let _committed = draft.commit().unwrap();
@@ -38,21 +49,26 @@ fn mev_sprouts_wire_from_cube_vertex() {
 fn mev_then_kev_roundtrip() {
     let env_res = unit_cube().expect("unit cube should succeed");
     let faces = env_res.get_value().faces().to_vec();
-    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
     let face = faces[0];
     let anchor = first_halfedge_of_face(draft.arena(), face).unwrap();
 
-    let mev = draft.execute(MakeEdgeVertex {
-        anchor,
-    }).unwrap().into_value();
+    let mev = draft
+        .execute(MakeEdgeVertex { anchor })
+        .unwrap()
+        .into_value();
 
-    draft.execute(KillEdgeVertex {
-        edge: mev.he_out,
-    }).unwrap();
+    draft.execute(KillEdgeVertex { edge: mev.he_out }).unwrap();
 
     assert_eq!(draft.arena().vertex_count(), 8);
-    let face_valence = collect_face_loop(draft.arena(), first_halfedge_of_face(draft.arena(), face).unwrap()).unwrap().len();
+    let face_valence = collect_face_loop(
+        draft.arena(),
+        first_halfedge_of_face(draft.arena(), face).unwrap(),
+    )
+    .unwrap()
+    .len();
     assert_eq!(face_valence, 4);
 
     let committed = draft.commit().unwrap();
@@ -70,18 +86,23 @@ fn mev_then_kev_roundtrip() {
 fn chain_mev_two_wires_from_same_vertex() {
     let env_res = unit_cube().expect("unit cube should succeed");
     let faces = env_res.get_value().faces().to_vec();
-    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) = env_res.into_value().into_draft();
+    let (mut draft, _geometry): (forge_topo::transactions::MutableDraft, _) =
+        env_res.into_value().into_draft();
 
     let face = faces[0];
     let anchor = first_halfedge_of_face(draft.arena(), face).unwrap();
 
-    let mev1 = draft.execute(MakeEdgeVertex {
-        anchor,
-    }).unwrap().into_value();
+    let mev1 = draft
+        .execute(MakeEdgeVertex { anchor })
+        .unwrap()
+        .into_value();
 
-    let _mev2 = draft.execute(MakeEdgeVertex {
-        anchor: mev1.he_back,
-    }).unwrap().into_value();
+    let _mev2 = draft
+        .execute(MakeEdgeVertex {
+            anchor: mev1.he_back,
+        })
+        .unwrap()
+        .into_value();
 
     assert_eq!(draft.arena().vertex_count(), 10, "Two MEVs add 2 vertices");
     assert_eq!(draft.arena().edge_count(), 14, "Two MEVs add 2 edges");

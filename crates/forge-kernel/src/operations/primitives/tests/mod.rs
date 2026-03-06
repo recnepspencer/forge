@@ -3,12 +3,12 @@
 //! Tests organized by domain concern rather than monolithic files.
 //! All tests use `ModelingContext` (real production sink) — no NullSink, no TestSink.
 
-mod structural_invariants_tests;
-mod shape_counts_tests;
-mod scale_and_position_tests;
-mod edge_cases_tests;
 mod determinism_tests;
+mod edge_cases_tests;
 mod geometric_fidelity_tests;
+mod scale_and_position_tests;
+mod shape_counts_tests;
+mod structural_invariants_tests;
 
 use crate::configuration::facade::{resolve_config, KernelConfig, ResolvedConfig};
 pub(super) use crate::context::scope::OperationScope;

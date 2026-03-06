@@ -4,6 +4,7 @@
 //! that edge. No disjoint sub-rings sharing an EdgeId.
 
 use crate::b_rep::TopologyArena;
+use crate::queries::walk::walk_radial_iter;
 use forge_core::KernelError;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -22,27 +23,21 @@ pub(crate) fn validate_no_broken_radial_splices(arena: &TopologyArena) -> Result
         }
         let rep = edge_data.half_edge();
         let mut ring_count = 0usize;
-        let mut curr = rep;
-        let bound = arena.half_edge_count();
-        loop {
+        for he_result in walk_radial_iter(arena, rep)? {
+            let _ = he_result?;
             ring_count += 1;
-            curr = arena.get_half_edge(curr)?.radial_next();
-            if curr == rep { break; }
-            if ring_count > bound {
-                return Err(vf("no_broken_radial_splices", format!(
-                    "Edge {} radial ring walk from HE {} exceeded bound",
-                    edge_id.index(), rep.index()
-                )));
-            }
         }
 
         let expected = edge_he_counts.get(&edge_id.index()).copied().unwrap_or(0);
         if ring_count != expected {
-            return Err(vf("no_broken_radial_splices", format!(
+            return Err(vf(
+                "no_broken_radial_splices",
+                format!(
                 "Edge {} has {} HEs referencing it but radial ring from rep HE {} only reaches {} \
                  (disjoint sub-rings detected)",
                 edge_id.index(), expected, rep.index(), ring_count
-            )));
+            ),
+            ));
         }
     }
     Ok(())

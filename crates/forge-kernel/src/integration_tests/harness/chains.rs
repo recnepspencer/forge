@@ -15,8 +15,8 @@
 //! ```
 
 use crate::configuration::facade::ResolvedConfig;
-use crate::context::ModelingContext;
 use crate::context::scope::OperationScope;
+use crate::context::ModelingContext;
 use crate::engine::facade::SolidEnvelope;
 use forge_core::envelope::OperationResult;
 use forge_core::KernelError;
@@ -68,7 +68,10 @@ impl OpChain {
     /// Metadata from the result is absorbed into the chain's running total.
     pub fn apply<F>(mut self, op_name: &str, f: F) -> Self
     where
-        F: FnOnce(SolidEnvelope, &mut OperationScope<'_>) -> Result<OperationResult<SolidEnvelope>, KernelError>,
+        F: FnOnce(
+            SolidEnvelope,
+            &mut OperationScope<'_>,
+        ) -> Result<OperationResult<SolidEnvelope>, KernelError>,
     {
         self.step_count += 1;
         let step = self.step_count;
@@ -78,14 +81,14 @@ impl OpChain {
 
         // Cloned for the operation; self.envelope remains owned.
         let solid = self.envelope.get_value().clone();
-        
+
         let mut result = f(solid, &mut scope).unwrap_or_else(|e| {
             panic!("Chain step {step} ({op_name}) failed: {:?}", e);
         });
 
         // 1. Merge the metadata from this operation into our persistent chain envelope.
         self.envelope.absorb_metadata(&mut result);
-        
+
         // 2. Map the value to the new solid produced by the operation.
         // `map` preserves all metadata (including the stuff we just absorbed).
         self.envelope = self.envelope.map(|_| result.into_value());
@@ -100,7 +103,10 @@ impl OpChain {
     /// Run an operation that may fail, returning the error instead of panicking.
     pub fn try_apply<F>(mut self, op_name: &str, f: F) -> Result<Self, KernelError>
     where
-        F: FnOnce(SolidEnvelope, &mut OperationScope<'_>) -> Result<OperationResult<SolidEnvelope>, KernelError>,
+        F: FnOnce(
+            SolidEnvelope,
+            &mut OperationScope<'_>,
+        ) -> Result<OperationResult<SolidEnvelope>, KernelError>,
     {
         self.step_count += 1;
 
@@ -109,7 +115,7 @@ impl OpChain {
 
         let solid = self.envelope.get_value().clone();
         let mut result = f(solid, &mut scope)?;
-        
+
         self.envelope.absorb_metadata(&mut result);
         self.envelope = self.envelope.map(|_| result.into_value());
 
@@ -131,7 +137,10 @@ impl OpChain {
         let arena = self.envelope.get_value().topology().arena();
         forge_topo::validators::validate::validate_topology(arena, ValidationLevel::Intermediate)
             .unwrap_or_else(|e| {
-                panic!("Structural invariant violation at step {}: {:?}", self.step_count, e);
+                panic!(
+                    "Structural invariant violation at step {}: {:?}",
+                    self.step_count, e
+                );
             });
         self
     }
@@ -153,7 +162,8 @@ impl OpChain {
         forge_topo::validators::validate::validate_topology(
             self.envelope.get_value().topology().arena(),
             ValidationLevel::Full,
-        ).unwrap_or_else(|e| {
+        )
+        .unwrap_or_else(|e| {
             panic!("Final validation failed: {:?}", e);
         });
         self.envelope
@@ -187,7 +197,9 @@ impl OpChain {
         let arena = self.envelope.get_value().topology().arena();
         let step = self.step_count;
 
-        if let Err(e) = forge_topo::validators::validate::validate_topology(arena, ValidationLevel::Full) {
+        if let Err(e) =
+            forge_topo::validators::validate::validate_topology(arena, ValidationLevel::Full)
+        {
             panic!(
                 "Invariant violation at chain step {} ({}): {:?}",
                 step, context, e

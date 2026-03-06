@@ -81,5 +81,11 @@ pub fn build_face_with_hole(
 
     let inner_he = mlifv.half_edges[0]; // he: v3→v4
 
-    (face, outer_he, inner_he, outer_loop, [v0, v1, v2, v3, v4, v5])
+    (
+        face,
+        outer_he,
+        inner_he,
+        outer_loop,
+        [v0, v1, v2, v3, v4, v5],
+    )
 }

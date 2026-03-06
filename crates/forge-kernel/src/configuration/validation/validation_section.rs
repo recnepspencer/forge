@@ -5,8 +5,8 @@
 use forge_core::{KernelError, ValidationCheckpoint};
 use serde::{Deserialize, Serialize};
 
-use super::group_policy::GroupPolicyConfig;
 use super::super::kernel_config::ConfigSection;
+use super::group_policy::GroupPolicyConfig;
 
 /// Invariant validation checkpoints and settings.
 #[derive(Debug, Clone, Serialize, Deserialize)]

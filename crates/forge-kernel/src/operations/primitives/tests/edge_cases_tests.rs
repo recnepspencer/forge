@@ -1,8 +1,10 @@
 //! Edge case tests — degenerate inputs that must be cleanly rejected.
 
 // use crate::context::ModelingContext;
-use crate::operations::primitives::{make_convex_solid, make_cube, make_block, make_prism, make_pyramid};
 use super::test_config;
+use crate::operations::primitives::{
+    make_block, make_convex_solid, make_cube, make_prism, make_pyramid,
+};
 
 #[test]
 fn two_planes_rejected() {
@@ -11,7 +13,10 @@ fn two_planes_rejected() {
         forge_geom::Plane::try_new([1.0, 0.0, 0.0], 1.0).unwrap(),
         forge_geom::Plane::try_new([-1.0, 0.0, 0.0], 1.0).unwrap(),
     ];
-    assert!(make_convex_solid(planes, &cfg).is_err(), "2 planes cannot form a polyhedron");
+    assert!(
+        make_convex_solid(planes, &cfg).is_err(),
+        "2 planes cannot form a polyhedron"
+    );
 }
 
 #[test]
@@ -22,7 +27,10 @@ fn three_planes_rejected() {
         forge_geom::Plane::try_new([-1.0, 0.0, 0.0], 1.0).unwrap(),
         forge_geom::Plane::try_new([0.0, 1.0, 0.0], 1.0).unwrap(),
     ];
-    assert!(make_convex_solid(planes, &cfg).is_err(), "3 planes cannot form a closed polyhedron");
+    assert!(
+        make_convex_solid(planes, &cfg).is_err(),
+        "3 planes cannot form a closed polyhedron"
+    );
 }
 
 // ── Input validation rejection tests ──────────────────────────────────────

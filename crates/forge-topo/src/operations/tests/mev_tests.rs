@@ -4,6 +4,7 @@
 //! a wire edge within a face. Tests cover: seed case, polygon vertex,
 //! wedge ambiguity, inverse roundtrip, double-antenna, and commit validation.
 
+use crate::b_rep::ShellKind;
 use crate::entity_lifecycle::kill_edge_vertex::KillEdgeVertex;
 use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
 use crate::entity_lifecycle::make_edge_vertex::MakeEdgeVertex;
@@ -11,7 +12,6 @@ use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::entity_lifecycle::split_edge::SplitEdge;
 use crate::transactions::{MutableDraft, TopologyState};
 use crate::traverse::FaceEdgeIterator;
-use crate::b_rep::ShellKind;
 
 /// MEV on the MVF seed produces a 3-halfedge loop: V=2, HE=3, E=2.
 ///
@@ -21,14 +21,18 @@ fn mev_from_seed_sprouts_antenna() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-    let mev = draft.execute(
-        MakeEdgeVertex {
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
+    let mev = draft
+        .execute(MakeEdgeVertex {
             anchor: mvf.half_edge,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     assert_eq!(draft.arena().vertex_count(), 2);
     assert_eq!(draft.arena().half_edge_count(), 3);
@@ -90,39 +94,40 @@ fn mev_from_polygon_vertex() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-    let se1 = draft.execute(
-        SplitEdge {
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
+    let se1 = draft
+        .execute(SplitEdge {
             edge: mvf.half_edge,
-        },
-    )
-    .unwrap()
-    .into_value();
-    let mef1 = draft.execute(
-        MakeEdgeFace {
+        })
+        .unwrap()
+        .into_value();
+    let mef1 = draft
+        .execute(MakeEdgeFace {
             vertex_a: mvf.vertex,
             vertex_b: se1.new_vertex,
             face: mvf.face,
-        },
-    )
-    .unwrap()
-    .into_value();
-    let se2 = draft.execute(
-        SplitEdge {
+        })
+        .unwrap()
+        .into_value();
+    let se2 = draft
+        .execute(SplitEdge {
             edge: mef1.half_edge_ab,
-        },
-    )
-    .unwrap()
-    .into_value();
-    let _mef2 = draft.execute(
-        MakeEdgeFace {
+        })
+        .unwrap()
+        .into_value();
+    let _mef2 = draft
+        .execute(MakeEdgeFace {
             vertex_a: se2.new_vertex,
             vertex_b: se1.new_vertex,
             face: mef1.new_face,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     let face_edges_before: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face)
         .unwrap()
@@ -136,7 +141,8 @@ fn mev_from_polygon_vertex() {
         .copied()
         .expect("must find halfedge originating from v0 on face");
 
-    let mev = draft.execute(MakeEdgeVertex { anchor })
+    let mev = draft
+        .execute(MakeEdgeVertex { anchor })
         .unwrap()
         .into_value();
 
@@ -175,16 +181,21 @@ fn mev_wedge_ambiguity_resolved() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-    let se = draft.execute(
-        SplitEdge {
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
+    let se = draft
+        .execute(SplitEdge {
             edge: mvf.half_edge,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
-    let mev1 = draft.execute(MakeEdgeVertex { anchor: se.he_am })
+    let mev1 = draft
+        .execute(MakeEdgeVertex { anchor: se.he_am })
         .unwrap()
         .into_value();
 
@@ -254,34 +265,37 @@ fn mev_inverse_via_kev() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-    let se1 = draft.execute(
-        SplitEdge {
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
+    let se1 = draft
+        .execute(SplitEdge {
             edge: mvf.half_edge,
-        },
-    )
-    .unwrap()
-    .into_value();
-    let _mef = draft.execute(
-        MakeEdgeFace {
+        })
+        .unwrap()
+        .into_value();
+    let _mef = draft
+        .execute(MakeEdgeFace {
             vertex_a: mvf.vertex,
             vertex_b: se1.new_vertex,
             face: mvf.face,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     let hash_before = draft.compute_topology_hash();
 
-    let mev = draft.execute(
-        MakeEdgeVertex {
+    let mev = draft
+        .execute(MakeEdgeVertex {
             anchor: mvf.half_edge,
-        },
-    )
-    .unwrap()
-    .into_value();
-    let _kev = draft.execute(KillEdgeVertex { edge: mev.he_out })
+        })
+        .unwrap()
+        .into_value();
+    let _kev = draft
+        .execute(KillEdgeVertex { edge: mev.he_out })
         .unwrap()
         .into_value();
 
@@ -302,23 +316,26 @@ fn mev_double_antenna_same_vertex() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-    let se1 = draft.execute(
-        SplitEdge {
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
+    let se1 = draft
+        .execute(SplitEdge {
             edge: mvf.half_edge,
-        },
-    )
-    .unwrap()
-    .into_value();
-    let mef = draft.execute(
-        MakeEdgeFace {
+        })
+        .unwrap()
+        .into_value();
+    let mef = draft
+        .execute(MakeEdgeFace {
             vertex_a: mvf.vertex,
             vertex_b: se1.new_vertex,
             face: mvf.face,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     let anchors: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face)
         .unwrap()
@@ -333,7 +350,8 @@ fn mev_double_antenna_same_vertex() {
         })
         .collect();
 
-    let mev1 = draft.execute(MakeEdgeVertex { anchor: anchors[0] })
+    let mev1 = draft
+        .execute(MakeEdgeVertex { anchor: anchors[0] })
         .unwrap()
         .into_value();
 
@@ -354,13 +372,12 @@ fn mev_double_antenna_same_vertex() {
         "must still have other anchors from v0"
     );
 
-    let mev2 = draft.execute(
-        MakeEdgeVertex {
+    let mev2 = draft
+        .execute(MakeEdgeVertex {
             anchor: anchors2[0],
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     assert_ne!(
         mev1.new_vertex, mev2.new_vertex,
@@ -387,14 +404,18 @@ fn mev_commits_and_validates() {
     let state = TopologyState::empty();
     let mut draft = state.into_mutation();
 
-    let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-    draft.execute(
-        MakeEdgeVertex {
+    let mvf = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
+    draft
+        .execute(MakeEdgeVertex {
             anchor: mvf.half_edge,
-        },
-    )
-    .unwrap()
-    .into_value();
+        })
+        .unwrap()
+        .into_value();
 
     let committed = draft.commit();
     assert!(

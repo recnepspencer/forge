@@ -36,12 +36,7 @@ impl<'a> OperationFinalizer<'a> {
         hashes: TopologyHashBoundary,
         _span_output: Option<()>,
     ) -> Result<CollectedFinalization, FinalizationError> {
-        self.collect(
-            FinalizationStatus::Success,
-            envelope,
-            adjuncts,
-            hashes,
-        )
+        self.collect(FinalizationStatus::Success, envelope, adjuncts, hashes)
     }
 
     pub fn collect_error<T>(
@@ -51,12 +46,7 @@ impl<'a> OperationFinalizer<'a> {
         hashes: TopologyHashBoundary,
         _span_output: Option<()>,
     ) -> Result<CollectedFinalization, FinalizationError> {
-        self.collect(
-            FinalizationStatus::Error,
-            envelope,
-            adjuncts,
-            hashes,
-        )
+        self.collect(FinalizationStatus::Error, envelope, adjuncts, hashes)
     }
 
     fn collect<T>(

@@ -81,25 +81,34 @@ where
     let expected_topo = first.topology_fingerprint();
 
     for i in 1..n {
-        let env = build_fn().unwrap_or_else(|e| {
-            panic!("Run {} failed: {:?}", i + 1, e);
-        }).into_value();
+        let env = build_fn()
+            .unwrap_or_else(|e| {
+                panic!("Run {} failed: {:?}", i + 1, e);
+            })
+            .into_value();
 
         let full = env.full_fingerprint();
         if full != expected_full {
             let topo = env.topology_fingerprint();
-            let divergence = if topo != expected_topo { "TOPOLOGY" } else { "GEOMETRY" };
+            let divergence = if topo != expected_topo {
+                "TOPOLOGY"
+            } else {
+                "GEOMETRY"
+            };
             panic!(
                 "Determinism violation on run {}/{}: {} diverged\n\
                  Expected full: {:#034x}\n\
                  Got full:      {:#034x}\n\
                  Expected topo: {:#034x}\n\
                  Got topo:      {:#034x}",
-                i + 1, n, divergence,
-                expected_full, full,
-                expected_topo, topo
+                i + 1,
+                n,
+                divergence,
+                expected_full,
+                full,
+                expected_topo,
+                topo
             );
         }
     }
 }
-

@@ -49,17 +49,21 @@ pub fn classify_face_normal_orientation(
     // Step 1: Compute face normal via Newell's method
     let normal = match face_normal_from_outer_loop(arena, face_position_fn, face_id)? {
         Some(n) => n,
-        None => return Ok(NormalClassification::Degenerate {
-            reason: "face normal undefined (collinear/degenerate vertices)",
-        }),
+        None => {
+            return Ok(NormalClassification::Degenerate {
+                reason: "face normal undefined (collinear/degenerate vertices)",
+            })
+        }
     };
 
     // Step 2: Compute face interior point via polygon centroid (forge-geom)
     let face_center = match compute_polygon_centroid(face_vertices) {
         Some(c) => c,
-        None => return Ok(NormalClassification::Degenerate {
-            reason: "face has no vertices, cannot compute interior point",
-        }),
+        None => {
+            return Ok(NormalClassification::Degenerate {
+                reason: "face has no vertices, cannot compute interior point",
+            })
+        }
     };
 
     // Step 3: Construct probe points p ± ε·n
@@ -75,12 +79,8 @@ pub fn classify_face_normal_orientation(
     ];
 
     // Step 4: Classify both probe points
-    let class_plus = classify_point_in_solid(
-        arena, position_fn, None, &p_plus, tolerance,
-    )?;
-    let class_minus = classify_point_in_solid(
-        arena, position_fn, None, &p_minus, tolerance,
-    )?;
+    let class_plus = classify_point_in_solid(arena, position_fn, None, &p_plus, tolerance)?;
+    let class_minus = classify_point_in_solid(arena, position_fn, None, &p_minus, tolerance)?;
 
     match (&class_plus, &class_minus) {
         (PointClassification::Outside { .. }, PointClassification::Inside { .. }) => {

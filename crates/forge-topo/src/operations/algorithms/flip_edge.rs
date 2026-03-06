@@ -9,10 +9,10 @@
 //! DEPENDENCIES: `boundary_editing::join_faces`, `entity_lifecycle::make_edge_face`
 
 use crate::handles::{HalfEdgeId, VertexId};
-use crate::transactions::MutableDraft;
 use crate::operations::boundary_editing::join_faces::JoinFaces;
 use crate::operations::entity_lifecycle::make_edge_face::MakeEdgeFace;
 use crate::queries::traverse::FaceEdgeIterator;
+use crate::transactions::MutableDraft;
 use forge_core::KernelError;
 
 /// Output of the flip_edge algorithm.
@@ -82,14 +82,13 @@ pub fn flip_edge(
     let jf = draft.execute(JoinFaces { edge })?.into_value();
     let merged_face = jf.surviving_face;
 
-    let mef = draft.execute(
-        MakeEdgeFace {
+    let mef = draft
+        .execute(MakeEdgeFace {
             face: merged_face,
             vertex_a,
             vertex_b,
-        },
-    )?
-    .into_value();
+        })?
+        .into_value();
 
     Ok(FlipEdgeOutput {
         he_ab: mef.half_edge_ab,
@@ -141,41 +140,39 @@ fn find_opposite_vertex(
 
 #[cfg(test)]
 mod tests {
-    use crate::b_rep::ShellKind;
     use super::*;
+    use crate::b_rep::ShellKind;
     use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::entity_lifecycle::split_edge::SplitEdge;
-    use crate::transactions::TopologyState;
     use crate::queries::traverse::FaceEdgeIterator;
+    use crate::transactions::TopologyState;
 
     #[test]
     fn flip_edge_swaps_diagonal() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se1 = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se1 = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let se2 = draft.execute(
-            SplitEdge {
-                edge: se1.he_mb,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let _se3 = draft.execute(
-            SplitEdge {
-                edge: se2.he_mb,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
+        let se2 = draft
+            .execute(SplitEdge { edge: se1.he_mb })
+            .unwrap()
+            .into_value();
+        let _se3 = draft
+            .execute(SplitEdge { edge: se2.he_mb })
+            .unwrap()
+            .into_value();
 
         let edges: Vec<_> = FaceEdgeIterator::new(draft.arena(), mvf.face)
             .unwrap()
@@ -186,15 +183,14 @@ mod tests {
         let v1 = draft.arena().get_half_edge(edges[1]).unwrap().origin();
         let v3 = draft.arena().get_half_edge(edges[3]).unwrap().origin();
 
-        let mef = draft.execute(
-            MakeEdgeFace {
+        let mef = draft
+            .execute(MakeEdgeFace {
                 face: mvf.face,
                 vertex_a: v1,
                 vertex_b: v3,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
 
         assert_eq!(draft.arena().face_count(), 2);
         assert_eq!(draft.arena().vertex_count(), 4);

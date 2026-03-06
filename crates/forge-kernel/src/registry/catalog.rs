@@ -16,7 +16,7 @@ use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
 use crate::configuration::facade::KernelConfig;
-use crate::engine::facade::{SolidEnvelope, FeaturePipeline};
+use crate::engine::facade::{FeaturePipeline, SolidEnvelope};
 
 /// Generates the `FeatureKind` enum and its `execute_via_pipeline` dispatch.
 ///

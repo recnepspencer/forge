@@ -47,28 +47,27 @@ pub struct SpatialValidatorEntry {
 ///
 /// Takes the topology arena and a `GeometryContext` containing all geometry
 /// callbacks. Adding new geometry layers doesn't change this signature.
-type SpatialCheckFn = fn(
-    &TopologyArena,
-    &GeometryContext<'_>,
-) -> Result<(), KernelError>;
+type SpatialCheckFn = fn(&TopologyArena, &GeometryContext<'_>) -> Result<(), KernelError>;
 
 impl SpatialValidatorEntry {
     /// Create a validator entry with a check function.
     const fn new(cost: ValidatorCost, check: SpatialCheckFn) -> Self {
-        Self { cost, check: Some(check) }
+        Self {
+            cost,
+            check: Some(check),
+        }
     }
 
     /// No-op entry for invariants not validated by forge-spatial.
     const fn noop() -> Self {
-        Self { cost: ValidatorCost::Cheap, check: None }
+        Self {
+            cost: ValidatorCost::Cheap,
+            check: None,
+        }
     }
 
     /// Run this validator. Returns `Ok(())` for no-ops.
-    pub fn run(
-        &self,
-        arena: &TopologyArena,
-        ctx: &GeometryContext<'_>,
-    ) -> Result<(), KernelError> {
+    pub fn run(&self, arena: &TopologyArena, ctx: &GeometryContext<'_>) -> Result<(), KernelError> {
         match self.check {
             Some(check) => check(arena, ctx),
             None => Ok(()),
@@ -93,7 +92,12 @@ fn check_zero_area_faces(
     arena: &TopologyArena,
     ctx: &GeometryContext<'_>,
 ) -> Result<(), KernelError> {
-    super::area::validate_zero_area_faces(arena, ctx.position_fn, ctx.is_planar, ctx.tolerance_provider)
+    super::area::validate_zero_area_faces(
+        arena,
+        ctx.position_fn,
+        ctx.is_planar,
+        ctx.tolerance_provider,
+    )
 }
 
 fn check_signed_volume(
@@ -107,21 +111,35 @@ fn check_loop_orientation(
     arena: &TopologyArena,
     ctx: &GeometryContext<'_>,
 ) -> Result<(), KernelError> {
-    super::loop_orientation::validate_loop_orientation(arena, ctx.position_fn, ctx.is_planar, ctx.tolerance_provider)
+    super::loop_orientation::validate_loop_orientation(
+        arena,
+        ctx.position_fn,
+        ctx.is_planar,
+        ctx.tolerance_provider,
+    )
 }
 
 fn check_shell_orientation(
     arena: &TopologyArena,
     ctx: &GeometryContext<'_>,
 ) -> Result<(), KernelError> {
-    super::shell_orientation::validate_shell_orientation(arena, ctx.position_fn, ctx.tolerance_provider)
+    super::shell_orientation::validate_shell_orientation(
+        arena,
+        ctx.position_fn,
+        ctx.tolerance_provider,
+    )
 }
 
 fn check_surface_deviation(
     arena: &TopologyArena,
     ctx: &GeometryContext<'_>,
 ) -> Result<(), KernelError> {
-    super::surface_deviation::validate_surface_deviation(arena, ctx.position_fn, ctx.plane_fn, ctx.tolerance_provider)
+    super::surface_deviation::validate_surface_deviation(
+        arena,
+        ctx.position_fn,
+        ctx.plane_fn,
+        ctx.tolerance_provider,
+    )
 }
 
 fn check_geometry_completeness(
@@ -143,7 +161,10 @@ fn check_edge_curve_consistency(
     ctx: &GeometryContext<'_>,
 ) -> Result<(), KernelError> {
     super::edge_curve_consistency::validate_edge_curve_consistency(
-        arena, ctx.position_fn, ctx.curve_fn, ctx.tolerance_provider,
+        arena,
+        ctx.position_fn,
+        ctx.curve_fn,
+        ctx.tolerance_provider,
     )
 }
 
@@ -154,22 +175,30 @@ fn check_edge_curve_consistency(
 pub fn spatial_validator_for(id: InvariantId) -> SpatialValidatorEntry {
     match id {
         // ── Geometry-dependent (this crate validates) ───────────
-        InvariantId::NoZeroLengthEdges =>
-            SpatialValidatorEntry::new(ValidatorCost::Cheap, check_zero_length_edges),
-        InvariantId::NoZeroAreaFaces =>
-            SpatialValidatorEntry::new(ValidatorCost::Medium, check_zero_area_faces),
-        InvariantId::NoInsideOutShells =>
-            SpatialValidatorEntry::new(ValidatorCost::Expensive, check_signed_volume),
-        InvariantId::LoopOrientationConsistency =>
-            SpatialValidatorEntry::new(ValidatorCost::Medium, check_loop_orientation),
-        InvariantId::ShellOrientationConsistency =>
-            SpatialValidatorEntry::new(ValidatorCost::Medium, check_shell_orientation),
-        InvariantId::NoVertexOffSurface =>
-            SpatialValidatorEntry::new(ValidatorCost::Medium, check_surface_deviation),
-        InvariantId::GeometryCompleteness =>
-            SpatialValidatorEntry::new(ValidatorCost::Cheap, check_geometry_completeness),
-        InvariantId::EdgeCurveConsistency =>
-            SpatialValidatorEntry::new(ValidatorCost::Medium, check_edge_curve_consistency),
+        InvariantId::NoZeroLengthEdges => {
+            SpatialValidatorEntry::new(ValidatorCost::Cheap, check_zero_length_edges)
+        }
+        InvariantId::NoZeroAreaFaces => {
+            SpatialValidatorEntry::new(ValidatorCost::Medium, check_zero_area_faces)
+        }
+        InvariantId::NoInsideOutShells => {
+            SpatialValidatorEntry::new(ValidatorCost::Expensive, check_signed_volume)
+        }
+        InvariantId::LoopOrientationConsistency => {
+            SpatialValidatorEntry::new(ValidatorCost::Medium, check_loop_orientation)
+        }
+        InvariantId::ShellOrientationConsistency => {
+            SpatialValidatorEntry::new(ValidatorCost::Medium, check_shell_orientation)
+        }
+        InvariantId::NoVertexOffSurface => {
+            SpatialValidatorEntry::new(ValidatorCost::Medium, check_surface_deviation)
+        }
+        InvariantId::GeometryCompleteness => {
+            SpatialValidatorEntry::new(ValidatorCost::Cheap, check_geometry_completeness)
+        }
+        InvariantId::EdgeCurveConsistency => {
+            SpatialValidatorEntry::new(ValidatorCost::Medium, check_edge_curve_consistency)
+        }
 
         // ── Structural invariants (dispatched by forge-topo) ───
         InvariantId::RadialReciprocity
@@ -198,8 +227,7 @@ pub fn spatial_validator_for(id: InvariantId) -> SpatialValidatorEntry {
         | InvariantId::NoCrossDiskCoedges
         | InvariantId::PerComponentEuler
         | InvariantId::SideCarCoherence
-        | InvariantId::IndexCoherence =>
-            SpatialValidatorEntry::noop(),
+        | InvariantId::IndexCoherence => SpatialValidatorEntry::noop(),
     }
 }
 

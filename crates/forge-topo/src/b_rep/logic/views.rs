@@ -5,12 +5,12 @@
 //! metadata), exposing a unified API. This establishes the canonical
 //! access pattern so all future callers go through views from day one.
 
-use crate::b_rep::data::mesh::CoedgeInfo;
-use crate::b_rep::data::mesh::half_edge::HalfEdgeData;
 use crate::b_rep::data::mesh::edge::EdgeData;
+use crate::b_rep::data::mesh::half_edge::HalfEdgeData;
 use crate::b_rep::data::mesh::vertex::VertexData;
+use crate::b_rep::data::mesh::CoedgeInfo;
 use crate::b_rep::data::storage::arena::TopologyArena;
-use crate::handles::{EdgeId, FaceId, HalfEdgeId, VertexId, CurveRef};
+use crate::handles::{CurveRef, EdgeId, FaceId, HalfEdgeId, VertexId};
 
 // ── HalfEdgeView ────────────────────────────────────────────────────
 
@@ -67,12 +67,21 @@ impl<'a> HalfEdgeView<'a> {
 
     /// Whether this halfedge is a synthetic bridge (inserted by `BridgeEdge`).
     pub fn is_bridge(&self) -> bool {
-        self.arena.is_bridge(self.id)
+        self.arena
+            .metadata
+            .bridge_flags
+            .get(self.id.index() as usize)
+            .copied()
+            .unwrap_or(false)
     }
 
     /// Coedge metadata (UV trim curve + direction sense), if present.
     pub fn coedge_info(&self) -> Option<&'a CoedgeInfo> {
-        self.arena.coedge_info(self.id)
+        self.arena
+            .metadata
+            .coedge_data
+            .get(self.id.index() as usize)
+            .and_then(|opt| opt.as_ref())
     }
 }
 
@@ -106,7 +115,11 @@ impl<'a> VertexView<'a> {
 
     /// The 3-plane intersection provenance (sorted plane indices).
     pub fn provenance(&self) -> Option<&'a [usize; 3]> {
-        self.arena.vertex_provenance(self.id)
+        self.arena
+            .metadata
+            .vertex_provenance
+            .get(self.id.index() as usize)
+            .and_then(|opt| opt.as_ref())
     }
 }
 
@@ -140,6 +153,10 @@ impl<'a> EdgeView<'a> {
 
     /// Opaque reference to this edge's 3D curve in the geometry store.
     pub fn curve(&self) -> Option<CurveRef> {
-        self.arena.edge_curve(self.id)
+        self.arena
+            .metadata
+            .edge_curves
+            .get(self.id.index() as usize)
+            .and_then(|opt| *opt)
     }
 }

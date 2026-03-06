@@ -5,12 +5,8 @@
 
 use forge_core::{FlatToleranceProvider, KernelError};
 use forge_spatial::{validate_geometric_invariants, GeometryContext};
-use forge_topo::b_rep::{
-    EdgeData, FaceData, HalfEdgeData, LoopData, TopologyArena, VertexData,
-};
-use forge_topo::b_rep::{
-    BodyData, LumpData, RegionData, ShellData, ShellKind, ShellOrientation,
-};
+use forge_topo::b_rep::{BodyData, LumpData, RegionData, ShellData, ShellKind, ShellOrientation};
+use forge_topo::b_rep::{EdgeData, FaceData, HalfEdgeData, LoopData, TopologyArena, VertexData};
 use forge_topo::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
 use forge_topo::transactions::{MutableDraft, TopologyState};
 
@@ -69,8 +65,16 @@ pub fn insert_test_solid_shell(draft: &mut MutableDraft) -> ShellId {
         region,
     ));
     draft.arena_mut().get_body_mut(body).unwrap().add_lump(lump);
-    draft.arena_mut().get_lump_mut(lump).unwrap().add_region(region);
-    draft.arena_mut().get_region_mut(region).unwrap().add_shell(shell);
+    draft
+        .arena_mut()
+        .get_lump_mut(lump)
+        .unwrap()
+        .add_region(region);
+    draft
+        .arena_mut()
+        .get_region_mut(region)
+        .unwrap()
+        .add_shell(shell);
     shell
 }
 
@@ -80,9 +84,7 @@ pub fn insert_test_solid_shell(draft: &mut MutableDraft) -> ShellId {
 /// manually. Newer validators count edges through `halfedge.edge()`, so these
 /// synthetic arenas must also create first-class `EdgeData` and assign each
 /// halfedge to the edge for its radial cycle.
-pub fn materialize_edge_entities_from_radials(
-    draft: &mut MutableDraft,
-) -> Result<(), KernelError> {
+pub fn materialize_edge_entities_from_radials(draft: &mut MutableDraft) -> Result<(), KernelError> {
     let halfedge_ids: Vec<HalfEdgeId> = draft.arena().iter_half_edges().map(|(id, _)| id).collect();
     let mut visited: std::collections::BTreeSet<u32> = std::collections::BTreeSet::new();
 

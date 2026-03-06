@@ -53,10 +53,22 @@ pub fn assert_geo_eq(a: f64, b: f64, policy: &ComparisonPolicy, context: &str) {
                scale:    {scale:.6e}",
             method = policy.method,
             abs_tol = policy.abs_tol,
-            abs_ok = if diff <= policy.abs_tol { "PASS" } else { "FAIL" },
-            rel_diff = if scale > 0.0 { diff / scale } else { f64::INFINITY },
+            abs_ok = if diff <= policy.abs_tol {
+                "PASS"
+            } else {
+                "FAIL"
+            },
+            rel_diff = if scale > 0.0 {
+                diff / scale
+            } else {
+                f64::INFINITY
+            },
             rel_tol = policy.rel_tol,
-            rel_ok = if diff <= policy.rel_tol * scale { "PASS" } else { "FAIL" },
+            rel_ok = if diff <= policy.rel_tol * scale {
+                "PASS"
+            } else {
+                "FAIL"
+            },
         );
     }
 }

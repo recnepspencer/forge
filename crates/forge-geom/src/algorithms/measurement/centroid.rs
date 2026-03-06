@@ -91,12 +91,12 @@ mod tests {
     fn centered_cube_centroid_at_origin() {
         let h = 1.0;
         let faces = vec![
-            vec![[-h,-h,-h], [h,-h,-h], [h,h,-h], [-h,h,-h]],
-            vec![[-h,-h,h], [-h,h,h], [h,h,h], [h,-h,h]],
-            vec![[-h,-h,-h], [-h,-h,h], [h,-h,h], [h,-h,-h]],
-            vec![[-h,h,-h], [h,h,-h], [h,h,h], [-h,h,h]],
-            vec![[-h,-h,-h], [-h,h,-h], [-h,h,h], [-h,-h,h]],
-            vec![[h,-h,-h], [h,-h,h], [h,h,h], [h,h,-h]],
+            vec![[-h, -h, -h], [h, -h, -h], [h, h, -h], [-h, h, -h]],
+            vec![[-h, -h, h], [-h, h, h], [h, h, h], [h, -h, h]],
+            vec![[-h, -h, -h], [-h, -h, h], [h, -h, h], [h, -h, -h]],
+            vec![[-h, h, -h], [h, h, -h], [h, h, h], [-h, h, h]],
+            vec![[-h, -h, -h], [-h, h, -h], [-h, h, h], [-h, -h, h]],
+            vec![[h, -h, -h], [h, -h, h], [h, h, h], [h, h, -h]],
         ];
         let c = polyhedron_centroid(&faces).expect("should not be degenerate");
         for axis in 0..3 {
@@ -111,12 +111,42 @@ mod tests {
         let cz = 7.0;
         let h = 1.0;
         let faces = vec![
-            vec![[cx-h,cy-h,cz-h], [cx+h,cy-h,cz-h], [cx+h,cy+h,cz-h], [cx-h,cy+h,cz-h]],
-            vec![[cx-h,cy-h,cz+h], [cx-h,cy+h,cz+h], [cx+h,cy+h,cz+h], [cx+h,cy-h,cz+h]],
-            vec![[cx-h,cy-h,cz-h], [cx-h,cy-h,cz+h], [cx+h,cy-h,cz+h], [cx+h,cy-h,cz-h]],
-            vec![[cx-h,cy+h,cz-h], [cx+h,cy+h,cz-h], [cx+h,cy+h,cz+h], [cx-h,cy+h,cz+h]],
-            vec![[cx-h,cy-h,cz-h], [cx-h,cy+h,cz-h], [cx-h,cy+h,cz+h], [cx-h,cy-h,cz+h]],
-            vec![[cx+h,cy-h,cz-h], [cx+h,cy-h,cz+h], [cx+h,cy+h,cz+h], [cx+h,cy+h,cz-h]],
+            vec![
+                [cx - h, cy - h, cz - h],
+                [cx + h, cy - h, cz - h],
+                [cx + h, cy + h, cz - h],
+                [cx - h, cy + h, cz - h],
+            ],
+            vec![
+                [cx - h, cy - h, cz + h],
+                [cx - h, cy + h, cz + h],
+                [cx + h, cy + h, cz + h],
+                [cx + h, cy - h, cz + h],
+            ],
+            vec![
+                [cx - h, cy - h, cz - h],
+                [cx - h, cy - h, cz + h],
+                [cx + h, cy - h, cz + h],
+                [cx + h, cy - h, cz - h],
+            ],
+            vec![
+                [cx - h, cy + h, cz - h],
+                [cx + h, cy + h, cz - h],
+                [cx + h, cy + h, cz + h],
+                [cx - h, cy + h, cz + h],
+            ],
+            vec![
+                [cx - h, cy - h, cz - h],
+                [cx - h, cy + h, cz - h],
+                [cx - h, cy + h, cz + h],
+                [cx - h, cy - h, cz + h],
+            ],
+            vec![
+                [cx + h, cy - h, cz - h],
+                [cx + h, cy - h, cz + h],
+                [cx + h, cy + h, cz + h],
+                [cx + h, cy + h, cz - h],
+            ],
         ];
         let c = polyhedron_centroid(&faces).expect("should not be degenerate");
         assert!((c[0] - cx).abs() < 1e-14, "x: {}", c[0]);

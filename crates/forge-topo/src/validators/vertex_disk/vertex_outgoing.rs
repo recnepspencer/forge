@@ -24,25 +24,28 @@ pub(crate) fn validate_vertex_outgoing(arena: &TopologyArena) -> Result<(), Kern
 
         let mut covered = BTreeSet::new();
         for &entry in &entries {
-            let entry_data = arena.get_half_edge(entry).map_err(|_| KernelError::TopologyViolation {
-                err: forge_core::TopologyError::BrokenLoop {
-                    starting_halfedge: entry.index(),
-                    face_index: 0,
-                },
-                context: Some(forge_core::ErrorContext {
-                    scope: forge_core::ErrorScope::Entity {
-                        entity_kind: "Vertex".to_string(),
-                        index: vid.index(),
-                    },
-                    suggested_fixes: Vec::new(),
-                    detail: format!(
-                        "Vertex {} disk entry {}(gen{}) is stale/deleted",
-                        vid.index(),
-                        entry.index(),
-                        entry.generation()
-                    ),
-                }),
-            })?;
+            let entry_data =
+                arena
+                    .get_half_edge(entry)
+                    .map_err(|_| KernelError::TopologyViolation {
+                        err: forge_core::TopologyError::BrokenLoop {
+                            starting_halfedge: entry.index(),
+                            face_index: 0,
+                        },
+                        context: Some(forge_core::ErrorContext {
+                            scope: forge_core::ErrorScope::Entity {
+                                entity_kind: "Vertex".to_string(),
+                                index: vid.index(),
+                            },
+                            suggested_fixes: Vec::new(),
+                            detail: format!(
+                                "Vertex {} disk entry {}(gen{}) is stale/deleted",
+                                vid.index(),
+                                entry.index(),
+                                entry.generation()
+                            ),
+                        }),
+                    })?;
 
             if entry_data.origin() != vid {
                 return Err(KernelError::TopologyViolation {

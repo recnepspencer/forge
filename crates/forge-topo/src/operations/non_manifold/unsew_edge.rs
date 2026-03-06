@@ -14,11 +14,10 @@ use forge_core::{ErrorContext, ErrorScope, KernelError, TopologyError};
 
 use crate::b_rep::EdgeData;
 use crate::handles::{EdgeId, HalfEdgeId};
+use crate::operator::TopoOperator;
 use crate::operator::{EulerDelta, ExecutionResult};
 use crate::transactions::MutableDraft;
-use crate::operator::TopoOperator;
 use crate::validators::invariant_id::InvariantContract;
-
 
 /// Open a boundary by ungluing two halfedges, creating a new edge entity.
 ///
@@ -45,16 +44,22 @@ impl TopoOperator for UnsewEdge {
 
     const NAME: &'static str = "unsew_edge";
 
-    const INVARIANT_CONTRACT: InvariantContract = crate::validators::contract_registry::RADIAL_SPLICE;
+    const INVARIANT_CONTRACT: InvariantContract =
+        crate::validators::contract_registry::RADIAL_SPLICE;
 
     fn semantic_summary(&self) -> String {
         format!(
             "Unsew halfedges {} and {} into separate boundary edges",
-            self.he_a.index(), self.he_b.index()
+            self.he_a.index(),
+            self.he_b.index()
         )
     }
 
-    fn execute(&self, draft: &mut MutableDraft, _recorder: &mut crate::provenance::LineageRecorder) -> Result<ExecutionResult<Self::Output>, KernelError> {
+    fn execute(
+        &self,
+        draft: &mut MutableDraft,
+        _recorder: &mut crate::provenance::LineageRecorder,
+    ) -> Result<ExecutionResult<Self::Output>, KernelError> {
         let op_name = Self::NAME.to_string();
         let inv_id = 0u64;
 
@@ -85,22 +90,26 @@ impl TopoOperator for UnsewEdge {
             prev_radial = draft.arena().get_half_edge(prev_radial)?.radial_next();
         }
         let he_b_next_radial = draft.arena().get_half_edge(self.he_b)?.radial_next();
-        
-        draft
-            .arena_mut()
-            .get_half_edge_mut(prev_radial)?
-            .set_radial_next(he_b_next_radial);
 
         draft
             .arena_mut()
-            .get_half_edge_mut(self.he_b)?
-            .set_radial_next(self.he_b);
+            .set_half_edge_radial_next(prev_radial, he_b_next_radial)?;
+
+        draft
+            .arena_mut()
+            .set_half_edge_radial_next(self.he_b, self.he_b)?;
 
         // 2. Point he_b to the new edge
         draft
             .arena_mut()
             .get_half_edge_mut(self.he_b)?
             .set_edge(new_edge);
+        draft
+            .arena_mut()
+            .refresh_cached_radial_valence_for_ring(self.he_a)?;
+        draft
+            .arena_mut()
+            .refresh_cached_radial_valence_for_ring(self.he_b)?;
 
         if draft.arena().get_edge(original_edge)?.half_edge() == self.he_b {
             draft
@@ -115,16 +124,7 @@ impl TopoOperator for UnsewEdge {
         for &v in &[v1, v2] {
             let entries = crate::queries::vertex_disks::rebuild_disk_entries(draft.arena(), v)?;
             if let Some((&first, rest)) = entries.split_first() {
-                let arena = draft.arena_mut();
-                arena.get_vertex_mut(v)?.set_primary_disk(first);
-                arena.nmt_extra_disks.remove(&v);
-                let idx = v.index() as usize;
-                if idx < arena.vertex_is_nmt.len() {
-                    arena.vertex_is_nmt[idx] = false;
-                }
-                for &he in rest {
-                    arena.add_disk_entry(v, he);
-                }
+                draft.arena_mut().reset_disk_entries(v, first, rest)?;
             }
         }
 
@@ -150,57 +150,57 @@ impl TopoOperator for UnsewEdge {
             },
         })
     }
-
-
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::b_rep::ShellKind;
     use super::UnsewEdge;
-    use crate::transactions::TopologyState;
+    use crate::b_rep::ShellKind;
     use crate::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
-    use crate::operations::non_manifold::sew_edge::SewEdge;
     use crate::operations::entity_lifecycle::split_edge::SplitEdge;
+    use crate::operations::non_manifold::sew_edge::SewEdge;
     use crate::operator::TopoOperator;
+    use crate::transactions::TopologyState;
 
     #[test]
     fn unsew_edge_separates_glued_boundaries() {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
 
         let he_v0_v1 = mvf.half_edge;
         let he_v1_v0 = se.he_mb;
 
         // Sew them first
-        let sew_res = draft.execute(
-            SewEdge {
+        let sew_res = draft
+            .execute(SewEdge {
                 he_a: he_v0_v1,
                 he_b: he_v1_v0,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
         assert_eq!(draft.arena().edge_count(), 1);
 
         // Now unsew
-        let unsew_res = draft.execute(
-            UnsewEdge {
+        let unsew_res = draft
+            .execute(UnsewEdge {
                 he_a: he_v0_v1,
                 he_b: he_v1_v0,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
 
         // Assert final state
         let he_a_data = draft.arena().get_half_edge(he_v0_v1).unwrap();
@@ -225,25 +225,27 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
 
         let he_v0_v1 = mvf.half_edge;
         let he_v1_v0 = se.he_mb;
 
         // Try unsewing them before they are sewn
-        let res = draft.execute(
-            UnsewEdge {
-                he_a: he_v0_v1,
-                he_b: he_v1_v0,
-            },
-        );
+        let res = draft.execute(UnsewEdge {
+            he_a: he_v0_v1,
+            he_b: he_v1_v0,
+        });
         assert!(matches!(
             res.unwrap_err(),
             forge_core::KernelError::TopologyViolation {

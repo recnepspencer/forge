@@ -1,9 +1,9 @@
 //! Geometric fidelity tests — vertex positions and symbolic planes.
 
 // use crate::context::ModelingContext;
+use super::test_config;
 use crate::geometry::facade::GeometryView;
 use crate::operations::primitives::make_cube;
-use super::test_config;
 
 #[test]
 fn cube_vertex_positions_are_corners() {
@@ -35,9 +35,12 @@ fn cube_vertices_have_symbolic_planes() {
     let r = res.get_value();
     for (vid, _) in r.topology().arena().iter_vertices() {
         assert!(
-            r.geometry().get_vertex_exact(vid)
-                .and_then(|ep| ep.symbolic_planes()).is_some(),
-            "V#{} should have symbolic plane indices", vid.index()
+            r.geometry()
+                .get_vertex_exact(vid)
+                .and_then(|ep| ep.symbolic_planes())
+                .is_some(),
+            "V#{} should have symbolic plane indices",
+            vid.index()
         );
     }
 }
@@ -58,7 +61,9 @@ fn cube_offset_vertex_positions_correct() {
             assert!(
                 (offset - hs).abs() < 1e-10,
                 "V#{}: coord[{i}]={} should be {}±{hs}",
-                vid.index(), pos[i], c
+                vid.index(),
+                pos[i],
+                c
             );
         }
     }

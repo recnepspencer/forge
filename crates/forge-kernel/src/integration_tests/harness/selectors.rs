@@ -15,10 +15,10 @@
 //! `geometry::logic::measurements`.
 
 use forge_core::KernelError;
-use forge_topo::handles::{FaceId, EdgeId, VertexId};
+use forge_topo::handles::{EdgeId, FaceId, VertexId};
 
 use crate::engine::facade::SolidEnvelope;
-use crate::geometry::facade::{GeometryView, edge_length};
+use crate::geometry::facade::{edge_length, GeometryView};
 
 /// Create a selector for querying entities in a `SolidEnvelope`.
 pub fn select(env: &SolidEnvelope) -> Selector<'_> {
@@ -33,53 +33,75 @@ pub struct Selector<'a> {
 impl<'a> Selector<'a> {
     /// Start a face query.
     pub fn faces(&self) -> FaceQuery<'a> {
-        let all: Vec<FaceId> = self.env.topology().arena()
+        let all: Vec<FaceId> = self
+            .env
+            .topology()
+            .arena()
             .iter_faces()
             .map(|(fid, _)| fid)
             .collect();
-        FaceQuery { env: self.env, candidates: all }
+        FaceQuery {
+            env: self.env,
+            candidates: all,
+        }
     }
 
     /// Start an edge query.
     pub fn edges(&self) -> EdgeQuery<'a> {
-        let all: Vec<EdgeId> = self.env.topology().arena()
+        let all: Vec<EdgeId> = self
+            .env
+            .topology()
+            .arena()
             .iter_edges()
             .map(|(eid, _)| eid)
             .collect();
-        EdgeQuery { env: self.env, candidates: all }
+        EdgeQuery {
+            env: self.env,
+            candidates: all,
+        }
     }
 
     /// Start a vertex query.
     pub fn vertices(&self) -> VertexQuery<'a> {
-        let all: Vec<VertexId> = self.env.topology().arena()
+        let all: Vec<VertexId> = self
+            .env
+            .topology()
+            .arena()
             .iter_vertices()
             .map(|(vid, _)| vid)
             .collect();
-        VertexQuery { env: self.env, candidates: all }
+        VertexQuery {
+            env: self.env,
+            candidates: all,
+        }
     }
 
     /// Query edges of a specific face.
     pub fn edges_of(&self, face: FaceId) -> EdgeQuery<'a> {
         let arena = self.env.topology().arena();
         let hes = arena.halfedges_of_face(face);
-        let edges: Vec<EdgeId> = hes.iter()
-            .filter_map(|he_id| {
-                arena.get_half_edge(*he_id).ok().map(|he| he.edge())
-            })
+        let edges: Vec<EdgeId> = hes
+            .iter()
+            .filter_map(|he_id| arena.get_half_edge(*he_id).ok().map(|he| he.edge()))
             .collect();
-        EdgeQuery { env: self.env, candidates: edges }
+        EdgeQuery {
+            env: self.env,
+            candidates: edges,
+        }
     }
 
     /// Query vertices of a specific face.
     pub fn vertices_of(&self, face: FaceId) -> VertexQuery<'a> {
         let arena = self.env.topology().arena();
         let hes = arena.halfedges_of_face(face);
-        let verts: Vec<VertexId> = hes.iter()
-            .filter_map(|he_id| {
-                arena.get_half_edge(*he_id).ok().map(|he| he.origin())
-            })
+        let verts: Vec<VertexId> = hes
+            .iter()
+            .filter_map(|he_id| arena.get_half_edge(*he_id).ok().map(|he| he.origin()))
             .collect();
-        VertexQuery { env: self.env, candidates: verts }
+        VertexQuery {
+            env: self.env,
+            candidates: verts,
+        }
     }
 }
 
@@ -129,12 +151,13 @@ impl<'a> FaceQuery<'a> {
 
     /// Return the first match, or error if none.
     pub fn first(self) -> Result<FaceId, KernelError> {
-        self.candidates.first().copied().ok_or_else(|| {
-            KernelError::InvalidInput {
+        self.candidates
+            .first()
+            .copied()
+            .ok_or_else(|| KernelError::InvalidInput {
                 message: "Face selector matched 0 faces".to_string(),
                 context: None,
-            }
-        })
+            })
     }
 
     /// Return the count of matching faces.
@@ -156,10 +179,8 @@ impl<'a> EdgeQuery<'a> {
     pub fn where_length_above(mut self, min_length: f64) -> Self {
         let arena = self.env.topology().arena();
         let geom = self.env.geometry();
-        self.candidates.retain(|&eid| {
-            edge_length(arena, geom, eid)
-                .map_or(false, |len| len > min_length)
-        });
+        self.candidates
+            .retain(|&eid| edge_length(arena, geom, eid).map_or(false, |len| len > min_length));
         self
     }
 
@@ -168,8 +189,7 @@ impl<'a> EdgeQuery<'a> {
         let arena = self.env.topology().arena();
         let geom = self.env.geometry();
         self.candidates.retain(|&eid| {
-            edge_length(arena, geom, eid)
-                .map_or(false, |len| len >= min && len <= max)
+            edge_length(arena, geom, eid).map_or(false, |len| len >= min && len <= max)
         });
         self
     }

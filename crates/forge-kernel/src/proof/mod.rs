@@ -15,6 +15,6 @@ pub mod region_extractor;
 
 // Invariant step implementations (moved from operations/steps/)
 pub(crate) mod detect_slivers;
-pub(crate) mod validate_manifold;
 #[cfg(test)]
 mod tests;
+pub(crate) mod validate_manifold;

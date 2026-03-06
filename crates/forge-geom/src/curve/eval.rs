@@ -100,7 +100,8 @@ impl CurveKind {
                     (p1[0] - p0[0]) / dt,
                     (p1[1] - p0[1]) / dt,
                     (p1[2] - p0[2]) / dt,
-                ]).unwrap_or([0.0; 3])
+                ])
+                .unwrap_or([0.0; 3])
             }
         }
     }
@@ -151,8 +152,6 @@ fn evaluate_bspline_point(
         p0[2] + frac * (p1[2] - p0[2]),
     ]
 }
-
-
 
 #[cfg(test)]
 mod tests {

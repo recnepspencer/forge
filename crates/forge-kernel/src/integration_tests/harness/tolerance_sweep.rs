@@ -4,8 +4,8 @@
 //! to catch tolerance-boundary bugs — operations that work at 1e-6
 //! but fail at 1e-10 because a comparison flips.
 
-use forge_core::KernelError;
 use crate::configuration::facade::ResolvedConfig;
+use forge_core::KernelError;
 
 use super::builders::configs::config_with_spatial_tolerance;
 

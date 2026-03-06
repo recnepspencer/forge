@@ -17,7 +17,6 @@ use forge_core::{
 use crate::configuration::facade::ConfigScope;
 use crate::context::state::ModelingContext;
 
-
 use super::policy_decision::{ResolvedPolicyDecision, ResolvedPolicySource};
 
 impl ModelingContext {

@@ -81,8 +81,7 @@ pub trait ClassificationCodec {
 ///
 /// Each operation provides its own implementation. For example, boolean
 /// captures `BooleanInput` and calls `execute_boolean_with_overrides`.
-pub type ReplayFn<'a> =
-    dyn Fn(&[(DecisionId, String)]) -> Result<ReplayOutcome, KernelError> + 'a;
+pub type ReplayFn<'a> = dyn Fn(&[(DecisionId, String)]) -> Result<ReplayOutcome, KernelError> + 'a;
 
 /// Replay an operation with a single classification override.
 ///
@@ -106,17 +105,16 @@ pub fn replay_decision(
         })?
         .clone();
 
-    let original_label =
-        codec
-            .parse_classification(&original_decision)
-            .ok_or_else(|| KernelError::InvalidInput {
-                message: format!(
-                    "Decision {:?} is not a {} classification decision",
-                    target_id,
-                    codec.scheme_name()
-                ),
-                context: None,
-            })?;
+    let original_label = codec
+        .parse_classification(&original_decision)
+        .ok_or_else(|| KernelError::InvalidInput {
+            message: format!(
+                "Decision {:?} is not a {} classification decision",
+                target_id,
+                codec.scheme_name()
+            ),
+            context: None,
+        })?;
 
     let flipped_label = codec.flip_classification(&original_label);
     let overrides = vec![(target_id, flipped_label.clone())];
@@ -130,8 +128,7 @@ pub fn replay_decision(
             let face_diff =
                 (cf_face_count as i64 - original_face_count as i64).unsigned_abs() as usize;
 
-            let valid =
-                validate_topology(outcome.get_topology().arena(), ValidationLevel::Full);
+            let valid = validate_topology(outcome.get_topology().arena(), ValidationLevel::Full);
             let validation = match valid {
                 Ok(()) => {
                     if cf_hash != original_hash {
@@ -203,16 +200,19 @@ pub fn replay_all_near_boundary(
                 decision.get_tier(),
                 1.0 - decision.get_margin(),
             );
-            replay_decision(replay_fn, codec, original_log, original_hash, &override_spec)
+            replay_decision(
+                replay_fn,
+                codec,
+                original_log,
+                original_hash,
+                &override_spec,
+            )
         })
         .collect()
 }
 
 /// Count the classification decisions in a log (used to estimate original entity counts).
-fn count_classification_decisions(
-    log: &DecisionLog,
-    codec: &dyn ClassificationCodec,
-) -> usize {
+fn count_classification_decisions(log: &DecisionLog, codec: &dyn ClassificationCodec) -> usize {
     log.decisions()
         .filter(|d| codec.parse_classification(d).is_some())
         .count()

@@ -12,13 +12,12 @@
 //! DEPENDENCIES: forge-core (KernelError, DecisionSink), context (OperationScope),
 //! step_contract (StepContract, StepAuditEntry, OperationAuditRecord)
 
-use forge_core::KernelError;
 use forge_core::tracing::DecisionSink;
+use forge_core::KernelError;
 
 use super::step_contract::{OperationAuditRecord, StepAuditEntry, StepContract};
 use crate::configuration::facade::ResolvedConfig;
 use crate::context::scope::OperationScope;
-
 
 /// Sequential operation pipeline with step-scoped audit.
 ///

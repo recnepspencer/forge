@@ -12,12 +12,12 @@ use std::collections::BTreeSet;
 
 use forge_core::KernelError;
 
+use crate::b_rep::EntityBitset;
 use crate::b_rep::TopologyArena;
 use crate::handles::{FaceId, HalfEdgeId, VertexId};
-use crate::transactions::MutableDraft;
-use crate::b_rep::EntityBitset;
 use crate::operations::boundary_editing::join_faces::JoinFaces;
 use crate::queries::traverse::FaceAllEdgesIterator;
+use crate::transactions::MutableDraft;
 
 /// Walk the boundary perimeter of a face group and collect perimeter vertices.
 ///
@@ -333,9 +333,9 @@ fn advance_to_group_boundary(
 
 #[cfg(test)]
 mod tests {
-    use crate::b_rep::ShellKind;
     use super::merge_face_group_by_join_faces;
     use crate::b_rep::EntityBitset;
+    use crate::b_rep::ShellKind;
     use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::entity_lifecycle::split_edge::SplitEdge;
@@ -346,23 +346,26 @@ mod tests {
         let state = TopologyState::empty();
         let mut draft = state.into_mutation();
 
-        let mvf = draft.execute(MakeVertexFace { shell_kind: ShellKind::Sheet }).unwrap().into_value();
-        let se = draft.execute(
-            SplitEdge {
+        let mvf = draft
+            .execute(MakeVertexFace {
+                shell_kind: ShellKind::Sheet,
+            })
+            .unwrap()
+            .into_value();
+        let se = draft
+            .execute(SplitEdge {
                 edge: mvf.half_edge,
-            },
-        )
-        .unwrap()
-        .into_value();
-        let mef = draft.execute(
-            MakeEdgeFace {
+            })
+            .unwrap()
+            .into_value();
+        let mef = draft
+            .execute(MakeEdgeFace {
                 vertex_a: mvf.vertex,
                 vertex_b: se.new_vertex,
                 face: mvf.face,
-            },
-        )
-        .unwrap()
-        .into_value();
+            })
+            .unwrap()
+            .into_value();
 
         let mut group = EntityBitset::for_faces(draft.arena());
         group

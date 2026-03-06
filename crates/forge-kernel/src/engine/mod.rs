@@ -24,11 +24,11 @@
 //! ```
 
 mod contracts;
-mod pipeline;
+mod feature_tree;
 mod operation_space;
 mod output;
+mod pipeline;
 pub(crate) mod transaction;
-mod feature_tree;
 
 // Re-export contract types at stable crate paths for the `declare_feature!` macro.
 // The macro expands in caller scope and references `$crate::engine::contract::*`,
