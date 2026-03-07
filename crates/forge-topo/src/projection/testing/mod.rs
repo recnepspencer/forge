@@ -1,4 +1,9 @@
 mod container;
 mod face_construction;
+mod hole_editing;
+mod join_faces;
+mod loop_construction;
+mod loop_merge_split;
 mod parity;
 mod queries;
+mod radial_splice;

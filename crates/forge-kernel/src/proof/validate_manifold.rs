@@ -10,13 +10,25 @@
 //! INVARIANTS: No mutation — read-only validation.
 
 use forge_core::{KernelError, ToleranceProvider};
+use forge_spec::facade::SpecState;
 use forge_topo::handles::VertexId;
+use forge_topo::projection::ProjectionBuilder;
 use forge_topo::transactions::TopologyState;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
 /// Validate topology (structural invariants).
 pub fn validate_structure(topo: &TopologyState, level: ValidationLevel) -> Result<(), KernelError> {
     validate_topology(topo.arena(), level)
+}
+
+/// Validate graph-native spec truth by ensuring it materializes to a valid projected topology.
+pub fn validate_spec_structure(spec: &SpecState) -> Result<(), KernelError> {
+    ProjectionBuilder::build(spec)
+        .map(|_| ())
+        .map_err(|error| KernelError::InvalidInput {
+            message: format!("Spec projection failed: {}", error),
+            context: None,
+        })
 }
 
 /// Validate geometry (spatial invariants) using a `GeometryContext`.

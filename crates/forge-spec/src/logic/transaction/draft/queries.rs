@@ -122,6 +122,16 @@ impl SpecDraft {
         count
     }
 
+    pub(crate) fn current_node_count(&self) -> usize {
+        let base_count = self
+            .base
+            .graph()
+            .iter_nodes()
+            .filter(|node| !self.deleted_nodes.contains(&node.id))
+            .count();
+        base_count + self.created_nodes.len()
+    }
+
     pub(super) fn current_outgoing_of_kind(
         &self,
         source: SpecNodeId,

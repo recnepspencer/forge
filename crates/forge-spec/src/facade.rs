@@ -13,16 +13,22 @@ pub use crate::data::schema::{GraphDomain, RelationCardinality, RelationKind, Sp
 pub use crate::data::snapshot::SpecState;
 pub use crate::logic::mutation::{MutationResult, SpecLineageRecorder, SpecMutation, TouchedDomain};
 pub use crate::logic::mutation::topology::{
-    DestroyBodyMutation, DestroyLumpMutation, DestroyShellMutation, KillEdgeVertexMutation,
-    KillFaceVertexMutation, KillShellFaceMutation, KillVertexEdgeMutation, KillVertexFaceMutation,
-    MakeEdgeFaceMutation, MakeEdgeFaceOutput, MakeEdgeVertexMutation, MakeEdgeVertexOutput,
-    MakeEmptyShellMutation, MakeEmptyShellOutput, MakeFaceFromVerticesMutation,
-    MakeFaceFromVerticesOutput, MakeFaceInShellFromVerticesMutation,
-    MakeFaceInShellFromVerticesOutput, MakeFaceVertexMutation, MakeFaceVertexOutput,
-    MakeIsolatedVertexMutation, MakeIsolatedVertexOutput, MakeLumpRegionMutation,
-    MakeLumpRegionOutput, MakeShellFaceMutation, MakeShellFaceOutput, MakeSolidMutation,
-    MakeSolidOutput, MakeVertexFaceMutation, MakeVertexFaceOutput, SplitEdgeMutation,
-    SplitEdgeOutput,
+    DestroyBodyMutation, DestroyLumpMutation, DestroyShellMutation, KillEdgeMakeLoopMutation,
+    KillEdgeMakeLoopOutput, KillEdgeVertexMutation, JoinFacesMutation, JoinFacesOutput,
+    KillFaceMakeRingHoleMutation,
+    KillFaceMakeRingHoleOutput, KillFaceVertexMutation, KillShellFaceMutation,
+    KillVertexEdgeMutation, KillVertexFaceMutation, MakeEdgeFaceMutation, MakeEdgeFaceOutput,
+    MakeEdgeKillLoopMutation, MakeEdgeKillLoopOutput, MakeEdgeVertexMutation,
+    MakeEdgeVertexOutput, MakeEmptyShellMutation, MakeEmptyShellOutput,
+    MakeFaceFromVerticesMutation, MakeFaceFromVerticesOutput,
+    MakeFaceInShellFromVerticesMutation, MakeFaceInShellFromVerticesOutput,
+    MakeFaceKillRingHoleMutation, MakeFaceKillRingHoleOutput, MakeFaceVertexMutation,
+    MakeFaceVertexOutput, MakeIsolatedVertexMutation, MakeIsolatedVertexOutput,
+    MakeLoopInFaceFromVerticesMutation, MakeLoopInFaceFromVerticesOutput,
+    MakeLumpRegionMutation, MakeLumpRegionOutput, MakeShellFaceMutation,
+    MakeShellFaceOutput, MakeSolidMutation, MakeSolidOutput, MakeVertexFaceMutation,
+    MakeVertexFaceOutput, SewEdgeMutation, SewEdgeOutput, SplitEdgeMutation,
+    SplitEdgeOutput, UnsewEdgeMutation, UnsewEdgeOutput,
 };
 pub use crate::logic::transaction::SpecDraft;
 pub use crate::logic::validation::validate_spec_graph;

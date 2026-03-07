@@ -13,7 +13,7 @@ use forge_spec::facade::SpecState;
 use forge_topo::projection::{
     ProjectedBodyId, ProjectedEdgeId, ProjectedFaceId, ProjectedHalfEdgeId, ProjectedLoopId,
     ProjectedLumpId, ProjectedRegionId, ProjectedShellId, ProjectedTopology, ProjectedTopologyError,
-    ProjectedVertexId, ProjectionBuilder, compute_projected_topology_hash,
+    ProjectedVertexId, ProjectedTopologyQueries, ProjectionBuilder, compute_projected_topology_hash,
 };
 
 use crate::geometry::facade::GeometryStore;
@@ -78,7 +78,7 @@ impl SpecEnvelope {
         self.projection
             .get_or_init(|| ProjectionBuilder::build(&self.spec))
             .as_ref()
-            .map_err(projected_topology_error_to_kernel)
+            .map_err(projected_topology_error_to_kernel_ref)
     }
 
     pub fn bodies(&self) -> Result<&[ProjectedBodyId], KernelError> {
@@ -185,6 +185,78 @@ impl SpecEnvelope {
         Ok(shells[0])
     }
 
+    pub fn face_loops(&self, face: ProjectedFaceId) -> Result<Vec<ProjectedLoopId>, KernelError> {
+        Ok(self.projection()?.face_loops(face))
+    }
+
+    pub fn shell_faces(&self, shell: ProjectedShellId) -> Result<Vec<ProjectedFaceId>, KernelError> {
+        Ok(self.projection()?.shell_faces(shell))
+    }
+
+    pub fn loop_half_edges(
+        &self,
+        loop_id: ProjectedLoopId,
+    ) -> Result<Vec<ProjectedHalfEdgeId>, KernelError> {
+        self.projection()?
+            .loop_half_edges(loop_id)
+            .map_err(projected_topology_error_to_kernel_owned)
+    }
+
+    pub fn face_half_edges(
+        &self,
+        face: ProjectedFaceId,
+    ) -> Result<Vec<ProjectedHalfEdgeId>, KernelError> {
+        self.projection()?
+            .face_half_edges(face)
+            .map_err(projected_topology_error_to_kernel_owned)
+    }
+
+    pub fn face_edges(&self, face: ProjectedFaceId) -> Result<Vec<ProjectedEdgeId>, KernelError> {
+        self.projection()?
+            .face_edges(face)
+            .map_err(projected_topology_error_to_kernel_owned)
+    }
+
+    pub fn radial_half_edges(
+        &self,
+        half_edge: ProjectedHalfEdgeId,
+    ) -> Result<Vec<ProjectedHalfEdgeId>, KernelError> {
+        Ok(self.projection()?.radial_half_edges(half_edge))
+    }
+
+    pub fn edge_half_edges(
+        &self,
+        edge: ProjectedEdgeId,
+    ) -> Result<Vec<ProjectedHalfEdgeId>, KernelError> {
+        Ok(self.projection()?.edge_half_edges(edge))
+    }
+
+    pub fn edge_faces(&self, edge: ProjectedEdgeId) -> Result<Vec<ProjectedFaceId>, KernelError> {
+        Ok(self.projection()?.edge_faces(edge))
+    }
+
+    pub fn radial_valence(&self, edge: ProjectedEdgeId) -> Result<usize, KernelError> {
+        Ok(self.projection()?.radial_valence(edge))
+    }
+
+    pub fn is_boundary_edge(&self, edge: ProjectedEdgeId) -> Result<bool, KernelError> {
+        Ok(self.projection()?.is_boundary_edge(edge))
+    }
+
+    pub fn vertex_outgoing_half_edges(
+        &self,
+        vertex: ProjectedVertexId,
+    ) -> Result<Vec<ProjectedHalfEdgeId>, KernelError> {
+        Ok(self.projection()?.vertex_outgoing_half_edges(vertex))
+    }
+
+    pub fn vertex_faces(
+        &self,
+        vertex: ProjectedVertexId,
+    ) -> Result<Vec<ProjectedFaceId>, KernelError> {
+        Ok(self.projection()?.vertex_faces(vertex))
+    }
+
     pub fn spec_fingerprint(&self) -> u128 {
         self.spec.spec_hash()
     }
@@ -213,12 +285,23 @@ where
     cell.get_or_init(|| Ok((0..count(projection) as u32).map(make_id).collect()))
         .as_ref()
         .map(|ids| ids.as_slice())
-        .map_err(projected_topology_error_to_kernel)
+        .map_err(projected_topology_error_to_kernel_ref)
 }
 
-fn projected_topology_error_to_kernel(error: &ProjectedTopologyError) -> KernelError {
+fn projected_topology_error_to_kernel(error: ProjectedTopologyError) -> KernelError {
     KernelError::InvalidInput {
         message: format!("Spec projection failed: {}", error),
         context: None,
     }
+}
+
+fn projected_topology_error_to_kernel_ref(error: &ProjectedTopologyError) -> KernelError {
+    KernelError::InvalidInput {
+        message: format!("Spec projection failed: {}", error),
+        context: None,
+    }
+}
+
+fn projected_topology_error_to_kernel_owned(error: ProjectedTopologyError) -> KernelError {
+    projected_topology_error_to_kernel(error)
 }
