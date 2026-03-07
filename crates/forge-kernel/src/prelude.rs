@@ -1,6 +1,7 @@
 pub use crate::context::facade::ModelingContext;
 pub use crate::engine::facade::FeatureTree;
 pub use crate::engine::facade::SolidEnvelope;
+pub use crate::engine::facade::SpecEnvelope;
 pub use crate::geometry::facade::GeometryStore;
 pub use crate::operations::facade::{
     execute_boolean, execute_boolean_direct, BooleanInput, BooleanOp, BooleanResult,

@@ -14,9 +14,12 @@ pub use crate::data::snapshot::SpecState;
 pub use crate::logic::mutation::{MutationResult, SpecLineageRecorder, SpecMutation, TouchedDomain};
 pub use crate::logic::mutation::topology::{
     DestroyBodyMutation, DestroyLumpMutation, DestroyShellMutation, KillEdgeVertexMutation,
-    KillFaceVertexMutation, KillShellFaceMutation, KillVertexFaceMutation, MakeEdgeFaceMutation,
-    MakeEdgeFaceOutput, MakeEdgeVertexMutation, MakeEdgeVertexOutput, MakeEmptyShellMutation,
-    MakeEmptyShellOutput, MakeFaceVertexMutation, MakeFaceVertexOutput, MakeLumpRegionMutation,
+    KillFaceVertexMutation, KillShellFaceMutation, KillVertexEdgeMutation, KillVertexFaceMutation,
+    MakeEdgeFaceMutation, MakeEdgeFaceOutput, MakeEdgeVertexMutation, MakeEdgeVertexOutput,
+    MakeEmptyShellMutation, MakeEmptyShellOutput, MakeFaceFromVerticesMutation,
+    MakeFaceFromVerticesOutput, MakeFaceInShellFromVerticesMutation,
+    MakeFaceInShellFromVerticesOutput, MakeFaceVertexMutation, MakeFaceVertexOutput,
+    MakeIsolatedVertexMutation, MakeIsolatedVertexOutput, MakeLumpRegionMutation,
     MakeLumpRegionOutput, MakeShellFaceMutation, MakeShellFaceOutput, MakeSolidMutation,
     MakeSolidOutput, MakeVertexFaceMutation, MakeVertexFaceOutput, SplitEdgeMutation,
     SplitEdgeOutput,

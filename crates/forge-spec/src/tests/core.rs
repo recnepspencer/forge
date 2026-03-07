@@ -153,6 +153,26 @@ fn split_edge_mutation_splits_seed_self_loop() {
 }
 
 #[test]
+fn kill_vertex_edge_mutation_restores_seed_after_split_edge() {
+    let mut draft = SpecState::empty().into_draft();
+    let seed = draft.execute(MakeVertexFaceMutation).unwrap();
+    let split = draft
+        .execute(SplitEdgeMutation {
+            half_edge: seed.value.half_edge,
+        })
+        .unwrap();
+    draft
+        .execute(KillVertexEdgeMutation {
+            vertex: split.value.new_vertex,
+        })
+        .unwrap();
+    let state = draft.commit().unwrap();
+
+    assert_eq!(state.graph().iter_nodes().count(), 9);
+    assert_eq!(state.graph().iter_relations().count(), 11);
+}
+
+#[test]
 fn make_edge_face_mutation_splits_seed_face_after_split_edge() {
     let mut draft = SpecState::empty().into_draft();
     let seed = draft.execute(MakeVertexFaceMutation).unwrap();

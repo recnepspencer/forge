@@ -1,4 +1,5 @@
 mod make_vertex_face;
+mod make_isolated_vertex;
 mod make_solid;
 mod destroy_body;
 mod make_lump_region;
@@ -7,6 +8,9 @@ mod make_empty_shell;
 mod destroy_shell;
 mod make_shell_face;
 mod make_face_vertex;
+mod make_face_in_shell_from_vertices;
+mod make_face_from_vertices;
+mod kill_vertex_edge;
 mod kill_shell_face;
 mod kill_face_vertex;
 mod kill_edge_vertex;
@@ -14,6 +18,7 @@ mod kill_vertex_face;
 mod make_edge_vertex;
 mod make_edge_face;
 mod split_edge;
+mod wire_face_cycle;
 
 pub use destroy_body::DestroyBodyMutation;
 pub use destroy_lump::DestroyLumpMutation;
@@ -21,9 +26,15 @@ pub use destroy_shell::DestroyShellMutation;
 pub use kill_face_vertex::KillFaceVertexMutation;
 pub use kill_edge_vertex::KillEdgeVertexMutation;
 pub use kill_shell_face::KillShellFaceMutation;
+pub use kill_vertex_edge::KillVertexEdgeMutation;
 pub use kill_vertex_face::KillVertexFaceMutation;
 pub use make_empty_shell::{MakeEmptyShellMutation, MakeEmptyShellOutput};
 pub use make_face_vertex::{MakeFaceVertexMutation, MakeFaceVertexOutput};
+pub use make_face_from_vertices::{MakeFaceFromVerticesMutation, MakeFaceFromVerticesOutput};
+pub use make_face_in_shell_from_vertices::{
+    MakeFaceInShellFromVerticesMutation, MakeFaceInShellFromVerticesOutput,
+};
+pub use make_isolated_vertex::{MakeIsolatedVertexMutation, MakeIsolatedVertexOutput};
 pub use make_lump_region::{MakeLumpRegionMutation, MakeLumpRegionOutput};
 pub use make_shell_face::{MakeShellFaceMutation, MakeShellFaceOutput};
 pub use make_solid::{MakeSolidMutation, MakeSolidOutput};

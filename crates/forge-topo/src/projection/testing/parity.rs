@@ -1,8 +1,8 @@
 use forge_spec::facade::{
     KillEdgeVertexMutation, KillFaceVertexMutation, KillShellFaceMutation,
-    KillVertexFaceMutation, MakeEdgeFaceMutation, MakeEdgeVertexMutation,
-    MakeFaceVertexMutation, MakeShellFaceMutation, MakeVertexFaceMutation, RelationKind,
-    SpecNodeKind, SpecState, SplitEdgeMutation,
+    KillVertexEdgeMutation, KillVertexFaceMutation, MakeEdgeFaceMutation,
+    MakeEdgeVertexMutation, MakeFaceVertexMutation, MakeShellFaceMutation,
+    MakeVertexFaceMutation, RelationKind, SpecNodeKind, SpecState, SplitEdgeMutation,
 };
 
 use crate::entity_lifecycle::make_edge_face::MakeEdgeFace;
@@ -10,6 +10,7 @@ use crate::entity_lifecycle::make_edge_vertex::MakeEdgeVertex;
 use crate::entity_lifecycle::kill_shell_face::KillShellFace;
 use crate::entity_lifecycle::kill_edge_vertex::KillEdgeVertex;
 use crate::entity_lifecycle::kill_face_vertex::KillFaceVertex;
+use crate::entity_lifecycle::kill_vertex_edge::KillVertexEdge;
 use crate::entity_lifecycle::kill_vertex_face::KillVertexFace;
 use crate::entity_lifecycle::make_face_vertex::MakeFaceVertex;
 use crate::entity_lifecycle::make_shell_face::MakeShellFace;
@@ -228,6 +229,27 @@ fn projected_seed_plus_edge_vertex_plus_kill_matches_legacy_arena_structural_sig
 }
 
 #[test]
+fn projected_seed_plus_split_edge_plus_kve_matches_legacy_arena_structural_signature() {
+    let legacy = build_legacy_mvf_split_edge_kve_state();
+    let projected = ProjectionBuilder::build(&build_seed_plus_split_edge_plus_kve_state())
+        .expect("spec-state MVF+SplitEdge+KVE projection should succeed");
+
+    let legacy_hash = compute_arena_topology_hash(legacy.arena());
+    let projected_hash = compute_projected_topology_hash(&projected);
+
+    assert_eq!(legacy_hash, projected_hash);
+    assert_eq!(projected.body_count(), legacy.arena().body_count() as usize);
+    assert_eq!(projected.lump_count(), legacy.arena().lump_count() as usize);
+    assert_eq!(projected.region_count(), legacy.arena().region_count() as usize);
+    assert_eq!(projected.shell_count(), legacy.arena().shell_count() as usize);
+    assert_eq!(projected.face_count(), legacy.arena().face_count() as usize);
+    assert_eq!(projected.loop_count(), legacy.arena().loop_count() as usize);
+    assert_eq!(projected.half_edge_count(), legacy.arena().half_edge_count() as usize);
+    assert_eq!(projected.edge_count(), legacy.arena().edge_count() as usize);
+    assert_eq!(projected.vertex_count(), legacy.arena().vertex_count() as usize);
+}
+
+#[test]
 fn projected_seed_plus_face_vertex_matches_legacy_arena_structural_signature() {
     let legacy = build_legacy_mvf_plus_mfv_state();
     let projected = ProjectionBuilder::build(&build_seed_plus_mfv_state())
@@ -340,6 +362,22 @@ fn build_seed_plus_split_edge_plus_mef_state() -> SpecState {
             face: seed.value.face,
             vertex_a: seed.value.vertex,
             vertex_b: split.value.new_vertex,
+        })
+        .unwrap();
+    draft.commit().unwrap()
+}
+
+fn build_seed_plus_split_edge_plus_kve_state() -> SpecState {
+    let mut draft = SpecState::empty().into_draft();
+    let seed = draft.execute(MakeVertexFaceMutation).unwrap();
+    let split = draft
+        .execute(SplitEdgeMutation {
+            half_edge: seed.value.half_edge,
+        })
+        .unwrap();
+    draft
+        .execute(KillVertexEdgeMutation {
+            vertex: split.value.new_vertex,
         })
         .unwrap();
     draft.commit().unwrap()
@@ -554,6 +592,30 @@ fn build_legacy_mvf_split_edge_mef_state() -> TopologyState {
     draft
         .commit()
         .expect("legacy MVF+SplitEdge+MEF commit should succeed")
+}
+
+fn build_legacy_mvf_split_edge_kve_state() -> TopologyState {
+    let mut draft = TopologyState::empty().into_mutation();
+    let seed = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .expect("legacy MVF should succeed")
+        .into_value();
+    let split = draft
+        .execute(SplitEdge {
+            edge: seed.half_edge,
+        })
+        .expect("legacy SplitEdge should succeed")
+        .into_value();
+    draft
+        .execute(KillVertexEdge {
+            vertex: split.new_vertex,
+        })
+        .expect("legacy KVE should succeed");
+    draft
+        .commit()
+        .expect("legacy MVF+SplitEdge+KVE commit should succeed")
 }
 
 fn build_legacy_mvf_plus_shell_face_state() -> TopologyState {
