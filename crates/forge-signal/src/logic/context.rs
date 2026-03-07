@@ -10,7 +10,7 @@
 //! DEPENDENCIES: `handles` (NodeId), `schema` (Aspect, DependencyEdge, AspectVersion),
 //!               `graph` (SignalGraph)
 
-use forge_core::KernelError;
+use crate::data::error::SignalError;
 
 use crate::data::aspect::{Aspect, AspectVersion};
 use crate::data::dependency::DependencyEdge;
@@ -62,7 +62,7 @@ impl EvaluationContext {
         graph: &SignalGraph,
         signal: NodeId,
         aspect: Aspect,
-    ) -> Result<AspectVersion, KernelError> {
+    ) -> Result<AspectVersion, SignalError> {
         let edge = DependencyEdge::new(signal, aspect);
 
         let already_recorded = self

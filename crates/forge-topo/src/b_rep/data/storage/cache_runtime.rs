@@ -5,7 +5,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use forge_core::KernelError;
 use forge_signal::facade::{
     BatchedDirtySet, CheckpointBarrier, CheckpointEvaluator, CheckpointPolicy, CheckpointRuntime,
-    DomainImpact, EffectMapping,
+    DomainImpact, EffectMapping, SignalError,
 };
 use smallvec::{smallvec, SmallVec};
 
@@ -199,7 +199,7 @@ impl CheckpointEvaluator for TopoCacheEvaluator {
         domain: Self::Domain,
         impact: DomainImpact<Self::Impact>,
         arena: &mut Self::Context,
-    ) -> Result<(), KernelError> {
+    ) -> Result<(), SignalError> {
         let impact_kind = if impact.is_global() {
             DomainImpactKind::Global
         } else {
@@ -210,7 +210,7 @@ impl CheckpointEvaluator for TopoCacheEvaluator {
         match domain {
             TopoCacheDomain::RadialValence => {
                 if impact.is_global() {
-                    arena.rebuild_cached_radial_valence()?;
+                    arena.rebuild_cached_radial_valence().map_err(kernel_to_signal)?;
                 } else {
                     let mut seeds = BTreeSet::new();
                     for target in &scoped_targets {
@@ -223,14 +223,16 @@ impl CheckpointEvaluator for TopoCacheEvaluator {
                     }
                     for he in seeds {
                         if arena.get_half_edge(he).is_ok() {
-                            arena.refresh_cached_radial_valence_for_ring(he)?;
+                            arena
+                                .refresh_cached_radial_valence_for_ring(he)
+                                .map_err(kernel_to_signal)?;
                         }
                     }
                 }
             }
             TopoCacheDomain::FaceHalfedges => {
                 if impact.is_global() {
-                    arena.rebuild_face_halfedge_index()?;
+                    arena.rebuild_face_halfedge_index().map_err(kernel_to_signal)?;
                 } else {
                     let mut faces = BTreeSet::new();
                     for target in &scoped_targets {
@@ -243,7 +245,9 @@ impl CheckpointEvaluator for TopoCacheEvaluator {
                     }
                     for face in faces {
                         if arena.get_face(face).is_ok() {
-                            arena.rebuild_face_halfedges_for_face(face)?;
+                            arena
+                                .rebuild_face_halfedges_for_face(face)
+                                .map_err(kernel_to_signal)?;
                         } else {
                             arena.remove_face_halfedge_index_entry(face);
                         }
@@ -252,7 +256,9 @@ impl CheckpointEvaluator for TopoCacheEvaluator {
             }
             TopoCacheDomain::VertexHalfedges => {
                 if impact.is_global() {
-                    arena.rebuild_vertex_halfedge_index()?;
+                    arena
+                        .rebuild_vertex_halfedge_index()
+                        .map_err(kernel_to_signal)?;
                 } else {
                     let mut vertices = BTreeSet::new();
                     for target in &scoped_targets {
@@ -265,7 +271,9 @@ impl CheckpointEvaluator for TopoCacheEvaluator {
                     }
                     for vertex in vertices {
                         if arena.get_vertex(vertex).is_ok() {
-                            arena.rebuild_vertex_halfedges_for_vertex(vertex)?;
+                            arena
+                                .rebuild_vertex_halfedges_for_vertex(vertex)
+                                .map_err(kernel_to_signal)?;
                         } else {
                             arena.remove_vertex_halfedge_index_entry(vertex);
                         }
@@ -274,7 +282,7 @@ impl CheckpointEvaluator for TopoCacheEvaluator {
             }
             TopoCacheDomain::ShellFaces => {
                 if impact.is_global() {
-                    arena.rebuild_shell_face_index()?;
+                    arena.rebuild_shell_face_index().map_err(kernel_to_signal)?;
                 } else {
                     let mut shells = BTreeSet::new();
                     for target in &scoped_targets {
@@ -287,7 +295,9 @@ impl CheckpointEvaluator for TopoCacheEvaluator {
                     }
                     for shell in shells {
                         if arena.get_shell(shell).is_ok() {
-                            arena.rebuild_shell_faces_for_shell(shell)?;
+                            arena
+                                .rebuild_shell_faces_for_shell(shell)
+                                .map_err(kernel_to_signal)?;
                         } else {
                             arena.remove_shell_face_index_entry(shell);
                         }
@@ -303,6 +313,17 @@ impl CheckpointEvaluator for TopoCacheEvaluator {
             targets: scoped_targets,
         });
         Ok(())
+    }
+}
+
+fn kernel_to_signal(err: KernelError) -> SignalError {
+    SignalError::internal(err.to_string())
+}
+
+fn signal_to_kernel(err: SignalError) -> KernelError {
+    KernelError::InternalError {
+        message: format!("signal runtime error: {err}"),
+        context: None,
     }
 }
 
@@ -444,6 +465,7 @@ impl TopoCacheRuntime {
         let mut evaluator = TopoCacheEvaluator::new(checkpoint);
         self.runtime
             .flush(checkpoint, &mut evaluator, arena)
+            .map_err(signal_to_kernel)
             .map(|_| ())?;
 
         for item in &evaluator.trace {
@@ -463,6 +485,7 @@ impl TopoCacheRuntime {
         let mut evaluator = TopoCacheEvaluator::new(CheckpointBarrier::OnDemandRead);
         self.runtime
             .ensure_fresh(domain, &mut evaluator, arena)
+            .map_err(signal_to_kernel)
             .map(|_| ())?;
 
         for item in &evaluator.trace {

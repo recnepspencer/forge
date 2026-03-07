@@ -1,5 +1,5 @@
 use forge_core::KernelError;
-use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SubscriberId};
+use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SignalError, SubscriberId};
 
 use crate::transactions::data::operation_event::{TopoOperationEvent, TopoSubscriberDataId};
 use crate::transactions::data::operation_outputs::ValidationSummary;
@@ -8,7 +8,7 @@ use crate::validators::invariant_id::{
 };
 use forge_core::ValidationCheckpoint;
 
-use super::stage_output_value;
+use super::{kernel_to_signal, stage_output_value};
 
 #[derive(Debug, Default)]
 pub(crate) struct InvariantSubscriber {
@@ -71,7 +71,7 @@ impl EventSubscriber for InvariantSubscriber {
         barrier: CheckpointBarrier,
         ctx: &mut SubscriberContext<TopoSubscriberDataId>,
         runtime: &mut Self::RuntimeContext,
-    ) -> Result<(), KernelError> {
+    ) -> Result<(), SignalError> {
         if barrier != CheckpointBarrier::PerOperation {
             return Ok(());
         }
@@ -129,14 +129,14 @@ impl EventSubscriber for InvariantSubscriber {
             if let Err(e) = check_result {
                 let op_name = self.op_name.unwrap_or("<unknown-op>");
                 let invocation = self.invocation_id.map(|v| v.get()).unwrap_or(0);
-                return Err(
+                return Err(kernel_to_signal(
                     e.ensure_operation_context(
                         op_name,
                         invocation,
                         &format!("Invariant {:?} violated after {}", id, op_name),
                     )
                     .with_phase(&format!("invariant_check({:?})", id)),
-                );
+                ));
             }
         }
         stage_output_value(

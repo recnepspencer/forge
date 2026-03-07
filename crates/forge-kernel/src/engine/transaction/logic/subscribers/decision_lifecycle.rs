@@ -4,8 +4,7 @@ use crate::engine::transaction::data::feature_event::KernelFeatureEvent;
 use crate::engine::transaction::data::operation_outputs::DecisionDrainOutput;
 use crate::engine::transaction::data::subscriber_data_id::KernelSubscriberDataId;
 use crate::engine::transaction::logic::feature_event_runtime::FeatureEventRuntimeContext;
-use forge_core::KernelError;
-use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SubscriberId};
+use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SignalError, SubscriberId};
 
 use super::stage_output_value;
 
@@ -53,7 +52,7 @@ impl EventSubscriber for DecisionLifecycleSubscriber {
         barrier: CheckpointBarrier,
         ctx: &mut SubscriberContext<Self::DataId>,
         runtime: &mut Self::RuntimeContext,
-    ) -> Result<(), KernelError> {
+    ) -> Result<(), SignalError> {
         if barrier != CheckpointBarrier::PerOperation {
             return Ok(());
         }

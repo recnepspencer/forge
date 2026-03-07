@@ -63,7 +63,7 @@ kernel-check:
 test: kernel-test ui-test
 
 .PHONY: check
-check: kernel-check ui-check determinism-guards determinism-golden
+check: kernel-check ui-check determinism-guards determinism-golden signal-runtime-guards
 
 # ── Trace tooling ─────────────────────────────────────────────────────────────
 
@@ -86,6 +86,10 @@ determinism-guards:
 .PHONY: determinism-golden
 determinism-golden:
 	bash scripts/ci/check_determinism_golden.sh
+
+.PHONY: signal-runtime-guards
+signal-runtime-guards:
+	bash scripts/ci/check_signal_runtime_guards.sh
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 

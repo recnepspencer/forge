@@ -1,5 +1,5 @@
 use forge_core::{EntityKind, KernelError};
-use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SubscriberId};
+use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SignalError, SubscriberId};
 
 use crate::transactions::data::mutation_journal::EntityKindCounts;
 use crate::transactions::data::operation_event::{TopoOperationEvent, TopoSubscriberDataId};
@@ -80,7 +80,7 @@ impl EventSubscriber for JournalSubscriber {
         barrier: CheckpointBarrier,
         ctx: &mut SubscriberContext<TopoSubscriberDataId>,
             _runtime: &mut Self::RuntimeContext,
-    ) -> Result<(), KernelError> {
+    ) -> Result<(), SignalError> {
         if barrier != CheckpointBarrier::PerOperation {
             return Ok(());
         }

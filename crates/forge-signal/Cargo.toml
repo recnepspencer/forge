@@ -6,9 +6,9 @@ license.workspace = true
 description = "Reactive signal graph for the Forge geometry kernel"
 
 [dependencies]
-forge-core.workspace = true
 tracing.workspace = true
 serde = { workspace = true, features = ["derive"] }
+smallvec = { workspace = true, features = ["serde"] }
 
 [lints]
 workspace = true

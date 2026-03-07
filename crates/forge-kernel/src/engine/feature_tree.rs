@@ -17,9 +17,7 @@ use serde::{Deserialize, Serialize};
 
 use forge_core::envelope::OperationResult;
 use forge_core::KernelError;
-use forge_signal::facade::NodeId;
-use forge_signal::facade::SignalGraph;
-use forge_signal::facade::{Aspect, AspectVersion};
+use forge_signal::facade::{Aspect, AspectVersion, NodeId, SignalError, SignalGraph, TraceSummary};
 
 use super::contracts::feature_registry::FeatureRegistry;
 use super::output::solid_envelope::SolidEnvelope;
@@ -64,6 +62,17 @@ impl<R: FeatureRegistry> Default for FeatureTree<R> {
 }
 
 impl<R: FeatureRegistry> FeatureTree<R> {
+    fn kernel_to_signal(err: KernelError) -> SignalError {
+        SignalError::internal(err.to_string())
+    }
+
+    fn signal_to_kernel(err: SignalError) -> KernelError {
+        KernelError::InternalError {
+            message: err.to_string(),
+            context: None,
+        }
+    }
+
     /// Create a new empty feature tree.
     pub fn new() -> Self {
         Self {
@@ -97,9 +106,11 @@ impl<R: FeatureRegistry> FeatureTree<R> {
 
         for dep_id in deps {
             self.graph
-                .add_dependency(node_id, dep_id, Aspect::Topology)?;
+                .add_dependency(node_id, dep_id, Aspect::Topology)
+                .map_err(Self::signal_to_kernel)?;
             self.graph
-                .add_dependency(node_id, dep_id, Aspect::Geometry)?;
+                .add_dependency(node_id, dep_id, Aspect::Geometry)
+                .map_err(Self::signal_to_kernel)?;
         }
         // Enforce feature name uniqueness — full path, not trailing segment.
         // Previous code used split('/').last() which silently overwrote
@@ -118,8 +129,10 @@ impl<R: FeatureRegistry> FeatureTree<R> {
 
         self.features.insert(node_id, feature);
 
-        forge_signal::facade::mark_dirty(&mut self.graph, node_id, Aspect::Topology)?;
-        forge_signal::facade::mark_dirty(&mut self.graph, node_id, Aspect::Geometry)?;
+        forge_signal::facade::mark_dirty(&mut self.graph, node_id, Aspect::Topology)
+            .map_err(Self::signal_to_kernel)?;
+        forge_signal::facade::mark_dirty(&mut self.graph, node_id, Aspect::Geometry)
+            .map_err(Self::signal_to_kernel)?;
 
         Ok(node_id)
     }
@@ -139,7 +152,9 @@ impl<R: FeatureRegistry> FeatureTree<R> {
 
         if let Some(old) = old_feature {
             for dep_id in old.dependencies().iter() {
-                self.graph.remove_dependency(node_id, *dep_id)?;
+                self.graph
+                    .remove_dependency(node_id, *dep_id)
+                    .map_err(Self::signal_to_kernel)?;
             }
         }
 
@@ -152,13 +167,17 @@ impl<R: FeatureRegistry> FeatureTree<R> {
                 })?;
         for dep_id in new_feature.dependencies() {
             self.graph
-                .add_dependency(node_id, dep_id, Aspect::Topology)?;
+                .add_dependency(node_id, dep_id, Aspect::Topology)
+                .map_err(Self::signal_to_kernel)?;
             self.graph
-                .add_dependency(node_id, dep_id, Aspect::Geometry)?;
+                .add_dependency(node_id, dep_id, Aspect::Geometry)
+                .map_err(Self::signal_to_kernel)?;
         }
 
-        forge_signal::facade::mark_dirty(&mut self.graph, node_id, Aspect::Topology)?;
-        forge_signal::facade::mark_dirty(&mut self.graph, node_id, Aspect::Geometry)?;
+        forge_signal::facade::mark_dirty(&mut self.graph, node_id, Aspect::Topology)
+            .map_err(Self::signal_to_kernel)?;
+        forge_signal::facade::mark_dirty(&mut self.graph, node_id, Aspect::Geometry)
+            .map_err(Self::signal_to_kernel)?;
 
         Ok(())
     }
@@ -192,14 +211,15 @@ impl<R: FeatureRegistry> FeatureTree<R> {
         let features = &self.features;
         let envelopes = &mut self.envelopes;
 
-        let mut pending_traces: HashMap<NodeId, forge_core::TraceSummary> = HashMap::new();
+        let mut pending_traces: HashMap<NodeId, TraceSummary> = HashMap::new();
 
         let mut compute =
-            |id: NodeId, _graph_ref: &SignalGraph| -> Result<AspectVersion, KernelError> {
+            |id: NodeId, _graph_ref: &SignalGraph| -> Result<AspectVersion, SignalError> {
                 let feature = features.get(&id).ok_or_else(|| KernelError::InvalidInput {
                     message: format!("Feature logic not found for node {}", id),
                     context: None,
-                })?;
+                })
+                .map_err(Self::kernel_to_signal)?;
 
                 // Build input map by cloning SolidEnvelope from stored envelopes.
                 // This is the single, unavoidable clone — the signal graph cache
@@ -210,21 +230,31 @@ impl<R: FeatureRegistry> FeatureTree<R> {
                     if let Some(envelope) = envelopes.get(&dep_id) {
                         input_map.insert(dep_id, envelope.get_value().clone());
                     } else {
-                        return Err(KernelError::InvalidInput {
+                        return Err(Self::kernel_to_signal(KernelError::InvalidInput {
                             message: format!("Dependency output missing for node {}", dep_id),
                             context: None,
-                        });
+                        }));
                     }
                 }
 
-                let envelope = feature.execute_via_pipeline(input_map, session_config)?;
+                let envelope =
+                    feature
+                        .execute_via_pipeline(input_map, session_config)
+                        .map_err(Self::kernel_to_signal)?;
 
                 // Build the trace summary from the envelope's decision log —
                 // NOT from ctx, which was drained by the OperationFinalizer.
                 let hash = forge_topo::transactions::compute_arena_topology_hash(
                     envelope.get_value().topology().arena(),
                 );
-                let summary = envelope.get_decision_log().to_summary(hash);
+                let core_summary = envelope.get_decision_log().to_summary(hash);
+                let summary = TraceSummary {
+                    output_hash: core_summary.get_state_hash(),
+                    labels: vec![
+                        format!("interesting={}", core_summary.get_interesting().len()),
+                        format!("spans={}", core_summary.get_span_summaries().len()),
+                    ],
+                };
                 pending_traces.insert(id, summary);
 
                 // Store the full envelope — metadata is preserved.
@@ -233,7 +263,8 @@ impl<R: FeatureRegistry> FeatureTree<R> {
                 Ok(AspectVersion::new(1, 1))
             };
 
-        forge_signal::facade::evaluate(graph, node_id, &mut compute)?;
+        forge_signal::facade::evaluate(graph, node_id, &mut compute)
+            .map_err(Self::signal_to_kernel)?;
 
         for (id, summary) in pending_traces {
             if let Ok(entry) = graph.get_entry_mut(id) {

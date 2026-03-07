@@ -8,7 +8,9 @@ use crate::engine::transaction::data::feature_event::KernelFeatureEvent;
 use crate::engine::transaction::data::subscriber_data_id::KernelSubscriberDataId;
 use crate::engine::transaction::logic::feature_event_runtime::FeatureEventRuntimeContext;
 use forge_core::KernelError;
-use forge_signal::facade::{EventBus, EventSubscriber, SubscriberContext, SubscriberContextError};
+use forge_signal::facade::{
+    EventBus, EventSubscriber, SignalError, SubscriberContext, SubscriberContextError,
+};
 
 pub(crate) use audit::AuditSubscriber;
 pub(crate) use decision_lifecycle::DecisionLifecycleSubscriber;
@@ -39,13 +41,12 @@ where
         })
 }
 
-pub(crate) fn stage_or_kernel_error(
+pub(crate) fn stage_or_signal_error(
     stage_result: Result<(), SubscriberContextError<KernelSubscriberDataId>>,
     field: &'static str,
-) -> Result<(), KernelError> {
-    stage_result.map_err(|err| KernelError::InternalError {
-        message: format!("subscriber context staging failed for {field}: {err:?}"),
-        context: None,
+) -> Result<(), SignalError> {
+    stage_result.map_err(|err| {
+        SignalError::internal(format!("subscriber context staging failed for {field}: {err:?}"))
     })
 }
 
@@ -54,6 +55,10 @@ pub(crate) fn stage_output_value<T: 'static>(
     id: KernelSubscriberDataId,
     value: T,
     field: &'static str,
-) -> Result<(), KernelError> {
-    stage_or_kernel_error(ctx.stage(id, value), field)
+) -> Result<(), SignalError> {
+    stage_or_signal_error(ctx.stage(id, value), field)
+}
+
+pub(crate) fn kernel_to_signal(err: KernelError) -> SignalError {
+    SignalError::internal(err.to_string())
 }

@@ -847,7 +847,7 @@ fn event_bus_wiring_with_real_operator_emits_lifecycle_events() {
             _barrier: forge_signal::facade::CheckpointBarrier,
             _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
                     _runtime: &mut Self::RuntimeContext,
-        ) -> Result<(), forge_core::KernelError> {
+        ) -> Result<(), forge_signal::facade::SignalError> {
             self.checkpoints.fetch_add(1, Ordering::SeqCst);
             Ok(())
         }
@@ -1013,11 +1013,10 @@ fn subscriber_checkpoint_failure_poisons_draft_and_drop_is_safe() {
             _barrier: forge_signal::facade::CheckpointBarrier,
             _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
                     _runtime: &mut Self::RuntimeContext,
-        ) -> Result<(), forge_core::KernelError> {
-            Err(forge_core::KernelError::InternalError {
-                message: "intentional subscriber failure".to_string(),
-                context: None,
-            })
+        ) -> Result<(), forge_signal::facade::SignalError> {
+            Err(forge_signal::facade::SignalError::internal(
+                "intentional subscriber failure",
+            ))
         }
     }
 
@@ -1088,11 +1087,10 @@ fn rollback_callbacks_fire_once_when_execute_fails_then_draft_drops() {
             _barrier: forge_signal::facade::CheckpointBarrier,
             _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
                     _runtime: &mut Self::RuntimeContext,
-        ) -> Result<(), forge_core::KernelError> {
-            Err(forge_core::KernelError::InternalError {
-                message: "force rollback".to_string(),
-                context: None,
-            })
+        ) -> Result<(), forge_signal::facade::SignalError> {
+            Err(forge_signal::facade::SignalError::internal(
+                "force rollback",
+            ))
         }
 
         fn on_rollback(&mut self, _runtime: &mut Self::RuntimeContext) {
@@ -1168,7 +1166,7 @@ fn topo_event_bus_rollback_honors_reverse_dependency_order() {
             _barrier: CheckpointBarrier,
             _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
                     _runtime: &mut Self::RuntimeContext,
-        ) -> Result<(), forge_core::KernelError> {
+        ) -> Result<(), forge_signal::facade::SignalError> {
             Ok(())
         }
 
@@ -1254,11 +1252,10 @@ fn rollback_failure_keeps_previous_committed_operation_outputs_intact() {
             _barrier: forge_signal::facade::CheckpointBarrier,
             _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
                     _runtime: &mut Self::RuntimeContext,
-        ) -> Result<(), forge_core::KernelError> {
-            Err(forge_core::KernelError::InternalError {
-                message: "force rollback on checkpoint".to_string(),
-                context: None,
-            })
+        ) -> Result<(), forge_signal::facade::SignalError> {
+            Err(forge_signal::facade::SignalError::internal(
+                "force rollback on checkpoint",
+            ))
         }
     }
 

@@ -1,8 +1,11 @@
+pub mod comparator;
+pub mod bitset;
 pub mod aspect;
 pub mod checkpoint;
 pub mod checkpoint_policy;
 pub mod dependency;
 pub mod dirty_set;
+pub mod error;
 pub mod effect_mapping;
 pub mod evaluator;
 pub mod event_subscriber;
@@ -10,4 +13,6 @@ pub mod graph;
 pub mod handle;
 pub mod node;
 pub mod subscriber_context;
+pub mod telemetry;
 pub mod tier;
+pub mod trace;

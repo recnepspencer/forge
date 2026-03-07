@@ -1,5 +1,5 @@
 use forge_core::KernelError;
-use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SubscriberId};
+use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SignalError, SubscriberId};
 
 use crate::identity::OperationId;
 use crate::provenance::OpSignature;
@@ -90,7 +90,7 @@ impl EventSubscriber for ReplaySubscriber {
         barrier: CheckpointBarrier,
         ctx: &mut SubscriberContext<TopoSubscriberDataId>,
         runtime: &mut Self::RuntimeContext,
-    ) -> Result<(), KernelError> {
+    ) -> Result<(), SignalError> {
         if barrier != CheckpointBarrier::PerOperation {
             return Ok(());
         }

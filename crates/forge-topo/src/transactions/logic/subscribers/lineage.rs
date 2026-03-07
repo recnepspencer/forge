@@ -1,5 +1,5 @@
 use forge_core::KernelError;
-use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SubscriberId};
+use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SignalError, SubscriberId};
 use forge_core::EntityRef;
 
 use crate::transactions::data::operation_event::{TopoOperationEvent, TopoSubscriberDataId};
@@ -56,7 +56,7 @@ impl EventSubscriber for LineageSubscriber {
         barrier: CheckpointBarrier,
         ctx: &mut SubscriberContext<TopoSubscriberDataId>,
         runtime: &mut Self::RuntimeContext,
-    ) -> Result<(), KernelError> {
+    ) -> Result<(), SignalError> {
         if barrier != CheckpointBarrier::PerOperation {
             return Ok(());
         }

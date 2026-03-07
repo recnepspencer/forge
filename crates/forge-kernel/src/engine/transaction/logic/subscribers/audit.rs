@@ -6,9 +6,9 @@ use crate::engine::transaction::data::operation_outputs::{FinalizationOutput, Op
 use crate::engine::transaction::data::subscriber_data_id::KernelSubscriberDataId;
 use crate::engine::transaction::logic::feature_event_runtime::FeatureEventRuntimeContext;
 use forge_core::KernelError;
-use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SubscriberId};
+use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SignalError, SubscriberId};
 
-use super::stage_output_value;
+use super::{kernel_to_signal, stage_output_value};
 
 pub(crate) struct AuditSubscriber {
     feature_kind: Option<&'static str>,
@@ -71,22 +71,22 @@ impl EventSubscriber for AuditSubscriber {
         barrier: CheckpointBarrier,
         ctx: &mut SubscriberContext<Self::DataId>,
         _runtime: &mut Self::RuntimeContext,
-    ) -> Result<(), KernelError> {
+    ) -> Result<(), SignalError> {
         if barrier != CheckpointBarrier::PerOperation {
             return Ok(());
         }
 
         let finalized = ctx
             .staged::<FinalizationOutput>(KernelSubscriberDataId::Finalization)
-            .ok_or_else(|| KernelError::InternalError {
+            .ok_or_else(|| kernel_to_signal(KernelError::InternalError {
                 message: "Finalization output missing in AuditSubscriber".to_string(),
                 context: None,
-            })?;
+            }))?;
 
-        let feature_kind = self.feature_kind.ok_or_else(|| KernelError::InternalError {
+        let feature_kind = self.feature_kind.ok_or_else(|| kernel_to_signal(KernelError::InternalError {
             message: "AuditSubscriber missing feature_kind from OperationStarted".to_string(),
             context: None,
-        })?;
+        }))?;
 
         let mut decision_log = finalized.decision_log.clone();
         let mut extra_summaries = Vec::new();

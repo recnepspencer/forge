@@ -6,9 +6,9 @@ use crate::engine::transaction::data::subscriber_data_id::KernelSubscriberDataId
 use crate::engine::transaction::logic::feature_event_runtime::FeatureEventRuntimeContext;
 use forge_core::tracing::compute_trace_fingerprint;
 use forge_core::KernelError;
-use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SubscriberId};
+use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SignalError, SubscriberId};
 
-use super::stage_output_value;
+use super::{kernel_to_signal, stage_output_value};
 
 pub(crate) struct FinalizationSubscriber {
     started: Option<(FeatureInvocationId, u128)>,
@@ -79,34 +79,34 @@ impl EventSubscriber for FinalizationSubscriber {
         barrier: CheckpointBarrier,
         ctx: &mut SubscriberContext<Self::DataId>,
         _runtime: &mut Self::RuntimeContext,
-    ) -> Result<(), KernelError> {
+    ) -> Result<(), SignalError> {
         if barrier != CheckpointBarrier::PerOperation {
             return Ok(());
         }
         let drained = ctx
             .staged::<DecisionDrainOutput>(KernelSubscriberDataId::DecisionDrain)
-            .ok_or_else(|| KernelError::InternalError {
+            .ok_or_else(|| kernel_to_signal(KernelError::InternalError {
                 message: "DecisionDrain output missing in FinalizationSubscriber".to_string(),
                 context: None,
-            })?;
-        let (started_id, hash_before) = self.started.ok_or_else(|| KernelError::InternalError {
+            }))?;
+        let (started_id, hash_before) = self.started.ok_or_else(|| kernel_to_signal(KernelError::InternalError {
             message: "OperationStarted event missing in FinalizationSubscriber".to_string(),
             context: None,
-        })?;
+        }))?;
         let (completed_id, duration_micros, hash_after) =
-            self.completed.ok_or_else(|| KernelError::InternalError {
+            self.completed.ok_or_else(|| kernel_to_signal(KernelError::InternalError {
                 message: "OperationCompleted event missing in FinalizationSubscriber".to_string(),
                 context: None,
-            })?;
+            }))?;
         if started_id != completed_id {
-            return Err(KernelError::InternalError {
+            return Err(kernel_to_signal(KernelError::InternalError {
                 message: format!(
                     "FinalizationSubscriber saw mismatched invocation IDs: started={} completed={}",
                     started_id.get(),
                     completed_id.get()
                 ),
                 context: None,
-            });
+            }));
         }
 
         let decision_log = drained.decision_log.clone();

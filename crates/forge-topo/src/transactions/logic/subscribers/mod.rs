@@ -10,7 +10,9 @@ mod topology_hash;
 mod version;
 
 use forge_core::KernelError;
-use forge_signal::facade::{EventBus, EventSubscriber, SubscriberContext, SubscriberContextError};
+use forge_signal::facade::{
+    EventBus, EventSubscriber, SignalError, SubscriberContext, SubscriberContextError,
+};
 
 pub(crate) use euler::EulerSubscriber;
 pub(crate) use invariant::InvariantSubscriber;
@@ -29,7 +31,7 @@ pub(crate) fn register_operation_subscribers(
         TopoSubscriberDataId,
         crate::transactions::logic::mutable_draft::MutableDraft,
     >,
-) -> Result<(), KernelError> {
+) -> Result<(), SignalError> {
     register(bus, JournalSubscriber::new())?;
     register(bus, VersionSubscriber::new())?;
     register(bus, TopologyHashSubscriber::new())?;
@@ -48,7 +50,7 @@ fn register<S>(
         crate::transactions::logic::mutable_draft::MutableDraft,
     >,
     subscriber: S,
-) -> Result<(), KernelError>
+) -> Result<(), SignalError>
 where
     S: EventSubscriber<
             Event = TopoOperationEvent,
@@ -57,19 +59,19 @@ where
         > + 'static,
 {
     bus.subscribe(Box::new(subscriber))
-        .map_err(|err| KernelError::InternalError {
-            message: format!("failed to register topo operation subscriber: {err:?}"),
-            context: None,
+        .map_err(|err| {
+            SignalError::internal(format!(
+                "failed to register topo operation subscriber: {err:?}"
+            ))
         })
 }
 
-pub(crate) fn stage_or_kernel_error(
+pub(crate) fn stage_or_signal_error(
     stage_result: Result<(), SubscriberContextError<TopoSubscriberDataId>>,
     field: &'static str,
-) -> Result<(), KernelError> {
-    stage_result.map_err(|err| KernelError::InternalError {
-        message: format!("subscriber context staging failed for {field}: {err:?}"),
-        context: None,
+) -> Result<(), SignalError> {
+    stage_result.map_err(|err| {
+        SignalError::internal(format!("subscriber context staging failed for {field}: {err:?}"))
     })
 }
 
@@ -78,6 +80,10 @@ pub(crate) fn stage_output_value<T: 'static>(
     id: TopoSubscriberDataId,
     value: T,
     field: &'static str,
-) -> Result<(), KernelError> {
-    stage_or_kernel_error(ctx.stage(id, value), field)
+) -> Result<(), SignalError> {
+    stage_or_signal_error(ctx.stage(id, value), field)
+}
+
+pub(crate) fn kernel_to_signal(err: KernelError) -> SignalError {
+    SignalError::internal(err.to_string())
 }

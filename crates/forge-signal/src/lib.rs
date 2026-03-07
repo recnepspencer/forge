@@ -1,33 +1,39 @@
 //! # forge-signal
 //!
 //! Reactive signal graph for the Forge geometry kernel.
+//! `forge-signal` is domain-free infrastructure and does not own host
+//! structural graphs.
 //!
 //! ## Architecture
 //!
-//! Every CAD feature (Extrude, Boolean, Fillet) is a signal node in
-//! a dependency graph. Euler operators remain procedural inside
-//! `MutableDraft` transactions — signals operate at feature granularity.
+//! Two graph kinds must remain separate:
+//! - **Evaluation dependency graph (owned here):** DAG only.
+//! - **Structural host graph (external):** may be cyclic and is opaque input.
+//!
+//! See `crates/forge-signal/BOUNDARY_CONTRACT.md` for normative integration
+//! boundaries.
 //!
 //! ## Core Concepts
 //!
-//! - **Three-state invalidation** ([`schema::NodeState`]):
+//! - **Three-state invalidation** ([`facade::NodeState`]):
 //!   `Clean(Version)` / `MaybeStale` / `Dirty`
-//! - **Multi-aspect versioning** ([`schema::AspectVersion`]):
+//! - **Multi-aspect versioning** ([`facade::AspectVersion`]):
 //!   Topology and geometry versions are independent
-//! - **Push phase** ([`eval::mark_dirty`]):
+//! - **Push phase** ([`facade::mark_dirty`]):
 //!   Synchronous dirty propagation with cycle detection
-//! - **Pull phase** ([`eval::evaluate`]):
+//! - **Pull phase** ([`facade::evaluate`]):
 //!   Lazy recomputation with version-gated skip
-//! - **Parallel safety** ([`context::EvaluationContext`]):
+//! - **Parallel safety** ([`facade::EvaluationContext`]):
 //!   Explicit context object, not thread-local (Doctrine D8)
 //!
 //! ## Dependencies
 //!
-//! - `forge-core`: `KernelError` for structured errors
+//! - `serde`: snapshot-friendly data structures
+//! - `tracing`: runtime instrumentation hooks
 //!
 //! ## Dependents
 //!
-//! - `forge-kernel`: Features register as signal nodes
+//! - Any crate that needs deterministic reactive DAG evaluation
 
 #![forbid(unsafe_code)]
 

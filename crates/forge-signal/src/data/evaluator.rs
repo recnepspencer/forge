@@ -1,6 +1,6 @@
 //! Domain-free checkpoint evaluator contract for Tier-0 scheduling.
 
-use forge_core::KernelError;
+use crate::data::error::SignalError;
 
 use crate::data::dirty_set::DomainImpact;
 
@@ -16,5 +16,5 @@ pub trait CheckpointEvaluator {
         domain: Self::Domain,
         impact: DomainImpact<Self::Impact>,
         ctx: &mut Self::Context,
-    ) -> Result<(), KernelError>;
+    ) -> Result<(), SignalError>;
 }

@@ -2,20 +2,23 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::data::aspect::Aspect;
+use crate::data::aspect::{Aspect, AspectMask};
 use crate::data::handle::NodeId;
 
 /// A dependency edge recording which upstream node and aspect a downstream reads.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DependencyEdge {
     source: NodeId,
-    aspect: Aspect,
+    aspect_mask: AspectMask,
 }
 
 impl DependencyEdge {
     /// Create a new dependency edge.
     pub fn new(source: NodeId, aspect: Aspect) -> Self {
-        Self { source, aspect }
+        Self {
+            source,
+            aspect_mask: AspectMask::from_aspect(aspect),
+        }
     }
 
     /// The upstream node this edge points to.
@@ -25,7 +28,16 @@ impl DependencyEdge {
 
     /// Which aspect of the upstream node is subscribed to.
     pub fn aspect(self) -> Aspect {
-        self.aspect
+        if self.aspect_mask.contains(AspectMask::TOPOLOGY) {
+            Aspect::Topology
+        } else {
+            Aspect::Geometry
+        }
+    }
+
+    /// The subscribed aspect mask.
+    pub fn aspect_mask(self) -> AspectMask {
+        self.aspect_mask
     }
 }
 
@@ -33,7 +45,7 @@ impl DependencyEdge {
 ///
 /// Used by the pull phase to determine if a `MaybeStale` node can revert
 /// to `Clean`: if all upstream versions match the snapshot, no recomputation needed.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DependencySnapshot {
     entries: Vec<(NodeId, Aspect, u64)>,
 }
