@@ -4,6 +4,8 @@ use crate::data::schema::{RelationKind, SpecNodeKind};
 use crate::logic::mutation::{MutationResult, SpecLineageRecorder, SpecMutation, TouchedDomain};
 use crate::logic::transaction::SpecDraft;
 
+use super::radial_traversal::{collect_radial_ring, find_previous_radial};
+
 #[derive(Debug, Clone)]
 pub struct UnsewEdgeMutation {
     pub half_edge_a: SpecNodeId,
@@ -47,22 +49,28 @@ impl SpecMutation for UnsewEdgeMutation {
             ));
         }
 
-        let radial_a =
-            draft.single_outgoing_target(self.half_edge_a, RelationKind::HalfEdgeRadialNext)?;
-        let radial_b =
-            draft.single_outgoing_target(self.half_edge_b, RelationKind::HalfEdgeRadialNext)?;
-        if radial_a != self.half_edge_b || radial_b != self.half_edge_a {
+        let ring = collect_radial_ring(draft, self.half_edge_a)?;
+        if !ring.iter().copied().any(|candidate| candidate == self.half_edge_b) {
             return Err(SpecError::invalid(
-                "UnsewEdgeMutation currently requires a sewn radial pair of valence 2".to_string(),
+                "UnsewEdgeMutation requires half_edge_b to be present in the radial ring of half_edge_a"
+                    .to_string(),
+            ));
+        }
+        let previous = find_previous_radial(draft, self.half_edge_b)?;
+        let next_radial =
+            draft.single_outgoing_target(self.half_edge_b, RelationKind::HalfEdgeRadialNext)?;
+        if previous == self.half_edge_b {
+            return Err(SpecError::invalid(
+                "UnsewEdgeMutation cannot unsew an already boundary self-radial halfedge".to_string(),
             ));
         }
 
         let new_edge = draft.create_node(SpecNodeKind::Edge, None, "unsewn-edge")?;
         draft.replace_single_relation(
             RelationKind::HalfEdgeRadialNext,
-            self.half_edge_a,
-            self.half_edge_a,
-            "unsew-radial-a",
+            previous,
+            next_radial,
+            "unsew-prev-radial",
         )?;
         draft.replace_single_relation(
             RelationKind::HalfEdgeRadialNext,

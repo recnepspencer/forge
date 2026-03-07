@@ -7,7 +7,7 @@
 //! INVARIANTS:
 //! - Commutative over inputs (order-independent via `wrapping_add`)
 //! - Deterministic for same inputs + config + detail level
-//! - Geometry hashing delegates to `SolidEnvelope::full_fingerprint()`
+//! - Envelope hashing delegates to the output envelope type
 
 use std::collections::HashMap;
 
@@ -15,7 +15,10 @@ use forge_signal::facade::NodeId;
 
 use crate::configuration::facade::FingerprintDetail;
 use crate::engine::contracts::contract::ConditioningMode;
+use crate::engine::output::spec_envelope::SpecEnvelope;
 use crate::engine::output::solid_envelope::SolidEnvelope;
+
+type InfallibleFingerprintResult = Result<u128, core::convert::Infallible>;
 
 /// Compute a deterministic pipeline fingerprint from all input state.
 ///
@@ -37,33 +40,72 @@ pub fn compute_pipeline_fingerprint(
     min_edge_length: f64,
     detail: FingerprintDetail,
 ) -> u128 {
+    compute_commutative_pipeline_fingerprint(
+        inputs.values().map(|output| match detail {
+            FingerprintDetail::Standard => {
+                InfallibleFingerprintResult::Ok(output.topology_fingerprint())
+            }
+            FingerprintDetail::Full => InfallibleFingerprintResult::Ok(output.full_fingerprint()),
+        }),
+        feature_kind,
+        conditioning_mode,
+        spatial_tolerance,
+        model_scale_mm,
+        min_edge_length,
+    )
+    .expect("solid envelope fingerprinting is infallible")
+}
+
+/// Compute a deterministic pipeline fingerprint from spec-backed input state.
+pub fn compute_spec_pipeline_fingerprint(
+    inputs: &HashMap<NodeId, SpecEnvelope>,
+    feature_kind: &str,
+    conditioning_mode: ConditioningMode,
+    spatial_tolerance: f64,
+    model_scale_mm: f64,
+    min_edge_length: f64,
+    detail: FingerprintDetail,
+) -> Result<u128, forge_core::KernelError> {
+    compute_commutative_pipeline_fingerprint(
+        inputs.values().map(|output| match detail {
+            FingerprintDetail::Standard => Ok(output.spec_fingerprint()),
+            FingerprintDetail::Full => output.projection_fingerprint(),
+        }),
+        feature_kind,
+        conditioning_mode,
+        spatial_tolerance,
+        model_scale_mm,
+        min_edge_length,
+    )
+}
+
+fn compute_commutative_pipeline_fingerprint<I, E>(
+    hashes: I,
+    feature_kind: &str,
+    conditioning_mode: ConditioningMode,
+    spatial_tolerance: f64,
+    model_scale_mm: f64,
+    min_edge_length: f64,
+) -> Result<u128, E>
+where
+    I: IntoIterator<Item = Result<u128, E>>,
+{
     let mut hash: u128 = 0;
 
-    // ── Per-envelope hash (commutative via wrapping_add) ─────────────
-    // Delegates to SolidEnvelope — single source of truth for
-    // topology and geometry hashing.
-    for output in inputs.values() {
-        let envelope_hash = match detail {
-            FingerprintDetail::Standard => output.topology_fingerprint(),
-            FingerprintDetail::Full => output.full_fingerprint(),
-        };
-        hash = hash.wrapping_add(envelope_hash);
+    for envelope_hash in hashes {
+        hash = hash.wrapping_add(envelope_hash?);
     }
 
-    // ── Feature kind ─────────────────────────────────────────────────
     for byte in feature_kind.as_bytes() {
         hash = hash.wrapping_mul(31).wrapping_add(*byte as u128);
     }
 
-    // ── Conditioning mode discriminant ───────────────────────────────
     let mode_tag: u8 = match conditioning_mode {
         ConditioningMode::None => 0,
         ConditioningMode::UnaryAnalysis => 1,
         ConditioningMode::BinaryAnalysis => 2,
     };
     hash = hash.wrapping_mul(31).wrapping_add(mode_tag as u128);
-
-    // ── Key tolerance values ─────────────────────────────────────────
     hash = hash
         .wrapping_mul(31)
         .wrapping_add(spatial_tolerance.to_bits() as u128);
@@ -74,108 +116,5 @@ pub fn compute_pipeline_fingerprint(
         .wrapping_mul(31)
         .wrapping_add(min_edge_length.to_bits() as u128);
 
-    hash
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::geometry::facade::GeometryStore;
-    use forge_topo::transactions::TopologyState;
-
-    #[test]
-    fn same_inputs_same_fingerprint() {
-        let inputs = HashMap::new();
-        let a = compute_pipeline_fingerprint(
-            &inputs,
-            "make_cube",
-            ConditioningMode::None,
-            1e-7,
-            1.0,
-            1e-6,
-            FingerprintDetail::Standard,
-        );
-        let b = compute_pipeline_fingerprint(
-            &inputs,
-            "make_cube",
-            ConditioningMode::None,
-            1e-7,
-            1.0,
-            1e-6,
-            FingerprintDetail::Standard,
-        );
-        assert_eq!(a, b);
-    }
-
-    #[test]
-    fn different_feature_kind_different_fingerprint() {
-        let inputs = HashMap::new();
-        let a = compute_pipeline_fingerprint(
-            &inputs,
-            "make_cube",
-            ConditioningMode::None,
-            1e-7,
-            1.0,
-            1e-6,
-            FingerprintDetail::Standard,
-        );
-        let b = compute_pipeline_fingerprint(
-            &inputs,
-            "boolean",
-            ConditioningMode::None,
-            1e-7,
-            1.0,
-            1e-6,
-            FingerprintDetail::Standard,
-        );
-        assert_ne!(a, b);
-    }
-
-    #[test]
-    fn different_conditioning_different_fingerprint() {
-        let inputs = HashMap::new();
-        let a = compute_pipeline_fingerprint(
-            &inputs,
-            "boolean",
-            ConditioningMode::None,
-            1e-7,
-            1.0,
-            1e-6,
-            FingerprintDetail::Standard,
-        );
-        let b = compute_pipeline_fingerprint(
-            &inputs,
-            "boolean",
-            ConditioningMode::BinaryAnalysis,
-            1e-7,
-            1.0,
-            1e-6,
-            FingerprintDetail::Standard,
-        );
-        assert_ne!(a, b);
-    }
-
-    #[test]
-    fn different_tolerance_different_fingerprint() {
-        let inputs = HashMap::new();
-        let a = compute_pipeline_fingerprint(
-            &inputs,
-            "make_cube",
-            ConditioningMode::None,
-            1e-7,
-            1.0,
-            1e-6,
-            FingerprintDetail::Standard,
-        );
-        let b = compute_pipeline_fingerprint(
-            &inputs,
-            "make_cube",
-            ConditioningMode::None,
-            1e-6,
-            1.0,
-            1e-6,
-            FingerprintDetail::Standard,
-        );
-        assert_ne!(a, b);
-    }
+    Ok(hash)
 }

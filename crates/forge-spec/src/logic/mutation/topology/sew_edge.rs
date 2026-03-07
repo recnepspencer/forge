@@ -4,6 +4,8 @@ use crate::data::schema::{RelationKind, SpecNodeKind};
 use crate::logic::mutation::{MutationResult, SpecLineageRecorder, SpecMutation, TouchedDomain};
 use crate::logic::transaction::SpecDraft;
 
+use super::radial_traversal::collect_radial_ring;
+
 #[derive(Debug, Clone)]
 pub struct SewEdgeMutation {
     pub half_edge_a: SpecNodeId,
@@ -39,13 +41,11 @@ impl SpecMutation for SewEdgeMutation {
             ));
         }
 
-        let radial_a =
-            draft.single_outgoing_target(self.half_edge_a, RelationKind::HalfEdgeRadialNext)?;
         let radial_b =
             draft.single_outgoing_target(self.half_edge_b, RelationKind::HalfEdgeRadialNext)?;
-        if radial_a != self.half_edge_a || radial_b != self.half_edge_b {
+        if radial_b != self.half_edge_b {
             return Err(SpecError::invalid(
-                "SewEdgeMutation requires both halfedges to be boundary self-radial".to_string(),
+                "SewEdgeMutation requires half_edge_b to be boundary self-radial".to_string(),
             ));
         }
 
@@ -66,6 +66,18 @@ impl SpecMutation for SewEdgeMutation {
         let edge = draft.single_outgoing_target(self.half_edge_a, RelationKind::HalfEdgeUsesEdge)?;
         let removed_edge =
             draft.single_outgoing_target(self.half_edge_b, RelationKind::HalfEdgeUsesEdge)?;
+        let next_radial =
+            draft.single_outgoing_target(self.half_edge_a, RelationKind::HalfEdgeRadialNext)?;
+
+        if collect_radial_ring(draft, self.half_edge_a)?
+            .into_iter()
+            .any(|candidate| candidate == self.half_edge_b)
+        {
+            return Err(SpecError::invalid(
+                "SewEdgeMutation cannot insert a halfedge already present in the target radial ring"
+                    .to_string(),
+            ));
+        }
 
         draft.replace_single_relation(
             RelationKind::HalfEdgeRadialNext,
@@ -76,7 +88,7 @@ impl SpecMutation for SewEdgeMutation {
         draft.replace_single_relation(
             RelationKind::HalfEdgeRadialNext,
             self.half_edge_b,
-            self.half_edge_a,
+            next_radial,
             "sew-radial-b",
         )?;
         draft.replace_single_relation(

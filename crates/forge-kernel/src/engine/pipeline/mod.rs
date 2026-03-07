@@ -8,3 +8,6 @@ pub mod conditioning_guard;
 pub mod executor;
 pub mod fingerprint;
 pub mod invariants;
+
+#[cfg(test)]
+mod testing;

@@ -8,12 +8,15 @@
 //! (ValidationConfig, ValidationCheckpoint)
 
 use forge_core::KernelError;
+use forge_spec::facade::SpecState;
 use forge_topo::transactions::TopologyState;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
 use super::super::contracts::contract::InvariantKind;
+use super::super::output::spec_envelope::SpecEnvelope;
 use crate::geometry::facade::GeometryView;
 use crate::proof::checkpoint::schema::{ValidationCheckpoint, ValidationConfig};
+use crate::proof::validate_manifold::validate_spec_structure;
 
 /// Validate a single post-execution invariant against the feature output.
 ///
@@ -45,4 +48,31 @@ pub fn validate_invariant(
         }
         InvariantKind::NoSliverFaces => Ok(()),
     }
+}
+
+/// Validate a single post-execution invariant against graph-native spec truth.
+pub fn validate_spec_invariant(
+    spec: &SpecState,
+    kind: &InvariantKind,
+    config: &ValidationConfig,
+) -> Result<(), KernelError> {
+    if !config.is_active(ValidationCheckpoint::PostFeature) {
+        return Ok(());
+    }
+
+    match kind {
+        InvariantKind::ManifoldEdges => validate_spec_structure(spec),
+        InvariantKind::G1Continuity => Ok(()),
+        InvariantKind::NoSelfIntersection => Ok(()),
+        InvariantKind::NoSliverFaces => Ok(()),
+    }
+}
+
+/// Transitional helper for spec-backed envelopes.
+pub fn validate_spec_envelope_invariant(
+    envelope: &SpecEnvelope,
+    kind: &InvariantKind,
+    config: &ValidationConfig,
+) -> Result<(), KernelError> {
+    validate_spec_invariant(envelope.spec(), kind, config)
 }

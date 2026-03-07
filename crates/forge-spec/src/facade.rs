@@ -14,7 +14,8 @@ pub use crate::data::snapshot::SpecState;
 pub use crate::logic::mutation::{MutationResult, SpecLineageRecorder, SpecMutation, TouchedDomain};
 pub use crate::logic::mutation::topology::{
     DestroyBodyMutation, DestroyLumpMutation, DestroyShellMutation, KillEdgeMakeLoopMutation,
-    KillEdgeMakeLoopOutput, KillEdgeVertexMutation, JoinFacesMutation, JoinFacesOutput,
+    KillEdgeMakeLoopOutput, KillEdgeVertexMutation, ExtractLumpMutation, ExtractLumpOutput,
+    JoinFacesMutation, JoinFacesOutput,
     KillFaceMakeRingHoleMutation,
     KillFaceMakeRingHoleOutput, KillFaceVertexMutation, KillShellFaceMutation,
     KillVertexEdgeMutation, KillVertexFaceMutation, MakeEdgeFaceMutation, MakeEdgeFaceOutput,
@@ -27,8 +28,11 @@ pub use crate::logic::mutation::topology::{
     MakeLoopInFaceFromVerticesMutation, MakeLoopInFaceFromVerticesOutput,
     MakeLumpRegionMutation, MakeLumpRegionOutput, MakeShellFaceMutation,
     MakeShellFaceOutput, MakeSolidMutation, MakeSolidOutput, MakeVertexFaceMutation,
-    MakeVertexFaceOutput, SewEdgeMutation, SewEdgeOutput, SplitEdgeMutation,
-    SplitEdgeOutput, UnsewEdgeMutation, UnsewEdgeOutput,
+    MakeVertexFaceOutput, MergeBodiesMutation, MergeLumpsMutation, MergeShellsMutation,
+    RehomeLumpMutation, RehomeShellMutation, SewEdgeMutation, SewEdgeOutput,
+    SplitBodyMutation, SplitBodyOutput, SplitEdgeMutation, SplitEdgeOutput,
+    SplitLumpMutation, SplitLumpOutput, SplitShellMutation, SplitShellOutput,
+    UnsewEdgeMutation, UnsewEdgeOutput,
 };
 pub use crate::logic::transaction::SpecDraft;
 pub use crate::logic::validation::validate_spec_graph;

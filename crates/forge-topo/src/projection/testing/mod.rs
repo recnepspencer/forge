@@ -1,4 +1,5 @@
 mod container;
+mod container_restructuring;
 mod face_construction;
 mod hole_editing;
 mod join_faces;
