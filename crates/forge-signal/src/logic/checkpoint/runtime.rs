@@ -52,6 +52,10 @@ impl<D: Copy + Ord, I: Copy + Ord> CheckpointRuntime<D, I> {
         &self.telemetry
     }
 
+    pub(crate) fn telemetry_mut(&mut self) -> &mut RuntimeTelemetry {
+        &mut self.telemetry
+    }
+
     /// Reset runtime telemetry counters.
     pub fn reset_telemetry(&mut self) {
         self.telemetry = RuntimeTelemetry::default();

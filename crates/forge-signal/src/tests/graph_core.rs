@@ -1,4 +1,5 @@
 use crate::facade::*;
+use crate::tests::support::*;
 
 #[test]
 fn create_node_returns_valid_handle() {
@@ -22,7 +23,7 @@ fn add_dependency_wires_both_directions() {
     let upstream = graph.create_node();
     let downstream = graph.create_node();
     graph
-        .add_dependency(downstream, upstream, Aspect::Topology)
+        .add_dependency(downstream, upstream, ASPECT_A)
         .unwrap();
 
     let deps = graph.get_entry(downstream).unwrap().get_dependencies();
@@ -40,14 +41,14 @@ fn dirty_direct_dependent() {
     let source = graph.create_node();
     let dependent = graph.create_node();
     graph
-        .add_dependency(dependent, source, Aspect::Geometry)
+        .add_dependency(dependent, source, ASPECT_B)
         .unwrap();
 
-    let mut compute = |_id, _g: &SignalGraph| Ok(AspectVersion::new(1, 1));
+    let mut compute = |_id, _g: &SignalGraph| Ok(version_ab(1, 1));
     evaluate(&mut graph, source, &mut compute).unwrap();
     evaluate(&mut graph, dependent, &mut compute).unwrap();
 
-    mark_dirty(&mut graph, source, Aspect::Geometry).unwrap();
+    mark_dirty(&mut graph, source, ASPECT_B).unwrap();
 
     let state = graph.get_state(dependent).unwrap();
     assert_eq!(state, NodeState::Dirty);
@@ -60,15 +61,15 @@ fn maybe_stale_transitive_dependent() {
     let b = graph.create_node();
     let c = graph.create_node();
 
-    graph.add_dependency(b, a, Aspect::Geometry).unwrap();
-    graph.add_dependency(c, b, Aspect::Geometry).unwrap();
+    graph.add_dependency(b, a, ASPECT_B).unwrap();
+    graph.add_dependency(c, b, ASPECT_B).unwrap();
 
-    let mut compute = |_id, _g: &SignalGraph| Ok(AspectVersion::new(1, 1));
+    let mut compute = |_id, _g: &SignalGraph| Ok(version_ab(1, 1));
     evaluate(&mut graph, a, &mut compute).unwrap();
     evaluate(&mut graph, b, &mut compute).unwrap();
     evaluate(&mut graph, c, &mut compute).unwrap();
 
-    mark_dirty(&mut graph, a, Aspect::Geometry).unwrap();
+    mark_dirty(&mut graph, a, ASPECT_B).unwrap();
 
     let state_b = graph.get_state(b).unwrap();
     let state_c = graph.get_state(c).unwrap();
@@ -83,25 +84,25 @@ fn clean_version_skip_on_unchanged_upstream() {
     let b = graph.create_node();
     let c = graph.create_node();
 
-    graph.add_dependency(b, a, Aspect::Topology).unwrap();
-    graph.add_dependency(c, b, Aspect::Topology).unwrap();
+    graph.add_dependency(b, a, ASPECT_A).unwrap();
+    graph.add_dependency(c, b, ASPECT_A).unwrap();
 
     let mut eval_count = 0u32;
 
-    let mut compute_a = |_id, _g: &SignalGraph| Ok(AspectVersion::new(1, 0));
+    let mut compute_a = |_id, _g: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, a, &mut compute_a).unwrap();
 
-    let mut compute_b = |_id, _g: &SignalGraph| Ok(AspectVersion::new(1, 0));
+    let mut compute_b = |_id, _g: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, b, &mut compute_b).unwrap();
 
-    let mut compute_c = |_id, _g: &SignalGraph| Ok(AspectVersion::new(1, 0));
+    let mut compute_c = |_id, _g: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, c, &mut compute_c).unwrap();
 
-    mark_dirty(&mut graph, a, Aspect::Geometry).unwrap();
+    mark_dirty(&mut graph, a, ASPECT_B).unwrap();
 
     let mut recompute = |_id, _g: &SignalGraph| {
         eval_count += 1;
-        Ok(AspectVersion::new(1, 0))
+        Ok(version_ab(1, 0))
     };
     evaluate(&mut graph, a, &mut recompute).unwrap();
     evaluate(&mut graph, b, &mut recompute).unwrap();

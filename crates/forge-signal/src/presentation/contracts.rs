@@ -8,8 +8,8 @@
 /// - Cycles are rejected as invalid input.
 ///
 /// Non-goals:
-/// - Storing or mutating host structural graphs (e.g., B-Rep cycles).
-/// - Owning geometry numerics or spatial acceleration structures.
+/// - Storing or mutating host structural graphs (e.g., host graph cycles).
+/// - Owning host-domain numerics or acceleration structures.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct DependencyGraphContract;
 

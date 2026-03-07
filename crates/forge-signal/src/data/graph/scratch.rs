@@ -1,7 +1,23 @@
+use crate::data::bitset::DenseBitset;
+use crate::data::handle::NodeId;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ScratchLeaseKind {
+    Evaluation,
+    Invalidation,
+    Gc,
+    Churn,
+}
+
 #[derive(Debug, Clone, Default)]
 pub(crate) struct TraversalScratch {
     pub(crate) visited: VisitMarks,
     pub(crate) active: VisitMarks,
+    pub(crate) node_buffer_a: Vec<NodeId>,
+    pub(crate) node_buffer_b: Vec<NodeId>,
+    pub(crate) eval_tasks: Vec<(NodeId, bool)>,
+    pub(crate) gc_liveness_generations: Vec<u32>,
+    pub(crate) gc_liveness_alive: DenseBitset,
 }
 
 #[derive(Debug, Clone, Default)]

@@ -67,12 +67,3 @@ impl<T: Copy + Ord> TierPolicy<T> {
         self
     }
 }
-
-/// Legacy Forge tier labels retained for compatibility.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[deprecated(note = "Use caller-defined tier keys with TierPolicy<T>")]
-pub enum EvaluationTier {
-    Entity,
-    Feature,
-    Analysis,
-}

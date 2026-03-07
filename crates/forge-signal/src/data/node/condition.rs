@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::data::aspect::AspectMask;
 use crate::data::comparator::VersionComparatorPolicy;
 
 /// Evaluation condition descriptor for a node.
@@ -12,9 +13,7 @@ pub enum EvaluationCondition {
     #[default]
     Always,
     /// Evaluate only when dirtying touches one of these aspects.
-    ///
-    /// Aspects are encoded as runtime aspect IDs.
-    AspectFilter(Vec<u8>),
+    AspectFilter(AspectMask),
     /// Evaluate only when change magnitude exceeds this threshold.
     DeltaThreshold(f64),
     /// Evaluate only when explicitly requested.

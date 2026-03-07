@@ -1,4 +1,29 @@
 use crate::facade::*;
+use crate::tests::support::*;
+
+#[derive(Default)]
+struct TestConditionResolver {
+    debounce_ready: bool,
+    custom_result: bool,
+}
+
+impl ConditionResolver for TestConditionResolver {
+    fn debounce_ready(
+        &mut self,
+        _quiet_period_ms: u64,
+        _ctx: &ConditionEvaluationContext,
+    ) -> Result<bool, SignalError> {
+        Ok(self.debounce_ready)
+    }
+
+    fn resolve_custom(
+        &mut self,
+        _key: &str,
+        _ctx: &ConditionEvaluationContext,
+    ) -> Result<bool, SignalError> {
+        Ok(self.custom_result)
+    }
+}
 
 #[test]
 fn node_entry_stores_evaluation_condition_config() {
@@ -26,4 +51,262 @@ fn create_node_with_config_sets_condition() {
         graph.get_entry(node).unwrap().get_eval_config().condition,
         EvaluationCondition::OnDemand
     ));
+}
+
+#[test]
+fn ondemand_blocks_default_evaluate() {
+    let mut graph = SignalGraph::new();
+    let node = graph.create_node_with_config(NodeEvaluationConfig {
+        condition: EvaluationCondition::OnDemand,
+        ..NodeEvaluationConfig::default()
+    });
+    let mut compute_calls = 0_u64;
+    let mut compute = |_id: NodeId, _graph: &SignalGraph| {
+        compute_calls += 1;
+        Ok(version_ab(0, 1))
+    };
+
+    evaluate(&mut graph, node, &mut compute).unwrap();
+
+    assert_eq!(compute_calls, 0);
+    assert_eq!(graph.get_state(node).unwrap(), NodeState::MaybeStale);
+    assert_eq!(graph.telemetry().ondemand_deferred_count, 1);
+}
+
+#[test]
+fn ondemand_forced_request_recomputes() {
+    let mut graph = SignalGraph::new();
+    let node = graph.create_node_with_config(NodeEvaluationConfig {
+        condition: EvaluationCondition::OnDemand,
+        ..NodeEvaluationConfig::default()
+    });
+    let mut compute_calls = 0_u64;
+    let mut compute = |_id: NodeId, _graph: &SignalGraph| {
+        compute_calls += 1;
+        Ok(version_ab(0, 1))
+    };
+
+    evaluate_on_demand(&mut graph, node, &mut compute).unwrap();
+
+    assert_eq!(compute_calls, 1);
+    assert_eq!(graph.get_state(node).unwrap(), NodeState::Clean);
+}
+
+#[test]
+fn aspect_filter_skips_unmatched_dirty_aspect() {
+    let mut graph = SignalGraph::new();
+    let source = graph.create_node();
+    let dependent = graph.create_node_with_config(NodeEvaluationConfig {
+        condition: EvaluationCondition::AspectFilter(mask_a()),
+        ..NodeEvaluationConfig::default()
+    });
+    graph.add_dependency(dependent, source, ASPECT_B).unwrap();
+
+    let mut source_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 10));
+    let mut dependent_calls = 0_u64;
+    let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| {
+        dependent_calls += 1;
+        Ok(version_ab(0, 20))
+    };
+
+    evaluate(&mut graph, source, &mut source_compute).unwrap();
+    evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
+    mark_dirty(&mut graph, source, ASPECT_B).unwrap();
+
+    let mut source_recompute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 11));
+    evaluate(&mut graph, source, &mut source_recompute).unwrap();
+    evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
+
+    assert_eq!(dependent_calls, 1);
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::MaybeStale);
+}
+
+#[test]
+fn aspect_filter_recomputes_on_matched_aspect() {
+    let mut graph = SignalGraph::new();
+    let source = graph.create_node();
+    let dependent = graph.create_node_with_config(NodeEvaluationConfig {
+        condition: EvaluationCondition::AspectFilter(mask_b()),
+        ..NodeEvaluationConfig::default()
+    });
+    graph.add_dependency(dependent, source, ASPECT_B).unwrap();
+
+    let mut source_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 10));
+    let mut dependent_calls = 0_u64;
+    let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| {
+        dependent_calls += 1;
+        Ok(version_ab(0, 20 + dependent_calls))
+    };
+
+    evaluate(&mut graph, source, &mut source_compute).unwrap();
+    evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
+    mark_dirty(&mut graph, source, ASPECT_B).unwrap();
+
+    let mut source_recompute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 11));
+    evaluate(&mut graph, source, &mut source_recompute).unwrap();
+    evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
+
+    assert_eq!(dependent_calls, 2);
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Clean);
+}
+
+#[test]
+fn delta_threshold_skips_small_delta() {
+    let mut graph = SignalGraph::new();
+    let source = graph.create_node();
+    let dependent = graph.create_node_with_config(NodeEvaluationConfig {
+        condition: EvaluationCondition::DeltaThreshold(2.0),
+        ..NodeEvaluationConfig::default()
+    });
+    graph.add_dependency(dependent, source, ASPECT_B).unwrap();
+
+    let mut source_v10 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 10));
+    let mut source_v12 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 12));
+    let mut dependent_calls = 0_u64;
+    let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| {
+        dependent_calls += 1;
+        Ok(version_ab(0, 100))
+    };
+
+    evaluate(&mut graph, source, &mut source_v10).unwrap();
+    evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
+    mark_dirty(&mut graph, source, ASPECT_B).unwrap();
+    evaluate(&mut graph, source, &mut source_v12).unwrap();
+    evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
+
+    assert_eq!(dependent_calls, 1);
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Clean);
+}
+
+#[test]
+fn delta_threshold_recomputes_large_delta() {
+    let mut graph = SignalGraph::new();
+    let source = graph.create_node();
+    let dependent = graph.create_node_with_config(NodeEvaluationConfig {
+        condition: EvaluationCondition::DeltaThreshold(2.0),
+        ..NodeEvaluationConfig::default()
+    });
+    graph.add_dependency(dependent, source, ASPECT_B).unwrap();
+
+    let mut source_v10 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 10));
+    let mut source_v13 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 13));
+    let mut dependent_calls = 0_u64;
+    let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| {
+        dependent_calls += 1;
+        Ok(version_ab(0, 100 + dependent_calls))
+    };
+
+    evaluate(&mut graph, source, &mut source_v10).unwrap();
+    evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
+    mark_dirty(&mut graph, source, ASPECT_B).unwrap();
+    evaluate(&mut graph, source, &mut source_v13).unwrap();
+    evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
+
+    assert_eq!(dependent_calls, 2);
+}
+
+#[test]
+fn custom_condition_without_resolver_errors_deterministically() {
+    let mut graph = SignalGraph::new();
+    let node = graph.create_node_with_config(NodeEvaluationConfig {
+        condition: EvaluationCondition::Custom("test".to_string()),
+        ..NodeEvaluationConfig::default()
+    });
+    let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 1));
+
+    let err = evaluate(&mut graph, node, &mut compute).unwrap_err();
+    assert!(format!("{err}").contains("Custom condition 'test' requires a condition resolver"));
+}
+
+#[test]
+fn custom_condition_with_resolver_obeys_host_decision() {
+    let mut graph = SignalGraph::new();
+    let node = graph.create_node_with_config(NodeEvaluationConfig {
+        condition: EvaluationCondition::Custom("test".to_string()),
+        ..NodeEvaluationConfig::default()
+    });
+    let mut resolver = TestConditionResolver {
+        custom_result: true,
+        ..TestConditionResolver::default()
+    };
+    let mut comparator = DefaultComparatorResolver;
+    let mut compute_calls = 0_u64;
+    let mut compute = |_id: NodeId, _graph: &SignalGraph| {
+        compute_calls += 1;
+        Ok(version_ab(0, 1))
+    };
+
+    evaluate_with_resolvers(
+        &mut graph,
+        node,
+        &mut compute,
+        &mut comparator,
+        &mut resolver,
+        EvaluationRequestMode::Default,
+    )
+    .unwrap();
+
+    assert_eq!(compute_calls, 1);
+}
+
+#[test]
+fn debounce_not_ready_defers_recompute() {
+    let mut graph = SignalGraph::new();
+    let node = graph.create_node_with_config(NodeEvaluationConfig {
+        condition: EvaluationCondition::Debounce(50),
+        ..NodeEvaluationConfig::default()
+    });
+    let mut resolver = TestConditionResolver::default();
+    let mut comparator = DefaultComparatorResolver;
+    let mut compute_calls = 0_u64;
+    let mut compute = |_id: NodeId, _graph: &SignalGraph| {
+        compute_calls += 1;
+        Ok(version_ab(0, 1))
+    };
+
+    evaluate_with_resolvers(
+        &mut graph,
+        node,
+        &mut compute,
+        &mut comparator,
+        &mut resolver,
+        EvaluationRequestMode::Default,
+    )
+    .unwrap();
+
+    assert_eq!(compute_calls, 0);
+    assert_eq!(graph.get_state(node).unwrap(), NodeState::MaybeStale);
+    assert_eq!(graph.telemetry().debounce_deferred_count, 1);
+}
+
+#[test]
+fn debounce_ready_allows_recompute() {
+    let mut graph = SignalGraph::new();
+    let node = graph.create_node_with_config(NodeEvaluationConfig {
+        condition: EvaluationCondition::Debounce(50),
+        ..NodeEvaluationConfig::default()
+    });
+    let mut resolver = TestConditionResolver {
+        debounce_ready: true,
+        ..TestConditionResolver::default()
+    };
+    let mut comparator = DefaultComparatorResolver;
+    let mut compute_calls = 0_u64;
+    let mut compute = |_id: NodeId, _graph: &SignalGraph| {
+        compute_calls += 1;
+        Ok(version_ab(0, 1))
+    };
+
+    evaluate_with_resolvers(
+        &mut graph,
+        node,
+        &mut compute,
+        &mut comparator,
+        &mut resolver,
+        EvaluationRequestMode::Default,
+    )
+    .unwrap();
+
+    assert_eq!(compute_calls, 1);
+    assert_eq!(graph.get_state(node).unwrap(), NodeState::Clean);
 }

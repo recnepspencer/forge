@@ -1,6 +1,7 @@
 //! Arena-based signal graph with dependency storage.
 
 use serde::{Deserialize, Serialize};
+use std::time::Instant;
 
 use crate::data::aspect::Aspect;
 use crate::data::dependency::DependencyEdge;
@@ -9,7 +10,7 @@ use crate::data::handle::NodeId;
 use crate::data::node::{NodeEntry, NodeEvaluationConfig, NodeState};
 use crate::data::telemetry::RuntimeTelemetry;
 
-use super::scratch::TraversalScratch;
+use super::scratch::{ScratchLeaseKind, TraversalScratch};
 use super::slot::Slot;
 
 /// The reactive signal graph.
@@ -30,6 +31,9 @@ pub struct SignalGraph {
     /// Reusable traversal scratch to avoid hot-path allocations.
     #[serde(skip, default)]
     scratch: TraversalScratch,
+    /// Active scratch lease, if any.
+    #[serde(skip, default)]
+    scratch_lease: Option<ScratchLeaseKind>,
     /// Lightweight runtime counters for evaluation/invalidation behavior.
     #[serde(skip, default)]
     telemetry: RuntimeTelemetry,
@@ -50,6 +54,7 @@ impl SignalGraph {
             tombstone_count: 0,
             gc_threshold: 1024,
             scratch: TraversalScratch::default(),
+            scratch_lease: None,
             telemetry: RuntimeTelemetry::default(),
         }
     }
@@ -62,39 +67,43 @@ impl SignalGraph {
             tombstone_count: 0,
             gc_threshold,
             scratch: TraversalScratch::default(),
+            scratch_lease: None,
             telemetry: RuntimeTelemetry::default(),
         }
     }
 
-    pub(crate) fn begin_eval_pass(&mut self) {
-        let len = self.nodes.len();
-        self.scratch.visited.next_pass(len);
-        self.scratch.active.next_pass(len);
+    pub(crate) fn acquire_scratch(
+        &mut self,
+        kind: ScratchLeaseKind,
+    ) -> Result<TraversalScratch, SignalError> {
+        if let Some(active) = self.scratch_lease {
+            self.telemetry.scratch_reentry_error_count += 1;
+            return Err(SignalError::invalid_input(format!(
+                "signal scratch is already leased for {active:?}; re-entrant {kind:?} traversal is forbidden"
+            )));
+        }
+        self.scratch_lease = Some(kind);
+        Ok(std::mem::take(&mut self.scratch))
     }
 
-    pub(crate) fn begin_visit_pass(&mut self) {
-        let len = self.nodes.len();
-        self.scratch.visited.next_pass(len);
-    }
-
-    pub(crate) fn visited_contains(&self, id: NodeId) -> bool {
-        self.scratch.visited.is_marked(id.index() as usize)
-    }
-
-    pub(crate) fn visited_mark(&mut self, id: NodeId) -> bool {
-        self.scratch.visited.mark(id.index() as usize)
-    }
-
-    pub(crate) fn active_contains(&self, id: NodeId) -> bool {
-        self.scratch.active.is_marked(id.index() as usize)
-    }
-
-    pub(crate) fn active_mark(&mut self, id: NodeId) -> bool {
-        self.scratch.active.mark(id.index() as usize)
-    }
-
-    pub(crate) fn active_clear(&mut self, id: NodeId) {
-        self.scratch.active.clear(id.index() as usize);
+    pub(crate) fn restore_scratch(
+        &mut self,
+        kind: ScratchLeaseKind,
+        scratch: TraversalScratch,
+    ) -> Result<(), SignalError> {
+        match self.scratch_lease {
+            Some(active) if active == kind => {
+                self.scratch = scratch;
+                self.scratch_lease = None;
+                Ok(())
+            }
+            Some(active) => Err(SignalError::internal(format!(
+                "signal scratch lease mismatch: expected {active:?}, restored {kind:?}"
+            ))),
+            None => Err(SignalError::internal(
+                "signal scratch restore called without active lease",
+            )),
+        }
     }
 
     /// Allocate a new signal node, returning its stable handle.
@@ -223,50 +232,72 @@ impl SignalGraph {
     /// Remove a node from the arena, severing all dependency edges.
     pub fn unregister_node(&mut self, id: NodeId) -> Result<(), SignalError> {
         self.validate_handle(id)?;
+        let mut scratch = self.acquire_scratch(ScratchLeaseKind::Churn)?;
+        scratch.node_buffer_a.clear();
+        scratch.node_buffer_b.clear();
 
-        let entry = self.get_entry(id)?;
-        let upstream_sources: Vec<NodeId> = entry
-            .get_dependencies()
-            .iter()
-            .map(|e| e.source())
-            .collect();
-        let downstream_subs: Vec<NodeId> = entry.get_subscribers().to_vec();
+        {
+            let entry = self.get_entry(id)?;
+            scratch
+                .node_buffer_a
+                .extend(entry.get_dependencies().iter().map(|edge| edge.source()));
+            scratch
+                .node_buffer_b
+                .extend(entry.get_subscribers().iter().copied());
+        }
 
-        for source in upstream_sources {
+        for &source in &scratch.node_buffer_a {
             if self.is_alive(source) {
                 self.get_entry_mut(source)?.remove_subscriber(id);
             }
         }
 
-        for sub in downstream_subs {
-            if self.is_alive(sub) {
-                self.get_entry_mut(sub)?.remove_dependencies_on(id);
-                self.get_entry_mut(sub)?.set_state(NodeState::Dirty);
+        for &subscriber in &scratch.node_buffer_b {
+            if self.is_alive(subscriber) {
+                self.get_entry_mut(subscriber)?.remove_dependencies_on(id);
+                self.get_entry_mut(subscriber)?.set_state(NodeState::Dirty);
             }
         }
 
+        debug_assert!(
+            !self.free_list.contains(&id.index()),
+            "free list already contained slot {} before unregister",
+            id.index()
+        );
         self.nodes[id.index() as usize].vacate();
         self.tombstone_count += 1;
         self.free_list.push(id.index());
-
+        self.restore_scratch(ScratchLeaseKind::Churn, scratch)?;
         Ok(())
     }
 
     /// Run a garbage collection epoch.
     pub fn run_gc_epoch(&mut self) {
-        let alive_snapshot: Vec<(u32, bool)> = self
-            .nodes
-            .iter()
-            .map(|slot| (slot.generation, slot.is_occupied()))
-            .collect();
+        let gc_start = Instant::now();
+        let mut scratch = self
+            .acquire_scratch(ScratchLeaseKind::Gc)
+            .expect("GC scratch lease must succeed");
+        let len = self.nodes.len();
+        if scratch.gc_liveness_generations.len() < len {
+            scratch.gc_liveness_generations.resize(len, 0);
+        }
+        scratch.gc_liveness_alive.clear_all();
+        scratch.gc_liveness_alive.ensure_len(len);
 
+        for (index, slot) in self.nodes.iter().enumerate() {
+            scratch.gc_liveness_generations[index] = slot.generation;
+            if slot.is_occupied() {
+                scratch.gc_liveness_alive.mark(index);
+            }
+        }
+
+        let generations = &scratch.gc_liveness_generations;
+        let alive_bits = &scratch.gc_liveness_alive;
         let alive_checker = |node_id: NodeId| -> bool {
             let idx = node_id.index() as usize;
-            if idx >= alive_snapshot.len() {
-                return false;
-            }
-            let (generation, occupied) = alive_snapshot[idx];
-            generation == node_id.generation() && occupied
+            idx < generations.len()
+                && generations[idx] == node_id.generation()
+                && alive_bits.contains(idx)
         };
 
         for slot in &mut self.nodes {
@@ -275,9 +306,11 @@ impl SignalGraph {
             }
         }
 
-        self.free_list.sort_unstable();
-        self.free_list.dedup();
         self.tombstone_count = 0;
+        self.restore_scratch(ScratchLeaseKind::Gc, scratch)
+            .expect("GC scratch restore must succeed");
+        self.telemetry.gc_epoch_count += 1;
+        self.telemetry.gc_epoch_nanos += gc_start.elapsed().as_nanos();
     }
 
     /// Whether a GC epoch should be triggered.

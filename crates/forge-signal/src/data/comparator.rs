@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 
 use crate::data::aspect::Aspect;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
-use crate::data::tier::TierPolicy;
+use crate::data::node_meta::NodeMetaStore;
+use crate::data::tier_policy_table::TierPolicyTable;
 
 /// Version-change comparator policy for dependency snapshot checks.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
@@ -138,22 +138,22 @@ impl<R: VersionComparatorResolver> ComparatorPolicyResolver for DefaultComparato
 }
 
 /// Tier-aware policy resolver with per-node tier assignments.
-pub struct TierPolicyResolver<T: Copy + Ord, R = DefaultComparatorResolver> {
-    node_tiers: BTreeMap<NodeId, T>,
-    tier_policies: BTreeMap<T, TierPolicy<T>>,
-    fallback: VersionComparatorPolicy,
+pub struct TierPolicyResolver<'a, T: Copy + Ord, R = DefaultComparatorResolver> {
+    node_meta: &'a NodeMetaStore<T>,
+    tier_policies: &'a TierPolicyTable<T>,
+    fallback: &'a VersionComparatorPolicy,
     custom: R,
 }
 
-impl<T: Copy + Ord> TierPolicyResolver<T, DefaultComparatorResolver> {
+impl<'a, T: Copy + Ord> TierPolicyResolver<'a, T, DefaultComparatorResolver> {
     /// Build resolver from explicit node-tier assignments and tier policies.
     pub fn new(
-        node_tiers: BTreeMap<NodeId, T>,
-        tier_policies: BTreeMap<T, TierPolicy<T>>,
-        fallback: VersionComparatorPolicy,
+        node_meta: &'a NodeMetaStore<T>,
+        tier_policies: &'a TierPolicyTable<T>,
+        fallback: &'a VersionComparatorPolicy,
     ) -> Self {
         Self {
-            node_tiers,
+            node_meta,
             tier_policies,
             fallback,
             custom: DefaultComparatorResolver,
@@ -161,11 +161,11 @@ impl<T: Copy + Ord> TierPolicyResolver<T, DefaultComparatorResolver> {
     }
 }
 
-impl<T: Copy + Ord, R> TierPolicyResolver<T, R> {
+impl<'a, T: Copy + Ord, R> TierPolicyResolver<'a, T, R> {
     /// Attach custom comparator resolver for `Custom` comparator keys.
-    pub fn with_custom_resolver<R2>(self, custom: R2) -> TierPolicyResolver<T, R2> {
+    pub fn with_custom_resolver<R2>(self, custom: R2) -> TierPolicyResolver<'a, T, R2> {
         TierPolicyResolver {
-            node_tiers: self.node_tiers,
+            node_meta: self.node_meta,
             tier_policies: self.tier_policies,
             fallback: self.fallback,
             custom,
@@ -173,7 +173,9 @@ impl<T: Copy + Ord, R> TierPolicyResolver<T, R> {
     }
 }
 
-impl<T: Copy + Ord, R: VersionComparatorResolver> VersionComparatorResolver for TierPolicyResolver<T, R> {
+impl<T: Copy + Ord, R: VersionComparatorResolver> VersionComparatorResolver
+    for TierPolicyResolver<'_, T, R>
+{
     fn resolve(
         &mut self,
         key: &str,
@@ -185,7 +187,9 @@ impl<T: Copy + Ord, R: VersionComparatorResolver> VersionComparatorResolver for 
     }
 }
 
-impl<T: Copy + Ord, R: VersionComparatorResolver> ComparatorPolicyResolver for TierPolicyResolver<T, R> {
+impl<T: Copy + Ord, R: VersionComparatorResolver> ComparatorPolicyResolver
+    for TierPolicyResolver<'_, T, R>
+{
     fn policy_for_node(
         &self,
         node: NodeId,
@@ -194,7 +198,7 @@ impl<T: Copy + Ord, R: VersionComparatorResolver> ComparatorPolicyResolver for T
         if let Some(override_policy) = node_override {
             return override_policy.clone();
         }
-        if let Some(tier) = self.node_tiers.get(&node) {
+        if let Some(tier) = self.node_meta.tier_for_node(node) {
             if let Some(policy) = self.tier_policies.get(tier) {
                 return policy.default_comparator.clone();
             }

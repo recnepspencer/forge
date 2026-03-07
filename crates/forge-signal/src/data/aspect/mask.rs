@@ -11,37 +11,40 @@ pub struct AspectMask(u8);
 impl AspectMask {
     /// Empty mask.
     pub const EMPTY: Self = Self(0);
-    /// Topology aspect bit.
-    pub const TOPOLOGY: Self = Self(1 << 0);
-    /// Geometry aspect bit.
-    pub const GEOMETRY: Self = Self(1 << 1);
 
     /// Build a mask from one aspect.
-    pub fn from_aspect(aspect: Aspect) -> Self {
-        match aspect {
-            Aspect::Topology => Self::TOPOLOGY,
-            Aspect::Geometry => Self::GEOMETRY,
-        }
+    pub const fn from_aspect(aspect: Aspect) -> Self {
+        Self(aspect.bit())
+    }
+
+    /// Build a mask directly from raw bits.
+    pub const fn from_bits(bits: u8) -> Self {
+        Self(bits)
     }
 
     /// Raw bit representation.
-    pub fn bits(self) -> u8 {
+    pub const fn bits(self) -> u8 {
         self.0
     }
 
     /// Whether this mask contains any bits.
-    pub fn is_empty(self) -> bool {
+    pub const fn is_empty(self) -> bool {
         self.0 == 0
     }
 
     /// True if all bits in `other` are set in this mask.
-    pub fn contains(self, other: Self) -> bool {
+    pub const fn contains(self, other: Self) -> bool {
         (self.0 & other.0) == other.0
     }
 
     /// True if this mask shares at least one bit with `other`.
-    pub fn intersects(self, other: Self) -> bool {
+    pub const fn intersects(self, other: Self) -> bool {
         (self.0 & other.0) != 0
+    }
+
+    /// Insert one aspect bit into this mask.
+    pub fn insert(&mut self, aspect: Aspect) {
+        self.0 |= Self::from_aspect(aspect).0;
     }
 }
 

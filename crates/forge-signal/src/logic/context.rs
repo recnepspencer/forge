@@ -1,6 +1,6 @@
 //! Parallel-safe evaluation context for dependency tracking.
 //!
-//! DOMAIN: Explicit dependency discovery during feature evaluation.
+//! Explicit dependency discovery during node evaluation.
 //!
 //! INVARIANTS:
 //! - Context is passed by value, not stored in thread-locals (D8 safe)
@@ -26,7 +26,7 @@ use crate::data::handle::NodeId;
 /// # Usage
 /// ```ignore
 /// let mut ctx = EvaluationContext::new(my_node_id);
-/// let upstream_ver = ctx.read(&graph, upstream_id, Aspect::Topology)?;
+/// let upstream_ver = ctx.read(&graph, upstream_id, Aspect::new(0))?;
 /// // ... use upstream data ...
 /// let deps = ctx.finalize();
 /// // Wire deps into the graph

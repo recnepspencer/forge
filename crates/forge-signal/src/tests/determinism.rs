@@ -1,4 +1,5 @@
 use crate::facade::*;
+use crate::tests::support::*;
 
 #[test]
 fn kv63_circular_reference_detected() {
@@ -6,10 +7,10 @@ fn kv63_circular_reference_detected() {
     let a = graph.create_node();
     let b = graph.create_node();
 
-    graph.add_dependency(b, a, Aspect::Geometry).unwrap();
-    graph.add_dependency(a, b, Aspect::Geometry).unwrap();
+    graph.add_dependency(b, a, ASPECT_B).unwrap();
+    graph.add_dependency(a, b, ASPECT_B).unwrap();
 
-    let result = mark_dirty(&mut graph, a, Aspect::Geometry);
+    let result = mark_dirty(&mut graph, a, ASPECT_B);
     assert!(
         result.is_err(),
         "Circular reference A↔B should produce an error"
@@ -32,13 +33,13 @@ fn kv64_parallel_branches_deterministic() {
     for _ in 0..5 {
         let mut branch = Vec::new();
         let first = graph.create_node();
-        graph.add_dependency(first, root, Aspect::Geometry).unwrap();
+        graph.add_dependency(first, root, ASPECT_B).unwrap();
         branch.push(first);
 
         for j in 1..10 {
             let node = graph.create_node();
             graph
-                .add_dependency(node, branch[j - 1], Aspect::Geometry)
+                .add_dependency(node, branch[j - 1], ASPECT_B)
                 .unwrap();
             branch.push(node);
         }
@@ -48,7 +49,7 @@ fn kv64_parallel_branches_deterministic() {
     let mut compute_counter = 0u64;
     let mut compute = |_id, _g: &SignalGraph| {
         compute_counter += 1;
-        Ok(AspectVersion::new(0, compute_counter))
+        Ok(version_ab(0, compute_counter))
     };
 
     evaluate(&mut graph, root, &mut compute).unwrap();
@@ -58,12 +59,12 @@ fn kv64_parallel_branches_deterministic() {
         }
     }
 
-    mark_dirty(&mut graph, root, Aspect::Geometry).unwrap();
+    mark_dirty(&mut graph, root, ASPECT_B).unwrap();
 
     let mut recompute_counter = 0u64;
     let mut recompute = |_id, _g: &SignalGraph| {
         recompute_counter += 1;
-        Ok(AspectVersion::new(0, 100 + recompute_counter))
+        Ok(version_ab(0, 100 + recompute_counter))
     };
 
     evaluate(&mut graph, root, &mut recompute).unwrap();

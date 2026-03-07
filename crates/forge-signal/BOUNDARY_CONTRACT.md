@@ -7,20 +7,25 @@
 - Evaluation dependency graph scheduling and invalidation.
 - Deterministic ordering for event-subscriber flush.
 - Checkpoint staging/finalize/rollback semantics.
+- In-place graph mutation with sparse undo-log hard rewind.
+- Runtime condition gating at the scheduling boundary.
+- Arena-aligned node metadata for node-scale execution policy lookup.
+- Scratch-backed traversal/evaluation/GC after warmup.
 
 ## What this crate does not own
 
-- Host structural graphs (B-Rep, mesh topology, feature spec storage).
-- Geometry numerics, spatial acceleration, or CAD-domain mutation logic.
+- Host structural or state graphs.
+- Host-domain numerics, acceleration structures, or mutation logic.
+- Re-entrant graph traversal through shared scratch state.
 
 ## Two graph kinds
 
 1. Evaluation dependency graph:
    - Must be a DAG.
    - Cycles are invalid and rejected.
-2. Structural host graph:
+2. Host state graph:
    - May be cyclic.
-   - Lives in host domain crates.
+   - Lives in embedding crates.
    - Is consumed by signal compute closures as opaque snapshots/views.
 
 ## Raw-path compute contract
@@ -28,9 +33,13 @@
 - `forge-signal` does not require per-field reactive lookups during compute.
 - Host algorithms may consume tightly packed snapshots directly.
 - Reactive overhead is confined to invalidation/scheduling boundaries.
+- No overlay-read semantics exist in this crate.
+- Scratch-backed graph passes are single-threaded and non-reentrant in this phase.
 
 ## Integration expectation for host domains
 
-- Emit effects/invalidation from structural mutation chokepoints.
-- Keep structural truth in domain storage.
-- Use signal DAG for derived-state refresh and orchestration.
+- Emit effects/invalidation from host mutation chokepoints.
+- Keep source-of-truth state in host storage.
+- Use the signal DAG for derived-state refresh and orchestration.
+- Treat transaction failure as hard rewind: callers must not expect partial graph state to survive.
+- Do not assume node-slot reuse preserves node-scoped metadata; generation-safe metadata guards that boundary.

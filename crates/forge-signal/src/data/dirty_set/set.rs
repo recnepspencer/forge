@@ -67,6 +67,13 @@ impl<D: Copy + Ord, I: Copy + Ord> BatchedDirtySet<D, I> {
             .filter_map(|(domain, impact)| (!impact.is_empty()).then_some(*domain))
     }
 
+    /// Return the first dirty domain in deterministic order.
+    pub fn first_dirty_domain(&self) -> Option<D> {
+        self.by_domain
+            .iter()
+            .find_map(|(domain, impact)| (!impact.is_empty()).then_some(*domain))
+    }
+
     /// Read-only impact for a domain.
     pub fn impact_for(&self, domain: D) -> Option<&DomainImpact<I>> {
         self.by_domain.get(&domain)

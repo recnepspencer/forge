@@ -8,6 +8,8 @@ mod lifecycle;
 mod multi_aspect;
 mod node_conditions;
 mod performance;
+mod reentrancy;
 mod telemetry;
+pub(crate) mod support;
 mod tier_policy;
 mod transaction_stress;

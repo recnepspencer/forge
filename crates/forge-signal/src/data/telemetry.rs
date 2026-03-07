@@ -33,4 +33,22 @@ pub struct RuntimeTelemetry {
     pub transaction_poison_count: u64,
     /// Number of staged node patches applied across commits.
     pub staged_node_patch_count: u64,
+    /// Maximum number of touched node patches observed in one transaction.
+    pub max_touched_nodes_in_txn: u64,
+    /// Count of evaluation skips/deferments caused by node conditions.
+    pub condition_skip_count: u64,
+    /// Count of `OnDemand` nodes deferred under default evaluation mode.
+    pub ondemand_deferred_count: u64,
+    /// Count of `Debounce` nodes deferred because the quiet-period gate was not ready.
+    pub debounce_deferred_count: u64,
+    /// Count of rejected scratch re-entry attempts.
+    pub scratch_reentry_error_count: u64,
+    /// Count of nodes visited during invalidation passes.
+    pub invalidation_nodes_visited: u64,
+    /// Peak size reached by the evaluation task stack.
+    pub evaluation_stack_peak: u64,
+    /// Count of GC epochs executed.
+    pub gc_epoch_count: u64,
+    /// Total nanoseconds spent inside GC epochs.
+    pub gc_epoch_nanos: u128,
 }

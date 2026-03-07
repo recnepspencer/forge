@@ -4,6 +4,12 @@ pub struct DenseBitset {
     words: Vec<u64>,
 }
 
+pub struct DenseBitsetIter<'a> {
+    words: &'a [u64],
+    word_index: usize,
+    pending: u64,
+}
+
 impl DenseBitset {
     /// Create an empty bitset.
     pub fn new() -> Self {
@@ -70,20 +76,36 @@ impl DenseBitset {
         self.words.iter().any(|w| *w != 0)
     }
 
+    /// Iterate marked indices in ascending deterministic order.
+    pub fn iter_marked(&self) -> DenseBitsetIter<'_> {
+        DenseBitsetIter {
+            words: &self.words,
+            word_index: 0,
+            pending: 0,
+        }
+    }
+
     /// Return marked indices in ascending order.
     pub fn marked_indices(&self) -> Vec<usize> {
-        let mut out = Vec::new();
-        for (word_idx, word) in self.words.iter().copied().enumerate() {
-            if word == 0 {
-                continue;
+        self.iter_marked().collect()
+    }
+}
+
+impl Iterator for DenseBitsetIter<'_> {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if self.pending != 0 {
+                let bit = self.pending.trailing_zeros() as usize;
+                self.pending &= self.pending - 1;
+                return Some((self.word_index - 1) * 64 + bit);
             }
-            let mut pending = word;
-            while pending != 0 {
-                let bit = pending.trailing_zeros() as usize;
-                out.push(word_idx * 64 + bit);
-                pending &= pending - 1;
+            let word = *self.words.get(self.word_index)?;
+            self.word_index += 1;
+            if word != 0 {
+                self.pending = word;
             }
         }
-        out
     }
 }

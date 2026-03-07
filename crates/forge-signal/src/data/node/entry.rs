@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
-use crate::data::aspect::AspectVersion;
+use crate::data::aspect::{AspectMask, AspectVersion};
 use crate::data::dependency::{DependencyEdge, DependencySnapshot};
 use crate::data::handle::NodeId;
 use crate::data::trace::TraceSummary;
@@ -29,6 +29,7 @@ pub enum NodeState {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NodeEntry {
     state: NodeState,
+    dirty_aspects: AspectMask,
     aspect_version: AspectVersion,
     /// Upstream dependencies this node reads from.
     dependencies: SmallVec<[DependencyEdge; 4]>,
@@ -57,6 +58,7 @@ impl NodeEntry {
     pub fn new() -> Self {
         Self {
             state: NodeState::Dirty,
+            dirty_aspects: AspectMask::EMPTY,
             aspect_version: AspectVersion::zero(),
             dependencies: SmallVec::new(),
             subscribers: SmallVec::new(),
@@ -75,6 +77,21 @@ impl NodeEntry {
     /// Set the node state.
     pub fn set_state(&mut self, state: NodeState) {
         self.state = state;
+    }
+
+    /// Dirty aspects currently pending recomputation for this node.
+    pub fn get_dirty_aspects(&self) -> AspectMask {
+        self.dirty_aspects
+    }
+
+    /// Replace the dirty aspect mask.
+    pub fn set_dirty_aspects(&mut self, dirty_aspects: AspectMask) {
+        self.dirty_aspects = dirty_aspects;
+    }
+
+    /// Add one dirty aspect to the current mask.
+    pub fn add_dirty_aspect(&mut self, aspect: crate::data::aspect::Aspect) {
+        self.dirty_aspects.insert(aspect);
     }
 
     /// The current aspect versions.

@@ -1,14 +1,40 @@
 use serde::{Deserialize, Serialize};
 
-/// Which aspect of a feature output a downstream node subscribes to.
+/// Maximum number of independently versioned aspect slots supported per node.
+pub const MAX_ASPECTS: usize = 8;
+
+/// Caller-defined aspect key for subscription, invalidation, and version lookup.
 ///
-/// This enables the topology change firewall: a geometry-only change
-/// (e.g., dragging an extrude depth) won't trigger re-evaluation of
-/// nodes that only subscribe to the topology aspect.
+/// `forge-signal` does not assign semantic meaning to aspect slots. Embedding
+/// runtimes define what each slot represents.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Aspect {
-    /// Subscribes to topology changes (connectivity, face count, etc.).
-    Topology,
-    /// Subscribes to geometry changes (positions, dimensions, etc.).
-    Geometry,
+pub struct Aspect(u8);
+
+impl Aspect {
+    /// Create an aspect key for the given slot index.
+    ///
+    /// Valid indices are `0..MAX_ASPECTS`.
+    pub const fn new(index: u8) -> Self {
+        assert!(index < MAX_ASPECTS as u8, "aspect index out of range");
+        Self(index)
+    }
+
+    /// Fallible aspect constructor for dynamically chosen indices.
+    pub fn try_new(index: u8) -> Option<Self> {
+        (index < MAX_ASPECTS as u8).then_some(Self(index))
+    }
+
+    /// Zero-based slot index for this aspect.
+    pub const fn index(self) -> usize {
+        self.0 as usize
+    }
+
+    /// Raw numeric identifier for this aspect.
+    pub const fn id(self) -> u8 {
+        self.0
+    }
+
+    pub(crate) const fn bit(self) -> u8 {
+        1u8 << self.0
+    }
 }

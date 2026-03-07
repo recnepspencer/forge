@@ -90,18 +90,18 @@ impl SparsePatchBuffer {
 #[cfg(test)]
 mod tests {
     use super::SparsePatchBuffer;
-    use crate::data::aspect::{Aspect, AspectVersion};
     use crate::data::error::SignalError;
     use crate::data::graph::SignalGraph;
     use crate::data::node::NodeState;
     use crate::logic::invalidation::mark_dirty;
+    use crate::tests::support::*;
 
     #[test]
     fn rollback_clears_only_touched_entries_and_preserves_untouched() -> Result<(), SignalError> {
         let mut graph = SignalGraph::new();
         let a = graph.create_node();
         let b = graph.create_node();
-        graph.add_dependency(b, a, Aspect::Geometry)?;
+        graph.add_dependency(b, a, ASPECT_B)?;
 
         let before_a = graph.get_state(a)?;
         let before_b = graph.get_state(b)?;
@@ -111,7 +111,7 @@ mod tests {
         patches.stage_original(&graph, b)?;
         assert_eq!(patches.touched_count(), 2);
 
-        mark_dirty(&mut graph, a, Aspect::Geometry)?;
+        mark_dirty(&mut graph, a, ASPECT_B)?;
         assert_eq!(graph.get_state(a)?, NodeState::Dirty);
 
         patches.rollback_and_clear(&mut graph)?;
@@ -145,7 +145,7 @@ mod tests {
         patches.stage_original(&graph, a)?;
         graph
             .get_entry_mut(a)?
-            .set_aspect_version(AspectVersion::new(0, 10));
+            .set_aspect_version(version_ab(0, 10));
         patches.rollback_and_clear(&mut graph)?;
         assert_eq!(*graph.get_entry(a)?, baseline);
         assert_eq!(patches.touched_count(), 0);
@@ -153,9 +153,9 @@ mod tests {
         patches.stage_original(&graph, a)?;
         graph
             .get_entry_mut(a)?
-            .set_aspect_version(AspectVersion::new(0, 11));
+            .set_aspect_version(version_ab(0, 11));
         patches.commit_and_clear();
-        assert_eq!(graph.get_entry(a)?.get_aspect_version(), AspectVersion::new(0, 11));
+        assert_eq!(graph.get_entry(a)?.get_aspect_version(), version_ab(0, 11));
         assert_eq!(patches.touched_count(), 0);
         Ok(())
     }

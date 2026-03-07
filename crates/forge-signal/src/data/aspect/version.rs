@@ -1,71 +1,75 @@
 use serde::{Deserialize, Serialize};
 
-use super::aspect::Aspect;
+use super::aspect::{Aspect, MAX_ASPECTS};
+use super::mask::AspectMask;
 
 /// Per-aspect version counters carried by each signal node.
 ///
-/// When a feature evaluates, it reports new aspect versions.
-/// Downstream nodes compare these against their cached versions
-/// to determine if they actually need to recompute.
+/// Embedding runtimes assign meaning to aspect slots. `forge-signal` only
+/// provides deterministic storage and comparison mechanics.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AspectVersion {
-    topology: u64,
-    geometry: u64,
+    slots: [u64; MAX_ASPECTS],
 }
 
 impl AspectVersion {
-    /// Create a new aspect version with both counters at zero.
-    pub fn zero() -> Self {
+    /// Create a new aspect version with all counters at zero.
+    pub const fn zero() -> Self {
         Self {
-            topology: 0,
-            geometry: 0,
+            slots: [0; MAX_ASPECTS],
         }
     }
 
-    /// Create a new aspect version with explicit values.
-    pub fn new(topology: u64, geometry: u64) -> Self {
-        Self { topology, geometry }
+    /// Create a new aspect version from a full slot array.
+    pub const fn from_slots(slots: [u64; MAX_ASPECTS]) -> Self {
+        Self { slots }
     }
 
-    /// The topology version counter.
-    pub fn topology(self) -> u64 {
-        self.topology
-    }
-
-    /// The geometry version counter.
-    pub fn geometry(self) -> u64 {
-        self.geometry
+    /// Create a new aspect version from explicit slot/value pairs.
+    pub fn from_updates<const N: usize>(updates: [(Aspect, u64); N]) -> Self {
+        let mut version = Self::zero();
+        let mut i = 0;
+        while i < N {
+            let (aspect, value) = updates[i];
+            version.slots[aspect.index()] = value;
+            i += 1;
+        }
+        version
     }
 
     /// Read the version for a specific aspect.
-    pub fn get(self, aspect: Aspect) -> u64 {
-        match aspect {
-            Aspect::Topology => self.topology,
-            Aspect::Geometry => self.geometry,
-        }
+    pub const fn get(self, aspect: Aspect) -> u64 {
+        self.slots[aspect.index()]
     }
 
-    /// Bump the topology version by one.
-    pub fn bump_topology(self) -> Self {
-        Self {
-            topology: self.topology + 1,
-            geometry: self.geometry,
-        }
+    /// Return a copy with one aspect set to an explicit value.
+    pub fn with(mut self, aspect: Aspect, value: u64) -> Self {
+        self.slots[aspect.index()] = value;
+        self
     }
 
-    /// Bump the geometry version by one.
-    pub fn bump_geometry(self) -> Self {
-        Self {
-            topology: self.topology,
-            geometry: self.geometry + 1,
-        }
+    /// Bump one aspect version by one.
+    pub fn bump(mut self, aspect: Aspect) -> Self {
+        self.slots[aspect.index()] += 1;
+        self
     }
 
-    /// Bump both versions by one.
-    pub fn bump_all(self) -> Self {
-        Self {
-            topology: self.topology + 1,
-            geometry: self.geometry + 1,
+    /// Bump all aspects included in the provided mask.
+    pub fn bump_mask(mut self, mask: AspectMask) -> Self {
+        let mut bits = mask.bits();
+        let mut index = 0usize;
+        while bits != 0 {
+            if (bits & 1) != 0 {
+                self.slots[index] += 1;
+            }
+            bits >>= 1;
+            index += 1;
         }
+        self
+    }
+
+    /// Borrow all aspect slots.
+    pub const fn slots(&self) -> &[u64; MAX_ASPECTS] {
+        &self.slots
     }
 }

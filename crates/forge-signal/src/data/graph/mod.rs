@@ -3,3 +3,4 @@ mod signal_graph;
 mod slot;
 
 pub use signal_graph::SignalGraph;
+pub(crate) use scratch::{ScratchLeaseKind, TraversalScratch};

@@ -9,16 +9,13 @@ use crate::data::handle::NodeId;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DependencyEdge {
     source: NodeId,
-    aspect_mask: AspectMask,
+    aspect: Aspect,
 }
 
 impl DependencyEdge {
     /// Create a new dependency edge.
     pub fn new(source: NodeId, aspect: Aspect) -> Self {
-        Self {
-            source,
-            aspect_mask: AspectMask::from_aspect(aspect),
-        }
+        Self { source, aspect }
     }
 
     /// The upstream node this edge points to.
@@ -28,16 +25,12 @@ impl DependencyEdge {
 
     /// Which aspect of the upstream node is subscribed to.
     pub fn aspect(self) -> Aspect {
-        if self.aspect_mask.contains(AspectMask::TOPOLOGY) {
-            Aspect::Topology
-        } else {
-            Aspect::Geometry
-        }
+        self.aspect
     }
 
     /// The subscribed aspect mask.
     pub fn aspect_mask(self) -> AspectMask {
-        self.aspect_mask
+        AspectMask::from_aspect(self.aspect)
     }
 }
 
