@@ -1,0 +1,14 @@
+[package]
+name = "forge-spec"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Typed specification graph truth runtime for Forge"
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+smallvec = { workspace = true, features = ["serde"] }
+
+[lints]
+workspace = true

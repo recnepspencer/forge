@@ -6,6 +6,7 @@
 // Component modules (vertical domain slices with data/logic + façade)
 pub mod b_rep;
 pub mod canonical;
+pub mod projection;
 pub mod change_detection;
 pub mod persistent_naming;
 pub mod provenance;
@@ -30,6 +31,7 @@ pub use handles::{
     BodyId, EdgeId, FaceId, HalfEdgeId, LoopId, LumpId, RegionId, ShellId, VertexId,
 };
 pub use identity::{DraftId, OperationId};
+pub use projection::{ProjectedTopology, ProjectionBuilder};
 
 pub use operations::algorithms;
 pub use operations::boundary_editing;

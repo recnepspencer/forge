@@ -9,6 +9,7 @@ description = "Halfedge mesh, Euler operators, and topology state for the Forge 
 forge-math.workspace = true
 forge-core.workspace = true
 forge-signal.workspace = true
+forge-spec.workspace = true
 tracing.workspace = true
 serde = { workspace = true, features = ["derive"] }
 smallvec = { version = "1", features = ["serde"] }

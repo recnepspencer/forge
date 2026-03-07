@@ -1431,12 +1431,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-spec"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "smallvec",
+]
+
+[[package]]
 name = "forge-topo"
 version = "0.1.0"
 dependencies = [
  "forge-core",
  "forge-math",
  "forge-signal",
+ "forge-spec",
  "indexmap",
  "paste",
  "serde",

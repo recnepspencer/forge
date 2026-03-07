@@ -23,6 +23,9 @@ use super::contracts::feature_registry::FeatureRegistry;
 use super::output::solid_envelope::SolidEnvelope;
 use crate::configuration::facade::KernelConfig;
 
+const TOPOLOGY_ASPECT: Aspect = Aspect::new(0);
+const GEOMETRY_ASPECT: Aspect = Aspect::new(1);
+
 /// The Feature Tree manager.
 ///
 /// Owns the signal graph and the storage for feature data.
@@ -106,10 +109,10 @@ impl<R: FeatureRegistry> FeatureTree<R> {
 
         for dep_id in deps {
             self.graph
-                .add_dependency(node_id, dep_id, Aspect::Topology)
+                .add_dependency(node_id, dep_id, TOPOLOGY_ASPECT)
                 .map_err(Self::signal_to_kernel)?;
             self.graph
-                .add_dependency(node_id, dep_id, Aspect::Geometry)
+                .add_dependency(node_id, dep_id, GEOMETRY_ASPECT)
                 .map_err(Self::signal_to_kernel)?;
         }
         // Enforce feature name uniqueness — full path, not trailing segment.
@@ -129,9 +132,9 @@ impl<R: FeatureRegistry> FeatureTree<R> {
 
         self.features.insert(node_id, feature);
 
-        forge_signal::facade::mark_dirty(&mut self.graph, node_id, Aspect::Topology)
+        forge_signal::facade::mark_dirty(&mut self.graph, node_id, TOPOLOGY_ASPECT)
             .map_err(Self::signal_to_kernel)?;
-        forge_signal::facade::mark_dirty(&mut self.graph, node_id, Aspect::Geometry)
+        forge_signal::facade::mark_dirty(&mut self.graph, node_id, GEOMETRY_ASPECT)
             .map_err(Self::signal_to_kernel)?;
 
         Ok(node_id)
@@ -167,16 +170,16 @@ impl<R: FeatureRegistry> FeatureTree<R> {
                 })?;
         for dep_id in new_feature.dependencies() {
             self.graph
-                .add_dependency(node_id, dep_id, Aspect::Topology)
+                .add_dependency(node_id, dep_id, TOPOLOGY_ASPECT)
                 .map_err(Self::signal_to_kernel)?;
             self.graph
-                .add_dependency(node_id, dep_id, Aspect::Geometry)
+                .add_dependency(node_id, dep_id, GEOMETRY_ASPECT)
                 .map_err(Self::signal_to_kernel)?;
         }
 
-        forge_signal::facade::mark_dirty(&mut self.graph, node_id, Aspect::Topology)
+        forge_signal::facade::mark_dirty(&mut self.graph, node_id, TOPOLOGY_ASPECT)
             .map_err(Self::signal_to_kernel)?;
-        forge_signal::facade::mark_dirty(&mut self.graph, node_id, Aspect::Geometry)
+        forge_signal::facade::mark_dirty(&mut self.graph, node_id, GEOMETRY_ASPECT)
             .map_err(Self::signal_to_kernel)?;
 
         Ok(())
@@ -260,7 +263,10 @@ impl<R: FeatureRegistry> FeatureTree<R> {
                 // Store the full envelope — metadata is preserved.
                 envelopes.insert(id, envelope);
 
-                Ok(AspectVersion::new(1, 1))
+                Ok(AspectVersion::from_updates([
+                    (TOPOLOGY_ASPECT, 1),
+                    (GEOMETRY_ASPECT, 1),
+                ]))
             };
 
         forge_signal::facade::evaluate(graph, node_id, &mut compute)
