@@ -23,6 +23,7 @@ mod make_loop_in_face_from_vertices;
 mod make_edge_kill_loop;
 mod make_face_kill_ring_hole;
 mod join_faces;
+mod join_faces_nmt;
 mod kill_vertex_edge;
 mod kill_shell_face;
 mod kill_face_vertex;
@@ -63,6 +64,7 @@ pub use make_face_kill_ring_hole::{
     MakeFaceKillRingHoleMutation, MakeFaceKillRingHoleOutput,
 };
 pub use join_faces::{JoinFacesMutation, JoinFacesOutput};
+pub use join_faces_nmt::{JoinFacesNmtMutation, JoinFacesNmtOutput};
 pub use make_edge_kill_loop::{MakeEdgeKillLoopMutation, MakeEdgeKillLoopOutput};
 pub use make_loop_in_face_from_vertices::{
     MakeLoopInFaceFromVerticesMutation, MakeLoopInFaceFromVerticesOutput,

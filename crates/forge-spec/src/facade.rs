@@ -15,7 +15,7 @@ pub use crate::logic::mutation::{MutationResult, SpecLineageRecorder, SpecMutati
 pub use crate::logic::mutation::topology::{
     DestroyBodyMutation, DestroyLumpMutation, DestroyShellMutation, KillEdgeMakeLoopMutation,
     KillEdgeMakeLoopOutput, KillEdgeVertexMutation, ExtractLumpMutation, ExtractLumpOutput,
-    JoinFacesMutation, JoinFacesOutput,
+    JoinFacesMutation, JoinFacesNmtMutation, JoinFacesNmtOutput, JoinFacesOutput,
     KillFaceMakeRingHoleMutation,
     KillFaceMakeRingHoleOutput, KillFaceVertexMutation, KillShellFaceMutation,
     KillVertexEdgeMutation, KillVertexFaceMutation, MakeEdgeFaceMutation, MakeEdgeFaceOutput,

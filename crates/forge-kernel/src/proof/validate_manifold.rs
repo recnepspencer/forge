@@ -9,10 +9,9 @@
 //!               forge-core (KernelError, ToleranceProvider).
 //! INVARIANTS: No mutation — read-only validation.
 
-use forge_core::{KernelError, ToleranceProvider};
+use forge_core::KernelError;
 use forge_spec::facade::SpecState;
-use forge_topo::handles::VertexId;
-use forge_topo::projection::ProjectionBuilder;
+use forge_topo::projection::{ProjectionBuilder, validate_projected_topology_baseline};
 use forge_topo::transactions::TopologyState;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
@@ -23,12 +22,11 @@ pub fn validate_structure(topo: &TopologyState, level: ValidationLevel) -> Resul
 
 /// Validate graph-native spec truth by ensuring it materializes to a valid projected topology.
 pub fn validate_spec_structure(spec: &SpecState) -> Result<(), KernelError> {
-    ProjectionBuilder::build(spec)
-        .map(|_| ())
-        .map_err(|error| KernelError::InvalidInput {
+    let projected = ProjectionBuilder::build(spec).map_err(|error| KernelError::InvalidInput {
             message: format!("Spec projection failed: {}", error),
             context: None,
-        })
+        })?;
+    validate_projected_topology_baseline(&projected)
 }
 
 /// Validate geometry (spatial invariants) using a `GeometryContext`.

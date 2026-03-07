@@ -4,6 +4,7 @@ mod core;
 mod face_construction;
 mod hole_editing;
 mod join_faces;
+mod join_faces_nmt;
 mod loop_construction;
 mod loop_merge_split;
 mod radial_splice;
