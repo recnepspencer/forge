@@ -29,7 +29,7 @@ pub use crate::data::subscriber_context::{SubscriberContext, SubscriberContextEr
 pub use crate::data::telemetry::RuntimeTelemetry;
 pub use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger, TierPolicy};
 pub use crate::data::tier_policy_table::TierPolicyTable;
-pub use crate::data::trace::TraceSummary;
+pub use crate::data::trace::{CausalityMetadata, TraceSummary};
 
 // Re-export Logic constructs
 pub use crate::logic::checkpoint::CheckpointRuntime;
@@ -41,12 +41,16 @@ pub use crate::logic::evaluation::{
     EvaluationRequestMode,
 };
 pub use crate::logic::events::{EventBus, EventFlushError, SubscriberRegistryError};
+pub use crate::logic::explain::{
+    ConditionDecision, MeaningfulChangeReason, NodeExplanation, UpstreamCause,
+};
 pub use crate::logic::invalidation::mark_dirty;
 pub use crate::logic::transaction::{
     emit_event_in_txn, evaluate_in_txn, evaluate_in_txn_with_mode, flush_checkpoint_in_txn,
     SignalRuntime, SignalRuntimeBuilder, SignalRuntimeConfig, SignalTransaction,
     TransactionOutcome,
 };
+pub use crate::presentation::metrics::{GraphMetrics, RuntimeMetrics};
 pub use crate::presentation::contracts::{
     DependencyGraphContract, RawPathComputeContract, StructuralStateBoundaryContract,
 };

@@ -10,6 +10,7 @@ use crate::data::error::SignalError;
 use crate::data::graph::{ScratchLeaseKind, SignalGraph, TraversalScratch};
 use crate::data::handle::NodeId;
 use crate::data::node::{EvaluationCondition, NodeState};
+use crate::data::trace::TraceSummary;
 
 use super::condition::{
     ConditionEvaluationContext, ConditionResolver, DefaultConditionResolver, EvaluationRequestMode,
@@ -445,11 +446,20 @@ where
     F: FnMut(NodeId, &SignalGraph) -> Result<AspectVersion, SignalError>,
 {
     let new_version = compute(node, graph)?;
+    let meaningful_input_changes = count_meaningful_input_changes(graph, node)?;
     let snapshot = build_dep_snapshot(graph, node)?;
+    let trace_summary = TraceSummary {
+        output_hash: trace_output_hash(new_version),
+        recomputed: true,
+        dependency_count: snapshot.entries().len() as u32,
+        meaningful_input_changes,
+        labels: Vec::new(),
+    };
 
     let entry = graph.get_entry_mut(node)?;
     entry.set_aspect_version(new_version);
     entry.set_dep_snapshot(snapshot);
+    entry.set_trace_summary(Some(trace_summary));
     entry.set_state(NodeState::Clean);
     entry.set_dirty_aspects(AspectMask::EMPTY);
     graph.telemetry_mut().nodes_recomputed += 1;
@@ -471,6 +481,43 @@ fn build_dep_snapshot(
         }
     }
     Ok(snapshot)
+}
+
+fn count_meaningful_input_changes(graph: &SignalGraph, node: NodeId) -> Result<u32, SignalError> {
+    let entry = graph.get_entry(node)?;
+    let mut changes = 0_u32;
+    for dependency in entry.get_dependencies() {
+        let cached = entry
+            .get_dep_snapshot()
+            .entries()
+            .iter()
+            .find(|(source, aspect, _)| *source == dependency.source() && *aspect == dependency.aspect())
+            .map(|(_, _, version)| *version);
+        let Some(cached) = cached else {
+            continue;
+        };
+        if !graph.is_alive(dependency.source()) {
+            changes += 1;
+            continue;
+        }
+        let current = graph
+            .get_entry(dependency.source())?
+            .get_aspect_version()
+            .get(dependency.aspect());
+        if current != cached {
+            changes += 1;
+        }
+    }
+    Ok(changes)
+}
+
+fn trace_output_hash(version: AspectVersion) -> u128 {
+    let mut hash = 0xcbf29ce484222325_u128;
+    for slot in version.slots() {
+        hash ^= *slot as u128;
+        hash = hash.wrapping_mul(0x100000001b3_u128);
+    }
+    hash
 }
 
 enum ConditionAction {

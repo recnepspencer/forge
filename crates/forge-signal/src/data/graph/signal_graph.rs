@@ -9,6 +9,10 @@ use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::node::{NodeEntry, NodeEvaluationConfig, NodeState};
 use crate::data::telemetry::RuntimeTelemetry;
+use crate::data::trace::CausalityMetadata;
+use crate::logic::explain::{dependency_chain_to, explain, NodeExplanation};
+use crate::presentation::dot::to_dot;
+use crate::presentation::metrics::GraphMetrics;
 
 use super::node_builder::NodeBuilder;
 use super::scratch::{ScratchLeaseKind, TraversalScratch};
@@ -357,6 +361,64 @@ impl SignalGraph {
     /// Reset runtime telemetry counters.
     pub fn reset_telemetry(&mut self) {
         self.telemetry = RuntimeTelemetry::default();
+    }
+
+    /// Structured explanation for one node based on committed graph state.
+    pub fn explain(&self, node: NodeId) -> Result<NodeExplanation, SignalError> {
+        explain(self, node)
+    }
+
+    /// Direct dependencies of one node.
+    pub fn dependencies_of(&self, node: NodeId) -> Result<&[DependencyEdge], SignalError> {
+        Ok(self.get_entry(node)?.get_dependencies())
+    }
+
+    /// Direct subscribers of one node.
+    pub fn subscribers_of(&self, node: NodeId) -> Result<&[NodeId], SignalError> {
+        Ok(self.get_entry(node)?.get_subscribers())
+    }
+
+    /// Whether `node` directly depends on `upstream` for the given aspect.
+    pub fn depends_on(&self, node: NodeId, upstream: NodeId, aspect: Aspect) -> Result<bool, SignalError> {
+        Ok(self
+            .get_entry(node)?
+            .get_dependencies()
+            .iter()
+            .any(|dependency| dependency.source() == upstream && dependency.aspect() == aspect))
+    }
+
+    /// Deterministic dependency path from `root` to `target` through subscriber edges.
+    pub fn dependency_chain_to(
+        &self,
+        root: NodeId,
+        target: NodeId,
+    ) -> Result<Option<Vec<NodeId>>, SignalError> {
+        dependency_chain_to(self, root, target)
+    }
+
+    /// Read the host-provided causality payload for one node.
+    pub fn causality_of(&self, node: NodeId) -> Result<Option<&CausalityMetadata>, SignalError> {
+        Ok(self.get_entry(node)?.get_causality())
+    }
+
+    /// Set or clear the host-provided causality payload for one node.
+    pub fn set_causality(
+        &mut self,
+        node: NodeId,
+        causality: Option<CausalityMetadata>,
+    ) -> Result<(), SignalError> {
+        self.get_entry_mut(node)?.set_causality(causality);
+        Ok(())
+    }
+
+    /// Structured graph metrics snapshot.
+    pub fn metrics(&self) -> GraphMetrics {
+        GraphMetrics::from(self.telemetry())
+    }
+
+    /// Export this graph to Graphviz DOT.
+    pub fn to_dot(&self) -> String {
+        to_dot(self)
     }
 
 }

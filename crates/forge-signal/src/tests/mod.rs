@@ -7,6 +7,7 @@ mod graph_core;
 mod lifecycle;
 mod multi_aspect;
 mod node_conditions;
+mod observability;
 mod phase1_api;
 mod performance;
 mod reentrancy;

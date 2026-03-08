@@ -4,7 +4,7 @@ use smallvec::SmallVec;
 use crate::data::aspect::{AspectMask, AspectVersion};
 use crate::data::dependency::{DependencyEdge, DependencySnapshot};
 use crate::data::handle::NodeId;
-use crate::data::trace::TraceSummary;
+use crate::data::trace::{CausalityMetadata, TraceSummary};
 
 use super::condition::NodeEvaluationConfig;
 
@@ -42,6 +42,9 @@ pub struct NodeEntry {
     /// Last evaluation trace summary (for diff-on-re-eval).
     #[serde(default)]
     trace_summary: Option<TraceSummary>,
+    /// Optional host-provided causality payload for explanation surfaces.
+    #[serde(default)]
+    causality: Option<CausalityMetadata>,
     /// Evaluation condition/config descriptor for this node.
     #[serde(default)]
     eval_config: NodeEvaluationConfig,
@@ -65,6 +68,7 @@ impl NodeEntry {
             dep_snapshot: DependencySnapshot::empty(),
             tombstoned: false,
             trace_summary: None,
+            causality: None,
             eval_config: NodeEvaluationConfig::default(),
         }
     }
@@ -191,6 +195,16 @@ impl NodeEntry {
     /// Set or clear the trace summary.
     pub fn set_trace_summary(&mut self, summary: Option<TraceSummary>) {
         self.trace_summary = summary;
+    }
+
+    /// Optional host-provided causality payload.
+    pub fn get_causality(&self) -> Option<&CausalityMetadata> {
+        self.causality.as_ref()
+    }
+
+    /// Set or clear the causality payload.
+    pub fn set_causality(&mut self, causality: Option<CausalityMetadata>) {
+        self.causality = causality;
     }
 
     /// Per-node evaluation policy descriptor.

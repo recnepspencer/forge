@@ -23,8 +23,10 @@ use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::evaluation::{
     evaluate_with_policy_and_condition_resolvers, DefaultConditionResolver, EvaluationRequestMode,
 };
+use crate::logic::explain::{explain_with_policy_resolver, NodeExplanation};
 use crate::logic::events::EventBus;
 use crate::logic::invalidation::mark_dirty;
+use crate::presentation::metrics::RuntimeMetrics;
 
 use super::patch_buffer::SparsePatchBuffer;
 
@@ -299,6 +301,37 @@ where
     /// Runtime telemetry snapshot.
     pub fn telemetry(&self) -> &RuntimeTelemetry {
         &self.telemetry
+    }
+
+    /// Structured explanation for one node using runtime comparator policy.
+    pub fn explain(&self, node: NodeId) -> Result<NodeExplanation, SignalError> {
+        let resolver = TierPolicyResolver::new(
+            self.config.node_meta(),
+            self.config.tier_policies(),
+            self.config.fallback_comparator(),
+        );
+        explain_with_policy_resolver(&self.graph, node, &resolver)
+    }
+
+    /// Structured runtime metrics snapshot.
+    pub fn metrics(&self) -> RuntimeMetrics {
+        RuntimeMetrics {
+            transaction_begin_count: self.telemetry.transaction_begin_count,
+            transaction_commit_count: self.telemetry.transaction_commit_count,
+            transaction_rollback_count: self.telemetry.transaction_rollback_count,
+            transaction_poison_count: self.telemetry.transaction_poison_count,
+            checkpoint_flushes: self.checkpoint.telemetry().checkpoint_flushes,
+            checkpoint_flush_nanos: self.checkpoint.telemetry().checkpoint_flush_nanos,
+            event_flushes: self.event_bus.telemetry().event_flushes,
+            rollback_count: self.event_bus.telemetry().rollback_count,
+            staged_node_patch_count: self.telemetry.staged_node_patch_count,
+            max_touched_nodes_in_txn: self.telemetry.max_touched_nodes_in_txn,
+        }
+    }
+
+    /// Graphviz DOT export for the committed graph.
+    pub fn to_dot(&self) -> String {
+        self.graph.to_dot()
     }
 
     /// Assign one node to a comparator tier.
