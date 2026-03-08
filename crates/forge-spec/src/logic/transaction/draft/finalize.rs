@@ -34,7 +34,11 @@ impl SpecDraft {
             }
         }
         for node in self.created_nodes.values() {
-            graph.insert_node(node.clone())?;
+            if graph.node(node.id).is_some() {
+                graph.replace_node(node.clone())?;
+            } else {
+                graph.insert_node(node.clone())?;
+            }
         }
         for relation in self.created_relations.values() {
             graph.insert_relation(relation.clone())?;

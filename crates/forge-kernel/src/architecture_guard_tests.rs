@@ -103,6 +103,17 @@ fn is_signal_contract_path_allowed(rel_path: &str) -> bool {
     false
 }
 
+/// Paths that are allowed to interact with raw projected-topology internals.
+fn is_projection_contract_path_allowed(rel_path: &str) -> bool {
+    if rel_path.contains("engine/output/spec_envelope/") {
+        return true;
+    }
+    if rel_path.ends_with("engine/output/testing/spec_envelope.rs") {
+        return true;
+    }
+    false
+}
+
 // ── Guard 1: No direct forge_math::linalg:: access ─────────────────────
 
 /// No direct `forge_math::linalg::` calls allowed in kernel code.
@@ -380,4 +391,54 @@ fn feature_tree_uses_aspect_aware_dependency_bindings() {
         !content.contains("feature.dependencies()"),
         "FeatureTree must not wire signal dependencies through legacy dependencies()"
     );
+}
+
+// ── Guard 7: Raw projected topology stays behind SpecEnvelope ─────────────
+
+#[test]
+fn raw_projected_topology_access_stays_inside_spec_envelope() {
+    let kernel_src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let rs_files = collect_rs_files(&kernel_src);
+
+    let banned_patterns = [
+        "ProjectedTopology",
+        "ProjectionBuilder",
+        "ProjectedTopologyQueries",
+    ];
+
+    let mut violations = Vec::new();
+
+    for file in &rs_files {
+        let rel_path = file
+            .strip_prefix(&kernel_src)
+            .unwrap_or(file)
+            .to_string_lossy();
+
+        if is_exempt_path(&rel_path) || is_projection_contract_path_allowed(&rel_path) {
+            continue;
+        }
+
+        let content = match std::fs::read_to_string(file) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+
+        for (line_num, line) in content.lines().enumerate() {
+            if !is_code_line(line) {
+                continue;
+            }
+            if banned_patterns.iter().any(|pattern| line.contains(pattern)) {
+                violations.push(format!("  {}:{}: {}", rel_path, line_num + 1, line.trim()));
+            }
+        }
+    }
+
+    if !violations.is_empty() {
+        panic!(
+            "\n\nARCHITECTURE VIOLATION: raw projected-topology access leaked outside SpecEnvelope.\n\
+             Route projected reads through SpecEnvelope instead.\n\
+             Violations:\n{}\n",
+            violations.join("\n")
+        );
+    }
 }

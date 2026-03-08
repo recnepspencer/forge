@@ -1,16 +1,20 @@
 mod make_vertex_face;
 mod make_isolated_vertex;
+mod clone_body;
 mod make_solid;
 mod destroy_body;
 mod make_lump_region;
 mod destroy_lump;
 mod rehome_lump;
 mod extract_lump;
+mod extract_shell;
 mod split_lump;
 mod merge_lumps;
 mod make_empty_shell;
 mod destroy_shell;
 mod rehome_shell;
+mod promote_shell;
+mod demote_shell;
 mod split_shell;
 mod merge_shells;
 mod split_body;
@@ -42,9 +46,11 @@ mod wire_loop_cycle;
 mod wire_face_cycle;
 
 pub use destroy_body::DestroyBodyMutation;
+pub use clone_body::{CloneBodyMutation, CloneBodyOutput};
 pub use destroy_lump::DestroyLumpMutation;
 pub use destroy_shell::DestroyShellMutation;
 pub use extract_lump::{ExtractLumpMutation, ExtractLumpOutput};
+pub use extract_shell::{ExtractShellMutation, ExtractShellOutput};
 pub use kill_face_vertex::KillFaceVertexMutation;
 pub use kill_face_make_ring_hole::{
     KillFaceMakeRingHoleMutation, KillFaceMakeRingHoleOutput,
@@ -81,6 +87,8 @@ pub use make_edge_vertex::{MakeEdgeVertexMutation, MakeEdgeVertexOutput};
 pub use make_vertex_face::{MakeVertexFaceMutation, MakeVertexFaceOutput};
 pub use rehome_lump::RehomeLumpMutation;
 pub use rehome_shell::RehomeShellMutation;
+pub use promote_shell::PromoteShellMutation;
+pub use demote_shell::DemoteShellMutation;
 pub use sew_edge::{SewEdgeMutation, SewEdgeOutput};
 pub use split_body::{SplitBodyMutation, SplitBodyOutput};
 pub use split_edge::{SplitEdgeMutation, SplitEdgeOutput};

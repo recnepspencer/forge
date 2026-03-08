@@ -104,6 +104,65 @@ fn merge_shells_absorbs_source_shell() {
 }
 
 #[test]
+fn extract_shell_creates_new_region_for_inner_shell() {
+    let mut draft = SpecState::empty().into_draft();
+    let solid = draft.execute(MakeSolidMutation).unwrap();
+    let outer = draft
+        .execute(MakeEmptyShellMutation {
+            region: solid.value.region,
+            kind: SpecShellKind::Solid(SpecShellOrientation::Outer),
+        })
+        .unwrap();
+    let inner = draft
+        .execute(MakeEmptyShellMutation {
+            region: solid.value.region,
+            kind: SpecShellKind::Solid(SpecShellOrientation::Inner),
+        })
+        .unwrap();
+    let _ = outer;
+
+    let extracted = draft
+        .execute(ExtractShellMutation {
+            shell: inner.value.shell,
+        })
+        .unwrap();
+
+    let state = draft.commit().unwrap();
+    let graph = state.graph();
+    assert_eq!(
+        graph.iter_nodes().filter(|node| node.kind == SpecNodeKind::Region).count(),
+        2
+    );
+    assert_eq!(
+        graph.outgoing_of_kind(extracted.value.new_region, RelationKind::RegionOwnsShell)
+            .len(),
+        1
+    );
+    assert_eq!(
+        state.shell_kind(inner.value.shell).unwrap(),
+        SpecShellKind::Solid(SpecShellOrientation::Outer)
+    );
+}
+
+#[test]
+fn extract_shell_rejects_outer_solid_shell() {
+    let mut draft = SpecState::empty().into_draft();
+    let solid = draft.execute(MakeSolidMutation).unwrap();
+    let outer = draft
+        .execute(MakeEmptyShellMutation {
+            region: solid.value.region,
+            kind: SpecShellKind::Solid(SpecShellOrientation::Outer),
+        })
+        .unwrap();
+
+    let result = draft.execute(ExtractShellMutation {
+        shell: outer.value.shell,
+    });
+
+    assert!(result.is_err());
+}
+
+#[test]
 fn rehome_lump_moves_lump_and_deletes_empty_source_body() {
     let mut draft = SpecState::empty().into_draft();
     let body_a = draft.execute(MakeSolidMutation).unwrap();
@@ -247,4 +306,90 @@ fn merge_bodies_absorbs_source_body() {
     let graph = state.graph();
     assert!(graph.node(body_b.value.body).is_none());
     assert_eq!(graph.outgoing_of_kind(body_a.value.body, RelationKind::BodyOwnsLump).len(), 2);
+}
+
+#[test]
+fn clone_body_duplicates_seed_topology_subgraph() {
+    let mut draft = SpecState::empty().into_draft();
+    let seed = draft.execute(MakeVertexFaceMutation).unwrap();
+
+    let cloned = draft
+        .execute(CloneBodyMutation {
+            body: seed.value.body,
+        })
+        .unwrap();
+
+    let state = draft.commit().unwrap();
+    let graph = state.graph();
+    assert_eq!(
+        graph.iter_nodes().filter(|node| node.kind == SpecNodeKind::Body).count(),
+        2
+    );
+    assert_eq!(
+        graph.iter_nodes().filter(|node| node.kind == SpecNodeKind::Face).count(),
+        2
+    );
+    assert_eq!(
+        graph.outgoing_of_kind(cloned.value.cloned_body, RelationKind::BodyOwnsLump)
+            .len(),
+        1
+    );
+}
+
+#[test]
+fn promote_shell_swaps_inner_and_outer_roles() {
+    let mut draft = SpecState::empty().into_draft();
+    let solid = draft.execute(MakeSolidMutation).unwrap();
+    let outer = draft
+        .execute(MakeEmptyShellMutation {
+            region: solid.value.region,
+            kind: SpecShellKind::Solid(SpecShellOrientation::Outer),
+        })
+        .unwrap();
+    let inner = draft
+        .execute(MakeEmptyShellMutation {
+            region: solid.value.region,
+            kind: SpecShellKind::Solid(SpecShellOrientation::Inner),
+        })
+        .unwrap();
+
+    draft
+        .execute(PromoteShellMutation {
+            shell: inner.value.shell,
+        })
+        .unwrap();
+
+    let state = draft.commit().unwrap();
+    assert_eq!(
+        state.shell_kind(inner.value.shell).unwrap(),
+        SpecShellKind::Solid(SpecShellOrientation::Outer)
+    );
+    assert_eq!(
+        state.shell_kind(outer.value.shell).unwrap(),
+        SpecShellKind::Solid(SpecShellOrientation::Inner)
+    );
+}
+
+#[test]
+fn demote_shell_reclassifies_outer_shell_as_inner() {
+    let mut draft = SpecState::empty().into_draft();
+    let solid = draft.execute(MakeSolidMutation).unwrap();
+    let outer = draft
+        .execute(MakeEmptyShellMutation {
+            region: solid.value.region,
+            kind: SpecShellKind::Solid(SpecShellOrientation::Outer),
+        })
+        .unwrap();
+
+    draft
+        .execute(DemoteShellMutation {
+            region: solid.value.region,
+        })
+        .unwrap();
+
+    let state = draft.commit().unwrap();
+    assert_eq!(
+        state.shell_kind(outer.value.shell).unwrap(),
+        SpecShellKind::Solid(SpecShellOrientation::Inner)
+    );
 }

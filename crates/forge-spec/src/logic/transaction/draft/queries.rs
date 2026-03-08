@@ -29,6 +29,33 @@ impl SpecDraft {
             .collect()
     }
 
+    pub fn outgoing_relations(&self, source: SpecNodeId) -> Vec<RelationRecord> {
+        let mut relations: Vec<RelationRecord> = self
+            .base
+            .graph()
+            .outgoing_relations(source)
+            .into_iter()
+            .filter(|relation| !self.deleted_relations.contains(&relation.id))
+            .cloned()
+            .collect();
+        relations.extend(
+            self.created_relations
+                .values()
+                .filter(|relation| relation.source == source)
+                .cloned(),
+        );
+        relations.sort_by_key(|relation| {
+            (
+                relation.kind,
+                relation.ordinal,
+                relation.source,
+                relation.target,
+                relation.id,
+            )
+        });
+        relations
+    }
+
     pub fn single_outgoing_target(
         &self,
         source: SpecNodeId,

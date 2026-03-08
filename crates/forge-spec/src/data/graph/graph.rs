@@ -52,6 +52,15 @@ impl SpecGraph {
         Ok(())
     }
 
+    pub fn replace_node(&mut self, node: NodeRecord) -> Result<(), SpecError> {
+        let Some(index) = self.node_index.get(&node.id).copied() else {
+            return Err(SpecError::not_found(format!("missing node {}", node.id)));
+        };
+        self.nodes[index] = node;
+        self.rebuild_indexes();
+        Ok(())
+    }
+
     pub fn insert_relation(&mut self, relation: RelationRecord) -> Result<(), SpecError> {
         if self.relation_index.contains_key(&relation.id) {
             return Err(SpecError::invalid(format!("duplicate relation id {}", relation.id)));

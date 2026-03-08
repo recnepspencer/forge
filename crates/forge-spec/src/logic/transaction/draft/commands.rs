@@ -40,6 +40,24 @@ impl SpecDraft {
         )
     }
 
+    pub fn set_shell_kind(
+        &mut self,
+        shell: SpecNodeId,
+        kind: SpecShellKind,
+    ) -> Result<(), SpecError> {
+        self.ensure_open()?;
+        let mut node = self.current_node(shell)?.clone();
+        if node.kind != SpecNodeKind::Shell {
+            return Err(SpecError::invalid(format!(
+                "node {} is not a shell; found {:?}",
+                shell, node.kind
+            )));
+        }
+        node.payload = Some(self.insert_payload(ShellPayload::new(kind).encode()));
+        self.created_nodes.insert(shell, node);
+        Ok(())
+    }
+
     pub fn delete_node(&mut self, id: SpecNodeId) -> Result<(), SpecError> {
         self.ensure_open()?;
         let kind = self.current_node(id)?.kind;

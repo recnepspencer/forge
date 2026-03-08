@@ -1,9 +1,10 @@
 use forge_spec::facade::{
-    ExtractLumpMutation, MakeEmptyShellMutation, MakeFaceVertexMutation, MakeLumpRegionMutation,
+    CloneBodyMutation, ExtractLumpMutation, ExtractShellMutation, MakeEmptyShellMutation, MakeFaceVertexMutation,
+    MakeLumpRegionMutation,
     MakeSolidMutation, MakeVertexFaceMutation, MergeBodiesMutation, MergeLumpsMutation,
-    MergeShellsMutation, RelationKind, RehomeLumpMutation,
+    DemoteShellMutation, MergeShellsMutation, PromoteShellMutation, RelationKind, RehomeLumpMutation,
     RehomeShellMutation, SpecNodeKind, SpecShellKind, SpecState, SplitBodyMutation, SplitLumpMutation,
-    SplitShellMutation,
+    SplitShellMutation, SpecShellOrientation,
 };
 
 use crate::b_rep::{EdgeData, FaceData, HalfEdgeData, LoopData, RegionData, ShellKind, VertexData};
@@ -11,9 +12,10 @@ use crate::handles::{EdgeId, FaceId, HalfEdgeId, LoopId, ShellId, VertexId};
 use crate::operations::entity_lifecycle::make_face_vertex::MakeFaceVertex;
 use crate::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::operations::lifecycle::body_ops::{MergeBodies, SplitBody};
+use crate::operations::lifecycle::body_ops::CloneBody;
 use crate::operations::lifecycle::lump_ops::{ExtractLump, MergeLumps, RehomeLump, SplitLump};
 use crate::operations::lifecycle::shell::{MakeEmptyShell};
-use crate::operations::lifecycle::shell_ops::{MergeShells, RehomeShell, SplitShell};
+use crate::operations::lifecycle::shell_ops::{DemoteShell, ExtractShell, MergeShells, PromoteShell, RehomeShell, SplitShell};
 use crate::operations::lifecycle::solid::MakeSolid;
 use crate::projection::facade::{compute_projected_topology_hash, ProjectionBuilder};
 use crate::transactions::facade::{compute_arena_topology_hash, TopologyState};
@@ -36,6 +38,13 @@ fn projected_split_shell_matches_legacy_signature() {
 fn projected_merge_shells_matches_legacy_signature() {
     let legacy = build_legacy_merge_shells_state();
     let projected = ProjectionBuilder::build(&build_merge_shells_state()).unwrap();
+    assert_eq!(compute_projected_topology_hash(&projected), compute_arena_topology_hash(legacy.arena()));
+}
+
+#[test]
+fn projected_extract_shell_matches_legacy_signature() {
+    let legacy = build_legacy_extract_shell_state();
+    let projected = ProjectionBuilder::build(&build_extract_shell_state()).unwrap();
     assert_eq!(compute_projected_topology_hash(&projected), compute_arena_topology_hash(legacy.arena()));
 }
 
@@ -78,6 +87,27 @@ fn projected_split_body_matches_legacy_signature() {
 fn projected_merge_bodies_matches_legacy_signature() {
     let legacy = build_legacy_merge_bodies_state();
     let projected = ProjectionBuilder::build(&build_merge_bodies_state()).unwrap();
+    assert_eq!(compute_projected_topology_hash(&projected), compute_arena_topology_hash(legacy.arena()));
+}
+
+#[test]
+fn projected_clone_body_matches_legacy_signature() {
+    let legacy = build_legacy_clone_body_state();
+    let projected = ProjectionBuilder::build(&build_clone_body_state()).unwrap();
+    assert_eq!(compute_projected_topology_hash(&projected), compute_arena_topology_hash(legacy.arena()));
+}
+
+#[test]
+fn projected_promote_shell_matches_legacy_signature() {
+    let legacy = build_legacy_promote_shell_state();
+    let projected = ProjectionBuilder::build(&build_promote_shell_state()).unwrap();
+    assert_eq!(compute_projected_topology_hash(&projected), compute_arena_topology_hash(legacy.arena()));
+}
+
+#[test]
+fn projected_demote_shell_matches_legacy_signature() {
+    let legacy = build_legacy_demote_shell_state();
+    let projected = ProjectionBuilder::build(&build_demote_shell_state()).unwrap();
     assert_eq!(compute_projected_topology_hash(&projected), compute_arena_topology_hash(legacy.arena()));
 }
 
@@ -135,6 +165,29 @@ fn build_rehome_lump_state() -> SpecState {
     draft.commit().unwrap()
 }
 
+fn build_extract_shell_state() -> SpecState {
+    let mut draft = SpecState::empty().into_draft();
+    let solid = draft.execute(MakeSolidMutation).unwrap();
+    let _outer = draft
+        .execute(MakeEmptyShellMutation {
+            region: solid.value.region,
+            kind: SpecShellKind::Solid(SpecShellOrientation::Outer),
+        })
+        .unwrap();
+    let inner = draft
+        .execute(MakeEmptyShellMutation {
+            region: solid.value.region,
+            kind: SpecShellKind::Solid(SpecShellOrientation::Inner),
+        })
+        .unwrap();
+    draft
+        .execute(ExtractShellMutation {
+            shell: inner.value.shell,
+        })
+        .unwrap();
+    draft.commit().unwrap()
+}
+
 fn build_extract_lump_state() -> SpecState {
     let mut draft = SpecState::empty().into_draft();
     let solid = draft.execute(MakeSolidMutation).unwrap();
@@ -173,6 +226,57 @@ fn build_merge_bodies_state() -> SpecState {
     let a = draft.execute(MakeSolidMutation).unwrap();
     let b = draft.execute(MakeSolidMutation).unwrap();
     draft.execute(MergeBodiesMutation { target: a.value.body, source: b.value.body }).unwrap();
+    draft.commit().unwrap()
+}
+
+fn build_clone_body_state() -> SpecState {
+    let mut draft = SpecState::empty().into_draft();
+    let seed = draft.execute(MakeVertexFaceMutation).unwrap();
+    draft
+        .execute(CloneBodyMutation {
+            body: seed.value.body,
+        })
+        .unwrap();
+    draft.commit().unwrap()
+}
+
+fn build_promote_shell_state() -> SpecState {
+    let mut draft = SpecState::empty().into_draft();
+    let solid = draft.execute(MakeSolidMutation).unwrap();
+    let _outer = draft
+        .execute(MakeEmptyShellMutation {
+            region: solid.value.region,
+            kind: SpecShellKind::Solid(SpecShellOrientation::Outer),
+        })
+        .unwrap();
+    let inner = draft
+        .execute(MakeEmptyShellMutation {
+            region: solid.value.region,
+            kind: SpecShellKind::Solid(SpecShellOrientation::Inner),
+        })
+        .unwrap();
+    draft
+        .execute(PromoteShellMutation {
+            shell: inner.value.shell,
+        })
+        .unwrap();
+    draft.commit().unwrap()
+}
+
+fn build_demote_shell_state() -> SpecState {
+    let mut draft = SpecState::empty().into_draft();
+    let solid = draft.execute(MakeSolidMutation).unwrap();
+    draft
+        .execute(MakeEmptyShellMutation {
+            region: solid.value.region,
+            kind: SpecShellKind::Solid(SpecShellOrientation::Outer),
+        })
+        .unwrap();
+    draft
+        .execute(DemoteShellMutation {
+            region: solid.value.region,
+        })
+        .unwrap();
     draft.commit().unwrap()
 }
 
@@ -297,6 +401,27 @@ fn build_legacy_rehome_lump_state() -> TopologyState {
     draft.commit().unwrap()
 }
 
+fn build_legacy_extract_shell_state() -> TopologyState {
+    let mut draft = TopologyState::empty().into_mutation();
+    let solid = draft.execute(MakeSolid).unwrap().into_value();
+    let _outer = draft
+        .execute(MakeEmptyShell {
+            region: solid.region,
+            kind: ShellKind::Solid(crate::b_rep::ShellOrientation::Outer),
+        })
+        .unwrap()
+        .into_value();
+    let inner = draft
+        .execute(MakeEmptyShell {
+            region: solid.region,
+            kind: ShellKind::Solid(crate::b_rep::ShellOrientation::Inner),
+        })
+        .unwrap()
+        .into_value();
+    draft.execute(ExtractShell { shell: inner.shell }).unwrap();
+    draft.commit().unwrap()
+}
+
 fn build_legacy_extract_lump_state() -> TopologyState {
     let mut draft = TopologyState::empty().into_mutation();
     let solid = draft.execute(MakeSolid).unwrap().into_value();
@@ -335,5 +460,52 @@ fn build_legacy_merge_bodies_state() -> TopologyState {
     let a = draft.execute(MakeSolid).unwrap().into_value();
     let b = draft.execute(MakeSolid).unwrap().into_value();
     draft.execute(MergeBodies { target: a.body, source: b.body }).unwrap();
+    draft.commit().unwrap()
+}
+
+fn build_legacy_clone_body_state() -> TopologyState {
+    let mut draft = TopologyState::empty().into_mutation();
+    let seed = draft
+        .execute(MakeVertexFace {
+            shell_kind: ShellKind::Sheet,
+        })
+        .unwrap()
+        .into_value();
+    draft.execute(CloneBody { body: seed.solid }).unwrap();
+    draft.commit().unwrap()
+}
+
+fn build_legacy_promote_shell_state() -> TopologyState {
+    let mut draft = TopologyState::empty().into_mutation();
+    let solid = draft.execute(MakeSolid).unwrap().into_value();
+    let _outer = draft
+        .execute(MakeEmptyShell {
+            region: solid.region,
+            kind: ShellKind::Solid(crate::b_rep::ShellOrientation::Outer),
+        })
+        .unwrap()
+        .into_value();
+    let inner = draft
+        .execute(MakeEmptyShell {
+            region: solid.region,
+            kind: ShellKind::Solid(crate::b_rep::ShellOrientation::Inner),
+        })
+        .unwrap()
+        .into_value();
+    draft.execute(PromoteShell { shell: inner.shell }).unwrap();
+    draft.commit().unwrap()
+}
+
+fn build_legacy_demote_shell_state() -> TopologyState {
+    let mut draft = TopologyState::empty().into_mutation();
+    let solid = draft.execute(MakeSolid).unwrap().into_value();
+    draft
+        .execute(MakeEmptyShell {
+            region: solid.region,
+            kind: ShellKind::Solid(crate::b_rep::ShellOrientation::Outer),
+        })
+        .unwrap()
+        .into_value();
+    draft.execute(DemoteShell { region: solid.region }).unwrap();
     draft.commit().unwrap()
 }

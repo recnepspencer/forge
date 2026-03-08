@@ -45,6 +45,15 @@ fn projected_vertex_disk_cross_disk_check_accepts_split_vertex_components() {
     assert!(validate_projected_no_cross_disk_coedges(&fixture.projection).is_ok());
 }
 
+#[test]
+fn projected_vertex_outgoing_rejects_missing_primary_halfedge() {
+    let mut fixture = build_split_vertex_projection();
+    fixture.projection.vertices[fixture.shared_vertex.index()].primary_half_edge = None;
+
+    let error = validate_projected_vertex_outgoing(&fixture.projection).unwrap_err();
+    assert!(format!("{error}").contains("projected_vertex_outgoing"));
+}
+
 struct SplitVertexFixture {
     projection: ProjectedTopology,
     shared_vertex: ProjectedVertexId,
