@@ -1,5 +1,5 @@
-//! Public API Boundary for forge-signal.
-//! External components must depend ONLY on this module.
+//! Public API boundary for `forge-signal`.
+//! External components should import through this module.
 //!
 //! Contract:
 //! - `forge-signal` owns evaluation DAG scheduling.
@@ -21,7 +21,7 @@ pub use crate::data::error::SignalError;
 pub use crate::data::effect_mapping::EffectMapping;
 pub use crate::data::evaluator::CheckpointEvaluator;
 pub use crate::data::event_subscriber::{EventSubscriber, SubscriberId};
-pub use crate::data::graph::SignalGraph;
+pub use crate::data::graph::{NodeBuilder, SignalGraph};
 pub use crate::data::handle::NodeId;
 pub use crate::data::node_meta::NodeMetaStore;
 pub use crate::data::node::{EvaluationCondition, NodeEntry, NodeEvaluationConfig, NodeState};
@@ -44,7 +44,8 @@ pub use crate::logic::events::{EventBus, EventFlushError, SubscriberRegistryErro
 pub use crate::logic::invalidation::mark_dirty;
 pub use crate::logic::transaction::{
     emit_event_in_txn, evaluate_in_txn, evaluate_in_txn_with_mode, flush_checkpoint_in_txn,
-    SignalRuntimeConfig, SignalRuntimeState, SignalTransaction, TransactionOutcome,
+    SignalRuntime, SignalRuntimeBuilder, SignalRuntimeConfig, SignalTransaction,
+    TransactionOutcome,
 };
 pub use crate::presentation::contracts::{
     DependencyGraphContract, RawPathComputeContract, StructuralStateBoundaryContract,

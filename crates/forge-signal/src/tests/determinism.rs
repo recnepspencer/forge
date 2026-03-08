@@ -4,8 +4,8 @@ use crate::tests::support::*;
 #[test]
 fn kv63_circular_reference_detected() {
     let mut graph = SignalGraph::new();
-    let a = graph.create_node();
-    let b = graph.create_node();
+    let a = graph.node().build();
+    let b = graph.node().build();
 
     graph.add_dependency(b, a, ASPECT_B).unwrap();
     graph.add_dependency(a, b, ASPECT_B).unwrap();
@@ -27,17 +27,17 @@ fn kv63_circular_reference_detected() {
 #[test]
 fn kv64_parallel_branches_deterministic() {
     let mut graph = SignalGraph::new();
-    let root = graph.create_node();
+    let root = graph.node().build();
 
     let mut branches: Vec<Vec<crate::facade::NodeId>> = Vec::new();
     for _ in 0..5 {
         let mut branch = Vec::new();
-        let first = graph.create_node();
+        let first = graph.node().build();
         graph.add_dependency(first, root, ASPECT_B).unwrap();
         branch.push(first);
 
         for j in 1..10 {
-            let node = graph.create_node();
+            let node = graph.node().build();
             graph
                 .add_dependency(node, branch[j - 1], ASPECT_B)
                 .unwrap();

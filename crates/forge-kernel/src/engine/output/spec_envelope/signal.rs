@@ -3,8 +3,8 @@ use std::fmt;
 use forge_core::KernelError;
 use forge_signal::facade::{
     evaluate_in_txn_with_mode, Aspect, AspectVersion, CheckpointBarrier, DefaultComparatorResolver,
-    EvaluationCondition, EvaluationRequestMode, NodeEvaluationConfig, NodeId,
-    SignalError, SignalGraph, SignalRuntimeState, TransactionOutcome,
+    EvaluationCondition, EvaluationRequestMode, NodeId, SignalError, SignalGraph,
+    SignalRuntime, TransactionOutcome,
 };
 use forge_topo::projection::{
     ProjectedTopology, ProjectionBuilder, compute_projected_topology_hash,
@@ -28,7 +28,7 @@ pub(super) enum SpecEnvelopeSignalTier {
     Deferred,
 }
 
-type SpecEnvelopeRuntime = SignalRuntimeState<(), (), (), (), SpecEnvelopeSignalTier>;
+type SpecEnvelopeRuntime = SignalRuntime<(), (), (), (), SpecEnvelopeSignalTier>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum SpecEnvelopeSignalNode {
@@ -70,30 +70,30 @@ impl SpecEnvelopeSignalState {
     pub(super) fn new() -> Self {
         let mut graph = SignalGraph::new();
         let root = graph.create_node();
-        let projection = graph.create_node_with_config(NodeEvaluationConfig {
-            condition: EvaluationCondition::OnDemand,
-            ..NodeEvaluationConfig::default()
-        });
-        let structure_validation = graph.create_node_with_config(NodeEvaluationConfig {
-            condition: EvaluationCondition::OnDemand,
-            ..NodeEvaluationConfig::default()
-        });
-        let manifold_invariant = graph.create_node_with_config(NodeEvaluationConfig {
-            condition: EvaluationCondition::OnDemand,
-            ..NodeEvaluationConfig::default()
-        });
-        let post_feature_checkpoint = graph.create_node_with_config(NodeEvaluationConfig {
-            condition: EvaluationCondition::OnDemand,
-            ..NodeEvaluationConfig::default()
-        });
-        let standard_fingerprint = graph.create_node_with_config(NodeEvaluationConfig {
-            condition: EvaluationCondition::OnDemand,
-            ..NodeEvaluationConfig::default()
-        });
-        let full_fingerprint = graph.create_node_with_config(NodeEvaluationConfig {
-            condition: EvaluationCondition::OnDemand,
-            ..NodeEvaluationConfig::default()
-        });
+        let projection = graph
+            .node()
+            .condition(EvaluationCondition::OnDemand)
+            .build();
+        let structure_validation = graph
+            .node()
+            .condition(EvaluationCondition::OnDemand)
+            .build();
+        let manifold_invariant = graph
+            .node()
+            .condition(EvaluationCondition::OnDemand)
+            .build();
+        let post_feature_checkpoint = graph
+            .node()
+            .condition(EvaluationCondition::OnDemand)
+            .build();
+        let standard_fingerprint = graph
+            .node()
+            .condition(EvaluationCondition::OnDemand)
+            .build();
+        let full_fingerprint = graph
+            .node()
+            .condition(EvaluationCondition::OnDemand)
+            .build();
 
         graph
             .add_dependency(projection, root, TOPOLOGY_ASPECT)
@@ -114,10 +114,10 @@ impl SpecEnvelopeSignalState {
             .add_dependency(full_fingerprint, projection, TOPOLOGY_ASPECT)
             .expect("spec envelope full fingerprint dependency should wire");
 
-        let mut runtime = SignalRuntimeState::with_policy(
-            graph,
-            forge_signal::facade::CheckpointPolicy::new(CheckpointBarrier::PerOperation),
-        );
+        let mut runtime = SignalRuntime::builder(graph)
+            .with_tiers::<SpecEnvelopeSignalTier>()
+            .checkpoint_barrier(CheckpointBarrier::PerOperation)
+            .build();
         runtime.set_node_tier(root, SpecEnvelopeSignalTier::Core);
         runtime.set_node_tier(projection, SpecEnvelopeSignalTier::Core);
         runtime.set_node_tier(structure_validation, SpecEnvelopeSignalTier::Deferred);

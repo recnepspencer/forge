@@ -32,4 +32,9 @@ impl<D: Copy + Ord> CheckpointPolicy<D> {
             .copied()
             .unwrap_or(self.default_barrier)
     }
+
+    /// Return the fallback barrier used when no domain-specific override exists.
+    pub fn barrier_for_default(&self) -> CheckpointBarrier {
+        self.default_barrier
+    }
 }

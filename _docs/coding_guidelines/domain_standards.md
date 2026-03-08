@@ -116,6 +116,16 @@ Names are a navigational system. Imprecise names are structural debt.
 * Names must reflect domain meaning, not implementation detail.
 * Avoid abbreviations unless they are industry-standard and unambiguous.
 * Avoid conjunctions in names; they signal multiple responsibilities.
+* Prefer accessible, intention-revealing names over compressed or overly technical names.
+* If a slightly longer name is materially easier for a smart generalist to understand on first read, prefer the longer name.
+
+### API Naming Guidance
+Public API names should optimize for first-read comprehension, not technical elegance.
+
+Examples:
+* Prefer `depends_on_aspects` over a shorter but less obvious alternative.
+* Prefer `condition` over jargon that hides what the field means.
+* Prefer names that teach the model directly instead of requiring prior framework knowledge.
 
 ---
 

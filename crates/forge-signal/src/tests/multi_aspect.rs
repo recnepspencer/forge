@@ -4,8 +4,8 @@ use crate::tests::support::*;
 #[test]
 fn kv60_geometry_change_skips_topo_dependents() {
     let mut graph = SignalGraph::new();
-    let source = graph.create_node();
-    let topo_sub = graph.create_node();
+    let source = graph.node().build();
+    let topo_sub = graph.node().build();
 
     graph
         .add_dependency(topo_sub, source, ASPECT_A)
@@ -43,8 +43,8 @@ fn kv60_geometry_change_skips_topo_dependents() {
 #[test]
 fn kv60_topology_change_triggers_topo_dependents() {
     let mut graph = SignalGraph::new();
-    let source = graph.create_node();
-    let topo_sub = graph.create_node();
+    let source = graph.node().build();
+    let topo_sub = graph.node().build();
 
     graph
         .add_dependency(topo_sub, source, ASPECT_A)

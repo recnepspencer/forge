@@ -24,13 +24,21 @@ enum Tier {
     Feature,
 }
 
+fn build_runtime(graph: SignalGraph) -> SignalRuntime<Domain, Impact, Ev, (), Tier> {
+    SignalRuntime::builder(graph)
+        .with_domains::<Domain>()
+        .with_impacts::<Impact>()
+        .with_events::<Ev>()
+        .with_tiers::<Tier>()
+        .checkpoint_barrier(CheckpointBarrier::PerOperation)
+        .build()
+}
+
 #[test]
 fn rollback_heavy_workload_leaves_runtime_consistent() {
     let mut graph = SignalGraph::new();
-    let root = graph.create_node();
-
-    let mut runtime: SignalRuntimeState<Domain, Impact, Ev, (), Tier> =
-        SignalRuntimeState::with_policy(graph, CheckpointPolicy::new(CheckpointBarrier::PerOperation));
+    let root = graph.node().build();
+    let mut runtime = build_runtime(graph);
 
     let mut ctx = ();
     for _ in 0..100 {
@@ -50,11 +58,10 @@ fn stress_100k_nodes_transaction_commit() {
     let mut graph = SignalGraph::new();
     let mut nodes = Vec::with_capacity(100_000);
     for _ in 0..100_000 {
-        nodes.push(graph.create_node());
+        nodes.push(graph.node().build());
     }
 
-    let mut runtime: SignalRuntimeState<Domain, Impact, Ev, (), Tier> =
-        SignalRuntimeState::with_policy(graph, CheckpointPolicy::new(CheckpointBarrier::PerOperation));
+    let mut runtime = build_runtime(graph);
     let mut ctx = ();
     let mut tx = runtime.begin();
 

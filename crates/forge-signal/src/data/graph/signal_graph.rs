@@ -10,6 +10,7 @@ use crate::data::handle::NodeId;
 use crate::data::node::{NodeEntry, NodeEvaluationConfig, NodeState};
 use crate::data::telemetry::RuntimeTelemetry;
 
+use super::node_builder::NodeBuilder;
 use super::scratch::{ScratchLeaseKind, TraversalScratch};
 use super::slot::Slot;
 
@@ -106,13 +107,20 @@ impl SignalGraph {
         }
     }
 
-    /// Allocate a new signal node, returning its stable handle.
+    #[doc(hidden)]
+    /// Low-level signal node allocation.
     pub fn create_node(&mut self) -> NodeId {
         let entry = NodeEntry::new();
         self.allocate_node(entry)
     }
 
-    /// Allocate a new node with explicit evaluation config.
+    /// Start a fluent node builder.
+    pub fn node(&mut self) -> NodeBuilder<'_> {
+        NodeBuilder::new(self)
+    }
+
+    #[doc(hidden)]
+    /// Low-level node allocation with explicit evaluation config.
     pub fn create_node_with_config(&mut self, config: NodeEvaluationConfig) -> NodeId {
         let mut entry = NodeEntry::new();
         entry.set_eval_config(config);

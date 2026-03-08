@@ -43,10 +43,7 @@ fn node_entry_stores_evaluation_condition_config() {
 #[test]
 fn create_node_with_config_sets_condition() {
     let mut graph = SignalGraph::new();
-    let node = graph.create_node_with_config(NodeEvaluationConfig {
-        condition: EvaluationCondition::OnDemand,
-        ..NodeEvaluationConfig::default()
-    });
+    let node = graph.node().on_demand().build();
     assert!(matches!(
         graph.get_entry(node).unwrap().get_eval_config().condition,
         EvaluationCondition::OnDemand
@@ -56,10 +53,7 @@ fn create_node_with_config_sets_condition() {
 #[test]
 fn ondemand_blocks_default_evaluate() {
     let mut graph = SignalGraph::new();
-    let node = graph.create_node_with_config(NodeEvaluationConfig {
-        condition: EvaluationCondition::OnDemand,
-        ..NodeEvaluationConfig::default()
-    });
+    let node = graph.node().on_demand().build();
     let mut compute_calls = 0_u64;
     let mut compute = |_id: NodeId, _graph: &SignalGraph| {
         compute_calls += 1;
@@ -76,10 +70,7 @@ fn ondemand_blocks_default_evaluate() {
 #[test]
 fn ondemand_forced_request_recomputes() {
     let mut graph = SignalGraph::new();
-    let node = graph.create_node_with_config(NodeEvaluationConfig {
-        condition: EvaluationCondition::OnDemand,
-        ..NodeEvaluationConfig::default()
-    });
+    let node = graph.node().on_demand().build();
     let mut compute_calls = 0_u64;
     let mut compute = |_id: NodeId, _graph: &SignalGraph| {
         compute_calls += 1;
@@ -96,10 +87,7 @@ fn ondemand_forced_request_recomputes() {
 fn aspect_filter_skips_unmatched_dirty_aspect() {
     let mut graph = SignalGraph::new();
     let source = graph.create_node();
-    let dependent = graph.create_node_with_config(NodeEvaluationConfig {
-        condition: EvaluationCondition::AspectFilter(mask_a()),
-        ..NodeEvaluationConfig::default()
-    });
+    let dependent = graph.node().aspect_filter(mask_a()).build();
     graph.add_dependency(dependent, source, ASPECT_B).unwrap();
 
     let mut source_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 10));
@@ -125,10 +113,7 @@ fn aspect_filter_skips_unmatched_dirty_aspect() {
 fn aspect_filter_recomputes_on_matched_aspect() {
     let mut graph = SignalGraph::new();
     let source = graph.create_node();
-    let dependent = graph.create_node_with_config(NodeEvaluationConfig {
-        condition: EvaluationCondition::AspectFilter(mask_b()),
-        ..NodeEvaluationConfig::default()
-    });
+    let dependent = graph.node().aspect_filter(mask_b()).build();
     graph.add_dependency(dependent, source, ASPECT_B).unwrap();
 
     let mut source_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 10));
@@ -154,10 +139,7 @@ fn aspect_filter_recomputes_on_matched_aspect() {
 fn delta_threshold_skips_small_delta() {
     let mut graph = SignalGraph::new();
     let source = graph.create_node();
-    let dependent = graph.create_node_with_config(NodeEvaluationConfig {
-        condition: EvaluationCondition::DeltaThreshold(2.0),
-        ..NodeEvaluationConfig::default()
-    });
+    let dependent = graph.node().delta_threshold(2.0).build();
     graph.add_dependency(dependent, source, ASPECT_B).unwrap();
 
     let mut source_v10 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 10));
@@ -182,10 +164,7 @@ fn delta_threshold_skips_small_delta() {
 fn delta_threshold_recomputes_large_delta() {
     let mut graph = SignalGraph::new();
     let source = graph.create_node();
-    let dependent = graph.create_node_with_config(NodeEvaluationConfig {
-        condition: EvaluationCondition::DeltaThreshold(2.0),
-        ..NodeEvaluationConfig::default()
-    });
+    let dependent = graph.node().delta_threshold(2.0).build();
     graph.add_dependency(dependent, source, ASPECT_B).unwrap();
 
     let mut source_v10 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 10));
@@ -208,10 +187,7 @@ fn delta_threshold_recomputes_large_delta() {
 #[test]
 fn custom_condition_without_resolver_errors_deterministically() {
     let mut graph = SignalGraph::new();
-    let node = graph.create_node_with_config(NodeEvaluationConfig {
-        condition: EvaluationCondition::Custom("test".to_string()),
-        ..NodeEvaluationConfig::default()
-    });
+    let node = graph.node().custom_condition("test").build();
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 1));
 
     let err = evaluate(&mut graph, node, &mut compute).unwrap_err();
@@ -221,10 +197,7 @@ fn custom_condition_without_resolver_errors_deterministically() {
 #[test]
 fn custom_condition_with_resolver_obeys_host_decision() {
     let mut graph = SignalGraph::new();
-    let node = graph.create_node_with_config(NodeEvaluationConfig {
-        condition: EvaluationCondition::Custom("test".to_string()),
-        ..NodeEvaluationConfig::default()
-    });
+    let node = graph.node().custom_condition("test").build();
     let mut resolver = TestConditionResolver {
         custom_result: true,
         ..TestConditionResolver::default()
@@ -252,10 +225,7 @@ fn custom_condition_with_resolver_obeys_host_decision() {
 #[test]
 fn debounce_not_ready_defers_recompute() {
     let mut graph = SignalGraph::new();
-    let node = graph.create_node_with_config(NodeEvaluationConfig {
-        condition: EvaluationCondition::Debounce(50),
-        ..NodeEvaluationConfig::default()
-    });
+    let node = graph.node().debounce(50).build();
     let mut resolver = TestConditionResolver::default();
     let mut comparator = DefaultComparatorResolver;
     let mut compute_calls = 0_u64;
@@ -282,10 +252,7 @@ fn debounce_not_ready_defers_recompute() {
 #[test]
 fn debounce_ready_allows_recompute() {
     let mut graph = SignalGraph::new();
-    let node = graph.create_node_with_config(NodeEvaluationConfig {
-        condition: EvaluationCondition::Debounce(50),
-        ..NodeEvaluationConfig::default()
-    });
+    let node = graph.node().debounce(50).build();
     let mut resolver = TestConditionResolver {
         debounce_ready: true,
         ..TestConditionResolver::default()

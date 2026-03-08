@@ -23,8 +23,8 @@ fn nested_scratch_acquire_returns_structured_error() {
 #[test]
 fn scratch_reentry_failure_leaves_graph_reusable() {
     let mut graph = SignalGraph::new();
-    let a = graph.create_node();
-    let b = graph.create_node();
+    let a = graph.node().build();
+    let b = graph.node().build();
     graph.add_dependency(b, a, ASPECT_B).unwrap();
 
     let scratch = graph.acquire_scratch(ScratchLeaseKind::Evaluation).unwrap();

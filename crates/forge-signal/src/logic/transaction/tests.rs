@@ -1,11 +1,10 @@
 use crate::data::checkpoint::CheckpointBarrier;
-use crate::data::checkpoint_policy::CheckpointPolicy;
-use crate::data::comparator::{DefaultComparatorResolver, VersionComparatorPolicy};
+use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::error::SignalError;
 use crate::data::event_subscriber::{EventSubscriber, SubscriberId};
 use crate::data::subscriber_context::SubscriberContext;
 use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger, TierPolicy};
-use crate::logic::transaction::{SignalRuntimeState, TransactionOutcome};
+use crate::logic::transaction::{SignalRuntime, TransactionOutcome};
 use crate::tests::support::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -26,6 +25,16 @@ enum Ev {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Tier {
     A,
+}
+
+fn build_runtime(graph: crate::data::graph::SignalGraph) -> SignalRuntime<Domain, Impact, Ev, (), Tier> {
+    SignalRuntime::builder(graph)
+        .with_domains::<Domain>()
+        .with_impacts::<Impact>()
+        .with_events::<Ev>()
+        .with_tiers::<Tier>()
+        .checkpoint_barrier(CheckpointBarrier::PerOperation)
+        .build()
 }
 
 struct FailingSubscriber;
@@ -60,9 +69,8 @@ impl EventSubscriber for FailingSubscriber {
 #[test]
 fn begin_commit_applies_staged_state_once() {
     let mut graph = crate::data::graph::SignalGraph::new();
-    let a = graph.create_node();
-    let mut runtime: SignalRuntimeState<Domain, Impact, Ev, (), Tier> =
-        SignalRuntimeState::with_policy(graph, CheckpointPolicy::new(CheckpointBarrier::PerOperation));
+    let a = graph.node().build();
+    let mut runtime = build_runtime(graph);
 
     let mut ctx = ();
     let mut tx = runtime.begin();
@@ -76,11 +84,9 @@ fn begin_commit_applies_staged_state_once() {
 #[test]
 fn begin_rollback_preserves_committed_state() {
     let mut graph = crate::data::graph::SignalGraph::new();
-    let a = graph.create_node();
+    let a = graph.node().build();
     let before = graph.get_state(a).unwrap();
-
-    let mut runtime: SignalRuntimeState<Domain, Impact, Ev, (), Tier> =
-        SignalRuntimeState::with_policy(graph, CheckpointPolicy::new(CheckpointBarrier::PerOperation));
+    let mut runtime = build_runtime(graph);
 
     let mut ctx = ();
     let mut tx = runtime.begin();
@@ -92,11 +98,9 @@ fn begin_rollback_preserves_committed_state() {
 #[test]
 fn failed_event_flush_does_not_commit_graph_state() {
     let mut graph = crate::data::graph::SignalGraph::new();
-    let a = graph.create_node();
+    let a = graph.node().build();
     let before = graph.get_state(a).unwrap();
-
-    let mut runtime: SignalRuntimeState<Domain, Impact, Ev, (), Tier> =
-        SignalRuntimeState::with_policy(graph, CheckpointPolicy::new(CheckpointBarrier::PerOperation));
+    let mut runtime = build_runtime(graph);
     runtime
         .event_bus_mut()
         .subscribe(Box::new(FailingSubscriber))
@@ -118,9 +122,8 @@ fn failed_event_flush_does_not_commit_graph_state() {
 #[test]
 fn commit_failure_discards_checkpoint_state() {
     let mut graph = crate::data::graph::SignalGraph::new();
-    let a = graph.create_node();
-    let mut runtime: SignalRuntimeState<Domain, Impact, Ev, (), Tier> =
-        SignalRuntimeState::with_policy(graph, CheckpointPolicy::new(CheckpointBarrier::PerOperation));
+    let a = graph.node().build();
+    let mut runtime = build_runtime(graph);
     runtime
         .event_bus_mut()
         .subscribe(Box::new(FailingSubscriber))
@@ -158,8 +161,7 @@ impl crate::data::effect_mapping::EffectMapping for TestEffectMap {
 #[test]
 fn poisoned_transaction_returns_poisoned_outcome() {
     let graph = crate::data::graph::SignalGraph::new();
-    let mut runtime: SignalRuntimeState<Domain, Impact, Ev, (), Tier> =
-        SignalRuntimeState::with_policy(graph, CheckpointPolicy::new(CheckpointBarrier::PerOperation));
+    let mut runtime = build_runtime(graph);
     let mut ctx = ();
     let mut tx = runtime.begin();
 
@@ -172,10 +174,9 @@ fn poisoned_transaction_returns_poisoned_outcome() {
 #[test]
 fn poisoned_rollback_rewinds_graph() {
     let mut graph = crate::data::graph::SignalGraph::new();
-    let a = graph.create_node();
+    let a = graph.node().build();
     let before = graph.get_state(a).unwrap();
-    let mut runtime: SignalRuntimeState<Domain, Impact, Ev, (), Tier> =
-        SignalRuntimeState::with_policy(graph, CheckpointPolicy::new(CheckpointBarrier::PerOperation));
+    let mut runtime = build_runtime(graph);
     let mut ctx = ();
     let mut tx = runtime.begin();
 
@@ -189,10 +190,9 @@ fn poisoned_rollback_rewinds_graph() {
 #[test]
 fn failure_during_event_begin_rewinds_graph() {
     let mut graph = crate::data::graph::SignalGraph::new();
-    let a = graph.create_node();
+    let a = graph.node().build();
     let before = graph.get_state(a).unwrap();
-    let mut runtime: SignalRuntimeState<Domain, Impact, Ev, (), Tier> =
-        SignalRuntimeState::with_policy(graph, CheckpointPolicy::new(CheckpointBarrier::PerOperation));
+    let mut runtime = build_runtime(graph);
 
     runtime
         .event_bus_mut()
@@ -239,14 +239,12 @@ impl EventSubscriber for NeedsMissingProviderSubscriber {
 #[test]
 fn tier_comparator_inheritance_uses_tier_default() {
     let mut graph = crate::data::graph::SignalGraph::new();
-    let a = graph.create_node();
-    let b = graph.create_node();
-    let c = graph.create_node();
+    let a = graph.node().build();
+    let b = graph.node().build();
+    let c = graph.node().build();
     graph.add_dependency(b, a, ASPECT_B).unwrap();
     graph.add_dependency(c, b, ASPECT_B).unwrap();
-
-    let mut runtime: SignalRuntimeState<Domain, Impact, Ev, (), Tier> =
-        SignalRuntimeState::with_policy(graph, CheckpointPolicy::new(CheckpointBarrier::PerOperation));
+    let mut runtime = build_runtime(graph);
     runtime.set_node_tier(c, Tier::A);
     runtime.set_tier_policy(
         TierPolicy::new(
@@ -274,13 +272,13 @@ fn tier_comparator_inheritance_uses_tier_default() {
         Ok(version_ab(0, 1_000))
     };
 
-    tx.evaluate(a, &mut compute_a_10, DefaultComparatorResolver).unwrap();
-    tx.evaluate(b, &mut compute_b, DefaultComparatorResolver).unwrap();
-    tx.evaluate(c, &mut compute_c, DefaultComparatorResolver).unwrap();
+    tx.evaluate(a, &mut compute_a_10).unwrap();
+    tx.evaluate(b, &mut compute_b).unwrap();
+    tx.evaluate(c, &mut compute_c).unwrap();
     tx.mark_dirty(a, ASPECT_B).unwrap();
-    tx.evaluate(a, &mut compute_a_12, DefaultComparatorResolver).unwrap();
-    tx.evaluate(b, &mut compute_b, DefaultComparatorResolver).unwrap();
-    tx.evaluate(c, &mut compute_c, DefaultComparatorResolver).unwrap();
+    tx.evaluate(a, &mut compute_a_12).unwrap();
+    tx.evaluate(b, &mut compute_b).unwrap();
+    tx.evaluate(c, &mut compute_c).unwrap();
 
     assert!(
         tx.staged_graph().telemetry().skipped_by_comparator >= 1,
@@ -292,11 +290,10 @@ fn tier_comparator_inheritance_uses_tier_default() {
 #[test]
 fn node_tier_metadata_is_generation_safe_on_slot_reuse() {
     let mut graph = crate::data::graph::SignalGraph::new();
-    let first = graph.create_node();
+    let first = graph.node().build();
     graph.unregister_node(first).unwrap();
-    let reused = graph.create_node();
-    let mut runtime: SignalRuntimeState<Domain, Impact, Ev, (), Tier> =
-        SignalRuntimeState::with_policy(graph, CheckpointPolicy::new(CheckpointBarrier::PerOperation));
+    let reused = graph.node().build();
+    let mut runtime = build_runtime(graph);
     runtime.set_node_tier(first, Tier::A);
 
     assert!(

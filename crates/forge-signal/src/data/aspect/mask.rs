@@ -55,3 +55,19 @@ impl std::ops::BitOr for AspectMask {
         Self(self.0 | rhs.0)
     }
 }
+
+impl From<Aspect> for AspectMask {
+    fn from(value: Aspect) -> Self {
+        Self::from_aspect(value)
+    }
+}
+
+impl<const N: usize> From<[Aspect; N]> for AspectMask {
+    fn from(value: [Aspect; N]) -> Self {
+        let mut mask = Self::EMPTY;
+        for aspect in value {
+            mask.insert(aspect);
+        }
+        mask
+    }
+}

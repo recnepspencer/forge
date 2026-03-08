@@ -1,10 +1,14 @@
 use std::collections::BTreeSet;
+use std::marker::PhantomData;
 use std::time::Instant;
 
 use crate::data::aspect::{Aspect, AspectVersion};
 use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::checkpoint_policy::CheckpointPolicy;
-use crate::data::comparator::{TierPolicyResolver, VersionComparatorPolicy, VersionComparatorResolver};
+use crate::data::comparator::{
+    DefaultComparatorResolver, TierPolicyResolver, VersionComparatorPolicy,
+    VersionComparatorResolver,
+};
 use crate::data::dirty_set::{BatchedDirtySet, DomainImpact};
 use crate::data::effect_mapping::EffectMapping;
 use crate::data::error::SignalError;
@@ -23,6 +27,119 @@ use crate::logic::events::EventBus;
 use crate::logic::invalidation::mark_dirty;
 
 use super::patch_buffer::SparsePatchBuffer;
+
+/// Builder for the productized runtime surface.
+pub struct SignalRuntimeBuilder<D = (), I = (), E = (), Ctx = (), T = ()>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    graph: SignalGraph,
+    checkpoint_policy: CheckpointPolicy<D>,
+    fallback_comparator: VersionComparatorPolicy,
+    _marker: PhantomData<fn(I, E, Ctx, T)>,
+}
+
+impl<D, I, E, Ctx, T> SignalRuntimeBuilder<D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    fn new(graph: SignalGraph) -> Self {
+        Self {
+            graph,
+            checkpoint_policy: CheckpointPolicy::new(CheckpointBarrier::PerOperation),
+            fallback_comparator: VersionComparatorPolicy::Exact,
+            _marker: PhantomData,
+        }
+    }
+
+    /// Set a default checkpoint barrier for the runtime policy.
+    pub fn checkpoint_barrier(mut self, barrier: CheckpointBarrier) -> Self {
+        self.checkpoint_policy = CheckpointPolicy::new(barrier);
+        self
+    }
+
+    /// Replace the checkpoint policy directly.
+    pub fn checkpoint_policy(mut self, policy: CheckpointPolicy<D>) -> Self {
+        self.checkpoint_policy = policy;
+        self
+    }
+
+    /// Set the fallback comparator policy.
+    pub fn fallback_comparator(mut self, comparator: VersionComparatorPolicy) -> Self {
+        self.fallback_comparator = comparator;
+        self
+    }
+
+    /// Change the runtime event type.
+    pub fn with_events<E2>(self) -> SignalRuntimeBuilder<D, I, E2, Ctx, T> {
+        SignalRuntimeBuilder {
+            graph: self.graph,
+            checkpoint_policy: self.checkpoint_policy,
+            fallback_comparator: self.fallback_comparator,
+            _marker: PhantomData,
+        }
+    }
+
+    /// Change the checkpoint policy domain type.
+    pub fn with_domains<D2>(self) -> SignalRuntimeBuilder<D2, I, E, Ctx, T>
+    where
+        D2: Copy + Ord + std::fmt::Debug + 'static,
+    {
+        SignalRuntimeBuilder {
+            graph: self.graph,
+            checkpoint_policy: CheckpointPolicy::new(self.checkpoint_policy.barrier_for_default()),
+            fallback_comparator: self.fallback_comparator,
+            _marker: PhantomData,
+        }
+    }
+
+    /// Change the checkpoint evaluator impact type.
+    pub fn with_impacts<I2>(self) -> SignalRuntimeBuilder<D, I2, E, Ctx, T>
+    where
+        I2: Copy + Ord,
+    {
+        SignalRuntimeBuilder {
+            graph: self.graph,
+            checkpoint_policy: self.checkpoint_policy,
+            fallback_comparator: self.fallback_comparator,
+            _marker: PhantomData,
+        }
+    }
+
+    /// Change the runtime tier type.
+    pub fn with_tiers<T2>(self) -> SignalRuntimeBuilder<D, I, E, Ctx, T2>
+    where
+        T2: Copy + Ord,
+    {
+        SignalRuntimeBuilder {
+            graph: self.graph,
+            checkpoint_policy: self.checkpoint_policy,
+            fallback_comparator: self.fallback_comparator,
+            _marker: PhantomData,
+        }
+    }
+
+    /// Change the runtime context type.
+    pub fn with_context<Ctx2>(self) -> SignalRuntimeBuilder<D, I, E, Ctx2, T> {
+        SignalRuntimeBuilder {
+            graph: self.graph,
+            checkpoint_policy: self.checkpoint_policy,
+            fallback_comparator: self.fallback_comparator,
+            _marker: PhantomData,
+        }
+    }
+
+    /// Build the runtime with safe defaults.
+    pub fn build(self) -> SignalRuntime<D, I, E, Ctx, T> {
+        let mut runtime = SignalRuntime::with_policy(self.graph, self.checkpoint_policy);
+        runtime.set_fallback_comparator(self.fallback_comparator);
+        runtime
+    }
+}
 
 /// Immutable or near-immutable runtime configuration shared across transactions.
 #[derive(Debug, Clone)]
@@ -85,7 +202,7 @@ impl<T: Copy + Ord> SignalRuntimeConfig<T> {
 }
 
 /// Transaction runtime that owns committed signal components.
-pub struct SignalRuntimeState<D, I, E, Ctx, T = ()>
+pub struct SignalRuntime<D, I, E, Ctx, T = ()>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
@@ -98,7 +215,14 @@ where
     telemetry: RuntimeTelemetry,
 }
 
-impl<D, I, E, Ctx, T> SignalRuntimeState<D, I, E, Ctx, T>
+impl SignalRuntime<(), (), (), (), ()> {
+    /// Productized runtime entrypoint with sensible defaults.
+    pub fn builder(graph: SignalGraph) -> SignalRuntimeBuilder<(), (), (), (), ()> {
+        SignalRuntimeBuilder::new(graph)
+    }
+}
+
+impl<D, I, E, Ctx, T> SignalRuntime<D, I, E, Ctx, T>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
     I: Copy + Ord,
@@ -121,7 +245,8 @@ where
         }
     }
 
-    /// Convenience constructor with fresh checkpoint/event runtimes.
+    #[doc(hidden)]
+    /// Low-level constructor with fresh checkpoint/event runtimes.
     pub fn with_policy(graph: SignalGraph, checkpoint_policy: CheckpointPolicy<D>) -> Self {
         Self::new(
             graph,
@@ -212,6 +337,28 @@ where
             staged_patch_count: 0,
         }
     }
+
+    /// Run one transaction with automatic commit/rollback behavior.
+    pub fn transaction<F>(
+        &mut self,
+        runtime_ctx: &mut Ctx,
+        apply: F,
+    ) -> Result<TransactionOutcome, SignalError>
+    where
+        F: FnOnce(&mut SignalTransaction<'_, D, I, E, Ctx, T>) -> Result<(), SignalError>,
+    {
+        let mut transaction = self.begin();
+        match apply(&mut transaction) {
+            Ok(()) => transaction.commit(runtime_ctx),
+            Err(err) => {
+                let rollback_result = transaction.rollback(runtime_ctx);
+                match rollback_result {
+                    Ok(_) => Err(err),
+                    Err(rollback_err) => Err(rollback_err),
+                }
+            }
+        }
+    }
 }
 
 /// Outcome of closing a transaction.
@@ -276,8 +423,16 @@ where
         self.apply_result(result)
     }
 
+    /// Evaluate one node in staged graph with the default comparator resolver.
+    pub fn evaluate<F>(&mut self, node: NodeId, compute: &mut F) -> Result<(), SignalError>
+    where
+        F: FnMut(NodeId, &SignalGraph) -> Result<AspectVersion, SignalError>,
+    {
+        self.evaluate_with_resolver(node, compute, DefaultComparatorResolver)
+    }
+
     /// Evaluate one node in staged graph with tier-aware comparator inheritance.
-    pub fn evaluate<F, R>(
+    pub fn evaluate_with_resolver<F, R>(
         &mut self,
         node: NodeId,
         compute: &mut F,
@@ -287,7 +442,7 @@ where
         F: FnMut(NodeId, &SignalGraph) -> Result<AspectVersion, SignalError>,
         R: VersionComparatorResolver,
     {
-        self.evaluate_with_mode(
+        self.evaluate_with_mode_and_resolver(
             node,
             compute,
             custom_resolver,
@@ -295,8 +450,21 @@ where
         )
     }
 
+    /// Evaluate one node in staged graph with explicit request mode and the default comparator resolver.
+    pub fn evaluate_with_mode<F>(
+        &mut self,
+        node: NodeId,
+        compute: &mut F,
+        request_mode: EvaluationRequestMode,
+    ) -> Result<(), SignalError>
+    where
+        F: FnMut(NodeId, &SignalGraph) -> Result<AspectVersion, SignalError>,
+    {
+        self.evaluate_with_mode_and_resolver(node, compute, DefaultComparatorResolver, request_mode)
+    }
+
     /// Evaluate one node in staged graph with explicit request mode.
-    pub fn evaluate_with_mode<F, R>(
+    pub fn evaluate_with_mode_and_resolver<F, R>(
         &mut self,
         node: NodeId,
         compute: &mut F,
@@ -499,7 +667,7 @@ where
     F: FnMut(NodeId, &SignalGraph) -> Result<AspectVersion, SignalError>,
     R: VersionComparatorResolver,
 {
-    txn.evaluate(node, compute, custom_resolver)
+    txn.evaluate_with_resolver(node, compute, custom_resolver)
 }
 
 /// Transaction-gated evaluate helper with explicit request mode.
@@ -517,7 +685,7 @@ where
     F: FnMut(NodeId, &SignalGraph) -> Result<AspectVersion, SignalError>,
     R: VersionComparatorResolver,
 {
-    txn.evaluate_with_mode(node, compute, custom_resolver, request_mode)
+    txn.evaluate_with_mode_and_resolver(node, compute, custom_resolver, request_mode)
 }
 
 /// Transaction-gated checkpoint flush helper.

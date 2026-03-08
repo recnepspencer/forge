@@ -17,7 +17,7 @@
 //!
 //! - **Three-state invalidation** ([`facade::NodeState`]):
 //!   `Clean(Version)` / `MaybeStale` / `Dirty`
-//! - **In-place transactions with hard rewind** ([`facade::SignalRuntimeState`]):
+//! - **In-place transactions with hard rewind** ([`facade::SignalRuntime`]):
 //!   graph writes happen in-place and are restored from sparse patches on failure
 //! - **Multi-aspect versioning** ([`facade::AspectVersion`]):
 //!   User-defined aspect slots carry independent version counters
@@ -26,9 +26,12 @@
 //! - **Pull phase** ([`facade::evaluate`]):
 //!   Lazy recomputation with version-gated skip
 //! - **Condition-gated evaluation** ([`facade::EvaluationCondition`]):
-//!   on-demand, aspect-filtered, threshold, debounce, and custom evaluation policies
+//!   on-demand, aspect-filtered, threshold, debounce, and custom evaluation policies,
+//!   exposed through readable builder helpers on [`facade::NodeBuilder`]
 //! - **Parallel safety** ([`facade::EvaluationContext`]):
 //!   Explicit context object, not thread-local (Doctrine D8)
+//! - **Productized runtime surface**:
+//!   [`facade::SignalRuntime::builder`] and [`easy::ReactiveGraph`]
 //!
 //! ## Dependencies
 //!
@@ -42,6 +45,7 @@
 #![forbid(unsafe_code)]
 
 mod data;
+pub mod easy;
 mod logic;
 mod presentation;
 

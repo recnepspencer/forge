@@ -333,7 +333,7 @@ fn no_raw_signal_runtime_bypass_outside_feature_tree() {
     if !violations.is_empty() {
         panic!(
             "\n\nARCHITECTURE VIOLATION: raw forge-signal evaluation/invalidation bypass in kernel.\n\
-             Route runtime work through FeatureTree/SignalRuntimeState instead.\n\
+             Route runtime work through FeatureTree/SignalRuntime instead.\n\
              Violations:\n{}\n",
             violations.join("\n")
         );

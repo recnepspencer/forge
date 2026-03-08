@@ -11,7 +11,7 @@
 //! - Every feature node must return meaningful monotonic aspect versions
 //!   derived from host-owned envelope changes, never placeholder counters
 //! - Raw structural graph rewiring is transitional and host-owned; evaluation
-//!   and dirty propagation flow through `SignalRuntimeState` transactions
+//!   and dirty propagation flow through `SignalRuntime` transactions
 //! - Serialization persists committed graph state plus kernel-owned caches and
 //!   reconstructs a fresh runtime shell on deserialize
 //! - Topology is immutable (passed as snapshots)
@@ -26,7 +26,7 @@ use forge_core::envelope::OperationResult;
 use forge_core::KernelError;
 use forge_signal::facade::{
     evaluate_in_txn, Aspect, AspectMask, AspectVersion, CheckpointBarrier, DefaultComparatorResolver,
-    NodeId, SignalError, SignalGraph, SignalRuntimeState, TraceSummary, TransactionOutcome,
+    NodeId, SignalError, SignalGraph, SignalRuntime, TraceSummary, TransactionOutcome,
 };
 
 use super::contracts::feature_dependency::FeatureAspect;
@@ -39,7 +39,7 @@ use crate::geometry::facade::GeometryStore;
 const TOPOLOGY_ASPECT: Aspect = Aspect::new(0);
 const GEOMETRY_ASPECT: Aspect = Aspect::new(1);
 
-type FeatureSignalRuntime = SignalRuntimeState<(), (), (), (), FeatureSignalTier>;
+type FeatureSignalRuntime = SignalRuntime<(), (), (), (), FeatureSignalTier>;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(bound(
@@ -167,10 +167,10 @@ impl<R: FeatureRegistry> FeatureTree<R> {
     }
 
     fn new_runtime(graph: SignalGraph) -> FeatureSignalRuntime {
-        let mut runtime = SignalRuntimeState::with_policy(
-            graph,
-            forge_signal::facade::CheckpointPolicy::new(CheckpointBarrier::PerOperation),
-        );
+        let mut runtime = SignalRuntime::builder(graph)
+            .with_tiers::<FeatureSignalTier>()
+            .checkpoint_barrier(CheckpointBarrier::PerOperation)
+            .build();
         runtime.set_tier_policy(FeatureSignalPolicy::core_tier_policy());
         runtime
     }

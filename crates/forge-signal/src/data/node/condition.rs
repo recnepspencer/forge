@@ -27,6 +27,10 @@ pub enum EvaluationCondition {
 /// Per-node evaluation configuration.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NodeEvaluationConfig {
+    /// Declarative aspect intent for hosts/builders. This does not replace
+    /// explicit dependency wiring in the graph.
+    #[serde(default)]
+    pub depends_on_aspects: Option<AspectMask>,
     /// Condition used to gate node evaluation.
     pub condition: EvaluationCondition,
     /// Comparator policy used to decide whether dependency version changes
@@ -38,6 +42,7 @@ pub struct NodeEvaluationConfig {
 impl Default for NodeEvaluationConfig {
     fn default() -> Self {
         Self {
+            depends_on_aspects: None,
             condition: EvaluationCondition::Always,
             comparator: None,
         }

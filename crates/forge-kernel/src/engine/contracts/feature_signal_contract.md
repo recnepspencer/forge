@@ -9,7 +9,7 @@ This document records the kernel-side contract for embedding `forge-signal`.
 
 ## Runtime Boundary
 
-- Feature graph evaluation must flow through `SignalRuntimeState` transactions.
+- Feature graph evaluation must flow through `SignalRuntime` transactions.
 - Raw `SignalGraph` access is allowed only for structural graph edits and serialization snapshots.
 - Kernel code must not call raw `forge-signal` `evaluate(...)` or `mark_dirty(...)` helpers in production paths.
 
@@ -51,7 +51,7 @@ Those features remain part of `forge-signal`, but kernel adoption must be explic
 ## Serialization Boundary
 
 - Persist committed `SignalGraph` state plus kernel-owned feature/envelope caches.
-- Rebuild a fresh `SignalRuntimeState` around the deserialized graph.
+- Rebuild a fresh `SignalRuntime` around the deserialized graph.
 - Runtime shell concerns such as event bus/checkpoint runtime are reconstructed, not serialized as durable truth.
 
 ## Payload Boundary

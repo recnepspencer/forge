@@ -74,10 +74,7 @@ fn ondemand_defer_perf_10k_nodes() {
     let mut nodes: Vec<NodeId> = Vec::with_capacity(10_000);
 
     for _ in 0..10_000 {
-        nodes.push(graph.create_node_with_config(NodeEvaluationConfig {
-            condition: EvaluationCondition::OnDemand,
-            ..NodeEvaluationConfig::default()
-        }));
+        nodes.push(graph.node().condition(EvaluationCondition::OnDemand).build());
     }
 
     let start = std::time::Instant::now();

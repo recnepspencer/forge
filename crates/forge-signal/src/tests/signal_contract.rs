@@ -5,8 +5,8 @@ use std::cell::Cell;
 #[test]
 fn add_dependency_is_idempotent_per_aspect() {
     let mut graph = SignalGraph::new();
-    let upstream = graph.create_node();
-    let downstream = graph.create_node();
+    let upstream = graph.node().build();
+    let downstream = graph.node().build();
 
     graph
         .add_dependency(downstream, upstream, ASPECT_A)
@@ -30,8 +30,8 @@ fn add_dependency_is_idempotent_per_aspect() {
 #[test]
 fn remove_dependency_preserves_other_aspects_between_same_nodes() {
     let mut graph = SignalGraph::new();
-    let upstream = graph.create_node();
-    let downstream = graph.create_node();
+    let upstream = graph.node().build();
+    let downstream = graph.node().build();
 
     graph.add_dependency(downstream, upstream, ASPECT_A).unwrap();
     graph.add_dependency(downstream, upstream, ASPECT_B).unwrap();
@@ -55,8 +55,8 @@ fn remove_dependency_preserves_other_aspects_between_same_nodes() {
 #[test]
 fn subscriber_fanout_does_not_duplicate_across_aspects() {
     let mut graph = SignalGraph::new();
-    let upstream = graph.create_node();
-    let downstream = graph.create_node();
+    let upstream = graph.node().build();
+    let downstream = graph.node().build();
 
     graph.add_dependency(downstream, upstream, ASPECT_A).unwrap();
     graph.add_dependency(downstream, upstream, ASPECT_B).unwrap();
@@ -71,8 +71,8 @@ fn subscriber_fanout_does_not_duplicate_across_aspects() {
 #[test]
 fn version_gated_skip_respects_repeated_monotonic_bumps() {
     let mut graph = SignalGraph::new();
-    let source = graph.create_node();
-    let dependent = graph.create_node();
+    let source = graph.node().build();
+    let dependent = graph.node().build();
 
     graph.add_dependency(dependent, source, ASPECT_A).unwrap();
 

@@ -4,7 +4,7 @@ use crate::tests::support::*;
 #[test]
 fn create_node_returns_valid_handle() {
     let mut graph = SignalGraph::new();
-    let node = graph.create_node();
+    let node = graph.node().build();
     assert!(graph.is_alive(node));
     assert_eq!(graph.active_node_count(), 1);
 }
@@ -12,7 +12,7 @@ fn create_node_returns_valid_handle() {
 #[test]
 fn new_node_starts_dirty() {
     let mut graph = SignalGraph::new();
-    let node = graph.create_node();
+    let node = graph.node().build();
     let state = graph.get_state(node).unwrap();
     assert_eq!(state, NodeState::Dirty);
 }
@@ -20,8 +20,8 @@ fn new_node_starts_dirty() {
 #[test]
 fn add_dependency_wires_both_directions() {
     let mut graph = SignalGraph::new();
-    let upstream = graph.create_node();
-    let downstream = graph.create_node();
+    let upstream = graph.node().build();
+    let downstream = graph.node().build();
     graph
         .add_dependency(downstream, upstream, ASPECT_A)
         .unwrap();
@@ -38,8 +38,8 @@ fn add_dependency_wires_both_directions() {
 #[test]
 fn dirty_direct_dependent() {
     let mut graph = SignalGraph::new();
-    let source = graph.create_node();
-    let dependent = graph.create_node();
+    let source = graph.node().build();
+    let dependent = graph.node().build();
     graph
         .add_dependency(dependent, source, ASPECT_B)
         .unwrap();
@@ -57,9 +57,9 @@ fn dirty_direct_dependent() {
 #[test]
 fn maybe_stale_transitive_dependent() {
     let mut graph = SignalGraph::new();
-    let a = graph.create_node();
-    let b = graph.create_node();
-    let c = graph.create_node();
+    let a = graph.node().build();
+    let b = graph.node().build();
+    let c = graph.node().build();
 
     graph.add_dependency(b, a, ASPECT_B).unwrap();
     graph.add_dependency(c, b, ASPECT_B).unwrap();
@@ -80,9 +80,9 @@ fn maybe_stale_transitive_dependent() {
 #[test]
 fn clean_version_skip_on_unchanged_upstream() {
     let mut graph = SignalGraph::new();
-    let a = graph.create_node();
-    let b = graph.create_node();
-    let c = graph.create_node();
+    let a = graph.node().build();
+    let b = graph.node().build();
+    let c = graph.node().build();
 
     graph.add_dependency(b, a, ASPECT_A).unwrap();
     graph.add_dependency(c, b, ASPECT_A).unwrap();

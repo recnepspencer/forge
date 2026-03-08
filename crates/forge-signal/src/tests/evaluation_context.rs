@@ -4,14 +4,14 @@ use crate::tests::support::*;
 #[test]
 fn evaluation_context_tracks_deps() {
     let mut graph = SignalGraph::new();
-    let upstream_a = graph.create_node();
-    let upstream_b = graph.create_node();
+    let upstream_a = graph.node().build();
+    let upstream_b = graph.node().build();
 
     let mut compute = |_id, _g: &SignalGraph| Ok(version_ab(1, 1));
     evaluate(&mut graph, upstream_a, &mut compute).unwrap();
     evaluate(&mut graph, upstream_b, &mut compute).unwrap();
 
-    let evaluating = graph.create_node();
+    let evaluating = graph.node().build();
     let mut ctx = EvaluationContext::new(evaluating);
 
     let ver_a = ctx.read(&graph, upstream_a, ASPECT_A).unwrap();

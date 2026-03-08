@@ -6,7 +6,7 @@ fn kv61_add_delete_10k_flat_memory() {
     let mut graph = SignalGraph::with_gc_threshold(100);
 
     for _ in 0..10_000 {
-        let node = graph.create_node();
+        let node = graph.node().build();
         graph.unregister_node(node).unwrap();
 
         if graph.should_gc() {
@@ -25,9 +25,9 @@ fn kv61_add_delete_10k_flat_memory() {
 #[test]
 fn kv62_delete_mid_chain_no_panic() {
     let mut graph = SignalGraph::new();
-    let param = graph.create_node();
-    let middle = graph.create_node();
-    let feature = graph.create_node();
+    let param = graph.node().build();
+    let middle = graph.node().build();
+    let feature = graph.node().build();
 
     graph
         .add_dependency(middle, param, ASPECT_B)
@@ -56,9 +56,9 @@ fn kv62_delete_mid_chain_no_panic() {
 #[test]
 fn unregister_severs_subscriptions() {
     let mut graph = SignalGraph::new();
-    let upstream = graph.create_node();
-    let node = graph.create_node();
-    let downstream = graph.create_node();
+    let upstream = graph.node().build();
+    let node = graph.node().build();
+    let downstream = graph.node().build();
 
     graph
         .add_dependency(node, upstream, ASPECT_B)
@@ -88,7 +88,7 @@ fn gc_epoch_compacts_arena() {
 
     let mut nodes = Vec::new();
     for _ in 0..10 {
-        nodes.push(graph.create_node());
+        nodes.push(graph.node().build());
     }
 
     for node in &nodes[..5] {
@@ -103,9 +103,9 @@ fn gc_epoch_compacts_arena() {
 #[test]
 fn vacated_slot_reuse_preserves_generation_safety() {
     let mut graph = SignalGraph::new();
-    let original = graph.create_node();
+    let original = graph.node().build();
     graph.unregister_node(original).unwrap();
-    let reused = graph.create_node();
+    let reused = graph.node().build();
 
     assert_ne!(original.generation(), reused.generation());
     assert!(!graph.is_alive(original));
@@ -115,13 +115,13 @@ fn vacated_slot_reuse_preserves_generation_safety() {
 #[test]
 fn double_unregister_is_rejected_without_free_list_corruption() {
     let mut graph = SignalGraph::new();
-    let node = graph.create_node();
+    let node = graph.node().build();
     graph.unregister_node(node).unwrap();
     let capacity_before = graph.arena_capacity();
 
     assert!(graph.unregister_node(node).is_err());
 
-    let reused = graph.create_node();
+    let reused = graph.node().build();
     assert_eq!(graph.arena_capacity(), capacity_before);
     assert_ne!(reused.generation(), node.generation());
 }

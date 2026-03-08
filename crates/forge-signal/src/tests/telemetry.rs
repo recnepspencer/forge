@@ -4,7 +4,7 @@ use crate::tests::support::*;
 #[test]
 fn evaluation_telemetry_records_activity() {
     let mut graph = SignalGraph::new();
-    let a = graph.create_node();
+    let a = graph.node().build();
     let mut compute = |_id: NodeId, _g: &SignalGraph| Ok(version_ab(1, 1));
 
     evaluate(&mut graph, a, &mut compute).unwrap();
@@ -19,10 +19,7 @@ fn evaluation_telemetry_records_activity() {
 #[test]
 fn condition_telemetry_records_deferrals() {
     let mut graph = SignalGraph::new();
-    let node = graph.create_node_with_config(NodeEvaluationConfig {
-        condition: EvaluationCondition::OnDemand,
-        ..NodeEvaluationConfig::default()
-    });
+    let node = graph.node().on_demand().build();
     let mut compute = |_id: NodeId, _g: &SignalGraph| Ok(version_ab(1, 1));
 
     evaluate(&mut graph, node, &mut compute).unwrap();
@@ -87,8 +84,8 @@ fn event_bus_telemetry_counts_flush_and_rollback() {
 #[test]
 fn invalidation_and_gc_telemetry_record_activity() {
     let mut graph = SignalGraph::with_gc_threshold(1);
-    let a = graph.create_node();
-    let b = graph.create_node();
+    let a = graph.node().build();
+    let b = graph.node().build();
     graph.add_dependency(b, a, ASPECT_B).unwrap();
 
     mark_dirty(&mut graph, a, ASPECT_B).unwrap();
