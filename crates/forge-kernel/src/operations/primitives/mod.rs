@@ -27,7 +27,7 @@ use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
 use crate::context::scope::OperationScope;
-use crate::engine::facade::{Feature, SolidEnvelope};
+use crate::engine::facade::{Feature, FeatureSignalPolicy, SolidEnvelope};
 
 pub use contract::PrimitiveInputs;
 
@@ -196,6 +196,10 @@ impl Feature for MakePrimitiveFeature {
 
     fn dependencies(&self) -> Vec<NodeId> {
         vec![]
+    }
+
+    fn signal_policy(&self) -> FeatureSignalPolicy {
+        FeatureSignalPolicy::core()
     }
 
     fn name(&self) -> &str {

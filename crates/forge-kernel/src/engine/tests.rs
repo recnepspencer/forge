@@ -756,6 +756,161 @@ fn feature_tree_registers_explicit_signal_policy_on_nodes() {
 }
 
 #[test]
+fn feature_tree_rejects_unsupported_signal_policies_at_registration() {
+    let mut tree = FeatureTree::<TestFeatureRegistry>::new();
+    let source = tree
+        .register_feature(TestFeatureRegistry::source(
+            "unsupported_policy_source",
+            "unsupported_policy_source",
+        ))
+        .expect("source should register");
+
+    let err = tree
+        .register_feature(TestFeatureRegistry::consumer_with_policy(
+            "unsupported_policy_consumer",
+            source,
+            TestBinding::Geometry,
+            FeatureSignalPolicy::core().with_condition(EvaluationCondition::OnDemand),
+        ))
+        .expect_err("unsupported policy should be rejected");
+
+    assert!(
+        format!("{err:?}").contains("OnDemand"),
+        "error should mention unsupported signal policy: {err:?}"
+    );
+}
+
+#[test]
+fn feature_tree_roundtrip_restores_runtime_policy_versions_and_skip_behavior() {
+    let mut tree = FeatureTree::<TestFeatureRegistry>::new();
+    let source_key = "roundtrip_source";
+    set_test_output(
+        source_key,
+        TestOutput::CubeWithGeometry {
+            center: [0.0, 0.0, 0.0],
+            size: 2.0,
+        },
+    );
+
+    let source = tree
+        .register_feature(TestFeatureRegistry::source("roundtrip_source", source_key))
+        .expect("source should register");
+    let topo_consumer = tree
+        .register_feature(TestFeatureRegistry::consumer(
+            "roundtrip_topology_consumer",
+            source,
+            TestBinding::Topology,
+        ))
+        .expect("topology consumer should register");
+    let geom_policy = FeatureSignalPolicy::core()
+        .with_condition(EvaluationCondition::AspectFilter(
+            forge_signal::facade::AspectMask::from_bits(FeatureAspect::Geometry.bit()),
+        ))
+        .with_comparator(VersionComparatorPolicy::Tolerance { epsilon: 2 });
+    let geom_consumer = tree
+        .register_feature(TestFeatureRegistry::consumer_with_policy(
+            "roundtrip_geometry_consumer",
+            source,
+            TestBinding::Geometry,
+            geom_policy.clone(),
+        ))
+        .expect("geometry consumer should register");
+
+    tree.evaluate_feature(topo_consumer)
+        .expect("topology consumer should evaluate");
+    tree.evaluate_feature(geom_consumer)
+        .expect("geometry consumer should evaluate");
+
+    let topo_version_before = tree
+        .get_graph()
+        .get_entry(topo_consumer)
+        .expect("topology consumer entry should exist")
+        .get_aspect_version();
+    let geom_version_before = tree
+        .get_graph()
+        .get_entry(geom_consumer)
+        .expect("geometry consumer entry should exist")
+        .get_aspect_version();
+    let topo_fingerprint_before = tree
+        .get_envelope(topo_consumer)
+        .expect("topology consumer envelope should exist")
+        .get_value()
+        .full_fingerprint();
+    let geom_fingerprint_before = tree
+        .get_envelope(geom_consumer)
+        .expect("geometry consumer envelope should exist")
+        .get_value()
+        .full_fingerprint();
+
+    let json = serde_json::to_string(&tree).expect("FeatureTree should serialize");
+    let mut restored: FeatureTree<TestFeatureRegistry> =
+        serde_json::from_str(&json).expect("FeatureTree should deserialize");
+
+    assert_eq!(restored.signal_tier(topo_consumer), Some(FeatureSignalTier::Core));
+    assert_eq!(restored.signal_tier(geom_consumer), Some(FeatureSignalTier::Core));
+    assert_eq!(
+        restored
+            .get_graph()
+            .get_entry(geom_consumer)
+            .expect("geometry consumer entry should exist after deserialize")
+            .get_eval_config(),
+        geom_policy.node_config()
+    );
+    assert_eq!(
+        restored
+            .get_graph()
+            .get_entry(topo_consumer)
+            .expect("topology consumer entry should exist after deserialize")
+            .get_aspect_version(),
+        topo_version_before
+    );
+    assert_eq!(
+        restored
+            .get_graph()
+            .get_entry(geom_consumer)
+            .expect("geometry consumer entry should exist after deserialize")
+            .get_aspect_version(),
+        geom_version_before
+    );
+    assert_eq!(
+        restored
+            .get_envelope(topo_consumer)
+            .expect("topology consumer envelope should exist after deserialize")
+            .get_value()
+            .full_fingerprint(),
+        topo_fingerprint_before
+    );
+    assert_eq!(
+        restored
+            .get_envelope(geom_consumer)
+            .expect("geometry consumer envelope should exist after deserialize")
+            .get_value()
+            .full_fingerprint(),
+        geom_fingerprint_before
+    );
+
+    set_test_output(
+        source_key,
+        TestOutput::CubeWithGeometry {
+            center: [1.0, 0.0, 0.0],
+            size: 2.0,
+        },
+    );
+    restored
+        .mark_feature_dirty(source, FeatureAspect::Geometry)
+        .expect("geometry invalidation should succeed after deserialize");
+    restored
+        .evaluate_feature(topo_consumer)
+        .expect("topology consumer should evaluate cleanly after deserialize");
+    restored
+        .evaluate_feature(geom_consumer)
+        .expect("geometry consumer should evaluate after deserialize");
+
+    assert_eq!(consumer_execution_count("roundtrip_topology_consumer"), 1);
+    assert_eq!(consumer_execution_count("roundtrip_geometry_consumer"), 2);
+}
+
+#[test]
 fn feature_tree_failed_evaluation_rolls_back_graph_envelope_and_trace_visibility() {
     let mut tree = FeatureTree::<TestFeatureRegistry>::new();
     let source_key = "rollback_source";
@@ -1477,10 +1632,7 @@ fn typed_inputs_reject_missing_dependency() {
     }
 
     // Create a fake NodeId that won't exist in the input map.
-    let fake_id = {
-        let mut graph = forge_signal::facade::SignalGraph::new();
-        graph.create_node()
-    };
+    let fake_id = forge_signal::facade::NodeId::new(999, 0);
 
     let feature = NeedyFeature { dep_id: fake_id };
     let inputs = HashMap::new(); // Empty — no dependencies provided

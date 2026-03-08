@@ -5,7 +5,6 @@ use forge_topo::b_rep::TopologyArena;
 use forge_topo::handles::VertexId;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
-use crate::engine::contract::InvariantKind;
 use crate::engine::facade::SpecEnvelope;
 
 use super::{ValidationCheckpoint, ValidationConfig, ValidationResult};
@@ -77,26 +76,7 @@ pub fn run_spec_envelope_checkpoint(
     config: &ValidationConfig,
     checkpoint: ValidationCheckpoint,
 ) -> Result<ValidationResult, KernelError> {
-    let total_entities = envelope.entity_count()?;
-
-    if !config.is_active(checkpoint) {
-        return Ok(ValidationResult::skipped(checkpoint, total_entities));
-    }
-
-    if config.should_skip_for_entity_count(total_entities) {
-        return Ok(ValidationResult::skipped(checkpoint, total_entities));
-    }
-
-    let start = std::time::Instant::now();
-    envelope.validate_invariant(&InvariantKind::ManifoldEdges, config)?;
-    let duration_micros = start.elapsed().as_micros() as u64;
-
-    Ok(ValidationResult::passed(
-        checkpoint,
-        total_entities,
-        false,
-        duration_micros,
-    ))
+    envelope.run_checkpoint(config, checkpoint)
 }
 
 /// Execute a checkpoint validation directly against graph-native spec truth.

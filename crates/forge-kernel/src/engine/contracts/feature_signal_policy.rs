@@ -5,6 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use forge_core::KernelError;
 use forge_signal::facade::{EvaluationCondition, NodeEvaluationConfig, TierPolicy, VersionComparatorPolicy};
 
 /// Kernel-owned signal tiers for feature graph nodes.
@@ -83,6 +84,54 @@ impl FeatureSignalPolicy {
             forge_signal::facade::DirtyPropagation::Immediate,
             forge_signal::facade::EvaluationTrigger::LazyPull,
         )
+    }
+
+    /// Validate that this policy is supported by the current kernel embedding.
+    ///
+    /// The kernel intentionally supports only a conservative subset today:
+    /// static dependencies, pull-driven feature evaluation, and comparator
+    /// policies that do not require host callback plumbing beyond the current
+    /// `FeatureTree` runtime.
+    pub fn validate_for_feature_tree(&self) -> Result<(), KernelError> {
+        match self.node_config.condition {
+            EvaluationCondition::Always | EvaluationCondition::AspectFilter(_) => {}
+            EvaluationCondition::OnDemand => {
+                return Err(KernelError::InvalidInput {
+                    message: "FeatureTree does not support OnDemand feature nodes yet".into(),
+                    context: None,
+                });
+            }
+            EvaluationCondition::Debounce(_) => {
+                return Err(KernelError::InvalidInput {
+                    message: "FeatureTree does not support Debounce feature nodes yet".into(),
+                    context: None,
+                });
+            }
+            EvaluationCondition::DeltaThreshold(_) => {
+                return Err(KernelError::InvalidInput {
+                    message: "FeatureTree does not support DeltaThreshold feature nodes yet".into(),
+                    context: None,
+                });
+            }
+            EvaluationCondition::Custom(_) => {
+                return Err(KernelError::InvalidInput {
+                    message: "FeatureTree does not support Custom condition feature nodes yet".into(),
+                    context: None,
+                });
+            }
+        }
+
+        if matches!(
+            self.node_config.comparator,
+            Some(VersionComparatorPolicy::Custom { .. })
+        ) {
+            return Err(KernelError::InvalidInput {
+                message: "FeatureTree does not support Custom comparator feature nodes yet".into(),
+                context: None,
+            });
+        }
+
+        Ok(())
     }
 }
 

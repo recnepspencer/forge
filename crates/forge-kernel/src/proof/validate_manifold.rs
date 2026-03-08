@@ -11,9 +11,6 @@
 
 use forge_core::KernelError;
 use forge_spec::facade::SpecState;
-use forge_topo::projection::{
-    ProjectedTopology, validate_projected_per_component_euler, validate_projected_topology_baseline,
-};
 use forge_topo::transactions::TopologyState;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 
@@ -31,7 +28,7 @@ pub fn validate_spec_structure(spec: &SpecState) -> Result<(), KernelError> {
 
 /// Validate spec-backed kernel output using its cached projected topology.
 pub fn validate_spec_envelope_structure(envelope: &SpecEnvelope) -> Result<(), KernelError> {
-    validate_projected_structure(envelope.projection()?)
+    envelope.validate_structure()
 }
 
 /// Validate geometry (spatial invariants) using a `GeometryContext`.
@@ -43,10 +40,4 @@ pub fn validate_geometry(
     ctx: &forge_spatial::GeometryContext<'_>,
 ) -> Result<(), KernelError> {
     forge_spatial::validate_geometric_invariants(topo.arena(), ctx)
-}
-
-fn validate_projected_structure(projected: &ProjectedTopology) -> Result<(), KernelError> {
-    validate_projected_topology_baseline(projected)?;
-    validate_projected_per_component_euler(projected)?;
-    Ok(())
 }

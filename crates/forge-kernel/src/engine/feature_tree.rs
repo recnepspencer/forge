@@ -12,6 +12,8 @@
 //!   derived from host-owned envelope changes, never placeholder counters
 //! - Raw structural graph rewiring is transitional and host-owned; evaluation
 //!   and dirty propagation flow through `SignalRuntimeState` transactions
+//! - Serialization persists committed graph state plus kernel-owned caches and
+//!   reconstructs a fresh runtime shell on deserialize
 //! - Topology is immutable (passed as snapshots)
 //! - `FeatureTree<R>` is generic over the feature registry `R`
 
@@ -46,6 +48,7 @@ type FeatureSignalRuntime = SignalRuntimeState<(), (), (), (), FeatureSignalTier
 ))]
 struct FeatureTreeSnapshot<R: FeatureRegistry> {
     graph: SignalGraph,
+    node_tiers: HashMap<NodeId, FeatureSignalTier>,
     features: HashMap<NodeId, R>,
     envelopes: HashMap<NodeId, OperationResult<SolidEnvelope>>,
     names: HashMap<String, NodeId>,
@@ -101,6 +104,11 @@ where
     {
         FeatureTreeSnapshot {
             graph: self.runtime.graph().clone(),
+            node_tiers: self
+                .features
+                .keys()
+                .filter_map(|&node_id| self.signal_tier(node_id).map(|tier| (node_id, tier)))
+                .collect(),
             features: self.features.clone(),
             envelopes: self.envelopes.clone(),
             names: self.names.clone(),
@@ -119,8 +127,12 @@ where
         D: Deserializer<'de>,
     {
         let snapshot = FeatureTreeSnapshot::<R>::deserialize(deserializer)?;
+        let mut runtime = Self::new_runtime(snapshot.graph);
+        for (node_id, tier) in &snapshot.node_tiers {
+            runtime.set_node_tier(*node_id, *tier);
+        }
         Ok(Self {
-            runtime: Self::new_runtime(snapshot.graph),
+            runtime,
             features: snapshot.features,
             envelopes: snapshot.envelopes,
             names: snapshot.names,
@@ -260,6 +272,7 @@ impl<R: FeatureRegistry> FeatureTree<R> {
     /// 3. Stores the feature logic.
     pub fn register_feature(&mut self, feature: R) -> Result<NodeId, KernelError> {
         let signal_policy = feature.signal_policy();
+        signal_policy.validate_for_feature_tree()?;
         let node_id = self
             .runtime
             .graph_mut()

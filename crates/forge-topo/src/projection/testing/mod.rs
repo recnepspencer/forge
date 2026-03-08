@@ -14,4 +14,5 @@ mod validation_radial_edge;
 mod validation_euler_genus;
 mod validation_reference_integrity;
 mod validation_shell_closure;
+mod validation_structural;
 mod validation_vertex_disk;

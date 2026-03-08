@@ -11,6 +11,7 @@ use crate::engine::{
     facade::{SpecEnvelope, validate_spec_envelope_invariant},
 };
 use crate::proof::checkpoint::{ValidationCheckpoint, ValidationConfig};
+use forge_signal::facade::NodeState;
 
 #[test]
 fn lazy_projection_materializes_from_spec_state() {
@@ -270,4 +271,86 @@ fn envelope_fingerprint_helper_matches_detail_level_contract() {
         envelope.fingerprint(crate::configuration::facade::FingerprintDetail::Full).unwrap(),
         envelope.projection_fingerprint().unwrap()
     );
+}
+
+#[test]
+fn signal_backed_projection_starts_on_demand_and_only_recomputes_when_read() {
+    let mut draft = SpecState::empty().into_draft();
+    draft.execute(MakeVertexFaceMutation).unwrap();
+    let spec = draft.commit().unwrap();
+
+    let envelope = SpecEnvelope::from_spec(spec);
+
+    assert_eq!(envelope.debug_signal_node_state("projection"), Some(NodeState::Dirty));
+    let before = envelope.debug_signal_telemetry();
+
+    let first = envelope.projection().unwrap();
+    let second = envelope.projection().unwrap();
+
+    assert_eq!(envelope.debug_signal_node_state("projection"), Some(NodeState::Clean));
+    assert!(ptr::eq(first, second));
+
+    let after = envelope.debug_signal_telemetry();
+    assert_eq!(after.transaction_rollback_count, before.transaction_rollback_count);
+    assert_eq!(after.ondemand_deferred_count, before.ondemand_deferred_count);
+}
+
+#[test]
+fn signal_backed_validation_checkpoint_and_fingerprint_share_projection_substrate() {
+    let mut draft = SpecState::empty().into_draft();
+    let seed = draft.execute(MakeVertexFaceMutation).unwrap().value;
+    draft
+        .execute(SplitEdgeMutation {
+            half_edge: seed.half_edge,
+        })
+        .unwrap();
+    let spec = draft.commit().unwrap();
+
+    let envelope = SpecEnvelope::from_spec(spec);
+
+    assert_eq!(envelope.debug_signal_node_state("structure"), Some(NodeState::Dirty));
+    assert_eq!(envelope.debug_signal_node_state("checkpoint"), Some(NodeState::Dirty));
+    assert_eq!(
+        envelope.debug_signal_node_state("full_fingerprint"),
+        Some(NodeState::Dirty)
+    );
+
+    validate_spec_envelope_invariant(
+        &envelope,
+        &InvariantKind::ManifoldEdges,
+        &ValidationConfig {
+            checkpoints: vec![ValidationCheckpoint::PostFeature],
+            include_geometric: false,
+            entity_limit: 0,
+        },
+    )
+    .unwrap();
+
+    assert_eq!(envelope.debug_signal_node_state("projection"), Some(NodeState::Clean));
+    assert_eq!(envelope.debug_signal_node_state("invariant"), Some(NodeState::Clean));
+
+    let after_invariant = envelope.debug_signal_telemetry();
+
+    envelope
+        .run_checkpoint(
+            &ValidationConfig {
+                checkpoints: vec![ValidationCheckpoint::PostFeature],
+                include_geometric: false,
+                entity_limit: 0,
+            },
+            ValidationCheckpoint::PostFeature,
+        )
+        .unwrap();
+    envelope
+        .fingerprint(crate::configuration::facade::FingerprintDetail::Full)
+        .unwrap();
+
+    let after_all = envelope.debug_signal_telemetry();
+    assert_eq!(envelope.debug_signal_node_state("checkpoint"), Some(NodeState::Clean));
+    assert_eq!(
+        envelope.debug_signal_node_state("full_fingerprint"),
+        Some(NodeState::Clean)
+    );
+    assert!(after_all.nodes_recomputed >= after_invariant.nodes_recomputed);
+    assert_eq!(after_all.transaction_rollback_count, 0);
 }

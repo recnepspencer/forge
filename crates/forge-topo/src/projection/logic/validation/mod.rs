@@ -10,8 +10,24 @@ use forge_core::KernelError;
 
 use crate::projection::data::ProjectedTopology;
 
-pub use loop_wiring::validate_projected_loop_wiring;
-pub use radial_edge::validate_projected_radial_edge;
+pub use loop_wiring::{
+    validate_projected_edge_endpoints_match_loop_vertices,
+    validate_projected_face_loop_membership_complete,
+    validate_projected_loop_minimum_cardinality,
+    validate_projected_loop_wiring,
+    validate_projected_loops,
+    validate_projected_no_duplicate_coedges_in_loop,
+    validate_projected_prev_consistency,
+    validate_projected_vertex_continuity,
+};
+pub use radial_edge::{
+    validate_projected_no_broken_radial_splices,
+    validate_projected_radial_cycle_uniqueness,
+    validate_projected_radial_edge,
+    validate_projected_radial_edge_consistency,
+    validate_projected_radial_neighbor_consistency,
+    validate_projected_radial_rings,
+};
 pub use euler_genus::validate_projected_per_component_euler;
 pub use reference_integrity::{
     validate_projected_acyclic_containment,
@@ -43,5 +59,13 @@ pub fn validate_projected_topology_baseline(
     reference_integrity::validate_projected_reference_integrity(topology)?;
     vertex_disk::validate_projected_vertex_disk(topology)?;
     shell_closure::validate_projected_shell_closure(topology)?;
+    Ok(())
+}
+
+pub fn validate_projected_topology_structural(
+    topology: &ProjectedTopology,
+) -> Result<(), KernelError> {
+    validate_projected_topology_baseline(topology)?;
+    validate_projected_per_component_euler(topology)?;
     Ok(())
 }

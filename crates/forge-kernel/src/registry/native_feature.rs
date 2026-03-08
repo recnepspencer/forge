@@ -18,7 +18,7 @@ use forge_core::KernelError;
 use forge_signal::facade::NodeId;
 
 use crate::configuration::facade::KernelConfig;
-use crate::engine::facade::{Feature, FeatureDependency, FeatureRegistry, SolidEnvelope};
+use crate::engine::facade::{Feature, FeatureDependency, FeatureRegistry, FeatureSignalPolicy, SolidEnvelope};
 use crate::operations::boolean::{BooleanFeature, BooleanOp};
 use crate::operations::primitives::MakePrimitiveFeature;
 
@@ -85,6 +85,13 @@ impl FeatureRegistry for NativeFeature {
         match self.kind() {
             FeatureKind::MakePrimitive(feature) => feature.dependency_bindings(),
             FeatureKind::Boolean(feature) => feature.dependency_bindings(),
+        }
+    }
+
+    fn signal_policy(&self) -> FeatureSignalPolicy {
+        match self.kind() {
+            FeatureKind::MakePrimitive(feature) => feature.signal_policy(),
+            FeatureKind::Boolean(feature) => feature.signal_policy(),
         }
     }
 

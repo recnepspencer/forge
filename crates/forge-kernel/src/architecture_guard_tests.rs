@@ -92,6 +92,17 @@ fn is_forge_math_type_import_allowed(rel_path: &str) -> bool {
     false
 }
 
+/// Paths that are allowed to interact with low-level forge-signal runtime types.
+fn is_signal_contract_path_allowed(rel_path: &str) -> bool {
+    if rel_path.ends_with("engine/feature_tree.rs") {
+        return true;
+    }
+    if rel_path.ends_with("engine/tests.rs") {
+        return true;
+    }
+    false
+}
+
 // ── Guard 1: No direct forge_math::linalg:: access ─────────────────────
 
 /// No direct `forge_math::linalg::` calls allowed in kernel code.
@@ -263,4 +274,110 @@ fn no_adhoc_float_math() {
             violations.join("\n")
         );
     }
+}
+
+// ── Guard 4: No raw forge-signal evaluation bypass in kernel code ─────────
+
+#[test]
+fn no_raw_signal_runtime_bypass_outside_feature_tree() {
+    let kernel_src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let rs_files = collect_rs_files(&kernel_src);
+
+    let banned_patterns = [
+        "use forge_signal::facade::evaluate",
+        "use forge_signal::facade::mark_dirty",
+        "forge_signal::facade::evaluate(",
+        "forge_signal::facade::mark_dirty(",
+        "evaluate(&mut graph",
+        "mark_dirty(&mut graph",
+    ];
+
+    let mut violations = Vec::new();
+
+    for file in &rs_files {
+        let rel_path = file
+            .strip_prefix(&kernel_src)
+            .unwrap_or(file)
+            .to_string_lossy();
+
+        if is_exempt_path(&rel_path) || is_signal_contract_path_allowed(&rel_path) {
+            continue;
+        }
+
+        let content = match std::fs::read_to_string(file) {
+            Ok(c) => c,
+            Err(_) => continue,
+        };
+
+        for (line_num, line) in content.lines().enumerate() {
+            if !is_code_line(line) {
+                continue;
+            }
+            if banned_patterns.iter().any(|pattern| line.contains(pattern)) {
+                violations.push(format!("  {}:{}: {}", rel_path, line_num + 1, line.trim()));
+            }
+        }
+    }
+
+    if !violations.is_empty() {
+        panic!(
+            "\n\nARCHITECTURE VIOLATION: raw forge-signal evaluation/invalidation bypass in kernel.\n\
+             Route runtime work through FeatureTree/SignalRuntimeState instead.\n\
+             Violations:\n{}\n",
+            violations.join("\n")
+        );
+    }
+}
+
+// ── Guard 5: Feature registration must expose signal policy explicitly ────
+
+#[test]
+fn feature_modules_define_explicit_signal_policy() {
+    let kernel_src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let required_files = [
+        "operations/primitives/mod.rs",
+        "operations/boolean/feature.rs",
+    ];
+
+    let mut violations = Vec::new();
+
+    for rel_path in required_files {
+        let file = kernel_src.join(rel_path);
+        let content = std::fs::read_to_string(&file)
+            .unwrap_or_else(|_| panic!("required file missing for guard: {}", rel_path));
+
+        if !content.contains("fn signal_policy(&self) -> FeatureSignalPolicy") {
+            violations.push(format!("  {}: missing explicit signal_policy() override", rel_path));
+        }
+        if !content.contains("FeatureSignalPolicy::core()") {
+            violations.push(format!("  {}: missing explicit FeatureSignalPolicy::core()", rel_path));
+        }
+    }
+
+    if !violations.is_empty() {
+        panic!(
+            "\n\nARCHITECTURE VIOLATION: feature modules must classify signal policy explicitly.\n\
+             Violations:\n{}\n",
+            violations.join("\n")
+        );
+    }
+}
+
+// ── Guard 6: Feature graph wiring must use aspect-aware dependencies ──────
+
+#[test]
+fn feature_tree_uses_aspect_aware_dependency_bindings() {
+    let kernel_src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let file = kernel_src.join("engine/feature_tree.rs");
+    let content = std::fs::read_to_string(&file)
+        .expect("engine/feature_tree.rs must exist for signal contract guard");
+
+    assert!(
+        content.contains("feature.dependency_bindings()"),
+        "FeatureTree must wire dependencies through dependency_bindings()"
+    );
+    assert!(
+        !content.contains("feature.dependencies()"),
+        "FeatureTree must not wire signal dependencies through legacy dependencies()"
+    );
 }

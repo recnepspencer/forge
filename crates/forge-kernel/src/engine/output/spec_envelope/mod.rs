@@ -2,12 +2,14 @@
 //!
 //! DOMAIN: Transitional output type for the spec-graph migration. Owns truth
 //! (`SpecState`) and geometry, and materializes `ProjectedTopology` lazily on
-//! demand. This does not replace `SolidEnvelope` yet.
+//! demand through a signal-backed read model. This does not replace
+//! `SolidEnvelope` yet.
 
 mod queries;
+mod signal;
 mod validation;
 
-use std::cell::OnceCell;
+use std::cell::{OnceCell, RefCell};
 
 use serde::{Deserialize, Serialize};
 
@@ -20,13 +22,18 @@ use forge_topo::projection::{
 };
 
 use crate::geometry::facade::GeometryStore;
+use signal::SpecEnvelopeSignalState;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SpecEnvelope {
     spec: SpecState,
     geometry: GeometryStore,
     #[serde(skip)]
     projection: OnceCell<Result<ProjectedTopology, ProjectedTopologyError>>,
+    #[serde(skip)]
+    standard_fingerprint: OnceCell<Result<u128, KernelError>>,
+    #[serde(skip)]
+    full_fingerprint: OnceCell<Result<u128, KernelError>>,
     #[serde(skip)]
     bodies: OnceCell<Result<Vec<ProjectedBodyId>, ProjectedTopologyError>>,
     #[serde(skip)]
@@ -45,6 +52,14 @@ pub struct SpecEnvelope {
     edges: OnceCell<Result<Vec<ProjectedEdgeId>, ProjectedTopologyError>>,
     #[serde(skip)]
     vertices: OnceCell<Result<Vec<ProjectedVertexId>, ProjectedTopologyError>>,
+    #[serde(skip)]
+    signal: RefCell<SpecEnvelopeSignalState>,
+}
+
+impl Clone for SpecEnvelope {
+    fn clone(&self) -> Self {
+        Self::new(self.spec.clone(), self.geometry.clone())
+    }
 }
 
 impl SpecEnvelope {
@@ -53,6 +68,8 @@ impl SpecEnvelope {
             spec,
             geometry,
             projection: OnceCell::new(),
+            standard_fingerprint: OnceCell::new(),
+            full_fingerprint: OnceCell::new(),
             bodies: OnceCell::new(),
             lumps: OnceCell::new(),
             regions: OnceCell::new(),
@@ -62,6 +79,7 @@ impl SpecEnvelope {
             half_edges: OnceCell::new(),
             edges: OnceCell::new(),
             vertices: OnceCell::new(),
+            signal: RefCell::new(SpecEnvelopeSignalState::new()),
         }
     }
 
@@ -78,10 +96,14 @@ impl SpecEnvelope {
     }
 
     pub fn geometry_mut(&mut self) -> &mut GeometryStore {
+        self.standard_fingerprint.take();
+        self.full_fingerprint.take();
+        self.signal = RefCell::new(SpecEnvelopeSignalState::new());
         &mut self.geometry
     }
 
     pub fn projection(&self) -> Result<&ProjectedTopology, KernelError> {
+        self.ensure_projection_ready()?;
         self.projection
             .get_or_init(|| ProjectionBuilder::build(&self.spec))
             .as_ref()
