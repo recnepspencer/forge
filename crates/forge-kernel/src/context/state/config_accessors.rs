@@ -7,7 +7,7 @@ use crate::configuration::facade::{
     GapClosurePolicy, PrecisionEscalationPolicy, SliverPolicy, TangencyPolicy, ToleranceConfig,
     TolerancePolicy,
 };
-use crate::proof::checkpoint::schema::ValidationConfig;
+use crate::proof::ValidationConfig;
 
 use super::modeling_context::ModelingContext;
 

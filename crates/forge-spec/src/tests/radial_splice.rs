@@ -151,7 +151,7 @@ fn build_high_valence_radial_fixture(draft: &mut SpecDraft) -> HighValenceFixtur
     let body = draft.create_node(SpecNodeKind::Body, None, "body").unwrap();
     let lump = draft.create_node(SpecNodeKind::Lump, None, "lump").unwrap();
     let region = draft.create_node(SpecNodeKind::Region, None, "region").unwrap();
-    let shell = draft.create_node(SpecNodeKind::Shell, None, "shell").unwrap();
+    let shell = draft.create_shell(SpecShellKind::Sheet, "shell").unwrap();
 
     draft
         .add_relation(RelationKind::BodyOwnsLump, body, lump, 0, "body-lump")

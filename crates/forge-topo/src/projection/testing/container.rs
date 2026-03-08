@@ -1,6 +1,6 @@
 use forge_spec::facade::{
     DestroyBodyMutation, DestroyLumpMutation, DestroyShellMutation, MakeEmptyShellMutation,
-    MakeLumpRegionMutation, MakeSolidMutation, SpecState,
+    MakeLumpRegionMutation, MakeSolidMutation, SpecShellKind, SpecState,
 };
 
 use crate::operations::lifecycle::lump::{DestroyLump, MakeLumpRegion};
@@ -152,6 +152,7 @@ fn build_make_empty_shell_state() -> SpecState {
     draft
         .execute(MakeEmptyShellMutation {
             region: solid.value.region,
+            kind: SpecShellKind::Sheet,
         })
         .unwrap();
     draft.commit().unwrap()
@@ -163,6 +164,7 @@ fn build_make_empty_shell_destroy_state() -> SpecState {
     let shell = draft
         .execute(MakeEmptyShellMutation {
             region: solid.value.region,
+            kind: SpecShellKind::Sheet,
         })
         .unwrap();
     draft

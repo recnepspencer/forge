@@ -144,23 +144,28 @@ impl SignalGraph {
         self.validate_handle(upstream)?;
 
         let edge = DependencyEdge::new(upstream, aspect);
-        self.get_entry_mut(downstream)?.add_dependency(edge);
-        self.get_entry_mut(upstream)?.add_subscriber(downstream);
+        let inserted = self.get_entry_mut(downstream)?.add_dependency(edge);
+        if inserted {
+            self.get_entry_mut(upstream)?.add_subscriber(downstream);
+        }
         Ok(())
     }
 
-    /// Remove all dependency edges from `downstream` to `upstream`.
+    /// Remove one dependency edge from `downstream` to `upstream` for the specified aspect.
     pub fn remove_dependency(
         &mut self,
         downstream: NodeId,
         upstream: NodeId,
+        aspect: Aspect,
     ) -> Result<(), SignalError> {
         self.validate_handle(downstream)?;
         self.validate_handle(upstream)?;
 
-        self.get_entry_mut(downstream)?
-            .remove_dependencies_on(upstream);
-        self.get_entry_mut(upstream)?.remove_subscriber(downstream);
+        let edge = DependencyEdge::new(upstream, aspect);
+        let removed = self.get_entry_mut(downstream)?.remove_dependency(edge);
+        if removed && !self.get_entry(downstream)?.has_dependency_on(upstream) {
+            self.get_entry_mut(upstream)?.remove_subscriber(downstream);
+        }
         Ok(())
     }
 

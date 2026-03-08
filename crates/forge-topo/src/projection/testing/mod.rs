@@ -11,5 +11,7 @@ mod queries;
 mod radial_splice;
 mod validation_loop_wiring;
 mod validation_radial_edge;
+mod validation_euler_genus;
 mod validation_reference_integrity;
 mod validation_shell_closure;
+mod validation_vertex_disk;

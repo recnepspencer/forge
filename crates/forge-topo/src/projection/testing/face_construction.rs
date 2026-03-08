@@ -1,6 +1,6 @@
 use forge_spec::facade::{
     MakeEmptyShellMutation, MakeFaceFromVerticesMutation, MakeFaceInShellFromVerticesMutation,
-    MakeIsolatedVertexMutation, MakeSolidMutation, SpecState,
+    MakeIsolatedVertexMutation, MakeSolidMutation, SpecShellKind, SpecState,
 };
 
 use crate::boundary_editing::make_face_from_vertices::MakeFaceFromVertices;
@@ -68,6 +68,7 @@ fn build_spec_make_face_in_shell_from_vertices_state() -> SpecState {
     let shell = draft
         .execute(MakeEmptyShellMutation {
             region: solid.value.region,
+            kind: SpecShellKind::Sheet,
         })
         .unwrap();
     let v0 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;

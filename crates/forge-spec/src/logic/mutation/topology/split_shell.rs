@@ -46,6 +46,7 @@ impl SpecMutation for SplitShellMutation {
         }
 
         let region = draft.single_incoming_source(self.shell, RelationKind::RegionOwnsShell)?;
+        let shell_kind = draft.shell_kind(self.shell)?;
         let source_faces = draft.outgoing_targets_of_kind(self.shell, RelationKind::ShellOwnsFace);
         for &face in &self.faces_to_move {
             if draft.node_kind(face)? != SpecNodeKind::Face {
@@ -62,7 +63,7 @@ impl SpecMutation for SplitShellMutation {
             }
         }
 
-        let new_shell = draft.create_node(SpecNodeKind::Shell, None, "split-shell")?;
+        let new_shell = draft.create_shell(shell_kind, "split-shell")?;
         draft.add_relation(
             RelationKind::RegionOwnsShell,
             region,

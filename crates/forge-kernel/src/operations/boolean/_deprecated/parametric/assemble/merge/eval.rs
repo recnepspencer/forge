@@ -19,7 +19,7 @@ use forge_topo::hashing::compute_arena_topology_hash;
 use forge_topo::validate::{validate_topology, ValidationLevel};
 use forge_topo::b_rep::TopologyArena;
 
-use crate::proof::checkpoint::schema::{run_checkpoint, ValidationCheckpoint};
+use crate::proof::{run_checkpoint, ValidationCheckpoint};
 use crate::core::{ModelingContext, OperationSpace, OperationFinalizer, TopologyHashBoundary};
 use crate::geometry_state::GeometryState;
 use crate::operations::boolean::schema::{
@@ -441,5 +441,3 @@ fn try_zero_split_early_return(
 
     Ok(Some(result))
 }
-
-

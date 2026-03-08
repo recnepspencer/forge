@@ -104,6 +104,12 @@ impl ProjectionBuilder {
             topology.shells.push(ProjectedShellData {
                 spec_id,
                 region: lookup(&region_map, region, "region")?,
+                kind: state.shell_kind(spec_id).map_err(|err| {
+                    ProjectedTopologyError::new(format!(
+                        "shell {} kind decode failed: {}",
+                        spec_id, err
+                    ))
+                })?,
                 faces: outgoing_targets(graph, spec_id, RelationKind::ShellOwnsFace)
                     .into_iter()
                     .map(|id| lookup(&face_map, id, "face"))

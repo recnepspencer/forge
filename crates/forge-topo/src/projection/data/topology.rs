@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use forge_spec::facade::SpecNodeId;
+use forge_spec::facade::{SpecNodeId, SpecShellKind};
 
 use crate::projection::data::handles::{
     ProjectedBodyId, ProjectedEdgeId, ProjectedFaceId, ProjectedHalfEdgeId, ProjectedLoopId,
@@ -46,6 +46,7 @@ pub struct ProjectedRegionData {
 pub struct ProjectedShellData {
     pub spec_id: SpecNodeId,
     pub region: ProjectedRegionId,
+    pub kind: SpecShellKind,
     pub faces: Vec<ProjectedFaceId>,
 }
 

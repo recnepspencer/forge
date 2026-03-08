@@ -12,6 +12,13 @@ pub mod checkpoint;
 pub mod counterfactual;
 pub mod invariants;
 pub mod region_extractor;
+pub use checkpoint::{
+    run_checkpoint, run_spec_checkpoint, run_spec_envelope_checkpoint, ValidationCheckpoint,
+    ValidationConfig, ValidationResult,
+};
+pub use validate_manifold::{
+    validate_geometry, validate_spec_envelope_structure, validate_spec_structure, validate_structure,
+};
 
 // Invariant step implementations (moved from operations/steps/)
 pub(crate) mod detect_slivers;

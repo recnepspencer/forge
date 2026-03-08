@@ -4,7 +4,7 @@ use crate::data::identity::{NamingAnchorId, SpecNodeId, SpecRelationId};
 use crate::data::journal::MutationJournalEntry;
 use crate::data::lineage::LineageRecord;
 use crate::data::naming::NamingAnchor;
-use crate::data::payload::{PayloadKey, PayloadRecord};
+use crate::data::payload::{PayloadKey, PayloadRecord, ShellPayload, SpecShellKind};
 use crate::data::replay::SpecReplayRecord;
 use crate::data::schema::{RelationKind, SpecNodeKind};
 
@@ -26,6 +26,18 @@ impl SpecDraft {
         self.journal
             .record(MutationJournalEntry::NodeCreated { id, kind });
         Ok(id)
+    }
+
+    pub fn create_shell(
+        &mut self,
+        kind: SpecShellKind,
+        role: &str,
+    ) -> Result<SpecNodeId, SpecError> {
+        self.create_node(
+            SpecNodeKind::Shell,
+            Some(ShellPayload::new(kind).encode()),
+            role,
+        )
     }
 
     pub fn delete_node(&mut self, id: SpecNodeId) -> Result<(), SpecError> {

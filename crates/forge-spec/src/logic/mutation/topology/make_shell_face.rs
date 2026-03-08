@@ -1,17 +1,16 @@
 use crate::data::error::SpecError;
 use crate::data::identity::SpecNodeId;
+use crate::data::payload::SpecShellKind;
 use crate::data::schema::{RelationKind, SpecNodeKind};
 use crate::logic::mutation::{MutationResult, SpecLineageRecorder, SpecMutation, TouchedDomain};
 use crate::logic::transaction::SpecDraft;
 
 /// Create a new shell under an existing region, seeded with a single self-loop face.
 ///
-/// Shell-kind/orientation semantics remain deferred until the truth schema owns
-/// them explicitly. This mutation only establishes topological containment and
-/// the minimal seed entities required for projection.
 #[derive(Debug, Clone, Copy)]
 pub struct MakeShellFaceMutation {
     pub region: SpecNodeId,
+    pub kind: SpecShellKind,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -42,7 +41,7 @@ impl SpecMutation for MakeShellFaceMutation {
             )));
         }
 
-        let shell = draft.create_node(SpecNodeKind::Shell, None, "shell")?;
+        let shell = draft.create_shell(self.kind, "shell")?;
         let face = draft.create_node(SpecNodeKind::Face, None, "face")?;
         let loop_id = draft.create_node(SpecNodeKind::Loop, None, "loop")?;
         let half_edge = draft.create_node(SpecNodeKind::HalfEdge, None, "half_edge")?;

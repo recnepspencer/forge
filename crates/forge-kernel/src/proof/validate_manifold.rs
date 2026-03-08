@@ -11,9 +11,13 @@
 
 use forge_core::KernelError;
 use forge_spec::facade::SpecState;
-use forge_topo::projection::{ProjectionBuilder, validate_projected_topology_baseline};
+use forge_topo::projection::{
+    ProjectedTopology, validate_projected_per_component_euler, validate_projected_topology_baseline,
+};
 use forge_topo::transactions::TopologyState;
 use forge_topo::validate::{validate_topology, ValidationLevel};
+
+use crate::engine::facade::SpecEnvelope;
 
 /// Validate topology (structural invariants).
 pub fn validate_structure(topo: &TopologyState, level: ValidationLevel) -> Result<(), KernelError> {
@@ -22,11 +26,12 @@ pub fn validate_structure(topo: &TopologyState, level: ValidationLevel) -> Resul
 
 /// Validate graph-native spec truth by ensuring it materializes to a valid projected topology.
 pub fn validate_spec_structure(spec: &SpecState) -> Result<(), KernelError> {
-    let projected = ProjectionBuilder::build(spec).map_err(|error| KernelError::InvalidInput {
-            message: format!("Spec projection failed: {}", error),
-            context: None,
-        })?;
-    validate_projected_topology_baseline(&projected)
+    SpecEnvelope::from_spec(spec.clone()).validate_structure()
+}
+
+/// Validate spec-backed kernel output using its cached projected topology.
+pub fn validate_spec_envelope_structure(envelope: &SpecEnvelope) -> Result<(), KernelError> {
+    validate_projected_structure(envelope.projection()?)
 }
 
 /// Validate geometry (spatial invariants) using a `GeometryContext`.
@@ -38,4 +43,10 @@ pub fn validate_geometry(
     ctx: &forge_spatial::GeometryContext<'_>,
 ) -> Result<(), KernelError> {
     forge_spatial::validate_geometric_invariants(topo.arena(), ctx)
+}
+
+fn validate_projected_structure(projected: &ProjectedTopology) -> Result<(), KernelError> {
+    validate_projected_topology_baseline(projected)?;
+    validate_projected_per_component_euler(projected)?;
+    Ok(())
 }

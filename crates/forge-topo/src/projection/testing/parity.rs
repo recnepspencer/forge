@@ -296,7 +296,7 @@ fn build_duplicate_prev_state() -> SpecState {
     let body = draft.create_node(SpecNodeKind::Body, None, "body").unwrap();
     let lump = draft.create_node(SpecNodeKind::Lump, None, "lump").unwrap();
     let region = draft.create_node(SpecNodeKind::Region, None, "region").unwrap();
-    let shell = draft.create_node(SpecNodeKind::Shell, None, "shell").unwrap();
+    let shell = draft.create_shell(forge_spec::facade::SpecShellKind::Sheet, "shell").unwrap();
     let face = draft.create_node(SpecNodeKind::Face, None, "face").unwrap();
     let loop_id = draft.create_node(SpecNodeKind::Loop, None, "loop").unwrap();
     let he_a = draft.create_node(SpecNodeKind::HalfEdge, None, "hea").unwrap();
@@ -389,6 +389,7 @@ fn build_seed_plus_shell_face_state() -> SpecState {
     draft
         .execute(MakeShellFaceMutation {
             region: seed.value.region,
+            kind: forge_spec::facade::SpecShellKind::Sheet,
         })
         .unwrap();
     draft.commit().unwrap()
@@ -400,6 +401,7 @@ fn build_seed_plus_shell_face_plus_kill_state() -> SpecState {
     let shell_seed = draft
         .execute(MakeShellFaceMutation {
             region: seed.value.region,
+            kind: forge_spec::facade::SpecShellKind::Sheet,
         })
         .unwrap();
     draft

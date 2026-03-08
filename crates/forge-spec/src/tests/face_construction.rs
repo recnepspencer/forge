@@ -22,6 +22,7 @@ fn make_face_in_shell_from_vertices_mutation_builds_face_cycle_from_existing_ver
     let shell = draft
         .execute(MakeEmptyShellMutation {
             region: solid.value.region,
+            kind: SpecShellKind::Sheet,
         })
         .unwrap();
     let v0 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;

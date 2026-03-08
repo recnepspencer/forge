@@ -1,7 +1,7 @@
 //! Canonical, immutable configuration consumed by feature execution lifecycle.
 
 use crate::engine::facade::AuditLevel;
-use crate::proof::checkpoint::schema::ValidationConfig;
+use crate::proof::ValidationConfig;
 
 /// Per-feature execution policy resolved before pipeline evaluation starts.
 #[derive(Debug, Clone)]

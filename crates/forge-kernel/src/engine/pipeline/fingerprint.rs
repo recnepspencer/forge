@@ -67,10 +67,7 @@ pub fn compute_spec_pipeline_fingerprint(
     detail: FingerprintDetail,
 ) -> Result<u128, forge_core::KernelError> {
     compute_commutative_pipeline_fingerprint(
-        inputs.values().map(|output| match detail {
-            FingerprintDetail::Standard => Ok(output.spec_fingerprint()),
-            FingerprintDetail::Full => output.projection_fingerprint(),
-        }),
+        inputs.values().map(|output| output.fingerprint(detail)),
         feature_kind,
         conditioning_mode,
         spatial_tolerance,

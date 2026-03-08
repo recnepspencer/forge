@@ -1,11 +1,13 @@
 use crate::data::error::SpecError;
 use crate::data::identity::SpecNodeId;
+use crate::data::payload::SpecShellKind;
 use crate::data::schema::{RelationKind, SpecNodeKind};
 use crate::logic::mutation::{MutationResult, SpecLineageRecorder, SpecMutation, TouchedDomain};
 use crate::logic::transaction::SpecDraft;
 
 pub struct MakeEmptyShellMutation {
     pub region: SpecNodeId,
+    pub kind: SpecShellKind,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -17,6 +19,7 @@ impl std::fmt::Debug for MakeEmptyShellMutation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("MakeEmptyShellMutation")
             .field("region", &self.region)
+            .field("kind", &self.kind)
             .finish()
     }
 }
@@ -38,7 +41,7 @@ impl SpecMutation for MakeEmptyShellMutation {
             )));
         }
 
-        let shell = draft.create_node(SpecNodeKind::Shell, None, "shell")?;
+        let shell = draft.create_shell(self.kind, "shell")?;
         draft.add_relation(
             RelationKind::RegionOwnsShell,
             self.region,
@@ -51,13 +54,16 @@ impl SpecMutation for MakeEmptyShellMutation {
             value: MakeEmptyShellOutput { shell },
             touched_domains: vec![TouchedDomain::Topology],
             mutation_trace: vec![
-                format!("create empty shell in region {}", self.region),
+                format!(
+                    "create empty {:?} shell in region {}",
+                    self.kind, self.region
+                ),
                 "attach shell without faces to existing region".to_string(),
             ],
         })
     }
 
     fn semantic_summary(&self) -> String {
-        format!("Create empty shell in region {}", self.region)
+        format!("Create empty {:?} shell in region {}", self.kind, self.region)
     }
 }

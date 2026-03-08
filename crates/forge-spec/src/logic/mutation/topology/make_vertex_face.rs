@@ -1,5 +1,6 @@
 use crate::data::error::SpecError;
 use crate::data::identity::SpecNodeId;
+use crate::data::payload::SpecShellKind;
 use crate::data::schema::{RelationKind, SpecNodeKind};
 use crate::logic::mutation::{MutationResult, SpecLineageRecorder, SpecMutation, TouchedDomain};
 use crate::logic::transaction::SpecDraft;
@@ -7,8 +8,6 @@ use crate::logic::transaction::SpecDraft;
 /// Create the seed topology in spec-graph truth:
 /// one body, lump, region, shell, face, loop, self-loop halfedge, edge, and vertex.
 ///
-/// Shell-kind/orientation semantics are intentionally deferred until the truth
-/// schema owns them explicitly.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct MakeVertexFaceMutation;
 
@@ -38,7 +37,7 @@ impl SpecMutation for MakeVertexFaceMutation {
         let body = draft.create_node(SpecNodeKind::Body, None, "body")?;
         let lump = draft.create_node(SpecNodeKind::Lump, None, "lump")?;
         let region = draft.create_node(SpecNodeKind::Region, None, "region")?;
-        let shell = draft.create_node(SpecNodeKind::Shell, None, "shell")?;
+        let shell = draft.create_shell(SpecShellKind::Sheet, "shell")?;
         let face = draft.create_node(SpecNodeKind::Face, None, "face")?;
         let loop_id = draft.create_node(SpecNodeKind::Loop, None, "loop")?;
         let half_edge = draft.create_node(SpecNodeKind::HalfEdge, None, "half_edge")?;

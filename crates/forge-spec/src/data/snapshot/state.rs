@@ -4,8 +4,9 @@ use crate::data::graph::SpecGraph;
 use crate::data::identity::DeterministicIdAllocator;
 use crate::data::lineage::LineageRecord;
 use crate::data::naming::NamingAnchor;
-use crate::data::payload::PayloadStore;
+use crate::data::payload::{PayloadStore, ShellPayload, SpecShellKind};
 use crate::data::replay::SpecReplayRecord;
+use crate::data::{error::SpecError, identity::SpecNodeId, schema::SpecNodeKind};
 use crate::logic::transaction::SpecDraft;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -69,6 +70,27 @@ impl SpecState {
 
     pub fn payloads(&self) -> &PayloadStore {
         &self.payloads
+    }
+
+    pub fn shell_kind(&self, id: SpecNodeId) -> Result<SpecShellKind, SpecError> {
+        let node = self
+            .graph
+            .node(id)
+            .ok_or_else(|| SpecError::not_found(format!("node {} not found", id)))?;
+        if node.kind != SpecNodeKind::Shell {
+            return Err(SpecError::invalid(format!(
+                "node {} is not a shell; found {:?}",
+                id, node.kind
+            )));
+        }
+        let payload_key = node
+            .payload
+            .ok_or_else(|| SpecError::not_found(format!("shell {} has no payload", id)))?;
+        let payload = self
+            .payloads
+            .get(payload_key)
+            .ok_or_else(|| SpecError::not_found(format!("payload {} not found", payload_key)))?;
+        Ok(ShellPayload::decode(&payload.bytes)?.kind())
     }
 
     pub fn naming_anchors(&self) -> &[NamingAnchor] {

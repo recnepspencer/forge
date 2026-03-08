@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::context::scope::OperationScope;
-use crate::engine::facade::{AuditLevel, EntityOriginKind, InvariantKind};
+use crate::engine::facade::{AuditLevel, EntityOriginKind, FeatureDependency, InvariantKind};
 use crate::engine::facade::{Feature, FeatureInputs, SolidEnvelope};
 use forge_core::KernelError;
 use forge_signal::facade::NodeId;
@@ -122,6 +122,13 @@ impl Feature for BooleanFeature {
 
     fn dependencies(&self) -> Vec<NodeId> {
         vec![self.target, self.tool]
+    }
+
+    fn dependency_bindings(&self) -> Vec<FeatureDependency> {
+        vec![
+            FeatureDependency::topology_and_geometry(self.target),
+            FeatureDependency::topology_and_geometry(self.tool),
+        ]
     }
 
     fn name(&self) -> &str {

@@ -33,7 +33,7 @@ use crate::engine::transaction::data::subscriber_data_id::KernelSubscriberDataId
 use crate::engine::transaction::logic::feature_event_runtime::{
     FeatureEventRuntime, FeatureEventRuntimeContext,
 };
-use crate::proof::checkpoint::schema::ValidationConfig;
+use crate::proof::ValidationConfig;
 
 /// Feature pipeline executor.
 ///

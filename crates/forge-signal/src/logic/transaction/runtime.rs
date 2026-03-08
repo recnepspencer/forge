@@ -146,6 +146,16 @@ where
         &self.graph
     }
 
+    /// Mutable access to committed signal graph for host-owned structural rewiring.
+    ///
+    /// Embeddings use this for node allocation and dependency edits. Evaluation,
+    /// invalidation, and rollback-sensitive work should still flow through
+    /// `SignalTransaction`.
+    pub fn graph_mut(&mut self) -> &mut SignalGraph {
+        self.config.sync_graph_capacity(&self.graph);
+        &mut self.graph
+    }
+
     /// Immutable access to committed checkpoint runtime.
     pub fn checkpoint(&self) -> &CheckpointRuntime<D, I> {
         &self.checkpoint

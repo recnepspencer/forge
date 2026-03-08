@@ -2,10 +2,16 @@
 //!
 //! DOMAIN: Automatic topology validation wired into the operation pipeline.
 //!
-//! - `schema`: ValidationConfig, ValidationCheckpoint, ValidationResult, run_checkpoint
+//! - `schema`: ValidationConfig, ValidationCheckpoint, ValidationResult,
+//!   `run_checkpoint`, `run_spec_checkpoint`, `run_spec_envelope_checkpoint`
 //! - `diagnose`: PipelineStage, PipelineDiagnostic, diagnose_arena (non-fatal mid-pipeline)
 //!
 //! DEPENDENCIES: `forge-topo` (arena, validate), `forge-core` (KernelError)
 
 pub mod diagnose;
 pub mod schema;
+
+pub use schema::{
+    run_checkpoint, run_spec_checkpoint, run_spec_envelope_checkpoint, ValidationCheckpoint,
+    ValidationConfig, ValidationResult,
+};

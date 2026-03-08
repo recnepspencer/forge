@@ -9,6 +9,7 @@ mod multi_aspect;
 mod node_conditions;
 mod performance;
 mod reentrancy;
+mod signal_contract;
 mod telemetry;
 pub(crate) mod support;
 mod tier_policy;

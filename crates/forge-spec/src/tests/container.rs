@@ -69,6 +69,7 @@ fn make_empty_shell_mutation_creates_shell_without_faces() {
     let result = draft
         .execute(MakeEmptyShellMutation {
             region: solid.value.region,
+            kind: SpecShellKind::Sheet,
         })
         .unwrap();
     let state = draft.commit().unwrap();
@@ -85,6 +86,7 @@ fn destroy_shell_mutation_removes_empty_shell() {
     let shell = draft
         .execute(MakeEmptyShellMutation {
             region: solid.value.region,
+            kind: SpecShellKind::Sheet,
         })
         .unwrap();
     draft

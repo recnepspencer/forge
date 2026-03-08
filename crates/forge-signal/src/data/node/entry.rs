@@ -110,13 +110,31 @@ impl NodeEntry {
     }
 
     /// Add an upstream dependency.
-    pub fn add_dependency(&mut self, edge: DependencyEdge) {
+    pub fn add_dependency(&mut self, edge: DependencyEdge) -> bool {
+        if self.dependencies.contains(&edge) {
+            return false;
+        }
         self.dependencies.push(edge);
+        true
+    }
+
+    /// Remove one specific dependency edge.
+    pub fn remove_dependency(&mut self, edge: DependencyEdge) -> bool {
+        let original_len = self.dependencies.len();
+        self.dependencies.retain(|candidate| *candidate != edge);
+        self.dependencies.len() != original_len
     }
 
     /// Remove all dependencies on a specific upstream node.
-    pub fn remove_dependencies_on(&mut self, source: NodeId) {
+    pub fn remove_dependencies_on(&mut self, source: NodeId) -> bool {
+        let original_len = self.dependencies.len();
         self.dependencies.retain(|e| e.source() != source);
+        self.dependencies.len() != original_len
+    }
+
+    /// Whether any dependency remains on the specified upstream node.
+    pub fn has_dependency_on(&self, source: NodeId) -> bool {
+        self.dependencies.iter().any(|edge| edge.source() == source)
     }
 
     /// The downstream subscribers.
@@ -125,13 +143,19 @@ impl NodeEntry {
     }
 
     /// Add a downstream subscriber.
-    pub fn add_subscriber(&mut self, subscriber: NodeId) {
+    pub fn add_subscriber(&mut self, subscriber: NodeId) -> bool {
+        if self.subscribers.contains(&subscriber) {
+            return false;
+        }
         self.subscribers.push(subscriber);
+        true
     }
 
     /// Remove a specific downstream subscriber.
-    pub fn remove_subscriber(&mut self, subscriber: NodeId) {
+    pub fn remove_subscriber(&mut self, subscriber: NodeId) -> bool {
+        let original_len = self.subscribers.len();
         self.subscribers.retain(|s| *s != subscriber);
+        self.subscribers.len() != original_len
     }
 
     /// Purge subscribers whose generation doesn't match the graph.

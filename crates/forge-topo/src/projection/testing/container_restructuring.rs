@@ -2,7 +2,7 @@ use forge_spec::facade::{
     ExtractLumpMutation, MakeEmptyShellMutation, MakeFaceVertexMutation, MakeLumpRegionMutation,
     MakeSolidMutation, MakeVertexFaceMutation, MergeBodiesMutation, MergeLumpsMutation,
     MergeShellsMutation, RelationKind, RehomeLumpMutation,
-    RehomeShellMutation, SpecNodeKind, SpecState, SplitBodyMutation, SplitLumpMutation,
+    RehomeShellMutation, SpecNodeKind, SpecShellKind, SpecState, SplitBodyMutation, SplitLumpMutation,
     SplitShellMutation,
 };
 
@@ -85,7 +85,12 @@ fn build_rehome_shell_state() -> SpecState {
     let mut draft = SpecState::empty().into_draft();
     let solid = draft.execute(MakeSolidMutation).unwrap();
     let extra = draft.execute(MakeLumpRegionMutation { body: solid.value.body }).unwrap();
-    let shell = draft.execute(MakeEmptyShellMutation { region: solid.value.region }).unwrap();
+    let shell = draft
+        .execute(MakeEmptyShellMutation {
+            region: solid.value.region,
+            kind: SpecShellKind::Sheet,
+        })
+        .unwrap();
     draft.execute(RehomeShellMutation { shell: shell.value.shell, target_region: extra.value.region }).unwrap();
     draft.commit().unwrap()
 }
@@ -104,6 +109,7 @@ fn build_merge_shells_state() -> SpecState {
     let empty_shell = draft
         .execute(MakeEmptyShellMutation {
             region: seed.value.region,
+            kind: SpecShellKind::Sheet,
         })
         .unwrap();
     let second_face = draft

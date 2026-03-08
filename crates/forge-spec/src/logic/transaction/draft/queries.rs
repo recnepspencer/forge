@@ -1,6 +1,7 @@
 use crate::data::error::SpecError;
 use crate::data::graph::{NodeRecord, RelationRecord};
 use crate::data::identity::{SpecNodeId, SpecRelationId};
+use crate::data::payload::{PayloadRecord, ShellPayload, SpecShellKind};
 use crate::data::schema::{RelationKind, SpecNodeKind};
 
 use super::SpecDraft;
@@ -68,6 +69,21 @@ impl SpecDraft {
 
     pub fn node_kind(&self, id: SpecNodeId) -> Result<SpecNodeKind, SpecError> {
         Ok(self.current_node(id)?.kind)
+    }
+
+    pub fn shell_kind(&self, id: SpecNodeId) -> Result<SpecShellKind, SpecError> {
+        let node = self.current_node(id)?;
+        if node.kind != SpecNodeKind::Shell {
+            return Err(SpecError::invalid(format!(
+                "node {} is not a shell; found {:?}",
+                id, node.kind
+            )));
+        }
+        let payload = self.payload_record(
+            node.payload
+                .ok_or_else(|| SpecError::not_found(format!("shell {} has no payload", id)))?,
+        )?;
+        Ok(ShellPayload::decode(&payload.bytes)?.kind())
     }
 
     pub(super) fn current_node(&self, id: SpecNodeId) -> Result<&NodeRecord, SpecError> {
@@ -178,5 +194,13 @@ impl SpecDraft {
         );
         relations.sort_by_key(|relation| (relation.ordinal, relation.id));
         relations
+    }
+
+    fn payload_record(&self, key: crate::data::payload::PayloadKey) -> Result<&PayloadRecord, SpecError> {
+        self.created_payloads
+            .iter()
+            .find(|record| record.key == key)
+            .or_else(|| self.base.payloads().get(key))
+            .ok_or_else(|| SpecError::not_found(format!("payload {} not found", key)))
     }
 }

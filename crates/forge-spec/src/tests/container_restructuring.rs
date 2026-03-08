@@ -13,6 +13,7 @@ fn rehome_shell_moves_empty_shell_between_regions() {
     let shell = draft
         .execute(MakeEmptyShellMutation {
             region: solid.value.region,
+            kind: SpecShellKind::Sheet,
         })
         .unwrap();
 
@@ -75,11 +76,13 @@ fn merge_shells_absorbs_source_shell() {
     let shell_a = draft
         .execute(MakeShellFaceMutation {
             region: solid.value.region,
+            kind: SpecShellKind::Sheet,
         })
         .unwrap();
     let shell_b = draft
         .execute(MakeShellFaceMutation {
             region: solid.value.region,
+            kind: SpecShellKind::Sheet,
         })
         .unwrap();
 

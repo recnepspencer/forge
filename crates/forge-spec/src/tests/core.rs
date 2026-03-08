@@ -238,6 +238,7 @@ fn make_shell_face_mutation_creates_disjoint_shell_seed_in_region() {
     let result = draft
         .execute(MakeShellFaceMutation {
             region: seed.value.region,
+            kind: SpecShellKind::Sheet,
         })
         .unwrap();
     let state = draft.commit().unwrap();
@@ -272,6 +273,7 @@ fn kill_shell_face_mutation_removes_only_disjoint_shell_seed() {
     let shell_seed = draft
         .execute(MakeShellFaceMutation {
             region: seed.value.region,
+            kind: SpecShellKind::Sheet,
         })
         .unwrap();
     draft

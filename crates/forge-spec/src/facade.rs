@@ -7,7 +7,9 @@ pub use crate::data::identity::{
 pub use crate::data::journal::{MutationJournal, MutationJournalEntry};
 pub use crate::data::lineage::LineageRecord;
 pub use crate::data::naming::{NamingAnchor, PersistentName};
-pub use crate::data::payload::{PayloadKey, PayloadRecord, PayloadStore};
+pub use crate::data::payload::{
+    PayloadKey, PayloadRecord, PayloadStore, ShellPayload, SpecShellKind, SpecShellOrientation,
+};
 pub use crate::data::replay::SpecReplayRecord;
 pub use crate::data::schema::{GraphDomain, RelationCardinality, RelationKind, SpecNodeKind};
 pub use crate::data::snapshot::SpecState;

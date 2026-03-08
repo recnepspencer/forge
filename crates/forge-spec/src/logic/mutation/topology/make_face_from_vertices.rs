@@ -1,5 +1,6 @@
 use crate::data::error::SpecError;
 use crate::data::identity::SpecNodeId;
+use crate::data::payload::SpecShellKind;
 use crate::data::schema::{RelationKind, SpecNodeKind};
 use crate::logic::mutation::{MutationResult, SpecLineageRecorder, SpecMutation, TouchedDomain};
 use crate::logic::transaction::SpecDraft;
@@ -36,7 +37,7 @@ impl SpecMutation for MakeFaceFromVerticesMutation {
         let body = draft.create_node(SpecNodeKind::Body, None, "body")?;
         let lump = draft.create_node(SpecNodeKind::Lump, None, "lump")?;
         let region = draft.create_node(SpecNodeKind::Region, None, "region")?;
-        let shell = draft.create_node(SpecNodeKind::Shell, None, "shell")?;
+        let shell = draft.create_shell(SpecShellKind::Sheet, "shell")?;
         let face = draft.create_node(SpecNodeKind::Face, None, "face")?;
 
         draft.add_relation(RelationKind::BodyOwnsLump, body, lump, 0, "body-lump")?;

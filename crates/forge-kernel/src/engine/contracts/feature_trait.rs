@@ -12,6 +12,8 @@ use forge_signal::facade::NodeId;
 
 use super::super::output::solid_envelope::SolidEnvelope;
 use super::contract::{FeatureContract, FeatureInputs};
+use super::feature_dependency::FeatureDependency;
+use super::feature_signal_policy::FeatureSignalPolicy;
 use crate::context::scope::OperationScope;
 
 /// A parametric feature that can be evaluated.
@@ -78,6 +80,22 @@ pub trait Feature: FeatureContract + std::fmt::Debug + Any {
 
     /// Return the list of input dependencies (NodeIds).
     fn dependencies(&self) -> Vec<NodeId>;
+
+    /// Return aspect-aware dependency declarations for this feature.
+    ///
+    /// Default behavior subscribes to both kernel concerns for each upstream.
+    /// Features should override this when they only read one concern.
+    fn dependency_bindings(&self) -> Vec<FeatureDependency> {
+        self.dependencies()
+            .into_iter()
+            .map(FeatureDependency::topology_and_geometry)
+            .collect()
+    }
+
+    /// Static signal policy for this feature node.
+    fn signal_policy(&self) -> FeatureSignalPolicy {
+        FeatureSignalPolicy::default()
+    }
 
     /// Return the name of the feature (for debugging).
     fn name(&self) -> &str;

@@ -4,27 +4,53 @@
 //!
 //! INVARIANTS:
 //! - All feature evaluation goes through `FeaturePipeline::execute`
-//! - Dependencies are tracked via `forge-signal`
+//! - `forge-signal` owns scheduling, invalidation, rollback, condition gating,
+//!   and aspect-version comparison for the feature graph
+//! - `forge-kernel` owns feature logic, semantic aspect derivation, and the
+//!   canonical `OperationResult<SolidEnvelope>` envelope cache
+//! - Every feature node must return meaningful monotonic aspect versions
+//!   derived from host-owned envelope changes, never placeholder counters
+//! - Raw structural graph rewiring is transitional and host-owned; evaluation
+//!   and dirty propagation flow through `SignalRuntimeState` transactions
 //! - Topology is immutable (passed as snapshots)
 //! - `FeatureTree<R>` is generic over the feature registry `R`
-//! - Per-node `OperationResult<SolidEnvelope>` envelopes are the
-//!   canonical storage — they carry the full decision log, metrics,
-//!   lineage, and warnings from each feature evaluation
 
 use std::collections::HashMap;
+use std::fmt;
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use forge_core::envelope::OperationResult;
 use forge_core::KernelError;
-use forge_signal::facade::{Aspect, AspectVersion, NodeId, SignalError, SignalGraph, TraceSummary};
+use forge_signal::facade::{
+    evaluate_in_txn, Aspect, AspectMask, AspectVersion, CheckpointBarrier, DefaultComparatorResolver,
+    NodeId, SignalError, SignalGraph, SignalRuntimeState, TraceSummary, TransactionOutcome,
+};
 
+use super::contracts::feature_dependency::FeatureAspect;
+use super::contracts::feature_signal_policy::{FeatureSignalPolicy, FeatureSignalTier};
 use super::contracts::feature_registry::FeatureRegistry;
 use super::output::solid_envelope::SolidEnvelope;
 use crate::configuration::facade::KernelConfig;
+use crate::geometry::facade::GeometryStore;
 
 const TOPOLOGY_ASPECT: Aspect = Aspect::new(0);
 const GEOMETRY_ASPECT: Aspect = Aspect::new(1);
+
+type FeatureSignalRuntime = SignalRuntimeState<(), (), (), (), FeatureSignalTier>;
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(bound(
+    serialize = "R: Serialize",
+    deserialize = "R: serde::de::DeserializeOwned",
+))]
+struct FeatureTreeSnapshot<R: FeatureRegistry> {
+    graph: SignalGraph,
+    features: HashMap<NodeId, R>,
+    envelopes: HashMap<NodeId, OperationResult<SolidEnvelope>>,
+    names: HashMap<String, NodeId>,
+    next_feature_seq: u64,
+}
 
 /// The Feature Tree manager.
 ///
@@ -36,14 +62,9 @@ const GEOMETRY_ASPECT: Aspect = Aspect::new(1);
 /// containing the domain output (topology + geometry) plus the full audit
 /// trail (decision log, metrics, lineage, warnings). This is the canonical
 /// metadata storage — no separate `Arc<DecisionLog>` fields needed.
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(bound(
-    serialize = "R: Serialize",
-    deserialize = "R: serde::de::DeserializeOwned",
-))]
 pub struct FeatureTree<R: FeatureRegistry> {
-    /// The reactive dependency graph.
-    graph: SignalGraph,
+    /// Transactional signal runtime that owns the committed graph state.
+    runtime: FeatureSignalRuntime,
     /// Map from NodeId to the Feature implementation.
     features: HashMap<NodeId, R>,
     /// Cached envelopes carrying both domain output and audit metadata.
@@ -58,6 +79,56 @@ pub struct FeatureTree<R: FeatureRegistry> {
     next_feature_seq: u64,
 }
 
+impl<R: FeatureRegistry> fmt::Debug for FeatureTree<R> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("FeatureTree")
+            .field("graph", self.runtime.graph())
+            .field("features", &self.features)
+            .field("envelopes", &self.envelopes)
+            .field("names", &self.names)
+            .field("next_feature_seq", &self.next_feature_seq)
+            .finish()
+    }
+}
+
+impl<R> Serialize for FeatureTree<R>
+where
+    R: FeatureRegistry + Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        FeatureTreeSnapshot {
+            graph: self.runtime.graph().clone(),
+            features: self.features.clone(),
+            envelopes: self.envelopes.clone(),
+            names: self.names.clone(),
+            next_feature_seq: self.next_feature_seq,
+        }
+        .serialize(serializer)
+    }
+}
+
+impl<'de, R> Deserialize<'de> for FeatureTree<R>
+where
+    R: FeatureRegistry + serde::de::DeserializeOwned,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let snapshot = FeatureTreeSnapshot::<R>::deserialize(deserializer)?;
+        Ok(Self {
+            runtime: Self::new_runtime(snapshot.graph),
+            features: snapshot.features,
+            envelopes: snapshot.envelopes,
+            names: snapshot.names,
+            next_feature_seq: snapshot.next_feature_seq,
+        })
+    }
+}
+
 impl<R: FeatureRegistry> Default for FeatureTree<R> {
     fn default() -> Self {
         Self::new()
@@ -69,6 +140,13 @@ impl<R: FeatureRegistry> FeatureTree<R> {
         SignalError::internal(err.to_string())
     }
 
+    fn signal_aspect(aspect: FeatureAspect) -> Aspect {
+        match aspect {
+            FeatureAspect::Topology => TOPOLOGY_ASPECT,
+            FeatureAspect::Geometry => GEOMETRY_ASPECT,
+        }
+    }
+
     fn signal_to_kernel(err: SignalError) -> KernelError {
         KernelError::InternalError {
             message: err.to_string(),
@@ -76,10 +154,87 @@ impl<R: FeatureRegistry> FeatureTree<R> {
         }
     }
 
+    fn new_runtime(graph: SignalGraph) -> FeatureSignalRuntime {
+        let mut runtime = SignalRuntimeState::with_policy(
+            graph,
+            forge_signal::facade::CheckpointPolicy::new(CheckpointBarrier::PerOperation),
+        );
+        runtime.set_tier_policy(FeatureSignalPolicy::core_tier_policy());
+        runtime
+    }
+
+    fn version_for_output(
+        previous: Option<&OperationResult<SolidEnvelope>>,
+        next: &OperationResult<SolidEnvelope>,
+        prior_version: AspectVersion,
+    ) -> AspectVersion {
+        let next_topology = next.get_value().topology_fingerprint();
+        let next_geometry = next.get_value().geometry_fingerprint();
+
+        let (topology_changed, geometry_changed) = match previous {
+            Some(previous_envelope) => {
+                let previous_topology = previous_envelope.get_value().topology_fingerprint();
+                let previous_geometry = previous_envelope.get_value().geometry_fingerprint();
+                (
+                    previous_topology != next_topology,
+                    previous_geometry != next_geometry,
+                )
+            }
+            None => (true, true),
+        };
+
+        let mut next_version = prior_version;
+        if topology_changed {
+            next_version = next_version.bump(TOPOLOGY_ASPECT);
+        }
+        if geometry_changed {
+            next_version = next_version.bump(GEOMETRY_ASPECT);
+        }
+        next_version
+    }
+
+    fn wire_dependency_bindings(
+        graph: &mut SignalGraph,
+        node_id: NodeId,
+        feature: &R,
+    ) -> Result<(), KernelError> {
+        for binding in feature.dependency_bindings() {
+            let upstream = binding.node_id();
+            let aspects = binding.aspects();
+
+            if aspects.intersects(AspectMask::from_aspect(TOPOLOGY_ASPECT)) {
+                graph.add_dependency(node_id, upstream, TOPOLOGY_ASPECT)
+                    .map_err(Self::signal_to_kernel)?;
+            }
+            if aspects.intersects(AspectMask::from_aspect(GEOMETRY_ASPECT)) {
+                graph.add_dependency(node_id, upstream, GEOMETRY_ASPECT)
+                    .map_err(Self::signal_to_kernel)?;
+            }
+        }
+        Ok(())
+    }
+
+    fn materialize_input(
+        envelope: &OperationResult<SolidEnvelope>,
+        binding: super::contracts::feature_dependency::FeatureDependency,
+    ) -> SolidEnvelope {
+        if binding
+            .aspects()
+            .intersects(AspectMask::from_aspect(GEOMETRY_ASPECT))
+        {
+            return envelope.get_value().clone();
+        }
+
+        SolidEnvelope::new(
+            envelope.get_value().topology().clone(),
+            GeometryStore::default(),
+        )
+    }
+
     /// Create a new empty feature tree.
     pub fn new() -> Self {
         Self {
-            graph: SignalGraph::new(),
+            runtime: Self::new_runtime(SignalGraph::new()),
             features: HashMap::new(),
             envelopes: HashMap::new(),
             names: HashMap::new(),
@@ -104,17 +259,15 @@ impl<R: FeatureRegistry> FeatureTree<R> {
     /// 2. Registers dependencies.
     /// 3. Stores the feature logic.
     pub fn register_feature(&mut self, feature: R) -> Result<NodeId, KernelError> {
-        let node_id = self.graph.create_node();
-        let deps = feature.dependencies();
-
-        for dep_id in deps {
-            self.graph
-                .add_dependency(node_id, dep_id, TOPOLOGY_ASPECT)
-                .map_err(Self::signal_to_kernel)?;
-            self.graph
-                .add_dependency(node_id, dep_id, GEOMETRY_ASPECT)
-                .map_err(Self::signal_to_kernel)?;
+        let signal_policy = feature.signal_policy();
+        let node_id = self
+            .runtime
+            .graph_mut()
+            .create_node_with_config(signal_policy.node_config().clone());
+        if let Some(tier) = signal_policy.tier() {
+            self.runtime.set_node_tier(node_id, tier);
         }
+        Self::wire_dependency_bindings(self.runtime.graph_mut(), node_id, &feature)?;
         // Enforce feature name uniqueness — full path, not trailing segment.
         // Previous code used split('/').last() which silently overwrote
         // features sharing a trailing name segment.
@@ -132,11 +285,6 @@ impl<R: FeatureRegistry> FeatureTree<R> {
 
         self.features.insert(node_id, feature);
 
-        forge_signal::facade::mark_dirty(&mut self.graph, node_id, TOPOLOGY_ASPECT)
-            .map_err(Self::signal_to_kernel)?;
-        forge_signal::facade::mark_dirty(&mut self.graph, node_id, GEOMETRY_ASPECT)
-            .map_err(Self::signal_to_kernel)?;
-
         Ok(node_id)
     }
 
@@ -144,7 +292,7 @@ impl<R: FeatureRegistry> FeatureTree<R> {
     ///
     /// Preserves the NodeId but updates the logic and marks dependencies dirty.
     pub fn replace_feature(&mut self, node_id: NodeId, feature: R) -> Result<(), KernelError> {
-        if !self.graph.is_alive(node_id) {
+        if !self.runtime.graph().is_alive(node_id) {
             return Err(KernelError::InvalidInput {
                 message: format!("Node {} is not alive", node_id),
                 context: None,
@@ -154,10 +302,22 @@ impl<R: FeatureRegistry> FeatureTree<R> {
         let old_feature = self.features.insert(node_id, feature);
 
         if let Some(old) = old_feature {
-            for dep_id in old.dependencies().iter() {
-                self.graph
-                    .remove_dependency(node_id, *dep_id)
-                    .map_err(Self::signal_to_kernel)?;
+            for binding in old.dependency_bindings() {
+                let upstream = binding.node_id();
+                let aspects = binding.aspects();
+
+                if aspects.intersects(AspectMask::from_aspect(TOPOLOGY_ASPECT)) {
+                    self.runtime
+                        .graph_mut()
+                        .remove_dependency(node_id, upstream, TOPOLOGY_ASPECT)
+                        .map_err(Self::signal_to_kernel)?;
+                }
+                if aspects.intersects(AspectMask::from_aspect(GEOMETRY_ASPECT)) {
+                    self.runtime
+                        .graph_mut()
+                        .remove_dependency(node_id, upstream, GEOMETRY_ASPECT)
+                        .map_err(Self::signal_to_kernel)?;
+                }
             }
         }
 
@@ -168,21 +328,55 @@ impl<R: FeatureRegistry> FeatureTree<R> {
                     message: format!("Feature missing after insert for node {}", node_id),
                     context: None,
                 })?;
-        for dep_id in new_feature.dependencies() {
-            self.graph
-                .add_dependency(node_id, dep_id, TOPOLOGY_ASPECT)
-                .map_err(Self::signal_to_kernel)?;
-            self.graph
-                .add_dependency(node_id, dep_id, GEOMETRY_ASPECT)
-                .map_err(Self::signal_to_kernel)?;
+        Self::wire_dependency_bindings(self.runtime.graph_mut(), node_id, new_feature)?;
+
+        let mut txn = self.runtime.begin();
+        txn.mark_dirty(node_id, TOPOLOGY_ASPECT)
+            .map_err(Self::signal_to_kernel)?;
+        txn.mark_dirty(node_id, GEOMETRY_ASPECT)
+            .map_err(Self::signal_to_kernel)?;
+
+        let mut runtime_ctx = ();
+        match txn.commit(&mut runtime_ctx).map_err(Self::signal_to_kernel)? {
+            TransactionOutcome::Committed => {}
+            TransactionOutcome::RolledBack | TransactionOutcome::Poisoned => {
+                return Err(KernelError::InternalError {
+                    message: format!(
+                        "feature replacement invalidation failed for node {}",
+                        node_id
+                    ),
+                    context: None,
+                });
+            }
         }
 
-        forge_signal::facade::mark_dirty(&mut self.graph, node_id, TOPOLOGY_ASPECT)
-            .map_err(Self::signal_to_kernel)?;
-        forge_signal::facade::mark_dirty(&mut self.graph, node_id, GEOMETRY_ASPECT)
+        Ok(())
+    }
+
+    /// Mark one feature node dirty for a specific semantic aspect.
+    ///
+    /// This is the host-facing bridge into `forge-signal` invalidation. Feature
+    /// definitions and other kernel state remain host-owned; the signal runtime
+    /// owns downstream scheduling and rollback-sensitive propagation.
+    pub fn mark_feature_dirty(
+        &mut self,
+        node_id: NodeId,
+        aspect: FeatureAspect,
+    ) -> Result<(), KernelError> {
+        let mut txn = self.runtime.begin();
+        txn.mark_dirty(node_id, Self::signal_aspect(aspect))
             .map_err(Self::signal_to_kernel)?;
 
-        Ok(())
+        let mut runtime_ctx = ();
+        match txn.commit(&mut runtime_ctx).map_err(Self::signal_to_kernel)? {
+            TransactionOutcome::Committed => Ok(()),
+            TransactionOutcome::RolledBack | TransactionOutcome::Poisoned => {
+                Err(KernelError::InternalError {
+                    message: format!("feature invalidation failed for node {}", node_id),
+                    context: None,
+                })
+            }
+        }
     }
 
     /// Evaluate a specific feature (and its dependencies) to get the latest output.
@@ -210,14 +404,13 @@ impl<R: FeatureRegistry> FeatureTree<R> {
         node_id: NodeId,
         session_config: &KernelConfig,
     ) -> Result<OperationResult<SolidEnvelope>, KernelError> {
-        let graph = &mut self.graph;
         let features = &self.features;
-        let envelopes = &mut self.envelopes;
-
+        let committed_envelopes = &self.envelopes;
+        let mut pending_envelopes: HashMap<NodeId, OperationResult<SolidEnvelope>> = HashMap::new();
         let mut pending_traces: HashMap<NodeId, TraceSummary> = HashMap::new();
 
         let mut compute =
-            |id: NodeId, _graph_ref: &SignalGraph| -> Result<AspectVersion, SignalError> {
+            |id: NodeId, graph_ref: &SignalGraph| -> Result<AspectVersion, SignalError> {
                 let feature = features.get(&id).ok_or_else(|| KernelError::InvalidInput {
                     message: format!("Feature logic not found for node {}", id),
                     context: None,
@@ -229,9 +422,13 @@ impl<R: FeatureRegistry> FeatureTree<R> {
                 // owns the canonical data, features need their own copy. Topology
                 // is Arc (O(1) clone), geometry is the real cost (O(V+F)).
                 let mut input_map = HashMap::new();
-                for dep_id in feature.dependencies() {
-                    if let Some(envelope) = envelopes.get(&dep_id) {
-                        input_map.insert(dep_id, envelope.get_value().clone());
+                for binding in feature.dependency_bindings() {
+                    let dep_id = binding.node_id();
+                    if let Some(envelope) = pending_envelopes
+                        .get(&dep_id)
+                        .or_else(|| committed_envelopes.get(&dep_id))
+                    {
+                        input_map.insert(dep_id, Self::materialize_input(envelope, binding));
                     } else {
                         return Err(Self::kernel_to_signal(KernelError::InvalidInput {
                             message: format!("Dependency output missing for node {}", dep_id),
@@ -260,25 +457,51 @@ impl<R: FeatureRegistry> FeatureTree<R> {
                 };
                 pending_traces.insert(id, summary);
 
-                // Store the full envelope — metadata is preserved.
-                envelopes.insert(id, envelope);
+                let prior_version = graph_ref
+                    .get_entry(id)
+                    ?
+                    .get_aspect_version();
+                let next_version = Self::version_for_output(
+                    committed_envelopes.get(&id),
+                    &envelope,
+                    prior_version,
+                );
 
-                Ok(AspectVersion::from_updates([
-                    (TOPOLOGY_ASPECT, 1),
-                    (GEOMETRY_ASPECT, 1),
-                ]))
+                pending_envelopes.insert(id, envelope);
+
+                Ok(next_version)
             };
 
-        forge_signal::facade::evaluate(graph, node_id, &mut compute)
-            .map_err(Self::signal_to_kernel)?;
+        let mut txn = self.runtime.begin();
+        if let Err(err) = evaluate_in_txn(&mut txn, node_id, &mut compute, DefaultComparatorResolver)
+        {
+            let mut runtime_ctx = ();
+            let _ = txn.rollback(&mut runtime_ctx);
+            return Err(Self::signal_to_kernel(err));
+        }
+
+        let mut runtime_ctx = ();
+        match txn.commit(&mut runtime_ctx).map_err(Self::signal_to_kernel)? {
+            TransactionOutcome::Committed => {}
+            TransactionOutcome::RolledBack | TransactionOutcome::Poisoned => {
+                return Err(KernelError::InternalError {
+                    message: format!("feature evaluation rollback for node {}", node_id),
+                    context: None,
+                });
+            }
+        }
+
+        for (id, envelope) in pending_envelopes {
+            self.envelopes.insert(id, envelope);
+        }
 
         for (id, summary) in pending_traces {
-            if let Ok(entry) = graph.get_entry_mut(id) {
+            if let Ok(entry) = self.runtime.graph_mut().get_entry_mut(id) {
                 entry.set_trace_summary(Some(summary));
             }
         }
 
-        envelopes
+        self.envelopes
             .get(&node_id)
             .cloned()
             .ok_or_else(|| KernelError::InternalError {
@@ -294,7 +517,12 @@ impl<R: FeatureRegistry> FeatureTree<R> {
 
     /// Read-only access to the signal graph (for trace inspection).
     pub fn get_graph(&self) -> &SignalGraph {
-        &self.graph
+        self.runtime.graph()
+    }
+
+    /// Read the assigned signal tier for one feature node, if any.
+    pub fn signal_tier(&self, node_id: NodeId) -> Option<FeatureSignalTier> {
+        self.runtime.config().node_meta().tier_for_node(node_id)
     }
 
     /// Read-only access to a stored envelope (for external audit inspection).

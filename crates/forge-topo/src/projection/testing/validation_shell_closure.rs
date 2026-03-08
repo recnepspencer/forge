@@ -1,13 +1,15 @@
 use forge_spec::facade::{
     MakeEdgeFaceMutation, MakeVertexFaceMutation, RelationKind, SpecDraft, SpecNodeKind,
-    SpecState, SplitEdgeMutation,
+    SpecShellKind, SpecShellOrientation, SpecState, SplitEdgeMutation,
 };
 
 use crate::projection::facade::{
     ProjectedEdgeId, ProjectedHalfEdgeId, ProjectedShellData, ProjectedShellId,
     ProjectionBuilder, ProjectedTopologyQueries, validate_projected_broken_boundary,
     validate_projected_face_adjacency, validate_projected_manifold_edges,
-    validate_projected_shell_closure,
+    validate_projected_laminar_edges, validate_projected_shell_closure,
+    validate_projected_orientation_consistency,
+    validate_projected_shell_consistency,
 };
 
 #[test]
@@ -45,12 +47,64 @@ fn projected_face_adjacency_rejects_shell_mismatch() {
     projection.shells.push(ProjectedShellData {
         spec_id: projection.shells()[0].spec_id,
         region: projection.shells()[0].region,
+        kind: projection.shells()[0].kind,
         faces: vec![crate::projection::data::ProjectedFaceId::new(1)],
     });
     projection.faces[1].shell = new_shell;
 
     let error = validate_projected_face_adjacency(&projection).unwrap_err();
     assert!(format!("{error}").contains("projected_face_adjacency_consistency"));
+}
+
+#[test]
+fn projected_shell_consistency_rejects_boundary_edge_in_solid_shell() {
+    let mut projection = build_seed_projection();
+    projection.shells[0].kind = SpecShellKind::Solid(SpecShellOrientation::Outer);
+
+    let error = validate_projected_shell_consistency(&projection).unwrap_err();
+    assert!(format!("{error}").contains("projected_shell_consistency"));
+}
+
+#[test]
+fn projected_laminar_edges_reject_valence_three_edge_in_sheet_shell() {
+    let projection = build_high_valence_projection(3);
+
+    let error = validate_projected_laminar_edges(&projection).unwrap_err();
+    assert!(format!("{error}").contains("projected_laminar_edges"));
+}
+
+#[test]
+fn projected_orientation_consistency_rejects_parallel_solid_faces() {
+    let mut projection = build_mef_projection();
+    projection.shells[0].kind = SpecShellKind::Solid(SpecShellOrientation::Outer);
+
+    let shared_edge = (0..projection.edge_count())
+        .map(|index| ProjectedEdgeId::new(index as u32))
+        .find(|&edge| projection.radial_valence(edge) == 2)
+        .unwrap();
+    let radial = projection.radial_half_edges(projection.edge(shared_edge).half_edge);
+    assert_eq!(radial.len(), 2);
+
+    let first = radial[0];
+    let second = radial[1];
+    let first_origin = projection.half_edge(first).origin;
+    let first_destination = projection.half_edge(projection.half_edge(first).next).origin;
+    let second_next = projection.half_edge(second).next;
+
+    projection.half_edges[second.index()].origin = first_origin;
+    projection.half_edges[second_next.index()].origin = first_destination;
+
+    let error = validate_projected_orientation_consistency(&projection).unwrap_err();
+    assert!(format!("{error}").contains("projected_orientation_consistency"));
+}
+
+#[test]
+fn projected_shell_closure_rejects_boundary_edge_in_solid_shell() {
+    let mut projection = build_seed_projection();
+    projection.shells[0].kind = SpecShellKind::Solid(SpecShellOrientation::Outer);
+
+    let error = validate_projected_shell_closure(&projection).unwrap_err();
+    assert!(format!("{error}").contains("projected_shell_consistency"));
 }
 
 fn build_mef_projection() -> crate::projection::data::ProjectedTopology {
@@ -72,6 +126,12 @@ fn build_mef_projection() -> crate::projection::data::ProjectedTopology {
     ProjectionBuilder::build(&draft.commit().unwrap()).unwrap()
 }
 
+fn build_seed_projection() -> crate::projection::data::ProjectedTopology {
+    let mut draft = SpecState::empty().into_draft();
+    draft.execute(MakeVertexFaceMutation).unwrap();
+    ProjectionBuilder::build(&draft.commit().unwrap()).unwrap()
+}
+
 fn build_high_valence_projection(valence: usize) -> crate::projection::data::ProjectedTopology {
     let mut draft = SpecState::empty().into_draft();
     let _fixture = build_antiparallel_valence_fixture(&mut draft, valence);
@@ -82,7 +142,7 @@ fn build_antiparallel_valence_fixture(draft: &mut SpecDraft, valence: usize) {
     let body = draft.create_node(SpecNodeKind::Body, None, "body").unwrap();
     let lump = draft.create_node(SpecNodeKind::Lump, None, "lump").unwrap();
     let region = draft.create_node(SpecNodeKind::Region, None, "region").unwrap();
-    let shell = draft.create_node(SpecNodeKind::Shell, None, "shell").unwrap();
+    let shell = draft.create_shell(forge_spec::facade::SpecShellKind::Sheet, "shell").unwrap();
 
     draft
         .add_relation(RelationKind::BodyOwnsLump, body, lump, 0, "body-lump")
