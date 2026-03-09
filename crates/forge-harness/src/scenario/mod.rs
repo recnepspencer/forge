@@ -298,6 +298,10 @@ impl ExecutionProfile {
         Self::new(name).with_execution_mode(ExecutionMode::StagedParallel)
     }
 
+    pub fn full_parallel(name: impl Into<String>) -> Self {
+        Self::new(name).with_execution_mode(ExecutionMode::FullParallel)
+    }
+
     pub fn replay(name: impl Into<String>) -> Self {
         Self::serial(name)
             .with_clock_domain(ClockDomain::Replay)

@@ -241,10 +241,13 @@ fn signal_harness_platform_runs_serial_parallel_parity() {
         include_extensions: false,
         numeric_tolerance: None,
     })
-    .candidates([SignalProfileCatalog::staged_parallel("parallel-candidate")])
+    .candidates([
+        SignalProfileCatalog::staged_parallel("staged-parallel-candidate"),
+        SignalProfileCatalog::full_parallel("full-parallel-candidate"),
+    ])
     .compare()
     .unwrap();
 
     assert!(report.matched);
-    assert_eq!(report.results.len(), 1);
+    assert_eq!(report.results.len(), 2);
 }

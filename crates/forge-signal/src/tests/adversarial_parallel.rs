@@ -142,7 +142,10 @@ fn harness_parity_holds_for_branchy_partitioned_output_identity_graph() {
         include_extensions: false,
         numeric_tolerance: None,
     })
-    .candidates([SignalProfileCatalog::staged_parallel("parallel-candidate")])
+    .candidates([
+        SignalProfileCatalog::staged_parallel("staged-parallel-candidate"),
+        SignalProfileCatalog::full_parallel("full-parallel-candidate"),
+    ])
     .compare()
     .unwrap();
 
@@ -150,7 +153,7 @@ fn harness_parity_holds_for_branchy_partitioned_output_identity_graph() {
 }
 
 #[test]
-#[ignore = "stress coverage for wide-graph staged-parallel parity loops"]
+#[ignore = "stress coverage for wide-graph full-parallel parity loops"]
 fn stress_repeated_parallel_parity_on_wide_branch_graph() {
     let mut scenario = SignalScenario::new("stress-parity");
     let source = scenario.node("source");
@@ -201,7 +204,10 @@ fn stress_repeated_parallel_parity_on_wide_branch_graph() {
             include_extensions: false,
             numeric_tolerance: None,
         })
-        .candidates([SignalProfileCatalog::staged_parallel("parallel-candidate")])
+        .candidates([
+            SignalProfileCatalog::staged_parallel("staged-parallel-candidate"),
+            SignalProfileCatalog::full_parallel("full-parallel-candidate"),
+        ])
         .compare()
         .unwrap();
         assert!(report.matched);

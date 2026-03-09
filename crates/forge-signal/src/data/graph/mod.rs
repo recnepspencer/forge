@@ -1,8 +1,12 @@
+mod diagnostics_access;
 mod edge_store;
+mod execution_access;
+mod lifecycle;
 mod node_builder;
 mod scratch;
 mod signal_graph;
 mod slot;
+mod storage;
 
 pub(crate) use edge_store::{
     DependencyEdgeStore, DependencySetId, SubscriberEdgeStore, SubscriberSetId,

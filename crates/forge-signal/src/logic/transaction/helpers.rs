@@ -1,0 +1,73 @@
+use crate::data::checkpoint::CheckpointBarrier;
+use crate::data::error::SignalError;
+use crate::data::evaluator::CheckpointEvaluator;
+use crate::data::graph::SignalGraph;
+use crate::data::handle::NodeId;
+use crate::logic::planner::ExecutionReport;
+
+use super::runtime::SignalTransaction;
+
+pub fn flush_checkpoint_in_txn<'a, D, I, E, Ctx, T, Ev>(
+    txn: &mut SignalTransaction<'a, D, I, E, Ctx, T>,
+    barrier: CheckpointBarrier,
+    evaluator: &mut Ev,
+    ctx: &mut Ev::Context,
+) -> Result<usize, SignalError>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+    Ev: CheckpointEvaluator<Domain = D, Impact = I>,
+{
+    txn.flush_checkpoint(barrier, evaluator, ctx)
+}
+
+pub fn emit_event_in_txn<'a, D, I, E, Ctx, T>(
+    txn: &mut SignalTransaction<'a, D, I, E, Ctx, T>,
+    event: E,
+) where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    txn.emit_event(event);
+}
+
+pub(super) fn collect_dirty_targets(graph: &SignalGraph) -> Vec<NodeId> {
+    let mut targets = Vec::new();
+    for index in 0..graph.arena_capacity() {
+        let Some(node) = graph.live_node_id_at(index) else {
+            continue;
+        };
+        let Ok(entry) = graph.get_entry(node) else {
+            continue;
+        };
+        if !matches!(entry.get_state(), crate::data::node::NodeState::Clean) {
+            targets.push(node);
+        }
+    }
+    targets
+}
+
+pub(super) fn empty_execution_report() -> ExecutionReport {
+    ExecutionReport {
+        plan_summary: crate::logic::planner::PlanSummary::default(),
+        stage_count: 0,
+        task_count: 0,
+        tasks_executed: 0,
+        tasks_pruned: 0,
+        tasks_validated_clean: 0,
+        tasks_deferred_by_condition: 0,
+        tasks_reverted_clean_by_condition: 0,
+        tasks_satisfied_by_memoization: 0,
+        tasks_with_suppressed_propagation: 0,
+        execution_snapshots_built: 0,
+        prepared_evaluations_produced: 0,
+        prepared_evaluations_applied: 0,
+        dependency_capture_updates: 0,
+        execution_snapshot_nanos: 0,
+        stage_precompute_nanos: 0,
+        stage_apply_nanos: 0,
+        stages: Vec::new(),
+    }
+}

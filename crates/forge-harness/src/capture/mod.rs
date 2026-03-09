@@ -27,6 +27,7 @@ pub enum ExecutionMode {
     RuntimeDefault,
     Serial,
     StagedParallel,
+    FullParallel,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

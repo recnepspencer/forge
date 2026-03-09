@@ -1,0 +1,329 @@
+use crate::data::comparator::ComparatorPolicyResolver;
+use crate::data::error::SignalError;
+use crate::data::graph::SignalGraph;
+use crate::data::handle::NodeId;
+use crate::logic::evaluation::EvaluationExecutionMetadata;
+use crate::logic::prepared::{ExecutionSnapshot, PreparedEvaluation};
+
+use super::reporting::{
+    accumulate_report_counters, classify_task_record, record_successful_execution,
+};
+use super::test_helpers::{
+    apply_test_precompute_telemetry, empty_execution_report, prepare_test_precomputed_task,
+    prepare_test_task, TestPrecomputeTelemetry,
+};
+use super::types::{
+    EvaluationPlan, ExecutionRecordId, ExecutionReport, StageExecutionOutcome,
+    StageExecutionRecord, StageExecutor,
+};
+
+#[cfg(test)]
+pub fn execute_plan_with_policy_and_condition<F, O>(
+    graph: &mut SignalGraph,
+    plan: &EvaluationPlan,
+    compute: &mut F,
+    comparator_resolver: &mut impl ComparatorPolicyResolver,
+    condition_resolver: &mut impl crate::logic::evaluation::ConditionResolver,
+    executor: StageExecutor,
+    execution_metadata: Option<&EvaluationExecutionMetadata>,
+) -> Result<ExecutionReport, SignalError>
+where
+    F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+    O: crate::data::output::IntoNodeEvaluationResult,
+{
+    match executor {
+        StageExecutor::Serial => execute_plan_serial(
+            graph,
+            plan,
+            compute,
+            comparator_resolver,
+            condition_resolver,
+            execution_metadata,
+        ),
+        #[cfg(feature = "parallel")]
+        StageExecutor::StagedParallelPrecompute { .. } | StageExecutor::FullParallel { .. } => {
+            Err(SignalError::invalid_input(
+                "parallel stage execution is not yet supported by the current mutable graph engine",
+            ))
+        }
+    }
+}
+
+#[cfg(test)]
+pub(crate) fn execute_test_prepared_plan_with_resolvers<F>(
+    graph: &mut SignalGraph,
+    plan: &EvaluationPlan,
+    precompute: &F,
+    comparator_resolver: &mut impl ComparatorPolicyResolver,
+    condition_resolver: &mut impl crate::logic::evaluation::ConditionResolver,
+) -> Result<ExecutionReport, SignalError>
+where
+    F: Fn(
+            NodeId,
+            &crate::logic::prepared::ExecutionReadView<'_>,
+        ) -> Result<PreparedEvaluation, SignalError>
+        + Sync,
+{
+    graph.telemetry_mut().plans_built += 1;
+    graph.telemetry_mut().stages_built += plan.stages.len() as u64;
+    graph.telemetry_mut().tasks_scheduled += plan.summary.task_count as u64;
+    graph.telemetry_mut().max_tasks_in_stage = graph
+        .telemetry()
+        .max_tasks_in_stage
+        .max(plan.summary.max_stage_width as u64);
+    graph.telemetry_mut().serial_executor_usage_count += 1;
+    graph.telemetry_mut().maybe_stale_validation_tasks += plan
+        .stages
+        .iter()
+        .flat_map(|stage| &stage.tasks)
+        .filter(|task| matches!(task.reason, super::types::TaskReason::MaybeStaleValidation))
+        .count() as u64;
+
+    let mut next_record_id = 1_u64;
+    let mut report = empty_execution_report(plan);
+
+    for stage in &plan.stages {
+        let stage_start = std::time::Instant::now();
+        let snapshot_start = std::time::Instant::now();
+        graph.telemetry_mut().execution_snapshots_built += 1;
+        let mut prepared_tasks = Vec::with_capacity(stage.tasks.len());
+        let mut precompute_telemetry = TestPrecomputeTelemetry::default();
+        let precompute_start = std::time::Instant::now();
+        {
+            let snapshot = ExecutionSnapshot::new(&*graph);
+            for task in &stage.tasks {
+                let prepared = prepare_test_precomputed_task(
+                    &snapshot,
+                    task.node,
+                    precompute,
+                    comparator_resolver,
+                    condition_resolver,
+                    task.request_mode,
+                )?;
+                precompute_telemetry.accumulate(&prepared.telemetry);
+                prepared_tasks.push(prepared.prepared);
+            }
+        }
+        apply_test_precompute_telemetry(graph, &precompute_telemetry);
+        let snapshot_nanos = snapshot_start.elapsed().as_nanos();
+        let precompute_nanos = precompute_start.elapsed().as_nanos();
+        graph.telemetry_mut().execution_snapshot_nanos += snapshot_nanos;
+        graph.telemetry_mut().stage_precompute_nanos += precompute_nanos;
+        graph.telemetry_mut().prepared_evaluations_produced += prepared_tasks.len() as u64;
+        graph.telemetry_mut().serial_precompute_task_count += prepared_tasks.len() as u64;
+        report.execution_snapshots_built += 1;
+        report.execution_snapshot_nanos += snapshot_nanos;
+        report.prepared_evaluations_produced += prepared_tasks.len() as u32;
+        report.stage_precompute_nanos += precompute_nanos;
+
+        let apply_start = std::time::Instant::now();
+        let mut stage_record = StageExecutionRecord {
+            stage_index: stage.index,
+            outcome: StageExecutionOutcome::CompletedSerial,
+            #[cfg(feature = "parallel")]
+            parallel_kind: None,
+            #[cfg(feature = "parallel")]
+            apply_mode: None,
+            #[cfg(feature = "parallel")]
+            apply_group_count: 0,
+            #[cfg(feature = "parallel")]
+            serial_fallback_group_count: 0,
+            #[cfg(feature = "parallel")]
+            concurrent_apply_task_count: 0,
+            #[cfg(feature = "parallel")]
+            serial_apply_task_count: 0,
+            snapshot_duration_nanos: snapshot_nanos,
+            precompute_duration_nanos: precompute_nanos,
+            apply_duration_nanos: 0,
+            duration_nanos: 0,
+            task_records: Vec::new(),
+        };
+
+        for (task, prepared) in stage.tasks.iter().zip(prepared_tasks.into_iter()) {
+            let record_id = ExecutionRecordId(next_record_id);
+            next_record_id += 1;
+            let before_state = graph.get_state(task.node)?;
+            let before_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
+            let dependency_updates = crate::logic::evaluation::apply_prepared_evaluation_with_policy(
+                graph,
+                task.node,
+                prepared,
+                comparator_resolver,
+                None,
+            )?;
+            if let Some(summary) = graph.get_entry_mut(task.node)?.get_trace_summary().cloned().as_mut() {
+                let mut updated = summary.clone();
+                updated.execution_record_id = Some(record_id.0);
+                graph.get_entry_mut(task.node)?.set_trace_summary(Some(updated));
+            }
+            let after_state = graph.get_state(task.node)?;
+            let after_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
+            let task_record = classify_task_record(
+                record_id,
+                task,
+                before_state,
+                after_state,
+                before_trace.as_ref(),
+                after_trace.as_ref(),
+            );
+            accumulate_report_counters(&mut report, &task_record);
+            stage_record.task_records.push(task_record);
+            graph.telemetry_mut().prepared_evaluations_applied += 1;
+            graph.telemetry_mut().dependency_capture_updates += dependency_updates as u64;
+            report.prepared_evaluations_applied += 1;
+            report.dependency_capture_updates += dependency_updates;
+        }
+
+        stage_record.apply_duration_nanos = apply_start.elapsed().as_nanos();
+        stage_record.duration_nanos = stage_start.elapsed().as_nanos();
+        report.stage_apply_nanos += stage_record.apply_duration_nanos;
+        graph.telemetry_mut().stage_apply_nanos += stage_record.apply_duration_nanos;
+        graph.telemetry_mut().stage_execution_count += 1;
+        graph.telemetry_mut().stage_execution_nanos += stage_record.duration_nanos;
+        report.stages.push(stage_record);
+    }
+
+    record_successful_execution(graph, plan, &report);
+    Ok(report)
+}
+
+#[cfg(test)]
+fn execute_plan_serial<F, O>(
+    graph: &mut SignalGraph,
+    plan: &EvaluationPlan,
+    compute: &mut F,
+    comparator_resolver: &mut impl ComparatorPolicyResolver,
+    condition_resolver: &mut impl crate::logic::evaluation::ConditionResolver,
+    execution_metadata: Option<&EvaluationExecutionMetadata>,
+) -> Result<ExecutionReport, SignalError>
+where
+    F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+    O: crate::data::output::IntoNodeEvaluationResult,
+{
+    graph.telemetry_mut().plans_built += 1;
+    graph.telemetry_mut().stages_built += plan.stages.len() as u64;
+    graph.telemetry_mut().tasks_scheduled += plan.summary.task_count as u64;
+    graph.telemetry_mut().max_tasks_in_stage = graph
+        .telemetry()
+        .max_tasks_in_stage
+        .max(plan.summary.max_stage_width as u64);
+    graph.telemetry_mut().serial_executor_usage_count += 1;
+    graph.telemetry_mut().evaluation_calls += 1;
+    graph.telemetry_mut().evaluation_stack_peak = graph
+        .telemetry()
+        .evaluation_stack_peak
+        .max(plan.summary.task_count as u64);
+    graph.telemetry_mut().maybe_stale_validation_tasks += plan
+        .stages
+        .iter()
+        .flat_map(|stage| &stage.tasks)
+        .filter(|task| matches!(task.reason, super::types::TaskReason::MaybeStaleValidation))
+        .count() as u64;
+
+    let mut next_record_id = 1_u64;
+    let mut report = empty_execution_report(plan);
+
+    for stage in &plan.stages {
+        let stage_start = std::time::Instant::now();
+        let snapshot_start = std::time::Instant::now();
+        graph.telemetry_mut().execution_snapshots_built += 1;
+        let mut prepared_tasks = Vec::with_capacity(stage.tasks.len());
+        let mut precompute_telemetry = TestPrecomputeTelemetry::default();
+        let precompute_start = std::time::Instant::now();
+        {
+            let snapshot = ExecutionSnapshot::new(&*graph);
+            for task in &stage.tasks {
+                let prepared = prepare_test_task(
+                    snapshot.graph(),
+                    task.node,
+                    compute,
+                    comparator_resolver,
+                    condition_resolver,
+                    task.request_mode,
+                )?;
+                precompute_telemetry.accumulate(&prepared.telemetry);
+                prepared_tasks.push(prepared.prepared);
+            }
+        }
+        apply_test_precompute_telemetry(graph, &precompute_telemetry);
+        let snapshot_nanos = snapshot_start.elapsed().as_nanos();
+        let precompute_nanos = precompute_start.elapsed().as_nanos();
+        graph.telemetry_mut().execution_snapshot_nanos += snapshot_nanos;
+        graph.telemetry_mut().stage_precompute_nanos += precompute_nanos;
+        graph.telemetry_mut().prepared_evaluations_produced += prepared_tasks.len() as u64;
+        graph.telemetry_mut().serial_precompute_task_count += prepared_tasks.len() as u64;
+        report.execution_snapshots_built += 1;
+        report.execution_snapshot_nanos += snapshot_nanos;
+        report.prepared_evaluations_produced += prepared_tasks.len() as u32;
+        report.stage_precompute_nanos += precompute_nanos;
+
+        let apply_start = std::time::Instant::now();
+        let mut stage_record = StageExecutionRecord {
+            stage_index: stage.index,
+            outcome: StageExecutionOutcome::CompletedSerial,
+            #[cfg(feature = "parallel")]
+            parallel_kind: None,
+            #[cfg(feature = "parallel")]
+            apply_mode: None,
+            #[cfg(feature = "parallel")]
+            apply_group_count: 0,
+            #[cfg(feature = "parallel")]
+            serial_fallback_group_count: 0,
+            #[cfg(feature = "parallel")]
+            concurrent_apply_task_count: 0,
+            #[cfg(feature = "parallel")]
+            serial_apply_task_count: 0,
+            snapshot_duration_nanos: snapshot_nanos,
+            precompute_duration_nanos: precompute_nanos,
+            apply_duration_nanos: 0,
+            duration_nanos: 0,
+            task_records: Vec::new(),
+        };
+
+        for (task, prepared) in stage.tasks.iter().zip(prepared_tasks.into_iter()) {
+            let record_id = ExecutionRecordId(next_record_id);
+            next_record_id += 1;
+            let before_state = graph.get_state(task.node)?;
+            let before_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
+            let dependency_updates = crate::logic::evaluation::apply_prepared_evaluation_with_policy(
+                graph,
+                task.node,
+                prepared,
+                comparator_resolver,
+                execution_metadata.filter(|_| task.direct_request),
+            )?;
+            if let Some(summary) = graph.get_entry_mut(task.node)?.get_trace_summary().cloned().as_mut() {
+                let mut updated = summary.clone();
+                updated.execution_record_id = Some(record_id.0);
+                graph.get_entry_mut(task.node)?.set_trace_summary(Some(updated));
+            }
+            let after_state = graph.get_state(task.node)?;
+            let after_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
+            let task_record = classify_task_record(
+                record_id,
+                task,
+                before_state,
+                after_state,
+                before_trace.as_ref(),
+                after_trace.as_ref(),
+            );
+            accumulate_report_counters(&mut report, &task_record);
+            stage_record.task_records.push(task_record);
+            graph.telemetry_mut().prepared_evaluations_applied += 1;
+            graph.telemetry_mut().dependency_capture_updates += dependency_updates as u64;
+            report.prepared_evaluations_applied += 1;
+            report.dependency_capture_updates += dependency_updates;
+        }
+
+        stage_record.apply_duration_nanos = apply_start.elapsed().as_nanos();
+        stage_record.duration_nanos = stage_start.elapsed().as_nanos();
+        report.stage_apply_nanos += stage_record.apply_duration_nanos;
+        graph.telemetry_mut().stage_apply_nanos += stage_record.apply_duration_nanos;
+        graph.telemetry_mut().stage_execution_count += 1;
+        graph.telemetry_mut().stage_execution_nanos += stage_record.duration_nanos;
+        report.stages.push(stage_record);
+    }
+
+    record_successful_execution(graph, plan, &report);
+    Ok(report)
+}

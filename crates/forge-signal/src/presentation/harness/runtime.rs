@@ -1,0 +1,212 @@
+use std::collections::BTreeMap;
+use std::sync::Arc;
+
+use crate::facade::{
+    mark_dirty, mark_dirty_with_regions, ExecutionReadView, NodeId, PreparedEvaluation,
+    SignalError, SignalGraph,
+};
+
+pub trait SignalEvaluationDriver: Send + Sync {
+    fn evaluate<'a>(
+        &self,
+        node: NodeId,
+        view: &ExecutionReadView<'a>,
+    ) -> Result<PreparedEvaluation, SignalError>;
+}
+
+impl<F> SignalEvaluationDriver for F
+where
+    F: for<'a> Fn(NodeId, &ExecutionReadView<'a>) -> Result<PreparedEvaluation, SignalError>
+        + Send
+        + Sync,
+{
+    fn evaluate<'a>(
+        &self,
+        node: NodeId,
+        view: &ExecutionReadView<'a>,
+    ) -> Result<PreparedEvaluation, SignalError> {
+        self(node, view)
+    }
+}
+
+#[derive(Clone)]
+pub struct SignalFixtureFactory {
+    builder: Arc<dyn Fn() -> Result<SignalHarnessRuntime, SignalError> + Send + Sync>,
+}
+
+impl SignalFixtureFactory {
+    pub fn new<F>(builder: F) -> Self
+    where
+        F: Fn() -> Result<SignalHarnessRuntime, SignalError> + Send + Sync + 'static,
+    {
+        Self {
+            builder: Arc::new(builder),
+        }
+    }
+
+    pub fn build_runtime(&self) -> Result<SignalHarnessRuntime, SignalError> {
+        (self.builder)()
+    }
+}
+
+#[derive(Clone)]
+pub struct SignalMutationAction {
+    name: String,
+    apply: Arc<dyn Fn(&mut SignalHarnessRuntime) -> Result<(), SignalError> + Send + Sync>,
+}
+
+impl SignalMutationAction {
+    pub fn new<F>(name: impl Into<String>, apply: F) -> Self
+    where
+        F: Fn(&mut SignalHarnessRuntime) -> Result<(), SignalError> + Send + Sync + 'static,
+    {
+        Self {
+            name: name.into(),
+            apply: Arc::new(apply),
+        }
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub(crate) fn apply(&self, runtime: &mut SignalHarnessRuntime) -> Result<(), SignalError> {
+        (self.apply)(runtime)
+    }
+
+    pub fn mark_dirty(
+        name: impl Into<String>,
+        label: impl Into<String>,
+        aspect: crate::facade::Aspect,
+    ) -> Self {
+        let label = label.into();
+        Self::new(name, move |runtime| {
+            let node = runtime.resolve(&label)?;
+            mark_dirty(runtime.graph_mut(), node, aspect)
+        })
+    }
+
+    pub fn mark_dirty_with_regions(
+        name: impl Into<String>,
+        label: impl Into<String>,
+        aspect: crate::facade::Aspect,
+        changed_regions: Vec<crate::facade::ChangedRegion>,
+    ) -> Self {
+        let label = label.into();
+        Self::new(name, move |runtime| {
+            let node = runtime.resolve(&label)?;
+            mark_dirty_with_regions(runtime.graph_mut(), node, aspect, &changed_regions)
+        })
+    }
+}
+
+pub struct SignalHarnessRuntime {
+    pub(crate) graph: SignalGraph,
+    pub(crate) evaluator: Arc<dyn SignalEvaluationDriver>,
+    pub(crate) labels: BTreeMap<String, NodeId>,
+}
+
+impl SignalHarnessRuntime {
+    pub fn builder() -> SignalHarnessRuntimeBuilder {
+        SignalHarnessRuntimeBuilder::new()
+    }
+
+    pub fn graph(&self) -> &SignalGraph {
+        &self.graph
+    }
+
+    pub fn graph_mut(&mut self) -> &mut SignalGraph {
+        &mut self.graph
+    }
+
+    pub fn label(&mut self, name: impl Into<String>, node: NodeId) {
+        self.labels.insert(name.into(), node);
+    }
+
+    pub fn resolve(&self, label: &str) -> Result<NodeId, SignalError> {
+        self.labels.get(label).copied().ok_or_else(|| {
+            SignalError::invalid_input(format!("unknown harness target label `{label}`"))
+        })
+    }
+
+    pub fn labels(&self) -> &BTreeMap<String, NodeId> {
+        &self.labels
+    }
+}
+
+pub struct SignalHarnessRuntimeBuilder {
+    graph: SignalGraph,
+    evaluator: Option<Arc<dyn SignalEvaluationDriver>>,
+    labels: BTreeMap<String, NodeId>,
+}
+
+impl SignalHarnessRuntimeBuilder {
+    pub fn new() -> Self {
+        Self {
+            graph: SignalGraph::new(),
+            evaluator: None,
+            labels: BTreeMap::new(),
+        }
+    }
+
+    pub fn graph(&self) -> &SignalGraph {
+        &self.graph
+    }
+
+    pub fn graph_mut(&mut self) -> &mut SignalGraph {
+        &mut self.graph
+    }
+
+    pub fn label(mut self, name: impl Into<String>, node: NodeId) -> Self {
+        self.labels.insert(name.into(), node);
+        self
+    }
+
+    pub fn insert_label(&mut self, name: impl Into<String>, node: NodeId) {
+        self.labels.insert(name.into(), node);
+    }
+
+    pub fn with_evaluator<F>(mut self, evaluator: F) -> Self
+    where
+        F: SignalEvaluationDriver + 'static,
+    {
+        self.evaluator = Some(Arc::new(evaluator));
+        self
+    }
+
+    pub fn set_evaluator<F>(&mut self, evaluator: F)
+    where
+        F: SignalEvaluationDriver + 'static,
+    {
+        self.evaluator = Some(Arc::new(evaluator));
+    }
+
+    pub fn build(self) -> Result<SignalHarnessRuntime, SignalError> {
+        let evaluator = self.evaluator.ok_or_else(|| {
+            SignalError::invalid_input("signal harness runtime requires an evaluator")
+        })?;
+        Ok(SignalHarnessRuntime {
+            graph: self.graph,
+            evaluator,
+            labels: self.labels,
+        })
+    }
+}
+
+pub struct SignalHarnessSession {
+    pub(crate) runtime: Option<SignalHarnessRuntime>,
+}
+
+impl SignalHarnessSession {
+    pub(crate) fn runtime(&self) -> Result<&SignalHarnessRuntime, SignalError> {
+        self.runtime.as_ref().ok_or_else(|| {
+            SignalError::invalid_input("signal harness fixture must be loaded before use")
+        })
+    }
+
+    pub(crate) fn runtime_mut(&mut self) -> Result<&mut SignalHarnessRuntime, SignalError> {
+        self.runtime.as_mut().ok_or_else(|| {
+            SignalError::invalid_input("signal harness fixture must be loaded before use")
+        })
+    }
+}

@@ -388,3 +388,51 @@ fn parallel_executor_threshold_keeps_narrow_stage_serial() {
         StageExecutionOutcome::CompletedSerial
     ));
 }
+
+#[cfg(feature = "parallel")]
+#[test]
+fn full_parallel_executor_matches_serial_results() {
+    let mut serial_graph = SignalGraph::new();
+    let a = serial_graph.node().build();
+    let b = serial_graph.node().build();
+
+    let mut parallel_graph = serial_graph.clone();
+    let parallel_a = a;
+    let parallel_b = b;
+
+    let plan = serial_graph
+        .build_evaluation_plan(&[a, b], EvaluationRequestMode::Default)
+        .unwrap();
+    let parallel_plan = parallel_graph
+        .build_evaluation_plan(&[parallel_a, parallel_b], EvaluationRequestMode::Default)
+        .unwrap();
+
+    let precompute =
+        |_node: NodeId, view: &ExecutionReadView<'_>| Ok(view.finish(version_ab(11, 0)));
+
+    let serial_report = serial_graph
+        .execute_prepared_plan_with_executor(&plan, &precompute, StageExecutor::Serial)
+        .unwrap();
+    let parallel_report = parallel_graph
+        .execute_prepared_plan_with_executor(
+            &parallel_plan,
+            &precompute,
+            StageExecutor::full_parallel(1),
+        )
+        .unwrap();
+
+    assert_eq!(
+        serial_graph.get_state(a).unwrap(),
+        parallel_graph.get_state(parallel_a).unwrap()
+    );
+    assert_eq!(
+        serial_graph.get_state(b).unwrap(),
+        parallel_graph.get_state(parallel_b).unwrap()
+    );
+    assert_eq!(serial_report.task_count, parallel_report.task_count);
+    assert_eq!(serial_report.tasks_executed, parallel_report.tasks_executed);
+    assert!(parallel_report.stages.iter().all(|stage| matches!(
+        stage.parallel_kind,
+        Some(crate::logic::planner::ParallelExecutionKind::FullParallel)
+    )));
+}
