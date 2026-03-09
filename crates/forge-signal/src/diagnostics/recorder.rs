@@ -7,7 +7,7 @@ use crate::diagnostics::flow::{
 use crate::diagnostics::policy::DiagnosticsPolicy;
 use crate::diagnostics::state::DiagnosticsState;
 use crate::diagnostics::summary::{ExecutionHistorySummary, ExplanationSummary};
-use crate::logic::planner::{EvaluationPlan, ExecutionReport};
+use crate::logic::planner::{EvaluationPlan, ExecutionReport, TaskExecutionOutcome};
 
 pub struct DiagnosticsRecorder<'a> {
     graph: &'a mut SignalGraph,
@@ -82,7 +82,16 @@ impl<'a> DiagnosticsRecorder<'a> {
             None,
             explanation,
         );
-        let history = ExecutionHistorySummary::from_graph(self.graph, policy.profile);
+        let history = if execution_history_unchanged(report) {
+            self.graph
+                .diagnostics_state()
+                .recent_history()
+                .back()
+                .cloned()
+                .unwrap_or_else(|| ExecutionHistorySummary::from_graph(self.graph, policy.profile))
+        } else {
+            ExecutionHistorySummary::from_graph(self.graph, policy.profile)
+        };
         self.graph.diagnostics_state_mut().complete_flow(flow, history);
     }
 
@@ -107,4 +116,16 @@ impl<'a> DiagnosticsRecorder<'a> {
     pub fn restore_snapshot(&mut self, snapshot: DiagnosticsState) {
         *self.graph.diagnostics_state_mut() = snapshot;
     }
+}
+
+fn execution_history_unchanged(report: &ExecutionReport) -> bool {
+    report.stages.iter().flat_map(|stage| &stage.task_records).all(|task| {
+        matches!(
+            task.outcome,
+            TaskExecutionOutcome::ValidatedClean
+                | TaskExecutionOutcome::ConditionDeferred
+                | TaskExecutionOutcome::ConditionRevertedClean
+                | TaskExecutionOutcome::Pruned
+        )
+    })
 }

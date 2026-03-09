@@ -18,10 +18,9 @@ use crate::data::output::{IntoNodeEvaluationResult, MemoizedResultOrigin};
 use crate::data::trace::TraceSummary;
 use crate::logic::evaluation::{
     apply_prepared_evaluation_with_policy,
-    evaluate_direct_with_policy_and_condition_resolvers_and_metadata,
     EvaluationExecutionMetadata, EvaluationRequestMode,
 };
-use crate::logic::prepared::{ExecutionSnapshot, PreparedEvaluation};
+use crate::logic::prepared::{ExecutionSnapshot, PreparedDependencyCapture, PreparedEvaluation};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TaskReason {
@@ -585,6 +584,11 @@ where
         .max_tasks_in_stage
         .max(plan.summary.max_stage_width as u64);
     graph.telemetry_mut().serial_executor_usage_count += 1;
+    graph.telemetry_mut().evaluation_calls += 1;
+    graph.telemetry_mut().evaluation_stack_peak = graph
+        .telemetry()
+        .evaluation_stack_peak
+        .max(plan.summary.task_count as u64);
     graph.telemetry_mut().maybe_stale_validation_tasks += plan
         .stages
         .iter()
@@ -616,33 +620,61 @@ where
 
     for stage in &plan.stages {
         let stage_start = Instant::now();
+        let snapshot_start = Instant::now();
+        graph.telemetry_mut().execution_snapshots_built += 1;
+        let mut prepared_tasks = Vec::with_capacity(stage.tasks.len());
+        let mut precompute_telemetry = TestPrecomputeTelemetry::default();
+        let precompute_start = Instant::now();
+        {
+            let snapshot = ExecutionSnapshot::new(&*graph);
+            for task in &stage.tasks {
+                let prepared = prepare_test_task(
+                    snapshot.graph(),
+                    task.node,
+                    compute,
+                    comparator_resolver,
+                    condition_resolver,
+                    task.request_mode,
+                )?;
+                precompute_telemetry.accumulate(&prepared.telemetry);
+                prepared_tasks.push(prepared.prepared);
+            }
+        }
+        apply_test_precompute_telemetry(graph, &precompute_telemetry);
+        let snapshot_nanos = snapshot_start.elapsed().as_nanos();
+        let precompute_nanos = precompute_start.elapsed().as_nanos();
+        graph.telemetry_mut().execution_snapshot_nanos += snapshot_nanos;
+        graph.telemetry_mut().stage_precompute_nanos += precompute_nanos;
+        graph.telemetry_mut().prepared_evaluations_produced += prepared_tasks.len() as u64;
+        graph.telemetry_mut().serial_precompute_task_count += prepared_tasks.len() as u64;
+        report.execution_snapshots_built += 1;
+        report.execution_snapshot_nanos += snapshot_nanos;
+        report.prepared_evaluations_produced += prepared_tasks.len() as u32;
+        report.stage_precompute_nanos += precompute_nanos;
+
+        let apply_start = Instant::now();
         let mut stage_record = StageExecutionRecord {
             stage_index: stage.index,
             outcome: StageExecutionOutcome::CompletedSerial,
-            snapshot_duration_nanos: 0,
-            precompute_duration_nanos: 0,
+            snapshot_duration_nanos: snapshot_nanos,
+            precompute_duration_nanos: precompute_nanos,
             apply_duration_nanos: 0,
             duration_nanos: 0,
             task_records: Vec::new(),
         };
 
-        for task in &stage.tasks {
+        for (task, prepared) in stage.tasks.iter().zip(prepared_tasks.into_iter()) {
             let record_id = ExecutionRecordId(next_record_id);
             next_record_id += 1;
             let before_state = graph.get_state(task.node)?;
             let before_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
-            let result = evaluate_direct_with_policy_and_condition_resolvers_and_metadata(
+            let dependency_updates = apply_prepared_evaluation_with_policy(
                 graph,
                 task.node,
-                compute,
+                prepared,
                 comparator_resolver,
-                condition_resolver,
-                task.request_mode,
                 execution_metadata.filter(|_| task.direct_request),
-            );
-            result?;
-            let after_state = graph.get_state(task.node)?;
-            let after_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
+            )?;
             if let Some(summary) = graph
                 .get_entry_mut(task.node)?
                 .get_trace_summary()
@@ -655,7 +687,8 @@ where
                     .get_entry_mut(task.node)?
                     .set_trace_summary(Some(updated));
             }
-
+            let after_state = graph.get_state(task.node)?;
+            let after_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
             let task_record = classify_task_record(
                 record_id,
                 task,
@@ -666,15 +699,277 @@ where
             );
             accumulate_report_counters(&mut report, &task_record);
             stage_record.task_records.push(task_record);
+            graph.telemetry_mut().prepared_evaluations_applied += 1;
+            graph.telemetry_mut().dependency_capture_updates += dependency_updates as u64;
+            report.prepared_evaluations_applied += 1;
+            report.dependency_capture_updates += dependency_updates;
         }
 
+        stage_record.apply_duration_nanos = apply_start.elapsed().as_nanos();
         stage_record.duration_nanos = stage_start.elapsed().as_nanos();
+        report.stage_apply_nanos += stage_record.apply_duration_nanos;
+        graph.telemetry_mut().stage_apply_nanos += stage_record.apply_duration_nanos;
         graph.telemetry_mut().stage_execution_count += 1;
         graph.telemetry_mut().stage_execution_nanos += stage_record.duration_nanos;
         report.stages.push(stage_record);
     }
 
+    record_successful_execution(graph, plan, &report);
     Ok(report)
+}
+
+#[cfg(test)]
+struct TestPreparedTask {
+    prepared: PreparedEvaluation,
+    telemetry: TestPrecomputeTelemetry,
+}
+
+#[cfg(test)]
+#[derive(Default)]
+struct TestPrecomputeTelemetry {
+    nodes_evaluated: u64,
+    condition_skip_count: u64,
+    ondemand_deferred_count: u64,
+    debounce_deferred_count: u64,
+    partition_scope_revert_clean_count: u64,
+}
+
+#[cfg(test)]
+impl TestPrecomputeTelemetry {
+    fn accumulate(&mut self, other: &Self) {
+        self.nodes_evaluated += other.nodes_evaluated;
+        self.condition_skip_count += other.condition_skip_count;
+        self.ondemand_deferred_count += other.ondemand_deferred_count;
+        self.debounce_deferred_count += other.debounce_deferred_count;
+        self.partition_scope_revert_clean_count += other.partition_scope_revert_clean_count;
+    }
+}
+
+#[cfg(test)]
+fn prepare_test_task<F, O>(
+    graph: &SignalGraph,
+    node: NodeId,
+    compute: &mut F,
+    comparator_resolver: &mut impl ComparatorPolicyResolver,
+    condition_resolver: &mut impl crate::logic::evaluation::ConditionResolver,
+    request_mode: EvaluationRequestMode,
+) -> Result<TestPreparedTask, SignalError>
+where
+    F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+    O: IntoNodeEvaluationResult,
+{
+    let mut telemetry = TestPrecomputeTelemetry::default();
+    let state = *graph.get_entry(node)?.get_state();
+    let dependencies = capture_current_dependencies(graph, node)?;
+
+    if matches!(state, NodeState::MaybeStale) {
+        let preview = preview_upstream_state(graph, node, comparator_resolver)?;
+        telemetry.partition_scope_revert_clean_count = preview.partition_scope_revert_clean_count;
+        if preview.unchanged {
+            return Ok(TestPreparedTask {
+                prepared: PreparedEvaluation::validated_clean().with_dependencies(dependencies),
+                telemetry,
+            });
+        }
+    }
+
+    telemetry.nodes_evaluated += 1;
+    match preview_condition_action(graph, node, request_mode, condition_resolver)? {
+        TestConditionAction::Evaluate => {
+            let result = compute(node, graph)?.into_evaluation_result();
+            Ok(TestPreparedTask {
+                prepared: PreparedEvaluation::from_result(result).with_dependencies(dependencies),
+                telemetry,
+            })
+        }
+        TestConditionAction::RevertClean => {
+            telemetry.condition_skip_count += 1;
+            Ok(TestPreparedTask {
+                prepared: PreparedEvaluation::reverted_clean_by_condition()
+                    .with_dependencies(dependencies),
+                telemetry,
+            })
+        }
+        TestConditionAction::Defer { on_demand, debounce } => {
+            telemetry.condition_skip_count += 1;
+            telemetry.ondemand_deferred_count += u64::from(on_demand);
+            telemetry.debounce_deferred_count += u64::from(debounce);
+            Ok(TestPreparedTask {
+                prepared: PreparedEvaluation::deferred_by_condition().with_dependencies(dependencies),
+                telemetry,
+            })
+        }
+    }
+}
+
+#[cfg(test)]
+fn apply_test_precompute_telemetry(graph: &mut SignalGraph, telemetry: &TestPrecomputeTelemetry) {
+    graph.telemetry_mut().nodes_evaluated += telemetry.nodes_evaluated;
+    graph.telemetry_mut().condition_skip_count += telemetry.condition_skip_count;
+    graph.telemetry_mut().ondemand_deferred_count += telemetry.ondemand_deferred_count;
+    graph.telemetry_mut().debounce_deferred_count += telemetry.debounce_deferred_count;
+    graph.telemetry_mut().partition_scope_revert_clean_count +=
+        telemetry.partition_scope_revert_clean_count;
+}
+
+#[cfg(test)]
+enum TestConditionAction {
+    Evaluate,
+    RevertClean,
+    Defer { on_demand: bool, debounce: bool },
+}
+
+#[cfg(test)]
+fn preview_condition_action(
+    graph: &SignalGraph,
+    node: NodeId,
+    request_mode: EvaluationRequestMode,
+    resolver: &mut impl crate::logic::evaluation::ConditionResolver,
+) -> Result<TestConditionAction, SignalError> {
+    let entry = graph.get_entry(node)?;
+    let dirty_aspects = entry.get_dirty_aspects();
+    let max_dependency_delta = max_dependency_delta(graph, node)?;
+    let ctx = crate::logic::evaluation::ConditionEvaluationContext {
+        node,
+        request_mode,
+        dirty_aspects,
+        max_dependency_delta,
+    };
+
+    match &entry.get_eval_config().condition {
+        EvaluationCondition::Always => Ok(TestConditionAction::Evaluate),
+        EvaluationCondition::AspectFilter(mask) => {
+            if dirty_aspects.is_empty() || dirty_aspects.intersects(*mask) {
+                Ok(TestConditionAction::Evaluate)
+            } else {
+                Ok(TestConditionAction::Defer {
+                    on_demand: false,
+                    debounce: false,
+                })
+            }
+        }
+        EvaluationCondition::OnDemand => match request_mode {
+            EvaluationRequestMode::Default => Ok(TestConditionAction::Defer {
+                on_demand: true,
+                debounce: false,
+            }),
+            EvaluationRequestMode::ForceOnDemand => Ok(TestConditionAction::Evaluate),
+        },
+        EvaluationCondition::DeltaThreshold(threshold) => {
+            if dirty_aspects.is_empty() || (max_dependency_delta as f64) > *threshold {
+                Ok(TestConditionAction::Evaluate)
+            } else {
+                Ok(TestConditionAction::RevertClean)
+            }
+        }
+        EvaluationCondition::Debounce(quiet_period_ms) => {
+            if resolver.debounce_ready(*quiet_period_ms, &ctx)? {
+                Ok(TestConditionAction::Evaluate)
+            } else {
+                Ok(TestConditionAction::Defer {
+                    on_demand: false,
+                    debounce: true,
+                })
+            }
+        }
+        EvaluationCondition::Custom(key) => {
+            if resolver.resolve_custom(key, &ctx)? {
+                Ok(TestConditionAction::Evaluate)
+            } else {
+                Ok(TestConditionAction::Defer {
+                    on_demand: false,
+                    debounce: false,
+                })
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+fn max_dependency_delta(graph: &SignalGraph, node: NodeId) -> Result<u64, SignalError> {
+    let mut max_delta = 0;
+    for (source, aspect, cached_version, _) in graph.get_entry(node)?.get_dep_snapshot().entries() {
+        if !graph.is_alive(*source) {
+            continue;
+        }
+        let current_version = graph.get_entry(*source)?.get_aspect_version().get(*aspect);
+        max_delta = max_delta.max(current_version.abs_diff(*cached_version));
+    }
+    Ok(max_delta)
+}
+
+#[cfg(test)]
+fn capture_current_dependencies(
+    graph: &SignalGraph,
+    node: NodeId,
+) -> Result<PreparedDependencyCapture, SignalError> {
+    let mut capture = PreparedDependencyCapture::new();
+    for dependency in graph.get_entry(node)?.get_dependencies() {
+        capture.record(
+            dependency.source(),
+            dependency.aspect(),
+            dependency.scope_ref().cloned(),
+        );
+    }
+    Ok(capture.into_sorted_unique())
+}
+
+#[cfg(test)]
+struct UpstreamPreview {
+    unchanged: bool,
+    partition_scope_revert_clean_count: u64,
+}
+
+#[cfg(test)]
+fn preview_upstream_state(
+    graph: &SignalGraph,
+    node: NodeId,
+    resolver: &mut impl ComparatorPolicyResolver,
+) -> Result<UpstreamPreview, SignalError> {
+    let entry = graph.get_entry(node)?;
+    let snapshot = entry.get_dep_snapshot();
+    let comparator = resolver.policy_for_node(node, entry.get_eval_config().comparator.as_ref());
+    let mut partition_scope_revert_clean_count = 0;
+
+    for (source, aspect, cached_version, scope) in snapshot.entries() {
+        if !graph.is_alive(*source) {
+            return Ok(UpstreamPreview {
+                unchanged: false,
+                partition_scope_revert_clean_count,
+            });
+        }
+        if !matches!(graph.get_entry(*source)?.get_state(), NodeState::Clean) {
+            return Ok(UpstreamPreview {
+                unchanged: false,
+                partition_scope_revert_clean_count,
+            });
+        }
+        let current_version = graph.get_entry(*source)?.get_aspect_version().get(*aspect);
+        if let Some(scope) = scope {
+            if current_version == *cached_version {
+                continue;
+            }
+            if partition_scope_untouched(graph.get_entry(*source)?.get_trace_summary(), scope) {
+                partition_scope_revert_clean_count += 1;
+                continue;
+            }
+            return Ok(UpstreamPreview {
+                unchanged: false,
+                partition_scope_revert_clean_count,
+            });
+        }
+        if comparator.has_meaningful_change(*aspect, *cached_version, current_version, resolver)? {
+            return Ok(UpstreamPreview {
+                unchanged: false,
+                partition_scope_revert_clean_count,
+            });
+        }
+    }
+
+    Ok(UpstreamPreview {
+        unchanged: true,
+        partition_scope_revert_clean_count,
+    })
 }
 
 fn precompute_stage_serial<F>(
@@ -868,7 +1163,7 @@ fn visit_node(
 
     let state = *graph.get_entry(node)?.get_state();
     let preview_clean = matches!(state, NodeState::MaybeStale)
-        && preview_upstream_unchanged(graph, node, resolver)?;
+        && preview_upstream_state(graph, node, resolver)?.unchanged;
     let validation_only = matches!(state, NodeState::MaybeStale) && direct_request && preview_clean;
     let needs_execution = match state {
         NodeState::Clean => false,
@@ -977,40 +1272,6 @@ fn classify_reason(
         return Ok(TaskReason::MemoValidation);
     }
     Ok(TaskReason::DependencyRequired)
-}
-
-fn preview_upstream_unchanged(
-    graph: &SignalGraph,
-    node: NodeId,
-    resolver: &mut impl ComparatorPolicyResolver,
-) -> Result<bool, SignalError> {
-    let entry = graph.get_entry(node)?;
-    let snapshot = entry.get_dep_snapshot();
-    let comparator = resolver.policy_for_node(node, entry.get_eval_config().comparator.as_ref());
-
-    for (source, aspect, cached_version, scope) in snapshot.entries() {
-        if !graph.is_alive(*source) {
-            return Ok(false);
-        }
-        if !matches!(graph.get_entry(*source)?.get_state(), NodeState::Clean) {
-            return Ok(false);
-        }
-        let current_version = graph.get_entry(*source)?.get_aspect_version().get(*aspect);
-        if let Some(scope) = scope {
-            if current_version == *cached_version {
-                continue;
-            }
-            if partition_scope_untouched(graph.get_entry(*source)?.get_trace_summary(), scope) {
-                continue;
-            }
-            return Ok(false);
-        }
-        if comparator.has_meaningful_change(*aspect, *cached_version, current_version, resolver)? {
-            return Ok(false);
-        }
-    }
-
-    Ok(true)
 }
 
 fn partition_scope_untouched(
