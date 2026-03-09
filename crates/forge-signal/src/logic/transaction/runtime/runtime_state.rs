@@ -23,6 +23,8 @@ use super::builder::SignalRuntimeBuilder;
 use super::config::SignalRuntimeConfig;
 use super::transaction_types::SignalTransaction;
 
+/// Full runtime surface for transactional evaluation, diagnostics, replay, and
+/// keyed or tier-aware execution.
 pub struct SignalRuntime<D, I, E, Ctx, T = ()>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
@@ -37,6 +39,9 @@ where
 }
 
 impl SignalRuntime<(), (), (), (), ()> {
+    /// Create a runtime builder from a graph.
+    ///
+    /// This is the recommended entrypoint for most applications.
     pub fn builder(graph: SignalGraph) -> SignalRuntimeBuilder<(), (), (), (), ()> {
         SignalRuntimeBuilder::new(graph)
     }
@@ -106,6 +111,10 @@ where
         &self.telemetry
     }
 
+    /// Explain the current node state using the best available artifact path.
+    ///
+    /// Depending on runtime policy this may use retained artifacts or
+    /// deterministic reconstruction.
     pub fn explain(&self, node: NodeId) -> Result<NodeExplanation, SignalError> {
         let resolver = TierPolicyResolver::new(
             self.config.node_meta(),
@@ -115,10 +124,14 @@ where
         explain_with_policy_resolver(&self.graph, node, &resolver)
     }
 
+    /// Return the eagerly retained explanation artifact if one exists.
+    ///
+    /// Use this in hot paths when you do not want reconstruction work.
     pub fn retained_explanation_artifact(&self, node: NodeId) -> Option<NodeExplanation> {
         self.graph.retained_explanation_artifact(node)
     }
 
+    /// Reconstruct the explanation artifact deterministically on demand.
     pub fn reconstruct_explanation_artifact(
         &self,
         node: NodeId,
@@ -126,10 +139,12 @@ where
         self.graph.reconstruct_explanation_artifact(node)
     }
 
+    /// Return the eagerly retained provenance artifact if one exists.
     pub fn retained_provenance_artifact(&self, node: NodeId) -> Option<ProvenanceFact> {
         self.graph.retained_provenance_artifact(node)
     }
 
+    /// Reconstruct the provenance artifact deterministically on demand.
     pub fn reconstruct_provenance_artifact(
         &self,
         node: NodeId,
@@ -202,6 +217,10 @@ where
         self.graph.set_diagnostics_profile(profile);
     }
 
+    /// Replace the active runtime policy.
+    ///
+    /// This changes artifact retention/materialization behavior for subsequent
+    /// work. Replay and stable semantic IDs remain the authoritative truth.
     pub fn set_runtime_policy(&mut self, policy: SignalRuntimePolicy) {
         self.graph.set_runtime_policy(policy);
     }
@@ -251,6 +270,7 @@ where
         self.config.set_fallback_comparator(policy);
     }
 
+    /// Register a named computation family for keyed runtime usage.
     pub fn register_computation_family(
         &mut self,
         family: impl Into<ComputationFamily>,

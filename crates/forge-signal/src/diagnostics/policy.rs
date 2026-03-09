@@ -9,11 +9,35 @@ pub enum ArtifactRetentionPolicy {
     Omit,
 }
 
+impl ArtifactRetentionPolicy {
+    pub fn description(self) -> &'static str {
+        match self {
+            Self::Retain => "retain eagerly in runtime state",
+            Self::Reconstruct => "reconstruct deterministically on demand",
+            Self::Omit => "omit unless a richer policy is configured",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ArtifactMaterializationMode {
     Retained,
     Reconstructed,
     Unavailable,
+}
+
+impl ArtifactMaterializationMode {
+    pub fn message(self) -> &'static str {
+        match self {
+            Self::Retained => "artifact was retained eagerly by the active runtime policy",
+            Self::Reconstructed => {
+                "artifact was reconstructed deterministically because the active runtime policy does not retain it eagerly"
+            }
+            Self::Unavailable => {
+                "artifact is unavailable under the active runtime policy; choose a richer policy or use replay/native truth instead"
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -83,6 +107,15 @@ impl Default for SignalRuntimePolicy {
 }
 
 impl SignalRuntimePolicy {
+    pub fn web_development() -> Self {
+        Self::operational().with_parallel_admission(ParallelAdmissionPolicy {
+            operational_min_parallel_tasks: 4,
+            development_min_parallel_tasks: 8,
+            forensic_min_parallel_tasks: 12,
+            full_parallel_min_tasks: 16,
+        })
+    }
+
     pub fn kernel() -> Self {
         Self::forensic().with_parallel_admission(ParallelAdmissionPolicy {
             operational_min_parallel_tasks: 4,
@@ -213,6 +246,14 @@ impl SignalRuntimePolicy {
 
     pub fn can_reconstruct_provenance(self) -> bool {
         !matches!(self.provenance_retention, ArtifactRetentionPolicy::Omit)
+    }
+
+    pub fn explanation_behavior_summary(self) -> &'static str {
+        self.explanation_retention.description()
+    }
+
+    pub fn provenance_behavior_summary(self) -> &'static str {
+        self.provenance_retention.description()
     }
 }
 

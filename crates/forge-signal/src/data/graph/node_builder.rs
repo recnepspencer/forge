@@ -5,6 +5,10 @@ use crate::data::handle::NodeId;
 use crate::data::node::{EvaluationCondition, NodeEvaluationConfig};
 
 /// Fluent node builder for accessible public graph configuration.
+///
+/// This is the intended front door for most node setup. Prefer these helpers
+/// over constructing `NodeEvaluationConfig` manually unless you are exposing
+/// a higher-level host abstraction.
 pub struct NodeBuilder<'a> {
     graph: &'a mut SignalGraph,
     config: NodeEvaluationConfig,
@@ -19,12 +23,18 @@ impl<'a> NodeBuilder<'a> {
     }
 
     /// Declarative aspect intent for this node.
+    ///
+    /// This documents which kinds of upstream change matter to the node. It
+    /// does not replace explicit dependency wiring.
     pub fn depends_on_aspects(mut self, aspects: impl Into<AspectMask>) -> Self {
         self.config.depends_on_aspects = Some(aspects.into());
         self
     }
 
     /// Set the node evaluation condition directly.
+    ///
+    /// Prefer the helper methods like `on_demand()`, `debounce(...)`, and
+    /// `custom_condition(...)` when one of them matches your intent.
     pub fn condition(mut self, condition: EvaluationCondition) -> Self {
         self.config.condition = condition;
         self
@@ -56,6 +66,9 @@ impl<'a> NodeBuilder<'a> {
     }
 
     /// Defer the condition decision to a host-provided resolver.
+    ///
+    /// The key is a stable name chosen by the embedding runtime. `forge-signal`
+    /// stores it; the host decides what it means.
     pub fn custom_condition(self, key: impl Into<String>) -> Self {
         self.condition(EvaluationCondition::Custom(key.into()))
     }
@@ -67,11 +80,18 @@ impl<'a> NodeBuilder<'a> {
     }
 
     /// Convenience override for tolerance-based comparison.
+    ///
+    /// Use this when small upstream version drift should not count as a
+    /// meaningful change for this node. This is different from
+    /// `delta_threshold(...)`, which is an evaluation condition.
     pub fn tolerance(self, epsilon: u64) -> Self {
         self.comparator(VersionComparatorPolicy::Tolerance { epsilon })
     }
 
     /// Use output-identity-aware downstream suppression for this node.
+    ///
+    /// This is useful when the node can detect that the logical output did not
+    /// change even though evaluation happened.
     pub fn output_identity(self) -> Self {
         self.comparator(VersionComparatorPolicy::OutputIdentity)
     }

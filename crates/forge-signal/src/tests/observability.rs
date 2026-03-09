@@ -194,16 +194,20 @@ fn market_runtime_policy_presets_expose_distinct_operational_shapes() {
     let kernel = SignalRuntimePolicy::kernel();
     let fintech = SignalRuntimePolicy::fintech();
     let game = SignalRuntimePolicy::game_engine();
+    let web = SignalRuntimePolicy::web_development();
+    let fintech_plan = SignalDeploymentPreset::Fintech.recommended();
 
     assert_eq!(kernel.profile, DiagnosticsProfile::Forensic);
     assert_eq!(fintech.profile, DiagnosticsProfile::Development);
     assert_eq!(game.profile, DiagnosticsProfile::Operational);
+    assert_eq!(web.profile, DiagnosticsProfile::Operational);
     assert!(
         kernel.parallel_admission.full_parallel_min_tasks
             >= fintech.parallel_admission.full_parallel_min_tasks
     );
     assert!(fintech.retain_flow_explanation);
     assert!(!game.retains_explanation_facts());
+    assert_eq!(fintech_plan.runtime_policy, fintech);
 }
 
 #[test]

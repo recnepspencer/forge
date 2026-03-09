@@ -8,6 +8,10 @@ use crate::diagnostics::policy::SignalRuntimePolicy;
 
 use super::runtime_state::SignalRuntime;
 
+/// Builder for `SignalRuntime`.
+///
+/// Start here if you want the full runtime surface with transactions,
+/// checkpoint control, runtime policy, keyed nodes, and diagnostics.
 pub struct SignalRuntimeBuilder<D = (), I = (), E = (), Ctx = (), T = ()>
 where
     D: Copy + Ord + std::fmt::Debug + 'static,
@@ -37,26 +41,39 @@ where
         }
     }
 
+    /// Set a simple checkpoint barrier policy.
+    ///
+    /// This is the shortest path when you want standard checkpoint behavior
+    /// without constructing a full `CheckpointPolicy`.
     pub fn checkpoint_barrier(mut self, barrier: CheckpointBarrier) -> Self {
         self.checkpoint_policy = CheckpointPolicy::new(barrier);
         self
     }
 
+    /// Set the full checkpoint policy.
     pub fn checkpoint_policy(mut self, policy: CheckpointPolicy<D>) -> Self {
         self.checkpoint_policy = policy;
         self
     }
 
+    /// Set the fallback comparator used when a node or tier does not provide one.
     pub fn fallback_comparator(mut self, comparator: VersionComparatorPolicy) -> Self {
         self.fallback_comparator = comparator;
         self
     }
 
+    /// Set runtime observability and semantic retention policy.
+    ///
+    /// Use one of the named presets like `SignalRuntimePolicy::operational()`
+    /// or `SignalRuntimePolicy::fintech()` unless you need a custom mix.
     pub fn runtime_policy(mut self, runtime_policy: SignalRuntimePolicy) -> Self {
         self.runtime_policy = runtime_policy;
         self
     }
 
+    /// Switch the runtime to a typed event payload.
+    ///
+    /// This is usually only needed once you start integrating an event bus.
     pub fn with_events<E2>(self) -> SignalRuntimeBuilder<D, I, E2, Ctx, T> {
         SignalRuntimeBuilder {
             graph: self.graph,
@@ -67,6 +84,7 @@ where
         }
     }
 
+    /// Switch the runtime to a typed checkpoint domain key.
     pub fn with_domains<D2>(self) -> SignalRuntimeBuilder<D2, I, E, Ctx, T>
     where
         D2: Copy + Ord + std::fmt::Debug + 'static,
@@ -80,6 +98,7 @@ where
         }
     }
 
+    /// Switch the runtime to a typed checkpoint impact key.
     pub fn with_impacts<I2>(self) -> SignalRuntimeBuilder<D, I2, E, Ctx, T>
     where
         I2: Copy + Ord,
@@ -93,6 +112,7 @@ where
         }
     }
 
+    /// Enable typed node tiers for tier policy configuration.
     pub fn with_tiers<T2>(self) -> SignalRuntimeBuilder<D, I, E, Ctx, T2>
     where
         T2: Copy + Ord,
@@ -106,6 +126,7 @@ where
         }
     }
 
+    /// Switch the runtime to a typed external transaction/event context.
     pub fn with_context<Ctx2>(self) -> SignalRuntimeBuilder<D, I, E, Ctx2, T> {
         SignalRuntimeBuilder {
             graph: self.graph,
@@ -116,6 +137,7 @@ where
         }
     }
 
+    /// Build the runtime.
     pub fn build(self) -> SignalRuntime<D, I, E, Ctx, T> {
         let mut runtime = SignalRuntime::with_policy(self.graph, self.checkpoint_policy);
         runtime.set_fallback_comparator(self.fallback_comparator);

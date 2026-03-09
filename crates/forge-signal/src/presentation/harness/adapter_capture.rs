@@ -80,6 +80,7 @@ impl ExplanationHarnessAdapter for SignalHarnessAdapter {
                             "changed_region_count": fact.changed_region_count,
                             "output_change": fact.output_change,
                             "artifact_materialization": SignalHarnessAdapter::artifact_materialization_label(materialization_mode),
+                            "artifact_materialization_message": materialization_mode.message(),
                         })
                     } else {
                         let mut summary = Self::explanation_summary(&explanation);
@@ -90,12 +91,17 @@ impl ExplanationHarnessAdapter for SignalHarnessAdapter {
                                     materialization_mode
                                 )),
                             );
+                            map.insert(
+                                "artifact_materialization_message".to_string(),
+                                json!(materialization_mode.message()),
+                            );
                         }
                         summary
                     }
                 } else {
                     json!({
                         "artifact_materialization": SignalHarnessAdapter::artifact_materialization_label(materialization_mode),
+                        "artifact_materialization_message": materialization_mode.message(),
                         "available": false,
                     })
                 };
@@ -120,6 +126,10 @@ impl ExplanationHarnessAdapter for SignalHarnessAdapter {
                             json!(SignalHarnessAdapter::artifact_materialization_label(
                                 materialization_mode
                             )),
+                        ),
+                        (
+                            "artifact_materialization_message".to_string(),
+                            json!(materialization_mode.message()),
                         ),
                         (
                             "core_storage_profile".to_string(),
@@ -160,10 +170,12 @@ impl ProvenanceHarnessAdapter for SignalHarnessAdapter {
                         "edges": fact.edges,
                         "causality_kind": fact.causality_kind,
                         "artifact_materialization": SignalHarnessAdapter::artifact_materialization_label(materialization_mode),
+                        "artifact_materialization_message": materialization_mode.message(),
                     })
                 } else {
                     json!({
                         "artifact_materialization": SignalHarnessAdapter::artifact_materialization_label(materialization_mode),
+                        "artifact_materialization_message": materialization_mode.message(),
                         "available": false,
                     })
                 };
@@ -188,6 +200,10 @@ impl ProvenanceHarnessAdapter for SignalHarnessAdapter {
                             json!(SignalHarnessAdapter::artifact_materialization_label(
                                 materialization_mode
                             )),
+                        ),
+                        (
+                            "artifact_materialization_message".to_string(),
+                            json!(materialization_mode.message()),
                         ),
                         (
                             "core_storage_profile".to_string(),

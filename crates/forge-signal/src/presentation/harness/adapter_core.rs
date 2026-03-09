@@ -354,6 +354,20 @@ impl HarnessAdapter for SignalHarnessAdapter {
                     serde_json::to_value(&report).unwrap_or_else(|_| json!({})),
                 ),
                 (
+                    "stage_parallel_admission".to_string(),
+                    json!(report
+                        .stages
+                        .iter()
+                        .map(|stage| {
+                            json!({
+                                "stage_index": stage.stage_index,
+                                "reason": stage.parallel_admission_reason,
+                                "message": stage.parallel_admission_message(),
+                            })
+                        })
+                        .collect::<Vec<_>>()),
+                ),
+                (
                     "runtime_policy".to_string(),
                     Self::runtime_policy_summary(runtime_policy),
                 ),

@@ -150,6 +150,36 @@ pub struct StageExecutionRecord {
     pub task_records: Vec<TaskExecutionRecord>,
 }
 
+impl StageExecutionRecord {
+    pub fn parallel_admission_message(&self) -> &'static str {
+        match self.parallel_admission_reason.as_deref() {
+            Some("serial-executor") => "parallelism was not requested for this stage",
+            Some("below-min-stage-width") => {
+                "stage stayed serial because it did not meet the executor's minimum stage width"
+            }
+            Some("below-policy-work-threshold") => {
+                "stage stayed serial because the active runtime policy estimated the work was too small to amortize parallel overhead"
+            }
+            Some("validation-heavy-stage") => {
+                "stage stayed serial because it was validation-heavy and unlikely to benefit from parallel overhead"
+            }
+            Some("below-full-parallel-threshold") => {
+                "stage stayed out of full parallel mode because the active policy requires a larger stage for grouped concurrent apply"
+            }
+            Some("admitted-operational") => {
+                "stage ran in parallel under the low-overhead operational policy"
+            }
+            Some("admitted-development") => {
+                "stage ran in parallel under the development policy"
+            }
+            Some("admitted-forensic") => {
+                "stage ran in parallel under the forensic policy"
+            }
+            _ => "parallel admission reason was not recorded",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExecutionReport {
     pub plan_summary: PlanSummary,
@@ -185,6 +215,57 @@ pub enum StageExecutor {
 }
 
 impl StageExecutor {
+    /// Conservative full-parallel preset for request-driven or observability-heavy workloads.
+    ///
+    /// Prefer this when you want a sane default without tuning low-level
+    /// worker/chunk/apply-group parameters yourself.
+    #[cfg(feature = "parallel")]
+    pub fn conservative_parallel() -> Self {
+        Self::full_parallel(16).with_parallel_policy(
+            ParallelExecutionPolicy::new(
+                NonZeroUsize::new(16).expect("constant min stage width is non-zero"),
+            )
+            .with_worker_count(2)
+            .with_chunk_size(2)
+            .with_apply_group_min_width(2)
+            .with_max_concurrent_apply_groups(2),
+        )
+    }
+
+    /// Balanced full-parallel preset for general production workloads.
+    ///
+    /// This is the default "I want parallelism, but not a science project"
+    /// choice for most nontrivial deployments.
+    #[cfg(feature = "parallel")]
+    pub fn balanced_parallel() -> Self {
+        Self::full_parallel(12).with_parallel_policy(
+            ParallelExecutionPolicy::new(
+                NonZeroUsize::new(12).expect("constant min stage width is non-zero"),
+            )
+            .with_worker_count(available_parallelism().map_or(4, |count| count.get().min(4)))
+            .with_chunk_size(2)
+            .with_apply_group_min_width(1)
+            .with_max_concurrent_apply_groups(2),
+        )
+    }
+
+    /// Aggressive full-parallel preset for heavier compute kernels and hostile certification.
+    ///
+    /// Prefer this for benchmark pressure, heavy compute, or when you want to
+    /// intentionally push more work into concurrent apply.
+    #[cfg(feature = "parallel")]
+    pub fn aggressive_parallel() -> Self {
+        Self::full_parallel(8).with_parallel_policy(
+            ParallelExecutionPolicy::new(
+                NonZeroUsize::new(8).expect("constant min stage width is non-zero"),
+            )
+            .with_worker_count(available_parallelism().map_or(4, |count| count.get().min(8)))
+            .with_chunk_size(1)
+            .with_apply_group_min_width(1)
+            .with_max_concurrent_apply_groups(4),
+        )
+    }
+
     #[cfg(feature = "parallel")]
     pub fn parallel(min_stage_width: usize) -> Self {
         Self::staged_parallel_precompute(min_stage_width)

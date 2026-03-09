@@ -185,21 +185,26 @@ impl RelationalReadView {
         &self.relations
     }
 
-    pub fn execute_packet(
-        &self,
-        packet: &crate::data::query::QueryWorkPacket,
-    ) -> PacketResult {
+    pub fn execute_packet(&self, packet: &crate::data::query::QueryWorkPacket) -> PacketResult {
         let mut entities = Vec::new();
         let mut relations = Vec::new();
         for target in &packet.targets {
             match target {
                 crate::data::query::ReadTarget::Entity(entity_id) => {
-                    if let Some(record) = self.entities.iter().find(|record| &record.entity_id == entity_id) {
+                    if let Some(record) = self
+                        .entities
+                        .iter()
+                        .find(|record| &record.entity_id == entity_id)
+                    {
                         entities.push(record.clone());
                     }
                 }
                 crate::data::query::ReadTarget::Relation(relation_id) => {
-                    if let Some(record) = self.relations.iter().find(|record| &record.relation_id == relation_id) {
+                    if let Some(record) = self
+                        .relations
+                        .iter()
+                        .find(|record| &record.relation_id == relation_id)
+                    {
                         relations.push(record.clone());
                     }
                 }
@@ -213,11 +218,15 @@ impl RelationalReadView {
     }
 
     pub fn get_entity(&self, entity_id: EntityId) -> Option<&EntityReadRecord> {
-        self.entities.iter().find(|record| record.entity_id == entity_id)
+        self.entities
+            .iter()
+            .find(|record| record.entity_id == entity_id)
     }
 
     pub fn get_relation(&self, relation_id: RelationId) -> Option<&RelationReadRecord> {
-        self.relations.iter().find(|record| record.relation_id == relation_id)
+        self.relations
+            .iter()
+            .find(|record| record.relation_id == relation_id)
     }
 }
 

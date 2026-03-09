@@ -1,5 +1,6 @@
 pub mod api;
 pub mod contracts;
+pub mod deployment;
 pub mod dot;
 pub mod harness;
 pub mod metrics;

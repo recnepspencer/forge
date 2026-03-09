@@ -93,6 +93,7 @@ pub use crate::logic::transaction::{
 pub use crate::presentation::contracts::{
     DependencyGraphContract, RawPathComputeContract, StructuralStateBoundaryContract,
 };
+pub use crate::presentation::deployment::{SignalDeploymentPlan, SignalDeploymentPreset};
 pub use crate::presentation::harness::{
     signal_bench, signal_parity_suite, SignalEvaluationDriver, SignalFixtureFactory,
     SignalHarnessAdapter, SignalHarnessAssert, SignalHarnessRuntime, SignalHarnessRuntimeBuilder,

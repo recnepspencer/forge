@@ -16,6 +16,15 @@ impl Aspect {
     /// Create an aspect key for the given slot index.
     ///
     /// Valid indices are `0..MAX_ASPECTS`.
+    ///
+    /// Prefer defining aspects as named constants near the graph domain model:
+    ///
+    /// ```rust
+    /// use forge_signal::facade::Aspect;
+    ///
+    /// const PRICE: Aspect = Aspect::new(0);
+    /// const TAX: Aspect = Aspect::new(1);
+    /// ```
     pub const fn new(index: u8) -> Self {
         assert!(index < MAX_ASPECTS as u8, "aspect index out of range");
         Self(index)

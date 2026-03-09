@@ -151,6 +151,7 @@ Diagnostics are a first-class production surface, not just test helpers. The run
 
 Runtime policy presets are also available for common deployment shapes:
 
+- `SignalDeploymentPreset::WebDevelopment`
 - `SignalRuntimePolicy::game_engine()`
 - `SignalRuntimePolicy::fintech()`
 - `SignalRuntimePolicy::kernel()`
@@ -161,6 +162,29 @@ Artifact access is explicit:
 - `graph.reconstruct_explanation_artifact(...)`
 - `graph.retained_provenance_artifact(...)`
 - `graph.reconstruct_provenance_artifact(...)`
+
+Quick starts:
+
+- [Web Development](./QUICKSTART_WEB_DEVELOPMENT.md)
+- [Game Engines](./QUICKSTART_GAME_ENGINES.md)
+- [Fintech](./QUICKSTART_FINTECH.md)
+- [Docs Index](./DOCS.md)
+- [API Surface](./docs/API_SURFACE.md)
+- [Conditions And Comparators](./docs/CONDITIONS_AND_COMPARATORS.md)
+- [Artifact Access Matrix](./docs/ARTIFACT_ACCESS_MATRIX.md)
+- [Transactions And Keyed Runtime](./docs/TRANSACTIONS_AND_KEYED_RUNTIME.md)
+- [Checkpoints And Tiers](./docs/CHECKPOINTS_AND_TIERS.md)
+- [Lifecycle And GC](./docs/LIFECYCLE_AND_GC.md)
+- [Advanced Patterns](./docs/ADVANCED_PATTERNS.md)
+- [Harness And Certification](./docs/HARNESS_AND_CERTIFICATION.md)
+- [LOW_LEVEL_NERDS.md](./LOW_LEVEL_NERDS.md)
+
+Choose this if:
+
+- `WebDevelopment`: request-driven or UI-driven workloads where cheap operational mode matters most
+- `GameEngine`: repeated frame/editor updates where parallel recompute should be available but observability must stay lightweight
+- `Fintech`: audit/replay-heavy systems where richer retained diagnostics are worth the overhead
+- `Kernel`: the heaviest investigative/compute setting when maximal retained semantic detail matters
 
 Parallel certification, determinism gates, failure acceptance criteria, and the runtime/persistence ownership boundary are documented in [PARALLEL_CERTIFICATION.md](./PARALLEL_CERTIFICATION.md) and [BOUNDARY_CONTRACT.md](./BOUNDARY_CONTRACT.md).
 

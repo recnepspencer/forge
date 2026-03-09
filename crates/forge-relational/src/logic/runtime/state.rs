@@ -90,8 +90,5 @@ pub(super) struct WorkingState {
 pub(super) struct PublicationArtifacts {
     pub(super) snapshot: crate::data::snapshot::SnapshotHandle,
     pub(super) diagnostics_summary: crate::data::diagnostics::RelationalDiagnosticArtifact,
-    pub(super) patch: crate::data::diff::RelationalPatchRecord,
-    pub(super) replay: RelationalReplayRecord,
-    pub(super) bundle:
-        crate::data::publication::PublicationBundle<RelationalReplayRecord>,
+    pub(super) bundle: crate::data::publication::PublicationBundle<RelationalReplayRecord>,
 }
