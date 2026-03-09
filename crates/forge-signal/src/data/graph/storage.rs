@@ -231,7 +231,8 @@ impl SignalGraph {
         let mut updated = current;
         updated.push(edge);
         let dependencies_id = self.dependency_edges.insert_from_slice(&updated);
-        self.get_entry_mut(node)?.set_dependencies_id(dependencies_id);
+        self.get_entry_mut(node)?
+            .set_dependencies_id(dependencies_id);
         Ok(true)
     }
 
@@ -242,12 +243,16 @@ impl SignalGraph {
     ) -> Result<bool, SignalError> {
         let current = self.dependencies_of(node)?.to_vec();
         let original_len = current.len();
-        let updated: Vec<_> = current.into_iter().filter(|candidate| *candidate != edge).collect();
+        let updated: Vec<_> = current
+            .into_iter()
+            .filter(|candidate| *candidate != edge)
+            .collect();
         if updated.len() == original_len {
             return Ok(false);
         }
         let dependencies_id = self.dependency_edges.insert_from_slice(&updated);
-        self.get_entry_mut(node)?.set_dependencies_id(dependencies_id);
+        self.get_entry_mut(node)?
+            .set_dependencies_id(dependencies_id);
         Ok(true)
     }
 
@@ -258,17 +263,24 @@ impl SignalGraph {
     ) -> Result<bool, SignalError> {
         let current = self.dependencies_of(node)?.to_vec();
         let original_len = current.len();
-        let updated: Vec<_> = current.into_iter().filter(|edge| edge.source() != source).collect();
+        let updated: Vec<_> = current
+            .into_iter()
+            .filter(|edge| edge.source() != source)
+            .collect();
         if updated.len() == original_len {
             return Ok(false);
         }
         let dependencies_id = self.dependency_edges.insert_from_slice(&updated);
-        self.get_entry_mut(node)?.set_dependencies_id(dependencies_id);
+        self.get_entry_mut(node)?
+            .set_dependencies_id(dependencies_id);
         Ok(true)
     }
 
     fn has_dependency_on(&self, node: NodeId, source: NodeId) -> Result<bool, SignalError> {
-        Ok(self.dependencies_of(node)?.iter().any(|edge| edge.source() == source))
+        Ok(self
+            .dependencies_of(node)?
+            .iter()
+            .any(|edge| edge.source() == source))
     }
 
     fn add_subscriber_edge(
@@ -294,7 +306,10 @@ impl SignalGraph {
     ) -> Result<bool, SignalError> {
         let current = self.subscribers_of(node)?.to_vec();
         let original_len = current.len();
-        let updated: Vec<_> = current.into_iter().filter(|candidate| *candidate != subscriber).collect();
+        let updated: Vec<_> = current
+            .into_iter()
+            .filter(|candidate| *candidate != subscriber)
+            .collect();
         if updated.len() == original_len {
             return Ok(false);
         }

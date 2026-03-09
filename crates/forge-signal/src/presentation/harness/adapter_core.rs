@@ -11,14 +11,14 @@ use forge_harness::facade::{
 };
 use serde_json::{json, Value};
 
+#[cfg(test)]
+use crate::facade::SignalGraph;
 use crate::facade::{
     DiagnosticsProfile, EvaluationRequestMode, ExecutionReport, NodeExplanation, NodeState,
-    SignalError, SignalGraph, StageExecutor,
+    SignalError, StageExecutor,
 };
 
-use super::runtime::{
-    SignalFixtureFactory, SignalHarnessSession, SignalMutationAction,
-};
+use super::runtime::{SignalFixtureFactory, SignalHarnessSession, SignalMutationAction};
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct SignalHarnessAdapter;
@@ -57,7 +57,9 @@ impl SignalHarnessAdapter {
 
     pub(super) fn diagnostics_profile(level: DiagnosticsLevel) -> DiagnosticsProfile {
         match level {
-            DiagnosticsLevel::Off | DiagnosticsLevel::Operational => DiagnosticsProfile::Operational,
+            DiagnosticsLevel::Off | DiagnosticsLevel::Operational => {
+                DiagnosticsProfile::Operational
+            }
             DiagnosticsLevel::Development => DiagnosticsProfile::Development,
             DiagnosticsLevel::Forensic => DiagnosticsProfile::Forensic,
         }
@@ -120,6 +122,7 @@ impl SignalHarnessAdapter {
             "node": explanation.node.to_string(),
             "state": format!("{:?}", explanation.state),
             "execution_record_id": explanation.execution_record_id,
+            "semantic_segment_id": explanation.semantic_segment_id,
             "upstream_count": explanation.upstream.len(),
             "propagation_suppressed": explanation.propagation_suppressed,
             "output_change": explanation.output_change.map(|change| format!("{change:?}")),
@@ -179,7 +182,7 @@ impl HarnessAdapter for SignalHarnessAdapter {
             comparison_modes,
             clock_domains,
             execution_phases,
-            replay_support: AdapterSupport::Unsupported,
+            replay_support: AdapterSupport::Supported,
             lineage_support: AdapterSupport::Unsupported,
             provenance_support: AdapterSupport::Supported,
             event_stream_support: AdapterSupport::Unsupported,
@@ -279,7 +282,7 @@ impl HarnessAdapter for SignalHarnessAdapter {
             .collect::<Result<Vec<_>, SignalError>>()?;
 
         Ok(RunRecord {
-            schema_version: RecordSchemaVersion::V1,
+            schema_version: RecordSchemaVersion::V2,
             run_id: run_id.clone(),
             scenario_id,
             adapter_name: self.adapter_name().to_string(),
@@ -342,7 +345,7 @@ impl HarnessAdapter for SignalHarnessAdapter {
             .collect::<Result<Vec<_>, SignalError>>()?;
 
         Ok(SnapshotRecord {
-            schema_version: RecordSchemaVersion::V1,
+            schema_version: RecordSchemaVersion::V2,
             snapshot_id: snapshot_id(&run_id, "capture"),
             run_id,
             adapter_name: self.adapter_name().to_string(),

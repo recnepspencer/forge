@@ -1,12 +1,21 @@
 #[cfg(feature = "parallel")]
-mod executor_pool;
+mod apply;
+#[cfg(feature = "parallel")]
+mod apply_groups;
+#[cfg(feature = "parallel")]
+mod apply_trace;
 mod execution;
+#[cfg(feature = "parallel")]
+mod executor_pool;
+#[cfg(feature = "parallel")]
+mod full_parallel;
 mod plan_builder;
 mod precompute;
 mod reporting;
+mod semantic;
+mod test_execution;
 #[cfg(test)]
 mod test_helpers;
-mod test_execution;
 mod types;
 
 pub use execution::{execute_prepared_plan, execute_prepared_plan_with_policy};
@@ -17,8 +26,9 @@ pub(crate) use test_execution::{
 };
 pub use types::{
     EvaluationPlan, EvaluationTask, ExecutionPruneReason, ExecutionRecordId, ExecutionReport,
-    ExecutionStage, PlanSummary, StageBarrier, StageExecutionOutcome, StageExecutionRecord,
-    StageExecutor, TaskExecutionOutcome, TaskExecutionRecord, TaskReason,
+    ExecutionStage, PlanSummary, SemanticSegmentId, SemanticTaskRange, StageBarrier,
+    StageExecutionOutcome, StageExecutionRecord, StageExecutor, TaskExecutionOutcome,
+    TaskExecutionRecord, TaskReason,
 };
 #[cfg(feature = "parallel")]
 #[allow(unused_imports)]

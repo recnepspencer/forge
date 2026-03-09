@@ -27,6 +27,9 @@ pub fn explain_with_policy_resolver(
     let execution_record_id = trace_summary
         .as_ref()
         .and_then(|trace| trace.execution_record_id);
+    let semantic_segment_id = trace_summary
+        .as_ref()
+        .and_then(|trace| trace.semantic_segment_id);
     let output_change = trace_summary.as_ref().map(|trace| trace.output_change);
     let changed_regions = trace_summary
         .as_ref()
@@ -236,6 +239,7 @@ pub fn explain_with_policy_resolver(
         condition,
         trace_summary,
         execution_record_id,
+        semantic_segment_id,
         output_identity,
         output_change,
         changed_regions,

@@ -6,7 +6,9 @@ use crate::data::handle::NodeId;
 use crate::data::output::KeyedComputation;
 use crate::diagnostics::ExecutionFailurePhase;
 use crate::logic::evaluation::EvaluationRequestMode;
-use crate::logic::planner::{build_evaluation_plan_with_policy_resolver, execute_prepared_plan_with_policy, StageExecutor};
+use crate::logic::planner::{
+    build_evaluation_plan_with_policy_resolver, execute_prepared_plan_with_policy, StageExecutor,
+};
 use crate::logic::prepared::{
     ExecutionReadView, PreparedEvaluation, PreparedEvaluationOrigin, PreparedKeyedContext,
     PreparedMemoDecision,
@@ -81,11 +83,18 @@ where
         if let Some(memo_key) = computation.memo_key.as_ref() {
             if let Some(cached) = self
                 .staged_memo_writes
-                .get(&(family_id, key_id, memo_key_id.expect("memo key id should exist")))
+                .get(&(
+                    family_id,
+                    key_id,
+                    memo_key_id.expect("memo key id should exist"),
+                ))
                 .cloned()
                 .or_else(|| {
-                    self.config
-                        .lookup_memoized_result(&computation.family, &computation.key, memo_key)
+                    self.config.lookup_memoized_result(
+                        &computation.family,
+                        &computation.key,
+                        memo_key,
+                    )
                 })
             {
                 self.telemetry.memoization_hits += 1;

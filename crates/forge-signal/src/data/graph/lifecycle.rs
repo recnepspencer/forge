@@ -14,7 +14,10 @@ impl SignalGraph {
         is_alive: impl Fn(NodeId) -> bool,
     ) -> Result<(), SignalError> {
         let current = self.subscribers_of(node)?.to_vec();
-        let updated: Vec<_> = current.into_iter().filter(|subscriber| is_alive(*subscriber)).collect();
+        let updated: Vec<_> = current
+            .into_iter()
+            .filter(|subscriber| is_alive(*subscriber))
+            .collect();
         if updated.len() == self.subscribers_of(node)?.len() {
             return Ok(());
         }
@@ -38,8 +41,12 @@ impl SignalGraph {
         scratch.node_buffer_b.clear();
 
         {
-            scratch.node_buffer_a.extend(self.dependencies_of(id)?.iter().map(|edge| edge.source()));
-            scratch.node_buffer_b.extend(self.subscribers_of(id)?.iter().copied());
+            scratch
+                .node_buffer_a
+                .extend(self.dependencies_of(id)?.iter().map(|edge| edge.source()));
+            scratch
+                .node_buffer_b
+                .extend(self.subscribers_of(id)?.iter().copied());
         }
 
         for &source in &scratch.node_buffer_a {

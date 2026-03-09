@@ -3,6 +3,8 @@ mod edge_store;
 mod execution_access;
 mod lifecycle;
 mod node_builder;
+#[cfg(feature = "parallel")]
+mod parallel_storage;
 mod scratch;
 mod signal_graph;
 mod slot;

@@ -7,9 +7,9 @@ use crate::diagnostics::state::DiagnosticsState;
 use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::events::EventBus;
 
-use super::config::SignalRuntimeConfig;
 use super::super::key_registry::RuntimeStringId;
 use super::super::patch_buffer::SparsePatchBuffer;
+use super::config::SignalRuntimeConfig;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TransactionOutcome {
@@ -34,8 +34,10 @@ where
     pub(super) staged_checkpoint_flush_nanos: u128,
     pub(super) staged_events: Vec<E>,
     pub(super) staged_event_flushes: Vec<crate::data::checkpoint::CheckpointBarrier>,
-    pub(super) staged_memo_writes:
-        BTreeMap<(RuntimeStringId, RuntimeStringId, RuntimeStringId), crate::data::output::NodeEvaluationResult>,
+    pub(super) staged_memo_writes: BTreeMap<
+        (RuntimeStringId, RuntimeStringId, RuntimeStringId),
+        crate::data::output::NodeEvaluationResult,
+    >,
     pub(super) graph_patches: SparsePatchBuffer,
     pub(super) diagnostics_snapshot: DiagnosticsState,
     pub(super) pending_failure_summary: Option<FailureSummary>,

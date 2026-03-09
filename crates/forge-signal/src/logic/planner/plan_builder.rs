@@ -10,7 +10,9 @@ use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
 use crate::logic::evaluation::EvaluationRequestMode;
 
-use super::types::{EvaluationPlan, EvaluationTask, ExecutionStage, PlanSummary, StageBarrier, TaskReason};
+use super::types::{
+    EvaluationPlan, EvaluationTask, ExecutionStage, PlanSummary, StageBarrier, TaskReason,
+};
 
 pub fn build_evaluation_plan(
     graph: &SignalGraph,
@@ -151,7 +153,8 @@ fn visit_node(
         }
     } else if matches!(state, NodeState::MaybeStale) {
         let entry = graph.get_entry(node)?;
-        let comparator = resolver.policy_for_node(node, entry.get_eval_config().comparator.as_ref());
+        let comparator =
+            resolver.policy_for_node(node, entry.get_eval_config().comparator.as_ref());
         for dependency in sorted_dependencies(graph, node)? {
             let source = dependency.source();
             if !graph.is_alive(source) {
@@ -306,8 +309,9 @@ fn classify_reason(
 
     let entry = graph.get_entry(node)?;
     let trace = entry.get_trace_summary();
-    if trace.is_some_and(|summary| summary.output_change == crate::data::output::OutputChange::Unchanged)
-    {
+    if trace.is_some_and(|summary| {
+        summary.output_change == crate::data::output::OutputChange::Unchanged
+    }) {
         return Ok(TaskReason::OutputDiffDependent);
     }
 
@@ -315,14 +319,16 @@ fn classify_reason(
         return Ok(TaskReason::PartitionScopedDependency);
     }
 
-    if trace.is_some_and(|summary| summary.memoized_origin == crate::data::output::MemoizedResultOrigin::MemoizedFromCache)
-    {
+    if trace.is_some_and(|summary| {
+        summary.memoized_origin == crate::data::output::MemoizedResultOrigin::MemoizedFromCache
+    }) {
         return Ok(TaskReason::MemoValidation);
     }
 
     Ok(TaskReason::Dirty)
 }
 
+#[cfg(test)]
 pub(crate) fn partition_scope_untouched(
     trace_summary: Option<&crate::data::trace::TraceSummary>,
     scope: &crate::data::output::PartitionSubscription,

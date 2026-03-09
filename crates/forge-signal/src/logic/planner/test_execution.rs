@@ -1,3 +1,5 @@
+#![cfg(test)]
+
 use crate::data::comparator::ComparatorPolicyResolver;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
@@ -136,6 +138,8 @@ where
             precompute_duration_nanos: precompute_nanos,
             apply_duration_nanos: 0,
             duration_nanos: 0,
+            semantic_task_range: None,
+            semantic_segment_count: 0,
             task_records: Vec::new(),
         };
 
@@ -144,22 +148,31 @@ where
             next_record_id += 1;
             let before_state = graph.get_state(task.node)?;
             let before_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
-            let dependency_updates = crate::logic::evaluation::apply_prepared_evaluation_with_policy(
-                graph,
-                task.node,
-                prepared,
-                comparator_resolver,
-                None,
-            )?;
-            if let Some(summary) = graph.get_entry_mut(task.node)?.get_trace_summary().cloned().as_mut() {
+            let dependency_updates =
+                crate::logic::evaluation::apply_prepared_evaluation_with_policy(
+                    graph,
+                    task.node,
+                    prepared,
+                    comparator_resolver,
+                    None,
+                )?;
+            if let Some(summary) = graph
+                .get_entry_mut(task.node)?
+                .get_trace_summary()
+                .cloned()
+                .as_mut()
+            {
                 let mut updated = summary.clone();
                 updated.execution_record_id = Some(record_id.0);
-                graph.get_entry_mut(task.node)?.set_trace_summary(Some(updated));
+                graph
+                    .get_entry_mut(task.node)?
+                    .set_trace_summary(Some(updated));
             }
             let after_state = graph.get_state(task.node)?;
             let after_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
             let task_record = classify_task_record(
                 record_id,
+                super::types::SemanticSegmentId(record_id.0),
                 task,
                 before_state,
                 after_state,
@@ -277,6 +290,8 @@ where
             precompute_duration_nanos: precompute_nanos,
             apply_duration_nanos: 0,
             duration_nanos: 0,
+            semantic_task_range: None,
+            semantic_segment_count: 0,
             task_records: Vec::new(),
         };
 
@@ -285,22 +300,31 @@ where
             next_record_id += 1;
             let before_state = graph.get_state(task.node)?;
             let before_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
-            let dependency_updates = crate::logic::evaluation::apply_prepared_evaluation_with_policy(
-                graph,
-                task.node,
-                prepared,
-                comparator_resolver,
-                execution_metadata.filter(|_| task.direct_request),
-            )?;
-            if let Some(summary) = graph.get_entry_mut(task.node)?.get_trace_summary().cloned().as_mut() {
+            let dependency_updates =
+                crate::logic::evaluation::apply_prepared_evaluation_with_policy(
+                    graph,
+                    task.node,
+                    prepared,
+                    comparator_resolver,
+                    execution_metadata.filter(|_| task.direct_request),
+                )?;
+            if let Some(summary) = graph
+                .get_entry_mut(task.node)?
+                .get_trace_summary()
+                .cloned()
+                .as_mut()
+            {
                 let mut updated = summary.clone();
                 updated.execution_record_id = Some(record_id.0);
-                graph.get_entry_mut(task.node)?.set_trace_summary(Some(updated));
+                graph
+                    .get_entry_mut(task.node)?
+                    .set_trace_summary(Some(updated));
             }
             let after_state = graph.get_state(task.node)?;
             let after_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
             let task_record = classify_task_record(
                 record_id,
+                super::types::SemanticSegmentId(record_id.0),
                 task,
                 before_state,
                 after_state,

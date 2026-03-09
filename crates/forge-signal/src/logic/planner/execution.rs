@@ -6,20 +6,22 @@ use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::logic::evaluation::apply_prepared_evaluation_with_policy;
-use crate::logic::prepared::{ExecutionSnapshot, PreparedEvaluation};
-
-use super::precompute::{
-    precompute_stage_serial, StageExecutionData,
+use crate::logic::prepared::{
+    ExecutionSnapshot, PreparedEvaluation, PreparedEvaluationOrigin, PreparedEvaluationOutcome,
 };
+
+#[cfg(feature = "parallel")]
+use super::full_parallel::apply_full_parallel_stage;
 #[cfg(feature = "parallel")]
 use super::precompute::{build_parallel_stage_patches, precompute_stage_parallel};
-use super::reporting::{
-    accumulate_report_counters, classify_task_record, record_execution_failure,
-    record_successful_execution,
+use super::precompute::{precompute_stage_serial, StageExecutionData};
+use super::reporting::{record_execution_failure, record_successful_execution};
+use super::semantic::{
+    finalize_stage_batch, reserve_stage_identities, segment_for_single_update, SemanticTaskUpdate,
+    StageSemanticBatch,
 };
 use super::types::{
-    EvaluationPlan, ExecutionRecordId, ExecutionReport, StageExecutionOutcome,
-    StageExecutionRecord, StageExecutor,
+    EvaluationPlan, ExecutionReport, StageExecutionOutcome, StageExecutionRecord, StageExecutor,
 };
 
 pub fn execute_prepared_plan<F>(
@@ -92,6 +94,7 @@ where
     }
 
     let mut next_record_id = 1_u64;
+    let mut next_segment_id = 1_u64;
     let mut report = ExecutionReport {
         plan_summary: plan.summary.clone(),
         stage_count: plan.summary.stage_count,
@@ -110,6 +113,7 @@ where
         execution_snapshot_nanos: 0,
         stage_precompute_nanos: 0,
         stage_apply_nanos: 0,
+        semantic_segment_count: 0,
         stages: Vec::new(),
     };
 
@@ -121,9 +125,9 @@ where
         let stage_execution = (|| {
             let snapshot = ExecutionSnapshot::new(&*graph);
             let execution = match executor {
-                StageExecutor::Serial => {
-                    StageExecutionData::Prepared(precompute_stage_serial(stage, &snapshot, precompute)?)
-                }
+                StageExecutor::Serial => StageExecutionData::Prepared(precompute_stage_serial(
+                    stage, &snapshot, precompute,
+                )?),
                 #[cfg(feature = "parallel")]
                 _ if executor.uses_parallel_for_stage(stage) => {
                     if executor.is_full_parallel() {
@@ -131,22 +135,26 @@ where
                             stage,
                             &snapshot,
                             precompute,
-                            executor.parallel_policy().expect("parallel policy should exist"),
+                            executor
+                                .parallel_policy()
+                                .expect("parallel policy should exist"),
                         )?)
                     } else {
                         StageExecutionData::Prepared(precompute_stage_parallel(
                             stage,
                             &snapshot,
                             precompute,
-                            executor.parallel_policy().expect("parallel policy should exist"),
+                            executor
+                                .parallel_policy()
+                                .expect("parallel policy should exist"),
                         )?)
                     }
                 }
                 #[cfg(feature = "parallel")]
                 StageExecutor::StagedParallelPrecompute { .. }
-                | StageExecutor::FullParallel { .. } => {
-                    StageExecutionData::Prepared(precompute_stage_serial(stage, &snapshot, precompute)?)
-                }
+                | StageExecutor::FullParallel { .. } => StageExecutionData::Prepared(
+                    precompute_stage_serial(stage, &snapshot, precompute)?,
+                ),
             };
             Ok::<StageExecutionData, SignalError>(execution)
         })()
@@ -181,7 +189,8 @@ where
             #[cfg(feature = "parallel")]
             _ if executor.uses_parallel_for_stage(stage) => {
                 graph.telemetry_mut().parallel_stage_dispatch_count += 1;
-                graph.telemetry_mut().parallel_precompute_task_count += stage_execution.len() as u64;
+                graph.telemetry_mut().parallel_precompute_task_count +=
+                    stage_execution.len() as u64;
             }
             #[cfg(feature = "parallel")]
             StageExecutor::StagedParallelPrecompute { .. } | StageExecutor::FullParallel { .. } => {
@@ -226,58 +235,138 @@ where
             precompute_duration_nanos: precompute_nanos,
             apply_duration_nanos: 0,
             duration_nanos: 0,
+            semantic_task_range: None,
+            semantic_segment_count: 0,
             task_records: Vec::new(),
         };
+        let stage_identities =
+            reserve_stage_identities(&mut next_record_id, &mut next_segment_id, stage.tasks.len());
 
-        for patch in stage_execution.into_patches(stage) {
-            let task = &stage.tasks[patch.task_index];
-            let record_id = ExecutionRecordId(next_record_id);
-            next_record_id += 1;
-            let before_state = graph.get_state(patch.node)?;
-            let before_trace = graph.get_entry(patch.node)?.get_trace_summary().cloned();
-            let dependency_updates = apply_prepared_evaluation_with_policy(
+        #[cfg(feature = "parallel")]
+        if executor.is_full_parallel() && executor.uses_parallel_for_stage(stage) {
+            apply_full_parallel_stage(
                 graph,
-                patch.node,
-                patch.prepared,
+                stage,
+                stage_execution.into_patches(stage),
                 comparator_resolver,
-                None,
-            )
-            .map_err(|err| {
-                record_execution_failure(
+                executor,
+                plan,
+                &stage_identities,
+                &mut report,
+                &mut stage_record,
+            )?;
+        } else {
+            let mut semantic_batch = StageSemanticBatch::default();
+            for patch in stage_execution.into_patches(stage) {
+                let identity = stage_identities[patch.task_index];
+                let recomputed =
+                    matches!(patch.prepared.outcome, PreparedEvaluationOutcome::Evaluate)
+                        && !matches!(
+                            patch.prepared.origin,
+                            PreparedEvaluationOrigin::MemoizedReuse
+                        );
+                let partition_aware = !patch.prepared.result.changed_regions.is_empty();
+                let before_state = graph.get_state(patch.node)?;
+                let before_trace = graph.get_entry(patch.node)?.get_trace_summary().cloned();
+                let dependency_updates = apply_prepared_evaluation_with_policy(
                     graph,
-                    ExecutionFailureContext::new(
-                        ExecutionFailurePhase::Apply,
-                        Some(stage.index),
-                        Some(patch.node),
-                        Some(executor),
-                        Some(record_id),
-                        Some(plan.summary.clone()),
-                        err.to_string(),
-                    ),
-                );
-                err
-            })?;
-            if let Some(summary) = graph.get_entry_mut(patch.node)?.get_trace_summary().cloned().as_mut() {
-                let mut updated = summary.clone();
-                updated.execution_record_id = Some(record_id.0);
-                graph.get_entry_mut(patch.node)?.set_trace_summary(Some(updated));
+                    patch.node,
+                    patch.prepared,
+                    comparator_resolver,
+                    None,
+                )
+                .map_err(|err| {
+                    record_execution_failure(
+                        graph,
+                        ExecutionFailureContext::new(
+                            ExecutionFailurePhase::Apply,
+                            Some(stage.index),
+                            Some(patch.node),
+                            Some(executor),
+                            Some(identity.record_id),
+                            Some(plan.summary.clone()),
+                            err.to_string(),
+                        ),
+                    );
+                    err
+                })?;
+                let after_state = graph.get_state(patch.node)?;
+                semantic_batch.push_segment(segment_for_single_update(SemanticTaskUpdate {
+                    task_index: patch.task_index,
+                    node: patch.node,
+                    identity,
+                    before_state,
+                    before_trace,
+                    after_state,
+                    dependency_updates,
+                    recomputed,
+                    partition_aware,
+                }));
             }
-            let after_state = graph.get_state(patch.node)?;
-            let after_trace = graph.get_entry(patch.node)?.get_trace_summary().cloned();
-            let task_record = classify_task_record(
-                record_id,
-                task,
-                before_state,
-                after_state,
-                before_trace.as_ref(),
-                after_trace.as_ref(),
-            );
-            accumulate_report_counters(&mut report, &task_record);
-            stage_record.task_records.push(task_record);
-            graph.telemetry_mut().prepared_evaluations_applied += 1;
-            graph.telemetry_mut().dependency_capture_updates += dependency_updates as u64;
-            report.prepared_evaluations_applied += 1;
-            report.dependency_capture_updates += dependency_updates;
+            finalize_stage_batch(
+                graph,
+                &stage.tasks,
+                semantic_batch,
+                &mut report,
+                &mut stage_record,
+            )?;
+        }
+        #[cfg(not(feature = "parallel"))]
+        {
+            let mut semantic_batch = StageSemanticBatch::default();
+            for patch in stage_execution.into_patches(stage) {
+                let identity = stage_identities[patch.task_index];
+                let recomputed =
+                    matches!(patch.prepared.outcome, PreparedEvaluationOutcome::Evaluate)
+                        && !matches!(
+                            patch.prepared.origin,
+                            PreparedEvaluationOrigin::MemoizedReuse
+                        );
+                let partition_aware = !patch.prepared.result.changed_regions.is_empty();
+                let before_state = graph.get_state(patch.node)?;
+                let before_trace = graph.get_entry(patch.node)?.get_trace_summary().cloned();
+                let dependency_updates = apply_prepared_evaluation_with_policy(
+                    graph,
+                    patch.node,
+                    patch.prepared,
+                    comparator_resolver,
+                    None,
+                )
+                .map_err(|err| {
+                    record_execution_failure(
+                        graph,
+                        ExecutionFailureContext::new(
+                            ExecutionFailurePhase::Apply,
+                            Some(stage.index),
+                            Some(patch.node),
+                            Some(executor),
+                            Some(identity.record_id),
+                            Some(plan.summary.clone()),
+                            err.to_string(),
+                        ),
+                    );
+                    err
+                })?;
+                let after_state = graph.get_state(patch.node)?;
+                semantic_batch.push_segment(segment_for_single_update(SemanticTaskUpdate {
+                    task_index: patch.task_index,
+                    node: patch.node,
+                    identity,
+                    before_state,
+                    before_trace,
+                    after_state,
+                    dependency_updates,
+                    recomputed,
+                    partition_aware,
+                }));
+            }
+            finalize_stage_batch(
+                graph,
+                &stage.tasks,
+                semantic_batch,
+                &mut report,
+                &mut stage_record,
+            )?;
         }
         stage_record.apply_duration_nanos = apply_start.elapsed().as_nanos();
         report.stage_apply_nanos += stage_record.apply_duration_nanos;

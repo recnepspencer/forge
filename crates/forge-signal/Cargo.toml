@@ -15,9 +15,8 @@ tracing.workspace = true
 serde = { workspace = true, features = ["derive"] }
 smallvec = { workspace = true, features = ["serde"] }
 rayon.workspace = true
-
-[dev-dependencies]
 serde_json = { workspace = true }
 
+[dev-dependencies]
 [lints]
 workspace = true

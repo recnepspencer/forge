@@ -49,10 +49,7 @@ impl RuntimeKeyRegistry {
         id
     }
 
-    pub(super) fn intern_memo_key(
-        &mut self,
-        memo_key: &StructuralMemoKey,
-    ) -> RuntimeStringId {
+    pub(super) fn intern_memo_key(&mut self, memo_key: &StructuralMemoKey) -> RuntimeStringId {
         if let Some(id) = self.memo_key_lookup.get(memo_key).copied() {
             return id;
         }

@@ -113,7 +113,7 @@ impl From<&str> for PartitionToken {
 }
 
 /// Generic changed-region descriptor for partition-aware outputs.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub struct ChangedRegion {
     pub partition: PartitionToken,
     #[serde(default)]

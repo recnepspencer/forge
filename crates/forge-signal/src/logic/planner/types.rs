@@ -29,6 +29,15 @@ pub enum StageBarrier {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExecutionRecordId(pub u64);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct SemanticSegmentId(pub u64);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SemanticTaskRange {
+    pub start: ExecutionRecordId,
+    pub end: ExecutionRecordId,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EvaluationTask {
     pub node: NodeId,
@@ -101,6 +110,7 @@ pub enum ParallelApplyMode {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TaskExecutionRecord {
     pub id: ExecutionRecordId,
+    pub semantic_segment_id: SemanticSegmentId,
     pub node: NodeId,
     pub scheduled_reason: TaskReason,
     pub direct_request: bool,
@@ -133,6 +143,8 @@ pub struct StageExecutionRecord {
     pub precompute_duration_nanos: u128,
     pub apply_duration_nanos: u128,
     pub duration_nanos: u128,
+    pub semantic_task_range: Option<SemanticTaskRange>,
+    pub semantic_segment_count: u32,
     pub task_records: Vec<TaskExecutionRecord>,
 }
 
@@ -155,6 +167,7 @@ pub struct ExecutionReport {
     pub execution_snapshot_nanos: u128,
     pub stage_precompute_nanos: u128,
     pub stage_apply_nanos: u128,
+    pub semantic_segment_count: u32,
     pub stages: Vec<StageExecutionRecord>,
 }
 
@@ -193,6 +206,15 @@ impl StageExecutor {
         };
         Self::FullParallel {
             policy: ParallelExecutionPolicy::new(min_stage_width),
+        }
+    }
+
+    #[cfg(feature = "parallel")]
+    pub fn with_parallel_policy(self, policy: ParallelExecutionPolicy) -> Self {
+        match self {
+            Self::Serial => Self::Serial,
+            Self::StagedParallelPrecompute { .. } => Self::StagedParallelPrecompute { policy },
+            Self::FullParallel { .. } => Self::FullParallel { policy },
         }
     }
 
@@ -254,6 +276,27 @@ impl ParallelExecutionPolicy {
         }
     }
 
+    pub fn with_worker_count(mut self, worker_count: usize) -> Self {
+        self.worker_count = NonZeroUsize::new(worker_count.max(1));
+        self
+    }
+
+    pub fn with_chunk_size(mut self, chunk_size: usize) -> Self {
+        self.chunk_size = NonZeroUsize::new(chunk_size.max(1));
+        self
+    }
+
+    pub fn with_apply_group_min_width(mut self, min_width: usize) -> Self {
+        self.apply_group_min_width = NonZeroUsize::new(min_width.max(1))
+            .expect("apply group min width is clamped to at least one");
+        self
+    }
+
+    pub fn with_max_concurrent_apply_groups(mut self, max_groups: usize) -> Self {
+        self.max_concurrent_apply_groups = NonZeroUsize::new(max_groups.max(1));
+        self
+    }
+
     pub(crate) fn chunk_size_for(self, task_count: usize) -> usize {
         if let Some(chunk_size) = self.chunk_size {
             return chunk_size.get().min(task_count.max(1));
@@ -276,6 +319,13 @@ impl ParallelExecutionPolicy {
             .max(1)
     }
 
+    pub(crate) fn max_apply_group_count_for(self, task_count: usize) -> usize {
+        self.max_concurrent_apply_groups
+            .map(|count| count.get())
+            .unwrap_or_else(|| self.worker_count_for(task_count))
+            .min(task_count.max(1))
+            .max(1)
+    }
 }
 
 impl fmt::Display for PlanSummary {

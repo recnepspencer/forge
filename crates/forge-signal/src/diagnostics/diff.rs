@@ -1,7 +1,7 @@
-#[path = "diff/model.rs"]
-mod model;
 #[path = "diff/compare.rs"]
 mod compare;
+#[path = "diff/model.rs"]
+mod model;
 
 pub use compare::{
     compare_execution_history, compare_execution_reports, compare_explanations, compare_failures,

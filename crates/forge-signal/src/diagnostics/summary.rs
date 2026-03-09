@@ -62,6 +62,7 @@ pub struct ExecutionReportSummary {
     pub prepared_evaluations_produced: u32,
     pub prepared_evaluations_applied: u32,
     pub dependency_capture_updates: u32,
+    pub semantic_segment_count: u32,
     pub task_outcome_counts: BTreeMap<String, u32>,
     pub stage_outcome_counts: BTreeMap<String, u32>,
 }
@@ -81,6 +82,7 @@ pub struct ExplanationSummary {
     pub dependency_removed_count: u32,
     pub propagation_suppressed: bool,
     pub execution_record_id: Option<u64>,
+    pub semantic_segment_id: Option<u64>,
     pub output_change: Option<OutputChange>,
     pub memoized_origin: Option<MemoizedResultOrigin>,
     pub changed_region_count: u32,
@@ -91,6 +93,7 @@ pub struct ExplanationSummary {
 pub struct ExecutionHistoryNodeSummary {
     pub node: NodeId,
     pub execution_record_id: Option<u64>,
+    pub semantic_segment_id: Option<u64>,
     pub output_change: Option<OutputChange>,
     pub memoized_origin: Option<MemoizedResultOrigin>,
     pub changed_partition_count: u32,
@@ -245,6 +248,7 @@ impl ExecutionReportSummary {
             prepared_evaluations_produced: report.prepared_evaluations_produced,
             prepared_evaluations_applied: report.prepared_evaluations_applied,
             dependency_capture_updates: report.dependency_capture_updates,
+            semantic_segment_count: report.semantic_segment_count,
             task_outcome_counts,
             stage_outcome_counts,
         }
@@ -285,6 +289,7 @@ impl ExplanationSummary {
             dependency_removed_count,
             propagation_suppressed: explanation.propagation_suppressed,
             execution_record_id: explanation.execution_record_id,
+            semantic_segment_id: explanation.semantic_segment_id,
             output_change: explanation.output_change,
             memoized_origin: explanation.memoized_origin,
             changed_region_count: explanation.changed_regions.len() as u32,
@@ -321,6 +326,7 @@ impl ExecutionHistorySummary {
                 nodes.push(ExecutionHistoryNodeSummary {
                     node,
                     execution_record_id: trace.execution_record_id,
+                    semantic_segment_id: trace.semantic_segment_id,
                     output_change: Some(trace.output_change),
                     memoized_origin: Some(trace.memoized_origin),
                     changed_partition_count: trace.changed_partition_count,

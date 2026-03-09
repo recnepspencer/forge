@@ -1,7 +1,7 @@
 use forge_harness::facade::{
     DiagnosticsHarnessAdapter, DiagnosticsLevel, ExecutionProfile, ExecutionRequest,
     ExplanationHarnessAdapter, HarnessAdapter, HarnessRunner, MutationBatch,
-    ProvenanceHarnessAdapter, ScenarioPlan,
+    ProvenanceHarnessAdapter, ReplayHarnessAdapter, ReplayRequest, ScenarioPlan,
 };
 
 use crate::facade::{
@@ -108,4 +108,38 @@ fn signal_harness_adapter_captures_diagnostics_explanations_and_provenance() {
     assert_eq!(diagnostics.adapter_name, "forge-signal");
     assert_eq!(explanations.len(), 1);
     assert_eq!(provenance.len(), 1);
+}
+
+#[test]
+fn signal_harness_adapter_captures_v2_replay_summary() {
+    let adapter = SignalHarnessAdapter;
+    let fixture = basic_fixture();
+    let request = ExecutionRequest::new("pull-dependent", vec!["dependent".to_string()]);
+    let profile = ExecutionProfile::serial("serial");
+    let mut session = adapter.create_runtime().unwrap();
+
+    adapter.load_fixture(&mut session, &fixture).unwrap();
+    let run = adapter
+        .execute(&mut session, &fixture, &request, &profile)
+        .unwrap();
+
+    let replay = adapter
+        .capture_replay(
+            &session,
+            &fixture,
+            &ReplayRequest {
+                name: "replay-dependent".to_string(),
+                source_run: run.clone(),
+                request: request.clone(),
+                profile: profile.clone(),
+            },
+        )
+        .unwrap();
+
+    assert_eq!(
+        replay.schema_version,
+        forge_harness::facade::RecordSchemaVersion::V2
+    );
+    assert_eq!(replay.requested_targets, request.targets);
+    assert!(replay.summary.get("execution_report").is_some());
 }

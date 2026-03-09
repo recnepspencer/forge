@@ -69,8 +69,8 @@ pub use crate::logic::invalidation::{mark_dirty, mark_dirty_with_regions};
 pub use crate::logic::planner::{
     build_evaluation_plan, execute_prepared_plan, EvaluationPlan, EvaluationTask,
     ExecutionPruneReason, ExecutionRecordId, ExecutionReport, ExecutionStage, PlanSummary,
-    StageBarrier, StageExecutionOutcome, StageExecutionRecord, StageExecutor, TaskExecutionOutcome,
-    TaskExecutionRecord, TaskReason,
+    SemanticSegmentId, SemanticTaskRange, StageBarrier, StageExecutionOutcome,
+    StageExecutionRecord, StageExecutor, TaskExecutionOutcome, TaskExecutionRecord, TaskReason,
 };
 pub use crate::logic::prepared::{
     ExecutionReadView, ExecutionSnapshot, PreparedDependencyCapture, PreparedDependencyEdge,

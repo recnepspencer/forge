@@ -11,6 +11,7 @@ use super::types::ExecutionStage;
 #[cfg(feature = "parallel")]
 use super::types::ParallelExecutionPolicy;
 
+#[derive(Debug, Clone)]
 pub(super) struct PreparedTaskPatch {
     pub task_index: usize,
     pub node: NodeId,

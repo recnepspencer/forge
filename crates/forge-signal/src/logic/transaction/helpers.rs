@@ -68,6 +68,7 @@ pub(super) fn empty_execution_report() -> ExecutionReport {
         execution_snapshot_nanos: 0,
         stage_precompute_nanos: 0,
         stage_apply_nanos: 0,
+        semantic_segment_count: 0,
         stages: Vec::new(),
     }
 }

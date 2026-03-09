@@ -117,7 +117,8 @@ where
             }
         }
         self.checkpoint.telemetry_mut().checkpoint_flushes += self.staged_checkpoint_flushes;
-        self.checkpoint.telemetry_mut().checkpoint_flush_nanos += self.staged_checkpoint_flush_nanos;
+        self.checkpoint.telemetry_mut().checkpoint_flush_nanos +=
+            self.staged_checkpoint_flush_nanos;
         for ((family_id, key_id, memo_key_id), result) in self.staged_memo_writes {
             let family = self.config.key_registry.family(family_id).clone();
             let key = self.config.key_registry.keys[key_id.index()].clone();

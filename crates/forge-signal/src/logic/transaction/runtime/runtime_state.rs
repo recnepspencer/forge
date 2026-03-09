@@ -129,7 +129,9 @@ where
             memoization_hits: self.telemetry.memoization_hits,
             memoization_misses: self.telemetry.memoization_misses,
             suppressed_downstream_propagations: self.telemetry.suppressed_downstream_propagations,
-            partition_scoped_invalidation_checks: self.telemetry.partition_scoped_invalidation_checks,
+            partition_scoped_invalidation_checks: self
+                .telemetry
+                .partition_scoped_invalidation_checks,
             partition_match_dirty_count: self.telemetry.partition_match_dirty_count,
             detail_match_dirty_count: self.telemetry.detail_match_dirty_count,
             partition_scope_revert_clean_count: self.telemetry.partition_scope_revert_clean_count,

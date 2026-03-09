@@ -82,6 +82,7 @@ pub struct NodeExplanation {
     pub condition: EvaluationCondition,
     pub trace_summary: Option<TraceSummary>,
     pub execution_record_id: Option<u64>,
+    pub semantic_segment_id: Option<u64>,
     pub output_identity: Option<OutputIdentity>,
     pub output_change: Option<OutputChange>,
     pub changed_regions: Vec<ChangedRegion>,
@@ -120,6 +121,9 @@ impl fmt::Display for NodeExplanation {
             )?;
             if let Some(execution_record_id) = self.execution_record_id {
                 writeln!(f, "Execution record: {}", execution_record_id)?;
+            }
+            if let Some(semantic_segment_id) = self.semantic_segment_id {
+                writeln!(f, "Semantic segment: {}", semantic_segment_id)?;
             }
         }
         if let Some(causality) = &self.causality {

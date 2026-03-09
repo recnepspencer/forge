@@ -1,4 +1,4 @@
-use crate::data::aspect::{AspectVersion, AspectMask};
+use crate::data::aspect::{AspectMask, AspectVersion};
 use crate::data::comparator::ComparatorPolicyResolver;
 use crate::data::dependency::DependencySnapshot;
 use crate::data::error::SignalError;
@@ -62,7 +62,22 @@ pub(super) fn apply_evaluation_result_with_policy(
     );
     let meaningful_input_changes = count_meaningful_input_changes(graph, node)?;
     let snapshot = build_dep_snapshot(graph, node)?;
-    let changed_partition_count = count_changed_partitions(&result.changed_regions);
+    let mut changed_regions = result.changed_regions.clone();
+    changed_regions.sort_by(|left, right| {
+        (
+            left.partition.0.as_str(),
+            left.detail.as_deref().unwrap_or_default(),
+        )
+            .cmp(&(
+                right.partition.0.as_str(),
+                right.detail.as_deref().unwrap_or_default(),
+            ))
+    });
+    changed_regions.dedup();
+    let mut labels = result.labels.clone();
+    labels.sort();
+    labels.dedup();
+    let changed_partition_count = count_changed_partitions(&changed_regions);
     let trace_summary = TraceSummary {
         output_hash: result
             .output_identity
@@ -76,7 +91,7 @@ pub(super) fn apply_evaluation_result_with_policy(
         meaningful_input_changes,
         changed_partition_count,
         propagation_suppressed,
-        changed_regions: result.changed_regions.clone(),
+        changed_regions,
         keyed_family: execution_metadata.and_then(|metadata| {
             metadata
                 .keyed
@@ -92,8 +107,9 @@ pub(super) fn apply_evaluation_result_with_policy(
         memoized_origin: execution_metadata
             .map(|metadata| metadata.memoized_origin)
             .unwrap_or(MemoizedResultOrigin::DirectCompute),
-        labels: result.labels.clone(),
+        labels,
         execution_record_id: None,
+        semantic_segment_id: None,
     };
 
     {

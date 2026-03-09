@@ -3,9 +3,10 @@ use std::collections::BTreeMap;
 use forge_harness::facade::{
     diagnostics_id, explanation_id, provenance_id, run_id, scenario_id, DiagnosticsHarnessAdapter,
     DiagnosticsRecord, ExecutionProfile, ExecutionRequest, ExplanationHarnessAdapter,
-    ExplanationRecord, HarnessAdapter, PerformanceHarnessAdapter, ProvenanceHarnessAdapter, ProvenanceRecord,
-    RecordSchemaVersion, ScenarioFixture,
+    ExplanationRecord, HarnessAdapter, PerformanceHarnessAdapter, ProvenanceHarnessAdapter,
+    ProvenanceRecord, RecordSchemaVersion, ReplayHarnessAdapter, ScenarioFixture,
 };
+use forge_harness::facade::{replay_id, ReplayRecord, ReplayRequest};
 use serde_json::{json, Value};
 
 use super::adapter_core::SignalHarnessAdapter;
@@ -25,7 +26,7 @@ impl DiagnosticsHarnessAdapter for SignalHarnessAdapter {
             .diagnostics_summary(Self::diagnostics_profile(profile.diagnostics_level));
 
         Ok(DiagnosticsRecord {
-            schema_version: RecordSchemaVersion::V1,
+            schema_version: RecordSchemaVersion::V2,
             diagnostics_id: diagnostics_id(&run_id),
             run_id,
             adapter_name: self.adapter_name().to_string(),
@@ -57,7 +58,7 @@ impl ExplanationHarnessAdapter for SignalHarnessAdapter {
                 let node = runtime.resolve(label)?;
                 let explanation = runtime.graph.explain(node)?;
                 Ok(ExplanationRecord {
-                    schema_version: RecordSchemaVersion::V1,
+                    schema_version: RecordSchemaVersion::V2,
                     explanation_id: explanation_id(&run_id, label),
                     run_id: run_id.clone(),
                     adapter_name: self.adapter_name().to_string(),
@@ -90,7 +91,7 @@ impl ProvenanceHarnessAdapter for SignalHarnessAdapter {
                 let node = runtime.resolve(label)?;
                 let explanation = runtime.graph.explain(node)?;
                 Ok(ProvenanceRecord {
-                    schema_version: RecordSchemaVersion::V1,
+                    schema_version: RecordSchemaVersion::V2,
                     provenance_id: provenance_id(&run_id, label),
                     run_id: run_id.clone(),
                     adapter_name: self.adapter_name().to_string(),
@@ -99,8 +100,10 @@ impl ProvenanceHarnessAdapter for SignalHarnessAdapter {
                     attachments: Vec::new(),
                     summary: json!({
                         "execution_record_id": explanation.execution_record_id,
+                        "semantic_segment_id": explanation.semantic_segment_id,
                         "upstream_count": explanation.upstream.len(),
                         "propagation_suppressed": explanation.propagation_suppressed,
+                        "upstream": explanation.upstream.iter().map(|cause| format!("{cause:?}")).collect::<Vec<_>>(),
                     }),
                     extensions: BTreeMap::new(),
                 })
@@ -118,5 +121,40 @@ impl PerformanceHarnessAdapter for SignalHarnessAdapter {
     ) -> Result<Value, Self::Error> {
         let runtime = runtime.runtime()?;
         Ok(serde_json::to_value(runtime.graph.metrics()).unwrap_or_else(|_| json!({})))
+    }
+}
+
+impl ReplayHarnessAdapter for SignalHarnessAdapter {
+    fn capture_replay(
+        &self,
+        _runtime: &Self::Runtime,
+        fixture: &ScenarioFixture<Self::Fixture>,
+        replay: &ReplayRequest<Self::TargetId>,
+    ) -> Result<ReplayRecord<Self::TargetId>, Self::Error> {
+        let scenario_id = scenario_id(&fixture.name);
+        let source_run_id = replay.source_run.run_id.clone();
+        let report = replay
+            .source_run
+            .extensions
+            .get("execution_report")
+            .cloned()
+            .unwrap_or_else(|| json!({}));
+        Ok(ReplayRecord {
+            schema_version: RecordSchemaVersion::V2,
+            replay_id: replay_id(&source_run_id, &replay.name),
+            source_run_id,
+            scenario_id,
+            adapter_name: self.adapter_name().to_string(),
+            scenario_name: fixture.name.clone(),
+            replay_name: replay.name.clone(),
+            requested_targets: replay.request.targets.clone(),
+            summary: json!({
+                "profile": replay.profile.name,
+                "source_status": format!("{:?}", replay.source_run.status),
+                "requested_targets": replay.request.targets,
+                "execution_report": report,
+            }),
+            attachments: Vec::new(),
+        })
     }
 }

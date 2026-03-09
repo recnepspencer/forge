@@ -2,6 +2,7 @@ use crate::data::bitset::DenseBitset;
 use crate::data::handle::NodeId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) enum ScratchLeaseKind {
     Evaluation,
     Invalidation,

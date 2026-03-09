@@ -50,6 +50,9 @@ pub struct TraceSummary {
     /// Last planner/execution record id that touched this node, when available.
     #[serde(default)]
     pub execution_record_id: Option<u64>,
+    /// Semantic segment id that produced the last trace, when available.
+    #[serde(default)]
+    pub semantic_segment_id: Option<u64>,
 }
 
 /// Opaque structured causality payload for host-provided provenance.

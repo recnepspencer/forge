@@ -36,7 +36,11 @@ where
         M::route(effect, &mut self.staged_dirty);
     }
 
-    pub fn mark_dirty(&mut self, source: NodeId, changed_aspect: Aspect) -> Result<(), SignalError> {
+    pub fn mark_dirty(
+        &mut self,
+        source: NodeId,
+        changed_aspect: Aspect,
+    ) -> Result<(), SignalError> {
         self.stage_mark_dirty_candidates(source)?;
         let result = mark_dirty(self.graph, source, changed_aspect);
         self.apply_result(result)
@@ -87,7 +91,10 @@ where
         Ok(())
     }
 
-    pub(super) fn apply_result<R>(&mut self, result: Result<R, SignalError>) -> Result<R, SignalError> {
+    pub(super) fn apply_result<R>(
+        &mut self,
+        result: Result<R, SignalError>,
+    ) -> Result<R, SignalError> {
         match result {
             Ok(value) => Ok(value),
             Err(err) => {
@@ -97,7 +104,10 @@ where
         }
     }
 
-    pub(super) fn stage_mark_dirty_candidates(&mut self, source: NodeId) -> Result<(), SignalError> {
+    pub(super) fn stage_mark_dirty_candidates(
+        &mut self,
+        source: NodeId,
+    ) -> Result<(), SignalError> {
         let mut stack = vec![source];
         let mut seen: BTreeSet<NodeId> = BTreeSet::new();
         while let Some(node) = stack.pop() {

@@ -3,15 +3,16 @@ use crate::data::node::NodeState;
 use crate::data::output::MemoizedResultOrigin;
 use crate::data::trace::TraceSummary;
 use crate::diagnostics::failure::ExecutionFailureContext;
-use crate::diagnostics::recorder::DiagnosticsRecorder;
+use crate::diagnostics::recorder::{record_semantic_execution, DiagnosticsRecorder};
 
 use super::types::{
-    EvaluationPlan, ExecutionPruneReason, ExecutionRecordId, ExecutionReport, EvaluationTask,
-    TaskExecutionOutcome, TaskExecutionRecord,
+    EvaluationPlan, EvaluationTask, ExecutionPruneReason, ExecutionRecordId, ExecutionReport,
+    SemanticSegmentId, TaskExecutionOutcome, TaskExecutionRecord,
 };
 
 pub(super) fn classify_task_record(
     id: ExecutionRecordId,
+    semantic_segment_id: SemanticSegmentId,
     task: &EvaluationTask,
     before_state: NodeState,
     after_state: NodeState,
@@ -67,6 +68,7 @@ pub(super) fn classify_task_record(
 
     TaskExecutionRecord {
         id,
+        semantic_segment_id,
         node: task.node,
         scheduled_reason: task.reason,
         direct_request: task.direct_request,
@@ -85,7 +87,7 @@ pub(super) fn record_successful_execution(
     plan: &EvaluationPlan,
     report: &ExecutionReport,
 ) {
-    DiagnosticsRecorder::new(graph).record_execution_completed(plan, report);
+    record_semantic_execution(graph, plan, report);
 }
 
 pub(super) fn record_execution_failure(graph: &mut SignalGraph, context: ExecutionFailureContext) {

@@ -4,9 +4,7 @@ use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::{EvaluationCondition, NodeState};
 use crate::logic::evaluation::EvaluationRequestMode;
-use crate::logic::prepared::{
-    ExecutionSnapshot, PreparedDependencyCapture, PreparedEvaluation,
-};
+use crate::logic::prepared::{ExecutionSnapshot, PreparedDependencyCapture, PreparedEvaluation};
 
 use super::plan_builder::partition_scope_untouched;
 use super::types::{EvaluationPlan, ExecutionReport};
@@ -31,6 +29,7 @@ pub(super) fn empty_execution_report(plan: &EvaluationPlan) -> ExecutionReport {
         execution_snapshot_nanos: 0,
         stage_precompute_nanos: 0,
         stage_apply_nanos: 0,
+        semantic_segment_count: 0,
         stages: Vec::new(),
     }
 }
@@ -99,7 +98,10 @@ where
         TestConditionAction::Evaluate => {
             let view = snapshot.read_view(node);
             let prepared = precompute(node, &view)?;
-            Ok(TestPreparedTask { prepared, telemetry })
+            Ok(TestPreparedTask {
+                prepared,
+                telemetry,
+            })
         }
         TestConditionAction::RevertClean => {
             telemetry.condition_skip_count += 1;
@@ -109,7 +111,10 @@ where
                 telemetry,
             })
         }
-        TestConditionAction::Defer { on_demand, debounce } => {
+        TestConditionAction::Defer {
+            on_demand,
+            debounce,
+        } => {
             telemetry.condition_skip_count += 1;
             telemetry.ondemand_deferred_count += u64::from(on_demand);
             telemetry.debounce_deferred_count += u64::from(debounce);
@@ -155,8 +160,7 @@ where
         TestConditionAction::Evaluate => {
             let result = compute(node, graph)?.into_evaluation_result();
             Ok(TestPreparedTask {
-                prepared: PreparedEvaluation::from_result(result)
-                    .with_dependencies(dependencies),
+                prepared: PreparedEvaluation::from_result(result).with_dependencies(dependencies),
                 telemetry,
             })
         }
@@ -168,7 +172,10 @@ where
                 telemetry,
             })
         }
-        TestConditionAction::Defer { on_demand, debounce } => {
+        TestConditionAction::Defer {
+            on_demand,
+            debounce,
+        } => {
             telemetry.condition_skip_count += 1;
             telemetry.ondemand_deferred_count += u64::from(on_demand);
             telemetry.debounce_deferred_count += u64::from(debounce);
