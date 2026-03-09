@@ -10,6 +10,7 @@ Deterministic reactive computation runtime for host-managed state graphs.
 - lazy recomputation
 - conditional nodes
 - transactional rollback
+- production diagnostics and causal explanations
 - deterministic behavior
 
 It stays domain-free. Your application owns the truth state. `forge-signal` owns invalidation and recomputation.
@@ -42,13 +43,12 @@ let mut runtime = SignalRuntime::builder(graph)
 let mut latest_total = 0_u64;
 runtime.transaction(&mut (), |transaction| {
     transaction.mark_dirty(price, PRICE)?;
-
-    let mut compute = |_node: NodeId, _graph: &SignalGraph| {
+    let precompute = |_node: NodeId, view: &ExecutionReadView<'_>| {
         latest_total += 1;
-        Ok(AspectVersion::from_updates([(PRICE, latest_total)]))
+        Ok(view.finish(AspectVersion::from_updates([(PRICE, latest_total)])))
     };
 
-    transaction.evaluate(total, &mut compute)?;
+    let _current = transaction.get(total, &precompute)?;
     Ok(())
 })?;
 ```
@@ -133,7 +133,19 @@ Most reactive systems make invalidation easy but correctness hard.
 - rollback on failure
 - deterministic behavior
 - precise aspect-level change tracking
+- diagnostics that can explain, compare, and diff runtime behavior under pressure
 - a runtime that can later grow into richer planners, memoization, and bridge integration
+
+## Diagnostics
+
+Diagnostics are a first-class production surface, not just test helpers. The runtime now exposes:
+
+- summaries for graphs, plans, execution reports, explanations, and execution history
+- structured diffs and semantic compare helpers
+- graph/plan/report/execution inspectors
+- causal flow summaries
+- failure diagnostics with rollback context
+- explicit diagnostics profiles: `Operational`, `Development`, and `Forensic`
 
 ## Current Focus
 

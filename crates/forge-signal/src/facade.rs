@@ -35,16 +35,33 @@ pub use crate::data::telemetry::RuntimeTelemetry;
 pub use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger, TierPolicy};
 pub use crate::data::tier_policy_table::TierPolicyTable;
 pub use crate::data::trace::{CausalityMetadata, TraceSummary};
+pub use crate::diagnostics::{
+    diagnostics_for_graph, diagnostics_for_runtime,
+    compare_execution_history, compare_execution_reports, compare_explanations, compare_failures,
+    compare_flows, compare_graphs, compare_plans, explanations_semantically_equivalent,
+    graphs_semantically_equivalent, inspect_execution, inspect_flow, inspect_graph, inspect_plan,
+    inspect_report, plans_semantically_equivalent, render_execution_history_summary,
+    render_execution_report_summary, render_explanation_summary, render_failure_summary,
+    render_flow_summary, render_graph_summary, render_plan_summary, repeat_run_summaries_equal,
+    reports_semantically_equivalent, serial_parallel_reports_equivalent, ChangeInputSummary,
+    DiagnosticMismatch, DiagnosticMismatchCategory, DiagnosticsPolicy, DiagnosticsProfile,
+    EvaluationPlanSummary,
+    ExecutionFailureContext, ExecutionFailurePhase, ExecutionHistoryNodeSummary,
+    ExecutionHistorySummary, ExecutionInspector, ExecutionReportDiff, ExecutionReportSummary,
+    ExplanationDiff, ExplanationSummary, FailureDiff, FailureSummary, FlowDiff, FlowInspector,
+    FlowSummary, GraphDiagnostics, GraphDiff, GraphInspector, GraphSummary, HistoryDiff,
+    InvalidationSummary, PlanningSummary, PrecomputeSummary, ApplySummary, RollbackSummary,
+    PlanDiff, PlanInspector, ReportInspector, RollbackDiagnostic,
+    RuntimeDiagnostics,
+};
 
 // Re-export Logic constructs
 pub use crate::logic::checkpoint::CheckpointRuntime;
 pub use crate::logic::context::EvaluationContext;
 pub use crate::logic::evaluation::{
-    apply_evaluation_result_with_policy_and_condition, evaluate, evaluate_on_demand,
-    evaluate_with_policy_and_condition_resolvers,
-    evaluate_with_policy_and_condition_resolvers_and_metadata, evaluate_with_policy_resolver,
-    evaluate_with_resolver, evaluate_with_resolvers, ConditionEvaluationContext, ConditionResolver,
-    DefaultConditionResolver, EvaluationExecutionMetadata, EvaluationRequestMode,
+    apply_evaluation_result_with_policy_and_condition, ConditionEvaluationContext,
+    ConditionResolver, DefaultConditionResolver, EvaluationExecutionMetadata,
+    EvaluationRequestMode,
 };
 pub use crate::logic::events::{EventBus, EventFlushError, SubscriberRegistryError};
 pub use crate::logic::explain::{
@@ -52,10 +69,10 @@ pub use crate::logic::explain::{
 };
 pub use crate::logic::invalidation::{mark_dirty, mark_dirty_with_regions};
 pub use crate::logic::planner::{
-    build_evaluation_plan, execute_plan, execute_prepared_plan, EvaluationPlan, EvaluationTask,
+    build_evaluation_plan, execute_prepared_plan, EvaluationPlan, EvaluationTask,
     ExecutionPruneReason, ExecutionRecordId, ExecutionReport, ExecutionStage, PlanSummary,
-    StageBarrier, StageExecutionOutcome, StageExecutionRecord, StageExecutor, TaskExecutionOutcome,
-    TaskExecutionRecord, TaskReason,
+    StageBarrier, StageExecutionOutcome, StageExecutionRecord, StageExecutor,
+    TaskExecutionOutcome, TaskExecutionRecord, TaskReason,
 };
 pub use crate::logic::prepared::{
     ExecutionReadView, ExecutionSnapshot, PreparedDependencyCapture, PreparedDependencyEdge,
@@ -64,9 +81,8 @@ pub use crate::logic::prepared::{
     SnapshotDependencyView, SnapshotNodeView, StageApplyResult, StageSnapshot,
 };
 pub use crate::logic::transaction::{
-    emit_event_in_txn, evaluate_in_txn, evaluate_in_txn_with_mode, flush_checkpoint_in_txn,
-    SignalRuntime, SignalRuntimeBuilder, SignalRuntimeConfig, SignalTransaction,
-    TransactionOutcome,
+    emit_event_in_txn, flush_checkpoint_in_txn, SignalRuntime, SignalRuntimeBuilder,
+    SignalRuntimeConfig, SignalTransaction, TransactionOutcome,
 };
 pub use crate::presentation::contracts::{
     DependencyGraphContract, RawPathComputeContract, StructuralStateBoundaryContract,

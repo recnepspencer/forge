@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicU32, Ordering};
+
 use crate::facade::*;
 use crate::tests::support::*;
 
@@ -111,15 +113,15 @@ fn keyed_evaluation_can_reuse_memoized_result() {
     let node = runtime.keyed_node(&family, "bulkhead");
     let computation = KeyedComputation::new(family.clone(), "bulkhead").with_memo_key("shape-v1");
     let mut runtime_ctx = ();
-    let mut compute_calls = 0_u32;
+    let compute_calls = AtomicU32::new(0);
 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.evaluate_keyed(node, &computation, &mut |_id, _graph| {
-                compute_calls += 1;
-                Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+            tx.evaluate_keyed(node, &computation, &|_id, view| {
+                compute_calls.fetch_add(1, Ordering::Relaxed);
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))
                     .with_output_identity("bulkhead-artifact")
-                    .with_output_change(OutputChange::Refreshed))
+                    .with_output_change(OutputChange::Refreshed)))
             })?;
             Ok(())
         })
@@ -129,15 +131,15 @@ fn keyed_evaluation_can_reuse_memoized_result() {
 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.evaluate_keyed(node, &computation, &mut |_id, _graph| {
-                compute_calls += 1;
-                Ok(NodeEvaluationResult::from_version(version_ab(99, 0)))
+            tx.evaluate_keyed(node, &computation, &|_id, view| {
+                compute_calls.fetch_add(1, Ordering::Relaxed);
+                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(99, 0))))
             })?;
             Ok(())
         })
         .unwrap();
 
-    assert_eq!(compute_calls, 1);
+    assert_eq!(compute_calls.load(Ordering::Relaxed), 1);
     let explanation = runtime.explain(node).unwrap();
     assert_eq!(
         explanation.memoized_origin,
@@ -161,13 +163,15 @@ fn memoization_is_scoped_by_family() {
     let computation_b =
         KeyedComputation::new(family_b.clone(), "bulkhead").with_memo_key("shape-v1");
     let mut runtime_ctx = ();
-    let mut compute_calls = 0_u32;
+    let compute_calls = AtomicU32::new(0);
 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.evaluate_keyed(node_a, &computation_a, &mut |_id, _graph| {
-                compute_calls += 1;
-                Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("a"))
+            tx.evaluate_keyed(node_a, &computation_a, &|_id, view| {
+                compute_calls.fetch_add(1, Ordering::Relaxed);
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("a"),
+                ))
             })?;
             Ok(())
         })
@@ -175,15 +179,17 @@ fn memoization_is_scoped_by_family() {
 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.evaluate_keyed(node_b, &computation_b, &mut |_id, _graph| {
-                compute_calls += 1;
-                Ok(NodeEvaluationResult::from_version(version_ab(2, 0)).with_output_identity("b"))
+            tx.evaluate_keyed(node_b, &computation_b, &|_id, view| {
+                compute_calls.fetch_add(1, Ordering::Relaxed);
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(2, 0)).with_output_identity("b"),
+                ))
             })?;
             Ok(())
         })
         .unwrap();
 
-    assert_eq!(compute_calls, 2);
+    assert_eq!(compute_calls.load(Ordering::Relaxed), 2);
 }
 
 #[test]
@@ -193,12 +199,14 @@ fn memoization_write_is_discarded_on_rollback() {
     let node = runtime.keyed_node(&family, "bulkhead");
     let computation = KeyedComputation::new(family.clone(), "bulkhead").with_memo_key("shape-v1");
     let mut runtime_ctx = ();
-    let mut compute_calls = 0_u32;
+    let compute_calls = AtomicU32::new(0);
 
     let err = runtime.transaction(&mut runtime_ctx, |tx| {
-        tx.evaluate_keyed(node, &computation, &mut |_id, _graph| {
-            compute_calls += 1;
-            Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("cached"))
+        tx.evaluate_keyed(node, &computation, &|_id, view| {
+            compute_calls.fetch_add(1, Ordering::Relaxed);
+            Ok(view.finish(
+                NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("cached"),
+            ))
         })?;
         Err(SignalError::invalid_input("force rollback"))
     });
@@ -206,16 +214,18 @@ fn memoization_write_is_discarded_on_rollback() {
 
     runtime
         .transaction(&mut runtime_ctx, |tx| {
-            tx.evaluate_keyed(node, &computation, &mut |_id, _graph| {
-                compute_calls += 1;
-                Ok(NodeEvaluationResult::from_version(version_ab(2, 0))
-                    .with_output_identity("fresh"))
+            tx.evaluate_keyed(node, &computation, &|_id, view| {
+                compute_calls.fetch_add(1, Ordering::Relaxed);
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(2, 0))
+                        .with_output_identity("fresh"),
+                ))
             })?;
             Ok(())
         })
         .unwrap();
 
-    assert_eq!(compute_calls, 2);
+    assert_eq!(compute_calls.load(Ordering::Relaxed), 2);
     let metrics = runtime.metrics();
     assert_eq!(metrics.memoization_hits, 0);
     assert_eq!(metrics.memoization_misses, 2);

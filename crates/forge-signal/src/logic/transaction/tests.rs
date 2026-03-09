@@ -4,6 +4,7 @@ use crate::data::error::SignalError;
 use crate::data::event_subscriber::{EventSubscriber, SubscriberId};
 use crate::data::subscriber_context::SubscriberContext;
 use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger, TierPolicy};
+use crate::facade::mark_dirty;
 use crate::logic::transaction::{SignalRuntime, TransactionOutcome};
 use crate::tests::support::*;
 
@@ -263,16 +264,12 @@ fn tier_comparator_inheritance_uses_tier_default() {
         )
         .with_default_comparator(VersionComparatorPolicy::Tolerance { epsilon: 2 }),
     );
-
-    let mut ctx = ();
-    let mut tx = runtime.begin();
-
     let mut compute_a_10 = |_id: crate::data::handle::NodeId,
-                            _g: &crate::data::graph::SignalGraph| {
+                        _g: &crate::data::graph::SignalGraph| {
         Ok(version_ab(0, 10))
     };
     let mut compute_a_12 = |_id: crate::data::handle::NodeId,
-                            _g: &crate::data::graph::SignalGraph| {
+                        _g: &crate::data::graph::SignalGraph| {
         Ok(version_ab(0, 12))
     };
     let mut compute_b = |_id: crate::data::handle::NodeId, _g: &crate::data::graph::SignalGraph| {
@@ -282,19 +279,18 @@ fn tier_comparator_inheritance_uses_tier_default() {
         Ok(version_ab(0, 1_000))
     };
 
-    tx.evaluate(a, &mut compute_a_10).unwrap();
-    tx.evaluate(b, &mut compute_b).unwrap();
-    tx.evaluate(c, &mut compute_c).unwrap();
-    tx.mark_dirty(a, ASPECT_B).unwrap();
-    tx.evaluate(a, &mut compute_a_12).unwrap();
-    tx.evaluate(b, &mut compute_b).unwrap();
-    tx.evaluate(c, &mut compute_c).unwrap();
+    evaluate(runtime.graph_mut(), a, &mut compute_a_10).unwrap();
+    evaluate(runtime.graph_mut(), b, &mut compute_b).unwrap();
+    evaluate(runtime.graph_mut(), c, &mut compute_c).unwrap();
+    mark_dirty(runtime.graph_mut(), a, ASPECT_B).unwrap();
+    evaluate(runtime.graph_mut(), a, &mut compute_a_12).unwrap();
+    evaluate(runtime.graph_mut(), b, &mut compute_b).unwrap();
+    evaluate(runtime.graph_mut(), c, &mut compute_c).unwrap();
 
     assert!(
-        tx.staged_graph().telemetry().skipped_by_comparator >= 1,
+        runtime.graph().telemetry().skipped_by_comparator >= 1,
         "tier tolerance comparator should skip small delta"
     );
-    assert_eq!(tx.commit(&mut ctx).unwrap(), TransactionOutcome::Committed);
 }
 
 #[test]

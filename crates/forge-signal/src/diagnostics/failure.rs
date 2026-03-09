@@ -1,0 +1,130 @@
+use serde::{Deserialize, Serialize};
+
+use crate::data::error::SignalError;
+use crate::data::handle::NodeId;
+use crate::diagnostics::profile::DiagnosticsProfile;
+use crate::logic::planner::{ExecutionRecordId, PlanSummary, StageExecutor};
+
+/// High-level phase where an execution failure occurred.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ExecutionFailurePhase {
+    Invalidation,
+    Planning,
+    SnapshotBuild,
+    Precompute,
+    Apply,
+    Rollback,
+    CommitPromotion,
+    ParallelDivergence,
+}
+
+/// Structured context for one execution failure.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExecutionFailureContext {
+    pub phase: ExecutionFailurePhase,
+    pub stage_index: Option<u32>,
+    pub node: Option<NodeId>,
+    pub executor: Option<StageExecutor>,
+    pub execution_record_id: Option<ExecutionRecordId>,
+    pub plan_summary: Option<PlanSummary>,
+    pub message: String,
+}
+
+/// Structured rollback diagnostic for staged execution failures.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RollbackDiagnostic {
+    pub rolled_back: bool,
+    pub staged_node_patch_count: u64,
+    pub max_touched_nodes_in_txn: u64,
+    pub reason: Option<String>,
+}
+
+/// Compact failure summary suitable for comparison and persistence.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FailureSummary {
+    pub profile: DiagnosticsProfile,
+    pub phase: ExecutionFailurePhase,
+    pub stage_index: Option<u32>,
+    pub node: Option<NodeId>,
+    pub executor: Option<StageExecutor>,
+    pub execution_record_id: Option<ExecutionRecordId>,
+    pub has_plan_summary: bool,
+    pub rolled_back: bool,
+    pub staged_node_patch_count: Option<u64>,
+    pub max_touched_nodes_in_txn: Option<u64>,
+    pub message: String,
+}
+
+impl ExecutionFailureContext {
+    pub fn new(
+        phase: ExecutionFailurePhase,
+        stage_index: Option<u32>,
+        node: Option<NodeId>,
+        executor: Option<StageExecutor>,
+        execution_record_id: Option<ExecutionRecordId>,
+        plan_summary: Option<PlanSummary>,
+        message: impl Into<String>,
+    ) -> Self {
+        Self {
+            phase,
+            stage_index,
+            node,
+            executor,
+            execution_record_id,
+            plan_summary,
+            message: message.into(),
+        }
+    }
+
+    pub fn from_error(
+        phase: ExecutionFailurePhase,
+        error: &SignalError,
+        plan_summary: Option<PlanSummary>,
+    ) -> Self {
+        Self::new(
+            phase,
+            None,
+            None,
+            None,
+            None,
+            plan_summary,
+            error.to_string(),
+        )
+    }
+
+    pub fn summarize(
+        &self,
+        rollback: Option<&RollbackDiagnostic>,
+        profile: DiagnosticsProfile,
+    ) -> FailureSummary {
+        FailureSummary {
+            profile,
+            phase: self.phase,
+            stage_index: self.stage_index,
+            node: self.node,
+            executor: self.executor,
+            execution_record_id: self.execution_record_id,
+            has_plan_summary: self.plan_summary.is_some(),
+            rolled_back: rollback.map(|d| d.rolled_back).unwrap_or(false),
+            staged_node_patch_count: rollback.map(|d| d.staged_node_patch_count),
+            max_touched_nodes_in_txn: rollback.map(|d| d.max_touched_nodes_in_txn),
+            message: self.message.clone(),
+        }
+    }
+}
+
+impl RollbackDiagnostic {
+    pub fn new(
+        rolled_back: bool,
+        staged_node_patch_count: u64,
+        max_touched_nodes_in_txn: u64,
+        reason: Option<String>,
+    ) -> Self {
+        Self {
+            rolled_back,
+            staged_node_patch_count,
+            max_touched_nodes_in_txn,
+            reason,
+        }
+    }
+}

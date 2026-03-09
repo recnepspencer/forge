@@ -49,7 +49,7 @@ impl EvaluationExecutionMetadata {
 /// Evaluate a node, recomputing only if necessary.
 ///
 /// Uses an explicit stack to avoid recursion on deep graphs.
-pub fn evaluate<F, O>(
+pub(crate) fn evaluate<F, O>(
     graph: &mut SignalGraph,
     node: NodeId,
     compute: &mut F,
@@ -71,7 +71,7 @@ where
 }
 
 /// Evaluate a node while forcing `OnDemand` conditions to execute.
-pub fn evaluate_on_demand<F, O>(
+pub(crate) fn evaluate_on_demand<F, O>(
     graph: &mut SignalGraph,
     node: NodeId,
     compute: &mut F,
@@ -93,7 +93,7 @@ where
 }
 
 /// Evaluate a node with a host-provided custom comparator resolver.
-pub fn evaluate_with_resolver<F, O, R>(
+pub(crate) fn evaluate_with_resolver<F, O, R>(
     graph: &mut SignalGraph,
     node: NodeId,
     compute: &mut F,
@@ -116,7 +116,7 @@ where
 }
 
 /// Evaluate a node with host-provided comparator and condition resolvers.
-pub fn evaluate_with_resolvers<F, O, R, C>(
+pub(crate) fn evaluate_with_resolvers<F, O, R, C>(
     graph: &mut SignalGraph,
     node: NodeId,
     compute: &mut F,
@@ -145,30 +145,8 @@ where
 }
 
 /// Evaluate a node with explicit comparator policy resolution.
-pub fn evaluate_with_policy_resolver<F, O, R>(
-    graph: &mut SignalGraph,
-    node: NodeId,
-    compute: &mut F,
-    resolver: &mut R,
-) -> Result<(), SignalError>
-where
-    F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
-    O: IntoNodeEvaluationResult,
-    R: ComparatorPolicyResolver,
-{
-    let mut condition = DefaultConditionResolver;
-    evaluate_with_policy_and_condition_resolvers(
-        graph,
-        node,
-        compute,
-        resolver,
-        &mut condition,
-        EvaluationRequestMode::Default,
-    )
-}
-
 /// Evaluate a node with explicit comparator policy and condition resolution.
-pub fn evaluate_with_policy_and_condition_resolvers<F, O, R, C>(
+pub(crate) fn evaluate_with_policy_and_condition_resolvers<F, O, R, C>(
     graph: &mut SignalGraph,
     node: NodeId,
     compute: &mut F,
@@ -193,7 +171,7 @@ where
     )
 }
 
-pub fn evaluate_with_policy_and_condition_resolvers_and_metadata<F, O, R, C>(
+pub(crate) fn evaluate_with_policy_and_condition_resolvers_and_metadata<F, O, R, C>(
     graph: &mut SignalGraph,
     node: NodeId,
     compute: &mut F,

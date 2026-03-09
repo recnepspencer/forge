@@ -4,6 +4,8 @@ use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
 
+use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
+use crate::diagnostics::recorder::DiagnosticsRecorder;
 use crate::data::comparator::{
     ComparatorPolicyResolver, DefaultComparatorPolicyResolver, DefaultComparatorResolver,
     VersionComparatorPolicy,
@@ -16,7 +18,7 @@ use crate::data::output::{IntoNodeEvaluationResult, MemoizedResultOrigin};
 use crate::data::trace::TraceSummary;
 use crate::logic::evaluation::{
     apply_prepared_evaluation_with_policy,
-    evaluate_direct_with_policy_and_condition_resolvers_and_metadata, DefaultConditionResolver,
+    evaluate_direct_with_policy_and_condition_resolvers_and_metadata,
     EvaluationExecutionMetadata, EvaluationRequestMode,
 };
 use crate::logic::prepared::{ExecutionSnapshot, PreparedEvaluation};
@@ -295,32 +297,6 @@ pub fn build_evaluation_plan_with_policy_resolver(
     })
 }
 
-pub fn execute_plan<F, O>(
-    graph: &mut SignalGraph,
-    plan: &EvaluationPlan,
-    compute: &mut F,
-) -> Result<ExecutionReport, SignalError>
-where
-    F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
-    O: IntoNodeEvaluationResult,
-{
-    let mut comparator = DefaultComparatorResolver;
-    let mut resolver = DefaultComparatorPolicyResolver {
-        fallback: VersionComparatorPolicy::Exact,
-        custom: &mut comparator,
-    };
-    let mut condition = DefaultConditionResolver;
-    execute_plan_with_policy_and_condition(
-        graph,
-        plan,
-        compute,
-        &mut resolver,
-        &mut condition,
-        StageExecutor::Serial,
-        None,
-    )
-}
-
 pub fn execute_prepared_plan<F>(
     graph: &mut SignalGraph,
     plan: &EvaluationPlan,
@@ -420,12 +396,27 @@ where
         let prepared = {
             let snapshot = ExecutionSnapshot::new(&*graph);
             let prepared = match executor {
-                StageExecutor::Serial => precompute_stage_serial(stage, &snapshot, precompute)?,
+                StageExecutor::Serial => precompute_stage_serial(stage, &snapshot, precompute),
                 #[cfg(feature = "parallel")]
-                StageExecutor::Parallel => precompute_stage_parallel(stage, &snapshot, precompute)?,
+                StageExecutor::Parallel => precompute_stage_parallel(stage, &snapshot, precompute),
             };
             prepared
-        };
+        }
+        .map_err(|err| {
+            record_execution_failure(
+                graph,
+                ExecutionFailureContext::new(
+                    ExecutionFailurePhase::Precompute,
+                    Some(stage.index),
+                    None,
+                    Some(executor),
+                    None,
+                    Some(plan.summary.clone()),
+                    err.to_string(),
+                ),
+            );
+            err
+        })?;
         let snapshot_nanos = snapshot_start.elapsed().as_nanos();
         graph.telemetry_mut().execution_snapshot_nanos += snapshot_nanos;
         report.execution_snapshots_built += 1;
@@ -480,7 +471,22 @@ where
                 prepared,
                 comparator_resolver,
                 None,
-            )?;
+            )
+            .map_err(|err| {
+                record_execution_failure(
+                    graph,
+                    ExecutionFailureContext::new(
+                        ExecutionFailurePhase::Apply,
+                        Some(stage.index),
+                        Some(task.node),
+                        Some(executor),
+                        Some(record_id),
+                        Some(plan.summary.clone()),
+                        err.to_string(),
+                    ),
+                );
+                err
+            })?;
             if let Some(summary) = graph
                 .get_entry_mut(task.node)?
                 .get_trace_summary()
@@ -520,9 +526,15 @@ where
         report.stages.push(stage_record);
     }
 
+    record_successful_execution(
+        graph,
+        plan,
+        &report,
+    );
     Ok(report)
 }
 
+#[cfg(test)]
 pub fn execute_plan_with_policy_and_condition<F, O>(
     graph: &mut SignalGraph,
     plan: &EvaluationPlan,
@@ -552,6 +564,7 @@ where
     }
 }
 
+#[cfg(test)]
 fn execute_plan_serial<F, O>(
     graph: &mut SignalGraph,
     plan: &EvaluationPlan,
@@ -787,6 +800,21 @@ fn classify_task_record(
         condition_reverted_clean,
         propagation_suppressed,
     }
+}
+
+fn record_successful_execution(
+    graph: &mut SignalGraph,
+    plan: &EvaluationPlan,
+    report: &ExecutionReport,
+) {
+    DiagnosticsRecorder::new(graph).record_execution_completed(plan, report);
+}
+
+fn record_execution_failure(
+    graph: &mut SignalGraph,
+    context: ExecutionFailureContext,
+) {
+    DiagnosticsRecorder::new(graph).record_failure(context);
 }
 
 fn accumulate_report_counters(report: &mut ExecutionReport, task_record: &TaskExecutionRecord) {

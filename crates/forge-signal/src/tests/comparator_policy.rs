@@ -1,4 +1,5 @@
 use crate::facade::*;
+use crate::tests::legacy_callback_adapter::*;
 use crate::tests::support::*;
 
 #[test]

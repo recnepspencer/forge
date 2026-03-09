@@ -23,16 +23,18 @@
 //!   User-defined aspect slots carry independent version counters
 //! - **Push phase** ([`facade::mark_dirty`]):
 //!   Synchronous dirty propagation with cycle detection
-//! - **Pull phase** ([`facade::evaluate`]):
-//!   Lazy recomputation with version-gated skip
+//! - **Pull phase**:
+//!   Planner-backed prepared precompute plus deterministic serial apply
 //! - **Condition-gated evaluation** ([`facade::EvaluationCondition`]):
 //!   on-demand, aspect-filtered, threshold, debounce, and custom evaluation policies,
 //!   exposed through readable builder helpers on [`facade::NodeBuilder`]
 //! - **Partition-aware subscriptions** ([`facade::PartitionSubscription`]):
 //!   downstream nodes can subscribe to one partition or one partition/detail pair
 //!   instead of invalidating on every change to a large artifact
-//! - **Parallel safety** ([`facade::EvaluationContext`]):
-//!   Explicit context object, not thread-local (Doctrine D8)
+//! - **Parallel safety** ([`facade::ExecutionReadView`]):
+//!   Immutable execution snapshot for stage-local precompute, not thread-local mutation
+//! - **Diagnostics-first observability**:
+//!   production summaries, diffs, inspectors, failure diagnostics, and causal flow reporting
 //! - **Productized runtime surface**:
 //!   [`facade::SignalRuntime::builder`] and [`easy::ReactiveGraph`]
 //!
@@ -48,6 +50,7 @@
 #![forbid(unsafe_code)]
 
 mod data;
+pub mod diagnostics;
 pub mod easy;
 mod logic;
 mod presentation;

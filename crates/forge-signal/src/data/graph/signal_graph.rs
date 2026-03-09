@@ -14,13 +14,18 @@ use crate::data::node::{NodeEntry, NodeEvaluationConfig, NodeState};
 use crate::data::output::{PartitionInterner, PartitionSubscription};
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::data::trace::CausalityMetadata;
-use crate::logic::evaluation::DefaultConditionResolver;
+use crate::diagnostics::access::GraphDiagnostics;
+use crate::diagnostics::history::ExecutionInspector;
+use crate::diagnostics::profile::DiagnosticsProfile;
+use crate::diagnostics::recorder::DiagnosticsRecorder;
+use crate::diagnostics::state::DiagnosticsState;
+use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
+use crate::diagnostics::{FailureSummary, FlowSummary, RollbackDiagnostic};
 use crate::logic::evaluation::EvaluationRequestMode;
 use crate::logic::explain::{dependency_chain_to, explain, NodeExplanation};
 use crate::logic::planner::{
-    build_evaluation_plan, execute_plan, execute_plan_with_policy_and_condition,
-    execute_prepared_plan, execute_prepared_plan_with_policy, EvaluationPlan, ExecutionReport,
-    StageExecutor,
+    build_evaluation_plan, execute_prepared_plan, execute_prepared_plan_with_policy,
+    EvaluationPlan, ExecutionReport, StageExecutor,
 };
 use crate::logic::prepared::{ExecutionReadView, PreparedEvaluation};
 use crate::presentation::dot::to_dot;
@@ -57,6 +62,9 @@ pub struct SignalGraph {
     /// Interned partition tokens/details for efficient scoped comparisons.
     #[serde(default)]
     partition_interner: PartitionInterner,
+    /// Bounded diagnostics retention and pending causal flow state.
+    #[serde(skip, default)]
+    diagnostics: DiagnosticsState,
 }
 
 impl Default for SignalGraph {
@@ -77,6 +85,7 @@ impl SignalGraph {
             scratch_lease: None,
             telemetry: RuntimeTelemetry::default(),
             partition_interner: PartitionInterner::default(),
+            diagnostics: DiagnosticsState::default(),
         }
     }
 
@@ -91,6 +100,7 @@ impl SignalGraph {
             scratch_lease: None,
             telemetry: RuntimeTelemetry::default(),
             partition_interner: PartitionInterner::default(),
+            diagnostics: DiagnosticsState::default(),
         }
     }
 
@@ -528,6 +538,53 @@ impl SignalGraph {
         )
     }
 
+    pub fn diagnostics_profile(&self) -> DiagnosticsProfile {
+        self.diagnostics.profile()
+    }
+
+    pub fn set_diagnostics_profile(&mut self, profile: DiagnosticsProfile) {
+        self.diagnostics.set_profile(profile);
+    }
+
+    /// Production diagnostics summary for the current graph state.
+    pub fn diagnostics_summary(&self, profile: DiagnosticsProfile) -> GraphSummary {
+        GraphSummary::from_graph(self, profile)
+    }
+
+    /// Central diagnostics facade for this graph.
+    pub fn diagnostics(&self) -> GraphDiagnostics<'_> {
+        GraphDiagnostics::new(self)
+    }
+
+    /// Production diagnostics summary for execution/trace history visible on the graph.
+    pub fn execution_history_summary(
+        &self,
+        profile: DiagnosticsProfile,
+    ) -> ExecutionHistorySummary {
+        ExecutionHistorySummary::from_graph(self, profile)
+    }
+
+    /// Structured execution-history inspector for production diagnostics.
+    pub fn inspect_execution(&self) -> ExecutionInspector<'_> {
+        ExecutionInspector { graph: self }
+    }
+
+    pub fn latest_flow_diagnostics(&self) -> Option<&FlowSummary> {
+        self.diagnostics.latest_flow()
+    }
+
+    pub fn latest_failure_diagnostics(&self) -> Option<&FailureSummary> {
+        self.diagnostics.latest_failure()
+    }
+
+    pub fn latest_rollback_diagnostics(&self) -> Option<&RollbackDiagnostic> {
+        self.diagnostics.latest_rollback()
+    }
+
+    pub fn recent_execution_history_diagnostics(&self) -> &std::collections::VecDeque<ExecutionHistorySummary> {
+        self.diagnostics.recent_history()
+    }
+
     /// Export this graph to Graphviz DOT.
     pub fn to_dot(&self) -> String {
         to_dot(self)
@@ -540,19 +597,6 @@ impl SignalGraph {
         request_mode: EvaluationRequestMode,
     ) -> Result<EvaluationPlan, SignalError> {
         build_evaluation_plan(self, targets, request_mode)
-    }
-
-    /// Execute one pre-built plan with the default graph-level comparator and condition semantics.
-    pub fn execute_plan<F, O>(
-        &mut self,
-        plan: &EvaluationPlan,
-        compute: &mut F,
-    ) -> Result<ExecutionReport, SignalError>
-    where
-        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
-        O: crate::data::output::IntoNodeEvaluationResult,
-    {
-        execute_plan(self, plan, compute)
     }
 
     /// Execute one pre-built plan using the prepared-evaluation contract.
@@ -585,36 +629,42 @@ impl SignalGraph {
         execute_prepared_plan_with_policy(self, plan, precompute, &mut resolver, executor)
     }
 
-    /// Execute one pre-built plan with an explicit stage executor.
-    pub fn execute_plan_with_executor<F, O>(
-        &mut self,
-        plan: &EvaluationPlan,
-        compute: &mut F,
-        executor: StageExecutor,
-    ) -> Result<ExecutionReport, SignalError>
-    where
-        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
-        O: crate::data::output::IntoNodeEvaluationResult,
-    {
-        let mut comparator = DefaultComparatorResolver;
-        let mut resolver = DefaultComparatorPolicyResolver {
-            fallback: VersionComparatorPolicy::Exact,
-            custom: &mut comparator,
-        };
-        let mut condition = DefaultConditionResolver;
-        execute_plan_with_policy_and_condition(
-            self,
-            plan,
-            compute,
-            &mut resolver,
-            &mut condition,
-            executor,
-            None,
-        )
-    }
-
     pub(crate) fn partition_interner_mut(&mut self) -> &mut PartitionInterner {
         &mut self.partition_interner
+    }
+
+    pub(crate) fn diagnostics_state(&self) -> &DiagnosticsState {
+        &self.diagnostics
+    }
+
+    pub(crate) fn diagnostics_state_mut(&mut self) -> &mut DiagnosticsState {
+        &mut self.diagnostics
+    }
+
+    pub(crate) fn note_change_input(
+        &mut self,
+        node: NodeId,
+        aspect: Aspect,
+        changed_regions: &[crate::data::output::ChangedRegion],
+    ) {
+        DiagnosticsRecorder::new(self).note_change_input(node, aspect, changed_regions);
+    }
+
+    pub(crate) fn record_invalidation_diagnostics(
+        &mut self,
+        invalidated_direct_subscribers: u32,
+        maybe_stale_direct_subscribers: u32,
+        partition_scoped_checks: u32,
+    ) {
+        DiagnosticsRecorder::new(self).record_invalidation_result(
+            invalidated_direct_subscribers,
+            maybe_stale_direct_subscribers,
+            partition_scoped_checks,
+        );
+    }
+
+    pub(crate) fn clear_pending_diagnostics_input(&mut self) {
+        self.diagnostics.clear_pending_input();
     }
 }
 

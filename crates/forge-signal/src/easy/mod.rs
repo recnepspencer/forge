@@ -1,10 +1,11 @@
 use std::any::Any;
 use std::collections::HashMap;
 use std::marker::PhantomData;
+use std::sync::Mutex;
 
-use crate::data::dependency::DependencySnapshot;
 use crate::facade::{
-    mark_dirty, Aspect, AspectMask, DependencyEdge, NodeId, NodeState, SignalError, SignalGraph,
+    mark_dirty, Aspect, AspectMask, AspectVersion, ExecutionReadView, NodeEvaluationResult, NodeId,
+    NodeState, PreparedEvaluation, SignalError, SignalGraph,
 };
 
 const DEFAULT_ASPECT: Aspect = Aspect::new(0);
@@ -27,14 +28,18 @@ impl<T> Signal<T> {
 pub type InputSignal<T> = Signal<T>;
 pub type ComputedSignal<T> = Signal<T>;
 
-trait ErasedComputed {
-    fn evaluate(&self, graph: &mut ReactiveGraph, node: NodeId) -> Result<(), SignalError>;
+trait ErasedComputed: Send + Sync {
+    fn precompute(
+        &self,
+        values: &HashMap<NodeId, Box<dyn Any + Send + Sync>>,
+        view: &ExecutionReadView<'_>,
+    ) -> Result<(Box<dyn Any + Send + Sync>, PreparedEvaluation), SignalError>;
 }
 
 struct Computed<T, F>
 where
-    T: Clone + 'static,
-    F: Fn(&mut ComputeContext<'_>) -> T + 'static,
+    T: Clone + Send + Sync + 'static,
+    F: Fn(&mut ComputeContext<'_>) -> T + Send + Sync + 'static,
 {
     closure: F,
     marker: PhantomData<fn() -> T>,
@@ -42,85 +47,48 @@ where
 
 impl<T, F> ErasedComputed for Computed<T, F>
 where
-    T: Clone + 'static,
-    F: Fn(&mut ComputeContext<'_>) -> T + 'static,
+    T: Clone + Send + Sync + 'static,
+    F: Fn(&mut ComputeContext<'_>) -> T + Send + Sync + 'static,
 {
-    fn evaluate(&self, graph: &mut ReactiveGraph, node: NodeId) -> Result<(), SignalError> {
-        let old_dependencies = graph.graph.get_entry(node)?.get_dependencies().to_vec();
-        let current_version = graph
-            .graph
-            .get_entry(node)?
-            .get_aspect_version()
-            .get(DEFAULT_ASPECT);
-
+    fn precompute(
+        &self,
+        values: &HashMap<NodeId, Box<dyn Any + Send + Sync>>,
+        view: &ExecutionReadView<'_>,
+    ) -> Result<(Box<dyn Any + Send + Sync>, PreparedEvaluation), SignalError> {
         let mut context = ComputeContext {
-            graph,
-            dependencies: Vec::new(),
+            values,
+            view,
         };
         let value = (self.closure)(&mut context);
-
-        for dependency in old_dependencies {
-            context.graph.graph.remove_dependency(
-                node,
-                dependency.source(),
-                dependency.aspect(),
-            )?;
-        }
-        for dependency in &context.dependencies {
-            context
-                .graph
-                .graph
-                .add_dependency(node, dependency.source(), dependency.aspect())?;
-        }
-
-        let mut snapshot = DependencySnapshot::empty();
-        for dependency in &context.dependencies {
-            let version = context
-                .graph
-                .graph
-                .get_entry(dependency.source())?
-                .get_aspect_version()
-                .get(dependency.aspect());
-            snapshot.record(
-                dependency.source(),
-                dependency.aspect(),
-                version,
-                dependency.scope_ref().cloned(),
-            );
-        }
-
-        context.graph.values.insert(node, Box::new(value));
-        let entry = context.graph.graph.get_entry_mut(node)?;
-        let next_version = entry
+        let current = view
+            .graph()
+            .get_entry(view.evaluating())?
             .get_aspect_version()
-            .with(DEFAULT_ASPECT, current_version + 1);
-        entry.set_aspect_version(next_version);
-        entry.set_dep_snapshot(snapshot);
-        entry.set_state(NodeState::Clean);
-        entry.set_dirty_aspects(AspectMask::EMPTY);
-        Ok(())
+            .get(DEFAULT_ASPECT);
+        let next_version = AspectVersion::zero().with(DEFAULT_ASPECT, current + 1);
+        let prepared = view.finish(NodeEvaluationResult::from_version(next_version));
+        Ok((Box::new(value), prepared))
     }
 }
 
 pub struct ComputeContext<'a> {
-    graph: &'a mut ReactiveGraph,
-    dependencies: Vec<DependencyEdge>,
+    values: &'a HashMap<NodeId, Box<dyn Any + Send + Sync>>,
+    view: &'a ExecutionReadView<'a>,
 }
 
 impl<'a> ComputeContext<'a> {
-    pub fn get<T: Clone + 'static>(&mut self, signal: Signal<T>) -> T {
-        self.dependencies
-            .push(DependencyEdge::new(signal.node, DEFAULT_ASPECT));
-        self.graph
-            .ensure_evaluated(signal.node)
-            .expect("easy-mode dependency evaluation failed");
-        self.graph.read_value(signal)
+    pub fn get<T: Clone + Send + Sync + 'static>(&mut self, signal: Signal<T>) -> T {
+        self.view.capture_dependency(signal.node, DEFAULT_ASPECT);
+        self.values[&signal.node]
+            .downcast_ref::<T>()
+            .expect("easy-mode signal type mismatch")
+            .clone()
     }
 }
 
 pub struct ReactiveGraph {
     graph: SignalGraph,
-    values: HashMap<NodeId, Box<dyn Any>>,
+    values: HashMap<NodeId, Box<dyn Any + Send + Sync>>,
     computed: HashMap<NodeId, Box<dyn ErasedComputed>>,
     batch_depth: usize,
     batched_dirty_nodes: Vec<NodeId>,
@@ -143,7 +111,7 @@ impl ReactiveGraph {
         }
     }
 
-    pub fn input<T: Clone + 'static>(&mut self, value: T) -> InputSignal<T> {
+    pub fn input<T: Clone + Send + Sync + 'static>(&mut self, value: T) -> InputSignal<T> {
         let node = self.graph.node().build();
         self.values.insert(node, Box::new(value));
 
@@ -159,8 +127,8 @@ impl ReactiveGraph {
 
     pub fn computed<T, F>(&mut self, compute: F) -> ComputedSignal<T>
     where
-        T: Clone + 'static,
-        F: Fn(&mut ComputeContext<'_>) -> T + 'static,
+        T: Clone + Send + Sync + 'static,
+        F: Fn(&mut ComputeContext<'_>) -> T + Send + Sync + 'static,
     {
         let node = self.graph.node().on_demand().build();
         self.computed.insert(
@@ -173,13 +141,13 @@ impl ReactiveGraph {
         Signal::new(node)
     }
 
-    pub fn get<T: Clone + 'static>(&mut self, signal: Signal<T>) -> T {
+    pub fn get<T: Clone + Send + Sync + 'static>(&mut self, signal: Signal<T>) -> T {
         self.ensure_evaluated(signal.node)
             .expect("easy-mode evaluation failed");
         self.read_value(signal)
     }
 
-    pub fn set<T: Clone + 'static>(&mut self, signal: InputSignal<T>, value: T) {
+    pub fn set<T: Clone + Send + Sync + 'static>(&mut self, signal: InputSignal<T>, value: T) {
         self.values.insert(signal.node, Box::new(value));
         {
             let entry = self
@@ -225,53 +193,40 @@ impl ReactiveGraph {
             return Ok(());
         }
 
-        let dependencies = self.graph.get_entry(node)?.get_dependencies().to_vec();
-        for dependency in dependencies {
-            self.ensure_evaluated(dependency.source())?;
-        }
-
-        match *self.graph.get_entry(node)?.get_state() {
-            NodeState::Clean => Ok(()),
-            NodeState::MaybeStale => {
-                if self.upstream_matches_snapshot(node)? {
-                    let entry = self.graph.get_entry_mut(node)?;
-                    entry.set_state(NodeState::Clean);
-                    entry.set_dirty_aspects(AspectMask::EMPTY);
-                    Ok(())
+        let plan = self
+            .graph
+            .build_evaluation_plan(&[node], crate::logic::evaluation::EvaluationRequestMode::Default)?;
+        let staged_values: Mutex<HashMap<NodeId, Box<dyn Any + Send + Sync>>> =
+            Mutex::new(HashMap::new());
+        let graph = &mut self.graph;
+        let computed = &self.computed;
+        let values = &self.values;
+        graph.execute_prepared_plan(
+            &plan,
+            &|current, view| {
+                if let Some(computed) = computed.get(&current) {
+                    let (value, prepared) = computed.precompute(values, view)?;
+                    staged_values
+                        .lock()
+                        .map_err(|_| SignalError::internal("easy-mode staged value mutex poisoned"))?
+                        .insert(current, value);
+                    Ok(prepared)
                 } else {
-                    self.recompute(node)
+                    Ok(PreparedEvaluation::validated_clean())
                 }
-            }
-            NodeState::Dirty => self.recompute(node),
+            },
+        )?;
+
+        let staged_values = staged_values
+            .into_inner()
+            .map_err(|_| SignalError::internal("easy-mode staged value mutex poisoned"))?;
+        for (node, value) in staged_values {
+            self.values.insert(node, value);
         }
+        Ok(())
     }
 
-    fn recompute(&mut self, node: NodeId) -> Result<(), SignalError> {
-        let compute = self
-            .computed
-            .remove(&node)
-            .expect("computed node should exist while recomputing");
-        let result = compute.evaluate(self, node);
-        self.computed.insert(node, compute);
-        result
-    }
-
-    fn upstream_matches_snapshot(&self, node: NodeId) -> Result<bool, SignalError> {
-        let snapshot = self.graph.get_entry(node)?.get_dep_snapshot();
-        for &(source, aspect, expected_version, _) in snapshot.entries() {
-            let current_version = self
-                .graph
-                .get_entry(source)?
-                .get_aspect_version()
-                .get(aspect);
-            if current_version != expected_version {
-                return Ok(false);
-            }
-        }
-        Ok(true)
-    }
-
-    fn read_value<T: Clone + 'static>(&self, signal: Signal<T>) -> T {
+    fn read_value<T: Clone + Send + Sync + 'static>(&self, signal: Signal<T>) -> T {
         self.values[&signal.node]
             .downcast_ref::<T>()
             .expect("easy-mode signal type mismatch")

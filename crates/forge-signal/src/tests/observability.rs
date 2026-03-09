@@ -1,4 +1,5 @@
 use crate::facade::*;
+use crate::tests::legacy_callback_adapter::*;
 use crate::tests::support::*;
 
 #[allow(dead_code)]
@@ -319,7 +320,11 @@ fn rollback_preserves_committed_explanation_and_increments_rollback_metric() {
 
     let err = runtime.transaction(&mut (), |tx| {
         tx.mark_dirty(source, ASPECT_A)?;
-        tx.evaluate(dependent, &mut |_id, _graph| Ok(version_ab(99, 0)))?;
+        tx.evaluate_with_plan(
+            dependent,
+            &|_id, view| Ok(view.finish(version_ab(99, 0))),
+            EvaluationRequestMode::Default,
+        )?;
         Err(SignalError::invalid_input("rollback for test"))
     });
     assert!(err.is_err());

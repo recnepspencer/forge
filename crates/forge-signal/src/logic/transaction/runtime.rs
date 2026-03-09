@@ -6,8 +6,7 @@ use crate::data::aspect::{Aspect, AspectVersion};
 use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::checkpoint_policy::CheckpointPolicy;
 use crate::data::comparator::{
-    DefaultComparatorResolver, TierPolicyResolver, VersionComparatorPolicy,
-    VersionComparatorResolver,
+    TierPolicyResolver, VersionComparatorPolicy,
 };
 use crate::data::dirty_set::{BatchedDirtySet, DomainImpact};
 use crate::data::effect_mapping::EffectMapping;
@@ -18,25 +17,35 @@ use crate::data::handle::NodeId;
 use crate::data::node_meta::NodeMetaStore;
 use crate::data::output::ChangedRegion;
 use crate::data::output::{
-    ComputationFamily, ComputationKey, IntoNodeEvaluationResult, KeyedComputation,
-    NodeEvaluationResult, StructuralMemoKey,
+    ComputationFamily, ComputationKey, KeyedComputation, NodeEvaluationResult,
+    StructuralMemoKey,
 };
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::data::tier::TierPolicy;
 use crate::data::tier_policy_table::TierPolicyTable;
-use crate::logic::checkpoint::CheckpointRuntime;
-use crate::logic::evaluation::{
-    apply_evaluation_result_with_policy_and_condition, DefaultConditionResolver,
-    EvaluationExecutionMetadata, EvaluationRequestMode,
+use crate::diagnostics::state::DiagnosticsState;
+use crate::diagnostics::access::RuntimeDiagnostics;
+use crate::diagnostics::history::ExecutionInspector;
+use crate::diagnostics::profile::DiagnosticsProfile;
+use crate::diagnostics::recorder::DiagnosticsRecorder;
+use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
+use crate::diagnostics::{
+    ExecutionFailureContext, ExecutionFailurePhase, FailureSummary, FlowSummary,
+    RollbackDiagnostic,
 };
+use crate::logic::checkpoint::CheckpointRuntime;
+use crate::logic::evaluation::EvaluationRequestMode;
 use crate::logic::events::EventBus;
 use crate::logic::explain::{explain_with_policy_resolver, NodeExplanation};
 use crate::logic::invalidation::{mark_dirty, mark_dirty_with_regions};
 use crate::logic::planner::{
-    build_evaluation_plan_with_policy_resolver, execute_plan_with_policy_and_condition,
-    execute_prepared_plan_with_policy, EvaluationPlan, ExecutionReport, StageExecutor,
+    build_evaluation_plan_with_policy_resolver, execute_prepared_plan_with_policy,
+    EvaluationPlan, ExecutionReport, StageExecutor,
 };
-use crate::logic::prepared::{ExecutionReadView, PreparedEvaluation};
+use crate::logic::prepared::{
+    ExecutionReadView, PreparedEvaluation, PreparedEvaluationOrigin, PreparedKeyedContext,
+    PreparedMemoDecision,
+};
 use crate::presentation::metrics::RuntimeMetrics;
 
 use super::patch_buffer::SparsePatchBuffer;
@@ -418,6 +427,55 @@ where
         }
     }
 
+    /// Production diagnostics summary for the committed runtime graph state.
+    pub fn diagnostics_summary(&self, profile: DiagnosticsProfile) -> GraphSummary {
+        self.graph.diagnostics_summary(profile)
+    }
+
+    /// Central diagnostics facade for this runtime.
+    pub fn diagnostics(&self) -> RuntimeDiagnostics<'_> {
+        crate::diagnostics::access::diagnostics_for_runtime(self)
+    }
+
+    pub fn diagnostics_profile(&self) -> DiagnosticsProfile {
+        self.graph.diagnostics_profile()
+    }
+
+    pub fn set_diagnostics_profile(&mut self, profile: DiagnosticsProfile) {
+        self.graph.set_diagnostics_profile(profile);
+    }
+
+    /// Production diagnostics summary for execution/trace history visible on the committed graph.
+    pub fn execution_history_summary(
+        &self,
+        profile: DiagnosticsProfile,
+    ) -> ExecutionHistorySummary {
+        self.graph.execution_history_summary(profile)
+    }
+
+    /// Structured execution-history inspector for the committed graph.
+    pub fn inspect_execution(&self) -> ExecutionInspector<'_> {
+        self.graph.inspect_execution()
+    }
+
+    pub fn latest_flow_diagnostics(&self) -> Option<&FlowSummary> {
+        self.graph.latest_flow_diagnostics()
+    }
+
+    pub fn latest_failure_diagnostics(&self) -> Option<&FailureSummary> {
+        self.graph.latest_failure_diagnostics()
+    }
+
+    pub fn latest_rollback_diagnostics(&self) -> Option<&RollbackDiagnostic> {
+        self.graph.latest_rollback_diagnostics()
+    }
+
+    pub fn recent_execution_history_diagnostics(
+        &self,
+    ) -> &std::collections::VecDeque<ExecutionHistorySummary> {
+        self.graph.recent_execution_history_diagnostics()
+    }
+
     /// Graphviz DOT export for the committed graph.
     pub fn to_dot(&self) -> String {
         self.graph.to_dot()
@@ -440,49 +498,6 @@ where
             request_mode,
             &mut resolver,
         )
-    }
-
-    /// Execute one pre-built plan with the runtime's comparator policy.
-    pub fn execute_plan<F, O>(
-        &mut self,
-        plan: &EvaluationPlan,
-        compute: &mut F,
-    ) -> Result<ExecutionReport, SignalError>
-    where
-        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
-        O: IntoNodeEvaluationResult,
-    {
-        self.execute_plan_with_executor(plan, compute, StageExecutor::Serial)
-    }
-
-    /// Execute one pre-built plan with an explicit stage executor.
-    pub fn execute_plan_with_executor<F, O>(
-        &mut self,
-        plan: &EvaluationPlan,
-        compute: &mut F,
-        executor: StageExecutor,
-    ) -> Result<ExecutionReport, SignalError>
-    where
-        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
-        O: IntoNodeEvaluationResult,
-    {
-        let mut resolver = TierPolicyResolver::new(
-            self.config.node_meta(),
-            self.config.tier_policies(),
-            self.config.fallback_comparator(),
-        );
-        let mut condition_resolver = DefaultConditionResolver;
-        let report = execute_plan_with_policy_and_condition(
-            &mut self.graph,
-            plan,
-            compute,
-            &mut resolver,
-            &mut condition_resolver,
-            executor,
-            None,
-        )?;
-        self.absorb_execution_report_telemetry(&report);
-        Ok(report)
     }
 
     /// Execute one pre-built plan with the prepared-evaluation contract.
@@ -523,35 +538,96 @@ where
         Ok(report)
     }
 
-    /// Convenience evaluation path that builds and executes a plan for one target.
-    pub fn evaluate_with_plan<F, O>(
+    /// Convenience evaluation path that builds and executes a prepared plan for one target.
+    pub fn evaluate_with_plan<F>(
         &mut self,
         node: NodeId,
-        compute: &mut F,
+        precompute: &F,
         request_mode: EvaluationRequestMode,
     ) -> Result<ExecutionReport, SignalError>
     where
-        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
-        O: IntoNodeEvaluationResult,
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
         let plan = self.build_evaluation_plan(&[node], request_mode)?;
-        self.execute_plan(&plan, compute)
+        self.execute_prepared_plan(&plan, precompute)
     }
 
-    /// Convenience evaluation path that builds and executes a plan with an explicit executor.
-    pub fn evaluate_with_plan_and_executor<F, O>(
+    /// Convenience evaluation path that builds and executes a prepared plan with an explicit executor.
+    pub fn evaluate_with_plan_and_executor<F>(
         &mut self,
         node: NodeId,
-        compute: &mut F,
+        precompute: &F,
         request_mode: EvaluationRequestMode,
         executor: StageExecutor,
     ) -> Result<ExecutionReport, SignalError>
     where
-        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
-        O: IntoNodeEvaluationResult,
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
         let plan = self.build_evaluation_plan(&[node], request_mode)?;
-        self.execute_plan_with_executor(&plan, compute, executor)
+        self.execute_prepared_plan_with_executor(&plan, precompute, executor)
+    }
+
+    /// Read one node through the planner-backed prepared path and return its current version.
+    pub fn read<F>(
+        &mut self,
+        node: NodeId,
+        precompute: &F,
+    ) -> Result<AspectVersion, SignalError>
+    where
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    {
+        self.read_with_executor(node, precompute, StageExecutor::Serial)
+    }
+
+    /// Alias for `read(...)` using more familiar signal vocabulary.
+    pub fn get<F>(
+        &mut self,
+        node: NodeId,
+        precompute: &F,
+    ) -> Result<AspectVersion, SignalError>
+    where
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    {
+        self.read(node, precompute)
+    }
+
+    /// Read one node with an explicit stage executor.
+    pub fn read_with_executor<F>(
+        &mut self,
+        node: NodeId,
+        precompute: &F,
+        executor: StageExecutor,
+    ) -> Result<AspectVersion, SignalError>
+    where
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    {
+        self.evaluate_with_plan_and_executor(node, precompute, EvaluationRequestMode::Default, executor)?;
+        Ok(self.graph.get_entry(node)?.get_aspect_version())
+    }
+
+    /// Evaluate the current dirty or maybe-stale frontier in one planner pass.
+    pub fn evaluate_dirty<F>(&mut self, precompute: &F) -> Result<ExecutionReport, SignalError>
+    where
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    {
+        self.evaluate_dirty_with_executor(precompute, StageExecutor::Serial)
+    }
+
+    /// Evaluate the current dirty or maybe-stale frontier with an explicit executor.
+    pub fn evaluate_dirty_with_executor<F>(
+        &mut self,
+        precompute: &F,
+        executor: StageExecutor,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    {
+        let targets = collect_dirty_targets(&self.graph);
+        if targets.is_empty() {
+            return Ok(empty_execution_report());
+        }
+        let plan = self.build_evaluation_plan(&targets, EvaluationRequestMode::Default)?;
+        self.execute_prepared_plan_with_executor(&plan, precompute, executor)
     }
 
     fn absorb_execution_report_telemetry(&mut self, report: &ExecutionReport) {
@@ -650,6 +726,7 @@ where
     pub fn begin<'a>(&'a mut self) -> SignalTransaction<'a, D, I, E, Ctx, T> {
         self.telemetry.transaction_begin_count += 1;
         self.config.sync_graph_capacity(&self.graph);
+        let diagnostics_snapshot = self.graph.diagnostics_state().clone();
         SignalTransaction {
             config: &mut self.config,
             graph: &mut self.graph,
@@ -663,6 +740,8 @@ where
             staged_event_flushes: Vec::new(),
             staged_memo_writes: BTreeMap::new(),
             graph_patches: SparsePatchBuffer::new(),
+            diagnostics_snapshot,
+            pending_failure_summary: None,
             poisoned: false,
             finished: false,
             staged_patch_count: 0,
@@ -719,6 +798,8 @@ where
     staged_event_flushes: Vec<CheckpointBarrier>,
     staged_memo_writes: BTreeMap<(ComputationFamily, StructuralMemoKey), NodeEvaluationResult>,
     graph_patches: SparsePatchBuffer,
+    diagnostics_snapshot: DiagnosticsState,
+    pending_failure_summary: Option<FailureSummary>,
     poisoned: bool,
     finished: bool,
     staged_patch_count: u64,
@@ -771,143 +852,8 @@ where
         self.apply_result(result)
     }
 
-    /// Evaluate one node in staged graph with the default comparator resolver.
-    pub fn evaluate<F, O>(&mut self, node: NodeId, compute: &mut F) -> Result<(), SignalError>
-    where
-        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
-        O: IntoNodeEvaluationResult,
-    {
-        self.evaluate_with_mode(node, compute, EvaluationRequestMode::Default)
-    }
-
-    /// Evaluate one node in staged graph with tier-aware comparator inheritance.
-    pub fn evaluate_with_resolver<F, O, R>(
-        &mut self,
-        node: NodeId,
-        compute: &mut F,
-        custom_resolver: R,
-    ) -> Result<(), SignalError>
-    where
-        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
-        O: IntoNodeEvaluationResult,
-        R: VersionComparatorResolver,
-    {
-        self.evaluate_with_mode_and_resolver(
-            node,
-            compute,
-            custom_resolver,
-            EvaluationRequestMode::Default,
-        )
-    }
-
-    /// Evaluate one node in staged graph with explicit request mode and the default comparator resolver.
-    pub fn evaluate_with_mode<F, O>(
-        &mut self,
-        node: NodeId,
-        compute: &mut F,
-        request_mode: EvaluationRequestMode,
-    ) -> Result<(), SignalError>
-    where
-        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
-        O: IntoNodeEvaluationResult,
-    {
-        self.evaluate_with_mode_and_resolver(node, compute, DefaultComparatorResolver, request_mode)
-    }
-
-    /// Evaluate one node in staged graph with explicit request mode.
-    pub fn evaluate_with_mode_and_resolver<F, O, R>(
-        &mut self,
-        node: NodeId,
-        compute: &mut F,
-        custom_resolver: R,
-        request_mode: EvaluationRequestMode,
-    ) -> Result<(), SignalError>
-    where
-        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
-        O: IntoNodeEvaluationResult,
-        R: VersionComparatorResolver,
-    {
-        self.stage_evaluate_candidates(node)?;
-        let mut resolver = TierPolicyResolver::new(
-            self.config.node_meta(),
-            self.config.tier_policies(),
-            self.config.fallback_comparator(),
-        )
-        .with_custom_resolver(custom_resolver);
-        let plan = build_evaluation_plan_with_policy_resolver(
-            self.graph,
-            &[node],
-            request_mode,
-            &mut resolver,
-        )?;
-        let mut condition_resolver = DefaultConditionResolver;
-        let report = execute_plan_with_policy_and_condition(
-            self.graph,
-            &plan,
-            compute,
-            &mut resolver,
-            &mut condition_resolver,
-            StageExecutor::Serial,
-            None,
-        )?;
-        self.absorb_execution_report_telemetry(&report);
-        Ok(())
-    }
-
-    /// Convenience evaluation path that builds and executes a plan for one target.
-    pub fn evaluate_with_plan<F, O>(
-        &mut self,
-        node: NodeId,
-        compute: &mut F,
-        request_mode: EvaluationRequestMode,
-    ) -> Result<ExecutionReport, SignalError>
-    where
-        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
-        O: IntoNodeEvaluationResult,
-    {
-        self.evaluate_with_plan_and_executor(node, compute, request_mode, StageExecutor::Serial)
-    }
-
-    /// Convenience evaluation path that builds and executes a plan with an explicit executor.
-    pub fn evaluate_with_plan_and_executor<F, O>(
-        &mut self,
-        node: NodeId,
-        compute: &mut F,
-        request_mode: EvaluationRequestMode,
-        executor: StageExecutor,
-    ) -> Result<ExecutionReport, SignalError>
-    where
-        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
-        O: IntoNodeEvaluationResult,
-    {
-        self.stage_evaluate_candidates(node)?;
-        let mut resolver = TierPolicyResolver::new(
-            self.config.node_meta(),
-            self.config.tier_policies(),
-            self.config.fallback_comparator(),
-        );
-        let plan = build_evaluation_plan_with_policy_resolver(
-            self.graph,
-            &[node],
-            request_mode,
-            &mut resolver,
-        )?;
-        let mut condition_resolver = DefaultConditionResolver;
-        let report = execute_plan_with_policy_and_condition(
-            self.graph,
-            &plan,
-            compute,
-            &mut resolver,
-            &mut condition_resolver,
-            executor,
-            None,
-        )?;
-        self.absorb_execution_report_telemetry(&report);
-        Ok(report)
-    }
-
     /// Convenience prepared-evaluation path that builds and executes a plan for one target.
-    pub fn evaluate_prepared_with_plan<F>(
+    pub fn evaluate_with_plan<F>(
         &mut self,
         node: NodeId,
         precompute: &F,
@@ -916,16 +862,11 @@ where
     where
         F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
-        self.evaluate_prepared_with_plan_and_executor(
-            node,
-            precompute,
-            request_mode,
-            StageExecutor::Serial,
-        )
+        self.evaluate_with_plan_and_executor(node, precompute, request_mode, StageExecutor::Serial)
     }
 
     /// Convenience prepared-evaluation path with an explicit executor.
-    pub fn evaluate_prepared_with_plan_and_executor<F>(
+    pub fn evaluate_with_plan_and_executor<F>(
         &mut self,
         node: NodeId,
         precompute: &F,
@@ -941,43 +882,19 @@ where
             self.config.tier_policies(),
             self.config.fallback_comparator(),
         );
-        let plan = build_evaluation_plan_with_policy_resolver(
+        let plan = match build_evaluation_plan_with_policy_resolver(
             self.graph,
             &[node],
             request_mode,
             &mut resolver,
-        )?;
+        ) {
+            Ok(plan) => plan,
+            Err(err) => {
+                self.record_failure_from_error(ExecutionFailurePhase::Planning, &err, None);
+                return Err(err);
+            }
+        };
         self.execute_prepared_plan_with_executor(&plan, precompute, executor)
-    }
-
-    /// Execute one pre-built plan against the staged graph with an explicit executor.
-    pub fn execute_plan_with_executor<F, O>(
-        &mut self,
-        plan: &EvaluationPlan,
-        compute: &mut F,
-        executor: StageExecutor,
-    ) -> Result<ExecutionReport, SignalError>
-    where
-        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
-        O: IntoNodeEvaluationResult,
-    {
-        let mut resolver = TierPolicyResolver::new(
-            self.config.node_meta(),
-            self.config.tier_policies(),
-            self.config.fallback_comparator(),
-        );
-        let mut condition_resolver = DefaultConditionResolver;
-        let report = execute_plan_with_policy_and_condition(
-            self.graph,
-            plan,
-            compute,
-            &mut resolver,
-            &mut condition_resolver,
-            executor,
-            None,
-        )?;
-        self.absorb_execution_report_telemetry(&report);
-        Ok(report)
     }
 
     /// Execute one pre-built prepared-evaluation plan against the staged graph.
@@ -995,42 +912,133 @@ where
             self.config.tier_policies(),
             self.config.fallback_comparator(),
         );
-        let report = execute_prepared_plan_with_policy(
+        let report = match execute_prepared_plan_with_policy(
             self.graph,
             plan,
             precompute,
             &mut resolver,
             executor,
-        )?;
+        ) {
+            Ok(report) => report,
+            Err(err) => {
+                if let Some(summary) = self.graph.latest_failure_diagnostics().cloned() {
+                    self.pending_failure_summary = Some(summary);
+                } else {
+                    self.record_failure_from_error(
+                        ExecutionFailurePhase::Apply,
+                        &err,
+                        Some(plan.summary.clone()),
+                    );
+                }
+                return Err(err);
+            }
+        };
         self.absorb_execution_report_telemetry(&report);
         Ok(report)
     }
 
+    /// Read one node through the planner-backed prepared path and return its current version.
+    pub fn read<F>(
+        &mut self,
+        node: NodeId,
+        precompute: &F,
+    ) -> Result<AspectVersion, SignalError>
+    where
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    {
+        self.read_with_executor(node, precompute, StageExecutor::Serial)
+    }
+
+    /// Alias for `read(...)` using more familiar signal vocabulary.
+    pub fn get<F>(
+        &mut self,
+        node: NodeId,
+        precompute: &F,
+    ) -> Result<AspectVersion, SignalError>
+    where
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    {
+        self.read(node, precompute)
+    }
+
+    /// Read one node with an explicit stage executor.
+    pub fn read_with_executor<F>(
+        &mut self,
+        node: NodeId,
+        precompute: &F,
+        executor: StageExecutor,
+    ) -> Result<AspectVersion, SignalError>
+    where
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    {
+        self.evaluate_with_plan_and_executor(node, precompute, EvaluationRequestMode::Default, executor)?;
+        Ok(self.graph.get_entry(node)?.get_aspect_version())
+    }
+
+    /// Evaluate the currently dirty or maybe-stale frontier in one planner pass.
+    pub fn evaluate_dirty<F>(&mut self, precompute: &F) -> Result<ExecutionReport, SignalError>
+    where
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    {
+        self.evaluate_dirty_with_executor(precompute, StageExecutor::Serial)
+    }
+
+    /// Evaluate the currently dirty or maybe-stale frontier with an explicit executor.
+    pub fn evaluate_dirty_with_executor<F>(
+        &mut self,
+        precompute: &F,
+        executor: StageExecutor,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    {
+        let targets = self.collect_dirty_targets();
+        if targets.is_empty() {
+            return Ok(empty_execution_report());
+        }
+        let mut resolver = TierPolicyResolver::new(
+            self.config.node_meta(),
+            self.config.tier_policies(),
+            self.config.fallback_comparator(),
+        );
+        let plan = match build_evaluation_plan_with_policy_resolver(
+            self.graph,
+            &targets,
+            EvaluationRequestMode::Default,
+            &mut resolver,
+        ) {
+            Ok(plan) => plan,
+            Err(err) => {
+                self.record_failure_from_error(ExecutionFailurePhase::Planning, &err, None);
+                return Err(err);
+            }
+        };
+        self.execute_prepared_plan_with_executor(&plan, precompute, executor)
+    }
+
     /// Evaluate one keyed computation with optional structural memoization.
-    pub fn evaluate_keyed<F, O>(
+    pub fn evaluate_keyed<F>(
         &mut self,
         node: NodeId,
         computation: &KeyedComputation,
-        compute: &mut F,
+        precompute: &F,
     ) -> Result<(), SignalError>
     where
-        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
-        O: IntoNodeEvaluationResult,
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
-        self.evaluate_keyed_with_mode(node, computation, compute, EvaluationRequestMode::Default)
+        self.evaluate_keyed_with_mode(node, computation, precompute, EvaluationRequestMode::Default)
     }
 
     /// Evaluate one keyed computation with explicit request mode.
-    pub fn evaluate_keyed_with_mode<F, O>(
+    pub fn evaluate_keyed_with_mode<F>(
         &mut self,
         node: NodeId,
         computation: &KeyedComputation,
-        compute: &mut F,
+        precompute: &F,
         request_mode: EvaluationRequestMode,
     ) -> Result<(), SignalError>
     where
-        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
-        O: IntoNodeEvaluationResult,
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
         self.telemetry.keyed_evaluation_count += 1;
         self.stage_evaluate_candidates(node)?;
@@ -1039,6 +1047,24 @@ where
             self.config.tier_policies(),
             self.config.fallback_comparator(),
         );
+        let plan = match build_evaluation_plan_with_policy_resolver(
+            self.graph,
+            &[node],
+            request_mode,
+            &mut resolver,
+        ) {
+            Ok(plan) => plan,
+            Err(err) => {
+                self.record_failure_from_error(ExecutionFailurePhase::Planning, &err, None);
+                return Err(err);
+            }
+        };
+        let base_keyed_context = PreparedKeyedContext {
+            family: Some(computation.family.clone()),
+            key: Some(computation.key.clone()),
+            memo_key: computation.memo_key.clone(),
+            memoized_origin: crate::data::output::MemoizedResultOrigin::DirectCompute,
+        };
         if let Some(memo_key) = computation.memo_key.as_ref() {
             if let Some(cached) = self
                 .staged_memo_writes
@@ -1050,51 +1076,67 @@ where
                 })
             {
                 self.telemetry.memoization_hits += 1;
-                let metadata = EvaluationExecutionMetadata::from_keyed(
-                    computation,
-                    crate::data::output::MemoizedResultOrigin::MemoizedFromCache,
-                );
-                let mut condition_resolver = DefaultConditionResolver;
-                let result = apply_evaluation_result_with_policy_and_condition(
+                let cached_result = cached.clone();
+                let report = match execute_prepared_plan_with_policy(
                     self.graph,
-                    node,
-                    cached,
+                    &plan,
+                    &|_current, _view| {
+                        Ok(PreparedEvaluation::from_result(cached_result.clone())
+                            .with_origin(PreparedEvaluationOrigin::MemoizedReuse)
+                            .with_memo_decision(PreparedMemoDecision::Hit)
+                            .with_keyed(PreparedKeyedContext {
+                                memoized_origin: crate::data::output::MemoizedResultOrigin::MemoizedFromCache,
+                                ..base_keyed_context.clone()
+                            }))
+                    },
                     &mut resolver,
-                    &mut condition_resolver,
-                    &metadata,
-                    false,
-                );
-                return self.apply_result(result);
+                    StageExecutor::Serial,
+                ) {
+                    Ok(report) => report,
+                    Err(err) => {
+                        self.record_failure_from_error(
+                            ExecutionFailurePhase::Apply,
+                            &err,
+                            Some(plan.summary.clone()),
+                        );
+                        return Err(err);
+                    }
+                };
+                self.absorb_execution_report_telemetry(&report);
+                return self.apply_result(Ok(()));
             }
             self.telemetry.memoization_misses += 1;
         }
 
-        let metadata = EvaluationExecutionMetadata::from_keyed(
-            computation,
-            crate::data::output::MemoizedResultOrigin::DirectCompute,
-        );
-        let mut last_result = None;
-        let mut wrapped = |current: NodeId, graph: &SignalGraph| {
-            let result = compute(current, graph)?.into_evaluation_result();
-            last_result = Some(result.clone());
-            Ok(result)
-        };
-        let plan = build_evaluation_plan_with_policy_resolver(
-            self.graph,
-            &[node],
-            request_mode,
-            &mut resolver,
-        )?;
-        let mut condition_resolver = DefaultConditionResolver;
-        let result = execute_plan_with_policy_and_condition(
+        let last_result = std::sync::Mutex::new(None);
+        let result = match execute_prepared_plan_with_policy(
             self.graph,
             &plan,
-            &mut wrapped,
+            &|current, view| {
+                let prepared = precompute(current, view)?
+                    .with_memo_decision(PreparedMemoDecision::Miss)
+                    .with_keyed(base_keyed_context.clone());
+                if current == node {
+                    let mut guard = last_result
+                        .lock()
+                        .map_err(|_| SignalError::internal("memo capture mutex poisoned"))?;
+                    *guard = Some(prepared.result.clone());
+                }
+                Ok(prepared)
+            },
             &mut resolver,
-            &mut condition_resolver,
             StageExecutor::Serial,
-            Some(&metadata),
-        );
+        ) {
+            Ok(report) => Ok(report),
+            Err(err) => {
+                self.record_failure_from_error(
+                    ExecutionFailurePhase::Apply,
+                    &err,
+                    Some(plan.summary.clone()),
+                );
+                Err(err)
+            }
+        };
         let result = match result {
             Ok(report) => {
                 self.absorb_execution_report_telemetry(&report);
@@ -1103,11 +1145,13 @@ where
             Err(err) => self.apply_result(Err(err)),
         };
         if result.is_ok() {
-            if let (Some(memo_key), Some(last_result)) =
-                (computation.memo_key.as_ref(), last_result)
+            if let (Some(memo_key), Ok(mut guard)) =
+                (computation.memo_key.as_ref(), last_result.lock())
             {
-                self.staged_memo_writes
-                    .insert((computation.family.clone(), memo_key.clone()), last_result);
+                if let Some(last_result) = guard.take() {
+                    self.staged_memo_writes
+                        .insert((computation.family.clone(), memo_key.clone()), last_result);
+                }
             }
         }
         result
@@ -1223,6 +1267,34 @@ where
         Ok(())
     }
 
+    fn collect_dirty_targets(&self) -> Vec<NodeId> {
+        let mut targets = Vec::new();
+        for index in 0..self.graph.arena_capacity() {
+            let Some(node) = self.graph.live_node_id_at(index) else {
+                continue;
+            };
+            let Ok(entry) = self.graph.get_entry(node) else {
+                continue;
+            };
+            if !matches!(entry.get_state(), crate::data::node::NodeState::Clean) {
+                targets.push(node);
+            }
+        }
+        targets
+    }
+
+    fn record_failure_from_error(
+        &mut self,
+        phase: ExecutionFailurePhase,
+        err: &SignalError,
+        plan_summary: Option<crate::logic::planner::PlanSummary>,
+    ) {
+        let summary = ExecutionFailureContext::from_error(phase, err, plan_summary)
+            .summarize(None, self.graph.diagnostics_profile());
+        self.pending_failure_summary = Some(summary.clone());
+        DiagnosticsRecorder::new(self.graph).record_failure_summary(summary);
+    }
+
     /// Commit transaction atomically into parent committed runtime.
     pub fn commit(mut self, runtime_ctx: &mut Ctx) -> Result<TransactionOutcome, SignalError> {
         if self.finished {
@@ -1233,6 +1305,27 @@ where
         if self.poisoned {
             self.event_bus.rollback(runtime_ctx);
             self.graph_patches.rollback_and_clear(self.graph)?;
+            DiagnosticsRecorder::new(self.graph).restore_snapshot(self.diagnostics_snapshot.clone());
+            let rollback = RollbackDiagnostic::new(
+                true,
+                self.graph_patches.touched_count() as u64,
+                self.telemetry.max_touched_nodes_in_txn,
+                Some("poisoned transaction rollback".to_string()),
+            );
+            DiagnosticsRecorder::new(self.graph).record_rollback(rollback.clone());
+            let profile = self.graph.diagnostics_profile();
+            DiagnosticsRecorder::new(self.graph).record_failure_summary(
+                ExecutionFailureContext::new(
+                    ExecutionFailurePhase::Rollback,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    "transaction rolled back because it was poisoned",
+                )
+                .summarize(Some(&rollback), profile),
+            );
             self.telemetry.transaction_poison_count += 1;
             return Ok(TransactionOutcome::Poisoned);
         }
@@ -1246,6 +1339,23 @@ where
         {
             self.event_bus.rollback(runtime_ctx);
             self.graph_patches.rollback_and_clear(self.graph)?;
+            DiagnosticsRecorder::new(self.graph).restore_snapshot(self.diagnostics_snapshot.clone());
+            let rollback = RollbackDiagnostic::new(
+                true,
+                self.graph_patches.touched_count() as u64,
+                self.telemetry.max_touched_nodes_in_txn,
+                Some("event bus begin failed".to_string()),
+            );
+            DiagnosticsRecorder::new(self.graph).record_rollback(rollback.clone());
+            let profile = self.graph.diagnostics_profile();
+            DiagnosticsRecorder::new(self.graph).record_failure_summary(
+                ExecutionFailureContext::from_error(
+                    ExecutionFailurePhase::CommitPromotion,
+                    &err,
+                    None,
+                )
+                .summarize(Some(&rollback), profile),
+            );
             self.telemetry.transaction_poison_count += 1;
             return Err(err);
         }
@@ -1260,6 +1370,24 @@ where
             {
                 self.event_bus.rollback(runtime_ctx);
                 self.graph_patches.rollback_and_clear(self.graph)?;
+                DiagnosticsRecorder::new(self.graph)
+                    .restore_snapshot(self.diagnostics_snapshot.clone());
+                let rollback = RollbackDiagnostic::new(
+                    true,
+                    self.graph_patches.touched_count() as u64,
+                    self.telemetry.max_touched_nodes_in_txn,
+                    Some("event bus flush failed".to_string()),
+                );
+                DiagnosticsRecorder::new(self.graph).record_rollback(rollback.clone());
+                let profile = self.graph.diagnostics_profile();
+                DiagnosticsRecorder::new(self.graph).record_failure_summary(
+                    ExecutionFailureContext::from_error(
+                        ExecutionFailurePhase::CommitPromotion,
+                        &err,
+                        None,
+                    )
+                    .summarize(Some(&rollback), profile),
+                );
                 self.telemetry.transaction_poison_count += 1;
                 return Err(err);
             }
@@ -1298,48 +1426,28 @@ where
         self.finished = true;
         self.event_bus.rollback(runtime_ctx);
         self.graph_patches.rollback_and_clear(self.graph)?;
+        DiagnosticsRecorder::new(self.graph).restore_snapshot(self.diagnostics_snapshot);
         self.telemetry.transaction_rollback_count += 1;
+        let rollback = RollbackDiagnostic::new(
+            true,
+            self.graph_patches.touched_count() as u64,
+            self.telemetry.max_touched_nodes_in_txn,
+            Some(if self.poisoned {
+                "poisoned transaction rollback".to_string()
+            } else {
+                "explicit rollback".to_string()
+            }),
+        );
+        DiagnosticsRecorder::new(self.graph).record_rollback(rollback);
+        if let Some(failure) = self.pending_failure_summary {
+            DiagnosticsRecorder::new(self.graph).record_failure_summary(failure);
+        }
         if self.poisoned {
             self.telemetry.transaction_poison_count += 1;
             return Ok(TransactionOutcome::Poisoned);
         }
         Ok(TransactionOutcome::RolledBack)
     }
-}
-
-/// Transaction-gated evaluate helper.
-pub fn evaluate_in_txn<'a, D, I, E, Ctx, T, F, R>(
-    txn: &mut SignalTransaction<'a, D, I, E, Ctx, T>,
-    node: NodeId,
-    compute: &mut F,
-    custom_resolver: R,
-) -> Result<(), SignalError>
-where
-    D: Copy + Ord + std::fmt::Debug + 'static,
-    I: Copy + Ord,
-    T: Copy + Ord,
-    F: FnMut(NodeId, &SignalGraph) -> Result<AspectVersion, SignalError>,
-    R: VersionComparatorResolver,
-{
-    txn.evaluate_with_resolver(node, compute, custom_resolver)
-}
-
-/// Transaction-gated evaluate helper with explicit request mode.
-pub fn evaluate_in_txn_with_mode<'a, D, I, E, Ctx, T, F, R>(
-    txn: &mut SignalTransaction<'a, D, I, E, Ctx, T>,
-    node: NodeId,
-    compute: &mut F,
-    custom_resolver: R,
-    request_mode: EvaluationRequestMode,
-) -> Result<(), SignalError>
-where
-    D: Copy + Ord + std::fmt::Debug + 'static,
-    I: Copy + Ord,
-    T: Copy + Ord,
-    F: FnMut(NodeId, &SignalGraph) -> Result<AspectVersion, SignalError>,
-    R: VersionComparatorResolver,
-{
-    txn.evaluate_with_mode_and_resolver(node, compute, custom_resolver, request_mode)
 }
 
 /// Transaction-gated checkpoint flush helper.
@@ -1368,4 +1476,43 @@ pub fn emit_event_in_txn<'a, D, I, E, Ctx, T>(
     T: Copy + Ord,
 {
     txn.emit_event(event);
+}
+
+fn collect_dirty_targets(graph: &SignalGraph) -> Vec<NodeId> {
+    let mut targets = Vec::new();
+    for index in 0..graph.arena_capacity() {
+        let Some(node) = graph.live_node_id_at(index) else {
+            continue;
+        };
+        let Ok(entry) = graph.get_entry(node) else {
+            continue;
+        };
+        if !matches!(entry.get_state(), crate::data::node::NodeState::Clean) {
+            targets.push(node);
+        }
+    }
+    targets
+}
+
+fn empty_execution_report() -> ExecutionReport {
+    ExecutionReport {
+        plan_summary: crate::logic::planner::PlanSummary::default(),
+        stage_count: 0,
+        task_count: 0,
+        tasks_executed: 0,
+        tasks_pruned: 0,
+        tasks_validated_clean: 0,
+        tasks_deferred_by_condition: 0,
+        tasks_reverted_clean_by_condition: 0,
+        tasks_satisfied_by_memoization: 0,
+        tasks_with_suppressed_propagation: 0,
+        execution_snapshots_built: 0,
+        prepared_evaluations_produced: 0,
+        prepared_evaluations_applied: 0,
+        dependency_capture_updates: 0,
+        execution_snapshot_nanos: 0,
+        stage_precompute_nanos: 0,
+        stage_apply_nanos: 0,
+        stages: Vec::new(),
+    }
 }

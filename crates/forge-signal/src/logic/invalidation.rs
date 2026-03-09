@@ -7,6 +7,8 @@ use crate::data::node::NodeState;
 use crate::data::output::{
     ChangedRegion, InternedPartitionSubscription, PartitionMatchMode, PartitionSubscription,
 };
+use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
+use crate::diagnostics::recorder::DiagnosticsRecorder;
 
 /// Propagate invalidation downstream from a changed source node.
 ///
@@ -31,6 +33,7 @@ pub fn mark_dirty_with_regions(
     changed_aspect: Aspect,
     changed_regions: &[ChangedRegion],
 ) -> Result<(), SignalError> {
+    graph.note_change_input(source, changed_aspect, changed_regions);
     let mut scratch = graph.acquire_scratch(ScratchLeaseKind::Invalidation)?;
     let len = graph.arena_capacity();
     scratch.visited.next_pass(len);
@@ -40,6 +43,14 @@ pub fn mark_dirty_with_regions(
     let result =
         mark_dirty_with_scratch(graph, &mut scratch, source, changed_aspect, changed_regions);
     graph.restore_scratch(ScratchLeaseKind::Invalidation, scratch)?;
+    if let Err(err) = &result {
+        graph.clear_pending_diagnostics_input();
+        DiagnosticsRecorder::new(graph).record_failure(ExecutionFailureContext::from_error(
+            ExecutionFailurePhase::Invalidation,
+            err,
+            None,
+        ));
+    }
     result
 }
 
@@ -63,7 +74,7 @@ fn mark_dirty_with_scratch(
 
     collect_live_subscribers_into(graph, source, &mut scratch.node_buffer_a);
     detect_cycles_in_set(scratch, &scratch.node_buffer_a)?;
-    mark_direct_subscribers(
+    let invalidation_stats = mark_direct_subscribers(
         graph,
         source,
         changed_aspect,
@@ -71,6 +82,11 @@ fn mark_dirty_with_scratch(
         &changed_scope_ids,
         &scratch.node_buffer_a,
     )?;
+    graph.record_invalidation_diagnostics(
+        invalidation_stats.invalidated_direct_subscribers,
+        invalidation_stats.maybe_stale_direct_subscribers,
+        invalidation_stats.partition_scoped_checks,
+    );
     let direct_sub_count = scratch.node_buffer_a.len();
     for index in 0..direct_sub_count {
         let node = scratch.node_buffer_a[index];
@@ -93,8 +109,10 @@ fn mark_direct_subscribers(
     changed_scopes: &[PartitionSubscription],
     changed_scope_ids: &[InternedPartitionSubscription],
     direct_subs: &[NodeId],
-) -> Result<(), SignalError> {
+) -> Result<InvalidationStats, SignalError> {
+    let mut stats = InvalidationStats::default();
     for &sub in direct_subs {
+        let checks_before = graph.telemetry().partition_scoped_invalidation_checks;
         let dirty_match = subscribes_to_aspect(
             graph,
             sub,
@@ -109,6 +127,15 @@ fn mark_direct_subscribers(
             | SubscriptionDirtyMatch::PartitionAndDetail => NodeState::Dirty,
             SubscriptionDirtyMatch::Unmatched => NodeState::MaybeStale,
         };
+        stats.partition_scoped_checks += graph
+            .telemetry()
+            .partition_scoped_invalidation_checks
+            .saturating_sub(checks_before) as u32;
+        match new_state {
+            NodeState::Dirty => stats.invalidated_direct_subscribers += 1,
+            NodeState::MaybeStale => stats.maybe_stale_direct_subscribers += 1,
+            NodeState::Clean => {}
+        }
         let entry = graph.get_entry_mut(sub)?;
         entry.set_state(new_state);
         entry.add_dirty_aspect(changed_aspect);
@@ -124,7 +151,7 @@ fn mark_direct_subscribers(
             _ => {}
         }
     }
-    Ok(())
+    Ok(stats)
 }
 
 /// Check whether `downstream` subscribes to `changed_aspect` of `source`.
@@ -146,6 +173,7 @@ fn subscribes_to_aspect(
             return Ok(SubscriptionDirtyMatch::WholeAspect);
         };
         graph.telemetry_mut().partition_scoped_invalidation_checks += 1;
+        // Diagnostics store records aggregate counts at the invalidation boundary.
         if let Some(interned_scope) = dep.interned_scope() {
             for changed_scope_id in changed_scope_ids {
                 if interned_partition_scope_matches(interned_scope, *changed_scope_id) {
@@ -176,6 +204,13 @@ fn subscribes_to_aspect(
         return Ok(SubscriptionDirtyMatch::Unmatched);
     }
     Ok(SubscriptionDirtyMatch::Unmatched)
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+struct InvalidationStats {
+    invalidated_direct_subscribers: u32,
+    maybe_stale_direct_subscribers: u32,
+    partition_scoped_checks: u32,
 }
 
 fn intern_changed_regions(

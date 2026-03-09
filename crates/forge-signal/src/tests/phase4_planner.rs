@@ -66,11 +66,11 @@ fn execute_plan_returns_execution_report_and_updates_trace_record_id() {
         .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
         .unwrap();
     let report = graph
-        .execute_plan(&plan, &mut |node, graph| {
+        .execute_prepared_plan(&plan, &|node, view| {
             if node == source {
-                source_v2(node, graph)
+                Ok(view.finish(source_v2(node, view.graph())?))
             } else {
-                dependent_compute(node, graph)
+                Ok(view.finish(dependent_compute(node, view.graph())?))
             }
         })
         .unwrap();
@@ -176,13 +176,13 @@ fn runtime_execute_plan_with_executor_serial_matches_default_path() {
         .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
         .unwrap();
     let report = runtime
-        .execute_plan_with_executor(
+        .execute_prepared_plan_with_executor(
             &plan,
-            &mut |node, graph| {
+            &|node, view| {
                 if node == source {
-                    source_v2(node, graph)
+                    Ok(view.finish(source_v2(node, view.graph())?))
                 } else {
-                    dependent_compute(node, graph)
+                    Ok(view.finish(dependent_compute(node, view.graph())?))
                 }
             },
             StageExecutor::Serial,
@@ -217,7 +217,9 @@ fn execution_report_marks_requested_maybe_stale_validation_as_validated_clean() 
     let plan = graph
         .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
         .unwrap();
-    let report = graph.execute_plan(&plan, &mut dependent_compute).unwrap();
+    let report = graph
+        .execute_prepared_plan(&plan, &|_node, _view| Ok(PreparedEvaluation::validated_clean()))
+        .unwrap();
 
     assert_eq!(report.task_count, 1);
     assert_eq!(report.tasks_validated_clean, 1, "{report:?}");
@@ -232,12 +234,13 @@ fn execution_report_marks_requested_maybe_stale_validation_as_validated_clean() 
 fn execution_report_marks_on_demand_deferral_explicitly() {
     let mut graph = SignalGraph::new();
     let node = graph.node().on_demand().build();
-    let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(5, 0));
 
     let plan = graph
         .build_evaluation_plan(&[node], EvaluationRequestMode::Default)
         .unwrap();
-    let report = graph.execute_plan(&plan, &mut compute).unwrap();
+    let report = graph
+        .execute_prepared_plan(&plan, &|_node, _view| Ok(PreparedEvaluation::deferred_by_condition()))
+        .unwrap();
 
     assert_eq!(report.task_count, 1);
     assert_eq!(report.tasks_deferred_by_condition, 1);
@@ -333,21 +336,4 @@ fn prepared_parallel_precompute_matches_serial_results() {
     );
     assert_eq!(serial_report.task_count, parallel_report.task_count);
     assert_eq!(serial_report.tasks_executed, parallel_report.tasks_executed);
-}
-
-#[cfg(feature = "parallel")]
-#[test]
-fn parallel_executor_is_an_explicit_honest_error_until_mutable_engine_changes() {
-    let mut graph = SignalGraph::new();
-    let node = graph.node().build();
-    let plan = graph
-        .build_evaluation_plan(&[node], EvaluationRequestMode::Default)
-        .unwrap();
-    let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
-    let err = graph
-        .execute_plan_with_executor(&plan, &mut compute, StageExecutor::Parallel)
-        .unwrap_err();
-    assert!(err
-        .to_string()
-        .contains("parallel stage execution is not yet supported"));
 }
