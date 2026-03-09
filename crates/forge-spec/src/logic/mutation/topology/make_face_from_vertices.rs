@@ -42,7 +42,13 @@ impl SpecMutation for MakeFaceFromVerticesMutation {
 
         draft.add_relation(RelationKind::BodyOwnsLump, body, lump, 0, "body-lump")?;
         draft.add_relation(RelationKind::LumpOwnsRegion, lump, region, 0, "lump-region")?;
-        draft.add_relation(RelationKind::RegionOwnsShell, region, shell, 0, "region-shell")?;
+        draft.add_relation(
+            RelationKind::RegionOwnsShell,
+            region,
+            shell,
+            0,
+            "region-shell",
+        )?;
         draft.add_relation(RelationKind::ShellOwnsFace, shell, face, 0, "shell-face")?;
 
         let wired = create_face_cycle(draft, face, &self.vertices, "face-from-vertices")?;
@@ -70,6 +76,9 @@ impl SpecMutation for MakeFaceFromVerticesMutation {
     }
 
     fn semantic_summary(&self) -> String {
-        format!("Create {}-vertex face from existing vertices", self.vertices.len())
+        format!(
+            "Create {}-vertex face from existing vertices",
+            self.vertices.len()
+        )
     }
 }

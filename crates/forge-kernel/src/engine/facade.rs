@@ -16,7 +16,9 @@ pub use super::output::solid_envelope::SolidEnvelope;
 pub use super::output::spec_envelope::SpecEnvelope;
 pub use super::output::topology_delta::{compute_topology_delta, ArenaSnapshot};
 pub use super::pipeline::executor::FeaturePipeline;
-pub use super::pipeline::fingerprint::{compute_pipeline_fingerprint, compute_spec_pipeline_fingerprint};
+pub use super::pipeline::fingerprint::{
+    compute_pipeline_fingerprint, compute_spec_pipeline_fingerprint,
+};
 pub use super::pipeline::invariants::{
     validate_invariant, validate_spec_envelope_invariant, validate_spec_invariant,
 };

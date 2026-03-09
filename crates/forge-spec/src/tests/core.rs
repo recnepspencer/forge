@@ -31,9 +31,7 @@ fn make_vertex_face_mutation_builds_minimal_seed_topology() {
     let face = state.graph().node(result.value.face).unwrap();
     assert_eq!(face.kind, SpecNodeKind::Face);
 
-    let outgoing = state
-        .graph()
-        .outgoing_relations(result.value.half_edge);
+    let outgoing = state.graph().outgoing_relations(result.value.half_edge);
     assert_eq!(outgoing.len(), 5);
 }
 

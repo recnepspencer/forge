@@ -64,7 +64,8 @@ impl SpecMutation for MakeEdgeFaceMutation {
 
         let shell = draft.single_incoming_source(self.face, RelationKind::ShellOwnsFace)?;
         let original_loop = draft.single_outgoing_target(self.face, RelationKind::FaceOuterLoop)?;
-        let face_halfedges = draft.incoming_sources_of_kind(self.face, RelationKind::HalfEdgeBoundsFace);
+        let face_halfedges =
+            draft.incoming_sources_of_kind(self.face, RelationKind::HalfEdgeBoundsFace);
 
         let candidates_a = face_halfedges_from_vertex(draft, &face_halfedges, self.vertex_a)?;
         let candidates_b = face_halfedges_from_vertex(draft, &face_halfedges, self.vertex_b)?;
@@ -96,10 +97,34 @@ impl SpecMutation for MakeEdgeFaceMutation {
         let half_edge_ab = draft.create_node(SpecNodeKind::HalfEdge, None, "half_edge_ab")?;
         let half_edge_ba = draft.create_node(SpecNodeKind::HalfEdge, None, "half_edge_ba")?;
 
-        draft.replace_single_relation(RelationKind::HalfEdgeNext, prev_a, half_edge_ab, "prev-a-next")?;
-        add(draft, RelationKind::HalfEdgeNext, half_edge_ab, he_from_b, 0, "ab-next")?;
-        draft.replace_single_relation(RelationKind::HalfEdgeNext, prev_b, half_edge_ba, "prev-b-next")?;
-        add(draft, RelationKind::HalfEdgeNext, half_edge_ba, he_from_a, 0, "ba-next")?;
+        draft.replace_single_relation(
+            RelationKind::HalfEdgeNext,
+            prev_a,
+            half_edge_ab,
+            "prev-a-next",
+        )?;
+        add(
+            draft,
+            RelationKind::HalfEdgeNext,
+            half_edge_ab,
+            he_from_b,
+            0,
+            "ab-next",
+        )?;
+        draft.replace_single_relation(
+            RelationKind::HalfEdgeNext,
+            prev_b,
+            half_edge_ba,
+            "prev-b-next",
+        )?;
+        add(
+            draft,
+            RelationKind::HalfEdgeNext,
+            half_edge_ba,
+            he_from_a,
+            0,
+            "ba-next",
+        )?;
 
         add(
             draft,
@@ -117,8 +142,22 @@ impl SpecMutation for MakeEdgeFaceMutation {
             0,
             "ba-radial",
         )?;
-        add(draft, RelationKind::HalfEdgeUsesEdge, half_edge_ab, edge, 0, "ab-edge")?;
-        add(draft, RelationKind::HalfEdgeUsesEdge, half_edge_ba, edge, 0, "ba-edge")?;
+        add(
+            draft,
+            RelationKind::HalfEdgeUsesEdge,
+            half_edge_ab,
+            edge,
+            0,
+            "ab-edge",
+        )?;
+        add(
+            draft,
+            RelationKind::HalfEdgeUsesEdge,
+            half_edge_ba,
+            edge,
+            0,
+            "ba-edge",
+        )?;
         add(
             draft,
             RelationKind::HalfEdgeOriginVertex,

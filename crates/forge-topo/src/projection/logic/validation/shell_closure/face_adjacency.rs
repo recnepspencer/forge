@@ -5,9 +5,7 @@ use crate::projection::logic::ProjectedTopologyQueries;
 
 use super::super::shared::vf;
 
-pub fn validate_projected_face_adjacency(
-    topology: &ProjectedTopology,
-) -> Result<(), KernelError> {
+pub fn validate_projected_face_adjacency(topology: &ProjectedTopology) -> Result<(), KernelError> {
     for edge_index in 0..topology.edge_count() {
         let edge = ProjectedEdgeId::new(edge_index as u32);
         let half_edges = topology.edge_half_edges(edge);

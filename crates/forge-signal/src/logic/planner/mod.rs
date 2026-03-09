@@ -4,8 +4,6 @@ use std::time::Instant;
 
 use serde::{Deserialize, Serialize};
 
-use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
-use crate::diagnostics::recorder::DiagnosticsRecorder;
 use crate::data::comparator::{
     ComparatorPolicyResolver, DefaultComparatorPolicyResolver, DefaultComparatorResolver,
     VersionComparatorPolicy,
@@ -16,9 +14,10 @@ use crate::data::handle::NodeId;
 use crate::data::node::{EvaluationCondition, NodeState};
 use crate::data::output::{IntoNodeEvaluationResult, MemoizedResultOrigin};
 use crate::data::trace::TraceSummary;
+use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
+use crate::diagnostics::recorder::DiagnosticsRecorder;
 use crate::logic::evaluation::{
-    apply_prepared_evaluation_with_policy,
-    EvaluationExecutionMetadata, EvaluationRequestMode,
+    apply_prepared_evaluation_with_policy, EvaluationExecutionMetadata, EvaluationRequestMode,
 };
 use crate::logic::prepared::{ExecutionSnapshot, PreparedDependencyCapture, PreparedEvaluation};
 
@@ -525,11 +524,7 @@ where
         report.stages.push(stage_record);
     }
 
-    record_successful_execution(
-        graph,
-        plan,
-        &report,
-    );
+    record_successful_execution(graph, plan, &report);
     Ok(report)
 }
 
@@ -790,12 +785,16 @@ where
                 telemetry,
             })
         }
-        TestConditionAction::Defer { on_demand, debounce } => {
+        TestConditionAction::Defer {
+            on_demand,
+            debounce,
+        } => {
             telemetry.condition_skip_count += 1;
             telemetry.ondemand_deferred_count += u64::from(on_demand);
             telemetry.debounce_deferred_count += u64::from(debounce);
             Ok(TestPreparedTask {
-                prepared: PreparedEvaluation::deferred_by_condition().with_dependencies(dependencies),
+                prepared: PreparedEvaluation::deferred_by_condition()
+                    .with_dependencies(dependencies),
                 telemetry,
             })
         }
@@ -1105,10 +1104,7 @@ fn record_successful_execution(
     DiagnosticsRecorder::new(graph).record_execution_completed(plan, report);
 }
 
-fn record_execution_failure(
-    graph: &mut SignalGraph,
-    context: ExecutionFailureContext,
-) {
+fn record_execution_failure(graph: &mut SignalGraph, context: ExecutionFailureContext) {
     DiagnosticsRecorder::new(graph).record_failure(context);
 }
 

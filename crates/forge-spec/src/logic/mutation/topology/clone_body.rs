@@ -68,7 +68,9 @@ impl SpecMutation for CloneBodyMutation {
         for old in &visited {
             let kind = draft.node_kind(*old)?;
             let cloned = match kind {
-                SpecNodeKind::Shell => draft.create_shell(draft.shell_kind(*old)?, node_role(kind))?,
+                SpecNodeKind::Shell => {
+                    draft.create_shell(draft.shell_kind(*old)?, node_role(kind))?
+                }
                 _ => draft.create_node(kind, None, node_role(kind))?,
             };
             node_map.insert(*old, cloned);
@@ -99,8 +101,14 @@ impl SpecMutation for CloneBodyMutation {
             },
             touched_domains: vec![TouchedDomain::Topology],
             mutation_trace: vec![
-                format!("clone body {} into new body {}", self.body, node_map[&self.body]),
-                format!("clone {} topology nodes in induced body subgraph", visited.len()),
+                format!(
+                    "clone body {} into new body {}",
+                    self.body, node_map[&self.body]
+                ),
+                format!(
+                    "clone {} topology nodes in induced body subgraph",
+                    visited.len()
+                ),
             ],
         })
     }

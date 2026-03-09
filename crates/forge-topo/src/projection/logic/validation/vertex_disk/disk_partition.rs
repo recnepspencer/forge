@@ -13,7 +13,10 @@ pub fn validate_projected_vertex_disk_partition(
     for (vertex_index, _) in topology.vertices().iter().enumerate() {
         let vertex_id = ProjectedVertexId::new(vertex_index as u32);
         let outgoing = topology.vertex_outgoing_half_edges(vertex_id);
-        let expected = outgoing.iter().map(|half_edge| half_edge.raw()).collect::<BTreeSet<_>>();
+        let expected = outgoing
+            .iter()
+            .map(|half_edge| half_edge.raw())
+            .collect::<BTreeSet<_>>();
         if expected.is_empty() {
             continue;
         }

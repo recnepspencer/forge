@@ -1,10 +1,12 @@
 use forge_core::{ErrorContext, ErrorScope, KernelError, TopologyError};
-use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SignalError, SubscriberId};
+use forge_signal::facade::{
+    CheckpointBarrier, EventSubscriber, SignalError, SubscriberContext, SubscriberId,
+};
 
+use crate::identity::OperationId;
+use crate::operations::operator::EulerDelta;
 use crate::transactions::data::operation_event::{TopoOperationEvent, TopoSubscriberDataId};
 use crate::transactions::data::operation_outputs::EulerDeltaCheck;
-use crate::operations::operator::EulerDelta;
-use crate::identity::OperationId;
 
 use super::{kernel_to_signal, stage_output_value};
 
@@ -142,11 +144,11 @@ impl EventSubscriber for EulerSubscriber {
             let expected_vertices_after = self.before.vertices as i64 + declared.vertices as i64;
             let expected_edges_after = self.before.edges as i64 + declared.edges as i64;
             let expected_faces_after = self.before.faces as i64 + declared.faces as i64;
-            let expected_chi = expected_vertices_after - expected_edges_after + expected_faces_after;
-            let actual_chi =
-                actual.vertices as i64 + self.before.vertices as i64
-                    - (actual.edges as i64 + self.before.edges as i64)
-                    + (actual.faces as i64 + self.before.faces as i64);
+            let expected_chi =
+                expected_vertices_after - expected_edges_after + expected_faces_after;
+            let actual_chi = actual.vertices as i64 + self.before.vertices as i64
+                - (actual.edges as i64 + self.before.edges as i64)
+                + (actual.faces as i64 + self.before.faces as i64);
 
             let op_name = self.op_name.unwrap_or("<unknown-op>").to_string();
             let invocation = self.invocation_id.map(|v| v.get()).unwrap_or(0);

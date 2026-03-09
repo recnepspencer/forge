@@ -20,7 +20,10 @@ pub fn vertex_outgoing_half_edges(
     result
 }
 
-pub fn vertex_faces(topology: &ProjectedTopology, vertex: ProjectedVertexId) -> Vec<ProjectedFaceId> {
+pub fn vertex_faces(
+    topology: &ProjectedTopology,
+    vertex: ProjectedVertexId,
+) -> Vec<ProjectedFaceId> {
     let mut faces = vertex_outgoing_half_edges(topology, vertex)
         .into_iter()
         .map(|half_edge| topology.half_edge(half_edge).face)
@@ -35,7 +38,11 @@ pub fn vertex_disk_components(
     vertex: ProjectedVertexId,
 ) -> Result<Vec<Vec<ProjectedHalfEdgeId>>, ProjectedTopologyError> {
     let outgoing = vertex_outgoing_half_edges(topology, vertex);
-    let outgoing_set = outgoing.iter().copied().map(|he| he.raw()).collect::<BTreeSet<_>>();
+    let outgoing_set = outgoing
+        .iter()
+        .copied()
+        .map(|he| he.raw())
+        .collect::<BTreeSet<_>>();
     let mut visited = BTreeSet::new();
     let mut components = Vec::new();
 
@@ -75,9 +82,23 @@ fn collect_vertex_disk_component(
 
     while let Some(current) = queue.pop_front() {
         component.push(current);
-        enqueue_vertex_disk_neighbors(topology, vertex, current, outgoing_set, &mut queued, &mut queue);
+        enqueue_vertex_disk_neighbors(
+            topology,
+            vertex,
+            current,
+            outgoing_set,
+            &mut queued,
+            &mut queue,
+        );
         let incoming = topology.half_edge(current).prev;
-        enqueue_vertex_disk_neighbors(topology, vertex, incoming, outgoing_set, &mut queued, &mut queue);
+        enqueue_vertex_disk_neighbors(
+            topology,
+            vertex,
+            incoming,
+            outgoing_set,
+            &mut queued,
+            &mut queue,
+        );
     }
 
     component.sort_unstable();

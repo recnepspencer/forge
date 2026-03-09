@@ -1,7 +1,7 @@
 use forge_core::KernelError;
 use forge_topo::projection::{
-    ProjectedEdgeId, ProjectedFaceId, ProjectedHalfEdgeId, ProjectedLoopId, ProjectedTopologyQueries,
-    ProjectedVertexId,
+    ProjectedEdgeId, ProjectedFaceId, ProjectedHalfEdgeId, ProjectedLoopId,
+    ProjectedTopologyQueries, ProjectedVertexId,
 };
 
 use super::super::{projected_topology_error_to_kernel_owned, SpecEnvelope};
@@ -67,7 +67,10 @@ impl SpecEnvelope {
         Ok(self.projection()?.face_loops(face))
     }
 
-    pub fn shell_faces(&self, shell: forge_topo::projection::ProjectedShellId) -> Result<Vec<ProjectedFaceId>, KernelError> {
+    pub fn shell_faces(
+        &self,
+        shell: forge_topo::projection::ProjectedShellId,
+    ) -> Result<Vec<ProjectedFaceId>, KernelError> {
         Ok(self.projection()?.shell_faces(shell))
     }
 

@@ -15,8 +15,8 @@ use forge_signal::facade::NodeId;
 
 use crate::configuration::facade::FingerprintDetail;
 use crate::engine::contracts::contract::ConditioningMode;
-use crate::engine::output::spec_envelope::SpecEnvelope;
 use crate::engine::output::solid_envelope::SolidEnvelope;
+use crate::engine::output::spec_envelope::SpecEnvelope;
 
 type InfallibleFingerprintResult = Result<u128, core::convert::Infallible>;
 

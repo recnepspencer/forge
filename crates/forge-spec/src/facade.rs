@@ -1,5 +1,6 @@
 //! Public API boundary for forge-spec.
 
+pub use crate::data::error::SpecError;
 pub use crate::data::graph::{NodeRecord, RelationRecord, SpecGraph};
 pub use crate::data::identity::{
     DeterministicIdAllocator, NamingAnchorId, SpecNodeId, SpecRelationId,
@@ -13,35 +14,31 @@ pub use crate::data::payload::{
 pub use crate::data::replay::SpecReplayRecord;
 pub use crate::data::schema::{GraphDomain, RelationCardinality, RelationKind, SpecNodeKind};
 pub use crate::data::snapshot::SpecState;
-pub use crate::logic::mutation::{MutationResult, SpecLineageRecorder, SpecMutation, TouchedDomain};
 pub use crate::logic::mutation::topology::{
-    CloneBodyMutation, CloneBodyOutput, DestroyBodyMutation, DestroyLumpMutation,
-    DestroyShellMutation, KillEdgeMakeLoopMutation,
-    KillEdgeMakeLoopOutput, KillEdgeVertexMutation, ExtractLumpMutation, ExtractLumpOutput,
-    ExtractShellMutation, ExtractShellOutput,
-    JoinFacesMutation, JoinFacesNmtMutation, JoinFacesNmtOutput, JoinFacesOutput,
-    KillFaceMakeRingHoleMutation,
-    KillFaceMakeRingHoleOutput, KillFaceVertexMutation, KillShellFaceMutation,
-    KillVertexEdgeMutation, KillVertexFaceMutation, MakeEdgeFaceMutation, MakeEdgeFaceOutput,
-    MakeEdgeKillLoopMutation, MakeEdgeKillLoopOutput, MakeEdgeVertexMutation,
-    MakeEdgeVertexOutput, MakeEmptyShellMutation, MakeEmptyShellOutput,
-    MakeFaceFromVerticesMutation, MakeFaceFromVerticesOutput,
-    MakeFaceInShellFromVerticesMutation, MakeFaceInShellFromVerticesOutput,
-    MakeFaceKillRingHoleMutation, MakeFaceKillRingHoleOutput, MakeFaceVertexMutation,
-    MakeFaceVertexOutput, MakeIsolatedVertexMutation, MakeIsolatedVertexOutput,
-    MakeLoopInFaceFromVerticesMutation, MakeLoopInFaceFromVerticesOutput,
-    MakeLumpRegionMutation, MakeLumpRegionOutput, MakeShellFaceMutation,
-    MakeShellFaceOutput, MakeSolidMutation, MakeSolidOutput, MakeVertexFaceMutation,
-    MakeVertexFaceOutput, MergeBodiesMutation, MergeLumpsMutation, MergeShellsMutation,
-    DemoteShellMutation, PromoteShellMutation, RehomeLumpMutation, RehomeShellMutation,
-    SewEdgeMutation, SewEdgeOutput,
-    SplitBodyMutation, SplitBodyOutput, SplitEdgeMutation, SplitEdgeOutput,
-    SplitLumpMutation, SplitLumpOutput, SplitShellMutation, SplitShellOutput,
-    UnsewEdgeMutation, UnsewEdgeOutput,
+    CloneBodyMutation, CloneBodyOutput, DemoteShellMutation, DestroyBodyMutation,
+    DestroyLumpMutation, DestroyShellMutation, ExtractLumpMutation, ExtractLumpOutput,
+    ExtractShellMutation, ExtractShellOutput, JoinFacesMutation, JoinFacesNmtMutation,
+    JoinFacesNmtOutput, JoinFacesOutput, KillEdgeMakeLoopMutation, KillEdgeMakeLoopOutput,
+    KillEdgeVertexMutation, KillFaceMakeRingHoleMutation, KillFaceMakeRingHoleOutput,
+    KillFaceVertexMutation, KillShellFaceMutation, KillVertexEdgeMutation, KillVertexFaceMutation,
+    MakeEdgeFaceMutation, MakeEdgeFaceOutput, MakeEdgeKillLoopMutation, MakeEdgeKillLoopOutput,
+    MakeEdgeVertexMutation, MakeEdgeVertexOutput, MakeEmptyShellMutation, MakeEmptyShellOutput,
+    MakeFaceFromVerticesMutation, MakeFaceFromVerticesOutput, MakeFaceInShellFromVerticesMutation,
+    MakeFaceInShellFromVerticesOutput, MakeFaceKillRingHoleMutation, MakeFaceKillRingHoleOutput,
+    MakeFaceVertexMutation, MakeFaceVertexOutput, MakeIsolatedVertexMutation,
+    MakeIsolatedVertexOutput, MakeLoopInFaceFromVerticesMutation, MakeLoopInFaceFromVerticesOutput,
+    MakeLumpRegionMutation, MakeLumpRegionOutput, MakeShellFaceMutation, MakeShellFaceOutput,
+    MakeSolidMutation, MakeSolidOutput, MakeVertexFaceMutation, MakeVertexFaceOutput,
+    MergeBodiesMutation, MergeLumpsMutation, MergeShellsMutation, PromoteShellMutation,
+    RehomeLumpMutation, RehomeShellMutation, SewEdgeMutation, SewEdgeOutput, SplitBodyMutation,
+    SplitBodyOutput, SplitEdgeMutation, SplitEdgeOutput, SplitLumpMutation, SplitLumpOutput,
+    SplitShellMutation, SplitShellOutput, UnsewEdgeMutation, UnsewEdgeOutput,
+};
+pub use crate::logic::mutation::{
+    MutationResult, SpecLineageRecorder, SpecMutation, TouchedDomain,
 };
 pub use crate::logic::transaction::SpecDraft;
 pub use crate::logic::validation::validate_spec_graph;
 pub use crate::presentation::contracts::{
     ProjectionBoundaryContract, SpecGraphTruthContract, TruthGraphBoundaryContract,
 };
-pub use crate::data::error::SpecError;

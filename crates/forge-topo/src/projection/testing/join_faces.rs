@@ -7,14 +7,14 @@ use crate::operations::boundary_editing::join_faces::JoinFaces;
 use crate::operations::entity_lifecycle::make_edge_face::MakeEdgeFace;
 use crate::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::operations::entity_lifecycle::split_edge::SplitEdge;
-use crate::projection::facade::{ProjectionBuilder, compute_projected_topology_hash};
-use crate::transactions::facade::{TopologyState, compute_arena_topology_hash};
+use crate::projection::facade::{compute_projected_topology_hash, ProjectionBuilder};
+use crate::transactions::facade::{compute_arena_topology_hash, TopologyState};
 
 #[test]
 fn projected_join_faces_matches_legacy_structural_signature() {
     let legacy = build_legacy_join_faces_state();
-    let projected =
-        ProjectionBuilder::build(&build_spec_join_faces_state()).expect("spec-state JoinFaces projection should succeed");
+    let projected = ProjectionBuilder::build(&build_spec_join_faces_state())
+        .expect("spec-state JoinFaces projection should succeed");
 
     assert_eq!(
         compute_arena_topology_hash(legacy.arena()),
@@ -59,7 +59,9 @@ fn build_legacy_join_faces_state() -> TopologyState {
         .unwrap()
         .into_value();
     let split = draft
-        .execute(SplitEdge { edge: mvf.half_edge })
+        .execute(SplitEdge {
+            edge: mvf.half_edge,
+        })
         .unwrap()
         .into_value();
     let bridge = draft

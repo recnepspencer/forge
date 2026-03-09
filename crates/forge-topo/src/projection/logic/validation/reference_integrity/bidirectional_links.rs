@@ -9,7 +9,8 @@ pub fn validate_projected_bidirectional_links(
 ) -> Result<(), KernelError> {
     for (vertex_index, vertex) in topology.vertices().iter().enumerate() {
         if let Some(half_edge) = vertex.primary_half_edge {
-            let half_edge_data = half_edge_checked(topology, half_edge, "vertex", vertex_index as u32)?;
+            let half_edge_data =
+                half_edge_checked(topology, half_edge, "vertex", vertex_index as u32)?;
             if half_edge_data.origin.raw() != vertex_index as u32 {
                 return Err(vf(
                     "projected_bidirectional_links",

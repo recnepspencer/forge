@@ -16,9 +16,7 @@ pub use manifold_edges::validate_projected_manifold_edges;
 pub use orientation_consistency::validate_projected_orientation_consistency;
 pub use shell_consistency::validate_projected_shell_consistency;
 
-pub fn validate_projected_shell_closure(
-    topology: &ProjectedTopology,
-) -> Result<(), KernelError> {
+pub fn validate_projected_shell_closure(topology: &ProjectedTopology) -> Result<(), KernelError> {
     validate_projected_shell_consistency(topology)?;
     validate_projected_laminar_edges(topology)?;
     validate_projected_manifold_edges(topology)?;

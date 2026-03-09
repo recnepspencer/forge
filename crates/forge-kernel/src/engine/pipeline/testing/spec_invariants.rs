@@ -1,5 +1,5 @@
 use crate::engine::contracts::contract::InvariantKind;
-use crate::engine::facade::{SpecEnvelope, validate_spec_envelope_invariant};
+use crate::engine::facade::{validate_spec_envelope_invariant, SpecEnvelope};
 use crate::proof::checkpoint::{ValidationCheckpoint, ValidationConfig};
 use forge_spec::facade::{
     MakeShellFaceMutation, MakeSolidMutation, MakeVertexFaceMutation, RelationKind, SpecNodeKind,
@@ -64,13 +64,20 @@ fn validate_spec_envelope_invariant_rejects_spec_with_unreachable_halfedge() {
         })
         .unwrap();
 
-    let orphan_edge = draft.create_node(SpecNodeKind::Edge, None, "orphan-edge").unwrap();
+    let orphan_edge = draft
+        .create_node(SpecNodeKind::Edge, None, "orphan-edge")
+        .unwrap();
     let orphan_half_edge = draft
         .create_node(SpecNodeKind::HalfEdge, None, "orphan-half-edge")
         .unwrap();
 
     for (kind, source, target, role) in [
-        (RelationKind::HalfEdgeNext, orphan_half_edge, orphan_half_edge, "orphan-next"),
+        (
+            RelationKind::HalfEdgeNext,
+            orphan_half_edge,
+            orphan_half_edge,
+            "orphan-next",
+        ),
         (
             RelationKind::HalfEdgeRadialNext,
             orphan_half_edge,

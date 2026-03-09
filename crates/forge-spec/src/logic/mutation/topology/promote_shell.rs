@@ -48,7 +48,10 @@ impl SpecMutation for PromoteShellMutation {
                 draft.set_shell_kind(shell, SpecShellKind::Solid(SpecShellOrientation::Inner))?;
             }
         }
-        draft.set_shell_kind(self.shell, SpecShellKind::Solid(SpecShellOrientation::Outer))?;
+        draft.set_shell_kind(
+            self.shell,
+            SpecShellKind::Solid(SpecShellOrientation::Outer),
+        )?;
 
         Ok(MutationResult {
             value: (),

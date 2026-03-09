@@ -1,5 +1,7 @@
 use forge_core::KernelError;
-use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SignalError, SubscriberId};
+use forge_signal::facade::{
+    CheckpointBarrier, EventSubscriber, SignalError, SubscriberContext, SubscriberId,
+};
 
 use crate::transactions::data::operation_event::{TopoOperationEvent, TopoSubscriberDataId};
 
@@ -41,7 +43,11 @@ impl EventSubscriber for TopologyHashSubscriber {
         &[TopoSubscriberDataId::TopologyHash]
     }
 
-    fn on_begin(&mut self, _ctx: &mut SubscriberContext<TopoSubscriberDataId>, _runtime: &mut Self::RuntimeContext) {
+    fn on_begin(
+        &mut self,
+        _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
+        _runtime: &mut Self::RuntimeContext,
+    ) {
         self.clear();
     }
 

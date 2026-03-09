@@ -2,9 +2,21 @@ use crate::facade::*;
 
 fn build_face_with_hole_draft() -> (SpecDraft, SpecNodeId, SpecNodeId, SpecNodeId) {
     let mut draft = SpecState::empty().into_draft();
-    let v0 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let v1 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let v2 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
+    let v0 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let v1 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let v2 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
     let face = draft
         .execute(MakeFaceFromVerticesMutation {
             vertices: vec![v0, v1, v2],
@@ -12,9 +24,21 @@ fn build_face_with_hole_draft() -> (SpecDraft, SpecNodeId, SpecNodeId, SpecNodeI
         .unwrap()
         .value
         .face;
-    let h0 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let h1 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let h2 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
+    let h0 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let h1 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let h2 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
     let loop_output = draft
         .execute(MakeLoopInFaceFromVerticesMutation {
             face,

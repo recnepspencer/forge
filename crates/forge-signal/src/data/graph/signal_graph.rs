@@ -581,7 +581,9 @@ impl SignalGraph {
         self.diagnostics.latest_rollback()
     }
 
-    pub fn recent_execution_history_diagnostics(&self) -> &std::collections::VecDeque<ExecutionHistorySummary> {
+    pub fn recent_execution_history_diagnostics(
+        &self,
+    ) -> &std::collections::VecDeque<ExecutionHistorySummary> {
         self.diagnostics.recent_history()
     }
 

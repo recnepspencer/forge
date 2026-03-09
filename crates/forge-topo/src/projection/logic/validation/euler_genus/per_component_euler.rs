@@ -26,12 +26,14 @@ pub fn validate_projected_per_component_euler(
             let face_data = topology.face(*face);
             rings += face_data.inner_loops.len();
 
-            for half_edge in topology.face_half_edges(*face).map_err(|error| {
-                KernelError::InvalidInput {
-                    message: format!("Projected Euler traversal failed: {}", error),
-                    context: None,
-                }
-            })? {
+            for half_edge in
+                topology
+                    .face_half_edges(*face)
+                    .map_err(|error| KernelError::InvalidInput {
+                        message: format!("Projected Euler traversal failed: {}", error),
+                        context: None,
+                    })?
+            {
                 let half_edge_data = topology.half_edge(half_edge);
                 vertices.insert(half_edge_data.origin.raw());
                 edges.insert(half_edge_data.edge.raw());

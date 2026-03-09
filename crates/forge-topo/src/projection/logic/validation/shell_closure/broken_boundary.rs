@@ -5,9 +5,7 @@ use crate::projection::logic::ProjectedTopologyQueries;
 
 use super::super::shared::vf;
 
-pub fn validate_projected_broken_boundary(
-    topology: &ProjectedTopology,
-) -> Result<(), KernelError> {
+pub fn validate_projected_broken_boundary(topology: &ProjectedTopology) -> Result<(), KernelError> {
     for face_index in 0..topology.face_count() {
         let face = ProjectedFaceId::new(face_index as u32);
         for half_edge in topology

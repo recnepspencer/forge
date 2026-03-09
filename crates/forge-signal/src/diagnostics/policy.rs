@@ -24,7 +24,10 @@ impl DiagnosticsPolicy {
             retain_history_details: profile.retains_history_details(),
             retain_flow_explanation: profile.retains_flow_explanation(),
             retain_latest_failure_context: !matches!(profile, DiagnosticsProfile::Operational),
-            retain_stage_details: matches!(profile, DiagnosticsProfile::Development | DiagnosticsProfile::Forensic),
+            retain_stage_details: matches!(
+                profile,
+                DiagnosticsProfile::Development | DiagnosticsProfile::Forensic
+            ),
             capture_forensic_failure_context: matches!(profile, DiagnosticsProfile::Forensic),
         }
     }

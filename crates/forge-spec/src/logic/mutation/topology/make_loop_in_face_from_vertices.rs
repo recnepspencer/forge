@@ -36,7 +36,9 @@ impl SpecMutation for MakeLoopInFaceFromVerticesMutation {
             )));
         }
 
-        let ordinal = draft.outgoing_targets_of_kind(self.face, RelationKind::FaceInnerLoop).len() as u32;
+        let ordinal = draft
+            .outgoing_targets_of_kind(self.face, RelationKind::FaceInnerLoop)
+            .len() as u32;
         let wired = create_loop_cycle(
             draft,
             self.face,

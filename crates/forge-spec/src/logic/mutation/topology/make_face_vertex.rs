@@ -42,10 +42,38 @@ impl SpecMutation for MakeFaceVertexMutation {
         let edge = draft.create_node(SpecNodeKind::Edge, None, "edge")?;
         let vertex = draft.create_node(SpecNodeKind::Vertex, None, "vertex")?;
 
-        add(draft, RelationKind::ShellOwnsFace, self.shell, face, 0, "shell-face")?;
-        add(draft, RelationKind::FaceOuterLoop, face, loop_id, 0, "face-outer-loop")?;
-        add(draft, RelationKind::LoopEntryHalfEdge, loop_id, half_edge, 0, "loop-entry")?;
-        add(draft, RelationKind::HalfEdgeNext, half_edge, half_edge, 0, "halfedge-next")?;
+        add(
+            draft,
+            RelationKind::ShellOwnsFace,
+            self.shell,
+            face,
+            0,
+            "shell-face",
+        )?;
+        add(
+            draft,
+            RelationKind::FaceOuterLoop,
+            face,
+            loop_id,
+            0,
+            "face-outer-loop",
+        )?;
+        add(
+            draft,
+            RelationKind::LoopEntryHalfEdge,
+            loop_id,
+            half_edge,
+            0,
+            "loop-entry",
+        )?;
+        add(
+            draft,
+            RelationKind::HalfEdgeNext,
+            half_edge,
+            half_edge,
+            0,
+            "halfedge-next",
+        )?;
         add(
             draft,
             RelationKind::HalfEdgeRadialNext,

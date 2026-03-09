@@ -8,26 +8,23 @@ use crate::operations::entity_lifecycle::make_vertex_face::MakeVertexFace;
 use crate::operations::entity_lifecycle::split_edge::SplitEdge;
 use crate::operations::non_manifold::sew_edge::SewEdge;
 use crate::operations::non_manifold::unsew_edge::UnsewEdge;
-use crate::projection::facade::{ProjectionBuilder, compute_projected_topology_hash};
-use crate::transactions::facade::{TopologyState, compute_arena_topology_hash};
+use crate::projection::facade::{compute_projected_topology_hash, ProjectionBuilder};
+use crate::transactions::facade::{compute_arena_topology_hash, TopologyState};
 
 #[test]
 fn projected_sew_edge_matches_legacy_structural_signature() {
     let legacy_hash = build_legacy_sew_hash();
-    let projected =
-        ProjectionBuilder::build(&build_spec_sew_state()).expect("spec-state SewEdge projection should succeed");
+    let projected = ProjectionBuilder::build(&build_spec_sew_state())
+        .expect("spec-state SewEdge projection should succeed");
 
-    assert_eq!(
-        legacy_hash,
-        compute_projected_topology_hash(&projected)
-    );
+    assert_eq!(legacy_hash, compute_projected_topology_hash(&projected));
 }
 
 #[test]
 fn projected_unsew_edge_matches_legacy_structural_signature() {
     let legacy = build_legacy_unsew_state();
-    let projected =
-        ProjectionBuilder::build(&build_spec_unsew_state()).expect("spec-state UnsewEdge projection should succeed");
+    let projected = ProjectionBuilder::build(&build_spec_unsew_state())
+        .expect("spec-state UnsewEdge projection should succeed");
 
     assert_eq!(
         compute_arena_topology_hash(legacy.arena()),
@@ -37,19 +34,25 @@ fn projected_unsew_edge_matches_legacy_structural_signature() {
 
 #[test]
 fn projected_high_valence_radial_ring_builds_from_spec_truth() {
-    let projected =
-        ProjectionBuilder::build(&build_spec_high_valence_sew_state()).expect("high-valence spec projection should succeed");
+    let projected = ProjectionBuilder::build(&build_spec_high_valence_sew_state())
+        .expect("high-valence spec projection should succeed");
 
-    let ring = collect_projected_radial_ring(&projected, crate::projection::data::ProjectedHalfEdgeId::new(0));
+    let ring = collect_projected_radial_ring(
+        &projected,
+        crate::projection::data::ProjectedHalfEdgeId::new(0),
+    );
     assert_eq!(ring.len(), 3);
 }
 
 #[test]
 fn projected_high_valence_unsew_detaches_single_use() {
-    let projected =
-        ProjectionBuilder::build(&build_spec_high_valence_unsew_state()).expect("high-valence spec unsew projection should succeed");
+    let projected = ProjectionBuilder::build(&build_spec_high_valence_unsew_state())
+        .expect("high-valence spec unsew projection should succeed");
 
-    let remaining = collect_projected_radial_ring(&projected, crate::projection::data::ProjectedHalfEdgeId::new(0));
+    let remaining = collect_projected_radial_ring(
+        &projected,
+        crate::projection::data::ProjectedHalfEdgeId::new(0),
+    );
     assert_eq!(remaining.len(), 2);
 }
 
@@ -146,7 +149,9 @@ fn build_legacy_sew_hash() -> u128 {
         .unwrap()
         .into_value();
     let split = draft
-        .execute(SplitEdge { edge: mvf.half_edge })
+        .execute(SplitEdge {
+            edge: mvf.half_edge,
+        })
         .unwrap()
         .into_value();
     draft
@@ -167,7 +172,9 @@ fn build_legacy_unsew_state() -> TopologyState {
         .unwrap()
         .into_value();
     let split = draft
-        .execute(SplitEdge { edge: mvf.half_edge })
+        .execute(SplitEdge {
+            edge: mvf.half_edge,
+        })
         .unwrap()
         .into_value();
     draft
@@ -195,8 +202,12 @@ struct HighValenceFixture {
 fn build_high_valence_radial_fixture(draft: &mut SpecDraft) -> HighValenceFixture {
     let body = draft.create_node(SpecNodeKind::Body, None, "body").unwrap();
     let lump = draft.create_node(SpecNodeKind::Lump, None, "lump").unwrap();
-    let region = draft.create_node(SpecNodeKind::Region, None, "region").unwrap();
-    let shell = draft.create_shell(forge_spec::facade::SpecShellKind::Sheet, "shell").unwrap();
+    let region = draft
+        .create_node(SpecNodeKind::Region, None, "region")
+        .unwrap();
+    let shell = draft
+        .create_shell(forge_spec::facade::SpecShellKind::Sheet, "shell")
+        .unwrap();
 
     draft
         .add_relation(RelationKind::BodyOwnsLump, body, lump, 0, "body-lump")
@@ -205,11 +216,21 @@ fn build_high_valence_radial_fixture(draft: &mut SpecDraft) -> HighValenceFixtur
         .add_relation(RelationKind::LumpOwnsRegion, lump, region, 0, "lump-region")
         .unwrap();
     draft
-        .add_relation(RelationKind::RegionOwnsShell, region, shell, 0, "region-shell")
+        .add_relation(
+            RelationKind::RegionOwnsShell,
+            region,
+            shell,
+            0,
+            "region-shell",
+        )
         .unwrap();
 
-    let vertex_a = draft.create_node(SpecNodeKind::Vertex, None, "vertex-a").unwrap();
-    let vertex_b = draft.create_node(SpecNodeKind::Vertex, None, "vertex-b").unwrap();
+    let vertex_a = draft
+        .create_node(SpecNodeKind::Vertex, None, "vertex-a")
+        .unwrap();
+    let vertex_b = draft
+        .create_node(SpecNodeKind::Vertex, None, "vertex-b")
+        .unwrap();
 
     let seed = create_boundary_pair_face(draft, shell, vertex_a, vertex_b, "seed");
     let second = create_boundary_pair_face(draft, shell, vertex_a, vertex_b, "second");
@@ -229,22 +250,50 @@ fn create_boundary_pair_face(
     vertex_b: SpecNodeId,
     role: &str,
 ) -> (SpecNodeId, SpecNodeId) {
-    let face = draft.create_node(SpecNodeKind::Face, None, &format!("{role}-face")).unwrap();
-    let loop_id = draft.create_node(SpecNodeKind::Loop, None, &format!("{role}-loop")).unwrap();
-    let edge_ab = draft.create_node(SpecNodeKind::Edge, None, &format!("{role}-edge-ab")).unwrap();
-    let edge_ba = draft.create_node(SpecNodeKind::Edge, None, &format!("{role}-edge-ba")).unwrap();
+    let face = draft
+        .create_node(SpecNodeKind::Face, None, &format!("{role}-face"))
+        .unwrap();
+    let loop_id = draft
+        .create_node(SpecNodeKind::Loop, None, &format!("{role}-loop"))
+        .unwrap();
+    let edge_ab = draft
+        .create_node(SpecNodeKind::Edge, None, &format!("{role}-edge-ab"))
+        .unwrap();
+    let edge_ba = draft
+        .create_node(SpecNodeKind::Edge, None, &format!("{role}-edge-ba"))
+        .unwrap();
     let he_ab = draft
-        .create_node(SpecNodeKind::HalfEdge, None, &format!("{role}-half-edge-ab"))
+        .create_node(
+            SpecNodeKind::HalfEdge,
+            None,
+            &format!("{role}-half-edge-ab"),
+        )
         .unwrap();
     let he_ba = draft
-        .create_node(SpecNodeKind::HalfEdge, None, &format!("{role}-half-edge-ba"))
+        .create_node(
+            SpecNodeKind::HalfEdge,
+            None,
+            &format!("{role}-half-edge-ba"),
+        )
         .unwrap();
 
     draft
-        .add_relation(RelationKind::ShellOwnsFace, shell, face, 0, &format!("{role}-shell-face"))
+        .add_relation(
+            RelationKind::ShellOwnsFace,
+            shell,
+            face,
+            0,
+            &format!("{role}-shell-face"),
+        )
         .unwrap();
     draft
-        .add_relation(RelationKind::FaceOuterLoop, face, loop_id, 0, &format!("{role}-face-loop"))
+        .add_relation(
+            RelationKind::FaceOuterLoop,
+            face,
+            loop_id,
+            0,
+            &format!("{role}-face-loop"),
+        )
         .unwrap();
     draft
         .add_relation(
@@ -257,8 +306,18 @@ fn create_boundary_pair_face(
         .unwrap();
 
     for (kind, source, target, relation_role) in [
-        (RelationKind::HalfEdgeNext, he_ab, he_ba, format!("{role}-ab-next")),
-        (RelationKind::HalfEdgeNext, he_ba, he_ab, format!("{role}-ba-next")),
+        (
+            RelationKind::HalfEdgeNext,
+            he_ab,
+            he_ba,
+            format!("{role}-ab-next"),
+        ),
+        (
+            RelationKind::HalfEdgeNext,
+            he_ba,
+            he_ab,
+            format!("{role}-ba-next"),
+        ),
         (
             RelationKind::HalfEdgeRadialNext,
             he_ab,
@@ -271,8 +330,18 @@ fn create_boundary_pair_face(
             he_ba,
             format!("{role}-ba-radial"),
         ),
-        (RelationKind::HalfEdgeUsesEdge, he_ab, edge_ab, format!("{role}-ab-edge")),
-        (RelationKind::HalfEdgeUsesEdge, he_ba, edge_ba, format!("{role}-ba-edge")),
+        (
+            RelationKind::HalfEdgeUsesEdge,
+            he_ab,
+            edge_ab,
+            format!("{role}-ab-edge"),
+        ),
+        (
+            RelationKind::HalfEdgeUsesEdge,
+            he_ba,
+            edge_ba,
+            format!("{role}-ba-edge"),
+        ),
         (
             RelationKind::HalfEdgeOriginVertex,
             he_ab,
@@ -285,10 +354,22 @@ fn create_boundary_pair_face(
             vertex_b,
             format!("{role}-ba-origin"),
         ),
-        (RelationKind::HalfEdgeBoundsFace, he_ab, face, format!("{role}-ab-face")),
-        (RelationKind::HalfEdgeBoundsFace, he_ba, face, format!("{role}-ba-face")),
+        (
+            RelationKind::HalfEdgeBoundsFace,
+            he_ab,
+            face,
+            format!("{role}-ab-face"),
+        ),
+        (
+            RelationKind::HalfEdgeBoundsFace,
+            he_ba,
+            face,
+            format!("{role}-ba-face"),
+        ),
     ] {
-        draft.add_relation(kind, source, target, 0, &relation_role).unwrap();
+        draft
+            .add_relation(kind, source, target, 0, &relation_role)
+            .unwrap();
     }
 
     (he_ab, he_ba)

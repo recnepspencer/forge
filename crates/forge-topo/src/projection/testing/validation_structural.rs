@@ -1,10 +1,6 @@
-use forge_spec::facade::{
-    MakeVertexFaceMutation, SpecShellKind, SpecShellOrientation, SpecState,
-};
+use forge_spec::facade::{MakeVertexFaceMutation, SpecShellKind, SpecShellOrientation, SpecState};
 
-use crate::projection::facade::{
-    ProjectionBuilder, validate_projected_topology_structural,
-};
+use crate::projection::facade::{validate_projected_topology_structural, ProjectionBuilder};
 
 #[test]
 fn projected_structural_validation_accepts_valid_sewn_sheet_shell() {

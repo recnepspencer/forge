@@ -313,10 +313,8 @@ impl ExecutionHistorySummary {
             traced_node_count += 1;
             if let Some(id) = trace.execution_record_id {
                 execution_record_count += 1;
-                latest_execution_record_id = Some(
-                    latest_execution_record_id
-                        .map_or(id, |current: u64| current.max(id)),
-                );
+                latest_execution_record_id =
+                    Some(latest_execution_record_id.map_or(id, |current: u64| current.max(id)));
             }
             if retain_nodes && nodes.len() < profile.detail_limit() {
                 nodes.push(ExecutionHistoryNodeSummary {

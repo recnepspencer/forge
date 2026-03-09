@@ -1,8 +1,6 @@
-use forge_spec::facade::{
-    MakeVertexFaceMutation, SpecShellKind, SpecShellOrientation, SpecState,
-};
+use forge_spec::facade::{MakeVertexFaceMutation, SpecShellKind, SpecShellOrientation, SpecState};
 
-use crate::projection::facade::{ProjectionBuilder, validate_projected_per_component_euler};
+use crate::projection::facade::{validate_projected_per_component_euler, ProjectionBuilder};
 
 #[test]
 fn projected_per_component_euler_skips_sheet_shells() {

@@ -51,7 +51,13 @@ impl SpecMutation for MergeLumpsMutation {
 
         for region in draft.outgoing_targets_of_kind(self.source, RelationKind::LumpOwnsRegion) {
             draft.remove_relation_between(RelationKind::LumpOwnsRegion, self.source, region)?;
-            draft.add_relation(RelationKind::LumpOwnsRegion, self.target, region, 0, "merge-lump-region")?;
+            draft.add_relation(
+                RelationKind::LumpOwnsRegion,
+                self.target,
+                region,
+                0,
+                "merge-lump-region",
+            )?;
         }
 
         draft.remove_relation_between(RelationKind::BodyOwnsLump, source_body, self.source)?;
@@ -61,7 +67,10 @@ impl SpecMutation for MergeLumpsMutation {
             value: (),
             touched_domains: vec![TouchedDomain::Topology],
             mutation_trace: vec![
-                format!("move regions from lump {} into lump {}", self.source, self.target),
+                format!(
+                    "move regions from lump {} into lump {}",
+                    self.source, self.target
+                ),
                 format!("delete merged source lump {}", self.source),
             ],
         })

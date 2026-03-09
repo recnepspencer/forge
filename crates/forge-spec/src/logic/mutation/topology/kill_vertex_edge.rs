@@ -39,11 +39,11 @@ impl SpecMutation for KillVertexEdgeMutation {
             )));
         }
 
-        let outgoing = draft.incoming_sources_of_kind(self.vertex, RelationKind::HalfEdgeOriginVertex);
+        let outgoing =
+            draft.incoming_sources_of_kind(self.vertex, RelationKind::HalfEdgeOriginVertex);
         if outgoing.len() != 1 {
             return Err(SpecError::invalid(
-                "KillVertexEdgeMutation requires a vertex used by exactly one halfedge"
-                    .to_string(),
+                "KillVertexEdgeMutation requires a vertex used by exactly one halfedge".to_string(),
             ));
         }
 
@@ -69,8 +69,7 @@ impl SpecMutation for KillVertexEdgeMutation {
         let face_am = draft.single_outgoing_target(he_am, RelationKind::HalfEdgeBoundsFace)?;
         if face_mb != face_am {
             return Err(SpecError::invalid(
-                "KillVertexEdgeMutation requires both halfedges to bound the same face"
-                    .to_string(),
+                "KillVertexEdgeMutation requires both halfedges to bound the same face".to_string(),
             ));
         }
 
@@ -82,7 +81,12 @@ impl SpecMutation for KillVertexEdgeMutation {
             ));
         }
 
-        draft.replace_single_relation(RelationKind::HalfEdgeNext, he_am, he_am, "restore-self-loop")?;
+        draft.replace_single_relation(
+            RelationKind::HalfEdgeNext,
+            he_am,
+            he_am,
+            "restore-self-loop",
+        )?;
 
         draft.remove_relation_between(RelationKind::HalfEdgeNext, he_mb, he_am)?;
         draft.remove_relation_between(RelationKind::HalfEdgeRadialNext, he_mb, he_mb)?;

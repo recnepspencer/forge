@@ -115,7 +115,10 @@ impl SpecDraft {
 
     pub(super) fn current_node(&self, id: SpecNodeId) -> Result<&NodeRecord, SpecError> {
         if self.deleted_nodes.contains(&id) {
-            return Err(SpecError::not_found(format!("node {} is deleted in draft", id)));
+            return Err(SpecError::not_found(format!(
+                "node {} is deleted in draft",
+                id
+            )));
         }
         self.created_nodes
             .get(&id)
@@ -123,9 +126,15 @@ impl SpecDraft {
             .ok_or_else(|| SpecError::not_found(format!("node {} not found", id)))
     }
 
-    pub(super) fn current_relation(&self, id: SpecRelationId) -> Result<&RelationRecord, SpecError> {
+    pub(super) fn current_relation(
+        &self,
+        id: SpecRelationId,
+    ) -> Result<&RelationRecord, SpecError> {
         if self.deleted_relations.contains(&id) {
-            return Err(SpecError::not_found(format!("relation {} is deleted in draft", id)));
+            return Err(SpecError::not_found(format!(
+                "relation {} is deleted in draft",
+                id
+            )));
         }
         self.created_relations
             .get(&id)
@@ -223,7 +232,10 @@ impl SpecDraft {
         relations
     }
 
-    fn payload_record(&self, key: crate::data::payload::PayloadKey) -> Result<&PayloadRecord, SpecError> {
+    fn payload_record(
+        &self,
+        key: crate::data::payload::PayloadKey,
+    ) -> Result<&PayloadRecord, SpecError> {
         self.created_payloads
             .iter()
             .find(|record| record.key == key)

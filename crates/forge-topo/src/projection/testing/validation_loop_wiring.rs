@@ -3,8 +3,8 @@ use forge_spec::facade::{
 };
 
 use crate::projection::facade::{
-    ProjectionBuilder, validate_projected_face_loop_membership_complete,
-    validate_projected_loop_wiring, validate_projected_prev_consistency,
+    validate_projected_face_loop_membership_complete, validate_projected_loop_wiring,
+    validate_projected_prev_consistency, ProjectionBuilder,
 };
 
 #[test]
@@ -85,8 +85,9 @@ fn projected_face_loop_membership_rejects_unreachable_face_halfedge() {
         .iter()
         .enumerate()
         .find_map(|(index, half_edge)| {
-            (half_edge.face != target_face)
-                .then_some(crate::projection::data::ProjectedHalfEdgeId::new(index as u32))
+            (half_edge.face != target_face).then_some(
+                crate::projection::data::ProjectedHalfEdgeId::new(index as u32),
+            )
         })
         .unwrap();
     projection.half_edges[foreign_half_edge.index()].face = target_face;

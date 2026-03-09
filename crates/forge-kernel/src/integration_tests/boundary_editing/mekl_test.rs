@@ -37,7 +37,8 @@ fn kfmrh_then_mekl_bridges_hole() {
         .arena()
         .get_face(target_face)
         .unwrap()
-        .loops.inners()
+        .loops
+        .inners()
         .len();
     assert_eq!(inner_loops_before, 0);
 
@@ -61,7 +62,8 @@ fn kfmrh_then_mekl_bridges_hole() {
         .arena()
         .get_face(target_face)
         .unwrap()
-        .loops.inners()
+        .loops
+        .inners()
         .len();
     assert_eq!(inner_loops_after, 1, "KFMRH should create 1 inner loop");
 
@@ -87,7 +89,8 @@ fn kfmrh_then_mekl_bridges_hole() {
         .arena()
         .get_face(target_face)
         .unwrap()
-        .loops.inners()
+        .loops
+        .inners()
         .len();
     assert_eq!(inner_loops_after_mekl, 0, "MEKL should kill the inner loop");
 
@@ -158,7 +161,8 @@ fn mekl_keml_roundtrip() {
             .arena()
             .get_face(target_face)
             .unwrap()
-            .loops.inners()
+            .loops
+            .inners()
             .len(),
         0
     );
@@ -173,7 +177,8 @@ fn mekl_keml_roundtrip() {
             .arena()
             .get_face(target_face)
             .unwrap()
-            .loops.inners()
+            .loops
+            .inners()
             .len(),
         1,
         "KEML should restore the inner loop"

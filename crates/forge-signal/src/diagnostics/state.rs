@@ -108,11 +108,7 @@ impl DiagnosticsState {
         }
     }
 
-    pub fn complete_flow(
-        &mut self,
-        flow: FlowSummary,
-        history: ExecutionHistorySummary,
-    ) {
+    pub fn complete_flow(&mut self, flow: FlowSummary, history: ExecutionHistorySummary) {
         self.latest_flow = Some(flow);
         self.recent_history.push_back(history);
         self.trim_history();

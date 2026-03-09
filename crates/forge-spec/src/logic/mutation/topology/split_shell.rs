@@ -83,7 +83,10 @@ impl SpecMutation for SplitShellMutation {
             )?;
         }
 
-        if draft.outgoing_targets_of_kind(self.shell, RelationKind::ShellOwnsFace).is_empty() {
+        if draft
+            .outgoing_targets_of_kind(self.shell, RelationKind::ShellOwnsFace)
+            .is_empty()
+        {
             draft.remove_relation_between(RelationKind::RegionOwnsShell, region, self.shell)?;
             draft.delete_node(self.shell)?;
         }
@@ -91,15 +94,13 @@ impl SpecMutation for SplitShellMutation {
         Ok(MutationResult {
             value: SplitShellOutput { new_shell },
             touched_domains: vec![TouchedDomain::Topology],
-            mutation_trace: vec![
-                format!(
-                    "create shell {} in region {} and move {} faces from shell {}",
-                    new_shell,
-                    region,
-                    self.faces_to_move.len(),
-                    self.shell
-                ),
-            ],
+            mutation_trace: vec![format!(
+                "create shell {} in region {} and move {} faces from shell {}",
+                new_shell,
+                region,
+                self.faces_to_move.len(),
+                self.shell
+            )],
         })
     }
 

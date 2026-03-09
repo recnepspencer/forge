@@ -218,7 +218,9 @@ fn execution_report_marks_requested_maybe_stale_validation_as_validated_clean() 
         .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
         .unwrap();
     let report = graph
-        .execute_prepared_plan(&plan, &|_node, _view| Ok(PreparedEvaluation::validated_clean()))
+        .execute_prepared_plan(&plan, &|_node, _view| {
+            Ok(PreparedEvaluation::validated_clean())
+        })
         .unwrap();
 
     assert_eq!(report.task_count, 1);
@@ -239,7 +241,9 @@ fn execution_report_marks_on_demand_deferral_explicitly() {
         .build_evaluation_plan(&[node], EvaluationRequestMode::Default)
         .unwrap();
     let report = graph
-        .execute_prepared_plan(&plan, &|_node, _view| Ok(PreparedEvaluation::deferred_by_condition()))
+        .execute_prepared_plan(&plan, &|_node, _view| {
+            Ok(PreparedEvaluation::deferred_by_condition())
+        })
         .unwrap();
 
     assert_eq!(report.task_count, 1);

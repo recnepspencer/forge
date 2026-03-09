@@ -63,7 +63,8 @@ impl SpecMutation for SewEdgeMutation {
             ));
         }
 
-        let edge = draft.single_outgoing_target(self.half_edge_a, RelationKind::HalfEdgeUsesEdge)?;
+        let edge =
+            draft.single_outgoing_target(self.half_edge_a, RelationKind::HalfEdgeUsesEdge)?;
         let removed_edge =
             draft.single_outgoing_target(self.half_edge_b, RelationKind::HalfEdgeUsesEdge)?;
         let next_radial =

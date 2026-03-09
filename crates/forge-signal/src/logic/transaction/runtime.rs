@@ -5,9 +5,7 @@ use std::time::Instant;
 use crate::data::aspect::{Aspect, AspectVersion};
 use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::checkpoint_policy::CheckpointPolicy;
-use crate::data::comparator::{
-    TierPolicyResolver, VersionComparatorPolicy,
-};
+use crate::data::comparator::{TierPolicyResolver, VersionComparatorPolicy};
 use crate::data::dirty_set::{BatchedDirtySet, DomainImpact};
 use crate::data::effect_mapping::EffectMapping;
 use crate::data::error::SignalError;
@@ -17,21 +15,19 @@ use crate::data::handle::NodeId;
 use crate::data::node_meta::NodeMetaStore;
 use crate::data::output::ChangedRegion;
 use crate::data::output::{
-    ComputationFamily, ComputationKey, KeyedComputation, NodeEvaluationResult,
-    StructuralMemoKey,
+    ComputationFamily, ComputationKey, KeyedComputation, NodeEvaluationResult, StructuralMemoKey,
 };
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::data::tier::TierPolicy;
 use crate::data::tier_policy_table::TierPolicyTable;
-use crate::diagnostics::state::DiagnosticsState;
 use crate::diagnostics::access::RuntimeDiagnostics;
 use crate::diagnostics::history::ExecutionInspector;
 use crate::diagnostics::profile::DiagnosticsProfile;
 use crate::diagnostics::recorder::DiagnosticsRecorder;
+use crate::diagnostics::state::DiagnosticsState;
 use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
 use crate::diagnostics::{
-    ExecutionFailureContext, ExecutionFailurePhase, FailureSummary, FlowSummary,
-    RollbackDiagnostic,
+    ExecutionFailureContext, ExecutionFailurePhase, FailureSummary, FlowSummary, RollbackDiagnostic,
 };
 use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::evaluation::EvaluationRequestMode;
@@ -39,8 +35,8 @@ use crate::logic::events::EventBus;
 use crate::logic::explain::{explain_with_policy_resolver, NodeExplanation};
 use crate::logic::invalidation::{mark_dirty, mark_dirty_with_regions};
 use crate::logic::planner::{
-    build_evaluation_plan_with_policy_resolver, execute_prepared_plan_with_policy,
-    EvaluationPlan, ExecutionReport, StageExecutor,
+    build_evaluation_plan_with_policy_resolver, execute_prepared_plan_with_policy, EvaluationPlan,
+    ExecutionReport, StageExecutor,
 };
 use crate::logic::prepared::{
     ExecutionReadView, PreparedEvaluation, PreparedEvaluationOrigin, PreparedKeyedContext,
@@ -568,11 +564,7 @@ where
     }
 
     /// Read one node through the planner-backed prepared path and return its current version.
-    pub fn read<F>(
-        &mut self,
-        node: NodeId,
-        precompute: &F,
-    ) -> Result<AspectVersion, SignalError>
+    pub fn read<F>(&mut self, node: NodeId, precompute: &F) -> Result<AspectVersion, SignalError>
     where
         F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
@@ -580,11 +572,7 @@ where
     }
 
     /// Alias for `read(...)` using more familiar signal vocabulary.
-    pub fn get<F>(
-        &mut self,
-        node: NodeId,
-        precompute: &F,
-    ) -> Result<AspectVersion, SignalError>
+    pub fn get<F>(&mut self, node: NodeId, precompute: &F) -> Result<AspectVersion, SignalError>
     where
         F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
@@ -601,7 +589,12 @@ where
     where
         F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
-        self.evaluate_with_plan_and_executor(node, precompute, EvaluationRequestMode::Default, executor)?;
+        self.evaluate_with_plan_and_executor(
+            node,
+            precompute,
+            EvaluationRequestMode::Default,
+            executor,
+        )?;
         Ok(self.graph.get_entry(node)?.get_aspect_version())
     }
 
@@ -938,11 +931,7 @@ where
     }
 
     /// Read one node through the planner-backed prepared path and return its current version.
-    pub fn read<F>(
-        &mut self,
-        node: NodeId,
-        precompute: &F,
-    ) -> Result<AspectVersion, SignalError>
+    pub fn read<F>(&mut self, node: NodeId, precompute: &F) -> Result<AspectVersion, SignalError>
     where
         F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
@@ -950,11 +939,7 @@ where
     }
 
     /// Alias for `read(...)` using more familiar signal vocabulary.
-    pub fn get<F>(
-        &mut self,
-        node: NodeId,
-        precompute: &F,
-    ) -> Result<AspectVersion, SignalError>
+    pub fn get<F>(&mut self, node: NodeId, precompute: &F) -> Result<AspectVersion, SignalError>
     where
         F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
@@ -971,7 +956,12 @@ where
     where
         F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
-        self.evaluate_with_plan_and_executor(node, precompute, EvaluationRequestMode::Default, executor)?;
+        self.evaluate_with_plan_and_executor(
+            node,
+            precompute,
+            EvaluationRequestMode::Default,
+            executor,
+        )?;
         Ok(self.graph.get_entry(node)?.get_aspect_version())
     }
 
@@ -1026,7 +1016,12 @@ where
     where
         F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
-        self.evaluate_keyed_with_mode(node, computation, precompute, EvaluationRequestMode::Default)
+        self.evaluate_keyed_with_mode(
+            node,
+            computation,
+            precompute,
+            EvaluationRequestMode::Default,
+        )
     }
 
     /// Evaluate one keyed computation with explicit request mode.
@@ -1085,7 +1080,8 @@ where
                             .with_origin(PreparedEvaluationOrigin::MemoizedReuse)
                             .with_memo_decision(PreparedMemoDecision::Hit)
                             .with_keyed(PreparedKeyedContext {
-                                memoized_origin: crate::data::output::MemoizedResultOrigin::MemoizedFromCache,
+                                memoized_origin:
+                                    crate::data::output::MemoizedResultOrigin::MemoizedFromCache,
                                 ..base_keyed_context.clone()
                             }))
                     },
@@ -1305,7 +1301,8 @@ where
         if self.poisoned {
             self.event_bus.rollback(runtime_ctx);
             self.graph_patches.rollback_and_clear(self.graph)?;
-            DiagnosticsRecorder::new(self.graph).restore_snapshot(self.diagnostics_snapshot.clone());
+            DiagnosticsRecorder::new(self.graph)
+                .restore_snapshot(self.diagnostics_snapshot.clone());
             let rollback = RollbackDiagnostic::new(
                 true,
                 self.graph_patches.touched_count() as u64,
@@ -1339,7 +1336,8 @@ where
         {
             self.event_bus.rollback(runtime_ctx);
             self.graph_patches.rollback_and_clear(self.graph)?;
-            DiagnosticsRecorder::new(self.graph).restore_snapshot(self.diagnostics_snapshot.clone());
+            DiagnosticsRecorder::new(self.graph)
+                .restore_snapshot(self.diagnostics_snapshot.clone());
             let rollback = RollbackDiagnostic::new(
                 true,
                 self.graph_patches.touched_count() as u64,

@@ -64,6 +64,9 @@ impl SpecMutation for MakeEmptyShellMutation {
     }
 
     fn semantic_summary(&self) -> String {
-        format!("Create empty {:?} shell in region {}", self.kind, self.region)
+        format!(
+            "Create empty {:?} shell in region {}",
+            self.kind, self.region
+        )
     }
 }

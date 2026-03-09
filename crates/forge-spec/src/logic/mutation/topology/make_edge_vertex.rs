@@ -39,8 +39,22 @@ impl SpecMutation for MakeEdgeVertexMutation {
         let he_back = draft.create_node(SpecNodeKind::HalfEdge, None, "half_edge_back")?;
 
         draft.replace_single_relation(RelationKind::HalfEdgeNext, prev, he_out, "prev-next")?;
-        add(draft, RelationKind::HalfEdgeNext, he_out, he_back, 0, "out-next")?;
-        add(draft, RelationKind::HalfEdgeNext, he_back, anchor, 0, "back-next")?;
+        add(
+            draft,
+            RelationKind::HalfEdgeNext,
+            he_out,
+            he_back,
+            0,
+            "out-next",
+        )?;
+        add(
+            draft,
+            RelationKind::HalfEdgeNext,
+            he_back,
+            anchor,
+            0,
+            "back-next",
+        )?;
 
         add(
             draft,

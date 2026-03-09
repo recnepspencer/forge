@@ -1,10 +1,13 @@
+use crate::data::output::IntoNodeEvaluationResult;
 use crate::facade::{
     Aspect, AspectMask, AspectVersion, ComparatorPolicyResolver, DefaultComparatorPolicyResolver,
-    DefaultComparatorResolver, DefaultConditionResolver, EvaluationRequestMode,
-    NodeId, SignalError, SignalGraph, VersionComparatorPolicy, VersionComparatorResolver,
+    DefaultComparatorResolver, DefaultConditionResolver, EvaluationRequestMode, NodeId,
+    SignalError, SignalGraph, VersionComparatorPolicy, VersionComparatorResolver,
 };
-use crate::data::output::IntoNodeEvaluationResult;
-use crate::logic::planner::{build_evaluation_plan_with_policy_resolver, execute_plan_with_policy_and_condition, StageExecutor};
+use crate::logic::planner::{
+    build_evaluation_plan_with_policy_resolver, execute_plan_with_policy_and_condition,
+    StageExecutor,
+};
 
 pub const ASPECT_A: Aspect = Aspect::new(0);
 pub const ASPECT_B: Aspect = Aspect::new(1);

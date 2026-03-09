@@ -50,7 +50,14 @@ impl SpecMutation for SplitEdgeMutation {
 
         draft.replace_single_relation(RelationKind::HalfEdgeNext, he_ab, he_mb, "split-next")?;
 
-        add(draft, RelationKind::HalfEdgeNext, he_mb, he_ab, 0, "new-next")?;
+        add(
+            draft,
+            RelationKind::HalfEdgeNext,
+            he_mb,
+            he_ab,
+            0,
+            "new-next",
+        )?;
         add(
             draft,
             RelationKind::HalfEdgeRadialNext,

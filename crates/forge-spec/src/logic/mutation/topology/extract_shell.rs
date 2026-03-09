@@ -39,7 +39,8 @@ impl SpecMutation for ExtractShellMutation {
             )));
         }
 
-        let source_region = draft.single_incoming_source(self.shell, RelationKind::RegionOwnsShell)?;
+        let source_region =
+            draft.single_incoming_source(self.shell, RelationKind::RegionOwnsShell)?;
         let lump = draft.single_incoming_source(source_region, RelationKind::LumpOwnsRegion)?;
         let shell_kind = draft.shell_kind(self.shell)?;
 
@@ -50,7 +51,10 @@ impl SpecMutation for ExtractShellMutation {
                 ));
             }
             SpecShellKind::Solid(SpecShellOrientation::Inner) => {
-                draft.set_shell_kind(self.shell, SpecShellKind::Solid(SpecShellOrientation::Outer))?;
+                draft.set_shell_kind(
+                    self.shell,
+                    SpecShellKind::Solid(SpecShellOrientation::Outer),
+                )?;
             }
             SpecShellKind::Sheet | SpecShellKind::Wire => {}
         }

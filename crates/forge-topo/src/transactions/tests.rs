@@ -846,7 +846,7 @@ fn event_bus_wiring_with_real_operator_emits_lifecycle_events() {
             &mut self,
             _barrier: forge_signal::facade::CheckpointBarrier,
             _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
-                    _runtime: &mut Self::RuntimeContext,
+            _runtime: &mut Self::RuntimeContext,
         ) -> Result<(), forge_signal::facade::SignalError> {
             self.checkpoints.fetch_add(1, Ordering::SeqCst);
             Ok(())
@@ -886,9 +886,8 @@ fn event_bus_wiring_with_real_operator_emits_lifecycle_events() {
 fn operation_subscribers_stage_expected_outputs_after_execute() {
     use crate::entity_lifecycle::make_vertex_face::MakeVertexFace;
     use crate::transactions::{
-        EulerDeltaCheck, LineageSummary, MutationCounts,
-        OperationArtifacts, ReplayStats, ValidationSummary,
-        VersionCounters,
+        EulerDeltaCheck, LineageSummary, MutationCounts, OperationArtifacts, ReplayStats,
+        ValidationSummary, VersionCounters,
     };
 
     let mut draft = TopologyState::empty().into_mutation();
@@ -902,17 +901,13 @@ fn operation_subscribers_stage_expected_outputs_after_execute() {
     let journal_deleted = draft.mutation_journal().count_destroyed();
     let context = draft.event_bus_mut().context();
     let mutation = context
-        .committed::<MutationCounts>(
-            crate::transactions::TopoSubscriberDataId::MutationCounts,
-        )
+        .committed::<MutationCounts>(crate::transactions::TopoSubscriberDataId::MutationCounts)
         .expect("missing mutation operation output");
     assert_eq!(mutation.created, journal_created);
     assert_eq!(mutation.destroyed, journal_deleted);
 
     let versions = context
-        .committed::<VersionCounters>(
-            crate::transactions::TopoSubscriberDataId::VersionCounters,
-        )
+        .committed::<VersionCounters>(crate::transactions::TopoSubscriberDataId::VersionCounters)
         .expect("missing version operation output");
     assert_eq!(versions.topology_bumps, 1);
     assert_eq!(versions.geometry_bumps, 0);
@@ -927,16 +922,12 @@ fn operation_subscribers_stage_expected_outputs_after_execute() {
     assert_eq!(replay.cache_trace_updates, 1);
 
     let euler = context
-        .committed::<EulerDeltaCheck>(
-            crate::transactions::TopoSubscriberDataId::EulerDeltaResult,
-        )
+        .committed::<EulerDeltaCheck>(crate::transactions::TopoSubscriberDataId::EulerDeltaResult)
         .expect("missing euler operation output");
     assert!(euler.matched);
 
     let validation = context
-        .committed::<ValidationSummary>(
-            crate::transactions::TopoSubscriberDataId::ValidationResult,
-        )
+        .committed::<ValidationSummary>(crate::transactions::TopoSubscriberDataId::ValidationResult)
         .expect("missing validation operation output");
     assert_eq!(validation.checks_failed, 0);
 
@@ -1012,7 +1003,7 @@ fn subscriber_checkpoint_failure_poisons_draft_and_drop_is_safe() {
             &mut self,
             _barrier: forge_signal::facade::CheckpointBarrier,
             _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
-                    _runtime: &mut Self::RuntimeContext,
+            _runtime: &mut Self::RuntimeContext,
         ) -> Result<(), forge_signal::facade::SignalError> {
             Err(forge_signal::facade::SignalError::internal(
                 "intentional subscriber failure",
@@ -1086,7 +1077,7 @@ fn rollback_callbacks_fire_once_when_execute_fails_then_draft_drops() {
             &mut self,
             _barrier: forge_signal::facade::CheckpointBarrier,
             _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
-                    _runtime: &mut Self::RuntimeContext,
+            _runtime: &mut Self::RuntimeContext,
         ) -> Result<(), forge_signal::facade::SignalError> {
             Err(forge_signal::facade::SignalError::internal(
                 "force rollback",
@@ -1165,7 +1156,7 @@ fn topo_event_bus_rollback_honors_reverse_dependency_order() {
             &mut self,
             _barrier: CheckpointBarrier,
             _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
-                    _runtime: &mut Self::RuntimeContext,
+            _runtime: &mut Self::RuntimeContext,
         ) -> Result<(), forge_signal::facade::SignalError> {
             Ok(())
         }
@@ -1251,7 +1242,7 @@ fn rollback_failure_keeps_previous_committed_operation_outputs_intact() {
             &mut self,
             _barrier: forge_signal::facade::CheckpointBarrier,
             _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
-                    _runtime: &mut Self::RuntimeContext,
+            _runtime: &mut Self::RuntimeContext,
         ) -> Result<(), forge_signal::facade::SignalError> {
             Err(forge_signal::facade::SignalError::internal(
                 "force rollback on checkpoint",

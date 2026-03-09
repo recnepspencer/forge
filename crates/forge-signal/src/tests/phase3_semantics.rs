@@ -119,9 +119,11 @@ fn keyed_evaluation_can_reuse_memoized_result() {
         .transaction(&mut runtime_ctx, |tx| {
             tx.evaluate_keyed(node, &computation, &|_id, view| {
                 compute_calls.fetch_add(1, Ordering::Relaxed);
-                Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))
-                    .with_output_identity("bulkhead-artifact")
-                    .with_output_change(OutputChange::Refreshed)))
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 0))
+                        .with_output_identity("bulkhead-artifact")
+                        .with_output_change(OutputChange::Refreshed),
+                ))
             })?;
             Ok(())
         })

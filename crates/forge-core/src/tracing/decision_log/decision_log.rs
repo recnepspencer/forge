@@ -215,31 +215,32 @@ impl DecisionLog {
             .unwrap_or(0);
         let decision_offset = self.decisions().map(|d| d.get_id().0).max().unwrap_or(0);
 
-        self.events.extend(other.events.into_iter().map(|event| match event {
-            TraceEvent::Decision(mut decision) => {
-                decision.set_id(DecisionId(decision.get_id().0 + decision_offset));
-                if let Some(span_id) = decision.get_span_id() {
-                    decision.set_span_id(SpanId(span_id.0 + span_offset));
+        self.events
+            .extend(other.events.into_iter().map(|event| match event {
+                TraceEvent::Decision(mut decision) => {
+                    decision.set_id(DecisionId(decision.get_id().0 + decision_offset));
+                    if let Some(span_id) = decision.get_span_id() {
+                        decision.set_span_id(SpanId(span_id.0 + span_offset));
+                    }
+                    TraceEvent::Decision(decision)
                 }
-                TraceEvent::Decision(decision)
-            }
-            TraceEvent::StartSpan {
-                id,
-                parent_id,
-                name,
-            } => TraceEvent::StartSpan {
-                id: SpanId(id.0 + span_offset),
-                parent_id: parent_id.map(|p| SpanId(p.0 + span_offset)),
-                name,
-            },
-            TraceEvent::EndSpan {
-                id,
-                duration_micros,
-            } => TraceEvent::EndSpan {
-                id: SpanId(id.0 + span_offset),
-                duration_micros,
-            },
-        }));
+                TraceEvent::StartSpan {
+                    id,
+                    parent_id,
+                    name,
+                } => TraceEvent::StartSpan {
+                    id: SpanId(id.0 + span_offset),
+                    parent_id: parent_id.map(|p| SpanId(p.0 + span_offset)),
+                    name,
+                },
+                TraceEvent::EndSpan {
+                    id,
+                    duration_micros,
+                } => TraceEvent::EndSpan {
+                    id: SpanId(id.0 + span_offset),
+                    duration_micros,
+                },
+            }));
         self.rebuild_indexes();
     }
 

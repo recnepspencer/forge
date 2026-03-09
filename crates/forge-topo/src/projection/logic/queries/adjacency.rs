@@ -23,7 +23,10 @@ pub fn half_edge_radial_next(
     topology.half_edge(half_edge).radial_next
 }
 
-pub fn half_edge_face(topology: &ProjectedTopology, half_edge: ProjectedHalfEdgeId) -> ProjectedFaceId {
+pub fn half_edge_face(
+    topology: &ProjectedTopology,
+    half_edge: ProjectedHalfEdgeId,
+) -> ProjectedFaceId {
     topology.half_edge(half_edge).face
 }
 
@@ -34,7 +37,10 @@ pub fn half_edge_origin(
     topology.half_edge(half_edge).origin
 }
 
-pub fn half_edge_edge(topology: &ProjectedTopology, half_edge: ProjectedHalfEdgeId) -> ProjectedEdgeId {
+pub fn half_edge_edge(
+    topology: &ProjectedTopology,
+    half_edge: ProjectedHalfEdgeId,
+) -> ProjectedEdgeId {
     topology.half_edge(half_edge).edge
 }
 

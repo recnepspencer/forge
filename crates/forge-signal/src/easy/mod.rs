@@ -55,10 +55,7 @@ where
         values: &HashMap<NodeId, Box<dyn Any + Send + Sync>>,
         view: &ExecutionReadView<'_>,
     ) -> Result<(Box<dyn Any + Send + Sync>, PreparedEvaluation), SignalError> {
-        let mut context = ComputeContext {
-            values,
-            view,
-        };
+        let mut context = ComputeContext { values, view };
         let value = (self.closure)(&mut context);
         let current = view
             .graph()
@@ -193,29 +190,27 @@ impl ReactiveGraph {
             return Ok(());
         }
 
-        let plan = self
-            .graph
-            .build_evaluation_plan(&[node], crate::logic::evaluation::EvaluationRequestMode::Default)?;
+        let plan = self.graph.build_evaluation_plan(
+            &[node],
+            crate::logic::evaluation::EvaluationRequestMode::Default,
+        )?;
         let staged_values: Mutex<HashMap<NodeId, Box<dyn Any + Send + Sync>>> =
             Mutex::new(HashMap::new());
         let graph = &mut self.graph;
         let computed = &self.computed;
         let values = &self.values;
-        graph.execute_prepared_plan(
-            &plan,
-            &|current, view| {
-                if let Some(computed) = computed.get(&current) {
-                    let (value, prepared) = computed.precompute(values, view)?;
-                    staged_values
-                        .lock()
-                        .map_err(|_| SignalError::internal("easy-mode staged value mutex poisoned"))?
-                        .insert(current, value);
-                    Ok(prepared)
-                } else {
-                    Ok(PreparedEvaluation::validated_clean())
-                }
-            },
-        )?;
+        graph.execute_prepared_plan(&plan, &|current, view| {
+            if let Some(computed) = computed.get(&current) {
+                let (value, prepared) = computed.precompute(values, view)?;
+                staged_values
+                    .lock()
+                    .map_err(|_| SignalError::internal("easy-mode staged value mutex poisoned"))?
+                    .insert(current, value);
+                Ok(prepared)
+            } else {
+                Ok(PreparedEvaluation::validated_clean())
+            }
+        })?;
 
         let staged_values = staged_values
             .into_inner()

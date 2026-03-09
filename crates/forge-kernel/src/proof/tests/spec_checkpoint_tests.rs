@@ -1,6 +1,6 @@
 use crate::prelude::{
-    SpecEnvelope, ValidationCheckpoint, ValidationConfig, run_spec_checkpoint,
-    run_spec_envelope_checkpoint,
+    run_spec_checkpoint, run_spec_envelope_checkpoint, SpecEnvelope, ValidationCheckpoint,
+    ValidationConfig,
 };
 use forge_spec::facade::{
     MakeShellFaceMutation, MakeSolidMutation, MakeVertexFaceMutation, SpecShellKind,
@@ -18,8 +18,12 @@ fn spec_checkpoint_accepts_valid_projection() {
         .unwrap();
     let spec = draft.commit().unwrap();
 
-    let vr = run_spec_checkpoint(&spec, &post_feature_config(), ValidationCheckpoint::PostFeature)
-        .unwrap();
+    let vr = run_spec_checkpoint(
+        &spec,
+        &post_feature_config(),
+        ValidationCheckpoint::PostFeature,
+    )
+    .unwrap();
 
     assert!(vr.is_passed());
     assert!(!vr.included_geometric());
@@ -66,8 +70,12 @@ fn spec_checkpoint_rejects_invalid_solid_shell_projection() {
         .unwrap();
     let spec = draft.commit().unwrap();
 
-    let error = run_spec_checkpoint(&spec, &post_feature_config(), ValidationCheckpoint::PostFeature)
-        .unwrap_err();
+    let error = run_spec_checkpoint(
+        &spec,
+        &post_feature_config(),
+        ValidationCheckpoint::PostFeature,
+    )
+    .unwrap_err();
 
     assert!(format!("{error}").contains("projected_shell_consistency"));
 }

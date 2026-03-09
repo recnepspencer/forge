@@ -13,9 +13,7 @@ use crate::transactions::data::operation_event::{TopoOperationEvent, TopoSubscri
 use crate::transactions::data::operation_outputs::OperationArtifacts;
 use forge_signal::facade::{CheckpointBarrier, EventBus};
 
-use forge_core::{
-    KernelError, LineageDelta, OperationMetrics, OperationResult,
-};
+use forge_core::{KernelError, LineageDelta, OperationMetrics, OperationResult};
 
 impl MutableDraft {
     /// Execute a topology operator through the formalized runner.

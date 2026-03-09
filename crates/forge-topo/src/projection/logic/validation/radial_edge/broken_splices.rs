@@ -11,7 +11,9 @@ pub fn validate_projected_no_broken_radial_splices(
 ) -> Result<(), KernelError> {
     let mut edge_half_edge_counts = BTreeMap::new();
     for half_edge in topology.half_edges() {
-        *edge_half_edge_counts.entry(half_edge.edge.raw()).or_insert(0usize) += 1;
+        *edge_half_edge_counts
+            .entry(half_edge.edge.raw())
+            .or_insert(0usize) += 1;
     }
 
     for (edge_index, edge) in topology.edges().iter().enumerate() {

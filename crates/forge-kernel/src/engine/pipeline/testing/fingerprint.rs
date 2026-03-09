@@ -5,7 +5,7 @@ use forge_spec::facade::{MakeVertexFaceMutation, SpecState};
 
 use crate::configuration::facade::FingerprintDetail;
 use crate::engine::contracts::contract::ConditioningMode;
-use crate::engine::facade::{SpecEnvelope, compute_spec_pipeline_fingerprint};
+use crate::engine::facade::{compute_spec_pipeline_fingerprint, SpecEnvelope};
 
 fn build_spec_envelope() -> SpecEnvelope {
     let mut draft = SpecState::empty().into_draft();

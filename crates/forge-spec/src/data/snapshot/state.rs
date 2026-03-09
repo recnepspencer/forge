@@ -42,7 +42,10 @@ impl SpecState {
     }
 
     pub fn with_namespace(model_namespace: u128) -> Self {
-        let mut state = Self { model_namespace, ..Self::empty() };
+        let mut state = Self {
+            model_namespace,
+            ..Self::empty()
+        };
         state.spec_hash = state.compute_hash();
         state
     }
@@ -158,7 +161,11 @@ impl SpecState {
             feed_bytes(
                 &mut hi,
                 &mut lo,
-                &node.payload.map(|payload| payload.raw()).unwrap_or(0).to_be_bytes(),
+                &node
+                    .payload
+                    .map(|payload| payload.raw())
+                    .unwrap_or(0)
+                    .to_be_bytes(),
             );
         }
         for relation in self.graph.iter_relations() {

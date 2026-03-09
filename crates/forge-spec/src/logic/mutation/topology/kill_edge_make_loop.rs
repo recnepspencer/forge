@@ -30,14 +30,16 @@ impl SpecMutation for KillEdgeMakeLoopMutation {
             ));
         }
 
-        let twin = draft.single_outgoing_target(self.half_edge, RelationKind::HalfEdgeRadialNext)?;
+        let twin =
+            draft.single_outgoing_target(self.half_edge, RelationKind::HalfEdgeRadialNext)?;
         if draft.single_outgoing_target(twin, RelationKind::HalfEdgeRadialNext)? != self.half_edge {
             return Err(SpecError::invalid(
                 "KillEdgeMakeLoopMutation requires a two-halfedge radial pair".to_string(),
             ));
         }
 
-        let face = draft.single_outgoing_target(self.half_edge, RelationKind::HalfEdgeBoundsFace)?;
+        let face =
+            draft.single_outgoing_target(self.half_edge, RelationKind::HalfEdgeBoundsFace)?;
         if draft.single_outgoing_target(twin, RelationKind::HalfEdgeBoundsFace)? != face {
             return Err(SpecError::invalid(
                 "KillEdgeMakeLoopMutation requires a same-face bridge edge".to_string(),
@@ -47,8 +49,7 @@ impl SpecMutation for KillEdgeMakeLoopMutation {
         let edge = draft.single_outgoing_target(self.half_edge, RelationKind::HalfEdgeUsesEdge)?;
         if draft.single_outgoing_target(twin, RelationKind::HalfEdgeUsesEdge)? != edge {
             return Err(SpecError::invalid(
-                "KillEdgeMakeLoopMutation requires both halfedges to use the same edge"
-                    .to_string(),
+                "KillEdgeMakeLoopMutation requires both halfedges to use the same edge".to_string(),
             ));
         }
 
@@ -73,7 +74,9 @@ impl SpecMutation for KillEdgeMakeLoopMutation {
         )?;
 
         let new_loop = draft.create_node(SpecNodeKind::Loop, None, "loop")?;
-        let ordinal = draft.outgoing_targets_of_kind(face, RelationKind::FaceInnerLoop).len() as u32;
+        let ordinal = draft
+            .outgoing_targets_of_kind(face, RelationKind::FaceInnerLoop)
+            .len() as u32;
         draft.add_relation(
             RelationKind::FaceInnerLoop,
             face,
@@ -89,7 +92,8 @@ impl SpecMutation for KillEdgeMakeLoopMutation {
             "keml-loop-entry",
         )?;
 
-        let outer_entry = draft.single_outgoing_target(outer_loop, RelationKind::LoopEntryHalfEdge)?;
+        let outer_entry =
+            draft.single_outgoing_target(outer_loop, RelationKind::LoopEntryHalfEdge)?;
         if outer_entry == self.half_edge || outer_entry == twin {
             draft.replace_single_relation(
                 RelationKind::LoopEntryHalfEdge,

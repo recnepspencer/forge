@@ -38,8 +38,10 @@ impl SpecMutation for MakeEdgeKillLoopMutation {
             ));
         }
 
-        let face_a = draft.single_outgoing_target(self.half_edge_a, RelationKind::HalfEdgeBoundsFace)?;
-        let face_b = draft.single_outgoing_target(self.half_edge_b, RelationKind::HalfEdgeBoundsFace)?;
+        let face_a =
+            draft.single_outgoing_target(self.half_edge_a, RelationKind::HalfEdgeBoundsFace)?;
+        let face_b =
+            draft.single_outgoing_target(self.half_edge_b, RelationKind::HalfEdgeBoundsFace)?;
         if face_a != face_b {
             return Err(SpecError::invalid(
                 "MakeEdgeKillLoopMutation requires both halfedges to bound the same face"
@@ -77,8 +79,10 @@ impl SpecMutation for MakeEdgeKillLoopMutation {
             draft.single_outgoing_target(self.half_edge_b, RelationKind::HalfEdgeOriginVertex)?;
 
         let edge = draft.create_node(SpecNodeKind::Edge, None, "bridge_edge")?;
-        let half_edge_ab = draft.create_node(SpecNodeKind::HalfEdge, None, "bridge_half_edge_ab")?;
-        let half_edge_ba = draft.create_node(SpecNodeKind::HalfEdge, None, "bridge_half_edge_ba")?;
+        let half_edge_ab =
+            draft.create_node(SpecNodeKind::HalfEdge, None, "bridge_half_edge_ab")?;
+        let half_edge_ba =
+            draft.create_node(SpecNodeKind::HalfEdge, None, "bridge_half_edge_ba")?;
 
         draft.replace_single_relation(
             RelationKind::HalfEdgeNext,

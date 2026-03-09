@@ -25,9 +25,21 @@ fn make_face_in_shell_from_vertices_mutation_builds_face_cycle_from_existing_ver
             kind: SpecShellKind::Sheet,
         })
         .unwrap();
-    let v0 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let v1 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let v2 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
+    let v0 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let v1 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let v2 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
 
     let result = draft
         .execute(MakeFaceInShellFromVerticesMutation {
@@ -63,9 +75,21 @@ fn make_face_in_shell_from_vertices_mutation_builds_face_cycle_from_existing_ver
 #[test]
 fn make_face_from_vertices_mutation_creates_container_and_face_from_existing_vertices() {
     let mut draft = SpecState::empty().into_draft();
-    let v0 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let v1 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let v2 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
+    let v0 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let v1 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let v2 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
 
     let result = draft
         .execute(MakeFaceFromVerticesMutation {

@@ -204,8 +204,9 @@ Status meanings:
 | Deterministic execution mode | Implemented | Current runtime behavior is deterministic by design |
 | Core API ergonomics | Implemented | Full-power API now uses builders, explicit transactions, and accessible naming |
 | Builder-based runtime ergonomics | Implemented | Runtime builder, transaction helpers, and node builders are now first-class |
-| Explicit execution planner | Next | Needed before reusable staged execution and more advanced scheduling |
-| Parallel evaluation | Later | Depends on planner/stage model and executor separation |
+| Explicit execution planner | Implemented | Reusable staged planning now exists, but hot-path hardening and cached topology remain future work |
+| Parallel precompute | Implemented | Same-stage prepared precompute can run in parallel; planning and apply remain serial |
+| Parallel evaluation | Next | Honest next step is executor maturation, thresholds, and cost-aware dispatch rather than pretending full parallel execution is done |
 | Cost-aware scheduling | Later | Requires per-node cost metadata and planner integration |
 | Priority propagation | Later | Requires explicit scheduling model and prioritization semantics |
 
@@ -311,9 +312,9 @@ Major additions:
 
 Phase 3 established the smarter propagation substrate while preserving future snapshot and signal-lineage semantics. Output diffing, partition-aware subscriptions, and memoization now exist in forms that keep artifact continuity describable later.
 
-### Phase 4: Execution planning and parallelism (Completed)
+### Phase 4: Execution planning and prepared parallel precompute (Completed)
 
-**Outcome:** evaluation is planned explicitly, then dispatched efficiently.
+**Outcome:** evaluation is planned explicitly, then dispatched through one truthful prepared execution backbone with optional same-stage parallel precompute.
 
 Major additions:
 
@@ -323,7 +324,15 @@ Major additions:
 - deterministic staged scheduling
 - real stage-local parallel precompute on the prepared execution contract
 
-Phase 4 is now materially complete. The runtime has one real planner/executor backbone, prepared evaluation, execution records, and honest same-stage parallel precompute.
+Phase 4 is now materially complete for the planner/prepared backbone. The runtime has one real planner/executor backbone, prepared evaluation, execution records, and honest same-stage parallel precompute.
+
+What Phase 4 did **not** complete:
+
+- fully mature parallel execution
+- cost-aware serial vs parallel dispatch
+- thread-pool-backed executor policy
+- concurrent apply
+- data-oriented planner/storage hardening for very large graphs
 
 ### Phase 4.5: Runtime trust layer and diagnostics contract (In progress)
 
@@ -337,6 +346,9 @@ Major additions:
 - diagnostics profiles and bounded retention policy
 - repeated boundedness and serial/parallel parity hardening
 - final callback-era execution cleanup so the harness rests on one truthful engine
+- scale-hardening plan so planner, diagnostics, storage locality, and executor work are tracked explicitly before aerospace-grade claims are made
+
+See [_docs/engineering/forge_signal_scale_hardening_plan.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_signal_scale_hardening_plan.md) for the strict follow-on plan covering planner hot-path cost, diagnostics overhead, node/snapshot locality, and executor maturation.
 
 This is the phase that turns runtime self-inspection from “good debugging support” into real trust infrastructure for hard software.
 

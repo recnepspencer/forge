@@ -2,9 +2,7 @@ use forge_core::KernelError;
 
 use crate::configuration::facade::FingerprintDetail;
 use crate::engine::contract::InvariantKind;
-use crate::proof::{
-    ValidationCheckpoint, ValidationConfig, ValidationResult,
-};
+use crate::proof::{ValidationCheckpoint, ValidationConfig, ValidationResult};
 
 use super::SpecEnvelope;
 

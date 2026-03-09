@@ -6,9 +6,9 @@
 // Component modules (vertical domain slices with data/logic + façade)
 pub mod b_rep;
 pub mod canonical;
-pub mod projection;
 pub mod change_detection;
 pub mod persistent_naming;
+pub mod projection;
 pub mod provenance;
 pub mod semantic_attributes;
 pub mod transactions;

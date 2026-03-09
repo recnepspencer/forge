@@ -108,35 +108,89 @@ pub struct ProjectedTopology {
 }
 
 impl ProjectedTopology {
-    pub fn body_count(&self) -> usize { self.bodies.len() }
-    pub fn lump_count(&self) -> usize { self.lumps.len() }
-    pub fn region_count(&self) -> usize { self.regions.len() }
-    pub fn shell_count(&self) -> usize { self.shells.len() }
-    pub fn face_count(&self) -> usize { self.faces.len() }
-    pub fn loop_count(&self) -> usize { self.loops.len() }
-    pub fn half_edge_count(&self) -> usize { self.half_edges.len() }
-    pub fn edge_count(&self) -> usize { self.edges.len() }
-    pub fn vertex_count(&self) -> usize { self.vertices.len() }
+    pub fn body_count(&self) -> usize {
+        self.bodies.len()
+    }
+    pub fn lump_count(&self) -> usize {
+        self.lumps.len()
+    }
+    pub fn region_count(&self) -> usize {
+        self.regions.len()
+    }
+    pub fn shell_count(&self) -> usize {
+        self.shells.len()
+    }
+    pub fn face_count(&self) -> usize {
+        self.faces.len()
+    }
+    pub fn loop_count(&self) -> usize {
+        self.loops.len()
+    }
+    pub fn half_edge_count(&self) -> usize {
+        self.half_edges.len()
+    }
+    pub fn edge_count(&self) -> usize {
+        self.edges.len()
+    }
+    pub fn vertex_count(&self) -> usize {
+        self.vertices.len()
+    }
 
-    pub fn bodies(&self) -> &[ProjectedBodyData] { &self.bodies }
-    pub fn lumps(&self) -> &[ProjectedLumpData] { &self.lumps }
-    pub fn regions(&self) -> &[ProjectedRegionData] { &self.regions }
-    pub fn shells(&self) -> &[ProjectedShellData] { &self.shells }
-    pub fn faces(&self) -> &[ProjectedFaceData] { &self.faces }
-    pub fn loops(&self) -> &[ProjectedLoopData] { &self.loops }
-    pub fn half_edges(&self) -> &[ProjectedHalfEdgeData] { &self.half_edges }
-    pub fn edges(&self) -> &[ProjectedEdgeData] { &self.edges }
-    pub fn vertices(&self) -> &[ProjectedVertexData] { &self.vertices }
+    pub fn bodies(&self) -> &[ProjectedBodyData] {
+        &self.bodies
+    }
+    pub fn lumps(&self) -> &[ProjectedLumpData] {
+        &self.lumps
+    }
+    pub fn regions(&self) -> &[ProjectedRegionData] {
+        &self.regions
+    }
+    pub fn shells(&self) -> &[ProjectedShellData] {
+        &self.shells
+    }
+    pub fn faces(&self) -> &[ProjectedFaceData] {
+        &self.faces
+    }
+    pub fn loops(&self) -> &[ProjectedLoopData] {
+        &self.loops
+    }
+    pub fn half_edges(&self) -> &[ProjectedHalfEdgeData] {
+        &self.half_edges
+    }
+    pub fn edges(&self) -> &[ProjectedEdgeData] {
+        &self.edges
+    }
+    pub fn vertices(&self) -> &[ProjectedVertexData] {
+        &self.vertices
+    }
 
-    pub fn body(&self, id: ProjectedBodyId) -> &ProjectedBodyData { &self.bodies[id.index()] }
-    pub fn lump(&self, id: ProjectedLumpId) -> &ProjectedLumpData { &self.lumps[id.index()] }
-    pub fn region(&self, id: ProjectedRegionId) -> &ProjectedRegionData { &self.regions[id.index()] }
-    pub fn shell(&self, id: ProjectedShellId) -> &ProjectedShellData { &self.shells[id.index()] }
-    pub fn face(&self, id: ProjectedFaceId) -> &ProjectedFaceData { &self.faces[id.index()] }
-    pub fn loop_data(&self, id: ProjectedLoopId) -> &ProjectedLoopData { &self.loops[id.index()] }
-    pub fn half_edge(&self, id: ProjectedHalfEdgeId) -> &ProjectedHalfEdgeData { &self.half_edges[id.index()] }
-    pub fn edge(&self, id: ProjectedEdgeId) -> &ProjectedEdgeData { &self.edges[id.index()] }
-    pub fn vertex(&self, id: ProjectedVertexId) -> &ProjectedVertexData { &self.vertices[id.index()] }
+    pub fn body(&self, id: ProjectedBodyId) -> &ProjectedBodyData {
+        &self.bodies[id.index()]
+    }
+    pub fn lump(&self, id: ProjectedLumpId) -> &ProjectedLumpData {
+        &self.lumps[id.index()]
+    }
+    pub fn region(&self, id: ProjectedRegionId) -> &ProjectedRegionData {
+        &self.regions[id.index()]
+    }
+    pub fn shell(&self, id: ProjectedShellId) -> &ProjectedShellData {
+        &self.shells[id.index()]
+    }
+    pub fn face(&self, id: ProjectedFaceId) -> &ProjectedFaceData {
+        &self.faces[id.index()]
+    }
+    pub fn loop_data(&self, id: ProjectedLoopId) -> &ProjectedLoopData {
+        &self.loops[id.index()]
+    }
+    pub fn half_edge(&self, id: ProjectedHalfEdgeId) -> &ProjectedHalfEdgeData {
+        &self.half_edges[id.index()]
+    }
+    pub fn edge(&self, id: ProjectedEdgeId) -> &ProjectedEdgeData {
+        &self.edges[id.index()]
+    }
+    pub fn vertex(&self, id: ProjectedVertexId) -> &ProjectedVertexData {
+        &self.vertices[id.index()]
+    }
 
     pub fn resolve(&self, spec_id: SpecNodeId) -> Option<ProjectedEntityRef> {
         self.entity_index.get(&spec_id).copied()
@@ -145,31 +199,58 @@ impl ProjectedTopology {
     pub(crate) fn rebuild_index(&mut self) {
         self.entity_index.clear();
         for (idx, body) in self.bodies.iter().enumerate() {
-            self.entity_index.insert(body.spec_id, ProjectedEntityRef::Body(ProjectedBodyId::new(idx as u32)));
+            self.entity_index.insert(
+                body.spec_id,
+                ProjectedEntityRef::Body(ProjectedBodyId::new(idx as u32)),
+            );
         }
         for (idx, lump) in self.lumps.iter().enumerate() {
-            self.entity_index.insert(lump.spec_id, ProjectedEntityRef::Lump(ProjectedLumpId::new(idx as u32)));
+            self.entity_index.insert(
+                lump.spec_id,
+                ProjectedEntityRef::Lump(ProjectedLumpId::new(idx as u32)),
+            );
         }
         for (idx, region) in self.regions.iter().enumerate() {
-            self.entity_index.insert(region.spec_id, ProjectedEntityRef::Region(ProjectedRegionId::new(idx as u32)));
+            self.entity_index.insert(
+                region.spec_id,
+                ProjectedEntityRef::Region(ProjectedRegionId::new(idx as u32)),
+            );
         }
         for (idx, shell) in self.shells.iter().enumerate() {
-            self.entity_index.insert(shell.spec_id, ProjectedEntityRef::Shell(ProjectedShellId::new(idx as u32)));
+            self.entity_index.insert(
+                shell.spec_id,
+                ProjectedEntityRef::Shell(ProjectedShellId::new(idx as u32)),
+            );
         }
         for (idx, face) in self.faces.iter().enumerate() {
-            self.entity_index.insert(face.spec_id, ProjectedEntityRef::Face(ProjectedFaceId::new(idx as u32)));
+            self.entity_index.insert(
+                face.spec_id,
+                ProjectedEntityRef::Face(ProjectedFaceId::new(idx as u32)),
+            );
         }
         for (idx, loop_data) in self.loops.iter().enumerate() {
-            self.entity_index.insert(loop_data.spec_id, ProjectedEntityRef::Loop(ProjectedLoopId::new(idx as u32)));
+            self.entity_index.insert(
+                loop_data.spec_id,
+                ProjectedEntityRef::Loop(ProjectedLoopId::new(idx as u32)),
+            );
         }
         for (idx, half_edge) in self.half_edges.iter().enumerate() {
-            self.entity_index.insert(half_edge.spec_id, ProjectedEntityRef::HalfEdge(ProjectedHalfEdgeId::new(idx as u32)));
+            self.entity_index.insert(
+                half_edge.spec_id,
+                ProjectedEntityRef::HalfEdge(ProjectedHalfEdgeId::new(idx as u32)),
+            );
         }
         for (idx, edge) in self.edges.iter().enumerate() {
-            self.entity_index.insert(edge.spec_id, ProjectedEntityRef::Edge(ProjectedEdgeId::new(idx as u32)));
+            self.entity_index.insert(
+                edge.spec_id,
+                ProjectedEntityRef::Edge(ProjectedEdgeId::new(idx as u32)),
+            );
         }
         for (idx, vertex) in self.vertices.iter().enumerate() {
-            self.entity_index.insert(vertex.spec_id, ProjectedEntityRef::Vertex(ProjectedVertexId::new(idx as u32)));
+            self.entity_index.insert(
+                vertex.spec_id,
+                ProjectedEntityRef::Vertex(ProjectedVertexId::new(idx as u32)),
+            );
         }
     }
 }

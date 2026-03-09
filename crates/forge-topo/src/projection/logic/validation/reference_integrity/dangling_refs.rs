@@ -206,11 +206,7 @@ pub fn validate_projected_no_dangling_refs(
             if lump.index() >= topology.lump_count() {
                 return Err(vf(
                     "projected_no_dangling_refs",
-                    format!(
-                        "Body {} references missing lump {}",
-                        body_index,
-                        lump.raw()
-                    ),
+                    format!("Body {} references missing lump {}", body_index, lump.raw()),
                 ));
             }
         }

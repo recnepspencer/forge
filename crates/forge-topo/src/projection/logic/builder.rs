@@ -128,13 +128,18 @@ impl ProjectionBuilder {
                     .into_iter()
                     .map(|id| lookup(&loop_map, id, "loop"))
                     .collect::<Result<_, _>>()?,
-                surface_binding: outgoing_single_optional(graph, spec_id, RelationKind::FaceUsesSurfaceBinding)?,
+                surface_binding: outgoing_single_optional(
+                    graph,
+                    spec_id,
+                    RelationKind::FaceUsesSurfaceBinding,
+                )?,
             });
         }
 
         for spec_id in collect_ids(graph, SpecNodeKind::Loop) {
             let face = incoming_face_for_loop(graph, spec_id)?;
-            let half_edge = outgoing_single_required(graph, spec_id, RelationKind::LoopEntryHalfEdge)?;
+            let half_edge =
+                outgoing_single_required(graph, spec_id, RelationKind::LoopEntryHalfEdge)?;
             topology.loops.push(ProjectedLoopData {
                 spec_id,
                 face: lookup(&face_map, face, "face")?,
@@ -191,33 +196,45 @@ impl ProjectionBuilder {
                     outgoing_single_required(graph, spec_id, RelationKind::HalfEdgeUsesEdge)?,
                     "edge",
                 )?,
-                coedge_binding: outgoing_single_optional(graph, spec_id, RelationKind::HalfEdgeUsesCoedgeBinding)?,
+                coedge_binding: outgoing_single_optional(
+                    graph,
+                    spec_id,
+                    RelationKind::HalfEdgeUsesCoedgeBinding,
+                )?,
             });
         }
 
         for spec_id in collect_ids(graph, SpecNodeKind::Edge) {
             let incoming = incoming_sources(graph, spec_id, RelationKind::HalfEdgeUsesEdge);
-            let representative = incoming
-                .first()
-                .copied()
-                .ok_or_else(|| ProjectedTopologyError::new(format!("edge {} has no incident halfedge", spec_id)))?;
+            let representative = incoming.first().copied().ok_or_else(|| {
+                ProjectedTopologyError::new(format!("edge {} has no incident halfedge", spec_id))
+            })?;
             topology.edges.push(ProjectedEdgeData {
                 spec_id,
                 half_edge: lookup(&half_edge_map, representative, "halfedge")?,
-                curve_binding: outgoing_single_optional(graph, spec_id, RelationKind::EdgeUsesCurveBinding)?,
+                curve_binding: outgoing_single_optional(
+                    graph,
+                    spec_id,
+                    RelationKind::EdgeUsesCurveBinding,
+                )?,
             });
         }
 
         for spec_id in collect_ids(graph, SpecNodeKind::Vertex) {
-            let primary_half_edge = incoming_sources(graph, spec_id, RelationKind::HalfEdgeOriginVertex)
-                .first()
-                .copied()
-                .map(|id| lookup(&half_edge_map, id, "halfedge"))
-                .transpose()?;
+            let primary_half_edge =
+                incoming_sources(graph, spec_id, RelationKind::HalfEdgeOriginVertex)
+                    .first()
+                    .copied()
+                    .map(|id| lookup(&half_edge_map, id, "halfedge"))
+                    .transpose()?;
             topology.vertices.push(ProjectedVertexData {
                 spec_id,
                 primary_half_edge,
-                geometry_binding: outgoing_single_optional(graph, spec_id, RelationKind::VertexUsesGeometryBinding)?,
+                geometry_binding: outgoing_single_optional(
+                    graph,
+                    spec_id,
+                    RelationKind::VertexUsesGeometryBinding,
+                )?,
             });
         }
 
@@ -241,7 +258,10 @@ fn outgoing_targets(
 ) -> Vec<SpecNodeId> {
     let mut relations = graph.outgoing_of_kind(source, kind);
     relations.sort_by_key(|relation| (relation.ordinal, relation.target, relation.id));
-    relations.into_iter().map(|relation| relation.target).collect()
+    relations
+        .into_iter()
+        .map(|relation| relation.target)
+        .collect()
 }
 
 fn incoming_sources(
@@ -255,7 +275,10 @@ fn incoming_sources(
         .filter(|relation| relation.kind == kind)
         .collect();
     relations.sort_by_key(|relation| (relation.source, relation.ordinal, relation.id));
-    relations.into_iter().map(|relation| relation.source).collect()
+    relations
+        .into_iter()
+        .map(|relation| relation.source)
+        .collect()
 }
 
 fn outgoing_single_required(
@@ -317,7 +340,11 @@ fn incoming_face_for_loop(
     loop_id: SpecNodeId,
 ) -> Result<SpecNodeId, ProjectedTopologyError> {
     let mut owners = incoming_sources(graph, loop_id, RelationKind::FaceOuterLoop);
-    owners.extend(incoming_sources(graph, loop_id, RelationKind::FaceInnerLoop));
+    owners.extend(incoming_sources(
+        graph,
+        loop_id,
+        RelationKind::FaceInnerLoop,
+    ));
     owners.sort();
     owners.dedup();
     match owners.as_slice() {
@@ -339,6 +366,9 @@ fn lookup<T: Copy>(
     label: &str,
 ) -> Result<T, ProjectedTopologyError> {
     map.get(&spec_id).copied().ok_or_else(|| {
-        ProjectedTopologyError::new(format!("missing projected {} for spec node {}", label, spec_id))
+        ProjectedTopologyError::new(format!(
+            "missing projected {} for spec node {}",
+            label, spec_id
+        ))
     })
 }

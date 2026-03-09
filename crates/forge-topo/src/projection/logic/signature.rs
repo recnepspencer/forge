@@ -43,7 +43,11 @@ pub fn compute_projected_topology_hash(projected: &ProjectedTopology) -> u128 {
         let twin_origin_deg = vertex_degree[twin.origin.index()];
         let twin_face_sz = face_size[twin.face.index()];
         let connectivity = [origin_deg, twin_origin_deg, my_face_sz, twin_face_sz];
-        entity_hashes.push(compute_entity_hash(EntityKind::HalfEdge, &connectivity, None));
+        entity_hashes.push(compute_entity_hash(
+            EntityKind::HalfEdge,
+            &connectivity,
+            None,
+        ));
     }
 
     for vertex_id in 0..projected.vertex_count() {
@@ -91,7 +95,11 @@ pub fn compute_projected_topology_hash(projected: &ProjectedTopology) -> u128 {
     }
 
     for lump in projected.lumps() {
-        let mut sig: Vec<u64> = lump.regions.iter().map(|region| region.index() as u64).collect();
+        let mut sig: Vec<u64> = lump
+            .regions
+            .iter()
+            .map(|region| region.index() as u64)
+            .collect();
         sig.sort_unstable();
         entity_hashes.push(compute_entity_hash(EntityKind::Lump, &sig, None));
     }

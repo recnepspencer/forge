@@ -18,7 +18,10 @@ pub fn half_edge_coedge_binding(
     topology.half_edge(half_edge).coedge_binding
 }
 
-pub fn edge_curve_binding(topology: &ProjectedTopology, edge: ProjectedEdgeId) -> Option<SpecNodeId> {
+pub fn edge_curve_binding(
+    topology: &ProjectedTopology,
+    edge: ProjectedEdgeId,
+) -> Option<SpecNodeId> {
     topology.edge(edge).curve_binding
 }
 

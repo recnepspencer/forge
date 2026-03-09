@@ -1,15 +1,13 @@
 use crate::data::aspect::{AspectMask, AspectVersion};
-use crate::data::comparator::{
-    ComparatorPolicyResolver,
-};
+use crate::data::comparator::ComparatorPolicyResolver;
 use crate::data::dependency::DependencySnapshot;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
 use crate::data::output::{
-    ChangedRegion, KeyedComputation, MemoizedResultOrigin,
-    NodeEvaluationResult, OutputChange, OutputIdentity, PartitionMatchMode, PartitionSubscription,
+    ChangedRegion, KeyedComputation, MemoizedResultOrigin, NodeEvaluationResult, OutputChange,
+    OutputIdentity, PartitionMatchMode, PartitionSubscription,
 };
 use crate::data::trace::TraceSummary;
 use crate::logic::prepared::{

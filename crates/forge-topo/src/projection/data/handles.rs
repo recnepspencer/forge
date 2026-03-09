@@ -2,7 +2,9 @@ use serde::{Deserialize, Serialize};
 
 macro_rules! define_projected_handle {
     ($name:ident) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+        #[derive(
+            Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize,
+        )]
         pub struct $name(u32);
 
         impl $name {

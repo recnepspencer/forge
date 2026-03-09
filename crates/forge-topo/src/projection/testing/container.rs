@@ -6,8 +6,8 @@ use forge_spec::facade::{
 use crate::operations::lifecycle::lump::{DestroyLump, MakeLumpRegion};
 use crate::operations::lifecycle::shell::{DestroyShell, MakeEmptyShell};
 use crate::operations::lifecycle::solid::{DestroyBody, MakeSolid};
-use crate::projection::facade::{ProjectionBuilder, compute_projected_topology_hash};
-use crate::transactions::facade::{TopologyState, compute_arena_topology_hash};
+use crate::projection::facade::{compute_projected_topology_hash, ProjectionBuilder};
+use crate::transactions::facade::{compute_arena_topology_hash, TopologyState};
 
 #[test]
 fn projected_make_solid_matches_legacy_container_signature() {
@@ -21,8 +21,14 @@ fn projected_make_solid_matches_legacy_container_signature() {
     );
     assert_eq!(projected.body_count(), legacy.arena().body_count() as usize);
     assert_eq!(projected.lump_count(), legacy.arena().lump_count() as usize);
-    assert_eq!(projected.region_count(), legacy.arena().region_count() as usize);
-    assert_eq!(projected.shell_count(), legacy.arena().shell_count() as usize);
+    assert_eq!(
+        projected.region_count(),
+        legacy.arena().region_count() as usize
+    );
+    assert_eq!(
+        projected.shell_count(),
+        legacy.arena().shell_count() as usize
+    );
 }
 
 #[test]
@@ -37,7 +43,10 @@ fn projected_make_solid_plus_destroy_matches_legacy_container_signature() {
     );
     assert_eq!(projected.body_count(), legacy.arena().body_count() as usize);
     assert_eq!(projected.lump_count(), legacy.arena().lump_count() as usize);
-    assert_eq!(projected.region_count(), legacy.arena().region_count() as usize);
+    assert_eq!(
+        projected.region_count(),
+        legacy.arena().region_count() as usize
+    );
 }
 
 #[test]
@@ -52,7 +61,10 @@ fn projected_make_lump_region_matches_legacy_container_signature() {
     );
     assert_eq!(projected.body_count(), legacy.arena().body_count() as usize);
     assert_eq!(projected.lump_count(), legacy.arena().lump_count() as usize);
-    assert_eq!(projected.region_count(), legacy.arena().region_count() as usize);
+    assert_eq!(
+        projected.region_count(),
+        legacy.arena().region_count() as usize
+    );
 }
 
 #[test]
@@ -67,7 +79,10 @@ fn projected_make_lump_region_plus_destroy_matches_legacy_container_signature() 
     );
     assert_eq!(projected.body_count(), legacy.arena().body_count() as usize);
     assert_eq!(projected.lump_count(), legacy.arena().lump_count() as usize);
-    assert_eq!(projected.region_count(), legacy.arena().region_count() as usize);
+    assert_eq!(
+        projected.region_count(),
+        legacy.arena().region_count() as usize
+    );
 }
 
 #[test]
@@ -82,8 +97,14 @@ fn projected_make_empty_shell_matches_legacy_container_signature() {
     );
     assert_eq!(projected.body_count(), legacy.arena().body_count() as usize);
     assert_eq!(projected.lump_count(), legacy.arena().lump_count() as usize);
-    assert_eq!(projected.region_count(), legacy.arena().region_count() as usize);
-    assert_eq!(projected.shell_count(), legacy.arena().shell_count() as usize);
+    assert_eq!(
+        projected.region_count(),
+        legacy.arena().region_count() as usize
+    );
+    assert_eq!(
+        projected.shell_count(),
+        legacy.arena().shell_count() as usize
+    );
 }
 
 #[test]
@@ -98,8 +119,14 @@ fn projected_make_empty_shell_plus_destroy_matches_legacy_container_signature() 
     );
     assert_eq!(projected.body_count(), legacy.arena().body_count() as usize);
     assert_eq!(projected.lump_count(), legacy.arena().lump_count() as usize);
-    assert_eq!(projected.region_count(), legacy.arena().region_count() as usize);
-    assert_eq!(projected.shell_count(), legacy.arena().shell_count() as usize);
+    assert_eq!(
+        projected.region_count(),
+        legacy.arena().region_count() as usize
+    );
+    assert_eq!(
+        projected.shell_count(),
+        legacy.arena().shell_count() as usize
+    );
 }
 
 fn build_make_solid_state() -> SpecState {
@@ -198,7 +225,10 @@ fn build_legacy_make_lump_region_state() -> TopologyState {
 fn build_legacy_make_lump_region_destroy_state() -> TopologyState {
     let mut draft = TopologyState::empty().into_mutation();
     let solid = draft.execute(MakeSolid).unwrap().into_value();
-    let extra = draft.execute(MakeLumpRegion { body: solid.body }).unwrap().into_value();
+    let extra = draft
+        .execute(MakeLumpRegion { body: solid.body })
+        .unwrap()
+        .into_value();
     draft.execute(DestroyLump { lump: extra.lump }).unwrap();
     draft.commit().unwrap()
 }

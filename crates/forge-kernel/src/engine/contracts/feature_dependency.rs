@@ -39,12 +39,18 @@ impl FeatureDependency {
 
     /// Topology-only dependency.
     pub const fn topology(node_id: NodeId) -> Self {
-        Self::new(node_id, AspectMask::from_bits(FeatureAspect::Topology.bit()))
+        Self::new(
+            node_id,
+            AspectMask::from_bits(FeatureAspect::Topology.bit()),
+        )
     }
 
     /// Geometry-only dependency.
     pub const fn geometry(node_id: NodeId) -> Self {
-        Self::new(node_id, AspectMask::from_bits(FeatureAspect::Geometry.bit()))
+        Self::new(
+            node_id,
+            AspectMask::from_bits(FeatureAspect::Geometry.bit()),
+        )
     }
 
     /// Dependency on both currently-defined kernel aspects.

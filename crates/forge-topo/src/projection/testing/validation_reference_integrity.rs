@@ -1,14 +1,15 @@
-use forge_spec::facade::{MakeEdgeFaceMutation, MakeVertexFaceMutation, SpecState, SplitEdgeMutation};
+use forge_spec::facade::{
+    MakeEdgeFaceMutation, MakeVertexFaceMutation, SpecState, SplitEdgeMutation,
+};
 
 use crate::projection::facade::{
-    ProjectedEdgeData, ProjectedEdgeId, ProjectedFaceId, ProjectedHalfEdgeData,
-    ProjectedHalfEdgeId, ProjectedLumpId, ProjectedRegionData, ProjectedRegionId,
-    ProjectedTopology, ProjectedVertexData, ProjectedVertexId, ProjectionBuilder,
     validate_projected_acyclic_containment, validate_projected_bidirectional_links,
-    validate_projected_hierarchy,
-    validate_projected_inner_outer_loop_consistency, validate_projected_no_orphan_half_edges,
-    validate_projected_no_dangling_refs,
-    validate_projected_topology_baseline,
+    validate_projected_hierarchy, validate_projected_inner_outer_loop_consistency,
+    validate_projected_no_dangling_refs, validate_projected_no_orphan_half_edges,
+    validate_projected_topology_baseline, ProjectedEdgeData, ProjectedEdgeId, ProjectedFaceId,
+    ProjectedHalfEdgeData, ProjectedHalfEdgeId, ProjectedLumpId, ProjectedRegionData,
+    ProjectedRegionId, ProjectedTopology, ProjectedVertexData, ProjectedVertexId,
+    ProjectionBuilder,
 };
 
 #[test]

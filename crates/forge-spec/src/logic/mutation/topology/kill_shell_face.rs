@@ -71,7 +71,8 @@ impl SpecMutation for KillShellFaceMutation {
         let radial = draft.single_outgoing_target(half_edge, RelationKind::HalfEdgeRadialNext)?;
         let origin = draft.single_outgoing_target(half_edge, RelationKind::HalfEdgeOriginVertex)?;
         let _edge = draft.single_outgoing_target(half_edge, RelationKind::HalfEdgeUsesEdge)?;
-        let bounds_face = draft.single_outgoing_target(half_edge, RelationKind::HalfEdgeBoundsFace)?;
+        let bounds_face =
+            draft.single_outgoing_target(half_edge, RelationKind::HalfEdgeBoundsFace)?;
 
         if next != half_edge || radial != half_edge {
             return Err(SpecError::invalid(
@@ -96,8 +97,13 @@ impl SpecMutation for KillShellFaceMutation {
         draft.remove_relation_between(RelationKind::LoopEntryHalfEdge, loop_id, half_edge)?;
         draft.remove_relation_between(RelationKind::HalfEdgeNext, half_edge, half_edge)?;
         draft.remove_relation_between(RelationKind::HalfEdgeRadialNext, half_edge, half_edge)?;
-        let edge = draft.remove_single_outgoing_relation(RelationKind::HalfEdgeUsesEdge, half_edge)?;
-        draft.remove_relation_between(RelationKind::HalfEdgeOriginVertex, half_edge, self.vertex)?;
+        let edge =
+            draft.remove_single_outgoing_relation(RelationKind::HalfEdgeUsesEdge, half_edge)?;
+        draft.remove_relation_between(
+            RelationKind::HalfEdgeOriginVertex,
+            half_edge,
+            self.vertex,
+        )?;
         draft.remove_relation_between(RelationKind::HalfEdgeBoundsFace, half_edge, self.face)?;
 
         draft.delete_node(self.face)?;

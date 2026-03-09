@@ -109,14 +109,20 @@ impl SpecEnvelope {
     }
 
     pub fn entity_count(&self) -> Result<usize, KernelError> {
-        Ok(self.face_count()? + self.half_edges()?.len() + self.vertex_count()? + self.loops()?.len())
+        Ok(self.face_count()?
+            + self.half_edges()?.len()
+            + self.vertex_count()?
+            + self.loops()?.len())
     }
 
     pub fn body(&self) -> Result<ProjectedBodyId, KernelError> {
         let bodies = self.bodies()?;
         if bodies.len() != 1 {
             return Err(KernelError::InvalidInput {
-                message: format!("SpecEnvelope::body() requires exactly 1 body, found {}", bodies.len()),
+                message: format!(
+                    "SpecEnvelope::body() requires exactly 1 body, found {}",
+                    bodies.len()
+                ),
                 context: None,
             });
         }
@@ -127,7 +133,10 @@ impl SpecEnvelope {
         let shells = self.shells()?;
         if shells.len() != 1 {
             return Err(KernelError::InvalidInput {
-                message: format!("SpecEnvelope::shell() requires exactly 1 shell, found {}", shells.len()),
+                message: format!(
+                    "SpecEnvelope::shell() requires exactly 1 shell, found {}",
+                    shells.len()
+                ),
                 context: None,
             });
         }

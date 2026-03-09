@@ -150,7 +150,9 @@ struct HighValenceFixture {
 fn build_high_valence_radial_fixture(draft: &mut SpecDraft) -> HighValenceFixture {
     let body = draft.create_node(SpecNodeKind::Body, None, "body").unwrap();
     let lump = draft.create_node(SpecNodeKind::Lump, None, "lump").unwrap();
-    let region = draft.create_node(SpecNodeKind::Region, None, "region").unwrap();
+    let region = draft
+        .create_node(SpecNodeKind::Region, None, "region")
+        .unwrap();
     let shell = draft.create_shell(SpecShellKind::Sheet, "shell").unwrap();
 
     draft
@@ -160,11 +162,21 @@ fn build_high_valence_radial_fixture(draft: &mut SpecDraft) -> HighValenceFixtur
         .add_relation(RelationKind::LumpOwnsRegion, lump, region, 0, "lump-region")
         .unwrap();
     draft
-        .add_relation(RelationKind::RegionOwnsShell, region, shell, 0, "region-shell")
+        .add_relation(
+            RelationKind::RegionOwnsShell,
+            region,
+            shell,
+            0,
+            "region-shell",
+        )
         .unwrap();
 
-    let vertex_a = draft.create_node(SpecNodeKind::Vertex, None, "vertex-a").unwrap();
-    let vertex_b = draft.create_node(SpecNodeKind::Vertex, None, "vertex-b").unwrap();
+    let vertex_a = draft
+        .create_node(SpecNodeKind::Vertex, None, "vertex-a")
+        .unwrap();
+    let vertex_b = draft
+        .create_node(SpecNodeKind::Vertex, None, "vertex-b")
+        .unwrap();
 
     let seed = create_boundary_pair_face(draft, shell, vertex_a, vertex_b, "seed");
     let second = create_boundary_pair_face(draft, shell, vertex_a, vertex_b, "second");
@@ -184,22 +196,50 @@ fn create_boundary_pair_face(
     vertex_b: SpecNodeId,
     role: &str,
 ) -> (SpecNodeId, SpecNodeId) {
-    let face = draft.create_node(SpecNodeKind::Face, None, &format!("{role}-face")).unwrap();
-    let loop_id = draft.create_node(SpecNodeKind::Loop, None, &format!("{role}-loop")).unwrap();
-    let edge_ab = draft.create_node(SpecNodeKind::Edge, None, &format!("{role}-edge-ab")).unwrap();
-    let edge_ba = draft.create_node(SpecNodeKind::Edge, None, &format!("{role}-edge-ba")).unwrap();
+    let face = draft
+        .create_node(SpecNodeKind::Face, None, &format!("{role}-face"))
+        .unwrap();
+    let loop_id = draft
+        .create_node(SpecNodeKind::Loop, None, &format!("{role}-loop"))
+        .unwrap();
+    let edge_ab = draft
+        .create_node(SpecNodeKind::Edge, None, &format!("{role}-edge-ab"))
+        .unwrap();
+    let edge_ba = draft
+        .create_node(SpecNodeKind::Edge, None, &format!("{role}-edge-ba"))
+        .unwrap();
     let he_ab = draft
-        .create_node(SpecNodeKind::HalfEdge, None, &format!("{role}-half-edge-ab"))
+        .create_node(
+            SpecNodeKind::HalfEdge,
+            None,
+            &format!("{role}-half-edge-ab"),
+        )
         .unwrap();
     let he_ba = draft
-        .create_node(SpecNodeKind::HalfEdge, None, &format!("{role}-half-edge-ba"))
+        .create_node(
+            SpecNodeKind::HalfEdge,
+            None,
+            &format!("{role}-half-edge-ba"),
+        )
         .unwrap();
 
     draft
-        .add_relation(RelationKind::ShellOwnsFace, shell, face, 0, &format!("{role}-shell-face"))
+        .add_relation(
+            RelationKind::ShellOwnsFace,
+            shell,
+            face,
+            0,
+            &format!("{role}-shell-face"),
+        )
         .unwrap();
     draft
-        .add_relation(RelationKind::FaceOuterLoop, face, loop_id, 0, &format!("{role}-face-loop"))
+        .add_relation(
+            RelationKind::FaceOuterLoop,
+            face,
+            loop_id,
+            0,
+            &format!("{role}-face-loop"),
+        )
         .unwrap();
     draft
         .add_relation(

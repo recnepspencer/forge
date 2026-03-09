@@ -5,6 +5,7 @@ mod determinism;
 mod diagnostics;
 mod evaluation_context;
 mod graph_core;
+mod harness_adapter;
 mod lifecycle;
 mod multi_aspect;
 mod node_conditions;

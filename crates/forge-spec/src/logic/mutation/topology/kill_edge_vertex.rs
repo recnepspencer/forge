@@ -42,7 +42,8 @@ impl SpecMutation for KillEdgeVertexMutation {
 
         let he_out = self.half_edge;
         let he_back = draft.single_outgoing_target(he_out, RelationKind::HalfEdgeRadialNext)?;
-        let radial_back = draft.single_outgoing_target(he_back, RelationKind::HalfEdgeRadialNext)?;
+        let radial_back =
+            draft.single_outgoing_target(he_back, RelationKind::HalfEdgeRadialNext)?;
         if radial_back != he_out {
             return Err(SpecError::invalid(
                 "KillEdgeVertexMutation requires a two-halfedge wire radial pair".to_string(),
@@ -131,7 +132,10 @@ impl SpecMutation for KillEdgeVertexMutation {
             value: (),
             touched_domains: vec![TouchedDomain::Topology],
             mutation_trace: vec![
-                format!("collapse restricted wire edge at halfedge {}", self.half_edge),
+                format!(
+                    "collapse restricted wire edge at halfedge {}",
+                    self.half_edge
+                ),
                 "remove wire edge pair and tip vertex, restoring predecessor directly to anchor"
                     .to_string(),
             ],
@@ -139,6 +143,9 @@ impl SpecMutation for KillEdgeVertexMutation {
     }
 
     fn semantic_summary(&self) -> String {
-        format!("Collapse restricted wire edge at halfedge {}", self.half_edge)
+        format!(
+            "Collapse restricted wire edge at halfedge {}",
+            self.half_edge
+        )
     }
 }

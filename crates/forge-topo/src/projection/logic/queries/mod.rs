@@ -6,12 +6,12 @@ mod hierarchy;
 mod identity;
 mod vertex;
 
-use forge_spec::facade::{SpecNodeId, SpecShellKind};
 use crate::projection::data::{
     ProjectedBodyId, ProjectedEdgeId, ProjectedEntityRef, ProjectedFaceId, ProjectedHalfEdgeId,
     ProjectedLoopId, ProjectedLumpId, ProjectedRegionId, ProjectedShellId, ProjectedTopology,
     ProjectedTopologyError, ProjectedVertexId,
 };
+use forge_spec::facade::{SpecNodeId, SpecShellKind};
 
 pub trait ProjectedTopologyQueries {
     fn shell_kind(&self, shell: ProjectedShellId) -> SpecShellKind;
@@ -47,7 +47,8 @@ pub trait ProjectedTopologyQueries {
     fn half_edge_coedge_binding(&self, half_edge: ProjectedHalfEdgeId) -> Option<SpecNodeId>;
     fn edge_curve_binding(&self, edge: ProjectedEdgeId) -> Option<SpecNodeId>;
     fn vertex_geometry_binding(&self, vertex: ProjectedVertexId) -> Option<SpecNodeId>;
-    fn shell_faces(&self, shell: crate::projection::data::ProjectedShellId) -> Vec<ProjectedFaceId>;
+    fn shell_faces(&self, shell: crate::projection::data::ProjectedShellId)
+        -> Vec<ProjectedFaceId>;
     fn face_loops(&self, face: ProjectedFaceId) -> Vec<ProjectedLoopId>;
     fn loop_half_edges(
         &self,
@@ -57,7 +58,10 @@ pub trait ProjectedTopologyQueries {
         &self,
         face: ProjectedFaceId,
     ) -> Result<Vec<ProjectedHalfEdgeId>, ProjectedTopologyError>;
-    fn face_edges(&self, face: ProjectedFaceId) -> Result<Vec<ProjectedEdgeId>, ProjectedTopologyError>;
+    fn face_edges(
+        &self,
+        face: ProjectedFaceId,
+    ) -> Result<Vec<ProjectedEdgeId>, ProjectedTopologyError>;
     fn radial_half_edges(&self, half_edge: ProjectedHalfEdgeId) -> Vec<ProjectedHalfEdgeId>;
     fn edge_half_edges(&self, edge: ProjectedEdgeId) -> Vec<ProjectedHalfEdgeId>;
     fn edge_faces(&self, edge: ProjectedEdgeId) -> Vec<ProjectedFaceId>;
@@ -204,7 +208,10 @@ impl ProjectedTopologyQueries for ProjectedTopology {
         bindings::vertex_geometry_binding(self, vertex)
     }
 
-    fn shell_faces(&self, shell: crate::projection::data::ProjectedShellId) -> Vec<ProjectedFaceId> {
+    fn shell_faces(
+        &self,
+        shell: crate::projection::data::ProjectedShellId,
+    ) -> Vec<ProjectedFaceId> {
         face::shell_faces(self, shell)
     }
 

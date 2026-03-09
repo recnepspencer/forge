@@ -41,7 +41,8 @@ impl SpecMutation for RehomeShellMutation {
             )));
         }
 
-        let source_region = draft.single_incoming_source(self.shell, RelationKind::RegionOwnsShell)?;
+        let source_region =
+            draft.single_incoming_source(self.shell, RelationKind::RegionOwnsShell)?;
         if source_region == self.target_region {
             return Err(SpecError::invalid(
                 "RehomeShellMutation requires a different target region".to_string(),
@@ -62,7 +63,10 @@ impl SpecMutation for RehomeShellMutation {
             touched_domains: vec![TouchedDomain::Topology],
             mutation_trace: vec![
                 format!("detach shell {} from region {}", self.shell, source_region),
-                format!("attach shell {} to region {}", self.shell, self.target_region),
+                format!(
+                    "attach shell {} to region {}",
+                    self.shell, self.target_region
+                ),
             ],
         })
     }

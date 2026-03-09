@@ -34,9 +34,12 @@ impl<'a> DiagnosticsRecorder<'a> {
             .ok()
             .and_then(|entry| entry.get_causality())
             .map(|causality| causality.kind.clone());
-        self.graph
-            .diagnostics_state_mut()
-            .note_change_input(node, aspect, changed_regions, causality_kind);
+        self.graph.diagnostics_state_mut().note_change_input(
+            node,
+            aspect,
+            changed_regions,
+            causality_kind,
+        );
     }
 
     pub fn record_invalidation_result(
@@ -45,11 +48,13 @@ impl<'a> DiagnosticsRecorder<'a> {
         maybe_stale_direct_subscribers: u32,
         partition_scoped_checks: u32,
     ) {
-        self.graph.diagnostics_state_mut().record_invalidation_result(
-            invalidated_direct_subscribers,
-            maybe_stale_direct_subscribers,
-            partition_scoped_checks,
-        );
+        self.graph
+            .diagnostics_state_mut()
+            .record_invalidation_result(
+                invalidated_direct_subscribers,
+                maybe_stale_direct_subscribers,
+                partition_scoped_checks,
+            );
     }
 
     pub fn record_execution_completed(&mut self, plan: &EvaluationPlan, report: &ExecutionReport) {
@@ -68,7 +73,9 @@ impl<'a> DiagnosticsRecorder<'a> {
             plan.targets
                 .first()
                 .and_then(|target| self.graph.explain(*target).ok())
-                .map(|explanation| ExplanationSummary::from_explanation(&explanation, policy.profile))
+                .map(|explanation| {
+                    ExplanationSummary::from_explanation(&explanation, policy.profile)
+                })
         } else {
             None
         };
@@ -92,7 +99,9 @@ impl<'a> DiagnosticsRecorder<'a> {
         } else {
             ExecutionHistorySummary::from_graph(self.graph, policy.profile)
         };
-        self.graph.diagnostics_state_mut().complete_flow(flow, history);
+        self.graph
+            .diagnostics_state_mut()
+            .complete_flow(flow, history);
     }
 
     pub fn record_failure(&mut self, context: ExecutionFailureContext) -> FailureSummary {
@@ -108,9 +117,7 @@ impl<'a> DiagnosticsRecorder<'a> {
     }
 
     pub fn record_rollback(&mut self, rollback: RollbackDiagnostic) {
-        self.graph
-            .diagnostics_state_mut()
-            .record_rollback(rollback);
+        self.graph.diagnostics_state_mut().record_rollback(rollback);
     }
 
     pub fn restore_snapshot(&mut self, snapshot: DiagnosticsState) {
@@ -119,13 +126,17 @@ impl<'a> DiagnosticsRecorder<'a> {
 }
 
 fn execution_history_unchanged(report: &ExecutionReport) -> bool {
-    report.stages.iter().flat_map(|stage| &stage.task_records).all(|task| {
-        matches!(
-            task.outcome,
-            TaskExecutionOutcome::ValidatedClean
-                | TaskExecutionOutcome::ConditionDeferred
-                | TaskExecutionOutcome::ConditionRevertedClean
-                | TaskExecutionOutcome::Pruned
-        )
-    })
+    report
+        .stages
+        .iter()
+        .flat_map(|stage| &stage.task_records)
+        .all(|task| {
+            matches!(
+                task.outcome,
+                TaskExecutionOutcome::ValidatedClean
+                    | TaskExecutionOutcome::ConditionDeferred
+                    | TaskExecutionOutcome::ConditionRevertedClean
+                    | TaskExecutionOutcome::Pruned
+            )
+        })
 }

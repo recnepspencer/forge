@@ -69,7 +69,13 @@ impl SpecMutation for SplitBodyMutation {
         let new_body = draft.create_node(SpecNodeKind::Body, None, "split-body")?;
         for &lump in &self.lumps_to_move {
             draft.remove_relation_between(RelationKind::BodyOwnsLump, self.body, lump)?;
-            draft.add_relation(RelationKind::BodyOwnsLump, new_body, lump, 0, "split-body-lump")?;
+            draft.add_relation(
+                RelationKind::BodyOwnsLump,
+                new_body,
+                lump,
+                0,
+                "split-body-lump",
+            )?;
         }
 
         Ok(MutationResult {

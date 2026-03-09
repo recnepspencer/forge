@@ -132,7 +132,9 @@ impl FeaturePipeline {
             feature.execute_typed(inputs, &mut scope)
         };
         let duration_micros = start.elapsed().as_micros() as u64;
-        runtime_ctx.modeling_context.end_span(span_id, duration_micros);
+        runtime_ctx
+            .modeling_context
+            .end_span(span_id, duration_micros);
 
         let mut sub_envelope = match result {
             Ok(value) => value,

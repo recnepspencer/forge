@@ -6,7 +6,9 @@
 use serde::{Deserialize, Serialize};
 
 use forge_core::KernelError;
-use forge_signal::facade::{EvaluationCondition, NodeEvaluationConfig, TierPolicy, VersionComparatorPolicy};
+use forge_signal::facade::{
+    EvaluationCondition, NodeEvaluationConfig, TierPolicy, VersionComparatorPolicy,
+};
 
 /// Kernel-owned signal tiers for feature graph nodes.
 ///
@@ -115,7 +117,8 @@ impl FeatureSignalPolicy {
             }
             EvaluationCondition::Custom(_) => {
                 return Err(KernelError::InvalidInput {
-                    message: "FeatureTree does not support Custom condition feature nodes yet".into(),
+                    message: "FeatureTree does not support Custom condition feature nodes yet"
+                        .into(),
                     context: None,
                 });
             }

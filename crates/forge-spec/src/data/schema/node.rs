@@ -54,7 +54,9 @@ impl SpecNodeKind {
             | Self::CurveBinding
             | Self::CoedgeBinding
             | Self::VertexGeometryBinding => GraphDomain::GeometryBinding,
-            Self::NamingAnchor | Self::ReplayRecord | Self::LineageAnchor => GraphDomain::Provenance,
+            Self::NamingAnchor | Self::ReplayRecord | Self::LineageAnchor => {
+                GraphDomain::Provenance
+            }
         }
     }
 }

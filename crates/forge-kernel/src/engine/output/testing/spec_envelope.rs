@@ -8,7 +8,7 @@ use forge_topo::projection::ProjectedEntityRef;
 
 use crate::engine::{
     contract::InvariantKind,
-    facade::{SpecEnvelope, validate_spec_envelope_invariant},
+    facade::{validate_spec_envelope_invariant, SpecEnvelope},
 };
 use crate::proof::checkpoint::{ValidationCheckpoint, ValidationConfig};
 use forge_signal::facade::NodeState;
@@ -66,9 +66,21 @@ fn projected_handle_lists_are_cached() {
 #[test]
 fn projection_query_helpers_surface_face_loop_relationships() {
     let mut draft = SpecState::empty().into_draft();
-    let v0 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let v1 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let v2 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
+    let v0 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let v1 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let v2 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
     let face = draft
         .execute(MakeFaceFromVerticesMutation {
             vertices: vec![v0, v1, v2],
@@ -76,9 +88,21 @@ fn projection_query_helpers_surface_face_loop_relationships() {
         .unwrap()
         .value
         .face;
-    let h0 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let h1 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let h2 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
+    let h0 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let h1 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let h2 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
     draft
         .execute(MakeLoopInFaceFromVerticesMutation {
             face,
@@ -93,7 +117,13 @@ fn projection_query_helpers_surface_face_loop_relationships() {
     let vertex_id = envelope.vertices().unwrap()[0];
 
     assert_eq!(envelope.face_loops(face_id).unwrap().len(), 2);
-    assert_eq!(envelope.shell_faces(envelope.shell().unwrap()).unwrap().len(), 1);
+    assert_eq!(
+        envelope
+            .shell_faces(envelope.shell().unwrap())
+            .unwrap()
+            .len(),
+        1
+    );
     assert_eq!(
         envelope
             .loop_half_edges(envelope.face_loops(face_id).unwrap()[0])
@@ -107,7 +137,13 @@ fn projection_query_helpers_surface_face_loop_relationships() {
     assert_eq!(envelope.edge_faces(edge_id).unwrap().len(), 1);
     assert_eq!(envelope.radial_valence(edge_id).unwrap(), 1);
     assert!(envelope.is_boundary_edge(edge_id).unwrap());
-    assert_eq!(envelope.vertex_outgoing_half_edges(vertex_id).unwrap().len(), 1);
+    assert_eq!(
+        envelope
+            .vertex_outgoing_half_edges(vertex_id)
+            .unwrap()
+            .len(),
+        1
+    );
     assert_eq!(envelope.vertex_faces(vertex_id).unwrap().len(), 1);
     assert_eq!(
         envelope
@@ -144,11 +180,20 @@ fn direct_projection_accessors_surface_shell_and_halfedge_metadata() {
     assert_eq!(envelope.loop_face(loop_id).unwrap(), face);
     assert_eq!(envelope.half_edge_face(half_edge).unwrap(), face);
     assert!(envelope.vertices().unwrap().contains(&origin));
-    assert_eq!(envelope.edge_representative_half_edge(edge).unwrap(), half_edge);
+    assert_eq!(
+        envelope.edge_representative_half_edge(edge).unwrap(),
+        half_edge
+    );
     assert_eq!(envelope.half_edge_next(half_edge).unwrap(), split_half_edge);
     assert_eq!(envelope.half_edge_prev(half_edge).unwrap(), split_half_edge);
-    assert_eq!(envelope.half_edge_radial_next(half_edge).unwrap(), half_edge);
-    assert_eq!(envelope.vertex_primary_half_edge(origin).unwrap(), Some(half_edge));
+    assert_eq!(
+        envelope.half_edge_radial_next(half_edge).unwrap(),
+        half_edge
+    );
+    assert_eq!(
+        envelope.vertex_primary_half_edge(origin).unwrap(),
+        Some(half_edge)
+    );
 }
 
 #[test]
@@ -207,45 +252,66 @@ fn hierarchy_and_resolution_accessors_surface_projected_structure() {
     assert_eq!(envelope.face_outer_loop(face).unwrap(), loop_id);
     assert!(envelope.face_inner_loops(face).unwrap().is_empty());
     assert_eq!(envelope.face_surface_binding(face).unwrap(), None);
-    assert_eq!(envelope.vertex_disk_components(vertex).unwrap(), vec![vec![half_edge]]);
+    assert_eq!(
+        envelope.vertex_disk_components(vertex).unwrap(),
+        vec![vec![half_edge]]
+    );
     assert_eq!(envelope.half_edge_coedge_binding(half_edge).unwrap(), None);
     assert_eq!(envelope.edge_curve_binding(edge).unwrap(), None);
     assert_eq!(envelope.vertex_geometry_binding(vertex).unwrap(), None);
 
     assert_eq!(
-        envelope.resolve(envelope.body_spec_id(body).unwrap()).unwrap(),
+        envelope
+            .resolve(envelope.body_spec_id(body).unwrap())
+            .unwrap(),
         Some(ProjectedEntityRef::Body(body))
     );
     assert_eq!(
-        envelope.resolve(envelope.lump_spec_id(lump).unwrap()).unwrap(),
+        envelope
+            .resolve(envelope.lump_spec_id(lump).unwrap())
+            .unwrap(),
         Some(ProjectedEntityRef::Lump(lump))
     );
     assert_eq!(
-        envelope.resolve(envelope.region_spec_id(region).unwrap()).unwrap(),
+        envelope
+            .resolve(envelope.region_spec_id(region).unwrap())
+            .unwrap(),
         Some(ProjectedEntityRef::Region(region))
     );
     assert_eq!(
-        envelope.resolve(envelope.shell_spec_id(shell).unwrap()).unwrap(),
+        envelope
+            .resolve(envelope.shell_spec_id(shell).unwrap())
+            .unwrap(),
         Some(ProjectedEntityRef::Shell(shell))
     );
     assert_eq!(
-        envelope.resolve(envelope.face_spec_id(face).unwrap()).unwrap(),
+        envelope
+            .resolve(envelope.face_spec_id(face).unwrap())
+            .unwrap(),
         Some(ProjectedEntityRef::Face(face))
     );
     assert_eq!(
-        envelope.resolve(envelope.loop_spec_id(loop_id).unwrap()).unwrap(),
+        envelope
+            .resolve(envelope.loop_spec_id(loop_id).unwrap())
+            .unwrap(),
         Some(ProjectedEntityRef::Loop(loop_id))
     );
     assert_eq!(
-        envelope.resolve(envelope.half_edge_spec_id(half_edge).unwrap()).unwrap(),
+        envelope
+            .resolve(envelope.half_edge_spec_id(half_edge).unwrap())
+            .unwrap(),
         Some(ProjectedEntityRef::HalfEdge(half_edge))
     );
     assert_eq!(
-        envelope.resolve(envelope.edge_spec_id(edge).unwrap()).unwrap(),
+        envelope
+            .resolve(envelope.edge_spec_id(edge).unwrap())
+            .unwrap(),
         Some(ProjectedEntityRef::Edge(edge))
     );
     assert_eq!(
-        envelope.resolve(envelope.vertex_spec_id(vertex).unwrap()).unwrap(),
+        envelope
+            .resolve(envelope.vertex_spec_id(vertex).unwrap())
+            .unwrap(),
         Some(ProjectedEntityRef::Vertex(vertex))
     );
 }
@@ -264,11 +330,15 @@ fn envelope_fingerprint_helper_matches_detail_level_contract() {
     let envelope = SpecEnvelope::from_spec(spec);
 
     assert_eq!(
-        envelope.fingerprint(crate::configuration::facade::FingerprintDetail::Standard).unwrap(),
+        envelope
+            .fingerprint(crate::configuration::facade::FingerprintDetail::Standard)
+            .unwrap(),
         envelope.spec_fingerprint()
     );
     assert_eq!(
-        envelope.fingerprint(crate::configuration::facade::FingerprintDetail::Full).unwrap(),
+        envelope
+            .fingerprint(crate::configuration::facade::FingerprintDetail::Full)
+            .unwrap(),
         envelope.projection_fingerprint().unwrap()
     );
 }
@@ -281,18 +351,30 @@ fn signal_backed_projection_starts_on_demand_and_only_recomputes_when_read() {
 
     let envelope = SpecEnvelope::from_spec(spec);
 
-    assert_eq!(envelope.debug_signal_node_state("projection"), Some(NodeState::Dirty));
+    assert_eq!(
+        envelope.debug_signal_node_state("projection"),
+        Some(NodeState::Dirty)
+    );
     let before = envelope.debug_signal_telemetry();
 
     let first = envelope.projection().unwrap();
     let second = envelope.projection().unwrap();
 
-    assert_eq!(envelope.debug_signal_node_state("projection"), Some(NodeState::Clean));
+    assert_eq!(
+        envelope.debug_signal_node_state("projection"),
+        Some(NodeState::Clean)
+    );
     assert!(ptr::eq(first, second));
 
     let after = envelope.debug_signal_telemetry();
-    assert_eq!(after.transaction_rollback_count, before.transaction_rollback_count);
-    assert_eq!(after.ondemand_deferred_count, before.ondemand_deferred_count);
+    assert_eq!(
+        after.transaction_rollback_count,
+        before.transaction_rollback_count
+    );
+    assert_eq!(
+        after.ondemand_deferred_count,
+        before.ondemand_deferred_count
+    );
 }
 
 #[test]
@@ -308,8 +390,14 @@ fn signal_backed_validation_checkpoint_and_fingerprint_share_projection_substrat
 
     let envelope = SpecEnvelope::from_spec(spec);
 
-    assert_eq!(envelope.debug_signal_node_state("structure"), Some(NodeState::Dirty));
-    assert_eq!(envelope.debug_signal_node_state("checkpoint"), Some(NodeState::Dirty));
+    assert_eq!(
+        envelope.debug_signal_node_state("structure"),
+        Some(NodeState::Dirty)
+    );
+    assert_eq!(
+        envelope.debug_signal_node_state("checkpoint"),
+        Some(NodeState::Dirty)
+    );
     assert_eq!(
         envelope.debug_signal_node_state("full_fingerprint"),
         Some(NodeState::Dirty)
@@ -326,8 +414,14 @@ fn signal_backed_validation_checkpoint_and_fingerprint_share_projection_substrat
     )
     .unwrap();
 
-    assert_eq!(envelope.debug_signal_node_state("projection"), Some(NodeState::Clean));
-    assert_eq!(envelope.debug_signal_node_state("invariant"), Some(NodeState::Clean));
+    assert_eq!(
+        envelope.debug_signal_node_state("projection"),
+        Some(NodeState::Clean)
+    );
+    assert_eq!(
+        envelope.debug_signal_node_state("invariant"),
+        Some(NodeState::Clean)
+    );
 
     let after_invariant = envelope.debug_signal_telemetry();
 
@@ -346,7 +440,10 @@ fn signal_backed_validation_checkpoint_and_fingerprint_share_projection_substrat
         .unwrap();
 
     let after_all = envelope.debug_signal_telemetry();
-    assert_eq!(envelope.debug_signal_node_state("checkpoint"), Some(NodeState::Clean));
+    assert_eq!(
+        envelope.debug_signal_node_state("checkpoint"),
+        Some(NodeState::Clean)
+    );
     assert_eq!(
         envelope.debug_signal_node_state("full_fingerprint"),
         Some(NodeState::Clean)

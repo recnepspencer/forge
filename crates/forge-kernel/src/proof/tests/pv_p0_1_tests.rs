@@ -361,7 +361,8 @@ fn pv_05_inner_loop_wrong_orientation() {
         arena
             .get_face_mut(face)
             .unwrap()
-            .loops.add_inner(inner_loop_id);
+            .loops
+            .add_inner(inner_loop_id);
         arena
             .get_shell_mut(placeholder_shell)
             .unwrap()

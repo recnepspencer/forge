@@ -58,12 +58,11 @@ where
             RuntimeContext = crate::transactions::logic::mutable_draft::MutableDraft,
         > + 'static,
 {
-    bus.subscribe(Box::new(subscriber))
-        .map_err(|err| {
-            SignalError::internal(format!(
-                "failed to register topo operation subscriber: {err:?}"
-            ))
-        })
+    bus.subscribe(Box::new(subscriber)).map_err(|err| {
+        SignalError::internal(format!(
+            "failed to register topo operation subscriber: {err:?}"
+        ))
+    })
 }
 
 pub(crate) fn stage_or_signal_error(
@@ -71,7 +70,9 @@ pub(crate) fn stage_or_signal_error(
     field: &'static str,
 ) -> Result<(), SignalError> {
     stage_result.map_err(|err| {
-        SignalError::internal(format!("subscriber context staging failed for {field}: {err:?}"))
+        SignalError::internal(format!(
+            "subscriber context staging failed for {field}: {err:?}"
+        ))
     })
 }
 

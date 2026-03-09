@@ -22,7 +22,10 @@ pub fn radial_half_edges(
     result
 }
 
-pub fn edge_half_edges(topology: &ProjectedTopology, edge: ProjectedEdgeId) -> Vec<ProjectedHalfEdgeId> {
+pub fn edge_half_edges(
+    topology: &ProjectedTopology,
+    edge: ProjectedEdgeId,
+) -> Vec<ProjectedHalfEdgeId> {
     let representative = topology.edge(edge).half_edge;
     radial_half_edges(topology, representative)
         .into_iter()

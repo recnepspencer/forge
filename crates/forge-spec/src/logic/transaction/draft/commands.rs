@@ -85,7 +85,14 @@ impl SpecDraft {
         self.ensure_open()?;
         let source_kind = self.current_node(source)?.kind;
         let target_kind = self.current_node(target)?.kind;
-        self.validate_relation_preconditions(kind, source, target, source_kind, target_kind, ordinal)?;
+        self.validate_relation_preconditions(
+            kind,
+            source,
+            target,
+            source_kind,
+            target_kind,
+            ordinal,
+        )?;
         let id = self.allocator.mint_relation_id(kind, role);
         let relation = RelationRecord {
             id,

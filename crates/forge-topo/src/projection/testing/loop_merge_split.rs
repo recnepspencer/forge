@@ -6,16 +6,16 @@ use forge_spec::facade::{
 use crate::operations::boundary_editing::kill_edge_make_loop::KillEdgeMakeLoop;
 use crate::operations::boundary_editing::make_edge_kill_loop::MakeEdgeKillLoop;
 use crate::projection::facade::{
-    ProjectionBuilder, ProjectedFaceId, ProjectedTopologyQueries, compute_projected_topology_hash,
+    compute_projected_topology_hash, ProjectedFaceId, ProjectedTopologyQueries, ProjectionBuilder,
 };
 use crate::testing::build_face_with_hole;
-use crate::transactions::facade::{TopologyState, compute_arena_topology_hash};
+use crate::transactions::facade::{compute_arena_topology_hash, TopologyState};
 
 #[test]
 fn projected_make_edge_kill_loop_matches_legacy_structural_signature() {
     let legacy = build_legacy_mekl_state();
-    let projected =
-        ProjectionBuilder::build(&build_spec_mekl_state()).expect("spec-state MEKL projection should succeed");
+    let projected = ProjectionBuilder::build(&build_spec_mekl_state())
+        .expect("spec-state MEKL projection should succeed");
 
     assert_eq!(
         compute_arena_topology_hash(legacy.arena()),
@@ -30,8 +30,8 @@ fn projected_make_edge_kill_loop_matches_legacy_structural_signature() {
 #[test]
 fn projected_kill_edge_make_loop_matches_legacy_structural_signature() {
     let legacy = build_legacy_keml_state();
-    let projected =
-        ProjectionBuilder::build(&build_spec_keml_state()).expect("spec-state KEML projection should succeed");
+    let projected = ProjectionBuilder::build(&build_spec_keml_state())
+        .expect("spec-state KEML projection should succeed");
 
     assert_eq!(
         compute_arena_topology_hash(legacy.arena()),
@@ -45,9 +45,21 @@ fn projected_kill_edge_make_loop_matches_legacy_structural_signature() {
 
 fn build_spec_mekl_state() -> SpecState {
     let mut draft = SpecState::empty().into_draft();
-    let v0 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let v1 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let v2 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
+    let v0 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let v1 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let v2 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
     let face = draft
         .execute(MakeFaceFromVerticesMutation {
             vertices: vec![v0, v1, v2],
@@ -55,9 +67,21 @@ fn build_spec_mekl_state() -> SpecState {
         .unwrap()
         .value
         .face;
-    let h0 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let h1 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let h2 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
+    let h0 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let h1 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let h2 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
     let hole = draft
         .execute(MakeLoopInFaceFromVerticesMutation {
             face,
@@ -80,9 +104,21 @@ fn build_spec_mekl_state() -> SpecState {
 
 fn build_spec_keml_state() -> SpecState {
     let mut draft = SpecState::empty().into_draft();
-    let v0 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let v1 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let v2 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
+    let v0 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let v1 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let v2 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
     let face = draft
         .execute(MakeFaceFromVerticesMutation {
             vertices: vec![v0, v1, v2],
@@ -90,9 +126,21 @@ fn build_spec_keml_state() -> SpecState {
         .unwrap()
         .value
         .face;
-    let h0 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let h1 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let h2 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
+    let h0 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let h1 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let h2 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
     let hole = draft
         .execute(MakeLoopInFaceFromVerticesMutation {
             face,

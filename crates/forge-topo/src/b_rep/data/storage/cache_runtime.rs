@@ -210,7 +210,9 @@ impl CheckpointEvaluator for TopoCacheEvaluator {
         match domain {
             TopoCacheDomain::RadialValence => {
                 if impact.is_global() {
-                    arena.rebuild_cached_radial_valence().map_err(kernel_to_signal)?;
+                    arena
+                        .rebuild_cached_radial_valence()
+                        .map_err(kernel_to_signal)?;
                 } else {
                     let mut seeds = BTreeSet::new();
                     for target in &scoped_targets {
@@ -232,7 +234,9 @@ impl CheckpointEvaluator for TopoCacheEvaluator {
             }
             TopoCacheDomain::FaceHalfedges => {
                 if impact.is_global() {
-                    arena.rebuild_face_halfedge_index().map_err(kernel_to_signal)?;
+                    arena
+                        .rebuild_face_halfedge_index()
+                        .map_err(kernel_to_signal)?;
                 } else {
                     let mut faces = BTreeSet::new();
                     for target in &scoped_targets {

@@ -171,8 +171,10 @@ impl TopologyState {
             pending_operation_events: Vec::new(),
         };
 
-        crate::transactions::logic::subscribers::register_operation_subscribers(&mut draft.event_bus)
-            .expect("topo operation subscribers must register with valid deterministic DAG");
+        crate::transactions::logic::subscribers::register_operation_subscribers(
+            &mut draft.event_bus,
+        )
+        .expect("topo operation subscribers must register with valid deterministic DAG");
 
         draft
     }

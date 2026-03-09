@@ -41,8 +41,10 @@ impl SpecMutation for MergeShellsMutation {
             ));
         }
 
-        let target_region = draft.single_incoming_source(self.target, RelationKind::RegionOwnsShell)?;
-        let source_region = draft.single_incoming_source(self.source, RelationKind::RegionOwnsShell)?;
+        let target_region =
+            draft.single_incoming_source(self.target, RelationKind::RegionOwnsShell)?;
+        let source_region =
+            draft.single_incoming_source(self.source, RelationKind::RegionOwnsShell)?;
         if target_region != source_region {
             return Err(SpecError::invalid(
                 "MergeShellsMutation requires both shells to belong to the same region".to_string(),
@@ -67,7 +69,10 @@ impl SpecMutation for MergeShellsMutation {
             value: (),
             touched_domains: vec![TouchedDomain::Topology],
             mutation_trace: vec![
-                format!("move faces from shell {} into shell {}", self.source, self.target),
+                format!(
+                    "move faces from shell {} into shell {}",
+                    self.source, self.target
+                ),
                 format!("delete merged source shell {}", self.source),
             ],
         })

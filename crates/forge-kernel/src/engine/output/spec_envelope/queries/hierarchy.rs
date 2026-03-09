@@ -1,7 +1,7 @@
 use forge_core::KernelError;
 use forge_topo::projection::{
-    ProjectedFaceId, ProjectedLoopId, ProjectedLumpId, ProjectedRegionId, ProjectedShellId,
-    ProjectedTopologyQueries, ProjectedBodyId,
+    ProjectedBodyId, ProjectedFaceId, ProjectedLoopId, ProjectedLumpId, ProjectedRegionId,
+    ProjectedShellId, ProjectedTopologyQueries,
 };
 
 use super::super::SpecEnvelope;
@@ -15,7 +15,10 @@ impl SpecEnvelope {
         Ok(self.projection()?.lump_body(lump))
     }
 
-    pub fn lump_regions(&self, lump: ProjectedLumpId) -> Result<Vec<ProjectedRegionId>, KernelError> {
+    pub fn lump_regions(
+        &self,
+        lump: ProjectedLumpId,
+    ) -> Result<Vec<ProjectedRegionId>, KernelError> {
         Ok(self.projection()?.lump_regions(lump))
     }
 
@@ -23,7 +26,10 @@ impl SpecEnvelope {
         Ok(self.projection()?.region_lump(region))
     }
 
-    pub fn region_shells(&self, region: ProjectedRegionId) -> Result<Vec<ProjectedShellId>, KernelError> {
+    pub fn region_shells(
+        &self,
+        region: ProjectedRegionId,
+    ) -> Result<Vec<ProjectedShellId>, KernelError> {
         Ok(self.projection()?.region_shells(region))
     }
 
@@ -39,7 +45,10 @@ impl SpecEnvelope {
         Ok(self.projection()?.face_outer_loop(face))
     }
 
-    pub fn face_inner_loops(&self, face: ProjectedFaceId) -> Result<Vec<ProjectedLoopId>, KernelError> {
+    pub fn face_inner_loops(
+        &self,
+        face: ProjectedFaceId,
+    ) -> Result<Vec<ProjectedLoopId>, KernelError> {
         Ok(self.projection()?.face_inner_loops(face))
     }
 

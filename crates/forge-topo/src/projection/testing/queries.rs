@@ -54,7 +54,8 @@ fn edge_faces_reports_both_faces_for_split_edge_face_pair() {
 #[test]
 fn vertex_outgoing_half_edges_is_deterministic() {
     let projected = project_seed_plus_split_edge_plus_mef();
-    let outgoing = projected.vertex_outgoing_half_edges(crate::projection::facade::ProjectedVertexId::new(0));
+    let outgoing =
+        projected.vertex_outgoing_half_edges(crate::projection::facade::ProjectedVertexId::new(0));
     assert_eq!(outgoing.len(), 2);
     assert!(outgoing[0].raw() < outgoing[1].raw());
 }
@@ -144,7 +145,9 @@ fn identity_queries_surface_projected_spec_ids_and_shell_kind() {
     let shell = crate::projection::facade::ProjectedShellId::new(0);
     let face = crate::projection::facade::ProjectedFaceId::new(0);
     let loop_id = projected.face_outer_loop(face);
-    let half_edge = projected.loop_half_edges(loop_id).expect("loop should close")[0];
+    let half_edge = projected
+        .loop_half_edges(loop_id)
+        .expect("loop should close")[0];
     let edge = projected.half_edge_edge(half_edge);
     let vertex = projected.half_edge_origin(half_edge);
 
@@ -180,7 +183,9 @@ fn adjacency_queries_surface_half_edge_navigation_and_representatives() {
     let projected = project_seed_plus_split_edge_plus_mef();
     let face = crate::projection::facade::ProjectedFaceId::new(0);
     let loop_id = projected.face_outer_loop(face);
-    let half_edges = projected.loop_half_edges(loop_id).expect("loop should close");
+    let half_edges = projected
+        .loop_half_edges(loop_id)
+        .expect("loop should close");
     let half_edge = half_edges[0];
     let next = projected.half_edge_next(half_edge);
     let prev = projected.half_edge_prev(half_edge);
@@ -195,8 +200,12 @@ fn adjacency_queries_surface_half_edge_navigation_and_representatives() {
     let primary = projected.vertex_primary_half_edge(origin);
 
     assert_eq!(projected.half_edge_edge(representative), edge);
-    assert!(projected.radial_half_edges(representative).contains(&radial_next));
-    assert!(matches!(primary, Some(primary_he) if projected.half_edge_origin(primary_he) == origin));
+    assert!(projected
+        .radial_half_edges(representative)
+        .contains(&radial_next));
+    assert!(
+        matches!(primary, Some(primary_he) if projected.half_edge_origin(primary_he) == origin)
+    );
 }
 
 #[test]
@@ -205,14 +214,22 @@ fn binding_queries_surface_geometry_and_trim_bindings() {
     let projected = fixture.projected;
     let face = crate::projection::facade::ProjectedFaceId::new(0);
     let loop_id = projected.face_outer_loop(face);
-    let half_edge = projected.loop_half_edges(loop_id).expect("loop should close")[0];
+    let half_edge = projected
+        .loop_half_edges(loop_id)
+        .expect("loop should close")[0];
     let edge = projected.half_edge_edge(half_edge);
     let vertex = projected.half_edge_origin(half_edge);
 
     assert_eq!(projected.face_surface_binding(face), Some(fixture.surface));
-    assert_eq!(projected.half_edge_coedge_binding(half_edge), Some(fixture.coedge));
+    assert_eq!(
+        projected.half_edge_coedge_binding(half_edge),
+        Some(fixture.coedge)
+    );
     assert_eq!(projected.edge_curve_binding(edge), Some(fixture.curve));
-    assert_eq!(projected.vertex_geometry_binding(vertex), Some(fixture.geometry));
+    assert_eq!(
+        projected.vertex_geometry_binding(vertex),
+        Some(fixture.geometry)
+    );
 }
 
 fn project_seed_plus_split_edge_plus_mef() -> crate::projection::facade::ProjectedTopology {
@@ -264,7 +281,9 @@ fn project_seed_with_bindings() -> BindingFixture {
     let mut projected = project_seed_plus_split_edge_plus_mef();
     let face = crate::projection::facade::ProjectedFaceId::new(0);
     let loop_id = projected.face_outer_loop(face);
-    let half_edge = projected.loop_half_edges(loop_id).expect("loop should close")[0];
+    let half_edge = projected
+        .loop_half_edges(loop_id)
+        .expect("loop should close")[0];
     let edge = projected.half_edge_edge(half_edge);
     let vertex = projected.half_edge_origin(half_edge);
     let surface = SpecNodeId::new(9_101);

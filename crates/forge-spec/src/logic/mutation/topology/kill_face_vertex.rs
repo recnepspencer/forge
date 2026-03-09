@@ -59,7 +59,8 @@ impl SpecMutation for KillFaceVertexMutation {
         let radial = draft.single_outgoing_target(half_edge, RelationKind::HalfEdgeRadialNext)?;
         let vertex = draft.single_outgoing_target(half_edge, RelationKind::HalfEdgeOriginVertex)?;
         let edge = draft.single_outgoing_target(half_edge, RelationKind::HalfEdgeUsesEdge)?;
-        let bounds_face = draft.single_outgoing_target(half_edge, RelationKind::HalfEdgeBoundsFace)?;
+        let bounds_face =
+            draft.single_outgoing_target(half_edge, RelationKind::HalfEdgeBoundsFace)?;
 
         if next != half_edge || radial != half_edge {
             return Err(SpecError::invalid(

@@ -43,6 +43,6 @@ mod pv_p0_1_tests;
 // #[cfg(test)]
 // mod pv_p3_6_tests;
 #[cfg(test)]
-mod spec_projection_tests;
-#[cfg(test)]
 mod spec_checkpoint_tests;
+#[cfg(test)]
+mod spec_projection_tests;

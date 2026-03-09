@@ -94,7 +94,9 @@ mod tests {
     fn runtime_registration_is_deterministic() {
         let mut runtime = FeatureEventRuntime::new().expect("runtime should build");
         let mut ctx = FeatureEventRuntimeContext::from_config(KernelConfig::default());
-        runtime.begin(&mut ctx).expect("begin should finalize registration");
+        runtime
+            .begin(&mut ctx)
+            .expect("begin should finalize registration");
         assert_eq!(
             runtime.event_bus().resolved_order(),
             vec![

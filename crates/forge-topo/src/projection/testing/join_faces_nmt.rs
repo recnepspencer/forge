@@ -2,7 +2,7 @@ use forge_spec::facade::{
     JoinFacesNmtMutation, RelationKind, SpecDraft, SpecNodeId, SpecNodeKind, SpecState,
 };
 
-use crate::projection::facade::{ProjectedTopologyQueries, ProjectionBuilder, ProjectedEntityRef};
+use crate::projection::facade::{ProjectedEntityRef, ProjectedTopologyQueries, ProjectionBuilder};
 
 #[test]
 fn projected_join_faces_nmt_builds_slit_and_preserves_protected_ring() {
@@ -63,8 +63,12 @@ fn build_antiparallel_valence_fixture(
 ) -> AntiparallelFixtureState {
     let body = draft.create_node(SpecNodeKind::Body, None, "body").unwrap();
     let lump = draft.create_node(SpecNodeKind::Lump, None, "lump").unwrap();
-    let region = draft.create_node(SpecNodeKind::Region, None, "region").unwrap();
-    let shell = draft.create_shell(forge_spec::facade::SpecShellKind::Sheet, "shell").unwrap();
+    let region = draft
+        .create_node(SpecNodeKind::Region, None, "region")
+        .unwrap();
+    let shell = draft
+        .create_shell(forge_spec::facade::SpecShellKind::Sheet, "shell")
+        .unwrap();
 
     draft
         .add_relation(RelationKind::BodyOwnsLump, body, lump, 0, "body-lump")
@@ -73,12 +77,24 @@ fn build_antiparallel_valence_fixture(
         .add_relation(RelationKind::LumpOwnsRegion, lump, region, 0, "lump-region")
         .unwrap();
     draft
-        .add_relation(RelationKind::RegionOwnsShell, region, shell, 0, "region-shell")
+        .add_relation(
+            RelationKind::RegionOwnsShell,
+            region,
+            shell,
+            0,
+            "region-shell",
+        )
         .unwrap();
 
-    let vertex_a = draft.create_node(SpecNodeKind::Vertex, None, "vertex-a").unwrap();
-    let vertex_b = draft.create_node(SpecNodeKind::Vertex, None, "vertex-b").unwrap();
-    let shared_edge = draft.create_node(SpecNodeKind::Edge, None, "shared-edge").unwrap();
+    let vertex_a = draft
+        .create_node(SpecNodeKind::Vertex, None, "vertex-a")
+        .unwrap();
+    let vertex_b = draft
+        .create_node(SpecNodeKind::Vertex, None, "vertex-b")
+        .unwrap();
+    let shared_edge = draft
+        .create_node(SpecNodeKind::Edge, None, "shared-edge")
+        .unwrap();
 
     let mut shared_half_edges = Vec::with_capacity(valence);
     let mut removed_face = None;
@@ -115,10 +131,22 @@ fn build_antiparallel_valence_fixture(
         };
 
         draft
-            .add_relation(RelationKind::ShellOwnsFace, shell, face, 0, &format!("shell-face-{index}"))
+            .add_relation(
+                RelationKind::ShellOwnsFace,
+                shell,
+                face,
+                0,
+                &format!("shell-face-{index}"),
+            )
             .unwrap();
         draft
-            .add_relation(RelationKind::FaceOuterLoop, face, loop_id, 0, &format!("face-loop-{index}"))
+            .add_relation(
+                RelationKind::FaceOuterLoop,
+                face,
+                loop_id,
+                0,
+                &format!("face-loop-{index}"),
+            )
             .unwrap();
         draft
             .add_relation(

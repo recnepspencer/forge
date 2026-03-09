@@ -6,9 +6,7 @@ use crate::projection::logic::ProjectedTopologyQueries;
 
 use super::super::shared::vf;
 
-pub fn validate_projected_laminar_edges(
-    topology: &ProjectedTopology,
-) -> Result<(), KernelError> {
+pub fn validate_projected_laminar_edges(topology: &ProjectedTopology) -> Result<(), KernelError> {
     for shell_index in 0..topology.shell_count() {
         let shell = ProjectedShellId::new(shell_index as u32);
         if !matches!(topology.shell(shell).kind, SpecShellKind::Sheet) {

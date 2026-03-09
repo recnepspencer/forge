@@ -4,7 +4,9 @@ use crate::engine::transaction::data::feature_event::KernelFeatureEvent;
 use crate::engine::transaction::data::operation_outputs::DecisionDrainOutput;
 use crate::engine::transaction::data::subscriber_data_id::KernelSubscriberDataId;
 use crate::engine::transaction::logic::feature_event_runtime::FeatureEventRuntimeContext;
-use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SignalError, SubscriberId};
+use forge_signal::facade::{
+    CheckpointBarrier, EventSubscriber, SignalError, SubscriberContext, SubscriberId,
+};
 
 use super::stage_output_value;
 

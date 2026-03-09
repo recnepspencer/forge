@@ -22,6 +22,12 @@ use crate::engine::facade::SolidEnvelope;
 use crate::configuration::facade::ResolvedConfig;
 use crate::context::scope::OperationScope;
 use crate::engine::facade::AuditLevel;
+use crate::engine::transaction::data::feature_event::{FeatureInvocationId, KernelFeatureEvent};
+use crate::engine::transaction::data::operation_outputs::OperationEnvelopeOutput;
+use crate::engine::transaction::data::subscriber_data_id::KernelSubscriberDataId;
+use crate::engine::transaction::logic::feature_event_runtime::{
+    FeatureEventRuntime, FeatureEventRuntimeContext,
+};
 use crate::geometry::facade::GeometryStore;
 use crate::operations::shared_operations::facade::{
     emit_edge_curves, insert_faces_and_loops, make_solid_hierarchy, place_vertex_exact,
@@ -29,12 +35,6 @@ use crate::operations::shared_operations::facade::{
 };
 use forge_core::envelope::OperationResult;
 use forge_signal::facade::CheckpointBarrier;
-use crate::engine::transaction::data::feature_event::{FeatureInvocationId, KernelFeatureEvent};
-use crate::engine::transaction::data::operation_outputs::OperationEnvelopeOutput;
-use crate::engine::transaction::data::subscriber_data_id::KernelSubscriberDataId;
-use crate::engine::transaction::logic::feature_event_runtime::{
-    FeatureEventRuntime, FeatureEventRuntimeContext,
-};
 
 use crate::operations::shared_validators::facade::{
     validate_cell, validate_center_and_size, validate_coordinate, validate_dimension,
@@ -53,9 +53,8 @@ pub fn build_halfedge_mesh(
     let mut runtime_ctx = FeatureEventRuntimeContext::from_config(config.config().clone());
     let mut event_runtime = FeatureEventRuntime::new()?;
     let invocation_id = FeatureInvocationId::new(1);
-    let state_hash_before = forge_topo::transactions::compute_arena_topology_hash(
-        TopologyState::empty().arena(),
-    );
+    let state_hash_before =
+        forge_topo::transactions::compute_arena_topology_hash(TopologyState::empty().arena());
 
     event_runtime.begin(&mut runtime_ctx)?;
     event_runtime.emit(KernelFeatureEvent::OperationStarted {

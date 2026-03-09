@@ -38,7 +38,10 @@ pub fn face_outer_loop(topology: &ProjectedTopology, face: ProjectedFaceId) -> P
     topology.face(face).outer_loop
 }
 
-pub fn face_inner_loops(topology: &ProjectedTopology, face: ProjectedFaceId) -> Vec<ProjectedLoopId> {
+pub fn face_inner_loops(
+    topology: &ProjectedTopology,
+    face: ProjectedFaceId,
+) -> Vec<ProjectedLoopId> {
     topology.face(face).inner_loops.clone()
 }
 

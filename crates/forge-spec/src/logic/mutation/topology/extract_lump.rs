@@ -39,7 +39,11 @@ impl SpecMutation for ExtractLumpMutation {
         }
 
         let source_body = draft.single_incoming_source(self.lump, RelationKind::BodyOwnsLump)?;
-        if draft.outgoing_targets_of_kind(source_body, RelationKind::BodyOwnsLump).len() <= 1 {
+        if draft
+            .outgoing_targets_of_kind(source_body, RelationKind::BodyOwnsLump)
+            .len()
+            <= 1
+        {
             return Err(SpecError::invalid(
                 "ExtractLumpMutation cannot extract the last lump from a body".to_string(),
             ));
@@ -59,8 +63,14 @@ impl SpecMutation for ExtractLumpMutation {
             value: ExtractLumpOutput { new_body },
             touched_domains: vec![TouchedDomain::Topology],
             mutation_trace: vec![
-                format!("create new body {} for extracted lump {}", new_body, self.lump),
-                format!("move lump {} from body {} to body {}", self.lump, source_body, new_body),
+                format!(
+                    "create new body {} for extracted lump {}",
+                    new_body, self.lump
+                ),
+                format!(
+                    "move lump {} from body {} to body {}",
+                    self.lump, source_body, new_body
+                ),
             ],
         })
     }

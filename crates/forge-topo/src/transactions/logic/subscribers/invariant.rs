@@ -1,11 +1,11 @@
 use forge_core::KernelError;
-use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SignalError, SubscriberId};
+use forge_signal::facade::{
+    CheckpointBarrier, EventSubscriber, SignalError, SubscriberContext, SubscriberId,
+};
 
 use crate::transactions::data::operation_event::{TopoOperationEvent, TopoSubscriberDataId};
 use crate::transactions::data::operation_outputs::ValidationSummary;
-use crate::validators::invariant_id::{
-    validator_for, InvariantId, InvariantRelation,
-};
+use crate::validators::invariant_id::{validator_for, InvariantId, InvariantRelation};
 use forge_core::ValidationCheckpoint;
 
 use super::{kernel_to_signal, stage_output_value};
@@ -45,7 +45,11 @@ impl EventSubscriber for InvariantSubscriber {
         &[TopoSubscriberDataId::ValidationResult]
     }
 
-    fn on_begin(&mut self, _ctx: &mut SubscriberContext<TopoSubscriberDataId>, _runtime: &mut Self::RuntimeContext) {
+    fn on_begin(
+        &mut self,
+        _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
+        _runtime: &mut Self::RuntimeContext,
+    ) {
         self.summary = ValidationSummary::default();
         self.op_name = None;
         self.invocation_id = None;
@@ -98,7 +102,10 @@ impl EventSubscriber for InvariantSubscriber {
                 true
             } else {
                 relation(id) == InvariantRelation::MayBreak
-                    && runtime.config().group_policy.should_run(id.group(), checkpoint)
+                    && runtime
+                        .config()
+                        .group_policy
+                        .should_run(id.group(), checkpoint)
             };
 
             if !should_run {

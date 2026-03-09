@@ -57,7 +57,10 @@ impl SpecMutation for RehomeLumpMutation {
             "rehome-lump",
         )?;
 
-        if draft.outgoing_targets_of_kind(source_body, RelationKind::BodyOwnsLump).is_empty() {
+        if draft
+            .outgoing_targets_of_kind(source_body, RelationKind::BodyOwnsLump)
+            .is_empty()
+        {
             draft.delete_node(source_body)?;
         }
 

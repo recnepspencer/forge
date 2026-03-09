@@ -1,5 +1,7 @@
 use forge_core::KernelError;
-use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SignalError, SubscriberId};
+use forge_signal::facade::{
+    CheckpointBarrier, EventSubscriber, SignalError, SubscriberContext, SubscriberId,
+};
 
 use crate::identity::OperationId;
 use crate::provenance::OpSignature;
@@ -56,7 +58,11 @@ impl EventSubscriber for ReplaySubscriber {
         &[TopoSubscriberDataId::ReplayEntryFinalization]
     }
 
-    fn on_begin(&mut self, _ctx: &mut SubscriberContext<TopoSubscriberDataId>, _runtime: &mut Self::RuntimeContext) {
+    fn on_begin(
+        &mut self,
+        _ctx: &mut SubscriberContext<TopoSubscriberDataId>,
+        _runtime: &mut Self::RuntimeContext,
+    ) {
         self.clear();
     }
 

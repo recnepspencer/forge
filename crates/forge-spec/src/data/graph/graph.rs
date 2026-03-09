@@ -27,7 +27,8 @@ impl SpecGraph {
 
     pub fn rebuild_indexes(&mut self) {
         self.nodes.sort_by_key(|node| node.id);
-        self.relations.sort_by_key(|rel| (rel.kind, rel.source, rel.target, rel.ordinal, rel.id));
+        self.relations
+            .sort_by_key(|rel| (rel.kind, rel.source, rel.target, rel.ordinal, rel.id));
         self.node_index.clear();
         self.relation_index.clear();
         self.outgoing.clear();
@@ -38,8 +39,14 @@ impl SpecGraph {
         }
         for (idx, relation) in self.relations.iter().enumerate() {
             self.relation_index.insert(relation.id, idx);
-            self.outgoing.entry(relation.source).or_default().push(relation.id);
-            self.incoming.entry(relation.target).or_default().push(relation.id);
+            self.outgoing
+                .entry(relation.source)
+                .or_default()
+                .push(relation.id);
+            self.incoming
+                .entry(relation.target)
+                .or_default()
+                .push(relation.id);
         }
     }
 
@@ -63,13 +70,22 @@ impl SpecGraph {
 
     pub fn insert_relation(&mut self, relation: RelationRecord) -> Result<(), SpecError> {
         if self.relation_index.contains_key(&relation.id) {
-            return Err(SpecError::invalid(format!("duplicate relation id {}", relation.id)));
+            return Err(SpecError::invalid(format!(
+                "duplicate relation id {}",
+                relation.id
+            )));
         }
         if !self.node_index.contains_key(&relation.source) {
-            return Err(SpecError::not_found(format!("missing source node {}", relation.source)));
+            return Err(SpecError::not_found(format!(
+                "missing source node {}",
+                relation.source
+            )));
         }
         if !self.node_index.contains_key(&relation.target) {
-            return Err(SpecError::not_found(format!("missing target node {}", relation.target)));
+            return Err(SpecError::not_found(format!(
+                "missing target node {}",
+                relation.target
+            )));
         }
         self.relations.push(relation);
         self.rebuild_indexes();

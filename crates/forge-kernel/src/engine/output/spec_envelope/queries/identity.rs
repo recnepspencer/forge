@@ -2,8 +2,8 @@ use forge_core::KernelError;
 use forge_spec::facade::{SpecNodeId, SpecShellKind};
 use forge_topo::projection::{
     ProjectedBodyId, ProjectedEdgeId, ProjectedEntityRef, ProjectedFaceId, ProjectedHalfEdgeId,
-    ProjectedLoopId, ProjectedLumpId, ProjectedRegionId, ProjectedShellId, ProjectedTopologyQueries,
-    ProjectedVertexId,
+    ProjectedLoopId, ProjectedLumpId, ProjectedRegionId, ProjectedShellId,
+    ProjectedTopologyQueries, ProjectedVertexId,
 };
 
 use super::super::SpecEnvelope;

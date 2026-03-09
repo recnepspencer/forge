@@ -1350,6 +1350,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-harness"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tracing",
+]
+
+[[package]]
 name = "forge-io"
 version = "0.1.0"
 dependencies = [
@@ -1414,6 +1423,7 @@ dependencies = [
 name = "forge-signal"
 version = "0.1.0"
 dependencies = [
+ "forge-harness",
  "serde",
  "serde_json",
  "smallvec",

@@ -265,11 +265,11 @@ fn tier_comparator_inheritance_uses_tier_default() {
         .with_default_comparator(VersionComparatorPolicy::Tolerance { epsilon: 2 }),
     );
     let mut compute_a_10 = |_id: crate::data::handle::NodeId,
-                        _g: &crate::data::graph::SignalGraph| {
+                            _g: &crate::data::graph::SignalGraph| {
         Ok(version_ab(0, 10))
     };
     let mut compute_a_12 = |_id: crate::data::handle::NodeId,
-                        _g: &crate::data::graph::SignalGraph| {
+                            _g: &crate::data::graph::SignalGraph| {
         Ok(version_ab(0, 12))
     };
     let mut compute_b = |_id: crate::data::handle::NodeId, _g: &crate::data::graph::SignalGraph| {

@@ -4,10 +4,20 @@ use crate::facade::*;
 fn draft_commit_creates_immutable_state() {
     let state = SpecState::empty();
     let mut draft = state.into_draft();
-    let model = draft.create_node(SpecNodeKind::Model, None, "model").unwrap();
-    let feature = draft.create_node(SpecNodeKind::Feature, None, "feature").unwrap();
+    let model = draft
+        .create_node(SpecNodeKind::Model, None, "model")
+        .unwrap();
+    let feature = draft
+        .create_node(SpecNodeKind::Feature, None, "feature")
+        .unwrap();
     draft
-        .add_relation(RelationKind::ModelOwnsFeature, model, feature, 0, "ownership")
+        .add_relation(
+            RelationKind::ModelOwnsFeature,
+            model,
+            feature,
+            0,
+            "ownership",
+        )
         .unwrap();
     let committed = draft.commit().unwrap();
 
@@ -21,7 +31,9 @@ fn draft_commit_creates_immutable_state() {
 fn rollback_restores_prior_snapshot() {
     let state = SpecState::empty();
     let mut draft = state.clone().into_draft();
-    let _ = draft.create_node(SpecNodeKind::Feature, None, "temp").unwrap();
+    let _ = draft
+        .create_node(SpecNodeKind::Feature, None, "temp")
+        .unwrap();
     let rolled_back = draft.rollback().unwrap();
     assert_eq!(rolled_back, state);
 }
@@ -30,7 +42,9 @@ fn rollback_restores_prior_snapshot() {
 fn stable_node_ids_survive_snapshot_commit() {
     let state = SpecState::empty();
     let mut draft = state.into_draft();
-    let model = draft.create_node(SpecNodeKind::Model, None, "model").unwrap();
+    let model = draft
+        .create_node(SpecNodeKind::Model, None, "model")
+        .unwrap();
     let committed = draft.commit().unwrap();
     let node = committed.graph().node(model).unwrap();
     assert_eq!(node.id, model);
@@ -40,10 +54,19 @@ fn stable_node_ids_survive_snapshot_commit() {
 fn naming_lineage_and_replay_records_commit() {
     let state = SpecState::empty();
     let mut draft = state.into_draft();
-    let feature = draft.create_node(SpecNodeKind::Feature, None, "feature").unwrap();
+    let feature = draft
+        .create_node(SpecNodeKind::Feature, None, "feature")
+        .unwrap();
     let body = draft.create_node(SpecNodeKind::Body, None, "body").unwrap();
     draft
-        .create_naming_anchor(body, SpecNodeKind::Body, "primary-body", 0, Some(feature), 1)
+        .create_naming_anchor(
+            body,
+            SpecNodeKind::Body,
+            "primary-body",
+            0,
+            Some(feature),
+            1,
+        )
         .unwrap();
     draft
         .record_lineage(LineageRecord {

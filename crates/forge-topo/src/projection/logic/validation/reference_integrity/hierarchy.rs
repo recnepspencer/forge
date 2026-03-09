@@ -10,8 +10,17 @@ use super::super::shared::vf;
 pub fn validate_projected_hierarchy(topology: &ProjectedTopology) -> Result<(), KernelError> {
     for (lump_index, lump) in topology.lumps().iter().enumerate() {
         let body = lump.body;
-        let body_data = body_checked(topology, body, "projected_hierarchy", "lump", lump_index as u32)?;
-        if !body_data.lumps.contains(&ProjectedLumpId::new(lump_index as u32)) {
+        let body_data = body_checked(
+            topology,
+            body,
+            "projected_hierarchy",
+            "lump",
+            lump_index as u32,
+        )?;
+        if !body_data
+            .lumps
+            .contains(&ProjectedLumpId::new(lump_index as u32))
+        {
             return Err(vf(
                 "projected_hierarchy",
                 format!(
@@ -25,9 +34,17 @@ pub fn validate_projected_hierarchy(topology: &ProjectedTopology) -> Result<(), 
 
     for (region_index, region) in topology.regions().iter().enumerate() {
         let lump = region.lump;
-        let lump_data =
-            lump_checked(topology, lump, "projected_hierarchy", "region", region_index as u32)?;
-        if !lump_data.regions.contains(&ProjectedRegionId::new(region_index as u32)) {
+        let lump_data = lump_checked(
+            topology,
+            lump,
+            "projected_hierarchy",
+            "region",
+            region_index as u32,
+        )?;
+        if !lump_data
+            .regions
+            .contains(&ProjectedRegionId::new(region_index as u32))
+        {
             return Err(vf(
                 "projected_hierarchy",
                 format!(
@@ -41,9 +58,17 @@ pub fn validate_projected_hierarchy(topology: &ProjectedTopology) -> Result<(), 
 
     for (shell_index, shell) in topology.shells().iter().enumerate() {
         let region = shell.region;
-        let region_data =
-            region_checked(topology, region, "projected_hierarchy", "shell", shell_index as u32)?;
-        if !region_data.shells.contains(&ProjectedShellId::new(shell_index as u32)) {
+        let region_data = region_checked(
+            topology,
+            region,
+            "projected_hierarchy",
+            "shell",
+            shell_index as u32,
+        )?;
+        if !region_data
+            .shells
+            .contains(&ProjectedShellId::new(shell_index as u32))
+        {
             return Err(vf(
                 "projected_hierarchy",
                 format!(
@@ -57,9 +82,17 @@ pub fn validate_projected_hierarchy(topology: &ProjectedTopology) -> Result<(), 
 
     for (face_index, face) in topology.faces().iter().enumerate() {
         let shell = face.shell;
-        let shell_data =
-            shell_checked(topology, shell, "projected_hierarchy", "face", face_index as u32)?;
-        if !shell_data.faces.contains(&ProjectedFaceId::new(face_index as u32)) {
+        let shell_data = shell_checked(
+            topology,
+            shell,
+            "projected_hierarchy",
+            "face",
+            face_index as u32,
+        )?;
+        if !shell_data
+            .faces
+            .contains(&ProjectedFaceId::new(face_index as u32))
+        {
             return Err(vf(
                 "projected_hierarchy",
                 format!(
@@ -73,8 +106,13 @@ pub fn validate_projected_hierarchy(topology: &ProjectedTopology) -> Result<(), 
 
     for (loop_index, loop_data) in topology.loops().iter().enumerate() {
         let face = loop_data.face;
-        let face_data =
-            face_checked(topology, face, "projected_hierarchy", "loop", loop_index as u32)?;
+        let face_data = face_checked(
+            topology,
+            face,
+            "projected_hierarchy",
+            "loop",
+            loop_index as u32,
+        )?;
         let loop_id = ProjectedLoopId::new(loop_index as u32);
         if face_data.outer_loop != loop_id && !face_data.inner_loops.contains(&loop_id) {
             return Err(vf(

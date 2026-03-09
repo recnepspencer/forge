@@ -10,6 +10,7 @@ default = []
 parallel = []
 
 [dependencies]
+forge-harness.workspace = true
 tracing.workspace = true
 serde = { workspace = true, features = ["derive"] }
 smallvec = { workspace = true, features = ["serde"] }

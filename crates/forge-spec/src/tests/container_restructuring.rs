@@ -1,5 +1,5 @@
-use crate::facade::*;
 use crate::data::schema::{RelationKind, SpecNodeKind};
+use crate::facade::*;
 
 #[test]
 fn rehome_shell_moves_empty_shell_between_regions() {
@@ -58,12 +58,14 @@ fn split_shell_moves_face_subset_into_new_shell() {
 
     assert!(graph.node(split.value.new_shell).is_some());
     assert_eq!(
-        graph.outgoing_of_kind(seed.value.shell, RelationKind::ShellOwnsFace)
+        graph
+            .outgoing_of_kind(seed.value.shell, RelationKind::ShellOwnsFace)
             .len(),
         1
     );
     assert_eq!(
-        graph.outgoing_of_kind(split.value.new_shell, RelationKind::ShellOwnsFace)
+        graph
+            .outgoing_of_kind(split.value.new_shell, RelationKind::ShellOwnsFace)
             .len(),
         1
     );
@@ -97,7 +99,8 @@ fn merge_shells_absorbs_source_shell() {
     let graph = state.graph();
     assert!(graph.node(shell_b.value.shell).is_none());
     assert_eq!(
-        graph.outgoing_of_kind(shell_a.value.shell, RelationKind::ShellOwnsFace)
+        graph
+            .outgoing_of_kind(shell_a.value.shell, RelationKind::ShellOwnsFace)
             .len(),
         2
     );
@@ -130,11 +133,15 @@ fn extract_shell_creates_new_region_for_inner_shell() {
     let state = draft.commit().unwrap();
     let graph = state.graph();
     assert_eq!(
-        graph.iter_nodes().filter(|node| node.kind == SpecNodeKind::Region).count(),
+        graph
+            .iter_nodes()
+            .filter(|node| node.kind == SpecNodeKind::Region)
+            .count(),
         2
     );
     assert_eq!(
-        graph.outgoing_of_kind(extracted.value.new_region, RelationKind::RegionOwnsShell)
+        graph
+            .outgoing_of_kind(extracted.value.new_region, RelationKind::RegionOwnsShell)
             .len(),
         1
     );
@@ -179,7 +186,8 @@ fn rehome_lump_moves_lump_and_deletes_empty_source_body() {
     let graph = state.graph();
     assert!(graph.node(body_b.value.body).is_none());
     assert_eq!(
-        graph.outgoing_of_kind(body_a.value.body, RelationKind::BodyOwnsLump)
+        graph
+            .outgoing_of_kind(body_a.value.body, RelationKind::BodyOwnsLump)
             .len(),
         2
     );
@@ -204,11 +212,15 @@ fn extract_lump_creates_new_body_for_existing_lump() {
     let state = draft.commit().unwrap();
     let graph = state.graph();
     assert_eq!(
-        graph.iter_nodes().filter(|node| node.kind == SpecNodeKind::Body).count(),
+        graph
+            .iter_nodes()
+            .filter(|node| node.kind == SpecNodeKind::Body)
+            .count(),
         2
     );
     assert_eq!(
-        graph.outgoing_of_kind(extracted.value.new_body, RelationKind::BodyOwnsLump)
+        graph
+            .outgoing_of_kind(extracted.value.new_body, RelationKind::BodyOwnsLump)
             .len(),
         1
     );
@@ -218,7 +230,9 @@ fn extract_lump_creates_new_body_for_existing_lump() {
 fn split_lump_moves_region_subset_into_new_lump() {
     let mut draft = SpecState::empty().into_draft();
     let solid = draft.execute(MakeSolidMutation).unwrap();
-    let region = draft.create_node(SpecNodeKind::Region, None, "region").unwrap();
+    let region = draft
+        .create_node(SpecNodeKind::Region, None, "region")
+        .unwrap();
     draft
         .add_relation(
             RelationKind::LumpOwnsRegion,
@@ -238,8 +252,18 @@ fn split_lump_moves_region_subset_into_new_lump() {
 
     let state = draft.commit().unwrap();
     let graph = state.graph();
-    assert_eq!(graph.outgoing_of_kind(solid.value.lump, RelationKind::LumpOwnsRegion).len(), 1);
-    assert_eq!(graph.outgoing_of_kind(split.value.new_lump, RelationKind::LumpOwnsRegion).len(), 1);
+    assert_eq!(
+        graph
+            .outgoing_of_kind(solid.value.lump, RelationKind::LumpOwnsRegion)
+            .len(),
+        1
+    );
+    assert_eq!(
+        graph
+            .outgoing_of_kind(split.value.new_lump, RelationKind::LumpOwnsRegion)
+            .len(),
+        1
+    );
 }
 
 #[test]
@@ -262,8 +286,18 @@ fn merge_lumps_absorbs_source_lump() {
     let state = draft.commit().unwrap();
     let graph = state.graph();
     assert!(graph.node(extra.value.lump).is_none());
-    assert_eq!(graph.outgoing_of_kind(solid.value.body, RelationKind::BodyOwnsLump).len(), 1);
-    assert_eq!(graph.outgoing_of_kind(solid.value.lump, RelationKind::LumpOwnsRegion).len(), 2);
+    assert_eq!(
+        graph
+            .outgoing_of_kind(solid.value.body, RelationKind::BodyOwnsLump)
+            .len(),
+        1
+    );
+    assert_eq!(
+        graph
+            .outgoing_of_kind(solid.value.lump, RelationKind::LumpOwnsRegion)
+            .len(),
+        2
+    );
 }
 
 #[test]
@@ -285,8 +319,18 @@ fn split_body_moves_lump_subset_into_new_body() {
 
     let state = draft.commit().unwrap();
     let graph = state.graph();
-    assert_eq!(graph.outgoing_of_kind(solid.value.body, RelationKind::BodyOwnsLump).len(), 1);
-    assert_eq!(graph.outgoing_of_kind(split.value.new_body, RelationKind::BodyOwnsLump).len(), 1);
+    assert_eq!(
+        graph
+            .outgoing_of_kind(solid.value.body, RelationKind::BodyOwnsLump)
+            .len(),
+        1
+    );
+    assert_eq!(
+        graph
+            .outgoing_of_kind(split.value.new_body, RelationKind::BodyOwnsLump)
+            .len(),
+        1
+    );
 }
 
 #[test]
@@ -305,7 +349,12 @@ fn merge_bodies_absorbs_source_body() {
     let state = draft.commit().unwrap();
     let graph = state.graph();
     assert!(graph.node(body_b.value.body).is_none());
-    assert_eq!(graph.outgoing_of_kind(body_a.value.body, RelationKind::BodyOwnsLump).len(), 2);
+    assert_eq!(
+        graph
+            .outgoing_of_kind(body_a.value.body, RelationKind::BodyOwnsLump)
+            .len(),
+        2
+    );
 }
 
 #[test]
@@ -322,15 +371,22 @@ fn clone_body_duplicates_seed_topology_subgraph() {
     let state = draft.commit().unwrap();
     let graph = state.graph();
     assert_eq!(
-        graph.iter_nodes().filter(|node| node.kind == SpecNodeKind::Body).count(),
+        graph
+            .iter_nodes()
+            .filter(|node| node.kind == SpecNodeKind::Body)
+            .count(),
         2
     );
     assert_eq!(
-        graph.iter_nodes().filter(|node| node.kind == SpecNodeKind::Face).count(),
+        graph
+            .iter_nodes()
+            .filter(|node| node.kind == SpecNodeKind::Face)
+            .count(),
         2
     );
     assert_eq!(
-        graph.outgoing_of_kind(cloned.value.cloned_body, RelationKind::BodyOwnsLump)
+        graph
+            .outgoing_of_kind(cloned.value.cloned_body, RelationKind::BodyOwnsLump)
             .len(),
         1
     );

@@ -9,9 +9,9 @@ use crate::operations::boundary_editing::make_face_kill_ring_hole::MakeFaceKillR
 use crate::operations::boundary_editing::make_loop_in_face_from_vertices::MakeLoopInFaceFromVertices;
 use crate::operations::entity_lifecycle::make_isolated_vertex::MakeIsolatedVertex;
 use crate::projection::facade::{
-    ProjectionBuilder, ProjectedTopologyQueries, compute_projected_topology_hash,
+    compute_projected_topology_hash, ProjectedTopologyQueries, ProjectionBuilder,
 };
-use crate::transactions::facade::{TopologyState, compute_arena_topology_hash};
+use crate::transactions::facade::{compute_arena_topology_hash, TopologyState};
 
 #[test]
 fn projected_make_face_kill_ring_hole_matches_legacy_structural_signature() {
@@ -39,7 +39,12 @@ fn projected_kill_face_make_ring_hole_matches_legacy_structural_signature() {
     );
     assert_eq!(projected.face_count(), legacy.arena().face_count() as usize);
     assert_eq!(projected.loop_count(), legacy.arena().loop_count() as usize);
-    assert_eq!(projected.face_loops(crate::projection::data::ProjectedFaceId::new(0)).len(), 2);
+    assert_eq!(
+        projected
+            .face_loops(crate::projection::data::ProjectedFaceId::new(0))
+            .len(),
+        2
+    );
 }
 
 fn build_spec_promoted_hole_state() -> SpecState {
@@ -68,9 +73,21 @@ fn build_spec_demoted_hole_state() -> SpecState {
 
 fn build_spec_face_with_hole_draft() -> (forge_spec::facade::SpecDraft, SpecNodeId, SpecNodeId) {
     let mut draft = SpecState::empty().into_draft();
-    let v0 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let v1 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let v2 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
+    let v0 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let v1 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let v2 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
     let face = draft
         .execute(MakeFaceFromVerticesMutation {
             vertices: vec![v0, v1, v2],
@@ -78,9 +95,21 @@ fn build_spec_face_with_hole_draft() -> (forge_spec::facade::SpecDraft, SpecNode
         .unwrap()
         .value
         .face;
-    let h0 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let h1 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
-    let h2 = draft.execute(MakeIsolatedVertexMutation).unwrap().value.vertex;
+    let h0 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let h1 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
+    let h2 = draft
+        .execute(MakeIsolatedVertexMutation)
+        .unwrap()
+        .value
+        .vertex;
     let loop_id = draft
         .execute(MakeLoopInFaceFromVerticesMutation {
             face,
@@ -97,7 +126,9 @@ fn build_legacy_promoted_hole_state() -> TopologyState {
     let face = draft.arena().iter_faces().next().unwrap().0;
     let inner_loop = draft.arena().get_face(face).unwrap().loops.inners()[0];
     draft
-        .execute(MakeFaceKillRingHole { loop_id: inner_loop })
+        .execute(MakeFaceKillRingHole {
+            loop_id: inner_loop,
+        })
         .unwrap();
     draft.commit().unwrap()
 }
@@ -107,7 +138,9 @@ fn build_legacy_demoted_hole_state() -> TopologyState {
     let face = draft.arena().iter_faces().next().unwrap().0;
     let inner_loop = draft.arena().get_face(face).unwrap().loops.inners()[0];
     let promoted = draft
-        .execute(MakeFaceKillRingHole { loop_id: inner_loop })
+        .execute(MakeFaceKillRingHole {
+            loop_id: inner_loop,
+        })
         .unwrap()
         .into_value();
     draft
@@ -121,9 +154,21 @@ fn build_legacy_demoted_hole_state() -> TopologyState {
 
 fn build_legacy_face_with_hole_draft() -> crate::transactions::MutableDraft {
     let mut draft = TopologyState::empty().into_mutation();
-    let v0 = draft.execute(MakeIsolatedVertex).unwrap().into_value().vertex;
-    let v1 = draft.execute(MakeIsolatedVertex).unwrap().into_value().vertex;
-    let v2 = draft.execute(MakeIsolatedVertex).unwrap().into_value().vertex;
+    let v0 = draft
+        .execute(MakeIsolatedVertex)
+        .unwrap()
+        .into_value()
+        .vertex;
+    let v1 = draft
+        .execute(MakeIsolatedVertex)
+        .unwrap()
+        .into_value()
+        .vertex;
+    let v2 = draft
+        .execute(MakeIsolatedVertex)
+        .unwrap()
+        .into_value()
+        .vertex;
     let face = draft
         .execute(MakeFaceFromVertices {
             vertices: vec![v0, v1, v2],
@@ -131,9 +176,21 @@ fn build_legacy_face_with_hole_draft() -> crate::transactions::MutableDraft {
         .unwrap()
         .into_value()
         .face;
-    let h0 = draft.execute(MakeIsolatedVertex).unwrap().into_value().vertex;
-    let h1 = draft.execute(MakeIsolatedVertex).unwrap().into_value().vertex;
-    let h2 = draft.execute(MakeIsolatedVertex).unwrap().into_value().vertex;
+    let h0 = draft
+        .execute(MakeIsolatedVertex)
+        .unwrap()
+        .into_value()
+        .vertex;
+    let h1 = draft
+        .execute(MakeIsolatedVertex)
+        .unwrap()
+        .into_value()
+        .vertex;
+    let h2 = draft
+        .execute(MakeIsolatedVertex)
+        .unwrap()
+        .into_value()
+        .vertex;
     draft
         .execute(MakeLoopInFaceFromVertices {
             face,

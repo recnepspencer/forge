@@ -49,14 +49,11 @@ impl SpecDraft {
         if kind == RelationKind::FaceInnerLoop {
             let used = self.base.graph().relation_ordinals(source, kind);
             if used.contains(&ordinal)
-                || self
-                    .created_relations
-                    .values()
-                    .any(|relation| {
-                        relation.source == source
-                            && relation.kind == kind
-                            && relation.ordinal == ordinal
-                    })
+                || self.created_relations.values().any(|relation| {
+                    relation.source == source
+                        && relation.kind == kind
+                        && relation.ordinal == ordinal
+                })
             {
                 return Err(SpecError::invalid(format!(
                     "face {} already has inner-loop ordinal {}",
@@ -79,7 +76,9 @@ fn relation_allowed(kind: RelationKind, source: SpecNodeKind, target: SpecNodeKi
         ModelOwnsParameter => matches!((source, target), (Model, Parameter)),
         FeatureConsumesParameter => matches!((source, target), (Feature, Parameter)),
         FeatureConsumesConstraint => matches!((source, target), (Feature, Constraint)),
-        FeatureProducesTopology => matches!(source, Feature) && target.domain() == GraphDomain::Topology,
+        FeatureProducesTopology => {
+            matches!(source, Feature) && target.domain() == GraphDomain::Topology
+        }
         FeatureDependsOnFeature => matches!((source, target), (Feature, Feature)),
         DecisionAffectsNode => matches!((source, target), (DesignDecision, _)),
         BodyOwnsLump => matches!((source, target), (Body, Lump)),

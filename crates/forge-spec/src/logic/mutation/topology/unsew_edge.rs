@@ -43,14 +43,20 @@ impl SpecMutation for UnsewEdgeMutation {
 
         let original_edge =
             draft.single_outgoing_target(self.half_edge_a, RelationKind::HalfEdgeUsesEdge)?;
-        if draft.single_outgoing_target(self.half_edge_b, RelationKind::HalfEdgeUsesEdge)? != original_edge {
+        if draft.single_outgoing_target(self.half_edge_b, RelationKind::HalfEdgeUsesEdge)?
+            != original_edge
+        {
             return Err(SpecError::invalid(
                 "UnsewEdgeMutation requires both halfedges to share the same edge".to_string(),
             ));
         }
 
         let ring = collect_radial_ring(draft, self.half_edge_a)?;
-        if !ring.iter().copied().any(|candidate| candidate == self.half_edge_b) {
+        if !ring
+            .iter()
+            .copied()
+            .any(|candidate| candidate == self.half_edge_b)
+        {
             return Err(SpecError::invalid(
                 "UnsewEdgeMutation requires half_edge_b to be present in the radial ring of half_edge_a"
                     .to_string(),
@@ -61,7 +67,8 @@ impl SpecMutation for UnsewEdgeMutation {
             draft.single_outgoing_target(self.half_edge_b, RelationKind::HalfEdgeRadialNext)?;
         if previous == self.half_edge_b {
             return Err(SpecError::invalid(
-                "UnsewEdgeMutation cannot unsew an already boundary self-radial halfedge".to_string(),
+                "UnsewEdgeMutation cannot unsew an already boundary self-radial halfedge"
+                    .to_string(),
             ));
         }
 
@@ -96,7 +103,10 @@ impl SpecMutation for UnsewEdgeMutation {
                     "unsew halfedges {} and {}",
                     self.half_edge_a, self.half_edge_b
                 ),
-                format!("create new edge {} for halfedge {}", new_edge, self.half_edge_b),
+                format!(
+                    "create new edge {} for halfedge {}",
+                    new_edge, self.half_edge_b
+                ),
             ],
         })
     }

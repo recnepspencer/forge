@@ -12,9 +12,9 @@ use crate::geometry::facade::{transform_geometry, GeometryStore};
 use crate::operations::primitives::MakePrimitiveFeature;
 use crate::registry::facade::CommandDispatcher;
 use forge_core::envelope::OperationResult;
+use forge_core::tracing::TraceEvent;
 use forge_core::KernelError;
 use forge_core::PolicyKind;
-use forge_core::tracing::TraceEvent;
 use forge_geom::facade::LocalCoordinateSpace;
 use forge_schema::{Command, EntityRef};
 use forge_signal::facade::{EvaluationCondition, NodeId, VersionComparatorPolicy};
@@ -231,10 +231,12 @@ impl crate::engine::facade::FeatureRegistry for TestFeatureRegistry {
                     });
                 }
 
-                let input = inputs.get(dependency).ok_or_else(|| KernelError::InvalidInput {
-                    message: format!("missing dependency {}", dependency),
-                    context: None,
-                })?;
+                let input = inputs
+                    .get(dependency)
+                    .ok_or_else(|| KernelError::InvalidInput {
+                        message: format!("missing dependency {}", dependency),
+                        context: None,
+                    })?;
                 Ok(OperationResult::new(input.clone()))
             }
         }
@@ -504,8 +506,14 @@ fn feature_tree_repeated_geometry_changes_bump_only_geometry_versions() {
         .get_envelope(source)
         .expect("source envelope should exist")
         .get_value();
-    assert_eq!(second_source.topology_fingerprint(), initial_source_topology);
-    assert_ne!(second_source.geometry_fingerprint(), initial_source_geometry);
+    assert_eq!(
+        second_source.topology_fingerprint(),
+        initial_source_topology
+    );
+    assert_ne!(
+        second_source.geometry_fingerprint(),
+        initial_source_geometry
+    );
     assert_eq!(
         tree.get_envelope(consumer)
             .expect("consumer envelope should exist")
@@ -623,7 +631,10 @@ fn feature_tree_topology_only_dependency_is_not_directly_dirtied_by_geometry_cha
     );
 
     let source = tree
-        .register_feature(TestFeatureRegistry::source("source_topology_reader", source_key))
+        .register_feature(TestFeatureRegistry::source(
+            "source_topology_reader",
+            source_key,
+        ))
         .expect("source should register");
     let consumer = tree
         .register_feature(TestFeatureRegistry::consumer(
@@ -653,7 +664,10 @@ fn feature_tree_geometry_only_dependency_is_not_directly_dirtied_by_topology_cha
     set_test_output(source_key, TestOutput::Empty);
 
     let source = tree
-        .register_feature(TestFeatureRegistry::source("source_geometry_reader", source_key))
+        .register_feature(TestFeatureRegistry::source(
+            "source_geometry_reader",
+            source_key,
+        ))
         .expect("source should register");
     let consumer = tree
         .register_feature(TestFeatureRegistry::consumer(
@@ -696,7 +710,10 @@ fn feature_tree_topology_only_inputs_do_not_materialize_geometry_payload() {
     );
 
     let source = tree
-        .register_feature(TestFeatureRegistry::source("topology_only_payload_source", source_key))
+        .register_feature(TestFeatureRegistry::source(
+            "topology_only_payload_source",
+            source_key,
+        ))
         .expect("source should register");
     let consumer = tree
         .register_feature(TestFeatureRegistry::consumer(
@@ -730,7 +747,10 @@ fn feature_tree_topology_only_inputs_do_not_materialize_geometry_payload() {
 fn feature_tree_registers_explicit_signal_policy_on_nodes() {
     let mut tree = FeatureTree::<TestFeatureRegistry>::new();
     let source = tree
-        .register_feature(TestFeatureRegistry::source("policy_source", "policy_source"))
+        .register_feature(TestFeatureRegistry::source(
+            "policy_source",
+            "policy_source",
+        ))
         .expect("source should register");
     let policy = FeatureSignalPolicy::core()
         .with_condition(EvaluationCondition::AspectFilter(
@@ -846,8 +866,14 @@ fn feature_tree_roundtrip_restores_runtime_policy_versions_and_skip_behavior() {
     let mut restored: FeatureTree<TestFeatureRegistry> =
         serde_json::from_str(&json).expect("FeatureTree should deserialize");
 
-    assert_eq!(restored.signal_tier(topo_consumer), Some(FeatureSignalTier::Core));
-    assert_eq!(restored.signal_tier(geom_consumer), Some(FeatureSignalTier::Core));
+    assert_eq!(
+        restored.signal_tier(topo_consumer),
+        Some(FeatureSignalTier::Core)
+    );
+    assert_eq!(
+        restored.signal_tier(geom_consumer),
+        Some(FeatureSignalTier::Core)
+    );
     assert_eq!(
         restored
             .get_graph()

@@ -1,23 +1,23 @@
 use std::fmt;
 
 use forge_core::KernelError;
-use forge_signal::facade::{
-    evaluate_in_txn_with_mode, Aspect, AspectVersion, CheckpointBarrier, DefaultComparatorResolver,
-    EvaluationCondition, EvaluationRequestMode, NodeId, SignalError, SignalGraph,
-    SignalRuntime, TransactionOutcome,
-};
-use forge_topo::projection::{
-    ProjectedTopology, ProjectionBuilder, compute_projected_topology_hash,
-    validate_projected_topology_structural,
-};
 #[cfg(test)]
 use forge_signal::facade::NodeState;
+use forge_signal::facade::{
+    evaluate_in_txn_with_mode, Aspect, AspectVersion, CheckpointBarrier, DefaultComparatorResolver,
+    EvaluationCondition, EvaluationRequestMode, NodeId, SignalError, SignalGraph, SignalRuntime,
+    TransactionOutcome,
+};
+use forge_topo::projection::{
+    compute_projected_topology_hash, validate_projected_topology_structural, ProjectedTopology,
+    ProjectionBuilder,
+};
 
 use crate::configuration::facade::FingerprintDetail;
 use crate::engine::contract::InvariantKind;
 use crate::proof::{ValidationCheckpoint, ValidationConfig, ValidationResult};
 
-use super::{SpecEnvelope, projected_topology_error_to_kernel_ref};
+use super::{projected_topology_error_to_kernel_ref, SpecEnvelope};
 
 const TOPOLOGY_ASPECT: Aspect = Aspect::new(0);
 const GEOMETRY_ASPECT: Aspect = Aspect::new(1);
@@ -195,76 +195,87 @@ impl SpecEnvelope {
         let post_feature_checkpoint_id = signal.post_feature_checkpoint;
         let standard_fingerprint_id = signal.standard_fingerprint;
         let full_fingerprint_id = signal.full_fingerprint;
-        let mut compute = |id: NodeId, _graph: &SignalGraph| -> Result<AspectVersion, SignalError> {
-            if id == root_id {
-                return Ok(self.root_aspect_version());
-            }
+        let mut compute =
+            |id: NodeId, _graph: &SignalGraph| -> Result<AspectVersion, SignalError> {
+                if id == root_id {
+                    return Ok(self.root_aspect_version());
+                }
 
-            if id == projection_id {
-                let projection = self.projection.get_or_init(|| ProjectionBuilder::build(&self.spec));
-                let projection = projection
-                    .as_ref()
-                    .map_err(|err| {
+                if id == projection_id {
+                    let projection = self
+                        .projection
+                        .get_or_init(|| ProjectionBuilder::build(&self.spec));
+                    let projection = projection.as_ref().map_err(|err| {
                         Self::kernel_to_signal(projected_topology_error_to_kernel_ref(err))
                     })?;
-                let projection_hash = compute_projected_topology_hash(projection);
-                let projection_version = ((projection_hash >> 64) as u64) ^ (projection_hash as u64);
-                return Ok(AspectVersion::from_updates([(
-                    TOPOLOGY_ASPECT,
-                    projection_version.max(1),
-                )]));
-            }
+                    let projection_hash = compute_projected_topology_hash(projection);
+                    let projection_version =
+                        ((projection_hash >> 64) as u64) ^ (projection_hash as u64);
+                    return Ok(AspectVersion::from_updates([(
+                        TOPOLOGY_ASPECT,
+                        projection_version.max(1),
+                    )]));
+                }
 
-            if id == structure_validation_id || id == manifold_invariant_id {
-                self.validate_projected_structure_now()
-                    .map_err(Self::kernel_to_signal)?;
-                let projection = self
-                    .projected_topology()
-                    .map_err(Self::kernel_to_signal)?;
-                let projection_hash = compute_projected_topology_hash(projection);
-                let projection_version = ((projection_hash >> 64) as u64) ^ (projection_hash as u64);
-                return Ok(AspectVersion::from_updates([(
-                    TOPOLOGY_ASPECT,
-                    projection_version.max(1),
-                )]));
-            }
+                if id == structure_validation_id || id == manifold_invariant_id {
+                    self.validate_projected_structure_now()
+                        .map_err(Self::kernel_to_signal)?;
+                    let projection = self.projected_topology().map_err(Self::kernel_to_signal)?;
+                    let projection_hash = compute_projected_topology_hash(projection);
+                    let projection_version =
+                        ((projection_hash >> 64) as u64) ^ (projection_hash as u64);
+                    return Ok(AspectVersion::from_updates([(
+                        TOPOLOGY_ASPECT,
+                        projection_version.max(1),
+                    )]));
+                }
 
-            if id == post_feature_checkpoint_id {
-                self.validate_projected_structure_now()
-                    .map_err(Self::kernel_to_signal)?;
-                let total_entities = self.entity_count_now().map_err(Self::kernel_to_signal)? as u64;
-                return Ok(AspectVersion::from_updates([(TOPOLOGY_ASPECT, total_entities.max(1))]));
-            }
+                if id == post_feature_checkpoint_id {
+                    self.validate_projected_structure_now()
+                        .map_err(Self::kernel_to_signal)?;
+                    let total_entities =
+                        self.entity_count_now().map_err(Self::kernel_to_signal)? as u64;
+                    return Ok(AspectVersion::from_updates([(
+                        TOPOLOGY_ASPECT,
+                        total_entities.max(1),
+                    )]));
+                }
 
-            if id == standard_fingerprint_id {
-                let hash = self
-                    .standard_fingerprint
-                    .get_or_init(|| Ok(self.spec.spec_hash()))
-                    .as_ref()
-                    .map(|hash| *hash)
-                    .map_err(Clone::clone)
-                    .map_err(Self::kernel_to_signal)?;
-                let version = ((hash >> 64) as u64) ^ (hash as u64);
-                return Ok(AspectVersion::from_updates([(TOPOLOGY_ASPECT, version.max(1))]));
-            }
+                if id == standard_fingerprint_id {
+                    let hash = self
+                        .standard_fingerprint
+                        .get_or_init(|| Ok(self.spec.spec_hash()))
+                        .as_ref()
+                        .map(|hash| *hash)
+                        .map_err(Clone::clone)
+                        .map_err(Self::kernel_to_signal)?;
+                    let version = ((hash >> 64) as u64) ^ (hash as u64);
+                    return Ok(AspectVersion::from_updates([(
+                        TOPOLOGY_ASPECT,
+                        version.max(1),
+                    )]));
+                }
 
-            if id == full_fingerprint_id {
-                let hash = self
-                    .full_fingerprint
-                    .get_or_init(|| {
-                        let projection = self.projected_topology()?;
-                        Ok(compute_projected_topology_hash(projection))
-                    })
-                    .as_ref()
-                    .map(|hash| *hash)
-                    .map_err(Clone::clone)
-                    .map_err(Self::kernel_to_signal)?;
-                let version = ((hash >> 64) as u64) ^ (hash as u64);
-                return Ok(AspectVersion::from_updates([(TOPOLOGY_ASPECT, version.max(1))]));
-            }
+                if id == full_fingerprint_id {
+                    let hash = self
+                        .full_fingerprint
+                        .get_or_init(|| {
+                            let projection = self.projected_topology()?;
+                            Ok(compute_projected_topology_hash(projection))
+                        })
+                        .as_ref()
+                        .map(|hash| *hash)
+                        .map_err(Clone::clone)
+                        .map_err(Self::kernel_to_signal)?;
+                    let version = ((hash >> 64) as u64) ^ (hash as u64);
+                    return Ok(AspectVersion::from_updates([(
+                        TOPOLOGY_ASPECT,
+                        version.max(1),
+                    )]));
+                }
 
-            Err(SignalError::internal("unknown spec envelope signal node"))
-        };
+                Err(SignalError::internal("unknown spec envelope signal node"))
+            };
 
         let mut txn = signal.runtime.begin();
         let result = evaluate_in_txn_with_mode(
@@ -281,7 +292,10 @@ impl SpecEnvelope {
         }
 
         let mut runtime_ctx = ();
-        match txn.commit(&mut runtime_ctx).map_err(Self::signal_to_kernel)? {
+        match txn
+            .commit(&mut runtime_ctx)
+            .map_err(Self::signal_to_kernel)?
+        {
             TransactionOutcome::Committed => Ok(()),
             TransactionOutcome::RolledBack | TransactionOutcome::Poisoned => {
                 Err(KernelError::InternalError {
@@ -361,12 +375,10 @@ impl SpecEnvelope {
 
     pub(super) fn entity_count_now(&self) -> Result<usize, KernelError> {
         let projection = self.projected_topology()?;
-        Ok(
-            projection.face_count()
-                + projection.half_edge_count()
-                + projection.vertex_count()
-                + projection.loop_count(),
-        )
+        Ok(projection.face_count()
+            + projection.half_edge_count()
+            + projection.vertex_count()
+            + projection.loop_count())
     }
 
     pub(super) fn checkpoint_result_now(
@@ -414,6 +426,11 @@ impl SpecEnvelope {
             "full_fingerprint" => signal.full_fingerprint,
             _ => return None,
         };
-        signal.runtime.graph().get_entry(id).ok().map(|entry| *entry.get_state())
+        signal
+            .runtime
+            .graph()
+            .get_entry(id)
+            .ok()
+            .map(|entry| *entry.get_state())
     }
 }

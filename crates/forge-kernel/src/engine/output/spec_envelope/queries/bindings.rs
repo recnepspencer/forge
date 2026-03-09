@@ -1,7 +1,8 @@
 use forge_core::KernelError;
 use forge_spec::facade::SpecNodeId;
 use forge_topo::projection::{
-    ProjectedEdgeId, ProjectedFaceId, ProjectedHalfEdgeId, ProjectedTopologyQueries, ProjectedVertexId,
+    ProjectedEdgeId, ProjectedFaceId, ProjectedHalfEdgeId, ProjectedTopologyQueries,
+    ProjectedVertexId,
 };
 
 use super::super::SpecEnvelope;
@@ -21,7 +22,10 @@ impl SpecEnvelope {
         Ok(self.projection()?.half_edge_coedge_binding(half_edge))
     }
 
-    pub fn edge_curve_binding(&self, edge: ProjectedEdgeId) -> Result<Option<SpecNodeId>, KernelError> {
+    pub fn edge_curve_binding(
+        &self,
+        edge: ProjectedEdgeId,
+    ) -> Result<Option<SpecNodeId>, KernelError> {
         Ok(self.projection()?.edge_curve_binding(edge))
     }
 

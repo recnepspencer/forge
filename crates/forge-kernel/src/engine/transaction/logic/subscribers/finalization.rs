@@ -1,12 +1,16 @@
 //! Subscriber that assembles finalization artifacts from drained context data.
 
 use crate::engine::transaction::data::feature_event::{FeatureInvocationId, KernelFeatureEvent};
-use crate::engine::transaction::data::operation_outputs::{DecisionDrainOutput, FinalizationOutput};
+use crate::engine::transaction::data::operation_outputs::{
+    DecisionDrainOutput, FinalizationOutput,
+};
 use crate::engine::transaction::data::subscriber_data_id::KernelSubscriberDataId;
 use crate::engine::transaction::logic::feature_event_runtime::FeatureEventRuntimeContext;
 use forge_core::tracing::compute_trace_fingerprint;
 use forge_core::KernelError;
-use forge_signal::facade::{CheckpointBarrier, EventSubscriber, SubscriberContext, SignalError, SubscriberId};
+use forge_signal::facade::{
+    CheckpointBarrier, EventSubscriber, SignalError, SubscriberContext, SubscriberId,
+};
 
 use super::{kernel_to_signal, stage_output_value};
 
@@ -85,19 +89,24 @@ impl EventSubscriber for FinalizationSubscriber {
         }
         let drained = ctx
             .staged::<DecisionDrainOutput>(KernelSubscriberDataId::DecisionDrain)
-            .ok_or_else(|| kernel_to_signal(KernelError::InternalError {
-                message: "DecisionDrain output missing in FinalizationSubscriber".to_string(),
+            .ok_or_else(|| {
+                kernel_to_signal(KernelError::InternalError {
+                    message: "DecisionDrain output missing in FinalizationSubscriber".to_string(),
+                    context: None,
+                })
+            })?;
+        let (started_id, hash_before) = self.started.ok_or_else(|| {
+            kernel_to_signal(KernelError::InternalError {
+                message: "OperationStarted event missing in FinalizationSubscriber".to_string(),
                 context: None,
-            }))?;
-        let (started_id, hash_before) = self.started.ok_or_else(|| kernel_to_signal(KernelError::InternalError {
-            message: "OperationStarted event missing in FinalizationSubscriber".to_string(),
-            context: None,
-        }))?;
-        let (completed_id, duration_micros, hash_after) =
-            self.completed.ok_or_else(|| kernel_to_signal(KernelError::InternalError {
+            })
+        })?;
+        let (completed_id, duration_micros, hash_after) = self.completed.ok_or_else(|| {
+            kernel_to_signal(KernelError::InternalError {
                 message: "OperationCompleted event missing in FinalizationSubscriber".to_string(),
                 context: None,
-            }))?;
+            })
+        })?;
         if started_id != completed_id {
             return Err(kernel_to_signal(KernelError::InternalError {
                 message: format!(

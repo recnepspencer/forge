@@ -1,7 +1,7 @@
-use crate::facade::*;
-use crate::tests::support::*;
 use crate::data::event_subscriber::{EventSubscriber, SubscriberId};
 use crate::data::subscriber_context::SubscriberContext;
+use crate::facade::*;
+use crate::tests::support::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum DiagnosticsEvent {
@@ -108,8 +108,7 @@ fn graph_diagnostics_summary_is_deterministic_and_serializable() {
 fn diagnostics_entrypoint_exposes_one_discoverable_surface() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
-    let compute =
-        |_node: NodeId, view: &ExecutionReadView<'_>| Ok(view.finish(version_ab(1, 0)));
+    let compute = |_node: NodeId, view: &ExecutionReadView<'_>| Ok(view.finish(version_ab(1, 0)));
     let plan = graph
         .build_evaluation_plan(&[node], EvaluationRequestMode::ForceOnDemand)
         .unwrap();
@@ -125,7 +124,9 @@ fn diagnostics_entrypoint_exposes_one_discoverable_surface() {
     assert_eq!(summary.active_node_count, 1);
     assert!(history.latest_execution_record_id.is_some());
     assert!(latest_flow.is_some());
-    assert!(graph_inspector.nodes_with_execution_record().contains(&node));
+    assert!(graph_inspector
+        .nodes_with_execution_record()
+        .contains(&node));
     assert_eq!(execution_inspector.nodes_with_trace_summaries(), vec![node]);
 }
 
@@ -167,14 +168,15 @@ fn inspectors_query_graph_plan_report_and_execution_history() {
     let bootstrap = graph
         .build_evaluation_plan(&[source, dependent], EvaluationRequestMode::ForceOnDemand)
         .unwrap();
-    graph.execute_prepared_plan(&bootstrap, &|node, view| {
-        if node == source {
-            source_compute(node, view)
-        } else {
-            dependent_compute(node, view)
-        }
-    })
-    .unwrap();
+    graph
+        .execute_prepared_plan(&bootstrap, &|node, view| {
+            if node == source {
+                source_compute(node, view)
+            } else {
+                dependent_compute(node, view)
+            }
+        })
+        .unwrap();
 
     mark_dirty(&mut graph, source, ASPECT_A).unwrap();
     let plan = graph
@@ -228,8 +230,7 @@ fn flow_and_failure_summaries_are_structured_and_diffable() {
         )
         .unwrap();
 
-    let compute =
-        |_node: NodeId, view: &ExecutionReadView<'_>| Ok(view.finish(version_ab(2, 0)));
+    let compute = |_node: NodeId, view: &ExecutionReadView<'_>| Ok(view.finish(version_ab(2, 0)));
     let plan = graph
         .build_evaluation_plan(&[node], EvaluationRequestMode::ForceOnDemand)
         .unwrap();
@@ -238,7 +239,12 @@ fn flow_and_failure_summaries_are_structured_and_diffable() {
 
     let flow = FlowSummary::new(
         DiagnosticsProfile::Development,
-        ChangeInputSummary::new(vec![node], vec![ASPECT_A], 0, Some("host-change".to_string())),
+        ChangeInputSummary::new(
+            vec![node],
+            vec![ASPECT_A],
+            0,
+            Some("host-change".to_string()),
+        ),
         InvalidationSummary::new(1, 0, 0),
         PlanningSummary::from_plan(&plan, DiagnosticsProfile::Development),
         PrecomputeSummary::from_report(&report, DiagnosticsProfile::Development),
@@ -284,29 +290,33 @@ fn successful_execution_automatically_records_flow_and_history_diagnostics() {
     let bootstrap = graph
         .build_evaluation_plan(&[source, dependent], EvaluationRequestMode::ForceOnDemand)
         .unwrap();
-    graph.execute_prepared_plan(&bootstrap, &|node, view| {
-        if node == source {
-            source_compute(node, view)
-        } else {
-            dependent_compute(node, view)
-        }
-    })
-    .unwrap();
+    graph
+        .execute_prepared_plan(&bootstrap, &|node, view| {
+            if node == source {
+                source_compute(node, view)
+            } else {
+                dependent_compute(node, view)
+            }
+        })
+        .unwrap();
 
     mark_dirty(&mut graph, source, ASPECT_A).unwrap();
     let plan = graph
         .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
         .unwrap();
-    graph.execute_prepared_plan(&plan, &|node, view| {
-        if node == source {
-            source_compute(node, view)
-        } else {
-            dependent_compute(node, view)
-        }
-    })
-    .unwrap();
+    graph
+        .execute_prepared_plan(&plan, &|node, view| {
+            if node == source {
+                source_compute(node, view)
+            } else {
+                dependent_compute(node, view)
+            }
+        })
+        .unwrap();
 
-    let flow = graph.latest_flow_diagnostics().expect("flow diagnostics should be recorded");
+    let flow = graph
+        .latest_flow_diagnostics()
+        .expect("flow diagnostics should be recorded");
     assert_eq!(flow.change.changed_nodes, vec![source]);
     assert_eq!(flow.planning.plan.task_count, 2);
     assert_eq!(flow.apply.report.task_count, 2);
@@ -317,8 +327,7 @@ fn successful_execution_automatically_records_flow_and_history_diagnostics() {
 fn diagnostics_profiles_control_retention_bounds() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
-    let compute =
-        |_node: NodeId, view: &ExecutionReadView<'_>| Ok(view.finish(version_ab(1, 0)));
+    let compute = |_node: NodeId, view: &ExecutionReadView<'_>| Ok(view.finish(version_ab(1, 0)));
 
     graph.set_diagnostics_profile(DiagnosticsProfile::Operational);
     for _ in 0..8 {
@@ -346,8 +355,7 @@ fn operational_profile_repeated_waves_stay_bounded_and_shallow() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
     graph.set_diagnostics_profile(DiagnosticsProfile::Operational);
-    let compute =
-        |_node: NodeId, view: &ExecutionReadView<'_>| Ok(view.finish(version_ab(1, 0)));
+    let compute = |_node: NodeId, view: &ExecutionReadView<'_>| Ok(view.finish(version_ab(1, 0)));
 
     for _ in 0..100 {
         mark_dirty(&mut graph, node, ASPECT_A).unwrap();
@@ -429,8 +437,10 @@ fn repeated_failure_capture_stays_current_and_bounded() {
         .expect("latest failure should be retained");
     assert_eq!(failure.phase, ExecutionFailurePhase::Precompute);
     assert!(failure.message.contains("cycle 99"));
-    assert!(diagnostics.recent_history().len()
-        <= DiagnosticsPolicy::from_profile(DiagnosticsProfile::Development).history_limit);
+    assert!(
+        diagnostics.recent_history().len()
+            <= DiagnosticsPolicy::from_profile(DiagnosticsProfile::Development).history_limit
+    );
 }
 
 #[test]
@@ -460,8 +470,10 @@ fn repeated_rollbacks_keep_latest_rollback_current_and_bounded() {
         .as_deref()
         .unwrap_or_default()
         .contains("explicit rollback"));
-    assert!(diagnostics.recent_history().len()
-        <= DiagnosticsPolicy::from_profile(DiagnosticsProfile::Development).history_limit);
+    assert!(
+        diagnostics.recent_history().len()
+            <= DiagnosticsPolicy::from_profile(DiagnosticsProfile::Development).history_limit
+    );
 }
 
 #[test]
@@ -542,8 +554,7 @@ fn event_bus_begin_failures_record_failure_and_rollback_diagnostics() {
 fn history_and_explanation_summaries_are_deterministic() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
-    let compute =
-        |_node: NodeId, view: &ExecutionReadView<'_>| Ok(view.finish(version_ab(3, 0)));
+    let compute = |_node: NodeId, view: &ExecutionReadView<'_>| Ok(view.finish(version_ab(3, 0)));
     let plan = graph
         .build_evaluation_plan(&[node], EvaluationRequestMode::ForceOnDemand)
         .unwrap();
@@ -552,7 +563,10 @@ fn history_and_explanation_summaries_are_deterministic() {
     let history_a = graph.execution_history_summary(DiagnosticsProfile::Forensic);
     let history_b = graph.execution_history_summary(DiagnosticsProfile::Forensic);
     assert!(compare_execution_history(&history_a, &history_b).is_empty());
-    assert!(repeat_run_summaries_equal(&[history_a.clone(), history_b.clone()]));
+    assert!(repeat_run_summaries_equal(&[
+        history_a.clone(),
+        history_b.clone()
+    ]));
     assert!(render_execution_history_summary(&history_a).contains("ExecutionHistorySummary"));
 
     let explanation_a = graph
@@ -564,7 +578,10 @@ fn history_and_explanation_summaries_are_deterministic() {
         .unwrap()
         .diagnostics_summary(DiagnosticsProfile::Development);
     assert!(compare_explanations(&explanation_a, &explanation_b).is_empty());
-    assert!(explanations_semantically_equivalent(&explanation_a, &explanation_b));
+    assert!(explanations_semantically_equivalent(
+        &explanation_a,
+        &explanation_b
+    ));
     assert!(render_explanation_summary(&explanation_a).contains("ExplanationSummary"));
 }
 
@@ -584,7 +601,10 @@ fn serial_and_parallel_reports_are_semantically_equivalent() {
         let result = if node == c {
             let a_v = view.read_aspect_version(a, ASPECT_A)?;
             let b_v = view.read_aspect_version(b, ASPECT_A)?;
-            NodeEvaluationResult::from_version(AspectVersion::from_updates([(ASPECT_A, a_v.get(ASPECT_A) + b_v.get(ASPECT_A))]))
+            NodeEvaluationResult::from_version(AspectVersion::from_updates([(
+                ASPECT_A,
+                a_v.get(ASPECT_A) + b_v.get(ASPECT_A),
+            )]))
         } else {
             NodeEvaluationResult::from_version(version_ab(1, 0))
         };
@@ -594,8 +614,12 @@ fn serial_and_parallel_reports_are_semantically_equivalent() {
     let bootstrap = graph_serial
         .build_evaluation_plan(&[a, b, c], EvaluationRequestMode::ForceOnDemand)
         .unwrap();
-    graph_serial.execute_prepared_plan(&bootstrap, &precompute).unwrap();
-    graph_parallel.execute_prepared_plan(&bootstrap, &precompute).unwrap();
+    graph_serial
+        .execute_prepared_plan(&bootstrap, &precompute)
+        .unwrap();
+    graph_parallel
+        .execute_prepared_plan(&bootstrap, &precompute)
+        .unwrap();
 
     mark_dirty(&mut graph_serial, a, ASPECT_A).unwrap();
     mark_dirty(&mut graph_parallel, a, ASPECT_A).unwrap();
@@ -651,8 +675,12 @@ fn repeated_serial_parallel_lifecycle_parity_stays_stable() {
     let bootstrap = graph_serial
         .build_evaluation_plan(&[source, wing, tail], EvaluationRequestMode::ForceOnDemand)
         .unwrap();
-    graph_serial.execute_prepared_plan(&bootstrap, &precompute).unwrap();
-    graph_parallel.execute_prepared_plan(&bootstrap, &precompute).unwrap();
+    graph_serial
+        .execute_prepared_plan(&bootstrap, &precompute)
+        .unwrap();
+    graph_parallel
+        .execute_prepared_plan(&bootstrap, &precompute)
+        .unwrap();
 
     for _ in 0..25 {
         mark_dirty_with_regions(
@@ -713,7 +741,10 @@ fn repeated_serial_parallel_lifecycle_parity_stays_stable() {
             serial_flow.apply.tasks_validated_clean,
             parallel_flow.apply.tasks_validated_clean
         );
-        assert_eq!(serial_flow.apply.tasks_pruned, parallel_flow.apply.tasks_pruned);
+        assert_eq!(
+            serial_flow.apply.tasks_pruned,
+            parallel_flow.apply.tasks_pruned
+        );
         assert_eq!(
             serial_flow.apply.tasks_with_suppressed_propagation,
             parallel_flow.apply.tasks_with_suppressed_propagation
@@ -750,8 +781,10 @@ fn repeated_memoized_execution_retains_bounded_diagnostics() {
     }
 
     let diagnostics = runtime.diagnostics();
-    assert!(diagnostics.recent_history().len()
-        <= DiagnosticsPolicy::from_profile(DiagnosticsProfile::Operational).history_limit);
+    assert!(
+        diagnostics.recent_history().len()
+            <= DiagnosticsPolicy::from_profile(DiagnosticsProfile::Operational).history_limit
+    );
     assert!(diagnostics
         .recent_history()
         .iter()
@@ -786,7 +819,9 @@ fn repeated_partition_heavy_invalidation_retains_bounded_diagnostics() {
     let bootstrap = graph
         .build_evaluation_plan(&[source, wing, tail], EvaluationRequestMode::ForceOnDemand)
         .unwrap();
-    graph.execute_prepared_plan(&bootstrap, &precompute).unwrap();
+    graph
+        .execute_prepared_plan(&bootstrap, &precompute)
+        .unwrap();
 
     for _ in 0..50 {
         mark_dirty_with_regions(&mut graph, source, ASPECT_A, &[ChangedRegion::new("wing")])
@@ -798,7 +833,9 @@ fn repeated_partition_heavy_invalidation_retains_bounded_diagnostics() {
     }
 
     let diagnostics = graph.diagnostics();
-    let flow = diagnostics.latest_flow().expect("flow diagnostics should be retained");
+    let flow = diagnostics
+        .latest_flow()
+        .expect("flow diagnostics should be retained");
     assert_eq!(flow.change.changed_nodes, vec![source]);
     assert_eq!(flow.change.changed_region_count, 1);
     assert_eq!(
@@ -806,6 +843,8 @@ fn repeated_partition_heavy_invalidation_retains_bounded_diagnostics() {
             + flow.invalidation.maybe_stale_direct_subscribers,
         2
     );
-    assert!(diagnostics.recent_history().len()
-        <= DiagnosticsPolicy::from_profile(DiagnosticsProfile::Development).history_limit);
+    assert!(
+        diagnostics.recent_history().len()
+            <= DiagnosticsPolicy::from_profile(DiagnosticsProfile::Development).history_limit
+    );
 }

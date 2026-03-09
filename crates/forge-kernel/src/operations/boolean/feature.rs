@@ -9,7 +9,9 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::context::scope::OperationScope;
-use crate::engine::facade::{AuditLevel, EntityOriginKind, FeatureDependency, FeatureSignalPolicy, InvariantKind};
+use crate::engine::facade::{
+    AuditLevel, EntityOriginKind, FeatureDependency, FeatureSignalPolicy, InvariantKind,
+};
 use crate::engine::facade::{Feature, FeatureInputs, SolidEnvelope};
 use forge_core::KernelError;
 use forge_signal::facade::NodeId;

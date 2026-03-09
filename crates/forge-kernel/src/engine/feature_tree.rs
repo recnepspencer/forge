@@ -25,13 +25,14 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use forge_core::envelope::OperationResult;
 use forge_core::KernelError;
 use forge_signal::facade::{
-    evaluate_in_txn, Aspect, AspectMask, AspectVersion, CheckpointBarrier, DefaultComparatorResolver,
-    NodeId, SignalError, SignalGraph, SignalRuntime, TraceSummary, TransactionOutcome,
+    evaluate_in_txn, Aspect, AspectMask, AspectVersion, CheckpointBarrier,
+    DefaultComparatorResolver, NodeId, SignalError, SignalGraph, SignalRuntime, TraceSummary,
+    TransactionOutcome,
 };
 
 use super::contracts::feature_dependency::FeatureAspect;
-use super::contracts::feature_signal_policy::{FeatureSignalPolicy, FeatureSignalTier};
 use super::contracts::feature_registry::FeatureRegistry;
+use super::contracts::feature_signal_policy::{FeatureSignalPolicy, FeatureSignalTier};
 use super::output::solid_envelope::SolidEnvelope;
 use crate::configuration::facade::KernelConfig;
 use crate::geometry::facade::GeometryStore;
@@ -215,11 +216,13 @@ impl<R: FeatureRegistry> FeatureTree<R> {
             let aspects = binding.aspects();
 
             if aspects.intersects(AspectMask::from_aspect(TOPOLOGY_ASPECT)) {
-                graph.add_dependency(node_id, upstream, TOPOLOGY_ASPECT)
+                graph
+                    .add_dependency(node_id, upstream, TOPOLOGY_ASPECT)
                     .map_err(Self::signal_to_kernel)?;
             }
             if aspects.intersects(AspectMask::from_aspect(GEOMETRY_ASPECT)) {
-                graph.add_dependency(node_id, upstream, GEOMETRY_ASPECT)
+                graph
+                    .add_dependency(node_id, upstream, GEOMETRY_ASPECT)
                     .map_err(Self::signal_to_kernel)?;
             }
         }
@@ -350,7 +353,10 @@ impl<R: FeatureRegistry> FeatureTree<R> {
             .map_err(Self::signal_to_kernel)?;
 
         let mut runtime_ctx = ();
-        match txn.commit(&mut runtime_ctx).map_err(Self::signal_to_kernel)? {
+        match txn
+            .commit(&mut runtime_ctx)
+            .map_err(Self::signal_to_kernel)?
+        {
             TransactionOutcome::Committed => {}
             TransactionOutcome::RolledBack | TransactionOutcome::Poisoned => {
                 return Err(KernelError::InternalError {
@@ -381,7 +387,10 @@ impl<R: FeatureRegistry> FeatureTree<R> {
             .map_err(Self::signal_to_kernel)?;
 
         let mut runtime_ctx = ();
-        match txn.commit(&mut runtime_ctx).map_err(Self::signal_to_kernel)? {
+        match txn
+            .commit(&mut runtime_ctx)
+            .map_err(Self::signal_to_kernel)?
+        {
             TransactionOutcome::Committed => Ok(()),
             TransactionOutcome::RolledBack | TransactionOutcome::Poisoned => {
                 Err(KernelError::InternalError {
@@ -422,71 +431,68 @@ impl<R: FeatureRegistry> FeatureTree<R> {
         let mut pending_envelopes: HashMap<NodeId, OperationResult<SolidEnvelope>> = HashMap::new();
         let mut pending_traces: HashMap<NodeId, TraceSummary> = HashMap::new();
 
-        let mut compute =
-            |id: NodeId, graph_ref: &SignalGraph| -> Result<AspectVersion, SignalError> {
-                let feature = features.get(&id).ok_or_else(|| KernelError::InvalidInput {
+        let mut compute = |id: NodeId,
+                           graph_ref: &SignalGraph|
+         -> Result<AspectVersion, SignalError> {
+            let feature = features
+                .get(&id)
+                .ok_or_else(|| KernelError::InvalidInput {
                     message: format!("Feature logic not found for node {}", id),
                     context: None,
                 })
                 .map_err(Self::kernel_to_signal)?;
 
-                // Build input map by cloning SolidEnvelope from stored envelopes.
-                // This is the single, unavoidable clone — the signal graph cache
-                // owns the canonical data, features need their own copy. Topology
-                // is Arc (O(1) clone), geometry is the real cost (O(V+F)).
-                let mut input_map = HashMap::new();
-                for binding in feature.dependency_bindings() {
-                    let dep_id = binding.node_id();
-                    if let Some(envelope) = pending_envelopes
-                        .get(&dep_id)
-                        .or_else(|| committed_envelopes.get(&dep_id))
-                    {
-                        input_map.insert(dep_id, Self::materialize_input(envelope, binding));
-                    } else {
-                        return Err(Self::kernel_to_signal(KernelError::InvalidInput {
-                            message: format!("Dependency output missing for node {}", dep_id),
-                            context: None,
-                        }));
-                    }
+            // Build input map by cloning SolidEnvelope from stored envelopes.
+            // This is the single, unavoidable clone — the signal graph cache
+            // owns the canonical data, features need their own copy. Topology
+            // is Arc (O(1) clone), geometry is the real cost (O(V+F)).
+            let mut input_map = HashMap::new();
+            for binding in feature.dependency_bindings() {
+                let dep_id = binding.node_id();
+                if let Some(envelope) = pending_envelopes
+                    .get(&dep_id)
+                    .or_else(|| committed_envelopes.get(&dep_id))
+                {
+                    input_map.insert(dep_id, Self::materialize_input(envelope, binding));
+                } else {
+                    return Err(Self::kernel_to_signal(KernelError::InvalidInput {
+                        message: format!("Dependency output missing for node {}", dep_id),
+                        context: None,
+                    }));
                 }
+            }
 
-                let envelope =
-                    feature
-                        .execute_via_pipeline(input_map, session_config)
-                        .map_err(Self::kernel_to_signal)?;
+            let envelope = feature
+                .execute_via_pipeline(input_map, session_config)
+                .map_err(Self::kernel_to_signal)?;
 
-                // Build the trace summary from the envelope's decision log —
-                // NOT from ctx, which was drained by the OperationFinalizer.
-                let hash = forge_topo::transactions::compute_arena_topology_hash(
-                    envelope.get_value().topology().arena(),
-                );
-                let core_summary = envelope.get_decision_log().to_summary(hash);
-                let summary = TraceSummary {
-                    output_hash: core_summary.get_state_hash(),
-                    labels: vec![
-                        format!("interesting={}", core_summary.get_interesting().len()),
-                        format!("spans={}", core_summary.get_span_summaries().len()),
-                    ],
-                };
-                pending_traces.insert(id, summary);
-
-                let prior_version = graph_ref
-                    .get_entry(id)
-                    ?
-                    .get_aspect_version();
-                let next_version = Self::version_for_output(
-                    committed_envelopes.get(&id),
-                    &envelope,
-                    prior_version,
-                );
-
-                pending_envelopes.insert(id, envelope);
-
-                Ok(next_version)
+            // Build the trace summary from the envelope's decision log —
+            // NOT from ctx, which was drained by the OperationFinalizer.
+            let hash = forge_topo::transactions::compute_arena_topology_hash(
+                envelope.get_value().topology().arena(),
+            );
+            let core_summary = envelope.get_decision_log().to_summary(hash);
+            let summary = TraceSummary {
+                output_hash: core_summary.get_state_hash(),
+                labels: vec![
+                    format!("interesting={}", core_summary.get_interesting().len()),
+                    format!("spans={}", core_summary.get_span_summaries().len()),
+                ],
             };
+            pending_traces.insert(id, summary);
+
+            let prior_version = graph_ref.get_entry(id)?.get_aspect_version();
+            let next_version =
+                Self::version_for_output(committed_envelopes.get(&id), &envelope, prior_version);
+
+            pending_envelopes.insert(id, envelope);
+
+            Ok(next_version)
+        };
 
         let mut txn = self.runtime.begin();
-        if let Err(err) = evaluate_in_txn(&mut txn, node_id, &mut compute, DefaultComparatorResolver)
+        if let Err(err) =
+            evaluate_in_txn(&mut txn, node_id, &mut compute, DefaultComparatorResolver)
         {
             let mut runtime_ctx = ();
             let _ = txn.rollback(&mut runtime_ctx);
@@ -494,7 +500,10 @@ impl<R: FeatureRegistry> FeatureTree<R> {
         }
 
         let mut runtime_ctx = ();
-        match txn.commit(&mut runtime_ctx).map_err(Self::signal_to_kernel)? {
+        match txn
+            .commit(&mut runtime_ctx)
+            .map_err(Self::signal_to_kernel)?
+        {
             TransactionOutcome::Committed => {}
             TransactionOutcome::RolledBack | TransactionOutcome::Poisoned => {
                 return Err(KernelError::InternalError {

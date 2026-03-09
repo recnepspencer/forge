@@ -1,9 +1,9 @@
 use forge_spec::facade::{MakeVertexFaceMutation, SewEdgeMutation, SpecState, SplitEdgeMutation};
 
 use crate::projection::facade::{
-    ProjectedTopologyQueries, ProjectionBuilder, validate_projected_no_broken_radial_splices,
-    validate_projected_radial_edge, validate_projected_radial_edge_consistency,
-    validate_projected_radial_rings,
+    validate_projected_no_broken_radial_splices, validate_projected_radial_edge,
+    validate_projected_radial_edge_consistency, validate_projected_radial_rings,
+    ProjectedTopologyQueries, ProjectionBuilder,
 };
 
 #[test]

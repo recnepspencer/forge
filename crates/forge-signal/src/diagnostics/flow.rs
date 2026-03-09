@@ -2,11 +2,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::aspect::Aspect;
 use crate::data::handle::NodeId;
+use crate::diagnostics::failure::RollbackDiagnostic;
 use crate::diagnostics::profile::DiagnosticsProfile;
 use crate::diagnostics::summary::{
     EvaluationPlanSummary, ExecutionReportSummary, ExplanationSummary,
 };
-use crate::diagnostics::failure::RollbackDiagnostic;
 use crate::logic::planner::{EvaluationPlan, ExecutionReport, StageExecutor};
 
 /// Structured summary of one upstream change input to signal execution.
@@ -146,7 +146,9 @@ impl PrecomputeSummary {
         let executor = report.stages.first().map(|stage| match stage.outcome {
             crate::logic::planner::StageExecutionOutcome::CompletedSerial => StageExecutor::Serial,
             #[cfg(feature = "parallel")]
-            crate::logic::planner::StageExecutionOutcome::CompletedParallel => StageExecutor::Parallel,
+            crate::logic::planner::StageExecutionOutcome::CompletedParallel => {
+                StageExecutor::Parallel
+            }
         });
         Self {
             executor,

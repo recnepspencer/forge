@@ -30,7 +30,9 @@ pub fn validate_spec_graph(graph: &SpecGraph) -> Result<(), SpecError> {
         }
 
         if relation.kind.cardinality() == RelationCardinality::Single {
-            *single_counts.entry((relation.source, relation.kind)).or_default() += 1;
+            *single_counts
+                .entry((relation.source, relation.kind))
+                .or_default() += 1;
             if relation.ordinal != 0 {
                 return Err(SpecError::validation(format!(
                     "single-cardinality relation {:?} from {} must use ordinal 0",
@@ -99,7 +101,11 @@ fn required_outgoing(kind: SpecNodeKind) -> &'static [RelationKind] {
     }
 }
 
-fn source_target_allowed(relation: RelationKind, source: SpecNodeKind, target: SpecNodeKind) -> bool {
+fn source_target_allowed(
+    relation: RelationKind,
+    source: SpecNodeKind,
+    target: SpecNodeKind,
+) -> bool {
     use RelationKind::*;
     use SpecNodeKind::*;
     match relation {
@@ -108,7 +114,10 @@ fn source_target_allowed(relation: RelationKind, source: SpecNodeKind, target: S
         ModelOwnsParameter => matches!((source, target), (Model, Parameter)),
         FeatureConsumesParameter => matches!((source, target), (Feature, Parameter)),
         FeatureConsumesConstraint => matches!((source, target), (Feature, Constraint)),
-        FeatureProducesTopology => matches!(source, Feature) && target.domain() == crate::data::schema::GraphDomain::Topology,
+        FeatureProducesTopology => {
+            matches!(source, Feature)
+                && target.domain() == crate::data::schema::GraphDomain::Topology
+        }
         FeatureDependsOnFeature => matches!((source, target), (Feature, Feature)),
         DecisionAffectsNode => matches!((source, target), (DesignDecision, _)),
         BodyOwnsLump => matches!((source, target), (Body, Lump)),

@@ -69,7 +69,8 @@ fn keml_splits_bridge_into_two_loops() {
         .arena()
         .get_face(target_face)
         .unwrap()
-        .loops.inners()
+        .loops
+        .inners()
         .len();
     assert_eq!(
         inner_count, 1,

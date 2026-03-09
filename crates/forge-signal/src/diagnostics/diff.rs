@@ -49,7 +49,12 @@ macro_rules! define_diff {
                 if self.mismatches.is_empty() {
                     return write!(f, "{}(no mismatches)", stringify!($name));
                 }
-                writeln!(f, "{} mismatches={}", stringify!($name), self.mismatches.len())?;
+                writeln!(
+                    f,
+                    "{} mismatches={}",
+                    stringify!($name),
+                    self.mismatches.len()
+                )?;
                 for mismatch in &self.mismatches {
                     writeln!(
                         f,
@@ -270,7 +275,10 @@ pub fn compare_execution_reports(
     diff
 }
 
-pub fn compare_explanations(left: &ExplanationSummary, right: &ExplanationSummary) -> ExplanationDiff {
+pub fn compare_explanations(
+    left: &ExplanationSummary,
+    right: &ExplanationSummary,
+) -> ExplanationDiff {
     let mut diff = ExplanationDiff::default();
     compare_value(
         &mut diff.mismatches,
@@ -388,7 +396,8 @@ pub fn compare_flows(left: &FlowSummary, right: &FlowSummary) -> FlowDiff {
             format!("{:?}", right.invalidation),
         );
     }
-    diff.mismatches.extend(compare_plans(&left.planning.plan, &right.planning.plan).mismatches);
+    diff.mismatches
+        .extend(compare_plans(&left.planning.plan, &right.planning.plan).mismatches);
     if left.precompute != right.precompute {
         push_mismatch(
             &mut diff.mismatches,

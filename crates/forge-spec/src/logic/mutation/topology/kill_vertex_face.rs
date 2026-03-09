@@ -47,10 +47,22 @@ impl SpecMutation for KillVertexFaceMutation {
         let lump = draft.single_incoming_source(region, RelationKind::LumpOwnsRegion)?;
         let body = draft.single_incoming_source(lump, RelationKind::BodyOwnsLump)?;
 
-        if draft.outgoing_targets_of_kind(shell, RelationKind::ShellOwnsFace).len() != 1
-            || draft.outgoing_targets_of_kind(region, RelationKind::RegionOwnsShell).len() != 1
-            || draft.outgoing_targets_of_kind(lump, RelationKind::LumpOwnsRegion).len() != 1
-            || draft.outgoing_targets_of_kind(body, RelationKind::BodyOwnsLump).len() != 1
+        if draft
+            .outgoing_targets_of_kind(shell, RelationKind::ShellOwnsFace)
+            .len()
+            != 1
+            || draft
+                .outgoing_targets_of_kind(region, RelationKind::RegionOwnsShell)
+                .len()
+                != 1
+            || draft
+                .outgoing_targets_of_kind(lump, RelationKind::LumpOwnsRegion)
+                .len()
+                != 1
+            || draft
+                .outgoing_targets_of_kind(body, RelationKind::BodyOwnsLump)
+                .len()
+                != 1
         {
             return Err(SpecError::invalid(
                 "KillVertexFaceMutation requires an isolated single-seed containment chain"
@@ -72,7 +84,8 @@ impl SpecMutation for KillVertexFaceMutation {
         let radial = draft.single_outgoing_target(half_edge, RelationKind::HalfEdgeRadialNext)?;
         let origin = draft.single_outgoing_target(half_edge, RelationKind::HalfEdgeOriginVertex)?;
         let edge = draft.single_outgoing_target(half_edge, RelationKind::HalfEdgeUsesEdge)?;
-        let bounds_face = draft.single_outgoing_target(half_edge, RelationKind::HalfEdgeBoundsFace)?;
+        let bounds_face =
+            draft.single_outgoing_target(half_edge, RelationKind::HalfEdgeBoundsFace)?;
 
         if next != half_edge || radial != half_edge {
             return Err(SpecError::invalid(
@@ -81,7 +94,8 @@ impl SpecMutation for KillVertexFaceMutation {
         }
         if origin != self.vertex || bounds_face != self.face {
             return Err(SpecError::invalid(
-                "KillVertexFaceMutation face/vertex inputs do not match the seed halfedge".to_string(),
+                "KillVertexFaceMutation face/vertex inputs do not match the seed halfedge"
+                    .to_string(),
             ));
         }
 
@@ -94,7 +108,11 @@ impl SpecMutation for KillVertexFaceMutation {
         draft.remove_relation_between(RelationKind::HalfEdgeNext, half_edge, half_edge)?;
         draft.remove_relation_between(RelationKind::HalfEdgeRadialNext, half_edge, half_edge)?;
         draft.remove_relation_between(RelationKind::HalfEdgeUsesEdge, half_edge, edge)?;
-        draft.remove_relation_between(RelationKind::HalfEdgeOriginVertex, half_edge, self.vertex)?;
+        draft.remove_relation_between(
+            RelationKind::HalfEdgeOriginVertex,
+            half_edge,
+            self.vertex,
+        )?;
         draft.remove_relation_between(RelationKind::HalfEdgeBoundsFace, half_edge, self.face)?;
 
         draft.delete_node(self.face)?;

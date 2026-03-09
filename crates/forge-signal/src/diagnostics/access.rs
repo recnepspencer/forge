@@ -9,8 +9,8 @@ use crate::diagnostics::compare::{
 use crate::diagnostics::failure::{FailureSummary, RollbackDiagnostic};
 use crate::diagnostics::flow::FlowSummary;
 use crate::diagnostics::history::{
-    inspect_execution, inspect_flow, inspect_graph, inspect_plan, inspect_report, ExecutionInspector,
-    FlowInspector, GraphInspector, PlanInspector, ReportInspector,
+    inspect_execution, inspect_flow, inspect_graph, inspect_plan, inspect_report,
+    ExecutionInspector, FlowInspector, GraphInspector, PlanInspector, ReportInspector,
 };
 use crate::diagnostics::profile::DiagnosticsProfile;
 use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};

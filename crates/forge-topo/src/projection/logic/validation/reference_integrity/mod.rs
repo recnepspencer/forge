@@ -11,10 +11,10 @@ use forge_core::KernelError;
 
 use crate::projection::data::ProjectedTopology;
 
-pub use face_loop_existence::validate_projected_face_has_at_least_one_loop;
 pub use acyclic_containment::validate_projected_acyclic_containment;
 pub use bidirectional_links::validate_projected_bidirectional_links;
 pub use dangling_refs::validate_projected_no_dangling_refs;
+pub use face_loop_existence::validate_projected_face_has_at_least_one_loop;
 pub use hierarchy::validate_projected_hierarchy;
 pub use inner_outer_consistency::validate_projected_inner_outer_loop_consistency;
 pub use orphan_half_edges::validate_projected_no_orphan_half_edges;

@@ -43,7 +43,13 @@ impl SpecMutation for MergeBodiesMutation {
 
         for lump in draft.outgoing_targets_of_kind(self.source, RelationKind::BodyOwnsLump) {
             draft.remove_relation_between(RelationKind::BodyOwnsLump, self.source, lump)?;
-            draft.add_relation(RelationKind::BodyOwnsLump, self.target, lump, 0, "merge-body-lump")?;
+            draft.add_relation(
+                RelationKind::BodyOwnsLump,
+                self.target,
+                lump,
+                0,
+                "merge-body-lump",
+            )?;
         }
 
         draft.delete_node(self.source)?;
@@ -52,7 +58,10 @@ impl SpecMutation for MergeBodiesMutation {
             value: (),
             touched_domains: vec![TouchedDomain::Topology],
             mutation_trace: vec![
-                format!("move lumps from body {} into body {}", self.source, self.target),
+                format!(
+                    "move lumps from body {} into body {}",
+                    self.source, self.target
+                ),
                 format!("delete merged source body {}", self.source),
             ],
         })

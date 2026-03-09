@@ -59,10 +59,12 @@ impl SpecMutation for KillFaceMakeRingHoleMutation {
             ));
         }
 
-        let loop_id = draft.single_outgoing_target(self.face_to_kill, RelationKind::FaceOuterLoop)?;
+        let loop_id =
+            draft.single_outgoing_target(self.face_to_kill, RelationKind::FaceOuterLoop)?;
         let half_edges = collect_loop_half_edges(draft, loop_id)?;
-        let ordinal =
-            draft.outgoing_targets_of_kind(self.target_face, RelationKind::FaceInnerLoop).len() as u32;
+        let ordinal = draft
+            .outgoing_targets_of_kind(self.target_face, RelationKind::FaceInnerLoop)
+            .len() as u32;
 
         draft.remove_relation_between(RelationKind::FaceOuterLoop, self.face_to_kill, loop_id)?;
         draft.remove_relation_between(
@@ -97,7 +99,10 @@ impl SpecMutation for KillFaceMakeRingHoleMutation {
                     "demote face {} to inner loop of face {}",
                     self.face_to_kill, self.target_face
                 ),
-                format!("reassign demoted loop halfedges back to face {}", self.target_face),
+                format!(
+                    "reassign demoted loop halfedges back to face {}",
+                    self.target_face
+                ),
             ],
         })
     }

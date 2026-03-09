@@ -45,7 +45,9 @@ impl SpecMutation for JoinFacesNmtMutation {
 
         let shared_edge =
             draft.single_outgoing_target(self.half_edge_survive, RelationKind::HalfEdgeUsesEdge)?;
-        if draft.single_outgoing_target(self.half_edge_kill, RelationKind::HalfEdgeUsesEdge)? != shared_edge {
+        if draft.single_outgoing_target(self.half_edge_kill, RelationKind::HalfEdgeUsesEdge)?
+            != shared_edge
+        {
             return Err(SpecError::invalid(
                 "JoinFacesNmtMutation requires both halfedges to use the same edge".to_string(),
             ));
@@ -58,17 +60,19 @@ impl SpecMutation for JoinFacesNmtMutation {
                     .to_string(),
             ));
         }
-        if !ring.iter().copied().any(|candidate| candidate == self.half_edge_kill) {
+        if !ring
+            .iter()
+            .copied()
+            .any(|candidate| candidate == self.half_edge_kill)
+        {
             return Err(SpecError::invalid(
                 "JoinFacesNmtMutation requires half_edge_kill to be in the same radial ring"
                     .to_string(),
             ));
         }
 
-        let surviving_face = draft.single_outgoing_target(
-            self.half_edge_survive,
-            RelationKind::HalfEdgeBoundsFace,
-        )?;
+        let surviving_face = draft
+            .single_outgoing_target(self.half_edge_survive, RelationKind::HalfEdgeBoundsFace)?;
         let removed_face =
             draft.single_outgoing_target(self.half_edge_kill, RelationKind::HalfEdgeBoundsFace)?;
         if surviving_face == removed_face {
@@ -214,8 +218,9 @@ impl SpecMutation for JoinFacesNmtMutation {
             "join-nmt-slit-face-kill",
         )?;
 
-        let mut next_inner_ordinal =
-            draft.outgoing_targets_of_kind(surviving_face, RelationKind::FaceInnerLoop).len() as u32;
+        let mut next_inner_ordinal = draft
+            .outgoing_targets_of_kind(surviving_face, RelationKind::FaceInnerLoop)
+            .len() as u32;
         for loop_id in removed_inner_loops {
             let loop_half_edges = collect_loop_half_edges(draft, loop_id)?;
             draft.remove_relation_between(RelationKind::FaceInnerLoop, removed_face, loop_id)?;
@@ -264,7 +269,11 @@ impl SpecMutation for JoinFacesNmtMutation {
             "join-nmt-slit-loop-entry",
         )?;
 
-        draft.remove_relation_between(RelationKind::ShellOwnsFace, surviving_shell, removed_face)?;
+        draft.remove_relation_between(
+            RelationKind::ShellOwnsFace,
+            surviving_shell,
+            removed_face,
+        )?;
         draft.delete_node(removed_face)?;
 
         Ok(MutationResult {

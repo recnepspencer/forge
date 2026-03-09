@@ -40,7 +40,13 @@ impl SpecMutation for MakeFaceKillRingHoleMutation {
         draft.remove_relation_between(RelationKind::FaceInnerLoop, old_face, self.loop_id)?;
 
         let new_face = draft.create_node(SpecNodeKind::Face, None, "face")?;
-        draft.add_relation(RelationKind::ShellOwnsFace, shell, new_face, 0, "shell-face")?;
+        draft.add_relation(
+            RelationKind::ShellOwnsFace,
+            shell,
+            new_face,
+            0,
+            "shell-face",
+        )?;
         draft.add_relation(
             RelationKind::FaceOuterLoop,
             new_face,

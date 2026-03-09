@@ -44,13 +44,62 @@ impl SpecMutation for MakeVertexFaceMutation {
         let edge = draft.create_node(SpecNodeKind::Edge, None, "edge")?;
         let vertex = draft.create_node(SpecNodeKind::Vertex, None, "vertex")?;
 
-        add(draft, RelationKind::BodyOwnsLump, body, lump, 0, "body-lump")?;
-        add(draft, RelationKind::LumpOwnsRegion, lump, region, 0, "lump-region")?;
-        add(draft, RelationKind::RegionOwnsShell, region, shell, 0, "region-shell")?;
-        add(draft, RelationKind::ShellOwnsFace, shell, face, 0, "shell-face")?;
-        add(draft, RelationKind::FaceOuterLoop, face, loop_id, 0, "face-outer-loop")?;
-        add(draft, RelationKind::LoopEntryHalfEdge, loop_id, half_edge, 0, "loop-entry")?;
-        add(draft, RelationKind::HalfEdgeNext, half_edge, half_edge, 0, "halfedge-next")?;
+        add(
+            draft,
+            RelationKind::BodyOwnsLump,
+            body,
+            lump,
+            0,
+            "body-lump",
+        )?;
+        add(
+            draft,
+            RelationKind::LumpOwnsRegion,
+            lump,
+            region,
+            0,
+            "lump-region",
+        )?;
+        add(
+            draft,
+            RelationKind::RegionOwnsShell,
+            region,
+            shell,
+            0,
+            "region-shell",
+        )?;
+        add(
+            draft,
+            RelationKind::ShellOwnsFace,
+            shell,
+            face,
+            0,
+            "shell-face",
+        )?;
+        add(
+            draft,
+            RelationKind::FaceOuterLoop,
+            face,
+            loop_id,
+            0,
+            "face-outer-loop",
+        )?;
+        add(
+            draft,
+            RelationKind::LoopEntryHalfEdge,
+            loop_id,
+            half_edge,
+            0,
+            "loop-entry",
+        )?;
+        add(
+            draft,
+            RelationKind::HalfEdgeNext,
+            half_edge,
+            half_edge,
+            0,
+            "halfedge-next",
+        )?;
         add(
             draft,
             RelationKind::HalfEdgeRadialNext,

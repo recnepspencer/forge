@@ -8,8 +8,7 @@ pub use handles::{
     ProjectedLumpId, ProjectedRegionId, ProjectedShellId, ProjectedVertexId,
 };
 pub use topology::{
-    ProjectedBodyData, ProjectedEdgeData, ProjectedFaceData, ProjectedHalfEdgeData,
-    ProjectedLoopData, ProjectedLumpData, ProjectedRegionData, ProjectedShellData,
-    ProjectedEntityRef,
-    ProjectedTopology, ProjectedVertexData,
+    ProjectedBodyData, ProjectedEdgeData, ProjectedEntityRef, ProjectedFaceData,
+    ProjectedHalfEdgeData, ProjectedLoopData, ProjectedLumpData, ProjectedRegionData,
+    ProjectedShellData, ProjectedTopology, ProjectedVertexData,
 };

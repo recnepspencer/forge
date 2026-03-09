@@ -55,7 +55,12 @@ impl<'a> GraphInspector<'a> {
             .filter(|node| {
                 self.graph
                     .get_entry(*node)
-                    .map(|entry| entry.get_dependencies().iter().any(|edge| edge.scope_ref().is_some()))
+                    .map(|entry| {
+                        entry
+                            .get_dependencies()
+                            .iter()
+                            .any(|edge| edge.scope_ref().is_some())
+                    })
                     .unwrap_or(false)
             })
             .collect()
@@ -128,7 +133,10 @@ impl<'a> PlanInspector<'a> {
             .collect()
     }
 
-    pub fn tasks_by_reason(&self, reason: TaskReason) -> Vec<&'a crate::logic::planner::EvaluationTask> {
+    pub fn tasks_by_reason(
+        &self,
+        reason: TaskReason,
+    ) -> Vec<&'a crate::logic::planner::EvaluationTask> {
         self.plan
             .stages
             .iter()

@@ -358,10 +358,16 @@ fn feature_modules_define_explicit_signal_policy() {
             .unwrap_or_else(|_| panic!("required file missing for guard: {}", rel_path));
 
         if !content.contains("fn signal_policy(&self) -> FeatureSignalPolicy") {
-            violations.push(format!("  {}: missing explicit signal_policy() override", rel_path));
+            violations.push(format!(
+                "  {}: missing explicit signal_policy() override",
+                rel_path
+            ));
         }
         if !content.contains("FeatureSignalPolicy::core()") {
-            violations.push(format!("  {}: missing explicit FeatureSignalPolicy::core()", rel_path));
+            violations.push(format!(
+                "  {}: missing explicit FeatureSignalPolicy::core()",
+                rel_path
+            ));
         }
     }
 

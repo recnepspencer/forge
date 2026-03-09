@@ -46,7 +46,8 @@ impl SpecMutation for SplitLumpMutation {
         }
 
         let body = draft.single_incoming_source(self.lump, RelationKind::BodyOwnsLump)?;
-        let existing_regions = draft.outgoing_targets_of_kind(self.lump, RelationKind::LumpOwnsRegion);
+        let existing_regions =
+            draft.outgoing_targets_of_kind(self.lump, RelationKind::LumpOwnsRegion);
         if self.regions_to_move.len() >= existing_regions.len() {
             return Err(SpecError::invalid(
                 "SplitLumpMutation cannot move all regions out of the source lump".to_string(),
@@ -68,11 +69,23 @@ impl SpecMutation for SplitLumpMutation {
         }
 
         let new_lump = draft.create_node(SpecNodeKind::Lump, None, "split-lump")?;
-        draft.add_relation(RelationKind::BodyOwnsLump, body, new_lump, 0, "split-lump-body")?;
+        draft.add_relation(
+            RelationKind::BodyOwnsLump,
+            body,
+            new_lump,
+            0,
+            "split-lump-body",
+        )?;
 
         for &region in &self.regions_to_move {
             draft.remove_relation_between(RelationKind::LumpOwnsRegion, self.lump, region)?;
-            draft.add_relation(RelationKind::LumpOwnsRegion, new_lump, region, 0, "split-lump-region")?;
+            draft.add_relation(
+                RelationKind::LumpOwnsRegion,
+                new_lump,
+                region,
+                0,
+                "split-lump-region",
+            )?;
         }
 
         Ok(MutationResult {
@@ -80,7 +93,11 @@ impl SpecMutation for SplitLumpMutation {
             touched_domains: vec![TouchedDomain::Topology],
             mutation_trace: vec![
                 format!("create lump {} in body {}", new_lump, body),
-                format!("move {} regions from lump {}", self.regions_to_move.len(), self.lump),
+                format!(
+                    "move {} regions from lump {}",
+                    self.regions_to_move.len(),
+                    self.lump
+                ),
             ],
         })
     }

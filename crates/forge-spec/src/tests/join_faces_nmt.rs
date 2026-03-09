@@ -54,7 +54,9 @@ fn build_antiparallel_valence_fixture(
 ) -> AntiparallelFixture {
     let body = draft.create_node(SpecNodeKind::Body, None, "body").unwrap();
     let lump = draft.create_node(SpecNodeKind::Lump, None, "lump").unwrap();
-    let region = draft.create_node(SpecNodeKind::Region, None, "region").unwrap();
+    let region = draft
+        .create_node(SpecNodeKind::Region, None, "region")
+        .unwrap();
     let shell = draft.create_shell(SpecShellKind::Sheet, "shell").unwrap();
 
     draft
@@ -64,12 +66,24 @@ fn build_antiparallel_valence_fixture(
         .add_relation(RelationKind::LumpOwnsRegion, lump, region, 0, "lump-region")
         .unwrap();
     draft
-        .add_relation(RelationKind::RegionOwnsShell, region, shell, 0, "region-shell")
+        .add_relation(
+            RelationKind::RegionOwnsShell,
+            region,
+            shell,
+            0,
+            "region-shell",
+        )
         .unwrap();
 
-    let vertex_a = draft.create_node(SpecNodeKind::Vertex, None, "vertex-a").unwrap();
-    let vertex_b = draft.create_node(SpecNodeKind::Vertex, None, "vertex-b").unwrap();
-    let shared_edge = draft.create_node(SpecNodeKind::Edge, None, "shared-edge").unwrap();
+    let vertex_a = draft
+        .create_node(SpecNodeKind::Vertex, None, "vertex-a")
+        .unwrap();
+    let vertex_b = draft
+        .create_node(SpecNodeKind::Vertex, None, "vertex-b")
+        .unwrap();
+    let shared_edge = draft
+        .create_node(SpecNodeKind::Edge, None, "shared-edge")
+        .unwrap();
 
     let mut shared_half_edges = Vec::with_capacity(valence);
 
@@ -105,10 +119,22 @@ fn build_antiparallel_valence_fixture(
         };
 
         draft
-            .add_relation(RelationKind::ShellOwnsFace, shell, face, 0, &format!("shell-face-{index}"))
+            .add_relation(
+                RelationKind::ShellOwnsFace,
+                shell,
+                face,
+                0,
+                &format!("shell-face-{index}"),
+            )
             .unwrap();
         draft
-            .add_relation(RelationKind::FaceOuterLoop, face, loop_id, 0, &format!("face-loop-{index}"))
+            .add_relation(
+                RelationKind::FaceOuterLoop,
+                face,
+                loop_id,
+                0,
+                &format!("face-loop-{index}"),
+            )
             .unwrap();
         draft
             .add_relation(

@@ -48,7 +48,10 @@ impl SpecDraft {
         let mut payloads = self.base.payloads().clone();
         for record in &self.created_payloads {
             let inserted = payloads.insert(record.bytes.clone());
-            debug_assert_eq!(inserted, record.key, "payload keys must replay deterministically");
+            debug_assert_eq!(
+                inserted, record.key,
+                "payload keys must replay deterministically"
+            );
         }
 
         let mut naming_anchors = self.base.naming_anchors().to_vec();

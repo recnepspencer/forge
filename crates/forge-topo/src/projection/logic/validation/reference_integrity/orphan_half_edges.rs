@@ -25,7 +25,10 @@ pub fn validate_projected_no_orphan_half_edges(
         if !reachable.contains(&(half_edge_index as u32)) {
             return Err(vf(
                 "projected_no_orphan_half_edges",
-                format!("HalfEdge {} is not reachable from any loop", half_edge_index),
+                format!(
+                    "HalfEdge {} is not reachable from any loop",
+                    half_edge_index
+                ),
             ));
         }
     }

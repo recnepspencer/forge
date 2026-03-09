@@ -178,7 +178,11 @@ fn inner_loop_ccw_detected() {
             .set_representative_face(face);
 
         // Register inner loop on the face
-        arena.get_face_mut(face).unwrap().loops.add_inner(inner_loop);
+        arena
+            .get_face_mut(face)
+            .unwrap()
+            .loops
+            .add_inner(inner_loop);
     }
 
     let arena = draft.arena();

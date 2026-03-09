@@ -17,7 +17,8 @@ pub use checkpoint::{
     ValidationConfig, ValidationResult,
 };
 pub use validate_manifold::{
-    validate_geometry, validate_spec_envelope_structure, validate_spec_structure, validate_structure,
+    validate_geometry, validate_spec_envelope_structure, validate_spec_structure,
+    validate_structure,
 };
 
 // Invariant step implementations (moved from operations/steps/)

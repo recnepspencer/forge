@@ -33,9 +33,11 @@ impl SpecMutation for JoinFacesMutation {
             )));
         }
 
-        let twin = draft.single_outgoing_target(self.half_edge, RelationKind::HalfEdgeRadialNext)?;
+        let twin =
+            draft.single_outgoing_target(self.half_edge, RelationKind::HalfEdgeRadialNext)?;
         if twin == self.half_edge
-            || draft.single_outgoing_target(twin, RelationKind::HalfEdgeRadialNext)? != self.half_edge
+            || draft.single_outgoing_target(twin, RelationKind::HalfEdgeRadialNext)?
+                != self.half_edge
         {
             return Err(SpecError::invalid(
                 "JoinFacesMutation requires radial valence 2 at the removed edge".to_string(),
@@ -53,7 +55,8 @@ impl SpecMutation for JoinFacesMutation {
 
         let surviving_shell =
             draft.single_incoming_source(surviving_face, RelationKind::ShellOwnsFace)?;
-        let removed_shell = draft.single_incoming_source(removed_face, RelationKind::ShellOwnsFace)?;
+        let removed_shell =
+            draft.single_incoming_source(removed_face, RelationKind::ShellOwnsFace)?;
         if surviving_shell != removed_shell {
             return Err(SpecError::invalid(
                 "JoinFacesMutation requires both faces to belong to the same shell".to_string(),
@@ -62,8 +65,11 @@ impl SpecMutation for JoinFacesMutation {
 
         let surviving_outer =
             draft.single_outgoing_target(surviving_face, RelationKind::FaceOuterLoop)?;
-        let removed_outer = draft.single_outgoing_target(removed_face, RelationKind::FaceOuterLoop)?;
-        if find_face_loop_containing_half_edge(draft, surviving_face, self.half_edge)? != surviving_outer {
+        let removed_outer =
+            draft.single_outgoing_target(removed_face, RelationKind::FaceOuterLoop)?;
+        if find_face_loop_containing_half_edge(draft, surviving_face, self.half_edge)?
+            != surviving_outer
+        {
             return Err(SpecError::invalid(
                 "JoinFacesMutation currently requires the surviving halfedge to lie on the outer loop"
                     .to_string(),
@@ -82,10 +88,12 @@ impl SpecMutation for JoinFacesMutation {
             draft.single_incoming_source(self.half_edge, RelationKind::HalfEdgeNext)?;
         let removed_next = draft.single_outgoing_target(twin, RelationKind::HalfEdgeNext)?;
         let removed_prev = draft.single_incoming_source(twin, RelationKind::HalfEdgeNext)?;
-        let shared_edge = draft.single_outgoing_target(self.half_edge, RelationKind::HalfEdgeUsesEdge)?;
+        let shared_edge =
+            draft.single_outgoing_target(self.half_edge, RelationKind::HalfEdgeUsesEdge)?;
 
         let removed_outer_half_edges = collect_loop_half_edges(draft, removed_outer)?;
-        let removed_inner_loops = draft.outgoing_targets_of_kind(removed_face, RelationKind::FaceInnerLoop);
+        let removed_inner_loops =
+            draft.outgoing_targets_of_kind(removed_face, RelationKind::FaceInnerLoop);
 
         draft.replace_single_relation(
             RelationKind::HalfEdgeNext,
@@ -111,8 +119,9 @@ impl SpecMutation for JoinFacesMutation {
             }
         }
 
-        let mut next_inner_ordinal =
-            draft.outgoing_targets_of_kind(surviving_face, RelationKind::FaceInnerLoop).len() as u32;
+        let mut next_inner_ordinal = draft
+            .outgoing_targets_of_kind(surviving_face, RelationKind::FaceInnerLoop)
+            .len() as u32;
         for loop_id in removed_inner_loops {
             let loop_half_edges = collect_loop_half_edges(draft, loop_id)?;
             draft.remove_relation_between(RelationKind::FaceInnerLoop, removed_face, loop_id)?;
@@ -148,7 +157,11 @@ impl SpecMutation for JoinFacesMutation {
 
         draft.remove_relation_between(RelationKind::FaceOuterLoop, removed_face, removed_outer)?;
         draft.remove_relation_between(RelationKind::LoopEntryHalfEdge, removed_outer, twin)?;
-        draft.remove_relation_between(RelationKind::ShellOwnsFace, surviving_shell, removed_face)?;
+        draft.remove_relation_between(
+            RelationKind::ShellOwnsFace,
+            surviving_shell,
+            removed_face,
+        )?;
 
         remove_half_edge_pair(draft, self.half_edge, twin)?;
         draft.delete_node(shared_edge)?;
@@ -163,7 +176,10 @@ impl SpecMutation for JoinFacesMutation {
                     "join faces {} and {} across halfedge {}",
                     surviving_face, removed_face, self.half_edge
                 ),
-                format!("delete shared edge {} and absorbed face {}", shared_edge, removed_face),
+                format!(
+                    "delete shared edge {} and absorbed face {}",
+                    shared_edge, removed_face
+                ),
             ],
         })
     }
