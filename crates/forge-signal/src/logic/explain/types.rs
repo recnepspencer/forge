@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use std::fmt;
 
 use crate::data::aspect::{Aspect, AspectMask};
@@ -9,7 +11,7 @@ use crate::data::output::{
 };
 use crate::data::trace::{CausalityMetadata, TraceSummary};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MeaningfulChangeReason {
     ExactDifference,
     Tolerance { epsilon: u64 },
@@ -18,13 +20,13 @@ pub enum MeaningfulChangeReason {
     InheritedComparator,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ConditionDecision {
     Deferred,
     RevertedClean,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum UpstreamCause {
     Changed {
         source: NodeId,
@@ -74,7 +76,7 @@ pub enum UpstreamCause {
     },
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NodeExplanation {
     pub node: NodeId,
     pub state: NodeState,

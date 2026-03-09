@@ -1,12 +1,13 @@
 use serde::{Deserialize, Serialize};
 
 use super::aspect::Aspect;
+use crate::data::core_profile::AspectMaskBits;
 
 /// Bitmask representation of one or more subscribed aspects.
 ///
 /// This is the runtime-friendly representation used for fast filter checks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
-pub struct AspectMask(u8);
+pub struct AspectMask(AspectMaskBits);
 
 impl AspectMask {
     /// Empty mask.
@@ -18,12 +19,12 @@ impl AspectMask {
     }
 
     /// Build a mask directly from raw bits.
-    pub const fn from_bits(bits: u8) -> Self {
+    pub const fn from_bits(bits: AspectMaskBits) -> Self {
         Self(bits)
     }
 
     /// Raw bit representation.
-    pub const fn bits(self) -> u8 {
+    pub const fn bits(self) -> AspectMaskBits {
         self.0
     }
 

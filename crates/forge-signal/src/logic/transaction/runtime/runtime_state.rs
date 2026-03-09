@@ -7,7 +7,9 @@ use crate::data::output::{ComputationFamily, ComputationKey};
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::data::tier::TierPolicy;
 use crate::diagnostics::access::RuntimeDiagnostics;
+use crate::diagnostics::facts::ProvenanceFact;
 use crate::diagnostics::history::ExecutionInspector;
+use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::diagnostics::profile::DiagnosticsProfile;
 use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
 use crate::diagnostics::{FailureSummary, FlowSummary, RollbackDiagnostic};
@@ -113,6 +115,28 @@ where
         explain_with_policy_resolver(&self.graph, node, &resolver)
     }
 
+    pub fn retained_explanation_artifact(&self, node: NodeId) -> Option<NodeExplanation> {
+        self.graph.retained_explanation_artifact(node)
+    }
+
+    pub fn reconstruct_explanation_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<NodeExplanation, SignalError> {
+        self.graph.reconstruct_explanation_artifact(node)
+    }
+
+    pub fn retained_provenance_artifact(&self, node: NodeId) -> Option<ProvenanceFact> {
+        self.graph.retained_provenance_artifact(node)
+    }
+
+    pub fn reconstruct_provenance_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<ProvenanceFact, SignalError> {
+        self.graph.reconstruct_provenance_artifact(node)
+    }
+
     pub fn metrics(&self) -> RuntimeMetrics {
         RuntimeMetrics {
             transaction_begin_count: self.telemetry.transaction_begin_count,
@@ -170,8 +194,16 @@ where
         self.graph.diagnostics_profile()
     }
 
+    pub fn runtime_policy(&self) -> SignalRuntimePolicy {
+        self.graph.runtime_policy()
+    }
+
     pub fn set_diagnostics_profile(&mut self, profile: DiagnosticsProfile) {
         self.graph.set_diagnostics_profile(profile);
+    }
+
+    pub fn set_runtime_policy(&mut self, policy: SignalRuntimePolicy) {
+        self.graph.set_runtime_policy(policy);
     }
 
     pub fn execution_history_summary(
@@ -237,7 +269,7 @@ where
     pub fn begin<'a>(&'a mut self) -> SignalTransaction<'a, D, I, E, Ctx, T> {
         self.telemetry.transaction_begin_count += 1;
         self.config.sync_graph_capacity(&self.graph);
-        let diagnostics_snapshot = self.graph.diagnostics_state().clone();
+        let baseline_diagnostics_state = self.graph.diagnostics_state().clone();
         SignalTransaction {
             config: &mut self.config,
             graph: &mut self.graph,
@@ -251,8 +283,8 @@ where
             staged_event_flushes: Vec::new(),
             staged_memo_writes: std::collections::BTreeMap::new(),
             graph_patches: SparsePatchBuffer::new(),
-            diagnostics_snapshot,
-            pending_failure_summary: None,
+            baseline_diagnostics_state,
+            semantic_delta: super::transaction_types::TransactionSemanticDelta::default(),
             poisoned: false,
             finished: false,
             staged_patch_count: 0,

@@ -14,8 +14,9 @@ use serde_json::{json, Value};
 #[cfg(test)]
 use crate::facade::SignalGraph;
 use crate::facade::{
-    DiagnosticsProfile, EvaluationRequestMode, ExecutionReport, NodeExplanation, NodeState,
-    SignalError, StageExecutor,
+    ArtifactMaterializationMode, DiagnosticsProfile, EvaluationRequestMode, ExecutionReport,
+    NodeExplanation, NodeState, SignalError, SignalRuntimePolicy, StageExecutor,
+    CORE_STORAGE_PROFILE_ID,
 };
 
 use super::runtime::{SignalFixtureFactory, SignalHarnessSession, SignalMutationAction};
@@ -62,6 +63,43 @@ impl SignalHarnessAdapter {
             }
             DiagnosticsLevel::Development => DiagnosticsProfile::Development,
             DiagnosticsLevel::Forensic => DiagnosticsProfile::Forensic,
+        }
+    }
+
+    pub(super) fn runtime_policy(level: DiagnosticsLevel) -> SignalRuntimePolicy {
+        SignalRuntimePolicy::from_profile(Self::diagnostics_profile(level))
+    }
+
+    pub(super) fn runtime_policy_summary(policy: SignalRuntimePolicy) -> Value {
+        json!({
+            "profile": format!("{:?}", policy.profile),
+            "history_limit": policy.history_limit,
+            "detail_limit": policy.detail_limit,
+            "retain_history_details": policy.retain_history_details,
+            "retain_flow_explanation": policy.retain_flow_explanation,
+            "retain_latest_failure_context": policy.retain_latest_failure_context,
+            "retain_stage_details": policy.retain_stage_details,
+            "capture_forensic_failure_context": policy.capture_forensic_failure_context,
+            "explanation_retention": format!("{:?}", policy.explanation_retention),
+            "provenance_retention": format!("{:?}", policy.provenance_retention),
+            "replay_detail": format!("{:?}", policy.replay_detail),
+            "semantic_retention": format!("{:?}", policy.semantic_retention),
+            "parallel_admission": {
+                "operational_min_parallel_tasks": policy.parallel_admission.operational_min_parallel_tasks,
+                "development_min_parallel_tasks": policy.parallel_admission.development_min_parallel_tasks,
+                "forensic_min_parallel_tasks": policy.parallel_admission.forensic_min_parallel_tasks,
+                "full_parallel_min_tasks": policy.parallel_admission.full_parallel_min_tasks,
+            },
+        })
+    }
+
+    pub(super) fn artifact_materialization_label(
+        mode: ArtifactMaterializationMode,
+    ) -> &'static str {
+        match mode {
+            ArtifactMaterializationMode::Retained => "retained",
+            ArtifactMaterializationMode::Reconstructed => "reconstructed",
+            ArtifactMaterializationMode::Unavailable => "unavailable",
         }
     }
 
@@ -114,6 +152,7 @@ impl SignalHarnessAdapter {
             "tasks_reverted_clean_by_condition": report.tasks_reverted_clean_by_condition,
             "tasks_satisfied_by_memoization": report.tasks_satisfied_by_memoization,
             "tasks_with_suppressed_propagation": report.tasks_with_suppressed_propagation,
+            "core_storage_profile": CORE_STORAGE_PROFILE_ID,
         })
     }
 
@@ -228,11 +267,13 @@ impl HarnessAdapter for SignalHarnessAdapter {
         let runtime = runtime.runtime_mut()?;
         let scenario_id = scenario_id(&fixture.name);
         let run_id = run_id(&scenario_id, &profile.name, &request.name);
+        let runtime_policy = Self::runtime_policy(profile.diagnostics_level);
         let targets = request
             .targets
             .iter()
             .map(|label| runtime.resolve(label))
             .collect::<Result<Vec<_>, _>>()?;
+        runtime.graph.set_runtime_policy(runtime_policy);
 
         let plan = runtime
             .graph
@@ -311,6 +352,14 @@ impl HarnessAdapter for SignalHarnessAdapter {
                 (
                     "execution_report".to_string(),
                     serde_json::to_value(&report).unwrap_or_else(|_| json!({})),
+                ),
+                (
+                    "runtime_policy".to_string(),
+                    Self::runtime_policy_summary(runtime_policy),
+                ),
+                (
+                    "core_storage_profile".to_string(),
+                    json!(CORE_STORAGE_PROFILE_ID),
                 ),
             ]),
         })

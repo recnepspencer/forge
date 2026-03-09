@@ -3,6 +3,7 @@ use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
 use crate::data::trace::TraceSummary;
+use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
 
 use super::reporting::{accumulate_report_counters, classify_task_record};
 use super::types::{
@@ -79,6 +80,7 @@ pub(super) fn segment_for_single_update(update: SemanticTaskUpdate) -> SemanticS
     }
 }
 
+#[cfg(feature = "parallel")]
 pub(super) fn segment_for_updates(mut updates: Vec<SemanticTaskUpdate>) -> SemanticSegment {
     updates.sort_by_key(|update| update.task_index);
     let first = updates
@@ -122,6 +124,7 @@ pub(super) fn finalize_stage_batch(
     });
 
     let mut task_records = Vec::new();
+    let policy = graph.runtime_policy();
     for segment in segments {
         for update in segment.updates {
             stamp_trace_summary(
@@ -152,6 +155,20 @@ pub(super) fn finalize_stage_batch(
             }
             report.prepared_evaluations_applied += 1;
             report.dependency_capture_updates += update.dependency_updates;
+            if policy.retains_explanation_facts() || policy.retains_provenance_facts() {
+                if let Ok(explanation) = graph.explain(update.node) {
+                    if policy.retains_explanation_facts() {
+                        graph.diagnostics_state_mut().record_explanation_fact(
+                            ExplanationFact::from_explanation(&explanation),
+                        );
+                    }
+                    if policy.retains_provenance_facts() {
+                        graph
+                            .diagnostics_state_mut()
+                            .record_provenance_fact(ProvenanceFact::from_explanation(&explanation));
+                    }
+                }
+            }
         }
     }
     task_records.sort_by_key(|record| record.id.0);

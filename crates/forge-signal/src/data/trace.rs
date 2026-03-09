@@ -4,13 +4,14 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::data::core_profile::StableHashValue;
 use crate::data::output::{ChangedRegion, MemoizedResultOrigin, OutputChange, OutputIdentity};
 
 /// Lightweight evaluation trace summary for one node recomputation.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct TraceSummary {
     /// Opaque deterministic hash for the evaluated output.
-    pub output_hash: u128,
+    pub output_hash: StableHashValue,
     /// Optional stable identity for the evaluated output artifact.
     #[serde(default)]
     pub output_identity: Option<OutputIdentity>,

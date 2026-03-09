@@ -216,6 +216,84 @@ fn failure_during_event_begin_rewinds_graph() {
     assert_eq!(runtime.graph().get_state(a).unwrap(), before);
 }
 
+#[test]
+fn hostile_rollback_and_commit_cycles_do_not_leak_semantic_events() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let a = graph.node().build();
+    let mut runtime = build_runtime(graph);
+    let mut ctx = ();
+
+    let baseline_events = runtime.graph().replay_events().len();
+    for cycle in 0..12 {
+        let before_state = runtime.graph().get_state(a).unwrap();
+        let mut tx = runtime.begin();
+        tx.mark_dirty(a, ASPECT_B).unwrap();
+        tx.emit_event(Ev::Tick);
+        if cycle % 2 == 0 {
+            assert_eq!(
+                tx.rollback(&mut ctx).unwrap(),
+                TransactionOutcome::RolledBack
+            );
+            assert_eq!(runtime.graph().get_state(a).unwrap(), before_state);
+        } else {
+            tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
+            assert_eq!(tx.commit(&mut ctx).unwrap(), TransactionOutcome::Committed);
+        }
+    }
+
+    let replay_events = runtime.graph().replay_events();
+    assert!(replay_events.len() > baseline_events);
+    let mut last_sequence = None;
+    for event in replay_events {
+        if let Some(previous) = last_sequence {
+            assert!(
+                previous < event.sequence,
+                "replay sequences must be strictly increasing"
+            );
+        }
+        last_sequence = Some(event.sequence);
+    }
+}
+
+#[test]
+fn hostile_commit_failure_does_not_leak_committed_semantic_outcome() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let a = graph.node().build();
+    let mut runtime = build_runtime(graph);
+    runtime
+        .event_bus_mut()
+        .subscribe(Box::new(FailingSubscriber))
+        .unwrap();
+
+    let replay_len_before = runtime.graph().replay_events().len();
+    let mut ctx = ();
+    let mut tx = runtime.begin();
+    tx.mark_dirty(a, ASPECT_B).unwrap();
+    tx.emit_event(Ev::Tick);
+    tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
+
+    let err = tx.commit(&mut ctx).unwrap_err();
+    assert!(format!("{err}").contains("event bus flush failed"));
+    let replay_events = runtime.graph().replay_events();
+    assert!(replay_events.len() >= replay_len_before + 2);
+    let last = replay_events
+        .back()
+        .expect("rollback/failure replay should be recorded");
+    assert_ne!(
+        last.detail.as_deref(),
+        Some("transaction committed"),
+        "failed transaction must not leak committed replay outcome"
+    );
+    assert!(
+        replay_events
+            .iter()
+            .rev()
+            .take(2)
+            .any(|event| event.detail.as_deref() == Some("event bus flush failed")),
+        "failed transaction should surface flush failure in replay events"
+    );
+}
+
 struct NeedsMissingProviderSubscriber;
 impl EventSubscriber for NeedsMissingProviderSubscriber {
     type Event = Ev;

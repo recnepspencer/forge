@@ -4,6 +4,7 @@ use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::checkpoint_policy::CheckpointPolicy;
 use crate::data::comparator::VersionComparatorPolicy;
 use crate::data::graph::SignalGraph;
+use crate::diagnostics::policy::SignalRuntimePolicy;
 
 use super::runtime_state::SignalRuntime;
 
@@ -16,6 +17,7 @@ where
     graph: SignalGraph,
     checkpoint_policy: CheckpointPolicy<D>,
     fallback_comparator: VersionComparatorPolicy,
+    runtime_policy: SignalRuntimePolicy,
     _marker: PhantomData<fn(I, E, Ctx, T)>,
 }
 
@@ -30,6 +32,7 @@ where
             graph,
             checkpoint_policy: CheckpointPolicy::new(CheckpointBarrier::PerOperation),
             fallback_comparator: VersionComparatorPolicy::Exact,
+            runtime_policy: SignalRuntimePolicy::default(),
             _marker: PhantomData,
         }
     }
@@ -49,11 +52,17 @@ where
         self
     }
 
+    pub fn runtime_policy(mut self, runtime_policy: SignalRuntimePolicy) -> Self {
+        self.runtime_policy = runtime_policy;
+        self
+    }
+
     pub fn with_events<E2>(self) -> SignalRuntimeBuilder<D, I, E2, Ctx, T> {
         SignalRuntimeBuilder {
             graph: self.graph,
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
+            runtime_policy: self.runtime_policy,
             _marker: PhantomData,
         }
     }
@@ -66,6 +75,7 @@ where
             graph: self.graph,
             checkpoint_policy: CheckpointPolicy::new(self.checkpoint_policy.barrier_for_default()),
             fallback_comparator: self.fallback_comparator,
+            runtime_policy: self.runtime_policy,
             _marker: PhantomData,
         }
     }
@@ -78,6 +88,7 @@ where
             graph: self.graph,
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
+            runtime_policy: self.runtime_policy,
             _marker: PhantomData,
         }
     }
@@ -90,6 +101,7 @@ where
             graph: self.graph,
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
+            runtime_policy: self.runtime_policy,
             _marker: PhantomData,
         }
     }
@@ -99,6 +111,7 @@ where
             graph: self.graph,
             checkpoint_policy: self.checkpoint_policy,
             fallback_comparator: self.fallback_comparator,
+            runtime_policy: self.runtime_policy,
             _marker: PhantomData,
         }
     }
@@ -106,6 +119,7 @@ where
     pub fn build(self) -> SignalRuntime<D, I, E, Ctx, T> {
         let mut runtime = SignalRuntime::with_policy(self.graph, self.checkpoint_policy);
         runtime.set_fallback_comparator(self.fallback_comparator);
+        runtime.set_runtime_policy(self.runtime_policy);
         runtime
     }
 }

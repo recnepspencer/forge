@@ -1,14 +1,28 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+//! # forge-relational
+//!
+//! Deterministic truth-state runtime infrastructure for high-consequence graph
+//! domains such as geometry kernels, chip-design systems, and other workloads
+//! that require durable identity, transactional mutation, replay, lineage, and
+//! audit-grade diagnostics.
+//!
+//! The crate is intentionally shaped around the Forge domain standards:
+//!
+//! - component-oriented structure
+//! - explicit `presentation` / `logic` / `data` layers
+//! - a single public facade boundary
+//! - contracts that preserve serialized authority and immutable read semantics
+//!
+//! The initial scaffold is implementation-light and contract-heavy on purpose.
+//! For this runtime, getting the boundaries right early is materially more
+//! important than racing toward a shallow feature-complete prototype.
+
+#![forbid(unsafe_code)]
+
+mod data;
+mod logic;
+mod presentation;
+
+pub mod facade;
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+mod tests;

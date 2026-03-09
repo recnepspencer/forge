@@ -15,6 +15,10 @@ pub use crate::data::comparator::{
     ComparatorPolicyResolver, DefaultComparatorPolicyResolver, DefaultComparatorResolver,
     TierPolicyResolver, VersionComparatorPolicy, VersionComparatorResolver,
 };
+pub use crate::data::core_profile::{
+    AspectMaskBits, SignalCoreStorageProfile, StableHashValue, CORE_STORAGE_PROFILE,
+    CORE_STORAGE_PROFILE_ID, HOT_VEC_INLINE_CAPACITY, STABLE_HASH_WIDTH_BITS,
+};
 pub use crate::data::dependency::DependencyEdge;
 pub use crate::data::dirty_set::{BatchedDirtySet, DomainImpact};
 pub use crate::data::effect_mapping::EffectMapping;
@@ -43,14 +47,16 @@ pub use crate::diagnostics::{
     render_execution_history_summary, render_execution_report_summary, render_explanation_summary,
     render_failure_summary, render_flow_summary, render_graph_summary, render_plan_summary,
     repeat_run_summaries_equal, reports_semantically_equivalent,
-    serial_parallel_reports_equivalent, ApplySummary, ChangeInputSummary, DiagnosticMismatch,
-    DiagnosticMismatchCategory, DiagnosticsPolicy, DiagnosticsProfile, EvaluationPlanSummary,
-    ExecutionFailureContext, ExecutionFailurePhase, ExecutionHistoryNodeSummary,
-    ExecutionHistorySummary, ExecutionInspector, ExecutionReportDiff, ExecutionReportSummary,
-    ExplanationDiff, ExplanationSummary, FailureDiff, FailureSummary, FlowDiff, FlowInspector,
-    FlowSummary, GraphDiagnostics, GraphDiff, GraphInspector, GraphSummary, HistoryDiff,
-    InvalidationSummary, PlanDiff, PlanInspector, PlanningSummary, PrecomputeSummary,
-    ReportInspector, RollbackDiagnostic, RollbackSummary, RuntimeDiagnostics,
+    serial_parallel_reports_equivalent, ApplySummary, ArtifactMaterializationMode,
+    ArtifactRetentionPolicy, ChangeInputSummary, DiagnosticMismatch, DiagnosticMismatchCategory,
+    DiagnosticsPolicy, DiagnosticsProfile, EvaluationPlanSummary, ExecutionFailureContext,
+    ExecutionFailurePhase, ExecutionHistoryNodeSummary, ExecutionHistorySummary,
+    ExecutionInspector, ExecutionReportDiff, ExecutionReportSummary, ExplanationDiff,
+    ExplanationSummary, FailureDiff, FailureSummary, FlowDiff, FlowInspector, FlowSummary,
+    GraphDiagnostics, GraphDiff, GraphInspector, GraphSummary, HistoryDiff, InvalidationSummary,
+    ParallelAdmissionPolicy, PlanDiff, PlanInspector, PlanningSummary, PrecomputeSummary,
+    ReplayDetailPolicy, ReportInspector, RollbackDiagnostic, RollbackSummary, RuntimeDiagnostics,
+    SemanticRetentionPolicy, SignalRuntimePolicy,
 };
 
 // Re-export Logic constructs
@@ -66,6 +72,8 @@ pub use crate::logic::explain::{
     ConditionDecision, MeaningfulChangeReason, NodeExplanation, UpstreamCause,
 };
 pub use crate::logic::invalidation::{mark_dirty, mark_dirty_with_regions};
+#[cfg(feature = "parallel")]
+pub use crate::logic::planner::ParallelExecutionPolicy;
 pub use crate::logic::planner::{
     build_evaluation_plan, execute_prepared_plan, EvaluationPlan, EvaluationTask,
     ExecutionPruneReason, ExecutionRecordId, ExecutionReport, ExecutionStage, PlanSummary,

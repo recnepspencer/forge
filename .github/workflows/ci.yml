@@ -11,6 +11,9 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  SIGNAL_SNAPSHOT_DIR: ${{ runner.temp }}/signal-semantic-snapshots
+  SIGNAL_DETERMINISM_DIR: ${{ runner.temp }}/signal-determinism-cert
+  SIGNAL_PERF_REPORT_PATH: ${{ runner.temp }}/signal-parallel-perf-report.json
 
 jobs:
   build-and-test:
@@ -51,8 +54,40 @@ jobs:
       - name: Build workspace
         run: cargo build --workspace
 
+      - name: Forge-signal parallel semantic check
+        run: cargo check -p forge-signal --features parallel
+
+      - name: Forge-signal core profile gate
+        run: bash scripts/ci/check_signal_core_profiles.sh
+
+      - name: Forge-signal adversarial parallel lane
+        run: cargo test -p forge-signal --lib --features parallel adversarial_parallel -- --nocapture
+
+      - name: Forge-signal diagnostics lane
+        run: cargo test -p forge-signal --lib --features parallel diagnostics -- --nocapture
+
+      - name: Forge-signal harness replay lane
+        run: cargo test -p forge-signal --lib --features parallel harness_adapter -- --nocapture
+
+      - name: Forge-signal transaction adversarial lane
+        run: cargo test -p forge-signal --lib --features parallel transaction_ -- --nocapture
+
+      - name: Forge-signal failure matrix gate
+        run: bash scripts/ci/check_signal_failure_matrix.sh
+
+      - name: Forge-signal semantic snapshot diff lane
+        run: bash scripts/ci/check_signal_semantic_snapshots.sh "${SIGNAL_SNAPSHOT_DIR}"
+
       - name: Run tests
         run: cargo test --workspace
+
+      - name: Upload forge-signal semantic snapshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-signal-semantic-snapshots
+          path: ${{ env.SIGNAL_SNAPSHOT_DIR }}
+          if-no-files-found: ignore
 
       - name: Clippy (deny warnings)
         run: cargo clippy --workspace -- -D warnings
@@ -110,3 +145,25 @@ jobs:
 
       - name: Run forge-signal performance lane
         run: bash scripts/ci/run_signal_perf_lane.sh
+
+      - name: Run forge-signal determinism certification lane
+        run: bash scripts/ci/check_signal_parallel_determinism_cert.sh 4 "${SIGNAL_DETERMINISM_DIR}"
+
+      - name: Run forge-signal adversarial determinism lane
+        run: |
+          cargo test -p forge-signal --lib --features parallel adversarial_parallel -- --ignored --nocapture
+          cargo test -p forge-signal --lib --features parallel transaction_stress -- --nocapture
+
+      - name: Upload forge-signal performance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-signal-parallel-perf-report
+          path: ${{ env.SIGNAL_PERF_REPORT_PATH }}
+          if-no-files-found: error
+
+      - name: Upload forge-signal determinism certification artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-signal-determinism-cert
+          path: ${{ env.SIGNAL_DETERMINISM_DIR }}
+          if-no-files-found: error

@@ -146,6 +146,23 @@ Diagnostics are a first-class production surface, not just test helpers. The run
 - causal flow summaries
 - failure diagnostics with rollback context
 - explicit diagnostics profiles: `Operational`, `Development`, and `Forensic`
+- runtime-policy-driven artifact retention: replay and stable semantic IDs are always authoritative, while explanation/provenance may be retained, reconstructed, or omitted depending on policy
+- build-time core storage profiles: `compact`, `standard`, and `extended`
+
+Runtime policy presets are also available for common deployment shapes:
+
+- `SignalRuntimePolicy::game_engine()`
+- `SignalRuntimePolicy::fintech()`
+- `SignalRuntimePolicy::kernel()`
+
+Artifact access is explicit:
+
+- `graph.retained_explanation_artifact(...)`
+- `graph.reconstruct_explanation_artifact(...)`
+- `graph.retained_provenance_artifact(...)`
+- `graph.reconstruct_provenance_artifact(...)`
+
+Parallel certification, determinism gates, failure acceptance criteria, and the runtime/persistence ownership boundary are documented in [PARALLEL_CERTIFICATION.md](./PARALLEL_CERTIFICATION.md) and [BOUNDARY_CONTRACT.md](./BOUNDARY_CONTRACT.md).
 
 ## Current Focus
 

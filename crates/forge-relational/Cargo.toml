@@ -5,6 +5,9 @@ version.workspace = true
 license.workspace = true
 
 [dependencies]
+forge-harness.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 
 [lints]
 workspace = true

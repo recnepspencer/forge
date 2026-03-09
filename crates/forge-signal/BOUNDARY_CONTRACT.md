@@ -5,6 +5,7 @@
 ## What this crate owns
 
 - Evaluation dependency graph scheduling and invalidation.
+- Deterministic semantic artifacts for diagnostics, explanation, provenance, and replay.
 - Deterministic ordering for event-subscriber flush.
 - Checkpoint staging/finalize/rollback semantics.
 - In-place graph mutation with sparse undo-log hard rewind.
@@ -43,3 +44,17 @@
 - Use the signal DAG for derived-state refresh and orchestration.
 - Treat transaction failure as hard rewind: callers must not expect partial graph state to survive.
 - Do not assume node-slot reuse preserves node-scoped metadata; generation-safe metadata guards that boundary.
+
+## Parallel semantic contract
+
+- Serial, staged-parallel, and full-parallel execution must converge to the same canonical semantic artifacts for logically equivalent runs.
+- Observable semantic artifacts are canonicalized before retention; completion order is never the source of truth.
+- Replay events plus stable task/segment identifiers are the authoritative retained truth in every runtime policy.
+- Explanation and provenance artifacts are policy-dependent: they may be eagerly retained, deterministically reconstructed, or intentionally unavailable depending on the configured runtime policy.
+- Callers that care about this distinction should use explicit retained/reconstructed accessors rather than assuming eager availability.
+- Transaction boundary transitions and semantic merge/finalization remain intentionally serial for determinism.
+- Current-run replay/diagnostics/explanation/provenance truth is runtime-owned here; durable storage and cross-run analysis belong outside this crate.
+- Core storage width is selected at build time through the crate storage profile (`compact`, `standard`, or `extended`); runtime artifacts surface the active profile identifier so capture/replay consumers do not guess.
+- Market presets (`game_engine`, `fintech`, `kernel`) are configuration conveniences layered on top of the same deterministic runtime policy contract.
+
+See [PARALLEL_CERTIFICATION.md](./PARALLEL_CERTIFICATION.md) for the release gates, failure matrix, and deterministic-equivalence contract.

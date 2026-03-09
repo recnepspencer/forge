@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use crate::data::aspect::AspectVersion;
+use crate::data::core_profile::StableHashValue;
 use crate::data::dependency::DependencySnapshot;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
@@ -120,17 +121,17 @@ fn count_changed_partitions(changed_regions: &[crate::data::output::ChangedRegio
         .len() as u32
 }
 
-fn trace_identity_hash(identity: &crate::data::output::OutputIdentity) -> u128 {
+fn trace_identity_hash(identity: &crate::data::output::OutputIdentity) -> StableHashValue {
     identity.stable_hash()
 }
 
-fn trace_output_hash(version: AspectVersion) -> u128 {
+fn trace_output_hash(version: AspectVersion) -> StableHashValue {
     version
         .slots()
         .iter()
         .fold(0xcbf29ce484222325_u128, |hash, slot| {
             hash.wrapping_mul(0x100000001b3_u128) ^ (*slot as u128)
-        })
+        }) as StableHashValue
 }
 
 pub(super) fn execution_metadata_for(

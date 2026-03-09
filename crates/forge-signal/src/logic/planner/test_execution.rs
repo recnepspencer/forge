@@ -122,6 +122,7 @@ where
         let mut stage_record = StageExecutionRecord {
             stage_index: stage.index,
             outcome: StageExecutionOutcome::CompletedSerial,
+            parallel_admission_reason: Some("serial-executor".to_string()),
             #[cfg(feature = "parallel")]
             parallel_kind: None,
             #[cfg(feature = "parallel")]
@@ -137,6 +138,7 @@ where
             snapshot_duration_nanos: snapshot_nanos,
             precompute_duration_nanos: precompute_nanos,
             apply_duration_nanos: 0,
+            semantic_finalize_duration_nanos: 0,
             duration_nanos: 0,
             semantic_task_range: None,
             semantic_segment_count: 0,
@@ -190,6 +192,7 @@ where
         stage_record.apply_duration_nanos = apply_start.elapsed().as_nanos();
         stage_record.duration_nanos = stage_start.elapsed().as_nanos();
         report.stage_apply_nanos += stage_record.apply_duration_nanos;
+        report.semantic_finalize_nanos += stage_record.semantic_finalize_duration_nanos;
         graph.telemetry_mut().stage_apply_nanos += stage_record.apply_duration_nanos;
         graph.telemetry_mut().stage_execution_count += 1;
         graph.telemetry_mut().stage_execution_nanos += stage_record.duration_nanos;
@@ -274,6 +277,7 @@ where
         let mut stage_record = StageExecutionRecord {
             stage_index: stage.index,
             outcome: StageExecutionOutcome::CompletedSerial,
+            parallel_admission_reason: Some("serial-executor".to_string()),
             #[cfg(feature = "parallel")]
             parallel_kind: None,
             #[cfg(feature = "parallel")]
@@ -289,6 +293,7 @@ where
             snapshot_duration_nanos: snapshot_nanos,
             precompute_duration_nanos: precompute_nanos,
             apply_duration_nanos: 0,
+            semantic_finalize_duration_nanos: 0,
             duration_nanos: 0,
             semantic_task_range: None,
             semantic_segment_count: 0,
@@ -342,6 +347,7 @@ where
         stage_record.apply_duration_nanos = apply_start.elapsed().as_nanos();
         stage_record.duration_nanos = stage_start.elapsed().as_nanos();
         report.stage_apply_nanos += stage_record.apply_duration_nanos;
+        report.semantic_finalize_nanos += stage_record.semantic_finalize_duration_nanos;
         graph.telemetry_mut().stage_apply_nanos += stage_record.apply_duration_nanos;
         graph.telemetry_mut().stage_execution_count += 1;
         graph.telemetry_mut().stage_execution_nanos += stage_record.duration_nanos;

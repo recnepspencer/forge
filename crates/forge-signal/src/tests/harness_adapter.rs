@@ -5,9 +5,10 @@ use forge_harness::facade::{
 };
 
 use crate::facade::{
-    mark_dirty, Aspect, AspectVersion, ExecutionReadView, NodeId, PreparedEvaluation,
-    SignalEvaluationDriver, SignalFixtureFactory, SignalHarnessAdapter, SignalHarnessRuntime,
-    SignalHarnessRuntimeBuilder, SignalMutationAction,
+    mark_dirty, ArtifactMaterializationMode, Aspect, AspectVersion, ExecutionReadView, NodeId,
+    PreparedEvaluation, SignalEvaluationDriver, SignalFixtureFactory, SignalHarnessAdapter,
+    SignalHarnessRuntime, SignalHarnessRuntimeBuilder, SignalMutationAction,
+    CORE_STORAGE_PROFILE_ID,
 };
 
 const ASPECT_A: Aspect = Aspect::new(0);
@@ -108,6 +109,18 @@ fn signal_harness_adapter_captures_diagnostics_explanations_and_provenance() {
     assert_eq!(diagnostics.adapter_name, "forge-signal");
     assert_eq!(explanations.len(), 1);
     assert_eq!(provenance.len(), 1);
+    assert_eq!(
+        diagnostics.extensions["core_storage_profile"],
+        CORE_STORAGE_PROFILE_ID
+    );
+    assert_eq!(
+        explanations[0].extensions["artifact_materialization"],
+        "reconstructed"
+    );
+    assert_eq!(
+        provenance[0].extensions["artifact_materialization"],
+        "reconstructed"
+    );
 }
 
 #[test]
@@ -141,5 +154,111 @@ fn signal_harness_adapter_captures_v2_replay_summary() {
         forge_harness::facade::RecordSchemaVersion::V2
     );
     assert_eq!(replay.requested_targets, request.targets);
-    assert!(replay.summary.get("execution_report").is_some());
+    let events = replay
+        .summary
+        .get("events")
+        .and_then(|value| value.as_array())
+        .expect("replay summary should expose runtime events");
+    assert!(!events.is_empty());
+    let mut last_sequence = None;
+    for event in events {
+        let sequence = event["sequence"]
+            .as_u64()
+            .expect("replay event should have a sequence");
+        if let Some(previous) = last_sequence {
+            assert!(
+                previous < sequence,
+                "replay events must be strictly ordered"
+            );
+        }
+        last_sequence = Some(sequence);
+    }
+}
+
+#[test]
+fn signal_runtime_materializes_native_explanation_and_provenance_facts() {
+    let adapter = SignalHarnessAdapter;
+    let fixture = basic_fixture();
+    let request = ExecutionRequest::new("pull-dependent", vec!["dependent".to_string()]);
+    let profile =
+        ExecutionProfile::serial("serial").with_diagnostics_level(DiagnosticsLevel::Development);
+    let mut session = adapter.create_runtime().unwrap();
+
+    adapter.load_fixture(&mut session, &fixture).unwrap();
+    let _run = adapter
+        .execute(&mut session, &fixture, &request, &profile)
+        .unwrap();
+
+    let runtime = session.runtime().unwrap();
+    let node = runtime.resolve("dependent").unwrap();
+    let explanation_fact = runtime
+        .graph
+        .explanation_fact(node)
+        .expect("execution should materialize explanation facts");
+    let provenance_fact = runtime
+        .graph
+        .provenance_fact(node)
+        .expect("execution should materialize provenance facts");
+
+    assert_eq!(explanation_fact.node, node);
+    assert_eq!(provenance_fact.node, node);
+    assert_eq!(
+        explanation_fact.semantic_segment_id,
+        provenance_fact.semantic_segment_id
+    );
+    assert!(
+        provenance_fact
+            .vertices
+            .iter()
+            .any(|vertex| vertex.node == node),
+        "provenance graph should retain the target vertex"
+    );
+    assert!(
+        provenance_fact.vertices.len() >= provenance_fact.edges.len().min(1) + 1,
+        "provenance graph should expose structured vertices, not only flattened edges"
+    );
+    let explanation = runtime.graph.explain(node).unwrap();
+    assert_eq!(explanation, explanation_fact.explanation);
+}
+
+#[test]
+fn operational_profile_reconstructs_rich_artifacts_without_retaining_facts() {
+    let adapter = SignalHarnessAdapter;
+    let fixture = basic_fixture();
+    let request = ExecutionRequest::new("pull-dependent", vec!["dependent".to_string()]);
+    let profile =
+        ExecutionProfile::serial("serial").with_diagnostics_level(DiagnosticsLevel::Operational);
+    let mut session = adapter.create_runtime().unwrap();
+
+    adapter.load_fixture(&mut session, &fixture).unwrap();
+    let _run = adapter
+        .execute(&mut session, &fixture, &request, &profile)
+        .unwrap();
+
+    let runtime = session.runtime().unwrap();
+    let node = runtime.resolve("dependent").unwrap();
+    assert!(runtime.graph.explanation_fact(node).is_none());
+    assert!(runtime.graph.provenance_fact(node).is_none());
+
+    let explanations = adapter
+        .capture_explanations(&session, &fixture, &request, &profile)
+        .unwrap();
+    let provenance = adapter
+        .capture_provenance(&session, &fixture, &request, &profile)
+        .unwrap();
+    let (explanation, explanation_mode) = runtime.graph.explain_artifact(node).unwrap();
+    let (prov, provenance_mode) = runtime.graph.provenance_artifact(node).unwrap();
+
+    assert!(explanation.is_some());
+    assert!(prov.is_some());
+    assert_eq!(explanation_mode, ArtifactMaterializationMode::Reconstructed);
+    assert_eq!(provenance_mode, ArtifactMaterializationMode::Reconstructed);
+    assert_eq!(
+        explanations[0].extensions["artifact_materialization"],
+        "reconstructed"
+    );
+    assert_eq!(
+        provenance[0].extensions["artifact_materialization"],
+        "reconstructed"
+    );
 }

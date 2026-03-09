@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
 use crate::data::aspect::{AspectMask, AspectVersion};
+use crate::data::core_profile::HOT_VEC_INLINE_CAPACITY;
 use crate::data::dependency::DependencySnapshotId;
 use crate::data::graph::{DependencySetId, SubscriberSetId};
 use crate::data::output::PartitionSubscription;
@@ -40,7 +41,7 @@ pub struct NodeEntry {
     state: NodeState,
     dirty_aspects: AspectMask,
     #[serde(default)]
-    dirty_partition_scopes: SmallVec<[PartitionSubscription; 4]>,
+    dirty_partition_scopes: SmallVec<[PartitionSubscription; HOT_VEC_INLINE_CAPACITY]>,
     aspect_version: AspectVersion,
     /// Handle to graph-owned dependency edge storage.
     dependencies_id: DependencySetId,

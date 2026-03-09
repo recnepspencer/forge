@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::collections::VecDeque;
 
 use serde::{Deserialize, Serialize};
@@ -5,15 +6,18 @@ use serde::{Deserialize, Serialize};
 use crate::data::aspect::Aspect;
 use crate::data::handle::NodeId;
 use crate::data::output::ChangedRegion;
+use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
 use crate::diagnostics::failure::{FailureSummary, RollbackDiagnostic};
 use crate::diagnostics::flow::{ChangeInputSummary, FlowSummary, InvalidationSummary};
+use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::diagnostics::profile::DiagnosticsProfile;
+use crate::diagnostics::replay::ReplayEvent;
 use crate::diagnostics::summary::ExecutionHistorySummary;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub(crate) struct DiagnosticsState {
     #[serde(default)]
-    profile: DiagnosticsProfile,
+    policy: SignalRuntimePolicy,
     #[serde(default)]
     latest_flow: Option<FlowSummary>,
     #[serde(default)]
@@ -23,10 +27,18 @@ pub(crate) struct DiagnosticsState {
     #[serde(default)]
     recent_history: VecDeque<ExecutionHistorySummary>,
     #[serde(default)]
+    replay_events: VecDeque<ReplayEvent>,
+    #[serde(default)]
+    explanation_facts: BTreeMap<NodeId, ExplanationFact>,
+    #[serde(default)]
+    provenance_facts: BTreeMap<NodeId, ProvenanceFact>,
+    #[serde(default)]
+    next_replay_sequence: u64,
+    #[serde(default)]
     pending_input: Option<PendingFlowInput>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 struct PendingFlowInput {
     changed_nodes: Vec<NodeId>,
     changed_aspects: Vec<Aspect>,
@@ -39,11 +51,26 @@ struct PendingFlowInput {
 
 impl DiagnosticsState {
     pub fn profile(&self) -> DiagnosticsProfile {
-        self.profile
+        self.policy.profile
     }
 
     pub fn set_profile(&mut self, profile: DiagnosticsProfile) {
-        self.profile = profile;
+        self.policy = SignalRuntimePolicy::from_profile(profile);
+        self.trim_history();
+    }
+
+    pub fn policy(&self) -> SignalRuntimePolicy {
+        self.policy
+    }
+
+    pub fn set_policy(&mut self, policy: SignalRuntimePolicy) {
+        self.policy = policy;
+        if !self.policy.retains_explanation_facts() {
+            self.explanation_facts.clear();
+        }
+        if !self.policy.retains_provenance_facts() {
+            self.provenance_facts.clear();
+        }
         self.trim_history();
     }
 
@@ -61,6 +88,18 @@ impl DiagnosticsState {
 
     pub fn recent_history(&self) -> &VecDeque<ExecutionHistorySummary> {
         &self.recent_history
+    }
+
+    pub fn replay_events(&self) -> &VecDeque<ReplayEvent> {
+        &self.replay_events
+    }
+
+    pub fn explanation_facts(&self) -> &BTreeMap<NodeId, ExplanationFact> {
+        &self.explanation_facts
+    }
+
+    pub fn provenance_facts(&self) -> &BTreeMap<NodeId, ProvenanceFact> {
+        &self.provenance_facts
     }
 
     pub fn note_change_input(
@@ -127,6 +166,32 @@ impl DiagnosticsState {
         self.pending_input = None;
     }
 
+    pub fn allocate_replay_sequence(&mut self) -> u64 {
+        let sequence = self.next_replay_sequence;
+        self.next_replay_sequence += 1;
+        sequence
+    }
+
+    pub fn record_replay_event(&mut self, event: ReplayEvent) {
+        self.replay_events.push_back(event);
+        let limit = self.policy.history_limit.max(1) * 32;
+        while self.replay_events.len() > limit {
+            self.replay_events.pop_front();
+        }
+    }
+
+    pub fn record_explanation_fact(&mut self, fact: ExplanationFact) {
+        if self.policy.retains_explanation_facts() {
+            self.explanation_facts.insert(fact.node, fact);
+        }
+    }
+
+    pub fn record_provenance_fact(&mut self, fact: ProvenanceFact) {
+        if self.policy.retains_provenance_facts() {
+            self.provenance_facts.insert(fact.node, fact);
+        }
+    }
+
     pub fn pending_change_summary(&self) -> Option<(ChangeInputSummary, InvalidationSummary)> {
         self.pending_input.as_ref().map(|pending| {
             (
@@ -146,7 +211,7 @@ impl DiagnosticsState {
     }
 
     fn trim_history(&mut self) {
-        let limit = self.profile.history_limit();
+        let limit = self.policy.history_limit;
         while self.recent_history.len() > limit {
             self.recent_history.pop_front();
         }

@@ -20,9 +20,101 @@ use super::semantic::{
     finalize_stage_batch, reserve_stage_identities, segment_for_single_update, SemanticTaskUpdate,
     StageSemanticBatch,
 };
+#[cfg(feature = "parallel")]
+use super::types::ParallelExecutionKind;
 use super::types::{
     EvaluationPlan, ExecutionReport, StageExecutionOutcome, StageExecutionRecord, StageExecutor,
 };
+
+#[cfg(feature = "parallel")]
+#[derive(Debug, Clone, Copy)]
+struct StageParallelAdmission {
+    use_parallel: bool,
+    reason: &'static str,
+    kind: Option<ParallelExecutionKind>,
+}
+
+#[cfg(feature = "parallel")]
+fn decide_stage_parallel_admission(
+    graph: &SignalGraph,
+    stage: &super::types::ExecutionStage,
+    executor: StageExecutor,
+) -> StageParallelAdmission {
+    let Some(parallel_policy) = executor.parallel_policy() else {
+        return StageParallelAdmission {
+            use_parallel: false,
+            reason: "serial-executor",
+            kind: None,
+        };
+    };
+    let stage_width = stage.tasks.len();
+    if stage_width < parallel_policy.min_stage_width.get() {
+        return StageParallelAdmission {
+            use_parallel: false,
+            reason: "below-min-stage-width",
+            kind: None,
+        };
+    }
+    let runtime_policy = graph.runtime_policy();
+    let min_parallel_tasks = runtime_policy
+        .parallel_admission
+        .min_parallel_tasks_for(runtime_policy.profile);
+    let semantic_cost_multiplier = match runtime_policy.semantic_retention {
+        crate::diagnostics::SemanticRetentionPolicy::Minimal => 1,
+        crate::diagnostics::SemanticRetentionPolicy::Development => 2,
+        crate::diagnostics::SemanticRetentionPolicy::Forensic => 3,
+    };
+    let effective_parallel_threshold = min_parallel_tasks.saturating_mul(semantic_cost_multiplier);
+    if stage_width < effective_parallel_threshold {
+        return StageParallelAdmission {
+            use_parallel: false,
+            reason: "below-policy-work-threshold",
+            kind: None,
+        };
+    }
+    let compute_pressure = stage
+        .tasks
+        .iter()
+        .filter(|task| {
+            !matches!(
+                task.reason,
+                super::types::TaskReason::MaybeStaleValidation
+                    | super::types::TaskReason::MemoValidation
+            )
+        })
+        .count();
+    if compute_pressure.saturating_mul(2) < stage_width
+        && stage_width < effective_parallel_threshold.saturating_mul(2)
+    {
+        return StageParallelAdmission {
+            use_parallel: false,
+            reason: "validation-heavy-stage",
+            kind: None,
+        };
+    }
+    if executor.is_full_parallel()
+        && stage_width
+            < runtime_policy
+                .parallel_admission
+                .full_parallel_min_tasks
+                .saturating_mul(semantic_cost_multiplier)
+    {
+        return StageParallelAdmission {
+            use_parallel: false,
+            reason: "below-full-parallel-threshold",
+            kind: None,
+        };
+    }
+    StageParallelAdmission {
+        use_parallel: true,
+        reason: match runtime_policy.profile {
+            crate::diagnostics::profile::DiagnosticsProfile::Operational => "admitted-operational",
+            crate::diagnostics::profile::DiagnosticsProfile::Development => "admitted-development",
+            crate::diagnostics::profile::DiagnosticsProfile::Forensic => "admitted-forensic",
+        },
+        kind: executor.parallel_kind(),
+    }
+}
 
 pub fn execute_prepared_plan<F>(
     graph: &mut SignalGraph,
@@ -113,12 +205,15 @@ where
         execution_snapshot_nanos: 0,
         stage_precompute_nanos: 0,
         stage_apply_nanos: 0,
+        semantic_finalize_nanos: 0,
         semantic_segment_count: 0,
         stages: Vec::new(),
     };
 
     for stage in &plan.stages {
         let stage_start = Instant::now();
+        #[cfg(feature = "parallel")]
+        let stage_parallel = decide_stage_parallel_admission(graph, stage, executor);
         let snapshot_start = Instant::now();
         graph.telemetry_mut().execution_snapshots_built += 1;
         let precompute_start = Instant::now();
@@ -129,7 +224,7 @@ where
                     stage, &snapshot, precompute,
                 )?),
                 #[cfg(feature = "parallel")]
-                _ if executor.uses_parallel_for_stage(stage) => {
+                _ if stage_parallel.use_parallel => {
                     if executor.is_full_parallel() {
                         StageExecutionData::Patched(build_parallel_stage_patches(
                             stage,
@@ -187,7 +282,7 @@ where
                 graph.telemetry_mut().serial_precompute_task_count += stage_execution.len() as u64;
             }
             #[cfg(feature = "parallel")]
-            _ if executor.uses_parallel_for_stage(stage) => {
+            _ if stage_parallel.use_parallel => {
                 graph.telemetry_mut().parallel_stage_dispatch_count += 1;
                 graph.telemetry_mut().parallel_precompute_task_count +=
                     stage_execution.len() as u64;
@@ -204,7 +299,7 @@ where
             outcome: {
                 #[cfg(feature = "parallel")]
                 {
-                    if executor.uses_parallel_for_stage(stage) {
+                    if stage_parallel.use_parallel {
                         StageExecutionOutcome::CompletedParallel
                     } else {
                         StageExecutionOutcome::CompletedSerial
@@ -215,12 +310,18 @@ where
                     StageExecutionOutcome::CompletedSerial
                 }
             },
+            parallel_admission_reason: Some({
+                #[cfg(feature = "parallel")]
+                {
+                    stage_parallel.reason.to_string()
+                }
+                #[cfg(not(feature = "parallel"))]
+                {
+                    "serial-executor".to_string()
+                }
+            }),
             #[cfg(feature = "parallel")]
-            parallel_kind: if executor.uses_parallel_for_stage(stage) {
-                executor.parallel_kind()
-            } else {
-                None
-            },
+            parallel_kind: stage_parallel.kind,
             #[cfg(feature = "parallel")]
             apply_mode: None,
             #[cfg(feature = "parallel")]
@@ -234,6 +335,7 @@ where
             snapshot_duration_nanos: snapshot_nanos,
             precompute_duration_nanos: precompute_nanos,
             apply_duration_nanos: 0,
+            semantic_finalize_duration_nanos: 0,
             duration_nanos: 0,
             semantic_task_range: None,
             semantic_segment_count: 0,
@@ -243,7 +345,7 @@ where
             reserve_stage_identities(&mut next_record_id, &mut next_segment_id, stage.tasks.len());
 
         #[cfg(feature = "parallel")]
-        if executor.is_full_parallel() && executor.uses_parallel_for_stage(stage) {
+        if executor.is_full_parallel() && stage_parallel.use_parallel {
             apply_full_parallel_stage(
                 graph,
                 stage,
@@ -303,6 +405,7 @@ where
                     partition_aware,
                 }));
             }
+            let semantic_finalize_start = Instant::now();
             finalize_stage_batch(
                 graph,
                 &stage.tasks,
@@ -310,6 +413,8 @@ where
                 &mut report,
                 &mut stage_record,
             )?;
+            stage_record.semantic_finalize_duration_nanos =
+                semantic_finalize_start.elapsed().as_nanos();
         }
         #[cfg(not(feature = "parallel"))]
         {
@@ -360,6 +465,7 @@ where
                     partition_aware,
                 }));
             }
+            let semantic_finalize_start = Instant::now();
             finalize_stage_batch(
                 graph,
                 &stage.tasks,
@@ -367,10 +473,16 @@ where
                 &mut report,
                 &mut stage_record,
             )?;
+            stage_record.semantic_finalize_duration_nanos =
+                semantic_finalize_start.elapsed().as_nanos();
         }
-        stage_record.apply_duration_nanos = apply_start.elapsed().as_nanos();
+        stage_record.apply_duration_nanos = apply_start
+            .elapsed()
+            .as_nanos()
+            .saturating_sub(stage_record.semantic_finalize_duration_nanos);
         report.stage_apply_nanos += stage_record.apply_duration_nanos;
         graph.telemetry_mut().stage_apply_nanos += stage_record.apply_duration_nanos;
+        report.semantic_finalize_nanos += stage_record.semantic_finalize_duration_nanos;
 
         stage_record.duration_nanos = stage_start.elapsed().as_nanos();
         graph.telemetry_mut().stage_execution_count += 1;

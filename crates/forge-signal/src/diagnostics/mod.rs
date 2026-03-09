@@ -2,12 +2,14 @@ pub mod access;
 pub mod compare;
 pub mod diff;
 pub mod display;
+pub mod facts;
 pub mod failure;
 pub mod flow;
 pub mod history;
 pub mod policy;
 pub mod profile;
 pub(crate) mod recorder;
+pub mod replay;
 pub(crate) mod state;
 pub mod summary;
 
@@ -28,6 +30,7 @@ pub use display::{
     render_execution_history_summary, render_execution_report_summary, render_explanation_summary,
     render_failure_summary, render_flow_summary, render_graph_summary, render_plan_summary,
 };
+pub use facts::{ExplanationFact, ProvenanceFact};
 pub use failure::{
     ExecutionFailureContext, ExecutionFailurePhase, FailureSummary, RollbackDiagnostic,
 };
@@ -39,8 +42,12 @@ pub use history::{
     inspect_execution, inspect_flow, inspect_graph, inspect_plan, inspect_report,
     ExecutionInspector, FlowInspector, GraphInspector, PlanInspector, ReportInspector,
 };
-pub use policy::DiagnosticsPolicy;
+pub use policy::{
+    ArtifactMaterializationMode, ArtifactRetentionPolicy, DiagnosticsPolicy,
+    ParallelAdmissionPolicy, ReplayDetailPolicy, SemanticRetentionPolicy, SignalRuntimePolicy,
+};
 pub use profile::DiagnosticsProfile;
+pub use replay::{ReplayEvent, ReplayEventKind};
 pub use summary::{
     EvaluationPlanSummary, ExecutionHistoryNodeSummary, ExecutionHistorySummary,
     ExecutionReportSummary, ExplanationSummary, GraphSummary,

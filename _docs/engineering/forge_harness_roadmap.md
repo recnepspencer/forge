@@ -63,7 +63,7 @@ The crate should be strong enough that runtimes conform to it instead of quietly
 
 ### After that
 
-- add relational adapter
+- add relational adapter with diagnostics, replay, branch/history, and serial-vs-staged-parallel parity suites as first-class acceptance paths
 - add bridge adapter
 - decide whether kernel-specific tooling should live on top of the harness or beside it
 

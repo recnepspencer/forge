@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use crate::data::dirty_set::BatchedDirtySet;
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::diagnostics::failure::FailureSummary;
+use crate::diagnostics::replay::ReplayEventKind;
 use crate::diagnostics::state::DiagnosticsState;
 use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::events::EventBus;
@@ -16,6 +17,13 @@ pub enum TransactionOutcome {
     Committed,
     RolledBack,
     Poisoned,
+}
+
+#[derive(Debug, Clone, Default)]
+pub(super) struct TransactionSemanticDelta {
+    pub failure_summary: Option<FailureSummary>,
+    pub rollback: Option<crate::diagnostics::failure::RollbackDiagnostic>,
+    pub replay_events: Vec<(ReplayEventKind, String, Option<u64>, Option<u64>)>,
 }
 
 pub struct SignalTransaction<'a, D, I, E, Ctx, T = ()>
@@ -39,8 +47,8 @@ where
         crate::data::output::NodeEvaluationResult,
     >,
     pub(super) graph_patches: SparsePatchBuffer,
-    pub(super) diagnostics_snapshot: DiagnosticsState,
-    pub(super) pending_failure_summary: Option<FailureSummary>,
+    pub(super) baseline_diagnostics_state: DiagnosticsState,
+    pub(super) semantic_delta: TransactionSemanticDelta,
     pub(super) poisoned: bool,
     pub(super) finished: bool,
     pub(super) staged_patch_count: u64,

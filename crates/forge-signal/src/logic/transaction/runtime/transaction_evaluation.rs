@@ -85,7 +85,7 @@ where
             Ok(report) => report,
             Err(err) => {
                 if let Some(summary) = self.graph.latest_failure_diagnostics().cloned() {
-                    self.pending_failure_summary = Some(summary);
+                    self.semantic_delta.failure_summary = Some(summary);
                 } else {
                     self.record_failure_from_error(
                         ExecutionFailurePhase::Apply,

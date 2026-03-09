@@ -4,6 +4,7 @@ use std::hash::{Hash, Hasher};
 use serde::{Deserialize, Serialize};
 
 use crate::data::aspect::AspectVersion;
+use crate::data::core_profile::StableHashValue;
 
 macro_rules! define_string_token {
     ($(#[$meta:meta])* $name:ident) => {
@@ -12,7 +13,7 @@ macro_rules! define_string_token {
         #[serde(from = "String", into = "String")]
         pub struct $name {
             value: String,
-            stable_hash: u128,
+            stable_hash: StableHashValue,
         }
 
         impl Default for $name {
@@ -34,7 +35,7 @@ macro_rules! define_string_token {
                 &self.value
             }
 
-            pub fn stable_hash(&self) -> u128 {
+            pub fn stable_hash(&self) -> StableHashValue {
                 self.stable_hash
             }
         }
@@ -283,13 +284,13 @@ define_string_token!(
     StructuralMemoKey
 );
 
-fn stable_string_hash(value: &str) -> u128 {
+fn stable_string_hash(value: &str) -> StableHashValue {
     let mut hash = 0xcbf29ce484222325_u128;
     for byte in value.as_bytes() {
         hash ^= *byte as u128;
         hash = hash.wrapping_mul(0x100000001b3_u128);
     }
-    hash
+    hash as StableHashValue
 }
 
 /// How one evaluation result was produced.

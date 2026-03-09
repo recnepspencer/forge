@@ -3,12 +3,128 @@
 use std::num::NonZeroUsize;
 
 use forge_harness::facade::{ComparisonMode, ComparisonProfile, ExecutionRequest};
+use serde_json::json;
 
 use crate::facade::*;
 use crate::logic::planner::{ParallelApplyMode, ParallelExecutionPolicy};
 use crate::tests::support::{version_ab, ASPECT_A};
 
 use crate::presentation::harness::{signal_parity_suite, SignalProfileCatalog, SignalScenario};
+
+fn canonical_runtime_artifacts(graph: &SignalGraph, node: NodeId) -> serde_json::Value {
+    let explanation = graph.explain(node).unwrap();
+    let explanation_fact = graph.explanation_fact(node);
+    let provenance = graph.provenance_fact(node).cloned();
+    let diagnostics = graph.diagnostics_summary(DiagnosticsProfile::Development);
+    let replay = graph
+        .replay_events()
+        .iter()
+        .map(|event| {
+            json!({
+                "sequence": event.sequence,
+                "kind": format!("{:?}", event.kind),
+                "node": event.node.map(|node| node.to_string()),
+                "execution_record_id": event.execution_record_id,
+                "semantic_segment_id": event.semantic_segment_id,
+                "detail": event.detail,
+            })
+        })
+        .collect::<Vec<_>>();
+    json!({
+        "explanation": {
+            "node": explanation.node.to_string(),
+            "state": format!("{:?}", explanation.state),
+            "execution_record_id": explanation.execution_record_id,
+            "semantic_segment_id": explanation.semantic_segment_id,
+            "upstream_count": explanation.upstream.len(),
+            "propagation_suppressed": explanation.propagation_suppressed,
+            "changed_region_count": explanation.changed_regions.len(),
+            "output_change": explanation.output_change.map(|change| format!("{change:?}")),
+            "fact_state": explanation_fact.map(|fact| fact.state.clone()),
+            "fact_upstream_count": explanation_fact.map(|fact| fact.upstream_count),
+        },
+        "provenance": provenance,
+        "replay": replay,
+        "diagnostics": {
+            "active_node_count": diagnostics.active_node_count,
+            "clean_node_count": diagnostics.clean_node_count,
+            "maybe_stale_node_count": diagnostics.maybe_stale_node_count,
+            "dirty_node_count": diagnostics.dirty_node_count,
+            "dependency_edge_count": diagnostics.dependency_edge_count,
+            "subscriber_edge_count": diagnostics.subscriber_edge_count,
+            "nodes_with_trace_summary": diagnostics.nodes_with_trace_summary,
+            "nodes_with_execution_record": diagnostics.nodes_with_execution_record,
+            "nodes_with_causality": diagnostics.nodes_with_causality,
+            "partition_interner_size": diagnostics.partition_interner_size,
+            "sample_dirty_nodes": diagnostics
+                .sample_dirty_nodes
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>(),
+            "sample_nodes_with_execution_record": diagnostics
+                .sample_nodes_with_execution_record
+                .iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>(),
+        },
+    })
+}
+
+fn hostile_executor_matrix() -> Vec<(&'static str, StageExecutor)> {
+    let policies = [
+        ParallelExecutionPolicy::new(NonZeroUsize::new(1).unwrap())
+            .with_worker_count(1)
+            .with_chunk_size(1)
+            .with_apply_group_min_width(1)
+            .with_max_concurrent_apply_groups(1),
+        ParallelExecutionPolicy::new(NonZeroUsize::new(1).unwrap())
+            .with_worker_count(2)
+            .with_chunk_size(1)
+            .with_apply_group_min_width(1)
+            .with_max_concurrent_apply_groups(2),
+        ParallelExecutionPolicy::new(NonZeroUsize::new(1).unwrap())
+            .with_worker_count(3)
+            .with_chunk_size(2)
+            .with_apply_group_min_width(1)
+            .with_max_concurrent_apply_groups(2),
+        ParallelExecutionPolicy::new(NonZeroUsize::new(1).unwrap())
+            .with_worker_count(4)
+            .with_chunk_size(2)
+            .with_apply_group_min_width(1)
+            .with_max_concurrent_apply_groups(4),
+    ];
+    let mut executors = vec![("serial", StageExecutor::Serial)];
+    for (index, policy) in policies.into_iter().enumerate() {
+        executors.push((
+            match index {
+                0 => "staged-1x1",
+                1 => "staged-2x1",
+                2 => "staged-3x2",
+                _ => "staged-4x2",
+            },
+            StageExecutor::parallel(1).with_parallel_policy(policy),
+        ));
+        executors.push((
+            match index {
+                0 => "full-1x1",
+                1 => "full-2x1",
+                2 => "full-3x2",
+                _ => "full-4x2",
+            },
+            StageExecutor::full_parallel(1).with_parallel_policy(policy),
+        ));
+    }
+    executors
+}
+
+fn aggressive_parallel_runtime_policy() -> SignalRuntimePolicy {
+    SignalRuntimePolicy::operational().with_parallel_admission(ParallelAdmissionPolicy {
+        operational_min_parallel_tasks: 1,
+        development_min_parallel_tasks: 1,
+        forensic_min_parallel_tasks: 1,
+        full_parallel_min_tasks: 1,
+    })
+}
 
 #[test]
 fn many_thin_stages_remain_serial_under_parallel_threshold() {
@@ -94,6 +210,7 @@ fn wide_stage_crosses_parallel_threshold() {
 #[test]
 fn full_parallel_splits_wide_stage_into_deterministic_apply_groups() {
     let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(aggressive_parallel_runtime_policy());
     let requested: Vec<_> = (0..4).map(|_| graph.node().build()).collect();
 
     let bootstrap = graph
@@ -136,6 +253,7 @@ fn full_parallel_rewires_dynamic_dependencies_without_losing_parity() {
     fn bootstrap_graph() -> Result<(SignalGraph, NodeId, NodeId, NodeId, [NodeId; 2]), SignalError>
     {
         let mut graph = SignalGraph::new();
+        graph.set_runtime_policy(aggressive_parallel_runtime_policy());
         let selector = graph.node().build();
         let left = graph.node().build();
         let right = graph.node().build();
@@ -263,6 +381,555 @@ fn full_parallel_rewires_dynamic_dependencies_without_losing_parity() {
         .iter()
         .any(|stage| { stage.apply_mode == Some(ParallelApplyMode::GroupedConcurrentApply) }));
     assert_eq!(serial_report.tasks_executed, parallel_report.tasks_executed);
+}
+
+#[test]
+fn full_parallel_apply_failure_does_not_leak_partial_semantic_state() {
+    let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(aggressive_parallel_runtime_policy());
+    let stable = graph.node().build();
+    let unstable = graph.node().build();
+    let requested = [stable, unstable];
+
+    let bootstrap = graph
+        .build_evaluation_plan(&requested, EvaluationRequestMode::ForceOnDemand)
+        .unwrap();
+    graph
+        .execute_prepared_plan(&bootstrap, &|_node, view| {
+            Ok(view.finish(NodeEvaluationResult::from_version(version_ab(1, 0))))
+        })
+        .unwrap();
+
+    let stable_baseline = graph.get_entry(stable).unwrap().get_aspect_version();
+    let unstable_baseline = graph.get_entry(unstable).unwrap().get_aspect_version();
+    let stable_fact_before = graph.explanation_fact(stable).cloned();
+    let unstable_fact_before = graph.explanation_fact(unstable).cloned();
+    let replay_len_before = graph.replay_events().len();
+
+    mark_dirty(&mut graph, stable, ASPECT_A).unwrap();
+    mark_dirty(&mut graph, unstable, ASPECT_A).unwrap();
+    let plan = graph
+        .build_evaluation_plan(&requested, EvaluationRequestMode::Default)
+        .unwrap();
+    let err = graph
+        .execute_prepared_plan_with_executor(
+            &plan,
+            &move |node, _view| {
+                let mut prepared = PreparedEvaluation::from_result(
+                    NodeEvaluationResult::from_version(version_ab(2, 0)),
+                );
+                if node == unstable {
+                    let mut capture = PreparedDependencyCapture::new();
+                    capture.record(NodeId::new(999_999, 0), ASPECT_A, None);
+                    prepared = prepared.with_dependencies(capture);
+                }
+                Ok(prepared)
+            },
+            StageExecutor::full_parallel(1).with_parallel_policy(
+                ParallelExecutionPolicy::new(NonZeroUsize::new(1).unwrap())
+                    .with_worker_count(2)
+                    .with_chunk_size(1)
+                    .with_apply_group_min_width(1)
+                    .with_max_concurrent_apply_groups(2),
+            ),
+        )
+        .unwrap_err();
+    assert!(
+        format!("{err}").contains("stale NodeId"),
+        "apply failure should surface stale dependency-capture error, got: {err}"
+    );
+
+    assert_eq!(
+        graph.get_entry(stable).unwrap().get_aspect_version(),
+        stable_baseline,
+        "stable node state must not commit when the parallel stage fails"
+    );
+    assert_eq!(
+        graph.get_entry(unstable).unwrap().get_aspect_version(),
+        unstable_baseline,
+        "failing node state must be rewound"
+    );
+    assert_eq!(graph.explanation_fact(stable), stable_fact_before.as_ref());
+    assert_eq!(
+        graph.explanation_fact(unstable),
+        unstable_fact_before.as_ref()
+    );
+    assert_eq!(
+        graph.replay_events().len(),
+        replay_len_before,
+        "failed planner stage must not leak task-applied replay events"
+    );
+}
+
+#[test]
+fn full_parallel_policy_matrix_preserves_semantic_artifacts_on_tolerance_heavy_partition_graph() {
+    fn build_graph() -> (SignalGraph, NodeId, NodeId, NodeId) {
+        let mut graph = SignalGraph::new();
+        let source = graph.node().build();
+        let branch_a = graph.node().tolerance(1).build();
+        let branch_b = graph.node().tolerance(1).build();
+        graph
+            .add_partition_dependency(branch_a, source, ASPECT_A, "shell")
+            .unwrap();
+        graph
+            .add_partition_dependency(branch_b, source, ASPECT_A, "core")
+            .unwrap();
+        (graph, source, branch_a, branch_b)
+    }
+
+    fn bootstrap(graph: &mut SignalGraph, source: NodeId, branch_a: NodeId, branch_b: NodeId) {
+        let plan = graph
+            .build_evaluation_plan(
+                &[source, branch_a, branch_b],
+                EvaluationRequestMode::ForceOnDemand,
+            )
+            .unwrap();
+        graph
+            .execute_prepared_plan(&plan, &move |node, view| {
+                let result = if node == source {
+                    view.finish(
+                        NodeEvaluationResult::from_version(version_ab(10, 0))
+                            .with_changed_region(ChangedRegion::new("shell"))
+                            .with_changed_region(ChangedRegion::new("core")),
+                    )
+                } else {
+                    let version = view.read_aspect_version(source, ASPECT_A)?;
+                    view.finish(NodeEvaluationResult::from_version(version))
+                };
+                Ok(result)
+            })
+            .unwrap();
+    }
+
+    fn run_with_executor(
+        mut graph: SignalGraph,
+        source: NodeId,
+        target: NodeId,
+        executor: StageExecutor,
+    ) -> serde_json::Value {
+        mark_dirty_with_regions(
+            &mut graph,
+            source,
+            ASPECT_A,
+            &[ChangedRegion::new("core"), ChangedRegion::new("shell")],
+        )
+        .unwrap();
+        let plan = graph
+            .build_evaluation_plan(&[target], EvaluationRequestMode::Default)
+            .unwrap();
+        graph
+            .execute_prepared_plan_with_executor(
+                &plan,
+                &move |node, view| {
+                    let result = if node == source {
+                        view.finish(
+                            NodeEvaluationResult::from_version(version_ab(12, 0))
+                                .with_changed_region(ChangedRegion::new("shell"))
+                                .with_changed_region(ChangedRegion::new("core")),
+                        )
+                    } else {
+                        let version = view.read_aspect_version(source, ASPECT_A)?;
+                        view.finish(NodeEvaluationResult::from_version(version))
+                    };
+                    Ok(result)
+                },
+                executor,
+            )
+            .unwrap();
+        canonical_runtime_artifacts(&graph, target)
+    }
+
+    let (base_graph, source, branch_a, branch_b) = build_graph();
+    let mut seed_graph = base_graph.clone();
+    bootstrap(&mut seed_graph, source, branch_a, branch_b);
+    let baseline = run_with_executor(seed_graph.clone(), source, branch_b, StageExecutor::Serial);
+
+    for (label, executor) in hostile_executor_matrix() {
+        let observed = run_with_executor(seed_graph.clone(), source, branch_b, executor);
+        assert_eq!(
+            baseline, observed,
+            "executor {label} drifted semantic artifacts"
+        );
+    }
+}
+
+#[test]
+fn logically_equivalent_region_orders_produce_identical_provenance_and_replay() {
+    let mut graph_a = SignalGraph::new();
+    let source_a = graph_a.node().build();
+    let target_a = graph_a.node().tolerance(0).build();
+    graph_a
+        .add_partition_dependency(target_a, source_a, ASPECT_A, "face")
+        .unwrap();
+
+    let mut graph_b = graph_a.clone();
+    let bootstrap = |graph: &mut SignalGraph, source: NodeId, target: NodeId| {
+        let plan = graph
+            .build_evaluation_plan(&[source, target], EvaluationRequestMode::ForceOnDemand)
+            .unwrap();
+        graph
+            .execute_prepared_plan(&plan, &move |node, view| {
+                let result = if node == source {
+                    view.finish(
+                        NodeEvaluationResult::from_version(version_ab(5, 0))
+                            .with_changed_region(ChangedRegion::new("face"))
+                            .with_changed_region(ChangedRegion::new("edge")),
+                    )
+                } else {
+                    let version = view.read_aspect_version(source, ASPECT_A)?;
+                    view.finish(NodeEvaluationResult::from_version(version))
+                };
+                Ok(result)
+            })
+            .unwrap();
+    };
+    bootstrap(&mut graph_a, source_a, target_a);
+    bootstrap(&mut graph_b, source_a, target_a);
+
+    mark_dirty_with_regions(
+        &mut graph_a,
+        source_a,
+        ASPECT_A,
+        &[ChangedRegion::new("face"), ChangedRegion::new("edge")],
+    )
+    .unwrap();
+    mark_dirty_with_regions(
+        &mut graph_b,
+        source_a,
+        ASPECT_A,
+        &[ChangedRegion::new("edge"), ChangedRegion::new("face")],
+    )
+    .unwrap();
+
+    let run = |graph: &mut SignalGraph| {
+        let plan = graph
+            .build_evaluation_plan(&[target_a], EvaluationRequestMode::Default)
+            .unwrap();
+        graph
+            .execute_prepared_plan_with_executor(
+                &plan,
+                &move |node, view| {
+                    let result = if node == source_a {
+                        view.finish(
+                            NodeEvaluationResult::from_version(version_ab(6, 0))
+                                .with_changed_region(ChangedRegion::new("edge"))
+                                .with_changed_region(ChangedRegion::new("face")),
+                        )
+                    } else {
+                        let version = view.read_aspect_version(source_a, ASPECT_A)?;
+                        view.finish(NodeEvaluationResult::from_version(version))
+                    };
+                    Ok(result)
+                },
+                StageExecutor::full_parallel(1),
+            )
+            .unwrap();
+        canonical_runtime_artifacts(graph, target_a)
+    };
+
+    assert_eq!(run(&mut graph_a), run(&mut graph_b));
+}
+
+#[test]
+fn reordered_dependency_and_region_orders_stay_canonical_across_executor_matrix() {
+    fn build_graph(reverse_dependencies: bool) -> (SignalGraph, NodeId, NodeId, NodeId, NodeId) {
+        let mut graph = SignalGraph::new();
+        let source = graph.node().output_identity().build();
+        let shell = graph.node().tolerance(1).partitioned_output().build();
+        let core = graph.node().tolerance(1).partitioned_output().build();
+        let target = graph.node().output_identity().build();
+
+        if reverse_dependencies {
+            graph.add_dependency(target, core, ASPECT_A).unwrap();
+            graph.add_dependency(target, shell, ASPECT_A).unwrap();
+            graph
+                .add_partition_dependency(core, source, ASPECT_A, "mesh")
+                .unwrap();
+            graph
+                .add_partition_dependency(shell, source, ASPECT_A, "shell")
+                .unwrap();
+        } else {
+            graph
+                .add_partition_dependency(shell, source, ASPECT_A, "shell")
+                .unwrap();
+            graph
+                .add_partition_dependency(core, source, ASPECT_A, "mesh")
+                .unwrap();
+            graph.add_dependency(target, shell, ASPECT_A).unwrap();
+            graph.add_dependency(target, core, ASPECT_A).unwrap();
+        }
+
+        (graph, source, shell, core, target)
+    }
+
+    fn bootstrap(
+        graph: &mut SignalGraph,
+        source: NodeId,
+        shell: NodeId,
+        core: NodeId,
+        target: NodeId,
+    ) {
+        let plan = graph
+            .build_evaluation_plan(
+                &[source, shell, core, target],
+                EvaluationRequestMode::ForceOnDemand,
+            )
+            .unwrap();
+        graph
+            .execute_prepared_plan(&plan, &move |node, view| {
+                let result = if node == source {
+                    view.finish(
+                        NodeEvaluationResult::from_version(version_ab(20, 0))
+                            .with_output_identity("geom-v1")
+                            .with_changed_region(ChangedRegion::new("mesh").with_detail("face-b"))
+                            .with_changed_region(ChangedRegion::new("shell").with_detail("face-a")),
+                    )
+                } else if node == shell || node == core {
+                    let version = view.read_aspect_version(source, ASPECT_A)?;
+                    view.finish(NodeEvaluationResult::from_version(version))
+                } else {
+                    let shell_v = view.read_aspect_version(shell, ASPECT_A)?;
+                    let core_v = view.read_aspect_version(core, ASPECT_A)?;
+                    view.finish(
+                        NodeEvaluationResult::from_version(AspectVersion::from_updates([(
+                            ASPECT_A,
+                            shell_v.get(ASPECT_A) + core_v.get(ASPECT_A),
+                        )]))
+                        .with_output_identity("geom-aggregate"),
+                    )
+                };
+                Ok(result)
+            })
+            .unwrap();
+    }
+
+    fn execute(
+        mut graph: SignalGraph,
+        source: NodeId,
+        shell: NodeId,
+        core: NodeId,
+        target: NodeId,
+        region_order: &[ChangedRegion],
+        executor: StageExecutor,
+    ) -> serde_json::Value {
+        mark_dirty_with_regions(&mut graph, source, ASPECT_A, region_order).unwrap();
+        let plan = graph
+            .build_evaluation_plan(&[target], EvaluationRequestMode::Default)
+            .unwrap();
+        graph
+            .execute_prepared_plan_with_executor(
+                &plan,
+                &move |node, view| {
+                    let result = if node == source {
+                        view.finish(
+                            NodeEvaluationResult::from_version(version_ab(22, 0))
+                                .with_output_identity("geom-v2")
+                                .with_changed_region(
+                                    ChangedRegion::new("shell").with_detail("face-a"),
+                                )
+                                .with_changed_region(
+                                    ChangedRegion::new("mesh").with_detail("face-b"),
+                                ),
+                        )
+                    } else if node == shell || node == core {
+                        let version = view.read_aspect_version(source, ASPECT_A)?;
+                        view.finish(NodeEvaluationResult::from_version(version))
+                    } else {
+                        let shell_v = view.read_aspect_version(shell, ASPECT_A)?;
+                        let core_v = view.read_aspect_version(core, ASPECT_A)?;
+                        view.finish(
+                            NodeEvaluationResult::from_version(AspectVersion::from_updates([(
+                                ASPECT_A,
+                                shell_v.get(ASPECT_A) + core_v.get(ASPECT_A),
+                            )]))
+                            .with_output_identity("geom-aggregate"),
+                        )
+                    };
+                    Ok(result)
+                },
+                executor,
+            )
+            .unwrap();
+        canonical_runtime_artifacts(&graph, target)
+    }
+
+    let (mut graph_a, source_a, shell_a, core_a, target_a) = build_graph(false);
+    let (mut graph_b, source_b, shell_b, core_b, target_b) = build_graph(true);
+    bootstrap(&mut graph_a, source_a, shell_a, core_a, target_a);
+    bootstrap(&mut graph_b, source_b, shell_b, core_b, target_b);
+
+    let baseline = execute(
+        graph_a.clone(),
+        source_a,
+        shell_a,
+        core_a,
+        target_a,
+        &[
+            ChangedRegion::new("mesh").with_detail("face-b"),
+            ChangedRegion::new("shell").with_detail("face-a"),
+        ],
+        StageExecutor::Serial,
+    );
+    let reordered = execute(
+        graph_b.clone(),
+        source_b,
+        shell_b,
+        core_b,
+        target_b,
+        &[
+            ChangedRegion::new("shell").with_detail("face-a"),
+            ChangedRegion::new("mesh").with_detail("face-b"),
+        ],
+        StageExecutor::Serial,
+    );
+    assert_eq!(baseline, reordered, "serial canonicalization drifted");
+
+    for (label, executor) in hostile_executor_matrix() {
+        let observed = execute(
+            graph_b.clone(),
+            source_b,
+            shell_b,
+            core_b,
+            target_b,
+            &[
+                ChangedRegion::new("shell").with_detail("face-a"),
+                ChangedRegion::new("mesh").with_detail("face-b"),
+            ],
+            executor,
+        );
+        assert_eq!(
+            baseline, observed,
+            "executor {label} drifted reordered topology artifacts"
+        );
+    }
+}
+
+#[test]
+fn repeated_executor_policy_churn_keeps_tolerance_boundary_artifacts_stable() {
+    fn build_graph() -> (SignalGraph, NodeId, NodeId, NodeId, NodeId) {
+        let mut graph = SignalGraph::new();
+        let source = graph.node().build();
+        let shell = graph.node().tolerance(2).build();
+        let core = graph.node().tolerance(2).build();
+        let target = graph.node().output_identity().build();
+        graph.add_dependency(shell, source, ASPECT_A).unwrap();
+        graph.add_dependency(core, source, ASPECT_A).unwrap();
+        graph.add_dependency(target, shell, ASPECT_A).unwrap();
+        graph.add_dependency(target, core, ASPECT_A).unwrap();
+        (graph, source, shell, core, target)
+    }
+
+    fn bootstrap(
+        graph: &mut SignalGraph,
+        source: NodeId,
+        shell: NodeId,
+        core: NodeId,
+        target: NodeId,
+    ) {
+        let plan = graph
+            .build_evaluation_plan(
+                &[source, shell, core, target],
+                EvaluationRequestMode::ForceOnDemand,
+            )
+            .unwrap();
+        graph
+            .execute_prepared_plan(&plan, &move |node, view| {
+                let result = if node == source {
+                    view.finish(NodeEvaluationResult::from_version(version_ab(100, 0)))
+                } else if node == shell || node == core {
+                    let version = view.read_aspect_version(source, ASPECT_A)?;
+                    view.finish(NodeEvaluationResult::from_version(version))
+                } else {
+                    let shell_v = view.read_aspect_version(shell, ASPECT_A)?;
+                    let core_v = view.read_aspect_version(core, ASPECT_A)?;
+                    view.finish(
+                        NodeEvaluationResult::from_version(AspectVersion::from_updates([(
+                            ASPECT_A,
+                            shell_v.get(ASPECT_A) + core_v.get(ASPECT_A),
+                        )]))
+                        .with_output_identity("topology-target"),
+                    )
+                };
+                Ok(result)
+            })
+            .unwrap();
+    }
+
+    fn run_once(
+        graph: &mut SignalGraph,
+        source: NodeId,
+        shell: NodeId,
+        core: NodeId,
+        target: NodeId,
+        next_version: u64,
+        executor: StageExecutor,
+    ) -> serde_json::Value {
+        mark_dirty(graph, source, ASPECT_A).unwrap();
+        let plan = graph
+            .build_evaluation_plan(&[target], EvaluationRequestMode::Default)
+            .unwrap();
+        graph
+            .execute_prepared_plan_with_executor(
+                &plan,
+                &move |node, view| {
+                    let result = if node == source {
+                        view.finish(NodeEvaluationResult::from_version(version_ab(
+                            next_version,
+                            0,
+                        )))
+                    } else if node == shell || node == core {
+                        let version = view.read_aspect_version(source, ASPECT_A)?;
+                        view.finish(NodeEvaluationResult::from_version(version))
+                    } else {
+                        let shell_v = view.read_aspect_version(shell, ASPECT_A)?;
+                        let core_v = view.read_aspect_version(core, ASPECT_A)?;
+                        view.finish(
+                            NodeEvaluationResult::from_version(AspectVersion::from_updates([(
+                                ASPECT_A,
+                                shell_v.get(ASPECT_A) + core_v.get(ASPECT_A),
+                            )]))
+                            .with_output_identity("topology-target"),
+                        )
+                    };
+                    Ok(result)
+                },
+                executor,
+            )
+            .unwrap();
+        canonical_runtime_artifacts(graph, target)
+    }
+
+    let (mut seed_graph, source, shell, core, target) = build_graph();
+    bootstrap(&mut seed_graph, source, shell, core, target);
+
+    for next_version in [101_u64, 102, 101, 102] {
+        let mut baseline_graph = seed_graph.clone();
+        let baseline = run_once(
+            &mut baseline_graph,
+            source,
+            shell,
+            core,
+            target,
+            next_version,
+            StageExecutor::Serial,
+        );
+        for (label, executor) in hostile_executor_matrix() {
+            let mut candidate_graph = seed_graph.clone();
+            let observed = run_once(
+                &mut candidate_graph,
+                source,
+                shell,
+                core,
+                target,
+                next_version,
+                executor,
+            );
+            assert_eq!(
+                baseline, observed,
+                "executor {label} drifted at tolerance boundary {next_version}"
+            );
+        }
+    }
 }
 
 #[test]

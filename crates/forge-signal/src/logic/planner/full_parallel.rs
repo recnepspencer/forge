@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use std::collections::BTreeSet;
 
 use crate::data::comparator::ComparatorPolicyResolver;
@@ -120,7 +122,9 @@ pub(super) fn apply_full_parallel_stage(
         )?;
     }
 
+    let semantic_finalize_start = Instant::now();
     finalize_stage_batch(graph, &stage.tasks, semantic_batch, report, stage_record)?;
+    stage_record.semantic_finalize_duration_nanos = semantic_finalize_start.elapsed().as_nanos();
     Ok(())
 }
 

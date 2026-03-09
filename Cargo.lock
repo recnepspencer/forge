@@ -1410,6 +1410,11 @@ dependencies = [
 [[package]]
 name = "forge-relational"
 version = "0.1.0"
+dependencies = [
+ "forge-harness",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "forge-repr"

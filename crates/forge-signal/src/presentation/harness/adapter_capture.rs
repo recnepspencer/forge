@@ -10,6 +10,7 @@ use forge_harness::facade::{replay_id, ReplayRecord, ReplayRequest};
 use serde_json::{json, Value};
 
 use super::adapter_core::SignalHarnessAdapter;
+use crate::facade::CORE_STORAGE_PROFILE_ID;
 
 impl DiagnosticsHarnessAdapter for SignalHarnessAdapter {
     fn capture_diagnostics(
@@ -24,6 +25,7 @@ impl DiagnosticsHarnessAdapter for SignalHarnessAdapter {
         let summary = runtime
             .graph
             .diagnostics_summary(Self::diagnostics_profile(profile.diagnostics_level));
+        let runtime_policy = Self::runtime_policy(profile.diagnostics_level);
 
         Ok(DiagnosticsRecord {
             schema_version: RecordSchemaVersion::V2,
@@ -35,7 +37,16 @@ impl DiagnosticsHarnessAdapter for SignalHarnessAdapter {
             time_marker: profile.time_marker.clone(),
             attachments: Vec::new(),
             summary: serde_json::to_value(summary).unwrap_or_else(|_| json!({})),
-            extensions: BTreeMap::new(),
+            extensions: BTreeMap::from([
+                (
+                    "runtime_policy".to_string(),
+                    SignalHarnessAdapter::runtime_policy_summary(runtime_policy),
+                ),
+                (
+                    "core_storage_profile".to_string(),
+                    json!(CORE_STORAGE_PROFILE_ID),
+                ),
+            ]),
         })
     }
 }
@@ -56,7 +67,38 @@ impl ExplanationHarnessAdapter for SignalHarnessAdapter {
             .iter()
             .map(|label| {
                 let node = runtime.resolve(label)?;
-                let explanation = runtime.graph.explain(node)?;
+                let (explanation, materialization_mode) = runtime.graph.explain_artifact(node)?;
+                let summary = if let Some(explanation) = explanation {
+                    if let Some(fact) = runtime.graph.explanation_fact(node) {
+                        json!({
+                            "node": fact.node.to_string(),
+                            "state": fact.state,
+                            "execution_record_id": fact.execution_record_id,
+                            "semantic_segment_id": fact.semantic_segment_id,
+                            "upstream_count": fact.upstream_count,
+                            "propagation_suppressed": fact.propagation_suppressed,
+                            "changed_region_count": fact.changed_region_count,
+                            "output_change": fact.output_change,
+                            "artifact_materialization": SignalHarnessAdapter::artifact_materialization_label(materialization_mode),
+                        })
+                    } else {
+                        let mut summary = Self::explanation_summary(&explanation);
+                        if let Some(map) = summary.as_object_mut() {
+                            map.insert(
+                                "artifact_materialization".to_string(),
+                                json!(SignalHarnessAdapter::artifact_materialization_label(
+                                    materialization_mode
+                                )),
+                            );
+                        }
+                        summary
+                    }
+                } else {
+                    json!({
+                        "artifact_materialization": SignalHarnessAdapter::artifact_materialization_label(materialization_mode),
+                        "available": false,
+                    })
+                };
                 Ok(ExplanationRecord {
                     schema_version: RecordSchemaVersion::V2,
                     explanation_id: explanation_id(&run_id, label),
@@ -65,8 +107,25 @@ impl ExplanationHarnessAdapter for SignalHarnessAdapter {
                     target: label.clone(),
                     time_marker: profile.time_marker.clone(),
                     attachments: Vec::new(),
-                    summary: Self::explanation_summary(&explanation),
-                    extensions: BTreeMap::new(),
+                    summary,
+                    extensions: BTreeMap::from([
+                        (
+                            "runtime_policy".to_string(),
+                            SignalHarnessAdapter::runtime_policy_summary(Self::runtime_policy(
+                                profile.diagnostics_level,
+                            )),
+                        ),
+                        (
+                            "artifact_materialization".to_string(),
+                            json!(SignalHarnessAdapter::artifact_materialization_label(
+                                materialization_mode
+                            )),
+                        ),
+                        (
+                            "core_storage_profile".to_string(),
+                            json!(CORE_STORAGE_PROFILE_ID),
+                        ),
+                    ]),
                 })
             })
             .collect()
@@ -89,7 +148,25 @@ impl ProvenanceHarnessAdapter for SignalHarnessAdapter {
             .iter()
             .map(|label| {
                 let node = runtime.resolve(label)?;
-                let explanation = runtime.graph.explain(node)?;
+                let (provenance, materialization_mode) = runtime.graph.provenance_artifact(node)?;
+                let summary = if let Some(fact) = provenance {
+                    json!({
+                        "execution_record_id": fact.execution_record_id,
+                        "semantic_segment_id": fact.semantic_segment_id,
+                        "vertex_count": fact.vertices.len(),
+                        "edge_count": fact.edges.len(),
+                        "propagation_suppressed": fact.propagation_suppressed,
+                        "vertices": fact.vertices,
+                        "edges": fact.edges,
+                        "causality_kind": fact.causality_kind,
+                        "artifact_materialization": SignalHarnessAdapter::artifact_materialization_label(materialization_mode),
+                    })
+                } else {
+                    json!({
+                        "artifact_materialization": SignalHarnessAdapter::artifact_materialization_label(materialization_mode),
+                        "available": false,
+                    })
+                };
                 Ok(ProvenanceRecord {
                     schema_version: RecordSchemaVersion::V2,
                     provenance_id: provenance_id(&run_id, label),
@@ -98,14 +175,25 @@ impl ProvenanceHarnessAdapter for SignalHarnessAdapter {
                     target: label.clone(),
                     time_marker: profile.time_marker.clone(),
                     attachments: Vec::new(),
-                    summary: json!({
-                        "execution_record_id": explanation.execution_record_id,
-                        "semantic_segment_id": explanation.semantic_segment_id,
-                        "upstream_count": explanation.upstream.len(),
-                        "propagation_suppressed": explanation.propagation_suppressed,
-                        "upstream": explanation.upstream.iter().map(|cause| format!("{cause:?}")).collect::<Vec<_>>(),
-                    }),
-                    extensions: BTreeMap::new(),
+                    summary,
+                    extensions: BTreeMap::from([
+                        (
+                            "runtime_policy".to_string(),
+                            SignalHarnessAdapter::runtime_policy_summary(Self::runtime_policy(
+                                profile.diagnostics_level,
+                            )),
+                        ),
+                        (
+                            "artifact_materialization".to_string(),
+                            json!(SignalHarnessAdapter::artifact_materialization_label(
+                                materialization_mode
+                            )),
+                        ),
+                        (
+                            "core_storage_profile".to_string(),
+                            json!(CORE_STORAGE_PROFILE_ID),
+                        ),
+                    ]),
                 })
             })
             .collect()
@@ -133,12 +221,22 @@ impl ReplayHarnessAdapter for SignalHarnessAdapter {
     ) -> Result<ReplayRecord<Self::TargetId>, Self::Error> {
         let scenario_id = scenario_id(&fixture.name);
         let source_run_id = replay.source_run.run_id.clone();
-        let report = replay
-            .source_run
-            .extensions
-            .get("execution_report")
-            .cloned()
-            .unwrap_or_else(|| json!({}));
+        let runtime = _runtime.runtime()?;
+        let events = runtime
+            .graph
+            .replay_events()
+            .iter()
+            .map(|event| {
+                json!({
+                    "sequence": event.sequence,
+                    "kind": format!("{:?}", event.kind),
+                    "node": event.node.map(|node| node.to_string()),
+                    "execution_record_id": event.execution_record_id,
+                    "semantic_segment_id": event.semantic_segment_id,
+                    "detail": event.detail,
+                })
+            })
+            .collect::<Vec<_>>();
         Ok(ReplayRecord {
             schema_version: RecordSchemaVersion::V2,
             replay_id: replay_id(&source_run_id, &replay.name),
@@ -150,9 +248,13 @@ impl ReplayHarnessAdapter for SignalHarnessAdapter {
             requested_targets: replay.request.targets.clone(),
             summary: json!({
                 "profile": replay.profile.name,
+                "runtime_policy": SignalHarnessAdapter::runtime_policy_summary(
+                    Self::runtime_policy(replay.profile.diagnostics_level)
+                ),
+                "core_storage_profile": CORE_STORAGE_PROFILE_ID,
                 "source_status": format!("{:?}", replay.source_run.status),
                 "requested_targets": replay.request.targets,
-                "execution_report": report,
+                "events": events,
             }),
             attachments: Vec::new(),
         })

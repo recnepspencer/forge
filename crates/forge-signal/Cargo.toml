@@ -6,8 +6,11 @@ license.workspace = true
 description = "Generic deterministic reactive computation runtime"
 
 [features]
-default = []
+default = ["profile-standard"]
 parallel = []
+profile-compact = []
+profile-standard = []
+profile-extended = []
 
 [dependencies]
 forge-harness.workspace = true

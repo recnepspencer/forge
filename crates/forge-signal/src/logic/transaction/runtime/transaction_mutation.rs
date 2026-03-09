@@ -9,7 +9,7 @@ use crate::data::error::SignalError;
 use crate::data::evaluator::CheckpointEvaluator;
 use crate::data::handle::NodeId;
 use crate::data::output::ChangedRegion;
-use crate::diagnostics::recorder::DiagnosticsRecorder;
+use crate::diagnostics::replay::ReplayEventKind;
 use crate::diagnostics::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::logic::invalidation::{mark_dirty, mark_dirty_with_regions};
 
@@ -151,7 +151,12 @@ where
     ) {
         let summary = ExecutionFailureContext::from_error(phase, err, plan_summary)
             .summarize(None, self.graph.diagnostics_profile());
-        self.pending_failure_summary = Some(summary.clone());
-        DiagnosticsRecorder::new(self.graph).record_failure_summary(summary);
+        self.semantic_delta.failure_summary = Some(summary);
+        self.semantic_delta.replay_events.push((
+            ReplayEventKind::FailureRecorded,
+            err.to_string(),
+            None,
+            None,
+        ));
     }
 }

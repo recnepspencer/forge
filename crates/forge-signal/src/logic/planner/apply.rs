@@ -114,9 +114,11 @@ pub(super) fn materialize_apply_group(
     }
 
     for (source, subscribers) in subscriber_sets {
-        let mut entry = entry_updates
-            .remove(&source)
-            .unwrap_or_else(|| graph.get_entry(source).expect("validated source").clone());
+        let mut entry = if let Some(entry) = entry_updates.remove(&source) {
+            entry
+        } else {
+            graph.get_entry(source)?.clone()
+        };
         let subscribers: Vec<_> = subscribers.into_iter().collect();
         entry.set_subscribers_id(graph.store_subscribers(&subscribers));
         entry_updates.insert(source, entry);

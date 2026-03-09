@@ -8,7 +8,9 @@ Forge needs a first-class truth runtime, not an ad hoc storage layer.
 
 For Forge, the specification graph is the product. More generally, the runtime exists for systems where authoritative graph state must outlive any single derived read model, evaluation layer, export format, or application session.
 
-`forge-relational` should be designed as a standalone generic library. CAD is a major target, but not the definition of the runtime. The same truth/runtime architecture should be useful in game engines, financial platforms, chip simulation, AI systems, and other domains that need transactional graph state with strong identity and history semantics.
+`forge-relational` should be designed as a standalone generic library. CAD and geometry kernels are major targets, but not the definition of the runtime. The same truth/runtime architecture should be useful in chip design, financial platforms, AI systems, and other domains that need transactional graph state with strong identity and history semantics.
+
+Those domains are not forgiving. Geometry kernels, chip-design systems, and other critical engineering runtimes impose a high-assurance bar: determinism, diagnosability, replayability, and long-term architectural discipline are product requirements, not optional engineering quality work.
 
 ## Why This Runtime Is Different
 
@@ -33,6 +35,8 @@ If these are treated as “nice to have later,” the runtime collapses back int
 ## Mission
 
 `forge-relational` exists to make truth-state graph operations safe, replayable, branchable, and inspectable at industrial scale.
+
+It must be developed to the standard expected of high-consequence runtime infrastructure. This is not a place for MVP shortcuts, convenient ambiguity, or hidden behavior that "probably works" until scale, audit, or certification pressure arrives.
 
 It must answer these questions as native runtime responsibilities:
 
@@ -98,6 +102,123 @@ Truth mutation, truth history, and truth identity live here. Downstream runtimes
 12. Integrity and schema validation are first-class runtime architecture, not accessory checks around the edge.
 13. Diagnostics are a first-class runtime contract. Truth mutation, history, lineage, diffs, and replay must be inspectable, comparable, and auditable in production.
 14. The relational harness is first-class infrastructure. Regression seeders, branch/history scenarios, and diff/replay parity drivers should evolve alongside the runtime, not after it.
+15. Parallelism must be designed around immutable reads and immutable outputs. Preparation and downstream consumption may scale out, but authoritative truth mutation, authoritative order, and authoritative history must remain deterministic.
+
+## Foundational Decisions We Refuse To Revisit Later
+
+These are locked architectural decisions, not provisional defaults.
+
+- single logical writer for authoritative truth commit
+- generational identity as the only authoritative ID base
+- separate entity and relation identity systems
+- immutable committed snapshots
+- canonical ordering for every observable output
+- commit-native patch and CDC emission
+- structured diagnostics as a production contract
+- arena plus sidecar storage as the foundational memory model
+- `forge_harness` as the default acceptance path
+- parallelize preparation and consumption, serialize authority
+- derived indexes remain non-authoritative and publish immutably
+- no hidden mutation during reads
+- no scheduler-dependent semantics
+
+For this runtime, a slice is truth-grade only if it guarantees:
+
+- all authoritative mutation flows through transactions only
+- all observable outputs are deterministic and canonically ordered
+- committed reads are immutable
+- commit emits structured patch and diagnostics artifacts
+- replay artifacts are derived from canonical commit artifacts
+- harness parity exists for success and failure paths
+
+### Explicit prohibitions
+
+These are architectural prohibitions, not style guidance:
+
+- no `HashMap` iteration in observable paths
+- no read-triggered normalization, lazy repair, or cache mutation
+- no shared mutable authoritative patch object across workers
+- no entity-only runtime that defers relations to later
+- no temporary pre-generational ID model
+- no diagnostics-only freeform blobs without stable structured fields
+- no replay artifact that is a dump of internal heap state
+- no public API bias toward per-record ping-pong reads
+
+### Observable order classes
+
+Observable means:
+
+- snapshots
+- diagnostics artifacts
+- patch artifacts
+- replay artifacts
+- public iteration surfaces
+- harness comparison outputs
+
+Internal worker scheduling may vary. Observable outputs may not.
+
+Canonical ordering must be defined for:
+
+- entity order
+- relation order
+- worker-intent merge order
+- canonical merged-operation order
+- authoritative apply order
+- patch emission order
+- diagnostics entry order
+- replay record order
+
+### Snapshot publication semantics
+
+Snapshot publication is a single coherent user-visible boundary:
+
+- a successful commit produces exactly one committed visible snapshot
+- failed commits publish nothing authoritative
+- snapshot, patch, diagnostics, and replay artifacts are published as one coherent commit outcome
+- if coherent publication cannot complete, the commit does not become visible
+- publication may have internal phases, but from the user-visible contract it is atomic
+
+### Replay artifact contract
+
+Replay artifacts must obey all of the following:
+
+- derived from canonical commit artifacts rather than internal heap state
+- stable and serializable inputs
+- canonical replay ordering
+- local timing and worker scheduling excluded from replay semantics
+- schema-versioned from day one
+- schema/version mismatch is an explicit failure class
+
+### Invariant categories
+
+Every invariant must declare both category and effect on execution:
+
+- `AlwaysOnStructural`
+- `CommitBoundary`
+- `SnapshotAudit`
+- `HarnessHeavy`
+
+Each invariant must state whether failure blocks commit, blocks publication, or is audit-only.
+
+### Diagnostics boundedness
+
+Diagnostics are required by default, but they are not unbounded:
+
+- every commit emits a mandatory minimal structured summary
+- detailed traces are optional by profile
+- retention is bounded by policy
+- diagnostics storage must not grow unbounded on hot paths
+- commit-time diagnostics cannot depend on unlimited buffering
+
+### Kind and schema registry discipline
+
+Kinds and schema identity are architectural contracts:
+
+- kinds use stable IDs
+- kind registration is schema-governed
+- kind identity is replay-stable
+- kind mapping is portable across snapshots and branches
+- schema/version mismatch is explicit and never silently tolerated
 
 ## Pillars
 
@@ -161,6 +282,9 @@ All write paths flow through explicit transaction boundaries.
 What depends on it:
 Snapshots, CDC, rollback, bridge integration, and deterministic replay.
 
+Authority rule:
+Parallel workers may prepare candidate intents, validation summaries, index fragments, and diagnostics fragments, but final truth mutation must flow through one deterministic commit authority.
+
 #### Sparse undo log
 
 Why it exists:
@@ -174,6 +298,9 @@ Mutation tracking must record touched subsets precisely.
 
 What depends on it:
 Cheap rollback, savepoints, speculative editing, and large-model throughput.
+
+Diagnostics expectation:
+Undo records must be inspectable as production truth artifacts. Rollback diagnostics need stable ordering, failure classification, and replay-comparable summaries.
 
 #### Nested savepoints
 
@@ -189,6 +316,9 @@ The transaction model must support scoped rewind points, not just all-or-nothing
 What depends on it:
 Compound mutation operators, AI-driven exploration, and future branch experimentation.
 
+Concurrency boundary:
+Savepoint creation, rollback-to-savepoint, commit, and abort are transaction-boundary state transitions. They must remain serialized and explicit even if some planning or validation work around them runs in parallel.
+
 #### Bulk mutation APIs
 
 Why it exists:
@@ -202,6 +332,18 @@ The runtime must expose vectorized mutation surfaces as first-class APIs.
 
 What depends on it:
 Importers, graph transforms, migration tools, and large operator batches.
+
+Parallel design rule:
+Bulk mutation APIs should accept partitionable intent batches and worker-local staging outputs now, even if initial execution stays single-writer.
+
+Formal planning layers:
+
+- `WorkerIntentBatch`
+- `MergedCommitPlan`
+- `AuthoritativeApplyPlan`
+- `CommitOutcome`
+
+Staging objects must not quietly acquire authoritative semantics.
 
 ### History Architecture
 
@@ -219,6 +361,9 @@ Committed state and mutable state must be representable as distinct versions.
 What depends on it:
 Snapshot-backed evaluation, replay, branch exploration, and parallel reads.
 
+Parallel design rule:
+Snapshots must be immutable, concurrently readable, and semantics-stable. Reads must not trigger lazy writeback, hidden normalization, or cache mutation that changes observable results.
+
 #### Snapshot reads during active mutation
 
 Why it exists:
@@ -232,6 +377,9 @@ The runtime must let readers pin stable versions while writers continue elsewher
 
 What depends on it:
 Bridge contracts, signal evaluation, inspection tools, and audit surfaces.
+
+Testing rule:
+`forge_harness` parity suites must treat snapshot reads during active mutation as a first-class acceptance path, not a stress-test add-on.
 
 #### Branchable version graph
 
@@ -247,6 +395,9 @@ Version history must be graph-shaped, not stack-shaped.
 What depends on it:
 Merge, counterfactuals, collaboration, and AI branch exploration.
 
+Authority boundary:
+Version graph advancement is authoritative history publication. Candidate work may be prepared in parallel, but parent selection, version identity assignment, and visibility publication must be canonical and serialized.
+
 #### Deterministic replay
 
 Why it exists:
@@ -261,6 +412,9 @@ Commit ordering, mutation records, and observable outputs must be deterministic.
 What depends on it:
 Audit, debugging, merge diagnostics, and validation harnesses.
 
+Harness rule:
+Replay acceptance for `forge-relational` must run through `forge_harness` (`forge-harness` package). The runtime should not rely on bespoke replay test scaffolding that drifts from the production diagnostics contract.
+
 #### Graph time travel
 
 Why it exists:
@@ -274,6 +428,18 @@ The history model must support reconstruction or retention of prior states inten
 
 What depends on it:
 Debugging, visualization, branch comparison, and audit tooling.
+
+Lifecycle vocabulary:
+
+- `Live`
+- `DeletedRetained`
+- `PinnedBySnapshot`
+- `PinnedByBranch`
+- `PinnedByReplayRetention`
+- `Reclaimable`
+- `Reusable`
+
+The architecture must use explicit lifecycle terminology rather than treating "tombstone" as a catch-all concept.
 
 #### Version garbage collection
 
@@ -305,6 +471,9 @@ Commit must produce machine-readable patchsets, not just mutate state silently.
 What depends on it:
 Bridge integration, audit, streaming tooling, and downstream invalidation.
 
+Authority boundary:
+Diff preparation may be parallelized over immutable snapshots and worker-local fragments. Final emitted authoritative patch order must remain deterministic and canonical.
+
 #### Stream correctness semantics
 
 Why it exists:
@@ -318,6 +487,9 @@ The runtime must define deterministic stream ordering and consumption semantics 
 
 What depends on it:
 Bridge replay, durable subscribers, large-scale integrations, and robust downstream recovery.
+
+Diagnostics expectation:
+Resume tokens, checkpoints, publication order, coalescing decisions, and subscriber-visible failures all need structured diagnostics and replay-visible records.
 
 #### Aspect-tagged diffs
 
@@ -405,6 +577,9 @@ The runtime must model transformation history directly.
 What depends on it:
 Historical resolution, correspondence, and lineage-aware diffs.
 
+Authority boundary:
+Workers may discover correspondence or lineage candidates in parallel, but final lineage event recording must be canonical and serialized.
+
 #### Historical ID resolution
 
 Why it exists:
@@ -491,6 +666,9 @@ Bulk query surfaces must be treated as primary design targets, not convenience w
 What depends on it:
 Bridge propagation, analysis, imports, large traversal workloads, and system-scale performance.
 
+Parallel design rule:
+Bulk APIs should be expressible as deterministic work packets over stable snapshots so future partition-aware execution does not require redesigning the query surface.
+
 #### Relation-type scans
 
 Why it exists:
@@ -533,6 +711,31 @@ The runtime should expose hooks for maintained indexes and derived lookup struct
 What depends on it:
 High-volume queries, relation-type scans, bridge lookups, and large host-specific query acceleration.
 
+Parallel design rule:
+Derived index maintenance should separate authoritative commit from parallel rebuild assistance. Parallel workers may compute index fragments or new immutable generations, but publication of read-visible index state must remain ordered and explicit.
+
+Storage classification rule:
+
+Hot-path sidecars contain only data required for:
+
+- slot validity and lifecycle state
+- canonical iteration participation
+- commit apply
+- snapshot reads
+- adjacency traversal
+- aspect/version gating required by core read/commit paths
+
+Cold-path sidecars contain data required for:
+
+- lineage refinement
+- extended diagnostics
+- replay enrichment
+- correspondence hints
+- branch metadata not needed by core apply/read
+- audit-only or harness-heavy metadata
+
+Any per-record metadata placed in hot-path sidecars requires explicit justification.
+
 #### Parallel read access
 
 Why it exists:
@@ -547,6 +750,9 @@ Snapshot and storage design must support concurrent immutable reads.
 What depends on it:
 Analysis, signal evaluation, tooling, and distributed workflows.
 
+Determinism rule:
+Query results, diagnostics summaries, and introspection output must not depend on thread count, worker timing, or scheduler order.
+
 #### Partitioning hints
 
 Why it exists:
@@ -560,6 +766,9 @@ The runtime should expose hints without requiring distributed execution to exist
 
 What depends on it:
 Future scale-out, bulk query planning, and cross-worker decomposition.
+
+Future-proofing rule:
+Even before full partitioning exists, APIs should preserve the ability to address entity ranges, relation ranges, branch-local work packets, and snapshot-local partitions.
 
 #### Memory stability guarantees
 
@@ -583,8 +792,11 @@ Diagnostics and the harness are cross-cutting requirements, not a final cleanup 
 
 - deterministic summaries and diffs for the new subsystem
 - failure-path diagnostics rather than success-only reporting
-- scenario-driven harness coverage with named regression seeders for confirmed bugs
+- scenario-driven `forge_harness` coverage with named regression seeders for confirmed bugs
 - bounded retained history suitable for long-running truth runtimes
+- serial-vs-parallel parity checks wherever a phase introduces parallel-capable preparation or read paths
+- coherent publication semantics for snapshot, patch, diagnostics, and replay artifacts
+- explicit invariant categories and declared failure effects
 
 ### Phase 1: Identity and storage foundations
 
@@ -598,6 +810,13 @@ Breakthrough features:
 Outcome:
 Truth has stable handles, predictable storage behavior, and a clean identity story that can support branching and lineage later.
 
+Must also lock in:
+
+- separate entity and relation identity systems
+- lifecycle-state vocabulary instead of generic tombstone flags
+- hot-path versus cold-path sidecar discipline
+- schema-governed stable kind IDs
+
 ### Phase 2: Transaction foundations
 
 Breakthrough features:
@@ -610,6 +829,13 @@ Breakthrough features:
 Outcome:
 Mutation becomes explicitly scoped, rewindable, and scalable for large graph edits.
 
+Must also lock in:
+
+- thread-local intent staging rather than shared mutable patch construction
+- deterministic intent merge rules before any attempt at concurrent apply
+- rollback and savepoint diagnostics that survive replay and branch comparison
+- formal separation between `WorkerIntentBatch`, `MergedCommitPlan`, `AuthoritativeApplyPlan`, and `CommitOutcome`
+
 ### Phase 3: History and branching foundations
 
 Breakthrough features:
@@ -621,6 +847,13 @@ Breakthrough features:
 
 Outcome:
 Truth becomes branchable and inspectable without sacrificing safe mutation flow.
+
+Must also lock in:
+
+- immutable snapshot handles safe for concurrent reads
+- serialized authoritative publication of commits and version graph advancement
+- `forge_harness` parity coverage for snapshot reads during active mutation and replay fidelity
+- coherent publication of snapshot, patch, diagnostics, and replay artifacts
 
 ### Phase 4: Diff and aspect foundations
 
@@ -635,6 +868,12 @@ Breakthrough features:
 Outcome:
 Commits emit precise structured change data suitable for bridge routing and audit.
 
+Must also lock in:
+
+- worker-local diff fragment preparation with deterministic final merge
+- canonical stream ordering and durable resume/checkpoint semantics
+- diagnostics surfaces for patch publication, subscriber recovery, and audit export
+
 ### Phase 5: Lineage and correspondence foundations
 
 Breakthrough features:
@@ -646,6 +885,12 @@ Breakthrough features:
 
 Outcome:
 Identity evolution becomes queryable and usable across history and branches.
+
+Must also lock in:
+
+- deterministic lineage finalization rules
+- parallel candidate discovery without parallel authoritative lineage mutation
+- harness seeders for split/merge/replace/correspondence regressions
 
 ### Phase 6: Query and scale foundations
 
@@ -660,6 +905,12 @@ Breakthrough features:
 Outcome:
 The truth runtime becomes powerful enough to feed projections, analyses, and bridge consumers at scale.
 
+Must also lock in:
+
+- partition-aware job descriptions even before distributed execution exists
+- deterministic map-reduce style aggregation for validation, diagnostics, index fragments, and metrics
+- explicit separation between serial truth commit and parallel post-commit derived work
+
 ### Runtime trust infrastructure
 
 This work is intentionally cross-phase:
@@ -667,7 +918,10 @@ This work is intentionally cross-phase:
 - production diagnostics contract for truth mutation, history, lineage, replay, and CDC
 - one public diagnostics entrypoint instead of scattered debug utilities
 - lifecycle-aware truth artifacts that can later compose with bridge and signal diagnostics
-- a relational harness built on production diagnostics, with branch/history/diff/replay seeders and regression scenarios
+- a relational adapter for `forge_harness`, built on production diagnostics, with branch/history/diff/replay seeders and regression scenarios
+- acceptance suites that compare serial-authority execution against any staged-parallel preparation or post-commit parallel mode
+- invariant categories with declared execution effects
+- schema-versioned replay artifacts derived from canonical commit artifacts
 
 If this work is postponed, the truth runtime will be much harder to trust once branching, replay, and correspondence become real.
 
@@ -698,5 +952,6 @@ Companion documents:
 
 - [_docs/engineering/forge_signal_vision.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_signal_vision.md) for derived computation
 - [_docs/engineering/forge_runtime_bridge_vision.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_runtime_bridge_vision.md) for dual-runtime integration
+- [_docs/engineering/forge_relational_roadmap.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_relational_roadmap.md) for the implementation roadmap and future-proofing constraints
 
 The truth runtime’s MVCC, CDC, lineage, aspects, and bulk query architecture are what make the rest of the stack viable. If these are weak, every projection, bridge, and reactive layer built on top of them becomes weaker too. `forge-relational` should therefore be designed as an independent runtime library with its own direct API surface, not as a kernel-tied implementation detail or as something that must be accessed through the bridge.

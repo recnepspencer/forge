@@ -54,6 +54,17 @@ impl SparsePatchBuffer {
         self.touched_indices.len()
     }
 
+    pub(super) fn touched_nodes(&self, graph: &SignalGraph) -> Vec<NodeId> {
+        let mut nodes = self
+            .touched_indices
+            .iter()
+            .filter_map(|index| graph.live_node_id_at(*index))
+            .collect::<Vec<_>>();
+        nodes.sort_by_key(|node| (node.index(), node.generation()));
+        nodes.dedup();
+        nodes
+    }
+
     /// Commit path: graph already contains staged changes, so clear patches only.
     pub(super) fn commit_and_clear(&mut self) {
         let mut touched = std::mem::take(&mut self.touched_indices);

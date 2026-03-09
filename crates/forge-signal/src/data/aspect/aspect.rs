@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 
+use crate::data::core_profile::AspectMaskBits;
+
 /// Maximum number of independently versioned aspect slots supported per node.
-pub const MAX_ASPECTS: usize = 8;
+pub const MAX_ASPECTS: usize = crate::data::core_profile::MAX_ASPECTS;
 
 /// Caller-defined aspect key for subscription, invalidation, and version lookup.
 ///
@@ -34,7 +36,7 @@ impl Aspect {
         self.0
     }
 
-    pub(crate) const fn bit(self) -> u8 {
-        1u8 << self.0
+    pub(crate) const fn bit(self) -> AspectMaskBits {
+        (1 as AspectMaskBits) << self.0
     }
 }

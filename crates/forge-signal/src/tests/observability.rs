@@ -125,6 +125,88 @@ fn explain_reports_skipped_by_comparator_via_runtime_policy() {
 }
 
 #[test]
+fn explicit_omit_policy_surfaces_unavailable_artifacts() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().build();
+    let dependent = graph.node().build();
+    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.set_runtime_policy(
+        SignalRuntimePolicy::operational()
+            .with_explanation_retention(ArtifactRetentionPolicy::Omit)
+            .with_provenance_retention(ArtifactRetentionPolicy::Omit),
+    );
+
+    let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    evaluate(&mut graph, source, &mut compute).unwrap();
+    evaluate(&mut graph, dependent, &mut compute).unwrap();
+
+    let (explanation, explanation_mode) = graph.explain_artifact(dependent).unwrap();
+    let (provenance, provenance_mode) = graph.provenance_artifact(dependent).unwrap();
+
+    assert!(explanation.is_none());
+    assert!(provenance.is_none());
+    assert_eq!(explanation_mode, ArtifactMaterializationMode::Unavailable);
+    assert_eq!(provenance_mode, ArtifactMaterializationMode::Unavailable);
+}
+
+#[test]
+fn explicit_retained_and_reconstructed_artifact_apis_match_policy() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().build();
+    let dependent = graph.node().build();
+    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph.set_runtime_policy(SignalRuntimePolicy::development());
+    let bootstrap = graph
+        .build_evaluation_plan(&[source, dependent], EvaluationRequestMode::ForceOnDemand)
+        .unwrap();
+    graph
+        .execute_prepared_plan(&bootstrap, &|node, view| {
+            let result = if node == source {
+                view.finish(version_ab(1, 0))
+            } else {
+                let version = view.read_aspect_version(source, ASPECT_A)?;
+                view.finish(NodeEvaluationResult::from_version(version))
+            };
+            Ok(result)
+        })
+        .unwrap();
+    assert!(graph.retained_explanation_artifact(dependent).is_some());
+    assert!(graph.retained_provenance_artifact(dependent).is_some());
+
+    graph.set_runtime_policy(SignalRuntimePolicy::operational());
+    assert!(graph.retained_explanation_artifact(dependent).is_none());
+    assert!(graph.retained_provenance_artifact(dependent).is_none());
+    assert!(!graph
+        .reconstruct_explanation_artifact(dependent)
+        .unwrap()
+        .upstream
+        .is_empty());
+    assert!(graph
+        .reconstruct_provenance_artifact(dependent)
+        .unwrap()
+        .vertices
+        .iter()
+        .any(|vertex| vertex.node == dependent));
+}
+
+#[test]
+fn market_runtime_policy_presets_expose_distinct_operational_shapes() {
+    let kernel = SignalRuntimePolicy::kernel();
+    let fintech = SignalRuntimePolicy::fintech();
+    let game = SignalRuntimePolicy::game_engine();
+
+    assert_eq!(kernel.profile, DiagnosticsProfile::Forensic);
+    assert_eq!(fintech.profile, DiagnosticsProfile::Development);
+    assert_eq!(game.profile, DiagnosticsProfile::Operational);
+    assert!(
+        kernel.parallel_admission.full_parallel_min_tasks
+            >= fintech.parallel_admission.full_parallel_min_tasks
+    );
+    assert!(fintech.retain_flow_explanation);
+    assert!(!game.retains_explanation_facts());
+}
+
+#[test]
 fn explain_reports_condition_deferred_for_on_demand_nodes() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();

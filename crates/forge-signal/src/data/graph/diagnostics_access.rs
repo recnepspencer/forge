@@ -4,8 +4,11 @@ use crate::data::error::SignalError;
 use crate::data::graph::signal_graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::diagnostics::access::GraphDiagnostics;
+use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
 use crate::diagnostics::history::ExecutionInspector;
+use crate::diagnostics::policy::{ArtifactMaterializationMode, SignalRuntimePolicy};
 use crate::diagnostics::profile::DiagnosticsProfile;
+use crate::diagnostics::replay::ReplayEvent;
 use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
 use crate::diagnostics::{FailureSummary, FlowSummary, RollbackDiagnostic};
 use crate::logic::explain::{dependency_chain_to, explain, NodeExplanation};
@@ -70,8 +73,16 @@ impl SignalGraph {
         self.diagnostics.profile()
     }
 
+    pub fn runtime_policy(&self) -> SignalRuntimePolicy {
+        self.diagnostics.policy()
+    }
+
     pub fn set_diagnostics_profile(&mut self, profile: DiagnosticsProfile) {
         self.diagnostics.set_profile(profile);
+    }
+
+    pub fn set_runtime_policy(&mut self, policy: SignalRuntimePolicy) {
+        self.diagnostics.set_policy(policy);
     }
 
     pub fn diagnostics_summary(&self, profile: DiagnosticsProfile) -> GraphSummary {
@@ -109,6 +120,76 @@ impl SignalGraph {
         &self,
     ) -> &std::collections::VecDeque<ExecutionHistorySummary> {
         self.diagnostics.recent_history()
+    }
+
+    pub fn replay_events(&self) -> &std::collections::VecDeque<ReplayEvent> {
+        self.diagnostics.replay_events()
+    }
+
+    pub fn explanation_fact(&self, node: NodeId) -> Option<&ExplanationFact> {
+        self.diagnostics.explanation_facts().get(&node)
+    }
+
+    pub fn provenance_fact(&self, node: NodeId) -> Option<&ProvenanceFact> {
+        self.diagnostics.provenance_facts().get(&node)
+    }
+
+    pub fn retained_explanation_artifact(&self, node: NodeId) -> Option<NodeExplanation> {
+        self.explanation_fact(node)
+            .map(|fact| fact.explanation.clone())
+    }
+
+    pub fn reconstruct_explanation_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<NodeExplanation, SignalError> {
+        explain(self, node)
+    }
+
+    pub fn retained_provenance_artifact(&self, node: NodeId) -> Option<ProvenanceFact> {
+        self.provenance_fact(node).cloned()
+    }
+
+    pub fn reconstruct_provenance_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<ProvenanceFact, SignalError> {
+        Ok(ProvenanceFact::from_explanation(&explain(self, node)?))
+    }
+
+    pub fn explain_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<(Option<NodeExplanation>, ArtifactMaterializationMode), SignalError> {
+        if let Some(fact) = self.explanation_fact(node) {
+            return Ok((
+                Some(fact.explanation.clone()),
+                ArtifactMaterializationMode::Retained,
+            ));
+        }
+        if self.runtime_policy().can_reconstruct_explanation() {
+            return Ok((
+                Some(self.reconstruct_explanation_artifact(node)?),
+                ArtifactMaterializationMode::Reconstructed,
+            ));
+        }
+        Ok((None, ArtifactMaterializationMode::Unavailable))
+    }
+
+    pub fn provenance_artifact(
+        &self,
+        node: NodeId,
+    ) -> Result<(Option<ProvenanceFact>, ArtifactMaterializationMode), SignalError> {
+        if let Some(fact) = self.provenance_fact(node) {
+            return Ok((Some(fact.clone()), ArtifactMaterializationMode::Retained));
+        }
+        if self.runtime_policy().can_reconstruct_provenance() {
+            return Ok((
+                Some(self.reconstruct_provenance_artifact(node)?),
+                ArtifactMaterializationMode::Reconstructed,
+            ));
+        }
+        Ok((None, ArtifactMaterializationMode::Unavailable))
     }
 
     pub fn to_dot(&self) -> String {

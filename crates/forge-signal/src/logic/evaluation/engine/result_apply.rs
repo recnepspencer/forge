@@ -1,5 +1,6 @@
 use crate::data::aspect::{AspectMask, AspectVersion};
 use crate::data::comparator::ComparatorPolicyResolver;
+use crate::data::core_profile::StableHashValue;
 use crate::data::dependency::DependencySnapshot;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
@@ -205,15 +206,15 @@ fn count_changed_partitions(changed_regions: &[crate::data::output::ChangedRegio
     partitions.len() as u32
 }
 
-fn trace_identity_hash(identity: &crate::data::output::OutputIdentity) -> u128 {
+fn trace_identity_hash(identity: &crate::data::output::OutputIdentity) -> StableHashValue {
     identity.stable_hash()
 }
 
-fn trace_output_hash(version: AspectVersion) -> u128 {
+fn trace_output_hash(version: AspectVersion) -> StableHashValue {
     let mut hash = 0xcbf29ce484222325_u128;
     for slot in version.slots() {
         hash ^= *slot as u128;
         hash = hash.wrapping_mul(0x100000001b3_u128);
     }
-    hash
+    hash as StableHashValue
 }

@@ -17,6 +17,14 @@ pub fn explain_with_policy_resolver(
     comparator_resolver: &impl ComparatorPolicyResolver,
 ) -> Result<NodeExplanation, SignalError> {
     let entry = graph.get_entry(node)?;
+    if let Some(fact) = graph.explanation_fact(node) {
+        let current_trace = entry.get_trace_summary().cloned();
+        if fact.explanation.state == *entry.get_state()
+            && fact.explanation.trace_summary == current_trace
+        {
+            return Ok(fact.explanation.clone());
+        }
+    }
     let state = *entry.get_state();
     let dirty_aspects = entry.get_dirty_aspects();
     let condition = entry.get_eval_config().condition.clone();

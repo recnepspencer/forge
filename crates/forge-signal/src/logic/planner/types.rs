@@ -127,6 +127,7 @@ pub struct TaskExecutionRecord {
 pub struct StageExecutionRecord {
     pub stage_index: u32,
     pub outcome: StageExecutionOutcome,
+    pub parallel_admission_reason: Option<String>,
     #[cfg(feature = "parallel")]
     pub parallel_kind: Option<ParallelExecutionKind>,
     #[cfg(feature = "parallel")]
@@ -142,6 +143,7 @@ pub struct StageExecutionRecord {
     pub snapshot_duration_nanos: u128,
     pub precompute_duration_nanos: u128,
     pub apply_duration_nanos: u128,
+    pub semantic_finalize_duration_nanos: u128,
     pub duration_nanos: u128,
     pub semantic_task_range: Option<SemanticTaskRange>,
     pub semantic_segment_count: u32,
@@ -167,6 +169,7 @@ pub struct ExecutionReport {
     pub execution_snapshot_nanos: u128,
     pub stage_precompute_nanos: u128,
     pub stage_apply_nanos: u128,
+    pub semantic_finalize_nanos: u128,
     pub semantic_segment_count: u32,
     pub stages: Vec<StageExecutionRecord>,
 }
@@ -219,14 +222,6 @@ impl StageExecutor {
     }
 
     #[cfg(feature = "parallel")]
-    pub(crate) fn uses_parallel_for_stage(&self, stage: &ExecutionStage) -> bool {
-        matches!(
-            self,
-            Self::StagedParallelPrecompute { policy } | Self::FullParallel { policy }
-                if stage.tasks.len() >= policy.min_stage_width.get()
-        )
-    }
-
     #[cfg(feature = "parallel")]
     pub(crate) fn parallel_kind(&self) -> Option<ParallelExecutionKind> {
         match self {
