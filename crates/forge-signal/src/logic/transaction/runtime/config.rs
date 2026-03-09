@@ -44,6 +44,14 @@ impl<T: Copy + Ord> SignalRuntimeConfig<T> {
         self.node_meta.ensure_capacity(graph.arena_capacity());
     }
 
+    pub(super) fn prune_stale_node_meta(&mut self, graph: &SignalGraph) {
+        self.node_meta.prune_slots(|index, generation| {
+            graph
+                .live_node_id_at(index)
+                .is_some_and(|node| node.generation() == generation)
+        });
+    }
+
     pub fn set_node_tier(&mut self, graph: &SignalGraph, node: NodeId, tier: T) {
         self.sync_graph_capacity(graph);
         self.node_meta.set_tier(node, tier);
@@ -124,5 +132,16 @@ impl<T: Copy + Ord> SignalRuntimeConfig<T> {
         let memo_key_id = self.key_registry.intern_memo_key(memo_key);
         self.memo_cache
             .insert((family_id, key_id, memo_key_id), result);
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_registry_counts(&self) -> (usize, usize, usize, usize, usize) {
+        (
+            self.key_registry.families.len(),
+            self.key_registry.keys.len(),
+            self.key_registry.memo_keys.len(),
+            self.keyed_nodes.len(),
+            self.memo_cache.len(),
+        )
     }
 }

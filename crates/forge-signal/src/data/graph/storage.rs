@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::data::aspect::Aspect;
 use crate::data::dependency::{DependencyEdge, DependencySnapshot};
 use crate::data::error::SignalError;
@@ -316,6 +318,36 @@ impl SignalGraph {
         let subscribers_id = self.subscriber_edges.insert_from_slice(&updated);
         self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
         Ok(true)
+    }
+
+    pub(crate) fn rebuild_subscriber_index_from_dependencies(&mut self) -> Result<(), SignalError> {
+        let live_nodes = self.live_node_ids();
+        let mut rebuilt = BTreeMap::<NodeId, Vec<NodeId>>::new();
+        for node in &live_nodes {
+            rebuilt.insert(*node, Vec::new());
+        }
+
+        for downstream in &live_nodes {
+            let mut upstreams = self
+                .dependencies_of(*downstream)?
+                .iter()
+                .map(|edge| edge.source())
+                .collect::<Vec<_>>();
+            upstreams.sort_by_key(|node| (node.index(), node.generation()));
+            upstreams.dedup();
+            for upstream in upstreams {
+                if let Some(subscribers) = rebuilt.get_mut(&upstream) {
+                    subscribers.push(*downstream);
+                }
+            }
+        }
+
+        for (node, subscribers) in rebuilt {
+            let subscribers_id = self.subscriber_edges.insert_from_slice(&subscribers);
+            self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
+        }
+
+        Ok(())
     }
 }
 

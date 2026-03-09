@@ -4,12 +4,14 @@ use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
 use crate::data::trace::TraceSummary;
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
+use crate::diagnostics::recorder::record_lineage_transition;
 
 use super::reporting::{accumulate_report_counters, classify_task_record};
 use super::types::{
     EvaluationTask, ExecutionRecordId, ExecutionReport, SemanticSegmentId, SemanticTaskRange,
     StageExecutionRecord, TaskExecutionRecord,
 };
+use crate::logic::prepared::{PreparedEvaluationOrigin, PreparedEvaluationOutcome};
 
 #[derive(Debug, Clone, Copy)]
 pub(super) struct StageSemanticIdentity {
@@ -28,6 +30,8 @@ pub(super) struct SemanticTaskUpdate {
     pub dependency_updates: u32,
     pub recomputed: bool,
     pub partition_aware: bool,
+    pub prepared_outcome: PreparedEvaluationOutcome,
+    pub prepared_origin: PreparedEvaluationOrigin,
 }
 
 #[derive(Debug, Clone)]
@@ -133,6 +137,13 @@ pub(super) fn finalize_stage_batch(
                 update.identity.record_id,
                 update.identity.segment_id,
             )?;
+            record_lineage_transition(
+                graph,
+                update.node,
+                update.before_trace.as_ref(),
+                update.identity.record_id,
+                update.identity.segment_id,
+            )?;
             let task = &stage_tasks[update.task_index];
             let task_record = classify_task_record(
                 update.identity.record_id,
@@ -142,6 +153,8 @@ pub(super) fn finalize_stage_batch(
                 update.after_state,
                 update.before_trace.as_ref(),
                 graph.get_entry(update.node)?.get_trace_summary(),
+                update.prepared_outcome,
+                update.prepared_origin,
             );
             accumulate_report_counters(report, &task_record);
             task_records.push(task_record);

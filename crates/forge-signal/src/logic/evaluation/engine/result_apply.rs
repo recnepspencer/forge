@@ -111,6 +111,7 @@ pub(super) fn apply_evaluation_result_with_policy(
         labels,
         execution_record_id: None,
         semantic_segment_id: None,
+        lineage_artifact_id: None,
     };
 
     {

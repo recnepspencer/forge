@@ -1,3 +1,8 @@
+mod durability_contracts;
+mod index_contracts;
+mod lineage_contracts;
+mod replay_contracts;
+
 use forge_harness::facade::{
     DiagnosticsHarnessAdapter, ExecutionProfile, ExecutionRequest, HarnessAdapter, MutationBatch,
     ReplayHarnessAdapter, ReplayRequest, ScenarioPlan,
@@ -5,13 +10,13 @@ use forge_harness::facade::{
 use serde_json::json;
 
 use crate::facade::{
-    CommitOutcome, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
-    EntityKindRegistration, EntityReadRecord, InvariantCatalog, InvariantClass,
+    BranchCreateError, BranchId, CommitOutcome, DiagnosticCode, DiagnosticsArtifactKind,
+    DiagnosticsScope, EntityKindRegistration, EntityReadRecord, InvariantCatalog, InvariantClass,
     InvariantExecutionPoint, InvariantRule, KindId, PublicationStage, PublicationStatus,
     QueryWorkPacket, ReadTarget, RelationId, RelationKindRegistration, RelationalHarnessAdapter,
-    RelationalMutation, RelationalRuntime, RelationalRuntimeApi, RelationalSchemaRegistry,
-    SchemaId, SchemaVersionId, TransactionCommitError, TransactionIntent, TransactionOptions,
-    WorkerIntentBatch,
+    RelationalMutation, RelationalRuntime, RelationalRuntimeApi, RelationalRuntimeProfile,
+    RelationalSchemaRegistry, SchemaId, SchemaVersionId, StorageLayoutConfig,
+    TransactionCommitError, TransactionIntent, TransactionOptions, WorkerIntentBatch,
 };
 
 #[test]
@@ -36,11 +41,17 @@ fn harness_defaults_require_determinism_and_parity() {
 
 #[test]
 fn entity_slot_reuse_increments_generation() {
-    let mut runtime = runtime_with_test_schema();
-    let entity_a = create_entity(&mut runtime, "first");
-    delete_entity(&mut runtime, entity_a);
+    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
+    let create_outcome = create_entity_outcome(&mut runtime, "first");
+    let entity_a = changed_entities(&create_outcome)[0];
+    assert!(runtime.release_snapshot(&create_outcome.snapshot));
+    let delete_outcome = delete_entity(&mut runtime, entity_a);
+    assert!(runtime.release_snapshot(&delete_outcome.snapshot));
+    let retention = runtime.run_retention_pass();
     let entity_b = create_entity(&mut runtime, "second");
 
+    assert!(retention.entity_reclaimed <= 1);
+    assert_eq!(runtime.storage_stats().reusable_entity_slots, 0);
     assert_eq!(entity_a.slot, entity_b.slot);
     assert!(entity_b.generation.0 > entity_a.generation.0);
 }
@@ -159,6 +170,98 @@ fn snapshot_reads_are_immutable_after_later_mutation() {
 }
 
 #[test]
+fn snapshots_resolve_historical_entity_payloads_by_version() {
+    let mut runtime = runtime_with_test_schema();
+    let create_outcome = create_entity_outcome(&mut runtime, "before");
+    let entity = changed_entities(&create_outcome)[0];
+    let snapshot = runtime.snapshot();
+    let update_outcome = update_entity(&mut runtime, entity, "after");
+
+    let old_read = runtime.read_snapshot(&snapshot).unwrap();
+    let current_read = runtime.read_snapshot(&update_outcome.snapshot).unwrap();
+    let version_read = runtime.read_version(create_outcome.version_id);
+
+    assert_eq!(
+        _read_entity_name(old_read.get_entity(entity).unwrap()),
+        Some("before")
+    );
+    assert_eq!(
+        _read_entity_name(current_read.get_entity(entity).unwrap()),
+        Some("after")
+    );
+    assert_eq!(
+        _read_entity_name(version_read.get_entity(entity).unwrap()),
+        Some("before")
+    );
+}
+
+#[test]
+fn profile_resolution_and_provenance_are_explicit() {
+    let runtime = RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::GeometryKernel)
+        .schema_registry(test_schema_registry())
+        .entity_capacity(999)
+        .build();
+
+    assert_eq!(
+        runtime.config().profile,
+        RelationalRuntimeProfile::GeometryKernel
+    );
+    assert_eq!(runtime.config().initial_entity_capacity, 999);
+    assert!(runtime.config().diagnostics.detailed_traces_enabled);
+    assert_eq!(runtime.config().storage_layout.entity_chunk_size, 2048);
+    assert_eq!(
+        runtime
+            .config()
+            .config_provenance
+            .source_for("initial_entity_capacity")
+            .unwrap()
+            .source,
+        crate::facade::ConfigValueSource::BuilderOverride
+    );
+    assert_eq!(
+        runtime
+            .config()
+            .config_provenance
+            .source_for("storage_layout")
+            .unwrap()
+            .source,
+        crate::facade::ConfigValueSource::ProfileDefault
+    );
+}
+
+#[test]
+fn snapshot_pins_block_reclaim_until_release() {
+    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
+    let create_outcome = create_entity_outcome(&mut runtime, "pinned");
+    let entity = changed_entities(&create_outcome)[0];
+    let delete_outcome = delete_entity(&mut runtime, entity);
+    let first_retention = runtime.run_retention_pass();
+
+    assert_eq!(first_retention.entity_reclaimed, 0);
+    assert_eq!(runtime.storage_stats().deleted_entities, 1);
+    assert_eq!(first_retention.entity_chunks_scanned, 1);
+
+    assert!(runtime.release_snapshot(&create_outcome.snapshot));
+    assert!(runtime.release_snapshot(&delete_outcome.snapshot));
+    let second_retention = runtime.run_retention_pass();
+
+    assert!(second_retention.entity_reclaimed <= 1);
+    assert_eq!(runtime.storage_stats().reusable_entity_slots, 1);
+}
+
+#[test]
+fn read_records_expose_visibility_metadata() {
+    let mut runtime = runtime_with_test_schema();
+    let outcome = create_entity_outcome(&mut runtime, "visible");
+    let read = runtime.read_snapshot(&outcome.snapshot).unwrap();
+    let record = read.entities().first().unwrap();
+
+    assert_eq!(record.created_at_version, outcome.version_id);
+    assert_eq!(record.retired_at_version, None);
+}
+
+#[test]
 fn diagnostics_and_replay_are_emitted_for_commit() {
     let mut runtime = runtime_with_test_schema();
     let _entity = create_entity(&mut runtime, "first");
@@ -189,6 +292,7 @@ fn publication_bundle_is_the_single_visible_commit_surface() {
 
     assert_eq!(outcome.publication_status, PublicationStatus::Published);
     assert_eq!(bundle.snapshot, outcome.snapshot);
+    assert_eq!(bundle.commit, outcome.commit);
     assert_eq!(bundle.commit, *runtime.latest_commit().unwrap());
     assert_eq!(bundle.patch, *runtime.latest_patch().unwrap());
     assert_eq!(bundle.replay, *runtime.latest_replay().unwrap());
@@ -217,6 +321,12 @@ fn bulk_packets_are_the_primary_read_surface() {
     let mut runtime = runtime_with_test_schema();
     let entity = create_entity(&mut runtime, "first");
     let snapshot = runtime.snapshot();
+    let plan = runtime
+        .plan_read_packet(
+            &snapshot,
+            &QueryWorkPacket::bulk("entities", vec![ReadTarget::Entity(entity)]),
+        )
+        .unwrap();
     let result = runtime
         .execute_read_packet(
             &snapshot,
@@ -224,6 +334,7 @@ fn bulk_packets_are_the_primary_read_surface() {
         )
         .unwrap();
 
+    assert_eq!(plan.entity_chunk_indexes, vec![0]);
     assert_eq!(result.entities.len(), 1);
 }
 
@@ -281,6 +392,7 @@ fn runtime_packet_execution_and_storage_stats_are_readable() {
     assert_eq!(result.entities.len(), 1);
     assert_eq!(stats.live_entities, 1);
     assert!(stats.snapshot_count >= 1);
+    assert!(stats.entity_chunks >= 1);
 }
 
 #[test]
@@ -341,7 +453,193 @@ fn cross_order_equivalent_mutations_converge() {
     assert_eq!(runtime_a.diagnostics(), runtime_b.diagnostics());
 }
 
-fn test_schema_registry() -> RelationalSchemaRegistry {
+#[test]
+fn branch_creation_and_branch_targeted_commits_build_a_version_graph() {
+    let mut runtime = runtime_with_test_schema();
+    let main_outcome = create_entity_outcome(&mut runtime, "main-a");
+    runtime
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .unwrap();
+    let feature_outcome =
+        create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
+    let main_second =
+        create_entity_outcome_on_branch(&mut runtime, "main-b", BranchId("main".to_string()));
+    let graph = runtime.version_graph();
+
+    assert_eq!(
+        runtime
+            .branch_head(&BranchId("feature".to_string()))
+            .unwrap(),
+        &feature_outcome.commit
+    );
+    assert_eq!(
+        runtime.branch_head(&BranchId("main".to_string())).unwrap(),
+        &main_second.commit
+    );
+    assert_eq!(
+        feature_outcome.commit.parents,
+        vec![main_outcome.commit.commit_id]
+    );
+    assert_eq!(
+        main_second.commit.parents,
+        vec![main_outcome.commit.commit_id]
+    );
+    assert_eq!(graph.branches.len(), 2);
+    assert_eq!(graph.commits.len(), 3);
+}
+
+#[test]
+fn merge_commit_uses_deterministic_parent_order_and_advances_target_branch() {
+    let mut runtime = runtime_with_test_schema();
+    let main_outcome = create_entity_outcome(&mut runtime, "main-a");
+    runtime
+        .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+        .unwrap();
+    let feature_outcome =
+        create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
+    let merge_outcome = merge_commit_from_branches(
+        &mut runtime,
+        BranchId("main".to_string()),
+        vec![BranchId("feature".to_string())],
+    );
+
+    assert_eq!(
+        merge_outcome.commit.parents,
+        vec![main_outcome.commit.commit_id, feature_outcome.commit.commit_id]
+    );
+    assert_eq!(
+        runtime.branch_head(&BranchId("main".to_string())),
+        Some(&merge_outcome.commit)
+    );
+    assert_eq!(
+        runtime.branch_head(&BranchId("feature".to_string())),
+        Some(&feature_outcome.commit)
+    );
+    let envelope = runtime
+        .canonical_commit_envelope(merge_outcome.commit.commit_id)
+        .unwrap();
+    assert_eq!(envelope.merge_parent_branches, vec![BranchId("feature".to_string())]);
+    assert_eq!(envelope.merge_base_commits, vec![main_outcome.commit.commit_id]);
+    assert!(runtime
+        .diagnostics()
+        .by_scope(DiagnosticsScope::PatchPublication)
+        .iter()
+        .flat_map(|artifact| artifact.entries.iter())
+        .any(|entry| entry.code == DiagnosticCode::MergeCommitPublished));
+    assert!(runtime
+        .diagnostics()
+        .by_scope(DiagnosticsScope::PatchPublication)
+        .iter()
+        .flat_map(|artifact| artifact.entries.iter())
+        .any(|entry| entry.code == DiagnosticCode::MergeBaseResolved));
+}
+
+#[test]
+fn merge_commit_requires_existing_parent_branch_heads() {
+    let mut runtime = runtime_with_test_schema();
+    create_entity_outcome(&mut runtime, "main-a");
+    let txn = runtime.begin_transaction(
+        TransactionOptions::default()
+            .merge_from_branches(vec![BranchId("missing".to_string())]),
+    );
+    let error = txn.commit().unwrap_err();
+
+    assert!(matches!(
+        error,
+        TransactionCommitError::Conflict(ref conflict)
+            if conflict.code == DiagnosticCode::InvalidMergeParent
+    ));
+}
+
+#[test]
+fn branch_history_helpers_expose_ancestor_and_merge_base_reasoning() {
+    let mut runtime = runtime_with_test_schema();
+    let main = create_entity_outcome(&mut runtime, "main");
+    runtime
+        .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+        .unwrap();
+    let feature =
+        create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
+    let chain = runtime.ancestor_chain(feature.commit.commit_id);
+    let merge_base = runtime.latest_common_ancestor_between_branches(
+        &BranchId("main".to_string()),
+        &BranchId("feature".to_string()),
+    );
+
+    assert_eq!(chain, vec![main.commit.commit_id, feature.commit.commit_id]);
+    assert_eq!(merge_base, Some(main.commit.commit_id));
+    assert!(runtime.can_merge_branch_into(
+        &BranchId("feature".to_string()),
+        &BranchId("main".to_string())
+    ));
+}
+
+#[test]
+fn duplicate_branch_creation_is_rejected() {
+    let mut runtime = runtime_with_test_schema();
+    runtime
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .unwrap();
+    let error = runtime
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .unwrap_err();
+
+    assert_eq!(error, BranchCreateError::BranchAlreadyExists);
+}
+
+#[test]
+fn chunked_storage_summary_tracks_visibility_boundaries() {
+    let mut runtime = runtime_with_test_schema_and_chunks(2, 2);
+    let first = create_entity_outcome(&mut runtime, "e0");
+    let entity_a = changed_entities(&first)[0];
+    let _second = create_entity_outcome(&mut runtime, "e1");
+    let snapshot = runtime.snapshot();
+    let _third = create_entity_outcome(&mut runtime, "e2");
+    let _update = update_entity(&mut runtime, entity_a, "e0-updated");
+
+    let summary_before_update = runtime.chunked_storage_summary(snapshot.version_id);
+    let summary_current =
+        runtime.chunked_storage_summary(runtime.latest_commit().unwrap().version_id);
+
+    assert_eq!(summary_before_update.entity_chunks.len(), 2);
+    assert_eq!(summary_before_update.entity_chunks[0].visible_records, 2);
+    assert_eq!(summary_before_update.entity_chunks[1].visible_records, 0);
+    assert_eq!(summary_current.entity_chunks[1].visible_records, 1);
+    assert_eq!(summary_current.entity_chunks[0].slot_len, 2);
+}
+
+#[test]
+fn chunk_diagnostics_and_packet_plans_are_public_and_stable() {
+    let mut runtime = runtime_with_test_schema_and_chunks(2, 2);
+    let first = create_entity_outcome(&mut runtime, "e0");
+    let second = create_entity_outcome(&mut runtime, "e1");
+    let entity_a = changed_entities(&first)[0];
+    let entity_b = changed_entities(&second)[0];
+    let snapshot = runtime.snapshot();
+    let packet = QueryWorkPacket::bulk(
+        "pair",
+        vec![ReadTarget::Entity(entity_a), ReadTarget::Entity(entity_b)],
+    );
+
+    let plan = runtime.plan_read_packet(&snapshot, &packet).unwrap();
+    let diagnostics = runtime.chunk_diagnostics(snapshot.version_id);
+
+    assert_eq!(plan.target_count, 2);
+    assert_eq!(plan.entity_chunk_indexes, vec![0]);
+    assert_eq!(diagnostics.entity_chunks_total, 1);
+    assert_eq!(diagnostics.entity_chunks_with_visible_records, 1);
+}
+
+pub(super) fn test_schema_registry() -> RelationalSchemaRegistry {
     RelationalSchemaRegistry::new()
         .register_entity_kind(EntityKindRegistration {
             kind_id: KindId(1),
@@ -360,13 +658,35 @@ fn test_schema_registry() -> RelationalSchemaRegistry {
         .unwrap()
 }
 
-fn runtime_with_test_schema() -> RelationalRuntime {
+pub(super) fn runtime_with_test_schema() -> RelationalRuntime {
+    runtime_with_test_schema_profile(RelationalRuntimeProfile::CertificationCore)
+}
+
+pub(super) fn runtime_with_test_schema_profile(
+    profile: RelationalRuntimeProfile,
+) -> RelationalRuntime {
     RelationalRuntimeApi::builder()
+        .profile(profile)
         .schema_registry(test_schema_registry())
         .build()
 }
 
-fn runtime_with_test_schema_and_invariants(
+pub(super) fn runtime_with_test_schema_and_chunks(
+    entity_chunk_size: usize,
+    relation_chunk_size: usize,
+) -> RelationalRuntime {
+    RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::CertificationCore)
+        .schema_registry(test_schema_registry())
+        .storage_layout(StorageLayoutConfig {
+            entity_chunk_size,
+            relation_chunk_size,
+            scan_packet_size: 64,
+        })
+        .build()
+}
+
+pub(super) fn runtime_with_test_schema_and_invariants(
     invariant_catalog: InvariantCatalog,
 ) -> RelationalRuntime {
     RelationalRuntimeApi::builder()
@@ -375,7 +695,7 @@ fn runtime_with_test_schema_and_invariants(
         .build()
 }
 
-fn batch_create(name: &str) -> WorkerIntentBatch {
+pub(super) fn batch_create(name: &str) -> WorkerIntentBatch {
     WorkerIntentBatch::new(format!("batch-{name}")).push(TransactionIntent::CreateEntity(
         crate::data::transaction::EntitySpec {
             kind_id: KindId(1),
@@ -385,17 +705,31 @@ fn batch_create(name: &str) -> WorkerIntentBatch {
     ))
 }
 
-fn create_entity(runtime: &mut RelationalRuntime, name: &str) -> crate::facade::EntityId {
+pub(super) fn create_entity(
+    runtime: &mut RelationalRuntime,
+    name: &str,
+) -> crate::facade::EntityId {
     changed_entities(&create_entity_outcome(runtime, name))[0]
 }
 
-fn create_entity_outcome(runtime: &mut RelationalRuntime, name: &str) -> CommitOutcome {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+pub(super) fn create_entity_outcome(runtime: &mut RelationalRuntime, name: &str) -> CommitOutcome {
+    create_entity_outcome_on_branch(runtime, name, BranchId("main".to_string()))
+}
+
+pub(super) fn create_entity_outcome_on_branch(
+    runtime: &mut RelationalRuntime,
+    name: &str,
+    branch_id: BranchId,
+) -> CommitOutcome {
+    let mut txn = runtime.begin_transaction(TransactionOptions {
+        target_branch: Some(branch_id),
+        ..TransactionOptions::default()
+    });
     txn.push_batch(batch_create(name));
     txn.commit().unwrap()
 }
 
-fn delete_entity(
+pub(super) fn delete_entity(
     runtime: &mut RelationalRuntime,
     entity_id: crate::facade::EntityId,
 ) -> CommitOutcome {
@@ -406,7 +740,22 @@ fn delete_entity(
     txn.commit().unwrap()
 }
 
-fn create_relation(
+pub(super) fn update_entity(
+    runtime: &mut RelationalRuntime,
+    entity_id: crate::facade::EntityId,
+    name: &str,
+) -> CommitOutcome {
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("update").push(TransactionIntent::UpdateEntity {
+            entity_id,
+            payload: json!({ "name": name }),
+        }),
+    );
+    txn.commit().unwrap()
+}
+
+pub(super) fn create_relation(
     runtime: &mut RelationalRuntime,
     source: crate::facade::EntityId,
     target: crate::facade::EntityId,
@@ -428,7 +777,7 @@ fn create_relation(
     changed_relations(&outcome)[0]
 }
 
-fn changed_entities(outcome: &CommitOutcome) -> Vec<crate::facade::EntityId> {
+pub(super) fn changed_entities(outcome: &CommitOutcome) -> Vec<crate::facade::EntityId> {
     outcome
         .changed_records
         .iter()
@@ -439,7 +788,7 @@ fn changed_entities(outcome: &CommitOutcome) -> Vec<crate::facade::EntityId> {
         .collect()
 }
 
-fn changed_relations(outcome: &CommitOutcome) -> Vec<RelationId> {
+pub(super) fn changed_relations(outcome: &CommitOutcome) -> Vec<RelationId> {
     outcome
         .changed_records
         .iter()
@@ -450,7 +799,7 @@ fn changed_relations(outcome: &CommitOutcome) -> Vec<RelationId> {
         .collect()
 }
 
-fn apply_batches(batches: Vec<WorkerIntentBatch>) -> RelationalRuntime {
+pub(super) fn apply_batches(batches: Vec<WorkerIntentBatch>) -> RelationalRuntime {
     let mut runtime = runtime_with_test_schema();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     for batch in batches {
@@ -458,6 +807,19 @@ fn apply_batches(batches: Vec<WorkerIntentBatch>) -> RelationalRuntime {
     }
     txn.commit().unwrap();
     runtime
+}
+
+pub(super) fn merge_commit_from_branches(
+    runtime: &mut RelationalRuntime,
+    target_branch: BranchId,
+    merge_parent_branches: Vec<BranchId>,
+) -> CommitOutcome {
+    let txn = runtime.begin_transaction(TransactionOptions {
+        target_branch: Some(target_branch),
+        merge_parent_branches,
+        ..TransactionOptions::default()
+    });
+    txn.commit().unwrap()
 }
 
 #[allow(dead_code)]

@@ -2,9 +2,18 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::Value;
 
-use crate::data::identity::{EntityId, KindId, LineageId, RelationId, StructuralFingerprint};
+use crate::data::identity::{
+    EntityId, KindId, LineageId, RelationId, StructuralFingerprint, VersionId,
+};
 
 use super::types::{RecordLifecycleState, RelationalReplayRecord};
+
+#[derive(Debug, Clone)]
+pub(super) struct VersionedValue {
+    pub(super) effective_at: VersionId,
+    pub(super) retired_at: Option<VersionId>,
+    pub(super) value: Value,
+}
 
 #[derive(Debug, Clone)]
 pub(super) struct EntityArena {
@@ -12,6 +21,9 @@ pub(super) struct EntityArena {
     pub(super) lifecycle: Vec<RecordLifecycleState>,
     pub(super) kind_ids: Vec<Option<KindId>>,
     pub(super) payloads: Vec<Option<Value>>,
+    pub(super) payload_history: Vec<Vec<VersionedValue>>,
+    pub(super) created_at: Vec<VersionId>,
+    pub(super) retired_at: Vec<Option<VersionId>>,
     pub(super) aspect_versions: Vec<BTreeMap<String, u64>>,
     pub(super) structural_fingerprints: Vec<Option<StructuralFingerprint>>,
     pub(super) lineage_ids: Vec<Option<LineageId>>,
@@ -29,6 +41,9 @@ impl EntityArena {
             lifecycle: Vec::with_capacity(capacity),
             kind_ids: Vec::with_capacity(capacity),
             payloads: Vec::with_capacity(capacity),
+            payload_history: Vec::with_capacity(capacity),
+            created_at: Vec::with_capacity(capacity),
+            retired_at: Vec::with_capacity(capacity),
             aspect_versions: Vec::with_capacity(capacity),
             structural_fingerprints: Vec::with_capacity(capacity),
             lineage_ids: Vec::with_capacity(capacity),
@@ -53,8 +68,12 @@ pub(super) struct RelationArena {
     pub(super) lifecycle: Vec<RecordLifecycleState>,
     pub(super) kind_ids: Vec<Option<KindId>>,
     pub(super) payloads: Vec<Option<Value>>,
+    pub(super) payload_history: Vec<Vec<VersionedValue>>,
+    pub(super) created_at: Vec<VersionId>,
+    pub(super) retired_at: Vec<Option<VersionId>>,
     pub(super) endpoints: Vec<Option<RelationEndpoints>>,
     pub(super) diagnostics_enrichment: Vec<BTreeMap<String, String>>,
+    pub(super) snapshot_pins: Vec<u32>,
     pub(super) free_list: Vec<u64>,
 }
 
@@ -65,8 +84,12 @@ impl RelationArena {
             lifecycle: Vec::with_capacity(capacity),
             kind_ids: Vec::with_capacity(capacity),
             payloads: Vec::with_capacity(capacity),
+            payload_history: Vec::with_capacity(capacity),
+            created_at: Vec::with_capacity(capacity),
+            retired_at: Vec::with_capacity(capacity),
             endpoints: Vec::with_capacity(capacity),
             diagnostics_enrichment: Vec::with_capacity(capacity),
+            snapshot_pins: Vec::with_capacity(capacity),
             free_list: Vec::new(),
         }
     }
@@ -75,8 +98,8 @@ impl RelationArena {
 #[derive(Debug, Clone)]
 pub(super) struct SnapshotState {
     pub(super) handle: crate::data::snapshot::SnapshotHandle,
-    pub(super) entities: Vec<super::types::EntityReadRecord>,
-    pub(super) relations: Vec<super::types::RelationReadRecord>,
+    pub(super) pinned_entities: Vec<EntityId>,
+    pub(super) pinned_relations: Vec<RelationId>,
 }
 
 #[derive(Debug, Clone)]

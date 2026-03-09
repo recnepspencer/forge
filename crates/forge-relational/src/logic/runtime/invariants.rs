@@ -49,8 +49,8 @@ impl RelationalRuntime {
             }
         };
 
-        let entity_records = self.live_entities_from_state(state);
-        let relation_records = self.live_relations_from_state(state);
+        let entity_records = self.visible_entities_from_state(state, version_id);
+        let relation_records = self.visible_relations_from_state(state, version_id);
 
         for (class, failure_effect, rules) in groups {
             let mut violations = Vec::new();

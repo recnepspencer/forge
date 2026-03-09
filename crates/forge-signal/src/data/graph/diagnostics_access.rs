@@ -6,14 +6,16 @@ use crate::data::handle::NodeId;
 use crate::diagnostics::access::GraphDiagnostics;
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
 use crate::diagnostics::history::ExecutionInspector;
+use crate::diagnostics::lineage::{LineageArtifactId, LineageRecord};
 use crate::diagnostics::policy::{ArtifactMaterializationMode, SignalRuntimePolicy};
 use crate::diagnostics::profile::DiagnosticsProfile;
-use crate::diagnostics::replay::ReplayEvent;
+use crate::diagnostics::replay::{ReplayCursor, ReplayEvent, ReplaySlice};
 use crate::diagnostics::summary::{ExecutionHistorySummary, GraphSummary};
 use crate::diagnostics::{FailureSummary, FlowSummary, RollbackDiagnostic};
 use crate::logic::explain::{dependency_chain_to, explain, NodeExplanation};
 use crate::presentation::dot::to_dot;
 use crate::presentation::metrics::GraphMetrics;
+use crate::state::{SignalBranchHandle, SignalSnapshotMeta, SignalSnapshotV1};
 
 impl SignalGraph {
     pub fn telemetry(&self) -> &crate::data::telemetry::RuntimeTelemetry {
@@ -126,12 +128,228 @@ impl SignalGraph {
         self.diagnostics.replay_events()
     }
 
+    pub fn replay_slice(
+        &self,
+        start: Option<ReplayCursor>,
+        end: Option<ReplayCursor>,
+    ) -> ReplaySlice {
+        let frames = self
+            .replay_events()
+            .iter()
+            .filter(|frame| start.is_none_or(|cursor| frame.cursor >= cursor))
+            .filter(|frame| end.is_none_or(|cursor| frame.cursor <= cursor))
+            .cloned()
+            .collect();
+        ReplaySlice { start, end, frames }
+    }
+
+    pub fn replay_for_branch(&self, branch_id: crate::state::SignalBranchId) -> ReplaySlice {
+        let frames = self
+            .replay_events()
+            .iter()
+            .filter(|frame| frame.branch_id == branch_id)
+            .cloned()
+            .collect();
+        ReplaySlice {
+            start: None,
+            end: None,
+            frames,
+        }
+    }
+
+    pub fn replay_for_node(&self, node: NodeId) -> ReplaySlice {
+        let frames = self
+            .replay_events()
+            .iter()
+            .filter(|frame| frame.node == Some(node))
+            .cloned()
+            .collect();
+        ReplaySlice {
+            start: None,
+            end: None,
+            frames,
+        }
+    }
+
+    pub fn replay_from_cursor(&self, start: ReplayCursor) -> ReplaySlice {
+        self.replay_slice(Some(start), None)
+    }
+
+    pub fn replay_around_snapshot(
+        &self,
+        snapshot_id: crate::state::SignalSnapshotId,
+    ) -> ReplaySlice {
+        let Some(index) = self
+            .replay_events()
+            .iter()
+            .position(|event| event.snapshot_id == Some(snapshot_id))
+        else {
+            return ReplaySlice::default();
+        };
+        let start = index.saturating_sub(4);
+        let end = (index + 5).min(self.replay_events().len());
+        ReplaySlice {
+            start: self.replay_events().get(start).map(|event| event.cursor),
+            end: self
+                .replay_events()
+                .get(end.saturating_sub(1))
+                .map(|event| event.cursor),
+            frames: self
+                .replay_events()
+                .iter()
+                .skip(start)
+                .take(end.saturating_sub(start))
+                .cloned()
+                .collect(),
+        }
+    }
+
     pub fn explanation_fact(&self, node: NodeId) -> Option<&ExplanationFact> {
         self.diagnostics.explanation_facts().get(&node)
     }
 
     pub fn provenance_fact(&self, node: NodeId) -> Option<&ProvenanceFact> {
         self.diagnostics.provenance_facts().get(&node)
+    }
+
+    pub fn lineage_records(&self) -> &std::collections::VecDeque<LineageRecord> {
+        self.diagnostics.lineage_records()
+    }
+
+    pub fn lineage_for_node(&self, node: NodeId) -> Vec<LineageRecord> {
+        self.lineage_records()
+            .iter()
+            .filter(|record| record.node == Some(node))
+            .cloned()
+            .collect()
+    }
+
+    pub fn lineage_for_artifact(&self, artifact_id: LineageArtifactId) -> Vec<LineageRecord> {
+        self.lineage_records()
+            .iter()
+            .filter(|record| record.artifact_id == Some(artifact_id))
+            .cloned()
+            .collect()
+    }
+
+    pub fn current_lineage_artifact(&self, node: NodeId) -> Option<LineageArtifactId> {
+        self.get_entry(node)
+            .ok()
+            .and_then(|entry| entry.get_trace_summary())
+            .and_then(|summary| summary.lineage_artifact_id)
+    }
+
+    pub fn lineage_chain_for_artifact(&self, artifact_id: LineageArtifactId) -> Vec<LineageRecord> {
+        let mut chain = Vec::new();
+        let mut current = Some(artifact_id);
+        while let Some(artifact_id) = current {
+            let Some(record) = self
+                .lineage_records()
+                .iter()
+                .rev()
+                .find(|record| record.artifact_id == Some(artifact_id))
+                .cloned()
+            else {
+                break;
+            };
+            current = record.parent_artifact_id.filter(|parent| *parent != artifact_id);
+            chain.push(record);
+        }
+        chain.reverse();
+        chain
+    }
+
+    pub fn lineage_chain_for_node(&self, node: NodeId) -> Vec<LineageRecord> {
+        self.current_lineage_artifact(node)
+            .map(|artifact_id| self.lineage_chain_for_artifact(artifact_id))
+            .unwrap_or_default()
+    }
+
+    pub fn current_branch(&self) -> SignalBranchHandle {
+        self.diagnostics.active_branch()
+    }
+
+    pub fn known_branches(&self) -> Vec<SignalBranchHandle> {
+        self.diagnostics
+            .branch_catalog()
+            .values()
+            .cloned()
+            .collect()
+    }
+
+    pub fn branch_handle(&self, branch_id: crate::state::SignalBranchId) -> Option<SignalBranchHandle> {
+        self.diagnostics.branch_catalog().get(&branch_id).cloned()
+    }
+
+    pub fn branch_ancestry(
+        &self,
+        branch_id: crate::state::SignalBranchId,
+    ) -> Vec<SignalBranchHandle> {
+        let mut lineage = Vec::new();
+        let mut current = self.branch_handle(branch_id);
+        while let Some(branch) = current {
+            current = branch
+                .parent_branch_id
+                .and_then(|parent_id| self.branch_handle(parent_id));
+            lineage.push(branch);
+        }
+        lineage.reverse();
+        lineage
+    }
+
+    pub fn capture_snapshot(&mut self) -> SignalSnapshotV1 {
+        let policy = self.runtime_policy();
+        let meta = self.diagnostics_state_mut().allocate_snapshot_meta(policy);
+        crate::diagnostics::recorder::record_snapshot_event(
+            self,
+            crate::diagnostics::replay::ReplayEventKind::SnapshotCaptured,
+            Some(meta.snapshot_id),
+            format!("snapshot {}", meta.snapshot_id.0),
+        );
+        SignalSnapshotV1 {
+            meta,
+            graph: self.clone(),
+            diagnostics: self.diagnostics_state().snapshot_payload(),
+            graph_telemetry: self.telemetry().clone(),
+            runtime_telemetry: None,
+        }
+    }
+
+    pub(crate) fn validate_snapshot_compatibility(
+        &self,
+        snapshot: &SignalSnapshotV1,
+    ) -> Result<(), SignalError> {
+        if snapshot.meta.schema_version != SignalSnapshotMeta::SCHEMA_VERSION {
+            return Err(SignalError::invalid_input(format!(
+                "snapshot schema version {} is incompatible with runtime schema {}",
+                snapshot.meta.schema_version,
+                SignalSnapshotMeta::SCHEMA_VERSION
+            )));
+        }
+        if snapshot.meta.core_storage_profile != crate::data::core_profile::CORE_STORAGE_PROFILE_ID
+        {
+            return Err(SignalError::invalid_input(format!(
+                "snapshot core storage profile `{}` is incompatible with active profile `{}`",
+                snapshot.meta.core_storage_profile,
+                crate::data::core_profile::CORE_STORAGE_PROFILE_ID
+            )));
+        }
+        Ok(())
+    }
+
+    pub fn restore_snapshot(&mut self, snapshot: &SignalSnapshotV1) -> Result<(), SignalError> {
+        self.validate_snapshot_compatibility(snapshot)?;
+        let mut restored = snapshot.graph.clone();
+        restored.telemetry = snapshot.graph_telemetry.clone();
+        restored
+            .diagnostics
+            .restore_snapshot_payload(snapshot.diagnostics.clone());
+        *self = restored;
+        crate::diagnostics::recorder::record_snapshot_restore_lineage(
+            self,
+            snapshot.meta.snapshot_id,
+        );
+        Ok(())
     }
 
     pub fn retained_explanation_artifact(&self, node: NodeId) -> Option<NodeExplanation> {
@@ -155,6 +373,15 @@ impl SignalGraph {
         node: NodeId,
     ) -> Result<ProvenanceFact, SignalError> {
         Ok(ProvenanceFact::from_explanation(&explain(self, node)?))
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_storage_counts(&self) -> ((usize, usize), (usize, usize), usize) {
+        (
+            self.dependency_edges.storage_counts(),
+            self.subscriber_edges.storage_counts(),
+            self.dependency_snapshots.snapshot_count(),
+        )
     }
 
     pub fn explain_artifact(

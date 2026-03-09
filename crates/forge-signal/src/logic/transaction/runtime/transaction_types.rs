@@ -47,6 +47,7 @@ where
         crate::data::output::NodeEvaluationResult,
     >,
     pub(super) graph_patches: SparsePatchBuffer,
+    pub(super) baseline_config: SignalRuntimeConfig<T>,
     pub(super) baseline_diagnostics_state: DiagnosticsState,
     pub(super) semantic_delta: TransactionSemanticDelta,
     pub(super) poisoned: bool,

@@ -145,6 +145,11 @@ impl DependencySnapshotStore {
         self.snapshots.push(snapshot);
         DependencySnapshotId::from_index(self.snapshots.len())
     }
+
+    #[cfg(test)]
+    pub(crate) fn snapshot_count(&self) -> usize {
+        self.snapshots.len()
+    }
 }
 
 fn empty_dependency_snapshot() -> &'static DependencySnapshot {

@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::core_profile::StableHashValue;
 use crate::data::output::{ChangedRegion, MemoizedResultOrigin, OutputChange, OutputIdentity};
+use crate::diagnostics::lineage::LineageArtifactId;
 
 /// Lightweight evaluation trace summary for one node recomputation.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -54,6 +55,9 @@ pub struct TraceSummary {
     /// Semantic segment id that produced the last trace, when available.
     #[serde(default)]
     pub semantic_segment_id: Option<u64>,
+    /// Current signal-lineage artifact id for this node's evaluated artifact.
+    #[serde(default)]
+    pub lineage_artifact_id: Option<LineageArtifactId>,
 }
 
 /// Opaque structured causality payload for host-provided provenance.

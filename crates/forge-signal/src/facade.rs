@@ -54,9 +54,10 @@ pub use crate::diagnostics::{
     ExecutionInspector, ExecutionReportDiff, ExecutionReportSummary, ExplanationDiff,
     ExplanationSummary, FailureDiff, FailureSummary, FlowDiff, FlowInspector, FlowSummary,
     GraphDiagnostics, GraphDiff, GraphInspector, GraphSummary, HistoryDiff, InvalidationSummary,
-    ParallelAdmissionPolicy, PlanDiff, PlanInspector, PlanningSummary, PrecomputeSummary,
-    ReplayDetailPolicy, ReportInspector, RollbackDiagnostic, RollbackSummary, RuntimeDiagnostics,
-    SemanticRetentionPolicy, SignalRuntimePolicy,
+    LineageArtifactId, LineageEvent, LineageRecord, ParallelAdmissionPolicy, PlanDiff,
+    PlanInspector, PlanningSummary, PrecomputeSummary, ReplayCursor, ReplayDetailPolicy,
+    ReplayEventKind, ReplayFrame, ReplaySlice, ReportInspector, RollbackDiagnostic,
+    RollbackSummary, RuntimeDiagnostics, SemanticRetentionPolicy, SignalRuntimePolicy,
 };
 
 // Re-export Logic constructs
@@ -102,3 +103,7 @@ pub use crate::presentation::harness::{
 };
 pub use crate::presentation::metrics::{GraphMetrics, RuntimeMetrics};
 pub use crate::presentation::transaction_contract::TransactionRuntimeContract;
+pub use crate::state::{
+    SignalBranchHandle, SignalBranchId, SignalSnapshotDiagnostics, SignalSnapshotId,
+    SignalSnapshotMeta, SignalSnapshotV1,
+};

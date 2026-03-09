@@ -2,6 +2,10 @@
 //! External crates should import through this module rather than reaching into
 //! internal crate structure directly.
 
+pub use crate::data::config::{
+    ConfigProvenance, ConfigProvenanceEntry, ConfigValueSource, MvccConfig, PublicationConfig,
+    RelationalConfigOverride, RelationalRuntimeProfile, SnapshotReleasePolicy, StorageLayoutConfig,
+};
 pub use crate::data::diagnostics::{
     DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
     RelationalDiagnosticArtifact, RelationalDiagnosticsEntry, RelationalDiagnosticsProfile,
@@ -10,18 +14,37 @@ pub use crate::data::diff::{
     AspectKey, PatchFragmentBudget, PatchOrdering, PatchPublicationMode, PatchRecord,
     PatchRecordKind, PatchStreamPosition, RelationalPatchRecord,
 };
+pub use crate::data::durability::{
+    DurabilityError, DurabilityMode, DurableCheckpoint, DurableCommitEnvelope,
+    RecoveryFailureClass, RecoveryPlan,
+};
 pub use crate::data::history::{
-    BranchId, CommitId, CommitReference, HistoryRetentionClass, VersionGraphPolicy,
+    BranchCreateError, BranchHead, BranchId, CommitId, CommitReference, HistoryRetentionClass,
+    VersionGraphPolicy, VersionGraphSnapshot, VersionNode,
 };
 pub use crate::data::identity::{
     EntityId, Generation, KindId, LineageId, RelationId, Slot, StructuralFingerprint, VersionId,
 };
-pub use crate::data::lineage::{LineageEvent, LineageEventKind};
+pub use crate::data::index::{
+    DerivedIndexBuildOutcome, DerivedIndexBuildRequest, DerivedIndexCompatibility,
+    DerivedIndexDefinition, DerivedIndexGeneration, DerivedIndexGenerationId, DerivedIndexId,
+    DerivedIndexKind, DerivedIndexPayload, DerivedIndexPublicationStatus,
+    ReadWithStorageFallbackOutcome,
+};
+pub use crate::data::lineage::{
+    CorrespondenceCandidate, CorrespondenceResolution, LineageEventKind, LineageEventRecord,
+    LineageGraphSnapshot, LineageInvariant, LineageNode, LineageResolutionStatus,
+};
 pub use crate::data::publication::{
     PublicationBundle, PublicationError, PublicationStage, PublicationStatus,
 };
 pub use crate::data::query::{
-    PartitionHint, QueryExecutionShape, QueryWorkPacket, ReadTarget, ReductionDiscipline,
+    PartitionHint, QueryExecutionShape, QueryWorkPacket, ReadPacketPlan, ReadTarget,
+    ReductionDiscipline,
+};
+pub use crate::data::replay::{
+    CanonicalCommitEnvelope, RelationalReplayOutcome, RelationalReplayRequest, ReplayExecutionMode,
+    ReplayFailureClass, ReplayMismatch, ReplayObservableSurface,
 };
 pub use crate::data::schema::{
     EntityKindRegistration, KindResolution, RelationKindRegistration, RelationalSchemaRegistry,
@@ -40,11 +63,12 @@ pub use crate::logic::builder::RelationalRuntimeBuilder;
 pub use crate::logic::commit::CommitAuthorityContract;
 pub use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
 pub use crate::logic::runtime::{
-    EntityReadRecord, InvariantCatalog, InvariantCheckResult, InvariantClass,
-    InvariantExecutionPoint, InvariantFailureEffect, InvariantRule, PacketResult,
-    RecordLifecycleState, RelationReadRecord, RelationalDiagnosticsFacade, RelationalReadView,
-    RelationalReplayRecord, RelationalRuntime, RelationalRuntimeConfig, RelationalTransaction,
-    ReplaySchemaVersion, StorageInvariantReport, StorageStats,
+    ChunkVisibilitySummary, ChunkedStorageSummary, EntityReadRecord, InvariantCatalog,
+    InvariantCheckResult, InvariantClass, InvariantExecutionPoint, InvariantFailureEffect,
+    InvariantRule, PacketResult, RecordLifecycleState, RelationReadRecord,
+    RelationalDiagnosticsFacade, RelationalReadView, RelationalReplayRecord, RelationalRuntime,
+    RelationalRuntimeConfig, RelationalTransaction, ReplaySchemaVersion, StorageInvariantReport,
+    StorageStats,
 };
 pub use crate::presentation::api::RelationalRuntimeApi;
 pub use crate::presentation::contracts::{

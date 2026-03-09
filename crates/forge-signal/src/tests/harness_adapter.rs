@@ -160,18 +160,15 @@ fn signal_harness_adapter_captures_v2_replay_summary() {
         .and_then(|value| value.as_array())
         .expect("replay summary should expose runtime events");
     assert!(!events.is_empty());
-    let mut last_sequence = None;
+    let mut last_cursor = None;
     for event in events {
-        let sequence = event["sequence"]
+        let cursor = event["cursor"]
             .as_u64()
-            .expect("replay event should have a sequence");
-        if let Some(previous) = last_sequence {
-            assert!(
-                previous < sequence,
-                "replay events must be strictly ordered"
-            );
+            .expect("replay event should have a cursor");
+        if let Some(previous) = last_cursor {
+            assert!(previous < cursor, "replay events must be strictly ordered");
         }
-        last_sequence = Some(sequence);
+        last_cursor = Some(cursor);
     }
 }
 

@@ -71,6 +71,11 @@ impl DependencyEdgeStore {
         });
         DependencySetId::from_index(self.segments.len())
     }
+
+    #[cfg(test)]
+    pub(crate) fn storage_counts(&self) -> (usize, usize) {
+        (self.edges.len(), self.segments.len())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -101,5 +106,10 @@ impl SubscriberEdgeStore {
             len: subscribers.len() as u32,
         });
         SubscriberSetId::from_index(self.segments.len())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn storage_counts(&self) -> (usize, usize) {
+        (self.subscribers.len(), self.segments.len())
     }
 }

@@ -210,6 +210,98 @@ fn snapshot_churn_reorders_dependencies_without_ghost_snapshots() {
 }
 
 #[test]
+fn reconverging_invalidation_path_is_not_reported_as_a_cycle() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().build();
+    let direct_b = graph.node().build();
+    let direct_c = graph.node().build();
+    let direct_d = graph.node().build();
+    let direct_e = graph.node().build();
+
+    graph.add_dependency(direct_b, source, ASPECT_A).unwrap();
+    graph.add_dependency(direct_c, source, ASPECT_A).unwrap();
+    graph.add_dependency(direct_d, source, ASPECT_A).unwrap();
+    graph.add_dependency(direct_e, source, ASPECT_A).unwrap();
+    graph.add_dependency(direct_d, direct_b, ASPECT_A).unwrap();
+    graph.add_dependency(direct_d, direct_c, ASPECT_A).unwrap();
+    graph.add_dependency(direct_e, direct_d, ASPECT_A).unwrap();
+
+    let result = mark_dirty(&mut graph, source, ASPECT_A);
+
+    assert!(
+        result.is_ok(),
+        "reconverging DAG invalidation should not be treated as a circular reference: {result:?}"
+    );
+}
+
+#[test]
+fn gc_epoch_compacts_edge_and_snapshot_storage_after_churn() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::with_gc_threshold(1)).build();
+    let source_a = runtime.graph_mut().node().build();
+    let source_b = runtime.graph_mut().node().build();
+    let dependent = runtime.graph_mut().node().build();
+    let mut runtime_ctx = ();
+
+    for round in 0..24 {
+        runtime
+            .graph_mut()
+            .remove_dependency(dependent, source_a, ASPECT_A)
+            .ok();
+        runtime
+            .graph_mut()
+            .remove_dependency(dependent, source_b, ASPECT_A)
+            .ok();
+        runtime
+            .graph_mut()
+            .add_dependency(
+                dependent,
+                if round % 2 == 0 { source_a } else { source_b },
+                ASPECT_A,
+            )
+            .unwrap();
+        runtime
+            .transaction(&mut runtime_ctx, |tx| {
+                tx.mark_dirty(if round % 2 == 0 { source_a } else { source_b }, ASPECT_A)?;
+                tx.evaluate_with_plan(
+                    dependent,
+                    &|node, view| {
+                        let result = if node == source_a {
+                            view.finish(version_ab(round as u64 + 1, 0))
+                        } else if node == source_b {
+                            view.finish(version_ab(round as u64 + 100, 0))
+                        } else {
+                            let source = if round % 2 == 0 { source_a } else { source_b };
+                            let version = view.read_aspect_version(source, ASPECT_A)?;
+                            view.finish(NodeEvaluationResult::from_version(version))
+                        };
+                        Ok(result)
+                    },
+                    EvaluationRequestMode::Default,
+                )?;
+                Ok(())
+            })
+            .unwrap();
+    }
+
+    let before = runtime.graph().test_storage_counts();
+    runtime.graph_mut().run_gc_epoch();
+    let after = runtime.graph().test_storage_counts();
+
+    assert!(
+        after.0 .1 <= 4,
+        "dependency edge segments should compact back near live-node cardinality after GC: before={before:?} after={after:?}"
+    );
+    assert!(
+        after.1 .1 <= 4,
+        "subscriber edge segments should compact back near live-node cardinality after GC: before={before:?} after={after:?}"
+    );
+    assert!(
+        after.2 <= 2,
+        "dependency snapshots should compact back near live snapshot count after GC: before={before:?} after={after:?}"
+    );
+}
+
+#[test]
 #[ignore = "stress coverage for large edge rewrites and slot reuse"]
 fn stress_edge_rewrites_across_reused_nodes() {
     let mut graph = SignalGraph::new();

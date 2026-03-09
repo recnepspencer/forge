@@ -33,6 +33,7 @@ where
     context: SubscriberContext<D>,
     telemetry: RuntimeTelemetry,
     finalized: bool,
+    rollback_ready: Vec<bool>,
     context_marker: PhantomData<fn(&mut C)>,
 }
 
@@ -58,6 +59,7 @@ where
             context: SubscriberContext::new(),
             telemetry: RuntimeTelemetry::default(),
             finalized: false,
+            rollback_ready: Vec::new(),
             context_marker: PhantomData,
         }
     }
@@ -106,6 +108,7 @@ where
             provides,
             sub,
         });
+        self.rollback_ready.push(false);
         self.finalized = false;
         Ok(())
     }
@@ -128,6 +131,8 @@ where
     pub fn begin(&mut self, runtime: &mut C) -> Result<(), SubscriberRegistryError<D>> {
         self.ensure_finalized()?;
         self.context.clear_staged();
+        self.rollback_ready.clear();
+        self.rollback_ready.resize(self.subscribers.len(), false);
         for &idx in &self.order {
             self.subscribers[idx]
                 .sub
@@ -163,6 +168,9 @@ where
                     source,
                 });
             }
+            if let Some(flag) = self.rollback_ready.get_mut(idx) {
+                *flag = true;
+            }
         }
 
         self.pending.clear();
@@ -177,8 +185,11 @@ where
         self.pending.clear();
         self.context.clear_staged();
         for &idx in self.order.iter().rev() {
-            self.subscribers[idx].sub.on_rollback(runtime);
+            if self.rollback_ready.get(idx).copied().unwrap_or(false) {
+                self.subscribers[idx].sub.on_rollback(runtime);
+            }
         }
+        self.rollback_ready.fill(false);
         self.telemetry.rollback_count += 1;
     }
 

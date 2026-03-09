@@ -32,6 +32,30 @@ These are not side features. They are the architectural bets that make the truth
 
 If these are treated as “nice to have later,” the runtime collapses back into ordinary graph storage and the larger Forge architecture loses its leverage.
 
+## Why This Is Harder Than `forge-signal`
+
+`forge-signal` is already complex, but it operates over present-state reactive execution in a constrained DAG-shaped problem space.
+
+`forge-relational` adds several new dimensions of difficulty at the same time:
+
+- version-visible historical reads instead of present-state-only reads
+- branch-aware history rather than one active execution frontier
+- cyclic truth graphs instead of DAG-only dependency structure
+- lineage and identity evolution rather than version-only change tracking
+- durable patch and replay contracts rather than internal invalidation only
+
+This makes `forge-relational` closer to a truth/history runtime or in-memory database kernel than to an ordinary storage helper.
+
+The highest risk is not “Rust is hard.” The highest risk is semantic drift under implementation pressure:
+
+- replay becoming patch-only theater instead of canonical commit re-execution
+- lineage becoming event logging instead of authoritative identity evolution
+- derived indexes quietly becoming authority
+- durability mirroring in-memory layout instead of canonical truth artifacts
+- history assumptions hardening around single-parent commits
+
+The project should therefore be developed with database-grade discipline, but without importing premature lock-free or persistence-engine complexity before profiling and contract pressure justify it.
+
 ## Mission
 
 `forge-relational` exists to make truth-state graph operations safe, replayable, branchable, and inspectable at industrial scale.
@@ -119,6 +143,11 @@ These are locked architectural decisions, not provisional defaults.
 - `forge_harness` as the default acceptance path
 - parallelize preparation and consumption, serialize authority
 - derived indexes remain non-authoritative and publish immutably
+- replay is executed from canonical commit envelopes, not patch-only reconstruction
+- history representation is merge-ready now: ordered parent commit lists, even before merge commits execute
+- authoritative storage-visible reads always retain a non-index fallback path
+- lineage is a constrained graph with explicit invariants, not event logging theater
+- durability persists canonical truth artifacts rather than transient arena layout
 - no hidden mutation during reads
 - no scheduler-dependent semantics
 
@@ -183,11 +212,104 @@ Snapshot publication is a single coherent user-visible boundary:
 Replay artifacts must obey all of the following:
 
 - derived from canonical commit artifacts rather than internal heap state
+- executed from canonical commit envelopes that include branch context, ordered parents, schema identity, merged apply semantics, patch artifact, and diagnostics summary
 - stable and serializable inputs
 - canonical replay ordering
 - local timing and worker scheduling excluded from replay semantics
 - schema-versioned from day one
 - schema/version mismatch is an explicit failure class
+- replay equivalence is defined over the observable surfaces promised by the active profile, not a fixed minimal list
+
+### History shape
+
+History must remain merge-ready from the start:
+
+- commit references use ordered parent lists
+- initial authoritative commit creation may still restrict execution to zero or one parent
+- replay, durability, and branch reasoning must not assume single-parent history forever
+
+### Derived index contract
+
+Derived indexes are read-side generations only:
+
+- indexes are built from canonical truth outputs and version-visible storage
+- index computation may parallelize; index publication remains serialized and version-bound
+- index absence, lag, mismatch, or failure must never change truth semantics
+- authoritative reads must always retain a storage-visible fallback path
+
+### Lineage contract
+
+Lineage is authoritative identity-evolution history:
+
+- storage identity and lineage identity remain separate permanently
+- correspondence remains advisory until explicit promotion
+- final lineage mutation is serialized and canonical
+- lineage graph invariants must reject invalid references, ambiguous parentage, and silent advisory-to-authoritative promotion
+
+### Durability contract
+
+Durability exists to preserve truth, not current memory layout:
+
+- persistent format is canonical and schema-versioned
+- durable recovery rebuilds authoritative truth from canonical envelopes and committed history
+- snapshots are recoverable views, not the primary durable truth artifact
+- partial durable publication is invalid
+
+### What We Will Not Do Prematurely
+
+These are explicit anti-patterns for the early and middle phases of the runtime:
+
+- no premature lock-free multi-writer truth mutation
+- no `Arc`-everywhere persistent-state model as the default storage architecture
+- no custom epoch reclamation or equivalent advanced memory machinery until profiling proves the simpler retention model insufficient
+- no durability format coupled to transient arena or sidecar layout
+- no optimization that weakens deterministic replay, coherent publication, or storage-visible fallback semantics
+
+### Primary Early Performance Risks
+
+The first serious performance risks are expected to be:
+
+- retained historical payload growth under pinned snapshots
+- version-history growth for hot records
+- chunk sizing mistakes that destroy scan locality
+- pointer chasing and allocation overhead if SoA discipline is abandoned
+- derived-index growth or replay artifact growth that outpaces bounded policies
+
+Performance work should therefore focus first on:
+
+- chunk and sidecar discipline
+- touched-state proportionality
+- retention and reclaim efficiency
+- storage-native historical visibility
+- profile-driven bounded diagnostics and replay artifacts
+
+### Semantic Risks Bigger Than Rust Risks
+
+The runtime will fail more often from the wrong contracts than from borrow-checker friction.
+
+The most dangerous semantic risks are:
+
+- replay defined too narrowly
+- lineage reduced to event logging
+- derived indexes treated as authority
+- diagnostics that are verbose but operationally useless
+- merge-ready history shape being quietly collapsed back to single-parent assumptions
+- retention, recovery, or replay semantics depending on incidental scheduler order
+
+These risks should be treated as first-class review and test targets, not just design notes.
+
+### Correctness-First MVCC Strategy
+
+The intended MVCC strategy is correctness-first and authority-safe:
+
+- single-writer authoritative commit
+- version-visible retained storage
+- explicit snapshot pinning and release
+- explicit retention and reclaim transitions
+- chunk-aware analysis and retention planning
+- storage-native historical reads before advanced reclamation machinery
+
+If later profiling proves that more advanced memory-management machinery is necessary, it must be introduced without weakening deterministic truth semantics or coherent publication.
 
 ### Invariant categories
 

@@ -54,6 +54,7 @@ pub mod diagnostics;
 pub mod easy;
 mod logic;
 mod presentation;
+mod state;
 
 pub mod facade;
 

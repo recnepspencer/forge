@@ -244,11 +244,14 @@ impl ReplayHarnessAdapter for SignalHarnessAdapter {
             .iter()
             .map(|event| {
                 json!({
-                    "sequence": event.sequence,
+                    "cursor": event.cursor.0,
                     "kind": format!("{:?}", event.kind),
+                    "branch_id": event.branch_id.0,
+                    "snapshot_id": event.snapshot_id.map(|id| id.0),
                     "node": event.node.map(|node| node.to_string()),
                     "execution_record_id": event.execution_record_id,
                     "semantic_segment_id": event.semantic_segment_id,
+                    "lineage_artifact_id": event.lineage_artifact_id.map(|id| id.0),
                     "detail": event.detail,
                 })
             })

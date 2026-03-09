@@ -17,6 +17,7 @@ mod test_execution;
 #[cfg(test)]
 mod test_helpers;
 mod types;
+mod validation;
 
 pub use execution::{execute_prepared_plan, execute_prepared_plan_with_policy};
 pub use plan_builder::{build_evaluation_plan, build_evaluation_plan_with_policy_resolver};

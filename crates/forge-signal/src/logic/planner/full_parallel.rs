@@ -210,6 +210,8 @@ fn build_group_segment(
                 dependency_updates: patch.dependency_updates,
                 recomputed: patch.recomputed,
                 partition_aware: patch.partition_aware,
+                prepared_outcome: patch.prepared.outcome,
+                prepared_origin: patch.prepared.origin,
             })
         })
         .collect::<Result<Vec<_>, SignalError>>()?;
@@ -233,6 +235,8 @@ fn apply_serial_fallback_patch(
             patch.prepared.origin,
             PreparedEvaluationOrigin::MemoizedReuse
         );
+    let prepared_outcome = patch.prepared.outcome;
+    let prepared_origin = patch.prepared.origin;
     let partition_aware = !patch.prepared.result.changed_regions.is_empty();
     let before_state = graph.get_state(patch.node)?;
     let before_trace = graph.get_entry(patch.node)?.get_trace_summary().cloned();
@@ -269,6 +273,8 @@ fn apply_serial_fallback_patch(
         dependency_updates,
         recomputed,
         partition_aware,
+        prepared_outcome,
+        prepared_origin,
     }));
     Ok(())
 }

@@ -1,3 +1,6 @@
+use std::collections::BTreeMap;
+use std::ops::{Deref, DerefMut};
+
 use crate::data::checkpoint_policy::CheckpointPolicy;
 use crate::data::comparator::{TierPolicyResolver, VersionComparatorPolicy};
 use crate::data::error::SignalError;
@@ -18,10 +21,24 @@ use crate::logic::events::EventBus;
 use crate::logic::explain::{explain_with_policy_resolver, NodeExplanation};
 use crate::logic::transaction::patch_buffer::SparsePatchBuffer;
 use crate::presentation::metrics::RuntimeMetrics;
+use crate::state::{SignalBranchHandle, SignalBranchId, SignalSnapshotV1};
 
 use super::builder::SignalRuntimeBuilder;
 use super::config::SignalRuntimeConfig;
 use super::transaction_types::SignalTransaction;
+
+#[derive(Debug, Clone)]
+struct RuntimeBranchState<D, I, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    graph: SignalGraph,
+    config: SignalRuntimeConfig<T>,
+    checkpoint: CheckpointRuntime<D, I>,
+    telemetry: RuntimeTelemetry,
+}
 
 /// Full runtime surface for transactional evaluation, diagnostics, replay, and
 /// keyed or tier-aware execution.
@@ -36,6 +53,53 @@ where
     pub(super) checkpoint: CheckpointRuntime<D, I>,
     pub(super) event_bus: EventBus<E, D, Ctx>,
     pub(super) telemetry: RuntimeTelemetry,
+    branches: BTreeMap<SignalBranchId, RuntimeBranchState<D, I, T>>,
+}
+
+pub struct SignalGraphMut<'a, D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    runtime: &'a mut SignalRuntime<D, I, E, Ctx, T>,
+}
+
+impl<D, I, E, Ctx, T> Deref for SignalGraphMut<'_, D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    type Target = SignalGraph;
+
+    fn deref(&self) -> &Self::Target {
+        &self.runtime.graph
+    }
+}
+
+impl<D, I, E, Ctx, T> DerefMut for SignalGraphMut<'_, D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.runtime.graph
+    }
+}
+
+impl<D, I, E, Ctx, T> Drop for SignalGraphMut<'_, D, I, E, Ctx, T>
+where
+    D: Copy + Ord + std::fmt::Debug + 'static,
+    I: Copy + Ord,
+    T: Copy + Ord,
+{
+    fn drop(&mut self) {
+        self.runtime
+            .config
+            .prune_stale_node_meta(&self.runtime.graph);
+    }
 }
 
 impl SignalRuntime<(), (), (), (), ()> {
@@ -66,6 +130,7 @@ where
             checkpoint,
             event_bus,
             telemetry: RuntimeTelemetry::default(),
+            branches: BTreeMap::new(),
         }
     }
 
@@ -90,9 +155,9 @@ where
         &self.graph
     }
 
-    pub fn graph_mut(&mut self) -> &mut SignalGraph {
+    pub fn graph_mut(&mut self) -> SignalGraphMut<'_, D, I, E, Ctx, T> {
         self.config.sync_graph_capacity(&self.graph);
-        &mut self.graph
+        SignalGraphMut { runtime: self }
     }
 
     pub fn checkpoint(&self) -> &CheckpointRuntime<D, I> {
@@ -109,6 +174,22 @@ where
 
     pub fn telemetry(&self) -> &RuntimeTelemetry {
         &self.telemetry
+    }
+
+    fn capture_branch_state(&self) -> RuntimeBranchState<D, I, T> {
+        RuntimeBranchState {
+            graph: self.graph.clone_stateful(),
+            config: self.config.clone(),
+            checkpoint: self.checkpoint.clone(),
+            telemetry: self.telemetry.clone(),
+        }
+    }
+
+    fn load_branch_state(&mut self, state: RuntimeBranchState<D, I, T>) {
+        self.graph = state.graph;
+        self.config = state.config;
+        self.checkpoint = state.checkpoint;
+        self.telemetry = state.telemetry;
     }
 
     /// Explain the current node state using the best available artifact path.
@@ -225,6 +306,200 @@ where
         self.graph.set_runtime_policy(policy);
     }
 
+    pub fn capture_snapshot(&mut self) -> SignalSnapshotV1 {
+        let mut snapshot = self.graph.capture_snapshot();
+        snapshot.runtime_telemetry = Some(self.telemetry.clone());
+        snapshot
+    }
+
+    pub fn restore_snapshot(&mut self, snapshot: &SignalSnapshotV1) -> Result<(), SignalError> {
+        self.graph.restore_snapshot(snapshot)?;
+        if let Some(telemetry) = &snapshot.runtime_telemetry {
+            self.telemetry = telemetry.clone();
+        }
+        Ok(())
+    }
+
+    pub fn create_branch(
+        &mut self,
+        name: impl Into<String>,
+    ) -> Result<SignalBranchHandle, SignalError> {
+        let current_branch_name = self.graph.current_branch().name;
+        let handle = self.graph.diagnostics_state_mut().create_branch(name);
+        let mut branch_state = self.capture_branch_state();
+        branch_state
+            .graph
+            .diagnostics_state_mut()
+            .set_active_branch(handle.id);
+        self.branches.insert(handle.id, branch_state);
+        let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
+        for state in self.branches.values_mut() {
+            let active_branch = state.graph.current_branch().id;
+            state
+                .graph
+                .diagnostics_state_mut()
+                .synchronize_branch_catalog(branch_catalog.clone(), active_branch);
+        }
+        crate::diagnostics::recorder::record_snapshot_event(
+            &mut self.graph,
+            crate::diagnostics::replay::ReplayEventKind::BranchCreated,
+            None,
+            format!("created branch `{}`", handle.name),
+        );
+        crate::diagnostics::recorder::record_branch_lineage_event(
+            &mut self.graph,
+            crate::diagnostics::lineage::LineageEvent::BranchedFrom,
+            format!(
+                "created branch `{}` from {}",
+                handle.name, current_branch_name
+            ),
+        );
+        Ok(handle)
+    }
+
+    pub fn switch_branch(&mut self, branch: SignalBranchHandle) -> Result<(), SignalError> {
+        let current = self.graph.current_branch();
+        self.branches
+            .insert(current.id, self.capture_branch_state());
+        let Some(state) = self.branches.get(&branch.id).cloned() else {
+            return Err(SignalError::invalid_input(format!(
+                "unknown branch `{}`",
+                branch.name
+            )));
+        };
+        self.load_branch_state(state);
+        self.graph
+            .diagnostics_state_mut()
+            .set_active_branch(branch.id);
+        crate::diagnostics::recorder::record_snapshot_event(
+            &mut self.graph,
+            crate::diagnostics::replay::ReplayEventKind::BranchSwitched,
+            None,
+            format!("switched from `{}` to `{}`", current.name, branch.name),
+        );
+        crate::diagnostics::recorder::record_branch_lineage_event(
+            &mut self.graph,
+            crate::diagnostics::lineage::LineageEvent::BranchedFrom,
+            format!("switched from `{}` to `{}`", current.name, branch.name),
+        );
+        Ok(())
+    }
+
+    pub fn capture_branch_snapshot(
+        &mut self,
+        branch: SignalBranchHandle,
+    ) -> Result<SignalSnapshotV1, SignalError> {
+        if branch.id == self.graph.current_branch().id {
+            return Ok(self.capture_snapshot());
+        }
+        let Some(state) = self.branches.get(&branch.id) else {
+            return Err(SignalError::invalid_input(format!(
+                "unknown branch `{}`",
+                branch.name
+            )));
+        };
+        let policy = state.graph.runtime_policy();
+        let mut graph = state.graph.clone_stateful();
+        let meta = graph.diagnostics_state_mut().allocate_snapshot_meta(policy);
+        let diagnostics = graph.diagnostics_state().snapshot_payload();
+        let graph_telemetry = graph.telemetry().clone();
+        Ok(SignalSnapshotV1 {
+            meta,
+            graph,
+            diagnostics,
+            graph_telemetry,
+            runtime_telemetry: Some(state.telemetry.clone()),
+        })
+    }
+
+    pub fn restore_branch_snapshot(
+        &mut self,
+        branch: SignalBranchHandle,
+        snapshot: &SignalSnapshotV1,
+    ) -> Result<(), SignalError> {
+        self.graph.validate_snapshot_compatibility(snapshot)?;
+        if branch.id == self.graph.current_branch().id {
+            return self.restore_snapshot(snapshot);
+        }
+        let mut graph = snapshot.graph.clone();
+        *graph.telemetry_mut() = snapshot.graph_telemetry.clone();
+        graph
+            .diagnostics_state_mut()
+            .restore_snapshot_payload(snapshot.diagnostics.clone());
+        let state = RuntimeBranchState {
+            graph,
+            config: self.config.clone(),
+            checkpoint: self.checkpoint.clone(),
+            telemetry: snapshot
+                .runtime_telemetry
+                .clone()
+                .unwrap_or_else(|| self.telemetry.clone()),
+        };
+        let mut state = state;
+        crate::diagnostics::recorder::record_snapshot_restore_lineage(
+            &mut state.graph,
+            snapshot.meta.snapshot_id,
+        );
+        self.branches.insert(branch.id, state);
+        Ok(())
+    }
+
+    pub fn current_branch(&self) -> SignalBranchHandle {
+        self.graph.current_branch()
+    }
+
+    pub fn known_branches(&self) -> Vec<SignalBranchHandle> {
+        self.graph.known_branches()
+    }
+
+    pub fn branch_handle(&self, branch_id: SignalBranchId) -> Option<SignalBranchHandle> {
+        self.graph.branch_handle(branch_id)
+    }
+
+    pub fn branch_ancestry(&self, branch_id: SignalBranchId) -> Vec<SignalBranchHandle> {
+        self.graph.branch_ancestry(branch_id)
+    }
+
+    pub fn replay_for_branch(&self, branch_id: SignalBranchId) -> crate::diagnostics::ReplaySlice {
+        self.graph.replay_for_branch(branch_id)
+    }
+
+    pub fn replay_for_node(&self, node: NodeId) -> crate::diagnostics::ReplaySlice {
+        self.graph.replay_for_node(node)
+    }
+
+    pub fn replay_from_cursor(
+        &self,
+        start: crate::diagnostics::ReplayCursor,
+    ) -> crate::diagnostics::ReplaySlice {
+        self.graph.replay_from_cursor(start)
+    }
+
+    pub fn replay_around_snapshot(
+        &self,
+        snapshot_id: crate::state::SignalSnapshotId,
+    ) -> crate::diagnostics::ReplaySlice {
+        self.graph.replay_around_snapshot(snapshot_id)
+    }
+
+    pub fn current_lineage_artifact(
+        &self,
+        node: NodeId,
+    ) -> Option<crate::diagnostics::LineageArtifactId> {
+        self.graph.current_lineage_artifact(node)
+    }
+
+    pub fn lineage_chain_for_node(&self, node: NodeId) -> Vec<crate::diagnostics::LineageRecord> {
+        self.graph.lineage_chain_for_node(node)
+    }
+
+    pub fn lineage_chain_for_artifact(
+        &self,
+        artifact_id: crate::diagnostics::LineageArtifactId,
+    ) -> Vec<crate::diagnostics::LineageRecord> {
+        self.graph.lineage_chain_for_artifact(artifact_id)
+    }
+
     pub fn execution_history_summary(
         &self,
         profile: DiagnosticsProfile,
@@ -289,6 +564,7 @@ where
     pub fn begin<'a>(&'a mut self) -> SignalTransaction<'a, D, I, E, Ctx, T> {
         self.telemetry.transaction_begin_count += 1;
         self.config.sync_graph_capacity(&self.graph);
+        let baseline_config = self.config.clone();
         let baseline_diagnostics_state = self.graph.diagnostics_state().clone();
         SignalTransaction {
             config: &mut self.config,
@@ -303,6 +579,7 @@ where
             staged_event_flushes: Vec::new(),
             staged_memo_writes: std::collections::BTreeMap::new(),
             graph_patches: SparsePatchBuffer::new(),
+            baseline_config,
             baseline_diagnostics_state,
             semantic_delta: super::transaction_types::TransactionSemanticDelta::default(),
             poisoned: false,

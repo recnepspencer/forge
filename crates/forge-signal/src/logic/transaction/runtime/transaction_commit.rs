@@ -20,7 +20,7 @@ where
 
         if self.poisoned {
             self.event_bus.rollback(runtime_ctx);
-            self.graph_patches.rollback_and_clear(self.graph)?;
+            self.rollback_graph_state()?;
             let rollback = RollbackDiagnostic::new(
                 true,
                 self.graph_patches.touched_count() as u64,
@@ -66,7 +66,7 @@ where
             .map_err(|e| SignalError::invalid_input(format!("event bus begin failed: {e:?}")))
         {
             self.event_bus.rollback(runtime_ctx);
-            self.graph_patches.rollback_and_clear(self.graph)?;
+            self.rollback_graph_state()?;
             let rollback = RollbackDiagnostic::new(
                 true,
                 self.graph_patches.touched_count() as u64,
@@ -109,7 +109,7 @@ where
                 .map_err(|e| SignalError::invalid_input(format!("event bus flush failed: {e:?}")))
             {
                 self.event_bus.rollback(runtime_ctx);
-                self.graph_patches.rollback_and_clear(self.graph)?;
+                self.rollback_graph_state()?;
                 let rollback = RollbackDiagnostic::new(
                     true,
                     self.graph_patches.touched_count() as u64,
@@ -205,7 +205,7 @@ where
         }
         self.finished = true;
         self.event_bus.rollback(runtime_ctx);
-        self.graph_patches.rollback_and_clear(self.graph)?;
+        self.rollback_graph_state()?;
         self.telemetry.transaction_rollback_count += 1;
         let rollback = RollbackDiagnostic::new(
             true,
@@ -241,6 +241,7 @@ where
 
     fn finalize_semantic_delta(&mut self, restore_baseline: bool) {
         if restore_baseline {
+            *self.config = self.baseline_config.clone();
             *self.graph.diagnostics_state_mut() = self.baseline_diagnostics_state.clone();
         }
         if let Some(rollback) = self.semantic_delta.rollback.take() {
@@ -260,5 +261,11 @@ where
                 semantic_segment_id,
             );
         }
+    }
+
+    fn rollback_graph_state(&mut self) -> Result<(), SignalError> {
+        self.graph_patches.rollback_and_clear(self.graph)?;
+        self.graph.rebuild_subscriber_index_from_dependencies()?;
+        Ok(())
     }
 }

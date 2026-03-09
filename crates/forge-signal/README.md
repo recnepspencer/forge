@@ -172,6 +172,8 @@ Quick starts:
 - [API Surface](./docs/API_SURFACE.md)
 - [Conditions And Comparators](./docs/CONDITIONS_AND_COMPARATORS.md)
 - [Artifact Access Matrix](./docs/ARTIFACT_ACCESS_MATRIX.md)
+- [Snapshots, Branches, And Replay](./docs/SNAPSHOTS_BRANCHES_AND_REPLAY.md)
+- [Lineage Model](./docs/LINEAGE_MODEL.md)
 - [Transactions And Keyed Runtime](./docs/TRANSACTIONS_AND_KEYED_RUNTIME.md)
 - [Checkpoints And Tiers](./docs/CHECKPOINTS_AND_TIERS.md)
 - [Lifecycle And GC](./docs/LIFECYCLE_AND_GC.md)

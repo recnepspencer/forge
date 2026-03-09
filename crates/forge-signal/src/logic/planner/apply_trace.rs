@@ -71,6 +71,7 @@ pub(super) fn build_trace_summary(
         labels,
         execution_record_id: None,
         semantic_segment_id: None,
+        lineage_artifact_id: None,
     })
 }
 

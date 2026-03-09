@@ -221,7 +221,10 @@ where
             let snapshot = ExecutionSnapshot::new(&*graph);
             let execution = match executor {
                 StageExecutor::Serial => StageExecutionData::Prepared(precompute_stage_serial(
-                    stage, &snapshot, precompute,
+                    stage,
+                    &snapshot,
+                    precompute,
+                    comparator_resolver,
                 )?),
                 #[cfg(feature = "parallel")]
                 _ if stage_parallel.use_parallel => {
@@ -233,6 +236,7 @@ where
                             executor
                                 .parallel_policy()
                                 .expect("parallel policy should exist"),
+                            comparator_resolver,
                         )?)
                     } else {
                         StageExecutionData::Prepared(precompute_stage_parallel(
@@ -242,13 +246,14 @@ where
                             executor
                                 .parallel_policy()
                                 .expect("parallel policy should exist"),
+                            comparator_resolver,
                         )?)
                     }
                 }
                 #[cfg(feature = "parallel")]
                 StageExecutor::StagedParallelPrecompute { .. }
                 | StageExecutor::FullParallel { .. } => StageExecutionData::Prepared(
-                    precompute_stage_serial(stage, &snapshot, precompute)?,
+                    precompute_stage_serial(stage, &snapshot, precompute, comparator_resolver)?,
                 ),
             };
             Ok::<StageExecutionData, SignalError>(execution)
@@ -367,6 +372,8 @@ where
                             patch.prepared.origin,
                             PreparedEvaluationOrigin::MemoizedReuse
                         );
+                let prepared_outcome = patch.prepared.outcome;
+                let prepared_origin = patch.prepared.origin;
                 let partition_aware = !patch.prepared.result.changed_regions.is_empty();
                 let before_state = graph.get_state(patch.node)?;
                 let before_trace = graph.get_entry(patch.node)?.get_trace_summary().cloned();
@@ -403,6 +410,8 @@ where
                     dependency_updates,
                     recomputed,
                     partition_aware,
+                    prepared_outcome,
+                    prepared_origin,
                 }));
             }
             let semantic_finalize_start = Instant::now();
@@ -427,6 +436,8 @@ where
                             patch.prepared.origin,
                             PreparedEvaluationOrigin::MemoizedReuse
                         );
+                let prepared_outcome = patch.prepared.outcome;
+                let prepared_origin = patch.prepared.origin;
                 let partition_aware = !patch.prepared.result.changed_regions.is_empty();
                 let before_state = graph.get_state(patch.node)?;
                 let before_trace = graph.get_entry(patch.node)?.get_trace_summary().cloned();
@@ -463,6 +474,8 @@ where
                     dependency_updates,
                     recomputed,
                     partition_aware,
+                    prepared_outcome,
+                    prepared_origin,
                 }));
             }
             let semantic_finalize_start = Instant::now();

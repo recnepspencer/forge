@@ -7,9 +7,10 @@ use crate::data::diagnostics::{
 use crate::data::diff::{
     PatchOrdering, PatchPublicationMode, PatchStreamPosition, RelationalPatchRecord,
 };
-use crate::data::history::CommitId;
+use crate::data::history::{CommitId, CommitReference};
 use crate::data::identity::{EntityId, RelationId, VersionId};
 use crate::data::publication::{PublicationError, PublicationStage, PublicationStatus};
+use crate::data::replay::CanonicalCommitEnvelope;
 use crate::data::transaction::{
     AuthoritativeApplyPlan, CommitConflict, CommitOutcome, MergedCommitPlan, RecordRef,
     RollbackOutcome, SavepointId, TransactionCommitError, TransactionIntent, TransactionOptions,
@@ -163,12 +164,44 @@ impl<'a> RelationalTransaction<'a> {
         }
 
         let commit_id = CommitId(self.runtime.next_commit_id);
+        let branch_id = self
+            .options
+            .target_branch
+            .clone()
+            .unwrap_or_else(|| self.runtime.config.main_branch.clone());
+        let (parents, merge_base_commits) = self
+            .resolve_parent_commits(&branch_id)
+            .map_err(TransactionCommitError::Conflict)?;
+        let commit_reference = CommitReference {
+            commit_id,
+            version_id,
+            branch_id: branch_id.clone(),
+            parents,
+        };
         let patch = RelationalPatchRecord {
             ordering: PatchOrdering::CanonicalCommitOrder,
             publication_mode: PatchPublicationMode::CommitNative,
             position: PatchStreamPosition(commit_id.0),
             records: patch_records,
         };
+        if patch.records.len() > self.runtime.config.publication.max_patch_records_per_commit {
+            self.runtime.push_bounded_diagnostic(
+                DiagnosticsScope::PatchPublication,
+                DiagnosticsArtifactKind::Failure,
+                vec![RelationalDiagnosticsEntry {
+                    code: DiagnosticCode::DiagnosticsPublicationFailure,
+                    message: "patch record budget exceeded".to_string(),
+                    fields: json!({
+                        "patch_records": patch.records.len(),
+                        "max_patch_records_per_commit": self.runtime.config.publication.max_patch_records_per_commit,
+                    }),
+                }],
+            );
+            return Err(TransactionCommitError::Publication(PublicationError {
+                stage: PublicationStage::BundleAssembly,
+                detail: "patch record budget exceeded".to_string(),
+            }));
+        }
         let diagnostics_summary = RelationalDiagnosticArtifact {
             scope: DiagnosticsScope::Transaction,
             kind: DiagnosticsArtifactKind::MinimalSummary,
@@ -200,35 +233,98 @@ impl<'a> RelationalTransaction<'a> {
 
         let artifacts = self.runtime.assemble_publication_bundle(
             &staged,
-            commit_id,
+            commit_reference.clone(),
             version_id,
             patch.clone(),
             diagnostics_summary.clone(),
         );
+        let lineage_event_ids = self.runtime.ensure_lineage_for_commit(
+            &mut staged,
+            &commit_reference,
+            &changed_records,
+        );
+        let canonical_commit_envelope = CanonicalCommitEnvelope {
+            commit: commit_reference.clone(),
+            branch_context: branch_id.clone(),
+            merge_parent_branches: self.options.merge_parent_branches.clone(),
+            merge_base_commits: merge_base_commits.clone(),
+            schema_version: self.runtime.primary_schema_version(),
+            schema_registry: self.runtime.config.schema_registry.clone(),
+            merged_plan: merged_plan.clone(),
+            patch: patch.clone(),
+            diagnostics_summary: diagnostics_summary.clone(),
+            lineage_event_ids,
+            index_generation_ids: Vec::new(),
+        };
 
         self.runtime.entity_arena = staged.entity_arena;
         self.runtime.relation_arena = staged.relation_arena;
         self.runtime.adjacency = staged.adjacency;
+        self.runtime.restore_snapshot_pin_counters();
         self.runtime.next_commit_id += 1;
         self.runtime.next_version_id += 1;
+        self.runtime
+            .branch_heads
+            .insert(branch_id.clone(), Some(commit_reference.clone()));
+        self.runtime.commit_graph.insert(
+            commit_id,
+            crate::data::history::VersionNode {
+                commit: commit_reference.clone(),
+            },
+        );
+        self.runtime
+            .commit_envelopes
+            .insert(commit_id, canonical_commit_envelope.clone());
+        self.runtime
+            .durable_log
+            .push(crate::data::durability::DurableCommitEnvelope {
+                envelope: canonical_commit_envelope,
+            });
         self.runtime.latest_publication_bundle = Some(artifacts.bundle.clone());
         self.runtime
             .push_diagnostic_artifact(artifacts.diagnostics_summary);
+        let _ = self.runtime.run_retention_pass();
+        let publication_code = if commit_reference.parents.len() > 1 {
+            DiagnosticCode::MergeCommitPublished
+        } else {
+            DiagnosticCode::CommitPublished
+        };
+        let mut publication_entries = Vec::new();
+        if commit_reference.parents.len() > 1 {
+            publication_entries.push(RelationalDiagnosticsEntry {
+                code: DiagnosticCode::MergeBaseResolved,
+                message: "merge bases resolved deterministically".to_string(),
+                fields: json!({
+                    "commit_id": commit_id.0,
+                    "merge_base_commit_ids": merge_base_commits.iter().map(|base| base.0).collect::<Vec<_>>(),
+                }),
+            });
+        }
+        publication_entries.push(RelationalDiagnosticsEntry {
+            code: publication_code,
+            message: if commit_reference.parents.len() > 1 {
+                "merge commit published coherently".to_string()
+            } else {
+                "commit published coherently".to_string()
+            },
+            fields: json!({
+                "commit_id": commit_id.0,
+                "snapshot_id": artifacts.snapshot.snapshot_id.0,
+                "branch_id": branch_id.0,
+                "parent_commit_ids": commit_reference.parents.iter().map(|parent| parent.0).collect::<Vec<_>>(),
+                "merge_parent_branches": self.options.merge_parent_branches.iter().map(|branch| branch.0.clone()).collect::<Vec<_>>(),
+                "merge_base_commit_ids": merge_base_commits.iter().map(|base| base.0).collect::<Vec<_>>(),
+            }),
+        });
         self.runtime.push_bounded_diagnostic(
             DiagnosticsScope::PatchPublication,
             DiagnosticsArtifactKind::MinimalSummary,
-            vec![RelationalDiagnosticsEntry {
-                code: DiagnosticCode::CommitPublished,
-                message: "commit published coherently".to_string(),
-                fields: json!({
-                    "commit_id": commit_id.0,
-                    "snapshot_id": artifacts.snapshot.snapshot_id.0
-                }),
-            }],
+            publication_entries,
         );
 
         Ok(CommitOutcome {
             transaction_id: self.transaction_id,
+            commit: commit_reference,
             version_id,
             snapshot: artifacts.snapshot,
             changed_records,
@@ -255,5 +351,51 @@ impl<'a> RelationalTransaction<'a> {
             transaction_id: self.transaction_id,
             merged_intents: intents,
         })
+    }
+
+    fn resolve_parent_commits(
+        &self,
+        target_branch: &crate::data::history::BranchId,
+    ) -> Result<(Vec<CommitId>, Vec<CommitId>), CommitConflict> {
+        let mut parents = Vec::new();
+        let mut merge_bases = Vec::new();
+        let target_head = self.runtime.branch_head(target_branch).map(|head| head.commit_id);
+        if let Some(head) = self.runtime.branch_head(target_branch) {
+            parents.push(head.commit_id);
+        }
+        let mut merge_branches = self.options.merge_parent_branches.clone();
+        merge_branches.sort();
+        merge_branches.dedup();
+        for merge_branch in merge_branches {
+            if &merge_branch == target_branch {
+                continue;
+            }
+            let Some(head) = self.runtime.branch_head(&merge_branch) else {
+                return Err(CommitConflict {
+                    code: DiagnosticCode::InvalidMergeParent,
+                    detail: format!("merge parent branch {:?} has no head", merge_branch),
+                });
+            };
+            if !parents.contains(&head.commit_id) {
+                if let Some(target_head) = target_head {
+                    let Some(merge_base) =
+                        self.runtime.latest_common_ancestor(target_head, head.commit_id)
+                    else {
+                        return Err(CommitConflict {
+                            code: DiagnosticCode::MissingMergeBase,
+                            detail: format!(
+                                "merge parent branch {:?} has no common ancestor with target branch {:?}",
+                                merge_branch, target_branch
+                            ),
+                        });
+                    };
+                    merge_bases.push(merge_base);
+                }
+                parents.push(head.commit_id);
+            }
+        }
+        merge_bases.sort_by_key(|commit_id| commit_id.0);
+        merge_bases.dedup();
+        Ok((parents, merge_bases))
     }
 }

@@ -42,7 +42,7 @@ where
         changed_aspect: Aspect,
     ) -> Result<(), SignalError> {
         self.stage_mark_dirty_candidates(source)?;
-        let result = mark_dirty(self.graph, source, changed_aspect);
+        let result = mark_dirty(&mut *self.graph, source, changed_aspect);
         self.apply_result(result)
     }
 
@@ -53,7 +53,8 @@ where
         changed_regions: &[ChangedRegion],
     ) -> Result<(), SignalError> {
         self.stage_mark_dirty_candidates(source)?;
-        let result = mark_dirty_with_regions(self.graph, source, changed_aspect, changed_regions);
+        let result =
+            mark_dirty_with_regions(&mut *self.graph, source, changed_aspect, changed_regions);
         self.apply_result(result)
     }
 

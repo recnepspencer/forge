@@ -1,3 +1,4 @@
+use crate::data::trace::TraceSummary;
 use crate::diagnostics::policy::DiagnosticsPolicy;
 use crate::facade::*;
 use crate::tests::support::{version_ab, ASPECT_A};
@@ -178,4 +179,39 @@ fn stress_development_profile_repeated_waves_remains_semantically_stable() {
 
     assert!(graph.diagnostics().recent_history().len() > 1);
     assert!(graph.latest_failure_diagnostics().is_none());
+}
+
+#[test]
+fn execution_history_prefers_most_recent_records_over_low_arena_indices() {
+    let mut graph = SignalGraph::new();
+    graph.set_diagnostics_profile(DiagnosticsProfile::Development);
+    let mut nodes = Vec::new();
+    for _ in 0..96 {
+        nodes.push(graph.node().build());
+    }
+
+    for (record_id, &node) in nodes.iter().enumerate() {
+        let mut trace = TraceSummary::default();
+        trace.execution_record_id = Some(record_id as u64 + 1);
+        graph
+            .get_entry_mut(node)
+            .unwrap()
+            .set_trace_summary(Some(trace));
+    }
+
+    let history = graph.execution_history_summary(DiagnosticsProfile::Development);
+    let retained = history
+        .nodes
+        .iter()
+        .map(|summary| summary.node)
+        .collect::<std::collections::BTreeSet<_>>();
+
+    assert!(
+        retained.contains(&nodes[79]),
+        "history detail should retain newest high-index node executions instead of truncating by arena order: {history:?}"
+    );
+    assert!(
+        !retained.contains(&nodes[0]),
+        "history detail should not be dominated by stale low-index nodes when detail_limit is exceeded: {history:?}"
+    );
 }

@@ -222,7 +222,7 @@ impl HarnessAdapter for SignalHarnessAdapter {
             clock_domains,
             execution_phases,
             replay_support: AdapterSupport::Supported,
-            lineage_support: AdapterSupport::Unsupported,
+            lineage_support: AdapterSupport::Supported,
             provenance_support: AdapterSupport::Supported,
             event_stream_support: AdapterSupport::Unsupported,
             performance_counter_support: AdapterSupport::Supported,

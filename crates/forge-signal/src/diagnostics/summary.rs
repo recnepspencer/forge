@@ -322,7 +322,7 @@ impl ExecutionHistorySummary {
                 latest_execution_record_id =
                     Some(latest_execution_record_id.map_or(id, |current: u64| current.max(id)));
             }
-            if retain_nodes && nodes.len() < profile.detail_limit() {
+            if retain_nodes {
                 nodes.push(ExecutionHistoryNodeSummary {
                     node,
                     execution_record_id: trace.execution_record_id,
@@ -332,6 +332,20 @@ impl ExecutionHistorySummary {
                     changed_partition_count: trace.changed_partition_count,
                     causality_kind: entry.get_causality().map(|c| c.kind.clone()),
                 });
+            }
+        }
+
+        if retain_nodes {
+            nodes.sort_by(|left, right| {
+                right
+                    .execution_record_id
+                    .cmp(&left.execution_record_id)
+                    .then_with(|| right.semantic_segment_id.cmp(&left.semantic_segment_id))
+                    .then_with(|| left.node.index().cmp(&right.node.index()))
+                    .then_with(|| left.node.generation().cmp(&right.node.generation()))
+            });
+            if nodes.len() > profile.detail_limit() {
+                nodes.truncate(profile.detail_limit());
             }
         }
 

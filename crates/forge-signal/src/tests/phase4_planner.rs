@@ -1,5 +1,6 @@
 use crate::facade::*;
 use crate::tests::support::*;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Tier {
@@ -45,6 +46,35 @@ fn build_evaluation_plan_omits_clean_target() {
 
     assert_eq!(plan.summary.task_count, 0);
     assert!(plan.stages.is_empty());
+}
+
+#[test]
+fn force_on_demand_plans_and_executes_clean_target() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let mut bootstrap = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    evaluate(&mut graph, node, &mut bootstrap).unwrap();
+
+    let plan = graph
+        .build_evaluation_plan(&[node], EvaluationRequestMode::ForceOnDemand)
+        .unwrap();
+
+    assert_eq!(plan.summary.task_count, 1);
+    assert!(matches!(
+        plan.stages[0].tasks[0].reason,
+        TaskReason::ConditionForced
+    ));
+
+    let calls = AtomicU32::new(0);
+    let report = graph
+        .execute_prepared_plan(&plan, &|_node, view| {
+            calls.fetch_add(1, Ordering::Relaxed);
+            Ok(view.finish(version_ab(2, 0)))
+        })
+        .unwrap();
+
+    assert_eq!(calls.load(Ordering::Relaxed), 1);
+    assert_eq!(report.tasks_executed, 1, "{report:?}");
 }
 
 #[test]
@@ -233,6 +263,44 @@ fn execution_report_marks_requested_maybe_stale_validation_as_validated_clean() 
 }
 
 #[test]
+fn maybe_stale_requested_target_validates_clean_without_running_compute() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().build();
+    let dependent = graph.node().build();
+    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+
+    let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    let mut source_v2_same_aspect_a = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 1));
+    let mut dependent_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
+    evaluate(&mut graph, source, &mut source_v1).unwrap();
+    evaluate(&mut graph, dependent, &mut dependent_v1).unwrap();
+
+    mark_dirty(&mut graph, source, ASPECT_B).unwrap();
+    evaluate(&mut graph, source, &mut source_v2_same_aspect_a).unwrap();
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::MaybeStale);
+
+    let plan = graph
+        .build_evaluation_plan(&[dependent], EvaluationRequestMode::Default)
+        .unwrap();
+
+    let calls = AtomicU32::new(0);
+    let report = graph
+        .execute_prepared_plan(&plan, &|_node, view| {
+            calls.fetch_add(1, Ordering::Relaxed);
+            Ok(view.finish(version_ab(99, 0)))
+        })
+        .unwrap();
+
+    assert_eq!(
+        calls.load(Ordering::Relaxed),
+        0,
+        "MaybeStale validation should skip user compute when cached inputs are still meaningful"
+    );
+    assert_eq!(report.tasks_validated_clean, 1, "{report:?}");
+    assert_eq!(graph.get_state(dependent).unwrap(), NodeState::Clean);
+}
+
+#[test]
 fn execution_report_marks_on_demand_deferral_explicitly() {
     let mut graph = SignalGraph::new();
     let node = graph.node().on_demand().build();
@@ -393,18 +461,18 @@ fn parallel_executor_threshold_keeps_narrow_stage_serial() {
 #[test]
 fn full_parallel_executor_matches_serial_results() {
     let mut serial_graph = SignalGraph::new();
-    let a = serial_graph.node().build();
-    let b = serial_graph.node().build();
+    let serial_nodes = (0..12)
+        .map(|_| serial_graph.node().build())
+        .collect::<Vec<_>>();
 
     let mut parallel_graph = serial_graph.clone();
-    let parallel_a = a;
-    let parallel_b = b;
+    let parallel_nodes = serial_nodes.clone();
 
     let plan = serial_graph
-        .build_evaluation_plan(&[a, b], EvaluationRequestMode::Default)
+        .build_evaluation_plan(&serial_nodes, EvaluationRequestMode::Default)
         .unwrap();
     let parallel_plan = parallel_graph
-        .build_evaluation_plan(&[parallel_a, parallel_b], EvaluationRequestMode::Default)
+        .build_evaluation_plan(&parallel_nodes, EvaluationRequestMode::Default)
         .unwrap();
 
     let precompute =
@@ -417,18 +485,16 @@ fn full_parallel_executor_matches_serial_results() {
         .execute_prepared_plan_with_executor(
             &parallel_plan,
             &precompute,
-            StageExecutor::full_parallel(1),
+            StageExecutor::aggressive_parallel(),
         )
         .unwrap();
 
-    assert_eq!(
-        serial_graph.get_state(a).unwrap(),
-        parallel_graph.get_state(parallel_a).unwrap()
-    );
-    assert_eq!(
-        serial_graph.get_state(b).unwrap(),
-        parallel_graph.get_state(parallel_b).unwrap()
-    );
+    for (serial_node, parallel_node) in serial_nodes.iter().zip(parallel_nodes.iter()) {
+        assert_eq!(
+            serial_graph.get_state(*serial_node).unwrap(),
+            parallel_graph.get_state(*parallel_node).unwrap()
+        );
+    }
     assert_eq!(serial_report.task_count, parallel_report.task_count);
     assert_eq!(serial_report.tasks_executed, parallel_report.tasks_executed);
     assert!(parallel_report.stages.iter().all(|stage| matches!(

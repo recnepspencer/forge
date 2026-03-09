@@ -247,11 +247,11 @@ fn hostile_rollback_and_commit_cycles_do_not_leak_semantic_events() {
     for event in replay_events {
         if let Some(previous) = last_sequence {
             assert!(
-                previous < event.sequence,
+                previous < event.cursor,
                 "replay sequences must be strictly increasing"
             );
         }
-        last_sequence = Some(event.sequence);
+        last_sequence = Some(event.cursor);
     }
 }
 
@@ -384,4 +384,77 @@ fn node_tier_metadata_is_generation_safe_on_slot_reuse() {
         runtime.config().node_meta().tier_for_node(reused).is_none(),
         "reused slot must not inherit stale tier metadata from prior generation"
     );
+}
+
+#[test]
+fn unregister_clears_tier_metadata_tombstones() {
+    let mut runtime = build_runtime(crate::data::graph::SignalGraph::new());
+    let node = runtime.graph_mut().node().build();
+    runtime.set_node_tier(node, Tier::A);
+
+    assert_eq!(runtime.config().node_meta().occupied_slot_count(), 1);
+
+    runtime.graph_mut().unregister_node(node).unwrap();
+
+    assert_eq!(
+        runtime.config().node_meta().occupied_slot_count(),
+        0,
+        "unregister should clear retained tier metadata for dead slots"
+    );
+}
+
+#[test]
+fn rollback_removes_dynamic_dependency_capture_ghost_subscribers() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let source_a = graph.node().build();
+    let source_b = graph.node().build();
+    let target = graph.node().build();
+    graph.add_dependency(target, source_a, ASPECT_A).unwrap();
+
+    let mut runtime = build_runtime(graph);
+    let mut ctx = ();
+
+    evaluate(runtime.graph_mut(), source_a, &mut |_id, _graph| {
+        Ok(version_ab(1, 0))
+    })
+    .unwrap();
+    evaluate(runtime.graph_mut(), source_b, &mut |_id, _graph| {
+        Ok(version_ab(2, 0))
+    })
+    .unwrap();
+    evaluate(runtime.graph_mut(), target, &mut |_id, _graph| {
+        Ok(version_ab(10, 0))
+    })
+    .unwrap();
+
+    assert!(runtime.graph().subscribers_of(source_b).unwrap().is_empty());
+
+    let mut tx = runtime.begin();
+    tx.evaluate_with_plan(
+        target,
+        &|_node, view| {
+            let _ = view.read_aspect_version(source_a, ASPECT_A)?;
+            let _ = view.read_aspect_version(source_b, ASPECT_A)?;
+            Ok(view.finish(version_ab(11, 0)))
+        },
+        crate::logic::evaluation::EvaluationRequestMode::ForceOnDemand,
+    )
+    .unwrap();
+    assert_eq!(
+        tx.staged_graph().subscribers_of(source_b).unwrap(),
+        &[target],
+        "transactional graph should see the newly captured dependency before rollback"
+    );
+
+    assert_eq!(
+        tx.rollback(&mut ctx).unwrap(),
+        TransactionOutcome::RolledBack
+    );
+    assert!(
+        runtime.graph().subscribers_of(source_b).unwrap().is_empty(),
+        "rollback must clear subscriber edges introduced by abandoned dynamic dependency capture"
+    );
+    let dependencies = runtime.graph().dependencies_of(target).unwrap();
+    assert_eq!(dependencies.len(), 1);
+    assert_eq!(dependencies[0].source(), source_a);
 }

@@ -73,6 +73,13 @@ impl SignalGraph {
         }
     }
 
+    pub(crate) fn clone_stateful(&self) -> Self {
+        let mut cloned = self.clone();
+        cloned.telemetry = self.telemetry.clone();
+        cloned.diagnostics = self.diagnostics.clone();
+        cloned
+    }
+
     pub(crate) fn acquire_scratch(
         &mut self,
         kind: ScratchLeaseKind,
@@ -131,6 +138,18 @@ impl SignalGraph {
             return Err(stale_error(id));
         }
         Ok(())
+    }
+
+    pub(crate) fn live_node_ids(&self) -> Vec<NodeId> {
+        self.nodes
+            .iter()
+            .enumerate()
+            .filter_map(|(index, slot)| {
+                slot.data
+                    .as_ref()
+                    .map(|_| NodeId::new(index as u32, slot.generation))
+            })
+            .collect()
     }
 }
 

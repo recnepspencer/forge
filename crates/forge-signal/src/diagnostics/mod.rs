@@ -6,6 +6,7 @@ pub mod facts;
 pub mod failure;
 pub mod flow;
 pub mod history;
+pub mod lineage;
 pub mod policy;
 pub mod profile;
 pub(crate) mod recorder;
@@ -42,12 +43,13 @@ pub use history::{
     inspect_execution, inspect_flow, inspect_graph, inspect_plan, inspect_report,
     ExecutionInspector, FlowInspector, GraphInspector, PlanInspector, ReportInspector,
 };
+pub use lineage::{LineageArtifactId, LineageEvent, LineageRecord};
 pub use policy::{
     ArtifactMaterializationMode, ArtifactRetentionPolicy, DiagnosticsPolicy,
     ParallelAdmissionPolicy, ReplayDetailPolicy, SemanticRetentionPolicy, SignalRuntimePolicy,
 };
 pub use profile::DiagnosticsProfile;
-pub use replay::{ReplayEvent, ReplayEventKind};
+pub use replay::{ReplayCursor, ReplayEvent, ReplayEventKind, ReplayFrame, ReplaySlice};
 pub use summary::{
     EvaluationPlanSummary, ExecutionHistoryNodeSummary, ExecutionHistorySummary,
     ExecutionReportSummary, ExplanationSummary, GraphSummary,

@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::data::diagnostics::DiagnosticCode;
+use crate::data::history::BranchId;
 use crate::data::identity::{EntityId, KindId, RelationId, VersionId};
 use crate::data::publication::{PublicationError, PublicationStatus};
 use crate::data::snapshot::SnapshotHandle;
@@ -37,6 +38,8 @@ pub struct TransactionOptions {
     pub allow_nested_savepoints: bool,
     pub diagnostics_required: bool,
     pub deterministic_merge_required: bool,
+    pub target_branch: Option<BranchId>,
+    pub merge_parent_branches: Vec<BranchId>,
 }
 
 impl Default for TransactionOptions {
@@ -45,7 +48,16 @@ impl Default for TransactionOptions {
             allow_nested_savepoints: true,
             diagnostics_required: true,
             deterministic_merge_required: true,
+            target_branch: None,
+            merge_parent_branches: Vec::new(),
         }
+    }
+}
+
+impl TransactionOptions {
+    pub fn merge_from_branches(mut self, branches: Vec<BranchId>) -> Self {
+        self.merge_parent_branches = branches;
+        self
     }
 }
 
@@ -145,6 +157,7 @@ pub enum TransactionCommitError {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CommitOutcome {
     pub transaction_id: TransactionId,
+    pub commit: crate::data::history::CommitReference,
     pub version_id: VersionId,
     pub snapshot: SnapshotHandle,
     pub changed_records: Vec<RecordRef>,

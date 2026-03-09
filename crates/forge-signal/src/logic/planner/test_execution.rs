@@ -4,6 +4,7 @@ use crate::data::comparator::ComparatorPolicyResolver;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
+use crate::diagnostics::recorder::record_lineage_transition;
 use crate::logic::evaluation::EvaluationExecutionMetadata;
 use crate::logic::prepared::{ExecutionSnapshot, PreparedEvaluation};
 
@@ -150,6 +151,8 @@ where
             next_record_id += 1;
             let before_state = graph.get_state(task.node)?;
             let before_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
+            let prepared_outcome = prepared.outcome;
+            let prepared_origin = prepared.origin;
             let dependency_updates =
                 crate::logic::evaluation::apply_prepared_evaluation_with_policy(
                     graph,
@@ -166,10 +169,18 @@ where
             {
                 let mut updated = summary.clone();
                 updated.execution_record_id = Some(record_id.0);
+                updated.semantic_segment_id = Some(record_id.0);
                 graph
                     .get_entry_mut(task.node)?
                     .set_trace_summary(Some(updated));
             }
+            record_lineage_transition(
+                graph,
+                task.node,
+                before_trace.as_ref(),
+                record_id,
+                super::types::SemanticSegmentId(record_id.0),
+            )?;
             let after_state = graph.get_state(task.node)?;
             let after_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
             let task_record = classify_task_record(
@@ -180,6 +191,8 @@ where
                 after_state,
                 before_trace.as_ref(),
                 after_trace.as_ref(),
+                prepared_outcome,
+                prepared_origin,
             );
             accumulate_report_counters(&mut report, &task_record);
             stage_record.task_records.push(task_record);
@@ -305,6 +318,8 @@ where
             next_record_id += 1;
             let before_state = graph.get_state(task.node)?;
             let before_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
+            let prepared_outcome = prepared.outcome;
+            let prepared_origin = prepared.origin;
             let dependency_updates =
                 crate::logic::evaluation::apply_prepared_evaluation_with_policy(
                     graph,
@@ -321,10 +336,18 @@ where
             {
                 let mut updated = summary.clone();
                 updated.execution_record_id = Some(record_id.0);
+                updated.semantic_segment_id = Some(record_id.0);
                 graph
                     .get_entry_mut(task.node)?
                     .set_trace_summary(Some(updated));
             }
+            record_lineage_transition(
+                graph,
+                task.node,
+                before_trace.as_ref(),
+                record_id,
+                super::types::SemanticSegmentId(record_id.0),
+            )?;
             let after_state = graph.get_state(task.node)?;
             let after_trace = graph.get_entry(task.node)?.get_trace_summary().cloned();
             let task_record = classify_task_record(
@@ -335,6 +358,8 @@ where
                 after_state,
                 before_trace.as_ref(),
                 after_trace.as_ref(),
+                prepared_outcome,
+                prepared_origin,
             );
             accumulate_report_counters(&mut report, &task_record);
             stage_record.task_records.push(task_record);

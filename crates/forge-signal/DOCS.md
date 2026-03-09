@@ -17,6 +17,10 @@ If you are doing specialized or easy-to-forget work:
   - [docs/CONDITIONS_AND_COMPARATORS.md](./docs/CONDITIONS_AND_COMPARATORS.md)
 - Artifact availability, retained vs reconstructed access, and semantic truth:
   - [docs/ARTIFACT_ACCESS_MATRIX.md](./docs/ARTIFACT_ACCESS_MATRIX.md)
+- Snapshots, branch-local evaluation history, and replay inspection:
+  - [docs/SNAPSHOTS_BRANCHES_AND_REPLAY.md](./docs/SNAPSHOTS_BRANCHES_AND_REPLAY.md)
+- Signal-lineage semantics and artifact evolution:
+  - [docs/LINEAGE_MODEL.md](./docs/LINEAGE_MODEL.md)
 - Transactions and keyed runtime workflows:
   - [docs/TRANSACTIONS_AND_KEYED_RUNTIME.md](./docs/TRANSACTIONS_AND_KEYED_RUNTIME.md)
 - Checkpoint barriers, tier policy, and comparator selection:

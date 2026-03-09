@@ -51,6 +51,19 @@ impl<T: Copy> NodeMetaStore<T> {
             .filter(|entry| entry.generation == node.generation())
             .map(|entry| entry.tier)
     }
+
+    pub(crate) fn prune_slots(&mut self, mut keep: impl FnMut(usize, u32) -> bool) {
+        for (index, entry) in self.tiers.iter_mut().enumerate() {
+            if entry.is_some_and(|tier| !keep(index, tier.generation)) {
+                *entry = None;
+            }
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn occupied_slot_count(&self) -> usize {
+        self.tiers.iter().filter(|entry| entry.is_some()).count()
+    }
 }
 
 impl<T: Copy> Default for NodeMetaStore<T> {

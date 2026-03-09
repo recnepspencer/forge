@@ -13,6 +13,8 @@ pub(crate) enum ScratchLeaseKind {
 #[derive(Debug, Clone, Default)]
 pub(crate) struct TraversalScratch {
     pub(crate) visited: VisitMarks,
+    pub(crate) cycle_visiting: VisitMarks,
+    pub(crate) cycle_finished: VisitMarks,
     pub(crate) node_buffer_a: Vec<NodeId>,
     pub(crate) node_buffer_b: Vec<NodeId>,
     pub(crate) gc_liveness_generations: Vec<u32>,
@@ -51,6 +53,12 @@ impl VisitMarks {
         } else {
             self.marks[idx] = self.epoch;
             true
+        }
+    }
+
+    pub(crate) fn clear_mark(&mut self, idx: usize) {
+        if idx < self.marks.len() && self.marks[idx] == self.epoch {
+            self.marks[idx] = 0;
         }
     }
 }

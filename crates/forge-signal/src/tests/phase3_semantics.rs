@@ -234,6 +234,32 @@ fn memoization_write_is_discarded_on_rollback() {
 }
 
 #[test]
+fn aborted_keyed_evaluation_does_not_leak_key_registry_growth() {
+    let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+    let node = runtime.graph_mut().node().build();
+    let family = ComputationFamily::from("fresh-family");
+    let computation = KeyedComputation::new(family.clone(), "fresh-key").with_memo_key("fresh-v1");
+    let before = runtime.config().test_registry_counts();
+    let mut runtime_ctx = ();
+
+    let err = runtime.transaction(&mut runtime_ctx, |tx| {
+        tx.evaluate_keyed(node, &computation, &|_id, view| {
+            Ok(view.finish(
+                NodeEvaluationResult::from_version(version_ab(1, 0)).with_output_identity("cached"),
+            ))
+        })?;
+        Err(SignalError::invalid_input("force rollback"))
+    });
+    assert!(err.is_err());
+
+    assert_eq!(
+        runtime.config().test_registry_counts(),
+        before,
+        "aborted keyed evaluation must not leak family/key/memo registry entries"
+    );
+}
+
+#[test]
 fn partition_subscribers_only_dirty_on_matching_partition() {
     let mut graph = SignalGraph::new();
     let source = graph.node().partitioned_output().build();

@@ -33,6 +33,14 @@ pub struct QueryWorkPacket {
     pub targets: Vec<ReadTarget>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReadPacketPlan {
+    pub label: String,
+    pub entity_chunk_indexes: Vec<usize>,
+    pub relation_chunk_indexes: Vec<usize>,
+    pub target_count: usize,
+}
+
 impl QueryWorkPacket {
     pub fn bulk(label: impl Into<String>, targets: Vec<ReadTarget>) -> Self {
         Self {

@@ -8,7 +8,8 @@ use crate::data::output::{
     ChangedRegion, InternedPartitionSubscription, PartitionMatchMode, PartitionSubscription,
 };
 use crate::diagnostics::failure::{ExecutionFailureContext, ExecutionFailurePhase};
-use crate::diagnostics::recorder::DiagnosticsRecorder;
+use crate::diagnostics::recorder::{record_invalidation_lineage, DiagnosticsRecorder};
+use std::ops::DerefMut;
 
 /// Propagate invalidation downstream from a changed source node.
 ///
@@ -19,24 +20,27 @@ use crate::diagnostics::recorder::DiagnosticsRecorder;
 /// 3. All transitive downstream subscribers -> `MaybeStale`.
 /// 4. Cycle detection via visited set -> structured error on cycle.
 pub fn mark_dirty(
-    graph: &mut SignalGraph,
+    mut graph: impl DerefMut<Target = SignalGraph>,
     source: NodeId,
     changed_aspect: Aspect,
 ) -> Result<(), SignalError> {
-    mark_dirty_with_regions(graph, source, changed_aspect, &[])
+    mark_dirty_with_regions(graph.deref_mut(), source, changed_aspect, &[])
 }
 
 /// Propagate invalidation downstream from a changed source node with changed regions.
 pub fn mark_dirty_with_regions(
-    graph: &mut SignalGraph,
+    mut graph: impl DerefMut<Target = SignalGraph>,
     source: NodeId,
     changed_aspect: Aspect,
     changed_regions: &[ChangedRegion],
 ) -> Result<(), SignalError> {
+    let graph = graph.deref_mut();
     graph.note_change_input(source, changed_aspect, changed_regions);
     let mut scratch = graph.acquire_scratch(ScratchLeaseKind::Invalidation)?;
     let len = graph.arena_capacity();
     scratch.visited.next_pass(len);
+    scratch.cycle_visiting.next_pass(len);
+    scratch.cycle_finished.next_pass(len);
     scratch.node_buffer_a.clear();
     scratch.node_buffer_b.clear();
 
@@ -63,17 +67,27 @@ fn mark_dirty_with_scratch(
 ) -> Result<(), SignalError> {
     let changed_scopes = changed_regions_to_dirty_scopes(changed_regions);
     let changed_scope_ids = intern_changed_regions(graph, changed_regions);
-    {
+    let source_was_clean = {
         let source_entry = graph.get_entry_mut(source)?;
+        let source_was_clean = matches!(*source_entry.get_state(), NodeState::Clean);
         source_entry.set_state(NodeState::Dirty);
         source_entry.add_dirty_aspect(changed_aspect);
         source_entry.set_dirty_partition_scopes(changed_scopes.iter().cloned());
+        source_was_clean
+    };
+    if source_was_clean {
+        record_invalidation_lineage(
+            graph,
+            source,
+            format!("source invalidated on aspect {}", changed_aspect.index()),
+        );
     }
 
     scratch.visited.mark(source.index() as usize);
 
     collect_live_subscribers_into(graph, source, &mut scratch.node_buffer_a);
-    detect_cycles_in_set(scratch, &scratch.node_buffer_a)?;
+    let cycle_roots = scratch.node_buffer_a.clone();
+    detect_reachable_cycles(graph, scratch, &cycle_roots)?;
     let invalidation_stats = mark_direct_subscribers(
         graph,
         source,
@@ -136,10 +150,24 @@ fn mark_direct_subscribers(
             NodeState::MaybeStale => stats.maybe_stale_direct_subscribers += 1,
             NodeState::Clean => {}
         }
-        let entry = graph.get_entry_mut(sub)?;
-        entry.set_state(new_state);
-        entry.add_dirty_aspect(changed_aspect);
-        entry.set_dirty_partition_scopes(changed_scopes.iter().cloned());
+        let previous_state = graph.get_state(sub)?;
+        {
+            let entry = graph.get_entry_mut(sub)?;
+            entry.set_state(new_state);
+            entry.add_dirty_aspect(changed_aspect);
+            entry.set_dirty_partition_scopes(changed_scopes.iter().cloned());
+        }
+        if matches!(previous_state, NodeState::Clean) {
+            record_invalidation_lineage(
+                graph,
+                sub,
+                format!(
+                    "direct subscriber invalidated from {} on aspect {}",
+                    source.index(),
+                    changed_aspect.index()
+                ),
+            );
+        }
         graph.telemetry_mut().invalidation_nodes_visited += 1;
         match dirty_match {
             SubscriptionDirtyMatch::WholePartition => {
@@ -294,16 +322,40 @@ fn append_live_subscribers(graph: &SignalGraph, node: NodeId, out: &mut Vec<Node
     }
 }
 
-/// Return an error if any node in `candidates` already appears in `visited`.
-fn detect_cycles_in_set(
-    scratch: &TraversalScratch,
+fn detect_reachable_cycles(
+    graph: &SignalGraph,
+    scratch: &mut TraversalScratch,
     candidates: &[NodeId],
 ) -> Result<(), SignalError> {
     for &candidate in candidates {
-        if scratch.visited.is_marked(candidate.index() as usize) {
-            return Err(circular_reference_error(candidate));
+        detect_cycle_from(graph, scratch, candidate)?;
+    }
+    Ok(())
+}
+
+fn detect_cycle_from(
+    graph: &SignalGraph,
+    scratch: &mut TraversalScratch,
+    node: NodeId,
+) -> Result<(), SignalError> {
+    let index = node.index() as usize;
+    if scratch.cycle_finished.is_marked(index) {
+        return Ok(());
+    }
+    if scratch.cycle_visiting.is_marked(index) {
+        return Err(circular_reference_error(node));
+    }
+
+    scratch.cycle_visiting.mark(index);
+    if let Ok(subscribers) = graph.subscribers_of(node) {
+        for &subscriber in subscribers {
+            if graph.is_alive(subscriber) {
+                detect_cycle_from(graph, scratch, subscriber)?;
+            }
         }
     }
+    scratch.cycle_visiting.clear_mark(index);
+    scratch.cycle_finished.mark(index);
     Ok(())
 }
 
@@ -329,9 +381,6 @@ fn propagate_maybe_stale(
         for &node in &scratch.node_buffer_a {
             graph.telemetry_mut().invalidation_nodes_visited += 1;
             if scratch.visited.is_marked(node.index() as usize) {
-                if has_back_edge(graph, scratch, node) {
-                    return Err(circular_reference_error(node));
-                }
                 continue;
             }
 
@@ -343,10 +392,23 @@ fn propagate_maybe_stale(
             );
 
             if !already_dirty {
-                let entry = graph.get_entry_mut(node)?;
-                entry.set_state(NodeState::MaybeStale);
-                entry.add_dirty_aspect(changed_aspect);
-                entry.set_dirty_partition_scopes(changed_scopes.iter().cloned());
+                let previous_state = graph.get_state(node)?;
+                {
+                    let entry = graph.get_entry_mut(node)?;
+                    entry.set_state(NodeState::MaybeStale);
+                    entry.add_dirty_aspect(changed_aspect);
+                    entry.set_dirty_partition_scopes(changed_scopes.iter().cloned());
+                }
+                if matches!(previous_state, NodeState::Clean) {
+                    record_invalidation_lineage(
+                        graph,
+                        node,
+                        format!(
+                            "transitive subscriber invalidated by aspect {}",
+                            changed_aspect.index()
+                        ),
+                    );
+                }
             }
 
             let Ok(subscribers) = graph.subscribers_of(node) else {
@@ -369,20 +431,6 @@ enum SubscriptionDirtyMatch {
     WholePartition,
     PartitionAndDetail,
     Unmatched,
-}
-
-/// Check whether `node` has a subscriber that is also in `visited` and
-/// has a dependency back on `node`, forming a true cycle.
-fn has_back_edge(graph: &SignalGraph, scratch: &TraversalScratch, node: NodeId) -> bool {
-    let Ok(subscribers) = graph.subscribers_of(node) else {
-        return false;
-    };
-    subscribers.iter().any(|subscriber| {
-        scratch.visited.is_marked(subscriber.index() as usize)
-            && graph
-                .dependencies_of(*subscriber)
-                .is_ok_and(|dependencies| dependencies.iter().any(|d| d.source() == node))
-    })
 }
 
 /// Produce a structured error for a circular reference.

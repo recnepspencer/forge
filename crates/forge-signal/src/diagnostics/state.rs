@@ -9,12 +9,17 @@ use crate::data::output::ChangedRegion;
 use crate::diagnostics::facts::{ExplanationFact, ProvenanceFact};
 use crate::diagnostics::failure::{FailureSummary, RollbackDiagnostic};
 use crate::diagnostics::flow::{ChangeInputSummary, FlowSummary, InvalidationSummary};
+use crate::diagnostics::lineage::{LineageArtifactId, LineageRecord};
 use crate::diagnostics::policy::SignalRuntimePolicy;
 use crate::diagnostics::profile::DiagnosticsProfile;
-use crate::diagnostics::replay::ReplayEvent;
+use crate::diagnostics::replay::{ReplayCursor, ReplayEvent};
 use crate::diagnostics::summary::ExecutionHistorySummary;
+use crate::state::{
+    SignalBranchHandle, SignalBranchId, SignalSnapshotDiagnostics, SignalSnapshotId,
+    SignalSnapshotMeta,
+};
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub(crate) struct DiagnosticsState {
     #[serde(default)]
     policy: SignalRuntimePolicy,
@@ -29,11 +34,25 @@ pub(crate) struct DiagnosticsState {
     #[serde(default)]
     replay_events: VecDeque<ReplayEvent>,
     #[serde(default)]
+    lineage_records: VecDeque<LineageRecord>,
+    #[serde(default)]
     explanation_facts: BTreeMap<NodeId, ExplanationFact>,
     #[serde(default)]
     provenance_facts: BTreeMap<NodeId, ProvenanceFact>,
     #[serde(default)]
-    next_replay_sequence: u64,
+    branch_catalog: BTreeMap<SignalBranchId, SignalBranchHandle>,
+    #[serde(default)]
+    active_branch: SignalBranchId,
+    #[serde(default)]
+    next_replay_cursor: u64,
+    #[serde(default)]
+    next_snapshot_id: u64,
+    #[serde(default)]
+    next_branch_id: u64,
+    #[serde(default)]
+    next_lineage_artifact_id: u64,
+    #[serde(default)]
+    next_lineage_sequence: u64,
     #[serde(default)]
     pending_input: Option<PendingFlowInput>,
 }
@@ -50,6 +69,20 @@ struct PendingFlowInput {
 }
 
 impl DiagnosticsState {
+    pub fn bootstrap_defaults(&mut self) {
+        if self.branch_catalog.is_empty() {
+            self.branch_catalog.insert(
+                SignalBranchId(0),
+                SignalBranchHandle {
+                    id: SignalBranchId(0),
+                    name: "main".to_string(),
+                    parent_branch_id: None,
+                    head_snapshot_id: None,
+                },
+            );
+        }
+    }
+
     pub fn profile(&self) -> DiagnosticsProfile {
         self.policy.profile
     }
@@ -94,12 +127,32 @@ impl DiagnosticsState {
         &self.replay_events
     }
 
+    pub fn lineage_records(&self) -> &VecDeque<LineageRecord> {
+        &self.lineage_records
+    }
+
     pub fn explanation_facts(&self) -> &BTreeMap<NodeId, ExplanationFact> {
         &self.explanation_facts
     }
 
     pub fn provenance_facts(&self) -> &BTreeMap<NodeId, ProvenanceFact> {
         &self.provenance_facts
+    }
+
+    pub fn branch_catalog(&self) -> &BTreeMap<SignalBranchId, SignalBranchHandle> {
+        &self.branch_catalog
+    }
+
+    pub fn active_branch(&self) -> SignalBranchHandle {
+        self.branch_catalog
+            .get(&self.active_branch)
+            .cloned()
+            .unwrap_or_else(|| SignalBranchHandle {
+                id: self.active_branch,
+                name: "unknown".to_string(),
+                parent_branch_id: None,
+                head_snapshot_id: None,
+            })
     }
 
     pub fn note_change_input(
@@ -166,10 +219,10 @@ impl DiagnosticsState {
         self.pending_input = None;
     }
 
-    pub fn allocate_replay_sequence(&mut self) -> u64 {
-        let sequence = self.next_replay_sequence;
-        self.next_replay_sequence += 1;
-        sequence
+    pub fn allocate_replay_cursor(&mut self) -> ReplayCursor {
+        let cursor = ReplayCursor(self.next_replay_cursor);
+        self.next_replay_cursor += 1;
+        cursor
     }
 
     pub fn record_replay_event(&mut self, event: ReplayEvent) {
@@ -190,6 +243,108 @@ impl DiagnosticsState {
         if self.policy.retains_provenance_facts() {
             self.provenance_facts.insert(fact.node, fact);
         }
+    }
+
+    pub fn allocate_snapshot_meta(&mut self, policy: SignalRuntimePolicy) -> SignalSnapshotMeta {
+        self.bootstrap_defaults();
+        let snapshot_id = SignalSnapshotId(self.next_snapshot_id);
+        self.next_snapshot_id += 1;
+        let branch = self.active_branch();
+        let replay_head = self.replay_events.back().map(|frame| frame.cursor);
+        let meta = SignalSnapshotMeta::new(snapshot_id, &branch, replay_head, policy);
+        if let Some(branch_entry) = self.branch_catalog.get_mut(&branch.id) {
+            branch_entry.head_snapshot_id = Some(snapshot_id);
+        }
+        meta
+    }
+
+    pub fn create_branch(&mut self, name: impl Into<String>) -> SignalBranchHandle {
+        self.bootstrap_defaults();
+        let handle = SignalBranchHandle {
+            id: SignalBranchId(self.next_branch_id.max(1)),
+            name: name.into(),
+            parent_branch_id: Some(self.active_branch),
+            head_snapshot_id: self
+                .branch_catalog
+                .get(&self.active_branch)
+                .and_then(|branch| branch.head_snapshot_id),
+        };
+        self.next_branch_id = handle.id.0 + 1;
+        self.branch_catalog.insert(handle.id, handle.clone());
+        handle
+    }
+
+    pub fn set_active_branch(&mut self, branch_id: SignalBranchId) {
+        self.bootstrap_defaults();
+        self.active_branch = branch_id;
+    }
+
+    pub fn synchronize_branch_catalog(
+        &mut self,
+        branch_catalog: BTreeMap<SignalBranchId, SignalBranchHandle>,
+        active_branch: SignalBranchId,
+    ) {
+        self.branch_catalog = branch_catalog;
+        self.active_branch = active_branch;
+    }
+
+    pub fn allocate_lineage_artifact_id(&mut self) -> LineageArtifactId {
+        let artifact_id = LineageArtifactId(self.next_lineage_artifact_id);
+        self.next_lineage_artifact_id += 1;
+        artifact_id
+    }
+
+    pub fn allocate_lineage_sequence(&mut self) -> u64 {
+        let sequence = self.next_lineage_sequence;
+        self.next_lineage_sequence += 1;
+        sequence
+    }
+
+    pub fn record_lineage_record(&mut self, record: LineageRecord) {
+        self.lineage_records.push_back(record);
+        let limit = self.policy.history_limit.max(1) * 32;
+        while self.lineage_records.len() > limit {
+            self.lineage_records.pop_front();
+        }
+    }
+
+    pub fn snapshot_payload(&self) -> SignalSnapshotDiagnostics {
+        SignalSnapshotDiagnostics {
+            latest_flow: self.latest_flow.clone(),
+            latest_failure: self.latest_failure.clone(),
+            latest_rollback: self.latest_rollback.clone(),
+            recent_history: self.recent_history.clone(),
+            replay_frames: self.replay_events.clone(),
+            explanation_facts: self.explanation_facts.clone(),
+            provenance_facts: self.provenance_facts.clone(),
+            lineage_records: self.lineage_records.clone(),
+            branch_catalog: self.branch_catalog.clone(),
+            active_branch: self.active_branch,
+            next_replay_cursor: self.next_replay_cursor,
+            next_snapshot_id: self.next_snapshot_id,
+            next_branch_id: self.next_branch_id,
+            next_lineage_artifact_id: self.next_lineage_artifact_id,
+            next_lineage_sequence: self.next_lineage_sequence,
+        }
+    }
+
+    pub fn restore_snapshot_payload(&mut self, payload: SignalSnapshotDiagnostics) {
+        self.latest_flow = payload.latest_flow;
+        self.latest_failure = payload.latest_failure;
+        self.latest_rollback = payload.latest_rollback;
+        self.recent_history = payload.recent_history;
+        self.replay_events = payload.replay_frames;
+        self.explanation_facts = payload.explanation_facts;
+        self.provenance_facts = payload.provenance_facts;
+        self.lineage_records = payload.lineage_records;
+        self.branch_catalog = payload.branch_catalog;
+        self.active_branch = payload.active_branch;
+        self.next_replay_cursor = payload.next_replay_cursor;
+        self.next_snapshot_id = payload.next_snapshot_id;
+        self.next_branch_id = payload.next_branch_id;
+        self.next_lineage_artifact_id = payload.next_lineage_artifact_id;
+        self.next_lineage_sequence = payload.next_lineage_sequence;
+        self.pending_input = None;
     }
 
     pub fn pending_change_summary(&self) -> Option<(ChangeInputSummary, InvalidationSummary)> {
@@ -215,5 +370,31 @@ impl DiagnosticsState {
         while self.recent_history.len() > limit {
             self.recent_history.pop_front();
         }
+    }
+}
+
+impl Default for DiagnosticsState {
+    fn default() -> Self {
+        let mut state = Self {
+            policy: SignalRuntimePolicy::default(),
+            latest_flow: None,
+            latest_failure: None,
+            latest_rollback: None,
+            recent_history: VecDeque::new(),
+            replay_events: VecDeque::new(),
+            lineage_records: VecDeque::new(),
+            explanation_facts: BTreeMap::new(),
+            provenance_facts: BTreeMap::new(),
+            branch_catalog: BTreeMap::new(),
+            active_branch: SignalBranchId(0),
+            next_replay_cursor: 0,
+            next_snapshot_id: 0,
+            next_branch_id: 1,
+            next_lineage_artifact_id: 0,
+            next_lineage_sequence: 0,
+            pending_input: None,
+        };
+        state.bootstrap_defaults();
+        state
     }
 }

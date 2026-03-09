@@ -8,6 +8,7 @@ use crate::logic::planner::{
     build_evaluation_plan_with_policy_resolver, execute_plan_with_policy_and_condition,
     StageExecutor,
 };
+use std::ops::DerefMut;
 
 pub const ASPECT_A: Aspect = Aspect::new(0);
 pub const ASPECT_B: Aspect = Aspect::new(1);
@@ -25,7 +26,7 @@ pub fn version_ab(a: u64, b: u64) -> AspectVersion {
 }
 
 pub(crate) fn evaluate<F, O>(
-    graph: &mut SignalGraph,
+    mut graph: impl DerefMut<Target = SignalGraph>,
     node: NodeId,
     compute: &mut F,
 ) -> Result<(), SignalError>
@@ -36,7 +37,7 @@ where
     let mut comparator = DefaultComparatorResolver;
     let mut condition = DefaultConditionResolver;
     evaluate_with_resolvers(
-        graph,
+        graph.deref_mut(),
         node,
         compute,
         &mut comparator,
@@ -46,7 +47,7 @@ where
 }
 
 pub(crate) fn evaluate_on_demand<F, O>(
-    graph: &mut SignalGraph,
+    mut graph: impl DerefMut<Target = SignalGraph>,
     node: NodeId,
     compute: &mut F,
 ) -> Result<(), SignalError>
@@ -57,7 +58,7 @@ where
     let mut comparator = DefaultComparatorResolver;
     let mut condition = DefaultConditionResolver;
     evaluate_with_resolvers(
-        graph,
+        graph.deref_mut(),
         node,
         compute,
         &mut comparator,
@@ -67,7 +68,7 @@ where
 }
 
 pub(crate) fn evaluate_with_resolver<F, O, R>(
-    graph: &mut SignalGraph,
+    mut graph: impl DerefMut<Target = SignalGraph>,
     node: NodeId,
     compute: &mut F,
     resolver: &mut R,
@@ -79,7 +80,7 @@ where
 {
     let mut condition = DefaultConditionResolver;
     evaluate_with_resolvers(
-        graph,
+        graph.deref_mut(),
         node,
         compute,
         resolver,
@@ -89,7 +90,7 @@ where
 }
 
 pub(crate) fn evaluate_with_resolvers<F, O, R, C>(
-    graph: &mut SignalGraph,
+    mut graph: impl DerefMut<Target = SignalGraph>,
     node: NodeId,
     compute: &mut F,
     comparator_resolver: &mut R,
@@ -107,7 +108,7 @@ where
         custom: comparator_resolver,
     };
     evaluate_with_policy_and_condition_resolvers(
-        graph,
+        graph.deref_mut(),
         node,
         compute,
         &mut policy,
@@ -117,7 +118,7 @@ where
 }
 
 pub(crate) fn evaluate_with_policy_and_condition_resolvers<F, O, R, C>(
-    graph: &mut SignalGraph,
+    mut graph: impl DerefMut<Target = SignalGraph>,
     node: NodeId,
     compute: &mut F,
     comparator_resolver: &mut R,
@@ -130,6 +131,7 @@ where
     R: ComparatorPolicyResolver,
     C: crate::facade::ConditionResolver,
 {
+    let graph = graph.deref_mut();
     let plan = build_evaluation_plan_with_policy_resolver(
         graph,
         &[node],

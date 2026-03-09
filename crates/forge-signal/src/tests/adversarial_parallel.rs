@@ -21,11 +21,14 @@ fn canonical_runtime_artifacts(graph: &SignalGraph, node: NodeId) -> serde_json:
         .iter()
         .map(|event| {
             json!({
-                "sequence": event.sequence,
+                "cursor": event.cursor.0,
                 "kind": format!("{:?}", event.kind),
+                "branch_id": event.branch_id.0,
+                "snapshot_id": event.snapshot_id.map(|id| id.0),
                 "node": event.node.map(|node| node.to_string()),
                 "execution_record_id": event.execution_record_id,
                 "semantic_segment_id": event.semantic_segment_id,
+                "lineage_artifact_id": event.lineage_artifact_id.map(|id| id.0),
                 "detail": event.detail,
             })
         })
@@ -295,7 +298,7 @@ fn full_parallel_rewires_dynamic_dependencies_without_losing_parity() {
         targets: &[NodeId; 2],
         executor: StageExecutor,
     ) -> Result<ExecutionReport, SignalError> {
-        mark_dirty(graph, selector, ASPECT_A)?;
+        mark_dirty(&mut *graph, selector, ASPECT_A)?;
         let plan = graph.build_evaluation_plan(targets, EvaluationRequestMode::Default)?;
         graph.execute_prepared_plan_with_executor(
             &plan,
@@ -864,7 +867,7 @@ fn repeated_executor_policy_churn_keeps_tolerance_boundary_artifacts_stable() {
         next_version: u64,
         executor: StageExecutor,
     ) -> serde_json::Value {
-        mark_dirty(graph, source, ASPECT_A).unwrap();
+        mark_dirty(&mut *graph, source, ASPECT_A).unwrap();
         let plan = graph
             .build_evaluation_plan(&[target], EvaluationRequestMode::Default)
             .unwrap();

@@ -33,4 +33,6 @@ pub struct SnapshotInspectionSummary {
     pub version_id: VersionId,
     pub entity_count: usize,
     pub relation_count: usize,
+    pub pinned_entity_count: usize,
+    pub pinned_relation_count: usize,
 }

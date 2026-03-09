@@ -13,6 +13,7 @@ use crate::logic::evaluation::EvaluationRequestMode;
 use super::types::{
     EvaluationPlan, EvaluationTask, ExecutionStage, PlanSummary, StageBarrier, TaskReason,
 };
+use super::validation::{preview_maybe_stale, sorted_dependencies};
 
 pub fn build_evaluation_plan(
     graph: &SignalGraph,
@@ -123,7 +124,8 @@ fn visit_node(
     }
 
     let state = graph.get_state(node)?;
-    let should_include = !matches!(state, NodeState::Clean);
+    let should_include = matches!(state, NodeState::Dirty | NodeState::MaybeStale)
+        || (direct_request && matches!(request_mode, EvaluationRequestMode::ForceOnDemand));
     if should_include {
         planned
             .entry(node)
@@ -131,93 +133,64 @@ fn visit_node(
             .or_insert(PlannedNode { direct_request });
     }
 
-    if should_include {
-        for dependency in sorted_dependencies(graph, node)? {
-            let upstream_reason = if matches!(reason, TaskReason::MaybeStaleValidation)
-                && matches!(state, NodeState::MaybeStale)
-            {
+    match state {
+        NodeState::Dirty => {
+            for dependency in sorted_dependencies(graph, node)? {
+                visit_node(
+                    graph,
+                    dependency.source(),
+                    request_mode,
+                    false,
+                    TaskReason::DependencyRequired,
+                    resolver,
+                    visiting,
+                    planned,
+                )?;
+            }
+        }
+        NodeState::MaybeStale => {
+            let preview = preview_maybe_stale(graph, node, resolver)?;
+            let upstream_reason = if matches!(reason, TaskReason::MaybeStaleValidation) {
                 TaskReason::MaybeStaleValidation
             } else {
                 TaskReason::DependencyRequired
             };
-            visit_node(
-                graph,
-                dependency.source(),
-                request_mode,
-                false,
-                upstream_reason,
-                resolver,
-                visiting,
-                planned,
-            )?;
-        }
-    } else if matches!(state, NodeState::MaybeStale) {
-        let entry = graph.get_entry(node)?;
-        let comparator =
-            resolver.policy_for_node(node, entry.get_eval_config().comparator.as_ref());
-        for dependency in sorted_dependencies(graph, node)? {
-            let source = dependency.source();
-            if !graph.is_alive(source) {
+            for source in preview.requires_upstream_evaluation {
                 visit_node(
                     graph,
                     source,
                     request_mode,
                     false,
-                    TaskReason::MaybeStaleValidation,
-                    resolver,
-                    visiting,
-                    planned,
-                )?;
-                continue;
-            }
-            let current = graph
-                .get_entry(source)?
-                .get_aspect_version()
-                .get(dependency.aspect());
-            let cached = graph
-                .get_dep_snapshot(node)?
-                .entries()
-                .iter()
-                .find(|(snapshot_source, aspect, _, scope)| {
-                    *snapshot_source == source
-                        && *aspect == dependency.aspect()
-                        && *scope == dependency.scope_ref().cloned()
-                })
-                .map(|(_, _, version, _)| *version)
-                .unwrap_or(current);
-            if current != cached
-                && comparator.has_meaningful_change(
-                    dependency.aspect(),
-                    cached,
-                    current,
-                    resolver,
-                )?
-            {
-                visit_node(
-                    graph,
-                    source,
-                    request_mode,
-                    false,
-                    TaskReason::MaybeStaleValidation,
+                    upstream_reason,
                     resolver,
                     visiting,
                     planned,
                 )?;
             }
         }
+        NodeState::Clean
+            if direct_request && matches!(request_mode, EvaluationRequestMode::ForceOnDemand) =>
+        {
+            for dependency in sorted_dependencies(graph, node)? {
+                if !matches!(graph.get_state(dependency.source())?, NodeState::Clean) {
+                    visit_node(
+                        graph,
+                        dependency.source(),
+                        request_mode,
+                        false,
+                        TaskReason::DependencyRequired,
+                        resolver,
+                        visiting,
+                        planned,
+                    )?;
+                }
+            }
+        }
+        NodeState::Clean => {}
     }
 
     visiting.remove(&node);
     Ok(())
-}
-
-fn sorted_dependencies(
-    graph: &SignalGraph,
-    node: NodeId,
-) -> Result<Vec<crate::data::dependency::DependencyEdge>, SignalError> {
-    let mut dependencies = graph.dependencies_of(node)?.to_vec();
-    dependencies.sort_by_key(|dependency| node_sort_key(dependency.source()));
-    Ok(dependencies)
 }
 
 fn compute_depths(

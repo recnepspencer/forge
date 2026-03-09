@@ -19,6 +19,7 @@ mod performance;
 mod phase1_api;
 mod phase3_semantics;
 mod phase4_planner;
+mod phase5_state;
 mod reentrancy;
 mod signal_contract;
 pub(crate) mod support;

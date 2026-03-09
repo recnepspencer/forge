@@ -184,6 +184,11 @@ fn rollback_runs_reverse_order() {
         .unwrap();
     bus.finalize_registration().unwrap();
     let mut runtime = ();
+    bus.begin(&mut runtime).unwrap();
+    bus.emit(Ev::Tick(1));
+    bus.flush(CheckpointBarrier::PerOperation, &mut runtime)
+        .unwrap();
+    out.lock().unwrap().clear();
     bus.rollback(&mut runtime);
     assert_eq!(&*out.lock().unwrap(), &["c", "b", "a"]);
 }
@@ -209,4 +214,97 @@ fn flush_auto_finalizes_and_delivers_events() {
 
     assert_eq!(&*out.lock().unwrap(), &["a"]);
     assert_eq!(bus.resolved_order(), vec![SubscriberId::new(10)]);
+}
+
+struct FailCheckpointSub {
+    id: SubscriberId,
+    name: &'static str,
+    req: &'static [Data],
+    prov: &'static [Data],
+    events: std::sync::Arc<std::sync::Mutex<Vec<&'static str>>>,
+    fail_on_checkpoint: bool,
+}
+
+impl EventSubscriber for FailCheckpointSub {
+    type Event = Ev;
+    type DataId = Data;
+    type RuntimeContext = ();
+
+    fn id(&self) -> SubscriberId {
+        self.id
+    }
+
+    fn name(&self) -> &'static str {
+        self.name
+    }
+
+    fn requires(&self) -> &'static [Data] {
+        self.req
+    }
+
+    fn provides(&self) -> &'static [Data] {
+        self.prov
+    }
+
+    fn on_event(&mut self, _event: &Ev) {}
+
+    fn on_checkpoint(
+        &mut self,
+        _barrier: CheckpointBarrier,
+        _ctx: &mut SubscriberContext<Data>,
+        _runtime: &mut Self::RuntimeContext,
+    ) -> Result<(), SignalError> {
+        self.events.lock().unwrap().push(self.name);
+        if self.fail_on_checkpoint {
+            Err(SignalError::internal("checkpoint failure"))
+        } else {
+            Ok(())
+        }
+    }
+
+    fn on_rollback(&mut self, _runtime: &mut Self::RuntimeContext) {
+        self.events.lock().unwrap().push(match self.name {
+            "a" => "rollback-a",
+            "b" => "rollback-b",
+            "c" => "rollback-c",
+            other => other,
+        });
+    }
+}
+
+#[test]
+fn rollback_only_unwinds_successfully_checkpointed_subscribers_after_partial_flush_failure() {
+    let events = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let mk = |id, name, req, prov, fail_on_checkpoint| FailCheckpointSub {
+        id: SubscriberId::new(id),
+        name,
+        req,
+        prov,
+        events: events.clone(),
+        fail_on_checkpoint,
+    };
+
+    let mut bus: EventBus<Ev, Data> = EventBus::new();
+    bus.subscribe(Box::new(mk(10, "a", &[], &[Data::A], false)))
+        .unwrap();
+    bus.subscribe(Box::new(mk(20, "b", &[Data::A], &[Data::B], true)))
+        .unwrap();
+    bus.subscribe(Box::new(mk(30, "c", &[Data::B], &[Data::C], false)))
+        .unwrap();
+
+    let mut runtime = ();
+    bus.begin(&mut runtime).unwrap();
+    bus.emit(Ev::Tick(1));
+    let err = bus
+        .flush(CheckpointBarrier::PerOperation, &mut runtime)
+        .unwrap_err();
+    assert!(format!("{err:?}").contains("checkpoint failure"));
+
+    bus.rollback(&mut runtime);
+
+    assert_eq!(
+        &*events.lock().unwrap(),
+        &["a", "b", "rollback-a"],
+        "rollback should unwind only the subscriber checkpoint state that actually committed"
+    );
 }

@@ -26,6 +26,30 @@ In practice that means:
 2. single-writer deterministic commit of authoritative truth
 3. parallel downstream consumption over immutable commit artifacts
 
+## Why This Is Harder Than `forge-signal`
+
+`forge-signal` already requires deterministic runtime thinking, but its core problem is still narrower: present-state reactive execution over a constrained DAG.
+
+`forge-relational` adds simultaneous pressure from:
+
+- MVCC and historical visibility
+- branch-aware history
+- cyclic truth graphs
+- lineage and identity evolution
+- durable patch and replay contracts
+
+That makes this runtime closer to a truth/history kernel than to a conventional Rust library.
+
+The main danger is not borrow-checker pain by itself. The main danger is building semantically weaker shortcuts that look practical in the short term:
+
+- replay reduced to patch reapplication
+- lineage reduced to event logging
+- derived indexes drifting into authority
+- durability coupled to transient in-memory layout
+- history assumptions collapsing around single-parent commits
+
+The roadmap must therefore preserve correctness-first authority semantics before pursuing clever concurrency or memory-management machinery.
+
 ## Foundational Decisions We Refuse To Revisit Later
 
 These are locked decisions for the runtime foundation:
@@ -41,6 +65,11 @@ These are locked decisions for the runtime foundation:
 - `forge_harness` as the default acceptance path
 - parallelize preparation and consumption, serialize authority
 - derived indexes remain non-authoritative and publish immutably
+- replay is executed from canonical commit envelopes, not patch-only reconstruction
+- history representation is merge-ready now: ordered parent commit lists, even before merge commits execute
+- authoritative storage-visible reads always retain a non-index fallback path
+- lineage is a constrained graph with explicit invariants, not event logging theater
+- durability persists canonical truth artifacts rather than transient arena layout
 - no hidden mutation during reads
 - no scheduler-dependent semantics
 
@@ -99,11 +128,90 @@ Internal worker scheduling may vary. Observable outputs may not.
 ### Replay artifact contract
 
 - derived from canonical commit artifacts rather than internal heap state
+- executed from canonical commit envelopes that include branch context, ordered parents, schema identity, merged apply semantics, patch artifact, and diagnostics summary
 - stable and serializable replay inputs
 - canonical replay ordering
 - local timing and worker scheduling excluded from replay semantics
 - schema-versioned from day one
 - schema/version mismatch is an explicit failure class
+- replay equivalence is defined over the observable surfaces promised by the active profile
+
+### History shape
+
+- commit references use ordered parent lists
+- initial authoritative commit creation may still be restricted to zero or one parent
+- replay, durability, lineage, and branch reasoning must remain compatible with future merge commits
+
+### Derived index contract
+
+- indexes are built from canonical truth outputs and version-visible storage
+- index computation may parallelize; publication remains serialized and version-bound
+- index absence, lag, mismatch, or failure must never change truth semantics
+- authoritative reads must always retain a storage-visible fallback path
+
+### Lineage contract
+
+- storage identity and lineage identity remain permanently separate
+- correspondence remains advisory until explicit promotion
+- final lineage mutation is serialized and canonical
+- lineage graph invariants must reject invalid references, ambiguous parentage, and silent advisory-to-authoritative promotion
+
+### Durability contract
+
+- durable format preserves canonical truth artifacts rather than transient arena layout
+- recovery rebuilds authoritative truth from canonical envelopes and committed history
+- snapshots are recoverable views rather than primary durable truth
+- partial durable publication is invalid
+
+### What We Will Not Do Prematurely
+
+- no premature lock-free multi-writer truth mutation
+- no `Arc`-everywhere persistent-state model as the default architecture
+- no custom epoch reclamation or equivalent advanced memory machinery until profiling proves the simpler retention model insufficient
+- no durability format that mirrors transient arena layout
+- no optimization that weakens replay, coherent publication, or authoritative storage fallback
+
+### Primary Early Performance Risks
+
+The main early performance risks are:
+
+- retained historical payload growth under pinned snapshots
+- hot-record version-history growth
+- chunk sizing mistakes that destroy scan locality
+- pointer chasing and allocation overhead from abandoning SoA discipline
+- replay and derived-index artifact growth beyond bounded policy
+
+The first performance program should therefore focus on:
+
+- sidecar and chunk discipline
+- touched-state proportionality
+- retention and reclaim efficiency
+- storage-native historical visibility
+- bounded diagnostics, patch, and replay artifacts by profile
+
+### Semantic Risks Bigger Than Rust Risks
+
+These are explicit runtime risks that deserve design, review, and test attention:
+
+- replay defined too narrowly
+- lineage reduced to event logging
+- derived indexes treated as authority
+- diagnostics that are verbose but operationally useless
+- merge-ready history quietly collapsing back to single-parent assumptions
+- retention, recovery, or replay semantics depending on incidental scheduler order
+
+### Correctness-First MVCC Strategy
+
+The intended MVCC path is:
+
+- single-writer authoritative commit
+- version-visible retained storage
+- explicit snapshot pinning and release
+- explicit retention and reclaim transitions
+- chunk-aware analysis and retention planning
+- storage-native historical reads before advanced reclamation machinery
+
+If more advanced memory-management machinery is eventually required, it must be introduced without weakening deterministic truth semantics or coherent publication.
 
 ### Sidecar classification
 

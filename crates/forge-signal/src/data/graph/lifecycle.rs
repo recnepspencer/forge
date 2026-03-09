@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::time::Instant;
 
 use crate::data::error::SignalError;
@@ -108,6 +109,8 @@ impl SignalGraph {
             }
         }
 
+        self.compact_graph_storage();
+
         self.tombstone_count = 0;
         if self.restore_scratch(ScratchLeaseKind::Gc, scratch).is_err() {
             return;
@@ -118,5 +121,62 @@ impl SignalGraph {
 
     pub fn should_gc(&self) -> bool {
         self.tombstone_count >= self.gc_threshold
+    }
+
+    fn compact_graph_storage(&mut self) {
+        let old_dependency_edges = self.dependency_edges.clone();
+        let old_subscriber_edges = self.subscriber_edges.clone();
+        let old_dependency_snapshots = self.dependency_snapshots.clone();
+
+        let mut dependency_id_map = HashMap::new();
+        let mut subscriber_id_map = HashMap::new();
+        let mut snapshot_id_map = HashMap::new();
+
+        let mut compacted_dependency_edges = crate::data::graph::DependencyEdgeStore::default();
+        let mut compacted_subscriber_edges = crate::data::graph::SubscriberEdgeStore::default();
+        let mut compacted_dependency_snapshots =
+            crate::data::dependency::DependencySnapshotStore::default();
+
+        for index in 0..self.nodes.len() {
+            let Some(node) = self.live_node_id_at(index) else {
+                continue;
+            };
+            let entry = match self.get_entry(node) {
+                Ok(entry) => entry.clone(),
+                Err(_) => continue,
+            };
+
+            let dependencies_id = *dependency_id_map
+                .entry(entry.get_dependencies_id())
+                .or_insert_with(|| {
+                    compacted_dependency_edges
+                        .insert_from_slice(old_dependency_edges.get(entry.get_dependencies_id()))
+                });
+            let subscribers_id = *subscriber_id_map
+                .entry(entry.get_subscribers_id())
+                .or_insert_with(|| {
+                    compacted_subscriber_edges
+                        .insert_from_slice(old_subscriber_edges.get(entry.get_subscribers_id()))
+                });
+            let dep_snapshot_id = *snapshot_id_map
+                .entry(entry.get_dep_snapshot_id())
+                .or_insert_with(|| {
+                    compacted_dependency_snapshots.insert(
+                        old_dependency_snapshots
+                            .get(entry.get_dep_snapshot_id())
+                            .clone(),
+                    )
+                });
+
+            if let Ok(live_entry) = self.get_entry_mut(node) {
+                live_entry.set_dependencies_id(dependencies_id);
+                live_entry.set_subscribers_id(subscribers_id);
+                live_entry.set_dep_snapshot_id(dep_snapshot_id);
+            }
+        }
+
+        self.dependency_edges = compacted_dependency_edges;
+        self.subscriber_edges = compacted_subscriber_edges;
+        self.dependency_snapshots = compacted_dependency_snapshots;
     }
 }
