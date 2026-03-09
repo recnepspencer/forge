@@ -4,15 +4,17 @@ use std::convert::Infallible;
 use serde_json::json;
 
 use crate::capture::{
-    EventCategory, EventRecord, EventStreamRecord, ObservationStatus, RecordSchemaVersion,
-    RunOutcome, RunRecord, RunStatus, ScenarioRecord, SnapshotObservation, SnapshotRecord,
-    TargetStatusRecord,
+    DiagnosticsLevel, DiagnosticsRecord, EventCategory, EventRecord, EventStreamRecord,
+    ExplanationRecord, ObservationStatus, ProvenanceRecord, RecordSchemaVersion, RunOutcome,
+    RunRecord, RunStatus, ScenarioRecord, SnapshotObservation, SnapshotPayload, SnapshotRecord,
+    StructuredValue, TargetStatusRecord,
 };
 use crate::identity::{event_stream_id, replay_id, run_id, scenario_id, snapshot_id};
 use crate::replay::{ReplayRecord, ReplayRequest};
 use crate::runtime::{
-    EventHarnessAdapter, EventStreamHarnessAdapter, HarnessAdapter, HarnessCapabilities,
-    PerformanceHarnessAdapter, ReplayHarnessAdapter,
+    DiagnosticsHarnessAdapter, EventHarnessAdapter, EventStreamHarnessAdapter,
+    ExplanationHarnessAdapter, HarnessAdapter, HarnessCapabilities, PerformanceHarnessAdapter,
+    ProvenanceHarnessAdapter, ReplayHarnessAdapter,
 };
 use crate::scenario::{ExecutionProfile, ExecutionRequest, MutationBatch, ScenarioFixture};
 
@@ -108,10 +110,12 @@ impl AdapterDouble {
                 .iter()
                 .cloned()
                 .map(|target| SnapshotObservation {
-                    target,
+                    target: target.clone(),
                     status: ObservationStatus::Unknown,
                     detail: None,
-                    value: None,
+                    value: Some(SnapshotPayload::Structured(StructuredValue::Json(
+                        json!({ "target": target }),
+                    ))),
                 })
                 .collect(),
             attachments: Vec::new(),
@@ -222,6 +226,91 @@ impl EventHarnessAdapter for AdapterDouble {
     }
 }
 
+impl DiagnosticsHarnessAdapter for AdapterDouble {
+    fn capture_diagnostics(
+        &self,
+        _runtime: &Self::Runtime,
+        fixture: &ScenarioFixture<Self::Fixture>,
+        profile: &ExecutionProfile,
+    ) -> Result<DiagnosticsRecord, Self::Error> {
+        let scenario_id = scenario_id(&fixture.name);
+        Ok(DiagnosticsRecord {
+            schema_version: RecordSchemaVersion::V1,
+            diagnostics_id: crate::identity::diagnostics_id(&run_id(
+                &scenario_id,
+                &profile.name,
+                "diagnostics",
+            )),
+            run_id: run_id(&scenario_id, &profile.name, "diagnostics"),
+            adapter_name: self.name.to_string(),
+            profile_name: profile.name.clone(),
+            level: DiagnosticsLevel::Operational,
+            time_marker: profile.time_marker.clone(),
+            attachments: Vec::new(),
+            summary: json!({"double": true}),
+            extensions: BTreeMap::new(),
+        })
+    }
+}
+
+impl ExplanationHarnessAdapter for AdapterDouble {
+    fn capture_explanations(
+        &self,
+        _runtime: &Self::Runtime,
+        fixture: &ScenarioFixture<Self::Fixture>,
+        request: &ExecutionRequest<Self::TargetId>,
+        profile: &ExecutionProfile,
+    ) -> Result<Vec<ExplanationRecord<Self::TargetId>>, Self::Error> {
+        let scenario_id = scenario_id(&fixture.name);
+        let current_run_id = run_id(&scenario_id, &profile.name, &request.name);
+        Ok(request
+            .targets
+            .iter()
+            .cloned()
+            .map(|target| ExplanationRecord {
+                schema_version: RecordSchemaVersion::V1,
+                explanation_id: crate::identity::explanation_id(&current_run_id, &target),
+                run_id: current_run_id.clone(),
+                adapter_name: self.name.to_string(),
+                target,
+                time_marker: profile.time_marker.clone(),
+                attachments: Vec::new(),
+                summary: json!({"kind": "explanation"}),
+                extensions: BTreeMap::new(),
+            })
+            .collect())
+    }
+}
+
+impl ProvenanceHarnessAdapter for AdapterDouble {
+    fn capture_provenance(
+        &self,
+        _runtime: &Self::Runtime,
+        fixture: &ScenarioFixture<Self::Fixture>,
+        request: &ExecutionRequest<Self::TargetId>,
+        profile: &ExecutionProfile,
+    ) -> Result<Vec<ProvenanceRecord<Self::TargetId>>, Self::Error> {
+        let scenario_id = scenario_id(&fixture.name);
+        let current_run_id = run_id(&scenario_id, &profile.name, &request.name);
+        Ok(request
+            .targets
+            .iter()
+            .cloned()
+            .map(|target| ProvenanceRecord {
+                schema_version: RecordSchemaVersion::V1,
+                provenance_id: crate::identity::provenance_id(&current_run_id, &target),
+                run_id: current_run_id.clone(),
+                adapter_name: self.name.to_string(),
+                target,
+                time_marker: profile.time_marker.clone(),
+                attachments: Vec::new(),
+                summary: json!({"kind": "provenance"}),
+                extensions: BTreeMap::new(),
+            })
+            .collect())
+    }
+}
+
 impl EventStreamHarnessAdapter for AdapterDouble {
     fn capture_event_streams(
         &self,
@@ -295,7 +384,9 @@ mod tests {
     use crate::comparison::{ComparisonMode, ComparisonProfile};
     use crate::replay::ReplayRequest;
     use crate::runtime::{AdapterSupport, CaptureDepth, HarnessCapabilities, HarnessRunner};
-    use crate::scenario::{ExecutionProfile, ExecutionRequest, MutationBatch, ScenarioPlan};
+    use crate::scenario::{
+        CaptureMask, ExecutionProfile, ExecutionRequest, MutationBatch, ScenarioPlan,
+    };
     use crate::timeline::{ClockDomain, ExecutionPhase, FeedBatch, TimeMarker};
     use crate::workload::{WorkBudget, WorkloadProfile};
 
@@ -438,5 +529,41 @@ mod tests {
 
         let record = runner.execute_replay(&fixture, None, &replay).unwrap();
         assert_eq!(record.replay_name, "replay");
+    }
+
+    #[test]
+    fn capture_policy_filters_snapshots_and_observed_artifacts() {
+        let mut capabilities = HarnessCapabilities::default();
+        capabilities.execution_modes.insert(ExecutionMode::Serial);
+        capabilities
+            .diagnostics_levels
+            .insert(DiagnosticsLevel::Operational);
+        capabilities.capture_depths.insert(CaptureDepth::Standard);
+        capabilities.clock_domains.insert(ClockDomain::Logical);
+
+        let adapter = AdapterDouble::new("double", capabilities);
+        let runner = HarnessRunner::new(adapter);
+        let fixture = ScenarioPlan::new("fixture", json!({ "fixture": true })).compile();
+        let request = ExecutionRequest::new("request", vec!["a".to_string(), "b".to_string()])
+            .capture_only_targets(vec!["a".to_string()])
+            .with_capture_mask(CaptureMask {
+                diagnostics: false,
+                explanations: false,
+                provenance: false,
+                ..CaptureMask::default()
+            });
+        let profile = ExecutionProfile::serial("serial");
+
+        let core = runner
+            .execute_core(&fixture, None, &request, &profile)
+            .unwrap();
+        let observed = runner
+            .execute_observed(&fixture, None, &request, &profile)
+            .unwrap();
+
+        assert_eq!(core.pre_snapshot.as_ref().unwrap().observations.len(), 1);
+        assert!(observed.diagnostics.is_none());
+        assert!(observed.explanations.is_empty());
+        assert!(observed.provenance.is_empty());
     }
 }

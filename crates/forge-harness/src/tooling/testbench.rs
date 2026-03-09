@@ -91,6 +91,7 @@ impl<A, FixtureData, MutationData, TargetId> HarnessBench<A, FixtureData, Mutati
 impl<A, FixtureData, MutationData, TargetId> HarnessBench<A, FixtureData, MutationData, TargetId>
 where
     A: HarnessAdapter<Fixture = FixtureData, Mutation = MutationData, TargetId = TargetId>,
+    TargetId: PartialEq,
 {
     pub fn run(
         &self,
@@ -113,6 +114,7 @@ where
         + DiagnosticsHarnessAdapter
         + ExplanationHarnessAdapter
         + ProvenanceHarnessAdapter,
+    TargetId: PartialEq,
 {
     pub fn observe(
         &self,
@@ -133,6 +135,7 @@ impl<A, FixtureData, MutationData, TargetId> HarnessBench<A, FixtureData, Mutati
 where
     A: HarnessAdapter<Fixture = FixtureData, Mutation = MutationData, TargetId = TargetId>
         + EventHarnessAdapter,
+    TargetId: PartialEq,
 {
     pub fn events(
         &self,
@@ -154,6 +157,7 @@ where
     A: HarnessAdapter<Fixture = FixtureData, Mutation = MutationData, TargetId = TargetId>
         + EventStreamHarnessAdapter
         + PerformanceHarnessAdapter,
+    TargetId: PartialEq,
 {
     pub fn stream(
         &self,
@@ -174,6 +178,7 @@ impl<A, FixtureData, MutationData, TargetId> HarnessBench<A, FixtureData, Mutati
 where
     A: HarnessAdapter<Fixture = FixtureData, Mutation = MutationData, TargetId = TargetId>
         + ReplayHarnessAdapter,
+    TargetId: PartialEq,
 {
     pub fn replay(
         &self,
@@ -254,10 +259,14 @@ mod tests {
             .with_feed_batch(FeedBatch::new("feed", 1, 1).with_phase(ExecutionPhase::Evaluate));
         let profile = ProfileCatalog::frame("frame", 1_000);
 
-        let source_run = bench(AdapterDouble::new("double", capabilities.clone()), fixture.clone(), request.clone())
-            .run(&ProfileCatalog::operational("operational"))
-            .unwrap()
-            .run;
+        let source_run = bench(
+            AdapterDouble::new("double", capabilities.clone()),
+            fixture.clone(),
+            request.clone(),
+        )
+        .run(&ProfileCatalog::operational("operational"))
+        .unwrap()
+        .run;
 
         let replay = ReplayRequest {
             name: "replay".to_string(),
@@ -266,9 +275,13 @@ mod tests {
             profile: ProfileCatalog::replay("replay"),
         };
 
-        let streamed = bench(AdapterDouble::new("double", capabilities.clone()), fixture.clone(), request)
-            .stream(&profile)
-            .unwrap();
+        let streamed = bench(
+            AdapterDouble::new("double", capabilities.clone()),
+            fixture.clone(),
+            request,
+        )
+        .stream(&profile)
+        .unwrap();
         assert_eq!(streamed.event_streams.len(), 1);
 
         let replay_record = bench(

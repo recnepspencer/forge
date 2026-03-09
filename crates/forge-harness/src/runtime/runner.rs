@@ -1,4 +1,6 @@
 use std::fmt;
+use std::future::Future;
+use std::pin::Pin;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -9,13 +11,15 @@ use crate::capture::{
 };
 use crate::comparison::{ComparisonMode, ComparisonProfile, ComparisonRecord};
 use crate::replay::{ReplayRecord, ReplayRequest};
-use crate::scenario::{ExecutionProfile, ExecutionRequest, MutationBatch, ScenarioFixture};
+use crate::scenario::{
+    CaptureMask, ExecutionProfile, ExecutionRequest, MutationBatch, ScenarioFixture,
+};
 use crate::timeline::{ClockDomain, ExecutionPhase};
 
 use super::adapter::{
     DiagnosticsHarnessAdapter, EventHarnessAdapter, EventStreamHarnessAdapter,
-    ExplanationHarnessAdapter, HarnessAdapter, PerformanceHarnessAdapter, ProvenanceHarnessAdapter,
-    ReplayHarnessAdapter,
+    ExplanationHarnessAdapter, HarnessAdapter, HarnessAdapterAsync, PerformanceHarnessAdapter,
+    ProvenanceHarnessAdapter, ReplayHarnessAdapter,
 };
 use super::capability::{AdapterSupport, CaptureDepth};
 
@@ -30,7 +34,7 @@ pub struct HarnessCoreBundle<TargetId = String> {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct HarnessObservedBundle<TargetId = String> {
     pub core: HarnessCoreBundle<TargetId>,
-    pub diagnostics: DiagnosticsRecord,
+    pub diagnostics: Option<DiagnosticsRecord>,
     pub explanations: Vec<ExplanationRecord<TargetId>>,
     pub provenance: Vec<ProvenanceRecord<TargetId>>,
     pub events: Vec<EventRecord<TargetId>>,
@@ -110,7 +114,38 @@ struct LoadedHarnessRun<A: HarnessAdapter> {
 impl<A> HarnessRunner<A>
 where
     A: HarnessAdapter,
+    A::TargetId: PartialEq,
 {
+    fn capture_request(
+        &self,
+        request: &ExecutionRequest<A::TargetId>,
+    ) -> ExecutionRequest<A::TargetId> {
+        let mut filtered = request.clone();
+        if let Some(included) = &request.capture.target_policy.included_targets {
+            filtered.targets = request
+                .targets
+                .iter()
+                .filter(|target| included.iter().any(|candidate| candidate == *target))
+                .cloned()
+                .collect();
+        }
+        filtered
+    }
+
+    fn minimal_run_record(
+        &self,
+        mut run: RunRecord<A::TargetId>,
+        capture_mask: &CaptureMask,
+    ) -> RunRecord<A::TargetId> {
+        if !capture_mask.run_summary {
+            run.summary = serde_json::json!({});
+        }
+        if !capture_mask.attachments {
+            run.attachments.clear();
+        }
+        run
+    }
+
     fn execute_loaded(
         &self,
         fixture: &ScenarioFixture<A::Fixture>,
@@ -129,10 +164,11 @@ where
             .map_err(HarnessError::Adapter)?;
 
         let scenario = self.adapter.scenario_record(fixture);
-        let pre_snapshot = if request.capture_pre_snapshot {
+        let capture_request = self.capture_request(request);
+        let pre_snapshot = if request.capture.mask.pre_snapshot {
             Some(
                 self.adapter
-                    .capture_snapshot(&runtime, fixture, request, profile)
+                    .capture_snapshot(&runtime, fixture, &capture_request, profile)
                     .map_err(HarnessError::Adapter)?,
             )
         } else {
@@ -145,15 +181,17 @@ where
                 .map_err(HarnessError::Adapter)?;
         }
 
-        let run = self
-            .adapter
-            .execute(&mut runtime, fixture, request, profile)
-            .map_err(HarnessError::Adapter)?;
+        let run = self.minimal_run_record(
+            self.adapter
+                .execute(&mut runtime, fixture, request, profile)
+                .map_err(HarnessError::Adapter)?,
+            &request.capture.mask,
+        );
 
-        let post_snapshot = if request.capture_post_snapshot {
+        let post_snapshot = if request.capture.mask.post_snapshot {
             Some(
                 self.adapter
-                    .capture_snapshot(&runtime, fixture, request, profile)
+                    .capture_snapshot(&runtime, fixture, &capture_request, profile)
                     .map_err(HarnessError::Adapter)?,
             )
         } else {
@@ -229,7 +267,9 @@ where
         request: &ExecutionRequest<A::TargetId>,
         profile: &ExecutionProfile,
     ) -> Result<HarnessCoreBundle<A::TargetId>, HarnessError<A::Error>> {
-        Ok(self.execute_loaded(fixture, mutation_batch, request, profile)?.core)
+        Ok(self
+            .execute_loaded(fixture, mutation_batch, request, profile)?
+            .core)
     }
 
     pub fn compare_runs(
@@ -252,6 +292,7 @@ where
 impl<A> HarnessRunner<A>
 where
     A: HarnessAdapter + EventHarnessAdapter,
+    A::TargetId: PartialEq,
 {
     pub fn execute_with_events(
         &self,
@@ -262,10 +303,13 @@ where
     ) -> Result<HarnessTimelineBundle<A::TargetId>, HarnessError<A::Error>> {
         let LoadedHarnessRun { runtime, core } =
             self.execute_loaded(fixture, mutation_batch, request, profile)?;
-        let events = self
-            .adapter
-            .capture_events(&runtime, fixture, request, profile)
-            .map_err(HarnessError::Adapter)?;
+        let events = if request.capture.mask.events {
+            self.adapter
+                .capture_events(&runtime, fixture, request, profile)
+                .map_err(HarnessError::Adapter)?
+        } else {
+            Vec::new()
+        };
         Ok(HarnessTimelineBundle {
             core,
             events,
@@ -278,6 +322,7 @@ where
 impl<A> HarnessRunner<A>
 where
     A: HarnessAdapter + EventStreamHarnessAdapter + PerformanceHarnessAdapter,
+    A::TargetId: PartialEq,
 {
     pub fn execute_streamed(
         &self,
@@ -288,15 +333,22 @@ where
     ) -> Result<HarnessTimelineBundle<A::TargetId>, HarnessError<A::Error>> {
         let LoadedHarnessRun { runtime, core } =
             self.execute_loaded(fixture, mutation_batch, request, profile)?;
-        let event_streams = self
-            .adapter
-            .capture_event_streams(&runtime, fixture, request, profile)
-            .map_err(HarnessError::Adapter)?;
-        let performance = Some(
+        let event_streams = if request.capture.mask.event_streams {
             self.adapter
-                .capture_performance(&runtime, fixture, profile)
-                .map_err(HarnessError::Adapter)?,
-        );
+                .capture_event_streams(&runtime, fixture, request, profile)
+                .map_err(HarnessError::Adapter)?
+        } else {
+            Vec::new()
+        };
+        let performance = if request.capture.mask.performance {
+            Some(
+                self.adapter
+                    .capture_performance(&runtime, fixture, profile)
+                    .map_err(HarnessError::Adapter)?,
+            )
+        } else {
+            None
+        };
         Ok(HarnessTimelineBundle {
             core,
             events: Vec::new(),
@@ -309,6 +361,7 @@ where
 impl<A> HarnessRunner<A>
 where
     A: HarnessAdapter + ReplayHarnessAdapter,
+    A::TargetId: PartialEq,
 {
     pub fn execute_replay(
         &self,
@@ -332,9 +385,15 @@ where
                 .apply_mutation_batch(&mut runtime, batch)
                 .map_err(HarnessError::Adapter)?;
         }
-        self.adapter
+        let mut record = self
+            .adapter
             .capture_replay(&runtime, fixture, replay)
-            .map_err(HarnessError::Adapter)
+            .map_err(HarnessError::Adapter)?;
+        if !replay.request.capture.mask.replay_artifacts {
+            record.attachments.clear();
+            record.summary = serde_json::json!({});
+        }
+        Ok(record)
     }
 }
 
@@ -344,6 +403,7 @@ where
         + DiagnosticsHarnessAdapter
         + ExplanationHarnessAdapter
         + ProvenanceHarnessAdapter,
+    A::TargetId: PartialEq,
 {
     pub fn execute_observed(
         &self,
@@ -355,18 +415,30 @@ where
         let LoadedHarnessRun { runtime, core } =
             self.execute_loaded(fixture, mutation_batch, request, profile)?;
 
-        let diagnostics = self
-            .adapter
-            .capture_diagnostics(&runtime, fixture, profile)
-            .map_err(HarnessError::Adapter)?;
-        let explanations = self
-            .adapter
-            .capture_explanations(&runtime, fixture, request, profile)
-            .map_err(HarnessError::Adapter)?;
-        let provenance = self
-            .adapter
-            .capture_provenance(&runtime, fixture, request, profile)
-            .map_err(HarnessError::Adapter)?;
+        let capture_request = self.capture_request(request);
+        let diagnostics = if request.capture.mask.diagnostics {
+            Some(
+                self.adapter
+                    .capture_diagnostics(&runtime, fixture, profile)
+                    .map_err(HarnessError::Adapter)?,
+            )
+        } else {
+            None
+        };
+        let explanations = if request.capture.mask.explanations {
+            self.adapter
+                .capture_explanations(&runtime, fixture, &capture_request, profile)
+                .map_err(HarnessError::Adapter)?
+        } else {
+            Vec::new()
+        };
+        let provenance = if request.capture.mask.provenance {
+            self.adapter
+                .capture_provenance(&runtime, fixture, &capture_request, profile)
+                .map_err(HarnessError::Adapter)?
+        } else {
+            Vec::new()
+        };
 
         Ok(HarnessObservedBundle {
             core,
@@ -375,6 +447,92 @@ where
             provenance,
             events: Vec::new(),
             performance: None,
+        })
+    }
+}
+
+pub struct AsyncHarnessRunner<A> {
+    adapter: A,
+}
+
+impl<A> AsyncHarnessRunner<A> {
+    pub fn new(adapter: A) -> Self {
+        Self { adapter }
+    }
+}
+
+impl<A> AsyncHarnessRunner<A>
+where
+    A: HarnessAdapterAsync,
+    A::TargetId: PartialEq,
+{
+    pub fn execute_core_async<'a>(
+        &'a self,
+        fixture: &'a ScenarioFixture<A::Fixture>,
+        mutation_batch: Option<&'a MutationBatch<A::Mutation>>,
+        request: &'a ExecutionRequest<A::TargetId>,
+        profile: &'a ExecutionProfile,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<HarnessCoreBundle<A::TargetId>, HarnessError<A::Error>>>
+                + 'a,
+        >,
+    > {
+        Box::pin(async move {
+            let capabilities = self.adapter.capabilities();
+            if !capabilities.supports_execution_mode(profile.execution_mode) {
+                return Err(HarnessError::UnsupportedExecutionMode(
+                    profile.execution_mode,
+                ));
+            }
+            let mut runtime = self
+                .adapter
+                .create_runtime_async()
+                .await
+                .map_err(HarnessError::Adapter)?;
+            self.adapter
+                .load_fixture_async(&mut runtime, fixture)
+                .await
+                .map_err(HarnessError::Adapter)?;
+            let scenario = self.adapter.scenario_record(fixture);
+            let capture_request = request.clone();
+            let pre_snapshot = if request.capture.mask.pre_snapshot {
+                Some(
+                    self.adapter
+                        .capture_snapshot_async(&runtime, fixture, &capture_request, profile)
+                        .await
+                        .map_err(HarnessError::Adapter)?,
+                )
+            } else {
+                None
+            };
+            if let Some(batch) = mutation_batch {
+                self.adapter
+                    .apply_mutation_batch_async(&mut runtime, batch)
+                    .await
+                    .map_err(HarnessError::Adapter)?;
+            }
+            let run = self
+                .adapter
+                .execute_async(&mut runtime, fixture, request, profile)
+                .await
+                .map_err(HarnessError::Adapter)?;
+            let post_snapshot = if request.capture.mask.post_snapshot {
+                Some(
+                    self.adapter
+                        .capture_snapshot_async(&runtime, fixture, &capture_request, profile)
+                        .await
+                        .map_err(HarnessError::Adapter)?,
+                )
+            } else {
+                None
+            };
+            Ok(HarnessCoreBundle {
+                scenario,
+                pre_snapshot,
+                run,
+                post_snapshot,
+            })
         })
     }
 }

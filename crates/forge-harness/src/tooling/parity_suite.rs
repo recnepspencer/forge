@@ -159,9 +159,9 @@ mod tests {
             request,
             ExecutionProfile::serial("baseline"),
         )
-            .candidates([ExecutionProfile::serial("candidate")])
-            .compare()
-            .unwrap();
+        .candidates([ExecutionProfile::serial("candidate")])
+        .compare()
+        .unwrap();
 
         assert!(report.matched);
         assert_eq!(report.results.len(), 1);

@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use serde_json::Value;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::capture::{RunRecord, SnapshotRecord};
 
@@ -63,7 +63,9 @@ pub struct ComparisonOracleSuite<Record> {
 
 impl<Record> Default for ComparisonOracleSuite<Record> {
     fn default() -> Self {
-        Self { oracles: Vec::new() }
+        Self {
+            oracles: Vec::new(),
+        }
     }
 }
 
@@ -72,10 +74,7 @@ impl<Record> ComparisonOracleSuite<Record> {
         Self::default()
     }
 
-    pub fn with_oracle(
-        mut self,
-        oracle: impl ComparisonOracle<Record> + 'static,
-    ) -> Self {
+    pub fn with_oracle(mut self, oracle: impl ComparisonOracle<Record> + 'static) -> Self {
         self.oracles.push(Box::new(oracle));
         self
     }
@@ -96,11 +95,7 @@ impl<Record> ComparisonOracleSuite<Record> {
     }
 }
 
-pub fn numbers_within_tolerance(
-    left: f64,
-    right: f64,
-    tolerance: NumericTolerance,
-) -> bool {
+pub fn numbers_within_tolerance(left: f64, right: f64, tolerance: NumericTolerance) -> bool {
     let absolute_delta = (left - right).abs();
     if absolute_delta <= tolerance.absolute {
         return true;

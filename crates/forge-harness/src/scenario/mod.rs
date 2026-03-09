@@ -8,6 +8,76 @@ use crate::timeline::{ClockDomain, FeedBatch, TimeMarker};
 use crate::workload::{WorkBudget, WorkloadProfile};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CaptureMask {
+    pub run_summary: bool,
+    pub pre_snapshot: bool,
+    pub post_snapshot: bool,
+    pub events: bool,
+    pub event_streams: bool,
+    pub diagnostics: bool,
+    pub explanations: bool,
+    pub provenance: bool,
+    pub performance: bool,
+    pub attachments: bool,
+    pub replay_artifacts: bool,
+}
+
+impl Default for CaptureMask {
+    fn default() -> Self {
+        Self {
+            run_summary: true,
+            pre_snapshot: true,
+            post_snapshot: true,
+            events: true,
+            event_streams: true,
+            diagnostics: true,
+            explanations: true,
+            provenance: true,
+            performance: true,
+            attachments: true,
+            replay_artifacts: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TargetCapturePolicy<TargetId = String> {
+    pub included_targets: Option<Vec<TargetId>>,
+}
+
+impl<TargetId> Default for TargetCapturePolicy<TargetId> {
+    fn default() -> Self {
+        Self {
+            included_targets: None,
+        }
+    }
+}
+
+impl<TargetId: PartialEq> TargetCapturePolicy<TargetId> {
+    pub fn captures_target(&self, target: &TargetId) -> bool {
+        match &self.included_targets {
+            Some(targets) => targets.iter().any(|candidate| candidate == target),
+            None => true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CapturePolicy<TargetId = String> {
+    pub mask: CaptureMask,
+    pub target_policy: TargetCapturePolicy<TargetId>,
+}
+
+impl<TargetId> Default for CapturePolicy<TargetId> {
+    fn default() -> Self {
+        Self {
+            mask: CaptureMask::default(),
+            target_policy: TargetCapturePolicy::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ScenarioPlan<FixtureData> {
     pub name: String,
     pub fixture: FixtureData,
@@ -113,8 +183,7 @@ impl<MutationData> MutationBatch<MutationData> {
 pub struct ExecutionRequest<TargetId = String> {
     pub name: String,
     pub targets: Vec<TargetId>,
-    pub capture_pre_snapshot: bool,
-    pub capture_post_snapshot: bool,
+    pub capture: CapturePolicy<TargetId>,
     pub feed_batch: Option<FeedBatch>,
 }
 
@@ -123,8 +192,7 @@ impl<TargetId> ExecutionRequest<TargetId> {
         Self {
             name: name.into(),
             targets,
-            capture_pre_snapshot: true,
-            capture_post_snapshot: true,
+            capture: CapturePolicy::default(),
             feed_batch: None,
         }
     }
@@ -138,29 +206,44 @@ impl<TargetId> ExecutionRequest<TargetId> {
     }
 
     pub fn without_pre_snapshot(mut self) -> Self {
-        self.capture_pre_snapshot = false;
+        self.capture.mask.pre_snapshot = false;
         self
     }
 
     pub fn without_post_snapshot(mut self) -> Self {
-        self.capture_post_snapshot = false;
+        self.capture.mask.post_snapshot = false;
         self
     }
 
     pub fn without_snapshots(mut self) -> Self {
-        self.capture_pre_snapshot = false;
-        self.capture_post_snapshot = false;
+        self.capture.mask.pre_snapshot = false;
+        self.capture.mask.post_snapshot = false;
         self
     }
 
     pub fn with_snapshots(mut self) -> Self {
-        self.capture_pre_snapshot = true;
-        self.capture_post_snapshot = true;
+        self.capture.mask.pre_snapshot = true;
+        self.capture.mask.post_snapshot = true;
         self
     }
 
     pub fn with_feed_batch(mut self, feed_batch: FeedBatch) -> Self {
         self.feed_batch = Some(feed_batch);
+        self
+    }
+
+    pub fn with_capture_policy(mut self, capture: CapturePolicy<TargetId>) -> Self {
+        self.capture = capture;
+        self
+    }
+
+    pub fn with_capture_mask(mut self, capture_mask: CaptureMask) -> Self {
+        self.capture.mask = capture_mask;
+        self
+    }
+
+    pub fn capture_only_targets(mut self, targets: Vec<TargetId>) -> Self {
+        self.capture.target_policy.included_targets = Some(targets);
         self
     }
 }

@@ -53,6 +53,7 @@ impl<A, FixtureData, MutationData, TargetId> RunMatrix<A, FixtureData, MutationD
 impl<A, FixtureData, MutationData, TargetId> RunMatrix<A, FixtureData, MutationData, TargetId>
 where
     A: HarnessAdapter<Fixture = FixtureData, Mutation = MutationData, TargetId = TargetId>,
+    TargetId: PartialEq,
 {
     pub fn execute(self) -> Result<Vec<HarnessCoreBundle<TargetId>>, HarnessError<A::Error>> {
         let Self {
@@ -85,6 +86,7 @@ where
         + DiagnosticsHarnessAdapter
         + ExplanationHarnessAdapter
         + ProvenanceHarnessAdapter,
+    TargetId: PartialEq,
 {
     pub fn observe(self) -> Result<Vec<HarnessObservedBundle<TargetId>>, HarnessError<A::Error>> {
         let Self {

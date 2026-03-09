@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::artifact::AttachmentRecord;
+use crate::artifact::{AttachmentRecord, BlobDescriptor};
 use crate::identity::{
     DiagnosticsId, EventStreamId, ExplanationId, ProvenanceId, RunId, ScenarioId, SnapshotId,
 };
@@ -13,6 +13,7 @@ use crate::workload::BudgetUsage;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum RecordSchemaVersion {
     V1,
+    V2,
 }
 
 impl Default for RecordSchemaVersion {
@@ -136,11 +137,33 @@ pub struct RunRecord<TargetId = String> {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum StructuredValue {
+    Json(Value),
+    Text(String),
+    Fields(BTreeMap<String, Value>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct BinaryValue {
+    pub media_type: String,
+    pub bytes: Vec<u8>,
+    pub content_hash: Option<String>,
+    pub size_bytes: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum SnapshotPayload {
+    Structured(StructuredValue),
+    Binary(BinaryValue),
+    External(BlobDescriptor),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SnapshotObservation<TargetId = String> {
     pub target: TargetId,
     pub status: ObservationStatus,
     pub detail: Option<String>,
-    pub value: Option<Value>,
+    pub value: Option<SnapshotPayload>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -220,4 +243,66 @@ pub struct ProvenanceRecord<TargetId = String> {
     pub attachments: Vec<AttachmentRecord>,
     pub summary: Value,
     pub extensions: BTreeMap<String, Value>,
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::{json, Value};
+
+    use crate::artifact::BlobDescriptor;
+
+    use super::{BinaryValue, SnapshotPayload, StructuredValue};
+
+    #[test]
+    fn snapshot_payload_structured_round_trips() {
+        let payload = SnapshotPayload::Structured(StructuredValue::Fields(
+            [("value".to_string(), json!(42))].into_iter().collect(),
+        ));
+        let value = serde_json::to_value(&payload).unwrap();
+        let round_trip: SnapshotPayload = serde_json::from_value(value).unwrap();
+        match round_trip {
+            SnapshotPayload::Structured(StructuredValue::Fields(fields)) => {
+                assert_eq!(fields.get("value"), Some(&Value::from(42)));
+            }
+            _ => panic!("expected structured fields payload"),
+        }
+    }
+
+    #[test]
+    fn snapshot_payload_binary_round_trips() {
+        let payload = SnapshotPayload::Binary(BinaryValue {
+            media_type: "application/octet-stream".to_string(),
+            bytes: vec![1, 2, 3],
+            content_hash: Some("hash".to_string()),
+            size_bytes: Some(3),
+        });
+        let value = serde_json::to_value(&payload).unwrap();
+        let round_trip: SnapshotPayload = serde_json::from_value(value).unwrap();
+        match round_trip {
+            SnapshotPayload::Binary(binary) => assert_eq!(binary.bytes, vec![1, 2, 3]),
+            _ => panic!("expected binary payload"),
+        }
+    }
+
+    #[test]
+    fn snapshot_payload_external_round_trips() {
+        let payload = SnapshotPayload::External(BlobDescriptor {
+            logical_name: "mesh".to_string(),
+            media_type: "application/octet-stream".to_string(),
+            content_hash: Some("hash".to_string()),
+            dedup_key: Some("dedup".to_string()),
+            size_bytes: Some(128),
+            content_reference: "blob://mesh".to_string(),
+            metadata: Default::default(),
+        });
+        let value = serde_json::to_value(&payload).unwrap();
+        let round_trip: SnapshotPayload = serde_json::from_value(value).unwrap();
+        match round_trip {
+            SnapshotPayload::External(blob) => {
+                assert_eq!(blob.content_reference, "blob://mesh");
+                assert_eq!(blob.dedup_key.as_deref(), Some("dedup"));
+            }
+            _ => panic!("expected external payload"),
+        }
+    }
 }

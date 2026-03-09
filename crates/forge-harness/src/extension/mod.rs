@@ -109,8 +109,8 @@ pub struct ExtensionPipeline<FixtureData, MutationData, Profile, Runtime, Replay
     replay_enrichers: Vec<Box<dyn ReplayEnricher<ReplayRecord>>>,
 }
 
-impl<FixtureData, MutationData, Profile, Runtime, ReplayRecord>
-    Default for ExtensionPipeline<FixtureData, MutationData, Profile, Runtime, ReplayRecord>
+impl<FixtureData, MutationData, Profile, Runtime, ReplayRecord> Default
+    for ExtensionPipeline<FixtureData, MutationData, Profile, Runtime, ReplayRecord>
 {
     fn default() -> Self {
         Self {
@@ -155,18 +155,12 @@ impl<FixtureData, MutationData, Profile, Runtime, ReplayRecord>
         self
     }
 
-    pub fn with_pre_run_hook(
-        mut self,
-        hook: impl PreRunCaptureHook<Runtime> + 'static,
-    ) -> Self {
+    pub fn with_pre_run_hook(mut self, hook: impl PreRunCaptureHook<Runtime> + 'static) -> Self {
         self.pre_run_hooks.push(Box::new(hook));
         self
     }
 
-    pub fn with_post_run_hook(
-        mut self,
-        hook: impl PostRunCaptureHook<Runtime> + 'static,
-    ) -> Self {
+    pub fn with_post_run_hook(mut self, hook: impl PostRunCaptureHook<Runtime> + 'static) -> Self {
         self.post_run_hooks.push(Box::new(hook));
         self
     }

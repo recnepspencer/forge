@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -68,6 +70,50 @@ pub struct ReplayMigrationPlan {
     pub steps: Vec<ReplayMigrationStep>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReplayMigrationRegistry {
+    pub migrations: BTreeMap<(RecordSchemaVersion, RecordSchemaVersion), Vec<ReplayMigrationStep>>,
+}
+
+impl Default for ReplayMigrationRegistry {
+    fn default() -> Self {
+        let mut migrations = BTreeMap::new();
+        migrations.insert(
+            (RecordSchemaVersion::V1, RecordSchemaVersion::V2),
+            vec![ReplayMigrationStep {
+                from: RecordSchemaVersion::V1,
+                to: RecordSchemaVersion::V2,
+                description: "upgrade replay record schema from V1 to V2".to_string(),
+            }],
+        );
+        Self { migrations }
+    }
+}
+
+impl ReplayMigrationRegistry {
+    pub fn resolve(
+        &self,
+        source_schema: RecordSchemaVersion,
+        expected_schema: RecordSchemaVersion,
+    ) -> Option<Vec<ReplayMigrationStep>> {
+        if source_schema == expected_schema {
+            Some(Vec::new())
+        } else {
+            self.migrations
+                .get(&(source_schema, expected_schema))
+                .cloned()
+        }
+    }
+}
+
+pub trait ReplayMigrationExecutor<TargetId> {
+    fn migrate(
+        &self,
+        request: ReplayRequest<TargetId>,
+        plan: &ReplayMigrationPlan,
+    ) -> Result<ReplayRequest<TargetId>, String>;
+}
+
 pub fn plan_replay_migration(
     source_schema: RecordSchemaVersion,
     expected_schema: RecordSchemaVersion,
@@ -99,6 +145,33 @@ pub fn plan_replay_migration(
     }
 }
 
+pub fn plan_replay_migration_with_registry(
+    registry: &ReplayMigrationRegistry,
+    source_schema: RecordSchemaVersion,
+    expected_schema: RecordSchemaVersion,
+    policy: ReplayMigrationPolicy,
+) -> ReplayMigrationPlan {
+    let support = if source_schema == expected_schema {
+        ReplayMigrationSupport::NotRequired
+    } else if matches!(policy, ReplayMigrationPolicy::UpgradeToCurrent) {
+        if registry.resolve(source_schema, expected_schema).is_some() {
+            ReplayMigrationSupport::Supported
+        } else {
+            ReplayMigrationSupport::Unsupported
+        }
+    } else {
+        ReplayMigrationSupport::Unsupported
+    };
+    let steps = registry
+        .resolve(source_schema, expected_schema)
+        .unwrap_or_default();
+    ReplayMigrationPlan {
+        policy,
+        support,
+        steps,
+    }
+}
+
 pub fn check_replay_compatibility<TargetId>(
     request: &ReplayRequest<TargetId>,
     expected_schema: RecordSchemaVersion,
@@ -107,8 +180,11 @@ pub fn check_replay_compatibility<TargetId>(
 ) -> ReplayCompatibilityReport {
     let schema_report =
         check_record_schema_with_policy(expected_schema, request.source_run.schema_version, policy);
-    let migration_plan =
-        plan_replay_migration(request.source_run.schema_version, expected_schema, migration_policy);
+    let migration_plan = plan_replay_migration(
+        request.source_run.schema_version,
+        expected_schema,
+        migration_policy,
+    );
     let status = if matches!(migration_plan.support, ReplayMigrationSupport::Supported) {
         CompatibilityStatus::Compatible
     } else {
@@ -144,7 +220,10 @@ mod tests {
     use crate::compatibility::{CompatibilityPolicy, CompatibilityStatus};
     use crate::identity::{run_id, scenario_id};
 
-    use super::{check_replay_compatibility, plan_replay_migration, ReplayMigrationPolicy, ReplayMigrationSupport, ReplayRequest};
+    use super::{
+        check_replay_compatibility, plan_replay_migration, plan_replay_migration_with_registry,
+        ReplayMigrationPolicy, ReplayMigrationRegistry, ReplayMigrationSupport, ReplayRequest,
+    };
     use crate::capture::{ObservationStatus, RecordSchemaVersion, RunRecord};
     use crate::scenario::{ExecutionProfile, ExecutionRequest};
 
@@ -200,5 +279,18 @@ mod tests {
             ReplayMigrationPolicy::UpgradeToCurrent,
         );
         assert_eq!(plan.support, ReplayMigrationSupport::NotRequired);
+    }
+
+    #[test]
+    fn replay_migration_registry_resolves_upgrade_path() {
+        let registry = ReplayMigrationRegistry::default();
+        let plan = plan_replay_migration_with_registry(
+            &registry,
+            RecordSchemaVersion::V1,
+            RecordSchemaVersion::V2,
+            ReplayMigrationPolicy::UpgradeToCurrent,
+        );
+        assert_eq!(plan.support, ReplayMigrationSupport::Supported);
+        assert_eq!(plan.steps.len(), 1);
     }
 }

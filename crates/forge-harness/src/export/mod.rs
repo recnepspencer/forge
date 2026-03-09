@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::artifact::AttachmentRecord;
+use crate::artifact::{AttachmentRecord, BlobDescriptor};
 use crate::extension::ExtensionResult;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,10 +18,11 @@ pub enum ArtifactPayloadKind {
     Reference,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ArchiveAsset {
     pub asset_name: String,
     pub logical_path: String,
+    pub descriptor: Option<BlobDescriptor>,
     pub media_type: String,
     pub payload_kind: ArtifactPayloadKind,
     pub text_content: Option<String>,
@@ -74,6 +75,7 @@ impl RecordArchive {
         self.assets.push(ArchiveAsset {
             asset_name: asset_name.into(),
             logical_path: logical_path.into(),
+            descriptor: None,
             media_type: media_type.into(),
             payload_kind: ArtifactPayloadKind::Utf8,
             text_content: Some(text_content.into()),
@@ -93,6 +95,7 @@ impl RecordArchive {
         self.assets.push(ArchiveAsset {
             asset_name: asset_name.into(),
             logical_path: logical_path.into(),
+            descriptor: None,
             media_type: media_type.into(),
             payload_kind: ArtifactPayloadKind::Binary,
             text_content: None,
@@ -112,6 +115,7 @@ impl RecordArchive {
         self.assets.push(ArchiveAsset {
             asset_name: asset_name.into(),
             logical_path: logical_path.into(),
+            descriptor: None,
             media_type: media_type.into(),
             payload_kind: ArtifactPayloadKind::Reference,
             text_content: None,
@@ -133,6 +137,10 @@ impl RecordArchive {
 
 pub trait ArchiveExportSink {
     fn export_archive(&self, archive: &RecordArchive) -> ExtensionResult;
+}
+
+pub trait BlobExportSink {
+    fn export_blob(&self, asset: &ArchiveAsset) -> ExtensionResult;
 }
 
 impl ExportFormat {
@@ -192,20 +200,21 @@ mod tests {
             "application/octet-stream",
             "s3://bucket/wing.mesh",
         );
-        archive.add_attachment(
-            AttachmentRecord::with_reference(
-                "trace",
-                AttachmentKind::Trace,
-                "application/json",
-                "trace://record",
-            ),
-        );
+        archive.add_attachment(AttachmentRecord::with_reference(
+            "trace",
+            AttachmentKind::Trace,
+            "application/json",
+            "trace://record",
+        ));
         assert_eq!(archive.format_name, "json-pretty");
         assert!(archive.records.get("example").unwrap().contains("forge"));
         assert_eq!(archive.assets.len(), 2);
         assert_eq!(archive.attachments.len(), 1);
         assert_eq!(archive.assets[0].payload_kind, ArtifactPayloadKind::Utf8);
-        assert_eq!(archive.assets[1].payload_kind, ArtifactPayloadKind::Reference);
+        assert_eq!(
+            archive.assets[1].payload_kind,
+            ArtifactPayloadKind::Reference
+        );
     }
 
     #[test]
@@ -213,6 +222,7 @@ mod tests {
         let asset = ArchiveAsset {
             asset_name: "mesh".to_string(),
             logical_path: "mesh.bin".to_string(),
+            descriptor: None,
             media_type: "application/octet-stream".to_string(),
             payload_kind: ArtifactPayloadKind::Binary,
             text_content: None,

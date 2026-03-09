@@ -1,28 +1,28 @@
-pub use crate::artifact::{AttachmentKind, AttachmentRecord};
+pub use crate::artifact::{AttachmentKind, AttachmentRecord, BlobDescriptor};
 pub use crate::capture::{
-    DiagnosticsLevel, DiagnosticsRecord, EventCategory, EventRecord, EventStreamRecord,
-    ExecutionMode, ExplanationRecord, ObservationStatus, ProvenanceRecord, RecordSchemaVersion,
-    RunOutcome, RunRecord, RunStatus, ScenarioRecord, SnapshotObservation, SnapshotRecord,
-    TargetStatusRecord,
+    BinaryValue, DiagnosticsLevel, DiagnosticsRecord, EventCategory, EventRecord,
+    EventStreamRecord, ExecutionMode, ExplanationRecord, ObservationStatus, ProvenanceRecord,
+    RecordSchemaVersion, RunOutcome, RunRecord, RunStatus, ScenarioRecord, SnapshotObservation,
+    SnapshotPayload, SnapshotRecord, StructuredValue, TargetStatusRecord,
 };
 pub use crate::comparison::{
     compare_run_records, compare_snapshot_records, numbers_within_tolerance, ComparisonMismatch,
-    ComparisonMode, ComparisonOracle, ComparisonOracleSuite, ComparisonProfile,
-    ComparisonRecord, ComparisonSeverity, NumericTolerance, OracleComparisonOutcome,
+    ComparisonMode, ComparisonOracle, ComparisonOracleSuite, ComparisonProfile, ComparisonRecord,
+    ComparisonSeverity, NumericTolerance, OracleComparisonOutcome,
 };
 pub use crate::compatibility::{
     check_record_schema, check_record_schema_with_policy, CompatibilityPolicy, CompatibilityReport,
     CompatibilityStatus,
 };
 pub use crate::export::{
-    export_record, ArchiveAsset, ArchiveExportSink, ArtifactPayloadKind, ExportFormat,
-    RecordArchive,
+    export_record, ArchiveAsset, ArchiveExportSink, ArtifactPayloadKind, BlobExportSink,
+    ExportFormat, RecordArchive,
 };
 pub use crate::extension::{
     CollectorSuite, ComparisonRenderer, ComparisonRule, EquivalenceOracle, EventProjector,
-    ExtensionPipeline,
-    ExecutionProfileAugmenter, ExportSink, FixturePreparationHook, MutationEnricher,
-    PostRunCaptureHook, PreRunCaptureHook, RecordCollector, RecordOracle, ReplayEnricher,
+    ExecutionProfileAugmenter, ExportSink, ExtensionPipeline, FixturePreparationHook,
+    MutationEnricher, PostRunCaptureHook, PreRunCaptureHook, RecordCollector, RecordOracle,
+    ReplayEnricher,
 };
 pub use crate::identity::{
     diagnostics_id, event_stream_id, explanation_id, fixture_id, provenance_id, replay_id, run_id,
@@ -30,22 +30,25 @@ pub use crate::identity::{
     ReplayId, RunId, ScenarioId, SnapshotId,
 };
 pub use crate::replay::{
-    check_replay_compatibility, plan_replay_migration, ReplayCompatibilityReport,
-    ReplayMigrationPlan, ReplayMigrationPolicy, ReplayMigrationStep, ReplayMigrationSupport,
-    ReplayRecord, ReplayRequest,
+    check_replay_compatibility, plan_replay_migration, plan_replay_migration_with_registry,
+    ReplayCompatibilityReport, ReplayMigrationExecutor, ReplayMigrationPlan, ReplayMigrationPolicy,
+    ReplayMigrationRegistry, ReplayMigrationStep, ReplayMigrationSupport, ReplayRecord,
+    ReplayRequest,
 };
 pub use crate::runtime::{
-    AdapterSupport, CaptureDepth, DeterminismMode, DiagnosticsHarnessAdapter, EventHarnessAdapter,
-    EventStreamHarnessAdapter, ExplanationHarnessAdapter, HarnessAdapter, HarnessCapabilities,
-    HarnessCoreBundle, HarnessError, HarnessObservedBundle, HarnessRunner, HarnessTimelineBundle,
-    PerformanceHarnessAdapter, ProvenanceHarnessAdapter, ReplayHarnessAdapter,
+    AdapterSupport, AsyncHarnessRunner, CaptureDepth, DeterminismMode, DiagnosticsHarnessAdapter,
+    EventHarnessAdapter, EventStreamHarnessAdapter, ExplanationHarnessAdapter, HarnessAdapter,
+    HarnessAdapterAsync, HarnessCapabilities, HarnessCoreBundle, HarnessError, HarnessFuture,
+    HarnessObservedBundle, HarnessRunner, HarnessTimelineBundle, PerformanceHarnessAdapter,
+    ProvenanceHarnessAdapter, ReplayHarnessAdapter,
 };
 pub use crate::scenario::{
-    ExecutionProfile, ExecutionRequest, MutationBatch, ScenarioFixture, ScenarioPlan,
+    CaptureMask, CapturePolicy, ExecutionProfile, ExecutionRequest, MutationBatch, ScenarioFixture,
+    ScenarioPlan, TargetCapturePolicy,
 };
 pub use crate::timeline::{
-    ClockDomain, ExecutionPhase, FeedBatch, FeedSequencingPolicy, TimeMarker,
-    TimelineCheckpoint, TimelineSession, TimelineSessionError,
+    ClockDomain, ExecutionPhase, FeedBatch, FeedSequencingPolicy, TimeMarker, TimelineCheckpoint,
+    TimelineSession, TimelineSessionError,
 };
 pub use crate::tooling::{
     bench, filter_events, flatten_event_streams, group_events_by_category, parity_suite,

@@ -35,10 +35,7 @@ pub fn check_record_schema_with_policy(
 ) -> CompatibilityReport {
     let status = if expected == actual {
         CompatibilityStatus::Compatible
-    } else if matches!(policy, CompatibilityPolicy::BackwardCompatible)
-        && matches!(expected, RecordSchemaVersion::V1)
-        && matches!(actual, RecordSchemaVersion::V1)
-    {
+    } else if matches!(policy, CompatibilityPolicy::BackwardCompatible) && actual <= expected {
         CompatibilityStatus::Compatible
     } else {
         CompatibilityStatus::UnsupportedVersion

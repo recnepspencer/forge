@@ -8,7 +8,7 @@ use forge_harness::facade::{
     ExecutionRequest, ExplanationHarnessAdapter, ExplanationRecord, HarnessAdapter,
     HarnessCapabilities, ObservationStatus, PerformanceHarnessAdapter, ProvenanceHarnessAdapter,
     ProvenanceRecord, RecordSchemaVersion, RunOutcome, RunRecord, RunStatus, ScenarioFixture,
-    SnapshotObservation, SnapshotRecord, TargetStatusRecord,
+    SnapshotObservation, SnapshotPayload, SnapshotRecord, StructuredValue, TargetStatusRecord,
 };
 use serde_json::{json, Value};
 
@@ -444,10 +444,10 @@ impl HarnessAdapter for SignalHarnessAdapter {
                     target: label.clone(),
                     status: Self::observation_status(state),
                     detail: Some(format!("{state:?}")),
-                    value: Some(json!({
+                    value: Some(SnapshotPayload::Structured(StructuredValue::Json(json!({
                         "node": node.to_string(),
                         "state": format!("{state:?}"),
-                    })),
+                    })))),
                 })
             })
             .collect::<Result<Vec<_>, SignalError>>()?;
