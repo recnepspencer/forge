@@ -4,6 +4,9 @@ use crate::data::error::SignalError;
 use crate::data::graph::{ScratchLeaseKind, SignalGraph, TraversalScratch};
 use crate::data::handle::NodeId;
 use crate::data::node::NodeState;
+use crate::data::output::{
+    ChangedRegion, InternedPartitionSubscription, PartitionMatchMode, PartitionSubscription,
+};
 
 /// Propagate invalidation downstream from a changed source node.
 ///
@@ -18,13 +21,23 @@ pub fn mark_dirty(
     source: NodeId,
     changed_aspect: Aspect,
 ) -> Result<(), SignalError> {
+    mark_dirty_with_regions(graph, source, changed_aspect, &[])
+}
+
+/// Propagate invalidation downstream from a changed source node with changed regions.
+pub fn mark_dirty_with_regions(
+    graph: &mut SignalGraph,
+    source: NodeId,
+    changed_aspect: Aspect,
+    changed_regions: &[ChangedRegion],
+) -> Result<(), SignalError> {
     let mut scratch = graph.acquire_scratch(ScratchLeaseKind::Invalidation)?;
     let len = graph.arena_capacity();
     scratch.visited.next_pass(len);
     scratch.node_buffer_a.clear();
     scratch.node_buffer_b.clear();
 
-    let result = mark_dirty_with_scratch(graph, &mut scratch, source, changed_aspect);
+    let result = mark_dirty_with_scratch(graph, &mut scratch, source, changed_aspect, changed_regions);
     graph.restore_scratch(ScratchLeaseKind::Invalidation, scratch)?;
     result
 }
@@ -34,18 +47,29 @@ fn mark_dirty_with_scratch(
     scratch: &mut TraversalScratch,
     source: NodeId,
     changed_aspect: Aspect,
+    changed_regions: &[ChangedRegion],
 ) -> Result<(), SignalError> {
+    let changed_scopes = changed_regions_to_dirty_scopes(changed_regions);
+    let changed_scope_ids = intern_changed_regions(graph, changed_regions);
     {
         let source_entry = graph.get_entry_mut(source)?;
         source_entry.set_state(NodeState::Dirty);
         source_entry.add_dirty_aspect(changed_aspect);
+        source_entry.set_dirty_partition_scopes(changed_scopes.iter().cloned());
     }
 
     scratch.visited.mark(source.index() as usize);
 
     collect_live_subscribers_into(graph, source, &mut scratch.node_buffer_a);
     detect_cycles_in_set(scratch, &scratch.node_buffer_a)?;
-    mark_direct_subscribers(graph, source, changed_aspect, &scratch.node_buffer_a)?;
+    mark_direct_subscribers(
+        graph,
+        source,
+        changed_aspect,
+        &changed_scopes,
+        &changed_scope_ids,
+        &scratch.node_buffer_a,
+    )?;
     let direct_sub_count = scratch.node_buffer_a.len();
     for index in 0..direct_sub_count {
         let node = scratch.node_buffer_a[index];
@@ -57,7 +81,7 @@ fn mark_dirty_with_scratch(
         append_live_subscribers(graph, sub, &mut scratch.node_buffer_b);
     }
 
-    propagate_maybe_stale(graph, scratch, changed_aspect)
+    propagate_maybe_stale(graph, scratch, changed_aspect, &changed_scopes)
 }
 
 /// Mark each direct subscriber as `Dirty` (matching aspect) or `MaybeStale`.
@@ -65,36 +89,137 @@ fn mark_direct_subscribers(
     graph: &mut SignalGraph,
     source: NodeId,
     changed_aspect: Aspect,
+    changed_scopes: &[PartitionSubscription],
+    changed_scope_ids: &[InternedPartitionSubscription],
     direct_subs: &[NodeId],
 ) -> Result<(), SignalError> {
     for &sub in direct_subs {
-        let reads_changed = subscribes_to_aspect(graph, sub, source, changed_aspect)?;
-        let new_state = if reads_changed {
-            NodeState::Dirty
-        } else {
-            NodeState::MaybeStale
+        let dirty_match = subscribes_to_aspect(
+            graph,
+            sub,
+            source,
+            changed_aspect,
+            changed_scopes,
+            changed_scope_ids,
+        )?;
+        let new_state = match dirty_match {
+            SubscriptionDirtyMatch::WholeAspect
+            | SubscriptionDirtyMatch::WholePartition
+            | SubscriptionDirtyMatch::PartitionAndDetail => NodeState::Dirty,
+            SubscriptionDirtyMatch::Unmatched => NodeState::MaybeStale,
         };
         let entry = graph.get_entry_mut(sub)?;
         entry.set_state(new_state);
         entry.add_dirty_aspect(changed_aspect);
+        entry.set_dirty_partition_scopes(changed_scopes.iter().cloned());
         graph.telemetry_mut().invalidation_nodes_visited += 1;
+        match dirty_match {
+            SubscriptionDirtyMatch::WholePartition => {
+                graph.telemetry_mut().partition_match_dirty_count += 1;
+            }
+            SubscriptionDirtyMatch::PartitionAndDetail => {
+                graph.telemetry_mut().detail_match_dirty_count += 1;
+            }
+            _ => {}
+        }
     }
     Ok(())
 }
 
 /// Check whether `downstream` subscribes to `changed_aspect` of `source`.
 fn subscribes_to_aspect(
-    graph: &SignalGraph,
+    graph: &mut SignalGraph,
     downstream: NodeId,
     source: NodeId,
     changed_aspect: Aspect,
-) -> Result<bool, SignalError> {
+    changed_scopes: &[PartitionSubscription],
+    changed_scope_ids: &[InternedPartitionSubscription],
+) -> Result<SubscriptionDirtyMatch, SignalError> {
     let changed_mask = AspectMask::from_aspect(changed_aspect);
-    let deps = graph.get_entry(downstream)?.get_dependencies();
-    let reads_aspect = deps
+    let deps = graph.get_entry(downstream)?.get_dependencies().to_vec();
+    for dep in &deps {
+        if dep.source() != source || !dep.aspect_mask().intersects(changed_mask) {
+            continue;
+        }
+        let Some(scope) = dep.scope_ref() else {
+            return Ok(SubscriptionDirtyMatch::WholeAspect);
+        };
+        graph.telemetry_mut().partition_scoped_invalidation_checks += 1;
+        if let Some(interned_scope) = dep.interned_scope() {
+            for changed_scope_id in changed_scope_ids {
+                if interned_partition_scope_matches(interned_scope, *changed_scope_id) {
+                    return Ok(match scope.match_mode {
+                        PartitionMatchMode::WholePartition => SubscriptionDirtyMatch::WholePartition,
+                        PartitionMatchMode::PartitionAndDetail => {
+                            SubscriptionDirtyMatch::PartitionAndDetail
+                        }
+                    });
+                }
+            }
+        } else {
+            for changed_scope in changed_scopes {
+                if partition_scope_matches(scope, changed_scope) {
+                    return Ok(match scope.match_mode {
+                        PartitionMatchMode::WholePartition => SubscriptionDirtyMatch::WholePartition,
+                        PartitionMatchMode::PartitionAndDetail => {
+                            SubscriptionDirtyMatch::PartitionAndDetail
+                        }
+                    });
+                }
+            }
+        }
+        return Ok(SubscriptionDirtyMatch::Unmatched);
+    }
+    Ok(SubscriptionDirtyMatch::Unmatched)
+}
+
+fn intern_changed_regions(
+    graph: &mut SignalGraph,
+    changed_regions: &[ChangedRegion],
+) -> Vec<InternedPartitionSubscription> {
+    changed_regions
         .iter()
-        .any(|dep| dep.source() == source && dep.aspect_mask().intersects(changed_mask));
-    Ok(reads_aspect)
+        .map(|region| graph.partition_interner_mut().intern_changed_region(region))
+        .collect()
+}
+
+fn interned_partition_scope_matches(
+    subscription: InternedPartitionSubscription,
+    changed: InternedPartitionSubscription,
+) -> bool {
+    if subscription.partition != changed.partition {
+        return false;
+    }
+    match subscription.match_mode {
+        PartitionMatchMode::WholePartition => true,
+        PartitionMatchMode::PartitionAndDetail => subscription.detail == changed.detail,
+    }
+}
+
+fn changed_regions_to_dirty_scopes(changed_regions: &[ChangedRegion]) -> Vec<PartitionSubscription> {
+    changed_regions
+        .iter()
+        .map(|region| {
+            if let Some(detail) = &region.detail {
+                PartitionSubscription::partition_and_detail(region.partition.clone(), detail.clone())
+            } else {
+                PartitionSubscription::whole_partition(region.partition.clone())
+            }
+        })
+        .collect()
+}
+
+fn partition_scope_matches(
+    subscription: &PartitionSubscription,
+    changed: &PartitionSubscription,
+) -> bool {
+    if subscription.partition != changed.partition {
+        return false;
+    }
+    match subscription.match_mode {
+        PartitionMatchMode::WholePartition => true,
+        PartitionMatchMode::PartitionAndDetail => subscription.detail == changed.detail,
+    }
 }
 
 fn collect_live_subscribers_into(graph: &SignalGraph, node: NodeId, out: &mut Vec<NodeId>) {
@@ -131,6 +256,7 @@ fn propagate_maybe_stale(
     graph: &mut SignalGraph,
     scratch: &mut TraversalScratch,
     changed_aspect: Aspect,
+    changed_scopes: &[PartitionSubscription],
 ) -> Result<(), SignalError> {
     let mut frontier = BitsetFrontier::new();
     for &node in &scratch.node_buffer_b {
@@ -164,6 +290,7 @@ fn propagate_maybe_stale(
                 let entry = graph.get_entry_mut(node)?;
                 entry.set_state(NodeState::MaybeStale);
                 entry.add_dirty_aspect(changed_aspect);
+                entry.set_dirty_partition_scopes(changed_scopes.iter().cloned());
             }
 
             let Ok(entry) = graph.get_entry(node) else {
@@ -179,6 +306,13 @@ fn propagate_maybe_stale(
     }
 
     Ok(())
+}
+
+enum SubscriptionDirtyMatch {
+    WholeAspect,
+    WholePartition,
+    PartitionAndDetail,
+    Unmatched,
 }
 
 /// Check whether `node` has a subscriber that is also in `visited` and

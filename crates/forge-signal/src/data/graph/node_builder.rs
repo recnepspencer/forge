@@ -71,6 +71,17 @@ impl<'a> NodeBuilder<'a> {
         self.comparator(VersionComparatorPolicy::Tolerance { epsilon })
     }
 
+    /// Use output-identity-aware downstream suppression for this node.
+    pub fn output_identity(self) -> Self {
+        self.comparator(VersionComparatorPolicy::OutputIdentity)
+    }
+
+    /// Declare that this node reports partition-aware output changes.
+    pub fn partitioned_output(mut self) -> Self {
+        self.config.partitioned_output = true;
+        self
+    }
+
     /// Build the node into the graph.
     pub fn build(self) -> NodeId {
         self.graph.create_node_with_config(self.config)

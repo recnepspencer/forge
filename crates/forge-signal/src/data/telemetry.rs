@@ -13,6 +13,26 @@ pub struct RuntimeTelemetry {
     pub nodes_recomputed: u64,
     /// Count of maybe-stale nodes reverted clean by comparator checks.
     pub skipped_by_comparator: u64,
+    /// Count of downstream nodes reverted clean after output identity matched.
+    pub suppressed_downstream_propagations: u64,
+    /// Count of recomputations whose output identity remained unchanged.
+    pub output_identity_unchanged_count: u64,
+    /// Count of memoization cache hits.
+    pub memoization_hits: u64,
+    /// Count of memoization cache misses.
+    pub memoization_misses: u64,
+    /// Count of evaluations that reported changed partitions or regions.
+    pub partition_aware_recomputations: u64,
+    /// Count of keyed computation evaluations.
+    pub keyed_evaluation_count: u64,
+    /// Count of direct invalidation checks involving partition-scoped edges.
+    pub partition_scoped_invalidation_checks: u64,
+    /// Count of direct subscribers dirtied by matching whole-partition scopes.
+    pub partition_match_dirty_count: u64,
+    /// Count of direct subscribers dirtied by matching partition+detail scopes.
+    pub detail_match_dirty_count: u64,
+    /// Count of scoped nodes reverted clean because no subscribed partition was touched.
+    pub partition_scope_revert_clean_count: u64,
     /// Event-bus flush count.
     pub event_flushes: u64,
     /// Total nanoseconds spent inside event-bus flush.

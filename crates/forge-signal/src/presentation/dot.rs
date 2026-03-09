@@ -48,12 +48,16 @@ pub fn to_dot(graph: &SignalGraph) -> String {
             .get_entry(node)
             .expect("live node should always resolve during DOT export");
         for dependency in entry.get_dependencies() {
+            let mut edge_label = format!("aspect:{}", dependency.aspect().index());
+            if let Some(scope) = dependency.scope_ref() {
+                edge_label.push_str(&format!("\\nscope:{:?}", scope));
+            }
             let _ = writeln!(
                 dot,
-                "  \"{}\" -> \"{}\" [label=\"aspect:{}\"];",
+                "  \"{}\" -> \"{}\" [label=\"{}\"];",
                 dependency.source(),
                 node,
-                dependency.aspect().index()
+                edge_label
             );
         }
     }

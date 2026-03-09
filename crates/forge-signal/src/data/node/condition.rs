@@ -37,6 +37,9 @@ pub struct NodeEvaluationConfig {
     /// are meaningful for this node. `None` means inherit from tier policy.
     #[serde(default)]
     pub comparator: Option<VersionComparatorPolicy>,
+    /// Whether this node reports partition-aware output changes.
+    #[serde(default)]
+    pub partitioned_output: bool,
 }
 
 impl Default for NodeEvaluationConfig {
@@ -45,6 +48,7 @@ impl Default for NodeEvaluationConfig {
             depends_on_aspects: None,
             condition: EvaluationCondition::Always,
             comparator: None,
+            partitioned_output: false,
         }
     }
 }

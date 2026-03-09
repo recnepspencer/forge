@@ -9,6 +9,7 @@ mod multi_aspect;
 mod node_conditions;
 mod observability;
 mod phase1_api;
+mod phase3_semantics;
 mod performance;
 mod reentrancy;
 mod signal_contract;

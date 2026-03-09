@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::marker::PhantomData;
 use std::time::Instant;
 
@@ -16,17 +16,24 @@ use crate::data::evaluator::CheckpointEvaluator;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node_meta::NodeMetaStore;
+use crate::data::output::{
+    ComputationFamily, ComputationKey, IntoNodeEvaluationResult, KeyedComputation,
+    NodeEvaluationResult, StructuralMemoKey,
+};
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::data::tier::TierPolicy;
 use crate::data::tier_policy_table::TierPolicyTable;
 use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::evaluation::{
-    evaluate_with_policy_and_condition_resolvers, DefaultConditionResolver, EvaluationRequestMode,
+    apply_evaluation_result_with_policy_and_condition,
+    evaluate_with_policy_and_condition_resolvers_and_metadata, DefaultConditionResolver,
+    EvaluationExecutionMetadata, EvaluationRequestMode,
 };
 use crate::logic::explain::{explain_with_policy_resolver, NodeExplanation};
 use crate::logic::events::EventBus;
-use crate::logic::invalidation::mark_dirty;
+use crate::logic::invalidation::{mark_dirty, mark_dirty_with_regions};
 use crate::presentation::metrics::RuntimeMetrics;
+use crate::data::output::ChangedRegion;
 
 use super::patch_buffer::SparsePatchBuffer;
 
@@ -149,6 +156,8 @@ pub struct SignalRuntimeConfig<T: Copy + Ord> {
     node_meta: NodeMetaStore<T>,
     tier_policies: TierPolicyTable<T>,
     fallback_comparator: VersionComparatorPolicy,
+    keyed_nodes: BTreeMap<(ComputationFamily, ComputationKey), NodeId>,
+    memo_cache: BTreeMap<(ComputationFamily, StructuralMemoKey), NodeEvaluationResult>,
 }
 
 impl<T: Copy + Ord> Default for SignalRuntimeConfig<T> {
@@ -157,6 +166,8 @@ impl<T: Copy + Ord> Default for SignalRuntimeConfig<T> {
             node_meta: NodeMetaStore::default(),
             tier_policies: TierPolicyTable::default(),
             fallback_comparator: VersionComparatorPolicy::Exact,
+            keyed_nodes: BTreeMap::new(),
+            memo_cache: BTreeMap::new(),
         }
     }
 }
@@ -200,6 +211,50 @@ impl<T: Copy + Ord> SignalRuntimeConfig<T> {
     /// Read-only fallback comparator policy.
     pub fn fallback_comparator(&self) -> &VersionComparatorPolicy {
         &self.fallback_comparator
+    }
+
+    pub fn register_computation_family(
+        &mut self,
+        family: impl Into<ComputationFamily>,
+    ) -> ComputationFamily {
+        family.into()
+    }
+
+    pub fn keyed_node(
+        &mut self,
+        graph: &mut SignalGraph,
+        family: &ComputationFamily,
+        key: impl Into<ComputationKey>,
+    ) -> NodeId {
+        let key = key.into();
+        let registry_key = (family.clone(), key.clone());
+        if let Some(node) = self.keyed_nodes.get(&registry_key).copied() {
+            return node;
+        }
+        let node = graph.node().build();
+        self.sync_graph_capacity(graph);
+        self.keyed_nodes.insert(registry_key, node);
+        node
+    }
+
+    fn lookup_memoized_result(
+        &self,
+        family: &ComputationFamily,
+        memo_key: &StructuralMemoKey,
+    ) -> Option<NodeEvaluationResult> {
+        self.memo_cache
+            .get(&(family.clone(), memo_key.clone()))
+            .cloned()
+    }
+
+    fn store_memoized_result(
+        &mut self,
+        family: &ComputationFamily,
+        memo_key: &StructuralMemoKey,
+        result: NodeEvaluationResult,
+    ) {
+        self.memo_cache
+            .insert((family.clone(), memo_key.clone()), result);
     }
 }
 
@@ -326,6 +381,14 @@ where
             rollback_count: self.event_bus.telemetry().rollback_count,
             staged_node_patch_count: self.telemetry.staged_node_patch_count,
             max_touched_nodes_in_txn: self.telemetry.max_touched_nodes_in_txn,
+            keyed_evaluation_count: self.telemetry.keyed_evaluation_count,
+            memoization_hits: self.telemetry.memoization_hits,
+            memoization_misses: self.telemetry.memoization_misses,
+            suppressed_downstream_propagations: self.telemetry.suppressed_downstream_propagations,
+            partition_scoped_invalidation_checks: self.telemetry.partition_scoped_invalidation_checks,
+            partition_match_dirty_count: self.telemetry.partition_match_dirty_count,
+            detail_match_dirty_count: self.telemetry.detail_match_dirty_count,
+            partition_scope_revert_clean_count: self.telemetry.partition_scope_revert_clean_count,
         }
     }
 
@@ -349,12 +412,29 @@ where
         self.config.set_fallback_comparator(policy);
     }
 
+    /// Register or normalize one computation family namespace.
+    pub fn register_computation_family(
+        &mut self,
+        family: impl Into<ComputationFamily>,
+    ) -> ComputationFamily {
+        self.config.register_computation_family(family)
+    }
+
+    /// Look up or allocate one keyed node inside a computation family.
+    pub fn keyed_node(
+        &mut self,
+        family: &ComputationFamily,
+        key: impl Into<ComputationKey>,
+    ) -> NodeId {
+        self.config.keyed_node(&mut self.graph, family, key)
+    }
+
     /// Begin a transaction scope over committed runtime state.
     pub fn begin<'a>(&'a mut self) -> SignalTransaction<'a, D, I, E, Ctx, T> {
         self.telemetry.transaction_begin_count += 1;
         self.config.sync_graph_capacity(&self.graph);
         SignalTransaction {
-            config: &self.config,
+            config: &mut self.config,
             graph: &mut self.graph,
             checkpoint: &mut self.checkpoint,
             event_bus: &mut self.event_bus,
@@ -364,6 +444,7 @@ where
             staged_checkpoint_flush_nanos: 0,
             staged_events: Vec::new(),
             staged_event_flushes: Vec::new(),
+            staged_memo_writes: BTreeMap::new(),
             graph_patches: SparsePatchBuffer::new(),
             poisoned: false,
             finished: false,
@@ -409,7 +490,7 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    config: &'a SignalRuntimeConfig<T>,
+    config: &'a mut SignalRuntimeConfig<T>,
     graph: &'a mut SignalGraph,
     checkpoint: &'a mut CheckpointRuntime<D, I>,
     event_bus: &'a mut EventBus<E, D, Ctx>,
@@ -419,6 +500,7 @@ where
     staged_checkpoint_flush_nanos: u128,
     staged_events: Vec<E>,
     staged_event_flushes: Vec<CheckpointBarrier>,
+    staged_memo_writes: BTreeMap<(ComputationFamily, StructuralMemoKey), NodeEvaluationResult>,
     graph_patches: SparsePatchBuffer,
     poisoned: bool,
     finished: bool,
@@ -456,23 +538,37 @@ where
         self.apply_result(result)
     }
 
+    /// Mark one source dirty with changed partition/region metadata.
+    pub fn mark_dirty_with_regions(
+        &mut self,
+        source: NodeId,
+        changed_aspect: Aspect,
+        changed_regions: &[ChangedRegion],
+    ) -> Result<(), SignalError> {
+        self.stage_mark_dirty_candidates(source)?;
+        let result = mark_dirty_with_regions(self.graph, source, changed_aspect, changed_regions);
+        self.apply_result(result)
+    }
+
     /// Evaluate one node in staged graph with the default comparator resolver.
-    pub fn evaluate<F>(&mut self, node: NodeId, compute: &mut F) -> Result<(), SignalError>
+    pub fn evaluate<F, O>(&mut self, node: NodeId, compute: &mut F) -> Result<(), SignalError>
     where
-        F: FnMut(NodeId, &SignalGraph) -> Result<AspectVersion, SignalError>,
+        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+        O: IntoNodeEvaluationResult,
     {
         self.evaluate_with_resolver(node, compute, DefaultComparatorResolver)
     }
 
     /// Evaluate one node in staged graph with tier-aware comparator inheritance.
-    pub fn evaluate_with_resolver<F, R>(
+    pub fn evaluate_with_resolver<F, O, R>(
         &mut self,
         node: NodeId,
         compute: &mut F,
         custom_resolver: R,
     ) -> Result<(), SignalError>
     where
-        F: FnMut(NodeId, &SignalGraph) -> Result<AspectVersion, SignalError>,
+        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+        O: IntoNodeEvaluationResult,
         R: VersionComparatorResolver,
     {
         self.evaluate_with_mode_and_resolver(
@@ -484,20 +580,21 @@ where
     }
 
     /// Evaluate one node in staged graph with explicit request mode and the default comparator resolver.
-    pub fn evaluate_with_mode<F>(
+    pub fn evaluate_with_mode<F, O>(
         &mut self,
         node: NodeId,
         compute: &mut F,
         request_mode: EvaluationRequestMode,
     ) -> Result<(), SignalError>
     where
-        F: FnMut(NodeId, &SignalGraph) -> Result<AspectVersion, SignalError>,
+        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+        O: IntoNodeEvaluationResult,
     {
         self.evaluate_with_mode_and_resolver(node, compute, DefaultComparatorResolver, request_mode)
     }
 
     /// Evaluate one node in staged graph with explicit request mode.
-    pub fn evaluate_with_mode_and_resolver<F, R>(
+    pub fn evaluate_with_mode_and_resolver<F, O, R>(
         &mut self,
         node: NodeId,
         compute: &mut F,
@@ -505,7 +602,8 @@ where
         request_mode: EvaluationRequestMode,
     ) -> Result<(), SignalError>
     where
-        F: FnMut(NodeId, &SignalGraph) -> Result<AspectVersion, SignalError>,
+        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+        O: IntoNodeEvaluationResult,
         R: VersionComparatorResolver,
     {
         self.stage_evaluate_candidates(node)?;
@@ -516,15 +614,108 @@ where
         )
         .with_custom_resolver(custom_resolver);
         let mut condition_resolver = DefaultConditionResolver;
-        let result = evaluate_with_policy_and_condition_resolvers(
+        let result = evaluate_with_policy_and_condition_resolvers_and_metadata(
             self.graph,
             node,
             compute,
             &mut resolver,
             &mut condition_resolver,
             request_mode,
+            None,
         );
         self.apply_result(result)
+    }
+
+    /// Evaluate one keyed computation with optional structural memoization.
+    pub fn evaluate_keyed<F, O>(
+        &mut self,
+        node: NodeId,
+        computation: &KeyedComputation,
+        compute: &mut F,
+    ) -> Result<(), SignalError>
+    where
+        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+        O: IntoNodeEvaluationResult,
+    {
+        self.evaluate_keyed_with_mode(node, computation, compute, EvaluationRequestMode::Default)
+    }
+
+    /// Evaluate one keyed computation with explicit request mode.
+    pub fn evaluate_keyed_with_mode<F, O>(
+        &mut self,
+        node: NodeId,
+        computation: &KeyedComputation,
+        compute: &mut F,
+        request_mode: EvaluationRequestMode,
+    ) -> Result<(), SignalError>
+    where
+        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+        O: IntoNodeEvaluationResult,
+    {
+        self.telemetry.keyed_evaluation_count += 1;
+        self.stage_evaluate_candidates(node)?;
+        let mut resolver = TierPolicyResolver::new(
+            self.config.node_meta(),
+            self.config.tier_policies(),
+            self.config.fallback_comparator(),
+        );
+        if let Some(memo_key) = computation.memo_key.as_ref() {
+            if let Some(cached) = self
+                .staged_memo_writes
+                .get(&(computation.family.clone(), memo_key.clone()))
+                .cloned()
+                .or_else(|| self.config.lookup_memoized_result(&computation.family, memo_key))
+            {
+                self.telemetry.memoization_hits += 1;
+                let metadata = EvaluationExecutionMetadata::from_keyed(
+                    computation,
+                    crate::data::output::MemoizedResultOrigin::MemoizedFromCache,
+                );
+                let mut condition_resolver = DefaultConditionResolver;
+                let result = apply_evaluation_result_with_policy_and_condition(
+                    self.graph,
+                    node,
+                    cached,
+                    &mut resolver,
+                    &mut condition_resolver,
+                    &metadata,
+                    false,
+                );
+                return self.apply_result(result);
+            }
+            self.telemetry.memoization_misses += 1;
+        }
+
+        let metadata = EvaluationExecutionMetadata::from_keyed(
+            computation,
+            crate::data::output::MemoizedResultOrigin::DirectCompute,
+        );
+        let mut last_result = None;
+        let mut wrapped = |current: NodeId, graph: &SignalGraph| {
+            let result = compute(current, graph)?.into_evaluation_result();
+            last_result = Some(result.clone());
+            Ok(result)
+        };
+        let mut condition_resolver = DefaultConditionResolver;
+        let result = evaluate_with_policy_and_condition_resolvers_and_metadata(
+            self.graph,
+            node,
+            &mut wrapped,
+            &mut resolver,
+            &mut condition_resolver,
+            request_mode,
+            Some(&metadata),
+        );
+        let result = self.apply_result(result);
+        if result.is_ok() {
+            if let (Some(memo_key), Some(last_result)) =
+                (computation.memo_key.as_ref(), last_result)
+            {
+                self.staged_memo_writes
+                    .insert((computation.family.clone(), memo_key.clone()), last_result);
+            }
+        }
+        result
     }
 
     /// Flush staged checkpoint runtime at the specified barrier.
@@ -660,6 +851,9 @@ where
         }
         self.checkpoint.telemetry_mut().checkpoint_flushes += self.staged_checkpoint_flushes;
         self.checkpoint.telemetry_mut().checkpoint_flush_nanos += self.staged_checkpoint_flush_nanos;
+        for ((family, memo_key), result) in self.staged_memo_writes {
+            self.config.store_memoized_result(&family, &memo_key, result);
+        }
         self.graph_patches.commit_and_clear();
         self.telemetry.transaction_commit_count += 1;
         self.telemetry.staged_node_patch_count += self.staged_patch_count;

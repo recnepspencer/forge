@@ -14,6 +14,8 @@ pub enum VersionComparatorPolicy {
     Exact,
     /// Ignore differences up to and including `epsilon`.
     Tolerance { epsilon: u64 },
+    /// Compare downstream propagation using host-supplied output identity.
+    OutputIdentity,
     /// Delegate comparison to embedding runtime callback by stable key.
     Custom { key: String },
 }
@@ -30,6 +32,7 @@ impl VersionComparatorPolicy {
         Ok(match self {
             Self::Exact => current != cached,
             Self::Tolerance { epsilon } => current.abs_diff(cached) > *epsilon,
+            Self::OutputIdentity => current != cached,
             Self::Custom { key } => resolver.resolve(key, aspect, cached, current)?,
         })
     }

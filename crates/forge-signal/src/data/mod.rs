@@ -13,6 +13,7 @@ pub mod graph;
 pub mod handle;
 pub mod node_meta;
 pub mod node;
+pub mod output;
 pub mod subscriber_context;
 pub mod telemetry;
 pub mod tier;

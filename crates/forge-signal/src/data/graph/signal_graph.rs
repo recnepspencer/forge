@@ -8,6 +8,7 @@ use crate::data::dependency::DependencyEdge;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::node::{NodeEntry, NodeEvaluationConfig, NodeState};
+use crate::data::output::{PartitionInterner, PartitionSubscription};
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::data::trace::CausalityMetadata;
 use crate::logic::explain::{dependency_chain_to, explain, NodeExplanation};
@@ -42,6 +43,9 @@ pub struct SignalGraph {
     /// Lightweight runtime counters for evaluation/invalidation behavior.
     #[serde(skip, default)]
     telemetry: RuntimeTelemetry,
+    /// Interned partition tokens/details for efficient scoped comparisons.
+    #[serde(default)]
+    partition_interner: PartitionInterner,
 }
 
 impl Default for SignalGraph {
@@ -61,6 +65,7 @@ impl SignalGraph {
             scratch: TraversalScratch::default(),
             scratch_lease: None,
             telemetry: RuntimeTelemetry::default(),
+            partition_interner: PartitionInterner::default(),
         }
     }
 
@@ -74,6 +79,7 @@ impl SignalGraph {
             scratch: TraversalScratch::default(),
             scratch_lease: None,
             telemetry: RuntimeTelemetry::default(),
+            partition_interner: PartitionInterner::default(),
         }
     }
 
@@ -156,6 +162,49 @@ impl SignalGraph {
         self.validate_handle(upstream)?;
 
         let edge = DependencyEdge::new(upstream, aspect);
+        let inserted = self.get_entry_mut(downstream)?.add_dependency(edge);
+        if inserted {
+            self.get_entry_mut(upstream)?.add_subscriber(downstream);
+        }
+        Ok(())
+    }
+
+    /// Wire one dependency scoped to a whole partition token.
+    pub fn add_partition_dependency(
+        &mut self,
+        downstream: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+        partition: impl Into<crate::data::output::PartitionToken>,
+    ) -> Result<(), SignalError> {
+        let scope = PartitionSubscription::whole_partition(partition);
+        self.add_dependency_with_scope(downstream, upstream, aspect, scope)
+    }
+
+    /// Wire one detail-sensitive dependency scoped to one partition/detail pair.
+    pub fn add_partition_detail_dependency(
+        &mut self,
+        downstream: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+        partition: impl Into<crate::data::output::PartitionToken>,
+        detail: impl Into<String>,
+    ) -> Result<(), SignalError> {
+        let scope = PartitionSubscription::partition_and_detail(partition, detail);
+        self.add_dependency_with_scope(downstream, upstream, aspect, scope)
+    }
+
+    fn add_dependency_with_scope(
+        &mut self,
+        downstream: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+        scope: PartitionSubscription,
+    ) -> Result<(), SignalError> {
+        self.validate_handle(downstream)?;
+        self.validate_handle(upstream)?;
+        let interned_scope = self.partition_interner.intern_subscription(&scope);
+        let edge = DependencyEdge::with_scope(upstream, aspect, scope, interned_scope);
         let inserted = self.get_entry_mut(downstream)?.add_dependency(edge);
         if inserted {
             self.get_entry_mut(upstream)?.add_subscriber(downstream);
@@ -413,12 +462,19 @@ impl SignalGraph {
 
     /// Structured graph metrics snapshot.
     pub fn metrics(&self) -> GraphMetrics {
-        GraphMetrics::from(self.telemetry())
+        GraphMetrics::from_runtime_telemetry(
+            self.telemetry(),
+            self.partition_interner.partition_count(),
+        )
     }
 
     /// Export this graph to Graphviz DOT.
     pub fn to_dot(&self) -> String {
         to_dot(self)
+    }
+
+    pub(crate) fn partition_interner_mut(&mut self) -> &mut PartitionInterner {
+        &mut self.partition_interner
     }
 
 }

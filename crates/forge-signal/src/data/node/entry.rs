@@ -4,6 +4,7 @@ use smallvec::SmallVec;
 use crate::data::aspect::{AspectMask, AspectVersion};
 use crate::data::dependency::{DependencyEdge, DependencySnapshot};
 use crate::data::handle::NodeId;
+use crate::data::output::PartitionSubscription;
 use crate::data::trace::{CausalityMetadata, TraceSummary};
 
 use super::condition::NodeEvaluationConfig;
@@ -30,6 +31,8 @@ pub enum NodeState {
 pub struct NodeEntry {
     state: NodeState,
     dirty_aspects: AspectMask,
+    #[serde(default)]
+    dirty_partition_scopes: SmallVec<[PartitionSubscription; 4]>,
     aspect_version: AspectVersion,
     /// Upstream dependencies this node reads from.
     dependencies: SmallVec<[DependencyEdge; 4]>,
@@ -62,6 +65,7 @@ impl NodeEntry {
         Self {
             state: NodeState::Dirty,
             dirty_aspects: AspectMask::EMPTY,
+            dirty_partition_scopes: SmallVec::new(),
             aspect_version: AspectVersion::zero(),
             dependencies: SmallVec::new(),
             subscribers: SmallVec::new(),
@@ -91,6 +95,28 @@ impl NodeEntry {
     /// Replace the dirty aspect mask.
     pub fn set_dirty_aspects(&mut self, dirty_aspects: AspectMask) {
         self.dirty_aspects = dirty_aspects;
+    }
+
+    pub fn get_dirty_partition_scopes(&self) -> &[PartitionSubscription] {
+        &self.dirty_partition_scopes
+    }
+
+    pub fn set_dirty_partition_scopes(
+        &mut self,
+        scopes: impl IntoIterator<Item = PartitionSubscription>,
+    ) {
+        self.dirty_partition_scopes.clear();
+        self.dirty_partition_scopes.extend(scopes);
+    }
+
+    pub fn clear_dirty_partition_scopes(&mut self) {
+        self.dirty_partition_scopes.clear();
+    }
+
+    pub fn add_dirty_partition_scope(&mut self, scope: PartitionSubscription) {
+        if !self.dirty_partition_scopes.contains(&scope) {
+            self.dirty_partition_scopes.push(scope);
+        }
     }
 
     /// Add one dirty aspect to the current mask.

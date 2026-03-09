@@ -81,7 +81,12 @@ where
                 .get_entry(dependency.source())?
                 .get_aspect_version()
                 .get(dependency.aspect());
-            snapshot.record(dependency.source(), dependency.aspect(), version);
+            snapshot.record(
+                dependency.source(),
+                dependency.aspect(),
+                version,
+                dependency.scope_ref().cloned(),
+            );
         }
 
         context.graph.values.insert(node, Box::new(value));
@@ -257,7 +262,7 @@ impl ReactiveGraph {
 
     fn upstream_matches_snapshot(&self, node: NodeId) -> Result<bool, SignalError> {
         let snapshot = self.graph.get_entry(node)?.get_dep_snapshot();
-        for &(source, aspect, expected_version) in snapshot.entries() {
+        for &(source, aspect, expected_version, _) in snapshot.entries() {
             let current_version = self.graph.get_entry(source)?.get_aspect_version().get(aspect);
             if current_version != expected_version {
                 return Ok(false);

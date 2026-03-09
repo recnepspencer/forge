@@ -25,6 +25,11 @@ pub use crate::data::graph::{NodeBuilder, SignalGraph};
 pub use crate::data::handle::NodeId;
 pub use crate::data::node_meta::NodeMetaStore;
 pub use crate::data::node::{EvaluationCondition, NodeEntry, NodeEvaluationConfig, NodeState};
+pub use crate::data::output::{
+    ChangedRegion, ComputationFamily, ComputationKey, KeyedComputation, MemoizedResultOrigin,
+    NodeEvaluationResult, OutputChange, OutputIdentity, PartitionMatchMode,
+    PartitionSubscription, PartitionToken, StructuralMemoKey,
+};
 pub use crate::data::subscriber_context::{SubscriberContext, SubscriberContextError};
 pub use crate::data::telemetry::RuntimeTelemetry;
 pub use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger, TierPolicy};
@@ -35,16 +40,18 @@ pub use crate::data::trace::{CausalityMetadata, TraceSummary};
 pub use crate::logic::checkpoint::CheckpointRuntime;
 pub use crate::logic::context::EvaluationContext;
 pub use crate::logic::evaluation::{
-    evaluate, evaluate_on_demand, evaluate_with_policy_and_condition_resolvers,
-    evaluate_with_policy_resolver, evaluate_with_resolver, evaluate_with_resolvers,
-    ConditionEvaluationContext, ConditionResolver, DefaultConditionResolver,
+    apply_evaluation_result_with_policy_and_condition, evaluate, evaluate_on_demand,
+    evaluate_with_policy_and_condition_resolvers,
+    evaluate_with_policy_and_condition_resolvers_and_metadata, evaluate_with_policy_resolver,
+    evaluate_with_resolver, evaluate_with_resolvers, ConditionEvaluationContext,
+    ConditionResolver, DefaultConditionResolver, EvaluationExecutionMetadata,
     EvaluationRequestMode,
 };
 pub use crate::logic::events::{EventBus, EventFlushError, SubscriberRegistryError};
 pub use crate::logic::explain::{
     ConditionDecision, MeaningfulChangeReason, NodeExplanation, UpstreamCause,
 };
-pub use crate::logic::invalidation::mark_dirty;
+pub use crate::logic::invalidation::{mark_dirty, mark_dirty_with_regions};
 pub use crate::logic::transaction::{
     emit_event_in_txn, evaluate_in_txn, evaluate_in_txn_with_mode, flush_checkpoint_in_txn,
     SignalRuntime, SignalRuntimeBuilder, SignalRuntimeConfig, SignalTransaction,

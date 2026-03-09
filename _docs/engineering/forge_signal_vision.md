@@ -26,6 +26,8 @@ The runtime must answer that question with five non-negotiable properties:
 4. Explicit separation from truth-state storage
 5. First-class observability into why recomputation happened
 
+Diagnostics are not optional polish. `forge-signal` must assume there will be runtime bugs, host bugs, policy mistakes, and hard-to-reproduce invalidation pathologies. Provenance, inspection, and metrics are therefore part of the product contract, not just developer support tooling.
+
 ## Architectural Model
 
 ### Runtime stack
@@ -58,6 +60,21 @@ The runtime must answer that question with five non-negotiable properties:
 ### Structural rule
 
 Signals consume host snapshots and emit derived-state refresh. They do not become a second source of truth, and they do not own the structural graph they observe.
+
+## Provenance Model
+
+`forge-signal` must make it possible to explain why a node is in its current state, not merely that it was evaluated.
+
+The provenance ladder should stay explicit:
+
+- invalidation provenance: which upstream changes dirtied or maybe-staled the node
+- dependency provenance: which dependencies were considered and how their versions compared
+- condition provenance: which evaluation conditions deferred or allowed work
+- comparator provenance: which changes were suppressed as not meaningful
+- recomputation provenance: whether work actually ran and what trace summary it produced
+- host causality metadata: optional upstream provenance attached by host runtimes or future bridge integration
+
+This is the baseline for trust, debugging, compliance, and hard-software diagnosis. The explanation surface, metrics surface, and inspection APIs should all reinforce this same causal model rather than invent separate diagnostic stories.
 
 ## API Strategy
 
@@ -158,10 +175,10 @@ Status meanings:
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| Query-style incremental execution | Next | Keyed computation families and cache validation should become first-class |
-| Reactive diff propagation / result diffing | Next | Runtime needs first-class output identity / diff-aware propagation |
-| Partial recomputation boundaries | Next | Useful once nodes can expose partitioned outputs or regions |
-| Structural memoization | Later | Requires stable structural signatures and cache policy hooks |
+| Query-style incremental execution | Implemented | Keyed computation families and family-scoped lookup now exist; broader query ergonomics can deepen later |
+| Reactive diff propagation / result diffing | Implemented | Output identity, output change reporting, and downstream suppression are now first-class |
+| Partial recomputation boundaries | Implemented | Partition-aware outputs, changed-region metadata, and partition-scoped subscriptions now exist |
+| Structural memoization | Implemented | First-pass explicit memoization exists through host-supplied structural keys and family-scoped caches |
 | Speculative evaluation / branching | Later | Depends on branchable execution state and discard semantics |
 | Fixed-point / convergence nodes | Later | Valuable for solver-style workloads, but not foundation-critical |
 
@@ -169,42 +186,44 @@ Status meanings:
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| Execution trace / provenance baseline | Implemented | Trace summary storage exists, but not yet a rich causal explanation surface |
-| Explain / provenance API | Next | Needs `explain(node)` style human-readable causality |
-| End-to-end causality integration | Next | Signal explanation should be able to connect back through bridge-carried truth provenance |
-| Graph inspection tools | Next | Query chains, hot paths, and recompute structure |
-| Dependency inspection | Next | Direct APIs for “who depends on what” are not yet first-class |
-| Execution metrics | Next | Telemetry exists; richer surfaced metrics and reporting are still needed |
+| Execution trace / provenance baseline | Implemented | Trace summary, structured explanations, and optional causality metadata now exist |
+| Explain / provenance API | Implemented | `explain(node)` is now a first-class structured surface with human-readable display |
+| Diagnostics-first inspection model | Implemented | Explanation, inspection, DOT export, and metrics now reinforce one causal debugging story |
+| End-to-end causality integration | Next | Signal explanation should be able to connect cleanly back through bridge-carried truth provenance |
+| Graph inspection tools | Implemented | Direct graph export and dependency-chain inspection exist; hot-path analysis can deepen later |
+| Dependency inspection | Implemented | Direct APIs now answer “who depends on what” explicitly |
+| Execution metrics | Implemented | Telemetry is now surfaced intentionally through graph/runtime metrics snapshots |
 
 #### Scheduling and execution
 
 | Capability | Status | Notes |
 | --- | --- | --- |
 | Deterministic execution mode | Implemented | Current runtime behavior is deterministic by design |
-| Core API ergonomics | Next | Full-power API should reduce boilerplate while preserving explicit control |
-| Builder-based runtime ergonomics | Next | Runtime builder, transaction helpers, and node builders are productization work |
+| Core API ergonomics | Implemented | Full-power API now uses builders, explicit transactions, and accessible naming |
+| Builder-based runtime ergonomics | Implemented | Runtime builder, transaction helpers, and node builders are now first-class |
 | Explicit execution planner | Next | Needed before reusable staged execution and more advanced scheduling |
 | Parallel evaluation | Later | Depends on planner/stage model and executor separation |
 | Cost-aware scheduling | Later | Requires per-node cost metadata and planner integration |
 | Priority propagation | Later | Requires explicit scheduling model and prioritization semantics |
 
-#### State and replay
+#### State / replay / evolution
 
 | Capability | Status | Notes |
 | --- | --- | --- |
 | First-class signal graph snapshots | Next | Data is serializable, but snapshot/restore is not yet a first-class API |
 | Replay-oriented evaluation state capture | Next | Needs explicit runtime snapshot surface and metadata framing |
 | Branchable evaluation paths | Later | Depends on snapshot/branch semantics rather than current in-place flow |
+| Signal lineage | Next | Track how computed artifacts evolve across evaluations, cache refresh, replacement, snapshot restore, and branch switches |
 
 #### Easy API / developer experience
 
 | Capability | Status | Notes |
 | --- | --- | --- |
-| Easy-mode signal API | Next | Wrapper over `SignalGraph` and transactions for common reactive use |
-| Angular-style computed ergonomics | Next | Computed closures should feel web-dev easy without changing the runtime contract |
-| Automatic dependency capture in easy API | Next | Uses runtime dependency discovery under the hood |
+| Easy-mode signal API | Implemented | `forge_signal::easy::*` now exists as a separate surface over the same runtime |
+| Angular-style computed ergonomics | Implemented | Input/computed/get/set/batch are now available without changing the core contract |
+| Automatic dependency capture in easy API | Implemented | Easy-mode computed closures now discover dependencies automatically |
 | Effects/watchers | Next | Ergonomic layer should expose subscription/effect patterns |
-| Batch ergonomics | Next | Easy API should provide explicit batching without exposing low-level transaction ceremony |
+| Batch ergonomics | Implemented | Easy API now provides explicit batching over the same runtime semantics |
 
 #### Bridge / dual-runtime integration
 
@@ -236,7 +255,7 @@ Status meanings:
 
 This roadmap is product-oriented. The existing foundation execution plan remains the detailed crate-level implementation plan for the current base runtime, and the dedicated Phase 1 plan captures the concrete productization pass. This document defines what the product becomes after that foundation exists.
 
-### Phase 1: Productize the current runtime
+### Phase 1: Productize the current runtime (Completed)
 
 **Outcome:** `forge-signal` is both powerful and approachable for direct use.
 
@@ -250,23 +269,25 @@ Major additions:
 - node builder ergonomics
 - better crate-level documentation of core vs easy usage
 
-Phase 1 is the immediate next step. It should make the current runtime feel legible and humane before more advanced planner, bridge, or memoization work lands.
+Phase 1 established the public runtime surface. The current runtime is now legible and humane enough to build on without carrying forward the old public API clutter.
 
 See [_docs/engineering/forge_signal_phase1_plan.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_signal_phase1_plan.md) for the concrete execution plan.
 
-### Phase 2: Observability and dependency inspection
+### Phase 2: Observability and dependency inspection (Completed)
 
 **Outcome:** users can see why work ran, what depends on what, and where recomputation cost is going.
 
 Major additions:
 
-- `explain(node)` style provenance surface
-- end-to-end causality integration with truth/bridge provenance
+- first-class execution provenance surface through `explain(node)`
 - dependency inspection APIs
 - graph inspection and debug export tools
 - richer surfaced metrics on top of existing telemetry
+- bridge-ready causality metadata hooks
 
-### Phase 3: Smarter propagation and diff-aware execution
+Phase 2 is the baseline provenance phase for the runtime. It should be treated as core product infrastructure, not optional debugging sugar. The goal is to make current-state causality explicit: why a node is dirty, maybe-stale, deferred, recomputed, or unchanged in the moment.
+
+### Phase 3: Smarter propagation and diff-aware execution (Completed)
 
 **Outcome:** the runtime suppresses more unnecessary work and becomes more semantically aware of unchanged outputs.
 
@@ -275,8 +296,10 @@ Major additions:
 - query-style keyed computation surfaces
 - output identity / result diffing
 - downstream suppression when outputs are unchanged
-- hooks for partial recomputation boundaries
-- first structural memoization hooks where the shape is stable enough
+- partition-aware output reporting and partition-scoped subscriptions
+- first structural memoization layer with explicit host keys
+
+Phase 3 established the smarter propagation substrate while preserving future snapshot and signal-lineage semantics. Output diffing, partition-aware subscriptions, and memoization now exist in forms that keep artifact continuity describable later.
 
 ### Phase 4: Execution planning and parallelism
 
@@ -300,8 +323,13 @@ Major additions:
 
 - first-class snapshot/restore API
 - evaluation-state persistence model
+- signal lineage foundations so computed artifacts can be tracked across refresh, replacement, restore, memoized reuse, and branch switches
 - replay-oriented inspection tooling
 - branchable evaluation-path foundations
+
+See [_docs/engineering/forge_signal_state_lineage_design.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_signal_state_lineage_design.md) for the concept lock on snapshots, replay, provenance, and signal lineage.
+
+Phase 5 is the historical-provenance phase. It should extend provenance from current-state explanation into replayable, restorable, and time-aware understanding of how evaluation state and computed artifacts evolved.
 
 ### Phase 6: Dual-runtime bridge completion
 
@@ -314,6 +342,8 @@ Major additions:
 - snapshot-backed evaluation surface
 - bulk diff propagation
 - integration contracts for node-key mapping and source reads
+
+Phase 6 is the end-to-end provenance phase. It should allow truth-side commit and patch causality to flow cleanly through the bridge into signal-side explanation and diagnostics without collapsing the runtimes into one system.
 
 ### Phase 7: Advanced semantics
 
@@ -337,6 +367,8 @@ Major additions:
 7. Structural and domain semantics remain outside the runtime unless exposed as generic hooks.
 8. `forge-signal` must stand on its own as a reusable library with standalone APIs, not only as one half of the Forge stack.
 9. Accessible naming is a product feature; prefer intention-revealing names over insider shorthand.
+10. Diagnostics are first-class runtime architecture; explanation, inspection, provenance, and metrics must ship as core capabilities.
+11. Signal lineage is a real runtime concern distinct from host truth lineage and should be modeled explicitly when replay and branching mature.
 
 ## Non-goals
 
@@ -369,5 +401,7 @@ The current concrete vocabulary remains the anchor for the runtime contract:
 ## Current-State Notes
 
 - The current foundation is already strong enough to justify this vision: DAG scheduling, aspects, conditional evaluation, comparator policies, deterministic behavior, telemetry, and transactional rewind are real.
+- The current observability baseline is now real too: structured explanations, dependency inspection, DOT export, surfaced metrics, richer trace summaries, and generic causality hooks are part of the runtime.
 - The current foundation execution plan should be treated as the implementation hardening path for the base runtime, not as the final product vision.
-- The next major leap is not inventing a new core model. It is productizing the current core as a generic standalone runtime, making it observable, and formalizing the bridge to truth-state runtimes where that integration is needed.
+- The next major leap is not inventing a new core model. It is pushing beyond baseline observability into smarter propagation, planning, snapshots, lineage, and bridge-grade causality.
+- The state/replay/lineage concepts are now locked separately in [_docs/engineering/forge_signal_state_lineage_design.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_signal_state_lineage_design.md) so later phases do not drift into ad hoc semantics.

@@ -28,6 +28,9 @@
 //! - **Condition-gated evaluation** ([`facade::EvaluationCondition`]):
 //!   on-demand, aspect-filtered, threshold, debounce, and custom evaluation policies,
 //!   exposed through readable builder helpers on [`facade::NodeBuilder`]
+//! - **Partition-aware subscriptions** ([`facade::PartitionSubscription`]):
+//!   downstream nodes can subscribe to one partition or one partition/detail pair
+//!   instead of invalidating on every change to a large artifact
 //! - **Parallel safety** ([`facade::EvaluationContext`]):
 //!   Explicit context object, not thread-local (Doctrine D8)
 //! - **Productized runtime surface**:

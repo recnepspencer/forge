@@ -72,7 +72,7 @@ fn explain_reports_clean_upstream_when_snapshot_matches() {
     let explanation = graph.explain(dependent).unwrap();
     assert!(matches!(
         explanation.upstream.as_slice(),
-        [UpstreamCause::Clean { source: clean, aspect, cached_version: 1, current_version: 1 }]
+        [UpstreamCause::Clean { source: clean, aspect, cached_version: 1, current_version: 1, .. }]
         if *clean == source && *aspect == ASPECT_A
     ));
 }
@@ -161,7 +161,7 @@ fn explain_reports_missing_snapshot_and_dependency_removed() {
     assert!(missing_snapshot
         .upstream
         .iter()
-        .any(|cause| matches!(cause, UpstreamCause::MissingSnapshot { source: missing, aspect, current_version: Some(1) } if *missing == source && *aspect == ASPECT_A)));
+        .any(|cause| matches!(cause, UpstreamCause::MissingSnapshot { source: missing, aspect, current_version: Some(1), .. } if *missing == source && *aspect == ASPECT_A)));
 
     let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
     evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
@@ -171,7 +171,7 @@ fn explain_reports_missing_snapshot_and_dependency_removed() {
     assert!(removed
         .upstream
         .iter()
-        .any(|cause| matches!(cause, UpstreamCause::DependencyRemoved { source: removed_source, aspect, cached_version: 1 } if *removed_source == source && *aspect == ASPECT_A)));
+        .any(|cause| matches!(cause, UpstreamCause::DependencyRemoved { source: removed_source, aspect, cached_version: 1, .. } if *removed_source == source && *aspect == ASPECT_A)));
 }
 
 #[test]
@@ -219,7 +219,9 @@ fn dot_export_contains_state_color_and_edge_labels() {
     let mut graph = SignalGraph::new();
     let source = graph.node().build();
     let dependent = graph.node().on_demand().build();
-    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .add_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
+        .unwrap();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, source, &mut compute).unwrap();
@@ -228,6 +230,7 @@ fn dot_export_contains_state_color_and_edge_labels() {
     assert!(dot.contains(&format!("\"{}\"", source)));
     assert!(dot.contains("fillcolor=green"));
     assert!(dot.contains("aspect:0"));
+    assert!(dot.contains("scope:"));
 }
 
 #[test]
@@ -252,4 +255,75 @@ fn metrics_snapshots_reflect_runtime_activity() {
     assert!(runtime.metrics().transaction_commit_count >= 1);
     assert!(runtime.metrics().event_flushes >= 1);
     assert!(runtime.graph().metrics().invalidation_nodes_visited >= 1);
+}
+
+#[test]
+fn explanation_is_deterministic_with_multiple_upstreams_and_mixed_states() {
+    let mut graph = SignalGraph::new();
+    let source_a = graph.node().build();
+    let source_b = graph.node().build();
+    let source_c = graph.node().build();
+    let dependent = graph.node().on_demand().build();
+    graph.add_dependency(dependent, source_b, ASPECT_B).unwrap();
+    graph.add_dependency(dependent, source_a, ASPECT_A).unwrap();
+    graph.add_dependency(dependent, source_c, ASPECT_A).unwrap();
+
+    let mut source_a_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    let mut source_a_v2 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(2, 0));
+    let mut source_b_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 1));
+    let mut source_c_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(3, 0));
+    let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
+
+    evaluate(&mut graph, source_a, &mut source_a_v1).unwrap();
+    evaluate(&mut graph, source_b, &mut source_b_v1).unwrap();
+    evaluate(&mut graph, source_c, &mut source_c_v1).unwrap();
+    evaluate_on_demand(&mut graph, dependent, &mut dependent_compute).unwrap();
+
+    mark_dirty(&mut graph, source_a, ASPECT_A).unwrap();
+    evaluate(&mut graph, source_a, &mut source_a_v2).unwrap();
+    evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
+
+    let explanation = graph.explain(dependent).unwrap();
+    let rendered = format!("{explanation}");
+    assert!(matches!(
+        explanation.upstream.first(),
+        Some(UpstreamCause::ConditionDeferred { source, .. }) if *source == source_a
+    ));
+    assert!(explanation.upstream.iter().any(|cause| matches!(
+        cause,
+        UpstreamCause::Clean { source, aspect, cached_version: 1, current_version: 1, .. }
+        if *source == source_b && *aspect == ASPECT_B
+    )));
+    assert!(rendered.contains("condition OnDemand/Deferred"));
+}
+
+#[test]
+fn rollback_preserves_committed_explanation_and_increments_rollback_metric() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().build();
+    let dependent = graph.node().build();
+    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+    let mut runtime = build_runtime(graph);
+
+    let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
+    let mut dependent_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
+    evaluate(runtime.graph_mut(), source, &mut source_v1).unwrap();
+    evaluate(runtime.graph_mut(), dependent, &mut dependent_v1).unwrap();
+    let before = runtime.explain(dependent).unwrap();
+    let rollback_before = runtime.metrics().transaction_rollback_count;
+
+    let err = runtime.transaction(&mut (), |tx| {
+        tx.mark_dirty(source, ASPECT_A)?;
+        tx.evaluate(dependent, &mut |_id, _graph| Ok(version_ab(99, 0)))?;
+        Err(SignalError::invalid_input("rollback for test"))
+    });
+    assert!(err.is_err());
+
+    let after = runtime.explain(dependent).unwrap();
+    assert_eq!(before.trace_summary, after.trace_summary);
+    assert_eq!(before.upstream, after.upstream);
+    assert_eq!(
+        runtime.metrics().transaction_rollback_count,
+        rollback_before + 1
+    );
 }
