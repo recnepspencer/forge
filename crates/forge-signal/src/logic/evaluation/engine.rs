@@ -502,7 +502,7 @@ fn push_deps_then_recompute(
     Ok(())
 }
 
-fn resolve_condition_action(
+pub(crate) fn resolve_condition_action(
     graph: &mut SignalGraph,
     node: NodeId,
     request_mode: EvaluationRequestMode,
@@ -965,7 +965,7 @@ fn partition_subscription_matches(
     }
 }
 
-enum ConditionAction {
+pub(crate) enum ConditionAction {
     Evaluate,
     RevertClean,
     Defer,

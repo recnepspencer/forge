@@ -6,7 +6,6 @@ mod diagnostics;
 mod evaluation_context;
 mod graph_core;
 mod lifecycle;
-pub(crate) mod legacy_callback_adapter;
 mod multi_aspect;
 mod node_conditions;
 mod observability;

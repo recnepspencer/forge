@@ -24,9 +24,11 @@ The runtime must answer that question with five non-negotiable properties:
 2. Transactional rollback semantics
 3. Aspect-aware invalidation granularity
 4. Explicit separation from truth-state storage
-5. First-class observability into why recomputation happened
+5. First-class runtime self-inspection into why recomputation happened
 
 Diagnostics are not optional polish. `forge-signal` must assume there will be runtime bugs, host bugs, policy mistakes, and hard-to-reproduce invalidation pathologies. Provenance, inspection, and metrics are therefore part of the product contract, not just developer support tooling.
+
+The same is true for the test harness. `forge-signal` is now complex enough that scenario builders, regression seeders, parity drivers, and lifecycle-aware verification are no longer “nice test ergonomics.” They are part of how the runtime defends itself against future regressions.
 
 ## Architectural Model
 
@@ -35,7 +37,7 @@ Diagnostics are not optional polish. `forge-signal` must assume there will be ru
 | Layer | Responsibility | Owns |
 | --- | --- | --- |
 | `forge-relational` | Truth-state graph runtime | identity, transactions, history, diffs, traversal, integrity |
-| `forge-signal` | Derived-computation runtime | dependency DAG, invalidation, recomputation, scheduling, conditions, observability |
+| `forge-signal` | Derived-computation runtime | dependency DAG, invalidation, recomputation, scheduling, conditions, runtime self-inspection |
 | Bridge / integration | Decoupled coordination | patch-to-invalidation, aspect mapping, snapshot evaluation, node-key mapping |
 
 ### What `forge-signal` owns
@@ -189,6 +191,7 @@ Status meanings:
 | Execution trace / provenance baseline | Implemented | Trace summary, structured explanations, and optional causality metadata now exist |
 | Explain / provenance API | Implemented | `explain(node)` is now a first-class structured surface with human-readable display |
 | Diagnostics-first inspection model | Implemented | Explanation, inspection, DOT export, and metrics now reinforce one causal debugging story |
+| Diagnostics contract | Implemented | Diagnostics are now a first-class public subsystem with profiles, summaries, diffs, flow/failure artifacts, and one public entrypoint |
 | End-to-end causality integration | Next | Signal explanation should be able to connect cleanly back through bridge-carried truth provenance |
 | Graph inspection tools | Implemented | Direct graph export and dependency-chain inspection exist; hot-path analysis can deepen later |
 | Dependency inspection | Implemented | Direct APIs now answer “who depends on what” explicitly |
@@ -214,6 +217,13 @@ Status meanings:
 | Replay-oriented evaluation state capture | Next | Needs explicit runtime snapshot surface and metadata framing |
 | Branchable evaluation paths | Later | Depends on snapshot/branch semantics rather than current in-place flow |
 | Signal lineage | Next | Track how computed artifacts evolve across evaluations, cache refresh, replacement, snapshot restore, and branch switches |
+
+#### Runtime trust infrastructure
+
+| Capability | Status | Notes |
+| --- | --- | --- |
+| Production diagnostics subsystem | Implemented | Diagnostics are a public runtime contract with recorder/store/policy separation and one diagnostics entrypoint |
+| Signal-runtime test harness | Next | Harness must sit on top of production diagnostics and one truthful execution model before Phase 5 begins |
 
 #### Easy API / developer experience
 
@@ -301,7 +311,7 @@ Major additions:
 
 Phase 3 established the smarter propagation substrate while preserving future snapshot and signal-lineage semantics. Output diffing, partition-aware subscriptions, and memoization now exist in forms that keep artifact continuity describable later.
 
-### Phase 4: Execution planning and parallelism
+### Phase 4: Execution planning and parallelism (Completed)
 
 **Outcome:** evaluation is planned explicitly, then dispatched efficiently.
 
@@ -311,9 +321,38 @@ Major additions:
 - staged execution model
 - executor abstraction
 - deterministic staged scheduling
-- optional parallel execution after planning exists
+- real stage-local parallel precompute on the prepared execution contract
 
-Parallel execution is intentionally not earlier than this phase. Planner/stage semantics come first.
+Phase 4 is now materially complete. The runtime has one real planner/executor backbone, prepared evaluation, execution records, and honest same-stage parallel precompute.
+
+### Phase 4.5: Runtime trust layer and diagnostics contract (In progress)
+
+**Outcome:** diagnostics become a first-class runtime contract and the crate finishes collapsing toward one execution story.
+
+Major additions:
+
+- public diagnostics subsystem with one entrypoint
+- lifecycle-native flow diagnostics
+- failure and rollback diagnostics
+- diagnostics profiles and bounded retention policy
+- repeated boundedness and serial/parallel parity hardening
+- final callback-era execution cleanup so the harness rests on one truthful engine
+
+This is the phase that turns runtime self-inspection from “good debugging support” into real trust infrastructure for hard software.
+
+### Harness Foundation: Scenario Infrastructure Before Phase 5
+
+**Outcome:** future snapshot/replay/lineage work lands on top of a reusable runtime harness instead of ad hoc tests.
+
+Major additions:
+
+- builders for common signal topologies and runtime scenarios
+- named seeders and mandatory regression seeders
+- lifecycle-aware drivers for serial, parallel, transaction, and rollback flows
+- selectors and fluent verification built on production diagnostics
+- parity and determinism helpers that become the default validation path for later phases
+
+The harness is not optional test polish. It is infrastructure for proving determinism, lifecycle correctness, provenance, and historical behavior as the runtime grows.
 
 ### Phase 5: Snapshots, replay, and branchable evaluation
 
@@ -369,6 +408,7 @@ Major additions:
 9. Accessible naming is a product feature; prefer intention-revealing names over insider shorthand.
 10. Diagnostics are first-class runtime architecture; explanation, inspection, provenance, and metrics must ship as core capabilities.
 11. Signal lineage is a real runtime concern distinct from host truth lineage and should be modeled explicitly when replay and branching mature.
+12. The runtime harness is first-class infrastructure; regression seeders, parity drivers, and lifecycle-aware verification must evolve with the runtime instead of trailing behind it.
 
 ## Non-goals
 
@@ -401,7 +441,9 @@ The current concrete vocabulary remains the anchor for the runtime contract:
 ## Current-State Notes
 
 - The current foundation is already strong enough to justify this vision: DAG scheduling, aspects, conditional evaluation, comparator policies, deterministic behavior, telemetry, and transactional rewind are real.
-- The current observability baseline is now real too: structured explanations, dependency inspection, DOT export, surfaced metrics, richer trace summaries, and generic causality hooks are part of the runtime.
+- The current runtime self-inspection baseline is now real too: structured explanations, dependency inspection, DOT export, surfaced metrics, richer trace summaries, and generic causality hooks are part of the runtime trust substrate.
+- The diagnostics contract is now real too: public diagnostics entrypoints, profiles, lifecycle flow artifacts, structured diffs, and bounded retained history are part of the runtime product.
 - The current foundation execution plan should be treated as the implementation hardening path for the base runtime, not as the final product vision.
-- The next major leap is not inventing a new core model. It is pushing beyond baseline observability into smarter propagation, planning, snapshots, lineage, and bridge-grade causality.
+- The remaining blocker before the harness is the last internal callback-era execution debt in the test substrate. Public execution is already on the prepared path; the final cleanup is about making the harness rest on one truthful engine model.
+- The next major leap is not inventing a new core model. It is finishing that cleanup, building the harness, and then pushing into snapshots, lineage, replay, and bridge-grade causality.
 - The state/replay/lineage concepts are now locked separately in [_docs/engineering/forge_signal_state_lineage_design.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_signal_state_lineage_design.md) so later phases do not drift into ad hoc semantics.

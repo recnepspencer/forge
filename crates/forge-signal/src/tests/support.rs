@@ -1,6 +1,6 @@
 use crate::facade::{Aspect, AspectMask, AspectVersion};
 #[allow(unused_imports)]
-pub(crate) use crate::tests::legacy_callback_adapter::{
+pub(crate) use crate::logic::evaluation::{
     evaluate, evaluate_on_demand, evaluate_with_resolver, evaluate_with_resolvers,
 };
 

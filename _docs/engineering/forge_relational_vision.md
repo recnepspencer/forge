@@ -52,7 +52,7 @@ This runtime is the substrate that makes mergeable history, AI-native editing, d
 | Layer | Responsibility | Owns |
 | --- | --- | --- |
 | `forge-relational` | Truth-state graph runtime | identity, mutation, history, diffs, lineage, traversal, integrity |
-| `forge-signal` | Derived-computation runtime | invalidation, recomputation, conditions, scheduling, observability |
+| `forge-signal` | Derived-computation runtime | invalidation, recomputation, conditions, scheduling, runtime self-inspection |
 | Bridge / integration | Decoupled coordination | patch-to-invalidation, aspect mapping, snapshot evaluation, key mapping |
 
 ## Ownership Boundaries
@@ -96,6 +96,8 @@ Truth mutation, truth history, and truth identity live here. Downstream runtimes
 10. The runtime must stand on its own as a reusable library, not as a kernel-specific storage helper.
 11. `forge-relational` must expose standalone APIs for truth-state usage without requiring `forge-signal` or the bridge.
 12. Integrity and schema validation are first-class runtime architecture, not accessory checks around the edge.
+13. Diagnostics are a first-class runtime contract. Truth mutation, history, lineage, diffs, and replay must be inspectable, comparable, and auditable in production.
+14. The relational harness is first-class infrastructure. Regression seeders, branch/history scenarios, and diff/replay parity drivers should evolve alongside the runtime, not after it.
 
 ## Pillars
 
@@ -323,7 +325,7 @@ Why it exists:
 Truth changes must say what changed, not merely that something changed.
 
 Problem it solves:
-Coarse patch streams create over-invalidation and poor observability.
+Coarse patch streams create over-invalidation and poor runtime self-inspection.
 
 Boundary it imposes:
 Diffs must carry typed aspect metadata.
@@ -515,7 +517,7 @@ Boundary it imposes:
 Introspection belongs in the runtime surface, not only in external tooling.
 
 What depends on it:
-Debugging, observability, and admin/inspection interfaces.
+Debugging, runtime self-inspection, and admin/inspection interfaces.
 
 #### Secondary index and derived-index hooks
 
@@ -576,6 +578,13 @@ Long-lived graph workloads, bulk queries, and industrial-scale model sizes.
 ## Roadmap
 
 The ordering here is architectural, not cosmetic. The early phases lock in the properties that are expensive to retrofit later.
+
+Diagnostics and the harness are cross-cutting requirements, not a final cleanup phase. Every phase above should ship with:
+
+- deterministic summaries and diffs for the new subsystem
+- failure-path diagnostics rather than success-only reporting
+- scenario-driven harness coverage with named regression seeders for confirmed bugs
+- bounded retained history suitable for long-running truth runtimes
 
 ### Phase 1: Identity and storage foundations
 
@@ -650,6 +659,17 @@ Breakthrough features:
 
 Outcome:
 The truth runtime becomes powerful enough to feed projections, analyses, and bridge consumers at scale.
+
+### Runtime trust infrastructure
+
+This work is intentionally cross-phase:
+
+- production diagnostics contract for truth mutation, history, lineage, replay, and CDC
+- one public diagnostics entrypoint instead of scattered debug utilities
+- lifecycle-aware truth artifacts that can later compose with bridge and signal diagnostics
+- a relational harness built on production diagnostics, with branch/history/diff/replay seeders and regression scenarios
+
+If this work is postponed, the truth runtime will be much harder to trust once branching, replay, and correspondence become real.
 
 ## Non-goals
 

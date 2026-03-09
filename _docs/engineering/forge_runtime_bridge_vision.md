@@ -7,7 +7,7 @@ Forge does not want one fused runtime that mixes truth storage and derived compu
 It wants two strong runtimes with a principled bridge between them:
 
 - a truth runtime that owns identity, mutation, history, and diffs
-- a computation runtime that owns invalidation, recomputation, scheduling, and observability
+- a computation runtime that owns invalidation, recomputation, scheduling, and runtime self-inspection
 - a bridge layer that turns truth changes into deterministic reactive execution without collapsing the two together
 
 The bridge is not glue code. It is the architectural boundary that keeps the system decoupled while still allowing precise, large-scale propagation from truth to computation.
@@ -100,6 +100,8 @@ The bridge translates and coordinates. It does not become a second truth runtime
 9. The bridge must be library-grade architecture, not a special-case Forge kernel adapter.
 10. The bridge integrates the runtimes without collapsing their separate ownership boundaries.
 11. End-to-end causality must survive the boundary from truth commit through invalidation and recomputation.
+12. Diagnostics are a first-class bridge contract. Change routing, mapping, snapshot evaluation, and causality transfer must be inspectable and auditable as production behavior.
+13. The bridge harness is first-class infrastructure. Patch-driven flows, causality propagation, snapshot-backed reads, and regression scenarios should be validated through reusable scenarios rather than ad hoc integration tests.
 
 ## Pillars
 
@@ -313,6 +315,13 @@ Bridge protocols should survive internal refactors of truth and compute runtimes
 
 This roadmap sequences the bridge features as named milestones so they cannot quietly disappear into vague “integration later” work.
 
+Diagnostics and the harness are cross-cutting requirements throughout this roadmap. Every bridge phase should ship with:
+
+- deterministic causal flow artifacts and diffs
+- failure-path diagnostics for change routing, mapping, and snapshot-evaluation failures
+- scenario-driven harness coverage for patch-to-invalidation flows and end-to-end provenance
+- bounded retained bridge history suitable for long-running host processes
+
 ### Phase 1: Dual-graph contract
 
 Breakthrough features:
@@ -382,6 +391,17 @@ Breakthrough features:
 
 Outcome:
 The bridge can route large change sets without collapsing into per-event overhead or integration-specific hacks.
+
+### Runtime trust infrastructure
+
+This work is intentionally cross-phase:
+
+- production diagnostics contract for bridge-side change routing, mapping, and causal continuity
+- one public bridge diagnostics entrypoint instead of scattered integration logs
+- lifecycle-aware bridge flow artifacts that align with relational and signal diagnostics
+- a bridge harness built on production diagnostics, with patch-driven, snapshot-backed, and provenance-focused regression scenarios
+
+If this work is postponed, the bridge will become operationally opaque right when truth and computation start depending on it the most.
 
 ## Non-goals
 
