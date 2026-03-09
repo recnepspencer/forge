@@ -33,7 +33,11 @@ impl SparsePatchBuffer {
         self.dirty_bits.ensure_len(index + 1);
     }
 
-    pub(super) fn stage_original(&mut self, graph: &SignalGraph, node: NodeId) -> Result<(), SignalError> {
+    pub(super) fn stage_original(
+        &mut self,
+        graph: &SignalGraph,
+        node: NodeId,
+    ) -> Result<(), SignalError> {
         let index = node.index() as usize;
         self.ensure_capacity(index);
         if self.patches[index].is_none() {
@@ -63,7 +67,10 @@ impl SparsePatchBuffer {
     }
 
     /// Roll back graph to staged originals, then clear patch set.
-    pub(super) fn rollback_and_clear(&mut self, graph: &mut SignalGraph) -> Result<(), SignalError> {
+    pub(super) fn rollback_and_clear(
+        &mut self,
+        graph: &mut SignalGraph,
+    ) -> Result<(), SignalError> {
         let mut touched = std::mem::take(&mut self.touched_indices);
         touched.sort_unstable();
         for index in touched {

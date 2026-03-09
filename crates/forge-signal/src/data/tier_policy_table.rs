@@ -9,12 +9,17 @@ pub struct TierPolicyTable<T: Copy + Ord> {
 impl<T: Copy + Ord> TierPolicyTable<T> {
     /// Create an empty table.
     pub fn new() -> Self {
-        Self { entries: Vec::new() }
+        Self {
+            entries: Vec::new(),
+        }
     }
 
     /// Insert or replace one tier policy.
     pub fn set(&mut self, policy: TierPolicy<T>) {
-        match self.entries.binary_search_by_key(&policy.tier, |(tier, _)| *tier) {
+        match self
+            .entries
+            .binary_search_by_key(&policy.tier, |(tier, _)| *tier)
+        {
             Ok(index) => self.entries[index] = (policy.tier, policy),
             Err(index) => self.entries.insert(index, (policy.tier, policy)),
         }

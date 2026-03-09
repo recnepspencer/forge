@@ -29,12 +29,8 @@ fn kv62_delete_mid_chain_no_panic() {
     let middle = graph.node().build();
     let feature = graph.node().build();
 
-    graph
-        .add_dependency(middle, param, ASPECT_B)
-        .unwrap();
-    graph
-        .add_dependency(feature, middle, ASPECT_B)
-        .unwrap();
+    graph.add_dependency(middle, param, ASPECT_B).unwrap();
+    graph.add_dependency(feature, middle, ASPECT_B).unwrap();
 
     let mut compute = |_id, _g: &SignalGraph| Ok(version_ab(1, 1));
     evaluate(&mut graph, param, &mut compute).unwrap();
@@ -60,12 +56,8 @@ fn unregister_severs_subscriptions() {
     let node = graph.node().build();
     let downstream = graph.node().build();
 
-    graph
-        .add_dependency(node, upstream, ASPECT_B)
-        .unwrap();
-    graph
-        .add_dependency(downstream, node, ASPECT_B)
-        .unwrap();
+    graph.add_dependency(node, upstream, ASPECT_B).unwrap();
+    graph.add_dependency(downstream, node, ASPECT_B).unwrap();
 
     graph.unregister_node(node).unwrap();
 

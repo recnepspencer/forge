@@ -71,4 +71,44 @@ pub struct RuntimeTelemetry {
     pub gc_epoch_count: u64,
     /// Total nanoseconds spent inside GC epochs.
     pub gc_epoch_nanos: u128,
+    /// Count of execution plans built.
+    pub plans_built: u64,
+    /// Count of execution stages built.
+    pub stages_built: u64,
+    /// Count of tasks scheduled across built plans.
+    pub tasks_scheduled: u64,
+    /// Count of tasks pruned before execution.
+    pub tasks_pruned_before_execution: u64,
+    /// Count of maybe-stale validation tasks scheduled.
+    pub maybe_stale_validation_tasks: u64,
+    /// Count of stage executions performed.
+    pub stage_execution_count: u64,
+    /// Total nanoseconds spent executing stages.
+    pub stage_execution_nanos: u128,
+    /// Count of parallel stage dispatch attempts.
+    pub parallel_stage_dispatch_count: u64,
+    /// Maximum number of tasks scheduled in one stage.
+    pub max_tasks_in_stage: u64,
+    /// Count of serial executor uses.
+    pub serial_executor_usage_count: u64,
+    /// Count of parallel executor uses.
+    pub parallel_executor_usage_count: u64,
+    /// Count of lightweight execution snapshots built.
+    pub execution_snapshots_built: u64,
+    /// Count of prepared evaluations produced by precompute.
+    pub prepared_evaluations_produced: u64,
+    /// Count of prepared evaluations applied during serial commit.
+    pub prepared_evaluations_applied: u64,
+    /// Count of dependency-edge updates caused by prepared dependency capture.
+    pub dependency_capture_updates: u64,
+    /// Count of tasks precomputed serially.
+    pub serial_precompute_task_count: u64,
+    /// Count of tasks precomputed in parallel.
+    pub parallel_precompute_task_count: u64,
+    /// Total nanoseconds spent building execution snapshots.
+    pub execution_snapshot_nanos: u128,
+    /// Total nanoseconds spent in stage precompute work.
+    pub stage_precompute_nanos: u128,
+    /// Total nanoseconds spent in stage apply work.
+    pub stage_apply_nanos: u128,
 }

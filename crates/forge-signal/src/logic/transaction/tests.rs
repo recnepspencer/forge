@@ -27,7 +27,9 @@ enum Tier {
     A,
 }
 
-fn build_runtime(graph: crate::data::graph::SignalGraph) -> SignalRuntime<Domain, Impact, Ev, (), Tier> {
+fn build_runtime(
+    graph: crate::data::graph::SignalGraph,
+) -> SignalRuntime<Domain, Impact, Ev, (), Tier> {
     SignalRuntime::builder(graph)
         .with_domains::<Domain>()
         .with_impacts::<Impact>()
@@ -91,7 +93,10 @@ fn begin_rollback_preserves_committed_state() {
     let mut ctx = ();
     let mut tx = runtime.begin();
     tx.mark_dirty(a, ASPECT_B).unwrap();
-    assert_eq!(tx.rollback(&mut ctx).unwrap(), TransactionOutcome::RolledBack);
+    assert_eq!(
+        tx.rollback(&mut ctx).unwrap(),
+        TransactionOutcome::RolledBack
+    );
     assert_eq!(runtime.graph().get_state(a).unwrap(), before);
 }
 
@@ -151,7 +156,10 @@ impl crate::data::effect_mapping::EffectMapping for TestEffectMap {
     type Impact = Impact;
     type Effect = TestEffect;
 
-    fn route(effect: &Self::Effect, out: &mut crate::data::dirty_set::BatchedDirtySet<Self::Domain, Self::Impact>) {
+    fn route(
+        effect: &Self::Effect,
+        out: &mut crate::data::dirty_set::BatchedDirtySet<Self::Domain, Self::Impact>,
+    ) {
         match effect {
             TestEffect::CacheOne => out.mark_domain_scoped(Domain::Cache, Impact::One),
         }
@@ -259,10 +267,12 @@ fn tier_comparator_inheritance_uses_tier_default() {
     let mut ctx = ();
     let mut tx = runtime.begin();
 
-    let mut compute_a_10 = |_id: crate::data::handle::NodeId, _g: &crate::data::graph::SignalGraph| {
+    let mut compute_a_10 = |_id: crate::data::handle::NodeId,
+                            _g: &crate::data::graph::SignalGraph| {
         Ok(version_ab(0, 10))
     };
-    let mut compute_a_12 = |_id: crate::data::handle::NodeId, _g: &crate::data::graph::SignalGraph| {
+    let mut compute_a_12 = |_id: crate::data::handle::NodeId,
+                            _g: &crate::data::graph::SignalGraph| {
         Ok(version_ab(0, 12))
     };
     let mut compute_b = |_id: crate::data::handle::NodeId, _g: &crate::data::graph::SignalGraph| {

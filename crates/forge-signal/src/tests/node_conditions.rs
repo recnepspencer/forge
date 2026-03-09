@@ -34,7 +34,10 @@ fn node_entry_stores_evaluation_condition_config() {
         condition: EvaluationCondition::Debounce(2_000),
         ..NodeEvaluationConfig::default()
     };
-    graph.get_entry_mut(node).unwrap().set_eval_config(cfg.clone());
+    graph
+        .get_entry_mut(node)
+        .unwrap()
+        .set_eval_config(cfg.clone());
 
     let stored = graph.get_entry(node).unwrap().get_eval_config().clone();
     assert_eq!(stored, cfg);

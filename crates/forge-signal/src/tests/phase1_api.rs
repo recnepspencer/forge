@@ -75,7 +75,10 @@ fn transaction_helper_commits_on_success() {
         .unwrap();
 
     assert_eq!(outcome, TransactionOutcome::Committed);
-    assert_eq!(runtime.graph().get_state(dependent).unwrap(), NodeState::Dirty);
+    assert_eq!(
+        runtime.graph().get_state(dependent).unwrap(),
+        NodeState::Dirty
+    );
 }
 
 #[test]

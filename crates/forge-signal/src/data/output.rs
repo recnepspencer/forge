@@ -93,10 +93,14 @@ impl PartitionSubscription {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
+)]
 pub struct PartitionTokenId(pub u32);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default,
+)]
 pub struct DetailTokenId(pub u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -123,15 +127,24 @@ impl PartitionInterner {
     ) -> InternedPartitionSubscription {
         InternedPartitionSubscription {
             partition: self.intern_partition(&subscription.partition.0),
-            detail: subscription.detail.as_deref().map(|detail| self.intern_detail(detail)),
+            detail: subscription
+                .detail
+                .as_deref()
+                .map(|detail| self.intern_detail(detail)),
             match_mode: subscription.match_mode,
         }
     }
 
-    pub fn intern_changed_region(&mut self, region: &ChangedRegion) -> InternedPartitionSubscription {
+    pub fn intern_changed_region(
+        &mut self,
+        region: &ChangedRegion,
+    ) -> InternedPartitionSubscription {
         InternedPartitionSubscription {
             partition: self.intern_partition(&region.partition.0),
-            detail: region.detail.as_deref().map(|detail| self.intern_detail(detail)),
+            detail: region
+                .detail
+                .as_deref()
+                .map(|detail| self.intern_detail(detail)),
             match_mode: if region.detail.is_some() {
                 PartitionMatchMode::PartitionAndDetail
             } else {
@@ -275,10 +288,7 @@ pub struct KeyedComputation {
 }
 
 impl KeyedComputation {
-    pub fn new(
-        family: impl Into<ComputationFamily>,
-        key: impl Into<ComputationKey>,
-    ) -> Self {
+    pub fn new(family: impl Into<ComputationFamily>, key: impl Into<ComputationKey>) -> Self {
         Self {
             family: family.into(),
             key: key.into(),

@@ -47,6 +47,9 @@ pub struct TraceSummary {
     /// Optional structured labels for diagnostics.
     #[serde(default)]
     pub labels: Vec<String>,
+    /// Last planner/execution record id that touched this node, when available.
+    #[serde(default)]
+    pub execution_record_id: Option<u64>,
 }
 
 /// Opaque structured causality payload for host-provided provenance.

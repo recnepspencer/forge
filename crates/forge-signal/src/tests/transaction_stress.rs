@@ -46,7 +46,10 @@ fn rollback_heavy_workload_leaves_runtime_consistent() {
         tx.mark_dirty(root, ASPECT_B).unwrap();
         tx.emit_event(Ev::Tick);
         tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
-        assert_eq!(tx.rollback(&mut ctx).unwrap(), TransactionOutcome::RolledBack);
+        assert_eq!(
+            tx.rollback(&mut ctx).unwrap(),
+            TransactionOutcome::RolledBack
+        );
     }
 
     assert_eq!(runtime.telemetry().transaction_rollback_count, 100);

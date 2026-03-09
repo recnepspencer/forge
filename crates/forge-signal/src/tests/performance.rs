@@ -11,9 +11,7 @@ fn chain_1000_minimal_recomputation() {
 
     for i in 1..1000 {
         let node = graph.create_node();
-        graph
-            .add_dependency(node, chain[i - 1], ASPECT_B)
-            .unwrap();
+        graph.add_dependency(node, chain[i - 1], ASPECT_B).unwrap();
         chain.push(node);
     }
 
@@ -44,9 +42,7 @@ fn push_perf_10k_nodes() {
 
     for i in 1..10_000 {
         let node = graph.create_node();
-        graph
-            .add_dependency(node, chain[i - 1], ASPECT_B)
-            .unwrap();
+        graph.add_dependency(node, chain[i - 1], ASPECT_B).unwrap();
         chain.push(node);
     }
 
@@ -74,7 +70,12 @@ fn ondemand_defer_perf_10k_nodes() {
     let mut nodes: Vec<NodeId> = Vec::with_capacity(10_000);
 
     for _ in 0..10_000 {
-        nodes.push(graph.node().condition(EvaluationCondition::OnDemand).build());
+        nodes.push(
+            graph
+                .node()
+                .condition(EvaluationCondition::OnDemand)
+                .build(),
+        );
     }
 
     let start = std::time::Instant::now();

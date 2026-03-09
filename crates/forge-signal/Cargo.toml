@@ -5,6 +5,10 @@ version.workspace = true
 license.workspace = true
 description = "Generic deterministic reactive computation runtime"
 
+[features]
+default = []
+parallel = []
+
 [dependencies]
 tracing.workspace = true
 serde = { workspace = true, features = ["derive"] }

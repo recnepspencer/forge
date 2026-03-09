@@ -16,6 +16,7 @@ use crate::data::evaluator::CheckpointEvaluator;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node_meta::NodeMetaStore;
+use crate::data::output::ChangedRegion;
 use crate::data::output::{
     ComputationFamily, ComputationKey, IntoNodeEvaluationResult, KeyedComputation,
     NodeEvaluationResult, StructuralMemoKey,
@@ -25,15 +26,18 @@ use crate::data::tier::TierPolicy;
 use crate::data::tier_policy_table::TierPolicyTable;
 use crate::logic::checkpoint::CheckpointRuntime;
 use crate::logic::evaluation::{
-    apply_evaluation_result_with_policy_and_condition,
-    evaluate_with_policy_and_condition_resolvers_and_metadata, DefaultConditionResolver,
+    apply_evaluation_result_with_policy_and_condition, DefaultConditionResolver,
     EvaluationExecutionMetadata, EvaluationRequestMode,
 };
-use crate::logic::explain::{explain_with_policy_resolver, NodeExplanation};
 use crate::logic::events::EventBus;
+use crate::logic::explain::{explain_with_policy_resolver, NodeExplanation};
 use crate::logic::invalidation::{mark_dirty, mark_dirty_with_regions};
+use crate::logic::planner::{
+    build_evaluation_plan_with_policy_resolver, execute_plan_with_policy_and_condition,
+    execute_prepared_plan_with_policy, EvaluationPlan, ExecutionReport, StageExecutor,
+};
+use crate::logic::prepared::{ExecutionReadView, PreparedEvaluation};
 use crate::presentation::metrics::RuntimeMetrics;
-use crate::data::output::ChangedRegion;
 
 use super::patch_buffer::SparsePatchBuffer;
 
@@ -385,16 +389,229 @@ where
             memoization_hits: self.telemetry.memoization_hits,
             memoization_misses: self.telemetry.memoization_misses,
             suppressed_downstream_propagations: self.telemetry.suppressed_downstream_propagations,
-            partition_scoped_invalidation_checks: self.telemetry.partition_scoped_invalidation_checks,
+            partition_scoped_invalidation_checks: self
+                .telemetry
+                .partition_scoped_invalidation_checks,
             partition_match_dirty_count: self.telemetry.partition_match_dirty_count,
             detail_match_dirty_count: self.telemetry.detail_match_dirty_count,
             partition_scope_revert_clean_count: self.telemetry.partition_scope_revert_clean_count,
+            plans_built: self.telemetry.plans_built,
+            stages_built: self.telemetry.stages_built,
+            tasks_scheduled: self.telemetry.tasks_scheduled,
+            tasks_pruned_before_execution: self.telemetry.tasks_pruned_before_execution,
+            maybe_stale_validation_tasks: self.telemetry.maybe_stale_validation_tasks,
+            stage_execution_count: self.telemetry.stage_execution_count,
+            stage_execution_nanos: self.telemetry.stage_execution_nanos,
+            parallel_stage_dispatch_count: self.telemetry.parallel_stage_dispatch_count,
+            max_tasks_in_stage: self.telemetry.max_tasks_in_stage,
+            serial_executor_usage_count: self.telemetry.serial_executor_usage_count,
+            parallel_executor_usage_count: self.telemetry.parallel_executor_usage_count,
+            execution_snapshots_built: self.telemetry.execution_snapshots_built,
+            prepared_evaluations_produced: self.telemetry.prepared_evaluations_produced,
+            prepared_evaluations_applied: self.telemetry.prepared_evaluations_applied,
+            dependency_capture_updates: self.telemetry.dependency_capture_updates,
+            serial_precompute_task_count: self.telemetry.serial_precompute_task_count,
+            parallel_precompute_task_count: self.telemetry.parallel_precompute_task_count,
+            execution_snapshot_nanos: self.telemetry.execution_snapshot_nanos,
+            stage_precompute_nanos: self.telemetry.stage_precompute_nanos,
+            stage_apply_nanos: self.telemetry.stage_apply_nanos,
         }
     }
 
     /// Graphviz DOT export for the committed graph.
     pub fn to_dot(&self) -> String {
         self.graph.to_dot()
+    }
+
+    /// Build a deterministic evaluation plan using tier-aware comparator policy.
+    pub fn build_evaluation_plan(
+        &self,
+        targets: &[NodeId],
+        request_mode: EvaluationRequestMode,
+    ) -> Result<EvaluationPlan, SignalError> {
+        let mut resolver = TierPolicyResolver::new(
+            self.config.node_meta(),
+            self.config.tier_policies(),
+            self.config.fallback_comparator(),
+        );
+        build_evaluation_plan_with_policy_resolver(
+            &self.graph,
+            targets,
+            request_mode,
+            &mut resolver,
+        )
+    }
+
+    /// Execute one pre-built plan with the runtime's comparator policy.
+    pub fn execute_plan<F, O>(
+        &mut self,
+        plan: &EvaluationPlan,
+        compute: &mut F,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+        O: IntoNodeEvaluationResult,
+    {
+        self.execute_plan_with_executor(plan, compute, StageExecutor::Serial)
+    }
+
+    /// Execute one pre-built plan with an explicit stage executor.
+    pub fn execute_plan_with_executor<F, O>(
+        &mut self,
+        plan: &EvaluationPlan,
+        compute: &mut F,
+        executor: StageExecutor,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+        O: IntoNodeEvaluationResult,
+    {
+        let mut resolver = TierPolicyResolver::new(
+            self.config.node_meta(),
+            self.config.tier_policies(),
+            self.config.fallback_comparator(),
+        );
+        let mut condition_resolver = DefaultConditionResolver;
+        let report = execute_plan_with_policy_and_condition(
+            &mut self.graph,
+            plan,
+            compute,
+            &mut resolver,
+            &mut condition_resolver,
+            executor,
+            None,
+        )?;
+        self.absorb_execution_report_telemetry(&report);
+        Ok(report)
+    }
+
+    /// Execute one pre-built plan with the prepared-evaluation contract.
+    pub fn execute_prepared_plan<F>(
+        &mut self,
+        plan: &EvaluationPlan,
+        precompute: &F,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    {
+        self.execute_prepared_plan_with_executor(plan, precompute, StageExecutor::Serial)
+    }
+
+    /// Execute one pre-built prepared-evaluation plan with an explicit executor.
+    pub fn execute_prepared_plan_with_executor<F>(
+        &mut self,
+        plan: &EvaluationPlan,
+        precompute: &F,
+        executor: StageExecutor,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    {
+        let mut resolver = TierPolicyResolver::new(
+            self.config.node_meta(),
+            self.config.tier_policies(),
+            self.config.fallback_comparator(),
+        );
+        let report = execute_prepared_plan_with_policy(
+            &mut self.graph,
+            plan,
+            precompute,
+            &mut resolver,
+            executor,
+        )?;
+        self.absorb_execution_report_telemetry(&report);
+        Ok(report)
+    }
+
+    /// Convenience evaluation path that builds and executes a plan for one target.
+    pub fn evaluate_with_plan<F, O>(
+        &mut self,
+        node: NodeId,
+        compute: &mut F,
+        request_mode: EvaluationRequestMode,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+        O: IntoNodeEvaluationResult,
+    {
+        let plan = self.build_evaluation_plan(&[node], request_mode)?;
+        self.execute_plan(&plan, compute)
+    }
+
+    /// Convenience evaluation path that builds and executes a plan with an explicit executor.
+    pub fn evaluate_with_plan_and_executor<F, O>(
+        &mut self,
+        node: NodeId,
+        compute: &mut F,
+        request_mode: EvaluationRequestMode,
+        executor: StageExecutor,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+        O: IntoNodeEvaluationResult,
+    {
+        let plan = self.build_evaluation_plan(&[node], request_mode)?;
+        self.execute_plan_with_executor(&plan, compute, executor)
+    }
+
+    fn absorb_execution_report_telemetry(&mut self, report: &ExecutionReport) {
+        self.telemetry.plans_built += 1;
+        self.telemetry.stages_built += report.stage_count as u64;
+        self.telemetry.tasks_scheduled += report.task_count as u64;
+        self.telemetry.tasks_pruned_before_execution += report.tasks_pruned as u64;
+        self.telemetry.maybe_stale_validation_tasks += report
+            .stages
+            .iter()
+            .flat_map(|stage| &stage.task_records)
+            .filter(|record| {
+                matches!(
+                    record.scheduled_reason,
+                    crate::logic::planner::TaskReason::MaybeStaleValidation
+                )
+            })
+            .count() as u64;
+        self.telemetry.stage_execution_count += report.stage_count as u64;
+        self.telemetry.stage_execution_nanos += report
+            .stages
+            .iter()
+            .map(|stage| stage.duration_nanos)
+            .sum::<u128>();
+        self.telemetry.execution_snapshots_built += report.execution_snapshots_built as u64;
+        self.telemetry.prepared_evaluations_produced += report.prepared_evaluations_produced as u64;
+        self.telemetry.prepared_evaluations_applied += report.prepared_evaluations_applied as u64;
+        self.telemetry.dependency_capture_updates += report.dependency_capture_updates as u64;
+        self.telemetry.execution_snapshot_nanos += report.execution_snapshot_nanos;
+        self.telemetry.stage_precompute_nanos += report.stage_precompute_nanos;
+        self.telemetry.stage_apply_nanos += report.stage_apply_nanos;
+        #[cfg(feature = "parallel")]
+        let parallel_stages = report
+            .stages
+            .iter()
+            .filter(|stage| {
+                matches!(
+                    stage.outcome,
+                    crate::logic::planner::StageExecutionOutcome::CompletedParallel
+                )
+            })
+            .count() as u64;
+        #[cfg(not(feature = "parallel"))]
+        let parallel_stages = 0_u64;
+        if parallel_stages > 0 {
+            self.telemetry.parallel_executor_usage_count += 1;
+            self.telemetry.parallel_stage_dispatch_count += parallel_stages;
+            self.telemetry.parallel_precompute_task_count += report.task_count as u64;
+        } else {
+            self.telemetry.serial_executor_usage_count += 1;
+            self.telemetry.serial_precompute_task_count += report.task_count as u64;
+        }
+        self.telemetry.max_tasks_in_stage = self.telemetry.max_tasks_in_stage.max(
+            report
+                .stages
+                .iter()
+                .map(|stage| stage.task_records.len() as u64)
+                .max()
+                .unwrap_or(0),
+        );
     }
 
     /// Assign one node to a comparator tier.
@@ -532,7 +749,11 @@ where
     }
 
     /// Mark one source dirty in staged graph.
-    pub fn mark_dirty(&mut self, source: NodeId, changed_aspect: Aspect) -> Result<(), SignalError> {
+    pub fn mark_dirty(
+        &mut self,
+        source: NodeId,
+        changed_aspect: Aspect,
+    ) -> Result<(), SignalError> {
         self.stage_mark_dirty_candidates(source)?;
         let result = mark_dirty(self.graph, source, changed_aspect);
         self.apply_result(result)
@@ -556,7 +777,7 @@ where
         F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
         O: IntoNodeEvaluationResult,
     {
-        self.evaluate_with_resolver(node, compute, DefaultComparatorResolver)
+        self.evaluate_with_mode(node, compute, EvaluationRequestMode::Default)
     }
 
     /// Evaluate one node in staged graph with tier-aware comparator inheritance.
@@ -613,17 +834,176 @@ where
             self.config.fallback_comparator(),
         )
         .with_custom_resolver(custom_resolver);
-        let mut condition_resolver = DefaultConditionResolver;
-        let result = evaluate_with_policy_and_condition_resolvers_and_metadata(
+        let plan = build_evaluation_plan_with_policy_resolver(
             self.graph,
-            node,
+            &[node],
+            request_mode,
+            &mut resolver,
+        )?;
+        let mut condition_resolver = DefaultConditionResolver;
+        let report = execute_plan_with_policy_and_condition(
+            self.graph,
+            &plan,
             compute,
             &mut resolver,
             &mut condition_resolver,
-            request_mode,
+            StageExecutor::Serial,
             None,
+        )?;
+        self.absorb_execution_report_telemetry(&report);
+        Ok(())
+    }
+
+    /// Convenience evaluation path that builds and executes a plan for one target.
+    pub fn evaluate_with_plan<F, O>(
+        &mut self,
+        node: NodeId,
+        compute: &mut F,
+        request_mode: EvaluationRequestMode,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+        O: IntoNodeEvaluationResult,
+    {
+        self.evaluate_with_plan_and_executor(node, compute, request_mode, StageExecutor::Serial)
+    }
+
+    /// Convenience evaluation path that builds and executes a plan with an explicit executor.
+    pub fn evaluate_with_plan_and_executor<F, O>(
+        &mut self,
+        node: NodeId,
+        compute: &mut F,
+        request_mode: EvaluationRequestMode,
+        executor: StageExecutor,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+        O: IntoNodeEvaluationResult,
+    {
+        self.stage_evaluate_candidates(node)?;
+        let mut resolver = TierPolicyResolver::new(
+            self.config.node_meta(),
+            self.config.tier_policies(),
+            self.config.fallback_comparator(),
         );
-        self.apply_result(result)
+        let plan = build_evaluation_plan_with_policy_resolver(
+            self.graph,
+            &[node],
+            request_mode,
+            &mut resolver,
+        )?;
+        let mut condition_resolver = DefaultConditionResolver;
+        let report = execute_plan_with_policy_and_condition(
+            self.graph,
+            &plan,
+            compute,
+            &mut resolver,
+            &mut condition_resolver,
+            executor,
+            None,
+        )?;
+        self.absorb_execution_report_telemetry(&report);
+        Ok(report)
+    }
+
+    /// Convenience prepared-evaluation path that builds and executes a plan for one target.
+    pub fn evaluate_prepared_with_plan<F>(
+        &mut self,
+        node: NodeId,
+        precompute: &F,
+        request_mode: EvaluationRequestMode,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    {
+        self.evaluate_prepared_with_plan_and_executor(
+            node,
+            precompute,
+            request_mode,
+            StageExecutor::Serial,
+        )
+    }
+
+    /// Convenience prepared-evaluation path with an explicit executor.
+    pub fn evaluate_prepared_with_plan_and_executor<F>(
+        &mut self,
+        node: NodeId,
+        precompute: &F,
+        request_mode: EvaluationRequestMode,
+        executor: StageExecutor,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    {
+        self.stage_evaluate_candidates(node)?;
+        let mut resolver = TierPolicyResolver::new(
+            self.config.node_meta(),
+            self.config.tier_policies(),
+            self.config.fallback_comparator(),
+        );
+        let plan = build_evaluation_plan_with_policy_resolver(
+            self.graph,
+            &[node],
+            request_mode,
+            &mut resolver,
+        )?;
+        self.execute_prepared_plan_with_executor(&plan, precompute, executor)
+    }
+
+    /// Execute one pre-built plan against the staged graph with an explicit executor.
+    pub fn execute_plan_with_executor<F, O>(
+        &mut self,
+        plan: &EvaluationPlan,
+        compute: &mut F,
+        executor: StageExecutor,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+        O: IntoNodeEvaluationResult,
+    {
+        let mut resolver = TierPolicyResolver::new(
+            self.config.node_meta(),
+            self.config.tier_policies(),
+            self.config.fallback_comparator(),
+        );
+        let mut condition_resolver = DefaultConditionResolver;
+        let report = execute_plan_with_policy_and_condition(
+            self.graph,
+            plan,
+            compute,
+            &mut resolver,
+            &mut condition_resolver,
+            executor,
+            None,
+        )?;
+        self.absorb_execution_report_telemetry(&report);
+        Ok(report)
+    }
+
+    /// Execute one pre-built prepared-evaluation plan against the staged graph.
+    pub fn execute_prepared_plan_with_executor<F>(
+        &mut self,
+        plan: &EvaluationPlan,
+        precompute: &F,
+        executor: StageExecutor,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    {
+        let mut resolver = TierPolicyResolver::new(
+            self.config.node_meta(),
+            self.config.tier_policies(),
+            self.config.fallback_comparator(),
+        );
+        let report = execute_prepared_plan_with_policy(
+            self.graph,
+            plan,
+            precompute,
+            &mut resolver,
+            executor,
+        )?;
+        self.absorb_execution_report_telemetry(&report);
+        Ok(report)
     }
 
     /// Evaluate one keyed computation with optional structural memoization.
@@ -664,7 +1044,10 @@ where
                 .staged_memo_writes
                 .get(&(computation.family.clone(), memo_key.clone()))
                 .cloned()
-                .or_else(|| self.config.lookup_memoized_result(&computation.family, memo_key))
+                .or_else(|| {
+                    self.config
+                        .lookup_memoized_result(&computation.family, memo_key)
+                })
             {
                 self.telemetry.memoization_hits += 1;
                 let metadata = EvaluationExecutionMetadata::from_keyed(
@@ -696,17 +1079,29 @@ where
             last_result = Some(result.clone());
             Ok(result)
         };
-        let mut condition_resolver = DefaultConditionResolver;
-        let result = evaluate_with_policy_and_condition_resolvers_and_metadata(
+        let plan = build_evaluation_plan_with_policy_resolver(
             self.graph,
-            node,
+            &[node],
+            request_mode,
+            &mut resolver,
+        )?;
+        let mut condition_resolver = DefaultConditionResolver;
+        let result = execute_plan_with_policy_and_condition(
+            self.graph,
+            &plan,
             &mut wrapped,
             &mut resolver,
             &mut condition_resolver,
-            request_mode,
+            StageExecutor::Serial,
             Some(&metadata),
         );
-        let result = self.apply_result(result);
+        let result = match result {
+            Ok(report) => {
+                self.absorb_execution_report_telemetry(&report);
+                self.apply_result(Ok(()))
+            }
+            Err(err) => self.apply_result(Err(err)),
+        };
         if result.is_ok() {
             if let (Some(memo_key), Some(last_result)) =
                 (computation.memo_key.as_ref(), last_result)
@@ -762,6 +1157,34 @@ where
                 Err(err)
             }
         }
+    }
+
+    fn absorb_execution_report_telemetry(&mut self, report: &ExecutionReport) {
+        self.telemetry.plans_built += 1;
+        self.telemetry.stages_built += report.stage_count as u64;
+        self.telemetry.tasks_scheduled += report.task_count as u64;
+        self.telemetry.tasks_pruned_before_execution += report.tasks_pruned as u64;
+        self.telemetry.maybe_stale_validation_tasks += report
+            .stages
+            .iter()
+            .flat_map(|stage| &stage.task_records)
+            .filter(|record| {
+                matches!(
+                    record.scheduled_reason,
+                    crate::logic::planner::TaskReason::MaybeStaleValidation
+                )
+            })
+            .count() as u64;
+        self.telemetry.stage_execution_count += report.stage_count as u64;
+        self.telemetry.serial_executor_usage_count += 1;
+        self.telemetry.max_tasks_in_stage = self.telemetry.max_tasks_in_stage.max(
+            report
+                .stages
+                .iter()
+                .map(|stage| stage.task_records.len() as u64)
+                .max()
+                .unwrap_or(0),
+        );
     }
 
     fn stage_mark_dirty_candidates(&mut self, source: NodeId) -> Result<(), SignalError> {
@@ -850,15 +1273,19 @@ where
             }
         }
         self.checkpoint.telemetry_mut().checkpoint_flushes += self.staged_checkpoint_flushes;
-        self.checkpoint.telemetry_mut().checkpoint_flush_nanos += self.staged_checkpoint_flush_nanos;
+        self.checkpoint.telemetry_mut().checkpoint_flush_nanos +=
+            self.staged_checkpoint_flush_nanos;
         for ((family, memo_key), result) in self.staged_memo_writes {
-            self.config.store_memoized_result(&family, &memo_key, result);
+            self.config
+                .store_memoized_result(&family, &memo_key, result);
         }
         self.graph_patches.commit_and_clear();
         self.telemetry.transaction_commit_count += 1;
         self.telemetry.staged_node_patch_count += self.staged_patch_count;
-        self.telemetry.max_touched_nodes_in_txn =
-            self.telemetry.max_touched_nodes_in_txn.max(self.staged_patch_count);
+        self.telemetry.max_touched_nodes_in_txn = self
+            .telemetry
+            .max_touched_nodes_in_txn
+            .max(self.staged_patch_count);
 
         Ok(TransactionOutcome::Committed)
     }

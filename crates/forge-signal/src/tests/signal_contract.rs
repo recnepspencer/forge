@@ -33,8 +33,12 @@ fn remove_dependency_preserves_other_aspects_between_same_nodes() {
     let upstream = graph.node().build();
     let downstream = graph.node().build();
 
-    graph.add_dependency(downstream, upstream, ASPECT_A).unwrap();
-    graph.add_dependency(downstream, upstream, ASPECT_B).unwrap();
+    graph
+        .add_dependency(downstream, upstream, ASPECT_A)
+        .unwrap();
+    graph
+        .add_dependency(downstream, upstream, ASPECT_B)
+        .unwrap();
 
     graph
         .remove_dependency(downstream, upstream, ASPECT_A)
@@ -58,8 +62,12 @@ fn subscriber_fanout_does_not_duplicate_across_aspects() {
     let upstream = graph.node().build();
     let downstream = graph.node().build();
 
-    graph.add_dependency(downstream, upstream, ASPECT_A).unwrap();
-    graph.add_dependency(downstream, upstream, ASPECT_B).unwrap();
+    graph
+        .add_dependency(downstream, upstream, ASPECT_A)
+        .unwrap();
+    graph
+        .add_dependency(downstream, upstream, ASPECT_B)
+        .unwrap();
 
     let subscribers = graph
         .get_entry(upstream)
@@ -81,7 +89,8 @@ fn version_gated_skip_respects_repeated_monotonic_bumps() {
         next_version += 1;
         Ok(AspectVersion::zero().with(ASPECT_A, next_version))
     };
-    let mut compute_dependent = |_id, _graph: &SignalGraph| Ok(AspectVersion::zero().with(ASPECT_A, 1));
+    let mut compute_dependent =
+        |_id, _graph: &SignalGraph| Ok(AspectVersion::zero().with(ASPECT_A, 1));
 
     evaluate(&mut graph, source, &mut compute_source).unwrap();
     evaluate(&mut graph, dependent, &mut compute_dependent).unwrap();
@@ -103,7 +112,8 @@ fn version_gated_skip_respects_repeated_monotonic_bumps() {
     evaluate(&mut graph, dependent, &mut recompute_dependent).unwrap();
 
     assert_eq!(
-        dependent_recomputes.get(), 2,
+        dependent_recomputes.get(),
+        2,
         "meaningful upstream version bumps must force repeated dependent recomputation"
     );
 }

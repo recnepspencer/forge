@@ -74,9 +74,7 @@ impl VersionComparatorResolver for DefaultComparatorResolver {
         _current: u64,
     ) -> Result<bool, SignalError> {
         Err(SignalError::InvalidInput {
-            message: format!(
-                "Custom comparator '{key}' requires a resolver for aspect {aspect:?}"
-            ),
+            message: format!("Custom comparator '{key}' requires a resolver for aspect {aspect:?}"),
             context: None,
         })
     }
@@ -118,7 +116,9 @@ impl Default for DefaultComparatorPolicyResolver<DefaultComparatorResolver> {
     }
 }
 
-impl<R: VersionComparatorResolver> VersionComparatorResolver for DefaultComparatorPolicyResolver<R> {
+impl<R: VersionComparatorResolver> VersionComparatorResolver
+    for DefaultComparatorPolicyResolver<R>
+{
     fn resolve(
         &mut self,
         key: &str,
@@ -136,7 +136,9 @@ impl<R: VersionComparatorResolver> ComparatorPolicyResolver for DefaultComparato
         _node: NodeId,
         node_override: Option<&VersionComparatorPolicy>,
     ) -> VersionComparatorPolicy {
-        node_override.cloned().unwrap_or_else(|| self.fallback.clone())
+        node_override
+            .cloned()
+            .unwrap_or_else(|| self.fallback.clone())
     }
 }
 

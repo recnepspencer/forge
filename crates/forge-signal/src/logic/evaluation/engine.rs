@@ -12,10 +12,17 @@ use crate::data::handle::NodeId;
 use crate::data::node::{EvaluationCondition, NodeState};
 use crate::data::output::{
     ChangedRegion, IntoNodeEvaluationResult, KeyedComputation, MemoizedResultOrigin,
-    NodeEvaluationResult, OutputChange, OutputIdentity, PartitionMatchMode,
-    PartitionSubscription,
+    NodeEvaluationResult, OutputChange, OutputIdentity, PartitionMatchMode, PartitionSubscription,
 };
 use crate::data::trace::TraceSummary;
+use crate::logic::planner::{
+    build_evaluation_plan_with_policy_resolver, execute_plan_with_policy_and_condition,
+    StageExecutor,
+};
+use crate::logic::prepared::{
+    PreparedDependencyCapture, PreparedEvaluation, PreparedEvaluationOrigin,
+    PreparedEvaluationOutcome,
+};
 
 use super::condition::{
     ConditionEvaluationContext, ConditionResolver, DefaultConditionResolver, EvaluationRequestMode,
@@ -201,6 +208,39 @@ where
     R: ComparatorPolicyResolver,
     C: ConditionResolver,
 {
+    let plan = build_evaluation_plan_with_policy_resolver(
+        graph,
+        &[node],
+        request_mode,
+        comparator_resolver,
+    )?;
+    execute_plan_with_policy_and_condition(
+        graph,
+        &plan,
+        compute,
+        comparator_resolver,
+        condition_resolver,
+        StageExecutor::Serial,
+        execution_metadata,
+    )?;
+    Ok(())
+}
+
+pub(crate) fn evaluate_direct_with_policy_and_condition_resolvers_and_metadata<F, O, R, C>(
+    graph: &mut SignalGraph,
+    node: NodeId,
+    compute: &mut F,
+    comparator_resolver: &mut R,
+    condition_resolver: &mut C,
+    request_mode: EvaluationRequestMode,
+    execution_metadata: Option<&EvaluationExecutionMetadata>,
+) -> Result<(), SignalError>
+where
+    F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+    O: IntoNodeEvaluationResult,
+    R: ComparatorPolicyResolver,
+    C: ConditionResolver,
+{
     let eval_start = Instant::now();
     graph.telemetry_mut().evaluation_calls += 1;
     let mut scratch = graph.acquire_scratch(ScratchLeaseKind::Evaluation)?;
@@ -209,8 +249,10 @@ where
     scratch.active.next_pass(len);
     scratch.eval_tasks.clear();
     scratch.eval_tasks.push((node, false));
-    graph.telemetry_mut().evaluation_stack_peak =
-        graph.telemetry().evaluation_stack_peak.max(scratch.eval_tasks.len() as u64);
+    graph.telemetry_mut().evaluation_stack_peak = graph
+        .telemetry()
+        .evaluation_stack_peak
+        .max(scratch.eval_tasks.len() as u64);
 
     let result = loop {
         let Some((current, recompute)) = scratch.eval_tasks.pop() else {
@@ -252,6 +294,113 @@ where
     result
 }
 
+pub(crate) fn apply_prepared_evaluation_with_policy(
+    graph: &mut SignalGraph,
+    node: NodeId,
+    prepared: PreparedEvaluation,
+    comparator_resolver: &mut impl ComparatorPolicyResolver,
+    execution_metadata: Option<&EvaluationExecutionMetadata>,
+) -> Result<u32, SignalError> {
+    let dependency_updates = apply_prepared_dependencies(graph, node, &prepared.dependencies)?;
+    match prepared.outcome {
+        PreparedEvaluationOutcome::Evaluate => {
+            if let Some(causality) = prepared.trace_data.causality.clone() {
+                graph.get_entry_mut(node)?.set_causality(Some(causality));
+            }
+            let mut result = prepared.result;
+            result.labels.extend(prepared.trace_data.labels);
+            let metadata = match (execution_metadata, prepared.origin) {
+                (Some(metadata), _) => Some(metadata),
+                (None, PreparedEvaluationOrigin::MemoizedReuse) => {
+                    let synthesized = EvaluationExecutionMetadata {
+                        keyed: None,
+                        memoized_origin: MemoizedResultOrigin::MemoizedFromCache,
+                    };
+                    return apply_prepared_with_synthesized_metadata(
+                        graph,
+                        node,
+                        result,
+                        comparator_resolver,
+                        synthesized,
+                        dependency_updates,
+                    );
+                }
+                _ => None,
+            };
+            apply_evaluation_result_with_policy(
+                graph,
+                node,
+                result,
+                comparator_resolver,
+                metadata,
+                !matches!(prepared.origin, PreparedEvaluationOrigin::MemoizedReuse),
+            )?;
+        }
+        PreparedEvaluationOutcome::ValidatedClean => {
+            revert_to_clean(graph, node)?;
+        }
+        PreparedEvaluationOutcome::DeferredByCondition => {
+            defer_due_to_condition(graph, node)?;
+        }
+        PreparedEvaluationOutcome::RevertedCleanByCondition => {
+            revert_to_clean_due_to_condition(graph, node)?;
+        }
+    }
+    Ok(dependency_updates)
+}
+
+fn apply_prepared_with_synthesized_metadata(
+    graph: &mut SignalGraph,
+    node: NodeId,
+    result: NodeEvaluationResult,
+    comparator_resolver: &mut impl ComparatorPolicyResolver,
+    metadata: EvaluationExecutionMetadata,
+    dependency_updates: u32,
+) -> Result<u32, SignalError> {
+    apply_evaluation_result_with_policy(
+        graph,
+        node,
+        result,
+        comparator_resolver,
+        Some(&metadata),
+        false,
+    )?;
+    Ok(dependency_updates)
+}
+
+fn apply_prepared_dependencies(
+    graph: &mut SignalGraph,
+    node: NodeId,
+    capture: &PreparedDependencyCapture,
+) -> Result<u32, SignalError> {
+    let old_dependencies = graph.get_entry(node)?.get_dependencies().to_vec();
+    let mut updates = 0_u32;
+
+    for dependency in &old_dependencies {
+        let still_present = capture.as_slice().iter().any(|captured| {
+            captured.source == dependency.source()
+                && captured.aspect == dependency.aspect()
+                && captured.scope == dependency.scope_ref().cloned()
+        });
+        if !still_present {
+            let removed = graph.disconnect_dependency_edge(node, dependency.clone())?;
+            updates += u32::from(removed);
+        }
+    }
+
+    for dependency in capture.as_slice() {
+        let inserted = graph.connect_dependency_capture(
+            node,
+            dependency.source,
+            dependency.aspect,
+            dependency.scope.clone(),
+        )?;
+        updates += u32::from(inserted);
+    }
+
+    Ok(updates)
+}
+
 fn process_evaluate_task(
     graph: &mut SignalGraph,
     current: NodeId,
@@ -280,8 +429,7 @@ fn process_evaluate_task(
             Ok(())
         }
         NodeState::MaybeStale => {
-            let upstream_unchanged =
-                check_upstream_unchanged(graph, current, comparator_resolver)?;
+            let upstream_unchanged = check_upstream_unchanged(graph, current, comparator_resolver)?;
             if upstream_unchanged {
                 revert_to_clean(graph, current)?;
                 scratch.visited.mark(current.index() as usize);
@@ -336,19 +484,13 @@ where
     }
 
     if matches!(state, NodeState::MaybeStale) {
-        let upstream_unchanged =
-            check_upstream_unchanged(graph, current, comparator_resolver)?;
+        let upstream_unchanged = check_upstream_unchanged(graph, current, comparator_resolver)?;
         if upstream_unchanged {
             return revert_to_clean(graph, current);
         }
     }
 
-    match resolve_condition_action(
-        graph,
-        current,
-        request_mode,
-        condition_resolver,
-    )? {
+    match resolve_condition_action(graph, current, request_mode, condition_resolver)? {
         ConditionAction::Evaluate => recompute_node(
             graph,
             current,
@@ -375,8 +517,10 @@ fn push_deps_then_recompute(
     for dep in deps.iter().rev() {
         scratch.eval_tasks.push((dep.source(), false));
     }
-    graph.telemetry_mut().evaluation_stack_peak =
-        graph.telemetry().evaluation_stack_peak.max(scratch.eval_tasks.len() as u64);
+    graph.telemetry_mut().evaluation_stack_peak = graph
+        .telemetry()
+        .evaluation_stack_peak
+        .max(scratch.eval_tasks.len() as u64);
     Ok(())
 }
 
@@ -467,7 +611,10 @@ fn revert_to_clean(graph: &mut SignalGraph, node: NodeId) -> Result<(), SignalEr
     Ok(())
 }
 
-fn revert_to_clean_due_to_condition(graph: &mut SignalGraph, node: NodeId) -> Result<(), SignalError> {
+fn revert_to_clean_due_to_condition(
+    graph: &mut SignalGraph,
+    node: NodeId,
+) -> Result<(), SignalError> {
     let entry = graph.get_entry_mut(node)?;
     entry.set_state(NodeState::Clean);
     entry.set_dirty_aspects(AspectMask::EMPTY);
@@ -506,10 +653,7 @@ fn check_upstream_unchanged(
             if current_version == *cached_version {
                 continue;
             }
-            if partition_scope_untouched(
-                graph.get_entry(*source)?.get_trace_summary(),
-                scope,
-            ) {
+            if partition_scope_untouched(graph.get_entry(*source)?.get_trace_summary(), scope) {
                 graph.telemetry_mut().partition_scope_revert_clean_count += 1;
                 continue;
             }
@@ -642,9 +786,10 @@ fn apply_evaluation_result_with_policy(
         (&previous_output_identity, &result.output_identity),
         (Some(previous), Some(current)) if previous == current
     );
-    let propagation_suppressed =
-        matches!(comparator, crate::data::comparator::VersionComparatorPolicy::OutputIdentity)
-            && output_identity_unchanged;
+    let propagation_suppressed = matches!(
+        comparator,
+        crate::data::comparator::VersionComparatorPolicy::OutputIdentity
+    ) && output_identity_unchanged;
     let output_change = normalize_output_change(
         result.output_change,
         output_identity_unchanged,
@@ -675,6 +820,7 @@ fn apply_evaluation_result_with_policy(
             .map(|metadata| metadata.memoized_origin)
             .unwrap_or(MemoizedResultOrigin::DirectCompute),
         labels: result.labels.clone(),
+        execution_record_id: None,
     };
 
     {
@@ -692,7 +838,8 @@ fn apply_evaluation_result_with_policy(
     }
     if propagation_suppressed {
         graph.telemetry_mut().output_identity_unchanged_count += 1;
-        let suppressed = suppress_downstream_if_identity_unchanged(graph, node, comparator_resolver)?;
+        let suppressed =
+            suppress_downstream_if_identity_unchanged(graph, node, comparator_resolver)?;
         graph.telemetry_mut().suppressed_downstream_propagations += suppressed;
     }
     if !result.changed_regions.is_empty() {
@@ -771,10 +918,7 @@ fn check_upstream_unchanged_ignoring_source(
                 if !matches!(graph.get_entry(*source)?.get_state(), NodeState::Clean) {
                     return Ok(false);
                 }
-                if partition_scope_touched(
-                    graph.get_entry(*source)?.get_trace_summary(),
-                    scope,
-                ) {
+                if partition_scope_touched(graph.get_entry(*source)?.get_trace_summary(), scope) {
                     return Ok(false);
                 }
             }
@@ -791,10 +935,7 @@ fn check_upstream_unchanged_ignoring_source(
             if current_version == *cached_version {
                 continue;
             }
-            if partition_scope_untouched(
-                graph.get_entry(*source)?.get_trace_summary(),
-                scope,
-            ) {
+            if partition_scope_untouched(graph.get_entry(*source)?.get_trace_summary(), scope) {
                 continue;
             }
             return Ok(false);

@@ -88,6 +88,7 @@ pub struct NodeExplanation {
     pub dirty_aspects: AspectMask,
     pub condition: EvaluationCondition,
     pub trace_summary: Option<TraceSummary>,
+    pub execution_record_id: Option<u64>,
     pub output_identity: Option<OutputIdentity>,
     pub output_change: Option<OutputChange>,
     pub changed_regions: Vec<ChangedRegion>,
@@ -124,6 +125,9 @@ impl fmt::Display for NodeExplanation {
                 trace.propagation_suppressed,
                 trace.memoized_origin
             )?;
+            if let Some(execution_record_id) = self.execution_record_id {
+                writeln!(f, "Execution record: {}", execution_record_id)?;
+            }
         }
         if let Some(causality) = &self.causality {
             writeln!(f, "Causality: {}", causality.kind)?;
@@ -242,9 +246,9 @@ fn reason_for_policy(policy: &VersionComparatorPolicy, explicit: bool) -> Meanin
             MeaningfulChangeReason::Tolerance { epsilon: *epsilon }
         }
         VersionComparatorPolicy::OutputIdentity => MeaningfulChangeReason::OutputIdentity,
-        VersionComparatorPolicy::Custom { key } => MeaningfulChangeReason::CustomComparator {
-            key: key.clone(),
-        },
+        VersionComparatorPolicy::Custom { key } => {
+            MeaningfulChangeReason::CustomComparator { key: key.clone() }
+        }
     }
 }
 
@@ -258,7 +262,9 @@ fn classify_condition_decision(
     let max_delta = max_dependency_delta(graph, node).ok()?;
 
     match condition {
-        EvaluationCondition::AspectFilter(mask) if !dirty_aspects.is_empty() && !dirty_aspects.intersects(*mask) => {
+        EvaluationCondition::AspectFilter(mask)
+            if !dirty_aspects.is_empty() && !dirty_aspects.intersects(*mask) =>
+        {
             Some(ConditionDecision::Deferred)
         }
         EvaluationCondition::OnDemand => Some(ConditionDecision::Deferred),
@@ -298,6 +304,9 @@ pub fn explain_with_policy_resolver(
     let output_identity = trace_summary
         .as_ref()
         .and_then(|trace| trace.output_identity.clone());
+    let execution_record_id = trace_summary
+        .as_ref()
+        .and_then(|trace| trace.execution_record_id);
     let output_change = trace_summary.as_ref().map(|trace| trace.output_change);
     let changed_regions = trace_summary
         .as_ref()
@@ -340,7 +349,8 @@ pub fn explain_with_policy_resolver(
         );
         let current_version = if graph.is_alive(dependency.source()) {
             Some(
-                graph.get_entry(dependency.source())?
+                graph
+                    .get_entry(dependency.source())?
                     .get_aspect_version()
                     .get(dependency.aspect()),
             )
@@ -406,8 +416,8 @@ pub fn explain_with_policy_resolver(
             continue;
         }
 
-        let policy = comparator_resolver
-            .policy_for_node(node, entry.get_eval_config().comparator.as_ref());
+        let policy =
+            comparator_resolver.policy_for_node(node, entry.get_eval_config().comparator.as_ref());
         match &policy {
             VersionComparatorPolicy::Exact => upstream.push(UpstreamCause::Changed {
                 source: dependency.source(),
@@ -441,15 +451,17 @@ pub fn explain_with_policy_resolver(
                     });
                 }
             }
-            VersionComparatorPolicy::OutputIdentity | VersionComparatorPolicy::Custom { .. } => upstream.push(UpstreamCause::Changed {
-                source: dependency.source(),
-                aspect: dependency.aspect(),
-                subscription: subscription.clone(),
-                cached_version,
-                current_version,
-                comparator: policy.clone(),
-                reason: reason_for_policy(&policy, explicit_comparator),
-            }),
+            VersionComparatorPolicy::OutputIdentity | VersionComparatorPolicy::Custom { .. } => {
+                upstream.push(UpstreamCause::Changed {
+                    source: dependency.source(),
+                    aspect: dependency.aspect(),
+                    subscription: subscription.clone(),
+                    cached_version,
+                    current_version,
+                    comparator: policy.clone(),
+                    reason: reason_for_policy(&policy, explicit_comparator),
+                })
+            }
         }
     }
 
@@ -488,7 +500,12 @@ pub fn explain_with_policy_resolver(
                     })
                     .unwrap_or_default(),
             };
-            (source.index(), source.generation(), aspect.index(), scope_key)
+            (
+                source.index(),
+                source.generation(),
+                aspect.index(),
+                scope_key,
+            )
         }
     });
 
@@ -498,6 +515,7 @@ pub fn explain_with_policy_resolver(
         dirty_aspects,
         condition,
         trace_summary,
+        execution_record_id,
         output_identity,
         output_change,
         changed_regions,

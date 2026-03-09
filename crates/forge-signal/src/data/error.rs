@@ -45,4 +45,3 @@ impl fmt::Display for SignalError {
 }
 
 impl std::error::Error for SignalError {}
-

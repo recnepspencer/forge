@@ -4,6 +4,9 @@ use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
 use crate::data::aspect::Aspect;
+use crate::data::comparator::{
+    DefaultComparatorPolicyResolver, DefaultComparatorResolver, VersionComparatorPolicy,
+};
 use crate::data::dependency::DependencyEdge;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
@@ -11,7 +14,15 @@ use crate::data::node::{NodeEntry, NodeEvaluationConfig, NodeState};
 use crate::data::output::{PartitionInterner, PartitionSubscription};
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::data::trace::CausalityMetadata;
+use crate::logic::evaluation::DefaultConditionResolver;
+use crate::logic::evaluation::EvaluationRequestMode;
 use crate::logic::explain::{dependency_chain_to, explain, NodeExplanation};
+use crate::logic::planner::{
+    build_evaluation_plan, execute_plan, execute_plan_with_policy_and_condition,
+    execute_prepared_plan, execute_prepared_plan_with_policy, EvaluationPlan, ExecutionReport,
+    StageExecutor,
+};
+use crate::logic::prepared::{ExecutionReadView, PreparedEvaluation};
 use crate::presentation::dot::to_dot;
 use crate::presentation::metrics::GraphMetrics;
 
@@ -212,6 +223,46 @@ impl SignalGraph {
         Ok(())
     }
 
+    pub(crate) fn connect_dependency_capture(
+        &mut self,
+        downstream: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+        scope: Option<PartitionSubscription>,
+    ) -> Result<bool, SignalError> {
+        self.validate_handle(downstream)?;
+        self.validate_handle(upstream)?;
+        let edge = match scope {
+            Some(scope) => {
+                let interned_scope = self.partition_interner.intern_subscription(&scope);
+                DependencyEdge::with_scope(upstream, aspect, scope, interned_scope)
+            }
+            None => DependencyEdge::new(upstream, aspect),
+        };
+        let inserted = self.get_entry_mut(downstream)?.add_dependency(edge);
+        if inserted {
+            self.get_entry_mut(upstream)?.add_subscriber(downstream);
+        }
+        Ok(inserted)
+    }
+
+    pub(crate) fn disconnect_dependency_edge(
+        &mut self,
+        downstream: NodeId,
+        edge: DependencyEdge,
+    ) -> Result<bool, SignalError> {
+        self.validate_handle(downstream)?;
+        self.validate_handle(edge.source())?;
+        let removed = self
+            .get_entry_mut(downstream)?
+            .remove_dependency(edge.clone());
+        if removed && !self.get_entry(downstream)?.has_dependency_on(edge.source()) {
+            self.get_entry_mut(edge.source())?
+                .remove_subscriber(downstream);
+        }
+        Ok(removed)
+    }
+
     /// Remove one dependency edge from `downstream` to `upstream` for the specified aspect.
     pub fn remove_dependency(
         &mut self,
@@ -279,7 +330,11 @@ impl SignalGraph {
     }
 
     /// Replace full node entry payload for an existing live node.
-    pub(crate) fn replace_entry(&mut self, id: NodeId, entry: NodeEntry) -> Result<(), SignalError> {
+    pub(crate) fn replace_entry(
+        &mut self,
+        id: NodeId,
+        entry: NodeEntry,
+    ) -> Result<(), SignalError> {
         let target = self.get_entry_mut(id)?;
         *target = entry;
         Ok(())
@@ -428,7 +483,12 @@ impl SignalGraph {
     }
 
     /// Whether `node` directly depends on `upstream` for the given aspect.
-    pub fn depends_on(&self, node: NodeId, upstream: NodeId, aspect: Aspect) -> Result<bool, SignalError> {
+    pub fn depends_on(
+        &self,
+        node: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+    ) -> Result<bool, SignalError> {
         Ok(self
             .get_entry(node)?
             .get_dependencies()
@@ -473,10 +533,89 @@ impl SignalGraph {
         to_dot(self)
     }
 
+    /// Build a deterministic staged execution plan for one or more targets.
+    pub fn build_evaluation_plan(
+        &self,
+        targets: &[NodeId],
+        request_mode: EvaluationRequestMode,
+    ) -> Result<EvaluationPlan, SignalError> {
+        build_evaluation_plan(self, targets, request_mode)
+    }
+
+    /// Execute one pre-built plan with the default graph-level comparator and condition semantics.
+    pub fn execute_plan<F, O>(
+        &mut self,
+        plan: &EvaluationPlan,
+        compute: &mut F,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+        O: crate::data::output::IntoNodeEvaluationResult,
+    {
+        execute_plan(self, plan, compute)
+    }
+
+    /// Execute one pre-built plan using the prepared-evaluation contract.
+    pub fn execute_prepared_plan<F>(
+        &mut self,
+        plan: &EvaluationPlan,
+        precompute: &F,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    {
+        execute_prepared_plan(self, plan, precompute)
+    }
+
+    /// Execute one pre-built prepared-evaluation plan with an explicit executor.
+    pub fn execute_prepared_plan_with_executor<F>(
+        &mut self,
+        plan: &EvaluationPlan,
+        precompute: &F,
+        executor: StageExecutor,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
+    {
+        let mut comparator = DefaultComparatorResolver;
+        let mut resolver = DefaultComparatorPolicyResolver {
+            fallback: VersionComparatorPolicy::Exact,
+            custom: &mut comparator,
+        };
+        execute_prepared_plan_with_policy(self, plan, precompute, &mut resolver, executor)
+    }
+
+    /// Execute one pre-built plan with an explicit stage executor.
+    pub fn execute_plan_with_executor<F, O>(
+        &mut self,
+        plan: &EvaluationPlan,
+        compute: &mut F,
+        executor: StageExecutor,
+    ) -> Result<ExecutionReport, SignalError>
+    where
+        F: FnMut(NodeId, &SignalGraph) -> Result<O, SignalError>,
+        O: crate::data::output::IntoNodeEvaluationResult,
+    {
+        let mut comparator = DefaultComparatorResolver;
+        let mut resolver = DefaultComparatorPolicyResolver {
+            fallback: VersionComparatorPolicy::Exact,
+            custom: &mut comparator,
+        };
+        let mut condition = DefaultConditionResolver;
+        execute_plan_with_policy_and_condition(
+            self,
+            plan,
+            compute,
+            &mut resolver,
+            &mut condition,
+            executor,
+            None,
+        )
+    }
+
     pub(crate) fn partition_interner_mut(&mut self) -> &mut PartitionInterner {
         &mut self.partition_interner
     }
-
 }
 
 /// Produce a structured error for a stale or invalid node handle.

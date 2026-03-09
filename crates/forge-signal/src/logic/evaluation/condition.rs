@@ -1,9 +1,11 @@
+use serde::{Deserialize, Serialize};
+
 use crate::data::aspect::AspectMask;
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 
 /// Request mode for one evaluation call.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EvaluationRequestMode {
     /// Standard evaluation behavior.
     Default,

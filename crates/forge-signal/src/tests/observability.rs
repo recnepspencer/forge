@@ -165,7 +165,9 @@ fn explain_reports_missing_snapshot_and_dependency_removed() {
 
     let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(10, 0));
     evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
-    graph.remove_dependency(dependent, source, ASPECT_A).unwrap();
+    graph
+        .remove_dependency(dependent, source, ASPECT_A)
+        .unwrap();
 
     let removed = graph.explain(dependent).unwrap();
     assert!(removed
@@ -178,14 +180,17 @@ fn explain_reports_missing_snapshot_and_dependency_removed() {
 fn explanation_surfaces_causality_and_trace_summary() {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
-    graph.set_causality(
-        node,
-        Some(CausalityMetadata {
-            kind: "bridge".to_string(),
-            fields: [("commit".to_string(), "42".to_string())].into_iter().collect(),
-        }),
-    )
-    .unwrap();
+    graph
+        .set_causality(
+            node,
+            Some(CausalityMetadata {
+                kind: "bridge".to_string(),
+                fields: [("commit".to_string(), "42".to_string())]
+                    .into_iter()
+                    .collect(),
+            }),
+        )
+        .unwrap();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(1, 0));
     evaluate(&mut graph, node, &mut compute).unwrap();

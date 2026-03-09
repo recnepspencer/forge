@@ -1,7 +1,9 @@
 pub mod checkpoint;
 pub mod context;
 pub mod evaluation;
-pub mod explain;
 pub mod events;
+pub mod explain;
 pub mod invalidation;
+pub mod planner;
+pub mod prepared;
 pub mod transaction;

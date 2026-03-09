@@ -37,7 +37,8 @@ pub fn mark_dirty_with_regions(
     scratch.node_buffer_a.clear();
     scratch.node_buffer_b.clear();
 
-    let result = mark_dirty_with_scratch(graph, &mut scratch, source, changed_aspect, changed_regions);
+    let result =
+        mark_dirty_with_scratch(graph, &mut scratch, source, changed_aspect, changed_regions);
     graph.restore_scratch(ScratchLeaseKind::Invalidation, scratch)?;
     result
 }
@@ -149,7 +150,9 @@ fn subscribes_to_aspect(
             for changed_scope_id in changed_scope_ids {
                 if interned_partition_scope_matches(interned_scope, *changed_scope_id) {
                     return Ok(match scope.match_mode {
-                        PartitionMatchMode::WholePartition => SubscriptionDirtyMatch::WholePartition,
+                        PartitionMatchMode::WholePartition => {
+                            SubscriptionDirtyMatch::WholePartition
+                        }
                         PartitionMatchMode::PartitionAndDetail => {
                             SubscriptionDirtyMatch::PartitionAndDetail
                         }
@@ -160,7 +163,9 @@ fn subscribes_to_aspect(
             for changed_scope in changed_scopes {
                 if partition_scope_matches(scope, changed_scope) {
                     return Ok(match scope.match_mode {
-                        PartitionMatchMode::WholePartition => SubscriptionDirtyMatch::WholePartition,
+                        PartitionMatchMode::WholePartition => {
+                            SubscriptionDirtyMatch::WholePartition
+                        }
                         PartitionMatchMode::PartitionAndDetail => {
                             SubscriptionDirtyMatch::PartitionAndDetail
                         }
@@ -196,12 +201,17 @@ fn interned_partition_scope_matches(
     }
 }
 
-fn changed_regions_to_dirty_scopes(changed_regions: &[ChangedRegion]) -> Vec<PartitionSubscription> {
+fn changed_regions_to_dirty_scopes(
+    changed_regions: &[ChangedRegion],
+) -> Vec<PartitionSubscription> {
     changed_regions
         .iter()
         .map(|region| {
             if let Some(detail) = &region.detail {
-                PartitionSubscription::partition_and_detail(region.partition.clone(), detail.clone())
+                PartitionSubscription::partition_and_detail(
+                    region.partition.clone(),
+                    detail.clone(),
+                )
             } else {
                 PartitionSubscription::whole_partition(region.partition.clone())
             }

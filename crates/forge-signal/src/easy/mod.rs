@@ -2,11 +2,10 @@ use std::any::Any;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
-use crate::facade::{
-    mark_dirty, Aspect, AspectMask, DependencyEdge, NodeId, NodeState, SignalError,
-    SignalGraph,
-};
 use crate::data::dependency::DependencySnapshot;
+use crate::facade::{
+    mark_dirty, Aspect, AspectMask, DependencyEdge, NodeId, NodeState, SignalError, SignalGraph,
+};
 
 const DEFAULT_ASPECT: Aspect = Aspect::new(0);
 
@@ -61,10 +60,11 @@ where
         let value = (self.closure)(&mut context);
 
         for dependency in old_dependencies {
-            context
-                .graph
-                .graph
-                .remove_dependency(node, dependency.source(), dependency.aspect())?;
+            context.graph.graph.remove_dependency(
+                node,
+                dependency.source(),
+                dependency.aspect(),
+            )?;
         }
         for dependency in &context.dependencies {
             context
@@ -162,11 +162,7 @@ impl ReactiveGraph {
         T: Clone + 'static,
         F: Fn(&mut ComputeContext<'_>) -> T + 'static,
     {
-        let node = self
-            .graph
-            .node()
-            .on_demand()
-            .build();
+        let node = self.graph.node().on_demand().build();
         self.computed.insert(
             node,
             Box::new(Computed {
@@ -263,7 +259,11 @@ impl ReactiveGraph {
     fn upstream_matches_snapshot(&self, node: NodeId) -> Result<bool, SignalError> {
         let snapshot = self.graph.get_entry(node)?.get_dep_snapshot();
         for &(source, aspect, expected_version, _) in snapshot.entries() {
-            let current_version = self.graph.get_entry(source)?.get_aspect_version().get(aspect);
+            let current_version = self
+                .graph
+                .get_entry(source)?
+                .get_aspect_version()
+                .get(aspect);
             if current_version != expected_version {
                 return Ok(false);
             }

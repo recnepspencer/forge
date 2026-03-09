@@ -14,8 +14,9 @@ fn output_identity_unchanged_suppresses_downstream_propagation() {
     let mut source_v2_same_identity = |_id: NodeId, _graph: &SignalGraph| {
         Ok(NodeEvaluationResult::from_version(version_ab(2, 0)).with_output_identity("artifact"))
     };
-    let mut dependent_compute =
-        |_id: NodeId, _graph: &SignalGraph| Ok(NodeEvaluationResult::from_version(version_ab(10, 0)));
+    let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(10, 0)))
+    };
 
     evaluate(&mut graph, source, &mut source_v1).unwrap();
     evaluate(&mut graph, dependent, &mut dependent_compute).unwrap();
@@ -49,8 +50,9 @@ fn output_identity_suppression_does_not_hide_other_real_upstream_changes() {
     };
     let mut source_b_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 1));
     let mut source_b_v2 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 2));
-    let mut dependent_compute =
-        |_id: NodeId, _graph: &SignalGraph| Ok(NodeEvaluationResult::from_version(version_ab(10, 10)));
+    let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(10, 10)))
+    };
 
     evaluate(&mut graph, source_a, &mut source_a_v1).unwrap();
     evaluate(&mut graph, source_b, &mut source_b_v1).unwrap();
@@ -70,9 +72,8 @@ fn changed_regions_flow_into_trace_and_explanation() {
     let node = graph.node().partitioned_output().build();
 
     let mut compute = |_id: NodeId, _graph: &SignalGraph| {
-        Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_changed_region(
-            ChangedRegion::new("wing-panel").with_detail("rib-12"),
-        ))
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+            .with_changed_region(ChangedRegion::new("wing-panel").with_detail("rib-12")))
     };
 
     evaluate(&mut graph, node, &mut compute).unwrap();
@@ -80,7 +81,11 @@ fn changed_regions_flow_into_trace_and_explanation() {
     let explanation = graph.explain(node).unwrap();
     assert_eq!(explanation.changed_regions.len(), 1);
     assert_eq!(
-        explanation.trace_summary.as_ref().unwrap().changed_partition_count,
+        explanation
+            .trace_summary
+            .as_ref()
+            .unwrap()
+            .changed_partition_count,
         1
     );
     assert_eq!(graph.metrics().partition_aware_recomputations, 1);
@@ -112,11 +117,9 @@ fn keyed_evaluation_can_reuse_memoized_result() {
         .transaction(&mut runtime_ctx, |tx| {
             tx.evaluate_keyed(node, &computation, &mut |_id, _graph| {
                 compute_calls += 1;
-                Ok(
-                    NodeEvaluationResult::from_version(version_ab(1, 0))
-                        .with_output_identity("bulkhead-artifact")
-                        .with_output_change(OutputChange::Refreshed),
-                )
+                Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+                    .with_output_identity("bulkhead-artifact")
+                    .with_output_change(OutputChange::Refreshed))
             })?;
             Ok(())
         })
@@ -153,8 +156,10 @@ fn memoization_is_scoped_by_family() {
     let family_b = runtime.register_computation_family("projection-b");
     let node_a = runtime.keyed_node(&family_a, "bulkhead");
     let node_b = runtime.keyed_node(&family_b, "bulkhead");
-    let computation_a = KeyedComputation::new(family_a.clone(), "bulkhead").with_memo_key("shape-v1");
-    let computation_b = KeyedComputation::new(family_b.clone(), "bulkhead").with_memo_key("shape-v1");
+    let computation_a =
+        KeyedComputation::new(family_a.clone(), "bulkhead").with_memo_key("shape-v1");
+    let computation_b =
+        KeyedComputation::new(family_b.clone(), "bulkhead").with_memo_key("shape-v1");
     let mut runtime_ctx = ();
     let mut compute_calls = 0_u32;
 
@@ -203,7 +208,8 @@ fn memoization_write_is_discarded_on_rollback() {
         .transaction(&mut runtime_ctx, |tx| {
             tx.evaluate_keyed(node, &computation, &mut |_id, _graph| {
                 compute_calls += 1;
-                Ok(NodeEvaluationResult::from_version(version_ab(2, 0)).with_output_identity("fresh"))
+                Ok(NodeEvaluationResult::from_version(version_ab(2, 0))
+                    .with_output_identity("fresh"))
             })?;
             Ok(())
         })
@@ -229,27 +235,24 @@ fn partition_subscribers_only_dirty_on_matching_partition() {
         .unwrap();
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| {
-        Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_changed_region(
-            ChangedRegion::new("wing"),
-        ))
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+            .with_changed_region(ChangedRegion::new("wing")))
     };
-    let mut subscriber_compute =
-        |_id: NodeId, _graph: &SignalGraph| Ok(NodeEvaluationResult::from_version(version_ab(10, 0)));
+    let mut subscriber_compute = |_id: NodeId, _graph: &SignalGraph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(10, 0)))
+    };
 
     evaluate(&mut graph, source, &mut source_v1).unwrap();
     evaluate(&mut graph, wing_subscriber, &mut subscriber_compute).unwrap();
     evaluate(&mut graph, tail_subscriber, &mut subscriber_compute).unwrap();
 
-    mark_dirty_with_regions(
-        &mut graph,
-        source,
-        ASPECT_A,
-        &[ChangedRegion::new("wing")],
-    )
-    .unwrap();
+    mark_dirty_with_regions(&mut graph, source, ASPECT_A, &[ChangedRegion::new("wing")]).unwrap();
 
     assert_eq!(graph.get_state(wing_subscriber).unwrap(), NodeState::Dirty);
-    assert_eq!(graph.get_state(tail_subscriber).unwrap(), NodeState::MaybeStale);
+    assert_eq!(
+        graph.get_state(tail_subscriber).unwrap(),
+        NodeState::MaybeStale
+    );
     assert_eq!(graph.metrics().partition_match_dirty_count, 1);
     assert_eq!(graph.metrics().partition_scoped_invalidation_checks, 2);
 }
@@ -264,17 +267,16 @@ fn detail_sensitive_partition_subscriber_reverts_clean_when_detail_does_not_matc
         .unwrap();
 
     let mut source_rib_12 = |_id: NodeId, _graph: &SignalGraph| {
-        Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_changed_region(
-            ChangedRegion::new("wing").with_detail("rib-12"),
-        ))
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+            .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12")))
     };
     let mut source_rib_13 = |_id: NodeId, _graph: &SignalGraph| {
-        Ok(NodeEvaluationResult::from_version(version_ab(2, 0)).with_changed_region(
-            ChangedRegion::new("wing").with_detail("rib-13"),
-        ))
+        Ok(NodeEvaluationResult::from_version(version_ab(2, 0))
+            .with_changed_region(ChangedRegion::new("wing").with_detail("rib-13")))
     };
-    let mut subscriber_compute =
-        |_id: NodeId, _graph: &SignalGraph| Ok(NodeEvaluationResult::from_version(version_ab(10, 0)));
+    let mut subscriber_compute = |_id: NodeId, _graph: &SignalGraph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(10, 0)))
+    };
 
     evaluate(&mut graph, source, &mut source_rib_12).unwrap();
     evaluate(&mut graph, subscriber, &mut subscriber_compute).unwrap();
@@ -320,41 +322,58 @@ fn mixed_whole_aspect_and_partition_subscribers_behave_deterministically() {
         .unwrap();
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| {
-        Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_changed_region(
-            ChangedRegion::new("wing"),
-        ))
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+            .with_changed_region(ChangedRegion::new("wing")))
     };
     let mut source_v2 = |_id: NodeId, _graph: &SignalGraph| {
-        Ok(NodeEvaluationResult::from_version(version_ab(2, 0)).with_changed_region(
-            ChangedRegion::new("wing"),
-        ))
+        Ok(NodeEvaluationResult::from_version(version_ab(2, 0))
+            .with_changed_region(ChangedRegion::new("wing")))
     };
-    let mut subscriber_compute =
-        |_id: NodeId, _graph: &SignalGraph| Ok(NodeEvaluationResult::from_version(version_ab(10, 0)));
+    let mut subscriber_compute = |_id: NodeId, _graph: &SignalGraph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(10, 0)))
+    };
 
     evaluate(&mut graph, source, &mut source_v1).unwrap();
     evaluate(&mut graph, whole_aspect_subscriber, &mut subscriber_compute).unwrap();
-    evaluate(&mut graph, matching_partition_subscriber, &mut subscriber_compute).unwrap();
-    evaluate(&mut graph, non_matching_partition_subscriber, &mut subscriber_compute).unwrap();
-
-    mark_dirty_with_regions(
+    evaluate(
         &mut graph,
-        source,
-        ASPECT_A,
-        &[ChangedRegion::new("wing")],
+        matching_partition_subscriber,
+        &mut subscriber_compute,
+    )
+    .unwrap();
+    evaluate(
+        &mut graph,
+        non_matching_partition_subscriber,
+        &mut subscriber_compute,
     )
     .unwrap();
 
-    assert_eq!(graph.get_state(whole_aspect_subscriber).unwrap(), NodeState::Dirty);
-    assert_eq!(graph.get_state(matching_partition_subscriber).unwrap(), NodeState::Dirty);
+    mark_dirty_with_regions(&mut graph, source, ASPECT_A, &[ChangedRegion::new("wing")]).unwrap();
+
+    assert_eq!(
+        graph.get_state(whole_aspect_subscriber).unwrap(),
+        NodeState::Dirty
+    );
+    assert_eq!(
+        graph.get_state(matching_partition_subscriber).unwrap(),
+        NodeState::Dirty
+    );
     assert_eq!(
         graph.get_state(non_matching_partition_subscriber).unwrap(),
         NodeState::MaybeStale
     );
 
     evaluate(&mut graph, source, &mut source_v2).unwrap();
-    evaluate(&mut graph, non_matching_partition_subscriber, &mut subscriber_compute).unwrap();
-    assert_eq!(graph.get_state(non_matching_partition_subscriber).unwrap(), NodeState::Clean);
+    evaluate(
+        &mut graph,
+        non_matching_partition_subscriber,
+        &mut subscriber_compute,
+    )
+    .unwrap();
+    assert_eq!(
+        graph.get_state(non_matching_partition_subscriber).unwrap(),
+        NodeState::Clean
+    );
 }
 
 #[test]
@@ -371,18 +390,17 @@ fn partition_scoped_cleanup_does_not_hide_other_dirty_upstreams() {
         .unwrap();
 
     let mut partitioned_v1 = |_id: NodeId, _graph: &SignalGraph| {
-        Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_changed_region(
-            ChangedRegion::new("wing").with_detail("rib-12"),
-        ))
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+            .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12")))
     };
     let mut partitioned_v2_other_detail = |_id: NodeId, _graph: &SignalGraph| {
-        Ok(NodeEvaluationResult::from_version(version_ab(2, 0)).with_changed_region(
-            ChangedRegion::new("wing").with_detail("rib-13"),
-        ))
+        Ok(NodeEvaluationResult::from_version(version_ab(2, 0))
+            .with_changed_region(ChangedRegion::new("wing").with_detail("rib-13")))
     };
     let mut other_v1 = |_id: NodeId, _graph: &SignalGraph| Ok(version_ab(0, 1));
-    let mut dependent_compute =
-        |_id: NodeId, _graph: &SignalGraph| Ok(NodeEvaluationResult::from_version(version_ab(10, 10)));
+    let mut dependent_compute = |_id: NodeId, _graph: &SignalGraph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(10, 10)))
+    };
 
     evaluate(&mut graph, source_partitioned, &mut partitioned_v1).unwrap();
     evaluate(&mut graph, source_other, &mut other_v1).unwrap();
@@ -396,7 +414,12 @@ fn partition_scoped_cleanup_does_not_hide_other_dirty_upstreams() {
     )
     .unwrap();
     mark_dirty(&mut graph, source_other, ASPECT_B).unwrap();
-    evaluate(&mut graph, source_partitioned, &mut partitioned_v2_other_detail).unwrap();
+    evaluate(
+        &mut graph,
+        source_partitioned,
+        &mut partitioned_v2_other_detail,
+    )
+    .unwrap();
 
     assert_ne!(graph.get_state(dependent).unwrap(), NodeState::Clean);
 }
@@ -423,7 +446,10 @@ fn transaction_mark_dirty_with_regions_routes_partition_matches() {
         })
         .unwrap();
 
-    assert_eq!(runtime.graph().get_state(matching).unwrap(), NodeState::Dirty);
+    assert_eq!(
+        runtime.graph().get_state(matching).unwrap(),
+        NodeState::Dirty
+    );
     assert_eq!(
         runtime.graph().get_state(non_matching).unwrap(),
         NodeState::MaybeStale
@@ -438,23 +464,18 @@ fn sparse_partition_fanout_keeps_most_subscribers_out_of_dirty_state() {
     for index in 0..128 {
         let subscriber = graph.node().build();
         graph
-            .add_partition_dependency(
-                subscriber,
-                source,
-                ASPECT_A,
-                format!("partition-{index}"),
-            )
+            .add_partition_dependency(subscriber, source, ASPECT_A, format!("partition-{index}"))
             .unwrap();
         subscribers.push(subscriber);
     }
 
     let mut source_v1 = |_id: NodeId, _graph: &SignalGraph| {
-        Ok(NodeEvaluationResult::from_version(version_ab(1, 0)).with_changed_region(
-            ChangedRegion::new("partition-7"),
-        ))
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+            .with_changed_region(ChangedRegion::new("partition-7")))
     };
-    let mut subscriber_compute =
-        |_id: NodeId, _graph: &SignalGraph| Ok(NodeEvaluationResult::from_version(version_ab(10, 0)));
+    let mut subscriber_compute = |_id: NodeId, _graph: &SignalGraph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(10, 0)))
+    };
 
     evaluate(&mut graph, source, &mut source_v1).unwrap();
     for &subscriber in &subscribers {
