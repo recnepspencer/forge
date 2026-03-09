@@ -114,7 +114,7 @@ fn apply_prepared_dependencies(
     node: NodeId,
     capture: &PreparedDependencyCapture,
 ) -> Result<u32, SignalError> {
-    let old_dependencies = graph.get_entry(node)?.get_dependencies().to_vec();
+    let old_dependencies = graph.dependencies_of(node)?.to_vec();
     let mut updates = 0_u32;
 
     for dependency in &old_dependencies {
@@ -172,7 +172,7 @@ fn build_dep_snapshot(
     node: NodeId,
 ) -> Result<DependencySnapshot, SignalError> {
     let mut snapshot = DependencySnapshot::empty();
-    for dep in graph.get_entry(node)?.get_dependencies() {
+    for dep in graph.dependencies_of(node)? {
         let source = dep.source();
         let aspect = dep.aspect();
         if graph.is_alive(source) {
@@ -184,11 +184,10 @@ fn build_dep_snapshot(
 }
 
 fn count_meaningful_input_changes(graph: &SignalGraph, node: NodeId) -> Result<u32, SignalError> {
-    let entry = graph.get_entry(node)?;
     let mut changes = 0_u32;
-    for dependency in entry.get_dependencies() {
-        let cached = entry
-            .get_dep_snapshot()
+    for dependency in graph.dependencies_of(node)? {
+        let cached = graph
+            .get_dep_snapshot(node)?
             .entries()
             .iter()
             .find(|(source, aspect, _, scope)| {
@@ -290,10 +289,18 @@ fn apply_evaluation_result_with_policy(
         changed_partition_count,
         propagation_suppressed,
         changed_regions: result.changed_regions.clone(),
-        keyed_family: execution_metadata
-            .and_then(|metadata| metadata.keyed.as_ref().map(|keyed| keyed.family.0.clone())),
-        keyed_key: execution_metadata
-            .and_then(|metadata| metadata.keyed.as_ref().map(|keyed| keyed.key.0.clone())),
+        keyed_family: execution_metadata.and_then(|metadata| {
+            metadata
+                .keyed
+                .as_ref()
+                .map(|keyed| keyed.family.as_str().to_owned())
+        }),
+        keyed_key: execution_metadata.and_then(|metadata| {
+            metadata
+                .keyed
+                .as_ref()
+                .map(|keyed| keyed.key.as_str().to_owned())
+        }),
         memoized_origin: execution_metadata
             .map(|metadata| metadata.memoized_origin)
             .unwrap_or(MemoizedResultOrigin::DirectCompute),
@@ -304,12 +311,12 @@ fn apply_evaluation_result_with_policy(
     {
         let entry = graph.get_entry_mut(node)?;
         entry.set_aspect_version(result.aspect_version);
-        entry.set_dep_snapshot(snapshot);
         entry.set_trace_summary(Some(trace_summary));
         entry.set_state(NodeState::Clean);
         entry.set_dirty_aspects(AspectMask::EMPTY);
         entry.clear_dirty_partition_scopes();
     }
+    graph.set_dep_snapshot(node, snapshot)?;
 
     if recomputed {
         graph.telemetry_mut().nodes_recomputed += 1;
@@ -348,12 +355,7 @@ fn count_changed_partitions(changed_regions: &[crate::data::output::ChangedRegio
 }
 
 fn trace_identity_hash(identity: &OutputIdentity) -> u128 {
-    let mut hash = 0xcbf29ce484222325_u128;
-    for byte in identity.0.as_bytes() {
-        hash ^= *byte as u128;
-        hash = hash.wrapping_mul(0x100000001b3_u128);
-    }
-    hash
+    identity.stable_hash()
 }
 
 fn suppress_downstream_if_identity_unchanged(
@@ -362,7 +364,7 @@ fn suppress_downstream_if_identity_unchanged(
     comparator_resolver: &mut impl ComparatorPolicyResolver,
 ) -> Result<u64, SignalError> {
     let mut suppressed = 0_u64;
-    let mut stack: Vec<NodeId> = graph.get_entry(node)?.get_subscribers().to_vec();
+    let mut stack: Vec<NodeId> = graph.subscribers_of(node)?.to_vec();
     while let Some(current) = stack.pop() {
         if !graph.is_alive(current) {
             continue;
@@ -373,7 +375,7 @@ fn suppress_downstream_if_identity_unchanged(
         if check_upstream_unchanged_ignoring_source(graph, current, node, comparator_resolver)? {
             revert_to_clean(graph, current)?;
             suppressed += 1;
-            stack.extend_from_slice(graph.get_entry(current)?.get_subscribers());
+            stack.extend_from_slice(graph.subscribers_of(current)?);
         }
     }
     Ok(suppressed)
@@ -386,7 +388,7 @@ fn check_upstream_unchanged_ignoring_source(
     resolver: &mut impl ComparatorPolicyResolver,
 ) -> Result<bool, SignalError> {
     let entry = graph.get_entry(node)?;
-    let snapshot = entry.get_dep_snapshot();
+    let snapshot = graph.get_dep_snapshot(node)?;
     let node_cfg = entry.get_eval_config();
     let comparator = resolver.policy_for_node(node, node_cfg.comparator.as_ref());
 

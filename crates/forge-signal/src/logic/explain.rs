@@ -281,7 +281,7 @@ fn classify_condition_decision(
 
 fn max_dependency_delta(graph: &SignalGraph, node: NodeId) -> Result<u64, SignalError> {
     let mut max_delta = 0;
-    for (source, aspect, cached_version, _) in graph.get_entry(node)?.get_dep_snapshot().entries() {
+    for (source, aspect, cached_version, _) in graph.get_dep_snapshot(node)?.entries() {
         if !graph.is_alive(*source) {
             continue;
         }
@@ -322,8 +322,8 @@ pub fn explain_with_policy_resolver(
     let condition_decision = classify_condition_decision(graph, node, &condition);
 
     let mut upstream = Vec::new();
-    let current_dependencies = entry.get_dependencies();
-    let snapshot_entries = entry.get_dep_snapshot().entries();
+    let current_dependencies = graph.dependencies_of(node)?;
+    let snapshot_entries = graph.get_dep_snapshot(node)?.entries();
 
     let mut snapshot_by_dependency = BTreeMap::new();
     for (source, aspect, cached_version, scope) in snapshot_entries.iter().cloned() {
@@ -583,7 +583,7 @@ pub fn dependency_chain_to(
     let mut previous = BTreeMap::<NodeId, NodeId>::new();
 
     while let Some(current) = queue.pop_front() {
-        let mut subscribers = graph.get_entry(current)?.get_subscribers().to_vec();
+        let mut subscribers = graph.subscribers_of(current)?.to_vec();
         subscribers.sort();
         for subscriber in subscribers {
             if !visited.insert(subscriber) {

@@ -7,7 +7,7 @@ use crate::data::aspect::Aspect;
 use crate::data::comparator::{
     DefaultComparatorPolicyResolver, DefaultComparatorResolver, VersionComparatorPolicy,
 };
-use crate::data::dependency::DependencyEdge;
+use crate::data::dependency::{DependencyEdge, DependencySnapshot, DependencySnapshotStore};
 use crate::data::error::SignalError;
 use crate::data::handle::NodeId;
 use crate::data::node::{NodeEntry, NodeEvaluationConfig, NodeState};
@@ -34,6 +34,7 @@ use crate::presentation::metrics::GraphMetrics;
 use super::node_builder::NodeBuilder;
 use super::scratch::{ScratchLeaseKind, TraversalScratch};
 use super::slot::Slot;
+use super::{DependencyEdgeStore, SubscriberEdgeStore};
 
 /// The reactive signal graph.
 ///
@@ -62,6 +63,15 @@ pub struct SignalGraph {
     /// Interned partition tokens/details for efficient scoped comparisons.
     #[serde(default)]
     partition_interner: PartitionInterner,
+    /// Graph-owned immutable dependency snapshot storage.
+    #[serde(default)]
+    dependency_snapshots: DependencySnapshotStore,
+    /// Graph-owned immutable dependency edge storage.
+    #[serde(default)]
+    dependency_edges: DependencyEdgeStore,
+    /// Graph-owned immutable subscriber storage.
+    #[serde(default)]
+    subscriber_edges: SubscriberEdgeStore,
     /// Bounded diagnostics retention and pending causal flow state.
     #[serde(skip, default)]
     diagnostics: DiagnosticsState,
@@ -85,6 +95,9 @@ impl SignalGraph {
             scratch_lease: None,
             telemetry: RuntimeTelemetry::default(),
             partition_interner: PartitionInterner::default(),
+            dependency_snapshots: DependencySnapshotStore::default(),
+            dependency_edges: DependencyEdgeStore::default(),
+            subscriber_edges: SubscriberEdgeStore::default(),
             diagnostics: DiagnosticsState::default(),
         }
     }
@@ -100,6 +113,9 @@ impl SignalGraph {
             scratch_lease: None,
             telemetry: RuntimeTelemetry::default(),
             partition_interner: PartitionInterner::default(),
+            dependency_snapshots: DependencySnapshotStore::default(),
+            dependency_edges: DependencyEdgeStore::default(),
+            subscriber_edges: SubscriberEdgeStore::default(),
             diagnostics: DiagnosticsState::default(),
         }
     }
@@ -183,9 +199,9 @@ impl SignalGraph {
         self.validate_handle(upstream)?;
 
         let edge = DependencyEdge::new(upstream, aspect);
-        let inserted = self.get_entry_mut(downstream)?.add_dependency(edge);
+        let inserted = self.add_dependency_edge(downstream, edge)?;
         if inserted {
-            self.get_entry_mut(upstream)?.add_subscriber(downstream);
+            self.add_subscriber_edge(upstream, downstream)?;
         }
         Ok(())
     }
@@ -226,9 +242,9 @@ impl SignalGraph {
         self.validate_handle(upstream)?;
         let interned_scope = self.partition_interner.intern_subscription(&scope);
         let edge = DependencyEdge::with_scope(upstream, aspect, scope, interned_scope);
-        let inserted = self.get_entry_mut(downstream)?.add_dependency(edge);
+        let inserted = self.add_dependency_edge(downstream, edge)?;
         if inserted {
-            self.get_entry_mut(upstream)?.add_subscriber(downstream);
+            self.add_subscriber_edge(upstream, downstream)?;
         }
         Ok(())
     }
@@ -249,9 +265,9 @@ impl SignalGraph {
             }
             None => DependencyEdge::new(upstream, aspect),
         };
-        let inserted = self.get_entry_mut(downstream)?.add_dependency(edge);
+        let inserted = self.add_dependency_edge(downstream, edge)?;
         if inserted {
-            self.get_entry_mut(upstream)?.add_subscriber(downstream);
+            self.add_subscriber_edge(upstream, downstream)?;
         }
         Ok(inserted)
     }
@@ -263,12 +279,9 @@ impl SignalGraph {
     ) -> Result<bool, SignalError> {
         self.validate_handle(downstream)?;
         self.validate_handle(edge.source())?;
-        let removed = self
-            .get_entry_mut(downstream)?
-            .remove_dependency(edge.clone());
-        if removed && !self.get_entry(downstream)?.has_dependency_on(edge.source()) {
-            self.get_entry_mut(edge.source())?
-                .remove_subscriber(downstream);
+        let removed = self.remove_dependency_edge(downstream, edge.clone())?;
+        if removed && !self.has_dependency_on(downstream, edge.source())? {
+            self.remove_subscriber_edge(edge.source(), downstream)?;
         }
         Ok(removed)
     }
@@ -284,9 +297,9 @@ impl SignalGraph {
         self.validate_handle(upstream)?;
 
         let edge = DependencyEdge::new(upstream, aspect);
-        let removed = self.get_entry_mut(downstream)?.remove_dependency(edge);
-        if removed && !self.get_entry(downstream)?.has_dependency_on(upstream) {
-            self.get_entry_mut(upstream)?.remove_subscriber(downstream);
+        let removed = self.remove_dependency_edge(downstream, edge)?;
+        if removed && !self.has_dependency_on(downstream, upstream)? {
+            self.remove_subscriber_edge(upstream, downstream)?;
         }
         Ok(())
     }
@@ -308,6 +321,140 @@ impl SignalGraph {
         self.validate_handle(id)?;
         let slot = &mut self.nodes[id.index() as usize];
         slot.data.as_mut().ok_or_else(|| stale_error(id))
+    }
+
+    /// Read the graph-owned dependency snapshot for one node.
+    pub(crate) fn get_dep_snapshot(&self, id: NodeId) -> Result<&DependencySnapshot, SignalError> {
+        let entry = self.get_entry(id)?;
+        Ok(self.dependency_snapshots.get(entry.get_dep_snapshot_id()))
+    }
+
+    /// Replace the graph-owned dependency snapshot for one node.
+    pub(crate) fn set_dep_snapshot(
+        &mut self,
+        id: NodeId,
+        snapshot: DependencySnapshot,
+    ) -> Result<(), SignalError> {
+        let snapshot_id = self.dependency_snapshots.insert(snapshot);
+        self.get_entry_mut(id)?.set_dep_snapshot_id(snapshot_id);
+        Ok(())
+    }
+
+    fn add_dependency_edge(
+        &mut self,
+        node: NodeId,
+        edge: DependencyEdge,
+    ) -> Result<bool, SignalError> {
+        let current = self.dependencies_of(node)?.to_vec();
+        if current.contains(&edge) {
+            return Ok(false);
+        }
+        let mut updated = current;
+        updated.push(edge);
+        let dependencies_id = self.dependency_edges.insert_from_slice(&updated);
+        self.get_entry_mut(node)?
+            .set_dependencies_id(dependencies_id);
+        Ok(true)
+    }
+
+    fn remove_dependency_edge(
+        &mut self,
+        node: NodeId,
+        edge: DependencyEdge,
+    ) -> Result<bool, SignalError> {
+        let current = self.dependencies_of(node)?.to_vec();
+        let original_len = current.len();
+        let updated: Vec<_> = current
+            .into_iter()
+            .filter(|candidate| *candidate != edge)
+            .collect();
+        if updated.len() == original_len {
+            return Ok(false);
+        }
+        let dependencies_id = self.dependency_edges.insert_from_slice(&updated);
+        self.get_entry_mut(node)?
+            .set_dependencies_id(dependencies_id);
+        Ok(true)
+    }
+
+    fn remove_dependencies_on(
+        &mut self,
+        node: NodeId,
+        source: NodeId,
+    ) -> Result<bool, SignalError> {
+        let current = self.dependencies_of(node)?.to_vec();
+        let original_len = current.len();
+        let updated: Vec<_> = current
+            .into_iter()
+            .filter(|edge| edge.source() != source)
+            .collect();
+        if updated.len() == original_len {
+            return Ok(false);
+        }
+        let dependencies_id = self.dependency_edges.insert_from_slice(&updated);
+        self.get_entry_mut(node)?
+            .set_dependencies_id(dependencies_id);
+        Ok(true)
+    }
+
+    fn has_dependency_on(&self, node: NodeId, source: NodeId) -> Result<bool, SignalError> {
+        Ok(self
+            .dependencies_of(node)?
+            .iter()
+            .any(|edge| edge.source() == source))
+    }
+
+    fn add_subscriber_edge(
+        &mut self,
+        node: NodeId,
+        subscriber: NodeId,
+    ) -> Result<bool, SignalError> {
+        let current = self.subscribers_of(node)?.to_vec();
+        if current.contains(&subscriber) {
+            return Ok(false);
+        }
+        let mut updated = current;
+        updated.push(subscriber);
+        let subscribers_id = self.subscriber_edges.insert_from_slice(&updated);
+        self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
+        Ok(true)
+    }
+
+    fn remove_subscriber_edge(
+        &mut self,
+        node: NodeId,
+        subscriber: NodeId,
+    ) -> Result<bool, SignalError> {
+        let current = self.subscribers_of(node)?.to_vec();
+        let original_len = current.len();
+        let updated: Vec<_> = current
+            .into_iter()
+            .filter(|candidate| *candidate != subscriber)
+            .collect();
+        if updated.len() == original_len {
+            return Ok(false);
+        }
+        let subscribers_id = self.subscriber_edges.insert_from_slice(&updated);
+        self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
+        Ok(true)
+    }
+
+    fn purge_stale_subscribers_for(
+        &mut self,
+        node: NodeId,
+        is_alive: impl Fn(NodeId) -> bool,
+    ) -> Result<(), SignalError> {
+        let current = self.subscribers_of(node)?.to_vec();
+        let updated: Vec<_> = current
+            .into_iter()
+            .filter(|subscriber| is_alive(*subscriber))
+            .collect();
+        if updated.len() == self.subscribers_of(node)?.len() {
+            return Ok(());
+        }
+        let subscribers_id = self.subscriber_edges.insert_from_slice(&updated);
+        self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
+        Ok(())
     }
 
     /// Check whether a node handle is valid (alive and generation matches).
@@ -368,24 +515,23 @@ impl SignalGraph {
         scratch.node_buffer_b.clear();
 
         {
-            let entry = self.get_entry(id)?;
             scratch
                 .node_buffer_a
-                .extend(entry.get_dependencies().iter().map(|edge| edge.source()));
+                .extend(self.dependencies_of(id)?.iter().map(|edge| edge.source()));
             scratch
                 .node_buffer_b
-                .extend(entry.get_subscribers().iter().copied());
+                .extend(self.subscribers_of(id)?.iter().copied());
         }
 
         for &source in &scratch.node_buffer_a {
             if self.is_alive(source) {
-                self.get_entry_mut(source)?.remove_subscriber(id);
+                self.remove_subscriber_edge(source, id)?;
             }
         }
 
         for &subscriber in &scratch.node_buffer_b {
             if self.is_alive(subscriber) {
-                self.get_entry_mut(subscriber)?.remove_dependencies_on(id);
+                self.remove_dependencies_on(subscriber, id)?;
                 self.get_entry_mut(subscriber)?.set_state(NodeState::Dirty);
             }
         }
@@ -405,9 +551,9 @@ impl SignalGraph {
     /// Run a garbage collection epoch.
     pub fn run_gc_epoch(&mut self) {
         let gc_start = Instant::now();
-        let mut scratch = self
-            .acquire_scratch(ScratchLeaseKind::Gc)
-            .expect("GC scratch lease must succeed");
+        let Ok(mut scratch) = self.acquire_scratch(ScratchLeaseKind::Gc) else {
+            return;
+        };
         let len = self.nodes.len();
         if scratch.gc_liveness_generations.len() < len {
             scratch.gc_liveness_generations.resize(len, 0);
@@ -431,15 +577,16 @@ impl SignalGraph {
                 && alive_bits.contains(idx)
         };
 
-        for slot in &mut self.nodes {
-            if let Some(ref mut entry) = slot.data {
-                entry.purge_stale_subscribers(alive_checker);
+        for index in 0..self.nodes.len() {
+            if let Some(node) = self.live_node_id_at(index) {
+                let _ = self.purge_stale_subscribers_for(node, alive_checker);
             }
         }
 
         self.tombstone_count = 0;
-        self.restore_scratch(ScratchLeaseKind::Gc, scratch)
-            .expect("GC scratch restore must succeed");
+        if self.restore_scratch(ScratchLeaseKind::Gc, scratch).is_err() {
+            return;
+        }
         self.telemetry.gc_epoch_count += 1;
         self.telemetry.gc_epoch_nanos += gc_start.elapsed().as_nanos();
     }
@@ -484,12 +631,14 @@ impl SignalGraph {
 
     /// Direct dependencies of one node.
     pub fn dependencies_of(&self, node: NodeId) -> Result<&[DependencyEdge], SignalError> {
-        Ok(self.get_entry(node)?.get_dependencies())
+        let entry = self.get_entry(node)?;
+        Ok(self.dependency_edges.get(entry.get_dependencies_id()))
     }
 
     /// Direct subscribers of one node.
     pub fn subscribers_of(&self, node: NodeId) -> Result<&[NodeId], SignalError> {
-        Ok(self.get_entry(node)?.get_subscribers())
+        let entry = self.get_entry(node)?;
+        Ok(self.subscriber_edges.get(entry.get_subscribers_id()))
     }
 
     /// Whether `node` directly depends on `upstream` for the given aspect.
@@ -500,8 +649,7 @@ impl SignalGraph {
         aspect: Aspect,
     ) -> Result<bool, SignalError> {
         Ok(self
-            .get_entry(node)?
-            .get_dependencies()
+            .dependencies_of(node)?
             .iter()
             .any(|dependency| dependency.source() == upstream && dependency.aspect() == aspect))
     }

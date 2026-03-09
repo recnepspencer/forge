@@ -1,3 +1,9 @@
+//! Convenience-only typed wrapper around `SignalGraph`.
+//!
+//! This module optimizes for approachability and small examples, not kernel-grade
+//! execution performance or fully static contracts. Heavyweight/runtime-critical
+//! integrations should prefer the prepared/runtime APIs directly.
+
 use std::any::Any;
 use std::collections::HashMap;
 use std::marker::PhantomData;
@@ -83,6 +89,10 @@ impl<'a> ComputeContext<'a> {
     }
 }
 
+/// Convenience graph wrapper for lightweight typed experiments and examples.
+///
+/// This surface intentionally trades execution-model explicitness for ergonomics.
+/// It is not the canonical kernel-grade runtime interface.
 pub struct ReactiveGraph {
     graph: SignalGraph,
     values: HashMap<NodeId, Box<dyn Any + Send + Sync>>,
@@ -139,18 +149,30 @@ impl ReactiveGraph {
     }
 
     pub fn get<T: Clone + Send + Sync + 'static>(&mut self, signal: Signal<T>) -> T {
+        self.try_get(signal).expect("easy-mode evaluation failed")
+    }
+
+    pub fn try_get<T: Clone + Send + Sync + 'static>(
+        &mut self,
+        signal: Signal<T>,
+    ) -> Result<T, SignalError> {
         self.ensure_evaluated(signal.node)
-            .expect("easy-mode evaluation failed");
-        self.read_value(signal)
+            .map_err(|err| SignalError::internal(format!("easy-mode evaluation failed: {err}")))?;
+        self.try_read_value(signal)
     }
 
     pub fn set<T: Clone + Send + Sync + 'static>(&mut self, signal: InputSignal<T>, value: T) {
+        self.try_set(signal, value).expect("easy-mode set failed");
+    }
+
+    pub fn try_set<T: Clone + Send + Sync + 'static>(
+        &mut self,
+        signal: InputSignal<T>,
+        value: T,
+    ) -> Result<(), SignalError> {
         self.values.insert(signal.node, Box::new(value));
         {
-            let entry = self
-                .graph
-                .get_entry_mut(signal.node)
-                .expect("input node should exist");
+            let entry = self.graph.get_entry_mut(signal.node)?;
             let current = entry.get_aspect_version().get(DEFAULT_ASPECT);
             let next = entry.get_aspect_version().with(DEFAULT_ASPECT, current + 1);
             entry.set_aspect_version(next);
@@ -161,28 +183,46 @@ impl ReactiveGraph {
         if self.batch_depth > 0 {
             self.batched_dirty_nodes.push(signal.node);
         } else {
-            mark_dirty(&mut self.graph, signal.node, DEFAULT_ASPECT)
-                .expect("easy-mode invalidation failed");
+            mark_dirty(&mut self.graph, signal.node, DEFAULT_ASPECT)?;
         }
+        Ok(())
     }
 
     pub fn batch<F>(&mut self, apply: F)
     where
         F: FnOnce(&mut Self),
     {
+        self.try_batch(|graph| {
+            apply(graph);
+            Ok(())
+        })
+        .expect("easy-mode batch failed");
+    }
+
+    pub fn try_batch<F>(&mut self, apply: F) -> Result<(), SignalError>
+    where
+        F: FnOnce(&mut Self) -> Result<(), SignalError>,
+    {
         self.batch_depth += 1;
-        apply(self);
+        let apply_result = apply(self);
         self.batch_depth -= 1;
+
+        if let Err(err) = apply_result {
+            if self.batch_depth == 0 {
+                self.batched_dirty_nodes.clear();
+            }
+            return Err(err);
+        }
 
         if self.batch_depth == 0 {
             let mut dirty_nodes = std::mem::take(&mut self.batched_dirty_nodes);
             dirty_nodes.sort();
             dirty_nodes.dedup();
             for node in dirty_nodes {
-                mark_dirty(&mut self.graph, node, DEFAULT_ASPECT)
-                    .expect("easy-mode batched invalidation failed");
+                mark_dirty(&mut self.graph, node, DEFAULT_ASPECT)?;
             }
         }
+        Ok(())
     }
 
     fn ensure_evaluated(&mut self, node: NodeId) -> Result<(), SignalError> {
@@ -221,10 +261,17 @@ impl ReactiveGraph {
         Ok(())
     }
 
-    fn read_value<T: Clone + Send + Sync + 'static>(&self, signal: Signal<T>) -> T {
-        self.values[&signal.node]
+    fn try_read_value<T: Clone + Send + Sync + 'static>(
+        &self,
+        signal: Signal<T>,
+    ) -> Result<T, SignalError> {
+        let stored = self
+            .values
+            .get(&signal.node)
+            .ok_or_else(|| SignalError::invalid_input("easy-mode signal has no stored value"))?;
+        stored
             .downcast_ref::<T>()
-            .expect("easy-mode signal type mismatch")
-            .clone()
+            .cloned()
+            .ok_or_else(|| SignalError::invalid_input("easy-mode signal type mismatch"))
     }
 }

@@ -1,6 +1,7 @@
 //! Dependency edges and snapshots for signal nodes.
 
 use serde::{Deserialize, Serialize};
+use std::num::NonZeroU32;
 
 use crate::data::aspect::{Aspect, AspectMask};
 use crate::data::handle::NodeId;
@@ -101,4 +102,52 @@ impl DependencySnapshot {
     pub fn entries(&self) -> &[(NodeId, Aspect, u64, Option<PartitionSubscription>)] {
         &self.entries
     }
+}
+
+/// Stable handle into graph-owned dependency snapshot storage.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct DependencySnapshotId(Option<NonZeroU32>);
+
+impl DependencySnapshotId {
+    /// The canonical empty snapshot id.
+    pub const EMPTY: Self = Self(None);
+
+    fn from_index(index: usize) -> Self {
+        debug_assert!(index > 0);
+        Self(NonZeroU32::new(index as u32))
+    }
+
+    fn index(self) -> Option<usize> {
+        self.0.map(|index| index.get() as usize)
+    }
+}
+
+/// Graph-owned storage for immutable dependency snapshots.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct DependencySnapshotStore {
+    snapshots: Vec<DependencySnapshot>,
+}
+
+impl DependencySnapshotStore {
+    /// Read one snapshot by id.
+    pub fn get(&self, id: DependencySnapshotId) -> &DependencySnapshot {
+        match id.index() {
+            Some(index) => &self.snapshots[index - 1],
+            None => empty_dependency_snapshot(),
+        }
+    }
+
+    /// Store one immutable snapshot and return its id.
+    pub fn insert(&mut self, snapshot: DependencySnapshot) -> DependencySnapshotId {
+        if snapshot.entries().is_empty() {
+            return DependencySnapshotId::EMPTY;
+        }
+        self.snapshots.push(snapshot);
+        DependencySnapshotId::from_index(self.snapshots.len())
+    }
+}
+
+fn empty_dependency_snapshot() -> &'static DependencySnapshot {
+    static EMPTY: std::sync::OnceLock<DependencySnapshot> = std::sync::OnceLock::new();
+    EMPTY.get_or_init(DependencySnapshot::empty)
 }

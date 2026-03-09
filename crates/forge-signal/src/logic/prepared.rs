@@ -258,7 +258,12 @@ impl<'a> ExecutionReadView<'a> {
 
     pub fn node(&self, node: NodeId) -> Result<SnapshotNodeView<'a>, SignalError> {
         let entry = self.graph().get_entry(node)?;
-        Ok(SnapshotNodeView { node, entry })
+        let dependencies = self.graph().dependencies_of(node)?;
+        Ok(SnapshotNodeView {
+            node,
+            entry,
+            dependencies,
+        })
     }
 
     pub fn capture_dependency(&self, source: NodeId, aspect: Aspect) {
@@ -312,6 +317,7 @@ impl<'a> ExecutionReadView<'a> {
 pub struct SnapshotNodeView<'a> {
     node: NodeId,
     entry: &'a NodeEntry,
+    dependencies: &'a [DependencyEdge],
 }
 
 impl<'a> SnapshotNodeView<'a> {
@@ -336,8 +342,7 @@ impl<'a> SnapshotNodeView<'a> {
     }
 
     pub fn dependencies(&self) -> impl Iterator<Item = SnapshotDependencyView<'a>> + 'a {
-        self.entry
-            .get_dependencies()
+        self.dependencies
             .iter()
             .map(|dependency| SnapshotDependencyView { edge: dependency })
     }

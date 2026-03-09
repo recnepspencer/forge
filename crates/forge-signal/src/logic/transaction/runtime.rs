@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::marker::PhantomData;
+use std::num::NonZeroU32;
 use std::time::Instant;
 
 use crate::data::aspect::{Aspect, AspectVersion};
@@ -45,6 +46,72 @@ use crate::logic::prepared::{
 use crate::presentation::metrics::RuntimeMetrics;
 
 use super::patch_buffer::SparsePatchBuffer;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+struct RuntimeStringId(NonZeroU32);
+
+impl RuntimeStringId {
+    fn from_index(index: usize) -> Self {
+        Self(NonZeroU32::new((index + 1) as u32).expect("runtime string ids are one-based"))
+    }
+
+    fn index(self) -> usize {
+        (self.0.get() - 1) as usize
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+struct RuntimeKeyRegistry {
+    families: Vec<ComputationFamily>,
+    family_lookup: BTreeMap<ComputationFamily, RuntimeStringId>,
+    keys: Vec<ComputationKey>,
+    key_lookup: BTreeMap<ComputationKey, RuntimeStringId>,
+    memo_keys: Vec<StructuralMemoKey>,
+    memo_key_lookup: BTreeMap<StructuralMemoKey, RuntimeStringId>,
+}
+
+impl RuntimeKeyRegistry {
+    fn intern_family(&mut self, family: &ComputationFamily) -> RuntimeStringId {
+        if let Some(id) = self.family_lookup.get(family).copied() {
+            return id;
+        }
+        let owned = family.clone();
+        let id = RuntimeStringId::from_index(self.families.len());
+        self.families.push(owned.clone());
+        self.family_lookup.insert(owned, id);
+        id
+    }
+
+    fn intern_key(&mut self, key: &ComputationKey) -> RuntimeStringId {
+        if let Some(id) = self.key_lookup.get(key).copied() {
+            return id;
+        }
+        let owned = key.clone();
+        let id = RuntimeStringId::from_index(self.keys.len());
+        self.keys.push(owned.clone());
+        self.key_lookup.insert(owned, id);
+        id
+    }
+
+    fn intern_memo_key(&mut self, memo_key: &StructuralMemoKey) -> RuntimeStringId {
+        if let Some(id) = self.memo_key_lookup.get(memo_key).copied() {
+            return id;
+        }
+        let owned = memo_key.clone();
+        let id = RuntimeStringId::from_index(self.memo_keys.len());
+        self.memo_keys.push(owned.clone());
+        self.memo_key_lookup.insert(owned, id);
+        id
+    }
+
+    fn family(&self, id: RuntimeStringId) -> &ComputationFamily {
+        &self.families[id.index()]
+    }
+
+    fn memo_key(&self, id: RuntimeStringId) -> &StructuralMemoKey {
+        &self.memo_keys[id.index()]
+    }
+}
 
 /// Builder for the productized runtime surface.
 pub struct SignalRuntimeBuilder<D = (), I = (), E = (), Ctx = (), T = ()>
@@ -165,8 +232,9 @@ pub struct SignalRuntimeConfig<T: Copy + Ord> {
     node_meta: NodeMetaStore<T>,
     tier_policies: TierPolicyTable<T>,
     fallback_comparator: VersionComparatorPolicy,
-    keyed_nodes: BTreeMap<(ComputationFamily, ComputationKey), NodeId>,
-    memo_cache: BTreeMap<(ComputationFamily, StructuralMemoKey), NodeEvaluationResult>,
+    key_registry: RuntimeKeyRegistry,
+    keyed_nodes: BTreeMap<(RuntimeStringId, RuntimeStringId), NodeId>,
+    memo_cache: BTreeMap<(RuntimeStringId, RuntimeStringId, RuntimeStringId), NodeEvaluationResult>,
 }
 
 impl<T: Copy + Ord> Default for SignalRuntimeConfig<T> {
@@ -175,6 +243,7 @@ impl<T: Copy + Ord> Default for SignalRuntimeConfig<T> {
             node_meta: NodeMetaStore::default(),
             tier_policies: TierPolicyTable::default(),
             fallback_comparator: VersionComparatorPolicy::Exact,
+            key_registry: RuntimeKeyRegistry::default(),
             keyed_nodes: BTreeMap::new(),
             memo_cache: BTreeMap::new(),
         }
@@ -226,7 +295,9 @@ impl<T: Copy + Ord> SignalRuntimeConfig<T> {
         &mut self,
         family: impl Into<ComputationFamily>,
     ) -> ComputationFamily {
-        family.into()
+        let family = family.into();
+        self.key_registry.intern_family(&family);
+        family
     }
 
     pub fn keyed_node(
@@ -236,7 +307,10 @@ impl<T: Copy + Ord> SignalRuntimeConfig<T> {
         key: impl Into<ComputationKey>,
     ) -> NodeId {
         let key = key.into();
-        let registry_key = (family.clone(), key.clone());
+        let registry_key = (
+            self.key_registry.intern_family(family),
+            self.key_registry.intern_key(&key),
+        );
         if let Some(node) = self.keyed_nodes.get(&registry_key).copied() {
             return node;
         }
@@ -249,21 +323,29 @@ impl<T: Copy + Ord> SignalRuntimeConfig<T> {
     fn lookup_memoized_result(
         &self,
         family: &ComputationFamily,
+        key: &ComputationKey,
         memo_key: &StructuralMemoKey,
     ) -> Option<NodeEvaluationResult> {
+        let family_id = self.key_registry.family_lookup.get(family).copied()?;
+        let key_id = self.key_registry.key_lookup.get(key).copied()?;
+        let memo_key_id = self.key_registry.memo_key_lookup.get(memo_key).copied()?;
         self.memo_cache
-            .get(&(family.clone(), memo_key.clone()))
+            .get(&(family_id, key_id, memo_key_id))
             .cloned()
     }
 
     fn store_memoized_result(
         &mut self,
         family: &ComputationFamily,
+        key: &ComputationKey,
         memo_key: &StructuralMemoKey,
         result: NodeEvaluationResult,
     ) {
+        let family_id = self.key_registry.intern_family(family);
+        let key_id = self.key_registry.intern_key(key);
+        let memo_key_id = self.key_registry.intern_memo_key(memo_key);
         self.memo_cache
-            .insert((family.clone(), memo_key.clone()), result);
+            .insert((family_id, key_id, memo_key_id), result);
     }
 }
 
@@ -789,7 +871,8 @@ where
     staged_checkpoint_flush_nanos: u128,
     staged_events: Vec<E>,
     staged_event_flushes: Vec<CheckpointBarrier>,
-    staged_memo_writes: BTreeMap<(ComputationFamily, StructuralMemoKey), NodeEvaluationResult>,
+    staged_memo_writes:
+        BTreeMap<(RuntimeStringId, RuntimeStringId, RuntimeStringId), NodeEvaluationResult>,
     graph_patches: SparsePatchBuffer,
     diagnostics_snapshot: DiagnosticsState,
     pending_failure_summary: Option<FailureSummary>,
@@ -1037,6 +1120,12 @@ where
     {
         self.telemetry.keyed_evaluation_count += 1;
         self.stage_evaluate_candidates(node)?;
+        let family_id = self.config.key_registry.intern_family(&computation.family);
+        let key_id = self.config.key_registry.intern_key(&computation.key);
+        let memo_key_id = computation
+            .memo_key
+            .as_ref()
+            .map(|memo_key| self.config.key_registry.intern_memo_key(memo_key));
         let mut resolver = TierPolicyResolver::new(
             self.config.node_meta(),
             self.config.tier_policies(),
@@ -1060,14 +1149,24 @@ where
             memo_key: computation.memo_key.clone(),
             memoized_origin: crate::data::output::MemoizedResultOrigin::DirectCompute,
         };
-        if let Some(memo_key) = computation.memo_key.as_ref() {
+        if computation.memo_key.is_some() {
             if let Some(cached) = self
                 .staged_memo_writes
-                .get(&(computation.family.clone(), memo_key.clone()))
+                .get(&(
+                    family_id,
+                    key_id,
+                    memo_key_id.expect("memo key id should exist when memo key exists"),
+                ))
                 .cloned()
                 .or_else(|| {
-                    self.config
-                        .lookup_memoized_result(&computation.family, memo_key)
+                    self.config.lookup_memoized_result(
+                        &computation.family,
+                        &computation.key,
+                        computation
+                            .memo_key
+                            .as_ref()
+                            .expect("memo key should exist when memoized lookup runs"),
+                    )
                 })
             {
                 self.telemetry.memoization_hits += 1;
@@ -1141,12 +1240,16 @@ where
             Err(err) => self.apply_result(Err(err)),
         };
         if result.is_ok() {
-            if let (Some(memo_key), Ok(mut guard)) =
-                (computation.memo_key.as_ref(), last_result.lock())
-            {
+            if let Ok(mut guard) = last_result.lock() {
                 if let Some(last_result) = guard.take() {
-                    self.staged_memo_writes
-                        .insert((computation.family.clone(), memo_key.clone()), last_result);
+                    self.staged_memo_writes.insert(
+                        (
+                            family_id,
+                            key_id,
+                            memo_key_id.expect("memo key id should exist when memo key exists"),
+                        ),
+                        last_result,
+                    );
                 }
             }
         }
@@ -1238,7 +1341,7 @@ where
                 continue;
             }
             self.graph_patches.stage_original(self.graph, node)?;
-            for &subscriber in self.graph.get_entry(node)?.get_subscribers() {
+            for &subscriber in self.graph.subscribers_of(node)? {
                 stack.push(subscriber);
             }
         }
@@ -1256,7 +1359,7 @@ where
                 continue;
             }
             self.graph_patches.stage_original(self.graph, current)?;
-            for dependency in self.graph.get_entry(current)?.get_dependencies() {
+            for dependency in self.graph.dependencies_of(current)? {
                 stack.push(dependency.source());
             }
         }
@@ -1401,9 +1504,12 @@ where
         self.checkpoint.telemetry_mut().checkpoint_flushes += self.staged_checkpoint_flushes;
         self.checkpoint.telemetry_mut().checkpoint_flush_nanos +=
             self.staged_checkpoint_flush_nanos;
-        for ((family, memo_key), result) in self.staged_memo_writes {
+        for ((family_id, key_id, memo_key_id), result) in self.staged_memo_writes {
+            let family = self.config.key_registry.family(family_id).clone();
+            let key = self.config.key_registry.keys[key_id.index()].clone();
+            let memo_key = self.config.key_registry.memo_key(memo_key_id).clone();
             self.config
-                .store_memoized_result(&family, &memo_key, result);
+                .store_memoized_result(&family, &key, &memo_key, result);
         }
         self.graph_patches.commit_and_clear();
         self.telemetry.transaction_commit_count += 1;

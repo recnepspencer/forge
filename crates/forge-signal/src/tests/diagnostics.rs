@@ -635,7 +635,11 @@ fn serial_and_parallel_reports_are_semantically_equivalent() {
         .execute_prepared_plan_with_executor(&plan_serial, &precompute, StageExecutor::Serial)
         .unwrap();
     let report_parallel = graph_parallel
-        .execute_prepared_plan_with_executor(&plan_parallel, &precompute, StageExecutor::Parallel)
+        .execute_prepared_plan_with_executor(
+            &plan_parallel,
+            &precompute,
+            StageExecutor::parallel(1),
+        )
         .unwrap();
 
     let summary_serial = report_serial.diagnostics_summary(DiagnosticsProfile::Development);
@@ -712,7 +716,7 @@ fn repeated_serial_parallel_lifecycle_parity_stays_stable() {
             .execute_prepared_plan_with_executor(
                 &plan_parallel,
                 &precompute,
-                StageExecutor::Parallel,
+                StageExecutor::parallel(1),
             )
             .unwrap();
 

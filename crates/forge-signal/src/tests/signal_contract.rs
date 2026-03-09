@@ -15,16 +15,16 @@ fn add_dependency_is_idempotent_per_aspect() {
         .add_dependency(downstream, upstream, ASPECT_A)
         .expect("duplicate dependency should be ignored");
 
-    let downstream_entry = graph
-        .get_entry(downstream)
-        .expect("downstream entry should exist");
-    assert_eq!(downstream_entry.get_dependencies().len(), 1);
+    let downstream_dependencies = graph
+        .dependencies_of(downstream)
+        .expect("downstream dependencies should exist");
+    assert_eq!(downstream_dependencies.len(), 1);
 
-    let upstream_entry = graph
-        .get_entry(upstream)
-        .expect("upstream entry should exist");
-    assert_eq!(upstream_entry.get_subscribers().len(), 1);
-    assert_eq!(upstream_entry.get_subscribers()[0], downstream);
+    let upstream_subscribers = graph
+        .subscribers_of(upstream)
+        .expect("upstream subscribers should exist");
+    assert_eq!(upstream_subscribers.len(), 1);
+    assert_eq!(upstream_subscribers[0], downstream);
 }
 
 #[test]
@@ -44,16 +44,16 @@ fn remove_dependency_preserves_other_aspects_between_same_nodes() {
         .remove_dependency(downstream, upstream, ASPECT_A)
         .expect("aspect-specific removal should succeed");
 
-    let downstream_entry = graph
-        .get_entry(downstream)
-        .expect("downstream entry should exist");
-    assert_eq!(downstream_entry.get_dependencies().len(), 1);
-    assert_eq!(downstream_entry.get_dependencies()[0].aspect(), ASPECT_B);
+    let downstream_dependencies = graph
+        .dependencies_of(downstream)
+        .expect("downstream dependencies should exist");
+    assert_eq!(downstream_dependencies.len(), 1);
+    assert_eq!(downstream_dependencies[0].aspect(), ASPECT_B);
 
-    let upstream_entry = graph
-        .get_entry(upstream)
-        .expect("upstream entry should exist");
-    assert_eq!(upstream_entry.get_subscribers(), &[downstream]);
+    let upstream_subscribers = graph
+        .subscribers_of(upstream)
+        .expect("upstream subscribers should exist");
+    assert_eq!(upstream_subscribers, &[downstream]);
 }
 
 #[test]
@@ -70,9 +70,8 @@ fn subscriber_fanout_does_not_duplicate_across_aspects() {
         .unwrap();
 
     let subscribers = graph
-        .get_entry(upstream)
-        .expect("upstream entry should exist")
-        .get_subscribers();
+        .subscribers_of(upstream)
+        .expect("upstream subscribers should exist");
     assert_eq!(subscribers, &[downstream]);
 }
 

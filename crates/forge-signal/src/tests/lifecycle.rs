@@ -61,13 +61,13 @@ fn unregister_severs_subscriptions() {
 
     graph.unregister_node(node).unwrap();
 
-    let upstream_subs = graph.get_entry(upstream).unwrap().get_subscribers();
+    let upstream_subs = graph.subscribers_of(upstream).unwrap();
     assert!(
         upstream_subs.is_empty(),
         "Upstream should have no subscribers after middle node deleted"
     );
 
-    let downstream_deps = graph.get_entry(downstream).unwrap().get_dependencies();
+    let downstream_deps = graph.dependencies_of(downstream).unwrap();
     assert!(
         downstream_deps.is_empty(),
         "Downstream should have no deps on deleted node"

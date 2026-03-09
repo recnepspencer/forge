@@ -124,9 +124,9 @@ impl GraphSummary {
             let Some(node) = graph.live_node_id_at(index) else {
                 continue;
             };
-            let entry = graph
-                .get_entry(node)
-                .expect("live node should resolve during graph diagnostics summary");
+            let Ok(entry) = graph.get_entry(node) else {
+                continue;
+            };
             match entry.get_state() {
                 NodeState::Clean => clean_node_count += 1,
                 NodeState::MaybeStale => maybe_stale_node_count += 1,
@@ -137,13 +137,14 @@ impl GraphSummary {
                     }
                 }
             }
-            dependency_edge_count += entry.get_dependencies().len() as u32;
-            subscriber_edge_count += entry.get_subscribers().len() as u32;
-            if entry
-                .get_dependencies()
-                .iter()
-                .any(|edge| edge.scope_ref().is_some())
-            {
+            let Ok(dependencies) = graph.dependencies_of(node) else {
+                continue;
+            };
+            dependency_edge_count += dependencies.len() as u32;
+            if let Ok(subscribers) = graph.subscribers_of(node) {
+                subscriber_edge_count += subscribers.len() as u32;
+            }
+            if dependencies.iter().any(|edge| edge.scope_ref().is_some()) {
                 nodes_with_partition_scopes += 1;
             }
             if let Some(trace) = entry.get_trace_summary() {
@@ -304,9 +305,9 @@ impl ExecutionHistorySummary {
             let Some(node) = graph.live_node_id_at(index) else {
                 continue;
             };
-            let entry = graph
-                .get_entry(node)
-                .expect("live node should resolve during history summary");
+            let Ok(entry) = graph.get_entry(node) else {
+                continue;
+            };
             let Some(trace) = entry.get_trace_summary() else {
                 continue;
             };

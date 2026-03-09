@@ -19,9 +19,9 @@ pub fn to_dot(graph: &SignalGraph) -> String {
         let Some(node) = graph.live_node_id_at(index) else {
             continue;
         };
-        let entry = graph
-            .get_entry(node)
-            .expect("live node should always resolve during DOT export");
+        let Ok(entry) = graph.get_entry(node) else {
+            continue;
+        };
         let mut label = format!(
             "{}\\nstate={:?}\\ncondition={:?}",
             node,
@@ -44,10 +44,10 @@ pub fn to_dot(graph: &SignalGraph) -> String {
         let Some(node) = graph.live_node_id_at(index) else {
             continue;
         };
-        let entry = graph
-            .get_entry(node)
-            .expect("live node should always resolve during DOT export");
-        for dependency in entry.get_dependencies() {
+        let Ok(dependencies) = graph.dependencies_of(node) else {
+            continue;
+        };
+        for dependency in dependencies {
             let mut edge_label = format!("aspect:{}", dependency.aspect().index());
             if let Some(scope) = dependency.scope_ref() {
                 edge_label.push_str(&format!("\\nscope:{:?}", scope));

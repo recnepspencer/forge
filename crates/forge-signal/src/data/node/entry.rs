@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
 use crate::data::aspect::{AspectMask, AspectVersion};
-use crate::data::dependency::{DependencyEdge, DependencySnapshot};
-use crate::data::handle::NodeId;
+use crate::data::dependency::DependencySnapshotId;
+use crate::data::graph::{DependencySetId, SubscriberSetId};
 use crate::data::output::PartitionSubscription;
 use crate::data::trace::{CausalityMetadata, TraceSummary};
 
@@ -26,6 +26,14 @@ pub enum NodeState {
     Dirty,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+struct NodeColdData {
+    #[serde(default)]
+    trace_summary: Option<TraceSummary>,
+    #[serde(default)]
+    causality: Option<CausalityMetadata>,
+}
+
 /// Internal storage for a single signal node.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NodeEntry {
@@ -34,20 +42,17 @@ pub struct NodeEntry {
     #[serde(default)]
     dirty_partition_scopes: SmallVec<[PartitionSubscription; 4]>,
     aspect_version: AspectVersion,
-    /// Upstream dependencies this node reads from.
-    dependencies: SmallVec<[DependencyEdge; 4]>,
-    /// Downstream subscribers (generation-checked before push).
-    subscribers: SmallVec<[NodeId; 4]>,
-    /// Snapshot of upstream versions at last clean evaluation.
-    dep_snapshot: DependencySnapshot,
+    /// Handle to graph-owned dependency edge storage.
+    dependencies_id: DependencySetId,
+    /// Handle to graph-owned subscriber storage.
+    subscribers_id: SubscriberSetId,
+    /// Handle to graph-owned dependency snapshot storage.
+    dep_snapshot_id: DependencySnapshotId,
     /// Whether this node has been tombstoned (deleted but not yet GC'd).
     tombstoned: bool,
-    /// Last evaluation trace summary (for diff-on-re-eval).
+    /// Cold diagnostics- and explanation-facing data kept off the hot path.
     #[serde(default)]
-    trace_summary: Option<TraceSummary>,
-    /// Optional host-provided causality payload for explanation surfaces.
-    #[serde(default)]
-    causality: Option<CausalityMetadata>,
+    cold: Option<Box<NodeColdData>>,
     /// Evaluation condition/config descriptor for this node.
     #[serde(default)]
     eval_config: NodeEvaluationConfig,
@@ -67,12 +72,11 @@ impl NodeEntry {
             dirty_aspects: AspectMask::EMPTY,
             dirty_partition_scopes: SmallVec::new(),
             aspect_version: AspectVersion::zero(),
-            dependencies: SmallVec::new(),
-            subscribers: SmallVec::new(),
-            dep_snapshot: DependencySnapshot::empty(),
+            dependencies_id: DependencySetId::EMPTY,
+            subscribers_id: SubscriberSetId::EMPTY,
+            dep_snapshot_id: DependencySnapshotId::EMPTY,
             tombstoned: false,
-            trace_summary: None,
-            causality: None,
+            cold: None,
             eval_config: NodeEvaluationConfig::default(),
         }
     }
@@ -134,73 +138,34 @@ impl NodeEntry {
         self.aspect_version = version;
     }
 
-    /// The upstream dependencies.
-    pub fn get_dependencies(&self) -> &[DependencyEdge] {
-        &self.dependencies
+    /// Graph-owned dependency set handle.
+    pub fn get_dependencies_id(&self) -> DependencySetId {
+        self.dependencies_id
     }
 
-    /// Add an upstream dependency.
-    pub fn add_dependency(&mut self, edge: DependencyEdge) -> bool {
-        if self.dependencies.contains(&edge) {
-            return false;
-        }
-        self.dependencies.push(edge);
-        true
+    /// Replace the dependency set handle.
+    pub fn set_dependencies_id(&mut self, dependencies_id: DependencySetId) {
+        self.dependencies_id = dependencies_id;
     }
 
-    /// Remove one specific dependency edge.
-    pub fn remove_dependency(&mut self, edge: DependencyEdge) -> bool {
-        let original_len = self.dependencies.len();
-        self.dependencies.retain(|candidate| *candidate != edge);
-        self.dependencies.len() != original_len
+    /// Graph-owned subscriber set handle.
+    pub fn get_subscribers_id(&self) -> SubscriberSetId {
+        self.subscribers_id
     }
 
-    /// Remove all dependencies on a specific upstream node.
-    pub fn remove_dependencies_on(&mut self, source: NodeId) -> bool {
-        let original_len = self.dependencies.len();
-        self.dependencies.retain(|e| e.source() != source);
-        self.dependencies.len() != original_len
+    /// Replace the subscriber set handle.
+    pub fn set_subscribers_id(&mut self, subscribers_id: SubscriberSetId) {
+        self.subscribers_id = subscribers_id;
     }
 
-    /// Whether any dependency remains on the specified upstream node.
-    pub fn has_dependency_on(&self, source: NodeId) -> bool {
-        self.dependencies.iter().any(|edge| edge.source() == source)
+    /// The graph-owned dependency snapshot handle from the last clean evaluation.
+    pub fn get_dep_snapshot_id(&self) -> DependencySnapshotId {
+        self.dep_snapshot_id
     }
 
-    /// The downstream subscribers.
-    pub fn get_subscribers(&self) -> &[NodeId] {
-        &self.subscribers
-    }
-
-    /// Add a downstream subscriber.
-    pub fn add_subscriber(&mut self, subscriber: NodeId) -> bool {
-        if self.subscribers.contains(&subscriber) {
-            return false;
-        }
-        self.subscribers.push(subscriber);
-        true
-    }
-
-    /// Remove a specific downstream subscriber.
-    pub fn remove_subscriber(&mut self, subscriber: NodeId) -> bool {
-        let original_len = self.subscribers.len();
-        self.subscribers.retain(|s| *s != subscriber);
-        self.subscribers.len() != original_len
-    }
-
-    /// Purge subscribers whose generation doesn't match the graph.
-    pub fn purge_stale_subscribers(&mut self, is_alive: impl Fn(NodeId) -> bool) {
-        self.subscribers.retain(|s| is_alive(*s));
-    }
-
-    /// The dependency snapshot from the last clean evaluation.
-    pub fn get_dep_snapshot(&self) -> &DependencySnapshot {
-        &self.dep_snapshot
-    }
-
-    /// Replace the dependency snapshot.
-    pub fn set_dep_snapshot(&mut self, snapshot: DependencySnapshot) {
-        self.dep_snapshot = snapshot;
+    /// Replace the dependency snapshot handle.
+    pub fn set_dep_snapshot_id(&mut self, snapshot_id: DependencySnapshotId) {
+        self.dep_snapshot_id = snapshot_id;
     }
 
     /// Whether this node is tombstoned.
@@ -215,22 +180,24 @@ impl NodeEntry {
 
     /// The last evaluation trace summary.
     pub fn get_trace_summary(&self) -> Option<&TraceSummary> {
-        self.trace_summary.as_ref()
+        self.cold.as_ref()?.trace_summary.as_ref()
     }
 
     /// Set or clear the trace summary.
     pub fn set_trace_summary(&mut self, summary: Option<TraceSummary>) {
-        self.trace_summary = summary;
+        self.cold_mut().trace_summary = summary;
+        self.trim_cold_if_empty();
     }
 
     /// Optional host-provided causality payload.
     pub fn get_causality(&self) -> Option<&CausalityMetadata> {
-        self.causality.as_ref()
+        self.cold.as_ref()?.causality.as_ref()
     }
 
     /// Set or clear the causality payload.
     pub fn set_causality(&mut self, causality: Option<CausalityMetadata>) {
-        self.causality = causality;
+        self.cold_mut().causality = causality;
+        self.trim_cold_if_empty();
     }
 
     /// Per-node evaluation policy descriptor.
@@ -241,5 +208,21 @@ impl NodeEntry {
     /// Replace per-node evaluation policy descriptor.
     pub fn set_eval_config(&mut self, config: NodeEvaluationConfig) {
         self.eval_config = config;
+    }
+
+    fn cold_mut(&mut self) -> &mut NodeColdData {
+        self.cold
+            .get_or_insert_with(|| Box::new(NodeColdData::default()))
+            .as_mut()
+    }
+
+    fn trim_cold_if_empty(&mut self) {
+        if self
+            .cold
+            .as_ref()
+            .is_some_and(|cold| cold.trace_summary.is_none() && cold.causality.is_none())
+        {
+            self.cold = None;
+        }
     }
 }

@@ -97,6 +97,7 @@ impl SparsePatchBuffer {
 #[cfg(test)]
 mod tests {
     use super::SparsePatchBuffer;
+    use crate::data::dependency::DependencySnapshot;
     use crate::data::error::SignalError;
     use crate::data::graph::SignalGraph;
     use crate::data::node::NodeState;
@@ -164,6 +165,29 @@ mod tests {
         patches.commit_and_clear();
         assert_eq!(graph.get_entry(a)?.get_aspect_version(), version_ab(0, 11));
         assert_eq!(patches.touched_count(), 0);
+        Ok(())
+    }
+
+    #[test]
+    fn rollback_restores_dependency_snapshot_handle() -> Result<(), SignalError> {
+        let mut graph = SignalGraph::new();
+        let a = graph.create_node();
+        let b = graph.create_node();
+        graph.add_dependency(b, a, ASPECT_B)?;
+
+        let mut baseline = DependencySnapshot::empty();
+        baseline.record(a, ASPECT_B, 3, None);
+        graph.set_dep_snapshot(b, baseline.clone())?;
+
+        let mut patches = SparsePatchBuffer::new();
+        patches.stage_original(&graph, b)?;
+
+        let mut updated = DependencySnapshot::empty();
+        updated.record(a, ASPECT_B, 7, None);
+        graph.set_dep_snapshot(b, updated)?;
+
+        patches.rollback_and_clear(&mut graph)?;
+        assert_eq!(graph.get_dep_snapshot(b)?, &baseline);
         Ok(())
     }
 }

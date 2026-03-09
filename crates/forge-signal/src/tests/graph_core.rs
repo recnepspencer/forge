@@ -26,11 +26,11 @@ fn add_dependency_wires_both_directions() {
         .add_dependency(downstream, upstream, ASPECT_A)
         .unwrap();
 
-    let deps = graph.get_entry(downstream).unwrap().get_dependencies();
+    let deps = graph.dependencies_of(downstream).unwrap();
     assert_eq!(deps.len(), 1);
     assert_eq!(deps[0].source(), upstream);
 
-    let subs = graph.get_entry(upstream).unwrap().get_subscribers();
+    let subs = graph.subscribers_of(upstream).unwrap();
     assert_eq!(subs.len(), 1);
     assert_eq!(subs[0], downstream);
 }

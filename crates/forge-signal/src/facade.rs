@@ -86,8 +86,10 @@ pub use crate::presentation::contracts::{
     DependencyGraphContract, RawPathComputeContract, StructuralStateBoundaryContract,
 };
 pub use crate::presentation::harness::{
-    SignalEvaluationDriver, SignalFixtureFactory, SignalHarnessAdapter, SignalHarnessRuntime,
-    SignalHarnessRuntimeBuilder, SignalHarnessSession, SignalMutationAction,
+    signal_bench, signal_parity_suite, SignalEvaluationDriver, SignalFixtureFactory,
+    SignalHarnessAdapter, SignalHarnessAssert, SignalHarnessRuntime, SignalHarnessRuntimeBuilder,
+    SignalHarnessSession, SignalMutationAction, SignalMutationBatch, SignalProfileCatalog,
+    SignalScenario,
 };
 pub use crate::presentation::metrics::{GraphMetrics, RuntimeMetrics};
 pub use crate::presentation::transaction_contract::TransactionRuntimeContract;

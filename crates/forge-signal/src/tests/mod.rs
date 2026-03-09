@@ -1,3 +1,7 @@
+mod adversarial_diagnostics;
+mod adversarial_edges;
+mod adversarial_keyed;
+mod adversarial_parallel;
 mod bitset;
 mod comparator_policy;
 mod contracts;
@@ -6,6 +10,7 @@ mod diagnostics;
 mod evaluation_context;
 mod graph_core;
 mod harness_adapter;
+mod harness_platform;
 mod lifecycle;
 mod multi_aspect;
 mod node_conditions;

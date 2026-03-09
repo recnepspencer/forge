@@ -54,13 +54,8 @@ impl<'a> GraphInspector<'a> {
             .into_iter()
             .filter(|node| {
                 self.graph
-                    .get_entry(*node)
-                    .map(|entry| {
-                        entry
-                            .get_dependencies()
-                            .iter()
-                            .any(|edge| edge.scope_ref().is_some())
-                    })
+                    .dependencies_of(*node)
+                    .map(|dependencies| dependencies.iter().any(|edge| edge.scope_ref().is_some()))
                     .unwrap_or(false)
             })
             .collect()

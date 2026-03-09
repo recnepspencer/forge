@@ -147,7 +147,7 @@ impl PrecomputeSummary {
             crate::logic::planner::StageExecutionOutcome::CompletedSerial => StageExecutor::Serial,
             #[cfg(feature = "parallel")]
             crate::logic::planner::StageExecutionOutcome::CompletedParallel => {
-                StageExecutor::Parallel
+                StageExecutor::parallel(1)
             }
         });
         Self {

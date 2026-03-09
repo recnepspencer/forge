@@ -1,30 +1,94 @@
 use std::collections::BTreeMap;
+use std::hash::{Hash, Hasher};
 
 use serde::{Deserialize, Serialize};
 
 use crate::data::aspect::AspectVersion;
 
-/// Host-supplied stable identity token for one evaluated output artifact.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
-pub struct OutputIdentity(pub String);
+macro_rules! define_string_token {
+    ($(#[$meta:meta])* $name:ident) => {
+        $(#[$meta])*
+        #[derive(Debug, Clone, Serialize, Deserialize)]
+        #[serde(from = "String", into = "String")]
+        pub struct $name {
+            value: String,
+            stable_hash: u128,
+        }
 
-impl OutputIdentity {
-    pub fn new(value: impl Into<String>) -> Self {
-        Self(value.into())
-    }
+        impl Default for $name {
+            fn default() -> Self {
+                Self::new(String::new())
+            }
+        }
+
+        impl $name {
+            pub fn new(value: impl Into<String>) -> Self {
+                let value = value.into();
+                Self {
+                    stable_hash: stable_string_hash(&value),
+                    value,
+                }
+            }
+
+            pub fn as_str(&self) -> &str {
+                &self.value
+            }
+
+            pub fn stable_hash(&self) -> u128 {
+                self.stable_hash
+            }
+        }
+
+        impl From<String> for $name {
+            fn from(value: String) -> Self {
+                Self::new(value)
+            }
+        }
+
+        impl From<&str> for $name {
+            fn from(value: &str) -> Self {
+                Self::new(value)
+            }
+        }
+
+        impl From<$name> for String {
+            fn from(value: $name) -> Self {
+                value.value
+            }
+        }
+
+        impl PartialEq for $name {
+            fn eq(&self, other: &Self) -> bool {
+                self.value == other.value
+            }
+        }
+
+        impl Eq for $name {}
+
+        impl PartialOrd for $name {
+            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                Some(self.cmp(other))
+            }
+        }
+
+        impl Ord for $name {
+            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                self.value.cmp(&other.value)
+            }
+        }
+
+        impl Hash for $name {
+            fn hash<H: Hasher>(&self, state: &mut H) {
+                self.value.hash(state);
+            }
+        }
+    };
 }
 
-impl From<String> for OutputIdentity {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
-}
-
-impl From<&str> for OutputIdentity {
-    fn from(value: &str) -> Self {
-        Self(value.to_owned())
-    }
-}
+define_string_token!(
+    /// Host-supplied stable identity token for one evaluated output artifact.
+    OutputIdentity
+);
 
 /// Generic opaque partition token for partitioned outputs.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
@@ -204,70 +268,28 @@ pub enum OutputChange {
     Unchanged,
 }
 
-/// Family namespace for keyed computations.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
-pub struct ComputationFamily(pub String);
+define_string_token!(
+    /// Family namespace for keyed computations.
+    ComputationFamily
+);
 
-impl ComputationFamily {
-    pub fn new(value: impl Into<String>) -> Self {
-        Self(value.into())
+define_string_token!(
+    /// Stable key for one keyed computation inside a family.
+    ComputationKey
+);
+
+define_string_token!(
+    /// Stable host-provided structural memoization key.
+    StructuralMemoKey
+);
+
+fn stable_string_hash(value: &str) -> u128 {
+    let mut hash = 0xcbf29ce484222325_u128;
+    for byte in value.as_bytes() {
+        hash ^= *byte as u128;
+        hash = hash.wrapping_mul(0x100000001b3_u128);
     }
-}
-
-impl From<String> for ComputationFamily {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
-}
-
-impl From<&str> for ComputationFamily {
-    fn from(value: &str) -> Self {
-        Self(value.to_owned())
-    }
-}
-
-/// Stable key for one keyed computation inside a family.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
-pub struct ComputationKey(pub String);
-
-impl ComputationKey {
-    pub fn new(value: impl Into<String>) -> Self {
-        Self(value.into())
-    }
-}
-
-impl From<String> for ComputationKey {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
-}
-
-impl From<&str> for ComputationKey {
-    fn from(value: &str) -> Self {
-        Self(value.to_owned())
-    }
-}
-
-/// Stable host-provided structural memoization key.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
-pub struct StructuralMemoKey(pub String);
-
-impl StructuralMemoKey {
-    pub fn new(value: impl Into<String>) -> Self {
-        Self(value.into())
-    }
-}
-
-impl From<String> for StructuralMemoKey {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
-}
-
-impl From<&str> for StructuralMemoKey {
-    fn from(value: &str) -> Self {
-        Self(value.to_owned())
-    }
+    hash
 }
 
 /// How one evaluation result was produced.

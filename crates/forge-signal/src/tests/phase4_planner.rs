@@ -313,7 +313,11 @@ fn prepared_parallel_precompute_matches_serial_results() {
         .execute_prepared_plan_with_executor(&plan, &precompute, StageExecutor::Serial)
         .unwrap();
     let parallel_report = parallel_graph
-        .execute_prepared_plan_with_executor(&parallel_plan, &precompute, StageExecutor::Parallel)
+        .execute_prepared_plan_with_executor(
+            &parallel_plan,
+            &precompute,
+            StageExecutor::parallel(1),
+        )
         .unwrap();
 
     assert_eq!(
@@ -340,4 +344,47 @@ fn prepared_parallel_precompute_matches_serial_results() {
     );
     assert_eq!(serial_report.task_count, parallel_report.task_count);
     assert_eq!(serial_report.tasks_executed, parallel_report.tasks_executed);
+}
+
+#[test]
+fn build_evaluation_plan_handles_deep_linear_chain_without_recursion() {
+    let mut graph = SignalGraph::new();
+    let root = graph.node().build();
+    let mut previous = root;
+    let depth = 2_048;
+
+    for _ in 0..depth {
+        let current = graph.node().build();
+        graph.add_dependency(current, previous, ASPECT_A).unwrap();
+        previous = current;
+    }
+
+    let plan = graph
+        .build_evaluation_plan(&[previous], EvaluationRequestMode::Default)
+        .unwrap();
+
+    assert_eq!(plan.summary.stage_count, (depth + 1) as u32);
+    assert_eq!(plan.stages.first().unwrap().tasks[0].node, root);
+    assert_eq!(plan.stages.last().unwrap().tasks[0].node, previous);
+}
+
+#[cfg(feature = "parallel")]
+#[test]
+fn parallel_executor_threshold_keeps_narrow_stage_serial() {
+    let mut graph = SignalGraph::new();
+    let node = graph.node().build();
+    let plan = graph
+        .build_evaluation_plan(&[node], EvaluationRequestMode::Default)
+        .unwrap();
+    let precompute =
+        |_node: NodeId, view: &ExecutionReadView<'_>| Ok(view.finish(version_ab(1, 0)));
+
+    let report = graph
+        .execute_prepared_plan_with_executor(&plan, &precompute, StageExecutor::parallel(2))
+        .unwrap();
+
+    assert!(matches!(
+        report.stages[0].outcome,
+        StageExecutionOutcome::CompletedSerial
+    ));
 }

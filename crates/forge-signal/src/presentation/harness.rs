@@ -2,19 +2,21 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use forge_harness::facade::{
-    diagnostics_id, explanation_id, provenance_id, run_id, scenario_id, snapshot_id,
-    AdapterSupport, AttachmentRecord, CaptureDepth, ClockDomain, DiagnosticsHarnessAdapter,
-    DiagnosticsLevel, DiagnosticsRecord, ExecutionMode, ExecutionPhase, ExecutionProfile,
-    ExecutionRequest, ExplanationHarnessAdapter, ExplanationRecord, HarnessAdapter,
-    HarnessCapabilities, ObservationStatus, PerformanceHarnessAdapter, ProvenanceHarnessAdapter,
-    ProvenanceRecord, RecordSchemaVersion, RunOutcome, RunRecord, RunStatus, ScenarioFixture,
+    bench, diagnostics_id, explanation_id, parity_suite, provenance_id, run_id, scenario_id,
+    snapshot_id, AdapterSupport, AttachmentRecord, CaptureDepth, ClockDomain,
+    DiagnosticsHarnessAdapter, DiagnosticsLevel, DiagnosticsRecord, ExecutionMode, ExecutionPhase,
+    ExecutionProfile, ExecutionRequest, ExplanationHarnessAdapter, ExplanationRecord,
+    HarnessAdapter, HarnessBench, HarnessCapabilities, HarnessObservedBundle, ObservationStatus,
+    ParitySuite, PerformanceHarnessAdapter, ProvenanceHarnessAdapter, ProvenanceRecord,
+    RecordSchemaVersion, RunOutcome, RunRecord, RunStatus, ScenarioFixture, ScenarioPlan,
     SnapshotObservation, SnapshotPayload, SnapshotRecord, StructuredValue, TargetStatusRecord,
 };
 use serde_json::{json, Value};
 
 use crate::facade::{
-    DiagnosticsProfile, EvaluationRequestMode, ExecutionReadView, ExecutionReport, NodeExplanation,
-    NodeId, NodeState, PreparedEvaluation, SignalError, SignalGraph, StageExecutor,
+    mark_dirty, mark_dirty_with_regions, DiagnosticsProfile, EvaluationRequestMode,
+    ExecutionReadView, ExecutionReport, NodeExplanation, NodeId, NodeState, PlanSummary,
+    PreparedEvaluation, SignalError, SignalGraph, StageExecutor,
 };
 
 pub trait SignalEvaluationDriver: Send + Sync {
@@ -83,6 +85,31 @@ impl SignalMutationAction {
 
     fn apply(&self, runtime: &mut SignalHarnessRuntime) -> Result<(), SignalError> {
         (self.apply)(runtime)
+    }
+
+    pub fn mark_dirty(
+        name: impl Into<String>,
+        label: impl Into<String>,
+        aspect: crate::facade::Aspect,
+    ) -> Self {
+        let label = label.into();
+        Self::new(name, move |runtime| {
+            let node = runtime.resolve(&label)?;
+            mark_dirty(runtime.graph_mut(), node, aspect)
+        })
+    }
+
+    pub fn mark_dirty_with_regions(
+        name: impl Into<String>,
+        label: impl Into<String>,
+        aspect: crate::facade::Aspect,
+        changed_regions: Vec<crate::facade::ChangedRegion>,
+    ) -> Self {
+        let label = label.into();
+        Self::new(name, move |runtime| {
+            let node = runtime.resolve(&label)?;
+            mark_dirty_with_regions(runtime.graph_mut(), node, aspect, &changed_regions)
+        })
     }
 }
 
@@ -197,10 +224,378 @@ impl SignalHarnessSession {
     }
 }
 
+pub struct SignalScenario {
+    name: String,
+    graph: SignalGraph,
+    evaluator: Option<Arc<dyn SignalEvaluationDriver>>,
+    labels: BTreeMap<String, NodeId>,
+    declared_inputs: Vec<String>,
+    declared_observations: Vec<String>,
+    metadata: BTreeMap<String, String>,
+}
+
+impl SignalScenario {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            graph: SignalGraph::new(),
+            evaluator: None,
+            labels: BTreeMap::new(),
+            declared_inputs: Vec::new(),
+            declared_observations: Vec::new(),
+            metadata: BTreeMap::new(),
+        }
+    }
+
+    pub fn graph(&self) -> &SignalGraph {
+        &self.graph
+    }
+
+    pub fn graph_mut(&mut self) -> &mut SignalGraph {
+        &mut self.graph
+    }
+
+    pub fn label(&mut self, name: impl Into<String>, node: NodeId) -> NodeId {
+        self.labels.insert(name.into(), node);
+        node
+    }
+
+    pub fn node(&mut self, label: impl Into<String>) -> NodeId {
+        let node = self.graph.node().build();
+        self.label(label, node)
+    }
+
+    pub fn build_node(
+        &mut self,
+        label: impl Into<String>,
+        build: impl FnOnce(&mut SignalGraph) -> NodeId,
+    ) -> NodeId {
+        let node = build(&mut self.graph);
+        self.label(label, node)
+    }
+
+    pub fn resolve(&self, label: &str) -> Result<NodeId, SignalError> {
+        self.labels.get(label).copied().ok_or_else(|| {
+            SignalError::invalid_input(format!("unknown signal scenario label `{label}`"))
+        })
+    }
+
+    pub fn dependency(
+        &mut self,
+        downstream_label: &str,
+        upstream_label: &str,
+        aspect: crate::facade::Aspect,
+    ) -> Result<&mut Self, SignalError> {
+        let downstream = self.resolve(downstream_label)?;
+        let upstream = self.resolve(upstream_label)?;
+        self.graph.add_dependency(downstream, upstream, aspect)?;
+        Ok(self)
+    }
+
+    pub fn partition_dependency(
+        &mut self,
+        downstream_label: &str,
+        upstream_label: &str,
+        aspect: crate::facade::Aspect,
+        partition: impl Into<crate::facade::PartitionToken>,
+    ) -> Result<&mut Self, SignalError> {
+        let downstream = self.resolve(downstream_label)?;
+        let upstream = self.resolve(upstream_label)?;
+        self.graph
+            .add_partition_dependency(downstream, upstream, aspect, partition)?;
+        Ok(self)
+    }
+
+    pub fn partition_detail_dependency(
+        &mut self,
+        downstream_label: &str,
+        upstream_label: &str,
+        aspect: crate::facade::Aspect,
+        partition: impl Into<crate::facade::PartitionToken>,
+        detail: impl Into<String>,
+    ) -> Result<&mut Self, SignalError> {
+        let downstream = self.resolve(downstream_label)?;
+        let upstream = self.resolve(upstream_label)?;
+        self.graph
+            .add_partition_detail_dependency(downstream, upstream, aspect, partition, detail)?;
+        Ok(self)
+    }
+
+    pub fn input(mut self, label: impl Into<String>) -> Self {
+        self.declared_inputs.push(label.into());
+        self
+    }
+
+    pub fn observe(mut self, label: impl Into<String>) -> Self {
+        self.declared_observations.push(label.into());
+        self
+    }
+
+    pub fn meta(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.metadata.insert(key.into(), value.into());
+        self
+    }
+
+    pub fn with_evaluator<F>(mut self, evaluator: F) -> Self
+    where
+        F: SignalEvaluationDriver + 'static,
+    {
+        self.evaluator = Some(Arc::new(evaluator));
+        self
+    }
+
+    pub fn set_evaluator<F>(&mut self, evaluator: F)
+    where
+        F: SignalEvaluationDriver + 'static,
+    {
+        self.evaluator = Some(Arc::new(evaluator));
+    }
+
+    pub fn fixture(self) -> Result<ScenarioFixture<SignalFixtureFactory>, SignalError> {
+        let evaluator = self.evaluator.ok_or_else(|| {
+            SignalError::invalid_input("signal scenario requires an evaluator before compile")
+        })?;
+        let name = self.name;
+        let graph = self.graph;
+        let labels = self.labels;
+        let declared_inputs = self.declared_inputs;
+        let declared_observations = self.declared_observations;
+        let metadata = self.metadata;
+
+        let fixture = SignalFixtureFactory::new(move || {
+            Ok(SignalHarnessRuntime {
+                graph: graph.clone(),
+                evaluator: Arc::clone(&evaluator),
+                labels: labels.clone(),
+            })
+        });
+
+        let mut plan = ScenarioPlan::new(name, fixture);
+        for input in declared_inputs {
+            plan = plan.declare_input(input);
+        }
+        for observation in declared_observations {
+            plan = plan.declare_observation(observation);
+        }
+        for (key, value) in metadata {
+            plan = plan.with_metadata(key, value);
+        }
+        Ok(plan.compile())
+    }
+
+    pub fn target_request(
+        &self,
+        name: impl Into<String>,
+        target: impl Into<String>,
+    ) -> ExecutionRequest<String> {
+        ExecutionRequest::target(name, target.into())
+    }
+
+    pub fn request(
+        &self,
+        name: impl Into<String>,
+        targets: impl IntoIterator<Item = impl Into<String>>,
+    ) -> ExecutionRequest<String> {
+        ExecutionRequest::new(name, targets.into_iter().map(Into::into).collect())
+    }
+}
+
+pub struct SignalMutationBatch {
+    batch: forge_harness::facade::MutationBatch<SignalMutationAction>,
+}
+
+impl SignalMutationBatch {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            batch: forge_harness::facade::MutationBatch::new(name),
+        }
+    }
+
+    pub fn action(mut self, action: SignalMutationAction) -> Self {
+        self.batch = self.batch.push(action);
+        self
+    }
+
+    pub fn mark_dirty(self, label: impl Into<String>, aspect: crate::facade::Aspect) -> Self {
+        let label = label.into();
+        self.action(SignalMutationAction::mark_dirty(
+            format!("mark-{label}-dirty"),
+            label,
+            aspect,
+        ))
+    }
+
+    pub fn mark_dirty_with_regions(
+        self,
+        label: impl Into<String>,
+        aspect: crate::facade::Aspect,
+        changed_regions: Vec<crate::facade::ChangedRegion>,
+    ) -> Self {
+        let label = label.into();
+        self.action(SignalMutationAction::mark_dirty_with_regions(
+            format!("mark-{label}-dirty-with-regions"),
+            label,
+            aspect,
+            changed_regions,
+        ))
+    }
+
+    pub fn meta(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.batch = self.batch.with_metadata(key, value);
+        self
+    }
+
+    pub fn build(self) -> forge_harness::facade::MutationBatch<SignalMutationAction> {
+        self.batch
+    }
+}
+
+pub struct SignalProfileCatalog;
+
+impl SignalProfileCatalog {
+    pub fn serial(name: impl Into<String>) -> ExecutionProfile {
+        ExecutionProfile::serial(name)
+    }
+
+    pub fn operational(name: impl Into<String>) -> ExecutionProfile {
+        ExecutionProfile::operational(name)
+    }
+
+    pub fn development(name: impl Into<String>) -> ExecutionProfile {
+        ExecutionProfile::development(name)
+    }
+
+    pub fn forensic(name: impl Into<String>) -> ExecutionProfile {
+        ExecutionProfile::forensic(name)
+    }
+
+    pub fn replay(name: impl Into<String>) -> ExecutionProfile {
+        ExecutionProfile::replay(name)
+    }
+
+    pub fn staged_parallel(name: impl Into<String>) -> ExecutionProfile {
+        ExecutionProfile::staged_parallel(name)
+    }
+}
+
+pub struct SignalHarnessAssert;
+
+impl SignalHarnessAssert {
+    pub fn run_target_status(run: &RunRecord<String>, target: &str) -> ObservationStatus {
+        run.target_statuses
+            .iter()
+            .find(|status| status.target == target)
+            .map(|status| status.status)
+            .unwrap_or_else(|| panic!("missing target status for `{target}`"))
+    }
+
+    pub fn snapshot_target_status(
+        snapshot: &SnapshotRecord<String>,
+        target: &str,
+    ) -> ObservationStatus {
+        snapshot
+            .observations
+            .iter()
+            .find(|observation| observation.target == target)
+            .map(|observation| observation.status)
+            .unwrap_or_else(|| panic!("missing snapshot observation for `{target}`"))
+    }
+
+    pub fn assert_run_target_status(
+        run: &RunRecord<String>,
+        target: &str,
+        expected: ObservationStatus,
+    ) {
+        assert_eq!(Self::run_target_status(run, target), expected);
+    }
+
+    pub fn assert_snapshot_target_status(
+        snapshot: &SnapshotRecord<String>,
+        target: &str,
+        expected: ObservationStatus,
+    ) {
+        assert_eq!(Self::snapshot_target_status(snapshot, target), expected);
+    }
+
+    pub fn execution_report(run: &RunRecord<String>) -> ExecutionReport {
+        let value = run
+            .extensions
+            .get("execution_report")
+            .cloned()
+            .unwrap_or_else(|| panic!("run record is missing execution_report extension"));
+        serde_json::from_value(value)
+            .unwrap_or_else(|error| panic!("invalid execution_report extension: {error}"))
+    }
+
+    pub fn plan_summary(run: &RunRecord<String>) -> PlanSummary {
+        let value = run
+            .extensions
+            .get("evaluation_plan_summary")
+            .cloned()
+            .unwrap_or_else(|| panic!("run record is missing evaluation_plan_summary"));
+        serde_json::from_value(value)
+            .unwrap_or_else(|error| panic!("invalid evaluation_plan_summary extension: {error}"))
+    }
+
+    pub fn assert_no_snapshot(snapshot: &Option<SnapshotRecord<String>>) {
+        assert!(snapshot.is_none(), "expected no snapshot to be captured");
+    }
+
+    pub fn assert_has_snapshot(
+        snapshot: &Option<SnapshotRecord<String>>,
+    ) -> &SnapshotRecord<String> {
+        snapshot
+            .as_ref()
+            .unwrap_or_else(|| panic!("expected snapshot to be captured"))
+    }
+
+    pub fn performance_metric(bundle: &HarnessObservedBundle<String>, metric: &str) -> Option<u64> {
+        bundle.performance.as_ref()?.get(metric)?.as_u64()
+    }
+
+    pub fn diagnostics_field<'a>(
+        bundle: &'a HarnessObservedBundle<String>,
+        field: &str,
+    ) -> Option<&'a Value> {
+        bundle.diagnostics.as_ref()?.summary.get(field)
+    }
+}
+
+pub fn signal_bench(
+    fixture: ScenarioFixture<SignalFixtureFactory>,
+    request: ExecutionRequest<String>,
+) -> HarnessBench<SignalHarnessAdapter, SignalFixtureFactory, SignalMutationAction, String> {
+    bench(SignalHarnessAdapter, fixture, request)
+}
+
+pub fn signal_parity_suite(
+    fixture: ScenarioFixture<SignalFixtureFactory>,
+    request: ExecutionRequest<String>,
+    baseline_profile: ExecutionProfile,
+) -> ParitySuite<SignalHarnessAdapter, SignalFixtureFactory, SignalMutationAction, String> {
+    parity_suite(SignalHarnessAdapter, fixture, request, baseline_profile)
+}
+
 #[derive(Debug, Default, Clone, Copy)]
 pub struct SignalHarnessAdapter;
 
 impl SignalHarnessAdapter {
+    #[cfg(test)]
+    fn requires_condition_aware_execution(
+        graph: &SignalGraph,
+        plan: &crate::logic::planner::EvaluationPlan,
+    ) -> Result<bool, SignalError> {
+        for task in plan.stages.iter().flat_map(|stage| &stage.tasks) {
+            let config = graph.get_entry(task.node)?.get_eval_config();
+            if !matches!(config.condition, crate::facade::EvaluationCondition::Always)
+                || config.comparator.is_some()
+            {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
     fn diagnostics_profile(level: DiagnosticsLevel) -> DiagnosticsProfile {
         match level {
             DiagnosticsLevel::Off | DiagnosticsLevel::Operational => {
@@ -217,7 +612,7 @@ impl SignalHarnessAdapter {
             ExecutionMode::StagedParallel => {
                 #[cfg(feature = "parallel")]
                 {
-                    Ok(StageExecutor::Parallel)
+                    Ok(StageExecutor::parallel(2))
                 }
                 #[cfg(not(feature = "parallel"))]
                 {
@@ -369,10 +764,33 @@ impl HarnessAdapter for SignalHarnessAdapter {
             .graph
             .build_evaluation_plan(&targets, EvaluationRequestMode::Default)?;
         let evaluator = Arc::clone(&runtime.evaluator);
+        let executor = Self::executor(profile.execution_mode)?;
+        #[cfg(test)]
+        let report = if Self::requires_condition_aware_execution(&runtime.graph, &plan)? {
+            let mut comparator = crate::facade::DefaultComparatorPolicyResolver {
+                fallback: crate::facade::VersionComparatorPolicy::Exact,
+                custom: crate::facade::DefaultComparatorResolver,
+            };
+            let mut condition = crate::facade::DefaultConditionResolver;
+            crate::logic::planner::execute_test_prepared_plan_with_resolvers(
+                &mut runtime.graph,
+                &plan,
+                &move |node, view| evaluator.evaluate(node, view),
+                &mut comparator,
+                &mut condition,
+            )?
+        } else {
+            runtime.graph.execute_prepared_plan_with_executor(
+                &plan,
+                &move |node, view| evaluator.evaluate(node, view),
+                executor,
+            )?
+        };
+        #[cfg(not(test))]
         let report = runtime.graph.execute_prepared_plan_with_executor(
             &plan,
             &move |node, view| evaluator.evaluate(node, view),
-            Self::executor(profile.execution_mode)?,
+            executor,
         )?;
 
         let target_statuses = request

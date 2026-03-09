@@ -164,46 +164,57 @@ fn subscribes_to_aspect(
     changed_scope_ids: &[InternedPartitionSubscription],
 ) -> Result<SubscriptionDirtyMatch, SignalError> {
     let changed_mask = AspectMask::from_aspect(changed_aspect);
-    let deps = graph.get_entry(downstream)?.get_dependencies().to_vec();
-    for dep in &deps {
-        if dep.source() != source || !dep.aspect_mask().intersects(changed_mask) {
-            continue;
-        }
-        let Some(scope) = dep.scope_ref() else {
-            return Ok(SubscriptionDirtyMatch::WholeAspect);
-        };
-        graph.telemetry_mut().partition_scoped_invalidation_checks += 1;
-        // Diagnostics store records aggregate counts at the invalidation boundary.
-        if let Some(interned_scope) = dep.interned_scope() {
-            for changed_scope_id in changed_scope_ids {
-                if interned_partition_scope_matches(interned_scope, *changed_scope_id) {
-                    return Ok(match scope.match_mode {
-                        PartitionMatchMode::WholePartition => {
-                            SubscriptionDirtyMatch::WholePartition
-                        }
-                        PartitionMatchMode::PartitionAndDetail => {
-                            SubscriptionDirtyMatch::PartitionAndDetail
-                        }
-                    });
+    let (partition_checks, outcome) = {
+        let dependencies = graph.dependencies_of(downstream)?;
+        let mut outcome = SubscriptionDirtyMatch::Unmatched;
+        let mut partition_checks = 0_u64;
+
+        for dep in dependencies {
+            if dep.source() != source || !dep.aspect_mask().intersects(changed_mask) {
+                continue;
+            }
+            let Some(scope) = dep.scope_ref() else {
+                outcome = SubscriptionDirtyMatch::WholeAspect;
+                break;
+            };
+            partition_checks += 1;
+            // Diagnostics store records aggregate counts at the invalidation boundary.
+            if let Some(interned_scope) = dep.interned_scope() {
+                for changed_scope_id in changed_scope_ids {
+                    if interned_partition_scope_matches(interned_scope, *changed_scope_id) {
+                        outcome = match scope.match_mode {
+                            PartitionMatchMode::WholePartition => {
+                                SubscriptionDirtyMatch::WholePartition
+                            }
+                            PartitionMatchMode::PartitionAndDetail => {
+                                SubscriptionDirtyMatch::PartitionAndDetail
+                            }
+                        };
+                        break;
+                    }
+                }
+            } else {
+                for changed_scope in changed_scopes {
+                    if partition_scope_matches(scope, changed_scope) {
+                        outcome = match scope.match_mode {
+                            PartitionMatchMode::WholePartition => {
+                                SubscriptionDirtyMatch::WholePartition
+                            }
+                            PartitionMatchMode::PartitionAndDetail => {
+                                SubscriptionDirtyMatch::PartitionAndDetail
+                            }
+                        };
+                        break;
+                    }
                 }
             }
-        } else {
-            for changed_scope in changed_scopes {
-                if partition_scope_matches(scope, changed_scope) {
-                    return Ok(match scope.match_mode {
-                        PartitionMatchMode::WholePartition => {
-                            SubscriptionDirtyMatch::WholePartition
-                        }
-                        PartitionMatchMode::PartitionAndDetail => {
-                            SubscriptionDirtyMatch::PartitionAndDetail
-                        }
-                    });
-                }
-            }
+            break;
         }
-        return Ok(SubscriptionDirtyMatch::Unmatched);
-    }
-    Ok(SubscriptionDirtyMatch::Unmatched)
+        (partition_checks, outcome)
+    };
+
+    graph.telemetry_mut().partition_scoped_invalidation_checks += partition_checks;
+    Ok(outcome)
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -273,10 +284,10 @@ fn collect_live_subscribers_into(graph: &SignalGraph, node: NodeId, out: &mut Ve
 }
 
 fn append_live_subscribers(graph: &SignalGraph, node: NodeId, out: &mut Vec<NodeId>) {
-    let Ok(entry) = graph.get_entry(node) else {
+    let Ok(subscribers) = graph.subscribers_of(node) else {
         return;
     };
-    for &subscriber in entry.get_subscribers() {
+    for &subscriber in subscribers {
         if graph.is_alive(subscriber) {
             out.push(subscriber);
         }
@@ -338,10 +349,10 @@ fn propagate_maybe_stale(
                 entry.set_dirty_partition_scopes(changed_scopes.iter().cloned());
             }
 
-            let Ok(entry) = graph.get_entry(node) else {
+            let Ok(subscribers) = graph.subscribers_of(node) else {
                 continue;
             };
-            for &subscriber in entry.get_subscribers() {
+            for &subscriber in subscribers {
                 if graph.is_alive(subscriber) {
                     frontier.mark_next(subscriber.index() as usize);
                 }
@@ -363,14 +374,14 @@ enum SubscriptionDirtyMatch {
 /// Check whether `node` has a subscriber that is also in `visited` and
 /// has a dependency back on `node`, forming a true cycle.
 fn has_back_edge(graph: &SignalGraph, scratch: &TraversalScratch, node: NodeId) -> bool {
-    let Ok(entry) = graph.get_entry(node) else {
+    let Ok(subscribers) = graph.subscribers_of(node) else {
         return false;
     };
-    entry.get_subscribers().iter().any(|subscriber| {
+    subscribers.iter().any(|subscriber| {
         scratch.visited.is_marked(subscriber.index() as usize)
             && graph
-                .get_entry(*subscriber)
-                .is_ok_and(|e| e.get_dependencies().iter().any(|d| d.source() == node))
+                .dependencies_of(*subscriber)
+                .is_ok_and(|dependencies| dependencies.iter().any(|d| d.source() == node))
     })
 }
 
