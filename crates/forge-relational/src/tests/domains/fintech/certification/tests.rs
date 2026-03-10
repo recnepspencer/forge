@@ -21,20 +21,16 @@ fn workflow_certification_runner_proves_relational_fintech_analysis_baseline() {
 
     assert_eq!(report.session.state, WorkflowState::Completed);
     assert!(report.failure_bundle.is_none());
-    assert!(
-        report
-            .session
-            .session_data
-            .named_snapshots
-            .contains_key("baseline_snapshot")
-    );
-    assert!(
-        report
-            .session
-            .session_data
-            .named_reads
-            .contains_key("analysis_correction_case")
-    );
+    assert!(report
+        .session
+        .session_data
+        .named_snapshots
+        .contains_key("baseline_snapshot"));
+    assert!(report
+        .session
+        .session_data
+        .named_reads
+        .contains_key("analysis_correction_case"));
     assert!(report.session.artifacts.iter().any(|artifact| {
         artifact.surface == ArtifactSurface::Diagnostics
             && artifact.boundary == WorkflowState::Inspected
@@ -57,7 +53,10 @@ fn workflow_certification_runner_proves_relational_fintech_analysis_baseline() {
         })
         .unwrap();
     assert_eq!(
-        budget.payload.get("all_passed").and_then(|value| value.as_bool()),
+        budget
+            .payload
+            .get("all_passed")
+            .and_then(|value| value.as_bool()),
         Some(true)
     );
 }
@@ -80,13 +79,19 @@ fn workflow_certification_runner_tracks_relational_fintech_replay_regression() {
     ));
     assert_eq!(replay.requested.branch_id.0, "analysis");
 
-    match (&report.session.state, &report.failure_bundle, &replay.failure) {
+    match (
+        &report.session.state,
+        &report.failure_bundle,
+        &replay.failure,
+    ) {
         (WorkflowState::Failed, Some(bundle), Some(_)) => {
             assert!(bundle
                 .invariant_failures
                 .iter()
-                .any(|report| report.check_id == "replay_has_no_failure:analysis_replay"
-                    && !report.passed));
+                .any(
+                    |report| report.check_id == "replay_has_no_failure:analysis_replay"
+                        && !report.passed
+                ));
         }
         (WorkflowState::Completed, None, None) => {}
         other => panic!("unexpected regression workflow outcome: {other:?}"),
@@ -101,20 +106,16 @@ fn workflow_certification_runner_proves_relational_fintech_intraday_risk() {
 
     assert_eq!(report.session.state, WorkflowState::Completed);
     assert!(report.failure_bundle.is_none());
-    assert!(
-        report
-            .session
-            .session_data
-            .named_reads
-            .contains_key("analysis_intraday_case")
-    );
-    assert!(
-        report
-            .session
-            .session_data
-            .named_replays
-            .contains_key("analysis_intraday_replay")
-    );
+    assert!(report
+        .session
+        .session_data
+        .named_reads
+        .contains_key("analysis_intraday_case"));
+    assert!(report
+        .session
+        .session_data
+        .named_replays
+        .contains_key("analysis_intraday_replay"));
 }
 
 #[test]
@@ -125,18 +126,14 @@ fn workflow_certification_runner_proves_relational_fintech_settlement_repair() {
 
     assert_eq!(report.session.state, WorkflowState::Completed);
     assert!(report.failure_bundle.is_none());
-    assert!(
-        report
-            .session
-            .session_data
-            .named_reads
-            .contains_key("analysis_repair_case")
-    );
-    assert!(
-        report
-            .session
-            .session_data
-            .named_replays
-            .contains_key("analysis_repair_replay")
-    );
+    assert!(report
+        .session
+        .session_data
+        .named_reads
+        .contains_key("analysis_repair_case"));
+    assert!(report
+        .session
+        .session_data
+        .named_replays
+        .contains_key("analysis_repair_replay"));
 }

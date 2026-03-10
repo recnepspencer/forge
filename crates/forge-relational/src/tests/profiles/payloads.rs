@@ -67,16 +67,14 @@ fn structured_json_payloads_are_canonicalized_in_patch_output() {
     left_txn.commit().unwrap();
 
     let mut right_txn = right_runtime.begin_transaction(TransactionOptions::default());
-    right_txn.push_batch(
-        WorkerIntentBatch::new("right-json").push(TransactionIntent::CreateEntity(
-            crate::transactions::data::EntitySpec {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(1),
-                client_key: InternedString::Raw("entity".to_string()),
-                payload: RecordPayload::StructuredJson(json!({"a": 1, "b": 2})),
-            },
-        )),
-    );
+    right_txn.push_batch(WorkerIntentBatch::new("right-json").push(
+        TransactionIntent::CreateEntity(crate::transactions::data::EntitySpec {
+            partition_id: PartitionId::main(),
+            kind_id: KindId(1),
+            client_key: InternedString::Raw("entity".to_string()),
+            payload: RecordPayload::StructuredJson(json!({"a": 1, "b": 2})),
+        }),
+    ));
     right_txn.commit().unwrap();
 
     assert_eq!(left_runtime.latest_patch(), right_runtime.latest_patch());

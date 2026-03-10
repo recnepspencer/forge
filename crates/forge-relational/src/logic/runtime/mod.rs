@@ -2,7 +2,7 @@ pub(crate) mod apply;
 pub(crate) mod merge;
 
 use std::cell::RefCell;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use crate::durability::data::{DurableCheckpoint, DurableCommitEnvelope, DurableStore};
 use crate::history::data::{BranchId, VersionNode};
@@ -45,15 +45,40 @@ pub(crate) use crate::storage::logic::state::{PartitionAccess, WorkingState};
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct SnapshotRegistry {
-    pub(crate) active: BTreeMap<SnapshotId, SnapshotState>,
-    pub(crate) version_visibility_cache: BTreeMap<crate::identity::data::VersionId, SnapshotState>,
+    pub(crate) active: BTreeMap<SnapshotId, SnapshotHandleBinding>,
+    pub(crate) published_handles: BTreeMap<SnapshotId, crate::identity::data::VersionId>,
+    pub(crate) visibility_states:
+        RefCell<BTreeMap<crate::identity::data::VersionId, SnapshotState>>,
+    pub(crate) visibility_residency:
+        RefCell<BTreeMap<crate::identity::data::VersionId, VisibilityResidency>>,
+    pub(crate) recent_policy: RefCell<DeterministicVersionWindowPolicy>,
     pub(crate) replay_retained: BTreeMap<crate::identity::data::VersionId, ReplayRetentionState>,
     pub(crate) next_snapshot_id: u64,
 }
 
 #[derive(Debug, Clone)]
+pub(crate) struct SnapshotHandleBinding {
+    pub(crate) version_id: crate::identity::data::VersionId,
+    pub(crate) read_policy: SnapshotReadPolicy,
+}
+
+#[derive(Debug, Clone, Default)]
+pub(crate) struct VisibilityResidency {
+    pub(crate) branch_head_refs: u32,
+    pub(crate) replay_refs: u32,
+    pub(crate) active_snapshot_refs: u32,
+    pub(crate) recent_resident: bool,
+}
+
+#[derive(Debug, Clone, Default)]
+pub(crate) struct DeterministicVersionWindowPolicy {
+    pub(crate) recent_version_window: usize,
+    pub(crate) order: VecDeque<crate::identity::data::VersionId>,
+    pub(crate) resident_count: usize,
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct ReplayRetentionState {
-    pub(crate) state: SnapshotState,
     pub(crate) ref_count: usize,
 }
 
@@ -137,7 +162,14 @@ impl RelationalRuntime {
             partitions: BTreeMap::new(),
             snapshots: SnapshotRegistry {
                 active: BTreeMap::new(),
-                version_visibility_cache: BTreeMap::new(),
+                published_handles: BTreeMap::new(),
+                visibility_states: RefCell::new(BTreeMap::new()),
+                visibility_residency: RefCell::new(BTreeMap::new()),
+                recent_policy: RefCell::new(DeterministicVersionWindowPolicy {
+                    recent_version_window: config.visibility_cache_policy.recent_version_window,
+                    order: VecDeque::new(),
+                    resident_count: 0,
+                }),
                 replay_retained: BTreeMap::new(),
                 next_snapshot_id: 1,
             },
@@ -235,52 +267,80 @@ impl RelationalRuntime {
 
     pub fn snapshot(&mut self) -> SnapshotHandle {
         let (handle, state) = self.snapshot_state_for_current(self.current_version_id());
-        self.snapshots.active.insert(handle.snapshot_id, state);
+        self.snapshots.active.insert(
+            handle.snapshot_id,
+            SnapshotHandleBinding {
+                version_id: handle.version_id,
+                read_policy: handle.read_policy,
+            },
+        );
+        if self.config.visibility_cache_policy.protect_active_snapshots {
+            self.insert_visibility_state(state.clone());
+            self.bump_active_snapshot_ref(handle.version_id, 1);
+        }
         handle
     }
 
     pub fn release_snapshot(&mut self, handle: &SnapshotHandle) -> bool {
-        let Some(state) = self.snapshots.active.remove(&handle.snapshot_id) else {
-            return false;
-        };
-        self.unpin_snapshot_state(&state);
-        if self.config.mvcc.snapshot_release_policy
-            == crate::config::data::SnapshotReleasePolicy::ReleaseOnRetentionPass
-        {
-            self.run_retention_pass();
+        if let Some(binding) = self.snapshots.active.remove(&handle.snapshot_id) {
+            let state = self
+                .visibility_state_for_version(binding.version_id)
+                .unwrap_or_else(|| {
+                    self.build_visibility_state(
+                        binding.version_id,
+                        SnapshotId(0),
+                        SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
+                    )
+                });
+            self.unpin_snapshot_state(&state);
+            if self.config.visibility_cache_policy.protect_active_snapshots {
+                self.bump_active_snapshot_ref(binding.version_id, -1);
+            }
+            self.evict_visibility_cache_if_needed();
+            if self.config.mvcc.snapshot_release_policy
+                == crate::config::data::SnapshotReleasePolicy::ReleaseOnRetentionPass
+            {
+                self.run_retention_pass();
+            }
+            return true;
         }
-        true
+        self.snapshots
+            .published_handles
+            .remove(&handle.snapshot_id)
+            .is_some()
     }
 
     pub fn read_snapshot(&self, handle: &SnapshotHandle) -> Option<RelationalReadView> {
-        self.snapshots
-            .active
-            .get(&handle.snapshot_id)
-            .map(|state| self.read_from_snapshot_state(state))
+        if let Some(binding) = self.snapshots.active.get(&handle.snapshot_id) {
+            let state = self.read_or_reconstruct_visibility_state(
+                binding.version_id,
+                !self.config.visibility_cache_policy.protect_active_snapshots,
+            )?;
+            let mut read_view = self.read_from_snapshot_state(&state);
+            read_view.snapshot = SnapshotHandle {
+                snapshot_id: handle.snapshot_id,
+                version_id: binding.version_id,
+                read_policy: binding.read_policy,
+            };
+            return Some(read_view);
+        }
+        let version_id = *self.snapshots.published_handles.get(&handle.snapshot_id)?;
+        let mut read_view = self.read_version(version_id);
+        read_view.snapshot = handle.clone();
+        Some(read_view)
     }
 
     pub fn read_version(&self, version_id: crate::identity::data::VersionId) -> RelationalReadView {
-        if let Some(state) = self.snapshots.version_visibility_cache.get(&version_id) {
-            return self.read_from_snapshot_state(state);
-        }
-        if let Some(snapshot_state) = self
-            .snapshots
-            .active
-            .values()
-            .find(|state| state.handle.version_id == version_id)
-        {
-            return self.read_from_snapshot_state(snapshot_state);
-        }
-        let current_state = self.current_state();
-        RelationalReadView {
-            snapshot: SnapshotHandle {
-                snapshot_id: SnapshotId(0),
-                version_id,
-                read_policy: SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
-            },
-            entities: self.visible_entities_from_state(&current_state, version_id),
-            relations: self.visible_relations_from_state(&current_state, version_id),
-        }
+        let state = self
+            .read_or_reconstruct_visibility_state(version_id, true)
+            .unwrap_or_else(|| {
+                self.build_visibility_state(
+                    version_id,
+                    SnapshotId(0),
+                    SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
+                )
+            });
+        self.read_from_snapshot_state(&state)
     }
 
     pub fn execute_read_packet(

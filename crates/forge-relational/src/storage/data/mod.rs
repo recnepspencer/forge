@@ -130,6 +130,10 @@ pub struct StorageStats {
     pub deleted_relations: usize,
     pub reusable_relation_slots: usize,
     pub snapshot_count: usize,
+    pub published_snapshot_handle_count: usize,
+    pub cached_visibility_version_count: usize,
+    pub protected_visibility_version_count: usize,
+    pub recent_visibility_cache_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

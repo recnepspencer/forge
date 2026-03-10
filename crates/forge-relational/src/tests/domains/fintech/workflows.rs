@@ -1,17 +1,18 @@
 use crate::facade::BranchId;
 
 use super::actions::{
-    capture_world_snapshot, checkpoint_world, commit_case_trade_after_savepoint, compact_world_store,
-    correct_seeded_trade_candidate, diverge_case_trade_on_branch, emit_trade_correction_audit_record,
-    build_branch_scoped_case_index, merge_branch_into_main, open_analysis_branch, open_audit_branch,
-    promote_case_correspondence, recover_persisted_world, recover_runtime_from_plan, refresh_risk_views,
-    register_case_book_index, release_snapshot_handle, repair_seeded_failed_settlement,
-    shock_market_on_branch, stress_seeded_intraday_risk,
+    build_branch_scoped_case_index, capture_world_snapshot, checkpoint_world,
+    commit_case_trade_after_savepoint, compact_world_store, correct_seeded_trade_candidate,
+    diverge_case_trade_on_branch, emit_trade_correction_audit_record, merge_branch_into_main,
+    open_analysis_branch, open_audit_branch, promote_case_correspondence, recover_persisted_world,
+    recover_runtime_from_plan, refresh_risk_views, register_case_book_index,
+    release_snapshot_handle, repair_seeded_failed_settlement, shock_market_on_branch,
+    stress_seeded_intraday_risk,
 };
-use super::comparisons::{
-    compare_case_truth, compare_replay_probe,
+use super::comparisons::{compare_case_truth, compare_replay_probe};
+use super::complexity::{
+    assert_counter_at_most, contract_ids, measure_world_action, workflow_budgets, ComplexityBudget,
 };
-use super::complexity::{assert_counter_at_most, contract_ids, measure_world_action, workflow_budgets, ComplexityBudget};
 use super::failure_injection::{
     corrupt_latest_checkpoint_file, drop_latest_parent_envelope_for_replay,
     invalid_savepoint_rollback_code, replay_latest_commit_on_wrong_branch,
@@ -19,17 +20,16 @@ use super::failure_injection::{
 };
 use super::fixture::FintechWorld;
 use super::invariants::{
-    assert_correction_case_transition, assert_intraday_risk_case_transition,
-    assert_cross_context_relations, assert_fixture_shape, assert_named_truth_world,
-    assert_merge_metadata_preserved,
-    assert_metadata_preserved_after_recovery,
-    assert_observability_overlap_stable, assert_partitioned_payloads,
-    assert_observability_surfaces_agree,
-    assert_recovery_matches_truth, assert_replay_targets_branch,
-    assert_snapshot_release_contract,
-    assert_settlement_repair_case_transition,
+    assert_correction_case_transition, assert_cross_context_relations, assert_fixture_shape,
+    assert_intraday_risk_case_transition, assert_merge_metadata_preserved,
+    assert_metadata_preserved_after_recovery, assert_named_truth_world,
+    assert_observability_overlap_stable, assert_observability_surfaces_agree,
+    assert_partitioned_payloads, assert_recovery_matches_truth, assert_replay_targets_branch,
+    assert_settlement_repair_case_transition, assert_snapshot_release_contract,
 };
-use super::naming::{artifact_alias, invariant_id, read_alias, replay_alias, scenario_name, workflow_name};
+use super::naming::{
+    artifact_alias, invariant_id, read_alias, replay_alias, scenario_name, workflow_name,
+};
 use super::probes::{
     capture_case_truth_probe, capture_observability_probe, capture_recovery_probe,
     capture_replay_probe, read_snapshot_probe, read_version_probe, ProbeStage,
@@ -78,20 +78,47 @@ fn fintech_world_setup_helpers_build_expected_scales() {
 fn fintech_scenario_selectors_expose_canonical_cases_and_expected_invariants() {
     let (_world, selection) = setup_selected_world(FintechScenario::LateTradeCorrection);
 
-    assert!(matches!(selection.scenario, FintechScenario::LateTradeCorrection));
-    assert_eq!(selection.canonical_case, super::fixture::FintechCaseRole::LateTradeCorrection);
+    assert!(matches!(
+        selection.scenario,
+        FintechScenario::LateTradeCorrection
+    ));
+    assert_eq!(
+        selection.canonical_case,
+        super::fixture::FintechCaseRole::LateTradeCorrection
+    );
     assert_eq!(selection.scenario_key, "late-trade-correction");
     assert!(!selection.expected_invariants.is_empty());
     assert!(selection.expected_artifacts.contains(&"diagnostics"));
-    assert_eq!(selection.expected_read_alias, "trade-correction.read.post-mutation");
+    assert_eq!(
+        selection.expected_read_alias,
+        "trade-correction.read.post-mutation"
+    );
     assert_eq!(selection.probe_prefix, "trade-correction");
     assert!(!selection.persisted);
-    assert_eq!(scenario_name("trade-correction", "baseline"), "fintech.trade-correction.baseline");
-    assert_eq!(workflow_name("trade-correction", "replay"), "fintech.trade-correction.replay");
-    assert_eq!(artifact_alias("trade-correction", "read", "post-mutation"), "trade-correction.read.post-mutation");
-    assert_eq!(read_alias("trade-correction", "post-mutation"), "trade-correction.read.post-mutation");
-    assert_eq!(replay_alias("trade-correction", "analysis"), "trade-correction.replay.analysis");
-    assert_eq!(invariant_id("trade-correction", "analysis_branch_local"), "trade-correction:analysis_branch_local");
+    assert_eq!(
+        scenario_name("trade-correction", "baseline"),
+        "fintech.trade-correction.baseline"
+    );
+    assert_eq!(
+        workflow_name("trade-correction", "replay"),
+        "fintech.trade-correction.replay"
+    );
+    assert_eq!(
+        artifact_alias("trade-correction", "read", "post-mutation"),
+        "trade-correction.read.post-mutation"
+    );
+    assert_eq!(
+        read_alias("trade-correction", "post-mutation"),
+        "trade-correction.read.post-mutation"
+    );
+    assert_eq!(
+        replay_alias("trade-correction", "analysis"),
+        "trade-correction.replay.analysis"
+    );
+    assert_eq!(
+        invariant_id("trade-correction", "analysis_branch_local"),
+        "trade-correction:analysis_branch_local"
+    );
 }
 
 #[test]
@@ -178,14 +205,11 @@ fn fintech_analysis_workflow_preserves_branching_snapshots_and_trade_correction(
     let main_read = world.runtime.read_snapshot(&baseline_snapshot).unwrap();
     let analysis_read = world.read_latest();
     assert_ne!(main_read.entities().len(), 0);
-    assert!(analysis_read
-        .entities()
-        .iter()
-        .any(|entity| matches!(
-            &entity.payload,
-            crate::facade::RecordPayload::StructuredJson(value)
-                if value.get("corrected").and_then(|flag| flag.as_bool()) == Some(true)
-        )));
+    assert!(analysis_read.entities().iter().any(|entity| matches!(
+        &entity.payload,
+        crate::facade::RecordPayload::StructuredJson(value)
+            if value.get("corrected").and_then(|flag| flag.as_bool()) == Some(true)
+    )));
     assert_eq!(
         world
             .runtime
@@ -314,7 +338,9 @@ fn fintech_persisted_workflow_recovers_checkpoint_tail_and_keeps_queryable_portf
 
     assert_eq!(result.entities.len(), 3);
     assert_eq!(
-        recovered.branch_head(&BranchId("analysis".to_string())).cloned(),
+        recovered
+            .branch_head(&BranchId("analysis".to_string()))
+            .cloned(),
         recovered.latest_commit().cloned()
     );
     let after_probe = read_snapshot_probe(
@@ -358,7 +384,10 @@ fn fintech_branch_divergence_merge_and_savepoint_verbs_stay_case_local() {
 
     assert_eq!(merged.commit.branch_id, BranchId("main".to_string()));
     assert_eq!(
-        world.runtime.branch_head(&audit).map(|commit| commit.commit_id),
+        world
+            .runtime
+            .branch_head(&audit)
+            .map(|commit| commit.commit_id),
         Some(merged.commit.parents[1])
     );
     assert_ne!(
@@ -385,7 +414,10 @@ fn fintech_failure_injection_helpers_cover_savepoints_replay_and_checkpoint_corr
     let invalid_code = invalid_savepoint_rollback_code(&mut world, analysis.clone());
 
     assert!(!rollback.restored_records.is_empty());
-    assert_eq!(invalid_code, crate::facade::DiagnosticCode::InvalidSavepoint);
+    assert_eq!(
+        invalid_code,
+        crate::facade::DiagnosticCode::InvalidSavepoint
+    );
 
     let _correction = correct_seeded_trade_candidate(&mut world, analysis);
     let removed = drop_latest_parent_envelope_for_replay(&mut world.runtime);
@@ -450,7 +482,9 @@ fn fintech_persisted_workflow_supports_compaction_after_checkpoint() {
         "compaction should report at least one segment decision"
     );
     assert_eq!(
-        recovered.branch_head(&BranchId("analysis".to_string())).cloned(),
+        recovered
+            .branch_head(&BranchId("analysis".to_string()))
+            .cloned(),
         recovered.latest_commit().cloned()
     );
     let packet = world.packet_for_portfolio_probe();
@@ -530,7 +564,10 @@ fn fintech_recovery_falls_back_from_corrupt_latest_checkpoint_and_keeps_truth() 
     let result = recovered.read_version(version_id).execute_packet(&packet);
 
     assert_eq!(outcome.latest_commit, Some(correction.commit.clone()));
-    assert!(!outcome.integrity_report.skipped_corrupt_checkpoints.is_empty());
+    assert!(!outcome
+        .integrity_report
+        .skipped_corrupt_checkpoints
+        .is_empty());
     assert!(result.entities.iter().any(|entity| matches!(
         &entity.payload,
         crate::facade::RecordPayload::StructuredJson(value)

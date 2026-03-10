@@ -192,15 +192,15 @@ where
         payloads.push(Some(RecordPayload::StructuredJson(payload)));
     }
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
-    txn.push_batch(
-        WorkerIntentBatch::new(batch_name).push(TransactionIntent::BulkCreateRelations {
+    txn.push_batch(WorkerIntentBatch::new(batch_name).push(
+        TransactionIntent::BulkCreateRelations {
             partition_id,
             kind_id: KindId(2),
             client_keys,
             endpoints,
             payloads,
-        }),
-    );
+        },
+    ));
     changed_relations(&txn.commit().unwrap())
 }
 

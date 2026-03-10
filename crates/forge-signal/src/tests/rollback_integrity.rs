@@ -1,6 +1,8 @@
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use crate::data::checkpoint::CheckpointBarrier;
+use crate::diagnostics::replay::ReplayEventKind;
 use crate::data::event_subscriber::{EventSubscriber, SubscriberId};
 use crate::data::subscriber_context::SubscriberContext;
 use crate::facade::*;
@@ -128,4 +130,168 @@ fn failed_event_flush_triggers_compensating_rollbacks_for_flushed_subscribers() 
     assert!(log.starts_with(&["first", "second"]));
     assert!(log.contains(&"first-rollback"));
     assert!(log.contains(&"second-rollback"));
+}
+
+#[test]
+fn failed_commit_discards_staged_key_registry_growth_and_created_keyed_nodes() {
+    let graph = SignalGraph::new();
+    let mut runtime = SignalRuntime::builder(graph)
+        .with_domains::<Domain>()
+        .with_events::<Ev>()
+        .checkpoint_barrier(CheckpointBarrier::PerOperation)
+        .build();
+    runtime
+        .event_bus_mut()
+        .subscribe(Box::new(RecordingSubscriber {
+            id: 1,
+            name: "first",
+            log: Arc::new(Mutex::new(Vec::new())),
+            fail_on_checkpoint: true,
+            requires_audit: false,
+            provides_audit: false,
+        }))
+        .unwrap();
+
+    let before_counts = runtime.config().test_registry_counts();
+    let before_active = runtime.graph().active_node_count();
+    let before_replay_len = runtime.graph().replay_events().len();
+    let mut ctx = ();
+
+    let family_name = "rollback-fresh-family";
+    let key_name = "rollback-fresh-key";
+    let memo_name = "rollback-fresh-memo";
+
+    let err = {
+        let mut tx = runtime.begin();
+        let family = tx.register_computation_family(family_name);
+        let keyed = tx.keyed_node(&family, key_name);
+        let computation = KeyedComputation::new(family.clone(), key_name).with_memo_key(memo_name);
+        tx.evaluate_keyed(keyed, &computation, &|_node, view| {
+            Ok(view.finish(
+                NodeEvaluationResult::from_version(version_ab(7, 0))
+                    .with_output_identity("rollback-artifact"),
+            ))
+        })
+        .unwrap();
+        tx.emit_event(Ev::Tick);
+        tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
+        let err = tx.commit(&mut ctx).unwrap_err();
+        assert!(!runtime.graph().is_alive(keyed));
+        err
+    };
+
+    assert!(format!("{err}").contains("event bus flush failed"));
+    assert_eq!(
+        runtime.config().test_registry_counts(),
+        before_counts,
+        "failed commit must restore family/key/memo registry and keyed-node maps to baseline",
+    );
+    assert_eq!(
+        runtime.graph().active_node_count(),
+        before_active,
+        "failed commit must remove transaction-created keyed nodes",
+    );
+
+    let replay = runtime.graph().replay_events();
+    assert_eq!(replay.len(), before_replay_len + 2);
+    assert_eq!(
+        replay[replay.len() - 2].kind,
+        ReplayEventKind::TransactionRolledBack
+    );
+    assert_eq!(
+        replay[replay.len() - 1].kind,
+        ReplayEventKind::FailureRecorded
+    );
+}
+
+#[test]
+fn failed_commit_preserves_preexisting_memo_cache_while_discarding_new_staged_growth() {
+    let graph = SignalGraph::new();
+    let mut runtime = SignalRuntime::builder(graph)
+        .with_domains::<Domain>()
+        .with_events::<Ev>()
+        .checkpoint_barrier(CheckpointBarrier::PerOperation)
+        .build();
+
+    let stable_family = runtime.register_computation_family("stable-family");
+    let stable_keyed = runtime.keyed_node(&stable_family, "stable-key");
+    let stable_computation =
+        KeyedComputation::new(stable_family.clone(), "stable-key").with_memo_key("stable-memo");
+    let stable_compute_calls = AtomicU32::new(0);
+    let mut ctx = ();
+
+    runtime
+        .transaction(&mut ctx, |tx| {
+            tx.evaluate_keyed(stable_keyed, &stable_computation, &|_node, view| {
+                stable_compute_calls.fetch_add(1, Ordering::Relaxed);
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(1, 0))
+                        .with_output_identity("stable-artifact"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    let baseline_counts = runtime.config().test_registry_counts();
+    runtime
+        .event_bus_mut()
+        .subscribe(Box::new(RecordingSubscriber {
+            id: 9,
+            name: "failing",
+            log: Arc::new(Mutex::new(Vec::new())),
+            fail_on_checkpoint: true,
+            requires_audit: false,
+            provides_audit: false,
+        }))
+        .unwrap();
+
+    let err = runtime
+        .transaction(&mut ctx, |tx| {
+            let family = tx.register_computation_family("fresh-family");
+            let keyed = tx.keyed_node(&family, "fresh-key");
+            let fresh = KeyedComputation::new(family.clone(), "fresh-key").with_memo_key("fresh");
+            tx.evaluate_keyed(keyed, &fresh, &|_node, view| {
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(9, 0))
+                        .with_output_identity("fresh-artifact"),
+                ))
+            })?;
+            tx.emit_event(Ev::Tick);
+            tx.flush_events(CheckpointBarrier::PerOperation)?;
+            Ok(())
+        })
+        .unwrap_err();
+
+    assert!(format!("{err}").contains("event bus flush failed"));
+    assert_eq!(
+        runtime.config().test_registry_counts(),
+        baseline_counts,
+        "failed commit must discard fresh registry and memo growth without damaging committed memo state",
+    );
+
+    mark_dirty(runtime.graph_mut(), stable_keyed, ASPECT_A).unwrap();
+    runtime
+        .transaction(&mut ctx, |tx| {
+            tx.evaluate_keyed(stable_keyed, &stable_computation, &|_node, view| {
+                stable_compute_calls.fetch_add(1, Ordering::Relaxed);
+                Ok(view.finish(
+                    NodeEvaluationResult::from_version(version_ab(99, 0))
+                        .with_output_identity("should-not-run"),
+                ))
+            })?;
+            Ok(())
+        })
+        .unwrap();
+
+    assert_eq!(
+        stable_compute_calls.load(Ordering::Relaxed), 1,
+        "baseline memoized result must survive failed commits and remain reusable afterward",
+    );
+    let metrics = runtime.metrics();
+    assert!(metrics.memoization_hits >= 1);
+    assert_eq!(
+        runtime.graph().replay_events().back().map(|event| event.kind),
+        Some(ReplayEventKind::TransactionCommitted)
+    );
 }

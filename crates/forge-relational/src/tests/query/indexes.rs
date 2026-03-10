@@ -17,11 +17,8 @@ fn derived_index_contract_success_branch_scoped_build_keeps_storage_fallback() {
             &BranchId("main".to_string()),
         )
         .unwrap();
-    let feature_outcome = create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-a",
-        BranchId("feature".to_string()),
-    );
+    let feature_outcome =
+        create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
     let index = runtime.register_index(DerivedIndexDefinition {
         index_id: crate::facade::DerivedIndexId(0),
         name: "entity.name".to_string(),
@@ -37,9 +34,7 @@ fn derived_index_contract_success_branch_scoped_build_keeps_storage_fallback() {
     });
     let packet = QueryWorkPacket::bulk(
         "entities",
-        vec![ReadTarget::Entity(
-            changed_entities(&main_outcome)[0],
-        )],
+        vec![ReadTarget::Entity(changed_entities(&main_outcome)[0])],
     );
     let fallback = runtime
         .read_with_storage_fallback(&main_outcome.snapshot, &packet)
@@ -67,11 +62,8 @@ fn derived_index_contract_unscoped_generation_can_be_selected_across_branches() 
             &BranchId("main".to_string()),
         )
         .unwrap();
-    let feature_outcome = create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-a",
-        BranchId("feature".to_string()),
-    );
+    let feature_outcome =
+        create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
     let index = runtime.register_index(DerivedIndexDefinition {
         index_id: crate::facade::DerivedIndexId(0),
         name: "entity.name.global".to_string(),
@@ -88,9 +80,7 @@ fn derived_index_contract_unscoped_generation_can_be_selected_across_branches() 
     let snapshot = runtime.snapshot();
     let packet = QueryWorkPacket::bulk(
         "entities",
-        vec![ReadTarget::Entity(
-            changed_entities(&main_outcome)[0],
-        )],
+        vec![ReadTarget::Entity(changed_entities(&main_outcome)[0])],
     );
     let fallback = runtime
         .read_with_storage_fallback(&snapshot, &packet)

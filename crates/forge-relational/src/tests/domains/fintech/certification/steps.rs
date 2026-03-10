@@ -9,9 +9,15 @@ pub(super) enum FintechCaseRef {
 
 #[derive(Debug, Clone)]
 pub(super) enum FintechWorkflowStep {
-    CaptureMainSnapshot { alias: &'static str },
-    OpenAnalysisBranch { alias: &'static str },
-    ShockMarket { branch_alias: &'static str },
+    CaptureMainSnapshot {
+        alias: &'static str,
+    },
+    OpenAnalysisBranch {
+        alias: &'static str,
+    },
+    ShockMarket {
+        branch_alias: &'static str,
+    },
     CorrectCaseTrade {
         branch_alias: &'static str,
         case: FintechCaseRef,
@@ -24,7 +30,9 @@ pub(super) enum FintechWorkflowStep {
         branch_alias: &'static str,
         case: FintechCaseRef,
     },
-    RefreshRisk { branch_alias: &'static str },
+    RefreshRisk {
+        branch_alias: &'static str,
+    },
     ReadSnapshot {
         snapshot_alias: &'static str,
         read_alias: &'static str,

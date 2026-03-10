@@ -1,5 +1,6 @@
 use crate::facade::{
-    BranchId, RelationalReplayOutcome, RelationalReplayRequest, RelationalRuntime, ReplayExecutionMode,
+    BranchId, RelationalReplayOutcome, RelationalReplayRequest, RelationalRuntime,
+    ReplayExecutionMode,
 };
 
 pub(crate) fn drop_latest_parent_envelope_for_replay(
@@ -8,7 +9,9 @@ pub(crate) fn drop_latest_parent_envelope_for_replay(
     let latest = runtime.latest_commit()?.commit_id;
     let chain = runtime.ancestor_chain(latest);
     let parent = *chain.get(1)?;
-    runtime.remove_commit_envelope_for_test(parent).then_some(parent.0)
+    runtime
+        .remove_commit_envelope_for_test(parent)
+        .then_some(parent.0)
 }
 
 pub(crate) fn replay_latest_commit_on_wrong_branch(

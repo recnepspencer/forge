@@ -152,6 +152,7 @@ impl SignalGraph {
             .collect::<Vec<_>>();
         indices.sort_unstable();
         indices.dedup();
+        self.telemetry.rolled_back_created_node_count += indices.len() as u64;
 
         for index in indices.iter().rev().copied() {
             let Some(slot) = self.nodes.get_mut(index) else {

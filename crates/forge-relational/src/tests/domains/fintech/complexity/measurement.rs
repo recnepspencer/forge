@@ -12,7 +12,8 @@ pub(crate) fn measure_world_action(
 }
 
 pub(crate) fn contract_ids(world: &FintechWorld) -> Vec<&'static str> {
-    world.runtime
+    world
+        .runtime
         .complexity_contracts()
         .iter()
         .map(|contract: &ComplexityContract| contract.id)

@@ -22,11 +22,13 @@ pub(crate) fn build_branch_scoped_case_index(
     branch_id: BranchId,
     source_commit: CommitReference,
 ) -> DerivedIndexBuildOutcome {
-    world.runtime.build_indexes_for_commit(DerivedIndexBuildRequest {
-        source_commit_id: source_commit.commit_id,
-        branch_id,
-        index_ids: vec![index_id],
-    })
+    world
+        .runtime
+        .build_indexes_for_commit(DerivedIndexBuildRequest {
+            source_commit_id: source_commit.commit_id,
+            branch_id,
+            index_ids: vec![index_id],
+        })
 }
 
 pub(crate) fn promote_case_correspondence(

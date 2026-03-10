@@ -254,6 +254,26 @@ fn complexity_budget_snapshot_pin_maintenance_is_incremental() {
 }
 
 #[test]
+fn complexity_budget_branch_creation_reuses_cached_visibility_state() {
+    let mut runtime = runtime_with_test_schema();
+    let left = create_entity(&mut runtime, "left");
+    let right = create_entity(&mut runtime, "right");
+    let _ = create_relation(&mut runtime, left, right, "r0");
+
+    runtime.reset_complexity_counters();
+    runtime
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .unwrap();
+    let counters = runtime.complexity_counters();
+
+    assert_eq!(counters.visibility_entity_slot_scans, 0);
+    assert_eq!(counters.visibility_relation_slot_scans, 0);
+}
+
+#[test]
 fn complexity_contract_visibility_scans_are_explicitly_measured() {
     let mut runtime = runtime_with_test_schema();
     let source = create_entity(&mut runtime, "source");
@@ -376,8 +396,11 @@ fn complexity_budget_partition_scoped_historical_entity_scans_are_partition_boun
     let _right_b = create_entity_in_partition(&mut runtime, "right-b", PartitionId(11));
 
     runtime.reset_complexity_counters();
-    let records =
-        runtime.visible_entities_of_kind_in_partition(PartitionId(7), KindId(1), historical_version);
+    let records = runtime.visible_entities_of_kind_in_partition(
+        PartitionId(7),
+        KindId(1),
+        historical_version,
+    );
     let counters = runtime.complexity_counters();
 
     assert_eq!(records.len(), 2);
@@ -391,15 +414,28 @@ fn complexity_budget_partition_scoped_historical_relation_scans_are_partition_bo
     let left_target = create_entity_in_partition(&mut runtime, "left-target", PartitionId(7));
     let right_source = create_entity_in_partition(&mut runtime, "right-source", PartitionId(11));
     let right_target = create_entity_in_partition(&mut runtime, "right-target", PartitionId(11));
-    let _left_relation =
-        create_relation_in_partition(&mut runtime, left_source, left_target, "left-r0", PartitionId(7));
+    let _left_relation = create_relation_in_partition(
+        &mut runtime,
+        left_source,
+        left_target,
+        "left-r0",
+        PartitionId(7),
+    );
     let historical_version = runtime.latest_commit().unwrap().version_id;
-    let _right_relation =
-        create_relation_in_partition(&mut runtime, right_source, right_target, "right-r0", PartitionId(11));
+    let _right_relation = create_relation_in_partition(
+        &mut runtime,
+        right_source,
+        right_target,
+        "right-r0",
+        PartitionId(11),
+    );
 
     runtime.reset_complexity_counters();
-    let records =
-        runtime.visible_relations_of_kind_in_partition(PartitionId(7), KindId(2), historical_version);
+    let records = runtime.visible_relations_of_kind_in_partition(
+        PartitionId(7),
+        KindId(2),
+        historical_version,
+    );
     let counters = runtime.complexity_counters();
 
     assert_eq!(records.len(), 1);

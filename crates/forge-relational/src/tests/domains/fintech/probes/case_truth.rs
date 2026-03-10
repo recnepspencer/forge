@@ -57,14 +57,20 @@ pub(crate) fn read_snapshot_probe(
         corrected_trade_count: result
             .entities
             .iter()
-            .filter(|entity| payload_has(&entity.payload, "corrected", |value| value.as_bool() == Some(true)))
+            .filter(|entity| {
+                payload_has(&entity.payload, "corrected", |value| {
+                    value.as_bool() == Some(true)
+                })
+            })
             .count(),
         repaired_settlement_count: result
             .entities
             .iter()
             .filter(|entity| {
                 payload_type_is(&entity.payload, "settlement")
-                    && payload_has(&entity.payload, "status", |value| value.as_str() == Some("repaired"))
+                    && payload_has(&entity.payload, "status", |value| {
+                        value.as_str() == Some("repaired")
+                    })
             })
             .count(),
         open_breach_count: result
@@ -72,7 +78,9 @@ pub(crate) fn read_snapshot_probe(
             .iter()
             .filter(|entity| {
                 payload_type_is(&entity.payload, "limit_breach")
-                    && payload_has(&entity.payload, "status", |value| value.as_str() == Some("open"))
+                    && payload_has(&entity.payload, "status", |value| {
+                        value.as_str() == Some("open")
+                    })
             })
             .count(),
         audit_record_count: result
@@ -112,14 +120,20 @@ pub(crate) fn read_version_probe(
         corrected_trade_count: result
             .entities
             .iter()
-            .filter(|entity| payload_has(&entity.payload, "corrected", |value| value.as_bool() == Some(true)))
+            .filter(|entity| {
+                payload_has(&entity.payload, "corrected", |value| {
+                    value.as_bool() == Some(true)
+                })
+            })
             .count(),
         repaired_settlement_count: result
             .entities
             .iter()
             .filter(|entity| {
                 payload_type_is(&entity.payload, "settlement")
-                    && payload_has(&entity.payload, "status", |value| value.as_str() == Some("repaired"))
+                    && payload_has(&entity.payload, "status", |value| {
+                        value.as_str() == Some("repaired")
+                    })
             })
             .count(),
         open_breach_count: result
@@ -127,7 +141,9 @@ pub(crate) fn read_version_probe(
             .iter()
             .filter(|entity| {
                 payload_type_is(&entity.payload, "limit_breach")
-                    && payload_has(&entity.payload, "status", |value| value.as_str() == Some("open"))
+                    && payload_has(&entity.payload, "status", |value| {
+                        value.as_str() == Some("open")
+                    })
             })
             .count(),
         audit_record_count: result
@@ -149,11 +165,7 @@ pub(crate) fn read_version_probe(
     }
 }
 
-fn payload_has(
-    payload: &RecordPayload,
-    key: &str,
-    predicate: impl Fn(&Value) -> bool,
-) -> bool {
+fn payload_has(payload: &RecordPayload, key: &str, predicate: impl Fn(&Value) -> bool) -> bool {
     match payload {
         RecordPayload::StructuredJson(value) => value.get(key).is_some_and(predicate),
         _ => false,
@@ -161,5 +173,7 @@ fn payload_has(
 }
 
 fn payload_type_is(payload: &RecordPayload, expected: &str) -> bool {
-    payload_has(payload, "entity_type", |value| value.as_str() == Some(expected))
+    payload_has(payload, "entity_type", |value| {
+        value.as_str() == Some(expected)
+    })
 }

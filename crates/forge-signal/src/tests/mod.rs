@@ -18,6 +18,7 @@ mod harness_platform;
 mod invalidation_bugs;
 mod lifecycle;
 mod multi_aspect;
+mod mutation_proofing;
 mod node_conditions;
 mod observability;
 mod performance;

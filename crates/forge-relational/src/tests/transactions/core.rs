@@ -166,7 +166,10 @@ fn snapshots_resolve_historical_entity_payloads_by_version() {
     let current_read = runtime.read_snapshot(&update_outcome.snapshot).unwrap();
     let version_read = runtime.read_version(create_outcome.version_id);
 
-    assert_eq!(read_entity_name(old_read.get_entity(entity).unwrap()), Some("before"));
+    assert_eq!(
+        read_entity_name(old_read.get_entity(entity).unwrap()),
+        Some("before")
+    );
     assert_eq!(
         read_entity_name(current_read.get_entity(entity).unwrap()),
         Some("after")
@@ -210,22 +213,34 @@ fn profile_resolution_and_provenance_are_explicit() {
             .source,
         crate::facade::ConfigValueSource::ProfileDefault
     );
+    assert_eq!(
+        runtime
+            .config()
+            .config_provenance
+            .source_for("visibility_cache_policy")
+            .unwrap()
+            .source,
+        crate::facade::ConfigValueSource::ProfileDefault
+    );
+    assert!(runtime.config().visibility_cache_policy.enabled);
 }
 
 #[test]
 fn snapshot_pins_block_reclaim_until_release() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::AiWorkflow);
     let create_outcome = create_entity_outcome(&mut runtime, "pinned");
+    let create_snapshot = runtime.snapshot();
     let entity = changed_entities(&create_outcome)[0];
-    let delete_outcome = delete_entity(&mut runtime, entity);
+    let _delete_outcome = delete_entity(&mut runtime, entity);
+    let delete_snapshot = runtime.snapshot();
     let first_retention = runtime.run_retention_pass();
 
     assert_eq!(first_retention.entity_reclaimed, 0);
     assert_eq!(runtime.storage_stats().deleted_entities, 1);
     assert_eq!(first_retention.entity_chunks_scanned, 1);
 
-    assert!(runtime.release_snapshot(&create_outcome.snapshot));
-    assert!(runtime.release_snapshot(&delete_outcome.snapshot));
+    assert!(runtime.release_snapshot(&create_snapshot));
+    assert!(runtime.release_snapshot(&delete_snapshot));
     let second_retention = runtime.run_retention_pass();
 
     assert!(second_retention.entity_reclaimed <= 1);
@@ -246,8 +261,10 @@ fn epoch_retention_backend_preserves_snapshot_visibility_until_release() {
         })
         .build();
     let create_outcome = create_entity_outcome(&mut runtime, "epoch-pinned");
+    let create_snapshot = runtime.snapshot();
     let entity = changed_entities(&create_outcome)[0];
-    let delete_outcome = delete_entity(&mut runtime, entity);
+    let _delete_outcome = delete_entity(&mut runtime, entity);
+    let delete_snapshot = runtime.snapshot();
 
     let first_retention = runtime.run_retention_pass();
     assert_eq!(
@@ -256,13 +273,13 @@ fn epoch_retention_backend_preserves_snapshot_visibility_until_release() {
     );
     assert_eq!(first_retention.entity_reclaimed, 0);
     assert!(runtime
-        .read_snapshot(&create_outcome.snapshot)
+        .read_snapshot(&create_snapshot)
         .unwrap()
         .get_entity(entity)
         .is_some());
 
-    assert!(runtime.release_snapshot(&create_outcome.snapshot));
-    assert!(runtime.release_snapshot(&delete_outcome.snapshot));
+    assert!(runtime.release_snapshot(&create_snapshot));
+    assert!(runtime.release_snapshot(&delete_snapshot));
     let second_retention = runtime.run_retention_pass();
 
     assert!(second_retention.entity_reclaimed <= 1);

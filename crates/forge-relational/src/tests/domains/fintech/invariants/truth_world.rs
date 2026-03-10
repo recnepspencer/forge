@@ -1,15 +1,30 @@
 use super::super::fixture::{FintechWorld, LEDGER_PARTITION, MARKET_PARTITION, RISK_PARTITION};
 
 pub(crate) fn assert_named_truth_world(world: &FintechWorld) {
-    assert_eq!(world.cases.baseline_portfolio.desk.partition_id, LEDGER_PARTITION);
-    assert_eq!(world.cases.baseline_portfolio.book.partition_id, LEDGER_PARTITION);
-    assert_eq!(world.cases.late_trade_correction.book.partition_id, LEDGER_PARTITION);
-    assert_eq!(world.cases.late_trade_correction.account.partition_id, LEDGER_PARTITION);
+    assert_eq!(
+        world.cases.baseline_portfolio.desk.partition_id,
+        LEDGER_PARTITION
+    );
+    assert_eq!(
+        world.cases.baseline_portfolio.book.partition_id,
+        LEDGER_PARTITION
+    );
+    assert_eq!(
+        world.cases.late_trade_correction.book.partition_id,
+        LEDGER_PARTITION
+    );
+    assert_eq!(
+        world.cases.late_trade_correction.account.partition_id,
+        LEDGER_PARTITION
+    );
     assert_eq!(
         world.cases.late_trade_correction.counterparty.partition_id,
         LEDGER_PARTITION
     );
-    assert_eq!(world.cases.late_trade_correction.trade.partition_id, LEDGER_PARTITION);
+    assert_eq!(
+        world.cases.late_trade_correction.trade.partition_id,
+        LEDGER_PARTITION
+    );
     assert_eq!(
         world.cases.failed_settlement_repair.settlement.partition_id,
         LEDGER_PARTITION
@@ -22,9 +37,21 @@ pub(crate) fn assert_named_truth_world(world: &FintechWorld) {
         world.cases.late_trade_correction.audit_record.partition_id,
         LEDGER_PARTITION
     );
-    assert_eq!(world.cases.intraday_risk.instrument.partition_id, MARKET_PARTITION);
-    assert_eq!(world.cases.intraday_risk.market_point.partition_id, MARKET_PARTITION);
-    assert_eq!(world.cases.intraday_risk.risk_view.partition_id, RISK_PARTITION);
+    assert_eq!(
+        world.cases.intraday_risk.instrument.partition_id,
+        MARKET_PARTITION
+    );
+    assert_eq!(
+        world.cases.intraday_risk.market_point.partition_id,
+        MARKET_PARTITION
+    );
+    assert_eq!(
+        world.cases.intraday_risk.risk_view.partition_id,
+        RISK_PARTITION
+    );
     assert_eq!(world.cases.intraday_risk.limit.partition_id, RISK_PARTITION);
-    assert_eq!(world.cases.intraday_risk.breach.partition_id, RISK_PARTITION);
+    assert_eq!(
+        world.cases.intraday_risk.breach.partition_id,
+        RISK_PARTITION
+    );
 }

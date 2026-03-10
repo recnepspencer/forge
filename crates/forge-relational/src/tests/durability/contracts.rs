@@ -19,11 +19,8 @@ fn durability_contract_recovery_rebuilds_branch_heads_and_latest_commit() {
             &BranchId("main".to_string()),
         )
         .unwrap();
-    let feature = create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature-a",
-        BranchId("feature".to_string()),
-    );
+    let feature =
+        create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
     let _checkpoint = runtime.checkpoint().unwrap();
     let plan = runtime.recovery_plan();
     let mut recovered = persisted_runtime_with_test_schema();
@@ -121,11 +118,8 @@ fn durability_contract_recovery_preserves_merge_parent_order() {
             &BranchId("main".to_string()),
         )
         .unwrap();
-    let feature = create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature",
-        BranchId("feature".to_string()),
-    );
+    let feature =
+        create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
     let merge = merge_commit_from_branches(
         &mut runtime,
         BranchId("main".to_string()),

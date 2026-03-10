@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use std::num::NonZeroU32;
 
 use crate::data::dependency::DependencyEdge;
@@ -48,7 +49,7 @@ pub struct DependencyEdgeStore {
     edges: Vec<DependencyEdge>,
     segments: Vec<Segment>,
     #[serde(skip, default)]
-    interner: HashMap<Vec<DependencyEdge>, DependencySetId>,
+    interner: HashMap<u64, Vec<DependencySetId>>,
 }
 
 impl DependencyEdgeStore {
@@ -60,7 +61,9 @@ impl DependencyEdgeStore {
         for (index, segment) in self.segments.iter().copied().enumerate() {
             let slice = &self.edges[segment.start as usize..(segment.start + segment.len) as usize];
             self.interner
-                .insert(slice.to_vec(), DependencySetId::from_index(index + 1));
+                .entry(hash_slice(slice))
+                .or_default()
+                .push(DependencySetId::from_index(index + 1));
         }
     }
 
@@ -79,8 +82,13 @@ impl DependencyEdgeStore {
             return DependencySetId::EMPTY;
         }
         self.rebuild_interner_if_needed();
-        if let Some(id) = self.interner.get(edges).copied() {
-            return id;
+        let hash = hash_slice(edges);
+        if let Some(candidates) = self.interner.get(&hash) {
+            for &candidate in candidates {
+                if self.get(candidate) == edges {
+                    return candidate;
+                }
+            }
         }
         let start = self.edges.len() as u32;
         self.edges.extend_from_slice(edges);
@@ -89,7 +97,7 @@ impl DependencyEdgeStore {
             len: edges.len() as u32,
         });
         let id = DependencySetId::from_index(self.segments.len());
-        self.interner.insert(edges.to_vec(), id);
+        self.interner.entry(hash).or_default().push(id);
         id
     }
 
@@ -108,7 +116,7 @@ pub struct SubscriberEdgeStore {
     subscribers: Vec<NodeId>,
     segments: Vec<Segment>,
     #[serde(skip, default)]
-    interner: HashMap<Vec<NodeId>, SubscriberSetId>,
+    interner: HashMap<u64, Vec<SubscriberSetId>>,
 }
 
 impl SubscriberEdgeStore {
@@ -121,7 +129,9 @@ impl SubscriberEdgeStore {
             let slice =
                 &self.subscribers[segment.start as usize..(segment.start + segment.len) as usize];
             self.interner
-                .insert(slice.to_vec(), SubscriberSetId::from_index(index + 1));
+                .entry(hash_slice(slice))
+                .or_default()
+                .push(SubscriberSetId::from_index(index + 1));
         }
     }
 
@@ -140,8 +150,13 @@ impl SubscriberEdgeStore {
             return SubscriberSetId::EMPTY;
         }
         self.rebuild_interner_if_needed();
-        if let Some(id) = self.interner.get(subscribers).copied() {
-            return id;
+        let hash = hash_slice(subscribers);
+        if let Some(candidates) = self.interner.get(&hash) {
+            for &candidate in candidates {
+                if self.get(candidate) == subscribers {
+                    return candidate;
+                }
+            }
         }
         let start = self.subscribers.len() as u32;
         self.subscribers.extend_from_slice(subscribers);
@@ -150,7 +165,7 @@ impl SubscriberEdgeStore {
             len: subscribers.len() as u32,
         });
         let id = SubscriberSetId::from_index(self.segments.len());
-        self.interner.insert(subscribers.to_vec(), id);
+        self.interner.entry(hash).or_default().push(id);
         id
     }
 
@@ -162,4 +177,10 @@ impl SubscriberEdgeStore {
     pub(crate) fn live_segment_count(&self) -> usize {
         self.segments.len()
     }
+}
+
+fn hash_slice<T: Hash>(items: &[T]) -> u64 {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    items.hash(&mut hasher);
+    hasher.finish()
 }

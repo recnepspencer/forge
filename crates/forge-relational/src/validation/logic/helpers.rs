@@ -33,7 +33,11 @@ pub(crate) fn touched_visible_entity_ids(
             ));
         }
     }
-    if saw_any { Some(ids) } else { None }
+    if saw_any {
+        Some(ids)
+    } else {
+        None
+    }
 }
 
 pub(crate) fn entity_payload_for_state(

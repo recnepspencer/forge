@@ -51,6 +51,10 @@ impl RelationalRuntimeConfig {
             provenance_entry(config_override.symbol_policy.is_some()),
         );
         provenance_entries.insert(
+            "visibility_cache_policy".to_string(),
+            provenance_entry(config_override.visibility_cache_policy.is_some()),
+        );
+        provenance_entries.insert(
             "durable_log_policy".to_string(),
             provenance_entry(config_override.durable_log_policy.is_some()),
         );
@@ -101,6 +105,9 @@ impl RelationalRuntimeConfig {
         if let Some(symbol_policy) = &config_override.symbol_policy {
             config.symbol_policy = *symbol_policy;
         }
+        if let Some(visibility_cache_policy) = &config_override.visibility_cache_policy {
+            config.visibility_cache_policy = visibility_cache_policy.clone();
+        }
         if let Some(durable_log_policy) = &config_override.durable_log_policy {
             config.durable_log_policy = durable_log_policy.clone();
         }
@@ -138,6 +145,7 @@ fn default_profile_config(profile: RelationalRuntimeProfile) -> RelationalRuntim
                 storage_layout: StorageLayoutConfig,
                 payload_policy: PayloadPolicy,
                 symbol_policy: SymbolPolicy,
+                visibility_cache_policy: VisibilityCachePolicy,
                 durable_log_policy: DurableLogPolicy,
                 adjacency_policy: AdjacencyPolicy,
                 cross_context_policy: CrossContextPolicy,
@@ -162,6 +170,7 @@ fn default_profile_config(profile: RelationalRuntimeProfile) -> RelationalRuntim
         storage_layout,
         payload_policy,
         symbol_policy,
+        visibility_cache_policy,
         durable_log_policy,
         durable_store_layout: None,
         adjacency_policy,
@@ -207,6 +216,13 @@ fn default_profile_config(profile: RelationalRuntimeProfile) -> RelationalRuntim
             },
             PayloadPolicy::default(),
             SymbolPolicy::PreferInterned,
+            VisibilityCachePolicy {
+                enabled: true,
+                protect_branch_heads: true,
+                protect_replay_retained: true,
+                protect_active_snapshots: true,
+                recent_version_window: 32,
+            },
             DurableLogPolicy {
                 retention_mode: DurableLogRetentionMode::RetainAllInMemory,
                 max_in_memory_envelopes: 4_096,
@@ -256,6 +272,13 @@ fn default_profile_config(profile: RelationalRuntimeProfile) -> RelationalRuntim
                 allow_opaque_bytes: true,
             },
             SymbolPolicy::PreferInterned,
+            VisibilityCachePolicy {
+                enabled: true,
+                protect_branch_heads: true,
+                protect_replay_retained: true,
+                protect_active_snapshots: true,
+                recent_version_window: 2,
+            },
             DurableLogPolicy {
                 retention_mode: DurableLogRetentionMode::CompactAfterCheckpoint,
                 max_in_memory_envelopes: 2_048,
@@ -305,6 +328,13 @@ fn default_profile_config(profile: RelationalRuntimeProfile) -> RelationalRuntim
                 allow_opaque_bytes: true,
             },
             SymbolPolicy::RequireInterned,
+            VisibilityCachePolicy {
+                enabled: true,
+                protect_branch_heads: true,
+                protect_replay_retained: true,
+                protect_active_snapshots: true,
+                recent_version_window: 2,
+            },
             DurableLogPolicy {
                 retention_mode: DurableLogRetentionMode::CompactAfterCheckpoint,
                 max_in_memory_envelopes: 1_024,
@@ -354,6 +384,13 @@ fn default_profile_config(profile: RelationalRuntimeProfile) -> RelationalRuntim
                 allow_opaque_bytes: true,
             },
             SymbolPolicy::PreferInterned,
+            VisibilityCachePolicy {
+                enabled: true,
+                protect_branch_heads: true,
+                protect_replay_retained: true,
+                protect_active_snapshots: true,
+                recent_version_window: 16,
+            },
             DurableLogPolicy {
                 retention_mode: DurableLogRetentionMode::CompactAfterCheckpoint,
                 max_in_memory_envelopes: 1_024,

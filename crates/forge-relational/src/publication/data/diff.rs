@@ -1,9 +1,9 @@
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use crate::history::data::CommitId;
 use crate::identity::data::{EntityId, RelationId};
 use crate::payloads::data::{canonicalize_json, RecordPayload};
 use crate::symbols::data::InternedString;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AspectKey(pub InternedString);

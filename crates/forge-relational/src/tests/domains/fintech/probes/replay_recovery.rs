@@ -43,9 +43,17 @@ pub(crate) fn replay_probe_from_outcome(
 ) -> ReplayProbe {
     ReplayProbe {
         branch_name,
-        commit_id: replay.and_then(|outcome| outcome.commit.as_ref().map(|commit| commit.commit_id.0)),
-        mismatch_count: replay.map(|outcome| outcome.mismatches.len()).unwrap_or_default(),
-        failure: replay.and_then(|outcome| outcome.failure.as_ref().map(|failure| format!("{failure:?}"))),
+        commit_id: replay
+            .and_then(|outcome| outcome.commit.as_ref().map(|commit| commit.commit_id.0)),
+        mismatch_count: replay
+            .map(|outcome| outcome.mismatches.len())
+            .unwrap_or_default(),
+        failure: replay.and_then(|outcome| {
+            outcome
+                .failure
+                .as_ref()
+                .map(|failure| format!("{failure:?}"))
+        }),
     }
 }
 
@@ -58,7 +66,10 @@ pub(crate) fn capture_recovery_probe(
         branch_heads: runtime
             .branches()
             .into_iter()
-            .filter_map(|head| head.head.map(|commit| (head.branch_id.0, commit.commit_id.0)))
+            .filter_map(|head| {
+                head.head
+                    .map(|commit| (head.branch_id.0, commit.commit_id.0))
+            })
             .collect(),
         recovered_commits: outcome.recovered_commits,
         skipped_corrupt_checkpoints: outcome.integrity_report.skipped_corrupt_checkpoints.len(),

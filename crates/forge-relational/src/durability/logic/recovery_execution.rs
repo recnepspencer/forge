@@ -231,7 +231,11 @@ impl RelationalRuntime {
             .commit_envelopes
             .keys()
             .copied()
-            .chain(plan.tail_log.iter().map(|entry| entry.envelope.commit.commit_id))
+            .chain(
+                plan.tail_log
+                    .iter()
+                    .map(|entry| entry.envelope.commit.commit_id),
+            )
             .collect::<BTreeSet<_>>();
 
         for envelope in plan.tail_log.iter().map(|entry| &entry.envelope) {
@@ -309,7 +313,11 @@ impl RelationalRuntime {
             .indexes
             .generations
             .values()
-            .flat_map(|generations| generations.iter().map(|generation| generation.generation_id.0))
+            .flat_map(|generations| {
+                generations
+                    .iter()
+                    .map(|generation| generation.generation_id.0)
+            })
             .max()
             .unwrap_or(0)
             + 1;
@@ -339,6 +347,14 @@ impl RelationalRuntime {
         restored.config.durability_mode = original_durability_mode;
         restored.rebuild_unique_field_indexes();
         restored.rebuild_branch_pins_from_heads();
+        restored.snapshots.visibility_states.borrow_mut().clear();
+        restored.snapshots.visibility_residency.borrow_mut().clear();
+        {
+            let mut recent_policy = restored.snapshots.recent_policy.borrow_mut();
+            recent_policy.order.clear();
+            recent_policy.resident_count = 0;
+        }
+        restored.rebuild_branch_head_visibility_residency();
 
         Ok(restored)
     }

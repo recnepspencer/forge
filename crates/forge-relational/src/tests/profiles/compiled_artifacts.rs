@@ -8,7 +8,10 @@ fn chip_profile_emits_dense_patch_surface_details() {
     let _ = create_relation_in_partition(&mut runtime, left, right, "bridge", PartitionId(29));
     let patch = runtime.latest_patch().unwrap();
 
-    assert_eq!(patch.compatibility, PatchCompatibilityClass::DenseCompatible);
+    assert_eq!(
+        patch.compatibility,
+        PatchCompatibilityClass::DenseCompatible
+    );
     assert!(patch
         .records
         .iter()

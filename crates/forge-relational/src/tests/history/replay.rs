@@ -69,11 +69,8 @@ fn replay_contract_success_preserves_merge_parent_order() {
             &BranchId("main".to_string()),
         )
         .unwrap();
-    let feature = create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature",
-        BranchId("feature".to_string()),
-    );
+    let feature =
+        create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
     let merge = merge_commit_from_branches(
         &mut runtime,
         BranchId("main".to_string()),
@@ -110,14 +107,12 @@ fn replay_contract_success_preserves_merge_parent_order() {
 fn replay_contract_reports_structured_patch_drift_when_canonical_envelope_is_tampered() {
     let mut runtime = runtime_with_test_schema();
     let outcome = create_entity_outcome(&mut runtime, "replayable");
-    assert!(runtime.tamper_commit_patch_for_test(
-        outcome.commit.commit_id,
-        |patch| {
-            patch.records[0].detail = PatchDetail::StructuredJson(
-                serde_json::json!({"tampered": true}),
-            );
-        }
-    ));
+    assert!(
+        runtime.tamper_commit_patch_for_test(outcome.commit.commit_id, |patch| {
+            patch.records[0].detail =
+                PatchDetail::StructuredJson(serde_json::json!({"tampered": true}));
+        })
+    );
 
     let replay = runtime.replay_commit(RelationalReplayRequest {
         commit_id: outcome.commit.commit_id,

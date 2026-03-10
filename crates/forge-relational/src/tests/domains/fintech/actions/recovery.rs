@@ -1,5 +1,5 @@
 use crate::facade::{
-    CompactionOutcome, DurableCheckpoint, DurabilityError, RecoveryPlan, RelationalRuntime,
+    CompactionOutcome, DurabilityError, DurableCheckpoint, RecoveryPlan, RelationalRuntime,
 };
 use crate::logic::runtime::RecoveryOutcome;
 

@@ -1,7 +1,9 @@
 use crate::facade::BranchId;
 use crate::facade::{DerivedIndexGeneration, LineageGraphSnapshot, LineageResolutionStatus};
 
-use super::super::comparisons::{compare_case_truth, compare_observability_overlap, compare_recovery_probe};
+use super::super::comparisons::{
+    compare_case_truth, compare_observability_overlap, compare_recovery_probe,
+};
 use super::super::fixture::FintechWorld;
 use super::super::probes::{CaseTruthProbe, ObservabilityProbe, RecoveryProbe, ReplayProbe};
 
@@ -65,10 +67,7 @@ pub(crate) fn assert_replay_targets_branch(replay: &ReplayProbe, branch_id: &Bra
     assert_eq!(replay.branch_name, branch_id.0);
 }
 
-pub(crate) fn assert_recovery_matches_truth(
-    expected: &RecoveryProbe,
-    recovered: &RecoveryProbe,
-) {
+pub(crate) fn assert_recovery_matches_truth(expected: &RecoveryProbe, recovered: &RecoveryProbe) {
     let mismatches = compare_recovery_probe(expected, recovered);
     assert!(
         mismatches.is_empty(),
@@ -98,18 +97,23 @@ pub(crate) fn assert_metadata_preserved_after_recovery(
 ) {
     assert_eq!(resolution, LineageResolutionStatus::Promoted);
     assert!(
-        graph.correspondence_candidates.iter().any(|candidate| {
-            candidate.note == "fintech-case-correspondence"
-        }),
+        graph
+            .correspondence_candidates
+            .iter()
+            .any(|candidate| { candidate.note == "fintech-case-correspondence" }),
         "recovered lineage graph should preserve promoted correspondence candidates"
     );
     assert!(
-        graph.events.iter().any(|event| {
-            event.kind == crate::facade::LineageEventKind::Correspond
-        }),
+        graph
+            .events
+            .iter()
+            .any(|event| { event.kind == crate::facade::LineageEventKind::Correspond }),
         "recovered lineage graph should preserve correspondence events"
     );
-    assert_eq!(generation.source_branch_id, BranchId("analysis".to_string()));
+    assert_eq!(
+        generation.source_branch_id,
+        BranchId("analysis".to_string())
+    );
 }
 
 pub(crate) fn assert_observability_surfaces_agree(world: &FintechWorld) {

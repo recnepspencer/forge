@@ -73,6 +73,16 @@ pub struct RuntimeTelemetry {
     pub gc_epoch_count: u64,
     /// Total nanoseconds spent inside GC epochs.
     pub gc_epoch_nanos: u128,
+    /// Count of graph-storage compaction passes executed.
+    pub graph_storage_compaction_count: u64,
+    /// Count of dependency-edge segments rewritten during compaction.
+    pub graph_storage_dependency_segments_rewritten: u64,
+    /// Count of subscriber-edge segments rewritten during compaction.
+    pub graph_storage_subscriber_segments_rewritten: u64,
+    /// Count of dependency snapshots rewritten during compaction.
+    pub graph_storage_snapshot_rewrites: u64,
+    /// Count of created nodes rolled back before commit.
+    pub rolled_back_created_node_count: u64,
     /// Count of execution plans built.
     pub plans_built: u64,
     /// Count of execution stages built.

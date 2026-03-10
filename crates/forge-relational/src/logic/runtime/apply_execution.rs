@@ -385,9 +385,7 @@ fn aspect_keys_for_payload(
         .collect()
 }
 
-fn aspect_names_for_payload(
-    payload: Option<&crate::payloads::data::RecordPayload>,
-) -> Vec<String> {
+fn aspect_names_for_payload(payload: Option<&crate::payloads::data::RecordPayload>) -> Vec<String> {
     let mut aspects = BTreeSet::new();
     match payload {
         Some(crate::payloads::data::RecordPayload::StructuredJson(value)) => {

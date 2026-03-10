@@ -275,6 +275,15 @@ where
             partition_match_dirty_count: self.telemetry.partition_match_dirty_count,
             detail_match_dirty_count: self.telemetry.detail_match_dirty_count,
             partition_scope_revert_clean_count: self.telemetry.partition_scope_revert_clean_count,
+            graph_storage_compaction_count: self.telemetry.graph_storage_compaction_count,
+            graph_storage_dependency_segments_rewritten: self
+                .telemetry
+                .graph_storage_dependency_segments_rewritten,
+            graph_storage_subscriber_segments_rewritten: self
+                .telemetry
+                .graph_storage_subscriber_segments_rewritten,
+            graph_storage_snapshot_rewrites: self.telemetry.graph_storage_snapshot_rewrites,
+            rolled_back_created_node_count: self.telemetry.rolled_back_created_node_count,
             plans_built: self.telemetry.plans_built,
             stages_built: self.telemetry.stages_built,
             tasks_scheduled: self.telemetry.tasks_scheduled,

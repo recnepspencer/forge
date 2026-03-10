@@ -12,7 +12,13 @@ pub(crate) fn repair_seeded_failed_settlement(
     branch_id: BranchId,
 ) -> CommitOutcome {
     let case = world.failed_settlement_repair_case();
-    repair_settlement_with_payloads(world, branch_id, case.settlement, case.cash_event, case.audit_record)
+    repair_settlement_with_payloads(
+        world,
+        branch_id,
+        case.settlement,
+        case.cash_event,
+        case.audit_record,
+    )
 }
 
 pub(crate) fn repair_settlement_with_payloads(
@@ -26,8 +32,8 @@ pub(crate) fn repair_settlement_with_payloads(
         target_branch: Some(branch_id),
         ..TransactionOptions::default()
     });
-    txn.push_batch(
-        WorkerIntentBatch::new("repair-settlement").push(TransactionIntent::UpdateEntity {
+    txn.push_batch(WorkerIntentBatch::new("repair-settlement").push(
+        TransactionIntent::UpdateEntity {
             entity_id: settlement_id,
             payload: RecordPayload::StructuredJson(json!({
                 "entity_type": "settlement",
@@ -35,10 +41,10 @@ pub(crate) fn repair_settlement_with_payloads(
                 "status": "repaired",
                 "repair_completed": true,
             })),
-        }),
-    );
-    txn.push_batch(
-        WorkerIntentBatch::new("repair-cash-event").push(TransactionIntent::UpdateEntity {
+        },
+    ));
+    txn.push_batch(WorkerIntentBatch::new("repair-cash-event").push(
+        TransactionIntent::UpdateEntity {
             entity_id: cash_event_id,
             payload: RecordPayload::StructuredJson(json!({
                 "entity_type": "cash_event",
@@ -46,17 +52,17 @@ pub(crate) fn repair_settlement_with_payloads(
                 "kind": "repair-funding",
                 "status": "applied",
             })),
-        }),
-    );
-    txn.push_batch(
-        WorkerIntentBatch::new("repair-audit-record").push(TransactionIntent::UpdateEntity {
+        },
+    ));
+    txn.push_batch(WorkerIntentBatch::new("repair-audit-record").push(
+        TransactionIntent::UpdateEntity {
             entity_id: audit_record_id,
             payload: RecordPayload::StructuredJson(json!({
                 "entity_type": "audit_record",
                 "case": "failed-settlement-repair",
                 "event": "settlement-repaired",
             })),
-        }),
-    );
+        },
+    ));
     txn.commit().unwrap()
 }

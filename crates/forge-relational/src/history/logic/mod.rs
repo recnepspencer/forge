@@ -139,12 +139,12 @@ impl RelationalRuntime {
         self.history
             .branch_heads
             .insert(new_branch, source_head.clone());
+        self.move_branch_head_visibility_residency(
+            None,
+            source_head.as_ref().map(|head| head.version_id),
+        );
         if let Some(source_head) = source_head {
-            let state = self.build_visibility_state(
-                source_head.version_id,
-                crate::snapshots::data::SnapshotId(0),
-                crate::snapshots::data::SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
-            );
+            let state = self.ensure_visibility_state(source_head.version_id, false);
             self.pin_branch_state(&state);
         }
         Ok(())
@@ -222,20 +222,22 @@ impl RelationalRuntime {
     ) -> bool {
         if let Some(retained) = self.snapshots.replay_retained.get_mut(&version_id) {
             retained.ref_count += 1;
+            if self.config.visibility_cache_policy.protect_replay_retained {
+                self.bump_replay_ref(version_id, 1);
+            }
             return true;
         }
         if version_id.0 == 0 || version_id.0 > self.current_version_id().0 {
             return false;
         }
-        let state = self.build_visibility_state(
-            version_id,
-            crate::snapshots::data::SnapshotId(0),
-            crate::snapshots::data::SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
-        );
+        let state = self.ensure_visibility_state(version_id, false);
         self.pin_replay_state(&state);
+        if self.config.visibility_cache_policy.protect_replay_retained {
+            self.bump_replay_ref(version_id, 1);
+        }
         self.snapshots.replay_retained.insert(
             version_id,
-            crate::logic::runtime::ReplayRetentionState { state, ref_count: 1 },
+            crate::logic::runtime::ReplayRetentionState { ref_count: 1 },
         );
         true
     }
@@ -250,9 +252,19 @@ impl RelationalRuntime {
         if retained.ref_count > 1 {
             retained.ref_count -= 1;
             self.snapshots.replay_retained.insert(version_id, retained);
+            if self.config.visibility_cache_policy.protect_replay_retained {
+                self.bump_replay_ref(version_id, -1);
+            }
             return true;
         }
-        self.unpin_replay_state(&retained.state);
+        let Some(state) = self.visibility_state_for_version(version_id) else {
+            return false;
+        };
+        self.unpin_replay_state(&state);
+        if self.config.visibility_cache_policy.protect_replay_retained {
+            self.bump_replay_ref(version_id, -1);
+            self.evict_visibility_cache_if_needed();
+        }
         true
     }
 }

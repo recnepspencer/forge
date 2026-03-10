@@ -69,11 +69,8 @@ fn lineage_contract_branch_divergence_is_queryable() {
             &BranchId("main".to_string()),
         )
         .unwrap();
-    let _feature = create_entity_outcome_on_branch(
-        &mut runtime,
-        "feature",
-        BranchId("feature".to_string()),
-    );
+    let _feature =
+        create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
     let divergence = runtime.lineage_divergence_between_branches(
         &BranchId("main".to_string()),
         &BranchId("feature".to_string()),

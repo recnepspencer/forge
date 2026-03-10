@@ -9,8 +9,8 @@ use crate::diagnostics::data::{
 use crate::durability::data::DurableCommitEnvelope;
 use crate::history::data::{CommitId, CommitReference, VersionNode};
 use crate::identity::data::VersionId;
-use crate::logic::runtime::InvariantExecutionPoint;
 use crate::logic::runtime::apply::apply_plan_to_staged_state;
+use crate::logic::runtime::InvariantExecutionPoint;
 use crate::publication::data::diff::{
     PatchCompatibilityClass, PatchOrdering, PatchPublicationMode, PatchStreamPosition,
     RelationalPatchRecord,
@@ -19,9 +19,7 @@ use crate::publication::data::{PublicationError, PublicationStage, PublicationSt
 use crate::publication::logic::publication_failure_diagnostic;
 use crate::replay::data::CanonicalCommitEnvelope;
 use crate::transactions::data::{AuthoritativeApplyPlan, CommitOutcome, TransactionCommitError};
-use crate::validation::logic::{
-    first_blocking_invariant_error, first_publication_invariant_error,
-};
+use crate::validation::logic::{first_blocking_invariant_error, first_publication_invariant_error};
 
 impl<'a> RelationalTransaction<'a> {
     /// Executes the serialized truth-commit pipeline.
@@ -274,15 +272,10 @@ impl<'a> RelationalTransaction<'a> {
         staged.apply_to_runtime(&mut self.runtime.partitions);
         self.runtime
             .refresh_unique_field_index_for_records(&changed_records, version_id);
-        self.runtime.pin_snapshot_state(&artifacts.snapshot_state);
         self.runtime
             .snapshots
-            .version_visibility_cache
-            .insert(version_id, artifacts.snapshot_state.clone());
-        self.runtime
-            .snapshots
-            .active
-            .insert(artifacts.snapshot.snapshot_id, artifacts.snapshot_state);
+            .published_handles
+            .insert(artifacts.snapshot.snapshot_id, version_id);
         self.runtime
             .trim_live_history_for_records(&changed_records, version_id);
         self.runtime.history.next_commit_id += 1;
@@ -291,15 +284,21 @@ impl<'a> RelationalTransaction<'a> {
             .history
             .branch_heads
             .insert(branch_id.clone(), Some(commit_reference.clone()));
+        self.runtime.move_branch_head_visibility_residency(
+            previous_branch_head.as_ref().map(|head| head.version_id),
+            Some(version_id),
+        );
         self.runtime.advance_branch_pins_for_changed_records(
             previous_branch_head.as_ref().map(|head| head.version_id),
             version_id,
             &changed_records,
         );
-        self.runtime
-            .history
-            .commit_graph
-            .insert(commit_id, VersionNode { commit: commit_reference.clone() });
+        self.runtime.history.commit_graph.insert(
+            commit_id,
+            VersionNode {
+                commit: commit_reference.clone(),
+            },
+        );
         self.runtime
             .history
             .commit_envelopes

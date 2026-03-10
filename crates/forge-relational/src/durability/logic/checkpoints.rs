@@ -4,8 +4,8 @@ use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
 use crate::durability::data::{
-    CheckpointCoverage, DurabilityError, DurabilityMode, DurableCheckpoint,
-    DurableCheckpointId, DurableCheckpointManifest, DurableIntegrityStatus,
+    CheckpointCoverage, DurabilityError, DurabilityMode, DurableCheckpoint, DurableCheckpointId,
+    DurableCheckpointManifest, DurableIntegrityStatus,
 };
 use crate::history::data::BranchHead;
 use crate::logic::runtime::RelationalRuntime;
@@ -39,20 +39,6 @@ impl RelationalRuntime {
                     self.durability.log.drain(0..overflow);
                 }
             }
-        }
-        while self.snapshots.version_visibility_cache.len() > policy.max_in_memory_envelopes {
-            let Some(oldest_version) = self
-                .snapshots
-                .version_visibility_cache
-                .keys()
-                .next()
-                .copied()
-            else {
-                break;
-            };
-            self.snapshots
-                .version_visibility_cache
-                .remove(&oldest_version);
         }
         if self.config.durability_mode == DurabilityMode::PersistedSegmentedLocalFs
             && policy.compact_after_checkpoint

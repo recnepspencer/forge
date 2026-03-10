@@ -38,6 +38,35 @@ fn publication_bundle_is_the_single_visible_commit_surface() {
 }
 
 #[test]
+fn publication_snapshot_handle_reads_without_becoming_a_pinned_snapshot() {
+    let mut runtime = runtime_with_test_schema();
+    let outcome = create_entity_outcome(&mut runtime, "first");
+
+    let retention = runtime.inspect_retention_plan();
+    let read = runtime.read_snapshot(&outcome.snapshot).unwrap();
+    let inspection = runtime.inspect_snapshot(&outcome.snapshot).unwrap();
+    let packet = QueryWorkPacket::bulk(
+        "entities",
+        vec![ReadTarget::Entity(changed_entities(&outcome)[0])],
+    );
+
+    assert_eq!(retention.active_snapshot_count, 0);
+    assert_eq!(retention.snapshot_pinned_entities, 0);
+    assert_eq!(retention.snapshot_pinned_relations, 0);
+    assert_eq!(read.entities.len(), 1);
+    assert_eq!(inspection.pinned_entity_count, 0);
+    assert_eq!(inspection.entity_count, 1);
+    assert!(runtime
+        .plan_read_packet(&outcome.snapshot, &packet)
+        .is_some());
+    assert!(runtime
+        .execute_read_packet(&outcome.snapshot, &packet)
+        .is_some());
+    assert!(runtime.release_snapshot(&outcome.snapshot));
+    assert!(runtime.read_snapshot(&outcome.snapshot).is_none());
+}
+
+#[test]
 fn snapshot_audit_failure_blocks_publication() {
     let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
         snapshot_audit: vec![InvariantRule::MaxSnapshotEntities(0)],

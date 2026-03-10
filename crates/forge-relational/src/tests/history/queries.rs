@@ -5,7 +5,10 @@ fn branch_creation_and_branch_targeted_commits_build_a_version_graph() {
     let mut runtime = runtime_with_test_schema();
     let main_outcome = create_entity_outcome(&mut runtime, "main-a");
     runtime
-        .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
         .unwrap();
     let feature_outcome =
         create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
@@ -14,15 +17,23 @@ fn branch_creation_and_branch_targeted_commits_build_a_version_graph() {
     let graph = runtime.version_graph();
 
     assert_eq!(
-        runtime.branch_head(&BranchId("feature".to_string())).unwrap(),
+        runtime
+            .branch_head(&BranchId("feature".to_string()))
+            .unwrap(),
         &feature_outcome.commit
     );
     assert_eq!(
         runtime.branch_head(&BranchId("main".to_string())).unwrap(),
         &main_second.commit
     );
-    assert_eq!(feature_outcome.commit.parents, vec![main_outcome.commit.commit_id]);
-    assert_eq!(main_second.commit.parents, vec![main_outcome.commit.commit_id]);
+    assert_eq!(
+        feature_outcome.commit.parents,
+        vec![main_outcome.commit.commit_id]
+    );
+    assert_eq!(
+        main_second.commit.parents,
+        vec![main_outcome.commit.commit_id]
+    );
     assert_eq!(graph.branches.len(), 2);
     assert_eq!(graph.commits.len(), 3);
 }
@@ -32,7 +43,10 @@ fn merge_commit_uses_deterministic_parent_order_and_advances_target_branch() {
     let mut runtime = runtime_with_test_schema();
     let main_outcome = create_entity_outcome(&mut runtime, "main-a");
     runtime
-        .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
         .unwrap();
     let feature_outcome =
         create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
@@ -44,7 +58,10 @@ fn merge_commit_uses_deterministic_parent_order_and_advances_target_branch() {
 
     assert_eq!(
         merge_outcome.commit.parents,
-        vec![main_outcome.commit.commit_id, feature_outcome.commit.commit_id]
+        vec![
+            main_outcome.commit.commit_id,
+            feature_outcome.commit.commit_id
+        ]
     );
     assert_eq!(
         runtime.branch_head(&BranchId("main".to_string())),
@@ -61,7 +78,10 @@ fn merge_commit_uses_deterministic_parent_order_and_advances_target_branch() {
         envelope.merge_parent_branches,
         vec![BranchId("feature".to_string())]
     );
-    assert_eq!(envelope.merge_base_commits, vec![main_outcome.commit.commit_id]);
+    assert_eq!(
+        envelope.merge_base_commits,
+        vec![main_outcome.commit.commit_id]
+    );
     assert!(runtime
         .diagnostics()
         .by_scope(DiagnosticsScope::PatchPublication)
@@ -97,7 +117,10 @@ fn branch_history_helpers_expose_ancestor_and_merge_base_reasoning() {
     let mut runtime = runtime_with_test_schema();
     let main = create_entity_outcome(&mut runtime, "main");
     runtime
-        .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
         .unwrap();
     let feature =
         create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
@@ -121,7 +144,10 @@ fn merge_inspection_reports_overlapping_authority() {
     let base = create_entity_outcome(&mut runtime, "shared");
     let shared = changed_entities(&base)[0];
     runtime
-        .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
         .unwrap();
     let _main_update = update_entity(&mut runtime, shared, "main-updated");
     let _feature_update = update_entity_on_branch(
@@ -149,7 +175,10 @@ fn merge_commit_rejects_overlapping_authority_since_merge_base() {
     let base = create_entity_outcome(&mut runtime, "shared");
     let shared = changed_entities(&base)[0];
     runtime
-        .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
         .unwrap();
     let _main_update = update_entity(&mut runtime, shared, "main-updated");
     let _feature_update = update_entity_on_branch(
@@ -182,10 +211,16 @@ fn merge_commit_rejects_overlapping_authority_since_merge_base() {
 fn duplicate_branch_creation_is_rejected() {
     let mut runtime = runtime_with_test_schema();
     runtime
-        .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
         .unwrap();
     let error = runtime
-        .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
         .unwrap_err();
 
     assert_eq!(error, BranchCreateError::BranchAlreadyExists);
@@ -202,7 +237,8 @@ fn chunked_storage_summary_tracks_visibility_boundaries() {
     let _update = update_entity(&mut runtime, entity_a, "e0-updated");
 
     let summary_before_update = runtime.chunked_storage_summary(snapshot.version_id);
-    let summary_current = runtime.chunked_storage_summary(runtime.latest_commit().unwrap().version_id);
+    let summary_current =
+        runtime.chunked_storage_summary(runtime.latest_commit().unwrap().version_id);
 
     assert_eq!(summary_before_update.entity_chunks.len(), 2);
     assert_eq!(summary_before_update.entity_chunks[0].visible_records, 2);

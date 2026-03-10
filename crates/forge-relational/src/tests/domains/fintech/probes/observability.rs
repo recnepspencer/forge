@@ -1,5 +1,5 @@
-use super::case_truth::ProbeStage;
 use super::super::fixture::FintechWorld;
+use super::case_truth::ProbeStage;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct ObservabilityProbe {
@@ -17,7 +17,10 @@ pub(crate) fn capture_observability_probe(
 ) -> ObservabilityProbe {
     ObservabilityProbe {
         stage,
-        latest_commit_id: world.runtime.latest_commit().map(|commit| commit.commit_id.0),
+        latest_commit_id: world
+            .runtime
+            .latest_commit()
+            .map(|commit| commit.commit_id.0),
         latest_patch_present: world.runtime.latest_patch().is_some(),
         latest_replay_present: world.runtime.latest_replay().is_some(),
         diagnostics_artifact_count: world.runtime.diagnostics().artifacts().len(),

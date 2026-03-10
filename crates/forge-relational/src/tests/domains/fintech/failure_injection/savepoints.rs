@@ -18,5 +18,7 @@ pub(crate) fn invalid_savepoint_rollback_code(
         target_branch: Some(branch_id),
         ..TransactionOptions::default()
     });
-    txn.rollback_to_savepoint(SavepointId(999)).unwrap_err().code
+    txn.rollback_to_savepoint(SavepointId(999))
+        .unwrap_err()
+        .code
 }

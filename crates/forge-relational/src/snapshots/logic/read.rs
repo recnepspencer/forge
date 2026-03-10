@@ -7,16 +7,28 @@ use crate::storage::logic::state::{
 
 impl RelationalRuntime {
     pub fn inspect_snapshot(&self, handle: &SnapshotHandle) -> Option<SnapshotInspectionSummary> {
-        self.snapshots
-            .active
-            .get(&handle.snapshot_id)
-            .map(|state| SnapshotInspectionSummary {
-                version_id: state.handle.version_id,
+        if let Some(binding) = self.snapshots.active.get(&handle.snapshot_id) {
+            let state = self.read_or_reconstruct_visibility_state(
+                binding.version_id,
+                !self.config.visibility_cache_policy.protect_active_snapshots,
+            )?;
+            return Some(SnapshotInspectionSummary {
+                version_id: binding.version_id,
                 entity_count: state.pinned_entity_count,
                 relation_count: state.pinned_relation_count,
                 pinned_entity_count: state.pinned_entity_count,
                 pinned_relation_count: state.pinned_relation_count,
-            })
+            });
+        }
+        let version_id = *self.snapshots.published_handles.get(&handle.snapshot_id)?;
+        let read_view = self.read_version(version_id);
+        Some(SnapshotInspectionSummary {
+            version_id,
+            entity_count: read_view.entities.len(),
+            relation_count: read_view.relations.len(),
+            pinned_entity_count: 0,
+            pinned_relation_count: 0,
+        })
     }
 
     pub(crate) fn entity_record_for_id_at_version(
@@ -93,9 +105,13 @@ impl RelationalRuntime {
                 if partition.entity_arena.kind_ids.get(slot).copied().flatten() != Some(kind_id) {
                     continue;
                 }
-                if let Some(record) =
-                    materialize_entity_record_at_version(self, partition, partition_id, slot, version_id)
-                {
+                if let Some(record) = materialize_entity_record_at_version(
+                    self,
+                    partition,
+                    partition_id,
+                    slot,
+                    version_id,
+                ) {
                     records.push(record);
                 }
             }
@@ -121,7 +137,13 @@ impl RelationalRuntime {
         };
         if version_id == current_version {
             for slot in partition.relation_arena.live_bitset.iter_set_slots() {
-                if partition.relation_arena.kind_ids.get(slot).copied().flatten() != Some(kind_id)
+                if partition
+                    .relation_arena
+                    .kind_ids
+                    .get(slot)
+                    .copied()
+                    .flatten()
+                    != Some(kind_id)
                 {
                     continue;
                 }
@@ -137,7 +159,13 @@ impl RelationalRuntime {
                 .borrow_mut()
                 .visibility_relation_slot_scans += partition.relation_arena.generations.len();
             for slot in 0..partition.relation_arena.generations.len() {
-                if partition.relation_arena.kind_ids.get(slot).copied().flatten() != Some(kind_id)
+                if partition
+                    .relation_arena
+                    .kind_ids
+                    .get(slot)
+                    .copied()
+                    .flatten()
+                    != Some(kind_id)
                 {
                     continue;
                 }
@@ -204,9 +232,13 @@ impl RelationalRuntime {
                 .borrow_mut()
                 .visibility_entity_slot_scans += partition.entity_arena.generations.len();
             for slot in 0..partition.entity_arena.generations.len() {
-                if let Some(record) =
-                    materialize_entity_record_at_version(self, partition, partition_id, slot, version_id)
-                {
+                if let Some(record) = materialize_entity_record_at_version(
+                    self,
+                    partition,
+                    partition_id,
+                    slot,
+                    version_id,
+                ) {
                     records.push(record);
                 }
             }

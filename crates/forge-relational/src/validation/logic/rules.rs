@@ -81,12 +81,17 @@ pub(crate) fn evaluate_rule(
             }
         }
         InvariantRule::MaxMergedIntents(limit) => {
-            let merged_len = merged_plan.map(|plan| plan.merged_intents.len()).unwrap_or(0);
+            let merged_len = merged_plan
+                .map(|plan| plan.merged_intents.len())
+                .unwrap_or(0);
             if merged_len > *limit {
                 violations.push(InvariantViolation {
                     class,
                     code: DiagnosticCode::InvariantViolation,
-                    detail: format!("merged commit plan has {} intents, limit is {}", merged_len, limit),
+                    detail: format!(
+                        "merged commit plan has {} intents, limit is {}",
+                        merged_len, limit
+                    ),
                 });
             }
         }
@@ -110,7 +115,9 @@ pub(crate) fn evaluate_rule(
                         .borrow_mut()
                         .invariant_entity_slot_scans += partition.entity_arena.generations.len();
                     visible_entities += (0..partition.entity_arena.generations.len())
-                        .filter(|slot| entity_visible_at_version(&partition.entity_arena, *slot, version_id))
+                        .filter(|slot| {
+                            entity_visible_at_version(&partition.entity_arena, *slot, version_id)
+                        })
                         .count();
                 }
             }
@@ -126,7 +133,15 @@ pub(crate) fn evaluate_rule(
             }
         }
         InvariantRule::UniqueEntityPayloadField(field) => {
-            evaluate_unique_entity_payload_field(runtime, state, version_id, class, field, merged_plan, violations);
+            evaluate_unique_entity_payload_field(
+                runtime,
+                state,
+                version_id,
+                class,
+                field,
+                merged_plan,
+                violations,
+            );
         }
     }
 }
@@ -148,7 +163,9 @@ fn evaluate_unique_entity_payload_field(
                 .complexity_counters
                 .borrow_mut()
                 .invariant_entity_slot_scans += 1;
-            if let Some(existing_entity_id) = planned_value_to_entity.insert(value.clone(), entity_id) {
+            if let Some(existing_entity_id) =
+                planned_value_to_entity.insert(value.clone(), entity_id)
+            {
                 if existing_entity_id != entity_id || entity_id.is_none() {
                     violations.push(duplicate_field_violation(class, field, &value));
                     continue;
@@ -159,7 +176,11 @@ fn evaluate_unique_entity_payload_field(
                 .entity_unique_field_index
                 .get(field)
                 .and_then(|values| values.get(&value))
-                .is_some_and(|existing| existing.iter().any(|existing_id| entity_id != Some(*existing_id)))
+                .is_some_and(|existing| {
+                    existing
+                        .iter()
+                        .any(|existing_id| entity_id != Some(*existing_id))
+                })
             {
                 violations.push(duplicate_field_violation(class, field, &value));
             }
@@ -195,7 +216,11 @@ fn evaluate_unique_entity_payload_field(
                 .entity_unique_field_index
                 .get(field)
                 .and_then(|values| values.get(value))
-                .is_some_and(|existing| existing.iter().any(|existing_id| !touched_set.contains(existing_id)))
+                .is_some_and(|existing| {
+                    existing
+                        .iter()
+                        .any(|existing_id| !touched_set.contains(existing_id))
+                })
             {
                 violations.push(duplicate_field_violation(class, field, value));
             }
@@ -288,7 +313,10 @@ fn planned_entity_field_values(
                     values.push((Some(*entity_id), value.to_string()));
                 }
             }
-            TransactionIntent::ReplaceEntity { entity_id, replacement } => {
+            TransactionIntent::ReplaceEntity {
+                entity_id,
+                replacement,
+            } => {
                 saw_entity_change = true;
                 if let Some(value) = replacement
                     .payload

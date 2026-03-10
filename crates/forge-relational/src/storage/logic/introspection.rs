@@ -12,14 +12,12 @@ impl RelationalRuntime {
         let state = self.current_state();
         let mut records = Vec::new();
         for partition_id in state.partition_ids() {
-            records.extend(
-                self.visible_entities_of_kind_in_partition_from_state(
-                    &state,
-                    partition_id,
-                    kind_id,
-                    version_id,
-                ),
-            );
+            records.extend(self.visible_entities_of_kind_in_partition_from_state(
+                &state,
+                partition_id,
+                kind_id,
+                version_id,
+            ));
         }
         sort_entity_records(&mut records);
         records
@@ -91,6 +89,7 @@ impl RelationalRuntime {
             relation_counts.deleted += counts.deleted;
             relation_counts.reusable += counts.reusable;
         }
+        let residency = self.snapshots.visibility_residency.borrow();
         StorageStats {
             entity_slots: self.entity_slot_count(),
             entity_chunks: chunked_summary.entity_chunks.len(),
@@ -103,6 +102,17 @@ impl RelationalRuntime {
             deleted_relations: relation_counts.deleted,
             reusable_relation_slots: relation_counts.reusable,
             snapshot_count: self.snapshots.active.len(),
+            published_snapshot_handle_count: self.snapshots.published_handles.len(),
+            cached_visibility_version_count: self.snapshots.visibility_states.borrow().len(),
+            protected_visibility_version_count: residency
+                .values()
+                .filter(|entry| {
+                    entry.branch_head_refs > 0
+                        || entry.replay_refs > 0
+                        || entry.active_snapshot_refs > 0
+                })
+                .count(),
+            recent_visibility_cache_count: self.snapshots.recent_policy.borrow().resident_count,
         }
     }
 
@@ -142,14 +152,12 @@ impl RelationalRuntime {
         let state = self.current_state();
         let mut records = Vec::new();
         for partition_id in state.partition_ids() {
-            records.extend(
-                self.visible_relations_of_kind_in_partition_from_state(
-                    &state,
-                    partition_id,
-                    kind_id,
-                    version_id,
-                ),
-            );
+            records.extend(self.visible_relations_of_kind_in_partition_from_state(
+                &state,
+                partition_id,
+                kind_id,
+                version_id,
+            ));
         }
         records.sort_by_key(|record| {
             (
@@ -201,9 +209,9 @@ impl RelationalRuntime {
             versions
                 .iter()
                 .filter_map(|(symbol, version)| {
-                    self.symbols.resolve(*symbol).map(|_| {
-                        (AspectKey(InternedString::Symbol(*symbol)), *version)
-                    })
+                    self.symbols
+                        .resolve(*symbol)
+                        .map(|_| (AspectKey(InternedString::Symbol(*symbol)), *version))
                 })
                 .collect(),
         )
@@ -220,9 +228,9 @@ impl RelationalRuntime {
             versions
                 .iter()
                 .filter_map(|(symbol, version)| {
-                    self.symbols.resolve(*symbol).map(|_| {
-                        (AspectKey(InternedString::Symbol(*symbol)), *version)
-                    })
+                    self.symbols
+                        .resolve(*symbol)
+                        .map(|_| (AspectKey(InternedString::Symbol(*symbol)), *version))
                 })
                 .collect(),
         )
@@ -235,7 +243,10 @@ impl RelationalRuntime {
     ) -> Option<Vec<AspectKey>> {
         let state = self.current_state();
         let record = self.entity_record_for_id_at_version(&state, entity_id, version_id)?;
-        Some(aspect_keys_for_payload(&record.payload, &mut self.symbols.clone()))
+        Some(aspect_keys_for_payload(
+            &record.payload,
+            &mut self.symbols.clone(),
+        ))
     }
 
     pub fn relation_aspects_at_version(

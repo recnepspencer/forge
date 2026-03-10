@@ -1,7 +1,7 @@
 use crate::config::data::{
     AdjacencyPolicy, CascadeDeletePolicy, CompiledLanePolicy, CrossContextPolicy, DurableLogPolicy,
     MvccConfig, PublicationConfig, RelationalConfigOverride, RelationalRuntimeProfile,
-    StorageLayoutConfig,
+    StorageLayoutConfig, VisibilityCachePolicy,
 };
 use crate::diagnostics::data::RelationalDiagnosticsProfile;
 use crate::durability::data::{DurabilityMode, DurableStoreLayout};
@@ -123,6 +123,14 @@ impl RelationalRuntimeBuilder {
 
     pub fn symbol_policy(mut self, symbol_policy: SymbolPolicy) -> Self {
         self.config_override.symbol_policy = Some(symbol_policy);
+        self
+    }
+
+    pub fn visibility_cache_policy(
+        mut self,
+        visibility_cache_policy: VisibilityCachePolicy,
+    ) -> Self {
+        self.config_override.visibility_cache_policy = Some(visibility_cache_policy);
         self
     }
 

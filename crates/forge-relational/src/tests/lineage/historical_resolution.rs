@@ -11,17 +11,20 @@ fn historical_lineage_resolution_follows_replace_events() {
     let start_lineage = runtime.lineage_for_record(entity).unwrap().lineage_id;
 
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
-    txn.push_batch(WorkerIntentBatch::new("replace").push(TransactionIntent::ReplaceEntity {
-        entity_id: entity,
-        replacement: crate::transactions::data::EntitySpec {
-            partition_id: PartitionId::main(),
-            kind_id: KindId(1),
-            client_key: InternedString::Raw("replacement".to_string()),
-            payload: RecordPayload::StructuredJson(json!({"name":"replacement"})),
-        },
-    }));
+    txn.push_batch(
+        WorkerIntentBatch::new("replace").push(TransactionIntent::ReplaceEntity {
+            entity_id: entity,
+            replacement: crate::transactions::data::EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: InternedString::Raw("replacement".to_string()),
+                payload: RecordPayload::StructuredJson(json!({"name":"replacement"})),
+            },
+        }),
+    );
     let outcome = txn.commit().unwrap();
-    let resolution = runtime.resolve_historical_lineage(&BranchId("main".to_string()), start_lineage);
+    let resolution =
+        runtime.resolve_historical_lineage(&BranchId("main".to_string()), start_lineage);
 
     assert_eq!(resolution.start, start_lineage);
     assert_eq!(resolution.traversed_event_ids.len(), 1);
@@ -55,7 +58,10 @@ fn historical_lineage_resolution_is_branch_local_under_divergent_replacements() 
         .unwrap()
         .lineage_id;
     runtime
-        .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
         .unwrap();
 
     let main_candidate = runtime.record_correspondence_candidate(
@@ -74,7 +80,10 @@ fn historical_lineage_resolution_is_branch_local_under_divergent_replacements() 
         "feature-branch-resolution",
     );
     runtime
-        .promote_correspondence(feature_candidate.candidate_id, feature_target.commit.clone())
+        .promote_correspondence(
+            feature_candidate.candidate_id,
+            feature_target.commit.clone(),
+        )
         .unwrap();
 
     let main_resolution =

@@ -102,7 +102,12 @@ impl RelationalRuntime {
         let mut current = vec![lineage_id];
         let mut traversed_event_ids = Vec::new();
 
-        for event in self.lineage.events.iter().filter(|event| &event.branch_id == branch_id) {
+        for event in self
+            .lineage
+            .events
+            .iter()
+            .filter(|event| &event.branch_id == branch_id)
+        {
             if !event.sources.iter().any(|source| current.contains(source)) {
                 continue;
             }

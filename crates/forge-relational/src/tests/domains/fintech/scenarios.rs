@@ -57,7 +57,11 @@ pub(super) fn selection_for(scenario: FintechScenario) -> FintechScenarioSelecti
             scenario,
             scenario_key: "persisted-smoke-book",
             canonical_case: FintechCaseRole::BaselinePortfolio,
-            expected_invariants: &["fixture_shape_smoke", "truth_world_named", "recovery_queryable"],
+            expected_invariants: &[
+                "fixture_shape_smoke",
+                "truth_world_named",
+                "recovery_queryable",
+            ],
             expected_artifacts: &[
                 "snapshot-visible-truth",
                 "branch-head-state",
@@ -99,12 +103,12 @@ pub(super) fn selection_for(scenario: FintechScenario) -> FintechScenarioSelecti
             scenario,
             scenario_key: "late-trade-correction",
             canonical_case: FintechCaseRole::LateTradeCorrection,
-            expected_invariants: &["correction_visible", "audit_truth_visible", "analysis_branch_local"],
-            expected_artifacts: &[
-                "snapshot-visible-truth",
-                "branch-head-state",
-                "diagnostics",
+            expected_invariants: &[
+                "correction_visible",
+                "audit_truth_visible",
+                "analysis_branch_local",
             ],
+            expected_artifacts: &["snapshot-visible-truth", "branch-head-state", "diagnostics"],
             expected_read_alias: "trade-correction.read.post-mutation",
             probe_prefix: "trade-correction",
             persisted: false,
@@ -113,7 +117,11 @@ pub(super) fn selection_for(scenario: FintechScenario) -> FintechScenarioSelecti
             scenario,
             scenario_key: "failed-settlement-repair",
             canonical_case: FintechCaseRole::FailedSettlementRepair,
-            expected_invariants: &["settlement_repaired", "repair_audit_visible", "analysis_branch_local"],
+            expected_invariants: &[
+                "settlement_repaired",
+                "repair_audit_visible",
+                "analysis_branch_local",
+            ],
             expected_artifacts: &[
                 "snapshot-visible-truth",
                 "replay-recovery-truth",

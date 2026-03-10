@@ -165,7 +165,10 @@ impl RelationalRuntime {
                 surface: ReplayObservableSurface::BranchHead,
                 detail: "branch head movement differed".to_string(),
                 expected: Some(format!("{:?}", Some(&envelope.commit))),
-                observed: Some(format!("{:?}", replay_runtime.branch_head(&request.branch_id))),
+                observed: Some(format!(
+                    "{:?}",
+                    replay_runtime.branch_head(&request.branch_id)
+                )),
             });
         }
         if compared_surfaces.contains(&ReplayObservableSurface::Lineage)

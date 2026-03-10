@@ -23,7 +23,12 @@ fn bulk_create_entities_match_equivalent_singular_creates() {
     let singular_runtime = apply_batches(vec![batch_create("a"), batch_create("b")]);
     let bulk_read = bulk_runtime.read_snapshot(&bulk_outcome.snapshot).unwrap();
     let singular_read = singular_runtime
-        .read_snapshot(&singular_runtime.latest_publication_bundle().unwrap().snapshot)
+        .read_snapshot(
+            &singular_runtime
+                .latest_publication_bundle()
+                .unwrap()
+                .snapshot,
+        )
         .unwrap();
 
     assert_eq!(bulk_outcome.changed_records.len(), 2);
@@ -119,24 +124,30 @@ fn partition_registry_and_stats_expose_partition_owned_state() {
     let partition_ids = runtime.partition_ids();
     let stats = runtime.partition_storage_stats();
 
-    assert_eq!(partition_ids, vec![PartitionId(7), PartitionId(11), PartitionId(29)]);
+    assert_eq!(
+        partition_ids,
+        vec![PartitionId(7), PartitionId(11), PartitionId(29)]
+    );
     assert_eq!(stats.len(), 3);
     assert_eq!(
-        stats.iter()
+        stats
+            .iter()
             .find(|entry| entry.partition_id == PartitionId(7))
             .unwrap()
             .live_entities,
         1
     );
     assert_eq!(
-        stats.iter()
+        stats
+            .iter()
             .find(|entry| entry.partition_id == PartitionId(11))
             .unwrap()
             .live_entities,
         1
     );
     assert_eq!(
-        stats.iter()
+        stats
+            .iter()
             .find(|entry| entry.partition_id == PartitionId(29))
             .unwrap()
             .live_relations,

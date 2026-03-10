@@ -66,16 +66,18 @@ fn patch_stream_records_aspects_for_entity_and_relation_payloads() {
                     json!({"name":"source-2","status":"hot","risk":"elevated"}),
                 ),
             })
-            .push(TransactionIntent::CreateRelation(crate::transactions::data::RelationSpec {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(2),
-                client_key: InternedString::Raw("weighted".to_string()),
-                source,
-                target,
-                payload: Some(RecordPayload::StructuredJson(
-                    json!({"label":"weighted","weight":7}),
-                )),
-            })),
+            .push(TransactionIntent::CreateRelation(
+                crate::transactions::data::RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(2),
+                    client_key: InternedString::Raw("weighted".to_string()),
+                    source,
+                    target,
+                    payload: Some(RecordPayload::StructuredJson(
+                        json!({"label":"weighted","weight":7}),
+                    )),
+                },
+            )),
     );
     let outcome = txn.commit().unwrap();
     let relation = changed_relations(&outcome)[0];
@@ -94,11 +96,17 @@ fn patch_stream_records_aspects_for_entity_and_relation_payloads() {
     assert_eq!(entity_patch.aspects.len(), 3);
     assert_eq!(relation_patch.aspects.len(), 2);
     assert_eq!(
-        runtime.entity_aspects_at_version(source, outcome.version_id).unwrap().len(),
+        runtime
+            .entity_aspects_at_version(source, outcome.version_id)
+            .unwrap()
+            .len(),
         3
     );
     assert_eq!(
-        runtime.relation_aspects_at_version(relation, outcome.version_id).unwrap().len(),
+        runtime
+            .relation_aspects_at_version(relation, outcome.version_id)
+            .unwrap()
+            .len(),
         2
     );
     assert!(runtime.entity_aspect_versions(source).unwrap().len() >= 3);

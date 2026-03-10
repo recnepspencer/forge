@@ -74,6 +74,15 @@ pub struct MvccConfig {
     pub retention_backend: RetentionBackend,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VisibilityCachePolicy {
+    pub enabled: bool,
+    pub protect_branch_heads: bool,
+    pub protect_replay_retained: bool,
+    pub protect_active_snapshots: bool,
+    pub recent_version_window: usize,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AdjacencyBackend {
     InlineSmallDegreeAdjacency,
@@ -148,6 +157,7 @@ pub struct RelationalConfigOverride {
     pub publication: Option<PublicationConfig>,
     pub payload_policy: Option<PayloadPolicy>,
     pub symbol_policy: Option<SymbolPolicy>,
+    pub visibility_cache_policy: Option<VisibilityCachePolicy>,
     pub durable_log_policy: Option<DurableLogPolicy>,
     pub durable_store_layout: Option<DurableStoreLayout>,
     pub adjacency_policy: Option<AdjacencyPolicy>,
@@ -166,6 +176,7 @@ impl RelationalConfigOverride {
             && self.publication.is_none()
             && self.payload_policy.is_none()
             && self.symbol_policy.is_none()
+            && self.visibility_cache_policy.is_none()
             && self.durable_log_policy.is_none()
             && self.durable_store_layout.is_none()
             && self.adjacency_policy.is_none()
@@ -186,6 +197,7 @@ impl Default for RelationalConfigOverride {
             publication: None,
             payload_policy: None,
             symbol_policy: None,
+            visibility_cache_policy: None,
             durable_log_policy: None,
             durable_store_layout: None,
             adjacency_policy: None,
@@ -214,6 +226,7 @@ pub struct RelationalRuntimeConfig {
     pub storage_layout: StorageLayoutConfig,
     pub payload_policy: PayloadPolicy,
     pub symbol_policy: SymbolPolicy,
+    pub visibility_cache_policy: VisibilityCachePolicy,
     pub durable_log_policy: DurableLogPolicy,
     pub durable_store_layout: Option<DurableStoreLayout>,
     pub adjacency_policy: AdjacencyPolicy,

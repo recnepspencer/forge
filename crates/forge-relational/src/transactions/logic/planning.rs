@@ -56,7 +56,10 @@ impl<'a> RelationalTransaction<'a> {
     ) -> Result<(Vec<CommitId>, Vec<CommitId>), CommitConflict> {
         let mut parents = Vec::new();
         let mut merge_bases = Vec::new();
-        let target_head = self.runtime.branch_head(target_branch).map(|head| head.commit_id);
+        let target_head = self
+            .runtime
+            .branch_head(target_branch)
+            .map(|head| head.commit_id);
         if let Some(head) = self.runtime.branch_head(target_branch) {
             parents.push(head.commit_id);
         }
@@ -85,8 +88,9 @@ impl<'a> RelationalTransaction<'a> {
                             ),
                         });
                     }
-                    let Some(merge_base) =
-                        self.runtime.latest_common_ancestor(target_head, head.commit_id)
+                    let Some(merge_base) = self
+                        .runtime
+                        .latest_common_ancestor(target_head, head.commit_id)
                     else {
                         return Err(CommitConflict {
                             code: DiagnosticCode::MissingMergeBase,

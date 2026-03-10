@@ -24,7 +24,10 @@ fn run_check(
     let (passed, detail) = match parts.as_slice() {
         ["fixture_shape_smoke"] => {
             assert_fixture_shape(&session.world, FintechScale::smoke());
-            (true, "fixture shape matches smoke fintech world".to_string())
+            (
+                true,
+                "fixture shape matches smoke fintech world".to_string(),
+            )
         }
         ["read_nonempty", alias] => {
             let count = session
@@ -33,7 +36,10 @@ fn run_check(
                 .and_then(|value| value.get("entity_count"))
                 .and_then(|value| value.as_u64())
                 .unwrap_or_default();
-            (count > 0, format!("read `{alias}` should contain at least one entity"))
+            (
+                count > 0,
+                format!("read `{alias}` should contain at least one entity"),
+            )
         }
         ["read_has_corrected_trade", alias] => {
             let count = session
@@ -138,7 +144,11 @@ fn run_check(
                 .runtime
                 .branch_head(&branch)
                 .map(|head| head.commit_id);
-            let latest = session.world.runtime.latest_commit().map(|commit| commit.commit_id);
+            let latest = session
+                .world
+                .runtime
+                .latest_commit()
+                .map(|commit| commit.commit_id);
             (
                 branch_head == latest,
                 format!("branch `{alias}` should point at the latest commit"),

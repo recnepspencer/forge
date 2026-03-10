@@ -7,7 +7,7 @@ pub use crate::config::data::{
     ConfigProvenanceEntry, ConfigValueSource, CrossContextPolicy, DurableLogPolicy,
     DurableLogRetentionMode, MvccConfig, PatchSurfacePolicy, PublicationConfig,
     RelationalConfigOverride, RelationalRuntimeProfile, RetentionBackend, RetentionPolicy,
-    SnapshotReleasePolicy, StorageLayoutConfig,
+    SnapshotReleasePolicy, StorageLayoutConfig, VisibilityCachePolicy,
 };
 pub use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,

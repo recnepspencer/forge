@@ -55,7 +55,15 @@ impl RelationalRuntime {
         for (class, failure_effect, rules) in groups {
             let mut violations = Vec::new();
             for rule in rules {
-                evaluate_rule(self, state, version_id, class, rule, merged_plan, &mut violations);
+                evaluate_rule(
+                    self,
+                    state,
+                    version_id,
+                    class,
+                    rule,
+                    merged_plan,
+                    &mut violations,
+                );
             }
             if !violations.is_empty() || !rules.is_empty() {
                 results.push(InvariantCheckResult {

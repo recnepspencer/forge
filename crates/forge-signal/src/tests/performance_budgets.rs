@@ -95,4 +95,9 @@ fn repeated_gc_compaction_cycles_stay_near_live_edge_storage() {
         subscriber_segments <= live_nodes * 2,
         "subscriber segments should stay bounded near live-node scale after repeated compaction: edges={subscriber_edges} segments={subscriber_segments} live_nodes={live_nodes}"
     );
+
+    let metrics = runtime.graph().metrics();
+    assert!(metrics.graph_storage_compaction_count >= 1);
+    assert!(metrics.graph_storage_dependency_segments_rewritten >= dependency_segments as u64);
+    assert!(metrics.graph_storage_subscriber_segments_rewritten >= subscriber_segments as u64);
 }

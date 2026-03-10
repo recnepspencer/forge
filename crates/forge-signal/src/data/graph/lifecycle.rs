@@ -129,6 +129,13 @@ impl SignalGraph {
         let old_dependency_edges = std::mem::take(&mut self.dependency_edges);
         let old_subscriber_edges = std::mem::take(&mut self.subscriber_edges);
         let old_dependency_snapshots = std::mem::take(&mut self.dependency_snapshots);
+        self.telemetry.graph_storage_compaction_count += 1;
+        self.telemetry.graph_storage_dependency_segments_rewritten +=
+            old_dependency_edges.live_segment_count() as u64;
+        self.telemetry.graph_storage_subscriber_segments_rewritten +=
+            old_subscriber_edges.live_segment_count() as u64;
+        self.telemetry.graph_storage_snapshot_rewrites +=
+            old_dependency_snapshots.live_snapshot_count() as u64;
 
         let mut dependency_id_map = HashMap::new();
         let mut subscriber_id_map = HashMap::new();

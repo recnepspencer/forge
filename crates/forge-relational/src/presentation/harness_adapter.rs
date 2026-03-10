@@ -154,9 +154,8 @@ impl HarnessAdapter for RelationalHarnessAdapter {
         let scenario_id_value = forge_harness::facade::scenario_id(&fixture.name);
         let run_id_value = run_id(&scenario_id_value, &profile.name, &request.name);
         let snapshot = runtime.snapshot();
-        let read_view = runtime
-            .read_snapshot(&snapshot)
-            .ok_or_else(|| RelationalHarnessError("snapshot unavailable".to_string()))?;
+        let mut read_view = runtime.read_version(snapshot.version_id);
+        read_view.snapshot = snapshot.clone();
         let targets = resolve_targets(request);
         let packet = QueryWorkPacket::bulk(
             "execute",
@@ -220,19 +219,22 @@ impl HarnessAdapter for RelationalHarnessAdapter {
         let run_id_value = run_id(&scenario_id_value, &profile.name, &request.name);
         let mut clone = runtime.clone();
         let snapshot = clone.snapshot();
-        let read_view = clone
-            .read_snapshot(&snapshot)
-            .ok_or_else(|| RelationalHarnessError("snapshot unavailable".to_string()))?;
+        let mut read_view = clone.read_version(snapshot.version_id);
+        read_view.snapshot = snapshot.clone();
         let observations = resolve_targets(request)
             .into_iter()
             .map(|target| {
                 let payload = match parse_target(&target)? {
-                    ReadTarget::Entity(entity_id) => read_view
-                        .get_entity(entity_id)
-                        .map(|entity| SnapshotPayload::Structured(StructuredValue::Json(json!(entity)))),
-                    ReadTarget::Relation(relation_id) => read_view
-                        .get_relation(relation_id)
-                        .map(|relation| SnapshotPayload::Structured(StructuredValue::Json(json!(relation)))),
+                    ReadTarget::Entity(entity_id) => {
+                        read_view.get_entity(entity_id).map(|entity| {
+                            SnapshotPayload::Structured(StructuredValue::Json(json!(entity)))
+                        })
+                    }
+                    ReadTarget::Relation(relation_id) => {
+                        read_view.get_relation(relation_id).map(|relation| {
+                            SnapshotPayload::Structured(StructuredValue::Json(json!(relation)))
+                        })
+                    }
                 };
                 Ok(SnapshotObservation {
                     target,

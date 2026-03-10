@@ -47,7 +47,14 @@ impl RelationalRuntime {
         handle: &crate::snapshots::data::SnapshotHandle,
         packet: &QueryWorkPacket,
     ) -> Option<ReadPacketPlan> {
-        self.snapshots.active.get(&handle.snapshot_id)?;
+        if !self.snapshots.active.contains_key(&handle.snapshot_id)
+            && !self
+                .snapshots
+                .published_handles
+                .contains_key(&handle.snapshot_id)
+        {
+            return None;
+        }
         let mut entity_chunk_indexes = Vec::new();
         let mut relation_chunk_indexes = Vec::new();
 

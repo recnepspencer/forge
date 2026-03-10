@@ -47,22 +47,20 @@ pub(crate) fn commit_case_trade_after_savepoint(
         ..TransactionOptions::default()
     });
     let _savepoint = txn.create_savepoint();
-    txn.push_batch(
-        WorkerIntentBatch::new("saved-case-trade-correction").push(
-            TransactionIntent::UpdateEntity {
-                entity_id: case.trade,
-                payload: RecordPayload::StructuredJson(json!({
-                    "entity_type": "trade",
-                    "case": "LateTradeCorrection",
-                    "desk": "analysis-risk",
-                    "book": "saved-correction",
-                    "notional": 1_800_000,
-                    "ccy": "USD",
-                    "corrected": true,
-                    "savepoint_applied": true,
-                })),
-            },
-        ),
-    );
+    txn.push_batch(WorkerIntentBatch::new("saved-case-trade-correction").push(
+        TransactionIntent::UpdateEntity {
+            entity_id: case.trade,
+            payload: RecordPayload::StructuredJson(json!({
+                "entity_type": "trade",
+                "case": "LateTradeCorrection",
+                "desk": "analysis-risk",
+                "book": "saved-correction",
+                "notional": 1_800_000,
+                "ccy": "USD",
+                "corrected": true,
+                "savepoint_applied": true,
+            })),
+        },
+    ));
     txn.commit().unwrap()
 }

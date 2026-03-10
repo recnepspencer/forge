@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::logic::runtime::RelationalRuntime;
+use crate::logic::runtime::{RelationalRuntime, VisibilityResidency};
 use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
 use crate::storage::data::{RecordLifecycleState, RelationalReadView};
 use crate::storage::logic::state::{DenseSlotBitSet, SnapshotPartitionPins, SnapshotState};
@@ -62,7 +62,8 @@ impl RelationalRuntime {
         self.snapshots
             .active
             .values()
-            .map(|state| state.handle.version_id)
+            .map(|binding| binding.version_id)
+            .chain(self.snapshots.replay_retained.keys().copied())
             .min()
             .unwrap_or(published_version)
     }
@@ -80,6 +81,269 @@ impl RelationalRuntime {
         );
         self.pin_snapshot_state(&state);
         (state.handle.clone(), state)
+    }
+
+    pub(crate) fn visibility_state_for_version(
+        &self,
+        version_id: crate::identity::data::VersionId,
+    ) -> Option<SnapshotState> {
+        self.snapshots
+            .visibility_states
+            .borrow()
+            .get(&version_id)
+            .cloned()
+    }
+
+    pub(crate) fn insert_visibility_state(&self, state: SnapshotState) {
+        self.snapshots
+            .visibility_states
+            .borrow_mut()
+            .insert(state.handle.version_id, state);
+    }
+
+    pub(crate) fn visibility_residency_for_version(
+        &self,
+        version_id: crate::identity::data::VersionId,
+    ) -> VisibilityResidency {
+        self.snapshots
+            .visibility_residency
+            .borrow()
+            .get(&version_id)
+            .cloned()
+            .unwrap_or_default()
+    }
+
+    pub(crate) fn bump_active_snapshot_ref(
+        &self,
+        version_id: crate::identity::data::VersionId,
+        delta: i32,
+    ) {
+        self.bump_visibility_ref(version_id, delta, |residency| {
+            residency.active_snapshot_refs =
+                residency.active_snapshot_refs.saturating_add_signed(delta);
+        });
+        if delta > 0 {
+            self.instrumentation
+                .complexity_counters
+                .borrow_mut()
+                .visibility_cache_snapshot_promotions += delta as usize;
+        }
+    }
+
+    pub(crate) fn bump_replay_ref(&self, version_id: crate::identity::data::VersionId, delta: i32) {
+        self.bump_visibility_ref(version_id, delta, |residency| {
+            residency.replay_refs = residency.replay_refs.saturating_add_signed(delta);
+        });
+        if delta > 0 {
+            self.instrumentation
+                .complexity_counters
+                .borrow_mut()
+                .visibility_cache_replay_promotions += delta as usize;
+        }
+    }
+
+    fn bump_visibility_ref(
+        &self,
+        version_id: crate::identity::data::VersionId,
+        _delta: i32,
+        update: impl FnOnce(&mut VisibilityResidency),
+    ) {
+        let mut residency = self.snapshots.visibility_residency.borrow_mut();
+        let entry = residency.entry(version_id).or_default();
+        update(entry);
+        if entry.branch_head_refs == 0
+            && entry.replay_refs == 0
+            && entry.active_snapshot_refs == 0
+            && !entry.recent_resident
+        {
+            residency.remove(&version_id);
+        }
+        drop(residency);
+        self.maybe_remove_unprotected_visibility_state(version_id);
+    }
+
+    fn protect_branch_head_version(&self, version_id: crate::identity::data::VersionId) {
+        self.ensure_visibility_state(version_id, false);
+        self.bump_visibility_ref(version_id, 1, |residency| {
+            residency.branch_head_refs += 1;
+        });
+    }
+
+    pub(crate) fn ensure_visibility_state(
+        &self,
+        version_id: crate::identity::data::VersionId,
+        recent_candidate: bool,
+    ) -> SnapshotState {
+        if let Some(state) = self.visibility_state_for_version(version_id) {
+            self.instrumentation
+                .complexity_counters
+                .borrow_mut()
+                .visibility_cache_hits += 1;
+            return state;
+        }
+        self.instrumentation
+            .complexity_counters
+            .borrow_mut()
+            .visibility_cache_miss_reconstructions += 1;
+        let state = self.build_visibility_state(
+            version_id,
+            SnapshotId(0),
+            SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
+        );
+        self.insert_visibility_state(state.clone());
+        if recent_candidate {
+            self.mark_recent_visibility_state(version_id);
+        }
+        state
+    }
+
+    pub(crate) fn read_or_reconstruct_visibility_state(
+        &self,
+        version_id: crate::identity::data::VersionId,
+        allow_recent_admission: bool,
+    ) -> Option<SnapshotState> {
+        if version_id.0 == 0 || version_id.0 > self.current_version_id().0 {
+            return None;
+        }
+        if let Some(state) = self.visibility_state_for_version(version_id) {
+            self.instrumentation
+                .complexity_counters
+                .borrow_mut()
+                .visibility_cache_hits += 1;
+            return Some(state);
+        }
+        let recent_candidate = allow_recent_admission
+            && self.config.visibility_cache_policy.enabled
+            && self.snapshots.recent_policy.borrow().recent_version_window > 0
+            && !self.is_protected_visibility_version(version_id);
+        if recent_candidate || self.is_protected_visibility_version(version_id) {
+            return Some(self.ensure_visibility_state(version_id, recent_candidate));
+        }
+        self.instrumentation
+            .complexity_counters
+            .borrow_mut()
+            .visibility_cache_miss_reconstructions += 1;
+        Some(self.build_visibility_state(
+            version_id,
+            SnapshotId(0),
+            SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
+        ))
+    }
+
+    pub(crate) fn is_protected_visibility_version(
+        &self,
+        version_id: crate::identity::data::VersionId,
+    ) -> bool {
+        let residency = self.visibility_residency_for_version(version_id);
+        residency.branch_head_refs > 0
+            || residency.replay_refs > 0
+            || residency.active_snapshot_refs > 0
+    }
+
+    pub(crate) fn mark_recent_visibility_state(
+        &self,
+        version_id: crate::identity::data::VersionId,
+    ) {
+        if !self.config.visibility_cache_policy.enabled
+            || self.snapshots.recent_policy.borrow().recent_version_window == 0
+        {
+            return;
+        }
+        {
+            let mut residency = self.snapshots.visibility_residency.borrow_mut();
+            let entry = residency.entry(version_id).or_default();
+            if entry.recent_resident {
+                return;
+            }
+            entry.recent_resident = true;
+        }
+        {
+            let mut recent_policy = self.snapshots.recent_policy.borrow_mut();
+            recent_policy.order.push_back(version_id);
+            recent_policy.resident_count += 1;
+        }
+        self.evict_visibility_cache_if_needed();
+    }
+
+    pub(crate) fn evict_visibility_cache_if_needed(&self) {
+        let window = self.snapshots.recent_policy.borrow().recent_version_window;
+        if !self.config.visibility_cache_policy.enabled || window == 0 {
+            return;
+        }
+        loop {
+            if self.snapshots.recent_policy.borrow().resident_count <= window {
+                break;
+            }
+            let scan_len = self.snapshots.recent_policy.borrow().order.len();
+            if scan_len == 0 {
+                break;
+            }
+            let mut evicted = false;
+            for _ in 0..scan_len {
+                let candidate = self.snapshots.recent_policy.borrow_mut().order.pop_front();
+                let Some(version_id) = candidate else {
+                    break;
+                };
+                let mut residency = self.snapshots.visibility_residency.borrow_mut();
+                let Some(entry) = residency.get_mut(&version_id) else {
+                    continue;
+                };
+                if !entry.recent_resident {
+                    continue;
+                }
+                if entry.branch_head_refs > 0
+                    || entry.replay_refs > 0
+                    || entry.active_snapshot_refs > 0
+                {
+                    drop(residency);
+                    self.snapshots
+                        .recent_policy
+                        .borrow_mut()
+                        .order
+                        .push_back(version_id);
+                    continue;
+                }
+                entry.recent_resident = false;
+                self.snapshots.recent_policy.borrow_mut().resident_count -= 1;
+                if entry.branch_head_refs == 0
+                    && entry.replay_refs == 0
+                    && entry.active_snapshot_refs == 0
+                {
+                    residency.remove(&version_id);
+                }
+                drop(residency);
+                self.snapshots
+                    .visibility_states
+                    .borrow_mut()
+                    .remove(&version_id);
+                self.instrumentation
+                    .complexity_counters
+                    .borrow_mut()
+                    .visibility_cache_recent_evictions += 1;
+                evicted = true;
+                break;
+            }
+            if !evicted {
+                break;
+            }
+        }
+    }
+
+    fn maybe_remove_unprotected_visibility_state(
+        &self,
+        version_id: crate::identity::data::VersionId,
+    ) {
+        let residency = self.visibility_residency_for_version(version_id);
+        if residency.branch_head_refs == 0
+            && residency.replay_refs == 0
+            && residency.active_snapshot_refs == 0
+            && !residency.recent_resident
+        {
+            self.snapshots
+                .visibility_states
+                .borrow_mut()
+                .remove(&version_id);
+        }
     }
 
     pub(crate) fn read_from_snapshot_state(&self, state: &SnapshotState) -> RelationalReadView {
@@ -224,11 +488,19 @@ impl RelationalRuntime {
                 }
                 crate::transactions::data::RecordRef::Relation(relation_id) => {
                     let was_visible = old_version.is_some_and(|version_id| {
-                        self.relation_record_for_id_at_version(&current_state, *relation_id, version_id)
-                            .is_some()
+                        self.relation_record_for_id_at_version(
+                            &current_state,
+                            *relation_id,
+                            version_id,
+                        )
+                        .is_some()
                     });
                     let is_visible = self
-                        .relation_record_for_id_at_version(&current_state, *relation_id, new_version)
+                        .relation_record_for_id_at_version(
+                            &current_state,
+                            *relation_id,
+                            new_version,
+                        )
                         .is_some();
                     match (was_visible, is_visible) {
                         (false, true) => relation_actions.push((*relation_id, 1)),
@@ -271,13 +543,79 @@ impl RelationalRuntime {
             .filter_map(|head| head.as_ref().map(|head| head.version_id))
             .collect::<Vec<_>>();
         for version_id in head_versions {
-            let state = self.build_visibility_state(
-                version_id,
-                SnapshotId(0),
-                SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
-            );
+            let state = self.ensure_visibility_state(version_id, false);
             self.pin_branch_state(&state);
         }
+    }
+
+    pub(crate) fn rebuild_branch_head_visibility_residency(&self) {
+        let tracked_versions = self
+            .snapshots
+            .visibility_residency
+            .borrow()
+            .iter()
+            .filter_map(|(version_id, residency)| {
+                (residency.branch_head_refs > 0).then_some(*version_id)
+            })
+            .collect::<Vec<_>>();
+        {
+            let mut residency = self.snapshots.visibility_residency.borrow_mut();
+            for version_id in &tracked_versions {
+                if let Some(entry) = residency.get_mut(version_id) {
+                    entry.branch_head_refs = 0;
+                    if entry.replay_refs == 0
+                        && entry.active_snapshot_refs == 0
+                        && !entry.recent_resident
+                    {
+                        residency.remove(version_id);
+                    }
+                }
+            }
+        }
+        for version_id in tracked_versions {
+            self.maybe_remove_unprotected_visibility_state(version_id);
+        }
+        if !self.config.visibility_cache_policy.protect_branch_heads {
+            self.evict_visibility_cache_if_needed();
+            return;
+        }
+        let head_versions = self
+            .history
+            .branch_heads
+            .values()
+            .filter_map(|head| head.as_ref().map(|head| head.version_id))
+            .collect::<Vec<_>>();
+        for version_id in head_versions {
+            self.protect_branch_head_version(version_id);
+            self.instrumentation
+                .complexity_counters
+                .borrow_mut()
+                .visibility_cache_branch_head_promotions += 1;
+        }
+        self.evict_visibility_cache_if_needed();
+    }
+
+    pub(crate) fn move_branch_head_visibility_residency(
+        &self,
+        previous_head: Option<crate::identity::data::VersionId>,
+        next_head: Option<crate::identity::data::VersionId>,
+    ) {
+        if !self.config.visibility_cache_policy.protect_branch_heads || previous_head == next_head {
+            return;
+        }
+        if let Some(version_id) = previous_head {
+            self.bump_visibility_ref(version_id, -1, |residency| {
+                residency.branch_head_refs = residency.branch_head_refs.saturating_sub(1);
+            });
+        }
+        if let Some(version_id) = next_head {
+            self.protect_branch_head_version(version_id);
+            self.instrumentation
+                .complexity_counters
+                .borrow_mut()
+                .visibility_cache_branch_head_promotions += 1;
+        }
+        self.evict_visibility_cache_if_needed();
     }
 
     pub(crate) fn unpin_snapshot_state(&mut self, state: &SnapshotState) {
@@ -380,10 +718,7 @@ impl RelationalRuntime {
         adjust_relation_pin(self, relation_id, PinClass::Branch, 1);
     }
 
-    pub(crate) fn unpin_branch_relation(
-        &mut self,
-        relation_id: crate::identity::data::RelationId,
-    ) {
+    pub(crate) fn unpin_branch_relation(&mut self, relation_id: crate::identity::data::RelationId) {
         adjust_relation_pin(self, relation_id, PinClass::Branch, -1);
     }
 
@@ -391,10 +726,7 @@ impl RelationalRuntime {
         adjust_relation_pin(self, relation_id, PinClass::Replay, 1);
     }
 
-    pub(crate) fn unpin_replay_relation(
-        &mut self,
-        relation_id: crate::identity::data::RelationId,
-    ) {
+    pub(crate) fn unpin_replay_relation(&mut self, relation_id: crate::identity::data::RelationId) {
         adjust_relation_pin(self, relation_id, PinClass::Replay, -1);
     }
 
@@ -635,7 +967,12 @@ fn adjust_entity_pin(
         .and_then(|partition| partition.entity_arena.retired_at.get(slot).copied())
         .flatten();
     let retention_fence = runtime.retention_fence_version(runtime.current_version_id());
-    runtime.refresh_entity_retention_state(entity_id.partition_id, slot, retired_at, retention_fence);
+    runtime.refresh_entity_retention_state(
+        entity_id.partition_id,
+        slot,
+        retired_at,
+        retention_fence,
+    );
 }
 
 fn adjust_relation_pin(

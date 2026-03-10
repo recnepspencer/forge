@@ -1,7 +1,7 @@
-#[path = "bitsets.rs"]
-mod bitsets;
 #[path = "adjacency.rs"]
 mod adjacency;
+#[path = "bitsets.rs"]
+mod bitsets;
 #[path = "working_state.rs"]
 mod working_state;
 

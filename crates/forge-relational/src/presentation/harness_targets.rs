@@ -47,8 +47,7 @@ pub(super) fn parse_target(target: &str) -> Result<ReadTarget, RelationalHarness
         ),
         _ => {
             return Err(RelationalHarnessError(
-                "target must be kind:slot:generation or kind:partition:slot:generation"
-                    .to_string(),
+                "target must be kind:slot:generation or kind:partition:slot:generation".to_string(),
             ))
         }
     };

@@ -18,8 +18,8 @@ pub(crate) fn diverge_case_trade_on_branch(
         target_branch: Some(branch_id),
         ..TransactionOptions::default()
     });
-    txn.push_batch(
-        WorkerIntentBatch::new("diverge-case-trade").push(TransactionIntent::UpdateEntity {
+    txn.push_batch(WorkerIntentBatch::new("diverge-case-trade").push(
+        TransactionIntent::UpdateEntity {
             entity_id: case.trade,
             payload: RecordPayload::StructuredJson(json!({
                 "entity_type": "trade",
@@ -30,8 +30,8 @@ pub(crate) fn diverge_case_trade_on_branch(
                 "ccy": "USD",
                 "diverged": true,
             })),
-        }),
-    );
+        },
+    ));
     txn.commit().unwrap()
 }
 
