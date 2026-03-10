@@ -1,9 +1,11 @@
 use serde_json::json;
+use std::collections::BTreeSet;
 
 use crate::config::data::PatchSurfacePolicy;
 use crate::diagnostics::data::{DiagnosticCode, RelationalDiagnosticsEntry};
-use crate::publication::data::diff::{PatchRecord, PatchRecordKind};
+use crate::publication::data::diff::{AspectKey, PatchRecord, PatchRecordKind};
 use crate::schema::data::RelationalSchemaRegistry;
+use crate::symbols::data::{InternedString, StringInterner};
 use crate::transactions::data::{
     AuthoritativeApplyPlan, RecordRef, RelationSpec, TransactionIntent,
 };
@@ -20,6 +22,7 @@ pub(crate) fn apply_plan_to_staged_state(
     apply_plan: &AuthoritativeApplyPlan,
     patch_surface_policy: PatchSurfacePolicy,
     schema_registry: &RelationalSchemaRegistry,
+    symbols: &mut StringInterner,
     cascade_delete_policy: crate::config::data::CascadeDeletePolicy,
 ) -> (
     Vec<RecordRef>,
@@ -44,6 +47,13 @@ pub(crate) fn apply_plan_to_staged_state(
                     entity_id.partition_id,
                     entity_id.local_slot.0 as usize,
                 );
+                write_entity_aspect_versions(
+                    staged,
+                    entity_id,
+                    apply_plan.version_id,
+                    &spec.payload,
+                    symbols,
+                );
                 changed_records.push(RecordRef::Entity(entity_id));
                 diagnostics.push(RelationalDiagnosticsEntry {
                     code: DiagnosticCode::EntityCreated,
@@ -58,6 +68,7 @@ pub(crate) fn apply_plan_to_staged_state(
                     kind: PatchRecordKind::EntityCreated,
                     entity_id: Some(entity_id),
                     relation_id: None,
+                    aspects: aspect_keys_for_payload(Some(&spec.payload), symbols),
                     detail: patch_detail_for_entity(
                         patch_surface_policy,
                         PatchRecordKind::EntityCreated,
@@ -85,11 +96,19 @@ pub(crate) fn apply_plan_to_staged_state(
                         entity_id.partition_id,
                         entity_id.local_slot.0 as usize,
                     );
+                    write_entity_aspect_versions(
+                        staged,
+                        entity_id,
+                        apply_plan.version_id,
+                        &payload,
+                        symbols,
+                    );
                     changed_records.push(RecordRef::Entity(entity_id));
                     patch_records.push(PatchRecord {
                         kind: PatchRecordKind::EntityCreated,
                         entity_id: Some(entity_id),
                         relation_id: None,
+                        aspects: aspect_keys_for_payload(Some(&payload), symbols),
                         detail: patch_detail_for_entity(
                             patch_surface_policy,
                             PatchRecordKind::EntityCreated,
@@ -117,6 +136,13 @@ pub(crate) fn apply_plan_to_staged_state(
                     payload.clone(),
                     apply_plan.version_id,
                 );
+                write_entity_aspect_versions(
+                    staged,
+                    entity_id,
+                    apply_plan.version_id,
+                    &payload,
+                    symbols,
+                );
                 changed_records.push(RecordRef::Entity(entity_id));
                 diagnostics.push(RelationalDiagnosticsEntry {
                     code: DiagnosticCode::EntityUpdated,
@@ -130,6 +156,7 @@ pub(crate) fn apply_plan_to_staged_state(
                     kind: PatchRecordKind::EntityUpdated,
                     entity_id: Some(entity_id),
                     relation_id: None,
+                    aspects: aspect_keys_for_payload(Some(&payload), symbols),
                     detail: patch_detail_for_entity(
                         patch_surface_policy,
                         PatchRecordKind::EntityUpdated,
@@ -163,6 +190,13 @@ pub(crate) fn apply_plan_to_staged_state(
                     replacement_id.partition_id,
                     replacement_id.local_slot.0 as usize,
                 );
+                write_entity_aspect_versions(
+                    staged,
+                    replacement_id,
+                    apply_plan.version_id,
+                    &replacement.payload,
+                    symbols,
+                );
                 changed_records.push(RecordRef::Entity(replacement_id));
                 diagnostics.push(RelationalDiagnosticsEntry {
                     code: DiagnosticCode::EntityUpdated,
@@ -179,6 +213,7 @@ pub(crate) fn apply_plan_to_staged_state(
                     kind: PatchRecordKind::EntityCreated,
                     entity_id: Some(replacement_id),
                     relation_id: None,
+                    aspects: aspect_keys_for_payload(Some(&replacement.payload), symbols),
                     detail: patch_detail_for_entity(
                         patch_surface_policy,
                         PatchRecordKind::EntityCreated,
@@ -239,6 +274,7 @@ pub(crate) fn apply_plan_to_staged_state(
                     kind: PatchRecordKind::RelationCreated,
                     entity_id: None,
                     relation_id: Some(relation_id),
+                    aspects: aspect_keys_for_payload(spec.payload.as_ref(), symbols),
                     detail: patch_detail_for_relation(
                         patch_surface_policy,
                         PatchRecordKind::RelationCreated,
@@ -248,6 +284,13 @@ pub(crate) fn apply_plan_to_staged_state(
                         spec.payload.as_ref(),
                     ),
                 });
+                write_relation_aspect_versions(
+                    staged,
+                    relation_id,
+                    apply_plan.version_id,
+                    spec.payload.as_ref(),
+                    symbols,
+                );
             }
             TransactionIntent::BulkCreateRelations {
                 partition_id,
@@ -284,6 +327,7 @@ pub(crate) fn apply_plan_to_staged_state(
                         kind: PatchRecordKind::RelationCreated,
                         entity_id: None,
                         relation_id: Some(relation_id),
+                        aspects: aspect_keys_for_payload(spec.payload.as_ref(), symbols),
                         detail: patch_detail_for_relation(
                             patch_surface_policy,
                             PatchRecordKind::RelationCreated,
@@ -293,6 +337,13 @@ pub(crate) fn apply_plan_to_staged_state(
                             spec.payload.as_ref(),
                         ),
                     });
+                    write_relation_aspect_versions(
+                        staged,
+                        relation_id,
+                        apply_plan.version_id,
+                        spec.payload.as_ref(),
+                        symbols,
+                    );
                 }
                 diagnostics.push(RelationalDiagnosticsEntry {
                     code: DiagnosticCode::RelationCreated,
@@ -322,4 +373,64 @@ pub(crate) fn apply_plan_to_staged_state(
     }
 
     (changed_records, patch_records, diagnostics)
+}
+
+fn aspect_keys_for_payload(
+    payload: Option<&crate::payloads::data::RecordPayload>,
+    _symbols: &mut StringInterner,
+) -> Vec<AspectKey> {
+    aspect_names_for_payload(payload)
+        .into_iter()
+        .map(|name| AspectKey(InternedString::Raw(name)))
+        .collect()
+}
+
+fn aspect_names_for_payload(
+    payload: Option<&crate::payloads::data::RecordPayload>,
+) -> Vec<String> {
+    let mut aspects = BTreeSet::new();
+    match payload {
+        Some(crate::payloads::data::RecordPayload::StructuredJson(value)) => {
+            if let Some(object) = value.as_object() {
+                for key in object.keys() {
+                    aspects.insert(key.clone());
+                }
+            }
+        }
+        Some(crate::payloads::data::RecordPayload::OpaqueBytes(_)) => {
+            aspects.insert("opaque_payload".to_string());
+        }
+        None => {}
+    }
+    aspects.into_iter().collect()
+}
+
+fn write_entity_aspect_versions(
+    staged: &mut WorkingState,
+    entity_id: crate::identity::data::EntityId,
+    version_id: crate::identity::data::VersionId,
+    payload: &crate::payloads::data::RecordPayload,
+    symbols: &mut StringInterner,
+) {
+    let slot = entity_id.local_slot.0 as usize;
+    let partition = staged.get_partition_mut(entity_id.partition_id);
+    let versions = &mut partition.entity_arena.aspect_versions[slot];
+    for name in aspect_names_for_payload(Some(payload)) {
+        versions.insert(symbols.intern(&name), version_id.0);
+    }
+}
+
+fn write_relation_aspect_versions(
+    staged: &mut WorkingState,
+    relation_id: crate::identity::data::RelationId,
+    version_id: crate::identity::data::VersionId,
+    payload: Option<&crate::payloads::data::RecordPayload>,
+    symbols: &mut StringInterner,
+) {
+    let slot = relation_id.local_slot.0 as usize;
+    let partition = staged.get_partition_mut(relation_id.partition_id);
+    let versions = &mut partition.relation_arena.aspect_versions[slot];
+    for name in aspect_names_for_payload(payload) {
+        versions.insert(symbols.intern(&name), version_id.0);
+    }
 }

@@ -32,7 +32,7 @@ pub use crate::simulation::data::{
 pub use crate::storage::data::{
     ChunkDiagnostics, ChunkVisibilitySummary, ChunkedStorageSummary, EntityReadRecord,
     IndexedReadOutcome, PacketResult, PartitionStorageStats, RecordLifecycleState,
-    RelationReadRecord, RelationalReadView, RetentionPassOutcome, StorageStats,
+    RelationReadRecord, RelationalReadView, RetentionPassOutcome, RetentionPlan, StorageStats,
 };
 #[allow(unused_imports)]
 pub use crate::validation::data::{
@@ -47,7 +47,14 @@ pub(crate) use crate::storage::logic::state::{PartitionAccess, WorkingState};
 pub(crate) struct SnapshotRegistry {
     pub(crate) active: BTreeMap<SnapshotId, SnapshotState>,
     pub(crate) version_visibility_cache: BTreeMap<crate::identity::data::VersionId, SnapshotState>,
+    pub(crate) replay_retained: BTreeMap<crate::identity::data::VersionId, ReplayRetentionState>,
     pub(crate) next_snapshot_id: u64,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ReplayRetentionState {
+    pub(crate) state: SnapshotState,
+    pub(crate) ref_count: usize,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -131,6 +138,7 @@ impl RelationalRuntime {
             snapshots: SnapshotRegistry {
                 active: BTreeMap::new(),
                 version_visibility_cache: BTreeMap::new(),
+                replay_retained: BTreeMap::new(),
                 next_snapshot_id: 1,
             },
             publication: PublicationState::default(),
@@ -352,6 +360,19 @@ impl RelationalRuntime {
         commit_id: crate::history::data::CommitId,
     ) -> bool {
         self.history.commit_envelopes.remove(&commit_id).is_some()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn tamper_commit_patch_for_test(
+        &mut self,
+        commit_id: crate::history::data::CommitId,
+        mutate: impl FnOnce(&mut crate::publication::data::diff::RelationalPatchRecord),
+    ) -> bool {
+        let Some(envelope) = self.history.commit_envelopes.get_mut(&commit_id) else {
+            return false;
+        };
+        mutate(&mut envelope.patch);
+        true
     }
 
     #[cfg(test)]

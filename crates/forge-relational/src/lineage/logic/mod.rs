@@ -4,8 +4,9 @@ use crate::diagnostics::data::{
 use crate::history::data::{BranchId, CommitReference};
 use crate::identity::data::{EntityId, LineageId};
 use crate::lineage::data::{
-    CorrespondenceCandidate, CorrespondenceResolution, LineageDivergenceSummary, LineageEventKind,
-    LineageEventRecord, LineageGraphSnapshot, LineageNode, LineageResolutionStatus,
+    CorrespondenceCandidate, CorrespondenceResolution, HistoricalLineageResolution,
+    LineageDivergenceSummary, LineageEventKind, LineageEventRecord, LineageGraphSnapshot,
+    LineageNode, LineageResolutionStatus,
 };
 use crate::logic::runtime::{PartitionAccess, RelationalRuntime, WorkingState};
 use crate::transactions::data::RecordRef;
@@ -91,6 +92,50 @@ impl RelationalRuntime {
             .copied()
             .flatten()?;
         self.lineage.nodes.get(&lineage_id)
+    }
+
+    pub fn resolve_historical_lineage(
+        &self,
+        branch_id: &BranchId,
+        lineage_id: LineageId,
+    ) -> HistoricalLineageResolution {
+        let mut current = vec![lineage_id];
+        let mut traversed_event_ids = Vec::new();
+
+        for event in self.lineage.events.iter().filter(|event| &event.branch_id == branch_id) {
+            if !event.sources.iter().any(|source| current.contains(source)) {
+                continue;
+            }
+            match event.kind {
+                LineageEventKind::Replace
+                | LineageEventKind::Split
+                | LineageEventKind::Merge
+                | LineageEventKind::Correspond => {
+                    traversed_event_ids.push(event.event_id);
+                    current.retain(|candidate| !event.sources.contains(candidate));
+                    current.extend(event.targets.iter().copied());
+                    current.sort();
+                    current.dedup();
+                }
+                LineageEventKind::Create | LineageEventKind::Retire => {}
+            }
+        }
+
+        HistoricalLineageResolution {
+            branch_id: branch_id.clone(),
+            start: lineage_id,
+            resolved: current,
+            traversed_event_ids,
+        }
+    }
+
+    pub fn resolve_record_history(
+        &self,
+        branch_id: &BranchId,
+        entity_id: EntityId,
+    ) -> Option<HistoricalLineageResolution> {
+        let lineage = self.lineage_for_record(entity_id)?;
+        Some(self.resolve_historical_lineage(branch_id, lineage.lineage_id))
     }
 
     pub fn record_correspondence_candidate(

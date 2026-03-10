@@ -1,8 +1,47 @@
 use crate::logic::runtime::RelationalRuntime;
+use crate::publication::data::diff::AspectKey;
 use crate::storage::data::{PartitionStorageStats, StorageStats};
-use crate::storage::logic::state::LifecycleCounts;
-
+use crate::storage::logic::state::{LifecycleCounts, PartitionAccess};
+use crate::symbols::data::InternedString;
 impl RelationalRuntime {
+    pub fn visible_entities_of_kind(
+        &self,
+        kind_id: crate::identity::data::KindId,
+        version_id: crate::identity::data::VersionId,
+    ) -> Vec<crate::storage::data::EntityReadRecord> {
+        let state = self.current_state();
+        let mut records = Vec::new();
+        for partition_id in state.partition_ids() {
+            records.extend(
+                self.visible_entities_of_kind_in_partition_from_state(
+                    &state,
+                    partition_id,
+                    kind_id,
+                    version_id,
+                ),
+            );
+        }
+        sort_entity_records(&mut records);
+        records
+    }
+
+    pub fn visible_entities_of_kind_in_partition(
+        &self,
+        partition_id: crate::identity::data::PartitionId,
+        kind_id: crate::identity::data::KindId,
+        version_id: crate::identity::data::VersionId,
+    ) -> Vec<crate::storage::data::EntityReadRecord> {
+        let state = self.current_state();
+        let mut records = self.visible_entities_of_kind_in_partition_from_state(
+            &state,
+            partition_id,
+            kind_id,
+            version_id,
+        );
+        sort_entity_records(&mut records);
+        records
+    }
+
     pub fn partition_ids(&self) -> Vec<crate::identity::data::PartitionId> {
         self.partitions.keys().copied().collect()
     }
@@ -94,4 +133,153 @@ impl RelationalRuntime {
             .filter(|relation_id| self.relation_visible_at_version(*relation_id, version_id))
             .collect()
     }
+
+    pub fn visible_relations_of_kind(
+        &self,
+        kind_id: crate::identity::data::KindId,
+        version_id: crate::identity::data::VersionId,
+    ) -> Vec<crate::storage::data::RelationReadRecord> {
+        let state = self.current_state();
+        let mut records = Vec::new();
+        for partition_id in state.partition_ids() {
+            records.extend(
+                self.visible_relations_of_kind_in_partition_from_state(
+                    &state,
+                    partition_id,
+                    kind_id,
+                    version_id,
+                ),
+            );
+        }
+        records.sort_by_key(|record| {
+            (
+                record.source.partition_id.0,
+                record.source.local_slot.0,
+                record.target.partition_id.0,
+                record.target.local_slot.0,
+                record.relation_id.partition_id.0,
+                record.relation_id.local_slot.0,
+            )
+        });
+        records
+    }
+
+    pub fn visible_relations_of_kind_in_partition(
+        &self,
+        partition_id: crate::identity::data::PartitionId,
+        kind_id: crate::identity::data::KindId,
+        version_id: crate::identity::data::VersionId,
+    ) -> Vec<crate::storage::data::RelationReadRecord> {
+        let state = self.current_state();
+        let mut records = self.visible_relations_of_kind_in_partition_from_state(
+            &state,
+            partition_id,
+            kind_id,
+            version_id,
+        );
+        records.sort_by_key(|record| {
+            (
+                record.source.partition_id.0,
+                record.source.local_slot.0,
+                record.target.partition_id.0,
+                record.target.local_slot.0,
+                record.relation_id.partition_id.0,
+                record.relation_id.local_slot.0,
+            )
+        });
+        records
+    }
+
+    pub fn entity_aspect_versions(
+        &self,
+        entity_id: crate::identity::data::EntityId,
+    ) -> Option<Vec<(AspectKey, u64)>> {
+        let partition = self.partition(entity_id.partition_id)?;
+        let slot = entity_id.local_slot.0 as usize;
+        let versions = partition.entity_arena.aspect_versions.get(slot)?;
+        Some(
+            versions
+                .iter()
+                .filter_map(|(symbol, version)| {
+                    self.symbols.resolve(*symbol).map(|_| {
+                        (AspectKey(InternedString::Symbol(*symbol)), *version)
+                    })
+                })
+                .collect(),
+        )
+    }
+
+    pub fn relation_aspect_versions(
+        &self,
+        relation_id: crate::identity::data::RelationId,
+    ) -> Option<Vec<(AspectKey, u64)>> {
+        let partition = self.partition(relation_id.partition_id)?;
+        let slot = relation_id.local_slot.0 as usize;
+        let versions = partition.relation_arena.aspect_versions.get(slot)?;
+        Some(
+            versions
+                .iter()
+                .filter_map(|(symbol, version)| {
+                    self.symbols.resolve(*symbol).map(|_| {
+                        (AspectKey(InternedString::Symbol(*symbol)), *version)
+                    })
+                })
+                .collect(),
+        )
+    }
+
+    pub fn entity_aspects_at_version(
+        &self,
+        entity_id: crate::identity::data::EntityId,
+        version_id: crate::identity::data::VersionId,
+    ) -> Option<Vec<AspectKey>> {
+        let state = self.current_state();
+        let record = self.entity_record_for_id_at_version(&state, entity_id, version_id)?;
+        Some(aspect_keys_for_payload(&record.payload, &mut self.symbols.clone()))
+    }
+
+    pub fn relation_aspects_at_version(
+        &self,
+        relation_id: crate::identity::data::RelationId,
+        version_id: crate::identity::data::VersionId,
+    ) -> Option<Vec<AspectKey>> {
+        let state = self.current_state();
+        let record = self.relation_record_for_id_at_version(&state, relation_id, version_id)?;
+        record
+            .payload
+            .as_ref()
+            .map(|payload| aspect_keys_for_payload(payload, &mut self.symbols.clone()))
+    }
+}
+
+fn sort_entity_records(records: &mut [crate::storage::data::EntityReadRecord]) {
+    records.sort_by_key(|record| {
+        (
+            record.entity_id.partition_id.0,
+            record.entity_id.local_slot.0,
+            record.entity_id.generation,
+        )
+    });
+}
+
+fn aspect_keys_for_payload(
+    payload: &crate::payloads::data::RecordPayload,
+    _symbols: &mut crate::symbols::data::StringInterner,
+) -> Vec<AspectKey> {
+    let mut aspects = Vec::new();
+    match payload {
+        crate::payloads::data::RecordPayload::StructuredJson(value) => {
+            if let Some(object) = value.as_object() {
+                for key in object.keys() {
+                    aspects.push(AspectKey(InternedString::Raw(key.clone())));
+                }
+            }
+        }
+        crate::payloads::data::RecordPayload::OpaqueBytes(_) => {
+            aspects.push(AspectKey(InternedString::Raw("opaque_payload".to_string())));
+        }
+    }
+    aspects.sort_by(|left, right| format!("{left:?}").cmp(&format!("{right:?}")));
+    aspects.dedup();
+    aspects
 }

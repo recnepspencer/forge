@@ -74,3 +74,11 @@ pub struct LineageDivergenceSummary {
     pub right_only_event_ids: Vec<u64>,
     pub shared_lineage_ids: Vec<LineageId>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HistoricalLineageResolution {
+    pub branch_id: BranchId,
+    pub start: LineageId,
+    pub resolved: Vec<LineageId>,
+    pub traversed_event_ids: Vec<u64>,
+}

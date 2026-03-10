@@ -37,9 +37,9 @@ pub use crate::indexes::data::{
     ReadWithStorageFallbackOutcome,
 };
 pub use crate::lineage::data::{
-    CorrespondenceCandidate, CorrespondenceResolution, LineageDivergenceSummary, LineageEventKind,
-    LineageEventRecord, LineageGraphSnapshot, LineageInvariant, LineageNode,
-    LineageResolutionStatus,
+    CorrespondenceCandidate, CorrespondenceResolution, HistoricalLineageResolution,
+    LineageDivergenceSummary, LineageEventKind, LineageEventRecord, LineageGraphSnapshot,
+    LineageInvariant, LineageNode, LineageResolutionStatus,
 };
 pub use crate::logic::builder::RelationalRuntimeBuilder;
 pub use crate::logic::commit::CommitAuthorityContract;
@@ -67,7 +67,8 @@ pub use crate::presentation::harness::{
 };
 pub use crate::publication::data::diff::{
     AspectKey, PatchFragmentBudget, PatchOrdering, PatchPublicationMode, PatchRecord,
-    PatchRecordKind, PatchStreamPosition, RelationalPatchRecord,
+    PatchRecordKind, PatchStreamBatch, PatchStreamPosition, PatchStreamReadError,
+    PatchStreamReadErrorClass, PatchStreamRequest, RelationalPatchRecord,
 };
 pub use crate::publication::data::{
     PublicationBundle, PublicationError, PublicationStage, PublicationStatus,
@@ -78,7 +79,7 @@ pub use crate::query::data::{
 };
 pub use crate::replay::data::{
     CanonicalCommitEnvelope, RelationalReplayOutcome, RelationalReplayRequest, ReplayExecutionMode,
-    ReplayFailureClass, ReplayMismatch, ReplayObservableSurface,
+    ReplayFailureClass, ReplayMismatch, ReplayMismatchClass, ReplayObservableSurface,
 };
 pub use crate::schema::data::{
     EntityKindRegistration, KindResolution, RelationKindRegistration, RelationPayloadClass,

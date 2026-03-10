@@ -205,6 +205,27 @@ impl RelationalRuntime {
             .unwrap_or(0)
             + 1;
 
+        for partition in restored.partitions.values_mut() {
+            for counter in &mut partition.entity_arena.snapshot_pins {
+                *counter = 0;
+            }
+            for counter in &mut partition.entity_arena.branch_pins {
+                *counter = 0;
+            }
+            for counter in &mut partition.entity_arena.replay_pins {
+                *counter = 0;
+            }
+            for counter in &mut partition.relation_arena.snapshot_pins {
+                *counter = 0;
+            }
+            for counter in &mut partition.relation_arena.branch_pins {
+                *counter = 0;
+            }
+            for counter in &mut partition.relation_arena.replay_pins {
+                *counter = 0;
+            }
+        }
+
         let available_commit_ids = restored
             .history
             .commit_envelopes
@@ -317,6 +338,7 @@ impl RelationalRuntime {
             + 1;
         restored.config.durability_mode = original_durability_mode;
         restored.rebuild_unique_field_indexes();
+        restored.rebuild_branch_pins_from_heads();
 
         Ok(restored)
     }

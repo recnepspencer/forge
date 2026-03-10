@@ -1,0 +1,145 @@
+use crate::tests::support::*;
+
+#[test]
+fn bulk_create_entities_match_equivalent_singular_creates() {
+    let mut bulk_runtime = runtime_with_test_schema();
+    let mut bulk_txn = bulk_runtime.begin_transaction(TransactionOptions::default());
+    bulk_txn.push_batch(WorkerIntentBatch::new("bulk").push(
+        TransactionIntent::BulkCreateEntities {
+            partition_id: PartitionId::main(),
+            kind_id: KindId(1),
+            client_keys: vec![
+                InternedString::Raw("a".to_string()),
+                InternedString::Raw("b".to_string()),
+            ],
+            payloads: vec![
+                RecordPayload::StructuredJson(json!({"name":"a"})),
+                RecordPayload::StructuredJson(json!({"name":"b"})),
+            ],
+        },
+    ));
+    let bulk_outcome = bulk_txn.commit().unwrap();
+
+    let singular_runtime = apply_batches(vec![batch_create("a"), batch_create("b")]);
+    let bulk_read = bulk_runtime.read_snapshot(&bulk_outcome.snapshot).unwrap();
+    let singular_read = singular_runtime
+        .read_snapshot(&singular_runtime.latest_publication_bundle().unwrap().snapshot)
+        .unwrap();
+
+    assert_eq!(bulk_outcome.changed_records.len(), 2);
+    assert_eq!(bulk_read.entities().len(), singular_read.entities().len());
+    assert_eq!(
+        bulk_read
+            .entities()
+            .iter()
+            .map(read_entity_name)
+            .collect::<Vec<_>>(),
+        singular_read
+            .entities()
+            .iter()
+            .map(read_entity_name)
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn cross_context_relations_preserve_partitioned_endpoints() {
+    let mut runtime = runtime_with_test_schema();
+    let source = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
+    let target = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
+    let relation =
+        create_relation_in_partition(&mut runtime, source, target, "bridge", PartitionId(29));
+    let snapshot = runtime.snapshot();
+    let read = runtime.read_snapshot(&snapshot).unwrap();
+    let relation_record = read.get_relation(relation).unwrap();
+
+    assert_eq!(relation.partition_id, PartitionId(29));
+    assert_eq!(relation_record.source.partition_id, PartitionId(7));
+    assert_eq!(relation_record.target.partition_id, PartitionId(11));
+    assert_eq!(relation_record.relation_id.partition_id, PartitionId(29));
+}
+
+#[test]
+fn cross_context_relations_respect_relation_kind_policy() {
+    let schema_registry = RelationalSchemaRegistry::new()
+        .register_entity_kind(EntityKindRegistration {
+            kind_id: KindId(1),
+            kind_name: "test.entity".to_string(),
+            schema_id: SchemaId("test".to_string()),
+            schema_version_id: SchemaVersionId(1),
+        })
+        .and_then(|registry| {
+            registry.register_relation_kind(RelationKindRegistration {
+                kind_id: KindId(2),
+                kind_name: "test.relation".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                payload_class: RelationPayloadClass::PayloadBearingRelation,
+                cross_context_policy: CrossContextPolicy::SchemaControlled,
+                cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
+            })
+        })
+        .unwrap();
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(schema_registry)
+        .cross_context_policy(CrossContextPolicy::SchemaControlled)
+        .build();
+    let source = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
+    let target = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(WorkerIntentBatch::new("forbidden-cross-context").push(
+        TransactionIntent::CreateRelation(crate::transactions::data::RelationSpec {
+            partition_id: PartitionId(29),
+            kind_id: KindId(2),
+            client_key: InternedString::Raw("bridge".to_string()),
+            source,
+            target,
+            payload: None,
+        }),
+    ));
+
+    let error = txn.commit().unwrap_err();
+
+    assert!(matches!(
+        error,
+        crate::facade::TransactionCommitError::Conflict(crate::facade::CommitConflict {
+            code: crate::facade::DiagnosticCode::InvalidRelationEndpoint,
+            ..
+        })
+    ));
+}
+
+#[test]
+fn partition_registry_and_stats_expose_partition_owned_state() {
+    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+    let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
+    let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
+    let _ = create_relation_in_partition(&mut runtime, left, right, "bridge", PartitionId(29));
+
+    let partition_ids = runtime.partition_ids();
+    let stats = runtime.partition_storage_stats();
+
+    assert_eq!(partition_ids, vec![PartitionId(7), PartitionId(11), PartitionId(29)]);
+    assert_eq!(stats.len(), 3);
+    assert_eq!(
+        stats.iter()
+            .find(|entry| entry.partition_id == PartitionId(7))
+            .unwrap()
+            .live_entities,
+        1
+    );
+    assert_eq!(
+        stats.iter()
+            .find(|entry| entry.partition_id == PartitionId(11))
+            .unwrap()
+            .live_entities,
+        1
+    );
+    assert_eq!(
+        stats.iter()
+            .find(|entry| entry.partition_id == PartitionId(29))
+            .unwrap()
+            .live_relations,
+        1
+    );
+}

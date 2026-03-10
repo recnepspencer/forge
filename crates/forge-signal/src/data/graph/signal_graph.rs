@@ -8,6 +8,7 @@ use crate::data::handle::NodeId;
 use crate::data::node::NodeEntry;
 use crate::data::output::PartitionInterner;
 use crate::data::telemetry::RuntimeTelemetry;
+use crate::data::bitset::DenseBitset;
 use crate::diagnostics::state::DiagnosticsState;
 
 use super::scratch::{ScratchLeaseKind, TraversalScratch};
@@ -22,6 +23,9 @@ use super::{DependencyEdgeStore, SubscriberEdgeStore};
 pub struct SignalGraph {
     pub(super) nodes: Vec<Slot>,
     pub(super) free_list: Vec<u32>,
+    #[serde(skip, default)]
+    pub(super) free_slots: DenseBitset,
+    pub(super) active_nodes: u32,
     pub(super) tombstone_count: u32,
     pub(super) gc_threshold: u32,
     #[serde(skip, default)]
@@ -55,6 +59,8 @@ impl SignalGraph {
         Self {
             nodes: Vec::new(),
             free_list: Vec::new(),
+            free_slots: DenseBitset::default(),
+            active_nodes: 0,
             tombstone_count: 0,
             gc_threshold: 1024,
             scratch: TraversalScratch::default(),
@@ -117,9 +123,14 @@ impl SignalGraph {
     }
 
     pub(super) fn allocate_node(&mut self, entry: NodeEntry) -> NodeId {
-        if let Some(index) = self.free_list.pop() {
+        while let Some(index) = self.free_list.pop() {
+            if index as usize >= self.nodes.len() {
+                continue;
+            }
+            self.free_slots.clear(index as usize);
             let slot = &mut self.nodes[index as usize];
             let generation = slot.occupy(entry);
+            self.active_nodes += 1;
             return NodeId::new(index, generation);
         }
 
@@ -130,6 +141,7 @@ impl SignalGraph {
         let mut slot = Slot::vacant();
         let generation = slot.occupy(entry);
         self.nodes.push(slot);
+        self.active_nodes += 1;
         NodeId::new(index, generation)
     }
 
@@ -147,17 +159,20 @@ impl SignalGraph {
             };
             if slot.is_occupied() {
                 slot.vacate();
+                self.active_nodes = self.active_nodes.saturating_sub(1);
             }
-            if !self.free_list.contains(&(index as u32)) {
+            if !self.free_slots.contains(index) {
                 self.free_list.push(index as u32);
+                self.free_slots.mark(index);
             }
         }
 
         while self.nodes.last().is_some_and(|slot| !slot.is_occupied()) {
+            self.free_slots.clear(self.nodes.len() - 1);
             self.nodes.pop();
         }
-        let new_len = self.nodes.len() as u32;
-        self.free_list.retain(|index| *index < new_len);
+        self.free_list
+            .retain(|index| (*index as usize) < self.nodes.len());
     }
 
     pub(super) fn validate_handle(&self, id: NodeId) -> Result<(), SignalError> {
@@ -191,6 +206,11 @@ impl SignalGraph {
             self.subscriber_edges.storage_counts(),
             self.dependency_snapshots.snapshot_count(),
         )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn free_list_snapshot(&self) -> Vec<u32> {
+        self.free_list.clone()
     }
 }
 

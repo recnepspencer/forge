@@ -56,6 +56,7 @@ impl DependencyEdgeStore {
         if !self.interner.is_empty() || self.segments.is_empty() {
             return;
         }
+        self.interner.reserve(self.segments.len());
         for (index, segment) in self.segments.iter().copied().enumerate() {
             let slice = &self.edges[segment.start as usize..(segment.start + segment.len) as usize];
             self.interner
@@ -115,6 +116,7 @@ impl SubscriberEdgeStore {
         if !self.interner.is_empty() || self.segments.is_empty() {
             return;
         }
+        self.interner.reserve(self.segments.len());
         for (index, segment) in self.segments.iter().copied().enumerate() {
             let slice =
                 &self.subscribers[segment.start as usize..(segment.start + segment.len) as usize];

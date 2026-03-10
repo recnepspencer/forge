@@ -23,5 +23,6 @@ pub mod scenario;
 pub mod timeline;
 pub mod tooling;
 pub mod workload;
+pub mod workflow;
 
 pub mod facade;

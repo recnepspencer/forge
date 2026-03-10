@@ -211,7 +211,10 @@ pub(crate) struct RelationArena {
     pub(crate) created_at: Vec<VersionId>,
     pub(crate) retired_at: Vec<Option<VersionId>>,
     pub(crate) endpoints: Vec<Option<RelationEndpoints>>,
+    pub(crate) aspect_versions: Vec<BTreeMap<Symbol, u64>>,
     pub(crate) diagnostics_enrichment: Vec<BTreeMap<Symbol, String>>,
+    pub(crate) branch_pins: Vec<u32>,
+    pub(crate) replay_pins: Vec<u32>,
     pub(crate) snapshot_pins: Vec<u32>,
     pub(crate) live_bitset: DenseSlotBitSet,
     pub(crate) reclaimable_bitset: DenseSlotBitSet,
@@ -230,7 +233,10 @@ impl RelationArena {
             created_at: Vec::with_capacity(capacity),
             retired_at: Vec::with_capacity(capacity),
             endpoints: Vec::with_capacity(capacity),
+            aspect_versions: Vec::with_capacity(capacity),
             diagnostics_enrichment: Vec::with_capacity(capacity),
+            branch_pins: Vec::with_capacity(capacity),
+            replay_pins: Vec::with_capacity(capacity),
             snapshot_pins: Vec::with_capacity(capacity),
             live_bitset: DenseSlotBitSet::with_capacity(capacity),
             reclaimable_bitset: DenseSlotBitSet::with_capacity(capacity),
@@ -247,7 +253,10 @@ impl RelationArena {
         self.created_at.reserve(additional);
         self.retired_at.reserve(additional);
         self.endpoints.reserve(additional);
+        self.aspect_versions.reserve(additional);
         self.diagnostics_enrichment.reserve(additional);
+        self.branch_pins.reserve(additional);
+        self.replay_pins.reserve(additional);
         self.snapshot_pins.reserve(additional);
         self.free_list.reserve(additional);
     }
@@ -282,7 +291,10 @@ impl RelationArena {
             self.created_at[idx] = version_id;
             self.retired_at[idx] = None;
             self.endpoints[idx] = Some(endpoints);
+            self.aspect_versions[idx].clear();
             self.diagnostics_enrichment[idx].clear();
+            self.branch_pins[idx] = 0;
+            self.replay_pins[idx] = 0;
             self.snapshot_pins[idx] = 0;
             self.generations[idx] += 1;
             self.live_bitset.set(idx, true);
@@ -309,7 +321,10 @@ impl RelationArena {
         self.created_at.push(version_id);
         self.retired_at.push(None);
         self.endpoints.push(Some(endpoints));
+        self.aspect_versions.push(BTreeMap::new());
         self.diagnostics_enrichment.push(BTreeMap::new());
+        self.branch_pins.push(0);
+        self.replay_pins.push(0);
         self.snapshot_pins.push(0);
         self.live_bitset.set(slot, true);
         self.reclaimable_bitset.set(slot, false);

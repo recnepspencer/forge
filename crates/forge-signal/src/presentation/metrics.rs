@@ -108,6 +108,7 @@ pub struct RuntimeMetrics {
     pub rollback_count: u64,
     pub staged_node_patch_count: u64,
     pub max_touched_nodes_in_txn: u64,
+    pub transaction_mark_dirty_candidate_visits: u64,
     pub keyed_evaluation_count: u64,
     pub memoization_hits: u64,
     pub memoization_misses: u64,

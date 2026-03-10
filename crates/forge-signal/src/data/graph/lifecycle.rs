@@ -64,13 +64,15 @@ impl SignalGraph {
         }
 
         debug_assert!(
-            !self.free_list.contains(&id.index()),
+            !self.free_slots.contains(id.index() as usize),
             "free list already contained slot {} before unregister",
             id.index()
         );
         self.nodes[id.index() as usize].vacate();
+        self.active_nodes = self.active_nodes.saturating_sub(1);
         self.tombstone_count += 1;
         self.free_list.push(id.index());
+        self.free_slots.mark(id.index() as usize);
         self.restore_scratch(ScratchLeaseKind::Churn, scratch)?;
         Ok(())
     }
@@ -124,9 +126,9 @@ impl SignalGraph {
     }
 
     pub(crate) fn compact_graph_storage(&mut self) {
-        let old_dependency_edges = self.dependency_edges.clone();
-        let old_subscriber_edges = self.subscriber_edges.clone();
-        let old_dependency_snapshots = self.dependency_snapshots.clone();
+        let old_dependency_edges = std::mem::take(&mut self.dependency_edges);
+        let old_subscriber_edges = std::mem::take(&mut self.subscriber_edges);
+        let old_dependency_snapshots = std::mem::take(&mut self.dependency_snapshots);
 
         let mut dependency_id_map = HashMap::new();
         let mut subscriber_id_map = HashMap::new();

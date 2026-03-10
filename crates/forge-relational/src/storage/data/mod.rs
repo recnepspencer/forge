@@ -158,6 +158,20 @@ pub struct RetentionPassOutcome {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RetentionPlan {
+    pub retention_fence_version: VersionId,
+    pub active_snapshot_count: usize,
+    pub branch_pinned_entities: usize,
+    pub replay_pinned_entities: usize,
+    pub snapshot_pinned_entities: usize,
+    pub branch_pinned_relations: usize,
+    pub replay_pinned_relations: usize,
+    pub snapshot_pinned_relations: usize,
+    pub reclaimable_entities: usize,
+    pub reclaimable_relations: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ChunkVisibilitySummary {
     pub chunk_index: usize,
     pub slot_start: usize,

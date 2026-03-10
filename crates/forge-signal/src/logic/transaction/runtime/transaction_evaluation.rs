@@ -211,7 +211,25 @@ where
             })
             .count() as u64;
         self.telemetry.stage_execution_count += report.stage_count as u64;
-        self.telemetry.serial_executor_usage_count += 1;
+        #[cfg(feature = "parallel")]
+        let parallel_stages = report
+            .stages
+            .iter()
+            .filter(|stage| {
+                matches!(
+                    stage.outcome,
+                    crate::logic::planner::StageExecutionOutcome::CompletedParallel
+                )
+            })
+            .count() as u64;
+        #[cfg(not(feature = "parallel"))]
+        let parallel_stages = 0_u64;
+        if parallel_stages > 0 {
+            self.telemetry.parallel_executor_usage_count += 1;
+            self.telemetry.parallel_stage_dispatch_count += parallel_stages;
+        } else {
+            self.telemetry.serial_executor_usage_count += 1;
+        }
         self.telemetry.max_tasks_in_stage = self.telemetry.max_tasks_in_stage.max(
             report
                 .stages

@@ -415,3 +415,157 @@ fn rollback_only_unwinds_successfully_checkpointed_subscribers_after_partial_flu
         "rollback should unwind every subscriber that entered the lifecycle, not only those that checkpointed successfully"
     );
 }
+
+#[test]
+fn failed_flush_preserves_committed_context_and_does_not_replay_stale_pending_events() {
+    use std::sync::{Arc, Mutex};
+
+    #[derive(Clone)]
+    struct ContextWriter {
+        id: SubscriberId,
+        seen_events: Arc<Mutex<Vec<u32>>>,
+        staged_value: Option<u32>,
+    }
+
+    impl EventSubscriber for ContextWriter {
+        type Event = Ev;
+        type DataId = Data;
+        type RuntimeContext = ();
+
+        fn id(&self) -> SubscriberId {
+            self.id
+        }
+
+        fn name(&self) -> &'static str {
+            "writer"
+        }
+
+        fn requires(&self) -> &'static [Data] {
+            &[]
+        }
+
+        fn provides(&self) -> &'static [Data] {
+            &[Data::A]
+        }
+
+        fn on_begin(
+            &mut self,
+            _ctx: &mut SubscriberContext<Self::DataId>,
+            _runtime: &mut Self::RuntimeContext,
+        ) {
+            self.staged_value = None;
+        }
+
+        fn on_event(&mut self, event: &Self::Event) {
+            if let Ev::Tick(value) = event {
+                self.seen_events.lock().unwrap().push(*value);
+                self.staged_value = Some(*value);
+            }
+        }
+
+        fn on_checkpoint(
+            &mut self,
+            _barrier: CheckpointBarrier,
+            ctx: &mut SubscriberContext<Self::DataId>,
+            _runtime: &mut Self::RuntimeContext,
+        ) -> Result<(), SignalError> {
+            ctx.stage(Data::A, self.staged_value.unwrap_or_default())
+                .map_err(|err| SignalError::internal(format!("{err:?}")))
+        }
+    }
+
+    #[derive(Clone)]
+    struct FailGate {
+        should_fail: Arc<Mutex<bool>>,
+    }
+
+    impl EventSubscriber for FailGate {
+        type Event = Ev;
+        type DataId = Data;
+        type RuntimeContext = ();
+
+        fn id(&self) -> SubscriberId {
+            SubscriberId::new(2)
+        }
+
+        fn name(&self) -> &'static str {
+            "gate"
+        }
+
+        fn requires(&self) -> &'static [Data] {
+            &[Data::A]
+        }
+
+        fn provides(&self) -> &'static [Data] {
+            &[Data::B]
+        }
+
+        fn on_event(&mut self, _event: &Self::Event) {}
+
+        fn on_checkpoint(
+            &mut self,
+            _barrier: CheckpointBarrier,
+            _ctx: &mut SubscriberContext<Self::DataId>,
+            _runtime: &mut Self::RuntimeContext,
+        ) -> Result<(), SignalError> {
+            if *self.should_fail.lock().unwrap() {
+                Err(SignalError::internal("checkpoint failure"))
+            } else {
+                Ok(())
+            }
+        }
+    }
+
+    let seen_events = Arc::new(Mutex::new(Vec::new()));
+    let should_fail = Arc::new(Mutex::new(false));
+    let mut bus: EventBus<Ev, Data> = EventBus::new();
+    bus.subscribe(Box::new(ContextWriter {
+        id: SubscriberId::new(1),
+        seen_events: seen_events.clone(),
+        staged_value: None,
+    }))
+    .unwrap();
+    bus.subscribe(Box::new(FailGate {
+        should_fail: should_fail.clone(),
+    }))
+    .unwrap();
+
+    let mut runtime = ();
+
+    bus.begin(&mut runtime).unwrap();
+    bus.emit(Ev::Tick(1));
+    bus.flush(CheckpointBarrier::PerOperation, &mut runtime)
+        .unwrap();
+    assert_eq!(bus.context().committed::<u32>(Data::A), Some(&1));
+
+    *should_fail.lock().unwrap() = true;
+    bus.begin(&mut runtime).unwrap();
+    bus.emit(Ev::Tick(7));
+    let err = bus
+        .flush(CheckpointBarrier::PerOperation, &mut runtime)
+        .unwrap_err();
+    assert!(format!("{err:?}").contains("checkpoint failure"));
+    assert_eq!(
+        bus.context().committed::<u32>(Data::A),
+        Some(&1),
+        "failed flush must not overwrite committed subscriber context",
+    );
+    assert!(
+        bus.context().staged::<u32>(Data::A).is_none(),
+        "failed flush must clear staged subscriber context",
+    );
+    bus.rollback(&mut runtime);
+
+    *should_fail.lock().unwrap() = false;
+    bus.begin(&mut runtime).unwrap();
+    bus.emit(Ev::Tick(11));
+    bus.flush(CheckpointBarrier::PerOperation, &mut runtime)
+        .unwrap();
+
+    assert_eq!(bus.context().committed::<u32>(Data::A), Some(&11));
+    assert_eq!(
+        &*seen_events.lock().unwrap(),
+        &[1, 7, 11],
+        "pending events from the failed flush must not replay on the next successful flush",
+    );
+}

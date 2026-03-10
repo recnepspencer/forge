@@ -107,7 +107,19 @@ impl DependencySnapshot {
 
     fn canonicalize(&mut self) {
         self.entries.sort_by(compare_snapshot_entries);
-        self.entries.dedup();
+        let mut normalized = Vec::with_capacity(self.entries.len());
+        for entry in self.entries.drain(..) {
+            if let Some(previous) = normalized.last_mut() {
+                if compare_snapshot_identity(previous, &entry) == Ordering::Equal {
+                    if previous.2 <= entry.2 {
+                        *previous = entry;
+                    }
+                    continue;
+                }
+            }
+            normalized.push(entry);
+        }
+        self.entries = normalized;
     }
 }
 
@@ -142,6 +154,7 @@ impl DependencySnapshotStore {
         if !self.interner.is_empty() || self.snapshots.is_empty() {
             return;
         }
+        self.interner.reserve(self.snapshots.len());
         for (index, snapshot) in self.snapshots.iter().cloned().enumerate() {
             self.interner
                 .insert(snapshot, DependencySnapshotId::from_index(index + 1));
@@ -205,6 +218,24 @@ fn compare_snapshot_entries(
             right.0.generation(),
             right.1.index(),
             right.2,
+            &right.3,
+        ))
+}
+
+fn compare_snapshot_identity(
+    left: &(NodeId, Aspect, u64, Option<PartitionSubscription>),
+    right: &(NodeId, Aspect, u64, Option<PartitionSubscription>),
+) -> Ordering {
+    (
+        left.0.index(),
+        left.0.generation(),
+        left.1.index(),
+        &left.3,
+    )
+        .cmp(&(
+            right.0.index(),
+            right.0.generation(),
+            right.1.index(),
             &right.3,
         ))
 }

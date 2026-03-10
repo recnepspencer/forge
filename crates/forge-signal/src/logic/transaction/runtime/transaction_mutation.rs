@@ -128,17 +128,23 @@ where
         &mut self,
         source: NodeId,
     ) -> Result<(), SignalError> {
+        self.mark_dirty_staged.ensure_len(self.graph.arena_capacity());
+        if self.mark_dirty_staged.contains(source.index() as usize) {
+            return Ok(());
+        }
+
         let mut stack = vec![source];
         self.mark_dirty_seen.clear_all();
         self.mark_dirty_seen.ensure_len(self.graph.arena_capacity());
-        self.dirty_targets.ensure_len(self.graph.arena_capacity());
         while let Some(node) = stack.pop() {
             if !self.mark_dirty_seen.mark(node.index() as usize) {
                 continue;
             }
+            self.telemetry.transaction_mark_dirty_candidate_visits += 1;
             if !self.graph.is_alive(node) {
                 continue;
             }
+            self.mark_dirty_staged.mark(node.index() as usize);
             self.dirty_targets.mark(node.index() as usize);
             self.graph_patches.stage_original(self.graph, node)?;
             for &subscriber in self.graph.subscribers_of(node)? {

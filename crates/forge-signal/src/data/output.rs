@@ -295,12 +295,22 @@ define_string_token!(
 );
 
 fn stable_string_hash(value: &str) -> StableHashValue {
-    let mut hash = 0xcbf29ce484222325_u128;
+    #[cfg(feature = "profile-compact")]
+    let mut hash: StableHashValue = 0xcbf29ce484222325_u64;
+    #[cfg(any(feature = "profile-standard", feature = "profile-extended"))]
+    let mut hash: StableHashValue = 0x6c62272e07bb014262b821756295c58d_u128;
     for byte in value.as_bytes() {
-        hash ^= *byte as u128;
-        hash = hash.wrapping_mul(0x100000001b3_u128);
+        hash ^= *byte as StableHashValue;
+        #[cfg(feature = "profile-compact")]
+        {
+            hash = hash.wrapping_mul(0x100000001b3_u64);
+        }
+        #[cfg(any(feature = "profile-standard", feature = "profile-extended"))]
+        {
+            hash = hash.wrapping_mul(0x0000000001000000000000000000013B_u128);
+        }
     }
-    hash as StableHashValue
+    hash
 }
 
 /// How one evaluation result was produced.

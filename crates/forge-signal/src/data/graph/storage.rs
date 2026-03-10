@@ -70,7 +70,7 @@ impl SignalGraph {
     }
 
     pub fn active_node_count(&self) -> usize {
-        self.nodes.iter().filter(|s| s.is_occupied()).count()
+        self.active_nodes as usize
     }
 
     pub fn arena_capacity(&self) -> usize {
@@ -407,6 +407,9 @@ impl SignalGraph {
             upstreams.sort_by_key(|node| (node.index(), node.generation()));
             upstreams.dedup();
             for upstream in upstreams {
+                if !self.is_alive(upstream) {
+                    continue;
+                }
                 rebuilt[upstream.index() as usize].push(*downstream);
             }
         }

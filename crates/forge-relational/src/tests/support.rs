@@ -13,11 +13,12 @@ pub(super) use crate::facade::{
     BranchCreateError, BranchId, CommitOutcome, DiagnosticCode, DiagnosticsArtifactKind,
     DiagnosticsScope, DurabilityMode, DurableStoreLayout, EntityKindRegistration, EntityReadRecord,
     InvariantCatalog, InvariantClass, InvariantExecutionPoint, InvariantRule, KindId, PartitionId,
-    PublicationStage, PublicationStatus, QueryWorkPacket, ReadTarget, RelationId,
-    RelationKindRegistration, RelationalHarnessAdapter, RelationalMutation, RelationalRuntime,
-    RelationalRuntimeApi, RelationalRuntimeProfile, RelationalSchemaRegistry, SchemaId,
-    SchemaVersionId, StorageLayoutConfig, TransactionCommitError, TransactionIntent,
-    TransactionOptions, WorkerIntentBatch,
+    PatchStreamPosition, PatchStreamRequest, PublicationStage, PublicationStatus,
+    QueryWorkPacket, ReadTarget, RelationId, RelationKindRegistration, RelationalHarnessAdapter,
+    RelationalMutation, RelationalRuntime, RelationalRuntimeApi, RelationalRuntimeProfile,
+    RelationalSchemaRegistry, ReplayMismatchClass, SchemaId, SchemaVersionId,
+    StorageLayoutConfig, TransactionCommitError, TransactionIntent, TransactionOptions,
+    WorkerIntentBatch,
 };
 pub(super) use crate::payloads::data::RecordPayload;
 pub(super) use crate::publication::data::diff::{PatchCompatibilityClass, PatchDetail};

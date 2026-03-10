@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
+use crate::history::data::CommitId;
 use crate::identity::data::{EntityId, RelationId};
 use crate::payloads::data::{canonicalize_json, RecordPayload};
 use crate::symbols::data::InternedString;
@@ -73,15 +73,20 @@ pub struct PatchRecord {
     pub kind: PatchRecordKind,
     pub entity_id: Option<EntityId>,
     pub relation_id: Option<RelationId>,
+    pub aspects: Vec<AspectKey>,
     pub detail: PatchDetail,
 }
 
 impl PatchRecord {
     pub fn canonicalized(&self) -> Self {
+        let mut aspects = self.aspects.clone();
+        aspects.sort_by(|left, right| format!("{left:?}").cmp(&format!("{right:?}")));
+        aspects.dedup();
         Self {
             kind: self.kind.clone(),
             entity_id: self.entity_id,
             relation_id: self.relation_id,
+            aspects,
             detail: self.detail.canonicalized(),
         }
     }
@@ -110,4 +115,40 @@ impl RelationalPatchRecord {
                 .collect(),
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PatchStreamRequest {
+    pub after_position: Option<PatchStreamPosition>,
+    pub max_commits: usize,
+}
+
+impl Default for PatchStreamRequest {
+    fn default() -> Self {
+        Self {
+            after_position: None,
+            max_commits: usize::MAX,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PatchStreamReadErrorClass {
+    UnknownResumePosition,
+    InvalidBatchSize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PatchStreamReadError {
+    pub class: PatchStreamReadErrorClass,
+    pub detail: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PatchStreamBatch {
+    pub patches: Vec<RelationalPatchRecord>,
+    pub resumed_after: Option<PatchStreamPosition>,
+    pub next_position: Option<PatchStreamPosition>,
+    pub latest_position: Option<PatchStreamPosition>,
+    pub latest_commit_id: Option<CommitId>,
 }

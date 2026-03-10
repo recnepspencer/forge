@@ -136,7 +136,17 @@ impl RelationalRuntime {
         let Some(source_head) = self.history.branch_heads.get(from_branch).cloned() else {
             return Err(BranchCreateError::SourceBranchMissing);
         };
-        self.history.branch_heads.insert(new_branch, source_head);
+        self.history
+            .branch_heads
+            .insert(new_branch, source_head.clone());
+        if let Some(source_head) = source_head {
+            let state = self.build_visibility_state(
+                source_head.version_id,
+                crate::snapshots::data::SnapshotId(0),
+                crate::snapshots::data::SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
+            );
+            self.pin_branch_state(&state);
+        }
         Ok(())
     }
 
@@ -203,5 +213,46 @@ impl RelationalRuntime {
                 _ => None,
             })
             .collect()
+    }
+}
+impl RelationalRuntime {
+    pub fn retain_version_for_replay(
+        &mut self,
+        version_id: crate::identity::data::VersionId,
+    ) -> bool {
+        if let Some(retained) = self.snapshots.replay_retained.get_mut(&version_id) {
+            retained.ref_count += 1;
+            return true;
+        }
+        if version_id.0 == 0 || version_id.0 > self.current_version_id().0 {
+            return false;
+        }
+        let state = self.build_visibility_state(
+            version_id,
+            crate::snapshots::data::SnapshotId(0),
+            crate::snapshots::data::SnapshotReadPolicy::ImmutablePinnedNoLazyMutation,
+        );
+        self.pin_replay_state(&state);
+        self.snapshots.replay_retained.insert(
+            version_id,
+            crate::logic::runtime::ReplayRetentionState { state, ref_count: 1 },
+        );
+        true
+    }
+
+    pub fn release_version_replay_retention(
+        &mut self,
+        version_id: crate::identity::data::VersionId,
+    ) -> bool {
+        let Some(mut retained) = self.snapshots.replay_retained.remove(&version_id) else {
+            return false;
+        };
+        if retained.ref_count > 1 {
+            retained.ref_count -= 1;
+            self.snapshots.replay_retained.insert(version_id, retained);
+            return true;
+        }
+        self.unpin_replay_state(&retained.state);
+        true
     }
 }

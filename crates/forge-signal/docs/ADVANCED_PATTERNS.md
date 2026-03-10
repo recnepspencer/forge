@@ -64,6 +64,14 @@ When this matters:
 - keyed reactive caches
 - workloads where multiple nodes share a family namespace but differ by stable key
 
+## Partition-scoped prepared reads
+
+If a prepared evaluation depends on one partitioned slice of an upstream node, use:
+
+- `ExecutionReadView::read_partitioned_aspect_version(...)`
+
+Do not use a plain `read_aspect_version(...)` for that case. A plain read captures an unscoped dependency and broadens downstream invalidation, which defeats changed-region locality at runtime.
+
 ## Tier policies and comparator selection
 
 If you need the dedicated guide, see [CHECKPOINTS_AND_TIERS.md](./CHECKPOINTS_AND_TIERS.md).

@@ -268,6 +268,14 @@ fn prepare_validated_clean_if_unchanged(
         return Ok(None);
     }
 
+    if !graph
+        .get_entry(task.node)?
+        .get_dirty_partition_scopes()
+        .is_empty()
+    {
+        return Ok(None);
+    }
+
     let preview = preview_maybe_stale(graph, task.node, comparator_resolver)?;
     if !preview.unchanged {
         return Ok(None);

@@ -53,6 +53,7 @@ where
     pub(super) baseline_diagnostics_state: DiagnosticsState,
     pub(super) semantic_delta: TransactionSemanticDelta,
     pub(super) mark_dirty_seen: DenseBitset,
+    pub(super) mark_dirty_staged: DenseBitset,
     pub(super) evaluate_seen: DenseBitset,
     pub(super) dirty_targets: DenseBitset,
     pub(super) poisoned: bool,

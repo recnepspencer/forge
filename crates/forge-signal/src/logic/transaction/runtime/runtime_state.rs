@@ -262,6 +262,9 @@ where
             rollback_count: self.event_bus.telemetry().rollback_count,
             staged_node_patch_count: self.telemetry.staged_node_patch_count,
             max_touched_nodes_in_txn: self.telemetry.max_touched_nodes_in_txn,
+            transaction_mark_dirty_candidate_visits: self
+                .telemetry
+                .transaction_mark_dirty_candidate_visits,
             keyed_evaluation_count: self.telemetry.keyed_evaluation_count,
             memoization_hits: self.telemetry.memoization_hits,
             memoization_misses: self.telemetry.memoization_misses,
@@ -668,6 +671,7 @@ where
             baseline_diagnostics_state,
             semantic_delta: super::transaction_types::TransactionSemanticDelta::default(),
             mark_dirty_seen: crate::data::bitset::DenseBitset::new(),
+            mark_dirty_staged: crate::data::bitset::DenseBitset::new(),
             evaluate_seen: crate::data::bitset::DenseBitset::new(),
             dirty_targets: crate::data::bitset::DenseBitset::new(),
             poisoned: false,

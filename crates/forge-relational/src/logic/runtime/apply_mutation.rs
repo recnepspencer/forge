@@ -90,6 +90,7 @@ pub(super) fn delete_entity_with_cascade(
         kind: PatchRecordKind::EntityDeleted,
         entity_id: Some(entity_id),
         relation_id: None,
+        aspects: Vec::new(),
         detail: patch_detail_for_entity(
             patch_surface_policy,
             PatchRecordKind::EntityDeleted,
@@ -193,6 +194,7 @@ pub(super) fn delete_relation(
         kind: PatchRecordKind::RelationDeleted,
         entity_id: None,
         relation_id: Some(relation_id),
+        aspects: Vec::new(),
         detail: patch_detail_for_relation(
             patch_surface_policy,
             PatchRecordKind::RelationDeleted,

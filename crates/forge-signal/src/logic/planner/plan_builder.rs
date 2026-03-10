@@ -319,15 +319,15 @@ fn classify_reason(
     }
 
     let entry = graph.get_entry(node)?;
+    if !entry.get_dirty_partition_scopes().is_empty() {
+        return Ok(TaskReason::PartitionScopedDependency);
+    }
+
     let trace = entry.get_trace_summary();
     if trace.is_some_and(|summary| {
         summary.output_change == crate::data::output::OutputChange::Unchanged
     }) {
         return Ok(TaskReason::OutputDiffDependent);
-    }
-
-    if !entry.get_dirty_partition_scopes().is_empty() {
-        return Ok(TaskReason::PartitionScopedDependency);
     }
 
     if trace.is_some_and(|summary| {

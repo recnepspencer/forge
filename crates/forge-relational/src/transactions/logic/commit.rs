@@ -85,6 +85,7 @@ impl<'a> RelationalTransaction<'a> {
             &apply_plan,
             self.runtime.config.publication.patch_surface_policy,
             &self.runtime.config.schema_registry,
+            &mut self.runtime.symbols,
             self.runtime.config.cascade_delete_policy,
         );
         {
@@ -132,6 +133,7 @@ impl<'a> RelationalTransaction<'a> {
             .target_branch
             .clone()
             .unwrap_or_else(|| self.runtime.config.main_branch.clone());
+        let previous_branch_head = self.runtime.branch_head(&branch_id).cloned();
         let (parents, merge_base_commits) = match self.resolve_parent_commits(&branch_id) {
             Ok(result) => result,
             Err(conflict) => {
@@ -289,6 +291,11 @@ impl<'a> RelationalTransaction<'a> {
             .history
             .branch_heads
             .insert(branch_id.clone(), Some(commit_reference.clone()));
+        self.runtime.advance_branch_pins_for_changed_records(
+            previous_branch_head.as_ref().map(|head| head.version_id),
+            version_id,
+            &changed_records,
+        );
         self.runtime
             .history
             .commit_graph

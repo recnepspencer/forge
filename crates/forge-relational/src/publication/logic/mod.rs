@@ -5,6 +5,9 @@ use crate::diagnostics::data::{
     RelationalDiagnosticArtifact, RelationalDiagnosticsEntry, RelationalDiagnosticsFacade,
 };
 use crate::logic::runtime::{RelationalReplayRecord, RelationalRuntime, ReplaySchemaVersion};
+use crate::publication::data::diff::{
+    PatchStreamBatch, PatchStreamReadError, PatchStreamReadErrorClass, PatchStreamRequest,
+};
 use crate::publication::data::{PublicationBundle, PublicationStatus};
 use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
 use std::collections::BTreeMap;
@@ -37,6 +40,53 @@ impl RelationalRuntime {
             .latest_bundle
             .as_ref()
             .map(|bundle| &bundle.replay)
+    }
+
+    pub fn read_patch_stream(
+        &self,
+        request: PatchStreamRequest,
+    ) -> Result<PatchStreamBatch, PatchStreamReadError> {
+        if request.max_commits == 0 {
+            return Err(PatchStreamReadError {
+                class: PatchStreamReadErrorClass::InvalidBatchSize,
+                detail: "patch stream request must ask for at least one commit".to_string(),
+            });
+        }
+
+        let mut envelopes = self
+            .history
+            .commit_envelopes
+            .values()
+            .map(|envelope| &envelope.patch)
+            .collect::<Vec<_>>();
+        envelopes.sort_by_key(|patch| patch.position);
+
+        let latest_position = envelopes.last().map(|patch| patch.position);
+        let latest_commit_id = self.latest_commit().map(|commit| commit.commit_id);
+
+        if let Some(after_position) = request.after_position {
+            if !envelopes.iter().any(|patch| patch.position == after_position) {
+                return Err(PatchStreamReadError {
+                    class: PatchStreamReadErrorClass::UnknownResumePosition,
+                    detail: format!("unknown patch stream resume position {}", after_position.0),
+                });
+            }
+        }
+
+        let patches = envelopes
+            .into_iter()
+            .filter(|patch| request.after_position.is_none_or(|position| patch.position > position))
+            .take(request.max_commits)
+            .cloned()
+            .collect::<Vec<_>>();
+
+        Ok(PatchStreamBatch {
+            resumed_after: request.after_position,
+            next_position: patches.last().map(|patch| patch.position),
+            latest_position,
+            latest_commit_id,
+            patches,
+        })
     }
 
     pub(crate) fn push_diagnostic_artifact(&mut self, artifact: RelationalDiagnosticArtifact) {

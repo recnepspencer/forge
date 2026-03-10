@@ -57,3 +57,15 @@ pub use crate::tooling::{
     ProfileCatalog, ProjectedEvent, RunMatrix,
 };
 pub use crate::workload::{BudgetUsage, WorkBudget, WorkloadProfile};
+pub use crate::workflow::{
+    ArtifactBundle, ArtifactClass, ArtifactSurface, CheckpointSemantics, DifferentialComparison,
+    DifferentialMatrixCapability, DifferentialOutcome, FailureBundle, FailureBundleVersion,
+    FailureInjectionPoint, InvariantCheck, InvariantReport, ProfileConditionalGuarantee,
+    RegressionTarget, RegressionTargetKind, ReproductionMetadata,
+    UnsupportedWorkflowComparison, WorkflowArtifactSurfaceCapability,
+    WorkflowCaptureRequest, WorkflowCertificationAdapter, WorkflowCertificationCapabilities,
+    WorkflowCertificationError, WorkflowCertificationReport, WorkflowCertificationRunner,
+    WorkflowCheckpoint, WorkflowCheckpointTraceEntry, WorkflowFailureContext, WorkflowPlan,
+    WorkflowRuntimeProfile, WorkflowSession, WorkflowState, WorkflowStep, WorkflowStepOutcome,
+    WorkflowStepTraceEntry,
+};

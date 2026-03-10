@@ -84,7 +84,10 @@ pub(super) fn partition_to_image(partition: PartitionState) -> PartitionCheckpoi
                     })
                 })
                 .collect(),
+            aspect_versions: partition.relation_arena.aspect_versions,
             diagnostics_enrichment: partition.relation_arena.diagnostics_enrichment,
+            branch_pins: partition.relation_arena.branch_pins,
+            replay_pins: partition.relation_arena.replay_pins,
             snapshot_pins: partition.relation_arena.snapshot_pins,
             live_bitset: DurableBitSet {
                 words: partition.relation_arena.live_bitset.words().to_vec(),
@@ -187,7 +190,10 @@ pub(super) fn partition_from_image(image: PartitionCheckpointImage) -> Partition
                     })
                 })
                 .collect(),
+            aspect_versions: image.relation_arena.aspect_versions,
             diagnostics_enrichment: image.relation_arena.diagnostics_enrichment,
+            branch_pins: image.relation_arena.branch_pins,
+            replay_pins: image.relation_arena.replay_pins,
             snapshot_pins: image.relation_arena.snapshot_pins,
             live_bitset: DenseSlotBitSet::from_words(image.relation_arena.live_bitset.words),
             reclaimable_bitset: DenseSlotBitSet::from_words(

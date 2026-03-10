@@ -61,40 +61,42 @@ impl RelationalRuntime {
         }
     }
 
-    pub(crate) fn visible_entities_from_state(
+    pub(crate) fn visible_entities_of_kind_in_partition_from_state(
         &self,
         state: &impl PartitionAccess,
+        partition_id: crate::identity::data::PartitionId,
+        kind_id: crate::identity::data::KindId,
         version_id: crate::identity::data::VersionId,
     ) -> Vec<EntityReadRecord> {
         let mut records = Vec::new();
         let current_version = self.current_version_id();
-        for partition_id in state.partition_ids() {
-            let partition = state
-                .get_partition(partition_id)
-                .expect("partition visible during entity scan");
-            if version_id == current_version {
-                for slot in partition.entity_arena.live_bitset.iter_set_slots() {
-                    if let Some(record) =
-                        materialize_current_entity_record(self, partition, partition_id, slot)
-                    {
-                        records.push(record);
-                    }
+        let Some(partition) = state.get_partition(partition_id) else {
+            return records;
+        };
+        if version_id == current_version {
+            for slot in partition.entity_arena.live_bitset.iter_set_slots() {
+                if partition.entity_arena.kind_ids.get(slot).copied().flatten() != Some(kind_id) {
+                    continue;
                 }
-            } else {
-                self.instrumentation
-                    .complexity_counters
-                    .borrow_mut()
-                    .visibility_entity_slot_scans += partition.entity_arena.generations.len();
-                for slot in 0..partition.entity_arena.generations.len() {
-                    if let Some(record) = materialize_entity_record_at_version(
-                        self,
-                        partition,
-                        partition_id,
-                        slot,
-                        version_id,
-                    ) {
-                        records.push(record);
-                    }
+                if let Some(record) =
+                    materialize_current_entity_record(self, partition, partition_id, slot)
+                {
+                    records.push(record);
+                }
+            }
+        } else {
+            self.instrumentation
+                .complexity_counters
+                .borrow_mut()
+                .visibility_entity_slot_scans += partition.entity_arena.generations.len();
+            for slot in 0..partition.entity_arena.generations.len() {
+                if partition.entity_arena.kind_ids.get(slot).copied().flatten() != Some(kind_id) {
+                    continue;
+                }
+                if let Some(record) =
+                    materialize_entity_record_at_version(self, partition, partition_id, slot, version_id)
+                {
+                    records.push(record);
                 }
             }
         }
@@ -105,40 +107,48 @@ impl RelationalRuntime {
         records
     }
 
-    pub(crate) fn visible_relations_from_state(
+    pub(crate) fn visible_relations_of_kind_in_partition_from_state(
         &self,
         state: &impl PartitionAccess,
+        partition_id: crate::identity::data::PartitionId,
+        kind_id: crate::identity::data::KindId,
         version_id: crate::identity::data::VersionId,
     ) -> Vec<RelationReadRecord> {
         let mut records = Vec::new();
         let current_version = self.current_version_id();
-        for partition_id in state.partition_ids() {
-            let partition = state
-                .get_partition(partition_id)
-                .expect("partition visible during relation scan");
-            if version_id == current_version {
-                for slot in partition.relation_arena.live_bitset.iter_set_slots() {
-                    if let Some(record) =
-                        materialize_current_relation_record(self, partition, partition_id, slot)
-                    {
-                        records.push(record);
-                    }
+        let Some(partition) = state.get_partition(partition_id) else {
+            return records;
+        };
+        if version_id == current_version {
+            for slot in partition.relation_arena.live_bitset.iter_set_slots() {
+                if partition.relation_arena.kind_ids.get(slot).copied().flatten() != Some(kind_id)
+                {
+                    continue;
                 }
-            } else {
-                self.instrumentation
-                    .complexity_counters
-                    .borrow_mut()
-                    .visibility_relation_slot_scans += partition.relation_arena.generations.len();
-                for slot in 0..partition.relation_arena.generations.len() {
-                    if let Some(record) = materialize_relation_record_at_version(
-                        self,
-                        partition,
-                        partition_id,
-                        slot,
-                        version_id,
-                    ) {
-                        records.push(record);
-                    }
+                if let Some(record) =
+                    materialize_current_relation_record(self, partition, partition_id, slot)
+                {
+                    records.push(record);
+                }
+            }
+        } else {
+            self.instrumentation
+                .complexity_counters
+                .borrow_mut()
+                .visibility_relation_slot_scans += partition.relation_arena.generations.len();
+            for slot in 0..partition.relation_arena.generations.len() {
+                if partition.relation_arena.kind_ids.get(slot).copied().flatten() != Some(kind_id)
+                {
+                    continue;
+                }
+                if let Some(record) = materialize_relation_record_at_version(
+                    self,
+                    partition,
+                    partition_id,
+                    slot,
+                    version_id,
+                ) {
+                    records.push(record);
                 }
             }
         }
@@ -146,6 +156,120 @@ impl RelationalRuntime {
             .complexity_counters
             .borrow_mut()
             .visible_relation_records_materialized += records.len();
+        records
+    }
+
+    pub(crate) fn visible_entities_from_state(
+        &self,
+        state: &impl PartitionAccess,
+        version_id: crate::identity::data::VersionId,
+    ) -> Vec<EntityReadRecord> {
+        let mut records = Vec::new();
+        for partition_id in state.partition_ids() {
+            records.extend(self.visible_entities_in_partition_from_state(
+                state,
+                partition_id,
+                version_id,
+            ));
+        }
+        self.instrumentation
+            .complexity_counters
+            .borrow_mut()
+            .visible_entity_records_materialized += records.len();
+        records
+    }
+
+    pub(crate) fn visible_entities_in_partition_from_state(
+        &self,
+        state: &impl PartitionAccess,
+        partition_id: crate::identity::data::PartitionId,
+        version_id: crate::identity::data::VersionId,
+    ) -> Vec<EntityReadRecord> {
+        let mut records = Vec::new();
+        let current_version = self.current_version_id();
+        let Some(partition) = state.get_partition(partition_id) else {
+            return records;
+        };
+        if version_id == current_version {
+            for slot in partition.entity_arena.live_bitset.iter_set_slots() {
+                if let Some(record) =
+                    materialize_current_entity_record(self, partition, partition_id, slot)
+                {
+                    records.push(record);
+                }
+            }
+        } else {
+            self.instrumentation
+                .complexity_counters
+                .borrow_mut()
+                .visibility_entity_slot_scans += partition.entity_arena.generations.len();
+            for slot in 0..partition.entity_arena.generations.len() {
+                if let Some(record) =
+                    materialize_entity_record_at_version(self, partition, partition_id, slot, version_id)
+                {
+                    records.push(record);
+                }
+            }
+        }
+        records
+    }
+
+    pub(crate) fn visible_relations_from_state(
+        &self,
+        state: &impl PartitionAccess,
+        version_id: crate::identity::data::VersionId,
+    ) -> Vec<RelationReadRecord> {
+        let mut records = Vec::new();
+        for partition_id in state.partition_ids() {
+            records.extend(self.visible_relations_in_partition_from_state(
+                state,
+                partition_id,
+                version_id,
+            ));
+        }
+        self.instrumentation
+            .complexity_counters
+            .borrow_mut()
+            .visible_relation_records_materialized += records.len();
+        records
+    }
+
+    pub(crate) fn visible_relations_in_partition_from_state(
+        &self,
+        state: &impl PartitionAccess,
+        partition_id: crate::identity::data::PartitionId,
+        version_id: crate::identity::data::VersionId,
+    ) -> Vec<RelationReadRecord> {
+        let mut records = Vec::new();
+        let current_version = self.current_version_id();
+        let Some(partition) = state.get_partition(partition_id) else {
+            return records;
+        };
+        if version_id == current_version {
+            for slot in partition.relation_arena.live_bitset.iter_set_slots() {
+                if let Some(record) =
+                    materialize_current_relation_record(self, partition, partition_id, slot)
+                {
+                    records.push(record);
+                }
+            }
+        } else {
+            self.instrumentation
+                .complexity_counters
+                .borrow_mut()
+                .visibility_relation_slot_scans += partition.relation_arena.generations.len();
+            for slot in 0..partition.relation_arena.generations.len() {
+                if let Some(record) = materialize_relation_record_at_version(
+                    self,
+                    partition,
+                    partition_id,
+                    slot,
+                    version_id,
+                ) {
+                    records.push(record);
+                }
+            }
+        }
         records
     }
 

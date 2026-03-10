@@ -411,6 +411,39 @@ fn repeated_created_node_rollbacks_do_not_accumulate_storage_debris() {
 }
 
 #[test]
+fn mark_dirty_after_evaluate_staging_still_stages_downstream_rollback_coverage() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let source = graph.node().build();
+    let downstream = graph.node().build();
+    graph.add_dependency(downstream, source, ASPECT_A).unwrap();
+    let mut runtime = build_runtime(graph);
+    let mut ctx = ();
+
+    let mut seed =
+        |_id: crate::data::handle::NodeId, _graph: &crate::data::graph::SignalGraph| {
+            Ok(version_ab(1, 0))
+        };
+    evaluate(runtime.graph_mut(), source, &mut seed).unwrap();
+    evaluate(runtime.graph_mut(), downstream, &mut seed).unwrap();
+
+    let mut tx = runtime.begin();
+    tx.evaluate_with_plan(
+        source,
+        &|_node, view| Ok(view.finish(version_ab(2, 0))),
+        EvaluationRequestMode::Default,
+    )
+    .unwrap();
+    tx.mark_dirty(source, ASPECT_A).unwrap();
+
+    assert_eq!(tx.staged_graph().get_state(downstream).unwrap(), NodeState::Dirty);
+    assert_eq!(
+        tx.rollback(&mut ctx).unwrap(),
+        TransactionOutcome::RolledBack
+    );
+    assert_eq!(runtime.graph().get_state(downstream).unwrap(), NodeState::Clean);
+}
+
+#[test]
 fn evaluate_dirty_rollback_restores_preexisting_dirty_nodes() {
     let mut graph = crate::data::graph::SignalGraph::new();
     let source = graph.node().build();

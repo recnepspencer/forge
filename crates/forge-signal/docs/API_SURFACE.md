@@ -157,6 +157,11 @@ What the closure receives:
 - `NodeId`
 - `&ExecutionReadView`
 
+Important partition-locality rule:
+
+- use `ExecutionReadView::read_partitioned_aspect_version(...)` when one prepared evaluation depends on a partition-scoped upstream surface
+- using plain `read_aspect_version(...)` against a partitioned upstream captures a whole-aspect dependency and widens runtime invalidation
+
 What it returns:
 
 - `PreparedEvaluation`

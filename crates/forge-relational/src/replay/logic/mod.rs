@@ -7,7 +7,7 @@ use crate::durability::data::{DurableCommitEnvelope, RecoveryPlan};
 use crate::history::data::{BranchId, CommitId};
 use crate::replay::data::{
     CanonicalCommitEnvelope, RelationalReplayOutcome, RelationalReplayRequest, ReplayExecutionMode,
-    ReplayFailureClass, ReplayMismatch, ReplayObservableSurface,
+    ReplayFailureClass, ReplayMismatch, ReplayMismatchClass, ReplayObservableSurface,
 };
 use serde_json::json;
 
@@ -103,16 +103,22 @@ impl RelationalRuntime {
             && replayed_envelope.patch.canonicalized() != envelope.patch.canonicalized()
         {
             mismatches.push(ReplayMismatch {
+                class: ReplayMismatchClass::PatchDrift,
                 surface: ReplayObservableSurface::Patch,
                 detail: "canonical patch artifact differed".to_string(),
+                expected: Some(format!("{:?}", envelope.patch)),
+                observed: Some(format!("{:?}", replayed_envelope.patch)),
             });
         }
         if compared_surfaces.contains(&ReplayObservableSurface::Diagnostics)
             && replayed_envelope.diagnostics_summary != envelope.diagnostics_summary
         {
             mismatches.push(ReplayMismatch {
+                class: ReplayMismatchClass::DiagnosticsDrift,
                 surface: ReplayObservableSurface::Diagnostics,
                 detail: "diagnostics summary differed".to_string(),
+                expected: Some(format!("{:?}", envelope.diagnostics_summary)),
+                observed: Some(format!("{:?}", replayed_envelope.diagnostics_summary)),
             });
         }
         if compared_surfaces.contains(&ReplayObservableSurface::History)
@@ -121,8 +127,21 @@ impl RelationalRuntime {
                 || replayed_envelope.merge_base_commits != envelope.merge_base_commits)
         {
             mismatches.push(ReplayMismatch {
+                class: ReplayMismatchClass::HistoryDrift,
                 surface: ReplayObservableSurface::History,
                 detail: "history parent ordering differed".to_string(),
+                expected: Some(format!(
+                    "{:?}|{:?}|{:?}",
+                    envelope.commit.parents,
+                    envelope.merge_parent_branches,
+                    envelope.merge_base_commits
+                )),
+                observed: Some(format!(
+                    "{:?}|{:?}|{:?}",
+                    replayed_envelope.commit.parents,
+                    replayed_envelope.merge_parent_branches,
+                    replayed_envelope.merge_base_commits
+                )),
             });
         }
         if compared_surfaces.contains(&ReplayObservableSurface::Snapshot) {
@@ -130,8 +149,11 @@ impl RelationalRuntime {
             let replayed_read = replay_runtime.read_version(replayed_envelope.commit.version_id);
             if original_read != replayed_read {
                 mismatches.push(ReplayMismatch {
+                    class: ReplayMismatchClass::SnapshotDrift,
                     surface: ReplayObservableSurface::Snapshot,
                     detail: "snapshot-visible state differed".to_string(),
+                    expected: Some(format!("{:?}", original_read)),
+                    observed: Some(format!("{:?}", replayed_read)),
                 });
             }
         }
@@ -139,16 +161,22 @@ impl RelationalRuntime {
             && replay_runtime.branch_head(&request.branch_id) != Some(&envelope.commit)
         {
             mismatches.push(ReplayMismatch {
+                class: ReplayMismatchClass::BranchHeadDrift,
                 surface: ReplayObservableSurface::BranchHead,
                 detail: "branch head movement differed".to_string(),
+                expected: Some(format!("{:?}", Some(&envelope.commit))),
+                observed: Some(format!("{:?}", replay_runtime.branch_head(&request.branch_id))),
             });
         }
         if compared_surfaces.contains(&ReplayObservableSurface::Lineage)
             && replay_runtime.lineage.events != self.lineage.events
         {
             mismatches.push(ReplayMismatch {
+                class: ReplayMismatchClass::LineageDrift,
                 surface: ReplayObservableSurface::Lineage,
                 detail: "lineage events differed".to_string(),
+                expected: Some(format!("{:?}", self.lineage.events)),
+                observed: Some(format!("{:?}", replay_runtime.lineage.events)),
             });
         }
         if compared_surfaces.contains(&ReplayObservableSurface::DerivedIndexes)
@@ -156,8 +184,17 @@ impl RelationalRuntime {
                 != self.index_generations_for_version(envelope.commit.version_id)
         {
             mismatches.push(ReplayMismatch {
+                class: ReplayMismatchClass::DerivedIndexDrift,
                 surface: ReplayObservableSurface::DerivedIndexes,
                 detail: "derived index generations differed".to_string(),
+                expected: Some(format!(
+                    "{:?}",
+                    self.index_generations_for_version(envelope.commit.version_id)
+                )),
+                observed: Some(format!(
+                    "{:?}",
+                    replay_runtime.index_generations_for_version(envelope.commit.version_id)
+                )),
             });
         }
 

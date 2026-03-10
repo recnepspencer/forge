@@ -47,10 +47,24 @@ pub enum ReplayFailureClass {
     ObservableMismatch,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ReplayMismatchClass {
+    PatchDrift,
+    DiagnosticsDrift,
+    HistoryDrift,
+    SnapshotDrift,
+    BranchHeadDrift,
+    LineageDrift,
+    DerivedIndexDrift,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReplayMismatch {
+    pub class: ReplayMismatchClass,
     pub surface: ReplayObservableSurface,
     pub detail: String,
+    pub expected: Option<String>,
+    pub observed: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

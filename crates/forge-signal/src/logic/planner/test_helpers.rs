@@ -218,6 +218,7 @@ fn preview_condition_action(
 ) -> Result<TestConditionAction, SignalError> {
     let entry = graph.get_entry(node)?;
     let dirty_aspects = entry.get_dirty_aspects();
+    let has_dependency_snapshot = !graph.get_dep_snapshot(node)?.entries().is_empty();
     let max_dependency_delta = max_dependency_delta(graph, node)?;
     let ctx = crate::logic::evaluation::ConditionEvaluationContext {
         node,
@@ -246,7 +247,10 @@ fn preview_condition_action(
             EvaluationRequestMode::ForceOnDemand => Ok(TestConditionAction::Evaluate),
         },
         EvaluationCondition::DeltaThreshold(threshold) => {
-            if dirty_aspects.is_empty() || (max_dependency_delta as f64) > *threshold {
+            if !has_dependency_snapshot
+                || dirty_aspects.is_empty()
+                || (max_dependency_delta as f64) > *threshold
+            {
                 Ok(TestConditionAction::Evaluate)
             } else {
                 Ok(TestConditionAction::RevertClean)

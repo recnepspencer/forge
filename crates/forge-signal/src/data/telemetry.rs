@@ -55,6 +55,8 @@ pub struct RuntimeTelemetry {
     pub staged_node_patch_count: u64,
     /// Maximum number of touched node patches observed in one transaction.
     pub max_touched_nodes_in_txn: u64,
+    /// Count of nodes visited while staging transaction-local mark-dirty candidate sets.
+    pub transaction_mark_dirty_candidate_visits: u64,
     /// Count of evaluation skips/deferments caused by node conditions.
     pub condition_skip_count: u64,
     /// Count of `OnDemand` nodes deferred under default evaluation mode.
