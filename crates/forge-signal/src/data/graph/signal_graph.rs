@@ -183,6 +183,15 @@ impl SignalGraph {
             })
             .collect()
     }
+
+    #[cfg(test)]
+    pub(crate) fn storage_counts(&self) -> ((usize, usize), (usize, usize), usize) {
+        (
+            self.dependency_edges.storage_counts(),
+            self.subscriber_edges.storage_counts(),
+            self.dependency_snapshots.snapshot_count(),
+        )
+    }
 }
 
 pub(super) fn stale_error(id: NodeId) -> SignalError {

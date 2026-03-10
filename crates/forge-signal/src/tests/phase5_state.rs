@@ -168,6 +168,40 @@ fn runtime_branches_keep_evaluation_state_isolated_across_switches() {
 }
 
 #[test]
+fn switching_existing_branch_does_not_emit_branched_from_lineage() {
+    let graph = SignalGraph::new();
+    let mut runtime = SignalRuntime::builder(graph).build();
+
+    let main_branch = runtime.current_branch();
+    let feature_branch = runtime.create_branch("feature").unwrap();
+    runtime.switch_branch(feature_branch.clone()).unwrap();
+    let lineage_after_create = runtime.graph().lineage_records().len();
+
+    runtime.switch_branch(main_branch.clone()).unwrap();
+
+    let switch_records = runtime
+        .graph()
+        .lineage_records()
+        .iter()
+        .skip(lineage_after_create)
+        .collect::<Vec<_>>();
+    assert!(
+        switch_records
+            .iter()
+            .any(|record| record.detail.as_deref() == Some("switched from `feature` to `main`")),
+        "branch switch should remain lineage-visible"
+    );
+    assert!(
+        switch_records
+            .iter()
+            .all(|record| record.event != LineageEvent::BranchedFrom),
+        "switching existing branches must not masquerade as branch creation"
+    );
+    assert_eq!(runtime.current_branch().id, main_branch.id);
+    assert_eq!(feature_branch.parent_branch_id, Some(main_branch.id));
+}
+
+#[test]
 fn lineage_distinguishes_replacement_refresh_and_memoized_reuse() {
     let mut graph = SignalGraph::new();
     let source = graph.node().output_identity().build();

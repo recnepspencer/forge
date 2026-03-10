@@ -45,13 +45,15 @@ pub use crate::validation::data::{
     InvariantFailureEffect, InvariantRule, InvariantViolation, StorageInvariantReport,
 };
 
-use crate::storage::logic::state::{BorrowedWorkingState, SnapshotState};
+use crate::storage::logic::state::{BorrowedWorkingState, DenseSlotBitSet, SnapshotPartitionPins, SnapshotState};
 pub(crate) use crate::storage::logic::state::{PartitionAccess, WorkingState};
 #[derive(Debug, Clone)]
 pub struct RelationalRuntime {
     pub(crate) config: RelationalRuntimeConfig,
     pub(crate) partitions: BTreeMap<crate::identity::data::PartitionId, PartitionState>,
     pub(crate) snapshots: BTreeMap<SnapshotId, SnapshotState>,
+    pub(crate) version_visibility_cache:
+        BTreeMap<crate::identity::data::VersionId, SnapshotState>,
     pub(crate) diagnostics: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
     pub(crate) latest_publication_bundle: Option<PublicationBundle<RelationalReplayRecord>>,
     pub(crate) branch_heads: BTreeMap<BranchId, Option<crate::history::data::CommitReference>>,
@@ -86,6 +88,7 @@ impl RelationalRuntime {
         Self {
             partitions: BTreeMap::new(),
             snapshots: BTreeMap::new(),
+            version_visibility_cache: BTreeMap::new(),
             diagnostics: Vec::new(),
             latest_publication_bundle: None,
             branch_heads: BTreeMap::from([(config.main_branch.clone(), None)]),
@@ -167,12 +170,7 @@ impl RelationalRuntime {
         let Some(state) = self.snapshots.remove(&handle.snapshot_id) else {
             return false;
         };
-        for entity_id in state.pinned_entities {
-            self.unpin_entity(entity_id);
-        }
-        for relation_id in state.pinned_relations {
-            self.unpin_relation(relation_id);
-        }
+        self.unpin_snapshot_state(&state);
         if self.config.mvcc.snapshot_release_policy
             == crate::config::data::SnapshotReleasePolicy::ReleaseOnRetentionPass
         {
@@ -182,44 +180,22 @@ impl RelationalRuntime {
     }
 
     pub fn read_snapshot(&self, handle: &SnapshotHandle) -> Option<RelationalReadView> {
-        self.snapshots.get(&handle.snapshot_id).map(|state| {
-            let current_state = self.current_state();
-            let entities = state
-                .pinned_entities
-                .iter()
-                .filter_map(|entity_id| {
-                    self.entity_record_for_id_at_version(
-                        &current_state,
-                        *entity_id,
-                        state.handle.version_id,
-                    )
-                })
-                .collect::<Vec<_>>();
-            let relations = state
-                .pinned_relations
-                .iter()
-                .filter_map(|relation_id| {
-                    self.relation_record_for_id_at_version(
-                        &current_state,
-                        *relation_id,
-                        state.handle.version_id,
-                    )
-                })
-                .collect::<Vec<_>>();
-            {
-                let mut counters = self.complexity_counters.borrow_mut();
-                counters.visible_entity_records_materialized += entities.len();
-                counters.visible_relation_records_materialized += relations.len();
-            }
-            RelationalReadView {
-                snapshot: state.handle.clone(),
-                entities,
-                relations,
-            }
-        })
+        self.snapshots
+            .get(&handle.snapshot_id)
+            .map(|state| self.read_from_snapshot_state(state))
     }
 
     pub fn read_version(&self, version_id: crate::identity::data::VersionId) -> RelationalReadView {
+        if let Some(state) = self.version_visibility_cache.get(&version_id) {
+            return self.read_from_snapshot_state(state);
+        }
+        if let Some(snapshot_state) = self
+            .snapshots
+            .values()
+            .find(|state| state.handle.version_id == version_id)
+        {
+            return self.read_from_snapshot_state(snapshot_state);
+        }
         let current_state = self.current_state();
         RelationalReadView {
             snapshot: SnapshotHandle {
@@ -478,17 +454,12 @@ impl RelationalRuntime {
 
     pub fn inspect_snapshot(&self, handle: &SnapshotHandle) -> Option<SnapshotInspectionSummary> {
         self.snapshots.get(&handle.snapshot_id).map(|state| {
-            let current_state = self.current_state();
-            let entities =
-                self.visible_entities_from_state(&current_state, state.handle.version_id);
-            let relations =
-                self.visible_relations_from_state(&current_state, state.handle.version_id);
             SnapshotInspectionSummary {
                 version_id: state.handle.version_id,
-                entity_count: entities.len(),
-                relation_count: relations.len(),
-                pinned_entity_count: state.pinned_entities.len(),
-                pinned_relation_count: state.pinned_relations.len(),
+                entity_count: state.pinned_entity_count,
+                relation_count: state.pinned_relation_count,
+                pinned_entity_count: state.pinned_entity_count,
+                pinned_relation_count: state.pinned_relation_count,
             }
         })
     }
@@ -1051,28 +1022,117 @@ impl RelationalRuntime {
         let current_state = self.current_state();
         let entities = self.visible_entities_from_state(&current_state, version_id);
         let relations = self.visible_relations_from_state(&current_state, version_id);
-        let pinned_entities = entities
-            .iter()
-            .map(|record| record.entity_id)
-            .collect::<Vec<_>>();
-        let pinned_relations = relations
-            .iter()
-            .map(|record| record.relation_id)
-            .collect::<Vec<_>>();
-        for entity_id in &pinned_entities {
-            self.pin_entity(*entity_id);
+        let mut pinned_partitions: BTreeMap<
+            crate::identity::data::PartitionId,
+            SnapshotPartitionPins,
+        > = BTreeMap::new();
+        for entity_id in entities.iter().map(|record| record.entity_id) {
+            let pins = pinned_partitions
+                .entry(entity_id.partition_id)
+                .or_insert_with(|| SnapshotPartitionPins {
+                    entity_slots: DenseSlotBitSet::with_capacity(
+                        entity_id.local_slot.0 as usize + 1,
+                    ),
+                    relation_slots: DenseSlotBitSet::with_capacity(0),
+                });
+            pins.entity_slots.set(entity_id.local_slot.0 as usize, true);
         }
-        for relation_id in &pinned_relations {
-            self.pin_relation(*relation_id);
+        for relation_id in relations.iter().map(|record| record.relation_id) {
+            let pins = pinned_partitions
+                .entry(relation_id.partition_id)
+                .or_insert_with(|| SnapshotPartitionPins {
+                    entity_slots: DenseSlotBitSet::with_capacity(0),
+                    relation_slots: DenseSlotBitSet::with_capacity(
+                        relation_id.local_slot.0 as usize + 1,
+                    ),
+                });
+            pins.relation_slots.set(relation_id.local_slot.0 as usize, true);
         }
-        (
-            handle.clone(),
-            SnapshotState {
-                handle,
-                pinned_entities,
-                pinned_relations,
-            },
-        )
+        let state = SnapshotState {
+            handle: handle.clone(),
+            pinned_entity_count: entities.len(),
+            pinned_relation_count: relations.len(),
+            pinned_partitions,
+        };
+        self.pin_snapshot_state(&state);
+        (handle.clone(), state)
+    }
+
+    fn read_from_snapshot_state(&self, state: &SnapshotState) -> RelationalReadView {
+        let current_state = self.current_state();
+        let mut entities = Vec::with_capacity(state.pinned_entity_count);
+        let mut relations = Vec::with_capacity(state.pinned_relation_count);
+        for (partition_id, pins) in &state.pinned_partitions {
+            for slot in pins.entity_slots.iter_set_slots() {
+                let entity_id = crate::identity::data::EntityId::new(*partition_id, slot as u64, 0);
+                if let Some(record) = self.entity_record_for_id_at_version(
+                    &current_state,
+                    entity_id,
+                    state.handle.version_id,
+                ) {
+                    entities.push(record);
+                }
+            }
+            for slot in pins.relation_slots.iter_set_slots() {
+                let relation_id =
+                    crate::identity::data::RelationId::new(*partition_id, slot as u64, 0);
+                if let Some(record) = self.relation_record_for_id_at_version(
+                    &current_state,
+                    relation_id,
+                    state.handle.version_id,
+                ) {
+                    relations.push(record);
+                }
+            }
+        }
+        {
+            let mut counters = self.complexity_counters.borrow_mut();
+            counters.visible_entity_records_materialized += entities.len();
+            counters.visible_relation_records_materialized += relations.len();
+        }
+        RelationalReadView {
+            snapshot: state.handle.clone(),
+            entities,
+            relations,
+        }
+    }
+
+    pub(crate) fn pin_snapshot_state(&mut self, state: &SnapshotState) {
+        for (partition_id, pins) in &state.pinned_partitions {
+            for slot in pins.entity_slots.iter_set_slots() {
+                self.pin_entity(crate::identity::data::EntityId::new(
+                    *partition_id,
+                    slot as u64,
+                    0,
+                ));
+            }
+            for slot in pins.relation_slots.iter_set_slots() {
+                self.pin_relation(crate::identity::data::RelationId::new(
+                    *partition_id,
+                    slot as u64,
+                    0,
+                ));
+            }
+        }
+    }
+
+    fn unpin_snapshot_state(&mut self, state: &SnapshotState) {
+        for (partition_id, pins) in &state.pinned_partitions {
+            for slot in pins.entity_slots.iter_set_slots() {
+                self.unpin_entity(crate::identity::data::EntityId::new(
+                    *partition_id,
+                    slot as u64,
+                    0,
+                ));
+            }
+            for slot in pins.relation_slots.iter_set_slots() {
+                self.unpin_relation(crate::identity::data::RelationId::new(
+                    *partition_id,
+                    slot as u64,
+                    0,
+                ));
+            }
+        }
     }
 
     pub(crate) fn pin_entity(&mut self, entity_id: crate::identity::data::EntityId) {
@@ -1361,6 +1421,12 @@ impl RelationalRuntime {
                     self.durable_log.drain(0..overflow);
                 }
             }
+        }
+        while self.version_visibility_cache.len() > policy.max_in_memory_envelopes {
+            let Some(oldest_version) = self.version_visibility_cache.keys().next().copied() else {
+                break;
+            };
+            self.version_visibility_cache.remove(&oldest_version);
         }
     }
 }

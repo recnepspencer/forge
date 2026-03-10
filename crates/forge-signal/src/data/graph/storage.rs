@@ -56,6 +56,7 @@ impl SignalGraph {
     ) -> Result<(), SignalError> {
         let snapshot_id = self.dependency_snapshots.insert(snapshot);
         self.get_entry_mut(id)?.set_dep_snapshot_id(snapshot_id);
+        self.maybe_compact_graph_storage();
         Ok(())
     }
 
@@ -252,6 +253,7 @@ impl SignalGraph {
         let dependencies_id = self.dependency_edges.insert_from_slice(&updated);
         self.get_entry_mut(node)?
             .set_dependencies_id(dependencies_id);
+        self.maybe_compact_graph_storage();
         Ok(true)
     }
 
@@ -263,6 +265,7 @@ impl SignalGraph {
         let dependencies_id = self.dependency_edges.insert_from_slice(edges);
         self.get_entry_mut(node)?
             .set_dependencies_id(dependencies_id);
+        self.maybe_compact_graph_storage();
         Ok(())
     }
 
@@ -283,6 +286,7 @@ impl SignalGraph {
         let dependencies_id = self.dependency_edges.insert_from_slice(&updated);
         self.get_entry_mut(node)?
             .set_dependencies_id(dependencies_id);
+        self.maybe_compact_graph_storage();
         Ok(true)
     }
 
@@ -331,6 +335,7 @@ impl SignalGraph {
         let dependencies_id = self.dependency_edges.insert_from_slice(&updated);
         self.get_entry_mut(node)?
             .set_dependencies_id(dependencies_id);
+        self.maybe_compact_graph_storage();
         Ok(true)
     }
 
@@ -354,6 +359,7 @@ impl SignalGraph {
         }
         let subscribers_id = self.subscriber_edges.insert_from_slice(&updated);
         self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
+        self.maybe_compact_graph_storage();
         Ok(true)
     }
 
@@ -364,6 +370,7 @@ impl SignalGraph {
     ) -> Result<(), SignalError> {
         let subscribers_id = self.subscriber_edges.insert_from_slice(subscribers);
         self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
+        self.maybe_compact_graph_storage();
         Ok(())
     }
 
@@ -383,6 +390,7 @@ impl SignalGraph {
         }
         let subscribers_id = self.subscriber_edges.insert_from_slice(&updated);
         self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
+        self.maybe_compact_graph_storage();
         Ok(true)
     }
 

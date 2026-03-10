@@ -294,9 +294,12 @@ fn interned_partition_scope_matches(
     if subscription.partition != changed.partition {
         return false;
     }
-    match subscription.match_mode {
-        PartitionMatchMode::WholePartition => true,
-        PartitionMatchMode::PartitionAndDetail => subscription.detail == changed.detail,
+    match (subscription.match_mode, changed.match_mode) {
+        (PartitionMatchMode::WholePartition, _) => true,
+        (_, PartitionMatchMode::WholePartition) => true,
+        (PartitionMatchMode::PartitionAndDetail, PartitionMatchMode::PartitionAndDetail) => {
+            subscription.detail == changed.detail
+        }
     }
 }
 
@@ -325,9 +328,12 @@ fn partition_scope_matches(
     if subscription.partition != changed.partition {
         return false;
     }
-    match subscription.match_mode {
-        PartitionMatchMode::WholePartition => true,
-        PartitionMatchMode::PartitionAndDetail => subscription.detail == changed.detail,
+    match (subscription.match_mode, changed.match_mode) {
+        (PartitionMatchMode::WholePartition, _) => true,
+        (_, PartitionMatchMode::WholePartition) => true,
+        (PartitionMatchMode::PartitionAndDetail, PartitionMatchMode::PartitionAndDetail) => {
+            subscription.detail == changed.detail
+        }
     }
 }
 

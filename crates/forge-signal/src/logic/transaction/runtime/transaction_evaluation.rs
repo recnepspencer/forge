@@ -147,7 +147,7 @@ where
     where
         F: Fn(NodeId, &ExecutionReadView<'_>) -> Result<PreparedEvaluation, SignalError> + Sync,
     {
-        let targets = crate::logic::transaction::helpers::collect_dirty_targets(self.graph);
+        let targets = self.collect_dirty_targets();
         if targets.is_empty() {
             return Ok(crate::logic::transaction::helpers::empty_execution_report());
         }
@@ -170,6 +170,28 @@ where
         };
         self.stage_plan_candidates(&plan)?;
         self.execute_prepared_plan_with_executor(&plan, precompute, executor)
+    }
+
+    fn collect_dirty_targets(&self) -> Vec<NodeId> {
+        let mut targets = self
+            .dirty_targets
+            .marked_indices()
+            .into_iter()
+            .filter_map(|index| self.graph.live_node_id_at(index))
+            .filter(|node| {
+                self.graph
+                    .get_entry(*node)
+                    .map(|entry| !matches!(entry.get_state(), crate::data::node::NodeState::Clean))
+                    .unwrap_or(false)
+            })
+            .collect::<Vec<_>>();
+        targets.sort_by_key(|node| (node.index(), node.generation()));
+        targets.dedup();
+        if targets.is_empty() {
+            crate::logic::transaction::helpers::collect_dirty_targets(self.graph)
+        } else {
+            targets
+        }
     }
 
     pub(super) fn absorb_execution_report_telemetry(&mut self, report: &ExecutionReport) {

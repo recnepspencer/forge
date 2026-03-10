@@ -4,7 +4,7 @@ use crate::data::error::SignalError;
 use crate::data::event_subscriber::{EventSubscriber, SubscriberId};
 use crate::data::subscriber_context::SubscriberContext;
 use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger, TierPolicy};
-use crate::facade::{mark_dirty, NodeEvaluationResult, NodeState};
+use crate::facade::{mark_dirty, EvaluationRequestMode, NodeEvaluationResult, NodeState};
 use crate::logic::prepared::PreparedEvaluation;
 use crate::logic::transaction::{SignalRuntime, TransactionOutcome};
 use crate::tests::support::*;
@@ -198,6 +198,30 @@ fn poisoned_rollback_rewinds_graph() {
 }
 
 #[test]
+fn poisoned_rollback_does_not_increment_explicit_rollback_metric() {
+    let graph = crate::data::graph::SignalGraph::new();
+    let mut runtime = build_runtime(graph);
+    let mut ctx = ();
+    let rollback_before = runtime.telemetry().transaction_rollback_count;
+    let poison_before = runtime.telemetry().transaction_poison_count;
+    let mut tx = runtime.begin();
+
+    let invalid = crate::data::handle::NodeId::new(999_999, 0);
+    assert!(tx.mark_dirty(invalid, ASPECT_B).is_err());
+    assert_eq!(tx.rollback(&mut ctx).unwrap(), TransactionOutcome::Poisoned);
+
+    assert_eq!(
+        runtime.telemetry().transaction_rollback_count,
+        rollback_before,
+        "poisoned rollback should not inflate explicit rollback telemetry"
+    );
+    assert_eq!(
+        runtime.telemetry().transaction_poison_count,
+        poison_before + 1
+    );
+}
+
+#[test]
 fn failure_during_event_begin_rewinds_graph() {
     let mut graph = crate::data::graph::SignalGraph::new();
     let a = graph.node().build();
@@ -215,6 +239,34 @@ fn failure_during_event_begin_rewinds_graph() {
     let err = tx.commit(&mut ctx).unwrap_err();
     assert!(format!("{err}").contains("event bus begin failed"));
     assert_eq!(runtime.graph().get_state(a).unwrap(), before);
+}
+
+#[test]
+fn commit_failure_reports_rolled_back_patch_count() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let a = graph.node().build();
+    let mut runtime = build_runtime(graph);
+
+    runtime
+        .event_bus_mut()
+        .subscribe(Box::new(FailingSubscriber))
+        .unwrap();
+
+    let mut ctx = ();
+    let mut tx = runtime.begin();
+    tx.mark_dirty(a, ASPECT_B).unwrap();
+    tx.emit_event(Ev::Tick);
+    tx.flush_events(CheckpointBarrier::PerOperation).unwrap();
+
+    let _ = tx.commit(&mut ctx).unwrap_err();
+    let rollback = runtime
+        .diagnostics()
+        .latest_rollback()
+        .expect("rollback diagnostics should be recorded");
+    assert!(
+        rollback.staged_node_patch_count > 0,
+        "rollback diagnostics should retain the staged patch count after rewinding"
+    );
 }
 
 #[test]
@@ -315,6 +367,47 @@ fn transaction_created_keyed_nodes_are_removed_on_rollback() {
     assert_eq!(runtime.graph().arena_capacity(), arena_before);
     assert_eq!(runtime.graph().active_node_count(), active_before);
     assert!(!runtime.graph().is_alive(created));
+}
+
+#[test]
+fn repeated_created_node_rollbacks_do_not_accumulate_storage_debris() {
+    let graph = crate::data::graph::SignalGraph::new();
+    let mut runtime = build_runtime(graph);
+    let mut ctx = ();
+
+    let (
+        (dep_edges_before, dep_segments_before),
+        (sub_edges_before, sub_segments_before),
+        snapshot_before,
+    ) = runtime.graph().storage_counts();
+
+    for _ in 0..12 {
+        let mut tx = runtime.begin();
+        let family = tx.register_computation_family("positions");
+        let created = tx.keyed_node(&family, "wing-root");
+        tx.evaluate_with_plan(
+            created,
+            &|_node, view| Ok(view.finish(version_ab(1, 0))),
+            EvaluationRequestMode::ForceOnDemand,
+        )
+        .unwrap();
+        assert_eq!(
+            tx.rollback(&mut ctx).unwrap(),
+            TransactionOutcome::RolledBack
+        );
+    }
+
+    let (
+        (dep_edges_after, dep_segments_after),
+        (sub_edges_after, sub_segments_after),
+        snapshot_after,
+    ) = runtime.graph().storage_counts();
+
+    assert_eq!(dep_edges_after, dep_edges_before);
+    assert_eq!(dep_segments_after, dep_segments_before);
+    assert_eq!(sub_edges_after, sub_edges_before);
+    assert_eq!(sub_segments_after, sub_segments_before);
+    assert_eq!(snapshot_after, snapshot_before);
 }
 
 #[test]

@@ -243,9 +243,10 @@ fn complexity_contract_visibility_scans_are_explicitly_measured() {
     let mut runtime = runtime_with_test_schema();
     let source = create_entity(&mut runtime, "source");
     let target = create_entity(&mut runtime, "target");
-    let _relation = create_relation(&mut runtime, source, target, "r0");
+    let relation_outcome = create_relation_outcome(&mut runtime, source, target, "r0");
     let snapshot = runtime.snapshot();
-    let current_version = runtime.latest_commit().unwrap().version_id;
+    let historical_version = relation_outcome.version_id;
+    let current_version = create_entity_outcome(&mut runtime, "later").version_id;
 
     runtime.reset_complexity_counters();
     let _ = runtime.read_snapshot(&snapshot).unwrap();
@@ -257,13 +258,20 @@ fn complexity_contract_visibility_scans_are_explicitly_measured() {
     assert!(snapshot_counters.visible_relation_records_materialized >= 1);
 
     runtime.reset_complexity_counters();
-    let _ = runtime.read_version(current_version);
+    let _ = runtime.read_version(historical_version);
     let current_version_counters = runtime.complexity_counters();
 
     assert_eq!(current_version_counters.visibility_entity_slot_scans, 0);
     assert_eq!(current_version_counters.visibility_relation_slot_scans, 0);
     assert!(current_version_counters.visible_entity_records_materialized >= 2);
     assert!(current_version_counters.visible_relation_records_materialized >= 1);
+
+    runtime.reset_complexity_counters();
+    let _ = runtime.read_version(current_version);
+    let historical_version_counters = runtime.complexity_counters();
+
+    assert_eq!(historical_version_counters.visibility_entity_slot_scans, 0);
+    assert_eq!(historical_version_counters.visibility_relation_slot_scans, 0);
 }
 
 #[test]

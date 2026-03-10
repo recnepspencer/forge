@@ -35,10 +35,7 @@ pub fn emit_event_in_txn<'a, D, I, E, Ctx, T>(
 
 pub(super) fn collect_dirty_targets(graph: &SignalGraph) -> Vec<NodeId> {
     let mut targets = Vec::new();
-    for index in 0..graph.arena_capacity() {
-        let Some(node) = graph.live_node_id_at(index) else {
-            continue;
-        };
+    for node in graph.live_node_ids() {
         let Ok(entry) = graph.get_entry(node) else {
             continue;
         };

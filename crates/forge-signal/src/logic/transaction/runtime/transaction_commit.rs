@@ -19,11 +19,12 @@ where
         self.finished = true;
 
         if self.poisoned {
+            let rollback_patch_count = self.rollback_patch_count();
             self.event_bus.rollback(runtime_ctx);
             self.rollback_graph_state()?;
             let rollback = RollbackDiagnostic::new(
                 true,
-                self.graph_patches.touched_count() as u64,
+                rollback_patch_count,
                 self.telemetry.max_touched_nodes_in_txn,
                 Some("poisoned transaction rollback".to_string()),
             );
@@ -65,11 +66,12 @@ where
             .begin(runtime_ctx)
             .map_err(|e| SignalError::invalid_input(format!("event bus begin failed: {e:?}")))
         {
+            let rollback_patch_count = self.rollback_patch_count();
             self.event_bus.rollback(runtime_ctx);
             self.rollback_graph_state()?;
             let rollback = RollbackDiagnostic::new(
                 true,
-                self.graph_patches.touched_count() as u64,
+                rollback_patch_count,
                 self.telemetry.max_touched_nodes_in_txn,
                 Some("event bus begin failed".to_string()),
             );
@@ -108,11 +110,12 @@ where
                 .flush(barrier, runtime_ctx)
                 .map_err(|e| SignalError::invalid_input(format!("event bus flush failed: {e:?}")))
             {
+                let rollback_patch_count = self.rollback_patch_count();
                 self.event_bus.rollback(runtime_ctx);
                 self.rollback_graph_state()?;
                 let rollback = RollbackDiagnostic::new(
                     true,
-                    self.graph_patches.touched_count() as u64,
+                    rollback_patch_count,
                     self.telemetry.max_touched_nodes_in_txn,
                     Some("event bus flush failed".to_string()),
                 );
@@ -204,12 +207,15 @@ where
             return Err(SignalError::internal("transaction already finished"));
         }
         self.finished = true;
+        let rollback_patch_count = self.rollback_patch_count();
         self.event_bus.rollback(runtime_ctx);
         self.rollback_graph_state()?;
-        self.telemetry.transaction_rollback_count += 1;
+        if !self.poisoned {
+            self.telemetry.transaction_rollback_count += 1;
+        }
         let rollback = RollbackDiagnostic::new(
             true,
-            self.graph_patches.touched_count() as u64,
+            rollback_patch_count,
             self.telemetry.max_touched_nodes_in_txn,
             Some(if self.poisoned {
                 "poisoned transaction rollback".to_string()
@@ -268,6 +274,12 @@ where
         self.graph.rollback_created_nodes(&self.created_nodes);
         self.created_nodes.clear();
         self.graph.rebuild_subscriber_index_from_dependencies()?;
+        self.graph.compact_graph_storage();
+        self.dirty_targets.clear_all();
         Ok(())
+    }
+
+    fn rollback_patch_count(&self) -> u64 {
+        self.graph_patches.touched_count() as u64 + self.created_nodes.len() as u64
     }
 }

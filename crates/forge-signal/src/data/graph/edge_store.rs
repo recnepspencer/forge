@@ -96,6 +96,10 @@ impl DependencyEdgeStore {
     pub(crate) fn storage_counts(&self) -> (usize, usize) {
         (self.edges.len(), self.segments.len())
     }
+
+    pub(crate) fn live_segment_count(&self) -> usize {
+        self.segments.len()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -151,5 +155,9 @@ impl SubscriberEdgeStore {
     #[cfg(test)]
     pub(crate) fn storage_counts(&self) -> (usize, usize) {
         (self.subscribers.len(), self.segments.len())
+    }
+
+    pub(crate) fn live_segment_count(&self) -> usize {
+        self.segments.len()
     }
 }

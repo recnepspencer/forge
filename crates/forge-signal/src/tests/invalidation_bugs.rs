@@ -213,3 +213,33 @@ fn unscoped_dependency_removal_removes_partition_scoped_edges() {
         "unscoped dependency removal should remove matching scoped edges too"
     );
 }
+
+#[test]
+fn whole_partition_invalidates_partition_detail_subscribers() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().partitioned_output().build();
+    let dependent = graph.node().build();
+    graph
+        .add_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
+        .unwrap();
+
+    evaluate(&mut graph, source, &mut |_id, _graph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+            .with_changed_region(ChangedRegion::new("wing").with_detail("rib-12")))
+    })
+    .unwrap();
+    evaluate(&mut graph, dependent, &mut |_id, graph| {
+        Ok(NodeEvaluationResult::from_version(
+            graph.get_entry(source).unwrap().get_aspect_version(),
+        ))
+    })
+    .unwrap();
+
+    mark_dirty_with_regions(&mut graph, source, ASPECT_A, &[ChangedRegion::new("wing")]).unwrap();
+
+    assert_eq!(
+        graph.get_state(dependent).unwrap(),
+        NodeState::Dirty,
+        "whole-partition changes must invalidate detail subscribers on the same partition"
+    );
+}

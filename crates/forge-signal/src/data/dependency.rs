@@ -7,6 +7,7 @@ use std::num::NonZeroU32;
 use crate::data::aspect::{Aspect, AspectMask};
 use crate::data::handle::NodeId;
 use crate::data::output::{InternedPartitionSubscription, PartitionSubscription};
+use std::cmp::Ordering;
 
 /// A dependency edge recording which upstream node and aspect a downstream reads.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -103,6 +104,11 @@ impl DependencySnapshot {
     pub fn entries(&self) -> &[(NodeId, Aspect, u64, Option<PartitionSubscription>)] {
         &self.entries
     }
+
+    fn canonicalize(&mut self) {
+        self.entries.sort_by(compare_snapshot_entries);
+        self.entries.dedup();
+    }
 }
 
 /// Stable handle into graph-owned dependency snapshot storage.
@@ -152,6 +158,8 @@ impl DependencySnapshotStore {
 
     /// Store one immutable snapshot and return its id.
     pub fn insert(&mut self, snapshot: DependencySnapshot) -> DependencySnapshotId {
+        let mut snapshot = snapshot;
+        snapshot.canonicalize();
         if snapshot.entries().is_empty() {
             return DependencySnapshotId::EMPTY;
         }
@@ -170,9 +178,33 @@ impl DependencySnapshotStore {
     pub(crate) fn snapshot_count(&self) -> usize {
         self.snapshots.len()
     }
+
+    pub(crate) fn live_snapshot_count(&self) -> usize {
+        self.snapshots.len()
+    }
 }
 
 fn empty_dependency_snapshot() -> &'static DependencySnapshot {
     static EMPTY: std::sync::OnceLock<DependencySnapshot> = std::sync::OnceLock::new();
     EMPTY.get_or_init(DependencySnapshot::empty)
+}
+
+fn compare_snapshot_entries(
+    left: &(NodeId, Aspect, u64, Option<PartitionSubscription>),
+    right: &(NodeId, Aspect, u64, Option<PartitionSubscription>),
+) -> Ordering {
+    (
+        left.0.index(),
+        left.0.generation(),
+        left.1.index(),
+        left.2,
+        &left.3,
+    )
+        .cmp(&(
+            right.0.index(),
+            right.0.generation(),
+            right.1.index(),
+            right.2,
+            &right.3,
+        ))
 }

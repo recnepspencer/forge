@@ -12,10 +12,11 @@
 
 use crate::data::error::SignalError;
 
-use crate::data::aspect::{Aspect, AspectVersion};
+use crate::data::aspect::Aspect;
 use crate::data::dependency::DependencyEdge;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
+use std::collections::HashSet;
 
 /// Explicit evaluation context for parallel-safe dependency tracking.
 ///
@@ -36,6 +37,7 @@ pub struct EvaluationContext {
     evaluating: NodeId,
     /// Dependencies discovered during this evaluation.
     discovered_deps: Vec<DependencyEdge>,
+    discovered_dep_keys: HashSet<(NodeId, Aspect)>,
 }
 
 impl EvaluationContext {
@@ -44,6 +46,7 @@ impl EvaluationContext {
         Self {
             evaluating,
             discovered_deps: Vec::new(),
+            discovered_dep_keys: HashSet::new(),
         }
     }
 
@@ -62,20 +65,15 @@ impl EvaluationContext {
         graph: &SignalGraph,
         signal: NodeId,
         aspect: Aspect,
-    ) -> Result<AspectVersion, SignalError> {
+    ) -> Result<u64, SignalError> {
         let edge = DependencyEdge::new(signal, aspect);
 
-        let already_recorded = self
-            .discovered_deps
-            .iter()
-            .any(|d| d.source() == signal && d.aspect() == aspect);
-
-        if !already_recorded {
+        if self.discovered_dep_keys.insert((signal, aspect)) {
             self.discovered_deps.push(edge);
         }
 
         let entry = graph.get_entry(signal)?;
-        Ok(entry.get_aspect_version())
+        Ok(entry.get_aspect_version().get(aspect))
     }
 
     /// Consume the context and return all discovered dependencies.

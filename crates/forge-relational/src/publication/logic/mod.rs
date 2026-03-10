@@ -7,7 +7,12 @@ use crate::diagnostics::data::{
 use crate::logic::runtime::{RelationalReplayRecord, RelationalRuntime, ReplaySchemaVersion};
 use crate::publication::data::{PublicationBundle, PublicationStatus};
 use crate::snapshots::data::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
-use crate::storage::logic::state::{PartitionAccess, PublicationArtifacts, SnapshotState};
+use std::collections::BTreeMap;
+
+use crate::identity::data::{PartitionId, RelationId};
+use crate::storage::logic::state::{
+    DenseSlotBitSet, PartitionAccess, PublicationArtifacts, SnapshotPartitionPins, SnapshotState,
+};
 
 impl RelationalRuntime {
     pub(crate) fn push_diagnostic_artifact(&mut self, artifact: RelationalDiagnosticArtifact) {
@@ -64,18 +69,28 @@ impl RelationalRuntime {
         };
         let entities = self.visible_entities_from_state(staged, version_id);
         let relations = self.visible_relations_from_state(staged, version_id);
-        let pinned_entities = entities
-            .iter()
-            .map(|record| record.entity_id)
-            .collect::<Vec<_>>();
-        let pinned_relations = relations
-            .iter()
-            .map(|record| record.relation_id)
-            .collect::<Vec<_>>();
+        let mut pinned_partitions: BTreeMap<PartitionId, SnapshotPartitionPins> = BTreeMap::new();
+        for entity_id in entities.iter().map(|record| record.entity_id) {
+            let partition_pins = pinned_partitions
+                .entry(entity_id.partition_id)
+                .or_insert_with(|| SnapshotPartitionPins {
+                    entity_slots: DenseSlotBitSet::with_capacity(
+                        entity_id.local_slot.0 as usize + 1,
+                    ),
+                    relation_slots: DenseSlotBitSet::with_capacity(0),
+                });
+            partition_pins
+                .entity_slots
+                .set(entity_id.local_slot.0 as usize, true);
+        }
+        for relation_id in relations.iter().map(|record| record.relation_id) {
+            insert_snapshot_relation_pin(&mut pinned_partitions, relation_id);
+        }
         let snapshot_state = SnapshotState {
             handle: snapshot.clone(),
-            pinned_entities,
-            pinned_relations,
+            pinned_entity_count: entities.len(),
+            pinned_relation_count: relations.len(),
+            pinned_partitions,
         };
         PublicationArtifacts {
             snapshot,
@@ -84,6 +99,21 @@ impl RelationalRuntime {
             bundle,
         }
     }
+}
+
+fn insert_snapshot_relation_pin(
+    pinned_partitions: &mut BTreeMap<PartitionId, SnapshotPartitionPins>,
+    relation_id: RelationId,
+) {
+    let partition_pins = pinned_partitions
+        .entry(relation_id.partition_id)
+        .or_insert_with(|| SnapshotPartitionPins {
+            entity_slots: DenseSlotBitSet::with_capacity(0),
+            relation_slots: DenseSlotBitSet::with_capacity(relation_id.local_slot.0 as usize + 1),
+        });
+    partition_pins
+        .relation_slots
+        .set(relation_id.local_slot.0 as usize, true);
 }
 
 pub(crate) fn publication_failure_diagnostic(detail: String) -> RelationalDiagnosticsEntry {

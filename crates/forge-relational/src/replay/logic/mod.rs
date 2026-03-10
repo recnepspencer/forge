@@ -4,11 +4,11 @@ use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
 use crate::history::data::{BranchId, CommitId};
+use crate::durability::data::{DurableCommitEnvelope, RecoveryPlan};
 use crate::replay::data::{
     CanonicalCommitEnvelope, RelationalReplayOutcome, RelationalReplayRequest, ReplayExecutionMode,
     ReplayFailureClass, ReplayMismatch, ReplayObservableSurface,
 };
-use crate::transactions::data::TransactionOptions;
 use serde_json::json;
 
 use crate::logic::runtime::RelationalRuntime;
@@ -71,38 +71,10 @@ impl RelationalRuntime {
             }
         };
 
-        let mut replay_runtime = RelationalRuntime::new(self.config.clone());
-        for commit_id in &chain {
-            let staged_envelope = self
-                .commit_envelopes
-                .get(commit_id)
-                .expect("replay chain envelope must exist");
-            if !replay_runtime
-                .branch_heads
-                .contains_key(&staged_envelope.branch_context)
-            {
-                let parent_branch = staged_envelope
-                    .commit
-                    .parents
-                    .first()
-                    .and_then(|parent| self.commit_envelopes.get(parent))
-                    .map(|parent| parent.branch_context.clone())
-                    .unwrap_or_else(|| replay_runtime.config.main_branch.clone());
-                let _ = replay_runtime
-                    .create_branch(staged_envelope.branch_context.clone(), &parent_branch);
-            }
-            let mut txn = replay_runtime.begin_transaction(TransactionOptions {
-                target_branch: Some(staged_envelope.branch_context.clone()),
-                merge_parent_branches: staged_envelope.merge_parent_branches.clone(),
-                ..TransactionOptions::default()
-            });
-            txn.push_batch(crate::transactions::data::WorkerIntentBatch {
-                name: format!("replay-commit-{}", staged_envelope.commit.commit_id.0),
-                partition_key: None,
-                worker_local_only: true,
-                intents: staged_envelope.merged_plan.merged_intents.clone(),
-            });
-            if txn.commit().is_err() {
+        let replay_plan = self.replay_recovery_plan_for_chain(&chain);
+        let replay_runtime = match RelationalRuntime::rebuild_runtime_from_plan(replay_plan) {
+            Ok(runtime) => runtime,
+            Err(_) => {
                 return RelationalReplayOutcome {
                     requested: request,
                     commit: Some(envelope.commit.clone()),
@@ -113,7 +85,7 @@ impl RelationalRuntime {
                     failure: Some(ReplayFailureClass::ObservableMismatch),
                 };
             }
-        }
+        };
 
         let replayed_envelope = replay_runtime
             .canonical_commit_envelope(request.commit_id)
@@ -244,6 +216,40 @@ impl RelationalRuntime {
         let mut visiting = BTreeSet::new();
         self.visit_replay_chain(commit_id, &mut visiting, &mut ordered)?;
         Ok(ordered)
+    }
+
+    fn replay_recovery_plan_for_chain(&self, chain: &[CommitId]) -> RecoveryPlan {
+        let checkpoint = self
+            .durable_checkpoints
+            .iter()
+            .rev()
+            .find(|checkpoint| {
+                checkpoint
+                    .up_to_commit
+                    .as_ref()
+                    .map(|commit| chain.contains(&commit.commit_id))
+                    .unwrap_or(false)
+            })
+            .cloned();
+        let tail_start = checkpoint
+            .as_ref()
+            .and_then(|checkpoint| checkpoint.up_to_commit.as_ref())
+            .map(|commit| commit.commit_id);
+        let tail_log = chain
+            .iter()
+            .copied()
+            .filter(|commit_id| tail_start.is_none_or(|start| *commit_id > start))
+            .filter_map(|commit_id| {
+                self.commit_envelopes.get(&commit_id).cloned().map(|envelope| {
+                    DurableCommitEnvelope { envelope }
+                })
+            })
+            .collect();
+        RecoveryPlan {
+            config: self.config.clone(),
+            checkpoint,
+            tail_log,
+        }
     }
 
     fn visit_replay_chain(

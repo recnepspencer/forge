@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
-use crate::data::aspect::{AspectMask, AspectVersion};
+use crate::data::aspect::{AspectMask, AspectVersion, MAX_ASPECTS};
 use crate::data::core_profile::HOT_VEC_INLINE_CAPACITY;
 use crate::data::dependency::DependencySnapshotId;
 use crate::data::graph::{DependencySetId, SubscriberSetId};
@@ -71,7 +71,7 @@ impl NodeEntry {
     pub fn new() -> Self {
         Self {
             state: NodeState::Dirty,
-            dirty_aspects: AspectMask::EMPTY,
+            dirty_aspects: AspectMask::from_bits(((1u32 << MAX_ASPECTS) - 1) as _),
             dirty_partition_scopes: SmallVec::new(),
             aspect_version: AspectVersion::zero(),
             dependencies_id: DependencySetId::EMPTY,

@@ -303,6 +303,32 @@ fn gc_epoch_compacts_edge_and_snapshot_storage_after_churn() {
 }
 
 #[test]
+fn semantically_identical_dependency_snapshots_deduplicate_even_if_recorded_in_different_orders() {
+    let mut graph = SignalGraph::new();
+    let a = graph.node().build();
+    let b = graph.node().build();
+    let dependent = graph.node().build();
+
+    let mut left = DependencySnapshot::empty();
+    left.record(a, ASPECT_A, 1, None);
+    left.record(b, ASPECT_B, 2, None);
+
+    let mut right = DependencySnapshot::empty();
+    right.record(b, ASPECT_B, 2, None);
+    right.record(a, ASPECT_A, 1, None);
+
+    graph.set_dep_snapshot(dependent, left).unwrap();
+    let first = graph.get_entry(dependent).unwrap().get_dep_snapshot_id();
+    graph.set_dep_snapshot(dependent, right).unwrap();
+    let second = graph.get_entry(dependent).unwrap().get_dep_snapshot_id();
+
+    assert_eq!(
+        first, second,
+        "snapshot storage should deduplicate canonical-equal snapshots regardless of record order"
+    );
+}
+
+#[test]
 fn dependency_snapshot_growth_returns_near_live_state_after_gc() {
     let mut runtime = SignalRuntime::builder(SignalGraph::with_gc_threshold(1)).build();
     let source = runtime.graph_mut().node().build();

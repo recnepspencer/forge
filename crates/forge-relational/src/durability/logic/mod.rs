@@ -45,12 +45,32 @@ impl RelationalRuntime {
     }
 
     pub fn recover(&mut self, plan: RecoveryPlan) -> Result<RecoveryOutcome, DurabilityError> {
-        if plan.config.schema_registry != self.config.schema_registry {
-            return Err(DurabilityError {
-                class: RecoveryFailureClass::SchemaMismatch,
-                detail: "recovery schema registry mismatch".to_string(),
-            });
-        }
+        let mut restored = Self::rebuild_runtime_from_plan(plan.clone())?;
+        restored.durable_log = plan.tail_log;
+        restored.push_bounded_diagnostic(
+            DiagnosticsScope::History,
+            DiagnosticsArtifactKind::MinimalSummary,
+            vec![RelationalDiagnosticsEntry {
+                code: DiagnosticCode::CommitPublished,
+                message: "runtime recovered from canonical durable envelopes".to_string(),
+                fields: json!({
+                    "recovered_commits": restored.commit_envelopes.len(),
+                    "restored_branches": restored.branch_heads.len(),
+                }),
+            }],
+        );
+        let outcome = RecoveryOutcome {
+            recovered_commits: restored.commit_envelopes.len(),
+            latest_commit: restored.latest_commit().cloned(),
+            restored_branches: restored.branch_heads.len(),
+        };
+        *self = restored;
+        Ok(outcome)
+    }
+
+    pub(crate) fn rebuild_runtime_from_plan(
+        plan: RecoveryPlan,
+    ) -> Result<RelationalRuntime, DurabilityError> {
         let mut restored = RelationalRuntime::new(plan.config.clone());
         let checkpoint = plan.checkpoint.clone();
         let checkpoint_envelopes = checkpoint
@@ -261,26 +281,7 @@ impl RelationalRuntime {
             .max()
             .unwrap_or(0)
             + 1;
-        restored.durable_log = plan.tail_log;
-        restored.push_bounded_diagnostic(
-            DiagnosticsScope::History,
-            DiagnosticsArtifactKind::MinimalSummary,
-            vec![RelationalDiagnosticsEntry {
-                code: DiagnosticCode::CommitPublished,
-                message: "runtime recovered from canonical durable envelopes".to_string(),
-                fields: json!({
-                    "recovered_commits": restored.commit_envelopes.len(),
-                    "restored_branches": restored.branch_heads.len(),
-                }),
-            }],
-        );
-        let outcome = RecoveryOutcome {
-            recovered_commits: restored.commit_envelopes.len(),
-            latest_commit: restored.latest_commit().cloned(),
-            restored_branches: restored.branch_heads.len(),
-        };
-        *self = restored;
-        Ok(outcome)
+        Ok(restored)
     }
 
     pub fn recovery_plan(&self) -> RecoveryPlan {

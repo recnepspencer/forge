@@ -331,12 +331,11 @@ impl<'a> RelationalTransaction<'a> {
         staged.apply_to_runtime(&mut self.runtime.partitions);
         self.runtime
             .refresh_unique_field_index_for_records(&changed_records, version_id);
-        for entity_id in &artifacts.snapshot_state.pinned_entities {
-            self.runtime.pin_entity(*entity_id);
-        }
-        for relation_id in &artifacts.snapshot_state.pinned_relations {
-            self.runtime.pin_relation(*relation_id);
-        }
+        self.runtime.pin_snapshot_state(&artifacts.snapshot_state);
+        self.runtime.version_visibility_cache.insert(
+            version_id,
+            artifacts.snapshot_state.clone(),
+        );
         self.runtime
             .snapshots
             .insert(artifacts.snapshot.snapshot_id, artifacts.snapshot_state);

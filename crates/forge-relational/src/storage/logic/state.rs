@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
 use crate::identity::data::{
@@ -50,10 +50,48 @@ impl DenseSlotBitSet {
         if start >= end {
             return 0;
         }
-        self.iter_set_slots()
-            .into_iter()
-            .filter(|slot| *slot >= start && *slot < end)
-            .count()
+        let start_word = start / 64;
+        let end_word = (end - 1) / 64;
+        let start_bit = start % 64;
+        let end_bit = (end - 1) % 64;
+        let mut total = 0usize;
+
+        if start_word == end_word {
+            let Some(word) = self.words.get(start_word).copied() else {
+                return 0;
+            };
+            let lower_mask = (!0u64) << start_bit;
+            let upper_mask = if end_bit == 63 {
+                !0u64
+            } else {
+                (1u64 << (end_bit + 1)) - 1
+            };
+            return (word & lower_mask & upper_mask).count_ones() as usize;
+        }
+
+        if let Some(word) = self.words.get(start_word).copied() {
+            total += (word & ((!0u64) << start_bit)).count_ones() as usize;
+        }
+
+        for word_index in (start_word + 1)..end_word {
+            total += self
+                .words
+                .get(word_index)
+                .copied()
+                .unwrap_or(0)
+                .count_ones() as usize;
+        }
+
+        if let Some(word) = self.words.get(end_word).copied() {
+            let upper_mask = if end_bit == 63 {
+                !0u64
+            } else {
+                (1u64 << (end_bit + 1)) - 1
+            };
+            total += (word & upper_mask).count_ones() as usize;
+        }
+
+        total
     }
 
     pub(crate) fn iter_set_slots(&self) -> Vec<usize> {
@@ -82,7 +120,7 @@ pub(crate) type VersionedValue = VersionedPayload;
 #[derive(Debug, Clone)]
 pub(crate) enum AdjacencySet {
     Inline(Vec<RelationId>),
-    Compressed(BTreeSet<RelationId>),
+    Compressed(Vec<RelationId>),
 }
 
 impl AdjacencySet {
@@ -91,7 +129,7 @@ impl AdjacencySet {
             AdjacencyBackend::InlineSmallDegreeAdjacency => {
                 Self::Inline(Vec::with_capacity(policy.small_degree_inline_capacity))
             }
-            AdjacencyBackend::CompressedFanoutAdjacency => Self::Compressed(BTreeSet::new()),
+            AdjacencyBackend::CompressedFanoutAdjacency => Self::Compressed(Vec::new()),
         }
     }
 
@@ -108,9 +146,10 @@ impl AdjacencySet {
                 Ok(_) => {}
                 Err(index) => relations.insert(index, relation_id),
             },
-            Self::Compressed(relations) => {
-                relations.insert(relation_id);
-            }
+            Self::Compressed(relations) => match relations.binary_search(&relation_id) {
+                Ok(_) => {}
+                Err(index) => relations.insert(index, relation_id),
+            },
         }
     }
 
@@ -122,7 +161,9 @@ impl AdjacencySet {
                 }
             }
             Self::Compressed(relations) => {
-                relations.remove(relation_id);
+                if let Ok(index) = relations.binary_search(relation_id) {
+                    relations.remove(index);
+                }
             }
         }
     }
@@ -130,11 +171,11 @@ impl AdjacencySet {
     pub(crate) fn ids(&self) -> Vec<RelationId> {
         match self {
             Self::Inline(relations) => relations.clone(),
-            Self::Compressed(relations) => relations.iter().copied().collect(),
+            Self::Compressed(relations) => relations.clone(),
         }
     }
 
-    pub(crate) fn extend_into(&self, target: &mut BTreeSet<RelationId>) {
+    pub(crate) fn extend_into(&self, target: &mut std::collections::BTreeSet<RelationId>) {
         match self {
             Self::Inline(relations) => target.extend(relations.iter().copied()),
             Self::Compressed(relations) => target.extend(relations.iter().copied()),
@@ -286,10 +327,17 @@ pub(crate) struct PartitionMutationJournal {
 }
 
 #[derive(Debug, Clone)]
+pub(crate) struct SnapshotPartitionPins {
+    pub(crate) entity_slots: DenseSlotBitSet,
+    pub(crate) relation_slots: DenseSlotBitSet,
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct SnapshotState {
     pub(crate) handle: crate::snapshots::data::SnapshotHandle,
-    pub(crate) pinned_entities: Vec<EntityId>,
-    pub(crate) pinned_relations: Vec<RelationId>,
+    pub(crate) pinned_partitions: BTreeMap<PartitionId, SnapshotPartitionPins>,
+    pub(crate) pinned_entity_count: usize,
+    pub(crate) pinned_relation_count: usize,
 }
 
 #[derive(Debug, Clone)]

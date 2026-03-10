@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use crate::data::bitset::DenseBitset;
 use crate::data::dirty_set::BatchedDirtySet;
 use crate::data::telemetry::RuntimeTelemetry;
 use crate::diagnostics::failure::FailureSummary;
@@ -51,6 +52,9 @@ where
     pub(super) baseline_config: SignalRuntimeConfig<T>,
     pub(super) baseline_diagnostics_state: DiagnosticsState,
     pub(super) semantic_delta: TransactionSemanticDelta,
+    pub(super) mark_dirty_seen: DenseBitset,
+    pub(super) evaluate_seen: DenseBitset,
+    pub(super) dirty_targets: DenseBitset,
     pub(super) poisoned: bool,
     pub(super) finished: bool,
     pub(super) staged_patch_count: u64,

@@ -15,10 +15,10 @@ fn evaluation_context_tracks_deps() {
     let mut ctx = EvaluationContext::new(evaluating);
 
     let ver_a = ctx.read(&graph, upstream_a, ASPECT_A).unwrap();
-    assert_eq!(ver_a.get(ASPECT_A), 1);
+    assert_eq!(ver_a, 1);
 
     let ver_b = ctx.read(&graph, upstream_b, ASPECT_B).unwrap();
-    assert_eq!(ver_b.get(ASPECT_B), 1);
+    assert_eq!(ver_b, 1);
 
     ctx.read(&graph, upstream_a, ASPECT_A).unwrap();
 
@@ -32,4 +32,24 @@ fn evaluation_context_tracks_deps() {
     assert_eq!(deps[0].aspect(), ASPECT_A);
     assert_eq!(deps[1].source(), upstream_b);
     assert_eq!(deps[1].aspect(), ASPECT_B);
+}
+
+#[test]
+fn evaluation_context_read_is_aspect_specific() {
+    let mut graph = SignalGraph::new();
+    let upstream = graph.node().build();
+
+    evaluate(&mut graph, upstream, &mut |_id, _g: &SignalGraph| {
+        Ok(version_ab(7, 13))
+    })
+    .unwrap();
+
+    let evaluating = graph.node().build();
+    let mut ctx = EvaluationContext::new(evaluating);
+
+    let version_a = ctx.read(&graph, upstream, ASPECT_A).unwrap();
+    let version_b = ctx.read(&graph, upstream, ASPECT_B).unwrap();
+
+    assert_eq!(version_a, 7);
+    assert_eq!(version_b, 13);
 }

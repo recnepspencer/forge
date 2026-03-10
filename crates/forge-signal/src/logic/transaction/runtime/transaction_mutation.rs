@@ -1,7 +1,6 @@
 use std::time::Instant;
 
 use crate::data::aspect::Aspect;
-use crate::data::bitset::DenseBitset;
 use crate::data::checkpoint::CheckpointBarrier;
 use crate::data::dirty_set::DomainImpact;
 use crate::data::effect_mapping::EffectMapping;
@@ -130,15 +129,17 @@ where
         source: NodeId,
     ) -> Result<(), SignalError> {
         let mut stack = vec![source];
-        let mut seen = DenseBitset::new();
-        seen.ensure_len(self.graph.arena_capacity());
+        self.mark_dirty_seen.clear_all();
+        self.mark_dirty_seen.ensure_len(self.graph.arena_capacity());
+        self.dirty_targets.ensure_len(self.graph.arena_capacity());
         while let Some(node) = stack.pop() {
-            if !seen.mark(node.index() as usize) {
+            if !self.mark_dirty_seen.mark(node.index() as usize) {
                 continue;
             }
             if !self.graph.is_alive(node) {
                 continue;
             }
+            self.dirty_targets.mark(node.index() as usize);
             self.graph_patches.stage_original(self.graph, node)?;
             for &subscriber in self.graph.subscribers_of(node)? {
                 stack.push(subscriber);
@@ -149,15 +150,17 @@ where
 
     pub(super) fn stage_evaluate_candidates(&mut self, node: NodeId) -> Result<(), SignalError> {
         let mut stack = vec![node];
-        let mut seen = DenseBitset::new();
-        seen.ensure_len(self.graph.arena_capacity());
+        self.evaluate_seen.clear_all();
+        self.evaluate_seen.ensure_len(self.graph.arena_capacity());
+        self.dirty_targets.ensure_len(self.graph.arena_capacity());
         while let Some(current) = stack.pop() {
-            if !seen.mark(current.index() as usize) {
+            if !self.evaluate_seen.mark(current.index() as usize) {
                 continue;
             }
             if !self.graph.is_alive(current) {
                 continue;
             }
+            self.dirty_targets.mark(current.index() as usize);
             self.graph_patches.stage_original(self.graph, current)?;
             for dependency in self.graph.dependencies_of(current)? {
                 stack.push(dependency.source());

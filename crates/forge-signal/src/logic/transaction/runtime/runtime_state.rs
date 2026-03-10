@@ -396,7 +396,7 @@ where
         );
         crate::diagnostics::recorder::record_branch_lineage_event(
             &mut self.graph,
-            crate::diagnostics::lineage::LineageEvent::BranchedFrom,
+            crate::diagnostics::lineage::LineageEvent::BranchSwitched,
             format!("switched from `{}` to `{}`", current.name, branch.name),
         );
         Ok(())
@@ -667,6 +667,9 @@ where
             baseline_config,
             baseline_diagnostics_state,
             semantic_delta: super::transaction_types::TransactionSemanticDelta::default(),
+            mark_dirty_seen: crate::data::bitset::DenseBitset::new(),
+            evaluate_seen: crate::data::bitset::DenseBitset::new(),
+            dirty_targets: crate::data::bitset::DenseBitset::new(),
             poisoned: false,
             finished: false,
             staged_patch_count: 0,

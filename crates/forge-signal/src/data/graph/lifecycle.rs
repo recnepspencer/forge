@@ -123,7 +123,7 @@ impl SignalGraph {
         self.tombstone_count >= self.gc_threshold
     }
 
-    fn compact_graph_storage(&mut self) {
+    pub(crate) fn compact_graph_storage(&mut self) {
         let old_dependency_edges = self.dependency_edges.clone();
         let old_subscriber_edges = self.subscriber_edges.clone();
         let old_dependency_snapshots = self.dependency_snapshots.clone();
@@ -178,5 +178,18 @@ impl SignalGraph {
         self.dependency_edges = compacted_dependency_edges;
         self.subscriber_edges = compacted_subscriber_edges;
         self.dependency_snapshots = compacted_dependency_snapshots;
+    }
+
+    pub(crate) fn maybe_compact_graph_storage(&mut self) {
+        let active = self.active_node_count().max(1);
+        let dependency_segments = self.dependency_edges.live_segment_count();
+        let subscriber_segments = self.subscriber_edges.live_segment_count();
+        let snapshot_count = self.dependency_snapshots.live_snapshot_count();
+        let should_compact = dependency_segments > active * 8
+            || subscriber_segments > active * 8
+            || snapshot_count > active * 8;
+        if should_compact {
+            self.compact_graph_storage();
+        }
     }
 }

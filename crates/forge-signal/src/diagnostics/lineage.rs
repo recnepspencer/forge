@@ -15,6 +15,7 @@ pub enum LineageEvent {
     Replaced,
     Restored,
     BranchedFrom,
+    BranchSwitched,
     MergedFrom,
     MemoizedFrom,
     InvalidatedWithoutReplacement,

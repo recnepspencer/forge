@@ -115,8 +115,11 @@ fn partition_subscription_matches(
     if subscription.partition != region.partition {
         return false;
     }
-    match subscription.match_mode {
-        PartitionMatchMode::WholePartition => true,
-        PartitionMatchMode::PartitionAndDetail => subscription.detail == region.detail,
+    match (subscription.match_mode, region.detail.as_ref()) {
+        (PartitionMatchMode::WholePartition, _) => true,
+        (PartitionMatchMode::PartitionAndDetail, None) => true,
+        (PartitionMatchMode::PartitionAndDetail, Some(detail)) => {
+            subscription.detail.as_ref() == Some(detail)
+        }
     }
 }
