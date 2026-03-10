@@ -1,3 +1,4 @@
+use crate::data::dependency::DependencySnapshot;
 use crate::facade::*;
 use crate::tests::support::{version_ab, ASPECT_A, ASPECT_B};
 
@@ -341,6 +342,24 @@ fn dependency_snapshot_growth_returns_near_live_state_after_gc() {
         after.2 <= 2,
         "dependency snapshot storage should compact back near live snapshot count after churn: before={before:?} after={after:?}"
     );
+}
+
+#[test]
+fn identical_dependency_snapshots_are_deduplicated_before_gc() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().build();
+    let dependent = graph.node().build();
+    graph.add_dependency(dependent, source, ASPECT_A).unwrap();
+
+    let mut snapshot = DependencySnapshot::empty();
+    snapshot.record(source, ASPECT_A, 1, None);
+    graph.set_dep_snapshot(dependent, snapshot.clone()).unwrap();
+    let first = graph.get_entry(dependent).unwrap().get_dep_snapshot_id();
+    graph.set_dep_snapshot(dependent, snapshot).unwrap();
+    let second = graph.get_entry(dependent).unwrap().get_dep_snapshot_id();
+
+    assert_eq!(first, second);
+    assert_eq!(graph.test_storage_counts().2, 1);
 }
 
 #[test]

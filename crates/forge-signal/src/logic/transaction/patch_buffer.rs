@@ -1,8 +1,8 @@
-use crate::data::bitset::DenseBitset;
 use crate::data::error::SignalError;
 use crate::data::graph::SignalGraph;
 use crate::data::handle::NodeId;
 use crate::data::node::NodeEntry;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 struct NodePatch {
@@ -12,25 +12,16 @@ struct NodePatch {
 /// Sparse patch storage with O(touched) rollback/clear semantics.
 #[derive(Debug, Clone, Default)]
 pub(super) struct SparsePatchBuffer {
-    patches: Vec<Option<NodePatch>>,
-    dirty_bits: DenseBitset,
-    touched_indices: Vec<usize>,
+    patches: Vec<(usize, NodePatch)>,
+    index_by_node: HashMap<usize, usize>,
 }
 
 impl SparsePatchBuffer {
     pub(super) fn new() -> Self {
         Self {
             patches: Vec::new(),
-            dirty_bits: DenseBitset::new(),
-            touched_indices: Vec::new(),
+            index_by_node: HashMap::new(),
         }
-    }
-
-    fn ensure_capacity(&mut self, index: usize) {
-        if index >= self.patches.len() {
-            self.patches.resize_with(index + 1, || None);
-        }
-        self.dirty_bits.ensure_len(index + 1);
     }
 
     pub(super) fn stage_original(
@@ -39,26 +30,23 @@ impl SparsePatchBuffer {
         node: NodeId,
     ) -> Result<(), SignalError> {
         let index = node.index() as usize;
-        self.ensure_capacity(index);
-        if self.patches[index].is_none() {
+        if !self.index_by_node.contains_key(&index) {
             let original = graph.get_entry(node)?.clone();
-            self.patches[index] = Some(NodePatch { original });
-            if self.dirty_bits.mark(index) {
-                self.touched_indices.push(index);
-            }
+            self.index_by_node.insert(index, self.patches.len());
+            self.patches.push((index, NodePatch { original }));
         }
         Ok(())
     }
 
     pub(super) fn touched_count(&self) -> usize {
-        self.touched_indices.len()
+        self.patches.len()
     }
 
     pub(super) fn touched_nodes(&self, graph: &SignalGraph) -> Vec<NodeId> {
         let mut nodes = self
-            .touched_indices
+            .patches
             .iter()
-            .filter_map(|index| graph.live_node_id_at(*index))
+            .filter_map(|(index, _)| graph.live_node_id_at(*index))
             .collect::<Vec<_>>();
         nodes.sort_by_key(|node| (node.index(), node.generation()));
         nodes.dedup();
@@ -67,14 +55,8 @@ impl SparsePatchBuffer {
 
     /// Commit path: graph already contains staged changes, so clear patches only.
     pub(super) fn commit_and_clear(&mut self) {
-        let mut touched = std::mem::take(&mut self.touched_indices);
-        touched.sort_unstable();
-        for index in touched {
-            if let Some(slot) = self.patches.get_mut(index) {
-                *slot = None;
-            }
-            self.dirty_bits.clear(index);
-        }
+        self.patches.clear();
+        self.index_by_node.clear();
     }
 
     /// Roll back graph to staged originals, then clear patch set.
@@ -82,24 +64,14 @@ impl SparsePatchBuffer {
         &mut self,
         graph: &mut SignalGraph,
     ) -> Result<(), SignalError> {
-        let mut touched = std::mem::take(&mut self.touched_indices);
-        touched.sort_unstable();
-        for index in touched {
-            let Some(slot) = self.patches.get_mut(index) else {
-                self.dirty_bits.clear(index);
-                continue;
-            };
-            let Some(patch) = slot.take() else {
-                self.dirty_bits.clear(index);
-                continue;
-            };
-
+        self.patches.sort_by_key(|(index, _)| *index);
+        for (index, patch) in std::mem::take(&mut self.patches) {
             let node = graph
                 .live_node_id_at(index)
                 .ok_or_else(|| SignalError::internal("rollback encountered stale patch node"))?;
             graph.replace_entry(node, patch.original)?;
-            self.dirty_bits.clear(index);
         }
+        self.index_by_node.clear();
 
         Ok(())
     }

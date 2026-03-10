@@ -106,6 +106,26 @@ impl<T: Copy + Ord> SignalRuntimeConfig<T> {
         node
     }
 
+    pub fn keyed_node_with_created(
+        &mut self,
+        graph: &mut SignalGraph,
+        family: &ComputationFamily,
+        key: impl Into<ComputationKey>,
+    ) -> (NodeId, bool) {
+        let key = key.into();
+        let registry_key = (
+            self.key_registry.intern_family(family),
+            self.key_registry.intern_key(&key),
+        );
+        if let Some(node) = self.keyed_nodes.get(&registry_key).copied() {
+            return (node, false);
+        }
+        let node = graph.node().build();
+        self.sync_graph_capacity(graph);
+        self.keyed_nodes.insert(registry_key, node);
+        (node, true)
+    }
+
     pub(super) fn lookup_memoized_result(
         &self,
         family: &ComputationFamily,

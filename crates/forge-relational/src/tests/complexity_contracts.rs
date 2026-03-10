@@ -77,14 +77,19 @@ fn complexity_budget_relation_identity_validation_avoids_partition_scan() {
     for index in 0..12 {
         let other_source = create_entity(&mut runtime, &format!("other-source-{index}"));
         let other_target = create_entity(&mut runtime, &format!("other-target-{index}"));
-        let _ = create_relation(&mut runtime, other_source, other_target, &format!("r{index}"));
+        let _ = create_relation(
+            &mut runtime,
+            other_source,
+            other_target,
+            &format!("r{index}"),
+        );
     }
 
     runtime.reset_complexity_counters();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
         WorkerIntentBatch::new("duplicate").push(TransactionIntent::CreateRelation(
-            crate::data::transaction::RelationSpec {
+            crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("dup".to_string()),
@@ -117,12 +122,12 @@ fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
 
     runtime.reset_complexity_counters();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
-    txn.push_batch(
-        WorkerIntentBatch::new("duplicate-name").push(TransactionIntent::UpdateEntity {
+    txn.push_batch(WorkerIntentBatch::new("duplicate-name").push(
+        TransactionIntent::UpdateEntity {
             entity_id: target,
             payload: RecordPayload::StructuredJson(json!({"name":"other"})),
-        }),
-    );
+        },
+    ));
     let error = txn.commit().unwrap_err();
     let counters = runtime.complexity_counters();
 
@@ -147,12 +152,12 @@ fn complexity_budget_commit_boundary_unique_invariant_uses_merged_plan_lookup() 
 
     runtime.reset_complexity_counters();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
-    txn.push_batch(
-        WorkerIntentBatch::new("duplicate-name").push(TransactionIntent::UpdateEntity {
+    txn.push_batch(WorkerIntentBatch::new("duplicate-name").push(
+        TransactionIntent::UpdateEntity {
             entity_id: target,
             payload: RecordPayload::StructuredJson(json!({"name":"other"})),
-        }),
-    );
+        },
+    ));
     let error = txn.commit().unwrap_err();
     let counters = runtime.complexity_counters();
 

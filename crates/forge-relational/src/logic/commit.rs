@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::data::transaction::CommitAuthority;
+use crate::transactions::data::CommitAuthority;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CommitAuthorityContract {

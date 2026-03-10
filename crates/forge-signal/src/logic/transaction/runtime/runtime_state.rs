@@ -663,6 +663,7 @@ where
             staged_event_flushes: Vec::new(),
             staged_memo_writes: std::collections::BTreeMap::new(),
             graph_patches: SparsePatchBuffer::new(),
+            created_nodes: Vec::new(),
             baseline_config,
             baseline_diagnostics_state,
             semantic_delta: super::transaction_types::TransactionSemanticDelta::default(),

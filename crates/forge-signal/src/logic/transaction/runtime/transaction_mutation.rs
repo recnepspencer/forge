@@ -9,6 +9,7 @@ use crate::data::error::SignalError;
 use crate::data::evaluator::CheckpointEvaluator;
 use crate::data::handle::NodeId;
 use crate::data::output::ChangedRegion;
+use crate::data::output::{ComputationFamily, ComputationKey};
 use crate::diagnostics::replay::ReplayEventKind;
 use crate::diagnostics::{ExecutionFailureContext, ExecutionFailurePhase};
 use crate::logic::invalidation::{mark_dirty, mark_dirty_with_regions};
@@ -23,6 +24,25 @@ where
 {
     pub fn staged_graph(&self) -> &crate::data::graph::SignalGraph {
         self.graph
+    }
+
+    pub fn register_computation_family(
+        &mut self,
+        family: impl Into<ComputationFamily>,
+    ) -> ComputationFamily {
+        self.config.register_computation_family(family)
+    }
+
+    pub fn keyed_node(
+        &mut self,
+        family: &ComputationFamily,
+        key: impl Into<ComputationKey>,
+    ) -> NodeId {
+        let (node, created) = self.config.keyed_node_with_created(self.graph, family, key);
+        if created {
+            self.created_nodes.push(node);
+        }
+        node
     }
 
     pub fn emit_event(&mut self, event: E) {
@@ -141,6 +161,18 @@ where
             self.graph_patches.stage_original(self.graph, current)?;
             for dependency in self.graph.dependencies_of(current)? {
                 stack.push(dependency.source());
+            }
+        }
+        Ok(())
+    }
+
+    pub(super) fn stage_plan_candidates(
+        &mut self,
+        plan: &crate::logic::planner::EvaluationPlan,
+    ) -> Result<(), SignalError> {
+        for stage in &plan.stages {
+            for task in &stage.tasks {
+                self.stage_evaluate_candidates(task.node)?;
             }
         }
         Ok(())

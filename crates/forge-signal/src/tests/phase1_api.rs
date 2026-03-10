@@ -176,3 +176,24 @@ fn easy_mode_failed_batch_restores_input_values() {
     assert_eq!(graph.get(price), 100);
     assert_eq!(graph.get(tax), 5);
 }
+
+#[test]
+fn easy_mode_failed_batch_restores_downstream_invalidation_state() {
+    let mut graph = ReactiveGraph::new();
+    let source = graph.input(2_i32);
+    let doubled = graph.computed(move |context| context.get(source) * 2);
+
+    assert_eq!(graph.get(doubled), 4);
+
+    let err = graph.try_batch(|reactive| {
+        reactive.try_set(source, 9)?;
+        reactive.try_get(doubled)?;
+        Err(SignalError::invalid_input(
+            "force rollback after dirty propagation",
+        ))
+    });
+    assert!(err.is_err());
+
+    assert_eq!(graph.get(source), 2);
+    assert_eq!(graph.get(doubled), 4);
+}

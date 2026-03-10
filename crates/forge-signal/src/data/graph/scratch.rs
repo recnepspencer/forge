@@ -15,6 +15,7 @@ pub(crate) struct TraversalScratch {
     pub(crate) visited: VisitMarks,
     pub(crate) cycle_visiting: VisitMarks,
     pub(crate) cycle_finished: VisitMarks,
+    pub(crate) cycle_stack: Vec<(NodeId, bool)>,
     pub(crate) node_buffer_a: Vec<NodeId>,
     pub(crate) node_buffer_b: Vec<NodeId>,
     pub(crate) gc_liveness_generations: Vec<u32>,

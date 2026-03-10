@@ -1,6 +1,7 @@
 //! Dependency edges and snapshots for signal nodes.
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::num::NonZeroU32;
 
 use crate::data::aspect::{Aspect, AspectMask};
@@ -74,7 +75,7 @@ impl DependencyEdge {
 ///
 /// Used by the pull phase to determine if a `MaybeStale` node can revert
 /// to `Clean`: if all upstream versions match the snapshot, no recomputation needed.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DependencySnapshot {
     entries: Vec<(NodeId, Aspect, u64, Option<PartitionSubscription>)>,
 }
@@ -126,9 +127,21 @@ impl DependencySnapshotId {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct DependencySnapshotStore {
     snapshots: Vec<DependencySnapshot>,
+    #[serde(skip, default)]
+    interner: HashMap<DependencySnapshot, DependencySnapshotId>,
 }
 
 impl DependencySnapshotStore {
+    fn rebuild_interner_if_needed(&mut self) {
+        if !self.interner.is_empty() || self.snapshots.is_empty() {
+            return;
+        }
+        for (index, snapshot) in self.snapshots.iter().cloned().enumerate() {
+            self.interner
+                .insert(snapshot, DependencySnapshotId::from_index(index + 1));
+        }
+    }
+
     /// Read one snapshot by id.
     pub fn get(&self, id: DependencySnapshotId) -> &DependencySnapshot {
         match id.index() {
@@ -142,8 +155,15 @@ impl DependencySnapshotStore {
         if snapshot.entries().is_empty() {
             return DependencySnapshotId::EMPTY;
         }
+        self.rebuild_interner_if_needed();
+        if let Some(id) = self.interner.get(&snapshot).copied() {
+            return id;
+        }
         self.snapshots.push(snapshot);
-        DependencySnapshotId::from_index(self.snapshots.len())
+        let id = DependencySnapshotId::from_index(self.snapshots.len());
+        let snapshot = self.snapshots[id.index().expect("snapshot id should index") - 1].clone();
+        self.interner.insert(snapshot, id);
+        id
     }
 
     #[cfg(test)]

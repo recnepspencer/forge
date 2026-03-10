@@ -184,7 +184,9 @@ fn branch_debug_session_mixed_churn_stays_forensically_coherent() {
 
 #[test]
 fn undo_redo_style_session_with_failures_and_memo_reuse_preserves_branch_local_truth() {
-    let policy = SignalRuntimePolicy::development().with_history_limit(4);
+    let policy = SignalRuntimePolicy::development()
+        .with_history_limit(4)
+        .with_snapshot_restore_lineage_mode(SnapshotRestoreLineageMode::PerNode);
     let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
     runtime.set_runtime_policy(policy);
     let source = runtime.graph_mut().node().output_identity().build();
@@ -478,7 +480,8 @@ fn game_engine_frame_session_handles_threshold_flapping_branch_churn_and_posthoc
     runtime.set_runtime_policy(
         SignalRuntimePolicy::game_engine()
             .with_history_limit(6)
-            .with_detail_limit(2),
+            .with_detail_limit(2)
+            .with_snapshot_restore_lineage_mode(SnapshotRestoreLineageMode::PerNode),
     );
     let source = runtime.graph_mut().node().output_identity().build();
     let culled = runtime
@@ -1111,6 +1114,10 @@ fn retained_vs_reconstructed_artifacts_match_after_long_churn() {
 #[test]
 fn threshold_flap_storm_with_on_demand_and_restore_keeps_replay_coherent() {
     let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(
+        SignalRuntimePolicy::development()
+            .with_snapshot_restore_lineage_mode(SnapshotRestoreLineageMode::PerNode),
+    );
     let source = graph.node().output_identity().build();
     let threshold = graph
         .node()

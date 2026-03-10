@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::data::bitset::DenseBitset;
 use crate::data::comparator::{
     ComparatorPolicyResolver, DefaultComparatorPolicyResolver, DefaultComparatorResolver,
@@ -59,11 +61,7 @@ pub fn build_evaluation_plan_with_policy_resolver(
     }
 
     let depth_cache = compute_depths(graph, &planned_nodes)?;
-    let max_depth = planned_nodes
-        .iter()
-        .filter_map(|node| depth_cache[node.index() as usize])
-        .max()
-        .unwrap_or(0) as usize;
+    let max_depth = depth_cache.depths.iter().copied().max().unwrap_or(0) as usize;
     let mut stages_by_depth = vec![Vec::<EvaluationTask>::new(); max_depth + 1];
     planned_nodes.sort_by_key(|node| node_sort_key(*node));
     for node in planned_nodes {
@@ -76,7 +74,7 @@ pub fn build_evaluation_plan_with_policy_resolver(
             direct_request: planned_node.direct_request,
             reason,
         };
-        let depth = depth_cache[node.index() as usize].ok_or_else(|| {
+        let depth = depth_cache.depth_for(node).ok_or_else(|| {
             SignalError::internal("planned node missing depth cache entry during stage assembly")
         })? as usize;
         stages_by_depth[depth].push(task);
@@ -130,24 +128,24 @@ fn visit_node(
     planned: &mut [Option<PlannedNode>],
     planned_nodes: &mut Vec<NodeId>,
 ) -> Result<(), SignalError> {
-    if !visiting.mark(node.index() as usize) {
+    let node_index = node.index() as usize;
+    if visiting.contains(node_index) {
         return Err(SignalError::invalid_input(format!(
             "cycle detected while building evaluation plan at {node}"
         )));
     }
+    if let Some(existing) = &mut planned[node_index] {
+        existing.direct_request |= direct_request;
+        return Ok(());
+    }
+    visiting.mark(node_index);
 
     let state = graph.get_state(node)?;
     let should_include = matches!(state, NodeState::Dirty | NodeState::MaybeStale)
         || (direct_request && matches!(request_mode, EvaluationRequestMode::ForceOnDemand));
     if should_include {
-        let slot = &mut planned[node.index() as usize];
-        match slot {
-            Some(existing) => existing.direct_request |= direct_request,
-            None => {
-                *slot = Some(PlannedNode { direct_request });
-                planned_nodes.push(node);
-            }
-        }
+        planned[node_index] = Some(PlannedNode { direct_request });
+        planned_nodes.push(node);
     }
 
     match state {
@@ -209,62 +207,80 @@ fn visit_node(
         NodeState::Clean => {}
     }
 
-    visiting.clear(node.index() as usize);
+    visiting.clear(node_index);
     Ok(())
+}
+
+struct DepthCache {
+    index_by_node: HashMap<NodeId, usize>,
+    depths: Vec<u32>,
+}
+
+impl DepthCache {
+    fn depth_for(&self, node: NodeId) -> Option<u32> {
+        self.index_by_node
+            .get(&node)
+            .and_then(|index| self.depths.get(*index).copied())
+    }
 }
 
 fn compute_depths(
     graph: &SignalGraph,
     planned_nodes: &[NodeId],
-) -> Result<Vec<Option<u32>>, SignalError> {
-    let mut planned_mask = DenseBitset::new();
-    planned_mask.ensure_len(graph.arena_capacity());
-    for node in planned_nodes {
-        planned_mask.mark(node.index() as usize);
+) -> Result<DepthCache, SignalError> {
+    let mut index_by_node = HashMap::with_capacity(planned_nodes.len());
+    for (index, node) in planned_nodes.iter().copied().enumerate() {
+        index_by_node.insert(node, index);
     }
 
-    let mut indegree = vec![0_u32; graph.arena_capacity()];
-    let mut outgoing = vec![Vec::<NodeId>::new(); graph.arena_capacity()];
+    let mut indegree = vec![0_u32; planned_nodes.len()];
+    let mut outgoing = vec![Vec::<usize>::new(); planned_nodes.len()];
 
-    for &node in planned_nodes {
+    for (node_index, &node) in planned_nodes.iter().enumerate() {
         for dependency in graph.dependencies_of(node)? {
             let source = dependency.source();
-            if !planned_mask.contains(source.index() as usize) {
+            let Some(&source_index) = index_by_node.get(&source) else {
                 continue;
-            }
-            indegree[node.index() as usize] += 1;
-            outgoing[source.index() as usize].push(node);
+            };
+            indegree[node_index] += 1;
+            outgoing[source_index].push(node_index);
         }
     }
 
     let mut frontier = planned_nodes
         .iter()
-        .copied()
-        .filter(|node| indegree[node.index() as usize] == 0)
+        .enumerate()
+        .filter_map(|(index, node)| (indegree[index] == 0).then_some(*node))
         .collect::<Vec<_>>();
     frontier.sort_by_key(|node| node_sort_key(*node));
 
-    let mut depths = vec![None; graph.arena_capacity()];
+    let mut depths = vec![0_u32; planned_nodes.len()];
     let mut visited = 0usize;
 
     while let Some(node) = frontier.pop() {
+        let node_index = *index_by_node
+            .get(&node)
+            .ok_or_else(|| SignalError::internal("planned node missing compact depth index"))?;
         visited += 1;
         let depth = graph
             .dependencies_of(node)?
             .iter()
-            .filter(|dependency| planned_mask.contains(dependency.source().index() as usize))
-            .filter_map(|dependency| depths[dependency.source().index() as usize])
+            .filter_map(|dependency| {
+                index_by_node
+                    .get(&dependency.source())
+                    .and_then(|source_index| depths.get(*source_index).copied())
+            })
             .max()
             .map_or(0, |parent| parent + 1);
-        depths[node.index() as usize] = Some(depth);
+        depths[node_index] = depth;
 
         {
             let mut newly_ready = Vec::new();
-            for &child in &outgoing[node.index() as usize] {
-                let degree = &mut indegree[child.index() as usize];
+            for &child_index in &outgoing[node_index] {
+                let degree = &mut indegree[child_index];
                 *degree = degree.saturating_sub(1);
                 if *degree == 0 {
-                    newly_ready.push(child);
+                    newly_ready.push(planned_nodes[child_index]);
                 }
             }
             newly_ready.sort_by_key(|child| node_sort_key(*child));
@@ -278,7 +294,10 @@ fn compute_depths(
         ));
     }
 
-    Ok(depths)
+    Ok(DepthCache {
+        index_by_node,
+        depths,
+    })
 }
 
 fn classify_reason(

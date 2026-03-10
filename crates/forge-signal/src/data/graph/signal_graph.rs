@@ -42,6 +42,8 @@ pub struct SignalGraph {
     pub(super) diagnostics: DiagnosticsState,
 }
 
+const NODE_ARENA_RESERVE_CHUNK: usize = 1024;
+
 impl Default for SignalGraph {
     fn default() -> Self {
         Self::new()
@@ -122,10 +124,40 @@ impl SignalGraph {
         }
 
         let index = self.nodes.len() as u32;
+        if self.nodes.len() == self.nodes.capacity() {
+            self.nodes.reserve(NODE_ARENA_RESERVE_CHUNK);
+        }
         let mut slot = Slot::vacant();
         let generation = slot.occupy(entry);
         self.nodes.push(slot);
         NodeId::new(index, generation)
+    }
+
+    pub(crate) fn rollback_created_nodes(&mut self, created_nodes: &[NodeId]) {
+        let mut indices = created_nodes
+            .iter()
+            .map(|node| node.index() as usize)
+            .collect::<Vec<_>>();
+        indices.sort_unstable();
+        indices.dedup();
+
+        for index in indices.iter().rev().copied() {
+            let Some(slot) = self.nodes.get_mut(index) else {
+                continue;
+            };
+            if slot.is_occupied() {
+                slot.vacate();
+            }
+            if !self.free_list.contains(&(index as u32)) {
+                self.free_list.push(index as u32);
+            }
+        }
+
+        while self.nodes.last().is_some_and(|slot| !slot.is_occupied()) {
+            self.nodes.pop();
+        }
+        let new_len = self.nodes.len() as u32;
+        self.free_list.retain(|index| *index < new_len);
     }
 
     pub(super) fn validate_handle(&self, id: NodeId) -> Result<(), SignalError> {

@@ -1,16 +1,16 @@
-use crate::data::config::{
-    AdjacencyPolicy, CascadeDeletePolicy, CompiledLanePolicy, CrossContextPolicy,
-    DurableLogPolicy, MvccConfig, PublicationConfig, RelationalConfigOverride,
-    RelationalRuntimeProfile, StorageLayoutConfig,
+use crate::config::data::{
+    AdjacencyPolicy, CascadeDeletePolicy, CompiledLanePolicy, CrossContextPolicy, DurableLogPolicy,
+    MvccConfig, PublicationConfig, RelationalConfigOverride, RelationalRuntimeProfile,
+    StorageLayoutConfig,
 };
-use crate::data::diagnostics::RelationalDiagnosticsProfile;
-use crate::data::durability::DurabilityMode;
-use crate::data::payload::PayloadPolicy;
-use crate::data::schema::RelationalSchemaRegistry;
-use crate::data::symbols::SymbolPolicy;
+use crate::diagnostics::data::RelationalDiagnosticsProfile;
+use crate::durability::data::DurabilityMode;
 use crate::logic::commit::CommitAuthorityContract;
 use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
 use crate::logic::runtime::{InvariantCatalog, RelationalRuntime, RelationalRuntimeConfig};
+use crate::payloads::data::PayloadPolicy;
+use crate::schema::data::RelationalSchemaRegistry;
+use crate::symbols::data::SymbolPolicy;
 
 #[derive(Debug, Clone)]
 pub struct RelationalRuntimeBuilder {

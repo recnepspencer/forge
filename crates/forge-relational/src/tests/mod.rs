@@ -10,6 +10,8 @@ use forge_harness::facade::{
 };
 use serde_json::json;
 
+use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
+use crate::config::data::{DurableLogPolicy, DurableLogRetentionMode};
 use crate::facade::{
     BranchCreateError, BranchId, CommitOutcome, DiagnosticCode, DiagnosticsArtifactKind,
     DiagnosticsScope, EntityKindRegistration, EntityReadRecord, InvariantCatalog, InvariantClass,
@@ -20,12 +22,10 @@ use crate::facade::{
     StorageLayoutConfig, TransactionCommitError, TransactionIntent, TransactionOptions,
     WorkerIntentBatch,
 };
-use crate::data::config::{CascadeDeletePolicy, CrossContextPolicy};
-use crate::data::config::{DurableLogPolicy, DurableLogRetentionMode};
-use crate::data::payload::RecordPayload;
-use crate::data::schema::RelationPayloadClass;
-use crate::data::symbols::{InternedString, SymbolPolicy};
-use crate::data::diff::{PatchCompatibilityClass, PatchDetail};
+use crate::payloads::data::RecordPayload;
+use crate::publication::data::diff::{PatchCompatibilityClass, PatchDetail};
+use crate::schema::data::RelationPayloadClass;
+use crate::symbols::data::{InternedString, SymbolPolicy};
 
 #[test]
 fn runtime_defaults_to_serialized_authority() {
@@ -90,7 +90,7 @@ fn unknown_entity_kind_fails_explicitly() {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
         WorkerIntentBatch::new("unknown-kind").push(TransactionIntent::CreateEntity(
-            crate::data::transaction::EntitySpec {
+            crate::transactions::data::EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(999),
                 client_key: InternedString::Raw("bad".to_string()),
@@ -109,14 +109,16 @@ fn unknown_entity_kind_fails_explicitly() {
 #[test]
 fn duplicate_relation_identity_is_rejected() {
     let mut runtime = runtime_with_test_schema();
-    let source = create_entity(&mut runtime, "source");
-    let target = create_entity(&mut runtime, "target");
+    let source_outcome = create_entity_outcome(&mut runtime, "source");
+    let target_outcome = create_entity_outcome(&mut runtime, "target");
+    let source = changed_entities(&source_outcome)[0];
+    let target = changed_entities(&target_outcome)[0];
     create_relation(&mut runtime, source, target, "r1");
 
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
         WorkerIntentBatch::new("duplicate").push(TransactionIntent::CreateRelation(
-            crate::data::transaction::RelationSpec {
+            crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
                 client_key: InternedString::Raw("r2".to_string()),
@@ -283,7 +285,11 @@ fn epoch_retention_backend_preserves_snapshot_visibility_until_release() {
         crate::facade::RetentionBackend::EpochChunkRetention
     );
     assert_eq!(first_retention.entity_reclaimed, 0);
-    assert!(runtime.read_snapshot(&create_outcome.snapshot).unwrap().get_entity(entity).is_some());
+    assert!(runtime
+        .read_snapshot(&create_outcome.snapshot)
+        .unwrap()
+        .get_entity(entity)
+        .is_some());
 
     assert!(runtime.release_snapshot(&create_outcome.snapshot));
     assert!(runtime.release_snapshot(&delete_outcome.snapshot));
@@ -500,20 +506,22 @@ fn cross_order_equivalent_mutations_converge() {
 fn opaque_payloads_round_trip_through_commit_and_read() {
     let mut runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
-        .payload_policy(crate::data::payload::PayloadPolicy {
-            default_class: crate::data::payload::PayloadClass::OpaqueBytes,
+        .payload_policy(crate::payloads::data::PayloadPolicy {
+            default_class: crate::payloads::data::PayloadClass::OpaqueBytes,
             allow_opaque_bytes: true,
         })
         .build();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
-    txn.push_batch(WorkerIntentBatch::new("opaque").push(TransactionIntent::CreateEntity(
-        crate::data::transaction::EntitySpec {
-            partition_id: PartitionId::main(),
-            kind_id: KindId(1),
-            client_key: InternedString::Raw("opaque".to_string()),
-            payload: RecordPayload::OpaqueBytes(vec![1, 2, 3, 4]),
-        },
-    )));
+    txn.push_batch(
+        WorkerIntentBatch::new("opaque").push(TransactionIntent::CreateEntity(
+            crate::transactions::data::EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: InternedString::Raw("opaque".to_string()),
+                payload: RecordPayload::OpaqueBytes(vec![1, 2, 3, 4]),
+            },
+        )),
+    );
     let outcome = txn.commit().unwrap();
     let read = runtime.read_snapshot(&outcome.snapshot).unwrap();
 
@@ -565,7 +573,12 @@ fn bulk_create_entities_match_equivalent_singular_creates() {
     let singular_runtime = apply_batches(vec![batch_create("a"), batch_create("b")]);
     let bulk_read = bulk_runtime.read_snapshot(&bulk_outcome.snapshot).unwrap();
     let singular_read = singular_runtime
-        .read_snapshot(&singular_runtime.latest_publication_bundle().unwrap().snapshot)
+        .read_snapshot(
+            &singular_runtime
+                .latest_publication_bundle()
+                .unwrap()
+                .snapshot,
+        )
         .unwrap();
 
     assert_eq!(bulk_outcome.changed_records.len(), 2);
@@ -589,13 +602,8 @@ fn cross_context_relations_preserve_partitioned_endpoints() {
     let mut runtime = runtime_with_test_schema();
     let source = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
     let target = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
-    let relation = create_relation_in_partition(
-        &mut runtime,
-        source,
-        target,
-        "bridge",
-        PartitionId(29),
-    );
+    let relation =
+        create_relation_in_partition(&mut runtime, source, target, "bridge", PartitionId(29));
     let snapshot = runtime.snapshot();
     let read = runtime.read_snapshot(&snapshot).unwrap();
     let relation_record = read.get_relation(relation).unwrap();
@@ -604,6 +612,56 @@ fn cross_context_relations_preserve_partitioned_endpoints() {
     assert_eq!(relation_record.source.partition_id, PartitionId(7));
     assert_eq!(relation_record.target.partition_id, PartitionId(11));
     assert_eq!(relation_record.relation_id.partition_id, PartitionId(29));
+}
+
+#[test]
+fn cross_context_relations_respect_relation_kind_policy() {
+    let schema_registry = RelationalSchemaRegistry::new()
+        .register_entity_kind(EntityKindRegistration {
+            kind_id: KindId(1),
+            kind_name: "test.entity".to_string(),
+            schema_id: SchemaId("test".to_string()),
+            schema_version_id: SchemaVersionId(1),
+        })
+        .and_then(|registry| {
+            registry.register_relation_kind(RelationKindRegistration {
+                kind_id: KindId(2),
+                kind_name: "test.relation".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                payload_class: RelationPayloadClass::PayloadBearingRelation,
+                cross_context_policy: CrossContextPolicy::SchemaControlled,
+                cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
+            })
+        })
+        .unwrap();
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(schema_registry)
+        .cross_context_policy(CrossContextPolicy::SchemaControlled)
+        .build();
+    let source = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
+    let target = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(WorkerIntentBatch::new("forbidden-cross-context").push(
+        TransactionIntent::CreateRelation(crate::transactions::data::RelationSpec {
+            partition_id: PartitionId(29),
+            kind_id: KindId(2),
+            client_key: InternedString::Raw("bridge".to_string()),
+            source,
+            target,
+            payload: None,
+        }),
+    ));
+
+    let error = txn.commit().unwrap_err();
+
+    assert!(matches!(
+        error,
+        crate::facade::TransactionCommitError::Conflict(crate::facade::CommitConflict {
+            code: crate::facade::DiagnosticCode::InvalidRelationEndpoint,
+            ..
+        })
+    ));
 }
 
 #[test]
@@ -622,21 +680,24 @@ fn partition_registry_and_stats_expose_partition_owned_state() {
     );
     assert_eq!(stats.len(), 3);
     assert_eq!(
-        stats.iter()
+        stats
+            .iter()
             .find(|entry| entry.partition_id == PartitionId(7))
             .unwrap()
             .live_entities,
         1
     );
     assert_eq!(
-        stats.iter()
+        stats
+            .iter()
             .find(|entry| entry.partition_id == PartitionId(11))
             .unwrap()
             .live_entities,
         1
     );
     assert_eq!(
-        stats.iter()
+        stats
+            .iter()
             .find(|entry| entry.partition_id == PartitionId(29))
             .unwrap()
             .live_relations,
@@ -664,6 +725,87 @@ fn durable_log_compaction_respects_checkpoint_policy() {
 }
 
 #[test]
+fn relation_payload_history_is_removed_after_reclaim() {
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(test_schema_registry())
+        .mvcc(crate::facade::MvccConfig {
+            track_visibility_metadata: true,
+            snapshot_release_policy: crate::facade::SnapshotReleasePolicy::ExplicitRelease,
+            auto_reclaim_deleted_records: true,
+            reclaim_batch_size: 32,
+            retention_backend: crate::facade::RetentionBackend::PinTrackedRetention,
+        })
+        .build();
+    let source_outcome = create_entity_outcome(&mut runtime, "source");
+    let target_outcome = create_entity_outcome(&mut runtime, "target");
+    let source = changed_entities(&source_outcome)[0];
+    let target = changed_entities(&target_outcome)[0];
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(WorkerIntentBatch::new("payload-bearing-relation").push(
+        TransactionIntent::CreateRelation(crate::transactions::data::RelationSpec {
+            partition_id: PartitionId::main(),
+            kind_id: KindId(2),
+            client_key: InternedString::Raw("r1".to_string()),
+            source,
+            target,
+            payload: Some(RecordPayload::StructuredJson(
+                json!({"weight": 1, "name": "r1"}),
+            )),
+        }),
+    ));
+    let created = txn.commit().unwrap();
+    let relation = changed_relations(&created)[0];
+    assert_eq!(runtime.relation_history_len_for_test(relation), 1);
+
+    let mut delete_txn = runtime.begin_transaction(TransactionOptions::default());
+    delete_txn.push_batch(WorkerIntentBatch::new("delete-relation").push(
+        TransactionIntent::DeleteRelation {
+            relation_id: relation,
+        },
+    ));
+    let deleted = delete_txn.commit().unwrap();
+    runtime.release_snapshot(&source_outcome.snapshot);
+    runtime.release_snapshot(&target_outcome.snapshot);
+    runtime.release_snapshot(&created.snapshot);
+    runtime.release_snapshot(&deleted.snapshot);
+    runtime.run_retention_pass();
+
+    assert_eq!(runtime.relation_history_len_for_test(relation), 0);
+}
+
+#[test]
+fn structured_json_payloads_are_canonicalized_in_patch_output() {
+    let mut left_runtime = runtime_with_test_schema();
+    let mut right_runtime = runtime_with_test_schema();
+
+    let mut left_txn = left_runtime.begin_transaction(TransactionOptions::default());
+    left_txn.push_batch(
+        WorkerIntentBatch::new("left-json").push(TransactionIntent::CreateEntity(
+            crate::transactions::data::EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: InternedString::Raw("entity".to_string()),
+                payload: RecordPayload::StructuredJson(json!({"b": 2, "a": 1})),
+            },
+        )),
+    );
+    left_txn.commit().unwrap();
+
+    let mut right_txn = right_runtime.begin_transaction(TransactionOptions::default());
+    right_txn.push_batch(WorkerIntentBatch::new("right-json").push(
+        TransactionIntent::CreateEntity(crate::transactions::data::EntitySpec {
+            partition_id: PartitionId::main(),
+            kind_id: KindId(1),
+            client_key: InternedString::Raw("entity".to_string()),
+            payload: RecordPayload::StructuredJson(json!({"a": 1, "b": 2})),
+        }),
+    ));
+    right_txn.commit().unwrap();
+
+    assert_eq!(left_runtime.latest_patch(), right_runtime.latest_patch());
+}
+
+#[test]
 fn chip_profile_emits_dense_patch_surface_details() {
     let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
     let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
@@ -671,8 +813,14 @@ fn chip_profile_emits_dense_patch_surface_details() {
     let _ = create_relation_in_partition(&mut runtime, left, right, "bridge", PartitionId(29));
     let patch = runtime.latest_patch().unwrap();
 
-    assert_eq!(patch.compatibility, PatchCompatibilityClass::DenseCompatible);
-    assert!(patch.records.iter().all(|record| matches!(record.detail, PatchDetail::DenseBitset(_))));
+    assert_eq!(
+        patch.compatibility,
+        PatchCompatibilityClass::DenseCompatible
+    );
+    assert!(patch
+        .records
+        .iter()
+        .all(|record| matches!(record.detail, PatchDetail::DenseBitset(_))));
 }
 
 #[test]
@@ -681,8 +829,10 @@ fn chip_profile_preserves_relation_traversal_with_compressed_adjacency_backend()
     let source = create_entity_in_partition(&mut runtime, "source", PartitionId(7));
     let target_a = create_entity_in_partition(&mut runtime, "target-a", PartitionId(7));
     let target_b = create_entity_in_partition(&mut runtime, "target-b", PartitionId(9));
-    let relation_a = create_relation_in_partition(&mut runtime, source, target_a, "r-a", PartitionId(7));
-    let relation_b = create_relation_in_partition(&mut runtime, source, target_b, "r-b", PartitionId(12));
+    let relation_a =
+        create_relation_in_partition(&mut runtime, source, target_a, "r-a", PartitionId(7));
+    let relation_b =
+        create_relation_in_partition(&mut runtime, source, target_b, "r-b", PartitionId(12));
     let version_id = runtime.latest_commit().unwrap().version_id;
 
     assert_eq!(
@@ -1068,7 +1218,7 @@ pub(super) fn runtime_with_test_schema_and_invariants(
 
 pub(super) fn batch_create(name: &str) -> WorkerIntentBatch {
     WorkerIntentBatch::new(format!("batch-{name}")).push(TransactionIntent::CreateEntity(
-        crate::data::transaction::EntitySpec {
+        crate::transactions::data::EntitySpec {
             partition_id: PartitionId::main(),
             kind_id: KindId(1),
             client_key: InternedString::Raw(name.to_string()),
@@ -1091,7 +1241,7 @@ pub(super) fn create_entity_in_partition(
 ) -> crate::facade::EntityId {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(WorkerIntentBatch::new(format!("batch-{name}")).push(
-        TransactionIntent::CreateEntity(crate::data::transaction::EntitySpec {
+        TransactionIntent::CreateEntity(crate::transactions::data::EntitySpec {
             partition_id,
             kind_id: KindId(1),
             client_key: InternedString::Raw(name.to_string()),
@@ -1175,7 +1325,7 @@ pub(super) fn create_relation_in_partition(
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
         WorkerIntentBatch::new("relation").push(TransactionIntent::CreateRelation(
-            crate::data::transaction::RelationSpec {
+            crate::transactions::data::RelationSpec {
                 partition_id,
                 kind_id: KindId(2),
                 client_key: InternedString::Raw(client_key.to_string()),

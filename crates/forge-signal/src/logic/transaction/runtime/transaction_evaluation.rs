@@ -168,6 +168,7 @@ where
                 return Err(err);
             }
         };
+        self.stage_plan_candidates(&plan)?;
         self.execute_prepared_plan_with_executor(&plan, precompute, executor)
     }
 

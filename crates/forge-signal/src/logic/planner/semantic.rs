@@ -127,7 +127,7 @@ pub(super) fn finalize_stage_batch(
         end: segments.last().expect("segments not empty").task_range.end,
     });
 
-    let mut task_records = Vec::new();
+    let mut task_records = Vec::with_capacity(stage_tasks.len());
     let policy = graph.runtime_policy();
     for segment in segments {
         for update in segment.updates {

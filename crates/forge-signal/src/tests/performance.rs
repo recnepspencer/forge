@@ -1,5 +1,7 @@
 use crate::facade::*;
 use crate::tests::support::*;
+use std::hint::black_box;
+use std::mem::size_of;
 
 #[test]
 fn chain_1000_minimal_recomputation() {
@@ -93,4 +95,50 @@ fn ondemand_defer_perf_10k_nodes() {
         max_eval_ms
     );
     assert_eq!(graph.telemetry().ondemand_deferred_count, 10_000);
+}
+
+#[test]
+#[ignore = "layout report for slot occupancy experiments"]
+fn slot_layout_report() {
+    use crate::data::node::NodeEntry;
+
+    #[allow(dead_code)]
+    struct CurrentSlot {
+        data: Option<NodeEntry>,
+        generation: u32,
+    }
+
+    #[allow(dead_code)]
+    struct BoxedSlot {
+        data: Option<Box<NodeEntry>>,
+        generation: u32,
+    }
+
+    #[allow(dead_code)]
+    struct SplitOccupancySlot {
+        generation: u32,
+        occupied: bool,
+        data: Box<NodeEntry>,
+    }
+
+    eprintln!("slot_size_current={}", size_of::<CurrentSlot>());
+    eprintln!("slot_size_boxed={}", size_of::<BoxedSlot>());
+    eprintln!("slot_size_split={}", size_of::<SplitOccupancySlot>());
+
+    let count = 50_000usize;
+    let current = (0..count)
+        .map(|_| CurrentSlot {
+            data: None,
+            generation: 0,
+        })
+        .collect::<Vec<_>>();
+    let start = std::time::Instant::now();
+    let occupied = current
+        .iter()
+        .filter(|slot: &&CurrentSlot| black_box(slot.data.is_some()))
+        .count();
+    eprintln!(
+        "slot_scan_current_nanos={} occupied={occupied}",
+        start.elapsed().as_nanos()
+    );
 }

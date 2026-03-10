@@ -213,8 +213,25 @@ impl SignalGraph {
         self.validate_handle(downstream)?;
         self.validate_handle(upstream)?;
 
-        let edge = DependencyEdge::new(upstream, aspect);
-        let removed = self.remove_dependency_edge(downstream, edge)?;
+        let removed = self.remove_dependency_edges_matching(downstream, upstream, aspect, None)?;
+        if removed && !self.has_dependency_on(downstream, upstream)? {
+            self.remove_subscriber_edge(upstream, downstream)?;
+        }
+        Ok(())
+    }
+
+    pub fn remove_dependency_with_scope(
+        &mut self,
+        downstream: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+        scope: &PartitionSubscription,
+    ) -> Result<(), SignalError> {
+        self.validate_handle(downstream)?;
+        self.validate_handle(upstream)?;
+
+        let removed =
+            self.remove_dependency_edges_matching(downstream, upstream, aspect, Some(scope))?;
         if removed && !self.has_dependency_on(downstream, upstream)? {
             self.remove_subscriber_edge(upstream, downstream)?;
         }
@@ -238,6 +255,17 @@ impl SignalGraph {
         Ok(true)
     }
 
+    pub(crate) fn set_dependency_edges_sorted(
+        &mut self,
+        node: NodeId,
+        edges: &[DependencyEdge],
+    ) -> Result<(), SignalError> {
+        let dependencies_id = self.dependency_edges.insert_from_slice(edges);
+        self.get_entry_mut(node)?
+            .set_dependencies_id(dependencies_id);
+        Ok(())
+    }
+
     fn remove_dependency_edge(
         &mut self,
         node: NodeId,
@@ -255,6 +283,34 @@ impl SignalGraph {
         let dependencies_id = self.dependency_edges.insert_from_slice(&updated);
         self.get_entry_mut(node)?
             .set_dependencies_id(dependencies_id);
+        Ok(true)
+    }
+
+    fn remove_dependency_edges_matching(
+        &mut self,
+        node: NodeId,
+        upstream: NodeId,
+        aspect: Aspect,
+        scope: Option<&PartitionSubscription>,
+    ) -> Result<bool, SignalError> {
+        let current = self.dependencies_of(node)?.to_vec();
+        let original_len = current.len();
+        let updated: Vec<_> = current
+            .into_iter()
+            .filter(|candidate| {
+                if candidate.source() != upstream || candidate.aspect() != aspect {
+                    return true;
+                }
+                match scope {
+                    Some(scope) => candidate.scope_ref() != Some(scope),
+                    None => false,
+                }
+            })
+            .collect();
+        if updated.len() == original_len {
+            return Ok(false);
+        }
+        self.set_dependency_edges_sorted(node, &updated)?;
         Ok(true)
     }
 
@@ -301,6 +357,16 @@ impl SignalGraph {
         Ok(true)
     }
 
+    pub(crate) fn set_subscribers_sorted(
+        &mut self,
+        node: NodeId,
+        subscribers: &[NodeId],
+    ) -> Result<(), SignalError> {
+        let subscribers_id = self.subscriber_edges.insert_from_slice(subscribers);
+        self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
+        Ok(())
+    }
+
     pub(super) fn remove_subscriber_edge(
         &mut self,
         node: NodeId,
@@ -339,8 +405,7 @@ impl SignalGraph {
 
         for node in live_nodes {
             let subscribers = std::mem::take(&mut rebuilt[node.index() as usize]);
-            let subscribers_id = self.subscriber_edges.insert_from_slice(&subscribers);
-            self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
+            self.set_subscribers_sorted(node, &subscribers)?;
         }
 
         Ok(())

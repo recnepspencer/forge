@@ -70,6 +70,9 @@ fn mark_dirty_with_scratch(
     let source_was_clean = {
         let source_entry = graph.get_entry_mut(source)?;
         let source_was_clean = matches!(*source_entry.get_state(), NodeState::Clean);
+        let already_dirty_for_aspect = source_entry
+            .get_dirty_aspects()
+            .contains(AspectMask::from_aspect(changed_aspect));
         source_entry.set_state(NodeState::Dirty);
         source_entry.add_dirty_aspect(changed_aspect);
         merge_dirty_partition_scopes(
@@ -77,6 +80,7 @@ fn mark_dirty_with_scratch(
             changed_aspect,
             &changed_scopes,
             source_was_clean,
+            already_dirty_for_aspect,
         );
         source_was_clean
     };
@@ -158,6 +162,9 @@ fn mark_direct_subscribers(
         let previous_state = graph.get_state(sub)?;
         {
             let entry = graph.get_entry_mut(sub)?;
+            let already_dirty_for_aspect = entry
+                .get_dirty_aspects()
+                .contains(AspectMask::from_aspect(changed_aspect));
             entry.set_state(new_state);
             entry.add_dirty_aspect(changed_aspect);
             merge_dirty_partition_scopes(
@@ -165,6 +172,7 @@ fn mark_direct_subscribers(
                 changed_aspect,
                 changed_scopes,
                 matches!(previous_state, NodeState::Clean),
+                already_dirty_for_aspect,
             );
         }
         if matches!(previous_state, NodeState::Clean) {
@@ -206,9 +214,14 @@ fn subscribes_to_aspect(
         let dependencies = graph.dependencies_of(downstream)?;
         let mut outcome = SubscriptionDirtyMatch::Unmatched;
         let mut partition_checks = 0_u64;
+        let source_key = (source.index(), source.generation());
+        let start = dependencies
+            .partition_point(|dep| (dep.source().index(), dep.source().generation()) < source_key);
+        let end = dependencies
+            .partition_point(|dep| (dep.source().index(), dep.source().generation()) <= source_key);
 
-        for dep in dependencies {
-            if dep.source() != source || !dep.aspect_mask().intersects(changed_mask) {
+        for dep in &dependencies[start..end] {
+            if !dep.aspect_mask().intersects(changed_mask) {
                 continue;
             }
             let Some(scope) = dep.scope_ref() else {
@@ -350,8 +363,9 @@ fn detect_cycle_from(
     scratch: &mut TraversalScratch,
     node: NodeId,
 ) -> Result<(), SignalError> {
-    let mut stack = vec![(node, false)];
-    while let Some((current, expanded)) = stack.pop() {
+    scratch.cycle_stack.clear();
+    scratch.cycle_stack.push((node, false));
+    while let Some((current, expanded)) = scratch.cycle_stack.pop() {
         let index = current.index() as usize;
         if expanded {
             scratch.cycle_visiting.clear_mark(index);
@@ -366,11 +380,11 @@ fn detect_cycle_from(
         }
 
         scratch.cycle_visiting.mark(index);
-        stack.push((current, true));
+        scratch.cycle_stack.push((current, true));
         if let Ok(subscribers) = graph.subscribers_of(current) {
             for &subscriber in subscribers.iter().rev() {
                 if graph.is_alive(subscriber) {
-                    stack.push((subscriber, false));
+                    scratch.cycle_stack.push((subscriber, false));
                 }
             }
         }
@@ -414,6 +428,9 @@ fn propagate_maybe_stale(
                 let previous_state = graph.get_state(node)?;
                 {
                     let entry = graph.get_entry_mut(node)?;
+                    let already_dirty_for_aspect = entry
+                        .get_dirty_aspects()
+                        .contains(AspectMask::from_aspect(changed_aspect));
                     entry.set_state(NodeState::MaybeStale);
                     entry.add_dirty_aspect(changed_aspect);
                     merge_dirty_partition_scopes(
@@ -421,6 +438,7 @@ fn propagate_maybe_stale(
                         changed_aspect,
                         changed_scopes,
                         matches!(previous_state, NodeState::Clean),
+                        already_dirty_for_aspect,
                     );
                 }
                 if matches!(previous_state, NodeState::Clean) {
@@ -457,6 +475,7 @@ fn merge_dirty_partition_scopes(
     changed_aspect: Aspect,
     changed_scopes: &[PartitionSubscription],
     was_clean: bool,
+    already_dirty_for_aspect: bool,
 ) {
     if changed_scopes.is_empty() {
         // Whole-aspect invalidation supersedes scoped dirtiness for this aspect only.
@@ -464,13 +483,11 @@ fn merge_dirty_partition_scopes(
         return;
     }
     if !was_clean
+        && already_dirty_for_aspect
         && entry
             .get_dirty_partition_scopes_for(changed_aspect)
             .next()
             .is_none()
-        && entry
-            .get_dirty_aspects()
-            .contains(AspectMask::from_aspect(changed_aspect))
     {
         // An existing whole-aspect dirty mark is already stronger than any scoped follow-up.
         return;

@@ -24,7 +24,7 @@ if ! rg -q "^// CONTRACT:" "$module"; then
   exit 1
 fi
 
-if ! rg -q "COMPLEXITY_CONTRACTS" crates/forge-relational/src/logic/runtime/complexity.rs; then
+if ! rg -q "COMPLEXITY_CONTRACTS" crates/forge-relational/src/performance/data/mod.rs; then
   echo "FAIL: missing runtime complexity registry"
   exit 1
 fi

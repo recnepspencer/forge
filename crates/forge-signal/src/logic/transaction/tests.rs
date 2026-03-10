@@ -4,7 +4,8 @@ use crate::data::error::SignalError;
 use crate::data::event_subscriber::{EventSubscriber, SubscriberId};
 use crate::data::subscriber_context::SubscriberContext;
 use crate::data::tier::{DependencyMode, DirtyPropagation, EvaluationTrigger, TierPolicy};
-use crate::facade::mark_dirty;
+use crate::facade::{mark_dirty, NodeEvaluationResult, NodeState};
+use crate::logic::prepared::PreparedEvaluation;
 use crate::logic::transaction::{SignalRuntime, TransactionOutcome};
 use crate::tests::support::*;
 
@@ -292,6 +293,68 @@ fn hostile_commit_failure_does_not_leak_committed_semantic_outcome() {
             .any(|event| event.detail.as_deref() == Some("event bus flush failed")),
         "failed transaction should surface flush failure in replay events"
     );
+}
+
+#[test]
+fn transaction_created_keyed_nodes_are_removed_on_rollback() {
+    let graph = crate::data::graph::SignalGraph::new();
+    let mut runtime = build_runtime(graph);
+    let arena_before = runtime.graph().arena_capacity();
+    let active_before = runtime.graph().active_node_count();
+    let mut ctx = ();
+
+    let mut tx = runtime.begin();
+    let family = tx.register_computation_family("positions");
+    let created = tx.keyed_node(&family, "wing-root");
+    assert!(tx.staged_graph().is_alive(created));
+    assert_eq!(
+        tx.rollback(&mut ctx).unwrap(),
+        TransactionOutcome::RolledBack
+    );
+
+    assert_eq!(runtime.graph().arena_capacity(), arena_before);
+    assert_eq!(runtime.graph().active_node_count(), active_before);
+    assert!(!runtime.graph().is_alive(created));
+}
+
+#[test]
+fn evaluate_dirty_rollback_restores_preexisting_dirty_nodes() {
+    let mut graph = crate::data::graph::SignalGraph::new();
+    let source = graph.node().build();
+    graph
+        .get_entry_mut(source)
+        .unwrap()
+        .set_state(NodeState::Dirty);
+    let before_version = graph.get_entry(source).unwrap().get_aspect_version();
+    let mut runtime = build_runtime(graph);
+    let mut ctx = ();
+
+    let mut tx = runtime.begin();
+    tx.evaluate_dirty(&|node, view| {
+        let current = view
+            .graph()
+            .get_entry(node)?
+            .get_aspect_version()
+            .get(ASPECT_A);
+        Ok(PreparedEvaluation::from_result(
+            NodeEvaluationResult::from_version(version_ab(current + 1, 0)),
+        ))
+    })
+    .unwrap();
+    assert_eq!(
+        tx.rollback(&mut ctx).unwrap(),
+        TransactionOutcome::RolledBack
+    );
+
+    assert_eq!(
+        runtime
+            .graph()
+            .get_entry(source)
+            .unwrap()
+            .get_aspect_version(),
+        before_version
+    );
+    assert_eq!(runtime.graph().get_state(source).unwrap(), NodeState::Dirty);
 }
 
 struct NeedsMissingProviderSubscriber;

@@ -18,9 +18,27 @@
 
 #![forbid(unsafe_code)]
 
-mod data;
+mod config;
+mod diagnostics;
+mod durability;
+mod history;
+mod identity;
+mod indexes;
+mod lineage;
 mod logic;
+mod payloads;
+mod performance;
 mod presentation;
+mod publication;
+mod query;
+mod replay;
+mod schema;
+mod simulation;
+mod snapshots;
+mod storage;
+mod symbols;
+mod transactions;
+mod validation;
 
 pub mod facade;
 

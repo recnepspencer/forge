@@ -104,23 +104,19 @@ fn lineage_contract_replace_emits_replace_edge() {
     let entity = super::changed_entities(&created)[0];
 
     let mut txn = runtime.begin_transaction(crate::facade::TransactionOptions::default());
-    txn.push_batch(
-        crate::facade::WorkerIntentBatch::new("replace").push(
-            crate::facade::TransactionIntent::ReplaceEntity {
-                entity_id: entity,
-                replacement: crate::data::transaction::EntitySpec {
-                    partition_id: crate::facade::PartitionId::main(),
-                    kind_id: crate::facade::KindId(1),
-                    client_key: crate::data::symbols::InternedString::Raw(
-                        "replacement".to_string(),
-                    ),
-                    payload: crate::data::payload::RecordPayload::StructuredJson(
-                        serde_json::json!({"name":"replacement"}),
-                    ),
-                },
+    txn.push_batch(crate::facade::WorkerIntentBatch::new("replace").push(
+        crate::facade::TransactionIntent::ReplaceEntity {
+            entity_id: entity,
+            replacement: crate::transactions::data::EntitySpec {
+                partition_id: crate::facade::PartitionId::main(),
+                kind_id: crate::facade::KindId(1),
+                client_key: crate::symbols::data::InternedString::Raw("replacement".to_string()),
+                payload: crate::payloads::data::RecordPayload::StructuredJson(
+                    serde_json::json!({"name":"replacement"}),
+                ),
             },
-        ),
-    );
+        },
+    ));
     let outcome = txn.commit().unwrap();
     let graph = runtime.lineage_graph(&BranchId("main".to_string()));
 
@@ -130,4 +126,57 @@ fn lineage_contract_replace_emits_replace_edge() {
             && event.sources.len() == 1
             && event.targets.len() == 1
     }));
+}
+
+#[test]
+fn lineage_contract_multiple_same_shape_replacements_do_not_cross_wire_targets() {
+    let mut runtime = super::runtime_with_test_schema();
+    let left = super::create_entity_outcome(&mut runtime, "left");
+    let right = super::create_entity_outcome(&mut runtime, "right");
+    let left_entity = super::changed_entities(&left)[0];
+    let right_entity = super::changed_entities(&right)[0];
+
+    let mut txn = runtime.begin_transaction(crate::facade::TransactionOptions::default());
+    txn.push_batch(
+        crate::facade::WorkerIntentBatch::new("replace-many")
+            .push(crate::facade::TransactionIntent::ReplaceEntity {
+                entity_id: left_entity,
+                replacement: crate::transactions::data::EntitySpec {
+                    partition_id: crate::facade::PartitionId::main(),
+                    kind_id: crate::facade::KindId(1),
+                    client_key: crate::symbols::data::InternedString::Raw(
+                        "replacement-left".to_string(),
+                    ),
+                    payload: crate::payloads::data::RecordPayload::StructuredJson(
+                        serde_json::json!({"name":"replacement"}),
+                    ),
+                },
+            })
+            .push(crate::facade::TransactionIntent::ReplaceEntity {
+                entity_id: right_entity,
+                replacement: crate::transactions::data::EntitySpec {
+                    partition_id: crate::facade::PartitionId::main(),
+                    kind_id: crate::facade::KindId(1),
+                    client_key: crate::symbols::data::InternedString::Raw(
+                        "replacement-right".to_string(),
+                    ),
+                    payload: crate::payloads::data::RecordPayload::StructuredJson(
+                        serde_json::json!({"name":"replacement"}),
+                    ),
+                },
+            }),
+    );
+    let outcome = txn.commit().unwrap();
+    let graph = runtime.lineage_graph(&BranchId("main".to_string()));
+    let replace_events = graph
+        .events
+        .iter()
+        .filter(|event| {
+            event.commit.commit_id == outcome.commit.commit_id
+                && event.kind == crate::facade::LineageEventKind::Replace
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(replace_events.len(), 2);
+    assert_ne!(replace_events[0].targets, replace_events[1].targets);
 }

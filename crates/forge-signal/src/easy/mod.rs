@@ -109,6 +109,7 @@ pub struct ReactiveGraph {
     batched_dirty_nodes: Vec<NodeId>,
     batch_value_undo: HashMap<NodeId, Option<Box<dyn Any + Send + Sync>>>,
     batch_entry_undo: HashMap<NodeId, crate::data::node::NodeEntry>,
+    batch_graph_undo: Option<SignalGraph>,
 }
 
 impl Default for ReactiveGraph {
@@ -127,6 +128,7 @@ impl ReactiveGraph {
             batched_dirty_nodes: Vec::new(),
             batch_value_undo: HashMap::new(),
             batch_entry_undo: HashMap::new(),
+            batch_graph_undo: None,
         }
     }
 
@@ -226,6 +228,9 @@ impl ReactiveGraph {
     where
         F: FnOnce(&mut Self) -> Result<(), SignalError>,
     {
+        if self.batch_depth == 0 {
+            self.batch_graph_undo = Some(self.graph.clone());
+        }
         self.batch_depth += 1;
         let apply_result = apply(self);
         self.batch_depth -= 1;
@@ -333,6 +338,9 @@ impl ReactiveGraph {
     }
 
     fn restore_batch_undo(&mut self) {
+        if let Some(graph) = self.batch_graph_undo.take() {
+            self.graph = graph;
+        }
         let entry_undo = std::mem::take(&mut self.batch_entry_undo);
         for (node, entry) in entry_undo {
             if let Ok(slot) = self.graph.get_entry_mut(node) {
@@ -353,6 +361,7 @@ impl ReactiveGraph {
     }
 
     fn clear_batch_undo(&mut self) {
+        self.batch_graph_undo = None;
         self.batch_value_undo.clear();
         self.batch_entry_undo.clear();
     }

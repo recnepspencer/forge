@@ -1,17 +1,17 @@
-use std::collections::BTreeSet;
 use std::cell::RefCell;
+use std::collections::BTreeSet;
 
-use crate::data::diagnostics::DiagnosticCode;
-use crate::data::identity::{EntityId, RelationId};
-use crate::data::schema::RelationalSchemaRegistry;
-use crate::data::transaction::{CommitConflict, TransactionIntent};
+use crate::diagnostics::data::DiagnosticCode;
+use crate::identity::data::{EntityId, RelationId};
 use crate::logic::runtime::RecordLifecycleState;
+use crate::schema::data::RelationalSchemaRegistry;
+use crate::transactions::data::{CommitConflict, TransactionIntent};
 
-use super::complexity::RuntimeComplexityCounters;
-use super::invariants::schema_error_to_commit_conflict;
-use super::state::PartitionAccess;
+use crate::performance::data::RuntimeComplexityCounters;
+use crate::storage::logic::state::PartitionAccess;
+use crate::validation::logic::schema_error_to_commit_conflict;
 
-pub(super) fn canonical_intent_key(intent: &TransactionIntent) -> (u8, String) {
+pub(crate) fn canonical_intent_key(intent: &TransactionIntent) -> (u8, String) {
     match intent {
         TransactionIntent::CreateEntity(spec) => (
             0,
@@ -30,7 +30,10 @@ pub(super) fn canonical_intent_key(intent: &TransactionIntent) -> (u8, String) {
             format!("{:08}:{:010}:{:?}", partition_id.0, kind_id.0, client_keys),
         ),
         TransactionIntent::UpdateEntity { entity_id, .. } => (2, entity_key(*entity_id)),
-        TransactionIntent::ReplaceEntity { entity_id, replacement } => (
+        TransactionIntent::ReplaceEntity {
+            entity_id,
+            replacement,
+        } => (
             3,
             format!(
                 "{}->{:08}:{:010}:{:?}",
@@ -55,9 +58,10 @@ pub(super) fn canonical_intent_key(intent: &TransactionIntent) -> (u8, String) {
     }
 }
 
-pub(super) fn validate_intent(
+pub(crate) fn validate_intent(
     state: &impl PartitionAccess,
     schema_registry: &RelationalSchemaRegistry,
+    default_cross_context_policy: crate::config::data::CrossContextPolicy,
     complexity_counters: &RefCell<RuntimeComplexityCounters>,
     intent: &TransactionIntent,
 ) -> Result<(), CommitConflict> {
@@ -88,9 +92,13 @@ pub(super) fn validate_intent(
                 })
             }
         }
-        TransactionIntent::CreateRelation(spec) => {
-            validate_relation_creation(state, schema_registry, complexity_counters, spec)
-        }
+        TransactionIntent::CreateRelation(spec) => validate_relation_creation(
+            state,
+            schema_registry,
+            default_cross_context_policy,
+            complexity_counters,
+            spec,
+        ),
         TransactionIntent::BulkCreateRelations {
             partition_id,
             kind_id,
@@ -104,10 +112,10 @@ pub(super) fn validate_intent(
                 .map_err(schema_error_to_commit_conflict)?;
             let mut seen_batch_keys = BTreeSet::new();
             for (source, target) in endpoints {
-                let spec = crate::data::transaction::RelationSpec {
+                let spec = crate::transactions::data::RelationSpec {
                     partition_id: *partition_id,
                     kind_id: *kind_id,
-                    client_key: crate::data::symbols::InternedString::from("bulk"),
+                    client_key: crate::symbols::data::InternedString::from("bulk"),
                     source: *source,
                     target: *target,
                     payload: None,
@@ -119,7 +127,13 @@ pub(super) fn validate_intent(
                         detail: "duplicate relation identity within bulk batch".to_string(),
                     });
                 }
-                validate_relation_creation(state, schema_registry, complexity_counters, &spec)?;
+                validate_relation_creation(
+                    state,
+                    schema_registry,
+                    default_cross_context_policy,
+                    complexity_counters,
+                    &spec,
+                )?;
             }
             Ok(())
         }
@@ -139,12 +153,32 @@ pub(super) fn validate_intent(
 fn validate_relation_creation(
     state: &impl PartitionAccess,
     schema_registry: &RelationalSchemaRegistry,
+    default_cross_context_policy: crate::config::data::CrossContextPolicy,
     complexity_counters: &RefCell<RuntimeComplexityCounters>,
-    spec: &crate::data::transaction::RelationSpec,
+    spec: &crate::transactions::data::RelationSpec,
 ) -> Result<(), CommitConflict> {
     schema_registry
         .resolve_relation(spec.kind_id)
         .map_err(schema_error_to_commit_conflict)?;
+    let relation_registration = schema_registry
+        .relation_registration(spec.kind_id)
+        .map_err(schema_error_to_commit_conflict)?;
+    if spec.source.partition_id != spec.target.partition_id {
+        let effective_cross_context_policy = match relation_registration.cross_context_policy {
+            crate::config::data::CrossContextPolicy::SchemaControlled => {
+                default_cross_context_policy
+            }
+            explicit_policy => explicit_policy,
+        };
+        if effective_cross_context_policy != crate::config::data::CrossContextPolicy::AllowExplicit
+        {
+            return Err(CommitConflict {
+                code: DiagnosticCode::InvalidRelationEndpoint,
+                detail: "cross-context relation endpoints are not allowed for this relation kind"
+                    .to_string(),
+            });
+        }
+    }
     if !entity_exists_in_state(state, spec.source) || !entity_exists_in_state(state, spec.target) {
         return Err(CommitConflict {
             code: DiagnosticCode::InvalidRelationEndpoint,
@@ -191,7 +225,7 @@ fn validate_relation_creation(
     Ok(())
 }
 
-pub(super) fn detect_conflicting_updates(
+pub(crate) fn detect_conflicting_updates(
     intents: &[TransactionIntent],
 ) -> Result<(), CommitConflict> {
     let mut seen_updates = BTreeSet::new();
@@ -246,10 +280,10 @@ pub(super) fn detect_conflicting_updates(
                 ..
             } => {
                 for (source, target) in endpoints {
-                    let spec = crate::data::transaction::RelationSpec {
+                    let spec = crate::transactions::data::RelationSpec {
                         partition_id: *partition_id,
                         kind_id: *kind_id,
-                        client_key: crate::data::symbols::InternedString::from("bulk"),
+                        client_key: crate::symbols::data::InternedString::from("bulk"),
                         source: *source,
                         target: *target,
                         payload: None,
@@ -275,18 +309,24 @@ pub(super) fn detect_conflicting_updates(
 
 pub(super) fn entity_exists_in_state(state: &impl PartitionAccess, entity_id: EntityId) -> bool {
     let slot = entity_id.local_slot.0 as usize;
-    state.get_partition(entity_id.partition_id).is_some_and(|partition| {
+    state
+        .get_partition(entity_id.partition_id)
+        .is_some_and(|partition| {
             partition.entity_arena.generations.get(slot) == Some(&entity_id.generation.0)
                 && partition.entity_arena.lifecycle.get(slot) == Some(&RecordLifecycleState::Live)
         })
 }
 
-pub(super) fn relation_exists_in_state(state: &impl PartitionAccess, relation_id: RelationId) -> bool {
+pub(super) fn relation_exists_in_state(
+    state: &impl PartitionAccess,
+    relation_id: RelationId,
+) -> bool {
     let slot = relation_id.local_slot.0 as usize;
-    state.get_partition(relation_id.partition_id).is_some_and(|partition| {
+    state
+        .get_partition(relation_id.partition_id)
+        .is_some_and(|partition| {
             partition.relation_arena.generations.get(slot) == Some(&relation_id.generation.0)
-                && partition.relation_arena.lifecycle.get(slot)
-                    == Some(&RecordLifecycleState::Live)
+                && partition.relation_arena.lifecycle.get(slot) == Some(&RecordLifecycleState::Live)
         })
 }
 
@@ -304,7 +344,7 @@ fn relation_key(relation_id: RelationId) -> String {
     )
 }
 
-fn relation_create_key(spec: &crate::data::transaction::RelationSpec) -> String {
+fn relation_create_key(spec: &crate::transactions::data::RelationSpec) -> String {
     format!(
         "{:08}:{:010}:{:08}:{:020}:{:08}:{:020}:{:?}",
         spec.partition_id.0,
@@ -317,7 +357,7 @@ fn relation_create_key(spec: &crate::data::transaction::RelationSpec) -> String 
     )
 }
 
-fn relation_identity_key(spec: &crate::data::transaction::RelationSpec) -> String {
+fn relation_identity_key(spec: &crate::transactions::data::RelationSpec) -> String {
     format!(
         "{:08}:{:010}:{:08}:{:020}:{:010}:{:08}:{:020}:{:010}",
         spec.partition_id.0,

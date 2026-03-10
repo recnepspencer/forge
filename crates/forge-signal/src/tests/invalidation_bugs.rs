@@ -194,3 +194,22 @@ fn deep_invalidation_chain_completes_without_recursive_cycle_detection() {
         "deep invalidation chains should not overflow recursive cycle detection: {result:?}"
     );
 }
+
+#[test]
+fn unscoped_dependency_removal_removes_partition_scoped_edges() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().partitioned_output().build();
+    let dependent = graph.node().build();
+    graph
+        .add_partition_detail_dependency(dependent, source, ASPECT_A, "wing", "rib-12")
+        .unwrap();
+
+    graph
+        .remove_dependency(dependent, source, ASPECT_A)
+        .unwrap();
+
+    assert!(
+        graph.dependencies_of(dependent).unwrap().is_empty(),
+        "unscoped dependency removal should remove matching scoped edges too"
+    );
+}

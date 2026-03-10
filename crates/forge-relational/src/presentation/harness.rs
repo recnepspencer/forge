@@ -11,16 +11,16 @@ use forge_harness::facade::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::data::config::{CascadeDeletePolicy, CrossContextPolicy};
-use crate::data::payload::RecordPayload;
-use crate::data::query::{QueryWorkPacket, ReadTarget};
-use crate::data::schema::RelationPayloadClass;
-use crate::data::symbols::InternedString;
-use crate::data::transaction::{TransactionIntent, TransactionOptions, WorkerIntentBatch};
+use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
 use crate::facade::{
     EntityId, EntityKindRegistration, KindId, PartitionId, RelationId, RelationKindRegistration,
     RelationalRuntime, RelationalRuntimeApi, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
+use crate::payloads::data::RecordPayload;
+use crate::query::data::{QueryWorkPacket, ReadTarget};
+use crate::schema::data::RelationPayloadClass;
+use crate::symbols::data::InternedString;
+use crate::transactions::data::{TransactionIntent, TransactionOptions, WorkerIntentBatch};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RelationalHarnessExpectations {
@@ -161,7 +161,7 @@ impl HarnessAdapter for RelationalHarnessAdapter {
         let mut batch = WorkerIntentBatch::new("fixture");
         for entity in &fixture.fixture.entities {
             batch.intents.push(TransactionIntent::CreateEntity(
-                crate::data::transaction::EntitySpec {
+                crate::transactions::data::EntitySpec {
                     partition_id: PartitionId::main(),
                     kind_id: entity.kind_id,
                     client_key: InternedString::Raw(entity.client_key.clone()),
@@ -175,8 +175,8 @@ impl HarnessAdapter for RelationalHarnessAdapter {
             .changed_records
             .iter()
             .filter_map(|record| match record {
-                crate::data::transaction::RecordRef::Entity(entity_id) => Some(*entity_id),
-                crate::data::transaction::RecordRef::Relation(_) => None,
+                crate::transactions::data::RecordRef::Entity(entity_id) => Some(*entity_id),
+                crate::transactions::data::RecordRef::Relation(_) => None,
             })
             .collect::<Vec<_>>();
         if !fixture.fixture.relations.is_empty() {
@@ -198,7 +198,7 @@ impl HarnessAdapter for RelationalHarnessAdapter {
                 relation_batch
                     .intents
                     .push(TransactionIntent::CreateRelation(
-                        crate::data::transaction::RelationSpec {
+                        crate::transactions::data::RelationSpec {
                             partition_id: PartitionId::main(),
                             kind_id: relation.kind_id,
                             client_key: InternedString::Raw(relation.client_key.clone()),
@@ -435,8 +435,7 @@ fn parse_target(target: &str) -> Result<ReadTarget, RelationalHarnessError> {
         ),
         _ => {
             return Err(RelationalHarnessError(
-                "target must be kind:slot:generation or kind:partition:slot:generation"
-                    .to_string(),
+                "target must be kind:slot:generation or kind:partition:slot:generation".to_string(),
             ))
         }
     };
@@ -456,13 +455,13 @@ fn parse_target(target: &str) -> Result<ReadTarget, RelationalHarnessError> {
 }
 
 fn commit_error_to_harness_error(
-    error: crate::data::transaction::TransactionCommitError,
+    error: crate::transactions::data::TransactionCommitError,
 ) -> RelationalHarnessError {
     match error {
-        crate::data::transaction::TransactionCommitError::Conflict(conflict) => {
+        crate::transactions::data::TransactionCommitError::Conflict(conflict) => {
             RelationalHarnessError(conflict.detail)
         }
-        crate::data::transaction::TransactionCommitError::Publication(publication) => {
+        crate::transactions::data::TransactionCommitError::Publication(publication) => {
             RelationalHarnessError(publication.detail)
         }
     }

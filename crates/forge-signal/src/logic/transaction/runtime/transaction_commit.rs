@@ -265,6 +265,8 @@ where
 
     fn rollback_graph_state(&mut self) -> Result<(), SignalError> {
         self.graph_patches.rollback_and_clear(self.graph)?;
+        self.graph.rollback_created_nodes(&self.created_nodes);
+        self.created_nodes.clear();
         self.graph.rebuild_subscriber_index_from_dependencies()?;
         Ok(())
     }

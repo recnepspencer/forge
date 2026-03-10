@@ -1,84 +1,84 @@
-mod apply;
-mod chunks;
-mod compiled;
-mod complexity;
-mod durability;
-mod indexes;
-mod invariants;
-mod lineage;
-mod merge;
-mod publication;
-mod read;
-mod replay;
-mod state;
-mod transaction;
-mod types;
+pub(crate) mod apply;
+pub(crate) mod merge;
 
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::data::durability::{DurableCheckpoint, DurableCommitEnvelope};
-use crate::data::history::{
+use crate::durability::data::{DurableCheckpoint, DurableCommitEnvelope};
+use crate::history::data::{
     BranchCreateError, BranchHead, BranchId, VersionGraphSnapshot, VersionNode,
 };
-use crate::data::index::{DerivedIndexDefinition, DerivedIndexGeneration, DerivedIndexId};
-use crate::data::lineage::{CorrespondenceCandidate, LineageEventRecord, LineageNode};
-use crate::data::publication::PublicationBundle;
-use crate::data::query::QueryWorkPacket;
-use crate::data::replay::CanonicalCommitEnvelope;
-use crate::data::snapshot::{
+use crate::indexes::data::{DerivedIndexDefinition, DerivedIndexGeneration, DerivedIndexId};
+use crate::lineage::data::{CorrespondenceCandidate, LineageEventRecord, LineageNode};
+use crate::publication::data::PublicationBundle;
+use crate::query::data::QueryWorkPacket;
+use crate::replay::data::CanonicalCommitEnvelope;
+use crate::snapshots::data::{
     SnapshotHandle, SnapshotId, SnapshotInspectionSummary, SnapshotReadPolicy,
 };
-use crate::data::symbols::StringInterner;
-use crate::data::transaction::TransactionOptions;
+use crate::storage::logic::state::PartitionState;
+use crate::symbols::data::StringInterner;
+use crate::transactions::data::TransactionOptions;
+use crate::transactions::logic::RelationalTransaction;
 
-pub use self::complexity::{
+pub use crate::config::data::RelationalRuntimeConfig;
+pub use crate::diagnostics::data::RelationalDiagnosticsFacade;
+pub use crate::durability::data::RecoveryOutcome;
+#[allow(unused_imports)]
+pub use crate::performance::data::{
     ComplexityContract, ComplexityStatus, RuntimeComplexityCounters, COMPLEXITY_CONTRACTS,
 };
-pub use transaction::RelationalTransaction;
-pub use types::{
-    ChunkDiagnostics, ChunkVisibilitySummary, ChunkedStorageSummary, EntityReadRecord,
-    IndexedReadOutcome, InvariantCatalog, InvariantCheckResult, InvariantClass,
-    InvariantExecutionPoint, InvariantFailureEffect, InvariantRule, InvariantViolation,
-    PacketResult, PartitionStorageStats, RecordLifecycleState, RecoveryOutcome, RelationReadRecord,
-    RelationalDiagnosticsFacade, RelationalReadView, RelationalReplayRecord,
-    RelationalRuntimeConfig, ReplaySchemaVersion, RetentionPassOutcome, StorageInvariantReport,
-    StorageStats, CompiledArtifactCompatibility, CompiledArtifactError, CompiledExecutionArtifact,
+pub use crate::replay::data::{RelationalReplayRecord, ReplaySchemaVersion};
+pub use crate::simulation::data::{
+    CompiledArtifactCompatibility, CompiledArtifactError, CompiledExecutionArtifact,
     TopologyFreezeMode,
 };
+#[allow(unused_imports)]
+pub use crate::storage::data::{
+    ChunkDiagnostics, ChunkVisibilitySummary, ChunkedStorageSummary, EntityReadRecord,
+    IndexedReadOutcome, PacketResult, PartitionStorageStats, RecordLifecycleState,
+    RelationReadRecord, RelationalReadView, RetentionPassOutcome, StorageStats,
+};
+#[allow(unused_imports)]
+pub use crate::validation::data::{
+    InvariantCatalog, InvariantCheckResult, InvariantClass, InvariantExecutionPoint,
+    InvariantFailureEffect, InvariantRule, InvariantViolation, StorageInvariantReport,
+};
 
-use self::state::{BorrowedWorkingState, PartitionAccess, PartitionState, SnapshotState, WorkingState};
+use crate::storage::logic::state::{BorrowedWorkingState, SnapshotState};
+pub(crate) use crate::storage::logic::state::{PartitionAccess, WorkingState};
 #[derive(Debug, Clone)]
 pub struct RelationalRuntime {
-    config: RelationalRuntimeConfig,
-    partitions: BTreeMap<crate::data::identity::PartitionId, PartitionState>,
-    snapshots: BTreeMap<SnapshotId, SnapshotState>,
-    diagnostics: Vec<crate::data::diagnostics::RelationalDiagnosticArtifact>,
-    latest_publication_bundle: Option<PublicationBundle<RelationalReplayRecord>>,
-    branch_heads: BTreeMap<BranchId, Option<crate::data::history::CommitReference>>,
-    commit_graph: BTreeMap<crate::data::history::CommitId, VersionNode>,
-    commit_envelopes: BTreeMap<crate::data::history::CommitId, CanonicalCommitEnvelope>,
-    index_definitions: BTreeMap<DerivedIndexId, DerivedIndexDefinition>,
-    index_generations: BTreeMap<DerivedIndexId, Vec<DerivedIndexGeneration>>,
-    lineage_nodes: BTreeMap<crate::data::identity::LineageId, LineageNode>,
-    lineage_events: Vec<LineageEventRecord>,
-    correspondence_candidates: Vec<CorrespondenceCandidate>,
-    entity_unique_field_index: BTreeMap<String, BTreeMap<String, BTreeSet<crate::data::identity::EntityId>>>,
-    durable_log: Vec<DurableCommitEnvelope>,
-    durable_checkpoints: Vec<DurableCheckpoint>,
-    next_index_id: u64,
-    next_index_generation_id: u64,
-    next_lineage_id: u64,
-    next_lineage_event_id: u64,
-    next_transaction_id: u64,
-    next_savepoint_id: u64,
-    next_commit_id: u64,
-    next_version_id: u64,
-    next_snapshot_id: u64,
-    symbol_interner: RefCell<StringInterner>,
-    complexity_counters: RefCell<RuntimeComplexityCounters>,
-    compiled_artifacts: BTreeMap<u64, CompiledExecutionArtifact>,
-    next_compiled_artifact_id: u64,
+    pub(crate) config: RelationalRuntimeConfig,
+    pub(crate) partitions: BTreeMap<crate::identity::data::PartitionId, PartitionState>,
+    pub(crate) snapshots: BTreeMap<SnapshotId, SnapshotState>,
+    pub(crate) diagnostics: Vec<crate::diagnostics::data::RelationalDiagnosticArtifact>,
+    pub(crate) latest_publication_bundle: Option<PublicationBundle<RelationalReplayRecord>>,
+    pub(crate) branch_heads: BTreeMap<BranchId, Option<crate::history::data::CommitReference>>,
+    pub(crate) commit_graph: BTreeMap<crate::history::data::CommitId, VersionNode>,
+    pub(crate) commit_envelopes: BTreeMap<crate::history::data::CommitId, CanonicalCommitEnvelope>,
+    pub(crate) index_definitions: BTreeMap<DerivedIndexId, DerivedIndexDefinition>,
+    pub(crate) index_generations: BTreeMap<DerivedIndexId, Vec<DerivedIndexGeneration>>,
+    pub(crate) lineage_nodes: BTreeMap<crate::identity::data::LineageId, LineageNode>,
+    pub(crate) lineage_events: Vec<LineageEventRecord>,
+    pub(crate) correspondence_candidates: Vec<CorrespondenceCandidate>,
+    pub(crate) entity_unique_field_index:
+        BTreeMap<String, BTreeMap<String, BTreeSet<crate::identity::data::EntityId>>>,
+    pub(crate) durable_log: Vec<DurableCommitEnvelope>,
+    pub(crate) durable_checkpoints: Vec<DurableCheckpoint>,
+    pub(crate) next_index_id: u64,
+    pub(crate) next_index_generation_id: u64,
+    pub(crate) next_lineage_id: u64,
+    pub(crate) next_lineage_event_id: u64,
+    pub(crate) next_transaction_id: u64,
+    pub(crate) next_savepoint_id: u64,
+    pub(crate) next_commit_id: u64,
+    pub(crate) next_version_id: u64,
+    pub(crate) next_snapshot_id: u64,
+    pub(crate) symbol_interner: RefCell<StringInterner>,
+    pub(crate) complexity_counters: RefCell<RuntimeComplexityCounters>,
+    pub(crate) compiled_artifacts: BTreeMap<u64, CompiledExecutionArtifact>,
+    pub(crate) next_compiled_artifact_id: u64,
 }
 
 impl RelationalRuntime {
@@ -120,9 +120,9 @@ impl RelationalRuntime {
         &self.config
     }
 
-    fn partition(
+    pub(crate) fn partition(
         &self,
-        partition_id: crate::data::identity::PartitionId,
+        partition_id: crate::identity::data::PartitionId,
     ) -> Option<&PartitionState> {
         self.partitions.get(&partition_id)
     }
@@ -145,7 +145,7 @@ impl RelationalRuntime {
         &'a mut self,
         options: TransactionOptions,
     ) -> RelationalTransaction<'a> {
-        let transaction_id = crate::data::transaction::TransactionId(self.next_transaction_id);
+        let transaction_id = crate::transactions::data::TransactionId(self.next_transaction_id);
         self.next_transaction_id += 1;
         RelationalTransaction {
             runtime: self,
@@ -174,7 +174,7 @@ impl RelationalRuntime {
             self.unpin_relation(relation_id);
         }
         if self.config.mvcc.snapshot_release_policy
-            == crate::data::config::SnapshotReleasePolicy::ReleaseOnRetentionPass
+            == crate::config::data::SnapshotReleasePolicy::ReleaseOnRetentionPass
         {
             self.run_retention_pass();
         }
@@ -193,7 +193,7 @@ impl RelationalRuntime {
         })
     }
 
-    pub fn read_version(&self, version_id: crate::data::identity::VersionId) -> RelationalReadView {
+    pub fn read_version(&self, version_id: crate::identity::data::VersionId) -> RelationalReadView {
         let current_state = self.current_state();
         RelationalReadView {
             snapshot: SnapshotHandle {
@@ -237,7 +237,7 @@ impl RelationalRuntime {
         *self.complexity_counters.borrow_mut() = RuntimeComplexityCounters::default();
     }
 
-    pub fn latest_patch(&self) -> Option<&crate::data::diff::RelationalPatchRecord> {
+    pub fn latest_patch(&self) -> Option<&crate::publication::data::diff::RelationalPatchRecord> {
         self.latest_publication_bundle
             .as_ref()
             .map(|bundle| &bundle.patch)
@@ -249,7 +249,7 @@ impl RelationalRuntime {
             .map(|bundle| &bundle.replay)
     }
 
-    pub fn latest_commit(&self) -> Option<&crate::data::history::CommitReference> {
+    pub fn latest_commit(&self) -> Option<&crate::history::data::CommitReference> {
         self.latest_publication_bundle
             .as_ref()
             .map(|bundle| &bundle.commit)
@@ -258,7 +258,7 @@ impl RelationalRuntime {
     pub fn branch_head(
         &self,
         branch_id: &BranchId,
-    ) -> Option<&crate::data::history::CommitReference> {
+    ) -> Option<&crate::history::data::CommitReference> {
         self.branch_heads
             .get(branch_id)
             .and_then(|head| head.as_ref())
@@ -274,7 +274,7 @@ impl RelationalRuntime {
             .collect()
     }
 
-    pub fn partition_ids(&self) -> Vec<crate::data::identity::PartitionId> {
+    pub fn partition_ids(&self) -> Vec<crate::identity::data::PartitionId> {
         self.partitions.keys().copied().collect()
     }
 
@@ -362,8 +362,8 @@ impl RelationalRuntime {
 
     pub fn ancestor_chain(
         &self,
-        commit_id: crate::data::history::CommitId,
-    ) -> Vec<crate::data::history::CommitId> {
+        commit_id: crate::history::data::CommitId,
+    ) -> Vec<crate::history::data::CommitId> {
         let mut ordered = self.ancestor_set(commit_id).into_iter().collect::<Vec<_>>();
         ordered.sort_by_key(|id| id.0);
         ordered
@@ -373,7 +373,7 @@ impl RelationalRuntime {
         &self,
         left_branch: &BranchId,
         right_branch: &BranchId,
-    ) -> Option<crate::data::history::CommitId> {
+    ) -> Option<crate::history::data::CommitId> {
         let left = self.branch_head(left_branch)?.commit_id;
         let right = self.branch_head(right_branch)?.commit_id;
         self.latest_common_ancestor(left, right)
@@ -398,7 +398,7 @@ impl RelationalRuntime {
         &self,
         source_branch: &BranchId,
         target_branch: &BranchId,
-    ) -> crate::data::history::MergeInspection {
+    ) -> crate::history::data::MergeInspection {
         let source_head = self.branch_head(source_branch).cloned();
         let target_head = self.branch_head(target_branch).cloned();
         let merge_base =
@@ -422,7 +422,7 @@ impl RelationalRuntime {
             target_only_commits.as_slice(),
         );
 
-        crate::data::history::MergeInspection {
+        crate::history::data::MergeInspection {
             source_branch: source_branch.clone(),
             target_branch: target_branch.clone(),
             source_head,
@@ -638,14 +638,10 @@ impl RelationalRuntime {
                             Some(version),
                             retention_fence,
                         );
-                        if self
-                            .partitions
-                            .get(&partition_id)
-                            .is_some_and(|partition| {
-                                partition.entity_arena.lifecycle[slot]
-                                    == RecordLifecycleState::Reclaimable
-                            })
-                        {
+                        if self.partitions.get(&partition_id).is_some_and(|partition| {
+                            partition.entity_arena.lifecycle[slot]
+                                == RecordLifecycleState::Reclaimable
+                        }) {
                             outcome.entity_reclaimable += 1;
                             if self.config.mvcc.auto_reclaim_deleted_records
                                 && outcome.entity_reclaimed < self.config.mvcc.reclaim_batch_size
@@ -693,14 +689,10 @@ impl RelationalRuntime {
                             Some(version),
                             retention_fence,
                         );
-                        if self
-                            .partitions
-                            .get(&partition_id)
-                            .is_some_and(|partition| {
-                                partition.relation_arena.lifecycle[slot]
-                                    == RecordLifecycleState::Reclaimable
-                            })
-                        {
+                        if self.partitions.get(&partition_id).is_some_and(|partition| {
+                            partition.relation_arena.lifecycle[slot]
+                                == RecordLifecycleState::Reclaimable
+                        }) {
                             outcome.relation_reclaimable += 1;
                             if self.config.mvcc.auto_reclaim_deleted_records
                                 && outcome.relation_reclaimed < self.config.mvcc.reclaim_batch_size
@@ -713,6 +705,7 @@ impl RelationalRuntime {
                                     RecordLifecycleState::Reusable;
                                 partition.relation_arena.kind_ids[slot] = None;
                                 partition.relation_arena.payloads[slot] = None;
+                                partition.relation_arena.payload_history.remove(&slot);
                                 partition.relation_arena.snapshot_pins[slot] = 0;
                                 partition.relation_arena.endpoints[slot] = None;
                                 partition.relation_arena.retired_at[slot] = None;
@@ -728,22 +721,22 @@ impl RelationalRuntime {
         outcome
     }
 
-    fn current_version_id(&self) -> crate::data::identity::VersionId {
-        crate::data::identity::VersionId(self.next_version_id.saturating_sub(1))
+    pub(crate) fn current_version_id(&self) -> crate::identity::data::VersionId {
+        crate::identity::data::VersionId(self.next_version_id.saturating_sub(1))
     }
 
     fn retention_fence_version(
         &self,
-        published_version: crate::data::identity::VersionId,
-    ) -> crate::data::identity::VersionId {
+        published_version: crate::identity::data::VersionId,
+    ) -> crate::identity::data::VersionId {
         match self.config.retention_policy.backend {
-            crate::data::config::RetentionBackend::PinTrackedRetention => self
+            crate::config::data::RetentionBackend::PinTrackedRetention => self
                 .snapshots
                 .values()
                 .map(|state| state.handle.version_id)
                 .min()
                 .unwrap_or(published_version),
-            crate::data::config::RetentionBackend::EpochChunkRetention => self
+            crate::config::data::RetentionBackend::EpochChunkRetention => self
                 .snapshots
                 .values()
                 .map(|state| state.handle.version_id)
@@ -752,7 +745,7 @@ impl RelationalRuntime {
         }
     }
 
-    pub(super) fn primary_schema_version(&self) -> crate::data::schema::SchemaVersionId {
+    pub(crate) fn primary_schema_version(&self) -> crate::schema::data::SchemaVersionId {
         self.config
             .schema_registry
             .entity_kinds
@@ -767,14 +760,14 @@ impl RelationalRuntime {
                     .next()
                     .map(|registration| registration.schema_version_id)
             })
-            .unwrap_or(crate::data::schema::SchemaVersionId(0))
+            .unwrap_or(crate::schema::data::SchemaVersionId(0))
     }
 
-    pub(super) fn latest_common_ancestor(
+    pub(crate) fn latest_common_ancestor(
         &self,
-        left: crate::data::history::CommitId,
-        right: crate::data::history::CommitId,
-    ) -> Option<crate::data::history::CommitId> {
+        left: crate::history::data::CommitId,
+        right: crate::history::data::CommitId,
+    ) -> Option<crate::history::data::CommitId> {
         let left_ancestors = self.ancestor_set(left);
         let right_ancestors = self.ancestor_set(right);
         left_ancestors
@@ -785,8 +778,8 @@ impl RelationalRuntime {
 
     fn ancestor_set(
         &self,
-        start: crate::data::history::CommitId,
-    ) -> std::collections::BTreeSet<crate::data::history::CommitId> {
+        start: crate::history::data::CommitId,
+    ) -> std::collections::BTreeSet<crate::history::data::CommitId> {
         let mut seen = std::collections::BTreeSet::new();
         let mut stack = vec![start];
         while let Some(commit_id) = stack.pop() {
@@ -802,9 +795,9 @@ impl RelationalRuntime {
 
     fn branch_unique_commits(
         &self,
-        head: crate::data::history::CommitId,
-        merge_base: Option<crate::data::history::CommitId>,
-    ) -> Vec<crate::data::history::CommitId> {
+        head: crate::history::data::CommitId,
+        merge_base: Option<crate::history::data::CommitId>,
+    ) -> Vec<crate::history::data::CommitId> {
         let mut commits = self.ancestor_set(head).into_iter().collect::<Vec<_>>();
         if let Some(merge_base) = merge_base {
             let base_ancestors = self.ancestor_set(merge_base);
@@ -816,9 +809,9 @@ impl RelationalRuntime {
 
     fn merge_conflicts_between(
         &self,
-        left_commits: &[crate::data::history::CommitId],
-        right_commits: &[crate::data::history::CommitId],
-    ) -> Vec<crate::data::history::MergeConflictRecord> {
+        left_commits: &[crate::history::data::CommitId],
+        right_commits: &[crate::history::data::CommitId],
+    ) -> Vec<crate::history::data::MergeConflictRecord> {
         let left_records = self.commit_record_set(left_commits);
         let right_records = self.commit_record_set(right_commits);
         let mut conflicts = left_records
@@ -831,18 +824,18 @@ impl RelationalRuntime {
 
     fn commit_record_set(
         &self,
-        commits: &[crate::data::history::CommitId],
-    ) -> std::collections::BTreeSet<crate::data::history::MergeConflictRecord> {
+        commits: &[crate::history::data::CommitId],
+    ) -> std::collections::BTreeSet<crate::history::data::MergeConflictRecord> {
         commits
             .iter()
             .filter_map(|commit_id| self.commit_envelopes.get(commit_id))
             .flat_map(|envelope| envelope.patch.records.iter())
             .filter_map(|record| match (record.entity_id, record.relation_id) {
                 (Some(entity_id), None) => {
-                    Some(crate::data::history::MergeConflictRecord::Entity(entity_id))
+                    Some(crate::history::data::MergeConflictRecord::Entity(entity_id))
                 }
                 (None, Some(relation_id)) => Some(
-                    crate::data::history::MergeConflictRecord::Relation(relation_id),
+                    crate::history::data::MergeConflictRecord::Relation(relation_id),
                 ),
                 _ => None,
             })
@@ -852,7 +845,7 @@ impl RelationalRuntime {
     #[cfg(test)]
     pub(crate) fn remove_commit_envelope_for_test(
         &mut self,
-        commit_id: crate::data::history::CommitId,
+        commit_id: crate::history::data::CommitId,
     ) -> bool {
         self.commit_envelopes.remove(&commit_id).is_some()
     }
@@ -860,7 +853,7 @@ impl RelationalRuntime {
     #[cfg(test)]
     pub(crate) fn entity_history_len_for_test(
         &self,
-        entity_id: crate::data::identity::EntityId,
+        entity_id: crate::identity::data::EntityId,
     ) -> usize {
         self.partition(entity_id.partition_id)
             .map(|partition| {
@@ -869,21 +862,37 @@ impl RelationalRuntime {
             .unwrap_or(0)
     }
 
+    #[cfg(test)]
+    pub(crate) fn relation_history_len_for_test(
+        &self,
+        relation_id: crate::identity::data::RelationId,
+    ) -> usize {
+        self.partition(relation_id.partition_id)
+            .and_then(|partition| {
+                partition
+                    .relation_arena
+                    .payload_history
+                    .get(&(relation_id.local_slot.0 as usize))
+                    .map(Vec::len)
+            })
+            .unwrap_or(0)
+    }
+
     fn current_state(&self) -> BorrowedWorkingState<'_> {
         BorrowedWorkingState::new(&self.partitions)
     }
 
-    fn take_working_state(&mut self) -> WorkingState {
+    pub(crate) fn take_working_state(&mut self) -> WorkingState {
         WorkingState::new(
             std::mem::take(&mut self.partitions),
             self.config.adjacency_policy.clone(),
         )
     }
 
-    pub(super) fn refresh_unique_field_index_for_records(
+    pub(crate) fn refresh_unique_field_index_for_records(
         &mut self,
-        changed_records: &[crate::data::transaction::RecordRef],
-        version_id: crate::data::identity::VersionId,
+        changed_records: &[crate::transactions::data::RecordRef],
+        version_id: crate::identity::data::VersionId,
     ) {
         let tracked_fields = self.tracked_unique_entity_fields();
         if tracked_fields.is_empty() {
@@ -892,13 +901,13 @@ impl RelationalRuntime {
         let state = self.current_state();
         let mut refreshed_values = Vec::new();
         for record in changed_records {
-            let crate::data::transaction::RecordRef::Entity(entity_id) = record else {
+            let crate::transactions::data::RecordRef::Entity(entity_id) = record else {
                 continue;
             };
             for field in &tracked_fields {
-                if let Some(payload) =
-                    crate::logic::runtime::invariants::entity_payload_for_state(&state, *entity_id, version_id)
-                {
+                if let Some(payload) = crate::validation::logic::entity_payload_for_state(
+                    &state, *entity_id, version_id,
+                ) {
                     if let Some(value) = payload
                         .as_json()
                         .and_then(|value| value.get(field))
@@ -910,7 +919,7 @@ impl RelationalRuntime {
             }
         }
         for record in changed_records {
-            let crate::data::transaction::RecordRef::Entity(entity_id) = record else {
+            let crate::transactions::data::RecordRef::Entity(entity_id) = record else {
                 continue;
             };
             for field in &tracked_fields {
@@ -932,6 +941,7 @@ impl RelationalRuntime {
         }
     }
 
+    #[allow(dead_code)]
     pub(super) fn rebuild_unique_field_indexes(&mut self) {
         self.entity_unique_field_index.clear();
         let tracked_fields = self.tracked_unique_entity_fields();
@@ -949,22 +959,21 @@ impl RelationalRuntime {
                 if partition.entity_arena.lifecycle[slot] == RecordLifecycleState::Reusable {
                     continue;
                 }
-                let entity_id = crate::data::identity::EntityId::new(
+                let entity_id = crate::identity::data::EntityId::new(
                     partition_id,
                     slot as u64,
                     partition.entity_arena.generations[slot],
                 );
-                if let Some(payload) =
-                    crate::logic::runtime::invariants::entity_payload_for_state(&state, entity_id, version_id)
-                {
+                if let Some(payload) = crate::validation::logic::entity_payload_for_state(
+                    &state, entity_id, version_id,
+                ) {
                     for field in &tracked_fields {
                         if let Some(value) = payload
                             .as_json()
                             .and_then(|value| value.get(field))
                             .and_then(|value| value.as_str())
                         {
-                            rebuilt_values
-                                .push((field.clone(), value.to_string(), entity_id));
+                            rebuilt_values.push((field.clone(), value.to_string(), entity_id));
                         }
                     }
                 }
@@ -1004,7 +1013,7 @@ impl RelationalRuntime {
 
     fn snapshot_state_for_current(
         &mut self,
-        version_id: crate::data::identity::VersionId,
+        version_id: crate::identity::data::VersionId,
     ) -> (SnapshotHandle, SnapshotState) {
         let snapshot_id = SnapshotId(self.next_snapshot_id);
         self.next_snapshot_id += 1;
@@ -1040,7 +1049,7 @@ impl RelationalRuntime {
         )
     }
 
-    fn pin_entity(&mut self, entity_id: crate::data::identity::EntityId) {
+    pub(crate) fn pin_entity(&mut self, entity_id: crate::identity::data::EntityId) {
         let slot = entity_id.local_slot.0 as usize;
         let Some(partition) = self.partitions.get_mut(&entity_id.partition_id) else {
             return;
@@ -1057,7 +1066,7 @@ impl RelationalRuntime {
         }
     }
 
-    fn unpin_entity(&mut self, entity_id: crate::data::identity::EntityId) {
+    fn unpin_entity(&mut self, entity_id: crate::identity::data::EntityId) {
         let slot = entity_id.local_slot.0 as usize;
         let Some(partition) = self.partitions.get_mut(&entity_id.partition_id) else {
             return;
@@ -1081,7 +1090,7 @@ impl RelationalRuntime {
         );
     }
 
-    fn pin_relation(&mut self, relation_id: crate::data::identity::RelationId) {
+    pub(crate) fn pin_relation(&mut self, relation_id: crate::identity::data::RelationId) {
         let slot = relation_id.local_slot.0 as usize;
         let Some(partition) = self.partitions.get_mut(&relation_id.partition_id) else {
             return;
@@ -1098,7 +1107,7 @@ impl RelationalRuntime {
         }
     }
 
-    fn unpin_relation(&mut self, relation_id: crate::data::identity::RelationId) {
+    fn unpin_relation(&mut self, relation_id: crate::identity::data::RelationId) {
         let slot = relation_id.local_slot.0 as usize;
         let Some(partition) = self.partitions.get_mut(&relation_id.partition_id) else {
             return;
@@ -1124,10 +1133,10 @@ impl RelationalRuntime {
 
     fn refresh_entity_retention_state(
         &mut self,
-        partition_id: crate::data::identity::PartitionId,
+        partition_id: crate::identity::data::PartitionId,
         slot: usize,
-        retired_at: Option<crate::data::identity::VersionId>,
-        retention_fence: crate::data::identity::VersionId,
+        retired_at: Option<crate::identity::data::VersionId>,
+        retention_fence: crate::identity::data::VersionId,
     ) {
         let Some(_retired_at) = retired_at else {
             return;
@@ -1137,7 +1146,7 @@ impl RelationalRuntime {
             .get_mut(&partition_id)
             .expect("entity retention partition present");
         partition.entity_arena.lifecycle[slot] = match self.config.retention_policy.backend {
-            crate::data::config::RetentionBackend::PinTrackedRetention => {
+            crate::config::data::RetentionBackend::PinTrackedRetention => {
                 if partition.entity_arena.snapshot_pins[slot] > 0 {
                     RecordLifecycleState::PinnedBySnapshot
                 } else if partition.entity_arena.branch_pins[slot] > 0 {
@@ -1148,7 +1157,7 @@ impl RelationalRuntime {
                     RecordLifecycleState::Reclaimable
                 }
             }
-            crate::data::config::RetentionBackend::EpochChunkRetention => {
+            crate::config::data::RetentionBackend::EpochChunkRetention => {
                 if partition.entity_arena.branch_pins[slot] > 0 {
                     RecordLifecycleState::PinnedByBranch
                 } else if partition.entity_arena.replay_pins[slot] > 0 {
@@ -1164,10 +1173,10 @@ impl RelationalRuntime {
 
     fn refresh_relation_retention_state(
         &mut self,
-        partition_id: crate::data::identity::PartitionId,
+        partition_id: crate::identity::data::PartitionId,
         slot: usize,
-        retired_at: Option<crate::data::identity::VersionId>,
-        retention_fence: crate::data::identity::VersionId,
+        retired_at: Option<crate::identity::data::VersionId>,
+        retention_fence: crate::identity::data::VersionId,
     ) {
         let Some(_retired_at) = retired_at else {
             return;
@@ -1177,14 +1186,14 @@ impl RelationalRuntime {
             .get_mut(&partition_id)
             .expect("relation retention partition present");
         partition.relation_arena.lifecycle[slot] = match self.config.retention_policy.backend {
-            crate::data::config::RetentionBackend::PinTrackedRetention => {
+            crate::config::data::RetentionBackend::PinTrackedRetention => {
                 if partition.relation_arena.snapshot_pins[slot] > 0 {
                     RecordLifecycleState::PinnedBySnapshot
                 } else {
                     RecordLifecycleState::Reclaimable
                 }
             }
-            crate::data::config::RetentionBackend::EpochChunkRetention => {
+            crate::config::data::RetentionBackend::EpochChunkRetention => {
                 if retired_at.is_some_and(|retired| retired <= retention_fence) {
                     RecordLifecycleState::Reclaimable
                 } else {
@@ -1194,10 +1203,10 @@ impl RelationalRuntime {
         };
     }
 
-    pub(super) fn trim_live_history_for_records(
+    pub(crate) fn trim_live_history_for_records(
         &mut self,
-        changed_records: &[crate::data::transaction::RecordRef],
-        published_version: crate::data::identity::VersionId,
+        changed_records: &[crate::transactions::data::RecordRef],
+        published_version: crate::identity::data::VersionId,
     ) {
         let oldest_pinned_version = self.retention_fence_version(published_version);
 
@@ -1205,13 +1214,13 @@ impl RelationalRuntime {
         let mut relation_slots = BTreeMap::new();
         for record in changed_records {
             match record {
-                crate::data::transaction::RecordRef::Entity(entity_id) => {
+                crate::transactions::data::RecordRef::Entity(entity_id) => {
                     entity_slots
                         .entry(entity_id.partition_id)
                         .or_insert_with(BTreeSet::new)
                         .insert(entity_id.local_slot.0 as usize);
                 }
-                crate::data::transaction::RecordRef::Relation(relation_id) => {
+                crate::transactions::data::RecordRef::Relation(relation_id) => {
                     relation_slots
                         .entry(relation_id.partition_id)
                         .or_insert_with(BTreeSet::new)
@@ -1269,15 +1278,18 @@ impl RelationalRuntime {
                     .borrow_mut()
                     .live_relation_history_entries_trimmed +=
                     original_len.saturating_sub(history.len());
+                if history.is_empty() {
+                    partition.relation_arena.payload_history.remove(&slot);
+                }
             }
         }
     }
 
     pub fn outgoing_relations_for_entity(
         &self,
-        entity_id: crate::data::identity::EntityId,
-        version_id: crate::data::identity::VersionId,
-    ) -> Vec<crate::data::identity::RelationId> {
+        entity_id: crate::identity::data::EntityId,
+        version_id: crate::identity::data::VersionId,
+    ) -> Vec<crate::identity::data::RelationId> {
         let slot = entity_id.local_slot.0 as usize;
         self.partition(entity_id.partition_id)
             .and_then(|partition| partition.adjacency.get(slot))
@@ -1289,9 +1301,9 @@ impl RelationalRuntime {
 
     pub fn incoming_relations_for_entity(
         &self,
-        entity_id: crate::data::identity::EntityId,
-        version_id: crate::data::identity::VersionId,
-    ) -> Vec<crate::data::identity::RelationId> {
+        entity_id: crate::identity::data::EntityId,
+        version_id: crate::identity::data::VersionId,
+    ) -> Vec<crate::identity::data::RelationId> {
         let slot = entity_id.local_slot.0 as usize;
         self.partition(entity_id.partition_id)
             .and_then(|partition| partition.reverse_adjacency.get(slot))
@@ -1301,8 +1313,8 @@ impl RelationalRuntime {
             .collect()
     }
 
-    fn compact_durable_log_if_needed(&mut self) {
-        use crate::data::config::DurableLogRetentionMode;
+    pub(crate) fn compact_durable_log_if_needed(&mut self) {
+        use crate::config::data::DurableLogRetentionMode;
 
         let policy = &self.config.durable_log_policy;
         if self.durable_log.len() <= policy.max_in_memory_envelopes {

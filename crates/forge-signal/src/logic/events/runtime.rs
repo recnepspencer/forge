@@ -17,6 +17,7 @@ where
     pub(super) name: &'static str,
     pub(super) requires: &'static [D],
     pub(super) provides: &'static [D],
+    pub(super) routed_event_keys: Option<&'static [u64]>,
     pub(super) sub: Box<dyn EventSubscriber<Event = E, DataId = D, RuntimeContext = C>>,
 }
 
@@ -34,7 +35,9 @@ where
     telemetry: RuntimeTelemetry,
     finalized: bool,
     rollback_ready: Vec<bool>,
+    begin_ready: Vec<bool>,
     context_marker: PhantomData<fn(&mut C)>,
+    event_router: Option<Box<dyn Fn(&E) -> u64 + Send + Sync>>,
 }
 
 impl<E, D, C> Default for EventBus<E, D, C>
@@ -60,7 +63,9 @@ where
             telemetry: RuntimeTelemetry::default(),
             finalized: false,
             rollback_ready: Vec::new(),
+            begin_ready: Vec::new(),
             context_marker: PhantomData,
+            event_router: None,
         }
     }
 
@@ -89,6 +94,29 @@ where
         &mut self,
         sub: Box<dyn EventSubscriber<Event = E, DataId = D, RuntimeContext = C>>,
     ) -> Result<(), SubscriberRegistryError<D>> {
+        self.subscribe_internal(None, sub)
+    }
+
+    pub fn subscribe_routed(
+        &mut self,
+        routed_event_keys: &'static [u64],
+        sub: Box<dyn EventSubscriber<Event = E, DataId = D, RuntimeContext = C>>,
+    ) -> Result<(), SubscriberRegistryError<D>> {
+        self.subscribe_internal(Some(routed_event_keys), sub)
+    }
+
+    pub fn set_event_router<F>(&mut self, router: F)
+    where
+        F: Fn(&E) -> u64 + Send + Sync + 'static,
+    {
+        self.event_router = Some(Box::new(router));
+    }
+
+    fn subscribe_internal(
+        &mut self,
+        routed_event_keys: Option<&'static [u64]>,
+        sub: Box<dyn EventSubscriber<Event = E, DataId = D, RuntimeContext = C>>,
+    ) -> Result<(), SubscriberRegistryError<D>> {
         let id = sub.id();
         let name = sub.name();
         let requires = sub.requires();
@@ -106,9 +134,11 @@ where
             name,
             requires,
             provides,
+            routed_event_keys,
             sub,
         });
         self.rollback_ready.push(false);
+        self.begin_ready.push(false);
         self.finalized = false;
         Ok(())
     }
@@ -133,10 +163,15 @@ where
         self.context.clear_staged();
         self.rollback_ready.clear();
         self.rollback_ready.resize(self.subscribers.len(), false);
+        self.begin_ready.clear();
+        self.begin_ready.resize(self.subscribers.len(), false);
         for &idx in &self.order {
             self.subscribers[idx]
                 .sub
                 .on_begin(&mut self.context, runtime);
+            if let Some(flag) = self.begin_ready.get_mut(idx) {
+                *flag = true;
+            }
         }
         Ok(())
     }
@@ -155,10 +190,34 @@ where
         let flush_start = Instant::now();
         self.ensure_finalized().map_err(EventFlushError::Registry)?;
 
+        let routed_batches = self.event_router.as_ref().map(|router| {
+            let mut by_key = std::collections::HashMap::<u64, Vec<&E>>::new();
+            for event in &self.pending {
+                by_key.entry(router(event)).or_default().push(event);
+            }
+            by_key
+        });
+
         for &idx in &self.order {
             let entry = &mut self.subscribers[idx];
-            for event in &self.pending {
-                entry.sub.on_event(event);
+            if let Some(keys) = entry.routed_event_keys {
+                if let Some(batches) = &routed_batches {
+                    for key in keys {
+                        if let Some(events) = batches.get(key) {
+                            for event in events {
+                                entry.sub.on_event(event);
+                            }
+                        }
+                    }
+                } else {
+                    for event in &self.pending {
+                        entry.sub.on_event(event);
+                    }
+                }
+            } else {
+                for event in &self.pending {
+                    entry.sub.on_event(event);
+                }
             }
             if let Err(source) = entry.sub.on_checkpoint(barrier, &mut self.context, runtime) {
                 self.context.clear_staged();
@@ -185,11 +244,14 @@ where
         self.pending.clear();
         self.context.clear_staged();
         for &idx in self.order.iter().rev() {
-            if self.rollback_ready.get(idx).copied().unwrap_or(false) {
+            if self.begin_ready.get(idx).copied().unwrap_or(false)
+                || self.rollback_ready.get(idx).copied().unwrap_or(false)
+            {
                 self.subscribers[idx].sub.on_rollback(runtime);
             }
         }
         self.rollback_ready.fill(false);
+        self.begin_ready.fill(false);
         self.telemetry.rollback_count += 1;
     }
 

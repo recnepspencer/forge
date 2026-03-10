@@ -105,7 +105,10 @@ fn derived_index_contract_unscoped_generation_can_be_selected_across_branches() 
     );
     assert_eq!(
         fallback.used_index_generation,
-        build.generations.first().map(|generation| generation.generation_id)
+        build
+            .generations
+            .first()
+            .map(|generation| generation.generation_id)
     );
 }
 

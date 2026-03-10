@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::num::NonZeroU32;
 
 use crate::data::dependency::DependencyEdge;
@@ -46,9 +47,22 @@ struct Segment {
 pub struct DependencyEdgeStore {
     edges: Vec<DependencyEdge>,
     segments: Vec<Segment>,
+    #[serde(skip, default)]
+    interner: HashMap<Vec<DependencyEdge>, DependencySetId>,
 }
 
 impl DependencyEdgeStore {
+    fn rebuild_interner_if_needed(&mut self) {
+        if !self.interner.is_empty() || self.segments.is_empty() {
+            return;
+        }
+        for (index, segment) in self.segments.iter().copied().enumerate() {
+            let slice = &self.edges[segment.start as usize..(segment.start + segment.len) as usize];
+            self.interner
+                .insert(slice.to_vec(), DependencySetId::from_index(index + 1));
+        }
+    }
+
     pub fn get(&self, id: DependencySetId) -> &[DependencyEdge] {
         match id.index() {
             Some(index) => {
@@ -63,13 +77,19 @@ impl DependencyEdgeStore {
         if edges.is_empty() {
             return DependencySetId::EMPTY;
         }
+        self.rebuild_interner_if_needed();
+        if let Some(id) = self.interner.get(edges).copied() {
+            return id;
+        }
         let start = self.edges.len() as u32;
         self.edges.extend_from_slice(edges);
         self.segments.push(Segment {
             start,
             len: edges.len() as u32,
         });
-        DependencySetId::from_index(self.segments.len())
+        let id = DependencySetId::from_index(self.segments.len());
+        self.interner.insert(edges.to_vec(), id);
+        id
     }
 
     #[cfg(test)]
@@ -82,9 +102,23 @@ impl DependencyEdgeStore {
 pub struct SubscriberEdgeStore {
     subscribers: Vec<NodeId>,
     segments: Vec<Segment>,
+    #[serde(skip, default)]
+    interner: HashMap<Vec<NodeId>, SubscriberSetId>,
 }
 
 impl SubscriberEdgeStore {
+    fn rebuild_interner_if_needed(&mut self) {
+        if !self.interner.is_empty() || self.segments.is_empty() {
+            return;
+        }
+        for (index, segment) in self.segments.iter().copied().enumerate() {
+            let slice =
+                &self.subscribers[segment.start as usize..(segment.start + segment.len) as usize];
+            self.interner
+                .insert(slice.to_vec(), SubscriberSetId::from_index(index + 1));
+        }
+    }
+
     pub fn get(&self, id: SubscriberSetId) -> &[NodeId] {
         match id.index() {
             Some(index) => {
@@ -99,13 +133,19 @@ impl SubscriberEdgeStore {
         if subscribers.is_empty() {
             return SubscriberSetId::EMPTY;
         }
+        self.rebuild_interner_if_needed();
+        if let Some(id) = self.interner.get(subscribers).copied() {
+            return id;
+        }
         let start = self.subscribers.len() as u32;
         self.subscribers.extend_from_slice(subscribers);
         self.segments.push(Segment {
             start,
             len: subscribers.len() as u32,
         });
-        SubscriberSetId::from_index(self.segments.len())
+        let id = SubscriberSetId::from_index(self.segments.len());
+        self.interner.insert(subscribers.to_vec(), id);
+        id
     }
 
     #[cfg(test)]

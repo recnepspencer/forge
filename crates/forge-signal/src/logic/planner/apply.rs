@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{HashMap, HashSet};
 
 use crate::data::aspect::AspectMask;
 use crate::data::comparator::{ComparatorPolicyResolver, VersionComparatorPolicy};
@@ -84,8 +84,8 @@ pub(super) fn materialize_apply_group(
     graph: &mut SignalGraph,
     group: &ApplyGroup,
 ) -> Result<Vec<(NodeId, NodeEntry)>, SignalError> {
-    let mut entry_updates: BTreeMap<NodeId, NodeEntry> = BTreeMap::new();
-    let mut subscriber_sets: BTreeMap<NodeId, BTreeSet<NodeId>> = BTreeMap::new();
+    let mut entry_updates: HashMap<NodeId, NodeEntry> = HashMap::new();
+    let mut subscriber_sets: HashMap<NodeId, HashSet<NodeId>> = HashMap::new();
 
     for task in &group.tasks {
         stage_subscriber_updates(
@@ -119,7 +119,8 @@ pub(super) fn materialize_apply_group(
         } else {
             graph.get_entry(source)?.clone()
         };
-        let subscribers: Vec<_> = subscribers.into_iter().collect();
+        let mut subscribers: Vec<_> = subscribers.into_iter().collect();
+        subscribers.sort_by_key(|node| (node.index(), node.generation()));
         entry.set_subscribers_id(graph.store_subscribers(&subscribers));
         entry_updates.insert(source, entry);
     }
@@ -158,16 +159,16 @@ fn stage_subscriber_updates(
     target: NodeId,
     current_dependencies: &[DependencyEdge],
     next_dependencies: &[DependencyEdge],
-    subscriber_sets: &mut BTreeMap<NodeId, BTreeSet<NodeId>>,
+    subscriber_sets: &mut HashMap<NodeId, HashSet<NodeId>>,
 ) -> Result<(), SignalError> {
     let current_sources = current_dependencies
         .iter()
         .map(|edge| edge.source())
-        .collect::<BTreeSet<_>>();
+        .collect::<HashSet<_>>();
     let next_sources = next_dependencies
         .iter()
         .map(|edge| edge.source())
-        .collect::<BTreeSet<_>>();
+        .collect::<HashSet<_>>();
     for source in current_sources.difference(&next_sources) {
         subscriber_sets
             .entry(*source)
@@ -183,7 +184,7 @@ fn stage_subscriber_updates(
     Ok(())
 }
 
-fn current_subscribers(graph: &SignalGraph, node: NodeId) -> BTreeSet<NodeId> {
+fn current_subscribers(graph: &SignalGraph, node: NodeId) -> HashSet<NodeId> {
     graph
         .subscribers_of(node)
         .map(|subscribers| subscribers.iter().copied().collect())
@@ -194,16 +195,33 @@ fn count_dependency_updates(
     current_dependencies: &[DependencyEdge],
     next_dependencies: &[DependencyEdge],
 ) -> u32 {
-    let mut remaining_next = next_dependencies.to_vec();
-    let mut removed = 0usize;
-    for current in current_dependencies {
-        if let Some(index) = remaining_next.iter().position(|next| next == current) {
-            remaining_next.swap_remove(index);
-        } else {
-            removed += 1;
+    let mut current_index = 0usize;
+    let mut next_index = 0usize;
+    let mut changes = 0u32;
+
+    while current_index < current_dependencies.len() && next_index < next_dependencies.len() {
+        match compare_dependency_edges(
+            &current_dependencies[current_index],
+            &next_dependencies[next_index],
+        ) {
+            std::cmp::Ordering::Less => {
+                changes += 1;
+                current_index += 1;
+            }
+            std::cmp::Ordering::Greater => {
+                changes += 1;
+                next_index += 1;
+            }
+            std::cmp::Ordering::Equal => {
+                current_index += 1;
+                next_index += 1;
+            }
         }
     }
-    (removed + remaining_next.len()) as u32
+
+    changes
+        + (current_dependencies.len() - current_index) as u32
+        + (next_dependencies.len() - next_index) as u32
 }
 
 fn apply_target_local_updates(
@@ -304,4 +322,19 @@ fn build_dep_snapshot_from_edges(
         }
     }
     Ok(snapshot)
+}
+
+fn compare_dependency_edges(left: &DependencyEdge, right: &DependencyEdge) -> std::cmp::Ordering {
+    (
+        left.source().index(),
+        left.source().generation(),
+        left.aspect().index(),
+        left.scope_ref(),
+    )
+        .cmp(&(
+            right.source().index(),
+            right.source().generation(),
+            right.aspect().index(),
+            right.scope_ref(),
+        ))
 }

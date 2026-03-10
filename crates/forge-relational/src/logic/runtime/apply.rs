@@ -2,22 +2,26 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::json;
 
-use crate::data::config::PatchSurfacePolicy;
-use crate::data::diagnostics::{DiagnosticCode, RelationalDiagnosticsEntry};
-use crate::data::diff::{PatchDetail, PatchRecord, PatchRecordKind};
-use crate::data::identity::{EntityId, KindId, PartitionId, RelationId};
-use crate::data::payload::RecordPayload;
-use crate::data::transaction::{
+use crate::config::data::PatchSurfacePolicy;
+use crate::diagnostics::data::{DiagnosticCode, RelationalDiagnosticsEntry};
+use crate::identity::data::{EntityId, KindId, PartitionId, RelationId};
+use crate::payloads::data::RecordPayload;
+use crate::publication::data::diff::{PatchDetail, PatchRecord, PatchRecordKind};
+use crate::schema::data::RelationalSchemaRegistry;
+use crate::storage::data::RecordLifecycleState;
+use crate::storage::logic::state::{
+    AdjacencySet, PartitionAccess, PartitionState, RelationEndpoints, VersionedValue, WorkingState,
+};
+use crate::transactions::data::{
     AuthoritativeApplyPlan, RecordRef, RelationSpec, TransactionIntent,
 };
-use crate::logic::runtime::RecordLifecycleState;
 
-use super::state::{PartitionAccess, PartitionState, RelationEndpoints, VersionedValue, WorkingState};
-
-pub(super) fn apply_plan_to_staged_state(
+pub(crate) fn apply_plan_to_staged_state(
     staged: &mut WorkingState,
     apply_plan: &AuthoritativeApplyPlan,
     patch_surface_policy: PatchSurfacePolicy,
+    schema_registry: &RelationalSchemaRegistry,
+    cascade_delete_policy: crate::config::data::CascadeDeletePolicy,
 ) -> (
     Vec<RecordRef>,
     Vec<PatchRecord>,
@@ -77,8 +81,10 @@ pub(super) fn apply_plan_to_staged_state(
                         kind_id,
                         payload.clone(),
                     );
-                    staged
-                        .mark_entity_slot_touched(entity_id.partition_id, entity_id.local_slot.0 as usize);
+                    staged.mark_entity_slot_touched(
+                        entity_id.partition_id,
+                        entity_id.local_slot.0 as usize,
+                    );
                     changed_records.push(RecordRef::Entity(entity_id));
                     patch_records.push(PatchRecord {
                         kind: PatchRecordKind::EntityCreated,
@@ -102,6 +108,7 @@ pub(super) fn apply_plan_to_staged_state(
                 });
             }
             TransactionIntent::UpdateEntity { entity_id, payload } => {
+                let payload = payload.canonicalized();
                 let slot = entity_id.local_slot.0 as usize;
                 staged.mark_entity_slot_touched(entity_id.partition_id, slot);
                 let partition = staged.get_partition_mut(entity_id.partition_id);
@@ -144,6 +151,8 @@ pub(super) fn apply_plan_to_staged_state(
                     apply_plan.version_id,
                     entity_id,
                     patch_surface_policy,
+                    schema_registry,
+                    cascade_delete_policy,
                     &mut changed_records,
                     &mut patch_records,
                 );
@@ -188,6 +197,8 @@ pub(super) fn apply_plan_to_staged_state(
                     apply_plan.version_id,
                     entity_id,
                     patch_surface_policy,
+                    schema_registry,
+                    cascade_delete_policy,
                     &mut changed_records,
                     &mut patch_records,
                 );
@@ -206,7 +217,10 @@ pub(super) fn apply_plan_to_staged_state(
                     relation_id.partition_id,
                     relation_id.local_slot.0 as usize,
                 );
-                staged.mark_adjacency_slot_touched(spec.source.partition_id, spec.source.local_slot.0 as usize);
+                staged.mark_adjacency_slot_touched(
+                    spec.source.partition_id,
+                    spec.source.local_slot.0 as usize,
+                );
                 staged.mark_reverse_adjacency_slot_touched(
                     spec.target.partition_id,
                     spec.target.local_slot.0 as usize,
@@ -250,7 +264,7 @@ pub(super) fn apply_plan_to_staged_state(
                     let spec = RelationSpec {
                         partition_id,
                         kind_id,
-                        client_key: crate::data::symbols::InternedString::from("bulk"),
+                        client_key: crate::symbols::data::InternedString::from("bulk"),
                         source,
                         target,
                         payload: payloads.get(index).cloned().unwrap_or(None),
@@ -315,11 +329,12 @@ pub(super) fn apply_plan_to_staged_state(
 
 fn allocate_entity(
     staged: &mut WorkingState,
-    version_id: crate::data::identity::VersionId,
+    version_id: crate::identity::data::VersionId,
     partition_id: PartitionId,
     kind_id: KindId,
     payload: RecordPayload,
 ) -> EntityId {
+    let payload = payload.canonicalized();
     let partition = ensure_partition_state(staged, partition_id);
     if let Some(slot) = partition.entity_arena.free_list.pop() {
         let idx = slot as usize;
@@ -348,37 +363,49 @@ fn allocate_entity(
     let slot = partition.entity_arena.generations.len() as u64;
     partition.entity_arena.partition_ids.push(partition_id);
     partition.entity_arena.generations.push(1);
-    partition.entity_arena.lifecycle.push(RecordLifecycleState::Live);
+    partition
+        .entity_arena
+        .lifecycle
+        .push(RecordLifecycleState::Live);
     partition.entity_arena.live_bitset.set(slot as usize, true);
-    partition.entity_arena.reclaimable_bitset.set(slot as usize, false);
+    partition
+        .entity_arena
+        .reclaimable_bitset
+        .set(slot as usize, false);
     partition.entity_arena.kind_ids.push(Some(kind_id));
     partition.entity_arena.payloads.push(Some(payload.clone()));
-    partition.entity_arena.payload_history.push(vec![VersionedValue {
-        effective_at: version_id,
-        retired_at: None,
-        value: payload,
-    }]);
+    partition
+        .entity_arena
+        .payload_history
+        .push(vec![VersionedValue {
+            effective_at: version_id,
+            retired_at: None,
+            value: payload,
+        }]);
     partition.entity_arena.created_at.push(version_id);
     partition.entity_arena.retired_at.push(None);
     partition.entity_arena.aspect_versions.push(BTreeMap::new());
     partition.entity_arena.structural_fingerprints.push(None);
     partition.entity_arena.lineage_ids.push(None);
-    partition.entity_arena.diagnostics_enrichment.push(BTreeMap::new());
+    partition
+        .entity_arena
+        .diagnostics_enrichment
+        .push(BTreeMap::new());
     partition.entity_arena.branch_pins.push(0);
     partition.entity_arena.replay_pins.push(0);
     partition.entity_arena.snapshot_pins.push(0);
     partition
         .adjacency
-        .push(super::state::AdjacencySet::new(&partition.adjacency_policy));
+        .push(AdjacencySet::new(&partition.adjacency_policy));
     partition
         .reverse_adjacency
-        .push(super::state::AdjacencySet::new(&partition.adjacency_policy));
+        .push(AdjacencySet::new(&partition.adjacency_policy));
     EntityId::new(partition_id, slot, 1)
 }
 
 fn allocate_relation(
     staged: &mut WorkingState,
-    version_id: crate::data::identity::VersionId,
+    version_id: crate::identity::data::VersionId,
     spec: &RelationSpec,
 ) -> RelationId {
     let relation_id = {
@@ -390,8 +417,9 @@ fn allocate_relation(
             partition.relation_arena.live_bitset.set(idx, true);
             partition.relation_arena.reclaimable_bitset.set(idx, false);
             partition.relation_arena.kind_ids[idx] = Some(spec.kind_id);
-            partition.relation_arena.payloads[idx] = spec.payload.clone();
-            if let Some(payload) = spec.payload.clone() {
+            let canonical_payload = spec.payload.clone().map(|payload| payload.canonicalized());
+            partition.relation_arena.payloads[idx] = canonical_payload.clone();
+            if let Some(payload) = canonical_payload {
                 partition.relation_arena.payload_history.insert(
                     idx,
                     vec![VersionedValue {
@@ -411,17 +439,37 @@ fn allocate_relation(
             });
             partition.relation_arena.diagnostics_enrichment[idx].clear();
             partition.relation_arena.generations[idx] += 1;
-            RelationId::new(spec.partition_id, slot, partition.relation_arena.generations[idx])
+            RelationId::new(
+                spec.partition_id,
+                slot,
+                partition.relation_arena.generations[idx],
+            )
         } else {
             let slot = partition.relation_arena.generations.len() as u64;
-            partition.relation_arena.partition_ids.push(spec.partition_id);
+            partition
+                .relation_arena
+                .partition_ids
+                .push(spec.partition_id);
             partition.relation_arena.generations.push(1);
-            partition.relation_arena.lifecycle.push(RecordLifecycleState::Live);
-            partition.relation_arena.live_bitset.set(slot as usize, true);
-            partition.relation_arena.reclaimable_bitset.set(slot as usize, false);
+            partition
+                .relation_arena
+                .lifecycle
+                .push(RecordLifecycleState::Live);
+            partition
+                .relation_arena
+                .live_bitset
+                .set(slot as usize, true);
+            partition
+                .relation_arena
+                .reclaimable_bitset
+                .set(slot as usize, false);
             partition.relation_arena.kind_ids.push(Some(spec.kind_id));
-            partition.relation_arena.payloads.push(spec.payload.clone());
-            if let Some(payload) = spec.payload.clone() {
+            let canonical_payload = spec.payload.clone().map(|payload| payload.canonicalized());
+            partition
+                .relation_arena
+                .payloads
+                .push(canonical_payload.clone());
+            if let Some(payload) = canonical_payload {
                 partition.relation_arena.payload_history.insert(
                     slot as usize,
                     vec![VersionedValue {
@@ -433,11 +481,17 @@ fn allocate_relation(
             }
             partition.relation_arena.created_at.push(version_id);
             partition.relation_arena.retired_at.push(None);
-            partition.relation_arena.endpoints.push(Some(RelationEndpoints {
-                source: spec.source,
-                target: spec.target,
-            }));
-            partition.relation_arena.diagnostics_enrichment.push(BTreeMap::new());
+            partition
+                .relation_arena
+                .endpoints
+                .push(Some(RelationEndpoints {
+                    source: spec.source,
+                    target: spec.target,
+                }));
+            partition
+                .relation_arena
+                .diagnostics_enrichment
+                .push(BTreeMap::new());
             partition.relation_arena.snapshot_pins.push(0);
             RelationId::new(spec.partition_id, slot, 1)
         }
@@ -456,9 +510,11 @@ fn allocate_relation(
 
 fn delete_entity_with_cascade(
     staged: &mut WorkingState,
-    version_id: crate::data::identity::VersionId,
+    version_id: crate::identity::data::VersionId,
     entity_id: EntityId,
     patch_surface_policy: PatchSurfacePolicy,
+    schema_registry: &RelationalSchemaRegistry,
+    default_cascade_delete_policy: crate::config::data::CascadeDeletePolicy,
     changed_records: &mut Vec<RecordRef>,
     patch_records: &mut Vec<PatchRecord>,
 ) {
@@ -489,29 +545,53 @@ fn delete_entity_with_cascade(
     partition.adjacency[slot].extend_into(&mut attached);
     partition.reverse_adjacency[slot].extend_into(&mut attached);
     for relation_id in attached {
-        delete_relation(
-            staged,
-            version_id,
-            relation_id,
-            patch_surface_policy,
-            changed_records,
-            patch_records,
-        );
+        let cascade_policy = staged
+            .get_partition(relation_id.partition_id)
+            .and_then(|partition| {
+                partition
+                    .relation_arena
+                    .kind_ids
+                    .get(relation_id.local_slot.0 as usize)
+            })
+            .and_then(|kind_id| kind_id.as_ref().copied())
+            .and_then(|kind_id| {
+                schema_registry
+                    .relation_registration(kind_id)
+                    .ok()
+                    .map(|registration| registration.cascade_delete_policy)
+            })
+            .unwrap_or(default_cascade_delete_policy);
+        match cascade_policy {
+            crate::config::data::CascadeDeletePolicy::CascadeDeleteRelations
+            | crate::config::data::CascadeDeletePolicy::RetainDanglingForAudit => {
+                delete_relation(
+                    staged,
+                    version_id,
+                    relation_id,
+                    patch_surface_policy,
+                    changed_records,
+                    patch_records,
+                );
+            }
+        }
     }
 }
 
 fn delete_relation(
     staged: &mut WorkingState,
-    version_id: crate::data::identity::VersionId,
+    version_id: crate::identity::data::VersionId,
     relation_id: RelationId,
     patch_surface_policy: PatchSurfacePolicy,
     changed_records: &mut Vec<RecordRef>,
     patch_records: &mut Vec<PatchRecord>,
 ) {
     let slot = relation_id.local_slot.0 as usize;
-    let relation_is_live = staged
-        .get_partition(relation_id.partition_id)
-        .is_some_and(|partition| partition.relation_arena.lifecycle[slot] == RecordLifecycleState::Live);
+    let relation_is_live =
+        staged
+            .get_partition(relation_id.partition_id)
+            .is_some_and(|partition| {
+                partition.relation_arena.lifecycle[slot] == RecordLifecycleState::Live
+            });
     if !relation_is_live {
         return;
     }
@@ -539,7 +619,10 @@ fn delete_relation(
         .map(|value| value.target)
         .unwrap_or(EntityId::new(relation_id.partition_id, 0, 0));
     if let Some(endpoints) = endpoints {
-        staged.mark_adjacency_slot_touched(endpoints.source.partition_id, endpoints.source.local_slot.0 as usize);
+        staged.mark_adjacency_slot_touched(
+            endpoints.source.partition_id,
+            endpoints.source.local_slot.0 as usize,
+        );
         staged.mark_reverse_adjacency_slot_touched(
             endpoints.target.partition_id,
             endpoints.target.local_slot.0 as usize,
@@ -651,11 +734,11 @@ fn ensure_entity_adjacency_capacity(partition: &mut PartitionState, slot: usize)
     while partition.adjacency.len() <= slot {
         partition
             .adjacency
-            .push(super::state::AdjacencySet::new(&partition.adjacency_policy));
+            .push(AdjacencySet::new(&partition.adjacency_policy));
     }
     while partition.reverse_adjacency.len() <= slot {
         partition
             .reverse_adjacency
-            .push(super::state::AdjacencySet::new(&partition.adjacency_policy));
+            .push(AdjacencySet::new(&partition.adjacency_policy));
     }
 }
