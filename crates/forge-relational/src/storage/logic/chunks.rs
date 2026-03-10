@@ -88,6 +88,7 @@ fn summarize_entity_chunks(
     version_id: VersionId,
 ) -> Vec<ChunkVisibilitySummary> {
     let mut summaries = Vec::new();
+    let current_version = runtime.current_version_id();
     for partition in runtime.partitions.values() {
         summaries.extend(summarize_chunks(
             partition.entity_arena.generations.len(),
@@ -103,17 +104,21 @@ fn summarize_entity_chunks(
             },
             |slot| partition.entity_arena.lifecycle.get(slot).copied(),
             |slot| {
-                partition
-                    .entity_arena
-                    .created_at
-                    .get(slot)
-                    .is_some_and(|created| {
-                        *created <= version_id
-                            && partition.entity_arena.retired_at[slot]
-                                .is_none_or(|retired| version_id < retired)
-                            && partition.entity_arena.lifecycle[slot]
-                                != RecordLifecycleState::Reusable
-                    })
+                if version_id == current_version {
+                    partition.entity_arena.live_bitset.count_ones_in_range(slot, slot + 1) == 1
+                } else {
+                    partition
+                        .entity_arena
+                        .created_at
+                        .get(slot)
+                        .is_some_and(|created| {
+                            *created <= version_id
+                                && partition.entity_arena.retired_at[slot]
+                                    .is_none_or(|retired| version_id < retired)
+                                && partition.entity_arena.lifecycle[slot]
+                                    != RecordLifecycleState::Reusable
+                        })
+                }
             },
         ));
     }
@@ -125,6 +130,7 @@ fn summarize_relation_chunks(
     version_id: VersionId,
 ) -> Vec<ChunkVisibilitySummary> {
     let mut summaries = Vec::new();
+    let current_version = runtime.current_version_id();
     for partition in runtime.partitions.values() {
         summaries.extend(summarize_chunks(
             partition.relation_arena.generations.len(),
@@ -140,17 +146,25 @@ fn summarize_relation_chunks(
             },
             |slot| partition.relation_arena.lifecycle.get(slot).copied(),
             |slot| {
-                partition
-                    .relation_arena
-                    .created_at
-                    .get(slot)
-                    .is_some_and(|created| {
-                        *created <= version_id
-                            && partition.relation_arena.retired_at[slot]
-                                .is_none_or(|retired| version_id < retired)
-                            && partition.relation_arena.lifecycle[slot]
-                                != RecordLifecycleState::Reusable
-                    })
+                if version_id == current_version {
+                    partition
+                        .relation_arena
+                        .live_bitset
+                        .count_ones_in_range(slot, slot + 1)
+                        == 1
+                } else {
+                    partition
+                        .relation_arena
+                        .created_at
+                        .get(slot)
+                        .is_some_and(|created| {
+                            *created <= version_id
+                                && partition.relation_arena.retired_at[slot]
+                                    .is_none_or(|retired| version_id < retired)
+                                && partition.relation_arena.lifecycle[slot]
+                                    != RecordLifecycleState::Reusable
+                        })
+                }
             },
         ));
     }

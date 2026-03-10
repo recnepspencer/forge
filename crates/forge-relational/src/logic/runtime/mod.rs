@@ -184,11 +184,37 @@ impl RelationalRuntime {
     pub fn read_snapshot(&self, handle: &SnapshotHandle) -> Option<RelationalReadView> {
         self.snapshots.get(&handle.snapshot_id).map(|state| {
             let current_state = self.current_state();
+            let entities = state
+                .pinned_entities
+                .iter()
+                .filter_map(|entity_id| {
+                    self.entity_record_for_id_at_version(
+                        &current_state,
+                        *entity_id,
+                        state.handle.version_id,
+                    )
+                })
+                .collect::<Vec<_>>();
+            let relations = state
+                .pinned_relations
+                .iter()
+                .filter_map(|relation_id| {
+                    self.relation_record_for_id_at_version(
+                        &current_state,
+                        *relation_id,
+                        state.handle.version_id,
+                    )
+                })
+                .collect::<Vec<_>>();
+            {
+                let mut counters = self.complexity_counters.borrow_mut();
+                counters.visible_entity_records_materialized += entities.len();
+                counters.visible_relation_records_materialized += relations.len();
+            }
             RelationalReadView {
                 snapshot: state.handle.clone(),
-                entities: self.visible_entities_from_state(&current_state, state.handle.version_id),
-                relations: self
-                    .visible_relations_from_state(&current_state, state.handle.version_id),
+                entities,
+                relations,
             }
         })
     }

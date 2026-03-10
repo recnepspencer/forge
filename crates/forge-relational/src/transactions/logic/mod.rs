@@ -1,5 +1,5 @@
 use serde_json::json;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::diagnostics::data::RelationalDiagnosticArtifact;
 use crate::diagnostics::data::{
@@ -129,10 +129,14 @@ impl<'a> RelationalTransaction<'a> {
         let merged_plan = self
             .build_merged_plan_for_state(&staged)
             .map_err(TransactionCommitError::Conflict)?;
-        self.runtime
-            .complexity_counters
-            .borrow_mut()
-            .partitions_touched_by_commit = touched_partitions_for_plan(&merged_plan);
+        {
+            let mut counters = self.runtime.complexity_counters.borrow_mut();
+            counters.partitions_touched_by_commit = touched_partitions_for_plan(&merged_plan);
+            let (bulk_entity_slots_reserved, bulk_relation_slots_reserved) =
+                bulk_reservations_for_plan(&staged, &merged_plan);
+            counters.bulk_entity_slots_reserved = bulk_entity_slots_reserved;
+            counters.bulk_relation_slots_reserved = bulk_relation_slots_reserved;
+        }
         let commit_boundary_results = self.runtime.run_invariants_for_state(
             &staged,
             self.runtime.current_version_id(),
@@ -620,6 +624,55 @@ fn touched_partitions_for_plan(plan: &MergedCommitPlan) -> usize {
         }
     }
     touched.len()
+}
+
+fn bulk_reservations_for_plan(
+    state: &impl PartitionAccess,
+    plan: &MergedCommitPlan,
+) -> (usize, usize) {
+    let mut entity_requests = BTreeMap::new();
+    let mut relation_requests = BTreeMap::new();
+    for intent in &plan.merged_intents {
+        match intent {
+            TransactionIntent::BulkCreateEntities {
+                partition_id,
+                payloads,
+                ..
+            } => {
+                *entity_requests.entry(*partition_id).or_insert(0usize) += payloads.len();
+            }
+            TransactionIntent::BulkCreateRelations {
+                partition_id,
+                endpoints,
+                ..
+            } => {
+                *relation_requests.entry(*partition_id).or_insert(0usize) += endpoints.len();
+            }
+            _ => {}
+        }
+    }
+
+    let entity_reserved = entity_requests
+        .into_iter()
+        .map(|(partition_id, requested): (crate::identity::data::PartitionId, usize)| {
+            let reusable = state
+                .get_partition(partition_id)
+                .map(|partition| partition.entity_arena.free_list.len())
+                .unwrap_or(0);
+            requested.saturating_sub(reusable)
+        })
+        .sum();
+    let relation_reserved = relation_requests
+        .into_iter()
+        .map(|(partition_id, requested): (crate::identity::data::PartitionId, usize)| {
+            let reusable = state
+                .get_partition(partition_id)
+                .map(|partition| partition.relation_arena.free_list.len())
+                .unwrap_or(0);
+            requested.saturating_sub(reusable)
+        })
+        .sum();
+    (entity_reserved, relation_reserved)
 }
 
 fn normalize_interned_string(

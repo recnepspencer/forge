@@ -6,46 +6,76 @@ use crate::storage::logic::state::{
 };
 
 impl RelationalRuntime {
+    pub(crate) fn entity_record_for_id_at_version(
+        &self,
+        state: &impl PartitionAccess,
+        entity_id: crate::identity::data::EntityId,
+        version_id: crate::identity::data::VersionId,
+    ) -> Option<EntityReadRecord> {
+        let partition = state.get_partition(entity_id.partition_id)?;
+        let slot = entity_id.local_slot.0 as usize;
+        if version_id == self.current_version_id() {
+            materialize_current_entity_record(self, partition, entity_id.partition_id, slot)
+        } else {
+            materialize_entity_record_at_version(self, partition, entity_id.partition_id, slot, version_id)
+        }
+    }
+
+    pub(crate) fn relation_record_for_id_at_version(
+        &self,
+        state: &impl PartitionAccess,
+        relation_id: crate::identity::data::RelationId,
+        version_id: crate::identity::data::VersionId,
+    ) -> Option<RelationReadRecord> {
+        let partition = state.get_partition(relation_id.partition_id)?;
+        let slot = relation_id.local_slot.0 as usize;
+        if version_id == self.current_version_id() {
+            materialize_current_relation_record(self, partition, relation_id.partition_id, slot)
+        } else {
+            materialize_relation_record_at_version(
+                self,
+                partition,
+                relation_id.partition_id,
+                slot,
+                version_id,
+            )
+        }
+    }
+
     pub(crate) fn visible_entities_from_state(
         &self,
         state: &impl PartitionAccess,
         version_id: crate::identity::data::VersionId,
     ) -> Vec<EntityReadRecord> {
         let mut records = Vec::new();
+        let current_version = self.current_version_id();
         for partition_id in state.partition_ids() {
             let partition = state
                 .get_partition(partition_id)
                 .expect("partition visible during entity scan");
-            self.complexity_counters
-                .borrow_mut()
-                .visibility_entity_slot_scans += partition.entity_arena.generations.len();
-            for slot in 0..partition.entity_arena.generations.len() {
-                if !entity_visible_in_partition_at_version(partition, slot, version_id) {
-                    continue;
+            if version_id == current_version {
+                for slot in partition.entity_arena.live_bitset.iter_set_slots() {
+                    if let Some(record) =
+                        materialize_current_entity_record(self, partition, partition_id, slot)
+                    {
+                        records.push(record);
+                    }
                 }
-                let kind_id =
-                    partition.entity_arena.kind_ids[slot].expect("kind id for visible entity");
-                let kind = self
-                    .config
-                    .schema_registry
-                    .resolve_entity(kind_id)
-                    .expect("kind resolution for visible entity");
-                let payload =
-                    visible_payload(&partition.entity_arena.payload_history[slot], version_id)
-                        .expect("payload for visible entity")
-                        .clone();
-                records.push(EntityReadRecord {
-                    entity_id: crate::identity::data::EntityId::new(
+            } else {
+                self.complexity_counters
+                    .borrow_mut()
+                    .visibility_entity_slot_scans += partition.entity_arena.generations.len();
+                for slot in 0..partition.entity_arena.generations.len() {
+                    if let Some(record) = materialize_entity_record_at_version(
+                        self,
+                        partition,
                         partition_id,
-                        slot as u64,
-                        partition.entity_arena.generations[slot],
-                    ),
-                    kind,
-                    lifecycle: partition.entity_arena.lifecycle[slot],
-                    created_at_version: partition.entity_arena.created_at[slot],
-                    retired_at_version: partition.entity_arena.retired_at[slot],
-                    payload,
-                });
+                        slot,
+                        version_id,
+                    ) {
+                        records.push(record);
+                    }
+                }
             }
         }
         self.complexity_counters
@@ -60,47 +90,34 @@ impl RelationalRuntime {
         version_id: crate::identity::data::VersionId,
     ) -> Vec<RelationReadRecord> {
         let mut records = Vec::new();
+        let current_version = self.current_version_id();
         for partition_id in state.partition_ids() {
             let partition = state
                 .get_partition(partition_id)
                 .expect("partition visible during relation scan");
-            self.complexity_counters
-                .borrow_mut()
-                .visibility_relation_slot_scans += partition.relation_arena.generations.len();
-            for slot in 0..partition.relation_arena.generations.len() {
-                if !relation_visible_in_partition_at_version(partition, slot, version_id) {
-                    continue;
+            if version_id == current_version {
+                for slot in partition.relation_arena.live_bitset.iter_set_slots() {
+                    if let Some(record) =
+                        materialize_current_relation_record(self, partition, partition_id, slot)
+                    {
+                        records.push(record);
+                    }
                 }
-                let kind_id =
-                    partition.relation_arena.kind_ids[slot].expect("kind id for visible relation");
-                let kind = self
-                    .config
-                    .schema_registry
-                    .resolve_relation(kind_id)
-                    .expect("kind resolution for visible relation");
-                let payload = partition
-                    .relation_arena
-                    .payload_history
-                    .get(&slot)
-                    .and_then(|history| visible_payload(history, version_id))
-                    .cloned();
-                let endpoints = partition.relation_arena.endpoints[slot]
-                    .as_ref()
-                    .expect("endpoints for visible relation");
-                records.push(RelationReadRecord {
-                    relation_id: crate::identity::data::RelationId::new(
+            } else {
+                self.complexity_counters
+                    .borrow_mut()
+                    .visibility_relation_slot_scans += partition.relation_arena.generations.len();
+                for slot in 0..partition.relation_arena.generations.len() {
+                    if let Some(record) = materialize_relation_record_at_version(
+                        self,
+                        partition,
                         partition_id,
-                        slot as u64,
-                        partition.relation_arena.generations[slot],
-                    ),
-                    kind,
-                    lifecycle: partition.relation_arena.lifecycle[slot],
-                    created_at_version: partition.relation_arena.created_at[slot],
-                    retired_at_version: partition.relation_arena.retired_at[slot],
-                    source: endpoints.source,
-                    target: endpoints.target,
-                    payload,
-                });
+                        slot,
+                        version_id,
+                    ) {
+                        records.push(record);
+                    }
+                }
             }
         }
         self.complexity_counters
@@ -123,6 +140,128 @@ impl RelationalRuntime {
         }
         relation_visible_in_arena_at_version(&partition.relation_arena, slot, version_id)
     }
+}
+
+fn materialize_current_entity_record(
+    runtime: &RelationalRuntime,
+    partition: &PartitionState,
+    partition_id: crate::identity::data::PartitionId,
+    slot: usize,
+) -> Option<EntityReadRecord> {
+    if partition.entity_arena.lifecycle.get(slot) != Some(&RecordLifecycleState::Live) {
+        return None;
+    }
+    let kind_id = partition.entity_arena.kind_ids.get(slot).copied().flatten()?;
+    let kind = runtime.config.schema_registry.resolve_entity(kind_id).ok()?;
+    let payload = partition.entity_arena.payload_history.get(slot)?.last()?.value.clone();
+    Some(EntityReadRecord {
+        entity_id: crate::identity::data::EntityId::new(
+            partition_id,
+            slot as u64,
+            partition.entity_arena.generations[slot],
+        ),
+        kind,
+        lifecycle: partition.entity_arena.lifecycle[slot],
+        created_at_version: partition.entity_arena.created_at[slot],
+        retired_at_version: partition.entity_arena.retired_at[slot],
+        payload,
+    })
+}
+
+fn materialize_entity_record_at_version(
+    runtime: &RelationalRuntime,
+    partition: &PartitionState,
+    partition_id: crate::identity::data::PartitionId,
+    slot: usize,
+    version_id: crate::identity::data::VersionId,
+) -> Option<EntityReadRecord> {
+    if !entity_visible_in_partition_at_version(partition, slot, version_id) {
+        return None;
+    }
+    let kind_id = partition.entity_arena.kind_ids[slot]?;
+    let kind = runtime.config.schema_registry.resolve_entity(kind_id).ok()?;
+    let payload = visible_payload(&partition.entity_arena.payload_history[slot], version_id)?.clone();
+    Some(EntityReadRecord {
+        entity_id: crate::identity::data::EntityId::new(
+            partition_id,
+            slot as u64,
+            partition.entity_arena.generations[slot],
+        ),
+        kind,
+        lifecycle: partition.entity_arena.lifecycle[slot],
+        created_at_version: partition.entity_arena.created_at[slot],
+        retired_at_version: partition.entity_arena.retired_at[slot],
+        payload,
+    })
+}
+
+fn materialize_current_relation_record(
+    runtime: &RelationalRuntime,
+    partition: &PartitionState,
+    partition_id: crate::identity::data::PartitionId,
+    slot: usize,
+) -> Option<RelationReadRecord> {
+    if partition.relation_arena.lifecycle.get(slot) != Some(&RecordLifecycleState::Live) {
+        return None;
+    }
+    let kind_id = partition.relation_arena.kind_ids.get(slot).copied().flatten()?;
+    let kind = runtime.config.schema_registry.resolve_relation(kind_id).ok()?;
+    let endpoints = partition.relation_arena.endpoints.get(slot)?.as_ref()?;
+    let payload = partition
+        .relation_arena
+        .payload_history
+        .get(&slot)
+        .and_then(|history| history.last())
+        .map(|entry| entry.value.clone());
+    Some(RelationReadRecord {
+        relation_id: crate::identity::data::RelationId::new(
+            partition_id,
+            slot as u64,
+            partition.relation_arena.generations[slot],
+        ),
+        kind,
+        lifecycle: partition.relation_arena.lifecycle[slot],
+        created_at_version: partition.relation_arena.created_at[slot],
+        retired_at_version: partition.relation_arena.retired_at[slot],
+        source: endpoints.source,
+        target: endpoints.target,
+        payload,
+    })
+}
+
+fn materialize_relation_record_at_version(
+    runtime: &RelationalRuntime,
+    partition: &PartitionState,
+    partition_id: crate::identity::data::PartitionId,
+    slot: usize,
+    version_id: crate::identity::data::VersionId,
+) -> Option<RelationReadRecord> {
+    if !relation_visible_in_partition_at_version(partition, slot, version_id) {
+        return None;
+    }
+    let kind_id = partition.relation_arena.kind_ids[slot]?;
+    let kind = runtime.config.schema_registry.resolve_relation(kind_id).ok()?;
+    let payload = partition
+        .relation_arena
+        .payload_history
+        .get(&slot)
+        .and_then(|history| visible_payload(history, version_id))
+        .cloned();
+    let endpoints = partition.relation_arena.endpoints[slot].as_ref()?;
+    Some(RelationReadRecord {
+        relation_id: crate::identity::data::RelationId::new(
+            partition_id,
+            slot as u64,
+            partition.relation_arena.generations[slot],
+        ),
+        kind,
+        lifecycle: partition.relation_arena.lifecycle[slot],
+        created_at_version: partition.relation_arena.created_at[slot],
+        retired_at_version: partition.relation_arena.retired_at[slot],
+        source: endpoints.source,
+        target: endpoints.target,
+        payload,
+    })
 }
 
 fn visible_payload(

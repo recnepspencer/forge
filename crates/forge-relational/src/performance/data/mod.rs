@@ -23,6 +23,8 @@ pub struct RuntimeComplexityCounters {
     pub partitions_touched_by_commit: usize,
     pub entity_slots_touched_by_commit: usize,
     pub relation_slots_touched_by_commit: usize,
+    pub bulk_entity_slots_reserved: usize,
+    pub bulk_relation_slots_reserved: usize,
     pub relation_identity_candidates_scanned: usize,
     pub visibility_entity_slot_scans: usize,
     pub visibility_relation_slot_scans: usize,
@@ -50,6 +52,14 @@ pub const COMPLEXITY_CONTRACTS: &[ComplexityContract] = &[
         budget_summary: "Commit/apply must report the number of partitions touched so partition-aware IDs do not degrade into global work by accident.",
         status: ComplexityStatus::Verified,
         proof_tests: &["tests::complexity_contracts::complexity_budget_partition_local_commit_reports_touched_partitions"],
+    },
+    ComplexityContract {
+        id: "runtime.bulk_create.reserve",
+        function_path: "logic/runtime/apply.rs::{reserve_bulk_entity_capacity,reserve_bulk_relation_capacity}",
+        declared_time_complexity: "O(partitions_with_bulk_intents)",
+        budget_summary: "Bulk create paths must reserve partition-local capacity up front instead of relying on repeated slot-by-slot vector growth.",
+        status: ComplexityStatus::Verified,
+        proof_tests: &["tests::complexity_contracts::complexity_budget_bulk_create_reserves_partition_local_capacity"],
     },
     ComplexityContract {
         id: "runtime.slot_local_mutation_journal",

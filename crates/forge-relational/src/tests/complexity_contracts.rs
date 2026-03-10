@@ -52,6 +52,34 @@ fn complexity_budget_partition_local_commit_reports_touched_partitions() {
 }
 
 #[test]
+fn complexity_budget_bulk_create_reserves_partition_local_capacity() {
+    let mut runtime = runtime_with_test_schema();
+    runtime.reset_complexity_counters();
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(WorkerIntentBatch::new("bulk-entities").push(
+        TransactionIntent::BulkCreateEntities {
+            partition_id: PartitionId(41),
+            kind_id: KindId(1),
+            client_keys: vec![
+                InternedString::Raw("a".to_string()),
+                InternedString::Raw("b".to_string()),
+                InternedString::Raw("c".to_string()),
+            ],
+            payloads: vec![
+                RecordPayload::StructuredJson(json!({"name":"a"})),
+                RecordPayload::StructuredJson(json!({"name":"b"})),
+                RecordPayload::StructuredJson(json!({"name":"c"})),
+            ],
+        },
+    ));
+    let _ = txn.commit().unwrap();
+    let counters = runtime.complexity_counters();
+
+    assert_eq!(counters.bulk_entity_slots_reserved, 3);
+    assert_eq!(counters.bulk_relation_slots_reserved, 0);
+}
+
+#[test]
 fn complexity_budget_mutation_structural_invariants_are_touched_slot_bounded() {
     let mut runtime = runtime_with_test_schema();
     let target = create_entity(&mut runtime, "target");
@@ -217,15 +245,25 @@ fn complexity_contract_visibility_scans_are_explicitly_measured() {
     let target = create_entity(&mut runtime, "target");
     let _relation = create_relation(&mut runtime, source, target, "r0");
     let snapshot = runtime.snapshot();
+    let current_version = runtime.latest_commit().unwrap().version_id;
 
     runtime.reset_complexity_counters();
     let _ = runtime.read_snapshot(&snapshot).unwrap();
-    let counters = runtime.complexity_counters();
+    let snapshot_counters = runtime.complexity_counters();
 
-    assert!(counters.visibility_entity_slot_scans >= 2);
-    assert!(counters.visibility_relation_slot_scans >= 1);
-    assert!(counters.visible_entity_records_materialized >= 2);
-    assert!(counters.visible_relation_records_materialized >= 1);
+    assert_eq!(snapshot_counters.visibility_entity_slot_scans, 0);
+    assert_eq!(snapshot_counters.visibility_relation_slot_scans, 0);
+    assert!(snapshot_counters.visible_entity_records_materialized >= 2);
+    assert!(snapshot_counters.visible_relation_records_materialized >= 1);
+
+    runtime.reset_complexity_counters();
+    let _ = runtime.read_version(current_version);
+    let current_version_counters = runtime.complexity_counters();
+
+    assert_eq!(current_version_counters.visibility_entity_slot_scans, 0);
+    assert_eq!(current_version_counters.visibility_relation_slot_scans, 0);
+    assert!(current_version_counters.visible_entity_records_materialized >= 2);
+    assert!(current_version_counters.visible_relation_records_materialized >= 1);
 }
 
 #[test]

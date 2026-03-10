@@ -73,6 +73,7 @@ pub(crate) fn apply_plan_to_staged_state(
                 client_keys: _,
                 payloads,
             } => {
+                reserve_bulk_entity_capacity(staged, partition_id, payloads.len());
                 for payload in payloads {
                     let entity_id = allocate_entity(
                         staged,
@@ -260,6 +261,7 @@ pub(crate) fn apply_plan_to_staged_state(
                 endpoints,
                 payloads,
             } => {
+                reserve_bulk_relation_capacity(staged, partition_id, endpoints.len());
                 for (index, (source, target)) in endpoints.into_iter().enumerate() {
                     let spec = RelationSpec {
                         partition_id,
@@ -728,6 +730,32 @@ fn ensure_partition_state(
     partition_id: PartitionId,
 ) -> &mut PartitionState {
     staged.get_partition_mut(partition_id)
+}
+
+fn reserve_bulk_entity_capacity(
+    staged: &mut WorkingState,
+    partition_id: PartitionId,
+    requested_slots: usize,
+) {
+    let reusable_slots = staged
+        .get_partition(partition_id)
+        .map(|partition| partition.entity_arena.free_list.len())
+        .unwrap_or(0);
+    let additional = requested_slots.saturating_sub(reusable_slots);
+    staged.reserve_entity_slots(partition_id, additional);
+}
+
+fn reserve_bulk_relation_capacity(
+    staged: &mut WorkingState,
+    partition_id: PartitionId,
+    requested_slots: usize,
+) {
+    let reusable_slots = staged
+        .get_partition(partition_id)
+        .map(|partition| partition.relation_arena.free_list.len())
+        .unwrap_or(0);
+    let additional = requested_slots.saturating_sub(reusable_slots);
+    staged.reserve_relation_slots(partition_id, additional);
 }
 
 fn ensure_entity_adjacency_capacity(partition: &mut PartitionState, slot: usize) {

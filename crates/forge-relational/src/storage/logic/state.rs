@@ -45,6 +45,29 @@ impl DenseSlotBitSet {
             .map(|word| word.count_ones() as usize)
             .sum()
     }
+
+    pub(crate) fn count_ones_in_range(&self, start: usize, end: usize) -> usize {
+        if start >= end {
+            return 0;
+        }
+        self.iter_set_slots()
+            .into_iter()
+            .filter(|slot| *slot >= start && *slot < end)
+            .count()
+    }
+
+    pub(crate) fn iter_set_slots(&self) -> Vec<usize> {
+        let mut slots = Vec::new();
+        for (word_index, word) in self.words.iter().copied().enumerate() {
+            let mut remaining = word;
+            while remaining != 0 {
+                let bit = remaining.trailing_zeros() as usize;
+                slots.push(word_index * 64 + bit);
+                remaining &= remaining - 1;
+            }
+        }
+        slots
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -164,6 +187,25 @@ impl EntityArena {
             free_list: Vec::new(),
         }
     }
+
+    pub(crate) fn reserve_additional(&mut self, additional: usize) {
+        self.partition_ids.reserve(additional);
+        self.generations.reserve(additional);
+        self.lifecycle.reserve(additional);
+        self.kind_ids.reserve(additional);
+        self.payloads.reserve(additional);
+        self.payload_history.reserve(additional);
+        self.created_at.reserve(additional);
+        self.retired_at.reserve(additional);
+        self.aspect_versions.reserve(additional);
+        self.structural_fingerprints.reserve(additional);
+        self.lineage_ids.reserve(additional);
+        self.diagnostics_enrichment.reserve(additional);
+        self.branch_pins.reserve(additional);
+        self.replay_pins.reserve(additional);
+        self.snapshot_pins.reserve(additional);
+        self.free_list.reserve(additional);
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -208,6 +250,20 @@ impl RelationArena {
             reclaimable_bitset: DenseSlotBitSet::with_capacity(capacity),
             free_list: Vec::new(),
         }
+    }
+
+    pub(crate) fn reserve_additional(&mut self, additional: usize) {
+        self.partition_ids.reserve(additional);
+        self.generations.reserve(additional);
+        self.lifecycle.reserve(additional);
+        self.kind_ids.reserve(additional);
+        self.payloads.reserve(additional);
+        self.created_at.reserve(additional);
+        self.retired_at.reserve(additional);
+        self.endpoints.reserve(additional);
+        self.diagnostics_enrichment.reserve(additional);
+        self.snapshot_pins.reserve(additional);
+        self.free_list.reserve(additional);
     }
 }
 
@@ -327,6 +383,24 @@ impl WorkingState {
             .or_default()
             .reverse_adjacency_slots
             .insert(slot);
+    }
+
+    pub(crate) fn reserve_entity_slots(&mut self, partition_id: PartitionId, additional: usize) {
+        if additional == 0 {
+            return;
+        }
+        let partition = self.get_partition_mut(partition_id);
+        partition.entity_arena.reserve_additional(additional);
+        partition.adjacency.reserve(additional);
+        partition.reverse_adjacency.reserve(additional);
+    }
+
+    pub(crate) fn reserve_relation_slots(&mut self, partition_id: PartitionId, additional: usize) {
+        if additional == 0 {
+            return;
+        }
+        let partition = self.get_partition_mut(partition_id);
+        partition.relation_arena.reserve_additional(additional);
     }
 }
 
