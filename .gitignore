@@ -2,8 +2,9 @@
 target/
 target-*/
 
-# AI brain / agent state
+# AI / agent state
 .gemini/
+.claude/
 
 # IDE
 .idea/
@@ -24,3 +25,12 @@ traces/
 .venv/
 __pycache__/
 *.pyc
+
+# Build logs & error dumps
+*.log
+build_errors.txt
+cargo_errors.txt
+compile_errors.txt
+
+# Scratch / one-off files
+mb_n4_log.txt

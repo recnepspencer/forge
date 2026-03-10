@@ -9,6 +9,7 @@ mod comparator_policy;
 mod contracts;
 mod determinism;
 mod diagnostics;
+mod domains;
 mod evaluation_context;
 mod graph_core;
 mod harness_adapter;
