@@ -77,9 +77,10 @@ pub use crate::logic::runtime::{
     ChunkVisibilitySummary, ChunkedStorageSummary, ComplexityContract, ComplexityStatus,
     EntityReadRecord, InvariantCatalog, InvariantCheckResult, InvariantClass,
     InvariantExecutionPoint, InvariantFailureEffect, InvariantRule, PacketResult,
-    RecordLifecycleState, RelationReadRecord, RelationalDiagnosticsFacade, RelationalReadView,
-    RelationalReplayRecord, RelationalRuntime, RelationalRuntimeConfig, RelationalTransaction,
-    ReplaySchemaVersion, RuntimeComplexityCounters, StorageInvariantReport, StorageStats,
+    PartitionStorageStats, RecordLifecycleState, RelationReadRecord, RelationalDiagnosticsFacade,
+    RelationalReadView, RelationalReplayRecord, RelationalRuntime, RelationalRuntimeConfig,
+    RelationalTransaction, ReplaySchemaVersion, RuntimeComplexityCounters,
+    StorageInvariantReport, StorageStats,
 };
 pub use crate::presentation::api::RelationalRuntimeApi;
 pub use crate::presentation::contracts::{

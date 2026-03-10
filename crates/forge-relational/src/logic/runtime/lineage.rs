@@ -80,7 +80,14 @@ impl RelationalRuntime {
 
     pub fn lineage_for_record(&self, entity_id: EntityId) -> Option<&LineageNode> {
         let slot = entity_id.local_slot.0 as usize;
-        let lineage_id = self.entity_arena.lineage_ids.get(slot).copied().flatten()?;
+        let lineage_id = self
+            .partitions
+            .get(&entity_id.partition_id)?
+            .entity_arena
+            .lineage_ids
+            .get(slot)
+            .copied()
+            .flatten()?;
         self.lineage_nodes.get(&lineage_id)
     }
 
@@ -187,13 +194,14 @@ impl RelationalRuntime {
                 continue;
             };
             let slot = entity_id.local_slot.0 as usize;
-            if staged.entity_arena.created_at[slot] != commit.version_id {
+            let partition = staged.get_partition_mut(entity_id.partition_id);
+            if partition.entity_arena.created_at[slot] != commit.version_id {
                 continue;
             }
-            let lineage_id = staged.entity_arena.lineage_ids[slot].unwrap_or_else(|| {
+            let lineage_id = partition.entity_arena.lineage_ids[slot].unwrap_or_else(|| {
                 let lineage_id = LineageId(self.next_lineage_id);
                 self.next_lineage_id += 1;
-                staged.entity_arena.lineage_ids[slot] = Some(lineage_id);
+                partition.entity_arena.lineage_ids[slot] = Some(lineage_id);
                 lineage_id
             });
             self.lineage_nodes.entry(lineage_id).or_insert(LineageNode {

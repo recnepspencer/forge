@@ -109,13 +109,11 @@ fn count_meaningful_input_changes(
 fn normalize_output_change(
     declared: OutputChange,
     output_identity_unchanged: bool,
-    continuity_token_unchanged: bool,
+    _continuity_token_unchanged: bool,
     has_output_identity: bool,
-    has_continuity_token: bool,
+    _has_continuity_token: bool,
 ) -> OutputChange {
-    if (has_output_identity && output_identity_unchanged)
-        || (has_continuity_token && continuity_token_unchanged)
-    {
+    if has_output_identity && output_identity_unchanged {
         OutputChange::Unchanged
     } else {
         declared

@@ -1,4 +1,7 @@
 use std::cell::RefCell;
+use std::cmp::Ordering;
+use std::marker::PhantomData;
+use std::rc::Rc;
 
 use serde::{Deserialize, Serialize};
 
@@ -30,8 +33,12 @@ impl PreparedDependencyCapture {
             aspect,
             scope,
         };
-        if !self.edges.contains(&edge) {
-            self.edges.push(edge);
+        match self
+            .edges
+            .binary_search_by(|candidate| compare_prepared_dependency_edges(candidate, &edge))
+        {
+            Ok(_) => {}
+            Err(index) => self.edges.insert(index, edge),
         }
     }
 
@@ -40,24 +47,10 @@ impl PreparedDependencyCapture {
     }
 
     pub fn into_sorted_unique(mut self) -> Self {
-        self.edges.sort_by_key(|edge| {
-            (
-                edge.source.index(),
-                edge.source.generation(),
-                edge.aspect.index(),
-                edge.scope
-                    .as_ref()
-                    .map(|scope| {
-                        (
-                            scope.partition.0.clone(),
-                            scope.detail.clone().unwrap_or_default(),
-                            scope.match_mode as u8,
-                        )
-                    })
-                    .unwrap_or_default(),
-            )
+        self.edges.sort_by(compare_prepared_dependency_edges);
+        self.edges.dedup_by(|left, right| {
+            compare_prepared_dependency_edges(left, right) == Ordering::Equal
         });
-        self.edges.dedup();
         self
     }
 }
@@ -200,6 +193,24 @@ impl PreparedEvaluation {
     }
 }
 
+fn compare_prepared_dependency_edges(
+    left: &PreparedDependencyEdge,
+    right: &PreparedDependencyEdge,
+) -> Ordering {
+    (
+        left.source.index(),
+        left.source.generation(),
+        left.aspect.index(),
+        left.scope.as_ref(),
+    )
+        .cmp(&(
+            right.source.index(),
+            right.source.generation(),
+            right.aspect.index(),
+            right.scope.as_ref(),
+        ))
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct PreparedStage {
     pub tasks: Vec<PreparedTaskRecord>,
@@ -235,6 +246,7 @@ impl<'a> ExecutionSnapshot<'a> {
             snapshot: self,
             evaluating,
             capture: RefCell::new(PreparedDependencyCapture::default()),
+            not_send_or_sync: PhantomData,
         }
     }
 }
@@ -245,6 +257,7 @@ pub struct ExecutionReadView<'a> {
     snapshot: &'a ExecutionSnapshot<'a>,
     evaluating: NodeId,
     capture: RefCell<PreparedDependencyCapture>,
+    not_send_or_sync: PhantomData<Rc<()>>,
 }
 
 impl<'a> ExecutionReadView<'a> {

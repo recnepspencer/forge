@@ -39,20 +39,17 @@ pub use types::{
     ChunkDiagnostics, ChunkVisibilitySummary, ChunkedStorageSummary, EntityReadRecord,
     IndexedReadOutcome, InvariantCatalog, InvariantCheckResult, InvariantClass,
     InvariantExecutionPoint, InvariantFailureEffect, InvariantRule, InvariantViolation,
-    PacketResult, RecordLifecycleState, RecoveryOutcome, RelationReadRecord,
+    PacketResult, PartitionStorageStats, RecordLifecycleState, RecoveryOutcome, RelationReadRecord,
     RelationalDiagnosticsFacade, RelationalReadView, RelationalReplayRecord,
     RelationalRuntimeConfig, ReplaySchemaVersion, RetentionPassOutcome, StorageInvariantReport,
     StorageStats,
 };
 
-use self::state::{EntityArena, RelationArena, SnapshotState, WorkingState};
+use self::state::{BorrowedWorkingState, PartitionAccess, PartitionState, SnapshotState, WorkingState};
 #[derive(Debug, Clone)]
 pub struct RelationalRuntime {
     config: RelationalRuntimeConfig,
-    entity_arena: EntityArena,
-    relation_arena: RelationArena,
-    adjacency: Vec<BTreeSet<crate::data::identity::RelationId>>,
-    reverse_adjacency: Vec<BTreeSet<crate::data::identity::RelationId>>,
+    partitions: BTreeMap<crate::data::identity::PartitionId, PartitionState>,
     snapshots: BTreeMap<SnapshotId, SnapshotState>,
     diagnostics: Vec<crate::data::diagnostics::RelationalDiagnosticArtifact>,
     latest_publication_bundle: Option<PublicationBundle<RelationalReplayRecord>>,
@@ -64,6 +61,7 @@ pub struct RelationalRuntime {
     lineage_nodes: BTreeMap<crate::data::identity::LineageId, LineageNode>,
     lineage_events: Vec<LineageEventRecord>,
     correspondence_candidates: Vec<CorrespondenceCandidate>,
+    entity_unique_field_index: BTreeMap<String, BTreeMap<String, BTreeSet<crate::data::identity::EntityId>>>,
     durable_log: Vec<DurableCommitEnvelope>,
     durable_checkpoints: Vec<DurableCheckpoint>,
     next_index_id: u64,
@@ -82,10 +80,7 @@ pub struct RelationalRuntime {
 impl RelationalRuntime {
     pub fn new(config: RelationalRuntimeConfig) -> Self {
         Self {
-            entity_arena: EntityArena::with_capacity(config.initial_entity_capacity),
-            relation_arena: RelationArena::with_capacity(config.initial_relation_capacity),
-            adjacency: Vec::with_capacity(config.initial_entity_capacity),
-            reverse_adjacency: Vec::with_capacity(config.initial_entity_capacity),
+            partitions: BTreeMap::new(),
             snapshots: BTreeMap::new(),
             diagnostics: Vec::new(),
             latest_publication_bundle: None,
@@ -97,6 +92,7 @@ impl RelationalRuntime {
             lineage_nodes: BTreeMap::new(),
             lineage_events: Vec::new(),
             correspondence_candidates: Vec::new(),
+            entity_unique_field_index: BTreeMap::new(),
             durable_log: Vec::new(),
             durable_checkpoints: Vec::new(),
             next_index_id: 1,
@@ -116,6 +112,27 @@ impl RelationalRuntime {
 
     pub fn config(&self) -> &RelationalRuntimeConfig {
         &self.config
+    }
+
+    fn partition(
+        &self,
+        partition_id: crate::data::identity::PartitionId,
+    ) -> Option<&PartitionState> {
+        self.partitions.get(&partition_id)
+    }
+
+    fn entity_slot_count(&self) -> usize {
+        self.partitions
+            .values()
+            .map(|partition| partition.entity_arena.generations.len())
+            .sum()
+    }
+
+    fn relation_slot_count(&self) -> usize {
+        self.partitions
+            .values()
+            .map(|partition| partition.relation_arena.generations.len())
+            .sum()
     }
 
     pub fn begin_transaction<'a>(
@@ -251,6 +268,85 @@ impl RelationalRuntime {
             .collect()
     }
 
+    pub fn partition_ids(&self) -> Vec<crate::data::identity::PartitionId> {
+        self.partitions.keys().copied().collect()
+    }
+
+    pub fn partition_storage_stats(&self) -> Vec<PartitionStorageStats> {
+        self.partitions
+            .iter()
+            .map(|(partition_id, partition)| PartitionStorageStats {
+                partition_id: *partition_id,
+                entity_slots: partition.entity_arena.generations.len(),
+                entity_chunks: partition
+                    .entity_arena
+                    .generations
+                    .len()
+                    .div_ceil(self.config.storage_layout.entity_chunk_size.max(1)),
+                live_entities: partition
+                    .entity_arena
+                    .lifecycle
+                    .iter()
+                    .filter(|state| **state == RecordLifecycleState::Live)
+                    .count(),
+                deleted_entities: partition
+                    .entity_arena
+                    .lifecycle
+                    .iter()
+                    .filter(|state| {
+                        matches!(
+                            state,
+                            RecordLifecycleState::DeletedRetained
+                                | RecordLifecycleState::PinnedBySnapshot
+                                | RecordLifecycleState::PinnedByBranch
+                                | RecordLifecycleState::PinnedByReplayRetention
+                                | RecordLifecycleState::Reclaimable
+                        )
+                    })
+                    .count(),
+                reusable_entity_slots: partition
+                    .entity_arena
+                    .lifecycle
+                    .iter()
+                    .filter(|state| **state == RecordLifecycleState::Reusable)
+                    .count(),
+                relation_slots: partition.relation_arena.generations.len(),
+                relation_chunks: partition
+                    .relation_arena
+                    .generations
+                    .len()
+                    .div_ceil(self.config.storage_layout.relation_chunk_size.max(1)),
+                live_relations: partition
+                    .relation_arena
+                    .lifecycle
+                    .iter()
+                    .filter(|state| **state == RecordLifecycleState::Live)
+                    .count(),
+                deleted_relations: partition
+                    .relation_arena
+                    .lifecycle
+                    .iter()
+                    .filter(|state| {
+                        matches!(
+                            state,
+                            RecordLifecycleState::DeletedRetained
+                                | RecordLifecycleState::PinnedBySnapshot
+                                | RecordLifecycleState::PinnedByBranch
+                                | RecordLifecycleState::PinnedByReplayRetention
+                                | RecordLifecycleState::Reclaimable
+                        )
+                    })
+                    .count(),
+                reusable_relation_slots: partition
+                    .relation_arena
+                    .lifecycle
+                    .iter()
+                    .filter(|state| **state == RecordLifecycleState::Reusable)
+                    .count(),
+            })
+            .collect()
+    }
+
     pub fn version_graph(&self) -> VersionGraphSnapshot {
         VersionGraphSnapshot {
             branches: self.branches(),
@@ -368,64 +464,100 @@ impl RelationalRuntime {
     pub fn storage_stats(&self) -> StorageStats {
         let chunked_summary = self.chunked_storage_summary(self.current_version_id());
         StorageStats {
-            entity_slots: self.entity_arena.generations.len(),
+            entity_slots: self.entity_slot_count(),
             entity_chunks: chunked_summary.entity_chunks.len(),
             live_entities: self
-                .entity_arena
-                .lifecycle
-                .iter()
-                .filter(|state| **state == RecordLifecycleState::Live)
-                .count(),
-            deleted_entities: self
-                .entity_arena
-                .lifecycle
-                .iter()
-                .filter(|state| {
-                    matches!(
-                        state,
-                        RecordLifecycleState::DeletedRetained
-                            | RecordLifecycleState::PinnedBySnapshot
-                            | RecordLifecycleState::PinnedByBranch
-                            | RecordLifecycleState::PinnedByReplayRetention
-                            | RecordLifecycleState::Reclaimable
-                    )
+                .partitions
+                .values()
+                .map(|partition| {
+                    partition
+                        .entity_arena
+                        .lifecycle
+                        .iter()
+                        .filter(|state| **state == RecordLifecycleState::Live)
+                        .count()
                 })
-                .count(),
+                .sum(),
+            deleted_entities: self
+                .partitions
+                .values()
+                .map(|partition| {
+                    partition
+                        .entity_arena
+                        .lifecycle
+                        .iter()
+                        .filter(|state| {
+                            matches!(
+                                state,
+                                RecordLifecycleState::DeletedRetained
+                                    | RecordLifecycleState::PinnedBySnapshot
+                                    | RecordLifecycleState::PinnedByBranch
+                                    | RecordLifecycleState::PinnedByReplayRetention
+                                    | RecordLifecycleState::Reclaimable
+                            )
+                        })
+                        .count()
+                })
+                .sum(),
             reusable_entity_slots: self
-                .entity_arena
-                .lifecycle
-                .iter()
-                .filter(|state| **state == RecordLifecycleState::Reusable)
-                .count(),
-            relation_slots: self.relation_arena.generations.len(),
+                .partitions
+                .values()
+                .map(|partition| {
+                    partition
+                        .entity_arena
+                        .lifecycle
+                        .iter()
+                        .filter(|state| **state == RecordLifecycleState::Reusable)
+                        .count()
+                })
+                .sum(),
+            relation_slots: self.relation_slot_count(),
             relation_chunks: chunked_summary.relation_chunks.len(),
             live_relations: self
-                .relation_arena
-                .lifecycle
-                .iter()
-                .filter(|state| **state == RecordLifecycleState::Live)
-                .count(),
-            deleted_relations: self
-                .relation_arena
-                .lifecycle
-                .iter()
-                .filter(|state| {
-                    matches!(
-                        state,
-                        RecordLifecycleState::DeletedRetained
-                            | RecordLifecycleState::PinnedBySnapshot
-                            | RecordLifecycleState::PinnedByBranch
-                            | RecordLifecycleState::PinnedByReplayRetention
-                            | RecordLifecycleState::Reclaimable
-                    )
+                .partitions
+                .values()
+                .map(|partition| {
+                    partition
+                        .relation_arena
+                        .lifecycle
+                        .iter()
+                        .filter(|state| **state == RecordLifecycleState::Live)
+                        .count()
                 })
-                .count(),
+                .sum(),
+            deleted_relations: self
+                .partitions
+                .values()
+                .map(|partition| {
+                    partition
+                        .relation_arena
+                        .lifecycle
+                        .iter()
+                        .filter(|state| {
+                            matches!(
+                                state,
+                                RecordLifecycleState::DeletedRetained
+                                    | RecordLifecycleState::PinnedBySnapshot
+                                    | RecordLifecycleState::PinnedByBranch
+                                    | RecordLifecycleState::PinnedByReplayRetention
+                                    | RecordLifecycleState::Reclaimable
+                            )
+                        })
+                        .count()
+                })
+                .sum(),
             reusable_relation_slots: self
-                .relation_arena
-                .lifecycle
-                .iter()
-                .filter(|state| **state == RecordLifecycleState::Reusable)
-                .count(),
+                .partitions
+                .values()
+                .map(|partition| {
+                    partition
+                        .relation_arena
+                        .lifecycle
+                        .iter()
+                        .filter(|state| **state == RecordLifecycleState::Reusable)
+                        .count()
+                })
+                .sum(),
             snapshot_count: self.snapshots.len(),
         }
     }
@@ -462,7 +594,6 @@ impl RelationalRuntime {
     }
 
     pub fn run_retention_pass(&mut self) -> RetentionPassOutcome {
-        let chunk_summary = self.chunked_storage_summary(self.current_version_id());
         let mut outcome = RetentionPassOutcome {
             entity_reclaimable: 0,
             entity_reclaimed: 0,
@@ -472,67 +603,116 @@ impl RelationalRuntime {
             relation_chunks_scanned: 0,
         };
 
-        for chunk in chunk_summary
-            .entity_chunks
-            .iter()
-            .filter(|chunk| chunk.retained_records > 0 || chunk.reclaimable_records > 0)
-        {
-            outcome.entity_chunks_scanned += 1;
-            let slot_end =
-                (chunk.slot_start + chunk.slot_len).min(self.entity_arena.lifecycle.len());
-            for slot in chunk.slot_start..slot_end {
-                self.complexity_counters
-                    .borrow_mut()
-                    .retention_entity_slots_scanned += 1;
-                if let Some(version) = self.entity_arena.retired_at[slot] {
-                    self.refresh_entity_retention_state(slot, Some(version));
-                    if self.entity_arena.lifecycle[slot] == RecordLifecycleState::Reclaimable {
-                        outcome.entity_reclaimable += 1;
-                        if self.config.mvcc.auto_reclaim_deleted_records
-                            && outcome.entity_reclaimed < self.config.mvcc.reclaim_batch_size
+        let entity_chunk_size = self.config.storage_layout.entity_chunk_size.max(1);
+        let relation_chunk_size = self.config.storage_layout.relation_chunk_size.max(1);
+        let retention_fence = self.retention_fence_version(self.current_version_id());
+
+        let partition_ids = self.partitions.keys().copied().collect::<Vec<_>>();
+        for partition_id in partition_ids {
+            let entity_len = self
+                .partitions
+                .get(&partition_id)
+                .map(|partition| partition.entity_arena.lifecycle.len())
+                .unwrap_or(0);
+            for slot_start in (0..entity_len).step_by(entity_chunk_size) {
+                outcome.entity_chunks_scanned += 1;
+                let slot_end = (slot_start + entity_chunk_size).min(entity_len);
+                for slot in slot_start..slot_end {
+                    self.complexity_counters
+                        .borrow_mut()
+                        .retention_entity_slots_scanned += 1;
+                    let retired_at = self
+                        .partitions
+                        .get(&partition_id)
+                        .and_then(|partition| partition.entity_arena.retired_at[slot]);
+                    if let Some(version) = retired_at {
+                        self.refresh_entity_retention_state(
+                            partition_id,
+                            slot,
+                            Some(version),
+                            retention_fence,
+                        );
+                        if self
+                            .partitions
+                            .get(&partition_id)
+                            .is_some_and(|partition| {
+                                partition.entity_arena.lifecycle[slot]
+                                    == RecordLifecycleState::Reclaimable
+                            })
                         {
-                            self.entity_arena.lifecycle[slot] = RecordLifecycleState::Reusable;
-                            self.entity_arena.kind_ids[slot] = None;
-                            self.entity_arena.payloads[slot] = None;
-                            self.entity_arena.snapshot_pins[slot] = 0;
-                            self.entity_arena.branch_pins[slot] = 0;
-                            self.entity_arena.replay_pins[slot] = 0;
-                            self.entity_arena.retired_at[slot] = None;
-                            self.entity_arena.free_list.push(slot as u64);
-                            outcome.entity_reclaimed += 1;
+                            outcome.entity_reclaimable += 1;
+                            if self.config.mvcc.auto_reclaim_deleted_records
+                                && outcome.entity_reclaimed < self.config.mvcc.reclaim_batch_size
+                            {
+                                let partition = self
+                                    .partitions
+                                    .get_mut(&partition_id)
+                                    .expect("entity partition for reclaim");
+                                partition.entity_arena.lifecycle[slot] =
+                                    RecordLifecycleState::Reusable;
+                                partition.entity_arena.kind_ids[slot] = None;
+                                partition.entity_arena.payloads[slot] = None;
+                                partition.entity_arena.snapshot_pins[slot] = 0;
+                                partition.entity_arena.branch_pins[slot] = 0;
+                                partition.entity_arena.replay_pins[slot] = 0;
+                                partition.entity_arena.retired_at[slot] = None;
+                                partition.entity_arena.free_list.push(slot as u64);
+                                outcome.entity_reclaimed += 1;
+                            }
                         }
                     }
                 }
             }
-        }
 
-        for chunk in chunk_summary
-            .relation_chunks
-            .iter()
-            .filter(|chunk| chunk.retained_records > 0 || chunk.reclaimable_records > 0)
-        {
-            outcome.relation_chunks_scanned += 1;
-            let slot_end =
-                (chunk.slot_start + chunk.slot_len).min(self.relation_arena.lifecycle.len());
-            for slot in chunk.slot_start..slot_end {
-                self.complexity_counters
-                    .borrow_mut()
-                    .retention_relation_slots_scanned += 1;
-                if let Some(version) = self.relation_arena.retired_at[slot] {
-                    self.refresh_relation_retention_state(slot, Some(version));
-                    if self.relation_arena.lifecycle[slot] == RecordLifecycleState::Reclaimable {
-                        outcome.relation_reclaimable += 1;
-                        if self.config.mvcc.auto_reclaim_deleted_records
-                            && outcome.relation_reclaimed < self.config.mvcc.reclaim_batch_size
+            let relation_len = self
+                .partitions
+                .get(&partition_id)
+                .map(|partition| partition.relation_arena.lifecycle.len())
+                .unwrap_or(0);
+            for slot_start in (0..relation_len).step_by(relation_chunk_size) {
+                outcome.relation_chunks_scanned += 1;
+                let slot_end = (slot_start + relation_chunk_size).min(relation_len);
+                for slot in slot_start..slot_end {
+                    self.complexity_counters
+                        .borrow_mut()
+                        .retention_relation_slots_scanned += 1;
+                    let retired_at = self
+                        .partitions
+                        .get(&partition_id)
+                        .and_then(|partition| partition.relation_arena.retired_at[slot]);
+                    if let Some(version) = retired_at {
+                        self.refresh_relation_retention_state(
+                            partition_id,
+                            slot,
+                            Some(version),
+                            retention_fence,
+                        );
+                        if self
+                            .partitions
+                            .get(&partition_id)
+                            .is_some_and(|partition| {
+                                partition.relation_arena.lifecycle[slot]
+                                    == RecordLifecycleState::Reclaimable
+                            })
                         {
-                            self.relation_arena.lifecycle[slot] = RecordLifecycleState::Reusable;
-                            self.relation_arena.kind_ids[slot] = None;
-                            self.relation_arena.payloads[slot] = None;
-                            self.relation_arena.snapshot_pins[slot] = 0;
-                            self.relation_arena.endpoints[slot] = None;
-                            self.relation_arena.retired_at[slot] = None;
-                            self.relation_arena.free_list.push(slot as u64);
-                            outcome.relation_reclaimed += 1;
+                            outcome.relation_reclaimable += 1;
+                            if self.config.mvcc.auto_reclaim_deleted_records
+                                && outcome.relation_reclaimed < self.config.mvcc.reclaim_batch_size
+                            {
+                                let partition = self
+                                    .partitions
+                                    .get_mut(&partition_id)
+                                    .expect("relation partition for reclaim");
+                                partition.relation_arena.lifecycle[slot] =
+                                    RecordLifecycleState::Reusable;
+                                partition.relation_arena.kind_ids[slot] = None;
+                                partition.relation_arena.payloads[slot] = None;
+                                partition.relation_arena.snapshot_pins[slot] = 0;
+                                partition.relation_arena.endpoints[slot] = None;
+                                partition.relation_arena.retired_at[slot] = None;
+                                partition.relation_arena.free_list.push(slot as u64);
+                                outcome.relation_reclaimed += 1;
+                            }
                         }
                     }
                 }
@@ -544,6 +724,26 @@ impl RelationalRuntime {
 
     fn current_version_id(&self) -> crate::data::identity::VersionId {
         crate::data::identity::VersionId(self.next_version_id.saturating_sub(1))
+    }
+
+    fn retention_fence_version(
+        &self,
+        published_version: crate::data::identity::VersionId,
+    ) -> crate::data::identity::VersionId {
+        match self.config.retention_policy.backend {
+            crate::data::config::RetentionBackend::PinTrackedRetention => self
+                .snapshots
+                .values()
+                .map(|state| state.handle.version_id)
+                .min()
+                .unwrap_or(published_version),
+            crate::data::config::RetentionBackend::EpochChunkRetention => self
+                .snapshots
+                .values()
+                .map(|state| state.handle.version_id)
+                .min()
+                .unwrap_or(published_version),
+        }
     }
 
     pub(super) fn primary_schema_version(&self) -> crate::data::schema::SchemaVersionId {
@@ -656,22 +856,144 @@ impl RelationalRuntime {
         &self,
         entity_id: crate::data::identity::EntityId,
     ) -> usize {
-        self.entity_arena.payload_history[entity_id.local_slot.0 as usize].len()
+        self.partition(entity_id.partition_id)
+            .map(|partition| {
+                partition.entity_arena.payload_history[entity_id.local_slot.0 as usize].len()
+            })
+            .unwrap_or(0)
     }
 
-    fn current_state(&self) -> WorkingState {
-        {
-            let mut counters = self.complexity_counters.borrow_mut();
-            counters.full_state_clones += 1;
-            counters.entity_slots_cloned += self.entity_arena.generations.len();
-            counters.relation_slots_cloned += self.relation_arena.generations.len();
+    fn current_state(&self) -> BorrowedWorkingState<'_> {
+        BorrowedWorkingState::new(&self.partitions)
+    }
+
+    fn take_working_state(&mut self) -> WorkingState {
+        WorkingState::new(
+            std::mem::take(&mut self.partitions),
+            self.config.adjacency_policy.clone(),
+        )
+    }
+
+    pub(super) fn refresh_unique_field_index_for_records(
+        &mut self,
+        changed_records: &[crate::data::transaction::RecordRef],
+        version_id: crate::data::identity::VersionId,
+    ) {
+        let tracked_fields = self.tracked_unique_entity_fields();
+        if tracked_fields.is_empty() {
+            return;
         }
-        WorkingState {
-            entity_arena: self.entity_arena.clone(),
-            relation_arena: self.relation_arena.clone(),
-            adjacency: self.adjacency.clone(),
-            reverse_adjacency: self.reverse_adjacency.clone(),
+        let state = self.current_state();
+        let mut refreshed_values = Vec::new();
+        for record in changed_records {
+            let crate::data::transaction::RecordRef::Entity(entity_id) = record else {
+                continue;
+            };
+            for field in &tracked_fields {
+                if let Some(payload) =
+                    crate::logic::runtime::invariants::entity_payload_for_state(&state, *entity_id, version_id)
+                {
+                    if let Some(value) = payload
+                        .as_json()
+                        .and_then(|value| value.get(field))
+                        .and_then(|value| value.as_str())
+                    {
+                        refreshed_values.push((field.clone(), value.to_string(), *entity_id));
+                    }
+                }
+            }
         }
+        for record in changed_records {
+            let crate::data::transaction::RecordRef::Entity(entity_id) = record else {
+                continue;
+            };
+            for field in &tracked_fields {
+                if let Some(values) = self.entity_unique_field_index.get_mut(field) {
+                    values.retain(|_, entity_ids| {
+                        entity_ids.remove(entity_id);
+                        !entity_ids.is_empty()
+                    });
+                }
+            }
+        }
+        for (field, value, entity_id) in refreshed_values {
+            self.entity_unique_field_index
+                .entry(field)
+                .or_default()
+                .entry(value)
+                .or_default()
+                .insert(entity_id);
+        }
+    }
+
+    pub(super) fn rebuild_unique_field_indexes(&mut self) {
+        self.entity_unique_field_index.clear();
+        let tracked_fields = self.tracked_unique_entity_fields();
+        if tracked_fields.is_empty() {
+            return;
+        }
+        let state = self.current_state();
+        let version_id = self.current_version_id();
+        let mut rebuilt_values = Vec::new();
+        for partition_id in state.partition_ids() {
+            let partition = state
+                .get_partition(partition_id)
+                .expect("partition for unique field rebuild");
+            for slot in 0..partition.entity_arena.generations.len() {
+                if partition.entity_arena.lifecycle[slot] == RecordLifecycleState::Reusable {
+                    continue;
+                }
+                let entity_id = crate::data::identity::EntityId::new(
+                    partition_id,
+                    slot as u64,
+                    partition.entity_arena.generations[slot],
+                );
+                if let Some(payload) =
+                    crate::logic::runtime::invariants::entity_payload_for_state(&state, entity_id, version_id)
+                {
+                    for field in &tracked_fields {
+                        if let Some(value) = payload
+                            .as_json()
+                            .and_then(|value| value.get(field))
+                            .and_then(|value| value.as_str())
+                        {
+                            rebuilt_values
+                                .push((field.clone(), value.to_string(), entity_id));
+                        }
+                    }
+                }
+            }
+        }
+        for (field, value, entity_id) in rebuilt_values {
+            self.entity_unique_field_index
+                .entry(field)
+                .or_default()
+                .entry(value)
+                .or_default()
+                .insert(entity_id);
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn rebuild_unique_field_indexes_for_test(&mut self) {
+        self.rebuild_unique_field_indexes();
+    }
+
+    fn tracked_unique_entity_fields(&self) -> BTreeSet<String> {
+        let mut fields = BTreeSet::new();
+        for rules in [
+            &self.config.invariant_catalog.always_on_structural,
+            &self.config.invariant_catalog.commit_boundary,
+            &self.config.invariant_catalog.snapshot_audit,
+            &self.config.invariant_catalog.harness_heavy,
+        ] {
+            for rule in rules {
+                if let InvariantRule::UniqueEntityPayloadField(field) = rule {
+                    fields.insert(field.clone());
+                }
+            }
+        }
+        fields
     }
 
     fn snapshot_state_for_current(
@@ -714,91 +1036,155 @@ impl RelationalRuntime {
 
     fn pin_entity(&mut self, entity_id: crate::data::identity::EntityId) {
         let slot = entity_id.local_slot.0 as usize;
-        if slot >= self.entity_arena.snapshot_pins.len() {
+        let Some(partition) = self.partitions.get_mut(&entity_id.partition_id) else {
+            return;
+        };
+        if slot >= partition.entity_arena.snapshot_pins.len() {
             return;
         }
         self.complexity_counters
             .borrow_mut()
             .snapshot_pin_adjustments += 1;
-        self.entity_arena.snapshot_pins[slot] += 1;
-        if self.entity_arena.retired_at[slot].is_some() {
-            self.entity_arena.lifecycle[slot] = RecordLifecycleState::PinnedBySnapshot;
+        partition.entity_arena.snapshot_pins[slot] += 1;
+        if partition.entity_arena.retired_at[slot].is_some() {
+            partition.entity_arena.lifecycle[slot] = RecordLifecycleState::PinnedBySnapshot;
         }
     }
 
     fn unpin_entity(&mut self, entity_id: crate::data::identity::EntityId) {
         let slot = entity_id.local_slot.0 as usize;
-        if slot >= self.entity_arena.snapshot_pins.len()
-            || self.entity_arena.snapshot_pins[slot] == 0
+        let Some(partition) = self.partitions.get_mut(&entity_id.partition_id) else {
+            return;
+        };
+        if slot >= partition.entity_arena.snapshot_pins.len()
+            || partition.entity_arena.snapshot_pins[slot] == 0
         {
             return;
         }
         self.complexity_counters
             .borrow_mut()
             .snapshot_pin_adjustments += 1;
-        self.entity_arena.snapshot_pins[slot] -= 1;
-        self.refresh_entity_retention_state(slot, self.entity_arena.retired_at[slot]);
+        partition.entity_arena.snapshot_pins[slot] -= 1;
+        let retired_at = partition.entity_arena.retired_at[slot];
+        let retention_fence = self.retention_fence_version(self.current_version_id());
+        self.refresh_entity_retention_state(
+            entity_id.partition_id,
+            slot,
+            retired_at,
+            retention_fence,
+        );
     }
 
     fn pin_relation(&mut self, relation_id: crate::data::identity::RelationId) {
         let slot = relation_id.local_slot.0 as usize;
-        if slot >= self.relation_arena.snapshot_pins.len() {
+        let Some(partition) = self.partitions.get_mut(&relation_id.partition_id) else {
+            return;
+        };
+        if slot >= partition.relation_arena.snapshot_pins.len() {
             return;
         }
         self.complexity_counters
             .borrow_mut()
             .snapshot_pin_adjustments += 1;
-        self.relation_arena.snapshot_pins[slot] += 1;
-        if self.relation_arena.retired_at[slot].is_some() {
-            self.relation_arena.lifecycle[slot] = RecordLifecycleState::PinnedBySnapshot;
+        partition.relation_arena.snapshot_pins[slot] += 1;
+        if partition.relation_arena.retired_at[slot].is_some() {
+            partition.relation_arena.lifecycle[slot] = RecordLifecycleState::PinnedBySnapshot;
         }
     }
 
     fn unpin_relation(&mut self, relation_id: crate::data::identity::RelationId) {
         let slot = relation_id.local_slot.0 as usize;
-        if slot >= self.relation_arena.snapshot_pins.len()
-            || self.relation_arena.snapshot_pins[slot] == 0
+        let Some(partition) = self.partitions.get_mut(&relation_id.partition_id) else {
+            return;
+        };
+        if slot >= partition.relation_arena.snapshot_pins.len()
+            || partition.relation_arena.snapshot_pins[slot] == 0
         {
             return;
         }
         self.complexity_counters
             .borrow_mut()
             .snapshot_pin_adjustments += 1;
-        self.relation_arena.snapshot_pins[slot] -= 1;
-        self.refresh_relation_retention_state(slot, self.relation_arena.retired_at[slot]);
+        partition.relation_arena.snapshot_pins[slot] -= 1;
+        let retired_at = partition.relation_arena.retired_at[slot];
+        let retention_fence = self.retention_fence_version(self.current_version_id());
+        self.refresh_relation_retention_state(
+            relation_id.partition_id,
+            slot,
+            retired_at,
+            retention_fence,
+        );
     }
 
     fn refresh_entity_retention_state(
         &mut self,
+        partition_id: crate::data::identity::PartitionId,
         slot: usize,
         retired_at: Option<crate::data::identity::VersionId>,
+        retention_fence: crate::data::identity::VersionId,
     ) {
         let Some(_retired_at) = retired_at else {
             return;
         };
-        self.entity_arena.lifecycle[slot] = if self.entity_arena.snapshot_pins[slot] > 0 {
-            RecordLifecycleState::PinnedBySnapshot
-        } else if self.entity_arena.branch_pins[slot] > 0 {
-            RecordLifecycleState::PinnedByBranch
-        } else if self.entity_arena.replay_pins[slot] > 0 {
-            RecordLifecycleState::PinnedByReplayRetention
-        } else {
-            RecordLifecycleState::Reclaimable
+        let partition = self
+            .partitions
+            .get_mut(&partition_id)
+            .expect("entity retention partition present");
+        partition.entity_arena.lifecycle[slot] = match self.config.retention_policy.backend {
+            crate::data::config::RetentionBackend::PinTrackedRetention => {
+                if partition.entity_arena.snapshot_pins[slot] > 0 {
+                    RecordLifecycleState::PinnedBySnapshot
+                } else if partition.entity_arena.branch_pins[slot] > 0 {
+                    RecordLifecycleState::PinnedByBranch
+                } else if partition.entity_arena.replay_pins[slot] > 0 {
+                    RecordLifecycleState::PinnedByReplayRetention
+                } else {
+                    RecordLifecycleState::Reclaimable
+                }
+            }
+            crate::data::config::RetentionBackend::EpochChunkRetention => {
+                if partition.entity_arena.branch_pins[slot] > 0 {
+                    RecordLifecycleState::PinnedByBranch
+                } else if partition.entity_arena.replay_pins[slot] > 0 {
+                    RecordLifecycleState::PinnedByReplayRetention
+                } else if retired_at.is_some_and(|retired| retired <= retention_fence) {
+                    RecordLifecycleState::Reclaimable
+                } else {
+                    RecordLifecycleState::PinnedBySnapshot
+                }
+            }
         };
     }
 
     fn refresh_relation_retention_state(
         &mut self,
+        partition_id: crate::data::identity::PartitionId,
         slot: usize,
         retired_at: Option<crate::data::identity::VersionId>,
+        retention_fence: crate::data::identity::VersionId,
     ) {
         let Some(_retired_at) = retired_at else {
             return;
         };
-        self.relation_arena.lifecycle[slot] = if self.relation_arena.snapshot_pins[slot] > 0 {
-            RecordLifecycleState::PinnedBySnapshot
-        } else {
-            RecordLifecycleState::Reclaimable
+        let partition = self
+            .partitions
+            .get_mut(&partition_id)
+            .expect("relation retention partition present");
+        partition.relation_arena.lifecycle[slot] = match self.config.retention_policy.backend {
+            crate::data::config::RetentionBackend::PinTrackedRetention => {
+                if partition.relation_arena.snapshot_pins[slot] > 0 {
+                    RecordLifecycleState::PinnedBySnapshot
+                } else {
+                    RecordLifecycleState::Reclaimable
+                }
+            }
+            crate::data::config::RetentionBackend::EpochChunkRetention => {
+                if retired_at.is_some_and(|retired| retired <= retention_fence) {
+                    RecordLifecycleState::Reclaimable
+                } else {
+                    RecordLifecycleState::PinnedBySnapshot
+                }
+            }
         };
     }
 
@@ -807,65 +1193,77 @@ impl RelationalRuntime {
         changed_records: &[crate::data::transaction::RecordRef],
         published_version: crate::data::identity::VersionId,
     ) {
-        let oldest_pinned_version = self
-            .snapshots
-            .values()
-            .map(|state| state.handle.version_id)
-            .min()
-            .unwrap_or(published_version);
+        let oldest_pinned_version = self.retention_fence_version(published_version);
 
-        let mut entity_slots = BTreeSet::new();
-        let mut relation_slots = BTreeSet::new();
+        let mut entity_slots = BTreeMap::new();
+        let mut relation_slots = BTreeMap::new();
         for record in changed_records {
             match record {
                 crate::data::transaction::RecordRef::Entity(entity_id) => {
-                    entity_slots.insert(entity_id.local_slot.0 as usize);
+                    entity_slots
+                        .entry(entity_id.partition_id)
+                        .or_insert_with(BTreeSet::new)
+                        .insert(entity_id.local_slot.0 as usize);
                 }
                 crate::data::transaction::RecordRef::Relation(relation_id) => {
-                    relation_slots.insert(relation_id.local_slot.0 as usize);
+                    relation_slots
+                        .entry(relation_id.partition_id)
+                        .or_insert_with(BTreeSet::new)
+                        .insert(relation_id.local_slot.0 as usize);
                 }
             }
         }
 
-        for slot in entity_slots {
-            if slot >= self.entity_arena.payload_history.len()
-                || self.entity_arena.lifecycle[slot] != RecordLifecycleState::Live
-            {
+        for (partition_id, slots) in entity_slots {
+            let Some(partition) = self.partitions.get_mut(&partition_id) else {
                 continue;
+            };
+            for slot in slots {
+                if slot >= partition.entity_arena.payload_history.len()
+                    || partition.entity_arena.lifecycle[slot] != RecordLifecycleState::Live
+                {
+                    continue;
+                }
+                let history = &mut partition.entity_arena.payload_history[slot];
+                let original_len = history.len();
+                history.retain(|entry| {
+                    entry
+                        .retired_at
+                        .is_none_or(|retired| retired > oldest_pinned_version)
+                });
+                self.complexity_counters
+                    .borrow_mut()
+                    .live_entity_history_entries_trimmed +=
+                    original_len.saturating_sub(history.len());
             }
-            let history = &mut self.entity_arena.payload_history[slot];
-            let original_len = history.len();
-            history.retain(|entry| {
-                entry
-                    .retired_at
-                    .is_none_or(|retired| retired > oldest_pinned_version)
-            });
-            self.complexity_counters
-                .borrow_mut()
-                .live_entity_history_entries_trimmed += original_len.saturating_sub(history.len());
         }
 
-        for slot in relation_slots {
-            if !self.relation_arena.payload_history.contains_key(&slot)
-                || self.relation_arena.lifecycle[slot] != RecordLifecycleState::Live
-            {
+        for (partition_id, slots) in relation_slots {
+            let Some(partition) = self.partitions.get_mut(&partition_id) else {
                 continue;
+            };
+            for slot in slots {
+                if !partition.relation_arena.payload_history.contains_key(&slot)
+                    || partition.relation_arena.lifecycle[slot] != RecordLifecycleState::Live
+                {
+                    continue;
+                }
+                let history = partition
+                    .relation_arena
+                    .payload_history
+                    .get_mut(&slot)
+                    .expect("relation history present after key check");
+                let original_len = history.len();
+                history.retain(|entry| {
+                    entry
+                        .retired_at
+                        .is_none_or(|retired| retired > oldest_pinned_version)
+                });
+                self.complexity_counters
+                    .borrow_mut()
+                    .live_relation_history_entries_trimmed +=
+                    original_len.saturating_sub(history.len());
             }
-            let history = self
-                .relation_arena
-                .payload_history
-                .get_mut(&slot)
-                .expect("relation history present after key check");
-            let original_len = history.len();
-            history.retain(|entry| {
-                entry
-                    .retired_at
-                    .is_none_or(|retired| retired > oldest_pinned_version)
-            });
-            self.complexity_counters
-                .borrow_mut()
-                .live_relation_history_entries_trimmed +=
-                original_len.saturating_sub(history.len());
         }
     }
 
@@ -875,10 +1273,10 @@ impl RelationalRuntime {
         version_id: crate::data::identity::VersionId,
     ) -> Vec<crate::data::identity::RelationId> {
         let slot = entity_id.local_slot.0 as usize;
-        self.adjacency
-            .get(slot)
+        self.partition(entity_id.partition_id)
+            .and_then(|partition| partition.adjacency.get(slot))
             .into_iter()
-            .flat_map(|relations| relations.iter().copied())
+            .flat_map(|relations| relations.ids().into_iter())
             .filter(|relation_id| self.relation_visible_at_version(*relation_id, version_id))
             .collect()
     }
@@ -889,10 +1287,10 @@ impl RelationalRuntime {
         version_id: crate::data::identity::VersionId,
     ) -> Vec<crate::data::identity::RelationId> {
         let slot = entity_id.local_slot.0 as usize;
-        self.reverse_adjacency
-            .get(slot)
+        self.partition(entity_id.partition_id)
+            .and_then(|partition| partition.reverse_adjacency.get(slot))
             .into_iter()
-            .flat_map(|relations| relations.iter().copied())
+            .flat_map(|relations| relations.ids().into_iter())
             .filter(|relation_id| self.relation_visible_at_version(*relation_id, version_id))
             .collect()
     }

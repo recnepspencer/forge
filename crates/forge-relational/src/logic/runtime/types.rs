@@ -273,6 +273,21 @@ pub struct StorageStats {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PartitionStorageStats {
+    pub partition_id: crate::data::identity::PartitionId,
+    pub entity_slots: usize,
+    pub entity_chunks: usize,
+    pub live_entities: usize,
+    pub deleted_entities: usize,
+    pub reusable_entity_slots: usize,
+    pub relation_slots: usize,
+    pub relation_chunks: usize,
+    pub live_relations: usize,
+    pub deleted_relations: usize,
+    pub reusable_relation_slots: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RetentionPassOutcome {
     pub entity_reclaimable: usize,
     pub entity_reclaimed: usize,
@@ -685,6 +700,8 @@ impl RelationalRuntimeConfig {
         }
         if let Some(mvcc) = &config_override.mvcc {
             config.mvcc = mvcc.clone();
+            config.retention_policy.backend = mvcc.retention_backend;
+            config.retention_policy.reclaim_batch_size = mvcc.reclaim_batch_size;
         }
         if let Some(storage_layout) = &config_override.storage_layout {
             config.storage_layout = storage_layout.clone();

@@ -15,8 +15,12 @@ pub(super) fn suppress_downstream_if_identity_unchanged(
 ) -> Result<u64, SignalError> {
     let mut suppressed = 0_u64;
     let mut stack: Vec<NodeId> = graph.subscribers_of(node)?.to_vec();
+    let mut visited = std::collections::BTreeSet::new();
     while let Some(current) = stack.pop() {
         if !graph.is_alive(current) {
+            continue;
+        }
+        if !visited.insert(current) {
             continue;
         }
         if matches!(graph.get_entry(current)?.get_state(), NodeState::Clean) {

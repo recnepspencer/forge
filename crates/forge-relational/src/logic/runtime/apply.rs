@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde_json::json;
 
+use crate::data::config::PatchSurfacePolicy;
 use crate::data::diagnostics::{DiagnosticCode, RelationalDiagnosticsEntry};
 use crate::data::diff::{PatchDetail, PatchRecord, PatchRecordKind};
 use crate::data::identity::{EntityId, KindId, PartitionId, RelationId};
@@ -11,11 +12,12 @@ use crate::data::transaction::{
 };
 use crate::logic::runtime::RecordLifecycleState;
 
-use super::state::{RelationEndpoints, VersionedValue, WorkingState};
+use super::state::{PartitionAccess, PartitionState, RelationEndpoints, VersionedValue, WorkingState};
 
 pub(super) fn apply_plan_to_staged_state(
     staged: &mut WorkingState,
     apply_plan: &AuthoritativeApplyPlan,
+    patch_surface_policy: PatchSurfacePolicy,
 ) -> (
     Vec<RecordRef>,
     Vec<PatchRecord>,
@@ -28,8 +30,17 @@ pub(super) fn apply_plan_to_staged_state(
     for intent in &apply_plan.merged_intents {
         match intent.clone() {
             TransactionIntent::CreateEntity(spec) => {
-                let entity_id =
-                    allocate_entity(staged, apply_plan.version_id, spec.partition_id, spec.kind_id, spec.payload.clone());
+                let entity_id = allocate_entity(
+                    staged,
+                    apply_plan.version_id,
+                    spec.partition_id,
+                    spec.kind_id,
+                    spec.payload.clone(),
+                );
+                staged.mark_entity_slot_touched(
+                    entity_id.partition_id,
+                    entity_id.local_slot.0 as usize,
+                );
                 changed_records.push(RecordRef::Entity(entity_id));
                 diagnostics.push(RelationalDiagnosticsEntry {
                     code: DiagnosticCode::EntityCreated,
@@ -44,7 +55,12 @@ pub(super) fn apply_plan_to_staged_state(
                     kind: PatchRecordKind::EntityCreated,
                     entity_id: Some(entity_id),
                     relation_id: None,
-                    detail: PatchDetail::Payload(spec.payload),
+                    detail: patch_detail_for_entity(
+                        patch_surface_policy,
+                        PatchRecordKind::EntityCreated,
+                        entity_id,
+                        Some(&spec.payload),
+                    ),
                 });
             }
             TransactionIntent::BulkCreateEntities {
@@ -54,14 +70,26 @@ pub(super) fn apply_plan_to_staged_state(
                 payloads,
             } => {
                 for payload in payloads {
-                    let entity_id =
-                        allocate_entity(staged, apply_plan.version_id, partition_id, kind_id, payload.clone());
+                    let entity_id = allocate_entity(
+                        staged,
+                        apply_plan.version_id,
+                        partition_id,
+                        kind_id,
+                        payload.clone(),
+                    );
+                    staged
+                        .mark_entity_slot_touched(entity_id.partition_id, entity_id.local_slot.0 as usize);
                     changed_records.push(RecordRef::Entity(entity_id));
                     patch_records.push(PatchRecord {
                         kind: PatchRecordKind::EntityCreated,
                         entity_id: Some(entity_id),
                         relation_id: None,
-                        detail: PatchDetail::Payload(payload),
+                        detail: patch_detail_for_entity(
+                            patch_surface_policy,
+                            PatchRecordKind::EntityCreated,
+                            entity_id,
+                            Some(&payload),
+                        ),
                     });
                 }
                 diagnostics.push(RelationalDiagnosticsEntry {
@@ -75,11 +103,13 @@ pub(super) fn apply_plan_to_staged_state(
             }
             TransactionIntent::UpdateEntity { entity_id, payload } => {
                 let slot = entity_id.local_slot.0 as usize;
-                staged.entity_arena.payloads[slot] = Some(payload.clone());
-                if let Some(current) = staged.entity_arena.payload_history[slot].last_mut() {
+                staged.mark_entity_slot_touched(entity_id.partition_id, slot);
+                let partition = staged.get_partition_mut(entity_id.partition_id);
+                partition.entity_arena.payloads[slot] = Some(payload.clone());
+                if let Some(current) = partition.entity_arena.payload_history[slot].last_mut() {
                     current.retired_at = Some(apply_plan.version_id);
                 }
-                staged.entity_arena.payload_history[slot].push(VersionedValue {
+                partition.entity_arena.payload_history[slot].push(VersionedValue {
                     effective_at: apply_plan.version_id,
                     retired_at: None,
                     value: payload.clone(),
@@ -97,11 +127,23 @@ pub(super) fn apply_plan_to_staged_state(
                     kind: PatchRecordKind::EntityUpdated,
                     entity_id: Some(entity_id),
                     relation_id: None,
-                    detail: PatchDetail::Payload(payload),
+                    detail: patch_detail_for_entity(
+                        patch_surface_policy,
+                        PatchRecordKind::EntityUpdated,
+                        entity_id,
+                        Some(&payload),
+                    ),
                 });
             }
             TransactionIntent::DeleteEntity { entity_id } => {
-                delete_entity_with_cascade(staged, apply_plan.version_id, entity_id, &mut changed_records, &mut patch_records);
+                delete_entity_with_cascade(
+                    staged,
+                    apply_plan.version_id,
+                    entity_id,
+                    patch_surface_policy,
+                    &mut changed_records,
+                    &mut patch_records,
+                );
                 diagnostics.push(RelationalDiagnosticsEntry {
                     code: DiagnosticCode::EntityDeleted,
                     message: "entity deleted".to_string(),
@@ -113,6 +155,15 @@ pub(super) fn apply_plan_to_staged_state(
             }
             TransactionIntent::CreateRelation(spec) => {
                 let relation_id = allocate_relation(staged, apply_plan.version_id, &spec);
+                staged.mark_relation_slot_touched(
+                    relation_id.partition_id,
+                    relation_id.local_slot.0 as usize,
+                );
+                staged.mark_adjacency_slot_touched(spec.source.partition_id, spec.source.local_slot.0 as usize);
+                staged.mark_reverse_adjacency_slot_touched(
+                    spec.target.partition_id,
+                    spec.target.local_slot.0 as usize,
+                );
                 changed_records.push(RecordRef::Relation(relation_id));
                 diagnostics.push(RelationalDiagnosticsEntry {
                     code: DiagnosticCode::RelationCreated,
@@ -131,10 +182,14 @@ pub(super) fn apply_plan_to_staged_state(
                     kind: PatchRecordKind::RelationCreated,
                     entity_id: None,
                     relation_id: Some(relation_id),
-                    detail: match spec.payload {
-                        Some(payload) => PatchDetail::Payload(payload),
-                        None => PatchDetail::StructuredJson(json!({"payload_class":"topology_only"})),
-                    },
+                    detail: patch_detail_for_relation(
+                        patch_surface_policy,
+                        PatchRecordKind::RelationCreated,
+                        relation_id,
+                        spec.source,
+                        spec.target,
+                        spec.payload.as_ref(),
+                    ),
                 });
             }
             TransactionIntent::BulkCreateRelations {
@@ -154,15 +209,31 @@ pub(super) fn apply_plan_to_staged_state(
                         payload: payloads.get(index).cloned().unwrap_or(None),
                     };
                     let relation_id = allocate_relation(staged, apply_plan.version_id, &spec);
+                    staged.mark_relation_slot_touched(
+                        relation_id.partition_id,
+                        relation_id.local_slot.0 as usize,
+                    );
+                    staged.mark_adjacency_slot_touched(
+                        spec.source.partition_id,
+                        spec.source.local_slot.0 as usize,
+                    );
+                    staged.mark_reverse_adjacency_slot_touched(
+                        spec.target.partition_id,
+                        spec.target.local_slot.0 as usize,
+                    );
                     changed_records.push(RecordRef::Relation(relation_id));
                     patch_records.push(PatchRecord {
                         kind: PatchRecordKind::RelationCreated,
                         entity_id: None,
                         relation_id: Some(relation_id),
-                        detail: match spec.payload {
-                            Some(payload) => PatchDetail::Payload(payload),
-                            None => PatchDetail::StructuredJson(json!({"payload_class":"topology_only"})),
-                        },
+                        detail: patch_detail_for_relation(
+                            patch_surface_policy,
+                            PatchRecordKind::RelationCreated,
+                            relation_id,
+                            spec.source,
+                            spec.target,
+                            spec.payload.as_ref(),
+                        ),
                     });
                 }
                 diagnostics.push(RelationalDiagnosticsEntry {
@@ -172,7 +243,14 @@ pub(super) fn apply_plan_to_staged_state(
                 });
             }
             TransactionIntent::DeleteRelation { relation_id } => {
-                delete_relation(staged, apply_plan.version_id, relation_id, &mut changed_records, &mut patch_records);
+                delete_relation(
+                    staged,
+                    apply_plan.version_id,
+                    relation_id,
+                    patch_surface_policy,
+                    &mut changed_records,
+                    &mut patch_records,
+                );
                 diagnostics.push(RelationalDiagnosticsEntry {
                     code: DiagnosticCode::RelationDeleted,
                     message: "relation deleted".to_string(),
@@ -195,54 +273,59 @@ fn allocate_entity(
     kind_id: KindId,
     payload: RecordPayload,
 ) -> EntityId {
-    if let Some(slot) = staged.entity_arena.free_list.pop() {
+    let partition = ensure_partition_state(staged, partition_id);
+    if let Some(slot) = partition.entity_arena.free_list.pop() {
         let idx = slot as usize;
-        staged.entity_arena.partition_ids[idx] = partition_id;
-        staged.entity_arena.lifecycle[idx] = RecordLifecycleState::Live;
-        staged.entity_arena.live_bitset.set(idx, true);
-        staged.entity_arena.reclaimable_bitset.set(idx, false);
-        staged.entity_arena.kind_ids[idx] = Some(kind_id);
-        staged.entity_arena.payloads[idx] = Some(payload.clone());
-        staged.entity_arena.payload_history[idx] = vec![VersionedValue {
+        partition.entity_arena.partition_ids[idx] = partition_id;
+        partition.entity_arena.lifecycle[idx] = RecordLifecycleState::Live;
+        partition.entity_arena.live_bitset.set(idx, true);
+        partition.entity_arena.reclaimable_bitset.set(idx, false);
+        partition.entity_arena.kind_ids[idx] = Some(kind_id);
+        partition.entity_arena.payloads[idx] = Some(payload.clone());
+        partition.entity_arena.payload_history[idx] = vec![VersionedValue {
             effective_at: version_id,
             retired_at: None,
             value: payload,
         }];
-        staged.entity_arena.created_at[idx] = version_id;
-        staged.entity_arena.retired_at[idx] = None;
-        staged.entity_arena.generations[idx] += 1;
-        staged.entity_arena.aspect_versions[idx].clear();
-        staged.entity_arena.structural_fingerprints[idx] = None;
-        staged.entity_arena.lineage_ids[idx] = None;
-        staged.entity_arena.diagnostics_enrichment[idx].clear();
-        staged.adjacency[idx].clear();
-        staged.reverse_adjacency[idx].clear();
-        return EntityId::new(partition_id, slot, staged.entity_arena.generations[idx]);
+        partition.entity_arena.created_at[idx] = version_id;
+        partition.entity_arena.retired_at[idx] = None;
+        partition.entity_arena.generations[idx] += 1;
+        partition.entity_arena.aspect_versions[idx].clear();
+        partition.entity_arena.structural_fingerprints[idx] = None;
+        partition.entity_arena.lineage_ids[idx] = None;
+        partition.entity_arena.diagnostics_enrichment[idx].clear();
+        partition.adjacency[idx].clear();
+        partition.reverse_adjacency[idx].clear();
+        return EntityId::new(partition_id, slot, partition.entity_arena.generations[idx]);
     }
-    let slot = staged.entity_arena.generations.len() as u64;
-    staged.entity_arena.partition_ids.push(partition_id);
-    staged.entity_arena.generations.push(1);
-    staged.entity_arena.lifecycle.push(RecordLifecycleState::Live);
-    staged.entity_arena.live_bitset.set(slot as usize, true);
-    staged.entity_arena.reclaimable_bitset.set(slot as usize, false);
-    staged.entity_arena.kind_ids.push(Some(kind_id));
-    staged.entity_arena.payloads.push(Some(payload.clone()));
-    staged.entity_arena.payload_history.push(vec![VersionedValue {
+    let slot = partition.entity_arena.generations.len() as u64;
+    partition.entity_arena.partition_ids.push(partition_id);
+    partition.entity_arena.generations.push(1);
+    partition.entity_arena.lifecycle.push(RecordLifecycleState::Live);
+    partition.entity_arena.live_bitset.set(slot as usize, true);
+    partition.entity_arena.reclaimable_bitset.set(slot as usize, false);
+    partition.entity_arena.kind_ids.push(Some(kind_id));
+    partition.entity_arena.payloads.push(Some(payload.clone()));
+    partition.entity_arena.payload_history.push(vec![VersionedValue {
         effective_at: version_id,
         retired_at: None,
         value: payload,
     }]);
-    staged.entity_arena.created_at.push(version_id);
-    staged.entity_arena.retired_at.push(None);
-    staged.entity_arena.aspect_versions.push(BTreeMap::new());
-    staged.entity_arena.structural_fingerprints.push(None);
-    staged.entity_arena.lineage_ids.push(None);
-    staged.entity_arena.diagnostics_enrichment.push(BTreeMap::new());
-    staged.entity_arena.branch_pins.push(0);
-    staged.entity_arena.replay_pins.push(0);
-    staged.entity_arena.snapshot_pins.push(0);
-    staged.adjacency.push(BTreeSet::new());
-    staged.reverse_adjacency.push(BTreeSet::new());
+    partition.entity_arena.created_at.push(version_id);
+    partition.entity_arena.retired_at.push(None);
+    partition.entity_arena.aspect_versions.push(BTreeMap::new());
+    partition.entity_arena.structural_fingerprints.push(None);
+    partition.entity_arena.lineage_ids.push(None);
+    partition.entity_arena.diagnostics_enrichment.push(BTreeMap::new());
+    partition.entity_arena.branch_pins.push(0);
+    partition.entity_arena.replay_pins.push(0);
+    partition.entity_arena.snapshot_pins.push(0);
+    partition
+        .adjacency
+        .push(super::state::AdjacencySet::new(&partition.adjacency_policy));
+    partition
+        .reverse_adjacency
+        .push(super::state::AdjacencySet::new(&partition.adjacency_policy));
     EntityId::new(partition_id, slot, 1)
 }
 
@@ -251,68 +334,76 @@ fn allocate_relation(
     version_id: crate::data::identity::VersionId,
     spec: &RelationSpec,
 ) -> RelationId {
-    if let Some(slot) = staged.relation_arena.free_list.pop() {
-        let idx = slot as usize;
-        staged.relation_arena.partition_ids[idx] = spec.partition_id;
-        staged.relation_arena.lifecycle[idx] = RecordLifecycleState::Live;
-        staged.relation_arena.live_bitset.set(idx, true);
-        staged.relation_arena.reclaimable_bitset.set(idx, false);
-        staged.relation_arena.kind_ids[idx] = Some(spec.kind_id);
-        staged.relation_arena.payloads[idx] = spec.payload.clone();
-        if let Some(payload) = spec.payload.clone() {
-            staged.relation_arena.payload_history.insert(
-                idx,
-                vec![VersionedValue {
-                    effective_at: version_id,
-                    retired_at: None,
-                    value: payload,
-                }],
-            );
+    let relation_id = {
+        let partition = ensure_partition_state(staged, spec.partition_id);
+        if let Some(slot) = partition.relation_arena.free_list.pop() {
+            let idx = slot as usize;
+            partition.relation_arena.partition_ids[idx] = spec.partition_id;
+            partition.relation_arena.lifecycle[idx] = RecordLifecycleState::Live;
+            partition.relation_arena.live_bitset.set(idx, true);
+            partition.relation_arena.reclaimable_bitset.set(idx, false);
+            partition.relation_arena.kind_ids[idx] = Some(spec.kind_id);
+            partition.relation_arena.payloads[idx] = spec.payload.clone();
+            if let Some(payload) = spec.payload.clone() {
+                partition.relation_arena.payload_history.insert(
+                    idx,
+                    vec![VersionedValue {
+                        effective_at: version_id,
+                        retired_at: None,
+                        value: payload,
+                    }],
+                );
+            } else {
+                partition.relation_arena.payload_history.remove(&idx);
+            }
+            partition.relation_arena.created_at[idx] = version_id;
+            partition.relation_arena.retired_at[idx] = None;
+            partition.relation_arena.endpoints[idx] = Some(RelationEndpoints {
+                source: spec.source,
+                target: spec.target,
+            });
+            partition.relation_arena.diagnostics_enrichment[idx].clear();
+            partition.relation_arena.generations[idx] += 1;
+            RelationId::new(spec.partition_id, slot, partition.relation_arena.generations[idx])
         } else {
-            staged.relation_arena.payload_history.remove(&idx);
+            let slot = partition.relation_arena.generations.len() as u64;
+            partition.relation_arena.partition_ids.push(spec.partition_id);
+            partition.relation_arena.generations.push(1);
+            partition.relation_arena.lifecycle.push(RecordLifecycleState::Live);
+            partition.relation_arena.live_bitset.set(slot as usize, true);
+            partition.relation_arena.reclaimable_bitset.set(slot as usize, false);
+            partition.relation_arena.kind_ids.push(Some(spec.kind_id));
+            partition.relation_arena.payloads.push(spec.payload.clone());
+            if let Some(payload) = spec.payload.clone() {
+                partition.relation_arena.payload_history.insert(
+                    slot as usize,
+                    vec![VersionedValue {
+                        effective_at: version_id,
+                        retired_at: None,
+                        value: payload,
+                    }],
+                );
+            }
+            partition.relation_arena.created_at.push(version_id);
+            partition.relation_arena.retired_at.push(None);
+            partition.relation_arena.endpoints.push(Some(RelationEndpoints {
+                source: spec.source,
+                target: spec.target,
+            }));
+            partition.relation_arena.diagnostics_enrichment.push(BTreeMap::new());
+            partition.relation_arena.snapshot_pins.push(0);
+            RelationId::new(spec.partition_id, slot, 1)
         }
-        staged.relation_arena.created_at[idx] = version_id;
-        staged.relation_arena.retired_at[idx] = None;
-        staged.relation_arena.endpoints[idx] = Some(RelationEndpoints {
-            source: spec.source,
-            target: spec.target,
-        });
-        staged.relation_arena.diagnostics_enrichment[idx].clear();
-        staged.relation_arena.generations[idx] += 1;
-        let relation_id = RelationId::new(spec.partition_id, slot, staged.relation_arena.generations[idx]);
-        staged.adjacency[spec.source.local_slot.0 as usize].insert(relation_id);
-        staged.reverse_adjacency[spec.target.local_slot.0 as usize].insert(relation_id);
-        return relation_id;
-    }
-    let slot = staged.relation_arena.generations.len() as u64;
-    staged.relation_arena.partition_ids.push(spec.partition_id);
-    staged.relation_arena.generations.push(1);
-    staged.relation_arena.lifecycle.push(RecordLifecycleState::Live);
-    staged.relation_arena.live_bitset.set(slot as usize, true);
-    staged.relation_arena.reclaimable_bitset.set(slot as usize, false);
-    staged.relation_arena.kind_ids.push(Some(spec.kind_id));
-    staged.relation_arena.payloads.push(spec.payload.clone());
-    if let Some(payload) = spec.payload.clone() {
-        staged.relation_arena.payload_history.insert(
-            slot as usize,
-            vec![VersionedValue {
-                effective_at: version_id,
-                retired_at: None,
-                value: payload,
-            }],
-        );
-    }
-    staged.relation_arena.created_at.push(version_id);
-    staged.relation_arena.retired_at.push(None);
-    staged.relation_arena.endpoints.push(Some(RelationEndpoints {
-        source: spec.source,
-        target: spec.target,
-    }));
-    staged.relation_arena.diagnostics_enrichment.push(BTreeMap::new());
-    staged.relation_arena.snapshot_pins.push(0);
-    let relation_id = RelationId::new(spec.partition_id, slot, 1);
-    staged.adjacency[spec.source.local_slot.0 as usize].insert(relation_id);
-    staged.reverse_adjacency[spec.target.local_slot.0 as usize].insert(relation_id);
+    };
+
+    let source_partition = ensure_partition_state(staged, spec.source.partition_id);
+    ensure_entity_adjacency_capacity(source_partition, spec.source.local_slot.0 as usize);
+    source_partition.adjacency[spec.source.local_slot.0 as usize].insert(relation_id);
+
+    let target_partition = ensure_partition_state(staged, spec.target.partition_id);
+    ensure_entity_adjacency_capacity(target_partition, spec.target.local_slot.0 as usize);
+    target_partition.reverse_adjacency[spec.target.local_slot.0 as usize].insert(relation_id);
+
     relation_id
 }
 
@@ -320,15 +411,18 @@ fn delete_entity_with_cascade(
     staged: &mut WorkingState,
     version_id: crate::data::identity::VersionId,
     entity_id: EntityId,
+    patch_surface_policy: PatchSurfacePolicy,
     changed_records: &mut Vec<RecordRef>,
     patch_records: &mut Vec<PatchRecord>,
 ) {
     let slot = entity_id.local_slot.0 as usize;
-    staged.entity_arena.retired_at[slot] = Some(version_id);
-    staged.entity_arena.lifecycle[slot] = RecordLifecycleState::DeletedRetained;
-    staged.entity_arena.live_bitset.set(slot, false);
-    staged.entity_arena.reclaimable_bitset.set(slot, true);
-    if let Some(current) = staged.entity_arena.payload_history[slot].last_mut() {
+    staged.mark_entity_slot_touched(entity_id.partition_id, slot);
+    let partition = staged.get_partition_mut(entity_id.partition_id);
+    partition.entity_arena.retired_at[slot] = Some(version_id);
+    partition.entity_arena.lifecycle[slot] = RecordLifecycleState::DeletedRetained;
+    partition.entity_arena.live_bitset.set(slot, false);
+    partition.entity_arena.reclaimable_bitset.set(slot, true);
+    if let Some(current) = partition.entity_arena.payload_history[slot].last_mut() {
         current.retired_at = Some(version_id);
     }
     changed_records.push(RecordRef::Entity(entity_id));
@@ -336,13 +430,26 @@ fn delete_entity_with_cascade(
         kind: PatchRecordKind::EntityDeleted,
         entity_id: Some(entity_id),
         relation_id: None,
-        detail: PatchDetail::StructuredJson(json!({})),
+        detail: patch_detail_for_entity(
+            patch_surface_policy,
+            PatchRecordKind::EntityDeleted,
+            entity_id,
+            None,
+        ),
     });
 
-    let mut attached = staged.adjacency[slot].clone();
-    attached.extend(staged.reverse_adjacency[slot].iter().copied());
+    let mut attached = BTreeSet::new();
+    partition.adjacency[slot].extend_into(&mut attached);
+    partition.reverse_adjacency[slot].extend_into(&mut attached);
     for relation_id in attached {
-        delete_relation(staged, version_id, relation_id, changed_records, patch_records);
+        delete_relation(
+            staged,
+            version_id,
+            relation_id,
+            patch_surface_policy,
+            changed_records,
+            patch_records,
+        );
     }
 }
 
@@ -350,18 +457,25 @@ fn delete_relation(
     staged: &mut WorkingState,
     version_id: crate::data::identity::VersionId,
     relation_id: RelationId,
+    patch_surface_policy: PatchSurfacePolicy,
     changed_records: &mut Vec<RecordRef>,
     patch_records: &mut Vec<PatchRecord>,
 ) {
     let slot = relation_id.local_slot.0 as usize;
-    if staged.relation_arena.lifecycle[slot] != RecordLifecycleState::Live {
+    let relation_is_live = staged
+        .get_partition(relation_id.partition_id)
+        .is_some_and(|partition| partition.relation_arena.lifecycle[slot] == RecordLifecycleState::Live);
+    if !relation_is_live {
         return;
     }
-    staged.relation_arena.retired_at[slot] = Some(version_id);
-    staged.relation_arena.lifecycle[slot] = RecordLifecycleState::DeletedRetained;
-    staged.relation_arena.live_bitset.set(slot, false);
-    staged.relation_arena.reclaimable_bitset.set(slot, true);
-    if let Some(current) = staged
+    staged.mark_relation_slot_touched(relation_id.partition_id, slot);
+    let partition = staged.get_partition_mut(relation_id.partition_id);
+    let endpoints = partition.relation_arena.endpoints[slot].clone();
+    partition.relation_arena.retired_at[slot] = Some(version_id);
+    partition.relation_arena.lifecycle[slot] = RecordLifecycleState::DeletedRetained;
+    partition.relation_arena.live_bitset.set(slot, false);
+    partition.relation_arena.reclaimable_bitset.set(slot, true);
+    if let Some(current) = partition
         .relation_arena
         .payload_history
         .get_mut(&slot)
@@ -369,15 +483,132 @@ fn delete_relation(
     {
         current.retired_at = Some(version_id);
     }
-    if let Some(endpoints) = staged.relation_arena.endpoints[slot].as_ref() {
-        staged.adjacency[endpoints.source.local_slot.0 as usize].remove(&relation_id);
-        staged.reverse_adjacency[endpoints.target.local_slot.0 as usize].remove(&relation_id);
+    let fallback_source = endpoints
+        .as_ref()
+        .map(|value| value.source)
+        .unwrap_or(EntityId::new(relation_id.partition_id, 0, 0));
+    let fallback_target = endpoints
+        .as_ref()
+        .map(|value| value.target)
+        .unwrap_or(EntityId::new(relation_id.partition_id, 0, 0));
+    if let Some(endpoints) = endpoints {
+        staged.mark_adjacency_slot_touched(endpoints.source.partition_id, endpoints.source.local_slot.0 as usize);
+        staged.mark_reverse_adjacency_slot_touched(
+            endpoints.target.partition_id,
+            endpoints.target.local_slot.0 as usize,
+        );
+        let source_partition = staged.get_partition_mut(endpoints.source.partition_id);
+        if let Some(relations) = source_partition
+            .adjacency
+            .get_mut(endpoints.source.local_slot.0 as usize)
+        {
+            relations.remove(&relation_id);
+        }
+        let target_partition = staged.get_partition_mut(endpoints.target.partition_id);
+        if let Some(relations) = target_partition
+            .reverse_adjacency
+            .get_mut(endpoints.target.local_slot.0 as usize)
+        {
+            relations.remove(&relation_id);
+        }
     }
     changed_records.push(RecordRef::Relation(relation_id));
     patch_records.push(PatchRecord {
         kind: PatchRecordKind::RelationDeleted,
         entity_id: None,
         relation_id: Some(relation_id),
-        detail: PatchDetail::StructuredJson(json!({})),
+        detail: patch_detail_for_relation(
+            patch_surface_policy,
+            PatchRecordKind::RelationDeleted,
+            relation_id,
+            fallback_source,
+            fallback_target,
+            None,
+        ),
     });
+}
+
+fn patch_detail_for_entity(
+    patch_surface_policy: PatchSurfacePolicy,
+    kind: PatchRecordKind,
+    entity_id: EntityId,
+    payload: Option<&RecordPayload>,
+) -> PatchDetail {
+    match patch_surface_policy {
+        PatchSurfacePolicy::StructuredPatchSurface => match payload {
+            Some(payload) => PatchDetail::Payload(payload.clone()),
+            None => PatchDetail::StructuredJson(json!({})),
+        },
+        PatchSurfacePolicy::DensePatchSurface => PatchDetail::DenseBitset(vec![
+            patch_kind_code(kind),
+            entity_id.partition_id.0 as u64,
+            entity_id.local_slot.0,
+            entity_id.generation.0 as u64,
+            payload.map(payload_class_code).unwrap_or(0),
+        ]),
+    }
+}
+
+fn patch_detail_for_relation(
+    patch_surface_policy: PatchSurfacePolicy,
+    kind: PatchRecordKind,
+    relation_id: RelationId,
+    source: EntityId,
+    target: EntityId,
+    payload: Option<&RecordPayload>,
+) -> PatchDetail {
+    match patch_surface_policy {
+        PatchSurfacePolicy::StructuredPatchSurface => match payload {
+            Some(payload) => PatchDetail::Payload(payload.clone()),
+            None => PatchDetail::StructuredJson(json!({"payload_class":"topology_only"})),
+        },
+        PatchSurfacePolicy::DensePatchSurface => PatchDetail::DenseBitset(vec![
+            patch_kind_code(kind),
+            relation_id.partition_id.0 as u64,
+            relation_id.local_slot.0,
+            relation_id.generation.0 as u64,
+            source.partition_id.0 as u64,
+            source.local_slot.0,
+            target.partition_id.0 as u64,
+            target.local_slot.0,
+            payload.map(payload_class_code).unwrap_or(0),
+        ]),
+    }
+}
+
+fn patch_kind_code(kind: PatchRecordKind) -> u64 {
+    match kind {
+        PatchRecordKind::EntityCreated => 1,
+        PatchRecordKind::EntityUpdated => 2,
+        PatchRecordKind::EntityDeleted => 3,
+        PatchRecordKind::RelationCreated => 4,
+        PatchRecordKind::RelationDeleted => 5,
+    }
+}
+
+fn payload_class_code(payload: &RecordPayload) -> u64 {
+    match payload {
+        RecordPayload::StructuredJson(_) => 1,
+        RecordPayload::OpaqueBytes(_) => 2,
+    }
+}
+
+fn ensure_partition_state(
+    staged: &mut WorkingState,
+    partition_id: PartitionId,
+) -> &mut PartitionState {
+    staged.get_partition_mut(partition_id)
+}
+
+fn ensure_entity_adjacency_capacity(partition: &mut PartitionState, slot: usize) {
+    while partition.adjacency.len() <= slot {
+        partition
+            .adjacency
+            .push(super::state::AdjacencySet::new(&partition.adjacency_policy));
+    }
+    while partition.reverse_adjacency.len() <= slot {
+        partition
+            .reverse_adjacency
+            .push(super::state::AdjacencySet::new(&partition.adjacency_policy));
+    }
 }

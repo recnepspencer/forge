@@ -1,4 +1,5 @@
 use serde_json::json;
+use std::collections::BTreeSet;
 
 use crate::data::diagnostics::RelationalDiagnosticArtifact;
 use crate::data::diagnostics::{
@@ -23,7 +24,7 @@ use super::apply::apply_plan_to_staged_state;
 use super::invariants::{first_blocking_invariant_error, first_publication_invariant_error};
 use super::merge::{canonical_intent_key, detect_conflicting_updates, validate_intent};
 use super::publication::publication_failure_diagnostic;
-use super::state::WorkingState;
+use super::state::PartitionAccess;
 use super::{InvariantExecutionPoint, RelationalRuntime};
 
 #[derive(Debug)]
@@ -109,7 +110,10 @@ impl<'a> RelationalTransaction<'a> {
 
     pub fn merged_plan(&mut self) -> Result<&MergedCommitPlan, CommitConflict> {
         if self.last_merged_plan.is_none() {
-            let current_state = self.runtime.current_state();
+            let current_state = super::state::WorkingState::new(
+                self.runtime.partitions.clone(),
+                self.runtime.config.adjacency_policy.clone(),
+            );
             let plan = self.build_merged_plan_for_state(&current_state)?;
             self.last_merged_plan = Some(plan);
         }
@@ -117,18 +121,23 @@ impl<'a> RelationalTransaction<'a> {
     }
 
     pub fn commit(mut self) -> Result<CommitOutcome, TransactionCommitError> {
-        let current_state = self.runtime.current_state();
+        let mut staged = self.runtime.take_working_state();
         let merged_plan = self
-            .build_merged_plan_for_state(&current_state)
+            .build_merged_plan_for_state(&staged)
             .map_err(TransactionCommitError::Conflict)?;
+        self.runtime
+            .complexity_counters
+            .borrow_mut()
+            .partitions_touched_by_commit = touched_partitions_for_plan(&merged_plan);
         let commit_boundary_results = self.runtime.run_invariants_for_state(
-            &current_state,
+            &staged,
             self.runtime.current_version_id(),
             InvariantExecutionPoint::CommitBoundary,
             false,
             Some(&merged_plan),
         );
         if let Some(error) = first_blocking_invariant_error(&commit_boundary_results) {
+            staged.apply_to_runtime(&mut self.runtime.partitions);
             self.runtime.push_bounded_diagnostic(
                 DiagnosticsScope::Invariant,
                 DiagnosticsArtifactKind::Failure,
@@ -147,9 +156,25 @@ impl<'a> RelationalTransaction<'a> {
             version_id,
             merged_intents: merged_plan.merged_intents.clone(),
         };
-        let mut staged = current_state;
         let (changed_records, patch_records, diagnostics_entries) =
-            apply_plan_to_staged_state(&mut staged, &apply_plan);
+            apply_plan_to_staged_state(
+                &mut staged,
+                &apply_plan,
+                self.runtime.config.publication.patch_surface_policy,
+            );
+        {
+            let mut counters = self.runtime.complexity_counters.borrow_mut();
+            counters.entity_slots_touched_by_commit = staged
+                .mutation_journal
+                .values()
+                .map(|journal| journal.entity_slots.len())
+                .sum();
+            counters.relation_slots_touched_by_commit = staged
+                .mutation_journal
+                .values()
+                .map(|journal| journal.relation_slots.len())
+                .sum();
+        }
 
         let structural_results = self.runtime.run_invariants_for_state(
             &staged,
@@ -159,6 +184,7 @@ impl<'a> RelationalTransaction<'a> {
             Some(&merged_plan),
         );
         if let Some(error) = first_blocking_invariant_error(&structural_results) {
+            staged.apply_to_runtime(&mut self.runtime.partitions);
             self.runtime.push_bounded_diagnostic(
                 DiagnosticsScope::Invariant,
                 DiagnosticsArtifactKind::Failure,
@@ -180,6 +206,7 @@ impl<'a> RelationalTransaction<'a> {
         let (parents, merge_base_commits) = match self.resolve_parent_commits(&branch_id) {
             Ok(result) => result,
             Err(conflict) => {
+                staged.apply_to_runtime(&mut self.runtime.partitions);
                 self.runtime.push_bounded_diagnostic(
                     DiagnosticsScope::History,
                     DiagnosticsArtifactKind::Failure,
@@ -216,6 +243,7 @@ impl<'a> RelationalTransaction<'a> {
             records: patch_records,
         };
         if patch.records.len() > self.runtime.config.publication.max_patch_records_per_commit {
+            staged.apply_to_runtime(&mut self.runtime.partitions);
             self.runtime.push_bounded_diagnostic(
                 DiagnosticsScope::PatchPublication,
                 DiagnosticsArtifactKind::Failure,
@@ -251,6 +279,7 @@ impl<'a> RelationalTransaction<'a> {
             Some(&merged_plan),
         );
         if let Some(error) = first_publication_invariant_error(&snapshot_results) {
+            staged.apply_to_runtime(&mut self.runtime.partitions);
             self.runtime.push_bounded_diagnostic(
                 DiagnosticsScope::Invariant,
                 DiagnosticsArtifactKind::Failure,
@@ -288,10 +317,9 @@ impl<'a> RelationalTransaction<'a> {
             index_generation_ids: Vec::new(),
         };
 
-        self.runtime.entity_arena = staged.entity_arena;
-        self.runtime.relation_arena = staged.relation_arena;
-        self.runtime.adjacency = staged.adjacency;
-        self.runtime.reverse_adjacency = staged.reverse_adjacency;
+        staged.apply_to_runtime(&mut self.runtime.partitions);
+        self.runtime
+            .refresh_unique_field_index_for_records(&changed_records, version_id);
         for entity_id in &artifacts.snapshot_state.pinned_entities {
             self.runtime.pin_entity(*entity_id);
         }
@@ -377,7 +405,7 @@ impl<'a> RelationalTransaction<'a> {
 
     fn build_merged_plan_for_state(
         &mut self,
-        current_state: &WorkingState,
+        current_state: &impl PartitionAccess,
     ) -> Result<MergedCommitPlan, CommitConflict> {
         let mut intents = self
             .batches
@@ -386,7 +414,12 @@ impl<'a> RelationalTransaction<'a> {
             .collect::<Vec<_>>();
         self.normalize_intents_for_merge(&mut intents);
         for intent in &intents {
-            validate_intent(current_state, &self.runtime.config.schema_registry, intent)?;
+            validate_intent(
+                current_state,
+                &self.runtime.config.schema_registry,
+                &self.runtime.complexity_counters,
+                intent,
+            )?;
         }
         intents.sort_by_key(canonical_intent_key);
         detect_conflicting_updates(&intents)?;
@@ -535,6 +568,44 @@ impl<'a> RelationalTransaction<'a> {
         }
         self.runtime.config.symbol_table = interner.snapshot();
     }
+}
+
+fn touched_partitions_for_plan(plan: &MergedCommitPlan) -> usize {
+    let mut touched = BTreeSet::new();
+    for intent in &plan.merged_intents {
+        match intent {
+            TransactionIntent::CreateEntity(spec) => {
+                touched.insert(spec.partition_id);
+            }
+            TransactionIntent::BulkCreateEntities { partition_id, .. } => {
+                touched.insert(*partition_id);
+            }
+            TransactionIntent::UpdateEntity { entity_id, .. }
+            | TransactionIntent::DeleteEntity { entity_id } => {
+                touched.insert(entity_id.partition_id);
+            }
+            TransactionIntent::CreateRelation(spec) => {
+                touched.insert(spec.partition_id);
+                touched.insert(spec.source.partition_id);
+                touched.insert(spec.target.partition_id);
+            }
+            TransactionIntent::BulkCreateRelations {
+                partition_id,
+                endpoints,
+                ..
+            } => {
+                touched.insert(*partition_id);
+                for (source, target) in endpoints {
+                    touched.insert(source.partition_id);
+                    touched.insert(target.partition_id);
+                }
+            }
+            TransactionIntent::DeleteRelation { relation_id } => {
+                touched.insert(relation_id.partition_id);
+            }
+        }
+    }
+    touched.len()
 }
 
 fn normalize_interned_string(

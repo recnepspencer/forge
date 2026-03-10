@@ -11,6 +11,7 @@ mod evaluation_context;
 mod graph_core;
 mod harness_adapter;
 mod harness_platform;
+mod invalidation_bugs;
 mod lifecycle;
 mod multi_aspect;
 mod node_conditions;

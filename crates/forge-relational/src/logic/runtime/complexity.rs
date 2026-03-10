@@ -17,8 +17,13 @@ pub struct ComplexityContract {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct RuntimeComplexityCounters {
     pub full_state_clones: usize,
+    pub partitions_cloned: usize,
     pub entity_slots_cloned: usize,
     pub relation_slots_cloned: usize,
+    pub partitions_touched_by_commit: usize,
+    pub entity_slots_touched_by_commit: usize,
+    pub relation_slots_touched_by_commit: usize,
+    pub relation_identity_candidates_scanned: usize,
     pub visibility_entity_slot_scans: usize,
     pub visibility_relation_slot_scans: usize,
     pub visible_entity_records_materialized: usize,
@@ -39,11 +44,27 @@ pub struct RuntimeComplexityCounters {
 
 pub const COMPLEXITY_CONTRACTS: &[ComplexityContract] = &[
     ComplexityContract {
+        id: "runtime.partition_local_commit",
+        function_path: "logic/runtime/transaction.rs::RelationalTransaction::commit",
+        declared_time_complexity: "O(touched_partitions + changed_records + touched_partition_clone_on_write)",
+        budget_summary: "Commit/apply must report the number of partitions touched so partition-aware IDs do not degrade into global work by accident.",
+        status: ComplexityStatus::Verified,
+        proof_tests: &["tests::complexity_contracts::complexity_budget_partition_local_commit_reports_touched_partitions"],
+    },
+    ComplexityContract {
+        id: "runtime.slot_local_mutation_journal",
+        function_path: "logic/runtime/apply.rs::{apply_plan_to_staged_state,delete_entity_with_cascade,delete_relation}",
+        declared_time_complexity: "O(touched_entity_slots + touched_relation_slots + adjacency_deltas)",
+        budget_summary: "Commit-time mutation tracking must remain slot-local so structural validation can avoid rescanning untouched slots.",
+        status: ComplexityStatus::Verified,
+        proof_tests: &["tests::complexity_contracts::complexity_budget_mutation_structural_invariants_are_touched_slot_bounded"],
+    },
+    ComplexityContract {
         id: "runtime.current_state.clone",
         function_path: "logic/runtime/mod.rs::current_state",
-        declared_time_complexity: "O(entity_slots + relation_slots + adjacency_edges)",
-        budget_summary: "At most one full-state clone per authoritative commit until sparse overlays replace clone staging.",
-        status: ComplexityStatus::Debt,
+        declared_time_complexity: "O(1)",
+        budget_summary: "Current-state staging must remain a sparse overlay wrapper, not a deep clone of all partitions and slots.",
+        status: ComplexityStatus::Verified,
         proof_tests: &["tests::complexity_contracts::complexity_contract_current_state_clone_is_declared_and_measured"],
     },
     ComplexityContract {
@@ -53,6 +74,25 @@ pub const COMPLEXITY_CONTRACTS: &[ComplexityContract] = &[
         budget_summary: "Commit and release paths must not rebuild all pin counters from live snapshots.",
         status: ComplexityStatus::Verified,
         proof_tests: &["tests::complexity_contracts::complexity_budget_snapshot_pin_maintenance_is_incremental"],
+    },
+    ComplexityContract {
+        id: "runtime.relation_identity_validation",
+        function_path: "logic/runtime/merge.rs::validate_relation_creation",
+        declared_time_complexity: "O(out_degree(source) + same_batch_relation_creates)",
+        budget_summary: "Duplicate relation identity checks must avoid full partition relation scans by using adjacency-local candidates and deterministic same-batch keys.",
+        status: ComplexityStatus::Verified,
+        proof_tests: &["tests::complexity_contracts::complexity_budget_relation_identity_validation_avoids_partition_scan"],
+    },
+    ComplexityContract {
+        id: "runtime.unique_entity_invariant_lookup",
+        function_path: "logic/runtime/invariants.rs::run_invariants_for_state",
+        declared_time_complexity: "O(touched_entities + unique_lookup_hits)",
+        budget_summary: "Unique-field invariant checks should use touched entities plus the maintained lookup index instead of broad visible-entity scans when the changed set is known.",
+        status: ComplexityStatus::Verified,
+        proof_tests: &[
+            "tests::complexity_contracts::complexity_budget_unique_entity_invariant_uses_changed_set_lookup",
+            "tests::complexity_contracts::complexity_budget_commit_boundary_unique_invariant_uses_merged_plan_lookup",
+        ],
     },
     ComplexityContract {
         id: "runtime.visible_entities.scan",

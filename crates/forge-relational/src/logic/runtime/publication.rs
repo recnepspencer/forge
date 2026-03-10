@@ -8,7 +8,7 @@ use crate::data::publication::{PublicationBundle, PublicationStatus};
 use crate::data::snapshot::{SnapshotHandle, SnapshotId, SnapshotReadPolicy};
 use crate::logic::runtime::{RelationalReplayRecord, RelationalRuntime, ReplaySchemaVersion};
 
-use super::state::{PublicationArtifacts, SnapshotState, WorkingState};
+use super::state::{PartitionAccess, PublicationArtifacts, SnapshotState};
 
 impl RelationalRuntime {
     pub(super) fn push_diagnostic_artifact(&mut self, artifact: RelationalDiagnosticArtifact) {
@@ -34,7 +34,7 @@ impl RelationalRuntime {
 
     pub(super) fn assemble_publication_bundle(
         &mut self,
-        staged: &WorkingState,
+        staged: &impl PartitionAccess,
         commit_reference: crate::data::history::CommitReference,
         version_id: crate::data::identity::VersionId,
         patch: crate::data::diff::RelationalPatchRecord,

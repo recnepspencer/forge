@@ -25,6 +25,7 @@ use crate::data::config::{DurableLogPolicy, DurableLogRetentionMode};
 use crate::data::payload::RecordPayload;
 use crate::data::schema::RelationPayloadClass;
 use crate::data::symbols::{InternedString, SymbolPolicy};
+use crate::data::diff::{PatchCompatibilityClass, PatchDetail};
 
 #[test]
 fn runtime_defaults_to_serialized_authority() {
@@ -250,6 +251,39 @@ fn snapshot_pins_block_reclaim_until_release() {
     assert_eq!(first_retention.entity_reclaimed, 0);
     assert_eq!(runtime.storage_stats().deleted_entities, 1);
     assert_eq!(first_retention.entity_chunks_scanned, 1);
+
+    assert!(runtime.release_snapshot(&create_outcome.snapshot));
+    assert!(runtime.release_snapshot(&delete_outcome.snapshot));
+    let second_retention = runtime.run_retention_pass();
+
+    assert!(second_retention.entity_reclaimed <= 1);
+    assert_eq!(runtime.storage_stats().reusable_entity_slots, 1);
+}
+
+#[test]
+fn epoch_retention_backend_preserves_snapshot_visibility_until_release() {
+    let mut runtime = RelationalRuntimeApi::builder()
+        .profile(RelationalRuntimeProfile::ChipSimulation)
+        .schema_registry(test_schema_registry())
+        .mvcc(crate::facade::MvccConfig {
+            track_visibility_metadata: true,
+            snapshot_release_policy: crate::facade::SnapshotReleasePolicy::ExplicitRelease,
+            auto_reclaim_deleted_records: true,
+            reclaim_batch_size: 128,
+            retention_backend: crate::facade::RetentionBackend::EpochChunkRetention,
+        })
+        .build();
+    let create_outcome = create_entity_outcome(&mut runtime, "epoch-pinned");
+    let entity = changed_entities(&create_outcome)[0];
+    let delete_outcome = delete_entity(&mut runtime, entity);
+
+    let first_retention = runtime.run_retention_pass();
+    assert_eq!(
+        runtime.config().retention_policy.backend,
+        crate::facade::RetentionBackend::EpochChunkRetention
+    );
+    assert_eq!(first_retention.entity_reclaimed, 0);
+    assert!(runtime.read_snapshot(&create_outcome.snapshot).unwrap().get_entity(entity).is_some());
 
     assert!(runtime.release_snapshot(&create_outcome.snapshot));
     assert!(runtime.release_snapshot(&delete_outcome.snapshot));
@@ -573,6 +607,44 @@ fn cross_context_relations_preserve_partitioned_endpoints() {
 }
 
 #[test]
+fn partition_registry_and_stats_expose_partition_owned_state() {
+    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+    let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
+    let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
+    let _ = create_relation_in_partition(&mut runtime, left, right, "bridge", PartitionId(29));
+
+    let partition_ids = runtime.partition_ids();
+    let stats = runtime.partition_storage_stats();
+
+    assert_eq!(
+        partition_ids,
+        vec![PartitionId(7), PartitionId(11), PartitionId(29)]
+    );
+    assert_eq!(stats.len(), 3);
+    assert_eq!(
+        stats.iter()
+            .find(|entry| entry.partition_id == PartitionId(7))
+            .unwrap()
+            .live_entities,
+        1
+    );
+    assert_eq!(
+        stats.iter()
+            .find(|entry| entry.partition_id == PartitionId(11))
+            .unwrap()
+            .live_entities,
+        1
+    );
+    assert_eq!(
+        stats.iter()
+            .find(|entry| entry.partition_id == PartitionId(29))
+            .unwrap()
+            .live_relations,
+        1
+    );
+}
+
+#[test]
 fn durable_log_compaction_respects_checkpoint_policy() {
     let mut runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
@@ -589,6 +661,42 @@ fn durable_log_compaction_respects_checkpoint_policy() {
     create_entity(&mut runtime, "third");
 
     assert!(runtime.durable_log().len() <= 1);
+}
+
+#[test]
+fn chip_profile_emits_dense_patch_surface_details() {
+    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
+    let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
+    let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
+    let _ = create_relation_in_partition(&mut runtime, left, right, "bridge", PartitionId(29));
+    let patch = runtime.latest_patch().unwrap();
+
+    assert_eq!(patch.compatibility, PatchCompatibilityClass::DenseCompatible);
+    assert!(patch.records.iter().all(|record| matches!(record.detail, PatchDetail::DenseBitset(_))));
+}
+
+#[test]
+fn chip_profile_preserves_relation_traversal_with_compressed_adjacency_backend() {
+    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::ChipSimulation);
+    let source = create_entity_in_partition(&mut runtime, "source", PartitionId(7));
+    let target_a = create_entity_in_partition(&mut runtime, "target-a", PartitionId(7));
+    let target_b = create_entity_in_partition(&mut runtime, "target-b", PartitionId(9));
+    let relation_a = create_relation_in_partition(&mut runtime, source, target_a, "r-a", PartitionId(7));
+    let relation_b = create_relation_in_partition(&mut runtime, source, target_b, "r-b", PartitionId(12));
+    let version_id = runtime.latest_commit().unwrap().version_id;
+
+    assert_eq!(
+        runtime.config().adjacency_policy.backend,
+        crate::facade::AdjacencyBackend::CompressedFanoutAdjacency
+    );
+    assert_eq!(
+        runtime.outgoing_relations_for_entity(source, version_id),
+        vec![relation_a, relation_b]
+    );
+    assert_eq!(
+        runtime.incoming_relations_for_entity(target_b, version_id),
+        vec![relation_b]
+    );
 }
 
 #[test]

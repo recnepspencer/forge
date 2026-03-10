@@ -72,7 +72,12 @@ fn mark_dirty_with_scratch(
         let source_was_clean = matches!(*source_entry.get_state(), NodeState::Clean);
         source_entry.set_state(NodeState::Dirty);
         source_entry.add_dirty_aspect(changed_aspect);
-        source_entry.set_dirty_partition_scopes(changed_scopes.iter().cloned());
+        merge_dirty_partition_scopes(
+            source_entry,
+            changed_aspect,
+            &changed_scopes,
+            source_was_clean,
+        );
         source_was_clean
     };
     if source_was_clean {
@@ -155,7 +160,12 @@ fn mark_direct_subscribers(
             let entry = graph.get_entry_mut(sub)?;
             entry.set_state(new_state);
             entry.add_dirty_aspect(changed_aspect);
-            entry.set_dirty_partition_scopes(changed_scopes.iter().cloned());
+            merge_dirty_partition_scopes(
+                entry,
+                changed_aspect,
+                changed_scopes,
+                matches!(previous_state, NodeState::Clean),
+            );
         }
         if matches!(previous_state, NodeState::Clean) {
             record_invalidation_lineage(
@@ -236,7 +246,9 @@ fn subscribes_to_aspect(
                     }
                 }
             }
-            break;
+            if !matches!(outcome, SubscriptionDirtyMatch::Unmatched) {
+                break;
+            }
         }
         (partition_checks, outcome)
     };
@@ -397,7 +409,12 @@ fn propagate_maybe_stale(
                     let entry = graph.get_entry_mut(node)?;
                     entry.set_state(NodeState::MaybeStale);
                     entry.add_dirty_aspect(changed_aspect);
-                    entry.set_dirty_partition_scopes(changed_scopes.iter().cloned());
+                    merge_dirty_partition_scopes(
+                        entry,
+                        changed_aspect,
+                        changed_scopes,
+                        matches!(previous_state, NodeState::Clean),
+                    );
                 }
                 if matches!(previous_state, NodeState::Clean) {
                     record_invalidation_lineage(
@@ -424,6 +441,31 @@ fn propagate_maybe_stale(
     }
 
     Ok(())
+}
+
+fn merge_dirty_partition_scopes(
+    entry: &mut crate::data::node::NodeEntry,
+    changed_aspect: Aspect,
+    changed_scopes: &[PartitionSubscription],
+    was_clean: bool,
+) {
+    if changed_scopes.is_empty() {
+        // Whole-aspect invalidation supersedes scoped dirtiness.
+        entry.clear_dirty_partition_scopes();
+        return;
+    }
+    if !was_clean
+        && entry.get_dirty_partition_scopes().is_empty()
+        && entry
+            .get_dirty_aspects()
+            .contains(AspectMask::from_aspect(changed_aspect))
+    {
+        // An existing whole-aspect dirty mark is already stronger than any scoped follow-up.
+        return;
+    }
+    for scope in changed_scopes {
+        entry.add_dirty_partition_scope(scope.clone());
+    }
 }
 
 enum SubscriptionDirtyMatch {

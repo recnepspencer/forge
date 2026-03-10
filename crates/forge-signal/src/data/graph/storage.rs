@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
 use crate::data::aspect::Aspect;
@@ -226,12 +227,12 @@ impl SignalGraph {
         node: NodeId,
         edge: DependencyEdge,
     ) -> Result<bool, SignalError> {
-        let current = self.dependencies_of(node)?.to_vec();
-        if current.contains(&edge) {
-            return Ok(false);
+        let mut updated = self.dependencies_of(node)?.to_vec();
+        updated.sort_by(compare_dependency_edges);
+        match updated.binary_search_by(|candidate| compare_dependency_edges(candidate, &edge)) {
+            Ok(_) => return Ok(false),
+            Err(index) => updated.insert(index, edge),
         }
-        let mut updated = current;
-        updated.push(edge);
         let dependencies_id = self.dependency_edges.insert_from_slice(&updated);
         self.get_entry_mut(node)?
             .set_dependencies_id(dependencies_id);
@@ -290,12 +291,12 @@ impl SignalGraph {
         node: NodeId,
         subscriber: NodeId,
     ) -> Result<bool, SignalError> {
-        let current = self.subscribers_of(node)?.to_vec();
-        if current.contains(&subscriber) {
-            return Ok(false);
+        let mut updated = self.subscribers_of(node)?.to_vec();
+        updated.sort();
+        match updated.binary_search(&subscriber) {
+            Ok(_) => return Ok(false),
+            Err(index) => updated.insert(index, subscriber),
         }
-        let mut updated = current;
-        updated.push(subscriber);
         let subscribers_id = self.subscriber_edges.insert_from_slice(&updated);
         self.get_entry_mut(node)?.set_subscribers_id(subscribers_id);
         Ok(true)
@@ -353,4 +354,19 @@ impl SignalGraph {
 
 pub(super) fn stale_error(id: NodeId) -> SignalError {
     SignalError::invalid_input(format!("stale NodeId: {id}"))
+}
+
+fn compare_dependency_edges(left: &DependencyEdge, right: &DependencyEdge) -> Ordering {
+    (
+        left.source().index(),
+        left.source().generation(),
+        left.aspect().index(),
+        left.scope_ref(),
+    )
+        .cmp(&(
+            right.source().index(),
+            right.source().generation(),
+            right.aspect().index(),
+            right.scope_ref(),
+        ))
 }

@@ -87,57 +87,60 @@ fn summarize_entity_chunks(
     runtime: &RelationalRuntime,
     version_id: VersionId,
 ) -> Vec<ChunkVisibilitySummary> {
-    summarize_chunks(
-        runtime.entity_arena.generations.len(),
-        runtime.config.storage_layout.entity_chunk_size,
-        |slot| runtime.entity_arena.created_at.get(slot).copied(),
-        |slot| runtime.entity_arena.retired_at.get(slot).copied().flatten(),
-        |slot| runtime.entity_arena.lifecycle.get(slot).copied(),
-        |slot| {
-            runtime
-                .entity_arena
-                .created_at
-                .get(slot)
-                .is_some_and(|created| {
-                    *created <= version_id
-                        && runtime.entity_arena.retired_at[slot]
-                            .is_none_or(|retired| version_id < retired)
-                        && runtime.entity_arena.lifecycle[slot] != RecordLifecycleState::Reusable
-                })
-        },
-    )
+    let mut summaries = Vec::new();
+    for partition in runtime.partitions.values() {
+        summaries.extend(summarize_chunks(
+            partition.entity_arena.generations.len(),
+            runtime.config.storage_layout.entity_chunk_size,
+            |slot| partition.entity_arena.created_at.get(slot).copied(),
+            |slot| partition.entity_arena.retired_at.get(slot).copied().flatten(),
+            |slot| partition.entity_arena.lifecycle.get(slot).copied(),
+            |slot| {
+                partition
+                    .entity_arena
+                    .created_at
+                    .get(slot)
+                    .is_some_and(|created| {
+                        *created <= version_id
+                            && partition.entity_arena.retired_at[slot]
+                                .is_none_or(|retired| version_id < retired)
+                            && partition.entity_arena.lifecycle[slot]
+                                != RecordLifecycleState::Reusable
+                    })
+            },
+        ));
+    }
+    summaries
 }
 
 fn summarize_relation_chunks(
     runtime: &RelationalRuntime,
     version_id: VersionId,
 ) -> Vec<ChunkVisibilitySummary> {
-    summarize_chunks(
-        runtime.relation_arena.generations.len(),
-        runtime.config.storage_layout.relation_chunk_size,
-        |slot| runtime.relation_arena.created_at.get(slot).copied(),
-        |slot| {
-            runtime
-                .relation_arena
-                .retired_at
-                .get(slot)
-                .copied()
-                .flatten()
-        },
-        |slot| runtime.relation_arena.lifecycle.get(slot).copied(),
-        |slot| {
-            runtime
-                .relation_arena
-                .created_at
-                .get(slot)
-                .is_some_and(|created| {
-                    *created <= version_id
-                        && runtime.relation_arena.retired_at[slot]
-                            .is_none_or(|retired| version_id < retired)
-                        && runtime.relation_arena.lifecycle[slot] != RecordLifecycleState::Reusable
-                })
-        },
-    )
+    let mut summaries = Vec::new();
+    for partition in runtime.partitions.values() {
+        summaries.extend(summarize_chunks(
+            partition.relation_arena.generations.len(),
+            runtime.config.storage_layout.relation_chunk_size,
+            |slot| partition.relation_arena.created_at.get(slot).copied(),
+            |slot| partition.relation_arena.retired_at.get(slot).copied().flatten(),
+            |slot| partition.relation_arena.lifecycle.get(slot).copied(),
+            |slot| {
+                partition
+                    .relation_arena
+                    .created_at
+                    .get(slot)
+                    .is_some_and(|created| {
+                        *created <= version_id
+                            && partition.relation_arena.retired_at[slot]
+                                .is_none_or(|retired| version_id < retired)
+                            && partition.relation_arena.lifecycle[slot]
+                                != RecordLifecycleState::Reusable
+                    })
+            },
+        ));
+    }
+    summaries
 }
 
 fn summarize_chunks<FCreated, FRetired, FLifecycle, FVisible>(
@@ -183,24 +186,15 @@ where
             }
 
             if let Some(retired) = retired_at(slot) {
+                retained_records += 1;
                 latest_retired_at = Some(match latest_retired_at {
                     Some(current) => current.max(retired),
                     None => retired,
                 });
             }
 
-            match lifecycle(slot) {
-                Some(
-                    RecordLifecycleState::DeletedRetained
-                    | RecordLifecycleState::PinnedBySnapshot
-                    | RecordLifecycleState::PinnedByBranch
-                    | RecordLifecycleState::PinnedByReplayRetention,
-                ) => retained_records += 1,
-                Some(RecordLifecycleState::Reclaimable) => {
-                    retained_records += 1;
-                    reclaimable_records += 1;
-                }
-                _ => {}
+            if lifecycle(slot) == Some(RecordLifecycleState::Reclaimable) {
+                reclaimable_records += 1;
             }
         }
 
@@ -222,7 +216,7 @@ where
     summaries
 }
 
-pub(super) fn slot_chunk_index(slot: usize, chunk_size: usize) -> usize {
+fn slot_chunk_index(slot: usize, chunk_size: usize) -> usize {
     if chunk_size == 0 {
         0
     } else {

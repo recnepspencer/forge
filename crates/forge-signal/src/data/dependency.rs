@@ -8,7 +8,7 @@ use crate::data::handle::NodeId;
 use crate::data::output::{InternedPartitionSubscription, PartitionSubscription};
 
 /// A dependency edge recording which upstream node and aspect a downstream reads.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct DependencyEdge {
     source: NodeId,
     aspect: Aspect,

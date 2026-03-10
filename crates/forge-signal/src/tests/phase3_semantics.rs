@@ -69,6 +69,34 @@ fn output_identity_suppression_does_not_hide_other_real_upstream_changes() {
 }
 
 #[test]
+fn continuity_token_match_does_not_hide_real_output_identity_change() {
+    let mut graph = SignalGraph::new();
+    let source = graph.node().output_identity().build();
+
+    evaluate(&mut graph, source, &mut |_id, _graph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(1, 0))
+            .with_output_identity("artifact-a")
+            .with_continuity_token("stable-lineage"))
+    })
+    .unwrap();
+
+    mark_dirty(&mut graph, source, ASPECT_A).unwrap();
+    evaluate(&mut graph, source, &mut |_id, _graph| {
+        Ok(NodeEvaluationResult::from_version(version_ab(2, 0))
+            .with_output_identity("artifact-b")
+            .with_continuity_token("stable-lineage"))
+    })
+    .unwrap();
+
+    let explanation = graph.explain(source).unwrap();
+    assert_eq!(
+        explanation.output_change,
+        Some(OutputChange::Replaced),
+        "a continuity-token match must not erase a real output identity change"
+    );
+}
+
+#[test]
 fn changed_regions_flow_into_trace_and_explanation() {
     let mut graph = SignalGraph::new();
     let node = graph.node().partitioned_output().build();

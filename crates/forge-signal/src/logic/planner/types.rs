@@ -303,7 +303,6 @@ impl StageExecutor {
     }
 
     #[cfg(feature = "parallel")]
-    #[cfg(feature = "parallel")]
     pub(crate) fn parallel_kind(&self) -> Option<ParallelExecutionKind> {
         match self {
             Self::Serial => None,

@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::data::config::{AdjacencyBackend, AdjacencyPolicy};
 use crate::data::identity::{
     EntityId, KindId, LineageId, PartitionId, RelationId, StructuralFingerprint, VersionId,
 };
@@ -47,6 +48,69 @@ pub(super) struct VersionedPayload {
 }
 
 pub(super) type VersionedValue = VersionedPayload;
+
+#[derive(Debug, Clone)]
+pub(super) enum AdjacencySet {
+    Inline(Vec<RelationId>),
+    Compressed(BTreeSet<RelationId>),
+}
+
+impl AdjacencySet {
+    pub(super) fn new(policy: &AdjacencyPolicy) -> Self {
+        match policy.backend {
+            AdjacencyBackend::InlineSmallDegreeAdjacency => {
+                Self::Inline(Vec::with_capacity(policy.small_degree_inline_capacity))
+            }
+            AdjacencyBackend::CompressedFanoutAdjacency => Self::Compressed(BTreeSet::new()),
+        }
+    }
+
+    pub(super) fn clear(&mut self) {
+        match self {
+            Self::Inline(relations) => relations.clear(),
+            Self::Compressed(relations) => relations.clear(),
+        }
+    }
+
+    pub(super) fn insert(&mut self, relation_id: RelationId) {
+        match self {
+            Self::Inline(relations) => match relations.binary_search(&relation_id) {
+                Ok(_) => {}
+                Err(index) => relations.insert(index, relation_id),
+            },
+            Self::Compressed(relations) => {
+                relations.insert(relation_id);
+            }
+        }
+    }
+
+    pub(super) fn remove(&mut self, relation_id: &RelationId) {
+        match self {
+            Self::Inline(relations) => {
+                if let Ok(index) = relations.binary_search(relation_id) {
+                    relations.remove(index);
+                }
+            }
+            Self::Compressed(relations) => {
+                relations.remove(relation_id);
+            }
+        }
+    }
+
+    pub(super) fn ids(&self) -> Vec<RelationId> {
+        match self {
+            Self::Inline(relations) => relations.clone(),
+            Self::Compressed(relations) => relations.iter().copied().collect(),
+        }
+    }
+
+    pub(super) fn extend_into(&self, target: &mut BTreeSet<RelationId>) {
+        match self {
+            Self::Inline(relations) => target.extend(relations.iter().copied()),
+            Self::Compressed(relations) => target.extend(relations.iter().copied()),
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub(super) struct EntityArena {
@@ -140,28 +204,22 @@ impl RelationArena {
     }
 }
 
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
-pub(super) struct EntityArenaSet {
-    pub(super) partition_id: PartitionId,
-    pub(super) arena: EntityArena,
-}
-
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
-pub(super) struct RelationArenaSet {
-    pub(super) partition_id: PartitionId,
-    pub(super) arena: RelationArena,
-}
-
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub(super) struct PartitionState {
     pub(super) partition_id: PartitionId,
+    pub(super) adjacency_policy: AdjacencyPolicy,
     pub(super) entity_arena: EntityArena,
     pub(super) relation_arena: RelationArena,
-    pub(super) adjacency: Vec<BTreeSet<RelationId>>,
-    pub(super) reverse_adjacency: Vec<BTreeSet<RelationId>>,
+    pub(super) adjacency: Vec<AdjacencySet>,
+    pub(super) reverse_adjacency: Vec<AdjacencySet>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub(super) struct PartitionMutationJournal {
+    pub(super) entity_slots: BTreeSet<usize>,
+    pub(super) relation_slots: BTreeSet<usize>,
+    pub(super) adjacency_slots: BTreeSet<usize>,
+    pub(super) reverse_adjacency_slots: BTreeSet<usize>,
 }
 
 #[derive(Debug, Clone)]
@@ -173,10 +231,131 @@ pub(super) struct SnapshotState {
 
 #[derive(Debug, Clone)]
 pub(super) struct WorkingState {
-    pub(super) entity_arena: EntityArena,
-    pub(super) relation_arena: RelationArena,
-    pub(super) adjacency: Vec<BTreeSet<RelationId>>,
-    pub(super) reverse_adjacency: Vec<BTreeSet<RelationId>>,
+    pub(super) adjacency_policy: AdjacencyPolicy,
+    pub(super) partitions: BTreeMap<PartitionId, PartitionState>,
+    pub(super) mutation_journal: BTreeMap<PartitionId, PartitionMutationJournal>,
+}
+
+pub(super) trait PartitionAccess {
+    fn get_partition(&self, partition_id: PartitionId) -> Option<&PartitionState>;
+    fn partition_ids(&self) -> Vec<PartitionId>;
+
+    fn touched_entity_slots(&self, _partition_id: PartitionId) -> Option<Vec<usize>> {
+        None
+    }
+
+    fn touched_relation_slots(&self, _partition_id: PartitionId) -> Option<Vec<usize>> {
+        None
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct BorrowedWorkingState<'a> {
+    pub(super) partitions: &'a BTreeMap<PartitionId, PartitionState>,
+}
+
+impl WorkingState {
+    pub(super) fn new(
+        partitions: BTreeMap<PartitionId, PartitionState>,
+        adjacency_policy: AdjacencyPolicy,
+    ) -> Self {
+        Self {
+            adjacency_policy,
+            partitions,
+            mutation_journal: BTreeMap::new(),
+        }
+    }
+
+    pub(super) fn get_partition_mut(&mut self, partition_id: PartitionId) -> &mut PartitionState {
+        self.partitions
+            .entry(partition_id)
+            .or_insert_with(|| PartitionState {
+                partition_id,
+                adjacency_policy: self.adjacency_policy.clone(),
+                entity_arena: EntityArena::with_capacity(0),
+                relation_arena: RelationArena::with_capacity(0),
+                adjacency: Vec::new(),
+                reverse_adjacency: Vec::new(),
+            })
+    }
+
+    pub(super) fn apply_to_runtime(self, runtime_partitions: &mut BTreeMap<PartitionId, PartitionState>) {
+        *runtime_partitions = self.partitions;
+    }
+
+    pub(super) fn mark_entity_slot_touched(&mut self, partition_id: PartitionId, slot: usize) {
+        self.mutation_journal
+            .entry(partition_id)
+            .or_default()
+            .entity_slots
+            .insert(slot);
+    }
+
+    pub(super) fn mark_relation_slot_touched(&mut self, partition_id: PartitionId, slot: usize) {
+        self.mutation_journal
+            .entry(partition_id)
+            .or_default()
+            .relation_slots
+            .insert(slot);
+    }
+
+    pub(super) fn mark_adjacency_slot_touched(&mut self, partition_id: PartitionId, slot: usize) {
+        self.mutation_journal
+            .entry(partition_id)
+            .or_default()
+            .adjacency_slots
+            .insert(slot);
+    }
+
+    pub(super) fn mark_reverse_adjacency_slot_touched(
+        &mut self,
+        partition_id: PartitionId,
+        slot: usize,
+    ) {
+        self.mutation_journal
+            .entry(partition_id)
+            .or_default()
+            .reverse_adjacency_slots
+            .insert(slot);
+    }
+}
+
+impl PartitionAccess for WorkingState {
+    fn get_partition(&self, partition_id: PartitionId) -> Option<&PartitionState> {
+        self.partitions.get(&partition_id)
+    }
+
+    fn partition_ids(&self) -> Vec<PartitionId> {
+        self.partitions.keys().copied().collect()
+    }
+
+    fn touched_entity_slots(&self, partition_id: PartitionId) -> Option<Vec<usize>> {
+        self.mutation_journal
+            .get(&partition_id)
+            .map(|journal| journal.entity_slots.iter().copied().collect())
+    }
+
+    fn touched_relation_slots(&self, partition_id: PartitionId) -> Option<Vec<usize>> {
+        self.mutation_journal
+            .get(&partition_id)
+            .map(|journal| journal.relation_slots.iter().copied().collect())
+    }
+}
+
+impl<'a> BorrowedWorkingState<'a> {
+    pub(super) fn new(partitions: &'a BTreeMap<PartitionId, PartitionState>) -> Self {
+        Self { partitions }
+    }
+}
+
+impl PartitionAccess for BorrowedWorkingState<'_> {
+    fn get_partition(&self, partition_id: PartitionId) -> Option<&PartitionState> {
+        self.partitions.get(&partition_id)
+    }
+
+    fn partition_ids(&self) -> Vec<PartitionId> {
+        self.partitions.keys().copied().collect()
+    }
 }
 
 #[derive(Debug, Clone)]
