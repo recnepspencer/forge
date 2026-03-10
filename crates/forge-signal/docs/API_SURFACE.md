@@ -34,6 +34,12 @@ Dependency wiring:
 - `graph.add_partition_detail_dependency(downstream, upstream, aspect, partition, detail)`
 - `graph.remove_dependency(...)`
 
+Evaluation-result continuity hooks:
+
+- `NodeEvaluationResult::with_output_identity(...)`
+- `NodeEvaluationResult::with_continuity_token(...)`
+- `NodeEvaluationResult::with_output_change(...)`
+
 Mutation/invalidation:
 
 - `mark_dirty(graph, node, aspect)`
@@ -80,6 +86,9 @@ Important overrides:
 - `.with_replay_detail(...)`
 - `.with_semantic_retention(...)`
 - `.with_parallel_admission(...)`
+- `.with_history_limit(...)`
+- `.with_detail_limit(...)`
+- `.with_history_details(...)`
 
 ### Example: operational runtime with explicit reconstruction-only explanation
 
@@ -234,7 +243,71 @@ For full transaction, keyed-node, and tier/checkpoint guidance, see:
 - [TRANSACTIONS_AND_KEYED_RUNTIME.md](./TRANSACTIONS_AND_KEYED_RUNTIME.md)
 - [CHECKPOINTS_AND_TIERS.md](./CHECKPOINTS_AND_TIERS.md)
 
-## 6. Transactions
+## 6. Snapshot, branch, and replay inspection
+
+Primary state-history types:
+
+- `SignalSnapshotV1`
+- `SignalSnapshotMeta`
+- `SignalBranchHandle`
+- `ReplaySlice`
+- `LineageRecord`
+
+Important graph/runtime methods:
+
+- `capture_snapshot()`
+- `restore_snapshot(...)`
+- `create_branch(...)`
+- `switch_branch(...)`
+- `capture_branch_snapshot(...)`
+- `restore_branch_snapshot(...)`
+- `known_branches()`
+- `branch_handle(...)`
+- `branch_ancestry(...)`
+- `branch_head_snapshot_id(...)`
+- `replay_for_branch(...)`
+- `replay_for_node(...)`
+- `replay_for_artifact(...)`
+- `replay_from_cursor(...)`
+- `replay_between(...)`
+- `replay_around_snapshot(...)`
+- `compare_replay_slices(...)`
+- `replay_slices_equivalent(...)`
+- `current_lineage_artifact(...)`
+- `lineage_chain_for_node(...)`
+- `lineage_chain_for_artifact(...)`
+- `compare_lineage_records(...)`
+- `lineage_records_equivalent(...)`
+
+### Example: inspect snapshot metadata and branch-local replay without restoring
+
+```rust
+use forge_signal::facade::*;
+
+let mut runtime = SignalRuntime::builder(SignalGraph::new()).build();
+let snapshot = runtime.capture_snapshot();
+
+assert_eq!(snapshot.meta().snapshot_id, snapshot.snapshot_id());
+assert_eq!(snapshot.meta().branch_id, snapshot.branch_id());
+
+let branch = runtime.current_branch();
+let replay = runtime.replay_for_branch(branch.id);
+
+if let (Some(first), Some(last)) = (replay.frames.first(), replay.frames.last()) {
+    let bounded = runtime.replay_between(first.cursor, last.cursor);
+    assert!(bounded
+        .frames
+        .iter()
+        .all(|frame| frame.cursor >= first.cursor && frame.cursor <= last.cursor));
+}
+```
+
+For the full Phase 5 story, see:
+
+- [SNAPSHOTS_BRANCHES_AND_REPLAY.md](./SNAPSHOTS_BRANCHES_AND_REPLAY.md)
+- [LINEAGE_MODEL.md](./LINEAGE_MODEL.md)
+
+## 7. Transactions
 
 Primary type:
 

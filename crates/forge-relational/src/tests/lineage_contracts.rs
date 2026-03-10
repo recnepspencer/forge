@@ -57,3 +57,27 @@ fn lineage_contract_failure_invalid_references_do_not_promote() {
             .iter()
             .any(|entry| entry.code == crate::facade::DiagnosticCode::InvariantViolation)));
 }
+
+#[test]
+fn lineage_contract_branch_divergence_is_queryable() {
+    let mut runtime = super::runtime_with_test_schema();
+    let _main = super::create_entity_outcome(&mut runtime, "main");
+    runtime
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .unwrap();
+    let _feature = super::create_entity_outcome_on_branch(
+        &mut runtime,
+        "feature",
+        BranchId("feature".to_string()),
+    );
+    let divergence = runtime.lineage_divergence_between_branches(
+        &BranchId("main".to_string()),
+        &BranchId("feature".to_string()),
+    );
+
+    assert!(!divergence.right_only_event_ids.is_empty());
+    assert!(!divergence.shared_lineage_ids.is_empty());
+}

@@ -147,6 +147,7 @@ Diagnostics are a first-class production surface, not just test helpers. The run
 - failure diagnostics with rollback context
 - explicit diagnostics profiles: `Operational`, `Development`, and `Forensic`
 - runtime-policy-driven artifact retention: replay and stable semantic IDs are always authoritative, while explanation/provenance may be retained, reconstructed, or omitted depending on policy
+- generic continuity hooks: hosts can preserve lineage with `with_continuity_token(...)` without forcing domain meaning into `OutputIdentity`
 - build-time core storage profiles: `compact`, `standard`, and `extended`
 
 Runtime policy presets are also available for common deployment shapes:
@@ -179,6 +180,7 @@ Quick starts:
 - [Lifecycle And GC](./docs/LIFECYCLE_AND_GC.md)
 - [Advanced Patterns](./docs/ADVANCED_PATTERNS.md)
 - [Harness And Certification](./docs/HARNESS_AND_CERTIFICATION.md)
+- [_docs/engineering/forge_signal_adversarial_testing_matrix.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_signal_adversarial_testing_matrix.md)
 - [LOW_LEVEL_NERDS.md](./LOW_LEVEL_NERDS.md)
 
 Choose this if:
@@ -189,6 +191,7 @@ Choose this if:
 - `Kernel`: the heaviest investigative/compute setting when maximal retained semantic detail matters
 
 Parallel certification, determinism gates, failure acceptance criteria, and the runtime/persistence ownership boundary are documented in [PARALLEL_CERTIFICATION.md](./PARALLEL_CERTIFICATION.md) and [BOUNDARY_CONTRACT.md](./BOUNDARY_CONTRACT.md).
+The durable adversarial contract matrix that maps those promises to concrete test lanes lives in [_docs/engineering/forge_signal_adversarial_testing_matrix.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_signal_adversarial_testing_matrix.md).
 
 ## Current Focus
 

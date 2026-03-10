@@ -69,11 +69,20 @@ jobs:
       - name: Forge-signal harness replay lane
         run: cargo test -p forge-signal --lib --features parallel harness_adapter -- --nocapture
 
+      - name: Forge-signal phase 5 contract lane
+        run: bash scripts/ci/check_signal_phase5_contracts.sh
+
       - name: Forge-signal transaction adversarial lane
         run: cargo test -p forge-signal --lib --features parallel transaction_ -- --nocapture
 
       - name: Forge-signal failure matrix gate
         run: bash scripts/ci/check_signal_failure_matrix.sh
+
+      - name: Forge-signal contract matrix gate
+        run: bash scripts/ci/check_signal_contract_matrix.sh
+
+      - name: Forge-signal resource bounds gate
+        run: bash scripts/ci/check_signal_resource_bounds.sh
 
       - name: Forge-signal semantic snapshot diff lane
         run: bash scripts/ci/check_signal_semantic_snapshots.sh "${SIGNAL_SNAPSHOT_DIR}"

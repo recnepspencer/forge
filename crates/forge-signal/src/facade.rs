@@ -41,12 +41,13 @@ pub use crate::data::tier_policy_table::TierPolicyTable;
 pub use crate::data::trace::{CausalityMetadata, TraceSummary};
 pub use crate::diagnostics::{
     compare_execution_history, compare_execution_reports, compare_explanations, compare_failures,
-    compare_flows, compare_graphs, compare_plans, diagnostics_for_graph, diagnostics_for_runtime,
-    explanations_semantically_equivalent, graphs_semantically_equivalent, inspect_execution,
-    inspect_flow, inspect_graph, inspect_plan, inspect_report, plans_semantically_equivalent,
+    compare_flows, compare_graphs, compare_lineage_records, compare_plans, compare_replay_slices,
+    diagnostics_for_graph, diagnostics_for_runtime, explanations_semantically_equivalent,
+    graphs_semantically_equivalent, inspect_execution, inspect_flow, inspect_graph, inspect_plan,
+    inspect_report, lineage_records_equivalent, plans_semantically_equivalent,
     render_execution_history_summary, render_execution_report_summary, render_explanation_summary,
     render_failure_summary, render_flow_summary, render_graph_summary, render_plan_summary,
-    repeat_run_summaries_equal, reports_semantically_equivalent,
+    repeat_run_summaries_equal, replay_slices_equivalent, reports_semantically_equivalent,
     serial_parallel_reports_equivalent, ApplySummary, ArtifactMaterializationMode,
     ArtifactRetentionPolicy, ChangeInputSummary, DiagnosticMismatch, DiagnosticMismatchCategory,
     DiagnosticsPolicy, DiagnosticsProfile, EvaluationPlanSummary, ExecutionFailureContext,
@@ -54,9 +55,9 @@ pub use crate::diagnostics::{
     ExecutionInspector, ExecutionReportDiff, ExecutionReportSummary, ExplanationDiff,
     ExplanationSummary, FailureDiff, FailureSummary, FlowDiff, FlowInspector, FlowSummary,
     GraphDiagnostics, GraphDiff, GraphInspector, GraphSummary, HistoryDiff, InvalidationSummary,
-    LineageArtifactId, LineageEvent, LineageRecord, ParallelAdmissionPolicy, PlanDiff,
+    LineageArtifactId, LineageDiff, LineageEvent, LineageRecord, ParallelAdmissionPolicy, PlanDiff,
     PlanInspector, PlanningSummary, PrecomputeSummary, ReplayCursor, ReplayDetailPolicy,
-    ReplayEventKind, ReplayFrame, ReplaySlice, ReportInspector, RollbackDiagnostic,
+    ReplayDiff, ReplayEventKind, ReplayFrame, ReplaySlice, ReportInspector, RollbackDiagnostic,
     RollbackSummary, RuntimeDiagnostics, SemanticRetentionPolicy, SignalRuntimePolicy,
 };
 

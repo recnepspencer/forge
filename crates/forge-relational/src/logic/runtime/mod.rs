@@ -1,5 +1,6 @@
 mod apply;
 mod chunks;
+mod complexity;
 mod durability;
 mod indexes;
 mod invariants;
@@ -12,6 +13,7 @@ mod state;
 mod transaction;
 mod types;
 
+use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::data::durability::{DurableCheckpoint, DurableCommitEnvelope};
@@ -26,8 +28,12 @@ use crate::data::replay::CanonicalCommitEnvelope;
 use crate::data::snapshot::{
     SnapshotHandle, SnapshotId, SnapshotInspectionSummary, SnapshotReadPolicy,
 };
+use crate::data::symbols::StringInterner;
 use crate::data::transaction::TransactionOptions;
 
+pub use self::complexity::{
+    ComplexityContract, ComplexityStatus, RuntimeComplexityCounters, COMPLEXITY_CONTRACTS,
+};
 pub use transaction::RelationalTransaction;
 pub use types::{
     ChunkDiagnostics, ChunkVisibilitySummary, ChunkedStorageSummary, EntityReadRecord,
@@ -46,6 +52,7 @@ pub struct RelationalRuntime {
     entity_arena: EntityArena,
     relation_arena: RelationArena,
     adjacency: Vec<BTreeSet<crate::data::identity::RelationId>>,
+    reverse_adjacency: Vec<BTreeSet<crate::data::identity::RelationId>>,
     snapshots: BTreeMap<SnapshotId, SnapshotState>,
     diagnostics: Vec<crate::data::diagnostics::RelationalDiagnosticArtifact>,
     latest_publication_bundle: Option<PublicationBundle<RelationalReplayRecord>>,
@@ -68,6 +75,8 @@ pub struct RelationalRuntime {
     next_commit_id: u64,
     next_version_id: u64,
     next_snapshot_id: u64,
+    symbol_interner: RefCell<StringInterner>,
+    complexity_counters: RefCell<RuntimeComplexityCounters>,
 }
 
 impl RelationalRuntime {
@@ -76,6 +85,7 @@ impl RelationalRuntime {
             entity_arena: EntityArena::with_capacity(config.initial_entity_capacity),
             relation_arena: RelationArena::with_capacity(config.initial_relation_capacity),
             adjacency: Vec::with_capacity(config.initial_entity_capacity),
+            reverse_adjacency: Vec::with_capacity(config.initial_entity_capacity),
             snapshots: BTreeMap::new(),
             diagnostics: Vec::new(),
             latest_publication_bundle: None,
@@ -98,6 +108,8 @@ impl RelationalRuntime {
             next_commit_id: 1,
             next_version_id: 1,
             next_snapshot_id: 1,
+            symbol_interner: RefCell::new(StringInterner::default()),
+            complexity_counters: RefCell::new(RuntimeComplexityCounters::default()),
             config,
         }
     }
@@ -138,7 +150,6 @@ impl RelationalRuntime {
         for relation_id in state.pinned_relations {
             self.unpin_relation(relation_id);
         }
-        self.restore_snapshot_pin_counters();
         if self.config.mvcc.snapshot_release_policy
             == crate::data::config::SnapshotReleasePolicy::ReleaseOnRetentionPass
         {
@@ -189,6 +200,18 @@ impl RelationalRuntime {
 
     pub fn latest_publication_bundle(&self) -> Option<&PublicationBundle<RelationalReplayRecord>> {
         self.latest_publication_bundle.as_ref()
+    }
+
+    pub fn complexity_contracts(&self) -> &'static [ComplexityContract] {
+        COMPLEXITY_CONTRACTS
+    }
+
+    pub fn complexity_counters(&self) -> RuntimeComplexityCounters {
+        self.complexity_counters.borrow().clone()
+    }
+
+    pub fn reset_complexity_counters(&self) {
+        *self.complexity_counters.borrow_mut() = RuntimeComplexityCounters::default();
     }
 
     pub fn latest_patch(&self) -> Option<&crate::data::diff::RelationalPatchRecord> {
@@ -267,6 +290,47 @@ impl RelationalRuntime {
         };
         self.latest_common_ancestor(target_head.commit_id, source_head.commit_id)
             .is_some()
+    }
+
+    pub fn inspect_merge(
+        &self,
+        source_branch: &BranchId,
+        target_branch: &BranchId,
+    ) -> crate::data::history::MergeInspection {
+        let source_head = self.branch_head(source_branch).cloned();
+        let target_head = self.branch_head(target_branch).cloned();
+        let merge_base =
+            source_head
+                .as_ref()
+                .zip(target_head.as_ref())
+                .and_then(|(source, target)| {
+                    self.latest_common_ancestor(source.commit_id, target.commit_id)
+                });
+
+        let source_only_commits = source_head
+            .as_ref()
+            .map(|head| self.branch_unique_commits(head.commit_id, merge_base))
+            .unwrap_or_default();
+        let target_only_commits = target_head
+            .as_ref()
+            .map(|head| self.branch_unique_commits(head.commit_id, merge_base))
+            .unwrap_or_default();
+        let conflicting_records = self.merge_conflicts_between(
+            source_only_commits.as_slice(),
+            target_only_commits.as_slice(),
+        );
+
+        crate::data::history::MergeInspection {
+            source_branch: source_branch.clone(),
+            target_branch: target_branch.clone(),
+            source_head,
+            target_head,
+            merge_base,
+            source_only_commits,
+            target_only_commits,
+            can_merge: merge_base.is_some() && conflicting_records.is_empty(),
+            conflicting_records,
+        }
     }
 
     pub fn create_branch(
@@ -417,6 +481,9 @@ impl RelationalRuntime {
             let slot_end =
                 (chunk.slot_start + chunk.slot_len).min(self.entity_arena.lifecycle.len());
             for slot in chunk.slot_start..slot_end {
+                self.complexity_counters
+                    .borrow_mut()
+                    .retention_entity_slots_scanned += 1;
                 if let Some(version) = self.entity_arena.retired_at[slot] {
                     self.refresh_entity_retention_state(slot, Some(version));
                     if self.entity_arena.lifecycle[slot] == RecordLifecycleState::Reclaimable {
@@ -448,6 +515,9 @@ impl RelationalRuntime {
             let slot_end =
                 (chunk.slot_start + chunk.slot_len).min(self.relation_arena.lifecycle.len());
             for slot in chunk.slot_start..slot_end {
+                self.complexity_counters
+                    .borrow_mut()
+                    .retention_relation_slots_scanned += 1;
                 if let Some(version) = self.relation_arena.retired_at[slot] {
                     self.refresh_relation_retention_state(slot, Some(version));
                     if self.relation_arena.lifecycle[slot] == RecordLifecycleState::Reclaimable {
@@ -524,6 +594,55 @@ impl RelationalRuntime {
         seen
     }
 
+    fn branch_unique_commits(
+        &self,
+        head: crate::data::history::CommitId,
+        merge_base: Option<crate::data::history::CommitId>,
+    ) -> Vec<crate::data::history::CommitId> {
+        let mut commits = self.ancestor_set(head).into_iter().collect::<Vec<_>>();
+        if let Some(merge_base) = merge_base {
+            let base_ancestors = self.ancestor_set(merge_base);
+            commits.retain(|commit_id| !base_ancestors.contains(commit_id));
+        }
+        commits.sort_by_key(|commit_id| commit_id.0);
+        commits
+    }
+
+    fn merge_conflicts_between(
+        &self,
+        left_commits: &[crate::data::history::CommitId],
+        right_commits: &[crate::data::history::CommitId],
+    ) -> Vec<crate::data::history::MergeConflictRecord> {
+        let left_records = self.commit_record_set(left_commits);
+        let right_records = self.commit_record_set(right_commits);
+        let mut conflicts = left_records
+            .intersection(&right_records)
+            .cloned()
+            .collect::<Vec<_>>();
+        conflicts.sort();
+        conflicts
+    }
+
+    fn commit_record_set(
+        &self,
+        commits: &[crate::data::history::CommitId],
+    ) -> std::collections::BTreeSet<crate::data::history::MergeConflictRecord> {
+        commits
+            .iter()
+            .filter_map(|commit_id| self.commit_envelopes.get(commit_id))
+            .flat_map(|envelope| envelope.patch.records.iter())
+            .filter_map(|record| match (record.entity_id, record.relation_id) {
+                (Some(entity_id), None) => {
+                    Some(crate::data::history::MergeConflictRecord::Entity(entity_id))
+                }
+                (None, Some(relation_id)) => Some(
+                    crate::data::history::MergeConflictRecord::Relation(relation_id),
+                ),
+                _ => None,
+            })
+            .collect()
+    }
+
     #[cfg(test)]
     pub(crate) fn remove_commit_envelope_for_test(
         &mut self,
@@ -532,11 +651,26 @@ impl RelationalRuntime {
         self.commit_envelopes.remove(&commit_id).is_some()
     }
 
+    #[cfg(test)]
+    pub(crate) fn entity_history_len_for_test(
+        &self,
+        entity_id: crate::data::identity::EntityId,
+    ) -> usize {
+        self.entity_arena.payload_history[entity_id.local_slot.0 as usize].len()
+    }
+
     fn current_state(&self) -> WorkingState {
+        {
+            let mut counters = self.complexity_counters.borrow_mut();
+            counters.full_state_clones += 1;
+            counters.entity_slots_cloned += self.entity_arena.generations.len();
+            counters.relation_slots_cloned += self.relation_arena.generations.len();
+        }
         WorkingState {
             entity_arena: self.entity_arena.clone(),
             relation_arena: self.relation_arena.clone(),
             adjacency: self.adjacency.clone(),
+            reverse_adjacency: self.reverse_adjacency.clone(),
         }
     }
 
@@ -579,10 +713,13 @@ impl RelationalRuntime {
     }
 
     fn pin_entity(&mut self, entity_id: crate::data::identity::EntityId) {
-        let slot = entity_id.slot.0 as usize;
+        let slot = entity_id.local_slot.0 as usize;
         if slot >= self.entity_arena.snapshot_pins.len() {
             return;
         }
+        self.complexity_counters
+            .borrow_mut()
+            .snapshot_pin_adjustments += 1;
         self.entity_arena.snapshot_pins[slot] += 1;
         if self.entity_arena.retired_at[slot].is_some() {
             self.entity_arena.lifecycle[slot] = RecordLifecycleState::PinnedBySnapshot;
@@ -590,21 +727,27 @@ impl RelationalRuntime {
     }
 
     fn unpin_entity(&mut self, entity_id: crate::data::identity::EntityId) {
-        let slot = entity_id.slot.0 as usize;
+        let slot = entity_id.local_slot.0 as usize;
         if slot >= self.entity_arena.snapshot_pins.len()
             || self.entity_arena.snapshot_pins[slot] == 0
         {
             return;
         }
+        self.complexity_counters
+            .borrow_mut()
+            .snapshot_pin_adjustments += 1;
         self.entity_arena.snapshot_pins[slot] -= 1;
         self.refresh_entity_retention_state(slot, self.entity_arena.retired_at[slot]);
     }
 
     fn pin_relation(&mut self, relation_id: crate::data::identity::RelationId) {
-        let slot = relation_id.slot.0 as usize;
+        let slot = relation_id.local_slot.0 as usize;
         if slot >= self.relation_arena.snapshot_pins.len() {
             return;
         }
+        self.complexity_counters
+            .borrow_mut()
+            .snapshot_pin_adjustments += 1;
         self.relation_arena.snapshot_pins[slot] += 1;
         if self.relation_arena.retired_at[slot].is_some() {
             self.relation_arena.lifecycle[slot] = RecordLifecycleState::PinnedBySnapshot;
@@ -612,12 +755,15 @@ impl RelationalRuntime {
     }
 
     fn unpin_relation(&mut self, relation_id: crate::data::identity::RelationId) {
-        let slot = relation_id.slot.0 as usize;
+        let slot = relation_id.local_slot.0 as usize;
         if slot >= self.relation_arena.snapshot_pins.len()
             || self.relation_arena.snapshot_pins[slot] == 0
         {
             return;
         }
+        self.complexity_counters
+            .borrow_mut()
+            .snapshot_pin_adjustments += 1;
         self.relation_arena.snapshot_pins[slot] -= 1;
         self.refresh_relation_retention_state(slot, self.relation_arena.retired_at[slot]);
     }
@@ -656,30 +802,123 @@ impl RelationalRuntime {
         };
     }
 
-    fn restore_snapshot_pin_counters(&mut self) {
-        for pin in &mut self.entity_arena.snapshot_pins {
-            *pin = 0;
-        }
-        for pin in &mut self.relation_arena.snapshot_pins {
-            *pin = 0;
-        }
-
-        let entity_pins = self
+    pub(super) fn trim_live_history_for_records(
+        &mut self,
+        changed_records: &[crate::data::transaction::RecordRef],
+        published_version: crate::data::identity::VersionId,
+    ) {
+        let oldest_pinned_version = self
             .snapshots
             .values()
-            .flat_map(|state| state.pinned_entities.iter().copied())
-            .collect::<Vec<_>>();
-        let relation_pins = self
-            .snapshots
-            .values()
-            .flat_map(|state| state.pinned_relations.iter().copied())
-            .collect::<Vec<_>>();
+            .map(|state| state.handle.version_id)
+            .min()
+            .unwrap_or(published_version);
 
-        for entity_id in entity_pins {
-            self.pin_entity(entity_id);
+        let mut entity_slots = BTreeSet::new();
+        let mut relation_slots = BTreeSet::new();
+        for record in changed_records {
+            match record {
+                crate::data::transaction::RecordRef::Entity(entity_id) => {
+                    entity_slots.insert(entity_id.local_slot.0 as usize);
+                }
+                crate::data::transaction::RecordRef::Relation(relation_id) => {
+                    relation_slots.insert(relation_id.local_slot.0 as usize);
+                }
+            }
         }
-        for relation_id in relation_pins {
-            self.pin_relation(relation_id);
+
+        for slot in entity_slots {
+            if slot >= self.entity_arena.payload_history.len()
+                || self.entity_arena.lifecycle[slot] != RecordLifecycleState::Live
+            {
+                continue;
+            }
+            let history = &mut self.entity_arena.payload_history[slot];
+            let original_len = history.len();
+            history.retain(|entry| {
+                entry
+                    .retired_at
+                    .is_none_or(|retired| retired > oldest_pinned_version)
+            });
+            self.complexity_counters
+                .borrow_mut()
+                .live_entity_history_entries_trimmed += original_len.saturating_sub(history.len());
+        }
+
+        for slot in relation_slots {
+            if !self.relation_arena.payload_history.contains_key(&slot)
+                || self.relation_arena.lifecycle[slot] != RecordLifecycleState::Live
+            {
+                continue;
+            }
+            let history = self
+                .relation_arena
+                .payload_history
+                .get_mut(&slot)
+                .expect("relation history present after key check");
+            let original_len = history.len();
+            history.retain(|entry| {
+                entry
+                    .retired_at
+                    .is_none_or(|retired| retired > oldest_pinned_version)
+            });
+            self.complexity_counters
+                .borrow_mut()
+                .live_relation_history_entries_trimmed +=
+                original_len.saturating_sub(history.len());
+        }
+    }
+
+    pub fn outgoing_relations_for_entity(
+        &self,
+        entity_id: crate::data::identity::EntityId,
+        version_id: crate::data::identity::VersionId,
+    ) -> Vec<crate::data::identity::RelationId> {
+        let slot = entity_id.local_slot.0 as usize;
+        self.adjacency
+            .get(slot)
+            .into_iter()
+            .flat_map(|relations| relations.iter().copied())
+            .filter(|relation_id| self.relation_visible_at_version(*relation_id, version_id))
+            .collect()
+    }
+
+    pub fn incoming_relations_for_entity(
+        &self,
+        entity_id: crate::data::identity::EntityId,
+        version_id: crate::data::identity::VersionId,
+    ) -> Vec<crate::data::identity::RelationId> {
+        let slot = entity_id.local_slot.0 as usize;
+        self.reverse_adjacency
+            .get(slot)
+            .into_iter()
+            .flat_map(|relations| relations.iter().copied())
+            .filter(|relation_id| self.relation_visible_at_version(*relation_id, version_id))
+            .collect()
+    }
+
+    fn compact_durable_log_if_needed(&mut self) {
+        use crate::data::config::DurableLogRetentionMode;
+
+        let policy = &self.config.durable_log_policy;
+        if self.durable_log.len() <= policy.max_in_memory_envelopes {
+            return;
+        }
+
+        match policy.retention_mode {
+            DurableLogRetentionMode::RetainAllInMemory => {}
+            DurableLogRetentionMode::CompactAfterCheckpoint => {
+                if let Some(checkpoint) = self.durable_checkpoints.last() {
+                    if let Some(commit) = checkpoint.up_to_commit.as_ref() {
+                        self.durable_log
+                            .retain(|entry| entry.envelope.commit.commit_id > commit.commit_id);
+                    }
+                }
+                if self.durable_log.len() > policy.max_in_memory_envelopes {
+                    let overflow = self.durable_log.len() - policy.max_in_memory_envelopes;
+                    self.durable_log.drain(0..overflow);
+                }
+            }
         }
     }
 }

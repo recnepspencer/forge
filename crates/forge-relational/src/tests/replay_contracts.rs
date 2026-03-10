@@ -63,7 +63,10 @@ fn replay_contract_success_preserves_merge_parent_order() {
     let mut runtime = super::runtime_with_test_schema();
     let main = super::create_entity_outcome(&mut runtime, "main");
     runtime
-        .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
         .unwrap();
     let feature = super::create_entity_outcome_on_branch(
         &mut runtime,

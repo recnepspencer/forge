@@ -73,20 +73,14 @@ impl RelationalRuntime {
             .iter()
             .map(|record| record.relation_id)
             .collect::<Vec<_>>();
-        for entity_id in &pinned_entities {
-            self.pin_entity(*entity_id);
-        }
-        for relation_id in &pinned_relations {
-            self.pin_relation(*relation_id);
-        }
         let snapshot_state = SnapshotState {
             handle: snapshot.clone(),
             pinned_entities,
             pinned_relations,
         };
-        self.snapshots.insert(snapshot_id, snapshot_state);
         PublicationArtifacts {
             snapshot,
+            snapshot_state,
             diagnostics_summary,
             bundle,
         }

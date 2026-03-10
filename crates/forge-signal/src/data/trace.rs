@@ -5,7 +5,9 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::data::core_profile::StableHashValue;
-use crate::data::output::{ChangedRegion, MemoizedResultOrigin, OutputChange, OutputIdentity};
+use crate::data::output::{
+    ArtifactContinuityToken, ChangedRegion, MemoizedResultOrigin, OutputChange, OutputIdentity,
+};
 use crate::diagnostics::lineage::LineageArtifactId;
 
 /// Lightweight evaluation trace summary for one node recomputation.
@@ -16,6 +18,9 @@ pub struct TraceSummary {
     /// Optional stable identity for the evaluated output artifact.
     #[serde(default)]
     pub output_identity: Option<OutputIdentity>,
+    /// Optional host-defined continuity token for lineage preservation.
+    #[serde(default)]
+    pub continuity_token: Option<ArtifactContinuityToken>,
     /// Runtime-normalized output change classification.
     #[serde(default)]
     pub output_change: OutputChange,

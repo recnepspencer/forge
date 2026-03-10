@@ -78,6 +78,11 @@ If output identity is stable:
 - lineage should usually emit `Refreshed`
 - the artifact id can stay the same
 
+If output identity is absent or intentionally too coarse, host code can supply a
+generic continuity seam through `NodeEvaluationResult::with_continuity_token(...)`.
+Matching continuity tokens let the runtime preserve lineage without forcing a
+domain to overload `OutputIdentity`.
+
 If output identity changes materially:
 
 - lineage should emit `Replaced`

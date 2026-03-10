@@ -852,3 +852,36 @@ fn repeated_partition_heavy_invalidation_retains_bounded_diagnostics() {
             <= DiagnosticsPolicy::from_profile(DiagnosticsProfile::Development).history_limit
     );
 }
+
+#[test]
+fn runtime_policy_history_budget_overrides_are_enforced() {
+    let policy = SignalRuntimePolicy::development()
+        .with_history_limit(2)
+        .with_detail_limit(1)
+        .with_history_details(true);
+
+    let mut graph = SignalGraph::new();
+    graph.set_runtime_policy(policy);
+    let source = graph.node().output_identity().build();
+
+    for version in 0..5 {
+        mark_dirty(&mut graph, source, ASPECT_A).unwrap_or(());
+        evaluate(&mut graph, source, &mut |_id, _graph| {
+            Ok(
+                NodeEvaluationResult::from_version(version_ab(version + 1, 0))
+                    .with_output_identity(format!("budget-{version}")),
+            )
+        })
+        .unwrap();
+    }
+
+    let diagnostics = graph.diagnostics();
+    assert!(diagnostics.recent_history().len() <= 2);
+    assert!(
+        diagnostics
+            .recent_history()
+            .iter()
+            .all(|summary| summary.nodes.len() <= 1),
+        "detail limit override should trim retained node detail"
+    );
+}

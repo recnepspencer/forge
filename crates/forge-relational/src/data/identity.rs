@@ -1,37 +1,78 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct Slot(pub u64);
+pub struct PartitionId(pub u32);
+
+impl PartitionId {
+    pub const fn main() -> Self {
+        Self(0)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct LocalSlot(pub u64);
+
+pub type Slot = LocalSlot;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct Generation(pub u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct EntityStorageId {
+    pub partition_id: PartitionId,
+    pub local_slot: LocalSlot,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub struct RelationStorageId {
+    pub partition_id: PartitionId,
+    pub local_slot: LocalSlot,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct EntityId {
-    pub slot: Slot,
+    pub partition_id: PartitionId,
+    pub local_slot: LocalSlot,
     pub generation: Generation,
 }
 
 impl EntityId {
-    pub const fn new(slot: u64, generation: u32) -> Self {
+    pub const fn new(partition_id: PartitionId, local_slot: u64, generation: u32) -> Self {
         Self {
-            slot: Slot(slot),
+            partition_id,
+            local_slot: LocalSlot(local_slot),
             generation: Generation(generation),
+        }
+    }
+
+    pub const fn storage_id(&self) -> EntityStorageId {
+        EntityStorageId {
+            partition_id: self.partition_id,
+            local_slot: self.local_slot,
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct RelationId {
-    pub slot: Slot,
+    pub partition_id: PartitionId,
+    pub local_slot: LocalSlot,
     pub generation: Generation,
 }
 
 impl RelationId {
-    pub const fn new(slot: u64, generation: u32) -> Self {
+    pub const fn new(partition_id: PartitionId, local_slot: u64, generation: u32) -> Self {
         Self {
-            slot: Slot(slot),
+            partition_id,
+            local_slot: LocalSlot(local_slot),
             generation: Generation(generation),
+        }
+    }
+
+    pub const fn storage_id(&self) -> RelationStorageId {
+        RelationStorageId {
+            partition_id: self.partition_id,
+            local_slot: self.local_slot,
         }
     }
 }

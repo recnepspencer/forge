@@ -232,6 +232,21 @@ impl SignalRuntimePolicy {
         self
     }
 
+    pub fn with_history_limit(mut self, history_limit: usize) -> Self {
+        self.history_limit = history_limit.max(1);
+        self
+    }
+
+    pub fn with_detail_limit(mut self, detail_limit: usize) -> Self {
+        self.detail_limit = detail_limit.max(1);
+        self
+    }
+
+    pub fn with_history_details(mut self, retain_history_details: bool) -> Self {
+        self.retain_history_details = retain_history_details;
+        self
+    }
+
     pub fn retains_explanation_facts(self) -> bool {
         matches!(self.explanation_retention, ArtifactRetentionPolicy::Retain)
     }

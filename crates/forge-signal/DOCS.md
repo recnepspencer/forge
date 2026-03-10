@@ -31,6 +31,8 @@ If you are doing specialized or easy-to-forget work:
   - [docs/ADVANCED_PATTERNS.md](./docs/ADVANCED_PATTERNS.md)
 - Harness scenarios, mutation batches, and parity/certification workflows:
   - [docs/HARNESS_AND_CERTIFICATION.md](./docs/HARNESS_AND_CERTIFICATION.md)
+- Durable contract coverage matrix for CI, adversarial tests, and vision promises:
+  - [_docs/engineering/forge_signal_adversarial_testing_matrix.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_signal_adversarial_testing_matrix.md)
 - Low-level tuning, storage profiles, and “I know what I’m doing, mostly” knobs:
   - [LOW_LEVEL_NERDS.md](./LOW_LEVEL_NERDS.md)
 

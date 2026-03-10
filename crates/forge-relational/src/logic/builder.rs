@@ -1,10 +1,13 @@
 use crate::data::config::{
-    MvccConfig, PublicationConfig, RelationalConfigOverride, RelationalRuntimeProfile,
-    StorageLayoutConfig,
+    AdjacencyPolicy, CascadeDeletePolicy, CompiledLanePolicy, CrossContextPolicy,
+    DurableLogPolicy, MvccConfig, PublicationConfig, RelationalConfigOverride,
+    RelationalRuntimeProfile, StorageLayoutConfig,
 };
 use crate::data::diagnostics::RelationalDiagnosticsProfile;
 use crate::data::durability::DurabilityMode;
+use crate::data::payload::PayloadPolicy;
 use crate::data::schema::RelationalSchemaRegistry;
+use crate::data::symbols::SymbolPolicy;
 use crate::logic::commit::CommitAuthorityContract;
 use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
 use crate::logic::runtime::{InvariantCatalog, RelationalRuntime, RelationalRuntimeConfig};
@@ -110,6 +113,41 @@ impl RelationalRuntimeBuilder {
 
     pub fn publication(mut self, publication: PublicationConfig) -> Self {
         self.config_override.publication = Some(publication);
+        self
+    }
+
+    pub fn payload_policy(mut self, payload_policy: PayloadPolicy) -> Self {
+        self.config_override.payload_policy = Some(payload_policy);
+        self
+    }
+
+    pub fn symbol_policy(mut self, symbol_policy: SymbolPolicy) -> Self {
+        self.config_override.symbol_policy = Some(symbol_policy);
+        self
+    }
+
+    pub fn durable_log_policy(mut self, durable_log_policy: DurableLogPolicy) -> Self {
+        self.config_override.durable_log_policy = Some(durable_log_policy);
+        self
+    }
+
+    pub fn adjacency_policy(mut self, adjacency_policy: AdjacencyPolicy) -> Self {
+        self.config_override.adjacency_policy = Some(adjacency_policy);
+        self
+    }
+
+    pub fn cross_context_policy(mut self, cross_context_policy: CrossContextPolicy) -> Self {
+        self.config_override.cross_context_policy = Some(cross_context_policy);
+        self
+    }
+
+    pub fn cascade_delete_policy(mut self, cascade_delete_policy: CascadeDeletePolicy) -> Self {
+        self.config_override.cascade_delete_policy = Some(cascade_delete_policy);
+        self
+    }
+
+    pub fn compiled_lane_policy(mut self, compiled_lane_policy: CompiledLanePolicy) -> Self {
+        self.config_override.compiled_lane_policy = Some(compiled_lane_policy);
         self
     }
 

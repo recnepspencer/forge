@@ -19,13 +19,14 @@ pub use access::{
 };
 pub use compare::{
     explanations_semantically_equivalent, graphs_semantically_equivalent,
-    plans_semantically_equivalent, repeat_run_summaries_equal, reports_semantically_equivalent,
-    serial_parallel_reports_equivalent,
+    lineage_records_equivalent, plans_semantically_equivalent, repeat_run_summaries_equal,
+    replay_slices_equivalent, reports_semantically_equivalent, serial_parallel_reports_equivalent,
 };
 pub use diff::{
     compare_execution_history, compare_execution_reports, compare_explanations, compare_failures,
-    compare_flows, compare_graphs, compare_plans, DiagnosticMismatch, DiagnosticMismatchCategory,
-    ExecutionReportDiff, ExplanationDiff, FailureDiff, FlowDiff, GraphDiff, HistoryDiff, PlanDiff,
+    compare_flows, compare_graphs, compare_lineage_records, compare_plans, compare_replay_slices,
+    DiagnosticMismatch, DiagnosticMismatchCategory, ExecutionReportDiff, ExplanationDiff,
+    FailureDiff, FlowDiff, GraphDiff, HistoryDiff, LineageDiff, PlanDiff, ReplayDiff,
 };
 pub use display::{
     render_execution_history_summary, render_execution_report_summary, render_explanation_summary,

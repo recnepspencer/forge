@@ -1,3 +1,4 @@
+mod complexity_contracts;
 mod durability_contracts;
 mod index_contracts;
 mod lineage_contracts;
@@ -12,12 +13,18 @@ use serde_json::json;
 use crate::facade::{
     BranchCreateError, BranchId, CommitOutcome, DiagnosticCode, DiagnosticsArtifactKind,
     DiagnosticsScope, EntityKindRegistration, EntityReadRecord, InvariantCatalog, InvariantClass,
-    InvariantExecutionPoint, InvariantRule, KindId, PublicationStage, PublicationStatus,
-    QueryWorkPacket, ReadTarget, RelationId, RelationKindRegistration, RelationalHarnessAdapter,
-    RelationalMutation, RelationalRuntime, RelationalRuntimeApi, RelationalRuntimeProfile,
-    RelationalSchemaRegistry, SchemaId, SchemaVersionId, StorageLayoutConfig,
-    TransactionCommitError, TransactionIntent, TransactionOptions, WorkerIntentBatch,
+    InvariantExecutionPoint, InvariantRule, KindId, PartitionId, PublicationStage,
+    PublicationStatus, QueryWorkPacket, ReadTarget, RelationId, RelationKindRegistration,
+    RelationalHarnessAdapter, RelationalMutation, RelationalRuntime, RelationalRuntimeApi,
+    RelationalRuntimeProfile, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
+    StorageLayoutConfig, TransactionCommitError, TransactionIntent, TransactionOptions,
+    WorkerIntentBatch,
 };
+use crate::data::config::{CascadeDeletePolicy, CrossContextPolicy};
+use crate::data::config::{DurableLogPolicy, DurableLogRetentionMode};
+use crate::data::payload::RecordPayload;
+use crate::data::schema::RelationPayloadClass;
+use crate::data::symbols::{InternedString, SymbolPolicy};
 
 #[test]
 fn runtime_defaults_to_serialized_authority() {
@@ -52,7 +59,7 @@ fn entity_slot_reuse_increments_generation() {
 
     assert!(retention.entity_reclaimed <= 1);
     assert_eq!(runtime.storage_stats().reusable_entity_slots, 0);
-    assert_eq!(entity_a.slot, entity_b.slot);
+    assert_eq!(entity_a.local_slot, entity_b.local_slot);
     assert!(entity_b.generation.0 > entity_a.generation.0);
 }
 
@@ -65,7 +72,7 @@ fn stale_entity_ids_are_rejected() {
     txn.push_batch(
         WorkerIntentBatch::new("update").push(TransactionIntent::UpdateEntity {
             entity_id: entity,
-            payload: json!({"name":"stale"}),
+            payload: RecordPayload::StructuredJson(json!({"name":"stale"})),
         }),
     );
     let error = txn.commit().unwrap_err();
@@ -83,9 +90,10 @@ fn unknown_entity_kind_fails_explicitly() {
     txn.push_batch(
         WorkerIntentBatch::new("unknown-kind").push(TransactionIntent::CreateEntity(
             crate::data::transaction::EntitySpec {
+                partition_id: PartitionId::main(),
                 kind_id: KindId(999),
-                client_key: "bad".to_string(),
-                payload: json!({"name":"bad"}),
+                client_key: InternedString::Raw("bad".to_string()),
+                payload: RecordPayload::StructuredJson(json!({"name":"bad"})),
             },
         )),
     );
@@ -108,11 +116,12 @@ fn duplicate_relation_identity_is_rejected() {
     txn.push_batch(
         WorkerIntentBatch::new("duplicate").push(TransactionIntent::CreateRelation(
             crate::data::transaction::RelationSpec {
+                partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: "r2".to_string(),
+                client_key: InternedString::Raw("r2".to_string()),
                 source,
                 target,
-                payload: json!({"label":"rel"}),
+                payload: Some(RecordPayload::StructuredJson(json!({"label":"rel"}))),
             },
         )),
     );
@@ -454,6 +463,135 @@ fn cross_order_equivalent_mutations_converge() {
 }
 
 #[test]
+fn opaque_payloads_round_trip_through_commit_and_read() {
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(test_schema_registry())
+        .payload_policy(crate::data::payload::PayloadPolicy {
+            default_class: crate::data::payload::PayloadClass::OpaqueBytes,
+            allow_opaque_bytes: true,
+        })
+        .build();
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(WorkerIntentBatch::new("opaque").push(TransactionIntent::CreateEntity(
+        crate::data::transaction::EntitySpec {
+            partition_id: PartitionId::main(),
+            kind_id: KindId(1),
+            client_key: InternedString::Raw("opaque".to_string()),
+            payload: RecordPayload::OpaqueBytes(vec![1, 2, 3, 4]),
+        },
+    )));
+    let outcome = txn.commit().unwrap();
+    let read = runtime.read_snapshot(&outcome.snapshot).unwrap();
+
+    assert_eq!(
+        read.entities().first().unwrap().payload,
+        RecordPayload::OpaqueBytes(vec![1, 2, 3, 4])
+    );
+}
+
+#[test]
+fn symbol_policy_interns_client_keys_before_merge() {
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(test_schema_registry())
+        .symbol_policy(SymbolPolicy::RequireInterned)
+        .build();
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(batch_create("intern-me"));
+    let plan = txn.merged_plan().unwrap().clone();
+
+    match &plan.merged_intents[0] {
+        TransactionIntent::CreateEntity(spec) => {
+            assert!(matches!(spec.client_key, InternedString::Symbol(_)));
+        }
+        other => panic!("expected create entity intent, got {other:?}"),
+    }
+    assert!(!runtime.config().symbol_table.entries.is_empty());
+}
+
+#[test]
+fn bulk_create_entities_match_equivalent_singular_creates() {
+    let mut bulk_runtime = runtime_with_test_schema();
+    let mut bulk_txn = bulk_runtime.begin_transaction(TransactionOptions::default());
+    bulk_txn.push_batch(WorkerIntentBatch::new("bulk").push(
+        TransactionIntent::BulkCreateEntities {
+            partition_id: PartitionId::main(),
+            kind_id: KindId(1),
+            client_keys: vec![
+                InternedString::Raw("a".to_string()),
+                InternedString::Raw("b".to_string()),
+            ],
+            payloads: vec![
+                RecordPayload::StructuredJson(json!({"name":"a"})),
+                RecordPayload::StructuredJson(json!({"name":"b"})),
+            ],
+        },
+    ));
+    let bulk_outcome = bulk_txn.commit().unwrap();
+
+    let singular_runtime = apply_batches(vec![batch_create("a"), batch_create("b")]);
+    let bulk_read = bulk_runtime.read_snapshot(&bulk_outcome.snapshot).unwrap();
+    let singular_read = singular_runtime
+        .read_snapshot(&singular_runtime.latest_publication_bundle().unwrap().snapshot)
+        .unwrap();
+
+    assert_eq!(bulk_outcome.changed_records.len(), 2);
+    assert_eq!(bulk_read.entities().len(), singular_read.entities().len());
+    assert_eq!(
+        bulk_read
+            .entities()
+            .iter()
+            .map(_read_entity_name)
+            .collect::<Vec<_>>(),
+        singular_read
+            .entities()
+            .iter()
+            .map(_read_entity_name)
+            .collect::<Vec<_>>()
+    );
+}
+
+#[test]
+fn cross_context_relations_preserve_partitioned_endpoints() {
+    let mut runtime = runtime_with_test_schema();
+    let source = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
+    let target = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
+    let relation = create_relation_in_partition(
+        &mut runtime,
+        source,
+        target,
+        "bridge",
+        PartitionId(29),
+    );
+    let snapshot = runtime.snapshot();
+    let read = runtime.read_snapshot(&snapshot).unwrap();
+    let relation_record = read.get_relation(relation).unwrap();
+
+    assert_eq!(relation.partition_id, PartitionId(29));
+    assert_eq!(relation_record.source.partition_id, PartitionId(7));
+    assert_eq!(relation_record.target.partition_id, PartitionId(11));
+    assert_eq!(relation_record.relation_id.partition_id, PartitionId(29));
+}
+
+#[test]
+fn durable_log_compaction_respects_checkpoint_policy() {
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(test_schema_registry())
+        .durable_log_policy(DurableLogPolicy {
+            retention_mode: DurableLogRetentionMode::CompactAfterCheckpoint,
+            max_in_memory_envelopes: 1,
+            compact_after_checkpoint: true,
+        })
+        .build();
+
+    create_entity(&mut runtime, "first");
+    runtime.checkpoint().unwrap();
+    create_entity(&mut runtime, "second");
+    create_entity(&mut runtime, "third");
+
+    assert!(runtime.durable_log().len() <= 1);
+}
+
+#[test]
 fn branch_creation_and_branch_targeted_commits_build_a_version_graph() {
     let mut runtime = runtime_with_test_schema();
     let main_outcome = create_entity_outcome(&mut runtime, "main-a");
@@ -496,7 +634,10 @@ fn merge_commit_uses_deterministic_parent_order_and_advances_target_branch() {
     let mut runtime = runtime_with_test_schema();
     let main_outcome = create_entity_outcome(&mut runtime, "main-a");
     runtime
-        .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
         .unwrap();
     let feature_outcome =
         create_entity_outcome_on_branch(&mut runtime, "feature-a", BranchId("feature".to_string()));
@@ -508,7 +649,10 @@ fn merge_commit_uses_deterministic_parent_order_and_advances_target_branch() {
 
     assert_eq!(
         merge_outcome.commit.parents,
-        vec![main_outcome.commit.commit_id, feature_outcome.commit.commit_id]
+        vec![
+            main_outcome.commit.commit_id,
+            feature_outcome.commit.commit_id
+        ]
     );
     assert_eq!(
         runtime.branch_head(&BranchId("main".to_string())),
@@ -521,8 +665,14 @@ fn merge_commit_uses_deterministic_parent_order_and_advances_target_branch() {
     let envelope = runtime
         .canonical_commit_envelope(merge_outcome.commit.commit_id)
         .unwrap();
-    assert_eq!(envelope.merge_parent_branches, vec![BranchId("feature".to_string())]);
-    assert_eq!(envelope.merge_base_commits, vec![main_outcome.commit.commit_id]);
+    assert_eq!(
+        envelope.merge_parent_branches,
+        vec![BranchId("feature".to_string())]
+    );
+    assert_eq!(
+        envelope.merge_base_commits,
+        vec![main_outcome.commit.commit_id]
+    );
     assert!(runtime
         .diagnostics()
         .by_scope(DiagnosticsScope::PatchPublication)
@@ -542,8 +692,7 @@ fn merge_commit_requires_existing_parent_branch_heads() {
     let mut runtime = runtime_with_test_schema();
     create_entity_outcome(&mut runtime, "main-a");
     let txn = runtime.begin_transaction(
-        TransactionOptions::default()
-            .merge_from_branches(vec![BranchId("missing".to_string())]),
+        TransactionOptions::default().merge_from_branches(vec![BranchId("missing".to_string())]),
     );
     let error = txn.commit().unwrap_err();
 
@@ -559,7 +708,10 @@ fn branch_history_helpers_expose_ancestor_and_merge_base_reasoning() {
     let mut runtime = runtime_with_test_schema();
     let main = create_entity_outcome(&mut runtime, "main");
     runtime
-        .create_branch(BranchId("feature".to_string()), &BranchId("main".to_string()))
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
         .unwrap();
     let feature =
         create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
@@ -575,6 +727,75 @@ fn branch_history_helpers_expose_ancestor_and_merge_base_reasoning() {
         &BranchId("feature".to_string()),
         &BranchId("main".to_string())
     ));
+}
+
+#[test]
+fn merge_inspection_reports_overlapping_authority() {
+    let mut runtime = runtime_with_test_schema();
+    let base = create_entity_outcome(&mut runtime, "shared");
+    let shared = changed_entities(&base)[0];
+    runtime
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .unwrap();
+    let _main_update = update_entity(&mut runtime, shared, "main-updated");
+    let _feature_update = update_entity_on_branch(
+        &mut runtime,
+        shared,
+        "feature-updated",
+        BranchId("feature".to_string()),
+    );
+    let inspection = runtime.inspect_merge(
+        &BranchId("feature".to_string()),
+        &BranchId("main".to_string()),
+    );
+
+    assert_eq!(inspection.merge_base, Some(base.commit.commit_id));
+    assert!(!inspection.can_merge);
+    assert_eq!(
+        inspection.conflicting_records,
+        vec![crate::facade::MergeConflictRecord::Entity(shared)]
+    );
+}
+
+#[test]
+fn merge_commit_rejects_overlapping_authority_since_merge_base() {
+    let mut runtime = runtime_with_test_schema();
+    let base = create_entity_outcome(&mut runtime, "shared");
+    let shared = changed_entities(&base)[0];
+    runtime
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .unwrap();
+    let _main_update = update_entity(&mut runtime, shared, "main-updated");
+    let _feature_update = update_entity_on_branch(
+        &mut runtime,
+        shared,
+        "feature-updated",
+        BranchId("feature".to_string()),
+    );
+    let txn = runtime.begin_transaction(TransactionOptions {
+        target_branch: Some(BranchId("main".to_string())),
+        merge_parent_branches: vec![BranchId("feature".to_string())],
+        ..TransactionOptions::default()
+    });
+    let error = txn.commit().unwrap_err();
+
+    assert!(matches!(
+        error,
+        TransactionCommitError::Conflict(ref conflict)
+            if conflict.code == DiagnosticCode::MergeConflictOverlap
+    ));
+    assert!(runtime
+        .diagnostics()
+        .by_scope(DiagnosticsScope::History)
+        .iter()
+        .flat_map(|artifact| artifact.entries.iter())
+        .any(|entry| entry.code == DiagnosticCode::MergeConflictOverlap));
 }
 
 #[test]
@@ -653,6 +874,9 @@ pub(super) fn test_schema_registry() -> RelationalSchemaRegistry {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
+                payload_class: RelationPayloadClass::PayloadBearingRelation,
+                cross_context_policy: CrossContextPolicy::AllowExplicit,
+                cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
             })
         })
         .unwrap()
@@ -698,9 +922,10 @@ pub(super) fn runtime_with_test_schema_and_invariants(
 pub(super) fn batch_create(name: &str) -> WorkerIntentBatch {
     WorkerIntentBatch::new(format!("batch-{name}")).push(TransactionIntent::CreateEntity(
         crate::data::transaction::EntitySpec {
+            partition_id: PartitionId::main(),
             kind_id: KindId(1),
-            client_key: name.to_string(),
-            payload: json!({ "name": name }),
+            client_key: InternedString::Raw(name.to_string()),
+            payload: RecordPayload::StructuredJson(json!({ "name": name })),
         },
     ))
 }
@@ -710,6 +935,23 @@ pub(super) fn create_entity(
     name: &str,
 ) -> crate::facade::EntityId {
     changed_entities(&create_entity_outcome(runtime, name))[0]
+}
+
+pub(super) fn create_entity_in_partition(
+    runtime: &mut RelationalRuntime,
+    name: &str,
+    partition_id: PartitionId,
+) -> crate::facade::EntityId {
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(WorkerIntentBatch::new(format!("batch-{name}")).push(
+        TransactionIntent::CreateEntity(crate::data::transaction::EntitySpec {
+            partition_id,
+            kind_id: KindId(1),
+            client_key: InternedString::Raw(name.to_string()),
+            payload: RecordPayload::StructuredJson(json!({ "name": name })),
+        }),
+    ));
+    changed_entities(&txn.commit().unwrap())[0]
 }
 
 pub(super) fn create_entity_outcome(runtime: &mut RelationalRuntime, name: &str) -> CommitOutcome {
@@ -745,11 +987,23 @@ pub(super) fn update_entity(
     entity_id: crate::facade::EntityId,
     name: &str,
 ) -> CommitOutcome {
-    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    update_entity_on_branch(runtime, entity_id, name, BranchId("main".to_string()))
+}
+
+pub(super) fn update_entity_on_branch(
+    runtime: &mut RelationalRuntime,
+    entity_id: crate::facade::EntityId,
+    name: &str,
+    branch_id: BranchId,
+) -> CommitOutcome {
+    let mut txn = runtime.begin_transaction(TransactionOptions {
+        target_branch: Some(branch_id),
+        ..TransactionOptions::default()
+    });
     txn.push_batch(
         WorkerIntentBatch::new("update").push(TransactionIntent::UpdateEntity {
             entity_id,
-            payload: json!({ "name": name }),
+            payload: RecordPayload::StructuredJson(json!({ "name": name })),
         }),
     );
     txn.commit().unwrap()
@@ -761,15 +1015,26 @@ pub(super) fn create_relation(
     target: crate::facade::EntityId,
     client_key: &str,
 ) -> RelationId {
+    create_relation_in_partition(runtime, source, target, client_key, PartitionId::main())
+}
+
+pub(super) fn create_relation_in_partition(
+    runtime: &mut RelationalRuntime,
+    source: crate::facade::EntityId,
+    target: crate::facade::EntityId,
+    client_key: &str,
+    partition_id: PartitionId,
+) -> RelationId {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
         WorkerIntentBatch::new("relation").push(TransactionIntent::CreateRelation(
             crate::data::transaction::RelationSpec {
+                partition_id,
                 kind_id: KindId(2),
-                client_key: client_key.to_string(),
+                client_key: InternedString::Raw(client_key.to_string()),
                 source,
                 target,
-                payload: json!({"label":"rel"}),
+                payload: Some(RecordPayload::StructuredJson(json!({"label":"rel"}))),
             },
         )),
     );
@@ -824,5 +1089,9 @@ pub(super) fn merge_commit_from_branches(
 
 #[allow(dead_code)]
 fn _read_entity_name(record: &EntityReadRecord) -> Option<&str> {
-    record.payload.get("name").and_then(|value| value.as_str())
+    record
+        .payload
+        .as_json()
+        .and_then(|value| value.get("name"))
+        .and_then(|value| value.as_str())
 }

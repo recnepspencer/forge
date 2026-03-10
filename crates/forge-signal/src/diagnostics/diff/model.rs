@@ -68,6 +68,8 @@ define_diff!(ExplanationDiff);
 define_diff!(HistoryDiff);
 define_diff!(FlowDiff);
 define_diff!(FailureDiff);
+define_diff!(ReplayDiff);
+define_diff!(LineageDiff);
 
 pub(crate) fn push_mismatch(
     mismatches: &mut Vec<DiagnosticMismatch>,

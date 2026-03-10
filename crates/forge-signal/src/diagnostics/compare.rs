@@ -1,7 +1,9 @@
 use crate::diagnostics::diff::{
-    compare_execution_reports, compare_explanations, compare_graphs, compare_plans,
-    ExecutionReportDiff,
+    compare_execution_reports, compare_explanations, compare_graphs, compare_lineage_records,
+    compare_plans, compare_replay_slices, ExecutionReportDiff,
 };
+use crate::diagnostics::lineage::LineageRecord;
+use crate::diagnostics::replay::ReplaySlice;
 use crate::diagnostics::summary::{
     EvaluationPlanSummary, ExecutionReportSummary, ExplanationSummary, GraphSummary,
 };
@@ -43,4 +45,12 @@ pub fn serial_parallel_reports_equivalent(
 
 pub fn repeat_run_summaries_equal<T: PartialEq>(runs: &[T]) -> bool {
     runs.windows(2).all(|pair| pair[0] == pair[1])
+}
+
+pub fn replay_slices_equivalent(left: &ReplaySlice, right: &ReplaySlice) -> bool {
+    compare_replay_slices(left, right).is_empty()
+}
+
+pub fn lineage_records_equivalent(left: &[LineageRecord], right: &[LineageRecord]) -> bool {
+    compare_lineage_records(left, right).is_empty()
 }

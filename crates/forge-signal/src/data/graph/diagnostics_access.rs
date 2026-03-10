@@ -171,8 +171,26 @@ impl SignalGraph {
         }
     }
 
+    pub fn replay_for_artifact(&self, artifact_id: LineageArtifactId) -> ReplaySlice {
+        let frames = self
+            .replay_events()
+            .iter()
+            .filter(|frame| frame.lineage_artifact_id == Some(artifact_id))
+            .cloned()
+            .collect();
+        ReplaySlice {
+            start: None,
+            end: None,
+            frames,
+        }
+    }
+
     pub fn replay_from_cursor(&self, start: ReplayCursor) -> ReplaySlice {
         self.replay_slice(Some(start), None)
+    }
+
+    pub fn replay_between(&self, start: ReplayCursor, end: ReplayCursor) -> ReplaySlice {
+        self.replay_slice(Some(start), Some(end))
     }
 
     pub fn replay_around_snapshot(
@@ -242,20 +260,29 @@ impl SignalGraph {
     pub fn lineage_chain_for_artifact(&self, artifact_id: LineageArtifactId) -> Vec<LineageRecord> {
         let mut chain = Vec::new();
         let mut current = Some(artifact_id);
+        let mut visited = std::collections::BTreeSet::new();
         while let Some(artifact_id) = current {
-            let Some(record) = self
+            if !visited.insert(artifact_id) {
+                break;
+            }
+            let mut artifact_records = self
                 .lineage_records()
                 .iter()
-                .rev()
-                .find(|record| record.artifact_id == Some(artifact_id))
+                .filter(|record| record.artifact_id == Some(artifact_id))
                 .cloned()
-            else {
+                .collect::<Vec<_>>();
+            if artifact_records.is_empty() {
                 break;
-            };
-            current = record.parent_artifact_id.filter(|parent| *parent != artifact_id);
-            chain.push(record);
+            }
+            artifact_records.sort_by_key(|record| record.sequence);
+            current = artifact_records.iter().find_map(|record| {
+                record
+                    .parent_artifact_id
+                    .filter(|parent| *parent != artifact_id)
+            });
+            chain.extend(artifact_records);
         }
-        chain.reverse();
+        chain.sort_by_key(|record| record.sequence);
         chain
     }
 
@@ -277,8 +304,19 @@ impl SignalGraph {
             .collect()
     }
 
-    pub fn branch_handle(&self, branch_id: crate::state::SignalBranchId) -> Option<SignalBranchHandle> {
+    pub fn branch_handle(
+        &self,
+        branch_id: crate::state::SignalBranchId,
+    ) -> Option<SignalBranchHandle> {
         self.diagnostics.branch_catalog().get(&branch_id).cloned()
+    }
+
+    pub fn branch_head_snapshot_id(
+        &self,
+        branch_id: crate::state::SignalBranchId,
+    ) -> Option<crate::state::SignalSnapshotId> {
+        self.branch_handle(branch_id)
+            .and_then(|branch| branch.head_snapshot_id)
     }
 
     pub fn branch_ancestry(
@@ -339,11 +377,15 @@ impl SignalGraph {
 
     pub fn restore_snapshot(&mut self, snapshot: &SignalSnapshotV1) -> Result<(), SignalError> {
         self.validate_snapshot_compatibility(snapshot)?;
+        let current_diagnostics = self.diagnostics.clone();
         let mut restored = snapshot.graph.clone();
         restored.telemetry = snapshot.graph_telemetry.clone();
         restored
             .diagnostics
-            .restore_snapshot_payload(snapshot.diagnostics.clone());
+            .restore_snapshot_payload_preserving_history_from(
+                snapshot.diagnostics.clone(),
+                &current_diagnostics,
+            );
         *self = restored;
         crate::diagnostics::recorder::record_snapshot_restore_lineage(
             self,

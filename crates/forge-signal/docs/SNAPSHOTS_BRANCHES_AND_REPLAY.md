@@ -111,6 +111,7 @@ Branch guarantees:
 - branch switches are replay-visible
 - branch-local restore stays local to that branch
 - branch ancestry is explicit through `parent_branch_id`
+- branch head snapshots remain explicit through `branch_head_snapshot_id(...)`
 
 ## Capture and restore for a specific branch
 
@@ -147,7 +148,7 @@ let current_branch = runtime.current_branch();
 let replay = runtime.replay_for_branch(current_branch.id);
 
 for frame in replay.frames {
-    println!("{:?}: {}", frame.event.kind, frame.event.detail);
+    println!("{:?}: {:?}", frame.kind, frame.detail);
 }
 ```
 
@@ -155,7 +156,19 @@ for frame in replay.frames {
 
 ```rust
 let replay = runtime.replay_for_node(node_id);
-assert!(replay.frames.iter().all(|frame| frame.event.node == Some(node_id)));
+assert!(replay.frames.iter().all(|frame| frame.node == Some(node_id)));
+```
+
+### Inspect one artifact's replay trail
+
+```rust
+if let Some(artifact_id) = runtime.current_lineage_artifact(node_id) {
+    let replay = runtime.replay_for_artifact(artifact_id);
+    assert!(replay
+        .frames
+        .iter()
+        .all(|frame| frame.lineage_artifact_id == Some(artifact_id)));
+}
 ```
 
 ### Slice from a cursor
@@ -164,6 +177,20 @@ assert!(replay.frames.iter().all(|frame| frame.event.node == Some(node_id)));
 let replay = runtime.replay_for_branch(runtime.current_branch().id);
 let cursor = replay.start.unwrap_or_default();
 let tail = runtime.replay_from_cursor(cursor);
+```
+
+### Slice between two cursors
+
+```rust
+let replay = runtime.replay_for_branch(runtime.current_branch().id);
+let start = replay.frames.first().unwrap().cursor;
+let end = replay.frames.last().unwrap().cursor;
+let bounded = runtime.replay_between(start, end);
+
+assert!(bounded
+    .frames
+    .iter()
+    .all(|frame| frame.cursor >= start && frame.cursor <= end));
 ```
 
 ### Inspect replay around a snapshot
@@ -175,7 +202,7 @@ let replay = runtime.replay_around_snapshot(snapshot.meta.snapshot_id);
 assert!(replay
     .frames
     .iter()
-    .any(|frame| frame.event.snapshot_id == Some(snapshot.meta.snapshot_id)));
+    .any(|frame| frame.snapshot_id == Some(snapshot.meta.snapshot_id)));
 ```
 
 ## When to use graph vs runtime APIs

@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 use crate::data::diagnostics::DiagnosticCode;
 use crate::data::history::BranchId;
-use crate::data::identity::{EntityId, KindId, RelationId, VersionId};
+use crate::data::identity::{EntityId, KindId, PartitionId, RelationId, VersionId};
+use crate::data::payload::RecordPayload;
 use crate::data::publication::{PublicationError, PublicationStatus};
 use crate::data::snapshot::SnapshotHandle;
+use crate::data::symbols::InternedString;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct TransactionId(pub u64);
@@ -98,29 +99,63 @@ pub enum RecordRef {
     Relation(RelationId),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RelationScope {
+    SamePartition,
+    CrossPartition,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CrossContextEndpointClass {
+    SamePartitionEndpoints,
+    CrossPartitionEndpoints,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EntitySpec {
+    pub partition_id: PartitionId,
     pub kind_id: KindId,
-    pub client_key: String,
-    pub payload: Value,
+    pub client_key: InternedString,
+    pub payload: RecordPayload,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RelationSpec {
+    pub partition_id: PartitionId,
     pub kind_id: KindId,
-    pub client_key: String,
+    pub client_key: InternedString,
     pub source: EntityId,
     pub target: EntityId,
-    pub payload: Value,
+    pub payload: Option<RecordPayload>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TransactionIntent {
     CreateEntity(EntitySpec),
-    UpdateEntity { entity_id: EntityId, payload: Value },
-    DeleteEntity { entity_id: EntityId },
+    BulkCreateEntities {
+        partition_id: PartitionId,
+        kind_id: KindId,
+        client_keys: Vec<InternedString>,
+        payloads: Vec<RecordPayload>,
+    },
+    UpdateEntity {
+        entity_id: EntityId,
+        payload: RecordPayload,
+    },
+    DeleteEntity {
+        entity_id: EntityId,
+    },
     CreateRelation(RelationSpec),
-    DeleteRelation { relation_id: RelationId },
+    BulkCreateRelations {
+        partition_id: PartitionId,
+        kind_id: KindId,
+        client_keys: Vec<InternedString>,
+        endpoints: Vec<(EntityId, EntityId)>,
+        payloads: Vec<Option<RecordPayload>>,
+    },
+    DeleteRelation {
+        relation_id: RelationId,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

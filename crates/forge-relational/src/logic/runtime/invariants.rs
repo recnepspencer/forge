@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
 use crate::data::diagnostics::DiagnosticCode;
+use crate::data::payload::RecordPayload;
 use crate::data::schema::SchemaRegistryError;
 use crate::data::transaction::{CommitConflict, MergedCommitPlan};
 use crate::logic::runtime::{
@@ -49,14 +50,14 @@ impl RelationalRuntime {
             }
         };
 
-        let entity_records = self.visible_entities_from_state(state, version_id);
-        let relation_records = self.visible_relations_from_state(state, version_id);
-
         for (class, failure_effect, rules) in groups {
             let mut violations = Vec::new();
             for rule in rules {
                 match rule {
                     InvariantRule::LiveEntityRequiresKind => {
+                        self.complexity_counters
+                            .borrow_mut()
+                            .invariant_entity_slot_scans += state.entity_arena.generations.len();
                         for slot in 0..state.entity_arena.generations.len() {
                             if state.entity_arena.lifecycle[slot] == RecordLifecycleState::Live
                                 && state.entity_arena.kind_ids[slot].is_none()
@@ -70,6 +71,10 @@ impl RelationalRuntime {
                         }
                     }
                     InvariantRule::LiveRelationRequiresEndpoints => {
+                        self.complexity_counters
+                            .borrow_mut()
+                            .invariant_relation_slot_scans +=
+                            state.relation_arena.generations.len();
                         for slot in 0..state.relation_arena.generations.len() {
                             if state.relation_arena.lifecycle[slot] == RecordLifecycleState::Live
                                 && state.relation_arena.endpoints[slot].is_none()
@@ -101,24 +106,42 @@ impl RelationalRuntime {
                         }
                     }
                     InvariantRule::MaxSnapshotEntities(limit) => {
-                        if entity_records.len() > *limit {
+                        self.complexity_counters
+                            .borrow_mut()
+                            .invariant_entity_slot_scans += state.entity_arena.generations.len();
+                        let visible_entities = (0..state.entity_arena.generations.len())
+                            .filter(|slot| entity_visible_at_version(state, *slot, version_id))
+                            .count();
+                        if visible_entities > *limit {
                             violations.push(InvariantViolation {
                                 class,
                                 code: DiagnosticCode::InvariantViolation,
                                 detail: format!(
                                     "snapshot at version {} has {} entities, limit is {}",
-                                    version_id.0,
-                                    entity_records.len(),
-                                    limit
+                                    version_id.0, visible_entities, limit
                                 ),
                             });
                         }
                     }
                     InvariantRule::UniqueEntityPayloadField(field) => {
                         let mut seen = BTreeSet::new();
-                        for entity in &entity_records {
-                            if let Some(value) =
-                                entity.payload.get(field).and_then(|value| value.as_str())
+                        self.complexity_counters
+                            .borrow_mut()
+                            .invariant_entity_slot_scans += state.entity_arena.generations.len();
+                        for slot in 0..state.entity_arena.generations.len() {
+                            if !entity_visible_at_version(state, slot, version_id) {
+                                continue;
+                            }
+                            let Some(payload) = visible_payload(
+                                &state.entity_arena.payload_history[slot],
+                                version_id,
+                            ) else {
+                                continue;
+                            };
+                            if let Some(value) = payload
+                                .as_json()
+                                .and_then(|value| value.get(field))
+                                .and_then(|value| value.as_str())
                             {
                                 if !seen.insert(value.to_string()) {
                                     violations.push(InvariantViolation {
@@ -135,7 +158,7 @@ impl RelationalRuntime {
                     }
                 }
             }
-            if !relation_records.is_empty() || !entity_records.is_empty() || !rules.is_empty() {
+            if !violations.is_empty() || !rules.is_empty() {
                 results.push(InvariantCheckResult {
                     class,
                     execution_point,
@@ -147,6 +170,29 @@ impl RelationalRuntime {
 
         results
     }
+}
+
+fn visible_payload(
+    history: &[super::state::VersionedValue],
+    version_id: crate::data::identity::VersionId,
+) -> Option<&RecordPayload> {
+    history
+        .iter()
+        .find(|entry| {
+            entry.effective_at <= version_id
+                && entry.retired_at.is_none_or(|retired| version_id < retired)
+        })
+        .map(|entry| &entry.value)
+}
+
+fn entity_visible_at_version(
+    state: &WorkingState,
+    slot: usize,
+    version_id: crate::data::identity::VersionId,
+) -> bool {
+    state.entity_arena.lifecycle[slot] != RecordLifecycleState::Reusable
+        && state.entity_arena.created_at[slot] <= version_id
+        && state.entity_arena.retired_at[slot].is_none_or(|retired| version_id < retired)
 }
 
 pub(super) fn first_blocking_invariant_error(

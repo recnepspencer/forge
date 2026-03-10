@@ -1,10 +1,9 @@
 use std::collections::BTreeMap;
 
-use serde_json::Value;
-
 use crate::data::diagnostics::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
+use crate::data::payload::RecordPayload;
 use crate::data::history::{BranchId, CommitId};
 use crate::data::index::{
     DerivedIndexBuildOutcome, DerivedIndexBuildRequest, DerivedIndexCompatibility,
@@ -185,7 +184,7 @@ impl RelationalRuntime {
             DerivedIndexKind::RelationPayloadField { field } => {
                 let mut map = BTreeMap::new();
                 for relation in read.relations() {
-                    let Some(key) = payload_field_key(&relation.payload, field) else {
+                    let Some(key) = payload_field_key_optional(&relation.payload, field) else {
                         continue;
                     };
                     map.entry(key)
@@ -222,9 +221,13 @@ impl RelationalRuntime {
     }
 }
 
-fn payload_field_key(payload: &Value, field: &str) -> Option<String> {
-    payload.get(field).map(|value| match value {
-        Value::String(text) => text.clone(),
+fn payload_field_key(payload: &RecordPayload, field: &str) -> Option<String> {
+    payload.as_json()?.get(field).map(|value| match value {
+        serde_json::Value::String(text) => text.clone(),
         other => other.to_string(),
     })
+}
+
+fn payload_field_key_optional(payload: &Option<RecordPayload>, field: &str) -> Option<String> {
+    payload.as_ref().and_then(|payload| payload_field_key(payload, field))
 }

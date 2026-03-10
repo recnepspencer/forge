@@ -37,6 +37,7 @@ pub enum DiagnosticCode {
     InvalidSavepoint,
     InvalidMergeParent,
     MissingMergeBase,
+    MergeConflictOverlap,
     SavepointRolledBack,
     InvariantViolation,
     CanonicalOrderingViolation,

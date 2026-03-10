@@ -111,6 +111,8 @@ Current runtime tests:
 - `tests::duplicate_branch_creation_is_rejected`
 - `tests::merge_commit_uses_deterministic_parent_order_and_advances_target_branch`
 - `tests::merge_commit_requires_existing_parent_branch_heads`
+- `tests::merge_inspection_reports_overlapping_authority`
+- `tests::merge_commit_rejects_overlapping_authority_since_merge_base`
 
 ### MVCC and retention
 

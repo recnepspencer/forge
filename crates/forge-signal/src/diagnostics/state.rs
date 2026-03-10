@@ -279,6 +279,17 @@ impl DiagnosticsState {
         self.active_branch = branch_id;
     }
 
+    pub fn set_branch_head_snapshot(
+        &mut self,
+        branch_id: SignalBranchId,
+        snapshot_id: SignalSnapshotId,
+    ) {
+        self.bootstrap_defaults();
+        if let Some(branch) = self.branch_catalog.get_mut(&branch_id) {
+            branch.head_snapshot_id = Some(snapshot_id);
+        }
+    }
+
     pub fn synchronize_branch_catalog(
         &mut self,
         branch_catalog: BTreeMap<SignalBranchId, SignalBranchHandle>,
@@ -345,6 +356,92 @@ impl DiagnosticsState {
         self.next_lineage_artifact_id = payload.next_lineage_artifact_id;
         self.next_lineage_sequence = payload.next_lineage_sequence;
         self.pending_input = None;
+    }
+
+    pub fn restore_snapshot_payload_preserving_history_from(
+        &mut self,
+        payload: SignalSnapshotDiagnostics,
+        current: &DiagnosticsState,
+    ) {
+        let current_recent_history = current.recent_history.clone();
+        let current_replay_events = current.replay_events.clone();
+        let current_lineage_records = current.lineage_records.clone();
+        let current_branch_catalog = current.branch_catalog.clone();
+        let current_latest_failure = current.latest_failure.clone();
+        let current_latest_rollback = current.latest_rollback.clone();
+        let current_next_replay_cursor = current.next_replay_cursor;
+        let current_next_snapshot_id = current.next_snapshot_id;
+        let current_next_branch_id = current.next_branch_id;
+        let current_next_lineage_artifact_id = current.next_lineage_artifact_id;
+        let current_next_lineage_sequence = current.next_lineage_sequence;
+
+        let payload_latest_execution_record_id = payload
+            .recent_history
+            .iter()
+            .filter_map(|summary| summary.latest_execution_record_id)
+            .max();
+        let payload_last_replay_cursor = payload.replay_frames.back().map(|event| event.cursor);
+        let payload_last_lineage_sequence =
+            payload.lineage_records.back().map(|record| record.sequence);
+
+        self.restore_snapshot_payload(payload);
+
+        for summary in current_recent_history {
+            let current_latest = summary.latest_execution_record_id;
+            if payload_latest_execution_record_id
+                .is_none_or(|latest| current_latest.is_some_and(|current| current > latest))
+            {
+                self.recent_history.push_back(summary);
+            }
+        }
+        for event in current_replay_events {
+            if payload_last_replay_cursor.is_none_or(|latest| event.cursor > latest) {
+                self.replay_events.push_back(event);
+            }
+        }
+        for record in current_lineage_records {
+            if payload_last_lineage_sequence.is_none_or(|latest| record.sequence > latest) {
+                self.lineage_records.push_back(record);
+            }
+        }
+
+        if current_latest_failure.is_some() {
+            self.latest_failure = current_latest_failure;
+        }
+        if current_latest_rollback.is_some() {
+            self.latest_rollback = current_latest_rollback;
+        }
+        for (branch_id, branch_handle) in current_branch_catalog {
+            match self.branch_catalog.get_mut(&branch_id) {
+                Some(existing) if branch_id != self.active_branch => {
+                    if existing.head_snapshot_id.is_none() {
+                        existing.head_snapshot_id = branch_handle.head_snapshot_id;
+                    }
+                }
+                None => {
+                    self.branch_catalog.insert(branch_id, branch_handle);
+                }
+                _ => {}
+            }
+        }
+
+        self.next_replay_cursor = self.next_replay_cursor.max(current_next_replay_cursor);
+        self.next_snapshot_id = self.next_snapshot_id.max(current_next_snapshot_id);
+        self.next_branch_id = self.next_branch_id.max(current_next_branch_id);
+        self.next_lineage_artifact_id = self
+            .next_lineage_artifact_id
+            .max(current_next_lineage_artifact_id);
+        self.next_lineage_sequence = self
+            .next_lineage_sequence
+            .max(current_next_lineage_sequence);
+        self.trim_history();
+        let limit = self.policy.history_limit.max(1) * 32;
+        while self.replay_events.len() > limit {
+            self.replay_events.pop_front();
+        }
+        while self.lineage_records.len() > limit {
+            self.lineage_records.pop_front();
+        }
     }
 
     pub fn pending_change_summary(&self) -> Option<(ChangeInputSummary, InvalidationSummary)> {

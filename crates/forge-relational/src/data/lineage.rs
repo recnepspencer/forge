@@ -65,3 +65,12 @@ pub struct LineageGraphSnapshot {
     pub events: Vec<LineageEventRecord>,
     pub correspondence_candidates: Vec<CorrespondenceCandidate>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LineageDivergenceSummary {
+    pub left_branch: BranchId,
+    pub right_branch: BranchId,
+    pub left_only_event_ids: Vec<u64>,
+    pub right_only_event_ids: Vec<u64>,
+    pub shared_lineage_ids: Vec<LineageId>,
+}

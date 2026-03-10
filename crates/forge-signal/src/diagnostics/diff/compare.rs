@@ -1,5 +1,7 @@
 use crate::diagnostics::failure::FailureSummary;
 use crate::diagnostics::flow::FlowSummary;
+use crate::diagnostics::lineage::LineageRecord;
+use crate::diagnostics::replay::ReplaySlice;
 use crate::diagnostics::summary::{
     EvaluationPlanSummary, ExecutionHistorySummary, ExecutionReportSummary, ExplanationSummary,
     GraphSummary,
@@ -7,7 +9,7 @@ use crate::diagnostics::summary::{
 
 use super::model::{
     compare_value, push_mismatch, DiagnosticMismatchCategory, ExecutionReportDiff, ExplanationDiff,
-    FailureDiff, FlowDiff, GraphDiff, HistoryDiff, PlanDiff,
+    FailureDiff, FlowDiff, GraphDiff, HistoryDiff, LineageDiff, PlanDiff, ReplayDiff,
 };
 
 pub fn compare_graphs(left: &GraphSummary, right: &GraphSummary) -> GraphDiff {
@@ -394,6 +396,62 @@ pub fn compare_failures(left: &FailureSummary, right: &FailureSummary) -> Failur
             "message",
             &left.message,
             &right.message,
+        );
+    }
+    diff
+}
+
+pub fn compare_replay_slices(left: &ReplaySlice, right: &ReplaySlice) -> ReplayDiff {
+    let mut diff = ReplayDiff::default();
+    compare_value(
+        &mut diff.mismatches,
+        DiagnosticMismatchCategory::ExecutionRecord,
+        "start",
+        format!("{:?}", left.start),
+        format!("{:?}", right.start),
+    );
+    compare_value(
+        &mut diff.mismatches,
+        DiagnosticMismatchCategory::ExecutionRecord,
+        "end",
+        format!("{:?}", left.end),
+        format!("{:?}", right.end),
+    );
+    compare_value(
+        &mut diff.mismatches,
+        DiagnosticMismatchCategory::ExecutionRecord,
+        "frame_count",
+        left.frames.len(),
+        right.frames.len(),
+    );
+    if left.frames != right.frames {
+        push_mismatch(
+            &mut diff.mismatches,
+            DiagnosticMismatchCategory::ExecutionRecord,
+            "frames",
+            format!("{:?}", left.frames),
+            format!("{:?}", right.frames),
+        );
+    }
+    diff
+}
+
+pub fn compare_lineage_records(left: &[LineageRecord], right: &[LineageRecord]) -> LineageDiff {
+    let mut diff = LineageDiff::default();
+    compare_value(
+        &mut diff.mismatches,
+        DiagnosticMismatchCategory::Provenance,
+        "record_count",
+        left.len(),
+        right.len(),
+    );
+    if left != right {
+        push_mismatch(
+            &mut diff.mismatches,
+            DiagnosticMismatchCategory::Provenance,
+            "records",
+            format!("{:?}", left),
+            format!("{:?}", right),
         );
     }
     diff

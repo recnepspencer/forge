@@ -11,10 +11,14 @@ use forge_harness::facade::{
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+use crate::data::config::{CascadeDeletePolicy, CrossContextPolicy};
+use crate::data::payload::RecordPayload;
 use crate::data::query::{QueryWorkPacket, ReadTarget};
+use crate::data::schema::RelationPayloadClass;
+use crate::data::symbols::InternedString;
 use crate::data::transaction::{TransactionIntent, TransactionOptions, WorkerIntentBatch};
 use crate::facade::{
-    EntityId, EntityKindRegistration, KindId, RelationId, RelationKindRegistration,
+    EntityId, EntityKindRegistration, KindId, PartitionId, RelationId, RelationKindRegistration,
     RelationalRuntime, RelationalRuntimeApi, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 
@@ -158,9 +162,10 @@ impl HarnessAdapter for RelationalHarnessAdapter {
         for entity in &fixture.fixture.entities {
             batch.intents.push(TransactionIntent::CreateEntity(
                 crate::data::transaction::EntitySpec {
+                    partition_id: PartitionId::main(),
                     kind_id: entity.kind_id,
-                    client_key: entity.client_key.clone(),
-                    payload: entity.payload.clone(),
+                    client_key: InternedString::Raw(entity.client_key.clone()),
+                    payload: RecordPayload::StructuredJson(entity.payload.clone()),
                 },
             ));
         }
@@ -194,11 +199,12 @@ impl HarnessAdapter for RelationalHarnessAdapter {
                     .intents
                     .push(TransactionIntent::CreateRelation(
                         crate::data::transaction::RelationSpec {
+                            partition_id: PartitionId::main(),
                             kind_id: relation.kind_id,
-                            client_key: relation.client_key.clone(),
+                            client_key: InternedString::Raw(relation.client_key.clone()),
                             source,
                             target,
-                            payload: relation.payload.clone(),
+                            payload: Some(RecordPayload::StructuredJson(relation.payload.clone())),
                         },
                     ));
             }
@@ -405,19 +411,46 @@ fn parse_target(target: &str) -> Result<ReadTarget, RelationalHarnessError> {
     let kind = parts
         .next()
         .ok_or_else(|| RelationalHarnessError("missing target kind".to_string()))?;
-    let slot = parts
-        .next()
-        .ok_or_else(|| RelationalHarnessError("missing target slot".to_string()))?
-        .parse::<u64>()
-        .map_err(|_| RelationalHarnessError("invalid target slot".to_string()))?;
-    let generation = parts
-        .next()
-        .ok_or_else(|| RelationalHarnessError("missing target generation".to_string()))?
-        .parse::<u32>()
-        .map_err(|_| RelationalHarnessError("invalid target generation".to_string()))?;
+    let remainder = parts.collect::<Vec<_>>();
+    let (partition_id, slot, generation) = match remainder.as_slice() {
+        [slot, generation] => (
+            PartitionId::main(),
+            slot.parse::<u64>()
+                .map_err(|_| RelationalHarnessError("invalid target slot".to_string()))?,
+            generation
+                .parse::<u32>()
+                .map_err(|_| RelationalHarnessError("invalid target generation".to_string()))?,
+        ),
+        [partition, slot, generation] => (
+            PartitionId(
+                partition
+                    .parse::<u32>()
+                    .map_err(|_| RelationalHarnessError("invalid target partition".to_string()))?,
+            ),
+            slot.parse::<u64>()
+                .map_err(|_| RelationalHarnessError("invalid target slot".to_string()))?,
+            generation
+                .parse::<u32>()
+                .map_err(|_| RelationalHarnessError("invalid target generation".to_string()))?,
+        ),
+        _ => {
+            return Err(RelationalHarnessError(
+                "target must be kind:slot:generation or kind:partition:slot:generation"
+                    .to_string(),
+            ))
+        }
+    };
     match kind {
-        "entity" => Ok(ReadTarget::Entity(EntityId::new(slot, generation))),
-        "relation" => Ok(ReadTarget::Relation(RelationId::new(slot, generation))),
+        "entity" => Ok(ReadTarget::Entity(EntityId::new(
+            partition_id,
+            slot,
+            generation,
+        ))),
+        "relation" => Ok(ReadTarget::Relation(RelationId::new(
+            partition_id,
+            slot,
+            generation,
+        ))),
         _ => Err(RelationalHarnessError("unknown target kind".to_string())),
     }
 }
@@ -449,6 +482,9 @@ fn default_harness_schema_registry() -> RelationalSchemaRegistry {
                 kind_name: "fixture.relation".to_string(),
                 schema_id: SchemaId("fixture".to_string()),
                 schema_version_id: SchemaVersionId(1),
+                payload_class: RelationPayloadClass::PayloadBearingRelation,
+                cross_context_policy: CrossContextPolicy::AllowExplicit,
+                cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
             })
         })
         .expect("valid default harness schema registry")

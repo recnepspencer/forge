@@ -3,8 +3,11 @@
 //! internal crate structure directly.
 
 pub use crate::data::config::{
-    ConfigProvenance, ConfigProvenanceEntry, ConfigValueSource, MvccConfig, PublicationConfig,
-    RelationalConfigOverride, RelationalRuntimeProfile, SnapshotReleasePolicy, StorageLayoutConfig,
+    AdjacencyBackend, AdjacencyPolicy, CascadeDeletePolicy, CompiledLanePolicy,
+    ConfigProvenance, ConfigProvenanceEntry, ConfigValueSource, CrossContextPolicy,
+    DurableLogPolicy, DurableLogRetentionMode, MvccConfig, PatchSurfacePolicy,
+    PublicationConfig, RelationalConfigOverride, RelationalRuntimeProfile, RetentionBackend,
+    RetentionPolicy, SnapshotReleasePolicy, StorageLayoutConfig,
 };
 pub use crate::data::diagnostics::{
     DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
@@ -20,10 +23,11 @@ pub use crate::data::durability::{
 };
 pub use crate::data::history::{
     BranchCreateError, BranchHead, BranchId, CommitId, CommitReference, HistoryRetentionClass,
-    VersionGraphPolicy, VersionGraphSnapshot, VersionNode,
+    MergeConflictRecord, MergeInspection, VersionGraphPolicy, VersionGraphSnapshot, VersionNode,
 };
 pub use crate::data::identity::{
-    EntityId, Generation, KindId, LineageId, RelationId, Slot, StructuralFingerprint, VersionId,
+    EntityId, EntityStorageId, Generation, KindId, LineageId, LocalSlot, PartitionId, RelationId,
+    RelationStorageId, Slot, StructuralFingerprint, VersionId,
 };
 pub use crate::data::index::{
     DerivedIndexBuildOutcome, DerivedIndexBuildRequest, DerivedIndexCompatibility,
@@ -31,9 +35,13 @@ pub use crate::data::index::{
     DerivedIndexKind, DerivedIndexPayload, DerivedIndexPublicationStatus,
     ReadWithStorageFallbackOutcome,
 };
+pub use crate::data::payload::{
+    PayloadClass, PayloadCompatibility, PayloadEncoding, PayloadPolicy, RecordPayload,
+};
 pub use crate::data::lineage::{
-    CorrespondenceCandidate, CorrespondenceResolution, LineageEventKind, LineageEventRecord,
-    LineageGraphSnapshot, LineageInvariant, LineageNode, LineageResolutionStatus,
+    CorrespondenceCandidate, CorrespondenceResolution, LineageDivergenceSummary, LineageEventKind,
+    LineageEventRecord, LineageGraphSnapshot, LineageInvariant, LineageNode,
+    LineageResolutionStatus,
 };
 pub use crate::data::publication::{
     PublicationBundle, PublicationError, PublicationStage, PublicationStatus,
@@ -48,27 +56,30 @@ pub use crate::data::replay::{
 };
 pub use crate::data::schema::{
     EntityKindRegistration, KindResolution, RelationKindRegistration, RelationalSchemaRegistry,
-    SchemaId, SchemaRegistryError, SchemaVersionId,
+    RelationPayloadClass, SchemaId, SchemaRegistryError, SchemaVersionId,
 };
 pub use crate::data::snapshot::{
     SnapshotHandle, SnapshotId, SnapshotInspectionSummary, SnapshotReadPolicy,
 };
+pub use crate::data::symbols::{
+    InternedString, StringInterner, Symbol, SymbolPolicy, SymbolTableSnapshot,
+};
 pub use crate::data::transaction::{
     AuthoritativeApplyPlan, AuthorityMode, CommitAuthority, CommitConflict, CommitOutcome,
-    MergedCommitPlan, RecordRef, RollbackOutcome, SavepointId, TransactionCommitError,
-    TransactionId, TransactionIntent, TransactionIntentBatch, TransactionOptions, UndoRecord,
-    WorkerIntentBatch,
+    CrossContextEndpointClass, MergedCommitPlan, RecordRef, RelationScope, RollbackOutcome,
+    SavepointId, TransactionCommitError, TransactionId, TransactionIntent,
+    TransactionIntentBatch, TransactionOptions, UndoRecord, WorkerIntentBatch,
 };
 pub use crate::logic::builder::RelationalRuntimeBuilder;
 pub use crate::logic::commit::CommitAuthorityContract;
 pub use crate::logic::planning::{PlanningContract, RelationalExecutionModel};
 pub use crate::logic::runtime::{
-    ChunkVisibilitySummary, ChunkedStorageSummary, EntityReadRecord, InvariantCatalog,
-    InvariantCheckResult, InvariantClass, InvariantExecutionPoint, InvariantFailureEffect,
-    InvariantRule, PacketResult, RecordLifecycleState, RelationReadRecord,
-    RelationalDiagnosticsFacade, RelationalReadView, RelationalReplayRecord, RelationalRuntime,
-    RelationalRuntimeConfig, RelationalTransaction, ReplaySchemaVersion, StorageInvariantReport,
-    StorageStats,
+    ChunkVisibilitySummary, ChunkedStorageSummary, ComplexityContract, ComplexityStatus,
+    EntityReadRecord, InvariantCatalog, InvariantCheckResult, InvariantClass,
+    InvariantExecutionPoint, InvariantFailureEffect, InvariantRule, PacketResult,
+    RecordLifecycleState, RelationReadRecord, RelationalDiagnosticsFacade, RelationalReadView,
+    RelationalReplayRecord, RelationalRuntime, RelationalRuntimeConfig, RelationalTransaction,
+    ReplaySchemaVersion, RuntimeComplexityCounters, StorageInvariantReport, StorageStats,
 };
 pub use crate::presentation::api::RelationalRuntimeApi;
 pub use crate::presentation::contracts::{

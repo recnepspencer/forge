@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use crate::data::identity::{EntityId, RelationId};
+use crate::data::identity::{EntityId, PartitionId, RelationId};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PartitionHint {
-    pub label: String,
+    pub partition_id: PartitionId,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

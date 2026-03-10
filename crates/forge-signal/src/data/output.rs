@@ -91,6 +91,16 @@ define_string_token!(
     OutputIdentity
 );
 
+define_string_token!(
+    /// Host-supplied continuity token for lineage preservation when output
+    /// identity is too coarse or intentionally absent.
+    ///
+    /// This is domain-agnostic. Host code can use it to express “this result
+    /// should continue the same artifact lineage” without forcing that meaning
+    /// onto `OutputIdentity`.
+    ArtifactContinuityToken
+);
+
 /// Generic opaque partition token for partitioned outputs.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize, Default)]
 pub struct PartitionToken(pub String);
@@ -332,6 +342,8 @@ pub struct NodeEvaluationResult {
     #[serde(default)]
     pub output_identity: Option<OutputIdentity>,
     #[serde(default)]
+    pub continuity_token: Option<ArtifactContinuityToken>,
+    #[serde(default)]
     pub output_change: OutputChange,
     #[serde(default)]
     pub changed_regions: Vec<ChangedRegion>,
@@ -344,6 +356,7 @@ impl NodeEvaluationResult {
         Self {
             aspect_version,
             output_identity: None,
+            continuity_token: None,
             output_change: OutputChange::Replaced,
             changed_regions: Vec::new(),
             labels: Vec::new(),
@@ -357,6 +370,14 @@ impl NodeEvaluationResult {
 
     pub fn with_output_change(mut self, output_change: OutputChange) -> Self {
         self.output_change = output_change;
+        self
+    }
+
+    pub fn with_continuity_token(
+        mut self,
+        continuity_token: impl Into<ArtifactContinuityToken>,
+    ) -> Self {
+        self.continuity_token = Some(continuity_token.into());
         self
     }
 

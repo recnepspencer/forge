@@ -55,7 +55,7 @@ impl RelationalRuntime {
             match target {
                 ReadTarget::Entity(entity_id) => {
                     let chunk_index = slot_chunk_index(
-                        entity_id.slot.0 as usize,
+                        entity_id.local_slot.0 as usize,
                         self.config.storage_layout.entity_chunk_size,
                     );
                     if !entity_chunk_indexes.contains(&chunk_index) {
@@ -64,7 +64,7 @@ impl RelationalRuntime {
                 }
                 ReadTarget::Relation(relation_id) => {
                     let chunk_index = slot_chunk_index(
-                        relation_id.slot.0 as usize,
+                        relation_id.local_slot.0 as usize,
                         self.config.storage_layout.relation_chunk_size,
                     );
                     if !relation_chunk_indexes.contains(&chunk_index) {

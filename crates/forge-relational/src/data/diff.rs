@@ -2,9 +2,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::data::identity::{EntityId, RelationId};
+use crate::data::payload::RecordPayload;
+use crate::data::symbols::InternedString;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct AspectKey(pub String);
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AspectKey(pub InternedString);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PatchOrdering {
@@ -34,6 +36,19 @@ impl Default for PatchFragmentBudget {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PatchCompatibilityClass {
+    StructuredCompatible,
+    DenseCompatible,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum PatchDetail {
+    StructuredJson(Value),
+    Payload(RecordPayload),
+    DenseBitset(Vec<u64>),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PatchRecordKind {
     EntityCreated,
@@ -48,7 +63,7 @@ pub struct PatchRecord {
     pub kind: PatchRecordKind,
     pub entity_id: Option<EntityId>,
     pub relation_id: Option<RelationId>,
-    pub detail: Value,
+    pub detail: PatchDetail,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -56,5 +71,6 @@ pub struct RelationalPatchRecord {
     pub ordering: PatchOrdering,
     pub publication_mode: PatchPublicationMode,
     pub position: PatchStreamPosition,
+    pub compatibility: PatchCompatibilityClass,
     pub records: Vec<PatchRecord>,
 }

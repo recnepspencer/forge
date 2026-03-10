@@ -109,3 +109,20 @@ impl SignalSnapshotMeta {
         }
     }
 }
+
+impl SignalSnapshotV1 {
+    /// Inspect snapshot metadata without restoring the snapshot.
+    pub fn meta(&self) -> &SignalSnapshotMeta {
+        &self.meta
+    }
+
+    /// Branch identity that owned the snapshot head when this snapshot was captured.
+    pub fn branch_id(&self) -> SignalBranchId {
+        self.meta.branch_id
+    }
+
+    /// Stable snapshot identifier for replay and lineage references.
+    pub fn snapshot_id(&self) -> SignalSnapshotId {
+        self.meta.snapshot_id
+    }
+}

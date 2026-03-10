@@ -53,6 +53,11 @@ cargo test -p forge-relational cross_order_equivalent_mutations_converge -- --no
 cargo test -p forge-relational branch_creation_and_branch_targeted_commits_build_a_version_graph -- --nocapture
 cargo test -p forge-relational merge_commit_uses_deterministic_parent_order_and_advances_target_branch -- --nocapture
 cargo test -p forge-relational merge_commit_requires_existing_parent_branch_heads -- --nocapture
+cargo test -p forge-relational merge_inspection_reports_overlapping_authority -- --nocapture
+cargo test -p forge-relational merge_commit_rejects_overlapping_authority_since_merge_base -- --nocapture
 cargo test -p forge-relational publication_bundle_is_the_single_visible_commit_surface -- --nocapture
+
+echo "[relational-contract-matrix] complexity budgets"
+bash scripts/ci/check_relational_complexity_budgets.sh
 
 echo "[relational-contract-matrix] PASS"

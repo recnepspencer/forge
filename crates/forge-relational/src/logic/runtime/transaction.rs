@@ -5,12 +5,14 @@ use crate::data::diagnostics::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
 use crate::data::diff::{
-    PatchOrdering, PatchPublicationMode, PatchStreamPosition, RelationalPatchRecord,
+    PatchCompatibilityClass, PatchOrdering, PatchPublicationMode, PatchStreamPosition,
+    RelationalPatchRecord,
 };
 use crate::data::history::{CommitId, CommitReference};
-use crate::data::identity::{EntityId, RelationId, VersionId};
+use crate::data::identity::{EntityId, PartitionId, RelationId, VersionId};
 use crate::data::publication::{PublicationError, PublicationStage, PublicationStatus};
 use crate::data::replay::CanonicalCommitEnvelope;
+use crate::data::symbols::{InternedString, SymbolPolicy};
 use crate::data::transaction::{
     AuthoritativeApplyPlan, CommitConflict, CommitOutcome, MergedCommitPlan, RecordRef,
     RollbackOutcome, SavepointId, TransactionCommitError, TransactionIntent, TransactionOptions,
@@ -21,6 +23,7 @@ use super::apply::apply_plan_to_staged_state;
 use super::invariants::{first_blocking_invariant_error, first_publication_invariant_error};
 use super::merge::{canonical_intent_key, detect_conflicting_updates, validate_intent};
 use super::publication::publication_failure_diagnostic;
+use super::state::WorkingState;
 use super::{InvariantExecutionPoint, RelationalRuntime};
 
 #[derive(Debug)]
@@ -74,11 +77,15 @@ impl<'a> RelationalTransaction<'a> {
             .into_iter()
             .flat_map(|batch| batch.intents.into_iter())
             .map(|intent| match intent {
-                TransactionIntent::CreateEntity(_) => RecordRef::Entity(EntityId::new(u64::MAX, 0)),
+                TransactionIntent::CreateEntity(_)
+                | TransactionIntent::BulkCreateEntities { .. } => {
+                    RecordRef::Entity(EntityId::new(PartitionId::main(), u64::MAX, 0))
+                }
                 TransactionIntent::UpdateEntity { entity_id, .. } => RecordRef::Entity(entity_id),
                 TransactionIntent::DeleteEntity { entity_id } => RecordRef::Entity(entity_id),
-                TransactionIntent::CreateRelation(_) => {
-                    RecordRef::Relation(RelationId::new(u64::MAX, 0))
+                TransactionIntent::CreateRelation(_)
+                | TransactionIntent::BulkCreateRelations { .. } => {
+                    RecordRef::Relation(RelationId::new(PartitionId::main(), u64::MAX, 0))
                 }
                 TransactionIntent::DeleteRelation { relation_id } => {
                     RecordRef::Relation(relation_id)
@@ -102,17 +109,18 @@ impl<'a> RelationalTransaction<'a> {
 
     pub fn merged_plan(&mut self) -> Result<&MergedCommitPlan, CommitConflict> {
         if self.last_merged_plan.is_none() {
-            let plan = self.build_merged_plan()?;
+            let current_state = self.runtime.current_state();
+            let plan = self.build_merged_plan_for_state(&current_state)?;
             self.last_merged_plan = Some(plan);
         }
         Ok(self.last_merged_plan.as_ref().expect("merged plan"))
     }
 
-    pub fn commit(self) -> Result<CommitOutcome, TransactionCommitError> {
-        let merged_plan = self
-            .build_merged_plan()
-            .map_err(TransactionCommitError::Conflict)?;
+    pub fn commit(mut self) -> Result<CommitOutcome, TransactionCommitError> {
         let current_state = self.runtime.current_state();
+        let merged_plan = self
+            .build_merged_plan_for_state(&current_state)
+            .map_err(TransactionCommitError::Conflict)?;
         let commit_boundary_results = self.runtime.run_invariants_for_state(
             &current_state,
             self.runtime.current_version_id(),
@@ -139,7 +147,7 @@ impl<'a> RelationalTransaction<'a> {
             version_id,
             merged_intents: merged_plan.merged_intents.clone(),
         };
-        let mut staged = current_state.clone();
+        let mut staged = current_state;
         let (changed_records, patch_records, diagnostics_entries) =
             apply_plan_to_staged_state(&mut staged, &apply_plan);
 
@@ -169,9 +177,24 @@ impl<'a> RelationalTransaction<'a> {
             .target_branch
             .clone()
             .unwrap_or_else(|| self.runtime.config.main_branch.clone());
-        let (parents, merge_base_commits) = self
-            .resolve_parent_commits(&branch_id)
-            .map_err(TransactionCommitError::Conflict)?;
+        let (parents, merge_base_commits) = match self.resolve_parent_commits(&branch_id) {
+            Ok(result) => result,
+            Err(conflict) => {
+                self.runtime.push_bounded_diagnostic(
+                    DiagnosticsScope::History,
+                    DiagnosticsArtifactKind::Failure,
+                    vec![RelationalDiagnosticsEntry {
+                        code: conflict.code,
+                        message: conflict.detail.clone(),
+                        fields: json!({
+                            "branch_id": branch_id.0,
+                            "merge_parent_branches": self.options.merge_parent_branches.iter().map(|branch| branch.0.clone()).collect::<Vec<_>>(),
+                        }),
+                    }],
+                );
+                return Err(TransactionCommitError::Conflict(conflict));
+            }
+        };
         let commit_reference = CommitReference {
             commit_id,
             version_id,
@@ -182,6 +205,14 @@ impl<'a> RelationalTransaction<'a> {
             ordering: PatchOrdering::CanonicalCommitOrder,
             publication_mode: PatchPublicationMode::CommitNative,
             position: PatchStreamPosition(commit_id.0),
+            compatibility: match self.runtime.config.publication.patch_surface_policy {
+                crate::data::config::PatchSurfacePolicy::StructuredPatchSurface => {
+                    PatchCompatibilityClass::StructuredCompatible
+                }
+                crate::data::config::PatchSurfacePolicy::DensePatchSurface => {
+                    PatchCompatibilityClass::DenseCompatible
+                }
+            },
             records: patch_records,
         };
         if patch.records.len() > self.runtime.config.publication.max_patch_records_per_commit {
@@ -260,7 +291,18 @@ impl<'a> RelationalTransaction<'a> {
         self.runtime.entity_arena = staged.entity_arena;
         self.runtime.relation_arena = staged.relation_arena;
         self.runtime.adjacency = staged.adjacency;
-        self.runtime.restore_snapshot_pin_counters();
+        self.runtime.reverse_adjacency = staged.reverse_adjacency;
+        for entity_id in &artifacts.snapshot_state.pinned_entities {
+            self.runtime.pin_entity(*entity_id);
+        }
+        for relation_id in &artifacts.snapshot_state.pinned_relations {
+            self.runtime.pin_relation(*relation_id);
+        }
+        self.runtime
+            .snapshots
+            .insert(artifacts.snapshot.snapshot_id, artifacts.snapshot_state);
+        self.runtime
+            .trim_live_history_for_records(&changed_records, version_id);
         self.runtime.next_commit_id += 1;
         self.runtime.next_version_id += 1;
         self.runtime
@@ -280,6 +322,7 @@ impl<'a> RelationalTransaction<'a> {
             .push(crate::data::durability::DurableCommitEnvelope {
                 envelope: canonical_commit_envelope,
             });
+        self.runtime.compact_durable_log_if_needed();
         self.runtime.latest_publication_bundle = Some(artifacts.bundle.clone());
         self.runtime
             .push_diagnostic_artifact(artifacts.diagnostics_summary);
@@ -332,18 +375,18 @@ impl<'a> RelationalTransaction<'a> {
         })
     }
 
-    fn build_merged_plan(&self) -> Result<MergedCommitPlan, CommitConflict> {
+    fn build_merged_plan_for_state(
+        &mut self,
+        current_state: &WorkingState,
+    ) -> Result<MergedCommitPlan, CommitConflict> {
         let mut intents = self
             .batches
             .iter()
             .flat_map(|batch| batch.intents.iter().cloned())
             .collect::<Vec<_>>();
+        self.normalize_intents_for_merge(&mut intents);
         for intent in &intents {
-            validate_intent(
-                &self.runtime.current_state(),
-                &self.runtime.config.schema_registry,
-                intent,
-            )?;
+            validate_intent(current_state, &self.runtime.config.schema_registry, intent)?;
         }
         intents.sort_by_key(canonical_intent_key);
         detect_conflicting_updates(&intents)?;
@@ -359,7 +402,10 @@ impl<'a> RelationalTransaction<'a> {
     ) -> Result<(Vec<CommitId>, Vec<CommitId>), CommitConflict> {
         let mut parents = Vec::new();
         let mut merge_bases = Vec::new();
-        let target_head = self.runtime.branch_head(target_branch).map(|head| head.commit_id);
+        let target_head = self
+            .runtime
+            .branch_head(target_branch)
+            .map(|head| head.commit_id);
         if let Some(head) = self.runtime.branch_head(target_branch) {
             parents.push(head.commit_id);
         }
@@ -378,8 +424,19 @@ impl<'a> RelationalTransaction<'a> {
             };
             if !parents.contains(&head.commit_id) {
                 if let Some(target_head) = target_head {
-                    let Some(merge_base) =
-                        self.runtime.latest_common_ancestor(target_head, head.commit_id)
+                    let inspection = self.runtime.inspect_merge(&merge_branch, target_branch);
+                    if !inspection.conflicting_records.is_empty() {
+                        return Err(CommitConflict {
+                            code: DiagnosticCode::MergeConflictOverlap,
+                            detail: format!(
+                                "merge between {:?} and {:?} has overlapping authority on {:?}",
+                                merge_branch, target_branch, inspection.conflicting_records
+                            ),
+                        });
+                    }
+                    let Some(merge_base) = self
+                        .runtime
+                        .latest_common_ancestor(target_head, head.commit_id)
                     else {
                         return Err(CommitConflict {
                             code: DiagnosticCode::MissingMergeBase,
@@ -397,5 +454,96 @@ impl<'a> RelationalTransaction<'a> {
         merge_bases.sort_by_key(|commit_id| commit_id.0);
         merge_bases.dedup();
         Ok((parents, merge_bases))
+    }
+
+    fn normalize_intents_for_merge(&mut self, intents: &mut [TransactionIntent]) {
+        if self.runtime.config.symbol_policy == SymbolPolicy::Disabled {
+            return;
+        }
+
+        let mut interner = self.runtime.symbol_interner.borrow_mut();
+        let mut raw_values = Vec::new();
+        for intent in intents.iter() {
+            match intent {
+                TransactionIntent::CreateEntity(spec) => {
+                    if let InternedString::Raw(raw) = &spec.client_key {
+                        raw_values.push(raw.clone());
+                    }
+                }
+                TransactionIntent::BulkCreateEntities { client_keys, .. }
+                | TransactionIntent::BulkCreateRelations { client_keys, .. } => {
+                    for client_key in client_keys {
+                        if let InternedString::Raw(raw) = client_key {
+                            raw_values.push(raw.clone());
+                        }
+                    }
+                }
+                TransactionIntent::CreateRelation(spec) => {
+                    if let InternedString::Raw(raw) = &spec.client_key {
+                        raw_values.push(raw.clone());
+                    }
+                }
+                TransactionIntent::UpdateEntity { .. }
+                | TransactionIntent::DeleteEntity { .. }
+                | TransactionIntent::DeleteRelation { .. } => {}
+            }
+        }
+        raw_values.sort();
+        raw_values.dedup();
+        for raw in &raw_values {
+            interner.intern(raw);
+        }
+
+        for intent in intents {
+            match intent {
+                TransactionIntent::CreateEntity(spec) => {
+                    spec.client_key = normalize_interned_string(
+                        &mut interner,
+                        self.runtime.config.symbol_policy,
+                        spec.client_key.clone(),
+                    );
+                }
+                TransactionIntent::BulkCreateEntities { client_keys, .. } => {
+                    for client_key in client_keys {
+                        *client_key = normalize_interned_string(
+                            &mut interner,
+                            self.runtime.config.symbol_policy,
+                            client_key.clone(),
+                        );
+                    }
+                }
+                TransactionIntent::CreateRelation(spec) => {
+                    spec.client_key = normalize_interned_string(
+                        &mut interner,
+                        self.runtime.config.symbol_policy,
+                        spec.client_key.clone(),
+                    );
+                }
+                TransactionIntent::BulkCreateRelations { client_keys, .. } => {
+                    for client_key in client_keys {
+                        *client_key = normalize_interned_string(
+                            &mut interner,
+                            self.runtime.config.symbol_policy,
+                            client_key.clone(),
+                        );
+                    }
+                }
+                TransactionIntent::UpdateEntity { .. }
+                | TransactionIntent::DeleteEntity { .. }
+                | TransactionIntent::DeleteRelation { .. } => {}
+            }
+        }
+        self.runtime.config.symbol_table = interner.snapshot();
+    }
+}
+
+fn normalize_interned_string(
+    interner: &mut crate::data::symbols::StringInterner,
+    policy: SymbolPolicy,
+    value: InternedString,
+) -> InternedString {
+    match policy {
+        SymbolPolicy::Disabled => value,
+        SymbolPolicy::PreferInterned | SymbolPolicy::RequireInterned => interner.normalize(value),
     }
 }

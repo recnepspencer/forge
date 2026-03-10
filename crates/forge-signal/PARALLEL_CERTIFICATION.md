@@ -2,6 +2,8 @@
 
 This document is the release contract for the platform-grade parallel execution tranche in `forge-signal`.
 
+For the broader adversarial matrix that ties runtime promises to concrete test lanes, see [_docs/engineering/forge_signal_adversarial_testing_matrix.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_signal_adversarial_testing_matrix.md).
+
 ## Deterministic Guarantees
 
 The runtime guarantees that the following are deterministic for logically equivalent runs across serial, staged-parallel, and full-parallel execution:
@@ -78,6 +80,8 @@ The core-profile gate exists to catch serialization or runtime assumptions that 
 Fast required gates:
 
 - `bash scripts/ci/check_signal_failure_matrix.sh`
+- `bash scripts/ci/check_signal_contract_matrix.sh`
+- `bash scripts/ci/check_signal_resource_bounds.sh`
 - `bash scripts/ci/check_signal_core_profiles.sh`
 - `bash scripts/ci/check_signal_semantic_snapshots.sh "$DIR"`
 - `cargo test -p forge-signal --lib --features parallel adversarial_parallel -- --nocapture`

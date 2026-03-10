@@ -192,6 +192,23 @@ where
         self.telemetry = state.telemetry;
     }
 
+    fn synchronize_branch_catalogs(
+        &mut self,
+        branch_catalog: BTreeMap<SignalBranchId, SignalBranchHandle>,
+    ) {
+        let active_branch = self.graph.current_branch().id;
+        self.graph
+            .diagnostics_state_mut()
+            .synchronize_branch_catalog(branch_catalog.clone(), active_branch);
+        for state in self.branches.values_mut() {
+            let state_active_branch = state.graph.current_branch().id;
+            state
+                .graph
+                .diagnostics_state_mut()
+                .synchronize_branch_catalog(branch_catalog.clone(), state_active_branch);
+        }
+    }
+
     /// Explain the current node state using the best available artifact path.
     ///
     /// Depending on runtime policy this may use retained artifacts or
@@ -309,6 +326,8 @@ where
     pub fn capture_snapshot(&mut self) -> SignalSnapshotV1 {
         let mut snapshot = self.graph.capture_snapshot();
         snapshot.runtime_telemetry = Some(self.telemetry.clone());
+        let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
+        self.synchronize_branch_catalogs(branch_catalog);
         snapshot
     }
 
@@ -317,6 +336,8 @@ where
         if let Some(telemetry) = &snapshot.runtime_telemetry {
             self.telemetry = telemetry.clone();
         }
+        let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
+        self.synchronize_branch_catalogs(branch_catalog);
         Ok(())
     }
 
@@ -333,13 +354,7 @@ where
             .set_active_branch(handle.id);
         self.branches.insert(handle.id, branch_state);
         let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
-        for state in self.branches.values_mut() {
-            let active_branch = state.graph.current_branch().id;
-            state
-                .graph
-                .diagnostics_state_mut()
-                .synchronize_branch_catalog(branch_catalog.clone(), active_branch);
-        }
+        self.synchronize_branch_catalogs(branch_catalog);
         crate::diagnostics::recorder::record_snapshot_event(
             &mut self.graph,
             crate::diagnostics::replay::ReplayEventKind::BranchCreated,
@@ -371,6 +386,8 @@ where
         self.graph
             .diagnostics_state_mut()
             .set_active_branch(branch.id);
+        let branch_catalog = self.graph.diagnostics_state().branch_catalog().clone();
+        self.synchronize_branch_catalogs(branch_catalog);
         crate::diagnostics::recorder::record_snapshot_event(
             &mut self.graph,
             crate::diagnostics::replay::ReplayEventKind::BranchSwitched,
@@ -392,24 +409,36 @@ where
         if branch.id == self.graph.current_branch().id {
             return Ok(self.capture_snapshot());
         }
-        let Some(state) = self.branches.get(&branch.id) else {
-            return Err(SignalError::invalid_input(format!(
-                "unknown branch `{}`",
-                branch.name
-            )));
+        let (snapshot, branch_catalog) = {
+            let Some(state) = self.branches.get_mut(&branch.id) else {
+                return Err(SignalError::invalid_input(format!(
+                    "unknown branch `{}`",
+                    branch.name
+                )));
+            };
+            let policy = state.graph.runtime_policy();
+            let meta = state
+                .graph
+                .diagnostics_state_mut()
+                .allocate_snapshot_meta(policy);
+            state
+                .graph
+                .diagnostics_state_mut()
+                .set_branch_head_snapshot(branch.id, meta.snapshot_id);
+            let diagnostics = state.graph.diagnostics_state().snapshot_payload();
+            let graph_telemetry = state.graph.telemetry().clone();
+            let snapshot = SignalSnapshotV1 {
+                meta,
+                graph: state.graph.clone_stateful(),
+                diagnostics,
+                graph_telemetry,
+                runtime_telemetry: Some(state.telemetry.clone()),
+            };
+            let branch_catalog = state.graph.diagnostics_state().branch_catalog().clone();
+            (snapshot, branch_catalog)
         };
-        let policy = state.graph.runtime_policy();
-        let mut graph = state.graph.clone_stateful();
-        let meta = graph.diagnostics_state_mut().allocate_snapshot_meta(policy);
-        let diagnostics = graph.diagnostics_state().snapshot_payload();
-        let graph_telemetry = graph.telemetry().clone();
-        Ok(SignalSnapshotV1 {
-            meta,
-            graph,
-            diagnostics,
-            graph_telemetry,
-            runtime_telemetry: Some(state.telemetry.clone()),
-        })
+        self.synchronize_branch_catalogs(branch_catalog);
+        Ok(snapshot)
     }
 
     pub fn restore_branch_snapshot(
@@ -418,14 +447,34 @@ where
         snapshot: &SignalSnapshotV1,
     ) -> Result<(), SignalError> {
         self.graph.validate_snapshot_compatibility(snapshot)?;
+        if snapshot.meta.branch_id != branch.id {
+            return Err(SignalError::invalid_input(format!(
+                "snapshot branch `{}` is incompatible with target branch `{}`",
+                snapshot.meta.branch_name, branch.name
+            )));
+        }
         if branch.id == self.graph.current_branch().id {
             return self.restore_snapshot(snapshot);
         }
+        let current_diagnostics = self
+            .branches
+            .get(&branch.id)
+            .map(|state| state.graph.diagnostics_state().clone())
+            .ok_or_else(|| {
+                SignalError::invalid_input(format!("unknown branch `{}`", branch.name))
+            })?;
         let mut graph = snapshot.graph.clone();
         *graph.telemetry_mut() = snapshot.graph_telemetry.clone();
         graph
             .diagnostics_state_mut()
-            .restore_snapshot_payload(snapshot.diagnostics.clone());
+            .restore_snapshot_payload_preserving_history_from(
+                snapshot.diagnostics.clone(),
+                &current_diagnostics,
+            );
+        graph.diagnostics_state_mut().set_active_branch(branch.id);
+        graph
+            .diagnostics_state_mut()
+            .set_branch_head_snapshot(branch.id, snapshot.meta.snapshot_id);
         let state = RuntimeBranchState {
             graph,
             config: self.config.clone(),
@@ -440,7 +489,9 @@ where
             &mut state.graph,
             snapshot.meta.snapshot_id,
         );
+        let branch_catalog = state.graph.diagnostics_state().branch_catalog().clone();
         self.branches.insert(branch.id, state);
+        self.synchronize_branch_catalogs(branch_catalog);
         Ok(())
     }
 
@@ -460,12 +511,37 @@ where
         self.graph.branch_ancestry(branch_id)
     }
 
+    pub fn branch_head_snapshot_id(
+        &self,
+        branch_id: SignalBranchId,
+    ) -> Option<crate::state::SignalSnapshotId> {
+        self.graph.branch_head_snapshot_id(branch_id).or_else(|| {
+            self.branches
+                .get(&branch_id)
+                .and_then(|state| state.graph.branch_head_snapshot_id(branch_id))
+        })
+    }
+
     pub fn replay_for_branch(&self, branch_id: SignalBranchId) -> crate::diagnostics::ReplaySlice {
-        self.graph.replay_for_branch(branch_id)
+        if branch_id == self.graph.current_branch().id {
+            self.graph.replay_for_branch(branch_id)
+        } else {
+            self.branches
+                .get(&branch_id)
+                .map(|state| state.graph.replay_for_branch(branch_id))
+                .unwrap_or_default()
+        }
     }
 
     pub fn replay_for_node(&self, node: NodeId) -> crate::diagnostics::ReplaySlice {
         self.graph.replay_for_node(node)
+    }
+
+    pub fn replay_for_artifact(
+        &self,
+        artifact_id: crate::diagnostics::LineageArtifactId,
+    ) -> crate::diagnostics::ReplaySlice {
+        self.graph.replay_for_artifact(artifact_id)
     }
 
     pub fn replay_from_cursor(
@@ -473,6 +549,14 @@ where
         start: crate::diagnostics::ReplayCursor,
     ) -> crate::diagnostics::ReplaySlice {
         self.graph.replay_from_cursor(start)
+    }
+
+    pub fn replay_between(
+        &self,
+        start: crate::diagnostics::ReplayCursor,
+        end: crate::diagnostics::ReplayCursor,
+    ) -> crate::diagnostics::ReplaySlice {
+        self.graph.replay_between(start, end)
     }
 
     pub fn replay_around_snapshot(

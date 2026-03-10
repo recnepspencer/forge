@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::identity::VersionId;
+use crate::data::identity::{EntityId, RelationId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct CommitId(pub u64);
@@ -49,4 +50,23 @@ pub enum BranchCreateError {
 pub struct VersionGraphSnapshot {
     pub branches: Vec<BranchHead>,
     pub commits: Vec<VersionNode>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum MergeConflictRecord {
+    Entity(EntityId),
+    Relation(RelationId),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MergeInspection {
+    pub source_branch: BranchId,
+    pub target_branch: BranchId,
+    pub source_head: Option<CommitReference>,
+    pub target_head: Option<CommitReference>,
+    pub merge_base: Option<CommitId>,
+    pub source_only_commits: Vec<CommitId>,
+    pub target_only_commits: Vec<CommitId>,
+    pub conflicting_records: Vec<MergeConflictRecord>,
+    pub can_merge: bool,
 }

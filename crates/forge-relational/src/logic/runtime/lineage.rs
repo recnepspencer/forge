@@ -4,8 +4,8 @@ use crate::data::diagnostics::{
 use crate::data::history::{BranchId, CommitReference};
 use crate::data::identity::{EntityId, LineageId};
 use crate::data::lineage::{
-    CorrespondenceCandidate, CorrespondenceResolution, LineageEventKind, LineageEventRecord,
-    LineageGraphSnapshot, LineageNode, LineageResolutionStatus,
+    CorrespondenceCandidate, CorrespondenceResolution, LineageDivergenceSummary, LineageEventKind,
+    LineageEventRecord, LineageGraphSnapshot, LineageNode, LineageResolutionStatus,
 };
 use crate::data::transaction::RecordRef;
 use crate::logic::runtime::state::WorkingState;
@@ -32,8 +32,54 @@ impl RelationalRuntime {
         }
     }
 
+    pub fn lineage_divergence_between_branches(
+        &self,
+        left_branch: &BranchId,
+        right_branch: &BranchId,
+    ) -> LineageDivergenceSummary {
+        let left_graph = self.lineage_graph(left_branch);
+        let right_graph = self.lineage_graph(right_branch);
+        let left_event_ids = left_graph
+            .events
+            .iter()
+            .map(|event| event.event_id)
+            .collect::<std::collections::BTreeSet<_>>();
+        let right_event_ids = right_graph
+            .events
+            .iter()
+            .map(|event| event.event_id)
+            .collect::<std::collections::BTreeSet<_>>();
+        let shared_lineage_ids = left_graph
+            .nodes
+            .iter()
+            .map(|node| node.lineage_id)
+            .collect::<std::collections::BTreeSet<_>>()
+            .intersection(
+                &right_graph
+                    .nodes
+                    .iter()
+                    .map(|node| node.lineage_id)
+                    .collect::<std::collections::BTreeSet<_>>(),
+            )
+            .copied()
+            .collect::<Vec<_>>();
+        LineageDivergenceSummary {
+            left_branch: left_branch.clone(),
+            right_branch: right_branch.clone(),
+            left_only_event_ids: left_event_ids
+                .difference(&right_event_ids)
+                .copied()
+                .collect(),
+            right_only_event_ids: right_event_ids
+                .difference(&left_event_ids)
+                .copied()
+                .collect(),
+            shared_lineage_ids,
+        }
+    }
+
     pub fn lineage_for_record(&self, entity_id: EntityId) -> Option<&LineageNode> {
-        let slot = entity_id.slot.0 as usize;
+        let slot = entity_id.local_slot.0 as usize;
         let lineage_id = self.entity_arena.lineage_ids.get(slot).copied().flatten()?;
         self.lineage_nodes.get(&lineage_id)
     }
@@ -140,7 +186,7 @@ impl RelationalRuntime {
             let RecordRef::Entity(entity_id) = record else {
                 continue;
             };
-            let slot = entity_id.slot.0 as usize;
+            let slot = entity_id.local_slot.0 as usize;
             if staged.entity_arena.created_at[slot] != commit.version_id {
                 continue;
             }

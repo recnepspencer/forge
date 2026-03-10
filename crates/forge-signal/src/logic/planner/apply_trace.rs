@@ -17,6 +17,7 @@ pub(super) fn build_trace_summary(
     result: &NodeEvaluationResult,
     snapshot: &DependencySnapshot,
     output_identity_unchanged: bool,
+    continuity_token_unchanged: bool,
     execution_metadata: Option<EvaluationExecutionMetadata>,
     recomputed: bool,
 ) -> Result<TraceSummary, SignalError> {
@@ -42,10 +43,13 @@ pub(super) fn build_trace_summary(
             .map(trace_identity_hash)
             .unwrap_or_else(|| trace_output_hash(result.aspect_version)),
         output_identity: result.output_identity.clone(),
+        continuity_token: result.continuity_token.clone(),
         output_change: normalize_output_change(
             result.output_change,
             output_identity_unchanged,
+            continuity_token_unchanged,
             result.output_identity.is_some(),
+            result.continuity_token.is_some(),
         ),
         recomputed,
         dependency_count: snapshot.entries().len() as u32,
@@ -105,9 +109,13 @@ fn count_meaningful_input_changes(
 fn normalize_output_change(
     declared: OutputChange,
     output_identity_unchanged: bool,
+    continuity_token_unchanged: bool,
     has_output_identity: bool,
+    has_continuity_token: bool,
 ) -> OutputChange {
-    if has_output_identity && output_identity_unchanged {
+    if (has_output_identity && output_identity_unchanged)
+        || (has_continuity_token && continuity_token_unchanged)
+    {
         OutputChange::Unchanged
     } else {
         declared

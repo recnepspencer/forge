@@ -43,6 +43,9 @@ pub(super) fn apply_evaluation_result_with_policy(
     let previous_output_identity = previous_trace
         .as_ref()
         .and_then(|trace| trace.output_identity.clone());
+    let previous_continuity_token = previous_trace
+        .as_ref()
+        .and_then(|trace| trace.continuity_token.clone());
     let comparator = {
         let entry = graph.get_entry(node)?;
         comparator_resolver.policy_for_node(node, entry.get_eval_config().comparator.as_ref())
@@ -52,6 +55,10 @@ pub(super) fn apply_evaluation_result_with_policy(
         (&previous_output_identity, &result.output_identity),
         (Some(previous), Some(current)) if previous == current
     );
+    let continuity_token_unchanged = matches!(
+        (&previous_continuity_token, &result.continuity_token),
+        (Some(previous), Some(current)) if previous == current
+    );
     let propagation_suppressed = matches!(
         comparator,
         crate::data::comparator::VersionComparatorPolicy::OutputIdentity
@@ -59,7 +66,9 @@ pub(super) fn apply_evaluation_result_with_policy(
     let output_change = normalize_output_change(
         result.output_change,
         output_identity_unchanged,
+        continuity_token_unchanged,
         result.output_identity.is_some(),
+        result.continuity_token.is_some(),
     );
     let meaningful_input_changes = count_meaningful_input_changes(graph, node)?;
     let snapshot = build_dep_snapshot(graph, node)?;
@@ -86,6 +95,7 @@ pub(super) fn apply_evaluation_result_with_policy(
             .map(trace_identity_hash)
             .unwrap_or_else(|| trace_output_hash(result.aspect_version)),
         output_identity: result.output_identity.clone(),
+        continuity_token: result.continuity_token.clone(),
         output_change,
         recomputed,
         dependency_count: snapshot.entries().len() as u32,
@@ -190,9 +200,13 @@ fn count_meaningful_input_changes(graph: &SignalGraph, node: NodeId) -> Result<u
 fn normalize_output_change(
     declared: OutputChange,
     output_identity_unchanged: bool,
+    continuity_token_unchanged: bool,
     has_output_identity: bool,
+    has_continuity_token: bool,
 ) -> OutputChange {
-    if has_output_identity && output_identity_unchanged {
+    if (has_output_identity && output_identity_unchanged)
+        || (has_continuity_token && continuity_token_unchanged)
+    {
         OutputChange::Unchanged
     } else {
         declared

@@ -90,6 +90,8 @@ bash scripts/ci/run_signal_local_certification.sh full
 
 - `bash scripts/ci/check_signal_core_profiles.sh`
 - `bash scripts/ci/check_signal_failure_matrix.sh`
+- `bash scripts/ci/check_signal_contract_matrix.sh`
+- `bash scripts/ci/check_signal_resource_bounds.sh`
 - `bash scripts/ci/check_signal_semantic_snapshots.sh "$DIR"`
 - `bash scripts/ci/check_signal_parallel_determinism_cert.sh 2 "$DIR"`
 - `bash scripts/ci/run_signal_perf_lane.sh`
@@ -98,6 +100,10 @@ bash scripts/ci/run_signal_local_certification.sh full
 
 - `core_profiles`: build-profile assumptions are not accidentally hard-coded
 - `failure_matrix`: rollback/failure paths do not leak semantic artifacts
+- `contract_matrix`: the runtime’s major semantic promises each have a direct adversarial lane
+- `resource_bounds`: churn, GC, retention, and restore loops stay bounded instead of quietly accumulating stale state
 - `semantic_snapshots`: serial/staged/full-parallel stay byte-stable under each runtime policy
 - `determinism_cert`: stability holds across repeated runs and hostile ignored loops
 - `perf_lane`: phase costs and admission reasons are inspectable instead of guessed
+
+The durable matrix that ties those scripts back to the signal vision lives in [_docs/engineering/forge_signal_adversarial_testing_matrix.md](/Users/spenstar/Documents/programming/forge%20workspace/Forge/_docs/engineering/forge_signal_adversarial_testing_matrix.md).

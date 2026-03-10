@@ -223,8 +223,14 @@ fn apply_target_local_updates(
             result.labels.extend(prepared.trace_data.labels.clone());
             let previous_output_identity =
                 previous_trace.and_then(|trace| trace.output_identity.clone());
+            let previous_continuity_token =
+                previous_trace.and_then(|trace| trace.continuity_token.clone());
             let output_identity_unchanged = matches!(
                 (&previous_output_identity, &result.output_identity),
+                (Some(previous), Some(current)) if previous == current
+            );
+            let continuity_token_unchanged = matches!(
+                (&previous_continuity_token, &result.continuity_token),
                 (Some(previous), Some(current)) if previous == current
             );
             entry.set_aspect_version(result.aspect_version);
@@ -234,6 +240,7 @@ fn apply_target_local_updates(
                 &result,
                 snapshot,
                 output_identity_unchanged,
+                continuity_token_unchanged,
                 execution_metadata_for(prepared),
                 !matches!(prepared.origin, PreparedEvaluationOrigin::MemoizedReuse),
             )?));

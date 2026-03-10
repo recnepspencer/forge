@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::data::config::{CascadeDeletePolicy, CrossContextPolicy};
 use crate::data::identity::KindId;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -9,6 +10,12 @@ pub struct SchemaId(pub String);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct SchemaVersionId(pub u32);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum RelationPayloadClass {
+    TopologyOnlyRelation,
+    PayloadBearingRelation,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EntityKindRegistration {
@@ -24,6 +31,9 @@ pub struct RelationKindRegistration {
     pub kind_name: String,
     pub schema_id: SchemaId,
     pub schema_version_id: SchemaVersionId,
+    pub payload_class: RelationPayloadClass,
+    pub cross_context_policy: CrossContextPolicy,
+    pub cascade_delete_policy: CascadeDeletePolicy,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -104,6 +114,15 @@ impl RelationalSchemaRegistry {
                 schema_id: registration.schema_id.clone(),
                 schema_version_id: registration.schema_version_id,
             })
+            .ok_or(SchemaRegistryError::UnknownRelationKind(kind_id))
+    }
+
+    pub fn relation_registration(
+        &self,
+        kind_id: KindId,
+    ) -> Result<&RelationKindRegistration, SchemaRegistryError> {
+        self.relation_kinds
+            .get(&kind_id)
             .ok_or(SchemaRegistryError::UnknownRelationKind(kind_id))
     }
 }
