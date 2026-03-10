@@ -72,10 +72,12 @@ fn durability_contract_failure_missing_parent_chain_is_explicit() {
         .unwrap();
     let corrupt_plan = RecoveryPlan {
         config: runtime.config().clone(),
-        store: runtime.config().durable_store_layout.clone().map(|layout| crate::facade::DurableStore {
-            layout,
-            segments: Vec::new(),
-            checkpoints: Vec::new(),
+        store: runtime.config().durable_store_layout.clone().map(|layout| {
+            crate::facade::DurableStore {
+                layout,
+                segments: Vec::new(),
+                checkpoints: Vec::new(),
+            }
         }),
         checkpoint_manifest: None,
         checkpoint: None,
@@ -259,16 +261,17 @@ fn durability_contract_corrupt_latest_checkpoint_falls_back_to_prior_valid_check
     let outcome = recovered.recover(plan).unwrap();
 
     assert_eq!(outcome.latest_commit, Some(second.commit.clone()));
-    assert!(!outcome.integrity_report.skipped_corrupt_checkpoints.is_empty());
+    assert!(!outcome
+        .integrity_report
+        .skipped_corrupt_checkpoints
+        .is_empty());
     assert_eq!(
         recovered.branch_head(&BranchId("main".to_string())),
         Some(&second.commit)
     );
-    assert!(
-        recovered
-            .canonical_commit_envelope(first.commit.commit_id)
-            .is_some()
-    );
+    assert!(recovered
+        .canonical_commit_envelope(first.commit.commit_id)
+        .is_some());
 }
 
 #[test]

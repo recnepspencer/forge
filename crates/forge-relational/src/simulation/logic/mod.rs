@@ -23,7 +23,7 @@ impl RelationalRuntime {
                 detail: "compiled execution lane is disabled for this profile".to_string(),
             });
         }
-        let Some(envelope) = self.commit_envelopes.get(&commit_id).cloned() else {
+        let Some(envelope) = self.history.commit_envelopes.get(&commit_id).cloned() else {
             return Err(CompiledArtifactError {
                 compatibility: CompiledArtifactCompatibility::MissingSourceCommit,
                 detail: format!("missing source commit {}", commit_id.0),
@@ -33,7 +33,7 @@ impl RelationalRuntime {
         partition_ids.dedup();
         let compiled_record_count = envelope.patch.records.len();
         let artifact = CompiledExecutionArtifact {
-            artifact_id: self.next_compiled_artifact_id,
+            artifact_id: self.simulation.next_compiled_artifact_id,
             source_commit_id: commit_id,
             source_version_id: envelope.commit.version_id,
             source_branch_id: envelope.branch_context.clone(),
@@ -41,8 +41,9 @@ impl RelationalRuntime {
             topology_freeze_mode: TopologyFreezeMode::FreezeAtCommit,
             compiled_record_count,
         };
-        self.next_compiled_artifact_id += 1;
-        self.compiled_artifacts
+        self.simulation.next_compiled_artifact_id += 1;
+        self.simulation
+            .compiled_artifacts
             .insert(artifact.artifact_id, artifact.clone());
         self.push_bounded_diagnostic(
             DiagnosticsScope::History,
@@ -63,7 +64,7 @@ impl RelationalRuntime {
     }
 
     pub fn compiled_artifact(&self, artifact_id: u64) -> Option<&CompiledExecutionArtifact> {
-        self.compiled_artifacts.get(&artifact_id)
+        self.simulation.compiled_artifacts.get(&artifact_id)
     }
 
     pub fn compiled_artifact_compatibility(
@@ -73,10 +74,14 @@ impl RelationalRuntime {
         if self.config.compiled_lane_policy != CompiledLanePolicy::DerivedCompiledLane {
             return CompiledArtifactCompatibility::CompiledLaneDisabled;
         }
-        let Some(artifact) = self.compiled_artifacts.get(&artifact_id) else {
+        let Some(artifact) = self.simulation.compiled_artifacts.get(&artifact_id) else {
             return CompiledArtifactCompatibility::MissingSourceCommit;
         };
-        let Some(commit) = self.commit_envelopes.get(&artifact.source_commit_id) else {
+        let Some(commit) = self
+            .history
+            .commit_envelopes
+            .get(&artifact.source_commit_id)
+        else {
             return CompiledArtifactCompatibility::MissingSourceCommit;
         };
         if commit.commit.version_id != artifact.source_version_id {

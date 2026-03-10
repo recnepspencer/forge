@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
@@ -13,16 +13,146 @@ use crate::logic::runtime::{IndexedReadOutcome, RelationalReadView, RelationalRu
 use crate::payloads::data::RecordPayload;
 use crate::query::data::QueryWorkPacket;
 use crate::snapshots::data::SnapshotHandle;
+use crate::storage::logic::state::PartitionAccess;
 use serde_json::json;
 
 impl RelationalRuntime {
+    pub(crate) fn refresh_unique_field_index_for_records(
+        &mut self,
+        changed_records: &[crate::transactions::data::RecordRef],
+        version_id: crate::identity::data::VersionId,
+    ) {
+        let tracked_fields = self.tracked_unique_entity_fields();
+        if tracked_fields.is_empty() {
+            return;
+        }
+        let state = self.current_state();
+        let mut refreshed_values = Vec::new();
+        for record in changed_records {
+            let crate::transactions::data::RecordRef::Entity(entity_id) = record else {
+                continue;
+            };
+            for field in &tracked_fields {
+                if let Some(payload) = crate::validation::logic::entity_payload_for_state(
+                    &state, *entity_id, version_id,
+                ) {
+                    if let Some(value) = payload
+                        .as_json()
+                        .and_then(|value| value.get(field))
+                        .and_then(|value| value.as_str())
+                    {
+                        refreshed_values.push((field.clone(), value.to_string(), *entity_id));
+                    }
+                }
+            }
+        }
+        for record in changed_records {
+            let crate::transactions::data::RecordRef::Entity(entity_id) = record else {
+                continue;
+            };
+            for field in &tracked_fields {
+                if let Some(values) = self.indexes.entity_unique_field_index.get_mut(field) {
+                    values.retain(|_, entity_ids| {
+                        entity_ids.remove(entity_id);
+                        !entity_ids.is_empty()
+                    });
+                }
+            }
+        }
+        for (field, value, entity_id) in refreshed_values {
+            self.indexes
+                .entity_unique_field_index
+                .entry(field)
+                .or_default()
+                .entry(value)
+                .or_default()
+                .insert(entity_id);
+        }
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn rebuild_unique_field_indexes(&mut self) {
+        self.indexes.entity_unique_field_index.clear();
+        let tracked_fields = self.tracked_unique_entity_fields();
+        if tracked_fields.is_empty() {
+            return;
+        }
+        let state = self.current_state();
+        let version_id = self.current_version_id();
+        let mut rebuilt_values = Vec::new();
+        for partition_id in state.partition_ids() {
+            let partition = state
+                .get_partition(partition_id)
+                .expect("partition for unique field rebuild");
+            for slot in 0..partition.entity_arena.generations.len() {
+                if partition.entity_arena.lifecycle[slot]
+                    == crate::storage::data::RecordLifecycleState::Reusable
+                {
+                    continue;
+                }
+                let entity_id = crate::identity::data::EntityId::new(
+                    partition_id,
+                    slot as u64,
+                    partition.entity_arena.generations[slot],
+                );
+                if let Some(payload) = crate::validation::logic::entity_payload_for_state(
+                    &state, entity_id, version_id,
+                ) {
+                    for field in &tracked_fields {
+                        if let Some(value) = payload
+                            .as_json()
+                            .and_then(|value| value.get(field))
+                            .and_then(|value| value.as_str())
+                        {
+                            rebuilt_values.push((field.clone(), value.to_string(), entity_id));
+                        }
+                    }
+                }
+            }
+        }
+        for (field, value, entity_id) in rebuilt_values {
+            self.indexes
+                .entity_unique_field_index
+                .entry(field)
+                .or_default()
+                .entry(value)
+                .or_default()
+                .insert(entity_id);
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn rebuild_unique_field_indexes_for_test(&mut self) {
+        self.rebuild_unique_field_indexes();
+    }
+
+    fn tracked_unique_entity_fields(&self) -> BTreeSet<String> {
+        let mut fields = BTreeSet::new();
+        for rules in [
+            &self.config.invariant_catalog.always_on_structural,
+            &self.config.invariant_catalog.commit_boundary,
+            &self.config.invariant_catalog.snapshot_audit,
+            &self.config.invariant_catalog.harness_heavy,
+        ] {
+            for rule in rules {
+                if let crate::validation::data::InvariantRule::UniqueEntityPayloadField(field) =
+                    rule
+                {
+                    fields.insert(field.clone());
+                }
+            }
+        }
+        fields
+    }
+
     pub fn register_index(
         &mut self,
         mut definition: DerivedIndexDefinition,
     ) -> DerivedIndexDefinition {
-        definition.index_id = DerivedIndexId(self.next_index_id);
-        self.next_index_id += 1;
-        self.index_definitions
+        definition.index_id = DerivedIndexId(self.indexes.next_index_id);
+        self.indexes.next_index_id += 1;
+        self.indexes
+            .definitions
             .insert(definition.index_id, definition.clone());
         definition
     }
@@ -33,7 +163,7 @@ impl RelationalRuntime {
     ) -> DerivedIndexBuildOutcome {
         let mut generations = Vec::new();
         let mut failed_indexes = Vec::new();
-        let Some(commit) = self.commit_envelopes.get(&request.source_commit_id) else {
+        let Some(commit) = self.history.commit_envelopes.get(&request.source_commit_id) else {
             return DerivedIndexBuildOutcome {
                 source_commit_id: request.source_commit_id,
                 generations,
@@ -42,14 +172,14 @@ impl RelationalRuntime {
         };
         let read = self.read_version(commit.commit.version_id);
         for index_id in request.index_ids {
-            let Some(definition) = self.index_definitions.get(&index_id).cloned() else {
+            let Some(definition) = self.indexes.definitions.get(&index_id).cloned() else {
                 failed_indexes.push(index_id);
                 continue;
             };
             match self.build_index_payload(&definition, &read) {
                 Some(payload) => {
                     let generation = DerivedIndexGeneration {
-                        generation_id: DerivedIndexGenerationId(self.next_index_generation_id),
+                        generation_id: DerivedIndexGenerationId(self.indexes.next_generation_id),
                         index_id,
                         source_commit_id: request.source_commit_id,
                         source_branch_id: request.branch_id.clone(),
@@ -61,8 +191,9 @@ impl RelationalRuntime {
                         status: DerivedIndexPublicationStatus::Published,
                         payload,
                     };
-                    self.next_index_generation_id += 1;
-                    self.index_generations
+                    self.indexes.next_generation_id += 1;
+                    self.indexes
+                        .generations
                         .entry(index_id)
                         .or_default()
                         .push(generation.clone());
@@ -106,8 +237,9 @@ impl RelationalRuntime {
         index_id: DerivedIndexId,
         branch_id: &BranchId,
     ) -> Option<&DerivedIndexGeneration> {
-        let definition = self.index_definitions.get(&index_id)?;
-        self.index_generations
+        let definition = self.indexes.definitions.get(&index_id)?;
+        self.indexes
+            .generations
             .get(&index_id)
             .and_then(|generations| {
                 generations.iter().rev().find(|generation| {
@@ -121,7 +253,8 @@ impl RelationalRuntime {
         version_id: crate::identity::data::VersionId,
     ) -> Vec<DerivedIndexGeneration> {
         let mut generations = self
-            .index_generations
+            .indexes
+            .generations
             .values()
             .flat_map(|generations| generations.iter())
             .filter(|generation| generation.compatibility.version_id <= version_id)
@@ -199,11 +332,12 @@ impl RelationalRuntime {
             .iter()
             .map(|generation| generation.generation_id.0)
             .collect::<Vec<_>>();
-        if let Some(envelope) = self.commit_envelopes.get_mut(&commit_id) {
+        if let Some(envelope) = self.history.commit_envelopes.get_mut(&commit_id) {
             envelope.index_generation_ids.extend(ids.iter().copied());
         }
         if let Some(log_entry) = self
-            .durable_log
+            .durability
+            .log
             .iter_mut()
             .find(|entry| entry.envelope.commit.commit_id == commit_id)
         {
@@ -218,7 +352,8 @@ impl RelationalRuntime {
         &self,
         version_id: crate::identity::data::VersionId,
     ) -> Option<BranchId> {
-        self.commit_graph
+        self.history
+            .commit_graph
             .values()
             .find(|node| node.commit.version_id == version_id)
             .map(|node| node.commit.branch_id.clone())
@@ -229,13 +364,15 @@ impl RelationalRuntime {
         branch_id: &BranchId,
         version_id: crate::identity::data::VersionId,
     ) -> Vec<&DerivedIndexGeneration> {
-        self.index_generations
+        self.indexes
+            .generations
             .values()
             .flat_map(|generations| generations.iter())
             .filter(|generation| {
                 generation.compatibility.version_id <= version_id
                     && self
-                        .index_definitions
+                        .indexes
+                        .definitions
                         .get(&generation.index_id)
                         .is_some_and(|definition| {
                             !definition.branch_scoped

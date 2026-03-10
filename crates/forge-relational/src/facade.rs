@@ -13,6 +13,7 @@ pub use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
     RelationalDiagnosticArtifact, RelationalDiagnosticsEntry, RelationalDiagnosticsProfile,
 };
+pub use crate::diagnostics::facade::RelationalDiagnosticsFacade;
 pub use crate::durability::data::{
     CheckpointCoverage, CompactionOutcome, CompactionPlan, CompactionPolicy, DurabilityError,
     DurabilityMode, DurableCheckpoint, DurableCheckpointId, DurableCheckpointManifest,
@@ -48,9 +49,9 @@ pub use crate::logic::runtime::{
     CompiledArtifactError, CompiledExecutionArtifact, ComplexityContract, ComplexityStatus,
     EntityReadRecord, InvariantCatalog, InvariantCheckResult, InvariantClass,
     InvariantExecutionPoint, InvariantFailureEffect, InvariantRule, PacketResult,
-    PartitionStorageStats, RelationReadRecord, RelationalDiagnosticsFacade, RelationalReadView,
-    RelationalReplayRecord, RelationalRuntime, RelationalRuntimeConfig, ReplaySchemaVersion,
-    RuntimeComplexityCounters, StorageInvariantReport, StorageStats, TopologyFreezeMode,
+    PartitionStorageStats, RelationReadRecord, RelationalReadView, RelationalReplayRecord,
+    RelationalRuntime, RelationalRuntimeConfig, ReplaySchemaVersion, RuntimeComplexityCounters,
+    StorageInvariantReport, StorageStats, TopologyFreezeMode,
 };
 pub use crate::payloads::data::{
     PayloadClass, PayloadCompatibility, PayloadEncoding, PayloadPolicy, RecordPayload,

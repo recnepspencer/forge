@@ -60,4 +60,7 @@ cargo test -p forge-relational publication_bundle_is_the_single_visible_commit_s
 echo "[relational-contract-matrix] complexity budgets"
 bash scripts/ci/check_relational_complexity_budgets.sh
 
+echo "[relational-contract-matrix] structural line caps"
+bash scripts/ci/check_relational_line_caps.sh
+
 echo "[relational-contract-matrix] PASS"

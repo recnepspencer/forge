@@ -1,0 +1,8 @@
+# Temporary explicit debt. These files still exceed the 400-line cap and must be split.
+crates/forge-relational/src/durability/logic/mod.rs
+crates/forge-relational/src/logic/runtime/apply.rs
+crates/forge-relational/src/presentation/harness.rs
+crates/forge-relational/src/storage/logic/state.rs
+crates/forge-relational/src/tests/mod.rs
+crates/forge-relational/src/transactions/logic/mod.rs
+crates/forge-relational/src/validation/logic/mod.rs

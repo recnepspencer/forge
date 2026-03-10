@@ -41,14 +41,23 @@ fn whole_partition_changes_match_partition_and_detail_subscribers_under_permutat
     let mut graph = SignalGraph::new();
     let upstream = graph.node().partitioned_output().build();
     let downstream = graph.node().build();
-    graph.add_partition_detail_dependency(downstream, upstream, ASPECT_A, "wing", "left")
+    graph
+        .add_partition_detail_dependency(downstream, upstream, ASPECT_A, "wing", "left")
         .unwrap();
-    graph.get_entry_mut(upstream).unwrap().set_state(NodeState::Clean);
-    graph.get_entry_mut(upstream)
+    graph
+        .get_entry_mut(upstream)
+        .unwrap()
+        .set_state(NodeState::Clean);
+    graph
+        .get_entry_mut(upstream)
         .unwrap()
         .set_dirty_aspects(AspectMask::EMPTY);
-    graph.get_entry_mut(downstream).unwrap().set_state(NodeState::Clean);
-    graph.get_entry_mut(downstream)
+    graph
+        .get_entry_mut(downstream)
+        .unwrap()
+        .set_state(NodeState::Clean);
+    graph
+        .get_entry_mut(downstream)
         .unwrap()
         .set_dirty_aspects(AspectMask::EMPTY);
 
@@ -64,18 +73,28 @@ fn whole_partition_changes_match_partition_and_detail_subscribers_under_permutat
             before, after,
             "whole-partition or matching detail changes must invalidate detail subscribers"
         );
-        graph.get_entry_mut(downstream).unwrap().set_state(NodeState::Clean);
-        graph.get_entry_mut(downstream)
+        graph
+            .get_entry_mut(downstream)
+            .unwrap()
+            .set_state(NodeState::Clean);
+        graph
+            .get_entry_mut(downstream)
             .unwrap()
             .set_dirty_aspects(AspectMask::EMPTY);
-        graph.get_entry_mut(downstream)
+        graph
+            .get_entry_mut(downstream)
             .unwrap()
             .clear_dirty_partition_scopes();
-        graph.get_entry_mut(upstream).unwrap().set_state(NodeState::Clean);
-        graph.get_entry_mut(upstream)
+        graph
+            .get_entry_mut(upstream)
+            .unwrap()
+            .set_state(NodeState::Clean);
+        graph
+            .get_entry_mut(upstream)
             .unwrap()
             .set_dirty_aspects(AspectMask::EMPTY);
-        graph.get_entry_mut(upstream)
+        graph
+            .get_entry_mut(upstream)
             .unwrap()
             .clear_dirty_partition_scopes();
     }
@@ -103,7 +122,9 @@ fn continuity_token_does_not_hide_real_identity_change_across_permutations() {
 
     let lineage = graph.lineage_for_node(source);
     assert!(
-        lineage.iter().any(|record| record.event == LineageEvent::Replaced),
+        lineage
+            .iter()
+            .any(|record| record.event == LineageEvent::Replaced),
         "matching continuity tokens must not suppress real output-identity replacement"
     );
 }

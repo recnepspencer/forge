@@ -47,7 +47,7 @@ impl RelationalRuntime {
         handle: &crate::snapshots::data::SnapshotHandle,
         packet: &QueryWorkPacket,
     ) -> Option<ReadPacketPlan> {
-        self.snapshots.get(&handle.snapshot_id)?;
+        self.snapshots.active.get(&handle.snapshot_id)?;
         let mut entity_chunk_indexes = Vec::new();
         let mut relation_chunk_indexes = Vec::new();
 
@@ -180,9 +180,21 @@ fn summarize_current_entity_chunks(
     summarize_current_chunks(
         partition.entity_arena.generations.len(),
         chunk_size,
-        |start, end| partition.entity_arena.live_bitset.count_ones_in_range(start, end),
+        |start, end| {
+            partition
+                .entity_arena
+                .live_bitset
+                .count_ones_in_range(start, end)
+        },
         |slot| partition.entity_arena.created_at.get(slot).copied(),
-        |slot| partition.entity_arena.retired_at.get(slot).copied().flatten(),
+        |slot| {
+            partition
+                .entity_arena
+                .retired_at
+                .get(slot)
+                .copied()
+                .flatten()
+        },
         |slot| partition.entity_arena.lifecycle.get(slot).copied(),
     )
 }
@@ -194,9 +206,21 @@ fn summarize_current_relation_chunks(
     summarize_current_chunks(
         partition.relation_arena.generations.len(),
         chunk_size,
-        |start, end| partition.relation_arena.live_bitset.count_ones_in_range(start, end),
+        |start, end| {
+            partition
+                .relation_arena
+                .live_bitset
+                .count_ones_in_range(start, end)
+        },
         |slot| partition.relation_arena.created_at.get(slot).copied(),
-        |slot| partition.relation_arena.retired_at.get(slot).copied().flatten(),
+        |slot| {
+            partition
+                .relation_arena
+                .retired_at
+                .get(slot)
+                .copied()
+                .flatten()
+        },
         |slot| partition.relation_arena.lifecycle.get(slot).copied(),
     )
 }

@@ -2,7 +2,7 @@ use serde_json::json;
 
 use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticsArtifactKind, DiagnosticsScope,
-    RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
+    RelationalDiagnosticArtifact, RelationalDiagnosticsEntry, RelationalDiagnosticsFacade,
 };
 use crate::logic::runtime::{RelationalReplayRecord, RelationalRuntime, ReplaySchemaVersion};
 use crate::publication::data::{PublicationBundle, PublicationStatus};
@@ -15,8 +15,32 @@ use crate::storage::logic::state::{
 };
 
 impl RelationalRuntime {
+    pub fn diagnostics(&self) -> RelationalDiagnosticsFacade {
+        RelationalDiagnosticsFacade {
+            artifacts: self.publication.diagnostics.clone(),
+        }
+    }
+
+    pub fn latest_publication_bundle(&self) -> Option<&PublicationBundle<RelationalReplayRecord>> {
+        self.publication.latest_bundle.as_ref()
+    }
+
+    pub fn latest_patch(&self) -> Option<&crate::publication::data::diff::RelationalPatchRecord> {
+        self.publication
+            .latest_bundle
+            .as_ref()
+            .map(|bundle| &bundle.patch)
+    }
+
+    pub fn latest_replay(&self) -> Option<&RelationalReplayRecord> {
+        self.publication
+            .latest_bundle
+            .as_ref()
+            .map(|bundle| &bundle.replay)
+    }
+
     pub(crate) fn push_diagnostic_artifact(&mut self, artifact: RelationalDiagnosticArtifact) {
-        self.diagnostics.push(artifact);
+        self.publication.diagnostics.push(artifact);
     }
 
     pub(crate) fn push_bounded_diagnostic(
@@ -44,8 +68,8 @@ impl RelationalRuntime {
         patch: crate::publication::data::diff::RelationalPatchRecord,
         diagnostics_summary: RelationalDiagnosticArtifact,
     ) -> PublicationArtifacts {
-        let snapshot_id = SnapshotId(self.next_snapshot_id);
-        self.next_snapshot_id += 1;
+        let snapshot_id = SnapshotId(self.snapshots.next_snapshot_id);
+        self.snapshots.next_snapshot_id += 1;
         let snapshot = SnapshotHandle {
             snapshot_id,
             version_id,

@@ -271,7 +271,10 @@ fn complexity_contract_visibility_scans_are_explicitly_measured() {
     let historical_version_counters = runtime.complexity_counters();
 
     assert_eq!(historical_version_counters.visibility_entity_slot_scans, 0);
-    assert_eq!(historical_version_counters.visibility_relation_slot_scans, 0);
+    assert_eq!(
+        historical_version_counters.visibility_relation_slot_scans,
+        0
+    );
 }
 
 #[test]

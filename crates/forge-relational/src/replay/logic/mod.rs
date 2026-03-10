@@ -3,8 +3,8 @@ use std::collections::BTreeSet;
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
-use crate::history::data::{BranchId, CommitId};
 use crate::durability::data::{DurableCommitEnvelope, RecoveryPlan};
+use crate::history::data::{BranchId, CommitId};
 use crate::replay::data::{
     CanonicalCommitEnvelope, RelationalReplayOutcome, RelationalReplayRequest, ReplayExecutionMode,
     ReplayFailureClass, ReplayMismatch, ReplayObservableSurface,
@@ -18,11 +18,16 @@ impl RelationalRuntime {
         &self,
         commit_id: CommitId,
     ) -> Option<&CanonicalCommitEnvelope> {
-        self.commit_envelopes.get(&commit_id)
+        self.history.commit_envelopes.get(&commit_id)
     }
 
     pub fn replay_commit(&mut self, request: RelationalReplayRequest) -> RelationalReplayOutcome {
-        let Some(envelope) = self.commit_envelopes.get(&request.commit_id).cloned() else {
+        let Some(envelope) = self
+            .history
+            .commit_envelopes
+            .get(&request.commit_id)
+            .cloned()
+        else {
             return RelationalReplayOutcome {
                 requested: request,
                 commit: None,
@@ -139,7 +144,7 @@ impl RelationalRuntime {
             });
         }
         if compared_surfaces.contains(&ReplayObservableSurface::Lineage)
-            && replay_runtime.lineage_events != self.lineage_events
+            && replay_runtime.lineage.events != self.lineage.events
         {
             mismatches.push(ReplayMismatch {
                 surface: ReplayObservableSurface::Lineage,
@@ -220,7 +225,8 @@ impl RelationalRuntime {
 
     fn replay_recovery_plan_for_chain(&self, chain: &[CommitId]) -> RecoveryPlan {
         let checkpoint = self
-            .durable_checkpoints
+            .durability
+            .checkpoints
             .iter()
             .rev()
             .find(|checkpoint| {
@@ -241,14 +247,16 @@ impl RelationalRuntime {
             .copied()
             .filter(|commit_id| tail_start.is_none_or(|start| *commit_id > start))
             .filter_map(|commit_id| {
-                self.commit_envelopes.get(&commit_id).cloned().map(|envelope| {
-                    DurableCommitEnvelope { envelope }
-                })
+                self.history
+                    .commit_envelopes
+                    .get(&commit_id)
+                    .cloned()
+                    .map(|envelope| DurableCommitEnvelope { envelope })
             })
             .collect();
         RecoveryPlan {
             config: self.config.clone(),
-            store: self.durable_store.clone(),
+            store: self.durability.store.clone(),
             checkpoint_manifest: checkpoint.as_ref().and_then(|_| None),
             checkpoint,
             tail_log,
@@ -279,7 +287,7 @@ impl RelationalRuntime {
         if ordered.contains(&commit_id) {
             return Ok(());
         }
-        let Some(envelope) = self.commit_envelopes.get(&commit_id) else {
+        let Some(envelope) = self.history.commit_envelopes.get(&commit_id) else {
             return Err(ReplayFailureClass::MissingParentChain);
         };
         if !visiting.insert(commit_id) {
